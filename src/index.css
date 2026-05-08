@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+:root {
+  --color-background: #222222;
+  --color-primary: #c0c0c0;
+  --color-secondary: #000080;
+
+  --color-text: #000000;
+  --color-muted: #808080;
+
+  --color-highlight: #0000ff;
+
+  --color-destructive: #800000;
+  --color-success: #008000;
+  --color-link-hover: #ff0000;
+  --color-surface: #d0d0d0;
+}
+
+@theme {
+  --color-background: var(--color-background);
+  --color-primary: var(--color-primary);
+  --color-secondary: var(--color-secondary);
+  --color-text: var(--color-text);
+  --color-muted: var(--color-muted);
+  --color-highlight: var(--color-highlight);
+  --color-destructive: var(--color-destructive);
+  --color-success: var(--color-success);
+  --color-link-hover: var(--color-link-hover);
+  --color-surface: var(--color-surface);
+}

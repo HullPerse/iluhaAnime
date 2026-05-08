@@ -1,5 +1,11 @@
 use scraper::{Html, Selector};
 use serde::Serialize;
+use std::fs;
+use std::sync::Arc;
+use tauri::{Emitter, Manager};
+
+mod torrent;
+use torrent::{TorrentManager, TorrentInfo};
 
 #[derive(Debug, Serialize)]
 pub struct NyaaItem {
@@ -122,11 +128,123 @@ fn parse_seeders_leechers(s: &str) -> (u32, u32) {
     }
 }
 
+#[tauri::command]
+async fn start_torrent_download(
+    magnet: String,
+    save_dir: String,
+    manager: tauri::State<'_, TorrentBackend>,
+) -> Result<usize, String> {
+    manager
+        .manager
+        .add_torrent(magnet, save_dir)
+        .await
+        .map_err(|e| format!("{e:#}"))
+}
+
+#[tauri::command]
+fn list_torrents(
+    manager: tauri::State<'_, TorrentBackend>,
+) -> Result<Vec<TorrentInfo>, String> {
+    Ok(manager.manager.collect_torrents())
+}
+
+#[tauri::command]
+async fn pause_torrent(
+    id: usize,
+    manager: tauri::State<'_, TorrentBackend>,
+) -> Result<(), String> {
+    manager
+        .manager
+        .pause_torrent(id)
+        .await
+        .map_err(|e| format!("{e:#}"))
+}
+
+#[tauri::command]
+async fn resume_torrent(
+    id: usize,
+    manager: tauri::State<'_, TorrentBackend>,
+) -> Result<(), String> {
+    manager
+        .manager
+        .resume_torrent(id)
+        .await
+        .map_err(|e| format!("{e:#}"))
+}
+
+#[tauri::command]
+async fn remove_torrent(
+    id: usize,
+    manager: tauri::State<'_, TorrentBackend>,
+) -> Result<(), String> {
+    manager
+        .manager
+        .remove_torrent(id)
+        .await
+        .map_err(|e| format!("{e:#}"))
+}
+
+#[tauri::command]
+fn get_app_data_path(app_handle: tauri::AppHandle) -> Result<String, String> {
+    let dir = app_handle
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("Failed to get app data dir: {e}"))?;
+    fs::create_dir_all(&dir).map_err(|e| format!("Failed to create dir: {e}"))?;
+    Ok(dir.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+fn write_text_file(path: String, content: String) -> Result<(), String> {
+    fs::write(&path, &content).map_err(|e| format!("Write error: {e}"))
+}
+
+#[tauri::command]
+fn read_text_file(path: String) -> Result<String, String> {
+    fs::read_to_string(&path).map_err(|e| format!("Read error: {e}"))
+}
+
+struct TorrentBackend {
+    manager: Arc<TorrentManager>,
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![search_erairaws])
+        .plugin(tauri_plugin_dialog::init())
+        .setup(|app| {
+            let app_data = app.path().app_data_dir().expect("app data dir");
+            let handle = app.handle().clone();
+            tauri::async_runtime::block_on(async {
+                let manager = TorrentManager::new(app_data)
+                    .await
+                    .expect("failed to initialize torrent session");
+                let manager = Arc::new(manager);
+                let app_clone = handle.clone();
+                let mgr_clone = manager.clone();
+                tokio::spawn(async move {
+                    loop {
+                        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+                        let torrents = mgr_clone.collect_torrents();
+                        let _ = app_clone.emit("torrents-update", &torrents);
+                    }
+                });
+                handle.manage(TorrentBackend { manager });
+            });
+            Ok(())
+        })
+        .invoke_handler(tauri::generate_handler![
+            search_erairaws,
+            start_torrent_download,
+            list_torrents,
+            pause_torrent,
+            resume_torrent,
+            remove_torrent,
+            get_app_data_path,
+            write_text_file,
+            read_text_file,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

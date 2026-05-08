@@ -31,7 +31,6 @@ const errorRoute = createRoute({
     <BigError
       error={new Error("Произошла ошибка")}
       icon={<CircleX className="size-28 animate-pulse text-red-500" />}
-      button
     />
   ),
 });

@@ -1,8 +1,9 @@
-import { useState } from "react";
-import SearchContent from "@/components/search.component";
-import TorrentContent from "@/components/torrent.component";
+import { useState, useEffect } from "react";
+import SearchContent from "@/routes/search.route";
+import TorrentContent from "@/routes/torrent.route";
 import backgroundImage from "@/assets/background.jpg";
 import { cn } from "@/lib/utils";
+import { useTorrentStore } from "@/store/download.store";
 
 type Tab = "search" | "torrent";
 
@@ -13,6 +14,14 @@ const tabs: { id: Tab; label: string }[] = [
 
 function App() {
   const [activeTab, setActiveTab] = useState<Tab>("search");
+  const init = useTorrentStore((s) => s.init);
+
+  useEffect(() => {
+    const cleanup = init();
+    return () => {
+      cleanup.then((fn) => fn());
+    };
+  }, [init]);
 
   return (
     <main className="relative h-screen w-screen overflow-hidden bg-[#018281]">

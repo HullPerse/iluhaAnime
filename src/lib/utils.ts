@@ -48,3 +48,11 @@ export function detectLanguages(title: string): LanguageTag[] {
 
   return tags;
 }
+
+export function formatSize(size: string): string {
+  const match = size.match(/^([\d.]+)\s*(.*)$/);
+  if (!match) return size;
+  const num = Number(match[1]);
+  const unit = match[2];
+  return `${num.toFixed(2)} ${unit}`.trim();
+}

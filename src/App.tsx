@@ -46,7 +46,7 @@ function App() {
           </div>
 
           {/* TAB BAR */}
-          <div className="flex bg-primary pl-2 pt-1">
+          <div className="flex bg-primary pl-2 pt-1 gap-1">
             {tabs.map((tab) => {
               const isActive = activeTab === tab.id;
               return (

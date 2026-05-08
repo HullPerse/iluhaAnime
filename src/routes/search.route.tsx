@@ -2,7 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { useQuery } from "@tanstack/react-query";
 import type { Anime, LanguageTag, SettingsScraper } from "@/types";
 import { useState } from "react";
-import { detectLanguages } from "@/lib/utils";
+import { detectLanguages, formatSize } from "@/lib/utils";
 import { languages, qualities } from "@/config/index.config";
 import { Button } from "@/components/ui/button.component";
 import { SmallLoader } from "@/components/shared/loader.component";
@@ -131,9 +131,7 @@ function SearchRoute() {
         )}
       </section>
       {isError && <section>{error?.message}</section>}
-      {(!data || data.length === 0) && !isError && (
-        <section>{searchParams && !data && "Ничего не найдено"}</section>
-      )}
+      {data?.length === 0 && !isError && <span>Ничего не найдено</span>}
       {sorted && (
         <section className="flex flex-col w-full h-full overflow-y-scroll p-0.5 gap-1">
           {sorted.map((item, i) => (
@@ -167,7 +165,7 @@ function SearchRoute() {
                 </div>
                 <div className="flex shrink-0 items-center gap-1">
                   <span className="text-[11px] font-['MS_Sans_Serif','Microsoft_Sans_Serif','Segoe_UI',system-ui]">
-                    {item.size}
+                    {formatSize(item.size)}
                   </span>
                   <span className="text-[11px] font-['MS_Sans_Serif','Microsoft_Sans_Serif','Segoe_UI',system-ui] text-[#008000]">
                     S:{item.seeders}

@@ -1,11 +1,14 @@
 use scraper::{Html, Selector};
 use serde::Serialize;
+use std::collections::{HashMap, HashSet};
 use std::fs;
+use std::num::NonZeroU32;
 use std::sync::Arc;
 use tauri::{Emitter, Manager};
+use tauri_plugin_notification::NotificationExt;
 
 mod torrent;
-use torrent::{TorrentManager, TorrentInfo};
+use torrent::{TorrentFileInfo, TorrentInfoResult, TorrentManager, TorrentInfo};
 
 #[derive(Debug, Serialize)]
 pub struct NyaaItem {
@@ -132,13 +135,24 @@ fn parse_seeders_leechers(s: &str) -> (u32, u32) {
 async fn start_torrent_download(
     magnet: String,
     save_dir: String,
+    only_files: Option<Vec<usize>>,
+    sub_folder: Option<String>,
     manager: tauri::State<'_, TorrentBackend>,
 ) -> Result<usize, String> {
     manager
         .manager
-        .add_torrent(magnet, save_dir)
+        .add_torrent(magnet, save_dir, only_files, sub_folder)
         .await
         .map_err(|e| format!("{e:#}"))
+}
+
+#[tauri::command]
+async fn get_torrent_info(
+    magnet: String,
+    save_dir: String,
+    manager: tauri::State<'_, TorrentBackend>,
+) -> Result<TorrentInfoResult, String> {
+    manager.manager.get_torrent_info(magnet, save_dir).await
 }
 
 #[tauri::command]
@@ -175,11 +189,12 @@ async fn resume_torrent(
 #[tauri::command]
 async fn remove_torrent(
     id: usize,
+    delete_files: bool,
     manager: tauri::State<'_, TorrentBackend>,
 ) -> Result<(), String> {
     manager
         .manager
-        .remove_torrent(id)
+        .remove_torrent(id, delete_files)
         .await
         .map_err(|e| format!("{e:#}"))
 }
@@ -204,6 +219,39 @@ fn read_text_file(path: String) -> Result<String, String> {
     fs::read_to_string(&path).map_err(|e| format!("Read error: {e}"))
 }
 
+#[tauri::command]
+fn set_global_speed_limits(
+    download_bps: Option<u32>,
+    upload_bps: Option<u32>,
+    manager: tauri::State<'_, TorrentBackend>,
+) -> Result<(), String> {
+    manager.manager.set_global_limits(
+        download_bps.and_then(NonZeroU32::new),
+        upload_bps.and_then(NonZeroU32::new),
+    );
+    Ok(())
+}
+
+#[tauri::command]
+fn get_running_torrent_files(
+    id: usize,
+    manager: tauri::State<'_, TorrentBackend>,
+) -> Result<Vec<TorrentFileInfo>, String> {
+    manager.manager.get_running_torrent_files(id)
+}
+
+#[tauri::command]
+async fn update_torrent_only_files(
+    id: usize,
+    only_files: Vec<usize>,
+    manager: tauri::State<'_, TorrentBackend>,
+) -> Result<(), String> {
+    manager
+        .manager
+        .update_torrent_only_files(id, only_files)
+        .await
+}
+
 struct TorrentBackend {
     manager: Arc<TorrentManager>,
 }
@@ -213,6 +261,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_notification::init())
         .setup(|app| {
             let app_data = app.path().app_data_dir().expect("app data dir");
             let handle = app.handle().clone();
@@ -224,10 +273,42 @@ pub fn run() {
                 let app_clone = handle.clone();
                 let mgr_clone = manager.clone();
                 tokio::spawn(async move {
+                    let mut prev_states: HashMap<usize, (bool, Option<String>)> = HashMap::new();
                     loop {
                         tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
                         let torrents = mgr_clone.collect_torrents();
                         let _ = app_clone.emit("torrents-update", &torrents);
+
+                        for t in &torrents {
+                            let prev = prev_states.get(&t.id);
+                            let prev_finished = prev.map(|(f, _)| *f).unwrap_or(false);
+                            let prev_error = prev.and_then(|(_, e)| e.clone());
+
+                            if t.finished && !prev_finished && t.total_bytes > 0 {
+                                let _ = app_clone
+                                    .notification()
+                                    .builder()
+                                    .title("Загрузка завершена")
+                                    .body(&t.name)
+                                    .show();
+                            }
+
+                            if t.error.is_some() && prev_error.is_none() {
+                                let msg = format!("{}: {}", t.name, t.error.as_deref().unwrap_or(""));
+                                let _ = app_clone
+                                    .notification()
+                                    .builder()
+                                    .title("Ошибка загрузки")
+                                    .body(&msg)
+                                    .show();
+                            }
+
+                            prev_states.insert(t.id, (t.finished, t.error.clone()));
+                        }
+
+                        let current_ids: HashSet<usize> =
+                            torrents.iter().map(|t| t.id).collect();
+                        prev_states.retain(|id, _| current_ids.contains(id));
                     }
                 });
                 handle.manage(TorrentBackend { manager });
@@ -244,6 +325,10 @@ pub fn run() {
             get_app_data_path,
             write_text_file,
             read_text_file,
+            get_torrent_info,
+            get_running_torrent_files,
+            update_torrent_only_files,
+            set_global_speed_limits,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

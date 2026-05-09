@@ -9,9 +9,15 @@ import { SmallLoader } from "@/components/shared/loader.component";
 import { Search, Download } from "lucide-react";
 import { Input } from "@/components/ui/input.component";
 import { useTorrentStore } from "@/store/download.store";
+import TorrentFilePicker from "@/components/shared/file-picker.component";
 
 function SearchRoute() {
-  const startTorrent = useTorrentStore((s) => s.startTorrent);
+  const prepareTorrentDownload = useTorrentStore((s) => s.prepareTorrentDownload);
+  const pendingTorrent = useTorrentStore((s) => s.pendingTorrent);
+  const preparingTorrent = useTorrentStore((s) => s.preparingTorrent);
+  const lastSaveDir = useTorrentStore((s) => s.lastSaveDir);
+  const confirmDownload = useTorrentStore((s) => s.confirmDownload);
+  const cancelDownload = useTorrentStore((s) => s.cancelDownload);
   const [searchParams, setSearchParams] = useState<string>("");
   const [settings, setSettings] = useState<SettingsScraper>({
     quality: "all",
@@ -186,7 +192,7 @@ function SearchRoute() {
                 )}
                 {item.magnet && (
                   <button
-                    onClick={() => startTorrent(item.magnet)}
+                    onClick={() => prepareTorrentDownload(item.magnet)}
                     className="inline-flex items-center gap-0.5 border-2 border-solid border-t-white border-l-white border-b-muted border-r-muted bg-[#c0c0c0] px-2 py-0.5 text-[11px] font-['MS_Sans_Serif','Microsoft_Sans_Serif','Segoe_UI',system-ui] text-text no-underline active:border-t-muted active:border-l-muted active:border-b-white active:border-r-white cursor-pointer"
                   >
                     <Download className="size-3" />
@@ -197,6 +203,18 @@ function SearchRoute() {
             </div>
           ))}
         </section>
+      )}
+
+      {(preparingTorrent || pendingTorrent) && (
+        <TorrentFilePicker
+          torrent={pendingTorrent}
+          loading={!!preparingTorrent && !pendingTorrent}
+          defaultSaveDir={lastSaveDir}
+          onConfirm={(selectedIndices, saveDir, subFolder) =>
+            confirmDownload(selectedIndices, saveDir, subFolder)
+          }
+          onCancel={cancelDownload}
+        />
       )}
     </div>
   );

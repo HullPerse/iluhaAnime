@@ -12,13 +12,16 @@ import { useTorrentStore } from "@/store/download.store";
 import TorrentFilePicker from "@/components/shared/file-picker.component";
 
 function SearchRoute() {
-  const prepareTorrentDownload = useTorrentStore((s) => s.prepareTorrentDownload);
+  const prepareTorrentDownload = useTorrentStore(
+    (s) => s.prepareTorrentDownload,
+  );
   const pendingTorrent = useTorrentStore((s) => s.pendingTorrent);
   const preparingTorrent = useTorrentStore((s) => s.preparingTorrent);
   const lastSaveDir = useTorrentStore((s) => s.lastSaveDir);
   const confirmDownload = useTorrentStore((s) => s.confirmDownload);
   const cancelDownload = useTorrentStore((s) => s.cancelDownload);
   const [searchParams, setSearchParams] = useState<string>("");
+  const [source, setSource] = useState<"erairaws" | "nyaa">("erairaws");
   const [settings, setSettings] = useState<SettingsScraper>({
     quality: "all",
     language: "all",
@@ -26,12 +29,16 @@ function SearchRoute() {
   });
 
   const { data, isLoading, isError, error, refetch } = useQuery({
-    queryKey: ["animeScraper"],
+    queryKey: ["animeScraper", source],
     queryFn: async (): Promise<Anime[]> => {
-      const data = await invoke<Anime[]>("search_erairaws", {
+      if (source === "nyaa") {
+        return await invoke<Anime[]>("search_nyaa", {
+          query: searchParams.trim(),
+        });
+      }
+      return await invoke<Anime[]>("search_erairaws", {
         query: searchParams.trim(),
       });
-      return data;
     },
     enabled: false,
   });
@@ -79,7 +86,11 @@ function SearchRoute() {
           onClick={() => refetch()}
           disabled={isLoading}
         >
-          {isLoading ? <SmallLoader /> : <Search />}
+          {isLoading ? (
+            <SmallLoader />
+          ) : (
+            <Search className="pointer-events-none" />
+          )}
         </Button>
       </section>
       <section className="flex flex-row gap-2 w-full">
@@ -128,6 +139,19 @@ function SearchRoute() {
             <option value="seeders">Сидеры</option>
             <option value="leechers">Личи</option>
             <option value="size">Размер</option>
+          </select>
+        </div>
+        <div className="flex items-center gap-1">
+          <span className="text-text text-[11px] font-['MS_Sans_Serif','Microsoft_Sans_Serif','Segoe_UI',system-ui]">
+            Источник:
+          </span>
+          <select
+            className="h-6 border-2 border-solid border-t-muted border-l-muted border-b-white border-r-white bg-white px-1 text-text text-[11px] font-['MS_Sans_Serif','Microsoft_Sans_Serif','Segoe_UI',system-ui] outline-none focus-visible:outline-dotted focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-text"
+            value={source}
+            onChange={(e) => setSource(e.target.value as "erairaws" | "nyaa")}
+          >
+            <option value="erairaws">Erai-Raws</option>
+            <option value="nyaa">Nyaa.si</option>
           </select>
         </div>
         {filtered && (

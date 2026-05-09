@@ -132,6 +132,100 @@ fn parse_seeders_leechers(s: &str) -> (u32, u32) {
 }
 
 #[tauri::command]
+async fn search_nyaa(query: String) -> Result<Vec<NyaaItem>, String> {
+    let client = build_client()?;
+
+    let resp = client
+        .get("https://nyaa.si/")
+        .query(&[("q", &*query), ("s", "seeders"), ("o", "desc")])
+        .send()
+        .await
+        .map_err(|e| format!("Nyaa request failed: {e}"))?;
+
+    if !resp.status().is_success() {
+        return Err(format!("Nyaa search returned HTTP {}", resp.status()));
+    }
+
+    let html = resp.text().await.map_err(|e| format!("Read error: {e}"))?;
+    let items = parse_nyaa_entries(&html);
+    Ok(items.into_iter().filter(has_russian_subs).collect())
+}
+
+fn has_russian_subs(item: &NyaaItem) -> bool {
+    let upper = item.title.to_uppercase();
+    upper.contains("[RUS]")
+        || upper.contains("(RUS)")
+        || upper.contains("[RU]")
+        || upper.contains("(RU)")
+        || upper.contains("ANIMERUS")
+        || upper.contains("ANIRUS")
+        || upper.contains("SUBRUS")
+        || item.title.contains("рус")
+        || item.title.contains("Рус")
+        || item.title.contains("РУС")
+}
+
+fn parse_nyaa_entries(html: &str) -> Vec<NyaaItem> {
+    let doc = Html::parse_document(html);
+    let row_sel = Selector::parse("table tbody tr").unwrap();
+    let td_sel = Selector::parse("td").unwrap();
+    let title_link_sel = Selector::parse("a[title]").unwrap();
+    let magnet_sel = Selector::parse("a[href^='magnet:']").unwrap();
+    let download_sel = Selector::parse("a[href*='/download/']").unwrap();
+
+    let mut items = Vec::new();
+
+    for row in doc.select(&row_sel) {
+        let tds: Vec<_> = row.select(&td_sel).collect();
+        if tds.len() < 8 {
+            continue;
+        }
+
+        let title = tds[1]
+            .select(&title_link_sel)
+            .next()
+            .and_then(|a| a.value().attr("title"))
+            .map(|s| s.to_string())
+            .unwrap_or_default();
+
+        if title.is_empty() {
+            continue;
+        }
+
+        let magnet = tds[2]
+            .select(&magnet_sel)
+            .next()
+            .and_then(|a| a.value().attr("href"))
+            .map(|s| s.to_string())
+            .unwrap_or_default();
+
+        let torrent = tds[2]
+            .select(&download_sel)
+            .next()
+            .and_then(|a| a.value().attr("href"))
+            .map(|s| format!("https://nyaa.si{s}"))
+            .unwrap_or_default();
+
+        let size = tds[3].text().collect::<String>().trim().to_string();
+        let seeders = tds[5].text().collect::<String>().trim().parse().unwrap_or(0);
+        let leechers = tds[6].text().collect::<String>().trim().parse().unwrap_or(0);
+
+        items.push(NyaaItem {
+            title,
+            magnet,
+            torrent,
+            size,
+            seeders,
+            leechers,
+            category: String::new(),
+            link: String::new(),
+        });
+    }
+
+    items
+}
+
+#[tauri::command]
 async fn start_torrent_download(
     magnet: String,
     save_dir: String,
@@ -317,6 +411,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             search_erairaws,
+            search_nyaa,
             start_torrent_download,
             list_torrents,
             pause_torrent,

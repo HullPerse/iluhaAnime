@@ -21,6 +21,14 @@ export function fmtETA(secs: number | null): string {
   return `${h} ч ${m} мин`;
 }
 
+export function fmtSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024 * 1024 * 1024)
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+}
+
 export function stateLabel(state: string): string {
   switch (state) {
     case "live":

@@ -1,5 +1,5 @@
 [package]
-name = "rogue"
+name = "iluhaAnime"
 version = "0.1.0"
 description = "A Tauri App"
 authors = ["you"]
@@ -30,5 +30,3 @@ regex-lite = "0.1"
 librqbit = { version = "8.1", default-features = false, features = ["default-tls"] }
 anyhow = "1"
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "fs", "io-util"] }
-
-

@@ -4,7 +4,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "group/button inline-flex shrink-0 items-center justify-center border-2 border-solid border-t-white border-l-white border-b-muted border-r-muted bg-primary text-text text-[11px] font-['MS_Sans_Serif','Microsoft_Sans_Serif','Segoe_UI',system-ui] whitespace-nowrap transition-none outline-none select-none active:border-t-muted active:border-l-muted active:border-b-white active:border-r-white active:translate-x-px active:translate-y-px disabled:pointer-events-none disabled:opacity-50 disabled:border-t-muted disabled:border-l-muted disabled:border-b-white disabled:border-r-white disabled:translate-x-0 disabled:translate-y-0 focus-visible:outline-dotted focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-text [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-3.5 hover:cursor-pointer",
+  "group/button inline-flex shrink-0 items-center justify-center windows95-active-border bg-primary text-text windows95-text whitespace-nowrap transition-none outline-none select-nonewindows95-active-border active:translate-x-px active:translate-y-px disabled:pointer-events-none disabled:opacity-50 disabled:border-t-muted disabled:border-l-muted disabled:border-b-white disabled:border-r-white disabled:translate-x-0 disabled:translate-y-0 focus-visible:outline-dotted focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-text [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-3.5 hover:cursor-pointer",
   {
     variants: {
       variant: {

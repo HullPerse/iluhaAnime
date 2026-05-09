@@ -37,10 +37,10 @@ function App() {
 
       {/* WIN95 WINDOW FRAME */}
       <div className="relative z-10 h-full flex flex-col p-1">
-        <div className="flex flex-col h-full border-2 border-solid border-t-white border-l-white border-b-muted border-r-muted bg-primary shadow-lg">
+        <div className="flex flex-col h-full windows95-active-border bg-primary shadow-lg">
           {/* TITLE BAR */}
           <div className="flex items-center justify-between bg-secondary px-1 py-0.5 select-none">
-            <span className="text-white text-[11px] font-bold font-['MS_Sans_Serif','Microsoft_Sans_Serif','Segoe_UI',system-ui]">
+            <span className="text-white text-[11px] font-bold windows95-font">
               iluhaAnime
             </span>
           </div>
@@ -54,7 +54,7 @@ function App() {
                   key={tab.id}
                   className={cn(
                     "px-3 py-0.5 text-[11px] border-2 border-solid relative cursor-pointer",
-                    "font-['MS_Sans_Serif','Microsoft_Sans_Serif','Segoe_UI',system-ui]",
+                    "windows95-font",
                     "active:outline-dotted active:outline-1 active:outline-offset-[-3px] active:outline-text",
                     isActive
                       ? "border-t-white border-l-white border-r-muted font-bold z-10"

@@ -28,3 +28,64 @@
   --color-link-hover: var(--color-link-hover);
   --color-surface: var(--color-surface);
 }
+
+.windows95-text {
+  font-size: 11px;
+  font-family: "MS Sans Serif", "Microsoft Sans Serif", "Segoe UI", system-ui;
+}
+
+.windows95-font {
+  font-family: "MS Sans Serif", "Microsoft Sans Serif", "Segoe UI", system-ui;
+}
+
+.windows95-border {
+  border: 2px solid;
+  border-top-color: var(--color-muted);
+  border-left-color: var(--color-muted);
+  border-bottom-color: #ffffff;
+  border-right-color: #ffffff;
+}
+
+.windows95-active-border {
+  border: 2px solid;
+  border-top-color: #ffffff;
+  border-left-color: #ffffff;
+  border-bottom-color: var(--color-muted);
+  border-right-color: var(--color-muted);
+}
+
+.windows95-select {
+  --tw-outline-style: none;
+  outline-style: none;
+}
+
+.windows95-select:focus-visible {
+  outline-style: dotted;
+  outline-width: 1px;
+  outline-offset: -3px;
+  outline-color: var(--color-text);
+}
+
+.windows95-small-border {
+  border: 1px solid;
+  border-top-color: #ffffff;
+  border-left-color: #ffffff;
+  border-bottom-color: var(--color-muted);
+  border-right-color: var(--color-muted);
+}
+
+@property --tw-translate-x {
+  syntax: "*";
+  inherits: false;
+  initial-value: 0;
+}
+@property --tw-translate-y {
+  syntax: "*";
+  inherits: false;
+  initial-value: 0;
+}
+@property --tw-translate-z {
+  syntax: "*";
+  inherits: false;
+  initial-value: 0;
+}

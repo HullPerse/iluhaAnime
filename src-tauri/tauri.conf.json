@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "rogue",
+  "productName": "iluhaAnime",
   "version": "0.1.0",
-  "identifier": "com.александр.rogue",
+  "identifier": "com.александр.iluhaanime",
   "build": {
     "beforeDevCommand": "pnpm dev",
     "devUrl": "http://localhost:1420",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "rogue",
+        "title": "iluhaAnime",
         "width": 800,
         "height": 600
       }

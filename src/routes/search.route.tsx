@@ -6,10 +6,10 @@ import { detectLanguages, formatSize } from "@/lib/utils";
 import { languages, qualities } from "@/config/index.config";
 import { Button } from "@/components/ui/button.component";
 import { SmallLoader } from "@/components/shared/loader.component";
-import { Search, Download } from "lucide-react";
+import { Search, Download, Clipboard } from "lucide-react";
 import { Input } from "@/components/ui/input.component";
 import { useTorrentStore } from "@/store/download.store";
-import TorrentFilePicker from "@/components/shared/file-picker.component";
+import TorrentFilePicker from "@/routes/components/picker.search";
 
 function SearchRoute() {
   const prepareTorrentDownload = useTorrentStore(
@@ -95,39 +95,35 @@ function SearchRoute() {
       </section>
       <section className="flex flex-row gap-2 w-full">
         <div className="flex flex-wrap gap-1 items-center">
-          <span className="text-text text-[11px] font-['MS_Sans_Serif','Microsoft_Sans_Serif','Segoe_UI',system-ui]">
-            Качество:
-          </span>
+          <span className="text-text windows95-text">Качество:</span>
           {qualities.map((q) => (
             <Button
               key={q}
               variant={settings.quality === q ? "outline" : "default"}
               onClick={() => setSettings((prev) => ({ ...prev, quality: q }))}
+              className="windows95-small-border"
             >
               {q === "all" ? "Все" : q}
             </Button>
           ))}
         </div>
         <div className="flex flex-wrap gap-1 items-center">
-          <span className="text-text text-[11px] font-['MS_Sans_Serif','Microsoft_Sans_Serif','Segoe_UI',system-ui]">
-            Язык:
-          </span>
+          <span className="text-text windows95-text">Язык:</span>
           {languages.map((l) => (
             <Button
               key={l}
               variant={settings.language === l ? "outline" : "default"}
               onClick={() => setSettings((prev) => ({ ...prev, language: l }))}
+              className="windows95-small-border"
             >
               {l === "all" ? "Все" : l}
             </Button>
           ))}
         </div>
         <div className="flex items-center gap-1">
-          <span className="text-text text-[11px] font-['MS_Sans_Serif','Microsoft_Sans_Serif','Segoe_UI',system-ui]">
-            Сортировка:
-          </span>
+          <span className="text-text windows95-text">Сортировка:</span>
           <select
-            className="h-6 border-2 border-solid border-t-muted border-l-muted border-b-white border-r-white bg-white px-1 text-text text-[11px] font-['MS_Sans_Serif','Microsoft_Sans_Serif','Segoe_UI',system-ui] outline-none focus-visible:outline-dotted focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-text"
+            className="h-6 windows95-border px-1 text-text windows95-text windows95-select"
             value={settings.sort}
             onChange={(e) =>
               setSettings((prev) => ({
@@ -142,11 +138,9 @@ function SearchRoute() {
           </select>
         </div>
         <div className="flex items-center gap-1">
-          <span className="text-text text-[11px] font-['MS_Sans_Serif','Microsoft_Sans_Serif','Segoe_UI',system-ui]">
-            Источник:
-          </span>
+          <span className="text-text windows95-text">Источник:</span>
           <select
-            className="h-6 border-2 border-solid border-t-muted border-l-muted border-b-white border-r-white bg-white px-1 text-text text-[11px] font-['MS_Sans_Serif','Microsoft_Sans_Serif','Segoe_UI',system-ui] outline-none focus-visible:outline-dotted focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-text"
+            className="h-6 windows95-border px-1 text-text windows95-text windows95-select"
             value={source}
             onChange={(e) => setSource(e.target.value as "erairaws" | "nyaa")}
           >
@@ -154,11 +148,6 @@ function SearchRoute() {
             <option value="nyaa">Nyaa.si</option>
           </select>
         </div>
-        {filtered && (
-          <span className="text-xs text-text font-bold self-center ml-auto border-2 border-solid border-t-muted border-l-muted border-b-white border-r-white bg-white px-1">
-            Найдено: {filtered.length}
-          </span>
-        )}
       </section>
       {isError && <section>{error?.message}</section>}
       {data?.length === 0 && !isError && <span>Ничего не найдено</span>}
@@ -167,25 +156,25 @@ function SearchRoute() {
           {sorted.map((item, i) => (
             <div
               key={i}
-              className="border-2 border-solid border-t-white border-l-white border-b-muted border-r-muted bg-[#c0c0c0] px-2 py-1.5 mb-0.5"
+              className="windows95-active-border bg-primary px-2 py-1.5 mb-0.5"
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
-                  <h3 className="truncate text-[11px] font-bold leading-tight font-['MS_Sans_Serif','Microsoft_Sans_Serif','Segoe_UI',system-ui]">
+                  <h3 className="truncate text-[11px] font-bold leading-tight windows95-font">
                     {item.title}
                   </h3>
                   <div className="mt-1 flex flex-wrap gap-1">
                     {detectLanguages(item.title).map((l) => {
                       const colors: Record<string, string> = {
-                        ru: "bg-[#000080] text-white",
-                        en: "bg-[#008000] text-white",
+                        ru: "bg-secondary text-white",
+                        en: "bg-secondary text-white",
                         multi: "bg-[#800080] text-white",
                         dual: "bg-[#808000] text-white",
                       };
                       return (
                         <span
                           key={l.code}
-                          className={`px-1 text-[10px] font-['MS_Sans_Serif','Microsoft_Sans_Serif','Segoe_UI',system-ui] ${colors[l.code] || "bg-[#808080] text-white"}`}
+                          className={`px-1 text-[10px] windows95-font ${colors[l.code] || "bg-muted text-white"}`}
                         >
                           {l.label}
                         </span>
@@ -194,34 +183,43 @@ function SearchRoute() {
                   </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-1">
-                  <span className="text-[11px] font-['MS_Sans_Serif','Microsoft_Sans_Serif','Segoe_UI',system-ui]">
+                  <span className="windows95-text">
                     {formatSize(item.size)}
                   </span>
-                  <span className="text-[11px] font-['MS_Sans_Serif','Microsoft_Sans_Serif','Segoe_UI',system-ui] text-[#008000]">
+                  <span className="windows95-text text-success">
                     S:{item.seeders}
                   </span>
-                  <span className="text-[11px] font-['MS_Sans_Serif','Microsoft_Sans_Serif','Segoe_UI',system-ui] text-[#800000]">
+                  <span className="windows95-text text-destructive">
                     L:{item.leechers}
                   </span>
                 </div>
               </div>
               <div className="mt-1 flex gap-1">
                 {item.magnet && (
-                  <a
-                    href={item.magnet}
-                    className="border-2 border-solid border-t-white border-l-white border-b-muted border-r-muted bg-[#c0c0c0] px-2 py-0.5 text-[11px] font-['MS_Sans_Serif','Microsoft_Sans_Serif','Segoe_UI',system-ui] text-text no-underline active:border-t-muted active:border-l-muted active:border-b-white active:border-r-white"
+                  <Button
+                    size="icon"
+                    onClick={() => navigator.clipboard.writeText(item.magnet)}
+                    className="windows95-active-border bg-primary windows95-text size-5.5"
                   >
-                    Магнит
-                  </a>
+                    <Clipboard />
+                  </Button>
                 )}
                 {item.magnet && (
-                  <button
+                  <Button
+                    onClick={() => document.location.assign(item.magnet)}
+                    className="windows95-active-border bg-primary px-2 py-0.5 windows95-text text-text no-underline"
+                  >
+                    Магнит
+                  </Button>
+                )}
+                {item.magnet && (
+                  <Button
                     onClick={() => prepareTorrentDownload(item.magnet)}
-                    className="inline-flex items-center gap-0.5 border-2 border-solid border-t-white border-l-white border-b-muted border-r-muted bg-[#c0c0c0] px-2 py-0.5 text-[11px] font-['MS_Sans_Serif','Microsoft_Sans_Serif','Segoe_UI',system-ui] text-text no-underline active:border-t-muted active:border-l-muted active:border-b-white active:border-r-white cursor-pointer"
+                    className="inline-flex items-center gap-0.5 windows95-active-border bg-primary px-2 py-0.5 windows95-text text-text no-underline cursor-pointer"
                   >
                     <Download className="size-3" />
                     Скачать
-                  </button>
+                  </Button>
                 )}
               </div>
             </div>

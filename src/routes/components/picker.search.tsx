@@ -3,6 +3,8 @@ import { useState, useEffect, useRef } from "react";
 import { SmallLoader } from "../../components/shared/loader.component";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
+import { groupFilesByDirectory } from "@/lib/torrent.utils";
+import { FolderOpen } from "lucide-react";
 
 export interface TorrentFileInfo {
   index: number;
@@ -140,33 +142,46 @@ function TorrentFilePicker({
               </span>
             </label>
           </div>
-          <div className="flex flex-col gap-1 h-42 w-full pr-2 overflow-y-auto">
-            {torrent?.files.map((item) => {
-              const conflict = torrent.conflictingFiles.includes(item.name);
-
-              return (
-                <label
-                  key={item.index}
-                  className="flex items-center w-full gap-1 p-1 windows95-text hover:cursor-pointer select-none hover:bg-[#e0e0e0]  windows95-border"
-                >
-                  <input
-                    type="checkbox"
-                    checked={selected.has(item.index)}
-                    onChange={() => toggleFile(item.index)}
-                    className="cursor-pointer"
-                  />
-                  <span className="truncate flex-1">{item.name}</span>
-                  <span className="text-muted shrink-0">
-                    {fmtSize(item.size)}
-                  </span>
-                  {conflict && (
-                    <span className="text-destructive text-[10px] shrink-0">
-                      [существует]
+          <div className="flex flex-col h-42 w-full pr-2 overflow-y-auto">
+            {torrent && groupFilesByDirectory(torrent.files).map((group) => (
+              <div key={group.dir || "__root__"}>
+                {group.dir && (
+                  <div className="flex items-center gap-1 px-1 py-0.5 text-[10px] windows95-font bg-[#c0c0c0] windows95-border select-none">
+                    <FolderOpen className="size-3 shrink-0" />
+                    <span className="font-bold truncate">{group.dir}</span>
+                    <span className="text-muted ml-auto">
+                      {fmtSize(group.files.reduce((s, f) => s + f.size, 0))}
                     </span>
-                  )}
-                </label>
-              );
-            })}
+                  </div>
+                )}
+                {group.files.map((item) => {
+                  const conflict = torrent!.conflictingFiles.includes(item.name);
+
+                  return (
+                    <label
+                      key={item.index}
+                      className={`flex items-center w-full gap-1 px-1 py-0.5 windows95-text select-none hover:bg-[#e0e0e0] cursor-pointer ${group.dir ? "pl-5" : ""} windows95-border`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selected.has(item.index)}
+                        onChange={() => toggleFile(item.index)}
+                        className="cursor-pointer shrink-0"
+                      />
+                      <span className="truncate flex-1 text-[11px]">{item.displayName}</span>
+                      <span className="text-muted shrink-0 text-[10px]">
+                        {fmtSize(item.size)}
+                      </span>
+                      {conflict && (
+                        <span className="text-destructive text-[10px] shrink-0">
+                          [существует]
+                        </span>
+                      )}
+                    </label>
+                  );
+                })}
+              </div>
+            ))}
           </div>
 
           <div className="flex items-center gap-1 w-full">

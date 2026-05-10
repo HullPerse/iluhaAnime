@@ -9,17 +9,11 @@ import { SmallLoader } from "@/components/shared/loader.component";
 import { Search, Download, Clipboard } from "lucide-react";
 import { Input } from "@/components/ui/input.component";
 import { useTorrentStore } from "@/store/download.store";
-import TorrentFilePicker from "@/routes/components/picker.search";
 
 function SearchRoute() {
   const prepareTorrentDownload = useTorrentStore(
     (s) => s.prepareTorrentDownload,
   );
-  const pendingTorrent = useTorrentStore((s) => s.pendingTorrent);
-  const preparingTorrent = useTorrentStore((s) => s.preparingTorrent);
-  const lastSaveDir = useTorrentStore((s) => s.lastSaveDir);
-  const confirmDownload = useTorrentStore((s) => s.confirmDownload);
-  const cancelDownload = useTorrentStore((s) => s.cancelDownload);
   const [searchParams, setSearchParams] = useState<string>("");
   const [source, setSource] = useState<"erairaws" | "nyaa">("erairaws");
   const [settings, setSettings] = useState<SettingsScraper>({
@@ -74,7 +68,7 @@ function SearchRoute() {
         <Input
           placeholder="Найти аниме..."
           value={searchParams}
-          className="h-9 font-bold"
+          className="h-9 font-bold bg-white"
           onChange={(e) => setSearchParams(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter") refetch();
@@ -225,18 +219,6 @@ function SearchRoute() {
             </div>
           ))}
         </section>
-      )}
-
-      {(preparingTorrent || pendingTorrent) && (
-        <TorrentFilePicker
-          torrent={pendingTorrent}
-          loading={!!preparingTorrent && !pendingTorrent}
-          defaultSaveDir={lastSaveDir}
-          onConfirm={(selectedIndices, saveDir, subFolder) =>
-            confirmDownload(selectedIndices, saveDir, subFolder)
-          }
-          onCancel={cancelDownload}
-        />
       )}
     </div>
   );

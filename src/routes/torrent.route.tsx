@@ -4,6 +4,7 @@ import { fmtBytes, fmtETA, fmtSpeed, stateLabel } from "@/lib/torrent.utils";
 import { useTorrentStore } from "@/store/download.store";
 import { confirm } from "@tauri-apps/plugin-dialog";
 import { openPath } from "@tauri-apps/plugin-opener";
+import Modal from "@/components/shared/modal.component";
 import {
   Pause,
   Play,
@@ -13,6 +14,7 @@ import {
   ChevronRight,
   ArrowDown,
   ArrowUp,
+  Plus,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import TorrentFilesSection from "./components/file.torrent";
@@ -30,6 +32,9 @@ function TorrentRoute() {
     loadTorrentFiles,
     updateTorrentOnlyFiles,
   } = useTorrentStore((state) => state);
+  const prepareTorrentDownload = useTorrentStore(
+    (s) => s.prepareTorrentDownload,
+  );
   const [dlInput, setDlInput] = useState(
     dlLimit !== null ? String(dlLimit) : "",
   );
@@ -37,6 +42,8 @@ function TorrentRoute() {
     ulLimit !== null ? String(ulLimit) : "",
   );
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
+  const [showMagnetModal, setShowMagnetModal] = useState(false);
+  const [magnetInput, setMagnetInput] = useState("");
 
   useEffect(() => {
     torrents.forEach((t) => {
@@ -106,6 +113,14 @@ function TorrentRoute() {
             Снять
           </button>
         )}
+        <span className="ml-auto" />
+        <button
+          className="flex items-center gap-0.5 windows95-active-border bg-primary px-1.5 py-0.5 text-[10px] windows95-font cursor-pointer"
+          onClick={() => setShowMagnetModal(true)}
+        >
+          <Plus className="size-3" />
+          магнит
+        </button>
       </section>
       {torrents.map((item, index) => {
         const progress = item.progress * 100;
@@ -261,6 +276,57 @@ function TorrentRoute() {
           </div>
         );
       })}
+      {showMagnetModal && (
+        <Modal
+          header="Добавить магнит"
+          onClose={() => {
+            setShowMagnetModal(false);
+            setMagnetInput("");
+          }}
+        >
+          <div className="flex flex-col gap-2 py-2">
+            <span className="windows95-text text-[11px]">
+              Введите magnet-ссылку:
+            </span>
+            <input
+              className="w-full h-6 windows95-border px-1 windows95-text outline-none bg-white"
+              placeholder="magnet:?xt=urn:btih:..."
+              value={magnetInput}
+              onChange={(e) => setMagnetInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && magnetInput.trim()) {
+                  setShowMagnetModal(false);
+                  setMagnetInput("");
+                  prepareTorrentDownload(magnetInput.trim());
+                }
+              }}
+              autoFocus
+            />
+            <div className="flex justify-end gap-1 mt-1">
+              <Button
+                onClick={() => {
+                  setShowMagnetModal(false);
+                  setMagnetInput("");
+                }}
+              >
+                Отмена
+              </Button>
+              <Button
+                onClick={() => {
+                  if (magnetInput.trim()) {
+                    setShowMagnetModal(false);
+                    setMagnetInput("");
+                    prepareTorrentDownload(magnetInput.trim());
+                  }
+                }}
+                disabled={!magnetInput.trim()}
+              >
+                Продолжить
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </main>
   );
 }

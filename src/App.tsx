@@ -4,6 +4,7 @@ import TorrentContent from "@/routes/torrent.route";
 import backgroundImage from "@/assets/background.jpg";
 import { cn } from "@/lib/utils";
 import { useTorrentStore } from "@/store/download.store";
+import TorrentFilePicker from "@/routes/components/picker.search";
 
 type Tab = "search" | "torrent";
 
@@ -15,6 +16,11 @@ const tabs: { id: Tab; label: string }[] = [
 function App() {
   const [activeTab, setActiveTab] = useState<Tab>("search");
   const init = useTorrentStore((s) => s.init);
+  const pendingTorrent = useTorrentStore((s) => s.pendingTorrent);
+  const preparingTorrent = useTorrentStore((s) => s.preparingTorrent);
+  const lastSaveDir = useTorrentStore((s) => s.lastSaveDir);
+  const confirmDownload = useTorrentStore((s) => s.confirmDownload);
+  const cancelDownload = useTorrentStore((s) => s.cancelDownload);
 
   useEffect(() => {
     const cleanup = init();
@@ -25,6 +31,17 @@ function App() {
 
   return (
     <main className="relative h-screen w-screen overflow-hidden bg-[#018281]">
+      {(preparingTorrent || pendingTorrent) && (
+        <TorrentFilePicker
+          torrent={pendingTorrent}
+          loading={!!preparingTorrent && !pendingTorrent}
+          defaultSaveDir={lastSaveDir}
+          onConfirm={(selectedIndices, saveDir, subFolder) =>
+            confirmDownload(selectedIndices, saveDir, subFolder)
+          }
+          onCancel={cancelDownload}
+        />
+      )}
       {/* WALLPAPER */}
       <div
         className="absolute inset-0 z-0 bg-background bg-no-repeat blur-xs brightness-50"

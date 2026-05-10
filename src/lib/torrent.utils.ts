@@ -43,3 +43,37 @@ export function stateLabel(state: string): string {
       return state;
   }
 }
+
+export interface FileGroup {
+  dir: string;
+  files: { index: number; name: string; displayName: string; size: number; completed?: boolean; selected?: boolean }[];
+}
+
+export function groupFilesByDirectory(files: { name: string; index: number; size: number; completed?: boolean; selected?: boolean }[]): FileGroup[] {
+  const groups = new Map<string, FileGroup>();
+
+  for (const file of files) {
+    const idx = file.name.search(/[/\\]/);
+    if (idx === -1) {
+      const dir = "";
+      if (!groups.has(dir)) groups.set(dir, { dir, files: [] });
+      groups.get(dir)!.files.push({ ...file, displayName: file.name });
+    } else {
+      const dir = file.name.slice(0, idx);
+      const displayName = file.name.slice(idx + 1);
+      if (!groups.has(dir)) groups.set(dir, { dir, files: [] });
+      groups.get(dir)!.files.push({ ...file, displayName });
+    }
+  }
+
+  return Array.from(groups.entries())
+    .sort(([a], [b]) => {
+      if (a === "") return -1;
+      if (b === "") return 1;
+      return a.localeCompare(b);
+    })
+    .map(([_, group]) => ({
+      ...group,
+      files: group.files.sort((a, b) => a.displayName.localeCompare(b.displayName)),
+    }));
+}

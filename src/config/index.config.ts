@@ -12,3 +12,8 @@ export const languages: SettingsScraper["language"][] = [
   "ru",
   "multi",
 ];
+export const encodings: SettingsScraper["encoding"][] = [
+  "all",
+  "hevc",
+  "x264",
+];

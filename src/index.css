@@ -44,6 +44,7 @@
   border-left-color: var(--color-muted);
   border-bottom-color: #ffffff;
   border-right-color: #ffffff;
+  background-color: white;
 }
 
 .windows95-active-border {

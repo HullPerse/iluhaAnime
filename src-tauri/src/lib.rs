@@ -31,12 +31,18 @@ fn build_client() -> Result<reqwest::Client, String> {
 }
 
 #[tauri::command]
-async fn search_erairaws(query: String) -> Result<Vec<NyaaItem>, String> {
+async fn search_erairaws(query: String, encoding: String) -> Result<Vec<NyaaItem>, String> {
     let client = build_client()?;
+
+    let search_query = if encoding.is_empty() || encoding == "all" {
+        format!("{} erai-raws", query)
+    } else {
+        format!("{} erai-raws {}", query, encoding)
+    };
 
     let resp = client
         .get("https://animetosho.org/search")
-        .query(&[("q", format!("{} erai-raws", query))])
+        .query(&[("q", search_query)])
         .send()
         .await
         .map_err(|e| format!("Request failed: {e}"))?;

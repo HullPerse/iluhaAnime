@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { Anime, LanguageTag, SettingsScraper } from "@/types";
 import { useState } from "react";
 import { detectLanguages, formatSize } from "@/lib/utils";
-import { languages, qualities } from "@/config/index.config";
+import { languages, qualities, encodings } from "@/config/index.config";
 import { Button } from "@/components/ui/button.component";
 import { SmallLoader } from "@/components/shared/loader.component";
 import { Search, Download, Clipboard } from "lucide-react";
@@ -20,6 +20,7 @@ function SearchRoute() {
     quality: "all",
     language: "all",
     sort: "seeders",
+    encoding: "all",
   });
 
   const { data, isLoading, isError, error, refetch } = useQuery({
@@ -32,6 +33,7 @@ function SearchRoute() {
       }
       return await invoke<Anime[]>("search_erairaws", {
         query: searchParams.trim(),
+        encoding: settings.encoding,
       });
     },
     enabled: false,
@@ -129,6 +131,26 @@ function SearchRoute() {
             <option value="seeders">Сидеры</option>
             <option value="leechers">Личи</option>
             <option value="size">Размер</option>
+          </select>
+        </div>
+        <div className="flex items-center gap-1">
+          <span className="text-text windows95-text">Кодек:</span>
+          <select
+            className="h-6 windows95-border px-1 text-text windows95-text windows95-select disabled:opacity-40 disabled:cursor-not-allowed"
+            value={settings.encoding}
+            disabled={source === "nyaa"}
+            onChange={(e) =>
+              setSettings((prev) => ({
+                ...prev,
+                encoding: e.target.value as SettingsScraper["encoding"],
+              }))
+            }
+          >
+            {encodings.map((enc) => (
+              <option key={enc} value={enc}>
+                {enc === "all" ? "Все" : enc}
+              </option>
+            ))}
           </select>
         </div>
         <div className="flex items-center gap-1">

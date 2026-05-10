@@ -1,6 +1,8 @@
 import { open } from "@tauri-apps/plugin-dialog";
 import { useState, useEffect, useRef } from "react";
 import { SmallLoader } from "../../components/shared/loader.component";
+import Modal from "@/components/shared/modal.component";
+import { Button } from "@/components/ui/button.component";
 
 export interface TorrentFileInfo {
   index: number;
@@ -112,115 +114,83 @@ function TorrentFilePicker({
   const allSelected = torrent ? selected.size === torrent.files.length : false;
 
   return (
-    <main className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-      <div className="flex flex-col w-150 max-h-[80vh] windows95-active-border bg-primary shadow-lg">
-        <section className="flex items-center justify-between px-1 py-0.5 bg-secondary">
-          <span className="text-white text-[11px] font-bold windows95-font">
-            {loading
-              ? "Загрузка метаданных..."
-              : `Выбор файлов — ${torrent!.name}`}
+    <Modal
+      header={loading ? "Загрузка метаданных..." : `${torrent!.name}`}
+      onClose={onCancel}
+    >
+      {loading ? (
+        <section className="flex flex-col items-center justify-center gap-2 py-4">
+          <SmallLoader />
+          <span className="windows95-text text-muted">
+            {fmtElapsed(elapsed)}
           </span>
-          <button
-            className="size-4 flex items-center justify-center bg-primary windows95-active-border text-[10px] leading-none font-boldwindows95-active-border cursor-pointer"
-            onClick={onCancel}
-          >
-            X
-          </button>
         </section>
-
-        <section className="flex flex-col gap-1 p-2 overflow-hidden">
-          {loading ? (
-            <div className="flex flex-col items-center justify-center gap-2 py-12">
-              <SmallLoader />
-              <span className="windows95-text text-muted">
-                {fmtElapsed(elapsed)}
+      ) : (
+        <section className="flex-1  flex flex-col items-center gap-2 py-4 w-full h-full">
+          <div className="flex w-full h-full overflow-y-auto windows95-border">
+            <label className="flex items-center gap-1 px-1 py-0.5 windows95-text bg-primary cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={allSelected}
+                onChange={toggleAll}
+                className="cursor-pointer"
+              />
+              {allSelected ? "Снять все" : "Выбрать все"}
+              <span className="ml-auto text-muted">
+                {torrent!.files.length} файлов
               </span>
-            </div>
-          ) : (
-            <>
-              <span className="windows95-text">
-                Выберите файлы для скачивания:
-              </span>
+            </label>
+          </div>
 
-              <div className="flex-1 overflow-y-auto windows95-border">
-                <label className="flex items-center gap-1 px-1 py-0.5 windows95-text bg-primary cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={allSelected}
-                    onChange={toggleAll}
-                    className="cursor-pointer"
-                  />
-                  {allSelected ? "Снять все" : "Выбрать все"}
-                  <span className="ml-auto text-muted">
-                    {torrent!.files.length} файлов
+          {torrent?.files.map((item) => {
+            const conflict = torrent.conflictingFiles.includes(item.name);
+
+            return (
+              <label
+                key={item.index}
+                className="flex items-center w-full gap-1 p-1 windows95-text hover:cursor-pointer select-none hover:bg-[#e0e0e0]  windows95-border"
+              >
+                <input
+                  type="checkbox"
+                  checked={selected.has(item.index)}
+                  onChange={() => toggleFile(item.index)}
+                  className="cursor-pointer"
+                />
+                <span className="truncate flex-1">{item.name}</span>
+                <span className="text-muted shrink-0">
+                  {fmtSize(item.size)}
+                </span>
+                {conflict && (
+                  <span className="text-destructive text-[10px] shrink-0">
+                    [существует]
                   </span>
-                </label>
-
-                {torrent!.files.map((file) => {
-                  const conflict = torrent!.conflictingFiles.includes(
-                    file.name,
-                  );
-                  return (
-                    <label
-                      key={file.index}
-                      className="flex items-center gap-1 px-1 py-0.5 windows95-text cursor-pointer select-none hover:bg-[#e0e0e0]"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selected.has(file.index)}
-                        onChange={() => toggleFile(file.index)}
-                        className="cursor-pointer"
-                      />
-                      <span className="truncate flex-1">{file.name}</span>
-                      <span className="text-muted shrink-0">
-                        {fmtSize(file.size)}
-                      </span>
-                      {conflict && (
-                        <span className="text-destructive text-[10px] shrink-0">
-                          [существует]
-                        </span>
-                      )}
-                    </label>
-                  );
-                })}
-              </div>
-            </>
-          )}
-
-          <div className="flex items-center gap-1">
+                )}
+              </label>
+            );
+          })}
+          <div className="flex items-center gap-1 w-full">
             <span className="windows95-text shrink-0">Папка:</span>
             <input
               className="flex-1 h-5 windows95-border px-1 windows95-text outline-none"
               value={saveDir}
               readOnly
             />
-            <button
-              className="windows95-active-border bg-primary px-2 py-0.5 windows95-textwindows95-active-border cursor-pointer disabled:opacity-50"
-              onClick={browseFolder}
-              disabled={browsing || loading}
-            >
+            <Button onClick={browseFolder} disabled={browsing || loading}>
               Обзор
-            </button>
+            </Button>
           </div>
-
-          <div className="flex justify-end gap-1">
-            <button
-              className="windows95-active-border bg-primary px-3 py-0.5 windows95-textwindows95-active-border cursor-pointer"
-              onClick={onCancel}
-            >
-              Отмена
-            </button>
-            <button
-              className="windows95-active-border bg-primary px-3 py-0.5 windows95-textwindows95-active-border cursor-pointer disabled:opacity-50"
+          <div className="flex justify-end gap-1 w-full">
+            <Button onClick={onCancel}>Отмена</Button>
+            <Button
               onClick={handleConfirm}
               disabled={loading || selected.size === 0 || !saveDir}
             >
               Скачать
-            </button>
+            </Button>
           </div>
         </section>
-      </div>
-    </main>
+      )}
+    </Modal>
   );
 }
 

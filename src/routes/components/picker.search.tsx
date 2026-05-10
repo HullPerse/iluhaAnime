@@ -8,6 +8,8 @@ export interface TorrentFileInfo {
   index: number;
   name: string;
   size: number;
+  completed: boolean;
+  selected: boolean;
 }
 
 export interface PickerTorrent {
@@ -96,10 +98,7 @@ function TorrentFilePicker({
 
   const handleConfirm = () => {
     if (!torrent) return;
-    const subFolder =
-      !torrent.hasCommonFolder && torrent.files.length > 1
-        ? torrent.name
-        : undefined;
+    const subFolder = torrent.name;
     onConfirm([...selected], saveDir, subFolder);
   };
 
@@ -141,33 +140,35 @@ function TorrentFilePicker({
               </span>
             </label>
           </div>
+          <div className="flex flex-col gap-1 h-42 w-full pr-2 overflow-y-auto">
+            {torrent?.files.map((item) => {
+              const conflict = torrent.conflictingFiles.includes(item.name);
 
-          {torrent?.files.map((item) => {
-            const conflict = torrent.conflictingFiles.includes(item.name);
-
-            return (
-              <label
-                key={item.index}
-                className="flex items-center w-full gap-1 p-1 windows95-text hover:cursor-pointer select-none hover:bg-[#e0e0e0]  windows95-border"
-              >
-                <input
-                  type="checkbox"
-                  checked={selected.has(item.index)}
-                  onChange={() => toggleFile(item.index)}
-                  className="cursor-pointer"
-                />
-                <span className="truncate flex-1">{item.name}</span>
-                <span className="text-muted shrink-0">
-                  {fmtSize(item.size)}
-                </span>
-                {conflict && (
-                  <span className="text-destructive text-[10px] shrink-0">
-                    [существует]
+              return (
+                <label
+                  key={item.index}
+                  className="flex items-center w-full gap-1 p-1 windows95-text hover:cursor-pointer select-none hover:bg-[#e0e0e0]  windows95-border"
+                >
+                  <input
+                    type="checkbox"
+                    checked={selected.has(item.index)}
+                    onChange={() => toggleFile(item.index)}
+                    className="cursor-pointer"
+                  />
+                  <span className="truncate flex-1">{item.name}</span>
+                  <span className="text-muted shrink-0">
+                    {fmtSize(item.size)}
                   </span>
-                )}
-              </label>
-            );
-          })}
+                  {conflict && (
+                    <span className="text-destructive text-[10px] shrink-0">
+                      [существует]
+                    </span>
+                  )}
+                </label>
+              );
+            })}
+          </div>
+
           <div className="flex items-center gap-1 w-full">
             <span className="windows95-text shrink-0">Папка:</span>
             <input

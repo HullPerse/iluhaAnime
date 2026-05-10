@@ -26,6 +26,8 @@ export interface TorrentFileInfo {
   index: number;
   name: string;
   size: number;
+  completed: boolean;
+  selected: boolean;
 }
 
 export interface PickerTorrent {
@@ -158,7 +160,9 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
     saveLastSaveDir(saveDir);
     set({ lastSaveDir: saveDir, pendingTorrent: null });
 
-    await invoke("remove_torrent", { id: pending.id, deleteFiles: false }).catch(() => {});
+    if (pending.id) {
+      await invoke("remove_torrent", { id: pending.id, deleteFiles: false }).catch(() => {});
+    }
     await invoke("start_torrent_download", {
       magnet: pending.magnet,
       saveDir,
@@ -171,7 +175,9 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
     const pending = get().pendingTorrent;
     set({ preparingTorrent: false, pendingTorrent: null });
     if (!pending) return;
-    await invoke("remove_torrent", { id: pending.id, deleteFiles: false }).catch(() => {});
+    if (pending.id) {
+      await invoke("remove_torrent", { id: pending.id, deleteFiles: false }).catch(() => {});
+    }
   },
 
   pauseTorrent: async (id: number) => {

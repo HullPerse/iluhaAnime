@@ -12,6 +12,8 @@ pub struct TorrentFileInfo {
     pub index: usize,
     pub name: String,
     pub size: u64,
+    pub completed: bool,
+    pub selected: bool,
 }
 
 #[derive(Serialize, Clone, Debug)]
@@ -134,11 +136,14 @@ impl TorrentManager {
         only_files: Option<Vec<usize>>,
         sub_folder: Option<String>,
     ) -> Result<usize> {
+        let output_folder = sub_folder
+            .as_ref()
+            .map(|s| std::path::Path::new(&save_dir).join(s).to_string_lossy().to_string())
+            .unwrap_or_else(|| save_dir.clone());
         let opts = AddTorrentOptions {
-            output_folder: Some(save_dir.clone()),
+            output_folder: Some(output_folder.clone()),
             overwrite: true,
             only_files,
-            sub_folder,
             ..Default::default()
         };
         let response = self
@@ -148,7 +153,7 @@ impl TorrentManager {
 
         match response {
             AddTorrentResponse::Added(id, _) => {
-                self.save_dirs.lock().unwrap().insert(id, save_dir);
+                self.save_dirs.lock().unwrap().insert(id, output_folder);
                 Ok(id)
             }
             AddTorrentResponse::AlreadyManaged(id, _) => Ok(id),
@@ -164,7 +169,7 @@ impl TorrentManager {
         let opts = AddTorrentOptions {
             output_folder: Some(save_dir.clone()),
             overwrite: true,
-            paused: true,
+            list_only: true,
             ..Default::default()
         };
 
@@ -174,40 +179,38 @@ impl TorrentManager {
             .await
             .map_err(|e| format!("{e:#}"))?;
 
-        let (id, handle) = match response {
-            AddTorrentResponse::Added(id, handle) => {
-                self.save_dirs.lock().unwrap().insert(id, save_dir.clone());
-                (id, handle)
-            }
-            AddTorrentResponse::AlreadyManaged(id, handle) => (id, handle),
-            _ => return Err("torrent was not added".to_string()),
+        let list_only = match response {
+            AddTorrentResponse::ListOnly(r) => r,
+            _ => return Err("unexpected response from add_torrent".to_string()),
         };
 
-        handle
-            .wait_until_initialized()
-            .await
-            .map_err(|e| format!("failed to get metadata: {e}"))?;
+        let name = list_only
+            .info
+            .name
+            .as_ref()
+            .and_then(|n| std::str::from_utf8(n.as_ref()).ok())
+            .map(|s| s.to_owned())
+            .unwrap_or_default();
 
-        let name = handle.name().unwrap_or_default();
-
-        let files: Vec<TorrentFileInfo> = handle
-            .with_metadata(|m| {
-                m.file_infos
-                    .iter()
-                    .enumerate()
-                    .map(|(i, f)| TorrentFileInfo {
-                        index: i,
-                        name: f.relative_filename.to_string_lossy().to_string(),
-                        size: f.len,
-                    })
-                    .collect()
+        let files: Vec<TorrentFileInfo> = list_only
+            .info
+            .iter_file_details()
+            .map_err(|e| format!("error reading file info: {e}"))?
+            .enumerate()
+            .map(|(i, d)| TorrentFileInfo {
+                index: i,
+                name: d.filename.to_string().unwrap_or_else(|_| format!("file_{i}")),
+                size: d.len,
+                completed: false,
+                selected: true,
             })
-            .map_err(|e| format!("no metadata: {e}"))?;
+            .collect();
 
+        let sub_folder = &name;
         let conflicting_files: Vec<String> = files
             .iter()
             .filter_map(|f| {
-                let full_path = std::path::Path::new(&save_dir).join(&f.name);
+                let full_path = std::path::Path::new(&save_dir).join(sub_folder).join(&f.name);
                 if full_path.exists() {
                     Some(f.name.clone())
                 } else {
@@ -235,7 +238,7 @@ impl TorrentManager {
         };
 
         Ok(TorrentInfoResult {
-            id,
+            id: 0,
             name,
             files,
             conflicting_files,
@@ -290,15 +293,25 @@ impl TorrentManager {
         let result = self.session.with_torrents(|iter| {
             for (tid, handle) in iter {
                 if tid == id {
-                    return handle.with_metadata(|m| {
+                    let h = handle.clone();
+                    let stats = h.stats();
+                    let only_files = h.only_files();
+                    return h.with_metadata(|m| {
                         Some(
                             m.file_infos
                                 .iter()
                                 .enumerate()
-                                .map(|(i, f)| TorrentFileInfo {
-                                    index: i,
-                                    name: f.relative_filename.to_string_lossy().to_string(),
-                                    size: f.len,
+                                .map(|(i, f)| {
+                                    let progress = stats.file_progress.get(i).copied().unwrap_or(0);
+                                    let completed = f.len > 0 && progress >= f.len;
+                                    let selected = only_files.as_ref().map_or(true, |of| of.contains(&i));
+                                    TorrentFileInfo {
+                                        index: i,
+                                        name: f.relative_filename.to_string_lossy().to_string(),
+                                        size: f.len,
+                                        completed,
+                                        selected,
+                                    }
                                 })
                                 .collect::<Vec<_>>(),
                         )

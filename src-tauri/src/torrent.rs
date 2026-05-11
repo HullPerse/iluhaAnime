@@ -7,6 +7,8 @@ use anyhow::{Context, Result};
 use librqbit::*;
 use serde::Serialize;
 
+type SaveDirsMap = HashMap<usize, String>;
+
 #[derive(Serialize, Clone, Debug)]
 pub struct TorrentFileInfo {
     pub index: usize,
@@ -47,7 +49,8 @@ pub struct TorrentInfo {
 
 pub struct TorrentManager {
     pub session: Arc<Session>,
-    pub save_dirs: Mutex<HashMap<usize, String>>,
+    pub save_dirs: Mutex<SaveDirsMap>,
+    pub save_dirs_path: PathBuf,
 }
 
 impl TorrentManager {
@@ -57,6 +60,12 @@ impl TorrentManager {
 
         let session_dir = app_data_dir.join("session");
         tokio::fs::create_dir_all(&session_dir).await.ok();
+
+        let save_dirs_path = app_data_dir.join("save_dirs.json");
+        let save_dirs = std::fs::read_to_string(&save_dirs_path)
+            .ok()
+            .and_then(|json| serde_json::from_str::<SaveDirsMap>(&json).ok())
+            .unwrap_or_default();
 
         let opts = SessionOptions {
             persistence: Some(SessionPersistenceConfig::Json {
@@ -71,8 +80,16 @@ impl TorrentManager {
 
         Ok(Self {
             session,
-            save_dirs: Mutex::new(HashMap::new()),
+            save_dirs: Mutex::new(save_dirs),
+            save_dirs_path,
         })
+    }
+
+    fn save_save_dirs(&self) {
+        let map = self.save_dirs.lock().unwrap();
+        if let Ok(json) = serde_json::to_string(&*map) {
+            let _ = std::fs::write(&self.save_dirs_path, &json);
+        }
     }
 
     pub fn collect_torrents(&self) -> Vec<TorrentInfo> {
@@ -154,9 +171,14 @@ impl TorrentManager {
         match response {
             AddTorrentResponse::Added(id, _) => {
                 self.save_dirs.lock().unwrap().insert(id, output_folder);
+                self.save_save_dirs();
                 Ok(id)
             }
-            AddTorrentResponse::AlreadyManaged(id, _) => Ok(id),
+            AddTorrentResponse::AlreadyManaged(id, _) => {
+                self.save_dirs.lock().unwrap().entry(id).or_insert(output_folder);
+                self.save_save_dirs();
+                Ok(id)
+            }
             _ => anyhow::bail!("torrent was not added"),
         }
     }
@@ -281,6 +303,7 @@ impl TorrentManager {
     pub async fn remove_torrent(self: &Arc<Self>, id: usize, delete_files: bool) -> Result<()> {
         self.session.delete(id.into(), delete_files).await?;
         self.save_dirs.lock().unwrap().remove(&id);
+        self.save_save_dirs();
         Ok(())
     }
 

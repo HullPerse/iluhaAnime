@@ -31,10 +31,9 @@ function TorrentRoute() {
     setSpeedLimits,
     loadTorrentFiles,
     updateTorrentOnlyFiles,
+    prepareTorrentDownload,
   } = useTorrentStore((state) => state);
-  const prepareTorrentDownload = useTorrentStore(
-    (s) => s.prepareTorrentDownload,
-  );
+
   const [dlInput, setDlInput] = useState(
     dlLimit !== null ? String(dlLimit) : "",
   );
@@ -258,6 +257,7 @@ function TorrentRoute() {
                   <TorrentFilesSection
                     id={item.id}
                     files={files}
+                    type={"torrent"}
                     onToggle={(id, indices) =>
                       updateTorrentOnlyFiles(id, indices)
                     }

@@ -24,9 +24,12 @@ tauri-plugin-dialog = "2"
 tauri-plugin-notification = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-reqwest = { version = "0.12", features = ["json"] }
+reqwest = { version = "0.12", features = ["json", "cookies"] }
+encoding_rs = "0.8"
 scraper = "0.22"
 regex-lite = "0.1"
+sha1 = "0.10"
+hex = "0.4"
 librqbit = { version = "8.1", default-features = false, features = ["default-tls"] }
 anyhow = "1"
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "fs", "io-util"] }

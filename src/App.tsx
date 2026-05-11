@@ -1,16 +1,22 @@
-import { useState, useEffect } from "react";
-import SearchContent from "@/routes/search.route";
-import TorrentContent from "@/routes/torrent.route";
+import { useState, useEffect, ReactElement, lazy, Suspense } from "react";
 import backgroundImage from "@/assets/background.jpg";
 import { cn } from "@/lib/utils";
 import { useTorrentStore } from "@/store/download.store";
 import TorrentFilePicker from "@/routes/components/picker.search";
+import { WindowLoader } from "./components/shared/loader.component";
 
-type Tab = "search" | "torrent";
+const SearchRoute = lazy(() => import("@/routes/search.route"));
+const TorrentRoute = lazy(() => import("@/routes/torrent.route"));
+const PlayerRoute = lazy(() => import("@/routes/player.route"));
+const ConnectRoute = lazy(() => import("@/routes/connect.route"));
+
+type Tab = "search" | "torrent" | "player" | "connect";
 
 const tabs: { id: Tab; label: string }[] = [
   { id: "search", label: "Поиск" },
   { id: "torrent", label: "Торрент" },
+  { id: "player", label: "Плеер" },
+  { id: "connect", label: "Онлайн" },
 ];
 
 function App() {
@@ -92,7 +98,18 @@ function App() {
 
           {/* CONTENT PANEL */}
           <div className="flex-1 border-2 border-solid border-t-muted border-l-muted border-b-white border-r-white bg-primary mx-1 mb-1 p-1 overflow-hidden">
-            {activeTab === "search" ? <SearchContent /> : <TorrentContent />}
+            <Suspense fallback={<WindowLoader />}>
+              {(() => {
+                const tabMap = {
+                  search: <SearchRoute />,
+                  torrent: <TorrentRoute />,
+                  player: <PlayerRoute />,
+                  connect: <ConnectRoute />,
+                } as Record<Tab, ReactElement>;
+
+                return tabMap[activeTab];
+              })()}
+            </Suspense>
           </div>
         </div>
       </div>

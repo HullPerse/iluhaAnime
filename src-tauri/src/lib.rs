@@ -3,12 +3,14 @@ use serde::Serialize;
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::num::NonZeroU32;
+use std::path::PathBuf;
 use std::sync::Arc;
+use sha1::Digest;
 use tauri::{Emitter, Manager};
 use tauri_plugin_notification::NotificationExt;
 
 mod torrent;
-use torrent::{TorrentFileInfo, TorrentInfoResult, TorrentManager, TorrentInfo};
+use torrent::{TorrentFileInfo, TorrentInfo, TorrentInfoResult, TorrentManager};
 
 #[derive(Debug, Serialize)]
 pub struct NyaaItem {
@@ -96,7 +98,9 @@ fn parse_entries(html: &str) -> Vec<NyaaItem> {
                     } else {
                         format!("https://animetosho.org{h}")
                     };
-                } else if a.value().attr("class").map_or(false, |c| c == "website") && link.is_empty() {
+                } else if a.value().attr("class").map_or(false, |c| c == "website")
+                    && link.is_empty()
+                {
                     link = h.to_string();
                 }
             }
@@ -137,47 +141,215 @@ fn parse_seeders_leechers(s: &str) -> (u32, u32) {
     }
 }
 
-#[tauri::command]
-async fn search_nyaa(query: String) -> Result<Vec<NyaaItem>, String> {
-    let client = build_client()?;
+fn rutracker_cookie_path(app_handle: &tauri::AppHandle) -> PathBuf {
+    let dir = app_handle.path().app_data_dir().expect("app data dir");
+    dir.join("rutracker_cookies.json")
+}
 
-    let resp = client
-        .get("https://nyaa.si/")
-        .query(&[("q", &*query), ("s", "seeders"), ("o", "desc")])
+fn save_rutracker_cookies(
+    app_handle: &tauri::AppHandle,
+    cookies: &HashMap<String, String>,
+) -> Result<(), String> {
+    let path = rutracker_cookie_path(app_handle);
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).map_err(|e| format!("Failed to create dir: {e}"))?;
+    }
+    let json = serde_json::to_string(cookies).map_err(|e| format!("Serialize error: {e}"))?;
+    fs::write(&path, &json).map_err(|e| format!("Write error: {e}"))
+}
+
+fn load_rutracker_cookies(app_handle: &tauri::AppHandle) -> HashMap<String, String> {
+    let path = rutracker_cookie_path(app_handle);
+    if !path.exists() {
+        return HashMap::new();
+    }
+    let json = match fs::read_to_string(&path) {
+        Ok(s) => s,
+        Err(_) => return HashMap::new(),
+    };
+    serde_json::from_str(&json).unwrap_or_default()
+}
+
+fn cookies_to_header(cookies: &HashMap<String, String>) -> String {
+    cookies
+        .iter()
+        .map(|(k, v)| format!("{}={}", k, v))
+        .collect::<Vec<_>>()
+        .join("; ")
+}
+
+fn extract_cookies_from_headers(
+    headers: &reqwest::header::HeaderMap,
+    cookies: &mut HashMap<String, String>,
+) {
+    for header in headers.get_all("set-cookie") {
+        if let Ok(val) = header.to_str() {
+            if let Some(eq_pos) = val.find('=') {
+                let name = val[..eq_pos].trim().to_string();
+                let rest = &val[eq_pos + 1..];
+                let value = rest.split(';').next().unwrap_or("").trim().to_string();
+                if !name.is_empty() {
+                    cookies.insert(name, value);
+                }
+            }
+        }
+    }
+}
+
+fn decode_windows_1251(bytes: &[u8]) -> String {
+    let (cow, _, _) = encoding_rs::WINDOWS_1251.decode(bytes);
+    cow.to_string()
+}
+
+fn build_no_redirect_client() -> Result<reqwest::Client, String> {
+    reqwest::Client::builder()
+        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36")
+        .timeout(std::time::Duration::from_secs(30))
+        .redirect(reqwest::redirect::Policy::none())
+        .build()
+        .map_err(|e| format!("Client error: {e}"))
+}
+
+#[tauri::command]
+async fn rutracker_login(
+    app_handle: tauri::AppHandle,
+    username: String,
+    password: String,
+) -> Result<String, String> {
+    let no_redirect = build_no_redirect_client()?;
+    let client = build_client()?;
+    let mut cookies = HashMap::new();
+
+    // 1. GET index.php (no redirect) to capture initial cookies
+    let init_resp = no_redirect
+        .get("https://rutracker.org/forum/index.php")
         .send()
         .await
-        .map_err(|e| format!("Nyaa request failed: {e}"))?;
+        .map_err(|e| format!("Connection failed: {e}"))?;
 
-    if !resp.status().is_success() {
-        return Err(format!("Nyaa search returned HTTP {}", resp.status()));
+    extract_cookies_from_headers(init_resp.headers(), &mut cookies);
+
+    // If index.php redirects, follow it manually to capture all cookies
+    if init_resp.status() == reqwest::StatusCode::FOUND
+        || init_resp.status() == reqwest::StatusCode::MOVED_PERMANENTLY
+    {
+        let redirected = no_redirect
+            .get("https://rutracker.org/forum/index.php")
+            .header("Cookie", cookies_to_header(&cookies))
+            .send()
+            .await
+            .map_err(|e| format!("Redirect follow failed: {e}"))?;
+        extract_cookies_from_headers(redirected.headers(), &mut cookies);
     }
 
-    let html = resp.text().await.map_err(|e| format!("Read error: {e}"))?;
-    let items = parse_nyaa_entries(&html);
-    Ok(items.into_iter().filter(has_russian_subs).collect())
+    // 2. POST login.php (no redirect) — 302 on success carries session cookie
+    let login_resp = no_redirect
+        .post("https://rutracker.org/forum/login.php")
+        .header("Cookie", cookies_to_header(&cookies))
+        .header("Referer", "https://rutracker.org/forum/index.php")
+        .form(&[
+            ("login_username", username.as_str()),
+            ("login_password", password.as_str()),
+            ("login", "Вход"),
+            ("redirect", "index.php"),
+        ])
+        .send()
+        .await
+        .map_err(|e| format!("Login request failed: {e}"))?;
+
+    let status = login_resp.status();
+    extract_cookies_from_headers(login_resp.headers(), &mut cookies);
+
+    if status != reqwest::StatusCode::FOUND && status != reqwest::StatusCode::MOVED_PERMANENTLY {
+        return Err("Неверное имя пользователя или пароль".to_string());
+    }
+
+    // 3. Follow the redirect manually: GET index.php to finalise session
+    let post_login = no_redirect
+        .get("https://rutracker.org/forum/index.php")
+        .header("Cookie", cookies_to_header(&cookies))
+        .send()
+        .await
+        .map_err(|e| format!("Post-login request failed: {e}"))?;
+    extract_cookies_from_headers(post_login.headers(), &mut cookies);
+
+    // If index.php redirects again (e.g. to index.php?sid=…), follow once more
+    if post_login.status() == reqwest::StatusCode::FOUND
+        || post_login.status() == reqwest::StatusCode::MOVED_PERMANENTLY
+    {
+        let final_resp = client
+            .get("https://rutracker.org/forum/index.php")
+            .header("Cookie", cookies_to_header(&cookies))
+            .send()
+            .await
+            .map_err(|e| format!("Final redirect follow failed: {e}"))?;
+        extract_cookies_from_headers(final_resp.headers(), &mut cookies);
+    }
+
+    save_rutracker_cookies(&app_handle, &cookies)?;
+
+    Ok("ok".to_string())
 }
 
-fn has_russian_subs(item: &NyaaItem) -> bool {
-    let upper = item.title.to_uppercase();
-    upper.contains("[RUS]")
-        || upper.contains("(RUS)")
-        || upper.contains("[RU]")
-        || upper.contains("(RU)")
-        || upper.contains("ANIMERUS")
-        || upper.contains("ANIRUS")
-        || upper.contains("SUBRUS")
-        || item.title.contains("рус")
-        || item.title.contains("Рус")
-        || item.title.contains("РУС")
+#[tauri::command]
+async fn check_rutracker_session(app_handle: tauri::AppHandle) -> Result<bool, String> {
+    let cookies = load_rutracker_cookies(&app_handle);
+    if cookies.is_empty() {
+        return Ok(false);
+    }
+
+    let client = build_client()?;
+    let resp = client
+        .get("https://rutracker.org/forum/index.php")
+        .header("Cookie", cookies_to_header(&cookies))
+        .send()
+        .await
+        .map_err(|e| format!("Connection failed: {e}"))?;
+
+    let bytes = resp.bytes().await.map_err(|e| format!("Read error: {e}"))?;
+    let text = decode_windows_1251(&bytes);
+
+    // positive check: profile link in header means authenticated
+    // fallback: absence of login form
+    Ok(text.contains("profile.php?mode=viewprofile") || !text.contains("login-form-full"))
 }
 
-fn parse_nyaa_entries(html: &str) -> Vec<NyaaItem> {
+#[tauri::command]
+async fn rutracker_logout(app_handle: tauri::AppHandle) -> Result<(), String> {
+    let path = rutracker_cookie_path(&app_handle);
+    let _ = fs::remove_file(&path);
+    Ok(())
+}
+
+#[tauri::command]
+async fn search_rutracker(
+    app_handle: tauri::AppHandle,
+    query: String,
+) -> Result<Vec<NyaaItem>, String> {
+    let cookies = load_rutracker_cookies(&app_handle);
+    if cookies.is_empty() {
+        return Err("Not authenticated. Please login to rutracker first.".to_string());
+    }
+
+    let client = build_client()?;
+    let resp = client
+        .get("https://rutracker.org/forum/tracker.php")
+        .header("Cookie", cookies_to_header(&cookies))
+        .query(&[("nm", query.as_str())])
+        .send()
+        .await
+        .map_err(|e| format!("Rutracker search failed: {e}"))?;
+
+    let bytes = resp.bytes().await.map_err(|e| format!("Read error: {e}"))?;
+    let html = decode_windows_1251(&bytes);
+    Ok(parse_rutracker_entries(&html))
+}
+
+fn parse_rutracker_entries(html: &str) -> Vec<NyaaItem> {
     let doc = Html::parse_document(html);
-    let row_sel = Selector::parse("table tbody tr").unwrap();
+    let row_sel = Selector::parse("tr.hl-tr, tr.hl-tr1, tr.hl-tr2").unwrap();
     let td_sel = Selector::parse("td").unwrap();
-    let title_link_sel = Selector::parse("a[title]").unwrap();
-    let magnet_sel = Selector::parse("a[href^='magnet:']").unwrap();
-    let download_sel = Selector::parse("a[href*='/download/']").unwrap();
+    let link_sel = Selector::parse("a.tLink, a.med.tLink").unwrap();
 
     let mut items = Vec::new();
 
@@ -187,48 +359,249 @@ fn parse_nyaa_entries(html: &str) -> Vec<NyaaItem> {
             continue;
         }
 
-        let title = tds[1]
-            .select(&title_link_sel)
+        let topic_id = row.value().attr("data-topic_id").unwrap_or_default().to_string();
+
+        let title = tds[3]
+            .select(&link_sel)
             .next()
-            .and_then(|a| a.value().attr("title"))
-            .map(|s| s.to_string())
-            .unwrap_or_default();
+            .map(|a| a.text().collect::<String>().trim().to_string())
+            .filter(|t| !t.is_empty());
 
-        if title.is_empty() {
-            continue;
-        }
+        let title = match title {
+            Some(t) => t,
+            None => continue,
+        };
 
-        let magnet = tds[2]
-            .select(&magnet_sel)
-            .next()
-            .and_then(|a| a.value().attr("href"))
-            .map(|s| s.to_string())
-            .unwrap_or_default();
+        let link = format!("https://rutracker.org/forum/viewtopic.php?t={}", topic_id);
 
-        let torrent = tds[2]
-            .select(&download_sel)
-            .next()
-            .and_then(|a| a.value().attr("href"))
-            .map(|s| format!("https://nyaa.si{s}"))
-            .unwrap_or_default();
+        let size = tds[5]
+            .text()
+            .collect::<String>()
+            .trim()
+            .to_string()
+            .replace(['\u{a0}', '↓'], "")
+            .trim()
+            .to_string();
 
-        let size = tds[3].text().collect::<String>().trim().to_string();
-        let seeders = tds[5].text().collect::<String>().trim().parse().unwrap_or(0);
-        let leechers = tds[6].text().collect::<String>().trim().parse().unwrap_or(0);
+        let seeders = tds[6]
+            .text()
+            .collect::<String>()
+            .chars()
+            .filter(|c| c.is_ascii_digit())
+            .collect::<String>()
+            .parse()
+            .unwrap_or(0);
+
+        let leechers = tds[7]
+            .text()
+            .collect::<String>()
+            .chars()
+            .filter(|c| c.is_ascii_digit())
+            .collect::<String>()
+            .parse()
+            .unwrap_or(0);
 
         items.push(NyaaItem {
             title,
-            magnet,
-            torrent,
+            magnet: String::new(),
+            torrent: String::new(),
             size,
             seeders,
             leechers,
-            category: String::new(),
-            link: String::new(),
+            category: topic_id,
+            link,
         });
     }
 
     items
+}
+
+#[tauri::command]
+async fn rutracker_get_magnet(
+    app_handle: tauri::AppHandle,
+    topic_id: String,
+) -> Result<String, String> {
+    let cookies = load_rutracker_cookies(&app_handle);
+    if cookies.is_empty() {
+        return Err("Not authenticated".to_string());
+    }
+
+    let client = build_client()?;
+    let resp = client
+        .get(format!("https://rutracker.org/forum/dl.php?t={}", topic_id))
+        .header("Cookie", cookies_to_header(&cookies))
+        .send()
+        .await
+        .map_err(|e| format!("Download failed: {e}"))?;
+
+    if !resp.status().is_success() {
+        return Err(format!("Download returned HTTP {}", resp.status()));
+    }
+
+    let bytes = resp.bytes().await.map_err(|e| format!("Read error: {e}"))?;
+
+    let info_hash = extract_info_hash(&bytes)?;
+    let name = extract_torrent_name(&bytes).unwrap_or_default();
+
+    let mut magnet = format!("magnet:?xt=urn:btih:{}", info_hash);
+    if !name.is_empty() {
+        magnet.push_str("&dn=");
+        magnet.push_str(&url_encode(name));
+    }
+
+    if let Ok(announce) = extract_announce_url(&bytes) {
+        if !announce.is_empty() {
+            magnet.push_str("&tr=");
+            magnet.push_str(&url_encode(announce));
+        }
+    }
+
+    Ok(magnet)
+}
+
+fn url_encode(s: String) -> String {
+    s.bytes()
+        .map(|b| match b {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => (b as char).to_string(),
+            b' ' => "+".to_string(),
+            _ => format!("%{:02X}", b),
+        })
+        .collect()
+}
+
+fn extract_info_hash(torrent_bytes: &[u8]) -> Result<String, String> {
+    let bytes = torrent_bytes;
+    if bytes.is_empty() || bytes[0] != b'd' {
+        return Err("Invalid torrent file".to_string());
+    }
+
+    let mut pos = 1;
+    while pos < bytes.len() && bytes[pos] != b'e' {
+        let (key, new_pos) = read_bencode_string(bytes, pos)
+            .map_err(|_| "Failed to read key".to_string())?;
+        if key == b"info" {
+            let value_start = new_pos;
+            let (_, value_end) = skip_bencode_value(bytes, new_pos)
+                .map_err(|_| "Failed to skip info value".to_string())?;
+
+            let info_bytes = &bytes[value_start..value_end];
+            let mut hasher = sha1::Sha1::new();
+            hasher.update(info_bytes);
+            let hash = hasher.finalize();
+            return Ok(hex::encode(hash));
+        }
+        let (_, new_pos) = skip_bencode_value(bytes, new_pos)
+            .map_err(|_| "Failed to skip value".to_string())?;
+        pos = new_pos;
+    }
+
+    Err("Could not find info in torrent".to_string())
+}
+
+fn extract_torrent_name(torrent_bytes: &[u8]) -> Result<String, String> {
+    let bytes = torrent_bytes;
+    if bytes.is_empty() || bytes[0] != b'd' {
+        return Err("Invalid torrent file".to_string());
+    }
+
+    let mut pos = find_info_dict_start(bytes)?;
+    if pos == bytes.len() {
+        return Err("No info dict".to_string());
+    }
+
+    while pos < bytes.len() && bytes[pos] != b'e' {
+        let (key, new_pos) = read_bencode_string(bytes, pos)
+            .map_err(|_| "Failed to read key in info".to_string())?;
+        if key == b"name" {
+            let (name_bytes, _) = read_bencode_string(bytes, new_pos)
+                .map_err(|_| "Failed to read name".to_string())?;
+            return Ok(String::from_utf8_lossy(name_bytes).to_string());
+        }
+        let (_, new_pos) = skip_bencode_value(bytes, new_pos)
+            .map_err(|_| "Failed to skip value in info".to_string())?;
+        pos = new_pos;
+    }
+
+    Err("No name found".to_string())
+}
+
+fn extract_announce_url(torrent_bytes: &[u8]) -> Result<String, String> {
+    let bytes = torrent_bytes;
+    if bytes.is_empty() || bytes[0] != b'd' {
+        return Err("Invalid torrent file".to_string());
+    }
+
+    let mut pos = 1;
+    while pos < bytes.len() && bytes[pos] != b'e' {
+        let (key, new_pos) = read_bencode_string(bytes, pos)
+            .map_err(|_| "Failed to read key".to_string())?;
+        if key == b"announce" {
+            let (announce_bytes, _) = read_bencode_string(bytes, new_pos)
+                .map_err(|_| "Failed to read announce".to_string())?;
+            return Ok(String::from_utf8_lossy(announce_bytes).to_string());
+        }
+        let (_, new_pos) = skip_bencode_value(bytes, new_pos)
+            .map_err(|_| "Failed to skip value".to_string())?;
+        pos = new_pos;
+    }
+
+    Err("No announce found".to_string())
+}
+
+fn find_info_dict_start(bytes: &[u8]) -> Result<usize, String> {
+    let mut pos = 1;
+    while pos < bytes.len() && bytes[pos] != b'e' {
+        let (key, new_pos) = read_bencode_string(bytes, pos)
+            .map_err(|_| "Failed to read key".to_string())?;
+        if key == b"info" {
+            return Ok(new_pos);
+        }
+        let (_, new_pos) = skip_bencode_value(bytes, new_pos)
+            .map_err(|_| "Failed to skip value".to_string())?;
+        pos = new_pos;
+    }
+    Err("No info key found".to_string())
+}
+
+fn read_bencode_string(bytes: &[u8], pos: usize) -> Result<(&[u8], usize), String> {
+    let remaining = &bytes[pos..];
+    let colon_pos = remaining.iter().position(|&b| b == b':')
+        .ok_or("No colon in bencode string")?;
+    let len_str = std::str::from_utf8(&remaining[..colon_pos])
+        .map_err(|_| "Invalid length".to_string())?;
+    let len: usize = len_str.parse().map_err(|_| "Invalid length number".to_string())?;
+    let str_start = pos + colon_pos + 1;
+    let str_end = str_start + len;
+    if str_end > bytes.len() {
+        return Err("String out of bounds".to_string());
+    }
+    Ok((&bytes[str_start..str_end], str_end))
+}
+
+fn skip_bencode_value(bytes: &[u8], pos: usize) -> Result<(usize, usize), String> {
+    if pos >= bytes.len() {
+        return Err("Unexpected end".to_string());
+    }
+    match bytes[pos] {
+        b'i' => {
+            let end = bytes[pos..].iter().position(|&b| b == b'e')
+                .ok_or("Unterminated integer".to_string())?;
+            Ok((pos, pos + end + 1))
+        }
+        b'l' | b'd' => {
+            let mut p = pos + 1;
+            while p < bytes.len() && bytes[p] != b'e' {
+                let (_, new_p) = skip_bencode_value(bytes, p)?;
+                p = new_p;
+            }
+            if p >= bytes.len() {
+                return Err("Unterminated list/dict".to_string());
+            }
+            Ok((pos, p + 1))
+        }
+        c if c.is_ascii_digit() => read_bencode_string(bytes, pos).map(|(_, end)| (pos, end)),
+        _ => Err(format!("Unknown bencode type at pos {}", pos)),
+    }
 }
 
 #[tauri::command]
@@ -256,17 +629,12 @@ async fn get_torrent_info(
 }
 
 #[tauri::command]
-fn list_torrents(
-    manager: tauri::State<'_, TorrentBackend>,
-) -> Result<Vec<TorrentInfo>, String> {
+fn list_torrents(manager: tauri::State<'_, TorrentBackend>) -> Result<Vec<TorrentInfo>, String> {
     Ok(manager.manager.collect_torrents())
 }
 
 #[tauri::command]
-async fn pause_torrent(
-    id: usize,
-    manager: tauri::State<'_, TorrentBackend>,
-) -> Result<(), String> {
+async fn pause_torrent(id: usize, manager: tauri::State<'_, TorrentBackend>) -> Result<(), String> {
     manager
         .manager
         .pause_torrent(id)
@@ -394,7 +762,8 @@ pub fn run() {
                             }
 
                             if t.error.is_some() && prev_error.is_none() {
-                                let msg = format!("{}: {}", t.name, t.error.as_deref().unwrap_or(""));
+                                let msg =
+                                    format!("{}: {}", t.name, t.error.as_deref().unwrap_or(""));
                                 let _ = app_clone
                                     .notification()
                                     .builder()
@@ -406,8 +775,7 @@ pub fn run() {
                             prev_states.insert(t.id, (t.finished, t.error.clone()));
                         }
 
-                        let current_ids: HashSet<usize> =
-                            torrents.iter().map(|t| t.id).collect();
+                        let current_ids: HashSet<usize> = torrents.iter().map(|t| t.id).collect();
                         prev_states.retain(|id, _| current_ids.contains(id));
                     }
                 });
@@ -417,7 +785,11 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             search_erairaws,
-            search_nyaa,
+            search_rutracker,
+            rutracker_login,
+            check_rutracker_session,
+            rutracker_logout,
+            rutracker_get_magnet,
             start_torrent_download,
             list_torrents,
             pause_torrent,

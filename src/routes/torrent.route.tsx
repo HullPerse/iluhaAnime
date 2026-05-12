@@ -52,6 +52,33 @@ function TorrentRoute() {
     });
   }, [torrents, torrentFilesMap, loadTorrentFiles]);
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const state = useTorrentStore.getState();
+      state.torrents.forEach((t) => {
+        if (state.torrentFilesMap[t.id]) {
+          state.loadTorrentFiles(t.id);
+        }
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const handleFocus = () => {
+      const state = useTorrentStore.getState();
+      state.torrents.forEach((t) => {
+        if (state.torrentFilesMap[t.id]) {
+          state.loadTorrentFiles(t.id);
+        }
+      });
+    };
+
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, []);
+
   const applySpeedLimits = () => {
     const dl = dlInput === "" ? null : Number(dlInput);
     const ul = ulInput === "" ? null : Number(ulInput);

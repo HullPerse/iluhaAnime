@@ -3,7 +3,7 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import TorrentFilesSection from "./components/file.torrent";
 import Player from "@/components/shared/player.component";
-import { convertFileSrc } from "@tauri-apps/api/core";
+import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 
 function PlayerRoute() {
   const { torrents, torrentFilesMap, loadTorrentFiles } = useTorrentStore(
@@ -16,6 +16,24 @@ function PlayerRoute() {
     path: string;
     file: string;
   } | null>(null);
+
+  const [chapters, setChapters] = useState<
+    { start_time: number; end_time: number; title: string }[]
+  >([]);
+
+  useEffect(() => {
+    if (!video) {
+      setChapters([]);
+      return;
+    }
+
+    invoke<{ start_time: number; end_time: number; title: string }[]>(
+      "get_video_chapters",
+      { path: video.path },
+    )
+      .then((chs) => setChapters(chs))
+      .catch(() => setChapters([]));
+  }, [video]);
 
   useEffect(() => {
     torrents.forEach((t) => {
@@ -41,6 +59,7 @@ function PlayerRoute() {
           header={video.file}
           src={convertFileSrc(video.path)}
           onClose={() => setVideo(null)}
+          chapters={chapters}
         />
       ) : (
         torrents.map((item, index) => {

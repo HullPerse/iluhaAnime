@@ -13,10 +13,12 @@ function Player({
   header,
   onClose,
   src,
+  chapters,
 }: {
   header: string;
   onClose: () => void;
   src: string;
+  chapters?: { start_time: number; end_time: number; title: string }[];
 }) {
   return (
     <Provider>
@@ -29,10 +31,11 @@ function Player({
                 src={src}
                 className="h-full w-full object-contain"
                 controls={false}
+                preload="metadata"
               />
             </section>
-            <Timeline />
-            <Controls />
+            <Timeline chapters={chapters} />
+            <Controls chapters={chapters} />
           </>
         )}
       </Container>

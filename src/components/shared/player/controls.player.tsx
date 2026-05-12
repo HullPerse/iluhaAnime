@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button.component";
 import {
   selectPlayback,
+  selectTextTrack,
   selectTime,
   selectVolume,
   usePlayer,
@@ -10,6 +11,8 @@ import {
   ChevronsRight,
   Pause,
   Play,
+  SkipBack,
+  SkipForward,
   Volume,
   Volume1,
   Volume2,
@@ -17,13 +20,18 @@ import {
 } from "lucide-react";
 import { MouseEvent, useState, useEffect, useRef } from "react";
 
-function Controls() {
+function Controls({
+  chapters,
+}: {
+  chapters?: { start_time: number; end_time: number; title: string }[];
+}) {
   const [dragging, setDragging] = useState<boolean>(false);
   const [mounted, setMounted] = useState<boolean>(false);
 
   const time = usePlayer(selectTime);
   const playback = usePlayer(selectPlayback);
   const value = usePlayer(selectVolume);
+  const textTrack = usePlayer(selectTextTrack);
 
   const paused = playback?.paused ?? true;
   const currentTime = time?.currentTime ?? 0;
@@ -36,9 +44,33 @@ function Controls() {
   const setVolume = (e: number) => value?.setVolume(e);
 
   const seek = time?.seek;
+  const chaptersCues = textTrack?.chaptersCues ?? [];
+  const allChapters = chapters ?? chaptersCues.map((c) => ({
+    start_time: c.startTime,
+    end_time: c.endTime,
+    title: c.text,
+  }));
 
   const handleForward = () => seek?.(Math.min(currentTime + 5, duration));
   const handleBackward = () => seek?.(Math.max(currentTime - 5, 0));
+
+  const currentChapterIndex = (() => {
+    for (let i = allChapters.length - 1; i >= 0; i--) {
+      if (allChapters[i].start_time <= currentTime) return i;
+    }
+    return -1;
+  })();
+  const hasPrevChapter = currentChapterIndex > 0;
+  const hasNextChapter = currentChapterIndex < allChapters.length - 1;
+
+  const handlePrevChapter = () => {
+    if (!hasPrevChapter || !seek) return;
+    seek(allChapters[currentChapterIndex - 1].start_time);
+  };
+  const handleNextChapter = () => {
+    if (!hasNextChapter || !seek) return;
+    seek(allChapters[currentChapterIndex + 1].start_time);
+  };
 
   const getVolumeIcon = () => {
     const volume = value?.volume;
@@ -173,6 +205,29 @@ function Controls() {
           <ChevronsRight />
         </Button>
       </section>
+
+      {allChapters.length > 0 && (
+        <section className="flex h-6 w-15 border-r-2 border-muted gap-1">
+          <Button
+            size="icon"
+            className="size-6"
+            onClick={handlePrevChapter}
+            disabled={!hasPrevChapter}
+            title="Previous chapter"
+          >
+            <SkipBack />
+          </Button>
+          <Button
+            size="icon"
+            className="size-6"
+            onClick={handleNextChapter}
+            disabled={!hasNextChapter}
+            title="Next chapter"
+          >
+            <SkipForward />
+          </Button>
+        </section>
+      )}
 
       {/*VOLUME*/}
       <section className="flex flex-row ml-auto h-6 w-fit border-l-2 border-muted gap-1 px-1">

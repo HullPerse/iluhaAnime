@@ -9,6 +9,13 @@ use sha1::Digest;
 use tauri::{Emitter, Manager};
 use tauri_plugin_notification::NotificationExt;
 
+#[derive(Debug, Serialize)]
+pub struct VideoChapter {
+    pub start_time: f64,
+    pub end_time: f64,
+    pub title: String,
+}
+
 mod torrent;
 use torrent::{TorrentFileInfo, TorrentInfo, TorrentInfoResult, TorrentManager};
 
@@ -720,6 +727,56 @@ async fn update_torrent_only_files(
         .await
 }
 
+#[tauri::command]
+async fn get_video_chapters(path: String) -> Result<Vec<VideoChapter>, String> {
+    let output = std::process::Command::new("ffprobe")
+        .args([
+            "-v",
+            "quiet",
+            "-print_format",
+            "json",
+            "-show_chapters",
+            &path,
+        ])
+        .output()
+        .map_err(|e| format!("ffprobe not found: {e}"))?;
+
+    if !output.status.success() {
+        return Err("ffprobe returned non-zero exit code".to_string());
+    }
+
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout)
+        .map_err(|e| format!("Failed to parse ffprobe output: {e}"))?;
+
+    let chapters = json["chapters"]
+        .as_array()
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|ch| {
+                    let start = ch["start_time"]
+                        .as_str()
+                        .and_then(|s| s.parse().ok())
+                        .unwrap_or(0.0);
+                    let end = ch["end_time"]
+                        .as_str()
+                        .and_then(|s| s.parse().ok())
+                        .unwrap_or(0.0);
+                    let title = ch["tags"]["title"]
+                        .as_str()
+                        .unwrap_or("")
+                        .to_string();
+                    if start == 0.0 && end == 0.0 {
+                        return None;
+                    }
+                    Some(VideoChapter { start_time: start, end_time: end, title })
+                })
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+
+    Ok(chapters)
+}
+
 struct TorrentBackend {
     manager: Arc<TorrentManager>,
 }
@@ -802,6 +859,7 @@ pub fn run() {
             get_running_torrent_files,
             update_torrent_only_files,
             set_global_speed_limits,
+            get_video_chapters,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

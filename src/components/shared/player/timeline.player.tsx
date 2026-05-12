@@ -13,6 +13,7 @@ function Timeline({
   chapters?: { start_time: number; end_time: number; title: string }[];
 }) {
   const [dragging, setDragging] = useState<boolean>(false);
+  const [scrubTime, setScrubTime] = useState<number | null>(null);
 
   const time = usePlayer(selectTime);
   const buffer = usePlayer(selectBuffer);
@@ -31,49 +32,69 @@ function Timeline({
       title: c.text,
     }));
 
-  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+  const displayTime = dragging && scrubTime !== null ? scrubTime : currentTime;
+  const progress = duration > 0 ? (displayTime / duration) * 100 : 0;
   const bufferedEnd =
     buffered.length > 0 && duration > 0
       ? Math.min(100, (buffered[buffered.length - 1][1] / duration) * 100)
       : 0;
 
   const timelineRef = useRef<HTMLElement>(null);
+  const seekThrottleRef = useRef<number | null>(null);
+  const dragTargetRef = useRef(0);
+
+  const paintScrub = (clientX: number) => {
+    if (!timelineRef.current) return;
+    const rect = timelineRef.current.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    const t = pct * duration;
+    dragTargetRef.current = t;
+    setScrubTime(t);
+  };
+
+  const commitSeek = () => {
+    if (seek && duration > 0) {
+      seek(dragTargetRef.current);
+    }
+  };
 
   const handleSeek = (clientX: number) => {
     if (!seek || !timelineRef.current) return;
-
     const rect = timelineRef.current.getBoundingClientRect();
-    const percent = Math.max(
-      0,
-      Math.min(1, (clientX - rect.left) / rect.width),
-    );
-
-    seek(percent * duration);
+    const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    seek(pct * duration);
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (dragging) handleSeek(e.clientX);
+    if (dragging) paintScrub(e.clientX);
   };
 
   const handleWindowMouseMove = (e: globalThis.MouseEvent) => {
-    handleSeek(e.clientX);
+    paintScrub(e.clientX);
+    if (seekThrottleRef.current === null) {
+      seekThrottleRef.current = window.setTimeout(() => {
+        seekThrottleRef.current = null;
+        commitSeek();
+      }, 80);
+    }
   };
 
   const handleMouseUp = () => {
+    seekThrottleRef.current && clearTimeout(seekThrottleRef.current);
+    seekThrottleRef.current = null;
+    commitSeek();
     setDragging(false);
+    setScrubTime(null);
   };
 
   useEffect(() => {
     if (dragging) {
       document.body.style.userSelect = "none";
-
       window.addEventListener("mousemove", handleWindowMouseMove);
       window.addEventListener("mouseup", handleMouseUp);
-
       return () => {
         window.removeEventListener("mousemove", handleWindowMouseMove);
         window.removeEventListener("mouseup", handleMouseUp);
-
         document.body.style.userSelect = "";
       };
     }
@@ -81,7 +102,7 @@ function Timeline({
 
   return (
     <main className="flex flex-row items-center gap-1 p-1">
-      <span className="flex flex-row windows95-text text-[10px] w-16 max-w-16 min-w-16 text-right tabular-nums">{`${formatTime(currentTime)} / ${formatTime(duration)}`}</span>
+      <span className="flex flex-row windows95-text text-[10px] w-16 max-w-16 min-w-16 text-right tabular-nums">{`${formatTime(displayTime)} / ${formatTime(duration)}`}</span>
       <section
         ref={timelineRef}
         className="flex-1 h-4 windows95-border bg-white relative cursor-pointer"
@@ -92,7 +113,8 @@ function Timeline({
         onMouseDown={(e) => {
           e.preventDefault();
           setDragging(true);
-          handleSeek(e.clientX);
+          paintScrub(e.clientX);
+          commitSeek();
         }}
         onMouseMove={handleMouseMove}
       >
@@ -112,7 +134,7 @@ function Timeline({
         {allChapters.map((ch) => {
           const pos = duration > 0 ? (ch.start_time / duration) * 100 : 0;
           if (pos <= 0 || pos >= 100) return null;
-          const passed = ch.start_time <= currentTime;
+          const passed = ch.start_time <= displayTime;
           return (
             <div
               key={ch.start_time}

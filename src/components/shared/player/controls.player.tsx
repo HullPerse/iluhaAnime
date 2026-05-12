@@ -19,18 +19,19 @@ import { MouseEvent, useState, useEffect, useRef } from "react";
 
 function Controls() {
   const [dragging, setDragging] = useState<boolean>(false);
+  const [mounted, setMounted] = useState<boolean>(false);
 
   const time = usePlayer(selectTime);
   const playback = usePlayer(selectPlayback);
+  const value = usePlayer(selectVolume);
+
   const paused = playback?.paused ?? true;
   const currentTime = time?.currentTime ?? 0;
   const duration = time?.duration ?? 0;
-
-  //volume
-  const value = usePlayer(selectVolume);
   const muted = value?.muted;
 
   const volumeContainerRef = useRef<HTMLDivElement>(null);
+  const volumeSetRef = useRef<number>(0);
 
   const setVolume = (e: number) => value?.setVolume(e);
 
@@ -42,23 +43,34 @@ function Controls() {
   const getVolumeIcon = () => {
     const volume = value?.volume;
 
-    if (!volume) return <VolumeX />;
+    if (!volume && volume !== 0) return <VolumeX />;
 
     if (volume === 0 || muted) return <VolumeX />;
-    else if (volume > 0 && volume <= 33) return <Volume className="ml-1" />;
-    else if (volume > 33 && volume <= 66) return <Volume1 />;
-    else if (volume > 66 && volume <= 100) return <Volume2 />;
+    else if (volume > 0 && volume <= 0.33) return <Volume className="ml-1" />;
+    else if (volume > 0.33 && volume <= 0.66) return <Volume1 />;
+    else if (volume > 0.66 && volume <= 1) return <Volume2 />;
+
+    return <VolumeX />;
   };
 
   const handleVolume = (clientX: number) => {
-    if (!volumeContainerRef.current) return;
+    if (!volumeContainerRef.current || !value) return;
 
     const rect = volumeContainerRef.current.getBoundingClientRect();
     const percent = Math.max(
       0,
       Math.min(1, (clientX - rect.left) / rect.width),
     );
-    setVolume?.(percent);
+
+    setVolume(percent);
+
+    if (volumeSetRef.current) {
+      clearTimeout(volumeSetRef.current);
+    }
+
+    volumeSetRef.current = setTimeout(() => {
+      localStorage.setItem("volume", String(percent));
+    }, 300);
   };
 
   const handleMouseMove = (e: MouseEvent | MouseEventInit) => {
@@ -73,6 +85,28 @@ function Controls() {
   };
 
   useEffect(() => {
+    if (value && !mounted) {
+      const savedVolume = localStorage.getItem("volume");
+      if (savedVolume !== null) {
+        const volumeValue = parseFloat(savedVolume);
+        if (typeof volumeValue === "number" && !isNaN(volumeValue)) {
+          if (value.volumeAvailability === "unavailable") return;
+          setVolume(volumeValue);
+        }
+      }
+
+      setMounted(true);
+    }
+  }, [value, mounted]);
+
+  useEffect(() => {
+    if (mounted && !dragging) {
+      if (!value) return;
+      else localStorage.setItem("volume", String(value.volume));
+    }
+  }, [value?.volume, mounted, dragging]);
+
+  useEffect(() => {
     if (dragging) {
       document.body.style.userSelect = "none";
 
@@ -82,13 +116,23 @@ function Controls() {
       return () => {
         window.removeEventListener("mousemove", handleMouseMove);
         window.removeEventListener("mouseup", handleMouseUp);
-
         document.body.style.userSelect = "";
       };
     }
   }, [dragging]);
 
-  const displayVolume = Number(muted ? 0 : value?.volume);
+  useEffect(() => {
+    return () => {
+      if (volumeSetRef.current) {
+        clearTimeout(volumeSetRef.current);
+      }
+    };
+  }, []);
+
+  const displayVolume = Number(muted ? 0 : (value?.volume ?? 0));
+
+  // Don't render volume controls until player is ready
+  const isPlayerReady = value && typeof value.setVolume === "function";
 
   return (
     <main className="flex flex-row items-center gap-1 p-1">
@@ -139,7 +183,12 @@ function Controls() {
           size="icon"
           variant="ghost"
           className="size-6"
-          onClick={() => value?.toggleMuted()}
+          onClick={() => {
+            if (value?.toggleMuted) {
+              value.toggleMuted();
+            }
+          }}
+          disabled={!isPlayerReady}
         >
           {getVolumeIcon()}
         </Button>
@@ -148,10 +197,12 @@ function Controls() {
           ref={volumeContainerRef}
           className="w-24 windows95-border bg-white relative cursor-pointer items-center justify-center"
           onClick={(e) => {
+            if (!isPlayerReady) return;
             e.preventDefault();
             handleVolume(e.clientX);
           }}
           onMouseDown={(e) => {
+            if (!isPlayerReady) return;
             e.preventDefault();
             setDragging(true);
             handleVolume(e.clientX);

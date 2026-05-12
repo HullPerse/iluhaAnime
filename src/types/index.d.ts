@@ -19,6 +19,15 @@ export type SettingsScraper = {
   encoding: "all" | "hevc" | "x264";
 };
 
+export interface VideoStreamInfo {
+  index: number;
+  codec_type: string;
+  codec_name: string;
+  language: string | null;
+  title: string | null;
+  is_default: boolean;
+}
+
 export type ModalWindow = {
   header: string;
   onClose: () => void;

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import TorrentFilesSection from "./components/file.torrent";
 import Player from "@/components/shared/player.component";
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
+import type { VideoStreamInfo } from "@/types";
 
 function PlayerRoute() {
   const { torrents, torrentFilesMap, loadTorrentFiles } = useTorrentStore(
@@ -21,9 +22,12 @@ function PlayerRoute() {
     { start_time: number; end_time: number; title: string }[]
   >([]);
 
+  const [streams, setStreams] = useState<VideoStreamInfo[]>([]);
+
   useEffect(() => {
     if (!video) {
       setChapters([]);
+      setStreams([]);
       return;
     }
 
@@ -33,6 +37,10 @@ function PlayerRoute() {
     )
       .then((chs) => setChapters(chs))
       .catch(() => setChapters([]));
+
+    invoke<VideoStreamInfo[]>("get_video_streams", { path: video.path })
+      .then((s) => setStreams(s))
+      .catch(() => setStreams([]));
   }, [video]);
 
   useEffect(() => {
@@ -60,6 +68,8 @@ function PlayerRoute() {
           src={convertFileSrc(video.path)}
           onClose={() => setVideo(null)}
           chapters={chapters}
+          mediaPath={video.path}
+          streams={streams}
         />
       ) : (
         torrents.map((item, index) => {

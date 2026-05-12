@@ -16,6 +16,16 @@ pub struct VideoChapter {
     pub title: String,
 }
 
+#[derive(Debug, Serialize)]
+pub struct VideoStreamInfo {
+    pub index: usize,
+    pub codec_type: String,
+    pub codec_name: String,
+    pub language: Option<String>,
+    pub title: Option<String>,
+    pub is_default: bool,
+}
+
 mod torrent;
 use torrent::{TorrentFileInfo, TorrentInfo, TorrentInfoResult, TorrentManager};
 
@@ -777,6 +787,113 @@ async fn get_video_chapters(path: String) -> Result<Vec<VideoChapter>, String> {
     Ok(chapters)
 }
 
+#[tauri::command]
+async fn get_video_streams(path: String) -> Result<Vec<VideoStreamInfo>, String> {
+    let output = std::process::Command::new("ffprobe")
+        .args([
+            "-v",
+            "quiet",
+            "-print_format",
+            "json",
+            "-show_streams",
+            &path,
+        ])
+        .output()
+        .map_err(|e| format!("ffprobe not found: {e}"))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("ffprobe error: {stderr}"));
+    }
+
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout)
+        .map_err(|e| format!("Failed to parse ffprobe output: {e}"))?;
+
+    let streams = json["streams"]
+        .as_array()
+        .map(|arr| {
+            arr.iter()
+                .filter(|s| {
+                    let t = s["codec_type"].as_str().unwrap_or("");
+                    t == "audio" || t == "subtitle"
+                })
+                .map(|s| VideoStreamInfo {
+                    index: s["index"].as_i64().unwrap_or(0) as usize,
+                    codec_type: s["codec_type"].as_str().unwrap_or("").to_string(),
+                    codec_name: s["codec_name"].as_str().unwrap_or("").to_string(),
+                    language: s["tags"]["language"].as_str().map(|l| l.to_string()),
+                    title: s["tags"]["title"].as_str().map(|t| t.to_string()),
+                    is_default: s["disposition"]["default"].as_i64().unwrap_or(0) == 1,
+                })
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+
+    Ok(streams)
+}
+
+#[tauri::command]
+async fn extract_video_subtitle(path: String, stream_index: usize) -> Result<String, String> {
+    let temp_dir = std::env::temp_dir();
+    let output_path = temp_dir.join(format!("iluha_sub_{}.vtt", stream_index));
+
+    let _ = std::fs::remove_file(&output_path);
+
+    let output = std::process::Command::new("ffmpeg")
+        .args([
+            "-y",
+            "-i",
+            &path,
+            "-map",
+            &format!("0:{}", stream_index),
+            "-c:s",
+            "webvtt",
+            &output_path.to_string_lossy().to_string(),
+        ])
+        .output()
+        .map_err(|e| format!("ffmpeg not found: {e}"))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("ffmpeg failed: {stderr}"));
+    }
+
+    Ok(output_path.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+async fn remux_video_audio(path: String, stream_index: usize) -> Result<String, String> {
+    let temp_dir = std::env::temp_dir();
+    let output_path = temp_dir.join(format!("iluha_audio_{}.mkv", stream_index));
+
+    let _ = std::fs::remove_file(&output_path);
+
+    let output = std::process::Command::new("ffmpeg")
+        .args([
+            "-y",
+            "-i",
+            &path,
+            "-map",
+            "0:v",
+            "-map",
+            &format!("0:{}", stream_index),
+            "-c",
+            "copy",
+            "-map_metadata",
+            "0",
+            &output_path.to_string_lossy().to_string(),
+        ])
+        .output()
+        .map_err(|e| format!("ffmpeg not found: {e}"))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("ffmpeg remux failed: {stderr}"));
+    }
+
+    Ok(output_path.to_string_lossy().to_string())
+}
+
 struct TorrentBackend {
     manager: Arc<TorrentManager>,
 }
@@ -860,6 +977,9 @@ pub fn run() {
             update_torrent_only_files,
             set_global_speed_limits,
             get_video_chapters,
+            get_video_streams,
+            extract_video_subtitle,
+            remux_video_audio,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

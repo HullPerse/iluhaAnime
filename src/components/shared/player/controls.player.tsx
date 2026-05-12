@@ -19,11 +19,21 @@ import {
   VolumeX,
 } from "lucide-react";
 import { MouseEvent, useState, useEffect, useRef } from "react";
+import type { VideoStreamInfo } from "@/types";
+import Tracks from "./tracks.player";
 
 function Controls({
   chapters,
+  mediaPath,
+  streams,
+  videoEl,
+  onAudioSwitch,
 }: {
   chapters?: { start_time: number; end_time: number; title: string }[];
+  mediaPath?: string;
+  streams?: VideoStreamInfo[];
+  videoEl?: HTMLVideoElement | null;
+  onAudioSwitch?: (newSrc: string | null) => void;
 }) {
   const [dragging, setDragging] = useState<boolean>(false);
   const [mounted, setMounted] = useState<boolean>(false);
@@ -45,11 +55,13 @@ function Controls({
 
   const seek = time?.seek;
   const chaptersCues = textTrack?.chaptersCues ?? [];
-  const allChapters = chapters ?? chaptersCues.map((c) => ({
-    start_time: c.startTime,
-    end_time: c.endTime,
-    title: c.text,
-  }));
+  const allChapters =
+    chapters ??
+    chaptersCues.map((c) => ({
+      start_time: c.startTime,
+      end_time: c.endTime,
+      title: c.text,
+    }));
 
   const handleForward = () => seek?.(Math.min(currentTime + 5, duration));
   const handleBackward = () => seek?.(Math.max(currentTime - 5, 0));
@@ -163,7 +175,6 @@ function Controls({
 
   const displayVolume = Number(muted ? 0 : (value?.volume ?? 0));
 
-  // Don't render volume controls until player is ready
   const isPlayerReady = value && typeof value.setVolume === "function";
 
   return (
@@ -227,6 +238,16 @@ function Controls({
             <SkipForward />
           </Button>
         </section>
+      )}
+
+      {mediaPath && streams && videoEl && (
+        <Tracks
+          audioStreams={streams.filter((s) => s.codec_type === "audio")}
+          subtitleStreams={streams.filter((s) => s.codec_type === "subtitle")}
+          mediaPath={mediaPath}
+          videoEl={videoEl}
+          onAudioSwitch={onAudioSwitch!}
+        />
       )}
 
       {/*VOLUME*/}

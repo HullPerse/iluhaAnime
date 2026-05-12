@@ -7,7 +7,8 @@ import {
   selectVolume,
   usePlayer,
 } from "@videojs/react";
-import { useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
+import type { VideoStreamInfo } from "@/types";
 
 import Timeline from "./player/timeline.player";
 import Controls from "./player/controls.player";
@@ -88,12 +89,24 @@ function Player({
   onClose,
   src,
   chapters,
+  mediaPath,
+  streams,
 }: {
   header: string;
   onClose: () => void;
   src: string;
   chapters?: { start_time: number; end_time: number; title: string }[];
+  mediaPath?: string;
+  streams?: VideoStreamInfo[];
 }) {
+  const [videoEl, setVideoEl] = useState<HTMLVideoElement | null>(null);
+  const [audioOverrideSrc, setAudioOverrideSrc] = useState<string | null>(null);
+  const effectiveSrc = audioOverrideSrc ?? src;
+
+  const handleAudioSwitch = useCallback((newSrc: string | null) => {
+    setAudioOverrideSrc(newSrc);
+  }, []);
+
   return (
     <Provider>
       <Container className="flex flex-col h-full mr-1 windows95-active-border bg-primary outline-none">
@@ -103,14 +116,21 @@ function Player({
             <PlayerKeyboard />
             <section className="flex-1 min-h-0 bg-black overflow-hidden">
               <Video
-                src={src}
+                ref={setVideoEl}
+                src={effectiveSrc}
                 className="h-full w-full object-contain"
                 controls={false}
                 preload="metadata"
               />
             </section>
             <Timeline chapters={chapters} />
-            <Controls chapters={chapters} />
+            <Controls
+              chapters={chapters}
+              mediaPath={mediaPath}
+              streams={streams}
+              videoEl={videoEl}
+              onAudioSwitch={handleAudioSwitch}
+            />
           </>
         )}
       </Container>

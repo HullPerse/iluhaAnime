@@ -1059,6 +1059,7 @@ pub fn run() {
                 let mgr_clone = manager.clone();
                 tokio::spawn(async move {
                     let mut prev_states: HashMap<usize, (bool, Option<String>)> = HashMap::new();
+                    let mut cleanup_counter: u32 = 0;
                     loop {
                         tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
                         let torrents = mgr_clone.collect_torrents();
@@ -1094,6 +1095,12 @@ pub fn run() {
 
                         let current_ids: HashSet<usize> = torrents.iter().map(|t| t.id).collect();
                         prev_states.retain(|id, _| current_ids.contains(id));
+
+                        cleanup_counter += 1;
+                        if cleanup_counter >= 30 {
+                            cleanup_counter = 0;
+                            mgr_clone.cleanup_unselected_files();
+                        }
                     }
                 });
                 handle.manage(TorrentBackend { manager });

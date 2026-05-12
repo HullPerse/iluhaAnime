@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::num::NonZeroU32;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
 use anyhow::{Context, Result};
@@ -78,11 +78,13 @@ impl TorrentManager {
             .await
             .context("failed to create BitTorrent session")?;
 
-        Ok(Self {
+        let manager = Self {
             session,
             save_dirs: Mutex::new(save_dirs),
             save_dirs_path,
-        })
+        };
+        manager.cleanup_unselected_files();
+        Ok(manager)
     }
 
     fn save_save_dirs(&self) {
@@ -168,19 +170,21 @@ impl TorrentManager {
             .add_torrent(AddTorrent::from_url(magnet), Some(opts))
             .await?;
 
-        match response {
+        let id = match response {
             AddTorrentResponse::Added(id, _) => {
                 self.save_dirs.lock().unwrap().insert(id, output_folder);
                 self.save_save_dirs();
-                Ok(id)
+                id
             }
             AddTorrentResponse::AlreadyManaged(id, _) => {
                 self.save_dirs.lock().unwrap().entry(id).or_insert(output_folder);
                 self.save_save_dirs();
-                Ok(id)
+                id
             }
             _ => anyhow::bail!("torrent was not added"),
-        }
+        };
+        self.cleanup_unselected_files();
+        Ok(id)
     }
 
     pub async fn get_torrent_info(
@@ -347,6 +351,81 @@ impl TorrentManager {
         result.ok_or_else(|| "torrent not found or no metadata".to_string())
     }
 
+    pub fn cleanup_unselected_files(&self) {
+        self.session.with_torrents(|iter| {
+            for (id, handle) in iter {
+                let save_dir = match self.save_dirs.lock() {
+                    Ok(g) => g.get(&id).cloned(),
+                    Err(_) => continue,
+                };
+                let Some(save_dir) = save_dir else { continue };
+                let Some(only_files) = handle.only_files() else { continue };
+                let stats = handle.stats();
+
+                let _ = handle.with_metadata(|m| {
+                    for (i, file) in m.file_infos.iter().enumerate() {
+                        if file
+                            .relative_filename
+                            .components()
+                            .any(|c| matches!(c, std::path::Component::ParentDir))
+                        {
+                            continue;
+                        }
+                        let full_path = Path::new(&save_dir).join(&file.relative_filename);
+                        let selected = only_files.contains(&i);
+
+                        if selected {
+                            unhide_file(&full_path);
+                        } else if stats.file_progress.get(i).copied().unwrap_or(0) == 0 {
+                            let _ = std::fs::File::create(&full_path);
+                            hide_file(&full_path);
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+}
+
+#[cfg(windows)]
+fn hide_file(path: &Path) {
+    use std::os::windows::ffi::OsStrExt;
+    let wide: Vec<u16> = path
+        .as_os_str()
+        .encode_wide()
+        .chain(std::iter::once(0))
+        .collect();
+    let _ = unsafe { SetFileAttributesW(wide.as_ptr(), 0x2) };
+}
+
+#[cfg(windows)]
+fn unhide_file(path: &Path) {
+    use std::os::windows::ffi::OsStrExt;
+    let wide: Vec<u16> = path
+        .as_os_str()
+        .encode_wide()
+        .chain(std::iter::once(0))
+        .collect();
+    let attrs = unsafe { GetFileAttributesW(wide.as_ptr()) };
+    if attrs != u32::MAX {
+        unsafe { SetFileAttributesW(wide.as_ptr(), attrs & !0x2); }
+    }
+}
+
+#[cfg(not(windows))]
+fn hide_file(_path: &Path) {}
+
+#[cfg(not(windows))]
+fn unhide_file(_path: &Path) {}
+
+#[cfg(windows)]
+extern "system" {
+    fn GetFileAttributesW(lpFileName: *const u16) -> u32;
+    fn SetFileAttributesW(lpFileName: *const u16, dwFileAttributes: u32) -> i32;
+}
+
+impl TorrentManager {
     pub async fn update_torrent_only_files(
         self: &Arc<Self>,
         id: usize,
@@ -366,9 +445,14 @@ impl TorrentManager {
         let handle = handle_opt.ok_or_else(|| "torrent not found".to_string())?;
         let only: HashSet<usize> = only_files.into_iter().collect();
 
-        self.session
+        let result = self
+            .session
             .update_only_files(&handle, &only)
             .await
-            .map_err(|e| format!("{e}"))
+            .map_err(|e| format!("{e}"));
+        if result.is_ok() {
+            self.cleanup_unselected_files();
+        }
+        result
     }
 }

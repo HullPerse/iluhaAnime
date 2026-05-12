@@ -80,7 +80,8 @@ function Timeline({
   };
 
   const handleMouseUp = () => {
-    seekThrottleRef.current && clearTimeout(seekThrottleRef.current);
+    if (seekThrottleRef.current) clearTimeout(seekThrottleRef.current);
+
     seekThrottleRef.current = null;
     commitSeek();
     setDragging(false);

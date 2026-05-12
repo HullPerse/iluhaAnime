@@ -1,8 +1,9 @@
-import { TorrentInfo, useTorrentStore } from "@/store/download.store";
+import { useTorrentStore } from "@/store/download.store";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import TorrentFilesSection from "./components/file.torrent";
 import Player from "@/components/shared/player.component";
+import { convertFileSrc } from "@tauri-apps/api/core";
 
 function PlayerRoute() {
   const { torrents, torrentFilesMap, loadTorrentFiles } = useTorrentStore(
@@ -11,7 +12,10 @@ function PlayerRoute() {
 
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
 
-  const [video, setVideo] = useState<TorrentInfo | null>(null);
+  const [video, setVideo] = useState<{
+    path: string;
+    file: string;
+  } | null>(null);
 
   useEffect(() => {
     torrents.forEach((t) => {
@@ -33,7 +37,11 @@ function PlayerRoute() {
   return (
     <main className="flex flex-col gap-1 h-full w-full overflow-y-scroll">
       {video ? (
-        <Player header={video.name} onClose={() => setVideo(null)} />
+        <Player
+          header={video.file}
+          src={convertFileSrc(video.path)}
+          onClose={() => setVideo(null)}
+        />
       ) : (
         torrents.map((item, index) => {
           const isExpanded = expanded.has(item.id);
@@ -71,7 +79,12 @@ function PlayerRoute() {
                       files={files}
                       type="player"
                       path={item.save_dir}
-                      onPlay={() => setVideo(item)}
+                      onPlay={(filePath) =>
+                        setVideo({
+                          path: filePath,
+                          file: filePath.split(/[/\\]/).pop() ?? item.name,
+                        })
+                      }
                     />
                   )}
                 </section>

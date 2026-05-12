@@ -18,7 +18,7 @@ function TorrentFilesSection({
   type: "torrent" | "player";
   path?: string;
   onToggle?: (id: number, indices: number[]) => void;
-  onPlay?: () => void;
+  onPlay?: (filePath: string) => void;
 }) {
   const [selected, setSelected] = useState<Set<number>>(
     () =>
@@ -98,7 +98,7 @@ function TorrentFilesSection({
                       variant="default"
                       className="size-5"
                       rendered={type === "player"}
-                      onClick={onPlay}
+                      onClick={() => path && onPlay(`${path}/${fileItem.name}`)}
                     >
                       <Play />
                     </Button>

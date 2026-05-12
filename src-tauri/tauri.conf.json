@@ -13,12 +13,18 @@
     "windows": [
       {
         "title": "iluhaAnime",
+        "minWidth": 860,
         "width": 860,
+        "minHeight": 600,
         "height": 600
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; media-src 'self' asset: http://asset.localhost blob: data:",
+      "assetProtocol": {
+        "enable": true,
+        "scope": ["**"]
+      }
     }
   },
   "bundle": {

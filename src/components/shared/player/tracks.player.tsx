@@ -1,6 +1,7 @@
 import { invoke, convertFileSrc } from "@tauri-apps/api/core";
 import type { VideoStreamInfo } from "@/types";
 import { useState, useCallback, useRef, useEffect } from "react";
+import { parseVTT } from "@/lib/utils";
 
 function TrackSelect({
   label,
@@ -27,44 +28,6 @@ function TrackSelect({
       ))}
     </select>
   );
-}
-
-function parseVTT(text: string) {
-  const cues: { start: number; end: number; text: string }[] = [];
-  const lines = text.split(/\r?\n/);
-  let i = 0;
-  while (i < lines.length) {
-    const line = lines[i].trim();
-    if (line.includes("-->")) {
-      const parts = line.split(/\s+-->\s+/);
-      if (parts.length === 2) {
-        const start = parseVTTTime(parts[0].trim().replace(",", "."));
-        const end = parseVTTTime(
-          parts[1].trim().split(/\s+/)[0].replace(",", "."),
-        );
-        i++;
-        const cueLines: string[] = [];
-        while (i < lines.length && lines[i].trim() !== "") {
-          cueLines.push(lines[i]);
-          i++;
-        }
-        if (cueLines.length > 0) {
-          cues.push({ start, end, text: cueLines.join("\n") });
-        }
-        continue;
-      }
-    }
-    i++;
-  }
-  return cues;
-}
-
-function parseVTTTime(time: string): number {
-  const p = time.split(":");
-  if (p.length === 3)
-    return parseInt(p[0]) * 3600 + parseInt(p[1]) + parseFloat(p[2]);
-  if (p.length === 2) return parseInt(p[0]) * 60 + parseFloat(p[1]);
-  return parseFloat(time);
 }
 
 function Tracks({
@@ -213,7 +176,7 @@ function Tracks({
     <section className="flex h-6 items-center gap-1 px-1 border-l-2 border-muted">
       {audioStreams.length > 0 && (
         <TrackSelect
-          label="Audio"
+          label="Аудио"
           tracks={audioStreams.map((s) => ({ index: s.index, label: fmt(s) }))}
           selected={selectedAudio}
           onChange={handleAudio}
@@ -221,7 +184,7 @@ function Tracks({
       )}
       {subtitleStreams.length > 0 && (
         <TrackSelect
-          label="Subs"
+          label="Сабы"
           tracks={subtitleStreams.map((s) => ({
             index: s.index,
             label: fmt(s),

@@ -18,12 +18,13 @@ pub struct VideoChapter {
 
 #[derive(Debug, Serialize)]
 pub struct VideoStreamInfo {
-    pub index: usize,
+    pub index: i32,
     pub codec_type: String,
     pub codec_name: String,
     pub language: Option<String>,
     pub title: Option<String>,
     pub is_default: bool,
+    pub file_path: Option<String>,
 }
 
 mod torrent;
@@ -818,12 +819,13 @@ async fn get_video_streams(path: String) -> Result<Vec<VideoStreamInfo>, String>
                     t == "audio" || t == "subtitle"
                 })
                 .map(|s| VideoStreamInfo {
-                    index: s["index"].as_i64().unwrap_or(0) as usize,
+                    index: s["index"].as_i64().unwrap_or(0) as i32,
                     codec_type: s["codec_type"].as_str().unwrap_or("").to_string(),
                     codec_name: s["codec_name"].as_str().unwrap_or("").to_string(),
                     language: s["tags"]["language"].as_str().map(|l| l.to_string()),
                     title: s["tags"]["title"].as_str().map(|t| t.to_string()),
                     is_default: s["disposition"]["default"].as_i64().unwrap_or(0) == 1,
+                    file_path: None,
                 })
                 .collect::<Vec<_>>()
         })
@@ -889,6 +891,147 @@ async fn remux_video_audio(path: String, stream_index: usize) -> Result<String, 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
         return Err(format!("ffmpeg remux failed: {stderr}"));
+    }
+
+    Ok(output_path.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+async fn scan_external_tracks(path: String) -> Result<Vec<VideoStreamInfo>, String> {
+    let video_path = std::path::Path::new(&path);
+    let parent = video_path.parent().unwrap_or(std::path::Path::new(""));
+    let stem = video_path
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .unwrap_or("")
+        .to_lowercase();
+
+    let sub_exts = [
+        "srt", "ass", "ssa", "vtt", "sub", "idx", "sup", "pgs", "stl", "ttml",
+    ];
+    let audio_exts = [
+        "mp3", "aac", "m4a", "mka", "ac3", "eac3", "dts", "truehd", "flac",
+        "ogg", "opus", "wav", "wma",
+    ];
+
+    let mut tracks: Vec<VideoStreamInfo> = Vec::new();
+    let mut ext_idx: i32 = -1;
+    let mut stack: Vec<std::path::PathBuf> = vec![parent.to_path_buf()];
+
+    while let Some(dir) = stack.pop() {
+        if !dir.is_dir() {
+            continue;
+        }
+        let entries = match std::fs::read_dir(&dir) {
+            Ok(e) => e,
+            Err(_) => continue,
+        };
+        for entry in entries.flatten() {
+            let entry_path = entry.path();
+            if entry_path.is_dir() {
+                stack.push(entry_path);
+                continue;
+            }
+            let file_stem = match entry_path.file_stem().and_then(|s| s.to_str()) {
+                Some(s) => s.to_lowercase(),
+                None => continue,
+            };
+            if file_stem != stem
+                && !file_stem.starts_with(&format!("{}.", stem))
+                && !file_stem.starts_with(&format!("{} - ", stem))
+            {
+                continue;
+            }
+            let ext = match entry_path.extension().and_then(|e| e.to_str()) {
+                Some(e) => e.to_lowercase(),
+                None => continue,
+            };
+            let codec_type = if sub_exts.contains(&ext.as_str()) {
+                "subtitle"
+            } else if audio_exts.contains(&ext.as_str()) {
+                "audio"
+            } else {
+                continue;
+            };
+            let label = entry_path
+                .file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or("")
+                .to_string();
+            tracks.push(VideoStreamInfo {
+                index: ext_idx,
+                codec_type: codec_type.to_string(),
+                codec_name: ext,
+                language: None,
+                title: Some(label.clone()),
+                is_default: false,
+                file_path: Some(entry_path.to_string_lossy().to_string()),
+            });
+            ext_idx -= 1;
+        }
+    }
+
+    Ok(tracks)
+}
+
+#[tauri::command]
+async fn remux_with_external_audio(
+    video_path: String,
+    audio_path: String,
+) -> Result<String, String> {
+    let temp_dir = std::env::temp_dir();
+    let output_path = temp_dir.join("iluha_ext_audio.mkv");
+    let _ = std::fs::remove_file(&output_path);
+
+    let output = std::process::Command::new("ffmpeg")
+        .args([
+            "-y",
+            "-i",
+            &video_path,
+            "-i",
+            &audio_path,
+            "-map",
+            "0:v",
+            "-map",
+            "1:a",
+            "-c",
+            "copy",
+            "-map_metadata",
+            "0",
+            &output_path.to_string_lossy().to_string(),
+        ])
+        .output()
+        .map_err(|e| format!("ffmpeg not found: {e}"))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("ffmpeg remux failed: {stderr}"));
+    }
+
+    Ok(output_path.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+async fn convert_external_subtitle(path: String) -> Result<String, String> {
+    let temp_dir = std::env::temp_dir();
+    let output_path = temp_dir.join("iluha_ext_sub.vtt");
+    let _ = std::fs::remove_file(&output_path);
+
+    let output = std::process::Command::new("ffmpeg")
+        .args([
+            "-y",
+            "-i",
+            &path,
+            "-c:s",
+            "webvtt",
+            &output_path.to_string_lossy().to_string(),
+        ])
+        .output()
+        .map_err(|e| format!("ffmpeg not found: {e}"))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("ffmpeg subtitle convert failed: {stderr}"));
     }
 
     Ok(output_path.to_string_lossy().to_string())
@@ -980,6 +1123,9 @@ pub fn run() {
             get_video_streams,
             extract_video_subtitle,
             remux_video_audio,
+            scan_external_tracks,
+            remux_with_external_audio,
+            convert_external_subtitle,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

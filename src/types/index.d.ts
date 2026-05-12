@@ -26,6 +26,7 @@ export interface VideoStreamInfo {
   language: string | null;
   title: string | null;
   is_default: boolean;
+  file_path?: string | null;
 }
 
 export type ModalWindow = {

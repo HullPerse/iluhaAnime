@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button.component";
-import { LobbyStateInfo } from "@/types";
+import { LobbyStateInfo, VideoStreamInfo } from "@/types";
 import {
   ChevronLeft,
   ChevronRight,
@@ -7,9 +7,11 @@ import {
   EyeOff,
   UserRoundX,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import Player from "./player.component";
 import Users from "./lobby/users.lobby";
+import PlaylistLobby from "./lobby/playlist.lobby";
 
 const tabs = ["users", "playlist", "settings"];
 
@@ -27,6 +29,34 @@ function Lobby({
     file: string;
   } | null>(null);
 
+  const [chapters, setChapters] = useState<
+    { start_time: number; end_time: number; title: string }[]
+  >([]);
+
+  const [streams, setStreams] = useState<VideoStreamInfo[]>([]);
+
+  useEffect(() => {
+    if (!video) {
+      setChapters([]);
+      setStreams([]);
+      return;
+    }
+
+    invoke<{ start_time: number; end_time: number; title: string }[]>(
+      "get_video_chapters",
+      { path: video.path },
+    )
+      .then((chs) => setChapters(chs))
+      .catch(() => setChapters([]));
+
+    Promise.all([
+      invoke<VideoStreamInfo[]>("get_video_streams", { path: video.path }),
+      invoke<VideoStreamInfo[]>("scan_external_tracks", { path: video.path }),
+    ])
+      .then(([embedded, external]) => setStreams([...embedded, ...external]))
+      .catch(() => setStreams([]));
+  }, [video]);
+
   const [menu, setMenu] = useState<boolean>(true);
   const [tab, setTab] = useState<"users" | "playlist" | "settings">("users");
 
@@ -43,7 +73,17 @@ function Lobby({
   const tabComponent = () => {
     const tabMap = {
       users: <Users state={state} current={id} />,
-      playlist: <>1</>,
+      playlist: (
+        <PlaylistLobby
+          activePath={video?.path}
+          onPlay={(entry) =>
+            setVideo({
+              path: entry.path,
+              file: entry.name,
+            })
+          }
+        />
+      ),
       settings: <>2</>,
     };
 
@@ -55,7 +95,7 @@ function Lobby({
       <section className="flex flex-col flex-1">
         <Player
           header={video ? video?.file : "Ожидается видео"}
-          src={video?.file}
+          src={video ? convertFileSrc(video.path) : undefined}
           onClose={() => setVideo(null)}
           special={
             !menu ? (
@@ -70,11 +110,9 @@ function Lobby({
               <></>
             )
           }
-          // chapters={chapters}
-          // mediaPath={
-          //video.path
-          // }
-          // streams={streams}
+          chapters={chapters}
+          mediaPath={video?.path}
+          streams={streams}
         />
       </section>
       <section

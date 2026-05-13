@@ -1,7 +1,7 @@
 import { Video, videoFeatures } from "@videojs/react/video";
 
 import { createPlayer } from "@videojs/react";
-import { ReactElement, useCallback, useState } from "react";
+import { ReactElement, useCallback, useEffect, useRef, useState } from "react";
 import type { VideoStreamInfo } from "@/types";
 
 import Timeline from "./player/timeline.player";
@@ -20,6 +20,10 @@ function Player({
   mediaPath,
   streams,
   special,
+  onTimeUpdate,
+  onPlayStateChange,
+  initialTime,
+  autoPlay,
 }: {
   header: string;
   onClose: () => void;
@@ -28,10 +32,27 @@ function Player({
   mediaPath?: string;
   streams?: VideoStreamInfo[];
   special?: ReactElement;
+  onTimeUpdate?: (time: number) => void;
+  onPlayStateChange?: (playing: boolean) => void;
+  initialTime?: number;
+  autoPlay?: boolean;
 }) {
   const [videoEl, setVideoEl] = useState<HTMLVideoElement | null>(null);
   const [audioOverrideSrc, setAudioOverrideSrc] = useState<string | null>(null);
+  const hasSeeked = useRef(false);
   const effectiveSrc = audioOverrideSrc ?? src;
+
+  useEffect(() => {
+    if (videoEl && !hasSeeked.current) {
+      if (initialTime !== undefined) {
+        videoEl.currentTime = initialTime;
+      }
+      if (autoPlay) {
+        videoEl.play();
+      }
+      hasSeeked.current = true;
+    }
+  }, [videoEl, initialTime, autoPlay]);
 
   const handleAudioSwitch = useCallback((newSrc: string | null) => {
     setAudioOverrideSrc(newSrc);
@@ -52,6 +73,9 @@ function Player({
                   className="h-full w-full object-contain"
                   controls={false}
                   preload="metadata"
+                  onTimeUpdate={(e) => onTimeUpdate?.((e.target as HTMLVideoElement).currentTime)}
+                  onPlay={() => onPlayStateChange?.(true)}
+                  onPause={() => onPlayStateChange?.(false)}
                 />
               ) : (
                 <span className="text-white windows95-font text-xs">

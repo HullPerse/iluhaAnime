@@ -7,8 +7,9 @@ import {
   EyeOff,
   UserRoundX,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
+import { usePlaylistStore } from "@/store/playlist.store";
 import Player from "./player.component";
 import Users from "./lobby/users.lobby";
 import PlaylistLobby from "./lobby/playlist.lobby";
@@ -24,10 +25,8 @@ function Lobby({
   onLeave: () => void;
   id: string;
 }) {
-  const [video, setVideo] = useState<{
-    path: string;
-    file: string;
-  } | null>(null);
+  const { playback, setPlayback, updatePlaybackTime, updatePlaybackPlaying } =
+    usePlaylistStore();
 
   const [chapters, setChapters] = useState<
     { start_time: number; end_time: number; title: string }[]
@@ -36,7 +35,7 @@ function Lobby({
   const [streams, setStreams] = useState<VideoStreamInfo[]>([]);
 
   useEffect(() => {
-    if (!video) {
+    if (!playback) {
       setChapters([]);
       setStreams([]);
       return;
@@ -44,18 +43,30 @@ function Lobby({
 
     invoke<{ start_time: number; end_time: number; title: string }[]>(
       "get_video_chapters",
-      { path: video.path },
+      { path: playback.path },
     )
       .then((chs) => setChapters(chs))
       .catch(() => setChapters([]));
 
     Promise.all([
-      invoke<VideoStreamInfo[]>("get_video_streams", { path: video.path }),
-      invoke<VideoStreamInfo[]>("scan_external_tracks", { path: video.path }),
+      invoke<VideoStreamInfo[]>("get_video_streams", { path: playback.path }),
+      invoke<VideoStreamInfo[]>("scan_external_tracks", {
+        path: playback.path,
+      }),
     ])
       .then(([embedded, external]) => setStreams([...embedded, ...external]))
       .catch(() => setStreams([]));
-  }, [video]);
+  }, [playback]);
+
+  const handleTimeUpdate = useCallback(
+    (time: number) => updatePlaybackTime(time),
+    [updatePlaybackTime],
+  );
+
+  const handlePlayStateChange = useCallback(
+    (playing: boolean) => updatePlaybackPlaying(playing),
+    [updatePlaybackPlaying],
+  );
 
   const [menu, setMenu] = useState<boolean>(true);
   const [tab, setTab] = useState<"users" | "playlist" | "settings">("users");
@@ -75,11 +86,13 @@ function Lobby({
       users: <Users state={state} current={id} />,
       playlist: (
         <PlaylistLobby
-          activePath={video?.path}
+          activePath={playback?.path}
           onPlay={(entry) =>
-            setVideo({
+            setPlayback({
               path: entry.path,
               file: entry.name,
+              currentTime: 0,
+              playing: true,
             })
           }
         />
@@ -94,9 +107,9 @@ function Lobby({
     <main className="flex flex-row h-full w-full justify-between">
       <section className="flex flex-col flex-1">
         <Player
-          header={video ? video?.file : "Ожидается видео"}
-          src={video ? convertFileSrc(video.path) : undefined}
-          onClose={() => setVideo(null)}
+          header={playback ? playback.file : "Ожидается видео"}
+          src={playback ? convertFileSrc(playback.path) : undefined}
+          onClose={() => setPlayback(null)}
           special={
             !menu ? (
               <Button
@@ -110,9 +123,13 @@ function Lobby({
               <></>
             )
           }
+          initialTime={playback?.currentTime}
+          autoPlay={playback?.playing}
           chapters={chapters}
-          mediaPath={video?.path}
+          mediaPath={playback?.path}
           streams={streams}
+          onTimeUpdate={handleTimeUpdate}
+          onPlayStateChange={handlePlayStateChange}
         />
       </section>
       <section
@@ -168,7 +185,7 @@ function Lobby({
         </div>
         {tabComponent()}
 
-        <div className="mt-auto windows95-text text-xs text-muted">
+        <div className="mt-auto windows95-text text-xs text-muted p-1">
           {state.is_host ? "Хост" : "Подключён"} — {state.ip}:{state.port}
         </div>
       </section>

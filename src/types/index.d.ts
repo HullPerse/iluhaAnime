@@ -35,11 +35,14 @@ export type ModalWindow = {
   children: ReactElement | string | any;
 };
 
-export type Connection = {
+export type LobbyUser = {
+  id: string;
+  username: string;
+};
+
+export type LobbyStateInfo = {
+  is_host: boolean;
+  users: LobbyUser[];
   ip: string;
-  source: {
-    name: string;
-    magnet: string;
-  };
-  users: string[];
+  port: number;
 };

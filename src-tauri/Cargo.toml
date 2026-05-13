@@ -11,7 +11,7 @@ edition = "2021"
 # The `_lib` suffix may seem redundant but it is necessary
 # to make the lib name unique and wouldn't conflict with the bin name.
 # This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
-name = "rogue_lib"
+name = "iluhaanime_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
@@ -32,4 +32,4 @@ sha1 = "0.10"
 hex = "0.4"
 librqbit = { version = "8.1", default-features = false, features = ["default-tls"] }
 anyhow = "1"
-tokio = { version = "1", features = ["macros", "rt-multi-thread", "fs", "io-util"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "fs", "io-util", "net", "sync"] }

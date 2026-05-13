@@ -2,5 +2,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    rogue_lib::run()
+    iluhaanime_lib::run()
 }

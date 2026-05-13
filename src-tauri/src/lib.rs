@@ -27,7 +27,9 @@ pub struct VideoStreamInfo {
     pub file_path: Option<String>,
 }
 
+mod lobby;
 mod torrent;
+use lobby::LobbyManager;
 use torrent::{TorrentFileInfo, TorrentInfo, TorrentInfoResult, TorrentManager};
 
 #[derive(Debug, Serialize)]
@@ -1037,8 +1039,47 @@ async fn convert_external_subtitle(path: String) -> Result<String, String> {
     Ok(output_path.to_string_lossy().to_string())
 }
 
+#[tauri::command]
+async fn create_lobby(
+    port: u16,
+    user_id: String,
+    username: String,
+    manager: tauri::State<'_, LobbyBackend>,
+    app: tauri::AppHandle,
+) -> Result<(), String> {
+    manager.lobby.create_lobby(app, port, user_id, username).await
+}
+
+#[tauri::command]
+async fn join_lobby(
+    ip: String,
+    port: u16,
+    user_id: String,
+    username: String,
+    manager: tauri::State<'_, LobbyBackend>,
+    app: tauri::AppHandle,
+) -> Result<(), String> {
+    manager.lobby.join_lobby(app, ip, port, user_id, username).await
+}
+
+#[tauri::command]
+async fn leave_lobby(manager: tauri::State<'_, LobbyBackend>) -> Result<(), String> {
+    manager.lobby.leave_lobby().await
+}
+
+#[tauri::command]
+async fn get_lobby_state(
+    manager: tauri::State<'_, LobbyBackend>,
+) -> Result<Option<lobby::LobbyStateInfo>, String> {
+    Ok(manager.lobby.get_state().await)
+}
+
 struct TorrentBackend {
     manager: Arc<TorrentManager>,
+}
+
+struct LobbyBackend {
+    lobby: LobbyManager,
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -1103,7 +1144,9 @@ pub fn run() {
                         }
                     }
                 });
+                let lobby = LobbyManager::new(handle.clone());
                 handle.manage(TorrentBackend { manager });
+                handle.manage(LobbyBackend { lobby });
             });
             Ok(())
         })
@@ -1133,6 +1176,10 @@ pub fn run() {
             scan_external_tracks,
             remux_with_external_audio,
             convert_external_subtitle,
+            create_lobby,
+            join_lobby,
+            leave_lobby,
+            get_lobby_state,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

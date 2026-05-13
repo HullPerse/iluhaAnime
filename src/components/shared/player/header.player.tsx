@@ -1,8 +1,17 @@
 import { Button } from "@/components/ui/button.component";
 import { selectFullscreen, usePlayer } from "@videojs/react";
 import { Maximize, X } from "lucide-react";
+import { ReactElement } from "react";
 
-function Header({ header, onClose }: { header: string; onClose: () => void }) {
+function Header({
+  header,
+  onClose,
+  special,
+}: {
+  header: string;
+  onClose: () => void;
+  special?: ReactElement;
+}) {
   const fullscreen = usePlayer(selectFullscreen);
 
   return (
@@ -20,9 +29,13 @@ function Header({ header, onClose }: { header: string; onClose: () => void }) {
         >
           <Maximize />
         </Button>
-        <Button size="icon" className="size-4" onClick={onClose}>
-          <X />
-        </Button>
+        {!special ? (
+          <Button size="icon" className="size-4" onClick={onClose}>
+            <X />
+          </Button>
+        ) : (
+          special
+        )}
       </div>
     </main>
   );

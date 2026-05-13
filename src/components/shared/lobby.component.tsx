@@ -1,25 +1,34 @@
 import { Button } from "@/components/ui/button.component";
 import { LobbyStateInfo } from "@/types";
-import { ChevronLeft, ChevronRight, Eye, EyeOff } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+  EyeOff,
+  UserRoundX,
+} from "lucide-react";
 import { useState } from "react";
 import Player from "./player.component";
+import Users from "./lobby/users.lobby";
 
-interface LobbyProps {
+const tabs = ["users", "playlist", "settings"];
+
+function Lobby({
+  state,
+  onLeave,
+  id,
+}: {
   state: LobbyStateInfo;
   onLeave: () => void;
   id: string;
-}
-
-function Lobby({ state, onLeave, id }: LobbyProps) {
+}) {
   const [video, setVideo] = useState<{
     path: string;
     file: string;
   } | null>(null);
 
   const [menu, setMenu] = useState<boolean>(true);
-  const [tab, currentTab] = useState<"users" | "playlist" | "settigns">(
-    "users",
-  );
+  const [tab, setTab] = useState<"users" | "playlist" | "settings">("users");
 
   const translateTab = () => {
     const tabMap = {
@@ -31,16 +40,30 @@ function Lobby({ state, onLeave, id }: LobbyProps) {
     return tabMap[tab as keyof typeof tabMap];
   };
 
+  const tabComponent = () => {
+    const tabMap = {
+      users: <Users state={state} current={id} />,
+      playlist: <>1</>,
+      settings: <>2</>,
+    };
+
+    return tabMap[tab as keyof typeof tabMap];
+  };
+
   return (
     <main className="flex flex-row h-full w-full justify-between">
       <section className="flex flex-col flex-1">
         <Player
-          header={"video title"}
-          src={undefined}
+          header={video ? video?.file : "Ожидается видео"}
+          src={video?.file}
           onClose={() => setVideo(null)}
           special={
             !menu ? (
-              <Button size="icon" className="size-4" onClick={() => {}}>
+              <Button
+                size="icon"
+                className="size-4"
+                onClick={() => setMenu(true)}
+              >
                 <Eye />
               </Button>
             ) : (
@@ -54,45 +77,63 @@ function Lobby({ state, onLeave, id }: LobbyProps) {
           // streams={streams}
         />
       </section>
-      <section className="flex flex-col w-50 items-center windows95-active-border bg-primary">
+      <section
+        className="flex flex-col w-50 windows95-active-border bg-primary"
+        hidden={!menu}
+      >
         <div className="flex flex-row items-center justify-between bg-secondary w-full p-1">
           <span className="text-white windows95-text font-bold line-clamp-1">
             {translateTab()}
           </span>
           <div className="flex flex-row gap-1">
-            <Button size="icon" className="size-5">
+            <Button
+              size="icon"
+              className="size-5"
+              onClick={() => {
+                if (tab === "users") return;
+
+                const currentIndex = tabs.indexOf(tab);
+                const nextTab = tabs[currentIndex - 1];
+
+                setTab(nextTab as "users" | "playlist" | "settings");
+              }}
+              disabled={tab === "users"}
+            >
               <ChevronLeft />
             </Button>
-            <Button size="icon" className="size-5">
+            <Button
+              size="icon"
+              className="size-5"
+              onClick={() => {
+                if (tab === "settings") return;
+
+                const currentIndex = tabs.indexOf(tab);
+                const nextTab = tabs[currentIndex + 1];
+
+                setTab(nextTab as "users" | "playlist" | "settings");
+              }}
+              disabled={tab === "settings"}
+            >
               <ChevronRight />
             </Button>
-            <Button size="icon" className="size-5">
+            <Button
+              size="icon"
+              className="size-5"
+              onClick={() => setMenu(!menu)}
+            >
               {menu ? <Eye /> : <EyeOff />}
+            </Button>
+            <Button size="icon" className="size-5" onClick={onLeave}>
+              <UserRoundX />
             </Button>
           </div>
         </div>
-      </section>
-      {/*<section className="flex flex-col gap-2">
-        <div className="windows95-text text-xs text-muted">
+        {tabComponent()}
+
+        <div className="mt-auto windows95-text text-xs text-muted">
           {state.is_host ? "Хост" : "Подключён"} — {state.ip}:{state.port}
         </div>
-        <div className="windows95-text">
-          Пользователи ({state.users.length}):
-        </div>
-        <ul className="flex flex-col gap-0.5 list-disc list-inside">
-          {state.users.map((u) => (
-            <li key={u.id} className="flex items-center gap-1 text-sm">
-              <span>{u.username || u.id}</span>
-              {u.id === myId && (
-                <span className="text-muted text-xs">(это вы)</span>
-              )}
-            </li>
-          ))}
-        </ul>
       </section>
-      <section className="flex flex-row gap-1 items-center justify-end mt-auto border-t-2 border-muted p-1 w-full">
-        <Button onClick={onLeave}>Покинуть</Button>
-      </section>*/}
     </main>
   );
 }

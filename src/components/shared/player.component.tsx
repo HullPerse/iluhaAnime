@@ -17,6 +17,8 @@ import Header from "./player/header.player";
 const PlayerRoot = createPlayer({ features: videoFeatures });
 const { Provider, Container } = PlayerRoot;
 
+const FRAME_STEP = 1 / 30;
+
 function PlayerKeyboard() {
   const playback = usePlayer(selectPlayback);
   const time = usePlayer(selectTime);
@@ -57,6 +59,21 @@ function PlayerKeyboard() {
           e.preventDefault();
           const v = volume?.volume ?? 0;
           volume?.setVolume?.(Math.max(v - 0.01, 0));
+          break;
+        }
+        case "Comma": {
+          e.preventDefault();
+          playback?.pause();
+          const ct = time?.currentTime ?? 0;
+          time?.seek?.(Math.max(ct - FRAME_STEP, 0));
+          break;
+        }
+        case "Period": {
+          e.preventDefault();
+          playback?.pause();
+          const ct = time?.currentTime ?? 0;
+          const dur = time?.duration ?? 0;
+          time?.seek?.(Math.min(ct + FRAME_STEP, dur));
           break;
         }
       }

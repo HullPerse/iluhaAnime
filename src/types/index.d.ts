@@ -34,3 +34,12 @@ export type ModalWindow = {
   onClose: () => void;
   children: ReactElement | string | any;
 };
+
+export type Connection = {
+  ip: string;
+  source: {
+    name: string;
+    magnet: string;
+  };
+  users: string[];
+};

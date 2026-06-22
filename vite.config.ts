@@ -1,7 +1,6 @@
-import { defineConfig } from "vite";
+import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
-import vCache from "@raegen/vite-plugin-vitest-cache";
 import viteCompression from "vite-plugin-compression";
 import { resolve } from "path";
 
@@ -9,7 +8,6 @@ export default defineConfig(async () => ({
   plugins: [
     react(),
     tailwindcss(),
-    vCache(),
     viteCompression({
       algorithm: "brotliCompress",
       ext: ".br",
@@ -24,6 +22,11 @@ export default defineConfig(async () => ({
     alias: {
       "@": resolve(__dirname, "./src"),
     },
+  },
+
+  test: {
+    environment: "node",
+    include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
   },
 
   server: {

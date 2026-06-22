@@ -161,7 +161,7 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
     set({ lastSaveDir: saveDir, pendingTorrent: null });
 
     if (pending.id) {
-      await invoke("remove_torrent", { id: pending.id, deleteFiles: false }).catch(() => {});
+      await invoke("remove_torrent", { id: pending.id, deleteFiles: false }).catch((err) => console.error("Failed to clean up pending torrent:", err));
     }
     await invoke("start_torrent_download", {
       magnet: pending.magnet,
@@ -176,27 +176,27 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
     set({ preparingTorrent: false, pendingTorrent: null });
     if (!pending) return;
     if (pending.id) {
-      await invoke("remove_torrent", { id: pending.id, deleteFiles: false }).catch(() => {});
+      await invoke("remove_torrent", { id: pending.id, deleteFiles: false }).catch((err) => console.error("Failed to cancel pending torrent:", err));
     }
   },
 
   pauseTorrent: async (id: number) => {
-    await invoke("pause_torrent", { id }).catch(() => {});
+    await invoke("pause_torrent", { id }).catch((err) => console.error("Failed to pause torrent:", err));
   },
 
   resumeTorrent: async (id: number) => {
-    await invoke("resume_torrent", { id }).catch(() => {});
+    await invoke("resume_torrent", { id }).catch((err) => console.error("Failed to resume torrent:", err));
   },
 
   removeTorrent: async (id: number, deleteFiles: boolean) => {
-    await invoke("remove_torrent", { id, deleteFiles }).catch(() => {});
+    await invoke("remove_torrent", { id, deleteFiles }).catch((err) => console.error("Failed to remove torrent:", err));
   },
 
   setSpeedLimits: async (dlKbps: number | null, ulKbps: number | null) => {
     set({ dlLimit: dlKbps, ulLimit: ulKbps });
     const dlBps = dlKbps !== null ? dlKbps * 1024 : null;
     const ulBps = ulKbps !== null ? ulKbps * 1024 : null;
-    await invoke("set_global_speed_limits", { downloadBps: dlBps, uploadBps: ulBps }).catch(() => {});
+    await invoke("set_global_speed_limits", { downloadBps: dlBps, uploadBps: ulBps }).catch((err) => console.error("Failed to set speed limits:", err));
   },
 
   loadTorrentFiles: async (id: number) => {
@@ -209,6 +209,6 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
   },
 
   updateTorrentOnlyFiles: async (id: number, indices: number[]) => {
-    await invoke("update_torrent_only_files", { id, onlyFiles: indices }).catch(() => {});
+    await invoke("update_torrent_only_files", { id, onlyFiles: indices }).catch((err) => console.error("Failed to update torrent files:", err));
   },
 }));

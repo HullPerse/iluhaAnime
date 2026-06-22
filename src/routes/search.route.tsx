@@ -6,12 +6,32 @@ import { detectLanguages, formatSize } from "@/lib/utils";
 import { languages, qualities, encodings } from "@/config/index.config";
 import { Button } from "@/components/ui/button.component";
 import { SmallLoader } from "@/components/shared/loader.component";
-import { Search, Download, Clipboard, ExternalLink, LogOut, Loader } from "lucide-react";
+import {
+  Search,
+  Download,
+  Clipboard,
+  ExternalLink,
+  LogOut,
+  Loader,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { Input } from "@/components/ui/input.component";
 import { useTorrentStore } from "@/store/download.store";
 import RutrackerLoginModal from "@/components/shared/rutracker.login";
+import NekoBtApiModal from "@/components/shared/nekobt.api";
 
-type Source = "erai-raws" | "rutracker";
+type Source = "erai-raws" | "rutracker" | "nyaa" | "nekobt";
+const PER_PAGE = 20;
+
+const nyaaSorts = [
+  { value: "seeders", label: "Сидеры" },
+  { value: "leechers", label: "Личи" },
+  { value: "size", label: "Размер" },
+  { value: "date", label: "Дата" },
+  { value: "name", label: "Название" },
+  { value: "downloads", label: "Скачивания" },
+] as const;
 
 function SearchRoute() {
   const prepareTorrentDownload = useTorrentStore(
@@ -21,8 +41,15 @@ function SearchRoute() {
   const [source, setSource] = useState<Source>("erai-raws");
   const [rutrackerAuth, setRutrackerAuth] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
+  const [nekobtAuth, setNekoBtAuth] = useState(false);
+  const [showApiModal, setShowApiModal] = useState(false);
   const [magnets, setMagnets] = useState<Record<string, string>>({});
-  const [loadingMagnet, setLoadingMagnet] = useState<Record<string, boolean>>({});
+  const [loadingMagnet, setLoadingMagnet] = useState<Record<string, boolean>>(
+    {},
+  );
+  const [nyaaPage, setNyaaPage] = useState(1);
+  const [nyaaSort, setNyaaSort] = useState("seeders");
+  const [nyaaOrder, setNyaaOrder] = useState("desc");
   const [settings, setSettings] = useState<SettingsScraper>({
     quality: "all",
     language: "all",
@@ -31,17 +58,36 @@ function SearchRoute() {
   });
 
   useEffect(() => {
-    invoke<boolean>("check_rutracker_session").then(setRutrackerAuth).catch(() => setRutrackerAuth(false));
+    invoke<boolean>("check_rutracker_session")
+      .then(setRutrackerAuth)
+      .catch(() => setRutrackerAuth(false));
+    invoke<boolean>("check_nekobt_session")
+      .then(setNekoBtAuth)
+      .catch(() => setNekoBtAuth(false));
   }, []);
 
   const { data, isLoading, isError, error, refetch } = useQuery({
-    queryKey: ["animeScraper", source],
+    queryKey: ["animeScraper", source, nyaaPage, nyaaSort, nyaaOrder],
     queryFn: async (): Promise<Anime[]> => {
+      setMagnets({});
+      setLoadingMagnet({});
       if (source === "rutracker") {
-        setMagnets({});
-        setLoadingMagnet({});
         return await invoke<Anime[]>("search_rutracker", {
           query: searchParams.trim(),
+        });
+      }
+      if (source === "nyaa") {
+        return await invoke<Anime[]>("search_nyaa", {
+          query: searchParams.trim(),
+          page: nyaaPage,
+          sort: nyaaSort,
+          order: nyaaOrder,
+        });
+      }
+      if (source === "nekobt") {
+        return await invoke<Anime[]>("search_nekobt", {
+          query: searchParams.trim(),
+          page: nyaaPage,
         });
       }
       return await invoke<Anime[]>("search_erairaws", {
@@ -77,6 +123,11 @@ function SearchRoute() {
     return sortMap[settings.sort] ?? 0;
   });
 
+  const displayItems = sorted?.slice(
+    0,
+    source === "nyaa" ? PER_PAGE : undefined,
+  );
+
   const handleLogout = async () => {
     await invoke("rutracker_logout");
     setRutrackerAuth(false);
@@ -102,17 +153,17 @@ function SearchRoute() {
   };
 
   const handleCopyMagnet = async (item: Anime) => {
-    const magnet = item.magnet || await ensureMagnet(item);
+    const magnet = item.magnet || (await ensureMagnet(item));
     if (magnet) navigator.clipboard.writeText(magnet);
   };
 
   const handleOpenMagnet = async (item: Anime) => {
-    const magnet = item.magnet || await ensureMagnet(item);
+    const magnet = item.magnet || (await ensureMagnet(item));
     if (magnet) document.location.assign(magnet);
   };
 
   const handleDownload = async (item: Anime) => {
-    const magnet = item.magnet || await ensureMagnet(item);
+    const magnet = item.magnet || (await ensureMagnet(item));
     if (magnet) prepareTorrentDownload(magnet);
   };
 
@@ -143,10 +194,15 @@ function SearchRoute() {
         <select
           className="h-9 windows95-border px-1 text-text windows95-text windows95-select"
           value={source}
-          onChange={(e) => setSource(e.target.value as Source)}
+          onChange={(e) => {
+            setSource(e.target.value as Source);
+            setNyaaPage(1);
+          }}
         >
           <option value="erai-raws">Erai-Raws</option>
           <option value="rutracker">Rutracker</option>
+          <option value="nyaa">Nyaa.si</option>
+          <option value="nekobt">nekoBT</option>
         </select>
         {source === "rutracker" && !rutrackerAuth && (
           <Button variant="default" onClick={() => setShowLogin(true)}>
@@ -155,6 +211,22 @@ function SearchRoute() {
         )}
         {source === "rutracker" && rutrackerAuth && (
           <Button variant="default" onClick={handleLogout}>
+            <LogOut className="size-3.5" />
+          </Button>
+        )}
+        {source === "nekobt" && !nekobtAuth && (
+          <Button variant="default" onClick={() => setShowApiModal(true)}>
+            ключ
+          </Button>
+        )}
+        {source === "nekobt" && nekobtAuth && (
+          <Button
+            variant="default"
+            onClick={async () => {
+              await invoke("nekobt_logout");
+              setNekoBtAuth(false);
+            }}
+          >
             <LogOut className="size-3.5" />
           </Button>
         )}
@@ -179,9 +251,7 @@ function SearchRoute() {
             <Button
               key={l}
               variant={settings.language === l ? "outline" : "default"}
-              onClick={() =>
-                setSettings((prev) => ({ ...prev, language: l }))
-              }
+              onClick={() => setSettings((prev) => ({ ...prev, language: l }))}
               className="windows95-small-border"
             >
               {l === "all" ? "Все" : l}
@@ -224,6 +294,42 @@ function SearchRoute() {
             ))}
           </select>
         </div>
+        {source === "nyaa" && (
+          <>
+            <div className="flex items-center gap-1">
+              <span className="text-text windows95-text">Сорт.:</span>
+              <select
+                className="h-6 windows95-border px-1 text-text windows95-text windows95-select"
+                value={nyaaSort}
+                onChange={(e) => {
+                  setNyaaSort(e.target.value);
+                  setNyaaPage(1);
+                  setTimeout(() => refetch(), 0);
+                }}
+              >
+                {nyaaSorts.map((s) => (
+                  <option key={s.value} value={s.value}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center gap-1">
+              <select
+                className="h-6 windows95-border px-1 text-text windows95-text windows95-select"
+                value={nyaaOrder}
+                onChange={(e) => {
+                  setNyaaOrder(e.target.value);
+                  setNyaaPage(1);
+                  setTimeout(() => refetch(), 0);
+                }}
+              >
+                <option value="desc">По убыв.</option>
+                <option value="asc">По возр.</option>
+              </select>
+            </div>
+          </>
+        )}
       </section>
       {isError && (
         <section className="windows95-text text-destructive text-[11px]">
@@ -231,9 +337,9 @@ function SearchRoute() {
         </section>
       )}
       {data?.length === 0 && !isError && <span>Ничего не найдено</span>}
-      {sorted && (
+      {displayItems && (
         <section className="flex flex-col w-full h-full overflow-y-scroll p-0.5 gap-1">
-          {sorted.map((item, i) => {
+          {displayItems.map((item, i) => {
             const isLoadingMag = loadingMagnet[item.link];
 
             return (
@@ -281,7 +387,9 @@ function SearchRoute() {
                   {isLoadingMag ? (
                     <div className="flex items-center gap-1">
                       <Loader className="size-3 animate-spin" />
-                      <span className="windows95-text text-[11px]">Загрузка магнита...</span>
+                      <span className="windows95-text text-[11px]">
+                        Загрузка магнита...
+                      </span>
                     </div>
                   ) : item.magnet || source === "rutracker" ? (
                     <>
@@ -309,14 +417,16 @@ function SearchRoute() {
                         Скачать
                       </Button>
                     </>
-                  ) : item.link && (
-                    <Button
-                      onClick={() => document.location.assign(item.link)}
-                      className="inline-flex items-center gap-0.5 windows95-active-border bg-primary px-2 py-0.5 windows95-text text-text no-underline cursor-pointer"
-                    >
-                      <ExternalLink className="size-3" />
-                      Открыть
-                    </Button>
+                  ) : (
+                    item.link && (
+                      <Button
+                        onClick={() => document.location.assign(item.link)}
+                        className="inline-flex items-center gap-0.5 windows95-active-border bg-primary px-2 py-0.5 windows95-text text-text no-underline cursor-pointer"
+                      >
+                        <ExternalLink className="size-3" />
+                        Открыть
+                      </Button>
+                    )
                   )}
                 </div>
               </div>
@@ -324,10 +434,47 @@ function SearchRoute() {
           })}
         </section>
       )}
+      {(source === "nyaa" || source === "nekobt") &&
+        displayItems &&
+        displayItems.length > 0 && (
+          <section className="flex items-center justify-end gap-1 py-1">
+            <span className="windows95-text text-[11px] mr-1">
+              Стр. {nyaaPage}
+            </span>
+            <Button
+              size="icon"
+              className="size-5"
+              disabled={nyaaPage <= 1 || isLoading}
+              onClick={() => {
+                setNyaaPage((p) => Math.max(1, p - 1));
+                setTimeout(() => refetch(), 0);
+              }}
+            >
+              <ChevronLeft className="size-3" />
+            </Button>
+            <Button
+              size="icon"
+              className="size-5"
+              disabled={displayItems.length < PER_PAGE || isLoading}
+              onClick={() => {
+                setNyaaPage((p) => p + 1);
+                setTimeout(() => refetch(), 0);
+              }}
+            >
+              <ChevronRight className="size-3" />
+            </Button>
+          </section>
+        )}
       {showLogin && (
         <RutrackerLoginModal
           setRutrackerAuth={setRutrackerAuth}
           setShowLogin={setShowLogin}
+        />
+      )}
+      {showApiModal && (
+        <NekoBtApiModal
+          setNekoBtAuth={setNekoBtAuth}
+          setShowApiModal={setShowApiModal}
         />
       )}
     </div>

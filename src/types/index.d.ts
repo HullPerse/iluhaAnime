@@ -34,15 +34,3 @@ export type ModalWindow = {
   onClose: () => void;
   children: ReactElement | string | any;
 };
-
-export type LobbyUser = {
-  id: string;
-  username: string;
-};
-
-export type LobbyStateInfo = {
-  is_host: boolean;
-  users: LobbyUser[];
-  ip: string;
-  port: number;
-};

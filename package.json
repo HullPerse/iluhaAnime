@@ -7,7 +7,11 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint@1.57.0",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
@@ -30,7 +34,6 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
-    "@raegen/vite-plugin-vitest-cache": "^0.3.7",
     "@tauri-apps/cli": "2.10.1",
     "@types/node": "25.5.0",
     "@types/react": "19.2.14",
@@ -39,6 +42,7 @@
     "oxlint": "1.57.0",
     "typescript": "6.0.2",
     "vite": "8.0.2",
-    "vite-plugin-compression": "0.5.1"
+    "vite-plugin-compression": "0.5.1",
+    "vitest": "^4.1.9"
   }
 }

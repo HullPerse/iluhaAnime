@@ -103,7 +103,9 @@ function Timeline({
 
   return (
     <main className="flex flex-row items-center gap-1 p-1">
-      <span className="flex flex-row windows95-text text-[10px] w-16 max-w-16 min-w-16 text-right tabular-nums">{`${formatTime(displayTime)} / ${formatTime(duration)}`}</span>
+      <span className="flex flex-row windows95-text text-[10px] w-16 max-w-16 min-w-16 text-right tabular-nums">
+        {`${formatTime(displayTime)} / ${formatTime(duration)}`}
+      </span>
       <section
         ref={timelineRef}
         className="flex-1 h-4 windows95-border bg-white relative cursor-pointer"
@@ -135,11 +137,10 @@ function Timeline({
         {allChapters.map((ch) => {
           const pos = duration > 0 ? (ch.start_time / duration) * 100 : 0;
           if (pos <= 0 || pos >= 100) return null;
-          const passed = ch.start_time <= displayTime;
           return (
             <div
               key={ch.start_time}
-              className={`absolute top-0 bottom-0 w-0.5 pointer-events-none ${passed ? "bg-primary" : "bg-secondary"}`}
+              className="absolute top-0 bottom-0 w-0.5 pointer-events-none bg-muted"
               style={{ left: `${pos}%`, transform: "translateX(-50%)" }}
               title={ch.title}
             />

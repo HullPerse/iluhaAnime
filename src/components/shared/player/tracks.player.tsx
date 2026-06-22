@@ -4,6 +4,8 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { parseVTT } from "@/lib/utils";
 import { Check } from "lucide-react";
 
+const SUB_OFF = -999;
+
 function TrackDropdown({
   label,
   tracks,
@@ -88,9 +90,15 @@ function Tracks({
   videoEl: HTMLVideoElement | null;
   onAudioSwitch: (newSrc: string | null) => void;
 }) {
+  const [extAudio, setExtAudio] = useState<VideoStreamInfo[]>([]);
+  const [extSubs, setExtSubs] = useState<VideoStreamInfo[]>([]);
+
+  const mergedAudio = [...audioStreams, ...extAudio];
+  const mergedSubs = [...subtitleStreams, ...extSubs];
+
   const defaultAudio =
-    audioStreams.find((s) => s.is_default)?.index ?? audioStreams[0]?.index ?? -1;
-  const defaultSub = subtitleStreams[0]?.index ?? -1;
+    mergedAudio.find((s) => s.is_default)?.index ?? mergedAudio[0]?.index ?? -1;
+  const defaultSub = mergedSubs[0]?.index ?? SUB_OFF;
   const [selectedAudio, setSelectedAudio] = useState(defaultAudio);
   const [selectedSub, setSelectedSub] = useState(defaultSub);
   const textTrackRef = useRef<TextTrack | null>(null);
@@ -108,18 +116,14 @@ function Tracks({
     return parts.join(" - ") || `Track ${s.index}`;
   };
 
-  const getStream = useCallback(
-    (idx: number, list: VideoStreamInfo[]) =>
-      list.find((s) => s.index === idx) ?? null,
-    [],
-  );
-
   const handleAudio = useCallback(
     async (idx: number) => {
       setSelectedAudio(idx);
       if (pendingAudioRef.current || !videoEl) return;
 
-      const stream = getStream(idx, audioStreams);
+      const stream = [...audioStreams, ...extAudio].find(
+        (s) => s.index === idx,
+      );
       if (!stream) return;
 
       savedTimeRef.current = videoEl.currentTime;
@@ -156,7 +160,7 @@ function Tracks({
         onAudioSwitch(null);
       }
     },
-    [mediaPath, onAudioSwitch, videoEl, audioStreams, getStream],
+    [mediaPath, onAudioSwitch, videoEl, audioStreams, extAudio],
   );
 
   const loadSubtitle = useCallback(
@@ -168,7 +172,9 @@ function Tracks({
         textTrackRef.current = null;
       }
 
-      const stream = subtitleStreams.find((s) => s.index === idx);
+      const stream = [...subtitleStreams, ...extSubs].find(
+        (s) => s.index === idx,
+      );
       if (!stream) return;
 
       try {
@@ -200,12 +206,19 @@ function Tracks({
         /* fail silently */
       }
     },
-    [videoEl, mediaPath, subtitleStreams],
+    [videoEl, mediaPath, subtitleStreams, extSubs],
   );
 
   const handleSub = useCallback(
     (idx: number) => {
       setSelectedSub(idx);
+      if (idx === SUB_OFF) {
+        if (textTrackRef.current) {
+          textTrackRef.current.mode = "disabled";
+          textTrackRef.current = null;
+        }
+        return;
+      }
       loadSubtitle(idx);
     },
     [loadSubtitle],
@@ -244,12 +257,12 @@ function Tracks({
         is_default: false,
         file_path: file,
       };
-      audioStreams.push(newTrack);
+      setExtAudio((prev) => [...prev, newTrack]);
       handleAudio(idx);
     } catch {
       /* cancelled */
     }
-  }, [audioStreams, handleAudio]);
+  }, [handleAudio]);
 
   const handleAddSub = useCallback(async () => {
     try {
@@ -277,12 +290,12 @@ function Tracks({
         is_default: false,
         file_path: file,
       };
-      subtitleStreams.push(newTrack);
+      setExtSubs((prev) => [...prev, newTrack]);
       handleSub(idx);
     } catch {
       /* cancelled */
     }
-  }, [subtitleStreams, handleSub]);
+  }, [handleSub]);
 
   useEffect(() => {
     const el = document.createElement("style");
@@ -302,32 +315,31 @@ function Tracks({
     }
   }, []);
 
-  const hasTracks = audioStreams.length > 0 || subtitleStreams.length > 0;
-  if (!hasTracks) return null;
-
   return (
     <section className="flex h-6 items-center gap-1 px-1 border-l-2 border-muted">
-      {audioStreams.length > 0 && (
-        <TrackDropdown
-          label="Аудио"
-          tracks={audioStreams.map((s) => ({ index: s.index, label: fmt(s) }))}
-          selected={selectedAudio}
-          onChange={handleAudio}
-          onAdd={handleAddAudio}
-        />
-      )}
-      {subtitleStreams.length > 0 && (
-        <TrackDropdown
-          label="Сабы"
-          tracks={subtitleStreams.map((s) => ({
-            index: s.index,
-            label: fmt(s),
-          }))}
-          selected={selectedSub}
-          onChange={handleSub}
-          onAdd={handleAddSub}
-        />
-      )}
+      <TrackDropdown
+        label="Аудио"
+        tracks={
+          mergedAudio.length > 0
+            ? mergedAudio.map((s) => ({ index: s.index, label: fmt(s) }))
+            : [{ index: -1, label: "—" }]
+        }
+        selected={mergedAudio.length > 0 ? selectedAudio : -1}
+        onChange={handleAudio}
+        onAdd={handleAddAudio}
+      />
+      <TrackDropdown
+        label="Сабы"
+        tracks={[
+          { index: SUB_OFF, label: "Нет" },
+          ...(mergedSubs.length > 0
+            ? mergedSubs.map((s) => ({ index: s.index, label: fmt(s) }))
+            : [{ index: -2, label: "—" }]),
+        ]}
+        selected={mergedSubs.length > 0 ? selectedSub : SUB_OFF}
+        onChange={handleSub}
+        onAdd={handleAddSub}
+      />
     </section>
   );
 }

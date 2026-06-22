@@ -11,14 +11,13 @@ import {
   ChevronsRight,
   Pause,
   Play,
-  SkipBack,
-  SkipForward,
+  PictureInPicture2,
   Volume,
   Volume1,
   Volume2,
   VolumeX,
 } from "lucide-react";
-import { MouseEvent, useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import type { VideoStreamInfo } from "@/types";
 import Tracks from "./tracks.player";
 
@@ -36,7 +35,6 @@ function Controls({
   onAudioSwitch?: (newSrc: string | null) => void;
 }) {
   const [dragging, setDragging] = useState<boolean>(false);
-  const [mounted, setMounted] = useState<boolean>(false);
 
   const time = usePlayer(selectTime);
   const playback = usePlayer(selectPlayback);
@@ -49,7 +47,7 @@ function Controls({
   const muted = value?.muted;
 
   const volumeContainerRef = useRef<HTMLDivElement>(null);
-  const volumeSetRef = useRef<number>(0);
+  const volumeRestored = useRef(false);
 
   const setVolume = (e: number) => value?.setVolume(e);
 
@@ -63,9 +61,6 @@ function Controls({
       title: c.text,
     }));
 
-  const handleForward = () => seek?.(Math.min(currentTime + 5, duration));
-  const handleBackward = () => seek?.(Math.max(currentTime - 5, 0));
-
   const currentChapterIndex = (() => {
     for (let i = allChapters.length - 1; i >= 0; i--) {
       if (allChapters[i].start_time <= currentTime) return i;
@@ -75,26 +70,27 @@ function Controls({
   const hasPrevChapter = currentChapterIndex > 0;
   const hasNextChapter = currentChapterIndex < allChapters.length - 1;
 
-  const handlePrevChapter = () => {
-    if (!hasPrevChapter || !seek) return;
-    seek(allChapters[currentChapterIndex - 1].start_time);
+  const handleForward = () => {
+    if (allChapters.length > 0 && hasNextChapter) {
+      seek?.(allChapters[currentChapterIndex + 1].start_time);
+    } else {
+      seek?.(Math.min(currentTime + 5, duration));
+    }
   };
-  const handleNextChapter = () => {
-    if (!hasNextChapter || !seek) return;
-    seek(allChapters[currentChapterIndex + 1].start_time);
+  const handleBackward = () => {
+    if (allChapters.length > 0 && hasPrevChapter) {
+      seek?.(allChapters[currentChapterIndex - 1].start_time);
+    } else {
+      seek?.(Math.max(currentTime - 5, 0));
+    }
   };
 
   const getVolumeIcon = () => {
-    const volume = value?.volume;
-
-    if (!volume && volume !== 0) return <VolumeX />;
-
-    if (volume === 0 || muted) return <VolumeX />;
-    else if (volume > 0 && volume <= 0.33) return <Volume className="ml-1" />;
-    else if (volume > 0.33 && volume <= 0.66) return <Volume1 />;
-    else if (volume > 0.66 && volume <= 1) return <Volume2 />;
-
-    return <VolumeX />;
+    const vol = value?.volume ?? 0;
+    if (vol === 0 || muted) return <VolumeX />;
+    if (vol <= 0.33) return <Volume className="ml-1" />;
+    if (vol <= 0.66) return <Volume1 />;
+    return <Volume2 />;
   };
 
   const handleVolume = (clientX: number) => {
@@ -107,21 +103,12 @@ function Controls({
     );
 
     setVolume(percent);
-
-    if (volumeSetRef.current) {
-      clearTimeout(volumeSetRef.current);
-    }
-
-    volumeSetRef.current = setTimeout(() => {
-      localStorage.setItem("volume", String(percent));
-    }, 300);
+    localStorage.setItem("volume", String(percent));
   };
 
-  const handleMouseMove = (e: MouseEvent | MouseEventInit) => {
+  const handleMouseMove = (e: { clientX: number }) => {
     if (!dragging) return;
-    if (e.clientX !== undefined) {
-      handleVolume(e.clientX);
-    }
+    handleVolume(e.clientX);
   };
 
   const handleMouseUp = () => {
@@ -129,26 +116,17 @@ function Controls({
   };
 
   useEffect(() => {
-    if (value && !mounted) {
-      const savedVolume = localStorage.getItem("volume");
-      if (savedVolume !== null) {
-        const volumeValue = parseFloat(savedVolume);
-        if (typeof volumeValue === "number" && !isNaN(volumeValue)) {
-          if (value.volumeAvailability === "unavailable") return;
-          setVolume(volumeValue);
+    if (value && !volumeRestored.current) {
+      const saved = localStorage.getItem("volume");
+      if (saved !== null) {
+        const v = parseFloat(saved);
+        if (!isNaN(v) && value.volumeAvailability !== "unavailable") {
+          setVolume(v);
         }
       }
-
-      setMounted(true);
+      volumeRestored.current = true;
     }
-  }, [value, mounted]);
-
-  useEffect(() => {
-    if (mounted && !dragging) {
-      if (!value) return;
-      else localStorage.setItem("volume", String(value.volume));
-    }
-  }, [value?.volume, mounted, dragging]);
+  }, [value]);
 
   useEffect(() => {
     if (dragging) {
@@ -165,17 +143,28 @@ function Controls({
     }
   }, [dragging]);
 
-  useEffect(() => {
-    return () => {
-      if (volumeSetRef.current) {
-        clearTimeout(volumeSetRef.current);
-      }
-    };
-  }, []);
-
   const displayVolume = Number(muted ? 0 : (value?.volume ?? 0));
 
   const isPlayerReady = value && typeof value.setVolume === "function";
+
+  const [playbackRate, setPlaybackRate] = useState(1);
+  const [speedOpen, setSpeedOpen] = useState(false);
+  const speedRef = useRef<HTMLDivElement>(null);
+  const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
+
+  useEffect(() => {
+    if (videoEl) videoEl.playbackRate = playbackRate;
+  }, [videoEl, playbackRate]);
+
+  useEffect(() => {
+    if (!speedOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (speedRef.current && !speedRef.current.contains(e.target as Node))
+        setSpeedOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [speedOpen]);
 
   return (
     <main className="flex flex-row items-center gap-1 p-1">
@@ -217,28 +206,33 @@ function Controls({
         </Button>
       </section>
 
-      {allChapters.length > 0 && (
-        <section className="flex h-6 w-15 border-r-2 border-muted gap-1">
-          <Button
-            size="icon"
-            className="size-6"
-            onClick={handlePrevChapter}
-            disabled={!hasPrevChapter}
-            title="Previous chapter"
+      {/* Speed */}
+      <section className="flex h-6 border-r-2 border-muted gap-0.5 px-1 items-center">
+        <div ref={speedRef} className="relative">
+          <button
+            className="h-5 text-[10px] windows95-font bg-primary windows95-border px-1 min-w-10 cursor-pointer"
+            onClick={() => setSpeedOpen(!speedOpen)}
           >
-            <SkipBack />
-          </Button>
-          <Button
-            size="icon"
-            className="size-6"
-            onClick={handleNextChapter}
-            disabled={!hasNextChapter}
-            title="Next chapter"
-          >
-            <SkipForward />
-          </Button>
-        </section>
-      )}
+            {playbackRate}x
+          </button>
+          {speedOpen && (
+            <div className="absolute bottom-full left-0 mb-0.5 min-w-full windows95-border bg-primary z-50 shadow-lg">
+              {SPEEDS.map((r) => (
+                <button
+                  key={r}
+                  className={`block w-full text-left px-1 py-0.5 text-[10px] windows95-font whitespace-nowrap hover:bg-secondary hover:text-white ${playbackRate === r ? "bg-secondary text-white" : ""}`}
+                  onClick={() => {
+                    setPlaybackRate(r);
+                    setSpeedOpen(false);
+                  }}
+                >
+                  {r}x
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
 
       {mediaPath && streams && videoEl && (
         <Tracks

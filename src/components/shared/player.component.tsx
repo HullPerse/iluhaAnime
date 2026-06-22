@@ -9,8 +9,7 @@ import Controls from "./player/controls.player";
 import Header from "./player/header.player";
 import Keyboard from "./player/keyboard.player";
 
-const PlayerRoot = createPlayer({ features: videoFeatures });
-const { Provider, Container } = PlayerRoot;
+const { Provider, Container } = createPlayer({ features: videoFeatures });
 
 function Player({
   header,
@@ -58,11 +57,36 @@ function Player({
     setAudioOverrideSrc(newSrc);
   }, []);
 
+  const savePos = useCallback(
+    (t: number) => {
+      if (mediaPath)
+        try {
+          localStorage.setItem(`pos:${mediaPath}`, String(t));
+        } catch {}
+    },
+    [mediaPath],
+  );
+
+  const handleClose = useCallback(() => {
+    if (mediaPath && videoEl) {
+      try {
+        localStorage.setItem(`pos:${mediaPath}`, String(videoEl.currentTime));
+      } catch {}
+    }
+    onClose();
+  }, [mediaPath, videoEl, onClose]);
+
   return (
     <Provider>
       <Container className="flex flex-col h-full mr-1 windows95-active-border bg-primary outline-none">
-        <Header header={header} onClose={onClose} special={special} />
-        {src ? (
+        <Header header={header} onClose={handleClose} special={special} />
+        {!src ? (
+          <section className="flex-1 min-h-0 bg-black overflow-hidden flex items-center justify-center">
+            <span className="text-white windows95-font text-xs">
+              Ожидается видео
+            </span>
+          </section>
+        ) : (
           <>
             <Keyboard />
             <section className="flex-1 min-h-0 bg-black overflow-hidden">
@@ -73,7 +97,11 @@ function Player({
                   className="h-full w-full object-contain"
                   controls={false}
                   preload="metadata"
-                  onTimeUpdate={(e) => onTimeUpdate?.((e.target as HTMLVideoElement).currentTime)}
+                  onTimeUpdate={(e) => {
+                    const t = (e.target as HTMLVideoElement).currentTime;
+                    onTimeUpdate?.(t);
+                    savePos(t);
+                  }}
                   onPlay={() => onPlayStateChange?.(true)}
                   onPause={() => onPlayStateChange?.(false)}
                 />
@@ -92,12 +120,6 @@ function Player({
               onAudioSwitch={handleAudioSwitch}
             />
           </>
-        ) : (
-          <section className="flex-1 min-h-0 bg-black overflow-hidden flex items-center justify-center">
-            <span className="text-white windows95-font text-xs">
-              Ожидается видео
-            </span>
-          </section>
         )}
       </Container>
     </Provider>

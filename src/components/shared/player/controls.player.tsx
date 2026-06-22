@@ -11,15 +11,15 @@ import {
   ChevronsRight,
   Pause,
   Play,
-  PictureInPicture2,
   Volume,
   Volume1,
   Volume2,
   VolumeX,
 } from "lucide-react";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { VideoStreamInfo } from "@/types";
 import Tracks from "./tracks.player";
+import { cn } from "@/lib/utils";
 
 function Controls({
   chapters,
@@ -45,6 +45,11 @@ function Controls({
   const currentTime = time?.currentTime ?? 0;
   const duration = time?.duration ?? 0;
   const muted = value?.muted;
+
+  const [playbackRate, setPlaybackRate] = useState(1);
+  const [speedOpen, setSpeedOpen] = useState(false);
+  const speedRef = useRef<HTMLDivElement>(null);
+  const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
   const volumeContainerRef = useRef<HTMLDivElement>(null);
   const volumeRestored = useRef(false);
@@ -104,6 +109,7 @@ function Controls({
 
     setVolume(percent);
     localStorage.setItem("volume", String(percent));
+    console.log("saved", String(percent));
   };
 
   const handleMouseMove = (e: { clientX: number }) => {
@@ -116,16 +122,21 @@ function Controls({
   };
 
   useEffect(() => {
-    if (value && !volumeRestored.current) {
-      const saved = localStorage.getItem("volume");
-      if (saved !== null) {
-        const v = parseFloat(saved);
-        if (!isNaN(v) && value.volumeAvailability !== "unavailable") {
-          setVolume(v);
-        }
-      }
-      volumeRestored.current = true;
+    if (
+      !value ||
+      volumeRestored.current ||
+      value.volumeAvailability !== "available"
+    )
+      return;
+
+    const saved = localStorage.getItem("volume");
+    const v = saved === null ? null : Number(saved);
+
+    if (v !== null && !Number.isNaN(v)) {
+      value.setVolume(v);
     }
+
+    volumeRestored.current = true;
   }, [value]);
 
   useEffect(() => {
@@ -146,11 +157,6 @@ function Controls({
   const displayVolume = Number(muted ? 0 : (value?.volume ?? 0));
 
   const isPlayerReady = value && typeof value.setVolume === "function";
-
-  const [playbackRate, setPlaybackRate] = useState(1);
-  const [speedOpen, setSpeedOpen] = useState(false);
-  const speedRef = useRef<HTMLDivElement>(null);
-  const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
   useEffect(() => {
     if (videoEl) videoEl.playbackRate = playbackRate;
@@ -217,17 +223,20 @@ function Controls({
           </button>
           {speedOpen && (
             <div className="absolute bottom-full left-0 mb-0.5 min-w-full windows95-border bg-primary z-50 shadow-lg">
-              {SPEEDS.map((r) => (
-                <button
-                  key={r}
-                  className={`block w-full text-left px-1 py-0.5 text-[10px] windows95-font whitespace-nowrap hover:bg-secondary hover:text-white ${playbackRate === r ? "bg-secondary text-white" : ""}`}
+              {SPEEDS.map((rate) => (
+                <Button
+                  key={rate}
+                  className={cn(
+                    "flex w-full p-1 whitespace-nowrap",
+                    playbackRate === rate && "bg-secondary text-white",
+                  )}
                   onClick={() => {
-                    setPlaybackRate(r);
+                    setPlaybackRate(rate);
                     setSpeedOpen(false);
                   }}
                 >
-                  {r}x
-                </button>
+                  {rate}x
+                </Button>
               ))}
             </div>
           )}

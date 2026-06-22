@@ -18,8 +18,8 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input.component";
 import { useTorrentStore } from "@/store/download.store";
-import RutrackerLoginModal from "@/components/shared/rutracker.login";
-import NekoBtApiModal from "@/components/shared/nekobt.api";
+import RutrackerLoginModal from "@/routes/components/rutracker.search";
+import NekoBtApiModal from "@/routes/components/nekobt.search";
 
 type Source = "erai-raws" | "rutracker" | "nyaa" | "nekobt";
 const PER_PAGE = 20;
@@ -209,25 +209,28 @@ function SearchRoute() {
             Войти
           </Button>
         )}
-        {source === "rutracker" && rutrackerAuth && (
-          <Button variant="default" onClick={handleLogout}>
-            <LogOut className="size-3.5" />
-          </Button>
-        )}
+
         {source === "nekobt" && !nekobtAuth && (
           <Button variant="default" onClick={() => setShowApiModal(true)}>
             ключ
           </Button>
         )}
-        {source === "nekobt" && nekobtAuth && (
+
+        {((source === "nekobt" && nekobtAuth) ||
+          (source === "rutracker" && nekobtAuth)) && (
           <Button
+            size="icon"
             variant="default"
             onClick={async () => {
-              await invoke("nekobt_logout");
-              setNekoBtAuth(false);
+              if (source === "rutracker" && rutrackerAuth) {
+                handleLogout();
+              } else {
+                await invoke("nekobt_logout");
+                setNekoBtAuth(false);
+              }
             }}
           >
-            <LogOut className="size-3.5" />
+            <LogOut />
           </Button>
         )}
       </section>

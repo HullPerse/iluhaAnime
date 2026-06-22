@@ -8,6 +8,7 @@ import Timeline from "./player/timeline.player";
 import Controls from "./player/controls.player";
 import Header from "./player/header.player";
 import Keyboard from "./player/keyboard.player";
+import EmptyPlayer from "./player/empty.player";
 
 const { Provider, Container } = createPlayer({ features: videoFeatures });
 
@@ -81,11 +82,7 @@ function Player({
       <Container className="flex flex-col h-full mr-1 windows95-active-border bg-primary outline-none">
         <Header header={header} onClose={handleClose} special={special} />
         {!src ? (
-          <section className="flex-1 min-h-0 bg-black overflow-hidden flex items-center justify-center">
-            <span className="text-white windows95-font text-xs">
-              Ожидается видео
-            </span>
-          </section>
+          <EmptyPlayer />
         ) : (
           <>
             <Keyboard />
@@ -106,9 +103,7 @@ function Player({
                   onPause={() => onPlayStateChange?.(false)}
                 />
               ) : (
-                <span className="text-white windows95-font text-xs">
-                  Ожидается видео
-                </span>
+                <EmptyPlayer />
               )}
             </section>
             <Timeline chapters={chapters} />

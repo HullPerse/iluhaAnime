@@ -15,6 +15,9 @@ import {
   ArrowDown,
   ArrowUp,
   Plus,
+  List,
+  DownloadCloud,
+  Check,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import TorrentFilesSection from "./components/file.torrent";
@@ -203,10 +206,12 @@ function TorrentRoute() {
                 )}
                 <button
                   title="Последовательная загрузка"
-                  className={`size-6 text-[9px] windows95-font windows95-border cursor-pointer flex items-center justify-center ${item.sequential_download ? "bg-secondary text-white" : "bg-primary"}`}
-                  onClick={() => setSequentialDownload(item.id, !item.sequential_download)}
+                  className={`size-6 text-[9px] windows95-font windows95-border cursor-pointer flex items-center justify-center $`}
+                  onClick={() =>
+                    setSequentialDownload(item.id, !item.sequential_download)
+                  }
                 >
-                  1→2
+                  {item.sequential_download && <Check className="size-4" />}
                 </button>
                 <Button
                   variant="error"

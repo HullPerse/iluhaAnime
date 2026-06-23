@@ -40,10 +40,10 @@ export function stateLabel(state: string): string {
 
 export interface FileGroup {
   dir: string;
-  files: { index: number; name: string; displayName: string; size: number; completed?: boolean; selected?: boolean }[];
+  files: { index: number; name: string; displayName: string; size: number; completed?: boolean; selected?: boolean; priority?: string }[];
 }
 
-export function groupFilesByDirectory(files: { name: string; index: number; size: number; completed?: boolean; selected?: boolean }[]): FileGroup[] {
+export function groupFilesByDirectory(files: { name: string; index: number; size: number; completed?: boolean; selected?: boolean; priority?: string }[]): FileGroup[] {
   const groups = new Map<string, FileGroup>();
 
   for (const file of files) {

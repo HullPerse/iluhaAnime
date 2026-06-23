@@ -1,13 +1,22 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::num::NonZeroU32;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
 use anyhow::{Context, Result};
 use librqbit::*;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 type SaveDirsMap = HashMap<usize, String>;
+
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum FilePriority {
+    DoNotDownload,
+    Low,
+    Normal,
+    High,
+}
 
 #[derive(Serialize, Clone, Debug)]
 pub struct TorrentFileInfo {
@@ -16,6 +25,7 @@ pub struct TorrentFileInfo {
     pub size: u64,
     pub completed: bool,
     pub selected: bool,
+    pub priority: FilePriority,
 }
 
 #[derive(Serialize, Clone, Debug)]
@@ -45,12 +55,15 @@ pub struct TorrentInfo {
     pub finished: bool,
     pub error: Option<String>,
     pub save_dir: String,
+    pub sequential_download: bool,
 }
 
 pub struct TorrentManager {
     pub session: Arc<Session>,
     pub save_dirs: Mutex<SaveDirsMap>,
     pub save_dirs_path: PathBuf,
+    pub sequential_torrents: Mutex<HashSet<usize>>,
+    pub file_priorities: Mutex<HashMap<usize, Vec<FilePriority>>>,
 }
 
 impl TorrentManager {
@@ -82,6 +95,8 @@ impl TorrentManager {
             session,
             save_dirs: Mutex::new(save_dirs),
             save_dirs_path,
+            sequential_torrents: Mutex::new(HashSet::new()),
+            file_priorities: Mutex::new(HashMap::new()),
         };
         manager.cleanup_unselected_files();
         Ok(manager)
@@ -120,6 +135,7 @@ impl TorrentManager {
                 };
 
                 let save_dir = self.save_dirs.lock().unwrap().get(&id).cloned().unwrap_or_default();
+                let sequential_download = self.sequential_torrents.lock().unwrap().contains(&id);
 
                 result.push(TorrentInfo {
                     id,
@@ -142,6 +158,7 @@ impl TorrentManager {
                     eta_secs: eta,
                     finished: stats.finished,
                     error: stats.error,
+                    sequential_download,
                 });
             }
             result
@@ -229,6 +246,7 @@ impl TorrentManager {
                 size: d.len,
                 completed: false,
                 selected: true,
+                priority: FilePriority::Normal,
             })
             .collect();
 
@@ -307,6 +325,8 @@ impl TorrentManager {
     pub async fn remove_torrent(self: &Arc<Self>, id: usize, delete_files: bool) -> Result<()> {
         self.session.delete(id.into(), delete_files).await?;
         self.save_dirs.lock().unwrap().remove(&id);
+        self.sequential_torrents.lock().unwrap().remove(&id);
+        self.file_priorities.lock().unwrap().remove(&id);
         self.save_save_dirs();
         Ok(())
     }
@@ -324,6 +344,19 @@ impl TorrentManager {
                     let stats = h.stats();
                     let only_files = h.only_files();
                     return h.with_metadata(|m| {
+                        let file_count = m.file_infos.len();
+
+                        // Initialize file priorities lazily
+                        {
+                            let mut priorities = self.file_priorities.lock().unwrap();
+                            if !priorities.contains_key(&id) {
+                                priorities.insert(id, vec![FilePriority::Normal; file_count]);
+                            }
+                        }
+
+                        let priorities = self.file_priorities.lock().unwrap();
+                        let prio_list = priorities.get(&id).cloned().unwrap_or(vec![FilePriority::Normal; file_count]);
+
                         Some(
                             m.file_infos
                                 .iter()
@@ -332,12 +365,14 @@ impl TorrentManager {
                                     let progress = stats.file_progress.get(i).copied().unwrap_or(0);
                                     let completed = f.len > 0 && progress >= f.len;
                                     let selected = only_files.as_ref().map_or(true, |of| of.contains(&i));
+                                    let priority = prio_list.get(i).copied().unwrap_or(FilePriority::Normal);
                                     TorrentFileInfo {
                                         index: i,
                                         name: f.relative_filename.to_string_lossy().to_string(),
                                         size: f.len,
                                         completed,
                                         selected,
+                                        priority,
                                     }
                                 })
                                 .collect::<Vec<_>>(),
@@ -385,7 +420,6 @@ impl TorrentManager {
             }
         });
     }
-
 }
 
 #[cfg(windows)]
@@ -431,8 +465,6 @@ impl TorrentManager {
         id: usize,
         only_files: Vec<usize>,
     ) -> Result<(), String> {
-        use std::collections::HashSet;
-
         let handle_opt = self.session.with_torrents(|iter| {
             for (tid, handle) in iter {
                 if tid == id {
@@ -454,5 +486,121 @@ impl TorrentManager {
             self.cleanup_unselected_files();
         }
         result
+    }
+
+    pub async fn set_file_priority(
+        self: &Arc<Self>,
+        id: usize,
+        file_indices: Vec<usize>,
+        priority: FilePriority,
+    ) -> Result<(), String> {
+        // Update local priorities
+        {
+            let mut priorities = self.file_priorities.lock().unwrap();
+            let entry = priorities.entry(id).or_default();
+            for &idx in &file_indices {
+                if idx < entry.len() {
+                    entry[idx] = priority.clone();
+                }
+            }
+        }
+
+        // For DoNotDownload / Normal, update only_files in the backend
+        if priority == FilePriority::DoNotDownload || priority == FilePriority::Normal {
+            let handle = self.session.with_torrents(|iter| {
+                for (tid, handle) in iter {
+                    if tid == id { return Some(handle.clone()); }
+                }
+                None
+            }).ok_or_else(|| "Torrent not found".to_string())?;
+
+            let only = handle.only_files().unwrap_or_default();
+            let mut new_only = only.clone();
+
+            if priority == FilePriority::DoNotDownload {
+                for idx in &file_indices {
+                    new_only.retain(|&i| i != *idx);
+                }
+            } else {
+                for idx in &file_indices {
+                    if !new_only.contains(idx) {
+                        new_only.push(*idx);
+                    }
+                }
+            }
+
+            if new_only != only {
+                let set: HashSet<usize> = new_only.into_iter().collect();
+                self.session.update_only_files(&handle, &set)
+                    .await
+                    .map_err(|e| format!("{e:#}"))?;
+                self.cleanup_unselected_files();
+            }
+        }
+
+        Ok(())
+    }
+
+    pub fn set_sequential_download(&self, id: usize, enabled: bool) {
+        let mut seq = self.sequential_torrents.lock().unwrap();
+        if enabled {
+            seq.insert(id);
+        } else {
+            seq.remove(&id);
+            // Restore all files to download
+            if let Some(handle) = self.session.with_torrents(|iter| {
+                for (tid, handle) in iter {
+                    if tid == id { return Some(handle.clone()); }
+                }
+                None
+            }) {
+                if let Some(ref metadata) = handle.with_metadata(|m| Some(m.file_infos.len())).unwrap_or(None) {
+                    let all: HashSet<usize> = (0..*metadata).collect();
+                    let handle_clone = handle.clone();
+                    let session = self.session.clone();
+                    tokio::spawn(async move {
+                        let _ = session.update_only_files(&handle_clone, &all).await;
+                    });
+                }
+            }
+        }
+    }
+
+    pub async fn advance_sequential(&self, id: usize) -> Result<(), String> {
+        let handle = self.session.with_torrents(|iter| {
+            for (tid, handle) in iter {
+                if tid == id { return Some(handle.clone()); }
+            }
+            None
+        }).ok_or_else(|| "Torrent not found".to_string())?;
+
+        let stats = handle.stats();
+        let file_count = handle.with_metadata(|m| {
+            Some(m.file_infos.len())
+        }).unwrap_or(None).unwrap_or(0);
+
+        if file_count == 0 { return Ok(()); }
+
+        let first_incomplete = (0..file_count).find(|&i| {
+            let progress = stats.file_progress.get(i).copied().unwrap_or(0);
+            let total = handle.with_metadata(move |m| {
+                m.file_infos.get(i).map(|f| f.len)
+            }).unwrap_or(None).unwrap_or(0);
+            progress < total
+        });
+
+        match first_incomplete {
+            Some(target) => {
+                let only: HashSet<usize> = [target].into_iter().collect();
+                self.session.update_only_files(&handle, &only)
+                    .await
+                    .map_err(|e| format!("{e:#}"))?;
+            }
+            None => {
+                self.sequential_torrents.lock().unwrap().remove(&id);
+            }
+        }
+
+        Ok(())
     }
 }

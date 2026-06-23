@@ -5,6 +5,8 @@ import { FolderOpen, Monitor, Play } from "lucide-react";
 import { openPath } from "@tauri-apps/plugin-opener";
 import { Button } from "@/components/ui/button.component";
 
+import type { FilePriority } from "@/types";
+
 function TorrentFilesSection({
   id,
   files,
@@ -12,6 +14,7 @@ function TorrentFilesSection({
   type,
   path,
   onPlay,
+  onFilePriorityChange,
 }: {
   id: number;
   files: TorrentFileInfo[];
@@ -19,6 +22,7 @@ function TorrentFilesSection({
   path?: string;
   onToggle?: (id: number, indices: number[]) => void;
   onPlay?: (filePath: string) => void;
+  onFilePriorityChange?: (id: number, fileIndices: number[], priority: FilePriority) => void;
 }) {
   const [selected, setSelected] = useState<Set<number>>(
     () =>
@@ -82,6 +86,22 @@ function TorrentFilesSection({
                 <span className="text-muted shrink-0">
                   {fmtSize(fileItem.size)}
                 </span>
+
+                {onFilePriorityChange && type === "torrent" && !fileItem.completed && (
+                  <select
+                    className="h-4 text-[9px] windows95-border px-0.5 ml-1"
+                    value={fileItem.priority || "normal"}
+                    onChange={(e) => {
+                      onFilePriorityChange(id, [fileItem.index], e.target.value as FilePriority);
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <option value="high">High</option>
+                    <option value="normal">Normal</option>
+                    <option value="low">Low</option>
+                    <option value="do_not_download">Skip</option>
+                  </select>
+                )}
 
                 {type === "player" && (
                   <div className="flex flex-row gap-1 ml-auto">

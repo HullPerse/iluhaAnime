@@ -29,6 +29,8 @@ export interface VideoStreamInfo {
   file_path?: string | null;
 }
 
+export type FilePriority = "do_not_download" | "low" | "normal" | "high";
+
 export type ModalWindow = {
   header: string;
   onClose: () => void;

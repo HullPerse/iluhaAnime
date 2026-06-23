@@ -10,7 +10,7 @@ mod bencode;
 mod video;
 mod torrent;
 
-use torrent::{TorrentFileInfo, TorrentInfo, TorrentInfoResult, TorrentManager};
+use torrent::{FilePriority, TorrentFileInfo, TorrentInfo, TorrentInfoResult, TorrentManager};
 
 struct TorrentBackend {
     manager: Arc<TorrentManager>,
@@ -132,6 +132,36 @@ async fn update_torrent_only_files(
         .await
 }
 
+#[tauri::command]
+async fn set_file_priority(
+    id: usize,
+    file_indices: Vec<usize>,
+    priority: String,
+    manager: tauri::State<'_, TorrentBackend>,
+) -> Result<(), String> {
+    let priority_enum = match priority.as_str() {
+        "do_not_download" => FilePriority::DoNotDownload,
+        "low" => FilePriority::Low,
+        "normal" => FilePriority::Normal,
+        "high" => FilePriority::High,
+        _ => return Err("Invalid priority. Use: do_not_download, low, normal, high".to_string()),
+    };
+    manager
+        .manager
+        .set_file_priority(id, file_indices, priority_enum)
+        .await
+}
+
+#[tauri::command]
+async fn set_sequential_download(
+    id: usize,
+    enabled: bool,
+    manager: tauri::State<'_, TorrentBackend>,
+) -> Result<(), String> {
+    manager.manager.set_sequential_download(id, enabled);
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -187,6 +217,14 @@ pub fn run() {
                         let current_ids: HashSet<usize> = torrents.iter().map(|t| t.id).collect();
                         prev_states.retain(|id, _| current_ids.contains(id));
 
+                        // Advance sequential downloads
+                        {
+                            let ids: Vec<usize> = mgr_clone.sequential_torrents.lock().unwrap().iter().copied().collect();
+                            for &sid in &ids {
+                                let _ = mgr_clone.advance_sequential(sid).await;
+                            }
+                        }
+
                         cleanup_counter += 1;
                         if cleanup_counter >= 30 {
                             cleanup_counter = 0;
@@ -233,6 +271,8 @@ pub fn run() {
             set_global_speed_limits,
             get_running_torrent_files,
             update_torrent_only_files,
+            set_file_priority,
+            set_sequential_download,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

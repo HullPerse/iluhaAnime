@@ -32,6 +32,8 @@ function TorrentRoute() {
     loadTorrentFiles,
     updateTorrentOnlyFiles,
     prepareTorrentDownload,
+    setFilePriority,
+    setSequentialDownload,
   } = useTorrentStore((state) => state);
 
   const [dlInput, setDlInput] = useState(
@@ -199,6 +201,13 @@ function TorrentRoute() {
                     <FolderOpen />
                   </Button>
                 )}
+                <button
+                  title="Последовательная загрузка"
+                  className={`size-6 text-[9px] windows95-font windows95-border cursor-pointer flex items-center justify-center ${item.sequential_download ? "bg-secondary text-white" : "bg-primary"}`}
+                  onClick={() => setSequentialDownload(item.id, !item.sequential_download)}
+                >
+                  1→2
+                </button>
                 <Button
                   variant="error"
                   title="Удалить торрент"
@@ -290,6 +299,9 @@ function TorrentRoute() {
                     type={"torrent"}
                     onToggle={(id, indices) =>
                       updateTorrentOnlyFiles(id, indices)
+                    }
+                    onFilePriorityChange={(id, indices, priority) =>
+                      setFilePriority(id, indices, priority)
                     }
                   />
                 )}

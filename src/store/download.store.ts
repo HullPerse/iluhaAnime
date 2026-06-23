@@ -4,6 +4,8 @@ import { listen } from "@tauri-apps/api/event";
 import { open, confirm } from "@tauri-apps/plugin-dialog";
 import { isPermissionGranted, requestPermission } from "@tauri-apps/plugin-notification";
 
+import type { FilePriority } from "@/types";
+
 export interface TorrentInfo {
   id: number;
   name: string;
@@ -20,6 +22,7 @@ export interface TorrentInfo {
   finished: boolean;
   error: string | null;
   save_dir: string;
+  sequential_download: boolean;
 }
 
 export interface TorrentFileInfo {
@@ -28,6 +31,7 @@ export interface TorrentFileInfo {
   size: number;
   completed: boolean;
   selected: boolean;
+  priority: FilePriority;
 }
 
 export interface PickerTorrent {
@@ -58,6 +62,8 @@ interface TorrentStore {
   setSpeedLimits: (dlKbps: number | null, ulKbps: number | null) => Promise<void>;
   loadTorrentFiles: (id: number) => Promise<void>;
   updateTorrentOnlyFiles: (id: number, indices: number[]) => Promise<void>;
+  setFilePriority: (id: number, fileIndices: number[], priority: FilePriority) => Promise<void>;
+  setSequentialDownload: (id: number, enabled: boolean) => Promise<void>;
 }
 
 function loadLastSaveDir(): string {
@@ -210,5 +216,24 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
 
   updateTorrentOnlyFiles: async (id: number, indices: number[]) => {
     await invoke("update_torrent_only_files", { id, onlyFiles: indices }).catch((err) => console.error("Failed to update torrent files:", err));
+  },
+
+  setFilePriority: async (id: number, fileIndices: number[], priority: FilePriority) => {
+    await invoke("set_file_priority", { id, fileIndices, priority }).catch((err) => console.error("Failed to set file priority:", err));
+    // Refresh files to reflect the change
+    const state = useTorrentStore.getState();
+    if (state.torrentFilesMap[id]) {
+      state.loadTorrentFiles(id);
+    }
+  },
+
+  setSequentialDownload: async (id: number, enabled: boolean) => {
+    await invoke("set_sequential_download", { id, enabled }).catch((err) => console.error("Failed to set sequential download:", err));
+    // Update local state to reflect the toggle immediately
+    set((state) => ({
+      torrents: state.torrents.map((t) =>
+        t.id === id ? { ...t, sequential_download: enabled } : t,
+      ),
+    }));
   },
 }));

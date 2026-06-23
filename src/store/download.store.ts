@@ -54,7 +54,7 @@ interface TorrentStore {
 
   init: () => Promise<() => void>;
   prepareTorrentDownload: (magnet: string) => Promise<void>;
-  confirmDownload: (selectedIndices: number[], saveDir: string, subFolder: string | undefined) => Promise<void>;
+  confirmDownload: (selectedIndices: number[], saveDir: string, subFolder: string | undefined, sequential?: boolean) => Promise<void>;
   cancelDownload: () => Promise<void>;
   pauseTorrent: (id: number) => Promise<void>;
   resumeTorrent: (id: number) => Promise<void>;
@@ -147,7 +147,7 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
     });
   },
 
-  confirmDownload: async (selectedIndices: number[], saveDir: string, subFolder: string | undefined) => {
+  confirmDownload: async (selectedIndices: number[], saveDir: string, subFolder: string | undefined, sequential?: boolean) => {
     const pending = get().pendingTorrent;
     if (!pending) return;
 
@@ -169,12 +169,19 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
     if (pending.id) {
       await invoke("remove_torrent", { id: pending.id, deleteFiles: false }).catch((err) => console.error("Failed to clean up pending torrent:", err));
     }
-    await invoke("start_torrent_download", {
+    const id = await invoke<number>("start_torrent_download", {
       magnet: pending.magnet,
       saveDir,
       onlyFiles: selectedIndices.length === pending.files.length ? null : selectedIndices,
       subFolder: subFolder || null,
-    }).catch((err) => console.error("Failed to start torrent:", err));
+    }).catch((err) => {
+      console.error("Failed to start torrent:", err);
+      return undefined;
+    });
+
+    if (id !== undefined && sequential) {
+      await invoke("set_sequential_download", { id, enabled: true }).catch((err) => console.error("Failed to enable sequential mode:", err));
+    }
   },
 
   cancelDownload: async () => {

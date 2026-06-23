@@ -69,8 +69,8 @@ function App() {
           torrent={pendingTorrent}
           loading={!!preparingTorrent && !pendingTorrent}
           defaultSaveDir={lastSaveDir}
-          onConfirm={(selectedIndices, saveDir, subFolder) =>
-            confirmDownload(selectedIndices, saveDir, subFolder)
+          onConfirm={(selectedIndices, saveDir, subFolder, sequential) =>
+            confirmDownload(selectedIndices, saveDir, subFolder, sequential)
           }
           onCancel={cancelDownload}
         />

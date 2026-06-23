@@ -541,12 +541,24 @@ impl TorrentManager {
         Ok(())
     }
 
-    pub fn set_sequential_download(&self, id: usize, enabled: bool) {
-        let mut seq = self.sequential_torrents.lock().unwrap();
+    pub async fn set_sequential_download(&self, id: usize, enabled: bool) -> Result<(), String> {
         if enabled {
-            seq.insert(id);
+            self.sequential_torrents.lock().unwrap().insert(id);
+
+            // Resume the torrent if it's paused
+            if let Some(handle) = self.session.with_torrents(|iter| {
+                for (tid, handle) in iter {
+                    if tid == id { return Some(handle.clone()); }
+                }
+                None
+            }) {
+                if handle.is_paused() {
+                    self.session.unpause(&handle).await.map_err(|e| format!("{e:#}"))?;
+                }
+            }
         } else {
-            seq.remove(&id);
+            self.sequential_torrents.lock().unwrap().remove(&id);
+
             // Restore all files to download
             if let Some(handle) = self.session.with_torrents(|iter| {
                 for (tid, handle) in iter {
@@ -554,16 +566,15 @@ impl TorrentManager {
                 }
                 None
             }) {
-                if let Some(ref metadata) = handle.with_metadata(|m| Some(m.file_infos.len())).unwrap_or(None) {
-                    let all: HashSet<usize> = (0..*metadata).collect();
-                    let handle_clone = handle.clone();
-                    let session = self.session.clone();
-                    tokio::spawn(async move {
-                        let _ = session.update_only_files(&handle_clone, &all).await;
-                    });
+                if let Some(file_count) = handle.with_metadata(|m| Some(m.file_infos.len())).unwrap_or(None) {
+                    let all: HashSet<usize> = (0..file_count).collect();
+                    self.session.update_only_files(&handle, &all)
+                        .await
+                        .map_err(|e| format!("{e:#}"))?;
                 }
             }
         }
+        Ok(())
     }
 
     pub async fn advance_sequential(&self, id: usize) -> Result<(), String> {

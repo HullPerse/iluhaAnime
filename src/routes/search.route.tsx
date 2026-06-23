@@ -3,7 +3,11 @@ import { useQuery } from "@tanstack/react-query";
 import type { Anime, LanguageTag, SettingsScraper } from "@/types";
 import { useEffect, useState, useMemo } from "react";
 import { detectLanguages, formatSize } from "@/lib/utils";
-import { saveSearchQuery, getSearchHistory } from "@/lib/storage";
+import {
+  saveSearchQuery,
+  getSearchHistory,
+  removeSearchItem,
+} from "@/lib/storage";
 import { languages, qualities, encodings } from "@/config/index.config";
 import { Button } from "@/components/ui/button.component";
 import { SmallLoader } from "@/components/shared/loader.component";
@@ -17,11 +21,13 @@ import {
   ChevronLeft,
   ChevronRight,
   UserPlus,
+  X,
 } from "lucide-react";
 import { Input } from "@/components/ui/input.component";
 import { useTorrentStore } from "@/store/download.store";
 import RutrackerLoginModal from "@/routes/components/rutracker.search";
 import NekoBtApiModal from "@/routes/components/nekobt.search";
+import { flushSync } from "react-dom";
 
 type Source = "erai-raws" | "rutracker" | "nyaa" | "nekobt";
 const PER_PAGE = 20;
@@ -70,7 +76,15 @@ function SearchRoute() {
   }, []);
 
   const queryKey: unknown[] = useMemo(
-    () => ["animeScraper", source, searchParams.trim(), settings.encoding, nyaaPage, nyaaSort, nyaaOrder],
+    () => [
+      "animeScraper",
+      source,
+      searchParams.trim(),
+      settings.encoding,
+      nyaaPage,
+      nyaaSort,
+      nyaaOrder,
+    ],
     [source, searchParams, settings.encoding, nyaaPage, nyaaSort, nyaaOrder],
   );
 
@@ -79,6 +93,7 @@ function SearchRoute() {
     queryFn: async (): Promise<Anime[]> => {
       setMagnets({});
       setLoadingMagnet({});
+
       if (source === "rutracker") {
         return await invoke<Anime[]>("search_rutracker", {
           query: searchParams.trim(),
@@ -112,41 +127,47 @@ function SearchRoute() {
     const num = parseFloat(match[1]);
     const unit = match[2] || "B";
     const multipliers: Record<string, number> = {
-      "B": 1, "KB": 1024, "KiB": 1024,
-      "MB": 1048576, "MiB": 1048576,
-      "GB": 1073741824, "GiB": 1073741824,
+      B: 1,
+      KB: 1024,
+      KiB: 1024,
+      MB: 1048576,
+      MiB: 1048576,
+      GB: 1073741824,
+      GiB: 1073741824,
     };
     return num * (multipliers[unit] || 1);
   };
 
   const filtered = useMemo(
-    () => data?.filter((res) => {
-      if (settings.quality !== "all") {
-        if (
-          !res.title.toLowerCase().includes(settings.quality) &&
-          !res.title.toLowerCase().includes(settings.quality.slice(0, -1))
-        ) {
-          return false;
+    () =>
+      data?.filter((res) => {
+        if (settings.quality !== "all") {
+          if (
+            !res.title.toLowerCase().includes(settings.quality) &&
+            !res.title.toLowerCase().includes(settings.quality.slice(0, -1))
+          ) {
+            return false;
+          }
         }
-      }
-      if (settings.language !== "all") {
-        const language: LanguageTag[] = detectLanguages(res.title);
-        if (!language.some((l) => l.code === settings.language)) return false;
-      }
-      return true;
-    }),
+        if (settings.language !== "all") {
+          const language: LanguageTag[] = detectLanguages(res.title);
+          if (!language.some((l) => l.code === settings.language)) return false;
+        }
+        return true;
+      }),
     [data, settings.quality, settings.language],
   );
 
   const sorted = useMemo(
-    () => filtered?.sort((a, b) => {
-      const sortMap = {
-        seeders: b.seeders - a.seeders,
-        leechers: b.leechers - a.leechers,
-        size: parseSize(b.size) - parseSize(a.size),
-      };
-      return sortMap[settings.sort] ?? 0;
-    }),
+    () =>
+      filtered?.sort((a, b) => {
+        const sortMap = {
+          seeders: b.seeders - a.seeders,
+          leechers: b.leechers - a.leechers,
+          size: parseSize(b.size) - parseSize(a.size),
+        };
+        return sortMap[settings.sort] ?? 0;
+      }),
     [filtered, settings.sort],
   );
 
@@ -194,6 +215,8 @@ function SearchRoute() {
     if (magnet) prepareTorrentDownload(magnet);
   };
 
+  const searchHistory = getSearchHistory();
+
   return (
     <div className="h-full flex flex-col w-full gap-1">
       <section className="flex flex-row gap-2 w-full">
@@ -212,19 +235,32 @@ function SearchRoute() {
               }
             }}
           />
-          {showHistory && getSearchHistory().length > 0 && (
-            <div className="absolute top-full left-0 right-0 z-50 windows95-active-border bg-primary shadow-md max-h-32 overflow-y-auto mt-0.5">
-              {getSearchHistory().map((q) => (
-                <button
-                  key={q}
-                  className="w-full text-left px-1 py-0.5 text-[11px] windows95-font hover:bg-surface cursor-pointer truncate"
-                  onClick={() => {
-                    setSearchParams(q);
-                    setShowHistory(false);
-                  }}
-                >
-                  {q}
-                </button>
+          {showHistory && searchHistory.length > 0 && (
+            <div className="absolute top-full left-0 right-0 z-50 windows95-border bg-primary shadow-md max-h-32 overflow-y-auto px-1 pb-0.5">
+              {searchHistory.map((item, i) => (
+                <div key={item} className="flex w-full  items-center">
+                  <Button
+                    className="flex-1 justify-start font-bold windows95-text h-6"
+                    onClick={() => {
+                      flushSync(() => {
+                        setSearchParams(item);
+                        setShowHistory(false);
+                      });
+                      refetch();
+                    }}
+                  >
+                    {i + 1}. {item}
+                  </Button>
+                  <Button
+                    size="icon"
+                    className="size-6"
+                    onClick={() => {
+                      removeSearchItem(item);
+                    }}
+                  >
+                    <X />
+                  </Button>
+                </div>
               ))}
             </div>
           )}

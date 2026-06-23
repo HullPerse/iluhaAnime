@@ -44,14 +44,21 @@ export function getPosition(path: string): number | undefined {
   }
 }
 
-export function saveTrackSelection(mediaPath: string, type: "audio" | "sub", index: number) {
+export function saveTrackSelection(
+  mediaPath: string,
+  type: "audio" | "sub",
+  index: number,
+) {
   try {
     localStorage.setItem(`track_${type}:${mediaPath}`, String(index));
     touchQueue(mediaPath);
   } catch {}
 }
 
-export function getTrackSelection(mediaPath: string, type: "audio" | "sub"): number | undefined {
+export function getTrackSelection(
+  mediaPath: string,
+  type: "audio" | "sub",
+): number | undefined {
   try {
     const saved = localStorage.getItem(`track_${type}:${mediaPath}`);
     return saved !== null ? parseInt(saved, 10) : undefined;
@@ -76,7 +83,7 @@ export function getSubOffset(mediaPath: string): number {
 }
 
 const SEARCH_HISTORY_KEY = "searchHistory";
-const MAX_SEARCH_HISTORY = 20;
+const MAX_SEARCH_HISTORY = 5;
 
 export function saveSearchQuery(query: string): void {
   try {
@@ -85,7 +92,10 @@ export function saveSearchQuery(query: string): void {
     const history = getSearchHistory();
     const filtered = history.filter((h) => h !== q);
     filtered.unshift(q);
-    localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(filtered.slice(0, MAX_SEARCH_HISTORY)));
+    localStorage.setItem(
+      SEARCH_HISTORY_KEY,
+      JSON.stringify(filtered.slice(0, MAX_SEARCH_HISTORY)),
+    );
   } catch {}
 }
 
@@ -97,8 +107,15 @@ export function getSearchHistory(): string[] {
   }
 }
 
-export function clearSearchHistory(): void {
+export function removeSearchItem(query: string) {
   try {
-    localStorage.removeItem(SEARCH_HISTORY_KEY);
+    const history = getSearchHistory();
+    const filtered = history.filter((h) => h !== query);
+    const newHistory = [...filtered];
+
+    localStorage.setItem(
+      SEARCH_HISTORY_KEY,
+      JSON.stringify(newHistory.slice(0, MAX_SEARCH_HISTORY)),
+    );
   } catch {}
 }

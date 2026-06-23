@@ -158,8 +158,7 @@ async fn set_sequential_download(
     enabled: bool,
     manager: tauri::State<'_, TorrentBackend>,
 ) -> Result<(), String> {
-    manager.manager.set_sequential_download(id, enabled);
-    Ok(())
+    manager.manager.set_sequential_download(id, enabled).await
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

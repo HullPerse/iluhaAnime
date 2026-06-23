@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { saveSearchQuery, getSearchHistory, clearSearchHistory } from "./storage";
+import { saveSearchQuery, getSearchHistory } from "./storage";
 
 const store: Record<string, string> = {};
 
@@ -39,12 +39,6 @@ describe("search history", () => {
 
   it("limits history size", () => {
     for (let i = 0; i < 30; i++) saveSearchQuery(`query-${i}`);
-    expect(getSearchHistory().length).toBeLessThanOrEqual(20);
-  });
-
-  it("clears history", () => {
-    saveSearchQuery("Naruto");
-    clearSearchHistory();
-    expect(getSearchHistory()).toEqual([]);
+    expect(getSearchHistory().length).toBeLessThanOrEqual(5);
   });
 });

@@ -36,6 +36,7 @@ function TorrentFilePicker({
     selectedIndices: number[],
     saveDir: string,
     subFolder: string | undefined,
+    sequential?: boolean,
   ) => void;
   onCancel: () => void;
   loading?: boolean;
@@ -45,6 +46,7 @@ function TorrentFilePicker({
   );
   const [saveDir, setSaveDir] = useState(defaultSaveDir);
   const [browsing, setBrowsing] = useState(false);
+  const [sequential, setSequential] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const startRef = useRef<number | null>(null);
 
@@ -101,7 +103,7 @@ function TorrentFilePicker({
   const handleConfirm = () => {
     if (!torrent) return;
     const subFolder = torrent.hasCommonFolder ? undefined : torrent.name;
-    onConfirm([...selected], saveDir, subFolder);
+    onConfirm([...selected], saveDir, subFolder, sequential);
   };
 
   const allSelected = torrent ? selected.size === torrent.files.length : false;
@@ -187,14 +189,25 @@ function TorrentFilePicker({
               Обзор
             </Button>
           </div>
-          <div className="flex justify-end gap-1 w-full">
-            <Button onClick={onCancel}>Отмена</Button>
-            <Button
-              onClick={handleConfirm}
-              disabled={loading || selected.size === 0 || !saveDir}
-            >
-              Скачать
-            </Button>
+          <div className="flex items-center justify-between w-full">
+            <label className="flex items-center gap-1 windows95-text text-[11px] cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={sequential}
+                onChange={(e) => setSequential(e.target.checked)}
+                className="cursor-pointer"
+              />
+              Последовательно
+            </label>
+            <div className="flex gap-1">
+              <Button onClick={onCancel}>Отмена</Button>
+              <Button
+                onClick={handleConfirm}
+                disabled={loading || selected.size === 0 || !saveDir}
+              >
+                Скачать
+              </Button>
+            </div>
           </div>
         </section>
       )}

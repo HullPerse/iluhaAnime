@@ -1317,23 +1317,30 @@ async fn get_video_streams(app_handle: tauri::AppHandle, path: String) -> Result
 }
 
 #[tauri::command]
-async fn extract_video_subtitle(app_handle: tauri::AppHandle, path: String, stream_index: usize) -> Result<String, String> {
+async fn extract_video_subtitle(app_handle: tauri::AppHandle, path: String, stream_index: usize, codec_name: Option<String>) -> Result<String, String> {
     let temp_dir = std::env::temp_dir();
-    let output_path = temp_dir.join(format!("iluha_sub_{}.vtt", stream_index));
+    let is_ass = codec_name.as_deref() == Some("ass") || codec_name.as_deref() == Some("ssa");
+    let ext = if is_ass { "ass" } else { "vtt" };
+    let output_path = temp_dir.join(format!("iluha_sub_{}.{}", stream_index, ext));
 
     let _ = std::fs::remove_file(&output_path);
 
+    let mut args = vec![
+        "-y".to_string(),
+        "-i".to_string(),
+        path.clone(),
+        "-map".to_string(),
+        format!("0:{}", stream_index),
+    ];
+    if is_ass {
+        args.extend_from_slice(&["-c:s".to_string(), "copy".to_string()]);
+    } else {
+        args.extend_from_slice(&["-c:s".to_string(), "webvtt".to_string()]);
+    }
+    args.push(output_path.to_string_lossy().to_string());
+
     let output = std::process::Command::new(ffmpeg_exe(&app_handle))
-        .args([
-            "-y",
-            "-i",
-            &path,
-            "-map",
-            &format!("0:{}", stream_index),
-            "-c:s",
-            "webvtt",
-            &output_path.to_string_lossy().to_string(),
-        ])
+        .args(&args)
         .output()
         .map_err(|e| format!("ffmpeg not found: {e}"))?;
 
@@ -1495,20 +1502,27 @@ async fn remux_with_external_audio(
 }
 
 #[tauri::command]
-async fn convert_external_subtitle(app_handle: tauri::AppHandle, path: String) -> Result<String, String> {
+async fn convert_external_subtitle(app_handle: tauri::AppHandle, path: String, codec_name: Option<String>) -> Result<String, String> {
     let temp_dir = std::env::temp_dir();
-    let output_path = temp_dir.join("iluha_ext_sub.vtt");
+    let is_ass = codec_name.as_deref() == Some("ass") || codec_name.as_deref() == Some("ssa") || path.ends_with(".ass") || path.ends_with(".ssa");
+    let ext = if is_ass { "ass" } else { "vtt" };
+    let output_path = temp_dir.join(format!("iluha_ext_sub.{}", ext));
     let _ = std::fs::remove_file(&output_path);
 
+    let mut args = vec![
+        "-y".to_string(),
+        "-i".to_string(),
+        path.clone(),
+    ];
+    if is_ass {
+        args.extend_from_slice(&["-c:s".to_string(), "copy".to_string()]);
+    } else {
+        args.extend_from_slice(&["-c:s".to_string(), "webvtt".to_string()]);
+    }
+    args.push(output_path.to_string_lossy().to_string());
+
     let output = std::process::Command::new(ffmpeg_exe(&app_handle))
-        .args([
-            "-y",
-            "-i",
-            &path,
-            "-c:s",
-            "webvtt",
-            &output_path.to_string_lossy().to_string(),
-        ])
+        .args(&args)
         .output()
         .map_err(|e| format!("ffmpeg not found: {e}"))?;
 

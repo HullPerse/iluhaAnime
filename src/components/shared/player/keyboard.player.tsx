@@ -8,7 +8,21 @@ import { useEffect } from "react";
 
 const FRAME_STEP = 1 / 30;
 
-function Keyboard() {
+function Keyboard({
+  mediaPath,
+  onFileNext,
+  onFilePrev,
+  hasNext,
+  hasPrev,
+  onToggleAutoHide,
+}: {
+  mediaPath?: string;
+  onFileNext?: () => void;
+  onFilePrev?: () => void;
+  hasNext?: boolean;
+  hasPrev?: boolean;
+  onToggleAutoHide?: () => void;
+}) {
   const playback = usePlayer(selectPlayback);
   const time = usePlayer(selectTime);
   const volume = usePlayer(selectVolume);
@@ -65,6 +79,42 @@ function Keyboard() {
           time?.seek?.(Math.min(ct + FRAME_STEP, dur));
           break;
         }
+        case "F1": {
+          e.preventDefault();
+          if (!mediaPath) break;
+          const delta = e.ctrlKey ? -0.05 : -0.5;
+          const current = parseFloat(localStorage.getItem(`sub_offset:${mediaPath}`) ?? "0");
+          const next = Math.max(-300, current + delta);
+          localStorage.setItem(`sub_offset:${mediaPath}`, String(next));
+          window.dispatchEvent(new CustomEvent("suboffsetchange", { detail: { path: mediaPath, offset: next } }));
+          break;
+        }
+        case "F2": {
+          e.preventDefault();
+          if (!mediaPath) break;
+          const delta = e.ctrlKey ? 0.05 : 0.5;
+          const current = parseFloat(localStorage.getItem(`sub_offset:${mediaPath}`) ?? "0");
+          const next = Math.min(300, current + delta);
+          localStorage.setItem(`sub_offset:${mediaPath}`, String(next));
+          window.dispatchEvent(new CustomEvent("suboffsetchange", { detail: { path: mediaPath, offset: next } }));
+          break;
+        }
+        case "KeyH": {
+          if (!e.ctrlKey) break;
+          e.preventDefault();
+          onToggleAutoHide?.();
+          break;
+        }
+        case "PageDown": {
+          e.preventDefault();
+          onFileNext?.();
+          break;
+        }
+        case "PageUp": {
+          e.preventDefault();
+          onFilePrev?.();
+          break;
+        }
       }
     };
 
@@ -85,7 +135,7 @@ function Keyboard() {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("wheel", handleWheel);
     };
-  }, [playback, time, volume]);
+  }, [playback, time, volume, mediaPath, onFileNext, onFilePrev, hasNext, hasPrev, onToggleAutoHide]);
 
   return null;
 }

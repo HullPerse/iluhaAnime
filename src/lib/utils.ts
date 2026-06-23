@@ -58,7 +58,7 @@ export function formatSize(size: string): string {
 }
 
 export function formatTime(seconds: number): string {
-  if (!seconds || !isFinite(seconds) || seconds < 0) return "00:00";
+  if (seconds < 0 || !isFinite(seconds)) return "0:00";
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
   const s = Math.floor(seconds % 60);

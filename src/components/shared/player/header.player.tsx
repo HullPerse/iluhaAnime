@@ -1,16 +1,20 @@
 import { Button } from "@/components/ui/button.component";
 import { selectFullscreen, usePlayer } from "@videojs/react";
-import { Maximize, X } from "lucide-react";
+import { Maximize, Minimize2, X, Maximize2 } from "lucide-react";
 import { ReactElement } from "react";
 
 function Header({
   header,
   onClose,
   special,
+  cinemaMode,
+  onToggleCinema,
 }: {
   header: string;
   onClose: () => void;
   special?: ReactElement;
+  cinemaMode?: boolean;
+  onToggleCinema?: () => void;
 }) {
   const fullscreen = usePlayer(selectFullscreen);
 
@@ -20,6 +24,21 @@ function Header({
         {header}
       </span>
       <div className="flex flex-row items-center gap-1">
+        {onToggleCinema && (
+          <Button
+            size="icon"
+            className="size-4"
+            onClick={onToggleCinema}
+            title={cinemaMode ? "Выйти из кинорежима" : "Кинорежим"}
+          >
+            {cinemaMode ? (
+              <Minimize2 className="size-3" />
+            ) : (
+              <Maximize2 className="size-3" />
+            )}
+          </Button>
+        )}
+
         <Button
           size="icon"
           className="size-4"

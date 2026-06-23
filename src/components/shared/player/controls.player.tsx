@@ -15,6 +15,8 @@ import {
   Volume1,
   Volume2,
   VolumeX,
+  SkipBack,
+  SkipForward,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import type { VideoStreamInfo } from "@/types";
@@ -27,14 +29,29 @@ function Controls({
   streams,
   videoEl,
   onAudioSwitch,
+  onFileNext,
+  onFilePrev,
+  hasNext,
+  hasPrev,
+  onToggleAutoHide,
+  cinemaMode,
+  autoHideUi,
 }: {
   chapters?: { start_time: number; end_time: number; title: string }[];
   mediaPath?: string;
   streams?: VideoStreamInfo[];
   videoEl?: HTMLVideoElement | null;
   onAudioSwitch?: (newSrc: string | null) => void;
+  onFileNext?: () => void;
+  onFilePrev?: () => void;
+  hasNext?: boolean;
+  hasPrev?: boolean;
+  onToggleAutoHide?: () => void;
+  cinemaMode?: boolean;
+  autoHideUi?: boolean;
 }) {
   const [dragging, setDragging] = useState<boolean>(false);
+  const [boundaryMsg, setBoundaryMsg] = useState<string | null>(null);
 
   const time = usePlayer(selectTime);
   const playback = usePlayer(selectPlayback);
@@ -53,6 +70,7 @@ function Controls({
 
   const volumeContainerRef = useRef<HTMLDivElement>(null);
   const volumeRestored = useRef(false);
+  const boundaryTimerRef = useRef<number | null>(null);
 
   const setVolume = (e: number) => value?.setVolume(e);
 
@@ -75,9 +93,22 @@ function Controls({
   const hasPrevChapter = currentChapterIndex > 0;
   const hasNextChapter = currentChapterIndex < allChapters.length - 1;
 
+  const showBoundaryMsg = (msg: string) => {
+    setBoundaryMsg(msg);
+    if (boundaryTimerRef.current) clearTimeout(boundaryTimerRef.current);
+    boundaryTimerRef.current = window.setTimeout(
+      () => setBoundaryMsg(null),
+      2000,
+    );
+  };
+
   const handleForward = () => {
     if (allChapters.length > 0 && hasNextChapter) {
       seek?.(allChapters[currentChapterIndex + 1].start_time);
+    } else if (!hasNext && allChapters.length === 0) {
+      seek?.(Math.min(currentTime + 5, duration));
+    } else if (!hasNext) {
+      showBoundaryMsg("Последний файл");
     } else {
       seek?.(Math.min(currentTime + 5, duration));
     }
@@ -85,6 +116,10 @@ function Controls({
   const handleBackward = () => {
     if (allChapters.length > 0 && hasPrevChapter) {
       seek?.(allChapters[currentChapterIndex - 1].start_time);
+    } else if (!hasPrev && allChapters.length === 0) {
+      seek?.(Math.max(currentTime - 5, 0));
+    } else if (!hasPrev) {
+      showBoundaryMsg("Первый файл");
     } else {
       seek?.(Math.max(currentTime - 5, 0));
     }
@@ -109,7 +144,6 @@ function Controls({
 
     setVolume(percent);
     localStorage.setItem("volume", String(percent));
-    console.log("saved", String(percent));
   };
 
   const handleMouseMove = (e: { clientX: number }) => {
@@ -173,7 +207,12 @@ function Controls({
   }, [speedOpen]);
 
   return (
-    <main className="flex flex-row items-center gap-1 p-1">
+    <main className="flex flex-row items-center gap-1 p-1 relative">
+      {boundaryMsg && (
+        <div className="absolute bottom-full right-0 mb-1 z-50 windows95-border bg-primary px-1 py-0.5 text-[10px] windows95-font whitespace-nowrap">
+          {boundaryMsg}
+        </div>
+      )}
       <section className="flex h-6 w-15 border-r-2 border-muted gap-1">
         <Button
           size="icon"
@@ -209,6 +248,32 @@ function Controls({
           disabled={currentTime === duration}
         >
           <ChevronsRight />
+        </Button>
+      </section>
+
+      {/* Folder navigation */}
+      <section className="flex h-6 border-r-2 border-muted gap-1 px-1">
+        <Button
+          size="icon"
+          className="size-6"
+          onClick={() => {
+            if (!hasPrev) showBoundaryMsg("Первый файл");
+            else onFilePrev?.();
+          }}
+          disabled={!hasPrev}
+        >
+          <SkipBack className="size-4" />
+        </Button>
+        <Button
+          size="icon"
+          className="size-6"
+          onClick={() => {
+            if (!hasNext) showBoundaryMsg("Последний файл");
+            else onFileNext?.();
+          }}
+          disabled={!hasNext}
+        >
+          <SkipForward className="size-4" />
         </Button>
       </section>
 
@@ -253,7 +318,27 @@ function Controls({
         />
       )}
 
-      {/*VOLUME*/}
+      {/* Cinema mode */}
+      {cinemaMode && onToggleAutoHide && (
+        <section className="flex h-6 border-l-2 border-muted gap-1 px-1">
+          <Button
+            size="icon"
+            className="size-6"
+            onClick={onToggleAutoHide}
+            title={
+              autoHideUi
+                ? "Авто-скрытие: вкл (Ctrl+H)"
+                : "Авто-скрытие: выкл (Ctrl+H)"
+            }
+          >
+            <span className="text-[8px] font-bold">
+              {autoHideUi ? "A" : "M"}
+            </span>
+          </Button>
+        </section>
+      )}
+
+      {/* VOLUME */}
       <section className="flex flex-row ml-auto h-6 w-fit border-l-2 border-muted gap-1 px-1">
         <span className="windows95-text items-center flex">
           {Math.round(displayVolume * 100)}

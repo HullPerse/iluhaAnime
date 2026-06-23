@@ -2,7 +2,9 @@ import { invoke, convertFileSrc } from "@tauri-apps/api/core";
 import type { VideoStreamInfo } from "@/types";
 import { useState, useCallback, useRef, useEffect } from "react";
 import { parseVTT } from "@/lib/utils";
+import { saveTrackSelection, getTrackSelection } from "@/lib/storage";
 import { Check } from "lucide-react";
+import AssOverlay from "./subtitles.player";
 
 const SUB_OFF = -999;
 
@@ -41,7 +43,9 @@ function TrackDropdown({
         className="flex items-center gap-1 h-5 text-[10px] windows95-font bg-primary windows95-border px-1 min-w-18 max-w-24 outline-none focus-visible:outline-dotted focus-visible:outline-1 focus-visible:outline-offset-[-3px]"
         onClick={() => setOpen(!open)}
       >
-        <span className="truncate">{label}: {current?.label ?? ""}</span>
+        <span className="truncate">
+          {label}: {current?.label ?? ""}
+        </span>
       </button>
       {onAdd && (
         <button
@@ -99,13 +103,25 @@ function Tracks({
   const defaultAudio =
     mergedAudio.find((s) => s.is_default)?.index ?? mergedAudio[0]?.index ?? -1;
   const defaultSub = mergedSubs[0]?.index ?? SUB_OFF;
-  const [selectedAudio, setSelectedAudio] = useState(defaultAudio);
-  const [selectedSub, setSelectedSub] = useState(defaultSub);
+
+  const savedAudio = getTrackSelection(mediaPath, "audio");
+  const savedSub = getTrackSelection(mediaPath, "sub");
+
+  const [selectedAudio, setSelectedAudio] = useState(
+    savedAudio ?? defaultAudio,
+  );
+  const [selectedSub, setSelectedSub] = useState(savedSub ?? defaultSub);
   const textTrackRef = useRef<TextTrack | null>(null);
-  const pendingAudioRef = useRef(false);
   const savedTimeRef = useRef(0);
   const savedPlayingRef = useRef(false);
   const extCounter = useRef(-1000);
+  const audioGenRef = useRef(0);
+  const subGenRef = useRef(0);
+
+  const [assUrl, setAssUrl] = useState<string | null>(null);
+  const [assVisible, setAssVisible] = useState(false);
+  const [subDelay, setSubDelay] = useState(0);
+  const appliedOffsetRef = useRef(0);
 
   const fmt = (s: VideoStreamInfo) => {
     const parts = [
@@ -116,10 +132,23 @@ function Tracks({
     return parts.join(" - ") || `Track ${s.index}`;
   };
 
+  const isAssSub = (s: VideoStreamInfo) =>
+    s.codec_name === "ass" ||
+    s.codec_name === "ssa" ||
+    (s.file_path ?? "").match(/\.(ass|ssa)$/i);
+
+  const hasAssSub =
+    mergedSubs.some(isAssSub) &&
+    selectedSub !== SUB_OFF &&
+    mergedSubs.find((s) => s.index === selectedSub && isAssSub(s));
+
   const handleAudio = useCallback(
     async (idx: number) => {
       setSelectedAudio(idx);
-      if (pendingAudioRef.current || !videoEl) return;
+      saveTrackSelection(mediaPath, "audio", idx);
+
+      const gen = ++audioGenRef.current;
+      if (!videoEl) return;
 
       const stream = [...audioStreams, ...extAudio].find(
         (s) => s.index === idx,
@@ -129,7 +158,6 @@ function Tracks({
       savedTimeRef.current = videoEl.currentTime;
       savedPlayingRef.current = !videoEl.paused;
 
-      pendingAudioRef.current = true;
       try {
         const out = stream.file_path
           ? await invoke<string>("remux_with_external_audio", {
@@ -140,15 +168,18 @@ function Tracks({
               path: mediaPath,
               streamIndex: idx,
             });
+
+        if (gen !== audioGenRef.current) {
+          onAudioSwitch(null);
+          return;
+        }
+
         onAudioSwitch(convertFileSrc(out));
 
         const restore = () => {
-          pendingAudioRef.current = false;
           try {
             videoEl.currentTime = savedTimeRef.current;
-          } catch {
-            /* ignore */
-          }
+          } catch {}
           if (savedPlayingRef.current) {
             videoEl.play().catch(() => {});
           }
@@ -156,7 +187,6 @@ function Tracks({
         };
         videoEl.addEventListener("loadedmetadata", restore, { once: true });
       } catch {
-        pendingAudioRef.current = false;
         onAudioSwitch(null);
       }
     },
@@ -167,10 +197,15 @@ function Tracks({
     async (idx: number) => {
       if (!videoEl) return;
 
+      const gen = ++subGenRef.current;
+
       if (textTrackRef.current) {
         textTrackRef.current.mode = "disabled";
         textTrackRef.current = null;
       }
+
+      setAssUrl(null);
+      setAssVisible(false);
 
       const stream = [...subtitleStreams, ...extSubs].find(
         (s) => s.index === idx,
@@ -181,30 +216,39 @@ function Tracks({
         const extracted = stream.file_path
           ? await invoke<string>("convert_external_subtitle", {
               path: stream.file_path,
+              codecName: stream.codec_name,
             })
           : await invoke<string>("extract_video_subtitle", {
               path: mediaPath,
               streamIndex: idx,
+              codecName: stream.codec_name,
             });
-        const url = convertFileSrc(extracted);
-        const resp = await fetch(url);
-        const text = await resp.text();
-        const cues = parseVTT(text);
-        const lang = stream.language ?? "und";
 
-        const track = videoEl.addTextTrack("subtitles", fmt(stream), lang);
-        for (const c of cues) {
-          try {
-            track.addCue(new VTTCue(c.start, c.end, c.text));
-          } catch {
-            /* skip */
+        if (gen !== subGenRef.current) return;
+
+        const url = convertFileSrc(extracted);
+
+        if (isAssSub(stream)) {
+          setAssUrl(url);
+          setAssVisible(true);
+        } else {
+          const resp = await fetch(url);
+          const text = await resp.text();
+          const cues = parseVTT(text);
+          const lang = stream.language ?? "und";
+
+          if (gen !== subGenRef.current) return;
+
+          const track = videoEl.addTextTrack("subtitles", fmt(stream), lang);
+          for (const c of cues) {
+            try {
+              track.addCue(new VTTCue(c.start, c.end, c.text));
+            } catch {}
           }
+          track.mode = "showing";
+          textTrackRef.current = track;
         }
-        track.mode = "showing";
-        textTrackRef.current = track;
-      } catch {
-        /* fail silently */
-      }
+      } catch {}
     },
     [videoEl, mediaPath, subtitleStreams, extSubs],
   );
@@ -212,23 +256,73 @@ function Tracks({
   const handleSub = useCallback(
     (idx: number) => {
       setSelectedSub(idx);
+      saveTrackSelection(mediaPath, "sub", idx);
       if (idx === SUB_OFF) {
         if (textTrackRef.current) {
           textTrackRef.current.mode = "disabled";
           textTrackRef.current = null;
         }
+        setAssVisible(false);
+        setAssUrl(null);
         return;
       }
       loadSubtitle(idx);
     },
-    [loadSubtitle],
+    [loadSubtitle, mediaPath],
   );
 
+  const loadDelay = useCallback(() => {
+    try {
+      const d = parseFloat(
+        localStorage.getItem(`sub_offset:${mediaPath}`) ?? "0",
+      );
+      setSubDelay(d);
+    } catch {}
+  }, [mediaPath]);
+
   useEffect(() => {
-    if (videoEl && defaultSub >= 0) {
+    loadDelay();
+    const savedA = getTrackSelection(mediaPath, "audio");
+    const savedS = getTrackSelection(mediaPath, "sub");
+    if (savedA !== undefined) {
+      setSelectedAudio(savedA);
+    }
+    if (savedS !== undefined) {
+      setSelectedSub(savedS);
+      if (savedS !== SUB_OFF) {
+        loadSubtitle(savedS);
+      }
+    } else if (defaultSub >= 0) {
       loadSubtitle(defaultSub);
     }
   }, [videoEl]);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as {
+        path: string;
+        offset: number;
+      };
+      if (detail.path === mediaPath) {
+        setSubDelay(detail.offset);
+        const delta = detail.offset - appliedOffsetRef.current;
+        if (delta !== 0 && textTrackRef.current?.cues) {
+          const track = textTrackRef.current;
+          if (track.cues)
+            for (let i = 0; i < track.cues.length; i++) {
+              try {
+                const c = track.cues[i] as VTTCue;
+                c.startTime += delta;
+                c.endTime += delta;
+              } catch {}
+            }
+        }
+        appliedOffsetRef.current = detail.offset;
+      }
+    };
+    window.addEventListener("suboffsetchange", handler);
+    return () => window.removeEventListener("suboffsetchange", handler);
+  }, [mediaPath]);
 
   const handleAddAudio = useCallback(async () => {
     try {
@@ -239,8 +333,19 @@ function Tracks({
           {
             name: "Audio",
             extensions: [
-              "mp3", "aac", "m4a", "mka", "ac3", "eac3", "dts",
-              "truehd", "flac", "ogg", "opus", "wav", "wma",
+              "mp3",
+              "aac",
+              "m4a",
+              "mka",
+              "ac3",
+              "eac3",
+              "dts",
+              "truehd",
+              "flac",
+              "ogg",
+              "opus",
+              "wav",
+              "wma",
             ],
           },
           { name: "All Files", extensions: ["*"] },
@@ -259,9 +364,7 @@ function Tracks({
       };
       setExtAudio((prev) => [...prev, newTrack]);
       handleAudio(idx);
-    } catch {
-      /* cancelled */
-    }
+    } catch {}
   }, [handleAudio]);
 
   const handleAddSub = useCallback(async () => {
@@ -273,7 +376,14 @@ function Tracks({
           {
             name: "Subtitles",
             extensions: [
-              "srt", "ass", "ssa", "vtt", "sub", "idx", "sup", "pgs",
+              "srt",
+              "ass",
+              "ssa",
+              "vtt",
+              "sub",
+              "idx",
+              "sup",
+              "pgs",
             ],
           },
           { name: "All Files", extensions: ["*"] },
@@ -292,31 +402,17 @@ function Tracks({
       };
       setExtSubs((prev) => [...prev, newTrack]);
       handleSub(idx);
-    } catch {
-      /* cancelled */
-    }
+    } catch {}
   }, [handleSub]);
-
-  useEffect(() => {
-    const el = document.createElement("style");
-    el.id = "iluha-sub-cue-styles";
-    if (!document.getElementById("iluha-sub-cue-styles")) {
-      el.textContent = `
-        video::cue {
-          font-size: 1.1em !important;
-          background-color: rgba(0,0,0,0.75) !important;
-          color: #fff !important;
-          font-family: "Arial", "Helvetica", sans-serif !important;
-          text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000 !important;
-          line-height: 1.4 !important;
-        }
-      `;
-      document.head.appendChild(el);
-    }
-  }, []);
 
   return (
     <section className="flex h-6 items-center gap-1 px-1 border-l-2 border-muted">
+      <AssOverlay
+        src={assUrl ?? ""}
+        videoEl={videoEl}
+        visible={assVisible && !!hasAssSub}
+        delay={subDelay}
+      />
       <TrackDropdown
         label="Аудио"
         tracks={

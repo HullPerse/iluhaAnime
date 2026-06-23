@@ -14,6 +14,8 @@ function Timeline({
 }) {
   const [dragging, setDragging] = useState<boolean>(false);
   const [scrubTime, setScrubTime] = useState<number | null>(null);
+  const [hoverInfo, setHoverInfo] = useState<{ time: number; x: number; chapterTitle?: string } | null>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
 
   const time = usePlayer(selectTime);
   const buffer = usePlayer(selectBuffer);
@@ -65,8 +67,33 @@ function Timeline({
     seek(pct * duration);
   };
 
+  const getChapterAtTime = (t: number) => {
+    for (let i = allChapters.length - 1; i >= 0; i--) {
+      if (allChapters[i].start_time <= t && t < allChapters[i].end_time)
+        return allChapters[i].title;
+    }
+    return undefined;
+  };
+
   const handleMouseMove = (e: React.MouseEvent) => {
+    if (!timelineRef.current) return;
+    const rect = timelineRef.current.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const t = pct * duration;
     if (dragging) paintScrub(e.clientX);
+    const wrapperW = timelineRef.current.parentElement?.offsetWidth ?? rect.width;
+    const tipW = tooltipRef.current?.offsetWidth ?? 160;
+    const half = tipW / 2;
+    const x = Math.max(half, Math.min(wrapperW - half, e.clientX - rect.left));
+    setHoverInfo({
+      time: t,
+      x,
+      chapterTitle: getChapterAtTime(t),
+    });
+  };
+
+  const handleMouseLeave = () => {
+    setHoverInfo(null);
   };
 
   const handleWindowMouseMove = (e: globalThis.MouseEvent) => {
@@ -106,9 +133,24 @@ function Timeline({
       <span className="flex flex-row windows95-text text-[10px] w-16 max-w-16 min-w-16 text-right tabular-nums">
         {`${formatTime(displayTime)} / ${formatTime(duration)}`}
       </span>
-      <section
-        ref={timelineRef}
-        className="flex-1 h-4 windows95-border bg-white relative cursor-pointer"
+      <div className="flex-1 relative">
+        {hoverInfo && (
+          <div
+            ref={tooltipRef}
+            className="absolute bottom-full mb-1 z-50 select-text"
+            style={{ left: `${hoverInfo.x}px`, transform: "translateX(-50%)" }}
+          >
+            <div className="windows95-border bg-primary px-1 py-0.5 text-[10px] windows95-font whitespace-nowrap min-w-16 text-center">
+              <span className="tabular-nums">{formatTime(hoverInfo.time)}</span>
+              {hoverInfo.chapterTitle && (
+                <span className="ml-1 text-white/60">— {hoverInfo.chapterTitle}</span>
+              )}
+            </div>
+          </div>
+        )}
+        <section
+          ref={timelineRef}
+          className="h-4 windows95-border bg-white relative cursor-pointer"
         onClick={(e) => {
           e.preventDefault();
           handleSeek(e.clientX);
@@ -120,6 +162,7 @@ function Timeline({
           commitSeek();
         }}
         onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
       >
         <div
           className="absolute inset-y-0 left-0 bg-muted/30"
@@ -146,7 +189,8 @@ function Timeline({
             />
           );
         })}
-      </section>
+        </section>
+      </div>
     </main>
   );
 }

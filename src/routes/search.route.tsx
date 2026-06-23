@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { Anime, LanguageTag, SettingsScraper } from "@/types";
 import { useEffect, useState, useMemo } from "react";
 import { detectLanguages, formatSize } from "@/lib/utils";
+import { saveSearchQuery, getSearchHistory } from "@/lib/storage";
 import { languages, qualities, encodings } from "@/config/index.config";
 import { Button } from "@/components/ui/button.component";
 import { SmallLoader } from "@/components/shared/loader.component";
@@ -57,6 +58,7 @@ function SearchRoute() {
     sort: "seeders",
     encoding: "all",
   });
+  const [showHistory, setShowHistory] = useState(false);
 
   useEffect(() => {
     invoke<boolean>("check_rutracker_session")
@@ -195,19 +197,45 @@ function SearchRoute() {
   return (
     <div className="h-full flex flex-col w-full gap-1">
       <section className="flex flex-row gap-2 w-full">
-        <Input
-          placeholder="Найти аниме..."
-          value={searchParams}
-          className="h-9 font-bold bg-white"
-          onChange={(e) => setSearchParams(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") refetch();
-          }}
-        />
+        <div className="relative flex-1">
+          <Input
+            placeholder="Найти аниме..."
+            value={searchParams}
+            className="h-9 font-bold bg-white"
+            onChange={(e) => setSearchParams(e.target.value)}
+            onFocus={() => setShowHistory(true)}
+            onBlur={() => setTimeout(() => setShowHistory(false), 200)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                saveSearchQuery(searchParams.trim());
+                refetch();
+              }
+            }}
+          />
+          {showHistory && getSearchHistory().length > 0 && (
+            <div className="absolute top-full left-0 right-0 z-50 windows95-active-border bg-primary shadow-md max-h-32 overflow-y-auto mt-0.5">
+              {getSearchHistory().map((q) => (
+                <button
+                  key={q}
+                  className="w-full text-left px-1 py-0.5 text-[11px] windows95-font hover:bg-surface cursor-pointer truncate"
+                  onClick={() => {
+                    setSearchParams(q);
+                    setShowHistory(false);
+                  }}
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         <Button
           variant="default"
           size="icon"
-          onClick={() => refetch()}
+          onClick={() => {
+            saveSearchQuery(searchParams.trim());
+            refetch();
+          }}
           disabled={isLoading}
         >
           {isLoading ? (

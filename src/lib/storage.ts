@@ -74,3 +74,31 @@ export function getSubOffset(mediaPath: string): number {
     return 0;
   }
 }
+
+const SEARCH_HISTORY_KEY = "searchHistory";
+const MAX_SEARCH_HISTORY = 20;
+
+export function saveSearchQuery(query: string): void {
+  try {
+    const q = query.trim().toLowerCase();
+    if (!q) return;
+    const history = getSearchHistory();
+    const filtered = history.filter((h) => h !== q);
+    filtered.unshift(q);
+    localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(filtered.slice(0, MAX_SEARCH_HISTORY)));
+  } catch {}
+}
+
+export function getSearchHistory(): string[] {
+  try {
+    return JSON.parse(localStorage.getItem(SEARCH_HISTORY_KEY) || "[]");
+  } catch {
+    return [];
+  }
+}
+
+export function clearSearchHistory(): void {
+  try {
+    localStorage.removeItem(SEARCH_HISTORY_KEY);
+  } catch {}
+}

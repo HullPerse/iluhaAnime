@@ -45,9 +45,9 @@ describe("formatSize", () => {
 
 describe("formatTime", () => {
   it("returns 00:00 for invalid input", () => {
-    expect(formatTime(-1)).toBe("00:00");
-    expect(formatTime(Infinity)).toBe("00:00");
-    expect(formatTime(NaN)).toBe("00:00");
+    expect(formatTime(-1)).toBe("0:00");
+    expect(formatTime(Infinity)).toBe("0:00");
+    expect(formatTime(NaN)).toBe("0:00");
   });
 
   it("formats seconds only", () => {

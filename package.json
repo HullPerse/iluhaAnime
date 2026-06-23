@@ -29,7 +29,6 @@
     "lucide-react": "^1.14.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
-    "rutracker-api": "^1.1.2",
     "tailwind-merge": "^3.5.0",
     "tailwindcss": "^4.2.4",
     "zustand": "^5.0.12"
@@ -43,7 +42,6 @@
     "oxlint": "1.57.0",
     "typescript": "6.0.2",
     "vite": "8.0.2",
-    "vite-plugin-compression": "0.5.1",
     "vitest": "^4.1.9"
   }
 }

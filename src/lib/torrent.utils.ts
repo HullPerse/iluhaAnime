@@ -1,9 +1,3 @@
-export function fmtBytes(b: number): string {
-  if (b < 1024) return `${b} B`;
-  if (b < 1024 * 1024) return `${(b / 1024).toFixed(1)} KB`;
-  return `${(b / (1024 * 1024)).toFixed(1)} MB`;
-}
-
 export function fmtSpeed(bps: number): string {
   if (bps <= 0) return "";
   if (bps < 1024) return `${bps.toFixed(0)} B/s`;

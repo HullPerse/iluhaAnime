@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { SmallLoader } from "../../components/shared/loader.component";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
-import { groupFilesByDirectory } from "@/lib/torrent.utils";
+import { fmtSize, groupFilesByDirectory } from "@/lib/torrent.utils";
 import { FolderOpen } from "lucide-react";
 
 export interface TorrentFileInfo {
@@ -100,16 +100,8 @@ function TorrentFilePicker({
 
   const handleConfirm = () => {
     if (!torrent) return;
-    const subFolder = torrent.name;
+    const subFolder = torrent.hasCommonFolder ? undefined : torrent.name;
     onConfirm([...selected], saveDir, subFolder);
-  };
-
-  const fmtSize = (bytes: number) => {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    if (bytes < 1024 * 1024 * 1024)
-      return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-    return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
   };
 
   const allSelected = torrent ? selected.size === torrent.files.length : false;

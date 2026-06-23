@@ -19,6 +19,7 @@ import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import type { VideoStreamInfo } from "@/types";
 import { getPosition } from "@/lib/storage";
+import { fmtSize } from "@/lib/torrent.utils";
 
 interface VideoFileEntry {
   readonly path: string;
@@ -31,13 +32,6 @@ interface FolderNode {
   path: string;
   files: VideoFileEntry[];
   children: FolderNode[];
-}
-
-function formatSize(bytes: number): string {
-  if (bytes === 0) return "0 B";
-  const units = ["B", "KB", "MB", "GB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(1024));
-  return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${units[i]}`;
 }
 
 function countFiles(node: FolderNode): number {
@@ -112,7 +106,7 @@ function FolderNodeView({
                 {f.name}
               </span>
               <span className="text-[10px] windows95-font text-white/40 mr-1">
-                {formatSize(f.size)}
+                {fmtSize(f.size)}
               </span>
               <button
                 className="size-4 flex items-center justify-center bg-primary windows95-border hover:bg-secondary cursor-pointer"

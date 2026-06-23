@@ -1,17 +1,12 @@
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
-import viteCompression from "vite-plugin-compression";
 import { resolve } from "path";
 
 export default defineConfig(async () => ({
   plugins: [
     react(),
     tailwindcss(),
-    viteCompression({
-      algorithm: "brotliCompress",
-      ext: ".br",
-    }),
   ],
 
   clearScreen: false,

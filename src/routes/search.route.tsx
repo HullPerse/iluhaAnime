@@ -1,7 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { useQuery } from "@tanstack/react-query";
 import type { Anime, LanguageTag, SettingsScraper } from "@/types";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { detectLanguages, formatSize } from "@/lib/utils";
 import { languages, qualities, encodings } from "@/config/index.config";
 import { Button } from "@/components/ui/button.component";
@@ -67,8 +67,13 @@ function SearchRoute() {
       .catch(() => setNekoBtAuth(false));
   }, []);
 
+  const queryKey: unknown[] = useMemo(
+    () => ["animeScraper", source, searchParams.trim(), settings.encoding, nyaaPage, nyaaSort, nyaaOrder],
+    [source, searchParams, settings.encoding, nyaaPage, nyaaSort, nyaaOrder],
+  );
+
   const { data, isLoading, isError, error, refetch } = useQuery({
-    queryKey: ["animeScraper", source, nyaaPage, nyaaSort, nyaaOrder],
+    queryKey,
     queryFn: async (): Promise<Anime[]> => {
       setMagnets({});
       setLoadingMagnet({});
@@ -99,34 +104,53 @@ function SearchRoute() {
     enabled: false,
   });
 
-  const filtered = data?.filter((res) => {
-    if (settings.quality !== "all") {
-      if (
-        !res.title.toLowerCase().includes(settings.quality) &&
-        !res.title.toLowerCase().includes(settings.quality.slice(0, -1))
-      ) {
-        return false;
-      }
-    }
-    if (settings.language !== "all") {
-      const language: LanguageTag[] = detectLanguages(res.title);
-      if (!language.some((l) => l.code === settings.language)) return false;
-    }
-    return true;
-  });
-
-  const sorted = filtered?.sort((a, b) => {
-    const sortMap = {
-      seeders: b.seeders - a.seeders,
-      leechers: b.leechers - a.leechers,
-      size: b.size.length - a.size.length,
+  const parseSize = (s: string): number => {
+    const match = s.match(/^([\d.]+)\s*(B|KB|KiB|MB|MiB|GB|GiB)?$/);
+    if (!match) return 0;
+    const num = parseFloat(match[1]);
+    const unit = match[2] || "B";
+    const multipliers: Record<string, number> = {
+      "B": 1, "KB": 1024, "KiB": 1024,
+      "MB": 1048576, "MiB": 1048576,
+      "GB": 1073741824, "GiB": 1073741824,
     };
-    return sortMap[settings.sort] ?? 0;
-  });
+    return num * (multipliers[unit] || 1);
+  };
 
-  const displayItems = sorted?.slice(
-    0,
-    source === "nyaa" ? PER_PAGE : undefined,
+  const filtered = useMemo(
+    () => data?.filter((res) => {
+      if (settings.quality !== "all") {
+        if (
+          !res.title.toLowerCase().includes(settings.quality) &&
+          !res.title.toLowerCase().includes(settings.quality.slice(0, -1))
+        ) {
+          return false;
+        }
+      }
+      if (settings.language !== "all") {
+        const language: LanguageTag[] = detectLanguages(res.title);
+        if (!language.some((l) => l.code === settings.language)) return false;
+      }
+      return true;
+    }),
+    [data, settings.quality, settings.language],
+  );
+
+  const sorted = useMemo(
+    () => filtered?.sort((a, b) => {
+      const sortMap = {
+        seeders: b.seeders - a.seeders,
+        leechers: b.leechers - a.leechers,
+        size: parseSize(b.size) - parseSize(a.size),
+      };
+      return sortMap[settings.sort] ?? 0;
+    }),
+    [filtered, settings.sort],
+  );
+
+  const displayItems = useMemo(
+    () => sorted?.slice(0, source === "nyaa" ? PER_PAGE : undefined),
+    [sorted, source],
   );
 
   const handleLogout = async () => {

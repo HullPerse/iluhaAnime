@@ -1,6 +1,6 @@
 import ProgressBar from "@/components/shared/progress.component";
 import { Button } from "@/components/ui/button.component";
-import { fmtBytes, fmtETA, fmtSpeed, stateLabel } from "@/lib/torrent.utils";
+import { fmtSize, fmtETA, fmtSpeed, stateLabel } from "@/lib/torrent.utils";
 import { useTorrentStore } from "@/store/download.store";
 import { confirm } from "@tauri-apps/plugin-dialog";
 import { openPath } from "@tauri-apps/plugin-opener";
@@ -16,7 +16,7 @@ import {
   ArrowUp,
   Plus,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import TorrentFilesSection from "./components/file.torrent";
 
 function TorrentRoute() {
@@ -44,9 +44,12 @@ function TorrentRoute() {
   const [showMagnetModal, setShowMagnetModal] = useState(false);
   const [magnetInput, setMagnetInput] = useState("");
 
+  const fetchedRef = useRef<Set<number>>(new Set());
+
   useEffect(() => {
     torrents.forEach((t) => {
-      if (!torrentFilesMap[t.id]) {
+      if (!torrentFilesMap[t.id] && !fetchedRef.current.has(t.id)) {
+        fetchedRef.current.add(t.id);
         loadTorrentFiles(t.id);
       }
     });
@@ -56,14 +59,14 @@ function TorrentRoute() {
     const interval = setInterval(() => {
       const state = useTorrentStore.getState();
       state.torrents.forEach((t) => {
-        if (state.torrentFilesMap[t.id]) {
+        if (expanded.has(t.id) && state.torrentFilesMap[t.id]) {
           state.loadTorrentFiles(t.id);
         }
       });
     }, 1000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [expanded]);
 
   useEffect(() => {
     const handleFocus = () => {
@@ -182,7 +185,7 @@ function TorrentRoute() {
                   size="icon"
                   className="size-6"
                   onClick={() => resumeTorrent(item.id)}
-                  disabled={!isLive || item.finished}
+                  disabled={!isPaused || item.finished}
                 >
                   <Play />
                 </Button>
@@ -232,8 +235,8 @@ function TorrentRoute() {
                   </span>
                   <span className="text-[10px] windows95-font">
                     {item.total_bytes > 0
-                      ? `${fmtBytes(item.progress_bytes)} / ${fmtBytes(item.total_bytes)} (${progress.toFixed(1)}%)`
-                      : fmtBytes(item.progress_bytes)}
+                      ? `${fmtSize(item.progress_bytes)} / ${fmtSize(item.total_bytes)} (${progress.toFixed(1)}%)`
+                      : fmtSize(item.progress_bytes)}
                   </span>
                   <span className="text-[10px] windows95-font text-muted">
                     {fmtSpeed(item.download_speed)}
@@ -254,7 +257,7 @@ function TorrentRoute() {
                         )}
                         {item.uploaded_bytes > 0 && (
                           <span className="text-[10px] text-muted windows95-font">
-                            ↑ {fmtBytes(item.uploaded_bytes)}
+                            ↑ {fmtSize(item.uploaded_bytes)}
                           </span>
                         )}
                         <span className="text-[10px] text-muted windows95-font">

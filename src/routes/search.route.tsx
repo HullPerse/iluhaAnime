@@ -15,6 +15,7 @@ import {
   Loader,
   ChevronLeft,
   ChevronRight,
+  UserPlus,
 } from "lucide-react";
 import { Input } from "@/components/ui/input.component";
 import { useTorrentStore } from "@/store/download.store";
@@ -205,8 +206,12 @@ function SearchRoute() {
           <option value="nekobt">nekoBT</option>
         </select>
         {source === "rutracker" && !rutrackerAuth && (
-          <Button variant="default" onClick={() => setShowLogin(true)}>
-            Войти
+          <Button
+            variant="default"
+            size="icon"
+            onClick={() => setShowLogin(true)}
+          >
+            <UserPlus />
           </Button>
         )}
 
@@ -217,7 +222,7 @@ function SearchRoute() {
         )}
 
         {((source === "nekobt" && nekobtAuth) ||
-          (source === "rutracker" && nekobtAuth)) && (
+          (source === "rutracker" && rutrackerAuth)) && (
           <Button
             size="icon"
             variant="default"

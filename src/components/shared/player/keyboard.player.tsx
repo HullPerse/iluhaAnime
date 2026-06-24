@@ -113,8 +113,10 @@ function Keyboard({
     };
 
     const handleWheel = (e: WheelEvent) => {
-      const tag = (e.target as HTMLElement).tagName;
+      const target = e.target as HTMLElement;
+      const tag = target.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      if (target.closest("[data-no-wheel]")) return;
 
       e.preventDefault();
       const v = volume?.volume ?? 0;

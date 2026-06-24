@@ -1,7 +1,14 @@
 import { Video, videoFeatures } from "@videojs/react/video";
 
 import { createPlayer } from "@videojs/react";
-import { ReactElement, useCallback, useEffect, useRef, useState } from "react";
+import {
+  ReactElement,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import type { VideoStreamInfo } from "@/types";
 import { savePosition } from "@/lib/storage.utils";
 
@@ -10,7 +17,9 @@ import Controls from "./player/controls.player";
 import Header from "./player/header.player";
 import Keyboard from "./player/keyboard.player";
 import EmptyPlayer from "./player/empty.player";
+import Modal from "./modal.component";
 import { cn } from "@/lib/index.utils";
+import Settings from "./player/settings.player";
 
 const { Provider, Container } = createPlayer({ features: videoFeatures });
 
@@ -61,6 +70,94 @@ function Player({
   const [audioOverrideSrc, setAudioOverrideSrc] = useState<string | null>(null);
   const hasSeeked = useRef(false);
   const effectiveSrc = audioOverrideSrc ?? src;
+
+  const D = {
+    rotation: 0,
+    flipH: false,
+    flipV: false,
+    zoom: 1,
+    aspectRatio: "contain" as const,
+    brightness: 100,
+    contrast: 100,
+    saturation: 100,
+    hue: 0,
+    blur: 0,
+    sepia: 0,
+    grayscale: 0,
+    subFontSize: 18,
+    subFontFamily: "Arial",
+    subColor: "#ffffff",
+    subBgOpacity: 0,
+    subBgColor: "#000000",
+  };
+  const [settings, setSettings] = useState(() => {
+    try {
+      return {
+        ...D,
+        ...JSON.parse(localStorage.getItem("playerSettings") || "{}"),
+      };
+    } catch {
+      return { ...D };
+    }
+  });
+  const patchSettings = useCallback(
+    (p: Partial<typeof D>) => setSettings((s: any) => ({ ...s, ...p })),
+    [],
+  );
+  const [showSettings, setShowSettings] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem("playerSettings", JSON.stringify(settings));
+  }, [settings]);
+
+  const videoStyle = useMemo(() => {
+    const t: string[] = [];
+    if (settings.rotation) t.push(`rotate(${settings.rotation}deg)`);
+    if (settings.flipH) t.push("scaleX(-1)");
+    if (settings.flipV) t.push("scaleY(-1)");
+    if (settings.zoom !== 1) t.push(`scale(${settings.zoom})`);
+    const f: string[] = [];
+    if (settings.brightness !== 100)
+      f.push(`brightness(${settings.brightness / 100})`);
+    if (settings.contrast !== 100)
+      f.push(`contrast(${settings.contrast / 100})`);
+    if (settings.saturation !== 100)
+      f.push(`saturate(${settings.saturation / 100})`);
+    if (settings.hue) f.push(`hue-rotate(${settings.hue}deg)`);
+    if (settings.blur) f.push(`blur(${settings.blur}px)`);
+    if (settings.sepia) f.push(`sepia(${settings.sepia / 100})`);
+    if (settings.grayscale) f.push(`grayscale(${settings.grayscale / 100})`);
+    return {
+      transform: t.length ? t.join(" ") : undefined,
+      filter: f.length ? f.join(" ") : undefined,
+      objectFit: settings.aspectRatio,
+    } as React.CSSProperties;
+  }, [settings]);
+
+  useEffect(() => {
+    let el = document.getElementById("sub-cue");
+    if (!el) {
+      el = document.createElement("style");
+      el.id = "sub-cue";
+      document.head.appendChild(el);
+    }
+    const a =
+      settings.subBgOpacity > 0
+        ? `background:${settings.subBgColor}${Math.round(
+            (settings.subBgOpacity / 100) * 255,
+          )
+            .toString(16)
+            .padStart(2, "0")};`
+        : "";
+    el.textContent = `video::cue{font-size:${settings.subFontSize}px;font-family:${settings.subFontFamily},sans-serif;color:${settings.subColor};${a}}`;
+  }, [
+    settings.subFontSize,
+    settings.subFontFamily,
+    settings.subColor,
+    settings.subBgOpacity,
+    settings.subBgColor,
+  ]);
+  useEffect(() => () => document.getElementById("sub-cue")?.remove(), []);
 
   useEffect(() => {
     if (videoEl && !hasSeeked.current) {
@@ -165,7 +262,8 @@ function Player({
                 <Video
                   ref={setVideoEl}
                   src={effectiveSrc}
-                  className="h-full w-full object-contain"
+                  className="h-full w-full"
+                  style={videoStyle}
                   controls={false}
                   preload="metadata"
                   onTimeUpdate={(e) => {
@@ -207,11 +305,25 @@ function Player({
                 onToggleAutoHide={onToggleAutoHide}
                 autoHideUi={autoHideUi}
                 cinemaMode={cinemaMode}
+                onToggleSettings={() => setShowSettings((p) => !p)}
               />
             </div>
           </div>
         )}
       </Container>
+
+      {showSettings && (
+        <Modal header="Настройки" onClose={() => setShowSettings(false)}>
+          <Settings
+            settings={settings}
+            onChange={patchSettings}
+            mediaPath={mediaPath}
+            subtitleStreams={
+              streams?.filter((s) => s.codec_type === "subtitle") ?? []
+            }
+          />
+        </Modal>
+      )}
     </Provider>
   );
 }

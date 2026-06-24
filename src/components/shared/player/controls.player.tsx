@@ -19,6 +19,7 @@ import {
   SkipForward,
   SquareX,
   Square,
+  Settings,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import type { VideoStreamInfo } from "@/types";
@@ -38,6 +39,7 @@ function Controls({
   onToggleAutoHide,
   cinemaMode,
   autoHideUi,
+  onToggleSettings,
 }: {
   chapters?: { start_time: number; end_time: number; title: string }[];
   mediaPath?: string;
@@ -51,6 +53,7 @@ function Controls({
   onToggleAutoHide?: () => void;
   cinemaMode?: boolean;
   autoHideUi?: boolean;
+  onToggleSettings?: () => void;
 }) {
   const [dragging, setDragging] = useState<boolean>(false);
   const [boundaryMsg, setBoundaryMsg] = useState<string | null>(null);
@@ -322,6 +325,12 @@ function Controls({
           onAudioSwitch={onAudioSwitch!}
         />
       )}
+
+      <section className="flex h-6 gap-1 px-1">
+        <Button size="icon" className="size-6" onClick={onToggleSettings} title="Настройки">
+          <Settings className="size-3.5" />
+        </Button>
+      </section>
 
       {/* Cinema mode */}
       {cinemaMode && onToggleAutoHide && (

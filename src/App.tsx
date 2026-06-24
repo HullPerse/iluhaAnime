@@ -112,7 +112,7 @@ function App() {
       >
         <div
           className={cn(
-            "flex flex-col h-full windows95-active-border bg-primary shadow-lg",
+            "flex flex-col h-full windows95-active-border bg-primary",
             cinemaMode && "border-0",
           )}
         >

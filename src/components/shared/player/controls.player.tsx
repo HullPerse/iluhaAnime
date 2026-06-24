@@ -17,6 +17,8 @@ import {
   VolumeX,
   SkipBack,
   SkipForward,
+  SquareX,
+  Square,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import type { VideoStreamInfo } from "@/types";
@@ -207,9 +209,9 @@ function Controls({
   }, [speedOpen]);
 
   return (
-    <main className="flex flex-row items-center gap-1 p-1 relative">
+    <main className="relative flex flex-row items-center gap-1 p-1">
       {boundaryMsg && (
-        <div className="absolute bottom-full right-0 mb-1 z-50 windows95-border bg-primary px-1 py-0.5 text-[10px] windows95-font whitespace-nowrap">
+        <div className="absolute bottom-full right-0 mb-1 z-50 windows95-border bg-primary px-1 py-0.5 windows95-text whitespace-nowrap">
           {boundaryMsg}
         </div>
       )}
@@ -278,16 +280,19 @@ function Controls({
       </section>
 
       {/* Speed */}
-      <section className="flex h-6 border-r-2 border-muted gap-0.5 px-1 items-center">
-        <div ref={speedRef} className="relative">
+      <section
+        ref={speedRef}
+        className="flex h-6 border-r-2 border-muted gap-0.5 px-1 items-center"
+      >
+        <div ref={speedRef} className="relative flex items-center w-full">
           <button
-            className="h-5 text-[10px] windows95-font bg-primary windows95-border px-1 min-w-10 cursor-pointer"
+            className="h-5 windows95-border bg-primary px-1 w-10 windows95-text cursor-pointer"
             onClick={() => setSpeedOpen(!speedOpen)}
           >
             {playbackRate}x
           </button>
           {speedOpen && (
-            <div className="absolute bottom-full left-0 mb-0.5 min-w-full windows95-border bg-primary z-50 shadow-lg">
+            <div className="absolute bottom-full left-0 mb-0.5 w-20 windows95-border bg-primary z-50">
               {SPEEDS.map((rate) => (
                 <Button
                   key={rate}
@@ -332,7 +337,7 @@ function Controls({
             }
           >
             <span className="text-[8px] font-bold">
-              {autoHideUi ? "A" : "M"}
+              {autoHideUi ? <SquareX /> : <Square />}
             </span>
           </Button>
         </section>

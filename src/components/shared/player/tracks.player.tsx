@@ -57,7 +57,7 @@ function TrackDropdown({
         </button>
       )}
       {open && (
-        <div className="absolute bottom-full left-0 mb-0.5 min-w-full windows95-border bg-primary z-50 shadow-lg">
+        <div className="absolute bottom-full left-0 mb-0.5 min-w-full windows95-border bg-primary z-50">
           {tracks.map((t) => (
             <button
               key={t.index}
@@ -284,7 +284,8 @@ function Tracks({
 
   useEffect(() => {
     if (initializedRef.current) return;
-    if (!videoEl || (subtitleStreams.length === 0 && audioStreams.length === 0)) return;
+    if (!videoEl || (subtitleStreams.length === 0 && audioStreams.length === 0))
+      return;
     initializedRef.current = true;
 
     loadDelay();
@@ -304,7 +305,14 @@ function Tracks({
     } else if (defaultSub >= 0) {
       loadSubtitle(defaultSub);
     }
-  }, [videoEl, subtitleStreams.length, audioStreams.length, mediaPath, handleAudio, defaultAudio]);
+  }, [
+    videoEl,
+    subtitleStreams.length,
+    audioStreams.length,
+    mediaPath,
+    handleAudio,
+    defaultAudio,
+  ]);
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -415,7 +423,7 @@ function Tracks({
   }, [handleSub]);
 
   return (
-    <section className="flex h-6 items-center gap-1 px-1 border-l-2 border-muted">
+    <section className="flex h-6 items-center gap-1 px-1">
       <AssOverlay
         src={assUrl ?? ""}
         videoEl={videoEl}

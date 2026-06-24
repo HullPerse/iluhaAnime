@@ -236,7 +236,7 @@ function SearchRoute() {
             }}
           />
           {showHistory && searchHistory.length > 0 && (
-            <div className="absolute top-full left-0 right-0 z-50 windows95-border bg-primary shadow-md max-h-32 overflow-y-auto px-1 pb-0.5">
+            <div className="absolute top-full left-0 right-0 z-50 windows95-border bg-primary max-h-32 overflow-y-auto px-1 pb-0.5">
               {searchHistory.map((item, i) => (
                 <div key={item} className="flex w-full  items-center">
                   <Button

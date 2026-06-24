@@ -1,5 +1,7 @@
 use serde::Serialize;
 use tauri::Manager;
+use futures::StreamExt;
+use tauri::Emitter;
 
 #[derive(Debug, Serialize)]
 pub struct VideoChapter {
@@ -19,6 +21,21 @@ pub struct VideoFileEntry {
     pub path: String,
     pub name: String,
     pub size: u64,
+}
+
+#[derive(Clone, Serialize)]
+struct DownloadProgress {
+    downloaded: u64,
+    total: u64,
+    stage: String,
+}
+
+#[derive(Clone, Serialize)]
+struct FolderScanProgress {
+    path: String,
+    current: usize,
+    total: usize,
+    stage: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -557,7 +574,34 @@ pub async fn download_ffmpeg(app_handle: tauri::AppHandle) -> Result<String, Str
         return Err(format!("HTTP {}", response.status()));
     }
 
-    let bytes = response.bytes().await.map_err(|e| format!("read: {e}"))?;
+    let total = response.content_length().unwrap_or(0);
+    let mut downloaded = 0u64;
+    let mut stream = response.bytes_stream();
+    let mut bytes: Vec<u8> = Vec::new();
+
+    while let Some(chunk) = stream.next().await {
+        let chunk = chunk.map_err(|e| format!("stream: {e}"))?;
+        downloaded += chunk.len() as u64;
+        bytes.extend_from_slice(&chunk);
+        let _ = app_handle.emit(
+            "ffmpeg-download-progress",
+            DownloadProgress {
+                downloaded,
+                total,
+                stage: "downloading".into(),
+            },
+        );
+    }
+
+    let _ = app_handle.emit(
+        "ffmpeg-download-progress",
+        DownloadProgress {
+            downloaded,
+            total,
+            stage: "extracting".into(),
+        },
+    );
+
     let cursor = std::io::Cursor::new(&bytes);
     let mut archive = zip::ZipArchive::new(cursor).map_err(|e| format!("zip: {e}"))?;
 
@@ -595,11 +639,66 @@ pub async fn download_ffmpeg(app_handle: tauri::AppHandle) -> Result<String, Str
         }
     }
 
+    let _ = app_handle.emit(
+        "ffmpeg-download-progress",
+        DownloadProgress {
+            downloaded,
+            total,
+            stage: "done".into(),
+        },
+    );
+
     Ok(dir.to_string_lossy().to_string())
 }
 
 #[tauri::command]
-pub async fn scan_video_folder(path: String) -> Result<Vec<VideoFileEntry>, String> {
+pub async fn remove_ffmpeg(app_handle: tauri::AppHandle) -> Result<(), String> {
+    let dir = ffmpeg_bin_dir(&app_handle);
+    let ffmpeg_path = dir.join(if cfg!(target_os = "windows") { "ffmpeg.exe" } else { "ffmpeg" });
+    let ffprobe_path = dir.join(if cfg!(target_os = "windows") { "ffprobe.exe" } else { "ffprobe" });
+
+    let mut removed_any = false;
+
+    if ffmpeg_path.exists() {
+        std::fs::remove_file(&ffmpeg_path).map_err(|e| format!("remove ffmpeg: {e}"))?;
+        removed_any = true;
+    }
+    if ffprobe_path.exists() {
+        std::fs::remove_file(&ffprobe_path).map_err(|e| format!("remove ffprobe: {e}"))?;
+        removed_any = true;
+    }
+
+    if !removed_any {
+        return Err("FFmpeg не найден".to_string());
+    }
+
+    Ok(())
+}
+
+fn count_video_files(root: &std::path::Path, exts: &[&str]) -> usize {
+    let mut count = 0;
+    let mut stack: Vec<std::path::PathBuf> = vec![root.to_path_buf()];
+
+    while let Some(dir) = stack.pop() {
+        if let Ok(entries) = std::fs::read_dir(&dir) {
+            for entry in entries.flatten() {
+                let p = entry.path();
+                if p.is_dir() {
+                    stack.push(p);
+                } else if let Some(e) = p.extension().and_then(|e| e.to_str()) {
+                    if exts.contains(&e.to_lowercase().as_str()) {
+                        count += 1;
+                    }
+                }
+            }
+        }
+    }
+
+    count
+}
+
+#[tauri::command]
+pub async fn scan_video_folder(app_handle: tauri::AppHandle, path: String) -> Result<Vec<VideoFileEntry>, String> {
     let video_exts = [
         "mp4", "mkv", "avi", "mov", "webm", "flv", "wmv", "m4v",
         "mpg", "mpeg", "ts", "m2ts", "ogv", "3gp",
@@ -609,8 +708,31 @@ pub async fn scan_video_folder(path: String) -> Result<Vec<VideoFileEntry>, Stri
         return Err("Not a directory".to_string());
     }
 
-    let mut files: Vec<VideoFileEntry> = Vec::new();
+    let _ = app_handle.emit(
+        "folder-scan-progress",
+        FolderScanProgress {
+            path: path.clone(),
+            current: 0,
+            total: 0,
+            stage: "counting".into(),
+        },
+    );
+
+    let total = count_video_files(root, &video_exts);
+
+    let _ = app_handle.emit(
+        "folder-scan-progress",
+        FolderScanProgress {
+            path: path.clone(),
+            current: 0,
+            total,
+            stage: "scanning".into(),
+        },
+    );
+
+    let mut files: Vec<VideoFileEntry> = Vec::with_capacity(total);
     let mut stack: Vec<std::path::PathBuf> = vec![root.to_path_buf()];
+    let mut current = 0usize;
 
     while let Some(dir) = stack.pop() {
         let entries = match std::fs::read_dir(&dir) {
@@ -645,8 +767,30 @@ pub async fn scan_video_folder(path: String) -> Result<Vec<VideoFileEntry>, Stri
                 name,
                 size,
             });
+            current += 1;
+            if current % 5 == 0 || current == total {
+                let _ = app_handle.emit(
+                    "folder-scan-progress",
+                    FolderScanProgress {
+                        path: path.clone(),
+                        current,
+                        total,
+                        stage: "scanning".into(),
+                    },
+                );
+            }
         }
     }
+
+    let _ = app_handle.emit(
+        "folder-scan-progress",
+        FolderScanProgress {
+            path: path.clone(),
+            current: total,
+            total,
+            stage: "done".into(),
+        },
+    );
 
     files.sort_by(|a, b| a.path.cmp(&b.path));
     Ok(files)

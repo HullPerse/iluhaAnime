@@ -36,3 +36,34 @@ export type ModalWindow = {
   onClose: () => void;
   children: ReactElement | string | any;
 };
+
+export interface VideoFileEntry {
+  readonly path: string;
+  readonly name: string;
+  readonly size: number;
+}
+
+export interface FolderNode {
+  name: string;
+  path: string;
+  files: VideoFileEntry[];
+  children: FolderNode[];
+}
+
+export type VideoType = {
+  path: string;
+  file: string;
+  initialTime?: number;
+} | null;
+
+export type ChapterType = {
+  start_time: number;
+  end_time: number;
+  title: string;
+};
+
+export type FFMPEGStatus = "checking" | "ok" | "missing" | "downloading";
+export type ScanType = {
+  current: number;
+  total: number;
+} | null;

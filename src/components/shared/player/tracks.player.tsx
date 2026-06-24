@@ -1,8 +1,8 @@
 import { invoke, convertFileSrc } from "@tauri-apps/api/core";
 import type { VideoStreamInfo } from "@/types";
 import { useState, useCallback, useRef, useEffect } from "react";
-import { parseVTT } from "@/lib/utils";
-import { saveTrackSelection, getTrackSelection } from "@/lib/storage";
+import { parseVTT } from "@/lib/index.utils";
+import { saveTrackSelection, getTrackSelection } from "@/lib/storage.utils";
 import { Check } from "lucide-react";
 import AssOverlay from "./subtitles.player";
 
@@ -117,6 +117,8 @@ function Tracks({
   const extCounter = useRef(-1000);
   const audioGenRef = useRef(0);
   const subGenRef = useRef(0);
+
+  const initializedRef = useRef(false);
 
   const [assUrl, setAssUrl] = useState<string | null>(null);
   const [assVisible, setAssVisible] = useState(false);
@@ -281,10 +283,17 @@ function Tracks({
   }, [mediaPath]);
 
   useEffect(() => {
+    if (initializedRef.current) return;
+    if (!videoEl || (subtitleStreams.length === 0 && audioStreams.length === 0)) return;
+    initializedRef.current = true;
+
     loadDelay();
     const savedA = getTrackSelection(mediaPath, "audio");
     const savedS = getTrackSelection(mediaPath, "sub");
-    if (savedA !== undefined) {
+    if (savedA !== undefined && savedA !== defaultAudio) {
+      setSelectedAudio(savedA);
+      handleAudio(savedA);
+    } else if (savedA !== undefined) {
       setSelectedAudio(savedA);
     }
     if (savedS !== undefined) {
@@ -295,7 +304,7 @@ function Tracks({
     } else if (defaultSub >= 0) {
       loadSubtitle(defaultSub);
     }
-  }, [videoEl]);
+  }, [videoEl, subtitleStreams.length, audioStreams.length, mediaPath, handleAudio, defaultAudio]);
 
   useEffect(() => {
     const handler = (e: Event) => {

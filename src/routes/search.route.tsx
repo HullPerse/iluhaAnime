@@ -2,13 +2,13 @@ import { invoke } from "@tauri-apps/api/core";
 import { useQuery } from "@tanstack/react-query";
 import type { Anime, LanguageTag, SettingsScraper } from "@/types";
 import { useEffect, useState, useMemo } from "react";
-import { detectLanguages, formatSize } from "@/lib/utils";
+import { detectLanguages, formatSize } from "@/lib/index.utils";
 import {
   saveSearchQuery,
   getSearchHistory,
   removeSearchItem,
-} from "@/lib/storage";
-import { languages, qualities, encodings } from "@/config/index.config";
+} from "@/lib/storage.utils";
+import { languages, qualities, encodings } from "@/config/scraper.config";
 import { Button } from "@/components/ui/button.component";
 import { SmallLoader } from "@/components/shared/loader.component";
 import {
@@ -445,12 +445,18 @@ function SearchRoute() {
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
-                    <h3 className="truncate text-[11px] font-bold leading-tight windows95-font">
+                    <h3
+                      className="truncate text-[11px] font-bold leading-tight windows95-font"
+                      title={item.title}
+                    >
                       {item.title}
                     </h3>
                     <div className="mt-1 flex flex-wrap gap-1">
                       {detectLanguages(item.title).map((l) => {
-                        const colors: Record<string, string> = {
+                        const colors: Record<
+                          SettingsScraper["language"] & "dual",
+                          string
+                        > = {
                           ru: "bg-secondary text-white",
                           en: "bg-secondary text-white",
                           multi: "bg-[#800080] text-white",
@@ -459,7 +465,7 @@ function SearchRoute() {
                         return (
                           <span
                             key={l.code}
-                            className={`px-1 text-[10px] windows95-font ${colors[l.code] || "bg-muted text-white"}`}
+                            className={`px-1 text-[10px] windows95-font ${colors[l.code as SettingsScraper["language"] & "dual"] || "bg-muted text-white"}`}
                           >
                             {l.label}
                           </span>

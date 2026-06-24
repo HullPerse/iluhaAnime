@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { saveSearchQuery, getSearchHistory } from "./storage";
+import { saveSearchQuery, getSearchHistory } from "../storage.utils";
 
 const store: Record<string, string> = {};
 

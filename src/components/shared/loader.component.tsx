@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/index.utils";
 import { Box } from "lucide-react";
 
 export function BigLoader() {

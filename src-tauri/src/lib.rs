@@ -257,6 +257,7 @@ pub fn run() {
             video::check_ffprobe,
             video::get_video_info,
             video::download_ffmpeg,
+            video::remove_ffmpeg,
             video::scan_video_folder,
             start_torrent_download,
             get_torrent_info,

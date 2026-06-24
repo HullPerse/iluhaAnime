@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { detectLanguages, formatSize, formatTime, parseVTT, cn } from "./utils";
+import {
+  detectLanguages,
+  formatSize,
+  formatTime,
+  parseVTT,
+  cn,
+} from "../index.utils";
 
 describe("detectLanguages", () => {
   it("detects Russian from RUS tag", () => {
@@ -62,7 +68,8 @@ describe("formatTime", () => {
 
 describe("parseVTT", () => {
   it("parses simple VTT content", () => {
-    const vtt = "WEBVTT\n\n00:00:01.000 --> 00:00:05.000\nHello\n\n00:00:06.000 --> 00:00:10.000\nWorld";
+    const vtt =
+      "WEBVTT\n\n00:00:01.000 --> 00:00:05.000\nHello\n\n00:00:06.000 --> 00:00:10.000\nWorld";
     const cues = parseVTT(vtt);
     expect(cues).toHaveLength(2);
     expect(cues[0].start).toBe(1);

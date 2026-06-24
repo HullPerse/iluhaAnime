@@ -22,7 +22,11 @@ function TorrentFilesSection({
   path?: string;
   onToggle?: (id: number, indices: number[]) => void;
   onPlay?: (filePath: string) => void;
-  onFilePriorityChange?: (id: number, fileIndices: number[], priority: FilePriority) => void;
+  onFilePriorityChange?: (
+    id: number,
+    fileIndices: number[],
+    priority: FilePriority,
+  ) => void;
 }) {
   const [selected, setSelected] = useState<Set<number>>(
     () =>
@@ -87,21 +91,27 @@ function TorrentFilesSection({
                   {fmtSize(fileItem.size)}
                 </span>
 
-                {onFilePriorityChange && type === "torrent" && !fileItem.completed && (
-                  <select
-                    className="h-4 text-[9px] windows95-border px-0.5 ml-1"
-                    value={fileItem.priority || "normal"}
-                    onChange={(e) => {
-                      onFilePriorityChange(id, [fileItem.index], e.target.value as FilePriority);
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <option value="high">High</option>
-                    <option value="normal">Normal</option>
-                    <option value="low">Low</option>
-                    <option value="do_not_download">Skip</option>
-                  </select>
-                )}
+                {onFilePriorityChange &&
+                  type === "torrent" &&
+                  !fileItem.completed && (
+                    <select
+                      className="h-4 text-[9px] windows95-border px-0.5 ml-1"
+                      value={fileItem.priority || "normal"}
+                      onChange={(e) => {
+                        onFilePriorityChange(
+                          id,
+                          [fileItem.index],
+                          e.target.value as FilePriority,
+                        );
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <option value="high">Высокий</option>
+                      <option value="normal">Нормальный</option>
+                      <option value="low">Маленький</option>
+                      <option value="do_not_download">Пропуск</option>
+                    </select>
+                  )}
 
                 {type === "player" && (
                   <div className="flex flex-row gap-1 ml-auto">
@@ -113,7 +123,6 @@ function TorrentFilesSection({
                         className="size-5"
                         rendered={type === "player"}
                         onClick={async () => {
-                          console.log(path);
                           if (!path) return;
 
                           openPath(`${path}/${fileItem.name}`);

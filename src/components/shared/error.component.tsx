@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/index.utils";
 
 export function BigError({ error, icon }: { error: Error; icon: ReactNode }) {
   return (

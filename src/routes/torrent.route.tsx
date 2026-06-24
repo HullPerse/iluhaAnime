@@ -15,8 +15,6 @@ import {
   ArrowDown,
   ArrowUp,
   Plus,
-  List,
-  DownloadCloud,
   Check,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
@@ -295,7 +293,7 @@ function TorrentRoute() {
                   ) : (
                     <ChevronRight className="size-3" />
                   )}
-                  Файлы ({files.length})
+                  {`Файлы (${files.filter((f) => f.completed).length} / ${files.length})`}
                 </button>
                 {isExpanded && (
                   <TorrentFilesSection

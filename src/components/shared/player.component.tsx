@@ -3,14 +3,14 @@ import { Video, videoFeatures } from "@videojs/react/video";
 import { createPlayer } from "@videojs/react";
 import { ReactElement, useCallback, useEffect, useRef, useState } from "react";
 import type { VideoStreamInfo } from "@/types";
-import { savePosition } from "@/lib/storage";
+import { savePosition } from "@/lib/storage.utils";
 
 import Timeline from "./player/timeline.player";
 import Controls from "./player/controls.player";
 import Header from "./player/header.player";
 import Keyboard from "./player/keyboard.player";
 import EmptyPlayer from "./player/empty.player";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/index.utils";
 
 const { Provider, Container } = createPlayer({ features: videoFeatures });
 

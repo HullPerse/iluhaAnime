@@ -1,10 +1,18 @@
-import { useState, useEffect, ReactElement, lazy, Suspense, useCallback } from "react";
+import {
+  useState,
+  useEffect,
+  ReactElement,
+  lazy,
+  Suspense,
+  useCallback,
+} from "react";
 import backgroundImage from "@/assets/background.jpg";
 import { useTorrentStore } from "@/store/download.store";
 import TorrentFilePicker from "@/routes/components/picker.search";
 import { WindowLoader } from "./components/shared/loader.component";
 import { Button } from "./components/ui/button.component";
-import { cn } from "./lib/utils";
+import { cn } from "./lib/index.utils";
+import { getAction } from "@/config/keybinds.config";
 
 const SearchRoute = lazy(() => import("@/routes/search.route"));
 const TorrentRoute = lazy(() => import("@/routes/torrent.route"));
@@ -43,7 +51,8 @@ function App() {
   useEffect(() => {
     if (!cinemaMode) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.code === "Escape") {
+      const action = getAction(e.code, e.ctrlKey, e.shiftKey);
+      if (action?.action === "exitCinemaMode") {
         setCinemaMode(false);
         setAutoHideUi(false);
       }
@@ -56,7 +65,14 @@ function App() {
     const tabMap = {
       search: <SearchRoute />,
       torrent: <TorrentRoute />,
-      player: <PlayerRoute cinemaMode={cinemaMode} autoHideUi={autoHideUi} onToggleCinema={toggleCinemaMode} onToggleAutoHide={toggleAutoHide} />,
+      player: (
+        <PlayerRoute
+          cinemaMode={cinemaMode}
+          autoHideUi={autoHideUi}
+          onToggleCinema={toggleCinemaMode}
+          onToggleAutoHide={toggleAutoHide}
+        />
+      ),
     } as Record<Tab, ReactElement>;
 
     return tabMap[activeTab];
@@ -88,8 +104,18 @@ function App() {
       )}
 
       {/* WINDOW FRAME */}
-      <div className={cn("relative z-10 h-full flex flex-col p-1", cinemaMode && "p-0")}>
-        <div className={cn("flex flex-col h-full windows95-active-border bg-primary shadow-lg", cinemaMode && "border-0")}>
+      <div
+        className={cn(
+          "relative z-10 h-full flex flex-col p-1",
+          cinemaMode && "p-0",
+        )}
+      >
+        <div
+          className={cn(
+            "flex flex-col h-full windows95-active-border bg-primary shadow-lg",
+            cinemaMode && "border-0",
+          )}
+        >
           {/* TITLE BAR + TAB BAR — hidden in cinema mode */}
           {!cinemaMode && (
             <>
@@ -122,7 +148,14 @@ function App() {
           )}
 
           {/* CONTENT PANEL */}
-          <div className={cn("flex-1 overflow-hidden", cinemaMode ? "m-0 border-0" : "border-2 border-solid border-t-muted border-l-muted border-b-white border-r-white bg-primary mx-1 mb-1 p-1")}>
+          <div
+            className={cn(
+              "flex-1 overflow-hidden",
+              cinemaMode
+                ? "m-0 border-0"
+                : "border-2 border-solid border-t-muted border-l-muted border-b-white border-r-white bg-primary mx-1 mb-1 p-1",
+            )}
+          >
             <Suspense fallback={<WindowLoader />}>{getComponent()}</Suspense>
           </div>
         </div>

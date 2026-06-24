@@ -1,179 +1,35 @@
-import { useTorrentStore } from "@/store/download.store";
+import Player from "@/components/shared/player.component";
+import { Button } from "@/components/ui/button.component";
+import { getPosition } from "@/lib/storage.utils";
 import {
+  ChapterType,
+  FFMPEGStatus,
+  ScanType,
+  VideoFileEntry,
+  VideoStreamInfo,
+  type FolderNode,
+  type VideoType,
+} from "@/types";
+import {
+  Keyboard,
+  FolderOpen,
+  File,
+  X,
+  Search,
   ChevronDown,
   ChevronRight,
-  FolderOpen,
-  FileVideo,
-  Play,
-  X,
-  Download,
-  Search,
-  Keyboard,
-  ListVideo,
 } from "lucide-react";
-import { useEffect, useState, useCallback } from "react";
-import { Button } from "@/components/ui/button.component";
-import TorrentFilesSection from "./components/file.torrent";
-import Player from "@/components/shared/player.component";
-import { convertFileSrc, invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
+import { CHEATSHEET_ROWS } from "@/config/keybinds.config";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
-import type { VideoStreamInfo } from "@/types";
-import { getPosition } from "@/lib/storage";
-import { fmtSize } from "@/lib/torrent.utils";
-
-interface VideoFileEntry {
-  readonly path: string;
-  readonly name: string;
-  readonly size: number;
-}
-
-interface FolderNode {
-  name: string;
-  path: string;
-  files: VideoFileEntry[];
-  children: FolderNode[];
-}
-
-function countFiles(node: FolderNode): number {
-  let n = node.files.length;
-  for (const c of node.children) n += countFiles(c);
-  return n;
-}
-
-function FolderNodeView({
-  node,
-  depth,
-  onPlay,
-  searchQuery,
-}: {
-  node: FolderNode;
-  depth: number;
-  onPlay: (path: string) => void;
-  searchQuery: string;
-}) {
-  const [expanded, setExpanded] = useState(false);
-  const hasChildren = node.children.length > 0 || node.files.length > 0;
-
-  const filteredFiles = searchQuery
-    ? node.files.filter((f) =>
-        f.name.toLowerCase().includes(searchQuery.toLowerCase()),
-      )
-    : node.files;
-
-  const hasFilteredChildren = searchQuery
-    ? node.children.some((c) => nodeMatchesSearch(c, searchQuery))
-    : node.children.length > 0;
-
-  if (!hasChildren) return null;
-  if (searchQuery && filteredFiles.length === 0 && !hasFilteredChildren)
-    return null;
-
-  const isExpanded = expanded;
-
-  return (
-    <div>
-      <button
-        className="flex items-center gap-1 text-[10px] windows95-font cursor-pointer hover:bg-surface px-0.5 py-0.5 w-full text-left"
-        onClick={() => setExpanded(!expanded)}
-        style={{ paddingLeft: `${depth * 12 + 2}px` }}
-      >
-        {isExpanded ? (
-          <ChevronDown className="size-3 shrink-0" />
-        ) : (
-          <ChevronRight className="size-3 shrink-0" />
-        )}
-        <FolderOpen className="size-3 shrink-0 text-yellow-400" />
-        <span className="truncate">{node.name}</span>
-        {!searchQuery && (
-          <span className="text-white/40 ml-auto whitespace-nowrap">
-            {countFiles(node)}
-          </span>
-        )}
-      </button>
-      {isExpanded && (
-        <div>
-          {filteredFiles.map((f) => (
-            <div
-              key={f.path}
-              className="flex items-center gap-1 px-1 py-0.5 hover:bg-surface group"
-              style={{ paddingLeft: `${(depth + 1) * 12 + 2}px` }}
-            >
-              <FileVideo className="size-3 shrink-0 text-white/60" />
-              <span
-                className="text-[10px] windows95-font truncate flex-1"
-                title={f.name}
-              >
-                {f.name}
-              </span>
-              <span className="text-[10px] windows95-font text-white/40 mr-1">
-                {fmtSize(f.size)}
-              </span>
-              <button
-                className="size-4 flex items-center justify-center bg-primary windows95-border hover:bg-secondary cursor-pointer"
-                onClick={() => onPlay(f.path)}
-                title="Play"
-              >
-                <Play className="size-2.5" />
-              </button>
-            </div>
-          ))}
-          {node.children.map((child) => (
-            <FolderNodeView
-              key={child.name}
-              node={child}
-              depth={depth + 1}
-              onPlay={onPlay}
-              searchQuery={searchQuery}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function nodeMatchesSearch(node: FolderNode, query: string): boolean {
-  const q = query.toLowerCase();
-  if (node.name.toLowerCase().includes(q)) return true;
-  if (node.files.some((f) => f.name.toLowerCase().includes(q))) return true;
-  return node.children.some((c) => nodeMatchesSearch(c, q));
-}
-
-function buildTree(entries: VideoFileEntry[], rootPath: string): FolderNode {
-  const root: FolderNode = {
-    name: rootPath.split(/[/\\]/).pop() ?? "Folder",
-    path: rootPath,
-    files: [],
-    children: [],
-  };
-
-  for (const f of entries) {
-    const rel = f.path
-      .replace(f.name, "")
-      .replace(rootPath, "")
-      .replace(/^[/\\]+/, "")
-      .replace(/[/\\]$/, "");
-    const parts = rel ? rel.split(/[/\\]/) : [];
-    let node = root;
-    for (const part of parts) {
-      let child = node.children.find((c) => c.name === part);
-      if (!child) {
-        child = { name: part, path: "", files: [], children: [] };
-        node.children.push(child);
-      }
-      node = child;
-    }
-    node.files.push(f);
-  }
-
-  const sortNode = (n: FolderNode) => {
-    n.children.sort((a, b) => a.name.localeCompare(b.name));
-    n.files.sort((a, b) => a.name.localeCompare(b.name));
-    for (const c of n.children) sortNode(c);
-  };
-  sortNode(root);
-  return root;
-}
+import { convertFileSrc, invoke } from "@tauri-apps/api/core";
+import { buildTree } from "@/lib/player.utils";
+import FFMPEG from "./components/ffmpeg.player";
+import { getAction } from "@/config/keybinds.config";
+import FolderView from "./components/folder.player";
+import { useTorrentStore } from "@/store/download.store";
+import TorrentFilesSection from "./components/file.torrent";
 
 function PlayerRoute({
   cinemaMode,
@@ -186,124 +42,25 @@ function PlayerRoute({
   onToggleCinema?: () => void;
   onToggleAutoHide?: () => void;
 }) {
-  const { torrents, torrentFilesMap, loadTorrentFiles } = useTorrentStore(
-    (state) => state,
-  );
+  const torrents = useTorrentStore((state) => state.torrents);
+  const torrentFilesMap = useTorrentStore((state) => state.torrentFilesMap);
+  const loadTorrentFiles = useTorrentStore((state) => state.loadTorrentFiles);
 
-  const [expanded, setExpanded] = useState<Set<number>>(new Set());
-
-  const [video, setVideo] = useState<{
-    path: string;
-    file: string;
-    initialTime?: number;
-  } | null>(null);
-
-  const [chapters, setChapters] = useState<
-    { start_time: number; end_time: number; title: string }[]
-  >([]);
-
+  const [video, setVideo] = useState<VideoType>(null);
+  const [chapters, setChapters] = useState<ChapterType[]>([]);
   const [streams, setStreams] = useState<VideoStreamInfo[]>([]);
-
   const [folderTrees, setFolderTrees] = useState<FolderNode[]>([]);
-
-  const [ffmpegStatus, setFfmpegStatus] = useState<
-    "checking" | "ok" | "missing" | "downloading"
-  >("checking");
-
-  const [folderSearch, setFolderSearch] = useState("");
-  const [showCheatsheet, setShowCheatsheet] = useState(false);
-  const [showPlaylist, setShowPlaylist] = useState(false);
-  const [loadingFolders, setLoadingFolders] = useState(false);
-
-  // Build flat file list from all folder trees for prev/next
-  function getAllFiles(): VideoFileEntry[] {
-    const result: VideoFileEntry[] = [];
-    for (const t of folderTrees) {
-      const stack = [t];
-      while (stack.length > 0) {
-        const n = stack.pop()!;
-        result.push(...n.files);
-        stack.push(...n.children);
-      }
-    }
-    return result;
-  }
-  const allFiles = getAllFiles();
-  const currentFileIndex = video
-    ? allFiles.findIndex((f) => f.path === video.path)
-    : -1;
-
-  const hasNext =
-    currentFileIndex >= 0 && currentFileIndex < allFiles.length - 1;
-  const hasPrev = currentFileIndex > 0;
-
-  const playFile = useCallback((filePath: string) => {
-    const saved = getPosition(filePath);
-    setVideo({
-      path: filePath,
-      file: filePath.split(/[/\\]/).pop() ?? "Video",
-      initialTime: saved,
-    });
-    setShowPlaylist(false);
-  }, []);
-
-  const handleFileNext = useCallback(() => {
-    if (hasNext && allFiles[currentFileIndex + 1]) {
-      playFile(allFiles[currentFileIndex + 1].path);
-    }
-  }, [hasNext, allFiles, currentFileIndex, playFile]);
-
-  const handleFilePrev = useCallback(() => {
-    if (hasPrev && allFiles[currentFileIndex - 1]) {
-      playFile(allFiles[currentFileIndex - 1].path);
-    }
-  }, [hasPrev, allFiles, currentFileIndex, playFile]);
+  const [search, setSearch] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
+  const [scanProgress, setScanProgress] = useState<ScanType>(null);
+  const [showKeybinds, setShowKeybinds] = useState<boolean>(false);
+  const [ffmpegStatus, setFfmpegStatus] = useState<FFMPEGStatus>("checking");
+  const [expanded, setExpanded] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     invoke<boolean>("check_ffprobe")
       .then((ok) => setFfmpegStatus(ok ? "ok" : "missing"))
       .catch(() => setFfmpegStatus("missing"));
-  }, []);
-
-  const handleDownloadFfmpeg = useCallback(async () => {
-    setFfmpegStatus("downloading");
-    try {
-      await invoke<string>("download_ffmpeg");
-      setFfmpegStatus("ok");
-      if (video) {
-        invoke<{
-          chapters: { start_time: number; end_time: number; title: string }[];
-          streams: VideoStreamInfo[];
-        }>("get_video_info", { path: video.path })
-          .then((info) => {
-            setChapters(info.chapters);
-            setStreams(info.streams);
-          })
-          .catch(() => {});
-      }
-    } catch {
-      setFfmpegStatus("missing");
-    }
-  }, [video]);
-
-  // restore folders from last session
-  useEffect(() => {
-    const saved = localStorage.getItem("folderPaths");
-    if (!saved) return;
-    setLoadingFolders(true);
-    const paths = JSON.parse(saved) as string[];
-    Promise.all(
-      paths.map((p) =>
-        invoke<VideoFileEntry[]>("scan_video_folder", { path: p })
-          .then((entries) =>
-            entries.length > 0 ? buildTree(entries, p) : null,
-          )
-          .catch(() => null),
-      ),
-    ).then((trees) => {
-      setFolderTrees(trees.filter(Boolean) as FolderNode[]);
-      setLoadingFolders(false);
-    });
   }, []);
 
   useEffect(() => {
@@ -314,24 +71,89 @@ function PlayerRoute({
     }
 
     invoke<{
-      chapters: { start_time: number; end_time: number; title: string }[];
+      chapters: ChapterType[];
       streams: VideoStreamInfo[];
     }>("get_video_info", { path: video.path })
       .then((info) => {
         setChapters(info.chapters);
         setStreams(info.streams);
-        return invoke<VideoStreamInfo[]>("scan_external_tracks", {
-          path: video.path,
-        });
-      })
-      .then((matches) => {
-        setStreams((prev) => [...prev, ...matches]);
       })
       .catch(() => {
         setChapters([]);
         setStreams([]);
       });
   }, [video]);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const action = getAction(e.code, e.ctrlKey, e.shiftKey);
+
+      if (!action) {
+        if (e.code === "Escape") {
+          setShowKeybinds(false);
+        }
+        return;
+      }
+
+      e.preventDefault();
+
+      switch (action.action) {
+        case "toggleCheatsheet":
+          setShowKeybinds((p) => !p);
+          break;
+      }
+    };
+
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+
+  const playFile = useCallback((path: string) => {
+    const saved = getPosition(path);
+    setVideo({
+      path,
+      file: path.split(/[/\\]/).pop() ?? "Video",
+      initialTime: saved ?? 0,
+    });
+  }, []);
+
+  const persistFolders = useCallback((trees: FolderNode[]) => {
+    localStorage.setItem(
+      "folderPaths",
+      JSON.stringify(trees.map((t) => t.path)),
+    );
+  }, []);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("folderPaths");
+    if (!saved) return;
+
+    const paths = JSON.parse(saved) as string[];
+    if (paths.length === 0) return;
+
+    setLoading(true);
+    setScanProgress({ current: 0, total: 0 });
+
+    (async () => {
+      const trees: FolderNode[] = [];
+
+      for (let i = 0; i < paths.length; i++) {
+        setScanProgress({ current: i, total: paths.length });
+
+        try {
+          const entries = await invoke<VideoFileEntry[]>("scan_video_folder", {
+            path: paths[i],
+          });
+          if (entries?.length) trees.push(buildTree(entries, paths[i]));
+        } catch {}
+      }
+
+      setFolderTrees(trees);
+      persistFolders(trees);
+      setLoading(false);
+      setScanProgress(null);
+    })();
+  }, [buildTree, persistFolders]);
 
   useEffect(() => {
     torrents.forEach((t) => {
@@ -341,97 +163,125 @@ function PlayerRoute({
     });
   }, [torrents, torrentFilesMap, loadTorrentFiles]);
 
-  // Keyboard cheatsheet toggle
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.code === "Slash" && e.shiftKey) {
-        e.preventDefault();
-        setShowCheatsheet((p) => !p);
-      }
-      if (e.code === "Escape") {
-        setShowCheatsheet(false);
-        setShowPlaylist(false);
-      }
-      if (e.code === "KeyP" && e.ctrlKey) {
-        e.preventDefault();
-        setShowPlaylist((p) => !p);
-      }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, []);
+  const getAllFiles = (): VideoFileEntry[] => {
+    const result: VideoFileEntry[] = [];
 
-  const toggleExpanded = (id: number) => {
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
+    for (const tree of folderTrees) {
+      const stack = [tree];
+
+      while (stack.length > 0) {
+        const item = stack.pop();
+
+        if (!item) return [];
+
+        result.push(...item?.files);
+        stack.push(...item?.children);
+      }
+    }
+    return result;
+  };
+
+  const allFiles: VideoFileEntry[] = getAllFiles();
+
+  const currentIndex: number = useMemo(() => {
+    if (!video) return -1;
+    else return allFiles.findIndex((f) => f.path === video.path);
+  }, [allFiles, video]);
+
+  const hasNext: boolean =
+    currentIndex >= 0 && currentIndex < allFiles.length - 1;
+  const hasPrev: boolean = currentIndex > 0;
+
+  const handleFile = useCallback(
+    () => ({
+      next: () => {
+        if (hasNext && allFiles[currentIndex + 1])
+          playFile(allFiles[currentIndex + 1].path);
+      },
+      prev: () => {
+        if (hasPrev && allFiles[currentIndex - 1])
+          playFile(allFiles[currentIndex - 1].path);
+      },
+    }),
+    [hasPrev, hasNext, allFiles, currentIndex, playFile],
+  );
+
+  const handleOpenFile = useCallback(async () => {
+    const file = await open({
+      multiple: false,
+      filters: [
+        {
+          name: "Видео",
+          extensions: [
+            "mp4",
+            "mkv",
+            "avi",
+            "mov",
+            "webm",
+            "flv",
+            "wmv",
+            "m4v",
+            "mpg",
+            "mpeg",
+            "ts",
+            "m2ts",
+            "ogv",
+            "3gp",
+          ],
+        },
+        { name: "Все файлы", extensions: ["*"] },
+      ],
     });
-  };
 
-  const persistFolders = useCallback((trees: FolderNode[]) => {
-    localStorage.setItem(
-      "folderPaths",
-      JSON.stringify(trees.map((t) => t.path)),
-    );
+    if (file) playFile(file);
   }, []);
 
-  const handleOpenFile = async () => {
-    try {
-      const file = await open({
-        multiple: false,
-        filters: [
-          {
-            name: "Video",
-            extensions: [
-              "mp4",
-              "mkv",
-              "avi",
-              "mov",
-              "webm",
-              "flv",
-              "wmv",
-              "m4v",
-              "mpg",
-              "mpeg",
-              "ts",
-              "m2ts",
-              "ogv",
-              "3gp",
-            ],
-          },
-          { name: "All Files", extensions: ["*"] },
-        ],
-      });
-      if (file) playFile(file);
-    } catch {}
-  };
+  const handleOpenFolder = useCallback(async () => {
+    const folder = await open({
+      multiple: false,
+      directory: true,
+    });
 
-  const handleOpenFolder = async () => {
-    try {
-      const folder = await open({
-        multiple: false,
-        directory: true,
+    if (!folder) return;
+    if (folderTrees.some((f) => f.path === folder)) return;
+
+    setLoading(true);
+    setScanProgress({ current: 0, total: 0 });
+
+    const unlistenPromise = listen<{
+      path: string;
+      current: number;
+      total: number;
+    }>("folder-scan-progress", (e) => {
+      if (e.payload.path !== folder) return;
+      setScanProgress({
+        current: e.payload.current,
+        total: e.payload.total,
       });
-      if (!folder) return;
-      if (folderTrees.some((t) => t.path === folder)) return;
-      setLoadingFolders(true);
+    });
+
+    try {
       const entries = await invoke<VideoFileEntry[]>("scan_video_folder", {
         path: folder,
       });
-      setLoadingFolders(false);
-      if (entries.length === 0) return;
+
+      if (!entries || entries.length === 0) return;
+
       const tree = buildTree(entries, folder);
       const next = [...folderTrees, tree];
       setFolderTrees(next);
       persistFolders(next);
     } catch {
-      setLoadingFolders(false);
+      // scan failed — do nothing
+    } finally {
+      const unlisten = await unlistenPromise;
+      unlisten();
+      setLoading(false);
+      setScanProgress(null);
     }
-  };
+  }, [folderTrees, persistFolders, buildTree]);
 
-  const removeFolder = useCallback(
+  const handleRemoveFolder = useCallback(
     (path: string) => {
       setFolderTrees((prev) => {
         const next = prev.filter((t) => t.path !== path);
@@ -442,19 +292,28 @@ function PlayerRoute({
     [persistFolders],
   );
 
-  return (
-    <main className="flex flex-col gap-1 h-full w-full overflow-y-auto">
-      {video ? (
+  const toggleExpanded = (id: number) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  if (video)
+    return (
+      <main className="flex flex-col w-full h-full gap-1 overflow-y-auto">
         <Player
-          header={video.file}
+          header={video.file.replace(/\.[^/.]+$/, "")}
           src={convertFileSrc(video.path)}
           onClose={() => setVideo(null)}
           chapters={chapters}
           mediaPath={video.path}
           streams={streams}
           initialTime={video.initialTime}
-          onFileNext={handleFileNext}
-          onFilePrev={handleFilePrev}
+          onFileNext={handleFile().next}
+          onFilePrev={handleFile().prev}
           hasNext={hasNext}
           hasPrev={hasPrev}
           cinemaMode={cinemaMode}
@@ -462,251 +321,176 @@ function PlayerRoute({
           onToggleCinema={onToggleCinema}
           onToggleAutoHide={onToggleAutoHide}
         />
-      ) : (
-        <>
-          <section className="windows95-active-border bg-primary p-1 flex gap-1">
-            <button
-              className="flex items-center gap-1 text-[11px] windows95-font cursor-pointer hover:bg-surface px-1 py-0.5"
-              onClick={handleOpenFile}
-            >
-              <FolderOpen className="size-4" />
-              Открыть файл
-            </button>
-            <button
-              className="flex items-center gap-1 text-[11px] windows95-font cursor-pointer hover:bg-surface px-1 py-0.5"
-              onClick={handleOpenFolder}
-            >
-              <FolderOpen className="size-4" />
-              Открыть папку
-            </button>
-            <div className="ml-auto flex gap-1">
-              <button
-                className="flex items-center gap-1 text-[11px] windows95-font cursor-pointer hover:bg-surface px-1 py-0.5"
-                onClick={() => setShowCheatsheet((p) => !p)}
-                title="Shortcuts (?)"
+      </main>
+    );
+
+  return (
+    <main className="flex flex-col w-full h-full gap-1 overflow-y-auto">
+      {/* FILE CONTROLS */}
+      <section className="flex flex-row w-full h-8 windows95-active-border bg-primary gap-1 p-1 items-center">
+        <Button onClick={handleOpenFile}>
+          <File /> Открыть файл
+        </Button>
+        <Button onClick={handleOpenFolder}>
+          <FolderOpen />
+          Открыть папку
+        </Button>
+        <Button
+          size="icon"
+          className="ml-auto h-6 w-6"
+          title="Горячие клавиши"
+          onClick={() => setShowKeybinds((prev) => !prev)}
+        >
+          <Keyboard />
+        </Button>
+      </section>
+
+      {/* FFMPEG STATUS */}
+      <section className="flex flex-row w-full h-8 windows95-active-border bg-primary gap-1 p-1 items-center">
+        <FFMPEG
+          status={ffmpegStatus}
+          setStatus={setFfmpegStatus}
+          video={video}
+          setChapters={setChapters}
+          setStreams={setStreams}
+        />
+      </section>
+
+      {/* KEYBINDS */}
+      {showKeybinds && (
+        <section className="relative windows95-active-border bg-primary p-1 min-h-10">
+          <Button
+            size="icon"
+            className="absolute top-1 right-1 flex items-center justify-center size-6"
+            onClick={() => setShowKeybinds(false)}
+          >
+            <X />
+          </Button>
+          <span className="windows95-text block mb-1">Горячие клавиши</span>
+
+          <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-[10px] windows95-font">
+            {CHEATSHEET_ROWS.flatMap((row) => [
+              <span key={`${row.keys}-key`}>{row.keys}</span>,
+              <span key={`${row.keys}-desc`}>{row.description}</span>,
+            ])}
+          </div>
+        </section>
+      )}
+      {/* SAVED FOLDERS */}
+      {!loading && folderTrees.length > 0 && (
+        <section className="windows95-active-border bg-primary p-1">
+          <div className="flex items-center gap-1">
+            <Search className="size-4 text-muted" />
+            <input
+              className="flex-1 h-5 windows95-text windows95-border px-1"
+              placeholder="Поиск в папках..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            {search && (
+              <Button
+                size="icon"
+                className="h-5 w-5"
+                onClick={() => setSearch("")}
               >
-                <Keyboard className="size-4" />
-              </button>
-            </div>
-          </section>
-
-          {ffmpegStatus === "downloading" && (
-            <section className="windows95-active-border bg-primary px-1 py-0.5 flex items-center gap-1">
-              <span className="text-[10px] windows95-font">
-                Загрузка FFmpeg...
-              </span>
-            </section>
-          )}
-          {ffmpegStatus === "missing" && (
-            <section className="windows95-active-border bg-primary px-1 py-0.5 flex items-center gap-1">
-              <span className="text-destructive text-[10px] windows95-font flex-1">
-                FFmpeg не найден
-              </span>
-              <button
-                className="flex items-center gap-1 bg-primary windows95-border px-1 py-0.5 text-[10px] windows95-font cursor-pointer hover:bg-secondary"
-                onClick={handleDownloadFfmpeg}
-              >
-                <Download className="size-3" />
-                Скачать (~50MB)
-              </button>
-            </section>
-          )}
-
-          {showCheatsheet && (
-            <section className="windows95-active-border bg-primary p-2 relative">
-              <button
-                className="absolute top-1 right-1 size-4 flex items-center justify-center bg-primary windows95-border cursor-pointer hover:bg-secondary"
-                onClick={() => setShowCheatsheet(false)}
-              >
-                <X className="size-3" />
-              </button>
-              <span className="text-[11px] windows95-font font-bold block mb-1">
-                Горячие клавиши
-              </span>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-[10px] windows95-font">
-                <span>Space</span>
-                <span>Play / Пауза</span>
-                <span>← / →</span>
-                <span>Назад / Вперёд 5с</span>
-                <span>↑ / ↓</span>
-                <span>Громкость</span>
-                <span>, / .</span>
-                <span>Кадр назад / вперёд</span>
-                <span>F1 / F2</span>
-                <span>Субтитры -500/+500ms</span>
-                <span>Ctrl+F1/F2</span>
-                <span>Субтитры -50/+50ms</span>
-                <span>PageUp / PageDown</span>
-                <span>Пред. / След. файл</span>
-                <span>Ctrl+H</span>
-                <span>Авто-скрытие</span>
-                <span>Ctrl+P</span>
-                <span>Плейлист</span>
-                <span>?</span>
-                <span>Это окно</span>
-              </div>
-            </section>
-          )}
-
-          <div className="flex flex-col md:flex-row gap-1">
-            <div className="flex-1 flex flex-col gap-1">
-              <span className="text-[11px] font-bold windows95-font">
-                Папки
-              </span>
-
-              {loadingFolders && (
-                <section className="windows95-active-border bg-primary px-1 py-0.5 flex items-center gap-1">
-                  <span className="size-3 border-2 border-t-secondary border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin" />
-                  <span className="text-[10px] windows95-font">
-                    Загрузка папок...
-                  </span>
-                </section>
-              )}
-
-              {/* Folder search */}
-              {folderTrees.length > 0 && (
-                <section className="windows95-active-border bg-primary p-1">
-                  <div className="flex items-center gap-1">
-                    <Search className="size-3 shrink-0 text-white/60" />
-                    <input
-                      className="flex-1 h-5 text-[10px] windows95-font bg-white windows95-border px-1 outline-none"
-                      placeholder="Поиск в папках..."
-                      value={folderSearch}
-                      onChange={(e) => setFolderSearch(e.target.value)}
-                    />
-                    {folderSearch && (
-                      <button
-                        className="size-4 flex items-center justify-center bg-primary windows95-border cursor-pointer hover:bg-secondary"
-                        onClick={() => setFolderSearch("")}
-                      >
-                        <X className="size-2.5" />
-                      </button>
-                    )}
-                  </div>
-                </section>
-              )}
-
-              {folderTrees.map((tree) => (
-                <div
-                  key={tree.path}
-                  className="flex flex-col windows95-active-border bg-primary gap-1"
-                >
-                  <section className="bg-secondary pb-1 px-1 flex items-center gap-1">
-                    <FolderOpen className="size-3 shrink-0 text-yellow-400" />
-                    <span className="text-white text-[11px] font-bold windows95-font truncate flex-1">
-                      {tree.name}
-                    </span>
-                    <span className="text-white/60 text-[10px] windows95-font whitespace-nowrap">
-                      {countFiles(tree)}
-                    </span>
-                    <Button
-                      size="icon"
-                      className="size-4"
-                      onClick={() => removeFolder(tree.path)}
-                    >
-                      <X className="size-3" />
-                    </Button>
-                  </section>
-                  <section className="p-1">
-                    <FolderNodeView
-                      node={tree}
-                      depth={0}
-                      onPlay={playFile}
-                      searchQuery={folderSearch}
-                    />
-                  </section>
-                </div>
-              ))}
-            </div>
-
-            {/* Playlist panel */}
-            {showPlaylist && allFiles.length > 0 && (
-              <div className="w-48 shrink-0 windows95-active-border bg-primary flex flex-col h-fit max-h-64">
-                <section className="bg-secondary pb-1 px-1 flex items-center gap-1">
-                  <ListVideo className="size-3 shrink-0" />
-                  <span className="text-white text-[11px] font-bold windows95-font truncate flex-1">
-                    Плейлист
-                  </span>
-                  <Button
-                    size="icon"
-                    className="size-4"
-                    onClick={() => setShowPlaylist(false)}
-                  >
-                    <X className="size-3" />
-                  </Button>
-                </section>
-                <section className="p-1 overflow-y-auto">
-                  {allFiles.map((f, idx) => (
-                    <div
-                      key={f.path}
-                      className={
-                        "flex items-center gap-1 px-0.5 py-0.5 cursor-pointer hover:bg-surface text-[10px] windows95-font" +
-                        (idx === currentFileIndex
-                          ? " bg-secondary text-white"
-                          : "")
-                      }
-                      onClick={() => playFile(f.path)}
-                    >
-                      <FileVideo className="size-3 shrink-0 text-white/60" />
-                      <span className="truncate flex-1">{f.name}</span>
-                    </div>
-                  ))}
-                </section>
-              </div>
+                <X />
+              </Button>
             )}
           </div>
-
-          {torrents.map((item, index) => {
-            const isExpanded = expanded.has(item.id);
-            const files = torrentFilesMap[item.id];
-
-            return (
-              <div
-                key={index}
-                className="flex flex-col windows95-active-border bg-primary gap-2"
-              >
-                <section className="bg-secondary pb-1 px-1 line-clamp-1">
-                  <span className="text-white text-[11px] font-bold windows95-font">
-                    {item.name}
-                  </span>
-                </section>
-
-                {files && (
-                  <section className="p-1 gap-1 flex flex-col">
-                    <button
-                      className="flex items-center gap-1 text-[10px] windows95-font cursor-pointer hover:bg-surface px-0.5 py-0.5 w-full text-left"
-                      onClick={() => toggleExpanded(item.id)}
-                    >
-                      {isExpanded ? (
-                        <ChevronDown className="size-3" />
-                      ) : (
-                        <ChevronRight className="size-3" />
-                      )}
-                      Файлы ({files.filter((f) => f.completed).length})
-                    </button>
-                    {isExpanded && (
-                      <TorrentFilesSection
-                        id={item.id}
-                        files={files}
-                        type="player"
-                        path={item.save_dir}
-                        onPlay={playFile}
-                      />
-                    )}
-                  </section>
-                )}
-                {item.error && (
-                  <div className="mt-1 flex items-center gap-1">
-                    <span className="text-[10px] text-destructive windows95-font">
-                      {item.error}
-                    </span>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </>
+        </section>
       )}
+
+      {/*LOADING*/}
+      {loading && scanProgress && (
+        <section className="flex flex-col windows95-active-border w-full items-stretch windows95-text gap-1 px-1 py-1">
+          <span>
+            {scanProgress.total === 0
+              ? "Подсчёт файлов..."
+              : `Сканирование... ${scanProgress.current} / ${scanProgress.total}`}
+          </span>
+          {scanProgress.total > 0 && (
+            <div className="flex flex-row items-center gap-1">
+              <div className="flex-1 h-4 windows95-border bg-white">
+                <div
+                  className="h-full bg-secondary"
+                  style={{
+                    width: `${(scanProgress.current / scanProgress.total) * 100}%`,
+                    transition: "none",
+                  }}
+                />
+              </div>
+              <span className="text-[10px] shrink-0">
+                {Math.round((scanProgress.current / scanProgress.total) * 100)}%
+              </span>
+            </div>
+          )}
+        </section>
+      )}
+
+      {folderTrees.length > 0 && (
+        <section className="flex flex-col windows95-active-border w-full items-stretch windows95-text gap-1 px-1 py-1">
+          {folderTrees.map((tree) => (
+            <div key={tree.path} className="flex flex-col">
+              <FolderView
+                node={tree}
+                depth={0}
+                onPlay={playFile}
+                searchQuery={search}
+                onRemove={handleRemoveFolder}
+              />
+            </div>
+          ))}
+        </section>
+      )}
+
+      {/* TORRENTS */}
+      {torrents.map((item, index) => {
+        const isExpanded = expanded.has(item.id);
+        const files = torrentFilesMap[item.id];
+
+        return (
+          <section
+            key={index}
+            className="flex flex-col windows95-active-border bg-primary gap-1"
+          >
+            <span className="bg-secondary text-white pb-1 px-1 line-clamp-1 font-bold windows95-text">
+              {item.name}
+            </span>
+
+            {files && (
+              <section className="flex flex-col gap-1">
+                <div
+                  role="button"
+                  className="flex items-center gap-1 windows95-text cursor-pointer hover:bg-surface px-0.5 py-0.5 w-full text-left"
+                  onClick={() => toggleExpanded(item.id)}
+                >
+                  {isExpanded ? (
+                    <ChevronDown className="size-3" />
+                  ) : (
+                    <ChevronRight className="size-3" />
+                  )}
+                  Файлы ({files.filter((f) => f.completed).length})
+                </div>
+                {isExpanded && (
+                  <TorrentFilesSection
+                    id={item.id}
+                    files={files}
+                    type="player"
+                    path={item.save_dir}
+                    onPlay={playFile}
+                  />
+                )}
+              </section>
+            )}
+
+            {item.error && (
+              <span className="flex w-full items-center gap-1 text-destructive windows95-text">
+                {item.error}
+              </span>
+            )}
+          </section>
+        );
+      })}
     </main>
   );
 }

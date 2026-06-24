@@ -21,7 +21,7 @@ import {
 import { useState, useEffect, useRef } from "react";
 import type { VideoStreamInfo } from "@/types";
 import Tracks from "./tracks.player";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/index.utils";
 
 function Controls({
   chapters,

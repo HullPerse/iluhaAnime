@@ -5,6 +5,7 @@ import {
   usePlayer,
 } from "@videojs/react";
 import { useEffect } from "react";
+import { getAction } from "@/config/keybinds.config";
 
 const FRAME_STEP = 1 / 30;
 
@@ -32,86 +33,79 @@ function Keyboard({
       const tag = (e.target as HTMLElement).tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
 
-      switch (e.code) {
-        case "Space": {
-          e.preventDefault();
+      const action = getAction(e.code, e.ctrlKey, e.shiftKey);
+      if (!action) return;
+      e.preventDefault();
+
+      switch (action.action) {
+        case "playPause": {
           if (playback?.paused) playback?.play();
           else playback?.pause();
           break;
         }
-        case "ArrowRight": {
-          e.preventDefault();
+        case "seekForward": {
           const ct = time?.currentTime ?? 0;
           const dur = time?.duration ?? 0;
           time?.seek?.(Math.min(ct + 5, dur));
           break;
         }
-        case "ArrowLeft": {
-          e.preventDefault();
+        case "seekBackward": {
           const ct = time?.currentTime ?? 0;
           time?.seek?.(Math.max(ct - 5, 0));
           break;
         }
-        case "ArrowUp": {
-          e.preventDefault();
+        case "volumeUp": {
           const v = volume?.volume ?? 0;
           volume?.setVolume?.(Math.min(v + 0.01, 1));
           break;
         }
-        case "ArrowDown": {
-          e.preventDefault();
+        case "volumeDown": {
           const v = volume?.volume ?? 0;
           volume?.setVolume?.(Math.max(v - 0.01, 0));
           break;
         }
-        case "Comma": {
-          e.preventDefault();
+        case "frameBackward": {
           playback?.pause();
           const ct = time?.currentTime ?? 0;
           time?.seek?.(Math.max(ct - FRAME_STEP, 0));
           break;
         }
-        case "Period": {
-          e.preventDefault();
+        case "frameForward": {
           playback?.pause();
           const ct = time?.currentTime ?? 0;
           const dur = time?.duration ?? 0;
           time?.seek?.(Math.min(ct + FRAME_STEP, dur));
           break;
         }
-        case "F1": {
-          e.preventDefault();
+        case "subtitleOffsetDown":
+        case "subtitleOffsetDownFine": {
           if (!mediaPath) break;
-          const delta = e.ctrlKey ? -0.05 : -0.5;
+          const delta = action.action === "subtitleOffsetDownFine" ? -0.05 : -0.5;
           const current = parseFloat(localStorage.getItem(`sub_offset:${mediaPath}`) ?? "0");
           const next = Math.max(-300, current + delta);
           localStorage.setItem(`sub_offset:${mediaPath}`, String(next));
           window.dispatchEvent(new CustomEvent("suboffsetchange", { detail: { path: mediaPath, offset: next } }));
           break;
         }
-        case "F2": {
-          e.preventDefault();
+        case "subtitleOffsetUp":
+        case "subtitleOffsetUpFine": {
           if (!mediaPath) break;
-          const delta = e.ctrlKey ? 0.05 : 0.5;
+          const delta = action.action === "subtitleOffsetUpFine" ? 0.05 : 0.5;
           const current = parseFloat(localStorage.getItem(`sub_offset:${mediaPath}`) ?? "0");
           const next = Math.min(300, current + delta);
           localStorage.setItem(`sub_offset:${mediaPath}`, String(next));
           window.dispatchEvent(new CustomEvent("suboffsetchange", { detail: { path: mediaPath, offset: next } }));
           break;
         }
-        case "KeyH": {
-          if (!e.ctrlKey) break;
-          e.preventDefault();
+        case "toggleAutoHide": {
           onToggleAutoHide?.();
           break;
         }
-        case "PageDown": {
-          e.preventDefault();
+        case "nextFile": {
           onFileNext?.();
           break;
         }
-        case "PageUp": {
-          e.preventDefault();
+        case "prevFile": {
           onFilePrev?.();
           break;
         }

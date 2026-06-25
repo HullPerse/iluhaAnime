@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { useQuery } from "@tanstack/react-query";
 import type { Anime, LanguageTag, SettingsScraper } from "@/types";
+import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { showToast } from "@/lib/toast.utils";
 import { useEffect, useState, useMemo } from "react";
 import { detectLanguages, formatSize } from "@/lib/index.utils";
@@ -205,7 +206,7 @@ function SearchRoute() {
 
   const handleCopyMagnet = async (item: Anime) => {
     const magnet = item.magnet || (await ensureMagnet(item));
-    if (magnet) navigator.clipboard.writeText(magnet);
+    if (magnet) writeText(magnet);
   };
 
   const handleOpenMagnet = async (item: Anime) => {

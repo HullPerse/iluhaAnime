@@ -25,6 +25,7 @@ import { useState, useEffect, useRef } from "react";
 import type { VideoStreamInfo } from "@/types";
 import Tracks from "./tracks.player";
 import { cn } from "@/lib/index.utils";
+import { usePlayerStore } from "@/store/player.store";
 
 function Controls({
   chapters,
@@ -62,6 +63,7 @@ function Controls({
   const playback = usePlayer(selectPlayback);
   const value = usePlayer(selectVolume);
   const textTrack = usePlayer(selectTextTrack);
+  const persistVolume = usePlayerStore((s) => s.setVolume);
 
   const paused = playback?.paused ?? true;
   const currentTime = time?.currentTime ?? 0;
@@ -148,7 +150,7 @@ function Controls({
     );
 
     setVolume(percent);
-    localStorage.setItem("volume", String(percent));
+    persistVolume(percent);
   };
 
   const handleMouseMove = (e: { clientX: number }) => {
@@ -168,11 +170,10 @@ function Controls({
     )
       return;
 
-    const saved = localStorage.getItem("volume");
-    const v = saved === null ? null : Number(saved);
-
-    if (v !== null && !Number.isNaN(v)) {
-      value.setVolume(v);
+    const saved = usePlayerStore.getState().volume;
+    // ponytail: direct getState read for one-time init, won't re-subscribe
+    if (saved !== null && !Number.isNaN(saved)) {
+      value.setVolume(saved);
     }
 
     volumeRestored.current = true;

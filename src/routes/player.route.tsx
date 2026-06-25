@@ -1,6 +1,7 @@
 import Player from "@/components/shared/player.component";
 import { Button } from "@/components/ui/button.component";
-import { getPosition } from "@/lib/storage.utils";
+import { useMediaStore } from "@/store/media.store";
+import { usePlayerStore } from "@/store/player.store";
 import {
   ChapterType,
   FFMPEGStatus,
@@ -45,6 +46,9 @@ function PlayerRoute({
   const torrents = useTorrentStore((state) => state.torrents);
   const torrentFilesMap = useTorrentStore((state) => state.torrentFilesMap);
   const loadTorrentFiles = useTorrentStore((state) => state.loadTorrentFiles);
+  const folderPaths = usePlayerStore((s) => s.folderPaths);
+  const setFolderPaths = usePlayerStore((s) => s.setFolderPaths);
+  const mediaGet = useMediaStore((s) => s.getEntry);
 
   const [video, setVideo] = useState<VideoType>(null);
   const [chapters, setChapters] = useState<ChapterType[]>([]);
@@ -109,27 +113,16 @@ function PlayerRoute({
   }, []);
 
   const playFile = useCallback((path: string) => {
-    const saved = getPosition(path);
+    const saved = mediaGet(path)?.position;
     setVideo({
       path,
       file: path.split(/[/\\]/).pop() ?? "Video",
       initialTime: saved ?? 0,
     });
-  }, []);
-
-  const persistFolders = useCallback((trees: FolderNode[]) => {
-    localStorage.setItem(
-      "folderPaths",
-      JSON.stringify(trees.map((t) => t.path)),
-    );
-  }, []);
+  }, [mediaGet]);
 
   useEffect(() => {
-    const saved = localStorage.getItem("folderPaths");
-    if (!saved) return;
-
-    const paths = JSON.parse(saved) as string[];
-    if (paths.length === 0) return;
+    if (folderPaths.length === 0) return;
 
     setLoading(true);
     setScanProgress({ current: 0, total: 0 });
@@ -137,23 +130,23 @@ function PlayerRoute({
     (async () => {
       const trees: FolderNode[] = [];
 
-      for (let i = 0; i < paths.length; i++) {
-        setScanProgress({ current: i, total: paths.length });
+      for (let i = 0; i < folderPaths.length; i++) {
+        setScanProgress({ current: i, total: folderPaths.length });
 
         try {
           const entries = await invoke<VideoFileEntry[]>("scan_video_folder", {
-            path: paths[i],
+            path: folderPaths[i],
           });
-          if (entries?.length) trees.push(buildTree(entries, paths[i]));
+          if (entries?.length) trees.push(buildTree(entries, folderPaths[i]));
         } catch {}
       }
 
       setFolderTrees(trees);
-      persistFolders(trees);
+      setFolderPaths(trees.map((t) => t.path));
       setLoading(false);
       setScanProgress(null);
     })();
-  }, [buildTree, persistFolders]);
+  }, [buildTree, setFolderPaths]);
 
   useEffect(() => {
     torrents.forEach((t) => {
@@ -270,7 +263,7 @@ function PlayerRoute({
       const tree = buildTree(entries, folder);
       const next = [...folderTrees, tree];
       setFolderTrees(next);
-      persistFolders(next);
+      setFolderPaths(next.map((t) => t.path));
     } catch {
       // scan failed — do nothing
     } finally {
@@ -279,17 +272,17 @@ function PlayerRoute({
       setLoading(false);
       setScanProgress(null);
     }
-  }, [folderTrees, persistFolders, buildTree]);
+  }, [folderTrees, setFolderPaths, buildTree]);
 
   const handleRemoveFolder = useCallback(
     (path: string) => {
       setFolderTrees((prev) => {
         const next = prev.filter((t) => t.path !== path);
-        persistFolders(next);
+        setFolderPaths(next.map((t) => t.path));
         return next;
       });
     },
-    [persistFolders],
+    [setFolderPaths],
   );
 
   const toggleExpanded = (id: number) => {

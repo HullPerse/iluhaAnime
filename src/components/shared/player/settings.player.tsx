@@ -1,5 +1,5 @@
 import { VideoStreamInfo } from "@/types";
-import { getTrackSelection } from "@/lib/storage.utils";
+import { useMediaStore } from "@/store/media.store";
 import { Button } from "@/components/ui/button.component";
 import Slider from "@/components/ui/range.component";
 
@@ -33,12 +33,14 @@ function Settings({
     subBgOpacity: 0,
     subBgColor: "#000000",
   };
+  const mediaGet = useMediaStore((s) => s.getEntry);
+
   const reset = () => onChange(D);
 
   const currentSub =
     mediaPath &&
     (() => {
-      const idx = getTrackSelection(mediaPath, "sub");
+      const idx = mediaGet(mediaPath)?.subtitleTrack;
       return idx !== undefined
         ? subtitleStreams.find((s) => s.index === idx)
         : undefined;

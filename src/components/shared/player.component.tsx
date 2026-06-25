@@ -10,7 +10,8 @@ import {
   useState,
 } from "react";
 import type { VideoStreamInfo } from "@/types";
-import { savePosition } from "@/lib/storage.utils";
+import { useMediaStore } from "@/store/media.store";
+import { usePlayerStore } from "@/store/player.store";
 
 import Timeline from "./player/timeline.player";
 import Controls from "./player/controls.player";
@@ -20,6 +21,7 @@ import EmptyPlayer from "./player/empty.player";
 import Modal from "./modal.component";
 import { cn } from "@/lib/index.utils";
 import Settings from "./player/settings.player";
+import SeekOffset from "./player/offset.player";
 
 const { Provider, Container } = createPlayer({ features: videoFeatures });
 
@@ -68,47 +70,14 @@ function Player({
   const hideTimerRef = useRef<number | null>(null);
   const [videoEl, setVideoEl] = useState<HTMLVideoElement | null>(null);
   const [audioOverrideSrc, setAudioOverrideSrc] = useState<string | null>(null);
+
   const hasSeeked = useRef(false);
   const effectiveSrc = audioOverrideSrc ?? src;
 
-  const D = {
-    rotation: 0,
-    flipH: false,
-    flipV: false,
-    zoom: 1,
-    aspectRatio: "contain" as const,
-    brightness: 100,
-    contrast: 100,
-    saturation: 100,
-    hue: 0,
-    blur: 0,
-    sepia: 0,
-    grayscale: 0,
-    subFontSize: 18,
-    subFontFamily: "Arial",
-    subColor: "#ffffff",
-    subBgOpacity: 0,
-    subBgColor: "#000000",
-  };
-  const [settings, setSettings] = useState(() => {
-    try {
-      return {
-        ...D,
-        ...JSON.parse(localStorage.getItem("playerSettings") || "{}"),
-      };
-    } catch {
-      return { ...D };
-    }
-  });
-  const patchSettings = useCallback(
-    (p: Partial<typeof D>) => setSettings((s: any) => ({ ...s, ...p })),
-    [],
-  );
+  const settings = usePlayerStore((s) => s.settings);
+  const patchSettings = usePlayerStore((s) => s.patchSettings);
+  const setPosition = useMediaStore((s) => s.setPosition);
   const [showSettings, setShowSettings] = useState(false);
-
-  useEffect(() => {
-    localStorage.setItem("playerSettings", JSON.stringify(settings));
-  }, [settings]);
 
   const videoStyle = useMemo(() => {
     const t: string[] = [];
@@ -177,9 +146,9 @@ function Player({
 
   const savePos = useCallback(
     (t: number) => {
-      if (mediaPath) savePosition(mediaPath, t);
+      if (mediaPath) setPosition(mediaPath, t);
     },
-    [mediaPath],
+    [mediaPath, setPosition],
   );
 
   // Auto-hide UI on inactivity (cinema mode only)
@@ -203,10 +172,10 @@ function Player({
 
   const handleClose = useCallback(() => {
     if (mediaPath && videoEl) {
-      savePosition(mediaPath, videoEl.currentTime);
+      setPosition(mediaPath, videoEl.currentTime);
     }
     onClose();
-  }, [mediaPath, videoEl, onClose]);
+  }, [mediaPath, videoEl, onClose, setPosition]);
 
   return (
     <Provider>
@@ -254,10 +223,11 @@ function Player({
             {/* Single Video element — shared between both modes */}
             <section
               className={cn(
-                "bg-black overflow-hidden",
+                "relative bg-black overflow-hidden",
                 cinemaMode ? "h-full w-full" : "flex-1 min-h-0",
               )}
             >
+              <SeekOffset mediaPath={mediaPath} />
               {effectiveSrc ? (
                 <Video
                   ref={setVideoEl}

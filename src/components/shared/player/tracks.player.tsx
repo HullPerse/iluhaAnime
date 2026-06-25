@@ -2,7 +2,7 @@ import { invoke, convertFileSrc } from "@tauri-apps/api/core";
 import type { VideoStreamInfo } from "@/types";
 import { useState, useCallback, useRef, useEffect } from "react";
 import { parseVTT } from "@/lib/index.utils";
-import { saveTrackSelection, getTrackSelection } from "@/lib/storage.utils";
+import { useMediaStore } from "@/store/media.store";
 import { Check } from "lucide-react";
 import AssOverlay from "./subtitles.player";
 
@@ -100,12 +100,15 @@ function Tracks({
   const mergedAudio = [...audioStreams, ...extAudio];
   const mergedSubs = [...subtitleStreams, ...extSubs];
 
+  const mediaGet = useMediaStore((s) => s.getEntry);
+  const mediaSetTrack = useMediaStore((s) => s.setTrack);
+
   const defaultAudio =
     mergedAudio.find((s) => s.is_default)?.index ?? mergedAudio[0]?.index ?? -1;
   const defaultSub = mergedSubs[0]?.index ?? SUB_OFF;
 
-  const savedAudio = getTrackSelection(mediaPath, "audio");
-  const savedSub = getTrackSelection(mediaPath, "sub");
+  const savedAudio = mediaGet(mediaPath)?.audioTrack;
+  const savedSub = mediaGet(mediaPath)?.subtitleTrack;
 
   const [selectedAudio, setSelectedAudio] = useState(
     savedAudio ?? defaultAudio,
@@ -147,7 +150,7 @@ function Tracks({
   const handleAudio = useCallback(
     async (idx: number) => {
       setSelectedAudio(idx);
-      saveTrackSelection(mediaPath, "audio", idx);
+      mediaSetTrack(mediaPath, "audio", idx);
 
       const gen = ++audioGenRef.current;
       if (!videoEl) return;
@@ -258,7 +261,7 @@ function Tracks({
   const handleSub = useCallback(
     (idx: number) => {
       setSelectedSub(idx);
-      saveTrackSelection(mediaPath, "sub", idx);
+      mediaSetTrack(mediaPath, "sub", idx);
       if (idx === SUB_OFF) {
         if (textTrackRef.current) {
           textTrackRef.current.mode = "disabled";
@@ -275,12 +278,10 @@ function Tracks({
 
   const loadDelay = useCallback(() => {
     try {
-      const d = parseFloat(
-        localStorage.getItem(`sub_offset:${mediaPath}`) ?? "0",
-      );
+      const d = mediaGet(mediaPath)?.subOffset ?? 0;
       setSubDelay(d);
     } catch {}
-  }, [mediaPath]);
+  }, [mediaPath, mediaGet]);
 
   useEffect(() => {
     if (initializedRef.current) return;
@@ -289,8 +290,8 @@ function Tracks({
     initializedRef.current = true;
 
     loadDelay();
-    const savedA = getTrackSelection(mediaPath, "audio");
-    const savedS = getTrackSelection(mediaPath, "sub");
+    const savedA = mediaGet(mediaPath)?.audioTrack;
+    const savedS = mediaGet(mediaPath)?.subtitleTrack;
     if (savedA !== undefined && savedA !== defaultAudio) {
       setSelectedAudio(savedA);
       handleAudio(savedA);

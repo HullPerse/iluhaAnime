@@ -3,11 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { Anime, LanguageTag, SettingsScraper } from "@/types";
 import { useEffect, useState, useMemo } from "react";
 import { detectLanguages, formatSize } from "@/lib/index.utils";
-import {
-  saveSearchQuery,
-  getSearchHistory,
-  removeSearchItem,
-} from "@/lib/storage.utils";
+import { useSearchStore } from "@/store/search.store";
 import { languages, qualities, encodings } from "@/config/scraper.config";
 import { Button } from "@/components/ui/button.component";
 import { SmallLoader } from "@/components/shared/loader.component";
@@ -64,6 +60,9 @@ function SearchRoute() {
     sort: "seeders",
     encoding: "all",
   });
+  const searchHistory = useSearchStore((s) => s.history);
+  const addQuery = useSearchStore((s) => s.addQuery);
+  const removeQuery = useSearchStore((s) => s.removeQuery);
   const [showHistory, setShowHistory] = useState(false);
 
   useEffect(() => {
@@ -215,7 +214,7 @@ function SearchRoute() {
     if (magnet) prepareTorrentDownload(magnet);
   };
 
-  const searchHistory = getSearchHistory();
+  // ponytail: searchHistory from hook above
 
   return (
     <div className="h-full flex flex-col w-full gap-1">
@@ -230,7 +229,7 @@ function SearchRoute() {
             onBlur={() => setTimeout(() => setShowHistory(false), 200)}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
-                saveSearchQuery(searchParams.trim());
+                addQuery(searchParams.trim());
                 refetch();
               }
             }}
@@ -255,7 +254,7 @@ function SearchRoute() {
                     size="icon"
                     className="size-6"
                     onClick={() => {
-                      removeSearchItem(item);
+                      removeQuery(item);
                     }}
                   >
                     <X />
@@ -269,7 +268,7 @@ function SearchRoute() {
           variant="default"
           size="icon"
           onClick={() => {
-            saveSearchQuery(searchParams.trim());
+            addQuery(searchParams.trim());
             refetch();
           }}
           disabled={isLoading}

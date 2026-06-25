@@ -6,6 +6,7 @@ import {
 } from "@videojs/react";
 import { useEffect } from "react";
 import { getAction } from "@/config/keybinds.config";
+import { useMediaStore } from "@/store/media.store";
 
 const FRAME_STEP = 1 / 30;
 
@@ -27,6 +28,8 @@ function Keyboard({
   const playback = usePlayer(selectPlayback);
   const time = usePlayer(selectTime);
   const volume = usePlayer(selectVolume);
+  const mediaGet = useMediaStore((s) => s.getEntry);
+  const mediaSetSub = useMediaStore((s) => s.setSubOffset);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -80,21 +83,30 @@ function Keyboard({
         case "subtitleOffsetDown":
         case "subtitleOffsetDownFine": {
           if (!mediaPath) break;
-          const delta = action.action === "subtitleOffsetDownFine" ? -0.05 : -0.5;
-          const current = parseFloat(localStorage.getItem(`sub_offset:${mediaPath}`) ?? "0");
+          const delta =
+            action.action === "subtitleOffsetDownFine" ? -0.05 : -0.5;
+          const current = mediaGet(mediaPath)?.subOffset ?? 0;
           const next = Math.max(-300, current + delta);
-          localStorage.setItem(`sub_offset:${mediaPath}`, String(next));
-          window.dispatchEvent(new CustomEvent("suboffsetchange", { detail: { path: mediaPath, offset: next } }));
+          mediaSetSub(mediaPath, Math.round(next * 100) / 100);
+          window.dispatchEvent(
+            new CustomEvent("suboffsetchange", {
+              detail: { path: mediaPath, offset: next },
+            }),
+          );
           break;
         }
         case "subtitleOffsetUp":
         case "subtitleOffsetUpFine": {
           if (!mediaPath) break;
           const delta = action.action === "subtitleOffsetUpFine" ? 0.05 : 0.5;
-          const current = parseFloat(localStorage.getItem(`sub_offset:${mediaPath}`) ?? "0");
+          const current = mediaGet(mediaPath)?.subOffset ?? 0;
           const next = Math.min(300, current + delta);
-          localStorage.setItem(`sub_offset:${mediaPath}`, String(next));
-          window.dispatchEvent(new CustomEvent("suboffsetchange", { detail: { path: mediaPath, offset: next } }));
+          mediaSetSub(mediaPath, Math.round(next * 100) / 100);
+          window.dispatchEvent(
+            new CustomEvent("suboffsetchange", {
+              detail: { path: mediaPath, offset: next },
+            }),
+          );
           break;
         }
         case "toggleAutoHide": {
@@ -131,7 +143,17 @@ function Keyboard({
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("wheel", handleWheel);
     };
-  }, [playback, time, volume, mediaPath, onFileNext, onFilePrev, hasNext, hasPrev, onToggleAutoHide]);
+  }, [
+    playback,
+    time,
+    volume,
+    mediaPath,
+    onFileNext,
+    onFilePrev,
+    hasNext,
+    hasPrev,
+    onToggleAutoHide,
+  ]);
 
   return null;
 }

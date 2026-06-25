@@ -26,11 +26,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { buildTree } from "@/lib/player.utils";
-import FFMPEG from "./components/ffmpeg.player";
+import FFMPEG from "./components/player/ffmpeg.player";
 import { getAction } from "@/config/keybinds.config";
-import FolderView from "./components/folder.player";
+import FolderView from "./components/player/folder.player";
 import { useTorrentStore } from "@/store/download.store";
-import TorrentFilesSection from "./components/file.torrent";
+import TorrentFilesSection from "./components/torrent/file.torrent";
 
 function PlayerRoute({
   cinemaMode,
@@ -137,9 +137,7 @@ function PlayerRoute({
 
       let remuxSrc: string | undefined;
       if (savedAudio !== undefined) {
-        const audioStreams = streams.filter(
-          (s) => s.codec_type === "audio",
-        );
+        const audioStreams = streams.filter((s) => s.codec_type === "audio");
         const defaultAudio =
           audioStreams.find((s) => s.is_default)?.index ??
           audioStreams[0]?.index ??

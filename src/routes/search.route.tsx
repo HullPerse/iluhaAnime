@@ -23,8 +23,8 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input.component";
 import { useTorrentStore } from "@/store/download.store";
-import RutrackerLoginModal from "@/routes/components/rutracker.search";
-import NekoBtApiModal from "@/routes/components/nekobt.search";
+import RutrackerLoginModal from "@/routes/components/search/rutracker.search";
+import NekoBtApiModal from "@/routes/components/search/nekobt.search";
 import { flushSync } from "react-dom";
 
 type Source = "erai-raws" | "rutracker" | "nyaa" | "nekobt";
@@ -65,6 +65,8 @@ function SearchRoute() {
   const searchHistory = useSearchStore((s) => s.history);
   const addQuery = useSearchStore((s) => s.addQuery);
   const removeQuery = useSearchStore((s) => s.removeQuery);
+  const crossSearchQuery = useSearchStore((s) => s.crossSearchQuery);
+  const setCrossSearchQuery = useSearchStore((s) => s.setCrossSearchQuery);
   const [showHistory, setShowHistory] = useState(false);
 
   useEffect(() => {
@@ -121,6 +123,14 @@ function SearchRoute() {
     },
     enabled: false,
   });
+
+  useEffect(() => {
+    if (crossSearchQuery) {
+      setSearchParams(crossSearchQuery);
+      setCrossSearchQuery(null);
+      setTimeout(() => refetch(), 0);
+    }
+  }, [crossSearchQuery, refetch]);
 
   const parseSize = (s: string): number => {
     const match = s.match(/^([\d.]+)\s*(B|KB|KiB|MB|MiB|GB|GiB)?$/);

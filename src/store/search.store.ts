@@ -5,15 +5,19 @@ const MAX_HISTORY = 5;
 
 interface SearchStore {
   history: string[];
+  crossSearchQuery: string | null;
   addQuery: (query: string) => void;
   removeQuery: (query: string) => void;
+  setCrossSearchQuery: (query: string | null) => void;
 }
 
 export const useSearchStore = create<SearchStore>()(
   persist(
     (set) => ({
       history: [],
+      crossSearchQuery: null,
 
+      setCrossSearchQuery: (query) => set({ crossSearchQuery: query }),
       addQuery: (query) => {
         const q = query.trim().toLowerCase();
         if (!q) return;

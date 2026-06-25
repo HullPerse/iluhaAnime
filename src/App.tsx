@@ -8,7 +8,8 @@ import {
 } from "react";
 import backgroundImage from "@/assets/background.jpg";
 import { useTorrentStore } from "@/store/download.store";
-import TorrentFilePicker from "@/routes/components/picker.search";
+import { useSearchStore } from "@/store/search.store";
+import TorrentFilePicker from "@/routes/components/search/picker.search";
 import { WindowLoader } from "./components/shared/loader.component";
 import { Button } from "./components/ui/button.component";
 import { cn } from "./lib/index.utils";
@@ -17,13 +18,15 @@ import { getAction } from "@/config/keybinds.config";
 const SearchRoute = lazy(() => import("@/routes/search.route"));
 const TorrentRoute = lazy(() => import("@/routes/torrent.route"));
 const PlayerRoute = lazy(() => import("@/routes/player.route"));
+const AniListRoute = lazy(() => import("@/routes/anilist.route"));
 
-type Tab = "search" | "torrent" | "player";
+type Tab = "search" | "torrent" | "player" | "anilist";
 
 const tabs: { id: Tab; label: string }[] = [
   { id: "search", label: "Поиск" },
   { id: "torrent", label: "Торрент" },
   { id: "player", label: "Плеер" },
+  { id: "anilist", label: "AniList" },
 ];
 
 function App() {
@@ -61,6 +64,18 @@ function App() {
     return () => window.removeEventListener("keydown", handler);
   }, [cinemaMode]);
 
+  // ponytail: cross-search from AniList tab — watch store, switch tab
+  useEffect(() => {
+    return useSearchStore.subscribe((state, prev) => {
+      if (
+        state.crossSearchQuery &&
+        state.crossSearchQuery !== prev.crossSearchQuery
+      ) {
+        setActiveTab("search");
+      }
+    });
+  }, []);
+
   const getComponent = () => {
     const tabMap = {
       search: <SearchRoute />,
@@ -73,6 +88,7 @@ function App() {
           onToggleAutoHide={toggleAutoHide}
         />
       ),
+      anilist: <AniListRoute />,
     } as Record<Tab, ReactElement>;
 
     return tabMap[activeTab];

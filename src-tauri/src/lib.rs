@@ -4,6 +4,7 @@ use std::sync::Arc;
 use tauri::{Emitter, Manager};
 use tauri_plugin_notification::NotificationExt;
 
+mod anilist;
 mod scrapers;
 mod auth;
 mod bencode;
@@ -266,6 +267,12 @@ pub fn run() {
             video::remove_ffmpeg,
             video::scan_video_folder,
             video::generate_thumbnails,
+            anilist::search_anilist,
+            anilist::get_anime_by_id,
+            anilist::anilist_login,
+            anilist::check_anilist_auth,
+            anilist::get_anilist_lists,
+            anilist::anilist_logout,
             start_torrent_download,
             get_torrent_info,
             list_torrents,

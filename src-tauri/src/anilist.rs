@@ -1,0 +1,328 @@
+use serde::Serialize;
+use std::path::PathBuf;
+use std::fs;
+use tauri::Manager;
+
+#[derive(Debug, Serialize)]
+pub struct AniRanking {
+    pub rank: i32,
+    pub type_: String,
+    pub context: String,
+}
+
+fn token_path(app_handle: &tauri::AppHandle) -> PathBuf {
+    app_handle.path().app_data_dir().expect("app data dir").join("anilist_token.txt")
+}
+
+fn save_token(app_handle: &tauri::AppHandle, token: &str) -> Result<(), String> {
+    let path = token_path(app_handle);
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).map_err(|e| format!("{e}"))?;
+    }
+    fs::write(&path, token).map_err(|e| format!("{e}"))
+}
+
+fn load_token(app_handle: &tauri::AppHandle) -> Result<String, String> {
+    let path = token_path(app_handle);
+    if !path.exists() {
+        return Err("Not authenticated".to_string());
+    }
+    fs::read_to_string(&path).map_err(|e| format!("{e}"))
+}
+
+async fn graphql_request(query: serde_json::Value, token: Option<&str>) -> Result<serde_json::Value, String> {
+    let mut builder = reqwest::Client::new()
+        .post("https://graphql.anilist.co")
+        .json(&query);
+    if let Some(t) = token {
+        builder = builder.header("Authorization", format!("Bearer {t}"));
+    }
+    let resp = builder.send().await.map_err(|e| format!("AniList request failed: {e}"))?;
+    resp.json().await.map_err(|e| format!("Failed to parse AniList response: {e}"))
+}
+
+#[derive(Debug, Serialize)]
+pub struct AniMedia {
+    pub id: u64,
+    pub title: String,
+    pub english_title: Option<String>,
+    pub native_title: Option<String>,
+    pub synonyms: Vec<String>,
+    pub episodes: Option<i32>,
+    pub duration: Option<i32>,
+    pub format: Option<String>,
+    pub status: String,
+    pub score: Option<i32>,
+    pub genres: Vec<String>,
+    pub tags: Vec<String>,
+    pub description: Option<String>,
+    pub cover_url: Option<String>,
+    pub season: Option<String>,
+    pub season_year: Option<i32>,
+    pub studios: Vec<String>,
+    pub next_episode: Option<i32>,
+    pub next_airing_at: Option<i64>,
+    pub start_date: Option<String>,
+    pub end_date: Option<String>,
+    pub popularity: Option<i32>,
+    pub favourites: Option<i32>,
+    pub rankings: Vec<AniRanking>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct AniUser {
+    pub id: u64,
+    pub name: String,
+    pub avatar: Option<String>,
+    pub anime_count: i32,
+    pub episodes_watched: i32,
+    pub mean_score: Option<i32>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct AniListEntry {
+    pub media: AniMedia,
+    pub progress: Option<i32>,
+    pub list_status: String,
+}
+
+fn parse_date(d: &serde_json::Value) -> Option<String> {
+    let year = d["year"].as_i64()?;
+    let month = d["month"].as_i64().unwrap_or(1);
+    let day = d["day"].as_i64().unwrap_or(1);
+    Some(format!("{}-{:02}-{:02}", year, month, day))
+}
+
+fn fmt_desc(s: &str) -> String {
+    s.replace("<br>", "\n").replace("<br/>", "\n")
+        .replace("<i>", "").replace("</i>", "")
+        .replace("<b>", "").replace("</b>", "")
+        .replace("<strong>", "").replace("</strong>", "")
+        .replace("<em>", "").replace("</em>", "")
+}
+
+fn parse_animedia(m: &serde_json::Value) -> AniMedia {
+    AniMedia {
+        id: m["id"].as_u64().unwrap_or(0),
+        title: m["title"]["romaji"].as_str()
+            .or_else(|| m["title"]["english"].as_str())
+            .unwrap_or("Unknown").to_string(),
+        english_title: m["title"]["english"].as_str().map(String::from),
+        native_title: m["title"]["native"].as_str().map(String::from),
+        synonyms: m["synonyms"].as_array().map(|s| s.iter().filter_map(|v| v.as_str().map(String::from)).collect()).unwrap_or_default(),
+        episodes: m["episodes"].as_i64().map(|n| n as i32),
+        duration: m["duration"].as_i64().map(|n| n as i32),
+        format: m["format"].as_str().map(String::from),
+        status: m["status"].as_str().unwrap_or("UNKNOWN").to_string(),
+        score: m["averageScore"].as_i64().map(|n| n as i32),
+        genres: m["genres"].as_array().map(|g| g.iter().filter_map(|v| v.as_str().map(String::from)).collect()).unwrap_or_default(),
+        tags: m["tags"].as_array().map(|t| t.iter().filter_map(|v| v["name"].as_str().map(String::from)).collect()).unwrap_or_default(),
+        description: m["description"].as_str().map(fmt_desc),
+        cover_url: m["coverImage"]["large"].as_str().or_else(|| m["coverImage"]["medium"].as_str()).map(String::from),
+        season: m["season"].as_str().map(String::from),
+        season_year: m["seasonYear"].as_i64().map(|n| n as i32),
+        studios: m["studios"]["nodes"].as_array().map(|s| s.iter().filter_map(|v| v["name"].as_str().map(String::from)).collect()).unwrap_or_default(),
+        next_episode: m["nextAiringEpisode"]["episode"].as_i64().map(|n| n as i32),
+        next_airing_at: m["nextAiringEpisode"]["airingAt"].as_i64(),
+        start_date: parse_date(&m["startDate"]),
+        end_date: parse_date(&m["endDate"]),
+        popularity: m["popularity"].as_i64().map(|n| n as i32),
+        favourites: m["favourites"].as_i64().map(|n| n as i32),
+        rankings: m["rankings"].as_array().map(|r| r.iter().map(|v| AniRanking {
+            rank: v["rank"].as_i64().unwrap_or(0) as i32,
+            type_: v["type"].as_str().unwrap_or("").to_string(),
+            context: v["context"].as_str().unwrap_or("").to_string(),
+        }).collect()).unwrap_or_default(),
+    }
+}
+
+#[tauri::command]
+pub async fn search_anilist(query: String) -> Result<Vec<AniMedia>, String> {
+    let body = serde_json::json!({
+        "query": r#"
+            query ($search: String) {
+                Page(page: 1, perPage: 20) {
+                    media(search: $search, type: ANIME) {
+                        id
+                        title { romaji english native }
+                        episodes, duration, status, averageScore
+                        genres, tags { name }
+                        description (asHtml: false)
+                        coverImage { medium large }
+                        season, seasonYear
+                        studios { nodes { name } }
+                        nextAiringEpisode { episode airingAt }
+                    }
+                }
+            }
+        "#,
+        "variables": { "search": query }
+    });
+    let json = graphql_request(body, None).await?;
+    let media = json["data"]["Page"]["media"].as_array().ok_or_else(|| "Unexpected response".to_string())?;
+    Ok(media.iter().map(parse_animedia).collect())
+}
+
+#[tauri::command]
+pub async fn get_anime_by_id(id: u64) -> Result<AniMedia, String> {
+    let body = serde_json::json!({
+        "query": r#"
+            query ($id: Int) {
+                Media(id: $id, type: ANIME) {
+                    id
+                    title { romaji english native }
+                    synonyms
+                    episodes, duration, status, averageScore, format
+                    genres, tags { name }
+                    description (asHtml: false)
+                    coverImage { medium large }
+                    season, seasonYear, popularity, favourites
+                    startDate { year month day }
+                    endDate { year month day }
+                    studios { nodes { name } }
+                    rankings { rank type context }
+                    nextAiringEpisode { episode airingAt }
+                }
+            }
+        "#,
+        "variables": { "id": id }
+    });
+    let json = graphql_request(body, None).await?;
+    let m = &json["data"]["Media"];
+    Ok(parse_animedia(m))
+}
+
+#[tauri::command]
+pub async fn anilist_login(app_handle: tauri::AppHandle, token: String) -> Result<AniUser, String> {
+    let body = serde_json::json!({
+        "query": r#"
+            query {
+                Viewer { id, name, avatar { medium } }
+            }
+        "#
+    });
+    let json = graphql_request(body, Some(&token)).await?;
+    let v = &json["data"]["Viewer"];
+    if v.is_null() {
+        return Err("Invalid token".to_string());
+    }
+    let user = AniUser {
+        id: v["id"].as_u64().unwrap_or(0),
+        name: v["name"].as_str().unwrap_or("User").to_string(),
+        avatar: v["avatar"]["medium"].as_str().map(String::from),
+        anime_count: 0,
+        episodes_watched: 0,
+        mean_score: None,
+    };
+    save_token(&app_handle, &token)?;
+    Ok(user)
+}
+
+#[tauri::command]
+pub async fn check_anilist_auth(app_handle: tauri::AppHandle) -> Result<Option<AniUser>, String> {
+    let token = match load_token(&app_handle) {
+        Ok(t) => t,
+        Err(_) => return Ok(None),
+    };
+    let body = serde_json::json!({
+        "query": r#"
+            query {
+                Viewer { id, name, avatar { medium } }
+            }
+        "#
+    });
+    let json = match graphql_request(body, Some(&token)).await {
+        Ok(j) => j,
+        Err(_) => return Ok(None),
+    };
+    let v = &json["data"]["Viewer"];
+    if v.is_null() { return Ok(None); }
+    Ok(Some(AniUser {
+        id: v["id"].as_u64().unwrap_or(0),
+        name: v["name"].as_str().unwrap_or("User").to_string(),
+        avatar: v["avatar"]["medium"].as_str().map(String::from),
+        anime_count: 0,
+        episodes_watched: 0,
+        mean_score: None,
+    }))
+}
+
+#[tauri::command]
+pub async fn get_anilist_lists(app_handle: tauri::AppHandle, user_id: u64) -> Result<Vec<AniListCollection>, String> {
+    let token = load_token(&app_handle)?;
+    let body = serde_json::json!({
+        "query": r#"
+            query ($userId: Int) {
+                MediaListCollection(userId: $userId, type: ANIME) {
+                    lists {
+                        name
+                        entries {
+                            progress
+                            status
+                            media {
+                                id
+                                title { romaji english }
+                                episodes, averageScore
+                                coverImage { medium }
+                                status
+                            }
+                        }
+                    }
+                }
+            }
+        "#,
+        "variables": { "userId": user_id }
+    });
+    let json = graphql_request(body, Some(&token)).await?;
+    let lists = json["data"]["MediaListCollection"]["lists"].as_array().ok_or_else(|| "Unexpected response".to_string())?;
+    Ok(lists.iter().map(|l| {
+        let name = l["name"].as_str().unwrap_or("").to_string();
+        let entries = l["entries"].as_array().map(|e| e.iter().map(|entry| {
+            let m = &entry["media"];
+            AniListEntry {
+                    media: AniMedia {
+                        id: m["id"].as_u64().unwrap_or(0),
+                        title: m["title"]["romaji"].as_str().or_else(|| m["title"]["english"].as_str()).unwrap_or("Unknown").to_string(),
+                        english_title: m["title"]["english"].as_str().map(String::from),
+                        native_title: None,
+                        synonyms: vec![],
+                        episodes: m["episodes"].as_i64().map(|n| n as i32),
+                        duration: None,
+                        format: None,
+                        status: m["status"].as_str().unwrap_or("UNKNOWN").to_string(),
+                        score: m["averageScore"].as_i64().map(|n| n as i32),
+                        genres: vec![],
+                        tags: vec![],
+                        description: None,
+                        cover_url: m["coverImage"]["medium"].as_str().map(String::from),
+                        season: None,
+                        season_year: None,
+                        studios: vec![],
+                        next_episode: None,
+                        next_airing_at: None,
+                        start_date: None,
+                        end_date: None,
+                        popularity: None,
+                        favourites: None,
+                        rankings: vec![],
+                    },
+                progress: entry["progress"].as_i64().map(|n| n as i32),
+                list_status: entry["status"].as_str().unwrap_or("").to_string(),
+            }
+        }).collect()).unwrap_or_default();
+        AniListCollection { name, entries }
+    }).collect())
+}
+
+#[derive(Debug, Serialize)]
+pub struct AniListCollection {
+    pub name: String,
+    pub entries: Vec<AniListEntry>,
+}
+
+#[tauri::command]
+pub async fn anilist_logout(app_handle: tauri::AppHandle) -> Result<(), String> {
+    let path = token_path(&app_handle);
+    let _ = fs::remove_file(&path);
+    Ok(())
+}

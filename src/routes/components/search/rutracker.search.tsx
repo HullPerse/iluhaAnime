@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import Modal from "../../components/shared/modal.component";
-import { Button } from "../../components/ui/button.component";
-import { Input } from "../../components/ui/input.component";
-import { SmallLoader } from "../../components/shared/loader.component";
+import Modal from "../../../components/shared/modal.component";
+import { Button } from "../../../components/ui/button.component";
+import { Input } from "../../../components/ui/input.component";
+import { SmallLoader } from "../../../components/shared/loader.component";
 
 function RutrackerLoginModal({
   setRutrackerAuth,

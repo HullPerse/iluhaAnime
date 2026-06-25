@@ -64,7 +64,7 @@ function Settings({
         max={3}
         step={0.01}
         value={settings.zoom}
-        onChange={(v) => onChange({ zoom: v })}
+        onChange={(v) => onChange({ zoom: v.toFixed(2) })}
         suffix="x"
       />
       <label className="flex items-center gap-2">

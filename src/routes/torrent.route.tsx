@@ -18,7 +18,7 @@ import {
   Check,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
-import TorrentFilesSection from "./components/file.torrent";
+import TorrentFilesSection from "./components/torrent/file.torrent";
 
 function TorrentRoute() {
   const {

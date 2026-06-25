@@ -228,6 +228,7 @@ function Player({
                 special={special}
                 cinemaMode={cinemaMode}
                 onToggleCinema={onToggleCinema}
+                onToggleSettings={() => setShowSettings((p) => !p)}
               />
             </div>
 
@@ -296,7 +297,6 @@ function Player({
                 onToggleAutoHide={onToggleAutoHide}
                 autoHideUi={autoHideUi}
                 cinemaMode={cinemaMode}
-                onToggleSettings={() => setShowSettings((p) => !p)}
                 audioReady={audioReady}
               />
             </div>

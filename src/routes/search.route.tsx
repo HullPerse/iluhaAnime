@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { useQuery } from "@tanstack/react-query";
 import type { Anime, LanguageTag, SettingsScraper } from "@/types";
+import { showToast } from "@/lib/toast";
 import { useEffect, useState, useMemo } from "react";
 import { detectLanguages, formatSize } from "@/lib/index.utils";
 import { useSearchStore } from "@/store/search.store";
@@ -137,14 +138,16 @@ function SearchRoute() {
     return num * (multipliers[unit] || 1);
   };
 
+  const qualityMatch = (title: string, quality: string): boolean => {
+    const num = quality.replace("p", "").replace("P", "");
+    return new RegExp(`\\b${num}p\\b`, "i").test(title);
+  };
+
   const filtered = useMemo(
     () =>
       data?.filter((res) => {
         if (settings.quality !== "all") {
-          if (
-            !res.title.toLowerCase().includes(settings.quality) &&
-            !res.title.toLowerCase().includes(settings.quality.slice(0, -1))
-          ) {
+          if (!qualityMatch(res.title, settings.quality)) {
             return false;
           }
         }
@@ -193,6 +196,7 @@ function SearchRoute() {
       setMagnets((prev) => ({ ...prev, [key]: magnet }));
       return magnet;
     } catch {
+      showToast("Не удалось получить магнит-ссылку", "error");
       return null;
     } finally {
       setLoadingMagnet((prev) => ({ ...prev, [key]: false }));

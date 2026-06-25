@@ -39,7 +39,7 @@ function FFMPEG({
       }>("get_video_info", { path: video.path }).then((res) => {
         setChapters(res.chapters);
         setStreams(res.streams);
-      });
+      }).catch(() => {});
     } catch {
       setStatus("missing");
     }

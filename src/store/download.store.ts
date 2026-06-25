@@ -107,6 +107,7 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
   },
 
   prepareTorrentDownload: async (magnet: string) => {
+    if (get().preparingTorrent) return;
     let saveDir = get().lastSaveDir;
     if (!saveDir) {
       const dir = await open({ directory: true, title: "Выберите папку для сохранения" });
@@ -164,7 +165,7 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
     }
 
     saveLastSaveDir(saveDir);
-    set({ lastSaveDir: saveDir, pendingTorrent: null });
+    set({ lastSaveDir: saveDir });
 
     if (pending.id) {
       await invoke("remove_torrent", { id: pending.id, deleteFiles: false }).catch((err) => console.error("Failed to clean up pending torrent:", err));
@@ -178,6 +179,8 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
       console.error("Failed to start torrent:", err);
       return undefined;
     });
+
+    set({ pendingTorrent: null });
 
     if (id !== undefined && sequential) {
       await invoke("set_sequential_download", { id, enabled: true }).catch((err) => console.error("Failed to enable sequential mode:", err));
@@ -202,6 +205,10 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
   },
 
   removeTorrent: async (id: number, deleteFiles: boolean) => {
+    set((s) => {
+      const { [id]: _, ...rest } = s.torrentFilesMap;
+      return { torrentFilesMap: rest };
+    });
     await invoke("remove_torrent", { id, deleteFiles }).catch((err) => console.error("Failed to remove torrent:", err));
   },
 

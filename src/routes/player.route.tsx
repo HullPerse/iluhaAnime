@@ -76,14 +76,13 @@ function PlayerRoute({
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      const action = getAction(e.code, e.ctrlKey, e.shiftKey);
-
-      if (!action) {
-        if (e.code === "Escape") {
-          setShowKeybinds(false);
-        }
+      if (e.code === "Escape") {
+        setShowKeybinds(false);
         return;
       }
+
+      const action = getAction(e.code, e.ctrlKey, e.shiftKey);
+      if (!action) return;
 
       e.preventDefault();
 

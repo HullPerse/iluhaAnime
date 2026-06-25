@@ -75,6 +75,8 @@ function Player({
   const [audioOverrideSrc, setAudioOverrideSrc] = useState<string | null>(null);
 
   const hasSeeked = useRef(false);
+  const lastPosSaveRef = useRef(0);
+  const POS_SAVE_INTERVAL = 2000;
   const effectiveSrc = audioOverrideSrc ?? src;
 
   const settings = usePlayerStore((s) => s.settings);
@@ -253,10 +255,15 @@ function Player({
                   onTimeUpdate={(e) => {
                     const t = (e.target as HTMLVideoElement).currentTime;
                     onTimeUpdate?.(t);
-                    savePos(t);
+                    const now = Date.now();
+                    if (now - lastPosSaveRef.current >= POS_SAVE_INTERVAL) {
+                      savePos(t);
+                      lastPosSaveRef.current = now;
+                    }
                   }}
                   onPlay={() => onPlayStateChange?.(true)}
                   onPause={() => onPlayStateChange?.(false)}
+                  onEnded={() => onFileNext?.()}
                 />
               ) : (
                 <EmptyPlayer />

@@ -67,6 +67,12 @@ pub struct TorrentManager {
     pub pending_selections: Mutex<HashMap<usize, Vec<usize>>>,
 }
 
+fn is_safe_path_component(name: &str) -> bool {
+    !std::path::Path::new(name)
+        .components()
+        .any(|c| c == std::path::Component::ParentDir)
+}
+
 impl TorrentManager {
     pub async fn new(app_data_dir: PathBuf) -> Result<Self> {
         let download_dir = app_data_dir.join("torrents");
@@ -121,7 +127,7 @@ impl TorrentManager {
                     .as_ref()
                     .map(|l| l.download_speed.mbps)
                     .unwrap_or(0.0);
-                let speed_bytes = speed_mbps * 1024.0 * 1024.0;
+                let speed_bytes = speed_mbps * 125000.0;
 
                 let up_mbps = stats
                     .live
@@ -148,7 +154,7 @@ impl TorrentManager {
                     downloaded_bytes: stats.progress_bytes,
                     uploaded_bytes: stats.uploaded_bytes,
                     download_speed: speed_bytes,
-                    upload_speed: up_mbps * 1024.0 * 1024.0,
+                    upload_speed: up_mbps * 125000.0,
                     peers_connected: 0,
                     save_dir,
                     progress: if stats.total_bytes > 0 {
@@ -176,6 +182,7 @@ impl TorrentManager {
     ) -> Result<usize> {
         let output_folder = sub_folder
             .as_ref()
+            .filter(|s| is_safe_path_component(s))
             .map(|s| std::path::Path::new(&save_dir).join(s).to_string_lossy().to_string())
             .unwrap_or_else(|| save_dir.clone());
         let opts = AddTorrentOptions {
@@ -259,6 +266,9 @@ impl TorrentManager {
         let conflicting_files: Vec<String> = files
             .iter()
             .filter_map(|f| {
+                if !is_safe_path_component(sub_folder) || !is_safe_path_component(&f.name) {
+                    return None;
+                }
                 let full_path = std::path::Path::new(&save_dir).join(sub_folder).join(&f.name);
                 if full_path.exists() {
                     Some(f.name.clone())

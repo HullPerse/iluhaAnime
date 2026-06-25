@@ -27,7 +27,7 @@ function touch(entries: MediaEntry[], path: string): MediaEntry[] {
     const entry = { ...entries[idx], lastPlayed: Date.now() };
     const copy = entries.filter((_, i) => i !== idx);
     copy.unshift(entry);
-    return copy;
+    return copy.slice(0, MAX_ENTRIES);
   }
   const entry: MediaEntry = { path, position: 0, subOffset: 0, lastPlayed: Date.now() };
   return [entry, ...entries].slice(0, MAX_ENTRIES);

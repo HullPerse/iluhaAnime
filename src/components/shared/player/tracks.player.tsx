@@ -3,6 +3,7 @@ import type { VideoStreamInfo } from "@/types";
 import { useState, useCallback, useRef, useEffect } from "react";
 import { parseVTT } from "@/lib/index.utils";
 import { useMediaStore } from "@/store/media.store";
+import { showToast } from "@/lib/toast";
 import { Check } from "lucide-react";
 import AssOverlay from "./subtitles.player";
 
@@ -126,6 +127,7 @@ function Tracks({
   const initializedRef = useRef(false);
   const subTrackElRef = useRef<HTMLTrackElement | null>(null);
   const subBlobUrlRef = useRef<string | null>(null);
+  const tempFilesRef = useRef<string[]>([]);
 
   const [assUrl, setAssUrl] = useState<string | null>(null);
   const [assVisible, setAssVisible] = useState(false);
@@ -168,6 +170,11 @@ function Tracks({
       savedPlayingRef.current = !videoEl.paused;
 
       try {
+        for (const p of tempFilesRef.current) {
+          invoke("cleanup_temp_file", { path: p }).catch(() => {});
+        }
+        tempFilesRef.current = [];
+
         const out = stream.file_path
           ? await invoke<string>("remux_with_external_audio", {
               videoPath: mediaPath,
@@ -183,6 +190,7 @@ function Tracks({
           return;
         }
 
+        tempFilesRef.current.push(out);
         onAudioSwitch(convertFileSrc(out));
 
         const restore = () => {
@@ -196,7 +204,16 @@ function Tracks({
         };
         videoEl.addEventListener("loadedmetadata", restore, { once: true });
       } catch {
+        const fallbackTime = savedTimeRef.current;
+        const wasPlaying = savedPlayingRef.current;
         onAudioSwitch(null);
+        const restoreFallback = () => {
+          try { videoEl.currentTime = fallbackTime; } catch {}
+          if (wasPlaying) videoEl.play().catch(() => {});
+          videoEl.removeEventListener("loadedmetadata", restoreFallback);
+        };
+        videoEl.addEventListener("loadedmetadata", restoreFallback, { once: true });
+        showToast("Не удалось переключить аудиодорожку", "error");
       }
     },
     [mediaPath, onAudioSwitch, videoEl, audioStreams, extAudio],
@@ -241,6 +258,8 @@ function Tracks({
         if (gen !== subGenRef.current) return;
 
         const url = convertFileSrc(extracted);
+
+        tempFilesRef.current.push(extracted);
 
         if (isAssSub(stream)) {
           setAssUrl(url);
@@ -396,6 +415,10 @@ function Tracks({
     return () => {
       if (subTrackElRef.current) subTrackElRef.current.remove();
       if (subBlobUrlRef.current) URL.revokeObjectURL(subBlobUrlRef.current);
+      for (const p of tempFilesRef.current) {
+        invoke("cleanup_temp_file", { path: p }).catch(() => {});
+      }
+      tempFilesRef.current = [];
     };
   }, []);
 

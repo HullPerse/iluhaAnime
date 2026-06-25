@@ -80,6 +80,11 @@ async fn remove_torrent(
 }
 
 #[tauri::command]
+fn cleanup_temp_file(path: String) -> Result<(), String> {
+    std::fs::remove_file(&path).map_err(|e| format!("{e}"))
+}
+
+#[tauri::command]
 fn get_app_data_path(app_handle: tauri::AppHandle) -> Result<String, String> {
     let dir = app_handle
         .path()
@@ -266,6 +271,7 @@ pub fn run() {
             pause_torrent,
             resume_torrent,
             remove_torrent,
+            cleanup_temp_file,
             get_app_data_path,
             write_text_file,
             read_text_file,

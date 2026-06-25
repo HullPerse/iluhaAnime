@@ -1,7 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { useQuery } from "@tanstack/react-query";
 import type { Anime, LanguageTag, SettingsScraper } from "@/types";
-import { showToast } from "@/lib/toast";
+import { showToast } from "@/lib/toast.utils";
 import { useEffect, useState, useMemo } from "react";
 import { detectLanguages, formatSize } from "@/lib/index.utils";
 import { useSearchStore } from "@/store/search.store";

@@ -98,6 +98,16 @@ function PlayerRoute({
   }, []);
 
   const playGenRef = useRef(0);
+  const tempFilesRef = useRef<string[]>([]);
+
+  useEffect(() => {
+    return () => {
+      for (const p of tempFilesRef.current) {
+        invoke("cleanup_temp_file", { path: p }).catch(() => {});
+      }
+      tempFilesRef.current = [];
+    };
+  }, []);
 
   const playFile = useCallback(
     async (path: string) => {
@@ -149,6 +159,10 @@ function PlayerRoute({
                   });
               if (gen !== playGenRef.current) return;
               remuxSrc = convertFileSrc(out);
+              for (const p of tempFilesRef.current) {
+                invoke("cleanup_temp_file", { path: p }).catch(() => {});
+              }
+              tempFilesRef.current = [out];
             } catch {}
           }
         }

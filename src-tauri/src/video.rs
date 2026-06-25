@@ -1,3 +1,4 @@
+use sha1::Digest;
 use serde::Serialize;
 use tauri::Manager;
 use futures::StreamExt;
@@ -794,4 +795,65 @@ pub async fn scan_video_folder(app_handle: tauri::AppHandle, path: String) -> Re
 
     files.sort_by(|a, b| a.path.cmp(&b.path));
     Ok(files)
+}
+
+fn path_hash(path: &str) -> String {
+    let mut hasher = sha1::Sha1::new();
+    hasher.update(path.as_bytes());
+    hex::encode(hasher.finalize())
+}
+
+#[tauri::command]
+pub async fn generate_thumbnails(
+    app_handle: tauri::AppHandle,
+    video_path: String,
+    interval: f64,
+) -> Result<Vec<String>, String> {
+    let ffmpeg = ffmpeg_exe(&app_handle);
+    let thumbs_root = ffmpeg_bin_dir(&app_handle).join("thumbs");
+    let out_dir = thumbs_root.join(path_hash(&video_path));
+
+    if out_dir.exists() {
+        let mut existing: Vec<String> = Vec::new();
+        let mut entries: Vec<_> = std::fs::read_dir(&out_dir)
+            .map_err(|e| format!("read thumbs dir: {e}"))?
+            .filter_map(|e| e.ok())
+            .collect();
+        entries.sort_by_key(|e| e.file_name());
+        for entry in &entries {
+            existing.push(entry.path().to_string_lossy().to_string());
+        }
+        if !existing.is_empty() {
+            return Ok(existing);
+        }
+    }
+
+    std::fs::create_dir_all(&out_dir).map_err(|e| format!("create thumbs dir: {e}"))?;
+
+    let status = std::process::Command::new(&ffmpeg)
+        .args([
+            "-i", &video_path,
+            "-vf", &format!("fps=1/{interval}"),
+            "-q:v", "5",
+        ])
+        .arg(out_dir.join("thumb_%04d.jpg").to_string_lossy().to_string())
+        .output()
+        .map_err(|e| format!("ffmpeg thumbnails: {e}"))?;
+
+    if !status.status.success() {
+        let stderr = String::from_utf8_lossy(&status.stderr);
+        return Err(format!("ffmpeg thumbnails failed: {stderr}"));
+    }
+
+    let mut thumb_paths: Vec<String> = Vec::new();
+    let mut entries: Vec<_> = std::fs::read_dir(&out_dir)
+        .map_err(|e| format!("read thumbs dir: {e}"))?
+        .filter_map(|e| e.ok())
+        .collect();
+    entries.sort_by_key(|e| e.file_name());
+    for entry in &entries {
+        thumb_paths.push(entry.path().to_string_lossy().to_string());
+    }
+
+    Ok(thumb_paths)
 }

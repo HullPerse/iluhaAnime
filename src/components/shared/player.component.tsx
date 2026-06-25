@@ -22,6 +22,7 @@ import Modal from "./modal.component";
 import { cn } from "@/lib/index.utils";
 import Settings from "./player/settings.player";
 import SeekOffset from "./player/offset.player";
+import SkipButton from "./player/skip.player";
 
 const { Provider, Container } = createPlayer({ features: videoFeatures });
 
@@ -45,6 +46,7 @@ function Player({
   autoHideUi,
   onToggleCinema,
   onToggleAutoHide,
+  audioReady,
 }: {
   header: string;
   onClose: () => void;
@@ -65,6 +67,7 @@ function Player({
   autoHideUi?: boolean;
   onToggleCinema?: () => void;
   onToggleAutoHide?: () => void;
+  audioReady?: boolean;
 }) {
   const [uiVisible, setUiVisible] = useState(true);
   const hideTimerRef = useRef<number | null>(null);
@@ -110,15 +113,15 @@ function Player({
       el.id = "sub-cue";
       document.head.appendChild(el);
     }
-    const a =
+    const hex = settings.subBgColor.replace("#", "");
+    const r = parseInt(hex.slice(0, 2), 16);
+    const g = parseInt(hex.slice(2, 4), 16);
+    const b = parseInt(hex.slice(4, 6), 16);
+    const bg =
       settings.subBgOpacity > 0
-        ? `background:${settings.subBgColor}${Math.round(
-            (settings.subBgOpacity / 100) * 255,
-          )
-            .toString(16)
-            .padStart(2, "0")};`
+        ? `background:rgba(${r},${g},${b},${settings.subBgOpacity / 100});`
         : "";
-    el.textContent = `video::cue{font-size:${settings.subFontSize}px;font-family:${settings.subFontFamily},sans-serif;color:${settings.subColor};${a}}`;
+    el.textContent = `video::cue{font-size:${settings.subFontSize}px;font-family:${settings.subFontFamily},sans-serif;color:${settings.subColor};${bg}}`;
   }, [
     settings.subFontSize,
     settings.subFontFamily,
@@ -151,22 +154,28 @@ function Player({
     [mediaPath, setPosition],
   );
 
-  // Auto-hide UI on inactivity (cinema mode only)
+  // Auto-hide UI & cursor on inactivity (cinema mode only)
   useEffect(() => {
     if (!cinemaMode || !autoHideUi) {
       setUiVisible(true);
+      document.body.style.cursor = "";
       return;
     }
     const show = () => {
       setUiVisible(true);
+      document.body.style.cursor = "";
       if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-      hideTimerRef.current = window.setTimeout(() => setUiVisible(false), 3000);
+      hideTimerRef.current = window.setTimeout(() => {
+        setUiVisible(false);
+        document.body.style.cursor = "none";
+      }, 3000);
     };
     show();
     window.addEventListener("mousemove", show);
     return () => {
       window.removeEventListener("mousemove", show);
       if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+      document.body.style.cursor = "";
     };
   }, [cinemaMode, autoHideUi]);
 
@@ -228,6 +237,11 @@ function Player({
               )}
             >
               <SeekOffset mediaPath={mediaPath} />
+              <SkipButton
+                chapters={chapters}
+                onFileNext={onFileNext}
+                hasNext={hasNext}
+              />
               {effectiveSrc ? (
                 <Video
                   ref={setVideoEl}
@@ -261,7 +275,7 @@ function Player({
                   "opacity-0 pointer-events-none",
               )}
             >
-              <Timeline chapters={chapters} />
+              <Timeline chapters={chapters} mediaPath={mediaPath} />
               <Controls
                 chapters={chapters}
                 mediaPath={mediaPath}
@@ -276,6 +290,7 @@ function Player({
                 autoHideUi={autoHideUi}
                 cinemaMode={cinemaMode}
                 onToggleSettings={() => setShowSettings((p) => !p)}
+                audioReady={audioReady}
               />
             </div>
           </div>
@@ -284,14 +299,7 @@ function Player({
 
       {showSettings && (
         <Modal header="Настройки" onClose={() => setShowSettings(false)}>
-          <Settings
-            settings={settings}
-            onChange={patchSettings}
-            mediaPath={mediaPath}
-            subtitleStreams={
-              streams?.filter((s) => s.codec_type === "subtitle") ?? []
-            }
-          />
+          <Settings settings={settings} onChange={patchSettings} />
         </Modal>
       )}
     </Provider>

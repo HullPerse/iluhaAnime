@@ -259,6 +259,7 @@ pub fn run() {
             video::download_ffmpeg,
             video::remove_ffmpeg,
             video::scan_video_folder,
+            video::generate_thumbnails,
             start_torrent_download,
             get_torrent_info,
             list_torrents,

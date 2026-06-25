@@ -54,6 +54,7 @@ export type VideoType = {
   path: string;
   file: string;
   initialTime?: number;
+  remuxSrc?: string;
 } | null;
 
 export type ChapterType = {

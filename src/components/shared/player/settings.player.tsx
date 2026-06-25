@@ -1,18 +1,12 @@
-import { VideoStreamInfo } from "@/types";
-import { useMediaStore } from "@/store/media.store";
 import { Button } from "@/components/ui/button.component";
 import Slider from "@/components/ui/range.component";
 
 function Settings({
   settings,
   onChange,
-  mediaPath,
-  subtitleStreams,
 }: {
   settings: any;
   onChange: (p: any) => void;
-  mediaPath?: string;
-  subtitleStreams: VideoStreamInfo[];
 }) {
   const D = {
     rotation: 0,
@@ -30,25 +24,11 @@ function Settings({
     subFontSize: 18,
     subFontFamily: "Arial",
     subColor: "#ffffff",
-    subBgOpacity: 0,
+    subBgOpacity: 100,
     subBgColor: "#000000",
   };
-  const mediaGet = useMediaStore((s) => s.getEntry);
 
   const reset = () => onChange(D);
-
-  const currentSub =
-    mediaPath &&
-    (() => {
-      const idx = mediaGet(mediaPath)?.subtitleTrack;
-      return idx !== undefined
-        ? subtitleStreams.find((s) => s.index === idx)
-        : undefined;
-    })();
-  const isVttSub =
-    currentSub &&
-    currentSub.codec_name !== "ass" &&
-    currentSub.codec_name !== "ssa";
 
   return (
     <div className="flex flex-col gap-2 windows95-text max-h-80 overflow-y-auto p-2">
@@ -168,61 +148,50 @@ function Settings({
         suffix="%"
       />
 
-      {isVttSub && (
-        <>
-          <hr className="border-muted my-1" />
-          <span className="font-bold">Субтитры (VTT)</span>
-          <Slider
-            label="Размер"
-            min={12}
-            max={48}
-            step={1}
-            value={settings.subFontSize}
-            onChange={(v) => onChange({ subFontSize: v })}
-            suffix="px"
-          />
-          <label className="flex items-center gap-2">
-            <span className="w-24 shrink-0">Шрифт</span>
-            <select
-              value={settings.subFontFamily}
-              onChange={(e) => onChange({ subFontFamily: e.target.value })}
-              className="flex-1 h-5 windows95-border bg-primary text-[10px] windows95-font"
-            >
-              <option value="Arial">Arial</option>
-              <option value="Tahoma">Tahoma</option>
-              <option value="Verdana">Verdana</option>
-              <option value="'Courier New'">Courier New</option>
-              <option value="Georgia">Georgia</option>
-            </select>
-          </label>
-          <label className="flex items-center gap-2">
-            <span className="w-24 shrink-0">Цвет</span>
-            <input
-              type="color"
-              value={settings.subColor}
-              onChange={(e) => onChange({ subColor: e.target.value })}
-              className="h-5 w-10 windows95-border cursor-pointer"
-            />
-          </label>
-          <label className="flex items-center gap-2">
-            <span className="w-24 shrink-0">Фон</span>
-            <input
-              type="color"
-              value={settings.subBgColor}
-              onChange={(e) => onChange({ subBgColor: e.target.value })}
-              className="h-5 w-10 windows95-border cursor-pointer"
-            />
-            <Slider
-              min={0}
-              max={100}
-              step={1}
-              value={settings.subBgOpacity}
-              onChange={(v) => onChange({ subBgOpacity: v })}
-              suffix="%"
-            />
-          </label>
-        </>
-      )}
+      <hr className="border-muted my-1" />
+      <span className="font-bold">Субтитры (VTT)</span>
+      <Slider
+        label="Размер"
+        min={12}
+        max={48}
+        step={1}
+        value={settings.subFontSize}
+        onChange={(v) => onChange({ subFontSize: v })}
+        suffix="px"
+      />
+      <label className="flex items-center gap-2">
+        <span className="w-24 shrink-0">Шрифт</span>
+        <select
+          value={settings.subFontFamily}
+          onChange={(e) => onChange({ subFontFamily: e.target.value })}
+          className="flex-1 h-5 windows95-border bg-primary text-[10px] windows95-font"
+        >
+          <option value="Arial">Arial</option>
+          <option value="Tahoma">Tahoma</option>
+          <option value="Verdana">Verdana</option>
+          <option value="'Courier New'">Courier New</option>
+          <option value="Georgia">Georgia</option>
+        </select>
+      </label>
+      <label className="flex items-center gap-2">
+        <span className="w-24 shrink-0">Цвет</span>
+        <input
+          type="color"
+          value={settings.subColor}
+          onChange={(e) => onChange({ subColor: e.target.value })}
+          className="h-5 w-10 windows95-border cursor-pointer"
+        />
+      </label>
+
+      <label className="flex items-center gap-2">
+        <span className="w-24 shrink-0">Фон</span>
+        <input
+          type="color"
+          value={settings.subBgColor}
+          onChange={(e) => onChange({ subBgColor: e.target.value })}
+          className="h-5 w-10 windows95-border cursor-pointer"
+        />
+      </label>
 
       <Button className="mt-1" onClick={reset}>
         Сбросить

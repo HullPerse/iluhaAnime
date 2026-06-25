@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import { listen } from "@tauri-apps/api/event";
 import { CHEATSHEET_ROWS } from "@/config/keybinds.config";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { buildTree } from "@/lib/player.utils";
@@ -71,21 +71,7 @@ function PlayerRoute({
     if (!video) {
       setChapters([]);
       setStreams([]);
-      return;
     }
-
-    invoke<{
-      chapters: ChapterType[];
-      streams: VideoStreamInfo[];
-    }>("get_video_info", { path: video.path })
-      .then((info) => {
-        setChapters(info.chapters);
-        setStreams(info.streams);
-      })
-      .catch(() => {
-        setChapters([]);
-        setStreams([]);
-      });
   }, [video]);
 
   useEffect(() => {
@@ -112,14 +98,73 @@ function PlayerRoute({
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
-  const playFile = useCallback((path: string) => {
-    const saved = mediaGet(path)?.position;
-    setVideo({
-      path,
-      file: path.split(/[/\\]/).pop() ?? "Video",
-      initialTime: saved ?? 0,
-    });
-  }, [mediaGet]);
+  const playGenRef = useRef(0);
+
+  const playFile = useCallback(
+    async (path: string) => {
+      const gen = ++playGenRef.current;
+
+      let streams: VideoStreamInfo[] = [];
+      let chapters: ChapterType[] = [];
+      try {
+        const info = await invoke<{
+          chapters: ChapterType[];
+          streams: VideoStreamInfo[];
+        }>("get_video_info", { path });
+        if (gen !== playGenRef.current) return;
+        chapters = info.chapters;
+        streams = info.streams;
+        setChapters(chapters);
+        setStreams(streams);
+      } catch {
+        if (gen !== playGenRef.current) return;
+        setChapters([]);
+        setStreams([]);
+      }
+
+      const savedEntry = mediaGet(path);
+      const saved = savedEntry?.position;
+      const savedAudio = savedEntry?.audioTrack;
+
+      let remuxSrc: string | undefined;
+      if (savedAudio !== undefined) {
+        const audioStreams = streams.filter(
+          (s) => s.codec_type === "audio",
+        );
+        const defaultAudio =
+          audioStreams.find((s) => s.is_default)?.index ??
+          audioStreams[0]?.index ??
+          -1;
+        if (savedAudio !== defaultAudio) {
+          const stream = audioStreams.find((s) => s.index === savedAudio);
+          if (stream) {
+            try {
+              const out = stream.file_path
+                ? await invoke<string>("remux_with_external_audio", {
+                    videoPath: path,
+                    audioPath: stream.file_path,
+                  })
+                : await invoke<string>("remux_video_audio", {
+                    path,
+                    streamIndex: savedAudio,
+                  });
+              if (gen !== playGenRef.current) return;
+              remuxSrc = convertFileSrc(out);
+            } catch {}
+          }
+        }
+      }
+
+      if (gen !== playGenRef.current) return;
+      setVideo({
+        path,
+        file: path.split(/[/\\]/).pop() ?? "Video",
+        initialTime: saved ?? 0,
+        remuxSrc,
+      });
+    },
+    [mediaGet],
+  );
 
   useEffect(() => {
     if (folderPaths.length === 0) return;
@@ -156,47 +201,49 @@ function PlayerRoute({
     });
   }, [torrents, torrentFilesMap, loadTorrentFiles]);
 
-  const getAllFiles = (): VideoFileEntry[] => {
-    const result: VideoFileEntry[] = [];
-
+  const currentTreeFiles: VideoFileEntry[] = useMemo(() => {
+    if (!video) return [];
     for (const tree of folderTrees) {
-      const stack = [tree];
-
+      const stack: FolderNode[] = [tree];
       while (stack.length > 0) {
-        const item = stack.pop();
-
-        if (!item) return [];
-
-        result.push(...item?.files);
-        stack.push(...item?.children);
+        const item = stack.pop()!;
+        if (item.files.some((f) => f.path === video.path)) {
+          const result: VideoFileEntry[] = [];
+          const s: FolderNode[] = [item];
+          while (s.length > 0) {
+            const n = s.pop()!;
+            result.push(...n.files);
+            s.push(...n.children);
+          }
+          return result;
+        }
+        stack.push(...item.children);
       }
     }
-    return result;
-  };
-
-  const allFiles: VideoFileEntry[] = getAllFiles();
+    return [];
+  }, [folderTrees, video]);
 
   const currentIndex: number = useMemo(() => {
     if (!video) return -1;
-    else return allFiles.findIndex((f) => f.path === video.path);
-  }, [allFiles, video]);
+    else return currentTreeFiles.findIndex((f) => f.path === video.path);
+  }, [currentTreeFiles, video]);
 
   const hasNext: boolean =
-    currentIndex >= 0 && currentIndex < allFiles.length - 1;
+    currentIndex >= 0 && currentIndex < currentTreeFiles.length - 1;
   const hasPrev: boolean = currentIndex > 0;
 
   const handleFile = useCallback(
     () => ({
       next: () => {
-        if (hasNext && allFiles[currentIndex + 1])
-          playFile(allFiles[currentIndex + 1].path);
+        if (hasNext && currentTreeFiles[currentIndex + 1])
+          playFile(currentTreeFiles[currentIndex + 1].path);
       },
       prev: () => {
-        if (hasPrev && allFiles[currentIndex - 1])
-          playFile(allFiles[currentIndex - 1].path);
+        if (hasPrev && currentTreeFiles[currentIndex - 1])
+          playFile(currentTreeFiles[currentIndex - 1].path);
       },
     }),
-    [hasPrev, hasNext, allFiles, currentIndex, playFile],
+    [hasPrev, hasNext, currentTreeFiles, currentIndex, playFile],
   );
 
   const handleOpenFile = useCallback(async () => {
@@ -299,8 +346,9 @@ function PlayerRoute({
       <main className="flex flex-col w-full h-full gap-1 overflow-y-auto">
         <Player
           header={video.file.replace(/\.[^/.]+$/, "")}
-          src={convertFileSrc(video.path)}
+          src={video.remuxSrc ?? convertFileSrc(video.path)}
           onClose={() => setVideo(null)}
+          audioReady={!!video.remuxSrc}
           chapters={chapters}
           mediaPath={video.path}
           streams={streams}

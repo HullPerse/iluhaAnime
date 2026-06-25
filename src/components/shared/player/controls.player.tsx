@@ -41,6 +41,7 @@ function Controls({
   cinemaMode,
   autoHideUi,
   onToggleSettings,
+  audioReady,
 }: {
   chapters?: { start_time: number; end_time: number; title: string }[];
   mediaPath?: string;
@@ -55,6 +56,7 @@ function Controls({
   cinemaMode?: boolean;
   autoHideUi?: boolean;
   onToggleSettings?: () => void;
+  audioReady?: boolean;
 }) {
   const [dragging, setDragging] = useState<boolean>(false);
   const [boundaryMsg, setBoundaryMsg] = useState<string | null>(null);
@@ -324,6 +326,7 @@ function Controls({
           mediaPath={mediaPath}
           videoEl={videoEl}
           onAudioSwitch={onAudioSwitch!}
+          audioReady={audioReady}
         />
       )}
 

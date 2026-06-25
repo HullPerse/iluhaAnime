@@ -23,6 +23,7 @@ function Header({
       <span className="text-white windows95-text font-bold line-clamp-1">
         {header}
       </span>
+
       <div className="flex flex-row items-center gap-1">
         {onToggleCinema && (
           <Button

@@ -1,3 +1,5 @@
+import { invoke } from "@tauri-apps/api/core";
+import { convertFileSrc } from "@tauri-apps/api/core";
 import { formatTime } from "@/lib/index.utils";
 import {
   selectBuffer,
@@ -7,18 +9,24 @@ import {
 } from "@videojs/react";
 import { useState, useEffect, useRef } from "react";
 
+const THUMB_INTERVAL = 10;
+
 function Timeline({
   chapters,
+  mediaPath,
 }: {
   chapters?: { start_time: number; end_time: number; title: string }[];
+  mediaPath?: string;
 }) {
   const [dragging, setDragging] = useState<boolean>(false);
   const [scrubTime, setScrubTime] = useState<number | null>(null);
   const [hoverInfo, setHoverInfo] = useState<{
     time: number;
-    x: number;
+    rawX: number;
     chapterTitle?: string;
   } | null>(null);
+  const [thumbs, setThumbs] = useState<string[]>([]);
+  const [tipWidth, setTipWidth] = useState(200);
   const tooltipRef = useRef<HTMLDivElement>(null);
 
   const time = usePlayer(selectTime);
@@ -46,6 +54,33 @@ function Timeline({
       : 0;
 
   const timelineRef = useRef<HTMLElement>(null);
+  const [imgLoaded, setImgLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!mediaPath) {
+      setThumbs([]);
+      return;
+    }
+    let cancelled = false;
+    invoke<string[]>("generate_thumbnails", {
+      videoPath: mediaPath,
+      interval: THUMB_INTERVAL,
+    })
+      .then((paths) => {
+        if (!cancelled) setThumbs(paths);
+      })
+      .catch(() => {
+        if (!cancelled) setThumbs([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [mediaPath]);
+
+  const thumbIndex =
+    hoverInfo && thumbs.length > 0
+      ? Math.min(Math.floor(hoverInfo.time / THUMB_INTERVAL), thumbs.length - 1)
+      : -1;
   const seekThrottleRef = useRef<number | null>(null);
   const dragTargetRef = useRef(0);
 
@@ -79,20 +114,26 @@ function Timeline({
     return undefined;
   };
 
+  const hoverX =
+    hoverInfo && timelineRef.current
+      ? (() => {
+          const parent = timelineRef.current.parentElement;
+          const wrapperW =
+            parent?.offsetWidth ?? timelineRef.current.offsetWidth;
+          const half = tipWidth / 2;
+          return Math.max(half, Math.min(wrapperW - half, hoverInfo.rawX));
+        })()
+      : 0;
+
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!timelineRef.current) return;
     const rect = timelineRef.current.getBoundingClientRect();
     const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
     const t = pct * duration;
     if (dragging) paintScrub(e.clientX);
-    const wrapperW =
-      timelineRef.current.parentElement?.offsetWidth ?? rect.width;
-    const tipW = tooltipRef.current?.offsetWidth ?? 160;
-    const half = tipW / 2;
-    const x = Math.max(half, Math.min(wrapperW - half, e.clientX - rect.left));
     setHoverInfo({
       time: t,
-      x,
+      rawX: e.clientX - rect.left,
       chapterTitle: getChapterAtTime(t),
     });
   };
@@ -141,17 +182,34 @@ function Timeline({
       <div className="flex-1 relative">
         {hoverInfo && (
           <div
-            ref={tooltipRef}
+            ref={(el) => {
+              tooltipRef.current = el;
+              if (el && el.offsetWidth !== tipWidth)
+                setTipWidth(el.offsetWidth);
+            }}
             className="absolute bottom-full mb-1 z-50 select-text"
-            style={{ left: `${hoverInfo.x}px`, transform: "translateX(-50%)" }}
+            style={{ left: `${hoverX}px`, transform: "translateX(-50%)" }}
           >
-            <div className="windows95-border bg-primary px-1 py-0.5 text-[10px] windows95-font whitespace-nowrap min-w-16 text-center">
-              <span className="tabular-nums">{formatTime(hoverInfo.time)}</span>
-              {hoverInfo.chapterTitle && (
-                <span className="ml-1 text-white/60">
+            <div className="flex flex-col windows95-border bg-primary px-1 py-0.5 windows95-text whitespace-nowrap min-w-32 w-32 max-w-32 items-center">
+              {thumbIndex >= 0 && (
+                <div className="mb-0.5">
+                  <img
+                    src={convertFileSrc(thumbs[thumbIndex])}
+                    className={`w-32 h-auto border border-black/20 ${imgLoaded ? "" : "hidden"}`}
+                    alt="Thumbnail"
+                    onLoad={() => setImgLoaded(true)}
+                    onError={() => setImgLoaded(false)}
+                  />
+                </div>
+              )}
+              <span className="tabular-nums">
+                {formatTime(hoverInfo.time)} ({hoverInfo.chapterTitle})
+              </span>
+              {/*{hoverInfo.chapterTitle && (
+                <span className="ml-1 text-muted">
                   - {hoverInfo.chapterTitle}
                 </span>
-              )}
+              )}*/}
             </div>
           </div>
         )}

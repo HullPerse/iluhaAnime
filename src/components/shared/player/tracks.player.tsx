@@ -87,12 +87,14 @@ function Tracks({
   mediaPath,
   videoEl,
   onAudioSwitch,
+  audioReady,
 }: {
   audioStreams: VideoStreamInfo[];
   subtitleStreams: VideoStreamInfo[];
   mediaPath: string;
   videoEl: HTMLVideoElement | null;
   onAudioSwitch: (newSrc: string | null) => void;
+  audioReady?: boolean;
 }) {
   const [extAudio, setExtAudio] = useState<VideoStreamInfo[]>([]);
   const [extSubs, setExtSubs] = useState<VideoStreamInfo[]>([]);
@@ -148,7 +150,7 @@ function Tracks({
     mergedSubs.find((s) => s.index === selectedSub && isAssSub(s));
 
   const handleAudio = useCallback(
-    async (idx: number) => {
+    async (idx: number, restoreTime?: number) => {
       setSelectedAudio(idx);
       mediaSetTrack(mediaPath, "audio", idx);
 
@@ -160,7 +162,7 @@ function Tracks({
       );
       if (!stream) return;
 
-      savedTimeRef.current = videoEl.currentTime;
+      savedTimeRef.current = restoreTime ?? videoEl.currentTime;
       savedPlayingRef.current = !videoEl.paused;
 
       try {
@@ -292,27 +294,35 @@ function Tracks({
     loadDelay();
     const savedA = mediaGet(mediaPath)?.audioTrack;
     const savedS = mediaGet(mediaPath)?.subtitleTrack;
-    if (savedA !== undefined && savedA !== defaultAudio) {
+
+    if (savedA !== undefined) {
       setSelectedAudio(savedA);
-      handleAudio(savedA);
-    } else if (savedA !== undefined) {
-      setSelectedAudio(savedA);
+      if (!audioReady && savedA !== defaultAudio) {
+        const pos = mediaGet(mediaPath)?.position;
+        handleAudio(savedA, pos);
+      }
+    } else {
+      setSelectedAudio(defaultAudio);
     }
+
     if (savedS !== undefined) {
       setSelectedSub(savedS);
-      if (savedS !== SUB_OFF) {
-        loadSubtitle(savedS);
-      }
+      if (savedS !== SUB_OFF) loadSubtitle(savedS);
     } else if (defaultSub >= 0) {
+      setSelectedSub(defaultSub);
       loadSubtitle(defaultSub);
+    } else {
+      setSelectedSub(SUB_OFF);
     }
   }, [
     videoEl,
-    subtitleStreams.length,
-    audioStreams.length,
+    subtitleStreams,
+    audioStreams,
     mediaPath,
     handleAudio,
     defaultAudio,
+    defaultSub,
+    loadDelay,
   ]);
 
   useEffect(() => {

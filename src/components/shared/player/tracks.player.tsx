@@ -124,6 +124,8 @@ function Tracks({
   const subGenRef = useRef(0);
 
   const initializedRef = useRef(false);
+  const subTrackElRef = useRef<HTMLTrackElement | null>(null);
+  const subBlobUrlRef = useRef<string | null>(null);
 
   const [assUrl, setAssUrl] = useState<string | null>(null);
   const [assVisible, setAssVisible] = useState(false);
@@ -206,10 +208,15 @@ function Tracks({
 
       const gen = ++subGenRef.current;
 
-      if (textTrackRef.current) {
-        textTrackRef.current.mode = "disabled";
-        textTrackRef.current = null;
+      if (subTrackElRef.current) {
+        subTrackElRef.current.remove();
+        subTrackElRef.current = null;
       }
+      if (subBlobUrlRef.current) {
+        URL.revokeObjectURL(subBlobUrlRef.current);
+        subBlobUrlRef.current = null;
+      }
+      textTrackRef.current = null;
 
       setAssUrl(null);
       setAssVisible(false);
@@ -246,14 +253,42 @@ function Tracks({
 
           if (gen !== subGenRef.current) return;
 
-          const track = videoEl.addTextTrack("subtitles", fmt(stream), lang);
+          const fmtTime = (t: number) => {
+            const h = Math.floor(t / 3600);
+            const m = Math.floor((t % 3600) / 60);
+            const s = (t % 60).toFixed(3).padStart(6, "0");
+            return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${s}`;
+          };
+          const vttLines = ["WEBVTT"];
           for (const c of cues) {
-            try {
-              track.addCue(new VTTCue(c.start, c.end, c.text));
-            } catch {}
+            vttLines.push(
+              "",
+              `${fmtTime(c.start)} --> ${fmtTime(c.end)}`,
+              c.text,
+            );
           }
-          track.mode = "showing";
-          textTrackRef.current = track;
+          const blob = new Blob([vttLines.join("\n")], { type: "text/vtt" });
+          const blobUrl = URL.createObjectURL(blob);
+
+          const trackEl = document.createElement("track");
+          trackEl.src = blobUrl;
+          trackEl.kind = "subtitles";
+          trackEl.label = fmt(stream);
+          trackEl.srclang = lang;
+          videoEl.appendChild(trackEl);
+
+          trackEl.addEventListener(
+            "load",
+            () => {
+              trackEl.track.mode = "showing";
+            },
+            { once: true },
+          );
+          trackEl.track.mode = "showing";
+
+          subTrackElRef.current = trackEl;
+          subBlobUrlRef.current = blobUrl;
+          textTrackRef.current = trackEl.track;
         }
       } catch {}
     },
@@ -265,10 +300,15 @@ function Tracks({
       setSelectedSub(idx);
       mediaSetTrack(mediaPath, "sub", idx);
       if (idx === SUB_OFF) {
-        if (textTrackRef.current) {
-          textTrackRef.current.mode = "disabled";
-          textTrackRef.current = null;
+        if (subTrackElRef.current) {
+          subTrackElRef.current.remove();
+          subTrackElRef.current = null;
         }
+        if (subBlobUrlRef.current) {
+          URL.revokeObjectURL(subBlobUrlRef.current);
+          subBlobUrlRef.current = null;
+        }
+        textTrackRef.current = null;
         setAssVisible(false);
         setAssUrl(null);
         return;
@@ -351,6 +391,13 @@ function Tracks({
     window.addEventListener("suboffsetchange", handler);
     return () => window.removeEventListener("suboffsetchange", handler);
   }, [mediaPath]);
+
+  useEffect(() => {
+    return () => {
+      if (subTrackElRef.current) subTrackElRef.current.remove();
+      if (subBlobUrlRef.current) URL.revokeObjectURL(subBlobUrlRef.current);
+    };
+  }, []);
 
   const handleAddAudio = useCallback(async () => {
     try {

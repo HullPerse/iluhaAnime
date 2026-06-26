@@ -242,7 +242,7 @@ function TorrentRoute() {
                   max={item.total_bytes}
                 />
                 <div className="flex items-center gap-1">
-                  <span className="text-[11px] text-muted windows95-font">
+                  <span className="windows95-text text-muted">
                     {!item.finished ? stateLabel(item.state) : "Завершено"}
                   </span>
                   <span className="text-[10px] windows95-font">
@@ -330,9 +330,7 @@ function TorrentRoute() {
           }}
         >
           <div className="flex flex-col gap-2 py-2">
-            <span className="windows95-text text-[11px]">
-              Введите magnet-ссылку:
-            </span>
+            <span className="windows95-text">Введите magnet-ссылку:</span>
             <input
               className="w-full h-6 windows95-border px-1 windows95-text outline-none bg-white"
               placeholder="magnet:?xt=urn:btih:..."

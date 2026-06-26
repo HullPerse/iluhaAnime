@@ -44,7 +44,7 @@ function AniListAuthModal({
   return (
     <Modal header="AniList → токен доступа" onClose={onClose}>
       <div className="flex flex-col gap-2 p-1">
-        <span className="windows95-text text-[11px]">
+        <span className="windows95-text">
           Вставьте ваш токен доступа AniList
         </span>
         <ul className="text-[10px] windows95-text list-disc pl-4">

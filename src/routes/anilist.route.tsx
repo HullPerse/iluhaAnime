@@ -19,7 +19,16 @@ import {
   getStatusLabel,
   sortEntries,
 } from "@/lib/anilist.utils";
-import { LogOut, Search, SearchX, User } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  LogOut,
+  Search,
+  SearchX,
+  User,
+} from "lucide-react";
+
+const ANIME_PER_PAGE = 20;
 
 function AnilistRoute() {
   const [searchTerms, setSearchTerms] = useState<string>("");
@@ -35,6 +44,7 @@ function AnilistRoute() {
   });
   const [loadingList, setLoadingList] = useState<boolean>(false);
   const [searchResults, setSearchResults] = useState<AniMedia[]>([]);
+  const [page, setPage] = useState<number>(1);
 
   const { isLoading, refetch } = useQuery({
     queryKey: ["anilist", searchTerms.trim()],
@@ -115,6 +125,20 @@ function AnilistRoute() {
     : sortedEntries.map((e) => e.media);
 
   const isLocal = !!searchTerms.trim() && !global;
+
+  const total = displayEntries.length;
+  const from = total === 0 ? 0 : (page - 1) * ANIME_PER_PAGE + 1;
+  const to = Math.min(page * ANIME_PER_PAGE, total);
+  const lastPage = Math.max(1, Math.ceil(total / ANIME_PER_PAGE));
+
+  const pagedEntries = useMemo(() => {
+    const start = (page - 1) * ANIME_PER_PAGE;
+    return displayEntries.slice(start, start + ANIME_PER_PAGE);
+  }, [displayEntries, page]);
+
+  useEffect(() => {
+    setPage((p) => Math.min(p, lastPage));
+  }, [lastPage]);
 
   return (
     <main className="flex flex-col w-full h-full gap-1">
@@ -269,7 +293,7 @@ function AnilistRoute() {
       )}
 
       {/* CONTENT */}
-      {displayEntries.length === 0 && !global && !isLocal && !user && (
+      {pagedEntries.length === 0 && !global && !isLocal && !user && (
         <section className="flex flex-col items-center justify-center flex-1 gap-2">
           <User className="size-8 text-muted" />
           <span className="windows95-text">Войдите в профиль</span>
@@ -277,7 +301,7 @@ function AnilistRoute() {
         </section>
       )}
 
-      {displayEntries.length === 0 && isLocal && (
+      {pagedEntries.length === 0 && isLocal && (
         <section className="flex flex-col items-center justify-center flex-1 gap-2">
           <SearchX className="size-8 text-muted" />
           <span className="windows95-text">Ничего не найдено в списке</span>
@@ -291,9 +315,9 @@ function AnilistRoute() {
         </section>
       )}
 
-      {displayEntries.length > 0 && (
+      {pagedEntries.length > 0 && (
         <section className="flex flex-col w-full h-full overflow-y-scroll p-1 gap-1 border windows95-border">
-          {displayEntries.map((item) => {
+          {pagedEntries.map((item) => {
             const entry = entryLookup.get(item.id);
 
             return (
@@ -385,7 +409,7 @@ function AnilistRoute() {
       {/* STATUS BAR */}
       {(user || global) && (
         <section className="windows95-border bg-primary px-1 py-0.5 flex flex-row items-center justify-between">
-          <span className="windows95-text text-[10px]">
+          <span className="windows95-text">
             {global ? (
               <>
                 Поиск: &quot;{searchTerms}&quot; · {searchResults.length}{" "}
@@ -393,19 +417,59 @@ function AnilistRoute() {
               </>
             ) : isLocal ? (
               <>
-                {getListLabel(currentList.toUpperCase()) ?? currentList} ·
-                показано {filteredEntries.length} из {activeEntries.length}
+                {`${getListLabel(currentList.toUpperCase()) ?? currentList}: ${filteredEntries.length} / ${activeEntries.length}`}
               </>
             ) : user ? (
               <>
-                {getListLabel(currentList.toUpperCase()) ?? currentList} ·{" "}
-                {activeEntries.length} аниме
+                {`${getListLabel(currentList.toUpperCase()) ?? currentList}: ${activeEntries.length}`}
               </>
             ) : null}
           </span>
-          <span className="windows95-text text-[10px]">
-            {displayEntries.length > 0 && `Показано: ${displayEntries.length}`}
+          <span className="windows95-text">
+            {displayEntries.length > 0 &&
+              `Показано: ${from}...${to} / ${displayEntries.length}`}
           </span>
+          <div className="windows95-text flex flex-row gap-1 items-center">
+            <Button
+              size="icon"
+              className="h-6 w-6"
+              onClick={() => {
+                if (page === 1) return;
+                else setPage((prev) => prev - 1);
+              }}
+              disabled={page === 1}
+            >
+              <ArrowLeft />
+            </Button>
+
+            <Input
+              value={page}
+              onChange={(e) => {
+                const number = Number(e.target.value);
+                if (number < 1) return setPage(1);
+                if (number > lastPage) return setPage(lastPage);
+
+                return setPage(number);
+              }}
+              min={1}
+              max={lastPage}
+              type="number"
+              inputMode="numeric"
+              className="windows95-text font-bold windows95-border h-6 w-10 text-center flex items-center justify-center"
+            />
+
+            <Button
+              size="icon"
+              className="h-6 w-6"
+              onClick={() => {
+                if (page === lastPage) return;
+                else setPage((prev) => prev + 1);
+              }}
+              disabled={page === lastPage}
+            >
+              <ArrowRight />
+            </Button>
+          </div>
         </section>
       )}
 

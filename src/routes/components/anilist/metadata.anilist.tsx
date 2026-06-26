@@ -6,25 +6,23 @@ function AniListMetadata({ anime }: { anime: AniMedia }) {
     <div className="flex flex-row gap-3">
       <div className="windows95-border shrink-0 self-start p-0.5">
         {anime.cover_url ? (
-          <img
-            src={anime.cover_url}
-            alt={anime.title}
-            className="w-36 block"
-          />
+          <img src={anime.cover_url} alt={anime.title} className="w-36 block" />
         ) : (
           <div className="w-36 h-52 bg-muted/20 flex items-center justify-center">
-            <span className="windows95-text text-[10px] text-muted">Нет обложки</span>
+            <span className="windows95-text text-[10px] text-muted">
+              Нет обложки
+            </span>
           </div>
         )}
       </div>
       <div className="flex flex-col gap-1.5 min-w-0 flex-1">
         <div className="flex flex-wrap gap-1 items-center">
           {anime.score && (
-            <span className="text-[11px] windows95-font px-1 bg-secondary text-white font-bold">
+            <span className="windows95-text px-1 bg-secondary text-white font-bold">
               ★ {anime.score}
             </span>
           )}
-          <span className="text-[11px] windows95-font windows95-text">
+          <span className="windows95-text windows95-text">
             {statusLabels[anime.status] ?? anime.status}
           </span>
           {anime.format && (
@@ -33,7 +31,7 @@ function AniListMetadata({ anime }: { anime: AniMedia }) {
             </span>
           )}
         </div>
-        <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] windows95-text">
+        <div className="flex flex-wrap gap-x-3 gap-y-0.5 windows95-text">
           {anime.episodes && <span>{anime.episodes} эп.</span>}
           {anime.duration && <span>по {anime.duration} мин.</span>}
           {anime.season && (
@@ -51,7 +49,7 @@ function AniListMetadata({ anime }: { anime: AniMedia }) {
           )}
         </div>
         {anime.next_episode && anime.next_airing_at && (
-          <span className="text-[11px] text-success font-bold">
+          <span className="windows95-text text-success font-bold">
             {anime.next_episode} серия ·{" "}
             {new Date(anime.next_airing_at * 1000).toLocaleDateString("ru-RU")}
           </span>

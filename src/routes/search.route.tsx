@@ -440,7 +440,7 @@ function SearchRoute() {
         )}
       </section>
       {isError && (
-        <section className="windows95-text text-destructive text-[11px]">
+        <section className="windows95-text text-destructive">
           {error?.message}
         </section>
       )}
@@ -458,7 +458,7 @@ function SearchRoute() {
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <h3
-                      className="truncate text-[11px] font-bold leading-tight windows95-font"
+                      className="truncate font-bold leading-tight windows95-text"
                       title={item.title}
                     >
                       {item.title}
@@ -501,7 +501,7 @@ function SearchRoute() {
                   {isLoadingMag ? (
                     <div className="flex items-center gap-1">
                       <Loader className="size-3 animate-spin" />
-                      <span className="windows95-text text-[11px]">
+                      <span className="windows95-text">
                         Загрузка магнита...
                       </span>
                     </div>
@@ -552,9 +552,7 @@ function SearchRoute() {
         displayItems &&
         displayItems.length > 0 && (
           <section className="flex items-center justify-end gap-1 py-1">
-            <span className="windows95-text text-[11px] mr-1">
-              Стр. {nyaaPage}
-            </span>
+            <span className="windows95-text mr-1">Стр. {nyaaPage}</span>
             <Button
               size="icon"
               className="size-5"

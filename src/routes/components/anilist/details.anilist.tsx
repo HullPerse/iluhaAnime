@@ -17,7 +17,11 @@ function AniListDetailModal({
   onSaved,
 }: {
   animeId: number;
-  listEntry?: { progress: number | null; score: number | null; list_status: string };
+  listEntry?: {
+    progress: number | null;
+    score: number | null;
+    list_status: string;
+  };
   isLoggedIn: boolean;
   onClose: () => void;
   onSaved?: () => void;
@@ -60,7 +64,7 @@ function AniListDetailModal({
           {anime.description && (
             <Section
               header="Описание"
-              className="text-[11px] windows95-text leading-relaxed max-h-36 overflow-y-auto whitespace-pre-line"
+              className="windows95-text leading-relaxed max-h-36 overflow-y-auto whitespace-pre-line"
             >
               {anime.description}
             </Section>

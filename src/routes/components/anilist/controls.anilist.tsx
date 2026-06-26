@@ -13,7 +13,11 @@ function AniListActionControls({
   onClose,
 }: {
   anime: AniMedia;
-  listEntry?: { progress: number | null; score: number | null; list_status: string };
+  listEntry?: {
+    progress: number | null;
+    score: number | null;
+    list_status: string;
+  };
   onSaved?: () => void;
   onClose?: () => void;
 }) {
@@ -53,12 +57,12 @@ function AniListActionControls({
         {listEntry ? "Управление списком" : "Добавить в список"}
       </div>
       <div className="flex flex-col gap-2 p-1.5">
-        <div className="flex flex-row gap-2 items-center text-[11px] windows95-text">
+        <div className="flex flex-row gap-2 items-center windows95-text">
           <span className="w-20 shrink-0">Статус:</span>
           <select
             value={editStatus}
             onChange={(e) => setEditStatus(e.target.value)}
-            className="flex-1 windows95-border bg-primary text-text windows95-font text-[11px] px-1 py-0.5"
+            className="flex-1 windows95-border bg-primary text-text windows95-text px-1 py-0.5"
           >
             {listStatusOptions.map((o) => (
               <option key={o.value} value={o.value}>
@@ -67,7 +71,7 @@ function AniListActionControls({
             ))}
           </select>
         </div>
-        <div className="flex flex-row gap-2 items-center text-[11px] windows95-text">
+        <div className="flex flex-row gap-2 items-center windows95-text">
           <span className="w-20 shrink-0">Прогресс:</span>
           <Input
             type="number"
@@ -83,12 +87,12 @@ function AniListActionControls({
             </span>
           )}
         </div>
-        <div className="flex flex-row gap-2 items-center text-[11px] windows95-text">
+        <div className="flex flex-row gap-2 items-center windows95-text">
           <span className="w-20 shrink-0">Оценка:</span>
           <select
             value={editScore}
             onChange={(e) => setEditScore(e.target.value)}
-            className="windows95-border bg-primary text-text windows95-font text-[11px] px-1 py-0.5"
+            className="windows95-border bg-primary text-text windows95-text px-1 py-0.5"
           >
             <option value="">—</option>
             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (

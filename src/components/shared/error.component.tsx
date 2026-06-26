@@ -26,7 +26,7 @@ export function BigErrorWithButton({
       {refresh && (
         <button
           onClick={refresh}
-          className="windows95-active-border bg-primary px-2 py-0.5 text-[11px] cursor-pointerwindows95-active-border"
+          className="windows95-active-border bg-primary px-2 py-0.5 cursor-pointer windows95-text"
         >
           Повторить
         </button>

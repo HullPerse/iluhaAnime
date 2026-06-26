@@ -159,7 +159,7 @@ function App() {
           {!cinemaMode && (
             <>
               <div className="flex items-center justify-between bg-secondary px-1 py-0.5 select-none">
-                <span className="text-white text-[11px] font-bold windows95-font">
+                <span className="text-white font-bold windows95-text">
                   iluhaAnime
                 </span>
               </div>
@@ -169,7 +169,7 @@ function App() {
                   return (
                     <Button
                       key={tab.id}
-                      className="px-3 py-0.5 text-[11px] border-2 border-solid relative cursor-pointer windows95-font active:outline-dotted active:outline-1 active:outline-offset-[-3px] active:outline-text"
+                      className="px-3 py-0.5 border-2 border-solid relative cursor-pointer windows95-text active:outline-dotted active:outline-1 active:outline-offset-[-3px] active:outline-text"
                       style={{
                         borderBottomColor: isActive ? "#c0c0c0" : undefined,
                         marginBottom: isActive ? "-2px" : undefined,

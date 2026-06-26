@@ -165,7 +165,7 @@ function TorrentFilePicker({
                           onChange={() => toggleFile(item.index)}
                           className="cursor-pointer shrink-0"
                         />
-                        <span className="truncate flex-1 text-[11px]">
+                        <span className="truncate flex-1 windows95-text">
                           {item.displayName}
                         </span>
                         <span className="text-muted shrink-0 text-[10px]">
@@ -195,7 +195,7 @@ function TorrentFilePicker({
             </Button>
           </div>
           <div className="flex items-center justify-between w-full">
-            <label className="flex items-center gap-1 windows95-text text-[11px] cursor-pointer select-none">
+            <label className="flex items-center gap-1 windows95-text cursor-pointer select-none">
               <input
                 type="checkbox"
                 checked={sequential}

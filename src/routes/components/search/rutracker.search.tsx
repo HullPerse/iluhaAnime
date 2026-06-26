@@ -60,9 +60,7 @@ function RutrackerLoginModal({
           onKeyDown={(e) => e.key === "Enter" && !loading && handleSubmit()}
         />
         {error && (
-          <span className="text-destructive windows95-text text-[11px]">
-            {error}
-          </span>
+          <span className="text-destructive windows95-text">{error}</span>
         )}
         <div className="flex gap-1 justify-end mt-1">
           <Button onClick={handleClose}>Отмена</Button>

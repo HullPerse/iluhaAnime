@@ -326,3 +326,30 @@ pub async fn anilist_logout(app_handle: tauri::AppHandle) -> Result<(), String> 
     let _ = fs::remove_file(&path);
     Ok(())
 }
+
+#[tauri::command]
+pub async fn save_anilist_entry(app_handle: tauri::AppHandle, media_id: u64, status: String, progress: Option<i32>, score: Option<i32>) -> Result<(), String> {
+    let token = load_token(&app_handle)?;
+    let body = serde_json::json!({
+        "query": r#"
+            mutation ($mediaId: Int, $status: MediaListStatus, $progress: Int, $score: Float) {
+                SaveMediaListEntry(mediaId: $mediaId, status: $status, progress: $progress, score: $score) {
+                    id
+                    status
+                    progress
+                }
+            }
+        "#,
+        "variables": {
+            "mediaId": media_id as i64,
+            "status": status,
+            "progress": progress,
+            "score": score
+        }
+    });
+    let json = graphql_request(body, Some(&token)).await?;
+    if json.get("errors").is_some() {
+        return Err(format!("{:?}", json["errors"]));
+    }
+    Ok(())
+}

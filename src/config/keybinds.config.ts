@@ -14,7 +14,11 @@ export type KeybindAction =
   | "nextFile"
   | "prevFile"
   | "toggleCheatsheet"
-  | "exitCinemaMode";
+  | "exitCinemaMode"
+  | "setSearch"
+  | "setTorrent"
+  | "setPlayer"
+  | "setAnilist";
 
 export interface KeybindDef {
   action: KeybindAction;
@@ -24,6 +28,7 @@ export interface KeybindDef {
   category: "playback" | "navigation" | "subtitles" | "ui";
   ctrl?: boolean;
   shift?: boolean;
+  alt?: boolean;
 }
 
 export const KEYBINDS: KeybindDef[] = [
@@ -136,7 +141,6 @@ export const KEYBINDS: KeybindDef[] = [
     category: "ui",
     shift: true,
   },
-
   {
     action: "exitCinemaMode",
     code: "Escape",
@@ -144,20 +148,57 @@ export const KEYBINDS: KeybindDef[] = [
     description: "Выйти из кинорежима",
     category: "ui",
   },
+
+  {
+    action: "setSearch",
+    code: "Digit1",
+    keys: "Alt+1",
+    description: "Выбрать вкладку 1",
+    category: "navigation",
+    alt: true,
+  },
+  {
+    action: "setTorrent",
+    code: "Digit2",
+    keys: "Ctrl+F1",
+    description: "Выбрать вкладку 2",
+    category: "navigation",
+    alt: true,
+  },
+  {
+    action: "setPlayer",
+    code: "Digit3",
+    keys: "Ctrl+F1",
+    description: "Выбрать вкладку 3",
+    category: "navigation",
+    alt: true,
+  },
+  {
+    action: "setAnilist",
+    code: "Digit4",
+    keys: "Ctrl+F1",
+    description: "Выбрать вкладку 4",
+    category: "navigation",
+    alt: true,
+  },
 ];
 
 const codeMap = new Map<string, KeybindDef>();
 
 for (const kb of KEYBINDS) {
-  codeMap.set(`${kb.code}:${kb.ctrl ?? false}:${kb.shift ?? false}`, kb);
+  codeMap.set(
+    `${kb.code}:${kb.ctrl ?? false}:${kb.shift ?? false}:${kb.alt ?? false}`,
+    kb,
+  );
 }
 
 export function getAction(
   code: string,
   ctrl: boolean,
   shift: boolean,
+  alt: boolean,
 ): KeybindDef | undefined {
-  return codeMap.get(`${code}:${ctrl}:${shift}`);
+  return codeMap.get(`${code}:${ctrl}:${shift}:${alt}`);
 }
 
 export const CHEATSHEET_ROWS: { keys: string; description: string }[] = [

@@ -170,7 +170,6 @@ function Controls({
       return;
 
     const saved = usePlayerStore.getState().volume;
-    // ponytail: direct getState read for one-time init, won't re-subscribe
     if (saved !== null && !Number.isNaN(saved)) {
       value.setVolume(saved);
     }

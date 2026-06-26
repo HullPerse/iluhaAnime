@@ -273,6 +273,7 @@ pub fn run() {
             anilist::check_anilist_auth,
             anilist::get_anilist_lists,
             anilist::anilist_logout,
+            anilist::save_anilist_entry,
             start_torrent_download,
             get_torrent_info,
             list_torrents,

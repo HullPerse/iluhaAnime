@@ -4,8 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Search, Loader, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
-import AniListAuthModal from "./components/anilist/auth.anilist";
-import AniListDetailModal from "./components/anilist/details.anilist";
+import AniListAuth from "./components/anilist/auth.anilist";
+import AniListDetail from "./components/anilist/details.anilist";
 
 interface AniMedia {
   id: number;
@@ -70,11 +70,15 @@ function AniListRoute() {
   const [lists, setLists] = useState<AniListCollection[]>([]);
   const [activeList, setActiveList] = useState("");
   const [showAuth, setShowAuth] = useState(false);
-  const [selectedAnime, setSelectedAnime] = useState<AniMedia | null>(null);
+  const [selectedAnimeData, setSelectedAnimeData] = useState<{
+    animeId: number;
+    listEntry?: { progress: number | null; list_status: string };
+  } | null>(null);
   const [showGlobalResults, setShowGlobalResults] = useState(false);
-  const [sortBy, setSortBy] = useState<
-    "default" | "score" | "title" | "progress"
-  >("default");
+  const [sort, setSort] = useState<{
+    key: string;
+    dir: "asc" | "desc";
+  }>({ key: "default", dir: "desc" });
 
   useEffect(() => {
     invoke<AniUser | null>("check_anilist_auth")
@@ -108,6 +112,22 @@ function AniListRoute() {
   };
 
   const activeEntries = lists.find((c) => c.name === activeList)?.entries ?? [];
+  const entryLookup = useMemo(() => {
+    const map = new Map<
+      number,
+      { progress: number | null; list_status: string }
+    >();
+    for (const list of lists) {
+      for (const e of list.entries) {
+        map.set(e.media.id, {
+          progress: e.progress,
+          list_status: e.list_status,
+        });
+      }
+    }
+    return map;
+  }, [lists]);
+
   const filteredEntries = activeEntries.filter((e) => {
     if (!query.trim() || showGlobalResults) return true;
     const q = query.toLowerCase();
@@ -120,15 +140,24 @@ function AniListRoute() {
 
   const sortedEntries = useMemo(() => {
     const copy = [...filteredEntries];
-    if (sortBy === "title") {
-      copy.sort((a, b) => a.media.title.localeCompare(b.media.title));
-    } else if (sortBy === "score") {
-      copy.sort((a, b) => (b.media.score ?? -1) - (a.media.score ?? -1));
-    } else if (sortBy === "progress") {
-      copy.sort((a, b) => (b.progress ?? -1) - (a.progress ?? -1));
+    if (sort.key === "title") {
+      copy.sort((a, b) => {
+        const c = a.media.title.localeCompare(b.media.title);
+        return sort.dir === "asc" ? c : -c;
+      });
+    } else if (sort.key === "score") {
+      copy.sort((a, b) => {
+        const d = (b.media.score ?? -1) - (a.media.score ?? -1);
+        return sort.dir === "desc" ? d : -d;
+      });
+    } else if (sort.key === "progress") {
+      copy.sort((a, b) => {
+        const d = (b.progress ?? -1) - (a.progress ?? -1);
+        return sort.dir === "desc" ? d : -d;
+      });
     }
     return copy;
-  }, [filteredEntries, sortBy]);
+  }, [filteredEntries, sort]);
 
   const displayItems =
     showGlobalResults && data ? data : sortedEntries.map((e) => e.media);
@@ -278,17 +307,24 @@ function AniListRoute() {
           {(["default", "score", "title", "progress"] as const).map((s) => (
             <Button
               key={s}
-              variant={sortBy === s ? "outline" : "default"}
-              onClick={() => setSortBy(s)}
+              variant={sort.key === s ? "outline" : "default"}
+              onClick={() => {
+                if (sort.key === s)
+                  setSort((p) => ({
+                    ...p,
+                    dir: p.dir === "asc" ? "desc" : "asc",
+                  }));
+                else setSort({ key: s, dir: s === "title" ? "asc" : "desc" });
+              }}
               className="text-[9px]"
             >
               {s === "default"
                 ? "по умолч."
                 : s === "score"
-                  ? "★ рейтинг"
+                  ? `★ рейтинг${sort.key === s ? (sort.dir === "asc" ? "↑" : "↓") : ""}`
                   : s === "title"
-                    ? "А–Я"
-                    : "прогресс"}
+                    ? `А–Я${sort.key === s ? (sort.dir === "asc" ? "↑" : "↓") : ""}`
+                    : `прогресс${sort.key === s ? (sort.dir === "asc" ? "↑" : "↓") : ""}`}
             </Button>
           ))}
         </section>
@@ -297,53 +333,71 @@ function AniListRoute() {
       {/* Content */}
       {displayItems.length > 0 && (
         <section className="flex flex-col w-full h-full overflow-y-scroll p-0.5 gap-1">
-          {displayItems.map((item) => (
-            <div
-              key={item.id}
-              className="windows95-active-border bg-primary px-2 py-1.5 mb-0.5 cursor-pointer"
-              onClick={() => setSelectedAnime(item)}
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0 flex-1">
-                  <h3 className="truncate text-[11px] font-bold leading-tight windows95-font windows95-text">
-                    {item.title}
-                  </h3>
-                  <div className="flex flex-wrap gap-1 items-center mt-1">
-                    {item.score && (
-                      <span className="text-[10px] windows95-font px-1 bg-secondary text-white">
-                        ★ {item.score}
-                      </span>
-                    )}
-                    <span className="text-[10px] windows95-font text-text">
-                      {statusLabels[item.status] ?? item.status}
-                    </span>
-                    {item.episodes && (
+          {displayItems.map((item) => {
+            const entry = entryLookup.get(item.id);
+            return (
+              <div
+                key={item.id}
+                className="windows95-active-border bg-primary px-2 py-1.5 mb-0.5 cursor-pointer"
+                onClick={() =>
+                  setSelectedAnimeData({
+                    animeId: item.id,
+                    listEntry: entry
+                      ? {
+                          progress: entry.progress,
+                          list_status: entry.list_status,
+                        }
+                      : undefined,
+                  })
+                }
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <h3 className="truncate text-[11px] font-bold leading-tight windows95-font windows95-text">
+                      {item.title}
+                    </h3>
+                    <div className="flex flex-wrap gap-1 items-center mt-1">
+                      {item.score && (
+                        <span className="text-[10px] windows95-font px-1 bg-secondary text-white">
+                          ★ {item.score}
+                        </span>
+                      )}
                       <span className="text-[10px] windows95-font text-text">
-                        {item.episodes} эп.
+                        {statusLabels[item.status] ?? item.status}
                       </span>
-                    )}
+                      {entry != null && entry.progress != null && (
+                        <span className="text-[10px] windows95-font px-1 bg-accent text-white">
+                          {entry.progress}/{item.episodes ?? "?"}
+                        </span>
+                      )}
+                      {!entry && item.episodes && (
+                        <span className="text-[10px] windows95-font text-text">
+                          {item.episodes} эп.
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {item.genres.slice(0, 4).map((g) => (
+                        <span
+                          key={g}
+                          className="px-1 text-[10px] windows95-font bg-muted text-white"
+                        >
+                          {g}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {item.genres.slice(0, 4).map((g) => (
-                      <span
-                        key={g}
-                        className="px-1 text-[10px] windows95-font bg-muted text-white"
-                      >
-                        {g}
-                      </span>
-                    ))}
-                  </div>
+                  {item.cover_url && (
+                    <img
+                      src={item.cover_url}
+                      alt=""
+                      className="w-14 windows95-active-border shrink-0"
+                    />
+                  )}
                 </div>
-                {item.cover_url && (
-                  <img
-                    src={item.cover_url}
-                    alt=""
-                    className="w-14 windows95-active-border shrink-0"
-                  />
-                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </section>
       )}
 
@@ -370,7 +424,7 @@ function AniListRoute() {
       )}
 
       {showAuth && (
-        <AniListAuthModal
+        <AniListAuth
           onAuth={(u) => {
             setUser(u);
             setShowAuth(false);
@@ -386,10 +440,19 @@ function AniListRoute() {
         />
       )}
 
-      {selectedAnime && (
-        <AniListDetailModal
-          animeId={selectedAnime.id}
-          onClose={() => setSelectedAnime(null)}
+      {selectedAnimeData && (
+        <AniListDetail
+          animeId={selectedAnimeData.animeId}
+          listEntry={selectedAnimeData.listEntry}
+          isLoggedIn={user !== null}
+          onClose={() => setSelectedAnimeData(null)}
+          onSaved={() => {
+            if (user) {
+              invoke<AniListCollection[]>("get_anilist_lists", {
+                userId: user.id,
+              }).then((l) => setLists(l));
+            }
+          }}
         />
       )}
     </div>

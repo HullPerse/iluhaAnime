@@ -229,8 +229,6 @@ function SearchRoute() {
     if (magnet) prepareTorrentDownload(magnet);
   };
 
-  // ponytail: searchHistory from hook above
-
   return (
     <div className="h-full flex flex-col w-full gap-1">
       <section className="flex flex-row gap-2 w-full">

@@ -13,7 +13,7 @@ import TorrentFilePicker from "@/routes/components/search/picker.search";
 import { WindowLoader } from "./components/shared/loader.component";
 import { Button } from "./components/ui/button.component";
 import { cn } from "./lib/index.utils";
-import { getAction } from "@/config/keybinds.config";
+import { getAction, KeybindAction } from "@/config/keybinds.config";
 
 const SearchRoute = lazy(() => import("@/routes/search.route"));
 const TorrentRoute = lazy(() => import("@/routes/torrent.route"));
@@ -50,11 +50,35 @@ function App() {
     };
   }, [init]);
 
+  //tab keybinds
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.code === "AltLeft" || e.code === "AltRight") return;
+      if (!e.altKey) return;
+
+      const action = getAction(e.code, e.ctrlKey, e.shiftKey, e.altKey);
+      if (!action) return;
+
+      const actionMap: Partial<Record<KeybindAction, Tab>> = {
+        setSearch: "search",
+        setTorrent: "torrent",
+        setPlayer: "player",
+        setAnilist: "anilist",
+      };
+
+      const tab = actionMap[action.action];
+      if (tab) setActiveTab(tab);
+    };
+
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+
   // Escape exits cinema mode
   useEffect(() => {
     if (!cinemaMode) return;
     const handler = (e: KeyboardEvent) => {
-      const action = getAction(e.code, e.ctrlKey, e.shiftKey);
+      const action = getAction(e.code, e.ctrlKey, e.shiftKey, e.altKey);
       if (action?.action === "exitCinemaMode") {
         setCinemaMode(false);
         setAutoHideUi(false);
@@ -64,7 +88,6 @@ function App() {
     return () => window.removeEventListener("keydown", handler);
   }, [cinemaMode]);
 
-  // ponytail: cross-search from AniList tab — watch store, switch tab
   useEffect(() => {
     return useSearchStore.subscribe((state, prev) => {
       if (

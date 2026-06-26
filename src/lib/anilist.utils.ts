@@ -1,5 +1,43 @@
 import { AniListEntry, AniListSort } from "@/types/anilist";
 
+export const statusLabels: Record<string, string> = {
+  FINISHED: "Завершён",
+  RELEASING: "Выходит",
+  NOT_YET_RELEASED: "Анонс",
+  CANCELLED: "Отменён",
+  HIATUS: "На паузе",
+};
+
+export const formatLabels: Record<string, string> = {
+  TV: "ТВ",
+  TV_SHORT: "ТВ (короткий)",
+  MOVIE: "Фильм",
+  SPECIAL: "Спешл",
+  OVA: "OVA",
+  ONA: "ONA",
+  MUSIC: "Клип",
+};
+
+export const seasonLabels: Record<string, string> = {
+  WINTER: "Зима",
+  SPRING: "Весна",
+  SUMMER: "Лето",
+  FALL: "Осень",
+};
+
+const listStatusLabels: Record<string, string> = {
+  CURRENT: "Смотрю",
+  PLANNING: "Запланировано",
+  COMPLETED: "Просмотрено",
+  DROPPED: "Брошено",
+  PAUSED: "На паузе",
+  REPEATING: "Пересматриваю",
+};
+
+export const listStatusOptions = Object.entries(listStatusLabels).map(
+  ([value, label]) => ({ value, label }),
+);
+
 export function filterEntries(
   entries: AniListEntry[],
   searchTerms: string,
@@ -71,14 +109,5 @@ export function getStatusLabel(status: string) {
 }
 
 export function getListLabel(list: string) {
-  const listMap = {
-    CURRENT: "Смотрю",
-    PLANNING: "Запланировано",
-    COMPLETED: "Просмотрено",
-    DROPPED: "Брошено",
-    PAUSED: "На паузе",
-    REPEATING: "Пересматриваю",
-  } as Record<string, string>;
-
-  return listMap[list];
+  return listStatusLabels[list];
 }

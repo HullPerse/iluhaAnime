@@ -1,462 +1,388 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
+import Auth from "./components/anilist/auth.anilist";
+import Details from "./components/anilist/details.anilist";
+import type {
+  AniListAnime,
+  AniListCollection,
+  AniListSort,
+  AniMedia,
+  AniUser,
+} from "@/types/anilist";
 import { invoke } from "@tauri-apps/api/core";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
-import { Search, Loader, LogOut, User } from "lucide-react";
-import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
-import AniListAuth from "./components/anilist/auth.anilist";
-import AniListDetail from "./components/anilist/details.anilist";
+import { Button } from "@/components/ui/button.component";
+import {
+  filterEntries,
+  getSortingLabel,
+  getListLabel,
+  getStatusLabel,
+  sortEntries,
+} from "@/lib/anilist.utils";
+import { LogOut, Search, User } from "lucide-react";
 
-interface AniMedia {
-  id: number;
-  title: string;
-  english_title: string | null;
-  native_title: string | null;
-  episodes: number | null;
-  duration: number | null;
-  status: string;
-  score: number | null;
-  genres: string[];
-  tags: string[];
-  description: string | null;
-  cover_url: string | null;
-  season: string | null;
-  season_year: number | null;
-  studios: string[];
-  next_episode: number | null;
-  next_airing_at: number | null;
-}
-
-interface AniUser {
-  id: number;
-  name: string;
-  avatar: string | null;
-  anime_count: number;
-  episodes_watched: number;
-  mean_score: number | null;
-}
-
-interface AniListEntry {
-  media: AniMedia;
-  progress: number | null;
-  list_status: string;
-}
-
-interface AniListCollection {
-  name: string;
-  entries: AniListEntry[];
-}
-
-const statusLabels: Record<string, string> = {
-  FINISHED: "Завершён",
-  RELEASING: "Выходит",
-  NOT_YET_RELEASED: "Анонс",
-  CANCELLED: "Отменён",
-  HIATUS: "На паузе",
-};
-
-const listLabels: Record<string, string> = {
-  CURRENT: "Смотрю",
-  PLANNING: "Запланировано",
-  COMPLETED: "Просмотрено",
-  DROPPED: "Брошено",
-  PAUSED: "На паузе",
-  REPEATING: "Пересматриваю",
-};
-
-function AniListRoute() {
-  const [query, setQuery] = useState("");
+function AnilistRoute() {
+  const [searchTerms, setSearchTerms] = useState<string>("");
   const [user, setUser] = useState<AniUser | null>(null);
   const [lists, setLists] = useState<AniListCollection[]>([]);
-  const [activeList, setActiveList] = useState("");
-  const [showAuth, setShowAuth] = useState(false);
-  const [selectedAnimeData, setSelectedAnimeData] = useState<{
-    animeId: number;
-    listEntry?: { progress: number | null; list_status: string };
-  } | null>(null);
-  const [showGlobalResults, setShowGlobalResults] = useState(false);
-  const [sort, setSort] = useState<{
-    key: string;
-    dir: "asc" | "desc";
-  }>({ key: "default", dir: "desc" });
+  const [currentList, setCurrentList] = useState<string>("");
+  const [auth, setAuth] = useState<boolean>(false);
+  const [selectedAnime, setSelectedAnime] = useState<AniListAnime>(null);
+  const [global, setGlobal] = useState<boolean>(false);
+  const [sort, setSort] = useState<AniListSort>({
+    key: "title",
+    dir: "asc",
+  });
+  const [loadingList, setLoadingList] = useState<boolean>(false);
+  const [searchResults, setSearchResults] = useState<AniMedia[]>([]);
 
-  useEffect(() => {
-    invoke<AniUser | null>("check_anilist_auth")
-      .then((u) => {
-        if (u) {
-          setUser(u);
-          invoke<AniListCollection[]>("get_anilist_lists", { userId: u.id })
-            .then((l) => {
-              setLists(l);
-              const first = l.find((c) => c.entries.length > 0);
-              if (first) setActiveList(first.name);
-            })
-            .catch(() => {});
-        }
-      })
-      .catch(() => {});
-  }, []);
-
-  const { data, isLoading, refetch } = useQuery({
-    queryKey: ["anilist", query.trim()],
-    queryFn: () =>
-      invoke<AniMedia[]>("search_anilist", { query: query.trim() }),
+  const { isLoading, refetch } = useQuery({
+    queryKey: ["anilist", searchTerms.trim()],
+    queryFn: async (): Promise<AniMedia[]> => {
+      const res = await invoke<AniMedia[]>("search_anilist", {
+        query: searchTerms.trim(),
+      });
+      setSearchResults(res);
+      return res;
+    },
     enabled: false,
   });
 
-  const handleLogout = async () => {
+  const handleGlobal = useCallback(() => {
+    setGlobal(true);
+    refetch();
+  }, [refetch]);
+
+  const handleReset = useCallback(() => {
+    setSearchTerms("");
+    setGlobal(false);
+    setSearchResults([]);
+  }, []);
+
+  const handleLogout = useCallback(async () => {
     await invoke("anilist_logout");
+
     setUser(null);
     setLists([]);
-    setActiveList("");
-  };
+    setCurrentList("");
+  }, []);
 
-  const activeEntries = lists.find((c) => c.name === activeList)?.entries ?? [];
+  useEffect(() => {
+    setLoadingList(true);
+    invoke<AniUser | null>("check_anilist_auth")
+      .then((user) => {
+        if (user) {
+          setUser(user);
+          invoke<AniListCollection[]>("get_anilist_lists", { userId: user.id })
+            .then((l) => {
+              setLists(l);
+              const first = l.find((c) => c.entries.length > 0);
+              if (first) setCurrentList(first.name);
+            })
+            .finally(() => setLoadingList(false))
+            .catch(() => setLoadingList(false));
+        }
+      })
+      .catch(() => setLoadingList(false));
+  }, []);
+
   const entryLookup = useMemo(() => {
     const map = new Map<
       number,
-      { progress: number | null; list_status: string }
+      { progress: number | null; score: number | null; list_status: string }
     >();
+
     for (const list of lists) {
       for (const e of list.entries) {
         map.set(e.media.id, {
           progress: e.progress,
+          score: e.score,
           list_status: e.list_status,
         });
       }
     }
+
     return map;
   }, [lists]);
 
-  const filteredEntries = activeEntries.filter((e) => {
-    if (!query.trim() || showGlobalResults) return true;
-    const q = query.toLowerCase();
-    return (
-      e.media.title.toLowerCase().includes(q) ||
-      (e.media.english_title?.toLowerCase().includes(q) ?? false) ||
-      (e.media.native_title?.toLowerCase().includes(q) ?? false)
-    );
-  });
+  const activeEntries =
+    lists.find((c) => c.name === currentList)?.entries ?? [];
 
-  const sortedEntries = useMemo(() => {
-    const copy = [...filteredEntries];
-    if (sort.key === "title") {
-      copy.sort((a, b) => {
-        const c = a.media.title.localeCompare(b.media.title);
-        return sort.dir === "asc" ? c : -c;
-      });
-    } else if (sort.key === "score") {
-      copy.sort((a, b) => {
-        const d = (b.media.score ?? -1) - (a.media.score ?? -1);
-        return sort.dir === "desc" ? d : -d;
-      });
-    } else if (sort.key === "progress") {
-      copy.sort((a, b) => {
-        const d = (b.progress ?? -1) - (a.progress ?? -1);
-        return sort.dir === "desc" ? d : -d;
-      });
-    }
-    return copy;
-  }, [filteredEntries, sort]);
+  const filteredEntries = filterEntries(activeEntries, searchTerms, global);
+  const sortedEntries = sortEntries(filteredEntries, sort.dir, sort.key);
+  const displayEntries =
+    global ? searchResults : sortedEntries.map((e) => e.media);
 
-  const displayItems =
-    showGlobalResults && data ? data : sortedEntries.map((e) => e.media);
-  const isGlobalSearch = showGlobalResults;
-  const isLocalFilter = !!query.trim() && !showGlobalResults;
-
-  const doGlobalSearch = () => {
-    if (!query.trim()) return;
-    setShowGlobalResults(true);
-    refetch();
-  };
-
-  const resetToLists = () => {
-    setQuery("");
-    setShowGlobalResults(false);
-  };
+  const isLocal = !!searchTerms.trim() && !global;
 
   return (
-    <div className="h-full flex flex-col w-full gap-1">
-      {/* Top bar */}
+    <main className="flex flex-col w-full h-full gap-1">
+      {/*TOP*/}
       <section className="flex flex-row gap-2 w-full">
         <Input
-          placeholder={
-            user && !isGlobalSearch
-              ? "Фильтр в списке..."
-              : "Поиск аниме на AniList..."
-          }
-          value={query}
+          placeholder="Найти аниме..."
+          value={searchTerms}
           className="h-9 font-bold bg-white"
           onChange={(e) => {
-            setQuery(e.target.value);
-            if (isGlobalSearch && !e.target.value.trim()) resetToLists();
+            setSearchTerms(e.target.value);
+            if (global && !e.target.value.trim()) handleReset();
           }}
           onKeyDown={(e) => {
-            if (e.key === "Enter" && query.trim()) {
-              if (isGlobalSearch) refetch();
-              else doGlobalSearch();
+            if (e.key === "Enter" && searchTerms.trim()) {
+              if (global) refetch();
+              else handleGlobal();
             }
           }}
         />
-        {isGlobalSearch ? (
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={resetToLists}
-            title="Вернуться к спискам"
-          >
-            <LogOut className="size-4 rotate-90" />
-          </Button>
-        ) : (
-          <Button
-            variant="default"
-            size="icon"
-            onClick={doGlobalSearch}
-            disabled={isLoading || !query.trim()}
-          >
-            {isLoading ? (
-              <Loader className="size-4 animate-spin" />
-            ) : (
-              <Search className="size-4" />
-            )}
-          </Button>
-        )}
-        {user && !isGlobalSearch && (
-          <Button
-            size="icon"
-            variant="default"
-            onClick={handleLogout}
-            title="Выйти"
-          >
-            <LogOut className="size-4" />
-          </Button>
-        )}
-        {!user && (
-          <Button
-            size="icon"
-            variant="default"
-            onClick={() => setShowAuth(true)}
-            title="Авторизация"
-          >
-            <User className="size-4" />
-          </Button>
-        )}
+        <Button
+          size="icon"
+          title={global ? "Вернуться к профилю" : "Поиск"}
+          onClick={() => {
+            if (global) return handleReset();
+            else return handleGlobal();
+          }}
+          disabled={global ? false : isLoading || !searchTerms.trim()}
+        >
+          {global ? <User className="size-4" /> : <Search className="size-4" />}
+        </Button>
       </section>
 
-      {/* Mode indicator */}
-      {isLocalFilter && (
-        <span className="text-[10px] windows95-text px-0.5">
-          Фильтр: {filteredEntries.length} из {activeEntries.length} в списке
-          &quot;{listLabels[activeList] ?? activeList}&quot; · нажмите ↵ для
-          поиска по всей AniList
+      {/* FILTER */}
+      {isLocal && (
+        <span className="windows95-text px-1 text-muted">
+          {filteredEntries.length}/{activeEntries.length}
         </span>
       )}
-      {isGlobalSearch && (
-        <span className="text-[10px] windows95-text px-0.5">
-          Поиск по AniList: &quot;{query}&quot; ·{" "}
-          {data ? `${data.length} результатов` : "..."}
+      {global && (
+        <span className="windows95-text px-1">
+          Поиск: &quot;{searchTerms}&quot; ·{" "}
+          {searchResults.length > 0 ? `Результатов: ${searchResults.length}` : ""}
         </span>
       )}
 
-      {/* User profile */}
-      {user && !isGlobalSearch && !isLocalFilter && (
-        <section className="flex items-center gap-2 windows95-active-border bg-primary px-2 py-1">
+      {/* PROFILE */}
+      {user && !global && !isLocal && (
+        <section className="flex flex-row items-center gap-2 windows95-active-border bg-primary p-1 w-full">
           {user.avatar && (
             <img
               src={user.avatar}
               alt=""
-              className="size-8 windows95-active-border"
+              className="h-10 windows95-active-border"
             />
           )}
+
           <div className="flex flex-col">
-            <span className="windows95-text font-bold text-[11px]">
-              {user.name}
+            <span className="windows95-text font-bold">
+              {user.name.toUpperCase()}
             </span>
-            <span className="text-[10px] windows95-text">
-              {lists.reduce((s, c) => s + c.entries.length, 0)} в списках
+            <span className="windows95-text text-[10px]">
+              {loadingList ? (
+                "..."
+              ) : (
+                <>
+                  {user.anime_count} аниме · {user.episodes_watched} эп.
+                  {user.mean_score != null && <> · ср. {user.mean_score}</>}
+                </>
+              )}
             </span>
+          </div>
+
+          <Button
+            size="icon"
+            variant="error"
+            onClick={handleLogout}
+            className="ml-auto"
+          >
+            <LogOut />
+          </Button>
+        </section>
+      )}
+
+      {/* TABS */}
+      {!loadingList && user && lists.length > 0 && !global && (
+        <section className="not-only:flex flex-row w-full items-center justify-between">
+          <div className="relative flex flex-row gap-1">
+            {lists
+              .filter((item) => item.entries.length > 0)
+              .map((item) => {
+                const isActive = currentList === item.name;
+
+                return (
+                  <Button
+                    key={item.name}
+                    className="px-3 py-0.5 border-2 border-solid cursor-pointer windows95-text active:outline-dotted active:outline-1 active:outline-offset-[-3px] active:outline-text"
+                    style={{
+                      borderBottomColor: isActive ? "#c0c0c0" : undefined,
+                      marginBottom: isActive ? "-2px" : undefined,
+                      top: isActive ? 0 : "2px",
+                    }}
+                    onClick={() => {
+                      setCurrentList(item.name);
+                      if (global) handleReset();
+                    }}
+                    disabled={isActive}
+                  >
+                    {getListLabel(item.name.toUpperCase()) ?? item.name} (
+                    {item.entries.length})
+                  </Button>
+                );
+              })}
+          </div>
+          <div className="relative flex flex-row gap-1">
+            {(["title", "score", "progress"] as AniListSort["key"][]).map(
+              (s) => {
+                const isActive = sort.key === s;
+
+                return (
+                  <Button
+                    key={s}
+                    variant={isActive ? "outline" : "default"}
+                    className="px-3 py-0.5 border-2 border-solid cursor-pointer windows95-text"
+                    style={{
+                      marginBottom: isActive ? "-2px" : undefined,
+                      top: isActive ? 0 : "2px",
+                    }}
+                    onClick={() => {
+                      setSort((prev) => ({
+                        key: s,
+                        dir: isActive
+                          ? prev.dir === "asc"
+                            ? "desc"
+                            : "asc"
+                          : prev.dir,
+                      }));
+                    }}
+                  >
+                    {getSortingLabel(s, sort.dir)}
+                  </Button>
+                );
+              },
+            )}
           </div>
         </section>
       )}
 
-      {/* List tabs + sort */}
-      {user && lists.length > 0 && !isGlobalSearch && (
-        <section className="flex flex-wrap gap-1">
-          {lists
-            .filter((c) => c.entries.length > 0)
-            .map((c) => (
-              <Button
-                key={c.name}
-                variant={
-                  activeList === c.name && !isLocalFilter
-                    ? "outline"
-                    : "default"
-                }
-                onClick={() => {
-                  setActiveList(c.name);
-                  if (isGlobalSearch) resetToLists();
-                }}
-                className="text-[10px]"
-              >
-                {listLabels[c.name] ?? c.name} ({c.entries.length})
-              </Button>
-            ))}
-          <span className="text-[10px] windows95-text self-center ml-1 mr-0.5">
-            |
-          </span>
-          {(["default", "score", "title", "progress"] as const).map((s) => (
-            <Button
-              key={s}
-              variant={sort.key === s ? "outline" : "default"}
-              onClick={() => {
-                if (sort.key === s)
-                  setSort((p) => ({
-                    ...p,
-                    dir: p.dir === "asc" ? "desc" : "asc",
-                  }));
-                else setSort({ key: s, dir: s === "title" ? "asc" : "desc" });
-              }}
-              className="text-[9px]"
-            >
-              {s === "default"
-                ? "по умолч."
-                : s === "score"
-                  ? `★ рейтинг${sort.key === s ? (sort.dir === "asc" ? "↑" : "↓") : ""}`
-                  : s === "title"
-                    ? `А–Я${sort.key === s ? (sort.dir === "asc" ? "↑" : "↓") : ""}`
-                    : `прогресс${sort.key === s ? (sort.dir === "asc" ? "↑" : "↓") : ""}`}
-            </Button>
-          ))}
+      {/* CONTENT */}
+      {displayEntries.length === 0 && !global && !isLocal && !user && (
+        <section className="flex flex-col items-center justify-center flex-1 gap-2">
+          <span className="windows95-text">Войдите в профиль</span>
+          <Button onClick={() => setAuth(true)}>Войти</Button>
         </section>
       )}
 
-      {/* Content */}
-      {displayItems.length > 0 && (
-        <section className="flex flex-col w-full h-full overflow-y-scroll p-0.5 gap-1">
-          {displayItems.map((item) => {
+      {displayEntries.length === 0 && isLocal && (
+        <section className="flex flex-col items-center justify-center flex-1 gap-2">
+          <span className="windows95-text">Ничего не найдено в списке</span>
+        </section>
+      )}
+
+      {!searchResults.length && global && (
+        <section className="flex flex-col items-center justify-center flex-1 gap-2">
+          <span className="windows95-text">Ничего не найдено на AniList</span>
+        </section>
+      )}
+
+      {displayEntries.length > 0 && (
+        <section className="flex flex-col w-full h-full overflow-y-scroll p-1 gap-1 border windows95-border">
+          {displayEntries.map((item) => {
             const entry = entryLookup.get(item.id);
+
             return (
               <div
                 key={item.id}
-                className="windows95-active-border bg-primary px-2 py-1.5 mb-0.5 cursor-pointer"
+                className="flex flex-row windows95-active-border bg-primary p-2 hover:cursor-pointer"
                 onClick={() =>
-                  setSelectedAnimeData({
+                  setSelectedAnime({
                     animeId: item.id,
-                    listEntry: entry
-                      ? {
-                          progress: entry.progress,
-                          list_status: entry.list_status,
-                        }
-                      : undefined,
+                    ...(entry && {
+                      listEntry: {
+                        progress: entry.progress,
+                        score: entry.score,
+                        list_status: entry.list_status,
+                      },
+                    }),
                   })
                 }
               >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    <h3 className="truncate text-[11px] font-bold leading-tight windows95-font windows95-text">
-                      {item.title}
-                    </h3>
-                    <div className="flex flex-wrap gap-1 items-center mt-1">
+                <main className="flex flex-row w-full items-start justify-between gap-2">
+                  <section className="min-w-0 flex-1 h-full flex flex-col">
+                    {/*top*/}
+                    <div className="flex flex-row gap-2">
+                      <h2 className="truncate font-bold leading-tight windows95-text">
+                        {item.title}
+                      </h2>
+                    </div>
+
+                    {/*bottom*/}
+                    <div className="flex flex-row gap-1 items-center mt-auto windows95-text font-bold">
                       {item.score && (
-                        <span className="text-[10px] windows95-font px-1 bg-secondary text-white">
+                        <span className="px-1 bg-secondary text-primary">
                           ★ {item.score}
                         </span>
                       )}
-                      <span className="text-[10px] windows95-font text-text">
-                        {statusLabels[item.status] ?? item.status}
+                      <span className="text-text">
+                        {getStatusLabel(item.status.toUpperCase()) ??
+                          item.status}
                       </span>
                       {entry != null && entry.progress != null && (
-                        <span className="text-[10px] windows95-font px-1 bg-accent text-white">
+                        <span className="px-1 bg-accent">
                           {entry.progress}/{item.episodes ?? "?"}
                         </span>
                       )}
                       {!entry && item.episodes && (
-                        <span className="text-[10px] windows95-font text-text">
-                          {item.episodes} эп.
-                        </span>
+                        <span className="text-text">{item.episodes} эп.</span>
                       )}
                     </div>
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {item.genres.slice(0, 4).map((g) => (
-                        <span
-                          key={g}
-                          className="px-1 text-[10px] windows95-font bg-muted text-white"
-                        >
-                          {g}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
+                  </section>
+
                   {item.cover_url && (
                     <img
                       src={item.cover_url}
-                      alt=""
+                      alt={item.title + " cover"}
                       className="w-14 windows95-active-border shrink-0"
                     />
                   )}
-                </div>
+                </main>
               </div>
             );
           })}
         </section>
       )}
 
-      {displayItems.length === 0 && !isGlobalSearch && !isLocalFilter && (
-        <section className="flex flex-col items-center justify-center flex-1 gap-2">
-          <span className="windows95-text text-[11px]">
-            {user
-              ? "Выберите список или начните поиск"
-              : "Авторизуйтесь или начните поиск"}
-          </span>
-        </section>
-      )}
-
-      {displayItems.length === 0 && isLocalFilter && (
-        <span className="windows95-text text-[11px] px-0.5">
-          Ничего не найдено в списке
-        </span>
-      )}
-
-      {data?.length === 0 && isGlobalSearch && (
-        <span className="windows95-text text-[11px] px-0.5">
-          Ничего не найдено на AniList
-        </span>
-      )}
-
-      {showAuth && (
-        <AniListAuth
-          onAuth={(u) => {
-            setUser(u);
-            setShowAuth(false);
-            invoke<AniListCollection[]>("get_anilist_lists", { userId: u.id })
-              .then((l) => {
-                setLists(l);
-                const first = l.find((c) => c.entries.length > 0);
-                if (first) setActiveList(first.name);
-              })
-              .catch(() => {});
+      {/* MODAL */}
+      {auth && (
+        <Auth
+          onAuth={(user) => {
+            setUser(user);
+            setAuth(false);
+            invoke<AniListCollection[]>("get_anilist_lists", {
+              userId: user.id,
+            }).then((res) => {
+              setLists(res);
+              const first = res.find((i) => i.entries.length > 0);
+              if (first) setCurrentList(first.name);
+            });
           }}
-          onClose={() => setShowAuth(false)}
+          onClose={() => setAuth(false)}
         />
       )}
 
-      {selectedAnimeData && (
-        <AniListDetail
-          animeId={selectedAnimeData.animeId}
-          listEntry={selectedAnimeData.listEntry}
-          isLoggedIn={user !== null}
-          onClose={() => setSelectedAnimeData(null)}
+      {selectedAnime && (
+        <Details
+          animeId={selectedAnime.animeId}
+          listEntry={selectedAnime.listEntry}
+          isLoggedIn={!!user}
+          onClose={() => setSelectedAnime(null)}
           onSaved={() => {
-            if (user) {
-              invoke<AniListCollection[]>("get_anilist_lists", {
-                userId: user.id,
-              }).then((l) => setLists(l));
-            }
+            if (!user) return;
+            invoke<AniListCollection[]>("get_anilist_lists", {
+              userId: user.id,
+            }).then((res) => setLists(res));
           }}
         />
       )}
-    </div>
+    </main>
   );
 }
 
-export default AniListRoute;
+export default AnilistRoute;

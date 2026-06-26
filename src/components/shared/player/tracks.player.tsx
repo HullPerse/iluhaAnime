@@ -3,7 +3,7 @@ import type { VideoStreamInfo } from "@/types";
 import { useState, useCallback, useRef, useEffect } from "react";
 import { parseVTT } from "@/lib/index.utils";
 import { useMediaStore } from "@/store/media.store";
-import { showToast } from "@/lib/toast";
+import { showToast } from "@/lib/toast.utils";
 import { Check } from "lucide-react";
 import AssOverlay from "./subtitles.player";
 
@@ -208,11 +208,15 @@ function Tracks({
         const wasPlaying = savedPlayingRef.current;
         onAudioSwitch(null);
         const restoreFallback = () => {
-          try { videoEl.currentTime = fallbackTime; } catch {}
+          try {
+            videoEl.currentTime = fallbackTime;
+          } catch {}
           if (wasPlaying) videoEl.play().catch(() => {});
           videoEl.removeEventListener("loadedmetadata", restoreFallback);
         };
-        videoEl.addEventListener("loadedmetadata", restoreFallback, { once: true });
+        videoEl.addEventListener("loadedmetadata", restoreFallback, {
+          once: true,
+        });
         showToast("Не удалось переключить аудиодорожку", "error");
       }
     },

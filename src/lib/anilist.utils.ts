@@ -1,0 +1,84 @@
+import { AniListEntry, AniListSort } from "@/types/anilist";
+
+export function filterEntries(
+  entries: AniListEntry[],
+  searchTerms: string,
+  global: boolean,
+) {
+  return entries.filter((e) => {
+    if (!searchTerms.trim() || global) return true;
+
+    const query = searchTerms.toLowerCase();
+
+    return (
+      e.media.title.toLowerCase().includes(query) ||
+      e.media.titles.some((t) => t.toLowerCase().includes(query))
+    );
+  });
+}
+
+export function sortEntries(
+  filtered: AniListEntry[],
+  direction: AniListSort["dir"],
+  method: AniListSort["key"],
+): AniListEntry[] {
+  const copy = [...filtered];
+
+  const sortMap = {
+    title: () =>
+      copy.sort((a, b) => {
+        const c = a.media.title.localeCompare(b.media.title);
+        return direction === "asc" ? c : -c;
+      }),
+    score: () =>
+      copy.sort((a, b) => {
+        const d = (b.media.score ?? -1) - (a.media.score ?? -1);
+        return direction === "desc" ? d : -d;
+      }),
+    progress: () =>
+      copy.sort((a, b) => {
+        const d = (b.progress ?? -1) - (a.progress ?? -1);
+        return direction === "desc" ? d : -d;
+      }),
+  } as Record<AniListSort["key"], () => AniListEntry[]>;
+
+  return sortMap[method]();
+}
+
+export function getSortingLabel(
+  sort: AniListSort["key"],
+  direction: AniListSort["dir"],
+): string {
+  const labelMap = {
+    title: "Название",
+    score: "Рейтинг",
+    progress: "Прогресс",
+  } as Record<AniListSort["key"], string>;
+
+  return `${labelMap[sort]} ${direction === "asc" ? "↑" : "↓"}`;
+}
+
+export function getStatusLabel(status: string) {
+  const statusMap = {
+    FINISHED: "Завершён",
+    RELEASING: "Выходит",
+    NOT_YET_RELEASED: "Анонс",
+    CANCELLED: "Отменён",
+    HIATUS: "На паузе",
+  } as Record<string, string>;
+
+  return statusMap[status];
+}
+
+export function getListLabel(list: string) {
+  const listMap = {
+    CURRENT: "Смотрю",
+    PLANNING: "Запланировано",
+    COMPLETED: "Просмотрено",
+    DROPPED: "Брошено",
+    PAUSED: "На паузе",
+    REPEATING: "Пересматриваю",
+  } as Record<string, string>;
+
+  return listMap[list];
+}

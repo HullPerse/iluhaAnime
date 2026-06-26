@@ -325,7 +325,7 @@ function SearchRoute() {
           (source === "rutracker" && rutrackerAuth)) && (
           <Button
             size="icon"
-            variant="default"
+            variant="error"
             onClick={async () => {
               if (source === "rutracker" && rutrackerAuth) {
                 handleLogout();

@@ -4,13 +4,19 @@ import { formatLabels, seasonLabels, statusLabels } from "@/lib/anilist.utils";
 function AniListMetadata({ anime }: { anime: AniMedia }) {
   return (
     <div className="flex flex-row gap-3">
-      {anime.cover_url && (
-        <img
-          src={anime.cover_url}
-          alt={anime.title}
-          className="w-36 shrink-0 windows95-active-border self-start"
-        />
-      )}
+      <div className="windows95-border shrink-0 self-start p-0.5">
+        {anime.cover_url ? (
+          <img
+            src={anime.cover_url}
+            alt={anime.title}
+            className="w-36 block"
+          />
+        ) : (
+          <div className="w-36 h-52 bg-muted/20 flex items-center justify-center">
+            <span className="windows95-text text-[10px] text-muted">Нет обложки</span>
+          </div>
+        )}
+      </div>
       <div className="flex flex-col gap-1.5 min-w-0 flex-1">
         <div className="flex flex-wrap gap-1 items-center">
           {anime.score && (

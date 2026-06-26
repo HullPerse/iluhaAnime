@@ -19,7 +19,7 @@ import {
   getStatusLabel,
   sortEntries,
 } from "@/lib/anilist.utils";
-import { LogOut, Search, User } from "lucide-react";
+import { LogOut, Search, SearchX, User } from "lucide-react";
 
 function AnilistRoute() {
   const [searchTerms, setSearchTerms] = useState<string>("");
@@ -110,8 +110,9 @@ function AnilistRoute() {
 
   const filteredEntries = filterEntries(activeEntries, searchTerms, global);
   const sortedEntries = sortEntries(filteredEntries, sort.dir, sort.key);
-  const displayEntries =
-    global ? searchResults : sortedEntries.map((e) => e.media);
+  const displayEntries = global
+    ? searchResults
+    : sortedEntries.map((e) => e.media);
 
   const isLocal = !!searchTerms.trim() && !global;
 
@@ -146,19 +147,6 @@ function AnilistRoute() {
           {global ? <User className="size-4" /> : <Search className="size-4" />}
         </Button>
       </section>
-
-      {/* FILTER */}
-      {isLocal && (
-        <span className="windows95-text px-1 text-muted">
-          {filteredEntries.length}/{activeEntries.length}
-        </span>
-      )}
-      {global && (
-        <span className="windows95-text px-1">
-          Поиск: &quot;{searchTerms}&quot; ·{" "}
-          {searchResults.length > 0 ? `Результатов: ${searchResults.length}` : ""}
-        </span>
-      )}
 
       {/* PROFILE */}
       {user && !global && !isLocal && (
@@ -200,71 +188,90 @@ function AnilistRoute() {
 
       {/* TABS */}
       {!loadingList && user && lists.length > 0 && !global && (
-        <section className="not-only:flex flex-row w-full items-center justify-between">
-          <div className="relative flex flex-row gap-1">
-            {lists
-              .filter((item) => item.entries.length > 0)
-              .map((item) => {
-                const isActive = currentList === item.name;
+        <section className="relative flex flex-row gap-1">
+          {lists
+            .filter((item) => item.entries.length > 0)
+            .map((item) => {
+              const isActive = currentList === item.name;
 
-                return (
-                  <Button
-                    key={item.name}
-                    className="px-3 py-0.5 border-2 border-solid cursor-pointer windows95-text active:outline-dotted active:outline-1 active:outline-offset-[-3px] active:outline-text"
-                    style={{
-                      borderBottomColor: isActive ? "#c0c0c0" : undefined,
-                      marginBottom: isActive ? "-2px" : undefined,
-                      top: isActive ? 0 : "2px",
-                    }}
-                    onClick={() => {
-                      setCurrentList(item.name);
-                      if (global) handleReset();
-                    }}
-                    disabled={isActive}
-                  >
-                    {getListLabel(item.name.toUpperCase()) ?? item.name} (
-                    {item.entries.length})
-                  </Button>
-                );
-              })}
-          </div>
-          <div className="relative flex flex-row gap-1">
-            {(["title", "score", "progress"] as AniListSort["key"][]).map(
-              (s) => {
-                const isActive = sort.key === s;
+              return (
+                <Button
+                  key={item.name}
+                  className="px-3 py-0.5 border-2 border-solid cursor-pointer windows95-text active:outline-dotted active:outline-1 active:outline-offset-[-3px] active:outline-text"
+                  style={{
+                    borderBottomColor: isActive ? "#c0c0c0" : undefined,
+                    marginBottom: isActive ? "-2px" : undefined,
+                    top: isActive ? 0 : "2px",
+                  }}
+                  onClick={() => {
+                    setCurrentList(item.name);
+                    if (global) handleReset();
+                  }}
+                  disabled={isActive}
+                >
+                  {getListLabel(item.name.toUpperCase()) ?? item.name} (
+                  {item.entries.length})
+                </Button>
+              );
+            })}
+        </section>
+      )}
 
-                return (
-                  <Button
-                    key={s}
-                    variant={isActive ? "outline" : "default"}
-                    className="px-3 py-0.5 border-2 border-solid cursor-pointer windows95-text"
-                    style={{
-                      marginBottom: isActive ? "-2px" : undefined,
-                      top: isActive ? 0 : "2px",
-                    }}
-                    onClick={() => {
-                      setSort((prev) => ({
-                        key: s,
-                        dir: isActive
-                          ? prev.dir === "asc"
-                            ? "desc"
-                            : "asc"
-                          : prev.dir,
-                      }));
-                    }}
-                  >
-                    {getSortingLabel(s, sort.dir)}
-                  </Button>
-                );
-              },
-            )}
-          </div>
+      {/* SORT TOOLBAR */}
+      {user && !global && lists.length > 0 && (
+        <section className="windows95-border bg-primary px-1 py-0.5 flex flex-row items-center gap-2">
+          <span className="windows95-text text-[10px] text-muted">
+            Сортировка:
+          </span>
+          {(["title", "score", "progress"] as AniListSort["key"][]).map((s) => {
+            const isActive = sort.key === s;
+
+            return (
+              <Button
+                key={s}
+                variant={isActive ? "outline" : "default"}
+                size="default"
+                className="px-2 py-0.5"
+                onClick={() => {
+                  setSort((prev) => ({
+                    key: s,
+                    dir: isActive
+                      ? prev.dir === "asc"
+                        ? "desc"
+                        : "asc"
+                      : prev.dir,
+                  }));
+                }}
+              >
+                {getSortingLabel(s, sort.dir)}
+              </Button>
+            );
+          })}
+        </section>
+      )}
+
+      {/* LOADING SKELETON */}
+      {loadingList && lists.length === 0 && (
+        <section className="flex flex-col w-full h-full overflow-y-scroll p-1 gap-1 border windows95-border">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div
+              key={i}
+              className="flex flex-row windows95-active-border bg-primary p-2 animate-pulse"
+            >
+              <div className="flex-1 flex flex-col gap-1.5">
+                <div className="h-3 w-3/5 bg-muted/20" />
+                <div className="h-2.5 w-1/4 bg-muted/10" />
+              </div>
+              <div className="w-14 h-20 bg-muted/20 shrink-0" />
+            </div>
+          ))}
         </section>
       )}
 
       {/* CONTENT */}
       {displayEntries.length === 0 && !global && !isLocal && !user && (
         <section className="flex flex-col items-center justify-center flex-1 gap-2">
+          <User className="size-8 text-muted" />
           <span className="windows95-text">Войдите в профиль</span>
           <Button onClick={() => setAuth(true)}>Войти</Button>
         </section>
@@ -272,12 +279,14 @@ function AnilistRoute() {
 
       {displayEntries.length === 0 && isLocal && (
         <section className="flex flex-col items-center justify-center flex-1 gap-2">
+          <SearchX className="size-8 text-muted" />
           <span className="windows95-text">Ничего не найдено в списке</span>
         </section>
       )}
 
       {!searchResults.length && global && (
         <section className="flex flex-col items-center justify-center flex-1 gap-2">
+          <SearchX className="size-8 text-muted" />
           <span className="windows95-text">Ничего не найдено на AniList</span>
         </section>
       )}
@@ -303,6 +312,9 @@ function AnilistRoute() {
                     }),
                   })
                 }
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                }}
               >
                 <main className="flex flex-row w-full items-start justify-between gap-2">
                   <section className="min-w-0 flex-1 h-full flex flex-col">
@@ -314,23 +326,44 @@ function AnilistRoute() {
                     </div>
 
                     {/*bottom*/}
-                    <div className="flex flex-row gap-1 items-center mt-auto windows95-text font-bold">
+                    <div className="flex flex-row gap-2 items-center mt-auto windows95-text font-bold">
                       {item.score && (
-                        <span className="px-1 bg-secondary text-primary">
+                        <span className="px-1 bg-secondary text-primary text-[10px]">
                           ★ {item.score}
                         </span>
                       )}
-                      <span className="text-text">
+                      <span className="text-[10px] text-text">
                         {getStatusLabel(item.status.toUpperCase()) ??
                           item.status}
                       </span>
-                      {entry != null && entry.progress != null && (
-                        <span className="px-1 bg-accent">
-                          {entry.progress}/{item.episodes ?? "?"}
-                        </span>
-                      )}
+                      {entry != null &&
+                        entry.progress != null &&
+                        item.episodes && (
+                          <div className="flex items-center gap-1">
+                            <div className="windows95-small-border w-20 h-3.5 bg-white relative overflow-hidden">
+                              <div
+                                className="h-full bg-secondary"
+                                style={{
+                                  width: `${Math.min(100, Math.round((entry.progress / item.episodes) * 100))}%`,
+                                }}
+                              />
+                            </div>
+                            <span className="text-[10px] windows95-text">
+                              {entry.progress}/{item.episodes}
+                            </span>
+                          </div>
+                        )}
+                      {entry != null &&
+                        entry.progress != null &&
+                        !item.episodes && (
+                          <span className="px-1 bg-accent text-[10px]">
+                            {entry.progress}
+                          </span>
+                        )}
                       {!entry && item.episodes && (
-                        <span className="text-text">{item.episodes} эп.</span>
+                        <span className="text-[10px] text-text">
+                          {item.episodes} эп.
+                        </span>
                       )}
                     </div>
                   </section>
@@ -346,6 +379,33 @@ function AnilistRoute() {
               </div>
             );
           })}
+        </section>
+      )}
+
+      {/* STATUS BAR */}
+      {(user || global) && (
+        <section className="windows95-border bg-primary px-1 py-0.5 flex flex-row items-center justify-between">
+          <span className="windows95-text text-[10px]">
+            {global ? (
+              <>
+                Поиск: &quot;{searchTerms}&quot; · {searchResults.length}{" "}
+                результатов
+              </>
+            ) : isLocal ? (
+              <>
+                {getListLabel(currentList.toUpperCase()) ?? currentList} ·
+                показано {filteredEntries.length} из {activeEntries.length}
+              </>
+            ) : user ? (
+              <>
+                {getListLabel(currentList.toUpperCase()) ?? currentList} ·{" "}
+                {activeEntries.length} аниме
+              </>
+            ) : null}
+          </span>
+          <span className="windows95-text text-[10px]">
+            {displayEntries.length > 0 && `Показано: ${displayEntries.length}`}
+          </span>
         </section>
       )}
 

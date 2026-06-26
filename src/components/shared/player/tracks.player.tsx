@@ -50,7 +50,7 @@ function TrackDropdown({
       </button>
       {onAdd && (
         <button
-          className="flex items-center justify-center size-4 text-[10px] windows95-font bg-primary windows95-border leading-none"
+          className="flex items-center justify-center size-4 windows95-text bg-primary windows95-border leading-none"
           onClick={onAdd}
           title={`Add ${label.toLowerCase()} track`}
         >
@@ -58,11 +58,11 @@ function TrackDropdown({
         </button>
       )}
       {open && (
-        <div className="absolute bottom-full left-0 mb-0.5 min-w-full windows95-border bg-primary z-50">
+        <div className="absolute bottom-full left-0 mb-0.5 min-w-full windows95-border bg-primary z-50 max-w-xl w-xl">
           {tracks.map((t) => (
             <button
               key={t.index}
-              className="flex items-center gap-1 w-full text-left px-1 py-0.5 text-[10px] windows95-font hover:bg-secondary hover:text-white whitespace-nowrap"
+              className="flex items-center gap-1 w-full text-left px-1 py-0.5 windows95-text hover:bg-secondary hover:text-white whitespace-nowrap hover:cursor-pointer max-w-xl line-clamp-1"
               onClick={() => {
                 onChange(t.index);
                 setOpen(false);

@@ -32,6 +32,7 @@ const listStatusLabels: Record<string, string> = {
   DROPPED: "Брошено",
   PAUSED: "На паузе",
   REPEATING: "Пересматриваю",
+  WATCHING: "В процессе",
 };
 
 export const listStatusOptions = Object.entries(listStatusLabels).map(

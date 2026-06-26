@@ -36,7 +36,7 @@ function Keyboard({
       const tag = (e.target as HTMLElement).tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
 
-      const action = getAction(e.code, e.ctrlKey, e.shiftKey);
+      const action = getAction(e.code, e.ctrlKey, e.shiftKey, e.altKey);
       if (!action) return;
       e.preventDefault();
 

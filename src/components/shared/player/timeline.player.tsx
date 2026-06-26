@@ -203,13 +203,9 @@ function Timeline({
                 </div>
               )}
               <span className="tabular-nums">
-                {formatTime(hoverInfo.time)} ({hoverInfo.chapterTitle})
+                {formatTime(hoverInfo.time)}
+                {hoverInfo.chapterTitle ? `(${hoverInfo.chapterTitle})` : null}
               </span>
-              {/*{hoverInfo.chapterTitle && (
-                <span className="ml-1 text-muted">
-                  - {hoverInfo.chapterTitle}
-                </span>
-              )}*/}
             </div>
           </div>
         )}

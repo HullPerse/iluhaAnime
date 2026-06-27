@@ -1,34 +1,6 @@
+import { PlayerSettings, PlayerStore } from "@/types/player";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-
-interface PlayerSettings {
-  rotation: number;
-  flipH: boolean;
-  flipV: boolean;
-  zoom: number;
-  aspectRatio: "contain" | "cover" | "fill" | "none" | "scale-down";
-  brightness: number;
-  contrast: number;
-  saturation: number;
-  hue: number;
-  blur: number;
-  sepia: number;
-  grayscale: number;
-  subFontSize: number;
-  subFontFamily: string;
-  subColor: string;
-  subBgOpacity: number;
-  subBgColor: string;
-}
-
-interface PlayerStore {
-  volume: number;
-  folderPaths: string[];
-  settings: PlayerSettings;
-  setVolume: (v: number) => void;
-  setFolderPaths: (paths: string[]) => void;
-  patchSettings: (p: Partial<PlayerSettings>) => void;
-}
 
 const D: PlayerSettings = {
   rotation: 0,
@@ -61,8 +33,7 @@ export const usePlayerStore = create<PlayerStore>()(
 
       setFolderPaths: (paths) => set({ folderPaths: paths }),
 
-      patchSettings: (p) =>
-        set((s) => ({ settings: { ...s.settings, ...p } })),
+      patchSettings: (p) => set((s) => ({ settings: { ...s.settings, ...p } })),
     }),
     { name: "playerState" },
   ),

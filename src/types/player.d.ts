@@ -26,3 +26,50 @@ export type ScanType = {
   current: number;
   total: number;
 } | null;
+
+export interface MediaEntry {
+  path: string;
+  position: number;
+  audioTrack?: number;
+  subtitleTrack?: number;
+  subOffset: number;
+  lastPlayed: number;
+}
+
+export interface MediaStore {
+  entries: MediaEntry[];
+  getEntry: (path: string) => MediaEntry | undefined;
+  setPosition: (path: string, time: number) => void;
+  setTrack: (path: string, type: "audio" | "sub", index: number) => void;
+  setSubOffset: (path: string, offset: number) => void;
+  removeEntry: (path: string) => void;
+}
+
+export interface PlayerSettings {
+  rotation: number;
+  flipH: boolean;
+  flipV: boolean;
+  zoom: number;
+  aspectRatio: "contain" | "cover" | "fill" | "none" | "scale-down";
+  brightness: number;
+  contrast: number;
+  saturation: number;
+  hue: number;
+  blur: number;
+  sepia: number;
+  grayscale: number;
+  subFontSize: number;
+  subFontFamily: string;
+  subColor: string;
+  subBgOpacity: number;
+  subBgColor: string;
+}
+
+export interface PlayerStore {
+  volume: number;
+  folderPaths: string[];
+  settings: PlayerSettings;
+  setVolume: (v: number) => void;
+  setFolderPaths: (paths: string[]) => void;
+  patchSettings: (p: Partial<PlayerSettings>) => void;
+}

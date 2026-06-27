@@ -5,3 +5,11 @@ export type SettingsScraper = {
   sort: "seeders" | "leechers" | "size";
   encoding: "all" | "hevc" | "x264";
 };
+
+export interface SearchStore {
+  history: string[];
+  crossSearchQuery: string | null;
+  addQuery: (query: string) => void;
+  removeQuery: (query: string) => void;
+  setCrossSearchQuery: (query: string | null) => void;
+}

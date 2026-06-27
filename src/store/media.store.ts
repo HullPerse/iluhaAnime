@@ -1,25 +1,8 @@
+import { MediaEntry, MediaStore } from "@/types/player";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 const MAX_ENTRIES = 50;
-
-export interface MediaEntry {
-  path: string;
-  position: number;
-  audioTrack?: number;
-  subtitleTrack?: number;
-  subOffset: number;
-  lastPlayed: number;
-}
-
-interface MediaStore {
-  entries: MediaEntry[];
-  getEntry: (path: string) => MediaEntry | undefined;
-  setPosition: (path: string, time: number) => void;
-  setTrack: (path: string, type: "audio" | "sub", index: number) => void;
-  setSubOffset: (path: string, offset: number) => void;
-  removeEntry: (path: string) => void;
-}
 
 function touch(entries: MediaEntry[], path: string): MediaEntry[] {
   const idx = entries.findIndex((e) => e.path === path);
@@ -29,7 +12,12 @@ function touch(entries: MediaEntry[], path: string): MediaEntry[] {
     copy.unshift(entry);
     return copy.slice(0, MAX_ENTRIES);
   }
-  const entry: MediaEntry = { path, position: 0, subOffset: 0, lastPlayed: Date.now() };
+  const entry: MediaEntry = {
+    path,
+    position: 0,
+    subOffset: 0,
+    lastPlayed: Date.now(),
+  };
   return [entry, ...entries].slice(0, MAX_ENTRIES);
 }
 
@@ -51,7 +39,10 @@ export const useMediaStore = create<MediaStore>()(
         set((s) => ({
           entries: touch(s.entries, path).map((e) =>
             e.path === path
-              ? { ...e, [type === "audio" ? "audioTrack" : "subtitleTrack"]: index }
+              ? {
+                  ...e,
+                  [type === "audio" ? "audioTrack" : "subtitleTrack"]: index,
+                }
               : e,
           ),
         })),

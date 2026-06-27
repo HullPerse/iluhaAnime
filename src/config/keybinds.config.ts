@@ -31,7 +31,7 @@ export interface KeybindDef {
   alt?: boolean;
 }
 
-export const KEYBINDS: KeybindDef[] = [
+const KEYBINDS: KeybindDef[] = [
   {
     action: "playPause",
     code: "Space",

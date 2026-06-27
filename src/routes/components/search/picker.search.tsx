@@ -5,23 +5,7 @@ import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { fmtSize, groupFilesByDirectory } from "@/lib/torrent.utils";
 import { FolderOpen } from "lucide-react";
-
-export interface TorrentFileInfo {
-  index: number;
-  name: string;
-  size: number;
-  completed: boolean;
-  selected: boolean;
-}
-
-export interface PickerTorrent {
-  magnet: string;
-  id: number;
-  name: string;
-  files: TorrentFileInfo[];
-  conflictingFiles: string[];
-  hasCommonFolder: boolean;
-}
+import { PickerTorrent } from "@/types/torrent";
 
 function TorrentFilePicker({
   torrent,

@@ -1,12 +1,5 @@
 import { FolderNode, VideoFileEntry } from "@/types";
 
-export function countFiles(node: FolderNode): number {
-  let nodes = node.files.length;
-
-  for (const children of node.children) nodes += countFiles(children);
-  return nodes;
-}
-
 export function nodeMatchesSearch(node: FolderNode, query: string): boolean {
   const value = query.toLowerCase();
   if (node.name.toLowerCase().includes(value)) return true;

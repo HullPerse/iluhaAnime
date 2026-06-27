@@ -1,15 +1,8 @@
+import { SearchStore } from "@/types/search";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 const MAX_HISTORY = 5;
-
-interface SearchStore {
-  history: string[];
-  crossSearchQuery: string | null;
-  addQuery: (query: string) => void;
-  removeQuery: (query: string) => void;
-  setCrossSearchQuery: (query: string | null) => void;
-}
 
 export const useSearchStore = create<SearchStore>()(
   persist(

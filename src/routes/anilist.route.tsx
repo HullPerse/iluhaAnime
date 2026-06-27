@@ -9,7 +9,6 @@ import type {
   AniUser,
 } from "@/types/anilist";
 import { invoke } from "@tauri-apps/api/core";
-import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input.component";
 import { Button } from "@/components/ui/button.component";
 import {
@@ -44,24 +43,35 @@ function AnilistRoute() {
   });
   const [loadingList, setLoadingList] = useState<boolean>(false);
   const [searchResults, setSearchResults] = useState<AniMedia[]>([]);
+  const [searchTag, setSearchTag] = useState<string | null>(null);
   const [page, setPage] = useState<number>(1);
+  const [loadingSearch, setLoadingSearch] = useState(false);
 
-  const { isLoading, refetch } = useQuery({
-    queryKey: ["anilist", searchTerms.trim()],
-    queryFn: async (): Promise<AniMedia[]> => {
+  const handleGlobal = useCallback(async () => {
+    setGlobal(true);
+    setLoadingSearch(true);
+    try {
       const res = await invoke<AniMedia[]>("search_anilist", {
         query: searchTerms.trim(),
       });
       setSearchResults(res);
-      return res;
-    },
-    enabled: false,
-  });
+    } finally {
+      setLoadingSearch(false);
+    }
+  }, [searchTerms]);
 
-  const handleGlobal = useCallback(() => {
+  const handleTag = useCallback(async (tag: string) => {
     setGlobal(true);
-    refetch();
-  }, [refetch]);
+    setSearchTag(tag);
+    setLoadingSearch(true);
+    try {
+      const res = await invoke<AniMedia[]>("search_anilist_by_tag", { tag });
+      setSearchResults(res);
+      setSearchTerms("");
+    } finally {
+      setLoadingSearch(false);
+    }
+  }, []);
 
   const handleReset = useCallback(() => {
     setSearchTerms("");
@@ -154,8 +164,7 @@ function AnilistRoute() {
           }}
           onKeyDown={(e) => {
             if (e.key === "Enter" && searchTerms.trim()) {
-              if (global) refetch();
-              else handleGlobal();
+              handleGlobal();
             }
           }}
         />
@@ -166,7 +175,7 @@ function AnilistRoute() {
             if (global) return handleReset();
             else return handleGlobal();
           }}
-          disabled={global ? false : isLoading || !searchTerms.trim()}
+          disabled={global ? false : loadingSearch || !searchTerms.trim()}
         >
           {global ? <User className="size-4" /> : <Search className="size-4" />}
         </Button>
@@ -412,8 +421,8 @@ function AnilistRoute() {
           <span className="windows95-text">
             {global ? (
               <>
-                Поиск: &quot;{searchTerms}&quot; · {searchResults.length}{" "}
-                результатов
+                Поиск: {searchResults.length} результатов
+                {searchTag && <> · тег: {searchTag}</>}
               </>
             ) : isLocal ? (
               <>
@@ -433,23 +442,17 @@ function AnilistRoute() {
             <Button
               size="icon"
               className="h-6 w-6"
-              onClick={() => {
-                if (page === 1) return;
-                else setPage((prev) => prev - 1);
-              }}
+              onClick={() => setPage(page - 1)}
               disabled={page === 1}
             >
               <ArrowLeft />
             </Button>
-
             <Input
               value={page}
               onChange={(e) => {
                 const number = Number(e.target.value);
-                if (number < 1) return setPage(1);
-                if (number > lastPage) return setPage(lastPage);
-
-                return setPage(number);
+                if (!Number.isFinite(number) || number < 1) return;
+                setPage(number);
               }}
               min={1}
               max={lastPage}
@@ -457,14 +460,10 @@ function AnilistRoute() {
               inputMode="numeric"
               className="windows95-text font-bold windows95-border h-6 w-10 text-center flex items-center justify-center"
             />
-
             <Button
               size="icon"
               className="h-6 w-6"
-              onClick={() => {
-                if (page === lastPage) return;
-                else setPage((prev) => prev + 1);
-              }}
+              onClick={() => setPage(page + 1)}
               disabled={page === lastPage}
             >
               <ArrowRight />
@@ -496,6 +495,7 @@ function AnilistRoute() {
           animeId={selectedAnime.animeId}
           listEntry={selectedAnime.listEntry}
           isLoggedIn={!!user}
+          onTag={handleTag}
           onClose={() => setSelectedAnime(null)}
           onSaved={() => {
             if (!user) return;

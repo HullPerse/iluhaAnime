@@ -13,6 +13,7 @@ function AniListDetailModal({
   animeId,
   listEntry,
   isLoggedIn,
+  onTag,
   onClose,
   onSaved,
 }: {
@@ -23,6 +24,7 @@ function AniListDetailModal({
     list_status: string;
   };
   isLoggedIn: boolean;
+  onTag: (e: string) => void;
   onClose: () => void;
   onSaved?: () => void;
 }) {
@@ -81,12 +83,17 @@ function AniListDetailModal({
                 </span>
               ))}
               {anime.tags.slice(0, 15).map((t) => (
-                <span
+                <button
                   key={t}
-                  className="px-1 text-[9px] windows95-font bg-primary windows95-border text-text"
+                  onClick={() => {
+                    onTag(t);
+                    onClose();
+                  }}
+                  className="text-left text-[10px] windows95-text underline decoration-dotted hover:bg-primary px-0.5 -mx-0.5 cursor-pointer truncate"
+                  title="Искать аниме по тегу"
                 >
-                  {t}
-                </span>
+                  ◉ {t}
+                </button>
               ))}
             </Section>
           )}

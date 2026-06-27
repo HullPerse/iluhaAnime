@@ -268,6 +268,7 @@ pub fn run() {
             video::scan_video_folder,
             video::generate_thumbnails,
             anilist::search_anilist,
+            anilist::search_anilist_by_tag,
             anilist::get_anime_by_id,
             anilist::anilist_login,
             anilist::check_anilist_auth,

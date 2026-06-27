@@ -154,12 +154,25 @@ fn parse_animedia(m: &serde_json::Value) -> AniMedia {
     }
 }
 
+const MAX_PAGES: u32 = 3;
+
+async fn fetch_page(body: serde_json::Value) -> Result<(Vec<AniMedia>, u32), String> {
+    let json = graphql_request(body, None).await?;
+    let p = &json["data"]["Page"];
+    let total = p["pageInfo"]["total"].as_u64().unwrap_or(0) as u32;
+    let media = p["media"].as_array()
+        .map(|a| a.iter().map(parse_animedia).collect())
+        .unwrap_or_default();
+    Ok((media, total))
+}
+
 #[tauri::command]
 pub async fn search_anilist(query: String) -> Result<Vec<AniMedia>, String> {
-    let body = serde_json::json!({
+    let (mut all, total) = fetch_page(serde_json::json!({
         "query": r#"
-            query ($search: String) {
-                Page(page: 1, perPage: 20) {
+            query ($search: String, $page: Int) {
+                Page(page: $page, perPage: 20) {
+                    pageInfo { total }
                     media(search: $search, type: ANIME) {
                         id
                         title { romaji english native }
@@ -174,11 +187,91 @@ pub async fn search_anilist(query: String) -> Result<Vec<AniMedia>, String> {
                 }
             }
         "#,
-        "variables": { "search": query }
-    });
-    let json = graphql_request(body, None).await?;
-    let media = json["data"]["Page"]["media"].as_array().ok_or_else(|| "Unexpected response".to_string())?;
-    Ok(media.iter().map(parse_animedia).collect())
+        "variables": { "search": query, "page": 1 }
+    })).await?;
+
+    let pages = ((total + 19) / 20).min(MAX_PAGES);
+    for page in 2..=pages {
+        if let Ok((media, _)) = fetch_page(serde_json::json!({
+            "query": r#"
+                query ($search: String, $page: Int) {
+                    Page(page: $page, perPage: 20) {
+                        pageInfo { total }
+                        media(search: $search, type: ANIME) {
+                            id
+                            title { romaji english native }
+                            episodes, duration, status, averageScore
+                            genres, tags { name }
+                            description (asHtml: false)
+                            coverImage { medium large }
+                            season, seasonYear
+                            studios { nodes { name } }
+                            nextAiringEpisode { episode airingAt }
+                        }
+                    }
+                }
+            "#,
+            "variables": { "search": query, "page": page }
+        })).await {
+            all.extend(media);
+        }
+    }
+
+    Ok(all)
+}
+
+#[tauri::command]
+pub async fn search_anilist_by_tag(tag: String) -> Result<Vec<AniMedia>, String> {
+    let (mut all, total) = fetch_page(serde_json::json!({
+        "query": r#"
+            query ($tag: String, $page: Int) {
+                Page(page: $page, perPage: 20) {
+                    pageInfo { total }
+                    media(type: ANIME, tag_in: [$tag]) {
+                        id
+                        title { romaji english native }
+                        episodes, duration, status, averageScore
+                        genres, tags { name }
+                        description(asHtml: false)
+                        coverImage { medium large }
+                        season, seasonYear
+                        studios { nodes { name } }
+                        nextAiringEpisode { episode airingAt }
+                    }
+                }
+            }
+        "#,
+        "variables": { "tag": tag, "page": 1 }
+    })).await?;
+
+    let pages = ((total + 19) / 20).min(MAX_PAGES);
+    for page in 2..=pages {
+        if let Ok((media, _)) = fetch_page(serde_json::json!({
+            "query": r#"
+                query ($tag: String, $page: Int) {
+                    Page(page: $page, perPage: 20) {
+                        pageInfo { total }
+                        media(type: ANIME, tag_in: [$tag]) {
+                            id
+                            title { romaji english native }
+                            episodes, duration, status, averageScore
+                            genres, tags { name }
+                            description(asHtml: false)
+                            coverImage { medium large }
+                            season, seasonYear
+                            studios { nodes { name } }
+                            nextAiringEpisode { episode airingAt }
+                        }
+                    }
+                }
+            "#,
+            "variables": { "tag": tag, "page": page }
+        })).await {
+            all.extend(media);
+        }
+    }
+
+    Ok(all)
 }
 
 #[tauri::command]

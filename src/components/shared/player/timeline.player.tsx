@@ -195,7 +195,7 @@ function Timeline({
                 <div className="mb-0.5">
                   <img
                     src={convertFileSrc(thumbs[thumbIndex])}
-                    className={`w-32 h-auto border border-black/20 ${imgLoaded ? "" : "hidden"}`}
+                    className={`w-32 max-32 min-32 h-18 min-h-18 max-h-18 border border-black/20 ${imgLoaded ? "" : "hidden"}`}
                     alt="Thumbnail"
                     onLoad={() => setImgLoaded(true)}
                     onError={() => setImgLoaded(false)}

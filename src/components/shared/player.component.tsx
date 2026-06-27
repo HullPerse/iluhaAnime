@@ -23,6 +23,7 @@ import { cn } from "@/lib/index.utils";
 import Settings from "./player/settings.player";
 import SeekOffset from "./player/offset.player";
 import SkipButton from "./player/skip.player";
+import { SmallLoader } from "./loader.component";
 
 const { Provider, Container } = createPlayer({ features: videoFeatures });
 
@@ -47,6 +48,7 @@ function Player({
   onToggleCinema,
   onToggleAutoHide,
   audioReady,
+  loading,
 }: {
   header: string;
   onClose: () => void;
@@ -68,6 +70,7 @@ function Player({
   onToggleCinema?: () => void;
   onToggleAutoHide?: () => void;
   audioReady?: boolean;
+  loading?: boolean;
 }) {
   const [uiVisible, setUiVisible] = useState(true);
   const hideTimerRef = useRef<number | null>(null);
@@ -245,6 +248,11 @@ function Player({
                 onFileNext={onFileNext}
                 hasNext={hasNext}
               />
+              {loading && (
+                <div className="absolute inset-0 z-20 flex items-center justify-center bg-black">
+                  <SmallLoader />
+                </div>
+              )}
               {effectiveSrc ? (
                 <Video
                   ref={setVideoEl}
@@ -266,7 +274,7 @@ function Player({
                   onPause={() => onPlayStateChange?.(false)}
                   onEnded={() => onFileNext?.()}
                 />
-              ) : (
+              ) : loading ? null : (
                 <EmptyPlayer />
               )}
             </section>
@@ -298,6 +306,7 @@ function Player({
                 autoHideUi={autoHideUi}
                 cinemaMode={cinemaMode}
                 audioReady={audioReady}
+                loading={loading}
               />
             </div>
           </div>

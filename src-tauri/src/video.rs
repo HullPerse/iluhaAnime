@@ -813,6 +813,14 @@ pub async fn generate_thumbnails(
     let thumbs_root = ffmpeg_bin_dir(&app_handle).join("thumbs");
     let out_dir = thumbs_root.join(path_hash(&video_path));
 
+    // Clean up any leftover files from previous thumbnail formats (e.g. sprite.jpg)
+    for entry in std::fs::read_dir(&out_dir).ok().into_iter().flatten().filter_map(|e| e.ok()) {
+        let name = entry.file_name().to_string_lossy().to_string();
+        if !name.starts_with("thumb_") {
+            let _ = std::fs::remove_file(entry.path());
+        }
+    }
+
     if out_dir.exists() {
         let mut existing: Vec<String> = Vec::new();
         let mut entries: Vec<_> = std::fs::read_dir(&out_dir)
@@ -821,7 +829,10 @@ pub async fn generate_thumbnails(
             .collect();
         entries.sort_by_key(|e| e.file_name());
         for entry in &entries {
-            existing.push(entry.path().to_string_lossy().to_string());
+            let name = entry.file_name().to_string_lossy().to_string();
+            if name.starts_with("thumb_") {
+                existing.push(entry.path().to_string_lossy().to_string());
+            }
         }
         if !existing.is_empty() {
             return Ok(existing);
@@ -852,7 +863,10 @@ pub async fn generate_thumbnails(
         .collect();
     entries.sort_by_key(|e| e.file_name());
     for entry in &entries {
-        thumb_paths.push(entry.path().to_string_lossy().to_string());
+        let name = entry.file_name().to_string_lossy().to_string();
+        if name.starts_with("thumb_") {
+            thumb_paths.push(entry.path().to_string_lossy().to_string());
+        }
     }
 
     Ok(thumb_paths)

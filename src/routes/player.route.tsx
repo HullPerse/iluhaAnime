@@ -51,6 +51,7 @@ function PlayerRoute({
   const mediaGet = useMediaStore((s) => s.getEntry);
 
   const [video, setVideo] = useState<VideoType>(null);
+  const [videoLoading, setVideoLoading] = useState(false);
   const [chapters, setChapters] = useState<ChapterType[]>([]);
   const [streams, setStreams] = useState<VideoStreamInfo[]>([]);
   const [folderTrees, setFolderTrees] = useState<FolderNode[]>([]);
@@ -110,69 +111,80 @@ function PlayerRoute({
   }, []);
 
   const playFile = useCallback(
-    async (path: string) => {
+    (path: string) => {
       const gen = ++playGenRef.current;
-
-      let streams: VideoStreamInfo[] = [];
-      let chapters: ChapterType[] = [];
-      try {
-        const info = await invoke<{
-          chapters: ChapterType[];
-          streams: VideoStreamInfo[];
-        }>("get_video_info", { path });
-        if (gen !== playGenRef.current) return;
-        chapters = info.chapters;
-        streams = info.streams;
-        setChapters(chapters);
-        setStreams(streams);
-      } catch {
-        if (gen !== playGenRef.current) return;
-        setChapters([]);
-        setStreams([]);
-      }
-
       const savedEntry = mediaGet(path);
       const saved = savedEntry?.position;
-      const savedAudio = savedEntry?.audioTrack;
 
-      let remuxSrc: string | undefined;
-      if (savedAudio !== undefined) {
-        const audioStreams = streams.filter((s) => s.codec_type === "audio");
-        const defaultAudio =
-          audioStreams.find((s) => s.is_default)?.index ??
-          audioStreams[0]?.index ??
-          -1;
-        if (savedAudio !== defaultAudio) {
-          const stream = audioStreams.find((s) => s.index === savedAudio);
-          if (stream) {
-            try {
-              const out = stream.file_path
-                ? await invoke<string>("remux_with_external_audio", {
-                    videoPath: path,
-                    audioPath: stream.file_path,
-                  })
-                : await invoke<string>("remux_video_audio", {
-                    path,
-                    streamIndex: savedAudio,
-                  });
-              if (gen !== playGenRef.current) return;
-              remuxSrc = convertFileSrc(out);
-              for (const p of tempFilesRef.current) {
-                invoke("cleanup_temp_file", { path: p }).catch(() => {});
-              }
-              tempFilesRef.current = [out];
-            } catch {}
-          }
-        }
-      }
-
-      if (gen !== playGenRef.current) return;
+      // Show player immediately (loading overlay while background init runs)
       setVideo({
         path,
         file: path.split(/[/\\]/).pop() ?? "Video",
         initialTime: saved ?? 0,
-        remuxSrc,
+        remuxSrc: undefined,
       });
+      setVideoLoading(true);
+      setChapters([]);
+      setStreams([]);
+
+      // Background init: ffprobe (fast) → loading done → optional audio remux (slow, background)
+      (async () => {
+        try {
+          const info = await invoke<{
+            chapters: ChapterType[];
+            streams: VideoStreamInfo[];
+          }>("get_video_info", { path });
+          if (gen !== playGenRef.current) return;
+          setChapters(info.chapters);
+          setStreams(info.streams);
+          if (gen === playGenRef.current) setVideoLoading(false);
+
+          const savedAudio = savedEntry?.audioTrack;
+          if (savedAudio !== undefined) {
+            const audioStreams = info.streams.filter(
+              (s) => s.codec_type === "audio",
+            );
+            const defaultAudio =
+              audioStreams.find((s) => s.is_default)?.index ??
+              audioStreams[0]?.index ??
+              -1;
+            if (savedAudio !== defaultAudio) {
+              const stream = audioStreams.find(
+                (s) => s.index === savedAudio,
+              );
+              if (stream) {
+                try {
+                  const out = stream.file_path
+                    ? await invoke<string>("remux_with_external_audio", {
+                        videoPath: path,
+                        audioPath: stream.file_path,
+                      })
+                    : await invoke<string>("remux_video_audio", {
+                        path,
+                        streamIndex: savedAudio,
+                      });
+                  if (gen !== playGenRef.current) return;
+                  for (const p of tempFilesRef.current)
+                    invoke("cleanup_temp_file", { path: p }).catch(() => {});
+                  tempFilesRef.current = [out];
+                  if (gen !== playGenRef.current) return;
+                  setVideo((prev) =>
+                    prev?.path === path
+                      ? { ...prev, remuxSrc: convertFileSrc(out) }
+                      : prev,
+                  );
+                } catch {}
+              }
+            }
+          }
+        } catch {
+          if (gen !== playGenRef.current) return;
+          setChapters([]);
+          setStreams([]);
+        } finally {
+          if (gen === playGenRef.current) setVideoLoading(false);
+        }
+      })();
     },
     [mediaGet],
   );
@@ -372,6 +384,7 @@ function PlayerRoute({
           autoHideUi={autoHideUi}
           onToggleCinema={onToggleCinema}
           onToggleAutoHide={onToggleAutoHide}
+          loading={videoLoading}
         />
       </main>
     );

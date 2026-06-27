@@ -11,9 +11,27 @@ function skipLabel(title: string): string | null {
     lower.includes("a part")
   )
     return "OP";
-  if (lower.includes("ending") || lower === "ed" || lower.includes("credits"))
+  if (
+    lower.includes("ending") ||
+    lower === "ed" ||
+    lower.includes("credits")
+  )
     return "ED";
   if (lower.includes("intro")) return "Intro";
+  if (
+    lower.includes("preview") ||
+    lower.includes("next episode") ||
+    lower.includes("next time") ||
+    lower.includes("next week")
+  )
+    return "Preview";
+  if (
+    lower.includes("intermission") ||
+    lower.includes("interlude") ||
+    lower.includes("interval")
+  )
+    return "Intermission";
+  if (lower.includes("recap")) return "Recap";
   return null;
 }
 
@@ -51,7 +69,7 @@ function SkipButton({
         }}
       >
         <SkipForward className="size-4" />
-        {isNextEpisode ? "Следующий эпиход" : "Пропустить"}
+        {isNextEpisode ? "Следующий эпизод" : `Пропустить (${label})`}
       </Button>
     </div>
   );

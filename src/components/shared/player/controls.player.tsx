@@ -40,6 +40,7 @@ function Controls({
   cinemaMode,
   autoHideUi,
   audioReady,
+  loading,
 }: {
   chapters?: { start_time: number; end_time: number; title: string }[];
   mediaPath?: string;
@@ -54,6 +55,7 @@ function Controls({
   cinemaMode?: boolean;
   autoHideUi?: boolean;
   audioReady?: boolean;
+  loading?: boolean;
 }) {
   const [dragging, setDragging] = useState<boolean>(false);
   const [boundaryMsg, setBoundaryMsg] = useState<string | null>(null);
@@ -222,7 +224,7 @@ function Controls({
           size="icon"
           className="size-6"
           onClick={() => playback?.play()}
-          disabled={!paused}
+          disabled={!paused || loading}
         >
           <Play />
         </Button>
@@ -230,7 +232,7 @@ function Controls({
           size="icon"
           className="size-6"
           onClick={() => playback?.pause()}
-          disabled={paused}
+          disabled={paused || loading}
         >
           <Pause />
         </Button>
@@ -241,7 +243,7 @@ function Controls({
           size="icon"
           className="size-6"
           onClick={handleBackward}
-          disabled={currentTime === 0}
+          disabled={currentTime === 0 || loading}
         >
           <ChevronsLeft />
         </Button>
@@ -249,7 +251,7 @@ function Controls({
           size="icon"
           className="size-6"
           onClick={handleForward}
-          disabled={currentTime === duration}
+          disabled={currentTime === duration || loading}
         >
           <ChevronsRight />
         </Button>
@@ -264,7 +266,7 @@ function Controls({
             if (!hasPrev) showBoundaryMsg("Первый файл");
             else onFilePrev?.();
           }}
-          disabled={!hasPrev}
+          disabled={!hasPrev || loading}
         >
           <SkipBack className="size-4" />
         </Button>
@@ -275,7 +277,7 @@ function Controls({
             if (!hasNext) showBoundaryMsg("Последний файл");
             else onFileNext?.();
           }}
-          disabled={!hasNext}
+          disabled={!hasNext || loading}
         >
           <SkipForward className="size-4" />
         </Button>
@@ -315,7 +317,7 @@ function Controls({
         </div>
       </section>
 
-      {mediaPath && streams && videoEl && (
+      {mediaPath && streams && videoEl && !loading && (
         <Tracks
           audioStreams={streams.filter((s) => s.codec_type === "audio")}
           subtitleStreams={streams.filter((s) => s.codec_type === "subtitle")}
@@ -333,6 +335,7 @@ function Controls({
             size="icon"
             className="size-6"
             onClick={onToggleAutoHide}
+            disabled={loading}
             title={
               autoHideUi
                 ? "Авто-скрытие: вкл (Ctrl+H)"
@@ -360,7 +363,7 @@ function Controls({
               value.toggleMuted();
             }
           }}
-          disabled={!isPlayerReady}
+          disabled={!isPlayerReady || loading}
         >
           {getVolumeIcon()}
         </Button>

@@ -58,11 +58,11 @@ function TrackDropdown({
         </button>
       )}
       {open && (
-        <div className="absolute bottom-full left-0 mb-0.5 min-w-full windows95-border bg-primary z-50 max-w-xl w-xl">
+        <div className="absolute bottom-full left-0 mb-0.5 min-w-full windows95-border bg-primary z-50 max-w-mdl w-md">
           {tracks.map((t) => (
             <button
               key={t.index}
-              className="flex items-center gap-1 w-full text-left px-1 py-0.5 windows95-text hover:bg-secondary hover:text-white whitespace-nowrap hover:cursor-pointer max-w-xl line-clamp-1"
+              className="flex items-center gap-1 w-full text-left px-1 py-0.5 windows95-text hover:bg-secondary hover:text-white whitespace-nowrap hover:cursor-pointer max-w-md line-clamp-1"
               onClick={() => {
                 onChange(t.index);
                 setOpen(false);

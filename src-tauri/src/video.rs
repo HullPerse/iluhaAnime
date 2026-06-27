@@ -1,8 +1,8 @@
-use sha1::Digest;
-use serde::Serialize;
-use tauri::Manager;
 use futures::StreamExt;
+use serde::Serialize;
+use sha1::Digest;
 use tauri::Emitter;
+use tauri::Manager;
 
 #[derive(Debug, Serialize)]
 pub struct VideoChapter {
@@ -51,26 +51,54 @@ pub struct VideoStreamInfo {
 }
 
 pub(crate) fn ffmpeg_bin_dir(app_handle: &tauri::AppHandle) -> std::path::PathBuf {
-    let platform = if cfg!(target_os = "windows") { "windows" }
-                   else if cfg!(target_os = "macos") { "macos" }
-                   else { "linux" };
-    app_handle.path().app_data_dir().unwrap_or_default().join("bin").join(platform)
+    let platform = if cfg!(target_os = "windows") {
+        "windows"
+    } else if cfg!(target_os = "macos") {
+        "macos"
+    } else {
+        "linux"
+    };
+    app_handle
+        .path()
+        .app_data_dir()
+        .unwrap_or_default()
+        .join("bin")
+        .join(platform)
 }
 
 pub(crate) fn ffprobe_exe(app_handle: &tauri::AppHandle) -> String {
-    let ext = if cfg!(target_os = "windows") { ".exe" } else { "" };
+    let ext = if cfg!(target_os = "windows") {
+        ".exe"
+    } else {
+        ""
+    };
     let custom = ffmpeg_bin_dir(app_handle).join(format!("ffprobe{ext}"));
-    if custom.exists() { custom.to_string_lossy().to_string() } else { format!("ffprobe{ext}") }
+    if custom.exists() {
+        custom.to_string_lossy().to_string()
+    } else {
+        format!("ffprobe{ext}")
+    }
 }
 
 pub(crate) fn ffmpeg_exe(app_handle: &tauri::AppHandle) -> String {
-    let ext = if cfg!(target_os = "windows") { ".exe" } else { "" };
+    let ext = if cfg!(target_os = "windows") {
+        ".exe"
+    } else {
+        ""
+    };
     let custom = ffmpeg_bin_dir(app_handle).join(format!("ffmpeg{ext}"));
-    if custom.exists() { custom.to_string_lossy().to_string() } else { format!("ffmpeg{ext}") }
+    if custom.exists() {
+        custom.to_string_lossy().to_string()
+    } else {
+        format!("ffmpeg{ext}")
+    }
 }
 
 #[tauri::command]
-pub async fn get_video_chapters(app_handle: tauri::AppHandle, path: String) -> Result<Vec<VideoChapter>, String> {
+pub async fn get_video_chapters(
+    app_handle: tauri::AppHandle,
+    path: String,
+) -> Result<Vec<VideoChapter>, String> {
     let output = std::process::Command::new(ffprobe_exe(&app_handle))
         .args([
             "-v",
@@ -103,14 +131,15 @@ pub async fn get_video_chapters(app_handle: tauri::AppHandle, path: String) -> R
                         .as_str()
                         .and_then(|s| s.parse().ok())
                         .unwrap_or(0.0);
-                    let title = ch["tags"]["title"]
-                        .as_str()
-                        .unwrap_or("")
-                        .to_string();
+                    let title = ch["tags"]["title"].as_str().unwrap_or("").to_string();
                     if start == 0.0 && end == 0.0 {
                         return None;
                     }
-                    Some(VideoChapter { start_time: start, end_time: end, title })
+                    Some(VideoChapter {
+                        start_time: start,
+                        end_time: end,
+                        title,
+                    })
                 })
                 .collect::<Vec<_>>()
         })
@@ -120,7 +149,10 @@ pub async fn get_video_chapters(app_handle: tauri::AppHandle, path: String) -> R
 }
 
 #[tauri::command]
-pub async fn get_video_streams(app_handle: tauri::AppHandle, path: String) -> Result<Vec<VideoStreamInfo>, String> {
+pub async fn get_video_streams(
+    app_handle: tauri::AppHandle,
+    path: String,
+) -> Result<Vec<VideoStreamInfo>, String> {
     let output = std::process::Command::new(ffprobe_exe(&app_handle))
         .args([
             "-v",
@@ -166,7 +198,12 @@ pub async fn get_video_streams(app_handle: tauri::AppHandle, path: String) -> Re
 }
 
 #[tauri::command]
-pub async fn extract_video_subtitle(app_handle: tauri::AppHandle, path: String, stream_index: usize, codec_name: Option<String>) -> Result<String, String> {
+pub async fn extract_video_subtitle(
+    app_handle: tauri::AppHandle,
+    path: String,
+    stream_index: usize,
+    codec_name: Option<String>,
+) -> Result<String, String> {
     let temp_dir = std::env::temp_dir();
     let is_ass = codec_name.as_deref() == Some("ass") || codec_name.as_deref() == Some("ssa");
     let ext = if is_ass { "ass" } else { "vtt" };
@@ -202,7 +239,11 @@ pub async fn extract_video_subtitle(app_handle: tauri::AppHandle, path: String, 
 }
 
 #[tauri::command]
-pub async fn remux_video_audio(app_handle: tauri::AppHandle, path: String, stream_index: usize) -> Result<String, String> {
+pub async fn remux_video_audio(
+    app_handle: tauri::AppHandle,
+    path: String,
+    stream_index: usize,
+) -> Result<String, String> {
     let temp_dir = std::env::temp_dir();
     let output_path = temp_dir.join(format!("iluha_audio_{}.mkv", stream_index));
 
@@ -248,8 +289,8 @@ pub async fn scan_external_tracks(path: String) -> Result<Vec<VideoStreamInfo>, 
         "srt", "ass", "ssa", "vtt", "sub", "idx", "sup", "pgs", "stl", "ttml",
     ];
     let audio_exts = [
-        "mp3", "aac", "m4a", "mka", "ac3", "eac3", "dts", "truehd", "flac",
-        "ogg", "opus", "wav", "wma",
+        "mp3", "aac", "m4a", "mka", "ac3", "eac3", "dts", "truehd", "flac", "ogg", "opus", "wav",
+        "wma",
     ];
 
     let mut tracks: Vec<VideoStreamInfo> = Vec::new();
@@ -351,18 +392,21 @@ pub async fn remux_with_external_audio(
 }
 
 #[tauri::command]
-pub async fn convert_external_subtitle(app_handle: tauri::AppHandle, path: String, codec_name: Option<String>) -> Result<String, String> {
+pub async fn convert_external_subtitle(
+    app_handle: tauri::AppHandle,
+    path: String,
+    codec_name: Option<String>,
+) -> Result<String, String> {
     let temp_dir = std::env::temp_dir();
-    let is_ass = codec_name.as_deref() == Some("ass") || codec_name.as_deref() == Some("ssa") || path.ends_with(".ass") || path.ends_with(".ssa");
+    let is_ass = codec_name.as_deref() == Some("ass")
+        || codec_name.as_deref() == Some("ssa")
+        || path.ends_with(".ass")
+        || path.ends_with(".ssa");
     let ext = if is_ass { "ass" } else { "vtt" };
     let output_path = temp_dir.join(format!("iluha_ext_sub.{}", ext));
     let _ = std::fs::remove_file(&output_path);
 
-    let mut args = vec![
-        "-y".to_string(),
-        "-i".to_string(),
-        path.clone(),
-    ];
+    let mut args = vec!["-y".to_string(), "-i".to_string(), path.clone()];
     if is_ass {
         args.extend_from_slice(&["-c:s".to_string(), "copy".to_string()]);
     } else {
@@ -386,9 +430,7 @@ pub async fn convert_external_subtitle(app_handle: tauri::AppHandle, path: Strin
 #[tauri::command]
 pub async fn check_ffprobe(app_handle: tauri::AppHandle) -> Result<bool, String> {
     let probe = ffprobe_exe(&app_handle);
-    let status = std::process::Command::new(&probe)
-        .arg("-version")
-        .output();
+    let status = std::process::Command::new(&probe).arg("-version").output();
     match status {
         Ok(o) => Ok(o.status.success()),
         Err(_) => Ok(false),
@@ -396,11 +438,16 @@ pub async fn check_ffprobe(app_handle: tauri::AppHandle) -> Result<bool, String>
 }
 
 #[tauri::command]
-pub async fn get_video_info(app_handle: tauri::AppHandle, path: String) -> Result<VideoInfo, String> {
+pub async fn get_video_info(
+    app_handle: tauri::AppHandle,
+    path: String,
+) -> Result<VideoInfo, String> {
     let output = std::process::Command::new(ffprobe_exe(&app_handle))
         .args([
-            "-v", "quiet",
-            "-print_format", "json",
+            "-v",
+            "quiet",
+            "-print_format",
+            "json",
             "-show_chapters",
             "-show_streams",
             &path,
@@ -429,14 +476,15 @@ pub async fn get_video_info(app_handle: tauri::AppHandle, path: String) -> Resul
                         .as_str()
                         .and_then(|s| s.parse().ok())
                         .unwrap_or(0.0);
-                    let title = ch["tags"]["title"]
-                        .as_str()
-                        .unwrap_or("")
-                        .to_string();
+                    let title = ch["tags"]["title"].as_str().unwrap_or("").to_string();
                     if start == 0.0 && end == 0.0 {
                         return None;
                     }
-                    Some(VideoChapter { start_time: start, end_time: end, title })
+                    Some(VideoChapter {
+                        start_time: start,
+                        end_time: end,
+                        title,
+                    })
                 })
                 .collect::<Vec<_>>()
         })
@@ -475,14 +523,16 @@ pub async fn get_video_info(app_handle: tauri::AppHandle, path: String) -> Resul
         "srt", "ass", "ssa", "vtt", "sub", "idx", "sup", "pgs", "stl", "ttml",
     ];
     let audio_exts = [
-        "mp3", "aac", "m4a", "mka", "ac3", "eac3", "dts", "truehd", "flac",
-        "ogg", "opus", "wav", "wma",
+        "mp3", "aac", "m4a", "mka", "ac3", "eac3", "dts", "truehd", "flac", "ogg", "opus", "wav",
+        "wma",
     ];
 
     let mut ext_idx: i32 = -1;
     let mut stack: Vec<std::path::PathBuf> = vec![parent.to_path_buf()];
     while let Some(dir) = stack.pop() {
-        if !dir.is_dir() { continue; }
+        if !dir.is_dir() {
+            continue;
+        }
         let entries = match std::fs::read_dir(&dir) {
             Ok(e) => e,
             Err(_) => continue,
@@ -542,9 +592,6 @@ fn download_urls() -> Result<(&'static str, &'static str, &'static str), String>
         "bin/ffmpeg.exe",
         "bin/ffprobe.exe",
     ));
-
-    #[cfg(not(any(target_os = "windows")))]
-    return Err("Unsupported platform".to_string());
 }
 
 #[tauri::command]
@@ -554,8 +601,16 @@ pub async fn download_ffmpeg(app_handle: tauri::AppHandle) -> Result<String, Str
 
     let (url, ffmpeg_in, ffprobe_in) = download_urls()?;
 
-    let ffmpeg_out = dir.join(if cfg!(target_os = "windows") { "ffmpeg.exe" } else { "ffmpeg" });
-    let ffprobe_out = dir.join(if cfg!(target_os = "windows") { "ffprobe.exe" } else { "ffprobe" });
+    let ffmpeg_out = dir.join(if cfg!(target_os = "windows") {
+        "ffmpeg.exe"
+    } else {
+        "ffmpeg"
+    });
+    let ffprobe_out = dir.join(if cfg!(target_os = "windows") {
+        "ffprobe.exe"
+    } else {
+        "ffprobe"
+    });
     if ffmpeg_out.exists() && ffprobe_out.exists() {
         return Ok(dir.to_string_lossy().to_string());
     }
@@ -655,8 +710,16 @@ pub async fn download_ffmpeg(app_handle: tauri::AppHandle) -> Result<String, Str
 #[tauri::command]
 pub async fn remove_ffmpeg(app_handle: tauri::AppHandle) -> Result<(), String> {
     let dir = ffmpeg_bin_dir(&app_handle);
-    let ffmpeg_path = dir.join(if cfg!(target_os = "windows") { "ffmpeg.exe" } else { "ffmpeg" });
-    let ffprobe_path = dir.join(if cfg!(target_os = "windows") { "ffprobe.exe" } else { "ffprobe" });
+    let ffmpeg_path = dir.join(if cfg!(target_os = "windows") {
+        "ffmpeg.exe"
+    } else {
+        "ffmpeg"
+    });
+    let ffprobe_path = dir.join(if cfg!(target_os = "windows") {
+        "ffprobe.exe"
+    } else {
+        "ffprobe"
+    });
 
     let mut removed_any = false;
 
@@ -699,10 +762,13 @@ fn count_video_files(root: &std::path::Path, exts: &[&str]) -> usize {
 }
 
 #[tauri::command]
-pub async fn scan_video_folder(app_handle: tauri::AppHandle, path: String) -> Result<Vec<VideoFileEntry>, String> {
+pub async fn scan_video_folder(
+    app_handle: tauri::AppHandle,
+    path: String,
+) -> Result<Vec<VideoFileEntry>, String> {
     let video_exts = [
-        "mp4", "mkv", "avi", "mov", "webm", "flv", "wmv", "m4v",
-        "mpg", "mpeg", "ts", "m2ts", "ogv", "3gp",
+        "mp4", "mkv", "avi", "mov", "webm", "flv", "wmv", "m4v", "mpg", "mpeg", "ts", "m2ts",
+        "ogv", "3gp",
     ];
     let root = std::path::Path::new(&path);
     if !root.is_dir() {
@@ -754,6 +820,7 @@ pub async fn scan_video_folder(app_handle: tauri::AppHandle, path: String) -> Re
             if !video_exts.contains(&ext.as_str()) {
                 continue;
             }
+            let path = entry_path.to_string_lossy().to_string();
             let name = entry_path
                 .file_name()
                 .and_then(|n| n.to_str())
@@ -763,8 +830,9 @@ pub async fn scan_video_folder(app_handle: tauri::AppHandle, path: String) -> Re
                 Ok(m) => m.len(),
                 Err(_) => 0,
             };
+
             files.push(VideoFileEntry {
-                path: entry_path.to_string_lossy().to_string(),
+                path: path.clone(),
                 name,
                 size,
             });
@@ -814,7 +882,12 @@ pub async fn generate_thumbnails(
     let out_dir = thumbs_root.join(path_hash(&video_path));
 
     // Clean up any leftover files from previous thumbnail formats (e.g. sprite.jpg)
-    for entry in std::fs::read_dir(&out_dir).ok().into_iter().flatten().filter_map(|e| e.ok()) {
+    for entry in std::fs::read_dir(&out_dir)
+        .ok()
+        .into_iter()
+        .flatten()
+        .filter_map(|e| e.ok())
+    {
         let name = entry.file_name().to_string_lossy().to_string();
         if !name.starts_with("thumb_") {
             let _ = std::fs::remove_file(entry.path());
@@ -843,9 +916,12 @@ pub async fn generate_thumbnails(
 
     let status = std::process::Command::new(&ffmpeg)
         .args([
-            "-i", &video_path,
-            "-vf", &format!("fps=1/{interval}"),
-            "-q:v", "5",
+            "-i",
+            &video_path,
+            "-vf",
+            &format!("fps=1/{interval}"),
+            "-q:v",
+            "5",
         ])
         .arg(out_dir.join("thumb_%04d.jpg").to_string_lossy().to_string())
         .output()
@@ -871,3 +947,110 @@ pub async fn generate_thumbnails(
 
     Ok(thumb_paths)
 }
+
+// #[tauri::command]
+// pub async fn generate_key_frame(
+//     app_handle: tauri::AppHandle,
+//     video_path: String,
+// ) -> Result<String, String> {
+//     let ffmpeg_dir = ffmpeg_bin_dir(&app_handle);
+//     let ffmpeg = ffmpeg_dir.join(if cfg!(windows) { "ffmpeg.exe" } else { "ffmpeg" });
+//     let ffprobe = ffmpeg_dir.join(if cfg!(windows) { "ffprobe.exe" } else { "ffprobe" });
+
+//     let thumbs_root = ffmpeg_bin_dir(&app_handle).join("thumbs");
+//     let out_dir = thumbs_root.join(path_hash(&video_path));
+//     let thumb_path = out_dir.join("thumb.jpg");
+
+//     // Return existing thumbnail if present
+//     if thumb_path.exists() {
+//         return Ok(thumb_path.to_string_lossy().to_string());
+//     }
+
+//     std::fs::create_dir_all(&out_dir).map_err(|e| format!("create thumbs dir: {e}"))?;
+
+//     // 1. Get video duration (in seconds)
+//     let duration = get_duration(&ffprobe, &video_path)
+//         .or_else(|_| get_duration_fallback(&ffmpeg, &video_path))
+//         .map_err(|e| format!("failed to get duration: {e}"))?;
+
+//     // 2. Seek to 30% into the video (adjust as needed)
+//     let seek_time = (duration * 0.3).max(0.0);
+//     let seek_str = format!("{:.3}", seek_time);
+
+//     // 3. Extract one frame at that position (fast seek)
+//     let status = std::process::Command::new(&ffmpeg)
+//         .args([
+//             "-ss", &seek_str,
+//             "-i", &video_path,
+//             "-frames:v", "1",
+//             "-vf", "scale=320:-1",      // Small resolution
+//             "-c:v", "libwebp",
+//             "-q:v", "31",               // Lower quality
+//             "-compression_level", "6",
+//             "-pix_fmt", "yuvj420p",
+//             "-preset", "picture",
+//             "-loop", "0",
+//             thumb_path.to_string_lossy().as_ref(),
+//         ])
+//         .output()
+//         .map_err(|e| format!("ffmpeg thumb: {e}"))?;
+
+//     if !status.status.success() {
+//         let stderr = String::from_utf8_lossy(&status.stderr);
+//         return Err(format!("ffmpeg failed: {stderr}"));
+//     }
+
+//     if !thumb_path.exists() {
+//         return Err("thumbnail file not created".to_string());
+//     }
+
+//     Ok(thumb_path.to_string_lossy().to_string())
+// }
+
+// fn get_duration(ffprobe: &std::path::Path, video_path: &str) -> Result<f64, String> {
+//     let output = std::process::Command::new(ffprobe)
+//         .args([
+//             "-v", "error",
+//             "-show_entries", "format=duration",
+//             "-of", "default=noprint_wrappers=1:nokey=1",
+//             video_path,
+//         ])
+//         .output()
+//         .map_err(|e| format!("ffprobe error: {e}"))?;
+
+//     if !output.status.success() {
+//         let stderr = String::from_utf8_lossy(&output.stderr);
+//         return Err(format!("ffprobe failed: {stderr}"));
+//     }
+
+//     let stdout = String::from_utf8_lossy(&output.stdout);
+//     stdout
+//         .trim()
+//         .parse::<f64>()
+//         .map_err(|_| "invalid duration".to_string())
+// }
+
+// fn get_duration_fallback(ffmpeg: &std::path::Path, video_path: &str) -> Result<f64, String> {
+//     let output = std::process::Command::new(ffmpeg)
+//         .args(["-i", video_path])
+//         .stderr(std::process::Stdio::piped())
+//         .output()
+//         .map_err(|e| format!("ffmpeg error: {e}"))?;
+
+//     let stderr = String::from_utf8_lossy(&output.stderr);
+//     // Look for "Duration: HH:MM:SS.mm"
+//     if let Some(start) = stderr.find("Duration: ") {
+//         let rest = &stderr[start + 10..];
+//         if let Some(end) = rest.find(' ') {
+//             let time_str = &rest[..end];
+//             let parts: Vec<&str> = time_str.split(':').collect();
+//             if parts.len() == 3 {
+//                 let h: f64 = parts[0].parse().unwrap_or(0.0);
+//                 let m: f64 = parts[1].parse().unwrap_or(0.0);
+//                 let s: f64 = parts[2].parse().unwrap_or(0.0);
+//                 return Ok(h * 3600.0 + m * 60.0 + s);
+//             }
+//         }
+//     }
+//     Err("duration not found in ffmpeg output".to_string())
+// }

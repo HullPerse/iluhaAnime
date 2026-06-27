@@ -207,7 +207,10 @@ pub async fn rutracker_get_magnet(
 }
 
 #[tauri::command]
-pub async fn nekobt_set_api_key(app_handle: tauri::AppHandle, api_key: String) -> Result<String, String> {
+pub async fn nekobt_set_api_key(
+    app_handle: tauri::AppHandle,
+    api_key: String,
+) -> Result<String, String> {
     let key = api_key.trim().to_string();
     if key.is_empty() {
         return Err("API key cannot be empty".to_string());
@@ -225,12 +228,17 @@ pub async fn nekobt_set_api_key(app_handle: tauri::AppHandle, api_key: String) -
         return Err("Invalid API key or connection error".to_string());
     }
 
-    let body: serde_json::Value = resp.bytes().await
+    let body: serde_json::Value = resp
+        .bytes()
+        .await
         .map_err(|e| format!("Read error: {e}"))
         .and_then(|b| serde_json::from_slice(&b).map_err(|e| format!("Parse error: {e}")))?;
 
     if body.get("error").and_then(|v| v.as_bool()).unwrap_or(true) {
-        let msg = body.get("message").and_then(|v| v.as_str()).unwrap_or("Invalid API key");
+        let msg = body
+            .get("message")
+            .and_then(|v| v.as_str())
+            .unwrap_or("Invalid API key");
         return Err(msg.to_string());
     }
 

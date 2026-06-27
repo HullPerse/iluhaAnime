@@ -20,3 +20,5 @@ export type ModalWindow = {
   onClose: () => void;
   children: ReactNode;
 };
+
+export type HexType = `#${string}`;

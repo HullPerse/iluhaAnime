@@ -1,3 +1,4 @@
+import { HexType } from "@/types";
 import { AniListEntry, AniListSort } from "@/types/anilist";
 
 export const statusLabels: Record<string, string> = {
@@ -114,4 +115,17 @@ export function getStatusLabel(status: string) {
 
 export function getListLabel(list: string) {
   return listStatusLabels[list];
+}
+
+export function getStatusColor(status: AniListEntry["list_status"]): HexType {
+  const statusMap: Record<AniListEntry["list_status"], HexType> = {
+    CURRENT: "#e6b800",
+    COMPLETED: "#4caf50",
+    DROPPED: "#f44336",
+    PLANNING: "#2196f3",
+    PAUSED: "#ff9800",
+    REPEATING: "#9c27b0",
+  };
+
+  return statusMap[status] ?? "#888";
 }

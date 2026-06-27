@@ -3,13 +3,14 @@ use std::num::NonZeroU32;
 use std::sync::Arc;
 use tauri::{Emitter, Manager};
 use tauri_plugin_notification::NotificationExt;
+use tauri_plugin_single_instance;
 
 mod anilist;
-mod scrapers;
 mod auth;
 mod bencode;
-mod video;
+mod scrapers;
 mod torrent;
+mod video;
 
 use torrent::{FilePriority, TorrentFileInfo, TorrentInfo, TorrentInfoResult, TorrentManager};
 
@@ -170,6 +171,11 @@ async fn set_sequential_download(
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_single_instance::init(|app, _, _| {
+                    let _ = app.get_webview_window("main")
+                               .expect("no main window")
+                               .set_focus();
+                }))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
@@ -225,7 +231,13 @@ pub fn run() {
 
                         // Advance sequential downloads
                         {
-                            let ids: Vec<usize> = mgr_clone.sequential_torrents.lock().unwrap().iter().copied().collect();
+                            let ids: Vec<usize> = mgr_clone
+                                .sequential_torrents
+                                .lock()
+                                .unwrap()
+                                .iter()
+                                .copied()
+                                .collect();
                             for &sid in &ids {
                                 let _ = mgr_clone.advance_sequential(sid).await;
                             }
@@ -267,6 +279,7 @@ pub fn run() {
             video::remove_ffmpeg,
             video::scan_video_folder,
             video::generate_thumbnails,
+            // video::generate_key_frame,
             anilist::search_anilist,
             anilist::search_anilist_by_studio,
             anilist::get_profile_recommendations,

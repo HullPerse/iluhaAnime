@@ -127,7 +127,9 @@ pub(crate) fn extract_cookies_from_headers(
 pub(crate) fn url_encode(s: String) -> String {
     s.bytes()
         .map(|b| match b {
-            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => (b as char).to_string(),
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
+                (b as char).to_string()
+            }
             b' ' => "+".to_string(),
             _ => format!("%{:02X}", b),
         })
@@ -155,7 +157,10 @@ fn is_valid_torrent(name: &str, url: &str) -> bool {
     if !url.starts_with("/view/") {
         return false;
     }
-    if name.chars().all(|c| c.is_ascii_digit() || c.is_whitespace() || c == '.' || c == ',') {
+    if name
+        .chars()
+        .all(|c| c.is_ascii_digit() || c.is_whitespace() || c == '.' || c == ',')
+    {
         return false;
     }
     let lower = name.to_lowercase();
@@ -174,10 +179,15 @@ fn nyaa_json_to_item(item: NyaaJsonItem) -> Option<NyaaItem> {
         serde_json::Value::Number(n) => {
             if let Some(bytes) = n.as_i64() {
                 let bytes = bytes as f64;
-                if bytes < 1024.0 { format!("{:.2} B", bytes) }
-                else if bytes < 1024.0 * 1024.0 { format!("{:.2} KiB", bytes / 1024.0) }
-                else if bytes < 1024.0 * 1024.0 * 1024.0 { format!("{:.2} MiB", bytes / (1024.0 * 1024.0)) }
-                else { format!("{:.2} GiB", bytes / (1024.0 * 1024.0 * 1024.0)) }
+                if bytes < 1024.0 {
+                    format!("{:.2} B", bytes)
+                } else if bytes < 1024.0 * 1024.0 {
+                    format!("{:.2} KiB", bytes / 1024.0)
+                } else if bytes < 1024.0 * 1024.0 * 1024.0 {
+                    format!("{:.2} MiB", bytes / (1024.0 * 1024.0))
+                } else {
+                    format!("{:.2} GiB", bytes / (1024.0 * 1024.0 * 1024.0))
+                }
             } else {
                 String::new()
             }
@@ -189,7 +199,11 @@ fn nyaa_json_to_item(item: NyaaJsonItem) -> Option<NyaaItem> {
     Some(NyaaItem {
         title: item.name,
         magnet: item.magnet,
-        torrent: if item.torrent.starts_with("http") { item.torrent } else { format!("https://nyaa.si{}", item.torrent) },
+        torrent: if item.torrent.starts_with("http") {
+            item.torrent
+        } else {
+            format!("https://nyaa.si{}", item.torrent)
+        },
         size: size_str,
         seeders: item.seeders,
         leechers: item.leechers,
@@ -285,12 +299,14 @@ fn parse_nyaa_entries(html: &str) -> Vec<NyaaItem> {
             continue;
         }
 
-        let magnet = tds[2]
-            .select(&a_sel)
-            .find_map(|a| {
-                let h = a.value().attr("href")?;
-                if h.starts_with("magnet:") { Some(h.to_string()) } else { None }
-            });
+        let magnet = tds[2].select(&a_sel).find_map(|a| {
+            let h = a.value().attr("href")?;
+            if h.starts_with("magnet:") {
+                Some(h.to_string())
+            } else {
+                None
+            }
+        });
 
         let magnet = match magnet {
             Some(m) => m,
@@ -318,15 +334,15 @@ fn parse_nyaa_entries(html: &str) -> Vec<NyaaItem> {
             .select(&a_sel)
             .find_map(|a| {
                 let h = a.value().attr("href")?;
-                if h.ends_with(".torrent") { Some(format!("https://nyaa.si{h}")) } else { None }
+                if h.ends_with(".torrent") {
+                    Some(format!("https://nyaa.si{h}"))
+                } else {
+                    None
+                }
             })
             .unwrap_or_default();
 
-        let size = tds[3]
-            .text()
-            .collect::<String>()
-            .trim()
-            .to_string();
+        let size = tds[3].text().collect::<String>().trim().to_string();
 
         let seeders = tds[5]
             .text()
@@ -342,7 +358,11 @@ fn parse_nyaa_entries(html: &str) -> Vec<NyaaItem> {
             .parse()
             .unwrap_or(0);
 
-        let torrent_url = if link.starts_with('/') { format!("https://nyaa.si{link}") } else { link.to_string() };
+        let torrent_url = if link.starts_with('/') {
+            format!("https://nyaa.si{link}")
+        } else {
+            link.to_string()
+        };
 
         items.push(NyaaItem {
             title,
@@ -373,7 +393,11 @@ fn parse_rutracker_entries(html: &str) -> Vec<NyaaItem> {
             continue;
         }
 
-        let topic_id = row.value().attr("data-topic_id").unwrap_or_default().to_string();
+        let topic_id = row
+            .value()
+            .attr("data-topic_id")
+            .unwrap_or_default()
+            .to_string();
 
         let title = tds[3]
             .select(&link_sel)
@@ -456,7 +480,12 @@ pub async fn search_erairaws(query: String, encoding: String) -> Result<Vec<Nyaa
 }
 
 #[tauri::command]
-pub async fn search_nyaa(query: String, page: Option<u32>, sort: Option<String>, order: Option<String>) -> Result<Vec<NyaaItem>, String> {
+pub async fn search_nyaa(
+    query: String,
+    page: Option<u32>,
+    sort: Option<String>,
+    order: Option<String>,
+) -> Result<Vec<NyaaItem>, String> {
     let client = build_nyaa_client()?;
 
     let mut params = vec![("q", query.as_str()), ("c", "1_0"), ("format", "json")];
@@ -481,12 +510,7 @@ pub async fn search_nyaa(query: String, page: Option<u32>, sort: Option<String>,
             tokio::time::sleep(std::time::Duration::from_secs(2 * attempt)).await;
         }
 
-        let resp = match client
-            .get("https://nyaa.si/")
-            .query(&params)
-            .send()
-            .await
-        {
+        let resp = match client.get("https://nyaa.si/").query(&params).send().await {
             Ok(r) => r,
             Err(e) => {
                 last_err = format!("{e}");
@@ -495,7 +519,10 @@ pub async fn search_nyaa(query: String, page: Option<u32>, sort: Option<String>,
         };
 
         if resp.status() == 504 || resp.status() == 503 {
-            last_err = format!("Nyaa.si временно недоступен (HTTP {}), попробуйте позже", resp.status());
+            last_err = format!(
+                "Nyaa.si временно недоступен (HTTP {}), попробуйте позже",
+                resp.status()
+            );
             continue;
         }
 
@@ -605,42 +632,54 @@ pub async fn search_nekobt(
     }
 
     let bytes = resp.bytes().await.map_err(|e| format!("Read error: {e}"))?;
-    let response: NekoBtSearchResponse = serde_json::from_slice(&bytes)
-        .map_err(|e| format!("Parse error: {e}"))?;
+    let response: NekoBtSearchResponse =
+        serde_json::from_slice(&bytes).map_err(|e| format!("Parse error: {e}"))?;
 
     if response.error {
-        let msg = response.message.unwrap_or_else(|| "Unknown error".to_string());
+        let msg = response
+            .message
+            .unwrap_or_else(|| "Unknown error".to_string());
         return Err(msg);
     }
 
-    let items: Vec<NyaaItem> = response.data.results.into_iter().map(|t| {
-        let size = if t.filesize.is_empty() {
-            String::new()
-        } else if let Ok(bytes) = t.filesize.parse::<f64>() {
-            if bytes < 1024.0 { format!("{:.2} B", bytes) }
-            else if bytes < 1024.0 * 1024.0 { format!("{:.2} KiB", bytes / 1024.0) }
-            else if bytes < 1024.0 * 1024.0 * 1024.0 { format!("{:.2} MiB", bytes / (1024.0 * 1024.0)) }
-            else { format!("{:.2} GiB", bytes / (1024.0 * 1024.0 * 1024.0)) }
-        } else {
-            t.filesize
-        };
+    let items: Vec<NyaaItem> = response
+        .data
+        .results
+        .into_iter()
+        .map(|t| {
+            let size = if t.filesize.is_empty() {
+                String::new()
+            } else if let Ok(bytes) = t.filesize.parse::<f64>() {
+                if bytes < 1024.0 {
+                    format!("{:.2} B", bytes)
+                } else if bytes < 1024.0 * 1024.0 {
+                    format!("{:.2} KiB", bytes / 1024.0)
+                } else if bytes < 1024.0 * 1024.0 * 1024.0 {
+                    format!("{:.2} MiB", bytes / (1024.0 * 1024.0))
+                } else {
+                    format!("{:.2} GiB", bytes / (1024.0 * 1024.0 * 1024.0))
+                }
+            } else {
+                t.filesize
+            };
 
-        let seeders = t.seeders.parse().unwrap_or(0);
-        let leechers = t.leechers.parse().unwrap_or(0);
+            let seeders = t.seeders.parse().unwrap_or(0);
+            let leechers = t.leechers.parse().unwrap_or(0);
 
-        let id = t.id;
+            let id = t.id;
 
-        NyaaItem {
-            title: t.title,
-            magnet: t.magnet,
-            torrent: String::new(),
-            size,
-            seeders,
-            leechers,
-            category: id.clone(),
-            link: format!("https://nekobt.to/torrents/{id}"),
-        }
-    }).collect();
+            NyaaItem {
+                title: t.title,
+                magnet: t.magnet,
+                torrent: String::new(),
+                size,
+                seeders,
+                leechers,
+                category: id.clone(),
+                link: format!("https://nekobt.to/torrents/{id}"),
+            }
+        })
+        .collect();
 
     Ok(items)
 }

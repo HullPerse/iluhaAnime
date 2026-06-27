@@ -19,6 +19,7 @@ import {
   getListLabel,
   getStatusLabel,
   sortEntries,
+  getStatusColor,
 } from "@/lib/anilist.utils";
 import { SmallLoader } from "@/components/shared/loader.component";
 import {
@@ -64,7 +65,10 @@ function AnilistRoute() {
   const [searchResults, setSearchResults] = useState<AniMedia[]>([]);
   const [searchTag, setSearchTag] = useState<string | null>(null);
   const [searchMode, setSearchMode] = useState<"tag" | "studio" | null>(null);
-  const [globalSort, setGlobalSort] = useState<{ key: string; dir: "asc" | "desc" }>({ key: "relevance", dir: "desc" });
+  const [globalSort, setGlobalSort] = useState<{
+    key: string;
+    dir: "asc" | "desc";
+  }>({ key: "relevance", dir: "desc" });
   const [page, setPage] = useState<number>(1);
   const [loadingSearch, setLoadingSearch] = useState(false);
 
@@ -195,7 +199,8 @@ function AnilistRoute() {
         let cmp = 0;
         if (k === "title") cmp = a.title.localeCompare(b.title);
         else if (k === "score") cmp = (a.score ?? 0) - (b.score ?? 0);
-        else if (k === "year") cmp = (a.season_year ?? 0) - (b.season_year ?? 0);
+        else if (k === "year")
+          cmp = (a.season_year ?? 0) - (b.season_year ?? 0);
         return globalSort.dir === "asc" ? cmp : -cmp;
       })
     : sortedEntries.map((e) => e.media);
@@ -282,11 +287,7 @@ function AnilistRoute() {
             Рекомендации
           </Button>
 
-          <Button
-            size="icon"
-            variant="error"
-            onClick={handleLogout}
-          >
+          <Button size="icon" variant="error" onClick={handleLogout}>
             <LogOut />
           </Button>
         </section>
@@ -389,13 +390,17 @@ function AnilistRoute() {
                     setGlobalSort((prev) => ({
                       key: s,
                       dir: isActive
-                        ? prev.dir === "asc" ? "desc" : "asc"
+                        ? prev.dir === "asc"
+                          ? "desc"
+                          : "asc"
                         : prev.dir,
                     }));
                   }
                 }}
               >
-                {isRelevance ? "Релевантность" : getSortingLabel(s, globalSort.dir)}
+                {isRelevance
+                  ? "Релевантность"
+                  : getSortingLabel(s, globalSort.dir)}
               </Button>
             );
           })}
@@ -478,7 +483,24 @@ function AnilistRoute() {
                   <section className="min-w-0 flex-1 h-full flex flex-col">
                     {/*top*/}
                     <div className="flex flex-row gap-2">
-                      <h2 className="truncate font-bold leading-tight windows95-text">
+                      <h2 className="flex flex-row gap-1 truncate font-bold leading-tight windows95-text">
+                        {entry && (
+                          <span
+                            className="windows95-border shrink-0 mt-0.5"
+                            style={{
+                              display: "inline-block",
+                              width: 10,
+                              height: 10,
+                              backgroundColor: getStatusColor(
+                                entry.list_status,
+                              ),
+                            }}
+                            title={
+                              getListLabel(entry.list_status) ??
+                              entry.list_status
+                            }
+                          />
+                        )}
                         {item.title}
                       </h2>
                     </div>
@@ -547,7 +569,12 @@ function AnilistRoute() {
             {global ? (
               <>
                 Поиск: {searchResults.length} результатов
-                {searchTag && <> · {searchMode === "studio" ? "студия" : "тег"}: {searchTag}</>}
+                {searchTag && (
+                  <>
+                    {" "}
+                    · {searchMode === "studio" ? "студия" : "тег"}: {searchTag}
+                  </>
+                )}
               </>
             ) : isLocal ? (
               <>
@@ -657,10 +684,16 @@ function AnilistRoute() {
                   }}
                 >
                   {r.cover_url && (
-                    <img src={r.cover_url} alt="" className="w-10 shrink-0 windows95-active-border" />
+                    <img
+                      src={r.cover_url}
+                      alt=""
+                      className="w-10 shrink-0 windows95-active-border"
+                    />
                   )}
                   <div className="flex flex-col min-w-0 flex-1">
-                    <span className="text-[10px] font-bold truncate windows95-text">{r.title}</span>
+                    <span className="text-[10px] font-bold truncate windows95-text">
+                      {r.title}
+                    </span>
                     <div className="flex flex-row gap-2 text-[9px] windows95-text">
                       {r.score && <span>★ {r.score}</span>}
                       {r.format && <span>{r.format}</span>}

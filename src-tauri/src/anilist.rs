@@ -42,6 +42,28 @@ async fn graphql_request(query: serde_json::Value, token: Option<&str>) -> Resul
 }
 
 #[derive(Debug, Serialize)]
+pub struct AniStudio {
+    pub id: u64,
+    pub name: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct AniRelatedMedia {
+    pub id: u64,
+    pub title: String,
+    pub cover_url: Option<String>,
+    pub episodes: Option<i32>,
+    pub score: Option<i32>,
+    pub format: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct AniRelation {
+    pub relation_type: String,
+    pub media: AniRelatedMedia,
+}
+
+#[derive(Debug, Serialize)]
 pub struct AniMedia {
     pub id: u64,
     pub title: String,
@@ -57,7 +79,7 @@ pub struct AniMedia {
     pub cover_url: Option<String>,
     pub season: Option<String>,
     pub season_year: Option<i32>,
-    pub studios: Vec<String>,
+    pub studios: Vec<AniStudio>,
     pub next_episode: Option<i32>,
     pub next_airing_at: Option<i64>,
     pub start_date: Option<String>,
@@ -65,6 +87,7 @@ pub struct AniMedia {
     pub popularity: Option<i32>,
     pub favourites: Option<i32>,
     pub rankings: Vec<AniRanking>,
+    pub relations: Vec<AniRelation>,
 }
 
 #[derive(Debug, Serialize)]
@@ -139,7 +162,10 @@ fn parse_animedia(m: &serde_json::Value) -> AniMedia {
         cover_url: m["coverImage"]["large"].as_str().or_else(|| m["coverImage"]["medium"].as_str()).map(String::from),
         season: m["season"].as_str().map(String::from),
         season_year: m["seasonYear"].as_i64().map(|n| n as i32),
-        studios: m["studios"]["nodes"].as_array().map(|s| s.iter().filter_map(|v| v["name"].as_str().map(String::from)).collect()).unwrap_or_default(),
+        studios: m["studios"]["nodes"].as_array().map(|s| s.iter().map(|v| AniStudio {
+            id: v["id"].as_u64().unwrap_or(0),
+            name: v["name"].as_str().unwrap_or("").to_string(),
+        }).collect()).unwrap_or_default(),
         next_episode: m["nextAiringEpisode"]["episode"].as_i64().map(|n| n as i32),
         next_airing_at: m["nextAiringEpisode"]["airingAt"].as_i64(),
         start_date: parse_date(&m["startDate"]),
@@ -150,6 +176,24 @@ fn parse_animedia(m: &serde_json::Value) -> AniMedia {
             rank: v["rank"].as_i64().unwrap_or(0) as i32,
             type_: v["type"].as_str().unwrap_or("").to_string(),
             context: v["context"].as_str().unwrap_or("").to_string(),
+        }).collect()).unwrap_or_default(),
+        relations: m["relations"]["edges"].as_array().map(|edges| edges.iter().map(|edge| {
+            let rel_type = edge["relationType"].as_str().unwrap_or("UNKNOWN").to_string();
+            let node = &edge["node"];
+            let title = node["title"]["romaji"].as_str()
+                .or_else(|| node["title"]["english"].as_str())
+                .unwrap_or("Unknown");
+            AniRelation {
+                relation_type: rel_type,
+                media: AniRelatedMedia {
+                    id: node["id"].as_u64().unwrap_or(0),
+                    title: title.to_string(),
+                    cover_url: node["coverImage"]["medium"].as_str().map(String::from),
+                    episodes: node["episodes"].as_i64().map(|n| n as i32),
+                    score: node["averageScore"].as_i64().map(|n| n as i32),
+                    format: node["format"].as_str().map(String::from),
+                },
+            }
         }).collect()).unwrap_or_default(),
     }
 }
@@ -181,7 +225,7 @@ pub async fn search_anilist(query: String) -> Result<Vec<AniMedia>, String> {
                         description (asHtml: false)
                         coverImage { medium large }
                         season, seasonYear
-                        studios { nodes { name } }
+                        studios { nodes { id name } }
                         nextAiringEpisode { episode airingAt }
                     }
                 }
@@ -205,7 +249,7 @@ pub async fn search_anilist(query: String) -> Result<Vec<AniMedia>, String> {
                             description (asHtml: false)
                             coverImage { medium large }
                             season, seasonYear
-                            studios { nodes { name } }
+                            studios { nodes { id name } }
                             nextAiringEpisode { episode airingAt }
                         }
                     }
@@ -235,7 +279,7 @@ pub async fn search_anilist_by_tag(tag: String) -> Result<Vec<AniMedia>, String>
                         description(asHtml: false)
                         coverImage { medium large }
                         season, seasonYear
-                        studios { nodes { name } }
+                        studios { nodes { id name } }
                         nextAiringEpisode { episode airingAt }
                     }
                 }
@@ -259,7 +303,7 @@ pub async fn search_anilist_by_tag(tag: String) -> Result<Vec<AniMedia>, String>
                             description(asHtml: false)
                             coverImage { medium large }
                             season, seasonYear
-                            studios { nodes { name } }
+                            studios { nodes { id name } }
                             nextAiringEpisode { episode airingAt }
                         }
                     }
@@ -272,6 +316,155 @@ pub async fn search_anilist_by_tag(tag: String) -> Result<Vec<AniMedia>, String>
     }
 
     Ok(all)
+}
+
+#[tauri::command]
+pub async fn search_anilist_by_studio(studio_id: u64) -> Result<Vec<AniMedia>, String> {
+    let body = serde_json::json!({
+        "query": r#"
+            query ($id: Int) {
+                Studio(id: $id) {
+                    media(page: 1, perPage: 50) {
+                        nodes {
+                            id
+                            title { romaji english native }
+                            episodes, duration, status, averageScore
+                            genres, tags { name }
+                            description (asHtml: false)
+                            coverImage { medium large }
+                            season, seasonYear
+                            studios { nodes { id name } }
+                            nextAiringEpisode { episode airingAt }
+                        }
+                    }
+                }
+            }
+        "#,
+        "variables": { "id": studio_id }
+    });
+    let json = graphql_request(body, None).await?;
+    if json.get("errors").is_some() {
+        return Err(format!("{:?}", json["errors"]));
+    }
+    let studio = &json["data"]["Studio"];
+    if studio.is_null() {
+        return Err("Studio not found".to_string());
+    }
+    let nodes = studio["media"]["nodes"].as_array()
+        .ok_or_else(|| "Studio has no media field".to_string())?;
+    Ok(nodes.iter().map(parse_animedia).collect())
+}
+
+#[derive(Debug, Serialize)]
+pub struct AniRecommendation {
+    pub id: u64,
+    pub title: String,
+    pub cover_url: Option<String>,
+    pub episodes: Option<i32>,
+    pub score: Option<i32>,
+    pub format: Option<String>,
+    pub recommendation_rating: i32,
+}
+
+#[tauri::command]
+pub async fn get_profile_recommendations(app_handle: tauri::AppHandle, user_id: u64) -> Result<Vec<AniRecommendation>, String> {
+    let token = load_token(&app_handle)?;
+
+    let list_body = serde_json::json!({
+        "query": r#"
+            query ($userId: Int) {
+                MediaListCollection(userId: $userId, type: ANIME) {
+                    lists {
+                        name
+                        entries {
+                            score
+                            media { id }
+                        }
+                    }
+                }
+            }
+        "#,
+        "variables": { "userId": user_id }
+    });
+    let list_json = graphql_request(list_body, Some(&token)).await?;
+    let lists = list_json["data"]["MediaListCollection"]["lists"].as_array()
+        .ok_or_else(|| "Unexpected response".to_string())?;
+
+    let mut scored: Vec<(u64, f64)> = Vec::new();
+    let mut completed_ids = std::collections::HashSet::new();
+    for list in lists {
+        let name = list["name"].as_str().unwrap_or("");
+        if name.to_uppercase() != "COMPLETED" { continue; }
+        if let Some(entries) = list["entries"].as_array() {
+            for entry in entries {
+                let score = entry["score"].as_f64().unwrap_or(0.0);
+                if let Some(media_id) = entry["media"]["id"].as_u64() {
+                    scored.push((media_id, score));
+                    completed_ids.insert(media_id);
+                }
+            }
+        }
+    }
+    scored.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+    let top_ids: Vec<u64> = scored.into_iter().take(5).map(|(id, _)| id).collect();
+
+    if top_ids.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let rec_body = serde_json::json!({
+        "query": r#"
+            query ($ids: [Int]) {
+                Page(page: 1, perPage: 50) {
+                    media(id_in: $ids, type: ANIME) {
+                        recommendations(page: 1, perPage: 10, sort: RATING_DESC) {
+                            nodes {
+                                mediaRecommendation {
+                                    id
+                                    title { romaji english native }
+                                    episodes, averageScore, format
+                                    coverImage { medium large }
+                                }
+                                rating
+                            }
+                        }
+                    }
+                }
+            }
+        "#,
+        "variables": { "ids": top_ids }
+    });
+    let rec_json = graphql_request(rec_body, Some(&token)).await?;
+
+    let media_list = rec_json["data"]["Page"]["media"].as_array()
+        .ok_or_else(|| "Unexpected response".to_string())?;
+
+    let mut seen = std::collections::HashSet::new();
+    let mut result: Vec<AniRecommendation> = Vec::new();
+    for media in media_list {
+        if let Some(nodes) = media["recommendations"]["nodes"].as_array() {
+            for r in nodes {
+                let m = &r["mediaRecommendation"];
+                let media_id = m["id"].as_u64().unwrap_or(0);
+                if !seen.insert(media_id) { continue; }
+                if completed_ids.contains(&media_id) { continue; }
+                let title = m["title"]["romaji"].as_str()
+                    .or_else(|| m["title"]["english"].as_str())
+                    .unwrap_or("Unknown");
+                result.push(AniRecommendation {
+                    id: media_id,
+                    title: title.to_string(),
+                    cover_url: m["coverImage"]["medium"].as_str().map(String::from),
+                    episodes: m["episodes"].as_i64().map(|n| n as i32),
+                    score: m["averageScore"].as_i64().map(|n| n as i32),
+                    format: m["format"].as_str().map(String::from),
+                    recommendation_rating: r["rating"].as_i64().unwrap_or(0) as i32,
+                });
+            }
+        }
+    }
+
+    Ok(result)
 }
 
 #[tauri::command]
@@ -290,8 +483,9 @@ pub async fn get_anime_by_id(id: u64) -> Result<AniMedia, String> {
                     season, seasonYear, popularity, favourites
                     startDate { year month day }
                     endDate { year month day }
-                    studios { nodes { name } }
+                    studios { nodes { id name } }
                     rankings { rank type context }
+                    relations { edges { relationType node { id title { romaji english } coverImage { medium } episodes averageScore format } } }
                     nextAiringEpisode { episode airingAt }
                 }
             }
@@ -428,6 +622,7 @@ pub async fn get_anilist_lists(app_handle: tauri::AppHandle, user_id: u64) -> Re
                         popularity: None,
                         favourites: None,
                         rankings: vec![],
+                        relations: vec![],
                     },
                 progress: entry["progress"].as_i64().map(|n| n as i32),
                 score: entry["score"].as_f64().map(|n| n as i32),

@@ -26,6 +26,7 @@ pub struct TorrentFileInfo {
     pub completed: bool,
     pub selected: bool,
     pub priority: FilePriority,
+    pub exists: bool,
 }
 
 #[derive(Serialize, Clone, Debug)]
@@ -259,6 +260,7 @@ impl TorrentManager {
                 completed: false,
                 selected: true,
                 priority: FilePriority::Normal,
+                exists: false,
             })
             .collect();
 
@@ -401,6 +403,10 @@ impl TorrentManager {
                                     let completed = f.len > 0 && progress >= f.len;
                                     let selected = only_files.as_ref().map_or(true, |of| of.contains(&i));
                                     let priority = prio_list.get(i).copied().unwrap_or(FilePriority::Normal);
+                                    let exists = {
+                                        let dir = self.save_dirs.lock().unwrap().get(&id).cloned();
+                                        dir.map_or(false, |d| Path::new(&d).join(&f.relative_filename).exists())
+                                    };
                                     TorrentFileInfo {
                                         index: i,
                                         name: f.relative_filename.to_string_lossy().to_string(),
@@ -408,6 +414,7 @@ impl TorrentManager {
                                         completed,
                                         selected,
                                         priority,
+                                        exists,
                                     }
                                 })
                                 .collect::<Vec<_>>(),

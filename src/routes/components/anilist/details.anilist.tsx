@@ -9,11 +9,28 @@ import AniListActionControls from "./controls.anilist";
 import AniListMetadata from "./metadata.anilist";
 import type { AniMedia } from "@/types/anilist";
 
+const RELATION_LABELS: Record<string, string> = {
+  SEQUEL: "Сиквел",
+  PREQUEL: "Приквел",
+  ADAPTATION: "Адаптация",
+  SIDE_STORY: "Сайд-стори",
+  CHARACTER: "Персонаж",
+  SUMMARY: "Сводка",
+  ALTERNATIVE: "Альтернатива",
+  SPIN_OFF: "Спин-офф",
+  PARENT: "Родительская",
+  CONTAINS: "Содержит",
+  SOURCE: "Источник",
+  OTHER: "Другое",
+};
+
 function AniListDetailModal({
   animeId,
   listEntry,
   isLoggedIn,
   onTag,
+  onStudio,
+  onRelated,
   onClose,
   onSaved,
 }: {
@@ -25,6 +42,8 @@ function AniListDetailModal({
   };
   isLoggedIn: boolean;
   onTag: (e: string) => void;
+  onStudio?: (id: number, name: string) => void;
+  onRelated?: (id: number) => void;
   onClose: () => void;
   onSaved?: () => void;
 }) {
@@ -53,12 +72,39 @@ function AniListDetailModal({
           {anime.studios.length > 0 && (
             <Section header="Студии" className="flex flex-wrap gap-1">
               {anime.studios.map((s) => (
-                <span
-                  key={s}
-                  className="px-1 text-[10px] windows95-font bg-primary windows95-border text-text"
+                <button
+                  key={s.id}
+                  onClick={() => { onStudio?.(s.id, s.name); onClose(); }}
+                  className="px-1 text-[10px] windows95-font bg-primary windows95-border text-text underline decoration-dotted hover:bg-surface cursor-pointer"
+                  title="Искать аниме этой студии"
                 >
-                  {s}
-                </span>
+                  {s.name}
+                </button>
+              ))}
+            </Section>
+          )}
+
+          {anime.relations.length > 0 && (
+            <Section header="Связанное" className="flex flex-col gap-1">
+              {anime.relations.map((r) => (
+                <button
+                  key={`${r.relation_type}-${r.media.id}`}
+                  onClick={() => { onRelated?.(r.media.id); onClose(); }}
+                  className="flex flex-row items-center gap-2 windows95-text hover:bg-surface cursor-pointer px-1 py-0.5 text-left"
+                >
+                  {r.media.cover_url && (
+                    <img src={r.media.cover_url} alt="" className="w-10 shrink-0 windows95-active-border" />
+                  )}
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-[10px] font-bold truncate">{r.media.title}</span>
+                    <span className="text-[9px] text-muted">
+                      {RELATION_LABELS[r.relation_type] ?? r.relation_type}
+                      {r.media.format && <> · {r.media.format}</>}
+                      {r.media.episodes && <> · {r.media.episodes} эп.</>}
+                      {r.media.score && <> · ★ {r.media.score}</>}
+                    </span>
+                  </div>
+                </button>
               ))}
             </Section>
           )}

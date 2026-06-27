@@ -4,6 +4,25 @@ export interface AniRanking {
   context: string;
 }
 
+export interface AniStudio {
+  id: number;
+  name: string;
+}
+
+export interface AniRelatedMedia {
+  id: number;
+  title: string;
+  cover_url: string | null;
+  episodes: number | null;
+  score: number | null;
+  format: string | null;
+}
+
+export interface AniRelation {
+  relation_type: string;
+  media: AniRelatedMedia;
+}
+
 export interface AniMedia {
   id: number;
   title: string;
@@ -19,7 +38,7 @@ export interface AniMedia {
   cover_url: string | null;
   season: string | null;
   season_year: number | null;
-  studios: string[];
+  studios: AniStudio[];
   next_episode: number | null;
   next_airing_at: number | null;
   start_date: string | null;
@@ -27,6 +46,7 @@ export interface AniMedia {
   popularity: number | null;
   favourites: number | null;
   rankings: AniRanking[];
+  relations: AniRelation[];
 }
 
 export interface AniUser {
@@ -58,6 +78,16 @@ export type AniListAnime = {
     list_status: string;
   };
 } | null;
+
+export interface AniRecommendation {
+  id: number;
+  title: string;
+  cover_url: string | null;
+  episodes: number | null;
+  score: number | null;
+  format: string | null;
+  recommendation_rating: number;
+}
 
 export type AniListSort = {
   key: "title" | "score" | "progress";

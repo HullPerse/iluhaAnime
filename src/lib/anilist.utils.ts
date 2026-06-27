@@ -85,16 +85,19 @@ export function sortEntries(
 }
 
 export function getSortingLabel(
-  sort: AniListSort["key"],
-  direction: AniListSort["dir"],
+  sort: string,
+  direction: "asc" | "desc",
 ): string {
-  const labelMap = {
+  const labelMap: Record<string, string> = {
     title: "Название",
     score: "Рейтинг",
     progress: "Прогресс",
-  } as Record<AniListSort["key"], string>;
+    relevance: "Релевантность",
+    popularity: "Популярность",
+    year: "Год",
+  };
 
-  return `${labelMap[sort]} ${direction === "asc" ? "↑" : "↓"}`;
+  return `${labelMap[sort] ?? sort} ${direction === "asc" ? "↑" : "↓"}`;
 }
 
 export function getStatusLabel(status: string) {

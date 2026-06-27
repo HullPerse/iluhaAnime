@@ -32,6 +32,7 @@ export interface TorrentFileInfo {
   completed: boolean;
   selected: boolean;
   priority: FilePriority;
+  exists: boolean;
 }
 
 export interface PickerTorrent {

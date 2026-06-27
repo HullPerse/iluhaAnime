@@ -294,6 +294,11 @@ function TorrentRoute() {
                     <ChevronRight className="size-3" />
                   )}
                   {`Файлы (${files.filter((f) => f.completed).length} / ${files.length})`}
+                  {files.some((f) => !f.exists) && (
+                    <span className="text-destructive ml-1">
+                      · {files.filter((f) => !f.exists).length} отсутствуют
+                    </span>
+                  )}
                 </button>
                 {isExpanded && (
                   <TorrentFilesSection

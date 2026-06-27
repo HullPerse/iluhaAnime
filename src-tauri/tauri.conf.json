@@ -20,7 +20,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; media-src 'self' asset: http://asset.localhost blob: data:",
+      "csp": "default-src 'self'; img-src 'self' asset: http://asset.localhost https://s4.anilist.co data:; media-src 'self' asset: http://asset.localhost blob: data:",
       "assetProtocol": {
         "enable": true,
         "scope": ["**"]

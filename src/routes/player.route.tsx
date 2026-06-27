@@ -77,12 +77,15 @@ function PlayerRoute({
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+
       if (e.code === "Escape") {
         setShowKeybinds(false);
         return;
       }
 
-      const action = getAction(e.code, e.ctrlKey, e.shiftKey);
+      const action = getAction(e.code, e.ctrlKey, e.shiftKey, e.altKey);
       if (!action) return;
 
       e.preventDefault();
@@ -149,9 +152,7 @@ function PlayerRoute({
               audioStreams[0]?.index ??
               -1;
             if (savedAudio !== defaultAudio) {
-              const stream = audioStreams.find(
-                (s) => s.index === savedAudio,
-              );
+              const stream = audioStreams.find((s) => s.index === savedAudio);
               if (stream) {
                 try {
                   const out = stream.file_path
@@ -535,6 +536,11 @@ function PlayerRoute({
                     <ChevronRight className="size-3" />
                   )}
                   Файлы ({files.filter((f) => f.completed).length})
+                  {files.some((f) => !f.exists) && (
+                    <span className="text-destructive ml-1">
+                      · {files.filter((f) => !f.exists).length} отсутствуют
+                    </span>
+                  )}
                 </div>
                 {isExpanded && (
                   <TorrentFilesSection

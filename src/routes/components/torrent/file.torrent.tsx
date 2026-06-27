@@ -83,6 +83,12 @@ function TorrentFilesSection({
                   className="cursor-pointer size-3 shrink-0"
                   hidden={!onToggle}
                 />
+                <span
+                  className={`shrink-0 text-[9px] ${fileItem.exists ? "text-green-700" : "text-red-600"}`}
+                  title={fileItem.exists ? "Файл существует" : "Файл отсутствует"}
+                >
+                  {fileItem.exists ? "✓" : "✗"}
+                </span>
                 <span className="truncate flex-1">
                   {`${index + 1}. `}
                   {fileItem.displayName}

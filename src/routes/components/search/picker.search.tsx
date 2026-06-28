@@ -1,6 +1,6 @@
 import { open } from "@tauri-apps/plugin-dialog";
 import { useState, useEffect, useRef } from "react";
-import { SmallLoader } from "../../../components/shared/loader.component";
+import { SmallLoader } from "@/components/shared/loader.component";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { fmtSize, groupFilesByDirectory } from "@/lib/torrent.utils";

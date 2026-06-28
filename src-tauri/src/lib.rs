@@ -87,26 +87,6 @@ fn cleanup_temp_file(path: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn get_app_data_path(app_handle: tauri::AppHandle) -> Result<String, String> {
-    let dir = app_handle
-        .path()
-        .app_data_dir()
-        .map_err(|e| format!("Failed to get app data dir: {e}"))?;
-    std::fs::create_dir_all(&dir).map_err(|e| format!("Failed to create dir: {e}"))?;
-    Ok(dir.to_string_lossy().to_string())
-}
-
-#[tauri::command]
-fn write_text_file(path: String, content: String) -> Result<(), String> {
-    std::fs::write(&path, &content).map_err(|e| format!("Write error: {e}"))
-}
-
-#[tauri::command]
-fn read_text_file(path: String) -> Result<String, String> {
-    std::fs::read_to_string(&path).map_err(|e| format!("Read error: {e}"))
-}
-
-#[tauri::command]
 fn set_global_speed_limits(
     download_bps: Option<u32>,
     upload_bps: Option<u32>,
@@ -266,11 +246,8 @@ pub fn run() {
             auth::nekobt_set_api_key,
             auth::check_nekobt_session,
             auth::nekobt_logout,
-            video::get_video_chapters,
-            video::get_video_streams,
             video::extract_video_subtitle,
             video::remux_video_audio,
-            video::scan_external_tracks,
             video::remux_with_external_audio,
             video::convert_external_subtitle,
             video::check_ffprobe,
@@ -279,7 +256,6 @@ pub fn run() {
             video::remove_ffmpeg,
             video::scan_video_folder,
             video::generate_thumbnails,
-            // video::generate_key_frame,
             anilist::search_anilist,
             anilist::search_anilist_by_studio,
             anilist::get_profile_recommendations,
@@ -297,9 +273,6 @@ pub fn run() {
             resume_torrent,
             remove_torrent,
             cleanup_temp_file,
-            get_app_data_path,
-            write_text_file,
-            read_text_file,
             set_global_speed_limits,
             get_running_torrent_files,
             update_torrent_only_files,

@@ -198,8 +198,6 @@ function Player({
           mediaPath={mediaPath}
           onFileNext={onFileNext}
           onFilePrev={onFilePrev}
-          hasNext={hasNext}
-          hasPrev={hasPrev}
           onToggleAutoHide={onToggleAutoHide}
         />
         {!src ? (

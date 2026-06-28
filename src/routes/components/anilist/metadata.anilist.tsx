@@ -22,7 +22,7 @@ function AniListMetadata({ anime }: { anime: AniMedia }) {
               ★ {anime.score}
             </span>
           )}
-          <span className="windows95-text windows95-text">
+          <span className="windows95-text">
             {statusLabels[anime.status] ?? anime.status}
           </span>
           {anime.format && (

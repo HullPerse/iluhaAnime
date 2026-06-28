@@ -33,11 +33,8 @@ struct NyaaJsonItem {
 }
 
 #[derive(Deserialize)]
-#[allow(dead_code)]
 struct NekoBtSearchData {
     results: Vec<NekoBtTorrentItem>,
-    #[serde(default)]
-    more: Option<bool>,
 }
 
 #[derive(Deserialize)]

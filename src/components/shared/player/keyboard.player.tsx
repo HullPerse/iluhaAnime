@@ -14,15 +14,11 @@ function Keyboard({
   mediaPath,
   onFileNext,
   onFilePrev,
-  hasNext,
-  hasPrev,
   onToggleAutoHide,
 }: {
   mediaPath?: string;
   onFileNext?: () => void;
   onFilePrev?: () => void;
-  hasNext?: boolean;
-  hasPrev?: boolean;
   onToggleAutoHide?: () => void;
 }) {
   const playback = usePlayer(selectPlayback);
@@ -150,8 +146,6 @@ function Keyboard({
     mediaPath,
     onFileNext,
     onFilePrev,
-    hasNext,
-    hasPrev,
     onToggleAutoHide,
   ]);
 

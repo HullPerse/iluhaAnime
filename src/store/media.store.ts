@@ -53,11 +53,6 @@ export const useMediaStore = create<MediaStore>()(
             e.path === path ? { ...e, subOffset: offset } : e,
           ),
         })),
-
-      removeEntry: (path) =>
-        set((s) => ({
-          entries: s.entries.filter((e) => e.path !== path),
-        })),
     }),
     { name: "mediaState" },
   ),

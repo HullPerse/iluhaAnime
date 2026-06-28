@@ -71,10 +71,13 @@ function AniListDetailModal({
 
           {anime.studios.length > 0 && (
             <Section header="Студии" className="flex flex-wrap gap-1">
-              {anime.studios.map((s) => (
+              {anime.studios.map((s, i) => (
                 <button
-                  key={s.id}
-                  onClick={() => { onStudio?.(s.id, s.name); onClose(); }}
+                  key={i}
+                  onClick={() => {
+                    onStudio?.(s.id, s.name);
+                    onClose();
+                  }}
                   className="px-1 text-[10px] windows95-font bg-primary windows95-border text-text underline decoration-dotted hover:bg-surface cursor-pointer"
                   title="Искать аниме этой студии"
                 >
@@ -89,14 +92,23 @@ function AniListDetailModal({
               {anime.relations.map((r) => (
                 <button
                   key={`${r.relation_type}-${r.media.id}`}
-                  onClick={() => { onRelated?.(r.media.id); onClose(); }}
+                  onClick={() => {
+                    onRelated?.(r.media.id);
+                    onClose();
+                  }}
                   className="flex flex-row items-center gap-2 windows95-text hover:bg-surface cursor-pointer px-1 py-0.5 text-left"
                 >
                   {r.media.cover_url && (
-                    <img src={r.media.cover_url} alt="" className="w-10 shrink-0 windows95-active-border" />
+                    <img
+                      src={r.media.cover_url}
+                      alt=""
+                      className="w-10 shrink-0 windows95-active-border"
+                    />
                   )}
                   <div className="flex flex-col min-w-0">
-                    <span className="text-[10px] font-bold truncate">{r.media.title}</span>
+                    <span className="text-[10px] font-bold truncate">
+                      {r.media.title}
+                    </span>
                     <span className="text-[9px] text-muted">
                       {RELATION_LABELS[r.relation_type] ?? r.relation_type}
                       {r.media.format && <> · {r.media.format}</>}

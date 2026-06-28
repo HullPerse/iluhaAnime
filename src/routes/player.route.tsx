@@ -256,13 +256,13 @@ function PlayerRoute({
     currentIndex >= 0 && currentIndex < currentTreeFiles.length - 1;
   const hasPrev: boolean = currentIndex > 0;
 
-  const handleFile = useCallback(
+  const { onFileNext, onFilePrev } = useMemo(
     () => ({
-      next: () => {
+      onFileNext: () => {
         if (hasNext && currentTreeFiles[currentIndex + 1])
           playFile(currentTreeFiles[currentIndex + 1].path);
       },
-      prev: () => {
+      onFilePrev: () => {
         if (hasPrev && currentTreeFiles[currentIndex - 1])
           playFile(currentTreeFiles[currentIndex - 1].path);
       },
@@ -336,7 +336,6 @@ function PlayerRoute({
       setFolderTrees(next);
       setFolderPaths(next.map((t) => t.path));
     } catch {
-      // scan failed — do nothing
     } finally {
       const unlisten = await unlistenPromise;
       unlisten();
@@ -377,8 +376,8 @@ function PlayerRoute({
           mediaPath={video.path}
           streams={streams}
           initialTime={video.initialTime}
-          onFileNext={handleFile().next}
-          onFilePrev={handleFile().prev}
+          onFileNext={onFileNext}
+          onFilePrev={onFilePrev}
           hasNext={hasNext}
           hasPrev={hasPrev}
           cinemaMode={cinemaMode}

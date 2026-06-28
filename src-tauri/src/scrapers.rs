@@ -90,6 +90,19 @@ pub(crate) fn build_nekobt_client() -> Result<reqwest::Client, String> {
         .map_err(|e| format!("Client error: {e}"))
 }
 
+
+pub(crate) fn format_file_size(bytes: f64) -> String {
+    if bytes < 1024.0 {
+        format!("{:.2} B", bytes)
+    } else if bytes < 1024.0 * 1024.0 {
+        format!("{:.2} KiB", bytes / 1024.0)
+    } else if bytes < 1024.0 * 1024.0 * 1024.0 {
+        format!("{:.2} MiB", bytes / (1024.0 * 1024.0))
+    } else {
+        format!("{:.2} GiB", bytes / (1024.0 * 1024.0 * 1024.0))
+    }
+}
+
 pub(crate) fn decode_windows_1251(bytes: &[u8]) -> String {
     let (cow, _, _) = encoding_rs::WINDOWS_1251.decode(bytes);
     cow.to_string()
@@ -174,17 +187,8 @@ fn nyaa_json_to_item(item: NyaaJsonItem) -> Option<NyaaItem> {
 
     let size_str = match &item.size {
         serde_json::Value::Number(n) => {
-            if let Some(bytes) = n.as_i64() {
-                let bytes = bytes as f64;
-                if bytes < 1024.0 {
-                    format!("{:.2} B", bytes)
-                } else if bytes < 1024.0 * 1024.0 {
-                    format!("{:.2} KiB", bytes / 1024.0)
-                } else if bytes < 1024.0 * 1024.0 * 1024.0 {
-                    format!("{:.2} MiB", bytes / (1024.0 * 1024.0))
-                } else {
-                    format!("{:.2} GiB", bytes / (1024.0 * 1024.0 * 1024.0))
-                }
+            if let Some(bytes) = n.as_f64() {
+                format_file_size(bytes)
             } else {
                 String::new()
             }
@@ -647,15 +651,7 @@ pub async fn search_nekobt(
             let size = if t.filesize.is_empty() {
                 String::new()
             } else if let Ok(bytes) = t.filesize.parse::<f64>() {
-                if bytes < 1024.0 {
-                    format!("{:.2} B", bytes)
-                } else if bytes < 1024.0 * 1024.0 {
-                    format!("{:.2} KiB", bytes / 1024.0)
-                } else if bytes < 1024.0 * 1024.0 * 1024.0 {
-                    format!("{:.2} MiB", bytes / (1024.0 * 1024.0))
-                } else {
-                    format!("{:.2} GiB", bytes / (1024.0 * 1024.0 * 1024.0))
-                }
+                format_file_size(bytes)
             } else {
                 t.filesize
             };

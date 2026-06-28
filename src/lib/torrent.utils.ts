@@ -1,3 +1,6 @@
+import { TorrentInfo, TorrentStore } from "@/types/torrent";
+import { type Event } from "@tauri-apps/api/event";
+
 export function fmtSpeed(bps: number): string {
   if (bps <= 0) return "";
   if (bps < 1024) return `${bps.toFixed(0)} B/s`;
@@ -40,10 +43,29 @@ export function stateLabel(state: string): string {
 
 export interface FileGroup {
   dir: string;
-  files: { index: number; name: string; displayName: string; size: number; completed?: boolean; selected?: boolean; priority?: string; exists?: boolean }[];
+  files: {
+    index: number;
+    name: string;
+    displayName: string;
+    size: number;
+    completed?: boolean;
+    selected?: boolean;
+    priority?: string;
+    exists?: boolean;
+  }[];
 }
 
-export function groupFilesByDirectory(files: { name: string; index: number; size: number; completed?: boolean; selected?: boolean; priority?: string; exists?: boolean }[]): FileGroup[] {
+export function groupFilesByDirectory(
+  files: {
+    name: string;
+    index: number;
+    size: number;
+    completed?: boolean;
+    selected?: boolean;
+    priority?: string;
+    exists?: boolean;
+  }[],
+): FileGroup[] {
   const groups = new Map<string, FileGroup>();
 
   for (const file of files) {
@@ -68,6 +90,32 @@ export function groupFilesByDirectory(files: { name: string; index: number; size
     })
     .map(([_, group]) => ({
       ...group,
-      files: group.files.sort((a, b) => a.displayName.localeCompare(b.displayName)),
+      files: group.files.sort((a, b) =>
+        a.displayName.localeCompare(b.displayName),
+      ),
     }));
+}
+
+export function TorrentListen(
+  state: TorrentStore,
+  event: Event<TorrentInfo[]>,
+) {
+  const next = event.payload;
+  const prev = state.torrents;
+
+  if (prev.length !== next.length) return { torrents: next };
+
+  for (let i = 0; i < prev.length; i++) {
+    if (
+      prev[i].progress_bytes !== next[i]?.progress_bytes ||
+      prev[i].state !== next[i]?.state ||
+      prev[i].download_speed !== next[i]?.download_speed ||
+      prev[i].upload_speed !== next[i]?.upload_speed ||
+      prev[i].peers_connected !== next[i]?.peers_connected ||
+      prev[i].finished !== next[i]?.finished
+    ) {
+      return { torrents: next };
+    }
+  }
+  return {};
 }

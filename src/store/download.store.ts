@@ -2,13 +2,11 @@ import { create } from "zustand";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { open, confirm } from "@tauri-apps/plugin-dialog";
-import {
-  isPermissionGranted,
-  requestPermission,
-} from "@tauri-apps/plugin-notification";
 
 import type { FilePriority } from "@/types";
 import { TorrentFileInfo, TorrentInfo, TorrentStore } from "@/types/torrent";
+import { showError } from "@/lib/notification.utils";
+import { TorrentListen } from "@/lib/torrent.utils";
 
 function loadLastSaveDir(): string {
   try {
@@ -34,19 +32,11 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
   torrentFilesMap: {},
 
   init: async () => {
-    const initial = await invoke<TorrentInfo[]>("list_torrents").catch(
-      () => [],
-    );
-    set({ torrents: initial });
-
-    let granted = await isPermissionGranted();
-    if (!granted) {
-      const permission = await requestPermission();
-      granted = permission === "granted";
-    }
+    const initial = await invoke<TorrentInfo[]>("list_torrents");
+    set({ torrents: initial ?? [] });
 
     const unlisten = await listen<TorrentInfo[]>("torrents-update", (event) => {
-      set({ torrents: event.payload });
+      set((state) => TorrentListen(state, event));
     });
 
     return unlisten;
@@ -75,7 +65,7 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
       conflicting_files: string[];
       has_common_folder: boolean;
     }>("get_torrent_info", { magnet, saveDir }).catch((err) => {
-      console.error("Failed to get torrent info:", err);
+      showError("Ошибка при получении информации о торренте:", String(err));
       return null;
     });
 
@@ -125,9 +115,7 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
       await invoke("remove_torrent", {
         id: pending.id,
         deleteFiles: false,
-      }).catch((err) =>
-        console.error("Failed to clean up pending torrent:", err),
-      );
+      }).catch((err) => showError("Ошибка при очистке торрента:", String(err)));
     }
     const id = await invoke<number>("start_torrent_download", {
       magnet: pending.magnet,
@@ -138,7 +126,7 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
           : selectedIndices,
       subFolder: subFolder || null,
     }).catch((err) => {
-      console.error("Failed to start torrent:", err);
+      showError("Ошибка при старте торрента:", String(err));
       return undefined;
     });
 
@@ -146,7 +134,11 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
 
     if (id !== undefined && sequential) {
       await invoke("set_sequential_download", { id, enabled: true }).catch(
-        (err) => console.error("Failed to enable sequential mode:", err),
+        (err) =>
+          showError(
+            "Ошибка при включении последовательного режима:",
+            String(err),
+          ),
       );
     }
   },
@@ -159,21 +151,19 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
       await invoke("remove_torrent", {
         id: pending.id,
         deleteFiles: false,
-      }).catch((err) =>
-        console.error("Failed to cancel pending torrent:", err),
-      );
+      }).catch((err) => showError("Ошибка при отмене торрента:", String(err)));
     }
   },
 
   pauseTorrent: async (id: number) => {
     await invoke("pause_torrent", { id }).catch((err) =>
-      console.error("Failed to pause torrent:", err),
+      showError("Ошибка при паузе торрента:", String(err)),
     );
   },
 
   resumeTorrent: async (id: number) => {
     await invoke("resume_torrent", { id }).catch((err) =>
-      console.error("Failed to resume torrent:", err),
+      showError("Ошибка при продолжении торрента:", String(err)),
     );
   },
 
@@ -183,7 +173,7 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
       return { torrentFilesMap: rest };
     });
     await invoke("remove_torrent", { id, deleteFiles }).catch((err) =>
-      console.error("Failed to remove torrent:", err),
+      showError("Ошибка при удалении торрента:", String(err)),
     );
   },
 
@@ -194,7 +184,7 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
     await invoke("set_global_speed_limits", {
       downloadBps: dlBps,
       uploadBps: ulBps,
-    }).catch((err) => console.error("Failed to set speed limits:", err));
+    }).catch((err) => showError("Ошибка при изменении лимита:", String(err)));
   },
 
   loadTorrentFiles: async (id: number) => {
@@ -210,7 +200,7 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
 
   updateTorrentOnlyFiles: async (id: number, indices: number[]) => {
     await invoke("update_torrent_only_files", { id, onlyFiles: indices }).catch(
-      (err) => console.error("Failed to update torrent files:", err),
+      (err) => showError("Ошибка при обновлении торрента:", String(err)),
     );
   },
 
@@ -220,7 +210,7 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
     priority: FilePriority,
   ) => {
     await invoke("set_file_priority", { id, fileIndices, priority }).catch(
-      (err) => console.error("Failed to set file priority:", err),
+      (err) => showError("Ошибка при установке приоритета:", String(err)),
     );
     // Refresh files to reflect the change
     const state = useTorrentStore.getState();
@@ -231,7 +221,7 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
 
   setSequentialDownload: async (id: number, enabled: boolean) => {
     await invoke("set_sequential_download", { id, enabled }).catch((err) =>
-      console.error("Failed to set sequential download:", err),
+      showError("Ошибка при включении последовательного режима:", String(err)),
     );
     // Update local state to reflect the toggle immediately
     set((state) => ({

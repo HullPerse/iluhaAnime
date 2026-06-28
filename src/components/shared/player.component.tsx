@@ -248,7 +248,7 @@ function Player({
               />
               {loading && (
                 <div className="absolute inset-0 z-20 flex items-center justify-center bg-black">
-                  <SmallLoader />
+                  <SmallLoader className="text-primary size-20" />
                 </div>
               )}
               {effectiveSrc ? (

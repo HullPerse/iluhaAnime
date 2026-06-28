@@ -59,6 +59,8 @@ function TorrentRoute() {
   }, [torrents, torrentFilesMap, loadTorrentFiles]);
 
   useEffect(() => {
+    if (expanded.size === 0) return;
+
     const interval = setInterval(() => {
       const state = useTorrentStore.getState();
       state.torrents.forEach((t) => {

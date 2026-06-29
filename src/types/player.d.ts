@@ -42,6 +42,7 @@ export interface MediaStore {
   setPosition: (path: string, time: number) => void;
   setTrack: (path: string, type: "audio" | "sub", index: number) => void;
   setSubOffset: (path: string, offset: number) => void;
+  clearEntries: () => void;
 }
 
 export interface PlayerSettings {

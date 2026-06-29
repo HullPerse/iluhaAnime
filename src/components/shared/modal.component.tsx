@@ -1,8 +1,17 @@
 import { ModalWindow } from "@/types";
 import { Button } from "../ui/button.component";
+import { useEffect } from "react";
 import { X } from "lucide-react";
 
 function Modal({ header, onClose, children }: ModalWindow) {
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onClose]);
+
   return (
     <>
       <div

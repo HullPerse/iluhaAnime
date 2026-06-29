@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Auth from "./components/anilist/auth.anilist";
 import Details from "./components/anilist/details.anilist";
 import Modal from "@/components/shared/modal.component";
@@ -13,7 +13,7 @@ import type {
 import { invoke } from "@tauri-apps/api/core";
 import { Input } from "@/components/ui/input.component";
 import { Button } from "@/components/ui/button.component";
-import { PER_PAGE } from "@/config/search.config";
+import { ANILIST_PAGE_SIZE } from "@/config/search.config";
 import {
   filterEntries,
   getSortingLabel,
@@ -70,6 +70,11 @@ function AnilistRoute() {
   }>({ key: "relevance", dir: "desc" });
   const [page, setPage] = useState<number>(1);
   const [loadingSearch, setLoadingSearch] = useState(false);
+  const scrollRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo(0, 0);
+  }, [page]);
 
   const handleGlobal = useCallback(async () => {
     setGlobal(true);
@@ -207,13 +212,13 @@ function AnilistRoute() {
   const isLocal = !!searchTerms.trim() && !global;
 
   const total = displayEntries.length;
-  const from = total === 0 ? 0 : (page - 1) * PER_PAGE + 1;
-  const to = Math.min(page * PER_PAGE, total);
-  const lastPage = Math.max(1, Math.ceil(total / PER_PAGE));
+  const from = total === 0 ? 0 : (page - 1) * ANILIST_PAGE_SIZE + 1;
+  const to = Math.min(page * ANILIST_PAGE_SIZE, total);
+  const lastPage = Math.max(1, Math.ceil(total / ANILIST_PAGE_SIZE));
 
   const pagedEntries = useMemo(() => {
-    const start = (page - 1) * PER_PAGE;
-    return displayEntries.slice(start, start + PER_PAGE);
+    const start = (page - 1) * ANILIST_PAGE_SIZE;
+    return displayEntries.slice(start, start + ANILIST_PAGE_SIZE);
   }, [displayEntries, page]);
 
   useEffect(() => {
@@ -228,6 +233,7 @@ function AnilistRoute() {
           placeholder="Найти аниме..."
           value={searchTerms}
           className="h-9 font-bold bg-white"
+          autoFocus
           onChange={(e) => {
             setSearchTerms(e.target.value);
             if (global && !e.target.value.trim()) handleReset();
@@ -447,14 +453,17 @@ function AnilistRoute() {
       )}
 
       {pagedEntries.length > 0 && (
-        <section className="flex flex-col w-full h-full overflow-y-scroll p-1 gap-1 border windows95-border">
+        <section
+          className="flex flex-col w-full h-full overflow-y-scroll p-1 gap-1 border windows95-border"
+          ref={scrollRef}
+        >
           {pagedEntries.map((item) => {
             const entry = entryLookup.get(item.id);
 
             return (
               <div
                 key={item.id}
-                className="flex flex-row windows95-active-border bg-primary p-2 hover:cursor-pointer"
+                className="flex flex-row windows95-active-border bg-primary p-2 hover:cursor-pointer min-h-28 max-h-36"
                 onClick={() =>
                   setSelectedAnime({
                     animeId: item.id,
@@ -475,7 +484,10 @@ function AnilistRoute() {
                   <section className="min-w-0 flex-1 h-full flex flex-col">
                     {/*top*/}
                     <div className="flex flex-row gap-2">
-                      <h2 className="flex flex-row gap-1 truncate font-bold leading-tight windows95-text">
+                      <h2
+                        className="flex flex-row gap-1 truncate font-bold leading-tight windows95-text"
+                        title={item.title}
+                      >
                         {entry && (
                           <span
                             className="windows95-border shrink-0 mt-0.5"
@@ -683,7 +695,10 @@ function AnilistRoute() {
                     />
                   )}
                   <div className="flex flex-col min-w-0 flex-1">
-                    <span className="text-[10px] font-bold truncate windows95-text">
+                    <span
+                      className="text-[10px] font-bold truncate windows95-text"
+                      title={r.title}
+                    >
                       {r.title}
                     </span>
                     <div className="flex flex-row gap-2 text-[9px] windows95-text">

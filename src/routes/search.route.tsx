@@ -205,10 +205,11 @@ function SearchRoute() {
     <div className="h-full flex flex-col w-full gap-1">
       <section className="flex flex-row gap-2 w-full">
         <div className="relative flex-1">
-          <Input
-            placeholder="Найти аниме..."
-            value={searchParams}
-            className="h-9 font-bold bg-white"
+        <Input
+          placeholder="Найти аниме..."
+          value={searchParams}
+          className="h-9 font-bold bg-white"
+          autoFocus
             onChange={(e) => setSearchParams(e.target.value)}
             onFocus={() => setShowHistory(true)}
             onBlur={() => setTimeout(() => setShowHistory(false), 200)}

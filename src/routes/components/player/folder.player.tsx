@@ -65,7 +65,7 @@ function FolderView({
             <ChevronRight className="size-3 shrink-0" />
           )}
           <FolderOpen className="size-3 shrink-0 text-muted" />
-          <span className="truncate select-none">{node.name}</span>
+          <span className="truncate select-none" title={node.name}>{node.name}</span>
           <span className="text-muted ml-auto whitespace-nowrap">
             {countAll} файлов
           </span>

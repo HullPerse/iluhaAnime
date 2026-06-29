@@ -17,9 +17,12 @@ import {
   ArrowUp,
   Plus,
   Check,
+  Square,
+  Circle,
 } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import TorrentFilesSection from "./components/torrent/file.torrent";
+import { sendNotification } from "@tauri-apps/plugin-notification";
 
 function TorrentRoute() {
   const {
@@ -47,8 +50,23 @@ function TorrentRoute() {
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const [showMagnetModal, setShowMagnetModal] = useState(false);
   const [magnetInput, setMagnetInput] = useState("");
+  const [filterQuery, setFilterQuery] = useState("");
+
+  const filteredTorrents = useMemo(
+    () =>
+      filterQuery.trim()
+        ? torrents.filter((t) =>
+            t.name.toLowerCase().includes(filterQuery.toLowerCase()),
+          )
+        : torrents,
+    [torrents, filterQuery],
+  );
+
+  const hasLive = torrents.some((t) => t.state === "live");
+  const hasPaused = torrents.some((t) => t.state === "paused");
 
   const fetchedRef = useRef<Set<number>>(new Set());
+  const prevFinishedRef = useRef<Set<number>>(new Set());
 
   useEffect(() => {
     torrents.forEach((t) => {
@@ -87,6 +105,24 @@ function TorrentRoute() {
     window.addEventListener("focus", handleFocus);
     return () => window.removeEventListener("focus", handleFocus);
   }, []);
+
+  useEffect(() => {
+    const totalDl = torrents.reduce((s, t) => s + t.download_speed, 0);
+    const totalUl = torrents.reduce((s, t) => s + t.upload_speed, 0);
+    const suffix = totalDl > 0 || totalUl > 0 ? ` ↓${fmtSpeed(totalDl)} ↑${fmtSpeed(totalUl)}` : "";
+    document.title = `iluhaAnime${suffix}`;
+
+    const nowFinished = new Set<number>();
+    for (const t of torrents) {
+      if (t.finished && !prevFinishedRef.current.has(t.id)) {
+        nowFinished.add(t.id);
+      }
+    }
+    for (const id of nowFinished) {
+      sendNotification({ title: "Загрузка завершена", body: torrents.find((t) => t.id === id)?.name ?? "" });
+    }
+    prevFinishedRef.current = new Set(torrents.filter((t) => t.finished).map((t) => t.id));
+  }, [torrents]);
 
   const applySpeedLimits = () => {
     const dl = dlInput === "" ? null : Number(dlInput);
@@ -149,6 +185,36 @@ function TorrentRoute() {
           </button>
         )}
         <span className="ml-auto" />
+        <input
+          className="w-24 h-5 windows95-border px-1 windows95-text outline-none text-[10px]"
+          placeholder="Фильтр..."
+          value={filterQuery}
+          onChange={(e) => setFilterQuery(e.target.value)}
+        />
+        <button
+          className="flex items-center gap-0.5 windows95-active-border bg-primary px-1.5 py-0.5 text-[10px] windows95-font cursor-pointer"
+          onClick={() => {
+            torrents.forEach((t) => {
+              if (t.state === "live") pauseTorrent(t.id);
+            });
+          }}
+          disabled={!hasLive}
+          title="Поставить все на паузу"
+        >
+          <Square className="size-3" />
+        </button>
+        <button
+          className="flex items-center gap-0.5 windows95-active-border bg-primary px-1.5 py-0.5 text-[10px] windows95-font cursor-pointer"
+          onClick={() => {
+            torrents.forEach((t) => {
+              if (t.state === "paused") resumeTorrent(t.id);
+            });
+          }}
+          disabled={!hasPaused}
+          title="Возобновить все"
+        >
+          <Circle className="size-3" />
+        </button>
         <button
           className="flex items-center gap-0.5 windows95-active-border bg-primary px-1.5 py-0.5 text-[10px] windows95-font cursor-pointer"
           onClick={() => setShowMagnetModal(true)}
@@ -157,7 +223,12 @@ function TorrentRoute() {
           магнит
         </button>
       </section>
-      {torrents.map((item, index) => {
+      {filteredTorrents.length === 0 ? (
+        <section className="flex items-center justify-center flex-1 windows95-text">
+          {torrents.length === 0 ? "Нет торрентов" : "Ничего не найдено"}
+        </section>
+      ) : (
+        filteredTorrents.map((item, index) => {
         const progress = item.progress * 100;
         const isPaused = item.state === "paused";
         const isLive = item.state === "live";
@@ -332,7 +403,9 @@ function TorrentRoute() {
             )}
           </div>
         );
-      })}
+        })
+      )
+      }
       {showMagnetModal && (
         <Modal
           header="Добавить магнит"

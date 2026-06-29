@@ -119,7 +119,7 @@ function TorrentFilePicker({
                   {group.dir && (
                     <div className="flex items-center gap-1 px-1 py-0.5 text-[10px] windows95-font bg-[#c0c0c0] windows95-border select-none">
                       <FolderOpen className="size-3 shrink-0" />
-                      <span className="font-bold truncate">{group.dir}</span>
+                      <span className="font-bold truncate" title={group.dir}>{group.dir}</span>
                       <span className="text-muted ml-auto">
                         {fmtSize(group.files.reduce((s, f) => s + f.size, 0))}
                       </span>
@@ -141,7 +141,7 @@ function TorrentFilePicker({
                           onChange={() => toggleFile(item.index)}
                           className="cursor-pointer shrink-0"
                         />
-                        <span className="truncate flex-1 windows95-text">
+                        <span className="truncate flex-1 windows95-text" title={item.displayName}>
                           {item.displayName}
                         </span>
                         <span className="text-muted shrink-0 text-[10px]">

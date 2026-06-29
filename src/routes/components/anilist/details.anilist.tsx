@@ -106,7 +106,7 @@ function AniListDetailModal({
                     />
                   )}
                   <div className="flex flex-col min-w-0">
-                    <span className="text-[10px] font-bold truncate">
+                    <span className="text-[10px] font-bold truncate" title={r.media.title}>
                       {r.media.title}
                     </span>
                     <span className="text-[9px] text-muted">

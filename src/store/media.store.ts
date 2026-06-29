@@ -2,7 +2,7 @@ import { MediaEntry, MediaStore } from "@/types/player";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-const MAX_ENTRIES = 50;
+const MAX_ENTRIES = 3;
 
 function touch(entries: MediaEntry[], path: string): MediaEntry[] {
   const idx = entries.findIndex((e) => e.path === path);
@@ -53,6 +53,8 @@ export const useMediaStore = create<MediaStore>()(
             e.path === path ? { ...e, subOffset: offset } : e,
           ),
         })),
+
+      clearEntries: () => set({ entries: [] }),
     }),
     { name: "mediaState" },
   ),

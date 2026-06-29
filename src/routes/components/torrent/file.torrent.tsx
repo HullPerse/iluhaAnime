@@ -61,7 +61,7 @@ function TorrentFilesSection({
           {group.dir && (
             <div className="flex items-center gap-1 px-1 py-0.5 text-[10px] windows95-font bg-[#c0c0c0] select-none">
               <FolderOpen className="size-3 shrink-0" />
-              <span className="font-bold truncate">{group.dir}</span>
+              <span className="font-bold truncate" title={group.dir}>{group.dir}</span>
               <span className="text-muted ml-auto">
                 {fmtSize(group.files.reduce((s, f) => s + f.size, 0))}
               </span>
@@ -89,7 +89,7 @@ function TorrentFilesSection({
                 >
                   {fileItem.exists ? "✓" : "✗"}
                 </span>
-                <span className="truncate flex-1">
+                <span className="truncate flex-1" title={`${index + 1}. ${fileItem.displayName}`}>
                   {`${index + 1}. `}
                   {fileItem.displayName}
                 </span>

@@ -17,7 +17,6 @@ import {
   File,
   X,
   Search,
-  Play,
   ChevronDown,
   ChevronRight,
 } from "lucide-react";
@@ -34,6 +33,7 @@ import FolderView from "./components/player/folder.player";
 import { useTorrentStore } from "@/store/download.store";
 import TorrentFilesSection from "./components/torrent/file.torrent";
 import ThumbnailPlayer from "./components/player/thumbnail.player";
+import ContinueWatching from "./components/player/continue.player";
 
 function PlayerRoute({
   cinemaMode,
@@ -52,8 +52,6 @@ function PlayerRoute({
   const folderPaths = usePlayerStore((s) => s.folderPaths);
   const setFolderPaths = usePlayerStore((s) => s.setFolderPaths);
   const mediaGet = useMediaStore((s) => s.getEntry);
-  const mediaEntries = useMediaStore((s) => s.entries);
-  const clearMediaEntries = useMediaStore((s) => s.clearEntries);
 
   const [video, setVideo] = useState<VideoType>(null);
   const [videoLoading, setVideoLoading] = useState(false);
@@ -67,14 +65,6 @@ function PlayerRoute({
   const [ffmpegStatus, setFfmpegStatus] = useState<FFMPEGStatus>("checking");
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const [cacheRefreshKey, setCacheRefreshKey] = useState(0);
-  const recentEntries = useMemo(
-    () =>
-      mediaEntries
-        .filter((e) => e.position > 0)
-        .sort((a, b) => b.lastPlayed - a.lastPlayed)
-        .slice(0, 5),
-    [mediaEntries],
-  );
 
   useEffect(() => {
     invoke<boolean>("check_ffprobe")
@@ -438,34 +428,7 @@ function PlayerRoute({
       />
 
       {/* CONTINUE WATCHING */}
-      {recentEntries.length > 0 && (
-        <section className="windows95-active-border bg-primary p-1">
-          <span className="windows95-text text-[10px] font-bold block mb-1">
-            Продолжить просмотр
-          </span>
-          <Button
-            size="icon"
-            className="size-4 float-right -mt-5"
-            onClick={clearMediaEntries}
-            title="Очистить историю"
-          >
-            <X className="size-3" />
-          </Button>
-          <div className="flex flex-col gap-0.5 windows95-border">
-            {recentEntries.map((e) => (
-              <button
-                key={e.path}
-                className="flex items-center gap-1 text-[10px] windows95-text hover:bg-surface px-0.5 py-0.5 text-left cursor-pointer truncate"
-                onClick={() => playFile(e.path)}
-                title={e.path}
-              >
-                <Play className="size-3 shrink-0" />
-                <span className="truncate">{e.path.split(/[/\\]/).pop()}</span>
-              </button>
-            ))}
-          </div>
-        </section>
-      )}
+      <ContinueWatching onPlay={playFile} />
 
       {/* KEYBINDS */}
       {showKeybinds && (

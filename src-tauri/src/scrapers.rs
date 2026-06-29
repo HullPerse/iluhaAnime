@@ -676,3 +676,53 @@ pub async fn search_nekobt(
 
     Ok(items)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_format_file_size_bytes() {
+        assert_eq!(format_file_size(0.0), "0.00 B");
+        assert_eq!(format_file_size(512.0), "512.00 B");
+    }
+
+    #[test]
+    fn test_format_file_size_kib() {
+        assert_eq!(format_file_size(1024.0), "1.00 KiB");
+        assert_eq!(format_file_size(2048.0), "2.00 KiB");
+    }
+
+    #[test]
+    fn test_format_file_size_mib() {
+        assert_eq!(format_file_size(1048576.0), "1.00 MiB");
+        assert_eq!(format_file_size(1572864.0), "1.50 MiB");
+    }
+
+    #[test]
+    fn test_format_file_size_gib() {
+        assert_eq!(format_file_size(1073741824.0), "1.00 GiB");
+    }
+
+    #[test]
+    fn test_is_valid_torrent_short_name() {
+        assert!(!is_valid_torrent("ab", "/view/123"));
+    }
+
+    #[test]
+    fn test_is_valid_torrent_comment() {
+        assert!(!is_valid_torrent("Comment", "/view/123"));
+        assert!(!is_valid_torrent("1 comment", "/view/123"));
+        assert!(!is_valid_torrent("no comments", "/view/123"));
+    }
+
+    #[test]
+    fn test_is_valid_torrent_no_url() {
+        assert!(!is_valid_torrent("Valid Title", ""));
+    }
+
+    #[test]
+    fn test_is_valid_torrent_valid() {
+        assert!(is_valid_torrent("[Erai-raws] Anime Title [1080p][HEVC]", "/view/12345"));
+    }
+}

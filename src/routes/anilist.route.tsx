@@ -13,6 +13,7 @@ import type {
 import { invoke } from "@tauri-apps/api/core";
 import { Input } from "@/components/ui/input.component";
 import { Button } from "@/components/ui/button.component";
+import { PER_PAGE } from "@/config/search.config";
 import {
   filterEntries,
   getSortingLabel,
@@ -32,8 +33,6 @@ import {
   SearchX,
   User,
 } from "lucide-react";
-
-const ANIME_PER_PAGE = 20;
 
 function AnilistRoute() {
   const [searchTerms, setSearchTerms] = useState<string>("");
@@ -208,13 +207,13 @@ function AnilistRoute() {
   const isLocal = !!searchTerms.trim() && !global;
 
   const total = displayEntries.length;
-  const from = total === 0 ? 0 : (page - 1) * ANIME_PER_PAGE + 1;
-  const to = Math.min(page * ANIME_PER_PAGE, total);
-  const lastPage = Math.max(1, Math.ceil(total / ANIME_PER_PAGE));
+  const from = total === 0 ? 0 : (page - 1) * PER_PAGE + 1;
+  const to = Math.min(page * PER_PAGE, total);
+  const lastPage = Math.max(1, Math.ceil(total / PER_PAGE));
 
   const pagedEntries = useMemo(() => {
-    const start = (page - 1) * ANIME_PER_PAGE;
-    return displayEntries.slice(start, start + ANIME_PER_PAGE);
+    const start = (page - 1) * PER_PAGE;
+    return displayEntries.slice(start, start + PER_PAGE);
   }, [displayEntries, page]);
 
   useEffect(() => {
@@ -407,32 +406,25 @@ function AnilistRoute() {
         </section>
       )}
 
-      {/* LOADING SKELETON */}
+      {/* LOADING */}
       {loadingList && lists.length === 0 && (
-        <section className="flex flex-col w-full h-full overflow-y-scroll p-1 gap-1 border windows95-border">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <div
-              key={i}
-              className="flex flex-row windows95-active-border bg-primary p-2 animate-pulse"
-            >
-              <div className="flex-1 flex flex-col gap-1.5">
-                <div className="h-3 w-3/5 bg-muted/20" />
-                <div className="h-2.5 w-1/4 bg-muted/10" />
-              </div>
-              <div className="w-14 h-20 bg-muted/20 shrink-0" />
-            </div>
-          ))}
+        <section className="flex items-center justify-center flex-1">
+          <SmallLoader />
         </section>
       )}
 
       {/* CONTENT */}
-      {pagedEntries.length === 0 && !global && !isLocal && !user && (
-        <section className="flex flex-col items-center justify-center flex-1 gap-2">
-          <User className="size-8 text-muted" />
-          <span className="windows95-text">Войдите в профиль</span>
-          <Button onClick={() => setAuth(true)}>Войти</Button>
-        </section>
-      )}
+      {pagedEntries.length === 0 &&
+        !global &&
+        !isLocal &&
+        !user &&
+        !loadingList && (
+          <section className="flex flex-col items-center justify-center flex-1 gap-2">
+            <User className="size-8 text-muted" />
+            <span className="windows95-text">Войдите в профиль</span>
+            <Button onClick={() => setAuth(true)}>Войти</Button>
+          </section>
+        )}
 
       {pagedEntries.length === 0 && isLocal && (
         <section className="flex flex-col items-center justify-center flex-1 gap-2">

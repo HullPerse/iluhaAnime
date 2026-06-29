@@ -22,15 +22,17 @@ import {
 } from "lucide-react";
 import { listen } from "@tauri-apps/api/event";
 import { CHEATSHEET_ROWS } from "@/config/keybinds.config";
+import { VIDEO_EXTENSIONS } from "@/config/player.config";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
-import { buildTree } from "@/lib/player.utils";
+import { buildTree, collectFolderPaths } from "@/lib/player.utils";
 import FFMPEG from "./components/player/ffmpeg.player";
 import { getAction } from "@/config/keybinds.config";
 import FolderView from "./components/player/folder.player";
 import { useTorrentStore } from "@/store/download.store";
 import TorrentFilesSection from "./components/torrent/file.torrent";
+import ThumbnailPlayer from "./components/player/thumbnail.player";
 
 function PlayerRoute({
   cinemaMode,
@@ -61,6 +63,7 @@ function PlayerRoute({
   const [showKeybinds, setShowKeybinds] = useState<boolean>(false);
   const [ffmpegStatus, setFfmpegStatus] = useState<FFMPEGStatus>("checking");
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
+  const [cacheRefreshKey, setCacheRefreshKey] = useState(0);
 
   useEffect(() => {
     invoke<boolean>("check_ffprobe")
@@ -276,22 +279,7 @@ function PlayerRoute({
       filters: [
         {
           name: "Видео",
-          extensions: [
-            "mp4",
-            "mkv",
-            "avi",
-            "mov",
-            "webm",
-            "flv",
-            "wmv",
-            "m4v",
-            "mpg",
-            "mpeg",
-            "ts",
-            "m2ts",
-            "ogv",
-            "3gp",
-          ],
+          extensions: [...VIDEO_EXTENSIONS],
         },
         { name: "Все файлы", extensions: ["*"] },
       ],
@@ -346,13 +334,20 @@ function PlayerRoute({
 
   const handleRemoveFolder = useCallback(
     (path: string) => {
+      const tree = folderTrees.find((t) => t.path === path);
+      if (tree) {
+        const paths = collectFolderPaths([tree]);
+        invoke("delete_thumbnails_for_paths", { paths })
+          .then(() => setCacheRefreshKey((k) => k + 1))
+          .catch(() => {});
+      }
       setFolderTrees((prev) => {
         const next = prev.filter((t) => t.path !== path);
         setFolderPaths(next.map((t) => t.path));
         return next;
       });
     },
-    [setFolderPaths],
+    [folderTrees, setFolderPaths],
   );
 
   const toggleExpanded = (id: number) => {
@@ -420,6 +415,15 @@ function PlayerRoute({
           setStreams={setStreams}
         />
       </section>
+
+      {/* THUMBNAIL CACHE */}
+      <ThumbnailPlayer
+        folderTrees={folderTrees}
+        torrentFilesMap={torrentFilesMap}
+        torrents={torrents}
+        ffmpegStatus={ffmpegStatus}
+        cacheRefreshKey={cacheRefreshKey}
+      />
 
       {/* KEYBINDS */}
       {showKeybinds && (

@@ -1,5 +1,5 @@
 import { fmtSize, groupFilesByDirectory } from "@/lib/torrent.utils";
-import { TorrentFileInfo } from "@/store/download.store";
+import type { TorrentFileInfo } from "@/types/torrent";
 import { useEffect, useState } from "react";
 import { FolderOpen, Monitor, Play } from "lucide-react";
 import { openPath } from "@tauri-apps/plugin-opener";

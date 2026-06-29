@@ -104,3 +104,25 @@ function parseVTTTime(time: string): number {
   if (p.length === 2) return parseInt(p[0]) * 60 + parseFloat(p[1]);
   return parseFloat(time);
 }
+
+export const parseSize = (s: string): number => {
+  const match = s.match(/^([\d.]+)\s*(B|KB|KiB|MB|MiB|GB|GiB)?$/);
+  if (!match) return 0;
+  const num = parseFloat(match[1]);
+  const unit = match[2] || "B";
+  const multipliers: Record<string, number> = {
+    B: 1,
+    KB: 1024,
+    KiB: 1024,
+    MB: 1048576,
+    MiB: 1048576,
+    GB: 1073741824,
+    GiB: 1073741824,
+  };
+  return num * (multipliers[unit] || 1);
+};
+
+export const qualityMatch = (title: string, quality: string): boolean => {
+  const num = quality.replace("p", "").replace("P", "");
+  return new RegExp(`\\b${num}p\\b`, "i").test(title);
+};

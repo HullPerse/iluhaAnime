@@ -26,6 +26,14 @@ export function fmtSize(bytes: number) {
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 }
 
+export function fmtElapsed(sec: number): string {
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  if (m === 0) return `${s} сек`;
+  if (s === 0) return `${m} мин`;
+  return `${m} мин ${s} сек`;
+}
+
 export function stateLabel(state: string): string {
   switch (state) {
     case "live":

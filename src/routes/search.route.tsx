@@ -4,7 +4,12 @@ import type { Anime, LanguageTag, SettingsScraper } from "@/types";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { showToast } from "@/lib/toast.utils";
 import { useEffect, useState, useMemo } from "react";
-import { detectLanguages, formatSize } from "@/lib/index.utils";
+import {
+  detectLanguages,
+  formatSize,
+  parseSize,
+  qualityMatch,
+} from "@/lib/index.utils";
 import { useSearchStore } from "@/store/search.store";
 import { languages, qualities, encodings } from "@/config/scraper.config";
 import { Button } from "@/components/ui/button.component";
@@ -26,18 +31,8 @@ import { useTorrentStore } from "@/store/download.store";
 import RutrackerLoginModal from "@/routes/components/search/rutracker.search";
 import NekoBtApiModal from "@/routes/components/search/nekobt.search";
 import { flushSync } from "react-dom";
-
-type Source = "erai-raws" | "rutracker" | "nyaa" | "nekobt";
-const PER_PAGE = 20;
-
-const nyaaSorts = [
-  { value: "seeders", label: "Сидеры" },
-  { value: "leechers", label: "Личи" },
-  { value: "size", label: "Размер" },
-  { value: "date", label: "Дата" },
-  { value: "name", label: "Название" },
-  { value: "downloads", label: "Скачивания" },
-] as const;
+import { Source } from "@/types/search";
+import { nyaaSorts, PER_PAGE } from "@/config/search.config";
 
 function SearchRoute() {
   const prepareTorrentDownload = useTorrentStore(
@@ -128,31 +123,8 @@ function SearchRoute() {
     if (crossSearchQuery) {
       setSearchParams(crossSearchQuery);
       setCrossSearchQuery(null);
-      setTimeout(() => refetch(), 0);
     }
-  }, [crossSearchQuery, refetch]);
-
-  const parseSize = (s: string): number => {
-    const match = s.match(/^([\d.]+)\s*(B|KB|KiB|MB|MiB|GB|GiB)?$/);
-    if (!match) return 0;
-    const num = parseFloat(match[1]);
-    const unit = match[2] || "B";
-    const multipliers: Record<string, number> = {
-      B: 1,
-      KB: 1024,
-      KiB: 1024,
-      MB: 1048576,
-      MiB: 1048576,
-      GB: 1073741824,
-      GiB: 1073741824,
-    };
-    return num * (multipliers[unit] || 1);
-  };
-
-  const qualityMatch = (title: string, quality: string): boolean => {
-    const num = quality.replace("p", "").replace("P", "");
-    return new RegExp(`\\b${num}p\\b`, "i").test(title);
-  };
+  }, [crossSearchQuery]);
 
   const filtered = useMemo(
     () =>

@@ -4,6 +4,7 @@ import { fmtSize, fmtETA, fmtSpeed, stateLabel } from "@/lib/torrent.utils";
 import { useTorrentStore } from "@/store/download.store";
 import { confirm } from "@tauri-apps/plugin-dialog";
 import { openPath } from "@tauri-apps/plugin-opener";
+import { invoke } from "@tauri-apps/api/core";
 import Modal from "@/components/shared/modal.component";
 import {
   Pause,
@@ -228,6 +229,10 @@ function TorrentRoute() {
                         cancelLabel: "Оставить файлы",
                       },
                     );
+                    const files = torrentFilesMap[item.id];
+                    if (files) {
+                      invoke("delete_thumbnails_for_paths", { paths: files.map((f) => `${item.save_dir}/${f.name}`) }).catch(() => {});
+                    }
                     removeTorrent(item.id, deleteFiles);
                   }}
                   disabled={!item}

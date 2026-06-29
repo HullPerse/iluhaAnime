@@ -13,3 +13,5 @@ export interface SearchStore {
   removeQuery: (query: string) => void;
   setCrossSearchQuery: (query: string | null) => void;
 }
+
+export type Source = "erai-raws" | "rutracker" | "nyaa" | "nekobt";

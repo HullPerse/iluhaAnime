@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { SmallLoader } from "@/components/shared/loader.component";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
-import { fmtSize, groupFilesByDirectory } from "@/lib/torrent.utils";
+import { fmtSize, fmtElapsed, groupFilesByDirectory } from "@/lib/torrent.utils";
 import { FolderOpen } from "lucide-react";
 import { PickerTorrent } from "@/types/torrent";
 
@@ -47,14 +47,6 @@ function TorrentFilePicker({
       setElapsed(0);
     }
   }, [loading]);
-
-  const fmtElapsed = (sec: number) => {
-    const m = Math.floor(sec / 60);
-    const s = sec % 60;
-    if (m === 0) return `${s} сек`;
-    if (s === 0) return `${m} мин`;
-    return `${m} мин ${s} сек`;
-  };
 
   const toggleFile = (index: number) => {
     setSelected((prev) => {

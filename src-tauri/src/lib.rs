@@ -8,7 +8,10 @@ use tauri_plugin_single_instance;
 mod anilist;
 mod auth;
 mod bencode;
+mod ffmpeg;
 mod scrapers;
+mod scanner;
+mod thumbnails;
 mod torrent;
 mod video;
 
@@ -250,12 +253,15 @@ pub fn run() {
             video::remux_video_audio,
             video::remux_with_external_audio,
             video::convert_external_subtitle,
-            video::check_ffprobe,
             video::get_video_info,
-            video::download_ffmpeg,
-            video::remove_ffmpeg,
-            video::scan_video_folder,
-            video::generate_thumbnails,
+            ffmpeg::check_ffprobe,
+            ffmpeg::download_ffmpeg,
+            ffmpeg::remove_ffmpeg,
+            scanner::scan_video_folder,
+            thumbnails::generate_thumbnails,
+            thumbnails::get_thumbnail_cache_info,
+            thumbnails::clear_thumbnail_cache,
+            thumbnails::delete_thumbnails_for_paths,
             anilist::search_anilist,
             anilist::search_anilist_by_studio,
             anilist::get_profile_recommendations,

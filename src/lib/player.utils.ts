@@ -7,6 +7,16 @@ export function nodeMatchesSearch(node: FolderNode, query: string): boolean {
   return node.children.some((children) => nodeMatchesSearch(children, value));
 }
 
+export function collectFolderPaths(nodes: FolderNode[]): string[] {
+  const paths: string[] = [];
+  function walk(node: FolderNode) {
+    for (const f of node.files) paths.push(f.path);
+    for (const c of node.children) walk(c);
+  }
+  for (const n of nodes) walk(n);
+  return paths;
+}
+
 function sortNode(n: FolderNode): FolderNode {
   n.children.sort((a, b) => a.name.localeCompare(b.name));
   n.files.sort((a, b) => a.name.localeCompare(b.name));

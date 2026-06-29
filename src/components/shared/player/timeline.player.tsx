@@ -8,8 +8,7 @@ import {
   usePlayer,
 } from "@videojs/react";
 import { useState, useEffect, useRef } from "react";
-
-const THUMB_INTERVAL = 10;
+import { THUMB_INTERVAL } from "@/config/player.config";
 
 function Timeline({
   chapters,
@@ -194,6 +193,7 @@ function Timeline({
               {thumbIndex >= 0 && (
                 <div className="mb-0.5">
                   <img
+                    key={thumbIndex}
                     src={convertFileSrc(thumbs[thumbIndex])}
                     className={`w-32 max-32 min-32 h-18 min-h-18 max-h-18 border border-black/20 ${imgLoaded ? "" : "hidden"}`}
                     alt="Thumbnail"

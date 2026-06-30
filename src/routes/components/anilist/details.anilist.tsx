@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { useQuery } from "@tanstack/react-query";
-import { Loader, Search } from "lucide-react";
+import { ChevronRight, CircleSmall, Loader, Tag, Users } from "lucide-react";
 import { useSearchStore } from "@/store/search.store";
 import Modal from "@/components/shared/modal.component";
 import Section from "@/components/shared/section.component";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button.component";
 import AniListActionControls from "./controls.anilist";
 import AniListMetadata from "./metadata.anilist";
 import type { AniMedia } from "@/types/anilist";
+import { useState } from "react";
 
 const RELATION_LABELS: Record<string, string> = {
   SEQUEL: "Сиквел",
@@ -29,6 +30,7 @@ function AniListDetailModal({
   listEntry,
   isLoggedIn,
   onTag,
+  onGenre,
   onStudio,
   onRelated,
   onClose,
@@ -42,12 +44,15 @@ function AniListDetailModal({
   };
   isLoggedIn: boolean;
   onTag: (e: string) => void;
+  onGenre: (e: string) => void;
   onStudio?: (id: number, name: string) => void;
   onRelated?: (id: number) => void;
   onClose: () => void;
   onSaved?: () => void;
 }) {
   const setCrossSearchQuery = useSearchStore((s) => s.setCrossSearchQuery);
+
+  const [showDesc, setShowDesc] = useState<boolean>(false);
 
   const { data: anime, isLoading } = useQuery({
     queryKey: ["anime_detail", animeId],
@@ -63,7 +68,7 @@ function AniListDetailModal({
     <Modal
       header={anime?.title ?? "Загрузка..."}
       onClose={onClose}
-      className="w-3xl"
+      className="min-w-2xl"
     >
       {isLoading || !anime ? (
         <div className="flex items-center justify-center flex-1">
@@ -82,18 +87,24 @@ function AniListDetailModal({
                     onStudio?.(s.id, s.name);
                     onClose();
                   }}
-                  className="px-1 bg-primary windows95-text underline decoration-dotted"
+                  className="flex flex-row gap-1 px-1 bg-primary windows95-text underline decoration-dotted"
                   variant="ghost"
                   title="Искать аниме этой студии"
                 >
-                  {s.name}
+                  <Users className="size-3" /> {s.name}
                 </Button>
               ))}
             </Section>
           )}
 
           {anime.relations.length > 0 && (
-            <Section header="Связанное" className="flex flex-col bg-white">
+            <Section
+              header="Связанное"
+              className="flex flex-col bg-white"
+              expanded={showDesc}
+              onExpand={() => setShowDesc((prev) => !prev)}
+              files={anime.relations.length}
+            >
               {anime.relations.map((r) => (
                 <button
                   key={`${r.relation_type}-${r.media.id}`}
@@ -131,9 +142,15 @@ function AniListDetailModal({
           {anime.description && (
             <Section
               header="Описание"
-              className="windows95-text leading-relaxed max-h-36 overflow-y-auto whitespace-pre-line bg-white"
+              className="windows95-text leading-relaxed  overflow-y-auto whitespace-pre-line bg-white"
             >
-              {anime.description}
+              <textarea
+                value={anime.description}
+                readOnly
+                disabled
+                className="resize-y w-full h-36 min-h-18 max-h-64 select-none outline-0"
+              />
+              {/*{anime.description}*/}
             </Section>
           )}
 
@@ -143,12 +160,19 @@ function AniListDetailModal({
               className="flex flex-wrap gap-1 bg-white"
             >
               {anime.genres.map((g) => (
-                <span
+                <Button
                   key={g}
-                  className="px-1 windows95-text bg-secondary text-white font-bold windows95-active-border"
+                  onClick={() => {
+                    onGenre(g);
+                    onClose();
+                  }}
+                  className="flex flex-row gap-1 px-1 windows95-text bg-secondary hover:bg-secondary/60 text-white font-bold windows95-active-border"
+                  variant="ghost"
+                  title="Искать аниме по тегу"
                 >
+                  <CircleSmall className="size-3 fill-white" />
                   {g}
-                </span>
+                </Button>
               ))}
               {anime.tags.slice(0, 15).map((t) => (
                 <Button
@@ -157,27 +181,38 @@ function AniListDetailModal({
                     onTag(t);
                     onClose();
                   }}
-                  className="text-left windows95-text underline decoration-dotted bg-primary hover:bg-surface px-1 -mx-0.5 truncate"
+                  className="flex flex-row gap-1 text-left windows95-text underline decoration-dotted bg-primary hover:bg-surface px-1 -mx-0.5 truncate"
                   variant="ghost"
                   title="Искать аниме по тегу"
                 >
-                  ◉ {t}
+                  <Tag className="size-3" /> {t}
                 </Button>
               ))}
             </Section>
           )}
 
-          {anime.titles.length > 0 && (
-            <Section header="Все названия" className="flex flex-col gap-0.5">
+          {(anime.title || anime.titles.length > 0) && (
+            <Section
+              header="Все названия"
+              className="flex flex-wrap bg-white gap-1"
+            >
+              <Button
+                onClick={() => handleSearchTorrents(anime.title)}
+                className="flex flex-row gap-1 text-left windows95-text underline decoration-dotted bg-primary hover:bg-surface px-1 -mx-0.5 truncate"
+                variant="ghost"
+                title="Искать торренты по этому названию"
+              >
+                <ChevronRight className="size-3" /> {anime.title}
+              </Button>
               {anime.titles.map((t) => (
                 <Button
                   key={t}
                   onClick={() => handleSearchTorrents(t)}
-                  className="text-left text-[10px] windows95-text underline decoration-dotted hover:bg-surface px-0.5 -mx-0.5 truncate"
+                  className="text-left windows95-text underline decoration-dotted bg-primary hover:bg-surface px-1 -mx-0.5 truncate"
                   variant="ghost"
                   title="Искать торренты по этому названию"
                 >
-                  ◉ {t}
+                  <ChevronRight className="size-3" /> {t}
                 </Button>
               ))}
             </Section>
@@ -199,15 +234,6 @@ function AniListDetailModal({
                 </span>
               )}
             </div>
-            {anime.rankings.length > 0 && (
-              <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-[10px] windows95-text">
-                {anime.rankings.map((r, i) => (
-                  <span key={i}>
-                    {r.type_ === "RATED" ? "★" : "▸"} #{r.rank} в {r.context}
-                  </span>
-                ))}
-              </div>
-            )}
           </Section>
 
           {isLoggedIn && (
@@ -218,13 +244,6 @@ function AniListDetailModal({
               onClose={onClose}
             />
           )}
-
-          <div className="flex flex-row justify-end gap-2 mt-1">
-            <Button variant="default" onClick={() => handleSearchTorrents()}>
-              <Search className="size-3" />
-              Искать торренты
-            </Button>
-          </div>
         </div>
       )}
     </Modal>

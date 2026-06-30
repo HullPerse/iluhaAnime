@@ -1,19 +1,12 @@
 import type { ThemeDefinition } from "@/types/theme";
-import { generateFromAccent } from "@/lib/theme-gen.utils";
+import { generateFromAccent } from "@/lib/theme.utils";
 
 const configThemes: {
   value: string;
   label: string;
   primary: string;
   background: string;
-}[] = [
-  {
-    value: "paleGold",
-    label: "Бледно золотой",
-    primary: "#8E4585",
-    background: "#E6BE8A",
-  },
-];
+}[] = [];
 
 const generated = configThemes.map((t) => ({
   name: t.value,

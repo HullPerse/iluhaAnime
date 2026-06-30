@@ -268,6 +268,7 @@ pub fn run() {
             anilist::search_anilist_by_studio,
             anilist::get_profile_recommendations,
             anilist::search_anilist_by_tag,
+            anilist::search_anilist_by_genre,
             anilist::get_anime_by_id,
             anilist::anilist_login,
             anilist::check_anilist_auth,

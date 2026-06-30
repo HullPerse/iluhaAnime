@@ -32,7 +32,6 @@ const tabs: { id: Tab; label: string }[] = [
   { id: "torrent", label: "Торрент" },
   { id: "player", label: "Плеер" },
   { id: "anilist", label: "AniList" },
-  { id: "settings", label: "Настройки" },
 ];
 
 function App() {
@@ -217,8 +216,6 @@ function App() {
                           : "windows95-border bg-surface"
                       }`}
                       style={{
-                        top: isActive ? 0 : "2px",
-                        marginBottom: isActive ? "-2px" : undefined,
                         zIndex: isActive ? 20 : 10,
                       }}
                       onClick={() => setActiveTab(tab.id)}
@@ -228,6 +225,21 @@ function App() {
                     </Button>
                   );
                 })}
+
+                <Button
+                  className={`px-3 py-0.5 relative cursor-pointer windows95-text active:outline-dotted active:outline-1 active:outline-offset-[-3px] active:outline-text ml-auto mr-2 ${
+                    activeTab === "settings"
+                      ? "windows95-active-border border-b-transparent"
+                      : "windows95-border bg-surface"
+                  }`}
+                  style={{
+                    zIndex: activeTab === "settings" ? 20 : 10,
+                  }}
+                  onClick={() => setActiveTab("settings")}
+                  disabled={activeTab === "settings"}
+                >
+                  Параметры
+                </Button>
               </div>
             </>
           )}

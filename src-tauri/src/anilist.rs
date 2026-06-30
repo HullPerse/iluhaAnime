@@ -75,6 +75,7 @@ pub struct AniRelation {
     pub media: AniRelatedMedia,
 }
 
+
 #[derive(Debug, Serialize)]
 pub struct AniMedia {
     pub id: u64,
@@ -119,6 +120,8 @@ pub struct AniListEntry {
     pub score: Option<i32>,
     pub list_status: String,
 }
+
+
 
 fn parse_date(d: &serde_json::Value) -> Option<String> {
     let year = d["year"].as_i64()?;
@@ -231,37 +234,37 @@ fn parse_animedia(m: &serde_json::Value) -> AniMedia {
             })
             .unwrap_or_default(),
         relations: m["relations"]["edges"]
-            .as_array()
-            .map(|edges| {
-                edges
-                    .iter()
-                    .map(|edge| {
-                        let rel_type = edge["relationType"]
-                            .as_str()
-                            .unwrap_or("UNKNOWN")
-                            .to_string();
-                        let node = &edge["node"];
-                        let title = node["title"]["romaji"]
-                            .as_str()
-                            .or_else(|| node["title"]["english"].as_str())
-                            .unwrap_or("Unknown");
-                        AniRelation {
-                            relation_type: rel_type,
-                            media: AniRelatedMedia {
-                                id: node["id"].as_u64().unwrap_or(0),
-                                title: title.to_string(),
-                                cover_url: node["coverImage"]["medium"].as_str().map(String::from),
-                                episodes: node["episodes"].as_i64().map(|n| n as i32),
-                                score: node["averageScore"].as_i64().map(|n| n as i32),
-                                format: node["format"].as_str().map(String::from),
-                            },
-                        }
-                    })
-                    .collect()
-            })
-            .unwrap_or_default(),
-    }
-}
+                  .as_array()
+                  .map(|edges| {
+                      edges
+                          .iter()
+                          .map(|edge| {
+                              let rel_type = edge["relationType"]
+                                  .as_str()
+                                  .unwrap_or("UNKNOWN")
+                                  .to_string();
+                              let node = &edge["node"];
+                              let title = node["title"]["romaji"]
+                                  .as_str()
+                                  .or_else(|| node["title"]["english"].as_str())
+                                  .unwrap_or("Unknown");
+                              AniRelation {
+                                  relation_type: rel_type,
+                                  media: AniRelatedMedia {
+                                      id: node["id"].as_u64().unwrap_or(0),
+                                      title: title.to_string(),
+                                      cover_url: node["coverImage"]["medium"].as_str().map(String::from),
+                                      episodes: node["episodes"].as_i64().map(|n| n as i32),
+                                      score: node["averageScore"].as_i64().map(|n| n as i32),
+                                      format: node["format"].as_str().map(String::from),
+                                  },
+                              }
+                          })
+                          .collect()
+                  })
+                  .unwrap_or_default(),
+          }
+      }
 
 const MAX_PAGES: u32 = 3;
 
@@ -380,6 +383,63 @@ pub async fn search_anilist_by_tag(tag: String) -> Result<Vec<AniMedia>, String>
                 }
             "#,
             "variables": { "tag": tag, "page": page }
+        }))
+        .await
+        {
+            all.extend(media);
+        }
+    }
+
+    Ok(all)
+}
+
+#[tauri::command]
+pub async fn search_anilist_by_genre(genre: String) -> Result<Vec<AniMedia>, String> {
+    let (mut all, total) = fetch_page(serde_json::json!({
+        "query": r#"
+            query ($genre: String, $page: Int) {
+                Page(page: $page, perPage: 20) {
+                    pageInfo { total }
+                    media(type: ANIME, genre_in: [$genre]) {
+                        id
+                        title { romaji english native }
+                        episodes, duration, status, averageScore
+                        genres, tags { name }
+                        description(asHtml: false)
+                        coverImage { medium large }
+                        season, seasonYear
+                        studios { nodes { id name } }
+                        nextAiringEpisode { episode airingAt }
+                    }
+                }
+            }
+        "#,
+        "variables": { "genre": genre, "page": 1 }
+    }))
+    .await?;
+
+    let pages = ((total + 19) / 20).min(MAX_PAGES);
+    for page in 2..=pages {
+        if let Ok((media, _)) = fetch_page(serde_json::json!({
+            "query": r#"
+                query ($genre: String, $page: Int) {
+                    Page(page: $page, perPage: 20) {
+                        pageInfo { total }
+                        media(type: ANIME, genre_in: [$genre]) {
+                            id
+                            title { romaji english native }
+                            episodes, duration, status, averageScore
+                            genres, tags { name }
+                            description(asHtml: false)
+                            coverImage { medium large }
+                            season, seasonYear
+                            studios { nodes { id name } }
+                            nextAiringEpisode { episode airingAt }
+                        }
+                    }
+                }
+            "#,
+            "variables": { "genre": genre, "page": page }
         }))
         .await
         {

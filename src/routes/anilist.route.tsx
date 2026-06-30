@@ -65,7 +65,9 @@ function AnilistRoute() {
   const [loadingList, setLoadingList] = useState<boolean>(false);
   const [searchResults, setSearchResults] = useState<AniMedia[]>([]);
   const [searchTag, setSearchTag] = useState<string | null>(null);
-  const [searchMode, setSearchMode] = useState<"tag" | "studio" | null>(null);
+  const [searchMode, setSearchMode] = useState<
+    "tag" | "genre" | "studio" | null
+  >(null);
   const [globalSort, setGlobalSort] = useState<{
     key: string;
     dir: "asc" | "desc";
@@ -119,6 +121,23 @@ function AnilistRoute() {
     setSearchTerms("");
     try {
       const res = await invoke<AniMedia[]>("search_anilist_by_tag", { tag });
+      setSearchResults(res);
+    } finally {
+      setLoadingSearch(false);
+    }
+  }, []);
+
+  const handleGenre = useCallback(async (genre: string) => {
+    setGlobal(true);
+    setSearchTag(genre);
+    setSearchMode("tag");
+    setLoadingSearch(true);
+    setSearchResults([]);
+    setSearchTerms("");
+    try {
+      const res = await invoke<AniMedia[]>("search_anilist_by_genre", {
+        genre,
+      });
       setSearchResults(res);
     } finally {
       setLoadingSearch(false);
@@ -571,7 +590,7 @@ function AnilistRoute() {
 
       {/* STATUS BAR */}
       {(user || global) && (
-        <section className="windows95-border bg-primary px-1 py-0.5 flex flex-row items-center justify-between">
+        <section className="windows95-border bg-white px-1 py-0.5 flex flex-row items-center justify-between">
           <span className="windows95-text">
             {global ? (
               <>
@@ -655,6 +674,7 @@ function AnilistRoute() {
           listEntry={selectedAnime.listEntry}
           isLoggedIn={!!user}
           onTag={handleTag}
+          onGenre={handleGenre}
           onStudio={handleStudio}
           onRelated={(id) =>
             setSelectedAnime({ animeId: id, listEntry: entryLookup.get(id) })

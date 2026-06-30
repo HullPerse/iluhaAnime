@@ -86,9 +86,7 @@ function ThumbnailPlayer({
           videoPath: p,
           interval: THUMB_INTERVAL,
         });
-      } catch {
-        /* skip */
-      }
+      } catch {}
 
       setPrecacheProgress((prev) =>
         prev ? { ...prev, done: prev.done + 1 } : prev,

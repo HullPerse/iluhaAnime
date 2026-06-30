@@ -1,6 +1,7 @@
 import { LanguageTag } from "@/types";
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { Update, check } from "@tauri-apps/plugin-updater";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -126,3 +127,21 @@ export const qualityMatch = (title: string, quality: string): boolean => {
   const num = quality.replace("p", "").replace("P", "");
   return new RegExp(`\\b${num}p\\b`, "i").test(title);
 };
+
+export async function installUpdate(update: Update) {
+  if (!update) return;
+  try {
+    await update.downloadAndInstall();
+  } catch (e) {
+    console.error("Failed to install update:", e);
+  }
+}
+
+export async function checkForUpdates(): Promise<Update | null> {
+  try {
+    return await check();
+  } catch (e) {
+    console.debug("Auto-update check skipped:", e);
+    return null;
+  }
+}

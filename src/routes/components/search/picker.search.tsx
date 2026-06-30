@@ -1,9 +1,15 @@
+import { Input } from "@/components/ui/input.component";
 import { open } from "@tauri-apps/plugin-dialog";
 import { useState, useEffect, useRef } from "react";
 import { SmallLoader } from "@/components/shared/loader.component";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
-import { fmtSize, fmtElapsed, groupFilesByDirectory } from "@/lib/torrent.utils";
+import { Checkbox } from "@/components/ui/checkbox.component";
+import {
+  fmtSize,
+  fmtElapsed,
+  groupFilesByDirectory,
+} from "@/lib/torrent.utils";
 import { FolderOpen } from "lucide-react";
 import { PickerTorrent } from "@/types/torrent";
 
@@ -88,6 +94,7 @@ function TorrentFilePicker({
     <Modal
       header={loading ? "Загрузка метаданных..." : `${torrent!.name}`}
       onClose={onCancel}
+      className="w-3xl"
     >
       {loading ? (
         <section className="flex flex-col items-center justify-center gap-2 py-4">
@@ -100,12 +107,7 @@ function TorrentFilePicker({
         <section className="flex-1  flex flex-col items-center gap-2 py-4 w-full h-full">
           <div className="flex w-full h-full overflow-y-auto windows95-border">
             <label className="flex items-center gap-1 px-1 py-0.5 windows95-text bg-primary cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={allSelected}
-                onChange={toggleAll}
-                className="cursor-pointer"
-              />
+              <Checkbox checked={allSelected} onChange={toggleAll} />
               {allSelected ? "Снять все" : "Выбрать все"}
               <span className="ml-auto text-muted">
                 {torrent!.files.length} файлов
@@ -117,9 +119,11 @@ function TorrentFilePicker({
               groupFilesByDirectory(torrent.files).map((group) => (
                 <div key={group.dir || "__root__"}>
                   {group.dir && (
-                    <div className="flex items-center gap-1 px-1 py-0.5 text-[10px] windows95-font bg-[#c0c0c0] windows95-border select-none">
+                    <div className="flex items-center gap-1 px-1 py-0.5 text-[10px] windows95-font select-none">
                       <FolderOpen className="size-3 shrink-0" />
-                      <span className="font-bold truncate" title={group.dir}>{group.dir}</span>
+                      <span className="font-bold truncate" title={group.dir}>
+                        {group.dir}
+                      </span>
                       <span className="text-muted ml-auto">
                         {fmtSize(group.files.reduce((s, f) => s + f.size, 0))}
                       </span>
@@ -133,15 +137,17 @@ function TorrentFilePicker({
                     return (
                       <label
                         key={item.index}
-                        className={`flex items-center w-full gap-1 px-1 py-0.5 windows95-text select-none hover:bg-[#e0e0e0] cursor-pointer ${group.dir ? "pl-5" : ""} windows95-border`}
+                        className={`flex items-center w-full gap-1 px-1 py-0.5 windows95-text select-none hover:bg-surface cursor-pointer ${group.dir ? "pl-5" : ""} windows95-border`}
                       >
-                        <input
-                          type="checkbox"
+                        <Checkbox
                           checked={selected.has(item.index)}
                           onChange={() => toggleFile(item.index)}
-                          className="cursor-pointer shrink-0"
+                          className="shrink-0"
                         />
-                        <span className="truncate flex-1 windows95-text" title={item.displayName}>
+                        <span
+                          className="truncate flex-1 windows95-text"
+                          title={item.displayName}
+                        >
                           {item.displayName}
                         </span>
                         <span className="text-muted shrink-0 text-[10px]">
@@ -161,22 +167,16 @@ function TorrentFilePicker({
 
           <div className="flex items-center gap-1 w-full">
             <span className="windows95-text shrink-0">Папка:</span>
-            <input
-              className="flex-1 h-5 windows95-border px-1 windows95-text outline-none"
-              value={saveDir}
-              readOnly
-            />
+            <Input className="flex-1" value={saveDir} readOnly />
             <Button onClick={browseFolder} disabled={browsing || loading}>
               Обзор
             </Button>
           </div>
           <div className="flex items-center justify-between w-full">
             <label className="flex items-center gap-1 windows95-text cursor-pointer select-none">
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={sequential}
-                onChange={(e) => setSequential(e.target.checked)}
-                className="cursor-pointer"
+                onChange={(v) => setSequential(v)}
               />
               Последовательно
             </label>

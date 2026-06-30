@@ -5,7 +5,7 @@ function SeekOffset({ mediaPath }: { mediaPath?: string }) {
   const subOffset = useMediaStore((state) =>
     mediaPath ? (state.getEntry(mediaPath)?.subOffset ?? 0) : 0,
   );
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisible] = useState<boolean>(false);
   const timerRef = useRef<number | null>(null);
   const prevRef = useRef(subOffset);
 

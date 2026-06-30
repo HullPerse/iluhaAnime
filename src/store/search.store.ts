@@ -1,8 +1,7 @@
 import { SearchStore } from "@/types/search";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-
-const MAX_HISTORY = 5;
+import { useSettingsStore } from "@/store/settings.store";
 
 export const useSearchStore = create<SearchStore>()(
   persist(
@@ -14,10 +13,11 @@ export const useSearchStore = create<SearchStore>()(
       addQuery: (query) => {
         const q = query.trim().toLowerCase();
         if (!q) return;
+        const maxHistory = useSettingsStore.getState().searchHistoryMaxItems;
         set((s) => {
           const filtered = s.history.filter((h) => h !== q);
           filtered.unshift(q);
-          return { history: filtered.slice(0, MAX_HISTORY) };
+          return { history: filtered.slice(0, maxHistory) };
         });
       },
 

@@ -22,7 +22,7 @@ function TrackDropdown({
   onChange: (index: number) => void;
   onAdd?: () => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState<boolean>(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -41,7 +41,7 @@ function TrackDropdown({
   return (
     <div ref={ref} className="relative flex items-center gap-0.5">
       <button
-        className="flex items-center gap-1 h-5 text-[10px] windows95-font bg-primary windows95-border px-1 min-w-18 max-w-24 outline-none focus-visible:outline-dotted focus-visible:outline-1 focus-visible:outline-offset-[-3px]"
+        className="flex items-center gap-1 h-5 text-[10px] windows95-font windows95-border px-1 min-w-18 max-w-24 outline-none focus-visible:outline-dotted focus-visible:outline-1 focus-visible:outline-offset-[-3px] hover:cursor-pointer bg-white"
         onClick={() => setOpen(!open)}
       >
         <span className="truncate">
@@ -50,7 +50,7 @@ function TrackDropdown({
       </button>
       {onAdd && (
         <button
-          className="flex items-center justify-center size-4 windows95-text bg-primary windows95-border leading-none"
+          className="flex items-center justify-center size-4 windows95-text hover:cursor-pointer windows95-border leading-none bg-white"
           onClick={onAdd}
           title={`Add ${label.toLowerCase()} track`}
         >
@@ -62,7 +62,7 @@ function TrackDropdown({
           {tracks.map((t) => (
             <button
               key={t.index}
-              className="flex items-center gap-1 w-full text-left px-1 py-0.5 windows95-text hover:bg-secondary hover:text-white whitespace-nowrap hover:cursor-pointer max-w-md line-clamp-1"
+              className="flex items-center gap-1 w-full text-left px-1 py-0.5 windows95-text bg-white hover:bg-secondary hover:text-white whitespace-nowrap hover:cursor-pointer max-w-md line-clamp-1"
               onClick={() => {
                 onChange(t.index);
                 setOpen(false);
@@ -116,23 +116,25 @@ function Tracks({
   const [selectedAudio, setSelectedAudio] = useState(
     savedAudio ?? defaultAudio,
   );
-  const [selectedSub, setSelectedSub] = useState(savedSub ?? defaultSub);
+  const [selectedSub, setSelectedSub] = useState<number>(
+    savedSub ?? defaultSub,
+  );
   const textTrackRef = useRef<TextTrack | null>(null);
-  const savedTimeRef = useRef(0);
-  const savedPlayingRef = useRef(false);
-  const extCounter = useRef(-1000);
-  const audioGenRef = useRef(0);
-  const subGenRef = useRef(0);
+  const savedTimeRef = useRef<number>(0);
+  const savedPlayingRef = useRef<boolean>(false);
+  const extCounter = useRef<number>(-1000);
+  const audioGenRef = useRef<number>(0);
+  const subGenRef = useRef<number>(0);
 
-  const initializedRef = useRef(false);
+  const initializedRef = useRef<boolean>(false);
   const subTrackElRef = useRef<HTMLTrackElement | null>(null);
   const subBlobUrlRef = useRef<string | null>(null);
   const tempFilesRef = useRef<string[]>([]);
 
   const [assUrl, setAssUrl] = useState<string | null>(null);
-  const [assVisible, setAssVisible] = useState(false);
-  const [subDelay, setSubDelay] = useState(0);
-  const appliedOffsetRef = useRef(0);
+  const [assVisible, setAssVisible] = useState<boolean>(false);
+  const [subDelay, setSubDelay] = useState<number>(0);
+  const appliedOffsetRef = useRef<number>(0);
 
   const fmt = (s: VideoStreamInfo) => {
     const parts = [

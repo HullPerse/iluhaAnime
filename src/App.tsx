@@ -12,36 +12,73 @@ import { useSearchStore } from "@/store/search.store";
 import TorrentFilePicker from "@/routes/components/search/picker.search";
 import { WindowLoader } from "./components/shared/loader.component";
 import { Button } from "./components/ui/button.component";
-import { cn } from "./lib/index.utils";
+import { checkForUpdates, cn } from "./lib/index.utils";
 import { getAction, KeybindAction } from "@/config/keybinds.config";
+import { useSettingsStore } from "@/store/settings.store";
+import Updater from "./components/shared/updater.component";
+import { Update } from "@tauri-apps/plugin-updater";
+import { useQuery } from "@tanstack/react-query";
 
 const SearchRoute = lazy(() => import("@/routes/search.route"));
 const TorrentRoute = lazy(() => import("@/routes/torrent.route"));
 const PlayerRoute = lazy(() => import("@/routes/player.route"));
 const AniListRoute = lazy(() => import("@/routes/anilist.route"));
+const SettingsRoute = lazy(() => import("@/routes/settings.route"));
 
-type Tab = "search" | "torrent" | "player" | "anilist";
+type Tab = "search" | "torrent" | "player" | "anilist" | "settings";
 
 const tabs: { id: Tab; label: string }[] = [
   { id: "search", label: "Поиск" },
   { id: "torrent", label: "Торрент" },
   { id: "player", label: "Плеер" },
   { id: "anilist", label: "AniList" },
+  { id: "settings", label: "Настройки" },
 ];
 
 function App() {
   const [activeTab, setActiveTab] = useState<Tab>("search");
-  const [cinemaMode, setCinemaMode] = useState(false);
-  const [autoHideUi, setAutoHideUi] = useState(false);
+  const [cinemaMode, setCinemaMode] = useState<boolean>(false);
+  const [autoHideUi, setAutoHideUi] = useState<boolean>(false);
+  const [updateAvailable, setUpdateAvailable] = useState<boolean>(false);
 
   const toggleCinemaMode = useCallback(() => setCinemaMode((p) => !p), []);
   const toggleAutoHide = useCallback(() => setAutoHideUi((p) => !p), []);
+  const wallpaperBlur = useSettingsStore((s) => s.wallpaperBlur);
+  const showWallpaper = useSettingsStore((s) => s.showWallpaper);
+  const customScrollbar = useSettingsStore((s) => s.customScrollbar);
   const init = useTorrentStore((s) => s.init);
   const pendingTorrent = useTorrentStore((s) => s.pendingTorrent);
   const preparingTorrent = useTorrentStore((s) => s.preparingTorrent);
   const lastSaveDir = useTorrentStore((s) => s.lastSaveDir);
   const confirmDownload = useTorrentStore((s) => s.confirmDownload);
   const cancelDownload = useTorrentStore((s) => s.cancelDownload);
+
+  const enableAnimations = useSettingsStore((s) => s.enableAnimations);
+
+  //checking for connection
+  const { data } = useQuery({
+    queryKey: ["connection"],
+    queryFn: async (): Promise<Update | null> => {
+      const update = await checkForUpdates();
+
+      if (update) setUpdateAvailable(true);
+      return update;
+    },
+  });
+
+  useEffect(() => {
+    document.documentElement.classList.toggle(
+      "no-animations",
+      !enableAnimations,
+    );
+  }, [enableAnimations]);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle(
+      "native-scrollbar",
+      !customScrollbar,
+    );
+  }, [customScrollbar]);
 
   useEffect(() => {
     const cleanup = init();
@@ -112,13 +149,18 @@ function App() {
         />
       ),
       anilist: <AniListRoute />,
+      settings: <SettingsRoute />,
     } as Record<Tab, ReactElement>;
 
     return tabMap[activeTab];
   };
 
   return (
-    <main className="relative h-screen w-screen overflow-hidden bg-[#018281]">
+    <main className="relative h-screen w-screen overflow-hidden bg-desktop">
+      {data && updateAvailable && (
+        <Updater update={data} onClose={() => setUpdateAvailable(false)} />
+      )}
+
       {(preparingTorrent || pendingTorrent) && (
         <TorrentFilePicker
           torrent={pendingTorrent}
@@ -131,9 +173,9 @@ function App() {
         />
       )}
       {/* WALLPAPER */}
-      {!cinemaMode && (
+      {!cinemaMode && showWallpaper && (
         <div
-          className="absolute inset-0 z-0 bg-background bg-no-repeat blur-xs brightness-50"
+          className={`absolute inset-0 z-0 bg-background bg-no-repeat ${wallpaperBlur ? "blur-xs brightness-50" : ""}`}
           style={{
             backgroundImage: `url(${backgroundImage})`,
             backgroundSize: "cover",
@@ -169,11 +211,15 @@ function App() {
                   return (
                     <Button
                       key={tab.id}
-                      className="px-3 py-0.5 border-2 border-solid relative cursor-pointer windows95-text active:outline-dotted active:outline-1 active:outline-offset-[-3px] active:outline-text"
+                      className={`px-3 py-0.5 relative cursor-pointer windows95-text active:outline-dotted active:outline-1 active:outline-offset-[-3px] active:outline-text ${
+                        isActive
+                          ? "windows95-active-border border-b-transparent"
+                          : "windows95-border bg-surface"
+                      }`}
                       style={{
-                        borderBottomColor: isActive ? "#c0c0c0" : undefined,
-                        marginBottom: isActive ? "-2px" : undefined,
                         top: isActive ? 0 : "2px",
+                        marginBottom: isActive ? "-2px" : undefined,
+                        zIndex: isActive ? 20 : 10,
                       }}
                       onClick={() => setActiveTab(tab.id)}
                       disabled={isActive}
@@ -190,9 +236,7 @@ function App() {
           <div
             className={cn(
               "flex-1 overflow-hidden",
-              cinemaMode
-                ? "m-0 border-0"
-                : "border-2 border-solid border-t-muted border-l-muted border-b-white border-r-white bg-primary mx-1 mb-1 p-1",
+              cinemaMode ? "m-0 border-0" : "mx-1 mb-1 p-1 windows95-border",
             )}
           >
             <Suspense fallback={<WindowLoader />}>{getComponent()}</Suspense>

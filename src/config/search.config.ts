@@ -1,5 +1,4 @@
 export const PER_PAGE = 20;
-export const ANILIST_PAGE_SIZE = 40;
 
 export const nyaaSorts = [
   { value: "seeders", label: "Сидеры" },

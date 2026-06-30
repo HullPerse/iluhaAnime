@@ -1,5 +1,7 @@
 import { Button } from "@/components/ui/button.component";
 import Slider from "@/components/ui/range.component";
+import { ColorPickerTrigger } from "@/components/ui/color.component";
+import { Checkbox } from "@/components/ui/checkbox.component";
 
 function Settings({
   settings,
@@ -42,19 +44,17 @@ function Settings({
         onChange={(v) => onChange({ rotation: v })}
         suffix="°"
       />
-      <label className="flex items-center gap-2">
-        <input
-          type="checkbox"
+      <label className="flex items-center gap-2 cursor-pointer">
+        <Checkbox
           checked={settings.flipH}
-          onChange={(e) => onChange({ flipH: e.target.checked })}
+          onChange={(v) => onChange({ flipH: v })}
         />
         Отразить по горизонтали
       </label>
-      <label className="flex items-center gap-2">
-        <input
-          type="checkbox"
+      <label className="flex items-center gap-2 cursor-pointer">
+        <Checkbox
           checked={settings.flipV}
-          onChange={(e) => onChange({ flipV: e.target.checked })}
+          onChange={(v) => onChange({ flipV: v })}
         />
         Отразить по вертикали
       </label>
@@ -164,32 +164,29 @@ function Settings({
         <select
           value={settings.subFontFamily}
           onChange={(e) => onChange({ subFontFamily: e.target.value })}
-          className="flex-1 h-5 windows95-border bg-primary text-[10px] windows95-font"
+          className="flex-1 h-5 windows95-border text-[10px] windows95-font windows95-select"
         >
           <option value="Arial">Arial</option>
           <option value="Tahoma">Tahoma</option>
           <option value="Verdana">Verdana</option>
           <option value="'Courier New'">Courier New</option>
           <option value="Georgia">Georgia</option>
+          <option value="Impact">Impact</option>
         </select>
       </label>
       <label className="flex items-center gap-2">
         <span className="w-24 shrink-0">Цвет</span>
-        <input
-          type="color"
+        <ColorPickerTrigger
           value={settings.subColor}
-          onChange={(e) => onChange({ subColor: e.target.value })}
-          className="h-5 w-10 windows95-border cursor-pointer"
+          onChange={(v) => onChange({ subColor: v })}
         />
       </label>
 
       <label className="flex items-center gap-2">
         <span className="w-24 shrink-0">Фон</span>
-        <input
-          type="color"
+        <ColorPickerTrigger
           value={settings.subBgColor}
-          onChange={(e) => onChange({ subBgColor: e.target.value })}
-          className="h-5 w-10 windows95-border cursor-pointer"
+          onChange={(v) => onChange({ subBgColor: v })}
         />
       </label>
 

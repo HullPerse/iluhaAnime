@@ -321,7 +321,6 @@ pub async fn get_video_info(
         })
         .collect();
 
-    // Scan for external subtitle/audio files next to the video
     let video_path = std::path::Path::new(&path);
     if let (Some(parent), Some(stem)) = (video_path.parent(), video_path.file_stem()) {
         let stem = stem.to_string_lossy().to_lowercase();

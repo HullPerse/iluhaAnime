@@ -2,9 +2,10 @@ import { Button as ButtonPrimitive } from "@base-ui/react/button";
 import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/index.utils";
+import { useSettingsStore } from "@/store/settings.store";
 
 const buttonVariants = cva(
-  "group/button inline-flex shrink-0 items-center justify-center windows95-active-border bg-primary text-text windows95-text whitespace-nowrap transition-none outline-none select-none windows95-active-border active:translate-x-px active:translate-y-px disabled:pointer-events-none disabled:opacity-50 disabled:border-t-muted disabled:border-l-muted disabled:border-b-white disabled:border-r-white disabled:translate-x-0 disabled:translate-y-0 focus-visible:outline-dotted focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-text [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-3.5 hover:cursor-pointer",
+  "group/button inline-flex shrink-0 items-center justify-center windows95-active-border bg-primary text-text windows95-text whitespace-nowrap transition-none outline-none select-none disabled:pointer-events-none disabled:opacity-50 disabled:border-t-muted disabled:border-l-muted disabled:border-b-white disabled:border-r-white disabled:translate-x-0 disabled:translate-y-0 focus-visible:outline-dotted focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-text [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-3.5 hover:cursor-pointer",
   {
     variants: {
       variant: {
@@ -46,10 +47,16 @@ function Button({
   }) {
   if (!rendered) return;
 
+  const buttonPressEffect = useSettingsStore((s) => s.buttonPressEffect);
+
   return (
     <ButtonPrimitive
       data-slot="button"
-      className={cn(buttonVariants({ variant, size, className }))}
+      className={cn(
+        buttonVariants({ variant, size }),
+        buttonPressEffect && "active:translate-x-px active:translate-y-px",
+        className,
+      )}
       {...props}
     />
   );

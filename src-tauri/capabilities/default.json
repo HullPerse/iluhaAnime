@@ -13,6 +13,7 @@
     "dialog:allow-confirm",
     "notification:default",
     "clipboard-manager:allow-write-text",
+    "updater:default",
     {
       "identifier": "opener:allow-open-path",
       "allow": [{ "path": "**" }]

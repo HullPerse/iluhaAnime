@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button.component";
 import { fmtSize } from "@/lib/torrent.utils";
-import { THUMB_INTERVAL, VIDEO_EXTENSIONS } from "@/config/player.config";
+import { THUMB_INTERVAL } from "@/config/player.config";
+import { useSettingsStore } from "@/store/settings.store";
 import { invoke } from "@tauri-apps/api/core";
 import { Pause, Play, Square } from "lucide-react";
 import { FolderNode, TorrentFileInfo } from "@/types/torrent";
@@ -51,7 +52,7 @@ function ThumbnailPlayer({
   }, []);
 
   const handlePrecache = useCallback(async () => {
-    const exts = new Set(VIDEO_EXTENSIONS);
+    const exts = new Set(useSettingsStore.getState().videoExtensions);
     const paths = new Set<string>();
 
     for (const p of collectFolderPaths(folderTrees)) paths.add(p);

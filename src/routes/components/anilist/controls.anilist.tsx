@@ -62,7 +62,7 @@ function AniListActionControls({
           <select
             value={editStatus}
             onChange={(e) => setEditStatus(e.target.value)}
-            className="flex-1 windows95-border bg-primary text-text windows95-text px-1 py-0.5"
+            className="flex-1 windows95-border bg-primary text-text windows95-text px-1 py-0.5 windows95-select"
           >
             {listStatusOptions.map((o) => (
               <option key={o.value} value={o.value}>
@@ -92,7 +92,7 @@ function AniListActionControls({
           <select
             value={editScore}
             onChange={(e) => setEditScore(e.target.value)}
-            className="windows95-border bg-primary text-text windows95-text px-1 py-0.5"
+            className="windows95-border bg-primary text-text windows95-text px-1 py-0.5 windows95-select"
           >
             <option value="">—</option>
             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (

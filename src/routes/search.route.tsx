@@ -33,13 +33,15 @@ import NekoBtApiModal from "@/routes/components/search/nekobt.search";
 import { flushSync } from "react-dom";
 import { Source } from "@/types/search";
 import { nyaaSorts, PER_PAGE } from "@/config/search.config";
+import { useSettingsStore } from "@/store/settings.store";
 
 function SearchRoute() {
   const prepareTorrentDownload = useTorrentStore(
     (s) => s.prepareTorrentDownload,
   );
+  const defaultSource = useSettingsStore((s) => s.defaultSearchSource);
   const [searchParams, setSearchParams] = useState<string>("");
-  const [source, setSource] = useState<Source>("erai-raws");
+  const [source, setSource] = useState<Source>(defaultSource as Source);
   const [rutrackerAuth, setRutrackerAuth] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [nekobtAuth, setNekoBtAuth] = useState(false);
@@ -202,14 +204,14 @@ function SearchRoute() {
   };
 
   return (
-    <div className="h-full flex flex-col w-full gap-1">
+    <main className="h-full flex flex-col w-full gap-1">
       <section className="flex flex-row gap-2 w-full">
         <div className="relative flex-1">
-        <Input
-          placeholder="Найти аниме..."
-          value={searchParams}
-          className="h-9 font-bold bg-white"
-          autoFocus
+          <Input
+            placeholder="Найти аниме..."
+            value={searchParams}
+            className="h-9 font-bold bg-white"
+            autoFocus
             onChange={(e) => setSearchParams(e.target.value)}
             onFocus={() => setShowHistory(true)}
             onBlur={() => setTimeout(() => setShowHistory(false), 200)}
@@ -266,7 +268,7 @@ function SearchRoute() {
           )}
         </Button>
         <select
-          className="h-9 windows95-border px-1 text-text windows95-text windows95-select"
+          className="h-9 windows95-border px-1 text-text windows95-text windows95-select bg-white"
           value={source}
           onChange={(e) => {
             setSource(e.target.value as Source);
@@ -419,7 +421,7 @@ function SearchRoute() {
       )}
       {data?.length === 0 && !isError && <span>Ничего не найдено</span>}
       {displayItems && (
-        <section className="flex flex-col w-full h-full overflow-y-scroll p-0.5 gap-1">
+        <section className="flex flex-col w-full h-full overflow-y-auto p-0.5 gap-1">
           {displayItems.map((item, i) => {
             const isLoadingMag = loadingMagnet[item.link];
 
@@ -444,8 +446,8 @@ function SearchRoute() {
                         > = {
                           ru: "bg-secondary text-white",
                           en: "bg-secondary text-white",
-                          multi: "bg-[#800080] text-white",
-                          dual: "bg-[#808000] text-white",
+                          multi: "bg-multi text-white",
+                          dual: "bg-dual text-white",
                         };
                         return (
                           <span
@@ -562,7 +564,7 @@ function SearchRoute() {
           setShowApiModal={setShowApiModal}
         />
       )}
-    </div>
+    </main>
   );
 }
 

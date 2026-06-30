@@ -21,8 +21,15 @@ function ContinueWatching({ onPlay }: { onPlay: (path: string) => void }) {
   return (
     <section className="windows95-border bg-primary p-1">
       <div className="flex items-center justify-between mb-1">
-        <span className="windows95-text text-[10px] font-bold">Продолжить просмотр</span>
-        <Button size="icon" className="size-4" onClick={clearEntries} title="Очистить историю">
+        <span className="windows95-text text-[10px] font-bold">
+          Продолжить просмотр
+        </span>
+        <Button
+          size="icon"
+          className="size-4"
+          onClick={clearEntries}
+          title="Очистить историю"
+        >
           <X className="size-3" />
         </Button>
       </div>
@@ -30,7 +37,7 @@ function ContinueWatching({ onPlay }: { onPlay: (path: string) => void }) {
         {recentEntries.map((e) => (
           <button
             key={e.path}
-            className="flex items-center gap-1 text-[10px] windows95-text hover:bg-surface px-0.5 py-0.5 text-left cursor-pointer truncate"
+            className="flex items-center gap-1 text-[10px] windows95-text bg-white windows95-border hover:bg-surface px-0.5 py-0.5 text-left cursor-pointer truncate"
             onClick={() => onPlay(e.path)}
             title={e.path}
           >

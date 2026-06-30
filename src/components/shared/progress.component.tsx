@@ -13,7 +13,10 @@ function ProgressBar({
 
   return (
     <div
-      className={cn("h-6 windows95-border relative overflow-hidden", className)}
+      className={cn(
+        "h-6 windows95-border relative overflow-hidden bg-white",
+        className,
+      )}
     >
       <div
         className="h-full bg-secondary transition-none"

@@ -289,12 +289,13 @@ function Controls({
         className="flex h-6 border-r-2 border-muted gap-0.5 px-1 items-center"
       >
         <div ref={speedRef} className="relative flex items-center w-full">
-          <button
-            className="h-5 windows95-border bg-primary px-1 w-10 windows95-text cursor-pointer"
+          <Button
+            className="h-5 px-1 w-10"
+            variant="default"
             onClick={() => setSpeedOpen(!speedOpen)}
           >
             {playbackRate}x
-          </button>
+          </Button>
           {speedOpen && (
             <div className="absolute bottom-full left-0 mb-0.5 w-20 windows95-border bg-primary z-50">
               {SPEEDS.map((rate) => (

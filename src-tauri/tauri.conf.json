@@ -1,13 +1,27 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "iluhaAnime",
-  "version": "1.0.0",
-  "identifier": "com.александр.iluhaAnime",
+  "version": "1.2.0",
+  "identifier": "iluhaAnime",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
     "beforeBuildCommand": "npm run build",
     "frontendDist": "../dist"
+  },
+  "plugins": {
+    "updater": {
+      "windows": {
+        "installMode": "passive"
+      },
+      "active": true,
+      "dangerousInsecureTransportProtocol": true,
+      "endpoints": [
+        "https://github.com/HullPerse/iluhaAnime/releases/latest/download/latest.json"
+      ],
+      "dialog": false,
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IENGRkUyNDZGRUM5MDA4MDkKUldRSkNKRHNieVQrendkQXdiMXZQeWE5OHNwOEUxNXVBcWpGSXNjL3NWWlVKN080amlXYkpHZGYK"
+    }
   },
   "app": {
     "windows": [
@@ -35,12 +49,12 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": "msi",
+    "createUpdaterArtifacts": true,
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
       "icons/128x128@2x.png",
-      "icons/icon.icns",
       "icons/icon.ico"
     ]
   }

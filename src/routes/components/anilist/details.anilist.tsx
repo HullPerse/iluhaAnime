@@ -60,7 +60,11 @@ function AniListDetailModal({
   };
 
   return (
-    <Modal header={anime?.title ?? "Загрузка..."} onClose={onClose}>
+    <Modal
+      header={anime?.title ?? "Загрузка..."}
+      onClose={onClose}
+      className="w-3xl"
+    >
       {isLoading || !anime ? (
         <div className="flex items-center justify-center flex-1">
           <Loader className="size-6 animate-spin windows95-text" />
@@ -70,33 +74,33 @@ function AniListDetailModal({
           <AniListMetadata anime={anime} />
 
           {anime.studios.length > 0 && (
-            <Section header="Студии" className="flex flex-wrap gap-1">
+            <Section header="Студии" className="flex flex-wrap gap-1 bg-white">
               {anime.studios.map((s, i) => (
-                <button
+                <Button
                   key={i}
                   onClick={() => {
                     onStudio?.(s.id, s.name);
                     onClose();
                   }}
-                  className="px-1 text-[10px] windows95-font bg-primary windows95-border text-text underline decoration-dotted hover:bg-surface cursor-pointer"
+                  className="px-1 bg-primary windows95-text underline decoration-dotted"
+                  variant="ghost"
                   title="Искать аниме этой студии"
                 >
                   {s.name}
-                </button>
+                </Button>
               ))}
             </Section>
           )}
 
           {anime.relations.length > 0 && (
-            <Section header="Связанное" className="flex flex-col gap-1">
+            <Section header="Связанное" className="flex flex-col bg-white">
               {anime.relations.map((r) => (
                 <button
                   key={`${r.relation_type}-${r.media.id}`}
                   onClick={() => {
                     onRelated?.(r.media.id);
-                    onClose();
                   }}
-                  className="flex flex-row items-center gap-2 windows95-text hover:bg-surface cursor-pointer px-1 py-0.5 text-left"
+                  className="flex flex-row items-center min-h-20 gap-2 windows95-text hover:bg-surface cursor-pointer px-1 py-0.5 text-left"
                 >
                   {r.media.cover_url && (
                     <img
@@ -106,7 +110,10 @@ function AniListDetailModal({
                     />
                   )}
                   <div className="flex flex-col min-w-0">
-                    <span className="text-[10px] font-bold truncate" title={r.media.title}>
+                    <span
+                      className="text-[10px] font-bold truncate"
+                      title={r.media.title}
+                    >
                       {r.media.title}
                     </span>
                     <span className="text-[9px] text-muted">
@@ -124,34 +131,38 @@ function AniListDetailModal({
           {anime.description && (
             <Section
               header="Описание"
-              className="windows95-text leading-relaxed max-h-36 overflow-y-auto whitespace-pre-line"
+              className="windows95-text leading-relaxed max-h-36 overflow-y-auto whitespace-pre-line bg-white"
             >
               {anime.description}
             </Section>
           )}
 
           {(anime.genres.length > 0 || anime.tags.length > 0) && (
-            <Section header="Жанры и теги" className="flex flex-wrap gap-1">
+            <Section
+              header="Жанры и теги"
+              className="flex flex-wrap gap-1 bg-white"
+            >
               {anime.genres.map((g) => (
                 <span
                   key={g}
-                  className="px-1 text-[10px] windows95-font bg-secondary text-white font-bold"
+                  className="px-1 windows95-text bg-secondary text-white font-bold windows95-active-border"
                 >
                   {g}
                 </span>
               ))}
               {anime.tags.slice(0, 15).map((t) => (
-                <button
+                <Button
                   key={t}
                   onClick={() => {
                     onTag(t);
                     onClose();
                   }}
-                  className="text-left text-[10px] windows95-text underline decoration-dotted hover:bg-primary px-0.5 -mx-0.5 cursor-pointer truncate"
+                  className="text-left windows95-text underline decoration-dotted bg-primary hover:bg-surface px-1 -mx-0.5 truncate"
+                  variant="ghost"
                   title="Искать аниме по тегу"
                 >
                   ◉ {t}
-                </button>
+                </Button>
               ))}
             </Section>
           )}
@@ -159,20 +170,24 @@ function AniListDetailModal({
           {anime.titles.length > 0 && (
             <Section header="Все названия" className="flex flex-col gap-0.5">
               {anime.titles.map((t) => (
-                <button
+                <Button
                   key={t}
                   onClick={() => handleSearchTorrents(t)}
-                  className="text-left text-[10px] windows95-text underline decoration-dotted hover:bg-primary px-0.5 -mx-0.5 cursor-pointer truncate"
+                  className="text-left text-[10px] windows95-text underline decoration-dotted hover:bg-surface px-0.5 -mx-0.5 truncate"
+                  variant="ghost"
                   title="Искать торренты по этому названию"
                 >
                   ◉ {t}
-                </button>
+                </Button>
               ))}
             </Section>
           )}
 
-          <Section header="Статистика" className="flex flex-col gap-0.5">
-            <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-[10px] windows95-text">
+          <Section
+            header="Статистика"
+            className="flex flex-col gap-0.5 bg-white"
+          >
+            <div className="flex flex-wrap gap-x-4 gap-y-0.5 windows95-text">
               {anime.popularity && (
                 <span>
                   Популярность: #{anime.popularity.toLocaleString("ru-RU")}

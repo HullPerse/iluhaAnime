@@ -1,3 +1,4 @@
+import { Input } from "@/components/ui/input.component";
 import Player from "@/components/shared/player.component";
 import { Button } from "@/components/ui/button.component";
 import { useMediaStore } from "@/store/media.store";
@@ -22,7 +23,6 @@ import {
 } from "lucide-react";
 import { listen } from "@tauri-apps/api/event";
 import { CHEATSHEET_ROWS } from "@/config/keybinds.config";
-import { VIDEO_EXTENSIONS } from "@/config/player.config";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
@@ -34,6 +34,7 @@ import { useTorrentStore } from "@/store/download.store";
 import TorrentFilesSection from "./components/torrent/file.torrent";
 import ThumbnailPlayer from "./components/player/thumbnail.player";
 import ContinueWatching from "./components/player/continue.player";
+import { useSettingsStore } from "@/store/settings.store";
 
 function PlayerRoute({
   cinemaMode,
@@ -110,6 +111,7 @@ function PlayerRoute({
 
   useEffect(() => {
     return () => {
+      if (!useSettingsStore.getState().autoCleanTempFiles) return;
       for (const p of tempFilesRef.current) {
         invoke("cleanup_temp_file", { path: p }).catch(() => {});
       }
@@ -123,7 +125,6 @@ function PlayerRoute({
       const savedEntry = mediaGet(path);
       const saved = savedEntry?.position;
 
-      // Show player immediately (loading overlay while background init runs)
       setVideo({
         path,
         file: path.split(/[/\\]/).pop() ?? "Video",
@@ -134,7 +135,6 @@ function PlayerRoute({
       setChapters([]);
       setStreams([]);
 
-      // Background init: ffprobe (fast) → loading done → optional audio remux (slow, background)
       (async () => {
         try {
           const info = await invoke<{
@@ -170,7 +170,8 @@ function PlayerRoute({
                       });
                   if (gen !== playGenRef.current) return;
                   for (const p of tempFilesRef.current)
-                    invoke("cleanup_temp_file", { path: p }).catch(() => {});
+                    if (useSettingsStore.getState().autoCleanTempFiles)
+                      invoke("cleanup_temp_file", { path: p }).catch(() => {});
                   tempFilesRef.current = [out];
                   if (gen !== playGenRef.current) return;
                   setVideo((prev) =>
@@ -280,7 +281,7 @@ function PlayerRoute({
       filters: [
         {
           name: "Видео",
-          extensions: [...VIDEO_EXTENSIONS],
+          extensions: [...useSettingsStore.getState().videoExtensions],
         },
         { name: "Все файлы", extensions: ["*"] },
       ],
@@ -415,7 +416,7 @@ function PlayerRoute({
           setChapters={setChapters}
           setStreams={setStreams}
         />
-        <span className="ml-auto text-[10px] text-muted">v1.0.0</span>
+        <span className="ml-auto text-[10px] text-muted">v8.1</span>
       </section>
 
       {/* THUMBNAIL CACHE */}
@@ -455,8 +456,8 @@ function PlayerRoute({
         <section className="windows95-active-border bg-primary p-1">
           <div className="flex items-center gap-1">
             <Search className="size-4 text-muted" />
-            <input
-              className="flex-1 h-5 windows95-text windows95-border px-1"
+            <Input
+              className="flex-1"
               placeholder="Поиск в папках..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}

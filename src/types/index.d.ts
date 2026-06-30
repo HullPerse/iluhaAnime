@@ -18,6 +18,7 @@ import type { ReactNode } from "react";
 export type ModalWindow = {
   header: string;
   onClose: () => void;
+  className?: string;
   children: ReactNode;
 };
 

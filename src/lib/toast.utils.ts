@@ -1,8 +1,9 @@
+import { useSettingsStore } from "@/store/settings.store";
+
 type ToastType = "info" | "error" | "success";
 
-const TOAST_DURATION = 3000;
-
 export function showToast(message: string, type: ToastType = "info") {
+  const duration = useSettingsStore.getState().toastDuration;
   const el = document.createElement("div");
   el.style.cssText =
     "position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:9999;transition:opacity .2s;";
@@ -25,7 +26,7 @@ export function showToast(message: string, type: ToastType = "info") {
   setTimeout(() => {
     el.style.opacity = "0";
     setTimeout(() => el.remove(), 200);
-  }, TOAST_DURATION);
+  }, duration);
 }
 
 function escHtml(s: string): string {

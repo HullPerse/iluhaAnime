@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { FolderOpen, Monitor, Play } from "lucide-react";
 import { openPath } from "@tauri-apps/plugin-opener";
 import { Button } from "@/components/ui/button.component";
+import { Checkbox } from "@/components/ui/checkbox.component";
 
 import type { FilePriority } from "@/types";
 
@@ -59,9 +60,11 @@ function TorrentFilesSection({
       {groupFilesByDirectory(files).map((group) => (
         <div key={group.dir || "__root__"}>
           {group.dir && (
-            <div className="flex items-center gap-1 px-1 py-0.5 text-[10px] windows95-font bg-[#c0c0c0] select-none">
+            <div className="flex items-center gap-1 px-1 py-0.5 text-[10px] windows95-font bg-primary select-none">
               <FolderOpen className="size-3 shrink-0" />
-              <span className="font-bold truncate" title={group.dir}>{group.dir}</span>
+              <span className="font-bold truncate" title={group.dir}>
+                {group.dir}
+              </span>
               <span className="text-muted ml-auto">
                 {fmtSize(group.files.reduce((s, f) => s + f.size, 0))}
               </span>
@@ -73,23 +76,28 @@ function TorrentFilesSection({
             return (
               <label
                 key={fileItem.index}
-                className={`flex items-center gap-1 px-1 py-0.5 text-[10px] windows95-font select-none ${type === "player" ? "" : "hover:bg-[#e0e0e0]"} ${group.dir ? "pl-5" : ""}`}
+                className={`flex items-center gap-1 px-1 py-0.5 text-[10px] windows95-font select-none ${type === "player" ? "" : "hover:bg-surface"} ${group.dir ? "pl-5" : ""}`}
               >
-                <input
-                  type="checkbox"
-                  checked={selected.has(fileItem.index)}
-                  onChange={() => toggle(fileItem.index)}
-                  disabled={fileItem.completed}
-                  className="cursor-pointer size-3 shrink-0"
-                  hidden={!onToggle}
-                />
+                {!!onToggle && (
+                  <Checkbox
+                    checked={selected.has(fileItem.index)}
+                    onChange={() => toggle(fileItem.index)}
+                    disabled={fileItem.completed}
+                    className="size-3"
+                  />
+                )}
                 <span
                   className={`shrink-0 text-[9px] ${fileItem.exists ? "text-green-700" : "text-red-600"}`}
-                  title={fileItem.exists ? "Файл существует" : "Файл отсутствует"}
+                  title={
+                    fileItem.exists ? "Файл существует" : "Файл отсутствует"
+                  }
                 >
                   {fileItem.exists ? "✓" : "✗"}
                 </span>
-                <span className="truncate flex-1" title={`${index + 1}. ${fileItem.displayName}`}>
+                <span
+                  className="truncate flex-1"
+                  title={`${index + 1}. ${fileItem.displayName}`}
+                >
                   {`${index + 1}. `}
                   {fileItem.displayName}
                 </span>
@@ -101,7 +109,7 @@ function TorrentFilesSection({
                   type === "torrent" &&
                   !fileItem.completed && (
                     <select
-                      className="h-4 text-[9px] windows95-border px-0.5 ml-1"
+                      className="h-4 text-[9px] windows95-border px-0.5 ml-1 windows95-select bg-white"
                       value={fileItem.priority || "normal"}
                       onChange={(e) => {
                         onFilePriorityChange(

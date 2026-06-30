@@ -57,7 +57,9 @@ function FolderView({
           role="button"
           className="flex items-center gap-1 windows95-text cursor-pointer hover:bg-surface px-0.5 py-0.5 w-full text-left"
           onClick={() => setOpen(!open)}
-          style={{ paddingLeft: `${depth * 12 + 2}px` }}
+          style={{
+            paddingLeft: `${depth * 12 + 2}px`,
+          }}
         >
           {open ? (
             <ChevronDown className="size-3 shrink-0" />
@@ -65,7 +67,9 @@ function FolderView({
             <ChevronRight className="size-3 shrink-0" />
           )}
           <FolderOpen className="size-3 shrink-0 text-muted" />
-          <span className="truncate select-none" title={node.name}>{node.name}</span>
+          <span className="truncate select-none" title={node.name}>
+            {node.name}
+          </span>
           <span className="text-muted ml-auto whitespace-nowrap">
             {countAll} файлов
           </span>
@@ -88,7 +92,7 @@ function FolderView({
         filteredFiles.map((file) => (
           <section
             key={file.path}
-            className="flex items-center gap-1 p-1 windows95-border h-5"
+            className="flex items-center gap-1 p-1 windows95-border h-5 bg-white"
             style={{ paddingLeft: `${(depth + 1) * 12 + 2}px` }}
           >
             <FileVideo className="size-4 text-muted" />

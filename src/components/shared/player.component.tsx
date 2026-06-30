@@ -11,6 +11,7 @@ import {
 } from "react";
 import type { VideoStreamInfo } from "@/types";
 import { useMediaStore } from "@/store/media.store";
+import { useSettingsStore } from "@/store/settings.store";
 import { usePlayerStore } from "@/store/player.store";
 
 import Timeline from "./player/timeline.player";
@@ -72,7 +73,7 @@ function Player({
   audioReady?: boolean;
   loading?: boolean;
 }) {
-  const [uiVisible, setUiVisible] = useState(true);
+  const [uiVisible, setUiVisible] = useState<boolean>(true);
   const hideTimerRef = useRef<number | null>(null);
   const [videoEl, setVideoEl] = useState<HTMLVideoElement | null>(null);
   const [audioOverrideSrc, setAudioOverrideSrc] = useState<string | null>(null);
@@ -85,7 +86,7 @@ function Player({
   const settings = usePlayerStore((s) => s.settings);
   const patchSettings = usePlayerStore((s) => s.patchSettings);
   const setPosition = useMediaStore((s) => s.setPosition);
-  const [showSettings, setShowSettings] = useState(false);
+  const [showSettings, setShowSettings] = useState<boolean>(false);
 
   const videoStyle = useMemo(() => {
     const t: string[] = [];
@@ -159,7 +160,7 @@ function Player({
     [mediaPath, setPosition],
   );
 
-  // Auto-hide UI & cursor on inactivity (cinema mode only)
+  // auto-hide ui for cinema mode
   useEffect(() => {
     if (!cinemaMode || !autoHideUi) {
       setUiVisible(true);
@@ -173,7 +174,7 @@ function Player({
       hideTimerRef.current = window.setTimeout(() => {
         setUiVisible(false);
         document.body.style.cursor = "none";
-      }, 3000);
+      }, useSettingsStore.getState().autoHideDelay);
     };
     show();
     window.addEventListener("mousemove", show);

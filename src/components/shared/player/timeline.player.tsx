@@ -25,7 +25,7 @@ function Timeline({
     chapterTitle?: string;
   } | null>(null);
   const [thumbs, setThumbs] = useState<string[]>([]);
-  const [tipWidth, setTipWidth] = useState(200);
+  const [tipWidth, setTipWidth] = useState<number>(200);
   const tooltipRef = useRef<HTMLDivElement>(null);
 
   const time = usePlayer(selectTime);
@@ -53,7 +53,7 @@ function Timeline({
       : 0;
 
   const timelineRef = useRef<HTMLElement>(null);
-  const [imgLoaded, setImgLoaded] = useState(false);
+  const [imgLoaded, setImgLoaded] = useState<boolean>(false);
 
   useEffect(() => {
     if (!mediaPath) {

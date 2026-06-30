@@ -212,7 +212,6 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
     await invoke("set_file_priority", { id, fileIndices, priority }).catch(
       (err) => showError("Ошибка при установке приоритета:", String(err)),
     );
-    // Refresh files to reflect the change
     const state = useTorrentStore.getState();
     if (state.torrentFilesMap[id]) {
       state.loadTorrentFiles(id);
@@ -223,7 +222,6 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
     await invoke("set_sequential_download", { id, enabled }).catch((err) =>
       showError("Ошибка при включении последовательного режима:", String(err)),
     );
-    // Update local state to reflect the toggle immediately
     set((state) => ({
       torrents: state.torrents.map((t) =>
         t.id === id ? { ...t, sequential_download: enabled } : t,

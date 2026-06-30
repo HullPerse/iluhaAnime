@@ -1,16 +1,16 @@
 import { MediaEntry, MediaStore } from "@/types/player";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-
-const MAX_ENTRIES = 3;
+import { useSettingsStore } from "@/store/settings.store";
 
 function touch(entries: MediaEntry[], path: string): MediaEntry[] {
+  const max = useSettingsStore.getState().continueWatchingMax;
   const idx = entries.findIndex((e) => e.path === path);
   if (idx >= 0) {
     const entry = { ...entries[idx], lastPlayed: Date.now() };
     const copy = entries.filter((_, i) => i !== idx);
     copy.unshift(entry);
-    return copy.slice(0, MAX_ENTRIES);
+    return copy.slice(0, max);
   }
   const entry: MediaEntry = {
     path,
@@ -18,7 +18,7 @@ function touch(entries: MediaEntry[], path: string): MediaEntry[] {
     subOffset: 0,
     lastPlayed: Date.now(),
   };
-  return [entry, ...entries].slice(0, MAX_ENTRIES);
+  return [entry, ...entries].slice(0, max);
 }
 
 export const useMediaStore = create<MediaStore>()(

@@ -13,7 +13,7 @@ import type {
 import { invoke } from "@tauri-apps/api/core";
 import { Input } from "@/components/ui/input.component";
 import { Button } from "@/components/ui/button.component";
-import { ANILIST_PAGE_SIZE } from "@/config/search.config";
+import { useSettingsStore } from "@/store/settings.store";
 import {
   filterEntries,
   getSortingLabel,
@@ -31,6 +31,7 @@ import {
   LogOut,
   Search,
   SearchX,
+  Star,
   User,
 } from "lucide-react";
 
@@ -70,6 +71,7 @@ function AnilistRoute() {
   }>({ key: "relevance", dir: "desc" });
   const [page, setPage] = useState<number>(1);
   const [loadingSearch, setLoadingSearch] = useState(false);
+  const anilistPageSize = useSettingsStore((s) => s.anilistPageSize);
   const scrollRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -212,14 +214,14 @@ function AnilistRoute() {
   const isLocal = !!searchTerms.trim() && !global;
 
   const total = displayEntries.length;
-  const from = total === 0 ? 0 : (page - 1) * ANILIST_PAGE_SIZE + 1;
-  const to = Math.min(page * ANILIST_PAGE_SIZE, total);
-  const lastPage = Math.max(1, Math.ceil(total / ANILIST_PAGE_SIZE));
+  const from = total === 0 ? 0 : (page - 1) * anilistPageSize + 1;
+  const to = Math.min(page * anilistPageSize, total);
+  const lastPage = Math.max(1, Math.ceil(total / anilistPageSize));
 
   const pagedEntries = useMemo(() => {
-    const start = (page - 1) * ANILIST_PAGE_SIZE;
-    return displayEntries.slice(start, start + ANILIST_PAGE_SIZE);
-  }, [displayEntries, page]);
+    const start = (page - 1) * anilistPageSize;
+    return displayEntries.slice(start, start + anilistPageSize);
+  }, [displayEntries, page, anilistPageSize]);
 
   useEffect(() => {
     setPage((p) => Math.min(p, lastPage));
@@ -309,11 +311,15 @@ function AnilistRoute() {
               return (
                 <Button
                   key={item.name}
-                  className="px-3 py-0.5 border-2 border-solid cursor-pointer windows95-text active:outline-dotted active:outline-1 active:outline-offset-[-3px] active:outline-text"
+                  className={`px-3 py-0.5 cursor-pointer windows95-text active:outline-dotted active:outline-1 active:outline-offset-[-3px] active:outline-text ${
+                    isActive
+                      ? "windows95-active-border border-b-transparent"
+                      : "windows95-border bg-surface"
+                  }`}
                   style={{
-                    borderBottomColor: isActive ? "#c0c0c0" : undefined,
-                    marginBottom: isActive ? "-2px" : undefined,
                     top: isActive ? 0 : "2px",
+                    marginBottom: isActive ? "-2px" : undefined,
+                    zIndex: isActive ? 20 : 10,
                   }}
                   onClick={() => {
                     setCurrentList(item.name);
@@ -331,7 +337,7 @@ function AnilistRoute() {
 
       {/* SORT TOOLBAR */}
       {user && !global && lists.length > 0 && (
-        <section className="windows95-border bg-primary px-1 py-0.5 flex flex-row items-center gap-2">
+        <section className="windows95-border bg-white px-1 py-0.5 flex flex-row items-center gap-2">
           <span className="windows95-text text-[10px] text-muted">
             Сортировка:
           </span>
@@ -360,7 +366,7 @@ function AnilistRoute() {
             );
           })}
 
-          <span className="w-px h-5 bg-border mx-1" />
+          <span className="w-px h-5 bg-muted mx-1" />
 
           <Button
             size="icon"
@@ -454,7 +460,7 @@ function AnilistRoute() {
 
       {pagedEntries.length > 0 && (
         <section
-          className="flex flex-col w-full h-full overflow-y-scroll p-1 gap-1 border windows95-border"
+          className="flex flex-col w-full h-full overflow-y-auto p-1 gap-1 border windows95-border"
           ref={scrollRef}
         >
           {pagedEntries.map((item) => {
@@ -463,7 +469,7 @@ function AnilistRoute() {
             return (
               <div
                 key={item.id}
-                className="flex flex-row windows95-active-border bg-primary p-2 hover:cursor-pointer min-h-28 max-h-36"
+                className="flex flex-row windows95-active-border bg-primary p-2 hover:bg-surface hover:cursor-pointer min-h-28 max-h-36"
                 onClick={() =>
                   setSelectedAnime({
                     animeId: item.id,
@@ -540,7 +546,7 @@ function AnilistRoute() {
                       {entry != null &&
                         entry.progress != null &&
                         !item.episodes && (
-                          <span className="px-1 bg-accent text-[10px]">
+                          <span className="px-1 bg-secondary text-white text-[10px]">
                             {entry.progress}
                           </span>
                         )}
@@ -667,7 +673,11 @@ function AnilistRoute() {
       )}
 
       {showRecs && (
-        <Modal header="Рекомендации" onClose={() => setShowRecs(false)}>
+        <Modal
+          header="Рекомендации"
+          onClose={() => setShowRecs(false)}
+          className="w-3xl"
+        >
           {recsLoading ? (
             <div className="flex items-center justify-center flex-1">
               <Loader className="size-6 animate-spin windows95-text" />
@@ -681,7 +691,7 @@ function AnilistRoute() {
               {recs.map((r) => (
                 <div
                   key={r.id}
-                  className="flex flex-row items-center gap-2 windows95-active-border bg-primary p-1 hover:cursor-pointer"
+                  className="flex flex-row items-center gap-2 windows95-active-border bg-primary p-1 hover:bg-surface hover:cursor-pointer"
                   onClick={() => {
                     setShowRecs(false);
                     setSelectedAnime({ animeId: r.id });
@@ -707,8 +717,8 @@ function AnilistRoute() {
                       {r.episodes && <span>{r.episodes} эп.</span>}
                     </div>
                   </div>
-                  <span className="text-[9px] shrink-0 windows95-text">
-                    👍 {r.recommendation_rating}
+                  <span className="flex flex-row gap-1 text-[9px] shrink-0 windows95-text items-center">
+                    <Star className="size-3" /> {r.recommendation_rating}
                   </span>
                 </div>
               ))}

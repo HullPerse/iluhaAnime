@@ -1,19 +1,28 @@
 @import "tailwindcss";
 
+@font-face {
+    font-family: "Perfect DOS VGA 437";
+    src: url("/fonts/perfect-dos-vga-437.woff2") format("woff2");
+}
+
 :root {
+    --font-family:
+        "MS Sans Serif", "Microsoft Sans Serif", "Segoe UI", system-ui;
     --color-background: #222222;
     --color-primary: #c0c0c0;
     --color-secondary: #000080;
-
     --color-text: #000000;
     --color-muted: #808080;
-
     --color-highlight: #0000ff;
-
     --color-destructive: #800000;
     --color-success: #008000;
     --color-link-hover: #ff0000;
     --color-surface: #d0d0d0;
+    --color-win-highlight: #ffffff;
+    --color-win-shadow: #808080;
+    --color-desktop: #018281;
+    --color-multi: #800080;
+    --color-dual: #808000;
 }
 
 @theme {
@@ -27,6 +36,22 @@
     --color-success: var(--color-success);
     --color-link-hover: var(--color-link-hover);
     --color-surface: var(--color-surface);
+    --color-win-highlight: var(--color-win-highlight);
+    --color-win-shadow: var(--color-win-shadow);
+    --color-desktop: var(--color-desktop);
+    --color-multi: var(--color-multi);
+    --color-dual: var(--color-dual);
+
+    --windows95-text: ".windows95-text";
+    --windows95-font: ".windows95-font";
+    --windows95-border: ".windows95-border";
+    --windows95-active-border: ".active-border";
+    --windows95-select: ".windows95-select";
+    --windows95-select: ".windows95-select";
+    --focus-visible: ".focus-visible";
+    --windows95-small-border: ".small-border";
+    --windows95-3d-border: ".3d-border";
+    --windows95-header: ".windows95-header";
 }
 
 @layer base {
@@ -38,11 +63,11 @@
 
 .windows95-text {
     font-size: 11px;
-    font-family: "MS Sans Serif", "Microsoft Sans Serif", "Segoe UI", system-ui;
+    font-family: var(--font-family);
 }
 
 .windows95-font {
-    font-family: "MS Sans Serif", "Microsoft Sans Serif", "Segoe UI", system-ui;
+    font-family: var(--font-family);
 }
 
 .windows95-border {
@@ -51,7 +76,6 @@
     border-left-color: var(--color-muted);
     border-bottom-color: #ffffff;
     border-right-color: #ffffff;
-    background-color: white;
 }
 
 .windows95-active-border {
@@ -65,6 +89,7 @@
 .windows95-select {
     --tw-outline-style: none;
     outline-style: none;
+    background-color: white;
 }
 
 .windows95-select:focus-visible {
@@ -74,57 +99,76 @@
     outline-color: var(--color-text);
 }
 
-.windows95-small-border {
-    border: 1px solid;
-    border-top-color: #ffffff;
-    border-left-color: #ffffff;
-    border-bottom-color: var(--color-muted);
-    border-right-color: var(--color-muted);
+*:focus-visible {
+    outline-style: dotted;
+    outline-width: 1px;
+    outline-offset: -3px;
+    outline-color: var(--color-text);
 }
 
-::-webkit-scrollbar {
+.windows95-small-border {
+    border: 1px solid;
+    border-top-color: var(--color-win-highlight);
+    border-left-color: var(--color-win-highlight);
+    border-bottom-color: var(--color-win-shadow);
+    border-right-color: var(--color-win-shadow);
+}
+
+.windows95-3d-border {
+    box-shadow:
+        inset 1px 1px 0 var(--color-win-highlight),
+        inset -1px -1px 0 var(--color-win-shadow),
+        1px 1px 0 var(--color-win-shadow);
+}
+
+.no-animations .animate-spin,
+.no-animations .animate-pulse {
+    animation: none;
+}
+
+:root:not(.native-scrollbar) ::-webkit-scrollbar {
     width: 16px;
     height: 16px;
 }
 
-::-webkit-scrollbar-track {
+:root:not(.native-scrollbar) ::-webkit-scrollbar-track {
     background: white;
     border: 1px solid white;
 }
 
-::-webkit-scrollbar-thumb {
+:root:not(.native-scrollbar) ::-webkit-scrollbar-thumb {
     background: var(--color-primary);
     border: 2px solid;
-    border-top-color: #ffffff;
-    border-left-color: #ffffff;
-    border-bottom-color: var(--color-muted);
-    border-right-color: var(--color-muted);
+    border-top-color: var(--color-win-highlight);
+    border-left-color: var(--color-win-highlight);
+    border-bottom-color: var(--color-win-shadow);
+    border-right-color: var(--color-win-shadow);
 }
 
-::-webkit-scrollbar-button {
+:root:not(.native-scrollbar) ::-webkit-scrollbar-button {
     background: var(--color-primary);
     border: 2px solid;
-    border-top-color: #ffffff;
-    border-left-color: #ffffff;
-    border-bottom-color: var(--color-muted);
-    border-right-color: var(--color-muted);
+    border-top-color: var(--color-win-highlight);
+    border-left-color: var(--color-win-highlight);
+    border-bottom-color: var(--color-win-shadow);
+    border-right-color: var(--color-win-shadow);
     height: 16px;
     display: block;
 }
 
-::-webkit-scrollbar-button:vertical:decrement {
+:root:not(.native-scrollbar) ::-webkit-scrollbar-button:vertical:decrement {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='4'%3E%3Cpath d='M0 4l3-4 3 4z' fill='%23000'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: center;
 }
 
-::-webkit-scrollbar-button:vertical:increment {
+:root:not(.native-scrollbar) ::-webkit-scrollbar-button:vertical:increment {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='4'%3E%3Cpath d='M0 0l3 4 3-4z' fill='%23000'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: center;
 }
 
-::-webkit-scrollbar-corner {
+:root:not(.native-scrollbar) ::-webkit-scrollbar-corner {
     background: white;
 }
 
@@ -153,4 +197,10 @@ input::-webkit-inner-spin-button {
 
 input[type="number"] {
     -moz-appearance: textfield; /* Firefox */
+}
+
+.windows95-header {
+    border: none;
+    border-top: 1px solid var(--color-muted);
+    margin: 0.25rem 0;
 }

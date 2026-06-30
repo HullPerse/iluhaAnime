@@ -159,6 +159,7 @@ pub fn run() {
                                .expect("no main window")
                                .set_focus();
                 }))
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
@@ -212,7 +213,6 @@ pub fn run() {
                         let current_ids: HashSet<usize> = torrents.iter().map(|t| t.id).collect();
                         prev_states.retain(|id, _| current_ids.contains(id));
 
-                        // Advance sequential downloads
                         {
                             let ids: Vec<usize> = mgr_clone
                                 .sequential_torrents
@@ -258,6 +258,8 @@ pub fn run() {
             ffmpeg::download_ffmpeg,
             ffmpeg::remove_ffmpeg,
             scanner::scan_video_folder,
+            scanner::set_video_extensions,
+            scanner::get_video_extensions,
             thumbnails::generate_thumbnails,
             thumbnails::get_thumbnail_cache_info,
             thumbnails::clear_thumbnail_cache,

@@ -390,7 +390,6 @@ impl TorrentManager {
                         .with_metadata(|m| {
                             let file_count = m.file_infos.len();
 
-                            // Initialize file priorities lazily from pending selection or handle.only_files()
                             {
                                 let mut priorities = self.file_priorities.lock().unwrap();
                                 if !priorities.contains_key(&id) {
@@ -579,7 +578,6 @@ impl TorrentManager {
         file_indices: Vec<usize>,
         priority: FilePriority,
     ) -> Result<(), String> {
-        // Update local priorities
         {
             let mut priorities = self.file_priorities.lock().unwrap();
             let entry = priorities.entry(id).or_default();
@@ -590,12 +588,10 @@ impl TorrentManager {
             }
         }
 
-        // For sequential torrents, only update the priority map (advance_sequential handles the rest)
         if self.sequential_torrents.lock().unwrap().contains(&id) {
             return Ok(());
         }
 
-        // For DoNotDownload / Normal, update only_files in the backend
         if priority == FilePriority::DoNotDownload || priority == FilePriority::Normal {
             let handle = self
                 .session
@@ -650,7 +646,6 @@ impl TorrentManager {
         if enabled {
             self.sequential_torrents.lock().unwrap().insert(id);
 
-            // Resume the torrent if it's paused
             if let Some(ref handle) = handle_opt {
                 if handle.is_paused() {
                     self.session
@@ -658,14 +653,12 @@ impl TorrentManager {
                         .await
                         .map_err(|e| format!("{e:#}"))?;
                 }
-                // Immediately restrict to the first incomplete non-DoNotDownload file
                 let _ = handle;
                 self.advance_sequential(id).await?;
             }
         } else {
             self.sequential_torrents.lock().unwrap().remove(&id);
 
-            // Restore non-DoNotDownload files based on priorities
             if let Some(handle) = handle_opt {
                 let files_to_restore = {
                     let priorities = self.file_priorities.lock().unwrap();
@@ -727,7 +720,6 @@ impl TorrentManager {
             return Ok(());
         }
 
-        // Build candidate list: only files not set to DoNotDownload
         let candidates: Vec<usize> = {
             let priorities = self.file_priorities.lock().unwrap();
             if let Some(list) = priorities.get(&id) {

@@ -322,7 +322,7 @@ function SearchRoute() {
               key={q}
               variant={settings.quality === q ? "outline" : "default"}
               onClick={() => setSettings((prev) => ({ ...prev, quality: q }))}
-              className="windows95-small-border"
+              className="windows95-border"
             >
               {q === "all" ? "Все" : q}
             </Button>
@@ -335,7 +335,7 @@ function SearchRoute() {
               key={l}
               variant={settings.language === l ? "outline" : "default"}
               onClick={() => setSettings((prev) => ({ ...prev, language: l }))}
-              className="windows95-small-border"
+              className="windows95-border"
             >
               {l === "all" ? "Все" : l}
             </Button>

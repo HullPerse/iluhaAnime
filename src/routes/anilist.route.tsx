@@ -56,6 +56,7 @@ function AnilistRoute() {
       .catch(() => setRecs([]))
       .finally(() => setRecsLoading(false));
   }, [showRecs, user]);
+
   const [global, setGlobal] = useState<boolean>(false);
   const [sort, setSort] = useState<AniListSort>({
     key: "title",
@@ -426,17 +427,13 @@ function AnilistRoute() {
       )}
 
       {/* CONTENT */}
-      {pagedEntries.length === 0 &&
-        !global &&
-        !isLocal &&
-        !user &&
-        !loadingList && (
-          <section className="flex flex-col items-center justify-center flex-1 gap-2">
-            <User className="size-8 text-muted" />
-            <span className="windows95-text">Войдите в профиль</span>
-            <Button onClick={() => setAuth(true)}>Войти</Button>
-          </section>
-        )}
+      {pagedEntries.length === 0 && !global && !isLocal && !user && (
+        <section className="flex flex-col items-center justify-center flex-1 gap-2">
+          <User className="size-8 text-muted" />
+          <span className="windows95-text">Войдите в профиль</span>
+          <Button onClick={() => setAuth(true)}>Войти</Button>
+        </section>
+      )}
 
       {pagedEntries.length === 0 && isLocal && (
         <section className="flex flex-col items-center justify-center flex-1 gap-2">
@@ -530,7 +527,7 @@ function AnilistRoute() {
                         entry.progress != null &&
                         item.episodes && (
                           <div className="flex items-center gap-1">
-                            <div className="windows95-small-border w-20 h-3.5 bg-white relative overflow-hidden">
+                            <div className="windows95-border w-20 h-3.5 bg-white relative overflow-hidden">
                               <div
                                 className="h-full bg-secondary"
                                 style={{

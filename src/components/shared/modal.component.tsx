@@ -54,8 +54,7 @@ function Modal({ header, onClose, className, children }: ModalWindow) {
           </Button>
         </section>
         <section
-          className="flex flex-col gap-1 p-2 overflow-hidden flex-1 w-full bg-primary"
-          data-no-wheel
+          className="flex flex-col gap-1 p-2 overflow-y-auto flex-1 w-full bg-primary"
         >
           {children}
         </section>

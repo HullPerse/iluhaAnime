@@ -25,6 +25,7 @@ export default function SettingsSearch() {
           <option value="erai-raws">Erai-Raws</option>
           <option value="rutracker">Rutracker</option>
           <option value="nyaa">Nyaa.si</option>
+          <option value="sukebei">Sukebei (NSFW)</option>
           <option value="nekobt">nekoBT</option>
         </select>
       </label>

@@ -123,6 +123,20 @@ pub struct AniListEntry {
 
 
 
+#[derive(Debug, Serialize)]
+pub struct AniCharacterNode {
+    pub id: u64,
+    pub name: String,
+    pub native_name: Option<String>,
+    pub image: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct AniCharacterEdge {
+    pub role: String,
+    pub character: AniCharacterNode,
+}
+
 fn parse_date(d: &serde_json::Value) -> Option<String> {
     let year = d["year"].as_i64()?;
     let month = d["month"].as_i64().unwrap_or(1);
@@ -280,52 +294,141 @@ async fn fetch_page(body: serde_json::Value) -> Result<(Vec<AniMedia>, u32), Str
 }
 
 #[tauri::command]
-pub async fn search_anilist(query: String) -> Result<Vec<AniMedia>, String> {
-    let (mut all, total) = fetch_page(serde_json::json!({
-        "query": r#"
-            query ($search: String, $page: Int) {
-                Page(page: $page, perPage: 20) {
-                    pageInfo { total }
-                    media(search: $search, type: ANIME) {
-                        id
-                        title { romaji english native }
-                        episodes, duration, status, averageScore
-                        genres, tags { name }
-                        description (asHtml: false)
-                        coverImage { medium large }
-                        season, seasonYear
-                        studios { nodes { id name } }
-                        nextAiringEpisode { episode airingAt }
-                    }
+pub async fn search_anilist(
+    query: Option<String>,
+    tags: Option<Vec<String>>,
+    genres: Option<Vec<String>>,
+    format: Option<String>,
+    status: Option<String>,
+    season: Option<String>,
+    season_year: Option<i32>,
+    adult: Option<bool>,
+    sort: Option<Vec<String>>,
+    source: Option<String>,
+    country: Option<String>,
+    year_from: Option<i32>,
+    year_to: Option<i32>,
+    episodes_from: Option<i32>,
+    episodes_to: Option<i32>,
+    score_from: Option<i32>,
+    score_to: Option<i32>,
+) -> Result<Vec<AniMedia>, String> {
+    let query_part = query
+        .as_ref()
+        .filter(|q| !q.is_empty())
+        .map(|s| serde_json::json!({ "search": s }))
+        .unwrap_or_default();
+    let tag_part = tags
+        .as_ref()
+        .filter(|t| !t.is_empty())
+        .map(|t| serde_json::json!({ "tag_in": t }))
+        .unwrap_or_default();
+    let genre_part = genres
+        .as_ref()
+        .filter(|g| !g.is_empty())
+        .map(|g| serde_json::json!({ "genre_in": g }))
+        .unwrap_or_default();
+    let format_part = format
+        .as_ref()
+        .map(|f| serde_json::json!({ "format": f }))
+        .unwrap_or_default();
+    let status_part = status
+        .as_ref()
+        .map(|s| serde_json::json!({ "status": s }))
+        .unwrap_or_default();
+    let season_part = season
+        .as_ref()
+        .map(|s| serde_json::json!({ "season": s }))
+        .unwrap_or_default();
+    let year_part = season_year
+        .map(|y| serde_json::json!({ "seasonYear": y }))
+        .unwrap_or_default();
+    let adult_part = adult
+        .map(|a| serde_json::json!({ "isAdult": a }))
+        .unwrap_or_default();
+    let sort_part = sort
+        .as_ref()
+        .filter(|s| !s.is_empty())
+        .map(|s| serde_json::json!({ "sort": s }))
+        .unwrap_or_default();
+    let source_part = source
+        .as_ref()
+        .map(|s| serde_json::json!({ "source": s }))
+        .unwrap_or_default();
+    let country_part = country
+        .as_ref()
+        .map(|c| serde_json::json!({ "countryOfOrigin": c }))
+        .unwrap_or_default();
+    let year_from_part = year_from
+        .map(|y| serde_json::json!({ "startDate_greater": y * 10000 }))
+        .unwrap_or_default();
+    let year_to_part = year_to
+        .map(|y| serde_json::json!({ "startDate_lesser": y * 10000 + 1231 }))
+        .unwrap_or_default();
+    let ep_from_part = episodes_from
+        .map(|e| serde_json::json!({ "episodes_greater": e }))
+        .unwrap_or_default();
+    let ep_to_part = episodes_to
+        .map(|e| serde_json::json!({ "episodes_lesser": e }))
+        .unwrap_or_default();
+    let score_from_part = score_from
+        .map(|s| serde_json::json!({ "averageScore_greater": s }))
+        .unwrap_or_default();
+    let score_to_part = score_to
+        .map(|s| serde_json::json!({ "averageScore_lesser": s }))
+        .unwrap_or_default();
+
+    let variables = serde_json::json!({ "page": 1 });
+    let merged = merge_json(variables, query_part);
+    let merged = merge_json(merged, tag_part);
+    let merged = merge_json(merged, genre_part);
+    let merged = merge_json(merged, format_part);
+    let merged = merge_json(merged, status_part);
+    let merged = merge_json(merged, season_part);
+    let merged = merge_json(merged, year_part);
+    let merged = merge_json(merged, adult_part);
+    let merged = merge_json(merged, sort_part);
+    let merged = merge_json(merged, source_part);
+    let merged = merge_json(merged, country_part);
+    let merged = merge_json(merged, year_from_part);
+    let merged = merge_json(merged, year_to_part);
+    let merged = merge_json(merged, ep_from_part);
+    let merged = merge_json(merged, ep_to_part);
+    let merged = merge_json(merged, score_from_part);
+    let merged = merge_json(merged, score_to_part);
+
+    let gql = r#"
+        query ($search: String, $page: Int, $tag_in: [String], $genre_in: [String], $format: MediaFormat, $status: MediaStatus, $season: MediaSeason, $seasonYear: Int, $isAdult: Boolean, $sort: [MediaSort], $source: MediaSource, $countryOfOrigin: CountryCode, $startDate_greater: FuzzyDateInt, $startDate_lesser: FuzzyDateInt, $episodes_greater: Int, $episodes_lesser: Int, $averageScore_greater: Int, $averageScore_lesser: Int) {
+            Page(page: $page, perPage: 20) {
+                pageInfo { total }
+                media(search: $search, type: ANIME, tag_in: $tag_in, genre_in: $genre_in, format: $format, status: $status, season: $season, seasonYear: $seasonYear, isAdult: $isAdult, sort: $sort, source: $source, countryOfOrigin: $countryOfOrigin, startDate_greater: $startDate_greater, startDate_lesser: $startDate_lesser, episodes_greater: $episodes_greater, episodes_lesser: $episodes_lesser, averageScore_greater: $averageScore_greater, averageScore_lesser: $averageScore_lesser) {
+                    id
+                    title { romaji english native }
+                    episodes, duration, status, averageScore
+                    genres, tags { name }
+                    description (asHtml: false)
+                    coverImage { medium large }
+                    season, seasonYear
+                    studios { nodes { id name } }
+                    nextAiringEpisode { episode airingAt }
                 }
             }
-        "#,
-        "variables": { "search": query, "page": 1 }
+        }
+    "#;
+
+    let (mut all, total) = fetch_page(serde_json::json!({
+        "query": gql,
+        "variables": merged,
     }))
     .await?;
 
     let pages = ((total + 19) / 20).min(MAX_PAGES);
+    let mut vars = merged.clone();
     for page in 2..=pages {
+        vars["page"] = serde_json::json!(page);
         if let Ok((media, _)) = fetch_page(serde_json::json!({
-            "query": r#"
-                query ($search: String, $page: Int) {
-                    Page(page: $page, perPage: 20) {
-                        pageInfo { total }
-                        media(search: $search, type: ANIME) {
-                            id
-                            title { romaji english native }
-                            episodes, duration, status, averageScore
-                            genres, tags { name }
-                            description (asHtml: false)
-                            coverImage { medium large }
-                            season, seasonYear
-                            studios { nodes { id name } }
-                            nextAiringEpisode { episode airingAt }
-                        }
-                    }
-                }
-            "#,
-            "variables": { "search": query, "page": page }
+            "query": gql,
+            "variables": vars,
         }))
         .await
         {
@@ -334,6 +437,16 @@ pub async fn search_anilist(query: String) -> Result<Vec<AniMedia>, String> {
     }
 
     Ok(all)
+}
+
+fn merge_json(a: serde_json::Value, b: serde_json::Value) -> serde_json::Value {
+    match (a, b) {
+        (serde_json::Value::Object(mut a), serde_json::Value::Object(b)) => {
+            a.extend(b);
+            serde_json::Value::Object(a)
+        }
+        (a, _) => a,
+    }
 }
 
 #[tauri::command]
@@ -497,6 +610,119 @@ pub struct AniRecommendation {
     pub score: Option<i32>,
     pub format: Option<String>,
     pub recommendation_rating: i32,
+}
+
+#[derive(Debug, Serialize)]
+pub struct AniImage {
+    pub medium: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct AniTitle {
+    pub romaji: String,
+    pub english: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct FavouriteAnime {
+    pub id: i64,
+    pub title: AniTitle,
+    pub cover_image: Option<AniImage>,
+    pub mean_score: Option<f64>,
+    pub format: Option<String>,
+}
+
+fn parse_favourite_nodes(nodes: &[serde_json::Value]) -> Vec<FavouriteAnime> {
+    nodes
+        .iter()
+        .map(|n| FavouriteAnime {
+            id: n["id"].as_i64().unwrap_or(0),
+            title: AniTitle {
+                romaji: n["title"]["romaji"]
+                    .as_str()
+                    .unwrap_or("")
+                    .to_string(),
+                english: n["title"]["english"].as_str().map(String::from),
+            },
+            cover_image: n["coverImage"]["medium"].as_str().map(|s| {
+                AniImage {
+                    medium: Some(s.to_string()),
+                }
+            }),
+            mean_score: n["meanScore"].as_f64(),
+            format: n["format"].as_str().map(String::from),
+        })
+        .collect()
+}
+
+#[tauri::command]
+pub async fn toggle_favourite(
+    app_handle: tauri::AppHandle,
+    anime_id: i64,
+) -> Result<Vec<FavouriteAnime>, String> {
+    let token = load_token(&app_handle)?;
+    let body = serde_json::json!({
+        "query": r#"
+            mutation ($animeId: Int) {
+                ToggleFavourite(animeId: $animeId) {
+                    anime {
+                        nodes {
+                            id
+                            title { romaji english }
+                            coverImage { medium }
+                            meanScore
+                            format
+                        }
+                    }
+                }
+            }
+        "#,
+        "variables": { "animeId": anime_id }
+    });
+    let json = graphql_request(body, Some(&token)).await?;
+    if json.get("errors").is_some() {
+        return Err(format!("{:?}", json["errors"]));
+    }
+    let nodes = json["data"]["ToggleFavourite"]["anime"]["nodes"]
+        .as_array()
+        .ok_or_else(|| "Unexpected response".to_string())?;
+    Ok(parse_favourite_nodes(nodes))
+}
+
+#[tauri::command]
+pub async fn get_favourites(
+    app_handle: tauri::AppHandle,
+    user_id: i64,
+) -> Result<Vec<FavouriteAnime>, String> {
+    let token = load_token(&app_handle)?;
+    let body = serde_json::json!({
+        "query": r#"
+            query ($userId: Int) {
+                User(id: $userId) {
+                    favourites {
+                        anime {
+                            nodes {
+                                id
+                                title { romaji english }
+                                coverImage { medium }
+                                meanScore
+                                format
+                            }
+                        }
+                    }
+                }
+            }
+        "#,
+        "variables": { "userId": user_id }
+    });
+    let json = graphql_request(body, Some(&token)).await?;
+    if json.get("errors").is_some() {
+        return Err(format!("{:?}", json["errors"]));
+    }
+    let nodes = json["data"]["User"]["favourites"]["anime"]["nodes"]
+        .as_array()
+        .ok_or_else(|| "Unexpected response".to_string())?;
+    Ok(parse_favourite_nodes(nodes))
 }
 
 #[tauri::command]
@@ -842,4 +1068,119 @@ pub async fn save_anilist_entry(
         return Err(format!("{:?}", json["errors"]));
     }
     Ok(())
+}
+
+#[derive(Debug, Serialize)]
+pub struct AniActivity {
+    pub id: u64,
+    pub created_at: i64,
+    pub activity_type: String,
+    pub status: Option<String>,
+    pub progress: Option<String>,
+    pub text: Option<String>,
+    pub media_id: Option<u64>,
+    pub media_title: Option<String>,
+    pub media_cover: Option<String>,
+    pub user_id: u64,
+    pub user_name: String,
+    pub user_avatar: Option<String>,
+}
+
+#[tauri::command]
+pub async fn get_anilist_activity(user_ids: Vec<u64>) -> Result<Vec<AniActivity>, String> {
+    let body = serde_json::json!({
+        "query": r#"
+            query ($userIds: [Int], $page: Int) {
+                Page(page: $page, perPage: 50) {
+                    activities(userId_in: $userIds, sort: ID_DESC) {
+                        ... on ListActivity {
+                            id
+                            createdAt
+                            status
+                            progress
+                            media { id type title { romaji english } coverImage { medium } }
+                            user { id name avatar { medium } }
+                        }
+                        ... on TextActivity {
+                            id
+                            createdAt
+                            text
+                            user { id name avatar { medium } }
+                        }
+                    }
+                }
+            }
+        "#,
+        "variables": { "userIds": user_ids, "page": 1 }
+    });
+    let json = graphql_request(body, None).await?;
+    if json.get("errors").is_some() {
+        return Err(format!("{:?}", json["errors"]));
+    }
+    let activities = json["data"]["Page"]["activities"]
+        .as_array()
+        .ok_or_else(|| "Failed to parse activities".to_string())?;
+    Ok(activities.iter().filter_map(|a| {
+        let user = &a["user"];
+        let a_type = if a["status"].is_string() { "list" } else { "text" };
+        if a_type == "list" && a["media"]["type"].as_str() != Some("ANIME") {
+            return None;
+        }
+        Some(AniActivity {
+            id: a["id"].as_u64().unwrap_or(0),
+            created_at: a["createdAt"].as_i64().unwrap_or(0),
+            activity_type: a_type.to_string(),
+            status: a["status"].as_str().map(String::from),
+            progress: a["progress"].as_str().map(String::from),
+            text: a["text"].as_str().map(String::from),
+            media_id: a["media"]["id"].as_u64(),
+            media_title: a["media"]["title"]["romaji"].as_str().or_else(|| a["media"]["title"]["english"].as_str()).map(String::from),
+            media_cover: a["media"]["coverImage"]["medium"].as_str().map(String::from),
+            user_id: user["id"].as_u64().unwrap_or(0),
+            user_name: user["name"].as_str().unwrap_or("").to_string(),
+            user_avatar: user["avatar"]["medium"].as_str().map(String::from),
+        })
+    }).collect())
+}
+
+#[tauri::command]
+pub async fn get_anime_characters(id: u64, page: u64) -> Result<Vec<AniCharacterEdge>, String> {
+    let body = serde_json::json!({
+        "query": r#"
+            query ($id: Int, $page: Int) {
+                Media(id: $id, type: ANIME) {
+                    characters(page: $page, perPage: 25) {
+                        edges {
+                            role
+                            node {
+                                id
+                                name { full native }
+                                image { medium }
+                            }
+                        }
+                    }
+                }
+            }
+        "#,
+        "variables": { "id": id, "page": page }
+    });
+    let json = graphql_request(body, None).await?;
+    if json.get("errors").is_some() {
+        return Err(format!("{:?}", json["errors"]));
+    }
+    let edges = json["data"]["Media"]["characters"]["edges"]
+        .as_array()
+        .ok_or_else(|| "Failed to parse characters".to_string())?;
+    Ok(edges.iter().map(|e| AniCharacterEdge {
+        role: e["role"].as_str().unwrap_or("").to_string(),
+        character: {
+            let n = &e["node"];
+            AniCharacterNode {
+                id: n["id"].as_u64().unwrap_or(0),
+                name: n["name"]["full"].as_str().unwrap_or("").to_string(),
+                native_name: n["name"]["native"].as_str().map(String::from),
+                image: n["image"]["medium"].as_str().map(String::from),
+            }
+        },
+    }).collect())
 }

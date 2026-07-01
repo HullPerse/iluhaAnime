@@ -18,11 +18,13 @@ import {
   ArrowUp,
   Plus,
   Check,
+  Image,
 } from "lucide-react";
 import { useState, useEffect, useMemo, useRef } from "react";
 import TorrentFilesSection from "./components/torrent/file.torrent";
 import { sendNotification } from "@tauri-apps/plugin-notification";
 import { useSettingsStore } from "@/store/settings.store";
+import { showToast } from "@/lib/toast.utils";
 
 function TorrentRoute() {
   const {
@@ -159,6 +161,32 @@ function TorrentRoute() {
     setSpeedLimits(dl, ul);
   };
 
+  const handleGenerateTorrentThumbnails = async (id: number) => {
+    const files = torrentFilesMap[id];
+    if (!files) return;
+    const { videoExtensions } = useSettingsStore.getState();
+    const item = torrents.find((t) => t.id === id);
+    if (!item?.save_dir) return;
+    const videoPaths = files
+      .filter((f) => {
+        const ext = f.name.split(".").pop()?.toLowerCase();
+        return ext && videoExtensions.includes(ext);
+      })
+      .map((f) => `${item.save_dir}/${f.name}`);
+    if (videoPaths.length === 0) {
+      showToast("Нет видеофайлов", "info");
+      return;
+    }
+    let done = 0;
+    for (const videoPath of videoPaths) {
+      try {
+        await invoke("generate_thumbnails", { videoPath });
+        done++;
+      } catch {}
+    }
+    showToast(`Сгенерировано превью: ${done}/${videoPaths.length}`, "success");
+  };
+
   const toggleExpanded = (id: number) => {
     setExpanded((prev) => {
       const next = new Set(prev);
@@ -284,6 +312,14 @@ function TorrentRoute() {
                   }
                 >
                   {item.sequential_download && <Check className="size-4" />}
+                </Button>
+                <Button
+                  title="Сгенерировать превью"
+                  size="icon"
+                  className="size-6"
+                  onClick={() => handleGenerateTorrentThumbnails(item.id)}
+                >
+                  <Image className="size-4" />
                 </Button>
                 <Button
                   variant="error"

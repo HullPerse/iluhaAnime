@@ -107,6 +107,14 @@ function SearchRoute() {
           order: nyaaOrder,
         });
       }
+      if (source === "sukebei") {
+        return await invoke<Anime[]>("search_sukebei", {
+          query: searchParams.trim(),
+          page: nyaaPage,
+          sort: nyaaSort,
+          order: nyaaOrder,
+        });
+      }
       if (source === "nekobt") {
         return await invoke<Anime[]>("search_nekobt", {
           query: searchParams.trim(),
@@ -278,6 +286,7 @@ function SearchRoute() {
           <option value="erai-raws">Erai-Raws</option>
           <option value="rutracker">Rutracker</option>
           <option value="nyaa">Nyaa.si</option>
+          <option value="sukebei">Sukebei (NSFW)</option>
           <option value="nekobt">nekoBT</option>
         </select>
         {source === "rutracker" && !rutrackerAuth && (

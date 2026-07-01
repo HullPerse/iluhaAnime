@@ -3,11 +3,14 @@ import { nodeMatchesSearch } from "@/lib/player.utils";
 import { fmtSize } from "@/lib/torrent.utils";
 import type { FolderNode } from "@/types/index";
 import { openPath } from "@tauri-apps/plugin-opener";
+import { invoke } from "@tauri-apps/api/core";
+import { showToast } from "@/lib/toast.utils";
 import {
   ChevronDown,
   ChevronRight,
   FileVideo,
   FolderOpen,
+  Image,
   Monitor,
   Play,
   X,
@@ -50,6 +53,35 @@ function FolderView({
   const countAll =
     node.files.length + node.children.reduce((s, c) => s + c.files.length, 0);
 
+  const collectVideoPaths = (n: FolderNode, extSet: Set<string>): string[] => {
+    const fromFiles = n.files
+      .filter((f) => {
+        const ext = f.name.split(".").pop()?.toLowerCase();
+        return ext && extSet.has(ext);
+      })
+      .map((f) => f.path);
+    const fromChildren = n.children.flatMap((c) => collectVideoPaths(c, extSet));
+    return [...fromFiles, ...fromChildren];
+  };
+
+  const handleGenerateFolderThumbnails = async (n: FolderNode) => {
+    const { useSettingsStore } = await import("@/store/settings.store");
+    const exts = new Set(useSettingsStore.getState().videoExtensions);
+    const paths = collectVideoPaths(n, exts);
+    if (paths.length === 0) {
+      showToast("Нет видеофайлов", "info");
+      return;
+    }
+    let done = 0;
+    for (const videoPath of paths) {
+      try {
+        await invoke("generate_thumbnails", { videoPath });
+        done++;
+      } catch {}
+    }
+    showToast(`Сгенерировано превью: ${done}/${paths.length}`, "success");
+  };
+
   return (
     <main className="flex flex-col w-full">
       {(hasChildren || hasFiles) && (
@@ -73,6 +105,17 @@ function FolderView({
           <span className="text-muted ml-auto whitespace-nowrap">
             {countAll} файлов
           </span>
+          <Button
+            size="icon"
+            className="h-5 w-5 ml-1"
+            title="Сгенерировать превью"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleGenerateFolderThumbnails(node);
+            }}
+          >
+            <Image className="size-3" />
+          </Button>
           {onRemove && depth === 0 && (
             <Button
               size="icon"

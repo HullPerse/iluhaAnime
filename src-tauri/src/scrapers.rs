@@ -568,6 +568,221 @@ pub async fn search_nyaa(
     Err(last_err)
 }
 
+fn sukebei_json_to_item(item: NyaaJsonItem) -> Option<NyaaItem> {
+    if !is_valid_torrent(&item.name, &item.url) {
+        return None;
+    }
+
+    let size_str = match &item.size {
+        serde_json::Value::Number(n) => {
+            if let Some(bytes) = n.as_f64() {
+                format_file_size(bytes)
+            } else {
+                String::new()
+            }
+        }
+        serde_json::Value::String(s) => s.clone(),
+        _ => String::new(),
+    };
+
+    Some(NyaaItem {
+        title: item.name,
+        magnet: item.magnet,
+        torrent: if item.torrent.starts_with("http") {
+            item.torrent
+        } else {
+            format!("https://sukebei.nyaa.si{}", item.torrent)
+        },
+        size: size_str,
+        seeders: item.seeders,
+        leechers: item.leechers,
+        category: String::new(),
+        link: format!("https://sukebei.nyaa.si{}", item.url),
+    })
+}
+
+fn parse_sukebei_entries(html: &str) -> Vec<NyaaItem> {
+    let doc = Html::parse_document(html);
+    let row_sel = Selector::parse("table.torrent-list tbody tr").unwrap();
+    let td_sel = Selector::parse("td").unwrap();
+    let a_sel = Selector::parse("a").unwrap();
+
+    let mut items = Vec::new();
+
+    for row in doc.select(&row_sel) {
+        let tds: Vec<_> = row.select(&td_sel).collect();
+        if tds.len() < 8 {
+            continue;
+        }
+
+        let magnet = tds[2].select(&a_sel).find_map(|a| {
+            let h = a.value().attr("href")?;
+            if h.starts_with("magnet:") {
+                Some(h.to_string())
+            } else {
+                None
+            }
+        });
+
+        let magnet = match magnet {
+            Some(m) => m,
+            None => continue,
+        };
+
+        let title = tds[1]
+            .select(&a_sel)
+            .next()
+            .and_then(|a| a.value().attr("title"))
+            .map(|t| t.to_string())
+            .unwrap_or_default();
+
+        let link = tds[1]
+            .select(&a_sel)
+            .next()
+            .and_then(|a| a.value().attr("href"))
+            .unwrap_or_default();
+
+        if !is_valid_torrent(&title, link) {
+            continue;
+        }
+
+        let torrent = tds[2]
+            .select(&a_sel)
+            .find_map(|a| {
+                let h = a.value().attr("href")?;
+                if h.ends_with(".torrent") {
+                    Some(format!("https://sukebei.nyaa.si{h}"))
+                } else {
+                    None
+                }
+            })
+            .unwrap_or_default();
+
+        let size = tds[3].text().collect::<String>().trim().to_string();
+
+        let seeders = tds[5]
+            .text()
+            .collect::<String>()
+            .trim()
+            .parse()
+            .unwrap_or(0);
+
+        let leechers = tds[6]
+            .text()
+            .collect::<String>()
+            .trim()
+            .parse()
+            .unwrap_or(0);
+
+        let torrent_url = if link.starts_with('/') {
+            format!("https://sukebei.nyaa.si{link}")
+        } else {
+            link.to_string()
+        };
+
+        items.push(NyaaItem {
+            title,
+            magnet,
+            torrent,
+            size,
+            seeders,
+            leechers,
+            category: String::new(),
+            link: torrent_url,
+        });
+    }
+
+    items
+}
+
+#[tauri::command]
+pub async fn search_sukebei(
+    query: String,
+    page: Option<u32>,
+    sort: Option<String>,
+    order: Option<String>,
+) -> Result<Vec<NyaaItem>, String> {
+    let client = build_nyaa_client()?;
+
+    let mut params = vec![("q", query.as_str()), ("c", "2_0"), ("format", "json")];
+    let page_str = page.map(|p| p.to_string());
+    let sort_str = sort.as_deref();
+    let order_str = order.as_deref();
+    let mut extra = Vec::new();
+    if let Some(ref p) = page_str {
+        extra.push(("p", p.as_str()));
+    }
+    if let Some(s) = sort_str {
+        extra.push(("s", s));
+    }
+    if let Some(o) = order_str {
+        extra.push(("o", o));
+    }
+    params.extend(extra.iter().copied());
+
+    let mut last_err = String::new();
+    for attempt in 0..3 {
+        if attempt > 0 {
+            tokio::time::sleep(std::time::Duration::from_secs(2 * attempt)).await;
+        }
+
+        let resp = match client.get("https://sukebei.nyaa.si/").query(&params).send().await {
+            Ok(r) => r,
+            Err(e) => {
+                last_err = format!("{e}");
+                continue;
+            }
+        };
+
+        if resp.status() == 504 || resp.status() == 503 {
+            last_err = format!(
+                "Nyaa.si временно недоступен (HTTP {}), попробуйте позже",
+                resp.status()
+            );
+            continue;
+        }
+
+        if !resp.status().is_success() {
+            return Err(format!("Nyaa вернул HTTP {}", resp.status()));
+        }
+
+        let bytes = match resp.bytes().await {
+            Ok(b) => b,
+            Err(e) => {
+                last_err = format!("{e}");
+                continue;
+            }
+        };
+
+        if bytes.first() == Some(&b'[') {
+            let items: Vec<NyaaJsonItem> = match serde_json::from_slice(&bytes) {
+                Ok(items) => items,
+                Err(e) => {
+                    last_err = format!("JSON parse error: {e}");
+                    continue;
+                }
+            };
+
+            let result: Vec<NyaaItem> = items.into_iter().filter_map(sukebei_json_to_item).collect();
+            if !result.is_empty() || attempt >= 2 {
+                return Ok(result);
+            }
+            last_err = "No valid torrents found".to_string();
+            continue;
+        }
+
+        let html = String::from_utf8_lossy(&bytes).to_string();
+        let parsed = parse_sukebei_entries(&html);
+        if !parsed.is_empty() {
+            return Ok(parsed);
+        }
+
+        last_err = "No results found".to_string();
+    }
+
+    Err(last_err)
+}
+
 #[tauri::command]
 pub async fn search_rutracker(
     app_handle: tauri::AppHandle,

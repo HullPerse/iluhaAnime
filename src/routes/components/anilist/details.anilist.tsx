@@ -1,12 +1,20 @@
 import { invoke } from "@tauri-apps/api/core";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronRight, CircleSmall, Loader, Tag, Users } from "lucide-react";
+import {
+  ChevronRight,
+  CircleSmall,
+  Heart,
+  Loader,
+  Tag,
+  Users,
+} from "lucide-react";
 import { useSearchStore } from "@/store/search.store";
 import Modal from "@/components/shared/modal.component";
 import Section from "@/components/shared/section.component";
 import { Button } from "@/components/ui/button.component";
 import AniListActionControls from "./controls.anilist";
 import AniListMetadata from "./metadata.anilist";
+import AniListCharactersPanel from "./characters.anilist";
 import type { AniMedia } from "@/types/anilist";
 import { useState } from "react";
 
@@ -35,6 +43,8 @@ function AniListDetailModal({
   onRelated,
   onClose,
   onSaved,
+  favouriteIds,
+  onFavouriteToggle,
 }: {
   animeId: number;
   listEntry?: {
@@ -43,6 +53,8 @@ function AniListDetailModal({
     list_status: string;
   };
   isLoggedIn: boolean;
+  favouriteIds?: Set<number>;
+  onFavouriteToggle?: (animeId: number) => void;
   onTag: (e: string) => void;
   onGenre: (e: string) => void;
   onStudio?: (id: number, name: string) => void;
@@ -53,6 +65,12 @@ function AniListDetailModal({
   const setCrossSearchQuery = useSearchStore((s) => s.setCrossSearchQuery);
 
   const [showDesc, setShowDesc] = useState<boolean>(false);
+
+  const isFavourited = favouriteIds?.has(animeId) ?? false;
+
+  const handleToggleFav = () => {
+    onFavouriteToggle?.(animeId);
+  };
 
   const { data: anime, isLoading } = useQuery({
     queryKey: ["anime_detail", animeId],
@@ -75,8 +93,25 @@ function AniListDetailModal({
           <Loader className="size-6 animate-spin windows95-text" />
         </div>
       ) : (
-        <div className="flex flex-col gap-2 overflow-y-auto min-h-0 flex-1 pb-1">
-          <AniListMetadata anime={anime} />
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-row gap-2 items-start">
+            <div className="flex-1">
+              <AniListMetadata anime={anime} />
+            </div>
+            {isLoggedIn && (
+              <button
+                onClick={handleToggleFav}
+                className="shrink-0 p-1 windows95-border bg-white hover:bg-surface cursor-pointer"
+                title={
+                  isFavourited ? "Убрать из избранного" : "Добавить в избранное"
+                }
+              >
+                <Heart
+                  className={`size-4 ${isFavourited ? "fill-red-500 text-red-500" : "text-text"}`}
+                />
+              </button>
+            )}
+          </div>
 
           {anime.studios.length > 0 && (
             <Section header="Студии" className="flex flex-wrap gap-1 bg-white">
@@ -96,6 +131,8 @@ function AniListDetailModal({
               ))}
             </Section>
           )}
+
+          <AniListCharactersPanel animeId={anime.id} />
 
           {anime.relations.length > 0 && (
             <Section
@@ -150,7 +187,6 @@ function AniListDetailModal({
                 disabled
                 className="resize-y w-full h-36 min-h-18 max-h-64 select-none outline-0"
               />
-              {/*{anime.description}*/}
             </Section>
           )}
 

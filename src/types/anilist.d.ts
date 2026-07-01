@@ -56,6 +56,15 @@ export interface AniUser {
   anime_count: number;
   episodes_watched: number;
   mean_score: number | null;
+  favourites?: FavouriteAnime[];
+}
+
+export interface FavouriteAnime {
+  id: number;
+  title: { romaji: string; english: string | null };
+  cover_image: { medium: string | null } | null;
+  mean_score: number | null;
+  format: string | null;
 }
 
 export interface AniListEntry {
@@ -87,6 +96,33 @@ export interface AniRecommendation {
   score: number | null;
   format: string | null;
   recommendation_rating: number;
+}
+
+export interface AniCharacterNode {
+  id: number;
+  name: string;
+  native_name: string | null;
+  image: string | null;
+}
+
+export interface AniCharacterEdge {
+  role: string;
+  character: AniCharacterNode;
+}
+
+export interface AniActivity {
+  id: number;
+  created_at: number;
+  activity_type: string;
+  status: string | null;
+  progress: string | null;
+  text: string | null;
+  media_id: number | null;
+  media_title: string | null;
+  media_cover: string | null;
+  user_id: number;
+  user_name: string;
+  user_avatar: string | null;
 }
 
 export type AniListSort = {

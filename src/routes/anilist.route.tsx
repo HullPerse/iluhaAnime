@@ -9,6 +9,7 @@ import type {
   AniMedia,
   AniRecommendation,
   AniUser,
+  FavouriteAnime,
 } from "@/types/anilist";
 import { invoke } from "@tauri-apps/api/core";
 import { Input } from "@/components/ui/input.component";
@@ -23,10 +24,18 @@ import {
   getStatusColor,
 } from "@/lib/anilist.utils";
 import { SmallLoader } from "@/components/shared/loader.component";
+import FiltersModal, {
+  defaultFilters,
+} from "./components/anilist/filters.anilist";
+import AniListActivityModal from "./components/anilist/activity.anilist";
+import type { SearchFilters } from "./components/anilist/filters.anilist";
 import {
+  Activity,
   ArrowLeft,
   ArrowRight,
   Dices,
+  Filter,
+  Heart,
   Loader,
   LogOut,
   Search,
@@ -45,6 +54,16 @@ function AnilistRoute() {
   const [showRecs, setShowRecs] = useState(false);
   const [recs, setRecs] = useState<AniRecommendation[]>([]);
   const [recsLoading, setRecsLoading] = useState(false);
+  const [showFavourites, setShowFavourites] = useState(false);
+  const [favourites, setFavourites] = useState<FavouriteAnime[]>([]);
+  const [showActivity, setShowActivity] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const [searchFilters, setSearchFilters] =
+    useState<SearchFilters>(defaultFilters);
+  const favouriteIds = useMemo(
+    () => new Set(favourites.map((f) => f.id)),
+    [favourites],
+  );
 
   useEffect(() => {
     if (!showRecs || !user) return;
@@ -87,13 +106,31 @@ function AnilistRoute() {
     setSearchResults([]);
     try {
       const res = await invoke<AniMedia[]>("search_anilist", {
-        query: searchTerms.trim(),
+        query: searchTerms.trim() || null,
+        tags: searchFilters.tags.length > 0 ? searchFilters.tags : null,
+        genres: searchFilters.genres.length > 0 ? searchFilters.genres : null,
+        format: searchFilters.format || null,
+        status: searchFilters.status || null,
+        season: searchFilters.season || null,
+        seasonYear: searchFilters.seasonYear,
+        adult: searchFilters.adult ? true : null,
+        sort: searchFilters.sort ? [searchFilters.sort] : null,
+        source: searchFilters.source || null,
+        country: searchFilters.country || null,
+        yearFrom: searchFilters.year[0] > 0 ? searchFilters.year[0] : null,
+        yearTo: searchFilters.year[1] > 0 ? searchFilters.year[1] : null,
+        episodesFrom:
+          searchFilters.episodes[1] > 0 ? searchFilters.episodes[0] : null,
+        episodesTo:
+          searchFilters.episodes[1] > 0 ? searchFilters.episodes[1] : null,
+        scoreFrom: searchFilters.score[1] > 0 ? searchFilters.score[0] : null,
+        scoreTo: searchFilters.score[1] > 0 ? searchFilters.score[1] : null,
       });
       setSearchResults(res);
     } finally {
       setLoadingSearch(false);
     }
-  }, [searchTerms]);
+  }, [searchTerms, searchFilters]);
 
   const handleStudio = useCallback(async (id: number, name: string) => {
     setGlobal(true);
@@ -150,6 +187,7 @@ function AnilistRoute() {
     setSearchResults([]);
     setSearchTag(null);
     setSearchMode(null);
+    setSearchFilters(defaultFilters);
   }, []);
 
   const handleLogout = useCallback(async () => {
@@ -160,11 +198,11 @@ function AnilistRoute() {
     setCurrentList("");
   }, []);
 
-  const handleRandomPlanned = useCallback(() => {
-    const planning = lists.find((l) => l.name.toUpperCase() === "PLANNING");
-    if (!planning?.entries.length) return;
-    const idx = Math.floor(Math.random() * planning.entries.length);
-    const entry = planning.entries[idx];
+  const handleRandomFromList = useCallback(() => {
+    const list = lists.find((l) => l.name === currentList);
+    if (!list?.entries.length) return;
+    const idx = Math.floor(Math.random() * list.entries.length);
+    const entry = list.entries[idx];
     setSelectedAnime({
       animeId: entry.media.id,
       listEntry: {
@@ -173,7 +211,7 @@ function AnilistRoute() {
         list_status: entry.list_status,
       },
     });
-  }, [lists]);
+  }, [lists, currentList]);
 
   useEffect(() => {
     setLoadingList(true);
@@ -189,6 +227,9 @@ function AnilistRoute() {
             })
             .finally(() => setLoadingList(false))
             .catch(() => setLoadingList(false));
+          invoke<FavouriteAnime[]>("get_favourites", { userId: user.id })
+            .then(setFavourites)
+            .catch(() => {});
         }
       })
       .catch(() => setLoadingList(false));
@@ -268,6 +309,28 @@ function AnilistRoute() {
         />
         <Button
           size="icon"
+          title="Фильтры"
+          onClick={() => setShowFilters(true)}
+          className="relative"
+        >
+          <Filter className="size-4" />
+          {searchFilters.tags.length +
+            (searchFilters.format ? 1 : 0) +
+            (searchFilters.status ? 1 : 0) +
+            (searchFilters.season ? 1 : 0) +
+            (searchFilters.adult ? 1 : 0) >
+            0 && (
+            <span className="absolute -top-1 -right-1 size-3 text-[8px] bg-secondary text-white rounded-full flex items-center justify-center">
+              {searchFilters.tags.length +
+                (searchFilters.format ? 1 : 0) +
+                (searchFilters.status ? 1 : 0) +
+                (searchFilters.season ? 1 : 0) +
+                (searchFilters.adult ? 1 : 0)}
+            </span>
+          )}
+        </Button>
+        <Button
+          size="icon"
           title={global ? "Вернуться к профилю" : "Поиск"}
           onClick={() => {
             if (global) return handleReset();
@@ -281,42 +344,44 @@ function AnilistRoute() {
 
       {/* PROFILE */}
       {user && !global && !isLocal && (
-        <section className="flex flex-row items-center gap-2 windows95-active-border bg-primary p-1 w-full">
-          {user.avatar && (
-            <img
-              src={user.avatar}
-              alt=""
-              className="h-10 windows95-active-border"
-            />
-          )}
+        <section className="flex flex-col windows95-active-border bg-primary p-1 w-full">
+          <div className="flex flex-row items-center gap-2">
+            {user.avatar && (
+              <img
+                src={user.avatar}
+                alt=""
+                className="h-10 windows95-active-border"
+              />
+            )}
 
-          <div className="flex flex-col">
-            <span className="windows95-text font-bold">
-              {user.name.toUpperCase()}
-            </span>
-            <span className="windows95-text text-[10px]">
-              {loadingList ? (
-                "..."
-              ) : (
-                <>
-                  {user.anime_count} аниме · {user.episodes_watched} эп.
-                  {user.mean_score != null && <> · ср. {user.mean_score}</>}
-                </>
-              )}
-            </span>
+            <div className="flex flex-col">
+              <span className="windows95-text font-bold">
+                {user.name.toUpperCase()}
+              </span>
+              <span className="windows95-text text-[10px]">
+                {loadingList ? (
+                  "..."
+                ) : (
+                  <>
+                    {user.anime_count} аниме · {user.episodes_watched} эп.
+                    {user.mean_score != null && <> · ср. {user.mean_score}</>}
+                  </>
+                )}
+              </span>
+            </div>
+
+            <Button
+              size="default"
+              className="ml-auto h-7 text-[10px]"
+              onClick={() => setShowRecs(true)}
+            >
+              Рекомендации
+            </Button>
+
+            <Button size="icon" variant="error" onClick={handleLogout}>
+              <LogOut />
+            </Button>
           </div>
-
-          <Button
-            size="default"
-            className="ml-auto h-7 text-[10px]"
-            onClick={() => setShowRecs(true)}
-          >
-            Рекомендации
-          </Button>
-
-          <Button size="icon" variant="error" onClick={handleLogout}>
-            <LogOut />
-          </Button>
         </section>
       )}
 
@@ -386,16 +451,33 @@ function AnilistRoute() {
             );
           })}
 
-          <span className="w-px h-5 bg-muted mx-1" />
-
-          <Button
-            size="icon"
-            className="h-6 w-6 ml-auto"
-            title="Случайное из запланированного"
-            onClick={handleRandomPlanned}
-          >
-            <Dices className="size-3.5" />
-          </Button>
+          <span className="w-px h-5 ml-auto bg-muted" />
+          <div className="flex flex-row gap-1">
+            <Button
+              size="icon"
+              className="h-6 w-6"
+              onClick={() => setShowActivity(true)}
+            >
+              <Activity className="size-3.5" />
+            </Button>
+            <Button
+              size="icon"
+              className="h-6 w-6"
+              title="Избранное"
+              onClick={() => setShowFavourites(true)}
+              disabled={favourites.length === 0}
+            >
+              <Heart className="size-3.5" />
+            </Button>
+            <Button
+              size="icon"
+              className="h-6 w-6"
+              title="Случайное из списка"
+              onClick={handleRandomFromList}
+            >
+              <Dices className="size-3.5" />
+            </Button>
+          </div>
         </section>
       )}
 
@@ -663,6 +745,9 @@ function AnilistRoute() {
               const first = res.find((i) => i.entries.length > 0);
               if (first) setCurrentList(first.name);
             });
+            invoke<FavouriteAnime[]>("get_favourites", { userId: user.id })
+              .then(setFavourites)
+              .catch(() => {});
           }}
           onClose={() => setAuth(false)}
         />
@@ -673,6 +758,18 @@ function AnilistRoute() {
           animeId={selectedAnime.animeId}
           listEntry={selectedAnime.listEntry}
           isLoggedIn={!!user}
+          favouriteIds={favouriteIds}
+          onFavouriteToggle={async (animeId) => {
+            try {
+              const updated = await invoke<FavouriteAnime[]>(
+                "toggle_favourite",
+                { animeId },
+              );
+              setFavourites(updated);
+            } catch {
+              /* revert handled in details */
+            }
+          }}
           onTag={handleTag}
           onGenre={handleGenre}
           onStudio={handleStudio}
@@ -704,7 +801,7 @@ function AnilistRoute() {
               <span className="windows95-text">Нет рекомендаций</span>
             </div>
           ) : (
-            <div className="flex flex-col gap-1 overflow-y-auto min-h-0 flex-1 pb-1">
+            <div className="flex flex-col gap-1">
               {recs.map((r) => (
                 <div
                   key={r.id}
@@ -743,6 +840,84 @@ function AnilistRoute() {
           )}
         </Modal>
       )}
+
+      {user && showActivity && (
+        <AniListActivityModal
+          userId={user.id}
+          onClose={() => setShowActivity(false)}
+          onAnimeClick={(id) => {
+            setShowActivity(false);
+            setSelectedAnime({ animeId: id, listEntry: entryLookup.get(id) });
+          }}
+        />
+      )}
+
+      {showFavourites && (
+        <Modal
+          header="Избранное"
+          onClose={() => setShowFavourites(false)}
+          className="w-2xl"
+        >
+          {favourites.length === 0 ? (
+            <div className="flex items-center justify-center flex-1">
+              <span className="windows95-text">Нет избранного</span>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-1">
+              {favourites.map((fav) => (
+                <div
+                  key={fav.id}
+                  className="flex flex-row items-center gap-2 windows95-active-border bg-primary p-1 hover:bg-surface hover:cursor-pointer"
+                  onClick={() => {
+                    setShowFavourites(false);
+                    setSelectedAnime({ animeId: fav.id });
+                  }}
+                >
+                  {fav.cover_image?.medium ? (
+                    <img
+                      src={fav.cover_image.medium}
+                      alt=""
+                      className="w-10 shrink-0 windows95-active-border"
+                    />
+                  ) : (
+                    <div className="w-10 h-14 shrink-0 windows95-active-border bg-white flex items-center justify-center text-[9px]">
+                      ?
+                    </div>
+                  )}
+                  <div className="flex flex-col min-w-0 flex-1">
+                    <span
+                      className="text-[10px] font-bold truncate windows95-text"
+                      title={fav.title.romaji}
+                    >
+                      {fav.title.romaji}
+                    </span>
+                    <div className="flex flex-row gap-2 text-[9px] items-center mt-0.5">
+                      {fav.mean_score != null && (
+                        <span className="px-1 bg-secondary text-primary text-[10px] font-bold">
+                          ★ {fav.mean_score}
+                        </span>
+                      )}
+                      {fav.format && (
+                        <span className="text-[10px] windows95-font px-1 bg-white windows95-border text-text">
+                          {fav.format}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Modal>
+      )}
+
+      <FiltersModal
+        open={showFilters}
+        filters={searchFilters}
+        onApply={setSearchFilters}
+        onReset={() => setSearchFilters(defaultFilters)}
+        onClose={() => setShowFilters(false)}
+      />
     </main>
   );
 }

@@ -240,6 +240,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             scrapers::search_erairaws,
             scrapers::search_nyaa,
+            scrapers::search_sukebei,
             scrapers::search_rutracker,
             scrapers::search_nekobt,
             auth::rutracker_login,
@@ -275,6 +276,10 @@ pub fn run() {
             anilist::get_anilist_lists,
             anilist::anilist_logout,
             anilist::save_anilist_entry,
+            anilist::toggle_favourite,
+            anilist::get_favourites,
+            anilist::get_anime_characters,
+            anilist::get_anilist_activity,
             start_torrent_download,
             get_torrent_info,
             list_torrents,

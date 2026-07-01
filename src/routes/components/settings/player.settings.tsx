@@ -4,6 +4,7 @@ import { useSettingsStore } from "@/store/settings.store";
 import { Input } from "@/components/ui/input.component";
 import { Button } from "@/components/ui/button.component";
 import { ColorPickerTrigger } from "@/components/ui/color.component";
+import Select from "@/components/ui/select.component";
 
 export default function SettingsPlayer() {
   const {
@@ -57,18 +58,19 @@ export default function SettingsPlayer() {
 
       <label className="flex items-center gap-2 windows95-text text-text">
         <span className="w-48">Шрифт</span>
-        <select
+        <Select
+          className="w-40"
           value={subtitleFontFamily}
-          onChange={(e) => patch({ subtitleFontFamily: e.target.value })}
-          className="w-40 h-6 windows95-border bg-primary text-[11px] windows95-font windows95-select"
-        >
-          <option value="Arial">Arial</option>
-          <option value="Tahoma">Tahoma</option>
-          <option value="Verdana">Verdana</option>
-          <option value="'Courier New'">Courier New</option>
-          <option value="Georgia">Georgia</option>
-          <option value="Impact">Impact</option>
-        </select>
+          onChange={(v) => patch({ subtitleFontFamily: v })}
+          options={[
+            { value: "Arial", label: "Arial" },
+            { value: "Tahoma", label: "Tahoma" },
+            { value: "Verdana", label: "Verdana" },
+            { value: "'Courier New'", label: "Courier New" },
+            { value: "Georgia", label: "Georgia" },
+            { value: "Impact", label: "Impact" },
+          ]}
+        />
       </label>
 
       <label className="flex items-center gap-2 windows95-text text-text">

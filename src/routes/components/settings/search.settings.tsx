@@ -1,5 +1,6 @@
 import { useSettingsStore } from "@/store/settings.store";
 import { Input } from "@/components/ui/input.component";
+import Select from "@/components/ui/select.component";
 
 export default function SettingsSearch() {
   const {
@@ -17,17 +18,17 @@ export default function SettingsSearch() {
 
       <label className="flex items-center gap-2 windows95-text text-text">
         <span className="w-48">Источник по умолчанию</span>
-        <select
+        <Select
           value={defaultSearchSource}
-          onChange={(e) => patch({ defaultSearchSource: e.target.value })}
-          className="h-6 windows95-border px-1 text-text windows95-text windows95-select bg-white"
-        >
-          <option value="erai-raws">Erai-Raws</option>
-          <option value="rutracker">Rutracker</option>
-          <option value="nyaa">Nyaa.si</option>
-          <option value="sukebei">Sukebei (NSFW)</option>
-          <option value="nekobt">nekoBT</option>
-        </select>
+          onChange={(v) => patch({ defaultSearchSource: v })}
+          options={[
+            { value: "erai-raws", label: "Erai-Raws" },
+            { value: "rutracker", label: "Rutracker" },
+            { value: "nyaa", label: "Nyaa.si" },
+            { value: "sukebei", label: "Sukebei (NSFW)" },
+            { value: "nekobt", label: "nekoBT" },
+          ]}
+        />
       </label>
 
       <label className="flex items-center gap-2 windows95-text text-text">

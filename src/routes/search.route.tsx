@@ -27,6 +27,7 @@ import {
   X,
 } from "lucide-react";
 import { Input } from "@/components/ui/input.component";
+import Select from "@/components/ui/select.component";
 import { useTorrentStore } from "@/store/download.store";
 import RutrackerLoginModal from "@/routes/components/search/rutracker.search";
 import NekoBtApiModal from "@/routes/components/search/nekobt.search";
@@ -275,20 +276,21 @@ function SearchRoute() {
             <Search className="pointer-events-none" />
           )}
         </Button>
-        <select
-          className="h-9 windows95-border px-1 text-text windows95-text windows95-select bg-white"
+        <Select
+          className="h-9"
           value={source}
-          onChange={(e) => {
-            setSource(e.target.value as Source);
+          onChange={(v) => {
+            setSource(v as Source);
             setNyaaPage(1);
           }}
-        >
-          <option value="erai-raws">Erai-Raws</option>
-          <option value="rutracker">Rutracker</option>
-          <option value="nyaa">Nyaa.si</option>
-          <option value="sukebei">Sukebei (NSFW)</option>
-          <option value="nekobt">nekoBT</option>
-        </select>
+          options={[
+            { value: "erai-raws", label: "Erai-Raws" },
+            { value: "rutracker", label: "Rutracker" },
+            { value: "nyaa", label: "Nyaa.si" },
+            { value: "sukebei", label: "Sukebei (NSFW)" },
+            { value: "nekobt", label: "nekoBT" },
+          ]}
+        />
         {source === "rutracker" && !rutrackerAuth && (
           <Button
             variant="default"
@@ -352,73 +354,68 @@ function SearchRoute() {
         </div>
         <div className="flex items-center gap-1">
           <span className="text-text windows95-text">Сортировка:</span>
-          <select
-            className="h-6 windows95-border px-1 text-text windows95-text windows95-select"
+          <Select
+            className="w-[90px]"
             value={settings.sort}
-            onChange={(e) =>
+            onChange={(v) =>
               setSettings((prev) => ({
                 ...prev,
-                sort: e.target.value as SettingsScraper["sort"],
+                sort: v as SettingsScraper["sort"],
               }))
             }
-          >
-            <option value="seeders">Сидеры</option>
-            <option value="leechers">Личи</option>
-            <option value="size">Размер</option>
-          </select>
+            options={[
+              { value: "seeders", label: "Сидеры" },
+              { value: "leechers", label: "Личи" },
+              { value: "size", label: "Размер" },
+            ]}
+          />
         </div>
         <div className="flex items-center gap-1">
           <span className="text-text windows95-text">Кодек:</span>
-          <select
-            className="h-6 windows95-border px-1 text-text windows95-text windows95-select"
+          <Select
+            className="w-[80px]"
             value={settings.encoding}
-            onChange={(e) =>
+            onChange={(v) =>
               setSettings((prev) => ({
                 ...prev,
-                encoding: e.target.value as SettingsScraper["encoding"],
+                encoding: v as SettingsScraper["encoding"],
               }))
             }
-          >
-            {encodings.map((enc) => (
-              <option key={enc} value={enc}>
-                {enc === "all" ? "Все" : enc}
-              </option>
-            ))}
-          </select>
+            options={encodings.map((enc) => ({
+              value: enc,
+              label: enc === "all" ? "Все" : enc,
+            }))}
+          />
         </div>
         {source === "nyaa" && (
           <>
             <div className="flex items-center gap-1">
               <span className="text-text windows95-text">Сорт.:</span>
-              <select
-                className="h-6 windows95-border px-1 text-text windows95-text windows95-select"
+              <Select
+                className="w-[180px]"
                 value={nyaaSort}
-                onChange={(e) => {
-                  setNyaaSort(e.target.value);
+                onChange={(v) => {
+                  setNyaaSort(v);
                   setNyaaPage(1);
                   setTimeout(() => refetch(), 0);
                 }}
-              >
-                {nyaaSorts.map((s) => (
-                  <option key={s.value} value={s.value}>
-                    {s.label}
-                  </option>
-                ))}
-              </select>
+                options={nyaaSorts}
+              />
             </div>
             <div className="flex items-center gap-1">
-              <select
-                className="h-6 windows95-border px-1 text-text windows95-text windows95-select"
+              <Select
+                className="w-[100px]"
                 value={nyaaOrder}
-                onChange={(e) => {
-                  setNyaaOrder(e.target.value);
+                onChange={(v) => {
+                  setNyaaOrder(v);
                   setNyaaPage(1);
                   setTimeout(() => refetch(), 0);
                 }}
-              >
-                <option value="desc">По убыв.</option>
-                <option value="asc">По возр.</option>
-              </select>
+                options={[
+                  { value: "desc", label: "По убыв." },
+                  { value: "asc", label: "По возр." },
+                ]}
+              />
             </div>
           </>
         )}

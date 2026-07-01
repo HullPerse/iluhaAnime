@@ -2,6 +2,7 @@ import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Input } from "@/components/ui/input.component";
 import { Button } from "@/components/ui/button.component";
+import Select from "@/components/ui/select.component";
 import { Save } from "lucide-react";
 import { listStatusOptions } from "@/lib/anilist.utils";
 import type { AniMedia } from "@/types/anilist";
@@ -59,17 +60,12 @@ function AniListActionControls({
       <div className="flex flex-col gap-2 p-1.5">
         <div className="flex flex-row gap-2 items-center windows95-text">
           <span className="w-20 shrink-0">Статус:</span>
-          <select
+          <Select
+            className="flex-1"
             value={editStatus}
-            onChange={(e) => setEditStatus(e.target.value)}
-            className="flex-1 windows95-border bg-primary text-text windows95-text px-1 py-0.5 windows95-select"
-          >
-            {listStatusOptions.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
+            onChange={(v) => setEditStatus(v)}
+            options={listStatusOptions}
+          />
         </div>
         <div className="flex flex-row gap-2 items-center windows95-text">
           <span className="w-20 shrink-0">Прогресс:</span>
@@ -89,18 +85,17 @@ function AniListActionControls({
         </div>
         <div className="flex flex-row gap-2 items-center windows95-text">
           <span className="w-20 shrink-0">Оценка:</span>
-          <select
+          <Select
             value={editScore}
-            onChange={(e) => setEditScore(e.target.value)}
-            className="windows95-border bg-primary text-text windows95-text px-1 py-0.5 windows95-select"
-          >
-            <option value="">—</option>
-            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
-              <option key={n} value={n}>
-                {n}
-              </option>
-            ))}
-          </select>
+            onChange={(v) => setEditScore(v)}
+            options={[
+              { value: "", label: "—" },
+              ...[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => ({
+                value: String(n),
+                label: String(n),
+              })),
+            ]}
+          />
           <span className="text-[10px] windows95-text">/ 10</span>
         </div>
         {saveError && (

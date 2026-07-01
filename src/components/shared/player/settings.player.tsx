@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button.component";
 import Slider from "@/components/ui/range.component";
+import Select from "@/components/ui/select.component";
 import { ColorPickerTrigger } from "@/components/ui/color.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 
@@ -69,17 +70,18 @@ function Settings({
       />
       <label className="flex items-center gap-2">
         <span className="w-24 shrink-0">Соотношение</span>
-        <select
+        <Select
+          className="flex-1"
           value={settings.aspectRatio}
-          onChange={(e) => onChange({ aspectRatio: e.target.value })}
-          className="flex-1 h-5 windows95-border bg-primary text-[10px] windows95-font"
-        >
-          <option value="contain">Fit</option>
-          <option value="fill">Stretch</option>
-          <option value="cover">Crop</option>
-          <option value="none">Original</option>
-          <option value="scale-down">Scale down</option>
-        </select>
+          onChange={(v) => onChange({ aspectRatio: v })}
+          options={[
+            { value: "contain", label: "Fit" },
+            { value: "fill", label: "Stretch" },
+            { value: "cover", label: "Crop" },
+            { value: "none", label: "Original" },
+            { value: "scale-down", label: "Scale down" },
+          ]}
+        />
       </label>
 
       <hr className="border-muted my-1" />
@@ -161,18 +163,19 @@ function Settings({
       />
       <label className="flex items-center gap-2">
         <span className="w-24 shrink-0">Шрифт</span>
-        <select
+        <Select
+          className="flex-1"
           value={settings.subFontFamily}
-          onChange={(e) => onChange({ subFontFamily: e.target.value })}
-          className="flex-1 h-5 windows95-border text-[10px] windows95-font windows95-select"
-        >
-          <option value="Arial">Arial</option>
-          <option value="Tahoma">Tahoma</option>
-          <option value="Verdana">Verdana</option>
-          <option value="'Courier New'">Courier New</option>
-          <option value="Georgia">Georgia</option>
-          <option value="Impact">Impact</option>
-        </select>
+          onChange={(v) => onChange({ subFontFamily: v })}
+          options={[
+            { value: "Arial", label: "Arial" },
+            { value: "Tahoma", label: "Tahoma" },
+            { value: "Verdana", label: "Verdana" },
+            { value: "'Courier New'", label: "Courier New" },
+            { value: "Georgia", label: "Georgia" },
+            { value: "Impact", label: "Impact" },
+          ]}
+        />
       </label>
       <label className="flex items-center gap-2">
         <span className="w-24 shrink-0">Цвет</span>

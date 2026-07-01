@@ -5,6 +5,7 @@ import { FolderOpen, Monitor, Play } from "lucide-react";
 import { openPath } from "@tauri-apps/plugin-opener";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
+import Select from "@/components/ui/select.component";
 
 import type { FilePriority } from "@/types";
 
@@ -108,23 +109,23 @@ function TorrentFilesSection({
                 {onFilePriorityChange &&
                   type === "torrent" &&
                   !fileItem.completed && (
-                    <select
-                      className="h-4 text-[9px] windows95-border px-0.5 ml-1 windows95-select bg-white"
+                    <Select
+                      className="ml-1 inline-block"
                       value={fileItem.priority || "normal"}
-                      onChange={(e) => {
+                      onChange={(v) => {
                         onFilePriorityChange(
                           id,
                           [fileItem.index],
-                          e.target.value as FilePriority,
+                          v as FilePriority,
                         );
                       }}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <option value="high">Высокий</option>
-                      <option value="normal">Нормальный</option>
-                      <option value="low">Маленький</option>
-                      <option value="do_not_download">Пропуск</option>
-                    </select>
+                      options={[
+                        { value: "high", label: "Высокий" },
+                        { value: "normal", label: "Нормальный" },
+                        { value: "low", label: "Маленький" },
+                        { value: "do_not_download", label: "Пропуск" },
+                      ]}
+                    />
                   )}
 
                 {type === "player" && (

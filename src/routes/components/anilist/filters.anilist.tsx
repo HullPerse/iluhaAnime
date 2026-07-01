@@ -2,7 +2,8 @@ import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
-import DualSlider from "@/components/ui/range-dual.component";
+import { DualSlider } from "@/components/ui/range.component";
+import Select from "@/components/ui/select.component";
 import { useState } from "react";
 
 const ANILIST_TAGS = [
@@ -110,35 +111,50 @@ function FiltersModal({ open, filters, onApply, onReset, onClose }: Props) {
 
         <p className="windows95-text text-text font-bold mt-1">Сезон и год</p>
         <div className="flex items-center gap-2">
-          <select className="windows95-border bg-primary text-text windows95-text windows95-select px-1 h-6" value={local.season} onChange={(e) => setLocal((p) => ({ ...p, season: e.target.value }))}>
-            <option value="">Любой</option>
-            {SEASONS.map((s) => (<option key={s} value={s}>{s}</option>))}
-          </select>
+          <Select
+            className="w-24"
+            value={local.season}
+            onChange={(v) => setLocal((p) => ({ ...p, season: v }))}
+            options={[
+              { value: "", label: "Любой" },
+              ...SEASONS.map((s) => ({ value: s, label: s })),
+            ]}
+          />
           <Input type="number" placeholder="Год" className="w-20" value={local.seasonYear ?? ""} onChange={(e) => setLocal((p) => ({ ...p, seasonYear: e.target.value ? Number(e.target.value) : null }))} />
         </div>
 
         <p className="windows95-text text-text font-bold mt-1">Сортировка</p>
-        <select className="windows95-border bg-primary text-text windows95-text windows95-select px-1 h-6 w-full" value={local.sort} onChange={(e) => setLocal((p) => ({ ...p, sort: e.target.value }))}>
-          <option value="">По релевантности</option>
-          <option value="SCORE_DESC">По рейтингу ↓</option>
-          <option value="SCORE_ASC">По рейтингу ↑</option>
-          <option value="POPULARITY_DESC">По популярности ↓</option>
-          <option value="TRENDING_DESC">По трендам ↓</option>
-          <option value="START_DATE_DESC">По дате выхода ↓</option>
-        </select>
+        <Select
+          className="w-full"
+          value={local.sort}
+          onChange={(v) => setLocal((p) => ({ ...p, sort: v }))}
+          options={[
+            { value: "", label: "По релевантности" },
+            { value: "SCORE_DESC", label: "По рейтингу ↓" },
+            { value: "SCORE_ASC", label: "По рейтингу ↑" },
+            { value: "POPULARITY_DESC", label: "По популярности ↓" },
+            { value: "TRENDING_DESC", label: "По трендам ↓" },
+            { value: "START_DATE_DESC", label: "По дате выхода ↓" },
+          ]}
+        />
 
         <p className="windows95-text text-text font-bold mt-1">Источник</p>
-        <select className="windows95-border bg-primary text-text windows95-text windows95-select px-1 h-6 w-full" value={local.source} onChange={(e) => setLocal((p) => ({ ...p, source: e.target.value }))}>
-          <option value="">Любой</option>
-          <option value="ORIGINAL">Оригинал</option>
-          <option value="MANGA">Манга</option>
-          <option value="LIGHT_NOVEL">Ранобэ</option>
-          <option value="VISUAL_NOVEL">Визуальная новелла</option>
-          <option value="VIDEO_GAME">Игра</option>
-          <option value="NOVEL">Новелла</option>
-          <option value="WEB_MANGA">Веб-манга</option>
-          <option value="OTHER">Другое</option>
-        </select>
+        <Select
+          className="w-full"
+          value={local.source}
+          onChange={(v) => setLocal((p) => ({ ...p, source: v }))}
+          options={[
+            { value: "", label: "Любой" },
+            { value: "ORIGINAL", label: "Оригинал" },
+            { value: "MANGA", label: "Манга" },
+            { value: "LIGHT_NOVEL", label: "Ранобэ" },
+            { value: "VISUAL_NOVEL", label: "Визуальная новелла" },
+            { value: "VIDEO_GAME", label: "Игра" },
+            { value: "NOVEL", label: "Новелла" },
+            { value: "WEB_MANGA", label: "Веб-манга" },
+            { value: "OTHER", label: "Другое" },
+          ]}
+        />
 
         <p className="windows95-text text-text font-bold mt-1">Страна</p>
         <div className="flex flex-wrap gap-1">

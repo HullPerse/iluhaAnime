@@ -16,16 +16,16 @@ struct FolderScanProgress {
     stage: String,
 }
 
-fn video_extensions_path(app_handle: &tauri::AppHandle) -> std::path::PathBuf {
+fn extensions_path(app_handle: &tauri::AppHandle, name: &str) -> std::path::PathBuf {
     let dir = app_handle
         .path()
         .app_data_dir()
         .unwrap_or_else(|_| std::path::PathBuf::from("."));
-    dir.join("video_extensions.json")
+    dir.join(format!("{name}_extensions.json"))
 }
 
-fn load_video_extensions(app_handle: &tauri::AppHandle) -> Vec<String> {
-    let path = video_extensions_path(app_handle);
+fn load_extensions(app_handle: &tauri::AppHandle, name: &str) -> Vec<String> {
+    let path = extensions_path(app_handle, name);
     if let Ok(data) = std::fs::read_to_string(&path) {
         if let Ok(exts) = serde_json::from_str::<Vec<String>>(&data) {
             if !exts.is_empty() {
@@ -33,6 +33,10 @@ fn load_video_extensions(app_handle: &tauri::AppHandle) -> Vec<String> {
             }
         }
     }
+    Vec::new()
+}
+
+fn default_video_extensions() -> Vec<String> {
     vec![
         "mp4".into(), "mkv".into(), "avi".into(), "mov".into(), "webm".into(),
         "flv".into(), "wmv".into(), "m4v".into(), "mpg".into(), "mpeg".into(),
@@ -40,12 +44,37 @@ fn load_video_extensions(app_handle: &tauri::AppHandle) -> Vec<String> {
     ]
 }
 
-#[tauri::command]
-pub fn set_video_extensions(
-    app_handle: tauri::AppHandle,
-    extensions: Vec<String>,
-) -> Result<(), String> {
-    let path = video_extensions_path(&app_handle);
+fn default_audio_extensions() -> Vec<String> {
+    vec![
+        "mp3".into(), "flac".into(), "aac".into(), "ogg".into(), "wav".into(),
+        "opus".into(), "m4a".into(), "wma".into(),
+    ]
+}
+
+fn default_subtitle_extensions() -> Vec<String> {
+    vec![
+        "srt".into(), "ass".into(), "ssa".into(), "vtt".into(),
+        "sub".into(), "idx".into(), "sup".into(), "pgs".into(),
+    ]
+}
+
+fn load_video_extensions(app_handle: &tauri::AppHandle) -> Vec<String> {
+    let exts = load_extensions(app_handle, "video");
+    if exts.is_empty() { default_video_extensions() } else { exts }
+}
+
+fn load_audio_extensions(app_handle: &tauri::AppHandle) -> Vec<String> {
+    let exts = load_extensions(app_handle, "audio");
+    if exts.is_empty() { default_audio_extensions() } else { exts }
+}
+
+fn load_subtitle_extensions(app_handle: &tauri::AppHandle) -> Vec<String> {
+    let exts = load_extensions(app_handle, "subtitle");
+    if exts.is_empty() { default_subtitle_extensions() } else { exts }
+}
+
+fn save_extensions(app_handle: &tauri::AppHandle, name: &str, extensions: Vec<String>) -> Result<(), String> {
+    let path = extensions_path(app_handle, name);
     if let Some(dir) = path.parent() {
         std::fs::create_dir_all(dir).map_err(|e| format!("{e}"))?;
     }
@@ -59,8 +88,42 @@ pub fn set_video_extensions(
 }
 
 #[tauri::command]
+pub fn set_video_extensions(
+    app_handle: tauri::AppHandle,
+    extensions: Vec<String>,
+) -> Result<(), String> {
+    save_extensions(&app_handle, "video", extensions)
+}
+
+#[tauri::command]
 pub fn get_video_extensions(app_handle: tauri::AppHandle) -> Vec<String> {
     load_video_extensions(&app_handle)
+}
+
+#[tauri::command]
+pub fn set_audio_extensions(
+    app_handle: tauri::AppHandle,
+    extensions: Vec<String>,
+) -> Result<(), String> {
+    save_extensions(&app_handle, "audio", extensions)
+}
+
+#[tauri::command]
+pub fn get_audio_extensions(app_handle: tauri::AppHandle) -> Vec<String> {
+    load_audio_extensions(&app_handle)
+}
+
+#[tauri::command]
+pub fn set_subtitle_extensions(
+    app_handle: tauri::AppHandle,
+    extensions: Vec<String>,
+) -> Result<(), String> {
+    save_extensions(&app_handle, "subtitle", extensions)
+}
+
+#[tauri::command]
+pub fn get_subtitle_extensions(app_handle: tauri::AppHandle) -> Vec<String> {
+    load_subtitle_extensions(&app_handle)
 }
 
 fn count_video_files(root: &std::path::Path, exts: &[&str]) -> usize {
@@ -90,8 +153,10 @@ pub async fn scan_video_folder(
     app_handle: tauri::AppHandle,
     path: String,
 ) -> Result<Vec<VideoFileEntry>, String> {
-    let video_exts: Vec<String> = load_video_extensions(&app_handle);
-    let exts: Vec<&str> = video_exts.iter().map(|s| s.as_str()).collect();
+    let mut media_exts: Vec<String> = load_video_extensions(&app_handle);
+    media_exts.extend(load_audio_extensions(&app_handle));
+    media_exts.extend(load_subtitle_extensions(&app_handle));
+    let exts: Vec<&str> = media_exts.iter().map(|s| s.as_str()).collect();
     let root = std::path::Path::new(&path);
     if !root.is_dir() {
         return Err("Not a directory".to_string());

@@ -1,13 +1,45 @@
-import { fmtSize, groupFilesByDirectory } from "@/lib/torrent.utils";
-import type { TorrentFileInfo } from "@/types/torrent";
-import { useEffect, useState } from "react";
-import { FolderOpen, Monitor, Play } from "lucide-react";
+import { buildTorrentTree, fmtSize } from "@/lib/torrent.utils";
+import type { TorrentTreeNode, TorrentTreeFile } from "@/lib/torrent.utils";
+import type { TorrentFileInfo, FilePriority } from "@/types/torrent";
+import { useRef, useState, useCallback, useMemo } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
+import {
+  ChevronDown,
+  ChevronRight,
+  FolderOpen,
+  Monitor,
+  Play,
+} from "lucide-react";
 import { openPath } from "@tauri-apps/plugin-opener";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import Select from "@/components/ui/select.component";
+import { useSettingsStore } from "@/store/settings.store";
 
-import type { FilePriority } from "@/types";
+type Item =
+  | { kind: "folder"; node: TorrentTreeNode; depth: number }
+  | { kind: "file"; file: TorrentTreeFile; depth: number };
+
+function flattenTree(
+  nodes: TorrentTreeNode[],
+  open: Set<string>,
+  fileFilter?: (f: TorrentTreeFile) => boolean,
+  depth = 0,
+): Item[] {
+  const items: Item[] = [];
+
+  for (const node of nodes) {
+    if (depth > 0) items.push({ kind: "folder", node, depth });
+    if (open.has(node.name + depth)) {
+      const files = fileFilter ? node.files.filter(fileFilter) : node.files;
+      for (const file of files) {
+        items.push({ kind: "file", file, depth: depth + 1 });
+      }
+      items.push(...flattenTree(node.children, open, fileFilter, depth + 1));
+    }
+  }
+  return items;
+}
 
 function TorrentFilesSection({
   id,
@@ -37,10 +69,57 @@ function TorrentFilesSection({
       ),
   );
 
-  const toggle = (index: number) => {
-    const file = files.find((f) => f.index === index);
-    if (file?.completed) return;
+  const [open, setOpen] = useState<Set<string>>(new Set());
+  const scrollRef = useRef<HTMLDivElement>(null);
 
+  const trees = useMemo(() => buildTorrentTree(files), [files]);
+
+  const toggle = useCallback((key: string) => {
+    setOpen((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
+
+  const showTrackFiles = useSettingsStore((s) => s.showTrackFiles);
+  const audioExtensions = useSettingsStore((s) => s.audioExtensions);
+  const subtitleExtensions = useSettingsStore((s) => s.subtitleExtensions);
+
+  const trackExts = useMemo(
+    () => new Set([...audioExtensions, ...subtitleExtensions]),
+    [audioExtensions, subtitleExtensions],
+  );
+
+  const fileFilter = useMemo(() => {
+    if (type !== "player") return undefined;
+    const hideTracks =
+      showTrackFiles === "hide" || showTrackFiles === "folders";
+    return (f: TorrentTreeFile) => {
+      if (!f.completed) return false;
+      if (hideTracks) {
+        const ext = f.name.split(".").pop()?.toLowerCase();
+        if (ext && trackExts.has(ext)) return false;
+      }
+      return true;
+    };
+  }, [type, showTrackFiles, trackExts]);
+
+  const flatItems = useMemo(
+    () => flattenTree(trees, open, fileFilter),
+    [trees, open, fileFilter],
+  );
+
+  const virtualizer = useVirtualizer({
+    count: flatItems.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 20,
+    overscan: 20,
+  });
+
+  const handleToggleFile = (index: number, completed: boolean) => {
+    if (completed) return;
     const next = new Set(selected);
     if (next.has(index)) next.delete(index);
     else next.add(index);
@@ -48,125 +127,136 @@ function TorrentFilesSection({
     onToggle?.(id, [...next]);
   };
 
-  useEffect(() => {
-    setSelected(
-      new Set(
-        files.filter((f) => f.selected || f.completed).map((f) => f.index),
-      ),
-    );
-  }, [files]);
+  const handlePriorityChange = onFilePriorityChange
+    ? (fileIndices: number[], priority: FilePriority) =>
+        onFilePriorityChange(id, fileIndices, priority)
+    : undefined;
 
   return (
-    <div className="windows95-border max-h-40 overflow-y-auto">
-      {groupFilesByDirectory(files).map((group) => (
-        <div key={group.dir || "__root__"}>
-          {group.dir && (
-            <div className="flex items-center gap-1 px-1 py-0.5 text-[10px] windows95-font bg-primary select-none">
-              <FolderOpen className="size-3 shrink-0" />
-              <span className="font-bold truncate" title={group.dir}>
-                {group.dir}
-              </span>
-              <span className="text-muted ml-auto">
-                {fmtSize(group.files.reduce((s, f) => s + f.size, 0))}
-              </span>
-            </div>
-          )}
-          {group.files.map((fileItem, index) => {
-            if (type === "player" && !fileItem.completed) return;
-
+    <div
+      ref={scrollRef}
+      className="windows95-border min-h-fitmax-h-40 overflow-y-auto bg-white"
+    >
+      <div style={{ height: virtualizer.getTotalSize(), position: "relative" }}>
+        {virtualizer.getVirtualItems().map((vItem) => {
+          const item = flatItems[vItem.index];
+          if (!item) return null;
+          if (item.kind === "folder") {
+            const isOpen = open.has(item.node.name + item.depth);
             return (
-              <label
-                key={fileItem.index}
-                className={`flex items-center gap-1 px-1 py-0.5 text-[10px] windows95-font select-none ${type === "player" ? "" : "hover:bg-surface"} ${group.dir ? "pl-5" : ""}`}
+              <div
+                key={item.node.name + item.depth}
+                role="button"
+                className="flex items-center gap-1 windows95-text cursor-pointer hover:bg-surface px-0.5 py-0.5 w-full text-left select-none absolute top-0 left-0"
+                style={{
+                  height: 20,
+                  transform: `translateY(${vItem.start}px)`,
+                  paddingLeft: `${item.depth * 12 + 2}px`,
+                }}
+                onClick={() => toggle(item.node.name + item.depth)}
               >
-                {!!onToggle && (
-                  <Checkbox
-                    checked={selected.has(fileItem.index)}
-                    onChange={() => toggle(fileItem.index)}
-                    disabled={fileItem.completed}
-                    className="size-3"
+                {isOpen ? (
+                  <ChevronDown className="size-3 shrink-0" />
+                ) : (
+                  <ChevronRight className="size-3 shrink-0" />
+                )}
+                <FolderOpen className="size-3 shrink-0 text-muted" />
+                <span className="truncate font-bold" title={item.node.name}>
+                  {item.node.name}
+                </span>
+                <span className="text-muted ml-auto whitespace-nowrap">
+                  {fmtSize(
+                    item.node.files.reduce((s, f) => s + f.size, 0) +
+                      item.node.children.reduce(
+                        (s, c) => s + c.files.reduce((s2, f) => s2 + f.size, 0),
+                        0,
+                      ),
+                  )}
+                </span>
+              </div>
+            );
+          }
+          const file = item.file;
+          return (
+            <label
+              key={file.index}
+              className={`flex items-center gap-1 px-1 w-full text-[11px] windows95-font select-none absolute top-0 left-0 ${type === "player" ? "" : "hover:bg-surface"}`}
+              style={{
+                height: 20,
+                transform: `translateY(${vItem.start}px)`,
+                paddingLeft: `${item.depth * 12 + 2}px`,
+              }}
+            >
+              {onToggle && (
+                <Checkbox
+                  checked={selected.has(file.index)}
+                  onChange={() => handleToggleFile(file.index, file.completed)}
+                  disabled={file.completed}
+                  className="size-3"
+                />
+              )}
+
+              <span
+                className={`shrink-0 text-[9px] ${file.exists ? "text-green-700" : "text-red-600"}`}
+              >
+                {file.exists ? "✓" : "✗"}
+              </span>
+
+              <span className="truncate flex-1" title={file.displayName}>
+                {file.displayName}
+              </span>
+
+              <span className="text-muted shrink-0">{fmtSize(file.size)}</span>
+
+              {handlePriorityChange &&
+                type === "torrent" &&
+                !file.completed && (
+                  <Select
+                    className="w-20"
+                    value={file.priority || "normal"}
+                    onChange={(v) =>
+                      handlePriorityChange([file.index], v as FilePriority)
+                    }
+                    options={[
+                      { value: "high", label: "Высокий" },
+                      { value: "normal", label: "Нормальный" },
+                      { value: "low", label: "Маленький" },
+                      { value: "do_not_download", label: "Пропуск" },
+                    ]}
                   />
                 )}
-                <span
-                  className={`shrink-0 text-[9px] ${fileItem.exists ? "text-green-700" : "text-red-600"}`}
-                  title={
-                    fileItem.exists ? "Файл существует" : "Файл отсутствует"
-                  }
-                >
-                  {fileItem.exists ? "✓" : "✗"}
-                </span>
-                <span
-                  className="truncate flex-1"
-                  title={`${index + 1}. ${fileItem.displayName}`}
-                >
-                  {`${index + 1}. `}
-                  {fileItem.displayName}
-                </span>
-                <span className="text-muted shrink-0">
-                  {fmtSize(fileItem.size)}
-                </span>
 
-                {onFilePriorityChange &&
-                  type === "torrent" &&
-                  !fileItem.completed && (
-                    <Select
-                      className="ml-1 inline-block"
-                      value={fileItem.priority || "normal"}
-                      onChange={(v) => {
-                        onFilePriorityChange(
-                          id,
-                          [fileItem.index],
-                          v as FilePriority,
-                        );
+              {type === "player" && (
+                <div className="flex flex-row gap-1 ml-auto">
+                  {path && (
+                    <Button
+                      title="Открыть в медиа плеере"
+                      size="icon"
+                      className="size-4"
+                      onClick={async () => {
+                        if (!path) return;
+                        openPath(`${path}/${file.name}`);
                       }}
-                      options={[
-                        { value: "high", label: "Высокий" },
-                        { value: "normal", label: "Нормальный" },
-                        { value: "low", label: "Маленький" },
-                        { value: "do_not_download", label: "Пропуск" },
-                      ]}
-                    />
+                    >
+                      <Monitor className="size-2.5" />
+                    </Button>
                   )}
-
-                {type === "player" && (
-                  <div className="flex flex-row gap-1 ml-auto">
-                    {path && (
-                      <Button
-                        title="Открыть в медиа плеере"
-                        size="icon"
-                        variant="default"
-                        className="size-5"
-                        rendered={type === "player"}
-                        onClick={async () => {
-                          if (!path) return;
-
-                          openPath(`${path}/${fileItem.name}`);
-                        }}
-                      >
-                        <Monitor />
-                      </Button>
-                    )}
-                    {onPlay && (
-                      <Button
-                        title="Открыть в iluhaAnime плеере"
-                        size="icon"
-                        variant="default"
-                        className="size-5"
-                        rendered={type === "player"}
-                        onClick={() =>
-                          path && onPlay(`${path}/${fileItem.name}`)
-                        }
-                      >
-                        <Play />
-                      </Button>
-                    )}
-                  </div>
-                )}
-              </label>
-            );
-          })}
-        </div>
-      ))}
+                  {onPlay && (
+                    <Button
+                      title="Открыть в iluhaAnime плеере"
+                      size="icon"
+                      className="size-4"
+                      onClick={() => path && onPlay(`${path}/${file.name}`)}
+                    >
+                      <Play className="size-2.5" />
+                    </Button>
+                  )}
+                </div>
+              )}
+            </label>
+          );
+        })}
+      </div>
     </div>
   );
 }

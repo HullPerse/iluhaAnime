@@ -45,20 +45,20 @@ function Settings({
         onChange={(v) => onChange({ rotation: v })}
         suffix="°"
       />
-      <label className="flex items-center gap-2 cursor-pointer">
-        <Checkbox
-          checked={settings.flipH}
-          onChange={(v) => onChange({ flipH: v })}
-        />
-        Отразить по горизонтали
-      </label>
-      <label className="flex items-center gap-2 cursor-pointer">
-        <Checkbox
-          checked={settings.flipV}
-          onChange={(v) => onChange({ flipV: v })}
-        />
-        Отразить по вертикали
-      </label>
+        <label className="flex items-center gap-2 cursor-pointer select-none">
+          <Checkbox
+            checked={settings.flipH}
+            onChange={(v) => onChange({ flipH: v })}
+          />
+          Отразить по горизонтали
+        </label>
+        <label className="flex items-center gap-2 cursor-pointer select-none">
+          <Checkbox
+            checked={settings.flipV}
+            onChange={(v) => onChange({ flipV: v })}
+          />
+          Отразить по вертикали
+        </label>
       <Slider
         label="Масштаб"
         min={0.1}
@@ -164,7 +164,7 @@ function Settings({
       <label className="flex items-center gap-2">
         <span className="w-24 shrink-0">Шрифт</span>
         <Select
-          className="flex-1"
+          className="flex-1 w-20"
           value={settings.subFontFamily}
           onChange={(v) => onChange({ subFontFamily: v })}
           options={[

@@ -56,31 +56,31 @@ export default function SettingsTorrent() {
 
       <p className="windows95-text text-muted font-bold w-full">Уведомления</p>
 
-      <label className="flex items-center gap-2 windows95-text text-text cursor-pointer">
-        <Checkbox
-          checked={notificationsEnabled}
-          onChange={(v) => patch({ notificationsEnabled: v })}
-        />
-        <span>Включить уведомления</span>
-      </label>
+        <label className="flex items-center gap-2 windows95-text text-text cursor-pointer select-none">
+          <Checkbox
+            checked={notificationsEnabled}
+            onChange={(v) => patch({ notificationsEnabled: v })}
+          />
+          <span>Включить уведомления</span>
+        </label>
 
-      <label className="flex items-center gap-2 windows95-text text-text pl-4 cursor-pointer">
-        <Checkbox
-          checked={notifyOnComplete}
-          disabled={!notificationsEnabled}
-          onChange={(v) => patch({ notifyOnComplete: v })}
-        />
-        <span>При завершении загрузки</span>
-      </label>
+        <label className="flex items-center gap-2 windows95-text text-text pl-4 cursor-pointer select-none">
+          <Checkbox
+            checked={notifyOnComplete}
+            disabled={!notificationsEnabled}
+            onChange={(v) => patch({ notifyOnComplete: v })}
+          />
+          <span>При завершении загрузки</span>
+        </label>
 
-      <label className="flex items-center gap-2 windows95-text text-text pl-4 cursor-pointer">
-        <Checkbox
-          checked={notifyOnError}
-          disabled={!notificationsEnabled}
-          onChange={(v) => patch({ notifyOnError: v })}
-        />
-        <span>При ошибке</span>
-      </label>
+        <label className="flex items-center gap-2 windows95-text text-text pl-4 cursor-pointer select-none">
+          <Checkbox
+            checked={notifyOnError}
+            disabled={!notificationsEnabled}
+            onChange={(v) => patch({ notifyOnError: v })}
+          />
+          <span>При ошибке</span>
+        </label>
     </div>
   );
 }

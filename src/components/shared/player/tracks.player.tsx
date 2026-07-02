@@ -1,6 +1,6 @@
 import { invoke, convertFileSrc } from "@tauri-apps/api/core";
 import type { VideoStreamInfo } from "@/types";
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { parseVTT } from "@/lib/index.utils";
 import { useMediaStore } from "@/store/media.store";
 import { showToast } from "@/lib/toast.utils";
@@ -89,6 +89,8 @@ function Tracks({
   videoEl,
   onAudioSwitch,
   audioReady,
+  autoAudio,
+  autoSubs,
 }: {
   audioStreams: VideoStreamInfo[];
   subtitleStreams: VideoStreamInfo[];
@@ -96,12 +98,52 @@ function Tracks({
   videoEl: HTMLVideoElement | null;
   onAudioSwitch: (newSrc: string | null) => void;
   audioReady?: boolean;
+  autoAudio?: string[];
+  autoSubs?: string[];
 }) {
   const [extAudio, setExtAudio] = useState<VideoStreamInfo[]>([]);
   const [extSubs, setExtSubs] = useState<VideoStreamInfo[]>([]);
+  const extCounter = useRef<number>(-1000);
 
-  const mergedAudio = [...audioStreams, ...extAudio];
-  const mergedSubs = [...subtitleStreams, ...extSubs];
+  const autoTracks = useMemo(() => {
+    const res: VideoStreamInfo[] = [];
+    for (const f of autoAudio ?? []) {
+      const idx = extCounter.current--;
+      res.push({
+        index: idx,
+        codec_type: "audio",
+        codec_name: f.split(".").pop()?.toLowerCase() ?? "",
+        language: null,
+        title: f.split(/[/\\]/).pop() ?? "Audio",
+        is_default: false,
+        file_path: f,
+      });
+    }
+    for (const f of autoSubs ?? []) {
+      const idx = extCounter.current--;
+      res.push({
+        index: idx,
+        codec_type: "subtitle",
+        codec_name: f.split(".").pop()?.toLowerCase() ?? "",
+        language: null,
+        title: f.split(/[/\\]/).pop() ?? "Subtitles",
+        is_default: false,
+        file_path: f,
+      });
+    }
+    return res;
+  }, [autoAudio, autoSubs]);
+
+  const mergedAudio = [
+    ...audioStreams,
+    ...extAudio,
+    ...autoTracks.filter((t) => t.codec_type === "audio"),
+  ];
+  const mergedSubs = [
+    ...subtitleStreams,
+    ...extSubs,
+    ...autoTracks.filter((t) => t.codec_type === "subtitle"),
+  ];
 
   const mediaGet = useMediaStore((s) => s.getEntry);
   const mediaSetTrack = useMediaStore((s) => s.setTrack);
@@ -122,7 +164,6 @@ function Tracks({
   const textTrackRef = useRef<TextTrack | null>(null);
   const savedTimeRef = useRef<number>(0);
   const savedPlayingRef = useRef<boolean>(false);
-  const extCounter = useRef<number>(-1000);
   const audioGenRef = useRef<number>(0);
   const subGenRef = useRef<number>(0);
 

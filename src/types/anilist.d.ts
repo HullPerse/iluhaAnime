@@ -129,3 +129,27 @@ export type AniListSort = {
   key: "title" | "score" | "progress";
   dir: "asc" | "desc";
 };
+
+export interface SearchFilters {
+  tags: string[];
+  genres: string[];
+  format: string;
+  status: string;
+  season: string;
+  seasonYear: number | null;
+  adult: boolean;
+  sort: string;
+  source: string;
+  country: string;
+  year: [number, number];
+  episodes: [number, number];
+  score: [number, number];
+}
+
+export interface Props {
+  open: boolean;
+  filters: SearchFilters;
+  onApply: (filters: SearchFilters) => void;
+  onReset: () => void;
+  onClose: () => void;
+}

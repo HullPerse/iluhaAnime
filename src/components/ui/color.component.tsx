@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input.component";
 import { hexToRgba, rgbaToHex } from "@/lib/color.utils";
 
 const PALETTE = [
-  "#000000",
   "#808080",
   "#800000",
   "#808000",
@@ -21,7 +20,6 @@ const PALETTE = [
   "#00ffff",
   "#0000ff",
   "#ff00ff",
-  "#c0c0c0",
   "#e0e0e0",
   "#a04000",
   "#ff8000",
@@ -29,7 +27,6 @@ const PALETTE = [
   "#00ff80",
   "#0040ff",
   "#8000ff",
-  "#808080",
   "#a0a0a0",
   "#ff8080",
   "#ffff80",

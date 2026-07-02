@@ -66,6 +66,9 @@ function PlayerRoute({
   const [ffmpegStatus, setFfmpegStatus] = useState<FFMPEGStatus>("checking");
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const [cacheRefreshKey, setCacheRefreshKey] = useState(0);
+  const [autoAudio, setAutoAudio] = useState<string[]>([]);
+  const [autoSubs, setAutoSubs] = useState<string[]>([]);
+  const audioExtensions = useSettingsStore((s) => s.audioExtensions);
 
   useEffect(() => {
     invoke<boolean>("check_ffprobe")
@@ -134,6 +137,8 @@ function PlayerRoute({
       setVideoLoading(true);
       setChapters([]);
       setStreams([]);
+      setAutoAudio([]);
+      setAutoSubs([]);
 
       (async () => {
         try {
@@ -145,6 +150,15 @@ function PlayerRoute({
           setChapters(info.chapters);
           setStreams(info.streams);
           if (gen === playGenRef.current) setVideoLoading(false);
+
+          const dir = path.split(/[/\\]/).slice(0, -1).join("/");
+          invoke<{ audio: string[]; subtitles: string[] }>("scan_folder_for_tracks", { path: dir })
+            .then((t) => {
+              if (gen !== playGenRef.current) return;
+              setAutoAudio(t.audio);
+              setAutoSubs(t.subtitles);
+            })
+            .catch(() => {});
 
           const savedAudio = savedEntry?.audioTrack;
           if (savedAudio !== undefined) {
@@ -217,6 +231,7 @@ function PlayerRoute({
 
       setFolderTrees(trees);
       setFolderPaths(trees.map((t) => t.path));
+
       setLoading(false);
       setScanProgress(null);
     })();
@@ -382,6 +397,8 @@ function PlayerRoute({
           onToggleCinema={onToggleCinema}
           onToggleAutoHide={onToggleAutoHide}
           loading={videoLoading}
+          autoAudio={autoAudio}
+          autoSubs={autoSubs}
         />
       </main>
     );
@@ -512,6 +529,7 @@ function PlayerRoute({
                 onPlay={playFile}
                 searchQuery={search}
                 onRemove={handleRemoveFolder}
+                disabledExtensions={new Set(audioExtensions)}
               />
             </div>
           ))}

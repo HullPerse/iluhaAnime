@@ -1,4 +1,4 @@
-import { TorrentInfo, TorrentStore } from "@/types/torrent";
+import { TorrentFileInfo, TorrentInfo, TorrentStore } from "@/types/torrent";
 import { type Event } from "@tauri-apps/api/event";
 
 export function fmtSpeed(bps: number): string {
@@ -61,6 +61,57 @@ export interface FileGroup {
     priority?: string;
     exists?: boolean;
   }[];
+}
+
+export interface TorrentTreeNode {
+  name: string;
+  files: TorrentTreeFile[];
+  children: TorrentTreeNode[];
+}
+
+export interface TorrentTreeFile {
+  index: number;
+  name: string;
+  displayName: string;
+  size: number;
+  completed: boolean;
+  selected: boolean;
+  priority: string;
+  exists: boolean;
+}
+
+export function buildTorrentTree(files: TorrentFileInfo[]): TorrentTreeNode[] {
+  const root: TorrentTreeNode = { name: "", files: [], children: [] };
+
+  for (const file of files) {
+    const parts = file.name.replace(/\\/g, "/").split("/");
+    const fileName = parts.pop()!;
+
+    let node = root;
+
+    for (const part of parts) {
+      let child = node.children.find((c) => c.name === part);
+
+      if (!child) {
+        child = { name: part, files: [], children: [] };
+        node.children.push(child);
+      }
+      node = child;
+    }
+
+    node.files.push({
+      index: file.index,
+      name: file.name,
+      displayName: fileName,
+      size: file.size,
+      completed: file.completed,
+      selected: file.selected,
+      priority: file.priority,
+      exists: file.exists,
+    });
+  }
+
+  return root.children.sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export function groupFilesByDirectory(

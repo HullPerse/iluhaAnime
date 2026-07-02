@@ -2,20 +2,86 @@ import { Button } from "@/components/ui/button.component";
 import { nodeMatchesSearch } from "@/lib/player.utils";
 import { fmtSize } from "@/lib/torrent.utils";
 import type { FolderNode } from "@/types/index";
+import { useSettingsStore } from "@/store/settings.store";
 import { openPath } from "@tauri-apps/plugin-opener";
-import { invoke } from "@tauri-apps/api/core";
-import { showToast } from "@/lib/toast.utils";
 import {
   ChevronDown,
   ChevronRight,
   FileVideo,
   FolderOpen,
-  Image,
   Monitor,
   Play,
   X,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useRef, useMemo, useCallback } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
+
+type Item =
+  | { kind: "folder"; node: FolderNode; depth: number }
+  | { kind: "file"; file: FolderNode["files"][number]; depth: number };
+
+function flattenTree(
+  node: FolderNode,
+  open: Set<string>,
+  searchQuery: string,
+  disabledExtensions: Set<string> | undefined,
+  depth: number,
+  trackExts?: Set<string>,
+): Item[] {
+  if (!node.children.length && !node.files.length) return [];
+
+  let filteredFiles = searchQuery
+    ? node.files.filter((f) =>
+        f.name.toLowerCase().includes(searchQuery.toLowerCase()),
+      )
+    : node.files;
+
+  if (trackExts) {
+    filteredFiles = filteredFiles.filter((f) => {
+      const ext = f.name.split(".").pop()?.toLowerCase();
+      return ext ? !trackExts.has(ext) : true;
+    });
+  }
+
+  const hasFilteredChildren = searchQuery
+    ? node.children.some((c) => nodeMatchesSearch(c, searchQuery))
+    : node.children.length > 0;
+
+  if (searchQuery && filteredFiles.length === 0 && !hasFilteredChildren)
+    return [];
+
+  const items: Item[] = [];
+  const isOpen = open.has(node.path);
+
+  if (depth > 0) {
+    items.push({ kind: "folder", node, depth });
+  }
+
+  if (isOpen || depth === 0) {
+    for (const file of filteredFiles) {
+      const ext = file.name.split(".").pop()?.toLowerCase();
+      const disabled = disabledExtensions && ext && disabledExtensions.has(ext);
+      if (!disabled || true) {
+        items.push({ kind: "file", file, depth: depth + 1 });
+      }
+    }
+    for (const child of node.children) {
+      items.push(
+        ...flattenTree(child, open, searchQuery, disabledExtensions, depth + 1, trackExts),
+      );
+    }
+  }
+
+  if (depth > 0 && items.length === 1 && items[0].kind === "folder" && items[0].node.path === node.path) {
+    if (isOpen) return [];
+    const hasContent = filteredFiles.length > 0 || node.children.some((c) =>
+      flattenTree(c, open, searchQuery, disabledExtensions, depth + 1, trackExts).length > 0,
+    );
+    if (!hasContent) return [];
+  }
+
+  return items;
+}
 
 function FolderView({
   node,
@@ -23,166 +89,206 @@ function FolderView({
   onPlay,
   searchQuery,
   onRemove,
+  disabledExtensions,
 }: {
   node: FolderNode;
   depth: number;
   onPlay: (path: string) => void;
   searchQuery: string;
   onRemove?: (path: string) => void;
+  disabledExtensions?: Set<string>;
 }) {
-  const [open, setOpen] = useState(depth === 0);
+  const showTrackFiles = useSettingsStore((s) => s.showTrackFiles);
+  const audioExtensions = useSettingsStore((s) => s.audioExtensions);
+  const subtitleExtensions = useSettingsStore((s) => s.subtitleExtensions);
 
-  const hasChildren = node.children.length > 0;
-  const hasFiles = node.files.length > 0;
+  const trackExts = useMemo(
+    () =>
+      showTrackFiles === "hide" || showTrackFiles === "torrent"
+        ? new Set([...audioExtensions, ...subtitleExtensions])
+        : undefined,
+    [showTrackFiles, audioExtensions, subtitleExtensions],
+  );
 
-  if (!hasChildren && !hasFiles) return null;
+  const [open, setOpen] = useState<Set<string>>(
+    () => new Set(node.children.length > 0 ? [node.path] : []),
+  );
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  const filteredFiles = searchQuery
-    ? node.files.filter((f) =>
-        f.name.toLowerCase().includes(searchQuery.toLowerCase()),
-      )
-    : node.files;
+  const toggle = useCallback((path: string) => {
+    setOpen((prev) => {
+      const next = new Set(prev);
+      if (next.has(path)) next.delete(path);
+      else next.add(path);
+      return next;
+    });
+  }, []);
 
-  const hasFilteredChildren = searchQuery
-    ? node.children.some((c) => nodeMatchesSearch(c, searchQuery))
-    : hasChildren;
+  const flatItems = useMemo(
+    () => flattenTree(node, open, searchQuery, disabledExtensions, depth, trackExts),
+    [node, open, searchQuery, disabledExtensions, depth, trackExts],
+  );
 
-  if (searchQuery && filteredFiles.length === 0 && !hasFilteredChildren)
-    return null;
+  const virtualizer = useVirtualizer({
+    count: flatItems.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 20,
+    overscan: 20,
+  });
+
+  const isDisabled = (name: string) => {
+    if (!disabledExtensions || disabledExtensions.size === 0) return false;
+    const ext = name.split(".").pop()?.toLowerCase();
+    return ext ? disabledExtensions.has(ext) : false;
+  };
 
   const countAll =
     node.files.length + node.children.reduce((s, c) => s + c.files.length, 0);
 
-  const collectVideoPaths = (n: FolderNode, extSet: Set<string>): string[] => {
-    const fromFiles = n.files
-      .filter((f) => {
-        const ext = f.name.split(".").pop()?.toLowerCase();
-        return ext && extSet.has(ext);
-      })
-      .map((f) => f.path);
-    const fromChildren = n.children.flatMap((c) => collectVideoPaths(c, extSet));
-    return [...fromFiles, ...fromChildren];
-  };
-
-  const handleGenerateFolderThumbnails = async (n: FolderNode) => {
-    const { useSettingsStore } = await import("@/store/settings.store");
-    const exts = new Set(useSettingsStore.getState().videoExtensions);
-    const paths = collectVideoPaths(n, exts);
-    if (paths.length === 0) {
-      showToast("Нет видеофайлов", "info");
-      return;
-    }
-    let done = 0;
-    for (const videoPath of paths) {
-      try {
-        await invoke("generate_thumbnails", { videoPath });
-        done++;
-      } catch {}
-    }
-    showToast(`Сгенерировано превью: ${done}/${paths.length}`, "success");
-  };
+  if (flatItems.length === 0) return null;
 
   return (
     <main className="flex flex-col w-full">
-      {(hasChildren || hasFiles) && (
-        <div
-          role="button"
-          className="flex items-center gap-1 windows95-text cursor-pointer hover:bg-surface px-0.5 py-0.5 w-full text-left"
-          onClick={() => setOpen(!open)}
-          style={{
-            paddingLeft: `${depth * 12 + 2}px`,
-          }}
-        >
-          {open ? (
+      <div
+        role="button"
+        className="flex items-center gap-1 windows95-text cursor-pointer hover:bg-surface px-0.5 py-0.5 w-full text-left"
+        onClick={() => depth > 0 && toggle(node.path)}
+        style={{
+          paddingLeft: `${depth * 12 + 2}px`,
+        }}
+      >
+        {depth > 0 ? (
+          open.has(node.path) ? (
             <ChevronDown className="size-3 shrink-0" />
           ) : (
             <ChevronRight className="size-3 shrink-0" />
-          )}
-          <FolderOpen className="size-3 shrink-0 text-muted" />
-          <span className="truncate select-none" title={node.name}>
-            {node.name}
-          </span>
-          <span className="text-muted ml-auto whitespace-nowrap">
-            {countAll} файлов
-          </span>
+          )
+        ) : (
+          <span className="size-3 shrink-0" />
+        )}
+        <FolderOpen className="size-3 shrink-0 text-muted" />
+        <span className="truncate select-none" title={node.name}>
+          {node.name}
+        </span>
+        <span className="text-muted ml-auto whitespace-nowrap">
+          {countAll} файлов
+        </span>
+
+        {onRemove && depth === 0 && (
           <Button
             size="icon"
-            className="h-5 w-5 ml-1"
-            title="Сгенерировать превью"
+            className="h-5 w-5"
             onClick={(e) => {
               e.stopPropagation();
-              handleGenerateFolderThumbnails(node);
+              onRemove(node.path);
             }}
           >
-            <Image className="size-3" />
+            <X />
           </Button>
-          {onRemove && depth === 0 && (
-            <Button
-              size="icon"
-              className="h-5 w-5  ml-1"
-              onClick={(e) => {
-                e.stopPropagation();
-                onRemove(node.path);
-              }}
-            >
-              <X />
-            </Button>
-          )}
+        )}
+      </div>
+
+      {(open.has(node.path) || depth === 0) && (
+        <div
+          ref={scrollRef}
+          className="overflow-y-auto"
+          style={{ maxHeight: flatItems.length > 50 ? 300 : undefined }}
+        >
+          <div
+            style={{ height: virtualizer.getTotalSize(), position: "relative" }}
+          >
+            {virtualizer.getVirtualItems().map((vItem, index) => {
+              const item = flatItems[vItem.index];
+              if (!item) return null;
+
+              if (item.kind === "folder") {
+                const isFolderOpen = open.has(item.node.path);
+                return (
+                  <div
+                    key={index}
+                    role="button"
+                    className="flex items-center gap-1 windows95-text cursor-pointer hover:bg-surface px-0.5 py-0.5 w-full text-left absolute top-0 left-0"
+                    style={{
+                      height: 20,
+                      transform: `translateY(${vItem.start}px)`,
+                      paddingLeft: `${item.depth * 12 + 2}px`,
+                    }}
+                    onClick={() => toggle(item.node.path)}
+                  >
+                    {isFolderOpen ? (
+                      <ChevronDown className="size-3 shrink-0" />
+                    ) : (
+                      <ChevronRight className="size-3 shrink-0" />
+                    )}
+                    <FolderOpen className="size-3 shrink-0 text-muted" />
+                    <span
+                      className="truncate select-none"
+                      title={item.node.name}
+                    >
+                      {item.node.name}
+                    </span>
+                  </div>
+                );
+              }
+
+              const file = item.file;
+              const disabled = isDisabled(file.name);
+              return (
+                <div
+                  key={index}
+                  className="flex items-center gap-1 px-1 windows95-border h-5 bg-white absolute top-0 left-0 w-full"
+                  style={{
+                    transform: `translateY(${vItem.start}px)`,
+                    paddingLeft: `${item.depth * 12 + 2}px`,
+                  }}
+                >
+                  <FileVideo className="size-4 text-muted" />
+                  <span
+                    title={file.name}
+                    className="windows95-text truncate flex-1"
+                  >
+                    {file.name}
+                  </span>
+
+                  <span className="windows95-text text-muted">
+                    {fmtSize(file.size)}
+                  </span>
+
+                  <Button
+                    size="icon"
+                    className="h-4 w-4"
+                    disabled={disabled}
+                    onClick={async () => {
+                      if (!file.path) return;
+                      openPath(`${file.path}`);
+                    }}
+                    title={
+                      disabled
+                        ? "Аудио/субтитры нельзя открыть в плеере"
+                        : "Смотреть в нативном плеере"
+                    }
+                  >
+                    <Monitor className="size-3" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    className="h-4 w-4"
+                    disabled={disabled}
+                    onClick={() => onPlay(file.path)}
+                    title={
+                      disabled
+                        ? "Аудио/субтитры нельзя открыть в плеере"
+                        : "Смотреть в плеере приложения"
+                    }
+                  >
+                    <Play className="size-3" />
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
-
-      {open &&
-        filteredFiles.map((file) => (
-          <section
-            key={file.path}
-            className="flex items-center gap-1 p-1 windows95-border h-5 bg-white"
-            style={{ paddingLeft: `${(depth + 1) * 12 + 2}px` }}
-          >
-            <FileVideo className="size-4 text-muted" />
-            <span title={file.name} className="windows95-text truncate flex-1">
-              {file.name}
-            </span>
-
-            <span className="windows95-text text-muted">
-              {fmtSize(file.size)}
-            </span>
-
-            <Button
-              size="icon"
-              className="h-4 w-4"
-              onClick={async () => {
-                if (!file.path) return;
-
-                openPath(`${file.path}`);
-              }}
-              title="Смотреть в нативном плеере"
-            >
-              <Monitor className="size-3" />
-            </Button>
-            <Button
-              size="icon"
-              className="h-4 w-4"
-              onClick={() => onPlay(file.path)}
-              title="Смотреть в плеере приложения"
-            >
-              <Play className="size-3" />
-            </Button>
-          </section>
-        ))}
-
-      {open &&
-        node.children.map((child) => {
-          return (
-            <div key={child.name}>
-              <FolderView
-                node={child}
-                depth={depth + 1}
-                onPlay={onPlay}
-                searchQuery={searchQuery}
-              />
-            </div>
-          );
-        })}
     </main>
   );
 }

@@ -14,6 +14,7 @@ export interface SettingsStore {
   notifyOnComplete: boolean;
   notifyOnError: boolean;
   defaultSearchSource: string;
+  visibleSources: string[];
   resultsPerPage: number;
   anilistPageSize: number;
   anilistMaxPages: number;
@@ -22,6 +23,9 @@ export interface SettingsStore {
   toastDuration: number;
   autoCleanTempFiles: boolean;
   videoExtensions: string[];
+  audioExtensions: string[];
+  subtitleExtensions: string[];
+  showTrackFiles: "hide" | "torrent" | "folders";
   modalAnimation: boolean;
   enable3dBorders: boolean;
   buttonPressEffect: boolean;
@@ -49,6 +53,7 @@ export const useSettingsStore = create<SettingsStore>()(
       notifyOnComplete: true,
       notifyOnError: true,
       defaultSearchSource: "erai-raws",
+      visibleSources: ["erai-raws", "rutracker", "nyaa", "nekobt"],
       resultsPerPage: 20,
       anilistPageSize: 40,
       anilistMaxPages: 3,
@@ -57,6 +62,9 @@ export const useSettingsStore = create<SettingsStore>()(
       toastDuration: 3000,
       autoCleanTempFiles: true,
       videoExtensions: ["mp4", "mkv", "avi", "mov", "webm", "flv", "wmv", "m4v", "mpg", "mpeg", "ts", "m2ts", "ogv", "3gp"],
+      audioExtensions: ["mp3", "flac", "aac", "ogg", "wav", "opus", "m4a", "wma"],
+      subtitleExtensions: ["srt", "ass", "ssa", "vtt", "sub", "idx", "sup", "pgs"],
+      showTrackFiles: "hide",
       modalAnimation: true,
       enable3dBorders: true,
       buttonPressEffect: true,

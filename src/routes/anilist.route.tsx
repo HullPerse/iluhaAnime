@@ -10,6 +10,7 @@ import type {
   AniRecommendation,
   AniUser,
   FavouriteAnime,
+  SearchFilters,
 } from "@/types/anilist";
 import { invoke } from "@tauri-apps/api/core";
 import { Input } from "@/components/ui/input.component";
@@ -28,13 +29,14 @@ import FiltersModal, {
   defaultFilters,
 } from "./components/anilist/filters.anilist";
 import AniListActivityModal from "./components/anilist/activity.anilist";
-import type { SearchFilters } from "./components/anilist/filters.anilist";
+import BrowseAnimeModal from "./components/anilist/browse.anilist";
 import {
   Activity,
   ArrowLeft,
   ArrowRight,
   Dices,
   Filter,
+  Flame,
   Heart,
   Loader,
   LogOut,
@@ -57,6 +59,7 @@ function AnilistRoute() {
   const [showFavourites, setShowFavourites] = useState(false);
   const [favourites, setFavourites] = useState<FavouriteAnime[]>([]);
   const [showActivity, setShowActivity] = useState(false);
+  const [showBrowse, setShowBrowse] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [searchFilters, setSearchFilters] =
     useState<SearchFilters>(defaultFilters);
@@ -113,7 +116,7 @@ function AnilistRoute() {
         status: searchFilters.status || null,
         season: searchFilters.season || null,
         seasonYear: searchFilters.seasonYear,
-        adult: searchFilters.adult ? true : null,
+        adult: searchFilters.adult ? true : false,
         sort: searchFilters.sort ? [searchFilters.sort] : null,
         source: searchFilters.source || null,
         country: searchFilters.country || null,
@@ -225,11 +228,13 @@ function AnilistRoute() {
               const first = l.find((c) => c.entries.length > 0);
               if (first) setCurrentList(first.name);
             })
-            .finally(() => setLoadingList(false))
-            .catch(() => setLoadingList(false));
+            .catch(() => {})
+            .finally(() => setLoadingList(false));
           invoke<FavouriteAnime[]>("get_favourites", { userId: user.id })
             .then(setFavourites)
             .catch(() => {});
+        } else {
+          setLoadingList(false);
         }
       })
       .catch(() => setLoadingList(false));
@@ -320,7 +325,7 @@ function AnilistRoute() {
             (searchFilters.season ? 1 : 0) +
             (searchFilters.adult ? 1 : 0) >
             0 && (
-            <span className="absolute -top-1 -right-1 size-3 text-[8px] bg-secondary text-white rounded-full flex items-center justify-center">
+            <span className="absolute -top-1 -right-1 size-3 text-[8px] bg-secondary text-white flex items-center justify-center">
               {searchFilters.tags.length +
                 (searchFilters.format ? 1 : 0) +
                 (searchFilters.status ? 1 : 0) +
@@ -336,7 +341,7 @@ function AnilistRoute() {
             if (global) return handleReset();
             else return handleGlobal();
           }}
-          disabled={global ? false : loadingSearch || !searchTerms.trim()}
+          disabled={loadingSearch}
         >
           {global ? <User className="size-4" /> : <Search className="size-4" />}
         </Button>
@@ -371,8 +376,16 @@ function AnilistRoute() {
             </div>
 
             <Button
+              size="icon"
+              className="h-7 w-7 text-[10px] ml-auto"
+              onClick={() => setShowBrowse(true)}
+            >
+              <Flame className="size-3" />
+            </Button>
+
+            <Button
               size="default"
-              className="ml-auto h-7 text-[10px]"
+              className="h-7 text-[10px]"
               onClick={() => setShowRecs(true)}
             >
               Рекомендации
@@ -528,13 +541,17 @@ function AnilistRoute() {
       )}
 
       {/* CONTENT */}
-      {pagedEntries.length === 0 && !global && !isLocal && !user && (
-        <section className="flex flex-col items-center justify-center flex-1 gap-2">
-          <User className="size-8 text-muted" />
-          <span className="windows95-text">Войдите в профиль</span>
-          <Button onClick={() => setAuth(true)}>Войти</Button>
-        </section>
-      )}
+      {pagedEntries.length === 0 &&
+        !global &&
+        !isLocal &&
+        !user &&
+        !loadingList && (
+          <section className="flex flex-col items-center justify-center flex-1 gap-2">
+            <User className="size-8 text-muted" />
+            <span className="windows95-text">Войдите в профиль</span>
+            <Button onClick={() => setAuth(true)}>Войти</Button>
+          </section>
+        )}
 
       {pagedEntries.length === 0 && isLocal && (
         <section className="flex flex-col items-center justify-center flex-1 gap-2">
@@ -918,6 +935,17 @@ function AnilistRoute() {
         onReset={() => setSearchFilters(defaultFilters)}
         onClose={() => setShowFilters(false)}
       />
+
+      {showBrowse && (
+        <BrowseAnimeModal
+          entries={entryLookup}
+          onClose={() => setShowBrowse(false)}
+          onAnimeClick={(id) => {
+            setShowBrowse(false);
+            setSelectedAnime({ animeId: id, listEntry: entryLookup.get(id) });
+          }}
+        />
+      )}
     </main>
   );
 }

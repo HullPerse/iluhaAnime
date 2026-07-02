@@ -11,13 +11,13 @@ import { useTorrentStore } from "@/store/download.store";
 import { useSearchStore } from "@/store/search.store";
 import TorrentFilePicker from "@/routes/components/search/picker.search";
 import { WindowLoader } from "./components/shared/loader.component";
-import { Button } from "./components/ui/button.component";
 import { checkForUpdates, cn } from "./lib/index.utils";
 import { getAction, KeybindAction } from "@/config/keybinds.config";
 import { useSettingsStore } from "@/store/settings.store";
 import Updater from "./components/shared/updater.component";
 import { Update } from "@tauri-apps/plugin-updater";
 import { useQuery } from "@tanstack/react-query";
+import Tabs from "./components/shared/tabs.component";
 
 const SearchRoute = lazy(() => import("@/routes/search.route"));
 const TorrentRoute = lazy(() => import("@/routes/torrent.route"));
@@ -32,6 +32,7 @@ const tabs: { id: Tab; label: string }[] = [
   { id: "torrent", label: "Торрент" },
   { id: "player", label: "Плеер" },
   { id: "anilist", label: "AniList" },
+  { id: "settings", label: "Параметры" },
 ];
 
 function App() {
@@ -205,41 +206,11 @@ function App() {
                 </span>
               </div>
               <div className="flex bg-primary pl-2 pt-1 gap-1">
-                {tabs.map((tab) => {
-                  const isActive = activeTab === tab.id;
-                  return (
-                    <Button
-                      key={tab.id}
-                      className={`px-3 py-0.5 relative cursor-pointer windows95-text active:outline-dotted active:outline-1 active:outline-offset-[-3px] active:outline-text ${
-                        isActive
-                          ? "windows95-active-border border-b-transparent"
-                          : "windows95-border bg-surface"
-                      }`}
-                      style={{
-                        zIndex: isActive ? 20 : 10,
-                      }}
-                      onClick={() => setActiveTab(tab.id)}
-                      disabled={isActive}
-                    >
-                      {tab.label}
-                    </Button>
-                  );
-                })}
-
-                <Button
-                  className={`px-3 py-0.5 relative cursor-pointer windows95-text active:outline-dotted active:outline-1 active:outline-offset-[-3px] active:outline-text ml-auto mr-2 ${
-                    activeTab === "settings"
-                      ? "windows95-active-border border-b-transparent"
-                      : "windows95-border bg-surface"
-                  }`}
-                  style={{
-                    zIndex: activeTab === "settings" ? 20 : 10,
-                  }}
-                  onClick={() => setActiveTab("settings")}
-                  disabled={activeTab === "settings"}
-                >
-                  Параметры
-                </Button>
+                <Tabs
+                  tabs={tabs}
+                  activeTab={activeTab}
+                  onChange={(id) => setActiveTab(id)}
+                />
               </div>
             </>
           )}

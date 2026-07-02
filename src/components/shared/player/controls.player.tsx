@@ -41,6 +41,8 @@ function Controls({
   autoHideUi,
   audioReady,
   loading,
+  autoAudio,
+  autoSubs,
 }: {
   chapters?: { start_time: number; end_time: number; title: string }[];
   mediaPath?: string;
@@ -56,6 +58,8 @@ function Controls({
   autoHideUi?: boolean;
   audioReady?: boolean;
   loading?: boolean;
+  autoAudio?: string[];
+  autoSubs?: string[];
 }) {
   const [dragging, setDragging] = useState<boolean>(false);
   const [boundaryMsg, setBoundaryMsg] = useState<string | null>(null);
@@ -326,6 +330,8 @@ function Controls({
           videoEl={videoEl}
           onAudioSwitch={onAudioSwitch!}
           audioReady={audioReady}
+          autoAudio={autoAudio}
+          autoSubs={autoSubs}
         />
       )}
 
@@ -352,7 +358,7 @@ function Controls({
 
       {/* VOLUME */}
       <section className="flex flex-row ml-auto h-6 w-fit border-l-2 border-muted gap-1 px-1">
-        <span className="windows95-text items-center flex">
+        <span className="windows95-text items-center flex w-6 max-w-6 min-w-6 text-right">
           {Math.round(displayVolume * 100)}
         </span>
         <Button

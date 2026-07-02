@@ -300,36 +300,49 @@ fn parse_nyaa_entries(html: &str) -> Vec<NyaaItem> {
             continue;
         }
 
-        let magnet = tds[2].select(&a_sel).find_map(|a| {
-            let h = a.value().attr("href")?;
-            if h.starts_with("magnet:") {
-                Some(h.to_string())
-            } else {
-                None
-            }
-        });
+        let title_a = tds[1].select(&a_sel).last();
 
-        let magnet = match magnet {
-            Some(m) => m,
-            None => continue,
-        };
-
-        let title = tds[1]
-            .select(&a_sel)
-            .next()
+        let mut title = title_a
             .and_then(|a| a.value().attr("title"))
-            .map(|t| t.to_string())
+            .map(|t| t.trim().to_string())
             .unwrap_or_default();
 
-        let link = tds[1]
-            .select(&a_sel)
-            .next()
+        if title.is_empty() {
+            title = title_a
+                .map(|a| a.text().collect::<String>().trim().to_string())
+                .unwrap_or_default();
+        }
+
+        let link = title_a
             .and_then(|a| a.value().attr("href"))
-            .unwrap_or_default();
+            .unwrap_or_default()
+            .to_string();
 
-        if !is_valid_torrent(&title, link) {
+        if !is_valid_torrent(&title, &link) {
             continue;
         }
+
+        if title.to_lowercase().ends_with("comment")
+            || title.to_lowercase().ends_with("comments")
+            || title.eq_ignore_ascii_case("comment")
+            || title.eq_ignore_ascii_case("comments")
+            || title.eq_ignore_ascii_case("no comments")
+            || title.eq_ignore_ascii_case("1 comment")
+        {
+            continue;
+        }
+
+        let magnet = tds[2]
+            .select(&a_sel)
+            .find_map(|a| {
+                let h = a.value().attr("href")?;
+                if h.starts_with("magnet:") {
+                    Some(h.to_string())
+                } else {
+                    None
+                }
+            })
+            .unwrap_or_default();
 
         let torrent = tds[2]
             .select(&a_sel)
@@ -362,7 +375,7 @@ fn parse_nyaa_entries(html: &str) -> Vec<NyaaItem> {
         let torrent_url = if link.starts_with('/') {
             format!("https://nyaa.si{link}")
         } else {
-            link.to_string()
+            link
         };
 
         items.push(NyaaItem {
@@ -615,43 +628,61 @@ fn parse_sukebei_entries(html: &str) -> Vec<NyaaItem> {
             continue;
         }
 
-        let magnet = tds[2].select(&a_sel).find_map(|a| {
-            let h = a.value().attr("href")?;
-            if h.starts_with("magnet:") {
-                Some(h.to_string())
-            } else {
-                None
-            }
-        });
+        let title_a = tds[1].select(&a_sel).next();
 
-        let magnet = match magnet {
-            Some(m) => m,
-            None => continue,
-        };
-
-        let title = tds[1]
-            .select(&a_sel)
-            .next()
+        let mut title = title_a
             .and_then(|a| a.value().attr("title"))
-            .map(|t| t.to_string())
+            .map(|t| t.trim().to_string())
             .unwrap_or_default();
 
-        let link = tds[1]
-            .select(&a_sel)
-            .next()
+        if title.is_empty() {
+            title = title_a
+                .map(|a| a.text().collect::<String>().trim().to_string())
+                .unwrap_or_default();
+        }
+
+        let link = title_a
             .and_then(|a| a.value().attr("href"))
-            .unwrap_or_default();
+            .unwrap_or_default()
+            .to_string();
 
-        if !is_valid_torrent(&title, link) {
+        if !is_valid_torrent(&title, &link) {
             continue;
         }
+
+        let lower = title.to_lowercase();
+        if lower.ends_with("comment")
+            || lower.ends_with("comments")
+            || lower == "comment"
+            || lower == "comments"
+            || lower == "no comments"
+            || lower == "1 comment"
+        {
+            continue;
+        }
+
+        let magnet = tds[2]
+            .select(&a_sel)
+            .find_map(|a| {
+                let h = a.value().attr("href")?;
+                if h.starts_with("magnet:") {
+                    Some(h.to_string())
+                } else {
+                    None
+                }
+            })
+            .unwrap_or_default();
 
         let torrent = tds[2]
             .select(&a_sel)
             .find_map(|a| {
                 let h = a.value().attr("href")?;
                 if h.ends_with(".torrent") {
-                    Some(format!("https://sukebei.nyaa.si{h}"))
+                    Some(if h.starts_with("http") {
+                        h.to_string()
+                    } else {
+                        format!("https://sukebei.nyaa.si{h}")
+                    })
                 } else {
                     None
                 }
@@ -677,7 +708,7 @@ fn parse_sukebei_entries(html: &str) -> Vec<NyaaItem> {
         let torrent_url = if link.starts_with('/') {
             format!("https://sukebei.nyaa.si{link}")
         } else {
-            link.to_string()
+            link
         };
 
         items.push(NyaaItem {
@@ -704,7 +735,7 @@ pub async fn search_sukebei(
 ) -> Result<Vec<NyaaItem>, String> {
     let client = build_nyaa_client()?;
 
-    let mut params = vec![("q", query.as_str()), ("c", "2_0"), ("format", "json")];
+    let mut params = vec![("q", query.as_str()), ("c", "0_0"), ("format", "json")];
     let page_str = page.map(|p| p.to_string());
     let sort_str = sort.as_deref();
     let order_str = order.as_deref();

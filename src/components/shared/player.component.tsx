@@ -50,6 +50,8 @@ function Player({
   onToggleAutoHide,
   audioReady,
   loading,
+  autoAudio,
+  autoSubs,
 }: {
   header: string;
   onClose: () => void;
@@ -72,6 +74,8 @@ function Player({
   onToggleAutoHide?: () => void;
   audioReady?: boolean;
   loading?: boolean;
+  autoAudio?: string[];
+  autoSubs?: string[];
 }) {
   const [uiVisible, setUiVisible] = useState<boolean>(true);
   const hideTimerRef = useRef<number | null>(null);
@@ -306,6 +310,8 @@ function Player({
                 cinemaMode={cinemaMode}
                 audioReady={audioReady}
                 loading={loading}
+                autoAudio={autoAudio}
+                autoSubs={autoSubs}
               />
             </div>
           </div>
@@ -313,8 +319,16 @@ function Player({
       </Container>
 
       {showSettings && (
-        <Modal header="Настройки" onClose={() => setShowSettings(false)}>
-          <Settings settings={settings} onChange={patchSettings} />
+        <Modal
+          header="Настройки"
+          onClose={() => setShowSettings(false)}
+          className="w-xl"
+        >
+          <Settings
+            settings={settings}
+            onChange={patchSettings}
+            data-hotkeys-disabled
+          />
         </Modal>
       )}
     </Provider>

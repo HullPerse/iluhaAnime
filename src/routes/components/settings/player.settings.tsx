@@ -15,15 +15,32 @@ export default function SettingsPlayer() {
     subtitleBgOpacity,
     subtitleBgColor,
     videoExtensions,
+    audioExtensions,
+    subtitleExtensions,
+    showTrackFiles,
     patch,
   } = useSettingsStore();
   const [extInput, setExtInput] = useState("");
+  const [audioExtInput, setAudioExtInput] = useState("");
+  const [subExtInput, setSubExtInput] = useState("");
 
   useEffect(() => {
     invoke("set_video_extensions", { extensions: videoExtensions }).catch(
       () => {},
     );
   }, [videoExtensions]);
+
+  useEffect(() => {
+    invoke("set_audio_extensions", { extensions: audioExtensions }).catch(
+      () => {},
+    );
+  }, [audioExtensions]);
+
+  useEffect(() => {
+    invoke("set_subtitle_extensions", { extensions: subtitleExtensions }).catch(
+      () => {},
+    );
+  }, [subtitleExtensions]);
 
   return (
     <div className="flex flex-col gap-3 p-4">
@@ -130,6 +147,127 @@ export default function SettingsPlayer() {
         >
           Привет, world! Субтитры выглядят так 123
         </span>
+      </div>
+
+      <hr className="windows95-header w-full" />
+
+      <p className="windows95-text text-muted font-bold">
+        Расширения аудио/субтитров
+      </p>
+      <div className="flex flex-wrap gap-1">
+        {audioExtensions.map((ext) => (
+          <span
+            key={ext}
+            className="windows95-border px-1 text-[10px] windows95-text cursor-pointer hover:bg-surface bg-white"
+            onClick={() =>
+              patch({
+                audioExtensions: audioExtensions.filter((e) => e !== ext),
+              })
+            }
+            title="Удалить"
+          >
+            .{ext} ✕
+          </span>
+        ))}
+      </div>
+      <div className="flex items-center gap-1">
+        <Input
+          value={audioExtInput}
+          onChange={(e) => setAudioExtInput(e.target.value)}
+          placeholder="mp3"
+          className="w-20"
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && audioExtInput.trim()) {
+              const ext = audioExtInput.trim().toLowerCase().replace(/^\./, "");
+              if (!audioExtensions.includes(ext)) {
+                patch({ audioExtensions: [...audioExtensions, ext] });
+              }
+              setAudioExtInput("");
+            }
+          }}
+        />
+        <Button
+          disabled={!audioExtInput.trim()}
+          onClick={() => {
+            const ext = audioExtInput.trim().toLowerCase().replace(/^\./, "");
+            if (!audioExtensions.includes(ext)) {
+              patch({ audioExtensions: [...audioExtensions, ext] });
+            }
+            setAudioExtInput("");
+          }}
+        >
+          +
+        </Button>
+      </div>
+
+      <hr className="windows95-header w-full" />
+
+      <p className="windows95-text text-muted font-bold">
+        Отображение файлов треков
+      </p>
+      <label className="flex items-center gap-2 windows95-text text-text">
+        <span className="w-48">Показывать в папках/торрентах</span>
+        <Select
+          className="w-40"
+          value={showTrackFiles}
+          onChange={(v) => patch({ showTrackFiles: v as "hide" | "torrent" | "folders" })}
+          options={[
+            { value: "hide", label: "Скрыть" },
+            { value: "torrent", label: "Только торрент" },
+            { value: "folders", label: "Только папки" },
+          ]}
+        />
+      </label>
+
+      <hr className="windows95-header w-full" />
+
+      <p className="windows95-text text-muted font-bold">
+        Расширения субтитров
+      </p>
+      <div className="flex flex-wrap gap-1">
+        {subtitleExtensions.map((ext) => (
+          <span
+            key={ext}
+            className="windows95-border px-1 text-[10px] windows95-text cursor-pointer hover:bg-surface bg-white"
+            onClick={() =>
+              patch({
+                subtitleExtensions: subtitleExtensions.filter((e) => e !== ext),
+              })
+            }
+            title="Удалить"
+          >
+            .{ext} ✕
+          </span>
+        ))}
+      </div>
+      <div className="flex items-center gap-1">
+        <Input
+          value={subExtInput}
+          onChange={(e) => setSubExtInput(e.target.value)}
+          placeholder="srt"
+          className="w-20"
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && subExtInput.trim()) {
+              const ext = subExtInput.trim().toLowerCase().replace(/^\./, "");
+              if (!subtitleExtensions.includes(ext)) {
+                patch({ subtitleExtensions: [...subtitleExtensions, ext] });
+              }
+              setSubExtInput("");
+            }
+          }}
+        />
+        <Button
+          disabled={!subExtInput.trim()}
+          onClick={() => {
+            const ext = subExtInput.trim().toLowerCase().replace(/^\./, "");
+            if (!subtitleExtensions.includes(ext)) {
+              patch({ subtitleExtensions: [...subtitleExtensions, ext] });
+            }
+            setSubExtInput("");
+          }}
+        >
+          +
+        </Button>
       </div>
 
       <hr className="windows95-header w-full" />

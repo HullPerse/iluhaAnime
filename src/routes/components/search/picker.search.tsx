@@ -38,6 +38,7 @@ function TorrentFilePicker({
   const [browsing, setBrowsing] = useState(false);
   const [sequential, setSequential] = useState(false);
   const [elapsed, setElapsed] = useState(0);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const startRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -82,10 +83,15 @@ function TorrentFilePicker({
     setBrowsing(false);
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (!torrent) return;
+    setIsLoading(true);
     const subFolder = torrent.hasCommonFolder ? undefined : torrent.name;
-    onConfirm([...selected], saveDir, subFolder, sequential);
+    try {
+      await onConfirm([...selected], saveDir, subFolder, sequential);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const allSelected = torrent ? selected.size === torrent.files.length : false;
@@ -184,9 +190,11 @@ function TorrentFilePicker({
               <Button onClick={onCancel}>Отмена</Button>
               <Button
                 onClick={handleConfirm}
-                disabled={loading || selected.size === 0 || !saveDir}
+                disabled={
+                  isLoading || loading || selected.size === 0 || !saveDir
+                }
               >
-                Скачать
+                {isLoading ? <SmallLoader /> : "Скачать"}
               </Button>
             </div>
           </div>

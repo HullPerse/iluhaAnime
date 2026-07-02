@@ -12,6 +12,7 @@ mod ffmpeg;
 mod scrapers;
 mod scanner;
 mod thumbnails;
+mod tracks;
 mod torrent;
 mod video;
 
@@ -260,7 +261,12 @@ pub fn run() {
             ffmpeg::remove_ffmpeg,
             scanner::scan_video_folder,
             scanner::set_video_extensions,
+            tracks::scan_folder_for_tracks,
             scanner::get_video_extensions,
+            scanner::set_audio_extensions,
+            scanner::get_audio_extensions,
+            scanner::set_subtitle_extensions,
+            scanner::get_subtitle_extensions,
             thumbnails::generate_thumbnails,
             thumbnails::get_thumbnail_cache_info,
             thumbnails::clear_thumbnail_cache,

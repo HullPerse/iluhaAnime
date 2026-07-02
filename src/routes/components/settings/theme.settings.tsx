@@ -91,7 +91,7 @@ function EffectsCheckbox({
   const value = useSettingsStore((s) => s[field] as boolean);
   const patch = useSettingsStore((s) => s.patch);
   return (
-    <label className="flex items-center gap-2 windows95-text text-text cursor-pointer">
+      <label className="flex items-center gap-2 windows95-text text-text cursor-pointer select-none">
       <Checkbox checked={value} onChange={(v) => patch({ [field]: v })} />
       <span>{label}</span>
     </label>

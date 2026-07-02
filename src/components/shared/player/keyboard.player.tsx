@@ -27,8 +27,20 @@ function Keyboard({
   const mediaGet = useMediaStore((s) => s.getEntry);
   const mediaSetSub = useMediaStore((s) => s.setSubOffset);
 
+  function shouldIgnoreGlobalHotkeys(target: EventTarget | null) {
+    const el = target instanceof HTMLElement ? target : null;
+    if (!el) return false;
+
+    return Boolean(
+      el.closest(
+        'input, textarea, select, button, [contenteditable="true"], [data-no-hotkeys], [data-hotkeys-disabled], [data-no-wheel]',
+      ),
+    );
+  }
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (shouldIgnoreGlobalHotkeys(e.target)) return;
       const tag = (e.target as HTMLElement).tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
 
@@ -121,6 +133,8 @@ function Keyboard({
     };
 
     const handleWheel = (e: WheelEvent) => {
+      if (shouldIgnoreGlobalHotkeys(e.target)) return;
+
       const target = e.target as HTMLElement;
       const tag = target.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;

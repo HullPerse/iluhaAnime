@@ -35,7 +35,7 @@ export default function SettingsGeneral() {
         />
       </label>
 
-      <label className="flex items-center gap-2 windows95-text text-text cursor-pointer">
+        <label className="flex items-center gap-2 windows95-text text-text cursor-pointer select-none">
         <Checkbox
           checked={autoCleanTempFiles}
           onChange={(v) => patch({ autoCleanTempFiles: v })}

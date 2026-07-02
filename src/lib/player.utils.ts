@@ -49,12 +49,14 @@ export function buildTree(
     };
 
     let node = root;
+    let accumulatedPath = rootPath;
 
     for (const part of parts()) {
+      accumulatedPath = `${accumulatedPath}/${part}`;
       let children = node.children.find((children) => children.name === part);
 
       if (!children) {
-        children = { name: part, path: "", files: [], children: [] };
+        children = { name: part, path: accumulatedPath, files: [], children: [] };
         node.children.push(children);
       }
 

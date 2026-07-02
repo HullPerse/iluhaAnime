@@ -313,102 +313,131 @@ pub async fn search_anilist(
     score_from: Option<i32>,
     score_to: Option<i32>,
 ) -> Result<Vec<AniMedia>, String> {
-    let query_part = query
-        .as_ref()
-        .filter(|q| !q.is_empty())
-        .map(|s| serde_json::json!({ "search": s }))
-        .unwrap_or_default();
-    let tag_part = tags
-        .as_ref()
-        .filter(|t| !t.is_empty())
-        .map(|t| serde_json::json!({ "tag_in": t }))
-        .unwrap_or_default();
-    let genre_part = genres
-        .as_ref()
-        .filter(|g| !g.is_empty())
-        .map(|g| serde_json::json!({ "genre_in": g }))
-        .unwrap_or_default();
-    let format_part = format
-        .as_ref()
-        .map(|f| serde_json::json!({ "format": f }))
-        .unwrap_or_default();
-    let status_part = status
-        .as_ref()
-        .map(|s| serde_json::json!({ "status": s }))
-        .unwrap_or_default();
-    let season_part = season
-        .as_ref()
-        .map(|s| serde_json::json!({ "season": s }))
-        .unwrap_or_default();
-    let year_part = season_year
-        .map(|y| serde_json::json!({ "seasonYear": y }))
-        .unwrap_or_default();
-    let adult_part = adult
-        .map(|a| serde_json::json!({ "isAdult": a }))
-        .unwrap_or_default();
-    let sort_part = sort
-        .as_ref()
-        .filter(|s| !s.is_empty())
-        .map(|s| serde_json::json!({ "sort": s }))
-        .unwrap_or_default();
-    let source_part = source
-        .as_ref()
-        .map(|s| serde_json::json!({ "source": s }))
-        .unwrap_or_default();
-    let country_part = country
-        .as_ref()
-        .map(|c| serde_json::json!({ "countryOfOrigin": c }))
-        .unwrap_or_default();
-    let year_from_part = year_from
-        .map(|y| serde_json::json!({ "startDate_greater": y * 10000 }))
-        .unwrap_or_default();
-    let year_to_part = year_to
-        .map(|y| serde_json::json!({ "startDate_lesser": y * 10000 + 1231 }))
-        .unwrap_or_default();
-    let ep_from_part = episodes_from
-        .map(|e| serde_json::json!({ "episodes_greater": e }))
-        .unwrap_or_default();
-    let ep_to_part = episodes_to
-        .map(|e| serde_json::json!({ "episodes_lesser": e }))
-        .unwrap_or_default();
-    let score_from_part = score_from
-        .map(|s| serde_json::json!({ "averageScore_greater": s }))
-        .unwrap_or_default();
-    let score_to_part = score_to
-        .map(|s| serde_json::json!({ "averageScore_lesser": s }))
-        .unwrap_or_default();
+    let mut variables = serde_json::json!({ "page": 1 });
 
-    let variables = serde_json::json!({ "page": 1 });
-    let merged = merge_json(variables, query_part);
-    let merged = merge_json(merged, tag_part);
-    let merged = merge_json(merged, genre_part);
-    let merged = merge_json(merged, format_part);
-    let merged = merge_json(merged, status_part);
-    let merged = merge_json(merged, season_part);
-    let merged = merge_json(merged, year_part);
-    let merged = merge_json(merged, adult_part);
-    let merged = merge_json(merged, sort_part);
-    let merged = merge_json(merged, source_part);
-    let merged = merge_json(merged, country_part);
-    let merged = merge_json(merged, year_from_part);
-    let merged = merge_json(merged, year_to_part);
-    let merged = merge_json(merged, ep_from_part);
-    let merged = merge_json(merged, ep_to_part);
-    let merged = merge_json(merged, score_from_part);
-    let merged = merge_json(merged, score_to_part);
+    if let Some(q) = query.as_ref().filter(|q| !q.is_empty()) {
+        variables["search"] = serde_json::json!(q);
+    }
+
+    if let Some(t) = tags.as_ref().filter(|t| !t.is_empty()) {
+        variables["tag_in"] = serde_json::json!(t);
+    }
+
+    if let Some(g) = genres.as_ref().filter(|g| !g.is_empty()) {
+        variables["genre_in"] = serde_json::json!(g);
+    }
+
+    if let Some(f) = format.as_ref() {
+        variables["format"] = serde_json::json!(f);
+    }
+
+    if let Some(s) = status.as_ref() {
+        variables["status"] = serde_json::json!(s);
+    }
+
+    if let Some(s) = season.as_ref() {
+        variables["season"] = serde_json::json!(s);
+    }
+
+    if let Some(y) = season_year {
+        variables["seasonYear"] = serde_json::json!(y);
+    }
+
+    if let Some(a) = adult {
+        variables["isAdult"] = serde_json::json!(a);
+    }
+
+    if let Some(s) = sort.as_ref().filter(|s| !s.is_empty()) {
+        variables["sort"] = serde_json::json!(s);
+    }
+
+    if let Some(s) = source.as_ref() {
+        variables["source"] = serde_json::json!(s);
+    }
+
+    if let Some(c) = country.as_ref() {
+        variables["countryOfOrigin"] = serde_json::json!(c);
+    }
+
+    if let Some(y) = year_from {
+        variables["startDate_greater"] = serde_json::json!(y * 10000);
+    }
+
+    if let Some(y) = year_to {
+        variables["startDate_lesser"] = serde_json::json!(y * 10000 + 1231);
+    }
+
+    if let Some(e) = episodes_from {
+        variables["episodes_greater"] = serde_json::json!(e);
+    }
+
+    if let Some(e) = episodes_to {
+        variables["episodes_lesser"] = serde_json::json!(e);
+    }
+
+    if let Some(s) = score_from {
+        variables["averageScore_greater"] = serde_json::json!(s);
+    }
+
+    if let Some(s) = score_to {
+        variables["averageScore_lesser"] = serde_json::json!(s);
+    }
 
     let gql = r#"
-        query ($search: String, $page: Int, $tag_in: [String], $genre_in: [String], $format: MediaFormat, $status: MediaStatus, $season: MediaSeason, $seasonYear: Int, $isAdult: Boolean, $sort: [MediaSort], $source: MediaSource, $countryOfOrigin: CountryCode, $startDate_greater: FuzzyDateInt, $startDate_lesser: FuzzyDateInt, $episodes_greater: Int, $episodes_lesser: Int, $averageScore_greater: Int, $averageScore_lesser: Int) {
+        query (
+            $page: Int,
+            $search: String,
+            $tag_in: [String],
+            $genre_in: [String],
+            $format: MediaFormat,
+            $status: MediaStatus,
+            $season: MediaSeason,
+            $seasonYear: Int,
+            $isAdult: Boolean,
+            $sort: [MediaSort],
+            $source: MediaSource,
+            $countryOfOrigin: CountryCode,
+            $startDate_greater: FuzzyDateInt,
+            $startDate_lesser: FuzzyDateInt,
+            $episodes_greater: Int,
+            $episodes_lesser: Int,
+            $averageScore_greater: Int,
+            $averageScore_lesser: Int
+        ) {
             Page(page: $page, perPage: 20) {
                 pageInfo { total }
-                media(search: $search, type: ANIME, tag_in: $tag_in, genre_in: $genre_in, format: $format, status: $status, season: $season, seasonYear: $seasonYear, isAdult: $isAdult, sort: $sort, source: $source, countryOfOrigin: $countryOfOrigin, startDate_greater: $startDate_greater, startDate_lesser: $startDate_lesser, episodes_greater: $episodes_greater, episodes_lesser: $episodes_lesser, averageScore_greater: $averageScore_greater, averageScore_lesser: $averageScore_lesser) {
+                media(
+                    search: $search
+                    type: ANIME
+                    tag_in: $tag_in
+                    genre_in: $genre_in
+                    format: $format
+                    status: $status
+                    season: $season
+                    seasonYear: $seasonYear
+                    isAdult: $isAdult
+                    sort: $sort
+                    source: $source
+                    countryOfOrigin: $countryOfOrigin
+                    startDate_greater: $startDate_greater
+                    startDate_lesser: $startDate_lesser
+                    episodes_greater: $episodes_greater
+                    episodes_lesser: $episodes_lesser
+                    averageScore_greater: $averageScore_greater
+                    averageScore_lesser: $averageScore_lesser
+                ) {
                     id
                     title { romaji english native }
-                    episodes, duration, status, averageScore
-                    genres, tags { name }
-                    description (asHtml: false)
+                    episodes
+                    duration
+                    status
+                    averageScore
+                    genres
+                    tags { name }
+                    description(asHtml: false)
                     coverImage { medium large }
-                    season, seasonYear
+                    season
+                    seasonYear
                     studios { nodes { id name } }
                     nextAiringEpisode { episode airingAt }
                 }
@@ -418,12 +447,13 @@ pub async fn search_anilist(
 
     let (mut all, total) = fetch_page(serde_json::json!({
         "query": gql,
-        "variables": merged,
+        "variables": variables,
     }))
     .await?;
 
     let pages = ((total + 19) / 20).min(MAX_PAGES);
-    let mut vars = merged.clone();
+    let mut vars = variables.clone();
+
     for page in 2..=pages {
         vars["page"] = serde_json::json!(page);
         if let Ok((media, _)) = fetch_page(serde_json::json!({
@@ -437,16 +467,6 @@ pub async fn search_anilist(
     }
 
     Ok(all)
-}
-
-fn merge_json(a: serde_json::Value, b: serde_json::Value) -> serde_json::Value {
-    match (a, b) {
-        (serde_json::Value::Object(mut a), serde_json::Value::Object(b)) => {
-            a.extend(b);
-            serde_json::Value::Object(a)
-        }
-        (a, _) => a,
-    }
 }
 
 #[tauri::command]

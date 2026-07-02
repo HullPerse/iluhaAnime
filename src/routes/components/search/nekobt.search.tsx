@@ -40,7 +40,11 @@ function NekoBtApiModal({
   };
 
   return (
-    <Modal header="nekoBT -> ввести API ключ" onClose={handleClose}>
+    <Modal
+      header="nekoBT -> ввести API ключ"
+      onClose={handleClose}
+      className="w-xl"
+    >
       <div className="flex flex-col gap-2 p-1">
         <span className="windows95-text">API ключ nekoBT</span>
         <Input

@@ -1,16 +1,34 @@
 import { useSettingsStore } from "@/store/settings.store";
 import { Input } from "@/components/ui/input.component";
 import Select from "@/components/ui/select.component";
+import { Checkbox } from "@/components/ui/checkbox.component";
+import { SOURCE_INFOS } from "@/config/search.config";
 
 export default function SettingsSearch() {
   const {
     defaultSearchSource,
+    visibleSources,
     resultsPerPage,
     anilistPageSize,
     anilistMaxPages,
     searchHistoryMaxItems,
     patch,
   } = useSettingsStore();
+
+  const toggleSource = (value: string) => {
+    const next = visibleSources.includes(value)
+      ? visibleSources.filter((v) => v !== value)
+      : [...visibleSources, value];
+    patch({ visibleSources: next });
+    if (!next.includes(defaultSearchSource) && next.length > 0) {
+      patch({ defaultSearchSource: next[0] });
+    }
+  };
+
+  const defaultOpts = SOURCE_INFOS.filter((s) => visibleSources.includes(s.value)).map((s) => ({
+    value: s.value,
+    label: s.nsfw ? `${s.label} (NSFW)` : s.label,
+  }));
 
   return (
     <div className="flex flex-col gap-3 p-4">
@@ -19,17 +37,39 @@ export default function SettingsSearch() {
       <label className="flex items-center gap-2 windows95-text text-text">
         <span className="w-48">Источник по умолчанию</span>
         <Select
-          value={defaultSearchSource}
+          value={visibleSources.includes(defaultSearchSource) ? defaultSearchSource : (defaultOpts[0]?.value ?? "")}
           onChange={(v) => patch({ defaultSearchSource: v })}
-          options={[
-            { value: "erai-raws", label: "Erai-Raws" },
-            { value: "rutracker", label: "Rutracker" },
-            { value: "nyaa", label: "Nyaa.si" },
-            { value: "sukebei", label: "Sukebei (NSFW)" },
-            { value: "nekobt", label: "nekoBT" },
-          ]}
+          options={defaultOpts}
+          disabled={defaultOpts.length === 0}
         />
       </label>
+
+      <hr className="windows95-header w-full" />
+
+      <p className="windows95-text text-muted font-bold w-full">
+        Видимые источники
+      </p>
+      <div className="flex flex-col gap-1">
+        {SOURCE_INFOS.map((info) => (
+          <label
+            key={info.value}
+            className="flex items-center gap-2 windows95-text text-text cursor-pointer select-none"
+          >
+            <Checkbox
+              checked={visibleSources.includes(info.value)}
+              onChange={() => toggleSource(info.value)}
+            />
+            {info.nsfw && (
+              <span className="text-destructive text-[10px] font-bold">
+                [NSFW]
+              </span>
+            )}
+            <span>{info.label}</span>
+          </label>
+        ))}
+      </div>
+
+      <hr className="windows95-header w-full" />
 
       <label className="flex items-center gap-2 windows95-text text-text">
         <span className="w-48">Результатов на странице</span>

@@ -33,7 +33,7 @@ import RutrackerLoginModal from "@/routes/components/search/rutracker.search";
 import NekoBtApiModal from "@/routes/components/search/nekobt.search";
 import { flushSync } from "react-dom";
 import { Source } from "@/types/search";
-import { nyaaSorts, PER_PAGE } from "@/config/search.config";
+import { PER_PAGE, SOURCE_INFOS } from "@/config/search.config";
 import { useSettingsStore } from "@/store/settings.store";
 
 function SearchRoute() {
@@ -41,8 +41,23 @@ function SearchRoute() {
     (s) => s.prepareTorrentDownload,
   );
   const defaultSource = useSettingsStore((s) => s.defaultSearchSource);
+  const visibleSources = useSettingsStore((s) => s.visibleSources);
+
+  const sourceOptions = useMemo(
+    () =>
+      SOURCE_INFOS.filter((s) => visibleSources.includes(s.value)).map((s) => ({
+        value: s.value,
+        label: s.nsfw ? `${s.label} (NSFW)` : s.label,
+      })),
+    [visibleSources],
+  );
+
+  const initialSource = visibleSources.includes(defaultSource)
+    ? defaultSource
+    : (visibleSources[0] ?? "");
+
   const [searchParams, setSearchParams] = useState<string>("");
-  const [source, setSource] = useState<Source>(defaultSource as Source);
+  const [source, setSource] = useState<Source>(initialSource as Source);
   const [rutrackerAuth, setRutrackerAuth] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [nekobtAuth, setNekoBtAuth] = useState(false);
@@ -52,8 +67,6 @@ function SearchRoute() {
     {},
   );
   const [nyaaPage, setNyaaPage] = useState(1);
-  const [nyaaSort, setNyaaSort] = useState("seeders");
-  const [nyaaOrder, setNyaaOrder] = useState("desc");
   const [settings, setSettings] = useState<SettingsScraper>({
     quality: "all",
     language: "all",
@@ -76,17 +89,33 @@ function SearchRoute() {
       .catch(() => setNekoBtAuth(false));
   }, []);
 
+  useEffect(() => {
+    if (!visibleSources.includes(source) && visibleSources.length > 0) {
+      setSource(visibleSources[0] as Source);
+      setNyaaPage(1);
+    }
+  }, [visibleSources, source]);
+
   const queryKey: unknown[] = useMemo(
     () => [
       "animeScraper",
       source,
       searchParams.trim(),
+      settings.quality,
+      settings.language,
+      settings.sort,
       settings.encoding,
       nyaaPage,
-      nyaaSort,
-      nyaaOrder,
     ],
-    [source, searchParams, settings.encoding, nyaaPage, nyaaSort, nyaaOrder],
+    [
+      source,
+      searchParams,
+      settings.quality,
+      settings.language,
+      settings.sort,
+      settings.encoding,
+      nyaaPage,
+    ],
   );
 
   const { data, isLoading, isError, error, refetch } = useQuery({
@@ -104,16 +133,12 @@ function SearchRoute() {
         return await invoke<Anime[]>("search_nyaa", {
           query: searchParams.trim(),
           page: nyaaPage,
-          sort: nyaaSort,
-          order: nyaaOrder,
         });
       }
       if (source === "sukebei") {
         return await invoke<Anime[]>("search_sukebei", {
           query: searchParams.trim(),
           page: nyaaPage,
-          sort: nyaaSort,
-          order: nyaaOrder,
         });
       }
       if (source === "nekobt") {
@@ -220,7 +245,6 @@ function SearchRoute() {
             placeholder="Найти аниме..."
             value={searchParams}
             className="h-9 font-bold bg-white"
-            autoFocus
             onChange={(e) => setSearchParams(e.target.value)}
             onFocus={() => setShowHistory(true)}
             onBlur={() => setTimeout(() => setShowHistory(false), 200)}
@@ -232,11 +256,14 @@ function SearchRoute() {
             }}
           />
           {showHistory && searchHistory.length > 0 && (
-            <div className="absolute top-full left-0 right-0 z-50 windows95-border bg-primary max-h-32 overflow-y-auto px-1 pb-0.5">
+            <div className="absolute top-full left-0 right-0 z-50 windows95-border bg-white max-h-32 overflow-y-auto p-0.5">
               {searchHistory.map((item, i) => (
-                <div key={item} className="flex w-full  items-center">
+                <div key={item} className="flex w-full items-center">
                   <Button
                     className="flex-1 justify-start font-bold windows95-text h-6"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                    }}
                     onClick={() => {
                       flushSync(() => {
                         setSearchParams(item);
@@ -250,8 +277,13 @@ function SearchRoute() {
                   <Button
                     size="icon"
                     className="size-6"
-                    onClick={() => {
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
                       removeQuery(item);
+                      setShowHistory(true);
                     }}
                   >
                     <X />
@@ -268,7 +300,7 @@ function SearchRoute() {
             addQuery(searchParams.trim());
             refetch();
           }}
-          disabled={isLoading}
+          disabled={isLoading || sourceOptions.length === 0}
         >
           {isLoading ? (
             <SmallLoader />
@@ -277,20 +309,16 @@ function SearchRoute() {
           )}
         </Button>
         <Select
-          className="h-9"
+          className="h-9 min-w-30 max-w-30"
           value={source}
           onChange={(v) => {
             setSource(v as Source);
             setNyaaPage(1);
           }}
-          options={[
-            { value: "erai-raws", label: "Erai-Raws" },
-            { value: "rutracker", label: "Rutracker" },
-            { value: "nyaa", label: "Nyaa.si" },
-            { value: "sukebei", label: "Sukebei (NSFW)" },
-            { value: "nekobt", label: "nekoBT" },
-          ]}
+          options={sourceOptions}
+          disabled={sourceOptions.length === 0}
         />
+
         {source === "rutracker" && !rutrackerAuth && (
           <Button
             variant="default"
@@ -325,8 +353,9 @@ function SearchRoute() {
           </Button>
         )}
       </section>
+
       <section className="flex flex-row gap-2 w-full">
-        <div className="flex flex-wrap gap-1 items-center">
+        <div className="flex flex-row gap-1 items-center">
           <span className="text-text windows95-text">Качество:</span>
           {qualities.map((q) => (
             <Button
@@ -339,7 +368,7 @@ function SearchRoute() {
             </Button>
           ))}
         </div>
-        <div className="flex flex-wrap gap-1 items-center">
+        <div className="flex flex-row gap-1 items-center">
           <span className="text-text windows95-text">Язык:</span>
           {languages.map((l) => (
             <Button
@@ -355,7 +384,7 @@ function SearchRoute() {
         <div className="flex items-center gap-1">
           <span className="text-text windows95-text">Сортировка:</span>
           <Select
-            className="w-[90px]"
+            className="w-22"
             value={settings.sort}
             onChange={(v) =>
               setSettings((prev) => ({
@@ -373,7 +402,7 @@ function SearchRoute() {
         <div className="flex items-center gap-1">
           <span className="text-text windows95-text">Кодек:</span>
           <Select
-            className="w-[80px]"
+            className="w-22"
             value={settings.encoding}
             onChange={(v) =>
               setSettings((prev) => ({
@@ -387,45 +416,16 @@ function SearchRoute() {
             }))}
           />
         </div>
-        {source === "nyaa" && (
-          <>
-            <div className="flex items-center gap-1">
-              <span className="text-text windows95-text">Сорт.:</span>
-              <Select
-                className="w-[180px]"
-                value={nyaaSort}
-                onChange={(v) => {
-                  setNyaaSort(v);
-                  setNyaaPage(1);
-                  setTimeout(() => refetch(), 0);
-                }}
-                options={nyaaSorts}
-              />
-            </div>
-            <div className="flex items-center gap-1">
-              <Select
-                className="w-[100px]"
-                value={nyaaOrder}
-                onChange={(v) => {
-                  setNyaaOrder(v);
-                  setNyaaPage(1);
-                  setTimeout(() => refetch(), 0);
-                }}
-                options={[
-                  { value: "desc", label: "По убыв." },
-                  { value: "asc", label: "По возр." },
-                ]}
-              />
-            </div>
-          </>
-        )}
       </section>
+
       {isError && (
         <section className="windows95-text text-destructive">
           {error?.message}
         </section>
       )}
+
       {data?.length === 0 && !isError && <span>Ничего не найдено</span>}
+
       {displayItems && (
         <section className="flex flex-col w-full h-full overflow-y-auto p-0.5 gap-1">
           {displayItems.map((item, i) => {
@@ -478,6 +478,7 @@ function SearchRoute() {
                     </span>
                   </div>
                 </div>
+
                 <div className="mt-1 flex gap-1">
                   {isLoadingMag ? (
                     <div className="flex items-center gap-1">
@@ -529,6 +530,7 @@ function SearchRoute() {
           })}
         </section>
       )}
+
       {(source === "nyaa" || source === "nekobt") &&
         displayItems &&
         displayItems.length > 0 && (
@@ -558,6 +560,7 @@ function SearchRoute() {
             </Button>
           </section>
         )}
+
       {showLogin && (
         <RutrackerLoginModal
           setRutrackerAuth={setRutrackerAuth}

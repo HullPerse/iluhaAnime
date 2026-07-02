@@ -154,7 +154,7 @@ function DualSlider({
           style={{ left: `${high}%`, transform: "translateX(-50%)" }}
         />
       </div>
-      <span className="w-16 tabular-nums text-right text-[10px]">
+      <span className="w-18 max-w-18 min-w-18 tabular-nums text-right text-[10px]">
         {value[0]}
         {suffix} — {value[1]}
         {suffix}

@@ -44,7 +44,11 @@ function RutrackerLoginModal({
   };
 
   return (
-    <Modal header="Rutracker -> войти в аккаунт" onClose={handleClose}>
+    <Modal
+      header="Rutracker -> войти в аккаунт"
+      onClose={handleClose}
+      className="w-xl"
+    >
       <div className="flex flex-col gap-2 p-1">
         <Input
           placeholder="Имя пользователя"

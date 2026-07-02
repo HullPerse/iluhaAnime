@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button.component";
+import Tabs from "@/components/shared/tabs.component";
 
 import SettingsGeneral from "@/routes/components/settings/general.settings";
 import SettingsPlayer from "@/routes/components/settings/player.settings";
@@ -30,30 +30,7 @@ export default function SettingsRoute() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex bg-primary pl-2 pt-1 gap-1 shrink-0">
-        {tabs.map((tab) => {
-          const isActive = activeTab === tab.id;
-          return (
-            <Button
-              key={tab.id}
-              className={`px-3 py-0.5 relative cursor-pointer windows95-text active:outline-dotted active:outline-1 active:outline-offset-[-3px] active:outline-text ${
-                isActive
-                  ? "windows95-active-border border-b-transparent"
-                  : "windows95-border bg-surface"
-              }`}
-              style={{
-                top: isActive ? 0 : "2px",
-                marginBottom: isActive ? "-2px" : undefined,
-                zIndex: isActive ? 20 : 10,
-              }}
-              onClick={() => setActiveTab(tab.id)}
-              disabled={isActive}
-            >
-              {tab.label}
-            </Button>
-          );
-        })}
-      </div>
+      <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
       <div className="flex-1 overflow-auto windows95-border bg-primary mx-1 mb-1">
         {components[activeTab]}
       </div>

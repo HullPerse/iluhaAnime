@@ -6,7 +6,6 @@ import {
   Suspense,
   useCallback,
 } from "react";
-import backgroundImage from "@/assets/background.jpg";
 import { useTorrentStore } from "@/store/download.store";
 import { useSearchStore } from "@/store/search.store";
 import TorrentFilePicker from "@/routes/components/search/picker.search";
@@ -177,7 +176,7 @@ function App() {
         <div
           className={`absolute inset-0 z-0 bg-background bg-no-repeat ${wallpaperBlur ? "blur-xs brightness-50" : ""}`}
           style={{
-            backgroundImage: `url(${backgroundImage})`,
+            backgroundImage: `url(/background.jpg)`,
             backgroundSize: "cover",
             backgroundPosition: "center",
           }}

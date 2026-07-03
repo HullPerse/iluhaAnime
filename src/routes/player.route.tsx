@@ -20,6 +20,7 @@ import {
   Search,
   ChevronDown,
   ChevronRight,
+  Image,
 } from "lucide-react";
 import { listen } from "@tauri-apps/api/event";
 import { CHEATSHEET_ROWS } from "@/config/keybinds.config";
@@ -27,6 +28,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { buildTree, collectFolderPaths } from "@/lib/player.utils";
+import { THUMB_INTERVAL } from "@/config/player.config";
 import FFMPEG from "./components/player/ffmpeg.player";
 import { getAction } from "@/config/keybinds.config";
 import FolderView from "./components/player/folder.player";
@@ -69,6 +71,14 @@ function PlayerRoute({
   const [autoAudio, setAutoAudio] = useState<string[]>([]);
   const [autoSubs, setAutoSubs] = useState<string[]>([]);
   const audioExtensions = useSettingsStore((s) => s.audioExtensions);
+  const [genLabel, setGenLabel] = useState<string | null>(null);
+  const [genProgress, setGenProgress] = useState<{
+    done: number;
+    total: number;
+  } | null>(null);
+  const [genPaused, setGenPaused] = useState(false);
+  const genCancelledRef = useRef(false);
+  const genPausedRef = useRef(false);
 
   useEffect(() => {
     invoke<boolean>("check_ffprobe")
@@ -376,6 +386,97 @@ function PlayerRoute({
     });
   };
 
+  const runGeneration = useCallback(async (label: string, paths: string[]) => {
+    if (paths.length === 0) return;
+    genCancelledRef.current = false;
+    genPausedRef.current = false;
+    setGenPaused(false);
+    setGenLabel(label);
+    setGenProgress({ done: 0, total: paths.length });
+
+    for (const p of paths) {
+      if (genCancelledRef.current) break;
+      while (genPausedRef.current && !genCancelledRef.current) {
+        await new Promise((r) => setTimeout(r, 100));
+      }
+      if (genCancelledRef.current) break;
+
+      try {
+        await invoke("generate_thumbnails", {
+          videoPath: p,
+          interval: THUMB_INTERVAL,
+        });
+      } catch { }
+
+      setGenProgress((prev) =>
+        prev ? { ...prev, done: prev.done + 1 } : prev,
+      );
+    }
+
+    if (!genCancelledRef.current) {
+      setCacheRefreshKey((k) => k + 1);
+    }
+    setGenProgress(null);
+    setGenPaused(false);
+    setGenLabel(null);
+  }, []);
+
+  const handleGenerateAll = useCallback(async () => {
+    const exts = new Set(useSettingsStore.getState().videoExtensions);
+    const paths = new Set<string>();
+
+    for (const p of collectFolderPaths(folderTrees)) paths.add(p);
+
+    for (const [id, files] of Object.entries(torrentFilesMap)) {
+      const t = torrents.find((t) => t.id === Number(id));
+      if (!t) continue;
+      for (const f of files) {
+        const ext = f.name.split(".").pop()?.toLowerCase();
+        if (ext && exts.has(ext)) paths.add(`${t.save_dir}/${f.name}`);
+      }
+    }
+
+    runGeneration("Все папки и торренты", [...paths]);
+  }, [folderTrees, torrentFilesMap, torrents, runGeneration]);
+
+  const handleGenerateFolder = useCallback(
+    async (path: string, name: string) => {
+      const tree = folderTrees.find((t) => t.path === path);
+      if (!tree) return;
+
+      const exts = new Set(useSettingsStore.getState().videoExtensions);
+      const paths = collectFolderPaths([tree]).filter((p) => {
+        const ext = p.split(".").pop()?.toLowerCase();
+        return ext && exts.has(ext);
+      });
+
+      runGeneration(`Папка: ${name}`, paths);
+    },
+    [folderTrees, runGeneration],
+  );
+
+  const handleGenerateTorrent = useCallback(
+    async (id: number) => {
+      const t = torrents.find((t) => t.id === id);
+      const files = torrentFilesMap[id];
+      if (!t || !files) return;
+
+      const exts = new Set(useSettingsStore.getState().videoExtensions);
+      const paths = files
+        .filter((f) => f.completed)
+        .map((f) => `${t.save_dir}/${f.name}`)
+        .filter((p) => {
+          const ext = p.split(".").pop()?.toLowerCase();
+          return ext && exts.has(ext);
+        });
+
+      runGeneration(`Торрент: ${t.name}`, paths);
+    },
+    [torrents, torrentFilesMap, runGeneration],
+  );
+
+  const isGenerating = genProgress !== null;
+
   if (video)
     return (
       <main className="flex flex-col w-full h-full gap-1 overflow-y-auto">
@@ -438,11 +539,29 @@ function PlayerRoute({
 
       {/* THUMBNAIL CACHE */}
       <ThumbnailPlayer
-        folderTrees={folderTrees}
-        torrentFilesMap={torrentFilesMap}
-        torrents={torrents}
         ffmpegStatus={ffmpegStatus}
         cacheRefreshKey={cacheRefreshKey}
+        generatingLabel={genLabel}
+        progress={genProgress}
+        paused={genPaused}
+        onGenerateAll={handleGenerateAll}
+        onPause={() => {
+          genPausedRef.current = !genPausedRef.current;
+          setGenPaused((p) => !p);
+        }}
+        onStop={() => {
+          genCancelledRef.current = true;
+          genPausedRef.current = false;
+          setGenProgress(null);
+          setGenPaused(false);
+          setGenLabel(null);
+        }}
+        onClear={async () => {
+          try {
+            await invoke("clear_thumbnail_cache");
+            setCacheRefreshKey((k) => k + 1);
+          } catch { }
+        }}
       />
 
       {/* CONTINUE WATCHING */}
@@ -450,7 +569,7 @@ function PlayerRoute({
 
       {/* KEYBINDS */}
       {showKeybinds && (
-        <section className="relative windows95-active-border bg-primary p-1 min-h-10">
+        <section className="relative windows95-active-border bg-primary p-1 h-fit">
           <Button
             size="icon"
             className="absolute top-1 right-1 flex items-center justify-center size-6"
@@ -520,15 +639,16 @@ function PlayerRoute({
       )}
 
       {folderTrees.length > 0 && (
-        <section className="flex flex-col windows95-active-border w-full items-stretch windows95-text gap-1 px-1 py-1">
+        <section className="flex flex-col w-full windows95-text gap-2 p-1">
           {folderTrees.map((tree) => (
-            <div key={tree.path} className="flex flex-col">
+            <div key={tree.path} className="flex flex-col windows95-active-border bg-primary">
               <FolderView
                 node={tree}
                 depth={0}
                 onPlay={playFile}
                 searchQuery={search}
                 onRemove={handleRemoveFolder}
+                onGenerate={handleGenerateFolder}
                 disabledExtensions={new Set(audioExtensions)}
               />
             </div>
@@ -548,9 +668,23 @@ function PlayerRoute({
             key={index}
             className="flex flex-col windows95-active-border bg-primary gap-1"
           >
-            <span className="bg-secondary text-white pb-1 px-1 line-clamp-1 font-bold windows95-text">
-              {item.name}
-            </span>
+            <div className="flex items-center gap-1 bg-secondary text-white px-1">
+              <span className="flex-1 line-clamp-1 font-bold windows95-text py-0.5">
+                {item.name}
+              </span>
+              <Button
+                size="icon"
+                className="size-4"
+                title="Сгенерировать превью"
+                disabled={isGenerating}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleGenerateTorrent(item.id);
+                }}
+              >
+                <Image className="size-3" />
+              </Button>
+            </div>
 
             {files && (
               <section className="flex flex-col gap-1">

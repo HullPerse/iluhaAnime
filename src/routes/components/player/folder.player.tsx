@@ -9,6 +9,7 @@ import {
   ChevronRight,
   FileVideo,
   FolderOpen,
+  Image,
   Monitor,
   Play,
   X,
@@ -32,8 +33,8 @@ function flattenTree(
 
   let filteredFiles = searchQuery
     ? node.files.filter((f) =>
-        f.name.toLowerCase().includes(searchQuery.toLowerCase()),
-      )
+      f.name.toLowerCase().includes(searchQuery.toLowerCase()),
+    )
     : node.files;
 
   if (trackExts) {
@@ -61,7 +62,7 @@ function flattenTree(
     for (const file of filteredFiles) {
       const ext = file.name.split(".").pop()?.toLowerCase();
       const disabled = disabledExtensions && ext && disabledExtensions.has(ext);
-      if (!disabled || true) {
+      if (!disabled) {
         items.push({ kind: "file", file, depth: depth + 1 });
       }
     }
@@ -89,6 +90,8 @@ function FolderView({
   onPlay,
   searchQuery,
   onRemove,
+  onGenerate,
+  isGenerating,
   disabledExtensions,
 }: {
   node: FolderNode;
@@ -96,6 +99,8 @@ function FolderView({
   onPlay: (path: string) => void;
   searchQuery: string;
   onRemove?: (path: string) => void;
+  onGenerate?: (path: string, name: string) => void;
+  isGenerating?: boolean;
   disabledExtensions?: Set<string>;
 }) {
   const showTrackFiles = useSettingsStore((s) => s.showTrackFiles);
@@ -149,44 +154,68 @@ function FolderView({
 
   return (
     <main className="flex flex-col w-full">
-      <div
-        role="button"
-        className="flex items-center gap-1 windows95-text cursor-pointer hover:bg-surface px-0.5 py-0.5 w-full text-left"
-        onClick={() => depth > 0 && toggle(node.path)}
-        style={{
-          paddingLeft: `${depth * 12 + 2}px`,
-        }}
-      >
-        {depth > 0 ? (
-          open.has(node.path) ? (
+      {depth === 0 ? (
+        <div className="flex items-center gap-1 px-0.5 py-0.5 w-full">
+          <div
+            role="button"
+            className="flex items-center gap-1 flex-1 min-w-0 windows95-text cursor-pointer hover:bg-surface text-left select-none px-1"
+          >
+            <span className="size-3 shrink-0" />
+            <FolderOpen className="size-3 shrink-0 text-muted" />
+            <span className="truncate select-none" title={node.name}>
+              {node.name}
+            </span>
+            <span className="text-muted ml-auto whitespace-nowrap select-none">
+              {countAll} файлов
+            </span>
+          </div>
+          {onGenerate && (
+            <Button
+              size="icon"
+              className="h-5 w-5"
+              title="Сгенерировать превью"
+              disabled={isGenerating}
+              onClick={(e) => {
+                e.stopPropagation();
+                onGenerate(node.path, node.name);
+              }}
+            >
+              <Image className="size-3" />
+            </Button>
+          )}
+          {onRemove && (
+            <Button
+              size="icon"
+              className="h-5 w-5"
+              onClick={(e) => {
+                e.stopPropagation();
+                onRemove(node.path);
+              }}
+            >
+              <X />
+            </Button>
+          )}
+        </div>
+      ) : (
+        <div
+          role="button"
+          className="flex items-center gap-1 windows95-text cursor-pointer hover:bg-surface px-0.5 py-0.5 w-full text-left"
+          onClick={() => depth > 0 && toggle(node.path)}
+          style={{
+            paddingLeft: `${depth * 12 + 2}px`,
+          }}
+        >
+          {open.has(node.path) ? (
             <ChevronDown className="size-3 shrink-0" />
           ) : (
             <ChevronRight className="size-3 shrink-0" />
-          )
-        ) : (
-          <span className="size-3 shrink-0" />
-        )}
-        <FolderOpen className="size-3 shrink-0 text-muted" />
-        <span className="truncate select-none" title={node.name}>
-          {node.name}
-        </span>
-        <span className="text-muted ml-auto whitespace-nowrap">
-          {countAll} файлов
-        </span>
-
-        {onRemove && depth === 0 && (
-          <Button
-            size="icon"
-            className="h-5 w-5"
-            onClick={(e) => {
-              e.stopPropagation();
-              onRemove(node.path);
-            }}
-          >
-            <X />
-          </Button>
-        )}
-      </div>
+          )}
+          <FolderOpen className="size-3 shrink-0 text-muted" />
+          <span className="truncate select-none" title={node.name}>
+            {node.name}
+          </span>
+        </div>
+      )}
 
       {(open.has(node.path) || depth === 0) && (
         <div

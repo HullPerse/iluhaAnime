@@ -1,39 +1,35 @@
 import { Button } from "@/components/ui/button.component";
 import { fmtSize } from "@/lib/torrent.utils";
-import { THUMB_INTERVAL } from "@/config/player.config";
-import { useSettingsStore } from "@/store/settings.store";
 import { invoke } from "@tauri-apps/api/core";
 import { Pause, Play, Square } from "lucide-react";
-import { FolderNode, TorrentFileInfo } from "@/types/torrent";
-import { TorrentInfo } from "@/types/torrent";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { FFMPEGStatus } from "@/types/player";
-import { collectFolderPaths } from "@/lib/player.utils";
 
 function ThumbnailPlayer({
-  folderTrees,
-  torrentFilesMap,
-  torrents,
   ffmpegStatus,
   cacheRefreshKey,
+  generatingLabel,
+  progress,
+  paused,
+  onGenerateAll,
+  onPause,
+  onStop,
+  onClear,
 }: {
-  folderTrees: FolderNode[];
-  torrentFilesMap: Record<number, TorrentFileInfo[]>;
-  torrents: TorrentInfo[];
   ffmpegStatus: FFMPEGStatus;
   cacheRefreshKey: number;
+  generatingLabel: string | null;
+  progress: { done: number; total: number } | null;
+  paused: boolean;
+  onGenerateAll: () => void;
+  onPause: () => void;
+  onStop: () => void;
+  onClear: () => void;
 }) {
   const [cacheInfo, setCacheInfo] = useState<{
     size: number;
     count: number;
   } | null>(null);
-  const [precacheProgress, setPrecacheProgress] = useState<{
-    done: number;
-    total: number;
-  } | null>(null);
-  const [precachePaused, setPrecachePaused] = useState(false);
-  const cancelledRef = useRef(false);
-  const pausedRef = useRef(false);
 
   useEffect(() => {
     invoke<{ size_bytes: number; path_count: number }>(
@@ -45,106 +41,27 @@ function ThumbnailPlayer({
       .catch(() => setCacheInfo(null));
   }, [cacheRefreshKey]);
 
-  useEffect(() => {
-    return () => {
-      cancelledRef.current = true;
-    };
-  }, []);
-
-  const handlePrecache = useCallback(async () => {
-    const exts = new Set(useSettingsStore.getState().videoExtensions);
-    const paths = new Set<string>();
-
-    for (const p of collectFolderPaths(folderTrees)) paths.add(p);
-
-    for (const [id, files] of Object.entries(torrentFilesMap)) {
-      const t = torrents.find((t) => t.id === Number(id));
-      if (!t) continue;
-      for (const f of files) {
-        const ext = f.name.split(".").pop()?.toLowerCase();
-        if (ext && exts.has(ext)) paths.add(`${t.save_dir}/${f.name}`);
-      }
-    }
-
-    const allPaths = [...paths];
-    if (allPaths.length === 0) return;
-
-    cancelledRef.current = false;
-    pausedRef.current = false;
-    setPrecachePaused(false);
-    setPrecacheProgress({ done: 0, total: allPaths.length });
-
-    for (const p of allPaths) {
-      if (cancelledRef.current) break;
-      while (pausedRef.current && !cancelledRef.current) {
-        await new Promise((r) => setTimeout(r, 100));
-      }
-      if (cancelledRef.current) break;
-
-      try {
-        await invoke("generate_thumbnails", {
-          videoPath: p,
-          interval: THUMB_INTERVAL,
-        });
-      } catch {}
-
-      setPrecacheProgress((prev) =>
-        prev ? { ...prev, done: prev.done + 1 } : prev,
-      );
-    }
-
-    if (!cancelledRef.current) {
-      invoke<{ size_bytes: number; path_count: number }>(
-        "get_thumbnail_cache_info",
-      )
-        .then((info) =>
-          setCacheInfo({ size: info.size_bytes, count: info.path_count }),
-        )
-        .catch(() => {});
-    }
-    setPrecacheProgress(null);
-    setPrecachePaused(false);
-  }, [folderTrees, torrentFilesMap, torrents]);
-
-  const handlePause = useCallback(() => {
-    pausedRef.current = !pausedRef.current;
-    setPrecachePaused((p) => !p);
-  }, []);
-
-  const handleStop = useCallback(() => {
-    cancelledRef.current = true;
-    pausedRef.current = false;
-    setPrecacheProgress(null);
-    setPrecachePaused(false);
-  }, []);
-
-  const handleClearCache = useCallback(async () => {
-    try {
-      await invoke("clear_thumbnail_cache");
-      setCacheInfo({ size: 0, count: 0 });
-    } catch {}
-  }, []);
-
-  const isRunning = precacheProgress !== null;
-  const generating = isRunning && !precachePaused;
+  const isRunning = progress !== null;
+  const generating = isRunning && !paused;
 
   return (
     <section className="flex flex-col w-full windows95-active-border bg-primary p-1">
       <div className="flex flex-row items-center gap-1">
         <span className="windows95-text text-[10px]">
-          {`Превью: ${
-            cacheInfo
+          {generatingLabel && progress
+            ? `Генерация превью: ${generatingLabel}`
+            : `Превью: ${cacheInfo
               ? `${cacheInfo.count} файлов, ${fmtSize(cacheInfo.size)}`
               : "..."
-          }`}
+            }`}
         </span>
         <Button
           rendered={!isRunning}
-          onClick={handlePrecache}
+          onClick={onGenerateAll}
           disabled={isRunning || ffmpegStatus !== "ok"}
           className="ml-auto"
         >
-          Сгенерировать
+          Сгенерировать всё
         </Button>
         {isRunning ? (
           <div className="ml-auto gap-1 flex flex-row">
@@ -152,7 +69,7 @@ function ThumbnailPlayer({
               variant="secondary"
               size="icon"
               className="size-6"
-              onClick={handlePause}
+              onClick={onPause}
             >
               {generating ? (
                 <Pause className="size-3" />
@@ -164,7 +81,7 @@ function ThumbnailPlayer({
               variant="error"
               size="icon"
               className="size-6"
-              onClick={handleStop}
+              onClick={onStop}
             >
               <Square className="size-3" />
             </Button>
@@ -172,7 +89,7 @@ function ThumbnailPlayer({
         ) : null}
         <Button
           rendered={!isRunning}
-          onClick={handleClearCache}
+          onClick={onClear}
           disabled={isRunning}
         >
           Очистить
@@ -180,16 +97,16 @@ function ThumbnailPlayer({
       </div>
       {isRunning && (
         <div className="flex flex-row items-center gap-1 mt-1">
-          <div className="flex-1 h-3 windows95-border bg-white">
+          <div className="flex-1 h-3 windows95-border bg-white overflow-hidden">
             <div
               className="h-full bg-secondary"
               style={{
-                width: `${(precacheProgress.done / precacheProgress.total) * 100}%`,
+                width: `${(progress.done / progress.total) * 100}%`,
               }}
             />
           </div>
           <span className="text-[10px] shrink-0">
-            {precacheProgress.done}/{precacheProgress.total}
+            {progress.done}/{progress.total}
           </span>
         </div>
       )}

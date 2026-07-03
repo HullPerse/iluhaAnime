@@ -13,16 +13,3 @@ export const SOURCE_INFOS: SourceInfo[] = [
   { value: "nekobt", label: "nekoBT", nsfw: false },
   { value: "sukebei", label: "Sukebei", nsfw: true },
 ];
-
-export function getSourceInfo(value: string): SourceInfo | undefined {
-  return SOURCE_INFOS.find((s) => s.value === value);
-}
-
-export const nyaaSorts = [
-  { value: "seeders", label: "Сидеры" },
-  { value: "leechers", label: "Личи" },
-  { value: "size", label: "Размер" },
-  { value: "date", label: "Дата" },
-  { value: "name", label: "Название" },
-  { value: "downloads", label: "Скачивания" },
-] as const;

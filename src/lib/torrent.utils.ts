@@ -80,7 +80,10 @@ export interface TorrentTreeFile {
   exists: boolean;
 }
 
-export function buildTorrentTree(files: TorrentFileInfo[]): TorrentTreeNode[] {
+export function buildTorrentTree(files: TorrentFileInfo[]): {
+  nodes: TorrentTreeNode[];
+  rootFiles: TorrentTreeFile[];
+} {
   const root: TorrentTreeNode = { name: "", files: [], children: [] };
 
   for (const file of files) {
@@ -111,7 +114,10 @@ export function buildTorrentTree(files: TorrentFileInfo[]): TorrentTreeNode[] {
     });
   }
 
-  return root.children.sort((a, b) => a.name.localeCompare(b.name));
+  return {
+    nodes: root.children.sort((a, b) => a.name.localeCompare(b.name)),
+    rootFiles: root.files,
+  };
 }
 
 export function groupFilesByDirectory(

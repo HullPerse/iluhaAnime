@@ -6,7 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox.component";
 import { DualSlider } from "@/components/ui/range.component";
 import Select from "@/components/ui/select.component";
 import { Radio } from "@/components/ui/radio.component";
-import { statusLabels, seasonLabels } from "@/lib/anilist.utils";
+import { statusLabels, seasonLabels, formatLabels } from "@/lib/anilist.utils";
 import { useState } from "react";
 import {
   ANILIST_GENRES,
@@ -83,6 +83,7 @@ function FiltersModal({ open, filters, onApply, onReset, onClose }: Props) {
           onChange={addGenre}
           placeholder="Выберите жанр..."
           options={genreOpts}
+          indexed
         />
         <ChipsRow
           items={local.genres}
@@ -101,6 +102,7 @@ function FiltersModal({ open, filters, onApply, onReset, onClose }: Props) {
           onChange={addTag}
           placeholder="Выберите тэг..."
           options={tagOpts}
+          indexed
         />
         <ChipsRow
           items={local.tags.filter((t) => !NSFW_TAG_SET.has(t))}
@@ -149,7 +151,7 @@ function FiltersModal({ open, filters, onApply, onReset, onClose }: Props) {
                 checked={local.format === f}
                 onChange={() => setLocal((p) => ({ ...p, format: f }))}
               />
-              {f}
+              {formatLabels[f]}
             </label>
           ))}
           <label className="flex items-center gap-1 cursor-pointer select-none windows95-text">

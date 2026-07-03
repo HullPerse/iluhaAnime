@@ -116,7 +116,7 @@ function AnilistRoute() {
         status: searchFilters.status || null,
         season: searchFilters.season || null,
         seasonYear: searchFilters.seasonYear,
-        adult: searchFilters.adult ? true : false,
+        adult: searchFilters.adult || null,
         sort: searchFilters.sort ? [searchFilters.sort] : null,
         source: searchFilters.source || null,
         country: searchFilters.country || null,
@@ -307,7 +307,7 @@ function AnilistRoute() {
             if (global && !e.target.value.trim()) handleReset();
           }}
           onKeyDown={(e) => {
-            if (e.key === "Enter" && searchTerms.trim()) {
+            if (e.key === "Enter") {
               handleGlobal();
             }
           }}

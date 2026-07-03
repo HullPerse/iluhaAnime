@@ -24,9 +24,16 @@ function flattenTree(
   nodes: TorrentTreeNode[],
   open: Set<string>,
   fileFilter?: (f: TorrentTreeFile) => boolean,
+  rootFiles?: TorrentTreeFile[],
   depth = 0,
 ): Item[] {
   const items: Item[] = [];
+
+  if (depth === 0 && rootFiles) {
+    for (const file of rootFiles) {
+      items.push({ kind: "file", file, depth: 0 });
+    }
+  }
 
   for (const node of nodes) {
     if (depth > 0) items.push({ kind: "folder", node, depth });
@@ -35,7 +42,7 @@ function flattenTree(
       for (const file of files) {
         items.push({ kind: "file", file, depth: depth + 1 });
       }
-      items.push(...flattenTree(node.children, open, fileFilter, depth + 1));
+      items.push(...flattenTree(node.children, open, fileFilter, undefined, depth + 1));
     }
   }
   return items;
@@ -72,7 +79,7 @@ function TorrentFilesSection({
   const [open, setOpen] = useState<Set<string>>(new Set());
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const trees = useMemo(() => buildTorrentTree(files), [files]);
+  const { nodes: trees, rootFiles } = useMemo(() => buildTorrentTree(files), [files]);
 
   const toggle = useCallback((key: string) => {
     setOpen((prev) => {
@@ -107,8 +114,8 @@ function TorrentFilesSection({
   }, [type, showTrackFiles, trackExts]);
 
   const flatItems = useMemo(
-    () => flattenTree(trees, open, fileFilter),
-    [trees, open, fileFilter],
+    () => flattenTree(trees, open, fileFilter, rootFiles),
+    [trees, open, fileFilter, rootFiles],
   );
 
   const virtualizer = useVirtualizer({
@@ -129,7 +136,7 @@ function TorrentFilesSection({
 
   const handlePriorityChange = onFilePriorityChange
     ? (fileIndices: number[], priority: FilePriority) =>
-        onFilePriorityChange(id, fileIndices, priority)
+      onFilePriorityChange(id, fileIndices, priority)
     : undefined;
 
   return (
@@ -167,10 +174,10 @@ function TorrentFilesSection({
                 <span className="text-muted ml-auto whitespace-nowrap">
                   {fmtSize(
                     item.node.files.reduce((s, f) => s + f.size, 0) +
-                      item.node.children.reduce(
-                        (s, c) => s + c.files.reduce((s2, f) => s2 + f.size, 0),
-                        0,
-                      ),
+                    item.node.children.reduce(
+                      (s, c) => s + c.files.reduce((s2, f) => s2 + f.size, 0),
+                      0,
+                    ),
                   )}
                 </span>
               </div>
@@ -196,11 +203,7 @@ function TorrentFilesSection({
                 />
               )}
 
-              <span
-                className={`shrink-0 text-[9px] ${file.exists ? "text-green-700" : "text-red-600"}`}
-              >
-                {file.exists ? "✓" : "✗"}
-              </span>
+
 
               <span className="truncate flex-1" title={file.displayName}>
                 {file.displayName}
@@ -223,6 +226,7 @@ function TorrentFilesSection({
                       { value: "low", label: "Маленький" },
                       { value: "do_not_download", label: "Пропуск" },
                     ]}
+                    arrow={false}
                   />
                 )}
 

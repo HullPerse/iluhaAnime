@@ -11,11 +11,7 @@ function skipLabel(title: string): string | null {
     lower.includes("a part")
   )
     return "OP";
-  if (
-    lower.includes("ending") ||
-    lower === "ed" ||
-    lower.includes("credits")
-  )
+  if (lower.includes("ending") || lower === "ed" || lower.includes("credits"))
     return "ED";
   if (lower.includes("intro")) return "Intro";
   if (
@@ -69,7 +65,7 @@ function SkipButton({
         }}
       >
         <SkipForward className="size-4" />
-        {isNextEpisode ? "Следующий эпизод" : `Пропустить (${label})`}
+        {isNextEpisode ? "Следующий эпизод" : "Пропустить"}
       </Button>
     </div>
   );

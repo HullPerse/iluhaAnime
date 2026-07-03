@@ -116,7 +116,7 @@ function PlayerRoute({
     return () => {
       if (!useSettingsStore.getState().autoCleanTempFiles) return;
       for (const p of tempFilesRef.current) {
-        invoke("cleanup_temp_file", { path: p }).catch(() => {});
+        invoke("cleanup_temp_file", { path: p }).catch(() => { });
       }
       tempFilesRef.current = [];
     };
@@ -158,7 +158,7 @@ function PlayerRoute({
               setAutoAudio(t.audio);
               setAutoSubs(t.subtitles);
             })
-            .catch(() => {});
+            .catch(() => { });
 
           const savedAudio = savedEntry?.audioTrack;
           if (savedAudio !== undefined) {
@@ -175,17 +175,17 @@ function PlayerRoute({
                 try {
                   const out = stream.file_path
                     ? await invoke<string>("remux_with_external_audio", {
-                        videoPath: path,
-                        audioPath: stream.file_path,
-                      })
+                      videoPath: path,
+                      audioPath: stream.file_path,
+                    })
                     : await invoke<string>("remux_video_audio", {
-                        path,
-                        streamIndex: savedAudio,
-                      });
+                      path,
+                      streamIndex: savedAudio,
+                    });
                   if (gen !== playGenRef.current) return;
                   for (const p of tempFilesRef.current)
                     if (useSettingsStore.getState().autoCleanTempFiles)
-                      invoke("cleanup_temp_file", { path: p }).catch(() => {});
+                      invoke("cleanup_temp_file", { path: p }).catch(() => { });
                   tempFilesRef.current = [out];
                   if (gen !== playGenRef.current) return;
                   setVideo((prev) =>
@@ -193,7 +193,7 @@ function PlayerRoute({
                       ? { ...prev, remuxSrc: convertFileSrc(out) }
                       : prev,
                   );
-                } catch {}
+                } catch { }
               }
             }
           }
@@ -226,7 +226,7 @@ function PlayerRoute({
             path: folderPaths[i],
           });
           if (entries?.length) trees.push(buildTree(entries, folderPaths[i]));
-        } catch {}
+        } catch { }
       }
 
       setFolderTrees(trees);
@@ -356,7 +356,7 @@ function PlayerRoute({
         const paths = collectFolderPaths([tree]);
         invoke("delete_thumbnails_for_paths", { paths })
           .then(() => setCacheRefreshKey((k) => k + 1))
-          .catch(() => {});
+          .catch(() => { });
       }
       setFolderTrees((prev) => {
         const next = prev.filter((t) => t.path !== path);
@@ -541,6 +541,8 @@ function PlayerRoute({
         const isExpanded = expanded.has(item.id);
         const files = torrentFilesMap[item.id];
 
+
+
         return (
           <section
             key={index}
@@ -572,7 +574,7 @@ function PlayerRoute({
                 {isExpanded && (
                   <TorrentFilesSection
                     id={item.id}
-                    files={files}
+                    files={files.filter((f) => f.completed)}
                     type="player"
                     path={item.save_dir}
                     onPlay={playFile}

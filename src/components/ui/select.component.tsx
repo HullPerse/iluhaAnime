@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ChevronDown, Search } from "lucide-react";
 import { cn } from "@/lib/index.utils";
@@ -13,6 +13,7 @@ function Select({
   arrow = true,
   disabled,
   searchable,
+  indexed = false
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -22,6 +23,7 @@ function Select({
   arrow?: boolean;
   disabled?: boolean;
   searchable?: boolean;
+  indexed?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -42,7 +44,7 @@ function Select({
     );
   }, [options, search, showSearch]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!open) {
       setSearch("");
       setStyle({});
@@ -168,13 +170,13 @@ function Select({
               />
             )}
             <ul className="overflow-y-auto flex-1">
-              {filteredOptions.map((o) => (
+              {filteredOptions.map((o, i) => (
                 <li
                   key={o.value}
                   className={`px-1 py-0.5 windows95-text windows95-border cursor-pointer truncate ${o.value === value ? "bg-highlight text-white" : "text-text hover:bg-surface"}`}
                   onClick={() => handleSelect(o.value)}
                 >
-                  {o.label}
+                  {indexed ? `${i + 1}. ${o.label}` : o.label}
                 </li>
               ))}
               {filteredOptions.length === 0 && (

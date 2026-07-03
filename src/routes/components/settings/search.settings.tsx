@@ -25,7 +25,9 @@ export default function SettingsSearch() {
     }
   };
 
-  const defaultOpts = SOURCE_INFOS.filter((s) => visibleSources.includes(s.value)).map((s) => ({
+  const defaultOpts = SOURCE_INFOS.filter((s) =>
+    visibleSources.includes(s.value),
+  ).map((s) => ({
     value: s.value,
     label: s.nsfw ? `${s.label} (NSFW)` : s.label,
   }));
@@ -37,10 +39,15 @@ export default function SettingsSearch() {
       <label className="flex items-center gap-2 windows95-text text-text">
         <span className="w-48">Источник по умолчанию</span>
         <Select
-          value={visibleSources.includes(defaultSearchSource) ? defaultSearchSource : (defaultOpts[0]?.value ?? "")}
+          value={
+            visibleSources.includes(defaultSearchSource)
+              ? defaultSearchSource
+              : (defaultOpts[0]?.value ?? "")
+          }
           onChange={(v) => patch({ defaultSearchSource: v })}
           options={defaultOpts}
           disabled={defaultOpts.length === 0}
+          className="w-28"
         />
       </label>
 

@@ -224,7 +224,7 @@ export const ANILIST_NSFW_TAGS = [
   "Virginity",
   "Voyeur",
 ];
-export const FORMATS = ["TV", "Movie", "OVA", "ONA", "Special", "Music"];
+export const FORMATS = ["TV", "TV_SHORT", "MOVIE", "OVA", "ONA", "SPECIAL", "MUSIC"];
 export const STATUSES = [
   "FINISHED",
   "RELEASING",

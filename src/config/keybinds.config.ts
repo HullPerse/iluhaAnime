@@ -10,6 +10,10 @@ export type KeybindAction =
   | "subtitleOffsetUp"
   | "subtitleOffsetDownFine"
   | "subtitleOffsetUpFine"
+  | "audioOffsetDown"
+  | "audioOffsetUp"
+  | "audioOffsetDownFine"
+  | "audioOffsetUpFine"
   | "toggleAutoHide"
   | "nextFile"
   | "prevFile"
@@ -18,7 +22,8 @@ export type KeybindAction =
   | "setSearch"
   | "setTorrent"
   | "setPlayer"
-  | "setAnilist";
+  | "setAnilist"
+  | "jumpToTime";
 
 export interface KeybindDef {
   action: KeybindAction;
@@ -112,6 +117,36 @@ const KEYBINDS: KeybindDef[] = [
     ctrl: true,
   },
   {
+    action: "audioOffsetDown",
+    code: "F3",
+    keys: "F3",
+    description: "Аудио -500ms",
+    category: "subtitles",
+  },
+  {
+    action: "audioOffsetUp",
+    code: "F4",
+    keys: "F4",
+    description: "Аудио +500ms",
+    category: "subtitles",
+  },
+  {
+    action: "audioOffsetDownFine",
+    code: "F3",
+    keys: "Ctrl+F3",
+    description: "Аудио -50ms",
+    category: "subtitles",
+    ctrl: true,
+  },
+  {
+    action: "audioOffsetUpFine",
+    code: "F4",
+    keys: "Ctrl+F4",
+    description: "Аудио +50ms",
+    category: "subtitles",
+    ctrl: true,
+  },
+  {
     action: "toggleAutoHide",
     code: "KeyH",
     keys: "Ctrl+H",
@@ -147,6 +182,14 @@ const KEYBINDS: KeybindDef[] = [
     keys: "Esc",
     description: "Выйти из кинорежима",
     category: "ui",
+  },
+  {
+    action: "jumpToTime",
+    code: "KeyG",
+    keys: "Ctrl+G",
+    description: "Перейти к времени",
+    category: "playback",
+    ctrl: true,
   },
 
   {
@@ -208,8 +251,11 @@ export const CHEATSHEET_ROWS: { keys: string; description: string }[] = [
   { keys: ", / .", description: "Кадр назад / вперёд" },
   { keys: "F1 / F2", description: "Субтитры -500/+500ms" },
   { keys: "Ctrl+F1/F2", description: "Субтитры -50/+50ms" },
+  { keys: "F3 / F4", description: "Аудио -500/+500ms" },
+  { keys: "Ctrl+F3/F4", description: "Аудио -50/+50ms" },
   { keys: "PageUp / PageDown", description: "Пред. / След. файл" },
   { keys: "Ctrl+H", description: "Авто-скрытие" },
   { keys: "Ctrl+P", description: "Плейлист" },
+  { keys: "Ctrl+G", description: "Перейти к времени" },
   { keys: "?", description: "Это окно" },
 ];

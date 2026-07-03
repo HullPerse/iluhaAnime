@@ -184,6 +184,12 @@ function Controls({
   }, [value]);
 
   useEffect(() => {
+    return () => {
+      if (boundaryTimerRef.current) clearTimeout(boundaryTimerRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
     if (dragging) {
       document.body.style.userSelect = "none";
 

@@ -1,5 +1,24 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tauri::Manager;
+
+const FONT_MIMES: &[&str] = &[
+    "font/ttf",
+    "font/otf",
+    "font/woff",
+    "font/woff2",
+    "application/x-truetype-font",
+    "application/x-font-ttf",
+    "application/x-font-otf",
+    "application/vnd.ms-opentype",
+];
+
+const FONT_EXTS: &[&str] = &["ttf", "otf", "woff", "woff2"];
+
+#[derive(Debug, Serialize)]
+pub struct SubtitleExtractResult {
+    pub subtitle: String,
+    pub fonts: Vec<String>,
+}
 
 #[derive(Debug, Serialize)]
 pub struct VideoChapter {
@@ -69,13 +88,121 @@ pub(crate) fn ffmpeg_exe(app_handle: &tauri::AppHandle) -> String {
     }
 }
 
+fn extract_attached_fonts(
+    app_handle: &tauri::AppHandle,
+    video_path: &str,
+) -> Vec<String> {
+    let probe = match std::process::Command::new(ffprobe_exe(app_handle))
+        .args([
+            "-v",
+            "quiet",
+            "-print_format",
+            "json",
+            "-show_streams",
+            video_path,
+        ])
+        .output()
+    {
+        Ok(o) if o.status.success() => o,
+        _ => return vec![],
+    };
+
+    #[derive(Deserialize)]
+    struct ProbeOutput {
+        streams: Vec<ProbeStream>,
+    }
+    #[derive(Deserialize)]
+    struct ProbeStream {
+        index: i32,
+        codec_type: Option<String>,
+        codec_name: Option<String>,
+        tags: Option<StreamTags>,
+    }
+    #[derive(Deserialize)]
+    struct StreamTags {
+        filename: Option<String>,
+        mimetype: Option<String>,
+    }
+
+    let parsed: ProbeOutput = match serde_json::from_slice(&probe.stdout) {
+        Ok(p) => p,
+        _ => return vec![],
+    };
+
+    let temp_dir = std::env::temp_dir();
+    let mut fonts = vec![];
+
+    for stream in &parsed.streams {
+        let codec_type = stream.codec_type.as_deref().unwrap_or("");
+        if codec_type != "attachment" {
+            continue;
+        }
+
+        let mimetype = stream
+            .tags
+            .as_ref()
+            .and_then(|t| t.mimetype.as_deref())
+            .unwrap_or("");
+        let filename = stream
+            .tags
+            .as_ref()
+            .and_then(|t| t.filename.as_deref())
+            .unwrap_or("");
+
+        let is_font = FONT_MIMES.iter().any(|m| mimetype.eq_ignore_ascii_case(m))
+            || FONT_EXTS
+                .iter()
+                .any(|e| filename.ends_with(e))
+            || stream
+                .codec_name
+                .as_deref()
+                .map_or(false, |c| FONT_EXTS.iter().any(|e| c.eq_ignore_ascii_case(e)));
+
+        if !is_font {
+            continue;
+        }
+
+        let output_name = if !filename.is_empty() {
+            filename.to_string()
+        } else {
+            format!("font_{}.ttf", stream.index)
+        };
+        let output_path = temp_dir.join(&output_name);
+        let _ = std::fs::remove_file(&output_path);
+
+        let result = std::process::Command::new(ffmpeg_exe(app_handle))
+            .args([
+                "-y",
+                "-i",
+                video_path,
+                "-map",
+                &format!("0:{}", stream.index),
+                "-c",
+                "copy",
+                "-f",
+                "data",
+                &output_path.to_string_lossy(),
+            ])
+            .output();
+
+        match result {
+            Ok(o) if o.status.success() && output_path.exists() => {
+                fonts.push(output_path.to_string_lossy().to_string());
+            }
+            _ => {}
+        }
+    }
+
+    fonts
+}
+
 #[tauri::command]
 pub async fn extract_video_subtitle(
     app_handle: tauri::AppHandle,
     path: String,
     stream_index: usize,
     codec_name: Option<String>,
-) -> Result<String, String> {
+) -> Result<SubtitleExtractResult, String> {
     let temp_dir = std::env::temp_dir();
     let is_ass = codec_name.as_deref() == Some("ass") || codec_name.as_deref() == Some("ssa");
     let ext = if is_ass { "ass" } else { "vtt" };
@@ -107,7 +234,12 @@ pub async fn extract_video_subtitle(
         return Err(format!("ffmpeg failed: {stderr}"));
     }
 
-    Ok(output_path.to_string_lossy().to_string())
+    let fonts = extract_attached_fonts(&app_handle, &path);
+
+    Ok(SubtitleExtractResult {
+        subtitle: output_path.to_string_lossy().to_string(),
+        fonts,
+    })
 }
 
 #[tauri::command]
@@ -115,27 +247,45 @@ pub async fn remux_video_audio(
     app_handle: tauri::AppHandle,
     path: String,
     stream_index: usize,
+    audio_delay_ms: Option<i64>,
 ) -> Result<String, String> {
     let temp_dir = std::env::temp_dir();
     let output_path = temp_dir.join(format!("iluha_audio_{}.mkv", stream_index));
 
     let _ = std::fs::remove_file(&output_path);
 
+    let delay = audio_delay_ms.unwrap_or(0);
+    let mut args: Vec<String> = vec!["-y".to_string()];
+
+    if delay != 0 {
+        let secs = delay as f64 / 1000.0;
+        args.push("-i".to_string());
+        args.push(path.clone());
+        args.push("-itsoffset".to_string());
+        args.push(format!("{secs}"));
+        args.push("-i".to_string());
+        args.push(path.clone());
+    } else {
+        args.push("-i".to_string());
+        args.push(path);
+    }
+    args.push("-map".to_string());
+    args.push("0:v".to_string());
+    if delay != 0 {
+        args.push("-map".to_string());
+        args.push("1:a".to_string());
+    } else {
+        args.push("-map".to_string());
+        args.push(format!("0:{}", stream_index));
+    }
+    args.push("-c".to_string());
+    args.push("copy".to_string());
+    args.push("-map_metadata".to_string());
+    args.push("0".to_string());
+    args.push(output_path.to_string_lossy().to_string());
+
     let output = std::process::Command::new(ffmpeg_exe(&app_handle))
-        .args([
-            "-y",
-            "-i",
-            &path,
-            "-map",
-            "0:v",
-            "-map",
-            &format!("0:{}", stream_index),
-            "-c",
-            "copy",
-            "-map_metadata",
-            "0",
-            &output_path.to_string_lossy().to_string(),
-        ])
+        .args(&args)
         .output()
         .map_err(|e| format!("ffmpeg not found: {e}"))?;
 
@@ -152,28 +302,39 @@ pub async fn remux_with_external_audio(
     app_handle: tauri::AppHandle,
     video_path: String,
     audio_path: String,
+    audio_delay_ms: Option<i64>,
 ) -> Result<String, String> {
     let temp_dir = std::env::temp_dir();
     let output_path = temp_dir.join("iluha_ext_audio.mkv");
     let _ = std::fs::remove_file(&output_path);
 
+    let delay = audio_delay_ms.unwrap_or(0);
+    let mut args: Vec<String> = vec![
+        "-y".to_string(),
+        "-i".to_string(),
+        video_path,
+    ];
+    if delay != 0 {
+        let secs = delay as f64 / 1000.0;
+        args.push("-itsoffset".to_string());
+        args.push(format!("{secs}"));
+    }
+    args.push("-i".to_string());
+    args.push(audio_path);
+    args.extend_from_slice(&[
+        "-map".to_string(),
+        "0:v".to_string(),
+        "-map".to_string(),
+        "1:a".to_string(),
+        "-c".to_string(),
+        "copy".to_string(),
+        "-map_metadata".to_string(),
+        "0".to_string(),
+        output_path.to_string_lossy().to_string(),
+    ]);
+
     let output = std::process::Command::new(ffmpeg_exe(&app_handle))
-        .args([
-            "-y",
-            "-i",
-            &video_path,
-            "-i",
-            &audio_path,
-            "-map",
-            "0:v",
-            "-map",
-            "1:a",
-            "-c",
-            "copy",
-            "-map_metadata",
-            "0",
-            &output_path.to_string_lossy().to_string(),
-        ])
+        .args(&args)
         .output()
         .map_err(|e| format!("ffmpeg not found: {e}"))?;
 

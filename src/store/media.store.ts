@@ -16,6 +16,7 @@ function touch(entries: MediaEntry[], path: string): MediaEntry[] {
     path,
     position: 0,
     subOffset: 0,
+    audioOffset: 0,
     lastPlayed: Date.now(),
   };
   return [entry, ...entries].slice(0, max);
@@ -51,6 +52,13 @@ export const useMediaStore = create<MediaStore>()(
         set((s) => ({
           entries: touch(s.entries, path).map((e) =>
             e.path === path ? { ...e, subOffset: offset } : e,
+          ),
+        })),
+
+      setAudioOffset: (path, offset) =>
+        set((s) => ({
+          entries: touch(s.entries, path).map((e) =>
+            e.path === path ? { ...e, audioOffset: offset } : e,
           ),
         })),
 

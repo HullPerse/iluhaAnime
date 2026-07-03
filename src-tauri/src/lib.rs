@@ -166,6 +166,17 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .setup(|app| {
+            // Clean up orphaned temp files from previous runs
+            let _ = std::fs::read_dir(std::env::temp_dir()).map(|entries| {
+                for entry in entries.flatten() {
+                    let name = entry.file_name();
+                    let name = name.to_string_lossy();
+                    if name.starts_with("iluha_") {
+                        let _ = std::fs::remove_file(entry.path());
+                    }
+                }
+            });
+
             let app_data = app.path().app_data_dir().expect("app data dir");
             let handle = app.handle().clone();
             tauri::async_runtime::block_on(async {

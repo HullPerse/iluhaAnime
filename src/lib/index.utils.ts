@@ -68,8 +68,15 @@ export function formatTime(seconds: number): string {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
+interface VttCue {
+  start: number;
+  end: number;
+  text: string;
+  settings?: string;
+}
+
 export function parseVTT(text: string) {
-  const cues: { start: number; end: number; text: string }[] = [];
+  const cues: VttCue[] = [];
   const lines = text.split(/\r?\n/);
   let i = 0;
   while (i < lines.length) {
@@ -78,9 +85,9 @@ export function parseVTT(text: string) {
       const parts = line.split(/\s+-->\s+/);
       if (parts.length === 2) {
         const start = parseVTTTime(parts[0].trim().replace(",", "."));
-        const end = parseVTTTime(
-          parts[1].trim().split(/\s+/)[0].replace(",", "."),
-        );
+        const settingsAndEnd = parts[1].trim().split(/\s+/);
+        const end = parseVTTTime(settingsAndEnd[0].replace(",", "."));
+        const settings = settingsAndEnd.slice(1).join(" ");
         i++;
         const cueLines: string[] = [];
         while (i < lines.length && lines[i].trim() !== "") {
@@ -88,7 +95,7 @@ export function parseVTT(text: string) {
           i++;
         }
         if (cueLines.length > 0) {
-          cues.push({ start, end, text: cueLines.join("\n") });
+          cues.push({ start, end, text: cueLines.join("\n"), settings: settings || undefined });
         }
         continue;
       }

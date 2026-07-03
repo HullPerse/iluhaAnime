@@ -1,4 +1,9 @@
 import { useEffect, useRef } from "react"
+import { convertFileSrc } from "@tauri-apps/api/core"
+
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => { cached = null })
+}
 
 let cached: {
   AkariSub: new (opts: any) => any
@@ -22,11 +27,13 @@ function AssOverlay({
   videoEl,
   visible,
   delay,
+  fonts,
 }: {
   src: string
   videoEl: HTMLVideoElement | null
   visible: boolean
   delay: number
+  fonts: string[]
 }) {
   const instRef = useRef<any>(null)
   const contentRef = useRef("")
@@ -36,10 +43,17 @@ function AssOverlay({
       instRef.current?.destroy()
       instRef.current = null
     }
-  }, [src, videoEl])
+  }, [])
 
   useEffect(() => {
-    if (!videoEl || !src) return
+    if (!videoEl) return
+
+    if (!src) {
+      contentRef.current = ""
+      instRef.current?.destroy()
+      instRef.current = null
+      return
+    }
 
     let cancelled = false
 
@@ -50,9 +64,6 @@ function AssOverlay({
         if (cancelled) return
 
         contentRef.current = text
-
-        instRef.current?.destroy()
-        instRef.current = null
 
         const { AkariSub, workerUrl, wasmUrl } = await ensure()
 
@@ -65,12 +76,16 @@ function AssOverlay({
           onDemandRender: true,
           fullTrackWarmup: true,
           timeOffset: delay,
+          prescaleFactor: window.devicePixelRatio,
+          fonts: fonts.length > 0 ? fonts.map((f) => convertFileSrc(f)) : undefined,
         })
 
         await instance.ready
         if (cancelled) { instance.destroy(); return }
 
+        const old = instRef.current
         instRef.current = instance
+        old?.destroy()
         if (!visible) instance.freeTrack()
       } catch {
         /* fail silently */
@@ -78,7 +93,7 @@ function AssOverlay({
     })()
 
     return () => { cancelled = true }
-  }, [src, videoEl])
+  }, [src, videoEl, fonts])
 
   useEffect(() => {
     const r = instRef.current

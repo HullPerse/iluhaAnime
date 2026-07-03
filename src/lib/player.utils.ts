@@ -68,3 +68,24 @@ export function buildTree(
 
   return sortNode(root);
 }
+
+
+export function parseTime(input: string): number | null {
+  const parts = input.split(":").map((p) => p.trim())
+  if (parts.length === 3) {
+    const h = parseInt(parts[0])
+    const m = parseInt(parts[1])
+    const s = parseFloat(parts[2])
+    if (!isNaN(h) && !isNaN(m) && !isNaN(s)) return h * 3600 + m * 60 + s
+  }
+  if (parts.length === 2) {
+    const m = parseInt(parts[0])
+    const s = parseFloat(parts[1])
+    if (!isNaN(m) && !isNaN(s)) return m * 60 + s
+  }
+  if (parts.length === 1) {
+    const s = parseFloat(parts[0])
+    if (!isNaN(s)) return s
+  }
+  return null
+}

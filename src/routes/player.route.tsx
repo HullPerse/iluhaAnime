@@ -183,14 +183,18 @@ function PlayerRoute({
               const stream = audioStreams.find((s) => s.index === savedAudio);
               if (stream) {
                 try {
+                  const entry = mediaGet(path);
+                  const audioDelay = Math.round((entry?.audioOffset ?? 0) * 1000);
                   const out = stream.file_path
                     ? await invoke<string>("remux_with_external_audio", {
                       videoPath: path,
                       audioPath: stream.file_path,
+                      audioDelayMs: audioDelay,
                     })
                     : await invoke<string>("remux_video_audio", {
                       path,
                       streamIndex: savedAudio,
+                      audioDelayMs: audioDelay,
                     });
                   if (gen !== playGenRef.current) return;
                   for (const p of tempFilesRef.current)

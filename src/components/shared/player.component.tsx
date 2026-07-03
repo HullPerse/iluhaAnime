@@ -21,9 +21,11 @@ import Keyboard from "./player/keyboard.player";
 import EmptyPlayer from "./player/empty.player";
 import Modal from "./modal.component";
 import { cn } from "@/lib/index.utils";
+import { usePlayer, selectTime } from "@videojs/react";
 import Settings from "./player/settings.player";
 import SeekOffset from "./player/offset.player";
 import SkipButton from "./player/skip.player";
+import JumpToTime from "./player/jump.player";
 import { SmallLoader } from "./loader.component";
 
 const { Provider, Container } = createPlayer({ features: videoFeatures });
@@ -91,6 +93,7 @@ function Player({
   const patchSettings = usePlayerStore((s) => s.patchSettings);
   const setPosition = useMediaStore((s) => s.setPosition);
   const [showSettings, setShowSettings] = useState<boolean>(false);
+  const [showJumpToTime, setShowJumpToTime] = useState<boolean>(false);
 
   const videoStyle = useMemo(() => {
     const t: string[] = [];
@@ -204,6 +207,7 @@ function Player({
           onFileNext={onFileNext}
           onFilePrev={onFilePrev}
           onToggleAutoHide={onToggleAutoHide}
+          onRequestJumpToTime={() => setShowJumpToTime(true)}
         />
         {!src ? (
           <EmptyPlayer />
@@ -221,11 +225,11 @@ function Player({
               className={cn(
                 !cinemaMode && "shrink-0",
                 cinemaMode &&
-                  "absolute top-0 left-0 right-0 z-10 bg-primary/90 transition-opacity duration-300",
+                "absolute top-0 left-0 right-0 z-10 bg-primary/90 transition-opacity duration-300",
                 cinemaMode &&
-                  autoHideUi &&
-                  !uiVisible &&
-                  "opacity-0 pointer-events-none",
+                autoHideUi &&
+                !uiVisible &&
+                "opacity-0 pointer-events-none",
               )}
             >
               <Header
@@ -246,6 +250,10 @@ function Player({
               )}
             >
               <SeekOffset mediaPath={mediaPath} />
+              <JumpToTimeGate
+                show={showJumpToTime}
+                onClose={() => setShowJumpToTime(false)}
+              />
               <SkipButton
                 chapters={chapters}
                 onFileNext={onFileNext}
@@ -263,7 +271,7 @@ function Player({
                   className="h-full w-full"
                   style={videoStyle}
                   controls={false}
-                  preload="metadata"
+                  preload="auto"
                   onTimeUpdate={(e) => {
                     const t = (e.target as HTMLVideoElement).currentTime;
                     onTimeUpdate?.(t);
@@ -287,11 +295,11 @@ function Player({
               className={cn(
                 !cinemaMode && "shrink-0",
                 cinemaMode &&
-                  "absolute bottom-0 left-0 right-0 z-10 bg-primary transition-opacity duration-300",
+                "absolute bottom-0 left-0 right-0 z-10 bg-primary transition-opacity duration-300",
                 cinemaMode &&
-                  autoHideUi &&
-                  !uiVisible &&
-                  "opacity-0 pointer-events-none",
+                autoHideUi &&
+                !uiVisible &&
+                "opacity-0 pointer-events-none",
               )}
             >
               <Timeline chapters={chapters} mediaPath={mediaPath} />
@@ -333,6 +341,18 @@ function Player({
       )}
     </Provider>
   );
+}
+
+function JumpToTimeGate({
+  show,
+  onClose,
+}: {
+  show: boolean;
+  onClose: () => void;
+}) {
+  const time = usePlayer(selectTime);
+  if (!show) return null;
+  return <JumpToTime seek={time?.seek} onClose={onClose} />;
 }
 
 export default Player;

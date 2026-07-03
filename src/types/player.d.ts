@@ -33,6 +33,7 @@ export interface MediaEntry {
   audioTrack?: number;
   subtitleTrack?: number;
   subOffset: number;
+  audioOffset: number;
   lastPlayed: number;
 }
 
@@ -42,6 +43,7 @@ export interface MediaStore {
   setPosition: (path: string, time: number) => void;
   setTrack: (path: string, type: "audio" | "sub", index: number) => void;
   setSubOffset: (path: string, offset: number) => void;
+  setAudioOffset: (path: string, offset: number) => void;
   clearEntries: () => void;
 }
 

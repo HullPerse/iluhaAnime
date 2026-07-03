@@ -171,8 +171,11 @@ function Tracks({
   const subTrackElRef = useRef<HTMLTrackElement | null>(null);
   const subBlobUrlRef = useRef<string | null>(null);
   const tempFilesRef = useRef<string[]>([]);
+  const audioPrefetchRef = useRef<Map<number, string>>(new Map());
+  const audioPrefetchingRef = useRef<Set<number>>(new Set());
 
   const [assUrl, setAssUrl] = useState<string | null>(null);
+  const [assFonts, setAssFonts] = useState<string[]>([]);
   const [assVisible, setAssVisible] = useState<boolean>(false);
   const [subDelay, setSubDelay] = useState<number>(0);
   const appliedOffsetRef = useRef<number>(0);
@@ -212,53 +215,78 @@ function Tracks({
       savedTimeRef.current = restoreTime ?? videoEl.currentTime;
       savedPlayingRef.current = !videoEl.paused;
 
+      const setSrcAndRestore = (path: string) => {
+        if (gen !== audioGenRef.current) return;
+        tempFilesRef.current.push(path);
+        onAudioSwitch(convertFileSrc(path));
+        const seekHint = () => {
+          try { videoEl.currentTime = savedTimeRef.current; } catch {}
+        };
+        const restore = () => {
+          seekHint();
+          if (savedPlayingRef.current) videoEl.play().catch(() => {});
+        };
+        videoEl.addEventListener("loadedmetadata", seekHint, { once: true });
+        requestAnimationFrame(() => {
+          if (videoEl.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
+            restore();
+          } else {
+            videoEl.addEventListener("canplay", restore, { once: true });
+          }
+        });
+      };
+
+      const cached = audioPrefetchRef.current.get(idx);
+      if (cached) {
+        setSrcAndRestore(cached);
+        return;
+      }
+
+      const audioDelay = Math.round((mediaGet(mediaPath)?.audioOffset ?? 0) * 1000);
+
       try {
         for (const p of tempFilesRef.current) {
           invoke("cleanup_temp_file", { path: p }).catch(() => {});
         }
         tempFilesRef.current = [];
 
-        const out = stream.file_path
-          ? await invoke<string>("remux_with_external_audio", {
+        const out = await (stream.file_path
+          ? invoke<string>("remux_with_external_audio", {
               videoPath: mediaPath,
               audioPath: stream.file_path,
+              audioDelayMs: audioDelay,
             })
-          : await invoke<string>("remux_video_audio", {
+          : invoke<string>("remux_video_audio", {
               path: mediaPath,
               streamIndex: idx,
-            });
+              audioDelayMs: audioDelay,
+            }));
 
         if (gen !== audioGenRef.current) {
+          invoke("cleanup_temp_file", { path: out }).catch(() => {});
           onAudioSwitch(null);
           return;
         }
 
-        tempFilesRef.current.push(out);
-        onAudioSwitch(convertFileSrc(out));
-
-        const restore = () => {
-          try {
-            videoEl.currentTime = savedTimeRef.current;
-          } catch {}
-          if (savedPlayingRef.current) {
-            videoEl.play().catch(() => {});
-          }
-          videoEl.removeEventListener("canplay", restore);
-        };
-        videoEl.addEventListener("canplay", restore, { once: true });
+        setSrcAndRestore(out);
       } catch {
         const fallbackTime = savedTimeRef.current;
         const wasPlaying = savedPlayingRef.current;
         onAudioSwitch(null);
-        const restoreFallback = () => {
-          try {
-            videoEl.currentTime = fallbackTime;
-          } catch {}
-          if (wasPlaying) videoEl.play().catch(() => {});
-          videoEl.removeEventListener("canplay", restoreFallback);
+        const seekHintFallback = () => {
+          try { videoEl.currentTime = fallbackTime; } catch {}
         };
-        videoEl.addEventListener("canplay", restoreFallback, {
-          once: true,
+        const restoreFallback = () => {
+          seekHintFallback();
+          if (wasPlaying) videoEl.play().catch(() => {});
+        };
+        videoEl.addEventListener("loadedmetadata", seekHintFallback, { once: true });
+        requestAnimationFrame(() => {
+          if (videoEl.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
+            restoreFallback();
+          } else {
+            videoEl.addEventListener("canplay", restoreFallback, { once: true });
+          }
         });
         showToast("Не удалось переключить аудиодорожку", "error");
       }
@@ -291,25 +319,41 @@ function Tracks({
       if (!stream) return;
 
       try {
-        const extracted = stream.file_path
-          ? await invoke<string>("convert_external_subtitle", {
-              path: stream.file_path,
-              codecName: stream.codec_name,
-            })
-          : await invoke<string>("extract_video_subtitle", {
+        let extractedPath: string;
+        let fontPaths: string[];
+
+        if (stream.file_path) {
+          extractedPath = await invoke<string>("convert_external_subtitle", {
+            path: stream.file_path,
+            codecName: stream.codec_name,
+          });
+          fontPaths = [];
+        } else {
+          const result = await invoke<{ subtitle: string; fonts: string[] }>(
+            "extract_video_subtitle",
+            {
               path: mediaPath,
               streamIndex: idx,
               codecName: stream.codec_name,
-            });
+            },
+          );
+          extractedPath = result.subtitle;
+          fontPaths = result.fonts;
+        }
 
-        if (gen !== subGenRef.current) return;
+        if (gen !== subGenRef.current) {
+          invoke("cleanup_temp_file", { path: extractedPath }).catch(() => {});
+          for (const fp of fontPaths)
+            invoke("cleanup_temp_file", { path: fp }).catch(() => {});
+          return;
+        }
 
-        const url = convertFileSrc(extracted);
-
-        tempFilesRef.current.push(extracted);
+        const url = convertFileSrc(extractedPath);
+        tempFilesRef.current.push(extractedPath, ...fontPaths);
 
         if (isAssSub(stream)) {
           setAssUrl(url);
+          setAssFonts(fontPaths);
           setAssVisible(true);
         } else {
           const resp = await fetch(url);
@@ -327,9 +371,12 @@ function Tracks({
           };
           const vttLines = ["WEBVTT"];
           for (const c of cues) {
+            const timing = c.settings
+              ? `${fmtTime(c.start)} --> ${fmtTime(c.end)} ${c.settings}`
+              : `${fmtTime(c.start)} --> ${fmtTime(c.end)}`;
             vttLines.push(
               "",
-              `${fmtTime(c.start)} --> ${fmtTime(c.end)}`,
+              timing,
               c.text,
             );
           }
@@ -337,11 +384,9 @@ function Tracks({
           const blobUrl = URL.createObjectURL(blob);
 
           const trackEl = document.createElement("track");
-          trackEl.src = blobUrl;
           trackEl.kind = "subtitles";
           trackEl.label = fmt(stream);
           trackEl.srclang = lang;
-          videoEl.appendChild(trackEl);
 
           trackEl.addEventListener(
             "load",
@@ -352,9 +397,8 @@ function Tracks({
             },
             { once: true },
           );
-          requestAnimationFrame(() => {
-            trackEl.track.mode = "showing";
-          });
+          trackEl.src = blobUrl;
+          videoEl.appendChild(trackEl);
 
           subTrackElRef.current = trackEl;
           subBlobUrlRef.current = blobUrl;
@@ -434,6 +478,34 @@ function Tracks({
     defaultSub,
     loadDelay,
   ]);
+
+  useEffect(() => {
+    if (!mediaPath) return;
+    const prefetched = audioPrefetchRef.current;
+    const inflight = audioPrefetchingRef.current;
+    const allStreams = [...audioStreams, ...extAudio];
+    const delay = Math.round((mediaGet(mediaPath)?.audioOffset ?? 0) * 1000);
+    for (const s of allStreams) {
+      if (prefetched.has(s.index) || inflight.has(s.index)) continue;
+      inflight.add(s.index);
+      const p = s.file_path
+        ? invoke<string>("remux_with_external_audio", {
+            videoPath: mediaPath,
+            audioPath: s.file_path,
+            audioDelayMs: delay,
+          })
+        : invoke<string>("remux_video_audio", {
+            path: mediaPath,
+            streamIndex: s.index,
+            audioDelayMs: delay,
+          });
+      p.then((path) => {
+        tempFilesRef.current.push(path);
+        prefetched.set(s.index, path);
+      }).catch(() => {})
+       .finally(() => { inflight.delete(s.index); });
+    }
+  }, [mediaPath, audioStreams, extAudio]);
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -561,6 +633,7 @@ function Tracks({
         videoEl={videoEl}
         visible={assVisible && !!hasAssSub}
         delay={subDelay}
+        fonts={assFonts}
       />
       <TrackDropdown
         label="Аудио"

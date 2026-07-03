@@ -15,17 +15,20 @@ function Keyboard({
   onFileNext,
   onFilePrev,
   onToggleAutoHide,
+  onRequestJumpToTime,
 }: {
   mediaPath?: string;
   onFileNext?: () => void;
   onFilePrev?: () => void;
   onToggleAutoHide?: () => void;
+  onRequestJumpToTime?: () => void;
 }) {
   const playback = usePlayer(selectPlayback);
   const time = usePlayer(selectTime);
   const volume = usePlayer(selectVolume);
   const mediaGet = useMediaStore((s) => s.getEntry);
   const mediaSetSub = useMediaStore((s) => s.setSubOffset);
+  const mediaSetAudio = useMediaStore((s) => s.setAudioOffset);
 
   function shouldIgnoreGlobalHotkeys(target: EventTarget | null) {
     const el = target instanceof HTMLElement ? target : null;
@@ -115,6 +118,40 @@ function Keyboard({
               detail: { path: mediaPath, offset: next },
             }),
           );
+          break;
+        }
+        case "audioOffsetDown":
+        case "audioOffsetDownFine": {
+          if (!mediaPath) break;
+          const audioDelta =
+            action.action === "audioOffsetDownFine" ? -0.05 : -0.5;
+          const audioCurrent = mediaGet(mediaPath)?.audioOffset ?? 0;
+          const audioNext = Math.max(-300, audioCurrent + audioDelta);
+          mediaSetAudio(mediaPath, Math.round(audioNext * 100) / 100);
+          window.dispatchEvent(
+            new CustomEvent("audiooffsetchange", {
+              detail: { path: mediaPath, offset: audioNext },
+            }),
+          );
+          break;
+        }
+        case "audioOffsetUp":
+        case "audioOffsetUpFine": {
+          if (!mediaPath) break;
+          const audioDelta2 =
+            action.action === "audioOffsetUpFine" ? 0.05 : 0.5;
+          const audioCurrent2 = mediaGet(mediaPath)?.audioOffset ?? 0;
+          const audioNext2 = Math.min(300, audioCurrent2 + audioDelta2);
+          mediaSetAudio(mediaPath, Math.round(audioNext2 * 100) / 100);
+          window.dispatchEvent(
+            new CustomEvent("audiooffsetchange", {
+              detail: { path: mediaPath, offset: audioNext2 },
+            }),
+          );
+          break;
+        }
+        case "jumpToTime": {
+          onRequestJumpToTime?.();
           break;
         }
         case "toggleAutoHide": {

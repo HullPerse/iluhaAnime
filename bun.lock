@@ -17,7 +17,7 @@
         "@tauri-apps/plugin-opener": "~2",
         "@tauri-apps/plugin-updater": "^2.10.1",
         "@videojs/react": "^10.0.0-beta.23",
-        "assjs": "^0.1.8",
+        "akarisub": "^0.2.2",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
         "lucide-react": "^1.14.0",
@@ -292,11 +292,11 @@
 
     "@vitest/utils": ["@vitest/utils@4.1.9", "", { "dependencies": { "@vitest/pretty-format": "4.1.9", "convert-source-map": "^2.0.0", "tinyrainbow": "^3.1.0" } }, "sha512-A51o8ymO5PpqlWNnBP9ZHPXDIpuMtTLlGSjN7la4US+LJzoUMyhwjA5QXlm39JexgwHKW4Xjs8Z2d3dLCXOeuA=="],
 
+    "akarisub": ["akarisub@0.2.2", "", {}, "sha512-HjPwWKrPX9DIzXuOnFenV/YEw2skFAGJiRDG0AoNB2ls40woexZ66jfZV+p4Ps+7tCVUinsY4l/oNV4LdhlCWw=="],
+
     "ansi-styles": ["ansi-styles@4.3.0", "", { "dependencies": { "color-convert": "^2.0.1" } }, "sha512-zbB9rCJAT1rbjiVDb2hqKFHNYLxgtk8NURxZ3IZwD3F6NtxbXZQCnnSi1Lkx+IDohdPlFp222wVALIheZJQSEg=="],
 
     "assertion-error": ["assertion-error@2.0.1", "", {}, "sha512-Izi8RQcffqCeNVgFigKli1ssklIbpHnCYc6AknXGYoB6grJqyeby7jv12JUQgmTAnIDnbck1uxksT4dzN3PWBA=="],
-
-    "assjs": ["assjs@0.1.8", "", {}, "sha512-yZWbsD9XuYTDUlLdWwhoBio1IkbPCFcF7xMXTAsjG6B/sxjBMuZWt/uCg57+yB0j31XFv2RGrLxeI1Rhj6SxxQ=="],
 
     "bcp-47-match": ["bcp-47-match@2.0.3", "", {}, "sha512-JtTezzbAibu8G0R9op9zb3vcWZd9JF6M0xOYGPn0fNCd7wOpRB1mU2mH9T8gaBGbAAyIIVgB2G7xG0GP98zMAQ=="],
 

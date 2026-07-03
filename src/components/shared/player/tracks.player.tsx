@@ -243,9 +243,9 @@ function Tracks({
           if (savedPlayingRef.current) {
             videoEl.play().catch(() => {});
           }
-          videoEl.removeEventListener("loadedmetadata", restore);
+          videoEl.removeEventListener("canplay", restore);
         };
-        videoEl.addEventListener("loadedmetadata", restore, { once: true });
+        videoEl.addEventListener("canplay", restore, { once: true });
       } catch {
         const fallbackTime = savedTimeRef.current;
         const wasPlaying = savedPlayingRef.current;
@@ -255,9 +255,9 @@ function Tracks({
             videoEl.currentTime = fallbackTime;
           } catch {}
           if (wasPlaying) videoEl.play().catch(() => {});
-          videoEl.removeEventListener("loadedmetadata", restoreFallback);
+          videoEl.removeEventListener("canplay", restoreFallback);
         };
-        videoEl.addEventListener("loadedmetadata", restoreFallback, {
+        videoEl.addEventListener("canplay", restoreFallback, {
           once: true,
         });
         showToast("Не удалось переключить аудиодорожку", "error");
@@ -346,11 +346,15 @@ function Tracks({
           trackEl.addEventListener(
             "load",
             () => {
-              trackEl.track.mode = "showing";
+              requestAnimationFrame(() => {
+                trackEl.track.mode = "showing";
+              });
             },
             { once: true },
           );
-          trackEl.track.mode = "showing";
+          requestAnimationFrame(() => {
+            trackEl.track.mode = "showing";
+          });
 
           subTrackElRef.current = trackEl;
           subBlobUrlRef.current = blobUrl;

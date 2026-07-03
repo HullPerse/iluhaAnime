@@ -1,4 +1,21 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef } from "react"
+
+let cached: {
+  AkariSub: new (opts: any) => any
+  workerUrl: string
+  wasmUrl: string
+} | null = null
+
+async function ensure() {
+  if (cached) return cached
+  const [mod, wUrl, waUrl] = await Promise.all([
+    import("akarisub"),
+    import("akarisub/worker?url").then((m) => m.default) as Promise<string>,
+    import("akarisub/worker.wasm?url").then((m) => m.default) as Promise<string>,
+  ])
+  cached = { AkariSub: mod.default, workerUrl: wUrl, wasmUrl: waUrl }
+  return cached!
+}
 
 function AssOverlay({
   src,
@@ -6,73 +23,77 @@ function AssOverlay({
   visible,
   delay,
 }: {
-  src: string;
-  videoEl: HTMLVideoElement | null;
-  visible: boolean;
-  delay: number;
+  src: string
+  videoEl: HTMLVideoElement | null
+  visible: boolean
+  delay: number
 }) {
-  const assRef = useRef<Awaited<import("assjs").default> | null>(null);
-  const mountedRef = useRef(true);
+  const instRef = useRef<any>(null)
+  const contentRef = useRef("")
 
   useEffect(() => {
-    mountedRef.current = true;
-    return () => { mountedRef.current = false; };
-  }, []);
+    return () => {
+      instRef.current?.destroy()
+      instRef.current = null
+    }
+  }, [src, videoEl])
 
   useEffect(() => {
-    if (!videoEl || !src) return;
+    if (!videoEl || !src) return
 
-    const container = videoEl.parentElement;
-    if (!container) return;
-    container.style.position = "relative";
+    let cancelled = false
 
-    let cancelled = false;
-
-    (async () => {
+    ;(async () => {
       try {
-        const resp = await fetch(src);
-        const text = await resp.text();
-        if (cancelled || !mountedRef.current) return;
+        const resp = await fetch(src)
+        const text = await resp.text()
+        if (cancelled) return
 
-        assRef.current?.destroy();
+        contentRef.current = text
 
-        const { default: ASS } = await import("assjs");
-        const ass = new ASS(text, videoEl, { container });
-        ass.delay = delay;
-        assRef.current = ass;
-        if (visible) ass.show();
-        else ass.hide();
+        instRef.current?.destroy()
+        instRef.current = null
+
+        const { AkariSub, workerUrl, wasmUrl } = await ensure()
+
+        const instance = new AkariSub({
+          video: videoEl,
+          subContent: text,
+          workerUrl,
+          wasmUrl,
+          offscreenRender: true,
+          onDemandRender: true,
+          fullTrackWarmup: true,
+          timeOffset: delay,
+        })
+
+        await instance.ready
+        if (cancelled) { instance.destroy(); return }
+
+        instRef.current = instance
+        if (!visible) instance.freeTrack()
       } catch {
         /* fail silently */
       }
-    })();
+    })()
 
-    return () => {
-      cancelled = true;
-    };
-  }, [src, videoEl]);
+    return () => { cancelled = true }
+  }, [src, videoEl])
 
   useEffect(() => {
-    if (assRef.current) {
-      if (visible) assRef.current.show();
-      else assRef.current.hide();
-    }
-  }, [visible]);
+    const r = instRef.current
+    if (!r) return
+    if (visible) r.setTrack(contentRef.current)
+    else r.freeTrack()
+  }, [visible])
 
   useEffect(() => {
-    if (assRef.current) {
-      assRef.current.delay = delay;
-    }
-  }, [delay]);
+    const r = instRef.current
+    if (!r) return
+    r.timeOffset = delay
+  }, [delay])
 
-  useEffect(() => {
-    return () => {
-      assRef.current?.destroy();
-      assRef.current = null;
-    };
-  }, []);
-
-  return null;
+  return null
 }
 
-export default AssOverlay;
+export default AssOverlay

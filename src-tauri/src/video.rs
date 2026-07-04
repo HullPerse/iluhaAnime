@@ -1,5 +1,11 @@
 use serde::{Deserialize, Serialize};
-use tauri::Manager;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
+use tauri::{Emitter, Manager};
+use tokio::io::AsyncBufReadExt;
+use tokio::process::Command;
+
+pub struct CancelFlag(pub Arc<AtomicBool>);
 
 const FONT_MIMES: &[&str] = &[
     "font/ttf",
@@ -538,4 +544,336 @@ pub async fn get_video_info(
     }
 
     Ok(VideoInfo { chapters, streams })
+}
+
+#[derive(Clone, Serialize)]
+struct UpscaleProgress {
+    current: f64,
+    total: f64,
+    stage: String,
+    speed: f64,
+}
+
+fn parse_ffmpeg_time(s: &str) -> Option<f64> {
+    let parts: Vec<&str> = s.trim().split(':').collect();
+    if parts.len() != 3 {
+        return None;
+    }
+    let h: f64 = parts[0].parse().ok()?;
+    let m: f64 = parts[1].parse().ok()?;
+    let sec: f64 = parts[2].parse().ok()?;
+    Some(h * 3600.0 + m * 60.0 + sec)
+}
+
+async fn get_video_duration(app_handle: &tauri::AppHandle, path: &str) -> Result<f64, String> {
+    let output = Command::new(ffprobe_exe(app_handle))
+        .args([
+            "-v",
+            "error",
+            "-show_entries",
+            "format=duration",
+            "-of",
+            "csv=p=0",
+            path,
+        ])
+        .output()
+        .await
+        .map_err(|e| format!("ffprobe not found: {e}"))?;
+
+    if !output.status.success() {
+        return Err("ffprobe failed".to_string());
+    }
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    stdout
+        .trim()
+        .parse::<f64>()
+        .map_err(|_| "parse duration failed".to_string())
+}
+
+fn build_encoder_args(
+    gpu_backend: &str,
+    quality: &str,
+) -> Vec<String> {
+    let (_preset, crf) = match quality {
+        "ultrafast" => ("ultrafast", "28"),
+        "fast" => ("fast", "23"),
+        "slow" => ("slow", "18"),
+        _ => ("veryslow", "16"),
+    };
+
+    match gpu_backend {
+        "nvenc" => {
+            let nvenc_preset = match quality {
+                "ultrafast" => "p1",
+                "fast" => "p4",
+                "slow" => "p6",
+                _ => "p7",
+            };
+            vec![
+                "-c:v".into(),
+                "h264_nvenc".into(),
+                "-preset".into(),
+                nvenc_preset.into(),
+                "-cq".into(),
+                crf.into(),
+            ]
+        }
+        "amf" => {
+            let amf_quality = match quality {
+                "ultrafast" | "fast" => "speed",
+                _ => "quality",
+            };
+            vec![
+                "-c:v".into(),
+                "h264_amf".into(),
+                "-quality".into(),
+                amf_quality.into(),
+                "-qp_i".into(),
+                crf.into(),
+                "-qp_p".into(),
+                crf.into(),
+            ]
+        }
+        "qsv" => {
+            vec![
+                "-c:v".into(),
+                "h264_qsv".into(),
+                "-global_quality".into(),
+                crf.into(),
+            ]
+        }
+        _ => {
+            let preset = match quality {
+                "ultrafast" => "ultrafast",
+                "fast" => "fast",
+                "slow" => "slow",
+                _ => "veryslow",
+            };
+            vec![
+                "-c:v".into(),
+                "libx264".into(),
+                "-preset".into(),
+                preset.into(),
+                "-crf".into(),
+                crf.into(),
+            ]
+        }
+    }
+}
+
+#[tauri::command]
+pub async fn upscale_video(
+    app_handle: tauri::AppHandle,
+    input_path: String,
+    output_path: String,
+    width: u32,
+    height: u32,
+    target_fps: Option<u32>,
+    interpolate: bool,
+    quality: String,
+    gpu_backend: String,
+    cancel_flag: tauri::State<'_, CancelFlag>,
+) -> Result<String, String> {
+    let mut filters = Vec::new();
+    if width > 0 && height > 0 {
+        filters.push(format!("scale={}:{}:flags=lanczos", width, height));
+    }
+    if let Some(fps) = target_fps {
+        if interpolate {
+            filters.push(format!("minterpolate=fps={}", fps));
+        } else {
+            filters.push(format!("fps={}", fps));
+        }
+    }
+    let vf = if filters.is_empty() {
+        String::new()
+    } else {
+        filters.join(",")
+    };
+
+    let encoder_args = build_encoder_args(&gpu_backend, &quality);
+
+    cancel_flag.0.store(false, Ordering::SeqCst);
+    let cancel = cancel_flag.0.clone();
+
+    // emit initializing immediately with total=0
+    let _ = app_handle.emit(
+        "upscale-progress",
+        UpscaleProgress {
+            current: 0.0,
+            total: 0.0,
+            stage: "initializing".into(),
+            speed: 0.0,
+        },
+    );
+
+    let duration = Arc::new(Mutex::new(0.0f64));
+
+    // spawn ffprobe concurrently
+    let app_for_probe = app_handle.clone();
+    let dur_for_probe = duration.clone();
+    let path_for_probe = input_path.clone();
+
+    let probe = tokio::spawn(async move {
+        match get_video_duration(&app_for_probe, &path_for_probe).await {
+            Ok(d) => {
+                *dur_for_probe.lock().unwrap() = d;
+                let _ = app_for_probe.emit(
+                    "upscale-progress",
+                    UpscaleProgress {
+                        current: 0.0,
+                        total: d,
+                        stage: "initializing".into(),
+                        speed: 0.0,
+                    },
+                );
+            }
+            Err(_) => {}
+        }
+    });
+
+    // spawn ffmpeg immediately
+    let app_for_ffmpeg = app_handle.clone();
+    let dur_for_ffmpeg = duration.clone();
+    let out_for_ffmpeg = output_path.clone();
+
+    let encode = tokio::spawn(async move {
+        let mut cmd = Command::new(ffmpeg_exe(&app_for_ffmpeg));
+        cmd.arg("-y");
+
+        // GPU decoding via hwaccel auto always helps
+        cmd.args(["-hwaccel", "auto"]);
+
+        cmd.arg("-i").arg(&input_path);
+
+        if !vf.is_empty() {
+            cmd.arg("-vf").arg(&vf);
+        }
+
+        for a in &encoder_args {
+            cmd.arg(a);
+        }
+
+        cmd.args(["-c:a", "copy"])
+            .args(["-progress", "pipe:1", "-nostats"])
+            .arg(&out_for_ffmpeg)
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::null());
+
+        let mut child = cmd.spawn().map_err(|e| format!("ffmpeg not found: {e}"))?;
+
+        // emit "started" as soon as ffmpeg is running
+        let _ = app_for_ffmpeg.emit(
+            "upscale-progress",
+            UpscaleProgress {
+                current: 0.0,
+                total: *dur_for_ffmpeg.lock().unwrap(),
+                stage: "started".into(),
+                speed: 0.0,
+            },
+        );
+
+        let stdout = child.stdout.take().ok_or("no stdout")?;
+        let reader = tokio::io::BufReader::new(stdout);
+        let mut lines = reader.lines();
+        let mut speed = 0.0f64;
+
+        while let Some(line) = lines
+            .next_line()
+            .await
+            .map_err(|e| format!("read ffmpeg output: {e}"))?
+        {
+            if cancel.load(Ordering::SeqCst) {
+                let _ = child.kill().await;
+                let _ = std::fs::remove_file(&out_for_ffmpeg);
+                return Err("Операция отменена".to_string());
+            }
+
+            if let Some(time_str) = line.strip_prefix("out_time=") {
+                if let Some(current) = parse_ffmpeg_time(time_str) {
+                    let total = *dur_for_ffmpeg.lock().unwrap();
+                    let _ = app_for_ffmpeg.emit(
+                        "upscale-progress",
+                        UpscaleProgress {
+                            current,
+                            total,
+                            stage: "encoding".into(),
+                            speed,
+                        },
+                    );
+                }
+            }
+
+            if let Some(speed_str) = line.strip_prefix("speed=") {
+                speed = speed_str.trim_end_matches('x').parse().unwrap_or(0.0);
+            }
+
+            if line == "progress=end" {
+                break;
+            }
+        }
+
+        let status = child
+            .wait()
+            .await
+            .map_err(|e| format!("wait ffmpeg: {e}"))?;
+
+        if !status.success() {
+            return Err("ffmpeg завершился с ошибкой".to_string());
+        }
+
+        let final_total = *dur_for_ffmpeg.lock().unwrap();
+        let _ = app_for_ffmpeg.emit(
+            "upscale-progress",
+            UpscaleProgress {
+                current: final_total,
+                total: final_total,
+                stage: "done".into(),
+                speed: 0.0,
+            },
+        );
+
+        Ok(out_for_ffmpeg)
+    });
+
+    let (_, encode_result) = tokio::join!(probe, encode);
+
+    encode_result.map_err(|e| format!("encode task: {e}"))?
+}
+
+#[tauri::command]
+pub async fn check_gpu_encoders(app_handle: tauri::AppHandle) -> Vec<String> {
+    let mut available = vec!["cpu".to_string()];
+
+    let ffmpeg = ffmpeg_exe(&app_handle);
+    let output = match std::process::Command::new(&ffmpeg)
+        .args(["-hide_banner", "-encoders"])
+        .output()
+    {
+        Ok(o) if o.status.success() => o,
+        _ => return available,
+    };
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    if stdout.contains("nvenc") {
+        available.push("nvenc".into());
+    }
+    if stdout.contains("amf") {
+        available.push("amf".into());
+    }
+    if stdout.contains("qsv") {
+        available.push("qsv".into());
+    }
+
+    available
+}
+
+#[tauri::command]
+pub async fn cancel_upscale(
+    cancel_flag: tauri::State<'_, CancelFlag>,
+) -> Result<(), String> {
+    cancel_flag.0.store(true, Ordering::SeqCst);
+    Ok(())
 }

@@ -77,6 +77,7 @@ function PlayerRoute({
     total: number;
   } | null>(null);
   const [genPaused, setGenPaused] = useState(false);
+  const [upscaledFiles, setUpscaledFiles] = useState<Map<number, { name: string; size: number; fullPath: string }[]>>(new Map());
   const genCancelledRef = useRef(false);
   const genPausedRef = useRef(false);
 
@@ -258,6 +259,25 @@ function PlayerRoute({
       }
     });
   }, [torrents, torrentFilesMap, loadTorrentFiles]);
+
+  useEffect(() => {
+    if (folderPaths.length === 0) return;
+
+    const interval = setInterval(async () => {
+      const trees: FolderNode[] = [];
+      for (const p of folderPaths) {
+        try {
+          const entries = await invoke<VideoFileEntry[]>("scan_video_folder", {
+            path: p,
+          });
+          if (entries?.length) trees.push(buildTree(entries, p));
+        } catch { }
+      }
+      if (trees.length > 0) setFolderTrees(trees);
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [folderPaths, buildTree, setFolderPaths]);
 
   const currentTreeFiles: VideoFileEntry[] = useMemo(() => {
     if (!video) return [];
@@ -716,6 +736,17 @@ function PlayerRoute({
                     type="player"
                     path={item.save_dir}
                     onPlay={playFile}
+                    extraFiles={upscaledFiles.get(item.id)}
+                    onUpscaleDone={(filePath) => {
+                      setUpscaledFiles((prev) => {
+                        const next = new Map(prev);
+                        const existing = next.get(item.id) || [];
+                        if (existing.some((e) => e.fullPath === filePath)) return prev;
+                        const name = filePath.replace(/\\/g, "/").split("/").pop() || filePath;
+                        next.set(item.id, [...existing, { name, size: 0, fullPath: filePath }]);
+                        return next;
+                      });
+                    }}
                   />
                 )}
               </section>

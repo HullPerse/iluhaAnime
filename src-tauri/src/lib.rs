@@ -1,5 +1,6 @@
 use std::collections::{HashMap, HashSet};
 use std::num::NonZeroU32;
+use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use tauri::{Emitter, Manager};
 use tauri_plugin_notification::NotificationExt;
@@ -15,8 +16,8 @@ mod thumbnails;
 mod tracks;
 mod torrent;
 mod video;
-
 use torrent::{FilePriority, TorrentFileInfo, TorrentInfo, TorrentInfoResult, TorrentManager};
+use video::CancelFlag;
 
 struct TorrentBackend {
     manager: Arc<TorrentManager>,
@@ -246,6 +247,7 @@ pub fn run() {
                     }
                 });
                 handle.manage(TorrentBackend { manager });
+                handle.manage(CancelFlag(Arc::new(AtomicBool::new(false))));
             });
             Ok(())
         })
@@ -267,6 +269,9 @@ pub fn run() {
             video::remux_with_external_audio,
             video::convert_external_subtitle,
             video::get_video_info,
+            video::upscale_video,
+            video::cancel_upscale,
+            video::check_gpu_encoders,
             ffmpeg::check_ffprobe,
             ffmpeg::download_ffmpeg,
             ffmpeg::remove_ffmpeg,

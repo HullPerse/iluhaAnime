@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import Select from "@/components/ui/select.component";
 import { useSettingsStore } from "@/store/settings.store";
+import UpscalePlayer from "@/routes/components/player/upscale.player";
 
 type Item =
   | { kind: "folder"; node: TorrentTreeNode; depth: number }
@@ -56,6 +57,8 @@ function TorrentFilesSection({
   path,
   onPlay,
   onFilePriorityChange,
+  extraFiles,
+  onUpscaleDone,
 }: {
   id: number;
   files: TorrentFileInfo[];
@@ -68,6 +71,8 @@ function TorrentFilesSection({
     fileIndices: number[],
     priority: FilePriority,
   ) => void;
+  extraFiles?: { name: string; size: number; fullPath: string }[];
+  onUpscaleDone?: (filePath: string) => void;
 }) {
   const [selected, setSelected] = useState<Set<number>>(
     () =>
@@ -113,10 +118,19 @@ function TorrentFilesSection({
     };
   }, [type, showTrackFiles, trackExts]);
 
-  const flatItems = useMemo(
-    () => flattenTree(trees, open, fileFilter, rootFiles),
-    [trees, open, fileFilter, rootFiles],
-  );
+  const flatItems = useMemo(() => {
+    const items = flattenTree(trees, open, fileFilter, rootFiles);
+    if (extraFiles && type === "player") {
+      for (const ef of extraFiles) {
+        items.push({
+          kind: "file",
+          file: { index: -1, name: ef.name, displayName: ef.name, size: ef.size, completed: true, selected: false, priority: "normal", exists: true, _fullPath: ef.fullPath } as TorrentTreeFile & { _fullPath: string },
+          depth: 0,
+        });
+      }
+    }
+    return items;
+  }, [trees, open, fileFilter, rootFiles, extraFiles, type]);
 
   const virtualizer = useVirtualizer({
     count: flatItems.length,
@@ -142,7 +156,7 @@ function TorrentFilesSection({
   return (
     <div
       ref={scrollRef}
-      className="windows95-border min-h-fitmax-h-40 overflow-y-auto bg-white"
+      className="windows95-border h-fit max-h-40 overflow-y-auto bg-white"
     >
       <div style={{ height: virtualizer.getTotalSize(), position: "relative" }}>
         {virtualizer.getVirtualItems().map((vItem) => {
@@ -232,29 +246,59 @@ function TorrentFilesSection({
 
               {type === "player" && (
                 <div className="flex flex-row gap-1 ml-auto">
-                  {path && (
-                    <Button
-                      title="Открыть в медиа плеере"
-                      size="icon"
-                      className="size-4"
-                      onClick={async () => {
-                        if (!path) return;
-                        openPath(`${path}/${file.name}`);
-                      }}
-                    >
-                      <Monitor className="size-2.5" />
-                    </Button>
-                  )}
-                  {onPlay && (
-                    <Button
-                      title="Открыть в iluhaAnime плеере"
-                      size="icon"
-                      className="size-4"
-                      onClick={() => path && onPlay(`${path}/${file.name}`)}
-                    >
-                      <Play className="size-2.5" />
-                    </Button>
-                  )}
+                  {(file as TorrentTreeFile & { _fullPath?: string })._fullPath
+                    ? (
+                      <>
+                        <UpscalePlayer filePath={(file as TorrentTreeFile & { _fullPath: string })._fullPath} onDone={onUpscaleDone} />
+                        <Button
+                          title="Открыть в медиа плеере"
+                          size="icon"
+                          className="size-4"
+                          onClick={async () => openPath((file as TorrentTreeFile & { _fullPath: string })._fullPath)}
+                        >
+                          <Monitor className="size-2.5" />
+                        </Button>
+                        {onPlay && (
+                          <Button
+                            title="Открыть в iluhaAnime плеере"
+                            size="icon"
+                            className="size-4"
+                            onClick={() => onPlay((file as TorrentTreeFile & { _fullPath: string })._fullPath)}
+                          >
+                            <Play className="size-2.5" />
+                          </Button>
+                        )}
+                      </>
+                    )
+                    : (
+                      <>
+                        {path && <UpscalePlayer filePath={`${path}/${file.name}`} onDone={onUpscaleDone} />}
+                        {path && (
+                          <Button
+                            title="Открыть в медиа плеере"
+                            size="icon"
+                            className="size-4"
+                            onClick={async () => {
+                              if (!path) return;
+                              openPath(`${path}/${file.name}`);
+                            }}
+                          >
+                            <Monitor className="size-2.5" />
+                          </Button>
+                        )}
+                        {onPlay && (
+                          <Button
+                            title="Открыть в iluhaAnime плеере"
+                            size="icon"
+                            className="size-4"
+                            onClick={() => path && onPlay(`${path}/${file.name}`)}
+                          >
+                            <Play className="size-2.5" />
+                          </Button>
+                        )}
+                      </>
+                    )
+                  }
                 </div>
               )}
             </label>

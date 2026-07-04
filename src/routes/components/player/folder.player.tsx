@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useState, useRef, useMemo, useCallback } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import UpscalePlayer from "./upscale.player";
 
 type Item =
   | { kind: "folder"; node: FolderNode; depth: number }
@@ -283,6 +284,7 @@ function FolderView({
                     {fmtSize(file.size)}
                   </span>
 
+                  {!disabled && file.path && <UpscalePlayer filePath={file.path} />}
                   <Button
                     size="icon"
                     className="h-4 w-4"

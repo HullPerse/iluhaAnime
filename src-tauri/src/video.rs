@@ -759,7 +759,7 @@ pub async fn upscale_video(
             .args(["-progress", "pipe:1", "-nostats"])
             .arg(&out_for_ffmpeg)
             .stdout(std::process::Stdio::piped())
-            .stderr(std::process::Stdio::null());
+            .stderr(std::process::Stdio::piped());
 
         let mut child = cmd.spawn().map_err(|e| format!("ffmpeg not found: {e}"))?;
 
@@ -814,13 +814,28 @@ pub async fn upscale_video(
             }
         }
 
+        let stderr_handle = child.stderr.take();
+
         let status = child
             .wait()
             .await
             .map_err(|e| format!("wait ffmpeg: {e}"))?;
 
+        let stderr = match stderr_handle {
+            Some(handle) => {
+                use tokio::io::AsyncReadExt;
+                let mut buf = String::new();
+                tokio::io::BufReader::new(handle)
+                    .read_to_string(&mut buf)
+                    .await
+                    .unwrap_or_default();
+                buf
+            }
+            None => String::new(),
+        };
+
         if !status.success() {
-            return Err("ffmpeg завершился с ошибкой".to_string());
+            return Err(format!("ffmpeg завершился с ошибкой: {stderr}"));
         }
 
         let final_total = *dur_for_ffmpeg.lock().unwrap();
@@ -876,4 +891,36 @@ pub async fn cancel_upscale(
 ) -> Result<(), String> {
     cancel_flag.0.store(true, Ordering::SeqCst);
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_ffmpeg_time_parses_valid() {
+        assert_eq!(parse_ffmpeg_time("01:30:00.000"), Some(5400.0));
+        assert_eq!(parse_ffmpeg_time("00:05:30.500"), Some(330.5));
+        assert_eq!(parse_ffmpeg_time("00:00:00.000"), Some(0.0));
+    }
+
+    #[test]
+    fn parse_ffmpeg_time_returns_none_for_invalid() {
+        assert_eq!(parse_ffmpeg_time(""), None);
+        assert_eq!(parse_ffmpeg_time("not a time"), None);
+        assert_eq!(parse_ffmpeg_time("01:00"), None);
+        assert_eq!(parse_ffmpeg_time("01:00:00:00"), None);
+    }
+
+    #[test]
+    fn parse_ffmpeg_time_trims_whitespace() {
+        assert_eq!(parse_ffmpeg_time("  00:01:00  "), Some(60.0));
+    }
+
+    #[test]
+    fn parse_ffmpeg_time_handles_large_values() {
+        let result = parse_ffmpeg_time("100:00:00.000");
+        assert!(result.is_some());
+        assert!((result.unwrap() - 360000.0).abs() < 0.001);
+    }
 }

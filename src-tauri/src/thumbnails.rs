@@ -142,3 +142,35 @@ pub async fn generate_thumbnails(
 
     Ok(thumb_paths)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn path_hash_is_hex_string() {
+        let hash = path_hash("/some/video.mkv");
+        assert_eq!(hash.len(), 40);
+        assert!(hash.chars().all(|c| c.is_ascii_hexdigit()));
+    }
+
+    #[test]
+    fn path_hash_different_inputs_different_hashes() {
+        let h1 = path_hash("/video1.mkv");
+        let h2 = path_hash("/video2.mkv");
+        assert_ne!(h1, h2);
+    }
+
+    #[test]
+    fn path_hash_is_deterministic() {
+        let h1 = path_hash("same/path.mkv");
+        let h2 = path_hash("same/path.mkv");
+        assert_eq!(h1, h2);
+    }
+
+    #[test]
+    fn path_hash_handles_empty_string() {
+        let hash = path_hash("");
+        assert_eq!(hash.len(), 40);
+    }
+}

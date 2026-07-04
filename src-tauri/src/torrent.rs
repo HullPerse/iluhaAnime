@@ -758,3 +758,35 @@ impl TorrentManager {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn is_safe_path_component_rejects_parent_dir() {
+        assert!(!is_safe_path_component(".."));
+        assert!(!is_safe_path_component("../foo"));
+        assert!(!is_safe_path_component("foo/.."));
+        assert!(!is_safe_path_component("foo/../../bar"));
+    }
+
+    #[test]
+    fn is_safe_path_component_accepts_normal_names() {
+        assert!(is_safe_path_component("video.mkv"));
+        assert!(is_safe_path_component("[Subs] Anime - 01.mkv"));
+        assert!(is_safe_path_component("folder with spaces"));
+        assert!(is_safe_path_component(""));
+    }
+
+    #[test]
+    fn is_safe_path_component_accepts_root() {
+        assert!(is_safe_path_component("/"));
+        assert!(is_safe_path_component("//"));
+    }
+
+    #[test]
+    fn is_safe_path_component_accepts_nested_safe_paths() {
+        assert!(is_safe_path_component("foo/bar"));
+    }
+}

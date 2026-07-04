@@ -145,14 +145,17 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
 
   cancelDownload: async () => {
     const pending = get().pendingTorrent;
-    set({ preparingTorrent: false, pendingTorrent: null });
-    if (!pending) return;
+    if (!pending) {
+      set({ preparingTorrent: false, pendingTorrent: null });
+      return;
+    }
     if (pending.id) {
       await invoke("remove_torrent", {
         id: pending.id,
         deleteFiles: false,
       }).catch((err) => showError("Ошибка при отмене торрента:", String(err)));
     }
+    set({ preparingTorrent: false, pendingTorrent: null });
   },
 
   pauseTorrent: async (id: number) => {

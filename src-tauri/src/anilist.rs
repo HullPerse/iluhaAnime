@@ -293,6 +293,35 @@ async fn fetch_page(body: serde_json::Value) -> Result<(Vec<AniMedia>, u32), Str
     Ok((media, total))
 }
 
+async fn fetch_paginated(
+    base_query: &str,
+    variables: serde_json::Value,
+    max_pages: u32,
+) -> Result<Vec<AniMedia>, String> {
+    let (mut all, total) = fetch_page(serde_json::json!({
+        "query": base_query,
+        "variables": variables,
+    }))
+    .await?;
+
+    let pages = ((total + 19) / 20).min(max_pages);
+    let mut vars = variables.clone();
+
+    for page in 2..=pages {
+        vars["page"] = serde_json::json!(page);
+        if let Ok((media, _)) = fetch_page(serde_json::json!({
+            "query": base_query,
+            "variables": vars,
+        }))
+        .await
+        {
+            all.extend(media);
+        }
+    }
+
+    Ok(all)
+}
+
 #[tauri::command]
 pub async fn search_anilist(
     query: Option<String>,
@@ -445,34 +474,13 @@ pub async fn search_anilist(
         }
     "#;
 
-    let (mut all, total) = fetch_page(serde_json::json!({
-        "query": gql,
-        "variables": variables,
-    }))
-    .await?;
-
-    let pages = ((total + 19) / 20).min(MAX_PAGES);
-    let mut vars = variables.clone();
-
-    for page in 2..=pages {
-        vars["page"] = serde_json::json!(page);
-        if let Ok((media, _)) = fetch_page(serde_json::json!({
-            "query": gql,
-            "variables": vars,
-        }))
-        .await
-        {
-            all.extend(media);
-        }
-    }
-
-    Ok(all)
+    fetch_paginated(gql, variables, MAX_PAGES).await
 }
 
 #[tauri::command]
 pub async fn search_anilist_by_tag(tag: String) -> Result<Vec<AniMedia>, String> {
-    let (mut all, total) = fetch_page(serde_json::json!({
-        "query": r#"
+    fetch_paginated(
+        r#"
             query ($tag: String, $page: Int) {
                 Page(page: $page, perPage: 20) {
                     pageInfo { total }
@@ -490,46 +498,16 @@ pub async fn search_anilist_by_tag(tag: String) -> Result<Vec<AniMedia>, String>
                 }
             }
         "#,
-        "variables": { "tag": tag, "page": 1 }
-    }))
-    .await?;
-
-    let pages = ((total + 19) / 20).min(MAX_PAGES);
-    for page in 2..=pages {
-        if let Ok((media, _)) = fetch_page(serde_json::json!({
-            "query": r#"
-                query ($tag: String, $page: Int) {
-                    Page(page: $page, perPage: 20) {
-                        pageInfo { total }
-                        media(type: ANIME, tag_in: [$tag]) {
-                            id
-                            title { romaji english native }
-                            episodes, duration, status, averageScore
-                            genres, tags { name }
-                            description(asHtml: false)
-                            coverImage { medium large }
-                            season, seasonYear
-                            studios { nodes { id name } }
-                            nextAiringEpisode { episode airingAt }
-                        }
-                    }
-                }
-            "#,
-            "variables": { "tag": tag, "page": page }
-        }))
-        .await
-        {
-            all.extend(media);
-        }
-    }
-
-    Ok(all)
+        serde_json::json!({ "tag": tag, "page": 1 }),
+        MAX_PAGES,
+    )
+    .await
 }
 
 #[tauri::command]
 pub async fn search_anilist_by_genre(genre: String) -> Result<Vec<AniMedia>, String> {
-    let (mut all, total) = fetch_page(serde_json::json!({
-        "query": r#"
+    fetch_paginated(
+        r#"
             query ($genre: String, $page: Int) {
                 Page(page: $page, perPage: 20) {
                     pageInfo { total }
@@ -547,40 +525,10 @@ pub async fn search_anilist_by_genre(genre: String) -> Result<Vec<AniMedia>, Str
                 }
             }
         "#,
-        "variables": { "genre": genre, "page": 1 }
-    }))
-    .await?;
-
-    let pages = ((total + 19) / 20).min(MAX_PAGES);
-    for page in 2..=pages {
-        if let Ok((media, _)) = fetch_page(serde_json::json!({
-            "query": r#"
-                query ($genre: String, $page: Int) {
-                    Page(page: $page, perPage: 20) {
-                        pageInfo { total }
-                        media(type: ANIME, genre_in: [$genre]) {
-                            id
-                            title { romaji english native }
-                            episodes, duration, status, averageScore
-                            genres, tags { name }
-                            description(asHtml: false)
-                            coverImage { medium large }
-                            season, seasonYear
-                            studios { nodes { id name } }
-                            nextAiringEpisode { episode airingAt }
-                        }
-                    }
-                }
-            "#,
-            "variables": { "genre": genre, "page": page }
-        }))
-        .await
-        {
-            all.extend(media);
-        }
-    }
-
-    Ok(all)
+        serde_json::json!({ "genre": genre, "page": 1 }),
+        MAX_PAGES,
+    )
+    .await
 }
 
 #[tauri::command]

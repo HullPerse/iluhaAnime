@@ -177,3 +177,32 @@ pub async fn check_ffprobe(app_handle: tauri::AppHandle) -> Result<bool, String>
         Err(_) => Ok(false),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn download_urls_fails_on_non_windows() {
+        let result = download_urls();
+        #[cfg(not(target_os = "windows"))]
+        assert!(result.is_err());
+        #[cfg(target_os = "windows")]
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn download_urls_returns_expected_url() {
+        let result = download_urls();
+        #[cfg(target_os = "windows")]
+        {
+            let (url, _, _) = result.unwrap();
+            assert!(url.contains("github.com"));
+            assert!(url.contains("ffmpeg"));
+        }
+        #[cfg(not(target_os = "windows"))]
+        {
+            assert_eq!(result.unwrap_err(), "ffmpeg auto-download is only supported on Windows");
+        }
+    }
+}

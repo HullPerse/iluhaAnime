@@ -213,6 +213,98 @@ fn nyaa_json_to_item(item: NyaaJsonItem) -> Option<NyaaItem> {
     })
 }
 
+async fn search_nyaa_impl(
+    base_url: &str,
+    category: &str,
+    query: String,
+    page: Option<u32>,
+    sort: Option<String>,
+    order: Option<String>,
+    json_converter: fn(NyaaJsonItem) -> Option<NyaaItem>,
+    html_parser: fn(&str) -> Vec<NyaaItem>,
+) -> Result<Vec<NyaaItem>, String> {
+    let client = build_nyaa_client()?;
+
+    let mut params = vec![("q", query.as_str()), ("c", category), ("format", "json")];
+    let page_str = page.map(|p| p.to_string());
+    let sort_str = sort.as_deref();
+    let order_str = order.as_deref();
+    let mut extra = Vec::new();
+    if let Some(ref p) = page_str {
+        extra.push(("p", p.as_str()));
+    }
+    if let Some(s) = sort_str {
+        extra.push(("s", s));
+    }
+    if let Some(o) = order_str {
+        extra.push(("o", o));
+    }
+    params.extend(extra.iter().copied());
+
+    let mut last_err = String::new();
+    for attempt in 0..3 {
+        if attempt > 0 {
+            tokio::time::sleep(std::time::Duration::from_secs(2 * attempt)).await;
+        }
+
+        let resp = match client.get(base_url).query(&params).send().await {
+            Ok(r) => r,
+            Err(e) => {
+                last_err = format!("{e}");
+                continue;
+            }
+        };
+
+        if resp.status() == 504 || resp.status() == 503 {
+            last_err = format!(
+                "{} временно недоступен (HTTP {}), попробуйте позже",
+                if base_url.contains("sukebei") { "Sukebei" } else { "Nyaa.si" },
+                resp.status()
+            );
+            continue;
+        }
+
+        if !resp.status().is_success() {
+            return Err(format!("Nyaa вернул HTTP {}", resp.status()));
+        }
+
+        let bytes = match resp.bytes().await {
+            Ok(b) => b,
+            Err(e) => {
+                last_err = format!("{e}");
+                continue;
+            }
+        };
+
+        if bytes.first() == Some(&b'[') {
+            let items: Vec<NyaaJsonItem> = match serde_json::from_slice(&bytes) {
+                Ok(items) => items,
+                Err(e) => {
+                    last_err = format!("JSON parse error: {e}");
+                    continue;
+                }
+            };
+
+            let result: Vec<NyaaItem> = items.into_iter().filter_map(json_converter).collect();
+            if !result.is_empty() || attempt >= 2 {
+                return Ok(result);
+            }
+            last_err = "No valid torrents found".to_string();
+            continue;
+        }
+
+        let html = String::from_utf8_lossy(&bytes).to_string();
+        let parsed = html_parser(&html);
+        if !parsed.is_empty() {
+            return Ok(parsed);
+        }
+
+        last_err = "No results found".to_string();
+    }
+
+    Err(last_err)
+}
+
 fn parse_entries(html: &str) -> Vec<NyaaItem> {
     let doc = Html::parse_document(html);
     let entry_sel = Selector::parse(".home_list_entry").unwrap();
@@ -435,23 +527,8 @@ fn parse_rutracker_entries(html: &str) -> Vec<NyaaItem> {
             .trim()
             .to_string();
 
-        let seeders = tds[6]
-            .text()
-            .collect::<String>()
-            .chars()
-            .filter(|c| c.is_ascii_digit())
-            .collect::<String>()
-            .parse()
-            .unwrap_or(0);
-
-        let leechers = tds[7]
-            .text()
-            .collect::<String>()
-            .chars()
-            .filter(|c| c.is_ascii_digit())
-            .collect::<String>()
-            .parse()
-            .unwrap_or(0);
+        let seeders = parse_rus_number(&tds[6].text().collect::<String>());
+        let leechers = parse_rus_number(&tds[7].text().collect::<String>());
 
         items.push(NyaaItem {
             title,
@@ -466,6 +543,15 @@ fn parse_rutracker_entries(html: &str) -> Vec<NyaaItem> {
     }
 
     items
+}
+
+fn parse_rus_number(s: &str) -> u32 {
+    let cleaned: String = s
+        .chars()
+        .filter(|c| c.is_ascii_digit() || *c == ',')
+        .collect();
+    let without_comma = cleaned.replace(',', "");
+    without_comma.parse().unwrap_or(0)
 }
 
 #[tauri::command]
@@ -500,85 +586,17 @@ pub async fn search_nyaa(
     sort: Option<String>,
     order: Option<String>,
 ) -> Result<Vec<NyaaItem>, String> {
-    let client = build_nyaa_client()?;
-
-    let mut params = vec![("q", query.as_str()), ("c", "1_0"), ("format", "json")];
-    let page_str = page.map(|p| p.to_string());
-    let sort_str = sort.as_deref();
-    let order_str = order.as_deref();
-    let mut extra = Vec::new();
-    if let Some(ref p) = page_str {
-        extra.push(("p", p.as_str()));
-    }
-    if let Some(s) = sort_str {
-        extra.push(("s", s));
-    }
-    if let Some(o) = order_str {
-        extra.push(("o", o));
-    }
-    params.extend(extra.iter().copied());
-
-    let mut last_err = String::new();
-    for attempt in 0..3 {
-        if attempt > 0 {
-            tokio::time::sleep(std::time::Duration::from_secs(2 * attempt)).await;
-        }
-
-        let resp = match client.get("https://nyaa.si/").query(&params).send().await {
-            Ok(r) => r,
-            Err(e) => {
-                last_err = format!("{e}");
-                continue;
-            }
-        };
-
-        if resp.status() == 504 || resp.status() == 503 {
-            last_err = format!(
-                "Nyaa.si временно недоступен (HTTP {}), попробуйте позже",
-                resp.status()
-            );
-            continue;
-        }
-
-        if !resp.status().is_success() {
-            return Err(format!("Nyaa вернул HTTP {}", resp.status()));
-        }
-
-        let bytes = match resp.bytes().await {
-            Ok(b) => b,
-            Err(e) => {
-                last_err = format!("{e}");
-                continue;
-            }
-        };
-
-        if bytes.first() == Some(&b'[') {
-            let items: Vec<NyaaJsonItem> = match serde_json::from_slice(&bytes) {
-                Ok(items) => items,
-                Err(e) => {
-                    last_err = format!("JSON parse error: {e}");
-                    continue;
-                }
-            };
-
-            let result: Vec<NyaaItem> = items.into_iter().filter_map(nyaa_json_to_item).collect();
-            if !result.is_empty() || attempt >= 2 {
-                return Ok(result);
-            }
-            last_err = "No valid torrents found".to_string();
-            continue;
-        }
-
-        let html = String::from_utf8_lossy(&bytes).to_string();
-        let parsed = parse_nyaa_entries(&html);
-        if !parsed.is_empty() {
-            return Ok(parsed);
-        }
-
-        last_err = "No results found".to_string();
-    }
-
-    Err(last_err)
+    search_nyaa_impl(
+        "https://nyaa.si/",
+        "1_0",
+        query,
+        page,
+        sort,
+        order,
+        nyaa_json_to_item,
+        parse_nyaa_entries,
+    )
+    .await
 }
 
 fn sukebei_json_to_item(item: NyaaJsonItem) -> Option<NyaaItem> {
@@ -733,85 +751,17 @@ pub async fn search_sukebei(
     sort: Option<String>,
     order: Option<String>,
 ) -> Result<Vec<NyaaItem>, String> {
-    let client = build_nyaa_client()?;
-
-    let mut params = vec![("q", query.as_str()), ("c", "0_0"), ("format", "json")];
-    let page_str = page.map(|p| p.to_string());
-    let sort_str = sort.as_deref();
-    let order_str = order.as_deref();
-    let mut extra = Vec::new();
-    if let Some(ref p) = page_str {
-        extra.push(("p", p.as_str()));
-    }
-    if let Some(s) = sort_str {
-        extra.push(("s", s));
-    }
-    if let Some(o) = order_str {
-        extra.push(("o", o));
-    }
-    params.extend(extra.iter().copied());
-
-    let mut last_err = String::new();
-    for attempt in 0..3 {
-        if attempt > 0 {
-            tokio::time::sleep(std::time::Duration::from_secs(2 * attempt)).await;
-        }
-
-        let resp = match client.get("https://sukebei.nyaa.si/").query(&params).send().await {
-            Ok(r) => r,
-            Err(e) => {
-                last_err = format!("{e}");
-                continue;
-            }
-        };
-
-        if resp.status() == 504 || resp.status() == 503 {
-            last_err = format!(
-                "Nyaa.si временно недоступен (HTTP {}), попробуйте позже",
-                resp.status()
-            );
-            continue;
-        }
-
-        if !resp.status().is_success() {
-            return Err(format!("Nyaa вернул HTTP {}", resp.status()));
-        }
-
-        let bytes = match resp.bytes().await {
-            Ok(b) => b,
-            Err(e) => {
-                last_err = format!("{e}");
-                continue;
-            }
-        };
-
-        if bytes.first() == Some(&b'[') {
-            let items: Vec<NyaaJsonItem> = match serde_json::from_slice(&bytes) {
-                Ok(items) => items,
-                Err(e) => {
-                    last_err = format!("JSON parse error: {e}");
-                    continue;
-                }
-            };
-
-            let result: Vec<NyaaItem> = items.into_iter().filter_map(sukebei_json_to_item).collect();
-            if !result.is_empty() || attempt >= 2 {
-                return Ok(result);
-            }
-            last_err = "No valid torrents found".to_string();
-            continue;
-        }
-
-        let html = String::from_utf8_lossy(&bytes).to_string();
-        let parsed = parse_sukebei_entries(&html);
-        if !parsed.is_empty() {
-            return Ok(parsed);
-        }
-
-        last_err = "No results found".to_string();
-    }
-
-    Err(last_err)
+    search_nyaa_impl(
+        "https://sukebei.nyaa.si/",
+        "0_0",
+        query,
+        page,
+        sort,
+        order,
+        sukebei_json_to_item,
+        parse_sukebei_entries,
+    )
+    .await
 }
 
 #[tauri::command]
@@ -970,5 +920,36 @@ mod tests {
     #[test]
     fn test_is_valid_torrent_valid() {
         assert!(is_valid_torrent("[Erai-raws] Anime Title [1080p][HEVC]", "/view/12345"));
+    }
+
+    #[test]
+    fn test_parse_rus_number_digits() {
+        assert_eq!(parse_rus_number("1234"), 1234);
+    }
+
+    #[test]
+    fn test_parse_rus_number_with_spaces() {
+        assert_eq!(parse_rus_number("1 234"), 1234);
+    }
+
+    #[test]
+    fn test_parse_rus_number_with_comma() {
+        assert_eq!(parse_rus_number("1,234"), 1234);
+    }
+
+    #[test]
+    fn test_parse_rus_number_empty() {
+        assert_eq!(parse_rus_number(""), 0);
+    }
+
+    #[test]
+    fn test_parse_rus_number_with_text() {
+        assert_eq!(parse_rus_number("N/A"), 0);
+        assert_eq!(parse_rus_number("~500"), 500);
+    }
+
+    #[test]
+    fn test_parse_rus_number_non_ascii_digits() {
+        assert_eq!(parse_rus_number("١٢٣"), 0);
     }
 }

@@ -1,4 +1,4 @@
-import { FolderNode, VideoFileEntry } from "@/types";
+import { FolderNode, VideoFileEntry, VideoStreamInfo } from "@/types";
 
 export function nodeMatchesSearch(node: FolderNode, query: string): boolean {
   const value = query.toLowerCase();
@@ -89,3 +89,18 @@ export function parseTime(input: string): number | null {
   }
   return null
 }
+
+
+export const formatStreams = (stream: VideoStreamInfo) => {
+  const parts = [
+    (stream.language ?? "").toUpperCase(),
+    stream.codec_name,
+    stream.title ?? "",
+  ].filter(Boolean);
+  return parts.join(" - ") || `Дорожка ${stream.index}`;
+};
+
+export const isAssSub = (s: VideoStreamInfo) =>
+  s.codec_name === "ass" ||
+  s.codec_name === "ssa" ||
+  (s.file_path ?? "").match(/\.(ass|ssa)$/i);

@@ -4,83 +4,11 @@ import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { parseVTT } from "@/lib/index.utils";
 import { useMediaStore } from "@/store/media.store";
 import { showToast } from "@/lib/toast.utils";
-import { Check } from "lucide-react";
 import AssOverlay from "./subtitles.player";
+import TrackDropdown from "./tracks/dropdown.tracks";
+import { formatStreams, isAssSub } from "@/lib/player.utils";
 
 const SUB_OFF = -999;
-
-function TrackDropdown({
-  label,
-  tracks,
-  selected,
-  onChange,
-  onAdd,
-}: {
-  label: string;
-  tracks: { index: number; label: string }[];
-  selected: number;
-  onChange: (index: number) => void;
-  onAdd?: () => void;
-}) {
-  const [open, setOpen] = useState<boolean>(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [open]);
-
-  const current = tracks.find((t) => t.index === selected);
-
-  return (
-    <div ref={ref} className="relative flex items-center gap-0.5">
-      <button
-        className="flex items-center gap-1 h-5 text-[10px] windows95-font windows95-border px-1 min-w-18 max-w-24 outline-none focus-visible:outline-dotted focus-visible:outline-1 focus-visible:outline-offset-[-3px] hover:cursor-pointer bg-white"
-        onClick={() => setOpen(!open)}
-      >
-        <span className="truncate">
-          {label}: {current?.label ?? ""}
-        </span>
-      </button>
-      {onAdd && (
-        <button
-          className="flex items-center justify-center size-4 windows95-text hover:cursor-pointer windows95-border leading-none bg-white"
-          onClick={onAdd}
-          title={`Add ${label.toLowerCase()} track`}
-        >
-          +
-        </button>
-      )}
-      {open && (
-        <div className="absolute bottom-full left-0 mb-0.5 min-w-full windows95-border bg-primary z-50 max-w-mdl w-md">
-          {tracks.map((t) => (
-            <button
-              key={t.index}
-              className="flex items-center gap-1 w-full text-left px-1 py-0.5 windows95-text bg-white hover:bg-secondary hover:text-white whitespace-nowrap hover:cursor-pointer max-w-md line-clamp-1"
-              onClick={() => {
-                onChange(t.index);
-                setOpen(false);
-              }}
-            >
-              {t.index === selected ? (
-                <Check className="size-3 shrink-0" />
-              ) : (
-                <span className="size-3 shrink-0" />
-              )}
-              {t.label}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
 
 function Tracks({
   audioStreams,
@@ -180,19 +108,7 @@ function Tracks({
   const [subDelay, setSubDelay] = useState<number>(0);
   const appliedOffsetRef = useRef<number>(0);
 
-  const fmt = (s: VideoStreamInfo) => {
-    const parts = [
-      (s.language ?? "").toUpperCase(),
-      s.codec_name,
-      s.title ?? "",
-    ].filter(Boolean);
-    return parts.join(" - ") || `Track ${s.index}`;
-  };
 
-  const isAssSub = (s: VideoStreamInfo) =>
-    s.codec_name === "ass" ||
-    s.codec_name === "ssa" ||
-    (s.file_path ?? "").match(/\.(ass|ssa)$/i);
 
   const hasAssSub =
     mergedSubs.some(isAssSub) &&
@@ -220,11 +136,11 @@ function Tracks({
         tempFilesRef.current.push(path);
         onAudioSwitch(convertFileSrc(path));
         const seekHint = () => {
-          try { videoEl.currentTime = savedTimeRef.current; } catch {}
+          try { videoEl.currentTime = savedTimeRef.current; } catch { }
         };
         const restore = () => {
           seekHint();
-          if (savedPlayingRef.current) videoEl.play().catch(() => {});
+          if (savedPlayingRef.current) videoEl.play().catch(() => { });
         };
         videoEl.addEventListener("loadedmetadata", seekHint, { once: true });
         requestAnimationFrame(() => {
@@ -246,24 +162,24 @@ function Tracks({
 
       try {
         for (const p of tempFilesRef.current) {
-          invoke("cleanup_temp_file", { path: p }).catch(() => {});
+          invoke("cleanup_temp_file", { path: p }).catch(() => { });
         }
         tempFilesRef.current = [];
 
         const out = await (stream.file_path
           ? invoke<string>("remux_with_external_audio", {
-              videoPath: mediaPath,
-              audioPath: stream.file_path,
-              audioDelayMs: audioDelay,
-            })
+            videoPath: mediaPath,
+            audioPath: stream.file_path,
+            audioDelayMs: audioDelay,
+          })
           : invoke<string>("remux_video_audio", {
-              path: mediaPath,
-              streamIndex: idx,
-              audioDelayMs: audioDelay,
-            }));
+            path: mediaPath,
+            streamIndex: idx,
+            audioDelayMs: audioDelay,
+          }));
 
         if (gen !== audioGenRef.current) {
-          invoke("cleanup_temp_file", { path: out }).catch(() => {});
+          invoke("cleanup_temp_file", { path: out }).catch(() => { });
           onAudioSwitch(null);
           return;
         }
@@ -274,11 +190,11 @@ function Tracks({
         const wasPlaying = savedPlayingRef.current;
         onAudioSwitch(null);
         const seekHintFallback = () => {
-          try { videoEl.currentTime = fallbackTime; } catch {}
+          try { videoEl.currentTime = fallbackTime; } catch { }
         };
         const restoreFallback = () => {
           seekHintFallback();
-          if (wasPlaying) videoEl.play().catch(() => {});
+          if (wasPlaying) videoEl.play().catch(() => { });
         };
         videoEl.addEventListener("loadedmetadata", seekHintFallback, { once: true });
         requestAnimationFrame(() => {
@@ -342,9 +258,9 @@ function Tracks({
         }
 
         if (gen !== subGenRef.current) {
-          invoke("cleanup_temp_file", { path: extractedPath }).catch(() => {});
+          invoke("cleanup_temp_file", { path: extractedPath }).catch(() => { });
           for (const fp of fontPaths)
-            invoke("cleanup_temp_file", { path: fp }).catch(() => {});
+            invoke("cleanup_temp_file", { path: fp }).catch(() => { });
           return;
         }
 
@@ -385,7 +301,7 @@ function Tracks({
 
           const trackEl = document.createElement("track");
           trackEl.kind = "subtitles";
-          trackEl.label = fmt(stream);
+          trackEl.label = formatStreams(stream);
           trackEl.srclang = lang;
 
           trackEl.addEventListener(
@@ -404,7 +320,7 @@ function Tracks({
           subBlobUrlRef.current = blobUrl;
           textTrackRef.current = trackEl.track;
         }
-      } catch {}
+      } catch { }
     },
     [videoEl, mediaPath, subtitleStreams, extSubs],
   );
@@ -436,7 +352,7 @@ function Tracks({
     try {
       const d = mediaGet(mediaPath)?.subOffset ?? 0;
       setSubDelay(d);
-    } catch {}
+    } catch { }
   }, [mediaPath, mediaGet]);
 
   useEffect(() => {
@@ -490,20 +406,20 @@ function Tracks({
       inflight.add(s.index);
       const p = s.file_path
         ? invoke<string>("remux_with_external_audio", {
-            videoPath: mediaPath,
-            audioPath: s.file_path,
-            audioDelayMs: delay,
-          })
+          videoPath: mediaPath,
+          audioPath: s.file_path,
+          audioDelayMs: delay,
+        })
         : invoke<string>("remux_video_audio", {
-            path: mediaPath,
-            streamIndex: s.index,
-            audioDelayMs: delay,
-          });
+          path: mediaPath,
+          streamIndex: s.index,
+          audioDelayMs: delay,
+        });
       p.then((path) => {
         tempFilesRef.current.push(path);
         prefetched.set(s.index, path);
-      }).catch(() => {})
-       .finally(() => { inflight.delete(s.index); });
+      }).catch(() => { })
+        .finally(() => { inflight.delete(s.index); });
     }
   }, [mediaPath, audioStreams, extAudio]);
 
@@ -524,7 +440,7 @@ function Tracks({
                 const c = track.cues[i] as VTTCue;
                 c.startTime += delta;
                 c.endTime += delta;
-              } catch {}
+              } catch { }
             }
         }
         appliedOffsetRef.current = detail.offset;
@@ -539,7 +455,7 @@ function Tracks({
       if (subTrackElRef.current) subTrackElRef.current.remove();
       if (subBlobUrlRef.current) URL.revokeObjectURL(subBlobUrlRef.current);
       for (const p of tempFilesRef.current) {
-        invoke("cleanup_temp_file", { path: p }).catch(() => {});
+        invoke("cleanup_temp_file", { path: p }).catch(() => { });
       }
       tempFilesRef.current = [];
     };
@@ -585,7 +501,7 @@ function Tracks({
       };
       setExtAudio((prev) => [...prev, newTrack]);
       handleAudio(idx);
-    } catch {}
+    } catch { }
   }, [handleAudio]);
 
   const handleAddSub = useCallback(async () => {
@@ -623,7 +539,7 @@ function Tracks({
       };
       setExtSubs((prev) => [...prev, newTrack]);
       handleSub(idx);
-    } catch {}
+    } catch { }
   }, [handleSub]);
 
   return (
@@ -639,7 +555,7 @@ function Tracks({
         label="Аудио"
         tracks={
           mergedAudio.length > 0
-            ? mergedAudio.map((s) => ({ index: s.index, label: fmt(s) }))
+            ? mergedAudio.map((s) => ({ index: s.index, label: formatStreams(s) }))
             : [{ index: -1, label: "—" }]
         }
         selected={mergedAudio.length > 0 ? selectedAudio : -1}
@@ -651,7 +567,7 @@ function Tracks({
         tracks={[
           { index: SUB_OFF, label: "Нет" },
           ...(mergedSubs.length > 0
-            ? mergedSubs.map((s) => ({ index: s.index, label: fmt(s) }))
+            ? mergedSubs.map((s) => ({ index: s.index, label: formatStreams(s) }))
             : [{ index: -2, label: "—" }]),
         ]}
         selected={mergedSubs.length > 0 ? selectedSub : SUB_OFF}

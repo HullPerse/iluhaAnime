@@ -201,7 +201,7 @@ function TorrentFilesSection({
           return (
             <label
               key={file.index}
-              className={`flex items-center gap-1 px-1 w-full text-[11px] windows95-font select-none absolute top-0 left-0 ${type === "player" ? "" : "hover:bg-surface"}`}
+              className={`flex items-center gap-1 px-1 w-full windows95-text select-none absolute top-0 left-0 ${type === "player" ? "" : "hover:bg-surface"}`}
               style={{
                 height: 20,
                 transform: `translateY(${vItem.start}px)`,

@@ -114,7 +114,7 @@ export default function BrowseAnimeModal({
                   />
                 )}
                 <div className="flex flex-col min-w-0 flex-1 ml-2">
-                  <span className="flex items-center font-bold windows95-text truncate text-[11px]">
+                  <span className="flex items-center font-bold windows95-text truncate">
                     {entry && (
                       <span
                         className="windows95-border shrink-0 mt-0.5 mr-0.5"

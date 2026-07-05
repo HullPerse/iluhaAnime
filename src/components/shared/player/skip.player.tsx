@@ -6,9 +6,7 @@ function skipLabel(title: string): string | null {
   const lower = title.toLowerCase();
   if (
     lower.includes("opening") ||
-    lower === "op" ||
-    lower.includes("a-part") ||
-    lower.includes("a part")
+    lower === "op"
   )
     return "OP";
   if (lower.includes("ending") || lower === "ed" || lower.includes("credits"))

@@ -41,7 +41,7 @@ function Modal({ header, onClose, className, children }: ModalWindow) {
           <section className="flex flex-row items-center justify-between bg-secondary w-full p-1">
             <div className="flex flex-row items-center gap-1 min-w-0">
               <Monitor className="size-3 shrink-0 text-white" />
-              <Dialog.Title className="text-white windows95-text font-bold line-clamp-1 text-[11px]">
+              <Dialog.Title className="text-white windows95-text font-bold line-clamp-1">
                 {header}
               </Dialog.Title>
             </div>

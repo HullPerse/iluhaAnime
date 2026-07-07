@@ -26,7 +26,6 @@
     "@tauri-apps/plugin-notification": "^2.2.1",
     "@tauri-apps/plugin-opener": "~2",
     "@tauri-apps/plugin-updater": "^2.10.1",
-    "@videojs/react": "^10.0.0-beta.23",
     "akarisub": "^0.2.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -39,14 +38,14 @@
   },
   "devDependencies": {
     "vite-plugin-compression": "^0.5.1",
-    "@tauri-apps/cli": "2.10.1",
-    "@types/node": "25.5.0",
-    "@types/react": "19.2.14",
+    "@tauri-apps/cli": "2.11.4",
+    "@types/node": "26.1.0",
+    "@types/react": "19.2.17",
     "@types/react-dom": "19.2.3",
-    "@vitejs/plugin-react": "6.0.1",
-    "oxlint": "1.57.0",
-    "typescript": "6.0.2",
-    "vite": "8.0.2",
+    "@vitejs/plugin-react": "6.0.3",
+    "oxlint": "1.73.0",
+    "typescript": "6.0.3",
+    "vite": "8.1.3",
     "vitest": "^4.1.9"
   }
 }

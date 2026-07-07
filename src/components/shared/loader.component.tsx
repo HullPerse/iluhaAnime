@@ -3,7 +3,7 @@ import { Box } from "lucide-react";
 
 export function BigLoader() {
   return (
-    <main className="absolute flex h-screen w-screen flex-col items-center justify-center bg-background font-extrabold text-primary">
+    <main className="absolute flex h-screen w-screen flex-col items-center justify-center bg-primary font-extrabold text-secondary">
       <Box className="size-28 animate-spin" />
     </main>
   );

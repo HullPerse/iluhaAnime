@@ -26,6 +26,13 @@ export interface SettingsStore {
   audioExtensions: string[];
   subtitleExtensions: string[];
   showTrackFiles: "hide" | "torrent" | "folders";
+  preferredAudioLangs: string[];
+  preferredAudioPatterns: string[];
+  preferredSubLangs: string[];
+  preferredSubPatterns: string[];
+  preferForcedSubs: boolean;
+  fallbackToFirstTrack: boolean;
+  afterPlaybackAction: "next" | "stop" | "repeat_one";
   modalAnimation: boolean;
   enable3dBorders: boolean;
   buttonPressEffect: boolean;
@@ -65,6 +72,13 @@ export const useSettingsStore = create<SettingsStore>()(
       audioExtensions: ["mp3", "flac", "aac", "ogg", "wav", "opus", "m4a", "wma"],
       subtitleExtensions: ["srt", "ass", "ssa", "vtt", "sub", "idx", "sup", "pgs"],
       showTrackFiles: "hide",
+      preferredAudioLangs: ["jpn", "ja"],
+      preferredAudioPatterns: [],
+      preferredSubLangs: ["eng", "en"],
+      preferredSubPatterns: [],
+      preferForcedSubs: true,
+      fallbackToFirstTrack: true,
+      afterPlaybackAction: "next",
       modalAnimation: true,
       enable3dBorders: true,
       buttonPressEffect: true,

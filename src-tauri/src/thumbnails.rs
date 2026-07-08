@@ -104,6 +104,10 @@ pub async fn generate_thumbnails(
 
     std::fs::create_dir_all(&out_dir).map_err(|e| format!("create thumbs dir: {e}"))?;
 
+    let _permit = super::video::FFMPEG_SEM
+        .acquire()
+        .await
+        .map_err(|_| "semaphore closed".to_string())?;
     let status = std::process::Command::new(&ffmpeg)
         .args([
             "-hwaccel",

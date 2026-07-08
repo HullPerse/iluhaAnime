@@ -7,12 +7,20 @@ function TrackDropdown({
   selected,
   onChange,
   onAdd,
+  statuses,
+  isExtracting,
+  extractElapsed,
+  progressPercent,
 }: {
   label: string;
   tracks: { index: number; label: string }[];
   selected: number;
   onChange: (index: number) => void;
   onAdd?: () => void;
+  statuses?: Record<number, "idle" | "extracting" | "cached" | "copy" | undefined>;
+  isExtracting?: boolean;
+  extractElapsed?: number;
+  progressPercent?: number;
 }) {
   const [open, setOpen] = useState<boolean>(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -39,6 +47,26 @@ function TrackDropdown({
         <span className="truncate">
           {label}: {current?.label ?? ""}
         </span>
+        {isExtracting && progressPercent !== undefined ? (
+          <div className="flex items-center gap-1 shrink-0 ml-auto min-w-16">
+            <div className="flex-1 windows95-border bg-white h-2 min-w-10">
+              <div
+                className="h-full bg-highlight transition-none"
+                style={{ width: `${Math.round(progressPercent)}%` }}
+              />
+            </div>
+            <span className="text-[8px] text-amber-500 shrink-0 w-6 text-right tabular-nums">
+              {Math.round(progressPercent)}%
+            </span>
+          </div>
+        ) : isExtracting ? (
+          <span className="flex items-center gap-0.5 text-[8px] text-amber-500 shrink-0 ml-auto">
+            <span className="inline-block size-1.5 rounded-full bg-amber-500 animate-pulse" />
+            {extractElapsed !== undefined && extractElapsed >= 1
+              ? `${extractElapsed}s`
+              : "..."}
+          </span>
+        ) : null}
       </button>
       {onAdd && (
         <button
@@ -65,7 +93,16 @@ function TrackDropdown({
               ) : (
                 <span className="size-3 shrink-0" />
               )}
-              {t.label}
+              <span className="truncate">{t.label}</span>
+              {statuses?.[t.index] === "copy" && (
+                <span className="text-[8px] text-green-600 shrink-0 ml-auto">COPY</span>
+              )}
+              {statuses?.[t.index] === "cached" && (
+                <span className="text-[8px] text-blue-600 shrink-0 ml-auto">CACHE</span>
+              )}
+              {statuses?.[t.index] === "extracting" && (
+                <span className="text-[8px] text-amber-500 shrink-0 ml-auto animate-pulse">LOAD</span>
+              )}
             </button>
           ))}
         </div>

@@ -10,8 +10,10 @@ mod anilist;
 mod auth;
 mod bencode;
 mod ffmpeg;
+mod progress;
 mod scrapers;
 mod scanner;
+mod stream;
 mod thumbnails;
 mod tracks;
 mod torrent;
@@ -89,6 +91,29 @@ async fn remove_torrent(
 #[tauri::command]
 fn cleanup_temp_file(path: String) -> Result<(), String> {
     std::fs::remove_file(&path).map_err(|e| format!("{e}"))
+}
+
+#[tauri::command]
+async fn get_stream_port() -> Result<u16, String> {
+    stream::server_port().ok_or_else(|| "stream server not started".to_string())
+}
+
+#[tauri::command]
+fn shutdown_stream() {
+    stream::shutdown();
+}
+
+#[tauri::command]
+fn get_progress(id: u64, registry: tauri::State<'_, progress::ProgressRegistry>) -> Option<f64> {
+    registry.get(id)
+}
+
+#[tauri::command]
+async fn clear_all_caches(app_handle: tauri::AppHandle) -> Result<(), String> {
+    video::clear_audio_cache(app_handle.clone()).await?;
+    video::clear_subtitle_cache(app_handle.clone()).await?;
+    thumbnails::clear_thumbnail_cache(app_handle.clone())?;
+    Ok(())
 }
 
 #[tauri::command]
@@ -178,6 +203,12 @@ pub fn run() {
                 }
             });
 
+            // Cache ffmpeg path for non-command contexts (stream server, etc.)
+            let _ = video::CACHED_FFMPEG_PATH.get_or_init(|| {
+                let app_handle = app.handle();
+                video::ffmpeg_exe(app_handle)
+            });
+
             let app_data = app.path().app_data_dir().expect("app data dir");
             let handle = app.handle().clone();
             tauri::async_runtime::block_on(async {
@@ -248,7 +279,14 @@ pub fn run() {
                 });
                 handle.manage(TorrentBackend { manager });
                 handle.manage(CancelFlag(Arc::new(AtomicBool::new(false))));
+                handle.manage(progress::ProgressRegistry::new());
             });
+
+            // Start the local HTTP stream server for file serving with Range support
+            tauri::async_runtime::block_on(async {
+                let _ = stream::init().await;
+            });
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -265,8 +303,14 @@ pub fn run() {
             auth::check_nekobt_session,
             auth::nekobt_logout,
             video::extract_video_subtitle,
-            video::remux_video_audio,
-            video::remux_with_external_audio,
+            video::extract_audio_track,
+            video::extract_all_audio_tracks,
+            video::cleanup_audio_temp_files,
+            video::clear_audio_cache,
+            video::check_audio_caches,
+            video::check_subtitle_caches,
+            video::clear_subtitle_cache,
+            video::probe_encoders,
             video::convert_external_subtitle,
             video::get_video_info,
             video::upscale_video,
@@ -309,12 +353,21 @@ pub fn run() {
             resume_torrent,
             remove_torrent,
             cleanup_temp_file,
+            get_stream_port,
+            shutdown_stream,
+            get_progress,
+            clear_all_caches,
             set_global_speed_limits,
             get_running_torrent_files,
             update_torrent_only_files,
             set_file_priority,
             set_sequential_download,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|_app_handle, event| {
+            if let tauri::RunEvent::Exit = event {
+                stream::shutdown();
+            }
+        });
 }

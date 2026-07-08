@@ -36,6 +36,7 @@ import { useTorrentStore } from "@/store/download.store";
 import TorrentFilesSection from "./components/torrent/file.torrent";
 import ThumbnailPlayer from "./components/player/thumbnail.player";
 import ContinueWatching from "./components/player/continue.player";
+import TrackSelectorModal from "@/components/shared/player/track-selector.modal";
 import { useSettingsStore } from "@/store/settings.store";
 
 function PlayerRoute({
@@ -55,6 +56,7 @@ function PlayerRoute({
   const folderPaths = usePlayerStore((s) => s.folderPaths);
   const setFolderPaths = usePlayerStore((s) => s.setFolderPaths);
   const mediaGet = useMediaStore((s) => s.getEntry);
+  const mediaSetTrack = useMediaStore((s) => s.setTrack);
 
   const [video, setVideo] = useState<VideoType>(null);
   const [videoLoading, setVideoLoading] = useState(false);
@@ -81,10 +83,23 @@ function PlayerRoute({
   const genCancelledRef = useRef(false);
   const genPausedRef = useRef(false);
 
+  const [streamPort, setStreamPort] = useState<number | null>(null);
+  const [trackSelectorPending, setTrackSelectorPending] = useState<{
+    path: string;
+    chapters: ChapterType[];
+    streams: VideoStreamInfo[];
+    autoAudio: string[];
+    autoSubs: string[];
+  } | null>(null);
+
   useEffect(() => {
     invoke<boolean>("check_ffprobe")
       .then((ok) => setFfmpegStatus(ok ? "ok" : "missing"))
       .catch(() => setFfmpegStatus("missing"));
+
+    invoke<number>("get_stream_port")
+      .then((port) => setStreamPort(port))
+      .catch(() => setStreamPort(null));
   }, []);
 
   useEffect(() => {
@@ -139,12 +154,6 @@ function PlayerRoute({
       const savedEntry = mediaGet(path);
       const saved = savedEntry?.position;
 
-      setVideo({
-        path,
-        file: path.split(/[/\\]/).pop() ?? "Video",
-        initialTime: saved ?? 0,
-        remuxSrc: undefined,
-      });
       setVideoLoading(true);
       setChapters([]);
       setStreams([]);
@@ -160,58 +169,53 @@ function PlayerRoute({
           if (gen !== playGenRef.current) return;
           setChapters(info.chapters);
           setStreams(info.streams);
-          if (gen === playGenRef.current) setVideoLoading(false);
 
-          const dir = path.split(/[/\\]/).slice(0, -1).join("/");
-          invoke<{ audio: string[]; subtitles: string[] }>("scan_folder_for_tracks", { path: dir })
-            .then((t) => {
-              if (gen !== playGenRef.current) return;
-              setAutoAudio(t.audio);
-              setAutoSubs(t.subtitles);
-            })
-            .catch(() => { });
+          const tracks = await invoke<{
+            audio: { path: string; file_name: string }[];
+            subtitles: { path: string; file_name: string }[];
+          }>("scan_folder_for_tracks", { videoPath: path }).catch(() => ({
+            audio: [],
+            subtitles: [],
+          }));
+          if (gen !== playGenRef.current) return;
+          const autoAudioPaths = tracks.audio.map((a) => a.path);
+          const autoSubsPaths = tracks.subtitles.map((s) => s.path);
+          setAutoAudio(autoAudioPaths);
+          setAutoSubs(autoSubsPaths);
 
-          const savedAudio = savedEntry?.audioTrack;
-          if (savedAudio !== undefined) {
-            const audioStreams = info.streams.filter(
-              (s) => s.codec_type === "audio",
-            );
-            const defaultAudio =
-              audioStreams.find((s) => s.is_default)?.index ??
-              audioStreams[0]?.index ??
-              -1;
-            if (savedAudio !== defaultAudio) {
-              const stream = audioStreams.find((s) => s.index === savedAudio);
-              if (stream) {
-                try {
-                  const entry = mediaGet(path);
-                  const audioDelay = Math.round((entry?.audioOffset ?? 0) * 1000);
-                  const out = stream.file_path
-                    ? await invoke<string>("remux_with_external_audio", {
-                      videoPath: path,
-                      audioPath: stream.file_path,
-                      audioDelayMs: audioDelay,
-                    })
-                    : await invoke<string>("remux_video_audio", {
-                      path,
-                      streamIndex: savedAudio,
-                      audioDelayMs: audioDelay,
-                    });
-                  if (gen !== playGenRef.current) return;
-                  for (const p of tempFilesRef.current)
-                    if (useSettingsStore.getState().autoCleanTempFiles)
-                      invoke("cleanup_temp_file", { path: p }).catch(() => { });
-                  tempFilesRef.current = [out];
-                  if (gen !== playGenRef.current) return;
-                  setVideo((prev) =>
-                    prev?.path === path
-                      ? { ...prev, remuxSrc: convertFileSrc(out) }
-                      : prev,
-                  );
-                } catch { }
-              }
+          // Check if any internal audio track needs extraction
+          const audioStreams = info.streams.filter(
+            (s) => s.codec_type === "audio" && !s.file_path,
+          );
+          if (audioStreams.length > 0) {
+            const caches = await invoke<boolean[]>("check_audio_caches", {
+              path,
+              streamIndices: audioStreams.map((s) => s.index),
+            });
+            const allCached = caches.every(Boolean);
+            if (!allCached) {
+              // Show track selector modal
+              setVideoLoading(false);
+              setVideo(null);
+              setTrackSelectorPending({
+                path,
+                chapters: info.chapters,
+                streams: info.streams,
+                autoAudio: autoAudioPaths,
+                autoSubs: autoSubsPaths,
+              });
+              return;
             }
           }
+
+          // All cached — open directly
+          setVideo({
+            path,
+            file: path.split(/[/\\]/).pop() ?? "Video",
+            initialTime: saved ?? 0,
+            audioSrc: undefined,
+          });
+          if (gen === playGenRef.current) setVideoLoading(false);
         } catch {
           if (gen !== playGenRef.current) return;
           setChapters([]);
@@ -501,14 +505,110 @@ function PlayerRoute({
 
   const isGenerating = genProgress !== null;
 
-  if (video)
+  // Convert external track paths to VideoStreamInfo for the modal
+  const externalAudioStreams = useMemo(
+    () =>
+      (trackSelectorPending?.autoAudio ?? []).map((p, i) => ({
+        index: -1000 - i,
+        codec_type: "audio" as const,
+        codec_name: p.split(".").pop()?.toLowerCase() ?? "",
+        language: null,
+        title: p.split(/[/\\]/).pop() ?? "Audio",
+        is_default: false,
+        is_forced: false,
+        is_comment: false,
+        bit_rate: null,
+        channels: null,
+        sample_rate: null,
+        width: null,
+        height: null,
+        file_path: p,
+      })),
+    [trackSelectorPending?.autoAudio],
+  );
+  const externalSubtitleStreams = useMemo(
+    () =>
+      (trackSelectorPending?.autoSubs ?? []).map((p, i) => ({
+        index: -2000 - i,
+        codec_type: "subtitle" as const,
+        codec_name: p.split(".").pop()?.toLowerCase() ?? "",
+        language: null,
+        title: p.split(/[/\\]/).pop() ?? "Subtitles",
+        is_default: false,
+        is_forced: false,
+        is_comment: false,
+        bit_rate: null,
+        channels: null,
+        sample_rate: null,
+        width: null,
+        height: null,
+        file_path: p,
+      })),
+    [trackSelectorPending?.autoSubs],
+  );
+
+  const handleTrackSelectorConfirm = useCallback(
+    (audioIdx: number, subIdx: number, audioPath?: string, subPath?: string, subFonts?: string[], subIsAss?: boolean) => {
+      if (!trackSelectorPending) return;
+      const { path, chapters: chs, streams: strs } = trackSelectorPending;
+      setTrackSelectorPending(null);
+      setChapters(chs);
+      setStreams(strs);
+      // Save selections to mediaStore so Tracks init picks them up
+      mediaSetTrack(path, "audio", audioIdx);
+      mediaSetTrack(path, "sub", subIdx);
+      setVideo({
+        path,
+        file: path.split(/[/\\]/).pop() ?? "Video",
+        initialTime: mediaGet(path)?.position ?? 0,
+        audioSrc: audioPath,
+        subPath,
+        subFonts,
+        subIsAss,
+      });
+      setVideoLoading(false);
+    },
+    [trackSelectorPending, mediaGet, mediaSetTrack],
+  );
+
+  const handleTrackSelectorCancel = useCallback(() => {
+    setTrackSelectorPending(null);
+  }, []);
+
+  if (trackSelectorPending) {
+    const audioStreams = trackSelectorPending.streams.filter(
+      (s) => s.codec_type === "audio",
+    );
+    const subtitleStreams = trackSelectorPending.streams.filter(
+      (s) => s.codec_type === "subtitle",
+    );
+    return (
+      <TrackSelectorModal
+        mediaPath={trackSelectorPending.path}
+        videoName={
+          trackSelectorPending.path.split(/[/\\]/).pop() ?? "Video"
+        }
+        audioStreams={audioStreams}
+        subtitleStreams={subtitleStreams}
+        externalAudio={externalAudioStreams}
+        externalSubs={externalSubtitleStreams}
+        onConfirm={handleTrackSelectorConfirm}
+        onCancel={handleTrackSelectorCancel}
+      />
+    );
+  }
+
+  if (video) {
+    const videoSrc = streamPort
+      ? `http://127.0.0.1:${streamPort}/file?path=${encodeURIComponent(video.path)}`
+      : convertFileSrc(video.path);
     return (
       <main className="flex flex-col w-full h-full gap-1 overflow-y-auto">
         <Player
           header={video.file.replace(/\.[^/.]+$/, "")}
-          src={video.remuxSrc ?? convertFileSrc(video.path)}
+          src={videoSrc}
           onClose={() => setVideo(null)}
-          audioReady={!!video.remuxSrc}
+          audioSrc={video.audioSrc}
           chapters={chapters}
           mediaPath={video.path}
           streams={streams}
@@ -525,8 +625,8 @@ function PlayerRoute({
           autoAudio={autoAudio}
           autoSubs={autoSubs}
         />
-      </main>
-    );
+    </main>);
+  }
 
   return (
     <main className="flex flex-col w-full h-full gap-1 overflow-y-auto">

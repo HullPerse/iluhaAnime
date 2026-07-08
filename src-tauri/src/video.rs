@@ -1,9 +1,18 @@
 use serde::{Deserialize, Serialize};
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::OnceLock;
 use std::sync::{Arc, Mutex};
 use tauri::{Emitter, Manager};
 use tokio::io::AsyncBufReadExt;
+use tokio::io::AsyncReadExt;
 use tokio::process::Command;
+
+const CACHE_DIR: &str = "iluha_audio_cache";
+const SUB_CACHE_DIR: &str = "iluha_sub_cache";
+
+/// Global semaphore limiting concurrent ffmpeg processes to 3.
+/// Prevents runaway process explosion from parallel track extractions.
+pub(crate) static FFMPEG_SEM: tokio::sync::Semaphore = tokio::sync::Semaphore::const_new(3);
 
 pub struct CancelFlag(pub Arc<AtomicBool>);
 
@@ -24,6 +33,13 @@ const FONT_EXTS: &[&str] = &["ttf", "otf", "woff", "woff2"];
 pub struct SubtitleExtractResult {
     pub subtitle: String,
     pub fonts: Vec<String>,
+    pub progress_id: u64,
+}
+
+#[derive(Debug, Serialize)]
+pub struct AudioExtractResult {
+    pub path: String,
+    pub progress_id: u64,
 }
 
 #[derive(Debug, Serialize)]
@@ -47,6 +63,13 @@ pub struct VideoStreamInfo {
     pub language: Option<String>,
     pub title: Option<String>,
     pub is_default: bool,
+    pub is_forced: bool,
+    pub is_comment: bool,
+    pub bit_rate: Option<u64>,
+    pub channels: Option<u32>,
+    pub sample_rate: Option<u32>,
+    pub width: Option<u32>,
+    pub height: Option<u32>,
     pub file_path: Option<String>,
 }
 
@@ -94,10 +117,35 @@ pub(crate) fn ffmpeg_exe(app_handle: &tauri::AppHandle) -> String {
     }
 }
 
+pub(crate) static CACHED_FFMPEG_PATH: OnceLock<String> = OnceLock::new();
+
+pub(crate) fn ffmpeg_exe_static() -> &'static str {
+    CACHED_FFMPEG_PATH
+        .get()
+        .map(|s| s.as_str())
+        .unwrap_or("ffmpeg")
+}
+
 fn extract_attached_fonts(
     app_handle: &tauri::AppHandle,
     video_path: &str,
 ) -> Vec<String> {
+    // Check font cache first
+    let cache = sub_cache_dir(app_handle);
+    let fkey = font_cache_key(video_path);
+    let font_dir = cache.join(&fkey);
+    if font_dir.exists() && font_dir.is_dir() {
+        let mut cached = Vec::new();
+        if let Ok(entries) = std::fs::read_dir(&font_dir) {
+            for entry in entries.flatten() {
+                cached.push(entry.path().to_string_lossy().to_string());
+            }
+        }
+        if !cached.is_empty() {
+            return cached;
+        }
+    }
+
     let probe = match std::process::Command::new(ffprobe_exe(app_handle))
         .args([
             "-v",
@@ -138,6 +186,8 @@ fn extract_attached_fonts(
     let temp_dir = std::env::temp_dir();
     let mut fonts = vec![];
 
+    let _ = std::fs::create_dir_all(&font_dir);
+
     for stream in &parsed.streams {
         let codec_type = stream.codec_type.as_deref().unwrap_or("");
         if codec_type != "attachment" {
@@ -173,8 +223,14 @@ fn extract_attached_fonts(
         } else {
             format!("font_{}.ttf", stream.index)
         };
-        let output_path = temp_dir.join(&output_name);
-        let _ = std::fs::remove_file(&output_path);
+        let cached_path = font_dir.join(&output_name);
+        if cached_path.exists() {
+            fonts.push(cached_path.to_string_lossy().to_string());
+            continue;
+        }
+
+        let temp_path = temp_dir.join(&output_name);
+        let _ = std::fs::remove_file(&temp_path);
 
         let result = std::process::Command::new(ffmpeg_exe(app_handle))
             .args([
@@ -187,13 +243,15 @@ fn extract_attached_fonts(
                 "copy",
                 "-f",
                 "data",
-                &output_path.to_string_lossy(),
+                &temp_path.to_string_lossy(),
             ])
             .output();
 
         match result {
-            Ok(o) if o.status.success() && output_path.exists() => {
-                fonts.push(output_path.to_string_lossy().to_string());
+            Ok(o) if o.status.success() && temp_path.exists() => {
+                let _ = std::fs::copy(&temp_path, &cached_path);
+                let _ = std::fs::remove_file(&temp_path);
+                fonts.push(cached_path.to_string_lossy().to_string());
             }
             _ => {}
         }
@@ -208,12 +266,38 @@ pub async fn extract_video_subtitle(
     path: String,
     stream_index: usize,
     codec_name: Option<String>,
+    progress_registry: tauri::State<'_, crate::progress::ProgressRegistry>,
 ) -> Result<SubtitleExtractResult, String> {
-    let temp_dir = std::env::temp_dir();
+    let progress_id = progress_registry.create();
     let is_ass = codec_name.as_deref() == Some("ass") || codec_name.as_deref() == Some("ssa");
     let ext = if is_ass { "ass" } else { "vtt" };
-    let output_path = temp_dir.join(format!("iluha_sub_{}.{}", stream_index, ext));
+    let cache = sub_cache_dir(&app_handle);
+    let key = sub_cache_key(&path, stream_index);
+    let cached = cached_path(&cache, &key, ext);
 
+    // Check persistent cache
+    if cached.exists() {
+        let fonts = extract_attached_fonts(&app_handle, &path);
+        progress_registry.update(progress_id, 100.0);
+        return Ok(SubtitleExtractResult {
+            subtitle: cached.to_string_lossy().to_string(),
+            fonts,
+            progress_id,
+        });
+    }
+
+    let expected_size: u64 = if is_ass { 200_000 } else { 50_000 };
+
+    progress_registry.update(progress_id, 0.0);
+    let _ = app_handle.emit("extract-progress", ExtractProgress {
+        stream_index: stream_index as i32,
+        progress: 0.0,
+        size: 0,
+        expected_size,
+    });
+
+    let temp_dir = std::env::temp_dir();
+    let output_path = temp_dir.join(format!("iluha_sub_{}.{}", stream_index, ext));
     let _ = std::fs::remove_file(&output_path);
 
     let mut args = vec![
@@ -230,115 +314,532 @@ pub async fn extract_video_subtitle(
     }
     args.push(output_path.to_string_lossy().to_string());
 
-    let output = std::process::Command::new(ffmpeg_exe(&app_handle))
-        .args(&args)
-        .output()
-        .map_err(|e| format!("ffmpeg not found: {e}"))?;
+    let total_duration = get_video_duration(&app_handle, &path).await.unwrap_or(0.0);
+    run_ffmpeg_progress(&app_handle, &args, stream_index, total_duration, expected_size, Some(progress_id), Some(&*progress_registry))
+        .await
+        .map_err(|stderr| format!("ffmpeg subtitle extract failed: {stderr}"))?;
 
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(format!("ffmpeg failed: {stderr}"));
-    }
+    // Save to cache
+    let _ = std::fs::copy(&output_path, &cached);
+    let _ = std::fs::remove_file(&output_path);
+
+    progress_registry.update(progress_id, 100.0);
+    let _ = app_handle.emit("extract-progress", ExtractProgress {
+        stream_index: stream_index as i32,
+        progress: 100.0,
+        size: expected_size,
+        expected_size,
+    });
 
     let fonts = extract_attached_fonts(&app_handle, &path);
 
     Ok(SubtitleExtractResult {
-        subtitle: output_path.to_string_lossy().to_string(),
+        subtitle: cached.to_string_lossy().to_string(),
         fonts,
+        progress_id,
+    })
+}
+
+struct AudioExtractConfig {
+    ext: &'static str,
+    args: Vec<String>,
+}
+
+fn audio_extract_config(codec: &str) -> AudioExtractConfig {
+    match codec.to_lowercase().as_str() {
+        "aac" => AudioExtractConfig {
+            ext: "m4a",
+            args: vec!["-threads".into(), "0".into(), "-c:a".into(), "copy".into(), "-f".into(), "mp4".into(), "-movflags".into(), "+faststart".into()],
+        },
+        "mp3" => AudioExtractConfig {
+            ext: "mp3",
+            args: vec!["-threads".into(), "0".into(), "-c:a".into(), "copy".into(), "-f".into(), "mp3".into()],
+        },
+        "flac" => AudioExtractConfig {
+            ext: "flac",
+            args: vec!["-threads".into(), "0".into(), "-c:a".into(), "copy".into(), "-f".into(), "flac".into()],
+        },
+        "opus" | "vorbis" => AudioExtractConfig {
+            ext: "webm",
+            args: vec!["-threads".into(), "0".into(), "-c:a".into(), "copy".into(), "-f".into(), "webm".into()],
+        },
+        "ac3" | "eac3" | "dts" | "truehd" => AudioExtractConfig {
+            ext: "m4a",
+            args: vec![
+                "-threads".into(), "0".into(),
+                "-ac".into(), "2".into(),
+                "-c:a".into(), "aac".into(), "-b:a".into(), "256k".into(),
+                "-f".into(), "mp4".into(),
+            ],
+        },
+        _ => AudioExtractConfig {
+            ext: "m4a",
+            args: vec![
+                "-threads".into(), "0".into(),
+                "-ac".into(), "2".into(),
+                "-c:a".into(), "aac".into(), "-b:a".into(), "256k".into(),
+                "-f".into(), "mp4".into(),
+            ],
+        },
+    }
+}
+
+fn try_copy_config(codec: &str) -> Option<AudioExtractConfig> {
+    match codec.to_lowercase().as_str() {
+        "aac" => Some(AudioExtractConfig {
+            ext: "m4a",
+            args: vec!["-threads".into(), "0".into(), "-c:a".into(), "copy".into(), "-f".into(), "mp4".into(), "-movflags".into(), "+faststart".into()],
+        }),
+        "mp3" => Some(AudioExtractConfig {
+            ext: "mp3",
+            args: vec!["-threads".into(), "0".into(), "-c:a".into(), "copy".into(), "-f".into(), "mp3".into()],
+        }),
+        "flac" => Some(AudioExtractConfig {
+            ext: "flac",
+            args: vec!["-threads".into(), "0".into(), "-c:a".into(), "copy".into(), "-f".into(), "flac".into()],
+        }),
+        "opus" | "vorbis" => Some(AudioExtractConfig {
+            ext: "webm",
+            args: vec!["-threads".into(), "0".into(), "-c:a".into(), "copy".into(), "-f".into(), "webm".into()],
+        }),
+        // Try native container for AC3/EAC3/DTS/TrueHD — might work on some platforms
+        "ac3" | "eac3" | "dts" | "truehd" => Some(AudioExtractConfig {
+            ext: "m4a",
+            args: vec!["-threads".into(), "0".into(), "-c:a".into(), "copy".into(), "-f".into(), "mp4".into()],
+        }),
+        _ => None,
+    }
+}
+
+fn cache_dir(app_handle: &tauri::AppHandle) -> std::path::PathBuf {
+    let dir = app_handle
+        .path()
+        .app_data_dir()
+        .unwrap_or_else(|_| std::env::temp_dir().join("iluha"))
+        .join(CACHE_DIR);
+    let _ = std::fs::create_dir_all(&dir);
+    dir
+}
+
+fn sub_cache_dir(app_handle: &tauri::AppHandle) -> std::path::PathBuf {
+    let dir = app_handle
+        .path()
+        .app_data_dir()
+        .unwrap_or_else(|_| std::env::temp_dir().join("iluha"))
+        .join(SUB_CACHE_DIR);
+    let _ = std::fs::create_dir_all(&dir);
+    dir
+}
+
+fn sub_cache_key(video_path: &str, stream_index: usize) -> String {
+    cache_key(video_path, stream_index)
+}
+
+fn font_cache_key(video_path: &str) -> String {
+    use sha1::{Digest, Sha1};
+    let mut hasher = Sha1::new();
+    hasher.update(video_path.as_bytes());
+    hasher.update(b":fonts");
+    hex::encode(hasher.finalize())
+}
+
+fn cache_key(video_path: &str, stream_index: usize) -> String {
+    use sha1::{Digest, Sha1};
+    let mut hasher = Sha1::new();
+    hasher.update(video_path.as_bytes());
+    hasher.update(b":");
+    hasher.update(stream_index.to_string().as_bytes());
+    hex::encode(hasher.finalize())
+}
+
+fn cached_path(cache_dir: &std::path::Path, key: &str, ext: &str) -> std::path::PathBuf {
+    cache_dir.join(format!("{}.{}", key, ext))
+}
+
+#[tauri::command]
+pub async fn probe_encoders(app_handle: tauri::AppHandle) -> Result<Vec<String>, String> {
+    static CACHE: OnceLock<Vec<String>> = OnceLock::new();
+    if let Some(cached) = CACHE.get() {
+        return Ok(cached.clone());
+    }
+
+    let output = std::process::Command::new(ffmpeg_exe(&app_handle))
+        .args(["-encoders"])
+        .output()
+        .map_err(|e| format!("ffmpeg not found: {e}"))?;
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let available: std::collections::HashSet<String> = stdout
+        .lines()
+        .filter_map(|line| line.split_whitespace().nth(1))
+        .map(|s| s.to_string())
+        .collect();
+
+    let priority = ["aac_qsv", "aac_at", "libfdk_aac", "aac", "libopus"];
+    let mut sorted: Vec<String> = priority
+        .iter()
+        .filter(|e| available.contains(&e.to_string()))
+        .map(|e| e.to_string())
+        .collect();
+
+    if sorted.is_empty() {
+        sorted.push("aac".into());
+    }
+
+    let _ = CACHE.set(sorted.clone());
+    Ok(sorted)
+}
+
+#[tauri::command]
+pub async fn check_audio_caches(
+    app_handle: tauri::AppHandle,
+    path: String,
+    stream_indices: Vec<usize>,
+) -> Result<Vec<bool>, String> {
+    let cache = cache_dir(&app_handle);
+    let results = stream_indices
+        .into_iter()
+        .map(|idx| {
+            let key = cache_key(&path, idx);
+            for ext in &["m4a", "webm", "mp3", "flac"] {
+                if cached_path(&cache, &key, ext).exists() {
+                    return true;
+                }
+            }
+            false
+        })
+        .collect();
+    Ok(results)
+}
+
+#[tauri::command]
+pub async fn check_subtitle_caches(
+    app_handle: tauri::AppHandle,
+    path: String,
+    stream_indices: Vec<usize>,
+) -> Result<Vec<bool>, String> {
+    let cache = sub_cache_dir(&app_handle);
+    let results = stream_indices
+        .into_iter()
+        .map(|idx| {
+            let key = sub_cache_key(&path, idx);
+            for ext in &["ass", "vtt"] {
+                if cached_path(&cache, &key, ext).exists() {
+                    return true;
+                }
+            }
+            false
+        })
+        .collect();
+    Ok(results)
+}
+
+#[tauri::command]
+pub async fn clear_subtitle_cache(
+    app_handle: tauri::AppHandle,
+) -> Result<(), String> {
+    let dir = sub_cache_dir(&app_handle);
+    if dir.exists() {
+        std::fs::remove_dir_all(&dir).map_err(|e| format!("clear subtitle cache: {e}"))?;
+    }
+    Ok(())
+}
+
+fn apply_encoder(mut args: Vec<String>, encoder: Option<&str>) -> Vec<String> {
+    if let Some(enc) = encoder {
+        let lower = enc.to_lowercase();
+        for i in 0..args.len() {
+            if args[i] == "-c:a" && i + 1 < args.len() {
+                args[i + 1] = lower.clone();
+                break;
+            }
+        }
+    }
+    args
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ExtractProgress {
+    stream_index: i32,
+    progress: f64,
+    size: u64,
+    expected_size: u64,
+}
+
+async fn run_ffmpeg_progress(
+    app_handle: &tauri::AppHandle,
+    args: &[String],
+    stream_index: usize,
+    total_duration: f64,
+    expected_size: u64,
+    progress_id: Option<u64>,
+    registry: Option<&crate::progress::ProgressRegistry>,
+) -> Result<(), String> {
+    // Acquire semaphore permit — limits concurrent ffmpeg processes globally
+    let _permit = FFMPEG_SEM
+        .acquire()
+        .await
+        .map_err(|_| "semaphore closed".to_string())?;
+
+    let mut final_args = vec![
+        "-progress".into(),
+        "pipe:1".into(),
+        "-nostats".into(),
+    ];
+    final_args.extend_from_slice(args);
+
+    let mut cmd = tokio::process::Command::new(ffmpeg_exe(app_handle));
+    cmd.args(&final_args);
+    cmd.stdout(std::process::Stdio::piped());
+    cmd.stderr(std::process::Stdio::piped());
+
+    let mut child = cmd.spawn().map_err(|e| format!("ffmpeg not found: {e}"))?;
+
+    // Drain stderr concurrently to prevent pipe blocking
+    let stderr_handle = child.stderr.take().ok_or("no stderr")?;
+    let stderr_task = tokio::spawn(async move {
+        let mut buf = String::new();
+        tokio::io::BufReader::new(stderr_handle)
+            .read_to_string(&mut buf)
+            .await
+            .unwrap_or_default();
+        buf
+    });
+
+    let stdout = child.stdout.take().ok_or("no stdout")?;
+    let mut reader = tokio::io::BufReader::new(stdout);
+    let mut line = String::new();
+    let mut last_size: u64 = 0;
+
+    loop {
+        line.clear();
+        let n = reader
+            .read_line(&mut line)
+            .await
+            .map_err(|e| format!("read ffmpeg output: {e}"))?;
+        if n == 0 {
+            break;
+        }
+
+        let mut emit = false;
+        let mut pct = 0.0;
+
+        // Primary: out_time_us (raw microseconds, always parseable)
+        if let Some(s) = line.trim().strip_prefix("out_time_us=") {
+            if let Some(us) = s.trim().parse::<u64>().ok() {
+                let current = us as f64 / 1_000_000.0;
+                if total_duration > 0.0 {
+                    pct = (current / total_duration * 100.0).min(100.0);
+                    emit = true;
+                }
+            }
+        } else if let Some(s) = line.trim().strip_prefix("out_time=") {
+            // Fallback: formatted time string
+            if let Some(current) = parse_ffmpeg_time(s) {
+                if total_duration > 0.0 {
+                    pct = (current / total_duration * 100.0).min(100.0);
+                    emit = true;
+                }
+            }
+        } else if let Some(s) = line.trim().strip_prefix("size=") {
+            last_size = s.trim().parse::<u64>().unwrap_or(0);
+            if expected_size > 0 {
+                pct = (last_size as f64 / expected_size as f64 * 100.0).min(100.0);
+                emit = true;
+            }
+        }
+
+        if emit {
+            // Update the progress registry for polling-based UIs
+            if let (Some(pid), Some(reg)) = (progress_id, registry) {
+                reg.update(pid, pct);
+            }
+            // Emit event for real-time UIs (track selector modal)
+            let _ = app_handle.emit("extract-progress", ExtractProgress {
+                stream_index: stream_index as i32,
+                progress: pct,
+                size: last_size,
+                expected_size,
+            });
+        }
+    }
+
+    let status = child.wait().await.map_err(|e| format!("wait ffmpeg: {e}"))?;
+    let stderr = stderr_task.await.unwrap_or_default();
+
+    if !status.success() {
+        return Err(stderr);
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn extract_audio_track(
+    app_handle: tauri::AppHandle,
+    path: String,
+    stream_index: usize,
+    codec_name: String,
+    force_transcode: Option<bool>,
+    encoder: Option<String>,
+    progress_registry: tauri::State<'_, crate::progress::ProgressRegistry>,
+) -> Result<AudioExtractResult, String> {
+    let progress_id = progress_registry.create();
+    let cache = cache_dir(&app_handle);
+    let key = cache_key(&path, stream_index);
+
+    // 1. Check persistent cache
+    for ext in &["m4a", "webm", "mp3", "flac"] {
+        let cached = cached_path(&cache, &key, ext);
+        if cached.exists() {
+            progress_registry.update(progress_id, 100.0);
+            return Ok(AudioExtractResult {
+                path: cached.to_string_lossy().to_string(),
+                progress_id,
+            });
+        }
+    }
+
+    // Get total duration for progress tracking
+    let total_duration = get_video_duration(&app_handle, &path).await.unwrap_or(0.0);
+    let expected_size = probe_expected_audio_size(&app_handle, &path, stream_index).await;
+
+    progress_registry.update(progress_id, 0.0);
+    let _ = app_handle.emit("extract-progress", ExtractProgress {
+        stream_index: stream_index as i32,
+        progress: 0.0,
+        size: 0,
+        expected_size,
+    });
+
+    let temp_dir = std::env::temp_dir();
+
+    // 2. Try native copy (unless force_transcode)
+    if !force_transcode.unwrap_or(false) {
+        if let Some(cfg) = try_copy_config(&codec_name) {
+            let out = temp_dir.join(format!("iluha_audio_{}.{}", stream_index, cfg.ext));
+            let _ = std::fs::remove_file(&out);
+
+            let mut args: Vec<String> = vec!["-y".into()];
+            args.push("-i".into());
+            args.push(path.clone());
+            args.push("-map".into());
+            args.push(format!("0:{}", stream_index));
+            args.extend(cfg.args);
+            args.push(out.to_string_lossy().to_string());
+
+            let result = run_ffmpeg_progress(&app_handle, &args, stream_index, total_duration, expected_size, Some(progress_id), Some(&*progress_registry)).await;
+
+            if result.is_ok() {
+                // Copy succeeded — save to cache
+                progress_registry.update(progress_id, 100.0);
+                let _ = app_handle.emit("extract-progress", ExtractProgress {
+                    stream_index: stream_index as i32,
+                    progress: 100.0,
+                    size: expected_size,
+                    expected_size,
+                });
+                let cached = cached_path(&cache, &key, cfg.ext);
+                let _ = std::fs::copy(&out, &cached);
+                let _ = std::fs::remove_file(&out);
+                return Ok(AudioExtractResult {
+                    path: cached.to_string_lossy().to_string(),
+                    progress_id,
+                });
+            }
+            // Copy failed — fall through to transcode
+        }
+    }
+
+    // 3. Transcode
+    let cfg = audio_extract_config(&codec_name);
+    let out = temp_dir.join(format!("iluha_audio_{}.{}", stream_index, cfg.ext));
+    let _ = std::fs::remove_file(&out);
+
+    let mut args: Vec<String> = vec!["-y".into()];
+    args.push("-i".into());
+    args.push(path);
+    args.push("-map".into());
+    args.push(format!("0:{}", stream_index));
+    args.extend(cfg.args);
+    args = apply_encoder(args, encoder.as_deref());
+    args.push(out.to_string_lossy().to_string());
+
+    run_ffmpeg_progress(&app_handle, &args, stream_index, total_duration, expected_size, Some(progress_id), Some(&*progress_registry))
+        .await
+        .map_err(|stderr| format!("ffmpeg audio extract failed: {stderr}"))?;
+
+    progress_registry.update(progress_id, 100.0);
+    let _ = app_handle.emit("extract-progress", ExtractProgress {
+        stream_index: stream_index as i32,
+        progress: 100.0,
+        size: expected_size,
+        expected_size,
+    });
+
+    // Save to cache, return cache path
+    let cached = cached_path(&cache, &key, cfg.ext);
+    let _ = std::fs::copy(&out, &cached);
+    let _ = std::fs::remove_file(&out);
+
+    Ok(AudioExtractResult {
+        path: cached.to_string_lossy().to_string(),
+        progress_id,
     })
 }
 
 #[tauri::command]
-pub async fn remux_video_audio(
+pub async fn clear_audio_cache(
     app_handle: tauri::AppHandle,
-    path: String,
-    stream_index: usize,
-    audio_delay_ms: Option<i64>,
-) -> Result<String, String> {
-    let temp_dir = std::env::temp_dir();
-    let output_path = temp_dir.join(format!("iluha_audio_{}.mkv", stream_index));
-
-    let _ = std::fs::remove_file(&output_path);
-
-    let delay = audio_delay_ms.unwrap_or(0);
-    let mut args: Vec<String> = vec!["-y".to_string()];
-
-    if delay != 0 {
-        let secs = delay as f64 / 1000.0;
-        args.push("-i".to_string());
-        args.push(path.clone());
-        args.push("-itsoffset".to_string());
-        args.push(format!("{secs}"));
-        args.push("-i".to_string());
-        args.push(path.clone());
-    } else {
-        args.push("-i".to_string());
-        args.push(path);
+) -> Result<(), String> {
+    let dir = cache_dir(&app_handle);
+    if dir.exists() {
+        std::fs::remove_dir_all(&dir).map_err(|e| format!("clear cache: {e}"))?;
     }
-    args.push("-map".to_string());
-    args.push("0:v".to_string());
-    if delay != 0 {
-        args.push("-map".to_string());
-        args.push("1:a".to_string());
-    } else {
-        args.push("-map".to_string());
-        args.push(format!("0:{}", stream_index));
-    }
-    args.push("-c".to_string());
-    args.push("copy".to_string());
-    args.push("-map_metadata".to_string());
-    args.push("0".to_string());
-    args.push(output_path.to_string_lossy().to_string());
+    Ok(())
+}
 
-    let output = std::process::Command::new(ffmpeg_exe(&app_handle))
-        .args(&args)
-        .output()
-        .map_err(|e| format!("ffmpeg not found: {e}"))?;
+#[derive(serde::Deserialize, Clone)]
+pub struct TrackToExtract {
+    pub stream_index: usize,
+    pub codec_name: String,
+}
 
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(format!("ffmpeg remux failed: {stderr}"));
-    }
-
-    Ok(output_path.to_string_lossy().to_string())
+#[derive(serde::Serialize)]
+pub struct AudioTrackResult {
+    pub stream_index: usize,
+    pub path: String,
 }
 
 #[tauri::command]
-pub async fn remux_with_external_audio(
+pub async fn extract_all_audio_tracks(
     app_handle: tauri::AppHandle,
-    video_path: String,
-    audio_path: String,
-    audio_delay_ms: Option<i64>,
-) -> Result<String, String> {
+    path: String,
+    tracks: Vec<TrackToExtract>,
+) -> Result<Vec<AudioTrackResult>, String> {
     let temp_dir = std::env::temp_dir();
-    let output_path = temp_dir.join("iluha_ext_audio.mkv");
-    let _ = std::fs::remove_file(&output_path);
 
-    let delay = audio_delay_ms.unwrap_or(0);
-    let mut args: Vec<String> = vec![
-        "-y".to_string(),
-        "-i".to_string(),
-        video_path,
-    ];
-    if delay != 0 {
-        let secs = delay as f64 / 1000.0;
-        args.push("-itsoffset".to_string());
-        args.push(format!("{secs}"));
+    let mut args = vec!["-y".to_string(), "-threads".to_string(), "0".to_string(), "-i".to_string(), path];
+    let mut output_paths = Vec::new();
+
+    for track in &tracks {
+        let cfg = audio_extract_config(&track.codec_name);
+        let output_path = temp_dir.join(format!("iluha_audio_{}.{}", track.stream_index, cfg.ext));
+        let _ = std::fs::remove_file(&output_path);
+
+        args.push("-map".to_string());
+        args.push(format!("0:{}", track.stream_index));
+        args.extend(cfg.args);
+        args.push(output_path.to_string_lossy().to_string());
+
+        output_paths.push(output_path);
     }
-    args.push("-i".to_string());
-    args.push(audio_path);
-    args.extend_from_slice(&[
-        "-map".to_string(),
-        "0:v".to_string(),
-        "-map".to_string(),
-        "1:a".to_string(),
-        "-c".to_string(),
-        "copy".to_string(),
-        "-map_metadata".to_string(),
-        "0".to_string(),
-        output_path.to_string_lossy().to_string(),
-    ]);
 
+    let _permit = FFMPEG_SEM
+        .acquire()
+        .await
+        .map_err(|_| "semaphore closed".to_string())?;
     let output = std::process::Command::new(ffmpeg_exe(&app_handle))
         .args(&args)
         .output()
@@ -346,10 +847,28 @@ pub async fn remux_with_external_audio(
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(format!("ffmpeg remux failed: {stderr}"));
+        return Err(format!("ffmpeg audio extract failed: {stderr}"));
     }
 
-    Ok(output_path.to_string_lossy().to_string())
+    let results = tracks
+        .into_iter()
+        .zip(output_paths)
+        .map(|(track, path)| AudioTrackResult {
+            stream_index: track.stream_index,
+            path: path.to_string_lossy().to_string(),
+        })
+        .collect();
+    Ok(results)
+}
+
+#[tauri::command]
+pub async fn cleanup_audio_temp_files(
+    paths: Vec<String>,
+) -> Result<(), String> {
+    for p in &paths {
+        let _ = std::fs::remove_file(p);
+    }
+    Ok(())
 }
 
 #[tauri::command]
@@ -358,13 +877,25 @@ pub async fn convert_external_subtitle(
     path: String,
     codec_name: Option<String>,
 ) -> Result<String, String> {
-    let temp_dir = std::env::temp_dir();
     let is_ass = codec_name.as_deref() == Some("ass")
         || codec_name.as_deref() == Some("ssa")
         || path.ends_with(".ass")
         || path.ends_with(".ssa");
     let ext = if is_ass { "ass" } else { "vtt" };
-    let output_path = temp_dir.join(format!("iluha_ext_sub.{}", ext));
+    let cache = sub_cache_dir(&app_handle);
+    use sha1::{Digest, Sha1};
+    let mut hasher = Sha1::new();
+    hasher.update(path.as_bytes());
+    let key = hex::encode(hasher.finalize());
+    let cached = cached_path(&cache, &key, ext);
+
+    // Check persistent cache
+    if cached.exists() {
+        return Ok(cached.to_string_lossy().to_string());
+    }
+
+    let temp_dir = std::env::temp_dir();
+    let output_path = temp_dir.join(format!("iluha_ext_sub_{}.{}", &key[..8], ext));
     let _ = std::fs::remove_file(&output_path);
 
     let mut args = vec!["-y".to_string(), "-i".to_string(), path.clone()];
@@ -375,6 +906,10 @@ pub async fn convert_external_subtitle(
     }
     args.push(output_path.to_string_lossy().to_string());
 
+    let _permit = FFMPEG_SEM
+        .acquire()
+        .await
+        .map_err(|_| "semaphore closed".to_string())?;
     let output = std::process::Command::new(ffmpeg_exe(&app_handle))
         .args(&args)
         .output()
@@ -385,7 +920,11 @@ pub async fn convert_external_subtitle(
         return Err(format!("ffmpeg subtitle convert failed: {stderr}"));
     }
 
-    Ok(output_path.to_string_lossy().to_string())
+    // Save to cache
+    let _ = std::fs::copy(&output_path, &cached);
+    let _ = std::fs::remove_file(&output_path);
+
+    Ok(cached.to_string_lossy().to_string())
 }
 
 #[tauri::command]
@@ -436,6 +975,11 @@ pub async fn get_video_info(
         codec_name: Option<String>,
         tags: Option<FfprobeStreamTags>,
         disposition: Option<FfprobeDisposition>,
+        bit_rate: Option<String>,
+        channels: Option<i32>,
+        sample_rate: Option<String>,
+        width: Option<i32>,
+        height: Option<i32>,
     }
 
     #[derive(serde::Deserialize)]
@@ -447,6 +991,8 @@ pub async fn get_video_info(
     #[derive(serde::Deserialize)]
     struct FfprobeDisposition {
         default: Option<i32>,
+        forced: Option<i32>,
+        comment: Option<i32>,
     }
 
     let parsed: FfprobeOutput =
@@ -467,15 +1013,33 @@ pub async fn get_video_info(
         })
         .collect();
 
-    let mut streams: Vec<VideoStreamInfo> = parsed
+    let streams: Vec<VideoStreamInfo> = parsed
         .streams
         .into_iter()
         .map(|s| {
             let is_default = s
                 .disposition
+                .as_ref()
                 .and_then(|d| d.default)
                 .map(|v| v == 1)
                 .unwrap_or(false);
+            let is_forced = s
+                .disposition
+                .as_ref()
+                .and_then(|d| d.forced)
+                .map(|v| v == 1)
+                .unwrap_or(false);
+            let is_comment = s
+                .disposition
+                .as_ref()
+                .and_then(|d| d.comment)
+                .map(|v| v == 1)
+                .unwrap_or(false);
+            let bit_rate = s.bit_rate.as_ref().and_then(|b| b.parse::<u64>().ok());
+            let channels = s.channels.map(|c| c as u32);
+            let sample_rate = s.sample_rate.as_ref().and_then(|r| r.parse::<u32>().ok());
+            let width = s.width.map(|w| w as u32);
+            let height = s.height.map(|h| h as u32);
             VideoStreamInfo {
                 index: s.index,
                 codec_type: s.codec_type,
@@ -483,65 +1047,17 @@ pub async fn get_video_info(
                 language: s.tags.as_ref().and_then(|t| t.language.clone()),
                 title: s.tags.as_ref().and_then(|t| t.title.clone()),
                 is_default,
+                is_forced,
+                is_comment,
+                bit_rate,
+                channels,
+                sample_rate,
+                width,
+                height,
                 file_path: None,
             }
         })
         .collect();
-
-    let video_path = std::path::Path::new(&path);
-    if let (Some(parent), Some(stem)) = (video_path.parent(), video_path.file_stem()) {
-        let stem = stem.to_string_lossy().to_lowercase();
-        let sub_exts = ["ass", "ssa", "srt", "vtt", "sup", "idx", "sub", "pgs"];
-        let audio_exts = ["mka", "aac", "mp3", "ac3", "dts", "flac", "opus", "ogg", "wav", "eac3"];
-
-        let mut ext_idx = -1i32;
-        let entries = match std::fs::read_dir(parent) {
-            Ok(e) => e,
-            Err(_) => return Ok(VideoInfo { chapters, streams }),
-        };
-        for entry in entries.flatten() {
-            let entry_path = entry.path();
-            if entry_path.is_dir() {
-                continue;
-            }
-            let file_stem = match entry_path.file_stem().and_then(|s| s.to_str()) {
-                Some(s) => s.to_lowercase(),
-                None => continue,
-            };
-            if file_stem != stem
-                && !file_stem.starts_with(&format!("{}.", stem))
-                && !file_stem.starts_with(&format!("{} - ", stem))
-            {
-                continue;
-            }
-            let ext = match entry_path.extension().and_then(|e| e.to_str()) {
-                Some(e) => e.to_lowercase(),
-                None => continue,
-            };
-            let codec_type = if sub_exts.contains(&ext.as_str()) {
-                "subtitle"
-            } else if audio_exts.contains(&ext.as_str()) {
-                "audio"
-            } else {
-                continue;
-            };
-            let label = entry_path
-                .file_name()
-                .and_then(|n| n.to_str())
-                .unwrap_or("")
-                .to_string();
-            streams.push(VideoStreamInfo {
-                index: ext_idx,
-                codec_type: codec_type.to_string(),
-                codec_name: ext,
-                language: None,
-                title: Some(label),
-                is_default: false,
-                file_path: Some(entry_path.to_string_lossy().to_string()),
-            });
-            ext_idx -= 1;
-        }
-    }
 
     Ok(VideoInfo { chapters, streams })
 }
@@ -589,6 +1105,54 @@ async fn get_video_duration(app_handle: &tauri::AppHandle, path: &str) -> Result
         .trim()
         .parse::<f64>()
         .map_err(|_| "parse duration failed".to_string())
+}
+
+async fn probe_expected_audio_size(app_handle: &tauri::AppHandle, path: &str, stream_index: usize) -> u64 {
+    let output = Command::new(ffprobe_exe(app_handle))
+        .args([
+            "-v",
+            "error",
+            "-print_format",
+            "json",
+            "-show_entries",
+            &format!("stream=bit_rate:format=duration"),
+            "-select_streams",
+            &format!("a:{}", stream_index),
+            path,
+        ])
+        .output()
+        .await;
+    let output = match output {
+        Ok(o) if o.status.success() => o,
+        _ => return 0,
+    };
+    #[derive(Deserialize)]
+    struct Probe {
+        streams: Vec<StreamInfo>,
+        format: FormatInfo,
+    }
+    #[derive(Deserialize)]
+    struct StreamInfo {
+        bit_rate: Option<String>,
+    }
+    #[derive(Deserialize)]
+    struct FormatInfo {
+        duration: Option<String>,
+    }
+    let parsed: Probe = match serde_json::from_slice(&output.stdout) {
+        Ok(p) => p,
+        _ => return 0,
+    };
+    let bit_rate: u64 = parsed.streams.first()
+        .and_then(|s| s.bit_rate.as_ref())
+        .and_then(|b| b.parse().ok())
+        .unwrap_or(128_000); // fallback to 128kbps
+    let duration: f64 = parsed.format.duration
+        .as_ref()
+        .and_then(|d| d.parse().ok())
+        .unwrap_or(0.0);
+    if duration <= 0.0 { return 0; }
+    (bit_rate as f64 * duration / 8.0) as u64
 }
 
 fn build_encoder_args(
@@ -674,7 +1238,12 @@ pub async fn upscale_video(
     quality: String,
     gpu_backend: String,
     cancel_flag: tauri::State<'_, CancelFlag>,
-) -> Result<String, String> {
+    progress_registry: tauri::State<'_, crate::progress::ProgressRegistry>,
+) -> Result<(String, u64), String> {
+    let progress_id = progress_registry.create();
+    progress_registry.update(progress_id, 0.0);
+    let reg_for_task = (*progress_registry).clone();
+    let pid_for_task = progress_id;
     let mut filters = Vec::new();
     if width > 0 && height > 0 {
         filters.push(format!("scale={}:{}:flags=lanczos", width, height));
@@ -697,7 +1266,8 @@ pub async fn upscale_video(
     cancel_flag.0.store(false, Ordering::SeqCst);
     let cancel = cancel_flag.0.clone();
 
-    // emit initializing immediately with total=0
+        // emit initializing immediately with total=0
+    progress_registry.update(progress_id, 0.0);
     let _ = app_handle.emit(
         "upscale-progress",
         UpscaleProgress {
@@ -739,6 +1309,12 @@ pub async fn upscale_video(
     let out_for_ffmpeg = output_path.clone();
 
     let encode = tokio::spawn(async move {
+        // Acquire semaphore permit for this ffmpeg process
+        let _permit = match FFMPEG_SEM.acquire().await {
+            Ok(p) => p,
+            Err(_) => return Err("semaphore closed".to_string()),
+        };
+
         let mut cmd = Command::new(ffmpeg_exe(&app_for_ffmpeg));
         cmd.arg("-y");
 
@@ -764,11 +1340,13 @@ pub async fn upscale_video(
         let mut child = cmd.spawn().map_err(|e| format!("ffmpeg not found: {e}"))?;
 
         // emit "started" as soon as ffmpeg is running
+        let total_at_start = *dur_for_ffmpeg.lock().unwrap();
+        reg_for_task.update(pid_for_task, 0.0);
         let _ = app_for_ffmpeg.emit(
             "upscale-progress",
             UpscaleProgress {
                 current: 0.0,
-                total: *dur_for_ffmpeg.lock().unwrap(),
+                total: total_at_start,
                 stage: "started".into(),
                 speed: 0.0,
             },
@@ -793,6 +1371,9 @@ pub async fn upscale_video(
             if let Some(time_str) = line.strip_prefix("out_time=") {
                 if let Some(current) = parse_ffmpeg_time(time_str) {
                     let total = *dur_for_ffmpeg.lock().unwrap();
+                    if total > 0.0 {
+                        reg_for_task.update(pid_for_task, (current / total * 100.0).min(100.0));
+                    }
                     let _ = app_for_ffmpeg.emit(
                         "upscale-progress",
                         UpscaleProgress {
@@ -839,6 +1420,7 @@ pub async fn upscale_video(
         }
 
         let final_total = *dur_for_ffmpeg.lock().unwrap();
+        reg_for_task.update(pid_for_task, 100.0);
         let _ = app_for_ffmpeg.emit(
             "upscale-progress",
             UpscaleProgress {
@@ -849,7 +1431,7 @@ pub async fn upscale_video(
             },
         );
 
-        Ok(out_for_ffmpeg)
+        Ok((out_for_ffmpeg, pid_for_task))
     });
 
     let (_, encode_result) = tokio::join!(probe, encode);

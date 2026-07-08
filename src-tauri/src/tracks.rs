@@ -12,12 +12,52 @@ const AUDIO_EXTS: &[&str] = &[
 const SUB_EXTS: &[&str] = &["srt", "ass", "ssa", "vtt", "sub", "idx", "sup", "pgs"];
 
 #[derive(Serialize)]
-pub struct FolderTrackScan {
-    pub audio: Vec<String>,
-    pub subtitles: Vec<String>,
+pub struct TrackFileInfo {
+    pub path: String,
+    pub file_name: String,
 }
 
-fn scan_dir(dir: &std::path::Path, audio_out: &mut Vec<String>, sub_out: &mut Vec<String>) {
+#[derive(Serialize)]
+pub struct FolderTrackScan {
+    pub audio: Vec<TrackFileInfo>,
+    pub subtitles: Vec<TrackFileInfo>,
+}
+
+fn is_track_match(file_stem: &str, video_stem: &str) -> bool {
+    let f = file_stem.to_lowercase();
+    let v = video_stem.to_lowercase();
+    if f == v {
+        return true;
+    }
+    if f.starts_with(&format!("{}.", v)) {
+        return true;
+    }
+    if f.starts_with(&format!("{} - ", v)) {
+        return true;
+    }
+    if f.starts_with(&format!("{}_", v)) {
+        return true;
+    }
+    false
+}
+
+fn classify_ext(ext: &str) -> Option<&'static str> {
+    let e = ext.to_lowercase();
+    if AUDIO_EXTS.contains(&e.as_str()) {
+        Some("audio")
+    } else if SUB_EXTS.contains(&e.as_str()) {
+        Some("subtitle")
+    } else {
+        None
+    }
+}
+
+fn scan_dir(
+    dir: &std::path::Path,
+    video_stem: Option<&str>,
+    audio_out: &mut Vec<TrackFileInfo>,
+    sub_out: &mut Vec<TrackFileInfo>,
+) {
     let entries = match std::fs::read_dir(dir) {
         Ok(e) => e,
         Err(_) => return,
@@ -33,17 +73,46 @@ fn scan_dir(dir: &std::path::Path, audio_out: &mut Vec<String>, sub_out: &mut Ve
             .and_then(|e| e.to_str())
             .map(|e| e.to_lowercase())
             .unwrap_or_default();
-        let full = path.to_string_lossy().to_string();
+        let kind = match classify_ext(&ext) {
+            Some(k) => k,
+            None => continue,
+        };
+        let file_name = path
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("")
+            .to_string();
+        let file_stem = path
+            .file_stem()
+            .and_then(|n| n.to_str())
+            .map(|n| n.to_lowercase())
+            .unwrap_or_default();
 
-        if AUDIO_EXTS.contains(&ext.as_str()) {
-            audio_out.push(full);
-        } else if SUB_EXTS.contains(&ext.as_str()) {
-            sub_out.push(full);
+        if let Some(vs) = video_stem {
+            if !is_track_match(&file_stem, vs) {
+                continue;
+            }
+        }
+
+        let info = TrackFileInfo {
+            path: path.to_string_lossy().to_string(),
+            file_name,
+        };
+        if kind == "audio" {
+            audio_out.push(info);
+        } else {
+            sub_out.push(info);
         }
     }
 }
 
-fn scan_priority_dirs(parent: &std::path::Path, priority: &[&str], audio_out: &mut Vec<String>, sub_out: &mut Vec<String>) {
+fn scan_priority_dirs(
+    parent: &std::path::Path,
+    priority: &[&str],
+    video_stem: Option<&str>,
+    audio_out: &mut Vec<TrackFileInfo>,
+    sub_out: &mut Vec<TrackFileInfo>,
+) {
     let entries = match std::fs::read_dir(parent) {
         Ok(e) => e,
         Err(_) => return,
@@ -61,26 +130,29 @@ fn scan_priority_dirs(parent: &std::path::Path, priority: &[&str], audio_out: &m
             .unwrap_or_default();
 
         if priority.contains(&dir_name.as_str()) {
-            scan_dir(&path, audio_out, sub_out);
+            scan_dir(&path, video_stem, audio_out, sub_out);
         }
     }
 }
 
 #[tauri::command]
-pub fn scan_folder_for_tracks(path: String) -> Result<FolderTrackScan, String> {
-    let dir = std::path::Path::new(&path);
-    if !dir.is_dir() {
-        return Err("Not a directory".to_string());
-    }
+pub fn scan_folder_for_tracks(video_path: String) -> Result<FolderTrackScan, String> {
+    let video = std::path::Path::new(&video_path);
+    let parent = video.parent().ok_or("No parent directory")?;
+    let stem = video
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .map(|s| s.to_lowercase())
+        .ok_or("Invalid video filename")?;
 
     let mut audio = Vec::new();
     let mut subtitles = Vec::new();
 
     // 1. Scan priority sub-folders first
-    scan_priority_dirs(dir, PRIORITY_DIRS, &mut audio, &mut subtitles);
+    scan_priority_dirs(parent, PRIORITY_DIRS, Some(&stem), &mut audio, &mut subtitles);
 
     // 2. Also scan the same directory as the video
-    scan_dir(dir, &mut audio, &mut subtitles);
+    scan_dir(parent, Some(&stem), &mut audio, &mut subtitles);
 
     Ok(FolderTrackScan { audio, subtitles })
 }

@@ -32,10 +32,11 @@ describe("formatStreams", () => {
     const stream: VideoStreamInfo = {
       index: 1, codec_type: "audio", codec_name: "aac",
       language: "jpn", title: "Japanese", is_default: false,
+      is_forced: false, is_comment: false,
     };
     const result = formatStreams(stream);
     expect(result).toContain("JPN");
-    expect(result).toContain("aac");
+    expect(result).toContain("AAC");
     expect(result).toContain("Japanese");
   });
 
@@ -43,29 +44,30 @@ describe("formatStreams", () => {
     const stream: VideoStreamInfo = {
       index: 2, codec_type: "subtitle", codec_name: "ass",
       language: null, title: null, is_default: false,
+      is_forced: false, is_comment: false,
     };
-    expect(formatStreams(stream)).toBe("ass");
+    expect(formatStreams(stream)).toBe("ASS");
   });
 });
 
 describe("isAssSub", () => {
   it("detects ass codec", () => {
-    const s: VideoStreamInfo = { index: 0, codec_type: "subtitle", codec_name: "ass", language: null, title: null, is_default: false };
+    const s: VideoStreamInfo = { index: 0, codec_type: "subtitle", codec_name: "ass", language: null, title: null, is_default: false, is_forced: false, is_comment: false };
     expect(isAssSub(s)).toBe(true);
   });
 
   it("detects ssa codec", () => {
-    const s: VideoStreamInfo = { index: 0, codec_type: "subtitle", codec_name: "ssa", language: null, title: null, is_default: false };
+    const s: VideoStreamInfo = { index: 0, codec_type: "subtitle", codec_name: "ssa", language: null, title: null, is_default: false, is_forced: false, is_comment: false };
     expect(isAssSub(s)).toBe(true);
   });
 
   it("detects ass file path", () => {
-    const s: VideoStreamInfo = { index: 0, codec_type: "subtitle", codec_name: "unknown", language: null, title: null, is_default: false, file_path: "subs/file.ass" };
+    const s: VideoStreamInfo = { index: 0, codec_type: "subtitle", codec_name: "unknown", language: null, title: null, is_default: false, is_forced: false, is_comment: false, file_path: "subs/file.ass" };
     expect(isAssSub(s)).toBeTruthy();
   });
 
   it("returns falsy for non-ASS", () => {
-    const s: VideoStreamInfo = { index: 0, codec_type: "subtitle", codec_name: "webvtt", language: null, title: null, is_default: false };
+    const s: VideoStreamInfo = { index: 0, codec_type: "subtitle", codec_name: "webvtt", language: null, title: null, is_default: false, is_forced: false, is_comment: false };
     expect(isAssSub(s)).toBeFalsy();
   });
 });

@@ -1,7 +1,6 @@
 import {
   selectPlayback,
   selectTime,
-  selectVolume,
   usePlayer,
 } from "@videojs/react";
 import { useEffect } from "react";
@@ -16,16 +15,19 @@ function Keyboard({
   onFilePrev,
   onToggleAutoHide,
   onRequestJumpToTime,
+  volume,
+  onVolumeChange,
 }: {
   mediaPath?: string;
   onFileNext?: () => void;
   onFilePrev?: () => void;
   onToggleAutoHide?: () => void;
   onRequestJumpToTime?: () => void;
+  volume: number;
+  onVolumeChange: (v: number) => void;
 }) {
   const playback = usePlayer(selectPlayback);
   const time = usePlayer(selectTime);
-  const volume = usePlayer(selectVolume);
   const mediaGet = useMediaStore((s) => s.getEntry);
   const mediaSetSub = useMediaStore((s) => s.setSubOffset);
   const mediaSetAudio = useMediaStore((s) => s.setAudioOffset);
@@ -69,13 +71,11 @@ function Keyboard({
           break;
         }
         case "volumeUp": {
-          const v = volume?.volume ?? 0;
-          volume?.setVolume?.(Math.min(v + 0.01, 1));
+          onVolumeChange(Math.min(volume + 0.01, 1));
           break;
         }
         case "volumeDown": {
-          const v = volume?.volume ?? 0;
-          volume?.setVolume?.(Math.max(v - 0.01, 0));
+          onVolumeChange(Math.max(volume - 0.01, 0));
           break;
         }
         case "frameBackward": {
@@ -178,9 +178,8 @@ function Keyboard({
       if (target.closest("[data-no-wheel]")) return;
 
       e.preventDefault();
-      const v = volume?.volume ?? 0;
-      if (e.deltaY < 0) volume?.setVolume?.(Math.min(v + 0.01, 1));
-      else volume?.setVolume?.(Math.max(v - 0.01, 0));
+      if (e.deltaY < 0) onVolumeChange(Math.min(volume + 0.01, 1));
+      else onVolumeChange(Math.max(volume - 0.01, 0));
     };
 
     window.addEventListener("keydown", handleKeyDown);
@@ -194,6 +193,7 @@ function Keyboard({
     playback,
     time,
     volume,
+    onVolumeChange,
     mediaPath,
     onFileNext,
     onFilePrev,

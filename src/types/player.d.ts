@@ -5,6 +5,13 @@ export interface VideoStreamInfo {
   language: string | null;
   title: string | null;
   is_default: boolean;
+  is_forced: boolean;
+  is_comment: boolean;
+  bit_rate?: number | null;
+  channels?: number | null;
+  sample_rate?: number | null;
+  width?: number | null;
+  height?: number | null;
   file_path?: string | null;
 }
 
@@ -12,7 +19,10 @@ export type VideoType = {
   path: string;
   file: string;
   initialTime?: number;
-  remuxSrc?: string;
+  audioSrc?: string;
+  subPath?: string;
+  subFonts?: string[];
+  subIsAss?: boolean;
 } | null;
 
 export type ChapterType = {

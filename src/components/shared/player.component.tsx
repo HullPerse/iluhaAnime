@@ -27,6 +27,7 @@ import SeekOffset from "./player/offset.player";
 import SkipButton from "./player/skip.player";
 import JumpToTime from "./player/jump.player";
 import { SmallLoader } from "./loader.component";
+import AudioSync from "./player/audio-sync.player";
 
 const { Provider, Container } = createPlayer({ features: videoFeatures });
 
@@ -50,10 +51,13 @@ function Player({
   autoHideUi,
   onToggleCinema,
   onToggleAutoHide,
-  audioReady,
+  audioSrc,
   loading,
   autoAudio,
   autoSubs,
+  subPath,
+  subFonts,
+  subIsAss,
 }: {
   header: string;
   onClose: () => void;
@@ -74,26 +78,49 @@ function Player({
   autoHideUi?: boolean;
   onToggleCinema?: () => void;
   onToggleAutoHide?: () => void;
-  audioReady?: boolean;
+  audioSrc?: string | null;
   loading?: boolean;
   autoAudio?: string[];
   autoSubs?: string[];
+  subPath?: string;
+  subFonts?: string[];
+  subIsAss?: boolean;
 }) {
   const [uiVisible, setUiVisible] = useState<boolean>(true);
   const hideTimerRef = useRef<number | null>(null);
   const [videoEl, setVideoEl] = useState<HTMLVideoElement | null>(null);
-  const [audioOverrideSrc, setAudioOverrideSrc] = useState<string | null>(null);
 
   const hasSeeked = useRef(false);
   const lastPosSaveRef = useRef(0);
   const POS_SAVE_INTERVAL = 2000;
-  const effectiveSrc = audioOverrideSrc ?? src;
 
   const settings = usePlayerStore((s) => s.settings);
   const patchSettings = usePlayerStore((s) => s.patchSettings);
   const setPosition = useMediaStore((s) => s.setPosition);
+  const audioOffset = useMediaStore(
+    (s) => s.entries.find((e) => e.path === mediaPath)?.audioOffset ?? 0,
+  );
   const [showSettings, setShowSettings] = useState<boolean>(false);
   const [showJumpToTime, setShowJumpToTime] = useState<boolean>(false);
+
+  const playerVolume = usePlayerStore((s) => s.volume ?? 1);
+  const [playerMuted, setPlayerMuted] = useState(false);
+  const [playbackRate, setPlaybackRate] = useState(1);
+  const [activeAudioSrc, setActiveAudioSrc] = useState<string | null>(audioSrc ?? null);
+
+  const audioIndex = useMediaStore(
+    (s) => s.entries.find((e) => e.path === mediaPath)?.audioTrack,
+  );
+  const subIndex = useMediaStore(
+    (s) => s.entries.find((e) => e.path === mediaPath)?.subtitleTrack,
+  );
+  const showLoader = loading;
+  const audioStream = streams?.find((s) => s.index === audioIndex);
+  const subStream = streams?.find((s) => s.index === subIndex);
+
+  useEffect(() => {
+    setActiveAudioSrc(audioSrc ?? null);
+  }, [audioSrc]);
 
   const videoStyle = useMemo(() => {
     const t: string[] = [];
@@ -156,9 +183,18 @@ function Player({
     }
   }, [videoEl, initialTime, autoPlay]);
 
-  const handleAudioSwitch = useCallback((newSrc: string | null) => {
-    setAudioOverrideSrc(newSrc);
+  const handleVolumeChange = useCallback((v: number) => {
+    usePlayerStore.getState().setVolume(Math.max(0, Math.min(1, v)));
   }, []);
+
+  const handleToggleMuted = useCallback(() => {
+    setPlayerMuted((m) => !m);
+  }, []);
+
+  const handlePlaybackRateChange = useCallback((rate: number) => {
+    setPlaybackRate(rate);
+    if (videoEl) videoEl.playbackRate = rate;
+  }, [videoEl]);
 
   const savePos = useCallback(
     (t: number) => {
@@ -208,6 +244,8 @@ function Player({
           onFilePrev={onFilePrev}
           onToggleAutoHide={onToggleAutoHide}
           onRequestJumpToTime={() => setShowJumpToTime(true)}
+          volume={playerVolume}
+          onVolumeChange={handleVolumeChange}
         />
         {!src ? (
           <EmptyPlayer />
@@ -249,7 +287,14 @@ function Player({
                 cinemaMode ? "h-full w-full" : "flex-1 min-h-0",
               )}
             >
-              <SeekOffset mediaPath={mediaPath} />
+              <SeekOffset
+                mediaPath={mediaPath}
+                audioStream={audioStream}
+                subStream={subStream}
+                playbackRate={playbackRate}
+                volume={playerVolume}
+                muted={playerMuted}
+              />
               <JumpToTimeGate
                 show={showJumpToTime}
                 onClose={() => setShowJumpToTime(false)}
@@ -259,32 +304,54 @@ function Player({
                 onFileNext={onFileNext}
                 hasNext={hasNext}
               />
-              {loading && (
+              {showLoader && (
                 <div className="absolute inset-0 z-20 flex items-center justify-center bg-black">
                   <SmallLoader className="text-primary size-20" />
                 </div>
               )}
-              {effectiveSrc ? (
-                <Video
-                  ref={setVideoEl}
-                  src={effectiveSrc}
-                  className="h-full w-full"
-                  style={videoStyle}
-                  controls={false}
-                  preload="auto"
-                  onTimeUpdate={(e) => {
-                    const t = (e.target as HTMLVideoElement).currentTime;
-                    onTimeUpdate?.(t);
-                    const now = Date.now();
-                    if (now - lastPosSaveRef.current >= POS_SAVE_INTERVAL) {
-                      savePos(t);
-                      lastPosSaveRef.current = now;
-                    }
-                  }}
+              {src ? (
+                <>
+                  <Video
+                    ref={setVideoEl}
+                    src={src}
+                    className="h-full w-full"
+                    style={videoStyle}
+                    controls={false}
+                    preload="auto"
+                    crossOrigin="anonymous"
+                    muted={!!activeAudioSrc}
+                    onTimeUpdate={(e) => {
+                      const t = (e.target as HTMLVideoElement).currentTime;
+                      onTimeUpdate?.(t);
+                      const now = Date.now();
+                      if (now - lastPosSaveRef.current >= POS_SAVE_INTERVAL) {
+                        savePos(t);
+                        lastPosSaveRef.current = now;
+                      }
+                    }}
                   onPlay={() => onPlayStateChange?.(true)}
                   onPause={() => onPlayStateChange?.(false)}
-                  onEnded={() => onFileNext?.()}
+                  onEnded={() => {
+                    const action = useSettingsStore.getState().afterPlaybackAction;
+                    if (action === "next") onFileNext?.();
+                    else if (action === "repeat_one") {
+                      if (videoEl) {
+                        videoEl.currentTime = 0;
+                        videoEl.play();
+                      }
+                    }
+                  }}
                 />
+                  {activeAudioSrc && (
+                    <AudioSync
+                      videoEl={videoEl}
+                      audioSrc={activeAudioSrc}
+                      delay={audioOffset}
+                      volume={playerVolume}
+                      muted={playerMuted}
+                    />
+                  )}
+                </>
               ) : loading ? null : (
                 <EmptyPlayer />
               )}
@@ -308,7 +375,13 @@ function Player({
                 mediaPath={mediaPath}
                 streams={streams}
                 videoEl={videoEl}
-                onAudioSwitch={handleAudioSwitch}
+                volume={playerVolume}
+                muted={playerMuted}
+                onVolumeChange={handleVolumeChange}
+                onToggleMuted={handleToggleMuted}
+                playbackRate={playbackRate}
+                onPlaybackRateChange={handlePlaybackRateChange}
+                onAudioSrcChange={setActiveAudioSrc}
                 onFileNext={onFileNext}
                 onFilePrev={onFilePrev}
                 hasNext={hasNext}
@@ -316,10 +389,13 @@ function Player({
                 onToggleAutoHide={onToggleAutoHide}
                 autoHideUi={autoHideUi}
                 cinemaMode={cinemaMode}
-                audioReady={audioReady}
                 loading={loading}
                 autoAudio={autoAudio}
                 autoSubs={autoSubs}
+                initialAudioPath={audioSrc ?? undefined}
+                subPath={subPath}
+                subFonts={subFonts}
+                subIsAss={subIsAss}
               />
             </div>
           </div>

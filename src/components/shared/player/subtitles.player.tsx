@@ -1,5 +1,6 @@
-import { useEffect, useRef } from "react"
-import { convertFileSrc } from "@tauri-apps/api/core"
+import { useEffect, useRef } from "react";
+import { convertFileSrc } from "@tauri-apps/api/core";
+import { showToast } from "@/lib/toast.utils";
 
 if (import.meta.hot) {
   import.meta.hot.dispose(() => { cached = null })
@@ -88,7 +89,7 @@ function AssOverlay({
         old?.destroy()
         if (!visible) instance.freeTrack()
       } catch {
-        /* fail silently */
+        showToast("Не удалось загрузить ASS субтитры", "error");
       }
     })()
 

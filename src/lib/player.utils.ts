@@ -92,12 +92,20 @@ export function parseTime(input: string): number | null {
 
 
 export const formatStreams = (stream: VideoStreamInfo) => {
-  const parts = [
-    (stream.language ?? "").toUpperCase(),
-    stream.codec_name,
-    stream.title ?? "",
-  ].filter(Boolean);
-  return parts.join(" - ") || `Дорожка ${stream.index}`;
+  const parts: string[] = [];
+  if (stream.language) parts.push(stream.language.toUpperCase());
+  if (stream.is_forced) parts.push("[Forced]");
+  if (stream.is_comment) parts.push("[Commentary]");
+
+  const tech: string[] = [stream.codec_name.toUpperCase()];
+  if (stream.channels) tech.push(`${stream.channels}ch`);
+  if (stream.sample_rate) tech.push(`${(stream.sample_rate / 1000).toFixed(1)}kHz`);
+  if (stream.bit_rate) tech.push(`${Math.round(stream.bit_rate / 1000)}kbps`);
+
+  parts.push(tech.join(" "));
+  if (stream.title) parts.push(stream.title);
+
+  return parts.join(" — ") || `Дорожка ${stream.index}`;
 };
 
 export const isAssSub = (s: VideoStreamInfo) =>

@@ -1,10 +1,38 @@
+import { invoke } from "@tauri-apps/api/core";
 import { useSettingsStore } from "@/store/settings.store";
 import { Input } from "@/components/ui/input.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
+import { Button } from "@/components/ui/button.component";
 
 export default function SettingsGeneral() {
   const { continueWatchingMax, toastDuration, autoCleanTempFiles, patch } =
     useSettingsStore();
+
+  const handleClearAll = async () => {
+    const ok = window.confirm(
+      "Это удалит:\n" +
+      "• кэш аудио и субтитров\n" +
+      "• кэш превью\n" +
+      "• историю поиска\n" +
+      "• прогресс просмотра\n" +
+      "• выбранные дорожки\n" +
+      "• настройки плеера\n" +
+      "• все сохранённые данные\n\n" +
+      "Продолжить?",
+    );
+    if (!ok) return;
+
+    await invoke("clear_all_caches").catch(() => {});
+
+    localStorage.removeItem("settings");
+    localStorage.removeItem("mediaState");
+    localStorage.removeItem("playerState");
+    localStorage.removeItem("searchState");
+    localStorage.removeItem("themeState");
+    localStorage.removeItem("lastSaveDir");
+
+    window.location.reload();
+  };
 
   return (
     <div className="flex flex-col gap-3 p-4">
@@ -42,6 +70,24 @@ export default function SettingsGeneral() {
         />
         <span>Автоматически чистить временные файлы</span>
       </label>
+
+      <hr className="windows95-border my-2" />
+
+      <div className="flex flex-col gap-1">
+        <span className="windows95-text text-[10px] font-bold">
+          Сброс данных
+        </span>
+        <span className="windows95-text text-[9px]">
+          Удаляет кэш, историю, прогресс просмотра, настройки и перезагружает приложение.
+        </span>
+        <Button
+          variant="destructive"
+          className="w-fit mt-1"
+          onClick={handleClearAll}
+        >
+          Удалить все данные
+        </Button>
+      </div>
     </div>
   );
 }

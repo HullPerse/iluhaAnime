@@ -7,27 +7,38 @@ import { showToast } from "@/lib/toast.utils";
 import AssOverlay from "./subtitles.player";
 import TrackDropdown from "./tracks/dropdown.tracks";
 import { formatStreams, isAssSub } from "@/lib/player.utils";
+import { selectBestTrack } from "@/lib/track-preferences";
+import { useSettingsStore } from "@/store/settings.store";
 
 const SUB_OFF = -999;
+
+const COPY_CODECS = new Set(["aac", "mp3", "flac", "opus", "vorbis"]);
+const isCopyCodec = (codec: string) => COPY_CODECS.has(codec.toLowerCase());
 
 function Tracks({
   audioStreams,
   subtitleStreams,
   mediaPath,
   videoEl,
-  onAudioSwitch,
-  audioReady,
+  onAudioSrcChange,
   autoAudio,
   autoSubs,
+  subPath: initialSubPath,
+  subFonts: initialSubFonts,
+  subIsAss: initialSubIsAss,
+  initialAudioPath,
 }: {
   audioStreams: VideoStreamInfo[];
   subtitleStreams: VideoStreamInfo[];
   mediaPath: string;
   videoEl: HTMLVideoElement | null;
-  onAudioSwitch: (newSrc: string | null) => void;
-  audioReady?: boolean;
+  onAudioSrcChange: (src: string | null) => void;
   autoAudio?: string[];
   autoSubs?: string[];
+  subPath?: string;
+  subFonts?: string[];
+  subIsAss?: boolean;
+  initialAudioPath?: string;
 }) {
   const [extAudio, setExtAudio] = useState<VideoStreamInfo[]>([]);
   const [extSubs, setExtSubs] = useState<VideoStreamInfo[]>([]);
@@ -44,6 +55,13 @@ function Tracks({
         language: null,
         title: f.split(/[/\\]/).pop() ?? "Audio",
         is_default: false,
+        is_forced: false,
+        is_comment: false,
+        bit_rate: null,
+        channels: null,
+        sample_rate: null,
+        width: null,
+        height: null,
         file_path: f,
       });
     }
@@ -56,22 +74,29 @@ function Tracks({
         language: null,
         title: f.split(/[/\\]/).pop() ?? "Subtitles",
         is_default: false,
+        is_forced: false,
+        is_comment: false,
+        bit_rate: null,
+        channels: null,
+        sample_rate: null,
+        width: null,
+        height: null,
         file_path: f,
       });
     }
     return res;
   }, [autoAudio, autoSubs]);
 
-  const mergedAudio = [
+  const mergedAudio = useMemo(() => [
     ...audioStreams,
     ...extAudio,
     ...autoTracks.filter((t) => t.codec_type === "audio"),
-  ];
-  const mergedSubs = [
+  ], [audioStreams, extAudio, autoTracks]);
+  const mergedSubs = useMemo(() => [
     ...subtitleStreams,
     ...extSubs,
     ...autoTracks.filter((t) => t.codec_type === "subtitle"),
-  ];
+  ], [subtitleStreams, extSubs, autoTracks]);
 
   const mediaGet = useMediaStore((s) => s.getEntry);
   const mediaSetTrack = useMediaStore((s) => s.setTrack);
@@ -89,129 +114,174 @@ function Tracks({
   const [selectedSub, setSelectedSub] = useState<number>(
     savedSub ?? defaultSub,
   );
-  const textTrackRef = useRef<TextTrack | null>(null);
-  const savedTimeRef = useRef<number>(0);
-  const savedPlayingRef = useRef<boolean>(false);
-  const audioGenRef = useRef<number>(0);
   const subGenRef = useRef<number>(0);
-
-  const initializedRef = useRef<boolean>(false);
   const subTrackElRef = useRef<HTMLTrackElement | null>(null);
   const subBlobUrlRef = useRef<string | null>(null);
   const tempFilesRef = useRef<string[]>([]);
-  const audioPrefetchRef = useRef<Map<number, string>>(new Map());
-  const audioPrefetchingRef = useRef<Set<number>>(new Set());
+  const audioExtractCache = useRef<Map<string, string>>(new Map());
+  const audioExtracting = useRef<Set<string>>(new Set());
+  const subExtractCache = useRef<Map<string, string>>(new Map());
+  const [, setCacheVersion] = useState(0);
+  const bumpCacheVersion = useCallback(() => setCacheVersion((v) => v + 1), []);
+  const audioLoadingRef = useRef(false);
+  const extractStartRef = useRef<number | null>(null);
+  const [isExtracting, setIsExtracting] = useState(false);
+  const [extractElapsed, setExtractElapsed] = useState(0);
+  const [extractProgress, setExtractProgress] = useState<number | undefined>(undefined);
+  const extractProgressIdRef = useRef<number | null>(null);
+  const bestEncoderRef = useRef<string>("aac");
+  const batchRunningRef = useRef(false);
+  const batchDoneRef = useRef<string | null>(null);
+  const [videoStarted, setVideoStarted] = useState(false);
+
+  // Probe for best encoder once on mount
+  useEffect(() => {
+    invoke<string[]>("probe_encoders")
+      .then((encoders) => {
+        bestEncoderRef.current = encoders[0] || "aac";
+      })
+      .catch(() => {});
+  }, []);
+
+  // Track when video starts playing
+  useEffect(() => {
+    if (!videoEl) return;
+    const handler = () => setVideoStarted(true);
+    videoEl.addEventListener("play", handler);
+    return () => videoEl.removeEventListener("play", handler);
+  }, [videoEl]);
+
+  // Update elapsed time while extracting
+  useEffect(() => {
+    if (!isExtracting) {
+      setExtractElapsed(0);
+      return;
+    }
+    const id = setInterval(() => {
+      if (extractStartRef.current) {
+        setExtractElapsed(Math.floor((Date.now() - extractStartRef.current) / 1000));
+      }
+    }, 200);
+    return () => clearInterval(id);
+  }, [isExtracting]);
+
+  // Poll progress from registry while extracting
+  useEffect(() => {
+    if (!isExtracting || extractProgressIdRef.current === null) {
+      setExtractProgress(undefined);
+      return;
+    }
+    const id = setInterval(async () => {
+      if (extractProgressIdRef.current === null) return;
+      try {
+        const pct = await invoke<number | null>("get_progress", {
+          id: extractProgressIdRef.current,
+        });
+        if (pct !== null) {
+          setExtractProgress(pct);
+        }
+      } catch {}
+    }, 300);
+    return () => clearInterval(id);
+  }, [isExtracting]);
 
   const [assUrl, setAssUrl] = useState<string | null>(null);
   const [assFonts, setAssFonts] = useState<string[]>([]);
   const [assVisible, setAssVisible] = useState<boolean>(false);
   const [subDelay, setSubDelay] = useState<number>(0);
-  const appliedOffsetRef = useRef<number>(0);
-
-
 
   const hasAssSub =
     mergedSubs.some(isAssSub) &&
     selectedSub !== SUB_OFF &&
     mergedSubs.find((s) => s.index === selectedSub && isAssSub(s));
 
+  const fallbackLock = useRef(false);
+
+  const canPlayNative = useCallback((codec: string): boolean => {
+    const a = document.createElement("audio");
+    const map: Record<string, string> = {
+      aac: 'audio/mp4; codecs="mp4a.40.2"',
+      mp3: "audio/mpeg",
+      flac: "audio/flac",
+      opus: 'audio/webm; codecs="opus"',
+      vorbis: 'audio/webm; codecs="vorbis"',
+      ac3: 'audio/mp4; codecs="ac-3"',
+      eac3: 'audio/mp4; codecs="ec-3"',
+    };
+    const mt = map[codec.toLowerCase()];
+    if (!mt) return false;
+    const r = a.canPlayType(mt);
+    return r === "probably" || r === "maybe";
+  }, []);
+
   const handleAudio = useCallback(
-    async (idx: number, restoreTime?: number) => {
+    async (idx: number, forceTranscode?: boolean) => {
       setSelectedAudio(idx);
       mediaSetTrack(mediaPath, "audio", idx);
 
-      const gen = ++audioGenRef.current;
-      if (!videoEl) return;
-
-      const stream = [...audioStreams, ...extAudio].find(
-        (s) => s.index === idx,
-      );
-      if (!stream) return;
-
-      savedTimeRef.current = restoreTime ?? videoEl.currentTime;
-      savedPlayingRef.current = !videoEl.paused;
-
-      const setSrcAndRestore = (path: string) => {
-        if (gen !== audioGenRef.current) return;
-        tempFilesRef.current.push(path);
-        onAudioSwitch(convertFileSrc(path));
-        const seekHint = () => {
-          try { videoEl.currentTime = savedTimeRef.current; } catch { }
-        };
-        const restore = () => {
-          seekHint();
-          if (savedPlayingRef.current) videoEl.play().catch(() => { });
-        };
-        videoEl.addEventListener("loadedmetadata", seekHint, { once: true });
-        requestAnimationFrame(() => {
-          if (videoEl.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
-            restore();
-          } else {
-            videoEl.addEventListener("canplay", restore, { once: true });
-          }
-        });
-      };
-
-      const cached = audioPrefetchRef.current.get(idx);
-      if (cached) {
-        setSrcAndRestore(cached);
+      const stream = mergedAudio.find((s) => s.index === idx);
+      if (!stream) {
+        onAudioSrcChange(null);
         return;
       }
 
-      const audioDelay = Math.round((mediaGet(mediaPath)?.audioOffset ?? 0) * 1000);
+      if (stream.file_path) {
+        onAudioSrcChange(convertFileSrc(stream.file_path));
+        return;
+      }
 
+      const key = `${mediaPath}:${idx}`;
+      const cached = audioExtractCache.current.get(key);
+      if (cached) {
+        onAudioSrcChange(convertFileSrc(cached));
+        return;
+      }
+
+      audioLoadingRef.current = true;
+      setIsExtracting(true);
+      setExtractProgress(0);
+      extractStartRef.current = Date.now();
+      audioExtracting.current.add(key);
+      bumpCacheVersion();
       try {
-        for (const p of tempFilesRef.current) {
-          invoke("cleanup_temp_file", { path: p }).catch(() => { });
-        }
-        tempFilesRef.current = [];
-
-        const out = await (stream.file_path
-          ? invoke<string>("remux_with_external_audio", {
-            videoPath: mediaPath,
-            audioPath: stream.file_path,
-            audioDelayMs: audioDelay,
-          })
-          : invoke<string>("remux_video_audio", {
-            path: mediaPath,
-            streamIndex: idx,
-            audioDelayMs: audioDelay,
-          }));
-
-        if (gen !== audioGenRef.current) {
-          invoke("cleanup_temp_file", { path: out }).catch(() => { });
-          onAudioSwitch(null);
-          return;
-        }
-
-        setSrcAndRestore(out);
-      } catch {
-        const fallbackTime = savedTimeRef.current;
-        const wasPlaying = savedPlayingRef.current;
-        onAudioSwitch(null);
-        const seekHintFallback = () => {
-          try { videoEl.currentTime = fallbackTime; } catch { }
-        };
-        const restoreFallback = () => {
-          seekHintFallback();
-          if (wasPlaying) videoEl.play().catch(() => { });
-        };
-        videoEl.addEventListener("loadedmetadata", seekHintFallback, { once: true });
-        requestAnimationFrame(() => {
-          if (videoEl.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
-            restoreFallback();
-          } else {
-            videoEl.addEventListener("canplay", restoreFallback, { once: true });
-          }
+        const shouldTranscode =
+          forceTranscode || !canPlayNative(stream.codec_name);
+        const result = await invoke<{ path: string; progressId: number }>("extract_audio_track", {
+          path: mediaPath,
+          streamIndex: idx,
+          codecName: stream.codec_name,
+          forceTranscode: shouldTranscode,
+          encoder: shouldTranscode ? bestEncoderRef.current : undefined,
         });
-        showToast("Не удалось переключить аудиодорожку", "error");
+        extractProgressIdRef.current = result.progressId;
+        audioExtractCache.current.set(key, result.path);
+        if (!result.path.includes("iluha_audio_cache")) {
+          tempFilesRef.current.push(result.path);
+        }
+        onAudioSrcChange(convertFileSrc(result.path));
+      } catch {
+        // If normal extraction fails, try transcode as fallback
+        if (!forceTranscode) {
+          showToast("Прямое копирование не удалось, перекодируем...", "info");
+          handleAudio(idx, true);
+        } else {
+          onAudioSrcChange(null);
+          showToast("Не удалось переключить аудиодорожку", "error");
+        }
+      } finally {
+        audioLoadingRef.current = false;
+        setIsExtracting(false);
+        setExtractProgress(undefined);
+        extractProgressIdRef.current = null;
+        audioExtracting.current.delete(key);
+        bumpCacheVersion();
       }
     },
-    [mediaPath, onAudioSwitch, videoEl, audioStreams, extAudio],
+    [mediaPath, onAudioSrcChange, mergedAudio, canPlayNative],
   );
 
   const loadSubtitle = useCallback(
-    async (idx: number) => {
+    async (idx: number, preExtractedPath?: string) => {
       if (!videoEl) return;
 
       const gen = ++subGenRef.current;
@@ -224,43 +294,73 @@ function Tracks({
         URL.revokeObjectURL(subBlobUrlRef.current);
         subBlobUrlRef.current = null;
       }
-      textTrackRef.current = null;
 
       setAssUrl(null);
       setAssVisible(false);
 
-      const stream = [...subtitleStreams, ...extSubs].find(
+      const stream = mergedSubs.find(
         (s) => s.index === idx,
       );
       if (!stream) return;
+
+      // Check for unsupported bitmap subtitle formats
+      const unsupported = new Set([
+        "hdmv_pgs_subtitle", "dvd_subtitle", "dvdsub",
+        "dvb_subtitle", "xsub", "pgssub", "dvd",
+      ]);
+      if (unsupported.has(stream.codec_name.toLowerCase())) {
+        showToast(`Формат субтитров "${stream.codec_name}" не поддерживается`, "error");
+        return;
+      }
 
       try {
         let extractedPath: string;
         let fontPaths: string[];
 
-        if (stream.file_path) {
-          extractedPath = await invoke<string>("convert_external_subtitle", {
-            path: stream.file_path,
-            codecName: stream.codec_name,
-          });
+        if (preExtractedPath) {
+          extractedPath = preExtractedPath;
           fontPaths = [];
-        } else {
-          const result = await invoke<{ subtitle: string; fonts: string[] }>(
-            "extract_video_subtitle",
-            {
-              path: mediaPath,
-              streamIndex: idx,
+        } else if (stream.file_path) {
+          const cacheKey = `ext:${stream.file_path}`;
+          const cached = subExtractCache.current.get(cacheKey);
+          if (cached) {
+            if (gen !== subGenRef.current) return;
+            extractedPath = cached;
+            fontPaths = [];
+          } else {
+            extractedPath = await invoke<string>("convert_external_subtitle", {
+              path: stream.file_path,
               codecName: stream.codec_name,
-            },
-          );
-          extractedPath = result.subtitle;
-          fontPaths = result.fonts;
+            });
+            subExtractCache.current.set(cacheKey, extractedPath);
+            fontPaths = [];
+          }
+        } else {
+          const cacheKey = `${mediaPath}:${idx}`;
+          const cached = subExtractCache.current.get(cacheKey);
+          if (cached) {
+            if (gen !== subGenRef.current) return;
+            extractedPath = cached;
+            fontPaths = [];
+          } else {
+            const result = await invoke<{ subtitle: string; fonts: string[]; progressId: number }>(
+              "extract_video_subtitle",
+              {
+                path: mediaPath,
+                streamIndex: idx,
+                codecName: stream.codec_name,
+              },
+            );
+            extractedPath = result.subtitle;
+            fontPaths = result.fonts;
+            subExtractCache.current.set(cacheKey, extractedPath);
+          }
         }
 
         if (gen !== subGenRef.current) {
-          invoke("cleanup_temp_file", { path: extractedPath }).catch(() => { });
+          invoke("cleanup_temp_file", { path: extractedPath }).catch(() => {});
           for (const fp of fontPaths)
-            invoke("cleanup_temp_file", { path: fp }).catch(() => { });
+            invoke("cleanup_temp_file", { path: fp }).catch(() => {});
           return;
         }
 
@@ -276,6 +376,7 @@ function Tracks({
           const text = await resp.text();
           const cues = parseVTT(text);
           const lang = stream.language ?? "und";
+          const offset = mediaGet(mediaPath)?.subOffset ?? 0;
 
           if (gen !== subGenRef.current) return;
 
@@ -287,14 +388,12 @@ function Tracks({
           };
           const vttLines = ["WEBVTT"];
           for (const c of cues) {
+            const start = c.start + offset;
+            const end = c.end + offset;
             const timing = c.settings
-              ? `${fmtTime(c.start)} --> ${fmtTime(c.end)} ${c.settings}`
-              : `${fmtTime(c.start)} --> ${fmtTime(c.end)}`;
-            vttLines.push(
-              "",
-              timing,
-              c.text,
-            );
+              ? `${fmtTime(start)} --> ${fmtTime(end)} ${c.settings}`
+              : `${fmtTime(start)} --> ${fmtTime(end)}`;
+            vttLines.push("", timing.trim(), c.text);
           }
           const blob = new Blob([vttLines.join("\n")], { type: "text/vtt" });
           const blobUrl = URL.createObjectURL(blob);
@@ -318,11 +417,12 @@ function Tracks({
 
           subTrackElRef.current = trackEl;
           subBlobUrlRef.current = blobUrl;
-          textTrackRef.current = trackEl.track;
         }
-      } catch { }
+      } catch (e) {
+        showToast(`Не удалось загрузить субтитры: ${e}`, "error");
+      }
     },
-    [videoEl, mediaPath, subtitleStreams, extSubs],
+    [videoEl, mediaPath, mergedSubs, mediaGet],
   );
 
   const handleSub = useCallback(
@@ -338,7 +438,6 @@ function Tracks({
           URL.revokeObjectURL(subBlobUrlRef.current);
           subBlobUrlRef.current = null;
         }
-        textTrackRef.current = null;
         setAssVisible(false);
         setAssUrl(null);
         return;
@@ -352,77 +451,200 @@ function Tracks({
     try {
       const d = mediaGet(mediaPath)?.subOffset ?? 0;
       setSubDelay(d);
-    } catch { }
+    } catch {}
   }, [mediaPath, mediaGet]);
 
+  const initializedRef = useRef<string | null>(null);
+
+  // Initialize on mount / file change
   useEffect(() => {
-    if (initializedRef.current) return;
     if (!videoEl || (subtitleStreams.length === 0 && audioStreams.length === 0))
       return;
-    initializedRef.current = true;
+    if (initializedRef.current === mediaPath) return;
+    initializedRef.current = mediaPath;
 
     loadDelay();
+
+    const prefs = useSettingsStore.getState();
     const savedA = mediaGet(mediaPath)?.audioTrack;
     const savedS = mediaGet(mediaPath)?.subtitleTrack;
 
+    // Audio selection
+    let targetAudio: number;
     if (savedA !== undefined) {
-      setSelectedAudio(savedA);
-      if (!audioReady && savedA !== defaultAudio) {
-        const pos = mediaGet(mediaPath)?.position;
-        handleAudio(savedA, pos);
-      }
+      targetAudio = savedA;
     } else {
-      setSelectedAudio(defaultAudio);
+      const best = selectBestTrack(
+        mergedAudio,
+        {
+          preferredAudioLangs: prefs.preferredAudioLangs,
+          preferredAudioPatterns: prefs.preferredAudioPatterns,
+          preferredSubLangs: [],
+          preferredSubPatterns: [],
+          preferForcedSubs: false,
+          fallbackToFirstTrack: prefs.fallbackToFirstTrack,
+        },
+        "audio",
+      );
+      targetAudio = best ?? mergedAudio.find((s) => !s.is_comment)?.index ?? -1;
     }
 
+    setSelectedAudio(targetAudio);
+    if (initialAudioPath) {
+      // Pre-populate cache with pre-extracted path
+      audioExtractCache.current.set(`${mediaPath}:${targetAudio}`, initialAudioPath);
+      onAudioSrcChange(convertFileSrc(initialAudioPath));
+    } else if (targetAudio >= 0) {
+      handleAudio(targetAudio);
+    }
+
+    // Subtitle selection
+    let targetSub: number;
     if (savedS !== undefined) {
-      setSelectedSub(savedS);
-      if (savedS !== SUB_OFF) loadSubtitle(savedS);
-    } else if (defaultSub >= 0) {
-      setSelectedSub(defaultSub);
-      loadSubtitle(defaultSub);
+      targetSub = savedS;
     } else {
-      setSelectedSub(SUB_OFF);
+      const best = selectBestTrack(
+        mergedSubs,
+        {
+          preferredAudioLangs: [],
+          preferredAudioPatterns: [],
+          preferredSubLangs: prefs.preferredSubLangs,
+          preferredSubPatterns: prefs.preferredSubPatterns,
+          preferForcedSubs: prefs.preferForcedSubs,
+          fallbackToFirstTrack: prefs.fallbackToFirstTrack,
+        },
+        "subtitle",
+      );
+      targetSub = best ?? SUB_OFF;
     }
-  }, [
-    videoEl,
-    subtitleStreams,
-    audioStreams,
-    mediaPath,
-    handleAudio,
-    defaultAudio,
-    defaultSub,
-    loadDelay,
-  ]);
 
+    setSelectedSub(targetSub);
+    if (initialSubPath && targetSub !== SUB_OFF) {
+      const url = convertFileSrc(initialSubPath);
+      tempFilesRef.current.push(initialSubPath, ...(initialSubFonts ?? []));
+      if (initialSubIsAss) {
+        setAssUrl(url);
+        setAssFonts(initialSubFonts ?? []);
+        setAssVisible(true);
+      } else {
+        loadSubtitle(targetSub, initialSubPath);
+      }
+    } else if (targetSub !== SUB_OFF) {
+      loadSubtitle(targetSub);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [videoEl, subtitleStreams, audioStreams, mediaPath, defaultAudio, defaultSub, loadDelay, handleAudio, loadSubtitle]);
+
+  // Background extraction: extract all non-selected tracks once after video starts
+  useEffect(() => {
+    if (!mediaPath || !selectedAudio || !videoStarted) return;
+    if (batchRunningRef.current) return;
+    if (batchDoneRef.current === mediaPath) return;
+
+    const remaining = [...audioStreams, ...extAudio].filter(
+      (s) =>
+        !s.file_path &&
+        s.index !== selectedAudio &&
+        !audioExtractCache.current.has(`${mediaPath}:${s.index}`) &&
+        !audioExtracting.current.has(`${mediaPath}:${s.index}`),
+    );
+    const remainingSubs = [...subtitleStreams, ...extSubs].filter(
+      (s) =>
+        !s.file_path &&
+        s.index !== selectedSub &&
+        !subExtractCache.current.has(`${mediaPath}:${s.index}`),
+    );
+    if (remaining.length === 0 && remainingSubs.length === 0) {
+      batchDoneRef.current = mediaPath;
+      return;
+    }
+
+    batchRunningRef.current = true;
+    const maxParallel = 3; // ffmpeg is I/O bound, 3 concurrent copies is plenty
+
+    const extractAudioBatch = async () => {
+      for (let i = 0; i < remaining.length; i += maxParallel) {
+        const chunk = remaining.slice(i, i + maxParallel);
+        await Promise.all(
+          chunk.map(async (s) => {
+            const key = `${mediaPath}:${s.index}`;
+            audioExtracting.current.add(key);
+            bumpCacheVersion();
+            try {
+              const result = await invoke<{ path: string; progressId: number }>("extract_audio_track", {
+                path: mediaPath,
+                streamIndex: s.index,
+                codecName: s.codec_name,
+                forceTranscode: false,
+              });
+              audioExtractCache.current.set(key, result.path);
+              if (!result.path.includes("iluha_audio_cache")) {
+                tempFilesRef.current.push(result.path);
+              }
+            } catch {
+              // silently fail for background extraction
+            } finally {
+              audioExtracting.current.delete(key);
+              bumpCacheVersion();
+            }
+          }),
+        );
+      }
+    };
+
+    const extractSubBatch = async () => {
+      for (let i = 0; i < remainingSubs.length; i += maxParallel) {
+        const chunk = remainingSubs.slice(i, i + maxParallel);
+        await Promise.all(
+          chunk.map(async (s) => {
+            try {
+              const result = await invoke<{ subtitle: string; fonts: string[]; progressId: number }>(
+                "extract_video_subtitle",
+                {
+                  path: mediaPath,
+                  streamIndex: s.index,
+                  codecName: s.codec_name,
+                },
+              );
+              subExtractCache.current.set(`${mediaPath}:${s.index}`, result.subtitle);
+              tempFilesRef.current.push(result.subtitle, ...result.fonts);
+            } catch {
+              // silently fail
+            }
+          }),
+        );
+      }
+    };
+
+    (async () => {
+      await Promise.all([extractAudioBatch(), extractSubBatch()]);
+      batchRunningRef.current = false;
+      batchDoneRef.current = mediaPath;
+    })();
+  }, [mediaPath, audioStreams, extAudio, subtitleStreams, extSubs, selectedAudio, selectedSub, videoStarted]);
+
+  // Listen for audio playback failure and fallback to transcode
   useEffect(() => {
     if (!mediaPath) return;
-    const prefetched = audioPrefetchRef.current;
-    const inflight = audioPrefetchingRef.current;
-    const allStreams = [...audioStreams, ...extAudio];
-    const delay = Math.round((mediaGet(mediaPath)?.audioOffset ?? 0) * 1000);
-    for (const s of allStreams) {
-      if (prefetched.has(s.index) || inflight.has(s.index)) continue;
-      inflight.add(s.index);
-      const p = s.file_path
-        ? invoke<string>("remux_with_external_audio", {
-          videoPath: mediaPath,
-          audioPath: s.file_path,
-          audioDelayMs: delay,
-        })
-        : invoke<string>("remux_video_audio", {
-          path: mediaPath,
-          streamIndex: s.index,
-          audioDelayMs: delay,
-        });
-      p.then((path) => {
-        tempFilesRef.current.push(path);
-        prefetched.set(s.index, path);
-      }).catch(() => { })
-        .finally(() => { inflight.delete(s.index); });
-    }
-  }, [mediaPath, audioStreams, extAudio]);
 
+    const handler = () => {
+      if (fallbackLock.current) return;
+      fallbackLock.current = true;
+
+      // Retry current selected track with forced transcode
+      const cur = selectedAudio;
+      showToast("Аудиокодек не поддерживается, перекодируем...", "info");
+      handleAudio(cur, true);
+    };
+
+    window.addEventListener("audio-track-failed", handler);
+    return () => {
+      window.removeEventListener("audio-track-failed", handler);
+      fallbackLock.current = false;
+    };
+  }, [mediaPath, selectedAudio, handleAudio]);
+
+  // Listen for subtitle offset changes
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail as {
@@ -431,35 +653,97 @@ function Tracks({
       };
       if (detail.path === mediaPath) {
         setSubDelay(detail.offset);
-        const delta = detail.offset - appliedOffsetRef.current;
-        if (delta !== 0 && textTrackRef.current?.cues) {
-          const track = textTrackRef.current;
-          if (track.cues)
-            for (let i = 0; i < track.cues.length; i++) {
-              try {
-                const c = track.cues[i] as VTTCue;
-                c.startTime += delta;
-                c.endTime += delta;
-              } catch { }
-            }
-        }
-        appliedOffsetRef.current = detail.offset;
+        // Regenerate subtitle with new offset
+        if (selectedSub !== SUB_OFF) loadSubtitle(selectedSub);
       }
     };
     window.addEventListener("suboffsetchange", handler);
     return () => window.removeEventListener("suboffsetchange", handler);
-  }, [mediaPath]);
+  }, [mediaPath, selectedSub, loadSubtitle]);
 
+  // Drag-and-drop external tracks
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    (async () => {
+      const { listen } = await import("@tauri-apps/api/event");
+      unlisten = await listen<{ paths: string[] }>("tauri://drag-drop", (e) => {
+        const audioExts = new Set([
+          "mp3", "aac", "m4a", "mka", "ac3", "eac3", "dts", "truehd",
+          "flac", "ogg", "opus", "wav", "wma",
+        ]);
+        const subExts = new Set([
+          "srt", "ass", "ssa", "vtt", "sub", "idx", "sup", "pgs",
+        ]);
+        for (const p of e.payload.paths) {
+          const ext = p.split(".").pop()?.toLowerCase() ?? "";
+          if (audioExts.has(ext)) {
+            const idx = extCounter.current--;
+            const newTrack: VideoStreamInfo = {
+              index: idx,
+              codec_type: "audio",
+              codec_name: ext,
+              language: null,
+              title: p.split(/[/\\]/).pop() ?? "Audio",
+              is_default: false,
+              is_forced: false,
+              is_comment: false,
+              bit_rate: null,
+              channels: null,
+              sample_rate: null,
+              width: null,
+              height: null,
+              file_path: p,
+            };
+            setExtAudio((prev) => [...prev, newTrack]);
+            handleAudio(idx);
+            showToast("Аудиодорожка добавлена", "success");
+          } else if (subExts.has(ext)) {
+            const idx = extCounter.current--;
+            const newTrack: VideoStreamInfo = {
+              index: idx,
+              codec_type: "subtitle",
+              codec_name: ext,
+              language: null,
+              title: p.split(/[/\\]/).pop() ?? "Subtitles",
+              is_default: false,
+              is_forced: false,
+              is_comment: false,
+              bit_rate: null,
+              channels: null,
+              sample_rate: null,
+              width: null,
+              height: null,
+              file_path: p,
+            };
+            setExtSubs((prev) => [...prev, newTrack]);
+            handleSub(idx);
+            showToast("Субтитры добавлены", "success");
+          }
+        }
+      });
+    })();
+    return () => {
+      if (unlisten) unlisten();
+    };
+  }, [handleAudio, handleSub]);
+
+  // Cleanup on file switch / unmount
   useEffect(() => {
     return () => {
+      batchRunningRef.current = false;
+      batchDoneRef.current = null;
       if (subTrackElRef.current) subTrackElRef.current.remove();
       if (subBlobUrlRef.current) URL.revokeObjectURL(subBlobUrlRef.current);
       for (const p of tempFilesRef.current) {
-        invoke("cleanup_temp_file", { path: p }).catch(() => { });
+        invoke("cleanup_temp_file", { path: p }).catch(() => {});
       }
       tempFilesRef.current = [];
+      audioExtractCache.current.clear();
+      audioExtracting.current.clear();
+      subExtractCache.current.clear();
+      setVideoStarted(false);
     };
-  }, []);
+  }, [mediaPath]);
 
   const handleAddAudio = useCallback(async () => {
     try {
@@ -497,11 +781,18 @@ function Tracks({
         language: null,
         title: file.split(/[/\\]/).pop() ?? "Audio",
         is_default: false,
+        is_forced: false,
+        is_comment: false,
+        bit_rate: null,
+        channels: null,
+        sample_rate: null,
+        width: null,
+        height: null,
         file_path: file,
       };
       setExtAudio((prev) => [...prev, newTrack]);
       handleAudio(idx);
-    } catch { }
+    } catch {}
   }, [handleAudio]);
 
   const handleAddSub = useCallback(async () => {
@@ -535,11 +826,18 @@ function Tracks({
         language: null,
         title: file.split(/[/\\]/).pop() ?? "Subtitles",
         is_default: false,
+        is_forced: false,
+        is_comment: false,
+        bit_rate: null,
+        channels: null,
+        sample_rate: null,
+        width: null,
+        height: null,
         file_path: file,
       };
       setExtSubs((prev) => [...prev, newTrack]);
       handleSub(idx);
-    } catch { }
+    } catch {}
   }, [handleSub]);
 
   return (
@@ -555,12 +853,34 @@ function Tracks({
         label="Аудио"
         tracks={
           mergedAudio.length > 0
-            ? mergedAudio.map((s) => ({ index: s.index, label: formatStreams(s) }))
+            ? mergedAudio.map((s) => ({
+                index: s.index,
+                label: formatStreams(s),
+              }))
             : [{ index: -1, label: "—" }]
         }
         selected={mergedAudio.length > 0 ? selectedAudio : -1}
         onChange={handleAudio}
         onAdd={handleAddAudio}
+        isExtracting={isExtracting}
+        extractElapsed={extractElapsed}
+        progressPercent={extractProgress}
+        statuses={Object.fromEntries(
+          mergedAudio.map((s) => {
+            const key = `${mediaPath}:${s.index}`;
+            let status: "idle" | "extracting" | "cached" | "copy" = "idle";
+            if (s.file_path) {
+              status = "cached";
+            } else if (isCopyCodec(s.codec_name)) {
+              status = "copy";
+            } else if (audioExtractCache.current.has(key)) {
+              status = "cached";
+            } else if (audioExtracting.current.has(key)) {
+              status = "extracting";
+            }
+            return [s.index, status === "idle" ? undefined : status];
+          }),
+        )}
       />
       <TrackDropdown
         label="Сабы"

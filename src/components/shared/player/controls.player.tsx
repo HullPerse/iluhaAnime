@@ -3,7 +3,6 @@ import {
   selectPlayback,
   selectTextTrack,
   selectTime,
-  selectVolume,
   usePlayer,
 } from "@videojs/react";
 import {
@@ -20,18 +19,23 @@ import {
   SquareX,
   Square,
 } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import type { VideoStreamInfo } from "@/types";
 import Tracks from "./tracks.player";
 import { cn } from "@/lib/index.utils";
-import { usePlayerStore } from "@/store/player.store";
 
 function Controls({
   chapters,
   mediaPath,
   streams,
   videoEl,
-  onAudioSwitch,
+  volume,
+  muted,
+  onVolumeChange,
+  onToggleMuted,
+  playbackRate,
+  onPlaybackRateChange,
+  onAudioSrcChange,
   onFileNext,
   onFilePrev,
   hasNext,
@@ -39,16 +43,25 @@ function Controls({
   onToggleAutoHide,
   cinemaMode,
   autoHideUi,
-  audioReady,
   loading,
   autoAudio,
   autoSubs,
+  subPath,
+  subFonts,
+  subIsAss,
+  initialAudioPath,
 }: {
   chapters?: { start_time: number; end_time: number; title: string }[];
   mediaPath?: string;
   streams?: VideoStreamInfo[];
   videoEl?: HTMLVideoElement | null;
-  onAudioSwitch?: (newSrc: string | null) => void;
+  volume: number;
+  muted: boolean;
+  onVolumeChange: (v: number) => void;
+  onToggleMuted: () => void;
+  playbackRate: number;
+  onPlaybackRateChange: (rate: number) => void;
+  onAudioSrcChange?: (src: string | null) => void;
   onFileNext?: () => void;
   onFilePrev?: () => void;
   hasNext?: boolean;
@@ -56,35 +69,31 @@ function Controls({
   onToggleAutoHide?: () => void;
   cinemaMode?: boolean;
   autoHideUi?: boolean;
-  audioReady?: boolean;
   loading?: boolean;
   autoAudio?: string[];
   autoSubs?: string[];
+  subPath?: string;
+  subFonts?: string[];
+  subIsAss?: boolean;
+  initialAudioPath?: string;
 }) {
   const [dragging, setDragging] = useState<boolean>(false);
   const [boundaryMsg, setBoundaryMsg] = useState<string | null>(null);
 
   const time = usePlayer(selectTime);
   const playback = usePlayer(selectPlayback);
-  const value = usePlayer(selectVolume);
   const textTrack = usePlayer(selectTextTrack);
-  const persistVolume = usePlayerStore((s) => s.setVolume);
 
   const paused = playback?.paused ?? true;
   const currentTime = time?.currentTime ?? 0;
   const duration = time?.duration ?? 0;
-  const muted = value?.muted;
 
-  const [playbackRate, setPlaybackRate] = useState(1);
   const [speedOpen, setSpeedOpen] = useState(false);
   const speedRef = useRef<HTMLDivElement>(null);
   const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
   const volumeContainerRef = useRef<HTMLDivElement>(null);
-  const volumeRestored = useRef(false);
   const boundaryTimerRef = useRef<number | null>(null);
-
-  const setVolume = (e: number) => value?.setVolume(e);
 
   const seek = time?.seek;
   const chaptersCues = textTrack?.chaptersCues ?? [];
@@ -138,7 +147,7 @@ function Controls({
   };
 
   const getVolumeIcon = () => {
-    const vol = value?.volume ?? 0;
+    const vol = volume;
     if (vol === 0 || muted) return <VolumeX />;
     if (vol <= 0.33) return <Volume className="ml-1" />;
     if (vol <= 0.66) return <Volume1 />;
@@ -146,7 +155,7 @@ function Controls({
   };
 
   const handleVolume = (clientX: number) => {
-    if (!volumeContainerRef.current || !value) return;
+    if (!volumeContainerRef.current) return;
 
     const rect = volumeContainerRef.current.getBoundingClientRect();
     const percent = Math.max(
@@ -154,8 +163,7 @@ function Controls({
       Math.min(1, (clientX - rect.left) / rect.width),
     );
 
-    setVolume(percent);
-    persistVolume(percent);
+    onVolumeChange(percent);
   };
 
   const handleMouseMove = (e: { clientX: number }) => {
@@ -166,22 +174,6 @@ function Controls({
   const handleMouseUp = () => {
     setDragging(false);
   };
-
-  useEffect(() => {
-    if (
-      !value ||
-      volumeRestored.current ||
-      value.volumeAvailability !== "available"
-    )
-      return;
-
-    const saved = usePlayerStore.getState().volume;
-    if (saved !== null && !Number.isNaN(saved)) {
-      value.setVolume(saved);
-    }
-
-    volumeRestored.current = true;
-  }, [value]);
 
   useEffect(() => {
     return () => {
@@ -204,9 +196,7 @@ function Controls({
     }
   }, [dragging]);
 
-  const displayVolume = Number(muted ? 0 : (value?.volume ?? 0));
-
-  const isPlayerReady = value && typeof value.setVolume === "function";
+  const displayVolume = Number(muted ? 0 : volume);
 
   useEffect(() => {
     if (videoEl) videoEl.playbackRate = playbackRate;
@@ -221,6 +211,9 @@ function Controls({
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [speedOpen]);
+
+  const memoAudio = useMemo(() => streams?.filter((s) => s.codec_type === "audio") ?? [], [streams]);
+  const memoSub = useMemo(() => streams?.filter((s) => s.codec_type === "subtitle") ?? [], [streams]);
 
   return (
     <main className="relative flex flex-row items-center gap-1 p-1">
@@ -316,7 +309,7 @@ function Controls({
                     playbackRate === rate && "bg-secondary text-white",
                   )}
                   onClick={() => {
-                    setPlaybackRate(rate);
+                    onPlaybackRateChange(rate);
                     setSpeedOpen(false);
                   }}
                 >
@@ -330,14 +323,17 @@ function Controls({
 
       {mediaPath && streams && videoEl && !loading && (
         <Tracks
-          audioStreams={streams.filter((s) => s.codec_type === "audio")}
-          subtitleStreams={streams.filter((s) => s.codec_type === "subtitle")}
+          audioStreams={memoAudio}
+          subtitleStreams={memoSub}
           mediaPath={mediaPath}
           videoEl={videoEl}
-          onAudioSwitch={onAudioSwitch!}
-          audioReady={audioReady}
+          onAudioSrcChange={onAudioSrcChange!}
           autoAudio={autoAudio}
           autoSubs={autoSubs}
+          subPath={subPath}
+          subFonts={subFonts}
+          subIsAss={subIsAss}
+          initialAudioPath={initialAudioPath}
         />
       )}
 
@@ -371,12 +367,8 @@ function Controls({
           size="icon"
           variant="ghost"
           className="size-6"
-          onClick={() => {
-            if (value?.toggleMuted) {
-              value.toggleMuted();
-            }
-          }}
-          disabled={!isPlayerReady || loading}
+          onClick={onToggleMuted}
+          disabled={loading}
         >
           {getVolumeIcon()}
         </Button>
@@ -385,12 +377,12 @@ function Controls({
           ref={volumeContainerRef}
           className="w-24 windows95-border bg-white relative cursor-pointer items-center justify-center"
           onClick={(e) => {
-            if (!isPlayerReady) return;
+            if (loading) return;
             e.preventDefault();
             handleVolume(e.clientX);
           }}
           onMouseDown={(e) => {
-            if (!isPlayerReady) return;
+            if (loading) return;
             e.preventDefault();
             setDragging(true);
             handleVolume(e.clientX);

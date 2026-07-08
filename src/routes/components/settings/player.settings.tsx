@@ -18,6 +18,13 @@ export default function SettingsPlayer() {
     audioExtensions,
     subtitleExtensions,
     showTrackFiles,
+    preferredAudioLangs,
+    preferredAudioPatterns,
+    preferredSubLangs,
+    preferredSubPatterns,
+    preferForcedSubs,
+    fallbackToFirstTrack,
+    afterPlaybackAction,
     patch,
   } = useSettingsStore();
   const [extInput, setExtInput] = useState("");
@@ -57,7 +64,115 @@ export default function SettingsPlayer() {
         />
       </label>
 
-      <hr className=".windows95-header w-full" />
+      <hr className="windows95-header w-full" />
+
+      <p className="windows95-text text-muted font-bold">Предпочтения дорожек</p>
+
+      <label className="flex items-center gap-2 windows95-text text-text">
+        <span className="w-48">Языки аудио</span>
+        <Input
+          value={preferredAudioLangs.join(", ")}
+          onChange={(e) =>
+            patch({
+              preferredAudioLangs: e.target.value
+                .split(",")
+                .map((s) => s.trim().toLowerCase())
+                .filter(Boolean),
+            })
+          }
+          placeholder="jpn, eng"
+          className="w-40"
+        />
+      </label>
+
+      <label className="flex items-center gap-2 windows95-text text-text">
+        <span className="w-48">Паттерны аудио</span>
+        <Input
+          value={preferredAudioPatterns.join(", ")}
+          onChange={(e) =>
+            patch({
+              preferredAudioPatterns: e.target.value
+                .split(",")
+                .map((s) => s.trim())
+                .filter(Boolean),
+            })
+          }
+          placeholder="FLAC, !Commentary"
+          className="w-40"
+        />
+      </label>
+
+      <label className="flex items-center gap-2 windows95-text text-text">
+        <span className="w-48">Языки субтитров</span>
+        <Input
+          value={preferredSubLangs.join(", ")}
+          onChange={(e) =>
+            patch({
+              preferredSubLangs: e.target.value
+                .split(",")
+                .map((s) => s.trim().toLowerCase())
+                .filter(Boolean),
+            })
+          }
+          placeholder="eng, rus"
+          className="w-40"
+        />
+      </label>
+
+      <label className="flex items-center gap-2 windows95-text text-text">
+        <span className="w-48">Паттерны субтитров</span>
+        <Input
+          value={preferredSubPatterns.join(", ")}
+          onChange={(e) =>
+            patch({
+              preferredSubPatterns: e.target.value
+                .split(",")
+                .map((s) => s.trim())
+                .filter(Boolean),
+            })
+          }
+          placeholder="Full, Signs, !SDH"
+          className="w-40"
+        />
+      </label>
+
+      <label className="flex items-center gap-2 windows95-text text-text">
+        <span className="w-48">Forced-субтитры</span>
+        <input
+          type="checkbox"
+          checked={preferForcedSubs}
+          onChange={(e) => patch({ preferForcedSubs: e.target.checked })}
+        />
+      </label>
+
+      <label className="flex items-center gap-2 windows95-text text-text">
+        <span className="w-48">Первую дорожку по умолчанию</span>
+        <input
+          type="checkbox"
+          checked={fallbackToFirstTrack}
+          onChange={(e) => patch({ fallbackToFirstTrack: e.target.checked })}
+        />
+      </label>
+
+      <hr className="windows95-header w-full" />
+
+      <p className="windows95-text text-muted font-bold">Воспроизведение</p>
+
+      <label className="flex items-center gap-2 windows95-text text-text">
+        <span className="w-48">После окончания</span>
+        <Select
+          className="w-40"
+          value={afterPlaybackAction}
+          onChange={(v) => patch({ afterPlaybackAction: v as "next" | "stop" | "repeat_one" })}
+          options={[
+            { value: "next", label: "Следующий файл" },
+            { value: "stop", label: "Остановить" },
+            { value: "repeat_one", label: "Повторить текущий" },
+          ]}
+        />
+      </label>
+
+      <hr className="windows95-header w-full" />
 
       <p className="windows95-text text-muted font-bold">Субтитры</p>
 

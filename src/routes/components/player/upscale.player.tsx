@@ -147,7 +147,7 @@ export default function UpscalePlayer({ filePath, onDone }: Props) {
     unlistenRef.current = unlisten;
 
     try {
-      await invoke<string>("upscale_video", {
+      await invoke<{ path: string; progressId: number }>("upscale_video", {
         inputPath: filePath,
         outputPath,
         width: w,

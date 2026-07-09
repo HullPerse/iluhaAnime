@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { convertFileSrc } from "@tauri-apps/api/core";
+import { toAssetUrl } from "@/lib/player.utils";
 import { formatTime } from "@/lib/index.utils";
 import {
   selectBuffer,
@@ -194,7 +194,7 @@ function Timeline({
                 <div className="mb-0.5">
                   <img
                     key={thumbIndex}
-                    src={convertFileSrc(thumbs[thumbIndex])}
+                    src={toAssetUrl(thumbs[thumbIndex])}
                     className={`w-32 max-32 min-32 h-18 min-h-18 max-h-18 border border-black/20 ${imgLoaded ? "" : "hidden"}`}
                     alt="Thumbnail"
                     onLoad={() => setImgLoaded(true)}

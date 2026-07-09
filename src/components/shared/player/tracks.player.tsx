@@ -1,4 +1,4 @@
-import { invoke, convertFileSrc } from "@tauri-apps/api/core";
+import { invoke } from "@tauri-apps/api/core";
 import type { VideoStreamInfo } from "@/types";
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { parseVTT } from "@/lib/index.utils";
@@ -6,7 +6,7 @@ import { useMediaStore } from "@/store/media.store";
 import { showToast } from "@/lib/toast.utils";
 import AssOverlay from "./subtitles.player";
 import TrackDropdown from "./tracks/dropdown.tracks";
-import { formatStreams, isAssSub } from "@/lib/player.utils";
+import { formatStreams, isAssSub, toAssetUrl } from "@/lib/player.utils";
 import { selectBestTrack } from "@/lib/track-preferences";
 import { useSettingsStore } from "@/store/settings.store";
 
@@ -25,7 +25,6 @@ function Tracks({
   autoSubs,
   subPath: initialSubPath,
   subFonts: initialSubFonts,
-  subIsAss: initialSubIsAss,
   initialAudioPath,
 }: {
   audioStreams: VideoStreamInfo[];
@@ -185,7 +184,7 @@ function Tracks({
     return () => clearInterval(id);
   }, [isExtracting]);
 
-  const [assUrl, setAssUrl] = useState<string | null>(null);
+  const [assContent, setAssContent] = useState<string>("");
   const [assFonts, setAssFonts] = useState<string[]>([]);
   const [assVisible, setAssVisible] = useState<boolean>(false);
   const [subDelay, setSubDelay] = useState<number>(0);
@@ -226,14 +225,14 @@ function Tracks({
       }
 
       if (stream.file_path) {
-        onAudioSrcChange(convertFileSrc(stream.file_path));
+        onAudioSrcChange(toAssetUrl(stream.file_path));
         return;
       }
 
       const key = `${mediaPath}:${idx}`;
       const cached = audioExtractCache.current.get(key);
       if (cached) {
-        onAudioSrcChange(convertFileSrc(cached));
+        onAudioSrcChange(toAssetUrl(cached));
         return;
       }
 
@@ -258,7 +257,7 @@ function Tracks({
         if (!result.path.includes("iluha_audio_cache")) {
           tempFilesRef.current.push(result.path);
         }
-        onAudioSrcChange(convertFileSrc(result.path));
+        onAudioSrcChange(toAssetUrl(result.path));
       } catch {
         // If normal extraction fails, try transcode as fallback
         if (!forceTranscode) {
@@ -281,7 +280,7 @@ function Tracks({
   );
 
   const loadSubtitle = useCallback(
-    async (idx: number, preExtractedPath?: string) => {
+    async (idx: number, preExtractedPath?: string, preExtractedFonts?: string[]) => {
       if (!videoEl) return;
 
       const gen = ++subGenRef.current;
@@ -295,7 +294,7 @@ function Tracks({
         subBlobUrlRef.current = null;
       }
 
-      setAssUrl(null);
+      setAssContent("");
       setAssVisible(false);
 
       const stream = mergedSubs.find(
@@ -318,7 +317,7 @@ function Tracks({
 
         if (preExtractedPath) {
           extractedPath = preExtractedPath;
-          fontPaths = [];
+          fontPaths = preExtractedFonts ?? [];
         } else if (stream.file_path) {
           const cacheKey = `ext:${stream.file_path}`;
           const cached = subExtractCache.current.get(cacheKey);
@@ -363,16 +362,15 @@ function Tracks({
           return;
         }
 
-        const url = convertFileSrc(extractedPath);
         tempFilesRef.current.push(extractedPath, ...fontPaths);
 
         if (isAssSub(stream)) {
-          setAssUrl(url);
+          const text = await invoke<string>("read_text_file", { path: extractedPath });
+          setAssContent(text);
           setAssFonts(fontPaths);
           setAssVisible(true);
         } else {
-          const resp = await fetch(url);
-          const text = await resp.text();
+          const text = await invoke<string>("read_text_file", { path: extractedPath });
           const cues = parseVTT(text);
           const lang = stream.language ?? "und";
           const offset = mediaGet(mediaPath)?.subOffset ?? 0;
@@ -438,7 +436,7 @@ function Tracks({
           subBlobUrlRef.current = null;
         }
         setAssVisible(false);
-        setAssUrl(null);
+        setAssContent("");
         return;
       }
       loadSubtitle(idx);
@@ -492,7 +490,7 @@ function Tracks({
     if (initialAudioPath) {
       // Pre-populate cache with pre-extracted path
       audioExtractCache.current.set(`${mediaPath}:${targetAudio}`, initialAudioPath);
-      onAudioSrcChange(convertFileSrc(initialAudioPath));
+      onAudioSrcChange(toAssetUrl(initialAudioPath));
     } else if (targetAudio >= 0) {
       handleAudio(targetAudio);
     }
@@ -519,15 +517,7 @@ function Tracks({
 
     setSelectedSub(targetSub);
     if (initialSubPath && targetSub !== SUB_OFF) {
-      const url = convertFileSrc(initialSubPath);
-      tempFilesRef.current.push(initialSubPath, ...(initialSubFonts ?? []));
-      if (initialSubIsAss) {
-        setAssUrl(url);
-        setAssFonts(initialSubFonts ?? []);
-        setAssVisible(true);
-      } else {
-        loadSubtitle(targetSub, initialSubPath);
-      }
+      loadSubtitle(targetSub, initialSubPath, initialSubFonts);
     } else if (targetSub !== SUB_OFF) {
       loadSubtitle(targetSub);
     }
@@ -840,7 +830,7 @@ function Tracks({
   return (
     <section className="flex h-6 items-center gap-1 px-1">
       <AssOverlay
-        src={assUrl ?? ""}
+        content={assContent}
         videoEl={videoEl}
         visible={assVisible && !!hasAssSub}
         delay={subDelay}

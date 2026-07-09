@@ -1,4 +1,9 @@
+import { convertFileSrc } from "@tauri-apps/api/core";
 import { FolderNode, VideoFileEntry, VideoStreamInfo } from "@/types";
+
+export function toAssetUrl(path: string): string {
+  return convertFileSrc(path.replace(/\\/g, "/"));
+}
 
 export function nodeMatchesSearch(node: FolderNode, query: string): boolean {
   const value = query.toLowerCase();

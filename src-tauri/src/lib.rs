@@ -97,6 +97,11 @@ fn cleanup_temp_file(path: String) -> Result<(), String> {
 }
 
 #[tauri::command]
+fn read_text_file(path: String) -> Result<String, String> {
+    std::fs::read_to_string(&path).map_err(|e| format!("{e}"))
+}
+
+#[tauri::command]
 async fn get_stream_port() -> Result<u16, String> {
     stream::server_port().ok_or_else(|| "stream server not started".to_string())
 }
@@ -403,6 +408,7 @@ pub fn run() {
             resume_torrent,
             remove_torrent,
             cleanup_temp_file,
+            read_text_file,
             get_stream_port,
             shutdown_stream,
             get_progress,

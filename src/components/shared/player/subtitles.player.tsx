@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { convertFileSrc } from "@tauri-apps/api/core";
+import { toAssetUrl } from "@/lib/player.utils";
 import { showToast } from "@/lib/toast.utils";
 
 if (import.meta.hot) {
@@ -24,13 +24,13 @@ async function ensure() {
 }
 
 function AssOverlay({
-  src,
+  content,
   videoEl,
   visible,
   delay,
   fonts,
 }: {
-  src: string
+  content: string
   videoEl: HTMLVideoElement | null
   visible: boolean
   delay: number
@@ -49,7 +49,7 @@ function AssOverlay({
   useEffect(() => {
     if (!videoEl) return
 
-    if (!src) {
+    if (!content) {
       contentRef.current = ""
       instRef.current?.destroy()
       instRef.current = null
@@ -60,17 +60,14 @@ function AssOverlay({
 
     ;(async () => {
       try {
-        const resp = await fetch(src)
-        const text = await resp.text()
         if (cancelled) return
-
-        contentRef.current = text
+        contentRef.current = content
 
         const { AkariSub, workerUrl, wasmUrl } = await ensure()
 
         const instance = new AkariSub({
           video: videoEl,
-          subContent: text,
+          subContent: content,
           workerUrl,
           wasmUrl,
           offscreenRender: true,
@@ -78,7 +75,7 @@ function AssOverlay({
           fullTrackWarmup: true,
           timeOffset: delay,
           prescaleFactor: window.devicePixelRatio,
-          fonts: fonts.length > 0 ? fonts.map((f) => convertFileSrc(f)) : undefined,
+          fonts: fonts.length > 0 ? fonts.map((f) => toAssetUrl(f)) : undefined,
         })
 
         await instance.ready
@@ -94,7 +91,7 @@ function AssOverlay({
     })()
 
     return () => { cancelled = true }
-  }, [src, videoEl, fonts])
+  }, [content, videoEl, fonts])
 
   useEffect(() => {
     const r = instRef.current

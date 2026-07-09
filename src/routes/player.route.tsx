@@ -27,7 +27,7 @@ import { CHEATSHEET_ROWS } from "@/config/keybinds.config";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
-import { buildTree, collectFolderPaths } from "@/lib/player.utils";
+import { buildTree, collectFolderPaths, toAssetUrl } from "@/lib/player.utils";
 import { THUMB_INTERVAL } from "@/config/player.config";
 import FFMPEG from "./components/player/ffmpeg.player";
 import { getAction } from "@/config/keybinds.config";
@@ -776,7 +776,7 @@ function PlayerRoute({
       )}
 
       {folderTrees.length > 0 && (
-        <section className="flex flex-col w-full windows95-text gap-2 p-1">
+        <section className="flex flex-col w-full windows95-text gap-2">
           {folderTrees.map((tree) => (
             <div key={tree.path} className="flex flex-col windows95-active-border bg-primary">
               <FolderView

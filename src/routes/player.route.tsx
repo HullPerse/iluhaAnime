@@ -151,75 +151,66 @@ function PlayerRoute({
   const playFile = useCallback(
     (path: string) => {
       const gen = ++playGenRef.current;
-      const savedEntry = mediaGet(path);
-      const saved = savedEntry?.position;
-
       setVideoLoading(true);
-      setChapters([]);
-      setStreams([]);
-      setAutoAudio([]);
-      setAutoSubs([]);
 
+      // Probe tracks in background
       (async () => {
         try {
-          const info = await invoke<{
-            chapters: ChapterType[];
-            streams: VideoStreamInfo[];
-          }>("get_video_info", { path });
+          const [info, tracks] = await Promise.all([
+            invoke<{
+              chapters: ChapterType[];
+              streams: VideoStreamInfo[];
+            }>("get_video_info", { path }),
+            invoke<{
+              audio: { path: string; file_name: string }[];
+              subtitles: { path: string; file_name: string }[];
+            }>("scan_folder_for_tracks", { videoPath: path }).catch(() => ({
+              audio: [],
+              subtitles: [],
+            })),
+          ]);
           if (gen !== playGenRef.current) return;
           setChapters(info.chapters);
           setStreams(info.streams);
-
-          const tracks = await invoke<{
-            audio: { path: string; file_name: string }[];
-            subtitles: { path: string; file_name: string }[];
-          }>("scan_folder_for_tracks", { videoPath: path }).catch(() => ({
-            audio: [],
-            subtitles: [],
-          }));
-          if (gen !== playGenRef.current) return;
-          const autoAudioPaths = tracks.audio.map((a) => a.path);
-          const autoSubsPaths = tracks.subtitles.map((s) => s.path);
-          setAutoAudio(autoAudioPaths);
-          setAutoSubs(autoSubsPaths);
-
-          // Check if any internal audio track needs extraction
-          const audioStreams = info.streams.filter(
-            (s) => s.codec_type === "audio" && !s.file_path,
-          );
-          if (audioStreams.length > 0) {
-            const caches = await invoke<boolean[]>("check_audio_caches", {
-              path,
-              streamIndices: audioStreams.map((s) => s.index),
-            });
-            const allCached = caches.every(Boolean);
-            if (!allCached) {
-              // Show track selector modal
-              setVideoLoading(false);
-              setVideo(null);
-              setTrackSelectorPending({
-                path,
-                chapters: info.chapters,
-                streams: info.streams,
-                autoAudio: autoAudioPaths,
-                autoSubs: autoSubsPaths,
-              });
-              return;
-            }
-          }
-
-          // All cached — open directly
-          setVideo({
+          setAutoAudio(tracks.audio.map((a) => a.path));
+          setAutoSubs(tracks.subtitles.map((s) => s.path));
+          setTrackSelectorPending({
             path,
-            file: path.split(/[/\\]/).pop() ?? "Video",
-            initialTime: saved ?? 0,
-            audioSrc: undefined,
+            chapters: info.chapters,
+            streams: info.streams,
+            autoAudio: tracks.audio.map((a) => a.path),
+            autoSubs: tracks.subtitles.map((s) => s.path),
           });
-          if (gen === playGenRef.current) setVideoLoading(false);
+          // Fire-and-forget pre-extraction of all audio/subtitle tracks
+          (async () => {
+            const audioStreams = info.streams.filter((s: VideoStreamInfo) => s.codec_type === "audio");
+            const subStreams = info.streams.filter((s: VideoStreamInfo) => s.codec_type === "subtitle");
+            if (audioStreams.length > 0 || subStreams.length > 0) {
+              try {
+                  await invoke<{
+                    audio_paths: Record<string, string>;
+                  }>("pre_extract_all_tracks", {
+                  path,
+                  audioStreams: audioStreams.map((s: VideoStreamInfo) => [s.index, s.codec_name]),
+                  subStreams: subStreams.map((s: VideoStreamInfo) => [s.index, s.codec_name]),
+                }).catch(() => ({ audio_paths: {} }));
+                 if (gen !== playGenRef.current) return;
+              } catch (e) {
+                console.error("Pre-extraction failed:", e);
+              }
+            }
+          })();
         } catch {
           if (gen !== playGenRef.current) return;
           setChapters([]);
           setStreams([]);
+          setTrackSelectorPending({
+            path,
+            chapters: [],
+            streams: [],
+            autoAudio: [],
+            autoSubs: [],
+          });
         } finally {
           if (gen === playGenRef.current) setVideoLoading(false);
         }
@@ -227,6 +218,27 @@ function PlayerRoute({
     },
     [mediaGet],
   );
+
+  // Drag-and-drop video file opening
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    (async () => {
+      const { listen } = await import("@tauri-apps/api/event");
+      unlisten = await listen<{ paths: string[] }>("tauri://drag-drop", (e) => {
+        for (const p of e.payload.paths) {
+          const ext = p.split(".").pop()?.toLowerCase() ?? "";
+          const videoExts = useSettingsStore.getState().videoExtensions;
+          if (videoExts.includes(ext)) {
+            playFile(p);
+            return;
+          }
+        }
+      });
+    })();
+    return () => {
+      if (unlisten) unlisten();
+    };
+  }, [playFile]);
 
   useEffect(() => {
     if (folderPaths.length === 0) return;
@@ -550,11 +562,8 @@ function PlayerRoute({
   const handleTrackSelectorConfirm = useCallback(
     (audioIdx: number, subIdx: number, audioPath?: string, subPath?: string, subFonts?: string[], subIsAss?: boolean) => {
       if (!trackSelectorPending) return;
-      const { path, chapters: chs, streams: strs } = trackSelectorPending;
+      const { path } = trackSelectorPending;
       setTrackSelectorPending(null);
-      setChapters(chs);
-      setStreams(strs);
-      // Save selections to mediaStore so Tracks init picks them up
       mediaSetTrack(path, "audio", audioIdx);
       mediaSetTrack(path, "sub", subIdx);
       setVideo({
@@ -566,69 +575,73 @@ function PlayerRoute({
         subFonts,
         subIsAss,
       });
-      setVideoLoading(false);
     },
-    [trackSelectorPending, mediaGet, mediaSetTrack],
+    [trackSelectorPending, mediaSetTrack, mediaGet],
   );
 
   const handleTrackSelectorCancel = useCallback(() => {
     setTrackSelectorPending(null);
   }, []);
 
-  if (trackSelectorPending) {
-    const audioStreams = trackSelectorPending.streams.filter(
-      (s) => s.codec_type === "audio",
-    );
-    const subtitleStreams = trackSelectorPending.streams.filter(
-      (s) => s.codec_type === "subtitle",
-    );
-    return (
-      <TrackSelectorModal
-        mediaPath={trackSelectorPending.path}
-        videoName={
-          trackSelectorPending.path.split(/[/\\]/).pop() ?? "Video"
-        }
-        audioStreams={audioStreams}
-        subtitleStreams={subtitleStreams}
-        externalAudio={externalAudioStreams}
-        externalSubs={externalSubtitleStreams}
-        onConfirm={handleTrackSelectorConfirm}
-        onCancel={handleTrackSelectorCancel}
-      />
-    );
-  }
-
-  if (video) {
-    const videoSrc = streamPort
-      ? `http://127.0.0.1:${streamPort}/file?path=${encodeURIComponent(video.path)}`
-      : convertFileSrc(video.path);
-    return (
-      <main className="flex flex-col w-full h-full gap-1 overflow-y-auto">
-        <Player
-          header={video.file.replace(/\.[^/.]+$/, "")}
-          src={videoSrc}
-          onClose={() => setVideo(null)}
-          audioSrc={video.audioSrc}
-          chapters={chapters}
-          mediaPath={video.path}
-          streams={streams}
-          initialTime={video.initialTime}
-          onFileNext={onFileNext}
-          onFilePrev={onFilePrev}
-          hasNext={hasNext}
-          hasPrev={hasPrev}
-          cinemaMode={cinemaMode}
-          autoHideUi={autoHideUi}
-          onToggleCinema={onToggleCinema}
-          onToggleAutoHide={onToggleAutoHide}
-          loading={videoLoading}
-          autoAudio={autoAudio}
-          autoSubs={autoSubs}
-        />
-    </main>);
-  }
-
   return (
+    <>
+      {video && (() => {
+        const videoSrc = streamPort
+          ? `http://127.0.0.1:${streamPort}/file?path=${encodeURIComponent(video.path)}`
+          : convertFileSrc(video.path);
+        return (
+          <main className="flex flex-col w-full h-full gap-1 overflow-y-auto">
+            <Player
+              header={video.file.replace(/\.[^/.]+$/, "")}
+              src={videoSrc}
+              onClose={() => setVideo(null)}
+              chapters={chapters}
+              mediaPath={video.path}
+              streams={streams}
+              initialTime={video.initialTime}
+              onFileNext={onFileNext}
+              onFilePrev={onFilePrev}
+              hasNext={hasNext}
+              hasPrev={hasPrev}
+              cinemaMode={cinemaMode}
+              autoHideUi={autoHideUi}
+              onToggleCinema={onToggleCinema}
+              onToggleAutoHide={onToggleAutoHide}
+              loading={videoLoading}
+              autoAudio={autoAudio}
+              autoSubs={autoSubs}
+              subPath={video.subPath}
+              subFonts={video.subFonts}
+              subIsAss={video.subIsAss}
+            />
+          </main>
+        );
+      })()}
+
+      {trackSelectorPending && (() => {
+        const audioStreams = trackSelectorPending.streams.filter(
+          (s) => s.codec_type === "audio",
+        );
+        const subtitleStreams = trackSelectorPending.streams.filter(
+          (s) => s.codec_type === "subtitle",
+        );
+        return (
+          <TrackSelectorModal
+            mediaPath={trackSelectorPending.path}
+            videoName={
+              trackSelectorPending.path.split(/[/\\]/).pop() ?? "Video"
+            }
+            audioStreams={audioStreams}
+            subtitleStreams={subtitleStreams}
+            externalAudio={externalAudioStreams}
+            externalSubs={externalSubtitleStreams}
+            onConfirm={handleTrackSelectorConfirm}
+            onCancel={handleTrackSelectorCancel}
+           />
+        );
+      })()}
+
+      {!video && (
     <main className="flex flex-col w-full h-full gap-1 overflow-y-auto">
       {/* FILE CONTROLS */}
       <section className="flex flex-row w-full h-8 windows95-active-border bg-primary gap-1 p-1 items-center">
@@ -861,6 +874,8 @@ function PlayerRoute({
         );
       })}
     </main>
+      )}
+    </>
   );
 }
 

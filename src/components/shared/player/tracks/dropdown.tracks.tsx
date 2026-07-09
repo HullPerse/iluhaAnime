@@ -84,6 +84,7 @@ function TrackDropdown({
               key={t.index}
               className="flex items-center gap-1 w-full text-left px-1 py-0.5 windows95-text bg-white hover:bg-secondary hover:text-white whitespace-nowrap hover:cursor-pointer max-w-md line-clamp-1"
               onClick={() => {
+                if (t.index === selected) { setOpen(false); return; }
                 onChange(t.index);
                 setOpen(false);
               }}

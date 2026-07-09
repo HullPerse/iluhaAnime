@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::OnceLock;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, OnceLock};
 use tauri::{Emitter, Manager};
 use tokio::io::AsyncBufReadExt;
 use tokio::io::AsyncReadExt;
@@ -9,6 +9,7 @@ use tokio::process::Command;
 
 const CACHE_DIR: &str = "iluha_audio_cache";
 const SUB_CACHE_DIR: &str = "iluha_sub_cache";
+const PROBE_CACHE_DIR: &str = "iluha_probe_cache";
 
 /// Global semaphore limiting concurrent ffmpeg processes to 3.
 /// Prevents runaway process explosion from parallel track extractions.
@@ -42,20 +43,20 @@ pub struct AudioExtractResult {
     pub progress_id: u64,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct VideoChapter {
     pub start_time: f64,
     pub end_time: f64,
     pub title: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct VideoInfo {
     pub chapters: Vec<VideoChapter>,
     pub streams: Vec<VideoStreamInfo>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct VideoStreamInfo {
     pub index: i32,
     pub codec_type: String,
@@ -103,7 +104,7 @@ pub(crate) fn ffprobe_exe(app_handle: &tauri::AppHandle) -> String {
     }
 }
 
-pub(crate) fn ffmpeg_exe(app_handle: &tauri::AppHandle) -> String {
+pub fn ffmpeg_exe(app_handle: &tauri::AppHandle) -> String {
     let ext = if cfg!(target_os = "windows") {
         ".exe"
     } else {
@@ -266,9 +267,9 @@ pub async fn extract_video_subtitle(
     path: String,
     stream_index: usize,
     codec_name: Option<String>,
-    progress_registry: tauri::State<'_, crate::progress::ProgressRegistry>,
+    registry: tauri::State<'_, crate::progress::StreamRegistry>,
 ) -> Result<SubtitleExtractResult, String> {
-    let progress_id = progress_registry.create();
+    let (progress_id, sender) = registry.create();
     let is_ass = codec_name.as_deref() == Some("ass") || codec_name.as_deref() == Some("ssa");
     let ext = if is_ass { "ass" } else { "vtt" };
     let cache = sub_cache_dir(&app_handle);
@@ -278,7 +279,7 @@ pub async fn extract_video_subtitle(
     // Check persistent cache
     if cached.exists() {
         let fonts = extract_attached_fonts(&app_handle, &path);
-        progress_registry.update(progress_id, 100.0);
+        let _ = sender.send(100.0);
         return Ok(SubtitleExtractResult {
             subtitle: cached.to_string_lossy().to_string(),
             fonts,
@@ -288,7 +289,7 @@ pub async fn extract_video_subtitle(
 
     let expected_size: u64 = if is_ass { 200_000 } else { 50_000 };
 
-    progress_registry.update(progress_id, 0.0);
+    let _ = sender.send(0.0);
     let _ = app_handle.emit("extract-progress", ExtractProgress {
         stream_index: stream_index as i32,
         progress: 0.0,
@@ -315,7 +316,7 @@ pub async fn extract_video_subtitle(
     args.push(output_path.to_string_lossy().to_string());
 
     let total_duration = get_video_duration(&app_handle, &path).await.unwrap_or(0.0);
-    run_ffmpeg_progress(&app_handle, &args, stream_index, total_duration, expected_size, Some(progress_id), Some(&*progress_registry))
+    run_ffmpeg_progress(&app_handle, &args, stream_index, total_duration, expected_size, Some(&sender))
         .await
         .map_err(|stderr| format!("ffmpeg subtitle extract failed: {stderr}"))?;
 
@@ -323,7 +324,7 @@ pub async fn extract_video_subtitle(
     let _ = std::fs::copy(&output_path, &cached);
     let _ = std::fs::remove_file(&output_path);
 
-    progress_registry.update(progress_id, 100.0);
+    let _ = sender.send(100.0);
     let _ = app_handle.emit("extract-progress", ExtractProgress {
         stream_index: stream_index as i32,
         progress: 100.0,
@@ -337,6 +338,85 @@ pub async fn extract_video_subtitle(
         subtitle: cached.to_string_lossy().to_string(),
         fonts,
         progress_id,
+    })
+}
+
+#[derive(Debug, serde::Serialize)]
+pub struct PreExtractResult {
+    pub audio_paths: std::collections::HashMap<usize, String>,
+    pub subtitle_paths: std::collections::HashMap<usize, String>,
+    pub font_paths: std::collections::HashMap<usize, Vec<String>>,
+}
+
+#[tauri::command]
+pub async fn pre_extract_all_tracks(
+    app_handle: tauri::AppHandle,
+    path: String,
+    audio_streams: Vec<(usize, String)>,
+    sub_streams: Vec<(usize, String)>,
+    registry: tauri::State<'_, crate::progress::StreamRegistry>,
+) -> Result<PreExtractResult, String> {
+    use futures::stream::FuturesUnordered;
+    use futures::StreamExt;
+    use std::pin::Pin;
+
+    let (_progress_id, sender) = registry.create();
+    let _ = sender.send(0.0);
+
+    let total = audio_streams.len() + sub_streams.len();
+    let mut completed = 0usize;
+
+    let mut audio_paths = std::collections::HashMap::new();
+    let mut subtitle_paths = std::collections::HashMap::new();
+    let mut font_paths = std::collections::HashMap::new();
+
+    enum TaskResult {
+        Audio(usize, Result<String, String>),
+        Sub(usize, Result<(String, Vec<String>), String>),
+    }
+
+    let mut tasks: FuturesUnordered<Pin<Box<dyn futures::Future<Output = TaskResult> + Send + '_>>> = FuturesUnordered::new();
+
+    for (idx, codec_name) in audio_streams {
+        let app = app_handle.clone();
+        let p = path.clone();
+        let reg = registry.clone();
+        tasks.push(Box::pin(async move {
+            let result = extract_audio_track(app, p, idx, codec_name, None, None, reg).await;
+            TaskResult::Audio(idx, result.map(|r| r.path))
+        }));
+    }
+
+    for (idx, codec_name) in sub_streams {
+        let app = app_handle.clone();
+        let p = path.clone();
+        let reg = registry.clone();
+        tasks.push(Box::pin(async move {
+            let result = extract_video_subtitle(app, p, idx, Some(codec_name), reg).await;
+            TaskResult::Sub(idx, result.map(|r| (r.subtitle, r.fonts)))
+        }));
+    }
+
+    while let Some(task) = tasks.next().await {
+        match task {
+            TaskResult::Audio(idx, Ok(path)) => { audio_paths.insert(idx, path); }
+            TaskResult::Audio(_, Err(_)) => {}
+            TaskResult::Sub(idx, Ok((sub, fonts))) => {
+                subtitle_paths.insert(idx, sub);
+                font_paths.insert(idx, fonts);
+            }
+            TaskResult::Sub(_, Err(_)) => {}
+        }
+        completed += 1;
+        let _ = sender.send((completed as f64 / total as f64) * 100.0);
+    }
+
+    let _ = sender.send(100.0);
+
+    Ok(PreExtractResult {
+        audio_paths,
+        subtitle_paths,
+        font_paths,
     })
 }
 
@@ -445,10 +525,53 @@ fn font_cache_key(video_path: &str) -> String {
 
 fn cache_key(video_path: &str, stream_index: usize) -> String {
     use sha1::{Digest, Sha1};
+    let meta = std::fs::metadata(video_path).ok();
+    let mtime = meta
+        .as_ref()
+        .and_then(|m| m.modified().ok())
+        .map(|t| {
+            t.duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_nanos()
+        })
+        .unwrap_or(0);
+    let size = meta.map(|m| m.len()).unwrap_or(0);
     let mut hasher = Sha1::new();
     hasher.update(video_path.as_bytes());
     hasher.update(b":");
     hasher.update(stream_index.to_string().as_bytes());
+    hasher.update(b":");
+    hasher.update(mtime.to_string().as_bytes());
+    hasher.update(b":");
+    hasher.update(size.to_string().as_bytes());
+    hex::encode(hasher.finalize())
+}
+
+fn probe_cache_dir(app_handle: &tauri::AppHandle) -> std::path::PathBuf {
+    let dir = app_handle
+        .path()
+        .app_data_dir()
+        .unwrap_or_else(|_| std::env::temp_dir().join("iluha"))
+        .join(PROBE_CACHE_DIR);
+    let _ = std::fs::create_dir_all(&dir);
+    dir
+}
+
+fn probe_cache_key(path: &str) -> String {
+    use sha1::{Digest, Sha1};
+    let mtime = std::fs::metadata(path)
+        .ok()
+        .and_then(|m| m.modified().ok())
+        .map(|t| {
+            t.duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_nanos()
+        })
+        .unwrap_or(0);
+    let mut hasher = Sha1::new();
+    hasher.update(path.as_bytes());
+    hasher.update(b":");
+    hasher.update(mtime.to_string().as_bytes());
     hex::encode(hasher.finalize())
 }
 
@@ -567,21 +690,33 @@ struct ExtractProgress {
     expected_size: u64,
 }
 
-async fn run_ffmpeg_progress(
+/// Compute a size-scaled timeout in seconds for FFmpeg operations.
+/// Minimum 60s, scaled by ~3s per MB of input file, capped at 7200s (2h).
+fn compute_ffmpeg_timeout_secs(file_size: u64) -> u64 {
+    let file_mb = (file_size / 1_000_000).max(1);
+    let scaled = 60 + file_mb * 3;
+    scaled.min(7200)
+}
+
+/// Extract the input file path from an ffmpeg argument list.
+/// Args always contain `-i <path>` at the start after `-y`.
+fn extract_input_path(args: &[String]) -> Option<&str> {
+    for (i, a) in args.iter().enumerate() {
+        if a == "-i" {
+            return args.get(i + 1).map(|s| s.as_str());
+        }
+    }
+    None
+}
+
+async fn run_ffmpeg_progress_inner(
     app_handle: &tauri::AppHandle,
     args: &[String],
     stream_index: usize,
     total_duration: f64,
     expected_size: u64,
-    progress_id: Option<u64>,
-    registry: Option<&crate::progress::ProgressRegistry>,
-) -> Result<(), String> {
-    // Acquire semaphore permit — limits concurrent ffmpeg processes globally
-    let _permit = FFMPEG_SEM
-        .acquire()
-        .await
-        .map_err(|_| "semaphore closed".to_string())?;
-
+    progress_sender: Option<&tokio::sync::watch::Sender<f64>>,
+) -> Result<String, String> {
     let mut final_args = vec![
         "-progress".into(),
         "pipe:1".into(),
@@ -611,57 +746,71 @@ async fn run_ffmpeg_progress(
     let mut reader = tokio::io::BufReader::new(stdout);
     let mut line = String::new();
     let mut last_size: u64 = 0;
+    let mut last_output = tokio::time::Instant::now();
+    let idle_timeout = tokio::time::Duration::from_secs(60);
 
     loop {
-        line.clear();
-        let n = reader
-            .read_line(&mut line)
-            .await
-            .map_err(|e| format!("read ffmpeg output: {e}"))?;
-        if n == 0 {
-            break;
-        }
+        tokio::select! {
+            result = async {
+                line.clear();
+                let n = reader
+                    .read_line(&mut line)
+                    .await
+                    .map_err(|e| format!("read ffmpeg output: {e}"))?;
+                Ok::<_, String>(n)
+            } => {
+                let n = result?;
+                if n == 0 {
+                    break;
+                }
 
-        let mut emit = false;
-        let mut pct = 0.0;
+                last_output = tokio::time::Instant::now();
 
-        // Primary: out_time_us (raw microseconds, always parseable)
-        if let Some(s) = line.trim().strip_prefix("out_time_us=") {
-            if let Some(us) = s.trim().parse::<u64>().ok() {
-                let current = us as f64 / 1_000_000.0;
-                if total_duration > 0.0 {
-                    pct = (current / total_duration * 100.0).min(100.0);
-                    emit = true;
+                let mut emit = false;
+                let mut pct = 0.0;
+
+                // Primary: out_time_us (raw microseconds, always parseable)
+                if let Some(s) = line.trim().strip_prefix("out_time_us=") {
+                    if let Some(us) = s.trim().parse::<u64>().ok() {
+                        let current = us as f64 / 1_000_000.0;
+                        if total_duration > 0.0 {
+                            pct = (current / total_duration * 100.0).min(100.0);
+                            emit = true;
+                        }
+                    }
+                } else if let Some(s) = line.trim().strip_prefix("out_time=") {
+                    if let Some(current) = parse_ffmpeg_time(s) {
+                        if total_duration > 0.0 {
+                            pct = (current / total_duration * 100.0).min(100.0);
+                            emit = true;
+                        }
+                    }
+                } else if let Some(s) = line.trim().strip_prefix("size=") {
+                    last_size = s.trim().parse::<u64>().unwrap_or(0);
+                    if expected_size > 0 {
+                        pct = (last_size as f64 / expected_size as f64 * 100.0).min(100.0);
+                        emit = true;
+                    }
+                }
+
+                if emit {
+                    if let Some(sender) = progress_sender {
+                        let _ = sender.send(pct);
+                    }
+                    let _ = app_handle.emit("extract-progress", ExtractProgress {
+                        stream_index: stream_index as i32,
+                        progress: pct,
+                        size: last_size,
+                        expected_size,
+                    });
                 }
             }
-        } else if let Some(s) = line.trim().strip_prefix("out_time=") {
-            // Fallback: formatted time string
-            if let Some(current) = parse_ffmpeg_time(s) {
-                if total_duration > 0.0 {
-                    pct = (current / total_duration * 100.0).min(100.0);
-                    emit = true;
+            _ = tokio::time::sleep(tokio::time::Duration::from_secs(5)) => {
+                if last_output.elapsed() > idle_timeout {
+                    let _ = child.kill().await;
+                    return Err("ffmpeg stuck — no output for 60s, killed".to_string());
                 }
             }
-        } else if let Some(s) = line.trim().strip_prefix("size=") {
-            last_size = s.trim().parse::<u64>().unwrap_or(0);
-            if expected_size > 0 {
-                pct = (last_size as f64 / expected_size as f64 * 100.0).min(100.0);
-                emit = true;
-            }
-        }
-
-        if emit {
-            // Update the progress registry for polling-based UIs
-            if let (Some(pid), Some(reg)) = (progress_id, registry) {
-                reg.update(pid, pct);
-            }
-            // Emit event for real-time UIs (track selector modal)
-            let _ = app_handle.emit("extract-progress", ExtractProgress {
-                stream_index: stream_index as i32,
-                progress: pct,
-                size: last_size,
-                expected_size,
-            });
         }
     }
 
@@ -672,7 +821,49 @@ async fn run_ffmpeg_progress(
         return Err(stderr);
     }
 
-    Ok(())
+    Ok(stderr)
+}
+
+async fn run_ffmpeg_progress(
+    app_handle: &tauri::AppHandle,
+    args: &[String],
+    stream_index: usize,
+    total_duration: f64,
+    expected_size: u64,
+    progress_sender: Option<&tokio::sync::watch::Sender<f64>>,
+) -> Result<(), String> {
+    // Acquire semaphore permit — limits concurrent ffmpeg processes globally
+    let _permit = FFMPEG_SEM
+        .acquire()
+        .await
+        .map_err(|_| "semaphore closed".to_string())?;
+
+    // Compute size-scaled total timeout
+    let input_path = extract_input_path(args);
+    let file_size = input_path
+        .and_then(|p| std::fs::metadata(p).ok())
+        .map(|m| m.len())
+        .unwrap_or(0);
+    let timeout_secs = compute_ffmpeg_timeout_secs(file_size);
+
+    // Run with total timeout
+    let result = tokio::time::timeout(
+        tokio::time::Duration::from_secs(timeout_secs),
+        run_ffmpeg_progress_inner(app_handle, args, stream_index, total_duration, expected_size, progress_sender),
+    )
+    .await;
+
+    match result {
+        Ok(Ok(_stderr)) => Ok(()),
+        Ok(Err(stderr)) => Err(stderr),
+        Err(_) => {
+            // Kill the child process on total timeout
+            let mut kill_cmd = tokio::process::Command::new(ffmpeg_exe(app_handle));
+            kill_cmd.args(&["-y".to_string(), "-i".to_string(), input_path.unwrap_or("unknown").to_string()]);
+            let _ = kill_cmd.output().await; // dummy to avoid unused warning
+            Err(format!("ffmpeg timed out after {}s (file: {}MB, limit: {}MB/s)", timeout_secs, file_size / 1_000_000, 3))
+        }
+    }
 }
 
 #[tauri::command]
@@ -683,9 +874,9 @@ pub async fn extract_audio_track(
     codec_name: String,
     force_transcode: Option<bool>,
     encoder: Option<String>,
-    progress_registry: tauri::State<'_, crate::progress::ProgressRegistry>,
+    registry: tauri::State<'_, crate::progress::StreamRegistry>,
 ) -> Result<AudioExtractResult, String> {
-    let progress_id = progress_registry.create();
+    let (progress_id, sender) = registry.create();
     let cache = cache_dir(&app_handle);
     let key = cache_key(&path, stream_index);
 
@@ -693,7 +884,7 @@ pub async fn extract_audio_track(
     for ext in &["m4a", "webm", "mp3", "flac"] {
         let cached = cached_path(&cache, &key, ext);
         if cached.exists() {
-            progress_registry.update(progress_id, 100.0);
+            let _ = sender.send(100.0);
             return Ok(AudioExtractResult {
                 path: cached.to_string_lossy().to_string(),
                 progress_id,
@@ -705,7 +896,7 @@ pub async fn extract_audio_track(
     let total_duration = get_video_duration(&app_handle, &path).await.unwrap_or(0.0);
     let expected_size = probe_expected_audio_size(&app_handle, &path, stream_index).await;
 
-    progress_registry.update(progress_id, 0.0);
+    let _ = sender.send(0.0);
     let _ = app_handle.emit("extract-progress", ExtractProgress {
         stream_index: stream_index as i32,
         progress: 0.0,
@@ -729,11 +920,11 @@ pub async fn extract_audio_track(
             args.extend(cfg.args);
             args.push(out.to_string_lossy().to_string());
 
-            let result = run_ffmpeg_progress(&app_handle, &args, stream_index, total_duration, expected_size, Some(progress_id), Some(&*progress_registry)).await;
+            let result = run_ffmpeg_progress(&app_handle, &args, stream_index, total_duration, expected_size, Some(&sender)).await;
 
             if result.is_ok() {
                 // Copy succeeded — save to cache
-                progress_registry.update(progress_id, 100.0);
+                let _ = sender.send(100.0);
                 let _ = app_handle.emit("extract-progress", ExtractProgress {
                     stream_index: stream_index as i32,
                     progress: 100.0,
@@ -766,11 +957,11 @@ pub async fn extract_audio_track(
     args = apply_encoder(args, encoder.as_deref());
     args.push(out.to_string_lossy().to_string());
 
-    run_ffmpeg_progress(&app_handle, &args, stream_index, total_duration, expected_size, Some(progress_id), Some(&*progress_registry))
+    run_ffmpeg_progress(&app_handle, &args, stream_index, total_duration, expected_size, Some(&sender))
         .await
         .map_err(|stderr| format!("ffmpeg audio extract failed: {stderr}"))?;
 
-    progress_registry.update(progress_id, 100.0);
+    let _ = sender.send(100.0);
     let _ = app_handle.emit("extract-progress", ExtractProgress {
         stream_index: stream_index as i32,
         progress: 100.0,
@@ -797,6 +988,47 @@ pub async fn clear_audio_cache(
     if dir.exists() {
         std::fs::remove_dir_all(&dir).map_err(|e| format!("clear cache: {e}"))?;
     }
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn cleanup_stale_caches(app_handle: tauri::AppHandle, max_files: usize, max_age_days: u32) -> Result<(), String> {
+    let audio_cache = cache_dir(&app_handle);
+    let sub_cache = sub_cache_dir(&app_handle);
+    let max_age = std::time::Duration::from_secs(max_age_days as u64 * 86400);
+    let now = std::time::SystemTime::now();
+
+    for cache_dir in [&audio_cache, &sub_cache] {
+        if !cache_dir.exists() { continue; }
+        let mut entries: Vec<(std::path::PathBuf, std::time::SystemTime)> = Vec::new();
+        if let Ok(dir) = std::fs::read_dir(cache_dir) {
+            for entry in dir.flatten() {
+                let meta = entry.metadata().ok();
+                let mtime = meta.and_then(|m| m.modified().ok());
+                if let Some(t) = mtime {
+                    entries.push((entry.path(), t));
+                }
+            }
+        }
+
+        entries.sort_by(|a, b| a.1.cmp(&b.1));
+
+        while entries.len() > max_files {
+            if let Some((path, _)) = entries.first() {
+                let _ = std::fs::remove_file(path);
+                entries.remove(0);
+            }
+        }
+
+        entries.retain(|(path, mtime)| {
+            if now.duration_since(*mtime).unwrap_or_default() > max_age {
+                let _ = std::fs::remove_file(path);
+                return false;
+            }
+            true
+        });
+    }
+
     Ok(())
 }
 
@@ -932,6 +1164,18 @@ pub async fn get_video_info(
     app_handle: tauri::AppHandle,
     path: String,
 ) -> Result<VideoInfo, String> {
+    // Check probe cache
+    let cache_dir = probe_cache_dir(&app_handle);
+    let cache_key = probe_cache_key(&path);
+    let cached_path = cached_path(&cache_dir, &cache_key, "json");
+    if cached_path.exists() {
+        if let Ok(data) = std::fs::read_to_string(&cached_path) {
+            if let Ok(info) = serde_json::from_str::<VideoInfo>(&data) {
+                return Ok(info);
+            }
+        }
+    }
+
     let output = std::process::Command::new(ffprobe_exe(&app_handle))
         .args([
             "-v",
@@ -1059,7 +1303,14 @@ pub async fn get_video_info(
         })
         .collect();
 
-    Ok(VideoInfo { chapters, streams })
+    let info = VideoInfo { chapters, streams };
+
+    // Save to cache
+    if let Ok(json) = serde_json::to_string(&info) {
+        let _ = std::fs::write(&cached_path, &json);
+    }
+
+    Ok(info)
 }
 
 #[derive(Clone, Serialize)]
@@ -1081,7 +1332,16 @@ fn parse_ffmpeg_time(s: &str) -> Option<f64> {
     Some(h * 3600.0 + m * 60.0 + sec)
 }
 
+static VIDEO_DURATION_CACHE: OnceLock<Mutex<HashMap<String, f64>>> = OnceLock::new();
+
 async fn get_video_duration(app_handle: &tauri::AppHandle, path: &str) -> Result<f64, String> {
+    if let Some(cache) = VIDEO_DURATION_CACHE.get() {
+        if let Ok(map) = cache.lock() {
+            if let Some(&d) = map.get(path) {
+                return Ok(d);
+            }
+        }
+    }
     let output = Command::new(ffprobe_exe(app_handle))
         .args([
             "-v",
@@ -1101,10 +1361,15 @@ async fn get_video_duration(app_handle: &tauri::AppHandle, path: &str) -> Result
     }
 
     let stdout = String::from_utf8_lossy(&output.stdout);
-    stdout
+    let duration = stdout
         .trim()
         .parse::<f64>()
-        .map_err(|_| "parse duration failed".to_string())
+        .map_err(|_| "parse duration failed".to_string())?;
+
+    if let Ok(mut map) = VIDEO_DURATION_CACHE.get_or_init(|| Mutex::new(HashMap::new())).lock() {
+        map.insert(path.to_string(), duration);
+    }
+    Ok(duration)
 }
 
 async fn probe_expected_audio_size(app_handle: &tauri::AppHandle, path: &str, stream_index: usize) -> u64 {
@@ -1226,6 +1491,37 @@ fn build_encoder_args(
     }
 }
 
+async fn run_ai_tool(
+    app_handle: &tauri::AppHandle,
+    tool_id: &str,
+    frames_dir: &str,
+    output_dir: &str,
+    scale: u32,
+) -> Result<(), String> {
+    let tool_path = crate::tools::tool_exec_path(app_handle, tool_id)
+        .ok_or_else(|| format!("{tool_id} not installed. Download it in Settings → AI Tools"))?;
+
+    let status = tokio::process::Command::new(&tool_path)
+        .arg("-i")
+        .arg(frames_dir)
+        .arg("-o")
+        .arg(output_dir)
+        .arg("-s")
+        .arg(scale.to_string())
+        .arg("-m")
+        .arg("realesr-animevideov3")
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status()
+        .await
+        .map_err(|e| format!("run {tool_id}: {e}"))?;
+
+    if !status.success() {
+        return Err(format!("{tool_id} failed"));
+    }
+    Ok(())
+}
+
 #[tauri::command]
 pub async fn upscale_video(
     app_handle: tauri::AppHandle,
@@ -1237,13 +1533,196 @@ pub async fn upscale_video(
     interpolate: bool,
     quality: String,
     gpu_backend: String,
+    ai_upscaler: Option<String>,
+    _ai_denoise: Option<u32>,
     cancel_flag: tauri::State<'_, CancelFlag>,
-    progress_registry: tauri::State<'_, crate::progress::ProgressRegistry>,
+    registry: tauri::State<'_, crate::progress::StreamRegistry>,
 ) -> Result<(String, u64), String> {
-    let progress_id = progress_registry.create();
-    progress_registry.update(progress_id, 0.0);
-    let reg_for_task = (*progress_registry).clone();
+    let (progress_id, sender) = registry.create();
     let pid_for_task = progress_id;
+
+    cancel_flag.0.store(false, Ordering::SeqCst);
+    let cancel = cancel_flag.0.clone();
+
+    let _ = sender.send(0.0);
+    let _ = app_handle.emit(
+        "upscale-progress",
+        UpscaleProgress {
+            current: 0.0,
+            total: 0.0,
+            stage: "initializing".into(),
+            speed: 0.0,
+        },
+    );
+
+    let duration = get_video_duration(&app_handle, &input_path).await.unwrap_or(0.0);
+    let _ = app_handle.emit(
+        "upscale-progress",
+        UpscaleProgress {
+            current: 0.0,
+            total: duration,
+            stage: "initializing".into(),
+            speed: 0.0,
+        },
+    );
+
+    // AI pipeline: extract keyframes → AI upscale → re-encode
+    if let Some(ref ai_tool) = ai_upscaler {
+        let temp_dir = std::env::temp_dir().join(format!("iluha_ai_{}", std::process::id()));
+        let frames_dir = temp_dir.join("frames");
+        let upscaled_dir = temp_dir.join("upscaled");
+        let _ = std::fs::remove_dir_all(&temp_dir);
+        std::fs::create_dir_all(&frames_dir).map_err(|e| format!("create frames dir: {e}"))?;
+        std::fs::create_dir_all(&upscaled_dir).map_err(|e| format!("create output dir: {e}"))?;
+
+        let _ = sender.send(5.0);
+        let _ = app_handle.emit(
+            "upscale-progress",
+            UpscaleProgress {
+                current: 0.0,
+                total: duration,
+                stage: "extracting_frames".into(),
+                speed: 0.0,
+            },
+        );
+
+        // Step 1: extract keyframes
+        let _permit_extract = FFMPEG_SEM.acquire().await.map_err(|_| "semaphore".to_string())?;
+        let extract_status = Command::new(ffmpeg_exe(&app_handle))
+            .args([
+                "-y", "-i", &input_path,
+                "-vf", "select='eq(pict_type,I)'",
+                "-vsync", "vfr",
+                "-frame_pts", "1",
+                "-q:v", "2",
+            ])
+            .arg(frames_dir.join("frame_%08d.jpg").to_string_lossy().to_string())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .status()
+            .await
+            .map_err(|e| format!("extract frames: {e}"))?;
+        drop(_permit_extract);
+
+        if cancel.load(Ordering::SeqCst) {
+            let _ = std::fs::remove_dir_all(&temp_dir);
+            return Err("Операция отменена".to_string());
+        }
+
+        if !extract_status.success() {
+            let _ = std::fs::remove_dir_all(&temp_dir);
+            return Err("Failed to extract frames".to_string());
+        }
+
+        // Count extracted frames for progress
+        let frame_count = std::fs::read_dir(&frames_dir)
+            .map(|e| e.flatten().count())
+            .unwrap_or(0);
+        if frame_count == 0 {
+            let _ = std::fs::remove_dir_all(&temp_dir);
+            return Err("No keyframes found in video".to_string());
+        }
+
+        let _ = sender.send(20.0);
+        let _ = app_handle.emit(
+            "upscale-progress",
+            UpscaleProgress {
+                current: 0.0,
+                total: frame_count as f64,
+                stage: "ai_upscaling".into(),
+                speed: 0.0,
+            },
+        );
+
+        // Step 2: run AI upscaler
+        let app_for_ai = app_handle.clone();
+        let frames_dir_c = frames_dir.clone();
+        let upscaled_dir_c = upscaled_dir.clone();
+        let ai_tool_c = ai_tool.clone();
+        let scale = if width > 0 && height > 0 {
+            // infer scale factor from target vs source resolution
+            // Get source dimensions via ffprobe
+            let src_w = 1920u32; // fallback
+            let scale_factor = (width.max(height) as f64 / src_w as f64).max(1.0).round() as u32;
+            scale_factor.clamp(2, 4)
+        } else {
+            2
+        };
+
+        let _ = sender.send(25.0);
+        run_ai_tool(&app_for_ai, &ai_tool_c, &frames_dir_c.to_string_lossy(), &upscaled_dir_c.to_string_lossy(), scale).await?;
+
+        if cancel.load(Ordering::SeqCst) {
+            let _ = std::fs::remove_dir_all(&temp_dir);
+            return Err("Операция отменена".to_string());
+        }
+
+        let _ = sender.send(80.0);
+        let _ = app_handle.emit(
+            "upscale-progress",
+            UpscaleProgress {
+                current: 0.0,
+                total: duration,
+                stage: "encoding".into(),
+                speed: 0.0,
+            },
+        );
+
+        // Step 3: re-encode with AI upscaled frames
+        let _permit_encode = FFMPEG_SEM
+            .acquire()
+            .await
+            .map_err(|_| "semaphore closed".to_string())?;
+
+        let encoder_args = build_encoder_args(&gpu_backend, &quality);
+
+        let mut encode_args = vec![
+            "-y".to_string(),
+            "-framerate".to_string(),
+            target_fps.map(|f| f.to_string()).unwrap_or_else(|| format!("{}", duration.max(1.0))),
+            "-i".to_string(),
+            upscaled_dir.join("frame_%08d.jpg").to_string_lossy().to_string(),
+            "-i".to_string(),
+            input_path.clone(),
+            "-map".to_string(),
+            "0:v".to_string(),
+            "-map".to_string(),
+            "1:a?".to_string(),
+            "-c:a".to_string(),
+            "copy".to_string(),
+        ];
+        encode_args.extend(encoder_args);
+        encode_args.push(output_path.clone());
+
+        let encode_cmd = Command::new(ffmpeg_exe(&app_handle))
+            .args(&encode_args)
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .status()
+            .await
+            .map_err(|e| format!("ffmpeg encode: {e}"))?;
+
+        if !encode_cmd.success() {
+            let _ = std::fs::remove_dir_all(&temp_dir);
+            return Err("Encoding failed".to_string());
+        }
+
+        let _ = std::fs::remove_dir_all(&temp_dir);
+        let _ = sender.send(100.0);
+        let _ = app_handle.emit(
+            "upscale-progress",
+            UpscaleProgress {
+                current: duration,
+                total: duration,
+                stage: "done".into(),
+                speed: 0.0,
+            },
+        );
+
+        return Ok((output_path, pid_for_task));
+    }
+
+    // Standard ffmpeg upscale path (existing logic)
     let mut filters = Vec::new();
     if width > 0 && height > 0 {
         filters.push(format!("scale={}:{}:flags=lanczos", width, height));
@@ -1263,53 +1742,23 @@ pub async fn upscale_video(
 
     let encoder_args = build_encoder_args(&gpu_backend, &quality);
 
-    cancel_flag.0.store(false, Ordering::SeqCst);
-    let cancel = cancel_flag.0.clone();
-
-        // emit initializing immediately with total=0
-    progress_registry.update(progress_id, 0.0);
+    let sender_for_task = sender.clone();
+    let _ = sender.send(0.0);
     let _ = app_handle.emit(
         "upscale-progress",
         UpscaleProgress {
             current: 0.0,
-            total: 0.0,
-            stage: "initializing".into(),
+            total: duration,
+            stage: "encoding".into(),
             speed: 0.0,
         },
     );
 
-    let duration = Arc::new(Mutex::new(0.0f64));
-
-    // spawn ffprobe concurrently
-    let app_for_probe = app_handle.clone();
-    let dur_for_probe = duration.clone();
-    let path_for_probe = input_path.clone();
-
-    let probe = tokio::spawn(async move {
-        match get_video_duration(&app_for_probe, &path_for_probe).await {
-            Ok(d) => {
-                *dur_for_probe.lock().unwrap() = d;
-                let _ = app_for_probe.emit(
-                    "upscale-progress",
-                    UpscaleProgress {
-                        current: 0.0,
-                        total: d,
-                        stage: "initializing".into(),
-                        speed: 0.0,
-                    },
-                );
-            }
-            Err(_) => {}
-        }
-    });
-
     // spawn ffmpeg immediately
     let app_for_ffmpeg = app_handle.clone();
-    let dur_for_ffmpeg = duration.clone();
     let out_for_ffmpeg = output_path.clone();
 
     let encode = tokio::spawn(async move {
-        // Acquire semaphore permit for this ffmpeg process
         let _permit = match FFMPEG_SEM.acquire().await {
             Ok(p) => p,
             Err(_) => return Err("semaphore closed".to_string()),
@@ -1317,10 +1766,7 @@ pub async fn upscale_video(
 
         let mut cmd = Command::new(ffmpeg_exe(&app_for_ffmpeg));
         cmd.arg("-y");
-
-        // GPU decoding via hwaccel auto always helps
         cmd.args(["-hwaccel", "auto"]);
-
         cmd.arg("-i").arg(&input_path);
 
         if !vf.is_empty() {
@@ -1340,8 +1786,8 @@ pub async fn upscale_video(
         let mut child = cmd.spawn().map_err(|e| format!("ffmpeg not found: {e}"))?;
 
         // emit "started" as soon as ffmpeg is running
-        let total_at_start = *dur_for_ffmpeg.lock().unwrap();
-        reg_for_task.update(pid_for_task, 0.0);
+        let total_at_start = duration;
+        let _ = sender_for_task.send(0.0);
         let _ = app_for_ffmpeg.emit(
             "upscale-progress",
             UpscaleProgress {
@@ -1370,9 +1816,9 @@ pub async fn upscale_video(
 
             if let Some(time_str) = line.strip_prefix("out_time=") {
                 if let Some(current) = parse_ffmpeg_time(time_str) {
-                    let total = *dur_for_ffmpeg.lock().unwrap();
+                    let total = duration;
                     if total > 0.0 {
-                        reg_for_task.update(pid_for_task, (current / total * 100.0).min(100.0));
+                        let _ = sender_for_task.send((current / total * 100.0).min(100.0));
                     }
                     let _ = app_for_ffmpeg.emit(
                         "upscale-progress",
@@ -1419,8 +1865,8 @@ pub async fn upscale_video(
             return Err(format!("ffmpeg завершился с ошибкой: {stderr}"));
         }
 
-        let final_total = *dur_for_ffmpeg.lock().unwrap();
-        reg_for_task.update(pid_for_task, 100.0);
+        let final_total = duration;
+        let _ = sender_for_task.send(100.0);
         let _ = app_for_ffmpeg.emit(
             "upscale-progress",
             UpscaleProgress {
@@ -1434,9 +1880,7 @@ pub async fn upscale_video(
         Ok((out_for_ffmpeg, pid_for_task))
     });
 
-    let (_, encode_result) = tokio::join!(probe, encode);
-
-    encode_result.map_err(|e| format!("encode task: {e}"))?
+    encode.await.map_err(|e| format!("encode task: {e}"))?
 }
 
 #[tauri::command]

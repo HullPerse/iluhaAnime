@@ -35,8 +35,7 @@ function Controls({
   onToggleMuted,
   playbackRate,
   onPlaybackRateChange,
-  onAudioSrcChange,
-  onFileNext,
+   onFileNext,
   onFilePrev,
   hasNext,
   hasPrev,
@@ -49,7 +48,7 @@ function Controls({
   subPath,
   subFonts,
   subIsAss,
-  initialAudioPath,
+  onAudioSrcChange,
 }: {
   chapters?: { start_time: number; end_time: number; title: string }[];
   mediaPath?: string;
@@ -61,7 +60,6 @@ function Controls({
   onToggleMuted: () => void;
   playbackRate: number;
   onPlaybackRateChange: (rate: number) => void;
-  onAudioSrcChange?: (src: string | null) => void;
   onFileNext?: () => void;
   onFilePrev?: () => void;
   hasNext?: boolean;
@@ -75,7 +73,7 @@ function Controls({
   subPath?: string;
   subFonts?: string[];
   subIsAss?: boolean;
-  initialAudioPath?: string;
+  onAudioSrcChange?: (src: string | null) => void;
 }) {
   const [dragging, setDragging] = useState<boolean>(false);
   const [boundaryMsg, setBoundaryMsg] = useState<string | null>(null);
@@ -327,13 +325,12 @@ function Controls({
           subtitleStreams={memoSub}
           mediaPath={mediaPath}
           videoEl={videoEl}
-          onAudioSrcChange={onAudioSrcChange!}
           autoAudio={autoAudio}
           autoSubs={autoSubs}
           subPath={subPath}
           subFonts={subFonts}
           subIsAss={subIsAss}
-          initialAudioPath={initialAudioPath}
+          onAudioSrcChange={onAudioSrcChange ?? (() => {})}
         />
       )}
 
@@ -406,3 +403,4 @@ function Controls({
 }
 
 export default Controls;
+

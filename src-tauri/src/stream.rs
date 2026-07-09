@@ -67,9 +67,20 @@ async fn handle_file(params: Query<FileParams>, req: Request<Body>) -> Response 
         return (StatusCode::NOT_FOUND, "File not found").into_response();
     }
 
-    let metadata = match tokio::fs::metadata(file_path).await {
-        Ok(m) => m,
-        Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR, "Cannot read file").into_response(),
+    let metadata = {
+        let mut attempts = 0;
+        loop {
+            match tokio::fs::metadata(file_path).await {
+                Ok(m) => break m,
+                Err(e) => {
+                    attempts += 1;
+                    if attempts >= 3 {
+                        return (StatusCode::INTERNAL_SERVER_ERROR, format!("Cannot read file: {e}")).into_response();
+                    }
+                    tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
+                }
+            }
+        }
     };
 
     let file_len = metadata.len();

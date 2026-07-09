@@ -112,6 +112,8 @@ pub async fn generate_thumbnails(
         .args([
             "-hwaccel",
             "auto",
+            "-threads",
+            "2",
             "-skip_frame",
             "nokey",
             "-i",

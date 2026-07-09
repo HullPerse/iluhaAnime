@@ -7,7 +7,7 @@ import {
   selectTime,
   usePlayer,
 } from "@videojs/react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { THUMB_INTERVAL } from "@/config/player.config";
 
 function Timeline({
@@ -54,26 +54,20 @@ function Timeline({
 
   const timelineRef = useRef<HTMLElement>(null);
   const [imgLoaded, setImgLoaded] = useState<boolean>(false);
+  const thumbsStartedRef = useRef(false);
+  const [thumbsLoading, setThumbsLoading] = useState(false);
 
-  useEffect(() => {
-    if (!mediaPath) {
-      setThumbs([]);
-      return;
-    }
-    let cancelled = false;
+  const ensureThumbs = useCallback(() => {
+    if (thumbsStartedRef.current || !mediaPath) return;
+    thumbsStartedRef.current = true;
+    setThumbsLoading(true);
     invoke<string[]>("generate_thumbnails", {
       videoPath: mediaPath,
       interval: THUMB_INTERVAL,
     })
-      .then((paths) => {
-        if (!cancelled) setThumbs(paths);
-      })
-      .catch(() => {
-        if (!cancelled) setThumbs([]);
-      });
-    return () => {
-      cancelled = true;
-    };
+      .then((paths) => setThumbs(paths))
+      .catch(() => setThumbs([]))
+      .finally(() => setThumbsLoading(false));
   }, [mediaPath]);
 
   const thumbIndex =
@@ -126,6 +120,7 @@ function Timeline({
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!timelineRef.current) return;
+    ensureThumbs();
     const rect = timelineRef.current.getBoundingClientRect();
     const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
     const t = pct * duration;
@@ -190,7 +185,12 @@ function Timeline({
             style={{ left: `${hoverX}px`, transform: "translateX(-50%)" }}
           >
             <div className="flex flex-col windows95-border bg-primary px-1 py-0.5 windows95-text whitespace-nowrap min-w-32 w-32 max-w-32 items-center">
-              {thumbIndex >= 0 && (
+              {thumbsLoading && thumbs.length === 0 && (
+                <div className="w-32 h-18 flex items-center justify-center text-[8px] text-muted">
+                  Thumbnails...
+                </div>
+              )}
+              {thumbIndex >= 0 && thumbs[thumbIndex] && (
                 <div className="mb-0.5">
                   <img
                     key={thumbIndex}

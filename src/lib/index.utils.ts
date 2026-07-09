@@ -58,16 +58,6 @@ export function formatSize(size: string): string {
   return `${num.toFixed(2)} ${unit}`.trim();
 }
 
-export function formatTime(seconds: number): string {
-  if (seconds < 0 || !isFinite(seconds)) return "0:00";
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = Math.floor(seconds % 60);
-  if (h > 0)
-    return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-  return `${m}:${String(s).padStart(2, "0")}`;
-}
-
 interface VttCue {
   start: number;
   end: number;
@@ -111,6 +101,16 @@ function parseVTTTime(time: string): number {
     return parseInt(p[0]) * 3600 + parseInt(p[1]) + parseFloat(p[2]);
   if (p.length === 2) return parseInt(p[0]) * 60 + parseFloat(p[1]);
   return parseFloat(time);
+}
+
+export function formatTime(seconds: number): string {
+  if (seconds < 0 || !isFinite(seconds)) return "0:00";
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+  if (h > 0)
+    return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  return `${m}:${String(s).padStart(2, "0")}`;
 }
 
 export const parseSize = (s: string): number => {

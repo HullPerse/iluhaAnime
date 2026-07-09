@@ -41,6 +41,11 @@ export interface SettingsStore {
   showWallpaper: boolean;
   modalBackdropOpacity: number;
   customScrollbar: boolean;
+  fadeDuration: "off" | "short" | "default" | "long";
+  volumeBoost: boolean;
+  translateService: "libre" | "google" | "deepl";
+  googleTranslateApiKey: string;
+  deeplApiKey: string;
 
   patch: (partial: Partial<SettingsStore>) => void;
 }
@@ -87,6 +92,11 @@ export const useSettingsStore = create<SettingsStore>()(
       showWallpaper: true,
       modalBackdropOpacity: 50,
       customScrollbar: true,
+      fadeDuration: "default",
+      volumeBoost: false,
+      translateService: "libre",
+      googleTranslateApiKey: "",
+      deeplApiKey: "",
 
       patch: (partial) => set(partial),
     }),

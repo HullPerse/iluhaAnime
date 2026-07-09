@@ -123,7 +123,7 @@ function TrackSelectorModal({
 
   // Auto-select defaults
   useEffect(() => {
-    if (selectedAudio !== null) return; // already user-selected
+    if (selectedAudio !== null) return;
 
     if (savedAudio !== undefined) {
       setSelectedAudio(savedAudio);
@@ -194,7 +194,6 @@ function TrackSelectorModal({
     return r === "probably" || r === "maybe";
   };
 
-  // Progress from event/registry percentages (0–100)
   const trackedIndices = useMemo(() => {
     const indices: string[] = [];
     if (selectedAudio !== null) indices.push(String(selectedAudio));
@@ -222,7 +221,6 @@ function TrackSelectorModal({
     setExtracting(true);
     setByteProgress({});
 
-    // Start listening for progress events — real-time fallback alongside polling
     const unlisten = await listen<{ streamIndex: number; progress: number }>(
       "extract-progress",
       (event) => {
@@ -233,7 +231,6 @@ function TrackSelectorModal({
       },
     );
 
-    // Build parallel extraction tasks
     const tasks: Promise<void>[] = [];
 
     // Audio task
@@ -269,7 +266,6 @@ function TrackSelectorModal({
         })(),
       );
     } else if (audioStream) {
-      // Already cached — mark 100%
       setByteProgress((prev) => ({ ...prev, [String(selectedAudio)]: 100 }));
     }
 
@@ -299,7 +295,6 @@ function TrackSelectorModal({
           })(),
         );
       } else if (subStream?.file_path) {
-        // External sub — use directly
         subPathResult = subStream.file_path ?? undefined;
         subFontsResult = [];
         subIsAss = subStream.codec_name.toLowerCase() === "ass" || subStream.codec_name.toLowerCase() === "ssa";
@@ -312,7 +307,6 @@ function TrackSelectorModal({
 
     unlisten();
 
-    // Ensure exact 100%
     setByteProgress((prev) => {
       const next = { ...prev };
       for (const idx of trackedIndices) {
@@ -324,7 +318,6 @@ function TrackSelectorModal({
     mediaSetTrack(mediaPath, "audio", selectedAudio);
     mediaSetTrack(mediaPath, "sub", selectedSub);
 
-    // Wait 500ms at 100% before closing
     await new Promise<void>((resolve) => {
       closeTimerRef.current = window.setTimeout(resolve, 500);
     });

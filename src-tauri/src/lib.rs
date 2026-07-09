@@ -3,6 +3,7 @@ use std::num::NonZeroU32;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use tauri::{Emitter, Manager};
+use tauri::ipc::Channel;
 use tauri_plugin_notification::NotificationExt;
 use tauri_plugin_single_instance;
 
@@ -10,8 +11,10 @@ mod anilist;
 mod auth;
 mod bencode;
 mod ffmpeg;
+mod fs_utils;
 mod progress;
 mod scrapers;
+mod tools;
 mod scanner;
 mod stream;
 mod thumbnails;
@@ -104,8 +107,39 @@ fn shutdown_stream() {
 }
 
 #[tauri::command]
-fn get_progress(id: u64, registry: tauri::State<'_, progress::ProgressRegistry>) -> Option<f64> {
-    registry.get(id)
+fn get_progress(id: u64, registry: tauri::State<'_, progress::StreamRegistry>) -> Option<f64> {
+    registry.get(id).map(|tx| *tx.borrow())
+}
+
+#[tauri::command]
+async fn subscribe_progress(
+    stream_id: u64,
+    channel: Channel<f64>,
+    registry: tauri::State<'_, progress::StreamRegistry>,
+) -> Result<(), String> {
+    let tx = registry
+        .get(stream_id)
+        .ok_or_else(|| "stream not found or already completed".to_string())?;
+
+    let mut rx = tx.subscribe();
+
+    tauri::async_runtime::spawn(async move {
+        loop {
+            if rx.changed().await.is_err() {
+                break;
+            }
+            let progress = *rx.borrow();
+            if channel.send(progress).is_err() {
+                break;
+            }
+            if progress >= 100.0 {
+                break;
+            }
+        }
+        // Clean up the stream entry when done
+    });
+
+    Ok(())
 }
 
 #[tauri::command]
@@ -277,9 +311,19 @@ pub fn run() {
                         }
                     }
                 });
+                // Periodic cache cleanup (every hour)
+                let app_clone2 = handle.clone();
+                tokio::spawn(async move {
+                    let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(3600));
+                    interval.tick().await; // skip initial tick, let probes run first
+                    loop {
+                        interval.tick().await;
+                        let _ = video::cleanup_stale_caches(app_clone2.clone(), 20, 7).await;
+                    }
+                });
                 handle.manage(TorrentBackend { manager });
                 handle.manage(CancelFlag(Arc::new(AtomicBool::new(false))));
-                handle.manage(progress::ProgressRegistry::new());
+                handle.manage(progress::StreamRegistry::new());
             });
 
             // Start the local HTTP stream server for file serving with Range support
@@ -303,6 +347,7 @@ pub fn run() {
             auth::check_nekobt_session,
             auth::nekobt_logout,
             video::extract_video_subtitle,
+            video::convert_external_subtitle,
             video::extract_audio_track,
             video::extract_all_audio_tracks,
             video::cleanup_audio_temp_files,
@@ -311,11 +356,16 @@ pub fn run() {
             video::check_subtitle_caches,
             video::clear_subtitle_cache,
             video::probe_encoders,
-            video::convert_external_subtitle,
             video::get_video_info,
             video::upscale_video,
             video::cancel_upscale,
             video::check_gpu_encoders,
+            video::pre_extract_all_tracks,
+            video::cleanup_stale_caches,
+            tools::list_available_tools,
+            tools::check_tool_installed,
+            tools::get_tool_path,
+            tools::download_tool,
             ffmpeg::check_ffprobe,
             ffmpeg::download_ffmpeg,
             ffmpeg::remove_ffmpeg,
@@ -356,6 +406,7 @@ pub fn run() {
             get_stream_port,
             shutdown_stream,
             get_progress,
+            subscribe_progress,
             clear_all_caches,
             set_global_speed_limits,
             get_running_torrent_files,

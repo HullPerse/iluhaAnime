@@ -1,59 +1,60 @@
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
+use tokio::sync::watch;
 
-static NEXT_ID: AtomicU64 = AtomicU64::new(1);
-
-/// Thread-safe registry for tracking progress of long-running operations.
-/// Each operation gets a unique numeric ID and reports a 0–100 percentage.
-/// Frontend polls via `get_progress` command.
-#[derive(Clone)]
-pub struct ProgressRegistry {
-    map: Arc<Mutex<HashMap<u64, f64>>>,
+/// Thread-safe registry of progress streams backed by tokio watch channels.
+/// Each stream has a unique numeric ID and a watch::Sender<f64>.
+/// Multiple consumers can subscribe to the same stream (watch::Receiver is cloneable).
+pub struct StreamRegistry {
+    streams: Arc<Mutex<HashMap<u64, watch::Sender<f64>>>>,
+    counter: AtomicU64,
 }
 
-impl ProgressRegistry {
+impl Clone for StreamRegistry {
+    fn clone(&self) -> Self {
+        Self {
+            streams: self.streams.clone(),
+            counter: AtomicU64::new(self.counter.load(Ordering::Relaxed)),
+        }
+    }
+}
+
+impl StreamRegistry {
     pub fn new() -> Self {
-        ProgressRegistry {
-            map: Arc::new(Mutex::new(HashMap::new())),
+        Self {
+            streams: Arc::new(Mutex::new(HashMap::new())),
+            counter: AtomicU64::new(1),
         }
     }
 
-    /// Create a new progress stream and return its unique ID.
-    /// Initial progress is 0.0.
-    pub fn create(&self) -> u64 {
-        let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
-        self.map.lock().unwrap().insert(id, 0.0);
-        id
+    /// Create a new progress stream and return its unique ID + Sender.
+    pub fn create(&self) -> (u64, watch::Sender<f64>) {
+        let id = self.counter.fetch_add(1, Ordering::Relaxed);
+        let (tx, _rx) = watch::channel(0.0);
+        self.streams.lock().unwrap().insert(id, tx.clone());
+        (id, tx)
     }
 
-    /// Update progress for a stream (value in 0–100 range).
-    pub fn update(&self, id: u64, pct: f64) {
-        let mut map = self.map.lock().unwrap();
-        if let Some(val) = map.get_mut(&id) {
-            *val = pct.clamp(0.0, 100.0);
-        }
+    /// Get the Sender for a stream, if it still exists.
+    pub fn get(&self, id: u64) -> Option<watch::Sender<f64>> {
+        self.streams.lock().unwrap().get(&id).cloned()
     }
 
-    /// Get current progress for a stream, or None if the stream doesn't exist (completed/removed).
-    pub fn get(&self, id: u64) -> Option<f64> {
-        self.map.lock().unwrap().get(&id).copied()
-    }
-
-    /// Get all progress entries (for debug/overview).
+    /// Remove a stream from the registry (cleanup when done).
     #[allow(dead_code)]
-    pub fn all(&self) -> Vec<(u64, f64)> {
-        self.map
+    pub fn remove(&self, id: u64) {
+        self.streams.lock().unwrap().remove(&id);
+    }
+
+    /// Get a snapshot of all active stream IDs and their current values.
+    #[allow(dead_code)]
+    pub fn snapshot(&self) -> Vec<(u64, f64)> {
+        self.streams
             .lock()
             .unwrap()
             .iter()
-            .map(|(&k, &v)| (k, v))
+            .map(|(&id, tx)| (id, *tx.borrow()))
             .collect()
-    }
-
-    /// Remove a stream from the registry.
-    #[allow(dead_code)]
-    pub fn remove(&self, id: u64) {
-        self.map.lock().unwrap().remove(&id);
     }
 }

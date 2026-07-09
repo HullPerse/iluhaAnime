@@ -303,7 +303,6 @@ function Tracks({
       );
       if (!stream) return;
 
-      // Check for unsupported bitmap subtitle formats
       const unsupported = new Set([
         "hdmv_pgs_subtitle", "dvd_subtitle", "dvdsub",
         "dvb_subtitle", "xsub", "pgssub", "dvd",
@@ -560,7 +559,7 @@ function Tracks({
     }
 
     batchRunningRef.current = true;
-    const maxParallel = 3; // ffmpeg is I/O bound, 3 concurrent copies is plenty
+    const maxParallel = 3;
 
     const extractAudioBatch = async () => {
       for (let i = 0; i < remaining.length; i += maxParallel) {
@@ -631,7 +630,6 @@ function Tracks({
       if (fallbackLock.current) return;
       fallbackLock.current = true;
 
-      // Retry current selected track with forced transcode
       const cur = selectedAudio;
       showToast("Аудиокодек не поддерживается, перекодируем...", "info");
       handleAudio(cur, true);
@@ -653,7 +651,6 @@ function Tracks({
       };
       if (detail.path === mediaPath) {
         setSubDelay(detail.offset);
-        // Regenerate subtitle with new offset
         if (selectedSub !== SUB_OFF) loadSubtitle(selectedSub);
       }
     };

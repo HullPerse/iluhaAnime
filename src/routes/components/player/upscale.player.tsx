@@ -6,6 +6,7 @@ import Modal from "@/components/shared/modal.component";
 import ProgressBar from "@/components/shared/progress.component";
 import { Button } from "@/components/ui/button.component";
 import Select from "@/components/ui/select.component";
+import { useToolStatus } from "@/components/shared/tool-downloader.component";
 
 type UpscaleProgressPayload = {
   current: number;
@@ -47,6 +48,12 @@ const QUALITY_OPTIONS = [
   { label: "Самый медленный", value: "veryslow" },
 ];
 
+const UPSCALER_OPTIONS = [
+  { label: "Lanczos (ffmpeg)", value: "ffmpeg" },
+  { label: "Real-ESRGAN (AI)", value: "realesrgan" },
+  { label: "waifu2x (AI, быстрее)", value: "waifu2x" },
+];
+
 function fileNameFromPath(p: string): string {
   const parts = p.replace(/\\/g, "/").split("/");
   return parts[parts.length - 1] || p;
@@ -75,6 +82,9 @@ export default function UpscalePlayer({ filePath, onDone }: Props) {
   const [quality, setQuality] = useState("ultrafast");
   const [gpuBackend, setGpuBackend] = useState("cpu");
   const [availableGpu, setAvailableGpu] = useState<string[]>(["cpu"]);
+  const [upscaler, setUpscaler] = useState("ffmpeg");
+  const aiRealesrganStatus = useToolStatus("realesrgan");
+  const aiWaifu2xStatus = useToolStatus("waifu2x");
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState<UpscaleProgressPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -146,6 +156,7 @@ export default function UpscalePlayer({ filePath, onDone }: Props) {
     );
     unlistenRef.current = unlisten;
 
+    const aiUpscalerParam = upscaler !== "ffmpeg" ? upscaler : null;
     try {
       await invoke<{ path: string; progressId: number }>("upscale_video", {
         inputPath: filePath,
@@ -156,12 +167,13 @@ export default function UpscalePlayer({ filePath, onDone }: Props) {
         interpolate,
         quality,
         gpuBackend,
+        aiUpscaler: aiUpscalerParam,
       });
     } catch (e: unknown) {
       setError(typeof e === "string" ? e : "Ошибка");
       setRunning(false);
     }
-  }, [filePath, resolution, fpsValue, quality, gpuBackend]);
+  }, [filePath, resolution, fpsValue, quality, gpuBackend, upscaler]);
 
   const handleCancel = useCallback(async () => {
     await invoke("cancel_upscale");
@@ -215,6 +227,47 @@ export default function UpscalePlayer({ filePath, onDone }: Props) {
                 onChange={setResolution}
                 options={RESOLUTIONS}
               />
+
+              <label className="windows95-text text-xs">Апскейлер</label>
+              <Select
+                value={upscaler}
+                onChange={setUpscaler}
+                options={UPSCALER_OPTIONS}
+              />
+              {upscaler === "realesrgan" && (aiRealesrganStatus.status === "missing" || aiRealesrganStatus.status === "downloading") && (
+                <div className="windows95-border bg-white p-0.5">
+                  {aiRealesrganStatus.status === "missing" && (
+                    <Button size="default" className="text-[10px] py-0.5 h-auto w-full" onClick={aiRealesrganStatus.download}>
+                      ⬇ Скачать Real-ESRGAN (15MB)
+                    </Button>
+                  )}
+                  {aiRealesrganStatus.status === "downloading" && (
+                    <div className="flex items-center gap-1">
+                      <span>Загрузка... {aiRealesrganStatus.progress}%</span>
+                      <div className="flex-1 h-3 windows95-border bg-white">
+                        <div className="h-full bg-highlight" style={{ width: `${aiRealesrganStatus.progress}%` }} />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+              {upscaler === "waifu2x" && (aiWaifu2xStatus.status === "missing" || aiWaifu2xStatus.status === "downloading") && (
+                <div className="windows95-border bg-white p-0.5">
+                  {aiWaifu2xStatus.status === "missing" && (
+                    <Button size="default" className="text-[10px] py-0.5 h-auto w-full" onClick={aiWaifu2xStatus.download}>
+                      ⬇ Скачать waifu2x (10MB)
+                    </Button>
+                  )}
+                  {aiWaifu2xStatus.status === "downloading" && (
+                    <div className="flex items-center gap-1">
+                      <span>Загрузка... {aiWaifu2xStatus.progress}%</span>
+                      <div className="flex-1 h-3 windows95-border bg-white">
+                        <div className="h-full bg-highlight" style={{ width: `${aiWaifu2xStatus.progress}%` }} />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <label className="windows95-text text-xs">FPS</label>
               <Select

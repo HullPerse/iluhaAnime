@@ -22,12 +22,18 @@ import EmptyPlayer from "./player/empty.player";
 import Modal from "./modal.component";
 import { cn } from "@/lib/index.utils";
 import { usePlayer, selectTime } from "@videojs/react";
+import {
+  connectVideoAudio,
+  fadeIn,
+  fadeOut,
+  resetAudioProcessing,
+} from "@/lib/fadedMediaPlayback";
 import Settings from "./player/settings.player";
 import SeekOffset from "./player/offset.player";
 import SkipButton from "./player/skip.player";
 import JumpToTime from "./player/jump.player";
 import { SmallLoader } from "./loader.component";
-import AudioSync from "./player/audio-sync.player";
+
 
 const { Provider, Container } = createPlayer({ features: videoFeatures });
 
@@ -51,7 +57,6 @@ function Player({
   autoHideUi,
   onToggleCinema,
   onToggleAutoHide,
-  audioSrc,
   loading,
   autoAudio,
   autoSubs,
@@ -78,7 +83,6 @@ function Player({
   autoHideUi?: boolean;
   onToggleCinema?: () => void;
   onToggleAutoHide?: () => void;
-  audioSrc?: string | null;
   loading?: boolean;
   autoAudio?: string[];
   autoSubs?: string[];
@@ -89,6 +93,8 @@ function Player({
   const [uiVisible, setUiVisible] = useState<boolean>(true);
   const hideTimerRef = useRef<number | null>(null);
   const [videoEl, setVideoEl] = useState<HTMLVideoElement | null>(null);
+  const [audioEl, setAudioEl] = useState<HTMLAudioElement | null>(null);
+  const [audioSrc, setAudioSrc] = useState<string | undefined>(undefined);
 
   const hasSeeked = useRef(false);
   const lastPosSaveRef = useRef(0);
@@ -97,54 +103,13 @@ function Player({
   const settings = usePlayerStore((s) => s.settings);
   const patchSettings = usePlayerStore((s) => s.patchSettings);
   const setPosition = useMediaStore((s) => s.setPosition);
-  const audioOffset = useMediaStore(
-    (s) => s.entries.find((e) => e.path === mediaPath)?.audioOffset ?? 0,
-  );
   const [showSettings, setShowSettings] = useState<boolean>(false);
   const [showJumpToTime, setShowJumpToTime] = useState<boolean>(false);
 
   const playerVolume = usePlayerStore((s) => s.volume ?? 1);
   const [playerMuted, setPlayerMuted] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
-  const [activeAudioSrc, setActiveAudioSrc] = useState<string | null>(audioSrc ?? null);
-
-  const audioIndex = useMediaStore(
-    (s) => s.entries.find((e) => e.path === mediaPath)?.audioTrack,
-  );
-  const subIndex = useMediaStore(
-    (s) => s.entries.find((e) => e.path === mediaPath)?.subtitleTrack,
-  );
-  const showLoader = loading;
-  const audioStream = streams?.find((s) => s.index === audioIndex);
-  const subStream = streams?.find((s) => s.index === subIndex);
-
-  useEffect(() => {
-    setActiveAudioSrc(audioSrc ?? null);
-  }, [audioSrc]);
-
-  const videoStyle = useMemo(() => {
-    const t: string[] = [];
-    if (settings.rotation) t.push(`rotate(${settings.rotation}deg)`);
-    if (settings.flipH) t.push("scaleX(-1)");
-    if (settings.flipV) t.push("scaleY(-1)");
-    if (settings.zoom !== 1) t.push(`scale(${settings.zoom})`);
-    const f: string[] = [];
-    if (settings.brightness !== 100)
-      f.push(`brightness(${settings.brightness / 100})`);
-    if (settings.contrast !== 100)
-      f.push(`contrast(${settings.contrast / 100})`);
-    if (settings.saturation !== 100)
-      f.push(`saturate(${settings.saturation / 100})`);
-    if (settings.hue) f.push(`hue-rotate(${settings.hue}deg)`);
-    if (settings.blur) f.push(`blur(${settings.blur}px)`);
-    if (settings.sepia) f.push(`sepia(${settings.sepia / 100})`);
-    if (settings.grayscale) f.push(`grayscale(${settings.grayscale / 100})`);
-    return {
-      transform: t.length ? t.join(" ") : undefined,
-      filter: f.length ? f.join(" ") : undefined,
-      objectFit: settings.aspectRatio,
-    } as React.CSSProperties;
-  }, [settings]);
+  const fadeDuration = useSettingsStore((s) => s.fadeDuration ?? "default");
 
   useEffect(() => {
     let el = document.getElementById("sub-cue");
@@ -170,6 +135,117 @@ function Player({
     settings.subBgColor,
   ]);
   useEffect(() => () => document.getElementById("sub-cue")?.remove(), []);
+
+  // Connect audio processor when audio element is available
+  useEffect(() => {
+    if (!audioEl) return;
+    connectVideoAudio(audioEl);
+    return () => {
+      resetAudioProcessing();
+    };
+  }, [audioEl]);
+
+  // Mute video — audio comes from the separate <audio> element
+  useEffect(() => {
+    if (videoEl) videoEl.muted = true;
+  }, [videoEl]);
+
+  // Sync audio element with video (event-based)
+  useEffect(() => {
+    if (!videoEl || !audioEl) return;
+
+    const syncAudio = () => {
+      const diff = Math.abs(audioEl.currentTime - videoEl.currentTime);
+      if (diff > 0.1) {
+        audioEl.currentTime = videoEl.currentTime;
+      }
+    };
+
+    const onPlay = () => audioEl.play().catch(() => {});
+    const onPause = () => audioEl.pause();
+    const onSeeked = () => { audioEl.currentTime = videoEl.currentTime; };
+    const onRateChange = () => { audioEl.playbackRate = videoEl.playbackRate; };
+
+    videoEl.addEventListener("play", onPlay);
+    videoEl.addEventListener("pause", onPause);
+    videoEl.addEventListener("seeked", onSeeked);
+    videoEl.addEventListener("ratechange", onRateChange);
+    videoEl.addEventListener("timeupdate", syncAudio);
+
+    return () => {
+      videoEl.removeEventListener("play", onPlay);
+      videoEl.removeEventListener("pause", onPause);
+      videoEl.removeEventListener("seeked", onSeeked);
+      videoEl.removeEventListener("ratechange", onRateChange);
+      videoEl.removeEventListener("timeupdate", syncAudio);
+    };
+  }, [videoEl, audioEl]);
+
+  // Auto-play audio element when src changes and video is already playing
+  useEffect(() => {
+    if (!audioEl || !audioSrc || !videoEl) return;
+    audioEl.currentTime = videoEl.currentTime;
+    audioEl.playbackRate = videoEl.playbackRate;
+    if (!videoEl.paused) {
+      audioEl.play().catch(() => {});
+    }
+  }, [audioSrc, audioEl, videoEl]);
+
+  // Sync volume/muted to audio element
+  useEffect(() => {
+    if (audioEl) {
+      audioEl.volume = playerVolume;
+      audioEl.muted = playerMuted;
+    }
+  }, [audioEl, playerVolume, playerMuted]);
+
+  // Faded play/pause
+  useEffect(() => {
+    if (!videoEl) return;
+    const onPlay = () => fadeIn(fadeDuration);
+    const onPause = () => fadeOut(fadeDuration);
+    videoEl.addEventListener("play", onPlay);
+    videoEl.addEventListener("pause", onPause);
+    return () => {
+      videoEl.removeEventListener("play", onPlay);
+      videoEl.removeEventListener("pause", onPause);
+    };
+  }, [videoEl, fadeDuration]);
+
+  const audioIndex = useMediaStore(
+    (s) => s.entries.find((e) => e.path === mediaPath)?.audioTrack,
+  );
+  const subIndex = useMediaStore(
+    (s) => s.entries.find((e) => e.path === mediaPath)?.subtitleTrack,
+  );
+  const showLoader = loading;
+  const audioStream = streams?.find((s) => s.index === audioIndex);
+  const subStream = streams?.find((s) => s.index === subIndex);
+
+  const videoStyle = useMemo(() => {
+    const t: string[] = [];
+    if (settings.rotation) t.push(`rotate(${settings.rotation}deg)`);
+    if (settings.flipH) t.push("scaleX(-1)");
+    if (settings.flipV) t.push("scaleY(-1)");
+    if (settings.zoom !== 1) t.push(`scale(${settings.zoom})`);
+    const f: string[] = [];
+    if (settings.brightness !== 100)
+      f.push(`brightness(${settings.brightness / 100})`);
+    if (settings.contrast !== 100)
+      f.push(`contrast(${settings.contrast / 100})`);
+    if (settings.saturation !== 100)
+      f.push(`saturate(${settings.saturation / 100})`);
+    if (settings.hue) f.push(`hue-rotate(${settings.hue}deg)`);
+    if (settings.blur) f.push(`blur(${settings.blur}px)`);
+    if (settings.sepia) f.push(`sepia(${settings.sepia / 100})`);
+    if (settings.grayscale) f.push(`grayscale(${settings.grayscale / 100})`);
+    return {
+      transform: t.length ? t.join(" ") : undefined,
+      filter: f.length ? f.join(" ") : undefined,
+      objectFit: settings.aspectRatio,
+    } as React.CSSProperties;
+  }, [settings]);
+
 
   useEffect(() => {
     if (videoEl && !hasSeeked.current) {
@@ -319,7 +395,6 @@ function Player({
                     controls={false}
                     preload="auto"
                     crossOrigin="anonymous"
-                    muted={!!activeAudioSrc}
                     onTimeUpdate={(e) => {
                       const t = (e.target as HTMLVideoElement).currentTime;
                       onTimeUpdate?.(t);
@@ -342,15 +417,15 @@ function Player({
                     }
                   }}
                 />
-                  {activeAudioSrc && (
-                    <AudioSync
-                      videoEl={videoEl}
-                      audioSrc={activeAudioSrc}
-                      delay={audioOffset}
-                      volume={playerVolume}
-                      muted={playerMuted}
-                    />
-                  )}
+                {audioSrc && (
+                  <audio
+                    ref={setAudioEl}
+                    src={audioSrc}
+                    style={{ display: "none" }}
+                    preload="auto"
+                    crossOrigin="anonymous"
+                  />
+                )}
                 </>
               ) : loading ? null : (
                 <EmptyPlayer />
@@ -381,7 +456,6 @@ function Player({
                 onToggleMuted={handleToggleMuted}
                 playbackRate={playbackRate}
                 onPlaybackRateChange={handlePlaybackRateChange}
-                onAudioSrcChange={setActiveAudioSrc}
                 onFileNext={onFileNext}
                 onFilePrev={onFilePrev}
                 hasNext={hasNext}
@@ -392,10 +466,10 @@ function Player({
                 loading={loading}
                 autoAudio={autoAudio}
                 autoSubs={autoSubs}
-                initialAudioPath={audioSrc ?? undefined}
                 subPath={subPath}
                 subFonts={subFonts}
                 subIsAss={subIsAss}
+                onAudioSrcChange={(src: string | null) => setAudioSrc(src ?? undefined)}
               />
             </div>
           </div>

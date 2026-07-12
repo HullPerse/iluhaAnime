@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button.component";
 import { ToolInfo } from "@/types";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { Download, Trash2 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 
 export function useToolStatus(toolId: string) {
@@ -42,11 +43,18 @@ export function useToolStatus(toolId: string) {
     }
   }, [toolId]);
 
-  return { status, progress, download, setStatus };
+  const remove = useCallback(async () => {
+    try {
+      await invoke("remove_tool", { toolId });
+      setStatus("missing");
+    } catch {}
+  }, [toolId]);
+
+  return { status, progress, download, remove, setStatus };
 }
 
 function ToolDownloader({ toolId }: { toolId: string }) {
-  const { status, progress, download } = useToolStatus(toolId);
+  const { status, progress, download, remove } = useToolStatus(toolId);
   const [info, setInfo] = useState<ToolInfo | null>(null);
 
   useEffect(() => {
@@ -76,11 +84,18 @@ function ToolDownloader({ toolId }: { toolId: string }) {
           className="text-[10px] py-0.5 h-auto"
           onClick={download}
         >
-          ⬇ Скачать {info.name} ({info.downloadSizeMb}MB)
+          <Download />
+          Скачать {info.name}
         </Button>
       )}
       {status === "installed" && (
-        <span className="text-green-600">✓ Установлено</span>
+        <>
+          <span className="windows95-text">{info?.name} установлен</span>
+          <Button onClick={remove} variant="destructive" className="ml-auto">
+            <Trash2 />
+            Удалить
+          </Button>
+        </>
       )}
     </div>
   );

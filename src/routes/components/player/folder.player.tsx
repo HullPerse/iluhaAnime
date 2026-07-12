@@ -3,11 +3,13 @@ import { fmtSize } from "@/lib/torrent.utils";
 import { openFileInPlayer } from "@/lib/media.utils";
 import type { FolderNode } from "@/types/index";
 import { useSettingsStore } from "@/store/settings.store";
+import { useDrag } from "react-dnd";
 import {
   ChevronDown,
   ChevronRight,
   FileVideo,
   FolderOpen,
+  GripVertical,
   Image,
   Monitor,
   X,
@@ -100,6 +102,7 @@ function FolderView({
   onGenerate,
   isGenerating,
   disabledExtensions,
+  draggable,
 }: {
   node: FolderNode;
   depth: number;
@@ -108,6 +111,7 @@ function FolderView({
   onGenerate?: (path: string, name: string) => void;
   isGenerating?: boolean;
   disabledExtensions?: Set<string>;
+  draggable?: boolean;
 }) {
   const showTrackFiles = useSettingsStore((s) => s.showTrackFiles);
   const audioExtensions = useSettingsStore((s) => s.audioExtensions);
@@ -156,74 +160,76 @@ function FolderView({
   const countAll =
     node.files.length + node.children.reduce((s, c) => s + c.files.length, 0);
 
+  const [{ isDragging }, dragRef] = useDrag(() => ({
+    type: "FOLDER",
+    item: { type: "FOLDER", path: node.path },
+    canDrag: draggable && depth === 0,
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging(),
+    }),
+  }), [node.path, draggable, depth]);
+
   if (flatItems.length === 0) return null;
 
   return (
     <main className="flex flex-col w-full">
-      {depth === 0 ? (
-        <div className="flex items-center gap-1 px-0.5 py-0.5 w-full">
-          <div
-            role="button"
-            className="flex items-center gap-1 flex-1 min-w-0 windows95-text cursor-pointer hover:bg-surface text-left select-none px-1"
-          >
-            <span className="size-3 shrink-0" />
-            <FolderOpen className="size-3 shrink-0 text-muted" />
-            <span className="truncate select-none" title={node.name}>
-              {node.name}
-            </span>
-            <span className="text-muted ml-auto whitespace-nowrap select-none">
+      <div
+        ref={draggable && depth === 0 ? (node) => { if (node) dragRef(node); } : undefined}
+        role="button"
+        className={`flex items-center gap-1 windows95-text cursor-pointer hover:bg-surface px-0.5 py-0.5 w-full text-left ${isDragging ? "opacity-50" : ""}`}
+        onClick={() => toggle(node.path)}
+        style={{
+          paddingLeft: `${depth * 12 + 2}px`,
+        }}
+      >
+        {depth === 0 && draggable && (
+          <GripVertical className="size-3 shrink-0 text-muted cursor-grab" />
+        )}
+        {open.has(node.path) ? (
+          <ChevronDown className="size-3 shrink-0" />
+        ) : (
+          <ChevronRight className="size-3 shrink-0" />
+        )}
+        <FolderOpen className="size-3 shrink-0 text-muted" />
+        <span className="truncate select-none flex-1" title={node.name}>
+          {node.name}
+        </span>
+        {depth === 0 && (
+          <>
+            <span className="text-muted whitespace-nowrap select-none text-[10px]">
               {countAll} файлов
             </span>
-          </div>
-          {onGenerate && (
-            <Button
-              size="icon"
-              className="h-5 w-5"
-              title="Сгенерировать превью"
-              disabled={isGenerating}
-              onClick={(e) => {
-                e.stopPropagation();
-                onGenerate(node.path, node.name);
-              }}
-            >
-              <Image className="size-3" />
-            </Button>
-          )}
-          {onRemove && (
-            <Button
-              size="icon"
-              className="h-5 w-5"
-              onClick={(e) => {
-                e.stopPropagation();
-                onRemove(node.path);
-              }}
-            >
-              <X />
-            </Button>
-          )}
-        </div>
-      ) : (
-        <div
-          role="button"
-          className="flex items-center gap-1 windows95-text cursor-pointer hover:bg-surface px-0.5 py-0.5 w-full text-left"
-          onClick={() => depth > 0 && toggle(node.path)}
-          style={{
-            paddingLeft: `${depth * 12 + 2}px`,
-          }}
-        >
-          {open.has(node.path) ? (
-            <ChevronDown className="size-3 shrink-0" />
-          ) : (
-            <ChevronRight className="size-3 shrink-0" />
-          )}
-          <FolderOpen className="size-3 shrink-0 text-muted" />
-          <span className="truncate select-none" title={node.name}>
-            {node.name}
-          </span>
-        </div>
-      )}
+            {onGenerate && (
+              <Button
+                size="icon"
+                className="h-5 w-5"
+                title="Сгенерировать превью"
+                disabled={isGenerating}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onGenerate(node.path, node.name);
+                }}
+              >
+                <Image className="size-3" />
+              </Button>
+            )}
+            {onRemove && (
+              <Button
+                size="icon"
+                className="h-5 w-5"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRemove(node.path);
+                }}
+              >
+                <X />
+              </Button>
+            )}
+          </>
+        )}
+      </div>
 
-      {(open.has(node.path) || depth === 0) && (
+      {open.has(node.path) && (
         <div
           ref={scrollRef}
           className="overflow-y-auto"

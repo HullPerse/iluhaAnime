@@ -6,7 +6,7 @@ import Modal from "@/components/shared/modal.component";
 import ProgressBar from "@/components/shared/progress.component";
 import { Button } from "@/components/ui/button.component";
 import Select from "@/components/ui/select.component";
-import { useToolStatus } from "@/components/shared/downloader.component";
+import ToolStatusCard from "@/components/shared/tool.component";
 
 type UpscaleProgressPayload = {
   current: number;
@@ -83,8 +83,6 @@ export default function UpscalePlayer({ filePath, onDone }: Props) {
   const [gpuBackend, setGpuBackend] = useState("cpu");
   const [availableGpu, setAvailableGpu] = useState<string[]>(["cpu"]);
   const [upscaler, setUpscaler] = useState("ffmpeg");
-  const aiRealesrganStatus = useToolStatus("realesrgan");
-  const aiWaifu2xStatus = useToolStatus("waifu2x");
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState<UpscaleProgressPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -234,58 +232,16 @@ export default function UpscalePlayer({ filePath, onDone }: Props) {
                 onChange={setUpscaler}
                 options={UPSCALER_OPTIONS}
               />
-              {upscaler === "realesrgan" &&
-                (aiRealesrganStatus.status === "missing" ||
-                  aiRealesrganStatus.status === "downloading") && (
-                  <div className="windows95-border bg-white p-0.5">
-                    {aiRealesrganStatus.status === "missing" && (
-                      <Button
-                        size="default"
-                        className="text-[10px] py-0.5 h-auto w-full"
-                        onClick={aiRealesrganStatus.download}
-                      >
-                        ⬇ Скачать Real-ESRGAN (15MB)
-                      </Button>
-                    )}
-                    {aiRealesrganStatus.status === "downloading" && (
-                      <div className="flex items-center gap-1">
-                        <span>Загрузка... {aiRealesrganStatus.progress}%</span>
-                        <div className="flex-1 h-3 windows95-border bg-white">
-                          <div
-                            className="h-full bg-highlight"
-                            style={{ width: `${aiRealesrganStatus.progress}%` }}
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              {upscaler === "waifu2x" &&
-                (aiWaifu2xStatus.status === "missing" ||
-                  aiWaifu2xStatus.status === "downloading") && (
-                  <div className="windows95-border bg-white p-0.5">
-                    {aiWaifu2xStatus.status === "missing" && (
-                      <Button
-                        size="default"
-                        className="text-[10px] py-0.5 h-auto w-full"
-                        onClick={aiWaifu2xStatus.download}
-                      >
-                        ⬇ Скачать waifu2x (10MB)
-                      </Button>
-                    )}
-                    {aiWaifu2xStatus.status === "downloading" && (
-                      <div className="flex items-center gap-1">
-                        <span>Загрузка... {aiWaifu2xStatus.progress}%</span>
-                        <div className="flex-1 h-3 windows95-border bg-white">
-                          <div
-                            className="h-full bg-highlight"
-                            style={{ width: `${aiWaifu2xStatus.progress}%` }}
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
+              {upscaler !== "ffmpeg" && (
+                <div className="windows95-border bg-white">
+                  <ToolStatusCard toolId={upscaler} />
+                </div>
+              )}
+              {upscaler === "ffmpeg" && (
+                <div className="windows95-border bg-white">
+                  <ToolStatusCard toolId="ffmpeg" />
+                </div>
+              )}
 
               <label className="windows95-text text-xs">FPS</label>
               <Select

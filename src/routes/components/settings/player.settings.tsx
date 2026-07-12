@@ -3,9 +3,10 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { useSettingsStore } from "@/store/settings.store";
 import { Button } from "@/components/ui/button.component";
 import Select from "@/components/ui/select.component";
+import { Checkbox } from "@/components/ui/checkbox.component";
 
 export default function SettingsPlayer() {
-  const { mediaPlayer, customPlayers, patch } = useSettingsStore();
+  const { mediaPlayer, customPlayers, showTorrentsInPlayer, patch } = useSettingsStore();
   const [customPaths, setCustomPaths] = useState<string[]>(customPlayers);
 
   const playerOptions = [
@@ -54,6 +55,16 @@ export default function SettingsPlayer() {
           onChange={(v) => patch({ mediaPlayer: v })}
           options={playerOptions}
         />
+      </label>
+
+      <hr className="windows95-header w-full" />
+
+      <label className="flex items-center gap-2 windows95-text text-text cursor-pointer select-none">
+        <Checkbox
+          checked={showTorrentsInPlayer}
+          onChange={(v) => patch({ showTorrentsInPlayer: v })}
+        />
+        <span>Показывать торренты в плеере</span>
       </label>
 
       <hr className="windows95-header w-full" />

@@ -30,6 +30,7 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
   pendingTorrent: null,
   preparingTorrent: false,
   torrentFilesMap: {},
+  pendingCategoryId: null,
 
   init: async () => {
     const initial = await invoke<TorrentInfo[]>("list_torrents");
@@ -92,6 +93,7 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
     saveDir: string,
     subFolder: string | undefined,
     sequential?: boolean,
+    categoryId?: string,
   ) => {
     const pending = get().pendingTorrent;
     if (!pending) return;
@@ -109,7 +111,7 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
     }
 
     saveLastSaveDir(saveDir);
-    set({ lastSaveDir: saveDir });
+    set({ lastSaveDir: saveDir, pendingCategoryId: categoryId ?? null });
 
     if (pending.id) {
       await invoke("remove_torrent", {

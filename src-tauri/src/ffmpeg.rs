@@ -19,8 +19,15 @@ fn download_urls() -> Result<(&'static str, &'static str, &'static str), String>
         "bin/ffprobe.exe",
     ));
 
-    #[cfg(not(target_os = "windows"))]
-    return Err("ffmpeg auto-download is only supported on Windows".to_string());
+    #[cfg(target_os = "linux")]
+    return Ok((
+        "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n8.1-latest-linux64-gpl-8.1.tar.xz",
+        "bin/ffmpeg",
+        "bin/ffprobe",
+    ));
+
+    #[cfg(not(any(target_os = "windows", target_os = "linux")))]
+    return Err("ffmpeg auto-download is only supported on Windows and Linux".to_string());
 }
 
 #[tauri::command]
@@ -87,25 +94,52 @@ pub async fn download_ffmpeg(app_handle: tauri::AppHandle) -> Result<String, Str
         },
     );
 
-    let cursor = std::io::Cursor::new(&bytes);
-    let mut archive = zip::ZipArchive::new(cursor).map_err(|e| format!("zip: {e}"))?;
-
     let targets = [(ffmpeg_in, &ffmpeg_out), (ffprobe_in, &ffprobe_out)];
-    for (in_zip, out_path) in &targets {
-        let mut found = false;
-        for i in 0..archive.len() {
-            let mut file = archive.by_index(i).map_err(|e| format!("zip entry: {e}"))?;
-            let name = file.name().to_string().replace('\\', "/");
-            if name.ends_with(in_zip) || name.contains(in_zip) {
-                let mut outfile =
-                    std::fs::File::create(out_path).map_err(|e| format!("create file: {e}"))?;
-                std::io::copy(&mut file, &mut outfile).map_err(|e| format!("extract: {e}"))?;
-                found = true;
-                break;
+
+    #[cfg(target_os = "windows")]
+    {
+        let cursor = std::io::Cursor::new(&bytes);
+        let mut archive = zip::ZipArchive::new(cursor).map_err(|e| format!("zip: {e}"))?;
+        for (in_archive, out_path) in &targets {
+            let mut found = false;
+            for i in 0..archive.len() {
+                let mut file = archive.by_index(i).map_err(|e| format!("zip entry: {e}"))?;
+                let name = file.name().to_string().replace('\\', "/");
+                if name.ends_with(in_archive) || name.contains(in_archive) {
+                    let mut outfile =
+                        std::fs::File::create(out_path).map_err(|e| format!("create file: {e}"))?;
+                    std::io::copy(&mut file, &mut outfile).map_err(|e| format!("extract: {e}"))?;
+                    found = true;
+                    break;
+                }
+            }
+            if !found {
+                return Err(format!("{in_archive} not found in archive"));
             }
         }
-        if !found {
-            return Err(format!("{in_zip} not found in archive"));
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        let cursor = std::io::Cursor::new(&bytes);
+        let decoder = xz2::read::XzDecoder::new(cursor);
+        let mut archive = tar::Archive::new(decoder);
+        for entry in archive.entries().map_err(|e| format!("tar entries: {e}"))? {
+            let mut entry = entry.map_err(|e| format!("tar entry: {e}"))?;
+            let path = entry.path().map_err(|e| format!("entry path: {e}"))?.to_string_lossy().to_string();
+            let normalized = path.replace('\\', "/");
+            for (in_archive, out_path) in &targets {
+                if normalized.ends_with(in_archive) || normalized.contains(in_archive) {
+                    let mut outfile =
+                        std::fs::File::create(out_path).map_err(|e| format!("create file: {e}"))?;
+                    std::io::copy(&mut entry, &mut outfile).map_err(|e| format!("extract: {e}"))?;
+                }
+            }
+        }
+        for (_, out_path) in &targets {
+            if !out_path.exists() {
+                return Err(format!("{:?} not found in archive", out_path.file_name().unwrap_or_default()));
+            }
         }
     }
 
@@ -183,12 +217,14 @@ mod tests {
     use super::*;
 
     #[test]
-    fn download_urls_fails_on_non_windows() {
+    fn download_urls_succeeds_on_windows_and_linux() {
         let result = download_urls();
-        #[cfg(not(target_os = "windows"))]
-        assert!(result.is_err());
         #[cfg(target_os = "windows")]
         assert!(result.is_ok());
+        #[cfg(target_os = "linux")]
+        assert!(result.is_ok());
+        #[cfg(not(any(target_os = "windows", target_os = "linux")))]
+        assert!(result.is_err());
     }
 
     #[test]
@@ -200,9 +236,15 @@ mod tests {
             assert!(url.contains("github.com"));
             assert!(url.contains("ffmpeg"));
         }
-        #[cfg(not(target_os = "windows"))]
+        #[cfg(target_os = "linux")]
         {
-            assert_eq!(result.unwrap_err(), "ffmpeg auto-download is only supported on Windows");
+            let (url, _, _) = result.unwrap();
+            assert!(url.contains("github.com"));
+            assert!(url.contains("ffmpeg"));
+        }
+        #[cfg(not(any(target_os = "windows", target_os = "linux")))]
+        {
+            assert_eq!(result.unwrap_err(), "ffmpeg auto-download is only supported on Windows and Linux");
         }
     }
 }

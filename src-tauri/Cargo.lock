@@ -2373,6 +2373,7 @@ version = "1.2.1"
 dependencies = [
  "anyhow",
  "encoding_rs",
+ "flate2",
  "futures",
  "hex 0.4.3",
  "librqbit",
@@ -2384,6 +2385,7 @@ dependencies = [
  "serde_bencode",
  "serde_json",
  "sha1",
+ "tar",
  "tauri",
  "tauri-build",
  "tauri-plugin-clipboard-manager",
@@ -2393,6 +2395,7 @@ dependencies = [
  "tauri-plugin-single-instance",
  "tauri-plugin-updater",
  "tokio",
+ "xz2",
  "zip 2.4.2",
 ]
 

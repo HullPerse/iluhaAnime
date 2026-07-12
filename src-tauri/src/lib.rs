@@ -326,6 +326,7 @@ pub fn run() {
             tools::check_tool_installed,
             tools::get_tool_path,
             tools::download_tool,
+            tools::remove_tool,
             ffmpeg::check_ffprobe,
             ffmpeg::download_ffmpeg,
             ffmpeg::remove_ffmpeg,

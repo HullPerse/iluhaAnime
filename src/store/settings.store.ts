@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import type { MediaCategory } from "@/types";
 
 export interface SettingsStore {
   dlLimit: number | null;
@@ -18,6 +19,7 @@ export interface SettingsStore {
   audioExtensions: string[];
   subtitleExtensions: string[];
   showTrackFiles: "hide" | "torrent" | "folders";
+  showTorrentsInPlayer: boolean;
   modalAnimation: boolean;
   enable3dBorders: boolean;
   buttonPressEffect: boolean;
@@ -29,6 +31,8 @@ export interface SettingsStore {
   mediaPlayer: string;
   customPlayers: string[];
   savedFolderPaths: string[];
+  categories: MediaCategory[];
+  allCategoriesCollapsed: boolean;
 
   patch: (partial: Partial<SettingsStore>) => void;
 }
@@ -52,6 +56,7 @@ export const useSettingsStore = create<SettingsStore>()(
       audioExtensions: ["mp3", "flac", "aac", "ogg", "wav", "opus", "m4a", "wma"],
       subtitleExtensions: ["srt", "ass", "ssa", "vtt", "sub", "idx", "sup", "pgs"],
       showTrackFiles: "hide",
+      showTorrentsInPlayer: true,
       modalAnimation: true,
       enable3dBorders: true,
       buttonPressEffect: true,
@@ -63,6 +68,8 @@ export const useSettingsStore = create<SettingsStore>()(
       mediaPlayer: "default",
       customPlayers: [],
       savedFolderPaths: [],
+      categories: [],
+      allCategoriesCollapsed: false,
 
       patch: (partial) => set(partial),
     }),

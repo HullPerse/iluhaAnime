@@ -64,6 +64,7 @@ export interface TorrentStore {
   pendingTorrent: PickerTorrent | null;
   preparingTorrent: boolean;
   torrentFilesMap: Record<number, TorrentFileInfo[]>;
+  pendingCategoryId: string | null;
 
   init: () => Promise<() => void>;
   prepareTorrentDownload: (magnet: string) => Promise<void>;
@@ -72,6 +73,7 @@ export interface TorrentStore {
     saveDir: string,
     subFolder: string | undefined,
     sequential?: boolean,
+    categoryId?: string,
   ) => Promise<void>;
   cancelDownload: () => Promise<void>;
   pauseTorrent: (id: number) => Promise<void>;

@@ -13,8 +13,6 @@ pub struct CancelFlag(pub Arc<AtomicBool>);
 pub(crate) fn ffmpeg_bin_dir(app_handle: &tauri::AppHandle) -> std::path::PathBuf {
     let platform = if cfg!(target_os = "windows") {
         "windows"
-    } else if cfg!(target_os = "macos") {
-        "macos"
     } else {
         "linux"
     };

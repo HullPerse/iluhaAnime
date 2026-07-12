@@ -1,56 +1,35 @@
 import { Button } from "@/components/ui/button.component";
-import type {
-  ChapterType,
-  FFMPEGStatus,
-  VideoStreamInfo,
-  VideoType,
-} from "@/types";
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { Download, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
+type FFMPEGStatus = "checking" | "ok" | "missing" | "downloading";
+
 function FFMPEG({
   status,
   setStatus,
-  video,
-  setChapters,
-  setStreams,
 }: {
   status: FFMPEGStatus;
   setStatus: (value: FFMPEGStatus) => void;
-  video: VideoType;
-  setChapters: (value: ChapterType[]) => void;
-  setStreams: (value: VideoStreamInfo[]) => void;
 }) {
   const handleDownload = useCallback(async () => {
     setStatus("downloading");
 
     try {
       await invoke<string>("download_ffmpeg");
-
       setStatus("ok");
-
-      if (!video) return;
-
-      invoke<{
-        chapters: { start_time: number; end_time: number; title: string }[];
-        streams: VideoStreamInfo[];
-      }>("get_video_info", { path: video.path }).then((res) => {
-        setChapters(res.chapters);
-        setStreams(res.streams);
-      }).catch(() => {});
     } catch {
       setStatus("missing");
     }
-  }, [video]);
+  }, [setStatus]);
 
   const handleRemove = useCallback(async () => {
     try {
       await invoke("remove_ffmpeg");
       setStatus("missing");
     } catch {}
-  }, []);
+  }, [setStatus]);
 
   const [dlProgress, setDlProgress] = useState<{
     downloaded: number;
@@ -67,7 +46,7 @@ function FFMPEG({
     let unlisten: UnlistenFn;
     listen<{ downloaded: number; total: number; stage: string }>(
       "ffmpeg-download-progress",
-      (e) => {
+      (e: { payload: { downloaded: number; total: number; stage: string } }) => {
         if (e.payload.stage === "done") {
           setDlProgress(null);
           setDlStage("done");
@@ -79,28 +58,13 @@ function FFMPEG({
           setDlStage(e.payload.stage);
         }
       },
-    ).then((fn) => {
+    ).then((fn: UnlistenFn) => {
       unlisten = fn;
     });
     return () => {
       unlisten?.();
     };
   }, [status]);
-
-  useEffect(() => {
-    if (status !== "ok" || !video) return;
-
-    invoke<{
-      chapters: { start_time: number; end_time: number; title: string }[];
-      streams: VideoStreamInfo[];
-    }>("get_video_info", { path: video.path }).then((res) => {
-      setChapters(res.chapters);
-      setStreams(res.streams);
-    }).catch(() => {
-      setChapters([]);
-      setStreams([]);
-    });
-  }, [status, video, setChapters, setStreams]);
 
   if (status === "checking")
     return (

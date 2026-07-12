@@ -11,16 +11,10 @@ export interface Anime {
 
 export type FilePriority = "do_not_download" | "low" | "normal" | "high";
 
-export interface VideoFileEntry {
-  readonly path: string;
-  readonly name: string;
-  readonly size: number;
-}
-
 export interface FolderNode {
   name: string;
   path: string;
-  files: VideoFileEntry[];
+  files: { path: string; name: string; size: number }[];
   children: FolderNode[];
 }
 

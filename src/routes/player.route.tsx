@@ -1,272 +1,88 @@
 import { Input } from "@/components/ui/input.component";
-import Player from "@/components/shared/player.component";
 import { Button } from "@/components/ui/button.component";
-import { useMediaStore } from "@/store/media.store";
-import { usePlayerStore } from "@/store/player.store";
 import {
-  ChapterType,
-  FFMPEGStatus,
-  ScanType,
-  VideoFileEntry,
-  VideoStreamInfo,
-  type FolderNode,
-  type VideoType,
-} from "@/types";
-import {
-  Keyboard,
   FolderOpen,
   File,
   X,
   Search,
   ChevronDown,
   ChevronRight,
-  Image,
 } from "lucide-react";
 import { listen } from "@tauri-apps/api/event";
-import { CHEATSHEET_ROWS } from "@/config/keybinds.config";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
-import { convertFileSrc, invoke } from "@tauri-apps/api/core";
-import { buildTree, collectFolderPaths, toAssetUrl } from "@/lib/player.utils";
-import { THUMB_INTERVAL } from "@/config/player.config";
+import { invoke } from "@tauri-apps/api/core";
 import FFMPEG from "./components/player/ffmpeg.player";
-import { getAction } from "@/config/keybinds.config";
 import FolderView from "./components/player/folder.player";
 import { useTorrentStore } from "@/store/download.store";
 import TorrentFilesSection from "./components/torrent/file.torrent";
-import ThumbnailPlayer from "./components/player/thumbnail.player";
-import ContinueWatching from "./components/player/continue.player";
-import TrackSelectorModal from "@/components/shared/player/track-selector.modal";
 import { useSettingsStore } from "@/store/settings.store";
+import { openPath } from "@tauri-apps/plugin-opener";
+import type { FolderNode } from "@/types/index";
 
-function PlayerRoute({
-  cinemaMode,
-  autoHideUi,
-  onToggleCinema,
-  onToggleAutoHide,
-}: {
-  cinemaMode?: boolean;
-  autoHideUi?: boolean;
-  onToggleCinema?: () => void;
-  onToggleAutoHide?: () => void;
-}) {
+type FFMPEGStatus = "checking" | "ok" | "missing" | "downloading";
+type ScanType = { current: number; total: number } | null;
+
+interface VideoFileEntry {
+  path: string;
+  name: string;
+  size: number;
+}
+
+function buildTree(entries: VideoFileEntry[], rootPath: string): FolderNode {
+  const root: FolderNode = {
+    path: rootPath,
+    name: rootPath.split(/[/\\]/).filter(Boolean).pop() || rootPath,
+    files: [],
+    children: [],
+  };
+
+  for (const entry of entries) {
+    const relative = entry.path.replace(rootPath, "").replace(/^[/\\]/, "");
+    const parts = relative.split(/[/\\]/);
+    let current = root;
+
+    for (let i = 0; i < parts.length - 1; i++) {
+      let child = current.children.find((c) => c.name === parts[i]);
+      if (!child) {
+        child = {
+          path: `${current.path}/${parts[i]}`,
+          name: parts[i],
+          files: [],
+          children: [],
+        };
+        current.children.push(child);
+      }
+      current = child;
+    }
+    current.files.push(entry);
+  }
+
+  return root;
+}
+
+function PlayerRoute() {
   const torrents = useTorrentStore((state) => state.torrents);
   const torrentFilesMap = useTorrentStore((state) => state.torrentFilesMap);
   const loadTorrentFiles = useTorrentStore((state) => state.loadTorrentFiles);
-  const folderPaths = usePlayerStore((s) => s.folderPaths);
-  const setFolderPaths = usePlayerStore((s) => s.setFolderPaths);
-  const mediaGet = useMediaStore((s) => s.getEntry);
-  const mediaSetTrack = useMediaStore((s) => s.setTrack);
 
-  const [video, setVideo] = useState<VideoType>(null);
-  const [videoLoading, setVideoLoading] = useState(false);
-  const [chapters, setChapters] = useState<ChapterType[]>([]);
-  const [streams, setStreams] = useState<VideoStreamInfo[]>([]);
   const [folderTrees, setFolderTrees] = useState<FolderNode[]>([]);
   const [search, setSearch] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [scanProgress, setScanProgress] = useState<ScanType>(null);
-  const [showKeybinds, setShowKeybinds] = useState<boolean>(false);
   const [ffmpegStatus, setFfmpegStatus] = useState<FFMPEGStatus>("checking");
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
-  const [cacheRefreshKey, setCacheRefreshKey] = useState(0);
-  const [autoAudio, setAutoAudio] = useState<string[]>([]);
-  const [autoSubs, setAutoSubs] = useState<string[]>([]);
   const audioExtensions = useSettingsStore((s) => s.audioExtensions);
-  const [genLabel, setGenLabel] = useState<string | null>(null);
-  const [genProgress, setGenProgress] = useState<{
-    done: number;
-    total: number;
-  } | null>(null);
-  const [genPaused, setGenPaused] = useState(false);
+  const videoExtensions = useSettingsStore((s) => s.videoExtensions);
+  const savedFolderPaths = useSettingsStore((s) => s.savedFolderPaths);
+  const patch = useSettingsStore((s) => s.patch);
   const [upscaledFiles, setUpscaledFiles] = useState<Map<number, { name: string; size: number; fullPath: string }[]>>(new Map());
-  const genCancelledRef = useRef(false);
-  const genPausedRef = useRef(false);
-
-  const [streamPort, setStreamPort] = useState<number | null>(null);
-  const [trackSelectorPending, setTrackSelectorPending] = useState<{
-    path: string;
-    chapters: ChapterType[];
-    streams: VideoStreamInfo[];
-    autoAudio: string[];
-    autoSubs: string[];
-  } | null>(null);
 
   useEffect(() => {
     invoke<boolean>("check_ffprobe")
       .then((ok) => setFfmpegStatus(ok ? "ok" : "missing"))
       .catch(() => setFfmpegStatus("missing"));
-
-    invoke<number>("get_stream_port")
-      .then((port) => setStreamPort(port))
-      .catch(() => setStreamPort(null));
   }, []);
-
-  useEffect(() => {
-    if (!video) {
-      setChapters([]);
-      setStreams([]);
-    }
-  }, [video]);
-
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement).tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA") return;
-
-      if (e.code === "Escape") {
-        setShowKeybinds(false);
-        return;
-      }
-
-      const action = getAction(e.code, e.ctrlKey, e.shiftKey, e.altKey);
-      if (!action) return;
-
-      e.preventDefault();
-
-      switch (action.action) {
-        case "toggleCheatsheet":
-          setShowKeybinds((p) => !p);
-          break;
-      }
-    };
-
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, []);
-
-  const playGenRef = useRef(0);
-  const tempFilesRef = useRef<string[]>([]);
-
-  useEffect(() => {
-    return () => {
-      if (!useSettingsStore.getState().autoCleanTempFiles) return;
-      for (const p of tempFilesRef.current) {
-        invoke("cleanup_temp_file", { path: p }).catch(() => { });
-      }
-      tempFilesRef.current = [];
-    };
-  }, []);
-
-  const playFile = useCallback(
-    (path: string) => {
-      const gen = ++playGenRef.current;
-      setVideoLoading(true);
-
-      // Probe tracks in background
-      (async () => {
-        try {
-          const [info, tracks] = await Promise.all([
-            invoke<{
-              chapters: ChapterType[];
-              streams: VideoStreamInfo[];
-            }>("get_video_info", { path }),
-            invoke<{
-              audio: { path: string; file_name: string }[];
-              subtitles: { path: string; file_name: string }[];
-            }>("scan_folder_for_tracks", { videoPath: path }).catch(() => ({
-              audio: [],
-              subtitles: [],
-            })),
-          ]);
-          if (gen !== playGenRef.current) return;
-          setChapters(info.chapters);
-          setStreams(info.streams);
-          setAutoAudio(tracks.audio.map((a) => a.path));
-          setAutoSubs(tracks.subtitles.map((s) => s.path));
-          setTrackSelectorPending({
-            path,
-            chapters: info.chapters,
-            streams: info.streams,
-            autoAudio: tracks.audio.map((a) => a.path),
-            autoSubs: tracks.subtitles.map((s) => s.path),
-          });
-          // Fire-and-forget pre-extraction of all audio/subtitle tracks
-          (async () => {
-            const audioStreams = info.streams.filter((s: VideoStreamInfo) => s.codec_type === "audio");
-            const subStreams = info.streams.filter((s: VideoStreamInfo) => s.codec_type === "subtitle");
-            if (audioStreams.length > 0 || subStreams.length > 0) {
-              try {
-                  await invoke<{
-                    audio_paths: Record<string, string>;
-                  }>("pre_extract_all_tracks", {
-                  path,
-                  audioStreams: audioStreams.map((s: VideoStreamInfo) => [s.index, s.codec_name]),
-                  subStreams: subStreams.map((s: VideoStreamInfo) => [s.index, s.codec_name]),
-                }).catch(() => ({ audio_paths: {} }));
-                 if (gen !== playGenRef.current) return;
-              } catch (e) {
-                console.error("Pre-extraction failed:", e);
-              }
-            }
-          })();
-        } catch {
-          if (gen !== playGenRef.current) return;
-          setChapters([]);
-          setStreams([]);
-          setTrackSelectorPending({
-            path,
-            chapters: [],
-            streams: [],
-            autoAudio: [],
-            autoSubs: [],
-          });
-        } finally {
-          if (gen === playGenRef.current) setVideoLoading(false);
-        }
-      })();
-    },
-    [mediaGet],
-  );
-
-  // Drag-and-drop video file opening
-  useEffect(() => {
-    let unlisten: (() => void) | undefined;
-    (async () => {
-      const { listen } = await import("@tauri-apps/api/event");
-      unlisten = await listen<{ paths: string[] }>("tauri://drag-drop", (e) => {
-        for (const p of e.payload.paths) {
-          const ext = p.split(".").pop()?.toLowerCase() ?? "";
-          const videoExts = useSettingsStore.getState().videoExtensions;
-          if (videoExts.includes(ext)) {
-            playFile(p);
-            return;
-          }
-        }
-      });
-    })();
-    return () => {
-      if (unlisten) unlisten();
-    };
-  }, [playFile]);
-
-  useEffect(() => {
-    if (folderPaths.length === 0) return;
-
-    setLoading(true);
-    setScanProgress({ current: 0, total: 0 });
-
-    (async () => {
-      const trees: FolderNode[] = [];
-
-      for (let i = 0; i < folderPaths.length; i++) {
-        setScanProgress({ current: i, total: folderPaths.length });
-
-        try {
-          const entries = await invoke<VideoFileEntry[]>("scan_video_folder", {
-            path: folderPaths[i],
-          });
-          if (entries?.length) trees.push(buildTree(entries, folderPaths[i]));
-        } catch { }
-      }
-
-      setFolderTrees(trees);
-      setFolderPaths(trees.map((t) => t.path));
-
-      setLoading(false);
-      setScanProgress(null);
-    })();
-  }, [buildTree, setFolderPaths]);
 
   useEffect(() => {
     torrents.forEach((t) => {
@@ -277,14 +93,45 @@ function PlayerRoute({
   }, [torrents, torrentFilesMap, loadTorrentFiles]);
 
   useEffect(() => {
-    if (folderPaths.length === 0) return;
+    const paths = useSettingsStore.getState().savedFolderPaths;
+    if (paths.length === 0) return;
+
+    setLoading(true);
+    setScanProgress({ current: 0, total: 0 });
+
+    (async () => {
+      const trees: FolderNode[] = [];
+
+      for (let i = 0; i < paths.length; i++) {
+        setScanProgress({ current: i, total: paths.length });
+
+        try {
+          const entries = await invoke<VideoFileEntry[]>("scan_video_folder", {
+            path: paths[i],
+            extensions: videoExtensions,
+          });
+          if (entries?.length) trees.push(buildTree(entries, paths[i]));
+        } catch { }
+      }
+
+      setFolderTrees(trees);
+
+      setLoading(false);
+      setScanProgress(null);
+    })();
+  }, []);
+
+  useEffect(() => {
+    const paths = useSettingsStore.getState().savedFolderPaths;
+    if (paths.length === 0) return;
 
     const interval = setInterval(async () => {
       const trees: FolderNode[] = [];
-      for (const p of folderPaths) {
+      for (const p of paths) {
         try {
           const entries = await invoke<VideoFileEntry[]>("scan_video_folder", {
             path: p,
+            extensions: videoExtensions,
           });
           if (entries?.length) trees.push(buildTree(entries, p));
         } catch { }
@@ -293,52 +140,7 @@ function PlayerRoute({
     }, 30000);
 
     return () => clearInterval(interval);
-  }, [folderPaths, buildTree, setFolderPaths]);
-
-  const currentTreeFiles: VideoFileEntry[] = useMemo(() => {
-    if (!video) return [];
-    for (const tree of folderTrees) {
-      const stack: FolderNode[] = [tree];
-      while (stack.length > 0) {
-        const item = stack.pop()!;
-        if (item.files.some((f) => f.path === video.path)) {
-          const result: VideoFileEntry[] = [];
-          const s: FolderNode[] = [item];
-          while (s.length > 0) {
-            const n = s.pop()!;
-            result.push(...n.files);
-            s.push(...n.children);
-          }
-          return result;
-        }
-        stack.push(...item.children);
-      }
-    }
-    return [];
-  }, [folderTrees, video]);
-
-  const currentIndex: number = useMemo(() => {
-    if (!video) return -1;
-    else return currentTreeFiles.findIndex((f) => f.path === video.path);
-  }, [currentTreeFiles, video]);
-
-  const hasNext: boolean =
-    currentIndex >= 0 && currentIndex < currentTreeFiles.length - 1;
-  const hasPrev: boolean = currentIndex > 0;
-
-  const { onFileNext, onFilePrev } = useMemo(
-    () => ({
-      onFileNext: () => {
-        if (hasNext && currentTreeFiles[currentIndex + 1])
-          playFile(currentTreeFiles[currentIndex + 1].path);
-      },
-      onFilePrev: () => {
-        if (hasPrev && currentTreeFiles[currentIndex - 1])
-          playFile(currentTreeFiles[currentIndex - 1].path);
-      },
-    }),
-    [hasPrev, hasNext, currentTreeFiles, currentIndex, playFile],
-  );
+  }, [savedFolderPaths, videoExtensions]);
 
   const handleOpenFile = useCallback(async () => {
     const file = await open({
@@ -352,7 +154,11 @@ function PlayerRoute({
       ],
     });
 
-    if (file) playFile(file);
+    if (file) {
+      try {
+        await openPath(file);
+      } catch { }
+    }
   }, []);
 
   const handleOpenFolder = useCallback(async () => {
@@ -382,14 +188,13 @@ function PlayerRoute({
     try {
       const entries = await invoke<VideoFileEntry[]>("scan_video_folder", {
         path: folder,
+        extensions: videoExtensions,
       });
-
       if (!entries || entries.length === 0) return;
-
       const tree = buildTree(entries, folder);
       const next = [...folderTrees, tree];
       setFolderTrees(next);
-      setFolderPaths(next.map((t) => t.path));
+      patch({ savedFolderPaths: next.map((t) => t.path) });
     } catch {
     } finally {
       const unlisten = await unlistenPromise;
@@ -397,24 +202,17 @@ function PlayerRoute({
       setLoading(false);
       setScanProgress(null);
     }
-  }, [folderTrees, setFolderPaths, buildTree]);
+  }, [folderTrees, videoExtensions, patch]);
 
   const handleRemoveFolder = useCallback(
     (path: string) => {
-      const tree = folderTrees.find((t) => t.path === path);
-      if (tree) {
-        const paths = collectFolderPaths([tree]);
-        invoke("delete_thumbnails_for_paths", { paths })
-          .then(() => setCacheRefreshKey((k) => k + 1))
-          .catch(() => { });
-      }
       setFolderTrees((prev) => {
         const next = prev.filter((t) => t.path !== path);
-        setFolderPaths(next.map((t) => t.path));
+        patch({ savedFolderPaths: next.map((t) => t.path) });
         return next;
       });
     },
-    [folderTrees, setFolderPaths],
+    [patch],
   );
 
   const toggleExpanded = (id: number) => {
@@ -426,222 +224,7 @@ function PlayerRoute({
     });
   };
 
-  const runGeneration = useCallback(async (label: string, paths: string[]) => {
-    if (paths.length === 0) return;
-    genCancelledRef.current = false;
-    genPausedRef.current = false;
-    setGenPaused(false);
-    setGenLabel(label);
-    setGenProgress({ done: 0, total: paths.length });
-
-    for (const p of paths) {
-      if (genCancelledRef.current) break;
-      while (genPausedRef.current && !genCancelledRef.current) {
-        await new Promise((r) => setTimeout(r, 100));
-      }
-      if (genCancelledRef.current) break;
-
-      try {
-        await invoke("generate_thumbnails", {
-          videoPath: p,
-          interval: THUMB_INTERVAL,
-        });
-      } catch { }
-
-      setGenProgress((prev) =>
-        prev ? { ...prev, done: prev.done + 1 } : prev,
-      );
-    }
-
-    if (!genCancelledRef.current) {
-      setCacheRefreshKey((k) => k + 1);
-    }
-    setGenProgress(null);
-    setGenPaused(false);
-    setGenLabel(null);
-  }, []);
-
-  const handleGenerateAll = useCallback(async () => {
-    const exts = new Set(useSettingsStore.getState().videoExtensions);
-    const paths = new Set<string>();
-
-    for (const p of collectFolderPaths(folderTrees)) paths.add(p);
-
-    for (const [id, files] of Object.entries(torrentFilesMap)) {
-      const t = torrents.find((t) => t.id === Number(id));
-      if (!t) continue;
-      for (const f of files) {
-        const ext = f.name.split(".").pop()?.toLowerCase();
-        if (ext && exts.has(ext)) paths.add(`${t.save_dir}/${f.name}`);
-      }
-    }
-
-    runGeneration("Все папки и торренты", [...paths]);
-  }, [folderTrees, torrentFilesMap, torrents, runGeneration]);
-
-  const handleGenerateFolder = useCallback(
-    async (path: string, name: string) => {
-      const tree = folderTrees.find((t) => t.path === path);
-      if (!tree) return;
-
-      const exts = new Set(useSettingsStore.getState().videoExtensions);
-      const paths = collectFolderPaths([tree]).filter((p) => {
-        const ext = p.split(".").pop()?.toLowerCase();
-        return ext && exts.has(ext);
-      });
-
-      runGeneration(`Папка: ${name}`, paths);
-    },
-    [folderTrees, runGeneration],
-  );
-
-  const handleGenerateTorrent = useCallback(
-    async (id: number) => {
-      const t = torrents.find((t) => t.id === id);
-      const files = torrentFilesMap[id];
-      if (!t || !files) return;
-
-      const exts = new Set(useSettingsStore.getState().videoExtensions);
-      const paths = files
-        .filter((f) => f.completed)
-        .map((f) => `${t.save_dir}/${f.name}`)
-        .filter((p) => {
-          const ext = p.split(".").pop()?.toLowerCase();
-          return ext && exts.has(ext);
-        });
-
-      runGeneration(`Торрент: ${t.name}`, paths);
-    },
-    [torrents, torrentFilesMap, runGeneration],
-  );
-
-  const isGenerating = genProgress !== null;
-
-  // Convert external track paths to VideoStreamInfo for the modal
-  const externalAudioStreams = useMemo(
-    () =>
-      (trackSelectorPending?.autoAudio ?? []).map((p, i) => ({
-        index: -1000 - i,
-        codec_type: "audio" as const,
-        codec_name: p.split(".").pop()?.toLowerCase() ?? "",
-        language: null,
-        title: p.split(/[/\\]/).pop() ?? "Audio",
-        is_default: false,
-        is_forced: false,
-        is_comment: false,
-        bit_rate: null,
-        channels: null,
-        sample_rate: null,
-        width: null,
-        height: null,
-        file_path: p,
-      })),
-    [trackSelectorPending?.autoAudio],
-  );
-  const externalSubtitleStreams = useMemo(
-    () =>
-      (trackSelectorPending?.autoSubs ?? []).map((p, i) => ({
-        index: -2000 - i,
-        codec_type: "subtitle" as const,
-        codec_name: p.split(".").pop()?.toLowerCase() ?? "",
-        language: null,
-        title: p.split(/[/\\]/).pop() ?? "Subtitles",
-        is_default: false,
-        is_forced: false,
-        is_comment: false,
-        bit_rate: null,
-        channels: null,
-        sample_rate: null,
-        width: null,
-        height: null,
-        file_path: p,
-      })),
-    [trackSelectorPending?.autoSubs],
-  );
-
-  const handleTrackSelectorConfirm = useCallback(
-    (audioIdx: number, subIdx: number, audioPath?: string, subPath?: string, subFonts?: string[], subIsAss?: boolean) => {
-      if (!trackSelectorPending) return;
-      const { path } = trackSelectorPending;
-      setTrackSelectorPending(null);
-      mediaSetTrack(path, "audio", audioIdx);
-      mediaSetTrack(path, "sub", subIdx);
-      setVideo({
-        path,
-        file: path.split(/[/\\]/).pop() ?? "Video",
-        initialTime: mediaGet(path)?.position ?? 0,
-        audioSrc: audioPath,
-        subPath,
-        subFonts,
-        subIsAss,
-      });
-    },
-    [trackSelectorPending, mediaSetTrack, mediaGet],
-  );
-
-  const handleTrackSelectorCancel = useCallback(() => {
-    setTrackSelectorPending(null);
-  }, []);
-
   return (
-    <>
-      {video && (() => {
-        const videoSrc = streamPort
-          ? `http://127.0.0.1:${streamPort}/file?path=${encodeURIComponent(video.path)}`
-          : convertFileSrc(video.path);
-        return (
-          <main className="flex flex-col w-full h-full gap-1 overflow-y-auto">
-            <Player
-              header={video.file.replace(/\.[^/.]+$/, "")}
-              src={videoSrc}
-              onClose={() => setVideo(null)}
-              chapters={chapters}
-              mediaPath={video.path}
-              streams={streams}
-              initialTime={video.initialTime}
-              onFileNext={onFileNext}
-              onFilePrev={onFilePrev}
-              hasNext={hasNext}
-              hasPrev={hasPrev}
-              cinemaMode={cinemaMode}
-              autoHideUi={autoHideUi}
-              onToggleCinema={onToggleCinema}
-              onToggleAutoHide={onToggleAutoHide}
-              loading={videoLoading}
-              autoAudio={autoAudio}
-              autoSubs={autoSubs}
-              subPath={video.subPath}
-              subFonts={video.subFonts}
-              subIsAss={video.subIsAss}
-            />
-          </main>
-        );
-      })()}
-
-      {trackSelectorPending && (() => {
-        const audioStreams = trackSelectorPending.streams.filter(
-          (s) => s.codec_type === "audio",
-        );
-        const subtitleStreams = trackSelectorPending.streams.filter(
-          (s) => s.codec_type === "subtitle",
-        );
-        return (
-          <TrackSelectorModal
-            mediaPath={trackSelectorPending.path}
-            videoName={
-              trackSelectorPending.path.split(/[/\\]/).pop() ?? "Video"
-            }
-            audioStreams={audioStreams}
-            subtitleStreams={subtitleStreams}
-            externalAudio={externalAudioStreams}
-            externalSubs={externalSubtitleStreams}
-            onConfirm={handleTrackSelectorConfirm}
-            onCancel={handleTrackSelectorCancel}
-           />
-        );
-      })()}
-
-      {!video && (
     <main className="flex flex-col w-full h-full gap-1 overflow-y-auto">
       {/* FILE CONTROLS */}
       <section className="flex flex-row w-full h-8 windows95-active-border bg-primary gap-1 p-1 items-center">
@@ -652,78 +235,14 @@ function PlayerRoute({
           <FolderOpen />
           Открыть папку
         </Button>
-        <Button
-          size="icon"
-          className="ml-auto h-6 w-6"
-          title="Горячие клавиши"
-          onClick={() => setShowKeybinds((prev) => !prev)}
-        >
-          <Keyboard />
-        </Button>
       </section>
 
       {/* FFMPEG STATUS */}
       <section className="flex flex-row w-full h-8 windows95-active-border bg-primary gap-1 p-1 items-center">
-        <FFMPEG
-          status={ffmpegStatus}
-          setStatus={setFfmpegStatus}
-          video={video}
-          setChapters={setChapters}
-          setStreams={setStreams}
-        />
+        <FFMPEG status={ffmpegStatus} setStatus={setFfmpegStatus} />
         <span className="ml-auto text-[10px] text-muted">v8.1</span>
       </section>
 
-      {/* THUMBNAIL CACHE */}
-      <ThumbnailPlayer
-        ffmpegStatus={ffmpegStatus}
-        cacheRefreshKey={cacheRefreshKey}
-        generatingLabel={genLabel}
-        progress={genProgress}
-        paused={genPaused}
-        onGenerateAll={handleGenerateAll}
-        onPause={() => {
-          genPausedRef.current = !genPausedRef.current;
-          setGenPaused((p) => !p);
-        }}
-        onStop={() => {
-          genCancelledRef.current = true;
-          genPausedRef.current = false;
-          setGenProgress(null);
-          setGenPaused(false);
-          setGenLabel(null);
-        }}
-        onClear={async () => {
-          try {
-            await invoke("clear_thumbnail_cache");
-            setCacheRefreshKey((k) => k + 1);
-          } catch { }
-        }}
-      />
-
-      {/* CONTINUE WATCHING */}
-      <ContinueWatching onPlay={playFile} />
-
-      {/* KEYBINDS */}
-      {showKeybinds && (
-        <section className="relative windows95-active-border bg-primary p-1 h-fit">
-          <Button
-            size="icon"
-            className="absolute top-1 right-1 flex items-center justify-center size-6"
-            onClick={() => setShowKeybinds(false)}
-          >
-            <X />
-          </Button>
-          <span className="windows95-text block mb-1">Горячие клавиши</span>
-
-          <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-[10px] windows95-font">
-            {CHEATSHEET_ROWS.flatMap((row) => [
-              <span key={`${row.keys}-key`}>{row.keys}</span>,
-              <span key={`${row.keys}-desc`}>{row.description}</span>,
-            ])}
-          </div>
-        </section>
-      )}
       {/* SAVED FOLDERS */}
       {!loading && folderTrees.length > 0 && (
         <section className="windows95-active-border bg-primary p-1">
@@ -775,17 +294,15 @@ function PlayerRoute({
         </section>
       )}
 
-      {folderTrees.length > 0 && (
+      {!loading && folderTrees.length > 0 && (
         <section className="flex flex-col w-full windows95-text gap-2">
           {folderTrees.map((tree) => (
             <div key={tree.path} className="flex flex-col windows95-active-border bg-primary">
               <FolderView
                 node={tree}
                 depth={0}
-                onPlay={playFile}
                 searchQuery={search}
                 onRemove={handleRemoveFolder}
-                onGenerate={handleGenerateFolder}
                 disabledExtensions={new Set(audioExtensions)}
               />
             </div>
@@ -798,8 +315,6 @@ function PlayerRoute({
         const isExpanded = expanded.has(item.id);
         const files = torrentFilesMap[item.id];
 
-
-
         return (
           <section
             key={index}
@@ -809,18 +324,6 @@ function PlayerRoute({
               <span className="flex-1 line-clamp-1 font-bold windows95-text py-0.5">
                 {item.name}
               </span>
-              <Button
-                size="icon"
-                className="size-4"
-                title="Сгенерировать превью"
-                disabled={isGenerating}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleGenerateTorrent(item.id);
-                }}
-              >
-                <Image className="size-3" />
-              </Button>
             </div>
 
             {files && (
@@ -848,7 +351,6 @@ function PlayerRoute({
                     files={files.filter((f) => f.completed)}
                     type="player"
                     path={item.save_dir}
-                    onPlay={playFile}
                     extraFiles={upscaledFiles.get(item.id)}
                     onUpscaleDone={(filePath) => {
                       setUpscaledFiles((prev) => {
@@ -874,8 +376,6 @@ function PlayerRoute({
         );
       })}
     </main>
-      )}
-    </>
   );
 }
 

@@ -6,7 +6,7 @@ import Modal from "@/components/shared/modal.component";
 import ProgressBar from "@/components/shared/progress.component";
 import { Button } from "@/components/ui/button.component";
 import Select from "@/components/ui/select.component";
-import { useToolStatus } from "@/components/shared/tool-downloader.component";
+import { useToolStatus } from "@/components/shared/downloader.component";
 
 type UpscaleProgressPayload = {
   current: number;
@@ -129,9 +129,8 @@ export default function UpscalePlayer({ filePath, onDone }: Props) {
 
     const outputPath = buildOutputPath(filePath);
     outputPathRef.current = outputPath;
-    const [w, h] = resolution === "original"
-      ? [0, 0]
-      : resolution.split("x").map(Number);
+    const [w, h] =
+      resolution === "original" ? [0, 0] : resolution.split("x").map(Number);
     const interpolate = fpsValue === "60i";
     const fps =
       fpsValue === "60" || fpsValue === "60i"
@@ -193,9 +192,10 @@ export default function UpscalePlayer({ filePath, onDone }: Props) {
   const stage = progress?.stage;
   const initializing = stage === "initializing" || (!progress && running);
   const started = stage === "started";
-  const etaSecs = progress && progress.speed > 0
-    ? (progress.total - progress.current) / progress.speed
-    : null;
+  const etaSecs =
+    progress && progress.speed > 0
+      ? (progress.total - progress.current) / progress.speed
+      : null;
 
   const gpuOptions = availableGpu.map((b) => ({
     value: b,
@@ -234,40 +234,58 @@ export default function UpscalePlayer({ filePath, onDone }: Props) {
                 onChange={setUpscaler}
                 options={UPSCALER_OPTIONS}
               />
-              {upscaler === "realesrgan" && (aiRealesrganStatus.status === "missing" || aiRealesrganStatus.status === "downloading") && (
-                <div className="windows95-border bg-white p-0.5">
-                  {aiRealesrganStatus.status === "missing" && (
-                    <Button size="default" className="text-[10px] py-0.5 h-auto w-full" onClick={aiRealesrganStatus.download}>
-                      ⬇ Скачать Real-ESRGAN (15MB)
-                    </Button>
-                  )}
-                  {aiRealesrganStatus.status === "downloading" && (
-                    <div className="flex items-center gap-1">
-                      <span>Загрузка... {aiRealesrganStatus.progress}%</span>
-                      <div className="flex-1 h-3 windows95-border bg-white">
-                        <div className="h-full bg-highlight" style={{ width: `${aiRealesrganStatus.progress}%` }} />
+              {upscaler === "realesrgan" &&
+                (aiRealesrganStatus.status === "missing" ||
+                  aiRealesrganStatus.status === "downloading") && (
+                  <div className="windows95-border bg-white p-0.5">
+                    {aiRealesrganStatus.status === "missing" && (
+                      <Button
+                        size="default"
+                        className="text-[10px] py-0.5 h-auto w-full"
+                        onClick={aiRealesrganStatus.download}
+                      >
+                        ⬇ Скачать Real-ESRGAN (15MB)
+                      </Button>
+                    )}
+                    {aiRealesrganStatus.status === "downloading" && (
+                      <div className="flex items-center gap-1">
+                        <span>Загрузка... {aiRealesrganStatus.progress}%</span>
+                        <div className="flex-1 h-3 windows95-border bg-white">
+                          <div
+                            className="h-full bg-highlight"
+                            style={{ width: `${aiRealesrganStatus.progress}%` }}
+                          />
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </div>
-              )}
-              {upscaler === "waifu2x" && (aiWaifu2xStatus.status === "missing" || aiWaifu2xStatus.status === "downloading") && (
-                <div className="windows95-border bg-white p-0.5">
-                  {aiWaifu2xStatus.status === "missing" && (
-                    <Button size="default" className="text-[10px] py-0.5 h-auto w-full" onClick={aiWaifu2xStatus.download}>
-                      ⬇ Скачать waifu2x (10MB)
-                    </Button>
-                  )}
-                  {aiWaifu2xStatus.status === "downloading" && (
-                    <div className="flex items-center gap-1">
-                      <span>Загрузка... {aiWaifu2xStatus.progress}%</span>
-                      <div className="flex-1 h-3 windows95-border bg-white">
-                        <div className="h-full bg-highlight" style={{ width: `${aiWaifu2xStatus.progress}%` }} />
+                    )}
+                  </div>
+                )}
+              {upscaler === "waifu2x" &&
+                (aiWaifu2xStatus.status === "missing" ||
+                  aiWaifu2xStatus.status === "downloading") && (
+                  <div className="windows95-border bg-white p-0.5">
+                    {aiWaifu2xStatus.status === "missing" && (
+                      <Button
+                        size="default"
+                        className="text-[10px] py-0.5 h-auto w-full"
+                        onClick={aiWaifu2xStatus.download}
+                      >
+                        ⬇ Скачать waifu2x (10MB)
+                      </Button>
+                    )}
+                    {aiWaifu2xStatus.status === "downloading" && (
+                      <div className="flex items-center gap-1">
+                        <span>Загрузка... {aiWaifu2xStatus.progress}%</span>
+                        <div className="flex-1 h-3 windows95-border bg-white">
+                          <div
+                            className="h-full bg-highlight"
+                            style={{ width: `${aiWaifu2xStatus.progress}%` }}
+                          />
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </div>
-              )}
+                    )}
+                  </div>
+                )}
 
               <label className="windows95-text text-xs">FPS</label>
               <Select
@@ -285,7 +303,9 @@ export default function UpscalePlayer({ filePath, onDone }: Props) {
 
               {gpuOptions.length > 1 && (
                 <>
-                  <label className="windows95-text text-xs">Кодек / Ускоритель</label>
+                  <label className="windows95-text text-xs">
+                    Кодек / Ускоритель
+                  </label>
                   <Select
                     value={gpuBackend}
                     onChange={setGpuBackend}
@@ -306,7 +326,9 @@ export default function UpscalePlayer({ filePath, onDone }: Props) {
               {initializing && (
                 <div className="flex flex-col items-center gap-2 py-4">
                   <Loader className="size-5 animate-spin" />
-                  <span className="windows95-text text-xs">Инициализация...</span>
+                  <span className="windows95-text text-xs">
+                    Инициализация...
+                  </span>
                 </div>
               )}
 

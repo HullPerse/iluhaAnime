@@ -35,26 +35,4 @@ impl StreamRegistry {
         self.streams.lock().unwrap().insert(id, tx.clone());
         (id, tx)
     }
-
-    /// Get the Sender for a stream, if it still exists.
-    pub fn get(&self, id: u64) -> Option<watch::Sender<f64>> {
-        self.streams.lock().unwrap().get(&id).cloned()
-    }
-
-    /// Remove a stream from the registry (cleanup when done).
-    #[allow(dead_code)]
-    pub fn remove(&self, id: u64) {
-        self.streams.lock().unwrap().remove(&id);
-    }
-
-    /// Get a snapshot of all active stream IDs and their current values.
-    #[allow(dead_code)]
-    pub fn snapshot(&self) -> Vec<(u64, f64)> {
-        self.streams
-            .lock()
-            .unwrap()
-            .iter()
-            .map(|(&id, tx)| (id, *tx.borrow()))
-            .collect()
-    }
 }

@@ -5,7 +5,6 @@ import { fmtSize, fmtETA, fmtSpeed, stateLabel } from "@/lib/torrent.utils";
 import { useTorrentStore } from "@/store/download.store";
 import { openPath } from "@tauri-apps/plugin-opener";
 import { ConfirmDialog } from "@/components/shared/confirm.component";
-import { invoke } from "@tauri-apps/api/core";
 import Modal from "@/components/shared/modal.component";
 import {
   Pause,
@@ -459,20 +458,10 @@ function TorrentRoute() {
           cancelLabel="Оставить файлы"
           variant="destructive"
           onConfirm={() => {
-            if (pendingDelete.files.length > 0) {
-              invoke("delete_thumbnails_for_paths", {
-                paths: pendingDelete.files,
-              }).catch(() => { });
-            }
             removeTorrent(pendingDelete.id, true);
             setPendingDelete(null);
           }}
           onCancel={() => {
-            if (pendingDelete.files.length > 0) {
-              invoke("delete_thumbnails_for_paths", {
-                paths: pendingDelete.files,
-              }).catch(() => { });
-            }
             removeTorrent(pendingDelete.id, false);
             setPendingDelete(null);
           }}

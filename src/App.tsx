@@ -4,13 +4,12 @@ import {
   ReactElement,
   lazy,
   Suspense,
-  useCallback,
 } from "react";
 import { useTorrentStore } from "@/store/download.store";
 import { useSearchStore } from "@/store/search.store";
 import TorrentFilePicker from "@/routes/components/search/picker.search";
 import { WindowLoader } from "./components/shared/loader.component";
-import { checkForUpdates, cn } from "./lib/index.utils";
+import { checkForUpdates } from "./lib/index.utils";
 import { getAction, KeybindAction } from "@/config/keybinds.config";
 import { useSettingsStore } from "@/store/settings.store";
 import Updater from "./components/shared/updater.component";
@@ -36,12 +35,7 @@ const tabs: { id: Tab; label: string }[] = [
 
 function App() {
   const [activeTab, setActiveTab] = useState<Tab>("search");
-  const [cinemaMode, setCinemaMode] = useState<boolean>(false);
-  const [autoHideUi, setAutoHideUi] = useState<boolean>(false);
   const [updateAvailable, setUpdateAvailable] = useState<boolean>(false);
-
-  const toggleCinemaMode = useCallback(() => setCinemaMode((p) => !p), []);
-  const toggleAutoHide = useCallback(() => setAutoHideUi((p) => !p), []);
   const wallpaperBlur = useSettingsStore((s) => s.wallpaperBlur);
   const showWallpaper = useSettingsStore((s) => s.showWallpaper);
   const customScrollbar = useSettingsStore((s) => s.customScrollbar);
@@ -110,20 +104,6 @@ function App() {
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
-  // Escape exits cinema mode
-  useEffect(() => {
-    if (!cinemaMode) return;
-    const handler = (e: KeyboardEvent) => {
-      const action = getAction(e.code, e.ctrlKey, e.shiftKey, e.altKey);
-      if (action?.action === "exitCinemaMode") {
-        setCinemaMode(false);
-        setAutoHideUi(false);
-      }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [cinemaMode]);
-
   useEffect(() => {
     return useSearchStore.subscribe((state, prev) => {
       if (
@@ -139,14 +119,7 @@ function App() {
     const tabMap = {
       search: <SearchRoute />,
       torrent: <TorrentRoute />,
-      player: (
-        <PlayerRoute
-          cinemaMode={cinemaMode}
-          autoHideUi={autoHideUi}
-          onToggleCinema={toggleCinemaMode}
-          onToggleAutoHide={toggleAutoHide}
-        />
-      ),
+      player: <PlayerRoute />,
       anilist: <AniListRoute />,
       settings: <SettingsRoute />,
     } as Record<Tab, ReactElement>;
@@ -172,7 +145,7 @@ function App() {
         />
       )}
       {/* WALLPAPER */}
-      {!cinemaMode && showWallpaper && (
+      {showWallpaper && (
         <div
           className={`absolute inset-0 z-0 bg-background bg-no-repeat ${wallpaperBlur ? "blur-xs brightness-50" : ""}`}
           style={{
@@ -184,43 +157,24 @@ function App() {
       )}
 
       {/* WINDOW FRAME */}
-      <div
-        className={cn(
-          "relative z-10 h-full flex flex-col p-1",
-          cinemaMode && "p-0",
-        )}
-      >
-        <div
-          className={cn(
-            "flex flex-col h-full windows95-active-border bg-primary",
-            cinemaMode && "border-0",
-          )}
-        >
-          {/* TITLE BAR + TAB BAR — hidden in cinema mode */}
-          {!cinemaMode && (
-            <>
-              <div className="flex items-center justify-between bg-secondary px-1 py-0.5 select-none">
-                <span className="text-white font-bold windows95-text">
-                  iluhaAnime
-                </span>
-              </div>
-              <div className="flex bg-primary pl-2 pt-1 gap-1">
-                <Tabs
-                  tabs={tabs}
-                  activeTab={activeTab}
-                  onChange={(id) => setActiveTab(id)}
-                />
-              </div>
-            </>
-          )}
+      <div className="relative z-10 h-full flex flex-col p-1">
+        <div className="flex flex-col h-full windows95-active-border bg-primary">
+          {/* TITLE BAR + TAB BAR */}
+          <div className="flex items-center justify-between bg-secondary px-1 py-0.5 select-none">
+            <span className="text-white font-bold windows95-text">
+              iluhaAnime
+            </span>
+          </div>
+          <div className="flex bg-primary pl-2 pt-1 gap-1">
+            <Tabs
+              tabs={tabs}
+              activeTab={activeTab}
+              onChange={(id) => setActiveTab(id)}
+            />
+          </div>
 
           {/* CONTENT PANEL */}
-          <div
-            className={cn(
-              "flex-1 overflow-hidden",
-              cinemaMode ? "m-0 border-0" : "mx-1 mb-1 p-1 windows95-border",
-            )}
-          >
+          <div className="flex-1 overflow-hidden mx-1 mb-1 p-1 windows95-border">
             <Suspense fallback={<WindowLoader />}>{getComponent()}</Suspense>
           </div>
         </div>

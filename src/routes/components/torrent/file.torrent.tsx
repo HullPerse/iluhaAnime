@@ -8,9 +8,8 @@ import {
   ChevronRight,
   FolderOpen,
   Monitor,
-  Play,
 } from "lucide-react";
-import { openPath } from "@tauri-apps/plugin-opener";
+import { openFileInPlayer } from "@/lib/media.utils";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import Select from "@/components/ui/select.component";
@@ -55,7 +54,6 @@ function TorrentFilesSection({
   onToggle,
   type,
   path,
-  onPlay,
   onFilePriorityChange,
   extraFiles,
   onUpscaleDone,
@@ -65,7 +63,6 @@ function TorrentFilesSection({
   type: "torrent" | "player";
   path?: string;
   onToggle?: (id: number, indices: number[]) => void;
-  onPlay?: (filePath: string) => void;
   onFilePriorityChange?: (
     id: number,
     fileIndices: number[],
@@ -254,46 +251,26 @@ function TorrentFilesSection({
                           title="Открыть в медиа плеере"
                           size="icon"
                           className="size-4"
-                          onClick={async () => openPath((file as TorrentTreeFile & { _fullPath: string })._fullPath)}
+                          onClick={async () => openFileInPlayer((file as TorrentTreeFile & { _fullPath: string })._fullPath)}
                         >
                           <Monitor className="size-2.5" />
                         </Button>
-                        {onPlay && (
-                          <Button
-                            title="Открыть в iluhaAnime плеере"
-                            size="icon"
-                            className="size-4"
-                            onClick={() => onPlay((file as TorrentTreeFile & { _fullPath: string })._fullPath)}
-                          >
-                            <Play className="size-2.5" />
-                          </Button>
-                        )}
                       </>
                     )
                     : (
                       <>
                         {path && <UpscalePlayer filePath={`${path}/${file.name}`} onDone={onUpscaleDone} />}
-                        {path && (
+                          {path && (
                           <Button
                             title="Открыть в медиа плеере"
                             size="icon"
                             className="size-4"
                             onClick={async () => {
                               if (!path) return;
-                              openPath(`${path}/${file.name}`);
+                              openFileInPlayer(`${path}/${file.name}`);
                             }}
                           >
                             <Monitor className="size-2.5" />
-                          </Button>
-                        )}
-                        {onPlay && (
-                          <Button
-                            title="Открыть в iluhaAnime плеере"
-                            size="icon"
-                            className="size-4"
-                            onClick={() => path && onPlay(`${path}/${file.name}`)}
-                          >
-                            <Play className="size-2.5" />
                           </Button>
                         )}
                       </>

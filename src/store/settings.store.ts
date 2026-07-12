@@ -2,12 +2,6 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 export interface SettingsStore {
-  autoHideDelay: number;
-  subtitleFontSize: number;
-  subtitleFontFamily: string;
-  subtitleColor: string;
-  subtitleBgOpacity: number;
-  subtitleBgColor: string;
   dlLimit: number | null;
   ulLimit: number | null;
   notificationsEnabled: boolean;
@@ -19,20 +13,11 @@ export interface SettingsStore {
   anilistPageSize: number;
   anilistMaxPages: number;
   searchHistoryMaxItems: number;
-  continueWatchingMax: number;
   toastDuration: number;
-  autoCleanTempFiles: boolean;
   videoExtensions: string[];
   audioExtensions: string[];
   subtitleExtensions: string[];
   showTrackFiles: "hide" | "torrent" | "folders";
-  preferredAudioLangs: string[];
-  preferredAudioPatterns: string[];
-  preferredSubLangs: string[];
-  preferredSubPatterns: string[];
-  preferForcedSubs: boolean;
-  fallbackToFirstTrack: boolean;
-  afterPlaybackAction: "next" | "stop" | "repeat_one";
   modalAnimation: boolean;
   enable3dBorders: boolean;
   buttonPressEffect: boolean;
@@ -41,11 +26,9 @@ export interface SettingsStore {
   showWallpaper: boolean;
   modalBackdropOpacity: number;
   customScrollbar: boolean;
-  fadeDuration: "off" | "short" | "default" | "long";
-  volumeBoost: boolean;
-  translateService: "libre" | "google" | "deepl";
-  googleTranslateApiKey: string;
-  deeplApiKey: string;
+  mediaPlayer: string;
+  customPlayers: string[];
+  savedFolderPaths: string[];
 
   patch: (partial: Partial<SettingsStore>) => void;
 }
@@ -53,12 +36,6 @@ export interface SettingsStore {
 export const useSettingsStore = create<SettingsStore>()(
   persist(
     (set) => ({
-      autoHideDelay: 3000,
-      subtitleFontSize: 18,
-      subtitleFontFamily: "Arial",
-      subtitleColor: "#ffffff",
-      subtitleBgOpacity: 0,
-      subtitleBgColor: "#000000",
       dlLimit: null,
       ulLimit: null,
       notificationsEnabled: true,
@@ -70,20 +47,11 @@ export const useSettingsStore = create<SettingsStore>()(
       anilistPageSize: 40,
       anilistMaxPages: 3,
       searchHistoryMaxItems: 5,
-      continueWatchingMax: 3,
       toastDuration: 3000,
-      autoCleanTempFiles: true,
       videoExtensions: ["mp4", "mkv", "avi", "mov", "webm", "flv", "wmv", "m4v", "mpg", "mpeg", "ts", "m2ts", "ogv", "3gp"],
       audioExtensions: ["mp3", "flac", "aac", "ogg", "wav", "opus", "m4a", "wma"],
       subtitleExtensions: ["srt", "ass", "ssa", "vtt", "sub", "idx", "sup", "pgs"],
       showTrackFiles: "hide",
-      preferredAudioLangs: ["jpn", "ja"],
-      preferredAudioPatterns: [],
-      preferredSubLangs: ["eng", "en"],
-      preferredSubPatterns: [],
-      preferForcedSubs: true,
-      fallbackToFirstTrack: true,
-      afterPlaybackAction: "next",
       modalAnimation: true,
       enable3dBorders: true,
       buttonPressEffect: true,
@@ -92,11 +60,9 @@ export const useSettingsStore = create<SettingsStore>()(
       showWallpaper: true,
       modalBackdropOpacity: 50,
       customScrollbar: true,
-      fadeDuration: "default",
-      volumeBoost: false,
-      translateService: "libre",
-      googleTranslateApiKey: "",
-      deeplApiKey: "",
+      mediaPlayer: "default",
+      customPlayers: [],
+      savedFolderPaths: [],
 
       patch: (partial) => set(partial),
     }),

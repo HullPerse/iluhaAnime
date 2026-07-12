@@ -1,9 +1,10 @@
+#![allow(linker_messages)]
+
 use std::collections::{HashMap, HashSet};
 use std::num::NonZeroU32;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use tauri::{Emitter, Manager};
-use tauri::ipc::Channel;
 use tauri_plugin_notification::NotificationExt;
 use tauri_plugin_single_instance;
 
@@ -15,10 +16,6 @@ mod fs_utils;
 mod progress;
 mod scrapers;
 mod tools;
-mod scanner;
-mod stream;
-mod thumbnails;
-mod tracks;
 mod torrent;
 mod video;
 use torrent::{FilePriority, TorrentFileInfo, TorrentInfo, TorrentInfoResult, TorrentManager};
@@ -91,67 +88,54 @@ async fn remove_torrent(
         .map_err(|e| format!("{e:#}"))
 }
 
-#[tauri::command]
-fn cleanup_temp_file(path: String) -> Result<(), String> {
-    std::fs::remove_file(&path).map_err(|e| format!("{e}"))
+#[derive(serde::Serialize, serde::Deserialize)]
+struct VideoFileEntry {
+    path: String,
+    name: String,
+    size: u64,
 }
 
 #[tauri::command]
-fn read_text_file(path: String) -> Result<String, String> {
-    std::fs::read_to_string(&path).map_err(|e| format!("{e}"))
+fn scan_video_folder(path: String, extensions: Vec<String>) -> Result<Vec<VideoFileEntry>, String> {
+    let ext_set: HashSet<String> = extensions.into_iter().map(|e| e.to_lowercase()).collect();
+    let mut entries = Vec::new();
+    scan_dir(std::path::Path::new(&path), &ext_set, &mut entries)
+        .map_err(|e| format!("{e}"))?;
+    Ok(entries)
 }
 
-#[tauri::command]
-async fn get_stream_port() -> Result<u16, String> {
-    stream::server_port().ok_or_else(|| "stream server not started".to_string())
-}
-
-#[tauri::command]
-fn shutdown_stream() {
-    stream::shutdown();
-}
-
-#[tauri::command]
-fn get_progress(id: u64, registry: tauri::State<'_, progress::StreamRegistry>) -> Option<f64> {
-    registry.get(id).map(|tx| *tx.borrow())
-}
-
-#[tauri::command]
-async fn subscribe_progress(
-    stream_id: u64,
-    channel: Channel<f64>,
-    registry: tauri::State<'_, progress::StreamRegistry>,
-) -> Result<(), String> {
-    let tx = registry
-        .get(stream_id)
-        .ok_or_else(|| "stream not found or already completed".to_string())?;
-
-    let mut rx = tx.subscribe();
-
-    tauri::async_runtime::spawn(async move {
-        loop {
-            if rx.changed().await.is_err() {
-                break;
-            }
-            let progress = *rx.borrow();
-            if channel.send(progress).is_err() {
-                break;
-            }
-            if progress >= 100.0 {
-                break;
+fn scan_dir(dir: &std::path::Path, exts: &HashSet<String>, entries: &mut Vec<VideoFileEntry>) -> std::io::Result<()> {
+    if dir.is_dir() {
+        for entry in std::fs::read_dir(dir)? {
+            let entry = entry?;
+            let path = entry.path();
+            if path.is_dir() {
+                scan_dir(&path, exts, entries)?;
+            } else if let Some(ext) = path.extension() {
+                if exts.contains(&ext.to_string_lossy().to_lowercase()) {
+                    let name = path.file_name()
+                        .unwrap_or_default()
+                        .to_string_lossy()
+                        .to_string();
+                    let size = std::fs::metadata(&path)?.len();
+                    entries.push(VideoFileEntry {
+                        path: path.to_string_lossy().to_string(),
+                        name,
+                        size,
+                    });
+                }
             }
         }
-        // Clean up the stream entry when done
-    });
-
+    }
     Ok(())
 }
 
 #[tauri::command]
-async fn clear_all_caches(app_handle: tauri::AppHandle) -> Result<(), String> {
-    video::clear_audio_cache(app_handle.clone()).await?;
-    video::clear_subtitle_cache(app_handle.clone()).await?;
-    thumbnails::clear_thumbnail_cache(app_handle.clone())?;
+fn open_in_player(player_path: String, file_path: String) -> Result<(), String> {
+    std::process::Command::new(&player_path)
+        .arg(&file_path)
+        .spawn()
+        .map_err(|e| format!("{e}"))?;
     Ok(())
 }
 
@@ -242,7 +226,6 @@ pub fn run() {
                 }
             });
 
-            // Cache ffmpeg path for non-command contexts (stream server, etc.)
             let _ = video::CACHED_FFMPEG_PATH.get_or_init(|| {
                 let app_handle = app.handle();
                 video::ffmpeg_exe(app_handle)
@@ -316,24 +299,9 @@ pub fn run() {
                         }
                     }
                 });
-                // Periodic cache cleanup (every hour)
-                let app_clone2 = handle.clone();
-                tokio::spawn(async move {
-                    let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(3600));
-                    interval.tick().await; // skip initial tick, let probes run first
-                    loop {
-                        interval.tick().await;
-                        let _ = video::cleanup_stale_caches(app_clone2.clone(), 20, 7).await;
-                    }
-                });
                 handle.manage(TorrentBackend { manager });
                 handle.manage(CancelFlag(Arc::new(AtomicBool::new(false))));
                 handle.manage(progress::StreamRegistry::new());
-            });
-
-            // Start the local HTTP stream server for file serving with Range support
-            tauri::async_runtime::block_on(async {
-                let _ = stream::init().await;
             });
 
             Ok(())
@@ -351,22 +319,9 @@ pub fn run() {
             auth::nekobt_set_api_key,
             auth::check_nekobt_session,
             auth::nekobt_logout,
-            video::extract_video_subtitle,
-            video::convert_external_subtitle,
-            video::extract_audio_track,
-            video::extract_all_audio_tracks,
-            video::cleanup_audio_temp_files,
-            video::clear_audio_cache,
-            video::check_audio_caches,
-            video::check_subtitle_caches,
-            video::clear_subtitle_cache,
-            video::probe_encoders,
-            video::get_video_info,
             video::upscale_video,
             video::cancel_upscale,
             video::check_gpu_encoders,
-            video::pre_extract_all_tracks,
-            video::cleanup_stale_caches,
             tools::list_available_tools,
             tools::check_tool_installed,
             tools::get_tool_path,
@@ -374,18 +329,6 @@ pub fn run() {
             ffmpeg::check_ffprobe,
             ffmpeg::download_ffmpeg,
             ffmpeg::remove_ffmpeg,
-            scanner::scan_video_folder,
-            scanner::set_video_extensions,
-            tracks::scan_folder_for_tracks,
-            scanner::get_video_extensions,
-            scanner::set_audio_extensions,
-            scanner::get_audio_extensions,
-            scanner::set_subtitle_extensions,
-            scanner::get_subtitle_extensions,
-            thumbnails::generate_thumbnails,
-            thumbnails::get_thumbnail_cache_info,
-            thumbnails::clear_thumbnail_cache,
-            thumbnails::delete_thumbnails_for_paths,
             anilist::search_anilist,
             anilist::search_anilist_by_studio,
             anilist::get_profile_recommendations,
@@ -407,13 +350,8 @@ pub fn run() {
             pause_torrent,
             resume_torrent,
             remove_torrent,
-            cleanup_temp_file,
-            read_text_file,
-            get_stream_port,
-            shutdown_stream,
-            get_progress,
-            subscribe_progress,
-            clear_all_caches,
+            scan_video_folder,
+            open_in_player,
             set_global_speed_limits,
             get_running_torrent_files,
             update_torrent_only_files,
@@ -422,9 +360,5 @@ pub fn run() {
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
-        .run(|_app_handle, event| {
-            if let tauri::RunEvent::Exit = event {
-                stream::shutdown();
-            }
-        });
+        .run(|_app_handle, _event| {});
 }

@@ -1,38 +1,37 @@
 import { Button } from "@/components/ui/button.component";
+import { ToolInfo } from "@/types";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useState, useEffect, useCallback } from "react";
 
-interface ToolInfo {
-  id: string;
-  name: string;
-  description: string;
-  downloadSizeMb: number;
-  version: string;
-  installed: boolean;
-}
-
 export function useToolStatus(toolId: string) {
-  const [status, setStatus] = useState<"checking" | "installed" | "missing" | "downloading">("checking");
+  const [status, setStatus] = useState<
+    "checking" | "installed" | "missing" | "downloading"
+  >("checking");
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
-    invoke<boolean>("check_tool_installed", { toolId }).then((ok) => {
-      setStatus(ok ? "installed" : "missing");
-    }).catch(() => setStatus("missing"));
+    invoke<boolean>("check_tool_installed", { toolId })
+      .then((ok) => {
+        setStatus(ok ? "installed" : "missing");
+      })
+      .catch(() => setStatus("missing"));
   }, [toolId]);
 
   const download = useCallback(async () => {
     setStatus("downloading");
     setProgress(0);
-    const unlisten = await listen<{ toolId: string; downloaded: number; total: number }>(
-      "tool-download-progress",
-      (event) => {
-        if (event.payload.toolId === toolId && event.payload.total > 0) {
-          setProgress(Math.round((event.payload.downloaded / event.payload.total) * 100));
-        }
-      },
-    );
+    const unlisten = await listen<{
+      toolId: string;
+      downloaded: number;
+      total: number;
+    }>("tool-download-progress", (event) => {
+      if (event.payload.toolId === toolId && event.payload.total > 0) {
+        setProgress(
+          Math.round((event.payload.downloaded / event.payload.total) * 100),
+        );
+      }
+    });
     try {
       await invoke("download_tool", { toolId });
       setStatus("installed");
@@ -51,9 +50,11 @@ function ToolDownloader({ toolId }: { toolId: string }) {
   const [info, setInfo] = useState<ToolInfo | null>(null);
 
   useEffect(() => {
-    invoke<ToolInfo[]>("list_available_tools").then((tools) => {
-      setInfo(tools.find((t) => t.id === toolId) ?? null);
-    }).catch(() => {});
+    invoke<ToolInfo[]>("list_available_tools")
+      .then((tools) => {
+        setInfo(tools.find((t) => t.id === toolId) ?? null);
+      })
+      .catch(() => {});
   }, [toolId]);
 
   return (
@@ -70,7 +71,11 @@ function ToolDownloader({ toolId }: { toolId: string }) {
         </>
       )}
       {status === "missing" && info && (
-        <Button size="default" className="text-[10px] py-0.5 h-auto" onClick={download}>
+        <Button
+          size="default"
+          className="text-[10px] py-0.5 h-auto"
+          onClick={download}
+        >
           ⬇ Скачать {info.name} ({info.downloadSizeMb}MB)
         </Button>
       )}
@@ -82,4 +87,3 @@ function ToolDownloader({ toolId }: { toolId: string }) {
 }
 
 export { ToolDownloader };
-export type { ToolInfo };

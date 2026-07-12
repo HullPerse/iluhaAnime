@@ -38,11 +38,6 @@ zip = "2"
 serde_bencode = "0.2"
 tauri-plugin-clipboard-manager = "2.3.2"
 num_cpus = "1"
-axum = "0.7"
-tower-http = { version = "0.6", features = ["cors"] }
-tokio-util = { version = "0.7", features = ["io"] }
-
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-single-instance = "2"
 tauri-plugin-updater = "2"
-walkdir = "2.5"

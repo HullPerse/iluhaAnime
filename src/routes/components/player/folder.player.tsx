@@ -1,9 +1,8 @@
 import { Button } from "@/components/ui/button.component";
-import { nodeMatchesSearch } from "@/lib/player.utils";
 import { fmtSize } from "@/lib/torrent.utils";
+import { openFileInPlayer } from "@/lib/media.utils";
 import type { FolderNode } from "@/types/index";
 import { useSettingsStore } from "@/store/settings.store";
-import { openPath } from "@tauri-apps/plugin-opener";
 import {
   ChevronDown,
   ChevronRight,
@@ -11,7 +10,6 @@ import {
   FolderOpen,
   Image,
   Monitor,
-  Play,
   X,
 } from "lucide-react";
 import { useState, useRef, useMemo, useCallback } from "react";
@@ -21,6 +19,15 @@ import UpscalePlayer from "./upscale.player";
 type Item =
   | { kind: "folder"; node: FolderNode; depth: number }
   | { kind: "file"; file: FolderNode["files"][number]; depth: number };
+
+function nodeMatchesSearch(node: FolderNode, query: string): boolean {
+  const q = query.toLowerCase();
+  if (node.name.toLowerCase().includes(q)) return true;
+  for (const f of node.files) {
+    if (f.name.toLowerCase().includes(q)) return true;
+  }
+  return node.children.some((c) => nodeMatchesSearch(c, q));
+}
 
 function flattenTree(
   node: FolderNode,
@@ -88,7 +95,6 @@ function flattenTree(
 function FolderView({
   node,
   depth,
-  onPlay,
   searchQuery,
   onRemove,
   onGenerate,
@@ -97,7 +103,6 @@ function FolderView({
 }: {
   node: FolderNode;
   depth: number;
-  onPlay: (path: string) => void;
   searchQuery: string;
   onRemove?: (path: string) => void;
   onGenerate?: (path: string, name: string) => void;
@@ -291,28 +296,15 @@ function FolderView({
                     disabled={disabled}
                     onClick={async () => {
                       if (!file.path) return;
-                      openPath(`${file.path}`);
+                      openFileInPlayer(file.path);
                     }}
                     title={
                       disabled
-                        ? "Аудио/субтитры нельзя открыть в плеере"
-                        : "Смотреть в нативном плеере"
+                        ? "Аудио/субтитры нельзя открыть"
+                        : "Открыть в медиа плеере"
                     }
                   >
                     <Monitor className="size-3" />
-                  </Button>
-                  <Button
-                    size="icon"
-                    className="h-4 w-4"
-                    disabled={disabled}
-                    onClick={() => onPlay(file.path)}
-                    title={
-                      disabled
-                        ? "Аудио/субтитры нельзя открыть в плеере"
-                        : "Смотреть в плеере приложения"
-                    }
-                  >
-                    <Play className="size-3" />
                   </Button>
                 </div>
               );

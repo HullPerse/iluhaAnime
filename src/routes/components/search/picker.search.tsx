@@ -12,8 +12,6 @@ import {
 } from "@/lib/torrent.utils";
 import { FolderOpen } from "lucide-react";
 import { PickerTorrent } from "@/types/torrent";
-import { useSettingsStore } from "@/store/settings.store";
-import Select from "@/components/ui/select.component";
 
 function TorrentFilePicker({
   torrent,
@@ -29,19 +27,14 @@ function TorrentFilePicker({
     saveDir: string,
     subFolder: string | undefined,
     sequential?: boolean,
-    categoryId?: string,
   ) => void;
   onCancel: () => void;
   loading?: boolean;
 }) {
-  const categories = useSettingsStore((s) => s.categories);
-  const [selected, setSelected] = useState<Set<number>>(
-    () => new Set(torrent?.files.map((f) => f.index) ?? []),
-  );
   const [saveDir, setSaveDir] = useState(defaultSaveDir);
   const [browsing, setBrowsing] = useState(false);
   const [sequential, setSequential] = useState(false);
-  const [categoryId, setCategoryId] = useState("");
+
   const [elapsed, setElapsed] = useState(0);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const startRef = useRef<number | null>(null);
@@ -93,7 +86,7 @@ function TorrentFilePicker({
     setIsLoading(true);
     const subFolder = torrent.hasCommonFolder ? undefined : torrent.name;
     try {
-      await onConfirm([...selected], saveDir, subFolder, sequential, categoryId || undefined);
+      await onConfirm([...selected], saveDir, subFolder, sequential);
     } finally {
       setIsLoading(false);
     }
@@ -183,21 +176,7 @@ function TorrentFilePicker({
               Обзор
             </Button>
           </div>
-          <div className="flex items-center gap-1 w-full">
-            <span className="windows95-text shrink-0">Категория:</span>
-            <Select
-              className="flex-1"
-              value={categoryId}
-              onChange={setCategoryId}
-              options={[
-                { value: "", label: "Не добавлять" },
-                ...categories.map((c) => ({
-                  value: c.id,
-                  label: c.name,
-                })),
-              ]}
-            />
-          </div>
+
           <div className="flex items-center justify-between w-full">
             <label className="flex items-center gap-1 windows95-text cursor-pointer select-none">
               <Checkbox

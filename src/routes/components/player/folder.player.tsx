@@ -3,13 +3,11 @@ import { fmtSize } from "@/lib/torrent.utils";
 import { openFileInPlayer } from "@/lib/media.utils";
 import type { FolderNode } from "@/types/index";
 import { useSettingsStore } from "@/store/settings.store";
-import { useDrag } from "react-dnd";
 import {
   ChevronDown,
   ChevronRight,
   FileVideo,
   FolderOpen,
-  GripVertical,
   Image,
   Monitor,
   X,
@@ -43,8 +41,8 @@ function flattenTree(
 
   let filteredFiles = searchQuery
     ? node.files.filter((f) =>
-      f.name.toLowerCase().includes(searchQuery.toLowerCase()),
-    )
+        f.name.toLowerCase().includes(searchQuery.toLowerCase()),
+      )
     : node.files;
 
   if (trackExts) {
@@ -78,16 +76,38 @@ function flattenTree(
     }
     for (const child of node.children) {
       items.push(
-        ...flattenTree(child, open, searchQuery, disabledExtensions, depth + 1, trackExts),
+        ...flattenTree(
+          child,
+          open,
+          searchQuery,
+          disabledExtensions,
+          depth + 1,
+          trackExts,
+        ),
       );
     }
   }
 
-  if (depth > 0 && items.length === 1 && items[0].kind === "folder" && items[0].node.path === node.path) {
+  if (
+    depth > 0 &&
+    items.length === 1 &&
+    items[0].kind === "folder" &&
+    items[0].node.path === node.path
+  ) {
     if (isOpen) return [];
-    const hasContent = filteredFiles.length > 0 || node.children.some((c) =>
-      flattenTree(c, open, searchQuery, disabledExtensions, depth + 1, trackExts).length > 0,
-    );
+    const hasContent =
+      filteredFiles.length > 0 ||
+      node.children.some(
+        (c) =>
+          flattenTree(
+            c,
+            open,
+            searchQuery,
+            disabledExtensions,
+            depth + 1,
+            trackExts,
+          ).length > 0,
+      );
     if (!hasContent) return [];
   }
 
@@ -102,7 +122,6 @@ function FolderView({
   onGenerate,
   isGenerating,
   disabledExtensions,
-  draggable,
 }: {
   node: FolderNode;
   depth: number;
@@ -111,7 +130,6 @@ function FolderView({
   onGenerate?: (path: string, name: string) => void;
   isGenerating?: boolean;
   disabledExtensions?: Set<string>;
-  draggable?: boolean;
 }) {
   const showTrackFiles = useSettingsStore((s) => s.showTrackFiles);
   const audioExtensions = useSettingsStore((s) => s.audioExtensions);
@@ -140,7 +158,15 @@ function FolderView({
   }, []);
 
   const flatItems = useMemo(
-    () => flattenTree(node, open, searchQuery, disabledExtensions, depth, trackExts),
+    () =>
+      flattenTree(
+        node,
+        open,
+        searchQuery,
+        disabledExtensions,
+        depth,
+        trackExts,
+      ),
     [node, open, searchQuery, disabledExtensions, depth, trackExts],
   );
 
@@ -160,31 +186,18 @@ function FolderView({
   const countAll =
     node.files.length + node.children.reduce((s, c) => s + c.files.length, 0);
 
-  const [{ isDragging }, dragRef] = useDrag(() => ({
-    type: "FOLDER",
-    item: { type: "FOLDER", path: node.path },
-    canDrag: draggable && depth === 0,
-    collect: (monitor) => ({
-      isDragging: monitor.isDragging(),
-    }),
-  }), [node.path, draggable, depth]);
-
   if (flatItems.length === 0) return null;
 
   return (
     <main className="flex flex-col w-full">
       <div
-        ref={draggable && depth === 0 ? (node) => { if (node) dragRef(node); } : undefined}
         role="button"
-        className={`flex items-center gap-1 windows95-text cursor-pointer hover:bg-surface px-0.5 py-0.5 w-full text-left ${isDragging ? "opacity-50" : ""}`}
+        className={`flex items-center gap-1 windows95-text cursor-pointer hover:bg-surface px-0.5 py-0.5 w-full text-left`}
         onClick={() => toggle(node.path)}
         style={{
           paddingLeft: `${depth * 12 + 2}px`,
         }}
       >
-        {depth === 0 && draggable && (
-          <GripVertical className="size-3 shrink-0 text-muted cursor-grab" />
-        )}
         {open.has(node.path) ? (
           <ChevronDown className="size-3 shrink-0" />
         ) : (
@@ -295,7 +308,9 @@ function FolderView({
                     {fmtSize(file.size)}
                   </span>
 
-                  {!disabled && file.path && <UpscalePlayer filePath={file.path} />}
+                  {!disabled && file.path && (
+                    <UpscalePlayer filePath={file.path} />
+                  )}
                   <Button
                     size="icon"
                     className="h-4 w-4"

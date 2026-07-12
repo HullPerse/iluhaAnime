@@ -62,7 +62,7 @@ describe("sorting logic", () => {
 
   const items: Anime[] = [
     { title: "A", magnet: "", torrent: "", size: "100 MiB", seeders: 10, leechers: 5, category: "", link: "" },
-    { title: "B", magnet: "", torrent: "", size: "200 MiB", seeders: 20, leechers: 3, category: "", link: "" },
+    { title: "B", magnet: "", torrent: "", size: "200 MiB", seeders: 20, leechers: 3,category: "",  link: "" },
     { title: "C", magnet: "", torrent: "", size: "50 MiB", seeders: 5, leechers: 10, category: "", link: "" },
   ];
 

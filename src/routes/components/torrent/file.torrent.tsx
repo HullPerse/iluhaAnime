@@ -3,12 +3,7 @@ import type { TorrentTreeNode, TorrentTreeFile } from "@/lib/torrent.utils";
 import type { TorrentFileInfo, FilePriority } from "@/types/torrent";
 import { useRef, useState, useCallback, useMemo } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import {
-  ChevronDown,
-  ChevronRight,
-  FolderOpen,
-  Monitor,
-} from "lucide-react";
+import { ChevronDown, ChevronRight, FolderOpen, Monitor } from "lucide-react";
 import { openFileInPlayer } from "@/lib/media.utils";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
@@ -42,7 +37,9 @@ function flattenTree(
       for (const file of files) {
         items.push({ kind: "file", file, depth: depth + 1 });
       }
-      items.push(...flattenTree(node.children, open, fileFilter, undefined, depth + 1));
+      items.push(
+        ...flattenTree(node.children, open, fileFilter, undefined, depth + 1),
+      );
     }
   }
   return items;
@@ -81,7 +78,10 @@ function TorrentFilesSection({
   const [open, setOpen] = useState<Set<string>>(new Set());
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const { nodes: trees, rootFiles } = useMemo(() => buildTorrentTree(files), [files]);
+  const { nodes: trees, rootFiles } = useMemo(
+    () => buildTorrentTree(files),
+    [files],
+  );
 
   const toggle = useCallback((key: string) => {
     setOpen((prev) => {
@@ -121,7 +121,17 @@ function TorrentFilesSection({
       for (const ef of extraFiles) {
         items.push({
           kind: "file",
-          file: { index: -1, name: ef.name, displayName: ef.name, size: ef.size, completed: true, selected: false, priority: "normal", exists: true, _fullPath: ef.fullPath } as TorrentTreeFile & { _fullPath: string },
+          file: {
+            index: -1,
+            name: ef.name,
+            displayName: ef.name,
+            size: ef.size,
+            completed: true,
+            selected: false,
+            priority: "normal",
+            exists: true,
+            _fullPath: ef.fullPath,
+          } as TorrentTreeFile & { _fullPath: string },
           depth: 0,
         });
       }
@@ -147,7 +157,7 @@ function TorrentFilesSection({
 
   const handlePriorityChange = onFilePriorityChange
     ? (fileIndices: number[], priority: FilePriority) =>
-      onFilePriorityChange(id, fileIndices, priority)
+        onFilePriorityChange(id, fileIndices, priority)
     : undefined;
 
   return (
@@ -185,10 +195,10 @@ function TorrentFilesSection({
                 <span className="text-muted ml-auto whitespace-nowrap">
                   {fmtSize(
                     item.node.files.reduce((s, f) => s + f.size, 0) +
-                    item.node.children.reduce(
-                      (s, c) => s + c.files.reduce((s2, f) => s2 + f.size, 0),
-                      0,
-                    ),
+                      item.node.children.reduce(
+                        (s, c) => s + c.files.reduce((s2, f) => s2 + f.size, 0),
+                        0,
+                      ),
                   )}
                 </span>
               </div>
@@ -213,8 +223,6 @@ function TorrentFilesSection({
                   className="size-3"
                 />
               )}
-
-
 
               <span className="truncate flex-1" title={file.displayName}>
                 {file.displayName}
@@ -243,39 +251,53 @@ function TorrentFilesSection({
 
               {type === "player" && (
                 <div className="flex flex-row gap-1 ml-auto">
-                  {(file as TorrentTreeFile & { _fullPath?: string })._fullPath
-                    ? (
-                      <>
-                        <UpscalePlayer filePath={(file as TorrentTreeFile & { _fullPath: string })._fullPath} onDone={onUpscaleDone} />
+                  {(file as TorrentTreeFile & { _fullPath?: string })
+                    ._fullPath ? (
+                    <>
+                      <UpscalePlayer
+                        filePath={
+                          (file as TorrentTreeFile & { _fullPath: string })
+                            ._fullPath
+                        }
+                        onDone={onUpscaleDone}
+                      />
+                      <Button
+                        title="Открыть в медиа плеере"
+                        size="icon"
+                        className="size-4"
+                        onClick={async () =>
+                          openFileInPlayer(
+                            (file as TorrentTreeFile & { _fullPath: string })
+                              ._fullPath,
+                          )
+                        }
+                      >
+                        <Monitor className="size-2.5" />
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      {path && (
+                        <UpscalePlayer
+                          filePath={`${path}/${file.name}`}
+                          onDone={onUpscaleDone}
+                        />
+                      )}
+                      {path && (
                         <Button
                           title="Открыть в медиа плеере"
                           size="icon"
                           className="size-4"
-                          onClick={async () => openFileInPlayer((file as TorrentTreeFile & { _fullPath: string })._fullPath)}
+                          onClick={async () => {
+                            if (!path) return;
+                            openFileInPlayer(`${path}/${file.name}`);
+                          }}
                         >
                           <Monitor className="size-2.5" />
                         </Button>
-                      </>
-                    )
-                    : (
-                      <>
-                        {path && <UpscalePlayer filePath={`${path}/${file.name}`} onDone={onUpscaleDone} />}
-                          {path && (
-                          <Button
-                            title="Открыть в медиа плеере"
-                            size="icon"
-                            className="size-4"
-                            onClick={async () => {
-                              if (!path) return;
-                              openFileInPlayer(`${path}/${file.name}`);
-                            }}
-                          >
-                            <Monitor className="size-2.5" />
-                          </Button>
-                        )}
-                      </>
-                    )
-                  }
+                      )}
+                    </>
+                  )}
                 </div>
               )}
             </label>

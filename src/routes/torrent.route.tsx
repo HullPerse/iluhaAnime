@@ -60,8 +60,8 @@ function TorrentRoute() {
     () =>
       filterQuery.trim()
         ? torrents.filter((t) =>
-          t.name.toLowerCase().includes(filterQuery.toLowerCase()),
-        )
+            t.name.toLowerCase().includes(filterQuery.toLowerCase()),
+          )
         : torrents,
     [torrents, filterQuery],
   );
@@ -333,22 +333,22 @@ function TorrentRoute() {
                     {(item.upload_speed > 0 ||
                       item.uploaded_bytes > 0 ||
                       item.peers_connected > 0) && (
-                        <div className="flex items-center gap-1">
-                          {item.upload_speed > 0 && (
-                            <span className="text-[10px] text-muted windows95-font">
-                              ↑ {fmtSpeed(item.upload_speed)}
-                            </span>
-                          )}
-                          {item.uploaded_bytes > 0 && (
-                            <span className="text-[10px] text-muted windows95-font">
-                              ↑ {fmtSize(item.uploaded_bytes)}
-                            </span>
-                          )}
+                      <div className="flex items-center gap-1">
+                        {item.upload_speed > 0 && (
                           <span className="text-[10px] text-muted windows95-font">
-                            P: {item.peers_connected}
+                            ↑ {fmtSpeed(item.upload_speed)}
                           </span>
-                        </div>
-                      )}
+                        )}
+                        {item.uploaded_bytes > 0 && (
+                          <span className="text-[10px] text-muted windows95-font">
+                            ↑ {fmtSize(item.uploaded_bytes)}
+                          </span>
+                        )}
+                        <span className="text-[10px] text-muted windows95-font">
+                          P: {item.peers_connected}
+                        </span>
+                      </div>
+                    )}
                   </span>
                 </div>
               </div>

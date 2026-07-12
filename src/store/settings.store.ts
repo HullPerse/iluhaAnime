@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { MediaCategory } from "@/types";
 
 export interface SettingsStore {
   dlLimit: number | null;
@@ -31,8 +30,6 @@ export interface SettingsStore {
   mediaPlayer: string;
   customPlayers: string[];
   savedFolderPaths: string[];
-  categories: MediaCategory[];
-  allCategoriesCollapsed: boolean;
 
   patch: (partial: Partial<SettingsStore>) => void;
 }
@@ -68,8 +65,7 @@ export const useSettingsStore = create<SettingsStore>()(
       mediaPlayer: "default",
       customPlayers: [],
       savedFolderPaths: [],
-      categories: [],
-      allCategoriesCollapsed: false,
+
 
       patch: (partial) => set(partial),
     }),

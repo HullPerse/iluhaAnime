@@ -1,10 +1,4 @@
-import {
-  useState,
-  useEffect,
-  ReactElement,
-  lazy,
-  Suspense,
-} from "react";
+import { useState, useEffect, ReactElement, lazy, Suspense } from "react";
 import { useTorrentStore } from "@/store/download.store";
 import { useSearchStore } from "@/store/search.store";
 import TorrentFilePicker from "@/routes/components/search/picker.search";
@@ -138,8 +132,8 @@ function App() {
           torrent={pendingTorrent}
           loading={!!preparingTorrent && !pendingTorrent}
           defaultSaveDir={lastSaveDir}
-          onConfirm={(selectedIndices, saveDir, subFolder, sequential, categoryId) =>
-            confirmDownload(selectedIndices, saveDir, subFolder, sequential, categoryId)
+          onConfirm={(selectedIndices, saveDir, subFolder, sequential) =>
+            confirmDownload(selectedIndices, saveDir, subFolder, sequential)
           }
           onCancel={cancelDownload}
         />

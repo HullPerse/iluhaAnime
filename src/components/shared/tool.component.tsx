@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/button.component";
 import { ToolInfo } from "@/types";
-import { fmtSize } from "@/lib/torrent.utils";
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { Download, Trash2 } from "lucide-react";
@@ -173,11 +172,7 @@ export default function ToolStatusCard({ toolId }: { toolId: string }) {
 
   const toolName = isFfmpeg ? "FFmpeg" : (info?.name ?? toolId);
 
-  const toolSize = isFfmpeg
-    ? "~50МБ"
-    : info
-      ? fmtSize(info.downloadSizeBytes)
-      : "";
+  const toolSize = isFfmpeg ? "~50МБ" : "~50МБ";
 
   if (status === "checking")
     return (

@@ -17,13 +17,7 @@ export type ModalWindow = {
 
 export type HexType = `#${string}`;
 
-export interface MediaCategory {
-  id: string;
-  name: string;
-  folderPaths: string[];
-  torrentIds: number[];
-  collapsed: boolean;
-}
+
 
 export interface ToolInfo {
   id: string;

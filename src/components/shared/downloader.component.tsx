@@ -90,11 +90,11 @@ function ToolDownloader({ toolId }: { toolId: string }) {
       )}
       {status === "installed" && (
         <>
-          <span className="windows95-text">{info?.name} установлен</span>
           <Button onClick={remove} variant="destructive" className="ml-auto">
             <Trash2 />
             Удалить
           </Button>
+          <span className="windows95-text">{info?.name} установлен</span>
         </>
       )}
     </div>

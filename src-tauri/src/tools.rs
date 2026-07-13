@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use tauri::{Emitter, Manager};
 
 #[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ToolInfo {
     pub id: String,
     pub name: String,
@@ -322,7 +323,7 @@ pub async fn download_tool(
 }
 
 #[tauri::command]
-pub fn check_tool_installed(app_handle: tauri::AppHandle, tool_id: String) -> bool {
+pub async fn check_tool_installed(app_handle: tauri::AppHandle, tool_id: String) -> bool {
     check_tool(&app_handle, &tool_id)
 }
 

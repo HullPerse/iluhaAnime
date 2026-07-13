@@ -1,7 +1,7 @@
 import { useSettingsStore } from "@/store/settings.store";
 import { Input } from "@/components/ui/input.component";
 import { Button } from "@/components/ui/button.component";
-import { ToolDownloader } from "@/components/shared/downloader.component";
+import ToolStatus from "@/components/shared/tool.component";
 
 export default function SettingsGeneral() {
   const { toastDuration, patch } = useSettingsStore();
@@ -48,14 +48,8 @@ export default function SettingsGeneral() {
           Скачанные инструменты доступны в модальных окнах апскейла.
         </span>
         <div className="flex flex-col gap-0.5 mt-0.5">
-          <div className="flex items-center gap-2">
-            <span className="windows95-text text-[10px] w-28">Real-ESRGAN</span>
-            <ToolDownloader toolId="realesrgan" />
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="windows95-text text-[10px] w-28">waifu2x</span>
-            <ToolDownloader toolId="waifu2x" />
-          </div>
+          <ToolStatus toolId="realesrgan" />
+          <ToolStatus toolId="waifu2x" />
         </div>
       </div>
 

@@ -17,8 +17,6 @@ export type ModalWindow = {
 
 export type HexType = `#${string}`;
 
-
-
 export interface ToolInfo {
   id: string;
   name: string;
@@ -28,3 +26,6 @@ export interface ToolInfo {
   version: string;
   installed: boolean;
 }
+
+export type FFmpeg = "checking" | "ok" | "missing" | "downloading";
+export type ToolState = "checking" | "installed" | "missing" | "downloading";

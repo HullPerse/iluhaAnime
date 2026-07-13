@@ -13,6 +13,7 @@ mod auth;
 mod bencode;
 mod ffmpeg;
 mod fs_utils;
+mod fswatcher;
 mod progress;
 mod scrapers;
 mod tools;
@@ -96,38 +97,63 @@ struct VideoFileEntry {
 }
 
 #[tauri::command]
-fn scan_video_folder(path: String, extensions: Vec<String>) -> Result<Vec<VideoFileEntry>, String> {
+async fn scan_video_folder(
+    app_handle: tauri::AppHandle,
+    path: String,
+    extensions: Vec<String>,
+) -> Result<Vec<VideoFileEntry>, String> {
     let ext_set: HashSet<String> = extensions.into_iter().map(|e| e.to_lowercase()).collect();
-    let mut entries = Vec::new();
-    scan_dir(std::path::Path::new(&path), &ext_set, &mut entries)
-        .map_err(|e| format!("{e}"))?;
-    Ok(entries)
-}
+    let path_clone = path.clone();
 
-fn scan_dir(dir: &std::path::Path, exts: &HashSet<String>, entries: &mut Vec<VideoFileEntry>) -> std::io::Result<()> {
-    if dir.is_dir() {
-        for entry in std::fs::read_dir(dir)? {
-            let entry = entry?;
-            let path = entry.path();
-            if path.is_dir() {
-                scan_dir(&path, exts, entries)?;
-            } else if let Some(ext) = path.extension() {
-                if exts.contains(&ext.to_string_lossy().to_lowercase()) {
-                    let name = path.file_name()
+    let entries = tokio::task::spawn_blocking(move || -> Result<Vec<VideoFileEntry>, String> {
+        let mut entries = Vec::new();
+        let mut walked: u64 = 0;
+
+        for entry in walkdir::WalkDir::new(&path_clone).follow_links(true) {
+            let entry = entry.map_err(|e| format!("walkdir error: {e}"))?;
+
+            if entry.file_type().is_dir() {
+                continue;
+            }
+
+            walked += 1;
+
+            if walked % 100 == 0 {
+                let _ = app_handle.emit(
+                    "folder-scan-progress",
+                    serde_json::json!({
+                        "path": path_clone,
+                        "current": walked,
+                        "total": 0,
+                    }),
+                );
+            }
+
+            let file_path = entry.path();
+            if let Some(ext) = file_path.extension() {
+                if ext_set.contains(&ext.to_string_lossy().to_lowercase()) {
+                    let name = file_path
+                        .file_name()
                         .unwrap_or_default()
                         .to_string_lossy()
                         .to_string();
-                    let size = std::fs::metadata(&path)?.len();
+                    let size = std::fs::metadata(file_path)
+                        .map_err(|e| format!("metadata error: {e}"))?
+                        .len();
                     entries.push(VideoFileEntry {
-                        path: path.to_string_lossy().to_string(),
+                        path: file_path.to_string_lossy().to_string(),
                         name,
                         size,
                     });
                 }
             }
         }
-    }
-    Ok(())
+        Ok(entries)
+    })
+    .await
+    .map_err(|e| format!("scan task failed: {e}"))??;
+
+    Ok(entries)
 }
 
 #[tauri::command]
@@ -190,6 +216,25 @@ async fn set_file_priority(
         .manager
         .set_file_priority(id, file_indices, priority_enum)
         .await
+}
+
+#[tauri::command]
+async fn start_watching_folders(
+    watcher: tauri::State<'_, std::sync::Mutex<fswatcher::FolderWatcher>>,
+    app_handle: tauri::AppHandle,
+    folders: Vec<String>,
+) -> Result<(), String> {
+    let mut w = watcher.lock().map_err(|e| format!("lock: {e}"))?;
+    w.start(app_handle, folders)
+}
+
+#[tauri::command]
+async fn stop_watching_folders(
+    watcher: tauri::State<'_, std::sync::Mutex<fswatcher::FolderWatcher>>,
+) -> Result<(), String> {
+    let mut w = watcher.lock().map_err(|e| format!("lock: {e}"))?;
+    w.stop();
+    Ok(())
 }
 
 #[tauri::command]
@@ -302,6 +347,7 @@ pub fn run() {
                 handle.manage(TorrentBackend { manager });
                 handle.manage(CancelFlag(Arc::new(AtomicBool::new(false))));
                 handle.manage(progress::StreamRegistry::new());
+                handle.manage(std::sync::Mutex::new(fswatcher::FolderWatcher::new()));
             });
 
             Ok(())
@@ -352,6 +398,8 @@ pub fn run() {
             resume_torrent,
             remove_torrent,
             scan_video_folder,
+            start_watching_folders,
+            stop_watching_folders,
             open_in_player,
             set_global_speed_limits,
             get_running_torrent_files,

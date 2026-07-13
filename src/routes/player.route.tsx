@@ -18,6 +18,7 @@ import { useTorrentStore } from "@/store/download.store";
 import TorrentFilesSection from "./components/torrent/file.torrent";
 import { useSettingsStore } from "@/store/settings.store";
 import { openPath } from "@tauri-apps/plugin-opener";
+import QueuePanel from "./components/player/queue.player";
 import type { FolderNode } from "@/types/index";
 
 type FFMPEGStatus = "checking" | "ok" | "missing" | "downloading";
@@ -92,11 +93,24 @@ function PlayerRoute() {
     });
   }, [torrents, torrentFilesMap, loadTorrentFiles]);
 
+  // Restore cached folder trees on mount for instant display
+  useEffect(() => {
+    try {
+      const cached = localStorage.getItem("folderTreeCache");
+      if (cached) {
+        const parsed = JSON.parse(cached) as { path: string; tree: FolderNode }[];
+        if (parsed.length > 0) {
+          setFolderTrees(parsed.map((c) => c.tree));
+        }
+      }
+    } catch {}
+  }, []);
+
+  // Full background scan on mount
   useEffect(() => {
     const paths = useSettingsStore.getState().savedFolderPaths;
     if (paths.length === 0) return;
 
-    setLoading(true);
     setScanProgress({ current: 0, total: 0 });
 
     (async () => {
@@ -115,9 +129,13 @@ function PlayerRoute() {
       }
 
       setFolderTrees(trees);
-
-      setLoading(false);
       setScanProgress(null);
+
+      // Cache trees for instant startup next time
+      try {
+        const cache = trees.map((t) => ({ path: t.path, tree: t }));
+        localStorage.setItem("folderTreeCache", JSON.stringify(cache));
+      } catch {}
     })();
   }, []);
 
@@ -125,22 +143,43 @@ function PlayerRoute() {
     const paths = useSettingsStore.getState().savedFolderPaths;
     if (paths.length === 0) return;
 
-    const interval = setInterval(async () => {
-      const trees: FolderNode[] = [];
-      for (const p of paths) {
-        try {
-          const entries = await invoke<VideoFileEntry[]>("scan_video_folder", {
-            path: p,
-            extensions: videoExtensions,
-          });
-          if (entries?.length) trees.push(buildTree(entries, p));
-        } catch { }
-      }
-      if (trees.length > 0) setFolderTrees(trees);
-    }, 30000);
+    invoke("start_watching_folders", { folders: paths }).catch(() => {});
 
-    return () => clearInterval(interval);
-  }, [savedFolderPaths, videoExtensions]);
+    return () => {
+      invoke("stop_watching_folders").catch(() => {});
+    };
+  }, [savedFolderPaths]);
+
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    listen<string[]>("folder-content-changed", (event) => {
+      const changed = event.payload;
+      (async () => {
+        const ext = videoExtensions;
+        for (const p of changed) {
+          try {
+            const entries = await invoke<VideoFileEntry[]>("scan_video_folder", {
+              path: p,
+              extensions: ext,
+            });
+            if (entries?.length) {
+              setFolderTrees((prev) => {
+                const next = prev.filter((t) => t.path !== p);
+                next.push(buildTree(entries, p));
+                // Update cache
+                try {
+                  const cache = next.map((t) => ({ path: t.path, tree: t }));
+                  localStorage.setItem("folderTreeCache", JSON.stringify(cache));
+                } catch {}
+                return next;
+              });
+            }
+          } catch { }
+        }
+      })();
+    }).then((fn) => { unlisten = fn; });
+    return () => { unlisten?.(); };
+  }, [videoExtensions]);
 
   const handleOpenFile = useCallback(async () => {
     const file = await open({
@@ -195,6 +234,10 @@ function PlayerRoute() {
       const next = [...folderTrees, tree];
       setFolderTrees(next);
       patch({ savedFolderPaths: next.map((t) => t.path) });
+      try {
+        const cache = next.map((t) => ({ path: t.path, tree: t }));
+        localStorage.setItem("folderTreeCache", JSON.stringify(cache));
+      } catch {}
     } catch {
     } finally {
       const unlisten = await unlistenPromise;
@@ -209,6 +252,10 @@ function PlayerRoute() {
       setFolderTrees((prev) => {
         const next = prev.filter((t) => t.path !== path);
         patch({ savedFolderPaths: next.map((t) => t.path) });
+        try {
+          const cache = next.map((t) => ({ path: t.path, tree: t }));
+          localStorage.setItem("folderTreeCache", JSON.stringify(cache));
+        } catch {}
         return next;
       });
     },
@@ -310,8 +357,11 @@ function PlayerRoute() {
         </section>
       )}
 
+      {/* UPSCALE QUEUE */}
+      <QueuePanel />
+
       {/* TORRENTS */}
-      {torrents.map((item, index) => {
+      {!loading && torrents.map((item, index) => {
         const isExpanded = expanded.has(item.id);
         const files = torrentFilesMap[item.id];
 

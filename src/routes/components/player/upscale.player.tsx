@@ -6,7 +6,11 @@ import Modal from "@/components/shared/modal.component";
 import ProgressBar from "@/components/shared/progress.component";
 import { Button } from "@/components/ui/button.component";
 import Select from "@/components/ui/select.component";
-import ToolStatusCard from "@/components/shared/tool.component";
+import ToolStatus from "@/components/shared/tool.component";
+import {
+  useUpscaleQueueStore,
+  type UpscaleConfig,
+} from "@/store/upscale.store";
 
 type UpscaleProgressPayload = {
   current: number;
@@ -179,6 +183,40 @@ export default function UpscalePlayer({ filePath, onDone }: Props) {
     unlistenRef.current = null;
   }, []);
 
+  const handleAddToQueue = useCallback(() => {
+    const [w, h] =
+      resolution === "original" ? [0, 0] : resolution.split("x").map(Number);
+    const interpolate = fpsValue === "60i";
+    const fps =
+      fpsValue === "60" || fpsValue === "60i"
+        ? 60
+        : fpsValue
+          ? Number(fpsValue)
+          : null;
+    const config: UpscaleConfig = {
+      width: w,
+      height: h,
+      targetFps: fps,
+      interpolate,
+      quality,
+      gpuBackend,
+      aiUpscaler: upscaler !== "ffmpeg" ? upscaler : null,
+    };
+    useUpscaleQueueStore
+      .getState()
+      .addItem(filePath, fileNameFromPath(filePath), config);
+    setOpen(false);
+    resetState();
+  }, [
+    filePath,
+    resolution,
+    fpsValue,
+    quality,
+    gpuBackend,
+    upscaler,
+    resetState,
+  ]);
+
   const handleClose = useCallback(() => {
     if (running) return;
     setOpen(false);
@@ -234,12 +272,12 @@ export default function UpscalePlayer({ filePath, onDone }: Props) {
               />
               {upscaler !== "ffmpeg" && (
                 <div className="windows95-border bg-white">
-                  <ToolStatusCard toolId={upscaler} />
+                  <ToolStatus toolId={upscaler} />
                 </div>
               )}
               {upscaler === "ffmpeg" && (
                 <div className="windows95-border bg-white">
-                  <ToolStatusCard toolId="ffmpeg" />
+                  <ToolStatus toolId="ffmpeg" />
                 </div>
               )}
 
@@ -272,6 +310,7 @@ export default function UpscalePlayer({ filePath, onDone }: Props) {
 
               <div className="flex flex-row gap-1 mt-2 justify-end">
                 <Button onClick={handleClose}>Отмена</Button>
+                <Button onClick={handleAddToQueue}>В очередь</Button>
                 <Button onClick={startUpscale}>Запустить</Button>
               </div>
             </div>

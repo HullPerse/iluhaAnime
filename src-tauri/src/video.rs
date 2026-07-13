@@ -194,23 +194,37 @@ async fn run_ai_tool(
     let tool_path = crate::tools::tool_exec_path(app_handle, tool_id)
         .ok_or_else(|| format!("{tool_id} not installed. Download it in Settings → AI Tools"))?;
 
-    let status = tokio::process::Command::new(&tool_path)
+    let (model_arg, scale_arg) = match tool_id {
+        "realesrgan" => ("-n", scale.to_string()),
+        "waifu2x" => ("-n", scale.to_string()),
+        _ => return Err(format!("Unknown AI tool: {tool_id}")),
+    };
+
+    let model_name = match tool_id {
+        "realesrgan" => "realesr-animevideov3",
+        "waifu2x" => "models-cunet",
+        _ => unreachable!(),
+    };
+
+    let output = tokio::process::Command::new(&tool_path)
         .arg("-i")
         .arg(frames_dir)
         .arg("-o")
         .arg(output_dir)
+        .arg(model_arg)
+        .arg(model_name)
         .arg("-s")
-        .arg(scale.to_string())
-        .arg("-m")
-        .arg("realesr-animevideov3")
+        .arg(&scale_arg)
         .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .status()
+        .stderr(std::process::Stdio::piped())
+        .output()
         .await
         .map_err(|e| format!("run {tool_id}: {e}"))?;
 
-    if !status.success() {
-        return Err(format!("{tool_id} failed"));
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        let last_line = stderr.lines().last().unwrap_or("unknown error");
+        return Err(format!("{tool_id} failed: {last_line}"));
     }
     Ok(())
 }
@@ -281,7 +295,7 @@ pub async fn upscale_video(
 
         // Step 1: extract keyframes
         let _permit_extract = FFMPEG_SEM.acquire().await.map_err(|_| "semaphore".to_string())?;
-        let extract_status = Command::new(ffmpeg_exe(&app_handle))
+        let extract_output = Command::new(ffmpeg_exe(&app_handle))
             .args([
                 "-y", "-i", &input_path,
                 "-vf", "select='eq(pict_type,I)'",
@@ -291,8 +305,8 @@ pub async fn upscale_video(
             ])
             .arg(frames_dir.join("frame_%08d.jpg").to_string_lossy().to_string())
             .stdout(std::process::Stdio::null())
-            .stderr(std::process::Stdio::null())
-            .status()
+            .stderr(std::process::Stdio::piped())
+            .output()
             .await
             .map_err(|e| format!("extract frames: {e}"))?;
         drop(_permit_extract);
@@ -302,9 +316,11 @@ pub async fn upscale_video(
             return Err("Операция отменена".to_string());
         }
 
-        if !extract_status.success() {
+        if !extract_output.status.success() {
+            let stderr = String::from_utf8_lossy(&extract_output.stderr);
+            let last_line = stderr.lines().last().unwrap_or("unknown error");
             let _ = std::fs::remove_dir_all(&temp_dir);
-            return Err("Failed to extract frames".to_string());
+            return Err(format!("Failed to extract frames: {last_line}"));
         }
 
         // Count extracted frames for progress
@@ -327,7 +343,7 @@ pub async fn upscale_video(
             },
         );
 
-        // Step 2: run AI upscaler
+        // Step 2: run AI upscaler with per-frame progress
         let app_for_ai = app_handle.clone();
         let frames_dir_c = frames_dir.clone();
         let upscaled_dir_c = upscaled_dir.clone();
@@ -341,7 +357,34 @@ pub async fn upscale_video(
         };
 
         let _ = sender.send(25.0);
+
+        let progress_app = app_handle.clone();
+        let poll_dir = upscaled_dir.clone();
+        let frame_total = frame_count;
+        let progress_handle = tokio::spawn(async move {
+            let mut interval = tokio::time::interval(std::time::Duration::from_millis(500));
+            loop {
+                interval.tick().await;
+                let done = std::fs::read_dir(&poll_dir)
+                    .map(|e| e.flatten().count())
+                    .unwrap_or(0);
+                let _ = progress_app.emit(
+                    "upscale-progress",
+                    UpscaleProgress {
+                        current: done as f64,
+                        total: frame_total as f64,
+                        stage: "ai_upscaling".into(),
+                        speed: 0.0,
+                    },
+                );
+                if done >= frame_total {
+                    break;
+                }
+            }
+        });
+
         run_ai_tool(&app_for_ai, &ai_tool_c, &frames_dir_c.to_string_lossy(), &upscaled_dir_c.to_string_lossy(), scale).await?;
+        progress_handle.abort();
 
         if cancel.load(Ordering::SeqCst) {
             let _ = std::fs::remove_dir_all(&temp_dir);
@@ -385,17 +428,19 @@ pub async fn upscale_video(
         encode_args.extend(encoder_args);
         encode_args.push(output_path.clone());
 
-        let encode_cmd = Command::new(ffmpeg_exe(&app_handle))
+        let encode_output = Command::new(ffmpeg_exe(&app_handle))
             .args(&encode_args)
             .stdout(std::process::Stdio::null())
-            .stderr(std::process::Stdio::null())
-            .status()
+            .stderr(std::process::Stdio::piped())
+            .output()
             .await
             .map_err(|e| format!("ffmpeg encode: {e}"))?;
 
-        if !encode_cmd.success() {
+        if !encode_output.status.success() {
+            let stderr = String::from_utf8_lossy(&encode_output.stderr);
+            let last_line = stderr.lines().last().unwrap_or("unknown error");
             let _ = std::fs::remove_dir_all(&temp_dir);
-            return Err("Encoding failed".to_string());
+            return Err(format!("Encoding failed: {last_line}"));
         }
 
         let _ = std::fs::remove_dir_all(&temp_dir);

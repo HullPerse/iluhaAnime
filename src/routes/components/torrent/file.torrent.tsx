@@ -206,7 +206,7 @@ function TorrentFilesSection({
           }
           const file = item.file;
           return (
-            <label
+            <div
               key={file.index}
               className={`flex items-center gap-1 px-1 w-full windows95-text select-none absolute top-0 left-0 ${type === "player" ? "" : "hover:bg-surface"}`}
               style={{
@@ -300,7 +300,7 @@ function TorrentFilesSection({
                   )}
                 </div>
               )}
-            </label>
+            </div>
           );
         })}
       </div>

@@ -64,17 +64,22 @@ function AniListDetailModal({
 }) {
   const setCrossSearchQuery = useSearchStore((s) => s.setCrossSearchQuery);
 
-  const [showDesc, setShowDesc] = useState<boolean>(false);
+  const [showRelations, setShowRelations] = useState<boolean>(false);
 
+  const [favLoading, setFavLoading] = useState(false);
   const isFavourited = favouriteIds?.has(animeId) ?? false;
 
   const handleToggleFav = () => {
+    if (favLoading) return;
+    setFavLoading(true);
     onFavouriteToggle?.(animeId);
+    setFavLoading(false);
   };
 
   const { data: anime, isLoading } = useQuery({
     queryKey: ["anime_detail", animeId],
     queryFn: () => invoke<AniMedia>("get_anime_by_id", { id: animeId }),
+    staleTime: 1000 * 60 * 60,
   });
 
   const handleSearchTorrents = (query?: string) => {
@@ -99,17 +104,23 @@ function AniListDetailModal({
               <AniListMetadata anime={anime} />
             </div>
             {isLoggedIn && (
-              <button
+              <Button
+                size="icon"
+                className="shrink-0"
+                disabled={favLoading}
                 onClick={handleToggleFav}
-                className="shrink-0 p-1 windows95-border bg-white hover:bg-surface cursor-pointer"
                 title={
                   isFavourited ? "Убрать из избранного" : "Добавить в избранное"
                 }
               >
-                <Heart
-                  className={`size-4 ${isFavourited ? "fill-red-500 text-red-500" : "text-text"}`}
-                />
-              </button>
+                {favLoading ? (
+                  <Loader className="size-3 animate-spin" />
+                ) : (
+                  <Heart
+                    className={`size-4 ${isFavourited ? "fill-red-500 text-red-500" : "text-text"}`}
+                  />
+                )}
+              </Button>
             )}
           </div>
 
@@ -138,8 +149,8 @@ function AniListDetailModal({
             <Section
               header="Связанное"
               className="flex flex-col bg-white"
-              expanded={showDesc}
-              onExpand={() => setShowDesc((prev) => !prev)}
+              expanded={showRelations}
+              onExpand={() => setShowRelations((prev) => !prev)}
               files={anime.relations.length}
             >
               {anime.relations.map((r) => (

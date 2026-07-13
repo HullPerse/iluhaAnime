@@ -24,29 +24,14 @@ pub struct Tool {
     pub download_size: u64,
     pub version: &'static str,
     pub exec_names: &'static [&'static str],
-    pub archive_format_win: ArchiveFormat,
-    pub archive_format_linux: ArchiveFormat,
 }
 
-#[derive(Debug, Clone, Copy)]
-pub enum ArchiveFormat {
-    Zip,
-    TarGz,
-}
 
 fn tool_download_url(tool: &Tool) -> &'static str {
     if cfg!(target_os = "windows") {
         tool.download_url_win
     } else {
         tool.download_url_linux
-    }
-}
-
-fn tool_archive_format(tool: &Tool) -> ArchiveFormat {
-    if cfg!(target_os = "windows") {
-        tool.archive_format_win
-    } else {
-        tool.archive_format_linux
     }
 }
 
@@ -58,58 +43,18 @@ const TOOLS: &[Tool] = &[
         download_url_win: "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesrgan-ncnn-vulkan-20220424-windows.zip",
         download_url_linux: "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesrgan-ncnn-vulkan-20220424-ubuntu.zip",
         download_size: 15_000_000,
-        version: "0.3.0",
+        version: "0.2.5.0",
         exec_names: &["realesrgan-ncnn-vulkan.exe", "realesrgan-ncnn-vulkan"],
-        archive_format_win: ArchiveFormat::Zip,
-        archive_format_linux: ArchiveFormat::TarGz,
     },
     Tool {
         id: "waifu2x",
         name: "waifu2x",
         description: "Faster AI upscaler. Softer results than Real-ESRGAN but 2-3x faster.",
-        download_url_win: "https://github.com/nihui/waifu2x-ncnn-vulkan/releases/download/20220728/waifu2x-ncnn-vulkan-20220728-windows.zip",
-        download_url_linux: "https://github.com/nihui/waifu2x-ncnn-vulkan/releases/download/20220728/waifu2x-ncnn-vulkan-20220728-ubuntu.zip",
+        download_url_win: "https://github.com/nihui/waifu2x-ncnn-vulkan/releases/download/20250915/waifu2x-ncnn-vulkan-20250915-windows.zip",
+        download_url_linux: "https://github.com/nihui/waifu2x-ncnn-vulkan/releases/download/20250915/waifu2x-ncnn-vulkan-20250915-linux.zip",
         download_size: 10_000_000,
-        version: "20220728",
+        version: "20250915",
         exec_names: &["waifu2x-ncnn-vulkan.exe", "waifu2x-ncnn-vulkan"],
-        archive_format_win: ArchiveFormat::Zip,
-        archive_format_linux: ArchiveFormat::TarGz,
-    },
-    Tool {
-        id: "rife",
-        name: "RIFE",
-        description: "AI frame interpolation for smooth 60fps motion. Best results of any FPS upscaler.",
-        download_url_win: "https://github.com/nihui/rife-ncnn-vulkan/releases/download/20230816/rife-ncnn-vulkan-20230816-windows.zip",
-        download_url_linux: "https://github.com/nihui/rife-ncnn-vulkan/releases/download/20230816/rife-ncnn-vulkan-20230816-ubuntu.zip",
-        download_size: 20_000_000,
-        version: "20230816",
-        exec_names: &["rife-ncnn-vulkan.exe", "rife-ncnn-vulkan"],
-        archive_format_win: ArchiveFormat::Zip,
-        archive_format_linux: ArchiveFormat::TarGz,
-    },
-    Tool {
-        id: "whisper-cli",
-        name: "Whisper CLI",
-        description: "whisper.cpp command-line tool for audio transcription. Used by subtitle generation.",
-        download_url_win: "https://github.com/ggerganov/whisper.cpp/releases/download/v1.7.4/whisper-cli-v1.7.4-win-x64.zip",
-        download_url_linux: "https://github.com/ggerganov/whisper.cpp/releases/download/v1.7.4/whisper-cli-v1.7.4-linux-x64.zip",
-        download_size: 24_000_000,
-        version: "1.7.4",
-        exec_names: &["whisper-cli.exe", "whisper-cli"],
-        archive_format_win: ArchiveFormat::Zip,
-        archive_format_linux: ArchiveFormat::Zip,
-    },
-    Tool {
-        id: "mpv",
-        name: "mpv",
-        description: "Native video player with hardware decoding, used for playback instead of browser video element.",
-        download_url_win: "https://github.com/mpv-player/mpv/releases/download/v0.41.0/mpv-v0.41.0-x86_64-w64-mingw32.zip",
-        download_url_linux: "https://github.com/mpv-player/mpv/releases/download/v0.41.0/mpv-v0.41.0-x86_64-linux-gnu.tar.gz",
-        download_size: 39_002_683,
-        version: "0.41.0",
-        exec_names: &["mpv.exe", "mpv"],
-        archive_format_win: ArchiveFormat::Zip,
-        archive_format_linux: ArchiveFormat::TarGz,
     },
 ];
 
@@ -222,12 +167,7 @@ pub async fn download_tool(
     let mut stream = response.bytes_stream();
 
     use futures::StreamExt;
-    let fmt = tool_archive_format(tool);
-    let ext = match fmt {
-        ArchiveFormat::Zip => ".zip",
-        ArchiveFormat::TarGz => ".tar.gz",
-    };
-    let archive_path = temp_dir.join(format!("{tool_id}{ext}"));
+    let archive_path = temp_dir.join(format!("{tool_id}.zip"));
     let mut file = tokio::fs::File::create(&archive_path)
         .await
         .map_err(|e| format!("create file: {e}"))?;
@@ -253,59 +193,13 @@ pub async fn download_tool(
     drop(file);
 
     // Extract
-    match fmt {
-        ArchiveFormat::Zip => {
-            let file = std::fs::File::open(&archive_path)
-                .map_err(|e| format!("open archive: {e}"))?;
-            let mut archive = zip::ZipArchive::new(file)
-                .map_err(|e| format!("read zip: {e}"))?;
-            archive
-                .extract(&install_dir)
-                .map_err(|e| format!("extract zip: {e}"))?;
-
-            // Handle nested archives (e.g. mpv official release is a zip containing another zip)
-            let mut found_archive = true;
-            while found_archive {
-                found_archive = false;
-                let entries = std::fs::read_dir(&install_dir)
-                    .map_err(|e| format!("read install dir: {e}"))?;
-                for entry in entries {
-                    let entry = match entry {
-                        Ok(e) => e,
-                        Err(_) => continue,
-                    };
-                    let path = entry.path();
-                    if !path.is_file() {
-                        continue;
-                    }
-                    let ext = match path.extension().and_then(|e| e.to_str()) {
-                        Some(ext) => ext,
-                        None => continue,
-                    };
-                    if ext == "zip" {
-                        found_archive = true;
-                        let file = std::fs::File::open(&path)
-                            .map_err(|e| format!("open nested archive: {e}"))?;
-                        let mut archive = zip::ZipArchive::new(file)
-                            .map_err(|e| format!("read nested zip: {e}"))?;
-                        archive
-                            .extract(&install_dir)
-                            .map_err(|e| format!("extract nested zip: {e}"))?;
-                        let _ = std::fs::remove_file(&path);
-                    }
-                }
-            }
-        }
-        ArchiveFormat::TarGz => {
-            let file = std::fs::File::open(&archive_path)
-                .map_err(|e| format!("open archive: {e}"))?;
-            let reader = flate2::read::GzDecoder::new(file);
-            let mut archive = tar::Archive::new(reader);
-            archive
-                .unpack(&install_dir)
-                .map_err(|e| format!("extract tar: {e}"))?;
-        }
-    }
+    let file = std::fs::File::open(&archive_path)
+        .map_err(|e| format!("open archive: {e}"))?;
+    let mut archive = zip::ZipArchive::new(file)
+        .map_err(|e| format!("read zip: {e}"))?;
+    archive
+        .extract(&install_dir)
+        .map_err(|e| format!("extract zip: {e}"))?;
 
     // Cleanup temp
     let _ = std::fs::remove_dir_all(&temp_dir);

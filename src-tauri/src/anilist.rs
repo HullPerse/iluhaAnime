@@ -1,7 +1,15 @@
 use serde::Serialize;
 use std::fs;
 use std::path::PathBuf;
+use std::sync::LazyLock;
 use tauri::Manager;
+
+static CLIENT: LazyLock<reqwest::Client> = LazyLock::new(|| {
+    reqwest::Client::builder()
+        .user_agent("iluhaAnime/1.0")
+        .build()
+        .expect("reqwest client")
+});
 
 #[derive(Debug, Serialize)]
 pub struct AniRanking {
@@ -10,16 +18,16 @@ pub struct AniRanking {
     pub context: String,
 }
 
-fn token_path(app_handle: &tauri::AppHandle) -> PathBuf {
-    app_handle
+fn token_path(app_handle: &tauri::AppHandle) -> Result<PathBuf, String> {
+    let dir = app_handle
         .path()
         .app_data_dir()
-        .expect("app data dir")
-        .join("anilist_token.txt")
+        .map_err(|e| format!("app data dir: {e}"))?;
+    Ok(dir.join("anilist_token.txt"))
 }
 
 fn save_token(app_handle: &tauri::AppHandle, token: &str) -> Result<(), String> {
-    let path = token_path(app_handle);
+    let path = token_path(app_handle)?;
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).map_err(|e| format!("{e}"))?;
     }
@@ -27,7 +35,7 @@ fn save_token(app_handle: &tauri::AppHandle, token: &str) -> Result<(), String> 
 }
 
 fn load_token(app_handle: &tauri::AppHandle) -> Result<String, String> {
-    let path = token_path(app_handle);
+    let path = token_path(app_handle)?;
     if !path.exists() {
         return Err("Not authenticated".to_string());
     }
@@ -38,7 +46,7 @@ async fn graphql_request(
     query: serde_json::Value,
     token: Option<&str>,
 ) -> Result<serde_json::Value, String> {
-    let mut builder = reqwest::Client::new()
+    let mut builder = CLIENT
         .post("https://graphql.anilist.co")
         .json(&query);
     if let Some(t) = token {
@@ -117,7 +125,7 @@ pub struct AniUser {
 pub struct AniListEntry {
     pub media: AniMedia,
     pub progress: Option<i32>,
-    pub score: Option<i32>,
+    pub score: Option<f64>,
     pub list_status: String,
 }
 
@@ -282,7 +290,10 @@ fn parse_animedia(m: &serde_json::Value) -> AniMedia {
 
 const MAX_PAGES: u32 = 3;
 
-async fn fetch_page(body: serde_json::Value) -> Result<(Vec<AniMedia>, u32), String> {
+async fn fetch_page(
+    body: serde_json::Value,
+    _per_page: u32,
+) -> Result<(Vec<AniMedia>, u32), String> {
     let json = graphql_request(body, None).await?;
     let p = &json["data"]["Page"];
     let total = p["pageInfo"]["total"].as_u64().unwrap_or(0) as u32;
@@ -297,22 +308,29 @@ async fn fetch_paginated(
     base_query: &str,
     variables: serde_json::Value,
     max_pages: u32,
+    per_page: u32,
 ) -> Result<Vec<AniMedia>, String> {
     let (mut all, total) = fetch_page(serde_json::json!({
         "query": base_query,
-        "variables": variables,
-    }))
+        "variables": {
+            "page": variables["page"],
+            "perPage": per_page,
+        },
+    }), per_page)
     .await?;
 
-    let pages = ((total + 19) / 20).min(max_pages);
+    let pages = ((total + per_page - 1) / per_page).min(max_pages);
     let mut vars = variables.clone();
 
     for page in 2..=pages {
         vars["page"] = serde_json::json!(page);
         if let Ok((media, _)) = fetch_page(serde_json::json!({
             "query": base_query,
-            "variables": vars,
-        }))
+            "variables": {
+                "page": page,
+                "perPage": per_page,
+            },
+        }), per_page)
         .await
         {
             all.extend(media);
@@ -341,6 +359,8 @@ pub async fn search_anilist(
     episodes_to: Option<i32>,
     score_from: Option<i32>,
     score_to: Option<i32>,
+    max_pages: Option<u32>,
+    per_page: Option<u32>,
 ) -> Result<Vec<AniMedia>, String> {
     let mut variables = serde_json::json!({ "page": 1 });
 
@@ -412,9 +432,15 @@ pub async fn search_anilist(
         variables["averageScore_lesser"] = serde_json::json!(s);
     }
 
+    let mp = max_pages.unwrap_or(3);
+    let pp = per_page.unwrap_or(20);
+
+    variables["perPage"] = serde_json::json!(pp);
+
     let gql = r#"
         query (
             $page: Int,
+            $perPage: Int,
             $search: String,
             $tag_in: [String],
             $genre_in: [String],
@@ -433,7 +459,7 @@ pub async fn search_anilist(
             $averageScore_greater: Int,
             $averageScore_lesser: Int
         ) {
-            Page(page: $page, perPage: 20) {
+            Page(page: $page, perPage: $perPage) {
                 pageInfo { total }
                 media(
                     search: $search
@@ -474,7 +500,7 @@ pub async fn search_anilist(
         }
     "#;
 
-    fetch_paginated(gql, variables, MAX_PAGES).await
+    fetch_paginated(gql, variables, mp, pp).await
 }
 
 #[tauri::command]
@@ -498,8 +524,9 @@ pub async fn search_anilist_by_tag(tag: String) -> Result<Vec<AniMedia>, String>
                 }
             }
         "#,
-        serde_json::json!({ "tag": tag, "page": 1 }),
+        serde_json::json!({ "tag": tag, "page": 1, "perPage": 20 }),
         MAX_PAGES,
+        20,
     )
     .await
 }
@@ -525,8 +552,9 @@ pub async fn search_anilist_by_genre(genre: String) -> Result<Vec<AniMedia>, Str
                 }
             }
         "#,
-        serde_json::json!({ "genre": genre, "page": 1 }),
+        serde_json::json!({ "genre": genre, "page": 1, "perPage": 20 }),
         MAX_PAGES,
+        20,
     )
     .await
 }
@@ -927,6 +955,7 @@ pub async fn get_anilist_lists(
                                 episodes, averageScore
                                 coverImage { medium }
                                 status
+                                nextAiringEpisode { episode airingAt }
                             }
                         }
                     }
@@ -962,7 +991,7 @@ pub async fn get_anilist_lists(
                                     duration: None,
                                     format: None,
                                     status: m["status"].as_str().unwrap_or("UNKNOWN").to_string(),
-                                    score: m["averageScore"].as_i64().map(|n| n as i32),
+        score: m["averageScore"].as_f64().map(|n| n.round() as i32),
                                     genres: vec![],
                                     tags: vec![],
                                     description: None,
@@ -970,8 +999,8 @@ pub async fn get_anilist_lists(
                                     season: None,
                                     season_year: None,
                                     studios: vec![],
-                                    next_episode: None,
-                                    next_airing_at: None,
+                                    next_episode: m["nextAiringEpisode"]["episode"].as_i64().map(|n| n as i32),
+                                    next_airing_at: m["nextAiringEpisode"]["airingAt"].as_i64(),
                                     start_date: None,
                                     end_date: None,
                                     popularity: None,
@@ -980,7 +1009,7 @@ pub async fn get_anilist_lists(
                                     relations: vec![],
                                 },
                                 progress: entry["progress"].as_i64().map(|n| n as i32),
-                                score: entry["score"].as_f64().map(|n| n as i32),
+                                score: entry["score"].as_f64(),
                                 list_status: entry["status"].as_str().unwrap_or("").to_string(),
                             }
                         })
@@ -1000,7 +1029,7 @@ pub struct AniListCollection {
 
 #[tauri::command]
 pub async fn anilist_logout(app_handle: tauri::AppHandle) -> Result<(), String> {
-    let path = token_path(&app_handle);
+    let path = token_path(&app_handle)?;
     let _ = fs::remove_file(&path);
     Ok(())
 }
@@ -1011,7 +1040,7 @@ pub async fn save_anilist_entry(
     media_id: u64,
     status: String,
     progress: Option<i32>,
-    score: Option<i32>,
+    score: Option<f64>,
 ) -> Result<(), String> {
     let token = load_token(&app_handle)?;
     let body = serde_json::json!({

@@ -1,5 +1,3 @@
-export const PER_PAGE = 20;
-
 export interface SourceInfo {
   value: string;
   label: string;

@@ -87,6 +87,63 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
     });
   },
 
+  prepareTorrentDownloadFromFile: async (filePath: string) => {
+    if (get().preparingTorrent) return;
+    let saveDir = get().lastSaveDir;
+    if (!saveDir) {
+      const dir = await open({
+        directory: true,
+        title: "Выберите папку для сохранения",
+      });
+      if (!dir) return;
+      saveDir = dir;
+      saveLastSaveDir(saveDir);
+      set({ lastSaveDir: saveDir });
+    }
+
+    set({ preparingTorrent: true });
+
+    const fileBytes = await invoke<number[]>("read_file_bytes", {
+      path: filePath,
+    }).catch((err) => {
+      showError("Ошибка при чтении файла:", String(err));
+      return null;
+    });
+
+    if (!fileBytes) {
+      set({ preparingTorrent: false });
+      return;
+    }
+
+    const result = await invoke<{
+      id: number;
+      name: string;
+      files: TorrentFileInfo[];
+      conflicting_files: string[];
+      has_common_folder: boolean;
+    }>("get_torrent_info_from_file", { fileBytes, saveDir }).catch((err) => {
+      showError("Ошибка при получении информации о торренте:", String(err));
+      return null;
+    });
+
+    if (!result) {
+      set({ preparingTorrent: false });
+      return;
+    }
+
+    set({
+      preparingTorrent: false,
+      pendingTorrent: {
+        fileBytes,
+        id: result.id,
+        name: result.name,
+        files: result.files,
+        conflictingFiles: result.conflicting_files,
+        hasCommonFolder: result.has_common_folder,
+      },
+    });
+  },
+
   confirmDownload: async (
     selectedIndices: number[],
     saveDir: string,
@@ -117,22 +174,39 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
         deleteFiles: false,
       }).catch((err) => showError("Ошибка при очистке торрента:", String(err)));
     }
-    const id = await invoke<number>("start_torrent_download", {
-      magnet: pending.magnet,
-      saveDir,
-      onlyFiles:
-        selectedIndices.length === pending.files.length
-          ? null
-          : selectedIndices,
-      subFolder: subFolder || null,
-    }).catch((err) => {
-      showError("Ошибка при старте торрента:", String(err));
-      return undefined;
-    });
+
+    const onlyFiles =
+      selectedIndices.length === pending.files.length
+        ? null
+        : selectedIndices;
+
+    const id = pending.magnet
+      ? await invoke<number>("start_torrent_download", {
+          magnet: pending.magnet,
+          saveDir,
+          onlyFiles,
+          subFolder: subFolder || null,
+        }).catch((err) => {
+          showError("Ошибка при старте торрента:", String(err));
+          return undefined;
+        })
+      : pending.fileBytes
+        ? await invoke<number>("start_torrent_download_from_file", {
+            fileBytes: pending.fileBytes,
+            saveDir,
+            onlyFiles,
+            subFolder: subFolder || null,
+          }).catch((err) => {
+            showError("Ошибка при старте торрента:", String(err));
+            return undefined;
+          })
+        : undefined;
+
+    if (id === undefined) return;
 
     set({ pendingTorrent: null });
 
-    if (id !== undefined && sequential) {
+    if (sequential) {
       await invoke("set_sequential_download", { id, enabled: true }).catch(
         (err) =>
           showError(

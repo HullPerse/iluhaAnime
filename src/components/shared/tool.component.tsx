@@ -6,7 +6,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { Download, Trash2 } from "lucide-react";
 import { useState, useEffect } from "react";
 
-export function ToolStatus({ toolId }: { toolId: string }) {
+function ToolStatus({ toolId }: { toolId: string }) {
   const ffmpegStatus = useFFmpegStatus();
   const aiStatus = useToolStatus(toolId);
 

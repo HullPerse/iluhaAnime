@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { Anime, LanguageTag, SettingsScraper } from "@/types";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { showToast } from "@/lib/toast.utils";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import {
   detectLanguages,
   formatSize,
@@ -31,9 +31,10 @@ import Select from "@/components/ui/select.component";
 import { useTorrentStore } from "@/store/download.store";
 import RutrackerLoginModal from "@/routes/components/search/rutracker.search";
 import NekoBtApiModal from "@/routes/components/search/nekobt.search";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { flushSync } from "react-dom";
 import { Source } from "@/types/search";
-import { PER_PAGE, SOURCE_INFOS } from "@/config/search.config";
+import { SOURCE_INFOS } from "@/config/search.config";
 import { useSettingsStore } from "@/store/settings.store";
 
 function SearchRoute() {
@@ -42,6 +43,7 @@ function SearchRoute() {
   );
   const defaultSource = useSettingsStore((s) => s.defaultSearchSource);
   const visibleSources = useSettingsStore((s) => s.visibleSources);
+  const resultsPerPage = useSettingsStore((s) => s.resultsPerPage);
 
   const sourceOptions = useMemo(
     () =>
@@ -57,6 +59,7 @@ function SearchRoute() {
     : (visibleSources[0] ?? "");
 
   const [searchParams, setSearchParams] = useState<string>("");
+  const [debouncedQuery, setDebouncedQuery] = useState<string>("");
   const [source, setSource] = useState<Source>(initialSource as Source);
   const [rutrackerAuth, setRutrackerAuth] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
@@ -88,6 +91,23 @@ function SearchRoute() {
       .then(setNekoBtAuth)
       .catch(() => setNekoBtAuth(false));
   }, []);
+
+  // Debounce search input
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setDebouncedQuery(searchParams.trim());
+    }, 300);
+    return () => clearTimeout(debounceRef.current);
+  }, [searchParams]);
+
+  // Auto-search when debounced query changes
+  useEffect(() => {
+    if (debouncedQuery) {
+      refetch();
+    }
+  }, [debouncedQuery]);
 
   useEffect(() => {
     if (!visibleSources.includes(source) && visibleSources.length > 0) {
@@ -181,25 +201,31 @@ function SearchRoute() {
 
   const sorted = useMemo(
     () =>
-      filtered?.sort((a, b) => {
-        const sortMap = {
-          seeders: b.seeders - a.seeders,
-          leechers: b.leechers - a.leechers,
-          size: parseSize(b.size) - parseSize(a.size),
-        };
-        return sortMap[settings.sort] ?? 0;
-      }),
+      filtered
+        ? [...filtered].sort((a, b) => {
+            const sortMap = {
+              seeders: b.seeders - a.seeders,
+              leechers: b.leechers - a.leechers,
+              size: parseSize(b.size) - parseSize(a.size),
+            };
+            return sortMap[settings.sort] ?? 0;
+          })
+        : undefined,
     [filtered, settings.sort],
   );
 
   const displayItems = useMemo(
-    () => sorted?.slice(0, source === "nyaa" ? PER_PAGE : undefined),
+    () => sorted?.slice(0, source === "nyaa" ? resultsPerPage : undefined),
     [sorted, source],
   );
 
   const handleLogout = async () => {
-    await invoke("rutracker_logout");
-    setRutrackerAuth(false);
+    try {
+      await invoke("rutracker_logout");
+      setRutrackerAuth(false);
+    } catch {
+      showToast("Ошибка при выходе", "error");
+    }
   };
 
   const ensureMagnet = async (item: Anime): Promise<string | null> => {
@@ -229,7 +255,7 @@ function SearchRoute() {
 
   const handleOpenMagnet = async (item: Anime) => {
     const magnet = item.magnet || (await ensureMagnet(item));
-    if (magnet) document.location.assign(magnet);
+    if (magnet) { try { await openUrl(magnet); } catch {} }
   };
 
   const handleDownload = async (item: Anime) => {
@@ -250,7 +276,9 @@ function SearchRoute() {
             onBlur={() => setTimeout(() => setShowHistory(false), 200)}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
-                addQuery(searchParams.trim());
+                const trimmed = searchParams.trim();
+                if (!trimmed) return;
+                addQuery(trimmed);
                 refetch();
               }
             }}
@@ -297,7 +325,9 @@ function SearchRoute() {
           variant="default"
           size="icon"
           onClick={() => {
-            addQuery(searchParams.trim());
+            const trimmed = searchParams.trim();
+            if (!trimmed) return;
+            addQuery(trimmed);
             refetch();
           }}
           disabled={isLoading || sourceOptions.length === 0}
@@ -344,8 +374,12 @@ function SearchRoute() {
               if (source === "rutracker" && rutrackerAuth) {
                 handleLogout();
               } else {
-                await invoke("nekobt_logout");
-                setNekoBtAuth(false);
+                try {
+                  await invoke("nekobt_logout");
+                  setNekoBtAuth(false);
+                } catch {
+                  showToast("Ошибка при выходе", "error");
+                }
               }
             }}
           >
@@ -424,16 +458,24 @@ function SearchRoute() {
         </section>
       )}
 
+      {data && data.length > 0 && (
+        <span className="windows95-text text-[10px] px-1">
+          {source === "nyaa" || source === "nekobt"
+            ? `Стр. ${nyaaPage} · ${displayItems?.length ?? 0} из ${data.length} результатов (${data.length < resultsPerPage ? "все" : "есть ещё"})`
+            : `${data.length} результатов`}
+        </span>
+      )}
+
       {data?.length === 0 && !isError && <span>Ничего не найдено</span>}
 
       {displayItems && (
         <section className="flex flex-col w-full h-full overflow-y-auto p-0.5 gap-1">
-          {displayItems.map((item, i) => {
+          {displayItems.map((item) => {
             const isLoadingMag = loadingMagnet[item.link];
 
             return (
               <div
-                key={i}
+                key={item.link}
                 className="windows95-active-border bg-primary px-2 py-1.5 mb-0.5"
               >
                 <div className="flex items-start justify-between gap-2">
@@ -516,7 +558,7 @@ function SearchRoute() {
                   ) : (
                     item.link && (
                       <Button
-                        onClick={() => document.location.assign(item.link)}
+                        onClick={async () => { try { await openUrl(item.link); } catch {} }}
                         className="inline-flex items-center gap-0.5 windows95-active-border bg-primary px-2 py-0.5 windows95-text text-text no-underline cursor-pointer"
                       >
                         <ExternalLink className="size-3" />
@@ -550,7 +592,7 @@ function SearchRoute() {
             <Button
               size="icon"
               className="size-5"
-              disabled={displayItems.length < PER_PAGE || isLoading}
+              disabled={(data?.length ?? 0) < resultsPerPage || isLoading}
               onClick={() => {
                 setNyaaPage((p) => p + 1);
                 setTimeout(() => refetch(), 0);

@@ -564,19 +564,46 @@ pub async fn search_erairaws(query: String, encoding: String) -> Result<Vec<Nyaa
         format!("{} erai-raws {}", query, encoding)
     };
 
-    let resp = client
-        .get("https://animetosho.org/search")
-        .query(&[("q", search_query)])
-        .send()
-        .await
-        .map_err(|e| format!("Request failed: {e}"))?;
+    let mut last_err = String::new();
+    for attempt in 0..3 {
+        if attempt > 0 {
+            tokio::time::sleep(std::time::Duration::from_secs(2 * attempt)).await;
+        }
 
-    if !resp.status().is_success() {
-        return Err(format!("Search page returned HTTP {}", resp.status()));
+        let resp = match client
+            .get("https://animetosho.org/search")
+            .query(&[("q", &search_query)])
+            .send()
+            .await
+        {
+            Ok(r) => r,
+            Err(e) => {
+                last_err = format!("Request failed: {e}");
+                continue;
+            }
+        };
+
+        if !resp.status().is_success() {
+            last_err = format!("Search page returned HTTP {}", resp.status());
+            continue;
+        }
+
+        let html = match resp.text().await {
+            Ok(h) => h,
+            Err(e) => {
+                last_err = format!("Read error: {e}");
+                continue;
+            }
+        };
+
+        let items = parse_entries(&html);
+        if !items.is_empty() || attempt >= 2 {
+            return Ok(items);
+        }
+        last_err = "No torrents found".to_string();
     }
 
-    let html = resp.text().await.map_err(|e| format!("Read error: {e}"))?;
-    Ok(parse_entries(&html))
+    Err(last_err)
 }
 
 #[tauri::command]
@@ -782,6 +809,10 @@ pub async fn search_rutracker(
         .send()
         .await
         .map_err(|e| format!("Rutracker search failed: {e}"))?;
+
+    if !resp.status().is_success() {
+        return Err(format!("Rutracker search returned HTTP {}", resp.status()));
+    }
 
     let bytes = resp.bytes().await.map_err(|e| format!("Read error: {e}"))?;
     let html = decode_windows_1251(&bytes);

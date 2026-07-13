@@ -35,6 +35,9 @@ function TorrentFilePicker({
   const [browsing, setBrowsing] = useState(false);
   const [sequential, setSequential] = useState(false);
 
+  const [selected, setSelected] = useState<Set<number>>(
+    () => new Set(torrent?.files.filter((f) => f.selected).map((f) => f.index) ?? []),
+  );
   const [elapsed, setElapsed] = useState(0);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const startRef = useRef<number | null>(null);
@@ -94,6 +97,15 @@ function TorrentFilePicker({
 
   const allSelected = torrent ? selected.size === torrent.files.length : false;
 
+  const selectedSize = torrent
+    ? torrent.files
+        .filter((f) => selected.has(f.index))
+        .reduce((s, f) => s + f.size, 0)
+    : 0;
+  const totalSize = torrent
+    ? torrent.files.reduce((s, f) => s + f.size, 0)
+    : 0;
+
   return (
     <Modal
       header={loading ? "Загрузка метаданных..." : `${torrent!.name}`}
@@ -113,7 +125,9 @@ function TorrentFilePicker({
             <label className="flex items-center gap-1 px-1 py-0.5 windows95-text bg-primary cursor-pointer select-none">
               <Checkbox checked={allSelected} onChange={toggleAll} />
               {allSelected ? "Снять все" : "Выбрать все"}
-              <span className="ml-auto text-muted">
+              <span className="ml-auto text-muted text-[10px]">
+                {fmtSize(selectedSize)} / {fmtSize(totalSize)}
+                {" · "}
                 {torrent!.files.length} файлов
               </span>
             </label>

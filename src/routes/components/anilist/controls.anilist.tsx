@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Input } from "@/components/ui/input.component";
 import { Button } from "@/components/ui/button.component";
@@ -34,6 +34,14 @@ function AniListActionControls({
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
 
+  useEffect(() => {
+    if (listEntry) {
+      setEditStatus(listEntry.list_status ?? "PLANNING");
+      setEditProgress(listEntry.progress?.toString() ?? "");
+      setEditScore(listEntry.score?.toString() ?? "");
+    }
+  }, [listEntry]);
+
   const handleSave = async () => {
     setSaving(true);
     setSaveError("");
@@ -42,7 +50,7 @@ function AniListActionControls({
         mediaId: anime.id,
         status: editStatus,
         progress: editProgress ? parseInt(editProgress, 10) : null,
-        score: editScore ? parseInt(editScore, 10) : null,
+        score: editScore ? parseFloat(editScore) : null,
       });
       onSaved?.();
       onClose?.();

@@ -10,6 +10,7 @@ interface ConfirmDialogProps {
   variant?: "default" | "destructive";
   onConfirm: () => void;
   onCancel: () => void;
+  onClose?: () => void;
 }
 
 function ConfirmDialog({
@@ -21,11 +22,12 @@ function ConfirmDialog({
   variant = "default",
   onConfirm,
   onCancel,
+  onClose,
 }: ConfirmDialogProps) {
   if (!open) return null;
 
   return (
-    <Modal header={title} onClose={onCancel} className="w-xl">
+    <Modal header={title} onClose={onClose ?? onCancel} className="w-xl">
       <section className="flex flex-col flex-1">
         <p className="windows95-text text-text">{message}</p>
         <div className="flex justify-end gap-1 ml-auto mt-auto">

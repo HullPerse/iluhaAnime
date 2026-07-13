@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button.component";
 import { fmtSize, fmtETA, fmtSpeed, stateLabel } from "@/lib/torrent.utils";
 import { useTorrentStore } from "@/store/download.store";
 import { openPath } from "@tauri-apps/plugin-opener";
+import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { ConfirmDialog } from "@/components/shared/confirm.component";
 import Modal from "@/components/shared/modal.component";
 import {
@@ -17,8 +18,12 @@ import {
   ArrowUp,
   Plus,
   Check,
+  File,
+  SortAsc,
+  RefreshCw,
 } from "lucide-react";
 import { useState, useEffect, useMemo, useRef } from "react";
+import { listen } from "@tauri-apps/api/event";
 import TorrentFilesSection from "./components/torrent/file.torrent";
 import { sendNotification } from "@tauri-apps/plugin-notification";
 import { useSettingsStore } from "@/store/settings.store";
@@ -36,6 +41,7 @@ function TorrentRoute() {
     loadTorrentFiles,
     updateTorrentOnlyFiles,
     prepareTorrentDownload,
+    prepareTorrentDownloadFromFile,
     setFilePriority,
     setSequentialDownload,
   } = useTorrentStore((state) => state);
@@ -50,24 +56,52 @@ function TorrentRoute() {
   const [showMagnetModal, setShowMagnetModal] = useState(false);
   const [magnetInput, setMagnetInput] = useState("");
   const [filterQuery, setFilterQuery] = useState("");
+  const [sortBy, setSortBy] = useState<"name" | "size" | "progress" | "speed">(
+    "name",
+  );
+  const [sortAsc, setSortAsc] = useState(true);
   const [pendingDelete, setPendingDelete] = useState<{
     id: number;
     files: string[];
     saveDir: string;
   } | null>(null);
 
-  const filteredTorrents = useMemo(
-    () =>
-      filterQuery.trim()
-        ? torrents.filter((t) =>
-            t.name.toLowerCase().includes(filterQuery.toLowerCase()),
-          )
-        : torrents,
-    [torrents, filterQuery],
-  );
+  const filteredTorrents = useMemo(() => {
+    let list = filterQuery.trim()
+      ? torrents.filter((t) =>
+          t.name.toLowerCase().includes(filterQuery.toLowerCase()),
+        )
+      : torrents;
+    return [...list].sort((a, b) => {
+      let cmp = 0;
+      if (sortBy === "name") cmp = a.name.localeCompare(b.name);
+      else if (sortBy === "size") cmp = a.total_bytes - b.total_bytes;
+      else if (sortBy === "progress") cmp = a.progress - b.progress;
+      else if (sortBy === "speed") cmp = a.download_speed - b.download_speed;
+      return sortAsc ? cmp : -cmp;
+    });
+  }, [torrents, filterQuery, sortBy, sortAsc]);
 
   const fetchedRef = useRef<Set<number>>(new Set());
   const prevFinishedRef = useRef<Set<number>>(new Set());
+
+  // Drag and drop support
+  useEffect(() => {
+    const unlisten = listen<{ paths: string[] }>(
+      "tauri://drag-drop",
+      (event) => {
+        for (const path of event.payload.paths) {
+          if (path.toLowerCase().endsWith(".torrent")) {
+            prepareTorrentDownloadFromFile(path);
+            break;
+          }
+        }
+      },
+    );
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, []);
 
   useEffect(() => {
     torrents.forEach((t) => {
@@ -212,11 +246,32 @@ function TorrentRoute() {
         )}
         <span className="ml-auto" />
         <Input
-          className="flex-1"
+          className="w-32"
           placeholder="Фильтр..."
           value={filterQuery}
           onChange={(e) => setFilterQuery(e.target.value)}
         />
+
+        <select
+          className="windows95-border bg-white text-[10px] px-1 py-0.5"
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+        >
+          <option value="name">Имя</option>
+          <option value="size">Размер</option>
+          <option value="progress">Прогресс</option>
+          <option value="speed">Скорость</option>
+        </select>
+        <Button
+          size="icon"
+          className="size-5"
+          onClick={() => setSortAsc((v) => !v)}
+          title={sortAsc ? "По возрастанию" : "По убыванию"}
+        >
+          <SortAsc
+            className={`size-3 transition ${sortAsc ? "" : "rotate-180"}`}
+          />
+        </Button>
 
         <Button
           className="flex items-center windows95-text"
@@ -226,7 +281,7 @@ function TorrentRoute() {
           магнит
         </Button>
       </section>
-      {filteredTorrents.map((item, index) => {
+      {filteredTorrents.map((item) => {
         const progress = item.progress * 100;
         const isPaused = item.state === "paused";
         const isLive = item.state === "live";
@@ -235,7 +290,7 @@ function TorrentRoute() {
 
         return (
           <div
-            key={index}
+            key={item.id}
             className="flex flex-col p-2 windows95-active-border bg-primary gap-2"
           >
             {/*title and buttons*/}
@@ -394,6 +449,18 @@ function TorrentRoute() {
                 <span className="text-[10px] text-destructive windows95-font">
                   {item.error}
                 </span>
+                <Button
+                  size="icon"
+                  className="size-4 ml-auto"
+                  title="Повторить"
+                  onClick={async () => {
+                    await removeTorrent(item.id, false);
+                    const magnet = `magnet:?xt=urn:btih:${item.info_hash}`;
+                    prepareTorrentDownload(magnet);
+                  }}
+                >
+                  <RefreshCw className="size-3" />
+                </Button>
               </div>
             )}
           </div>
@@ -401,7 +468,7 @@ function TorrentRoute() {
       })}
       {showMagnetModal && (
         <Modal
-          header="Добавить магнит"
+          header="Добавить торрент"
           onClose={() => {
             setShowMagnetModal(false);
             setMagnetInput("");
@@ -409,7 +476,7 @@ function TorrentRoute() {
           className="w-xl"
         >
           <div className="flex flex-col gap-2 py-2">
-            <span className="windows95-text">Введите magnet-ссылку:</span>
+            <span className="windows95-text">Magnet-ссылка:</span>
             <Input
               className="w-full"
               placeholder="magnet:?xt=urn:btih:..."
@@ -424,7 +491,31 @@ function TorrentRoute() {
               }}
               autoFocus
             />
-            <div className="flex justify-end gap-1 mt-1">
+            <div className="flex items-center gap-1 mt-1">
+              <span className="text-[10px] windows95-text text-muted">или</span>
+              <Button
+                onClick={async () => {
+                  const file = await openDialog({
+                    multiple: false,
+                    filters: [
+                      {
+                        name: "Torrent",
+                        extensions: ["torrent"],
+                      },
+                    ],
+                  });
+                  if (file) {
+                    setShowMagnetModal(false);
+                    setMagnetInput("");
+                    prepareTorrentDownloadFromFile(file);
+                  }
+                }}
+              >
+                <File className="size-4" />
+                Выбрать .torrent
+              </Button>
+            </div>
+            <div className="flex justify-end gap-1 mt-2">
               <Button
                 onClick={() => {
                   setShowMagnetModal(false);
@@ -465,6 +556,7 @@ function TorrentRoute() {
             removeTorrent(pendingDelete.id, false);
             setPendingDelete(null);
           }}
+          onClose={() => setPendingDelete(null)}
         />
       )}
     </main>

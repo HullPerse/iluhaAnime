@@ -185,6 +185,38 @@ impl TorrentManager {
         only_files: Option<Vec<usize>>,
         sub_folder: Option<String>,
     ) -> Result<usize> {
+        self.add_torrent_inner(
+            AddTorrent::from_url(magnet),
+            save_dir,
+            only_files,
+            sub_folder,
+        )
+        .await
+    }
+
+    pub async fn add_torrent_from_bytes(
+        self: &Arc<Self>,
+        bytes: Vec<u8>,
+        save_dir: String,
+        only_files: Option<Vec<usize>>,
+        sub_folder: Option<String>,
+    ) -> Result<usize> {
+        self.add_torrent_inner(
+            AddTorrent::from_bytes(bytes),
+            save_dir,
+            only_files,
+            sub_folder,
+        )
+        .await
+    }
+
+    async fn add_torrent_inner(
+        self: &Arc<Self>,
+        add_torrent: AddTorrent<'_>,
+        save_dir: String,
+        only_files: Option<Vec<usize>>,
+        sub_folder: Option<String>,
+    ) -> Result<usize> {
         let output_folder = sub_folder
             .as_ref()
             .filter(|s| is_safe_path_component(s))
@@ -203,7 +235,7 @@ impl TorrentManager {
         };
         let response = self
             .session
-            .add_torrent(AddTorrent::from_url(magnet), Some(opts))
+            .add_torrent(add_torrent, Some(opts))
             .await?;
 
         let id = match response {
@@ -238,6 +270,24 @@ impl TorrentManager {
         magnet: String,
         save_dir: String,
     ) -> Result<TorrentInfoResult, String> {
+        self.get_torrent_info_inner(AddTorrent::from_url(magnet), save_dir)
+            .await
+    }
+
+    pub async fn get_torrent_info_from_bytes(
+        self: &Arc<Self>,
+        bytes: Vec<u8>,
+        save_dir: String,
+    ) -> Result<TorrentInfoResult, String> {
+        self.get_torrent_info_inner(AddTorrent::from_bytes(bytes), save_dir)
+            .await
+    }
+
+    async fn get_torrent_info_inner(
+        self: &Arc<Self>,
+        add_torrent: AddTorrent<'_>,
+        save_dir: String,
+    ) -> Result<TorrentInfoResult, String> {
         let opts = AddTorrentOptions {
             output_folder: Some(save_dir.clone()),
             overwrite: true,
@@ -247,7 +297,7 @@ impl TorrentManager {
 
         let response = self
             .session
-            .add_torrent(AddTorrent::from_url(magnet), Some(opts))
+            .add_torrent(add_torrent, Some(opts))
             .await
             .map_err(|e| format!("{e:#}"))?;
 

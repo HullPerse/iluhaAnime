@@ -51,6 +51,33 @@ async fn get_torrent_info(
 }
 
 #[tauri::command]
+async fn start_torrent_download_from_file(
+    file_bytes: Vec<u8>,
+    save_dir: String,
+    only_files: Option<Vec<usize>>,
+    sub_folder: Option<String>,
+    manager: tauri::State<'_, TorrentBackend>,
+) -> Result<usize, String> {
+    manager
+        .manager
+        .add_torrent_from_bytes(file_bytes, save_dir, only_files, sub_folder)
+        .await
+        .map_err(|e| format!("{e:#}"))
+}
+
+#[tauri::command]
+async fn get_torrent_info_from_file(
+    file_bytes: Vec<u8>,
+    save_dir: String,
+    manager: tauri::State<'_, TorrentBackend>,
+) -> Result<TorrentInfoResult, String> {
+    manager
+        .manager
+        .get_torrent_info_from_bytes(file_bytes, save_dir)
+        .await
+}
+
+#[tauri::command]
 fn list_torrents(manager: tauri::State<'_, TorrentBackend>) -> Result<Vec<TorrentInfo>, String> {
     Ok(manager.manager.collect_torrents())
 }
@@ -94,6 +121,11 @@ struct VideoFileEntry {
     path: String,
     name: String,
     size: u64,
+}
+
+#[tauri::command]
+async fn read_file_bytes(path: String) -> Result<Vec<u8>, String> {
+    std::fs::read(&path).map_err(|e| format!("{e:#}"))
 }
 
 #[tauri::command]
@@ -179,7 +211,7 @@ fn set_global_speed_limits(
 }
 
 #[tauri::command]
-fn get_running_torrent_files(
+async fn get_running_torrent_files(
     id: usize,
     manager: tauri::State<'_, TorrentBackend>,
 ) -> Result<Vec<TorrentFileInfo>, String> {
@@ -406,6 +438,9 @@ pub fn run() {
             update_torrent_only_files,
             set_file_priority,
             set_sequential_download,
+            get_torrent_info_from_file,
+            start_torrent_download_from_file,
+            read_file_bytes,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

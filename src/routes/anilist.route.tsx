@@ -30,10 +30,12 @@ import FiltersModal, {
 } from "./components/anilist/filters.anilist";
 import AniListActivityModal from "./components/anilist/activity.anilist";
 import BrowseAnimeModal from "./components/anilist/browse.anilist";
+import StatsModal from "./components/anilist/stats.anilist";
 import {
   Activity,
   ArrowLeft,
   ArrowRight,
+  Calendar,
   Dices,
   Filter,
   Flame,
@@ -44,6 +46,7 @@ import {
   SearchX,
   Star,
   User,
+  UserStar,
 } from "lucide-react";
 
 function AnilistRoute() {
@@ -60,6 +63,7 @@ function AnilistRoute() {
   const [favourites, setFavourites] = useState<FavouriteAnime[]>([]);
   const [showActivity, setShowActivity] = useState(false);
   const [showBrowse, setShowBrowse] = useState(false);
+  const [showStats, setShowStats] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [searchFilters, setSearchFilters] =
     useState<SearchFilters>(defaultFilters);
@@ -97,6 +101,7 @@ function AnilistRoute() {
   const [page, setPage] = useState<number>(1);
   const [loadingSearch, setLoadingSearch] = useState(false);
   const anilistPageSize = useSettingsStore((s) => s.anilistPageSize);
+  const anilistMaxPages = useSettingsStore((s) => s.anilistMaxPages);
   const scrollRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -123,11 +128,23 @@ function AnilistRoute() {
         yearFrom: searchFilters.year[0] > 0 ? searchFilters.year[0] : null,
         yearTo: searchFilters.year[1] > 0 ? searchFilters.year[1] : null,
         episodesFrom:
-          searchFilters.episodes[1] > 0 ? searchFilters.episodes[0] : null,
+          searchFilters.episodes[0] > 0 || searchFilters.episodes[1] > 0
+            ? searchFilters.episodes[0]
+            : null,
         episodesTo:
-          searchFilters.episodes[1] > 0 ? searchFilters.episodes[1] : null,
-        scoreFrom: searchFilters.score[1] > 0 ? searchFilters.score[0] : null,
-        scoreTo: searchFilters.score[1] > 0 ? searchFilters.score[1] : null,
+          searchFilters.episodes[0] > 0 || searchFilters.episodes[1] > 0
+            ? searchFilters.episodes[1]
+            : null,
+        scoreFrom:
+          searchFilters.score[0] > 0 || searchFilters.score[1] > 0
+            ? searchFilters.score[0]
+            : null,
+        scoreTo:
+          searchFilters.score[0] > 0 || searchFilters.score[1] > 0
+            ? searchFilters.score[1]
+            : null,
+        maxPages: anilistMaxPages,
+        perPage: anilistPageSize,
       });
       setSearchResults(res);
     } finally {
@@ -378,6 +395,15 @@ function AnilistRoute() {
             <Button
               size="icon"
               className="h-7 w-7 text-[10px] ml-auto"
+              onClick={() => setShowStats(true)}
+              title="Календарь"
+            >
+              <Calendar className="size-3" />
+            </Button>
+
+            <Button
+              size="icon"
+              className="h-7 w-7 text-[10px]"
               onClick={() => setShowBrowse(true)}
             >
               <Flame className="size-3" />
@@ -388,7 +414,7 @@ function AnilistRoute() {
               className="h-7 text-[10px]"
               onClick={() => setShowRecs(true)}
             >
-              Рекомендации
+              <UserStar className="size-3" />
             </Button>
 
             <Button size="icon" variant="error" onClick={handleLogout}>
@@ -729,7 +755,7 @@ function AnilistRoute() {
               onChange={(e) => {
                 const number = Number(e.target.value);
                 if (!Number.isFinite(number) || number < 1) return;
-                setPage(number);
+                setPage(Math.min(number, lastPage));
               }}
               min={1}
               max={lastPage}
@@ -935,6 +961,16 @@ function AnilistRoute() {
         onReset={() => setSearchFilters(defaultFilters)}
         onClose={() => setShowFilters(false)}
       />
+
+      {showStats && (
+        <StatsModal
+          lists={lists}
+          onClose={() => setShowStats(false)}
+          onAnimeClick={(id) => {
+            setSelectedAnime({ animeId: id, listEntry: entryLookup.get(id) });
+          }}
+        />
+      )}
 
       {showBrowse && (
         <BrowseAnimeModal

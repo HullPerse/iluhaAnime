@@ -15,6 +15,14 @@ type Item =
   | { kind: "folder"; node: TorrentTreeNode; depth: number }
   | { kind: "file"; file: TorrentTreeFile; depth: number };
 
+function collectFileIndices(node: TorrentTreeNode): number[] {
+  const indices = node.files.map((f) => f.index);
+  for (const child of node.children) {
+    indices.push(...collectFileIndices(child));
+  }
+  return indices;
+}
+
 function flattenTree(
   nodes: TorrentTreeNode[],
   open: Set<string>,
@@ -31,7 +39,7 @@ function flattenTree(
   }
 
   for (const node of nodes) {
-    if (depth > 0) items.push({ kind: "folder", node, depth });
+    items.push({ kind: "folder", node, depth });
     if (open.has(node.name + depth)) {
       const files = fileFilter ? node.files.filter(fileFilter) : node.files;
       for (const file of files) {
@@ -119,10 +127,11 @@ function TorrentFilesSection({
     const items = flattenTree(trees, open, fileFilter, rootFiles);
     if (extraFiles && type === "player") {
       for (const ef of extraFiles) {
+        const extraIndex = -(2000 + items.length);
         items.push({
           kind: "file",
           file: {
-            index: -1,
+            index: extraIndex,
             name: ef.name,
             displayName: ef.name,
             size: ef.size,
@@ -171,36 +180,75 @@ function TorrentFilesSection({
           if (!item) return null;
           if (item.kind === "folder") {
             const isOpen = open.has(item.node.name + item.depth);
+            const folderIndices = collectFileIndices(item.node);
+            const folderFiles = folderIndices
+              .map((i) => files.find((f) => f.index === i))
+              .filter((f): f is TorrentFileInfo => f !== undefined);
+            const folderPriority =
+              folderFiles.length > 0 &&
+              folderFiles.every(
+                (f) => f.priority === folderFiles[0].priority,
+              )
+                ? folderFiles[0].priority
+                : "normal";
             return (
               <div
-                key={item.node.name + item.depth}
-                role="button"
+                key={`folder-${item.node.name}-${item.depth}-${vItem.index}`}
                 className="flex items-center gap-1 windows95-text cursor-pointer hover:bg-surface px-0.5 py-0.5 w-full text-left select-none absolute top-0 left-0"
                 style={{
                   height: 20,
                   transform: `translateY(${vItem.start}px)`,
                   paddingLeft: `${item.depth * 12 + 2}px`,
                 }}
-                onClick={() => toggle(item.node.name + item.depth)}
               >
-                {isOpen ? (
-                  <ChevronDown className="size-3 shrink-0" />
-                ) : (
-                  <ChevronRight className="size-3 shrink-0" />
-                )}
-                <FolderOpen className="size-3 shrink-0 text-muted" />
-                <span className="truncate font-bold" title={item.node.name}>
-                  {item.node.name}
-                </span>
-                <span className="text-muted ml-auto whitespace-nowrap">
-                  {fmtSize(
-                    item.node.files.reduce((s, f) => s + f.size, 0) +
-                      item.node.children.reduce(
-                        (s, c) => s + c.files.reduce((s2, f) => s2 + f.size, 0),
-                        0,
-                      ),
+                <div
+                  className="flex items-center gap-1 flex-1 min-w-0"
+                  onClick={() => toggle(item.node.name + item.depth)}
+                >
+                  {isOpen ? (
+                    <ChevronDown className="size-3 shrink-0" />
+                  ) : (
+                    <ChevronRight className="size-3 shrink-0" />
                   )}
-                </span>
+                  <FolderOpen className="size-3 shrink-0 text-muted" />
+                  <span className="truncate font-bold" title={item.node.name}>
+                    {item.node.name}
+                  </span>
+                  <span className="text-muted whitespace-nowrap">
+                    {fmtSize(
+                      item.node.files.reduce((s, f) => s + f.size, 0) +
+                        item.node.children.reduce(
+                          (s, c) =>
+                            s +
+                            c.files.reduce((s2, f) => s2 + f.size, 0) +
+                            c.children.reduce(
+                              (s3, cc) =>
+                                s3 +
+                                cc.files.reduce(
+                                  (s4, f) => s4 + f.size,
+                                  0,
+                                ),
+                              0,
+                            ),
+                          0,
+                        ),
+                    )}
+                  </span>
+                </div>
+                {handlePriorityChange && type === "torrent" && (
+                  <Select
+                    className="w-20"
+                    value={folderPriority}
+                    onChange={(v) =>
+                      handlePriorityChange(folderIndices, v as FilePriority)
+                    }
+                    options={[
+                      { value: "normal", label: "Нормальный" },
+                      { value: "do_not_download", label: "Пропуск" },
+                    ]}
+                    arrow={false}
+                  />
+                )}
               </div>
             );
           }
@@ -240,9 +288,7 @@ function TorrentFilesSection({
                       handlePriorityChange([file.index], v as FilePriority)
                     }
                     options={[
-                      { value: "high", label: "Высокий" },
                       { value: "normal", label: "Нормальный" },
-                      { value: "low", label: "Маленький" },
                       { value: "do_not_download", label: "Пропуск" },
                     ]}
                     arrow={false}

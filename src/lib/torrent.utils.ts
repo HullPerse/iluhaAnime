@@ -114,9 +114,18 @@ export function buildTorrentTree(files: TorrentFileInfo[]): {
     });
   }
 
+  function sortTree(node: TorrentTreeNode) {
+    node.files.sort((a, b) => a.displayName.localeCompare(b.displayName));
+    node.children.sort((a, b) => a.name.localeCompare(b.name));
+    for (const child of node.children) sortTree(child);
+  }
+  for (const child of root.children) sortTree(child);
+
   return {
     nodes: root.children.sort((a, b) => a.name.localeCompare(b.name)),
-    rootFiles: root.files,
+    rootFiles: root.files.sort((a, b) =>
+      a.displayName.localeCompare(b.displayName),
+    ),
   };
 }
 
@@ -170,17 +179,25 @@ export function TorrentListen(
 
   if (prev.length !== next.length) return { torrents: next };
 
-  for (let i = 0; i < prev.length; i++) {
-    if (
-      prev[i].progress_bytes !== next[i]?.progress_bytes ||
-      prev[i].state !== next[i]?.state ||
-      prev[i].download_speed !== next[i]?.download_speed ||
-      prev[i].upload_speed !== next[i]?.upload_speed ||
-      prev[i].peers_connected !== next[i]?.peers_connected ||
-      prev[i].finished !== next[i]?.finished
-    ) {
-      return { torrents: next };
-    }
-  }
-  return {};
+  const changed = next.some((t, i) => {
+    const p = prev[i];
+    if (!p) return true;
+    return (
+      p.progress_bytes !== t.progress_bytes ||
+      p.state !== t.state ||
+      p.download_speed !== t.download_speed ||
+      p.upload_speed !== t.upload_speed ||
+      p.peers_connected !== t.peers_connected ||
+      p.finished !== t.finished ||
+      p.error !== t.error ||
+      p.uploaded_bytes !== t.uploaded_bytes ||
+      p.total_bytes !== t.total_bytes ||
+      p.sequential_download !== t.sequential_download ||
+      p.eta_secs !== t.eta_secs ||
+      p.name !== t.name ||
+      p.save_dir !== t.save_dir
+    );
+  });
+
+  return changed ? { torrents: next } : {};
 }

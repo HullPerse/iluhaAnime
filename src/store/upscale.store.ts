@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 
-export type QueueItemStatus = "queued" | "processing" | "done" | "error";
+type QueueItemStatus = "queued" | "processing" | "done" | "error";
 
 export interface UpscaleConfig {
   width: number;
@@ -14,7 +14,7 @@ export interface UpscaleConfig {
   aiUpscaler: string | null;
 }
 
-export interface UpscaleQueueItem {
+interface UpscaleQueueItem {
   id: string;
   filePath: string;
   outputPath: string;

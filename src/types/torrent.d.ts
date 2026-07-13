@@ -48,7 +48,8 @@ export interface TorrentFileInfo {
 }
 
 export interface PickerTorrent {
-  magnet: string;
+  magnet?: string;
+  fileBytes?: number[];
   id: number;
   name: string;
   files: TorrentFileInfo[];
@@ -67,6 +68,7 @@ export interface TorrentStore {
 
   init: () => Promise<() => void>;
   prepareTorrentDownload: (magnet: string) => Promise<void>;
+  prepareTorrentDownloadFromFile: (filePath: string) => Promise<void>;
   confirmDownload: (
     selectedIndices: number[],
     saveDir: string,

@@ -2,6 +2,8 @@ use serde::Serialize;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
+#[cfg(windows)]
+use std::os::windows::process::CommandExt;
 use tauri::{Emitter, Manager};
 use tokio::io::{AsyncBufReadExt, AsyncReadExt};
 use tokio::process::Command;
@@ -83,8 +85,9 @@ async fn get_video_duration(app_handle: &tauri::AppHandle, path: &str) -> Result
             }
         }
     }
-    let output = Command::new(ffprobe_exe(app_handle))
-        .args([
+    let output = {
+        let mut c = Command::new(ffprobe_exe(app_handle));
+        c.args([
             "-v",
             "error",
             "-show_entries",
@@ -92,8 +95,11 @@ async fn get_video_duration(app_handle: &tauri::AppHandle, path: &str) -> Result
             "-of",
             "csv=p=0",
             path,
-        ])
-        .output()
+        ]);
+        #[cfg(windows)]
+        c.creation_flags(0x08000000);
+        c.output()
+    }
         .await
         .map_err(|e| format!("ffprobe not found: {e}"))?;
 
@@ -184,49 +190,50 @@ fn build_encoder_args(
     }
 }
 
-async fn run_ai_tool(
-    app_handle: &tauri::AppHandle,
-    tool_id: &str,
-    frames_dir: &str,
-    output_dir: &str,
-    scale: u32,
-) -> Result<(), String> {
-    let tool_path = crate::tools::tool_exec_path(app_handle, tool_id)
-        .ok_or_else(|| format!("{tool_id} not installed. Download it in Settings → AI Tools"))?;
+const SHADER_CHAIN: &[&str] = &[
+    "Anime4K_Clamp_Highlights.glsl",
+    "Anime4K_Restore_CNN_UL.glsl",
+    "Anime4K_Upscale_CNN_x2_UL.glsl",
+];
 
-    let (model_arg, scale_arg) = match tool_id {
-        "realesrgan" => ("-n", scale.to_string()),
-        "waifu2x" => ("-n", scale.to_string()),
-        _ => return Err(format!("Unknown AI tool: {tool_id}")),
-    };
+fn shader_dir(app_handle: &tauri::AppHandle) -> Option<std::path::PathBuf> {
+    Some(app_handle.path().resource_dir().ok()?.join("shaders"))
+}
 
-    let model_name = match tool_id {
-        "realesrgan" => "realesr-animevideov3",
-        "waifu2x" => "models-cunet",
-        _ => unreachable!(),
-    };
-
-    let output = tokio::process::Command::new(&tool_path)
-        .arg("-i")
-        .arg(frames_dir)
-        .arg("-o")
-        .arg(output_dir)
-        .arg(model_arg)
-        .arg(model_name)
-        .arg("-s")
-        .arg(&scale_arg)
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::piped())
-        .output()
+async fn get_video_dimensions(app_handle: &tauri::AppHandle, path: &str) -> Result<(u32, u32), String> {
+    let output = {
+        let mut c = Command::new(ffprobe_exe(app_handle));
+        c.args([
+            "-v",
+            "error",
+            "-select_streams",
+            "v:0",
+            "-show_entries",
+            "stream=width,height",
+            "-of",
+            "csv=p=0",
+            path,
+        ]);
+        #[cfg(windows)]
+        c.creation_flags(0x08000000);
+        c.output()
+    }
         .await
-        .map_err(|e| format!("run {tool_id}: {e}"))?;
+        .map_err(|e| format!("ffprobe not found: {e}"))?;
 
     if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        let last_line = stderr.lines().last().unwrap_or("unknown error");
-        return Err(format!("{tool_id} failed: {last_line}"));
+        return Err("ffprobe failed".to_string());
     }
-    Ok(())
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let clean = stdout.trim();
+    let parts: Vec<&str> = clean.split(',').collect();
+    if parts.len() < 2 {
+        return Err(format!("parse dimensions failed: {clean:?}"));
+    }
+    let w: u32 = parts[0].trim().parse().map_err(|_| format!("parse width failed: {:?}", parts[0]))?;
+    let h: u32 = parts[1].trim().parse().map_err(|_| format!("parse height failed: {:?}", parts[1]))?;
+    Ok((w, h))
 }
 
 #[tauri::command]
@@ -273,177 +280,157 @@ pub async fn upscale_video(
         },
     );
 
-    // AI pipeline: extract keyframes → AI upscale → re-encode
-    if let Some(ref ai_tool) = ai_upscaler {
-        let temp_dir = std::env::temp_dir().join(format!("iluha_ai_{}", std::process::id()));
-        let frames_dir = temp_dir.join("frames");
-        let upscaled_dir = temp_dir.join("upscaled");
-        let _ = std::fs::remove_dir_all(&temp_dir);
-        std::fs::create_dir_all(&frames_dir).map_err(|e| format!("create frames dir: {e}"))?;
-        std::fs::create_dir_all(&upscaled_dir).map_err(|e| format!("create output dir: {e}"))?;
-
-        let _ = sender.send(5.0);
-        let _ = app_handle.emit(
-            "upscale-progress",
-            UpscaleProgress {
-                current: 0.0,
-                total: duration,
-                stage: "extracting_frames".into(),
-                speed: 0.0,
-            },
-        );
-
-        // Step 1: extract keyframes
-        let _permit_extract = FFMPEG_SEM.acquire().await.map_err(|_| "semaphore".to_string())?;
-        let extract_output = Command::new(ffmpeg_exe(&app_handle))
-            .args([
-                "-y", "-i", &input_path,
-                "-vf", "select='eq(pict_type,I)'",
-                "-vsync", "vfr",
-                "-frame_pts", "1",
-                "-q:v", "2",
-            ])
-            .arg(frames_dir.join("frame_%08d.jpg").to_string_lossy().to_string())
-            .stdout(std::process::Stdio::null())
-            .stderr(std::process::Stdio::piped())
-            .output()
-            .await
-            .map_err(|e| format!("extract frames: {e}"))?;
-        drop(_permit_extract);
-
-        if cancel.load(Ordering::SeqCst) {
-            let _ = std::fs::remove_dir_all(&temp_dir);
-            return Err("Операция отменена".to_string());
-        }
-
-        if !extract_output.status.success() {
-            let stderr = String::from_utf8_lossy(&extract_output.stderr);
-            let last_line = stderr.lines().last().unwrap_or("unknown error");
-            let _ = std::fs::remove_dir_all(&temp_dir);
-            return Err(format!("Failed to extract frames: {last_line}"));
-        }
-
-        // Count extracted frames for progress
-        let frame_count = std::fs::read_dir(&frames_dir)
-            .map(|e| e.flatten().count())
-            .unwrap_or(0);
-        if frame_count == 0 {
-            let _ = std::fs::remove_dir_all(&temp_dir);
-            return Err("No keyframes found in video".to_string());
-        }
-
-        let _ = sender.send(20.0);
-        let _ = app_handle.emit(
-            "upscale-progress",
-            UpscaleProgress {
-                current: 0.0,
-                total: frame_count as f64,
-                stage: "ai_upscaling".into(),
-                speed: 0.0,
-            },
-        );
-
-        // Step 2: run AI upscaler with per-frame progress
-        let app_for_ai = app_handle.clone();
-        let frames_dir_c = frames_dir.clone();
-        let upscaled_dir_c = upscaled_dir.clone();
-        let ai_tool_c = ai_tool.clone();
-        let scale = if width > 0 && height > 0 {
-            let src_w = 1920u32;
-            let scale_factor = (width.max(height) as f64 / src_w as f64).max(1.0).round() as u32;
-            scale_factor.clamp(2, 4)
+    // Anime4K pipeline: ffmpeg pass with libplacebo filter chain
+    if ai_upscaler.is_some() {
+        // Compute target dimensions once (supporting original→2x)
+        let (target_w, target_h) = if width > 0 && height > 0 {
+            (width, height)
         } else {
-            2
+            match get_video_dimensions(&app_handle, &input_path).await {
+                Ok((iw, ih)) => (iw * 2, ih * 2),
+                Err(_) => (0, 0),
+            }
         };
 
-        let _ = sender.send(25.0);
+        // Full Anime4K v4 shader chain (relative paths to avoid drive colon)
+        let shader_dir = shader_dir(&app_handle)
+            .ok_or("Anime4K шейдеры не найдены. Переустановите приложение.".to_string())?;
 
-        let progress_app = app_handle.clone();
-        let poll_dir = upscaled_dir.clone();
-        let frame_total = frame_count;
-        let progress_handle = tokio::spawn(async move {
-            let mut interval = tokio::time::interval(std::time::Duration::from_millis(500));
-            loop {
-                interval.tick().await;
-                let done = std::fs::read_dir(&poll_dir)
-                    .map(|e| e.flatten().count())
-                    .unwrap_or(0);
-                let _ = progress_app.emit(
-                    "upscale-progress",
-                    UpscaleProgress {
-                        current: done as f64,
-                        total: frame_total as f64,
-                        stage: "ai_upscaling".into(),
-                        speed: 0.0,
-                    },
-                );
-                if done >= frame_total {
-                    break;
-                }
+        for &name in SHADER_CHAIN {
+            if !shader_dir.join(name).exists() {
+                return Err(format!("Anime4K шейдер не найден: {name}"));
             }
-        });
-
-        run_ai_tool(&app_for_ai, &ai_tool_c, &frames_dir_c.to_string_lossy(), &upscaled_dir_c.to_string_lossy(), scale).await?;
-        progress_handle.abort();
-
-        if cancel.load(Ordering::SeqCst) {
-            let _ = std::fs::remove_dir_all(&temp_dir);
-            return Err("Операция отменена".to_string());
         }
 
-        let _ = sender.send(80.0);
-        let _ = app_handle.emit(
-            "upscale-progress",
-            UpscaleProgress {
-                current: 0.0,
-                total: duration,
-                stage: "encoding".into(),
-                speed: 0.0,
-            },
-        );
+        let mut vf_parts: Vec<String> = Vec::new();
 
-        // Step 3: re-encode with AI upscaled frames
+        for (i, name) in SHADER_CHAIN.iter().enumerate() {
+            let is_last = i == SHADER_CHAIN.len() - 1;
+            let has_target = target_w > 0 && target_h > 0;
+
+            if is_last && has_target {
+                vf_parts.push(format!("libplacebo=custom_shader_path={}:w={}:h={}", name, target_w, target_h));
+            } else {
+                vf_parts.push(format!("libplacebo=custom_shader_path={}", name));
+            }
+        }
+
+        vf_parts.push("format=yuv420p".to_string());
+        let mut vf = vf_parts.join(",");
+
+        if let Some(fps) = target_fps {
+            if interpolate {
+                vf = format!("minterpolate=fps={},{}", fps, vf);
+            } else {
+                vf = format!("fps={},{}", fps, vf);
+            }
+        }
+
+        let mut args = vec![
+            "-y".to_string(),
+            "-init_hw_device".to_string(),
+            "vulkan".to_string(),
+            "-i".to_string(),
+            input_path.clone(),
+            "-vf".to_string(),
+            vf,
+            "-c:a".to_string(),
+            "copy".to_string(),
+            "-c:s".to_string(),
+            "copy".to_string(),
+        ];
+        args.extend(build_encoder_args(&gpu_backend, &quality));
+        args.push("-progress".to_string());
+        args.push("pipe:1".to_string());
+        args.push("-nostats".to_string());
+        args.push(output_path.clone());
+
         let _permit_encode = FFMPEG_SEM
             .acquire()
             .await
             .map_err(|_| "semaphore closed".to_string())?;
 
-        let encoder_args = build_encoder_args(&gpu_backend, &quality);
+        let mut child = {
+            let mut c = Command::new(ffmpeg_exe(&app_handle));
+            c.args(&args)
+                .current_dir(&shader_dir)
+                .stdout(std::process::Stdio::piped())
+                .stderr(std::process::Stdio::piped());
+            #[cfg(windows)]
+            c.creation_flags(0x08000000);
+            c.spawn().map_err(|e| format!("ffmpeg anime4k: {e}"))?
+        };
+        drop(_permit_encode);
 
-        let mut encode_args = vec![
-            "-y".to_string(),
-            "-framerate".to_string(),
-            target_fps.map(|f| f.to_string()).unwrap_or_else(|| format!("{}", duration.max(1.0))),
-            "-i".to_string(),
-            upscaled_dir.join("frame_%08d.jpg").to_string_lossy().to_string(),
-            "-i".to_string(),
-            input_path.clone(),
-            "-map".to_string(),
-            "0:v".to_string(),
-            "-map".to_string(),
-            "1:a?".to_string(),
-            "-c:a".to_string(),
-            "copy".to_string(),
-        ];
-        encode_args.extend(encoder_args);
-        encode_args.push(output_path.clone());
+        let child_stdout = child.stdout.take().ok_or("no stdout")?;
+        let child_stderr = child.stderr.take();
 
-        let encode_output = Command::new(ffmpeg_exe(&app_handle))
-            .args(&encode_args)
-            .stdout(std::process::Stdio::null())
-            .stderr(std::process::Stdio::piped())
-            .output()
+        let reader = tokio::io::BufReader::new(child_stdout);
+        let mut lines = reader.lines();
+        let mut speed = 0.0f64;
+
+        while let Some(line) = lines
+            .next_line()
             .await
-            .map_err(|e| format!("ffmpeg encode: {e}"))?;
+            .map_err(|e| format!("read progress: {e}"))?
+        {
+            if cancel.load(Ordering::SeqCst) {
+                let _ = child.kill().await;
+                let _ = std::fs::remove_file(&output_path);
+                return Err("Операция отменена".to_string());
+            }
 
-        if !encode_output.status.success() {
-            let stderr = String::from_utf8_lossy(&encode_output.stderr);
-            let last_line = stderr.lines().last().unwrap_or("unknown error");
-            let _ = std::fs::remove_dir_all(&temp_dir);
-            return Err(format!("Encoding failed: {last_line}"));
+            if let Some(time_str) = line.strip_prefix("out_time=") {
+                if let Some(current) = parse_ffmpeg_time(time_str) {
+                    let _ = sender.send((current / duration * 100.0).min(100.0));
+                    let _ = app_handle.emit(
+                        "upscale-progress",
+                        UpscaleProgress {
+                            current,
+                            total: duration,
+                            stage: "encoding".into(),
+                            speed,
+                        },
+                    );
+                }
+            }
+
+            if let Some(speed_str) = line.strip_prefix("speed=") {
+                speed = speed_str.trim_end_matches('x').parse().unwrap_or(0.0);
+            }
+
+            if line == "progress=end" {
+                break;
+            }
         }
 
-        let _ = std::fs::remove_dir_all(&temp_dir);
+        let status = child.wait().await.map_err(|e| format!("wait ffmpeg: {e}"))?;
+
+        let stderr = match child_stderr {
+            Some(handle) => {
+                let mut buf = String::new();
+                tokio::io::BufReader::new(handle)
+                    .read_to_string(&mut buf)
+                    .await
+                    .unwrap_or_default();
+                buf
+            }
+            None => String::new(),
+        };
+
+        if cancel.load(Ordering::SeqCst) {
+            let _ = std::fs::remove_file(&output_path);
+            return Err("Операция отменена".to_string());
+        }
+
+        if !status.success() {
+            let cmd_line = format!("ffmpeg {}", args.join(" "));
+            return Err(format!(
+                "Anime4K encoding failed:\n{}\n\nffmpeg command:\n{}",
+                stderr, cmd_line
+            ));
+        }
+
         let _ = sender.send(100.0);
         let _ = app_handle.emit(
             "upscale-progress",
@@ -517,6 +504,8 @@ pub async fn upscale_video(
             .arg(&out_for_ffmpeg)
             .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::piped());
+        #[cfg(windows)]
+        cmd.creation_flags(0x08000000);
 
         let mut child = cmd.spawn().map_err(|e| format!("ffmpeg not found: {e}"))?;
 
@@ -621,9 +610,13 @@ pub async fn check_gpu_encoders(app_handle: tauri::AppHandle) -> Vec<String> {
     let mut available = vec!["cpu".to_string()];
 
     let ffmpeg = ffmpeg_exe(&app_handle);
-    let output = match std::process::Command::new(&ffmpeg)
-        .args(["-hide_banner", "-encoders"])
-        .output()
+    let output = match {
+        let mut c = std::process::Command::new(&ffmpeg);
+        c.args(["-hide_banner", "-encoders"]);
+        #[cfg(windows)]
+        c.creation_flags(0x08000000);
+        c.output()
+    }
     {
         Ok(o) if o.status.success() => o,
         _ => return available,

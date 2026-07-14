@@ -6,7 +6,7 @@ import Modal from "@/components/shared/modal.component";
 import ProgressBar from "@/components/shared/progress.component";
 import { Button } from "@/components/ui/button.component";
 import Select from "@/components/ui/select.component";
-import ToolStatus from "@/components/shared/tool.component";
+import FFMPEG from "./ffmpeg.player";
 import {
   useUpscaleQueueStore,
   type UpscaleConfig,
@@ -54,8 +54,13 @@ const QUALITY_OPTIONS = [
 
 const UPSCALER_OPTIONS = [
   { label: "Lanczos (ffmpeg)", value: "ffmpeg" },
-  { label: "Real-ESRGAN (AI)", value: "realesrgan" },
-  { label: "waifu2x (AI, быстрее)", value: "waifu2x" },
+  { label: "Anime4K (GPU шейдеры)", value: "anime4k" },
+];
+
+const ANIME4K_PRESETS = [
+  { label: "Быстрый GPU", value: "fast-gpu" },
+  { label: "Баланс", value: "balanced" },
+  { label: "Максимальное качество", value: "quality" },
 ];
 
 function fileNameFromPath(p: string): string {
@@ -91,14 +96,45 @@ export default function UpscalePlayer({ filePath, onDone }: Props) {
   const [progress, setProgress] = useState<UpscaleProgressPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  const [ffmpegStatus, setFfmpegStatus] = useState<
+    "checking" | "ok" | "missing" | "downloading"
+  >("checking");
+  const [anime4kPreset, setAnime4kPreset] = useState("fast-gpu");
   const unlistenRef = useRef<UnlistenFn | null>(null);
   const outputPathRef = useRef("");
+
+  const handlePresetChange = useCallback(
+    (preset: string) => {
+      setAnime4kPreset(preset);
+      if (preset === "fast-gpu") {
+        setQuality("fast");
+        setGpuBackend((prev) => {
+          if (prev !== "cpu") return prev;
+          return availableGpu.find((b) => b !== "cpu") || "cpu";
+        });
+      } else if (preset === "balanced") {
+        setQuality("slow");
+        setGpuBackend("cpu");
+      } else {
+        setQuality("veryslow");
+        setGpuBackend("cpu");
+      }
+    },
+    [availableGpu],
+  );
 
   useEffect(() => {
     return () => {
       unlistenRef.current?.();
     };
   }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    invoke<boolean>("check_ffprobe")
+      .then((ok) => setFfmpegStatus(ok ? "ok" : "missing"))
+      .catch(() => setFfmpegStatus("missing"));
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -109,6 +145,13 @@ export default function UpscalePlayer({ filePath, onDone }: Props) {
       }
     });
   }, [open]);
+
+  // Apply Anime4K preset when upscaler or available GPU list changes
+  useEffect(() => {
+    if (upscaler === "anime4k") {
+      handlePresetChange(anime4kPreset);
+    }
+  }, [upscaler, availableGpu]);
 
   const resetState = useCallback(() => {
     setRunning(false);
@@ -270,15 +313,14 @@ export default function UpscalePlayer({ filePath, onDone }: Props) {
                 onChange={setUpscaler}
                 options={UPSCALER_OPTIONS}
               />
-              {upscaler !== "ffmpeg" && (
-                <div className="windows95-border bg-white">
-                  <ToolStatus toolId={upscaler} />
-                </div>
-              )}
               {upscaler === "ffmpeg" && (
-                <div className="windows95-border bg-white">
-                  <ToolStatus toolId="ffmpeg" />
-                </div>
+                <FFMPEG status={ffmpegStatus} setStatus={setFfmpegStatus} />
+              )}
+
+              {upscaler === "anime4k" && (
+                <span className="windows95-text text-xs">
+                  Требуется GTX 970+ (Vulkan)
+                </span>
               )}
 
               <label className="windows95-text text-xs">FPS</label>
@@ -288,23 +330,38 @@ export default function UpscalePlayer({ filePath, onDone }: Props) {
                 options={FPS_OPTIONS}
               />
 
-              <label className="windows95-text text-xs">Качество</label>
-              <Select
-                value={quality}
-                onChange={setQuality}
-                options={QUALITY_OPTIONS}
-              />
-
-              {gpuOptions.length > 1 && (
+              {upscaler === "anime4k" ? (
                 <>
                   <label className="windows95-text text-xs">
-                    Кодек / Ускоритель
+                    Режим Anime4K
                   </label>
                   <Select
-                    value={gpuBackend}
-                    onChange={setGpuBackend}
-                    options={gpuOptions}
+                    value={anime4kPreset}
+                    onChange={handlePresetChange}
+                    options={ANIME4K_PRESETS}
                   />
+                </>
+              ) : (
+                <>
+                  <label className="windows95-text text-xs">Качество</label>
+                  <Select
+                    value={quality}
+                    onChange={setQuality}
+                    options={QUALITY_OPTIONS}
+                  />
+
+                  {gpuOptions.length > 1 && (
+                    <>
+                      <label className="windows95-text text-xs">
+                        Кодек / Ускоритель
+                      </label>
+                      <Select
+                        value={gpuBackend}
+                        onChange={setGpuBackend}
+                        options={gpuOptions}
+                      />
+                    </>
+                  )}
                 </>
               )}
 
@@ -318,7 +375,7 @@ export default function UpscalePlayer({ filePath, onDone }: Props) {
 
           {showProgress && (
             <div className="flex flex-col gap-2 p-1 min-w-xl">
-              {initializing && (
+              {(initializing || stage === "initializing") && (
                 <div className="flex flex-col items-center gap-2 py-4">
                   <Loader className="size-5 animate-spin" />
                   <span className="windows95-text text-xs">

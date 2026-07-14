@@ -1,7 +1,6 @@
 import { useSettingsStore } from "@/store/settings.store";
 import { Input } from "@/components/ui/input.component";
 import { Button } from "@/components/ui/button.component";
-import ToolStatus from "@/components/shared/tool.component";
 
 export default function SettingsGeneral() {
   const { toastDuration, patch } = useSettingsStore();
@@ -38,20 +37,7 @@ export default function SettingsGeneral() {
         />
       </label>
 
-      <hr className="windows95-border my-2" />
-
-      <div className="flex flex-col gap-1">
-        <span className="windows95-text text-[10px] font-bold">
-          AI Инструменты
-        </span>
-        <span className="windows95-text text-[9px]">
-          Скачанные инструменты доступны в модальных окнах апскейла.
-        </span>
-        <div className="flex flex-col gap-0.5 mt-0.5">
-          <ToolStatus toolId="realesrgan" />
-          <ToolStatus toolId="waifu2x" />
-        </div>
-      </div>
+      <hr className="windows95-header w-full" />
 
       <div className="flex flex-col gap-1">
         <span className="windows95-text text-[10px] font-bold">

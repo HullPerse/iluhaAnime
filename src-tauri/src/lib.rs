@@ -4,6 +4,8 @@ use std::collections::{HashMap, HashSet};
 use std::num::NonZeroU32;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
+#[cfg(windows)]
+use std::os::windows::process::CommandExt;
 use tauri::{Emitter, Manager};
 use tauri_plugin_notification::NotificationExt;
 use tauri_plugin_single_instance;
@@ -16,7 +18,6 @@ mod fs_utils;
 mod fswatcher;
 mod progress;
 mod scrapers;
-mod tools;
 mod torrent;
 mod video;
 use torrent::{FilePriority, TorrentFileInfo, TorrentInfo, TorrentInfoResult, TorrentManager};
@@ -129,6 +130,13 @@ async fn read_file_bytes(path: String) -> Result<Vec<u8>, String> {
 }
 
 #[tauri::command]
+fn get_file_size(path: String) -> Result<u64, String> {
+    std::fs::metadata(&path)
+        .map(|m| m.len())
+        .map_err(|e| format!("{e:#}"))
+}
+
+#[tauri::command]
 async fn scan_video_folder(
     app_handle: tauri::AppHandle,
     path: String,
@@ -190,10 +198,11 @@ async fn scan_video_folder(
 
 #[tauri::command]
 fn open_in_player(player_path: String, file_path: String) -> Result<(), String> {
-    std::process::Command::new(&player_path)
-        .arg(&file_path)
-        .spawn()
-        .map_err(|e| format!("{e}"))?;
+    let mut cmd = std::process::Command::new(&player_path);
+    cmd.arg(&file_path);
+    #[cfg(windows)]
+    cmd.creation_flags(0x08000000);
+    cmd.spawn().map_err(|e| format!("{e}"))?;
     Ok(())
 }
 
@@ -400,12 +409,8 @@ pub fn run() {
             video::upscale_video,
             video::cancel_upscale,
             video::check_gpu_encoders,
-            tools::list_available_tools,
-            tools::check_tool_installed,
-            tools::get_tool_path,
-            tools::download_tool,
-            tools::remove_tool,
             ffmpeg::check_ffprobe,
+            ffmpeg::check_libplacebo,
             ffmpeg::download_ffmpeg,
             ffmpeg::remove_ffmpeg,
             anilist::search_anilist,
@@ -441,6 +446,7 @@ pub fn run() {
             get_torrent_info_from_file,
             start_torrent_download_from_file,
             read_file_bytes,
+            get_file_size,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

@@ -201,6 +201,8 @@ function TorrentRoute() {
     });
   };
 
+  const effective = (input: string) => (input === "" ? null : Number(input));
+
   return (
     <main className="flex flex-col gap-1 h-full w-full overflow-y-auto">
       <section className="flex items-center gap-2 p-1 windows95-active-border bg-primary">
@@ -208,10 +210,15 @@ function TorrentRoute() {
           <ArrowDown />
         </span>
         <Input
+          type="number"
           className="w-16"
           placeholder="KB/s"
           value={dlInput}
-          onChange={(e) => setDlInput(e.target.value)}
+          onChange={(e) => {
+            if (e.target.value === "" || /^\d+$/.test(e.target.value)) {
+              setDlInput(e.target.value);
+            }
+          }}
           onKeyDown={(e) => e.key === "Enter" && applySpeedLimits()}
           onBlur={applySpeedLimits}
         />
@@ -219,31 +226,28 @@ function TorrentRoute() {
           <ArrowUp />
         </span>
         <Input
+          type="number"
           className="w-16"
           placeholder="KB/s"
           value={ulInput}
-          onChange={(e) => setUlInput(e.target.value)}
+          onChange={(e) => {
+            if (e.target.value === "" || /^\d+$/.test(e.target.value)) {
+              setUlInput(e.target.value);
+            }
+          }}
           onKeyDown={(e) => e.key === "Enter" && applySpeedLimits()}
           onBlur={applySpeedLimits}
         />
         <Button
-          className="text-[10px] windows95-font"
+          size="icon"
+          className="windows95-text size-6"
           onClick={applySpeedLimits}
+          disabled={
+            effective(dlInput) === dlLimit && effective(ulInput) === ulLimit
+          }
         >
-          OK
+          <Check className="size-4" />
         </Button>
-        {(dlLimit !== null || ulLimit !== null) && (
-          <Button
-            className="text-[10px] windows95-font"
-            onClick={() => {
-              setDlInput("");
-              setUlInput("");
-              setSpeedLimits(null, null);
-            }}
-          >
-            Снять
-          </Button>
-        )}
         <span className="ml-auto" />
         <Input
           className="w-32"
@@ -253,7 +257,7 @@ function TorrentRoute() {
         />
 
         <select
-          className="windows95-border bg-white text-[10px] px-1 py-0.5"
+          className="windows95-border windows95-text bg-white h-6 w-24"
           value={sortBy}
           onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
         >
@@ -325,6 +329,7 @@ function TorrentRoute() {
                     size="icon"
                     className="size-6"
                     onClick={() => openPath(item.save_dir)}
+                    disabled={!item.save_dir}
                   >
                     <FolderOpen />
                   </Button>

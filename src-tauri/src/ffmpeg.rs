@@ -1,6 +1,8 @@
 use futures::StreamExt;
 use serde::Serialize;
 use tauri::Emitter;
+#[cfg(windows)]
+use std::os::windows::process::CommandExt;
 
 use super::video;
 
@@ -205,10 +207,29 @@ pub async fn remove_ffmpeg(app_handle: tauri::AppHandle) -> Result<(), String> {
 #[tauri::command]
 pub async fn check_ffprobe(app_handle: tauri::AppHandle) -> Result<bool, String> {
     let probe = video::ffprobe_exe(&app_handle);
-    let status = std::process::Command::new(&probe).arg("-version").output();
+    let mut cmd = std::process::Command::new(&probe);
+    cmd.arg("-version");
+    #[cfg(windows)]
+    cmd.creation_flags(0x08000000);
+    let status = cmd.output();
     match status {
         Ok(o) => Ok(o.status.success()),
         Err(_) => Ok(false),
+    }
+}
+
+#[tauri::command]
+pub async fn check_libplacebo(app_handle: tauri::AppHandle) -> bool {
+    let ffmpeg = video::ffmpeg_exe(&app_handle);
+    let output = std::process::Command::new(&ffmpeg)
+        .args(["-filters"])
+        .output();
+    match output {
+        Ok(o) => {
+            let stdout = String::from_utf8_lossy(&o.stdout);
+            stdout.contains("libplacebo")
+        }
+        Err(_) => false,
     }
 }
 

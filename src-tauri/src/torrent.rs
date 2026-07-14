@@ -13,9 +13,7 @@ type SaveDirsMap = HashMap<usize, String>;
 #[serde(rename_all = "snake_case")]
 pub enum FilePriority {
     DoNotDownload,
-    Low,
     Normal,
-    High,
 }
 
 #[derive(Serialize, Clone, Debug)]

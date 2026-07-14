@@ -60,6 +60,7 @@ function TorrentFilesSection({
   type,
   path,
   onFilePriorityChange,
+  onResume,
   extraFiles,
   onUpscaleDone,
 }: {
@@ -73,6 +74,7 @@ function TorrentFilesSection({
     fileIndices: number[],
     priority: FilePriority,
   ) => void;
+  onResume?: () => void;
   extraFiles?: { name: string; size: number; fullPath: string }[];
   onUpscaleDone?: (filePath: string) => void;
 }) {
@@ -157,11 +159,18 @@ function TorrentFilesSection({
 
   const handleToggleFile = (index: number, completed: boolean) => {
     if (completed) return;
+    const wasSelected = selected.has(index);
     const next = new Set(selected);
     if (next.has(index)) next.delete(index);
     else next.add(index);
     setSelected(next);
     onToggle?.(id, [...next]);
+    if (!wasSelected) {
+      if (handlePriorityChange) {
+        handlePriorityChange([index], "normal");
+      }
+      onResume?.();
+    }
   };
 
   const handlePriorityChange = onFilePriorityChange
@@ -186,9 +195,7 @@ function TorrentFilesSection({
               .filter((f): f is TorrentFileInfo => f !== undefined);
             const folderPriority =
               folderFiles.length > 0 &&
-              folderFiles.every(
-                (f) => f.priority === folderFiles[0].priority,
-              )
+              folderFiles.every((f) => f.priority === folderFiles[0].priority)
                 ? folderFiles[0].priority
                 : "normal";
             return (
@@ -223,11 +230,7 @@ function TorrentFilesSection({
                             c.files.reduce((s2, f) => s2 + f.size, 0) +
                             c.children.reduce(
                               (s3, cc) =>
-                                s3 +
-                                cc.files.reduce(
-                                  (s4, f) => s4 + f.size,
-                                  0,
-                                ),
+                                s3 + cc.files.reduce((s4, f) => s4 + f.size, 0),
                               0,
                             ),
                           0,
@@ -237,7 +240,7 @@ function TorrentFilesSection({
                 </div>
                 {handlePriorityChange && type === "torrent" && (
                   <Select
-                    className="w-20"
+                    className="w-28"
                     value={folderPriority}
                     onChange={(v) =>
                       handlePriorityChange(folderIndices, v as FilePriority)
@@ -282,7 +285,7 @@ function TorrentFilesSection({
                 type === "torrent" &&
                 !file.completed && (
                   <Select
-                    className="w-20"
+                    className="w-28"
                     value={file.priority || "normal"}
                     onChange={(v) =>
                       handlePriorityChange([file.index], v as FilePriority)

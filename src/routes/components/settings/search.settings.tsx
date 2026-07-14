@@ -131,6 +131,7 @@ export default function SettingsSearch() {
           className="w-16"
         />
       </label>
+
     </div>
   );
 }

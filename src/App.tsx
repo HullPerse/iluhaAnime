@@ -1,4 +1,10 @@
-import { useState, useEffect, ReactElement, lazy, Suspense } from "react";
+import {
+  useState,
+  useEffect,
+  ReactElement,
+  lazy,
+  Suspense,
+} from "react";
 import { useTorrentStore } from "@/store/download.store";
 import { useSearchStore } from "@/store/search.store";
 import TorrentFilePicker from "@/routes/components/search/picker.search";
@@ -10,6 +16,7 @@ import Updater from "./components/shared/updater.component";
 import { Update } from "@tauri-apps/plugin-updater";
 import { useQuery } from "@tanstack/react-query";
 import Tabs from "./components/shared/tabs.component";
+import NotificationTray from "./components/shared/notification.component";
 
 const SearchRoute = lazy(() => import("@/routes/search.route"));
 const TorrentRoute = lazy(() => import("@/routes/torrent.route"));
@@ -29,6 +36,7 @@ const tabs: { id: Tab; label: string }[] = [
 
 function App() {
   const [activeTab, setActiveTab] = useState<Tab>("search");
+  const [initTabs, setInitTabs] = useState(false);
   const [updateAvailable, setUpdateAvailable] = useState<boolean>(false);
   const wallpaperBlur = useSettingsStore((s) => s.wallpaperBlur);
   const showWallpaper = useSettingsStore((s) => s.showWallpaper);
@@ -41,7 +49,6 @@ function App() {
   const cancelDownload = useTorrentStore((s) => s.cancelDownload);
 
   const enableAnimations = useSettingsStore((s) => s.enableAnimations);
-
   //checking for connection
   const { data } = useQuery({
     queryKey: ["connection"],
@@ -73,6 +80,17 @@ function App() {
       cleanup.then((fn) => fn());
     };
   }, [init]);
+
+  const visibleTabs = tabs;
+
+  useEffect(() => {
+    if (!initTabs && visibleTabs.length > 0) {
+      setInitTabs(true);
+      if (!visibleTabs.find((t) => t.id === activeTab)) {
+        setActiveTab(visibleTabs[0].id as Tab);
+      }
+    }
+  }, [visibleTabs, activeTab, initTabs]);
 
   //tab keybinds
   useEffect(() => {
@@ -158,12 +176,13 @@ function App() {
             <span className="text-white font-bold windows95-text">
               iluhaAnime
             </span>
+            <NotificationTray />
           </div>
           <div className="flex bg-primary pl-2 pt-1 gap-1">
             <Tabs
-              tabs={tabs}
+              tabs={visibleTabs}
               activeTab={activeTab}
-              onChange={(id) => setActiveTab(id)}
+              onChange={(id) => setActiveTab(id as Tab)}
             />
           </div>
 

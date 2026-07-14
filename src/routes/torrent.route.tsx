@@ -1,33 +1,21 @@
 import { Input } from "@/components/ui/input.component";
-import ProgressBar from "@/components/shared/progress.component";
 import { Button } from "@/components/ui/button.component";
-import { fmtSize, fmtETA, fmtSpeed, stateLabel } from "@/lib/torrent.utils";
+import { fmtSpeed } from "@/lib/torrent.utils";
 import { useTorrentStore } from "@/store/download.store";
-import { openPath } from "@tauri-apps/plugin-opener";
-import { open as openDialog } from "@tauri-apps/plugin-dialog";
-import { ConfirmDialog } from "@/components/shared/confirm.component";
-import Modal from "@/components/shared/modal.component";
-import {
-  Pause,
-  Play,
-  Trash,
-  FolderOpen,
-  ChevronDown,
-  ChevronRight,
-  ArrowDown,
-  ArrowUp,
-  Plus,
-  Check,
-  File,
-  SortAsc,
-  RefreshCw,
-  SortDesc,
-} from "lucide-react";
-import { useState, useEffect, useMemo, useRef } from "react";
 import { listen } from "@tauri-apps/api/event";
-import TorrentFilesSection from "./components/torrent/file.torrent";
-import { sendNotification } from "@tauri-apps/plugin-notification";
 import { useSettingsStore } from "@/store/settings.store";
+import { useNotificationStore } from "@/store/notification.store";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { Plus, SortAsc, SortDesc } from "lucide-react";
+
+import SpeedLimitForm from "./components/torrent/speed.torrent";
+import AddTorrentModal from "./components/torrent/magnet.torrent";
+import TorrentItem from "./components/torrent/item.torrent";
+import {
+  getTorrentLifecycle,
+  getLifecycleLabel,
+  type TorrentLifecycle,
+} from "@/lib/torrent.utils";
 
 function TorrentRoute() {
   const {
@@ -45,6 +33,7 @@ function TorrentRoute() {
     prepareTorrentDownloadFromFile,
     setFilePriority,
     setSequentialDownload,
+    setSeedPreference,
   } = useTorrentStore((state) => state);
 
   const [dlInput, setDlInput] = useState(
@@ -55,24 +44,28 @@ function TorrentRoute() {
   );
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const [showMagnetModal, setShowMagnetModal] = useState(false);
-  const [magnetInput, setMagnetInput] = useState("");
   const [filterQuery, setFilterQuery] = useState("");
   const [sortBy, setSortBy] = useState<"name" | "size" | "progress" | "speed">(
     "name",
   );
   const [sortAsc, setSortAsc] = useState(true);
-  const [pendingDelete, setPendingDelete] = useState<{
-    id: number;
-    files: string[];
-    saveDir: string;
-  } | null>(null);
+  const [lifecycleFilter, setLifecycleFilter] = useState<
+    TorrentLifecycle | "all"
+  >("all");
+
+  const lifecycleTorrents = useMemo(() => {
+    if (lifecycleFilter === "all") return torrents;
+    return torrents.filter(
+      (t) => getTorrentLifecycle(t.state, t.finished) === lifecycleFilter,
+    );
+  }, [torrents, lifecycleFilter]);
 
   const filteredTorrents = useMemo(() => {
     let list = filterQuery.trim()
-      ? torrents.filter((t) =>
+      ? lifecycleTorrents.filter((t) =>
           t.name.toLowerCase().includes(filterQuery.toLowerCase()),
         )
-      : torrents;
+      : lifecycleTorrents;
     return [...list].sort((a, b) => {
       let cmp = 0;
       if (sortBy === "name") cmp = a.name.localeCompare(b.name);
@@ -81,12 +74,11 @@ function TorrentRoute() {
       else if (sortBy === "speed") cmp = a.download_speed - b.download_speed;
       return sortAsc ? cmp : -cmp;
     });
-  }, [torrents, filterQuery, sortBy, sortAsc]);
+  }, [lifecycleTorrents, filterQuery, sortBy, sortAsc]);
 
   const fetchedRef = useRef<Set<number>>(new Set());
   const prevFinishedRef = useRef<Set<number>>(new Set());
 
-  // Drag and drop support
   useEffect(() => {
     const unlisten = listen<{ paths: string[] }>(
       "tauri://drag-drop",
@@ -115,7 +107,6 @@ function TorrentRoute() {
 
   useEffect(() => {
     if (expanded.size === 0) return;
-
     const interval = setInterval(() => {
       const state = useTorrentStore.getState();
       state.torrents.forEach((t) => {
@@ -124,7 +115,6 @@ function TorrentRoute() {
         }
       });
     }, 1000);
-
     return () => clearInterval(interval);
   }, [expanded]);
 
@@ -137,7 +127,6 @@ function TorrentRoute() {
         }
       });
     };
-
     window.addEventListener("focus", handleFocus);
     return () => window.removeEventListener("focus", handleFocus);
   }, []);
@@ -174,10 +163,10 @@ function TorrentRoute() {
     }
     if (settings.notifyOnComplete) {
       for (const id of nowFinished) {
-        sendNotification({
-          title: "Загрузка завершена",
-          body: torrents.find((t) => t.id === id)?.name ?? "",
-        });
+        const name = torrents.find((t) => t.id === id)?.name ?? "";
+        useNotificationStore
+          .getState()
+          .add("Загрузка завершена", "success", name);
       }
     }
     prevFinishedRef.current = new Set(
@@ -202,53 +191,33 @@ function TorrentRoute() {
     });
   };
 
-  const effective = (input: string) => (input === "" ? null : Number(input));
-
   return (
     <main className="flex flex-col gap-1 h-full w-full overflow-y-auto">
+      <SpeedLimitForm
+        dlInput={dlInput}
+        ulInput={ulInput}
+        dlLimit={dlLimit}
+        ulLimit={ulLimit}
+        onDlChange={setDlInput}
+        onUlChange={setUlInput}
+        onApply={applySpeedLimits}
+      />
+      <section className="flex items-center gap-1 p-0.5 windows95-active-border bg-primary">
+        {(["all", "staging", "live", "seeding", "completed"] as const).map(
+          (lc) => (
+            <Button
+              key={lc}
+              variant={lifecycleFilter === lc ? "outline" : "default"}
+              size="default"
+              className="px-1 py-0.5 text-[10px]"
+              onClick={() => setLifecycleFilter(lc)}
+            >
+              {lc === "all" ? "Все" : getLifecycleLabel(lc)}
+            </Button>
+          ),
+        )}
+      </section>
       <section className="flex items-center gap-2 p-1 windows95-active-border bg-primary">
-        <span className="windows95-text">
-          <ArrowDown />
-        </span>
-        <Input
-          type="number"
-          className="w-16"
-          placeholder="KB/s"
-          value={dlInput}
-          onChange={(e) => {
-            if (e.target.value === "" || /^\d+$/.test(e.target.value)) {
-              setDlInput(e.target.value);
-            }
-          }}
-          onKeyDown={(e) => e.key === "Enter" && applySpeedLimits()}
-          onBlur={applySpeedLimits}
-        />
-        <span className="windows95-text">
-          <ArrowUp />
-        </span>
-        <Input
-          type="number"
-          className="w-16"
-          placeholder="KB/s"
-          value={ulInput}
-          onChange={(e) => {
-            if (e.target.value === "" || /^\d+$/.test(e.target.value)) {
-              setUlInput(e.target.value);
-            }
-          }}
-          onKeyDown={(e) => e.key === "Enter" && applySpeedLimits()}
-          onBlur={applySpeedLimits}
-        />
-        <Button
-          size="icon"
-          className="windows95-text size-6"
-          onClick={applySpeedLimits}
-          disabled={
-            effective(dlInput) === dlLimit && effective(ulInput) === ulLimit
-          }
-        >
-          <Check className="size-4" />
-        </Button>
         <span className="ml-auto" />
         <Input
           className="w-32"
@@ -256,7 +225,6 @@ function TorrentRoute() {
           value={filterQuery}
           onChange={(e) => setFilterQuery(e.target.value)}
         />
-
         <select
           className="windows95-border windows95-text bg-white h-6 w-24"
           value={sortBy}
@@ -279,7 +247,6 @@ function TorrentRoute() {
             <SortDesc className="size-3" />
           )}
         </Button>
-
         <Button
           className="flex items-center windows95-text"
           onClick={() => setShowMagnetModal(true)}
@@ -289,282 +256,47 @@ function TorrentRoute() {
         </Button>
       </section>
       {filteredTorrents.map((item) => {
-        const progress = item.progress * 100;
-        const isPaused = item.state === "paused";
-        const isLive = item.state === "live";
         const isExpanded = expanded.has(item.id);
         const files = torrentFilesMap[item.id];
 
         return (
-          <div
+          <TorrentItem
             key={item.id}
-            className="flex flex-col p-2 windows95-active-border bg-primary gap-2"
-          >
-            {/*title and buttons*/}
-            <section className="flex flex-row items-center justify-between">
-              <h3 className="line-clamp-1 text-xs font-bold leading-tight windows95-font">
-                {item.name}
-              </h3>
-              <div className="flex flex-row items-center gap-1">
-                <Button
-                  title="Поставить на паузу"
-                  rendered={isLive}
-                  size="icon"
-                  className="size-6"
-                  onClick={() => pauseTorrent(item.id)}
-                  disabled={!isLive || item.finished}
-                >
-                  <Pause />
-                </Button>
-                <Button
-                  title="Продолжить скачивание"
-                  rendered={isPaused}
-                  size="icon"
-                  className="size-6"
-                  onClick={() => resumeTorrent(item.id)}
-                  disabled={!isPaused || item.finished}
-                >
-                  <Play />
-                </Button>
-                {item.save_dir && (
-                  <Button
-                    title="Открыть в папке"
-                    size="icon"
-                    className="size-6"
-                    onClick={() => openPath(item.save_dir)}
-                    disabled={!item.save_dir}
-                  >
-                    <FolderOpen />
-                  </Button>
-                )}
-                <Button
-                  title="Последовательная загрузка"
-                  className="size-6 text-[9px] windows95-font flex items-center justify-center"
-                  variant={item.sequential_download ? "default" : "outline"}
-                  onClick={() =>
-                    setSequentialDownload(item.id, !item.sequential_download)
-                  }
-                >
-                  {item.sequential_download && <Check className="size-4" />}
-                </Button>
-
-                <Button
-                  variant="error"
-                  title="Удалить торрент"
-                  size="icon"
-                  className="size-6"
-                  onClick={() => {
-                    setPendingDelete({
-                      id: item.id,
-                      files:
-                        torrentFilesMap[item.id]?.map(
-                          (f) => `${item.save_dir}/${f.name}`,
-                        ) ?? [],
-                      saveDir: item.save_dir ?? "",
-                    });
-                  }}
-                  disabled={!item}
-                >
-                  <Trash />
-                </Button>
-              </div>
-            </section>
-            {/*progress bar and status inside progress bar*/}
-            <section className="flex flex-row items-start justify-between gap-1 w-full">
-              <div className="flex w-full flex-col">
-                <ProgressBar
-                  value={item.progress_bytes}
-                  max={item.total_bytes}
-                />
-                <div className="flex items-center gap-1">
-                  <span className="windows95-text text-muted">
-                    {!item.finished ? stateLabel(item.state) : "Завершено"}
-                  </span>
-                  <span className="text-[10px] windows95-font">
-                    {item.total_bytes > 0
-                      ? `${fmtSize(item.progress_bytes)} / ${fmtSize(item.total_bytes)} (${progress.toFixed(1)}%)`
-                      : fmtSize(item.progress_bytes)}
-                  </span>
-                  <span className="text-[10px] windows95-font text-muted">
-                    {fmtSpeed(item.download_speed)}
-                    {fmtSpeed(item.download_speed) &&
-                      fmtETA(item.eta_secs) &&
-                      " · "}
-                    {fmtETA(item.eta_secs)}
-                  </span>
-                  <span className="flex flex-row ml-auto">
-                    {(item.upload_speed > 0 ||
-                      item.uploaded_bytes > 0 ||
-                      item.peers_connected > 0) && (
-                      <div className="flex items-center gap-1">
-                        {item.upload_speed > 0 && (
-                          <span className="text-[10px] text-muted windows95-font">
-                            ↑ {fmtSpeed(item.upload_speed)}
-                          </span>
-                        )}
-                        {item.uploaded_bytes > 0 && (
-                          <span className="text-[10px] text-muted windows95-font">
-                            ↑ {fmtSize(item.uploaded_bytes)}
-                          </span>
-                        )}
-                        <span className="text-[10px] text-muted windows95-font">
-                          P: {item.peers_connected}
-                        </span>
-                      </div>
-                    )}
-                  </span>
-                </div>
-              </div>
-            </section>
-            {/*files toggle*/}
-            {files && (
-              <section>
-                <div
-                  role="button"
-                  className="flex items-center gap-1 windows95-text cursor-pointer hover:bg-surface px-0.5 py-0.5 w-full text-left"
-                  onClick={() => toggleExpanded(item.id)}
-                >
-                  {isExpanded ? (
-                    <ChevronDown className="size-3" />
-                  ) : (
-                    <ChevronRight className="size-3" />
-                  )}
-                  {`Файлы (${files.filter((f) => f.completed).length} / ${files.length})`}
-                  {files.some((f) => !f.exists) && (
-                    <span className="text-destructive ml-1">
-                      · {files.filter((f) => !f.exists).length} отсутствуют
-                    </span>
-                  )}
-                </div>
-                {isExpanded && (
-                  <TorrentFilesSection
-                    id={item.id}
-                    files={files}
-                    type={"torrent"}
-                    onToggle={(id, indices) =>
-                      updateTorrentOnlyFiles(id, indices)
-                    }
-                    onFilePriorityChange={(id, indices, priority) =>
-                      setFilePriority(id, indices, priority)
-                    }
-                  />
-                )}
-              </section>
-            )}
-            {/*info*/}
-            {item.error && (
-              <div className="mt-1 flex items-center gap-1">
-                <span className="text-[10px] text-destructive windows95-font">
-                  {item.error}
-                </span>
-                <Button
-                  size="icon"
-                  className="size-4 ml-auto"
-                  title="Повторить"
-                  onClick={async () => {
-                    await removeTorrent(item.id, false);
-                    const magnet = `magnet:?xt=urn:btih:${item.info_hash}`;
-                    prepareTorrentDownload(magnet);
-                  }}
-                >
-                  <RefreshCw className="size-3" />
-                </Button>
-              </div>
-            )}
-          </div>
+            item={item}
+            files={files}
+            isExpanded={isExpanded}
+            onToggleExpand={() => toggleExpanded(item.id)}
+            onPause={() => pauseTorrent(item.id)}
+            onResume={() => resumeTorrent(item.id)}
+            onSeedChange={(enabled) => {
+              setSeedPreference(item.id, enabled);
+              if (enabled) resumeTorrent(item.id);
+              else pauseTorrent(item.id);
+            }}
+            onRemove={(deleteFiles) => removeTorrent(item.id, deleteFiles)}
+            onUpdateFiles={(indices) =>
+              updateTorrentOnlyFiles(item.id, indices)
+            }
+            onFilePriorityChange={(indices, priority) =>
+              setFilePriority(item.id, indices, priority as any)
+            }
+            onSetSequential={(enabled) =>
+              setSequentialDownload(item.id, enabled)
+            }
+            onRetry={async () => {
+              await removeTorrent(item.id, false);
+              const magnet = `magnet:?xt=urn:btih:${item.info_hash}`;
+              prepareTorrentDownload(magnet);
+            }}
+          />
         );
       })}
       {showMagnetModal && (
-        <Modal
-          header="Добавить торрент"
-          onClose={() => {
-            setShowMagnetModal(false);
-            setMagnetInput("");
-          }}
-          className="w-xl"
-        >
-          <div className="flex flex-col gap-2 py-2">
-            <span className="windows95-text">Magnet-ссылка:</span>
-            <Input
-              className="w-full"
-              placeholder="magnet:?xt=urn:btih:..."
-              value={magnetInput}
-              onChange={(e) => setMagnetInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && magnetInput.trim()) {
-                  setShowMagnetModal(false);
-                  setMagnetInput("");
-                  prepareTorrentDownload(magnetInput.trim());
-                }
-              }}
-              autoFocus
-            />
-            <div className="flex items-center gap-1 mt-1">
-              <span className="text-[10px] windows95-text text-muted">или</span>
-              <Button
-                onClick={async () => {
-                  const file = await openDialog({
-                    multiple: false,
-                    filters: [
-                      {
-                        name: "Torrent",
-                        extensions: ["torrent"],
-                      },
-                    ],
-                  });
-                  if (file) {
-                    setShowMagnetModal(false);
-                    setMagnetInput("");
-                    prepareTorrentDownloadFromFile(file);
-                  }
-                }}
-              >
-                <File className="size-4" />
-                Выбрать .torrent
-              </Button>
-            </div>
-            <div className="flex justify-end gap-1 mt-2">
-              <Button
-                onClick={() => {
-                  setShowMagnetModal(false);
-                  setMagnetInput("");
-                }}
-              >
-                Отмена
-              </Button>
-              <Button
-                onClick={() => {
-                  if (magnetInput.trim()) {
-                    setShowMagnetModal(false);
-                    setMagnetInput("");
-                    prepareTorrentDownload(magnetInput.trim());
-                  }
-                }}
-                disabled={!magnetInput.trim()}
-              >
-                Продолжить
-              </Button>
-            </div>
-          </div>
-        </Modal>
-      )}
-      {pendingDelete && (
-        <ConfirmDialog
-          open
-          title="Удаление торрента"
-          message="Удалить скачанные файлы вместе с торрентом?"
-          confirmLabel="Удалить с файлами"
-          cancelLabel="Оставить файлы"
-          variant="destructive"
-          onConfirm={() => {
-            removeTorrent(pendingDelete.id, true);
-            setPendingDelete(null);
-          }}
-          onCancel={() => {
-            removeTorrent(pendingDelete.id, false);
-            setPendingDelete(null);
-          }}
-          onClose={() => setPendingDelete(null)}
+        <AddTorrentModal
+          open={showMagnetModal}
+          onClose={() => setShowMagnetModal(false)}
+          onAddMagnet={(magnet) => prepareTorrentDownload(magnet)}
+          onAddFile={(path) => prepareTorrentDownloadFromFile(path)}
         />
       )}
     </main>

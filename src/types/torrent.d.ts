@@ -9,7 +9,7 @@ export interface Anime {
   link: string;
 }
 
-export type FilePriority = "do_not_download" | "low" | "normal" | "high";
+export type FilePriority = "do_not_download" | "normal";
 
 export interface FolderNode {
   name: string;
@@ -67,6 +67,7 @@ export interface TorrentStore {
   torrentFilesMap: Record<number, TorrentFileInfo[]>;
 
   init: () => Promise<() => void>;
+  seedPreferences: Record<number, boolean>;
   prepareTorrentDownload: (magnet: string) => Promise<void>;
   prepareTorrentDownloadFromFile: (filePath: string) => Promise<void>;
   confirmDownload: (
@@ -91,4 +92,5 @@ export interface TorrentStore {
     priority: FilePriority,
   ) => Promise<void>;
   setSequentialDownload: (id: number, enabled: boolean) => Promise<void>;
+  setSeedPreference: (id: number, enabled: boolean) => void;
 }

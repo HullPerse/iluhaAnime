@@ -30,7 +30,6 @@ export interface SettingsStore {
   mediaPlayer: string;
   customPlayers: string[];
   savedFolderPaths: string[];
-
   patch: (partial: Partial<SettingsStore>) => void;
 }
 
@@ -65,7 +64,6 @@ export const useSettingsStore = create<SettingsStore>()(
       mediaPlayer: "default",
       customPlayers: [],
       savedFolderPaths: [],
-
 
       patch: (partial) => set(partial),
     }),

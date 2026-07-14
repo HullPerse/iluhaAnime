@@ -14,6 +14,7 @@ mod anilist;
 mod auth;
 mod bencode;
 mod ffmpeg;
+mod file_index;
 mod fs_utils;
 mod fswatcher;
 mod progress;
@@ -21,6 +22,7 @@ mod scrapers;
 mod shaders;
 mod torrent;
 mod video;
+use file_index::FileEntry;
 use torrent::{FilePriority, TorrentFileInfo, TorrentInfo, TorrentInfoResult, TorrentManager};
 use video::CancelFlag;
 
@@ -249,10 +251,8 @@ async fn set_file_priority(
 ) -> Result<(), String> {
     let priority_enum = match priority.as_str() {
         "do_not_download" => FilePriority::DoNotDownload,
-        "low" => FilePriority::Low,
         "normal" => FilePriority::Normal,
-        "high" => FilePriority::High,
-        _ => return Err("Invalid priority. Use: do_not_download, low, normal, high".to_string()),
+        _ => return Err("Invalid priority. Use: do_not_download, normal".to_string()),
     };
     manager
         .manager
@@ -286,6 +286,25 @@ async fn set_sequential_download(
     manager: tauri::State<'_, TorrentBackend>,
 ) -> Result<(), String> {
     manager.manager.set_sequential_download(id, enabled).await
+}
+
+#[tauri::command]
+async fn rebuild_file_index(
+    paths: Vec<String>,
+    extensions: Vec<String>,
+    indexer: tauri::State<'_, file_index::FileIndexer>,
+) -> Result<(), String> {
+    indexer.rebuild(paths, extensions).await
+}
+
+#[tauri::command]
+async fn search_file_index(
+    query: String,
+    extensions: Vec<String>,
+    limit: usize,
+    indexer: tauri::State<'_, file_index::FileIndexer>,
+) -> Result<Vec<FileEntry>, String> {
+    Ok(indexer.search(&query, &extensions, limit).await)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -390,6 +409,7 @@ pub fn run() {
                 handle.manage(CancelFlag(Arc::new(AtomicBool::new(false))));
                 handle.manage(progress::StreamRegistry::new());
                 handle.manage(std::sync::Mutex::new(fswatcher::FolderWatcher::new()));
+                handle.manage(file_index::FileIndexer::new());
             });
 
             Ok(())
@@ -451,6 +471,9 @@ pub fn run() {
             start_torrent_download_from_file,
             read_file_bytes,
             get_file_size,
+            rebuild_file_index,
+            search_file_index,
+
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

@@ -1,56 +1,39 @@
 import { invoke } from "@tauri-apps/api/core";
 import { useQuery } from "@tanstack/react-query";
-import type { Anime, LanguageTag, SettingsScraper } from "@/types";
-import { writeText } from "@tauri-apps/plugin-clipboard-manager";
-import { showToast } from "@/lib/toast.utils";
-import { useEffect, useState, useMemo, useRef } from "react";
-import {
-  detectLanguages,
-  formatSize,
-  parseSize,
-  qualityMatch,
-} from "@/lib/index.utils";
+import type { Anime, SettingsScraper, Source } from "@/types";
+import { useEffect, useState, useMemo } from "react";
+import { useDebounce } from "@/hooks/debounce.hook";
 import { useSearchStore } from "@/store/search.store";
-import { languages, qualities, encodings } from "@/config/scraper.config";
 import { Button } from "@/components/ui/button.component";
 import { SmallLoader } from "@/components/shared/loader.component";
-import {
-  Search,
-  Download,
-  Clipboard,
-  ExternalLink,
-  LogOut,
-  Loader,
-  ChevronLeft,
-  ChevronRight,
-  UserPlus,
-  X,
-} from "lucide-react";
+import { Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input.component";
 import Select from "@/components/ui/select.component";
-import { useTorrentStore } from "@/store/download.store";
-import RutrackerLoginModal from "@/routes/components/search/rutracker.search";
-import NekoBtApiModal from "@/routes/components/search/nekobt.search";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { flushSync } from "react-dom";
-import { Source } from "@/types/search";
 import { SOURCE_INFOS } from "@/config/search.config";
 import { useSettingsStore } from "@/store/settings.store";
+import {
+  filterAnimeResults,
+  sortAnimeResults,
+  getVisibleSources,
+} from "@/lib/search.logic";
+import { copyMagnet, openMagnet, downloadMagnet } from "@/lib/magnet.utils";
+
+import SearchResultItem from "@/routes/components/search/result.search";
+import SearchHistoryDropdown from "@/routes/components/search/history.search";
+import SearchFiltersBar from "@/routes/components/search/filters.search";
+import SearchAuthButtons from "@/routes/components/search/auth.search";
+import RutrackerLoginModal from "@/routes/components/search/rutracker.search";
+import NekoBtApiModal from "@/routes/components/search/nekobt.search";
 
 function SearchRoute() {
-  const prepareTorrentDownload = useTorrentStore(
-    (s) => s.prepareTorrentDownload,
-  );
   const defaultSource = useSettingsStore((s) => s.defaultSearchSource);
   const visibleSources = useSettingsStore((s) => s.visibleSources);
   const resultsPerPage = useSettingsStore((s) => s.resultsPerPage);
 
   const sourceOptions = useMemo(
-    () =>
-      SOURCE_INFOS.filter((s) => visibleSources.includes(s.value)).map((s) => ({
-        value: s.value,
-        label: s.nsfw ? `${s.label} (NSFW)` : s.label,
-      })),
+    () => getVisibleSources(visibleSources, SOURCE_INFOS),
     [visibleSources],
   );
 
@@ -58,8 +41,8 @@ function SearchRoute() {
     ? defaultSource
     : (visibleSources[0] ?? "");
 
-  const [searchParams, setSearchParams] = useState<string>("");
-  const [debouncedQuery, setDebouncedQuery] = useState<string>("");
+  const [searchParams, setSearchParams] = useState("");
+  const debouncedQuery = useDebounce(searchParams.trim(), 300);
   const [source, setSource] = useState<Source>(initialSource as Source);
   const [rutrackerAuth, setRutrackerAuth] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
@@ -92,21 +75,8 @@ function SearchRoute() {
       .catch(() => setNekoBtAuth(false));
   }, []);
 
-  // Debounce search input
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      setDebouncedQuery(searchParams.trim());
-    }, 300);
-    return () => clearTimeout(debounceRef.current);
-  }, [searchParams]);
-
-  // Auto-search when debounced query changes
-  useEffect(() => {
-    if (debouncedQuery) {
-      refetch();
-    }
+    if (debouncedQuery) refetch();
   }, [debouncedQuery]);
 
   useEffect(() => {
@@ -127,15 +97,7 @@ function SearchRoute() {
       settings.encoding,
       nyaaPage,
     ],
-    [
-      source,
-      searchParams,
-      settings.quality,
-      settings.language,
-      settings.sort,
-      settings.encoding,
-      nyaaPage,
-    ],
+    [source, searchParams, settings, nyaaPage],
   );
 
   const { data, isLoading, isError, error, refetch } = useQuery({
@@ -143,7 +105,6 @@ function SearchRoute() {
     queryFn: async (): Promise<Anime[]> => {
       setMagnets({});
       setLoadingMagnet({});
-
       if (source === "rutracker") {
         return await invoke<Anime[]>("search_rutracker", {
           query: searchParams.trim(),
@@ -183,40 +144,16 @@ function SearchRoute() {
   }, [crossSearchQuery]);
 
   const filtered = useMemo(
-    () =>
-      data?.filter((res) => {
-        if (settings.quality !== "all") {
-          if (!qualityMatch(res.title, settings.quality)) {
-            return false;
-          }
-        }
-        if (settings.language !== "all") {
-          const language: LanguageTag[] = detectLanguages(res.title);
-          if (!language.some((l) => l.code === settings.language)) return false;
-        }
-        return true;
-      }),
-    [data, settings.quality, settings.language],
+    () => filterAnimeResults(data, settings),
+    [data, settings],
   );
-
   const sorted = useMemo(
-    () =>
-      filtered
-        ? [...filtered].sort((a, b) => {
-            const sortMap = {
-              seeders: b.seeders - a.seeders,
-              leechers: b.leechers - a.leechers,
-              size: parseSize(b.size) - parseSize(a.size),
-            };
-            return sortMap[settings.sort] ?? 0;
-          })
-        : undefined,
+    () => sortAnimeResults(filtered, settings.sort),
     [filtered, settings.sort],
   );
-
   const displayItems = useMemo(
     () => sorted?.slice(0, source === "nyaa" ? resultsPerPage : undefined),
-    [sorted, source],
+    [sorted, source, resultsPerPage],
   );
 
   const handleLogout = async () => {
@@ -224,43 +161,24 @@ function SearchRoute() {
       await invoke("rutracker_logout");
       setRutrackerAuth(false);
     } catch {
-      showToast("Ошибка при выходе", "error");
+      // silently fail
     }
   };
 
-  const ensureMagnet = async (item: Anime): Promise<string | null> => {
-    const key = item.link;
-    if (magnets[key]) return magnets[key];
-    if (loadingMagnet[key]) return null;
-
-    setLoadingMagnet((prev) => ({ ...prev, [key]: true }));
+  const handleNekoBtLogout = async () => {
     try {
-      const magnet = await invoke<string>("rutracker_get_magnet", {
-        topicId: item.category,
-      });
-      setMagnets((prev) => ({ ...prev, [key]: magnet }));
-      return magnet;
+      await invoke("nekobt_logout");
+      setNekoBtAuth(false);
     } catch {
-      showToast("Не удалось получить магнит-ссылку", "error");
-      return null;
-    } finally {
-      setLoadingMagnet((prev) => ({ ...prev, [key]: false }));
+      // silently fail
     }
   };
 
-  const handleCopyMagnet = async (item: Anime) => {
-    const magnet = item.magnet || (await ensureMagnet(item));
-    if (magnet) writeText(magnet);
-  };
-
-  const handleOpenMagnet = async (item: Anime) => {
-    const magnet = item.magnet || (await ensureMagnet(item));
-    if (magnet) { try { await openUrl(magnet); } catch {} }
-  };
-
-  const handleDownload = async (item: Anime) => {
-    const magnet = item.magnet || (await ensureMagnet(item));
-    if (magnet) prepareTorrentDownload(magnet);
+  const handleSearch = () => {
+    const trimmed = searchParams.trim();
+    if (!trimmed) return;
+    addQuery(trimmed);
+    refetch();
   };
 
   return (
@@ -275,61 +193,26 @@ function SearchRoute() {
             onFocus={() => setShowHistory(true)}
             onBlur={() => setTimeout(() => setShowHistory(false), 200)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                const trimmed = searchParams.trim();
-                if (!trimmed) return;
-                addQuery(trimmed);
-                refetch();
-              }
+              if (e.key === "Enter") handleSearch();
             }}
           />
-          {showHistory && searchHistory.length > 0 && (
-            <div className="absolute top-full left-0 right-0 z-50 windows95-border bg-white max-h-32 overflow-y-auto p-0.5">
-              {searchHistory.map((item, i) => (
-                <div key={item} className="flex w-full items-center">
-                  <Button
-                    className="flex-1 justify-start font-bold windows95-text h-6"
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                    }}
-                    onClick={() => {
-                      flushSync(() => {
-                        setSearchParams(item);
-                        setShowHistory(false);
-                      });
-                      refetch();
-                    }}
-                  >
-                    {i + 1}. {item}
-                  </Button>
-                  <Button
-                    size="icon"
-                    className="size-6"
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeQuery(item);
-                      setShowHistory(true);
-                    }}
-                  >
-                    <X />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
+          <SearchHistoryDropdown
+            history={searchHistory}
+            show={showHistory}
+            onSelect={(q) => {
+              flushSync(() => {
+                setSearchParams(q);
+                setShowHistory(false);
+              });
+              refetch();
+            }}
+            onRemove={(q) => removeQuery(q)}
+          />
         </div>
         <Button
           variant="default"
           size="icon"
-          onClick={() => {
-            const trimmed = searchParams.trim();
-            if (!trimmed) return;
-            addQuery(trimmed);
-            refetch();
-          }}
+          onClick={handleSearch}
           disabled={isLoading || sourceOptions.length === 0}
         >
           {isLoading ? (
@@ -348,109 +231,21 @@ function SearchRoute() {
           options={sourceOptions}
           disabled={sourceOptions.length === 0}
         />
-
-        {source === "rutracker" && !rutrackerAuth && (
-          <Button
-            variant="default"
-            size="icon"
-            onClick={() => setShowLogin(true)}
-          >
-            <UserPlus />
-          </Button>
-        )}
-
-        {source === "nekobt" && !nekobtAuth && (
-          <Button variant="default" onClick={() => setShowApiModal(true)}>
-            ключ
-          </Button>
-        )}
-
-        {((source === "nekobt" && nekobtAuth) ||
-          (source === "rutracker" && rutrackerAuth)) && (
-          <Button
-            size="icon"
-            variant="error"
-            onClick={async () => {
-              if (source === "rutracker" && rutrackerAuth) {
-                handleLogout();
-              } else {
-                try {
-                  await invoke("nekobt_logout");
-                  setNekoBtAuth(false);
-                } catch {
-                  showToast("Ошибка при выходе", "error");
-                }
-              }
-            }}
-          >
-            <LogOut />
-          </Button>
-        )}
+        <SearchAuthButtons
+          source={source}
+          rutrackerAuth={rutrackerAuth}
+          nekobtAuth={nekobtAuth}
+          onLoginOpen={() => setShowLogin(true)}
+          onApiModalOpen={() => setShowApiModal(true)}
+          onLogout={handleLogout}
+          onNekoBtLogout={handleNekoBtLogout}
+        />
       </section>
 
-      <section className="flex flex-row gap-2 w-full">
-        <div className="flex flex-row gap-1 items-center">
-          <span className="text-text windows95-text">Качество:</span>
-          {qualities.map((q) => (
-            <Button
-              key={q}
-              variant={settings.quality === q ? "outline" : "default"}
-              onClick={() => setSettings((prev) => ({ ...prev, quality: q }))}
-              className="windows95-border"
-            >
-              {q === "all" ? "Все" : q}
-            </Button>
-          ))}
-        </div>
-        <div className="flex flex-row gap-1 items-center">
-          <span className="text-text windows95-text">Язык:</span>
-          {languages.map((l) => (
-            <Button
-              key={l}
-              variant={settings.language === l ? "outline" : "default"}
-              onClick={() => setSettings((prev) => ({ ...prev, language: l }))}
-              className="windows95-border"
-            >
-              {l === "all" ? "Все" : l}
-            </Button>
-          ))}
-        </div>
-        <div className="flex items-center gap-1">
-          <span className="text-text windows95-text">Сортировка:</span>
-          <Select
-            className="w-22"
-            value={settings.sort}
-            onChange={(v) =>
-              setSettings((prev) => ({
-                ...prev,
-                sort: v as SettingsScraper["sort"],
-              }))
-            }
-            options={[
-              { value: "seeders", label: "Сидеры" },
-              { value: "leechers", label: "Личи" },
-              { value: "size", label: "Размер" },
-            ]}
-          />
-        </div>
-        <div className="flex items-center gap-1">
-          <span className="text-text windows95-text">Кодек:</span>
-          <Select
-            className="w-22"
-            value={settings.encoding}
-            onChange={(v) =>
-              setSettings((prev) => ({
-                ...prev,
-                encoding: v as SettingsScraper["encoding"],
-              }))
-            }
-            options={encodings.map((enc) => ({
-              value: enc,
-              label: enc === "all" ? "Все" : enc,
-            }))}
-          />
-        </div>
-      </section>
+      <SearchFiltersBar
+        settings={settings}
+        onChange={(patch) => setSettings((prev) => ({ ...prev, ...patch }))}
+      />
 
       {isError && (
         <section className="windows95-text text-destructive">
@@ -470,106 +265,28 @@ function SearchRoute() {
 
       {displayItems && (
         <section className="flex flex-col w-full h-full overflow-y-auto p-0.5 gap-1">
-          {displayItems.map((item) => {
-            const isLoadingMag = loadingMagnet[item.link];
-
-            return (
-              <div
-                key={item.link}
-                className="windows95-active-border bg-primary px-2 py-1.5 mb-0.5"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    <h3
-                      className="truncate font-bold leading-tight windows95-text"
-                      title={item.title}
-                    >
-                      {item.title}
-                    </h3>
-                    <div className="mt-1 flex flex-wrap gap-1">
-                      {detectLanguages(item.title).map((l) => {
-                        const colors: Record<
-                          SettingsScraper["language"] & "dual",
-                          string
-                        > = {
-                          ru: "bg-secondary text-white",
-                          en: "bg-secondary text-white",
-                          multi: "bg-multi text-white",
-                          dual: "bg-dual text-white",
-                        };
-                        return (
-                          <span
-                            key={l.code}
-                            className={`px-1 text-[10px] windows95-font ${colors[l.code as SettingsScraper["language"] & "dual"] || "bg-muted text-white"}`}
-                          >
-                            {l.label}
-                          </span>
-                        );
-                      })}
-                    </div>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-1">
-                    <span className="windows95-text">
-                      {formatSize(item.size)}
-                    </span>
-                    <span className="windows95-text text-success">
-                      S:{item.seeders}
-                    </span>
-                    <span className="windows95-text text-destructive">
-                      L:{item.leechers}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="mt-1 flex gap-1">
-                  {isLoadingMag ? (
-                    <div className="flex items-center gap-1">
-                      <Loader className="size-3 animate-spin" />
-                      <span className="windows95-text">
-                        Загрузка магнита...
-                      </span>
-                    </div>
-                  ) : item.magnet || source === "rutracker" ? (
-                    <>
-                      <Button
-                        size="icon"
-                        onClick={() => handleCopyMagnet(item)}
-                        disabled={loadingMagnet[item.link]}
-                        className="windows95-active-border bg-primary windows95-text size-5.5"
-                      >
-                        <Clipboard />
-                      </Button>
-                      <Button
-                        onClick={() => handleOpenMagnet(item)}
-                        disabled={loadingMagnet[item.link]}
-                        className="windows95-active-border bg-primary px-2 py-0.5 windows95-text text-text no-underline"
-                      >
-                        Магнит
-                      </Button>
-                      <Button
-                        onClick={() => handleDownload(item)}
-                        disabled={loadingMagnet[item.link]}
-                        className="inline-flex items-center gap-0.5 windows95-active-border bg-primary px-2 py-0.5 windows95-text text-text no-underline cursor-pointer"
-                      >
-                        <Download className="size-3" />
-                        Скачать
-                      </Button>
-                    </>
-                  ) : (
-                    item.link && (
-                      <Button
-                        onClick={async () => { try { await openUrl(item.link); } catch {} }}
-                        className="inline-flex items-center gap-0.5 windows95-active-border bg-primary px-2 py-0.5 windows95-text text-text no-underline cursor-pointer"
-                      >
-                        <ExternalLink className="size-3" />
-                        Открыть
-                      </Button>
-                    )
-                  )}
-                </div>
-              </div>
-            );
-          })}
+          {displayItems.map((item, index) => (
+            <SearchResultItem
+              key={`${item.link}-${index}`}
+              item={item}
+              source={source}
+              loadingMagnet={loadingMagnet}
+              onCopyMagnet={(i) =>
+                copyMagnet(i, magnets, setMagnets, setLoadingMagnet)
+              }
+              onOpenMagnet={(i) =>
+                openMagnet(i, magnets, setMagnets, setLoadingMagnet)
+              }
+              onDownload={(i) =>
+                downloadMagnet(i, magnets, setMagnets, setLoadingMagnet)
+              }
+              onOpenLink={async (i) => {
+                try {
+                  await openUrl(i.link);
+                } catch {}
+              }}
+            />
+          ))}
         </section>
       )}
 

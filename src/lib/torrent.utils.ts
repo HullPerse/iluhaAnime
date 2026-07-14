@@ -34,6 +34,26 @@ export function fmtElapsed(sec: number): string {
   return `${m} мин ${s} сек`;
 }
 
+export type TorrentLifecycle = "staging" | "live" | "seeding" | "completed";
+
+export function getTorrentLifecycle(state: string, finished: boolean): TorrentLifecycle {
+  if (state === "initializing") return "staging";
+  if (state === "live" && finished) return "seeding";
+  if (state === "live" && !finished) return "live";
+  if (state === "paused" && finished) return "completed";
+  if (state === "paused" && !finished) return "live";
+  return "live";
+}
+
+export function getLifecycleLabel(lifecycle: TorrentLifecycle): string {
+  switch (lifecycle) {
+    case "staging": return "Подготовка";
+    case "live": return "Загружается";
+    case "seeding": return "Раздаётся";
+    case "completed": return "Завершено";
+  }
+}
+
 export function stateLabel(state: string): string {
   switch (state) {
     case "live":

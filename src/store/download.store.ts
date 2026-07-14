@@ -22,6 +22,20 @@ function saveLastSaveDir(dir: string) {
   } catch {}
 }
 
+function loadSeedPreferences(): Record<number, boolean> {
+  try {
+    return JSON.parse(localStorage.getItem("seedPreferences") || "{}");
+  } catch {
+    return {};
+  }
+}
+
+function saveSeedPreferences(prefs: Record<number, boolean>) {
+  try {
+    localStorage.setItem("seedPreferences", JSON.stringify(prefs));
+  } catch {}
+}
+
 export const useTorrentStore = create<TorrentStore>((set, get) => ({
   torrents: [],
   dlLimit: null,
@@ -30,13 +44,27 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
   pendingTorrent: null,
   preparingTorrent: false,
   torrentFilesMap: {},
+  seedPreferences: loadSeedPreferences(),
 
   init: async () => {
     const initial = await invoke<TorrentInfo[]>("list_torrents");
     set({ torrents: initial ?? [] });
 
+    const prefs = get().seedPreferences;
+    for (const t of initial ?? []) {
+      if (t.finished && !prefs[t.id] && t.state === "live") {
+        invoke("pause_torrent", { id: t.id }).catch(() => {});
+      }
+    }
+
     const unlisten = await listen<TorrentInfo[]>("torrents-update", (event) => {
       set((state) => TorrentListen(state, event));
+      const prefs = useTorrentStore.getState().seedPreferences;
+      for (const t of event.payload) {
+        if (t.finished && !prefs[t.id] && t.state === "live") {
+          invoke("pause_torrent", { id: t.id }).catch(() => {});
+        }
+      }
     });
 
     return unlisten;
@@ -247,7 +275,9 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
   removeTorrent: async (id: number, deleteFiles: boolean) => {
     set((s) => {
       const { [id]: _, ...rest } = s.torrentFilesMap;
-      return { torrentFilesMap: rest };
+      const { [id]: __, ...seedRest } = s.seedPreferences;
+      saveSeedPreferences(seedRest);
+      return { torrentFilesMap: rest, seedPreferences: seedRest };
     });
     await invoke("remove_torrent", { id, deleteFiles }).catch((err) =>
       showError("Ошибка при удалении торрента:", String(err)),
@@ -304,5 +334,13 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
         t.id === id ? { ...t, sequential_download: enabled } : t,
       ),
     }));
+  },
+
+  setSeedPreference: (id: number, enabled: boolean) => {
+    set((state) => {
+      const prefs = { ...state.seedPreferences, [id]: enabled };
+      saveSeedPreferences(prefs);
+      return { seedPreferences: prefs };
+    });
   },
 }));

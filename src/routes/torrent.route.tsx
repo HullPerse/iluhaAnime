@@ -21,6 +21,7 @@ import {
   File,
   SortAsc,
   RefreshCw,
+  SortDesc,
 } from "lucide-react";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { listen } from "@tauri-apps/api/event";
@@ -272,9 +273,11 @@ function TorrentRoute() {
           onClick={() => setSortAsc((v) => !v)}
           title={sortAsc ? "По возрастанию" : "По убыванию"}
         >
-          <SortAsc
-            className={`size-3 transition ${sortAsc ? "" : "rotate-180"}`}
-          />
+          {sortAsc ? (
+            <SortAsc className="size-3" />
+          ) : (
+            <SortDesc className="size-3" />
+          )}
         </Button>
 
         <Button

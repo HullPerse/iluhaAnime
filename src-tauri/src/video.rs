@@ -190,16 +190,6 @@ fn build_encoder_args(
     }
 }
 
-const SHADER_CHAIN: &[&str] = &[
-    "Anime4K_Clamp_Highlights.glsl",
-    "Anime4K_Restore_CNN_UL.glsl",
-    "Anime4K_Upscale_CNN_x2_UL.glsl",
-];
-
-fn shader_dir(app_handle: &tauri::AppHandle) -> Option<std::path::PathBuf> {
-    Some(app_handle.path().resource_dir().ok()?.join("shaders"))
-}
-
 async fn get_video_dimensions(app_handle: &tauri::AppHandle, path: &str) -> Result<(u32, u32), String> {
     let output = {
         let mut c = Command::new(ffprobe_exe(app_handle));
@@ -248,6 +238,7 @@ pub async fn upscale_video(
     quality: String,
     gpu_backend: String,
     ai_upscaler: Option<String>,
+    selected_shaders: Option<Vec<String>>,
     _ai_denoise: Option<u32>,
     cancel_flag: tauri::State<'_, CancelFlag>,
     registry: tauri::State<'_, crate::progress::StreamRegistry>,
@@ -292,26 +283,29 @@ pub async fn upscale_video(
             }
         };
 
-        // Full Anime4K v4 shader chain (relative paths to avoid drive colon)
-        let shader_dir = shader_dir(&app_handle)
+        // Build dynamic shader chain from user selection or defaults
+        let selected = selected_shaders.unwrap_or_else(crate::shaders::default_selection);
+        let shader_chain = crate::shaders::build_shader_chain(&selected)?;
+
+        let shader_dir = crate::shaders::shader_dir(&app_handle)
             .ok_or("Anime4K шейдеры не найдены. Переустановите приложение.".to_string())?;
 
-        for &name in SHADER_CHAIN {
-            if !shader_dir.join(name).exists() {
-                return Err(format!("Anime4K шейдер не найден: {name}"));
+        for filename in &shader_chain {
+            if !shader_dir.join(filename).exists() {
+                return Err(format!("Anime4K шейдер не найден: {filename}"));
             }
         }
 
         let mut vf_parts: Vec<String> = Vec::new();
 
-        for (i, name) in SHADER_CHAIN.iter().enumerate() {
-            let is_last = i == SHADER_CHAIN.len() - 1;
+        for (i, filename) in shader_chain.iter().enumerate() {
+            let is_last = i == shader_chain.len() - 1;
             let has_target = target_w > 0 && target_h > 0;
 
             if is_last && has_target {
-                vf_parts.push(format!("libplacebo=custom_shader_path={}:w={}:h={}", name, target_w, target_h));
+                vf_parts.push(format!("libplacebo=custom_shader_path={}:w={}:h={}", filename, target_w, target_h));
             } else {
-                vf_parts.push(format!("libplacebo=custom_shader_path={}", name));
+                vf_parts.push(format!("libplacebo=custom_shader_path={}", filename));
             }
         }
 

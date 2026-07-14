@@ -18,6 +18,7 @@ mod fs_utils;
 mod fswatcher;
 mod progress;
 mod scrapers;
+mod shaders;
 mod torrent;
 mod video;
 use torrent::{FilePriority, TorrentFileInfo, TorrentInfo, TorrentInfoResult, TorrentManager};
@@ -409,6 +410,9 @@ pub fn run() {
             video::upscale_video,
             video::cancel_upscale,
             video::check_gpu_encoders,
+            shaders::list_anime4k_shaders,
+            shaders::default_anime4k_shaders,
+            shaders::estimate_anime4k_time,
             ffmpeg::check_ffprobe,
             ffmpeg::check_libplacebo,
             ffmpeg::download_ffmpeg,

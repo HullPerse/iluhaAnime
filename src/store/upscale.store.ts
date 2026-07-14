@@ -12,6 +12,7 @@ export interface UpscaleConfig {
   quality: string;
   gpuBackend: string;
   aiUpscaler: string | null;
+  selectedShaders?: string[];
 }
 
 interface UpscaleQueueItem {
@@ -149,6 +150,7 @@ export const useUpscaleQueueStore = create<UpscaleQueueStore>((set, get) => ({
         quality: cfg.quality,
         gpuBackend: cfg.gpuBackend,
         aiUpscaler: cfg.aiUpscaler,
+        selectedShaders: cfg.selectedShaders,
       });
 
       set((s) => ({

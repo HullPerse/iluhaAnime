@@ -7,6 +7,7 @@ import ProgressBar from "@/components/shared/progress.component";
 import { Button } from "@/components/ui/button.component";
 import Select from "@/components/ui/select.component";
 import FFMPEG from "./ffmpeg.player";
+import ShaderPicker from "./shader.player";
 import {
   useUpscaleQueueStore,
   type UpscaleConfig,
@@ -100,6 +101,7 @@ export default function UpscalePlayer({ filePath, onDone }: Props) {
     "checking" | "ok" | "missing" | "downloading"
   >("checking");
   const [anime4kPreset, setAnime4kPreset] = useState("fast-gpu");
+  const [selectedShaders, setSelectedShaders] = useState<string[]>([]);
   const unlistenRef = useRef<UnlistenFn | null>(null);
   const outputPathRef = useRef("");
 
@@ -152,6 +154,14 @@ export default function UpscalePlayer({ filePath, onDone }: Props) {
       handlePresetChange(anime4kPreset);
     }
   }, [upscaler, availableGpu]);
+
+  // Fetch default shader selection when modal opens
+  useEffect(() => {
+    if (!open) return;
+    invoke<string[]>("default_anime4k_shaders")
+      .then(setSelectedShaders)
+      .catch(() => setSelectedShaders([]));
+  }, [open]);
 
   const resetState = useCallback(() => {
     setRunning(false);
@@ -212,12 +222,21 @@ export default function UpscalePlayer({ filePath, onDone }: Props) {
         quality,
         gpuBackend,
         aiUpscaler: aiUpscalerParam,
+        selectedShaders: upscaler === "anime4k" ? selectedShaders : undefined,
       });
     } catch (e: unknown) {
       setError(typeof e === "string" ? e : "Ошибка");
       setRunning(false);
     }
-  }, [filePath, resolution, fpsValue, quality, gpuBackend, upscaler]);
+  }, [
+    filePath,
+    resolution,
+    fpsValue,
+    quality,
+    gpuBackend,
+    upscaler,
+    selectedShaders,
+  ]);
 
   const handleCancel = useCallback(async () => {
     await invoke("cancel_upscale");
@@ -244,6 +263,7 @@ export default function UpscalePlayer({ filePath, onDone }: Props) {
       quality,
       gpuBackend,
       aiUpscaler: upscaler !== "ffmpeg" ? upscaler : null,
+      selectedShaders: upscaler === "anime4k" ? selectedShaders : undefined,
     };
     useUpscaleQueueStore
       .getState()
@@ -257,6 +277,7 @@ export default function UpscalePlayer({ filePath, onDone }: Props) {
     quality,
     gpuBackend,
     upscaler,
+    selectedShaders,
     resetState,
   ]);
 
@@ -339,6 +360,11 @@ export default function UpscalePlayer({ filePath, onDone }: Props) {
                     value={anime4kPreset}
                     onChange={handlePresetChange}
                     options={ANIME4K_PRESETS}
+                  />
+                  <ShaderPicker
+                    value={selectedShaders}
+                    onChange={setSelectedShaders}
+                    gpuBackend={gpuBackend}
                   />
                 </>
               ) : (

@@ -310,26 +310,22 @@ async fn fetch_paginated(
     max_pages: u32,
     per_page: u32,
 ) -> Result<Vec<AniMedia>, String> {
+    let mut vars = variables.clone();
+    vars["perPage"] = serde_json::json!(per_page);
+
     let (mut all, total) = fetch_page(serde_json::json!({
         "query": base_query,
-        "variables": {
-            "page": variables["page"],
-            "perPage": per_page,
-        },
+        "variables": vars,
     }), per_page)
     .await?;
 
     let pages = ((total + per_page - 1) / per_page).min(max_pages);
-    let mut vars = variables.clone();
 
     for page in 2..=pages {
         vars["page"] = serde_json::json!(page);
         if let Ok((media, _)) = fetch_page(serde_json::json!({
             "query": base_query,
-            "variables": {
-                "page": page,
-                "perPage": per_page,
-            },
+            "variables": vars,
         }), per_page)
         .await
         {

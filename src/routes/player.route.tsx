@@ -60,7 +60,10 @@ function buildTree(entries: VideoFileEntry[], rootPath: string): FolderNode {
   return root;
 }
 
-function filterTreeByPaths(tree: FolderNode, matchingPaths: Set<string>): FolderNode | null {
+function filterTreeByPaths(
+  tree: FolderNode,
+  matchingPaths: Set<string>,
+): FolderNode | null {
   const filteredFiles = tree.files.filter((f) => matchingPaths.has(f.path));
   const filteredChildren = tree.children
     .map((c) => filterTreeByPaths(c, matchingPaths))
@@ -74,7 +77,9 @@ function filterTreeByPaths(tree: FolderNode, matchingPaths: Set<string>): Folder
 function PlayerRoute() {
   const torrents = useTorrentStore((state) => state.torrents);
   const torrentFilesMap = useTorrentStore((state) => state.torrentFilesMap);
-  const loadTorrentFiles = useTorrentStore((state) => state.loadTorrentFiles);
+  const showTorrentsInPlayer = useSettingsStore(
+    (state) => state.showTorrentsInPlayer,
+  );
 
   const [folderTrees, setFolderTrees] = useState<FolderNode[]>([]);
   const [search, setSearch] = useState("");
@@ -90,7 +95,7 @@ function PlayerRoute() {
     Map<number, { name: string; size: number; fullPath: string }[]>
   >(new Map());
   const [torrentLoading, setTorrentLoading] = useState<Set<number>>(new Set());
-  const torrentFetchedRef = useRef<Set<number>>(new Set());
+  const fetchingRef = useRef<Set<number>>(new Set());
   const scannedPathsRef = useRef<string[] | null>(null);
 
   const [searchResults, setSearchResults] = useState<FileSearchResult[]>([]);
@@ -129,20 +134,36 @@ function PlayerRoute() {
   }, []);
 
   useEffect(() => {
-    torrents.forEach((t) => {
-      if (!torrentFilesMap[t.id] && !torrentFetchedRef.current.has(t.id)) {
-        torrentFetchedRef.current.add(t.id);
-        setTorrentLoading((prev) => new Set(prev).add(t.id));
-        loadTorrentFiles(t.id).finally(() => {
-          setTorrentLoading((prev) => {
-            const next = new Set(prev);
-            next.delete(t.id);
-            return next;
-          });
-        });
-      }
-    });
-  }, [torrents, torrentFilesMap, loadTorrentFiles]);
+    const loadMissing = () => {
+      const state = useTorrentStore.getState();
+      state.torrents.forEach((t) => {
+        if (!state.torrentFilesMap[t.id] && !fetchingRef.current.has(t.id)) {
+          fetchingRef.current.add(t.id);
+          setTorrentLoading((prev) => new Set(prev).add(t.id));
+          state
+            .loadTorrentFiles(t.id)
+            .then((success) => {
+              if (!success) {
+                setTimeout(() => {
+                  fetchingRef.current.delete(t.id);
+                }, 3000);
+              }
+            })
+            .finally(() => {
+              setTorrentLoading((prev) => {
+                const next = new Set(prev);
+                next.delete(t.id);
+                return next;
+              });
+            });
+        }
+      });
+    };
+
+    loadMissing();
+    const interval = setInterval(loadMissing, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   const rebuildIndex = useCallback(
     async (paths: string[]) => {
@@ -449,6 +470,7 @@ function PlayerRoute() {
       <QueuePanel />
 
       {!loading &&
+        showTorrentsInPlayer &&
         torrents.map((item) => (
           <TorrentFilesPlayerSection
             key={item.id}

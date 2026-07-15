@@ -27,7 +27,6 @@ function TorrentRoute() {
     resumeTorrent,
     removeTorrent,
     setSpeedLimits,
-    loadTorrentFiles,
     updateTorrentOnlyFiles,
     prepareTorrentDownload,
     prepareTorrentDownloadFromFile,
@@ -76,7 +75,7 @@ function TorrentRoute() {
     });
   }, [lifecycleTorrents, filterQuery, sortBy, sortAsc]);
 
-  const fetchedRef = useRef<Set<number>>(new Set());
+  const fetchingRef = useRef<Set<number>>(new Set());
   const prevFinishedRef = useRef<Set<number>>(new Set());
 
   useEffect(() => {
@@ -97,13 +96,26 @@ function TorrentRoute() {
   }, []);
 
   useEffect(() => {
-    torrents.forEach((t) => {
-      if (!torrentFilesMap[t.id] && !fetchedRef.current.has(t.id)) {
-        fetchedRef.current.add(t.id);
-        loadTorrentFiles(t.id);
-      }
-    });
-  }, [torrents, torrentFilesMap, loadTorrentFiles]);
+    const loadMissing = () => {
+      const state = useTorrentStore.getState();
+      state.torrents.forEach((t) => {
+        if (!state.torrentFilesMap[t.id] && !fetchingRef.current.has(t.id)) {
+          fetchingRef.current.add(t.id);
+          state.loadTorrentFiles(t.id).then((success) => {
+            if (!success) {
+              setTimeout(() => {
+                fetchingRef.current.delete(t.id);
+              }, 3000);
+            }
+          });
+        }
+      });
+    };
+
+    loadMissing();
+    const interval = setInterval(loadMissing, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (expanded.size === 0) return;

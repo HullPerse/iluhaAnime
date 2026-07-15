@@ -84,7 +84,7 @@ export interface TorrentStore {
     dlKbps: number | null,
     ulKbps: number | null,
   ) => Promise<void>;
-  loadTorrentFiles: (id: number) => Promise<void>;
+  loadTorrentFiles: (id: number) => Promise<boolean>;
   updateTorrentOnlyFiles: (id: number, indices: number[]) => Promise<void>;
   setFilePriority: (
     id: number,

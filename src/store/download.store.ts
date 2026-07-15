@@ -302,7 +302,9 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
       set((state) => ({
         torrentFilesMap: { ...state.torrentFilesMap, [id]: files },
       }));
+      return true;
     }
+    return false;
   },
 
   updateTorrentOnlyFiles: async (id: number, indices: number[]) => {

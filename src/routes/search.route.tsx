@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { useQuery } from "@tanstack/react-query";
-import type { Anime, SortKey, Source } from "@/types";
+import type { Anime, Source } from "@/types";
 import { useEffect, useState, useMemo } from "react";
 import { useDebounce } from "@/hooks/debounce.hook";
 import { useSearchStore } from "@/store/search.store";
@@ -15,6 +15,7 @@ import { SOURCE_INFOS } from "@/config/search.config";
 import { useSettingsStore } from "@/store/settings.store";
 import {
   sortAnimeResults,
+  filterAnimeResults,
   getVisibleSources,
 } from "@/lib/search.logic";
 import { copyMagnet, openMagnet, downloadMagnet } from "@/lib/magnet.utils";
@@ -25,6 +26,8 @@ import SearchFiltersBar from "@/routes/components/search/filters.search";
 import SearchAuthButtons from "@/routes/components/search/auth.search";
 import RutrackerLoginModal from "@/routes/components/search/rutracker.search";
 import NekoBtApiModal from "@/routes/components/search/nekobt.search";
+import SearchFiltersModal from "@/routes/components/search/modal.filters";
+import type { SearchFilters } from "@/types/search";
 
 function SearchRoute() {
   const defaultSource = useSettingsStore((s) => s.defaultSearchSource);
@@ -52,13 +55,23 @@ function SearchRoute() {
     {},
   );
   const [nyaaPage, setNyaaPage] = useState(1);
-  const [sortBy, setSortBy] = useState<SortKey>("seeders");
-  const searchHistory = useSearchStore((s) => s.history);
-  const addQuery = useSearchStore((s) => s.addQuery);
-  const removeQuery = useSearchStore((s) => s.removeQuery);
-  const crossSearchQuery = useSearchStore((s) => s.crossSearchQuery);
-  const setCrossSearchQuery = useSearchStore((s) => s.setCrossSearchQuery);
   const [showHistory, setShowHistory] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+
+  const {
+    sortBy,
+    sortDirection,
+    filters,
+    setSortBy,
+    setSortDirection,
+    setFilters,
+    resetFilters,
+    history,
+    addQuery,
+    removeQuery,
+    crossSearchQuery,
+    setCrossSearchQuery,
+  } = useSearchStore((state) => state);
 
   useEffect(() => {
     invoke<boolean>("check_rutracker_session")
@@ -86,8 +99,10 @@ function SearchRoute() {
       source,
       searchParams.trim(),
       nyaaPage,
+      sortBy,
+      sortDirection,
     ],
-    [source, searchParams, nyaaPage],
+    [source, searchParams, nyaaPage, sortBy, sortDirection],
   );
 
   const { data, isLoading, isError, error, refetch } = useQuery({
@@ -104,12 +119,16 @@ function SearchRoute() {
         return await invoke<Anime[]>("search_nyaa", {
           query: searchParams.trim(),
           page: nyaaPage,
+          sort: sortBy,
+          order: sortDirection,
         });
       }
       if (source === "sukebei") {
         return await invoke<Anime[]>("search_sukebei", {
           query: searchParams.trim(),
           page: nyaaPage,
+          sort: sortBy,
+          order: sortDirection,
         });
       }
       if (source === "nekobt") {
@@ -132,31 +151,49 @@ function SearchRoute() {
     }
   }, [crossSearchQuery]);
 
-  const sorted = useMemo(
-    () => sortAnimeResults(data, sortBy),
-    [data, sortBy],
+  const serverSideSort = source === "nyaa" || source === "sukebei";
+
+  const filtered = useMemo(
+    () => filterAnimeResults(data, filters),
+    [data, filters],
   );
+
+  const sorted = useMemo(
+    () =>
+      serverSideSort
+        ? filtered
+        : sortAnimeResults(filtered, sortBy, sortDirection),
+    [filtered, sortBy, sortDirection, serverSideSort],
+  );
+
   const displayItems = useMemo(
     () => sorted?.slice(0, source === "nyaa" ? resultsPerPage : undefined),
     [sorted, source, resultsPerPage],
   );
 
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (filters.minSeeders > 0) count++;
+    if (filters.hasMagnet) count++;
+    if (filters.quality !== "all") count++;
+    if (filters.language !== "all") count++;
+    if (filters.sizeMin > 0 || filters.sizeMax > 0) count++;
+    if (filters.codec !== "all") count++;
+    return count;
+  }, [filters]);
+
   const handleLogout = async () => {
     try {
       await invoke("rutracker_logout");
       setRutrackerAuth(false);
-    } catch {
-      // silently fail
-    }
+    } catch {}
   };
 
   const handleNekoBtLogout = async () => {
     try {
       await invoke("nekobt_logout");
       setNekoBtAuth(false);
-    } catch {
-      // silently fail
-    }
+    } catch {}
   };
 
   const handleSearch = () => {
@@ -182,7 +219,7 @@ function SearchRoute() {
             }}
           />
           <SearchHistoryDropdown
-            history={searchHistory}
+            history={history}
             show={showHistory}
             onSelect={(q) => {
               flushSync(() => {
@@ -229,8 +266,24 @@ function SearchRoute() {
 
       <SearchFiltersBar
         sort={sortBy}
-        onChange={(v) => setSortBy(v)}
+        direction={sortDirection}
+        activeFilterCount={activeFilterCount}
+        onSortChange={setSortBy}
+        onDirectionChange={() =>
+          setSortDirection(sortDirection === "desc" ? "asc" : "desc")
+        }
+        onOpenFilters={() => setShowFilters(true)}
       />
+
+      {showFilters && (
+        <SearchFiltersModal
+          open={showFilters}
+          filters={filters}
+          onApply={(f: SearchFilters) => setFilters(f)}
+          onReset={resetFilters}
+          onClose={() => setShowFilters(false)}
+        />
+      )}
 
       {isError && (
         <section className="windows95-text text-destructive">

@@ -30,7 +30,7 @@ function Updater({ update, onClose }: { update: Update; onClose: () => void }) {
             onClick={onClose}
             disabled={loading}
           >
-            {loading ? <SmallLoader /> : "ОТМЕНИТЬ"}
+            ОТМЕНИТЬ
           </Button>
           <Button
             variant="success"

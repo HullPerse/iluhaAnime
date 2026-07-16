@@ -5,7 +5,7 @@ import { showToast } from "./toast.utils";
 import type { Anime } from "@/types";
 import { useTorrentStore } from "@/store/download.store";
 
-export async function ensureMagnet(
+async function ensureMagnet(
   item: Anime,
   magnets: Record<string, string>,
   setMagnets: (fn: (prev: Record<string, string>) => Record<string, string>) => void,

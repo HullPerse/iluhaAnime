@@ -1,27 +1,63 @@
 import type { SortKey } from "@/types";
 import Select from "@/components/ui/select.component";
+import { Button } from "@/components/ui/button.component";
+import { Filter, SortAsc, SortDesc } from "lucide-react";
+import { SortDirection } from "@/types/search";
 
 interface Props {
   sort: SortKey;
-  onChange: (sort: SortKey) => void;
+  direction: SortDirection;
+  activeFilterCount: number;
+  onSortChange: (sort: SortKey) => void;
+  onDirectionChange: () => void;
+  onOpenFilters: () => void;
 }
 
-export default function SearchFiltersBar({ sort, onChange }: Props) {
+export default function SearchFiltersBar({
+  sort,
+  direction,
+  activeFilterCount,
+  onSortChange,
+  onDirectionChange,
+  onOpenFilters,
+}: Props) {
   return (
-    <section className="flex flex-row gap-2 w-full">
+    <section className="flex flex-row gap-2 w-full items-center">
       <div className="flex items-center gap-1">
         <span className="text-text windows95-text">Сортировка:</span>
         <Select
           className="w-22"
           value={sort}
-          onChange={(v) => onChange(v as SortKey)}
+          onChange={(v) => onSortChange(v as SortKey)}
           options={[
             { value: "seeders", label: "Сидеры" },
             { value: "leechers", label: "Личи" },
             { value: "size", label: "Размер" },
+            { value: "date", label: "Дата" },
           ]}
         />
+        <Button
+          size="icon"
+          className="size-5.5"
+          title={direction === "desc" ? "По убыванию" : "По возрастанию"}
+          onClick={onDirectionChange}
+        >
+          {direction === "desc" ? (
+            <SortDesc className="size-4" />
+          ) : (
+            <SortAsc className="size-4" />
+          )}
+        </Button>
       </div>
+
+      <Button size="icon" className="relative size-5.5" onClick={onOpenFilters}>
+        <Filter className="size-4" />
+        {activeFilterCount > 0 && (
+          <span className="absolute -top-1 -right-1 h-3 w-3 text-[8px] bg-secondary text-white flex items-center justify-center">
+            {activeFilterCount}
+          </span>
+        )}
+      </Button>
     </section>
   );
 }

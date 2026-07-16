@@ -58,61 +58,6 @@ export function formatSize(size: string): string {
   return `${num.toFixed(2)} ${unit}`.trim();
 }
 
-interface VttCue {
-  start: number;
-  end: number;
-  text: string;
-  settings?: string;
-}
-
-export function parseVTT(text: string) {
-  const cues: VttCue[] = [];
-  const lines = text.split(/\r?\n/);
-  let i = 0;
-  while (i < lines.length) {
-    const line = lines[i].trim();
-    if (line.includes("-->")) {
-      const parts = line.split(/\s+-->\s+/);
-      if (parts.length === 2) {
-        const start = parseVTTTime(parts[0].trim().replace(",", "."));
-        const settingsAndEnd = parts[1].trim().split(/\s+/);
-        const end = parseVTTTime(settingsAndEnd[0].replace(",", "."));
-        const settings = settingsAndEnd.slice(1).join(" ");
-        i++;
-        const cueLines: string[] = [];
-        while (i < lines.length && lines[i].trim() !== "") {
-          cueLines.push(lines[i]);
-          i++;
-        }
-        if (cueLines.length > 0) {
-          cues.push({ start, end, text: cueLines.join("\n"), settings: settings || undefined });
-        }
-        continue;
-      }
-    }
-    i++;
-  }
-  return cues;
-}
-
-function parseVTTTime(time: string): number {
-  const p = time.split(":");
-  if (p.length === 3)
-    return parseInt(p[0]) * 3600 + parseInt(p[1]) + parseFloat(p[2]);
-  if (p.length === 2) return parseInt(p[0]) * 60 + parseFloat(p[1]);
-  return parseFloat(time);
-}
-
-export function formatTime(seconds: number): string {
-  if (seconds < 0 || !isFinite(seconds)) return "0:00";
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = Math.floor(seconds % 60);
-  if (h > 0)
-    return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-  return `${m}:${String(s).padStart(2, "0")}`;
-}
-
 export const parseSize = (s: string): number => {
   const match = s.match(/^([\d.]+)\s*(B|KB|KiB|MB|MiB|GB|GiB)?$/);
   if (!match) return 0;

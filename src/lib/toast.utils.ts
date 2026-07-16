@@ -11,7 +11,3 @@ export function showToast(message: string, type: ToastType = "info") {
   };
   useNotificationStore.getState().add(labelMap[type] ?? "Инфо", type as any, message);
 }
-
-export function showError(title: string, body: string) {
-  useNotificationStore.getState().add(title, "error", body);
-}

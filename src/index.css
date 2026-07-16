@@ -41,17 +41,6 @@
     --color-desktop: var(--color-desktop);
     --color-multi: var(--color-multi);
     --color-dual: var(--color-dual);
-
-    --windows95-text: ".windows95-text";
-    --windows95-font: ".windows95-font";
-    --windows95-border: ".windows95-border";
-    --windows95-active-border: ".active-border";
-    --windows95-select: ".windows95-select";
-    --windows95-select: ".windows95-select";
-    --focus-visible: ".focus-visible";
-    --windows95-small-border: ".small-border";
-    --windows95-3d-border: ".3d-border";
-    --windows95-header: ".windows95-header";
 }
 
 @layer base {

@@ -40,7 +40,7 @@ export default function AniListEntryCard({
       }
       onContextMenu={(e) => e.preventDefault()}
     >
-      <main className="flex flex-row w-full items-start justify-between gap-2">
+      <main className="flex xl:flex-row-reverse flex-row w-full items-start justify-between gap-2">
         <section className="min-w-0 flex-1 h-full flex flex-col">
           <div className="flex flex-row gap-2">
             <h2

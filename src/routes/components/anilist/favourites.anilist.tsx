@@ -1,5 +1,7 @@
 import type { FavouriteAnime } from "@/types/anilist";
 import Modal from "@/components/shared/modal.component";
+import ImageComponent from "@/components/ui/image.component";
+import { Star } from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -34,20 +36,27 @@ export default function AniListFavouritesModal({
               }}
             >
               {fav.cover_image?.medium ? (
-                <img src={fav.cover_image.medium} alt="" className="w-10 shrink-0 windows95-active-border" />
+                <ImageComponent
+                  src={fav.cover_image.medium}
+                  alt="cover_image.medium"
+                  className="w-13 h-18 shrink-0 windows95-active-border"
+                />
               ) : (
                 <div className="w-10 h-14 shrink-0 windows95-active-border bg-white flex items-center justify-center text-[9px]">
                   ?
                 </div>
               )}
               <div className="flex flex-col min-w-0 flex-1">
-                <span className="text-[10px] font-bold truncate windows95-text" title={fav.title.romaji}>
+                <span
+                  className="text-[10px] font-bold truncate windows95-text"
+                  title={fav.title.romaji}
+                >
                   {fav.title.romaji}
                 </span>
                 <div className="flex flex-row gap-2 text-[9px] items-center mt-0.5">
                   {fav.mean_score != null && (
-                    <span className="px-1 bg-secondary text-primary text-[10px] font-bold">
-                      ★ {fav.mean_score}
+                    <span className="flex flex-row px-1 bg-secondary text-primary text-[10px] font-bold items-center justify-center gap-0.5">
+                      <Star className="size-3 fill-white" /> {fav.mean_score}
                     </span>
                   )}
                   {fav.format && (

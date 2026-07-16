@@ -12,11 +12,10 @@ import type { ReactNode } from "react";
 export type ModalWindow = {
   header: string;
   onClose: () => void;
+  onBack?: () => void;
   className?: string;
   children: ReactNode;
 };
 
 
 export type HexType = `#${string}`;
-
-

@@ -1,6 +1,7 @@
 import type { AniRecommendation } from "@/types/anilist";
 import Modal from "@/components/shared/modal.component";
 import { Loader, Star } from "lucide-react";
+import ImageComponent from "@/components/ui/image.component";
 
 interface Props {
   open: boolean;
@@ -41,10 +42,17 @@ export default function AniListRecsModal({
               }}
             >
               {r.cover_url && (
-                <img src={r.cover_url} alt="" className="w-10 shrink-0 windows95-active-border" />
+                <ImageComponent
+                  src={r.cover_url}
+                  alt="cover_url"
+                  className="w-10 shrink-0 windows95-active-border"
+                />
               )}
               <div className="flex flex-col min-w-0 flex-1">
-                <span className="text-[10px] font-bold truncate windows95-text" title={r.title}>
+                <span
+                  className="text-[10px] font-bold truncate windows95-text"
+                  title={r.title}
+                >
                   {r.title}
                 </span>
                 <div className="flex flex-row gap-2 text-[9px] windows95-text">

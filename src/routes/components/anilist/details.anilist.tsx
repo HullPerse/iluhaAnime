@@ -15,8 +15,11 @@ import { Button } from "@/components/ui/button.component";
 import AniListActionControls from "./controls.anilist";
 import AniListMetadata from "./metadata.anilist";
 import AniListCharactersPanel from "./characters.anilist";
-import type { AniMedia } from "@/types/anilist";
 import { useState } from "react";
+import type { AniMedia } from "@/types/anilist";
+
+const SUPPORTED_RELATION_TYPES = new Set(["ANIME"]);
+import ImageComponent from "@/components/ui/image.component";
 
 const RELATION_LABELS: Record<string, string> = {
   SEQUEL: "Сиквел",
@@ -41,6 +44,7 @@ function AniListDetailModal({
   onGenre,
   onStudio,
   onRelated,
+  onBack,
   onClose,
   onSaved,
   favouriteIds,
@@ -59,12 +63,14 @@ function AniListDetailModal({
   onGenre: (e: string) => void;
   onStudio?: (id: number, name: string) => void;
   onRelated?: (id: number) => void;
+  onBack?: () => void;
   onClose: () => void;
   onSaved?: () => void;
 }) {
   const setCrossSearchQuery = useSearchStore((s) => s.setCrossSearchQuery);
 
   const [showRelations, setShowRelations] = useState<boolean>(false);
+  const [showDesc, setShowDesc] = useState<boolean>(false);
 
   const [favLoading, setFavLoading] = useState(false);
   const isFavourited = favouriteIds?.has(animeId) ?? false;
@@ -91,6 +97,7 @@ function AniListDetailModal({
     <Modal
       header={anime?.title ?? "Загрузка..."}
       onClose={onClose}
+      onBack={onBack}
       className="min-w-2xl"
     >
       {isLoading || !anime ? (
@@ -145,45 +152,64 @@ function AniListDetailModal({
 
           <AniListCharactersPanel animeId={anime.id} />
 
-          {anime.relations.length > 0 && (
+          {anime.relations.filter((r) =>
+            SUPPORTED_RELATION_TYPES.has(r.media.media_type ?? ""),
+          ).length > 0 && (
             <Section
               header="Связанное"
-              className="flex flex-col bg-white"
+              className="flex flex-wrap bg-white gap-1"
               expanded={showRelations}
               onExpand={() => setShowRelations((prev) => !prev)}
-              files={anime.relations.length}
+              files={
+                anime.relations.filter((r) =>
+                  SUPPORTED_RELATION_TYPES.has(r.media.media_type ?? ""),
+                ).length
+              }
             >
-              {anime.relations.map((r) => (
-                <button
-                  key={`${r.relation_type}-${r.media.id}`}
-                  onClick={() => {
-                    onRelated?.(r.media.id);
-                  }}
-                  className="flex flex-row items-center min-h-20 gap-2 windows95-text hover:bg-surface cursor-pointer px-1 py-0.5 text-left"
-                >
-                  {r.media.cover_url && (
-                    <img
-                      src={r.media.cover_url}
-                      alt=""
-                      className="w-10 shrink-0 windows95-active-border"
-                    />
-                  )}
-                  <div className="flex flex-col min-w-0">
-                    <span
-                      className="text-[10px] font-bold truncate"
-                      title={r.media.title}
-                    >
-                      {r.media.title}
-                    </span>
-                    <span className="text-[9px] text-muted">
-                      {RELATION_LABELS[r.relation_type] ?? r.relation_type}
-                      {r.media.format && <> · {r.media.format}</>}
-                      {r.media.episodes && <> · {r.media.episodes} эп.</>}
-                      {r.media.score && <> · ★ {r.media.score}</>}
-                    </span>
+              {anime.relations
+                .filter((r) =>
+                  SUPPORTED_RELATION_TYPES.has(r.media.media_type ?? ""),
+                )
+                .map((r) => (
+                  <div
+                    role="button"
+                    key={`${r.relation_type}-${r.media.id}`}
+                    title={r.media.title}
+                    onClick={() => {
+                      onRelated?.(r.media.id);
+                    }}
+                    className="flex flex-row h-20 w-50 items-center windows95-active-border gap-2 windows95-text hover:bg-surface cursor-pointer px-1 py-0.5 text-left bg-primary"
+                  >
+                    {r.media.cover_url && (
+                      <ImageComponent
+                        src={r.media.cover_url}
+                        alt="cover_url"
+                        className="w-13 h-18 shrink-0 windows95-active-border"
+                      />
+                    )}
+                    <section className="flex flex-col gap-1 leading-tight">
+                      <span className="line-clamp-1 windows95-text font-bold">
+                        {r.media.title}
+                      </span>
+                      <div className="flex flex-col text-[9px]">
+                        <span className="flex flex-row gap-1 ml-1">
+                          {`[ ${RELATION_LABELS[r.relation_type] ?? r.relation_type} ]`}
+                        </span>
+                        <span>
+                          · Формат: {r.media.format && <> {r.media.format}</>}
+                        </span>
+
+                        <span className="flex flex-row gap-1">
+                          · Рейтинг: {r.media.score && <> ★ {r.media.score}</>}
+                        </span>
+                        <span className="flex flex-row gap-1">
+                          · Эпизоды:
+                          {r.media.episodes && <> {r.media.episodes} эп.</>}
+                        </span>
+                      </div>
+                    </section>
                   </div>
-                </button>
-              ))}
+                ))}
             </Section>
           )}
 
@@ -191,6 +217,8 @@ function AniListDetailModal({
             <Section
               header="Описание"
               className="windows95-text leading-relaxed  overflow-y-auto whitespace-pre-line bg-white"
+              expanded={showDesc}
+              onExpand={() => setShowDesc((prev) => !prev)}
             >
               <textarea
                 value={anime.description}

@@ -229,7 +229,7 @@ function App() {
       )}
 
       {/* WINDOW FRAME */}
-      <div className="relative z-10 h-full flex flex-col p-1">
+      <div className="relative z-10 h-full flex flex-col">
         <div className="flex flex-col h-full windows95-active-border bg-primary">
           {/* TITLE BAR + TAB BAR */}
           <div className="flex items-center justify-between bg-secondary px-1 py-0.5 select-none">

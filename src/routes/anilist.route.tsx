@@ -41,6 +41,7 @@ function AnilistRoute() {
   const [currentList, setCurrentList] = useState<string>("");
   const [auth, setAuth] = useState<boolean>(false);
   const [selectedAnime, setSelectedAnime] = useState<AniListAnime>(null);
+  const [animeHistory, setAnimeHistory] = useState<AniListAnime[]>([]);
   const [showRecs, setShowRecs] = useState(false);
   const [recs, setRecs] = useState<AniRecommendation[]>([]);
   const [recsLoading, setRecsLoading] = useState(false);
@@ -526,10 +527,18 @@ function AnilistRoute() {
           onTag={handleTag}
           onGenre={handleGenre}
           onStudio={handleStudio}
-          onRelated={(id) =>
-            setSelectedAnime({ animeId: id, listEntry: entryLookup.get(id) })
-          }
-          onClose={() => setSelectedAnime(null)}
+          onRelated={(id) => {
+            setAnimeHistory((prev) => [...prev, selectedAnime]);
+            setSelectedAnime({ animeId: id, listEntry: entryLookup.get(id) });
+          }}
+          onBack={animeHistory.length > 0 ? () => {
+            const prev = animeHistory[animeHistory.length - 1];
+            if (prev) {
+              setAnimeHistory((h) => h.slice(0, -1));
+              setSelectedAnime(prev);
+            }
+          } : undefined}
+          onClose={() => { setSelectedAnime(null); setAnimeHistory([]); }}
           onSaved={() => {
             if (!user) return;
             invoke<AniListCollection[]>("get_anilist_lists", {

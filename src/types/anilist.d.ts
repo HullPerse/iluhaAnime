@@ -16,6 +16,7 @@ export interface AniRelatedMedia {
   episodes: number | null;
   score: number | null;
   format: string | null;
+  media_type: string | null;
 }
 
 export interface AniRelation {

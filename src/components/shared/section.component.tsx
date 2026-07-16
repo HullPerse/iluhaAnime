@@ -8,7 +8,7 @@ function Section({
   className,
   onExpand,
   expanded = false,
-  files = 0,
+  files,
 }: {
   header: string;
   children: ReactNode;
@@ -21,7 +21,7 @@ function Section({
     <main className="windows95-border">
       <section className="flex flex-row w-full items-center bg-secondary text-white windows95-text font-bold px-1 py-0.5 justify-between">
         <span>
-          {header} {onExpand ? `[${files}]` : null}
+          {header} {onExpand && files ? `[${files}]` : null}
         </span>
 
         {onExpand && (

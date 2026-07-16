@@ -1,11 +1,12 @@
 import { Dialog } from "@base-ui/react/dialog";
 import { useSettingsStore } from "@/store/settings.store";
 import { cn } from "@/lib/index.utils";
-import { Monitor, X } from "lucide-react";
+import { ChevronLeft, Monitor, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { ModalWindow } from "@/types";
+import { Button } from "../ui/button.component";
 
-function Modal({ header, onClose, className, children }: ModalWindow) {
+function Modal({ header, onClose, onBack, className, children }: ModalWindow) {
   const modalAnimation = useSettingsStore((s) => s.modalAnimation);
   const enable3dBorders = useSettingsStore((s) => s.enable3dBorders);
   const backdropOpacity = useSettingsStore((s) => s.modalBackdropOpacity);
@@ -21,7 +22,12 @@ function Modal({ header, onClose, className, children }: ModalWindow) {
   }, [modalAnimation]);
 
   return (
-    <Dialog.Root defaultOpen onOpenChange={(o) => { if (!o) onClose(); }}>
+    <Dialog.Root
+      defaultOpen
+      onOpenChange={(o) => {
+        if (!o) onClose();
+      }}
+    >
       <Dialog.Portal>
         <Dialog.Backdrop
           className={`fixed inset-0 z-40 ${modalAnimation ? "transition-opacity duration-150" : ""} ${visible ? "opacity-100" : "opacity-0"}`}
@@ -40,6 +46,14 @@ function Modal({ header, onClose, className, children }: ModalWindow) {
         >
           <section className="flex flex-row items-center justify-between bg-secondary w-full p-1">
             <div className="flex flex-row items-center gap-1 min-w-0">
+              <Button
+                rendered={!!onBack}
+                onClick={onBack}
+                size="icon"
+                className="size-4"
+              >
+                <ChevronLeft className="size-2.5" />
+              </Button>
               <Monitor className="size-3 shrink-0 text-white" />
               <Dialog.Title className="text-white windows95-text font-bold line-clamp-1">
                 {header}

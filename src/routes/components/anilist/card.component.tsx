@@ -1,13 +1,26 @@
 import type { AniMedia, AniListAnime } from "@/types/anilist";
-import { getStatusLabel, getStatusColor, getListLabel } from "@/lib/anilist.utils";
+import {
+  getStatusLabel,
+  getStatusColor,
+  getListLabel,
+} from "@/lib/anilist.utils";
+import Image from "@/components/ui/image.component";
+import { Star } from "lucide-react";
 
 interface Props {
   item: AniMedia;
-  entryLookup: Map<number, { progress: number | null; score: number | null; list_status: string }>;
+  entryLookup: Map<
+    number,
+    { progress: number | null; score: number | null; list_status: string }
+  >;
   onClick: (anime: AniListAnime) => void;
 }
 
-export default function AniListEntryCard({ item, entryLookup, onClick }: Props) {
+export default function AniListEntryCard({
+  item,
+  entryLookup,
+  onClick,
+}: Props) {
   const entry = entryLookup.get(item.id);
 
   return (
@@ -52,8 +65,8 @@ export default function AniListEntryCard({ item, entryLookup, onClick }: Props) 
 
           <div className="flex flex-row gap-2 items-center mt-auto windows95-text font-bold">
             {item.score && (
-              <span className="px-1 bg-secondary text-primary text-[10px]">
-                ★ {item.score}
+              <span className="flex flex-row items-center gap-0.5 px-1 bg-secondary text-primary text-[10px]">
+                <Star className="size-3 fill-white" /> {item.score}
               </span>
             )}
             <span className="text-[10px] text-text">
@@ -74,11 +87,13 @@ export default function AniListEntryCard({ item, entryLookup, onClick }: Props) 
                 </span>
               </div>
             )}
-            {entry?.progress != null && !item.episodes && (
-              <span className="px-1 bg-secondary text-white text-[10px]">
-                {entry.progress}
-              </span>
-            )}
+            {entry?.progress != null &&
+              entry?.progress > 0 &&
+              !item.episodes && (
+                <span className="px-1 bg-secondary text-white text-[10px]">
+                  {entry.progress}
+                </span>
+              )}
             {!entry && item.episodes && (
               <span className="text-[10px] text-text">{item.episodes} эп.</span>
             )}
@@ -86,10 +101,10 @@ export default function AniListEntryCard({ item, entryLookup, onClick }: Props) 
         </section>
 
         {item.cover_url && (
-          <img
+          <Image
             src={item.cover_url}
             alt={item.title + " cover"}
-            className="w-14 windows95-active-border shrink-0"
+            className="w-14 h-full windows95-active-border shrink-0"
           />
         )}
       </main>

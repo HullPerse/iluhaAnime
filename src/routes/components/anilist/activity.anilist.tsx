@@ -11,6 +11,7 @@ import {
   RotateCcw,
   Pause,
 } from "lucide-react";
+import ImageComponent from "@/components/ui/image.component";
 
 const STATUS_ICONS: Record<string, typeof Play> = {
   CURRENT: Play,
@@ -73,12 +74,12 @@ function AniListActivityModal({
             return (
               <div
                 key={a.id}
-                className="relative flex flex-row items-start gap-2 px-1 py-1 windows95-active-border bg-primary hover:bg-surface"
+                className="relative flex flex-row items-start gap-2 px-1 py-1 windows95-active-border bg-primary"
               >
                 {a.user_avatar ? (
-                  <img
+                  <ImageComponent
                     src={a.user_avatar}
-                    alt=""
+                    alt="user_avatar"
                     className="w-7 h-7 shrink-0 windows95-active-border"
                   />
                 ) : (
@@ -88,15 +89,15 @@ function AniListActivityModal({
                 )}
                 <div className="flex flex-col min-w-0 flex-1">
                   {a.activity_type === "list" && a.media_id ? (
-                    <button
-                      onClick={() => onAnimeClick(a.media_id!)}
-                      className="text-left"
-                    >
+                    <section className="text-left">
                       <span className="text-[10px] windows95-text">
                         <span className="font-bold">{a.user_name}</span>{" "}
                         {Icon && <Icon className="size-2.5 inline" />}{" "}
                         {STATUS_LABELS[a.status ?? ""] ?? a.status}{" "}
-                        <span className="underline decoration-dotted">
+                        <span
+                          className="underline decoration-dotted hover:cursor-pointer"
+                          onClick={() => onAnimeClick(a.media_id!)}
+                        >
                           {a.media_title}
                         </span>
                       </span>
@@ -105,7 +106,7 @@ function AniListActivityModal({
                           · {a.progress}
                         </span>
                       )}
-                    </button>
+                    </section>
                   ) : (
                     <span className="text-[10px] windows95-text">
                       <span className="font-bold">{a.user_name}</span> {a.text}
@@ -116,10 +117,11 @@ function AniListActivityModal({
                   </span>
                 </div>
                 {a.media_cover && (
-                  <img
+                  <ImageComponent
                     src={a.media_cover}
-                    alt=""
-                    className="h-18 object-cover shrink-0 windows95-active-border"
+                    alt="media_cover"
+                    className="h-18 w-13 object-cover shrink-0 windows95-active-border hover:cursor-pointer"
+                    onClick={() => onAnimeClick(a.media_id!)}
                   />
                 )}
               </div>

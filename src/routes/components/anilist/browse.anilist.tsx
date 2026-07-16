@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { ChevronLeft, ChevronRight, Loader } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader, Star } from "lucide-react";
 import Modal from "@/components/shared/modal.component";
 import Tabs from "@/components/shared/tabs.component";
 import { Button } from "@/components/ui/button.component";
@@ -11,6 +11,7 @@ import {
   seasonLabels,
 } from "@/lib/anilist.utils";
 import type { AniMedia } from "@/types/anilist";
+import ImageComponent from "@/components/ui/image.component";
 
 const PAGE_SIZE = 20;
 
@@ -107,9 +108,9 @@ export default function BrowseAnimeModal({
                 onClick={() => onAnimeClick(item.id)}
               >
                 {item.cover_url && (
-                  <img
+                  <ImageComponent
                     src={item.cover_url}
-                    alt=""
+                    alt="cover_url"
                     className="w-14 h-20 shrink-0 windows95-active-border object-cover"
                   />
                 )}
@@ -134,8 +135,8 @@ export default function BrowseAnimeModal({
                   </span>
                   <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-1 text-[10px] windows95-text">
                     {item.score && (
-                      <span className="px-1 bg-secondary text-primary font-bold">
-                        ★ {item.score}
+                      <span className="flex flex-row items-center gap-0.5 px-1 bg-secondary text-primary font-bold">
+                        <Star className="size-3 fill-white" /> {item.score}
                       </span>
                     )}
                     {item.format && (

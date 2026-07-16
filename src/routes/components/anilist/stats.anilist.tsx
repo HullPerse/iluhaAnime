@@ -3,6 +3,7 @@ import type { AniListCollection } from "@/types/anilist";
 import { useState, useMemo } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button.component";
+import ImageComponent from "@/components/ui/image.component";
 
 const DAY_LABELS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 const MONTH_LABELS = [
@@ -120,9 +121,9 @@ function StatsModal({
                 onClick={() => onAnimeClick(entry.id)}
               >
                 {entry.coverUrl && (
-                  <img
+                  <ImageComponent
                     src={entry.coverUrl}
-                    alt=""
+                    alt="coverUrl"
                     className="w-8 h-11 shrink-0 windows95-border"
                   />
                 )}
@@ -221,9 +222,9 @@ function StatsModal({
                         title={mainEntry.title}
                       >
                         {mainEntry.coverUrl && (
-                          <img
+                          <ImageComponent
                             src={mainEntry.coverUrl}
-                            alt=""
+                            alt="coverUrl"
                             className="w-10 h-13 object-cover windows95-border"
                           />
                         )}

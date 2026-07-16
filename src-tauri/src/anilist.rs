@@ -73,6 +73,7 @@ pub struct AniRelatedMedia {
     pub episodes: Option<i32>,
     pub score: Option<i32>,
     pub format: Option<String>,
+    pub media_type: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -274,6 +275,7 @@ fn parse_animedia(m: &serde_json::Value) -> AniMedia {
                                 episodes: node["episodes"].as_i64().map(|n| n as i32),
                                 score: node["averageScore"].as_i64().map(|n| n as i32),
                                 format: node["format"].as_str().map(String::from),
+                                media_type: node["type"].as_str().map(String::from),
                             },
                         }
                     })
@@ -835,7 +837,7 @@ pub async fn get_anime_by_id(id: u64) -> Result<AniMedia, String> {
                     id
                     title { romaji english native }
                     synonyms
-                    episodes, duration, status, averageScore, format
+                    episodes, duration, status, averageScore, format, type
                     genres, tags { name }
                     description (asHtml: false)
                     coverImage { medium large }
@@ -844,7 +846,7 @@ pub async fn get_anime_by_id(id: u64) -> Result<AniMedia, String> {
                     endDate { year month day }
                     studios { nodes { id name } }
                     rankings { rank type context }
-                    relations { edges { relationType node { id title { romaji english } coverImage { medium } episodes averageScore format } } }
+                    relations { edges { relationType node { id title { romaji english } coverImage { medium } episodes averageScore format type } } }
                     nextAiringEpisode { episode airingAt }
                 }
             }

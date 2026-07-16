@@ -4,6 +4,7 @@ import { SmallLoader } from "./loader.component";
 import Modal from "./modal.component";
 import { installUpdate } from "@/lib/index.utils";
 import { Update } from "@tauri-apps/plugin-updater";
+import ImageComponent from "../ui/image.component";
 
 function Updater({ update, onClose }: { update: Update; onClose: () => void }) {
   const [loading, setLoading] = useState<boolean>(false);
@@ -18,7 +19,11 @@ function Updater({ update, onClose }: { update: Update; onClose: () => void }) {
         {`Доступно обновление ${update.currentVersion} -> ${update.version}`}
       </span>
       <section className="flex windows95-border w-28 h-28 self-center items-center justify-center">
-        <img src="/update_icon.ico" alt="update icon" className="w-24 h-24" />
+        <ImageComponent
+          src="/update_icon.ico"
+          alt="update icon"
+          className="w-24 h-24"
+        />
       </section>
 
       <section className="windows95-font text-md text-text font-semibold leading-relaxed whitespace-pre-line text-center">

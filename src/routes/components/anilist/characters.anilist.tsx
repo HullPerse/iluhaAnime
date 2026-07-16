@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import type { AniCharacterEdge } from "@/types/anilist";
 import Section from "@/components/shared/section.component";
 import { useState } from "react";
+import ImageComponent from "@/components/ui/image.component";
 
 function AniListCharactersPanel({ animeId }: { animeId: number }) {
   const [showCharacters, setShowCharacters] = useState<boolean>(false);
@@ -34,9 +35,9 @@ function AniListCharactersPanel({ animeId }: { animeId: number }) {
           title={edge.character.name}
         >
           {edge.character.image ? (
-            <img
+            <ImageComponent
               src={edge.character.image}
-              alt=""
+              alt="character.image"
               className="h-20 w-14 object-cover windows95-active-border"
             />
           ) : (

@@ -3,9 +3,10 @@ import { invoke } from "@tauri-apps/api/core";
 import { Input } from "@/components/ui/input.component";
 import { Button } from "@/components/ui/button.component";
 import Select from "@/components/ui/select.component";
-import { Save } from "lucide-react";
+import { ExternalLink, Save } from "lucide-react";
 import { listStatusOptions } from "@/lib/anilist.utils";
 import type { AniMedia } from "@/types/anilist";
+import { openUrl } from "@tauri-apps/plugin-opener";
 
 function AniListActionControls({
   anime,
@@ -62,8 +63,18 @@ function AniListActionControls({
 
   return (
     <div className="windows95-border">
-      <div className="bg-secondary text-white windows95-font font-bold text-[10px] px-1 py-0.5">
+      <div className="flex flex-row bg-secondary text-white windows95-font font-bold text-[10px] px-1 py-0.5">
         {listEntry ? "Управление списком" : "Добавить в список"}
+        <Button
+          size="icon"
+          className="ml-auto size-4"
+          title="Открыть на сайте"
+          onClick={() => {
+            openUrl(`https://anilist.co/anime/${anime.id}`);
+          }}
+        >
+          <ExternalLink className="size-3" />
+        </Button>
       </div>
       <div className="flex flex-col gap-2 p-1.5">
         <div className="flex flex-row gap-2 items-center windows95-text">

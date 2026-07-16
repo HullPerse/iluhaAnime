@@ -1,11 +1,14 @@
 import { describe, it, expect } from "vitest";
-import { qualityMatch, parseSize, formatSize, detectLanguages } from "../index.utils";
-import type { Anime, SearchFilters } from "@/types";
+import { qualityMatch, parseSize, formatSize } from "../index.utils";
+import type { Anime } from "@/types";
+import { SearchFilters } from "@/types/search";
 import { sortAnimeResults, filterAnimeResults } from "../search.logic";
 
 describe("qualityMatch", () => {
   it("matches 1080p in title", () => {
-    expect(qualityMatch("[Group] Anime Title [1080p][HEVC]", "1080p")).toBe(true);
+    expect(qualityMatch("[Group] Anime Title [1080p][HEVC]", "1080p")).toBe(
+      true,
+    );
   });
 
   it("matches 720p in title", () => {
@@ -50,7 +53,10 @@ describe("formatSize (display)", () => {
 });
 
 describe("sorting logic", () => {
-  function sortBy(items: Anime[], sort: "seeders" | "leechers" | "size"): Anime[] {
+  function sortBy(
+    items: Anime[],
+    sort: "seeders" | "leechers" | "size",
+  ): Anime[] {
     return [...items].sort((a, b) => {
       const sortMap = {
         seeders: b.seeders - a.seeders,
@@ -62,9 +68,36 @@ describe("sorting logic", () => {
   }
 
   const items: Anime[] = [
-    { title: "A", magnet: "", torrent: "", size: "100 MiB", seeders: 10, leechers: 5, category: "", link: "" },
-    { title: "B", magnet: "", torrent: "", size: "200 MiB", seeders: 20, leechers: 3,category: "",  link: "" },
-    { title: "C", magnet: "", torrent: "", size: "50 MiB", seeders: 5, leechers: 10, category: "", link: "" },
+    {
+      title: "A",
+      magnet: "",
+      torrent: "",
+      size: "100 MiB",
+      seeders: 10,
+      leechers: 5,
+      category: "",
+      link: "",
+    },
+    {
+      title: "B",
+      magnet: "",
+      torrent: "",
+      size: "200 MiB",
+      seeders: 20,
+      leechers: 3,
+      category: "",
+      link: "",
+    },
+    {
+      title: "C",
+      magnet: "",
+      torrent: "",
+      size: "50 MiB",
+      seeders: 5,
+      leechers: 10,
+      category: "",
+      link: "",
+    },
   ];
 
   it("sorts by seeders descending", () => {
@@ -96,9 +129,36 @@ describe("filtering logic", () => {
   }
 
   const items: Anime[] = [
-    { title: "[Group] Show [1080p]", magnet: "", torrent: "", size: "1 GiB", seeders: 10, leechers: 5, category: "", link: "" },
-    { title: "[Group] Show [720p]", magnet: "", torrent: "", size: "500 MiB", seeders: 8, leechers: 3, category: "", link: "" },
-    { title: "[Group] Show [480p]", magnet: "", torrent: "", size: "200 MiB", seeders: 5, leechers: 2, category: "", link: "" },
+    {
+      title: "[Group] Show [1080p]",
+      magnet: "",
+      torrent: "",
+      size: "1 GiB",
+      seeders: 10,
+      leechers: 5,
+      category: "",
+      link: "",
+    },
+    {
+      title: "[Group] Show [720p]",
+      magnet: "",
+      torrent: "",
+      size: "500 MiB",
+      seeders: 8,
+      leechers: 3,
+      category: "",
+      link: "",
+    },
+    {
+      title: "[Group] Show [480p]",
+      magnet: "",
+      torrent: "",
+      size: "200 MiB",
+      seeders: 5,
+      leechers: 2,
+      category: "",
+      link: "",
+    },
   ];
 
   it("passes all when quality is 'all'", () => {
@@ -121,9 +181,36 @@ describe("filtering logic", () => {
 });
 
 const sortItems: Anime[] = [
-  { title: "A", magnet: "", torrent: "", size: "100 MiB", seeders: 10, leechers: 5, category: "", link: "" },
-  { title: "B", magnet: "", torrent: "", size: "200 MiB", seeders: 20, leechers: 3, category: "", link: "" },
-  { title: "C", magnet: "", torrent: "", size: "50 MiB", seeders: 5, leechers: 10, category: "", link: "" },
+  {
+    title: "A",
+    magnet: "",
+    torrent: "",
+    size: "100 MiB",
+    seeders: 10,
+    leechers: 5,
+    category: "",
+    link: "",
+  },
+  {
+    title: "B",
+    magnet: "",
+    torrent: "",
+    size: "200 MiB",
+    seeders: 20,
+    leechers: 3,
+    category: "",
+    link: "",
+  },
+  {
+    title: "C",
+    magnet: "",
+    torrent: "",
+    size: "50 MiB",
+    seeders: 5,
+    leechers: 10,
+    category: "",
+    link: "",
+  },
 ];
 
 describe("sortAnimeResults", () => {
@@ -169,20 +256,72 @@ describe("sortAnimeResults", () => {
 });
 
 const filterItems: Anime[] = [
-  { title: "[Group] Show [1080p][HEVC][MultiSub][RUS]", magnet: "magnet:?xt=1", torrent: "", size: "1 GiB", seeders: 10, leechers: 5, category: "", link: "" },
-  { title: "[Group] Show [720p][x264][ENG]", magnet: "", torrent: "", size: "500 MiB", seeders: 8, leechers: 3, category: "", link: "" },
-  { title: "[Group] Show [480p][HEVC]", magnet: "magnet:?xt=2", torrent: "", size: "200 MiB", seeders: 5, leechers: 2, category: "", link: "" },
-  { title: "[Different] Show [1080p][x264][Dual-Audio]", magnet: "", torrent: "", size: "800 MiB", seeders: 2, leechers: 1, category: "", link: "" },
+  {
+    title: "[Group] Show [1080p][HEVC][MultiSub][RUS]",
+    magnet: "magnet:?xt=1",
+    torrent: "",
+    size: "1 GiB",
+    seeders: 10,
+    leechers: 5,
+    category: "",
+    link: "",
+  },
+  {
+    title: "[Group] Show [720p][x264][ENG]",
+    magnet: "",
+    torrent: "",
+    size: "500 MiB",
+    seeders: 8,
+    leechers: 3,
+    category: "",
+    link: "",
+  },
+  {
+    title: "[Group] Show [480p][HEVC]",
+    magnet: "magnet:?xt=2",
+    torrent: "",
+    size: "200 MiB",
+    seeders: 5,
+    leechers: 2,
+    category: "",
+    link: "",
+  },
+  {
+    title: "[Different] Show [1080p][x264][Dual-Audio]",
+    magnet: "",
+    torrent: "",
+    size: "800 MiB",
+    seeders: 2,
+    leechers: 1,
+    category: "",
+    link: "",
+  },
 ];
 
 describe("filterAnimeResults", () => {
   it("passes all with default filters", () => {
-    const f: SearchFilters = { minSeeders: 0, hasMagnet: false, quality: "all", language: "all", sizeMin: 0, sizeMax: 0, codec: "all" };
+    const f: SearchFilters = {
+      minSeeders: 0,
+      hasMagnet: false,
+      quality: "all",
+      language: "all",
+      sizeMin: 0,
+      sizeMax: 0,
+      codec: "all",
+    };
     expect(filterAnimeResults(filterItems, f)).toHaveLength(4);
   });
 
   it("filters by minSeeders", () => {
-    const f: SearchFilters = { minSeeders: 8, hasMagnet: false, quality: "all", language: "all", sizeMin: 0, sizeMax: 0, codec: "all" };
+    const f: SearchFilters = {
+      minSeeders: 8,
+      hasMagnet: false,
+      quality: "all",
+      language: "all",
+      sizeMin: 0,
+      sizeMax: 0,
+      codec: "all",
+    };
     const result = filterAnimeResults(filterItems, f)!;
     expect(result).toHaveLength(2);
     expect(result[0].title).toContain("1080p");
@@ -190,35 +329,75 @@ describe("filterAnimeResults", () => {
   });
 
   it("filters by hasMagnet", () => {
-    const f: SearchFilters = { minSeeders: 0, hasMagnet: true, quality: "all", language: "all", sizeMin: 0, sizeMax: 0, codec: "all" };
+    const f: SearchFilters = {
+      minSeeders: 0,
+      hasMagnet: true,
+      quality: "all",
+      language: "all",
+      sizeMin: 0,
+      sizeMax: 0,
+      codec: "all",
+    };
     const result = filterAnimeResults(filterItems, f)!;
     expect(result).toHaveLength(2);
     expect(result.every((i) => i.magnet.startsWith("magnet:"))).toBe(true);
   });
 
   it("filters by quality 1080p", () => {
-    const f: SearchFilters = { minSeeders: 0, hasMagnet: false, quality: "1080p", language: "all", sizeMin: 0, sizeMax: 0, codec: "all" };
+    const f: SearchFilters = {
+      minSeeders: 0,
+      hasMagnet: false,
+      quality: "1080p",
+      language: "all",
+      sizeMin: 0,
+      sizeMax: 0,
+      codec: "all",
+    };
     const result = filterAnimeResults(filterItems, f)!;
     expect(result).toHaveLength(2);
     expect(result.every((i) => i.title.includes("1080p"))).toBe(true);
   });
 
   it("filters by language ru", () => {
-    const f: SearchFilters = { minSeeders: 0, hasMagnet: false, quality: "all", language: "ru", sizeMin: 0, sizeMax: 0, codec: "all" };
+    const f: SearchFilters = {
+      minSeeders: 0,
+      hasMagnet: false,
+      quality: "all",
+      language: "ru",
+      sizeMin: 0,
+      sizeMax: 0,
+      codec: "all",
+    };
     const result = filterAnimeResults(filterItems, f)!;
     expect(result).toHaveLength(1);
     expect(result[0].title).toContain("RUS");
   });
 
   it("filters by language dual audio", () => {
-    const f: SearchFilters = { minSeeders: 0, hasMagnet: false, quality: "all", language: "dual", sizeMin: 0, sizeMax: 0, codec: "all" };
+    const f: SearchFilters = {
+      minSeeders: 0,
+      hasMagnet: false,
+      quality: "all",
+      language: "dual",
+      sizeMin: 0,
+      sizeMax: 0,
+      codec: "all",
+    };
     const result = filterAnimeResults(filterItems, f)!;
     expect(result).toHaveLength(1);
     expect(result[0].title).toContain("Dual-Audio");
   });
 
   it("filters by size min 600 MiB", () => {
-    const f: SearchFilters = { minSeeders: 0, hasMagnet: false, quality: "all", language: "all", sizeMin: 600, sizeMax: 0, codec: "all" };
+    const f: SearchFilters = {
+      minSeeders: 0,
+      hasMagnet: false,
+      quality: "all",
+      language: "all",
+      sizeMin: 600,
+      sizeMax: 0,
+      codec: "all",
+    };
     const result = filterAnimeResults(filterItems, f)!;
     expect(result).toHaveLength(2);
     expect(result[0].title).toContain("1080p");
@@ -226,40 +405,88 @@ describe("filterAnimeResults", () => {
   });
 
   it("filters by size max 300 MiB", () => {
-    const f: SearchFilters = { minSeeders: 0, hasMagnet: false, quality: "all", language: "all", sizeMin: 0, sizeMax: 300, codec: "all" };
+    const f: SearchFilters = {
+      minSeeders: 0,
+      hasMagnet: false,
+      quality: "all",
+      language: "all",
+      sizeMin: 0,
+      sizeMax: 300,
+      codec: "all",
+    };
     const result = filterAnimeResults(filterItems, f)!;
     expect(result).toHaveLength(1);
     expect(result[0].title).toContain("480p");
   });
 
   it("filters by size range 300-900 MiB", () => {
-    const f: SearchFilters = { minSeeders: 0, hasMagnet: false, quality: "all", language: "all", sizeMin: 300, sizeMax: 900, codec: "all" };
+    const f: SearchFilters = {
+      minSeeders: 0,
+      hasMagnet: false,
+      quality: "all",
+      language: "all",
+      sizeMin: 300,
+      sizeMax: 900,
+      codec: "all",
+    };
     const result = filterAnimeResults(filterItems, f)!;
     expect(result).toHaveLength(2);
   });
 
   it("filters by codec HEVC", () => {
-    const f: SearchFilters = { minSeeders: 0, hasMagnet: false, quality: "all", language: "all", sizeMin: 0, sizeMax: 0, codec: "HEVC" };
+    const f: SearchFilters = {
+      minSeeders: 0,
+      hasMagnet: false,
+      quality: "all",
+      language: "all",
+      sizeMin: 0,
+      sizeMax: 0,
+      codec: "HEVC",
+    };
     const result = filterAnimeResults(filterItems, f)!;
     expect(result).toHaveLength(2);
     expect(result.every((i) => i.title.includes("HEVC"))).toBe(true);
   });
 
   it("filters by codec x264", () => {
-    const f: SearchFilters = { minSeeders: 0, hasMagnet: false, quality: "all", language: "all", sizeMin: 0, sizeMax: 0, codec: "x264" };
+    const f: SearchFilters = {
+      minSeeders: 0,
+      hasMagnet: false,
+      quality: "all",
+      language: "all",
+      sizeMin: 0,
+      sizeMax: 0,
+      codec: "x264",
+    };
     const result = filterAnimeResults(filterItems, f)!;
     expect(result).toHaveLength(2);
   });
 
   it("combines multiple filters", () => {
-    const f: SearchFilters = { minSeeders: 3, hasMagnet: true, quality: "1080p", language: "all", sizeMin: 0, sizeMax: 0, codec: "all" };
+    const f: SearchFilters = {
+      minSeeders: 3,
+      hasMagnet: true,
+      quality: "1080p",
+      language: "all",
+      sizeMin: 0,
+      sizeMax: 0,
+      codec: "all",
+    };
     const result = filterAnimeResults(filterItems, f)!;
     expect(result).toHaveLength(1);
     expect(result[0].title).toContain("[Group] Show [1080p]");
   });
 
   it("returns undefined for undefined input", () => {
-    const f: SearchFilters = { minSeeders: 0, hasMagnet: false, quality: "all", language: "all", sizeMin: 0, sizeMax: 0, codec: "all" };
+    const f: SearchFilters = {
+      minSeeders: 0,
+      hasMagnet: false,
+      quality: "all",
+      language: "all",
+      sizeMin: 0,
+      sizeMax: 0,
+      codec: "all",
+    };
     expect(filterAnimeResults(undefined, f)).toBeUndefined();
   });
 });

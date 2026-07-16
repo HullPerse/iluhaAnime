@@ -17,62 +17,12 @@ import type {
   VideoFileEntry,
   FFMPEGStatus,
   ScanType,
+  FileSearchResult,
 } from "@/types";
 
 import FolderScanProgress from "./components/player/scan.player";
 import TorrentFilesPlayerSection from "./components/player/torrent.player";
-
-interface FileSearchResult {
-  path: string;
-  name: string;
-  size: number;
-}
-
-function buildTree(entries: VideoFileEntry[], rootPath: string): FolderNode {
-  const root: FolderNode = {
-    path: rootPath,
-    name: rootPath.split(/[/\\]/).filter(Boolean).pop() || rootPath,
-    files: [],
-    children: [],
-  };
-
-  for (const entry of entries) {
-    const relative = entry.path.replace(rootPath, "").replace(/^[/\\]/, "");
-    const parts = relative.split(/[/\\]/);
-    let current = root;
-
-    for (let i = 0; i < parts.length - 1; i++) {
-      let child = current.children.find((c) => c.name === parts[i]);
-      if (!child) {
-        child = {
-          path: `${current.path}/${parts[i]}`,
-          name: parts[i],
-          files: [],
-          children: [],
-        };
-        current.children.push(child);
-      }
-      current = child;
-    }
-    current.files.push(entry);
-  }
-
-  return root;
-}
-
-function filterTreeByPaths(
-  tree: FolderNode,
-  matchingPaths: Set<string>,
-): FolderNode | null {
-  const filteredFiles = tree.files.filter((f) => matchingPaths.has(f.path));
-  const filteredChildren = tree.children
-    .map((c) => filterTreeByPaths(c, matchingPaths))
-    .filter((c): c is FolderNode => c !== null);
-
-  if (filteredFiles.length === 0 && filteredChildren.length === 0) return null;
-
-  return { ...tree, files: filteredFiles, children: filteredChildren };
-}
+import { buildTree, filterTreeByPaths } from "@/lib/index.utils";
 
 function PlayerRoute() {
   const torrents = useTorrentStore((state) => state.torrents);

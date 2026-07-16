@@ -4,7 +4,7 @@ import type { TorrentFileInfo, FilePriority } from "@/types/torrent";
 import { useRef, useState, useCallback, useMemo } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { exists, remove } from "@tauri-apps/plugin-fs";
-import { ChevronDown, ChevronRight, Monitor } from "lucide-react";
+import { ChevronDown, ChevronRight, Monitor, RefreshCw } from "lucide-react";
 import ImageComponent from "@/components/ui/image.component";
 import { openFileInPlayer } from "@/lib/media.utils";
 import { Button } from "@/components/ui/button.component";
@@ -12,18 +12,13 @@ import { Checkbox } from "@/components/ui/checkbox.component";
 import Select from "@/components/ui/select.component";
 import { useSettingsStore } from "@/store/settings.store";
 import UpscalePlayer from "@/routes/components/player/upscale.player";
+import { parse } from "anitomy";
+import { useSearchStore } from "@/store/search.store";
+import { collectFileIndices } from "@/lib/index.utils";
 
 type Item =
   | { kind: "folder"; node: TorrentTreeNode; depth: number }
   | { kind: "file"; file: TorrentTreeFile; depth: number };
-
-function collectFileIndices(node: TorrentTreeNode): number[] {
-  const indices = node.files.map((f) => f.index);
-  for (const child of node.children) {
-    indices.push(...collectFileIndices(child));
-  }
-  return indices;
-}
 
 function flattenTree(
   nodes: TorrentTreeNode[],
@@ -66,6 +61,7 @@ function TorrentFilesSection({
   extraFiles,
   onUpscaleDone,
   onDeleteExtraFile,
+  onRedownload,
 }: {
   id: number;
   files: TorrentFileInfo[];
@@ -81,7 +77,12 @@ function TorrentFilesSection({
   extraFiles?: { name: string; size: number; fullPath: string }[];
   onUpscaleDone?: (filePath: string) => void;
   onDeleteExtraFile?: () => void;
+  onRedownload?: (fileIndex: number) => void;
 }) {
+  const setAnilistSearchQuery = useSearchStore(
+    (state) => state.setAnilistSearchQuery,
+  );
+
   const [selected, setSelected] = useState<Set<number>>(
     () =>
       new Set(
@@ -268,11 +269,17 @@ function TorrentFilesSection({
           return (
             <div
               key={file.index}
-              className={`flex items-center gap-1 px-1 w-full windows95-text select-none absolute top-0 left-0 ${type === "player" ? "" : "hover:bg-surface"}`}
+              className={`flex items-center gap-1 px-1 w-full windows95-text select-none absolute top-0 left-0 ${type === "torrent" && file.completed ? "" : "hover:bg-surface hover:cursor-pointer"}`}
               style={{
                 height: 18,
                 transform: `translateY(${vItem.start}px)`,
                 paddingLeft: `${item.depth * 12 + 2}px`,
+              }}
+              onClick={() => {
+                if (type === "torrent") return;
+                const parsed = parse(file.name);
+                if (!parsed) return;
+                setAnilistSearchQuery(String(parsed.title));
               }}
             >
               {onToggle && (
@@ -324,20 +331,19 @@ function TorrentFilesSection({
                   />
                 )}
 
-              {/*{type === "torrent" && file.completed && !file.exists && (
-                <Button
-                  title="Загрузить заново"
-                  size="icon"
-                  className="size-4"
-                  onClick={() => handleRedownload(file)}
-                >
-                  <ImageComponent
-                    src="/icons/w98_netmeeting.ico"
-                    alt=""
+              {type === "torrent" &&
+                file.completed &&
+                !file.exists &&
+                onRedownload && (
+                  <Button
+                    title="Загрузить заново"
+                    size="icon"
                     className="size-4"
-                  />
-                </Button>
-              )}*/}
+                    onClick={() => onRedownload(file.index)}
+                  >
+                    <RefreshCw className="size-3" />
+                  </Button>
+                )}
 
               {type === "player" && (
                 <div className="flex flex-row gap-1 ml-auto">

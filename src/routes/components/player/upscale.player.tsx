@@ -313,7 +313,10 @@ export default function UpscalePlayer({
       <Button
         size="icon"
         className="h-4 w-4"
-        onClick={() => setOpen(true)}
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen(true);
+        }}
         title="Улучшить качество (апскейл)"
         disabled={!exists}
       >

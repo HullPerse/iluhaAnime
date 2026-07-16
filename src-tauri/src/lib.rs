@@ -328,6 +328,19 @@ async fn set_file_priority(
 }
 
 #[tauri::command]
+async fn redownload_file(
+    id: usize,
+    file_index: usize,
+    info_hash: String,
+    manager: tauri::State<'_, TorrentBackend>,
+) -> Result<usize, String> {
+    manager
+        .manager
+        .redownload_file(id, file_index, info_hash)
+        .await
+}
+
+#[tauri::command]
 async fn start_watching_folders(
     watcher: tauri::State<'_, std::sync::Mutex<fswatcher::FolderWatcher>>,
     app_handle: tauri::AppHandle,
@@ -589,6 +602,7 @@ pub fn run() {
             create_torrent_from_folder,
             update_torrent_only_files,
             set_file_priority,
+            redownload_file,
             set_sequential_download,
             get_torrent_info_from_file,
             start_torrent_download_from_file,

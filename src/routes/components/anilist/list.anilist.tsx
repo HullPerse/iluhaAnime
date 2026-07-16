@@ -6,15 +6,25 @@ interface Props {
   lists: AniListCollection[];
   currentList: string;
   onSelect: (name: string) => void;
+  searchTerms: string;
+  global: boolean;
 }
 
-export default function AniListTabs({ lists, currentList, onSelect }: Props) {
+export default function AniListTabs({
+  lists,
+  currentList,
+  onSelect,
+  searchTerms,
+  global,
+}: Props) {
   return (
     <section className="relative flex flex-row gap-1">
       {lists
         .filter((item) => item.entries.length > 0)
+
         .map((item) => {
           const isActive = currentList === item.name;
+
           return (
             <Button
               key={item.name}
@@ -31,7 +41,20 @@ export default function AniListTabs({ lists, currentList, onSelect }: Props) {
               onClick={() => onSelect(item.name)}
               disabled={isActive}
             >
-              {getListLabel(item.name.toUpperCase()) ?? item.name} ({item.entries.length})
+              {getListLabel(item.name.toUpperCase()) ?? item.name} (
+              {
+                item.entries.filter((e) => {
+                  if (!searchTerms.trim() || global) return true;
+
+                  const query = searchTerms.toLowerCase();
+
+                  return (
+                    e.media.title.toLowerCase().includes(query) ||
+                    e.media.titles.some((t) => t.toLowerCase().includes(query))
+                  );
+                }).length
+              }
+              )
             </Button>
           );
         })}

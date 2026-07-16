@@ -276,6 +276,7 @@ impl TorrentManager {
             save_dir,
             only_files,
             sub_folder,
+            None,
         )
         .await
     }
@@ -292,6 +293,7 @@ impl TorrentManager {
             save_dir,
             only_files,
             sub_folder,
+            None,
         )
         .await
     }
@@ -302,6 +304,7 @@ impl TorrentManager {
         save_dir: String,
         only_files: Option<Vec<usize>>,
         sub_folder: Option<String>,
+        preferred_id: Option<usize>,
     ) -> Result<usize> {
         let output_folder = sub_folder
             .as_ref()
@@ -317,6 +320,7 @@ impl TorrentManager {
             output_folder: Some(output_folder.clone()),
             overwrite: true,
             only_files: only_files.clone(),
+            preferred_id,
             ..Default::default()
         };
         let response = self.session.add_torrent(add_torrent, Some(opts)).await?;
@@ -346,6 +350,52 @@ impl TorrentManager {
                 .insert(id, files.clone());
         }
         Ok(id)
+    }
+
+    pub async fn replace_torrent(
+        self: &Arc<Self>,
+        id: usize,
+        magnet: String,
+        only_files: Option<Vec<usize>>,
+    ) -> Result<usize, String> {
+        let save_dir = self
+            .save_dirs
+            .lock()
+            .unwrap()
+            .get(&id)
+            .cloned()
+            .unwrap_or_default();
+        self.remove_torrent(id, false)
+            .await
+            .map_err(|e| format!("{e:#}"))?;
+        self.add_torrent_inner(
+            AddTorrent::from_url(magnet),
+            save_dir,
+            only_files,
+            None,
+            Some(id),
+        )
+        .await
+        .map_err(|e| format!("{e:#}"))
+    }
+
+    pub async fn redownload_file(
+        self: &Arc<Self>,
+        id: usize,
+        _file_index: usize,
+        info_hash: String,
+    ) -> Result<usize, String> {
+        let selected_indices = {
+            let files = self.get_running_torrent_files(id)?;
+            files
+                .iter()
+                .filter(|f| f.selected)
+                .map(|f| f.index)
+                .collect::<Vec<_>>()
+        };
+        let magnet = format!("magnet:?xt=urn:btih:{}", info_hash);
+        self.replace_torrent(id, magnet, Some(selected_indices))
+            .await
     }
 
     pub async fn get_torrent_info(

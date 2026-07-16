@@ -33,6 +33,7 @@ function Modal({ header, onClose, onBack, className, children }: ModalWindow) {
         <Dialog.Backdrop
           className={`fixed inset-0 z-40 ${modalAnimation ? "transition-opacity duration-150" : ""} ${visible ? "opacity-100" : "opacity-0"}`}
           style={{ backgroundColor: `rgba(0,0,0,${backdropOpacity / 100})` }}
+          onClick={(e) => e.stopPropagation()}
         />
         <Dialog.Popup
           className={cn(
@@ -42,6 +43,7 @@ function Modal({ header, onClose, onBack, className, children }: ModalWindow) {
             enable3dBorders ? "windows95-3d-border" : "",
             className,
           )}
+          onClick={(e) => e.stopPropagation()}
           data-hotkeys-disabled
           data-no-wheel
         >
@@ -52,13 +54,20 @@ function Modal({ header, onClose, onBack, className, children }: ModalWindow) {
                   <ChevronLeft className="size-2.5" />
                 </Button>
               )}
-              <ImageComponent src="/icons/w2k_computer.ico" alt="" className="size-4 shrink-0" />
+              <ImageComponent
+                src="/icons/w2k_computer.ico"
+                alt=""
+                className="size-4 shrink-0"
+              />
               <Dialog.Title className="text-white windows95-text font-bold line-clamp-1">
                 {header}
               </Dialog.Title>
             </div>
             <div className="flex flex-row items-center gap-0.5 shrink-0">
-              <Dialog.Close className="size-4 flex items-center justify-center windows95-active-border bg-primary text-text windows95-text cursor-pointer hover:brightness-110 active:translate-x-px active:translate-y-px">
+              <Dialog.Close
+                className="size-4 flex items-center justify-center windows95-active-border bg-primary text-text windows95-text cursor-pointer hover:brightness-110 active:translate-x-px active:translate-y-px"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <X className="size-2.5" />
               </Dialog.Close>
             </div>

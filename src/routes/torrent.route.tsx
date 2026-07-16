@@ -33,6 +33,7 @@ function TorrentRoute() {
     setFilePriority,
     setSequentialDownload,
     setSeedPreference,
+    redownloadFile,
   } = useTorrentStore((state) => state);
 
   const [dlInput, setDlInput] = useState(
@@ -265,15 +266,16 @@ function TorrentRoute() {
             onFilePriorityChange={(indices, priority) =>
               setFilePriority(item.id, indices, priority as any)
             }
-            onSetSequential={(enabled) =>
-              setSequentialDownload(item.id, enabled)
-            }
-            onRetry={async () => {
-              await removeTorrent(item.id, false);
-              const magnet = `magnet:?xt=urn:btih:${item.info_hash}`;
-              prepareTorrentDownload(magnet);
-            }}
-          />
+             onSetSequential={(enabled) =>
+               setSequentialDownload(item.id, enabled)
+             }
+             onRetry={async () => {
+               await removeTorrent(item.id, false);
+               const magnet = `magnet:?xt=urn:btih:${item.info_hash}`;
+               prepareTorrentDownload(magnet);
+             }}
+             onRedownload={(fileIndex) => redownloadFile(item.id, fileIndex, item.info_hash)}
+           />
         );
       })}
       {showMagnetModal && (

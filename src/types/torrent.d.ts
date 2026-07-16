@@ -94,4 +94,9 @@ export interface TorrentStore {
   ) => Promise<void>;
   setSequentialDownload: (id: number, enabled: boolean) => Promise<void>;
   setSeedPreference: (id: number, enabled: boolean) => void;
+  redownloadFile: (
+    id: number,
+    fileIndex: number,
+    infoHash: string,
+  ) => Promise<void>;
 }

@@ -3,7 +3,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { useSettingsStore } from "@/store/settings.store";
 
- const defaultFilters: SearchFilters = {
+const defaultFilters: SearchFilters = {
   minSeeders: 0,
   hasMagnet: false,
   quality: "all",
@@ -18,11 +18,13 @@ export const useSearchStore = create<SearchStore>()(
     (set) => ({
       history: [],
       crossSearchQuery: null,
+      anilistSearchQuery: null,
       sortBy: "seeders" as const,
       sortDirection: "desc" as const,
       filters: { ...defaultFilters },
 
       setCrossSearchQuery: (query) => set({ crossSearchQuery: query }),
+      setAnilistSearchQuery: (query) => set({ anilistSearchQuery: query }),
       addQuery: (query) => {
         const q = query.trim().toLowerCase();
         if (!q) return;

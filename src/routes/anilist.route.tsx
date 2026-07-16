@@ -34,9 +34,17 @@ import AniListSortBar from "./components/anilist/sort.anilist";
 import AniListPaginationBar from "./components/anilist/pagination.anilist";
 import AniListRecsModal from "./components/anilist/rec.anilist";
 import AniListFavouritesModal from "./components/anilist/favourites.anilist";
+import { useSearchStore } from "@/store/search.store";
 
 function AnilistRoute() {
   const queryClient = useQueryClient();
+  const anilistSearchQuery = useSearchStore(
+    (state) => state.anilistSearchQuery,
+  );
+  const setAnilistSearchQuery = useSearchStore(
+    (state) => state.setAnilistSearchQuery,
+  );
+
   const [searchTerms, setSearchTerms] = useState<string>("");
   const [currentList, setCurrentList] = useState<string>("");
   const [auth, setAuth] = useState<boolean>(false);
@@ -335,6 +343,13 @@ function AnilistRoute() {
     setPage((p) => Math.min(p, lastPage));
   }, [lastPage]);
 
+  useEffect(() => {
+    if (anilistSearchQuery) {
+      setSearchTerms(anilistSearchQuery);
+      setAnilistSearchQuery(null);
+    }
+  }, [anilistSearchQuery]);
+
   return (
     <main className="flex flex-col w-full h-full gap-1">
       <section className="flex flex-row gap-2 w-full">
@@ -402,6 +417,8 @@ function AnilistRoute() {
             setCurrentList(name);
             if (global) handleReset();
           }}
+          searchTerms={searchTerms}
+          global={global}
         />
       )}
 
@@ -571,14 +588,21 @@ function AnilistRoute() {
             setAnimeHistory((prev) => [...prev, selectedAnime]);
             setSelectedAnime({ animeId: id, listEntry: entryLookup.get(id) });
           }}
-          onBack={animeHistory.length > 0 ? () => {
-            const prev = animeHistory[animeHistory.length - 1];
-            if (prev) {
-              setAnimeHistory((h) => h.slice(0, -1));
-              setSelectedAnime(prev);
-            }
-          } : undefined}
-          onClose={() => { setSelectedAnime(null); setAnimeHistory([]); }}
+          onBack={
+            animeHistory.length > 0
+              ? () => {
+                  const prev = animeHistory[animeHistory.length - 1];
+                  if (prev) {
+                    setAnimeHistory((h) => h.slice(0, -1));
+                    setSelectedAnime(prev);
+                  }
+                }
+              : undefined
+          }
+          onClose={() => {
+            setSelectedAnime(null);
+            setAnimeHistory([]);
+          }}
           onSaved={() => {
             queryClient.invalidateQueries({ queryKey: ["anilist_data"] });
           }}

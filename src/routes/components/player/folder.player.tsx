@@ -8,104 +8,9 @@ import ImageComponent from "@/components/ui/image.component";
 import { useState, useRef, useMemo, useCallback } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import UpscalePlayer from "./upscale.player";
-
-type Item =
-  | { kind: "folder"; node: FolderNode; depth: number }
-  | { kind: "file"; file: FolderNode["files"][number]; depth: number };
-
-function nodeMatchesSearch(node: FolderNode, query: string): boolean {
-  const q = query.toLowerCase();
-  if (node.name.toLowerCase().includes(q)) return true;
-  for (const f of node.files) {
-    if (f.name.toLowerCase().includes(q)) return true;
-  }
-  return node.children.some((c) => nodeMatchesSearch(c, q));
-}
-
-function flattenTree(
-  node: FolderNode,
-  open: Set<string>,
-  searchQuery: string,
-  disabledExtensions: Set<string> | undefined,
-  depth: number,
-  trackExts?: Set<string>,
-): Item[] {
-  if (!node.children.length && !node.files.length) return [];
-
-  let filteredFiles = searchQuery
-    ? node.files.filter((f) =>
-        f.name.toLowerCase().includes(searchQuery.toLowerCase()),
-      )
-    : node.files;
-
-  if (trackExts) {
-    filteredFiles = filteredFiles.filter((f) => {
-      const ext = f.name.split(".").pop()?.toLowerCase();
-      return ext ? !trackExts.has(ext) : true;
-    });
-  }
-
-  const hasFilteredChildren = searchQuery
-    ? node.children.some((c) => nodeMatchesSearch(c, searchQuery))
-    : node.children.length > 0;
-
-  if (searchQuery && filteredFiles.length === 0 && !hasFilteredChildren)
-    return [];
-
-  const items: Item[] = [];
-  const isOpen = open.has(node.path);
-
-  if (depth > 0) {
-    items.push({ kind: "folder", node, depth });
-  }
-
-  if (isOpen || depth === 0) {
-    for (const file of filteredFiles) {
-      const ext = file.name.split(".").pop()?.toLowerCase();
-      const disabled = disabledExtensions && ext && disabledExtensions.has(ext);
-      if (!disabled) {
-        items.push({ kind: "file", file, depth: depth + 1 });
-      }
-    }
-    for (const child of node.children) {
-      items.push(
-        ...flattenTree(
-          child,
-          open,
-          searchQuery,
-          disabledExtensions,
-          depth + 1,
-          trackExts,
-        ),
-      );
-    }
-  }
-
-  if (
-    depth > 0 &&
-    items.length === 1 &&
-    items[0].kind === "folder" &&
-    items[0].node.path === node.path
-  ) {
-    if (isOpen) return [];
-    const hasContent =
-      filteredFiles.length > 0 ||
-      node.children.some(
-        (c) =>
-          flattenTree(
-            c,
-            open,
-            searchQuery,
-            disabledExtensions,
-            depth + 1,
-            trackExts,
-          ).length > 0,
-      );
-    if (!hasContent) return [];
-  }
-
-  return items;
-}
+import { parse } from "anitomy";
+import { useSearchStore } from "@/store/search.store";
+import { flattenTree } from "@/lib/index.utils";
 
 function FolderView({
   node,
@@ -127,6 +32,9 @@ function FolderView({
   const showTrackFiles = useSettingsStore((s) => s.showTrackFiles);
   const audioExtensions = useSettingsStore((s) => s.audioExtensions);
   const subtitleExtensions = useSettingsStore((s) => s.subtitleExtensions);
+  const setAnilistSearchQuery = useSearchStore(
+    (state) => state.setAnilistSearchQuery,
+  );
 
   const trackExts = useMemo(
     () =>
@@ -295,10 +203,15 @@ function FolderView({
               return (
                 <div
                   key={index}
-                  className="flex items-center gap-1 px-1 windows95-border h-5 bg-white absolute top-0 left-0 w-full"
+                  className="flex items-center gap-1 px-1 windows95-border h-5 bg-white absolute top-0 left-0 w-full hover:bg-surface hover:cursor-pointer"
                   style={{
                     transform: `translateY(${vItem.start}px)`,
                     paddingLeft: `${item.depth * 12 + 2}px`,
+                  }}
+                  onClick={() => {
+                    const parsed = parse(file.name);
+                    if (!parsed) return;
+                    setAnilistSearchQuery(String(parsed.title));
                   }}
                 >
                   <ImageComponent
@@ -308,7 +221,7 @@ function FolderView({
                   />
                   <span
                     title={file.name}
-                    className="windows95-text truncate flex-1"
+                    className="windows95-text truncate flex-1 select-none"
                   >
                     {file.name}
                   </span>
@@ -324,9 +237,11 @@ function FolderView({
                     size="icon"
                     className="h-4 w-4"
                     disabled={disabled}
-                    onClick={async () => {
+                    onClick={async (e) => {
+                      e.stopPropagation();
+
                       if (!file.path) return;
-                      openFileInPlayer(file.path);
+                      else openFileInPlayer(file.path);
                     }}
                     title={
                       disabled

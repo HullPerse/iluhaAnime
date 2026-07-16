@@ -19,6 +19,7 @@ export interface SearchFilters {
 export interface SearchStore {
   history: string[];
   crossSearchQuery: string | null;
+  anilistSearchQuery: string | null;
   sortBy: SortKey;
   sortDirection: SortDirection;
   filters: SearchFilters;
@@ -26,6 +27,7 @@ export interface SearchStore {
   addQuery: (query: string) => void;
   removeQuery: (query: string) => void;
   setCrossSearchQuery: (query: string | null) => void;
+  setAnilistSearchQuery: (query: string | null) => void;
   setSortBy: (sort: SortKey) => void;
   setSortDirection: (dir: SortDirection) => void;
   setFilters: (filters: Partial<SearchFilters>) => void;

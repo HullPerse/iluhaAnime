@@ -133,6 +133,17 @@ function App() {
     });
   }, []);
 
+  useEffect(() => {
+    return useSearchStore.subscribe((state, prev) => {
+      if (
+        state.anilistSearchQuery &&
+        state.anilistSearchQuery !== prev.anilistSearchQuery
+      ) {
+        setActiveTab("anilist");
+      }
+    });
+  }, []);
+
   // Listen for backend show-notification events (torrent complete/error)
   useEffect(() => {
     const unlisten = listen<{ title: string; body: string; type: string }>(

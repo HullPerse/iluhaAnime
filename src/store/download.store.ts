@@ -327,6 +327,24 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
     }
   },
 
+  redownloadFile: async (id: number, fileIndex: number, infoHash: string) => {
+    const newId = await invoke<number>("redownload_file", {
+      id,
+      fileIndex,
+      infoHash,
+    }).catch((err) => {
+      showError("Ошибка при повторной загрузке:", String(err));
+      return null;
+    });
+    if (newId === null) return;
+    const state = useTorrentStore.getState();
+    if (state.torrentFilesMap[newId]) {
+      state.loadTorrentFiles(newId);
+    } else if (state.torrentFilesMap[id]) {
+      state.loadTorrentFiles(id);
+    }
+  },
+
   setSequentialDownload: async (id: number, enabled: boolean) => {
     await invoke("set_sequential_download", { id, enabled }).catch((err) =>
       showError("Ошибка при включении последовательного режима:", String(err)),

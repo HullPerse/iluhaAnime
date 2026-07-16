@@ -31,6 +31,7 @@ interface Props {
   onFilePriorityChange: (indices: number[], priority: string) => void;
   onSetSequential: (enabled: boolean) => void;
   onRetry: () => void;
+  onRedownload: (fileIndex: number) => void;
 }
 
 export default function TorrentItem({
@@ -46,6 +47,7 @@ export default function TorrentItem({
   onFilePriorityChange,
   onSetSequential,
   onRetry,
+  onRedownload,
 }: Props) {
   const progress = item.progress * 100;
   const isPaused = item.state === "paused";
@@ -207,6 +209,7 @@ export default function TorrentItem({
                 onFilePriorityChange(indices, p)
               }
               onResume={isPaused ? onResume : undefined}
+              onRedownload={(fileIndex) => onRedownload(fileIndex)}
             />
           )}
         </section>

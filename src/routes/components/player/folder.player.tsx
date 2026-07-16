@@ -11,6 +11,7 @@ import UpscalePlayer from "./upscale.player";
 import { parse } from "anitomy";
 import { useSearchStore } from "@/store/search.store";
 import { flattenTree } from "@/lib/index.utils";
+import { openPath } from "@tauri-apps/plugin-opener";
 
 function FolderView({
   node,
@@ -208,6 +209,10 @@ function FolderView({
                   style={{
                     transform: `translateY(${vItem.start}px)`,
                     paddingLeft: `${item.depth * 12 + 2}px`,
+                  }}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    openPath(file.path.replace(file.name, ""));
                   }}
                   onClick={() => {
                     const parsed = parse(file.name);

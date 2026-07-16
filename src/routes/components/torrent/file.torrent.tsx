@@ -15,6 +15,7 @@ import UpscalePlayer from "@/routes/components/player/upscale.player";
 import { parse } from "anitomy";
 import { useSearchStore } from "@/store/search.store";
 import { collectFileIndices } from "@/lib/index.utils";
+import { openPath } from "@tauri-apps/plugin-opener";
 
 type Item =
   | { kind: "folder"; node: TorrentTreeNode; depth: number }
@@ -276,6 +277,10 @@ function TorrentFilesSection({
                 height: 18,
                 transform: `translateY(${vItem.start}px)`,
                 paddingLeft: `${item.depth * 12 + 2}px`,
+              }}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                openPath(String(path));
               }}
               onClick={() => {
                 if (type === "torrent") return;

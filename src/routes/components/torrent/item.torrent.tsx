@@ -10,13 +10,13 @@ import { useState } from "react";
 import {
   Pause,
   Play,
-  Trash,
-  FolderOpen,
   ChevronDown,
   ChevronRight,
   Check,
   RefreshCw,
+  ArrowUp,
 } from "lucide-react";
+import ImageComponent from "@/components/ui/image.component";
 
 interface Props {
   item: TorrentInfo;
@@ -99,7 +99,11 @@ export default function TorrentItem({
               className="size-6"
               onClick={() => openPath(item.save_dir)}
             >
-              <FolderOpen />
+              <ImageComponent
+                src="/icons/w2k_folder_closed.ico"
+                alt=""
+                className="size-4"
+              />
             </Button>
           )}
           <Button
@@ -117,7 +121,11 @@ export default function TorrentItem({
             className="size-6"
             onClick={() => setPendingDelete(true)}
           >
-            <Trash />
+            <ImageComponent
+              src="/icons/w2k_dustbin.ico"
+              alt=""
+              className="size-4"
+            />
           </Button>
         </div>
       </section>
@@ -150,12 +158,14 @@ export default function TorrentItem({
                 <div className="flex items-center gap-1">
                   {item.upload_speed > 0 && (
                     <span className="text-[10px] text-muted windows95-font">
-                      ↑ {fmtSpeed(item.upload_speed)}
+                      <ArrowUp className="size-2.5 inline" />{" "}
+                      {fmtSpeed(item.upload_speed)}
                     </span>
                   )}
                   {item.uploaded_bytes > 0 && (
                     <span className="text-[10px] text-muted windows95-font">
-                      ↑ {fmtSize(item.uploaded_bytes)}
+                      <ArrowUp className="size-2.5 inline" />{" "}
+                      {fmtSize(item.uploaded_bytes)}
                     </span>
                   )}
                   <span className="text-[10px] text-muted windows95-font">

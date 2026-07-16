@@ -1,7 +1,8 @@
 import { Dialog } from "@base-ui/react/dialog";
 import { useSettingsStore } from "@/store/settings.store";
 import { cn } from "@/lib/index.utils";
-import { ChevronLeft, Monitor, X } from "lucide-react";
+import { ChevronLeft, X } from "lucide-react";
+import ImageComponent from "@/components/ui/image.component";
 import { useEffect, useState } from "react";
 import type { ModalWindow } from "@/types";
 import { Button } from "../ui/button.component";
@@ -51,7 +52,7 @@ function Modal({ header, onClose, onBack, className, children }: ModalWindow) {
                   <ChevronLeft className="size-2.5" />
                 </Button>
               )}
-              <Monitor className="size-3 shrink-0 text-white" />
+              <ImageComponent src="/icons/w2k_computer.ico" alt="" className="size-4 shrink-0" />
               <Dialog.Title className="text-white windows95-text font-bold line-clamp-1">
                 {header}
               </Dialog.Title>

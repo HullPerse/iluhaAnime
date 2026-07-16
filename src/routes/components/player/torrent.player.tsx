@@ -5,7 +5,8 @@ import type { TorrentInfo, TorrentFileInfo } from "@/types/torrent";
 import { Button } from "@/components/ui/button.component";
 import { openPath } from "@tauri-apps/plugin-opener";
 import TorrentFilesSection from "../torrent/file.torrent";
-import { ChevronDown, ChevronRight, FolderOpen, Loader, RefreshCw } from "lucide-react";
+import { ChevronDown, ChevronRight, Loader, RefreshCw } from "lucide-react";
+import ImageComponent from "@/components/ui/image.component";
 
 interface Props {
   item: TorrentInfo;
@@ -97,7 +98,7 @@ export default function TorrentFilesPlayerSection({
                 openPath(item.save_dir);
               }}
             >
-              <FolderOpen />
+              <ImageComponent src="/icons/w2k_folder_closed.ico" alt="" className="size-4" />
             </Button>
           </div>
           {isExpanded && (

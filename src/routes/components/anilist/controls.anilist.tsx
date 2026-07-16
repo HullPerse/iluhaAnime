@@ -3,7 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { Input } from "@/components/ui/input.component";
 import { Button } from "@/components/ui/button.component";
 import Select from "@/components/ui/select.component";
-import { ExternalLink, Save } from "lucide-react";
+import ImageComponent from "@/components/ui/image.component";
 import { listStatusOptions } from "@/lib/anilist.utils";
 import type { AniMedia } from "@/types/anilist";
 import { openUrl } from "@tauri-apps/plugin-opener";
@@ -73,7 +73,7 @@ function AniListActionControls({
             openUrl(`https://anilist.co/anime/${anime.id}`);
           }}
         >
-          <ExternalLink className="size-3" />
+           <ImageComponent src="/icons/w2k_globe.ico" alt="" className="size-4" />
         </Button>
       </div>
       <div className="flex flex-col gap-2 p-1.5">
@@ -124,7 +124,7 @@ function AniListActionControls({
         )}
         <div className="flex flex-row gap-2 justify-end mt-0.5">
           <Button onClick={handleSave} disabled={saving}>
-            <Save className="size-3" />
+            <ImageComponent src="/icons/w2k_floppy.ico" alt="" className="size-4" />
             {saving ? "Сохранение..." : "Сохранить"}
           </Button>
         </div>

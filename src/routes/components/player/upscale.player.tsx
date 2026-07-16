@@ -24,6 +24,7 @@ type UpscaleProgressPayload = {
 interface Props {
   filePath: string;
   onDone?: (outputPath: string) => void;
+  exists?: boolean;
 }
 
 const GPU_LABELS: Record<string, string> = {
@@ -86,7 +87,11 @@ function formatETA(secs: number): string {
   return `${s} сек`;
 }
 
-export default function UpscalePlayer({ filePath, onDone }: Props) {
+export default function UpscalePlayer({
+  filePath,
+  onDone,
+  exists = true,
+}: Props) {
   const [open, setOpen] = useState(false);
   const [resolution, setResolution] = useState("original");
   const [fpsValue, setFpsValue] = useState("");
@@ -310,6 +315,7 @@ export default function UpscalePlayer({ filePath, onDone }: Props) {
         className="h-4 w-4"
         onClick={() => setOpen(true)}
         title="Улучшить качество (апскейл)"
+        disabled={!exists}
       >
         <Wand2 className="size-3" />
       </Button>

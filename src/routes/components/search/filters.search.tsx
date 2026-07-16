@@ -43,15 +43,15 @@ export default function SearchFiltersBar({
           onClick={onDirectionChange}
         >
           {direction === "desc" ? (
-            <SortDesc className="size-4" />
+            <SortDesc className="size-3" />
           ) : (
-            <SortAsc className="size-4" />
+            <SortAsc className="size-3" />
           )}
         </Button>
       </div>
 
       <Button size="icon" className="relative size-5.5" onClick={onOpenFilters}>
-        <Filter className="size-4" />
+        <Filter className="size-3" />
         {activeFilterCount > 0 && (
           <span className="absolute -top-1 -right-1 h-3 w-3 text-[8px] bg-secondary text-white flex items-center justify-center">
             {activeFilterCount}

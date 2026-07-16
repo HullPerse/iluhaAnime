@@ -7,6 +7,7 @@ import {
   Loader,
   Tag,
   Users,
+  Star,
 } from "lucide-react";
 import { useSearchStore } from "@/store/search.store";
 import Modal from "@/components/shared/modal.component";
@@ -43,6 +44,7 @@ function AniListDetailModal({
   isLoggedIn,
   onTag,
   onGenre,
+  onSeason,
   onStudio,
   onRelated,
   onBack,
@@ -62,6 +64,7 @@ function AniListDetailModal({
   onFavouriteToggle?: (animeId: number) => void;
   onTag: (e: string) => void;
   onGenre: (e: string) => void;
+  onSeason?: (season: string, seasonYear: number | null) => void;
   onStudio?: (id: number, name: string) => void;
   onRelated?: (id: number) => void;
   onBack?: () => void;
@@ -114,7 +117,13 @@ function AniListDetailModal({
         <div className="flex flex-col gap-2">
           <div className="flex flex-row gap-2 items-start">
             <div className="flex-1">
-              <AniListMetadata anime={anime} />
+              <AniListMetadata
+                anime={anime}
+                onSeason={(s, y) => {
+                  onSeason?.(s, y);
+                  onClose();
+                }}
+              />
             </div>
             {isLoggedIn && (
               <Button
@@ -211,7 +220,7 @@ function AniListDetailModal({
                         </span>
 
                         <span className="flex flex-row gap-1">
-                          · Рейтинг: {r.media.score && <> ★ {r.media.score}</>}
+                          · Рейтинг: {r.media.score && <> <Star className="size-2 inline" /> {r.media.score}</>}
                         </span>
                         <span className="flex flex-row gap-1">
                           · Эпизоды:

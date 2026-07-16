@@ -2,7 +2,6 @@ import { invoke } from "@tauri-apps/api/core";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Anime, Source } from "@/types";
 import { useEffect, useState, useMemo } from "react";
-import { useDebounce } from "@/hooks/debounce.hook";
 import { useSearchStore } from "@/store/search.store";
 import { Button } from "@/components/ui/button.component";
 import { SmallLoader } from "@/components/shared/loader.component";
@@ -44,7 +43,6 @@ function SearchRoute() {
     : (visibleSources[0] ?? "");
 
   const [searchParams, setSearchParams] = useState("");
-  const debouncedQuery = useDebounce(searchParams.trim(), 300);
   const [source, setSource] = useState<Source>(initialSource as Source);
   const queryClient = useQueryClient();
   const [showLogin, setShowLogin] = useState(false);
@@ -86,10 +84,6 @@ function SearchRoute() {
 
   const rutrackerAuth = sessions?.rutracker ?? false;
   const nekobtAuth = sessions?.nekobt ?? false;
-
-  useEffect(() => {
-    if (debouncedQuery) refetch();
-  }, [debouncedQuery]);
 
   useEffect(() => {
     if (!visibleSources.includes(source) && visibleSources.length > 0) {
@@ -211,11 +205,11 @@ function SearchRoute() {
   return (
     <main className="h-full flex flex-col w-full gap-1">
       <section className="flex flex-row gap-2 w-full">
-        <div className="relative flex-1">
+        <div className="relative flex-1 flex items-center gap-1">
           <Input
             placeholder="Найти аниме..."
             value={searchParams}
-            className="h-9 font-bold bg-white"
+            className="h-9 font-bold bg-white flex-1"
             onChange={(e) => setSearchParams(e.target.value)}
             onFocus={() => setShowHistory(true)}
             onBlur={() => setTimeout(() => setShowHistory(false), 200)}
@@ -365,13 +359,17 @@ function SearchRoute() {
 
       {showLogin && (
         <RutrackerLoginModal
-          setRutrackerAuth={() => queryClient.invalidateQueries({ queryKey: ["search_sessions"] })}
+          setRutrackerAuth={() =>
+            queryClient.invalidateQueries({ queryKey: ["search_sessions"] })
+          }
           setShowLogin={setShowLogin}
         />
       )}
       {showApiModal && (
         <NekoBtApiModal
-          setNekoBtAuth={() => queryClient.invalidateQueries({ queryKey: ["search_sessions"] })}
+          setNekoBtAuth={() =>
+            queryClient.invalidateQueries({ queryKey: ["search_sessions"] })
+          }
           setShowApiModal={setShowApiModal}
         />
       )}

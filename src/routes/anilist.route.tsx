@@ -16,7 +16,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { Input } from "@/components/ui/input.component";
 import { Button } from "@/components/ui/button.component";
 import { useSettingsStore } from "@/store/settings.store";
-import { filterEntries, sortEntries } from "@/lib/anilist.utils";
+import { filterEntries, seasonLabels, sortEntries } from "@/lib/anilist.utils";
 import { SmallLoader } from "@/components/shared/loader.component";
 import FiltersModal, {
   defaultFilters,
@@ -91,7 +91,7 @@ function AnilistRoute() {
   const [searchResults, setSearchResults] = useState<AniMedia[]>([]);
   const [searchTag, setSearchTag] = useState<string | null>(null);
   const [searchMode, setSearchMode] = useState<
-    "tag" | "genre" | "studio" | null
+    "tag" | "genre" | "studio" | "season" | null
   >(null);
   const [globalSort, setGlobalSort] = useState<{
     key: string;
@@ -159,6 +159,46 @@ function AnilistRoute() {
       setLoadingSearch(false);
     }
   }, [searchTerms, searchFilters, anilistPageSize]);
+
+  const handleSeason = useCallback(
+    async (season: string, seasonYear: number | null) => {
+      setGlobal(true);
+      setLoadingSearch(true);
+      setSearchResults([]);
+      setSearchTerms("");
+      setSearchTag(
+        `${seasonLabels[season] ?? season}${seasonYear ? ` ${seasonYear}` : ""}`,
+      );
+      setSearchMode("season");
+      try {
+        const res = await invoke<AniMedia[]>("search_anilist", {
+          query: null,
+          tags: null,
+          genres: null,
+          format: null,
+          status: null,
+          season: season || null,
+          seasonYear: seasonYear,
+          adult: null,
+          sort: null,
+          source: null,
+          country: null,
+          yearFrom: null,
+          yearTo: null,
+          episodesFrom: null,
+          episodesTo: null,
+          scoreFrom: null,
+          scoreTo: null,
+          maxPages: useSettingsStore.getState().anilistMaxPages,
+          perPage: anilistPageSize,
+        });
+        setSearchResults(res);
+      } finally {
+        setLoadingSearch(false);
+      }
+    },
+    [anilistPageSize],
+  );
 
   const handleStudio = useCallback(async (id: number, name: string) => {
     setGlobal(true);
@@ -481,7 +521,7 @@ function AnilistRoute() {
           onPageChange={setPage}
           statusText={
             global
-              ? `Поиск: ${searchResults.length} результатов${searchTag ? ` · ${searchMode === "studio" ? "студия" : "тег"}: ${searchTag}` : ""}`
+              ? `Поиск: ${searchResults.length} результатов${searchTag ? ` · ${searchMode === "studio" ? "студия" : searchMode === "season" ? "сезон" : "тег"}: ${searchTag}` : ""}`
               : isLocal
                 ? `${currentList}: ${filteredEntries.length} / ${activeEntries.length}`
                 : user
@@ -526,6 +566,7 @@ function AnilistRoute() {
           onTag={handleTag}
           onGenre={handleGenre}
           onStudio={handleStudio}
+          onSeason={handleSeason}
           onRelated={(id) => {
             setAnimeHistory((prev) => [...prev, selectedAnime]);
             setSelectedAnime({ animeId: id, listEntry: entryLookup.get(id) });

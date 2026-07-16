@@ -1,6 +1,7 @@
 import { Input } from "@/components/ui/input.component";
 import { Button } from "@/components/ui/button.component";
-import { FolderOpen, File, X, Search } from "lucide-react";
+import { X, Search } from "lucide-react";
+import ImageComponent from "@/components/ui/image.component";
 import { listen } from "@tauri-apps/api/event";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
@@ -10,7 +11,6 @@ import FFMPEG from "./components/player/ffmpeg.player";
 import FolderView from "./components/player/folder.player";
 import { useTorrentStore } from "@/store/download.store";
 import { useSettingsStore } from "@/store/settings.store";
-import { openPath } from "@tauri-apps/plugin-opener";
 import QueuePanel from "./components/player/queue.player";
 import type {
   FolderNode,
@@ -276,24 +276,6 @@ function PlayerRoute() {
     };
   }, [videoExtensions]);
 
-  const handleOpenFile = useCallback(async () => {
-    const file = await open({
-      multiple: false,
-      filters: [
-        {
-          name: "Видео",
-          extensions: [...useSettingsStore.getState().videoExtensions],
-        },
-        { name: "Все файлы", extensions: ["*"] },
-      ],
-    });
-    if (file) {
-      try {
-        await openPath(file);
-      } catch {}
-    }
-  }, []);
-
   const handleOpenFolder = useCallback(async () => {
     const folder = await open({ multiple: false, directory: true });
     if (!folder) return;
@@ -363,11 +345,13 @@ function PlayerRoute() {
   return (
     <main className="flex flex-col w-full h-full gap-1 overflow-y-auto">
       <section className="flex flex-row w-full h-8 windows95-active-border bg-primary gap-1 p-1 items-center">
-        <Button onClick={handleOpenFile}>
-          <File /> Открыть файл
-        </Button>
         <Button onClick={handleOpenFolder}>
-          <FolderOpen /> Открыть папку
+          <ImageComponent
+            src="/icons/w2k_folder_closed.ico"
+            alt=""
+            className="size-4"
+          />
+          Добавить папку
         </Button>
       </section>
 
@@ -404,12 +388,6 @@ function PlayerRoute() {
       {search.trim() && searching && (
         <section className="flex items-center justify-center py-2">
           <span className="text-[10px] text-muted">Поиск...</span>
-        </section>
-      )}
-
-      {search.trim() && !searching && displayTrees.length === 0 && (
-        <section className="flex items-center justify-center py-2">
-          <span className="text-[10px] text-muted">Ничего не найдено</span>
         </section>
       )}
 

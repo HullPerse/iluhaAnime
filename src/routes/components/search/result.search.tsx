@@ -2,7 +2,8 @@ import type { Anime } from "@/types";
 import { detectLanguages, formatSize } from "@/lib/index.utils";
 import { getLanguageColors } from "@/lib/search.logic";
 import { Button } from "@/components/ui/button.component";
-import { Clipboard, Download, ExternalLink, Loader } from "lucide-react";
+import { Clipboard, Download, Loader } from "lucide-react";
+import ImageComponent from "@/components/ui/image.component";
 
 interface Props {
   item: Anime;
@@ -92,7 +93,7 @@ export default function SearchResultItem({
               onClick={() => onOpenLink(item)}
               className="inline-flex items-center gap-0.5 windows95-active-border bg-primary px-2 py-0.5 windows95-text text-text no-underline cursor-pointer"
             >
-              <ExternalLink className="size-3" />
+              <ImageComponent src="/icons/w2k_globe.ico" alt="" className="size-4" />
               Открыть
             </Button>
           )

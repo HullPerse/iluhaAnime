@@ -3,15 +3,8 @@ import { fmtSize } from "@/lib/torrent.utils";
 import { openFileInPlayer } from "@/lib/media.utils";
 import type { FolderNode } from "@/types/index";
 import { useSettingsStore } from "@/store/settings.store";
-import {
-  ChevronDown,
-  ChevronRight,
-  FileVideo,
-  FolderOpen,
-  Image,
-  Monitor,
-  X,
-} from "lucide-react";
+import { ChevronDown, ChevronRight, Monitor, X } from "lucide-react";
+import ImageComponent from "@/components/ui/image.component";
 import { useState, useRef, useMemo, useCallback } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import UpscalePlayer from "./upscale.player";
@@ -203,7 +196,11 @@ function FolderView({
         ) : (
           <ChevronRight className="size-3 shrink-0" />
         )}
-        <FolderOpen className="size-3 shrink-0 text-muted" />
+        <ImageComponent
+          src="/icons/w2k_folder_closed.ico"
+          alt=""
+          className="size-4 shrink-0"
+        />
         <span className="truncate select-none flex-1" title={node.name}>
           {node.name}
         </span>
@@ -223,7 +220,11 @@ function FolderView({
                   onGenerate(node.path, node.name);
                 }}
               >
-                <Image className="size-3" />
+                <ImageComponent
+                  src="/icons/w2k_bitmap_image.ico"
+                  alt=""
+                  className="size-4"
+                />
               </Button>
             )}
             {onRemove && (
@@ -274,7 +275,11 @@ function FolderView({
                     ) : (
                       <ChevronRight className="size-3 shrink-0" />
                     )}
-                    <FolderOpen className="size-3 shrink-0 text-muted" />
+                    <ImageComponent
+                      src="/icons/w2k_folder_closed.ico"
+                      alt=""
+                      className="size-4 shrink-0"
+                    />
                     <span
                       className="truncate select-none"
                       title={item.node.name}
@@ -296,7 +301,11 @@ function FolderView({
                     paddingLeft: `${item.depth * 12 + 2}px`,
                   }}
                 >
-                  <FileVideo className="size-4 text-muted" />
+                  <ImageComponent
+                    src="/icons/w2k_wmp_11.ico"
+                    alt=""
+                    className="size-4"
+                  />
                   <span
                     title={file.name}
                     className="windows95-text truncate flex-1"

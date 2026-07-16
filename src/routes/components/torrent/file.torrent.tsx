@@ -4,13 +4,8 @@ import type { TorrentFileInfo, FilePriority } from "@/types/torrent";
 import { useRef, useState, useCallback, useMemo } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { exists, remove } from "@tauri-apps/plugin-fs";
-import {
-  ChevronDown,
-  ChevronRight,
-  FolderOpen,
-  Monitor,
-  Trash,
-} from "lucide-react";
+import { ChevronDown, ChevronRight, Monitor } from "lucide-react";
+import ImageComponent from "@/components/ui/image.component";
 import { openFileInPlayer } from "@/lib/media.utils";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
@@ -227,7 +222,11 @@ function TorrentFilesSection({
                   ) : (
                     <ChevronRight className="size-3 shrink-0" />
                   )}
-                  <FolderOpen className="size-3 shrink-0 text-muted" />
+                  <ImageComponent
+                    src="/icons/w2k_folder_closed.ico"
+                    alt=""
+                    className="size-4 shrink-0"
+                  />
                   <span className="truncate font-bold" title={item.node.name}>
                     {item.node.name}
                   </span>
@@ -285,6 +284,12 @@ function TorrentFilesSection({
                 />
               )}
 
+              <ImageComponent
+                src="/icons/w2k_wmp_11.ico"
+                alt=""
+                className="size-4"
+              />
+
               <span className="truncate flex-1" title={file.displayName}>
                 {file.displayName}
               </span>
@@ -319,6 +324,21 @@ function TorrentFilesSection({
                   />
                 )}
 
+              {/*{type === "torrent" && file.completed && !file.exists && (
+                <Button
+                  title="Загрузить заново"
+                  size="icon"
+                  className="size-4"
+                  onClick={() => handleRedownload(file)}
+                >
+                  <ImageComponent
+                    src="/icons/w98_netmeeting.ico"
+                    alt=""
+                    className="size-4"
+                  />
+                </Button>
+              )}*/}
+
               {type === "player" && (
                 <div className="flex flex-row gap-1 ml-auto">
                   {(file as TorrentTreeFile & { _fullPath?: string })
@@ -352,14 +372,20 @@ function TorrentFilesSection({
                           !extraFiles?.find((e) => e.name === file.name)
                         }
                       >
-                        <Trash className="size-2.5" />
+                        <ImageComponent
+                          src="/icons/w2k_dustbin.ico"
+                          alt=""
+                          className="size-4"
+                        />
                       </Button>
+
                       <UpscalePlayer
                         filePath={
                           (file as TorrentTreeFile & { _fullPath: string })
                             ._fullPath
                         }
                         onDone={onUpscaleDone}
+                        exists={file.exists}
                       />
                       <Button
                         title="Открыть в медиа плеере"
@@ -371,8 +397,9 @@ function TorrentFilesSection({
                               ._fullPath,
                           )
                         }
+                        disabled={!file.exists}
                       >
-                        <Monitor className="size-2.5" />
+                        <Monitor className="size-3" />
                       </Button>
                     </>
                   ) : (
@@ -380,6 +407,7 @@ function TorrentFilesSection({
                       {path && (
                         <UpscalePlayer
                           filePath={`${path}/${file.name}`}
+                          exists={file.exists}
                           onDone={onUpscaleDone}
                         />
                       )}
@@ -392,8 +420,9 @@ function TorrentFilesSection({
                             if (!path) return;
                             openFileInPlayer(`${path}/${file.name}`);
                           }}
+                          disabled={!file.exists}
                         >
-                          <Monitor className="size-2.5" />
+                          <Monitor className="size-3" />
                         </Button>
                       )}
                     </>

@@ -10,7 +10,7 @@ import {
   fmtElapsed,
   groupFilesByDirectory,
 } from "@/lib/torrent.utils";
-import { FolderOpen } from "lucide-react";
+import ImageComponent from "@/components/ui/image.component";
 import { PickerTorrent } from "@/types/torrent";
 
 function TorrentFilePicker({
@@ -36,7 +36,10 @@ function TorrentFilePicker({
   const [sequential, setSequential] = useState(false);
 
   const [selected, setSelected] = useState<Set<number>>(
-    () => new Set(torrent?.files.filter((f) => f.selected).map((f) => f.index) ?? []),
+    () =>
+      new Set(
+        torrent?.files.filter((f) => f.selected).map((f) => f.index) ?? [],
+      ),
   );
   const [elapsed, setElapsed] = useState(0);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -89,7 +92,7 @@ function TorrentFilePicker({
     setIsLoading(true);
     const subFolder = torrent.hasCommonFolder ? undefined : torrent.name;
     try {
-      await onConfirm([...selected], saveDir, subFolder, sequential);
+      onConfirm([...selected], saveDir, subFolder, sequential);
     } finally {
       setIsLoading(false);
     }
@@ -102,9 +105,7 @@ function TorrentFilePicker({
         .filter((f) => selected.has(f.index))
         .reduce((s, f) => s + f.size, 0)
     : 0;
-  const totalSize = torrent
-    ? torrent.files.reduce((s, f) => s + f.size, 0)
-    : 0;
+  const totalSize = torrent ? torrent.files.reduce((s, f) => s + f.size, 0) : 0;
 
   return (
     <Modal
@@ -138,7 +139,11 @@ function TorrentFilePicker({
                 <div key={group.dir || "__root__"}>
                   {group.dir && (
                     <div className="flex items-center gap-1 px-1 py-0.5 text-[10px] windows95-font select-none">
-                      <FolderOpen className="size-3 shrink-0" />
+                      <ImageComponent
+                        src="/icons/w2k_folder_closed.ico"
+                        alt=""
+                        className="size-4 shrink-0"
+                      />
                       <span className="font-bold truncate" title={group.dir}>
                         {group.dir}
                       </span>

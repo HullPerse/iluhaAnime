@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input.component";
 import { Button } from "@/components/ui/button.component";
 import Modal from "@/components/shared/modal.component";
-import { File } from "lucide-react";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { readText } from "@tauri-apps/plugin-clipboard-manager";
 
@@ -60,7 +59,6 @@ export default function AddTorrentModal({
           autoFocus
         />
         <div className="flex items-center gap-1 mt-1">
-          <span className="text-[10px] windows95-text text-muted">или</span>
           <Button
             onClick={async () => {
               const file = await openDialog({
@@ -73,7 +71,6 @@ export default function AddTorrentModal({
               }
             }}
           >
-            <File className="size-4" />
             Выбрать .torrent
           </Button>
         </div>

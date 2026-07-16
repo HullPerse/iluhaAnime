@@ -45,7 +45,7 @@ export default function AniListRecsModal({
                 <ImageComponent
                   src={r.cover_url}
                   alt="cover_url"
-                  className="w-10 shrink-0 windows95-active-border"
+                  className="w-13 h-18 shrink-0 windows95-active-border"
                 />
               )}
               <div className="flex flex-col min-w-0 flex-1">
@@ -56,7 +56,11 @@ export default function AniListRecsModal({
                   {r.title}
                 </span>
                 <div className="flex flex-row gap-2 text-[9px] windows95-text">
-                  {r.score && <span>★ {r.score}</span>}
+                  {r.score && (
+                    <span>
+                      <Star className="size-2.5 inline" /> {r.score}
+                    </span>
+                  )}
                   {r.format && <span>{r.format}</span>}
                   {r.episodes && <span>{r.episodes} эп.</span>}
                 </div>

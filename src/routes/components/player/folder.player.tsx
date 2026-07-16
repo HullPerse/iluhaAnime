@@ -35,6 +35,7 @@ function FolderView({
   const setAnilistSearchQuery = useSearchStore(
     (state) => state.setAnilistSearchQuery,
   );
+  const parseTitles = useSettingsStore((state) => state.parseTitles);
 
   const trackExts = useMemo(
     () =>
@@ -223,7 +224,32 @@ function FolderView({
                     title={file.name}
                     className="windows95-text truncate flex-1 select-none"
                   >
-                    {file.name}
+                    {parseTitles
+                      ? (() => {
+                          const parsed = parse(file.name);
+                          if (!parsed) return file.name;
+
+                          const title = parsed.title || "";
+                          const season = parsed.season
+                            ? `Season ${parsed.season}`
+                            : "";
+                          const epNum =
+                            parsed.episode?.number ?? parsed.episode?.numberAlt;
+                          const epTitle = parsed.episode?.title;
+
+                          let episodeStr = "";
+                          if (epNum !== undefined && epNum !== null) {
+                            episodeStr = `Episode ${epNum}`;
+                            if (epTitle) episodeStr += `: ${epTitle}`;
+                          } else if (epTitle) {
+                            episodeStr = `Episode: ${epTitle}`;
+                          }
+
+                          return [title, season, episodeStr]
+                            .filter((part) => part && part.trim())
+                            .join(" • ");
+                        })()
+                      : file.name}
                   </span>
 
                   <span className="windows95-text text-muted">

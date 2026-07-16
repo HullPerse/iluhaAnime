@@ -35,6 +35,7 @@ export interface SettingsStore {
   enableMdns: boolean;
   fastresumeEnabled: boolean;
   disablePersistence: boolean;
+  parseTitles: boolean;
   patch: (partial: Partial<SettingsStore>) => void;
 }
 
@@ -54,9 +55,42 @@ export const useSettingsStore = create<SettingsStore>()(
       anilistMaxPages: 3,
       searchHistoryMaxItems: 5,
       toastDuration: 3000,
-      videoExtensions: ["mp4", "mkv", "avi", "mov", "webm", "flv", "wmv", "m4v", "mpg", "mpeg", "ts", "m2ts", "ogv", "3gp"],
-      audioExtensions: ["mp3", "flac", "aac", "ogg", "wav", "opus", "m4a", "wma"],
-      subtitleExtensions: ["srt", "ass", "ssa", "vtt", "sub", "idx", "sup", "pgs"],
+      videoExtensions: [
+        "mp4",
+        "mkv",
+        "avi",
+        "mov",
+        "webm",
+        "flv",
+        "wmv",
+        "m4v",
+        "mpg",
+        "mpeg",
+        "ts",
+        "m2ts",
+        "ogv",
+        "3gp",
+      ],
+      audioExtensions: [
+        "mp3",
+        "flac",
+        "aac",
+        "ogg",
+        "wav",
+        "opus",
+        "m4a",
+        "wma",
+      ],
+      subtitleExtensions: [
+        "srt",
+        "ass",
+        "ssa",
+        "vtt",
+        "sub",
+        "idx",
+        "sup",
+        "pgs",
+      ],
       showTrackFiles: "hide",
       modalAnimation: true,
       enable3dBorders: true,
@@ -74,6 +108,7 @@ export const useSettingsStore = create<SettingsStore>()(
       enableMdns: false,
       fastresumeEnabled: true,
       disablePersistence: false,
+      parseTitles: false,
 
       patch: (partial) => set(partial),
     }),
@@ -81,11 +116,16 @@ export const useSettingsStore = create<SettingsStore>()(
       name: "settings",
       version: 1,
       migrate: (persistedState: unknown, version: number) => {
-        if (version === 0 && persistedState && typeof persistedState === "object") {
+        if (
+          version === 0 &&
+          persistedState &&
+          typeof persistedState === "object"
+        ) {
           const s = persistedState as Record<string, unknown>;
           if ("animeNotificationsEnabled" in s) {
             const old = s.animeNotificationsEnabled;
-            (s as Record<string, unknown>).animeNotifyMode = old === true ? "system_when_open" : "none";
+            (s as Record<string, unknown>).animeNotifyMode =
+              old === true ? "system_when_open" : "none";
             delete (s as Record<string, unknown>).animeNotificationsEnabled;
           }
         }

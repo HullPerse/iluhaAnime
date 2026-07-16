@@ -1,9 +1,10 @@
 import { useSettingsStore } from "@/store/settings.store";
 import { Input } from "@/components/ui/input.component";
 import { Button } from "@/components/ui/button.component";
+import { Checkbox } from "@/components/ui/checkbox.component";
 
 export default function SettingsGeneral() {
-  const { toastDuration, patch } = useSettingsStore();
+  const { toastDuration, parseTitles, patch } = useSettingsStore();
 
   const handleClearAll = async () => {
     const ok = window.confirm(
@@ -35,6 +36,18 @@ export default function SettingsGeneral() {
           onChange={(e) => patch({ toastDuration: Number(e.target.value) })}
           className="w-20"
         />
+      </label>
+
+      <label className="flex items-center gap-2 windows95-text text-text cursor-pointer select-none">
+        <Checkbox
+          checked={parseTitles}
+          onChange={(v) => {
+            patch({ parseTitles: v });
+          }}
+        />
+        <span>
+          Извлекать названия аниме {`([Erai-Raws]Maruto.1080p -> Naruto)`}
+        </span>
       </label>
 
       <hr className="windows95-header w-full" />

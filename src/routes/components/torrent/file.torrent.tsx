@@ -83,6 +83,8 @@ function TorrentFilesSection({
     (state) => state.setAnilistSearchQuery,
   );
 
+  const parseTitles = useSettingsStore((state) => state.parseTitles);
+
   const [selected, setSelected] = useState<Set<number>>(
     () =>
       new Set(
@@ -298,7 +300,32 @@ function TorrentFilesSection({
               />
 
               <span className="truncate flex-1" title={file.displayName}>
-                {file.displayName}
+                {type === "player" && parseTitles
+                  ? (() => {
+                      const parsed = parse(file.displayName);
+                      if (!parsed) return file.displayName;
+
+                      const title = parsed.title || "";
+                      const season = parsed.season
+                        ? `Season ${parsed.season}`
+                        : "";
+                      const epNum =
+                        parsed.episode?.number ?? parsed.episode?.numberAlt;
+                      const epTitle = parsed.episode?.title;
+
+                      let episodeStr = "";
+                      if (epNum !== undefined && epNum !== null) {
+                        episodeStr = `Episode ${epNum}`;
+                        if (epTitle) episodeStr += `: ${epTitle}`;
+                      } else if (epTitle) {
+                        episodeStr = `Episode: ${epTitle}`;
+                      }
+
+                      return [title, season, episodeStr]
+                        .filter((part) => part && part.trim())
+                        .join(" • ");
+                    })()
+                  : file.displayName}
               </span>
 
               {file.selected && !file.completed && file.size > 0 && (

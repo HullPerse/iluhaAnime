@@ -3,7 +3,7 @@ import { sendNotification as tauriNotify } from "@tauri-apps/plugin-notification
 
 export type NotificationType = "info" | "success" | "warning" | "error";
 
-export interface NotificationItem {
+interface NotificationItem {
   id: number;
   type: NotificationType;
   title: string;

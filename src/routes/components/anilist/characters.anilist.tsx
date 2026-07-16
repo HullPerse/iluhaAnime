@@ -1,11 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/core";
-import type { AniCharacterEdge } from "@/types/anilist";
+import type { AniCharacterEdge, AniVoiceActor } from "@/types/anilist";
 import Section from "@/components/shared/section.component";
 import { useState } from "react";
 import ImageComponent from "@/components/ui/image.component";
 
-function AniListCharactersPanel({ animeId }: { animeId: number }) {
+function AniListCharactersPanel({
+  animeId,
+  onCharacterClick,
+}: {
+  animeId: number;
+  onCharacterClick?: (characterId: number, name: string, voiceActors: AniVoiceActor[]) => void;
+}) {
   const [showCharacters, setShowCharacters] = useState<boolean>(false);
 
   const { data, isLoading } = useQuery({
@@ -31,7 +37,9 @@ function AniListCharactersPanel({ animeId }: { animeId: number }) {
       {data.slice(0, 40).map((edge) => (
         <div
           key={edge.character.id}
-          className="flex flex-col items-center gap-0.5 p-0.5"
+          role="button"
+          onClick={() => onCharacterClick?.(edge.character.id, edge.character.name, edge.voice_actors)}
+          className="flex flex-col items-center gap-0.5 p-0.5 cursor-pointer hover:bg-surface"
           title={edge.character.name}
         >
           {edge.character.image ? (

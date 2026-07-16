@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/core";
 import { ChevronLeft, ChevronRight, Loader, Star } from "lucide-react";
 import Modal from "@/components/shared/modal.component";
@@ -46,22 +47,17 @@ export default function BrowseAnimeModal({
   >;
 }) {
   const [activeTab, setActiveTab] = useState<BrowseTab>("popular");
-  const [data, setData] = useState<AniMedia[]>([]);
-  const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
 
-  useEffect(() => {
-    setLoading(true);
-    setPage(1);
-    invoke<AniMedia[]>("search_anilist", {
-      query: null,
-      sort: SORT_MAP[activeTab],
-      adult: false,
-    })
-      .then(setData)
-      .catch(() => setData([]))
-      .finally(() => setLoading(false));
-  }, [activeTab]);
+  const { data = [], isLoading } = useQuery({
+    queryKey: ["anilist_browse", activeTab],
+    queryFn: () =>
+      invoke<AniMedia[]>("search_anilist", {
+        query: null,
+        sort: SORT_MAP[activeTab],
+        adult: false,
+      }),
+  });
 
   const total = data.length;
   const lastPage = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -89,7 +85,7 @@ export default function BrowseAnimeModal({
       />
 
       <div className="flex flex-col gap-1 flex-1 overflow-y-auto p-1">
-        {loading ? (
+        {isLoading ? (
           <div className="flex items-center justify-center flex-1">
             <Loader className="size-6 animate-spin windows95-text" />
           </div>

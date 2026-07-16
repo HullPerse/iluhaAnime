@@ -22,9 +22,7 @@ export interface SettingsStore {
   modalAnimation: boolean;
   enable3dBorders: boolean;
   buttonPressEffect: boolean;
-  wallpaperBlur: boolean;
   enableAnimations: boolean;
-  showWallpaper: boolean;
   modalBackdropOpacity: number;
   customScrollbar: boolean;
   savedFolderPaths: string[];
@@ -63,9 +61,7 @@ export const useSettingsStore = create<SettingsStore>()(
       modalAnimation: true,
       enable3dBorders: true,
       buttonPressEffect: true,
-      wallpaperBlur: true,
       enableAnimations: true,
-      showWallpaper: true,
       modalBackdropOpacity: 50,
       customScrollbar: true,
       savedFolderPaths: [],

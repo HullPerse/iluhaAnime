@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/index.utils";
 
 interface ImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
@@ -11,6 +11,12 @@ interface ImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   type?: "cover" | "contain";
 }
 
+const isExternal = (url: string) =>
+  url.startsWith("http") ||
+  url.startsWith("ftp") ||
+  url.startsWith("data:") ||
+  url.startsWith("blob:");
+
 const Image = ({
   src,
   alt,
@@ -22,38 +28,41 @@ const Image = ({
   ...props
 }: ImageProps) => {
   const [isLoaded, setIsLoaded] = useState(false);
-  const [imageSrc, setImageSrc] = useState(src);
+  const [finalSrc, setFinalSrc] = useState(src);
+  const [retryKey, setRetryKey] = useState(0);
+  const attemptRef = useRef(0);
 
   const imgRef = useRef<HTMLImageElement>(null);
 
-  const getWebpSrc = (originalSrc: string) => {
-    const isExternal =
-      originalSrc.startsWith("http") ||
-      originalSrc.startsWith("https") ||
-      originalSrc.startsWith("ftp") ||
-      originalSrc.startsWith("data:") ||
-      originalSrc.startsWith("blob:");
-
-    if (!originalSrc || isExternal) return originalSrc;
-
-    const baseSrc = originalSrc.split("?")[0];
-    return `${baseSrc}?format=webp&quality=${quality}`;
-  };
-
   useEffect(() => {
-    setImageSrc(src);
+    setFinalSrc(src);
     setIsLoaded(false);
+    attemptRef.current = 0;
   }, [src]);
 
   useEffect(() => {
     if (imgRef.current?.complete) {
       setIsLoaded(true);
     }
-  }, [imageSrc]);
+  }, [finalSrc, retryKey]);
 
-  const handleError = () => {
-    setImageSrc("");
-  };
+  const handleLoad = useCallback(() => {
+    setIsLoaded(true);
+  }, []);
+
+  const handleError = useCallback(() => {
+    attemptRef.current += 1;
+    if (attemptRef.current <= 2) {
+      setRetryKey((k) => k + 1);
+    } else {
+      setFinalSrc("");
+    }
+  }, []);
+
+  const showWebp = !isExternal(finalSrc);
+  const webpSrc = showWebp
+    ? `${finalSrc.split("?")[0]}?format=webp&quality=${quality}`
+    : finalSrc;
 
   return (
     <div
@@ -65,12 +74,33 @@ const Image = ({
         aspectRatio: width && height ? `${width}/${height}` : undefined,
       }}
     >
-      {imageSrc ? (
-        <picture>
-          <source srcSet={getWebpSrc(imageSrc)} type="image/webp" />
+      {finalSrc ? (
+        showWebp ? (
+          <picture key={retryKey}>
+            <source srcSet={webpSrc} type="image/webp" />
+            <img
+              ref={imgRef}
+              src={finalSrc}
+              alt={alt}
+              width={width}
+              height={height}
+              className={cn(
+                "absolute inset-0 h-full w-full transition-opacity duration-300",
+                type === "cover" ? "object-cover" : "object-contain",
+                isLoaded ? "opacity-100" : "opacity-0",
+              )}
+              loading="lazy"
+              decoding="async"
+              onLoad={handleLoad}
+              onError={handleError}
+              {...props}
+            />
+          </picture>
+        ) : (
           <img
+            key={retryKey}
             ref={imgRef}
-            src={imageSrc}
+            src={finalSrc}
             alt={alt}
             width={width}
             height={height}
@@ -81,11 +111,11 @@ const Image = ({
             )}
             loading="lazy"
             decoding="async"
-            onLoad={() => setIsLoaded(true)}
+            onLoad={handleLoad}
             onError={handleError}
             {...props}
           />
-        </picture>
+        )
       ) : (
         <div
           className="flex h-full w-full items-center justify-center border border-primary/20 bg-background/40"

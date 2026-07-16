@@ -38,8 +38,6 @@ function App() {
   const [activeTab, setActiveTab] = useState<Tab>("search");
   const [initTabs, setInitTabs] = useState(false);
   const [updateAvailable, setUpdateAvailable] = useState<boolean>(false);
-  const wallpaperBlur = useSettingsStore((s) => s.wallpaperBlur);
-  const showWallpaper = useSettingsStore((s) => s.showWallpaper);
   const customScrollbar = useSettingsStore((s) => s.customScrollbar);
   const init = useTorrentStore((s) => s.init);
   const pendingTorrent = useTorrentStore((s) => s.pendingTorrent);
@@ -200,7 +198,7 @@ function App() {
   };
 
   return (
-    <main className="relative h-screen w-screen overflow-hidden bg-desktop">
+    <main className="relative h-screen w-screen overflow-hidden">
       {data && updateAvailable && (
         <Updater update={data} onClose={() => setUpdateAvailable(false)} />
       )}
@@ -214,17 +212,6 @@ function App() {
             confirmDownload(selectedIndices, saveDir, subFolder, sequential)
           }
           onCancel={cancelDownload}
-        />
-      )}
-      {/* WALLPAPER */}
-      {showWallpaper && (
-        <div
-          className={`absolute inset-0 z-0 bg-background bg-no-repeat ${wallpaperBlur ? "blur-xs brightness-50" : ""}`}
-          style={{
-            backgroundImage: `url(/background.jpg)`,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-          }}
         />
       )}
 

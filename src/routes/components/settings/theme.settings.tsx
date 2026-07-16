@@ -213,8 +213,6 @@ export default function SettingsTheme() {
         label="Анимация загрузки (спиннеры)"
         field="enableAnimations"
       />
-      <EffectsCheckbox label="Размытие фона" field="wallpaperBlur" />
-      <EffectsCheckbox label="Фон (обои)" field="showWallpaper" />
       <EffectsCheckbox label="Скроллбар (Win95)" field="customScrollbar" />
       <BackdropSlider />
 

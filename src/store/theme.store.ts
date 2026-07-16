@@ -130,3 +130,9 @@ export const useThemeStore = create<ThemeStore>()(
     },
   ),
 );
+
+// Apply theme immediately on module init, before any React component renders.
+// This is critical for BigLoader (router pendingComponent) which mounts
+// before App.tsx calls applyTheme.
+const _s = useThemeStore.getState();
+applyTheme(_s.currentTheme, _s.customThemes);

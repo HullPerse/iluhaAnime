@@ -569,6 +569,8 @@ pub fn run() {
             anilist::toggle_favourite,
             anilist::get_favourites,
             anilist::get_anime_characters,
+            anilist::get_character_media,
+            anilist::get_staff_characters,
             anilist::get_anilist_activity,
             start_torrent_download,
             get_torrent_info,

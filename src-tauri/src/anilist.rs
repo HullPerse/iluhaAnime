@@ -136,9 +136,49 @@ pub struct AniCharacterNode {
 }
 
 #[derive(Debug, Serialize)]
+pub struct AniVoiceActor {
+    pub id: u64,
+    pub name: String,
+    pub native_name: Option<String>,
+    pub image: Option<String>,
+    pub language: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
 pub struct AniCharacterEdge {
     pub role: String,
     pub character: AniCharacterNode,
+    pub voice_actors: Vec<AniVoiceActor>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct AniCharacterMediaEdge {
+    pub id: u64,
+    pub title: String,
+    pub cover_url: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct AniStaffCharacterEdge {
+    pub id: u64,
+    pub name: String,
+    pub image: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct AniStaffMediaEdge {
+    pub id: u64,
+    pub title: String,
+    pub cover_url: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct AniStaffDetail {
+    pub id: u64,
+    pub name: String,
+    pub image: Option<String>,
+    pub characters: Vec<AniStaffCharacterEdge>,
+    pub media: Vec<AniStaffMediaEdge>,
 }
 
 fn parse_date(d: &serde_json::Value) -> Option<String> {
@@ -1162,6 +1202,12 @@ pub async fn get_anime_characters(id: u64, page: u64) -> Result<Vec<AniCharacter
                                 name { full native }
                                 image { medium }
                             }
+                            voiceActors(language: JAPANESE, sort: [ID]) {
+                                id
+                                name { full native }
+                                image { medium }
+                                language
+                            }
                         }
                     }
                 }
@@ -1189,6 +1235,165 @@ pub async fn get_anime_characters(id: u64, page: u64) -> Result<Vec<AniCharacter
                     image: n["image"]["medium"].as_str().map(String::from),
                 }
             },
+            voice_actors: e["voiceActors"]
+                .as_array()
+                .map(|vas| {
+                    vas.iter()
+                        .map(|va| AniVoiceActor {
+                            id: va["id"].as_u64().unwrap_or(0),
+                            name: va["name"]["full"].as_str().unwrap_or("").to_string(),
+                            native_name: va["name"]["native"].as_str().map(String::from),
+                            image: va["image"]["medium"].as_str().map(String::from),
+                            language: va["language"].as_str().map(String::from),
+                        })
+                        .collect()
+                })
+                .unwrap_or_default(),
         })
         .collect())
+}
+
+#[tauri::command]
+pub async fn get_character_media(id: u64) -> Result<Vec<AniCharacterMediaEdge>, String> {
+    let body = serde_json::json!({
+        "query": r#"
+            query ($id: Int) {
+                Character(id: $id) {
+                    media(page: 1, perPage: 50, type: ANIME) {
+                        edges {
+                            node {
+                                id
+                                title { romaji english }
+                                coverImage { medium }
+                            }
+                        }
+                    }
+                }
+            }
+        "#,
+        "variables": { "id": id }
+    });
+    let json = graphql_request(body, None).await?;
+    let edges = json["data"]["Character"]["media"]["edges"]
+        .as_array()
+        .ok_or_else(|| "No media found".to_string())?;
+    let mut seen = std::collections::HashSet::new();
+    Ok(edges
+        .iter()
+        .filter_map(|e| {
+            let n = &e["node"];
+            let mid = n["id"].as_u64().unwrap_or(0);
+            if mid == 0 || !seen.insert(mid) {
+                return None;
+            }
+            let title = n["title"]["romaji"]
+                .as_str()
+                .or_else(|| n["title"]["english"].as_str())
+                .unwrap_or("Unknown")
+                .to_string();
+            Some(AniCharacterMediaEdge {
+                id: mid,
+                title,
+                cover_url: n["coverImage"]["medium"].as_str().map(String::from),
+            })
+        })
+        .collect())
+}
+
+#[tauri::command]
+pub async fn get_staff_characters(id: u64) -> Result<AniStaffDetail, String> {
+    let body = serde_json::json!({
+        "query": r#"
+            query ($id: Int) {
+                Staff(id: $id) {
+                    id
+                    name { full native }
+                    image { medium }
+                    characters(page: 1, perPage: 50) {
+                        edges {
+                            node {
+                                id
+                                name { full native }
+                                image { medium }
+                            }
+                        }
+                    }
+                    staffMedia(page: 1, perPage: 50, type: ANIME) {
+                        edges {
+                            node {
+                                id
+                                title { romaji english }
+                                coverImage { medium }
+                            }
+                        }
+                    }
+                }
+            }
+        "#,
+        "variables": { "id": id }
+    });
+    let json = graphql_request(body, None).await?;
+    let s = &json["data"]["Staff"];
+    let name = s["name"]["full"]
+        .as_str()
+        .or_else(|| s["name"]["native"].as_str())
+        .unwrap_or("Unknown")
+        .to_string();
+
+    let mut seen_chars = std::collections::HashSet::new();
+    let characters = s["characters"]["edges"]
+        .as_array()
+        .map(|edges| {
+            edges
+                .iter()
+                .filter_map(|e| {
+                    let n = &e["node"];
+                    let cid = n["id"].as_u64().unwrap_or(0);
+                    if cid == 0 || !seen_chars.insert(cid) {
+                        return None;
+                    }
+                    Some(AniStaffCharacterEdge {
+                        id: cid,
+                        name: n["name"]["full"].as_str().unwrap_or("").to_string(),
+                        image: n["image"]["medium"].as_str().map(String::from),
+                    })
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+
+    let mut seen_media = std::collections::HashSet::new();
+    let media = s["staffMedia"]["edges"]
+        .as_array()
+        .map(|edges| {
+            edges
+                .iter()
+                .filter_map(|e| {
+                    let n = &e["node"];
+                    let mid = n["id"].as_u64().unwrap_or(0);
+                    if mid == 0 || !seen_media.insert(mid) {
+                        return None;
+                    }
+                    let title = n["title"]["romaji"]
+                        .as_str()
+                        .or_else(|| n["title"]["english"].as_str())
+                        .unwrap_or("Unknown")
+                        .to_string();
+                    Some(AniStaffMediaEdge {
+                        id: mid,
+                        title,
+                        cover_url: n["coverImage"]["medium"].as_str().map(String::from),
+                    })
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+
+    Ok(AniStaffDetail {
+        id: s["id"].as_u64().unwrap_or(0),
+        name,
+        image: s["image"]["medium"].as_str().map(String::from),
+        characters,
+        media,
+    })
 }

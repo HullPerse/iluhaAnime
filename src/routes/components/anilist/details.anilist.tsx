@@ -15,8 +15,9 @@ import { Button } from "@/components/ui/button.component";
 import AniListActionControls from "./controls.anilist";
 import AniListMetadata from "./metadata.anilist";
 import AniListCharactersPanel from "./characters.anilist";
+import AniListCharacterDetailModal from "./details.characters";
 import { useState } from "react";
-import type { AniMedia } from "@/types/anilist";
+import type { AniMedia, AniVoiceActor } from "@/types/anilist";
 
 const SUPPORTED_RELATION_TYPES = new Set(["ANIME"]);
 import ImageComponent from "@/components/ui/image.component";
@@ -71,6 +72,11 @@ function AniListDetailModal({
 
   const [showRelations, setShowRelations] = useState<boolean>(false);
   const [showDesc, setShowDesc] = useState<boolean>(false);
+  const [selectedCharacter, setSelectedCharacter] = useState<{
+    id: number;
+    name: string;
+    voiceActors: AniVoiceActor[];
+  } | null>(null);
 
   const [favLoading, setFavLoading] = useState(false);
   const isFavourited = favouriteIds?.has(animeId) ?? false;
@@ -150,7 +156,12 @@ function AniListDetailModal({
             </Section>
           )}
 
-          <AniListCharactersPanel animeId={anime.id} />
+          <AniListCharactersPanel
+            animeId={anime.id}
+            onCharacterClick={(id, name, vas) =>
+              setSelectedCharacter({ id, name, voiceActors: vas })
+            }
+          />
 
           {anime.relations.filter((r) =>
             SUPPORTED_RELATION_TYPES.has(r.media.media_type ?? ""),
@@ -320,6 +331,19 @@ function AniListDetailModal({
             />
           )}
         </div>
+      )}
+
+      {selectedCharacter && (
+        <AniListCharacterDetailModal
+          characterId={selectedCharacter.id}
+          characterName={selectedCharacter.name}
+          voiceActors={selectedCharacter.voiceActors}
+          onRelated={(id) => {
+            setSelectedCharacter(null);
+            onRelated?.(id);
+          }}
+          onClose={() => setSelectedCharacter(null)}
+        />
       )}
     </Modal>
   );

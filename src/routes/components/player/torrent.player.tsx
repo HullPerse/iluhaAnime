@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/core";
 import type { TorrentInfo, TorrentFileInfo } from "@/types/torrent";
 import { Button } from "@/components/ui/button.component";
@@ -21,27 +22,17 @@ export default function TorrentFilesPlayerSection({
   torrentLoading,
   onToggleExpand,
 }: Props) {
-  const [extraFiles, setExtraFiles] = useState<
-    { name: string; size: number; fullPath: string }[]
-  >([]);
-
-  const scan = useCallback(() => {
-    if (!item.save_dir) return;
-    invoke<{ path: string; name: string; size: number }[]>(
-      "scan_upscaled_files",
-      { path: item.save_dir },
-    )
-      .then((result) =>
-        setExtraFiles(
-          result.map((f) => ({ name: f.name, size: f.size, fullPath: f.path })),
-        ),
-      )
-      .catch(() => setExtraFiles([]));
-  }, [item.save_dir]);
-
-  useEffect(() => {
-    scan();
-  }, [scan]);
+  const { data: extraFiles = [], refetch: scan } = useQuery({
+    queryKey: ["upscaled_files", item.save_dir],
+    queryFn: () =>
+      invoke<{ path: string; name: string; size: number }[]>(
+        "scan_upscaled_files",
+        { path: item.save_dir! },
+      ).then((result) =>
+        result.map((f) => ({ name: f.name, size: f.size, fullPath: f.path })),
+      ),
+    enabled: !!item.save_dir,
+  });
 
   const handleUpscaleDone = useCallback(
     (_filePath: string) => {

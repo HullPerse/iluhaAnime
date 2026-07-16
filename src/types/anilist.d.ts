@@ -106,9 +106,44 @@ export interface AniCharacterNode {
   image: string | null;
 }
 
+export interface AniVoiceActor {
+  id: number;
+  name: string;
+  native_name: string | null;
+  image: string | null;
+  language: string | null;
+}
+
 export interface AniCharacterEdge {
   role: string;
   character: AniCharacterNode;
+  voice_actors: AniVoiceActor[];
+}
+
+export interface AniCharacterMediaEdge {
+  id: number;
+  title: string;
+  cover_url: string | null;
+}
+
+export interface AniStaffCharacterEdge {
+  id: number;
+  name: string;
+  image: string | null;
+}
+
+export interface AniStaffMediaEdge {
+  id: number;
+  title: string;
+  cover_url: string | null;
+}
+
+export interface AniStaffDetail {
+  id: number;
+  name: string;
+  image: string | null;
+  characters: AniStaffCharacterEdge[];
+  media: AniStaffMediaEdge[];
 }
 
 export interface AniActivity {

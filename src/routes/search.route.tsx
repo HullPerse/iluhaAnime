@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Anime, Source } from "@/types";
 import { useEffect, useState, useMemo } from "react";
 import { useDebounce } from "@/hooks/debounce.hook";
@@ -46,9 +46,8 @@ function SearchRoute() {
   const [searchParams, setSearchParams] = useState("");
   const debouncedQuery = useDebounce(searchParams.trim(), 300);
   const [source, setSource] = useState<Source>(initialSource as Source);
-  const [rutrackerAuth, setRutrackerAuth] = useState(false);
+  const queryClient = useQueryClient();
   const [showLogin, setShowLogin] = useState(false);
-  const [nekobtAuth, setNekoBtAuth] = useState(false);
   const [showApiModal, setShowApiModal] = useState(false);
   const [magnets, setMagnets] = useState<Record<string, string>>({});
   const [loadingMagnet, setLoadingMagnet] = useState<Record<string, boolean>>(
@@ -73,14 +72,20 @@ function SearchRoute() {
     setCrossSearchQuery,
   } = useSearchStore((state) => state);
 
-  useEffect(() => {
-    invoke<boolean>("check_rutracker_session")
-      .then(setRutrackerAuth)
-      .catch(() => setRutrackerAuth(false));
-    invoke<boolean>("check_nekobt_session")
-      .then(setNekoBtAuth)
-      .catch(() => setNekoBtAuth(false));
-  }, []);
+  const { data: sessions } = useQuery({
+    queryKey: ["search_sessions"],
+    queryFn: async () => {
+      const [rutracker, nekobt] = await Promise.all([
+        invoke<boolean>("check_rutracker_session").catch(() => false),
+        invoke<boolean>("check_nekobt_session").catch(() => false),
+      ]);
+      return { rutracker, nekobt };
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const rutrackerAuth = sessions?.rutracker ?? false;
+  const nekobtAuth = sessions?.nekobt ?? false;
 
   useEffect(() => {
     if (debouncedQuery) refetch();
@@ -185,14 +190,14 @@ function SearchRoute() {
   const handleLogout = async () => {
     try {
       await invoke("rutracker_logout");
-      setRutrackerAuth(false);
+      queryClient.invalidateQueries({ queryKey: ["search_sessions"] });
     } catch {}
   };
 
   const handleNekoBtLogout = async () => {
     try {
       await invoke("nekobt_logout");
-      setNekoBtAuth(false);
+      queryClient.invalidateQueries({ queryKey: ["search_sessions"] });
     } catch {}
   };
 
@@ -360,13 +365,13 @@ function SearchRoute() {
 
       {showLogin && (
         <RutrackerLoginModal
-          setRutrackerAuth={setRutrackerAuth}
+          setRutrackerAuth={() => queryClient.invalidateQueries({ queryKey: ["search_sessions"] })}
           setShowLogin={setShowLogin}
         />
       )}
       {showApiModal && (
         <NekoBtApiModal
-          setNekoBtAuth={setNekoBtAuth}
+          setNekoBtAuth={() => queryClient.invalidateQueries({ queryKey: ["search_sessions"] })}
           setShowApiModal={setShowApiModal}
         />
       )}

@@ -46,14 +46,11 @@ function Modal({ header, onClose, onBack, className, children }: ModalWindow) {
         >
           <section className="flex flex-row items-center justify-between bg-secondary w-full p-1">
             <div className="flex flex-row items-center gap-1 min-w-0">
-              <Button
-                rendered={!!onBack}
-                onClick={onBack}
-                size="icon"
-                className="size-4"
-              >
-                <ChevronLeft className="size-2.5" />
-              </Button>
+              {onBack && (
+                <Button onClick={onBack} size="icon" className="size-4">
+                  <ChevronLeft className="size-2.5" />
+                </Button>
+              )}
               <Monitor className="size-3 shrink-0 text-white" />
               <Dialog.Title className="text-white windows95-text font-bold line-clamp-1">
                 {header}

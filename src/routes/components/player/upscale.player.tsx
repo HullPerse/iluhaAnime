@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { Wand2, Ban, Check, Loader } from "lucide-react";
@@ -105,6 +106,20 @@ export default function UpscalePlayer({ filePath, onDone }: Props) {
   const unlistenRef = useRef<UnlistenFn | null>(null);
   const outputPathRef = useRef("");
 
+  const { data: upscaleConfig } = useQuery({
+    queryKey: ["upscale_config"],
+    queryFn: async () => {
+      const [ffmpegOk, gpuEncoders, defaultShaders] = await Promise.all([
+        invoke<boolean>("check_ffprobe").catch(() => false),
+        invoke<string[]>("check_gpu_encoders").catch(() => ["cpu"]),
+        invoke<string[]>("default_anime4k_shaders").catch(() => []),
+      ]);
+      return { ffmpegOk, gpuEncoders, defaultShaders };
+    },
+    enabled: open,
+    staleTime: Infinity,
+  });
+
   const handlePresetChange = useCallback(
     (preset: string) => {
       setAnime4kPreset(preset);
@@ -132,21 +147,15 @@ export default function UpscalePlayer({ filePath, onDone }: Props) {
   }, []);
 
   useEffect(() => {
-    if (!open) return;
-    invoke<boolean>("check_ffprobe")
-      .then((ok) => setFfmpegStatus(ok ? "ok" : "missing"))
-      .catch(() => setFfmpegStatus("missing"));
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-    invoke<string[]>("check_gpu_encoders").then((backends) => {
-      setAvailableGpu(backends);
-      if (backends.length > 0 && backends[0] === "cpu") {
-        setGpuBackend(backends.length > 1 ? backends[1] : "cpu");
-      }
-    });
-  }, [open]);
+    if (!upscaleConfig) return;
+    setFfmpegStatus(upscaleConfig.ffmpegOk ? "ok" : "missing");
+    setAvailableGpu(upscaleConfig.gpuEncoders);
+    setSelectedShaders(upscaleConfig.defaultShaders);
+    const backends = upscaleConfig.gpuEncoders;
+    if (backends.length > 0 && backends[0] === "cpu") {
+      setGpuBackend(backends.length > 1 ? backends[1] : "cpu");
+    }
+  }, [upscaleConfig]);
 
   // Apply Anime4K preset when upscaler or available GPU list changes
   useEffect(() => {
@@ -154,14 +163,6 @@ export default function UpscalePlayer({ filePath, onDone }: Props) {
       handlePresetChange(anime4kPreset);
     }
   }, [upscaler, availableGpu]);
-
-  // Fetch default shader selection when modal opens
-  useEffect(() => {
-    if (!open) return;
-    invoke<string[]>("default_anime4k_shaders")
-      .then(setSelectedShaders)
-      .catch(() => setSelectedShaders([]));
-  }, [open]);
 
   const resetState = useCallback(() => {
     setRunning(false);

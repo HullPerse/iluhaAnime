@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/core";
 import { ChevronDown, ChevronUp, Clock } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox.component";
@@ -44,16 +45,15 @@ export default function ShaderPicker({
   gpuBackend,
   durationSecs,
 }: Props) {
-  const [shaders, setShaders] = useState<ShaderInfo[]>([]);
   const [openCategories, setOpenCategories] = useState<Set<string>>(
     new Set(["upscale", "restore"]),
   );
 
-  useEffect(() => {
-    invoke<ShaderInfo[]>("list_anime4k_shaders")
-      .then(setShaders)
-      .catch(() => {});
-  }, []);
+  const { data: shaders = [] } = useQuery({
+    queryKey: ["anime4k_shaders"],
+    queryFn: () => invoke<ShaderInfo[]>("list_anime4k_shaders"),
+    staleTime: Infinity,
+  });
 
   const grouped = useMemo(() => {
     const map = new Map<string, ShaderInfo[]>();

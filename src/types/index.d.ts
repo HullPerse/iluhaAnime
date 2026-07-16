@@ -3,7 +3,7 @@ export type {
   FilePriority,
   FolderNode,
 } from "./torrent";
-export type { LanguageTag, SettingsScraper, Source } from "./search";
+export type { LanguageTag, SettingsScraper, SortKey, Source } from "./search";
 export type { VideoFileEntry } from "./fs";
 export type { SettingsTab, FFMPEGStatus, ScanType } from "./settings";
 

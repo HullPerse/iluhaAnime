@@ -1,5 +1,5 @@
-import type { Anime, LanguageTag, SettingsScraper } from "@/types";
-import { detectLanguages, qualityMatch, parseSize } from "./index.utils";
+import type { Anime, SettingsScraper } from "@/types";
+import { parseSize } from "./index.utils";
 
 export function getVisibleSources(
   visibleSources: string[],
@@ -11,22 +11,6 @@ export function getVisibleSources(
       value: s.value,
       label: s.nsfw ? `${s.label} (NSFW)` : s.label,
     }));
-}
-
-export function filterAnimeResults(
-  data: Anime[] | undefined,
-  settings: SettingsScraper,
-): Anime[] | undefined {
-  return data?.filter((res) => {
-    if (settings.quality !== "all") {
-      if (!qualityMatch(res.title, settings.quality)) return false;
-    }
-    if (settings.language !== "all") {
-      const language: LanguageTag[] = detectLanguages(res.title);
-      if (!language.some((l) => l.code === settings.language)) return false;
-    }
-    return true;
-  });
 }
 
 export function sortAnimeResults(

@@ -19,5 +19,3 @@ pub fn atomic_write(path: &Path, data: &[u8]) -> Result<(), String> {
     std::fs::rename(&tmp_path, path).map_err(|e| format!("rename: {e}"))?;
     Ok(())
 }
-
-

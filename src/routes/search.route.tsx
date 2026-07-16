@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { useQuery } from "@tanstack/react-query";
-import type { Anime, SettingsScraper, Source } from "@/types";
+import type { Anime, SortKey, Source } from "@/types";
 import { useEffect, useState, useMemo } from "react";
 import { useDebounce } from "@/hooks/debounce.hook";
 import { useSearchStore } from "@/store/search.store";
@@ -14,7 +14,6 @@ import { flushSync } from "react-dom";
 import { SOURCE_INFOS } from "@/config/search.config";
 import { useSettingsStore } from "@/store/settings.store";
 import {
-  filterAnimeResults,
   sortAnimeResults,
   getVisibleSources,
 } from "@/lib/search.logic";
@@ -53,12 +52,7 @@ function SearchRoute() {
     {},
   );
   const [nyaaPage, setNyaaPage] = useState(1);
-  const [settings, setSettings] = useState<SettingsScraper>({
-    quality: "all",
-    language: "all",
-    sort: "seeders",
-    encoding: "all",
-  });
+  const [sortBy, setSortBy] = useState<SortKey>("seeders");
   const searchHistory = useSearchStore((s) => s.history);
   const addQuery = useSearchStore((s) => s.addQuery);
   const removeQuery = useSearchStore((s) => s.removeQuery);
@@ -91,13 +85,9 @@ function SearchRoute() {
       "animeScraper",
       source,
       searchParams.trim(),
-      settings.quality,
-      settings.language,
-      settings.sort,
-      settings.encoding,
       nyaaPage,
     ],
-    [source, searchParams, settings, nyaaPage],
+    [source, searchParams, nyaaPage],
   );
 
   const { data, isLoading, isError, error, refetch } = useQuery({
@@ -130,7 +120,6 @@ function SearchRoute() {
       }
       return await invoke<Anime[]>("search_erairaws", {
         query: searchParams.trim(),
-        encoding: settings.encoding,
       });
     },
     enabled: false,
@@ -143,13 +132,9 @@ function SearchRoute() {
     }
   }, [crossSearchQuery]);
 
-  const filtered = useMemo(
-    () => filterAnimeResults(data, settings),
-    [data, settings],
-  );
   const sorted = useMemo(
-    () => sortAnimeResults(filtered, settings.sort),
-    [filtered, settings.sort],
+    () => sortAnimeResults(data, sortBy),
+    [data, sortBy],
   );
   const displayItems = useMemo(
     () => sorted?.slice(0, source === "nyaa" ? resultsPerPage : undefined),
@@ -243,8 +228,8 @@ function SearchRoute() {
       </section>
 
       <SearchFiltersBar
-        settings={settings}
-        onChange={(patch) => setSettings((prev) => ({ ...prev, ...patch }))}
+        sort={sortBy}
+        onChange={(v) => setSortBy(v)}
       />
 
       {isError && (

@@ -90,7 +90,6 @@ pub(crate) fn build_nekobt_client() -> Result<reqwest::Client, String> {
         .map_err(|e| format!("Client error: {e}"))
 }
 
-
 pub(crate) fn format_file_size(bytes: f64) -> String {
     if bytes < 1024.0 {
         format!("{:.2} B", bytes)
@@ -258,7 +257,11 @@ async fn search_nyaa_impl(
         if resp.status() == 504 || resp.status() == 503 {
             last_err = format!(
                 "{} временно недоступен (HTTP {}), попробуйте позже",
-                if base_url.contains("sukebei") { "Sukebei" } else { "Nyaa.si" },
+                if base_url.contains("sukebei") {
+                    "Sukebei"
+                } else {
+                    "Nyaa.si"
+                },
                 resp.status()
             );
             continue;
@@ -555,13 +558,15 @@ fn parse_rus_number(s: &str) -> u32 {
 }
 
 #[tauri::command]
-pub async fn search_erairaws(query: String, encoding: String) -> Result<Vec<NyaaItem>, String> {
+pub async fn search_erairaws(
+    query: String,
+    encoding: Option<String>,
+) -> Result<Vec<NyaaItem>, String> {
     let client = build_client()?;
 
-    let search_query = if encoding.is_empty() || encoding == "all" {
-        format!("{} erai-raws", query)
-    } else {
-        format!("{} erai-raws {}", query, encoding)
+    let search_query = match encoding.as_deref() {
+        None | Some("") | Some("all") => format!("{} erai-raws", query),
+        Some(enc) => format!("{} erai-raws {}", query, enc),
     };
 
     let mut last_err = String::new();
@@ -950,7 +955,10 @@ mod tests {
 
     #[test]
     fn test_is_valid_torrent_valid() {
-        assert!(is_valid_torrent("[Erai-raws] Anime Title [1080p][HEVC]", "/view/12345"));
+        assert!(is_valid_torrent(
+            "[Erai-raws] Anime Title [1080p][HEVC]",
+            "/view/12345"
+        ));
     }
 
     #[test]

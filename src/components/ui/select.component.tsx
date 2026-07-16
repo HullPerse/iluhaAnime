@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { createPortal } from "react-dom";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/index.utils";
@@ -13,7 +20,7 @@ function Select({
   arrow = true,
   disabled,
   searchable,
-  indexed = false
+  indexed = false,
 }: {
   value: string;
   onChange: (v: string) => void;

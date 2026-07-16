@@ -94,6 +94,7 @@ export interface TorrentTreeFile {
   name: string;
   displayName: string;
   size: number;
+  progress_bytes: number;
   completed: boolean;
   selected: boolean;
   priority: string;
@@ -127,6 +128,7 @@ export function buildTorrentTree(files: TorrentFileInfo[]): {
       name: file.name,
       displayName: fileName,
       size: file.size,
+      progress_bytes: file.progress_bytes,
       completed: file.completed,
       selected: file.selected,
       priority: file.priority,

@@ -3,7 +3,14 @@ import type { TorrentTreeNode, TorrentTreeFile } from "@/lib/torrent.utils";
 import type { TorrentFileInfo, FilePriority } from "@/types/torrent";
 import { useRef, useState, useCallback, useMemo } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { ChevronDown, ChevronRight, FolderOpen, Monitor } from "lucide-react";
+import { exists, remove } from "@tauri-apps/plugin-fs";
+import {
+  ChevronDown,
+  ChevronRight,
+  FolderOpen,
+  Monitor,
+  Trash,
+} from "lucide-react";
 import { openFileInPlayer } from "@/lib/media.utils";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
@@ -63,6 +70,7 @@ function TorrentFilesSection({
   onResume,
   extraFiles,
   onUpscaleDone,
+  onDeleteExtraFile,
 }: {
   id: number;
   files: TorrentFileInfo[];
@@ -77,6 +85,7 @@ function TorrentFilesSection({
   onResume?: () => void;
   extraFiles?: { name: string; size: number; fullPath: string }[];
   onUpscaleDone?: (filePath: string) => void;
+  onDeleteExtraFile?: () => void;
 }) {
   const [selected, setSelected] = useState<Set<number>>(
     () =>
@@ -137,6 +146,7 @@ function TorrentFilesSection({
             name: ef.name,
             displayName: ef.name,
             size: ef.size,
+            progress_bytes: ef.size,
             completed: true,
             selected: false,
             priority: "normal",
@@ -181,7 +191,7 @@ function TorrentFilesSection({
   return (
     <div
       ref={scrollRef}
-      className="windows95-border h-fit max-h-40 overflow-y-auto bg-white"
+      className="windows95-border h-fit max-h-40 overflow-y-auto bg-white py-0.5"
     >
       <div style={{ height: virtualizer.getTotalSize(), position: "relative" }}>
         {virtualizer.getVirtualItems().map((vItem) => {
@@ -261,7 +271,7 @@ function TorrentFilesSection({
               key={file.index}
               className={`flex items-center gap-1 px-1 w-full windows95-text select-none absolute top-0 left-0 ${type === "player" ? "" : "hover:bg-surface"}`}
               style={{
-                height: 20,
+                height: 18,
                 transform: `translateY(${vItem.start}px)`,
                 paddingLeft: `${item.depth * 12 + 2}px`,
               }}
@@ -278,6 +288,17 @@ function TorrentFilesSection({
               <span className="truncate flex-1" title={file.displayName}>
                 {file.displayName}
               </span>
+
+              {file.selected && !file.completed && file.size > 0 && (
+                <div className="w-10 h-2 bg-surface windows95-border shrink-0 ml-1">
+                  <div
+                    className="h-full bg-secondary transition-all duration-500"
+                    style={{
+                      width: `${Math.min(100, (file.progress_bytes / file.size) * 100)}%`,
+                    }}
+                  />
+                </div>
+              )}
 
               <span className="text-muted shrink-0">{fmtSize(file.size)}</span>
 
@@ -303,6 +324,36 @@ function TorrentFilesSection({
                   {(file as TorrentTreeFile & { _fullPath?: string })
                     ._fullPath ? (
                     <>
+                      <Button
+                        rendered={
+                          !!extraFiles?.find((e) => e.name === file.name)
+                        }
+                        title="Удалить"
+                        size="icon"
+                        className="size-4"
+                        onClick={async () => {
+                          const upscaledFile = extraFiles?.find(
+                            (e) => e.name === file.name,
+                          );
+
+                          if (!upscaledFile?.fullPath) return;
+
+                          const fileExists = await exists(
+                            upscaledFile.fullPath,
+                          );
+
+                          if (fileExists) {
+                            await remove(upscaledFile.fullPath);
+                          }
+
+                          onDeleteExtraFile?.();
+                        }}
+                        disabled={
+                          !extraFiles?.find((e) => e.name === file.name)
+                        }
+                      >
+                        <Trash className="size-2.5" />
+                      </Button>
                       <UpscalePlayer
                         filePath={
                           (file as TorrentTreeFile & { _fullPath: string })

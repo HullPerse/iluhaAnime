@@ -15,27 +15,46 @@ function findTheme(name: string, custom: ThemeDefinition[]): ThemeDefinition | u
   return THEMES.find((t) => t.name === name) ?? custom.find((t) => t.name === name);
 }
 
-function applyTheme(name: string, customThemes: ThemeDefinition[] = []) {
+export function applyTheme(name: string, customThemes: ThemeDefinition[] = []) {
   const theme = findTheme(name, customThemes);
   if (!theme) return;
   const root = document.documentElement;
   const c = theme.colors;
-  root.style.setProperty("--color-background", c.background);
-  root.style.setProperty("--color-primary", c.primary);
-  root.style.setProperty("--color-secondary", c.secondary);
-  root.style.setProperty("--color-text", c.text);
-  root.style.setProperty("--color-muted", c.muted);
-  root.style.setProperty("--color-highlight", c.highlight);
-  root.style.setProperty("--color-destructive", c.destructive);
-  root.style.setProperty("--color-success", c.success);
-  root.style.setProperty("--color-link-hover", c.linkHover);
-  root.style.setProperty("--color-surface", c.surface);
-  root.style.setProperty("--color-win-highlight", c.winHighlight);
-  root.style.setProperty("--color-win-shadow", c.winShadow);
+  root.style.setProperty("--color-background", c.background, "important");
+  root.style.setProperty("--color-primary", c.primary, "important");
+  root.style.setProperty("--color-secondary", c.secondary, "important");
+  root.style.setProperty("--color-text", c.text, "important");
+  root.style.setProperty("--color-muted", c.muted, "important");
+  root.style.setProperty("--color-highlight", c.highlight, "important");
+  root.style.setProperty("--color-destructive", c.destructive, "important");
+  root.style.setProperty("--color-success", c.success, "important");
+  root.style.setProperty("--color-link-hover", c.linkHover, "important");
+  root.style.setProperty("--color-surface", c.surface, "important");
+  root.style.setProperty("--color-win-highlight", c.winHighlight, "important");
+  root.style.setProperty("--color-win-shadow", c.winShadow, "important");
   root.style.setProperty(
     "--font-family",
     theme.fontFamily ?? "MS Sans Serif, Microsoft Sans Serif, Segoe UI, system-ui",
+    "important",
   );
+
+  try {
+    localStorage.setItem("themeVars", JSON.stringify({
+      background: c.background,
+      primary: c.primary,
+      secondary: c.secondary,
+      text: c.text,
+      muted: c.muted,
+      highlight: c.highlight,
+      destructive: c.destructive,
+      success: c.success,
+      linkHover: c.linkHover,
+      surface: c.surface,
+      winHighlight: c.winHighlight,
+      winShadow: c.winShadow,
+      fontFamily: theme.fontFamily ?? null,
+    }));
+  } catch {}
 }
 
 export function themeToJson(theme: ThemeDefinition): string {
@@ -105,7 +124,7 @@ export const useThemeStore = create<ThemeStore>()(
     }),
     {
       name: "themeState",
-      onRehydrateStorage: () => (state) => {
+      onRehydrateStorage: (state) => {
         if (state) applyTheme(state.currentTheme, state.customThemes);
       },
     },

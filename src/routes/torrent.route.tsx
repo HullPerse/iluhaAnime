@@ -2,9 +2,9 @@ import { Input } from "@/components/ui/input.component";
 import { Button } from "@/components/ui/button.component";
 import { fmtSpeed } from "@/lib/torrent.utils";
 import { useTorrentStore } from "@/store/download.store";
-import { listen } from "@tauri-apps/api/event";
 import { useSettingsStore } from "@/store/settings.store";
-import { useNotificationStore } from "@/store/notification.store";
+import { listen } from "@tauri-apps/api/event";
+
 import { useState, useEffect, useMemo, useRef } from "react";
 import { Plus, SortAsc, SortDesc } from "lucide-react";
 
@@ -76,7 +76,6 @@ function TorrentRoute() {
   }, [lifecycleTorrents, filterQuery, sortBy, sortAsc]);
 
   const fetchingRef = useRef<Set<number>>(new Set());
-  const prevFinishedRef = useRef<Set<number>>(new Set());
 
   useEffect(() => {
     const unlisten = listen<{ paths: string[] }>(
@@ -158,32 +157,6 @@ function TorrentRoute() {
         ? ` ↓${fmtSpeed(totalDl)} ↑${fmtSpeed(totalUl)}`
         : "";
     document.title = `iluhaAnime${suffix}`;
-
-    const settings = useSettingsStore.getState();
-    if (!settings.notificationsEnabled) {
-      prevFinishedRef.current = new Set(
-        torrents.filter((t) => t.finished).map((t) => t.id),
-      );
-      return;
-    }
-
-    const nowFinished = new Set<number>();
-    for (const t of torrents) {
-      if (t.finished && !prevFinishedRef.current.has(t.id)) {
-        nowFinished.add(t.id);
-      }
-    }
-    if (settings.notifyOnComplete) {
-      for (const id of nowFinished) {
-        const name = torrents.find((t) => t.id === id)?.name ?? "";
-        useNotificationStore
-          .getState()
-          .add("Загрузка завершена", "success", name);
-      }
-    }
-    prevFinishedRef.current = new Set(
-      torrents.filter((t) => t.finished).map((t) => t.id),
-    );
   }, [torrents]);
 
   const applySpeedLimits = () => {

@@ -77,9 +77,6 @@ function filterTreeByPaths(
 function PlayerRoute() {
   const torrents = useTorrentStore((state) => state.torrents);
   const torrentFilesMap = useTorrentStore((state) => state.torrentFilesMap);
-  const showTorrentsInPlayer = useSettingsStore(
-    (state) => state.showTorrentsInPlayer,
-  );
 
   const [folderTrees, setFolderTrees] = useState<FolderNode[]>([]);
   const [search, setSearch] = useState("");
@@ -91,9 +88,6 @@ function PlayerRoute() {
   const videoExtensions = useSettingsStore((s) => s.videoExtensions);
   const savedFolderPaths = useSettingsStore((s) => s.savedFolderPaths);
   const patch = useSettingsStore((s) => s.patch);
-  const [upscaledFiles, setUpscaledFiles] = useState<
-    Map<number, { name: string; size: number; fullPath: string }[]>
-  >(new Map());
   const [torrentLoading, setTorrentLoading] = useState<Set<number>>(new Set());
   const fetchingRef = useRef<Set<number>>(new Set());
   const scannedPathsRef = useRef<string[] | null>(null);
@@ -192,35 +186,6 @@ function PlayerRoute() {
       }
     } catch {}
   }, [rebuildIndex]);
-
-  useEffect(() => {
-    try {
-      const cached = localStorage.getItem("upscaledFilesCache");
-      if (cached) {
-        const parsed = JSON.parse(cached) as Record<
-          string,
-          { name: string; size: number; fullPath: string }[]
-        >;
-        const map = new Map<
-          number,
-          { name: string; size: number; fullPath: string }[]
-        >();
-        for (const [k, v] of Object.entries(parsed)) map.set(Number(k), v);
-        setUpscaledFiles(map);
-      }
-    } catch {}
-  }, []);
-
-  useEffect(() => {
-    if (upscaledFiles.size > 0) {
-      try {
-        const obj = Object.fromEntries(
-          Array.from(upscaledFiles.entries()).map(([k, v]) => [String(k), v]),
-        );
-        localStorage.setItem("upscaledFilesCache", JSON.stringify(obj));
-      } catch {}
-    }
-  }, [upscaledFiles]);
 
   useEffect(() => {
     if (savedFolderPaths.length === 0) return;
@@ -408,7 +373,7 @@ function PlayerRoute() {
 
       <section className="flex flex-row w-full h-8 windows95-active-border bg-primary gap-1 p-1 items-center">
         <FFMPEG status={ffmpegStatus} setStatus={setFfmpegStatus} />
-        <span className="ml-auto text-[10px] text-muted">v8.1</span>
+        <span className="ml-auto text-[10px] text-muted">v9.0</span>
       </section>
 
       {!loading && folderTrees.length > 0 && (
@@ -470,7 +435,6 @@ function PlayerRoute() {
       <QueuePanel />
 
       {!loading &&
-        showTorrentsInPlayer &&
         torrents.map((item) => (
           <TorrentFilesPlayerSection
             key={item.id}
@@ -478,27 +442,7 @@ function PlayerRoute() {
             files={torrentFilesMap[item.id]}
             isExpanded={expanded.has(item.id)}
             torrentLoading={torrentLoading.has(item.id)}
-            upscaledFiles={upscaledFiles.get(item.id) || []}
             onToggleExpand={() => toggleExpanded(item.id)}
-            onUpscaleDone={(filePath) => {
-              invoke<number>("get_file_size", { path: filePath }).then(
-                (size) => {
-                  setUpscaledFiles((prev) => {
-                    const next = new Map(prev);
-                    const existing = next.get(item.id) || [];
-                    if (existing.some((e) => e.fullPath === filePath))
-                      return prev;
-                    const name =
-                      filePath.replace(/\\/g, "/").split("/").pop() || filePath;
-                    next.set(item.id, [
-                      ...existing,
-                      { name, size, fullPath: filePath },
-                    ]);
-                    return next;
-                  });
-                },
-              );
-            }}
           />
         ))}
     </main>

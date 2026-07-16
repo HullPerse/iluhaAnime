@@ -22,11 +22,7 @@ impl FolderWatcher {
         }
     }
 
-    pub fn start(
-        &mut self,
-        app_handle: AppHandle,
-        folders: Vec<String>,
-    ) -> Result<(), String> {
+    pub fn start(&mut self, app_handle: AppHandle, folders: Vec<String>) -> Result<(), String> {
         self.cancel.store(false, Ordering::SeqCst);
         let cancel = self.cancel.clone();
 
@@ -47,29 +43,25 @@ impl FolderWatcher {
 
         // Bridge: blocking notify channel → tokio mpsc
         let cancel_bridge = cancel.clone();
-        tokio::task::spawn_blocking(move || {
-            loop {
-                match rx.recv() {
-                    Ok(Ok(event)) => {
-                        if matches!(
-                            event.kind,
-                            EventKind::Create(_)
-                                | EventKind::Modify(_)
-                                | EventKind::Remove(_)
-                        ) {
-                            if let Some(path) = event.paths.first() {
-                                if let Some(parent) = path.parent().map(|p| p.to_path_buf()) {
-                                    let _ = dirty_tx.send(parent);
-                                }
+        tokio::task::spawn_blocking(move || loop {
+            match rx.recv() {
+                Ok(Ok(event)) => {
+                    if matches!(
+                        event.kind,
+                        EventKind::Create(_) | EventKind::Modify(_) | EventKind::Remove(_)
+                    ) {
+                        if let Some(path) = event.paths.first() {
+                            if let Some(parent) = path.parent().map(|p| p.to_path_buf()) {
+                                let _ = dirty_tx.send(parent);
                             }
                         }
                     }
-                    Ok(Err(_)) => {}
-                    Err(_) => break,
                 }
-                if cancel_bridge.load(Ordering::SeqCst) {
-                    break;
-                }
+                Ok(Err(_)) => {}
+                Err(_) => break,
+            }
+            if cancel_bridge.load(Ordering::SeqCst) {
+                break;
             }
         });
 

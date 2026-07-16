@@ -1,10 +1,4 @@
-import {
-  useState,
-  useEffect,
-  ReactElement,
-  lazy,
-  Suspense,
-} from "react";
+import { useState, useEffect, ReactElement, lazy, Suspense } from "react";
 import { useTorrentStore } from "@/store/download.store";
 import { useSearchStore } from "@/store/search.store";
 import TorrentFilePicker from "@/routes/components/search/picker.search";
@@ -12,8 +6,14 @@ import { WindowLoader } from "./components/shared/loader.component";
 import { checkForUpdates } from "./lib/index.utils";
 import { getAction, KeybindAction } from "@/config/keybinds.config";
 import { useSettingsStore } from "@/store/settings.store";
+import { useNotificationStore } from "@/store/notification.store";
+import { applyTheme, useThemeStore } from "@/store/theme.store";
+import { checkNewEpisodes } from "@/lib/notifications.utils";
+import type { AnimeNotifyMode } from "@/lib/notifications.utils";
 import Updater from "./components/shared/updater.component";
 import { Update } from "@tauri-apps/plugin-updater";
+import { listen } from "@tauri-apps/api/event";
+import { invoke } from "@tauri-apps/api/core";
 import { useQuery } from "@tanstack/react-query";
 import Tabs from "./components/shared/tabs.component";
 import NotificationTray from "./components/shared/notification.component";
@@ -81,6 +81,14 @@ function App() {
     };
   }, [init]);
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const state = useThemeStore.getState();
+      applyTheme(state.currentTheme, state.customThemes);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, []);
+
   const visibleTabs = tabs;
 
   useEffect(() => {
@@ -126,6 +134,58 @@ function App() {
       }
     });
   }, []);
+
+  // Listen for backend show-notification events (torrent complete/error)
+  useEffect(() => {
+    const unlisten = listen<{ title: string; body: string; type: string }>(
+      "show-notification",
+      (event) => {
+        useNotificationStore
+          .getState()
+          .add(
+            event.payload.title,
+            event.payload.type as any,
+            event.payload.body,
+          );
+      },
+    );
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, []);
+
+  // Sync notification settings to backend
+  useEffect(() => {
+    const sync = () => {
+      const s = useSettingsStore.getState();
+      invoke("set_notification_settings", {
+        config: {
+          enabled: s.notificationsEnabled,
+          on_complete: s.notifyOnComplete,
+          on_error: s.notifyOnError,
+        },
+      }).catch(() => {});
+    };
+    sync();
+    return useSettingsStore.subscribe(sync);
+  }, []);
+
+  const APP_SESSION_START = Date.now();
+
+  // Check for new anime episodes
+  const animeNotifyMode = useSettingsStore((s) => s.animeNotifyMode);
+  useEffect(() => {
+    if (animeNotifyMode === "none") return;
+
+    checkNewEpisodes(APP_SESSION_START, animeNotifyMode as AnimeNotifyMode);
+
+    const interval = setInterval(
+      () =>
+        checkNewEpisodes(APP_SESSION_START, animeNotifyMode as AnimeNotifyMode),
+      30 * 60 * 1000,
+    );
+    return () => clearInterval(interval);
+  }, [animeNotifyMode]);
 
   const getComponent = () => {
     const tabMap = {

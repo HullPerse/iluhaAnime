@@ -1,4 +1,4 @@
-export type SettingsTab = "general" | "player" | "torrent" | "search" | "theme";
+export type SettingsTab = "general" | "torrent" | "network" | "search" | "theme" | "anilist";
 
 export type FFMPEGStatus = "checking" | "ok" | "missing" | "downloading";
 

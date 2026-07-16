@@ -46,9 +46,7 @@ async fn graphql_request(
     query: serde_json::Value,
     token: Option<&str>,
 ) -> Result<serde_json::Value, String> {
-    let mut builder = CLIENT
-        .post("https://graphql.anilist.co")
-        .json(&query);
+    let mut builder = CLIENT.post("https://graphql.anilist.co").json(&query);
     if let Some(t) = token {
         builder = builder.header("Authorization", format!("Bearer {t}"));
     }
@@ -82,7 +80,6 @@ pub struct AniRelation {
     pub relation_type: String,
     pub media: AniRelatedMedia,
 }
-
 
 #[derive(Debug, Serialize)]
 pub struct AniMedia {
@@ -128,8 +125,6 @@ pub struct AniListEntry {
     pub score: Option<f64>,
     pub list_status: String,
 }
-
-
 
 #[derive(Debug, Serialize)]
 pub struct AniCharacterNode {
@@ -256,37 +251,37 @@ fn parse_animedia(m: &serde_json::Value) -> AniMedia {
             })
             .unwrap_or_default(),
         relations: m["relations"]["edges"]
-                  .as_array()
-                  .map(|edges| {
-                      edges
-                          .iter()
-                          .map(|edge| {
-                              let rel_type = edge["relationType"]
-                                  .as_str()
-                                  .unwrap_or("UNKNOWN")
-                                  .to_string();
-                              let node = &edge["node"];
-                              let title = node["title"]["romaji"]
-                                  .as_str()
-                                  .or_else(|| node["title"]["english"].as_str())
-                                  .unwrap_or("Unknown");
-                              AniRelation {
-                                  relation_type: rel_type,
-                                  media: AniRelatedMedia {
-                                      id: node["id"].as_u64().unwrap_or(0),
-                                      title: title.to_string(),
-                                      cover_url: node["coverImage"]["medium"].as_str().map(String::from),
-                                      episodes: node["episodes"].as_i64().map(|n| n as i32),
-                                      score: node["averageScore"].as_i64().map(|n| n as i32),
-                                      format: node["format"].as_str().map(String::from),
-                                  },
-                              }
-                          })
-                          .collect()
-                  })
-                  .unwrap_or_default(),
-          }
-      }
+            .as_array()
+            .map(|edges| {
+                edges
+                    .iter()
+                    .map(|edge| {
+                        let rel_type = edge["relationType"]
+                            .as_str()
+                            .unwrap_or("UNKNOWN")
+                            .to_string();
+                        let node = &edge["node"];
+                        let title = node["title"]["romaji"]
+                            .as_str()
+                            .or_else(|| node["title"]["english"].as_str())
+                            .unwrap_or("Unknown");
+                        AniRelation {
+                            relation_type: rel_type,
+                            media: AniRelatedMedia {
+                                id: node["id"].as_u64().unwrap_or(0),
+                                title: title.to_string(),
+                                cover_url: node["coverImage"]["medium"].as_str().map(String::from),
+                                episodes: node["episodes"].as_i64().map(|n| n as i32),
+                                score: node["averageScore"].as_i64().map(|n| n as i32),
+                                format: node["format"].as_str().map(String::from),
+                            },
+                        }
+                    })
+                    .collect()
+            })
+            .unwrap_or_default(),
+    }
+}
 
 const MAX_PAGES: u32 = 3;
 
@@ -313,20 +308,26 @@ async fn fetch_paginated(
     let mut vars = variables.clone();
     vars["perPage"] = serde_json::json!(per_page);
 
-    let (mut all, total) = fetch_page(serde_json::json!({
-        "query": base_query,
-        "variables": vars,
-    }), per_page)
+    let (mut all, total) = fetch_page(
+        serde_json::json!({
+            "query": base_query,
+            "variables": vars,
+        }),
+        per_page,
+    )
     .await?;
 
     let pages = ((total + per_page - 1) / per_page).min(max_pages);
 
     for page in 2..=pages {
         vars["page"] = serde_json::json!(page);
-        if let Ok((media, _)) = fetch_page(serde_json::json!({
-            "query": base_query,
-            "variables": vars,
-        }), per_page)
+        if let Ok((media, _)) = fetch_page(
+            serde_json::json!({
+                "query": base_query,
+                "variables": vars,
+            }),
+            per_page,
+        )
         .await
         {
             all.extend(media);
@@ -630,16 +631,11 @@ fn parse_favourite_nodes(nodes: &[serde_json::Value]) -> Vec<FavouriteAnime> {
         .map(|n| FavouriteAnime {
             id: n["id"].as_i64().unwrap_or(0),
             title: AniTitle {
-                romaji: n["title"]["romaji"]
-                    .as_str()
-                    .unwrap_or("")
-                    .to_string(),
+                romaji: n["title"]["romaji"].as_str().unwrap_or("").to_string(),
                 english: n["title"]["english"].as_str().map(String::from),
             },
-            cover_image: n["coverImage"]["medium"].as_str().map(|s| {
-                AniImage {
-                    medium: Some(s.to_string()),
-                }
+            cover_image: n["coverImage"]["medium"].as_str().map(|s| AniImage {
+                medium: Some(s.to_string()),
             }),
             mean_score: n["meanScore"].as_f64(),
             format: n["format"].as_str().map(String::from),
@@ -987,7 +983,7 @@ pub async fn get_anilist_lists(
                                     duration: None,
                                     format: None,
                                     status: m["status"].as_str().unwrap_or("UNKNOWN").to_string(),
-        score: m["averageScore"].as_f64().map(|n| n.round() as i32),
+                                    score: m["averageScore"].as_f64().map(|n| n.round() as i32),
                                     genres: vec![],
                                     tags: vec![],
                                     description: None,
@@ -995,7 +991,9 @@ pub async fn get_anilist_lists(
                                     season: None,
                                     season_year: None,
                                     studios: vec![],
-                                    next_episode: m["nextAiringEpisode"]["episode"].as_i64().map(|n| n as i32),
+                                    next_episode: m["nextAiringEpisode"]["episode"]
+                                        .as_i64()
+                                        .map(|n| n as i32),
                                     next_airing_at: m["nextAiringEpisode"]["airingAt"].as_i64(),
                                     start_date: None,
                                     end_date: None,
@@ -1113,27 +1111,39 @@ pub async fn get_anilist_activity(user_ids: Vec<u64>) -> Result<Vec<AniActivity>
     let activities = json["data"]["Page"]["activities"]
         .as_array()
         .ok_or_else(|| "Failed to parse activities".to_string())?;
-    Ok(activities.iter().filter_map(|a| {
-        let user = &a["user"];
-        let a_type = if a["status"].is_string() { "list" } else { "text" };
-        if a_type == "list" && a["media"]["type"].as_str() != Some("ANIME") {
-            return None;
-        }
-        Some(AniActivity {
-            id: a["id"].as_u64().unwrap_or(0),
-            created_at: a["createdAt"].as_i64().unwrap_or(0),
-            activity_type: a_type.to_string(),
-            status: a["status"].as_str().map(String::from),
-            progress: a["progress"].as_str().map(String::from),
-            text: a["text"].as_str().map(String::from),
-            media_id: a["media"]["id"].as_u64(),
-            media_title: a["media"]["title"]["romaji"].as_str().or_else(|| a["media"]["title"]["english"].as_str()).map(String::from),
-            media_cover: a["media"]["coverImage"]["medium"].as_str().map(String::from),
-            user_id: user["id"].as_u64().unwrap_or(0),
-            user_name: user["name"].as_str().unwrap_or("").to_string(),
-            user_avatar: user["avatar"]["medium"].as_str().map(String::from),
+    Ok(activities
+        .iter()
+        .filter_map(|a| {
+            let user = &a["user"];
+            let a_type = if a["status"].is_string() {
+                "list"
+            } else {
+                "text"
+            };
+            if a_type == "list" && a["media"]["type"].as_str() != Some("ANIME") {
+                return None;
+            }
+            Some(AniActivity {
+                id: a["id"].as_u64().unwrap_or(0),
+                created_at: a["createdAt"].as_i64().unwrap_or(0),
+                activity_type: a_type.to_string(),
+                status: a["status"].as_str().map(String::from),
+                progress: a["progress"].as_str().map(String::from),
+                text: a["text"].as_str().map(String::from),
+                media_id: a["media"]["id"].as_u64(),
+                media_title: a["media"]["title"]["romaji"]
+                    .as_str()
+                    .or_else(|| a["media"]["title"]["english"].as_str())
+                    .map(String::from),
+                media_cover: a["media"]["coverImage"]["medium"]
+                    .as_str()
+                    .map(String::from),
+                user_id: user["id"].as_u64().unwrap_or(0),
+                user_name: user["name"].as_str().unwrap_or("").to_string(),
+                user_avatar: user["avatar"]["medium"].as_str().map(String::from),
+            })
         })
-    }).collect())
+        .collect())
 }
 
 #[tauri::command]
@@ -1164,16 +1174,19 @@ pub async fn get_anime_characters(id: u64, page: u64) -> Result<Vec<AniCharacter
     let edges = json["data"]["Media"]["characters"]["edges"]
         .as_array()
         .ok_or_else(|| "Failed to parse characters".to_string())?;
-    Ok(edges.iter().map(|e| AniCharacterEdge {
-        role: e["role"].as_str().unwrap_or("").to_string(),
-        character: {
-            let n = &e["node"];
-            AniCharacterNode {
-                id: n["id"].as_u64().unwrap_or(0),
-                name: n["name"]["full"].as_str().unwrap_or("").to_string(),
-                native_name: n["name"]["native"].as_str().map(String::from),
-                image: n["image"]["medium"].as_str().map(String::from),
-            }
-        },
-    }).collect())
+    Ok(edges
+        .iter()
+        .map(|e| AniCharacterEdge {
+            role: e["role"].as_str().unwrap_or("").to_string(),
+            character: {
+                let n = &e["node"];
+                AniCharacterNode {
+                    id: n["id"].as_u64().unwrap_or(0),
+                    name: n["name"]["full"].as_str().unwrap_or("").to_string(),
+                    native_name: n["name"]["native"].as_str().map(String::from),
+                    image: n["image"]["medium"].as_str().map(String::from),
+                }
+            },
+        })
+        .collect())
 }

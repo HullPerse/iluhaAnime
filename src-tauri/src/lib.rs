@@ -4,8 +4,6 @@ use std::collections::{HashMap, HashSet};
 use std::num::NonZeroU32;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
-#[cfg(windows)]
-use std::os::windows::process::CommandExt;
 use tauri::{Emitter, Manager};
 use tauri_plugin_notification::NotificationExt;
 use tauri_plugin_single_instance;
@@ -25,6 +23,23 @@ mod video;
 use file_index::FileEntry;
 use torrent::{FilePriority, TorrentFileInfo, TorrentInfo, TorrentInfoResult, TorrentManager};
 use video::CancelFlag;
+
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
+struct NotificationConfig {
+    enabled: bool,
+    on_complete: bool,
+    on_error: bool,
+}
+
+impl Default for NotificationConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            on_complete: true,
+            on_error: true,
+        }
+    }
+}
 
 struct TorrentBackend {
     manager: Arc<TorrentManager>,
@@ -200,13 +215,37 @@ async fn scan_video_folder(
 }
 
 #[tauri::command]
-fn open_in_player(player_path: String, file_path: String) -> Result<(), String> {
-    let mut cmd = std::process::Command::new(&player_path);
-    cmd.arg(&file_path);
-    #[cfg(windows)]
-    cmd.creation_flags(0x08000000);
-    cmd.spawn().map_err(|e| format!("{e}"))?;
-    Ok(())
+async fn scan_upscaled_files(path: String) -> Result<Vec<VideoFileEntry>, String> {
+    let entries = tokio::task::spawn_blocking(move || -> Result<Vec<VideoFileEntry>, String> {
+        let mut entries = Vec::new();
+        for entry in walkdir::WalkDir::new(&path).follow_links(true) {
+            let entry = entry.map_err(|e| format!("walkdir error: {e}"))?;
+            if entry.file_type().is_dir() {
+                continue;
+            }
+            let file_path = entry.path();
+            let name = file_path
+                .file_name()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .to_string();
+            if !name.to_lowercase().contains("_upscaled") {
+                continue;
+            }
+            let size = std::fs::metadata(file_path)
+                .map_err(|e| format!("metadata error: {e}"))?
+                .len();
+            entries.push(VideoFileEntry {
+                path: file_path.to_string_lossy().to_string(),
+                name,
+                size,
+            });
+        }
+        Ok(entries)
+    })
+    .await
+    .map_err(|e| format!("scan task failed: {e}"))??;
+    Ok(entries)
 }
 
 #[tauri::command]
@@ -228,6 +267,34 @@ async fn get_running_torrent_files(
     manager: tauri::State<'_, TorrentBackend>,
 ) -> Result<Vec<TorrentFileInfo>, String> {
     manager.manager.get_running_torrent_files(id)
+}
+
+#[tauri::command]
+async fn get_session_config(
+    manager: tauri::State<'_, TorrentBackend>,
+) -> Result<torrent::SessionConfig, String> {
+    Ok(manager.manager.get_session_config())
+}
+
+#[tauri::command]
+async fn save_session_config(
+    config: torrent::SessionConfig,
+    manager: tauri::State<'_, TorrentBackend>,
+) -> Result<(), String> {
+    manager.manager.save_session_config(config);
+    Ok(())
+}
+
+#[tauri::command]
+async fn create_torrent_from_folder(
+    folder_path: String,
+    manager: tauri::State<'_, TorrentBackend>,
+) -> Result<String, String> {
+    manager
+        .manager
+        .create_torrent_from_folder(folder_path)
+        .await
+        .map_err(|e| format!("{e:#}"))
 }
 
 #[tauri::command]
@@ -307,14 +374,26 @@ async fn search_file_index(
     Ok(indexer.search(&query, &extensions, limit).await)
 }
 
+#[tauri::command]
+async fn set_notification_settings(
+    config: NotificationConfig,
+    state: tauri::State<'_, std::sync::Mutex<NotificationConfig>>,
+) -> Result<(), String> {
+    let mut c = state.lock().map_err(|e| format!("{e}"))?;
+    *c = config;
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_single_instance::init(|app, _, _| {
-                    let _ = app.get_webview_window("main")
-                               .expect("no main window")
-                               .set_focus();
-                }))
+            let _ = app
+                .get_webview_window("main")
+                .expect("no main window")
+                .set_focus();
+        }))
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
@@ -344,42 +423,80 @@ pub fn run() {
                     .await
                     .expect("failed to initialize torrent session");
                 let manager = Arc::new(manager);
+                manager.start_http_api();
                 let app_clone = handle.clone();
                 let mgr_clone = manager.clone();
                 tokio::spawn(async move {
                     let mut prev_states: HashMap<usize, (bool, Option<String>)> = HashMap::new();
                     let mut cleanup_counter: u32 = 0;
+                    let mut first_run = true;
                     loop {
                         tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
                         let torrents = mgr_clone.collect_torrents();
                         let _ = app_clone.emit("torrents-update", &torrents);
 
-                        for t in &torrents {
-                            let prev = prev_states.get(&t.id);
-                            let prev_finished = prev.map(|(f, _)| *f).unwrap_or(false);
-                            let prev_error = prev.and_then(|(_, e)| e.clone());
-
-                            if t.finished && !prev_finished && t.total_bytes > 0 {
-                                let _ = app_clone
-                                    .notification()
-                                    .builder()
-                                    .title("Загрузка завершена")
-                                    .body(&t.name)
-                                    .show();
+                        if first_run {
+                            for t in &torrents {
+                                prev_states.insert(t.id, (t.finished, t.error.clone()));
                             }
+                            first_run = false;
+                        } else {
+                            let cfg_state =
+                                app_clone.state::<std::sync::Mutex<NotificationConfig>>();
+                            let cfg = cfg_state.lock().unwrap_or_else(|e| e.into_inner());
 
-                            if t.error.is_some() && prev_error.is_none() {
-                                let msg =
-                                    format!("{}: {}", t.name, t.error.as_deref().unwrap_or(""));
-                                let _ = app_clone
-                                    .notification()
-                                    .builder()
-                                    .title("Ошибка загрузки")
-                                    .body(&msg)
-                                    .show();
+                            for t in &torrents {
+                                let prev = prev_states.get(&t.id);
+                                let prev_finished = prev.map(|(f, _)| *f).unwrap_or(false);
+                                let prev_error = prev.and_then(|(_, e)| e.clone());
+
+                                if cfg.enabled {
+                                    if cfg.on_complete
+                                        && t.finished
+                                        && !prev_finished
+                                        && t.total_bytes > 0
+                                    {
+                                        let _ = app_clone
+                                            .notification()
+                                            .builder()
+                                            .title("Загрузка завершена")
+                                            .body(&t.name)
+                                            .show();
+                                        let _ = app_clone.emit(
+                                            "show-notification",
+                                            serde_json::json!({
+                                                "title": "Загрузка завершена",
+                                                "body": &t.name,
+                                                "type": "success",
+                                            }),
+                                        );
+                                    }
+
+                                    if cfg.on_error && t.error.is_some() && prev_error.is_none() {
+                                        let msg = format!(
+                                            "{}: {}",
+                                            t.name,
+                                            t.error.as_deref().unwrap_or("")
+                                        );
+                                        let _ = app_clone
+                                            .notification()
+                                            .builder()
+                                            .title("Ошибка загрузки")
+                                            .body(&msg)
+                                            .show();
+                                        let _ = app_clone.emit(
+                                            "show-notification",
+                                            serde_json::json!({
+                                                "title": "Ошибка загрузки",
+                                                "body": &msg,
+                                                "type": "error",
+                                            }),
+                                        );
+                                    }
+                                }
+
+                                prev_states.insert(t.id, (t.finished, t.error.clone()));
                             }
-
-                            prev_states.insert(t.id, (t.finished, t.error.clone()));
                         }
 
                         let current_ids: HashSet<usize> = torrents.iter().map(|t| t.id).collect();
@@ -405,6 +522,7 @@ pub fn run() {
                         }
                     }
                 });
+                handle.manage(std::sync::Mutex::new(NotificationConfig::default()));
                 handle.manage(TorrentBackend { manager });
                 handle.manage(CancelFlag(Arc::new(AtomicBool::new(false))));
                 handle.manage(progress::StreamRegistry::new());
@@ -459,11 +577,14 @@ pub fn run() {
             resume_torrent,
             remove_torrent,
             scan_video_folder,
+            scan_upscaled_files,
             start_watching_folders,
             stop_watching_folders,
-            open_in_player,
             set_global_speed_limits,
             get_running_torrent_files,
+            get_session_config,
+            save_session_config,
+            create_torrent_from_folder,
             update_torrent_only_files,
             set_file_priority,
             set_sequential_download,
@@ -472,8 +593,8 @@ pub fn run() {
             read_file_bytes,
             get_file_size,
             rebuild_file_index,
+            set_notification_settings,
             search_file_index,
-
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

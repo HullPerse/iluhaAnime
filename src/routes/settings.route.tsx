@@ -1,30 +1,33 @@
-import { useState } from "react";
+import { ReactNode, useState } from "react";
 import Tabs from "@/components/shared/tabs.component";
 import type { SettingsTab } from "@/types";
 
 import SettingsGeneral from "@/routes/components/settings/general.settings";
-import SettingsPlayer from "@/routes/components/settings/player.settings";
 import SettingsTorrent from "@/routes/components/settings/torrent.settings";
+import SettingsNetwork from "@/routes/components/settings/network.settings";
 import SettingsSearch from "@/routes/components/settings/search.settings";
 import SettingsTheme from "@/routes/components/settings/theme.settings";
+import SettingsAniList from "@/routes/components/settings/anilist.settings";
 
 const tabs: { id: SettingsTab; label: string }[] = [
   { id: "general", label: "Общие" },
-  { id: "player", label: "Плеер" },
-  { id: "torrent", label: "Торренты" },
   { id: "search", label: "Поиск" },
+  { id: "torrent", label: "Торренты" },
+  { id: "network", label: "Сеть" },
+  { id: "anilist", label: "AniList" },
   { id: "theme", label: "Оформление" },
 ];
 
 export default function SettingsRoute() {
   const [activeTab, setActiveTab] = useState<SettingsTab>("general");
 
-  const components: Record<SettingsTab, React.ReactNode> = {
+  const components: Record<SettingsTab, ReactNode> = {
     general: <SettingsGeneral />,
-    player: <SettingsPlayer />,
     torrent: <SettingsTorrent />,
+    network: <SettingsNetwork />,
     search: <SettingsSearch />,
     theme: <SettingsTheme />,
+    anilist: <SettingsAniList />,
   };
 
   return (

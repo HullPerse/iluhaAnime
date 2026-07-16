@@ -22,13 +22,8 @@ impl FileIndexer {
         }
     }
 
-    pub async fn rebuild(
-        &self,
-        paths: Vec<String>,
-        extensions: Vec<String>,
-    ) -> Result<(), String> {
-        let ext_set: HashSet<String> =
-            extensions.into_iter().map(|e| e.to_lowercase()).collect();
+    pub async fn rebuild(&self, paths: Vec<String>, extensions: Vec<String>) -> Result<(), String> {
+        let ext_set: HashSet<String> = extensions.into_iter().map(|e| e.to_lowercase()).collect();
 
         let mut entries = Vec::new();
 
@@ -64,16 +59,10 @@ impl FileIndexer {
         Ok(())
     }
 
-    pub async fn search(
-        &self,
-        query: &str,
-        extensions: &[String],
-        limit: usize,
-    ) -> Vec<FileEntry> {
+    pub async fn search(&self, query: &str, extensions: &[String], limit: usize) -> Vec<FileEntry> {
         let index = self.index.read().await;
         let q = query.to_lowercase();
-        let ext_set: HashSet<String> =
-            extensions.iter().map(|e| e.to_lowercase()).collect();
+        let ext_set: HashSet<String> = extensions.iter().map(|e| e.to_lowercase()).collect();
 
         let mut results: Vec<(i32, &FileEntry)> = index
             .iter()

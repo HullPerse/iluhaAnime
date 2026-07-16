@@ -41,6 +41,7 @@ export interface TorrentFileInfo {
   index: number;
   name: string;
   size: number;
+  progress_bytes: number;
   completed: boolean;
   selected: boolean;
   priority: FilePriority;

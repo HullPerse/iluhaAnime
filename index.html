@@ -4,6 +4,27 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      try {
+        var v = JSON.parse(localStorage.getItem("themeVars") || "{}");
+        if (v.background) {
+          var r = document.documentElement;
+          r.style.setProperty("--color-background", v.background, "important");
+          r.style.setProperty("--color-primary", v.primary, "important");
+          r.style.setProperty("--color-secondary", v.secondary, "important");
+          r.style.setProperty("--color-text", v.text, "important");
+          r.style.setProperty("--color-muted", v.muted, "important");
+          r.style.setProperty("--color-highlight", v.highlight, "important");
+          r.style.setProperty("--color-destructive", v.destructive, "important");
+          r.style.setProperty("--color-success", v.success, "important");
+          r.style.setProperty("--color-link-hover", v.linkHover, "important");
+          r.style.setProperty("--color-surface", v.surface, "important");
+          r.style.setProperty("--color-win-highlight", v.winHighlight, "important");
+          r.style.setProperty("--color-win-shadow", v.winShadow, "important");
+          if (v.fontFamily) r.style.setProperty("--font-family", v.fontFamily, "important");
+        }
+      } catch (e) {}
+    </script>
     <title>Tauri + React + Typescript</title>
   </head>
 

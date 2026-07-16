@@ -7,6 +7,7 @@ export interface SettingsStore {
   notificationsEnabled: boolean;
   notifyOnComplete: boolean;
   notifyOnError: boolean;
+  animeNotifyMode: "none" | "inapp" | "system_when_open";
   defaultSearchSource: string;
   visibleSources: string[];
   resultsPerPage: number;
@@ -18,7 +19,6 @@ export interface SettingsStore {
   audioExtensions: string[];
   subtitleExtensions: string[];
   showTrackFiles: "hide" | "torrent" | "folders";
-  showTorrentsInPlayer: boolean;
   modalAnimation: boolean;
   enable3dBorders: boolean;
   buttonPressEffect: boolean;
@@ -27,9 +27,16 @@ export interface SettingsStore {
   showWallpaper: boolean;
   modalBackdropOpacity: number;
   customScrollbar: boolean;
-  mediaPlayer: string;
-  customPlayers: string[];
   savedFolderPaths: string[];
+  httpApiPort: number;
+  ipv4Only: boolean;
+  peerConnectTimeout: number;
+  peerReadWriteTimeout: number;
+  listenPort: number;
+  enableUpnp: boolean;
+  enableMdns: boolean;
+  fastresumeEnabled: boolean;
+  disablePersistence: boolean;
   patch: (partial: Partial<SettingsStore>) => void;
 }
 
@@ -41,6 +48,7 @@ export const useSettingsStore = create<SettingsStore>()(
       notificationsEnabled: true,
       notifyOnComplete: true,
       notifyOnError: true,
+      animeNotifyMode: "none",
       defaultSearchSource: "erai-raws",
       visibleSources: ["erai-raws", "rutracker", "nyaa", "nekobt"],
       resultsPerPage: 20,
@@ -52,7 +60,6 @@ export const useSettingsStore = create<SettingsStore>()(
       audioExtensions: ["mp3", "flac", "aac", "ogg", "wav", "opus", "m4a", "wma"],
       subtitleExtensions: ["srt", "ass", "ssa", "vtt", "sub", "idx", "sup", "pgs"],
       showTrackFiles: "hide",
-      showTorrentsInPlayer: true,
       modalAnimation: true,
       enable3dBorders: true,
       buttonPressEffect: true,
@@ -61,12 +68,33 @@ export const useSettingsStore = create<SettingsStore>()(
       showWallpaper: true,
       modalBackdropOpacity: 50,
       customScrollbar: true,
-      mediaPlayer: "default",
-      customPlayers: [],
       savedFolderPaths: [],
+      httpApiPort: 11200,
+      ipv4Only: false,
+      peerConnectTimeout: 30,
+      peerReadWriteTimeout: 30,
+      listenPort: 0,
+      enableUpnp: false,
+      enableMdns: false,
+      fastresumeEnabled: true,
+      disablePersistence: false,
 
       patch: (partial) => set(partial),
     }),
-    { name: "settings" },
+    {
+      name: "settings",
+      version: 1,
+      migrate: (persistedState: unknown, version: number) => {
+        if (version === 0 && persistedState && typeof persistedState === "object") {
+          const s = persistedState as Record<string, unknown>;
+          if ("animeNotificationsEnabled" in s) {
+            const old = s.animeNotificationsEnabled;
+            (s as Record<string, unknown>).animeNotifyMode = old === true ? "system_when_open" : "none";
+            delete (s as Record<string, unknown>).animeNotificationsEnabled;
+          }
+        }
+        return persistedState as SettingsStore;
+      },
+    },
   ),
 );

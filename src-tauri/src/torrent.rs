@@ -21,6 +21,7 @@ pub struct TorrentFileInfo {
     pub index: usize,
     pub name: String,
     pub size: u64,
+    pub progress_bytes: u64,
     pub completed: bool,
     pub selected: bool,
     pub priority: FilePriority,
@@ -56,6 +57,37 @@ pub struct TorrentInfo {
     pub sequential_download: bool,
 }
 
+#[derive(Serialize, Deserialize, Clone)]
+pub struct SessionConfig {
+    pub fastresume: bool,
+    #[serde(rename = "ipv4Only")]
+    pub ipv4_only: bool,
+    #[serde(rename = "peerConnectTimeout")]
+    pub peer_connect_timeout_secs: u64,
+    #[serde(rename = "peerReadWriteTimeout")]
+    pub peer_read_write_timeout_secs: u64,
+    #[serde(rename = "listenPort")]
+    pub listen_port: u16,
+    #[serde(rename = "enableUpnp")]
+    pub enable_upnp: bool,
+    #[serde(rename = "disablePersistence")]
+    pub disable_persistence: bool,
+}
+
+impl Default for SessionConfig {
+    fn default() -> Self {
+        Self {
+            fastresume: true,
+            ipv4_only: false,
+            peer_connect_timeout_secs: 30,
+            peer_read_write_timeout_secs: 30,
+            listen_port: 0,
+            enable_upnp: false,
+            disable_persistence: false,
+        }
+    }
+}
+
 pub struct TorrentManager {
     pub session: Arc<Session>,
     pub save_dirs: Mutex<SaveDirsMap>,
@@ -63,6 +95,9 @@ pub struct TorrentManager {
     pub sequential_torrents: Mutex<HashSet<usize>>,
     pub file_priorities: Mutex<HashMap<usize, Vec<FilePriority>>>,
     pub pending_selections: Mutex<HashMap<usize, Vec<usize>>>,
+    pub session_config: Mutex<SessionConfig>,
+    pub session_dir: PathBuf,
+    pub session_config_path: PathBuf,
 }
 
 fn is_safe_path_component(name: &str) -> bool {
@@ -85,9 +120,48 @@ impl TorrentManager {
             .and_then(|json| serde_json::from_str::<SaveDirsMap>(&json).ok())
             .unwrap_or_default();
 
+        let session_config_path = app_data_dir.join("session_config.json");
+        let session_config = std::fs::read_to_string(&session_config_path)
+            .ok()
+            .and_then(|json| serde_json::from_str::<SessionConfig>(&json).ok())
+            .unwrap_or_default();
+
+        let persistence = if session_config.disable_persistence {
+            None
+        } else {
+            Some(SessionPersistenceConfig::Json {
+                folder: Some(session_dir.clone()),
+            })
+        };
+
+        use std::net::{Ipv4Addr, Ipv6Addr};
+        let listen_addr: std::net::SocketAddr = if session_config.ipv4_only {
+            (Ipv4Addr::UNSPECIFIED, session_config.listen_port).into()
+        } else {
+            (Ipv6Addr::UNSPECIFIED, session_config.listen_port).into()
+        };
         let opts = SessionOptions {
-            persistence: Some(SessionPersistenceConfig::Json {
-                folder: Some(session_dir),
+            persistence,
+            fastresume: session_config.fastresume,
+            ipv4_only: session_config.ipv4_only,
+            listen: Some(ListenerOptions {
+                listen_addr,
+                enable_upnp_port_forwarding: session_config.enable_upnp,
+                ipv4_only: session_config.ipv4_only,
+                ..Default::default()
+            }),
+            connect: Some(ConnectionOptions {
+                enable_tcp: true,
+                peer_opts: Some(PeerConnectionOptions {
+                    connect_timeout: Some(std::time::Duration::from_secs(
+                        session_config.peer_connect_timeout_secs,
+                    )),
+                    read_write_timeout: Some(std::time::Duration::from_secs(
+                        session_config.peer_read_write_timeout_secs,
+                    )),
+                    keep_alive_interval: None,
+                }),
+                ..Default::default()
             }),
             ..Default::default()
         };
@@ -103,6 +177,9 @@ impl TorrentManager {
             sequential_torrents: Mutex::new(HashSet::new()),
             file_priorities: Mutex::new(HashMap::new()),
             pending_selections: Mutex::new(HashMap::new()),
+            session_config: Mutex::new(session_config),
+            session_dir,
+            session_config_path,
         };
         manager.cleanup_unselected_files();
         Ok(manager)
@@ -113,6 +190,17 @@ impl TorrentManager {
         if let Ok(json) = serde_json::to_string(&*map) {
             let _ = std::fs::write(&self.save_dirs_path, &json);
         }
+    }
+
+    pub fn get_session_config(&self) -> SessionConfig {
+        self.session_config.lock().unwrap().clone()
+    }
+
+    pub fn save_session_config(&self, config: SessionConfig) {
+        if let Ok(json) = serde_json::to_string(&config) {
+            let _ = std::fs::write(&self.session_config_path, &json);
+        }
+        *self.session_config.lock().unwrap() = config;
     }
 
     pub fn collect_torrents(&self) -> Vec<TorrentInfo> {
@@ -231,10 +319,7 @@ impl TorrentManager {
             only_files: only_files.clone(),
             ..Default::default()
         };
-        let response = self
-            .session
-            .add_torrent(add_torrent, Some(opts))
-            .await?;
+        let response = self.session.add_torrent(add_torrent, Some(opts)).await?;
 
         let id = match response {
             AddTorrentResponse::Added(id, _) => {
@@ -304,26 +389,17 @@ impl TorrentManager {
             _ => return Err("unexpected response from add_torrent".to_string()),
         };
 
-        let name = list_only
-            .info
-            .name
-            .as_ref()
-            .and_then(|n| std::str::from_utf8(n.as_ref()).ok())
-            .map(|s| s.to_owned())
-            .unwrap_or_default();
+        let name = list_only.info.name().unwrap_or_default().to_string();
 
         let files: Vec<TorrentFileInfo> = list_only
             .info
             .iter_file_details()
-            .map_err(|e| format!("error reading file info: {e}"))?
             .enumerate()
             .map(|(i, d)| TorrentFileInfo {
                 index: i,
-                name: d
-                    .filename
-                    .to_string()
-                    .unwrap_or_else(|_| format!("file_{i}")),
+                name: format!("{}", d.filename),
                 size: d.len,
+                progress_bytes: 0,
                 completed: false,
                 selected: true,
                 priority: FilePriority::Normal,
@@ -418,6 +494,89 @@ impl TorrentManager {
         Ok(())
     }
 
+    pub fn start_http_api(self: &Arc<Self>) {
+        use librqbit::api::Api;
+        use librqbit::http_api::{HttpApi, HttpApiOptions};
+
+        let api = Api::new(self.session.clone(), None, None);
+        let http_opts = HttpApiOptions {
+            read_only: false,
+            basic_auth: None,
+            allow_create: true,
+            prometheus_handle: None,
+        };
+        let http_api = HttpApi::new(api, Some(http_opts));
+        let addr: std::net::SocketAddr = ([127, 0, 0, 1], 11200).into();
+        let listener =
+            match librqbit_dualstack_sockets::TcpListener::bind_tcp(addr, Default::default()) {
+                Ok(l) => l,
+                Err(e) => {
+                    eprintln!("error binding HTTP API server: {e}");
+                    return;
+                }
+            };
+        tokio::spawn(async move {
+            if let Err(e) = http_api.make_http_api_and_run(listener, None).await {
+                eprintln!("HTTP API stopped: {e:#}");
+            }
+        });
+    }
+
+    pub async fn create_torrent_from_folder(
+        self: &Arc<Self>,
+        folder_path: String,
+    ) -> Result<String> {
+        use std::path::Path;
+        let stat = tokio::fs::metadata(&folder_path)
+            .await
+            .context("path does not exist")?;
+        if !stat.is_dir() {
+            anyhow::bail!("not a directory");
+        }
+        let folder = Path::new(&folder_path);
+        let name = folder
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_default();
+        let torrent_path = self.session_dir.join(format!("{name}.torrent"));
+        let result = create_torrent(
+            folder,
+            CreateTorrentOptions {
+                name: Some(&name),
+                ..Default::default()
+            },
+            &librqbit::spawn_utils::BlockingSpawner::new(1),
+        )
+        .await
+        .context("error creating torrent from folder")?;
+        let bytes = result.as_bytes().context("error serializing torrent")?;
+        let parent = folder.parent().unwrap_or(folder);
+        let add = AddTorrent::from_local_filename(torrent_path.to_str().unwrap())
+            .context("error reading torrent file")?;
+        tokio::fs::write(&torrent_path, bytes).await.ok();
+        let opts = AddTorrentOptions {
+            output_folder: Some(parent.to_string_lossy().to_string()),
+            overwrite: true,
+            ..Default::default()
+        };
+        let response = self
+            .session
+            .add_torrent(add, Some(opts))
+            .await
+            .context("error adding torrent from folder")?;
+        match response {
+            AddTorrentResponse::Added(id, _) => {
+                self.save_dirs
+                    .lock()
+                    .unwrap()
+                    .insert(id, parent.to_string_lossy().to_string());
+                self.save_save_dirs();
+                Ok(torrent_path.to_string_lossy().to_string())
+            }
+            _ => anyhow::bail!("failed to add torrent from folder"),
+        }
+    }
+
     pub fn set_global_limits(
         &self,
         download_bps: Option<NonZeroU32>,
@@ -497,6 +656,7 @@ impl TorrentManager {
                                             index: i,
                                             name: f.relative_filename.to_string_lossy().to_string(),
                                             size: f.len,
+                                            progress_bytes: progress,
                                             completed,
                                             selected,
                                             priority,

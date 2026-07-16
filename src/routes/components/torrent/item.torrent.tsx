@@ -8,7 +8,14 @@ import { openPath } from "@tauri-apps/plugin-opener";
 import TorrentFilesSection from "./file.torrent";
 import { useState } from "react";
 import {
-  Pause, Play, Trash, FolderOpen, ChevronDown, ChevronRight, Check, RefreshCw,
+  Pause,
+  Play,
+  Trash,
+  FolderOpen,
+  ChevronDown,
+  ChevronRight,
+  Check,
+  RefreshCw,
 } from "lucide-react";
 
 interface Props {
@@ -117,7 +124,11 @@ export default function TorrentItem({
 
       <section className="flex flex-row items-start justify-between gap-1 w-full">
         <div className="flex w-full flex-col">
-          <ProgressBar value={item.progress_bytes} max={item.total_bytes} />
+          <ProgressBar
+            value={item.progress_bytes}
+            max={item.total_bytes}
+            className="h-3"
+          />
           <div className="flex items-center gap-1">
             <span className="windows95-text text-muted">
               {!item.finished ? stateLabel(item.state) : "Завершено"}
@@ -133,7 +144,9 @@ export default function TorrentItem({
               {fmtETA(item.eta_secs)}
             </span>
             <span className="flex flex-row ml-auto">
-              {(item.upload_speed > 0 || item.uploaded_bytes > 0 || item.peers_connected > 0) && (
+              {(item.upload_speed > 0 ||
+                item.uploaded_bytes > 0 ||
+                item.peers_connected > 0) && (
                 <div className="flex items-center gap-1">
                   {item.upload_speed > 0 && (
                     <span className="text-[10px] text-muted windows95-font">
@@ -162,7 +175,11 @@ export default function TorrentItem({
             className="flex items-center gap-1 windows95-text cursor-pointer hover:bg-surface px-0.5 py-0.5 w-full text-left"
             onClick={onToggleExpand}
           >
-            {isExpanded ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
+            {isExpanded ? (
+              <ChevronDown className="size-3" />
+            ) : (
+              <ChevronRight className="size-3" />
+            )}
             {`Файлы (${files.filter((f) => f.completed).length} / ${files.length})`}
             {files.some((f) => !f.exists) && (
               <span className="text-destructive ml-1">
@@ -176,7 +193,9 @@ export default function TorrentItem({
               files={files}
               type="torrent"
               onToggle={(_id, indices) => onUpdateFiles(indices)}
-              onFilePriorityChange={(_id, indices, p) => onFilePriorityChange(indices, p)}
+              onFilePriorityChange={(_id, indices, p) =>
+                onFilePriorityChange(indices, p)
+              }
               onResume={isPaused ? onResume : undefined}
             />
           )}
@@ -185,7 +204,9 @@ export default function TorrentItem({
 
       {item.error && (
         <div className="mt-1 flex items-center gap-1">
-          <span className="text-[10px] text-destructive windows95-font">{item.error}</span>
+          <span className="text-[10px] text-destructive windows95-font">
+            {item.error}
+          </span>
           <Button
             size="icon"
             className="size-4 ml-auto"

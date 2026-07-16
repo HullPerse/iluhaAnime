@@ -1,8 +1,8 @@
 use futures::StreamExt;
 use serde::Serialize;
-use tauri::Emitter;
 #[cfg(windows)]
 use std::os::windows::process::CommandExt;
+use tauri::Emitter;
 
 use super::video;
 
@@ -128,7 +128,11 @@ pub async fn download_ffmpeg(app_handle: tauri::AppHandle) -> Result<String, Str
         let mut archive = tar::Archive::new(decoder);
         for entry in archive.entries().map_err(|e| format!("tar entries: {e}"))? {
             let mut entry = entry.map_err(|e| format!("tar entry: {e}"))?;
-            let path = entry.path().map_err(|e| format!("entry path: {e}"))?.to_string_lossy().to_string();
+            let path = entry
+                .path()
+                .map_err(|e| format!("entry path: {e}"))?
+                .to_string_lossy()
+                .to_string();
             let normalized = path.replace('\\', "/");
             for (in_archive, out_path) in &targets {
                 if normalized.ends_with(in_archive) || normalized.contains(in_archive) {
@@ -140,7 +144,10 @@ pub async fn download_ffmpeg(app_handle: tauri::AppHandle) -> Result<String, Str
         }
         for (_, out_path) in &targets {
             if !out_path.exists() {
-                return Err(format!("{:?} not found in archive", out_path.file_name().unwrap_or_default()));
+                return Err(format!(
+                    "{:?} not found in archive",
+                    out_path.file_name().unwrap_or_default()
+                ));
             }
         }
     }
@@ -265,7 +272,10 @@ mod tests {
         }
         #[cfg(not(any(target_os = "windows", target_os = "linux")))]
         {
-            assert_eq!(result.unwrap_err(), "ffmpeg auto-download is only supported on Windows and Linux");
+            assert_eq!(
+                result.unwrap_err(),
+                "ffmpeg auto-download is only supported on Windows and Linux"
+            );
         }
     }
 }

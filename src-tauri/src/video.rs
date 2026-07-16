@@ -1,9 +1,9 @@
 use serde::Serialize;
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex, OnceLock};
 #[cfg(windows)]
 use std::os::windows::process::CommandExt;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex, OnceLock};
 use tauri::{Emitter, Manager};
 use tokio::io::{AsyncBufReadExt, AsyncReadExt};
 use tokio::process::Command;
@@ -100,8 +100,8 @@ async fn get_video_duration(app_handle: &tauri::AppHandle, path: &str) -> Result
         c.creation_flags(0x08000000);
         c.output()
     }
-        .await
-        .map_err(|e| format!("ffprobe not found: {e}"))?;
+    .await
+    .map_err(|e| format!("ffprobe not found: {e}"))?;
 
     if !output.status.success() {
         return Err("ffprobe failed".to_string());
@@ -113,16 +113,16 @@ async fn get_video_duration(app_handle: &tauri::AppHandle, path: &str) -> Result
         .parse::<f64>()
         .map_err(|_| "parse duration failed".to_string())?;
 
-    if let Ok(mut map) = VIDEO_DURATION_CACHE.get_or_init(|| Mutex::new(HashMap::new())).lock() {
+    if let Ok(mut map) = VIDEO_DURATION_CACHE
+        .get_or_init(|| Mutex::new(HashMap::new()))
+        .lock()
+    {
         map.insert(path.to_string(), duration);
     }
     Ok(duration)
 }
 
-fn build_encoder_args(
-    gpu_backend: &str,
-    quality: &str,
-) -> Vec<String> {
+fn build_encoder_args(gpu_backend: &str, quality: &str) -> Vec<String> {
     let (_preset, crf) = match quality {
         "ultrafast" => ("ultrafast", "28"),
         "fast" => ("fast", "23"),
@@ -190,7 +190,10 @@ fn build_encoder_args(
     }
 }
 
-async fn get_video_dimensions(app_handle: &tauri::AppHandle, path: &str) -> Result<(u32, u32), String> {
+async fn get_video_dimensions(
+    app_handle: &tauri::AppHandle,
+    path: &str,
+) -> Result<(u32, u32), String> {
     let output = {
         let mut c = Command::new(ffprobe_exe(app_handle));
         c.args([
@@ -208,8 +211,8 @@ async fn get_video_dimensions(app_handle: &tauri::AppHandle, path: &str) -> Resu
         c.creation_flags(0x08000000);
         c.output()
     }
-        .await
-        .map_err(|e| format!("ffprobe not found: {e}"))?;
+    .await
+    .map_err(|e| format!("ffprobe not found: {e}"))?;
 
     if !output.status.success() {
         return Err("ffprobe failed".to_string());
@@ -221,8 +224,14 @@ async fn get_video_dimensions(app_handle: &tauri::AppHandle, path: &str) -> Resu
     if parts.len() < 2 {
         return Err(format!("parse dimensions failed: {clean:?}"));
     }
-    let w: u32 = parts[0].trim().parse().map_err(|_| format!("parse width failed: {:?}", parts[0]))?;
-    let h: u32 = parts[1].trim().parse().map_err(|_| format!("parse height failed: {:?}", parts[1]))?;
+    let w: u32 = parts[0]
+        .trim()
+        .parse()
+        .map_err(|_| format!("parse width failed: {:?}", parts[0]))?;
+    let h: u32 = parts[1]
+        .trim()
+        .parse()
+        .map_err(|_| format!("parse height failed: {:?}", parts[1]))?;
     Ok((w, h))
 }
 
@@ -260,7 +269,9 @@ pub async fn upscale_video(
         },
     );
 
-    let duration = get_video_duration(&app_handle, &input_path).await.unwrap_or(0.0);
+    let duration = get_video_duration(&app_handle, &input_path)
+        .await
+        .unwrap_or(0.0);
     let _ = app_handle.emit(
         "upscale-progress",
         UpscaleProgress {
@@ -303,7 +314,10 @@ pub async fn upscale_video(
             let has_target = target_w > 0 && target_h > 0;
 
             if is_last && has_target {
-                vf_parts.push(format!("libplacebo=custom_shader_path={}:w={}:h={}", filename, target_w, target_h));
+                vf_parts.push(format!(
+                    "libplacebo=custom_shader_path={}:w={}:h={}",
+                    filename, target_w, target_h
+                ));
             } else {
                 vf_parts.push(format!("libplacebo=custom_shader_path={}", filename));
             }
@@ -398,7 +412,10 @@ pub async fn upscale_video(
             }
         }
 
-        let status = child.wait().await.map_err(|e| format!("wait ffmpeg: {e}"))?;
+        let status = child
+            .wait()
+            .await
+            .map_err(|e| format!("wait ffmpeg: {e}"))?;
 
         let stderr = match child_stderr {
             Some(handle) => {
@@ -610,8 +627,7 @@ pub async fn check_gpu_encoders(app_handle: tauri::AppHandle) -> Vec<String> {
         #[cfg(windows)]
         c.creation_flags(0x08000000);
         c.output()
-    }
-    {
+    } {
         Ok(o) if o.status.success() => o,
         _ => return available,
     };
@@ -632,9 +648,7 @@ pub async fn check_gpu_encoders(app_handle: tauri::AppHandle) -> Vec<String> {
 }
 
 #[tauri::command]
-pub async fn cancel_upscale(
-    cancel_flag: tauri::State<'_, CancelFlag>,
-) -> Result<(), String> {
+pub async fn cancel_upscale(cancel_flag: tauri::State<'_, CancelFlag>) -> Result<(), String> {
     cancel_flag.0.store(true, Ordering::SeqCst);
     Ok(())
 }

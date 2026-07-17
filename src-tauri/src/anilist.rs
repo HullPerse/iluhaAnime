@@ -1,4 +1,6 @@
+use futures::future::join_all;
 use serde::Serialize;
+use std::collections::HashSet;
 use std::fs;
 use std::path::PathBuf;
 use std::sync::LazyLock;
@@ -895,6 +897,9 @@ pub async fn get_anime_by_id(id: u64) -> Result<AniMedia, String> {
     });
     let json = graphql_request(body, None).await?;
     let m = &json["data"]["Media"];
+    if m.is_null() {
+        return Err(format!("Anime with id {id} not found"));
+    }
     Ok(parse_animedia(m))
 }
 
@@ -1029,7 +1034,10 @@ pub async fn get_anilist_lists(
                                     genres: vec![],
                                     tags: vec![],
                                     description: None,
-                                    cover_url: m["coverImage"]["medium"].as_str().map(String::from),
+        cover_url: m["coverImage"]["large"]
+            .as_str()
+            .or_else(|| m["coverImage"]["medium"].as_str())
+            .map(String::from),
                                     season: None,
                                     season_year: None,
                                     studios: vec![],
@@ -1395,5 +1403,158 @@ pub async fn get_staff_characters(id: u64) -> Result<AniStaffDetail, String> {
         image: s["image"]["medium"].as_str().map(String::from),
         characters,
         media,
+    })
+}
+
+#[derive(Debug, Serialize)]
+pub struct FranchiseNode {
+    pub id: u64,
+    pub title: String,
+    pub cover_url: Option<String>,
+    pub episodes: Option<i32>,
+    pub score: Option<i32>,
+    pub format: Option<String>,
+    pub media_type: Option<String>,
+    pub year: Option<i32>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct FranchiseEdge {
+    pub source: u64,
+    pub target: u64,
+    pub relation_type: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct FranchiseGraph {
+    pub root_id: u64,
+    pub nodes: Vec<FranchiseNode>,
+    pub edges: Vec<FranchiseEdge>,
+}
+
+const MAX_FRANCHISE_NODES: usize = 200;
+const MAX_FRANCHISE_DEPTH: usize = 12;
+
+struct FetchedFranchiseNode {
+    node: FranchiseNode,
+    targets: Vec<(u64, String, Option<String>, Option<i32>)>,
+}
+
+async fn fetch_franchise_node(id: u64) -> Result<FetchedFranchiseNode, String> {
+    let body = serde_json::json!({
+        "query": r#"
+            query ($id: Int) {
+                Media(id: $id, type: ANIME) {
+                    id
+                    title { romaji english }
+                    coverImage { large medium }
+                    episodes, averageScore, format, type
+                    startDate { year }
+                    relations {
+                        edges {
+                            relationType
+                            node { id title { romaji english } coverImage { large medium } episodes averageScore format type startDate { year } }
+                        }
+                    }
+                }
+            }
+        "#,
+        "variables": { "id": id }
+    });
+    let json = graphql_request(body, None).await?;
+    let m = &json["data"]["Media"];
+    let node = FranchiseNode {
+        id: m["id"].as_u64().unwrap_or(0),
+        title: m["title"]["romaji"]
+            .as_str()
+            .or_else(|| m["title"]["english"].as_str())
+            .unwrap_or("Unknown")
+            .to_string(),
+        cover_url: m["coverImage"]["medium"].as_str().map(String::from),
+        episodes: m["episodes"].as_i64().map(|n| n as i32),
+        score: m["averageScore"].as_i64().map(|n| n as i32),
+        format: m["format"].as_str().map(String::from),
+        media_type: m["type"].as_str().map(String::from),
+        year: m["startDate"]["year"].as_i64().map(|n| n as i32),
+    };
+    let targets = m["relations"]["edges"]
+        .as_array()
+        .map(|edges| {
+            edges
+                .iter()
+                .map(|edge| {
+                    let target_id = edge["node"]["id"].as_u64().unwrap_or(0);
+                    let rel_type = edge["relationType"]
+                        .as_str()
+                        .unwrap_or("UNKNOWN")
+                        .to_string();
+                    let media_type = edge["node"]["type"].as_str().map(String::from);
+                    (target_id, rel_type, media_type, edge["node"]["startDate"]["year"].as_i64().map(|n| n as i32))
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    Ok(FetchedFranchiseNode { node, targets })
+}
+
+#[tauri::command]
+pub async fn get_anime_franchise(id: u64) -> Result<FranchiseGraph, String> {
+    let mut nodes: Vec<FranchiseNode> = Vec::new();
+    let mut edges: Vec<FranchiseEdge> = Vec::new();
+    let mut visited: HashSet<u64> = HashSet::new();
+
+    let mut frontier: Vec<u64> = vec![id];
+    visited.insert(id);
+
+    for depth in 0..=MAX_FRANCHISE_DEPTH {
+        if frontier.is_empty() || nodes.len() >= MAX_FRANCHISE_NODES {
+            break;
+        }
+
+        let results = join_all(frontier.iter().map(|&fid| fetch_franchise_node(fid))).await;
+
+        let mut next_frontier: Vec<u64> = Vec::new();
+
+        for result in results {
+            if nodes.len() >= MAX_FRANCHISE_NODES {
+                break;
+            }
+            let data = match result {
+                Ok(d) => d,
+                Err(_) => continue,
+            };
+
+            let node_id = data.node.id;
+            nodes.push(data.node);
+
+            if depth < MAX_FRANCHISE_DEPTH {
+                for (target_id, rel_type, media_type, _year) in data.targets {
+                    if media_type.as_deref() != Some("ANIME") {
+                        continue;
+                    }
+                    let is_main = rel_type == "SEQUEL" || rel_type == "PREQUEL";
+                    edges.push(FranchiseEdge {
+                        source: node_id,
+                        target: target_id,
+                        relation_type: rel_type,
+                    });
+                    if is_main
+                        && !visited.contains(&target_id)
+                        && next_frontier.len() + nodes.len() < MAX_FRANCHISE_NODES
+                    {
+                        visited.insert(target_id);
+                        next_frontier.push(target_id);
+                    }
+                }
+            }
+        }
+
+        frontier = next_frontier;
+    }
+
+    Ok(FranchiseGraph {
+        root_id: id,
+        nodes,
+        edges,
     })
 }

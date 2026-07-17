@@ -1,5 +1,15 @@
+import {
+  EDGE_STYLES,
+  FILTER_GROUPS,
+  RELATION_X,
+} from "@/config/anilist.config";
 import { HexType } from "@/types";
-import { AniListEntry, AniListSort } from "@/types/anilist";
+import {
+  AniListEntry,
+  AniListSort,
+  FranchiseGraph,
+  RelationFilter,
+} from "@/types/anilist";
 
 export const statusLabels: Record<string, string> = {
   FINISHED: "Завершён",
@@ -128,4 +138,66 @@ export function getStatusColor(status: AniListEntry["list_status"]): HexType {
   };
 
   return statusMap[status] ?? "#888";
+}
+
+export function getEdgeStyle(relType: string) {
+  return EDGE_STYLES[relType] ?? { color: "#bdc3c7", dash: "2,2", width: 0.75 };
+}
+
+export function filterGraph(
+  graph: FranchiseGraph,
+  filters: Set<RelationFilter>,
+) {
+  const filteredEdges = graph.edges.filter((e) =>
+    Array.from(filters).some((g) => FILTER_GROUPS[g].includes(e.relation_type)),
+  );
+  const ids = new Set<number>([graph.root_id]);
+  filteredEdges.forEach((e) => {
+    ids.add(e.source);
+    ids.add(e.target);
+  });
+  const nodeMap = new Map(
+    graph.nodes
+      .filter(
+        (n) =>
+          ids.has(n.id) &&
+          (n.id === graph.root_id ||
+            n.media_type === "ANIME" ||
+            n.media_type == null),
+      )
+      .map((n) => [n.id, n]),
+  );
+  const edges = filteredEdges.filter(
+    (e) => nodeMap.has(e.source) && nodeMap.has(e.target),
+  );
+  return { edges, ids, nodeMap };
+}
+
+export function getClusterX(
+  nodeId: number,
+  rootId: number,
+  containerW: number,
+  edges: { source: number; target: number; relation_type: string }[],
+): number {
+  if (nodeId === rootId) return containerW / 2;
+
+  const edge = edges.find(
+    (e) =>
+      (e.source === rootId && e.target === nodeId) ||
+      (e.target === rootId && e.source === nodeId),
+  );
+  if (edge) {
+    const ratio = RELATION_X[edge.relation_type] ?? 0.5;
+    return containerW * ratio;
+  }
+
+  const indirect = edges.find(
+    (e) => e.source === nodeId || e.target === nodeId,
+  );
+  if (indirect) {
+    const ratio = RELATION_X[indirect.relation_type] ?? 0.5;
+    return containerW * ratio;
+  }
+
+  return containerW / 2;
 }

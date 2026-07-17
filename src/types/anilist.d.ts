@@ -182,10 +182,45 @@ export interface SearchFilters {
   score: [number, number];
 }
 
+export interface FranchiseNode {
+  id: number;
+  title: string;
+  cover_url: string | null;
+  episodes: number | null;
+  score: number | null;
+  format: string | null;
+  media_type: string | null;
+  year: number | null;
+}
+
+export interface FranchiseEdge {
+  source: number;
+  target: number;
+  relation_type: string;
+}
+
+export interface FranchiseGraph {
+  root_id: number;
+  nodes: FranchiseNode[];
+  edges: FranchiseEdge[];
+}
+
 export interface Props {
   open: boolean;
   filters: SearchFilters;
   onApply: (filters: SearchFilters) => void;
   onReset: () => void;
   onClose: () => void;
+}
+
+export type RelationFilter = (typeof RELATION_FILTERS)[number];
+
+export interface SimNode {
+  id: number;
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  fy?: number;
+  clusterX: number;
 }

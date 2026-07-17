@@ -29,6 +29,10 @@ export default defineConfig(async () => ({
     include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
   },
 
+  optimizeDeps: {
+    include: ["d3-force"],
+  },
+
   server: {
     port: 1420,
     host: "127.0.0.1",

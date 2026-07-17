@@ -583,6 +583,7 @@ pub fn run() {
             anilist::get_character_media,
             anilist::get_staff_characters,
             anilist::get_anilist_activity,
+            anilist::get_anime_franchise,
             start_torrent_download,
             get_torrent_info,
             list_torrents,

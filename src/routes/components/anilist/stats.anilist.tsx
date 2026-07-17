@@ -207,7 +207,7 @@ function StatsModal({
                     <span
                       className={`text-[10px] leading-tight px-1 ${
                         isToday
-                          ? "bg-secondary text-white font-bold rounded-none"
+                          ? "bg-secondary text-white font-bold"
                           : isWeekend
                             ? "text-destructive font-bold"
                             : "text-text font-bold"

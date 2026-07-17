@@ -17,26 +17,13 @@ import AniListActionControls from "./controls.anilist";
 import AniListMetadata from "./metadata.anilist";
 import AniListCharactersPanel from "./characters.anilist";
 import AniListCharacterDetailModal from "./details.characters";
+import FranchiseGraphSection from "./franchise.anilist";
 import { useState } from "react";
 import type { AniMedia, AniVoiceActor } from "@/types/anilist";
 
 const SUPPORTED_RELATION_TYPES = new Set(["ANIME"]);
 import ImageComponent from "@/components/ui/image.component";
-
-const RELATION_LABELS: Record<string, string> = {
-  SEQUEL: "Сиквел",
-  PREQUEL: "Приквел",
-  ADAPTATION: "Адаптация",
-  SIDE_STORY: "Сайд-стори",
-  CHARACTER: "Персонаж",
-  SUMMARY: "Сводка",
-  ALTERNATIVE: "Альтернатива",
-  SPIN_OFF: "Спин-офф",
-  PARENT: "Родительская",
-  CONTAINS: "Содержит",
-  SOURCE: "Источник",
-  OTHER: "Другое",
-};
+import { RELATION_LABEL } from "@/config/anilist.config";
 
 function AniListDetailModal({
   animeId,
@@ -74,6 +61,7 @@ function AniListDetailModal({
   const setCrossSearchQuery = useSearchStore((s) => s.setCrossSearchQuery);
 
   const [showRelations, setShowRelations] = useState<boolean>(false);
+  const [showFranchise, setShowFranchise] = useState<boolean>(false);
   const [showDesc, setShowDesc] = useState<boolean>(false);
   const [selectedCharacter, setSelectedCharacter] = useState<{
     id: number;
@@ -91,10 +79,17 @@ function AniListDetailModal({
     setFavLoading(false);
   };
 
-  const { data: anime, isLoading } = useQuery({
+  const {
+    data: anime,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useQuery({
     queryKey: ["anime_detail", animeId],
     queryFn: () => invoke<AniMedia>("get_anime_by_id", { id: animeId }),
     staleTime: 1000 * 60 * 60,
+    retry: 1,
   });
 
   const handleSearchTorrents = (query?: string) => {
@@ -109,12 +104,29 @@ function AniListDetailModal({
       onBack={onBack}
       className="min-w-2xl"
     >
-      {isLoading || !anime ? (
-        <div className="flex items-center justify-center flex-1">
+      {isLoading ? (
+        <section className="flex items-center justify-center flex-1">
           <Loader className="size-6 animate-spin windows95-text" />
-        </div>
+        </section>
+      ) : isError ? (
+        <section className="flex flex-col items-center justify-center flex-1 gap-2 p-4">
+          <span className="windows95-text text-destructive text-center">
+            {String(error ?? "") || "Не удалось загрузить данные"}
+          </span>
+          <Button
+            onClick={() => refetch()}
+            className="px-2 py-0.5 windows95-text bg-primary windows95-active-border cursor-pointer"
+            variant="ghost"
+          >
+            Повторить
+          </Button>
+        </section>
+      ) : !anime ? (
+        <section className="flex items-center justify-center flex-1">
+          <Loader className="size-6 animate-spin windows95-text" />
+        </section>
       ) : (
-        <div className="flex flex-col gap-2">
+        <section className="flex flex-col gap-2">
           <div className="flex flex-row gap-2 items-start">
             <div className="flex-1">
               <AniListMetadata
@@ -213,14 +225,20 @@ function AniListDetailModal({
                       </span>
                       <div className="flex flex-col text-[9px]">
                         <span className="flex flex-row gap-1 ml-1">
-                          {`[ ${RELATION_LABELS[r.relation_type] ?? r.relation_type} ]`}
+                          {`[ ${RELATION_LABEL[r.relation_type] ?? r.relation_type} ]`}
                         </span>
                         <span>
                           · Формат: {r.media.format && <> {r.media.format}</>}
                         </span>
 
                         <span className="flex flex-row gap-1">
-                          · Рейтинг: {r.media.score && <> <Star className="size-2 inline" /> {r.media.score}</>}
+                          · Рейтинг:{" "}
+                          {r.media.score && (
+                            <>
+                              {" "}
+                              <Star className="size-2 inline" /> {r.media.score}
+                            </>
+                          )}
                         </span>
                         <span className="flex flex-row gap-1">
                           · Эпизоды:
@@ -232,6 +250,19 @@ function AniListDetailModal({
                 ))}
             </Section>
           )}
+
+          <Section
+            header="Франшиза"
+            className="bg-white"
+            expanded={showFranchise}
+            onExpand={() => setShowFranchise((prev) => !prev)}
+          >
+            <FranchiseGraphSection
+              animeId={anime.id}
+              onRelated={onRelated}
+              expanded={showFranchise}
+            />
+          </Section>
 
           {anime.description && (
             <Section
@@ -339,7 +370,7 @@ function AniListDetailModal({
               onClose={onClose}
             />
           )}
-        </div>
+        </section>
       )}
 
       {selectedCharacter && (

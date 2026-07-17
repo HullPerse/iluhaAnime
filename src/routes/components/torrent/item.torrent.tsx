@@ -1,3 +1,4 @@
+import { memo, useState } from "react";
 import type { TorrentInfo, TorrentFileInfo } from "@/types/torrent";
 import ProgressBar from "@/components/shared/progress.component";
 import { Button } from "@/components/ui/button.component";
@@ -6,7 +7,6 @@ import { ConfirmDialog } from "@/components/shared/confirm.component";
 import { fmtSize, fmtETA, fmtSpeed, stateLabel } from "@/lib/torrent.utils";
 import { openPath } from "@tauri-apps/plugin-opener";
 import TorrentFilesSection from "./file.torrent";
-import { useState } from "react";
 import {
   Pause,
   Play,
@@ -34,7 +34,7 @@ interface Props {
   onRedownload: (fileIndex: number) => void;
 }
 
-export default function TorrentItem({
+function TorrentItem({
   item,
   files,
   isExpanded,
@@ -184,7 +184,7 @@ export default function TorrentItem({
         <section>
           <div
             role="button"
-            className="flex items-center gap-1 windows95-text cursor-pointer hover:bg-surface px-0.5 py-0.5 w-full text-left"
+            className="flex items-center gap-1 windows95-text cursor-pointer hover:bg-surface px-0.5 py-0.5 w-full text-left select-none"
             onClick={onToggleExpand}
           >
             {isExpanded ? (
@@ -253,3 +253,23 @@ export default function TorrentItem({
     </div>
   );
 }
+
+export default memo(TorrentItem, (prev, next) => {
+  if (prev.item.id !== next.item.id) return false;
+  if (prev.item.progress !== next.item.progress) return false;
+  if (prev.item.state !== next.item.state) return false;
+  if (prev.item.download_speed !== next.item.download_speed) return false;
+  if (prev.item.upload_speed !== next.item.upload_speed) return false;
+  if (prev.item.uploaded_bytes !== next.item.uploaded_bytes) return false;
+  if (prev.item.total_bytes !== next.item.total_bytes) return false;
+  if (prev.item.progress_bytes !== next.item.progress_bytes) return false;
+  if (prev.item.finished !== next.item.finished) return false;
+  if (prev.item.eta_secs !== next.item.eta_secs) return false;
+  if (prev.item.error !== next.item.error) return false;
+  if (prev.item.peers_connected !== next.item.peers_connected) return false;
+  if (prev.item.sequential_download !== next.item.sequential_download)
+    return false;
+  if (prev.isExpanded !== next.isExpanded) return false;
+  if (prev.files !== next.files) return false;
+  return true;
+});

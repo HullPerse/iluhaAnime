@@ -58,6 +58,14 @@ export interface PickerTorrent {
   hasCommonFolder: boolean;
 }
 
+export interface CachedTorrentMeta {
+  name: string;
+  files: TorrentFileInfo[];
+  conflictingFiles: string[];
+  hasCommonFolder: boolean;
+  savedAt: number;
+}
+
 export interface TorrentStore {
   torrents: TorrentInfo[];
   dlLimit: number | null;
@@ -66,6 +74,7 @@ export interface TorrentStore {
   pendingTorrent: PickerTorrent | null;
   preparingTorrent: boolean;
   torrentFilesMap: Record<number, TorrentFileInfo[]>;
+  metadataCache: Map<string, CachedTorrentMeta>;
 
   init: () => Promise<() => void>;
   seedPreferences: Record<number, boolean>;

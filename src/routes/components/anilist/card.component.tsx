@@ -1,3 +1,4 @@
+import { memo } from "react";
 import type { AniMedia, AniListAnime } from "@/types/anilist";
 import {
   getStatusLabel,
@@ -16,7 +17,7 @@ interface Props {
   onClick: (anime: AniListAnime) => void;
 }
 
-export default function AniListEntryCard({
+function AniListEntryCard({
   item,
   entryLookup,
   onClick,
@@ -111,3 +112,14 @@ export default function AniListEntryCard({
     </div>
   );
 }
+
+export default memo(AniListEntryCard, (prev, next) => {
+  if (prev.item.id !== next.item.id) return false;
+  if (prev.item.score !== next.item.score) return false;
+  if (prev.item.episodes !== next.item.episodes) return false;
+  if (prev.item.title !== next.item.title) return false;
+  if (prev.item.status !== next.item.status) return false;
+  if (prev.item.cover_url !== next.item.cover_url) return false;
+  if (prev.entryLookup !== next.entryLookup) return false;
+  return true;
+});

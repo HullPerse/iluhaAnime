@@ -202,6 +202,7 @@ function FolderView({
 
               const file = item.file;
               const disabled = isDisabled(file.name);
+
               return (
                 <div
                   key={index}

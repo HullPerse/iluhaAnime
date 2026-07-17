@@ -1,13 +1,12 @@
 use std::collections::{HashMap, HashSet};
 use std::num::NonZeroU32;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use anyhow::{Context, Result};
+use dashmap::{DashMap, DashSet};
 use librqbit::*;
 use serde::{Deserialize, Serialize};
-
-type SaveDirsMap = HashMap<usize, String>;
 
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq)]
 #[serde(rename_all = "snake_case")]
@@ -90,12 +89,12 @@ impl Default for SessionConfig {
 
 pub struct TorrentManager {
     pub session: Arc<Session>,
-    pub save_dirs: Mutex<SaveDirsMap>,
+    pub save_dirs: DashMap<usize, String>,
     pub save_dirs_path: PathBuf,
-    pub sequential_torrents: Mutex<HashSet<usize>>,
-    pub file_priorities: Mutex<HashMap<usize, Vec<FilePriority>>>,
-    pub pending_selections: Mutex<HashMap<usize, Vec<usize>>>,
-    pub session_config: Mutex<SessionConfig>,
+    pub sequential_torrents: DashSet<usize>,
+    pub file_priorities: DashMap<usize, Vec<FilePriority>>,
+    pub pending_selections: DashMap<usize, Vec<usize>>,
+    pub session_config: tokio::sync::Mutex<SessionConfig>,
     pub session_dir: PathBuf,
     pub session_config_path: PathBuf,
 }
@@ -115,9 +114,9 @@ impl TorrentManager {
         tokio::fs::create_dir_all(&session_dir).await.ok();
 
         let save_dirs_path = app_data_dir.join("save_dirs.json");
-        let save_dirs = std::fs::read_to_string(&save_dirs_path)
+        let save_dirs: HashMap<usize, String> = std::fs::read_to_string(&save_dirs_path)
             .ok()
-            .and_then(|json| serde_json::from_str::<SaveDirsMap>(&json).ok())
+            .and_then(|json| serde_json::from_str(&json).ok())
             .unwrap_or_default();
 
         let session_config_path = app_data_dir.join("session_config.json");
@@ -172,12 +171,12 @@ impl TorrentManager {
 
         let manager = Self {
             session,
-            save_dirs: Mutex::new(save_dirs),
+            save_dirs: save_dirs.into_iter().collect(),
             save_dirs_path,
-            sequential_torrents: Mutex::new(HashSet::new()),
-            file_priorities: Mutex::new(HashMap::new()),
-            pending_selections: Mutex::new(HashMap::new()),
-            session_config: Mutex::new(session_config),
+            sequential_torrents: DashSet::new(),
+            file_priorities: DashMap::new(),
+            pending_selections: DashMap::new(),
+            session_config: tokio::sync::Mutex::new(session_config),
             session_dir,
             session_config_path,
         };
@@ -186,21 +185,22 @@ impl TorrentManager {
     }
 
     fn save_save_dirs(&self) {
-        let map = self.save_dirs.lock().unwrap();
-        if let Ok(json) = serde_json::to_string(&*map) {
+        let map: HashMap<usize, String> =
+            self.save_dirs.iter().map(|r| (*r.key(), r.value().clone())).collect();
+        if let Ok(json) = serde_json::to_string(&map) {
             let _ = std::fs::write(&self.save_dirs_path, &json);
         }
     }
 
     pub fn get_session_config(&self) -> SessionConfig {
-        self.session_config.lock().unwrap().clone()
+        self.session_config.blocking_lock().clone()
     }
 
     pub fn save_session_config(&self, config: SessionConfig) {
         if let Ok(json) = serde_json::to_string(&config) {
             let _ = std::fs::write(&self.session_config_path, &json);
         }
-        *self.session_config.lock().unwrap() = config;
+        *self.session_config.blocking_lock() = config;
     }
 
     pub fn collect_torrents(&self) -> Vec<TorrentInfo> {
@@ -228,14 +228,8 @@ impl TorrentManager {
                     None
                 };
 
-                let save_dir = self
-                    .save_dirs
-                    .lock()
-                    .unwrap()
-                    .get(&id)
-                    .cloned()
-                    .unwrap_or_default();
-                let sequential_download = self.sequential_torrents.lock().unwrap().contains(&id);
+                let save_dir = self.save_dirs.get(&id).map(|r| r.clone()).unwrap_or_default();
+                let sequential_download = self.sequential_torrents.contains(&id);
 
                 result.push(TorrentInfo {
                     id,
@@ -327,16 +321,12 @@ impl TorrentManager {
 
         let id = match response {
             AddTorrentResponse::Added(id, _) => {
-                self.save_dirs.lock().unwrap().insert(id, output_folder);
+                self.save_dirs.insert(id, output_folder);
                 self.save_save_dirs();
                 id
             }
             AddTorrentResponse::AlreadyManaged(id, _) => {
-                self.save_dirs
-                    .lock()
-                    .unwrap()
-                    .entry(id)
-                    .or_insert(output_folder);
+                self.save_dirs.entry(id).or_insert(output_folder);
                 self.save_save_dirs();
                 id
             }
@@ -344,10 +334,7 @@ impl TorrentManager {
         };
         self.cleanup_unselected_files();
         if let Some(ref files) = only_files {
-            self.pending_selections
-                .lock()
-                .unwrap()
-                .insert(id, files.clone());
+            self.pending_selections.insert(id, files.clone());
         }
         Ok(id)
     }
@@ -358,13 +345,7 @@ impl TorrentManager {
         magnet: String,
         only_files: Option<Vec<usize>>,
     ) -> Result<usize, String> {
-        let save_dir = self
-            .save_dirs
-            .lock()
-            .unwrap()
-            .get(&id)
-            .cloned()
-            .unwrap_or_default();
+        let save_dir = self.save_dirs.get(&id).map(|r| r.clone()).unwrap_or_default();
         self.remove_torrent(id, false)
             .await
             .map_err(|e| format!("{e:#}"))?;
@@ -382,7 +363,7 @@ impl TorrentManager {
     pub async fn redownload_file(
         self: &Arc<Self>,
         id: usize,
-        _file_index: usize,
+        file_index: usize,
         info_hash: String,
     ) -> Result<usize, String> {
         let selected_indices = {
@@ -393,9 +374,33 @@ impl TorrentManager {
                 .map(|f| f.index)
                 .collect::<Vec<_>>()
         };
+
         let magnet = format!("magnet:?xt=urn:btih:{}", info_hash);
-        self.replace_torrent(id, magnet, Some(selected_indices))
-            .await
+        let new_id = self
+            .replace_torrent(id, magnet, Some(vec![file_index]))
+            .await?;
+
+        {
+            let set: HashSet<usize> = selected_indices.into_iter().collect();
+            let handle_opt = self.session.with_torrents(|iter| {
+                for (tid, handle) in iter {
+                    if tid == new_id {
+                        return Some(handle.clone());
+                    }
+                }
+                None
+            });
+            if let Some(handle) = handle_opt {
+                self.session
+                    .update_only_files(&handle, &set)
+                    .await
+                    .map_err(|e| format!("{e}"))?;
+                self.cleanup_unselected_files();
+                self.pending_selections.remove(&new_id);
+            }
+        }
+
+        Ok(new_id)
     }
 
     pub async fn get_torrent_info(
@@ -536,10 +541,10 @@ impl TorrentManager {
 
     pub async fn remove_torrent(self: &Arc<Self>, id: usize, delete_files: bool) -> Result<()> {
         self.session.delete(id.into(), delete_files).await?;
-        self.save_dirs.lock().unwrap().remove(&id);
-        self.sequential_torrents.lock().unwrap().remove(&id);
-        self.file_priorities.lock().unwrap().remove(&id);
-        self.pending_selections.lock().unwrap().remove(&id);
+        self.save_dirs.remove(&id);
+        self.sequential_torrents.remove(&id);
+        self.file_priorities.remove(&id);
+        self.pending_selections.remove(&id);
         self.save_save_dirs();
         Ok(())
     }
@@ -616,10 +621,7 @@ impl TorrentManager {
             .context("error adding torrent from folder")?;
         match response {
             AddTorrentResponse::Added(id, _) => {
-                self.save_dirs
-                    .lock()
-                    .unwrap()
-                    .insert(id, parent.to_string_lossy().to_string());
+                self.save_dirs.insert(id, parent.to_string_lossy().to_string());
                 self.save_save_dirs();
                 Ok(torrent_path.to_string_lossy().to_string())
             }
@@ -647,38 +649,33 @@ impl TorrentManager {
                         .with_metadata(|m| {
                             let file_count = m.file_infos.len();
 
-                            {
-                                let mut priorities = self.file_priorities.lock().unwrap();
-                                if !priorities.contains_key(&id) {
-                                    let pending =
-                                        self.pending_selections.lock().unwrap().remove(&id);
-                                    if let Some(selected) = pending {
-                                        let mut p = vec![FilePriority::DoNotDownload; file_count];
-                                        for &idx in &selected {
-                                            if idx < file_count {
-                                                p[idx] = FilePriority::Normal;
-                                            }
+                            if !self.file_priorities.contains_key(&id) {
+                                if let Some(selected) = self.pending_selections.remove(&id) {
+                                    let mut p = vec![FilePriority::DoNotDownload; file_count];
+                                    for &idx in &selected.1 {
+                                        if idx < file_count {
+                                            p[idx] = FilePriority::Normal;
                                         }
-                                        priorities.insert(id, p);
-                                    } else if let Some(only) = h.only_files() {
-                                        let mut p = vec![FilePriority::DoNotDownload; file_count];
-                                        for &idx in &only {
-                                            if idx < file_count {
-                                                p[idx] = FilePriority::Normal;
-                                            }
-                                        }
-                                        priorities.insert(id, p);
-                                    } else {
-                                        priorities
-                                            .insert(id, vec![FilePriority::Normal; file_count]);
                                     }
+                                    self.file_priorities.insert(id, p);
+                                } else if let Some(only) = h.only_files() {
+                                    let mut p = vec![FilePriority::DoNotDownload; file_count];
+                                    for &idx in &only {
+                                        if idx < file_count {
+                                            p[idx] = FilePriority::Normal;
+                                        }
+                                    }
+                                    self.file_priorities.insert(id, p);
+                                } else {
+                                    self.file_priorities
+                                        .insert(id, vec![FilePriority::Normal; file_count]);
                                 }
                             }
 
-                            let priorities = self.file_priorities.lock().unwrap();
-                            let prio_list = priorities
+                            let prio_list = self
+                                .file_priorities
                                 .get(&id)
-                                .cloned()
+                                .map(|r| r.clone())
                                 .unwrap_or(vec![FilePriority::Normal; file_count]);
 
                             Some(
@@ -695,13 +692,14 @@ impl TorrentManager {
                                             .get(i)
                                             .copied()
                                             .unwrap_or(FilePriority::Normal);
-                                        let exists = {
-                                            let dir =
-                                                self.save_dirs.lock().unwrap().get(&id).cloned();
-                                            dir.map_or(false, |d| {
-                                                Path::new(&d).join(&f.relative_filename).exists()
-                                            })
-                                        };
+                                        let exists = self
+                                            .save_dirs
+                                            .get(&id)
+                                            .map_or(false, |d| {
+                                                Path::new(d.value())
+                                                    .join(&f.relative_filename)
+                                                    .exists()
+                                            });
                                         TorrentFileInfo {
                                             index: i,
                                             name: f.relative_filename.to_string_lossy().to_string(),
@@ -727,10 +725,7 @@ impl TorrentManager {
     pub fn cleanup_unselected_files(&self) {
         self.session.with_torrents(|iter| {
             for (id, handle) in iter {
-                let save_dir = match self.save_dirs.lock() {
-                    Ok(g) => g.get(&id).cloned(),
-                    Err(_) => continue,
-                };
+                let save_dir = self.save_dirs.get(&id).map(|r| r.clone());
                 let Some(save_dir) = save_dir else { continue };
                 let Some(only_files) = handle.only_files() else {
                     continue;
@@ -837,8 +832,7 @@ impl TorrentManager {
         priority: FilePriority,
     ) -> Result<(), String> {
         {
-            let mut priorities = self.file_priorities.lock().unwrap();
-            let entry = priorities.entry(id).or_default();
+            let mut entry = self.file_priorities.entry(id).or_default();
             for &idx in &file_indices {
                 if idx < entry.len() {
                     entry[idx] = priority.clone();
@@ -846,7 +840,7 @@ impl TorrentManager {
             }
         }
 
-        if self.sequential_torrents.lock().unwrap().contains(&id) {
+        if self.sequential_torrents.contains(&id) {
             return Ok(());
         }
 
@@ -902,7 +896,7 @@ impl TorrentManager {
         });
 
         if enabled {
-            self.sequential_torrents.lock().unwrap().insert(id);
+            self.sequential_torrents.insert(id);
 
             if let Some(ref handle) = handle_opt {
                 if handle.is_paused() {
@@ -915,19 +909,19 @@ impl TorrentManager {
                 self.advance_sequential(id).await?;
             }
         } else {
-            self.sequential_torrents.lock().unwrap().remove(&id);
+            self.sequential_torrents.remove(&id);
 
             if let Some(handle) = handle_opt {
-                let files_to_restore = {
-                    let priorities = self.file_priorities.lock().unwrap();
-                    priorities.get(&id).map(|list| {
-                        list.iter()
+                let files_to_restore = self
+                    .file_priorities
+                    .get(&id)
+                    .map(|r| {
+                        r.iter()
                             .enumerate()
                             .filter(|(_, &p)| p != FilePriority::DoNotDownload)
                             .map(|(i, _)| i)
                             .collect::<HashSet<usize>>()
-                    })
-                };
+                    });
 
                 match files_to_restore {
                     Some(restore_set) if !restore_set.is_empty() => {
@@ -978,18 +972,16 @@ impl TorrentManager {
             return Ok(());
         }
 
-        let candidates: Vec<usize> = {
-            let priorities = self.file_priorities.lock().unwrap();
-            if let Some(list) = priorities.get(&id) {
-                list.iter()
+        let candidates: Vec<usize> =
+            if let Some(prio) = self.file_priorities.get(&id) {
+                prio.iter()
                     .enumerate()
                     .filter(|(_, &p)| p != FilePriority::DoNotDownload)
                     .map(|(i, _)| i)
                     .collect()
             } else {
                 (0..file_count).collect()
-            }
-        };
+            };
 
         let first_incomplete = candidates.into_iter().find(|&i| {
             let progress = stats.file_progress.get(i).copied().unwrap_or(0);
@@ -1009,7 +1001,7 @@ impl TorrentManager {
                     .map_err(|e| format!("{e:#}"))?;
             }
             None => {
-                self.sequential_torrents.lock().unwrap().remove(&id);
+                self.sequential_torrents.remove(&id);
             }
         }
 

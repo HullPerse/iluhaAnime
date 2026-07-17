@@ -63,7 +63,7 @@ export default function TorrentFilesPlayerSection({
         <section className="flex flex-col gap-1">
           <div
             role="button"
-            className="flex items-center gap-1 windows95-text cursor-pointer hover:bg-surface px-0.5 py-0.5 w-full text-left"
+            className="flex items-center gap-1 windows95-text cursor-pointer hover:bg-surface px-0.5 py-0.5 w-full text-left select-none"
             onClick={onToggleExpand}
           >
             {isExpanded ? (
@@ -98,7 +98,11 @@ export default function TorrentFilesPlayerSection({
                 openPath(item.save_dir);
               }}
             >
-              <ImageComponent src="/icons/w2k_folder_closed.ico" alt="" className="size-4" />
+              <ImageComponent
+                src="/icons/w2k_folder_closed.ico"
+                alt=""
+                className="size-4"
+              />
             </Button>
           </div>
           {isExpanded && (

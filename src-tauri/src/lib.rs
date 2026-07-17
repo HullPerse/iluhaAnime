@@ -518,10 +518,8 @@ pub fn run() {
                         {
                             let ids: Vec<usize> = mgr_clone
                                 .sequential_torrents
-                                .lock()
-                                .unwrap()
                                 .iter()
-                                .copied()
+                                .map(|r| *r.key())
                                 .collect();
                             for &sid in &ids {
                                 let _ = mgr_clone.advance_sequential(sid).await;

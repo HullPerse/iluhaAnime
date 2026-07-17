@@ -2531,6 +2531,7 @@ name = "iluhaAnime"
 version = "2.0.4"
 dependencies = [
  "anyhow",
+ "dashmap",
  "encoding_rs",
  "flate2",
  "futures",

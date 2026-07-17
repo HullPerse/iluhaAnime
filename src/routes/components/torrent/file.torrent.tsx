@@ -280,7 +280,7 @@ function TorrentFilesSection({
               }}
               onContextMenu={(e) => {
                 e.preventDefault();
-                openPath(String(path));
+                if (type === "player") openPath(String(path));
               }}
               onClick={() => {
                 if (type === "torrent") return;

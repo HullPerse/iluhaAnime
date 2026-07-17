@@ -45,6 +45,7 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
   preparingTorrent: false,
   torrentFilesMap: {},
   seedPreferences: loadSeedPreferences(),
+  metadataCache: new Map(),
 
   init: async () => {
     const initial = await invoke<TorrentInfo[]>("list_torrents");
@@ -86,6 +87,22 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
 
     set({ preparingTorrent: true });
 
+    const cached = get().metadataCache.get(magnet);
+    if (cached) {
+      set({
+        preparingTorrent: false,
+        pendingTorrent: {
+          magnet,
+          id: 0,
+          name: cached.name,
+          files: cached.files,
+          conflictingFiles: cached.conflictingFiles,
+          hasCommonFolder: cached.hasCommonFolder,
+        },
+      });
+      return;
+    }
+
     const result = await invoke<{
       id: number;
       name: string;
@@ -102,16 +119,27 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
       return;
     }
 
-    set({
-      preparingTorrent: false,
-      pendingTorrent: {
-        magnet,
-        id: result.id,
+    set((state) => {
+      const cache = new Map(state.metadataCache);
+      cache.set(magnet, {
         name: result.name,
         files: result.files,
         conflictingFiles: result.conflicting_files,
         hasCommonFolder: result.has_common_folder,
-      },
+        savedAt: Date.now(),
+      });
+      return {
+        preparingTorrent: false,
+        pendingTorrent: {
+          magnet,
+          id: result.id,
+          name: result.name,
+          files: result.files,
+          conflictingFiles: result.conflicting_files,
+          hasCommonFolder: result.has_common_folder,
+        },
+        metadataCache: cache,
+      };
     });
   },
 
@@ -143,6 +171,22 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
       return;
     }
 
+    const cached = get().metadataCache.get(filePath);
+    if (cached) {
+      set({
+        preparingTorrent: false,
+        pendingTorrent: {
+          fileBytes,
+          id: 0,
+          name: cached.name,
+          files: cached.files,
+          conflictingFiles: cached.conflictingFiles,
+          hasCommonFolder: cached.hasCommonFolder,
+        },
+      });
+      return;
+    }
+
     const result = await invoke<{
       id: number;
       name: string;
@@ -159,16 +203,27 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
       return;
     }
 
-    set({
-      preparingTorrent: false,
-      pendingTorrent: {
-        fileBytes,
-        id: result.id,
+    set((state) => {
+      const cache = new Map(state.metadataCache);
+      cache.set(filePath, {
         name: result.name,
         files: result.files,
         conflictingFiles: result.conflicting_files,
         hasCommonFolder: result.has_common_folder,
-      },
+        savedAt: Date.now(),
+      });
+      return {
+        preparingTorrent: false,
+        pendingTorrent: {
+          fileBytes,
+          id: result.id,
+          name: result.name,
+          files: result.files,
+          conflictingFiles: result.conflicting_files,
+          hasCommonFolder: result.has_common_folder,
+        },
+        metadataCache: cache,
+      };
     });
   },
 
@@ -299,9 +354,21 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
       id,
     }).catch(() => null);
     if (files) {
-      set((state) => ({
-        torrentFilesMap: { ...state.torrentFilesMap, [id]: files },
-      }));
+      set((state) => {
+        const prev = state.torrentFilesMap[id];
+        if (prev && prev.length === files.length && prev.every((f, i) => {
+          const n = files[i];
+          return f.index === n.index &&
+            f.completed === n.completed &&
+            f.selected === n.selected &&
+            f.exists === n.exists &&
+            f.progress_bytes === n.progress_bytes &&
+            f.priority === n.priority;
+        })) {
+          return state;
+        }
+        return { torrentFilesMap: { ...state.torrentFilesMap, [id]: files } };
+      });
       return true;
     }
     return false;

@@ -209,7 +209,10 @@ function App() {
   };
 
   return (
-    <main className="relative h-screen w-screen overflow-hidden">
+    <main
+      className="relative h-screen w-screen overflow-hidden"
+      onContextMenu={(e) => e.preventDefault()}
+    >
       {data && updateAvailable && (
         <Updater update={data} onClose={() => setUpdateAvailable(false)} />
       )}

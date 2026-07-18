@@ -6,7 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox.component";
 import { DualSlider } from "@/components/ui/range.component";
 import Select from "@/components/ui/select.component";
 import { Radio } from "@/components/ui/radio.component";
-import { statusLabels, seasonLabels, formatLabels } from "@/lib/anilist.utils";
+import { statusLabels, seasonLabels, formatLabels } from "@/config/anilist.config";
 import { useState } from "react";
 import {
   ANILIST_GENRES,

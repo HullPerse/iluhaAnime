@@ -1,18 +1,19 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/core";
-import { ChevronLeft, ChevronRight, Loader, Star } from "lucide-react";
+import { Loader, Star } from "lucide-react";
 import Modal from "@/components/shared/modal.component";
 import Tabs from "@/components/shared/tabs.component";
-import { Button } from "@/components/ui/button.component";
 import {
-  getListLabel,
-  getStatusColor,
-  getStatusLabel,
+  listStatusLabels,
   seasonLabels,
-} from "@/lib/anilist.utils";
+  statusLabels,
+} from "@/config/anilist.config";
+import { getStatusColor } from "@/lib/anilist.utils";
 import type { AniMedia } from "@/types/anilist";
 import ImageComponent from "@/components/ui/image.component";
+import { usePagination, paginate } from "@/hooks/pagination.hook";
+import AniListPaginationBar from "@/routes/components/anilist/pagination.anilist";
 
 const PAGE_SIZE = 20;
 
@@ -59,12 +60,13 @@ export default function BrowseAnimeModal({
       }),
   });
 
-  const total = data.length;
-  const lastPage = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const safePage = Math.min(page, lastPage);
-  const from = (safePage - 1) * PAGE_SIZE;
-  const to = Math.min(safePage * PAGE_SIZE, total);
-  const paged = data.slice(from, to);
+  const { total, from, to, lastPage } = usePagination(
+    data.length,
+    PAGE_SIZE,
+    page,
+    setPage,
+  );
+  const paged = paginate(data, page, PAGE_SIZE);
 
   return (
     <Modal
@@ -122,7 +124,8 @@ export default function BrowseAnimeModal({
                           backgroundColor: getStatusColor(entry.list_status),
                         }}
                         title={
-                          getListLabel(entry.list_status) ?? entry.list_status
+                          listStatusLabels[entry.list_status] ??
+                          entry.list_status
                         }
                       />
                     )}
@@ -142,7 +145,7 @@ export default function BrowseAnimeModal({
                     )}
                     {item.episodes && <span>{item.episodes} эп.</span>}
                     <span>
-                      {getStatusLabel(item.status.toUpperCase()) ?? item.status}
+                      {statusLabels[item.status.toUpperCase()] ?? item.status}
                     </span>
                     {item.season && item.season_year && (
                       <span>
@@ -171,27 +174,14 @@ export default function BrowseAnimeModal({
       </div>
 
       {total > 0 && (
-        <div className="windows95-border bg-white px-1 py-0.5 flex flex-row items-center justify-end gap-1">
-          <Button
-            size="icon"
-            className="h-6 w-6"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={safePage <= 1}
-          >
-            <ChevronLeft className="size-3" />
-          </Button>
-          <span className="windows95-text text-[10px]">
-            {safePage} / {lastPage}
-          </span>
-          <Button
-            size="icon"
-            className="h-6 w-6"
-            onClick={() => setPage((p) => Math.min(lastPage, p + 1))}
-            disabled={safePage >= lastPage}
-          >
-            <ChevronRight className="size-3" />
-          </Button>
-        </div>
+        <AniListPaginationBar
+          total={total}
+          page={page}
+          lastPage={lastPage}
+          from={from}
+          to={to}
+          onPageChange={setPage}
+        />
       )}
     </Modal>
   );

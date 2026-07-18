@@ -1,6 +1,6 @@
 import type { AniListCollection } from "@/types/anilist";
 import { Button } from "@/components/ui/button.component";
-import { getListLabel } from "@/lib/anilist.utils";
+import { listStatusLabels } from "@/config/anilist.config";
 
 interface Props {
   lists: AniListCollection[];
@@ -41,7 +41,7 @@ export default function AniListTabs({
               onClick={() => onSelect(item.name)}
               disabled={isActive}
             >
-              {getListLabel(item.name.toUpperCase()) ?? item.name} (
+              {listStatusLabels[item.name.toUpperCase()] ?? item.name}
               {
                 item.entries.filter((e) => {
                   if (!searchTerms.trim() || global) return true;

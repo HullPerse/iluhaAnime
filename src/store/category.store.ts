@@ -8,7 +8,7 @@ export interface Category {
   createdAt: number;
 }
 
-export interface CategoryEntry {
+interface CategoryEntry {
   id: string;
   type: "torrent" | "folder";
   name: string;
@@ -62,7 +62,12 @@ export const useCategoryStore = create<CategoryStore>()(
           return {
             categories: [
               ...s.categories,
-              { id, name: finalName, order: s.categories.length, createdAt: Date.now() },
+              {
+                id,
+                name: finalName,
+                order: s.categories.length,
+                createdAt: Date.now(),
+              },
             ],
           };
         });
@@ -87,10 +92,12 @@ export const useCategoryStore = create<CategoryStore>()(
 
       reorderCategories: (ids) =>
         set((s) => ({
-          categories: ids.map((id, i) => {
-            const cat = s.categories.find((c) => c.id === id);
-            return cat ? { ...cat, order: i } : cat;
-          }).filter(Boolean) as Category[],
+          categories: ids
+            .map((id, i) => {
+              const cat = s.categories.find((c) => c.id === id);
+              return cat ? { ...cat, order: i } : cat;
+            })
+            .filter(Boolean) as Category[],
         })),
 
       addEntry: (categoryId, entry) =>

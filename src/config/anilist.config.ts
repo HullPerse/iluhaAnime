@@ -16,13 +16,13 @@ export const RELATION_LABEL: Record<string, string> = {
 export const NODE_W = 70;
 export const NODE_H = 95;
 export const IMG_H = 80;
-export const CACHE_VER = "v4";
 
 export const RELATION_FILTERS = [
   "SEQUEL",
   "PREQUEL",
   "SIDE_STORY",
   "SPIN_OFF",
+  "OTHER",
 ] as const;
 
 export const FILTER_GROUPS: Record<string, string[]> = {
@@ -84,3 +84,42 @@ export const RELATION_X: Record<string, number> = {
   OTHER: 0.5,
   UNKNOWN: 0.5,
 };
+
+export const statusLabels: Record<string, string> = {
+  FINISHED: "Завершён",
+  RELEASING: "Выходит",
+  NOT_YET_RELEASED: "Анонс",
+  CANCELLED: "Отменён",
+  HIATUS: "На паузе",
+};
+
+export const formatLabels: Record<string, string> = {
+  TV: "ТВ",
+  TV_SHORT: "ТВ (короткий)",
+  MOVIE: "Фильм",
+  SPECIAL: "Спешл",
+  OVA: "OVA",
+  ONA: "ONA",
+  MUSIC: "Клип",
+};
+
+export const seasonLabels: Record<string, string> = {
+  WINTER: "Зима",
+  SPRING: "Весна",
+  SUMMER: "Лето",
+  FALL: "Осень",
+};
+
+export const listStatusLabels: Record<string, string> = {
+  CURRENT: "Смотрю",
+  PLANNING: "Запланировано",
+  COMPLETED: "Просмотрено",
+  DROPPED: "Брошено",
+  PAUSED: "На паузе",
+  REPEATING: "Пересматриваю",
+  WATCHING: "В процессе",
+};
+
+export const listStatusOptions = Object.entries(listStatusLabels).map(
+  ([value, label]) => ({ value, label }),
+);

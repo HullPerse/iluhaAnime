@@ -11,12 +11,22 @@ import type {
   AniUser,
   FavouriteAnime,
   SearchFilters,
+  GlobalSort,
+  SearchMode,
+  AnilistRouteData,
 } from "@/types/anilist";
 import { invoke } from "@tauri-apps/api/core";
 import { Input } from "@/components/ui/input.component";
 import { Button } from "@/components/ui/button.component";
 import { useSettingsStore } from "@/store/settings.store";
-import { filterEntries, seasonLabels, sortEntries } from "@/lib/anilist.utils";
+import { seasonLabels } from "@/config/anilist.config";
+import {
+  filterEntries,
+  sortEntries,
+  buildEntryLookup,
+  searchFiltersToParams,
+  sortAniMediaList,
+} from "@/lib/anilist.utils";
 import { SmallLoader } from "@/components/shared/loader.component";
 import FiltersModal, {
   defaultFilters,
@@ -61,7 +71,7 @@ function AnilistRoute() {
   const [searchFilters, setSearchFilters] =
     useState<SearchFilters>(defaultFilters);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading } = useQuery<AnilistRouteData>({
     queryKey: ["anilist_data"],
     queryFn: async () => {
       const user = await invoke<AniUser | null>("check_anilist_auth");
@@ -98,13 +108,8 @@ function AnilistRoute() {
   const [sort, setSort] = useState<AniListSort>({ key: "title", dir: "asc" });
   const [searchResults, setSearchResults] = useState<AniMedia[]>([]);
   const [searchTag, setSearchTag] = useState<string | null>(null);
-  const [searchMode, setSearchMode] = useState<
-    "tag" | "genre" | "studio" | "season" | null
-  >(null);
-  const [globalSort, setGlobalSort] = useState<{
-    key: string;
-    dir: "asc" | "desc";
-  }>({
+  const [searchMode, setSearchMode] = useState<SearchMode>(null);
+  const [globalSort, setGlobalSort] = useState<GlobalSort>({
     key: "relevance",
     dir: "desc",
   });
@@ -129,39 +134,13 @@ function AnilistRoute() {
     setLoadingSearch(true);
     setSearchResults([]);
     try {
-      const res = await invoke<AniMedia[]>("search_anilist", {
-        query: searchTerms.trim() || null,
-        tags: searchFilters.tags.length > 0 ? searchFilters.tags : null,
-        genres: searchFilters.genres.length > 0 ? searchFilters.genres : null,
-        format: searchFilters.format || null,
-        status: searchFilters.status || null,
-        season: searchFilters.season || null,
-        seasonYear: searchFilters.seasonYear,
-        adult: searchFilters.adult || null,
-        sort: searchFilters.sort ? [searchFilters.sort] : null,
-        source: searchFilters.source || null,
-        country: searchFilters.country || null,
-        yearFrom: searchFilters.year[0] > 0 ? searchFilters.year[0] : null,
-        yearTo: searchFilters.year[1] > 0 ? searchFilters.year[1] : null,
-        episodesFrom:
-          searchFilters.episodes[0] > 0 || searchFilters.episodes[1] > 0
-            ? searchFilters.episodes[0]
-            : null,
-        episodesTo:
-          searchFilters.episodes[0] > 0 || searchFilters.episodes[1] > 0
-            ? searchFilters.episodes[1]
-            : null,
-        scoreFrom:
-          searchFilters.score[0] > 0 || searchFilters.score[1] > 0
-            ? searchFilters.score[0]
-            : null,
-        scoreTo:
-          searchFilters.score[0] > 0 || searchFilters.score[1] > 0
-            ? searchFilters.score[1]
-            : null,
-        maxPages: useSettingsStore.getState().anilistMaxPages,
-        perPage: anilistPageSize,
-      });
+      const params = searchFiltersToParams(
+        searchFilters,
+        searchTerms.trim() || null,
+        anilistPageSize,
+        useSettingsStore.getState().anilistMaxPages,
+      );
+      const res = await invoke<AniMedia[]>("search_anilist", params);
       setSearchResults(res);
     } finally {
       setLoadingSearch(false);
@@ -291,38 +270,14 @@ function AnilistRoute() {
     });
   }, [lists, currentList]);
 
-  const entryLookup = useMemo(() => {
-    const map = new Map<
-      number,
-      { progress: number | null; score: number | null; list_status: string }
-    >();
-    for (const list of lists) {
-      for (const e of list.entries) {
-        map.set(e.media.id, {
-          progress: e.progress,
-          score: e.score,
-          list_status: e.list_status,
-        });
-      }
-    }
-    return map;
-  }, [lists]);
+  const entryLookup = useMemo(() => buildEntryLookup(lists), [lists]);
 
   const activeEntries =
     lists.find((c) => c.name === currentList)?.entries ?? [];
   const filteredEntries = filterEntries(activeEntries, searchTerms, global);
   const sortedEntries = sortEntries(filteredEntries, sort.dir, sort.key);
   const displayEntries = global
-    ? [...searchResults].sort((a, b) => {
-        const k = globalSort.key;
-        if (k === "relevance") return 0;
-        let cmp = 0;
-        if (k === "title") cmp = a.title.localeCompare(b.title);
-        else if (k === "score") cmp = (a.score ?? 0) - (b.score ?? 0);
-        else if (k === "year")
-          cmp = (a.season_year ?? 0) - (b.season_year ?? 0);
-        return globalSort.dir === "asc" ? cmp : -cmp;
-      })
+    ? sortAniMediaList(searchResults, globalSort.key, globalSort.dir)
     : sortedEntries.map((e) => e.media);
 
   const isLocal = !!searchTerms.trim() && !global;

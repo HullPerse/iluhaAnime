@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/core";
 import {
@@ -13,9 +13,19 @@ import {
   TransformComponent,
   type ReactZoomPanPinchRef,
 } from "react-zoom-pan-pinch";
-import type { FranchiseGraph, RelationFilter, SimNode } from "@/types/anilist";
+import type {
+  FranchiseGraph,
+  FranchiseNodePosition,
+  DragState,
+  ContextMenuState,
+  RelationFilter,
+  SimNode,
+  FranchiseNode,
+  FranchiseGraphSectionProps,
+} from "@/types/anilist";
 import { SmallLoader } from "@/components/shared/loader.component";
 import {
+  EDGE_STYLES,
   FILTER_LABELS,
   IMG_H,
   NODE_H,
@@ -23,32 +33,30 @@ import {
   RELATION_FILTERS,
 } from "@/config/anilist.config";
 import { useCacheStore } from "@/store/cache.store";
-import { filterGraph, getClusterX, getEdgeStyle } from "@/lib/anilist.utils";
+import {
+  filterGraph,
+  getClusterX,
+  filterFranchiseNodesBySearch,
+} from "@/lib/anilist.utils";
 import { FranNode } from "./node.anilist";
 
 function FranchiseGraphSection({
   animeId,
   onRelated,
   expanded = false,
-}: {
-  animeId: number;
-  onRelated?: (id: number) => void;
-  expanded?: boolean;
-}) {
+}: FranchiseGraphSectionProps) {
   const [activeFilters, setActiveFilters] = useState<Set<RelationFilter>>(
     () => new Set(RELATION_FILTERS),
   );
   const [positions, setPositions] = useState<
-    Map<number, { x: number; y: number }>
+    Map<number, FranchiseNodePosition>
   >(new Map());
   const [containerWidth, setContainerWidth] = useState(800);
-  const [dragging, setDragging] = useState<{
-    id: number;
-    startMouseX: number;
-    startMouseY: number;
-    startNodeX: number;
-    startNodeY: number;
-  } | null>(null);
+  const [dragging, setDragging] = useState<DragState | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+  const [resetKey, setResetKey] = useState(0);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const simRef = useRef<Simulation<SimNode, undefined> | null>(null);
@@ -56,11 +64,13 @@ function FranchiseGraphSection({
   const dragMovedRef = useRef(false);
   const zoomedOnceRef = useRef(false);
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["franchise", animeId],
+  const { data, isLoading, isError, error, refetch } = useQuery({
+    queryKey: ["franchise", animeId, refreshKey],
     queryFn: async () => {
-      const cached = useCacheStore.getState().franchiseCache[String(animeId)];
-      if (cached) return cached;
+      if (!refreshKey) {
+        const cached = useCacheStore.getState().franchiseCache[String(animeId)];
+        if (cached) return cached;
+      }
       const result = await invoke<FranchiseGraph>("get_anime_franchise", {
         id: animeId,
       });
@@ -75,6 +85,14 @@ function FranchiseGraphSection({
     [data, activeFilters],
   );
 
+  const searchMatchIds = useMemo(
+    () =>
+      filtered
+        ? filterFranchiseNodesBySearch(filtered.nodeMap, searchQuery)
+        : null,
+    [searchQuery, filtered],
+  );
+
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -83,6 +101,10 @@ function FranchiseGraphSection({
     });
     ro.observe(el);
     return () => ro.disconnect();
+  }, []);
+
+  const resetSimulation = useCallback(() => {
+    setResetKey((k) => k + 1);
   }, []);
 
   useEffect(() => {
@@ -156,7 +178,7 @@ function FranchiseGraphSection({
       sim.stop();
       simRef.current = null;
     };
-  }, [filtered, animeId, containerWidth]);
+  }, [filtered, animeId, containerWidth, resetKey]);
 
   useEffect(() => {
     if (!dragging || !transformRef.current) return;
@@ -220,6 +242,11 @@ function FranchiseGraphSection({
     onRelated?.(nodeId);
   };
 
+  const handleNodeContextMenu = (e: React.MouseEvent, node: FranchiseNode) => {
+    e.preventDefault();
+    setContextMenu({ x: e.clientX, y: e.clientY, node });
+  };
+
   const toggleFilter = (group: RelationFilter) => {
     setActiveFilters((prev) => {
       const next = new Set(prev);
@@ -228,6 +255,22 @@ function FranchiseGraphSection({
       return next;
     });
   };
+
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-2 p-4 text-sm">
+        <span className="text-red-500">
+          Ошибка загрузки: {(error as any)?.message ?? "Неизвестная ошибка"}
+        </span>
+        <button
+          onClick={() => refetch()}
+          className="px-2 py-1 bg-gray-800 text-white text-[10px] cursor-pointer hover:bg-gray-600"
+        >
+          Повторить
+        </button>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return <SmallLoader />;
@@ -242,35 +285,63 @@ function FranchiseGraphSection({
   }
 
   const pos = positions;
-  const containerH = Math.max(
-    300,
-    Math.min(1400, (filtered?.nodeMap.size ?? 0) * 80),
-  );
+  const totalNodes = filtered?.nodeMap.size ?? 0;
+  const containerH = Math.max(300, Math.min(1400, totalNodes * 80));
+  const displayContainerH = Math.max(300, Math.min(containerH, 600));
 
   return (
     <main className="flex flex-col gap-1.5">
-      <section className="flex flex-wrap gap-1">
-        {RELATION_FILTERS.map((group) => (
+      <section className="flex flex-wrap gap-1 items-center">
+        <div className="flex flex-wrap gap-1">
+          {RELATION_FILTERS.map((group) => (
+            <button
+              key={group}
+              onClick={() => toggleFilter(group)}
+              className={cn(
+                "px-1.5 py-0.5 text-[10px] border cursor-pointer select-none transition-colors duration-200",
+                activeFilters.has(group)
+                  ? "bg-gray-800 text-white border-gray-800"
+                  : "bg-white text-gray-600 border-gray-300 hover:bg-gray-100",
+              )}
+            >
+              {FILTER_LABELS[group]}
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-1 ml-auto">
+          <input
+            type="text"
+            placeholder="Поиск..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-20 px-1 py-0.5 text-[10px] border border-gray-300 outline-none"
+          />
           <button
-            key={group}
-            onClick={() => toggleFilter(group)}
-            className={cn(
-              "px-1.5 py-0.5 text-[10px] border cursor-pointer select-none",
-              activeFilters.has(group)
-                ? "bg-gray-800 text-white border-gray-800"
-                : "bg-white text-gray-600 border-gray-300 hover:bg-gray-100",
-            )}
+            onClick={resetSimulation}
+            className="px-1.5 py-0.5 text-[10px] border border-gray-300 bg-white text-gray-600 cursor-pointer hover:bg-gray-100"
+            title="Сбросить расположение"
           >
-            {FILTER_LABELS[group]}
+            Сбросить
           </button>
-        ))}
+          <button
+            onClick={() => setRefreshKey((k) => k + 1)}
+            className="px-1.5 py-0.5 text-[10px] border border-gray-300 bg-white text-gray-600 cursor-pointer hover:bg-gray-100"
+            title="Обновить данные"
+          >
+            Обновить
+          </button>
+        </div>
       </section>
 
       <section
         ref={containerRef}
-        className="border border-gray-300 bg-gray-50"
-        style={{ height: "360px", overflow: "hidden" }}
+        className="border border-gray-300 bg-gray-50 relative"
+        style={{ height: displayContainerH, overflow: "hidden" }}
       >
+        <div className="absolute top-1 left-1 z-10 text-[9px] text-gray-400 bg-white/80 px-0.5">
+          Узлы: {pos.size} / {totalNodes}
+        </div>
+
         <TransformWrapper
           ref={transformRef}
           limitToBounds={false}
@@ -309,20 +380,23 @@ function FranchiseGraphSection({
                   const ps = pos.get(e.source);
                   const pt = pos.get(e.target);
                   if (!ps || !pt) return null;
-                  const style = getEdgeStyle(e.relation_type);
+                  const style = EDGE_STYLES[e.relation_type] ?? {
+                    color: "#bdc3c7",
+                    dash: "2,2",
+                    width: 0.75,
+                  };
 
                   return (
-                    <g key={i}>
-                      <line
-                        x1={ps.x + NODE_W / 2}
-                        y1={ps.y + IMG_H / 2}
-                        x2={pt.x + NODE_W / 2}
-                        y2={pt.y + IMG_H / 2}
-                        stroke={style.color}
-                        strokeWidth={style.width}
-                        strokeDasharray={style.dash}
-                      />
-                    </g>
+                    <line
+                      key={i}
+                      x1={ps.x + NODE_W / 2}
+                      y1={ps.y + IMG_H / 2}
+                      x2={pt.x + NODE_W / 2}
+                      y2={pt.y + IMG_H / 2}
+                      stroke={style.color}
+                      strokeWidth={style.width}
+                      strokeDasharray={style.dash}
+                    />
                   );
                 })}
               </svg>
@@ -331,6 +405,8 @@ function FranchiseGraphSection({
                 [...filtered.nodeMap.values()].map((node) => {
                   const p = pos.get(node.id);
                   if (!p) return null;
+                  const dimmed =
+                    searchMatchIds !== null && !searchMatchIds.has(node.id);
                   return (
                     <FranNode
                       key={node.id}
@@ -340,7 +416,9 @@ function FranchiseGraphSection({
                       isRoot={node.id === animeId}
                       onRelated={handleNodeClick}
                       onMouseDown={handleNodeMouseDown}
+                      onContextMenu={handleNodeContextMenu}
                       id={`franchise-node-${node.id}`}
+                      dimmed={dimmed}
                     />
                   );
                 })}
@@ -348,6 +426,47 @@ function FranchiseGraphSection({
           </TransformComponent>
         </TransformWrapper>
       </section>
+
+      {contextMenu && (
+        <>
+          <div
+            className="fixed inset-0 z-40"
+            onClick={() => setContextMenu(null)}
+          />
+          <div
+            className="fixed z-50 bg-white border border-gray-300 shadow-md py-0.5 min-w-32"
+            style={{ left: contextMenu.x, top: contextMenu.y }}
+          >
+            <button
+              onClick={() => {
+                window.open(
+                  `https://anilist.co/anime/${contextMenu.node.id}`,
+                  "_blank",
+                );
+                setContextMenu(null);
+              }}
+              className="w-full text-left px-2 py-0.5 text-[11px] hover:bg-gray-100 cursor-pointer"
+            >
+              Открыть в AniList
+            </button>
+            <button
+              onClick={() => {
+                onRelated?.(contextMenu.node.id);
+                setContextMenu(null);
+              }}
+              className="w-full text-left px-2 py-0.5 text-[11px] hover:bg-gray-100 cursor-pointer"
+            >
+              Показать связи
+            </button>
+            <button
+              onClick={() => setContextMenu(null)}
+              className="w-full text-left px-2 py-0.5 text-[11px] hover:bg-gray-100 cursor-pointer"
+            >
+              Закрыть
+            </button>
+          </div>
+        </>
+      )}
     </main>
   );
 }

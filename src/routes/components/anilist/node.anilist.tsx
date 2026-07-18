@@ -9,7 +9,9 @@ function FranNode({
   isRoot,
   onRelated,
   onMouseDown,
+  onContextMenu,
   id: elementId,
+  dimmed = false,
 }: {
   node: FranchiseNode;
   x: number;
@@ -17,18 +19,29 @@ function FranNode({
   isRoot: boolean;
   onRelated?: (id: number) => void;
   onMouseDown?: (e: React.MouseEvent, nodeId: number) => void;
+  onContextMenu?: (e: React.MouseEvent, node: FranchiseNode) => void;
   id?: string;
+  dimmed?: boolean;
 }) {
   return (
     <div
       id={elementId}
       role="button"
+      tabIndex={0}
       onClick={() => onRelated?.(node.id)}
       onMouseDown={(e) => onMouseDown?.(e, node.id)}
-      title={`${node.title} (${node.year ?? "?"})`}
+      onContextMenu={(e) => onContextMenu?.(e, node)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onRelated?.(node.id);
+        }
+      }}
+      title={`${node.title} (${node.year ?? "?"}) · ${node.score ?? "—"} · ${node.format ?? ""}`}
       className={cn(
-        "absolute flex flex-col items-stretch cursor-grab active:cursor-grabbing select-none overflow-hidden",
+        "absolute flex flex-col items-stretch cursor-grab active:cursor-grabbing select-none overflow-hidden transition-opacity duration-300",
         isRoot ? "ring-2 ring-blue-400" : "ring-1 ring-gray-300",
+        dimmed && "opacity-30",
       )}
       style={{ left: x, top: y, width: NODE_W, height: NODE_H }}
     >
@@ -38,11 +51,11 @@ function FranNode({
           alt=""
           className="w-full object-cover"
           style={{ height: IMG_H }}
-          loading="eager"
+          loading="lazy"
         />
       ) : (
         <div
-          className="bg-gray-200 flex items-center justify-center text-gray-400 text-xs"
+          className="bg-gray-200 animate-pulse flex items-center justify-center text-gray-400 text-xs"
           style={{ height: IMG_H }}
         >
           —

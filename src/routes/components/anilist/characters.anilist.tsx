@@ -4,6 +4,10 @@ import type { AniCharacterEdge, AniVoiceActor } from "@/types/anilist";
 import Section from "@/components/shared/section.component";
 import { useState } from "react";
 import ImageComponent from "@/components/ui/image.component";
+import { usePagination, paginate } from "@/hooks/pagination.hook";
+import AniListPaginationBar from "@/routes/components/anilist/pagination.anilist";
+
+const CHAR_PAGE_SIZE = 40;
 
 function AniListCharactersPanel({
   animeId,
@@ -13,6 +17,7 @@ function AniListCharactersPanel({
   onCharacterClick?: (characterId: number, name: string, voiceActors: AniVoiceActor[]) => void;
 }) {
   const [showCharacters, setShowCharacters] = useState<boolean>(false);
+  const [charPage, setCharPage] = useState(1);
 
   const { data, isLoading } = useQuery({
     queryKey: ["anime_characters", animeId],
@@ -22,6 +27,14 @@ function AniListCharactersPanel({
         page: 1,
       }),
   });
+
+  const { total, from, to, lastPage } = usePagination(
+    data?.length ?? 0,
+    CHAR_PAGE_SIZE,
+    charPage,
+    setCharPage,
+  );
+  const paged = paginate(data ?? [], charPage, CHAR_PAGE_SIZE);
 
   if (isLoading) return null;
   if (!data?.length) return null;
@@ -34,7 +47,7 @@ function AniListCharactersPanel({
       onExpand={() => setShowCharacters((prev) => !prev)}
       files={data.length}
     >
-      {data.slice(0, 40).map((edge) => (
+      {paged.map((edge) => (
         <div
           key={edge.character.id}
           role="button"
@@ -61,6 +74,18 @@ function AniListCharactersPanel({
           </span>
         </div>
       ))}
+      {total > CHAR_PAGE_SIZE && (
+        <div className="w-full">
+          <AniListPaginationBar
+            total={total}
+            page={charPage}
+            lastPage={lastPage}
+            from={from}
+            to={to}
+            onPageChange={setCharPage}
+          />
+        </div>
+      )}
     </Section>
   );
 }

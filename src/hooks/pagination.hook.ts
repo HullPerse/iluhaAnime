@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 
-interface PaginationResult {
+export interface PaginationResult {
   total: number;
   from: number;
   to: number;

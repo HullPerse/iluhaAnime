@@ -3,7 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { Input } from "@/components/ui/input.component";
 import { Button } from "@/components/ui/button.component";
 import Select from "@/components/ui/select.component";
-import { listStatusOptions } from "@/lib/anilist.utils";
+import { listStatusOptions } from "@/config/anilist.config";
 import type { AniMedia } from "@/types/anilist";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { ExternalLink } from "lucide-react";

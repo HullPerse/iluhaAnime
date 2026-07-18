@@ -1,54 +1,15 @@
-import {
-  EDGE_STYLES,
-  FILTER_GROUPS,
-  RELATION_X,
-} from "@/config/anilist.config";
+import { FILTER_GROUPS, RELATION_X } from "@/config/anilist.config";
 import { HexType } from "@/types";
-import {
+import type {
+  AniListCollection,
   AniListEntry,
   AniListSort,
+  AniMedia,
   FranchiseGraph,
+  FranchiseNode,
   RelationFilter,
+  SearchFilters,
 } from "@/types/anilist";
-
-export const statusLabels: Record<string, string> = {
-  FINISHED: "Завершён",
-  RELEASING: "Выходит",
-  NOT_YET_RELEASED: "Анонс",
-  CANCELLED: "Отменён",
-  HIATUS: "На паузе",
-};
-
-export const formatLabels: Record<string, string> = {
-  TV: "ТВ",
-  TV_SHORT: "ТВ (короткий)",
-  MOVIE: "Фильм",
-  SPECIAL: "Спешл",
-  OVA: "OVA",
-  ONA: "ONA",
-  MUSIC: "Клип",
-};
-
-export const seasonLabels: Record<string, string> = {
-  WINTER: "Зима",
-  SPRING: "Весна",
-  SUMMER: "Лето",
-  FALL: "Осень",
-};
-
-const listStatusLabels: Record<string, string> = {
-  CURRENT: "Смотрю",
-  PLANNING: "Запланировано",
-  COMPLETED: "Просмотрено",
-  DROPPED: "Брошено",
-  PAUSED: "На паузе",
-  REPEATING: "Пересматриваю",
-  WATCHING: "В процессе",
-};
-
-export const listStatusOptions = Object.entries(listStatusLabels).map(
-  ([value, label]) => ({ value, label }),
-);
 
 export function filterEntries(
   entries: AniListEntry[],
@@ -111,22 +72,6 @@ export function getSortingLabel(
   return `${labelMap[sort] ?? sort} ${direction === "asc" ? "↑" : "↓"}`;
 }
 
-export function getStatusLabel(status: string) {
-  const statusMap = {
-    FINISHED: "Завершён",
-    RELEASING: "Выходит",
-    NOT_YET_RELEASED: "Анонс",
-    CANCELLED: "Отменён",
-    HIATUS: "На паузе",
-  } as Record<string, string>;
-
-  return statusMap[status];
-}
-
-export function getListLabel(list: string) {
-  return listStatusLabels[list];
-}
-
 export function getStatusColor(status: AniListEntry["list_status"]): HexType {
   const statusMap: Record<AniListEntry["list_status"], HexType> = {
     CURRENT: "#e6b800",
@@ -138,10 +83,6 @@ export function getStatusColor(status: AniListEntry["list_status"]): HexType {
   };
 
   return statusMap[status] ?? "#888";
-}
-
-export function getEdgeStyle(relType: string) {
-  return EDGE_STYLES[relType] ?? { color: "#bdc3c7", dash: "2,2", width: 0.75 };
 }
 
 export function filterGraph(
@@ -200,4 +141,88 @@ export function getClusterX(
   }
 
   return containerW / 2;
+}
+
+export function filterFranchiseNodesBySearch(
+  nodeMap: Map<number, FranchiseNode>,
+  query: string,
+): Set<number> | null {
+  const lower = query.toLowerCase().trim();
+  if (!lower) return null;
+  const ids = new Set<number>();
+  for (const node of nodeMap.values()) {
+    if (node.title.toLowerCase().includes(lower)) {
+      ids.add(node.id);
+    }
+  }
+  return ids;
+}
+
+export function buildEntryLookup(lists: AniListCollection[]) {
+  const map = new Map<
+    number,
+    { progress: number | null; score: number | null; list_status: string }
+  >();
+  for (const list of lists) {
+    for (const e of list.entries) {
+      map.set(e.media.id, {
+        progress: e.progress,
+        score: e.score,
+        list_status: e.list_status,
+      });
+    }
+  }
+  return map;
+}
+
+export function searchFiltersToParams(
+  filters: SearchFilters,
+  query: string | null,
+  perPage: number,
+  maxPages: number,
+) {
+  return {
+    query,
+    tags: filters.tags.length > 0 ? filters.tags : null,
+    genres: filters.genres.length > 0 ? filters.genres : null,
+    format: filters.format || null,
+    status: filters.status || null,
+    season: filters.season || null,
+    seasonYear: filters.seasonYear,
+    adult: filters.adult || null,
+    sort: filters.sort ? [filters.sort] : null,
+    source: filters.source || null,
+    country: filters.country || null,
+    yearFrom: filters.year[0] > 0 ? filters.year[0] : null,
+    yearTo: filters.year[1] > 0 ? filters.year[1] : null,
+    episodesFrom:
+      filters.episodes[0] > 0 || filters.episodes[1] > 0
+        ? filters.episodes[0]
+        : null,
+    episodesTo:
+      filters.episodes[0] > 0 || filters.episodes[1] > 0
+        ? filters.episodes[1]
+        : null,
+    scoreFrom:
+      filters.score[0] > 0 || filters.score[1] > 0 ? filters.score[0] : null,
+    scoreTo:
+      filters.score[0] > 0 || filters.score[1] > 0 ? filters.score[1] : null,
+    maxPages,
+    perPage,
+  };
+}
+
+export function sortAniMediaList(
+  results: AniMedia[],
+  key: string,
+  dir: "asc" | "desc",
+): AniMedia[] {
+  if (key === "relevance") return results;
+  return [...results].sort((a, b) => {
+    let cmp = 0;
+    if (key === "title") cmp = a.title.localeCompare(b.title);
+    else if (key === "score") cmp = (a.score ?? 0) - (b.score ?? 0);
+    else if (key === "year") cmp = (a.season_year ?? 0) - (b.season_year ?? 0);
+    return dir === "asc" ? cmp : -cmp;
+  });
 }

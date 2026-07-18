@@ -1,12 +1,9 @@
 import { memo } from "react";
 import type { AniMedia, AniListAnime } from "@/types/anilist";
-import {
-  getStatusLabel,
-  getStatusColor,
-  getListLabel,
-} from "@/lib/anilist.utils";
+import { getStatusColor } from "@/lib/anilist.utils";
 import Image from "@/components/ui/image.component";
 import { Star } from "lucide-react";
+import { listStatusLabels, statusLabels } from "@/config/anilist.config";
 
 interface Props {
   item: AniMedia;
@@ -17,11 +14,7 @@ interface Props {
   onClick: (anime: AniListAnime) => void;
 }
 
-function AniListEntryCard({
-  item,
-  entryLookup,
-  onClick,
-}: Props) {
+function AniListEntryCard({ item, entryLookup, onClick }: Props) {
   const entry = entryLookup.get(item.id);
 
   return (
@@ -57,7 +50,9 @@ function AniListEntryCard({
                     height: 10,
                     backgroundColor: getStatusColor(entry.list_status),
                   }}
-                  title={getListLabel(entry.list_status) ?? entry.list_status}
+                  title={
+                    listStatusLabels[entry.list_status] ?? entry.list_status
+                  }
                 />
               )}
               {item.title}
@@ -71,7 +66,7 @@ function AniListEntryCard({
               </span>
             )}
             <span className="text-[10px] text-text">
-              {getStatusLabel(item.status.toUpperCase()) ?? item.status}
+              {statusLabels[item.status.toUpperCase()] ?? item.status}
             </span>
             {entry?.progress != null && item.episodes && (
               <div className="flex items-center gap-1">

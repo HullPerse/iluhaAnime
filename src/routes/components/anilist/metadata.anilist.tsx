@@ -1,5 +1,5 @@
 import type { AniMedia } from "@/types/anilist";
-import { formatLabels, seasonLabels, statusLabels } from "@/lib/anilist.utils";
+import { formatLabels, seasonLabels, statusLabels } from "@/config/anilist.config";
 import { Calendar, Star, Tv, Heart, Eye } from "lucide-react";
 import ImageComponent from "@/components/ui/image.component";
 

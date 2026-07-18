@@ -224,3 +224,41 @@ export interface SimNode {
   fy?: number;
   clusterX: number;
 }
+
+export interface FranchiseNodePosition {
+  x: number;
+  y: number;
+}
+
+export interface DragState {
+  id: number;
+  startMouseX: number;
+  startMouseY: number;
+  startNodeX: number;
+  startNodeY: number;
+}
+
+export interface ContextMenuState {
+  x: number;
+  y: number;
+  node: FranchiseNode;
+}
+
+export interface FranchiseGraphSectionProps {
+  animeId: number;
+  onRelated?: (id: number) => void;
+  expanded?: boolean;
+}
+
+export interface GlobalSort {
+  key: string;
+  dir: "asc" | "desc";
+}
+
+export type SearchMode = "tag" | "genre" | "studio" | "season" | null;
+
+export interface AnilistRouteData {
+  user: AniUser | null;
+  lists: AniListCollection[];
+  favourites: FavouriteAnime[];
+}

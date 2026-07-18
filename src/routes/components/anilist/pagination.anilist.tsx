@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 
-interface Props {
+export interface PaginationBarProps {
   total: number;
   page: number;
   lastPage: number;
@@ -21,7 +21,7 @@ export default function AniListPaginationBar({
   to,
   onPageChange,
   statusText,
-}: Props) {
+}: PaginationBarProps) {
   const [input, setInput] = useState(String(page));
 
   useEffect(() => {

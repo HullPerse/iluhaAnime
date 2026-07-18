@@ -389,7 +389,8 @@ function TorrentFilesSection({
                         title="Удалить"
                         size="icon"
                         className="size-4"
-                        onClick={async () => {
+                        onClick={async (e) => {
+                          e.stopPropagation();
                           const upscaledFile = extraFiles?.find(
                             (e) => e.name === file.name,
                           );

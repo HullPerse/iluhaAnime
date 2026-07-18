@@ -1,5 +1,9 @@
 import type { AniMedia } from "@/types/anilist";
-import { formatLabels, seasonLabels, statusLabels } from "@/config/anilist.config";
+import {
+  formatLabels,
+  seasonLabels,
+  statusLabels,
+} from "@/config/anilist.config";
 import { Calendar, Star, Tv, Heart, Eye } from "lucide-react";
 import ImageComponent from "@/components/ui/image.component";
 
@@ -19,7 +23,7 @@ function AniListMetadata({
     <main className="flex flex-row gap-3">
       <section className="windows95-border shrink-0 self-start bg-white">
         <ImageComponent
-          src={anime.cover_url ? anime.cover_url : "/unknown_source.png"}
+          src={anime.cover_url ? anime.cover_url : "/icons/unknown_source.png"}
           alt={anime.title}
           className="w-36 h-54 block"
         />

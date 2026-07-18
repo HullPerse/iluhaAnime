@@ -20,7 +20,7 @@ function Updater({ update, onClose }: { update: Update; onClose: () => void }) {
       </span>
       <section className="flex windows95-border w-28 h-28 self-center items-center justify-center">
         <ImageComponent
-          src="/update_icon.ico"
+          src="/icons/update_icon.ico"
           alt="update icon"
           className="w-24 h-24"
         />

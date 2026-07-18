@@ -74,4 +74,7 @@ export const playerIcons = [
   "wxp_319.ico",
   "wxp_338.ico",
   "wxp_downloadfolder.ico",
+  "unknown_source.png",
+  "update_icon.ico",
+  "user_avatar.ico",
 ];

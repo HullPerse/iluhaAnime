@@ -121,7 +121,10 @@ function TorrentItem({
             title="Удалить торрент"
             size="icon"
             className="size-6"
-            onClick={() => setPendingDelete(true)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setPendingDelete(true);
+            }}
           >
             <ImageComponent
               src="/icons/w2k_dustbin.ico"

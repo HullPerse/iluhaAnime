@@ -16,7 +16,6 @@ interface NotificationStore {
   items: NotificationItem[];
   unreadCount: number;
   add: (title: string, type?: NotificationType, message?: string) => void;
-  addInApp: (title: string, type?: NotificationType, message?: string) => void;
   markRead: (id: number) => void;
   markAllRead: () => void;
   clear: (id: number) => void;
@@ -39,16 +38,6 @@ export const useNotificationStore = create<NotificationStore>((set, _get) => ({
     }));
 
     try { tauriNotify({ title, body: message ?? "" }); } catch {}
-  },
-
-  addInApp: (title: string, type: NotificationType = "info", message?: string) => {
-    const id = nextId++;
-    const item: NotificationItem = { id, type, title, message, timestamp: Date.now(), read: false };
-
-    set((s) => ({
-      items: [item, ...s.items].slice(0, 100),
-      unreadCount: s.unreadCount + 1,
-    }));
   },
 
   markRead: (id: number) => {

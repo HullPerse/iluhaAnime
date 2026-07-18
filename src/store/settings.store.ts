@@ -7,7 +7,6 @@ export interface SettingsStore {
   notificationsEnabled: boolean;
   notifyOnComplete: boolean;
   notifyOnError: boolean;
-  animeNotifyMode: "none" | "inapp" | "system_when_open";
   defaultSearchSource: string;
   visibleSources: string[];
   resultsPerPage: number;
@@ -47,7 +46,6 @@ export const useSettingsStore = create<SettingsStore>()(
       notificationsEnabled: true,
       notifyOnComplete: true,
       notifyOnError: true,
-      animeNotifyMode: "none",
       defaultSearchSource: "erai-raws",
       visibleSources: ["erai-raws", "rutracker", "nyaa", "nekobt"],
       resultsPerPage: 20,
@@ -115,20 +113,7 @@ export const useSettingsStore = create<SettingsStore>()(
     {
       name: "settings",
       version: 1,
-      migrate: (persistedState: unknown, version: number) => {
-        if (
-          version === 0 &&
-          persistedState &&
-          typeof persistedState === "object"
-        ) {
-          const s = persistedState as Record<string, unknown>;
-          if ("animeNotificationsEnabled" in s) {
-            const old = s.animeNotificationsEnabled;
-            (s as Record<string, unknown>).animeNotifyMode =
-              old === true ? "system_when_open" : "none";
-            delete (s as Record<string, unknown>).animeNotificationsEnabled;
-          }
-        }
+      migrate: (persistedState: unknown, _version: number) => {
         return persistedState as SettingsStore;
       },
     },

@@ -6,9 +6,15 @@ import { listen } from "@tauri-apps/api/event";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
 import { useDebounce } from "@/hooks/debounce.hook";
 import FFMPEG from "./components/player/ffmpeg.player";
-import FolderView from "./components/player/folder.player";
 import { useTorrentStore } from "@/store/download.store";
 import { useSettingsStore } from "@/store/settings.store";
 import QueuePanel from "./components/player/queue.player";
@@ -21,8 +27,16 @@ import type {
 } from "@/types";
 
 import FolderScanProgress from "./components/player/scan.player";
-import TorrentFilesPlayerSection from "./components/player/torrent.player";
 import { buildTree, filterTreeByPaths } from "@/lib/index.utils";
+import { useCacheStore } from "@/store/cache.store";
+import { useCategoryStore } from "@/store/category.store";
+import CategoryView from "./components/player/category.player";
+import {
+  DraggableFolder,
+  DraggableTorrent,
+  DragOverlayItem,
+} from "./components/player/draggable.player";
+import { ConfirmDialog } from "@/components/shared/confirm.component";
 
 function PlayerRoute() {
   const torrents = useTorrentStore((state) => state.torrents);
@@ -42,8 +56,15 @@ function PlayerRoute() {
   const fetchingRef = useRef<Set<number>>(new Set());
   const scannedPathsRef = useRef<string[] | null>(null);
 
+  const [pendingDeleteCategory, setPendingDeleteCategory] = useState<
+    string | null
+  >(null);
+  const [activeDrag, setActiveDrag] = useState<{ name: string } | null>(null);
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+  );
   const [searchResults, setSearchResults] = useState<FileSearchResult[]>([]);
-  const [searching, setSearching] = useState(false);
+  const [, setSearching] = useState(false);
   const debouncedSearch = useDebounce(search.trim(), 300);
 
   useEffect(() => {
@@ -63,13 +84,41 @@ function PlayerRoute() {
       .finally(() => setSearching(false));
   }, [debouncedSearch, videoExtensions]);
 
+  const allCategoryEntries = useCategoryStore((s) => s.entries);
+  const categorizedPaths = useMemo(() => {
+    const paths = new Set<string>();
+    for (const list of Object.values(allCategoryEntries)) {
+      for (const e of list) {
+        if (e.type === "folder" && e.folderPath) paths.add(e.folderPath);
+      }
+    }
+    return paths;
+  }, [allCategoryEntries]);
+  const categorizedHashes = useMemo(() => {
+    const hashes = new Set<string>();
+    for (const list of Object.values(allCategoryEntries)) {
+      for (const e of list) {
+        if (e.type === "torrent" && e.infoHash) hashes.add(e.infoHash);
+      }
+    }
+    return hashes;
+  }, [allCategoryEntries]);
+
   const displayTrees = useMemo(() => {
-    if (!debouncedSearch) return folderTrees;
-    const matchingPaths = new Set(searchResults.map((r) => r.path));
-    return folderTrees
-      .map((t) => filterTreeByPaths(t, matchingPaths))
-      .filter((t): t is FolderNode => t !== null);
-  }, [folderTrees, searchResults, debouncedSearch]);
+    let trees = folderTrees;
+    if (debouncedSearch) {
+      const matchingPaths = new Set(searchResults.map((r) => r.path));
+      trees = trees
+        .map((t) => filterTreeByPaths(t, matchingPaths))
+        .filter((t): t is FolderNode => t !== null);
+    }
+    return trees.filter((t) => !categorizedPaths.has(t.path));
+  }, [folderTrees, searchResults, debouncedSearch, categorizedPaths]);
+
+  const filteredTorrents = useMemo(
+    () => torrents.filter((t) => !categorizedHashes.has(t.info_hash)),
+    [torrents, categorizedHashes],
+  );
 
   useEffect(() => {
     invoke<boolean>("check_ffprobe")
@@ -122,19 +171,11 @@ function PlayerRoute() {
   );
 
   useEffect(() => {
-    try {
-      const cached = localStorage.getItem("folderTreeCache");
-      if (cached) {
-        const parsed = JSON.parse(cached) as {
-          path: string;
-          tree: FolderNode;
-        }[];
-        if (parsed.length > 0) {
-          setFolderTrees(parsed.map((c) => c.tree));
-          rebuildIndex(parsed.map((c) => c.path));
-        }
-      }
-    } catch {}
+    const cached = useCacheStore.getState().folderTrees;
+    if (cached.length > 0) {
+      setFolderTrees(cached.map((c) => c.tree));
+      rebuildIndex(cached.map((c) => c.path));
+    }
   }, [rebuildIndex]);
 
   useEffect(() => {
@@ -169,10 +210,9 @@ function PlayerRoute() {
       setScanProgress(null);
       scannedPathsRef.current = [...savedFolderPaths];
       await rebuildIndex(savedFolderPaths);
-      try {
-        const cache = trees.map((t) => ({ path: t.path, tree: t }));
-        localStorage.setItem("folderTreeCache", JSON.stringify(cache));
-      } catch {}
+      useCacheStore
+        .getState()
+        .setFolderTrees(trees.map((t) => ({ path: t.path, tree: t })));
     })();
   }, [savedFolderPaths, videoExtensions, rebuildIndex]);
 
@@ -205,13 +245,9 @@ function PlayerRoute() {
                 const next = prev.filter((t) => t.path !== p);
                 next.push(buildTree(entries, p));
                 rebuildIndex(next.map((t) => t.path));
-                try {
-                  const cache = next.map((t) => ({ path: t.path, tree: t }));
-                  localStorage.setItem(
-                    "folderTreeCache",
-                    JSON.stringify(cache),
-                  );
-                } catch {}
+                useCacheStore
+                  .getState()
+                  .setFolderTrees(next.map((t) => ({ path: t.path, tree: t })));
                 return next;
               });
             }
@@ -254,10 +290,9 @@ function PlayerRoute() {
       setFolderTrees(next);
       patch({ savedFolderPaths: next.map((t) => t.path) });
       rebuildIndex(next.map((t) => t.path));
-      try {
-        const cache = next.map((t) => ({ path: t.path, tree: t }));
-        localStorage.setItem("folderTreeCache", JSON.stringify(cache));
-      } catch {}
+      useCacheStore
+        .getState()
+        .setFolderTrees(next.map((t) => ({ path: t.path, tree: t })));
     } catch {
     } finally {
       const unlisten = await unlistenPromise;
@@ -273,10 +308,9 @@ function PlayerRoute() {
         const next = prev.filter((t) => t.path !== path);
         patch({ savedFolderPaths: next.map((t) => t.path) });
         rebuildIndex(next.map((t) => t.path));
-        try {
-          const cache = next.map((t) => ({ path: t.path, tree: t }));
-          localStorage.setItem("folderTreeCache", JSON.stringify(cache));
-        } catch {}
+        useCacheStore
+          .getState()
+          .setFolderTrees(next.map((t) => ({ path: t.path, tree: t })));
         return next;
       });
     },
@@ -292,88 +326,164 @@ function PlayerRoute() {
     });
   };
 
+  const categories = useCategoryStore((s) => s.categories);
+  const addCategory = useCategoryStore((s) => s.addCategory);
+  const removeCategory = useCategoryStore((s) => s.removeCategory);
+
+  const handleCreateCategory = () => {
+    addCategory("Новая категория");
+  };
+
+  const handleRemoveCategory = (id: string) => {
+    setPendingDeleteCategory(id);
+  };
+
+  const handleDragEnd = (event: { active: any; over: any }) => {
+    const { active, over } = event;
+    setActiveDrag(null);
+    if (!over) return;
+    const data = active.data.current as
+      | { type: "folder"; name: string; folderPath: string }
+      | {
+          type: "torrent";
+          name: string;
+          infoHash: string;
+          torrentId: number;
+          saveDir: string;
+          totalBytes: number;
+        }
+      | undefined;
+    if (!data) return;
+    useCategoryStore.getState().addEntry(over.id as string, data);
+  };
+
   return (
-    <main className="flex flex-col w-full h-full gap-1 overflow-y-auto">
-      <section className="flex flex-row w-full h-8 windows95-active-border bg-primary gap-1 p-1 items-center">
-        <Button onClick={handleOpenFolder}>
-          <ImageComponent
-            src="/icons/w2k_folder_closed.ico"
-            alt=""
-            className="size-4"
-          />
-          Добавить папку
-        </Button>
-      </section>
-
-      <section className="flex flex-row w-full h-8 windows95-active-border bg-primary gap-1 p-1 items-center">
-        <FFMPEG status={ffmpegStatus} setStatus={setFfmpegStatus} />
-        <span className="ml-auto text-[10px] text-muted">v9.0</span>
-      </section>
-
-      {!loading && folderTrees.length > 0 && (
-        <section className="windows95-active-border bg-primary p-1">
-          <div className="flex items-center gap-1">
-            <Search className="size-4 text-muted" />
-            <Input
-              className="flex-1"
-              placeholder="Поиск в папках..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+    <DndContext
+      sensors={sensors}
+      onDragStart={(event) => {
+        const data = event.active.data.current as any;
+        setActiveDrag(data ? { name: data.name } : null);
+      }}
+      onDragEnd={handleDragEnd}
+      onDragCancel={() => setActiveDrag(null)}
+    >
+      <main className="flex flex-col w-full h-full gap-1 overflow-y-auto">
+        <section className="flex flex-row w-full h-8 windows95-active-border bg-primary gap-1 p-1 items-center">
+          <Button onClick={handleOpenFolder}>
+            <ImageComponent
+              src="/icons/w2k_folder_closed.ico"
+              alt=""
+              className="size-4"
             />
-            {search && (
-              <Button
-                size="icon"
-                className="h-5 w-5"
-                onClick={() => setSearch("")}
-              >
-                <X />
-              </Button>
-            )}
-          </div>
+            Добавить папку
+          </Button>
+          <Button onClick={handleCreateCategory}>
+            <ImageComponent
+              src="/icons/w2k_folder_closed.ico"
+              alt=""
+              className="size-4"
+            />
+            Создать категорию
+          </Button>
         </section>
-      )}
 
-      {loading && <FolderScanProgress scanProgress={scanProgress} />}
-
-      {search.trim() && searching && (
-        <section className="flex items-center justify-center py-2">
-          <span className="text-[10px] text-muted">Поиск...</span>
+        <section className="flex flex-row w-full h-8 windows95-active-border bg-primary gap-1 p-1 items-center">
+          <FFMPEG status={ffmpegStatus} setStatus={setFfmpegStatus} />
+          <span className="ml-auto text-[10px] text-muted">v9.0</span>
         </section>
-      )}
 
-      {!loading && displayTrees.length > 0 && (
-        <section className="flex flex-col w-full windows95-text gap-2">
-          {displayTrees.map((tree) => (
-            <div
-              key={tree.path}
-              className="flex flex-col windows95-active-border bg-primary"
-            >
-              <FolderView
-                node={tree}
-                depth={0}
-                searchQuery=""
-                onRemove={handleRemoveFolder}
-                disabledExtensions={new Set(audioExtensions)}
+        {!loading && folderTrees.length > 0 && (
+          <section className="windows95-active-border bg-primary p-1">
+            <div className="flex items-center gap-1">
+              <Search className="size-4 text-muted" />
+              <Input
+                className="flex-1"
+                placeholder="Поиск в папках..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
               />
+              {search && (
+                <Button
+                  size="icon"
+                  className="h-5 w-5"
+                  onClick={() => setSearch("")}
+                >
+                  <X />
+                </Button>
+              )}
             </div>
+          </section>
+        )}
+
+        {loading && <FolderScanProgress scanProgress={scanProgress} />}
+
+        {categories.length > 0 && (
+          <section className="flex flex-col w-full windows95-text gap-2">
+            {categories
+              .slice()
+              .sort((a, b) => a.order - b.order)
+              .map((cat) => (
+                <CategoryView
+                  key={cat.id}
+                  categoryId={cat.id}
+                  onRemoveCategory={handleRemoveCategory}
+                  folderTrees={folderTrees}
+                  torrents={torrents}
+                  torrentFilesMap={torrentFilesMap}
+                  audioExtensions={audioExtensions}
+                />
+              ))}
+          </section>
+        )}
+
+        {!loading && displayTrees.length > 0 && (
+          <section className="flex flex-col w-full windows95-text gap-2">
+            {displayTrees.map((tree) => (
+              <DraggableFolder
+                key={tree.path}
+                tree={tree}
+                onRemove={handleRemoveFolder}
+                audioExtensions={audioExtensions}
+              />
+            ))}
+          </section>
+        )}
+
+        <QueuePanel />
+
+        {!loading &&
+          filteredTorrents.map((item) => (
+            <DraggableTorrent
+              key={item.id}
+              item={item}
+              files={torrentFilesMap[item.id]}
+              isExpanded={expanded.has(item.id)}
+              torrentLoading={torrentLoading.has(item.id)}
+              onToggleExpand={() => toggleExpanded(item.id)}
+            />
           ))}
-        </section>
-      )}
 
-      <QueuePanel />
-
-      {!loading &&
-        torrents.map((item) => (
-          <TorrentFilesPlayerSection
-            key={item.id}
-            item={item}
-            files={torrentFilesMap[item.id]}
-            isExpanded={expanded.has(item.id)}
-            torrentLoading={torrentLoading.has(item.id)}
-            onToggleExpand={() => toggleExpanded(item.id)}
+        {pendingDeleteCategory && (
+          <ConfirmDialog
+            open
+            title="Удаление категории"
+            message="Удалить категорию?"
+            confirmLabel="Удалить"
+            variant="destructive"
+            onConfirm={() => {
+              removeCategory(pendingDeleteCategory);
+              setPendingDeleteCategory(null);
+            }}
+            onCancel={() => setPendingDeleteCategory(null)}
+            onClose={() => setPendingDeleteCategory(null)}
           />
-        ))}
-    </main>
+        )}
+      </main>
+
+      <DragOverlay>
+        {activeDrag ? <DragOverlayItem name={activeDrag.name} /> : null}
+      </DragOverlay>
+    </DndContext>
   );
 }
 

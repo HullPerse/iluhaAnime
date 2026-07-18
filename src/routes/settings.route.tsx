@@ -7,14 +7,12 @@ import SettingsTorrent from "@/routes/components/settings/torrent.settings";
 import SettingsNetwork from "@/routes/components/settings/network.settings";
 import SettingsSearch from "@/routes/components/settings/search.settings";
 import SettingsTheme from "@/routes/components/settings/theme.settings";
-import SettingsAniList from "@/routes/components/settings/anilist.settings";
 
 const tabs: { id: SettingsTab; label: string }[] = [
   { id: "general", label: "Общие" },
   { id: "search", label: "Поиск" },
   { id: "torrent", label: "Торренты" },
   { id: "network", label: "Сеть" },
-  { id: "anilist", label: "AniList" },
   { id: "theme", label: "Оформление" },
 ];
 
@@ -27,7 +25,6 @@ export default function SettingsRoute() {
     network: <SettingsNetwork />,
     search: <SettingsSearch />,
     theme: <SettingsTheme />,
-    anilist: <SettingsAniList />,
   };
 
   return (

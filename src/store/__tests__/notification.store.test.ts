@@ -74,25 +74,6 @@ describe("useNotificationStore", () => {
     });
   });
 
-  describe("addInApp", () => {
-    it("creates a notification item", () => {
-      getState().addInApp("In-app", "warning", "Only local");
-      const item = getState().items[0];
-      expect(item.title).toBe("In-app");
-      expect(item.type).toBe("warning");
-    });
-
-    it("does NOT call tauri sendNotification", () => {
-      getState().addInApp("Silent");
-      expect(tauriNotifySpy).not.toHaveBeenCalled();
-    });
-
-    it("increments unreadCount", () => {
-      getState().addInApp("A");
-      expect(getState().unreadCount).toBe(1);
-    });
-  });
-
   describe("markRead", () => {
     it("marks a single item as read and updates count", () => {
       getState().add("A");

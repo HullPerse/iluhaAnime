@@ -16,13 +16,13 @@ import {
 import type { FranchiseGraph, RelationFilter, SimNode } from "@/types/anilist";
 import { SmallLoader } from "@/components/shared/loader.component";
 import {
-  CACHE_VER,
   FILTER_LABELS,
   IMG_H,
   NODE_H,
   NODE_W,
   RELATION_FILTERS,
 } from "@/config/anilist.config";
+import { useCacheStore } from "@/store/cache.store";
 import { filterGraph, getClusterX, getEdgeStyle } from "@/lib/anilist.utils";
 import { FranNode } from "./node.anilist";
 
@@ -59,19 +59,12 @@ function FranchiseGraphSection({
   const { data, isLoading } = useQuery({
     queryKey: ["franchise", animeId],
     queryFn: async () => {
-      const cached = localStorage.getItem(`franchise_${CACHE_VER}_${animeId}`);
-      if (cached) {
-        try {
-          return JSON.parse(cached) as FranchiseGraph;
-        } catch {}
-      }
+      const cached = useCacheStore.getState().franchiseCache[String(animeId)];
+      if (cached) return cached;
       const result = await invoke<FranchiseGraph>("get_anime_franchise", {
         id: animeId,
       });
-      localStorage.setItem(
-        `franchise_${CACHE_VER}_${animeId}`,
-        JSON.stringify(result),
-      );
+      useCacheStore.getState().setFranchiseCache(animeId, result);
       return result;
     },
     staleTime: Infinity,

@@ -1,27 +1,13 @@
+import { useState } from "react";
 import { useSettingsStore } from "@/store/settings.store";
 import { Input } from "@/components/ui/input.component";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
+import { ConfirmDialog } from "@/components/shared/confirm.component";
 
 export default function SettingsGeneral() {
   const { toastDuration, parseTitles, patch } = useSettingsStore();
-
-  const handleClearAll = async () => {
-    const ok = window.confirm(
-      "Это удалит:\n" +
-        "• историю поиска\n" +
-        "• все сохранённые данные\n\n" +
-        "Продолжить?",
-    );
-    if (!ok) return;
-
-    localStorage.removeItem("settings");
-    localStorage.removeItem("searchState");
-    localStorage.removeItem("themeState");
-    localStorage.removeItem("lastSaveDir");
-
-    window.location.reload();
-  };
+  const [pendingClear, setPendingClear] = useState(false);
 
   return (
     <div className="flex flex-col gap-3 p-4">
@@ -63,11 +49,31 @@ export default function SettingsGeneral() {
         <Button
           variant="destructive"
           className="w-fit mt-1"
-          onClick={handleClearAll}
+          onClick={() => setPendingClear(true)}
         >
           Удалить все данные
         </Button>
       </div>
+
+      {pendingClear && (
+        <ConfirmDialog
+          open
+          title="Сброс данных"
+          message={"Это удалит:\n• историю поиска\n• все сохранённые данные\n\nПродолжить?"}
+          confirmLabel="Удалить"
+          variant="destructive"
+          onConfirm={() => {
+            localStorage.removeItem("settings");
+            localStorage.removeItem("searchState");
+            localStorage.removeItem("themeState");
+            localStorage.removeItem("lastSaveDir");
+            localStorage.removeItem("cache");
+            window.location.reload();
+          }}
+          onCancel={() => setPendingClear(false)}
+          onClose={() => setPendingClear(false)}
+        />
+      )}
     </div>
   );
 }

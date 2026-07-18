@@ -7,44 +7,17 @@ import type { FilePriority } from "@/types";
 import { TorrentFileInfo, TorrentInfo, TorrentStore } from "@/types/torrent";
 import { showError } from "@/lib/notification.utils";
 import { TorrentListen } from "@/lib/torrent.utils";
-
-function loadLastSaveDir(): string {
-  try {
-    return localStorage.getItem("lastSaveDir") || "";
-  } catch {
-    return "";
-  }
-}
-
-function saveLastSaveDir(dir: string) {
-  try {
-    localStorage.setItem("lastSaveDir", dir);
-  } catch {}
-}
-
-function loadSeedPreferences(): Record<number, boolean> {
-  try {
-    return JSON.parse(localStorage.getItem("seedPreferences") || "{}");
-  } catch {
-    return {};
-  }
-}
-
-function saveSeedPreferences(prefs: Record<number, boolean>) {
-  try {
-    localStorage.setItem("seedPreferences", JSON.stringify(prefs));
-  } catch {}
-}
+import { useCacheStore } from "@/store/cache.store";
 
 export const useTorrentStore = create<TorrentStore>((set, get) => ({
   torrents: [],
   dlLimit: null,
   ulLimit: null,
-  lastSaveDir: loadLastSaveDir(),
+  lastSaveDir: useCacheStore.getState().lastSaveDir,
   pendingTorrent: null,
   preparingTorrent: false,
   torrentFilesMap: {},
-  seedPreferences: loadSeedPreferences(),
+  seedPreferences: useCacheStore.getState().seedPreferences,
   metadataCache: new Map(),
 
   init: async () => {
@@ -81,7 +54,7 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
       });
       if (!dir) return;
       saveDir = dir;
-      saveLastSaveDir(saveDir);
+      useCacheStore.getState().setLastSaveDir(saveDir);
       set({ lastSaveDir: saveDir });
     }
 
@@ -153,7 +126,7 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
       });
       if (!dir) return;
       saveDir = dir;
-      saveLastSaveDir(saveDir);
+      useCacheStore.getState().setLastSaveDir(saveDir);
       set({ lastSaveDir: saveDir });
     }
 
@@ -248,7 +221,7 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
       if (!overwrite) return;
     }
 
-    saveLastSaveDir(saveDir);
+    useCacheStore.getState().setLastSaveDir(saveDir);
     set({ lastSaveDir: saveDir });
 
     if (pending.id) {
@@ -331,7 +304,7 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
     set((s) => {
       const { [id]: _, ...rest } = s.torrentFilesMap;
       const { [id]: __, ...seedRest } = s.seedPreferences;
-      saveSeedPreferences(seedRest);
+      useCacheStore.setState({ seedPreferences: seedRest });
       return { torrentFilesMap: rest, seedPreferences: seedRest };
     });
     await invoke("remove_torrent", { id, deleteFiles }).catch((err) =>
@@ -426,7 +399,7 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
   setSeedPreference: (id: number, enabled: boolean) => {
     set((state) => {
       const prefs = { ...state.seedPreferences, [id]: enabled };
-      saveSeedPreferences(prefs);
+      useCacheStore.setState({ seedPreferences: prefs });
       return { seedPreferences: prefs };
     });
   },

@@ -23,7 +23,7 @@ export default function TorrentFilesPlayerSection({
   torrentLoading,
   onToggleExpand,
 }: Props) {
-  const { data: extraFiles = [], refetch: scan } = useQuery({
+  const { data: extraFiles = [], refetch } = useQuery({
     queryKey: ["upscaled_files", item.save_dir],
     queryFn: () =>
       invoke<{ path: string; name: string; size: number }[]>(
@@ -37,14 +37,14 @@ export default function TorrentFilesPlayerSection({
 
   const handleUpscaleDone = useCallback(
     (_filePath: string) => {
-      scan();
+      refetch();
     },
-    [scan],
+    [refetch],
   );
 
   const handleDeleteExtraFile = useCallback(() => {
-    scan();
-  }, [scan]);
+    refetch();
+  }, [refetch]);
 
   return (
     <section className="flex flex-col windows95-active-border bg-primary gap-1">
@@ -84,7 +84,7 @@ export default function TorrentFilesPlayerSection({
               title="Обновить апскейлы"
               onClick={(e) => {
                 e.stopPropagation();
-                scan();
+                refetch();
               }}
             >
               <RefreshCw className="size-3" />

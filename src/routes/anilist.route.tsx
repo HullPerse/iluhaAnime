@@ -61,7 +61,7 @@ function AnilistRoute() {
   const [searchFilters, setSearchFilters] =
     useState<SearchFilters>(defaultFilters);
 
-  const { data: anilistData, isLoading } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ["anilist_data"],
     queryFn: async () => {
       const user = await invoke<AniUser | null>("check_anilist_auth");
@@ -74,9 +74,9 @@ function AnilistRoute() {
     },
   });
 
-  const user = anilistData?.user ?? null;
-  const lists = anilistData?.lists ?? [];
-  const favourites = anilistData?.favourites ?? [];
+  const user = data?.user ?? null;
+  const lists = data?.lists ?? [];
+  const favourites = data?.favourites ?? [];
 
   const favouriteIds = useMemo(
     () => new Set(favourites.map((f) => f.id)),
@@ -352,51 +352,57 @@ function AnilistRoute() {
 
   return (
     <main className="flex flex-col w-full h-full gap-1">
-      <section className="flex flex-row gap-2 w-full">
-        <Input
-          placeholder="Найти аниме..."
-          value={searchTerms}
-          className="h-9 font-bold bg-white"
-          autoFocus
-          onChange={(e) => {
-            setSearchTerms(e.target.value);
-            if (global && !e.target.value.trim()) handleReset();
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") handleGlobal();
-          }}
-        />
-        <Button
-          size="icon"
-          title="Фильтры"
-          onClick={() => setShowFilters(true)}
-          className="relative"
-        >
-          <Filter className="size-4" />
-          {searchFilters.tags.length +
-            (searchFilters.format ? 1 : 0) +
-            (searchFilters.status ? 1 : 0) +
-            (searchFilters.season ? 1 : 0) +
-            (searchFilters.adult ? 1 : 0) >
-            0 && (
-            <span className="absolute -top-1 -right-1 size-3 text-[8px] bg-secondary text-white flex items-center justify-center">
-              {searchFilters.tags.length +
-                (searchFilters.format ? 1 : 0) +
-                (searchFilters.status ? 1 : 0) +
-                (searchFilters.season ? 1 : 0) +
-                (searchFilters.adult ? 1 : 0)}
-            </span>
-          )}
-        </Button>
-        <Button
-          size="icon"
-          title={global ? "Вернуться к профилю" : "Поиск"}
-          onClick={() => (global ? handleReset() : handleGlobal())}
-          disabled={loadingSearch}
-        >
-          {global ? <User className="size-4" /> : <Search className="size-4" />}
-        </Button>
-      </section>
+      {user && !isLoading && (
+        <section className="flex flex-row gap-2 w-full">
+          <Input
+            placeholder="Найти аниме..."
+            value={searchTerms}
+            className="h-9 font-bold bg-white"
+            autoFocus
+            onChange={(e) => {
+              setSearchTerms(e.target.value);
+              if (global && !e.target.value.trim()) handleReset();
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleGlobal();
+            }}
+          />
+          <Button
+            size="icon"
+            title="Фильтры"
+            onClick={() => setShowFilters(true)}
+            className="relative"
+          >
+            <Filter className="size-4" />
+            {searchFilters.tags.length +
+              (searchFilters.format ? 1 : 0) +
+              (searchFilters.status ? 1 : 0) +
+              (searchFilters.season ? 1 : 0) +
+              (searchFilters.adult ? 1 : 0) >
+              0 && (
+              <span className="absolute -top-1 -right-1 size-3 text-[8px] bg-secondary text-white flex items-center justify-center">
+                {searchFilters.tags.length +
+                  (searchFilters.format ? 1 : 0) +
+                  (searchFilters.status ? 1 : 0) +
+                  (searchFilters.season ? 1 : 0) +
+                  (searchFilters.adult ? 1 : 0)}
+              </span>
+            )}
+          </Button>
+          <Button
+            size="icon"
+            title={global ? "Вернуться к профилю" : "Поиск"}
+            onClick={() => (global ? handleReset() : handleGlobal())}
+            disabled={loadingSearch}
+          >
+            {global ? (
+              <User className="size-4" />
+            ) : (
+              <Search className="size-4" />
+            )}
+          </Button>
+        </section>
+      )}
 
       {user && !global && !isLocal && (
         <AniListProfileHeader

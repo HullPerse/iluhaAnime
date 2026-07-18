@@ -8,8 +8,6 @@ import { getAction, KeybindAction } from "@/config/keybinds.config";
 import { useSettingsStore } from "@/store/settings.store";
 import { useNotificationStore } from "@/store/notification.store";
 import { applyTheme, useThemeStore } from "@/store/theme.store";
-import { checkNewEpisodes } from "@/lib/notifications.utils";
-import type { AnimeNotifyMode } from "@/lib/notifications.utils";
 import Updater from "./components/shared/updater.component";
 import { Update } from "@tauri-apps/plugin-updater";
 import { listen } from "@tauri-apps/api/event";
@@ -179,23 +177,6 @@ function App() {
     return useSettingsStore.subscribe(sync);
   }, []);
 
-  const APP_SESSION_START = Date.now();
-
-  // Check for new anime episodes
-  const animeNotifyMode = useSettingsStore((s) => s.animeNotifyMode);
-  useEffect(() => {
-    if (animeNotifyMode === "none") return;
-
-    checkNewEpisodes(APP_SESSION_START, animeNotifyMode as AnimeNotifyMode);
-
-    const interval = setInterval(
-      () =>
-        checkNewEpisodes(APP_SESSION_START, animeNotifyMode as AnimeNotifyMode),
-      30 * 60 * 1000,
-    );
-    return () => clearInterval(interval);
-  }, [animeNotifyMode]);
-
   const getComponent = () => {
     const tabMap = {
       search: <SearchRoute />,
@@ -233,7 +214,7 @@ function App() {
       <div className="relative z-10 h-full flex flex-col">
         <div className="flex flex-col h-full windows95-active-border bg-primary">
           {/* TITLE BAR + TAB BAR */}
-          <div className="flex items-center justify-between bg-secondary px-1 py-0.5 select-none">
+          <div className="flex items-center justify-between px-1 py-0.5 select-none bg-secondary">
             <span className="text-white font-bold windows95-text">
               iluhaAnime
             </span>

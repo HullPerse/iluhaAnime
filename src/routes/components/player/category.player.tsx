@@ -11,6 +11,7 @@ import TorrentFilesSection from "../torrent/file.torrent";
 import type { FolderNode } from "@/types";
 import type { TorrentInfo, TorrentFileInfo } from "@/types/torrent";
 import { useTorrentStore } from "@/store/download.store";
+import CategoryIconModal from "./category/icon.category";
 
 function CategoryView({
   categoryId,
@@ -38,6 +39,7 @@ function CategoryView({
 
   const [open, setOpen] = useState(true);
   const [editing, setEditing] = useState(false);
+  const [editIcon, setEditIcon] = useState(false);
   const [editName, setEditName] = useState("");
   const [expandedEntries, setExpandedEntries] = useState<Set<string>>(
     new Set(),
@@ -76,12 +78,17 @@ function CategoryView({
     setEditing(false);
   };
 
+  const handleEditCategory = () => {
+    if (!categoryId) return;
+    else return setEditIcon(true);
+  };
+
   return (
-    <div
+    <main
       ref={setNodeRef}
       className={`flex flex-col windows95-active-border bg-primary ${isOver ? "ring-2 ring-highlight" : ""}`}
     >
-      <div
+      <section
         role="button"
         className="flex items-center gap-1 windows95-text cursor-pointer hover:bg-surface px-0.5 py-0.5 w-full text-left select-none"
         onClick={() => setOpen(!open)}
@@ -92,9 +99,13 @@ function CategoryView({
           <ChevronRight className="size-3 shrink-0" />
         )}
         <ImageComponent
-          src="/icons/w98_directory_zipper.ico"
+          src={`/icons/${category.icon}`}
           alt=""
-          className="size-4 shrink-0"
+          className="size-4 shrink-0 hover:border border-surface"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleEditCategory();
+          }}
         />
         {editing ? (
           <Input
@@ -122,7 +133,7 @@ function CategoryView({
           </span>
         )}
         <span className="text-muted whitespace-nowrap select-none text-[10px] ml-auto">
-          {count} записей
+          {count}
         </span>
         <Button
           size="icon"
@@ -134,110 +145,123 @@ function CategoryView({
         >
           <X className="size-4" />
         </Button>
-      </div>
+      </section>
 
       {open && entries && entries.length > 0 && (
-        <div className="flex flex-col gap-0.5 px-1 pb-1">
-          {entries.map((entry) => {
-            const entryExpanded = expandedEntries.has(entry.id);
-            return (
-              <div key={entry.id} className="flex flex-col">
-                <div
-                  className="flex items-center gap-1 windows95-text py-0.5 px-1 hover:bg-surface cursor-pointer select-none"
-                  onClick={() => toggleEntry(entry.id)}
-                >
-                  {entryExpanded ? (
-                    <ChevronDown className="size-3 shrink-0" />
-                  ) : (
-                    <ChevronRight className="size-3 shrink-0" />
-                  )}
-                  <ImageComponent
-                    src={
-                      entry.type === "folder"
-                        ? "/icons/w2k_folder_closed.ico"
-                        : "/icons/w2k_floppy.ico"
-                    }
-                    alt=""
-                    className="size-4 shrink-0"
-                  />
-                  <span className="truncate flex-1 text-xs" title={entry.name}>
-                    {entry.name}
-                  </span>
-                  {entry.totalBytes != null && (
-                    <span className="text-muted text-[10px] whitespace-nowrap">
-                      {fmtSize(entry.totalBytes)}
+        <section className="flex flex-col gap-0.5 px-1 pb-1">
+          {entries
+            .sort((a, b) => a.type.localeCompare(b.type))
+            .map((entry) => {
+              const entryExpanded = expandedEntries.has(entry.id);
+              return (
+                <div key={entry.id} className="flex flex-col">
+                  <div
+                    className="flex items-center gap-1 windows95-text py-0.5 px-1 hover:bg-surface cursor-pointer select-none"
+                    onClick={() => toggleEntry(entry.id)}
+                  >
+                    {entryExpanded ? (
+                      <ChevronDown className="size-3 shrink-0" />
+                    ) : (
+                      <ChevronRight className="size-3 shrink-0" />
+                    )}
+                    <ImageComponent
+                      src={
+                        entry.type === "folder"
+                          ? "/icons/w2k_folder_closed.ico"
+                          : "/icons/w2k_floppy.ico"
+                      }
+                      alt=""
+                      className="size-4 shrink-0"
+                    />
+                    <span
+                      className="truncate flex-1 text-xs"
+                      title={entry.name}
+                    >
+                      {entry.name}
                     </span>
-                  )}
-                  {entry.type === "torrent" && (
+                    {entry.totalBytes != null && (
+                      <span className="text-muted text-[10px] whitespace-nowrap">
+                        {fmtSize(entry.totalBytes)}
+                      </span>
+                    )}
+                    {entry.type === "torrent" && (
+                      <Button
+                        size="icon"
+                        className="size-4"
+                        onClick={(e) => {
+                          e.stopPropagation();
+
+                          for (const t of torrents) {
+                            useTorrentStore.getState().loadTorrentFiles(t.id);
+                          }
+                        }}
+                      >
+                        <RefreshCw className="size-3" />
+                      </Button>
+                    )}
                     <Button
                       size="icon"
                       className="size-4"
                       onClick={(e) => {
                         e.stopPropagation();
-
-                        for (const t of torrents) {
-                          useTorrentStore.getState().loadTorrentFiles(t.id);
-                        }
+                        removeEntry(category.id, entry.id);
                       }}
                     >
-                      <RefreshCw className="size-3" />
+                      <X className="size-3" />
                     </Button>
-                  )}
-                  <Button
-                    size="icon"
-                    className="size-4"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeEntry(category.id, entry.id);
-                    }}
-                  >
-                    <X className="size-3" />
-                  </Button>
-                </div>
-                {entryExpanded && (
-                  <div className="pl-4">
-                    {entry.type === "folder"
-                      ? (() => {
-                          const tree = folderTrees.find(
-                            (t) => t.path === entry.folderPath,
-                          );
-                          if (!tree) return null;
-                          return (
-                            <FolderView
-                              node={tree}
-                              depth={0}
-                              searchQuery=""
-                              disabledExtensions={new Set(audioExtensions)}
-                            />
-                          );
-                        })()
-                      : (() => {
-                          const tor = torrents.find(
-                            (t) => t.info_hash === entry.infoHash,
-                          );
-                          if (!tor) return null;
-                          const files = (torrentFilesMap[tor.id] || []).filter(
-                            (f) => f.completed,
-                          );
-                          if (files.length === 0) return null;
-                          return (
-                            <TorrentFilesSection
-                              id={tor.id}
-                              files={files}
-                              type="player"
-                              path={tor.save_dir}
-                              extraFiles={[]}
-                            />
-                          );
-                        })()}
                   </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+                  {entryExpanded && (
+                    <div className="pl-4">
+                      {entry.type === "folder"
+                        ? (() => {
+                            const tree = folderTrees.find(
+                              (t) => t.path === entry.folderPath,
+                            );
+                            if (!tree) return null;
+                            return (
+                              <FolderView
+                                node={tree}
+                                depth={0}
+                                searchQuery=""
+                                disabledExtensions={new Set(audioExtensions)}
+                              />
+                            );
+                          })()
+                        : (() => {
+                            const tor = torrents.find(
+                              (t) => t.info_hash === entry.infoHash,
+                            );
+                            if (!tor) return null;
+                            const files = (
+                              torrentFilesMap[tor.id] || []
+                            ).filter((f) => f.completed);
+                            if (files.length === 0) return null;
+
+                            return (
+                              <TorrentFilesSection
+                                id={tor.id}
+                                files={files}
+                                type="player"
+                                path={tor.save_dir}
+                                extraFiles={[]}
+                              />
+                            );
+                          })()}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+        </section>
       )}
-    </div>
+
+      {editIcon && (
+        <CategoryIconModal
+          id={categoryId}
+          handleClose={() => setEditIcon(false)}
+        />
+      )}
+    </main>
   );
 }
 

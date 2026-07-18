@@ -136,21 +136,21 @@ function TorrentFilesSection({
   const flatItems = useMemo(() => {
     const items = flattenTree(trees, open, fileFilter, rootFiles);
     if (extraFiles && type === "player") {
-      for (const ef of extraFiles) {
+      for (const file of extraFiles) {
         const extraIndex = -(2000 + items.length);
         items.push({
           kind: "file",
           file: {
             index: extraIndex,
-            name: ef.name,
-            displayName: ef.name,
-            size: ef.size,
-            progress_bytes: ef.size,
+            name: file.name,
+            displayName: file.name,
+            size: file.size,
+            progress_bytes: file.size,
             completed: true,
             selected: false,
             priority: "normal",
             exists: true,
-            _fullPath: ef.fullPath,
+            _fullPath: file.fullPath,
           } as TorrentTreeFile & { _fullPath: string },
           depth: 0,
         });

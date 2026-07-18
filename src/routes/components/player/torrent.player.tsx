@@ -23,7 +23,7 @@ export default function TorrentFilesPlayerSection({
   torrentLoading,
   onToggleExpand,
 }: Props) {
-  const { data: extraFiles = [], refetch } = useQuery({
+  const { data = [], refetch } = useQuery({
     queryKey: ["upscaled_files", item.save_dir],
     queryFn: () =>
       invoke<{ path: string; name: string; size: number }[]>(
@@ -72,7 +72,7 @@ export default function TorrentFilesPlayerSection({
               <ChevronRight className="size-3" />
             )}
             Файлы: ({files.filter((f) => f.completed).length}){" "}
-            {extraFiles.length > 0 && `+ ${extraFiles.length} апскейл`}
+            {data.length > 0 && `+ ${data.length} апскейл`}
             {files.some((f) => !f.exists) && (
               <span className="text-destructive ml-1">
                 · {files.filter((f) => !f.exists).length} отсутствуют
@@ -111,7 +111,7 @@ export default function TorrentFilesPlayerSection({
               files={files.filter((f) => f.completed)}
               type="player"
               path={item.save_dir}
-              extraFiles={extraFiles}
+              extraFiles={data}
               onUpscaleDone={handleUpscaleDone}
               onDeleteExtraFile={handleDeleteExtraFile}
             />

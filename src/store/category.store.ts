@@ -3,6 +3,7 @@ import { persist } from "zustand/middleware";
 
 export interface Category {
   id: string;
+  icon: string;
   name: string;
   order: number;
   createdAt: number;
@@ -26,6 +27,7 @@ interface CategoryStore {
   addCategory: (name: string) => string;
   removeCategory: (id: string) => void;
   renameCategory: (id: string, name: string) => void;
+  changeIcon: (id: string, icon: string) => void;
   reorderCategories: (ids: string[]) => void;
   addEntry: (categoryId: string, entry: Omit<CategoryEntry, "id">) => void;
   removeEntry: (categoryId: string, entryId: string) => void;
@@ -63,7 +65,8 @@ export const useCategoryStore = create<CategoryStore>()(
             categories: [
               ...s.categories,
               {
-                id,
+                id: id,
+                icon: "w98_directory_zipper.ico",
                 name: finalName,
                 order: s.categories.length,
                 createdAt: Date.now(),
@@ -87,6 +90,13 @@ export const useCategoryStore = create<CategoryStore>()(
         set((s) => ({
           categories: s.categories.map((c) =>
             c.id === id ? { ...c, name } : c,
+          ),
+        })),
+
+      changeIcon: (id, icon) =>
+        set((s) => ({
+          categories: s.categories.map((c) =>
+            c.id === id ? { ...c, icon } : c,
           ),
         })),
 

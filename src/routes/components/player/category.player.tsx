@@ -42,7 +42,7 @@ function CategoryView({
   const [expandedEntries, setExpandedEntries] = useState<Set<string>>(
     new Set(),
   );
-  const inputId = `cat-rename-${categoryId}`;
+  const inputId = `rename-${categoryId}`;
 
   useEffect(() => {
     if (editing) {
@@ -84,7 +84,7 @@ function CategoryView({
       <div
         role="button"
         className="flex items-center gap-1 windows95-text cursor-pointer hover:bg-surface px-0.5 py-0.5 w-full text-left select-none"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => setOpen(!open)}
       >
         {open ? (
           <ChevronDown className="size-3 shrink-0" />
@@ -111,7 +111,7 @@ function CategoryView({
           />
         ) : (
           <span
-            className="truncate select-none flex-1"
+            className="truncate select-none w-fit"
             title={category.name}
             onClick={(e) => {
               e.stopPropagation();
@@ -121,7 +121,7 @@ function CategoryView({
             {category.name}
           </span>
         )}
-        <span className="text-muted whitespace-nowrap select-none text-[10px]">
+        <span className="text-muted whitespace-nowrap select-none text-[10px] ml-auto">
           {count} записей
         </span>
         <Button
@@ -168,19 +168,21 @@ function CategoryView({
                       {fmtSize(entry.totalBytes)}
                     </span>
                   )}
-                  <Button
-                    size="icon"
-                    className="size-4"
-                    onClick={(e) => {
-                      e.stopPropagation();
+                  {entry.type === "torrent" && (
+                    <Button
+                      size="icon"
+                      className="size-4"
+                      onClick={(e) => {
+                        e.stopPropagation();
 
-                      for (const t of torrents) {
-                        useTorrentStore.getState().loadTorrentFiles(t.id);
-                      }
-                    }}
-                  >
-                    <RefreshCw className="size-3" />
-                  </Button>
+                        for (const t of torrents) {
+                          useTorrentStore.getState().loadTorrentFiles(t.id);
+                        }
+                      }}
+                    >
+                      <RefreshCw className="size-3" />
+                    </Button>
+                  )}
                   <Button
                     size="icon"
                     className="size-4"

@@ -16,7 +16,7 @@ export function DraggableFolder({
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({
       id: `folder-${tree.path}`,
-      data: { type: "folder" as const, name: tree.name, folderPath: tree.path },
+      data: { type: "folder", name: tree.name, folderPath: tree.path },
     });
 
   return (
@@ -60,7 +60,7 @@ export function DraggableTorrent({
     useDraggable({
       id: `torrent-${item.info_hash}`,
       data: {
-        type: "torrent" as const,
+        type: "torrent",
         name: item.name,
         infoHash: item.info_hash,
         torrentId: item.id,

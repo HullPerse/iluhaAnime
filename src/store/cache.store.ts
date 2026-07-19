@@ -11,7 +11,7 @@ interface CacheStore {
   episodeTracker: Record<number, number>;
   initialScanDone: boolean;
 
-  setFranchiseCache: (animeId: number, graph: FranchiseGraph) => void;
+  setFranchiseCache: (key: string, graph: FranchiseGraph) => void;
   setFolderTrees: (trees: { path: string; tree: FolderNode }[]) => void;
   setLastSaveDir: (dir: string) => void;
   setSeedPreference: (id: number, enabled: boolean) => void;
@@ -29,9 +29,9 @@ export const useCacheStore = create<CacheStore>()(
       episodeTracker: {},
       initialScanDone: false,
 
-      setFranchiseCache: (animeId, graph) =>
+      setFranchiseCache: (key, graph) =>
         set((s) => ({
-          franchiseCache: { ...s.franchiseCache, [String(animeId)]: graph },
+          franchiseCache: { ...s.franchiseCache, [key]: graph },
         })),
 
       setFolderTrees: (trees) => set({ folderTrees: trees }),

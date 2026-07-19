@@ -1496,7 +1496,7 @@ async fn fetch_franchise_node(id: u64) -> Result<FetchedFranchiseNode, String> {
 }
 
 #[tauri::command]
-pub async fn get_anime_franchise(id: u64) -> Result<FranchiseGraph, String> {
+pub async fn get_anime_franchise(id: u64, scope: String) -> Result<FranchiseGraph, String> {
     let mut nodes: Vec<FranchiseNode> = Vec::new();
     let mut edges: Vec<FranchiseEdge> = Vec::new();
     let mut visited: HashSet<u64> = HashSet::new();
@@ -1527,12 +1527,19 @@ pub async fn get_anime_franchise(id: u64) -> Result<FranchiseGraph, String> {
                     if media_type.as_deref() != Some("ANIME") {
                         continue;
                     }
-                    edges.push(FranchiseEdge {
-                        source: node_id,
-                        target: target_id,
-                        relation_type: rel_type,
-                    });
-                    if !visited.contains(&target_id)
+                    let is_main = rel_type == "SEQUEL" || rel_type == "PREQUEL";
+                    let include_edge = scope == "all" || is_main;
+                    let follow_target = scope == "all" || is_main;
+
+                    if include_edge {
+                        edges.push(FranchiseEdge {
+                            source: node_id,
+                            target: target_id,
+                            relation_type: rel_type,
+                        });
+                    }
+                    if follow_target
+                        && !visited.contains(&target_id)
                         && next_frontier.len() + nodes.len() < MAX_FRANCHISE_NODES
                     {
                         visited.insert(target_id);

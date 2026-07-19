@@ -41,7 +41,7 @@ export default function AniListTabs({
               onClick={() => onSelect(item.name)}
               disabled={isActive}
             >
-              {listStatusLabels[item.name.toUpperCase()] ?? item.name}
+              {listStatusLabels[item.name.toUpperCase()] ?? item.name} (
               {
                 item.entries.filter((e) => {
                   if (!searchTerms.trim() || global) return true;

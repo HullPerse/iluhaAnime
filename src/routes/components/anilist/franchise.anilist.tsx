@@ -30,7 +30,6 @@ import {
   computeGraphMetrics,
   buildSimNodes,
   runFranchiseSimulation,
-  getFitToViewTransform,
 } from "@/lib/anilist.utils";
 import { FranNode } from "./node.anilist";
 import { Button } from "@/components/ui/button.component";
@@ -69,16 +68,18 @@ function FranchiseGraphSection({
   useEffect(() => { positionsRef.current = positions; }, [positions]);
 
   const { data, isLoading, isError, error, refetch } = useQuery({
-    queryKey: ["franchise", animeId, refreshKey],
+    queryKey: ["franchise", animeId, franchiseRelationScope, refreshKey],
     queryFn: async () => {
+      const cacheKey = `${animeId}:${franchiseRelationScope}`;
       if (!refreshKey) {
-        const cached = useCacheStore.getState().franchiseCache[String(animeId)];
+        const cached = useCacheStore.getState().franchiseCache[cacheKey];
         if (cached) return cached;
       }
       const result = await invoke<FranchiseGraph>("get_anime_franchise", {
         id: animeId,
+        scope: franchiseRelationScope,
       });
-      useCacheStore.getState().setFranchiseCache(animeId, result);
+      useCacheStore.getState().setFranchiseCache(cacheKey, result);
       return result;
     },
     staleTime: Infinity,
@@ -186,15 +187,13 @@ function FranchiseGraphSection({
       return;
     zoomedOnceRef.current = true;
     requestAnimationFrame(() => {
-      const { x, y, scale } = getFitToViewTransform(
-        positions,
-        containerWidth,
-        displayH,
-        dims,
+      transformRef.current?.zoomToElement(
+        `franchise-node-${animeId}`,
+        1.5,
+        300,
       );
-      transformRef.current?.setTransform(x, y, scale, 300);
     });
-  }, [expanded, positions, containerWidth, displayH, dims, animeId]);
+  }, [expanded, positions, animeId]);
 
   const handleNodeClick = useCallback((nodeId: number) => {
     if (dragMovedRef.current) return;

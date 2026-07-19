@@ -23,7 +23,7 @@ export function BigError({
   return (
     <>
       <div className="fixed inset-0 z-40 bg-black/60" />
-      <main className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 flex flex-col w-[420px] max-w-[90%] bg-primary windows95-active-border windows95-3d-border">
+      <main className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 flex flex-col w-xl max-w-[90%] bg-primary windows95-active-border windows95-3d-border">
         <section className="flex items-center justify-between bg-secondary w-full p-1">
           <div className="flex items-center gap-1 min-w-0">
             <ImageComponent
@@ -31,9 +31,7 @@ export function BigError({
               alt=""
               className="size-4 shrink-0"
             />
-            <span className="text-white windows95-text font-bold">
-              Ошибка
-            </span>
+            <span className="text-white windows95-text font-bold">Ошибка</span>
           </div>
           {onRetry && (
             <button
@@ -50,7 +48,10 @@ export function BigError({
             {error.message}
           </span>
           {onRetry && (
-            <Button className="flex items-center gap-1 w-28 h-8" onClick={onRetry}>
+            <Button
+              className="flex items-center gap-1 w-28 h-8"
+              onClick={onRetry}
+            >
               <RotateCcw className="size-4" />
               Продолжить
             </Button>

@@ -4,7 +4,7 @@ use std::path::Path;
 /// Prevents partial/corrupt writes if the process crashes mid-write.
 #[allow(dead_code)]
 pub fn atomic_write(path: &Path, data: &[u8]) -> Result<(), String> {
-    let parent = path.parent().unwrap_or(Path::new("."));
+    let parent = path.parent().unwrap_or_else(|| Path::new("."));
     let tmp_name = format!(
         ".tmp_{}_{}",
         std::process::id(),

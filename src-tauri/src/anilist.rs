@@ -1,3 +1,5 @@
+#![allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+
 use futures::future::join_all;
 use serde::Serialize;
 use std::collections::HashSet;
@@ -187,7 +189,7 @@ fn parse_date(d: &serde_json::Value) -> Option<String> {
     let year = d["year"].as_i64()?;
     let month = d["month"].as_i64().unwrap_or(1);
     let day = d["day"].as_i64().unwrap_or(1);
-    Some(format!("{}-{:02}-{:02}", year, month, day))
+    Some(format!("{year}-{month:02}-{day:02}"))
 }
 
 fn fmt_desc(s: &str) -> String {
@@ -361,7 +363,7 @@ async fn fetch_paginated(
     )
     .await?;
 
-    let pages = ((total + per_page - 1) / per_page).min(max_pages);
+    let pages = total.div_ceil(per_page).min(max_pages);
 
     for page in 2..=pages {
         vars["page"] = serde_json::json!(page);
@@ -381,6 +383,7 @@ async fn fetch_paginated(
     Ok(all)
 }
 
+#[allow(clippy::too_many_arguments)]
 #[tauri::command]
 pub async fn search_anilist(
     query: Option<String>,
@@ -478,7 +481,7 @@ pub async fn search_anilist(
 
     variables["perPage"] = serde_json::json!(pp);
 
-    let gql = r#"
+    let gql = r"
         query (
             $page: Int,
             $perPage: Int,
@@ -539,7 +542,7 @@ pub async fn search_anilist(
                 }
             }
         }
-    "#;
+    ";
 
     fetch_paginated(gql, variables, mp, pp).await
 }
@@ -547,7 +550,7 @@ pub async fn search_anilist(
 #[tauri::command]
 pub async fn search_anilist_by_tag(tag: String) -> Result<Vec<AniMedia>, String> {
     fetch_paginated(
-        r#"
+        r"
             query ($tag: String, $page: Int) {
                 Page(page: $page, perPage: 20) {
                     pageInfo { total }
@@ -564,7 +567,7 @@ pub async fn search_anilist_by_tag(tag: String) -> Result<Vec<AniMedia>, String>
                     }
                 }
             }
-        "#,
+        ",
         serde_json::json!({ "tag": tag, "page": 1, "perPage": 20 }),
         MAX_PAGES,
         20,
@@ -575,7 +578,7 @@ pub async fn search_anilist_by_tag(tag: String) -> Result<Vec<AniMedia>, String>
 #[tauri::command]
 pub async fn search_anilist_by_genre(genre: String) -> Result<Vec<AniMedia>, String> {
     fetch_paginated(
-        r#"
+        r"
             query ($genre: String, $page: Int) {
                 Page(page: $page, perPage: 20) {
                     pageInfo { total }
@@ -592,7 +595,7 @@ pub async fn search_anilist_by_genre(genre: String) -> Result<Vec<AniMedia>, Str
                     }
                 }
             }
-        "#,
+        ",
         serde_json::json!({ "genre": genre, "page": 1, "perPage": 20 }),
         MAX_PAGES,
         20,
@@ -603,7 +606,7 @@ pub async fn search_anilist_by_genre(genre: String) -> Result<Vec<AniMedia>, Str
 #[tauri::command]
 pub async fn search_anilist_by_studio(studio_id: u64) -> Result<Vec<AniMedia>, String> {
     let body = serde_json::json!({
-        "query": r#"
+        "query": r"
             query ($id: Int) {
                 Studio(id: $id) {
                     media(page: 1, perPage: 50) {
@@ -621,7 +624,7 @@ pub async fn search_anilist_by_studio(studio_id: u64) -> Result<Vec<AniMedia>, S
                     }
                 }
             }
-        "#,
+        ",
         "variables": { "id": studio_id }
     });
     let json = graphql_request(body, None).await?;
@@ -694,7 +697,7 @@ pub async fn toggle_favourite(
 ) -> Result<Vec<FavouriteAnime>, String> {
     let token = load_token(&app_handle)?;
     let body = serde_json::json!({
-        "query": r#"
+        "query": r"
             mutation ($animeId: Int) {
                 ToggleFavourite(animeId: $animeId) {
                     anime {
@@ -708,7 +711,7 @@ pub async fn toggle_favourite(
                     }
                 }
             }
-        "#,
+        ",
         "variables": { "animeId": anime_id }
     });
     let json = graphql_request(body, Some(&token)).await?;
@@ -728,7 +731,7 @@ pub async fn get_favourites(
 ) -> Result<Vec<FavouriteAnime>, String> {
     let token = load_token(&app_handle)?;
     let body = serde_json::json!({
-        "query": r#"
+        "query": r"
             query ($userId: Int) {
                 User(id: $userId) {
                     favourites {
@@ -744,7 +747,7 @@ pub async fn get_favourites(
                     }
                 }
             }
-        "#,
+        ",
         "variables": { "userId": user_id }
     });
     let json = graphql_request(body, Some(&token)).await?;
@@ -765,7 +768,7 @@ pub async fn get_profile_recommendations(
     let token = load_token(&app_handle)?;
 
     let list_body = serde_json::json!({
-        "query": r#"
+        "query": r"
             query ($userId: Int) {
                 MediaListCollection(userId: $userId, type: ANIME) {
                     lists {
@@ -777,7 +780,7 @@ pub async fn get_profile_recommendations(
                     }
                 }
             }
-        "#,
+        ",
         "variables": { "userId": user_id }
     });
     let list_json = graphql_request(list_body, Some(&token)).await?;
@@ -810,7 +813,7 @@ pub async fn get_profile_recommendations(
     }
 
     let rec_body = serde_json::json!({
-        "query": r#"
+        "query": r"
             query ($ids: [Int]) {
                 Page(page: 1, perPage: 50) {
                     media(id_in: $ids, type: ANIME) {
@@ -828,7 +831,7 @@ pub async fn get_profile_recommendations(
                     }
                 }
             }
-        "#,
+        ",
         "variables": { "ids": top_ids }
     });
     let rec_json = graphql_request(rec_body, Some(&token)).await?;
@@ -873,7 +876,7 @@ pub async fn get_profile_recommendations(
 #[tauri::command]
 pub async fn get_anime_by_id(id: u64) -> Result<AniMedia, String> {
     let body = serde_json::json!({
-        "query": r#"
+        "query": r"
             query ($id: Int) {
                 Media(id: $id, type: ANIME) {
                     id
@@ -892,7 +895,7 @@ pub async fn get_anime_by_id(id: u64) -> Result<AniMedia, String> {
                     nextAiringEpisode { episode airingAt }
                 }
             }
-        "#,
+        ",
         "variables": { "id": id }
     });
     let json = graphql_request(body, None).await?;
@@ -906,7 +909,7 @@ pub async fn get_anime_by_id(id: u64) -> Result<AniMedia, String> {
 #[tauri::command]
 pub async fn anilist_login(app_handle: tauri::AppHandle, token: String) -> Result<AniUser, String> {
     let body = serde_json::json!({
-        "query": r#"
+        "query": r"
             query {
                 Viewer {
                     id, name, avatar { medium }
@@ -915,7 +918,7 @@ pub async fn anilist_login(app_handle: tauri::AppHandle, token: String) -> Resul
                     }
                 }
             }
-        "#
+        "
     });
     let json = graphql_request(body, Some(&token)).await?;
     let v = &json["data"]["Viewer"];
@@ -937,12 +940,9 @@ pub async fn anilist_login(app_handle: tauri::AppHandle, token: String) -> Resul
 
 #[tauri::command]
 pub async fn check_anilist_auth(app_handle: tauri::AppHandle) -> Result<Option<AniUser>, String> {
-    let token = match load_token(&app_handle) {
-        Ok(t) => t,
-        Err(_) => return Ok(None),
-    };
+    let Ok(token) = load_token(&app_handle) else { return Ok(None) };
     let body = serde_json::json!({
-        "query": r#"
+        "query": r"
             query {
                 Viewer {
                     id, name, avatar { medium }
@@ -951,12 +951,9 @@ pub async fn check_anilist_auth(app_handle: tauri::AppHandle) -> Result<Option<A
                     }
                 }
             }
-        "#
+        "
     });
-    let json = match graphql_request(body, Some(&token)).await {
-        Ok(j) => j,
-        Err(_) => return Ok(None),
-    };
+    let Ok(json) = graphql_request(body, Some(&token)).await else { return Ok(None) };
     let v = &json["data"]["Viewer"];
     if v.is_null() {
         return Ok(None);
@@ -979,7 +976,7 @@ pub async fn get_anilist_lists(
 ) -> Result<Vec<AniListCollection>, String> {
     let token = load_token(&app_handle)?;
     let body = serde_json::json!({
-        "query": r#"
+        "query": r"
             query ($userId: Int) {
                 MediaListCollection(userId: $userId, type: ANIME) {
                     lists {
@@ -1000,7 +997,7 @@ pub async fn get_anilist_lists(
                     }
                 }
             }
-        "#,
+        ",
         "variables": { "userId": user_id }
     });
     let json = graphql_request(body, Some(&token)).await?;
@@ -1078,6 +1075,7 @@ pub async fn anilist_logout(app_handle: tauri::AppHandle) -> Result<(), String> 
     Ok(())
 }
 
+#[allow(clippy::cast_possible_wrap)]
 #[tauri::command]
 pub async fn save_anilist_entry(
     app_handle: tauri::AppHandle,
@@ -1088,7 +1086,7 @@ pub async fn save_anilist_entry(
 ) -> Result<(), String> {
     let token = load_token(&app_handle)?;
     let body = serde_json::json!({
-        "query": r#"
+        "query": r"
             mutation ($mediaId: Int, $status: MediaListStatus, $progress: Int, $score: Float) {
                 SaveMediaListEntry(mediaId: $mediaId, status: $status, progress: $progress, score: $score) {
                     id
@@ -1096,7 +1094,7 @@ pub async fn save_anilist_entry(
                     progress
                 }
             }
-        "#,
+        ",
         "variables": {
             "mediaId": media_id as i64,
             "status": status,
@@ -1130,7 +1128,7 @@ pub struct AniActivity {
 #[tauri::command]
 pub async fn get_anilist_activity(user_ids: Vec<u64>) -> Result<Vec<AniActivity>, String> {
     let body = serde_json::json!({
-        "query": r#"
+        "query": r"
             query ($userIds: [Int], $page: Int) {
                 Page(page: $page, perPage: 50) {
                     activities(userId_in: $userIds, sort: ID_DESC) {
@@ -1151,7 +1149,7 @@ pub async fn get_anilist_activity(user_ids: Vec<u64>) -> Result<Vec<AniActivity>
                     }
                 }
             }
-        "#,
+        ",
         "variables": { "userIds": user_ids, "page": 1 }
     });
     let json = graphql_request(body, None).await?;
@@ -1199,7 +1197,7 @@ pub async fn get_anilist_activity(user_ids: Vec<u64>) -> Result<Vec<AniActivity>
 #[tauri::command]
 pub async fn get_anime_characters(id: u64, page: u64) -> Result<Vec<AniCharacterEdge>, String> {
     let body = serde_json::json!({
-        "query": r#"
+        "query": r"
             query ($id: Int, $page: Int) {
                 Media(id: $id, type: ANIME) {
                     characters(page: $page, perPage: 25) {
@@ -1220,7 +1218,7 @@ pub async fn get_anime_characters(id: u64, page: u64) -> Result<Vec<AniCharacter
                     }
                 }
             }
-        "#,
+        ",
         "variables": { "id": id, "page": page }
     });
     let json = graphql_request(body, None).await?;
@@ -1264,7 +1262,7 @@ pub async fn get_anime_characters(id: u64, page: u64) -> Result<Vec<AniCharacter
 #[tauri::command]
 pub async fn get_character_media(id: u64) -> Result<Vec<AniCharacterMediaEdge>, String> {
     let body = serde_json::json!({
-        "query": r#"
+        "query": r"
             query ($id: Int) {
                 Character(id: $id) {
                     media(page: 1, perPage: 50, type: ANIME) {
@@ -1278,7 +1276,7 @@ pub async fn get_character_media(id: u64) -> Result<Vec<AniCharacterMediaEdge>, 
                     }
                 }
             }
-        "#,
+        ",
         "variables": { "id": id }
     });
     let json = graphql_request(body, None).await?;
@@ -1311,7 +1309,7 @@ pub async fn get_character_media(id: u64) -> Result<Vec<AniCharacterMediaEdge>, 
 #[tauri::command]
 pub async fn get_staff_characters(id: u64) -> Result<AniStaffDetail, String> {
     let body = serde_json::json!({
-        "query": r#"
+        "query": r"
             query ($id: Int) {
                 Staff(id: $id) {
                     id
@@ -1337,7 +1335,7 @@ pub async fn get_staff_characters(id: u64) -> Result<AniStaffDetail, String> {
                     }
                 }
             }
-        "#,
+        ",
         "variables": { "id": id }
     });
     let json = graphql_request(body, None).await?;
@@ -1442,7 +1440,7 @@ struct FetchedFranchiseNode {
 
 async fn fetch_franchise_node(id: u64) -> Result<FetchedFranchiseNode, String> {
     let body = serde_json::json!({
-        "query": r#"
+        "query": r"
             query ($id: Int) {
                 Media(id: $id, type: ANIME) {
                     id
@@ -1458,7 +1456,7 @@ async fn fetch_franchise_node(id: u64) -> Result<FetchedFranchiseNode, String> {
                     }
                 }
             }
-        "#,
+        ",
         "variables": { "id": id }
     });
     let json = graphql_request(body, None).await?;
@@ -1519,10 +1517,7 @@ pub async fn get_anime_franchise(id: u64) -> Result<FranchiseGraph, String> {
             if nodes.len() >= MAX_FRANCHISE_NODES {
                 break;
             }
-            let data = match result {
-                Ok(d) => d,
-                Err(_) => continue,
-            };
+            let Ok(data) = result else { continue };
 
             let node_id = data.node.id;
             nodes.push(data.node);

@@ -13,7 +13,7 @@ struct TorrentFile {
     announce: Option<String>,
 }
 
-pub(crate) fn extract_info_hash(torrent_bytes: &[u8]) -> Result<String, String> {
+pub fn extract_info_hash(torrent_bytes: &[u8]) -> Result<String, String> {
     let info_bytes = find_info_value_bytes(torrent_bytes)?;
     let mut hasher = sha1::Sha1::new();
     hasher.update(info_bytes);
@@ -21,7 +21,7 @@ pub(crate) fn extract_info_hash(torrent_bytes: &[u8]) -> Result<String, String> 
     Ok(hex::encode(hash))
 }
 
-pub(crate) fn extract_torrent_name(torrent_bytes: &[u8]) -> Result<String, String> {
+pub fn extract_torrent_name(torrent_bytes: &[u8]) -> Result<String, String> {
     let info_bytes = find_info_value_bytes(torrent_bytes)?;
     let info: InfoDict = serde_bencode::from_bytes(info_bytes)
         .map_err(|e| format!("Failed to parse info dict: {e}"))?;
@@ -30,13 +30,13 @@ pub(crate) fn extract_torrent_name(torrent_bytes: &[u8]) -> Result<String, Strin
         .ok_or_else(|| "No name found".to_string())
 }
 
-pub(crate) fn extract_announce_url(torrent_bytes: &[u8]) -> Result<String, String> {
+pub fn extract_announce_url(torrent_bytes: &[u8]) -> Result<String, String> {
     let file: TorrentFile = serde_bencode::from_bytes(torrent_bytes)
         .map_err(|e| format!("Failed to parse torrent file: {e}"))?;
     file.announce.ok_or_else(|| "No announce found".to_string())
 }
 
-fn find_info_value_bytes<'a>(bytes: &'a [u8]) -> Result<&'a [u8], String> {
+fn find_info_value_bytes(bytes: &[u8]) -> Result<&[u8], String> {
     let marker = b"4:info";
     let start = bytes
         .windows(marker.len())
@@ -57,7 +57,7 @@ fn skip_bencode_value(bytes: &[u8], pos: usize) -> Result<usize, String> {
             let end = bytes[pos..]
                 .iter()
                 .position(|&b| b == b'e')
-                .ok_or("Unterminated integer".to_string())?;
+                .ok_or_else(|| "Unterminated integer".to_string())?;
             Ok(pos + end + 1)
         }
         b'l' | b'd' => {
@@ -83,7 +83,7 @@ fn skip_bencode_value(bytes: &[u8], pos: usize) -> Result<usize, String> {
                 .map_err(|_| "Invalid length number".to_string())?;
             Ok(pos + colon_pos + 1 + len)
         }
-        _ => Err(format!("Unknown bencode type at pos {}", pos)),
+        _ => Err(format!("Unknown bencode type at pos {pos}")),
     }
 }
 

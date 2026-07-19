@@ -13,7 +13,7 @@ struct DownloadProgress {
     stage: String,
 }
 
-fn download_urls() -> Result<(&'static str, &'static str, &'static str), String> {
+const fn download_urls() -> Result<(&'static str, &'static str, &'static str), String> {
     #[cfg(target_os = "windows")]
     return Ok((
         "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n8.1-latest-win64-gpl-8.1.zip",
@@ -54,7 +54,7 @@ pub async fn download_ffmpeg(app_handle: tauri::AppHandle) -> Result<String, Str
     }
 
     let client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(300))
+        .timeout(std::time::Duration::from_mins(5))
         .build()
         .map_err(|e| format!("client: {e}"))?;
 
@@ -193,16 +193,18 @@ pub async fn remove_ffmpeg(app_handle: tauri::AppHandle) -> Result<(), String> {
         "ffprobe"
     });
 
-    let mut removed_any = false;
-
-    if ffmpeg_path.exists() {
+    let removed_any = if ffmpeg_path.exists() {
         std::fs::remove_file(&ffmpeg_path).map_err(|e| format!("remove ffmpeg: {e}"))?;
-        removed_any = true;
-    }
-    if ffprobe_path.exists() {
+        if ffprobe_path.exists() {
+            std::fs::remove_file(&ffprobe_path).map_err(|e| format!("remove ffprobe: {e}"))?;
+        }
+        true
+    } else if ffprobe_path.exists() {
         std::fs::remove_file(&ffprobe_path).map_err(|e| format!("remove ffprobe: {e}"))?;
-        removed_any = true;
-    }
+        true
+    } else {
+        false
+    };
 
     if !removed_any {
         return Err("FFmpeg не найден".to_string());
@@ -217,7 +219,7 @@ pub async fn check_ffprobe(app_handle: tauri::AppHandle) -> Result<bool, String>
     let mut cmd = std::process::Command::new(&probe);
     cmd.arg("-version");
     #[cfg(windows)]
-    cmd.creation_flags(0x08000000);
+    cmd.creation_flags(0x0800_0000);
     let status = cmd.output();
     match status {
         Ok(o) => Ok(o.status.success()),

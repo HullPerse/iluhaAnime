@@ -29,15 +29,12 @@ fn save_rutracker_cookies(
     fs::write(&path, &json).map_err(|e| format!("Write error: {e}"))
 }
 
-pub(crate) fn load_rutracker_cookies(app_handle: &tauri::AppHandle) -> HashMap<String, String> {
+pub fn load_rutracker_cookies(app_handle: &tauri::AppHandle) -> HashMap<String, String> {
     let path = rutracker_cookie_path(app_handle);
     if !path.exists() {
         return HashMap::new();
     }
-    let json = match fs::read_to_string(&path) {
-        Ok(s) => s,
-        Err(_) => return HashMap::new(),
-    };
+    let Ok(json) = fs::read_to_string(&path) else { return HashMap::new() };
     serde_json::from_str(&json).unwrap_or_default()
 }
 
@@ -57,7 +54,7 @@ fn save_nekobt_api_key(app_handle: &tauri::AppHandle, key: &str) -> Result<(), S
     fs::write(&path, key).map_err(|e| format!("Write error: {e}"))
 }
 
-pub(crate) fn load_nekobt_api_key(app_handle: &tauri::AppHandle) -> String {
+pub fn load_nekobt_api_key(app_handle: &tauri::AppHandle) -> String {
     let path = nekobt_api_key_path(app_handle);
     if !path.exists() {
         return String::new();
@@ -181,7 +178,7 @@ pub async fn rutracker_get_magnet(
 
     let client = build_client()?;
     let resp = client
-        .get(format!("https://rutracker.org/forum/dl.php?t={}", topic_id))
+        .get(format!("https://rutracker.org/forum/dl.php?t={topic_id}"))
         .header("Cookie", cookies_to_header(&cookies))
         .send()
         .await
@@ -196,16 +193,16 @@ pub async fn rutracker_get_magnet(
     let info_hash = extract_info_hash(&bytes)?;
     let name = extract_torrent_name(&bytes).unwrap_or_default();
 
-    let mut magnet = format!("magnet:?xt=urn:btih:{}", info_hash);
+    let mut magnet = format!("magnet:?xt=urn:btih:{info_hash}");
     if !name.is_empty() {
         magnet.push_str("&dn=");
-        magnet.push_str(&url_encode(name));
+        magnet.push_str(&url_encode(&name));
     }
 
     if let Ok(announce) = extract_announce_url(&bytes) {
         if !announce.is_empty() {
             magnet.push_str("&tr=");
-            magnet.push_str(&url_encode(announce));
+            magnet.push_str(&url_encode(&announce));
         }
     }
 
@@ -240,7 +237,7 @@ pub async fn nekobt_set_api_key(
         .map_err(|e| format!("Read error: {e}"))
         .and_then(|b| serde_json::from_slice(&b).map_err(|e| format!("Parse error: {e}")))?;
 
-    if body.get("error").and_then(|v| v.as_bool()).unwrap_or(true) {
+    if body.get("error").and_then(serde_json::Value::as_bool).unwrap_or(true) {
         let msg = body
             .get("message")
             .and_then(|v| v.as_str())
@@ -266,10 +263,7 @@ pub async fn check_nekobt_session(app_handle: tauri::AppHandle) -> Result<bool, 
         .send()
         .await;
 
-    match resp {
-        Ok(r) => Ok(r.status().is_success()),
-        Err(_) => Ok(false),
-    }
+    resp.map_or(Ok(false), |r| Ok(r.status().is_success()))
 }
 
 #[tauri::command]

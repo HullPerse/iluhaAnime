@@ -1,3 +1,5 @@
+#![allow(clippy::too_many_arguments)]
+
 use scraper::{Html, Selector};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -57,7 +59,7 @@ struct NekoBtTorrentItem {
     leechers: String,
 }
 
-pub(crate) fn build_client() -> Result<reqwest::Client, String> {
+pub fn build_client() -> Result<reqwest::Client, String> {
     reqwest::Client::builder()
         .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36")
         .timeout(std::time::Duration::from_secs(30))
@@ -65,7 +67,7 @@ pub(crate) fn build_client() -> Result<reqwest::Client, String> {
         .map_err(|e| format!("Client error: {e}"))
 }
 
-pub(crate) fn build_nyaa_client() -> Result<reqwest::Client, String> {
+pub fn build_nyaa_client() -> Result<reqwest::Client, String> {
     reqwest::Client::builder()
         .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36")
         .timeout(std::time::Duration::from_secs(90))
@@ -73,7 +75,7 @@ pub(crate) fn build_nyaa_client() -> Result<reqwest::Client, String> {
         .map_err(|e| format!("Client error: {e}"))
 }
 
-pub(crate) fn build_no_redirect_client() -> Result<reqwest::Client, String> {
+pub fn build_no_redirect_client() -> Result<reqwest::Client, String> {
     reqwest::Client::builder()
         .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36")
         .timeout(std::time::Duration::from_secs(30))
@@ -82,7 +84,7 @@ pub(crate) fn build_no_redirect_client() -> Result<reqwest::Client, String> {
         .map_err(|e| format!("Client error: {e}"))
 }
 
-pub(crate) fn build_nekobt_client() -> Result<reqwest::Client, String> {
+pub fn build_nekobt_client() -> Result<reqwest::Client, String> {
     reqwest::Client::builder()
         .user_agent("iluhaAnime/1.0")
         .timeout(std::time::Duration::from_secs(30))
@@ -90,9 +92,9 @@ pub(crate) fn build_nekobt_client() -> Result<reqwest::Client, String> {
         .map_err(|e| format!("Client error: {e}"))
 }
 
-pub(crate) fn format_file_size(bytes: f64) -> String {
+pub fn format_file_size(bytes: f64) -> String {
     if bytes < 1024.0 {
-        format!("{:.2} B", bytes)
+        format!("{bytes:.2} B")
     } else if bytes < 1024.0 * 1024.0 {
         format!("{:.2} KiB", bytes / 1024.0)
     } else if bytes < 1024.0 * 1024.0 * 1024.0 {
@@ -102,20 +104,20 @@ pub(crate) fn format_file_size(bytes: f64) -> String {
     }
 }
 
-pub(crate) fn decode_windows_1251(bytes: &[u8]) -> String {
+pub fn decode_windows_1251(bytes: &[u8]) -> String {
     let (cow, _, _) = encoding_rs::WINDOWS_1251.decode(bytes);
     cow.to_string()
 }
 
-pub(crate) fn cookies_to_header(cookies: &HashMap<String, String>) -> String {
+pub fn cookies_to_header(cookies: &HashMap<String, String>) -> String {
     cookies
         .iter()
-        .map(|(k, v)| format!("{}={}", k, v))
+        .map(|(k, v)| format!("{k}={v}"))
         .collect::<Vec<_>>()
         .join("; ")
 }
 
-pub(crate) fn extract_cookies_from_headers(
+pub fn extract_cookies_from_headers(
     headers: &reqwest::header::HeaderMap,
     cookies: &mut HashMap<String, String>,
 ) {
@@ -133,27 +135,24 @@ pub(crate) fn extract_cookies_from_headers(
     }
 }
 
-pub(crate) fn url_encode(s: String) -> String {
+pub fn url_encode(s: &str) -> String {
     s.bytes()
         .map(|b| match b {
             b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
                 (b as char).to_string()
             }
             b' ' => "+".to_string(),
-            _ => format!("%{:02X}", b),
+            _ => format!("%{b:02X}"),
         })
         .collect()
 }
 
 fn parse_seeders_leechers(s: &str) -> (u32, u32) {
     let re = regex_lite::Regex::new(r"Seeders:\s*(\d+)\s*/\s*Leechers:\s*(\d+)").ok();
-    match re.and_then(|r| r.captures(s)) {
-        Some(c) => (
-            c.get(1).and_then(|m| m.as_str().parse().ok()).unwrap_or(0),
-            c.get(2).and_then(|m| m.as_str().parse().ok()).unwrap_or(0),
-        ),
-        None => (0, 0),
-    }
+    re.and_then(|r| r.captures(s)).map_or((0, 0), |c| (
+        c.get(1).and_then(|m| m.as_str().parse().ok()).unwrap_or(0),
+        c.get(2).and_then(|m| m.as_str().parse().ok()).unwrap_or(0),
+    ))
 }
 
 fn is_valid_torrent(name: &str, url: &str) -> bool {
@@ -185,13 +184,7 @@ fn nyaa_json_to_item(item: NyaaJsonItem) -> Option<NyaaItem> {
     }
 
     let size_str = match &item.size {
-        serde_json::Value::Number(n) => {
-            if let Some(bytes) = n.as_f64() {
-                format_file_size(bytes)
-            } else {
-                String::new()
-            }
-        }
+        serde_json::Value::Number(n) => n.as_f64().map_or_else(String::new, format_file_size),
         serde_json::Value::String(s) => s.clone(),
         _ => String::new(),
     };
@@ -349,7 +342,7 @@ fn parse_entries(html: &str) -> Vec<NyaaItem> {
                     } else {
                         format!("https://animetosho.org{h}")
                     };
-                } else if a.value().attr("class").map_or(false, |c| c == "website")
+                } else if (a.value().attr("class") == Some("website"))
                     && link.is_empty()
                 {
                     link = h.to_string();
@@ -514,12 +507,9 @@ fn parse_rutracker_entries(html: &str) -> Vec<NyaaItem> {
             .map(|a| a.text().collect::<String>().trim().to_string())
             .filter(|t| !t.is_empty());
 
-        let title = match title {
-            Some(t) => t,
-            None => continue,
-        };
+        let Some(title) = title else { continue };
 
-        let link = format!("https://rutracker.org/forum/viewtopic.php?t={}", topic_id);
+        let link = format!("https://rutracker.org/forum/viewtopic.php?t={topic_id}");
 
         let size = tds[5]
             .text()
@@ -565,8 +555,8 @@ pub async fn search_erairaws(
     let client = build_client()?;
 
     let search_query = match encoding.as_deref() {
-        None | Some("") | Some("all") => format!("{} erai-raws", query),
-        Some(enc) => format!("{} erai-raws {}", query, enc),
+        None | Some("" | "all") => format!("{query} erai-raws"),
+        Some(enc) => format!("{query} erai-raws {enc}"),
     };
 
     let mut last_err = String::new();
@@ -637,13 +627,7 @@ fn sukebei_json_to_item(item: NyaaJsonItem) -> Option<NyaaItem> {
     }
 
     let size_str = match &item.size {
-        serde_json::Value::Number(n) => {
-            if let Some(bytes) = n.as_f64() {
-                format_file_size(bytes)
-            } else {
-                String::new()
-            }
-        }
+        serde_json::Value::Number(n) => n.as_f64().map_or_else(String::new, format_file_size),
         serde_json::Value::String(s) => s.clone(),
         _ => String::new(),
     };
@@ -841,7 +825,7 @@ pub async fn search_nekobt(
 
     let client = build_nekobt_client()?;
     let page = page.unwrap_or(1);
-    let offset = ((page as u64).saturating_sub(1)) * 20;
+    let offset = (u64::from(page).saturating_sub(1)) * 20;
     let limit = 20u64;
 
     let resp = client

@@ -1,3 +1,10 @@
+#![allow(
+    clippy::too_many_arguments,
+    clippy::too_many_lines,
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+)]
+
 use serde::Serialize;
 use std::collections::HashMap;
 #[cfg(windows)]
@@ -8,11 +15,11 @@ use tauri::{Emitter, Manager};
 use tokio::io::{AsyncBufReadExt, AsyncReadExt};
 use tokio::process::Command;
 
-pub(crate) static FFMPEG_SEM: tokio::sync::Semaphore = tokio::sync::Semaphore::const_new(3);
+pub static FFMPEG_SEM: tokio::sync::Semaphore = tokio::sync::Semaphore::const_new(3);
 
 pub struct CancelFlag(pub Arc<AtomicBool>);
 
-pub(crate) fn ffmpeg_bin_dir(app_handle: &tauri::AppHandle) -> std::path::PathBuf {
+pub fn ffmpeg_bin_dir(app_handle: &tauri::AppHandle) -> std::path::PathBuf {
     let platform = if cfg!(target_os = "windows") {
         "windows"
     } else {
@@ -26,7 +33,7 @@ pub(crate) fn ffmpeg_bin_dir(app_handle: &tauri::AppHandle) -> std::path::PathBu
         .join(platform)
 }
 
-pub(crate) fn ffprobe_exe(app_handle: &tauri::AppHandle) -> String {
+pub fn ffprobe_exe(app_handle: &tauri::AppHandle) -> String {
     let ext = if cfg!(target_os = "windows") {
         ".exe"
     } else {
@@ -54,7 +61,7 @@ pub fn ffmpeg_exe(app_handle: &tauri::AppHandle) -> String {
     }
 }
 
-pub(crate) static CACHED_FFMPEG_PATH: OnceLock<String> = OnceLock::new();
+pub static CACHED_FFMPEG_PATH: OnceLock<String> = OnceLock::new();
 
 #[derive(Clone, Serialize)]
 struct UpscaleProgress {
@@ -72,7 +79,7 @@ fn parse_ffmpeg_time(s: &str) -> Option<f64> {
     let h: f64 = parts[0].parse().ok()?;
     let m: f64 = parts[1].parse().ok()?;
     let sec: f64 = parts[2].parse().ok()?;
-    Some(h * 3600.0 + m * 60.0 + sec)
+    Some(m.mul_add(60.0, h * 3600.0) + sec)
 }
 
 static VIDEO_DURATION_CACHE: OnceLock<Mutex<HashMap<String, f64>>> = OnceLock::new();
@@ -97,7 +104,7 @@ async fn get_video_duration(app_handle: &tauri::AppHandle, path: &str) -> Result
             path,
         ]);
         #[cfg(windows)]
-        c.creation_flags(0x08000000);
+        c.creation_flags(0x0800_0000);
         c.output()
     }
     .await
@@ -208,7 +215,7 @@ async fn get_video_dimensions(
             path,
         ]);
         #[cfg(windows)]
-        c.creation_flags(0x08000000);
+        c.creation_flags(0x0800_0000);
         c.output()
     }
     .await
@@ -299,7 +306,7 @@ pub async fn upscale_video(
         let shader_chain = crate::shaders::build_shader_chain(&selected)?;
 
         let shader_dir = crate::shaders::shader_dir(&app_handle)
-            .ok_or("Anime4K шейдеры не найдены. Переустановите приложение.".to_string())?;
+            .ok_or_else(|| "Anime4K шейдеры не найдены. Переустановите приложение.".to_string())?;
 
         for filename in &shader_chain {
             if !shader_dir.join(filename).exists() {
@@ -315,11 +322,10 @@ pub async fn upscale_video(
 
             if is_last && has_target {
                 vf_parts.push(format!(
-                    "libplacebo=custom_shader_path={}:w={}:h={}",
-                    filename, target_w, target_h
+                    "libplacebo=custom_shader_path={filename}:w={target_w}:h={target_h}"
                 ));
             } else {
-                vf_parts.push(format!("libplacebo=custom_shader_path={}", filename));
+                vf_parts.push(format!("libplacebo=custom_shader_path={filename}"));
             }
         }
 
@@ -328,9 +334,9 @@ pub async fn upscale_video(
 
         if let Some(fps) = target_fps {
             if interpolate {
-                vf = format!("minterpolate=fps={},{}", fps, vf);
+                vf = format!("minterpolate=fps={fps},{vf}");
             } else {
-                vf = format!("fps={},{}", fps, vf);
+                vf = format!("fps={fps},{vf}");
             }
         }
 
@@ -353,7 +359,7 @@ pub async fn upscale_video(
         args.push("-nostats".to_string());
         args.push(output_path.clone());
 
-        let _permit_encode = FFMPEG_SEM
+        let permit_encode = FFMPEG_SEM
             .acquire()
             .await
             .map_err(|_| "semaphore closed".to_string())?;
@@ -365,10 +371,10 @@ pub async fn upscale_video(
                 .stdout(std::process::Stdio::piped())
                 .stderr(std::process::Stdio::piped());
             #[cfg(windows)]
-            c.creation_flags(0x08000000);
+            c.creation_flags(0x0800_0000);
             c.spawn().map_err(|e| format!("ffmpeg anime4k: {e}"))?
         };
-        drop(_permit_encode);
+        drop(permit_encode);
 
         let child_stdout = child.stdout.take().ok_or("no stdout")?;
         let child_stderr = child.stderr.take();
@@ -437,8 +443,7 @@ pub async fn upscale_video(
         if !status.success() {
             let cmd_line = format!("ffmpeg {}", args.join(" "));
             return Err(format!(
-                "Anime4K encoding failed:\n{}\n\nffmpeg command:\n{}",
-                stderr, cmd_line
+                "Anime4K encoding failed:\n{stderr}\n\nffmpeg command:\n{cmd_line}"
             ));
         }
 
@@ -459,13 +464,13 @@ pub async fn upscale_video(
     // Standard ffmpeg upscale path
     let mut filters = Vec::new();
     if width > 0 && height > 0 {
-        filters.push(format!("scale={}:{}:flags=lanczos", width, height));
+        filters.push(format!("scale={width}:{height}:flags=lanczos"));
     }
     if let Some(fps) = target_fps {
         if interpolate {
-            filters.push(format!("minterpolate=fps={}", fps));
+            filters.push(format!("minterpolate=fps={fps}"));
         } else {
-            filters.push(format!("fps={}", fps));
+            filters.push(format!("fps={fps}"));
         }
     }
     let vf = if filters.is_empty() {
@@ -492,9 +497,8 @@ pub async fn upscale_video(
     let out_for_ffmpeg = output_path.clone();
 
     let encode = tokio::spawn(async move {
-        let _permit = match FFMPEG_SEM.acquire().await {
-            Ok(p) => p,
-            Err(_) => return Err("semaphore closed".to_string()),
+        let Ok(_permit) = FFMPEG_SEM.acquire().await else {
+            return Err("semaphore closed".to_string());
         };
 
         let mut cmd = Command::new(ffmpeg_exe(&app_for_ffmpeg));
@@ -516,7 +520,7 @@ pub async fn upscale_video(
             .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::piped());
         #[cfg(windows)]
-        cmd.creation_flags(0x08000000);
+        cmd.creation_flags(0x0800_0000);
 
         let mut child = cmd.spawn().map_err(|e| format!("ffmpeg not found: {e}"))?;
 
@@ -621,13 +625,14 @@ pub async fn check_gpu_encoders(app_handle: tauri::AppHandle) -> Vec<String> {
     let mut available = vec!["cpu".to_string()];
 
     let ffmpeg = ffmpeg_exe(&app_handle);
-    let output = match {
+    let res = {
         let mut c = std::process::Command::new(&ffmpeg);
         c.args(["-hide_banner", "-encoders"]);
         #[cfg(windows)]
-        c.creation_flags(0x08000000);
+        c.creation_flags(0x0800_0000);
         c.output()
-    } {
+    };
+    let output = match res {
         Ok(o) if o.status.success() => o,
         _ => return available,
     };
@@ -652,7 +657,7 @@ pub async fn convert_video(
     app_handle: tauri::AppHandle,
     input_path: String,
     output_path: String,
-    _target_format: String,
+    target_format: String,
     copy_streams: bool,
     cancel_flag: tauri::State<'_, CancelFlag>,
     registry: tauri::State<'_, crate::progress::StreamRegistry>,
@@ -696,7 +701,7 @@ pub async fn convert_video(
     if copy_streams {
         cmd.args(["-c", "copy"]);
     } else {
-        match _target_format.as_str() {
+        match target_format.as_str() {
             "webm" => {
                 cmd.args(["-c:v", "libvpx-vp9", "-crf", "30", "-b:v", "0"]);
                 cmd.args(["-c:a", "libopus"]);
@@ -721,7 +726,7 @@ pub async fn convert_video(
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped());
     #[cfg(windows)]
-    cmd.creation_flags(0x08000000);
+    cmd.creation_flags(0x0800_0000);
 
     let mut child = cmd.spawn().map_err(|e| format!("ffmpeg convert: {e}"))?;
 

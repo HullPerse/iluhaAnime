@@ -4,8 +4,8 @@ use std::sync::{Arc, Mutex};
 use tokio::sync::watch;
 
 /// Thread-safe registry of progress streams backed by tokio watch channels.
-/// Each stream has a unique numeric ID and a watch::Sender<f64>.
-/// Multiple consumers can subscribe to the same stream (watch::Receiver is cloneable).
+/// Each stream has a unique numeric ID and a `watch::Sender`<f64>.
+/// Multiple consumers can subscribe to the same stream (`watch::Receiver` is cloneable).
 pub struct StreamRegistry {
     streams: Arc<Mutex<HashMap<u64, watch::Sender<f64>>>>,
     counter: AtomicU64,

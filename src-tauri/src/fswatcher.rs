@@ -15,7 +15,7 @@ pub struct FolderWatcher {
 
 impl FolderWatcher {
     pub fn new() -> Self {
-        FolderWatcher {
+        Self {
             watcher: None,
             cancel: Arc::new(AtomicBool::new(false)),
             dirty_tx: mpsc::unbounded_channel().0,
@@ -26,7 +26,7 @@ impl FolderWatcher {
         self.cancel.store(false, Ordering::SeqCst);
         let cancel = self.cancel.clone();
 
-        let paths: Vec<PathBuf> = folders.iter().map(|p| PathBuf::from(p)).collect();
+        let paths: Vec<PathBuf> = folders.iter().map(PathBuf::from).collect();
 
         let (tx, rx) = std::sync::mpsc::channel();
         let (dirty_tx, mut dirty_rx) = mpsc::unbounded_channel::<PathBuf>();
@@ -51,7 +51,7 @@ impl FolderWatcher {
                         EventKind::Create(_) | EventKind::Modify(_) | EventKind::Remove(_)
                     ) {
                         if let Some(path) = event.paths.first() {
-                            if let Some(parent) = path.parent().map(|p| p.to_path_buf()) {
+                            if let Some(parent) = path.parent().map(std::path::Path::to_path_buf) {
                                 let _ = dirty_tx.send(parent);
                             }
                         }
@@ -66,10 +66,10 @@ impl FolderWatcher {
         });
 
         // Async: debounce dirty paths and emit
-        let cancel_deb = cancel.clone();
+        let cancel_deb = cancel;
         let paths_clone = paths.clone();
         let dirty_set: Arc<Mutex<HashSet<PathBuf>>> = Arc::new(Mutex::new(HashSet::new()));
-        let set_clone = dirty_set.clone();
+        let set_clone = dirty_set;
         tokio::spawn(async move {
             loop {
                 tokio::select! {
@@ -78,12 +78,9 @@ impl FolderWatcher {
                             set.insert(path);
                         }
                     }
-                    _ = tokio::time::sleep(Duration::from_secs(2)) => {
+                    () = tokio::time::sleep(Duration::from_secs(2)) => {
                         let changed: Vec<String> = {
-                            let mut set = match set_clone.lock() {
-                                Ok(s) => s,
-                                Err(_) => continue,
-                            };
+                            let Ok(mut set) = set_clone.lock() else { continue };
                             if set.is_empty() { continue; }
                             set.drain()
                                 .filter_map(|p| {

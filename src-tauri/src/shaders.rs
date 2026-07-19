@@ -414,7 +414,7 @@ pub fn list_shaders() -> Vec<ShaderInfo> {
             description: s.description_ru.to_string(),
             speed_factor: s.speed_factor,
             is_default: s.is_default,
-            exclusive_group: s.exclusive_group.map(|g| g.to_string()),
+            exclusive_group: s.exclusive_group.map(std::string::ToString::to_string),
         })
         .collect()
 }
@@ -426,7 +426,7 @@ fn find_meta(id: &str) -> Option<&ShaderMeta> {
 /// Build ordered list of shader filenames from selected IDs.
 /// Returns error if validation fails (e.g. no upscale selected).
 pub fn build_shader_chain(selected: &[String]) -> Result<Vec<String>, String> {
-    let selected_set: HashSet<&str> = selected.iter().map(|s| s.as_str()).collect();
+    let selected_set: HashSet<&str> = selected.iter().map(std::string::String::as_str).collect();
 
     // Validate: exactly one upscale required
     let upscale_count = CATALOG
@@ -470,12 +470,11 @@ pub fn build_shader_chain(selected: &[String]) -> Result<Vec<String>, String> {
     let mut chain: Vec<String> = Vec::new();
 
     for &cat in &order {
-        for meta in CATALOG.iter() {
-            if meta.category == cat && selected_set.contains(meta.id) {
-                if !meta.filename.is_empty() {
+        for meta in CATALOG {
+            if meta.category == cat && selected_set.contains(meta.id)
+                && !meta.filename.is_empty() {
                     chain.push(meta.filename.to_string());
                 }
-            }
         }
     }
 
@@ -483,6 +482,7 @@ pub fn build_shader_chain(selected: &[String]) -> Result<Vec<String>, String> {
 }
 
 /// Rough ETA estimate based on shader speed factors and GPU backend.
+#[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
 pub fn estimate_time(duration_secs: f64, selected: &[String], gpu_backend: &str) -> String {
     let base_speed = match gpu_backend {
         "nvenc" => 2.5,
@@ -500,7 +500,7 @@ pub fn estimate_time(duration_secs: f64, selected: &[String], gpu_backend: &str)
     let eta = duration_secs / total_speed;
 
     if eta < 60.0 {
-        format!("< 1 мин")
+        "< 1 мин".to_string()
     } else {
         let m = (eta / 60.0).floor() as u32;
         let s = (eta % 60.0).round() as u32;

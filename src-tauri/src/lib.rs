@@ -1,4 +1,11 @@
-#![allow(linker_messages)]
+#![allow(
+    linker_messages,
+    clippy::needless_pass_by_value,
+    clippy::unnecessary_wraps,
+    clippy::missing_panics_doc,
+    clippy::too_many_lines,
+    clippy::large_stack_frames,
+)]
 
 use std::collections::{HashMap, HashSet};
 use std::num::NonZeroU32;
@@ -6,7 +13,6 @@ use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use tauri::{Emitter, Manager};
 use tauri_plugin_notification::NotificationExt;
-use tauri_plugin_single_instance;
 
 mod anilist;
 mod auth;
@@ -176,7 +182,7 @@ async fn scan_video_folder(
 
             walked += 1;
 
-            if walked % 100 == 0 {
+            if walked.is_multiple_of(100) {
                 let _ = app_handle.emit(
                     "folder-scan-progress",
                     serde_json::json!({
@@ -359,16 +365,14 @@ async fn start_watching_folders(
     app_handle: tauri::AppHandle,
     folders: Vec<String>,
 ) -> Result<(), String> {
-    let mut w = watcher.lock().map_err(|e| format!("lock: {e}"))?;
-    w.start(app_handle, folders)
+    watcher.lock().map_err(|e| format!("lock: {e}"))?.start(app_handle, folders)
 }
 
 #[tauri::command]
 async fn stop_watching_folders(
     watcher: tauri::State<'_, std::sync::Mutex<fswatcher::FolderWatcher>>,
 ) -> Result<(), String> {
-    let mut w = watcher.lock().map_err(|e| format!("lock: {e}"))?;
-    w.stop();
+    watcher.lock().map_err(|e| format!("lock: {e}"))?.stop();
     Ok(())
 }
 
@@ -407,6 +411,7 @@ async fn set_notification_settings(
 ) -> Result<(), String> {
     let mut c = state.lock().map_err(|e| format!("{e}"))?;
     *c = config;
+    drop(c);
     Ok(())
 }
 
@@ -485,11 +490,11 @@ pub fn run() {
                         } else {
                             let cfg_state =
                                 app_clone.state::<std::sync::Mutex<NotificationConfig>>();
-                            let cfg = cfg_state.lock().unwrap_or_else(|e| e.into_inner());
+                            let cfg = cfg_state.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
 
                             for t in &torrents {
                                 let prev = prev_states.get(&t.id);
-                                let prev_finished = prev.map(|(f, _)| *f).unwrap_or(false);
+                                let prev_finished = prev.is_some_and(|(f, _)| *f);
                                 let prev_error = prev.and_then(|(_, e)| e.clone());
 
                                 if cfg.enabled {

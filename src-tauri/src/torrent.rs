@@ -1,3 +1,10 @@
+#![allow(
+    clippy::struct_excessive_bools,
+    clippy::cast_precision_loss,
+    clippy::unused_async,
+    clippy::map_unwrap_or,
+)]
+
 use std::collections::{HashMap, HashSet};
 use std::num::NonZeroU32;
 use std::path::{Path, PathBuf};
@@ -5,10 +12,11 @@ use std::sync::Arc;
 
 use anyhow::{Context, Result};
 use dashmap::{DashMap, DashSet};
-use librqbit::*;
+use librqbit::{Session, SessionPersistenceConfig, SessionOptions, ListenerOptions, ConnectionOptions, PeerConnectionOptions, AddTorrent, AddTorrentOptions, AddTorrentResponse, create_torrent, CreateTorrentOptions};
 use serde::{Deserialize, Serialize};
+use std::net::{Ipv4Addr, Ipv6Addr};
 
-#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum FilePriority {
     DoNotDownload,
@@ -133,7 +141,6 @@ impl TorrentManager {
             })
         };
 
-        use std::net::{Ipv4Addr, Ipv6Addr};
         let listen_addr: std::net::SocketAddr = if session_config.ipv4_only {
             (Ipv4Addr::UNSPECIFIED, session_config.listen_port).into()
         } else {
@@ -211,15 +218,13 @@ impl TorrentManager {
                 let speed_mbps = stats
                     .live
                     .as_ref()
-                    .map(|l| l.download_speed.mbps)
-                    .unwrap_or(0.0);
-                let speed_bytes = speed_mbps * 125000.0;
+                    .map_or(0.0, |l| l.download_speed.mbps);
+                let speed_bytes = speed_mbps * 125_000.0;
 
                 let up_mbps = stats
                     .live
                     .as_ref()
-                    .map(|l| l.upload_speed.mbps)
-                    .unwrap_or(0.0);
+                    .map_or(0.0, |l| l.upload_speed.mbps);
 
                 let remaining = stats.total_bytes.saturating_sub(stats.progress_bytes);
                 let eta = if speed_mbps > 0.0 && remaining > 0 {
@@ -239,7 +244,7 @@ impl TorrentManager {
                     progress_bytes: stats.progress_bytes,
                     uploaded_bytes: stats.uploaded_bytes,
                     download_speed: speed_bytes,
-                    upload_speed: up_mbps * 125000.0,
+                    upload_speed: up_mbps * 125_000.0,
                     peers_connected: 0,
                     save_dir,
                     progress: if stats.total_bytes > 0 {
@@ -302,14 +307,12 @@ impl TorrentManager {
     ) -> Result<usize> {
         let output_folder = sub_folder
             .as_ref()
-            .filter(|s| is_safe_path_component(s))
-            .map(|s| {
+            .filter(|s| is_safe_path_component(s)).map_or_else(|| save_dir.clone(), |s| {
                 std::path::Path::new(&save_dir)
                     .join(s)
                     .to_string_lossy()
                     .to_string()
-            })
-            .unwrap_or_else(|| save_dir.clone());
+            });
         let opts = AddTorrentOptions {
             output_folder: Some(output_folder.clone()),
             overwrite: true,
@@ -330,7 +333,7 @@ impl TorrentManager {
                 self.save_save_dirs();
                 id
             }
-            _ => anyhow::bail!("torrent was not added"),
+            AddTorrentResponse::ListOnly(_) => anyhow::bail!("torrent was not added"),
         };
         self.cleanup_unselected_files();
         if let Some(ref files) = only_files {
@@ -375,7 +378,7 @@ impl TorrentManager {
                 .collect::<Vec<_>>()
         };
 
-        let magnet = format!("magnet:?xt=urn:btih:{}", info_hash);
+        let magnet = format!("magnet:?xt=urn:btih:{info_hash}");
         let new_id = self
             .replace_torrent(id, magnet, Some(vec![file_index]))
             .await?;
@@ -439,9 +442,8 @@ impl TorrentManager {
             .await
             .map_err(|e| format!("{e:#}"))?;
 
-        let list_only = match response {
-            AddTorrentResponse::ListOnly(r) => r,
-            _ => return Err("unexpected response from add_torrent".to_string()),
+        let AddTorrentResponse::ListOnly(list_only) = response else {
+            return Err("unexpected response from add_torrent".to_string());
         };
 
         let name = list_only.info.name().unwrap_or_default().to_string();
@@ -483,15 +485,15 @@ impl TorrentManager {
         let has_common_folder = if files.len() > 1 {
             let first_prefix = files[0]
                 .name
-                .split(|c| c == '/' || c == '\\')
+                .split(['/', '\\'])
                 .next()
-                .map(|s| s.to_string())
+                .map(std::string::ToString::to_string)
                 .filter(|s| !s.is_empty());
-            first_prefix.map_or(false, |prefix| {
+            first_prefix.is_some_and(|prefix| {
                 files.iter().all(|f| {
                     f.name == prefix
-                        || f.name.starts_with(&format!("{}/", prefix))
-                        || f.name.starts_with(&format!("{}\\", prefix))
+                        || f.name.starts_with(&format!("{prefix}/"))
+                        || f.name.starts_with(&format!("{prefix}\\"))
                 })
             })
         } else {
@@ -563,7 +565,7 @@ impl TorrentManager {
         let http_api = HttpApi::new(api, Some(http_opts));
         let addr: std::net::SocketAddr = ([127, 0, 0, 1], 11200).into();
         let listener =
-            match librqbit_dualstack_sockets::TcpListener::bind_tcp(addr, Default::default()) {
+            match librqbit_dualstack_sockets::TcpListener::bind_tcp(addr, librqbit_dualstack_sockets::BindOpts::default()) {
                 Ok(l) => l,
                 Err(e) => {
                     eprintln!("error binding HTTP API server: {e}");
@@ -678,7 +680,7 @@ impl TorrentManager {
                                 .file_priorities
                                 .get(&id)
                                 .map(|r| r.clone())
-                                .unwrap_or(vec![FilePriority::Normal; file_count]);
+                                .unwrap_or_else(|| vec![FilePriority::Normal; file_count]);
 
                             Some(
                                 m.file_infos
@@ -689,7 +691,7 @@ impl TorrentManager {
                                             stats.file_progress.get(i).copied().unwrap_or(0);
                                         let completed = f.len > 0 && progress >= f.len;
                                         let selected =
-                                            only_files.as_ref().map_or(true, |of| of.contains(&i));
+                                            only_files.as_ref().is_none_or(|of| of.contains(&i));
                                         let priority = prio_list
                                             .get(i)
                                             .copied()
@@ -697,7 +699,7 @@ impl TorrentManager {
                                         let exists = self
                                             .save_dirs
                                             .get(&id)
-                                            .map_or(false, |d| {
+                                            .is_some_and(|d| {
                                                 Path::new(d.value())
                                                     .join(&f.relative_filename)
                                                     .exists()
@@ -837,7 +839,7 @@ impl TorrentManager {
             let mut entry = self.file_priorities.entry(id).or_default();
             for &idx in &file_indices {
                 if idx < entry.len() {
-                    entry[idx] = priority.clone();
+                    entry[idx] = priority;
                 }
             }
         }
@@ -974,16 +976,16 @@ impl TorrentManager {
             return Ok(());
         }
 
-        let candidates: Vec<usize> =
-            if let Some(prio) = self.file_priorities.get(&id) {
+        let candidates: Vec<usize> = self
+            .file_priorities
+            .get(&id)
+            .map_or_else(|| (0..file_count).collect(), |prio| {
                 prio.iter()
                     .enumerate()
                     .filter(|(_, &p)| p != FilePriority::DoNotDownload)
                     .map(|(i, _)| i)
                     .collect()
-            } else {
-                (0..file_count).collect()
-            };
+            });
 
         let first_incomplete = candidates.into_iter().find(|&i| {
             let progress = stats.file_progress.get(i).copied().unwrap_or(0);
@@ -996,7 +998,7 @@ impl TorrentManager {
 
         match first_incomplete {
             Some(target) => {
-                let only: HashSet<usize> = [target].into_iter().collect();
+                let only: HashSet<usize> = std::iter::once(target).collect();
                 self.session
                     .update_only_files(&handle, &only)
                     .await

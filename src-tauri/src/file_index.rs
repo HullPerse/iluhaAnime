@@ -54,11 +54,14 @@ impl FileIndexer {
             }
         }
 
-        let mut index = self.index.write().await;
-        *index = entries;
+        {
+            let mut index = self.index.write().await;
+            *index = entries;
+        }
         Ok(())
     }
 
+    #[allow(clippy::significant_drop_tightening)]
     pub async fn search(&self, query: &str, extensions: &[String], limit: usize) -> Vec<FileEntry> {
         let index = self.index.read().await;
         let q = query.to_lowercase();
@@ -70,9 +73,8 @@ impl FileIndexer {
                 ext_set.is_empty()
                     || e.path
                         .split('.')
-                        .last()
-                        .map(|ext| ext_set.contains(&ext.to_lowercase()))
-                        .unwrap_or(false)
+                        .next_back()
+                        .is_some_and(|ext| ext_set.contains(&ext.to_lowercase()))
             })
             .filter_map(|e| {
                 let lower = e.name.to_lowercase();
@@ -81,7 +83,7 @@ impl FileIndexer {
             })
             .collect();
 
-        results.sort_by(|a, b| b.0.cmp(&a.0));
+        results.sort_by_key(|(score, _)| std::cmp::Reverse(*score));
         results.truncate(limit);
         results.into_iter().map(|(_, e)| e.clone()).collect()
     }

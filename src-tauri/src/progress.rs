@@ -32,7 +32,9 @@ impl StreamRegistry {
     pub fn create(&self) -> (u64, watch::Sender<f64>) {
         let id = self.counter.fetch_add(1, Ordering::Relaxed);
         let (tx, _rx) = watch::channel(0.0);
-        self.streams.lock().unwrap().insert(id, tx.clone());
+        if let Ok(mut streams) = self.streams.lock() {
+            streams.insert(id, tx.clone());
+        }
         (id, tx)
     }
 }

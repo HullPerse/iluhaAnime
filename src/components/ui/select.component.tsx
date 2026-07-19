@@ -56,9 +56,11 @@ function Select({
           disabled ? "opacity-50 cursor-default" : "cursor-pointer",
           className,
         )}
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
       >
         <span className="flex-1 text-left truncate">
-          {options.find(o => o.value === value)?.label ?? placeholder ?? ""}
+          {options.find((o) => o.value === value)?.label ?? placeholder ?? ""}
         </span>
         {arrow && (
           <BaseSelect.Icon className="shrink-0 flex items-center justify-center h-4 w-4 windows95-active-border bg-primary ml-1">
@@ -70,9 +72,15 @@ function Select({
         <BaseSelect.Positioner
           className="z-50"
           sideOffset={4}
-          alignItemWithTrigger={false}
+          alignItemWithTrigger
+          onPointerDown={(e) => e.stopPropagation()}
         >
-          <BaseSelect.Popup className="windows95-active-border bg-white min-w-20 max-w-xl flex flex-col origin-[var(--transform-origin)]">
+          <BaseSelect.Popup
+            className="windows95-active-border bg-white w-full flex flex-col origin-(--transform-origin)"
+            style={{ width: "var(--anchor-width)" }}
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+          >
             {showSearch && (
               <Input
                 ref={searchInputRef}
@@ -93,6 +101,8 @@ function Select({
                   key={o.value}
                   value={o.value}
                   className="px-1 py-0.5 windows95-text windows95-border cursor-pointer truncate data-highlighted:bg-highlight data-highlighted:text-white text-text"
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => e.stopPropagation()}
                 >
                   <BaseSelect.ItemText>
                     {indexed ? `${i + 1}. ${o.label}` : o.label}

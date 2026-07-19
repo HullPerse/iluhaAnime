@@ -648,6 +648,145 @@ pub async fn check_gpu_encoders(app_handle: tauri::AppHandle) -> Vec<String> {
 }
 
 #[tauri::command]
+pub async fn convert_video(
+    app_handle: tauri::AppHandle,
+    input_path: String,
+    output_path: String,
+    _target_format: String,
+    copy_streams: bool,
+    cancel_flag: tauri::State<'_, CancelFlag>,
+    registry: tauri::State<'_, crate::progress::StreamRegistry>,
+) -> Result<(String, u64), String> {
+    let (_progress_id, _sender) = registry.create();
+
+    cancel_flag.0.store(false, Ordering::SeqCst);
+    let cancel = cancel_flag.0.clone();
+
+    let _ = app_handle.emit(
+        "upscale-progress",
+        UpscaleProgress {
+            current: 0.0,
+            total: 100.0,
+            stage: "initializing".into(),
+            speed: 0.0,
+        },
+    );
+
+    let duration = get_video_duration(&app_handle, &input_path)
+        .await
+        .unwrap_or(0.0);
+    let _ = app_handle.emit(
+        "upscale-progress",
+        UpscaleProgress {
+            current: 0.0,
+            total: duration,
+            stage: "encoding".into(),
+            speed: 0.0,
+        },
+    );
+
+    let _permit = FFMPEG_SEM
+        .acquire()
+        .await
+        .map_err(|_| "semaphore closed".to_string())?;
+
+    let mut cmd = Command::new(ffmpeg_exe(&app_handle));
+    cmd.arg("-y").arg("-i").arg(&input_path);
+
+    if copy_streams {
+        cmd.args(["-c", "copy"]);
+    } else {
+        match _target_format.as_str() {
+            "webm" => {
+                cmd.args(["-c:v", "libvpx-vp9", "-crf", "30", "-b:v", "0"]);
+                cmd.args(["-c:a", "libopus"]);
+            }
+            "avi" => {
+                cmd.args(["-c:v", "mpeg4", "-q:v", "5"]);
+                cmd.args(["-c:a", "mp3", "-b:a", "192k"]);
+            }
+            "ts" => {
+                cmd.args(["-c:v", "mpeg2video", "-q:v", "5"]);
+                cmd.args(["-c:a", "mp2"]);
+            }
+            _ => {
+                cmd.args(["-c:v", "libx264", "-preset", "fast", "-crf", "23"]);
+                cmd.args(["-c:a", "aac", "-b:a", "128k"]);
+            }
+        }
+    }
+
+    cmd.arg(&output_path)
+        .args(["-progress", "pipe:1", "-nostats"])
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped());
+    #[cfg(windows)]
+    cmd.creation_flags(0x08000000);
+
+    let mut child = cmd.spawn().map_err(|e| format!("ffmpeg convert: {e}"))?;
+
+    let stdout = child.stdout.take().ok_or("no stdout")?;
+    let reader = tokio::io::BufReader::new(stdout);
+    let mut lines = reader.lines();
+    let mut speed = 0.0f64;
+
+    while let Some(line) = lines
+        .next_line()
+        .await
+        .map_err(|e| format!("read progress: {e}"))?
+    {
+        if cancel.load(Ordering::SeqCst) {
+            let _ = child.kill().await;
+            let _ = std::fs::remove_file(&output_path);
+            return Err("Операция отменена".to_string());
+        }
+
+        if let Some(time_str) = line.strip_prefix("out_time=") {
+            if let Some(current) = parse_ffmpeg_time(time_str) {
+                let _ = app_handle.emit(
+                    "upscale-progress",
+                    UpscaleProgress {
+                        current,
+                        total: duration,
+                        stage: "encoding".into(),
+                        speed,
+                    },
+                );
+            }
+        }
+
+        if let Some(speed_str) = line.strip_prefix("speed=") {
+            speed = speed_str.trim_end_matches('x').parse().unwrap_or(0.0);
+        }
+
+        if line == "progress=end" {
+            break;
+        }
+    }
+
+    let status = child
+        .wait()
+        .await
+        .map_err(|e| format!("wait ffmpeg: {e}"))?;
+
+    if !status.success() {
+        return Err("Конвертация не удалась".to_string());
+    }
+
+    let _ = app_handle.emit(
+        "upscale-progress",
+        UpscaleProgress {
+            current: duration,
+            total: duration,
+            stage: "done".into(),
+            speed: 0.0,
+        },
+    );
+
+    Ok((output_path, 0))
+}
+
+#[tauri::command]
 pub async fn cancel_upscale(cancel_flag: tauri::State<'_, CancelFlag>) -> Result<(), String> {
     cancel_flag.0.store(true, Ordering::SeqCst);
     Ok(())

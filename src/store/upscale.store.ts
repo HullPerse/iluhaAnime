@@ -1,8 +1,10 @@
 import { create } from "zustand";
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { buildOutputPath } from "@/lib/player.utils";
 
 type QueueItemStatus = "queued" | "processing" | "done" | "error";
+type JobType = "upscale" | "convert";
 
 export interface UpscaleConfig {
   width: number;
@@ -15,12 +17,18 @@ export interface UpscaleConfig {
   selectedShaders?: string[];
 }
 
+export interface ConvertConfig {
+  targetFormat: string;
+  copyStreams: boolean;
+}
+
 interface UpscaleQueueItem {
   id: string;
+  jobType: JobType;
   filePath: string;
   outputPath: string;
   name: string;
-  config: UpscaleConfig;
+  config: UpscaleConfig | ConvertConfig;
   status: QueueItemStatus;
   progress: number;
   error?: string;
@@ -36,7 +44,8 @@ interface UpscaleProgressPayload {
 export interface UpscaleQueueStore {
   items: UpscaleQueueItem[];
   processing: boolean;
-  addItem: (filePath: string, name: string, config: UpscaleConfig) => string;
+  addUpscaleItem: (filePath: string, name: string, config: UpscaleConfig) => string;
+  addConvertItem: (filePath: string, name: string, config: ConvertConfig) => string;
   removeItem: (id: string) => void;
   clearDone: () => void;
   clearAll: () => void;
@@ -46,26 +55,40 @@ export interface UpscaleQueueStore {
 
 let nextId = 1;
 function genId() {
-  return `upscale_${nextId++}`;
-}
-
-function buildOutputPath(inputPath: string): string {
-  const dot = inputPath.lastIndexOf(".");
-  return dot > 0
-    ? inputPath.slice(0, dot) + "_upscaled.mkv"
-    : inputPath + "_upscaled.mkv";
+  return `job_${nextId++}`;
 }
 
 export const useUpscaleQueueStore = create<UpscaleQueueStore>((set, get) => ({
   items: [],
   processing: false,
 
-  addItem: (filePath: string, name: string, config: UpscaleConfig) => {
+  addUpscaleItem: (filePath, name, config) => {
     const id = genId();
     const item: UpscaleQueueItem = {
       id,
+      jobType: "upscale",
       filePath,
-      outputPath: buildOutputPath(filePath),
+      outputPath: buildOutputPath(filePath, "_upscaled"),
+      name,
+      config,
+      status: "queued",
+      progress: 0,
+    };
+    set((s) => ({ items: [...s.items, item] }));
+    const { processing } = get();
+    if (!processing) {
+      get().processNext();
+    }
+    return id;
+  },
+
+  addConvertItem: (filePath, name, config) => {
+    const id = genId();
+    const item: UpscaleQueueItem = {
+      id,
+      jobType: "convert",
+      filePath,
+      outputPath: buildOutputPath(filePath, "_converted"),
       name,
       config,
       status: "queued",
@@ -131,7 +154,7 @@ export const useUpscaleQueueStore = create<UpscaleQueueStore>((set, get) => ({
                     progress: p.total > 0
                       ? Math.round((p.current / p.total) * 100)
                       : 0,
-                    status: p.stage === "done" ? "done" as const : "processing" as const,
+                    status: p.stage === "done" ? ("done" as const) : ("processing" as const),
                   }
                 : i,
             ),
@@ -139,19 +162,29 @@ export const useUpscaleQueueStore = create<UpscaleQueueStore>((set, get) => ({
         },
       );
 
-      const cfg = next.config;
-      await invoke("upscale_video", {
-        inputPath: next.filePath,
-        outputPath: next.outputPath,
-        width: cfg.width,
-        height: cfg.height,
-        targetFps: cfg.targetFps,
-        interpolate: cfg.interpolate,
-        quality: cfg.quality,
-        gpuBackend: cfg.gpuBackend,
-        aiUpscaler: cfg.aiUpscaler,
-        selectedShaders: cfg.selectedShaders,
-      });
+      if (next.jobType === "upscale") {
+        const cfg = next.config as UpscaleConfig;
+        await invoke("upscale_video", {
+          inputPath: next.filePath,
+          outputPath: next.outputPath,
+          width: cfg.width,
+          height: cfg.height,
+          targetFps: cfg.targetFps,
+          interpolate: cfg.interpolate,
+          quality: cfg.quality,
+          gpuBackend: cfg.gpuBackend,
+          aiUpscaler: cfg.aiUpscaler,
+          selectedShaders: cfg.selectedShaders,
+        });
+      } else {
+        const cfg = next.config as ConvertConfig;
+        await invoke("convert_video", {
+          inputPath: next.filePath,
+          outputPath: next.outputPath,
+          targetFormat: cfg.targetFormat,
+          copyStreams: cfg.copyStreams,
+        });
+      }
 
       set((s) => ({
         items: s.items.map((i) =>
@@ -168,7 +201,6 @@ export const useUpscaleQueueStore = create<UpscaleQueueStore>((set, get) => ({
     } finally {
       unlisten?.();
       set({ processing: false });
-      // Process next item
       get().processNext();
     }
   },

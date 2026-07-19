@@ -25,15 +25,16 @@ function Modal({ header, onClose, onBack, className, children }: ModalWindow) {
   return (
     <Dialog.Root
       defaultOpen
-      onOpenChange={(o) => {
-        if (!o) onClose();
+      onOpenChange={(e) => {
+        if (!e) onClose();
       }}
     >
-      <Dialog.Portal>
+      <Dialog.Portal className="z-9999">
         <Dialog.Backdrop
           className={`fixed inset-0 z-40 ${modalAnimation ? "transition-opacity duration-150" : ""} ${visible ? "opacity-100" : "opacity-0"}`}
           style={{ backgroundColor: `rgba(0,0,0,${backdropOpacity / 100})` }}
           onClick={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
         />
         <Dialog.Popup
           className={cn(

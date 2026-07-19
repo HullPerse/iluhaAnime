@@ -1,7 +1,7 @@
 import { useUpscaleQueueStore } from "@/store/upscale.store";
 import { Button } from "@/components/ui/button.component";
 import ProgressBar from "@/components/shared/progress.component";
-import { Trash2, X, RefreshCw, ListVideo, Loader } from "lucide-react";
+import { Trash2, X, RefreshCw, ListVideo, Loader, FileVideo } from "lucide-react";
 
 export default function QueuePanel() {
   const items = useUpscaleQueueStore((s) => s.items);
@@ -25,11 +25,17 @@ export default function QueuePanel() {
     }
   };
 
+  const activeCount = items.filter((i) => i.status !== "done").length;
+  const upscaleCount = items.filter((i) => i.jobType === "upscale" && i.status !== "done").length;
+  const convertCount = items.filter((i) => i.jobType === "convert" && i.status !== "done").length;
+
   return (
     <section className="windows95-active-border bg-primary p-1">
       <div className="flex items-center gap-1 windows95-text text-xs font-bold mb-1">
         <ListVideo className="size-3" />
-        Очередь апскейла ({items.filter((i) => i.status !== "done").length})
+        Очередь ({activeCount})
+        {upscaleCount > 0 && <span className="text-muted font-normal">апскейл:{upscaleCount}</span>}
+        {convertCount > 0 && <span className="text-muted font-normal">конв:{convertCount}</span>}
         <div className="ml-auto flex gap-1">
           <Button size="icon" className="h-4 w-4" onClick={clearDone} title="Удалить завершённые">
             <Trash2 className="size-2.5" />
@@ -45,8 +51,18 @@ export default function QueuePanel() {
             key={item.id}
             className="flex items-center gap-1 windows95-text text-[10px] bg-white px-1 py-0.5"
           >
-            {statusIcon(item.status)}
+            {item.jobType === "convert" ? (
+              <FileVideo className="size-3 text-muted" />
+            ) : (
+              statusIcon(item.status)
+            )}
+            {item.jobType === "convert" && item.status === "processing" && (
+              <Loader className="size-3 animate-spin text-highlight" />
+            )}
             <span className="truncate flex-1">{item.name}</span>
+            <span className="text-muted shrink-0 mr-1">
+              {item.jobType === "convert" ? "конв" : "апс"}
+            </span>
             {item.status === "queued" && (
               <Button
                 size="icon"

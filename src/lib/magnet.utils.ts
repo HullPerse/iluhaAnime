@@ -1,7 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { showToast } from "./toast.utils";
+import { useNotificationStore } from "@/store/notification.store";
 import type { Anime } from "@/types";
 import { useTorrentStore } from "@/store/download.store";
 
@@ -22,7 +22,7 @@ async function ensureMagnet(
     setMagnets((prev) => ({ ...prev, [key]: magnet }));
     return magnet;
   } catch {
-    showToast("Не удалось получить магнит-ссылку", "error");
+    useNotificationStore.getState().add("Ошибка", "error", "Не удалось получить магнит-ссылку");
     return null;
   } finally {
     setLoadingMagnet((prev) => ({ ...prev, [key]: false }));

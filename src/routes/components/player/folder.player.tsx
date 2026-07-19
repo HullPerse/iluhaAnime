@@ -9,8 +9,8 @@ import { useState, useRef, useMemo, useCallback } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import UpscalePlayer from "./upscale.player";
 import { parse } from "anitomy";
+import { formatParsedTitle, flattenTree } from "@/lib/player.utils";
 import { useSearchStore } from "@/store/search.store";
-import { flattenTree } from "@/lib/index.utils";
 import { openPath } from "@tauri-apps/plugin-opener";
 
 function FolderView({
@@ -21,6 +21,7 @@ function FolderView({
   onGenerate,
   isGenerating,
   disabledExtensions,
+  hideRoot,
 }: {
   node: FolderNode;
   depth: number;
@@ -29,6 +30,7 @@ function FolderView({
   onGenerate?: (path: string, name: string) => void;
   isGenerating?: boolean;
   disabledExtensions?: Set<string>;
+  hideRoot?: boolean;
 }) {
   const showTrackFiles = useSettingsStore((s) => s.showTrackFiles);
   const audioExtensions = useSettingsStore((s) => s.audioExtensions);
@@ -91,67 +93,71 @@ function FolderView({
 
   if (flatItems.length === 0) return null;
 
+  const showHeader = !hideRoot || depth > 0;
+
   return (
     <main className="flex flex-col w-full">
-      <div
-        role="button"
-        className={`flex items-center gap-1 windows95-text cursor-pointer hover:bg-surface px-0.5 py-0.5 w-full text-left`}
-        onClick={() => toggle(node.path)}
-        style={{
-          paddingLeft: `${depth * 12 + 2}px`,
-        }}
-      >
-        {open.has(node.path) ? (
-          <ChevronDown className="size-3 shrink-0" />
-        ) : (
-          <ChevronRight className="size-3 shrink-0" />
-        )}
-        <ImageComponent
-          src="/icons/w2k_folder_closed.ico"
-          alt=""
-          className="size-4 shrink-0"
-        />
-        <span className="truncate select-none flex-1" title={node.name}>
-          {node.name}
-        </span>
-        {depth === 0 && (
-          <>
-            <span className="text-muted whitespace-nowrap select-none text-[10px]">
-              {countAll} файлов
-            </span>
-            {onGenerate && (
-              <Button
-                size="icon"
-                className="h-5 w-5"
-                title="Сгенерировать превью"
-                disabled={isGenerating}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onGenerate(node.path, node.name);
-                }}
-              >
-                <ImageComponent
-                  src="/icons/w2k_bitmap_image.ico"
-                  alt=""
-                  className="size-4"
-                />
-              </Button>
-            )}
-            {onRemove && (
-              <Button
-                size="icon"
-                className="h-5 w-5"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onRemove(node.path);
-                }}
-              >
-                <X />
-              </Button>
-            )}
-          </>
-        )}
-      </div>
+      {showHeader && (
+        <div
+          role="button"
+          className={`flex items-center gap-1 windows95-text cursor-pointer hover:bg-surface px-0.5 py-0.5 w-full text-left`}
+          onClick={() => toggle(node.path)}
+          style={{
+            paddingLeft: `${depth * 12 + 2}px`,
+          }}
+        >
+          {open.has(node.path) ? (
+            <ChevronDown className="size-3 shrink-0" />
+          ) : (
+            <ChevronRight className="size-3 shrink-0" />
+          )}
+          <ImageComponent
+            src="/icons/w2k_folder_closed.ico"
+            alt=""
+            className="size-4 shrink-0"
+          />
+          <span className="truncate select-none flex-1" title={node.name}>
+            {node.name}
+          </span>
+          {depth === 0 && (
+            <>
+              <span className="text-muted whitespace-nowrap select-none text-[10px]">
+                {countAll} файлов
+              </span>
+              {onGenerate && (
+                <Button
+                  size="icon"
+                  className="h-5 w-5"
+                  title="Сгенерировать превью"
+                  disabled={isGenerating}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onGenerate(node.path, node.name);
+                  }}
+                >
+                  <ImageComponent
+                    src="/icons/w2k_bitmap_image.ico"
+                    alt=""
+                    className="size-4"
+                  />
+                </Button>
+              )}
+              {onRemove && (
+                <Button
+                  size="icon"
+                  className="h-5 w-5"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRemove(node.path);
+                  }}
+                >
+                  <X />
+                </Button>
+              )}
+            </>
+          )}
+        </div>
+      )}
 
       {open.has(node.path) && (
         <div
@@ -211,15 +217,6 @@ function FolderView({
                     transform: `translateY(${vItem.start}px)`,
                     paddingLeft: `${item.depth * 12 + 2}px`,
                   }}
-                  onContextMenu={(e) => {
-                    e.preventDefault();
-                    openPath(file.path.replace(file.name, ""));
-                  }}
-                  onClick={() => {
-                    const parsed = parse(file.name);
-                    if (!parsed) return;
-                    setAnilistSearchQuery(String(parsed.title));
-                  }}
                 >
                   <ImageComponent
                     src="/icons/w2k_wmp_11.ico"
@@ -229,32 +226,18 @@ function FolderView({
                   <span
                     title={file.name}
                     className="windows95-text truncate flex-1 select-none"
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      openPath(file.path.replace(file.name, ""));
+                    }}
+                    onClick={() => {
+                      const parsed = parse(file.name);
+                      if (!parsed) return;
+                      setAnilistSearchQuery(String(parsed.title));
+                    }}
                   >
                     {parseTitles
-                      ? (() => {
-                          const parsed = parse(file.name);
-                          if (!parsed) return file.name;
-
-                          const title = parsed.title || "";
-                          const season = parsed.season
-                            ? `Season ${parsed.season}`
-                            : "";
-                          const epNum =
-                            parsed.episode?.number ?? parsed.episode?.numberAlt;
-                          const epTitle = parsed.episode?.title;
-
-                          let episodeStr = "";
-                          if (epNum !== undefined && epNum !== null) {
-                            episodeStr = `Episode ${epNum}`;
-                            if (epTitle) episodeStr += `: ${epTitle}`;
-                          } else if (epTitle) {
-                            episodeStr = `Episode: ${epTitle}`;
-                          }
-
-                          return [title, season, episodeStr]
-                            .filter((part) => part && part.trim())
-                            .join(" • ");
-                        })()
+                      ? formatParsedTitle(file.name)
                       : file.name}
                   </span>
 

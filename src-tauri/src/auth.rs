@@ -10,7 +10,10 @@ use crate::scrapers::{
 };
 
 fn rutracker_cookie_path(app_handle: &tauri::AppHandle) -> PathBuf {
-    let dir = app_handle.path().app_data_dir().expect("app data dir");
+    let dir = app_handle.path().app_data_dir().unwrap_or_else(|e| {
+        eprintln!("Failed to get app data dir: {e}");
+        PathBuf::from(".")
+    });
     dir.join("rutracker_cookies.json")
 }
 
@@ -39,7 +42,10 @@ pub(crate) fn load_rutracker_cookies(app_handle: &tauri::AppHandle) -> HashMap<S
 }
 
 fn nekobt_api_key_path(app_handle: &tauri::AppHandle) -> PathBuf {
-    let dir = app_handle.path().app_data_dir().expect("app data dir");
+    let dir = app_handle.path().app_data_dir().unwrap_or_else(|e| {
+        eprintln!("Failed to get app data dir: {e}");
+        PathBuf::from(".")
+    });
     dir.join("nekobt_key.json")
 }
 

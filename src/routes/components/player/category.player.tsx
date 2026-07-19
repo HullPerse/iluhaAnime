@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { invoke } from "@tauri-apps/api/core";
 import { ChevronDown, ChevronRight, RefreshCw, X } from "lucide-react";
 import { useDroppable } from "@dnd-kit/core";
 import ImageComponent from "@/components/ui/image.component";
@@ -12,6 +14,44 @@ import type { FolderNode } from "@/types";
 import type { TorrentInfo, TorrentFileInfo } from "@/types/torrent";
 import { useTorrentStore } from "@/store/download.store";
 import CategoryIconModal from "./category/icon.category";
+
+function TorrentCategoryEntry({
+  tor,
+  torrentFilesMap,
+}: {
+  tor: TorrentInfo;
+  torrentFilesMap: Record<number, TorrentFileInfo[] | undefined>;
+}) {
+  const { data = [], refetch } = useQuery({
+    queryKey: ["extra_files", tor.save_dir],
+    queryFn: () =>
+      invoke<{ path: string; name: string; size: number }[]>(
+        "scan_extra_files",
+        { path: tor.save_dir! },
+      ).then((result) =>
+        result.map((f) => ({ name: f.name, size: f.size, fullPath: f.path })),
+      ),
+    enabled: !!tor.save_dir,
+  });
+
+  const files = (torrentFilesMap[tor.id] || []).filter((f) => f.completed);
+  if (files.length === 0) return null;
+
+  const handleUpscaleDone = () => refetch();
+  const handleDeleteExtraFile = () => refetch();
+
+  return (
+    <TorrentFilesSection
+      id={tor.id}
+      files={files}
+      type="player"
+      path={tor.save_dir}
+      extraFiles={data}
+      onUpscaleDone={handleUpscaleDone}
+      onDeleteExtraFile={handleDeleteExtraFile}
+    />
+  );
+}
 
 function CategoryView({
   categoryId,
@@ -56,6 +96,26 @@ function CategoryView({
   if (!category) return null;
   const count = entries?.length ?? 0;
 
+  const renderFolderEntry = (entry: typeof entries[0]) => {
+    const tree = folderTrees.find((t) => t.path === entry.folderPath);
+    if (!tree) return null;
+    return (
+      <FolderView
+        node={tree}
+        depth={0}
+        searchQuery=""
+        disabledExtensions={new Set(audioExtensions)}
+        hideRoot
+      />
+    );
+  };
+
+  const renderTorrentEntry = (entry: typeof entries[0]) => {
+    const tor = torrents.find((t) => t.info_hash === entry.infoHash);
+    if (!tor) return null;
+    return <TorrentCategoryEntry tor={tor} torrentFilesMap={torrentFilesMap} />;
+  };
+
   const toggleEntry = (entryId: string) => {
     setExpandedEntries((prev) => {
       const next = new Set(prev);
@@ -78,10 +138,7 @@ function CategoryView({
     setEditing(false);
   };
 
-  const handleEditCategory = () => {
-    if (!categoryId) return;
-    else return setEditIcon(true);
-  };
+  const handleEditIcon = () => setEditIcon(true);
 
   return (
     <main
@@ -104,7 +161,7 @@ function CategoryView({
           className="size-4 shrink-0 hover:border border-surface"
           onClick={(e) => {
             e.stopPropagation();
-            handleEditCategory();
+            handleEditIcon();
           }}
         />
         {editing ? (
@@ -184,16 +241,13 @@ function CategoryView({
                         {fmtSize(entry.totalBytes)}
                       </span>
                     )}
-                    {entry.type === "torrent" && (
+                    {entry.type === "torrent" && entry.torrentId != null && (
                       <Button
                         size="icon"
                         className="size-4"
                         onClick={(e) => {
                           e.stopPropagation();
-
-                          for (const t of torrents) {
-                            useTorrentStore.getState().loadTorrentFiles(t.id);
-                          }
+                          useTorrentStore.getState().loadTorrentFiles(entry.torrentId!);
                         }}
                       >
                         <RefreshCw className="size-3" />
@@ -213,40 +267,8 @@ function CategoryView({
                   {entryExpanded && (
                     <div className="pl-4">
                       {entry.type === "folder"
-                        ? (() => {
-                            const tree = folderTrees.find(
-                              (t) => t.path === entry.folderPath,
-                            );
-                            if (!tree) return null;
-                            return (
-                              <FolderView
-                                node={tree}
-                                depth={0}
-                                searchQuery=""
-                                disabledExtensions={new Set(audioExtensions)}
-                              />
-                            );
-                          })()
-                        : (() => {
-                            const tor = torrents.find(
-                              (t) => t.info_hash === entry.infoHash,
-                            );
-                            if (!tor) return null;
-                            const files = (
-                              torrentFilesMap[tor.id] || []
-                            ).filter((f) => f.completed);
-                            if (files.length === 0) return null;
-
-                            return (
-                              <TorrentFilesSection
-                                id={tor.id}
-                                files={files}
-                                type="player"
-                                path={tor.save_dir}
-                                extraFiles={[]}
-                              />
-                            );
-                          })()}
+                        ? renderFolderEntry(entry)
+                        : renderTorrentEntry(entry)}
                     </div>
                   )}
                 </div>

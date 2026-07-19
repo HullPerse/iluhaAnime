@@ -215,7 +215,19 @@ async fn scan_video_folder(
 }
 
 #[tauri::command]
-async fn scan_upscaled_files(path: String) -> Result<Vec<VideoFileEntry>, String> {
+async fn delete_extra_file(path: String) -> Result<(), String> {
+    tokio::task::spawn_blocking(move || {
+        if !path.contains("_upscaled") && !path.contains("_converted") {
+            return Err("not an extra file".to_string());
+        }
+        std::fs::remove_file(&path).map_err(|e| format!("{e:#}"))
+    })
+    .await
+    .map_err(|e| format!("delete task failed: {e}"))?
+}
+
+#[tauri::command]
+async fn scan_extra_files(path: String) -> Result<Vec<VideoFileEntry>, String> {
     let entries = tokio::task::spawn_blocking(move || -> Result<Vec<VideoFileEntry>, String> {
         let mut entries = Vec::new();
         for entry in walkdir::WalkDir::new(&path).follow_links(true) {
@@ -229,7 +241,8 @@ async fn scan_upscaled_files(path: String) -> Result<Vec<VideoFileEntry>, String
                 .unwrap_or_default()
                 .to_string_lossy()
                 .to_string();
-            if !name.to_lowercase().contains("_upscaled") {
+            let lower = name.to_lowercase();
+            if !lower.contains("_upscaled") && !lower.contains("_converted") {
                 continue;
             }
             let size = std::fs::metadata(file_path)
@@ -402,10 +415,9 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_single_instance::init(|app, _, _| {
-            let _ = app
-                .get_webview_window("main")
-                .expect("no main window")
-                .set_focus();
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.set_focus();
+            }
         }))
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
@@ -429,16 +441,33 @@ pub fn run() {
                 video::ffmpeg_exe(app_handle)
             });
 
-            let app_data = app.path().app_data_dir().expect("app data dir");
+            let app_data = app.path().app_data_dir().unwrap_or_else(|e| {
+                eprintln!("Failed to get app data dir: {e}");
+                std::path::PathBuf::from(".")
+            });
             let handle = app.handle().clone();
+            handle.manage(std::sync::Mutex::new(NotificationConfig::default()));
+            handle.manage(CancelFlag(Arc::new(AtomicBool::new(false))));
+            handle.manage(progress::StreamRegistry::new());
+            handle.manage(std::sync::Mutex::new(fswatcher::FolderWatcher::new()));
+            handle.manage(file_index::FileIndexer::new());
+
             tauri::async_runtime::block_on(async {
-                let manager = TorrentManager::new(app_data)
-                    .await
-                    .expect("failed to initialize torrent session");
-                let manager = Arc::new(manager);
+                let manager = match TorrentManager::new(app_data).await {
+                    Ok(m) => Arc::new(m),
+                    Err(e) => {
+                        let _ = handle.emit("show-notification", serde_json::json!({
+                            "title": "Критическая ошибка",
+                            "body": format!("Не удалось инициализировать торрент-сессию: {e}"),
+                            "type": "error",
+                        }));
+                        return;
+                    }
+                };
                 manager.start_http_api();
+                handle.manage(TorrentBackend { manager: manager.clone() });
                 let app_clone = handle.clone();
-                let mgr_clone = manager.clone();
+                let mgr_clone = manager;
                 tokio::spawn(async move {
                     let mut prev_states: HashMap<usize, (bool, Option<String>)> = HashMap::new();
                     let mut cleanup_counter: u32 = 0;
@@ -533,12 +562,6 @@ pub fn run() {
                         }
                     }
                 });
-                handle.manage(std::sync::Mutex::new(NotificationConfig::default()));
-                handle.manage(TorrentBackend { manager });
-                handle.manage(CancelFlag(Arc::new(AtomicBool::new(false))));
-                handle.manage(progress::StreamRegistry::new());
-                handle.manage(std::sync::Mutex::new(fswatcher::FolderWatcher::new()));
-                handle.manage(file_index::FileIndexer::new());
             });
 
             Ok(())
@@ -557,6 +580,7 @@ pub fn run() {
             auth::check_nekobt_session,
             auth::nekobt_logout,
             video::upscale_video,
+            video::convert_video,
             video::cancel_upscale,
             video::check_gpu_encoders,
             shaders::list_anime4k_shaders,
@@ -591,7 +615,8 @@ pub fn run() {
             resume_torrent,
             remove_torrent,
             scan_video_folder,
-            scan_upscaled_files,
+            scan_extra_files,
+            delete_extra_file,
             start_watching_folders,
             stop_watching_folders,
             set_global_speed_limits,

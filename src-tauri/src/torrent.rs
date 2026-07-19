@@ -606,7 +606,9 @@ impl TorrentManager {
         .context("error creating torrent from folder")?;
         let bytes = result.as_bytes().context("error serializing torrent")?;
         let parent = folder.parent().unwrap_or(folder);
-        let add = AddTorrent::from_local_filename(torrent_path.to_str().unwrap())
+        let add = AddTorrent::from_local_filename(
+            torrent_path.to_str().context("torrent path not valid utf-8")?,
+        )
             .context("error reading torrent file")?;
         tokio::fs::write(&torrent_path, bytes).await.ok();
         let opts = AddTorrentOptions {

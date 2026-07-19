@@ -52,3 +52,8 @@ tauri-plugin-fs = "2"
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-single-instance = "2"
 tauri-plugin-updater = "2"
+
+[lints.clippy]
+pedantic = "warn"
+nursery = "warn"
+cargo = "warn"

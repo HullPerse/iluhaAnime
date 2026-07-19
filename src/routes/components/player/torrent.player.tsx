@@ -14,6 +14,7 @@ interface Props {
   isExpanded: boolean;
   torrentLoading: boolean;
   onToggleExpand: () => void;
+  hideHeader?: boolean;
 }
 
 export default function TorrentFilesPlayerSection({
@@ -22,12 +23,13 @@ export default function TorrentFilesPlayerSection({
   isExpanded,
   torrentLoading,
   onToggleExpand,
+  hideHeader,
 }: Props) {
   const { data = [], refetch } = useQuery({
-    queryKey: ["upscaled_files", item.save_dir],
+    queryKey: ["extra_files", item.save_dir],
     queryFn: () =>
       invoke<{ path: string; name: string; size: number }[]>(
-        "scan_upscaled_files",
+        "scan_extra_files",
         { path: item.save_dir! },
       ).then((result) =>
         result.map((f) => ({ name: f.name, size: f.size, fullPath: f.path })),
@@ -48,11 +50,13 @@ export default function TorrentFilesPlayerSection({
 
   return (
     <section className="flex flex-col windows95-active-border bg-primary gap-1">
-      <div className="flex items-center gap-1 bg-secondary text-white px-1">
-        <span className="flex-1 line-clamp-1 font-bold windows95-text py-0.5">
-          {item.name}
-        </span>
-      </div>
+      {!hideHeader && (
+        <div className="flex items-center gap-1 bg-secondary text-white px-1">
+          <span className="flex-1 line-clamp-1 font-bold windows95-text py-0.5">
+            {item.name}
+          </span>
+        </div>
+      )}
 
       {torrentLoading && !files ? (
         <div className="flex items-center gap-1 px-0.5 py-0.5 windows95-text">

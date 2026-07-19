@@ -310,11 +310,11 @@ async fn search_nyaa_impl(
 
 fn parse_entries(html: &str) -> Vec<NyaaItem> {
     let doc = Html::parse_document(html);
-    let entry_sel = Selector::parse(".home_list_entry").unwrap();
-    let link_sel = Selector::parse(".link > a").unwrap();
-    let size_sel = Selector::parse(".size").unwrap();
-    let a_sel = Selector::parse("a").unwrap();
-    let span_sel = Selector::parse("span[title]").unwrap();
+    let entry_sel = Selector::parse(".home_list_entry").expect("hardcoded selector");
+    let link_sel = Selector::parse(".link > a").expect("hardcoded selector");
+    let size_sel = Selector::parse(".size").expect("hardcoded selector");
+    let a_sel = Selector::parse("a").expect("hardcoded selector");
+    let span_sel = Selector::parse("span[title]").expect("hardcoded selector");
 
     let mut items = Vec::new();
 
@@ -383,9 +383,9 @@ fn parse_entries(html: &str) -> Vec<NyaaItem> {
 
 fn parse_nyaa_entries(html: &str) -> Vec<NyaaItem> {
     let doc = Html::parse_document(html);
-    let row_sel = Selector::parse("table.torrent-list tbody tr").unwrap();
-    let td_sel = Selector::parse("td").unwrap();
-    let a_sel = Selector::parse("a").unwrap();
+    let row_sel = Selector::parse("table.torrent-list tbody tr").expect("hardcoded selector");
+    let td_sel = Selector::parse("td").expect("hardcoded selector");
+    let a_sel = Selector::parse("a").expect("hardcoded selector");
 
     let mut items = Vec::new();
 
@@ -490,9 +490,9 @@ fn parse_nyaa_entries(html: &str) -> Vec<NyaaItem> {
 
 fn parse_rutracker_entries(html: &str) -> Vec<NyaaItem> {
     let doc = Html::parse_document(html);
-    let row_sel = Selector::parse("tr.hl-tr, tr.hl-tr1, tr.hl-tr2").unwrap();
-    let td_sel = Selector::parse("td").unwrap();
-    let link_sel = Selector::parse("a.tLink, a.med.tLink").unwrap();
+    let row_sel = Selector::parse("tr.hl-tr, tr.hl-tr1, tr.hl-tr2").expect("hardcoded selector");
+    let td_sel = Selector::parse("td").expect("hardcoded selector");
+    let link_sel = Selector::parse("a.tLink, a.med.tLink").expect("hardcoded selector");
 
     let mut items = Vec::new();
 
@@ -666,9 +666,9 @@ fn sukebei_json_to_item(item: NyaaJsonItem) -> Option<NyaaItem> {
 
 fn parse_sukebei_entries(html: &str) -> Vec<NyaaItem> {
     let doc = Html::parse_document(html);
-    let row_sel = Selector::parse("table.torrent-list tbody tr").unwrap();
-    let td_sel = Selector::parse("td").unwrap();
-    let a_sel = Selector::parse("a").unwrap();
+    let row_sel = Selector::parse("table.torrent-list tbody tr").expect("hardcoded selector");
+    let td_sel = Selector::parse("td").expect("hardcoded selector");
+    let a_sel = Selector::parse("a").expect("hardcoded selector");
 
     let mut items = Vec::new();
 

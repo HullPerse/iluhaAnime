@@ -6,12 +6,16 @@ import { Wand2, Ban, Check, Loader } from "lucide-react";
 import Modal from "@/components/shared/modal.component";
 import ProgressBar from "@/components/shared/progress.component";
 import { Button } from "@/components/ui/button.component";
+import { Checkbox } from "@/components/ui/checkbox.component";
 import Select from "@/components/ui/select.component";
+import Tabs from "@/components/shared/tabs.component";
 import FFMPEG from "./ffmpeg.player";
 import ShaderPicker from "./shader.player";
+import { buildOutputPath } from "@/lib/player.utils";
 import {
   useUpscaleQueueStore,
   type UpscaleConfig,
+  type ConvertConfig,
 } from "@/store/upscale.store";
 
 type UpscaleProgressPayload = {
@@ -66,16 +70,24 @@ const ANIME4K_PRESETS = [
   { label: "Максимальное качество", value: "quality" },
 ];
 
+const FORMAT_OPTIONS = [
+  { label: "MP4 (H.264)", value: "mp4" },
+  { label: "MKV", value: "mkv" },
+  { label: "AVI", value: "avi" },
+  { label: "MOV", value: "mov" },
+  { label: "WebM", value: "webm" },
+  { label: "M4V", value: "m4v" },
+  { label: "TS", value: "ts" },
+];
+
+const TABS = [
+  { id: "upscale" as const, label: "Апскейл" },
+  { id: "convert" as const, label: "Конвертация" },
+];
+
 function fileNameFromPath(p: string): string {
   const parts = p.replace(/\\/g, "/").split("/");
   return parts[parts.length - 1] || p;
-}
-
-function buildOutputPath(inputPath: string): string {
-  const dot = inputPath.lastIndexOf(".");
-  return dot > 0
-    ? inputPath.slice(0, dot) + "_upscaled.mkv"
-    : inputPath + "_upscaled.mkv";
 }
 
 function formatETA(secs: number): string {
@@ -93,6 +105,7 @@ export default function UpscalePlayer({
   exists = true,
 }: Props) {
   const [open, setOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<"upscale" | "convert">("upscale");
   const [resolution, setResolution] = useState("original");
   const [fpsValue, setFpsValue] = useState("");
   const [quality, setQuality] = useState("ultrafast");
@@ -108,6 +121,8 @@ export default function UpscalePlayer({
   >("checking");
   const [anime4kPreset, setAnime4kPreset] = useState("fast-gpu");
   const [selectedShaders, setSelectedShaders] = useState<string[]>([]);
+  const [targetFormat, setTargetFormat] = useState("mp4");
+  const [copyStreams, setCopyStreams] = useState(true);
   const unlistenRef = useRef<UnlistenFn | null>(null);
   const outputPathRef = useRef("");
 
@@ -162,7 +177,6 @@ export default function UpscalePlayer({
     }
   }, [upscaleConfig]);
 
-  // Apply Anime4K preset when upscaler or available GPU list changes
   useEffect(() => {
     if (upscaler === "anime4k") {
       handlePresetChange(anime4kPreset);
@@ -188,7 +202,7 @@ export default function UpscalePlayer({
     setRunning(true);
     setProgress(null);
 
-    const outputPath = buildOutputPath(filePath);
+    const outputPath = buildOutputPath(filePath, "_upscaled");
     outputPathRef.current = outputPath;
     const [w, h] =
       resolution === "original" ? [0, 0] : resolution.split("x").map(Number);
@@ -244,6 +258,44 @@ export default function UpscalePlayer({
     selectedShaders,
   ]);
 
+  const startConvert = useCallback(async () => {
+    setError(null);
+    setDone(false);
+    setRunning(true);
+    setProgress(null);
+
+    const outputPath = buildOutputPath(filePath, "_converted");
+    outputPathRef.current = outputPath;
+
+    const unlisten = await listen<UpscaleProgressPayload>(
+      "upscale-progress",
+      (e) => {
+        const p = e.payload;
+        setProgress(p);
+        if (p.stage === "done" || (p.current >= p.total && p.total > 0)) {
+          setDone(true);
+          setRunning(false);
+          unlistenRef.current = null;
+          unlisten();
+          onDone?.(outputPathRef.current);
+        }
+      },
+    );
+    unlistenRef.current = unlisten;
+
+    try {
+      await invoke<{ path: string; progressId: number }>("convert_video", {
+        inputPath: filePath,
+        outputPath,
+        targetFormat,
+        copyStreams,
+      });
+    } catch (e: unknown) {
+      setError(typeof e === "string" ? e : "Ошибка при конвертации");
+      setRunning(false);
+    }
+  }, [filePath, targetFormat, copyStreams]);
+
   const handleCancel = useCallback(async () => {
     await invoke("cancel_upscale");
     setRunning(false);
@@ -252,31 +304,42 @@ export default function UpscalePlayer({
   }, []);
 
   const handleAddToQueue = useCallback(() => {
-    const [w, h] =
-      resolution === "original" ? [0, 0] : resolution.split("x").map(Number);
-    const interpolate = fpsValue === "60i";
-    const fps =
-      fpsValue === "60" || fpsValue === "60i"
-        ? 60
-        : fpsValue
-          ? Number(fpsValue)
-          : null;
-    const config: UpscaleConfig = {
-      width: w,
-      height: h,
-      targetFps: fps,
-      interpolate,
-      quality,
-      gpuBackend,
-      aiUpscaler: upscaler !== "ffmpeg" ? upscaler : null,
-      selectedShaders: upscaler === "anime4k" ? selectedShaders : undefined,
-    };
-    useUpscaleQueueStore
-      .getState()
-      .addItem(filePath, fileNameFromPath(filePath), config);
+    if (activeTab === "upscale") {
+      const [w, h] =
+        resolution === "original" ? [0, 0] : resolution.split("x").map(Number);
+      const interpolate = fpsValue === "60i";
+      const fps =
+        fpsValue === "60" || fpsValue === "60i"
+          ? 60
+          : fpsValue
+            ? Number(fpsValue)
+            : null;
+      const config: UpscaleConfig = {
+        width: w,
+        height: h,
+        targetFps: fps,
+        interpolate,
+        quality,
+        gpuBackend,
+        aiUpscaler: upscaler !== "ffmpeg" ? upscaler : null,
+        selectedShaders: upscaler === "anime4k" ? selectedShaders : undefined,
+      };
+      useUpscaleQueueStore
+        .getState()
+        .addUpscaleItem(filePath, fileNameFromPath(filePath), config);
+    } else {
+      const config: ConvertConfig = {
+        targetFormat,
+        copyStreams,
+      };
+      useUpscaleQueueStore
+        .getState()
+        .addConvertItem(filePath, fileNameFromPath(filePath), config);
+    }
     setOpen(false);
     resetState();
   }, [
+    activeTab,
     filePath,
     resolution,
     fpsValue,
@@ -284,6 +347,8 @@ export default function UpscalePlayer({
     gpuBackend,
     upscaler,
     selectedShaders,
+    targetFormat,
+    copyStreams,
     resetState,
   ]);
 
@@ -325,86 +390,130 @@ export default function UpscalePlayer({
 
       {open && (
         <Modal
-          header={`Апскейл: ${fileNameFromPath(filePath)}`}
+          header={`${activeTab === "upscale" ? "Апскейл" : "Конвертация"}: ${fileNameFromPath(filePath)}`}
           onClose={handleClose}
           className="min-w-xl"
         >
           {showConfig && (
-            <div className="flex flex-col gap-2 p-1">
-              <label className="windows95-text text-xs">Разрешение</label>
-              <Select
-                value={resolution}
-                onChange={setResolution}
-                options={RESOLUTIONS}
-              />
+            <div className="flex flex-col">
+              <Tabs tabs={TABS} activeTab={activeTab} onChange={setActiveTab} />
 
-              <label className="windows95-text text-xs">Апскейлер</label>
-              <Select
-                value={upscaler}
-                onChange={setUpscaler}
-                options={UPSCALER_OPTIONS}
-              />
-              {upscaler === "ffmpeg" && (
-                <FFMPEG status={ffmpegStatus} setStatus={setFfmpegStatus} />
-              )}
+              <section className="flex-1 overflow-hidden p-1 windows95-border">
+                {activeTab === "upscale" ? (
+                  <div className="flex flex-col gap-2 pt-2">
+                    <label className="windows95-text text-xs">Разрешение</label>
+                    <Select
+                      value={resolution}
+                      onChange={setResolution}
+                      options={RESOLUTIONS}
+                    />
 
-              {upscaler === "anime4k" && (
-                <span className="windows95-text text-xs">
-                  Требуется GTX 970+ (Vulkan)
-                </span>
-              )}
-
-              <label className="windows95-text text-xs">FPS</label>
-              <Select
-                value={fpsValue}
-                onChange={setFpsValue}
-                options={FPS_OPTIONS}
-              />
-
-              {upscaler === "anime4k" ? (
-                <>
-                  <label className="windows95-text text-xs">
-                    Режим Anime4K
-                  </label>
-                  <Select
-                    value={anime4kPreset}
-                    onChange={handlePresetChange}
-                    options={ANIME4K_PRESETS}
-                  />
-                  <ShaderPicker
-                    value={selectedShaders}
-                    onChange={setSelectedShaders}
-                    gpuBackend={gpuBackend}
-                  />
-                </>
-              ) : (
-                <>
-                  <label className="windows95-text text-xs">Качество</label>
-                  <Select
-                    value={quality}
-                    onChange={setQuality}
-                    options={QUALITY_OPTIONS}
-                  />
-
-                  {gpuOptions.length > 1 && (
-                    <>
-                      <label className="windows95-text text-xs">
-                        Кодек / Ускоритель
-                      </label>
-                      <Select
-                        value={gpuBackend}
-                        onChange={setGpuBackend}
-                        options={gpuOptions}
+                    <label className="windows95-text text-xs">Апскейлер</label>
+                    <Select
+                      value={upscaler}
+                      onChange={setUpscaler}
+                      options={UPSCALER_OPTIONS}
+                    />
+                    {upscaler === "ffmpeg" && (
+                      <FFMPEG
+                        status={ffmpegStatus}
+                        setStatus={setFfmpegStatus}
                       />
-                    </>
-                  )}
-                </>
-              )}
+                    )}
+
+                    {upscaler === "anime4k" && (
+                      <span className="windows95-text text-xs">
+                        Требуется GTX 970+ (Vulkan)
+                      </span>
+                    )}
+
+                    <label className="windows95-text text-xs">FPS</label>
+                    <Select
+                      value={fpsValue}
+                      onChange={setFpsValue}
+                      options={FPS_OPTIONS}
+                    />
+
+                    {upscaler === "anime4k" ? (
+                      <>
+                        <label className="windows95-text text-xs">
+                          Режим Anime4K
+                        </label>
+                        <Select
+                          value={anime4kPreset}
+                          onChange={handlePresetChange}
+                          options={ANIME4K_PRESETS}
+                        />
+                        <ShaderPicker
+                          value={selectedShaders}
+                          onChange={setSelectedShaders}
+                          gpuBackend={gpuBackend}
+                        />
+                      </>
+                    ) : (
+                      <>
+                        <label className="windows95-text text-xs">
+                          Качество
+                        </label>
+                        <Select
+                          value={quality}
+                          onChange={setQuality}
+                          options={QUALITY_OPTIONS}
+                        />
+
+                        {gpuOptions.length > 1 && (
+                          <>
+                            <label className="windows95-text text-xs">
+                              Кодек / Ускоритель
+                            </label>
+                            <Select
+                              value={gpuBackend}
+                              onChange={setGpuBackend}
+                              options={gpuOptions}
+                            />
+                          </>
+                        )}
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-2 pt-2">
+                    <label className="windows95-text text-xs">
+                      Целевой формат
+                    </label>
+                    <Select
+                      value={targetFormat}
+                      onChange={setTargetFormat}
+                      options={FORMAT_OPTIONS}
+                    />
+
+                    <label className="flex items-center gap-2 windows95-text text-xs cursor-pointer select-none">
+                      <Checkbox
+                        checked={copyStreams}
+                        onChange={setCopyStreams}
+                      />
+                      <span>Копировать потоки (быстро)</span>
+                    </label>
+
+                    {!copyStreams && (
+                      <span className="windows95-text text-[10px] text-muted">
+                        Будет выполнено перекодирование в H.264 + AAC
+                      </span>
+                    )}
+                  </div>
+                )}
+              </section>
 
               <div className="flex flex-row gap-1 mt-2 justify-end">
                 <Button onClick={handleClose}>Отмена</Button>
                 <Button onClick={handleAddToQueue}>В очередь</Button>
-                <Button onClick={startUpscale}>Запустить</Button>
+                <Button
+                  onClick={
+                    activeTab === "upscale" ? startUpscale : startConvert
+                  }
+                >
+                  {activeTab === "upscale" ? "Запустить" : "Конвертировать"}
+                </Button>
               </div>
             </div>
           )}

@@ -10,7 +10,7 @@ static CLIENT: LazyLock<reqwest::Client> = LazyLock::new(|| {
     reqwest::Client::builder()
         .user_agent("iluhaAnime/1.0")
         .build()
-        .expect("reqwest client")
+        .expect("failed to build reqwest client")
 });
 
 #[derive(Debug, Serialize)]

@@ -4,6 +4,7 @@ import { X, Search } from "lucide-react";
 import ImageComponent from "@/components/ui/image.component";
 import { listen } from "@tauri-apps/api/event";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { open } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
 import {
@@ -27,7 +28,7 @@ import type {
 } from "@/types";
 
 import FolderScanProgress from "./components/player/scan.player";
-import { buildTree, filterTreeByPaths } from "@/lib/index.utils";
+import { buildTree, filterTreeByPaths } from "@/lib/player.utils";
 import { useCacheStore } from "@/store/cache.store";
 import { useCategoryStore } from "@/store/category.store";
 import CategoryView from "./components/player/category.player";
@@ -39,6 +40,7 @@ import {
 import { ConfirmDialog } from "@/components/shared/confirm.component";
 
 function PlayerRoute() {
+  const queryClient = useQueryClient();
   const torrents = useTorrentStore((state) => state.torrents);
   const torrentFilesMap = useTorrentStore((state) => state.torrentFilesMap);
 
@@ -229,6 +231,7 @@ function PlayerRoute() {
     let unlisten: (() => void) | undefined;
     listen<string[]>("folder-content-changed", (event) => {
       const changed = event.payload;
+      queryClient.invalidateQueries({ queryKey: ["extra_files"] });
       (async () => {
         const ext = videoExtensions;
         for (const p of changed) {

@@ -13,7 +13,6 @@ export interface SettingsStore {
   anilistPageSize: number;
   anilistMaxPages: number;
   searchHistoryMaxItems: number;
-  toastDuration: number;
   videoExtensions: string[];
   audioExtensions: string[];
   subtitleExtensions: string[];
@@ -52,7 +51,7 @@ export const useSettingsStore = create<SettingsStore>()(
       anilistPageSize: 40,
       anilistMaxPages: 3,
       searchHistoryMaxItems: 5,
-      toastDuration: 3000,
+
       videoExtensions: [
         "mp4",
         "mkv",

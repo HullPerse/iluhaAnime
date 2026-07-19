@@ -3,7 +3,7 @@ import type { TorrentTreeNode, TorrentTreeFile } from "@/lib/torrent.utils";
 import type { TorrentFileInfo, FilePriority } from "@/types/torrent";
 import { useRef, useState, useCallback, useMemo } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { exists, remove } from "@tauri-apps/plugin-fs";
+import { invoke } from "@tauri-apps/api/core";
 import { ChevronDown, ChevronRight, Monitor, RefreshCw } from "lucide-react";
 import ImageComponent from "@/components/ui/image.component";
 import { openFileInPlayer } from "@/lib/media.utils";
@@ -13,15 +13,18 @@ import Select from "@/components/ui/select.component";
 import { useSettingsStore } from "@/store/settings.store";
 import UpscalePlayer from "@/routes/components/player/upscale.player";
 import { parse } from "anitomy";
+import { formatParsedTitle } from "@/lib/player.utils";
 import { useSearchStore } from "@/store/search.store";
 import { collectFileIndices } from "@/lib/index.utils";
 import { openPath } from "@tauri-apps/plugin-opener";
+
+type TorrentTreeFileWithPath = TorrentTreeFile & { _fullPath: string };
 
 type Item =
   | { kind: "folder"; node: TorrentTreeNode; depth: number }
   | { kind: "file"; file: TorrentTreeFile; depth: number };
 
-function flattenTree(
+function flattenTorrentTree(
   nodes: TorrentTreeNode[],
   open: Set<string>,
   fileFilter?: (f: TorrentTreeFile) => boolean,
@@ -44,7 +47,7 @@ function flattenTree(
         items.push({ kind: "file", file, depth: depth + 1 });
       }
       items.push(
-        ...flattenTree(node.children, open, fileFilter, undefined, depth + 1),
+        ...flattenTorrentTree(node.children, open, fileFilter, undefined, depth + 1),
       );
     }
   }
@@ -84,7 +87,17 @@ function TorrentFilesSection({
     (state) => state.setAnilistSearchQuery,
   );
 
-  const parseTitles = useSettingsStore((state) => state.parseTitles);
+  const {
+    parseTitles,
+    showTrackFiles,
+    audioExtensions,
+    subtitleExtensions,
+  } = useSettingsStore((s) => ({
+    parseTitles: s.parseTitles,
+    showTrackFiles: s.showTrackFiles,
+    audioExtensions: s.audioExtensions,
+    subtitleExtensions: s.subtitleExtensions,
+  }));
 
   const [selected, setSelected] = useState<Set<number>>(
     () =>
@@ -110,10 +123,6 @@ function TorrentFilesSection({
     });
   }, []);
 
-  const showTrackFiles = useSettingsStore((s) => s.showTrackFiles);
-  const audioExtensions = useSettingsStore((s) => s.audioExtensions);
-  const subtitleExtensions = useSettingsStore((s) => s.subtitleExtensions);
-
   const trackExts = useMemo(
     () => new Set([...audioExtensions, ...subtitleExtensions]),
     [audioExtensions, subtitleExtensions],
@@ -134,26 +143,23 @@ function TorrentFilesSection({
   }, [type, showTrackFiles, trackExts]);
 
   const flatItems = useMemo(() => {
-    const items = flattenTree(trees, open, fileFilter, rootFiles);
+    const items = flattenTorrentTree(trees, open, fileFilter, rootFiles);
     if (extraFiles && type === "player") {
       for (const file of extraFiles) {
         const extraIndex = -(2000 + items.length);
-        items.push({
-          kind: "file",
-          file: {
-            index: extraIndex,
-            name: file.name,
-            displayName: file.name,
-            size: file.size,
-            progress_bytes: file.size,
-            completed: true,
-            selected: false,
-            priority: "normal",
-            exists: true,
-            _fullPath: file.fullPath,
-          } as TorrentTreeFile & { _fullPath: string },
-          depth: 0,
-        });
+        const extraFile: TorrentTreeFileWithPath = {
+          index: extraIndex,
+          name: file.name,
+          displayName: file.name,
+          size: file.size,
+          progress_bytes: file.size,
+          completed: true,
+          selected: false,
+          priority: "normal",
+          exists: true,
+          _fullPath: file.fullPath,
+        };
+        items.push({ kind: "file", file: extraFile, depth: 0 });
       }
     }
     return items;
@@ -278,16 +284,6 @@ function TorrentFilesSection({
                 transform: `translateY(${vItem.start}px)`,
                 paddingLeft: `${item.depth * 12 + 2}px`,
               }}
-              onContextMenu={(e) => {
-                e.preventDefault();
-                if (type === "player") openPath(String(path));
-              }}
-              onClick={() => {
-                if (type === "torrent") return;
-                const parsed = parse(file.name);
-                if (!parsed) return;
-                setAnilistSearchQuery(String(parsed.title));
-              }}
             >
               {onToggle && (
                 <Checkbox
@@ -304,33 +300,23 @@ function TorrentFilesSection({
                 className="size-4"
               />
 
-              <span className="truncate flex-1" title={file.displayName}>
+              <span
+                className="truncate flex-1"
+                title={file.name}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  if (type === "player") openPath(String(path));
+                }}
+                onClick={() => {
+                  if (type === "torrent") return;
+                  const parsed = parse(file.name);
+                  if (!parsed) return;
+                  setAnilistSearchQuery(String(parsed.title));
+                }}
+              >
                 {type === "player" && parseTitles
-                  ? (() => {
-                      const parsed = parse(file.displayName);
-                      if (!parsed) return file.displayName;
-
-                      const title = parsed.title || "";
-                      const season = parsed.season
-                        ? `Season ${parsed.season}`
-                        : "";
-                      const epNum =
-                        parsed.episode?.number ?? parsed.episode?.numberAlt;
-                      const epTitle = parsed.episode?.title;
-
-                      let episodeStr = "";
-                      if (epNum !== undefined && epNum !== null) {
-                        episodeStr = `Episode ${epNum}`;
-                        if (epTitle) episodeStr += `: ${epTitle}`;
-                      } else if (epTitle) {
-                        episodeStr = `Episode: ${epTitle}`;
-                      }
-
-                      return [title, season, episodeStr]
-                        .filter((part) => part && part.trim())
-                        .join(" • ");
-                    })()
-                  : file.displayName}
+                  ? formatParsedTitle(file.name)
+                  : file.name}
               </span>
 
               {file.selected && !file.completed && file.size > 0 && (
@@ -379,8 +365,7 @@ function TorrentFilesSection({
 
               {type === "player" && (
                 <div className="flex flex-row gap-1 ml-auto">
-                  {(file as TorrentTreeFile & { _fullPath?: string })
-                    ._fullPath ? (
+                  {(file as TorrentTreeFileWithPath)._fullPath ? (
                     <>
                       <Button
                         rendered={
@@ -389,7 +374,7 @@ function TorrentFilesSection({
                         title="Удалить"
                         size="icon"
                         className="size-4"
-                        onClick={async (e) => {
+                        onClick={(e) => {
                           e.stopPropagation();
                           const upscaledFile = extraFiles?.find(
                             (e) => e.name === file.name,
@@ -397,13 +382,9 @@ function TorrentFilesSection({
 
                           if (!upscaledFile?.fullPath) return;
 
-                          const fileExists = await exists(
-                            upscaledFile.fullPath,
-                          );
-
-                          if (fileExists) {
-                            await remove(upscaledFile.fullPath);
-                          }
+                          invoke("delete_extra_file", {
+                            path: upscaledFile.fullPath,
+                          }).catch(() => {});
 
                           onDeleteExtraFile?.();
                         }}
@@ -420,8 +401,7 @@ function TorrentFilesSection({
 
                       <UpscalePlayer
                         filePath={
-                          (file as TorrentTreeFile & { _fullPath: string })
-                            ._fullPath
+                          (file as TorrentTreeFileWithPath)._fullPath
                         }
                         onDone={onUpscaleDone}
                         exists={file.exists}
@@ -430,12 +410,12 @@ function TorrentFilesSection({
                         title="Открыть в медиа плеере"
                         size="icon"
                         className="size-4"
-                        onClick={async () =>
+                        onClick={async (e) => {
+                          e.stopPropagation();
                           openFileInPlayer(
-                            (file as TorrentTreeFile & { _fullPath: string })
-                              ._fullPath,
-                          )
-                        }
+                            (file as TorrentTreeFileWithPath)._fullPath,
+                          );
+                        }}
                         disabled={!file.exists}
                       >
                         <Monitor className="size-3" />
@@ -455,7 +435,8 @@ function TorrentFilesSection({
                           title="Открыть в медиа плеере"
                           size="icon"
                           className="size-4"
-                          onClick={async () => {
+                          onClick={async (e) => {
+                            e.stopPropagation();
                             if (!path) return;
                             openFileInPlayer(`${path}/${file.name}`);
                           }}

@@ -49,7 +49,13 @@ export const useCacheStore = create<CacheStore>()(
     }),
     {
       name: "cache",
-      version: 1,
+      version: 2,
+      migrate: (persistedState: any, version: number) => {
+        if (version < 2) {
+          return { ...persistedState, franchiseCache: {} };
+        }
+        return persistedState;
+      },
     },
   ),
 );

@@ -1527,14 +1527,12 @@ pub async fn get_anime_franchise(id: u64) -> Result<FranchiseGraph, String> {
                     if media_type.as_deref() != Some("ANIME") {
                         continue;
                     }
-                    let is_main = rel_type == "SEQUEL" || rel_type == "PREQUEL";
                     edges.push(FranchiseEdge {
                         source: node_id,
                         target: target_id,
                         relation_type: rel_type,
                     });
-                    if is_main
-                        && !visited.contains(&target_id)
+                    if !visited.contains(&target_id)
                         && next_frontier.len() + nodes.len() < MAX_FRANCHISE_NODES
                     {
                         visited.insert(target_id);

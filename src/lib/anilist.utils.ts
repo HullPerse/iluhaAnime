@@ -1,4 +1,10 @@
-import { FILTER_GROUPS, RELATION_X } from "@/config/anilist.config";
+import {
+  FILTER_GROUPS,
+  IMG_H,
+  NODE_H,
+  NODE_W,
+  RELATION_X,
+} from "@/config/anilist.config";
 import { HexType } from "@/types";
 import type {
   AniListCollection,
@@ -7,9 +13,13 @@ import type {
   AniMedia,
   FranchiseGraph,
   FranchiseNode,
+  FranchiseNodePosition,
   RelationFilter,
   SearchFilters,
+  SimNode,
 } from "@/types/anilist";
+import { forceSimulation, forceX, forceCollide } from "d3-force";
+import type { Simulation } from "d3-force";
 
 export function filterEntries(
   entries: AniListEntry[],
@@ -85,10 +95,16 @@ export function getStatusColor(status: AniListEntry["list_status"]): HexType {
   return statusMap[status] ?? "#888";
 }
 
+export interface FilteredGraph {
+  edges: { source: number; target: number; relation_type: string }[];
+  ids: Set<number>;
+  nodeMap: Map<number, FranchiseNode>;
+}
+
 export function filterGraph(
   graph: FranchiseGraph,
   filters: Set<RelationFilter>,
-) {
+): FilteredGraph {
   const filteredEdges = graph.edges.filter((e) =>
     Array.from(filters).some((g) => FILTER_GROUPS[g].includes(e.relation_type)),
   );
@@ -225,4 +241,158 @@ export function sortAniMediaList(
     else if (key === "year") cmp = (a.season_year ?? 0) - (b.season_year ?? 0);
     return dir === "asc" ? cmp : -cmp;
   });
+}
+
+export function computeNodeDimensions(nodeCount: number) {
+  const scale = nodeCount > 25 ? 0.75 : nodeCount > 15 ? 0.85 : 1;
+  const imgH = Math.round(IMG_H * scale);
+  const barH = Math.max(16, Math.round((NODE_H - IMG_H) * scale));
+  return {
+    w: Math.round(NODE_W * scale),
+    h: imgH + barH,
+    imgH,
+    scale,
+  };
+}
+
+export interface NodeDimensionsTag {
+  w: number;
+  h: number;
+  imgH: number;
+  scale: number;
+}
+
+export function computeGraphMetrics(nodeCount: number) {
+  const totalH = Math.max(300, Math.min(1400, nodeCount * 80));
+  const displayH = Math.max(300, Math.min(totalH, 600));
+  return { totalH, displayH };
+}
+
+export function clampPosition(
+  x: number,
+  y: number,
+  bounds: { w: number; h: number; nodeW: number; nodeH: number },
+): FranchiseNodePosition {
+  return {
+    x: Math.max(0, Math.min(bounds.w - bounds.nodeW, x)),
+    y: Math.max(0, Math.min(bounds.h - bounds.nodeH, y)),
+  };
+}
+
+export function buildSimNodes(
+  filtered: FilteredGraph,
+  containerW: number,
+  rootId: number,
+  totalH: number,
+  dims: { w: number; h: number },
+) {
+  const nodes: SimNode[] = [];
+  const initPos = new Map<number, FranchiseNodePosition>();
+  const values = [...filtered.nodeMap.values()];
+
+  const years = values.map((n) => n.year).filter((y): y is number => y != null);
+  const minYear = years.length > 0 ? Math.min(...years) : NaN;
+  const maxYear = years.length > 0 ? Math.max(...years) : NaN;
+  const yearRange = maxYear - minYear || 1;
+
+  let idx = 0;
+  for (const node of values) {
+    let y: number;
+    if (node.year != null && !isNaN(minYear)) {
+      const t = (node.year - minYear) / yearRange;
+      y = 20 + t * (totalH - dims.h - 40);
+    } else {
+      y = 20 + (idx / values.length) * (totalH - dims.h - 40);
+    }
+    idx++;
+
+    const clusterX = getClusterX(node.id, rootId, containerW, filtered.edges);
+    nodes.push({
+      id: node.id,
+      x: clusterX,
+      y,
+      vx: 0,
+      vy: 0,
+      fy: y,
+      clusterX,
+    });
+    initPos.set(
+      node.id,
+      clampPosition(clusterX - dims.w / 2, y, {
+        w: containerW,
+        h: totalH,
+        nodeW: dims.w,
+        nodeH: dims.h,
+      }),
+    );
+  }
+
+  return { simNodes: nodes, initialPositions: initPos };
+}
+
+export function runFranchiseSimulation(
+  simNodes: SimNode[],
+  containerW: number,
+  totalH: number,
+  dims: { w: number; h: number },
+  onTick: (positions: Map<number, FranchiseNodePosition>) => void,
+): Simulation<SimNode, undefined> {
+  const sim = forceSimulation(simNodes)
+    .force("x", forceX<SimNode>((d) => d.clusterX).strength(0.06))
+    .force("collide", forceCollide(dims.w * 0.8))
+    .alphaDecay(0.025)
+    .on("tick", () => {
+      const pos = new Map<number, FranchiseNodePosition>();
+      for (const n of sim.nodes()) {
+        pos.set(
+          n.id,
+          clampPosition(n.x - dims.w / 2, n.y - dims.h / 2, {
+            w: containerW,
+            h: totalH,
+            nodeW: dims.w,
+            nodeH: dims.h,
+          }),
+        );
+      }
+      onTick(pos);
+    });
+
+  return sim;
+}
+
+export function getFitToViewTransform(
+  positions: Map<number, FranchiseNodePosition>,
+  containerW: number,
+  containerH: number,
+  dims: { w: number; h: number },
+  padding = 20,
+) {
+  if (positions.size === 0) return { x: 0, y: 0, scale: 1 };
+
+  let minX = Infinity,
+    minY = Infinity,
+    maxX = -Infinity,
+    maxY = -Infinity;
+
+  for (const p of positions.values()) {
+    minX = Math.min(minX, p.x);
+    minY = Math.min(minY, p.y);
+    maxX = Math.max(maxX, p.x + dims.w);
+    maxY = Math.max(maxY, p.y + dims.h);
+  }
+
+  const bboxW = maxX - minX;
+  const bboxH = maxY - minY;
+  if (bboxW <= 0 || bboxH <= 0) return { x: 0, y: 0, scale: 1 };
+
+  const scale = Math.min(
+    (containerW - padding * 2) / bboxW,
+    (containerH - padding * 2) / bboxH,
+    1.5,
+  );
+
+  const x = (containerW - bboxW * scale) / 2 - minX * scale;
+  const y = (containerH - bboxH * scale) / 2 - minY * scale;
+
+  return { x, y, scale };
 }

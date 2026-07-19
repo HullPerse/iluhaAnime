@@ -253,7 +253,7 @@ function AniListDetailModal({
 
           <Section
             header="Франшиза"
-            className="bg-white"
+            className="bg-primary"
             expanded={showFranchise}
             onExpand={() => setShowFranchise((prev) => !prev)}
           >

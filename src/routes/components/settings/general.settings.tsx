@@ -2,10 +2,16 @@ import { useState } from "react";
 import { useSettingsStore } from "@/store/settings.store";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
+import Select from "@/components/ui/select.component";
 import { ConfirmDialog } from "@/components/shared/confirm.component";
 
+const FRANCHISE_OPTIONS = [
+  { value: "all", label: "Все связи" },
+  { value: "main", label: "Только сиквелы/приквелы" },
+] as const;
+
 export default function SettingsGeneral() {
-  const { parseTitles, patch } = useSettingsStore();
+  const { parseTitles, franchiseRelationScope, patch } = useSettingsStore();
   const [pendingClear, setPendingClear] = useState(false);
 
   return (
@@ -21,6 +27,16 @@ export default function SettingsGeneral() {
         <span>
           Извлекать названия аниме {`([Erai-Raws]Maruto.1080p -> Naruto)`}
         </span>
+      </label>
+
+      <label className="flex items-center gap-2 windows95-text text-text">
+        <span className="w-48">Франшиза</span>
+        <Select
+          value={franchiseRelationScope}
+          onChange={(v) => patch({ franchiseRelationScope: v as "all" | "main" })}
+          options={[...FRANCHISE_OPTIONS]}
+          className="w-44"
+        />
       </label>
 
       <hr className="windows95-header w-full" />

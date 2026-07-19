@@ -103,7 +103,7 @@ export default function TorrentFilesPlayerSection({
               }}
             >
               <ImageComponent
-                src="/icons/w2k_folder_closed.ico"
+                src="/images/w2k_folder_closed.ico"
                 alt=""
                 className="size-4"
               />

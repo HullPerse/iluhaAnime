@@ -112,7 +112,7 @@ function FolderView({
             <ChevronRight className="size-3 shrink-0" />
           )}
           <ImageComponent
-            src="/icons/w2k_folder_closed.ico"
+            src="/images/w2k_folder_closed.ico"
             alt=""
             className="size-4 shrink-0"
           />
@@ -136,7 +136,7 @@ function FolderView({
                   }}
                 >
                   <ImageComponent
-                    src="/icons/w2k_bitmap_image.ico"
+                    src="/images/w2k_bitmap_image.ico"
                     alt=""
                     className="size-4"
                   />
@@ -192,7 +192,7 @@ function FolderView({
                       <ChevronRight className="size-3 shrink-0" />
                     )}
                     <ImageComponent
-                      src="/icons/w2k_folder_closed.ico"
+                      src="/images/w2k_folder_closed.ico"
                       alt=""
                       className="size-4 shrink-0"
                     />
@@ -219,7 +219,7 @@ function FolderView({
                   }}
                 >
                   <ImageComponent
-                    src="/icons/w2k_wmp_11.ico"
+                    src="/images/w2k_wmp_11.ico"
                     alt=""
                     className="size-4"
                   />
@@ -236,9 +236,7 @@ function FolderView({
                       setAnilistSearchQuery(String(parsed.title));
                     }}
                   >
-                    {parseTitles
-                      ? formatParsedTitle(file.name)
-                      : file.name}
+                    {parseTitles ? formatParsedTitle(file.name) : file.name}
                   </span>
 
                   <span className="windows95-text text-muted">

@@ -102,7 +102,7 @@ function TorrentItem({
               onClick={() => openPath(item.save_dir)}
             >
               <ImageComponent
-                src="/icons/w2k_folder_closed.ico"
+                src="/images/w2k_folder_closed.ico"
                 alt=""
                 className="size-4"
               />
@@ -127,7 +127,7 @@ function TorrentItem({
             }}
           >
             <ImageComponent
-              src="/icons/w2k_dustbin.ico"
+              src="/images/w2k_dustbin.ico"
               alt=""
               className="size-4"
             />

@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button.component";
@@ -24,6 +25,10 @@ export function DraggableFolder({
 
   const countAll =
     tree.files.length + tree.children.reduce((s, c) => s + c.files.length, 0);
+  const disabledExtensions = useMemo(
+    () => new Set(audioExtensions),
+    [audioExtensions],
+  );
 
   return (
     <div
@@ -42,7 +47,7 @@ export function DraggableFolder({
         className="flex items-center gap-1 windows95-text cursor-grab active:cursor-grabbing hover:bg-surface px-0.5 py-0.5 w-full text-left select-none"
       >
         <ImageComponent
-          src="/icons/w2k_folder_closed.ico"
+          src="/images/w2k_folder_closed.ico"
           alt=""
           className="size-4 shrink-0"
         />
@@ -70,7 +75,7 @@ export function DraggableFolder({
         depth={0}
         searchQuery=""
         onRemove={onRemove}
-        disabledExtensions={new Set(audioExtensions)}
+        disabledExtensions={disabledExtensions}
         hideRoot
       />
     </div>

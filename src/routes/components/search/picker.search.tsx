@@ -1,6 +1,6 @@
 import { Input } from "@/components/ui/input.component";
 import { open } from "@tauri-apps/plugin-dialog";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { SmallLoader } from "@/components/shared/loader.component";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
@@ -59,25 +59,26 @@ function TorrentFilePicker({
     }
   }, [loading]);
 
-  const toggleFile = (index: number) => {
+  const toggleFile = useCallback((index: number) => {
     setSelected((prev) => {
       const next = new Set(prev);
       if (next.has(index)) next.delete(index);
       else next.add(index);
       return next;
     });
-  };
+  }, []);
 
-  const toggleAll = () => {
+  const toggleAll = useCallback(() => {
     if (!torrent) return;
-    if (selected.size === torrent.files.length) {
-      setSelected(new Set());
-    } else {
-      setSelected(new Set(torrent.files.map((f) => f.index)));
-    }
-  };
+    setSelected((prev) => {
+      if (prev.size === torrent.files.length) {
+        return new Set();
+      }
+      return new Set(torrent.files.map((f) => f.index));
+    });
+  }, [torrent]);
 
-  const browseFolder = async () => {
+  const browseFolder = useCallback(async () => {
     setBrowsing(true);
     const dir = await open({
       directory: true,
@@ -85,9 +86,9 @@ function TorrentFilePicker({
     });
     if (dir) setSaveDir(dir);
     setBrowsing(false);
-  };
+  }, []);
 
-  const handleConfirm = async () => {
+  const handleConfirm = useCallback(async () => {
     if (!torrent) return;
     setIsLoading(true);
     const subFolder = torrent.hasCommonFolder ? undefined : torrent.name;
@@ -96,7 +97,7 @@ function TorrentFilePicker({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [torrent, selected, saveDir, sequential, onConfirm]);
 
   const allSelected = torrent ? selected.size === torrent.files.length : false;
 
@@ -140,7 +141,7 @@ function TorrentFilePicker({
                   {group.dir && (
                     <div className="flex items-center gap-1 px-1 py-0.5 text-[10px] windows95-font select-none">
                       <ImageComponent
-                        src="/icons/w2k_folder_closed.ico"
+                        src="/images/w2k_folder_closed.ico"
                         alt=""
                         className="size-4 shrink-0"
                       />

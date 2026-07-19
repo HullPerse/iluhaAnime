@@ -25,7 +25,7 @@ export default function AniListProfileHeader({
       <section className="flex flex-row items-center gap-2">
         <div className="relative w-10 h-10 bg-white">
           <ImageComponent
-            src={user.avatar ? user.avatar : "/icons/user_avatar.ico"}
+            src={user.avatar ? user.avatar : "/images/user_avatar.ico"}
             alt="user avatar"
             className="h-10 w-10 windows95-active-border"
           />

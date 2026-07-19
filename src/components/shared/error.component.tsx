@@ -27,7 +27,7 @@ export function BigError({
         <section className="flex items-center justify-between bg-secondary w-full p-1">
           <div className="flex items-center gap-1 min-w-0">
             <ImageComponent
-              src="/icons/w2k_computer.ico"
+              src="/images/w2k_computer.ico"
               alt=""
               className="size-4 shrink-0"
             />

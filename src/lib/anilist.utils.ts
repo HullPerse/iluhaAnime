@@ -130,7 +130,7 @@ export function filterGraph(
   return { edges, ids, nodeMap };
 }
 
-export function getClusterX(
+function getClusterX(
   nodeId: number,
   rootId: number,
   containerW: number,
@@ -255,20 +255,13 @@ export function computeNodeDimensions(nodeCount: number) {
   };
 }
 
-export interface NodeDimensionsTag {
-  w: number;
-  h: number;
-  imgH: number;
-  scale: number;
-}
-
 export function computeGraphMetrics(nodeCount: number) {
   const totalH = Math.max(300, Math.min(1400, nodeCount * 80));
   const displayH = Math.max(300, Math.min(totalH, 600));
   return { totalH, displayH };
 }
 
-export function clampPosition(
+function clampPosition(
   x: number,
   y: number,
   bounds: { w: number; h: number; nodeW: number; nodeH: number },
@@ -358,41 +351,4 @@ export function runFranchiseSimulation(
     });
 
   return sim;
-}
-
-export function getFitToViewTransform(
-  positions: Map<number, FranchiseNodePosition>,
-  containerW: number,
-  containerH: number,
-  dims: { w: number; h: number },
-  padding = 20,
-) {
-  if (positions.size === 0) return { x: 0, y: 0, scale: 1 };
-
-  let minX = Infinity,
-    minY = Infinity,
-    maxX = -Infinity,
-    maxY = -Infinity;
-
-  for (const p of positions.values()) {
-    minX = Math.min(minX, p.x);
-    minY = Math.min(minY, p.y);
-    maxX = Math.max(maxX, p.x + dims.w);
-    maxY = Math.max(maxY, p.y + dims.h);
-  }
-
-  const bboxW = maxX - minX;
-  const bboxH = maxY - minY;
-  if (bboxW <= 0 || bboxH <= 0) return { x: 0, y: 0, scale: 1 };
-
-  const scale = Math.min(
-    (containerW - padding * 2) / bboxW,
-    (containerH - padding * 2) / bboxH,
-    1.5,
-  );
-
-  const x = (containerW - bboxW * scale) / 2 - minX * scale;
-  const y = (containerH - bboxH * scale) / 2 - minY * scale;
-
-  return { x, y, scale };
 }

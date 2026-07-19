@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-export type FranchiseScope = "all" | "main";
+type FranchiseScope = "all" | "main";
 
 export interface SettingsStore {
   dlLimit: number | null;

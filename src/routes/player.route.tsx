@@ -320,26 +320,26 @@ function PlayerRoute() {
     [patch, rebuildIndex],
   );
 
-  const toggleExpanded = (id: number) => {
+  const toggleExpanded = useCallback((id: number) => {
     setExpanded((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
     });
-  };
+  }, []);
 
   const categories = useCategoryStore((s) => s.categories);
   const addCategory = useCategoryStore((s) => s.addCategory);
   const removeCategory = useCategoryStore((s) => s.removeCategory);
 
-  const handleCreateCategory = () => {
+  const handleCreateCategory = useCallback(() => {
     addCategory("Новая категория");
-  };
+  }, [addCategory]);
 
-  const handleRemoveCategory = (id: string) => {
+  const handleRemoveCategory = useCallback((id: string) => {
     setPendingDeleteCategory(id);
-  };
+  }, []);
 
   const handleDragEnd = (event: { active: any; over: any }) => {
     const { active, over } = event;
@@ -374,7 +374,7 @@ function PlayerRoute() {
         <section className="flex flex-row w-full h-8 windows95-active-border bg-primary gap-1 p-1 items-center">
           <Button onClick={handleOpenFolder}>
             <ImageComponent
-              src="/icons/w2k_folder_closed.ico"
+              src="/images/w2k_folder_closed.ico"
               alt=""
               className="size-4"
             />
@@ -382,7 +382,7 @@ function PlayerRoute() {
           </Button>
           <Button onClick={handleCreateCategory}>
             <ImageComponent
-              src="/icons/w2k_folder_closed.ico"
+              src="/images/w2k_folder_closed.ico"
               alt=""
               className="size-4"
             />

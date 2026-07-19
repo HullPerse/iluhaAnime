@@ -1,4 +1,4 @@
-import { useState, useEffect, ReactElement, lazy, Suspense } from "react";
+import { useState, useEffect, useRef, ReactElement, lazy, Suspense } from "react";
 import { useTorrentStore } from "@/store/download.store";
 import { useSearchStore } from "@/store/search.store";
 import TorrentFilePicker from "@/routes/components/search/picker.search";
@@ -34,7 +34,7 @@ const tabs: { id: Tab; label: string }[] = [
 
 function App() {
   const [activeTab, setActiveTab] = useState<Tab>("search");
-  const [initTabs, setInitTabs] = useState(false);
+  const initTabsRef = useRef(false);
   const [updateAvailable, setUpdateAvailable] = useState<boolean>(false);
   const customScrollbar = useSettingsStore((s) => s.customScrollbar);
   const init = useTorrentStore((s) => s.init);
@@ -45,16 +45,16 @@ function App() {
   const cancelDownload = useTorrentStore((s) => s.cancelDownload);
 
   const enableAnimations = useSettingsStore((s) => s.enableAnimations);
-  //checking for connection
   const { data } = useQuery({
     queryKey: ["connection"],
     queryFn: async (): Promise<Update | null> => {
-      const update = await checkForUpdates();
-
-      if (update) setUpdateAvailable(true);
-      return update;
+      return await checkForUpdates();
     },
   });
+
+  useEffect(() => {
+    if (data) setUpdateAvailable(true);
+  }, [data]);
 
   useEffect(() => {
     document.documentElement.classList.toggle(
@@ -88,13 +88,13 @@ function App() {
   const visibleTabs = tabs;
 
   useEffect(() => {
-    if (!initTabs && visibleTabs.length > 0) {
-      setInitTabs(true);
+    if (!initTabsRef.current && visibleTabs.length > 0) {
+      initTabsRef.current = true;
       if (!visibleTabs.find((t) => t.id === activeTab)) {
         setActiveTab(visibleTabs[0].id as Tab);
       }
     }
-  }, [visibleTabs, activeTab, initTabs]);
+  }, [visibleTabs, activeTab]);
 
   //tab keybinds
   useEffect(() => {
@@ -121,6 +121,8 @@ function App() {
   }, []);
 
   useEffect(() => {
+    const current = useSearchStore.getState().crossSearchQuery;
+    if (current) setActiveTab("search");
     return useSearchStore.subscribe((state, prev) => {
       if (
         state.crossSearchQuery &&
@@ -132,6 +134,8 @@ function App() {
   }, []);
 
   useEffect(() => {
+    const current = useSearchStore.getState().anilistSearchQuery;
+    if (current) setActiveTab("anilist");
     return useSearchStore.subscribe((state, prev) => {
       if (
         state.anilistSearchQuery &&

@@ -51,7 +51,9 @@ export default function SearchResultItem({
         <div className="flex shrink-0 items-center gap-1">
           <span className="windows95-text">{formatSize(item.size)}</span>
           <span className="windows95-text text-success">S:{item.seeders}</span>
-          <span className="windows95-text text-destructive">L:{item.leechers}</span>
+          <span className="windows95-text text-destructive">
+            L:{item.leechers}
+          </span>
         </div>
       </div>
 
@@ -93,7 +95,11 @@ export default function SearchResultItem({
               onClick={() => onOpenLink(item)}
               className="inline-flex items-center gap-0.5 windows95-active-border bg-primary px-2 py-0.5 windows95-text text-text no-underline cursor-pointer"
             >
-              <ImageComponent src="/icons/w2k_globe.ico" alt="" className="size-4" />
+              <ImageComponent
+                src="/images/w2k_globe.ico"
+                alt=""
+                className="size-4"
+              />
               Открыть
             </Button>
           )

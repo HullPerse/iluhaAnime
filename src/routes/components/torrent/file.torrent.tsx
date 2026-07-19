@@ -47,7 +47,13 @@ function flattenTorrentTree(
         items.push({ kind: "file", file, depth: depth + 1 });
       }
       items.push(
-        ...flattenTorrentTree(node.children, open, fileFilter, undefined, depth + 1),
+        ...flattenTorrentTree(
+          node.children,
+          open,
+          fileFilter,
+          undefined,
+          depth + 1,
+        ),
       );
     }
   }
@@ -87,17 +93,10 @@ function TorrentFilesSection({
     (state) => state.setAnilistSearchQuery,
   );
 
-  const {
-    parseTitles,
-    showTrackFiles,
-    audioExtensions,
-    subtitleExtensions,
-  } = useSettingsStore((s) => ({
-    parseTitles: s.parseTitles,
-    showTrackFiles: s.showTrackFiles,
-    audioExtensions: s.audioExtensions,
-    subtitleExtensions: s.subtitleExtensions,
-  }));
+  const parseTitles = useSettingsStore((s) => s.parseTitles);
+  const showTrackFiles = useSettingsStore((s) => s.showTrackFiles);
+  const audioExtensions = useSettingsStore((s) => s.audioExtensions);
+  const subtitleExtensions = useSettingsStore((s) => s.subtitleExtensions);
 
   const [selected, setSelected] = useState<Set<number>>(
     () =>
@@ -233,7 +232,7 @@ function TorrentFilesSection({
                     <ChevronRight className="size-3 shrink-0" />
                   )}
                   <ImageComponent
-                    src="/icons/w2k_folder_closed.ico"
+                    src="/images/w2k_folder_closed.ico"
                     alt=""
                     className="size-4 shrink-0"
                   />
@@ -295,7 +294,7 @@ function TorrentFilesSection({
               )}
 
               <ImageComponent
-                src="/icons/w2k_wmp_11.ico"
+                src="/images/w2k_wmp_11.ico"
                 alt=""
                 className="size-4"
               />
@@ -393,16 +392,14 @@ function TorrentFilesSection({
                         }
                       >
                         <ImageComponent
-                          src="/icons/w2k_dustbin.ico"
+                          src="/images/w2k_dustbin.ico"
                           alt=""
                           className="size-4"
                         />
                       </Button>
 
                       <UpscalePlayer
-                        filePath={
-                          (file as TorrentTreeFileWithPath)._fullPath
-                        }
+                        filePath={(file as TorrentTreeFileWithPath)._fullPath}
                         onDone={onUpscaleDone}
                         exists={file.exists}
                       />

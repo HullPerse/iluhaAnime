@@ -23,7 +23,7 @@ function AniListMetadata({
     <main className="flex flex-row gap-3">
       <section className="windows95-border shrink-0 self-start bg-white">
         <ImageComponent
-          src={anime.cover_url ? anime.cover_url : "/icons/unknown_source.png"}
+          src={anime.cover_url ? anime.cover_url : "/images/unknown_source.png"}
           alt={anime.title}
           className="w-36 h-54 block"
         />

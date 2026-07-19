@@ -75,15 +75,22 @@ function FranchiseGraphSection({
         const cached = useCacheStore.getState().franchiseCache[cacheKey];
         if (cached) return cached;
       }
-      const result = await invoke<FranchiseGraph>("get_anime_franchise", {
+      return await invoke<FranchiseGraph>("get_anime_franchise", {
         id: animeId,
         scope: franchiseRelationScope,
       });
-      useCacheStore.getState().setFranchiseCache(cacheKey, result);
-      return result;
     },
     staleTime: Infinity,
   });
+
+  useEffect(() => {
+    if (data) {
+      useCacheStore.getState().setFranchiseCache(
+        `${animeId}:${franchiseRelationScope}`,
+        data,
+      );
+    }
+  }, [data, animeId, franchiseRelationScope]);
 
   const filtered = useMemo(
     () => (data ? filterGraph(data, activeFilters) : null),

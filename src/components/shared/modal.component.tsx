@@ -56,7 +56,7 @@ function Modal({ header, onClose, onBack, className, children }: ModalWindow) {
                 </Button>
               )}
               <ImageComponent
-                src="/icons/w2k_computer.ico"
+                src="/images/w2k_computer.ico"
                 alt=""
                 className="size-4 shrink-0"
               />

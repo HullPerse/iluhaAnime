@@ -5,7 +5,7 @@ import { useTorrentStore } from "@/store/download.store";
 import { useSettingsStore } from "@/store/settings.store";
 import { listen } from "@tauri-apps/api/event";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { Plus, SortAsc, SortDesc } from "lucide-react";
 
 import SpeedLimitForm from "./components/torrent/speed.torrent";
@@ -160,22 +160,22 @@ function TorrentRoute() {
     document.title = `iluhaAnime${suffix}`;
   }, [torrents]);
 
-  const applySpeedLimits = () => {
+  const applySpeedLimits = useCallback(() => {
     const dl = dlInput === "" ? null : Number(dlInput);
     const ul = ulInput === "" ? null : Number(ulInput);
     if (dl !== null && (isNaN(dl) || dl <= 0)) return;
     if (ul !== null && (isNaN(ul) || ul <= 0)) return;
     setSpeedLimits(dl, ul);
-  };
+  }, [dlInput, ulInput, setSpeedLimits]);
 
-  const toggleExpanded = (id: number) => {
+  const toggleExpanded = useCallback((id: number) => {
     setExpanded((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
     });
-  };
+  }, []);
 
   return (
     <main className="flex flex-col gap-1 h-full w-full overflow-y-auto">

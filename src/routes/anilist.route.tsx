@@ -48,9 +48,6 @@ import { useSearchStore } from "@/store/search.store";
 
 function AnilistRoute() {
   const queryClient = useQueryClient();
-  const anilistSearchQuery = useSearchStore(
-    (state) => state.anilistSearchQuery,
-  );
   const setAnilistSearchQuery = useSearchStore(
     (state) => state.setAnilistSearchQuery,
   );
@@ -123,11 +120,13 @@ function AnilistRoute() {
   }, [page]);
 
   useEffect(() => {
-    if (lists.length > 0 && !currentList) {
+    if (lists.length === 0) return;
+    setCurrentList((prev) => {
+      if (prev) return prev;
       const first = lists.find((c) => c.entries.length > 0);
-      if (first) setCurrentList(first.name);
-    }
-  }, [lists, currentList]);
+      return first?.name ?? "";
+    });
+  }, [lists]);
 
   const handleGlobal = useCallback(async () => {
     setGlobal(true);
@@ -299,11 +298,18 @@ function AnilistRoute() {
   }, [lastPage]);
 
   useEffect(() => {
-    if (anilistSearchQuery) {
-      setSearchTerms(anilistSearchQuery);
+    const current = useSearchStore.getState().anilistSearchQuery;
+    if (current) {
+      setSearchTerms(current);
       setAnilistSearchQuery(null);
     }
-  }, [anilistSearchQuery]);
+    return useSearchStore.subscribe((state, prev) => {
+      if (state.anilistSearchQuery && !prev.anilistSearchQuery) {
+        setSearchTerms(state.anilistSearchQuery);
+        setAnilistSearchQuery(null);
+      }
+    });
+  }, []);
 
   return (
     <main className="flex flex-col w-full h-full gap-1">

@@ -49,7 +49,7 @@ function CategoryIconModal({
             onClick={() => setSelected(icon)}
           >
             <ImageComponent
-              src={`/icons/${icon}`}
+              src={`/images/${icon}`}
               alt="icon"
               className="w-14 h-14"
             />

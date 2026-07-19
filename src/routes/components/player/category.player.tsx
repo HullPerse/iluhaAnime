@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/core";
 import { ChevronDown, ChevronRight, RefreshCw, X } from "lucide-react";
@@ -84,19 +84,22 @@ function CategoryView({
   const [expandedEntries, setExpandedEntries] = useState<Set<string>>(
     new Set(),
   );
-  const inputId = `rename-${categoryId}`;
+  const renameRef = useRef<HTMLInputElement>(null);
+  const audioExtensionsSet = useMemo(
+    () => new Set(audioExtensions),
+    [audioExtensions],
+  );
 
   useEffect(() => {
     if (editing) {
-      const el = document.getElementById(inputId) as HTMLInputElement | null;
-      el?.focus();
+      renameRef.current?.focus();
     }
-  }, [editing, inputId]);
+  }, [editing]);
 
   if (!category) return null;
   const count = entries?.length ?? 0;
 
-  const renderFolderEntry = (entry: typeof entries[0]) => {
+  const renderFolderEntry = (entry: (typeof entries)[0]) => {
     const tree = folderTrees.find((t) => t.path === entry.folderPath);
     if (!tree) return null;
     return (
@@ -104,13 +107,13 @@ function CategoryView({
         node={tree}
         depth={0}
         searchQuery=""
-        disabledExtensions={new Set(audioExtensions)}
+        disabledExtensions={audioExtensionsSet}
         hideRoot
       />
     );
   };
 
-  const renderTorrentEntry = (entry: typeof entries[0]) => {
+  const renderTorrentEntry = (entry: (typeof entries)[0]) => {
     const tor = torrents.find((t) => t.info_hash === entry.infoHash);
     if (!tor) return null;
     return <TorrentCategoryEntry tor={tor} torrentFilesMap={torrentFilesMap} />;
@@ -156,7 +159,7 @@ function CategoryView({
           <ChevronRight className="size-3 shrink-0" />
         )}
         <ImageComponent
-          src={`/icons/${category.icon}`}
+          src={`/images/${category.icon}`}
           alt=""
           className="size-4 shrink-0 hover:border border-surface"
           onClick={(e) => {
@@ -166,7 +169,7 @@ function CategoryView({
         />
         {editing ? (
           <Input
-            id={inputId}
+            ref={renameRef}
             className="h-5 text-xs flex-1 min-w-0"
             value={editName}
             onClick={(e) => e.stopPropagation()}
@@ -224,8 +227,8 @@ function CategoryView({
                     <ImageComponent
                       src={
                         entry.type === "folder"
-                          ? "/icons/w2k_folder_closed.ico"
-                          : "/icons/w2k_floppy.ico"
+                          ? "/images/w2k_folder_closed.ico"
+                          : "/images/w2k_floppy.ico"
                       }
                       alt=""
                       className="size-4 shrink-0"
@@ -247,7 +250,9 @@ function CategoryView({
                         className="size-4"
                         onClick={(e) => {
                           e.stopPropagation();
-                          useTorrentStore.getState().loadTorrentFiles(entry.torrentId!);
+                          useTorrentStore
+                            .getState()
+                            .loadTorrentFiles(entry.torrentId!);
                         }}
                       >
                         <RefreshCw className="size-3" />

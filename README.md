@@ -1,7 +1,3 @@
-<div align="center">
-  <img src="docs/images/banner.png" alt="iluhaAnime Banner" width="600"/>
-</div>
-
 <h1 align="center">iluhaAnime</h1>
 
 <p align="center">

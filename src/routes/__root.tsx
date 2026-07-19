@@ -24,15 +24,21 @@ const indexRoute = createRoute({
   pendingComponent: BigLoader,
 });
 
-const errorRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/error",
-  component: () => (
+const ErrorPage = () => {
+  const navigate = useNavigate();
+  return (
     <BigError
       error={new Error("Произошла ошибка")}
       icon={<CircleX className="size-28 animate-pulse text-red-500" />}
+      onRetry={() => navigate({ to: "/" })}
     />
-  ),
+  );
+};
+
+const errorRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/error",
+  component: ErrorPage,
 });
 
 const routeTree = rootRoute.addChildren([indexRoute, errorRoute]);

@@ -1,0 +1,13 @@
+# Attune Ignore Patterns
+# Add patterns to exclude from analysis
+# One pattern per line, supports:
+# - Exact paths: src/oldcode/
+# - Glob patterns: **/*.test.ts
+# - File extensions: *.log
+
+node_modules/
+dist/
+build/
+.git/
+.env
+*.lock

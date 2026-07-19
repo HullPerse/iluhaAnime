@@ -1,0 +1,206 @@
+@import "tailwindcss";
+
+@font-face {
+    font-family: "Perfect DOS VGA 437";
+    src: url("/fonts/perfect-dos-vga-437.woff2") format("woff2");
+}
+
+:root {
+    --font-family:
+        "MS Sans Serif", "Microsoft Sans Serif", "Segoe UI", system-ui;
+    --color-background: #222222;
+    --color-primary: #c0c0c0;
+    --color-secondary: #000080;
+    --color-text: #000000;
+    --color-muted: #808080;
+    --color-highlight: #0000ff;
+    --color-destructive: #800000;
+    --color-success: #008000;
+    --color-link-hover: #ff0000;
+    --color-surface: #d0d0d0;
+    --color-win-highlight: #ffffff;
+    --color-win-shadow: #808080;
+    --color-desktop: #018281;
+    --color-multi: #800080;
+    --color-dual: #808000;
+}
+
+@theme {
+    --color-background: var(--color-background);
+    --color-primary: var(--color-primary);
+    --color-secondary: var(--color-secondary);
+    --color-text: var(--color-text);
+    --color-muted: var(--color-muted);
+    --color-highlight: var(--color-highlight);
+    --color-destructive: var(--color-destructive);
+    --color-success: var(--color-success);
+    --color-link-hover: var(--color-link-hover);
+    --color-surface: var(--color-surface);
+    --color-win-highlight: var(--color-win-highlight);
+    --color-win-shadow: var(--color-win-shadow);
+    --color-desktop: var(--color-desktop);
+    --color-multi: var(--color-multi);
+    --color-dual: var(--color-dual);
+}
+
+@layer base {
+    * {
+        border-radius: 0 !important;
+        scroll-behavior: smooth;
+    }
+    body {
+        overflow: hidden;
+    }
+}
+
+.windows95-text {
+    font-size: 11px;
+    font-family: var(--font-family);
+}
+
+.windows95-font {
+    font-family: var(--font-family);
+}
+
+.windows95-border {
+    border: 2px solid;
+    border-top-color: var(--color-muted);
+    border-left-color: var(--color-muted);
+    border-bottom-color: #ffffff;
+    border-right-color: #ffffff;
+}
+
+.windows95-active-border {
+    border: 2px solid;
+    border-top-color: #ffffff;
+    border-left-color: #ffffff;
+    border-bottom-color: var(--color-muted);
+    border-right-color: var(--color-muted);
+}
+
+.windows95-select {
+    --tw-outline-style: none;
+    outline-style: none;
+    background-color: white;
+}
+
+.windows95-select:focus-visible {
+    outline-style: dotted;
+    outline-width: 1px;
+    outline-offset: -3px;
+    outline-color: var(--color-text);
+}
+
+*:focus-visible {
+    outline-style: dotted;
+    outline-width: 1px;
+    outline-offset: -3px;
+    outline-color: var(--color-text);
+}
+
+.windows95-small-border {
+    border: 1px solid;
+    border-top-color: var(--color-win-highlight);
+    border-left-color: var(--color-win-highlight);
+    border-bottom-color: var(--color-win-shadow);
+    border-right-color: var(--color-win-shadow);
+}
+
+.windows95-3d-border {
+    box-shadow:
+        inset 1px 1px 0 var(--color-win-highlight),
+        inset -1px -1px 0 var(--color-win-shadow),
+        1px 1px 0 var(--color-win-shadow);
+}
+
+.no-animations .animate-spin,
+.no-animations .animate-pulse {
+    animation: none;
+}
+
+:root:not(.native-scrollbar) ::-webkit-scrollbar {
+    width: 14px;
+    height: 16px;
+}
+
+:root:not(.native-scrollbar) ::-webkit-scrollbar-track {
+    background: white;
+    border: 1px solid white;
+}
+
+:root:not(.native-scrollbar) ::-webkit-scrollbar-thumb {
+    background: var(--color-primary);
+    border: 2px solid;
+    border-top-color: var(--color-win-highlight);
+    border-left-color: var(--color-win-highlight);
+    border-bottom-color: var(--color-win-shadow);
+    border-right-color: var(--color-win-shadow);
+}
+
+:root:not(.native-scrollbar) ::-webkit-scrollbar-button {
+    display: none;
+}
+
+:root:not(.native-scrollbar) ::-webkit-scrollbar-corner {
+    background: white;
+}
+
+@property --tw-translate-x {
+    syntax: "*";
+    inherits: false;
+    initial-value: 0;
+}
+@property --tw-translate-y {
+    syntax: "*";
+    inherits: false;
+    initial-value: 0;
+}
+@property --tw-translate-z {
+    syntax: "*";
+    inherits: false;
+    initial-value: 0;
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+}
+
+input[type="number"] {
+    -moz-appearance: textfield; /* Firefox */
+}
+
+.windows95-header {
+    border: none;
+    border-top: 1px solid var(--color-muted);
+    margin: 0.25rem 0;
+}
+
+select,
+::picker(select) {
+    cursor: pointer;
+}
+
+:root:not(.native-scrollbar) ::-webkit-resizer {
+    background-color: var(--color-primary);
+    border-top: 1px solid var(--color-win-highlight);
+    border-left: 1px solid var(--color-win-highlight);
+    border-right: 1px solid var(--color-win-shadow);
+    border-bottom: 1px solid var(--color-win-shadow);
+    box-shadow:
+        inset 1px 1px 0 var(--color-win-highlight),
+        inset -1px -1px 0 var(--color-win-shadow);
+    background-image: linear-gradient(
+        135deg,
+        transparent 0 22%,
+        var(--color-win-shadow) 22% 30%,
+        transparent 30% 38%,
+        var(--color-win-shadow) 38% 46%,
+        transparent 46% 54%,
+        var(--color-win-shadow) 54% 62%,
+        transparent 62% 100%
+    );
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 10px 10px;
+}

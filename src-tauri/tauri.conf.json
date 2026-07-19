@@ -1,0 +1,64 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "iluhaAnime",
+  "version": "2.1.0",
+  "identifier": "iluhaAnime",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "plugins": {
+    "updater": {
+      "windows": {
+        "installMode": "passive"
+      },
+      "active": true,
+      "dangerousInsecureTransportProtocol": true,
+      "endpoints": [
+        "https://github.com/HullPerse/iluhaAnime/releases/latest/download/latest.json"
+      ],
+      "dialog": false,
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IENGRkUyNDZGRUM5MDA4MDkKUldRSkNKRHNieVQrendkQXdiMXZQeWE5OHNwOEUxNXVBcWpGSXNjL3NWWlVKN080amlXYkpHZGYK"
+    }
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "iluhaAnime",
+        "minWidth": 860,
+        "width": 860,
+        "minHeight": 600,
+        "height": 600
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; img-src 'self' asset: http://asset.localhost https://s4.anilist.co data:; media-src 'self' asset: http://asset.localhost blob: data: file:",
+      "assetProtocol": {
+        "enable": true,
+        "scope": [
+          "**",
+          "$RESOURCE/**",
+          "$APPDATA/**",
+          "$APPLOCALDATA/**",
+          "$TEMP/**"
+        ]
+      }
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "msi",
+    "createUpdaterArtifacts": true,
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.ico"
+    ],
+    "resources": {
+      "resources/shaders/*.glsl": "shaders/"
+    }
+  }
+}

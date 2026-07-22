@@ -19,6 +19,57 @@ pub static FFMPEG_SEM: tokio::sync::Semaphore = tokio::sync::Semaphore::const_ne
 
 pub struct CancelFlag(pub Arc<AtomicBool>);
 
+pub struct ActiveChildren(pub Arc<Mutex<Vec<u32>>>);
+
+impl Clone for ActiveChildren {
+    fn clone(&self) -> Self {
+        Self(self.0.clone())
+    }
+}
+
+impl ActiveChildren {
+    pub fn new() -> Self {
+        Self(Arc::new(Mutex::new(Vec::new())))
+    }
+
+    pub fn register(&self, pid: u32) {
+        if let Ok(mut guard) = self.0.lock() {
+            guard.push(pid);
+        }
+    }
+
+    pub fn unregister(&self, pid: u32) {
+        if let Ok(mut guard) = self.0.lock() {
+            guard.retain(|&p| p != pid);
+        }
+    }
+
+    pub fn kill_all(&self) {
+        let pids = self.0.lock().map(|g| g.clone()).unwrap_or_default();
+        for pid in pids {
+            let _ = kill_pid(pid);
+        }
+    }
+}
+
+fn kill_pid(pid: u32) -> Result<(), String> {
+    #[cfg(windows)]
+    {
+        std::process::Command::new("taskkill")
+            .args(["/F", "/PID", &pid.to_string()])
+            .output()
+            .map_err(|e| format!("taskkill failed: {e}"))?;
+    }
+    #[cfg(unix)]
+    {
+        std::process::Command::new("kill")
+            .args(["-9", &pid.to_string()])
+            .output()
+            .map_err(|e| format!("kill failed: {e}"))?;
+    }
+    Ok(())
+}
+
 pub fn ffmpeg_bin_dir(app_handle: &tauri::AppHandle) -> std::path::PathBuf {
     let platform = if cfg!(target_os = "windows") {
         "windows"
@@ -371,6 +422,9 @@ pub async fn upscale_video(
             c.creation_flags(0x0800_0000);
             c.spawn().map_err(|e| format!("ffmpeg anime4k: {e}"))?
         };
+        let child_pid = child.id().ok_or("no child pid")?;
+        let children = app_handle.state::<ActiveChildren>();
+        children.register(child_pid);
         drop(permit_encode);
 
         let child_stdout = child.stdout.take().ok_or("no stdout")?;
@@ -386,6 +440,7 @@ pub async fn upscale_video(
             .map_err(|e| format!("read progress: {e}"))?
         {
             if cancel.load(Ordering::SeqCst) {
+                children.unregister(child_pid);
                 let _ = child.kill().await;
                 let _ = std::fs::remove_file(&output_path);
                 return Err("Операция отменена".to_string());
@@ -433,16 +488,20 @@ pub async fn upscale_video(
         };
 
         if cancel.load(Ordering::SeqCst) {
+            children.unregister(child_pid);
             let _ = std::fs::remove_file(&output_path);
             return Err("Операция отменена".to_string());
         }
 
         if !status.success() {
+            children.unregister(child_pid);
             let cmd_line = format!("ffmpeg {}", args.join(" "));
             return Err(format!(
                 "Anime4K encoding failed:\n{stderr}\n\nffmpeg command:\n{cmd_line}"
             ));
         }
+
+        children.unregister(child_pid);
 
         let _ = sender.send(100.0);
         let _ = app_handle.emit(
@@ -519,6 +578,9 @@ pub async fn upscale_video(
         cmd.creation_flags(0x0800_0000);
 
         let mut child = cmd.spawn().map_err(|e| format!("ffmpeg not found: {e}"))?;
+        let child_pid = child.id().ok_or("no child pid")?;
+        let children = app_for_ffmpeg.state::<ActiveChildren>();
+        children.register(child_pid);
 
         let total_at_start = duration;
         let _ = sender_for_task.send(0.0);
@@ -543,6 +605,7 @@ pub async fn upscale_video(
             .map_err(|e| format!("read ffmpeg output: {e}"))?
         {
             if cancel.load(Ordering::SeqCst) {
+                children.unregister(child_pid);
                 let _ = child.kill().await;
                 let _ = std::fs::remove_file(&out_for_ffmpeg);
                 return Err("Операция отменена".to_string());
@@ -595,8 +658,11 @@ pub async fn upscale_video(
         };
 
         if !status.success() {
+            children.unregister(child_pid);
             return Err(format!("ffmpeg завершился с ошибкой: {stderr}"));
         }
+
+        children.unregister(child_pid);
 
         let final_total = duration;
         let _ = sender_for_task.send(100.0);
@@ -725,6 +791,9 @@ pub async fn convert_video(
     cmd.creation_flags(0x0800_0000);
 
     let mut child = cmd.spawn().map_err(|e| format!("ffmpeg convert: {e}"))?;
+    let child_pid = child.id().ok_or("no child pid")?;
+    let children = app_handle.state::<ActiveChildren>();
+    children.register(child_pid);
 
     let stdout = child.stdout.take().ok_or("no stdout")?;
     let reader = tokio::io::BufReader::new(stdout);
@@ -737,6 +806,7 @@ pub async fn convert_video(
         .map_err(|e| format!("read progress: {e}"))?
     {
         if cancel.load(Ordering::SeqCst) {
+            children.unregister(child_pid);
             let _ = child.kill().await;
             let _ = std::fs::remove_file(&output_path);
             return Err("Операция отменена".to_string());
@@ -771,8 +841,11 @@ pub async fn convert_video(
         .map_err(|e| format!("wait ffmpeg: {e}"))?;
 
     if !status.success() {
+        children.unregister(child_pid);
         return Err("Конвертация не удалась".to_string());
     }
+
+    children.unregister(child_pid);
 
     let _ = app_handle.emit(
         "upscale-progress",

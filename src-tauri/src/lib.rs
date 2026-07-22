@@ -27,7 +27,7 @@ mod torrent;
 mod video;
 use file_index::FileEntry;
 use torrent::{FilePriority, TorrentFileInfo, TorrentInfo, TorrentInfoResult, TorrentManager};
-use video::CancelFlag;
+use video::{CancelFlag, ActiveChildren};
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 struct NotificationConfig {
@@ -451,6 +451,7 @@ pub fn run() {
             let handle = app.handle().clone();
             handle.manage(std::sync::Mutex::new(NotificationConfig::default()));
             handle.manage(CancelFlag(Arc::new(AtomicBool::new(false))));
+            handle.manage(ActiveChildren::new());
             handle.manage(progress::StreamRegistry::new());
             handle.manage(std::sync::Mutex::new(fswatcher::FolderWatcher::new()));
             handle.manage(file_index::FileIndexer::new());
@@ -641,5 +642,12 @@ pub fn run() {
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
-        .run(|_app_handle, _event| {});
+        .run(|app_handle, event| {
+            if let tauri::RunEvent::Exit = event {
+                let cancel = app_handle.state::<CancelFlag>();
+                cancel.0.store(true, std::sync::atomic::Ordering::SeqCst);
+                let children = app_handle.state::<ActiveChildren>();
+                children.kill_all();
+            }
+        });
 }

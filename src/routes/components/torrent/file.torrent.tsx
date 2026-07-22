@@ -301,21 +301,21 @@ function TorrentFilesSection({
 
               <span
                 className="truncate flex-1"
-                title={file.name}
+                title={file.displayName}
                 onContextMenu={(e) => {
                   e.preventDefault();
                   if (type === "player") openPath(String(path));
                 }}
                 onClick={() => {
                   if (type === "torrent") return;
-                  const parsed = parse(file.name);
+                  const parsed = parse(file.displayName);
                   if (!parsed) return;
                   setAnilistSearchQuery(String(parsed.title));
                 }}
               >
                 {type === "player" && parseTitles
-                  ? formatParsedTitle(file.name)
-                  : file.name}
+                  ? formatParsedTitle(file.displayName)
+                  : file.displayName}
               </span>
 
               {file.selected && !file.completed && file.size > 0 && (
@@ -368,7 +368,7 @@ function TorrentFilesSection({
                     <>
                       <Button
                         rendered={
-                          !!extraFiles?.find((e) => e.name === file.name)
+                          !!extraFiles?.find((e) => e.name === file.displayName)
                         }
                         title="Удалить"
                         size="icon"
@@ -376,7 +376,7 @@ function TorrentFilesSection({
                         onClick={(e) => {
                           e.stopPropagation();
                           const upscaledFile = extraFiles?.find(
-                            (e) => e.name === file.name,
+                            (e) => e.name === file.displayName,
                           );
 
                           if (!upscaledFile?.fullPath) return;
@@ -388,7 +388,7 @@ function TorrentFilesSection({
                           onDeleteExtraFile?.();
                         }}
                         disabled={
-                          !extraFiles?.find((e) => e.name === file.name)
+                          !extraFiles?.find((e) => e.name === file.displayName)
                         }
                       >
                         <ImageComponent

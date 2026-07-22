@@ -93,7 +93,7 @@ function TorrentFilePicker({
     setIsLoading(true);
     const subFolder = torrent.hasCommonFolder ? undefined : torrent.name;
     try {
-      onConfirm([...selected], saveDir, subFolder, sequential);
+      await onConfirm([...selected], saveDir, subFolder, sequential);
     } finally {
       setIsLoading(false);
     }

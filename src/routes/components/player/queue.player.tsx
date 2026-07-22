@@ -1,14 +1,24 @@
 import { useUpscaleQueueStore } from "@/store/upscale.store";
 import { Button } from "@/components/ui/button.component";
-import ProgressBar from "@/components/shared/progress.component";
-import { Trash2, X, RefreshCw, ListVideo, Loader, FileVideo } from "lucide-react";
+import {
+  Trash2,
+  X,
+  RefreshCw,
+  ListVideo,
+  Loader,
+  FileVideo,
+  Pause,
+  Play,
+} from "lucide-react";
 
 export default function QueuePanel() {
   const items = useUpscaleQueueStore((s) => s.items);
+  const paused = useUpscaleQueueStore((s) => s.paused);
   const removeItem = useUpscaleQueueStore((s) => s.removeItem);
   const clearDone = useUpscaleQueueStore((s) => s.clearDone);
   const clearAll = useUpscaleQueueStore((s) => s.clearAll);
   const restartItem = useUpscaleQueueStore((s) => s.restartItem);
+  const setPaused = useUpscaleQueueStore((s) => s.setPaused);
 
   if (items.length === 0) return null;
 
@@ -26,25 +36,63 @@ export default function QueuePanel() {
   };
 
   const activeCount = items.filter((i) => i.status !== "done").length;
-  const upscaleCount = items.filter((i) => i.jobType === "upscale" && i.status !== "done").length;
-  const convertCount = items.filter((i) => i.jobType === "convert" && i.status !== "done").length;
+  const hasProcessing = items.some((i) => i.status === "processing");
+  const upscaleCount = items.filter(
+    (i) => i.jobType === "upscale" && i.status !== "done",
+  ).length;
+  const convertCount = items.filter(
+    (i) => i.jobType === "convert" && i.status !== "done",
+  ).length;
 
   return (
     <section className="windows95-active-border bg-primary p-1">
       <div className="flex items-center gap-1 windows95-text text-xs font-bold mb-1">
         <ListVideo className="size-3" />
         Очередь ({activeCount})
-        {upscaleCount > 0 && <span className="text-muted font-normal">апскейл:{upscaleCount}</span>}
-        {convertCount > 0 && <span className="text-muted font-normal">конв:{convertCount}</span>}
+        {upscaleCount > 0 && (
+          <span className="text-muted font-normal">апскейл:{upscaleCount}</span>
+        )}
+        {convertCount > 0 && (
+          <span className="text-muted font-normal">конв:{convertCount}</span>
+        )}
         <div className="ml-auto flex gap-1">
-          <Button size="icon" className="h-4 w-4" onClick={clearDone} title="Удалить завершённые">
+          {hasProcessing && (
+            <Button
+              size="icon"
+              className="h-4 w-4"
+              onClick={() => setPaused(!paused)}
+              title={paused ? "Продолжить" : "Пауза"}
+            >
+              {paused ? (
+                <Play className="size-2.5" />
+              ) : (
+                <Pause className="size-2.5" />
+              )}
+            </Button>
+          )}
+          <Button
+            size="icon"
+            className="h-4 w-4"
+            onClick={clearDone}
+            title="Удалить завершённые"
+          >
             <Trash2 className="size-2.5" />
           </Button>
-          <Button size="icon" className="h-4 w-4" onClick={clearAll} title="Очистить очередь">
+          <Button
+            size="icon"
+            className="h-4 w-4"
+            onClick={clearAll}
+            title="Очистить очередь"
+          >
             <X className="size-2.5" />
           </Button>
         </div>
       </div>
+      {paused && (
+        <div className="windows95-text text-[10px] text-highlight mb-1">
+          Пауза
+        </div>
+      )}
       <div className="flex flex-col gap-0.5 max-h-40 overflow-y-auto">
         {items.map((item) => (
           <div
@@ -75,7 +123,9 @@ export default function QueuePanel() {
             )}
             {item.status === "error" && (
               <>
-                <span className="text-destructive truncate max-w-[100px]">{item.error}</span>
+                <span className="text-destructive truncate max-w-25">
+                  {item.error}
+                </span>
                 <Button
                   size="icon"
                   className="h-3 w-3"
@@ -87,8 +137,16 @@ export default function QueuePanel() {
               </>
             )}
             {item.status === "processing" && (
-              <div className="w-16">
-                <ProgressBar value={item.progress} max={100} />
+              <div className="flex items-center gap-1 min-w-0">
+                <div className="w-20 h-4 windows95-border bg-white">
+                  <div
+                    className="h-full bg-secondary"
+                    style={{ width: `${item.progress}%`, transition: "none" }}
+                  />
+                </div>
+                <span className="text-[10px] shrink-0 w-8 text-right">
+                  {item.progress}%
+                </span>
               </div>
             )}
             {item.status === "done" && (

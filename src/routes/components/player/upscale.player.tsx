@@ -1,8 +1,7 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/core";
-import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import { Wand2, Ban, Check, Loader } from "lucide-react";
+import { Wand2, Ban, Check, Loader, ListVideo } from "lucide-react";
 import Modal from "@/components/shared/modal.component";
 import ProgressBar from "@/components/shared/progress.component";
 import { Button } from "@/components/ui/button.component";
@@ -11,19 +10,11 @@ import Select from "@/components/ui/select.component";
 import Tabs from "@/components/shared/tabs.component";
 import FFMPEG from "./ffmpeg.player";
 import ShaderPicker from "./shader.player";
-import { buildOutputPath } from "@/lib/player.utils";
 import {
   useUpscaleQueueStore,
   type UpscaleConfig,
   type ConvertConfig,
 } from "@/store/upscale.store";
-
-type UpscaleProgressPayload = {
-  current: number;
-  total: number;
-  stage: string;
-  speed: number;
-};
 
 interface Props {
   filePath: string;
@@ -112,10 +103,6 @@ export default function UpscalePlayer({
   const [gpuBackend, setGpuBackend] = useState("cpu");
   const [availableGpu, setAvailableGpu] = useState<string[]>(["cpu"]);
   const [upscaler, setUpscaler] = useState("ffmpeg");
-  const [running, setRunning] = useState(false);
-  const [progress, setProgress] = useState<UpscaleProgressPayload | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState(false);
   const [ffmpegStatus, setFfmpegStatus] = useState<
     "checking" | "ok" | "missing" | "downloading"
   >("checking");
@@ -123,8 +110,12 @@ export default function UpscalePlayer({
   const [selectedShaders, setSelectedShaders] = useState<string[]>([]);
   const [targetFormat, setTargetFormat] = useState("mp4");
   const [copyStreams, setCopyStreams] = useState(true);
-  const unlistenRef = useRef<UnlistenFn | null>(null);
-  const outputPathRef = useRef("");
+  const [activeItemId, setActiveItemId] = useState<string | null>(null);
+  const [localError, setLocalError] = useState<string | null>(null);
+
+  const activeItem = useUpscaleQueueStore(
+    useCallback((s) => activeItemId ? s.items.find((i) => i.id === activeItemId) ?? null : null, [activeItemId]),
+  );
 
   const { data: upscaleConfig } = useQuery({
     queryKey: ["upscale_config"],
@@ -161,12 +152,6 @@ export default function UpscalePlayer({
   );
 
   useEffect(() => {
-    return () => {
-      unlistenRef.current?.();
-    };
-  }, []);
-
-  useEffect(() => {
     if (!upscaleConfig) return;
     setFfmpegStatus(upscaleConfig.ffmpegOk ? "ok" : "missing");
     setAvailableGpu(upscaleConfig.gpuEncoders);
@@ -183,27 +168,26 @@ export default function UpscalePlayer({
     }
   }, [upscaler, availableGpu]);
 
+  useEffect(() => {
+    if (activeItem?.status === "done") {
+      onDone?.(activeItem.outputPath);
+    }
+  }, [activeItem?.status, activeItem?.outputPath, onDone]);
+
   const resetState = useCallback(() => {
-    setRunning(false);
-    setProgress(null);
-    setError(null);
-    setDone(false);
+    setActiveItemId(null);
+    setLocalError(null);
   }, []);
 
-  const startUpscale = useCallback(async () => {
+  const startUpscale = useCallback(() => {
     const noop = resolution === "original" && !fpsValue;
     if (noop) {
-      setError("Выберите другое разрешение или FPS");
+      setLocalError("Выберите другое разрешение или FPS");
       return;
     }
 
-    setError(null);
-    setDone(false);
-    setRunning(true);
-    setProgress(null);
+    setLocalError(null);
 
-    const outputPath = buildOutputPath(filePath, "_upscaled");
-    outputPathRef.current = outputPath;
     const [w, h] =
       resolution === "original" ? [0, 0] : resolution.split("x").map(Number);
     const interpolate = fpsValue === "60i";
@@ -213,41 +197,20 @@ export default function UpscalePlayer({
         : fpsValue
           ? Number(fpsValue)
           : null;
-
-    const unlisten = await listen<UpscaleProgressPayload>(
-      "upscale-progress",
-      (e) => {
-        const p = e.payload;
-        setProgress(p);
-        if (p.stage === "done" || (p.current >= p.total && p.total > 0)) {
-          setDone(true);
-          setRunning(false);
-          unlistenRef.current = null;
-          unlisten();
-          onDone?.(outputPathRef.current);
-        }
-      },
-    );
-    unlistenRef.current = unlisten;
-
-    const aiUpscalerParam = upscaler !== "ffmpeg" ? upscaler : null;
-    try {
-      await invoke<{ path: string; progressId: number }>("upscale_video", {
-        inputPath: filePath,
-        outputPath,
-        width: w,
-        height: h,
-        targetFps: fps,
-        interpolate,
-        quality,
-        gpuBackend,
-        aiUpscaler: aiUpscalerParam,
-        selectedShaders: upscaler === "anime4k" ? selectedShaders : undefined,
-      });
-    } catch (e: unknown) {
-      setError(typeof e === "string" ? e : "Ошибка");
-      setRunning(false);
-    }
+    const config: UpscaleConfig = {
+      width: w,
+      height: h,
+      targetFps: fps,
+      interpolate,
+      quality,
+      gpuBackend,
+      aiUpscaler: upscaler !== "ffmpeg" ? upscaler : null,
+      selectedShaders: upscaler === "anime4k" ? selectedShaders : undefined,
+    };
+    const id = useUpscaleQueueStore
+      .getState()
+      .addUpscaleItem(filePath, fileNameFromPath(filePath), config);
+    setActiveItemId(id);
   }, [
     filePath,
     resolution,
@@ -258,49 +221,21 @@ export default function UpscalePlayer({
     selectedShaders,
   ]);
 
-  const startConvert = useCallback(async () => {
-    setError(null);
-    setDone(false);
-    setRunning(true);
-    setProgress(null);
+  const startConvert = useCallback(() => {
+    setLocalError(null);
 
-    const outputPath = buildOutputPath(filePath, "_converted");
-    outputPathRef.current = outputPath;
-
-    const unlisten = await listen<UpscaleProgressPayload>(
-      "upscale-progress",
-      (e) => {
-        const p = e.payload;
-        setProgress(p);
-        if (p.stage === "done" || (p.current >= p.total && p.total > 0)) {
-          setDone(true);
-          setRunning(false);
-          unlistenRef.current = null;
-          unlisten();
-          onDone?.(outputPathRef.current);
-        }
-      },
-    );
-    unlistenRef.current = unlisten;
-
-    try {
-      await invoke<{ path: string; progressId: number }>("convert_video", {
-        inputPath: filePath,
-        outputPath,
-        targetFormat,
-        copyStreams,
-      });
-    } catch (e: unknown) {
-      setError(typeof e === "string" ? e : "Ошибка при конвертации");
-      setRunning(false);
-    }
+    const config: ConvertConfig = {
+      targetFormat,
+      copyStreams,
+    };
+    const id = useUpscaleQueueStore
+      .getState()
+      .addConvertItem(filePath, fileNameFromPath(filePath), config);
+    setActiveItemId(id);
   }, [filePath, targetFormat, copyStreams]);
 
   const handleCancel = useCallback(async () => {
     await invoke("cancel_upscale");
-    setRunning(false);
-    unlistenRef.current?.();
-    unlistenRef.current = null;
   }, []);
 
   const handleAddToQueue = useCallback(() => {
@@ -353,19 +288,22 @@ export default function UpscalePlayer({
   ]);
 
   const handleClose = useCallback(() => {
-    if (running) return;
+    if (activeItem?.status === "processing") return;
     setOpen(false);
     resetState();
-  }, [running, resetState]);
+  }, [activeItem?.status, resetState]);
 
-  const showConfig = !running && !done && !error;
-  const showProgress = running || (progress && !done && !error);
-  const stage = progress?.stage;
-  const initializing = stage === "initializing" || (!progress && running);
-  const started = stage === "started";
+  const showConfig = !activeItemId;
+  const showProgress = activeItem && (activeItem.status === "queued" || activeItem.status === "processing");
+  const showDone = activeItem?.status === "done";
+  const showLocalError = localError && !activeItemId;
+  const showItemError = activeItem?.status === "error";
+  const stage = activeItem?.current != null && activeItem?.total != null && activeItem.total > 0
+    ? "encoding"
+    : activeItem?.status === "processing" ? "initializing" : null;
   const etaSecs =
-    progress && progress.speed > 0
-      ? (progress.total - progress.current) / progress.speed
+    activeItem && activeItem.speed && activeItem.speed > 0 && activeItem.current != null && activeItem.total != null
+      ? (activeItem.total - activeItem.current) / activeItem.speed
       : null;
 
   const gpuOptions = availableGpu.map((b) => ({
@@ -520,7 +458,14 @@ export default function UpscalePlayer({
 
           {showProgress && (
             <div className="flex flex-col gap-2 p-1 min-w-xl">
-              {(initializing || stage === "initializing") && (
+              {activeItem?.status === "queued" && (
+                <div className="flex flex-col items-center gap-2 py-4">
+                  <ListVideo className="size-5 text-muted" />
+                  <span className="windows95-text text-xs">В очереди...</span>
+                </div>
+              )}
+
+              {activeItem?.status === "processing" && stage === "initializing" && (
                 <div className="flex flex-col items-center gap-2 py-4">
                   <Loader className="size-5 animate-spin" />
                   <span className="windows95-text text-xs">
@@ -529,23 +474,14 @@ export default function UpscalePlayer({
                 </div>
               )}
 
-              {started && !initializing && (
-                <div className="flex flex-col items-center gap-2 py-4">
-                  <Loader className="size-5 animate-spin" />
-                  <span className="windows95-text text-xs">Запуск...</span>
-                </div>
-              )}
-
               {stage === "encoding" && (
                 <>
                   <ProgressBar
-                    value={progress?.current ?? 0}
-                    max={progress?.total ?? 1}
+                    value={activeItem?.current ?? 0}
+                    max={activeItem?.total ?? 1}
                   />
                   <span className="windows95-text text-xs text-center">
-                    {progress?.total
-                      ? `${Math.round((progress.current / progress.total) * 100)}%`
-                      : ""}
+                    {activeItem?.progress ?? 0}%
                   </span>
                   {etaSecs != null && (
                     <span className="windows95-text text-xs text-center text-muted">
@@ -564,16 +500,25 @@ export default function UpscalePlayer({
             </div>
           )}
 
-          {error && !running && (
+          {showLocalError && (
             <div className="flex flex-col gap-2 p-1 items-center">
               <span className="text-destructive windows95-text text-xs text-center">
-                {error}
+                {localError}
               </span>
               <Button onClick={handleClose}>Закрыть</Button>
             </div>
           )}
 
-          {done && !error && (
+          {showItemError && (
+            <div className="flex flex-col gap-2 p-1 items-center">
+              <span className="text-destructive windows95-text text-xs text-center">
+                {activeItem?.error ?? "Ошибка"}
+              </span>
+              <Button onClick={handleClose}>Закрыть</Button>
+            </div>
+          )}
+
+          {showDone && (
             <div className="flex flex-col gap-2 p-1 items-center">
               <Check className="size-6 text-success" />
               <span className="windows95-text text-xs">Готово!</span>

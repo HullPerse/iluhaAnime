@@ -335,6 +335,21 @@ impl TorrentManager {
             }
             AddTorrentResponse::ListOnly(_) => anyhow::bail!("torrent was not added"),
         };
+
+        if let Some(ref files) = only_files {
+            let set: HashSet<usize> = files.iter().copied().collect();
+            if let Some(handle) = self.session.with_torrents(|iter| {
+                for (tid, h) in iter {
+                    if tid == id {
+                        return Some(h.clone());
+                    }
+                }
+                None
+            }) {
+                let _ = self.session.update_only_files(&handle, &set).await;
+            }
+        }
+
         self.cleanup_unselected_files();
         if let Some(ref files) = only_files {
             self.pending_selections.insert(id, files.clone());

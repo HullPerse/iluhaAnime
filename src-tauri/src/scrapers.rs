@@ -59,37 +59,46 @@ struct NekoBtTorrentItem {
     leechers: String,
 }
 
+fn build_client_inner(
+    timeout_secs: u64,
+    no_redirect: bool,
+    user_agent: &str,
+) -> Result<reqwest::Client, String> {
+    let mut builder = reqwest::Client::builder()
+        .user_agent(user_agent)
+        .timeout(std::time::Duration::from_secs(timeout_secs));
+    if no_redirect {
+        builder = builder.redirect(reqwest::redirect::Policy::none());
+    }
+    builder.build().map_err(|e| format!("Client error: {e}"))
+}
+
 pub fn build_client() -> Result<reqwest::Client, String> {
-    reqwest::Client::builder()
-        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36")
-        .timeout(std::time::Duration::from_secs(30))
-        .build()
-        .map_err(|e| format!("Client error: {e}"))
+    build_client_inner(
+        30,
+        false,
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
+    )
 }
 
 pub fn build_nyaa_client() -> Result<reqwest::Client, String> {
-    reqwest::Client::builder()
-        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36")
-        .timeout(std::time::Duration::from_secs(90))
-        .build()
-        .map_err(|e| format!("Client error: {e}"))
+    build_client_inner(
+        90,
+        false,
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
+    )
 }
 
 pub fn build_no_redirect_client() -> Result<reqwest::Client, String> {
-    reqwest::Client::builder()
-        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36")
-        .timeout(std::time::Duration::from_secs(30))
-        .redirect(reqwest::redirect::Policy::none())
-        .build()
-        .map_err(|e| format!("Client error: {e}"))
+    build_client_inner(
+        30,
+        true,
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
+    )
 }
 
 pub fn build_nekobt_client() -> Result<reqwest::Client, String> {
-    reqwest::Client::builder()
-        .user_agent("iluhaAnime/1.0")
-        .timeout(std::time::Duration::from_secs(30))
-        .build()
-        .map_err(|e| format!("Client error: {e}"))
+    build_client_inner(30, false, "iluhaAnime/1.0")
 }
 
 pub fn format_file_size(bytes: f64) -> String {

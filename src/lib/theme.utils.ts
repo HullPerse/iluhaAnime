@@ -1,24 +1,13 @@
-function hexToRgb(hex: string): [number, number, number] {
-  const h = hex.replace("#", "");
-  return [
-    parseInt(h.substring(0, 2), 16),
-    parseInt(h.substring(2, 4), 16),
-    parseInt(h.substring(4, 6), 16),
-  ];
-}
-
-function rgbToHex(r: number, g: number, b: number): string {
-  return `#${Math.round(r).toString(16).padStart(2, "0")}${Math.round(g).toString(16).padStart(2, "0")}${Math.round(b).toString(16).padStart(2, "0")}`;
-}
+import { hexToRgb, rgbToHex } from "./color.utils";
 
 function luminance(hex: string): number {
-  const [r, g, b] = hexToRgb(hex);
-  return 0.299 * r + 0.587 * g + 0.114 * b;
+  const rgb = hexToRgb(hex)!;
+  return 0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2];
 }
 
 function mix(c1: string, c2: string, t: number): string {
-  const [r1, g1, b1] = hexToRgb(c1);
-  const [r2, g2, b2] = hexToRgb(c2);
+  const [r1, g1, b1] = hexToRgb(c1)!;
+  const [r2, g2, b2] = hexToRgb(c2)!;
   return rgbToHex(r1 * t + r2 * (1 - t), g1 * t + g2 * (1 - t), b1 * t + b2 * (1 - t));
 }
 

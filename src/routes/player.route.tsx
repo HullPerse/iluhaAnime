@@ -420,6 +420,8 @@ function PlayerRoute() {
 
         {loading && <FolderScanProgress scanProgress={scanProgress} />}
 
+        <QueuePanel />
+
         {categories.length > 0 && (
           <section className="flex flex-col w-full windows95-text gap-2">
             {categories
@@ -451,8 +453,6 @@ function PlayerRoute() {
             ))}
           </section>
         )}
-
-        <QueuePanel />
 
         {!loading &&
           filteredTorrents.map((item) => (

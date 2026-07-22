@@ -108,9 +108,7 @@ export default function QueuePanel() {
               <Loader className="size-3 animate-spin text-highlight" />
             )}
             <span className="truncate flex-1">{item.name}</span>
-            <span className="text-muted shrink-0 mr-1">
-              {item.jobType === "convert" ? "конв" : "апс"}
-            </span>
+
             {item.status === "queued" && (
               <Button
                 size="icon"

@@ -447,7 +447,9 @@ pub fn build_shader_chain(selected: &[String]) -> Result<Vec<String>, String> {
         if let Some(meta) = find_meta(id) {
             if let Some(group) = meta.exclusive_group {
                 if !groups.insert(group) {
-
+                    return Err(format!(
+                        "Нельзя выбрать больше одного шейдера из группы \"{group}\""
+                    ));
                 }
             }
         }

@@ -525,34 +525,30 @@ impl TorrentManager {
     }
 
     pub async fn pause_torrent(self: &Arc<Self>, id: usize) -> Result<()> {
-        self.session.with_torrents(|iter| {
+        if let Some(handle) = self.session.with_torrents(|iter| {
             for (tid, handle) in iter {
                 if tid == id {
-                    let h = handle.clone();
-                    let session = self.session.clone();
-                    tokio::spawn(async move {
-                        let _ = session.pause(&h).await;
-                    });
-                    return;
+                    return Some(handle.clone());
                 }
             }
-        });
+            None
+        }) {
+            self.session.pause(&handle).await?;
+        }
         Ok(())
     }
 
     pub async fn resume_torrent(self: &Arc<Self>, id: usize) -> Result<()> {
-        self.session.with_torrents(|iter| {
+        if let Some(handle) = self.session.with_torrents(|iter| {
             for (tid, handle) in iter {
                 if tid == id {
-                    let h = handle.clone();
-                    let session = self.session.clone();
-                    tokio::spawn(async move {
-                        let _ = session.unpause(&h).await;
-                    });
-                    return;
+                    return Some(handle.clone());
                 }
             }
-        });
+            None
+        }) {
+            self.session.unpause(&handle).await?;
+        }
         Ok(())
     }
 
@@ -575,7 +571,6 @@ impl TorrentManager {
             read_only: false,
             basic_auth: None,
             allow_create: true,
-            prometheus_handle: None,
         };
         let http_api = HttpApi::new(api, Some(http_opts));
         let addr: std::net::SocketAddr = ([127, 0, 0, 1], 11200).into();

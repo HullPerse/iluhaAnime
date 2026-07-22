@@ -722,10 +722,7 @@ pub async fn convert_video(
     target_format: String,
     copy_streams: bool,
     cancel_flag: tauri::State<'_, CancelFlag>,
-    registry: tauri::State<'_, crate::progress::StreamRegistry>,
 ) -> Result<(String, u64), String> {
-    let (_progress_id, _sender) = registry.create();
-
     cancel_flag.0.store(false, Ordering::SeqCst);
     let cancel = cancel_flag.0.clone();
 

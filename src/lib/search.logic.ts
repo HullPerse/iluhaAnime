@@ -32,9 +32,6 @@ export function sortAnimeResults(
       case "size":
         cmp = parseSize(a.size) - parseSize(b.size);
         break;
-      case "date":
-        cmp = a.seeders - b.seeders;
-        break;
       default:
         return 0;
     }

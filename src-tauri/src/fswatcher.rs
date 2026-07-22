@@ -2,7 +2,7 @@ use notify::{Config, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use std::collections::HashSet;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::time::Duration;
 use tauri::{AppHandle, Emitter};
 use tokio::sync::mpsc;
@@ -66,19 +66,17 @@ impl FolderWatcher {
 
         let cancel_deb = cancel;
         let paths_clone = paths.clone();
-        let dirty_set: Arc<Mutex<HashSet<PathBuf>>> = Arc::new(Mutex::new(HashSet::new()));
+        let dirty_set: Arc<tokio::sync::Mutex<HashSet<PathBuf>>> = Arc::new(tokio::sync::Mutex::new(HashSet::new()));
         let set_clone = dirty_set;
         tokio::spawn(async move {
             loop {
                 tokio::select! {
                     Some(path) = dirty_rx.recv() => {
-                        if let Ok(mut set) = set_clone.lock() {
-                            set.insert(path);
-                        }
+                        set_clone.lock().await.insert(path);
                     }
                     () = tokio::time::sleep(Duration::from_secs(2)) => {
                         let changed: Vec<String> = {
-                            let Ok(mut set) = set_clone.lock() else { continue };
+                            let mut set = set_clone.lock().await;
                             if set.is_empty() { continue; }
                             set.drain()
                                 .filter_map(|p| {

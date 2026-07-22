@@ -1,5 +1,5 @@
 export type LanguageTag = { code: string; label: string };
-export type SortKey = "seeders" | "leechers" | "size" | "date";
+export type SortKey = "seeders" | "leechers" | "size";
 export type SortDirection = "asc" | "desc";
 
 export type SettingsScraper = {

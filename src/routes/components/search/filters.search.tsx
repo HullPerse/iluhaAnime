@@ -33,7 +33,7 @@ export default function SearchFiltersBar({
             { value: "seeders", label: "Сидеры" },
             { value: "leechers", label: "Личи" },
             { value: "size", label: "Размер" },
-            { value: "date", label: "Дата" },
+
           ]}
         />
         <Button

@@ -222,10 +222,17 @@ async fn scan_video_folder(
 #[tauri::command]
 async fn delete_extra_file(path: String) -> Result<(), String> {
     tokio::task::spawn_blocking(move || {
-        if !path.contains("_upscaled") && !path.contains("_converted") {
+        let p = std::path::Path::new(&path);
+        let file_name = p
+            .file_name()
+            .ok_or_else(|| "invalid path".to_string())?
+            .to_string_lossy()
+            .to_string();
+        if !file_name.contains("_upscaled") && !file_name.contains("_converted") {
             return Err("not an extra file".to_string());
         }
-        std::fs::remove_file(&path).map_err(|e| format!("{e:#}"))
+        let canonical = std::fs::canonicalize(&path).map_err(|e| format!("{e}"))?;
+        std::fs::remove_file(&canonical).map_err(|e| format!("{e:#}"))
     })
     .await
     .map_err(|e| format!("delete task failed: {e}"))?

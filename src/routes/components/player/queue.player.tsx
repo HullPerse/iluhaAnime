@@ -56,7 +56,7 @@ export default function QueuePanel() {
           <span className="text-muted font-normal">конв:{convertCount}</span>
         )}
         <div className="ml-auto flex gap-1">
-          {hasProcessing && (
+          {(activeCount > 0 || hasProcessing) && (
             <Button
               size="icon"
               className="h-4 w-4"
@@ -134,7 +134,7 @@ export default function QueuePanel() {
                 </Button>
               </>
             )}
-            {item.status === "processing" && (
+            {item.status === "processing" && item.current !== undefined && (
               <div className="flex items-center gap-1 min-w-0">
                 <div className="w-20 h-4 windows95-border bg-white">
                   <div

@@ -113,8 +113,16 @@ export default function UpscalePlayer({
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
   const [localError, setLocalError] = useState<string | null>(null);
 
-  const activeItem = useUpscaleQueueStore(
-    useCallback((s) => activeItemId ? s.items.find((i) => i.id === activeItemId) ?? null : null, [activeItemId]),
+  const activeItem = useUpscaleQueueStore((s) =>
+    activeItemId ? (s.items.find((i) => i.id === activeItemId) ?? null) : null,
+  );
+
+  const isInQueue = useUpscaleQueueStore((s) =>
+    s.items.some(
+      (i) =>
+        i.filePath === filePath &&
+        (i.status === "queued" || i.status === "processing"),
+    ),
   );
 
   const { data: upscaleConfig } = useQuery({
@@ -294,15 +302,26 @@ export default function UpscalePlayer({
   }, [activeItem?.status, resetState]);
 
   const showConfig = !activeItemId;
-  const showProgress = activeItem && (activeItem.status === "queued" || activeItem.status === "processing");
+  const showProgress =
+    activeItem &&
+    (activeItem.status === "queued" || activeItem.status === "processing");
   const showDone = activeItem?.status === "done";
   const showLocalError = localError && !activeItemId;
   const showItemError = activeItem?.status === "error";
-  const stage = activeItem?.current != null && activeItem?.total != null && activeItem.total > 0
-    ? "encoding"
-    : activeItem?.status === "processing" ? "initializing" : null;
+  const stage =
+    activeItem?.current != null &&
+    activeItem?.total != null &&
+    activeItem.total > 0
+      ? "encoding"
+      : activeItem?.status === "processing"
+        ? "initializing"
+        : null;
   const etaSecs =
-    activeItem && activeItem.speed && activeItem.speed > 0 && activeItem.current != null && activeItem.total != null
+    activeItem &&
+    activeItem.speed &&
+    activeItem.speed > 0 &&
+    activeItem.current != null &&
+    activeItem.total != null
       ? (activeItem.total - activeItem.current) / activeItem.speed
       : null;
 
@@ -320,8 +339,8 @@ export default function UpscalePlayer({
           e.stopPropagation();
           setOpen(true);
         }}
-        title="Улучшить качество (апскейл)"
-        disabled={!exists}
+        title={isInQueue ? "Уже в очереди" : "Улучшить качество (апскейл)"}
+        disabled={!exists || isInQueue}
       >
         <Wand2 className="size-3" />
       </Button>
@@ -465,14 +484,15 @@ export default function UpscalePlayer({
                 </div>
               )}
 
-              {activeItem?.status === "processing" && stage === "initializing" && (
-                <div className="flex flex-col items-center gap-2 py-4">
-                  <Loader className="size-5 animate-spin" />
-                  <span className="windows95-text text-xs">
-                    Инициализация...
-                  </span>
-                </div>
-              )}
+              {activeItem?.status === "processing" &&
+                stage === "initializing" && (
+                  <div className="flex flex-col items-center gap-2 py-4">
+                    <Loader className="size-5 animate-spin" />
+                    <span className="windows95-text text-xs">
+                      Инициализация...
+                    </span>
+                  </div>
+                )}
 
               {stage === "encoding" && (
                 <>

@@ -70,6 +70,10 @@ function PlayerRoute() {
   const debouncedSearch = useDebounce(search.trim(), 300);
 
   useEffect(() => {
+    invoke("cancel_upscale").catch(() => {});
+  }, []);
+
+  useEffect(() => {
     if (!debouncedSearch) {
       setSearchResults([]);
       return;

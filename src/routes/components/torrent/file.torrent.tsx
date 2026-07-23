@@ -4,7 +4,14 @@ import type { TorrentFileInfo, FilePriority } from "@/types/torrent";
 import { useRef, useState, useCallback, useMemo } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { invoke } from "@tauri-apps/api/core";
-import { ChevronDown, ChevronRight, Monitor, RefreshCw } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  Loader,
+  ListVideo,
+  Monitor,
+  RefreshCw,
+} from "lucide-react";
 import ImageComponent from "@/components/ui/image.component";
 import { openFileInPlayer } from "@/lib/media.utils";
 import { Button } from "@/components/ui/button.component";
@@ -12,6 +19,7 @@ import { Checkbox } from "@/components/ui/checkbox.component";
 import Select from "@/components/ui/select.component";
 import { useSettingsStore } from "@/store/settings.store";
 import UpscalePlayer from "@/routes/components/player/upscale.player";
+import { useUpscaleQueueStore } from "@/store/upscale.store";
 import { parse } from "anitomy";
 import { formatParsedTitle } from "@/lib/player.utils";
 import { useSearchStore } from "@/store/search.store";
@@ -97,6 +105,16 @@ function TorrentFilesSection({
   const showTrackFiles = useSettingsStore((s) => s.showTrackFiles);
   const audioExtensions = useSettingsStore((s) => s.audioExtensions);
   const subtitleExtensions = useSettingsStore((s) => s.subtitleExtensions);
+
+  const items = useUpscaleQueueStore((s) => s.items);
+
+  const queueMap = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const item of items) {
+      m.set(item.filePath, item.status);
+    }
+    return m;
+  }, [items]);
 
   const [selected, setSelected] = useState<Set<number>>(
     () =>
@@ -398,6 +416,20 @@ function TorrentFilesSection({
                         />
                       </Button>
 
+                      {(() => {
+                        const status = queueMap.get(
+                          (file as TorrentTreeFileWithPath)._fullPath,
+                        );
+                        if (!status) return null;
+                        if (status === "queued")
+                          return <ListVideo className="size-3 text-muted" />;
+                        if (status === "processing")
+                          return (
+                            <Loader className="size-3 animate-spin text-highlight" />
+                          );
+                        return null;
+                      })()}
+
                       <UpscalePlayer
                         filePath={(file as TorrentTreeFileWithPath)._fullPath}
                         onDone={onUpscaleDone}
@@ -420,6 +452,19 @@ function TorrentFilesSection({
                     </>
                   ) : (
                     <>
+                      {(() => {
+                        if (!path) return null;
+                        const status = queueMap.get(`${path}/${file.name}`);
+                        if (!status) return null;
+                        if (status === "queued")
+                          return <ListVideo className="size-3 text-muted" />;
+                        if (status === "processing")
+                          return (
+                            <Loader className="size-3 animate-spin text-highlight" />
+                          );
+                        return null;
+                      })()}
+
                       {path && (
                         <UpscalePlayer
                           filePath={`${path}/${file.name}`}

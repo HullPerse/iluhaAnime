@@ -55,10 +55,94 @@ const UPSCALER_OPTIONS = [
   { label: "Anime4K (GPU шейдеры)", value: "anime4k" },
 ];
 
-const ANIME4K_PRESETS = [
-  { label: "Быстрый GPU", value: "fast-gpu" },
-  { label: "Баланс", value: "balanced" },
-  { label: "Максимальное качество", value: "quality" },
+const ANIME4K_PRESETS: {
+  label: string;
+  value: string;
+  shaders: string[];
+  quality: string;
+  gpuBackend: string;
+}[] = [
+  {
+    label: "⚡ Молниеносный",
+    value: "lightning",
+    shaders: ["clamp", "upscale_cnn_x2_s"],
+    quality: "ultrafast",
+    gpuBackend: "gpu",
+  },
+  {
+    label: "🚀 Быстрый",
+    value: "fast",
+    shaders: ["clamp", "restore_cnn_ul", "upscale_cnn_x2_ul"],
+    quality: "fast",
+    gpuBackend: "gpu",
+  },
+  {
+    label: "⚖️ Сбалансированный",
+    value: "balanced",
+    shaders: ["clamp", "restore_cnn_l", "upscale_cnn_x2_l", "thin_fast"],
+    quality: "slow",
+    gpuBackend: "cpu",
+  },
+  {
+    label: "✨ Качественный",
+    value: "quality",
+    shaders: [
+      "clamp",
+      "denoise_bilateral_mean",
+      "restore_cnn_soft_vl",
+      "upscale_denoise_cnn_x2_vl",
+      "thin_hq",
+    ],
+    quality: "slow",
+    gpuBackend: "cpu",
+  },
+  {
+    label: "👑 Максимальный",
+    value: "maximum",
+    shaders: [
+      "clamp",
+      "denoise_bilateral_median",
+      "deblur_dog",
+      "restore_cnn_soft_vl",
+      "upscale_denoise_cnn_x2_vl",
+      "thin_hq",
+      "darken_hq",
+    ],
+    quality: "veryslow",
+    gpuBackend: "cpu",
+  },
+  {
+    label: "🌫 С шумоподавлением",
+    value: "denoise",
+    shaders: [
+      "clamp",
+      "denoise_bilateral_median",
+      "restore_cnn_ul",
+      "upscale_denoise_cnn_x2_ul",
+    ],
+    quality: "slow",
+    gpuBackend: "cpu",
+  },
+  {
+    label: "🖼 Для чистого аниме",
+    value: "clean",
+    shaders: ["clamp", "restore_cnn_m", "upscale_cnn_x2_m", "thin_fast"],
+    quality: "fast",
+    gpuBackend: "cpu",
+  },
+  {
+    label: "📀 Ретро (DVD)",
+    value: "retro",
+    shaders: [
+      "clamp",
+      "denoise_bilateral_mean",
+      "deblur_dog",
+      "restore_cnn_soft_vl",
+      "upscale_denoise_cnn_x2_vl",
+    ],
+    quality: "slow",
+    gpuBackend: "cpu",
+  },
 ];
 
 const FORMAT_OPTIONS = [
@@ -106,7 +190,7 @@ export default function UpscalePlayer({
   const [ffmpegStatus, setFfmpegStatus] = useState<
     "checking" | "ok" | "missing" | "downloading"
   >("checking");
-  const [anime4kPreset, setAnime4kPreset] = useState("fast-gpu");
+  const [anime4kPreset, setAnime4kPreset] = useState("lightning");
   const [selectedShaders, setSelectedShaders] = useState<string[]>([]);
   const [targetFormat, setTargetFormat] = useState("mp4");
   const [copyStreams, setCopyStreams] = useState(true);
@@ -141,18 +225,17 @@ export default function UpscalePlayer({
 
   const handlePresetChange = useCallback(
     (preset: string) => {
+      const data = ANIME4K_PRESETS.find((p) => p.value === preset);
+      if (!data) return;
       setAnime4kPreset(preset);
-      if (preset === "fast-gpu") {
-        setQuality("fast");
+      setQuality(data.quality);
+      setSelectedShaders(data.shaders);
+      if (data.gpuBackend === "gpu") {
         setGpuBackend((prev) => {
           if (prev !== "cpu") return prev;
           return availableGpu.find((b) => b !== "cpu") || "cpu";
         });
-      } else if (preset === "balanced") {
-        setQuality("slow");
-        setGpuBackend("cpu");
       } else {
-        setQuality("veryslow");
         setGpuBackend("cpu");
       }
     },

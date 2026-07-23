@@ -3,11 +3,19 @@ import { fmtSize } from "@/lib/torrent.utils";
 import { openFileInPlayer } from "@/lib/media.utils";
 import type { FolderNode } from "@/types/index";
 import { useSettingsStore } from "@/store/settings.store";
-import { ChevronDown, ChevronRight, Monitor, X } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  Loader,
+  ListVideo,
+  Monitor,
+  X,
+} from "lucide-react";
 import ImageComponent from "@/components/ui/image.component";
 import { useState, useRef, useMemo, useCallback } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import UpscalePlayer from "./upscale.player";
+import { useUpscaleQueueStore } from "@/store/upscale.store";
 import { parse } from "anitomy";
 import { formatParsedTitle, flattenTree } from "@/lib/player.utils";
 import { useSearchStore } from "@/store/search.store";
@@ -39,6 +47,16 @@ function FolderView({
     (state) => state.setAnilistSearchQuery,
   );
   const parseTitles = useSettingsStore((state) => state.parseTitles);
+
+  const items = useUpscaleQueueStore((s) => s.items);
+
+  const queueMap = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const item of items) {
+      m.set(item.filePath, item.status);
+    }
+    return m;
+  }, [items]);
 
   const trackExts = useMemo(
     () =>
@@ -242,6 +260,22 @@ function FolderView({
                   <span className="windows95-text text-muted">
                     {fmtSize(file.size)}
                   </span>
+
+                  {(() => {
+                    const status = file.path
+                      ? queueMap.get(file.path)
+                      : undefined;
+                    if (!status) return null;
+                    if (status === "queued")
+                      return (
+                        <ListVideo className="size-3 text-muted shrink-0" />
+                      );
+                    if (status === "processing")
+                      return (
+                        <Loader className="size-3 animate-spin text-highlight shrink-0" />
+                      );
+                    return null;
+                  })()}
 
                   {!disabled && file.path && (
                     <UpscalePlayer filePath={file.path} />

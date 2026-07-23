@@ -1,8 +1,9 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { buildOutputPath } from "@/lib/player.utils";
+
+let processingLock = false;
 
 type QueueItemStatus = "queued" | "processing" | "done" | "error";
 type JobType = "upscale" | "convert";
@@ -50,8 +51,16 @@ export interface UpscaleQueueStore {
   processing: boolean;
   paused: boolean;
   setPaused: (paused: boolean) => void;
-  addUpscaleItem: (filePath: string, name: string, config: UpscaleConfig) => string;
-  addConvertItem: (filePath: string, name: string, config: ConvertConfig) => string;
+  addUpscaleItem: (
+    filePath: string,
+    name: string,
+    config: UpscaleConfig,
+  ) => string;
+  addConvertItem: (
+    filePath: string,
+    name: string,
+    config: ConvertConfig,
+  ) => string;
   removeItem: (id: string) => void;
   clearDone: () => void;
   clearAll: () => void;
@@ -65,14 +74,16 @@ function genId() {
 }
 
 export const useUpscaleQueueStore = create<UpscaleQueueStore>()(
-  persist(
-    (set, get) => ({
+  (set, get) => ({
       items: [],
       processing: false,
       paused: false,
 
       setPaused: (paused) => {
         set({ paused });
+        if (!paused && !get().processing) {
+          get().processNext();
+        }
       },
 
       addUpscaleItem: (filePath, name, config) => {
@@ -116,7 +127,12 @@ export const useUpscaleQueueStore = create<UpscaleQueueStore>()(
       },
 
       removeItem: (id) => {
+        const item = get().items.find((i) => i.id === id);
         set((s) => ({ items: s.items.filter((i) => i.id !== id) }));
+        if (item?.status === "processing") {
+          invoke("cancel_upscale").catch(() => {});
+          set({ processing: false });
+        }
       },
 
       clearDone: () => {
@@ -124,13 +140,23 @@ export const useUpscaleQueueStore = create<UpscaleQueueStore>()(
       },
 
       clearAll: () => {
+        if (get().processing) {
+          invoke("cancel_upscale");
+        }
         set({ items: [] });
       },
 
       restartItem: (id) => {
         set((s) => ({
           items: s.items.map((i) =>
-            i.id === id ? { ...i, status: "queued" as const, progress: 0, error: undefined } : i,
+            i.id === id
+              ? {
+                  ...i,
+                  status: "queued" as const,
+                  progress: 0,
+                  error: undefined,
+                }
+              : i,
           ),
         }));
         const { processing, paused } = get();
@@ -141,15 +167,29 @@ export const useUpscaleQueueStore = create<UpscaleQueueStore>()(
 
       processNext: async () => {
         const { items, processing, paused } = get();
-        if (processing || paused) return;
+        if (processingLock || processing || paused) return;
+        if (items.some((i) => i.status === "processing")) return;
 
+        processingLock = true;
         const next = items.find((i) => i.status === "queued");
-        if (!next) return;
+        if (!next) {
+          // No queued items — unlock immediately, otherwise processing never restarts
+          processingLock = false;
+          return;
+        }
 
         set((s) => ({
           processing: true,
           items: s.items.map((i) =>
-            i.id === next.id ? { ...i, status: "processing" as const } : i,
+            i.id === next.id
+              ? {
+                  ...i,
+                  status: "processing" as const,
+                  current: undefined,
+                  total: undefined,
+                  speed: undefined,
+                }
+              : i,
           ),
         }));
 
@@ -164,13 +204,17 @@ export const useUpscaleQueueStore = create<UpscaleQueueStore>()(
                   i.id === next.id
                     ? {
                         ...i,
-                        progress: p.total > 0
-                          ? Math.round((p.current / p.total) * 100)
-                          : 0,
+                        progress:
+                          p.total > 0
+                            ? Math.round((p.current / p.total) * 100)
+                            : 0,
                         current: p.current,
                         total: p.total,
                         speed: p.speed,
-                        status: p.stage === "done" ? ("done" as const) : ("processing" as const),
+                        status:
+                          p.stage === "done"
+                            ? ("done" as const)
+                            : ("processing" as const),
                       }
                     : i,
                 ),
@@ -217,22 +261,9 @@ export const useUpscaleQueueStore = create<UpscaleQueueStore>()(
         } finally {
           unlisten?.();
           set({ processing: false });
+          processingLock = false;
           get().processNext();
         }
       },
     }),
-    {
-      name: "upscale-queue",
-      partialize: (state) => ({ items: state.items }),
-      merge: (persisted, current) => {
-        const items = (persisted as { items?: UpscaleQueueItem[] })?.items ?? [];
-        return {
-          ...current,
-          items: items.map((i) =>
-            i.status === "processing" ? { ...i, status: "queued" as const } : i,
-          ),
-        };
-      },
-    },
-  ),
-);
+  );

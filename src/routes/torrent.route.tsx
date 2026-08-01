@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button.component";
 import { fmtSpeed } from "@/lib/torrent.utils";
 import { useTorrentStore } from "@/store/download.store";
 import { useSettingsStore } from "@/store/settings.store";
+import { useNotificationStore } from "@/store/notification.store";
 import { listen } from "@tauri-apps/api/event";
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
@@ -34,6 +35,7 @@ function TorrentRoute() {
     setSequentialDownload,
     setSeedPreference,
     redownloadFile,
+    recheckTorrent,
   } = useTorrentStore((state) => state);
 
   const [dlInput, setDlInput] = useState(
@@ -275,6 +277,32 @@ function TorrentRoute() {
                prepareTorrentDownload(magnet);
              }}
              onRedownload={(fileIndex) => redownloadFile(item.id, fileIndex, item.info_hash)}
+             onRecheck={async () => {
+               const result = await recheckTorrent(item.id);
+               if (!result) return;
+               const add = useNotificationStore.getState().add;
+               if (
+                 result.missing.length === 0 &&
+                 result.size_mismatch.length === 0
+               ) {
+                 add(
+                   "Проверка торрента",
+                   "success",
+                   `Все ${result.ok}/${result.total} файлов на месте`,
+                 );
+               } else {
+                 const parts: string[] = [];
+                 if (result.missing.length)
+                   parts.push(`отсутствуют: ${result.missing.length}`);
+                 if (result.size_mismatch.length)
+                   parts.push(`размер не совпадает: ${result.size_mismatch.length}`);
+                 add(
+                   "Проверка торрента",
+                   "error",
+                   `${parts.join("; ")} (ок: ${result.ok}/${result.total})`,
+                 );
+               }
+             }}
            />
         );
       })}

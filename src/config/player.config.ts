@@ -78,3 +78,141 @@ export const playerIcons = [
   "update_icon.ico",
   "user_avatar.ico",
 ];
+
+export const GPU_LABELS: Record<string, string> = {
+  cpu: "CPU (x264)",
+  nvenc: "NVIDIA NVENC",
+  amf: "AMD AMF",
+  qsv: "Intel QSV",
+};
+
+export const RESOLUTIONS = [
+  { label: "Оригинальное", value: "original" },
+  { label: "1920\u00d71080 (1080p)", value: "1920x1080" },
+  { label: "2560\u00d71440 (2K)", value: "2560x1440" },
+  { label: "3840\u00d72160 (4K)", value: "3840x2160" },
+];
+
+export const FPS_OPTIONS = [
+  { label: "Оригинальный", value: "" },
+  { label: "30", value: "30" },
+  { label: "60 (дублирование)", value: "60" },
+  { label: "60 (интерполяция)", value: "60i" },
+];
+
+export const QUALITY_OPTIONS = [
+  { label: "Самый быстрый", value: "ultrafast" },
+  { label: "Быстрый", value: "fast" },
+  { label: "Медленный", value: "slow" },
+  { label: "Самый медленный", value: "veryslow" },
+];
+
+export const UPSCALER_OPTIONS = [
+  { label: "Lanczos (ffmpeg)", value: "ffmpeg" },
+  { label: "Anime4K (GPU шейдеры)", value: "anime4k" },
+];
+
+export const ANIME4K_PRESETS: {
+  label: string;
+  value: string;
+  shaders: string[];
+  quality: string;
+  gpuBackend: string;
+}[] = [
+  {
+    label: "Самый быстрый",
+    value: "lightning",
+    shaders: ["clamp", "upscale_cnn_x2_s"],
+    quality: "ultrafast",
+    gpuBackend: "gpu",
+  },
+  {
+    label: "Быстрый",
+    value: "fast",
+    shaders: ["clamp", "restore_cnn_ul", "upscale_cnn_x2_ul"],
+    quality: "fast",
+    gpuBackend: "gpu",
+  },
+  {
+    label: "Сбалансированный",
+    value: "balanced",
+    shaders: ["clamp", "restore_cnn_l", "upscale_cnn_x2_l", "thin_fast"],
+    quality: "slow",
+    gpuBackend: "cpu",
+  },
+  {
+    label: "Качественный",
+    value: "quality",
+    shaders: [
+      "clamp",
+      "denoise_bilateral_mean",
+      "restore_cnn_soft_vl",
+      "upscale_denoise_cnn_x2_vl",
+      "thin_hq",
+    ],
+    quality: "slow",
+    gpuBackend: "cpu",
+  },
+  {
+    label: "Максимальный",
+    value: "maximum",
+    shaders: [
+      "clamp",
+      "denoise_bilateral_median",
+      "deblur_dog",
+      "restore_cnn_soft_vl",
+      "upscale_denoise_cnn_x2_vl",
+      "thin_hq",
+      "darken_hq",
+    ],
+    quality: "veryslow",
+    gpuBackend: "cpu",
+  },
+  {
+    label: "С шумоподавлением",
+    value: "denoise",
+    shaders: [
+      "clamp",
+      "denoise_bilateral_median",
+      "restore_cnn_ul",
+      "upscale_denoise_cnn_x2_ul",
+    ],
+    quality: "slow",
+    gpuBackend: "cpu",
+  },
+  {
+    label: "Для чистого аниме",
+    value: "clean",
+    shaders: ["clamp", "restore_cnn_m", "upscale_cnn_x2_m", "thin_fast"],
+    quality: "fast",
+    gpuBackend: "cpu",
+  },
+  {
+    label: "Ретро (DVD)",
+    value: "retro",
+    shaders: [
+      "clamp",
+      "denoise_bilateral_mean",
+      "deblur_dog",
+      "restore_cnn_soft_vl",
+      "upscale_denoise_cnn_x2_vl",
+    ],
+    quality: "slow",
+    gpuBackend: "cpu",
+  },
+];
+
+export const FORMAT_OPTIONS = [
+  { label: "MP4 (H.264)", value: "mp4" },
+  { label: "MKV", value: "mkv" },
+  { label: "AVI", value: "avi" },
+  { label: "MOV", value: "mov" },
+  { label: "WebM", value: "webm" },
+  { label: "M4V", value: "m4v" },
+  { label: "TS", value: "ts" },
+];
+
+export const TABS = [
+  { id: "upscale" as const, label: "Апскейл" },
+  { id: "convert" as const, label: "Конвертация" },
+];

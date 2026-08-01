@@ -4,7 +4,13 @@ import { listen } from "@tauri-apps/api/event";
 import { open, confirm } from "@tauri-apps/plugin-dialog";
 
 import type { FilePriority } from "@/types";
-import { TorrentFileInfo, TorrentInfo, TorrentStore } from "@/types/torrent";
+import {
+  TorrentCheckResult,
+  TorrentFileInfo,
+  TorrentInfo,
+  TorrentLimits,
+  TorrentStore,
+} from "@/types/torrent";
 import { showError } from "@/lib/notification.utils";
 import { TorrentListen } from "@/lib/torrent.utils";
 import { useCacheStore } from "@/store/cache.store";
@@ -402,5 +408,42 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
       useCacheStore.setState({ seedPreferences: prefs });
       return { seedPreferences: prefs };
     });
+  },
+
+  recheckTorrent: async (id: number) => {
+    const result = await invoke<TorrentCheckResult>("recheck_torrent", {
+      id,
+    }).catch((err) => {
+      showError("Ошибка при проверке торрента:", String(err));
+      return null;
+    });
+    if (result) {
+      useTorrentStore.getState().loadTorrentFiles(id);
+    }
+    return result;
+  },
+
+  setTorrentLimits: async (
+    id: number,
+    dlKbps: number | null,
+    ulKbps: number | null,
+  ) => {
+    const downloadBps =
+      dlKbps !== null && dlKbps > 0 ? Math.round(dlKbps * 1024) : null;
+    const uploadBps =
+      ulKbps !== null && ulKbps > 0 ? Math.round(ulKbps * 1024) : null;
+    await invoke("set_torrent_limits", {
+      id,
+      limits: { downloadBps, uploadBps },
+    }).catch((err) =>
+      showError("Ошибка при установке лимитов:", String(err)),
+    );
+  },
+
+  getTorrentLimits: async (id: number) => {
+    return invoke<TorrentLimits>("get_torrent_limits", { id }).catch(() => ({
+      downloadBps: null,
+      uploadBps: null,
+    }));
   },
 }));

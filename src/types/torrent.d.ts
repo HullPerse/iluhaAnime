@@ -48,6 +48,19 @@ export interface TorrentFileInfo {
   exists: boolean;
 }
 
+export interface TorrentLimits {
+  downloadBps: number | null;
+  uploadBps: number | null;
+}
+
+export interface TorrentCheckResult {
+  id: number;
+  missing: string[];
+  size_mismatch: string[];
+  ok: number;
+  total: number;
+}
+
 export interface PickerTorrent {
   magnet?: string;
   fileBytes?: number[];
@@ -108,4 +121,11 @@ export interface TorrentStore {
     fileIndex: number,
     infoHash: string,
   ) => Promise<void>;
+  recheckTorrent: (id: number) => Promise<TorrentCheckResult | null>;
+  setTorrentLimits: (
+    id: number,
+    dlKbps: number | null,
+    ulKbps: number | null,
+  ) => Promise<void>;
+  getTorrentLimits: (id: number) => Promise<TorrentLimits>;
 }

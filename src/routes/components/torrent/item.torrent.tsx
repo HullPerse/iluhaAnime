@@ -1,11 +1,13 @@
-import { memo, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import type { TorrentInfo, TorrentFileInfo } from "@/types/torrent";
 import ProgressBar from "@/components/shared/progress.component";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
+import { Input } from "@/components/ui/input.component";
 import { ConfirmDialog } from "@/components/shared/confirm.component";
 import { fmtSize, fmtETA, fmtSpeed, stateLabel } from "@/lib/torrent.utils";
 import { openPath } from "@tauri-apps/plugin-opener";
+import { useTorrentStore } from "@/store/download.store";
 import TorrentFilesSection from "./file.torrent";
 import {
   Pause,
@@ -15,6 +17,7 @@ import {
   Check,
   RefreshCw,
   ArrowUp,
+  Search,
 } from "lucide-react";
 import ImageComponent from "@/components/ui/image.component";
 
@@ -32,6 +35,63 @@ interface Props {
   onSetSequential: (enabled: boolean) => void;
   onRetry: () => void;
   onRedownload: (fileIndex: number) => void;
+  onRecheck: () => void;
+}
+
+function TorrentLimitsSection({ id }: { id: number }) {
+  const [dlInput, setDlInput] = useState("");
+  const [ulInput, setUlInput] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    useTorrentStore
+      .getState()
+      .getTorrentLimits(id)
+      .then((limits) => {
+        if (cancelled) return;
+        if (limits.downloadBps !== null)
+          setDlInput(String(Math.round(limits.downloadBps / 1024)));
+        if (limits.uploadBps !== null)
+          setUlInput(String(Math.round(limits.uploadBps / 1024)));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  const applyLimits = () => {
+    const dl = dlInput === "" ? null : Number(dlInput);
+    const ul = ulInput === "" ? null : Number(ulInput);
+    if (dl !== null && (isNaN(dl) || dl <= 0)) return;
+    if (ul !== null && (isNaN(ul) || ul <= 0)) return;
+    useTorrentStore.getState().setTorrentLimits(id, dl, ul);
+  };
+
+  return (
+    <div className="flex flex-row items-center gap-1 flex-wrap">
+      <span className="windows95-text text-[10px]">Лимиты КБ/с:</span>
+      <Input
+        className="w-16 h-5 text-[10px]"
+        placeholder="DL"
+        value={dlInput}
+        onChange={(e) => setDlInput(e.target.value)}
+      />
+      <Input
+        className="w-16 h-5 text-[10px]"
+        placeholder="UL"
+        value={ulInput}
+        onChange={(e) => setUlInput(e.target.value)}
+      />
+      <Button
+        size="icon"
+        className="size-5"
+        title="Применить лимиты"
+        onClick={applyLimits}
+      >
+        <Check className="size-3" />
+      </Button>
+    </div>
+  );
 }
 
 function TorrentItem({
@@ -48,6 +108,7 @@ function TorrentItem({
   onSetSequential,
   onRetry,
   onRedownload,
+  onRecheck,
 }: Props) {
   const progress = item.progress * 100;
   const isPaused = item.state === "paused";
@@ -115,6 +176,17 @@ function TorrentItem({
             onClick={() => onSetSequential(!item.sequential_download)}
           >
             {item.sequential_download && <Check className="size-4" />}
+          </Button>
+          <Button
+            title="Проверить файлы"
+            size="icon"
+            className="size-6"
+            onClick={(e) => {
+              e.stopPropagation();
+              onRecheck();
+            }}
+          >
+            <Search className="size-4" />
           </Button>
           <Button
             variant="error"
@@ -196,24 +268,28 @@ function TorrentItem({
               <ChevronRight className="size-3" />
             )}
             {`Файлы (${files.filter((f) => f.completed).length} / ${files.length})`}
-            {files.some((f) => !f.exists) && (
+            {files.some((f) => f.completed && !f.exists) && (
               <span className="text-destructive ml-1">
-                · {files.filter((f) => !f.exists).length} отсутствуют
+                · {files.filter((f) => f.completed && !f.exists).length}{" "}
+                отсутствуют
               </span>
             )}
           </div>
           {isExpanded && (
-            <TorrentFilesSection
-              id={item.id}
-              files={files}
-              type="torrent"
-              onToggle={(_id, indices) => onUpdateFiles(indices)}
-              onFilePriorityChange={(_id, indices, p) =>
-                onFilePriorityChange(indices, p)
-              }
-              onResume={isPaused ? onResume : undefined}
-              onRedownload={(fileIndex) => onRedownload(fileIndex)}
-            />
+            <>
+              <TorrentLimitsSection id={item.id} />
+              <TorrentFilesSection
+                id={item.id}
+                files={files}
+                type="torrent"
+                onToggle={(_id, indices) => onUpdateFiles(indices)}
+                onFilePriorityChange={(_id, indices, p) =>
+                  onFilePriorityChange(indices, p)
+                }
+                onResume={isPaused ? onResume : undefined}
+                onRedownload={(fileIndex) => onRedownload(fileIndex)}
+              />
+            </>
           )}
         </section>
       )}

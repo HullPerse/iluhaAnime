@@ -147,9 +147,7 @@ export function flattenTree(
 export function buildOutputPath(inputPath: string, suffix: string): string {
   const dot = inputPath.lastIndexOf(".");
   const ext = dot > 0 ? inputPath.slice(dot) : "";
-  return dot > 0
-    ? inputPath.slice(0, dot) + suffix + ext
-    : inputPath + suffix;
+  return dot > 0 ? inputPath.slice(0, dot) + suffix + ext : inputPath + suffix;
 }
 
 const seasonPatterns = (season: string) => [
@@ -159,7 +157,10 @@ const seasonPatterns = (season: string) => [
   new RegExp(`\\s+${season}(?:st|nd|rd|th)\\s+Season\\s*$`, "i"),
 ];
 
-function cleanTitle(title: string | undefined, season: string | undefined): string {
+function cleanTitle(
+  title: string | undefined,
+  season: string | undefined,
+): string {
   if (!title) return "";
   let cleaned = title.trim();
   if (season) {
@@ -183,12 +184,31 @@ export function formatParsedTitle(filename: string): string {
 
   let episodeStr = "";
   if (epNum !== undefined && epNum !== null) {
-    const showRange = epNumAlt !== undefined && epNumAlt !== null && epNumAlt !== epNum;
-    episodeStr = showRange ? `Episodes ${epNum}-${epNumAlt}` : `Episode ${epNum}`;
+    const showRange =
+      epNumAlt !== undefined && epNumAlt !== null && epNumAlt !== epNum;
+    episodeStr = showRange
+      ? `Episodes ${epNum}-${epNumAlt}`
+      : `Episode ${epNum}`;
     if (epTitle) episodeStr += `: ${epTitle}`;
   } else if (epTitle) {
     episodeStr = `Episode: ${epTitle}`;
   }
 
-  return [title, season, episodeStr].filter((part) => part && part.trim()).join(" • ");
+  return [title, season, episodeStr]
+    .filter((part) => part && part.trim())
+    .join(" • ");
+}
+
+export function fileNameFromPath(p: string): string {
+  const parts = p.replace(/\\/g, "/").split("/");
+  return parts[parts.length - 1] || p;
+}
+
+export function formatETA(secs: number): string {
+  if (!Number.isFinite(secs)) return "";
+  if (secs <= 0) return "< 1 мин";
+  const m = Math.floor(secs / 60);
+  const s = Math.round(secs % 60);
+  if (m > 0) return `${m} мин ${s} сек`;
+  return `${s} сек`;
 }

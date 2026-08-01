@@ -77,11 +77,6 @@ export default function TorrentFilesPlayerSection({
             )}
             Файлы: ({files.filter((f) => f.completed).length}){" "}
             {data.length > 0 && `+ ${data.length} апскейл`}
-            {files.some((f) => !f.exists) && (
-              <span className="text-destructive ml-1">
-                · {files.filter((f) => !f.exists).length} отсутствуют
-              </span>
-            )}
             <Button
               size="icon"
               className="ml-auto size-5"

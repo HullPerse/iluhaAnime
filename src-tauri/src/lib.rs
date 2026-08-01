@@ -26,7 +26,7 @@ mod shaders;
 mod torrent;
 mod video;
 use file_index::FileEntry;
-use torrent::{FilePriority, TorrentFileInfo, TorrentInfo, TorrentInfoResult, TorrentManager};
+use torrent::{FilePriority, TorrentCheckResult, TorrentFileInfo, TorrentInfo, TorrentInfoResult, TorrentLimits, TorrentManager};
 use video::{CancelFlag, ActiveChildren};
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
@@ -392,6 +392,32 @@ async fn set_sequential_download(
 }
 
 #[tauri::command]
+async fn recheck_torrent(
+    id: usize,
+    manager: tauri::State<'_, TorrentBackend>,
+) -> Result<TorrentCheckResult, String> {
+    manager.manager.recheck_torrent(id)
+}
+
+#[tauri::command]
+async fn set_torrent_limits(
+    id: usize,
+    limits: TorrentLimits,
+    manager: tauri::State<'_, TorrentBackend>,
+) -> Result<(), String> {
+    manager.manager.set_torrent_limits(id, limits);
+    Ok(())
+}
+
+#[tauri::command]
+async fn get_torrent_limits(
+    id: usize,
+    manager: tauri::State<'_, TorrentBackend>,
+) -> Result<TorrentLimits, String> {
+    Ok(manager.manager.get_torrent_limits(id))
+}
+
+#[tauri::command]
 async fn rebuild_file_index(
     paths: Vec<String>,
     extensions: Vec<String>,
@@ -570,6 +596,7 @@ pub fn run() {
                         if cleanup_counter >= 30 {
                             cleanup_counter = 0;
                             mgr_clone.cleanup_unselected_files();
+                            mgr_clone.apply_effective_limits();
                         }
                     }
                 });
@@ -639,6 +666,9 @@ pub fn run() {
             set_file_priority,
             redownload_file,
             set_sequential_download,
+            recheck_torrent,
+            set_torrent_limits,
+            get_torrent_limits,
             get_torrent_info_from_file,
             start_torrent_download_from_file,
             read_file_bytes,

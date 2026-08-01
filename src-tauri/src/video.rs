@@ -248,6 +248,29 @@ fn build_encoder_args(gpu_backend: &str, quality: &str) -> Vec<String> {
     }
 }
 
+async fn validate_input_file(
+    app_handle: &tauri::AppHandle,
+    path: &str,
+) -> Result<f64, String> {
+    let meta = std::fs::metadata(path).map_err(|_| {
+        "Файл не найден. Возможно, он был удалён, перемещён или ещё не докачан.".to_string()
+    })?;
+    if !meta.is_file() {
+        return Err("Указанный путь не является файлом.".to_string());
+    }
+    if meta.len() == 0 {
+        return Err("Файл пуст (0 байт). Возможно, загрузка не завершена.".to_string());
+    }
+    get_video_duration(app_handle, path).await.map_err(|e| {
+        if e.contains("ffprobe not found") {
+            format!("ffprobe не найден: {e}")
+        } else {
+            "Файл не является валидным видео. Возможно, загрузка не завершена или файл повреждён."
+                .to_string()
+        }
+    })
+}
+
 async fn get_video_dimensions(
     app_handle: &tauri::AppHandle,
     path: &str,
@@ -316,6 +339,8 @@ pub async fn upscale_video(
     cancel_flag.0.store(false, Ordering::SeqCst);
     let cancel = cancel_flag.0.clone();
 
+    let duration = validate_input_file(&app_handle, &input_path).await?;
+
     let _ = sender.send(0.0);
     let _ = app_handle.emit(
         "upscale-progress",
@@ -327,9 +352,6 @@ pub async fn upscale_video(
         },
     );
 
-    let duration = get_video_duration(&app_handle, &input_path)
-        .await
-        .unwrap_or(0.0);
     let _ = app_handle.emit(
         "upscale-progress",
         UpscaleProgress {
@@ -344,10 +366,13 @@ pub async fn upscale_video(
         let (target_w, target_h) = if width > 0 && height > 0 {
             (width, height)
         } else {
-            match get_video_dimensions(&app_handle, &input_path).await {
-                Ok((iw, ih)) => (iw * 2, ih * 2),
-                Err(_) => (0, 0),
-            }
+            let (iw, ih) = get_video_dimensions(&app_handle, &input_path)
+                .await
+                .map_err(|_| {
+                    "Не удалось определить размер видео. Файл повреждён или ещё не докачан."
+                        .to_string()
+                })?;
+            (iw * 2, ih * 2)
         };
 
         let selected = selected_shaders.unwrap_or_else(crate::shaders::default_selection);
@@ -736,9 +761,7 @@ pub async fn convert_video(
         },
     );
 
-    let duration = get_video_duration(&app_handle, &input_path)
-        .await
-        .unwrap_or(0.0);
+    let duration = validate_input_file(&app_handle, &input_path).await?;
     let _ = app_handle.emit(
         "upscale-progress",
         UpscaleProgress {

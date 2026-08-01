@@ -12,8 +12,10 @@ use std::sync::Arc;
 
 use anyhow::{Context, Result};
 use dashmap::{DashMap, DashSet};
+use librqbit::http_api_types::PeerStatsFilter;
 use librqbit::{Session, SessionPersistenceConfig, SessionOptions, ListenerOptions, ConnectionOptions, PeerConnectionOptions, AddTorrent, AddTorrentOptions, AddTorrentResponse, create_torrent, CreateTorrentOptions};
 use serde::{Deserialize, Serialize};
+use sha1::{Digest, Sha1};
 use std::net::{Ipv4Addr, Ipv6Addr};
 
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
@@ -21,6 +23,23 @@ use std::net::{Ipv4Addr, Ipv6Addr};
 pub enum FilePriority {
     DoNotDownload,
     Normal,
+}
+
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct TorrentLimits {
+    #[serde(rename = "downloadBps")]
+    pub download_bps: Option<u32>,
+    #[serde(rename = "uploadBps")]
+    pub upload_bps: Option<u32>,
+}
+
+#[derive(Serialize, Clone, Debug)]
+pub struct TorrentCheckResult {
+    pub id: usize,
+    pub missing: Vec<String>,
+    pub size_mismatch: Vec<String>,
+    pub ok: usize,
+    pub total: usize,
 }
 
 #[derive(Serialize, Clone, Debug)]
@@ -99,6 +118,10 @@ pub struct TorrentManager {
     pub session: Arc<Session>,
     pub save_dirs: DashMap<usize, String>,
     pub save_dirs_path: PathBuf,
+    pub magnet_links: DashMap<usize, String>,
+    pub magnet_links_path: PathBuf,
+    pub torrent_limits: DashMap<usize, TorrentLimits>,
+    pub torrent_limits_path: PathBuf,
     pub sequential_torrents: DashSet<usize>,
     pub file_priorities: DashMap<usize, Vec<FilePriority>>,
     pub pending_selections: DashMap<usize, Vec<usize>>,
@@ -126,6 +149,19 @@ impl TorrentManager {
             .ok()
             .and_then(|json| serde_json::from_str(&json).ok())
             .unwrap_or_default();
+
+        let magnet_links_path = app_data_dir.join("magnet_links.json");
+        let magnet_links: HashMap<usize, String> = std::fs::read_to_string(&magnet_links_path)
+            .ok()
+            .and_then(|json| serde_json::from_str(&json).ok())
+            .unwrap_or_default();
+
+        let torrent_limits_path = app_data_dir.join("torrent_limits.json");
+        let torrent_limits: HashMap<usize, TorrentLimits> =
+            std::fs::read_to_string(&torrent_limits_path)
+                .ok()
+                .and_then(|json| serde_json::from_str(&json).ok())
+                .unwrap_or_default();
 
         let session_config_path = app_data_dir.join("session_config.json");
         let session_config = std::fs::read_to_string(&session_config_path)
@@ -180,6 +216,10 @@ impl TorrentManager {
             session,
             save_dirs: save_dirs.into_iter().collect(),
             save_dirs_path,
+            magnet_links: magnet_links.into_iter().collect(),
+            magnet_links_path,
+            torrent_limits: torrent_limits.into_iter().collect(),
+            torrent_limits_path,
             sequential_torrents: DashSet::new(),
             file_priorities: DashMap::new(),
             pending_selections: DashMap::new(),
@@ -197,6 +237,65 @@ impl TorrentManager {
         if let Ok(json) = serde_json::to_string(&map) {
             let _ = std::fs::write(&self.save_dirs_path, &json);
         }
+    }
+
+    fn save_magnet_links(&self) {
+        let map: HashMap<usize, String> = self
+            .magnet_links
+            .iter()
+            .map(|r| (*r.key(), r.value().clone()))
+            .collect();
+        if let Ok(json) = serde_json::to_string(&map) {
+            let _ = std::fs::write(&self.magnet_links_path, &json);
+        }
+    }
+
+    fn save_torrent_limits(&self) {
+        let map: HashMap<usize, TorrentLimits> = self
+            .torrent_limits
+            .iter()
+            .map(|r| (*r.key(), *r.value()))
+            .collect();
+        if let Ok(json) = serde_json::to_string(&map) {
+            let _ = std::fs::write(&self.torrent_limits_path, &json);
+        }
+    }
+
+    pub fn get_torrent_limits(&self, id: usize) -> TorrentLimits {
+        self.torrent_limits.get(&id).map(|r| *r.value()).unwrap_or_default()
+    }
+
+    pub fn set_torrent_limits(&self, id: usize, limits: TorrentLimits) {
+        if limits == TorrentLimits::default() {
+            self.torrent_limits.remove(&id);
+        } else {
+            self.torrent_limits.insert(id, limits);
+        }
+        self.save_torrent_limits();
+        self.apply_effective_limits();
+    }
+
+    pub fn apply_effective_limits(&self) {
+        let torrents = self.collect_torrents();
+        let mut dl: Option<NonZeroU32> = None;
+        let mut ul: Option<NonZeroU32> = None;
+
+        for t in &torrents {
+            let Some(limits) = self.torrent_limits.get(&t.id).map(|r| *r.value()) else {
+                continue;
+            };
+            if !t.finished {
+                if let Some(dn) = limits.download_bps.and_then(NonZeroU32::new) {
+                    dl = Some(dl.map_or(dn, |cur| cur.min(dn)));
+                }
+            }
+            if let Some(up) = limits.upload_bps.and_then(NonZeroU32::new) {
+                ul = Some(ul.map_or(up, |cur| cur.min(up)));
+            }
+        }
+
+        self.session.ratelimits.set_download_bps(dl);
+        self.session.ratelimits.set_upload_bps(ul);
     }
 
     pub fn get_session_config(&self) -> SessionConfig {
@@ -236,6 +335,11 @@ impl TorrentManager {
                 let save_dir = self.save_dirs.get(&id).map(|r| r.clone()).unwrap_or_default();
                 let sequential_download = self.sequential_torrents.contains(&id);
 
+                let peers_connected = handle
+                    .live()
+                    .map(|l| l.per_peer_stats_snapshot(PeerStatsFilter::default()).peers.len())
+                    .unwrap_or(0);
+
                 result.push(TorrentInfo {
                     id,
                     name: handle.name().unwrap_or_default(),
@@ -245,7 +349,7 @@ impl TorrentManager {
                     uploaded_bytes: stats.uploaded_bytes,
                     download_speed: speed_bytes,
                     upload_speed: up_mbps * 125_000.0,
-                    peers_connected: 0,
+                    peers_connected,
                     save_dir,
                     progress: if stats.total_bytes > 0 {
                         stats.progress_bytes as f64 / stats.total_bytes as f64
@@ -271,11 +375,12 @@ impl TorrentManager {
         sub_folder: Option<String>,
     ) -> Result<usize> {
         self.add_torrent_inner(
-            AddTorrent::from_url(magnet),
+            AddTorrent::from_url(magnet.clone()),
             save_dir,
             only_files,
             sub_folder,
             None,
+            Some(magnet),
         )
         .await
     }
@@ -293,6 +398,7 @@ impl TorrentManager {
             only_files,
             sub_folder,
             None,
+            None,
         )
         .await
     }
@@ -304,6 +410,7 @@ impl TorrentManager {
         only_files: Option<Vec<usize>>,
         sub_folder: Option<String>,
         preferred_id: Option<usize>,
+        magnet: Option<String>,
     ) -> Result<usize> {
         let output_folder = sub_folder
             .as_ref()
@@ -326,11 +433,19 @@ impl TorrentManager {
             AddTorrentResponse::Added(id, _) => {
                 self.save_dirs.insert(id, output_folder);
                 self.save_save_dirs();
+                if let Some(m) = magnet {
+                    self.magnet_links.insert(id, m);
+                    self.save_magnet_links();
+                }
                 id
             }
             AddTorrentResponse::AlreadyManaged(id, _) => {
                 self.save_dirs.entry(id).or_insert(output_folder);
                 self.save_save_dirs();
+                if let Some(m) = magnet {
+                    self.magnet_links.entry(id).or_insert(m);
+                    self.save_magnet_links();
+                }
                 id
             }
             AddTorrentResponse::ListOnly(_) => anyhow::bail!("torrent was not added"),
@@ -368,11 +483,12 @@ impl TorrentManager {
             .await
             .map_err(|e| format!("{e:#}"))?;
         self.add_torrent_inner(
-            AddTorrent::from_url(magnet),
+            AddTorrent::from_url(magnet.clone()),
             save_dir,
             only_files,
             None,
             Some(id),
+            Some(magnet),
         )
         .await
         .map_err(|e| format!("{e:#}"))
@@ -393,7 +509,11 @@ impl TorrentManager {
                 .collect::<Vec<_>>()
         };
 
-        let magnet = format!("magnet:?xt=urn:btih:{info_hash}");
+        let magnet = self
+            .magnet_links
+            .get(&id)
+            .map(|r| r.clone())
+            .unwrap_or_else(|| format!("magnet:?xt=urn:btih:{info_hash}"));
         let new_id = self
             .replace_torrent(id, magnet, Some(vec![file_index]))
             .await?;
@@ -555,10 +675,15 @@ impl TorrentManager {
     pub async fn remove_torrent(self: &Arc<Self>, id: usize, delete_files: bool) -> Result<()> {
         self.session.delete(id.into(), delete_files).await?;
         self.save_dirs.remove(&id);
+        self.magnet_links.remove(&id);
+        self.torrent_limits.remove(&id);
         self.sequential_torrents.remove(&id);
         self.file_priorities.remove(&id);
         self.pending_selections.remove(&id);
         self.save_save_dirs();
+        self.save_magnet_links();
+        self.save_torrent_limits();
+        self.apply_effective_limits();
         Ok(())
     }
 
@@ -567,13 +692,28 @@ impl TorrentManager {
         use librqbit::http_api::{HttpApi, HttpApiOptions};
 
         let api = Api::new(self.session.clone(), None, None);
+
+        let token_seed = {
+            let now = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_nanos()
+                .to_le_bytes();
+            let pid = std::process::id().to_le_bytes();
+            let mut seed = Vec::with_capacity(16);
+            seed.extend_from_slice(&now);
+            seed.extend_from_slice(&pid);
+            seed
+        };
+        let token = hex::encode(Sha1::digest(&token_seed));
+
         let http_opts = HttpApiOptions {
             read_only: false,
-            basic_auth: None,
+            basic_auth: Some(("iluha".into(), token)),
             allow_create: true,
         };
         let http_api = HttpApi::new(api, Some(http_opts));
-        let addr: std::net::SocketAddr = ([127, 0, 0, 1], 11200).into();
+        let addr: std::net::SocketAddr = ([127, 0, 0, 1], 0).into();
         let listener =
             match librqbit_dualstack_sockets::TcpListener::bind_tcp(addr, librqbit_dualstack_sockets::BindOpts::default()) {
                 Ok(l) => l,
@@ -582,6 +722,10 @@ impl TorrentManager {
                     return;
                 }
             };
+        let bound_port = listener.bind_addr().port();
+        eprintln!(
+            "HTTP API listening on http://127.0.0.1:{bound_port} (user: iluha)"
+        );
         tokio::spawn(async move {
             if let Err(e) = http_api.make_http_api_and_run(listener, None).await {
                 eprintln!("HTTP API stopped: {e:#}");
@@ -710,9 +854,10 @@ impl TorrentManager {
                                             .save_dirs
                                             .get(&id)
                                             .is_some_and(|d| {
-                                                Path::new(d.value())
-                                                    .join(&f.relative_filename)
-                                                    .exists()
+                                                let full = Path::new(d.value())
+                                                    .join(&f.relative_filename);
+                                                std::fs::metadata(&full)
+                                                    .is_ok_and(|m| m.is_file() && m.len() > 0)
                                             });
                                         TorrentFileInfo {
                                             index: i,
@@ -1019,6 +1164,62 @@ impl TorrentManager {
         }
 
         Ok(())
+    }
+
+    pub fn recheck_torrent(&self, id: usize) -> Result<TorrentCheckResult, String> {
+        let save_dir = self
+            .save_dirs
+            .get(&id)
+            .map(|r| r.clone())
+            .unwrap_or_default();
+        if save_dir.is_empty() {
+            return Err("torrent not found".to_string());
+        }
+        let result = self.session.with_torrents(|iter| {
+            for (tid, handle) in iter {
+                if tid == id {
+                    let h = handle.clone();
+                    return h
+                        .with_metadata(|m| {
+                            let mut missing = Vec::new();
+                            let mut size_mismatch = Vec::new();
+                            let mut ok = 0usize;
+                            let total = m.file_infos.len();
+                            for f in &m.file_infos {
+                                if f
+                                    .relative_filename
+                                    .components()
+                                    .any(|c| matches!(c, std::path::Component::ParentDir))
+                                {
+                                    continue;
+                                }
+                                let full_path = Path::new(&save_dir).join(&f.relative_filename);
+                                match std::fs::metadata(&full_path) {
+                                    Ok(meta) if meta.is_file() && meta.len() == f.len => ok += 1,
+                                    Ok(meta) if meta.is_file() => {
+                                        size_mismatch.push(
+                                            f.relative_filename.to_string_lossy().to_string(),
+                                        );
+                                    }
+                                    _ => {
+                                        missing.push(f.relative_filename.to_string_lossy().to_string());
+                                    }
+                                }
+                            }
+                            Some(TorrentCheckResult {
+                                id,
+                                missing,
+                                size_mismatch,
+                                ok,
+                                total,
+                            })
+                        })
+                        .unwrap_or(None);
+                }
+            }
+            None
+        });
+        result.ok_or_else(|| "torrent not found or no metadata".to_string())
     }
 }
 

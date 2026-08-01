@@ -15,170 +15,27 @@ import {
   type UpscaleConfig,
   type ConvertConfig,
 } from "@/store/upscale.store";
-
-interface Props {
-  filePath: string;
-  onDone?: (outputPath: string) => void;
-  exists?: boolean;
-}
-
-const GPU_LABELS: Record<string, string> = {
-  cpu: "CPU (x264)",
-  nvenc: "NVIDIA NVENC",
-  amf: "AMD AMF",
-  qsv: "Intel QSV",
-};
-
-const RESOLUTIONS = [
-  { label: "Оригинальное", value: "original" },
-  { label: "1920\u00d71080 (1080p)", value: "1920x1080" },
-  { label: "2560\u00d71440 (2K)", value: "2560x1440" },
-  { label: "3840\u00d72160 (4K)", value: "3840x2160" },
-];
-
-const FPS_OPTIONS = [
-  { label: "Оригинальный", value: "" },
-  { label: "30", value: "30" },
-  { label: "60 (дублирование)", value: "60" },
-  { label: "60 (интерполяция)", value: "60i" },
-];
-
-const QUALITY_OPTIONS = [
-  { label: "Самый быстрый", value: "ultrafast" },
-  { label: "Быстрый", value: "fast" },
-  { label: "Медленный", value: "slow" },
-  { label: "Самый медленный", value: "veryslow" },
-];
-
-const UPSCALER_OPTIONS = [
-  { label: "Lanczos (ffmpeg)", value: "ffmpeg" },
-  { label: "Anime4K (GPU шейдеры)", value: "anime4k" },
-];
-
-const ANIME4K_PRESETS: {
-  label: string;
-  value: string;
-  shaders: string[];
-  quality: string;
-  gpuBackend: string;
-}[] = [
-  {
-    label: "⚡ Молниеносный",
-    value: "lightning",
-    shaders: ["clamp", "upscale_cnn_x2_s"],
-    quality: "ultrafast",
-    gpuBackend: "gpu",
-  },
-  {
-    label: "🚀 Быстрый",
-    value: "fast",
-    shaders: ["clamp", "restore_cnn_ul", "upscale_cnn_x2_ul"],
-    quality: "fast",
-    gpuBackend: "gpu",
-  },
-  {
-    label: "⚖️ Сбалансированный",
-    value: "balanced",
-    shaders: ["clamp", "restore_cnn_l", "upscale_cnn_x2_l", "thin_fast"],
-    quality: "slow",
-    gpuBackend: "cpu",
-  },
-  {
-    label: "✨ Качественный",
-    value: "quality",
-    shaders: [
-      "clamp",
-      "denoise_bilateral_mean",
-      "restore_cnn_soft_vl",
-      "upscale_denoise_cnn_x2_vl",
-      "thin_hq",
-    ],
-    quality: "slow",
-    gpuBackend: "cpu",
-  },
-  {
-    label: "👑 Максимальный",
-    value: "maximum",
-    shaders: [
-      "clamp",
-      "denoise_bilateral_median",
-      "deblur_dog",
-      "restore_cnn_soft_vl",
-      "upscale_denoise_cnn_x2_vl",
-      "thin_hq",
-      "darken_hq",
-    ],
-    quality: "veryslow",
-    gpuBackend: "cpu",
-  },
-  {
-    label: "🌫 С шумоподавлением",
-    value: "denoise",
-    shaders: [
-      "clamp",
-      "denoise_bilateral_median",
-      "restore_cnn_ul",
-      "upscale_denoise_cnn_x2_ul",
-    ],
-    quality: "slow",
-    gpuBackend: "cpu",
-  },
-  {
-    label: "🖼 Для чистого аниме",
-    value: "clean",
-    shaders: ["clamp", "restore_cnn_m", "upscale_cnn_x2_m", "thin_fast"],
-    quality: "fast",
-    gpuBackend: "cpu",
-  },
-  {
-    label: "📀 Ретро (DVD)",
-    value: "retro",
-    shaders: [
-      "clamp",
-      "denoise_bilateral_mean",
-      "deblur_dog",
-      "restore_cnn_soft_vl",
-      "upscale_denoise_cnn_x2_vl",
-    ],
-    quality: "slow",
-    gpuBackend: "cpu",
-  },
-];
-
-const FORMAT_OPTIONS = [
-  { label: "MP4 (H.264)", value: "mp4" },
-  { label: "MKV", value: "mkv" },
-  { label: "AVI", value: "avi" },
-  { label: "MOV", value: "mov" },
-  { label: "WebM", value: "webm" },
-  { label: "M4V", value: "m4v" },
-  { label: "TS", value: "ts" },
-];
-
-const TABS = [
-  { id: "upscale" as const, label: "Апскейл" },
-  { id: "convert" as const, label: "Конвертация" },
-];
-
-function fileNameFromPath(p: string): string {
-  const parts = p.replace(/\\/g, "/").split("/");
-  return parts[parts.length - 1] || p;
-}
-
-function formatETA(secs: number): string {
-  if (!Number.isFinite(secs)) return "";
-  if (secs <= 0) return "< 1 мин";
-  const m = Math.floor(secs / 60);
-  const s = Math.round(secs % 60);
-  if (m > 0) return `${m} мин ${s} сек`;
-  return `${s} сек`;
-}
+import {
+  ANIME4K_PRESETS,
+  FORMAT_OPTIONS,
+  FPS_OPTIONS,
+  GPU_LABELS,
+  QUALITY_OPTIONS,
+  RESOLUTIONS,
+  TABS,
+  UPSCALER_OPTIONS,
+} from "@/config/player.config";
+import { fileNameFromPath, formatETA } from "@/lib/player.utils";
 
 export default function UpscalePlayer({
   filePath,
   onDone,
   exists = true,
-}: Props) {
+}: {
+  filePath: string;
+  onDone?: (outputPath: string) => void;
+  exists?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"upscale" | "convert">("upscale");
   const [resolution, setResolution] = useState("original");

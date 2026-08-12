@@ -1,7 +1,7 @@
 import type { AniListSort } from "@/types/anilist";
 import { Button } from "@/components/ui/button.component";
 import { getSortingLabel } from "@/lib/anilist.utils";
-import { Activity, Heart, Dices } from "lucide-react";
+import { Activity, Heart, Dices, CalendarDays } from "lucide-react";
 
 interface Props {
   sort: AniListSort;
@@ -9,6 +9,7 @@ interface Props {
   onActivityOpen: () => void;
   onFavouritesOpen: () => void;
   onRandom: () => void;
+  onHistoryOpen: () => void;
   hasFavourites: boolean;
 }
 
@@ -18,6 +19,7 @@ export default function AniListSortBar({
   onActivityOpen,
   onFavouritesOpen,
   onRandom,
+  onHistoryOpen,
   hasFavourites,
 }: Props) {
   const toggleSort = (key: AniListSort["key"]) => {
@@ -49,6 +51,14 @@ export default function AniListSortBar({
       <div className="flex flex-row gap-1">
         <Button size="icon" className="h-6 w-6" onClick={onActivityOpen}>
           <Activity className="size-3.5" />
+        </Button>
+        <Button
+          size="icon"
+          className="h-6 w-6"
+          title="История активности"
+          onClick={onHistoryOpen}
+        >
+          <CalendarDays className="size-3.5" />
         </Button>
         <Button
           size="icon"

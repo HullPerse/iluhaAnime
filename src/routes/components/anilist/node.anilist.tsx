@@ -1,7 +1,25 @@
 import { memo } from "react";
-import { IMG_H, NODE_H, NODE_W } from "@/config/anilist.config";
+import {
+  IMG_H,
+  NODE_BORDER_COLORS,
+  NODE_H,
+  NODE_W,
+} from "@/config/anilist.config";
 import { cn } from "@/lib/index.utils";
 import { FranchiseNode } from "@/types/anilist";
+
+function formatShort(format: string): string {
+  const map: Record<string, string> = {
+    TV: "TV",
+    TV_SHORT: "TVS",
+    MOVIE: "MOV",
+    SPECIAL: "SP",
+    OVA: "OVA",
+    ONA: "ONA",
+    MUSIC: "MV",
+  };
+  return map[format] ?? format.slice(0, 3).toUpperCase();
+}
 
 const FranNode = memo(function FranNode({
   node,
@@ -12,6 +30,7 @@ const FranNode = memo(function FranNode({
   onMouseDown,
   id: elementId,
   dimmed = false,
+  relationType,
   dims = { w: NODE_W, h: NODE_H, imgH: IMG_H },
 }: {
   node: FranchiseNode;
@@ -22,6 +41,7 @@ const FranNode = memo(function FranNode({
   onMouseDown?: (e: React.MouseEvent, nodeId: number) => void;
   id?: string;
   dimmed?: boolean;
+  relationType?: string;
   dims?: { w: number; h: number; imgH: number };
 }) {
   return (
@@ -42,7 +62,16 @@ const FranNode = memo(function FranNode({
         "absolute flex flex-col items-stretch cursor-grab active:cursor-grabbing select-none overflow-hidden transition-opacity duration-300 windows95-text windows95-active-border bg-primary",
         dimmed && "opacity-30",
       )}
-      style={{ left: x, top: y, width: dims.w, height: dims.h }}
+      style={{
+        left: x,
+        top: y,
+        width: dims.w,
+        height: dims.h,
+        borderColor:
+          !isRoot && relationType
+            ? NODE_BORDER_COLORS[relationType] ?? "#bdc3c7"
+            : undefined,
+      }}
     >
       {isRoot && <div className="h-0.5 bg-secondary w-full shrink-0" />}
       {node.cover_url ? (
@@ -60,6 +89,11 @@ const FranNode = memo(function FranNode({
         >
           -
         </div>
+      )}
+      {node.format && (
+        <span className="absolute top-0 left-0 px-0.5 bg-black/70 text-white text-[7px] leading-[10px] windows95-font">
+          {formatShort(node.format)}
+        </span>
       )}
       <div
         className={cn(

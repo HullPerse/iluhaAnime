@@ -38,6 +38,7 @@ export const FILTER_GROUPS: Record<string, string[]> = {
     "SUMMARY",
     "ALTERNATIVE",
     "CHARACTER",
+    "OTHER",
     "UNKNOWN",
   ],
 };
@@ -59,6 +60,22 @@ export const EDGE_STYLES: Record<
   CHARACTER: { color: "#95a5a6", dash: "4,4", width: 0.75 },
   OTHER: { color: "#bdc3c7", dash: "3,3", width: 0.75 },
   UNKNOWN: { color: "#bdc3c7", dash: "3,3", width: 0.75 },
+};
+
+export const NODE_BORDER_COLORS: Record<string, string> = {
+  SEQUEL: "#4a90d9",
+  PREQUEL: "#d97a30",
+  SIDE_STORY: "#5a9e6f",
+  SPIN_OFF: "#8e5ea2",
+  ADAPTATION: "#7f8c8d",
+  PARENT: "#7f8c8d",
+  CONTAINS: "#7f8c8d",
+  SOURCE: "#7f8c8d",
+  SUMMARY: "#95a5a6",
+  ALTERNATIVE: "#95a5a6",
+  CHARACTER: "#95a5a6",
+  OTHER: "#bdc3c7",
+  UNKNOWN: "#bdc3c7",
 };
 
 export const FILTER_LABELS: Record<string, string> = {

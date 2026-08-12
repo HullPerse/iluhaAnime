@@ -30,25 +30,22 @@ import {
   computeGraphMetrics,
   buildSimNodes,
   runFranchiseSimulation,
+  computeNodeRelationMap,
+  sortFranchiseNodes,
 } from "@/lib/anilist.utils";
 import { FranNode } from "./node.anilist";
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
-import { useSettingsStore } from "@/store/settings.store";
+
+const FRANCHISE_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 function FranchiseGraphSection({
   animeId,
   onRelated,
   expanded = false,
 }: FranchiseGraphSectionProps) {
-  const franchiseRelationScope = useSettingsStore(
-    (s) => s.franchiseRelationScope,
-  );
   const [activeFilters, setActiveFilters] = useState<Set<RelationFilter>>(
-    () =>
-      franchiseRelationScope === "main"
-        ? new Set(["SEQUEL", "PREQUEL"])
-        : new Set(RELATION_FILTERS),
+    () => new Set(["SEQUEL", "PREQUEL"] as RelationFilter[]),
   );
   const [positions, setPositions] = useState<
     Map<number, FranchiseNodePosition>
@@ -58,6 +55,12 @@ function FranchiseGraphSection({
   const [refreshKey, setRefreshKey] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [resetKey, setResetKey] = useState(0);
+  const [listView, setListView] = useState(false);
+  const [cacheSource, setCacheSource] = useState<"cache" | "fresh" | null>(
+    null,
+  );
+  const [countDiff, setCountDiff] = useState<string | null>(null);
+  const prevNodeCountRef = useRef<number | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const simRef = useRef<Simulation<SimNode, undefined> | null>(null);
@@ -68,33 +71,56 @@ function FranchiseGraphSection({
   useEffect(() => { positionsRef.current = positions; }, [positions]);
 
   const { data, isLoading, isError, error, refetch } = useQuery({
-    queryKey: ["franchise", animeId, franchiseRelationScope, refreshKey],
+    queryKey: ["franchise", animeId, refreshKey],
     queryFn: async () => {
-      const cacheKey = `${animeId}:${franchiseRelationScope}`;
+      const cacheKey = `${animeId}:all`;
       if (!refreshKey) {
         const cached = useCacheStore.getState().franchiseCache[cacheKey];
-        if (cached) return cached;
+        if (
+          cached &&
+          cached.graph.nodes.length > 1 &&
+          Date.now() - cached.fetchedAt < FRANCHISE_CACHE_TTL_MS
+        ) {
+          setCacheSource("cache");
+          return cached.graph;
+        }
       }
-      return await invoke<FranchiseGraph>("get_anime_franchise", {
+      const fresh = await invoke<FranchiseGraph>("get_anime_franchise", {
         id: animeId,
-        scope: franchiseRelationScope,
+        scope: refreshKey ? "fresh" : "all",
       });
+      setCacheSource("fresh");
+      if (prevNodeCountRef.current != null) {
+        const prev = prevNodeCountRef.current;
+        const cur = fresh.nodes.length;
+        if (prev !== cur) {
+          setCountDiff(`Данные обновлены: ${prev} → ${cur} узл.`);
+        }
+      }
+      prevNodeCountRef.current = fresh.nodes.length;
+      return fresh;
     },
     staleTime: Infinity,
   });
 
   useEffect(() => {
     if (data) {
-      useCacheStore.getState().setFranchiseCache(
-        `${animeId}:${franchiseRelationScope}`,
-        data,
-      );
+      useCacheStore.getState().setFranchiseCache(`${animeId}:all`, data);
+      prevNodeCountRef.current = data.nodes.length;
     }
-  }, [data, animeId, franchiseRelationScope]);
+  }, [data, animeId]);
 
   const filtered = useMemo(
     () => (data ? filterGraph(data, activeFilters) : null),
     [data, activeFilters],
+  );
+
+  const relationMap = useMemo(
+    () =>
+      data && filtered
+        ? computeNodeRelationMap(data, filtered.nodeMap)
+        : new Map<number, string>(),
+    [data, filtered],
   );
 
   const searchMatchIds = useMemo(
@@ -135,6 +161,7 @@ function FranchiseGraphSection({
       animeId,
       totalH,
       dims,
+      relationMap,
     );
 
     setPositions(initialPositions);
@@ -294,6 +321,39 @@ function FranchiseGraphSection({
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-24 text-[10px] h-6"
           />
+          {cacheSource && (
+            <span
+              className={cn(
+                "px-1 py-0.5 text-[9px] windows95-font leading-none",
+                cacheSource === "fresh"
+                  ? "bg-secondary text-white"
+                  : "bg-surface text-muted",
+              )}
+              title={
+                cacheSource === "fresh"
+                  ? "Данные получены с AniList сейчас"
+                  : "Показаны данные из кэша"
+              }
+            >
+              {cacheSource === "fresh" ? "Свежие" : "Кэш"}
+            </span>
+          )}
+          {countDiff && (
+            <span
+              className="px-1 py-0.5 text-[9px] windows95-font leading-none bg-secondary/20 text-secondary"
+              title="Разница между кэшированными и свежими данными"
+            >
+              {countDiff}
+            </span>
+          )}
+          <Button
+            onClick={() => setListView((v) => !v)}
+            className="text-[10px] h-auto px-1.5 py-0.5"
+            variant="default"
+            title="Переключить вид"
+          >
+            {listView ? "Граф" : "Список"}
+          </Button>
           <Button
             onClick={resetSimulation}
             className="text-[10px] h-auto px-1.5 py-0.5"
@@ -303,10 +363,14 @@ function FranchiseGraphSection({
             Сбросить
           </Button>
           <Button
-            onClick={() => setRefreshKey((k) => k + 1)}
+            onClick={() => {
+              setCountDiff(null);
+              useCacheStore.getState().clearFranchiseCache(`${animeId}:all`);
+              setRefreshKey((k) => k + 1);
+            }}
             className="text-[10px] h-auto px-1.5 py-0.5"
             variant="default"
-            title="Обновить данные"
+            title="Загрузить заново с AniList, очистив кэш"
           >
             Обновить
           </Button>
@@ -318,6 +382,50 @@ function FranchiseGraphSection({
         className="windows95-border bg-white relative"
         style={{ height: displayH, overflow: "hidden" }}
       >
+        {listView ? (
+          <div className="w-full h-full overflow-y-auto">
+            {filtered &&
+              sortFranchiseNodes([...filtered.nodeMap.values()]).map((node) => {
+                const dimmed =
+                  searchMatchIds !== null && !searchMatchIds.has(node.id);
+                const rel = relationMap.get(node.id);
+                return (
+                  <button
+                    key={node.id}
+                    onClick={() => handleNodeClick(node.id)}
+                    className={cn(
+                      "w-full flex items-center gap-2 px-2 py-1 text-left text-[10px] windows95-text hover:bg-secondary/20 cursor-pointer transition-opacity duration-300",
+                      dimmed && "opacity-30",
+                    )}
+                    title={`${node.title} (${node.year ?? "?"}) · ${node.score ?? "—"} · ${node.format ?? ""}`}
+                  >
+                    {node.cover_url && (
+                      <img
+                        src={node.cover_url}
+                        alt=""
+                        className="w-6 h-8 object-cover shrink-0 windows95-border"
+                        loading="lazy"
+                      />
+                    )}
+                    <div className="flex flex-col items-start min-w-0">
+                      <span className="truncate w-full">{node.title}</span>
+                      <span className="text-muted">
+                        {node.year ?? "?"}
+                        {rel && ` · ${FILTER_LABELS[rel] ?? rel}`}
+                        {node.format ? ` · ${node.format}` : ""}
+                        {node.score != null ? ` · ${node.score}` : ""}
+                      </span>
+                    </div>
+                    {node.id === animeId && (
+                      <span className="ml-auto shrink-0 bg-secondary text-white px-1 text-[8px]">
+                        Текущий
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+          </div>
+        ) : (
         <TransformWrapper
           ref={transformRef}
           limitToBounds={false}
@@ -395,12 +503,14 @@ function FranchiseGraphSection({
                       id={`franchise-node-${node.id}`}
                       dimmed={dimmed}
                       dims={dims}
+                      relationType={relationMap.get(node.id)}
                     />
                   );
                 })}
             </div>
           </TransformComponent>
         </TransformWrapper>
+        )}
       </section>
     </main>
   );

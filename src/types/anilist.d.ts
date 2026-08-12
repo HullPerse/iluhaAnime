@@ -73,6 +73,9 @@ export interface AniListEntry {
   progress: number | null;
   score: number | null;
   list_status: string;
+  created_at: number | null;
+  completed_at: string | null;
+  updated_at: number | null;
 }
 
 export interface AniListCollection {

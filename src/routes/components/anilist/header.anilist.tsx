@@ -1,6 +1,6 @@
 import type { AniUser } from "@/types/anilist";
 import { Button } from "@/components/ui/button.component";
-import { Calendar, Flame, UserStar, LogOut } from "lucide-react";
+import { Calendar, Flame, UserStar, LogOut, GitBranch } from "lucide-react";
 import ImageComponent from "@/components/ui/image.component";
 
 interface Props {
@@ -9,6 +9,7 @@ interface Props {
   onStatsOpen: () => void;
   onBrowseOpen: () => void;
   onRecsOpen: () => void;
+  onPrefetchOpen: () => void;
   onLogout: () => void;
 }
 
@@ -18,6 +19,7 @@ export default function AniListProfileHeader({
   onStatsOpen,
   onBrowseOpen,
   onRecsOpen,
+  onPrefetchOpen,
   onLogout,
 }: Props) {
   return (
@@ -69,6 +71,14 @@ export default function AniListProfileHeader({
           onClick={onBrowseOpen}
         >
           <Flame className="size-3" />
+        </Button>
+        <Button
+          size="icon"
+          className="h-7 w-7 text-[10px]"
+          onClick={onPrefetchOpen}
+          title="Предзагрузка связей"
+        >
+          <GitBranch className="size-3" />
         </Button>
         <Button size="default" className="h-7 text-[10px]" onClick={onRecsOpen}>
           <UserStar className="size-3" />

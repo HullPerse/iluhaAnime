@@ -1,12 +1,13 @@
 #![allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
 
-use futures::future::join_all;
-use serde::Serialize;
-use std::collections::HashSet;
+use serde::{Deserialize, Serialize};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::fs;
 use std::path::PathBuf;
-use std::sync::LazyLock;
-use tauri::Manager;
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::{LazyLock, Mutex};
+use std::time::{Duration, Instant};
+use tauri::{AppHandle, Emitter, Manager};
 
 static CLIENT: LazyLock<reqwest::Client> = LazyLock::new(|| {
     reqwest::Client::builder()
@@ -15,11 +16,249 @@ static CLIENT: LazyLock<reqwest::Client> = LazyLock::new(|| {
         .expect("failed to build reqwest client")
 });
 
+const RATE_LIMIT_PER_MIN: usize = 85;
+static RATE_LOG: LazyLock<Mutex<VecDeque<Instant>>> =
+    LazyLock::new(|| Mutex::new(VecDeque::new()));
+static RATE_LIMIT_ADAPTIVE: AtomicUsize = AtomicUsize::new(RATE_LIMIT_PER_MIN);
+
+fn update_rate_limit(header: Option<&str>) {
+    let Some(limit) = header.and_then(|v| v.parse::<usize>().ok()) else {
+        return;
+    };
+    if limit >= 10 && limit <= 90 {
+        RATE_LIMIT_ADAPTIVE.store(limit, Ordering::Relaxed);
+    }
+}
+
+fn rate_limit_per_min() -> usize {
+    RATE_LIMIT_ADAPTIVE.load(Ordering::Relaxed)
+}
+
+async fn acquire_request_slot() {
+    loop {
+        let now = Instant::now();
+        {
+            let mut log = RATE_LOG.lock().unwrap();
+            while let Some(&t) = log.front() {
+                if now.duration_since(t) >= Duration::from_secs(60) {
+                    log.pop_front();
+                } else {
+                    break;
+                }
+            }
+            if log.len() < rate_limit_per_min() {
+                log.push_back(now);
+                return;
+            }
+        }
+        tokio::time::sleep(Duration::from_millis(600)).await;
+    }
+}
+
 #[derive(Debug, Serialize)]
 pub struct AniRanking {
     pub rank: i32,
     pub type_: String,
     pub context: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CachedFranchiseNode {
+    pub node: FranchiseNode,
+    pub targets: Vec<(u64, String, Option<String>, Option<i32>)>,
+    pub fetched_at: i64,
+}
+
+const FRANCHISE_CACHE_TTL_SECS: i64 = 7 * 24 * 60 * 60;
+static FRANCHISE_CACHE: LazyLock<Mutex<HashMap<u64, CachedFranchiseNode>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
+static FRANCHISE_CACHE_LOADED: AtomicBool = AtomicBool::new(false);
+static PREFETCH_RUNNING: AtomicBool = AtomicBool::new(false);
+static PREFETCH_CANCEL: AtomicBool = AtomicBool::new(false);
+
+fn franchise_db_path(app_handle: &AppHandle) -> Result<PathBuf, String> {
+    let dir = app_handle
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("app data dir: {e}"))?;
+    Ok(dir.join("franchise_relations_cache.sqlite3"))
+}
+
+fn open_franchise_db(app_handle: &AppHandle) -> Result<rusqlite::Connection, String> {
+    let path = franchise_db_path(app_handle)?;
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).map_err(|e| format!("{e}"))?;
+    }
+    let conn = rusqlite::Connection::open(&path).map_err(|e| format!("open db: {e}"))?;
+    conn.busy_timeout(Duration::from_secs(5))
+        .map_err(|e| format!("busy timeout: {e}"))?;
+    conn.pragma_update(None, "journal_mode", "WAL")
+        .map_err(|e| format!("journal mode: {e}"))?;
+    conn.execute_batch(
+        "CREATE TABLE IF NOT EXISTS franchise_nodes (
+            id INTEGER PRIMARY KEY,
+            title TEXT NOT NULL,
+            cover_url TEXT,
+            episodes INTEGER,
+            score INTEGER,
+            format TEXT,
+            media_type TEXT,
+            year INTEGER,
+            targets_json TEXT NOT NULL,
+            fetched_at INTEGER NOT NULL
+        );",
+    )
+    .map_err(|e| format!("schema: {e}"))?;
+    Ok(conn)
+}
+
+fn load_franchise_cache(app_handle: &AppHandle) {
+    if FRANCHISE_CACHE_LOADED.load(Ordering::Relaxed) {
+        return;
+    }
+    let Ok(conn) = open_franchise_db(app_handle) else {
+        FRANCHISE_CACHE_LOADED.store(true, Ordering::Relaxed);
+        return;
+    };
+    let mut stmt = match conn.prepare(
+        "SELECT id, title, cover_url, episodes, score, format, media_type, year, targets_json, fetched_at FROM franchise_nodes",
+    ) {
+        Ok(s) => s,
+        Err(_) => {
+            FRANCHISE_CACHE_LOADED.store(true, Ordering::Relaxed);
+            return;
+        }
+    };
+    let rows = stmt.query_map([], |row| {
+        Ok((
+            row.get::<_, i64>(0)? as u64,
+            row.get::<_, String>(1)?,
+            row.get::<_, Option<String>>(2)?,
+            row.get::<_, Option<i64>>(3)?,
+            row.get::<_, Option<i64>>(4)?,
+            row.get::<_, Option<String>>(5)?,
+            row.get::<_, Option<String>>(6)?,
+            row.get::<_, Option<i64>>(7)?,
+            row.get::<_, String>(8)?,
+            row.get::<_, i64>(9)?,
+        ))
+    });
+    let Ok(rows) = rows else {
+        FRANCHISE_CACHE_LOADED.store(true, Ordering::Relaxed);
+        return;
+    };
+    let mut guard = FRANCHISE_CACHE.lock().unwrap();
+    for row in rows.flatten() {
+        let (
+            id,
+            title,
+            cover_url,
+            episodes,
+            score,
+            format,
+            media_type,
+            year,
+            targets_json,
+            fetched_at,
+        ) = row;
+        let targets = serde_json::from_str::<Vec<(u64, String, Option<String>, Option<i32>)>>(
+            &targets_json,
+        )
+        .unwrap_or_default();
+        guard.insert(
+            id,
+            CachedFranchiseNode {
+                node: FranchiseNode {
+                    id,
+                    title,
+                    cover_url,
+                    episodes: episodes.map(|n| n as i32),
+                    score: score.map(|n| n as i32),
+                    format,
+                    media_type,
+                    year: year.map(|n| n as i32),
+                },
+                targets,
+                fetched_at,
+            },
+        );
+    }
+    FRANCHISE_CACHE_LOADED.store(true, Ordering::Relaxed);
+}
+
+fn persist_franchise_nodes(
+    app_handle: &AppHandle,
+    nodes: &[CachedFranchiseNode],
+) -> Result<(), String> {
+    if nodes.is_empty() {
+        return Ok(());
+    }
+    let conn = open_franchise_db(app_handle)?;
+    let tx = conn.unchecked_transaction().map_err(|e| format!("tx: {e}"))?;
+    {
+        let mut stmt = tx
+            .prepare(
+                "INSERT OR REPLACE INTO franchise_nodes
+                (id, title, cover_url, episodes, score, format, media_type, year, targets_json, fetched_at)
+                VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+            )
+            .map_err(|e| format!("prepare: {e}"))?;
+        for cached in nodes {
+            let node = &cached.node;
+            let targets_json = serde_json::to_string(&cached.targets).map_err(|e| format!("{e}"))?;
+            stmt.execute(rusqlite::params![
+                node.id as i64,
+                node.title,
+                node.cover_url,
+                node.episodes.map(|n| n as i64),
+                node.score.map(|n| n as i64),
+                node.format,
+                node.media_type,
+                node.year.map(|n| n as i64),
+                targets_json,
+                cached.fetched_at,
+            ])
+            .map_err(|e| format!("insert: {e}"))?;
+        }
+    }
+    tx.commit().map_err(|e| format!("commit: {e}"))
+}
+
+fn is_fresh(cached: &CachedFranchiseNode) -> bool {
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs() as i64)
+        .unwrap_or(0);
+    now - cached.fetched_at < FRANCHISE_CACHE_TTL_SECS
+}
+
+#[derive(Debug, Serialize)]
+pub struct PrefetchItem {
+    pub id: u64,
+    pub title: String,
+    pub relations: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct PrefetchProgress {
+    pub done: usize,
+    pub total: usize,
+    pub remaining: usize,
+    pub fetched: usize,
+    pub skipped: usize,
+    pub current: Option<String>,
+    pub items: Vec<PrefetchItem>,
+    pub elapsed_ms: u64,
+    pub eta_secs: Option<u64>,
+    pub next_batch_in_ms: u64,
+}
+
+#[derive(Debug, Serialize)]
+pub struct PrefetchSummary {
+    pub processed: usize,
+    pub fetched: usize,
+    pub skipped: usize,
+    pub cancelled: bool,
 }
 
 fn token_path(app_handle: &tauri::AppHandle) -> Result<PathBuf, String> {
@@ -50,17 +289,53 @@ async fn graphql_request(
     query: serde_json::Value,
     token: Option<&str>,
 ) -> Result<serde_json::Value, String> {
-    let mut builder = CLIENT.post("https://graphql.anilist.co").json(&query);
-    if let Some(t) = token {
-        builder = builder.header("Authorization", format!("Bearer {t}"));
+    let mut last_err = "AniList request failed".to_string();
+    for attempt in 0..3 {
+        acquire_request_slot().await;
+
+        let mut builder = CLIENT.post("https://graphql.anilist.co").json(&query);
+        if let Some(t) = token {
+            builder = builder.header("Authorization", format!("Bearer {t}"));
+        }
+        let resp = match builder.send().await {
+            Ok(r) => r,
+            Err(e) => {
+                last_err = format!("AniList request failed: {e}");
+                tokio::time::sleep(Duration::from_secs(1 << attempt)).await;
+                continue;
+            }
+        };
+
+        if resp.status() == reqwest::StatusCode::TOO_MANY_REQUESTS {
+            let retry_after = resp
+                .headers()
+                .get(reqwest::header::RETRY_AFTER)
+                .and_then(|v| v.to_str().ok())
+                .and_then(|s| s.parse::<u64>().ok())
+                .unwrap_or(1 << attempt);
+            last_err = "AniList rate limit exceeded".to_string();
+            tokio::time::sleep(Duration::from_secs(retry_after.min(10))).await;
+            continue;
+        }
+
+        update_rate_limit(
+            resp.headers()
+                .get("x-ratelimit-limit")
+                .and_then(|v| v.to_str().ok()),
+        );
+
+        if !resp.status().is_success() {
+            last_err = format!("AniList HTTP {}", resp.status());
+            tokio::time::sleep(Duration::from_secs(1 << attempt)).await;
+            continue;
+        }
+
+        return resp
+            .json()
+            .await
+            .map_err(|e| format!("Failed to parse AniList response: {e}"));
     }
-    let resp = builder
-        .send()
-        .await
-        .map_err(|e| format!("AniList request failed: {e}"))?;
-    resp.json()
-        .await
-        .map_err(|e| format!("Failed to parse AniList response: {e}"))
+    Err(last_err)
 }
 
 #[derive(Debug, Serialize)]
@@ -129,6 +404,9 @@ pub struct AniListEntry {
     pub progress: Option<i32>,
     pub score: Option<f64>,
     pub list_status: String,
+    pub created_at: Option<i64>,
+    pub completed_at: Option<String>,
+    pub updated_at: Option<i64>,
 }
 
 #[derive(Debug, Serialize)]
@@ -985,6 +1263,9 @@ pub async fn get_anilist_lists(
                             progress
                             score
                             status
+                            createdAt
+                            completedAt { year month day }
+                            updatedAt
                             media {
                                 id
                                 title { romaji english native }
@@ -1052,6 +1333,9 @@ pub async fn get_anilist_lists(
                                 progress: entry["progress"].as_i64().map(|n| n as i32),
                                 score: entry["score"].as_f64(),
                                 list_status: entry["status"].as_str().unwrap_or("").to_string(),
+                                created_at: entry["createdAt"].as_i64(),
+                                completed_at: parse_date(&entry["completedAt"]),
+                                updated_at: entry["updatedAt"].as_i64(),
                             }
                         })
                         .collect()
@@ -1125,6 +1409,39 @@ pub struct AniActivity {
     pub user_avatar: Option<String>,
 }
 
+fn normalize_activity_status(raw: &str) -> String {
+    let lower = raw.to_lowercase();
+    match lower.as_str() {
+        "plans to watch" | "plans to read" => return "PLANNING".to_string(),
+        "completed" | "read completed" => return "COMPLETED".to_string(),
+        _ => {}
+    }
+    for needle in ["dropped", "drop "] {
+        if lower.contains(needle) {
+            return "DROPPED".to_string();
+        }
+    }
+    for needle in ["paused", "pause "] {
+        if lower.contains(needle) {
+            return "PAUSED".to_string();
+        }
+    }
+    for needle in ["reread", "rewatch", "replay", "repeat"] {
+        if lower.contains(needle) {
+            return "REPEATING".to_string();
+        }
+    }
+    if lower.contains("complete") || lower.contains("finish") {
+        return "COMPLETED".to_string();
+    }
+    for needle in ["watch", "read", "start", "current"] {
+        if lower.contains(needle) {
+            return "CURRENT".to_string();
+        }
+    }
+    raw.to_string()
+}
+
 #[tauri::command]
 pub async fn get_anilist_activity(user_ids: Vec<u64>) -> Result<Vec<AniActivity>, String> {
     let body = serde_json::json!({
@@ -1175,7 +1492,7 @@ pub async fn get_anilist_activity(user_ids: Vec<u64>) -> Result<Vec<AniActivity>
                 id: a["id"].as_u64().unwrap_or(0),
                 created_at: a["createdAt"].as_i64().unwrap_or(0),
                 activity_type: a_type.to_string(),
-                status: a["status"].as_str().map(String::from),
+                status: a["status"].as_str().map(normalize_activity_status),
                 progress: a["progress"].as_str().map(String::from),
                 text: a["text"].as_str().map(String::from),
                 media_id: a["media"]["id"].as_u64(),
@@ -1404,7 +1721,7 @@ pub async fn get_staff_characters(id: u64) -> Result<AniStaffDetail, String> {
     })
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone, Deserialize)]
 pub struct FranchiseNode {
     pub id: u64,
     pub title: String,
@@ -1431,37 +1748,24 @@ pub struct FranchiseGraph {
 }
 
 const MAX_FRANCHISE_NODES: usize = 200;
-const MAX_FRANCHISE_DEPTH: usize = 12;
+const MAX_FRANCHISE_DEPTH: usize = 15;
+const FRANCHISE_BATCH_SIZE: usize = 8;
+
+fn is_anime_media(media_type: Option<&str>) -> bool {
+    match media_type {
+        None => true,
+        Some("ANIME" | "MOVIE" | "OVA" | "ONA") => true,
+        _ => false,
+    }
+}
 
 struct FetchedFranchiseNode {
     node: FranchiseNode,
     targets: Vec<(u64, String, Option<String>, Option<i32>)>,
 }
 
-async fn fetch_franchise_node(id: u64) -> Result<FetchedFranchiseNode, String> {
-    let body = serde_json::json!({
-        "query": r"
-            query ($id: Int) {
-                Media(id: $id, type: ANIME) {
-                    id
-                    title { romaji english }
-                    coverImage { large medium }
-                    episodes, averageScore, format, type
-                    startDate { year }
-                    relations {
-                        edges {
-                            relationType
-                            node { id title { romaji english } coverImage { large medium } episodes averageScore format type startDate { year } }
-                        }
-                    }
-                }
-            }
-        ",
-        "variables": { "id": id }
-    });
-    let json = graphql_request(body, None).await?;
-    let m = &json["data"]["Media"];
-    let node = FranchiseNode {
+fn parse_franchise_media(m: &serde_json::Value) -> FranchiseNode {
+    FranchiseNode {
         id: m["id"].as_u64().unwrap_or(0),
         title: m["title"]["romaji"]
             .as_str()
@@ -1474,8 +1778,11 @@ async fn fetch_franchise_node(id: u64) -> Result<FetchedFranchiseNode, String> {
         format: m["format"].as_str().map(String::from),
         media_type: m["type"].as_str().map(String::from),
         year: m["startDate"]["year"].as_i64().map(|n| n as i32),
-    };
-    let targets = m["relations"]["edges"]
+    }
+}
+
+fn parse_franchise_targets(m: &serde_json::Value) -> Vec<(u64, String, Option<String>, Option<i32>)> {
+    m["relations"]["edges"]
         .as_array()
         .map(|edges| {
             edges
@@ -1491,59 +1798,165 @@ async fn fetch_franchise_node(id: u64) -> Result<FetchedFranchiseNode, String> {
                 })
                 .collect()
         })
-        .unwrap_or_default();
-    Ok(FetchedFranchiseNode { node, targets })
+        .unwrap_or_default()
+}
+
+async fn fetch_franchise_batch_once(ids: &[u64]) -> Result<Vec<FetchedFranchiseNode>, String> {
+    let mut query = String::from("query {");
+    for id in ids {
+        query.push_str(&format!(
+            " m{id}: Media(id: {id}, type: ANIME) {{ id title {{ romaji english }} coverImage {{ large medium }} episodes averageScore format type startDate {{ year }} relations {{ edges {{ relationType node {{ id title {{ romaji english }} coverImage {{ large medium }} episodes averageScore format type startDate {{ year }} }} }} }} }}"
+        ));
+    }
+    query.push('}');
+
+    let body = serde_json::json!({ "query": query });
+    let json = graphql_request(body, None).await?;
+
+    let mut out = Vec::with_capacity(ids.len());
+    for id in ids {
+        let m = &json["data"][format!("m{id}")];
+        if m.is_null() {
+            continue;
+        }
+        out.push(FetchedFranchiseNode {
+            node: parse_franchise_media(m),
+            targets: parse_franchise_targets(m),
+        });
+    }
+    Ok(out)
+}
+
+fn fetch_franchise_batch(ids: &[u64]) -> std::pin::Pin<Box<dyn std::future::Future<Output = Vec<FetchedFranchiseNode>> + Send + '_>> {
+    Box::pin(fetch_franchise_batch_inner(ids))
+}
+
+async fn fetch_franchise_batch_inner(ids: &[u64]) -> Vec<FetchedFranchiseNode> {
+    if ids.is_empty() {
+        return Vec::new();
+    }
+    match fetch_franchise_batch_once(ids).await {
+        Ok(result) => result,
+        Err(err) => {
+            eprintln!("anilist franchise batch failed ({} ids): {err}", ids.len());
+            if ids.len() == 1 {
+                return Vec::new();
+            }
+            let mid = ids.len() / 2;
+            let mut result = fetch_franchise_batch(&ids[..mid]).await;
+            result.extend(fetch_franchise_batch(&ids[mid..]).await);
+            result
+        }
+    }
 }
 
 #[tauri::command]
-pub async fn get_anime_franchise(id: u64, scope: String) -> Result<FranchiseGraph, String> {
+pub async fn get_anime_franchise(
+    app_handle: tauri::AppHandle,
+    id: u64,
+    scope: String,
+) -> Result<FranchiseGraph, String> {
+    let bypass_cache = scope == "fresh";
+    load_franchise_cache(&app_handle);
+
     let mut nodes: Vec<FranchiseNode> = Vec::new();
     let mut edges: Vec<FranchiseEdge> = Vec::new();
+    let mut node_ids: HashSet<u64> = HashSet::new();
     let mut visited: HashSet<u64> = HashSet::new();
-
-    let mut frontier: Vec<u64> = vec![id];
     visited.insert(id);
 
+    let mut frontier: Vec<u64> = vec![id];
+
     for depth in 0..=MAX_FRANCHISE_DEPTH {
-        if frontier.is_empty() || nodes.len() >= MAX_FRANCHISE_NODES {
+        if frontier.is_empty() || node_ids.len() >= MAX_FRANCHISE_NODES {
             break;
         }
 
-        let results = join_all(frontier.iter().map(|&fid| fetch_franchise_node(fid))).await;
-
         let mut next_frontier: Vec<u64> = Vec::new();
 
-        for result in results {
-            if nodes.len() >= MAX_FRANCHISE_NODES {
+        for batch in frontier.chunks(FRANCHISE_BATCH_SIZE) {
+            if node_ids.len() >= MAX_FRANCHISE_NODES {
                 break;
             }
-            let Ok(data) = result else { continue };
 
-            let node_id = data.node.id;
-            nodes.push(data.node);
+            let mut results: Vec<FetchedFranchiseNode> = Vec::new();
 
-            if depth < MAX_FRANCHISE_DEPTH {
-                for (target_id, rel_type, media_type, _year) in data.targets {
-                    if media_type.as_deref() != Some("ANIME") {
-                        continue;
+            if !bypass_cache {
+                let mut fetch_ids: Vec<u64> = Vec::new();
+                {
+                    let guard = FRANCHISE_CACHE
+                        .lock()
+                        .map_err(|_| "cache lock".to_string())?;
+                    for b in batch {
+                        match guard.get(b) {
+                            Some(c) if is_fresh(c) => {
+                                results.push(FetchedFranchiseNode {
+                                    node: c.node.clone(),
+                                    targets: c.targets.clone(),
+                                });
+                            }
+                            _ => fetch_ids.push(*b),
+                        }
                     }
-                    let is_main = rel_type == "SEQUEL" || rel_type == "PREQUEL";
-                    let include_edge = scope == "all" || is_main;
-                    let follow_target = scope == "all" || is_main;
+                }
 
-                    if include_edge {
+                if !fetch_ids.is_empty() {
+                    let fresh = fetch_franchise_batch(&fetch_ids).await;
+                    let fetched_at = std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .map(|d| d.as_secs() as i64)
+                        .unwrap_or(0);
+                    for data in &fresh {
+                        results.push(FetchedFranchiseNode {
+                            node: data.node.clone(),
+                            targets: data.targets.clone(),
+                        });
+                    }
+                    let mut cache_guard = FRANCHISE_CACHE
+                        .lock()
+                        .map_err(|_| "cache lock".to_string())?;
+                    let mut persisted: Vec<CachedFranchiseNode> = Vec::new();
+                    for data in fresh {
+                        let cached = CachedFranchiseNode {
+                            node: data.node,
+                            targets: data.targets,
+                            fetched_at,
+                        };
+                        cache_guard.insert(cached.node.id, cached.clone());
+                        persisted.push(cached);
+                    }
+                    drop(cache_guard);
+                    let _ = persist_franchise_nodes(&app_handle, &persisted);
+                }
+            } else {
+                results = fetch_franchise_batch(batch).await;
+            }
+
+            for data in results {
+                if node_ids.len() >= MAX_FRANCHISE_NODES {
+                    break;
+                }
+                let node_id = data.node.id;
+                if node_ids.insert(node_id) {
+                    nodes.push(data.node);
+                }
+
+                if depth < MAX_FRANCHISE_DEPTH {
+                    for (target_id, rel_type, media_type, _year) in data.targets {
+                        if !is_anime_media(media_type.as_deref()) {
+                            continue;
+                        }
                         edges.push(FranchiseEdge {
                             source: node_id,
                             target: target_id,
                             relation_type: rel_type,
                         });
-                    }
-                    if follow_target
-                        && !visited.contains(&target_id)
-                        && next_frontier.len() + nodes.len() < MAX_FRANCHISE_NODES
-                    {
-                        visited.insert(target_id);
-                        next_frontier.push(target_id);
+                        if !visited.contains(&target_id)
+                            && next_frontier.len() + node_ids.len() < MAX_FRANCHISE_NODES
+                        {
+                            visited.insert(target_id);
+                            next_frontier.push(target_id);
+                        }
                     }
                 }
             }
@@ -1557,4 +1970,229 @@ pub async fn get_anime_franchise(id: u64, scope: String) -> Result<FranchiseGrap
         nodes,
         edges,
     })
+}
+
+fn relation_line(
+    rel_type: &str,
+    title: &str,
+    year: Option<i32>,
+) -> String {
+    match year {
+        Some(y) => format!("{rel_type} · {title} ({y})"),
+        None => format!("{rel_type} · {title}"),
+    }
+}
+
+const PREFETCH_BATCH_SIZE: usize = 8;
+const MAX_PREFETCH_NODES: usize = 50000;
+
+fn emit_prefetch_progress(
+    app_handle: &tauri::AppHandle,
+    progress: &PrefetchProgress,
+) {
+    let _ = app_handle.emit("anilist-prefetch-progress", progress);
+}
+
+#[tauri::command]
+pub async fn prefetch_anime_relations(
+    app_handle: tauri::AppHandle,
+    anime_ids: Vec<u64>,
+) -> Result<PrefetchSummary, String> {
+    if PREFETCH_RUNNING.load(Ordering::Relaxed) {
+        return Err("Prefetch already running".to_string());
+    }
+    PREFETCH_RUNNING.store(true, Ordering::Relaxed);
+    PREFETCH_CANCEL.store(false, Ordering::Relaxed);
+
+    load_franchise_cache(&app_handle);
+
+    let mut processed = 0usize;
+    let mut fetched_count = 0usize;
+    let mut skipped = 0usize;
+    let mut queued: HashSet<u64> = HashSet::new();
+    let mut queue: VecDeque<u64> = VecDeque::new();
+    let mut done: HashSet<u64> = HashSet::new();
+
+    let seeds: Vec<u64> = anime_ids
+        .into_iter()
+        .collect::<HashSet<_>>()
+        .into_iter()
+        .collect();
+    for id in seeds {
+        if queued.insert(id) {
+            queue.push_back(id);
+        }
+    }
+
+    let mut cancelled = false;
+    let mut attempts: HashMap<u64, u32> = HashMap::new();
+
+    let start_time = std::time::Instant::now();
+    let mut last_batch_start = std::time::Instant::now();
+    let mut avg_batch_ms: f64 = 0.0;
+    let mut has_batch_sample = false;
+    let mut next_batch_in_ms: u64;
+
+    while !queue.is_empty() {
+        if PREFETCH_CANCEL.load(Ordering::Relaxed) {
+            cancelled = true;
+            break;
+        }
+        if processed >= MAX_PREFETCH_NODES {
+            break;
+        }
+
+        let count = queue.len().min(PREFETCH_BATCH_SIZE);
+        let batch: Vec<u64> = queue.drain(..count).collect();
+
+        let mut to_fetch: Vec<u64> = Vec::new();
+        for id in &batch {
+            let cached = FRANCHISE_CACHE.lock().ok().and_then(|g| g.get(id).cloned());
+            match cached {
+                Some(c) if is_fresh(&c) => {
+                    skipped += 1;
+                    processed += 1;
+                    done.insert(*id);
+                }
+                _ => to_fetch.push(*id),
+            }
+        }
+
+        if to_fetch.is_empty() {
+            continue;
+        }
+
+        let current = FRANCHISE_CACHE
+            .lock()
+            .ok()
+            .and_then(|g| g.get(&to_fetch[0]).map(|c| c.node.title.clone()))
+            .unwrap_or_else(|| "?".to_string());
+
+        let batch_start = std::time::Instant::now();
+        let results = match fetch_franchise_batch_once(&to_fetch).await {
+            Ok(r) => r,
+            Err(_) => {
+                // Failed batch (rate limit exhausted etc.): re-queue for another attempt,
+                // but drop ids that keep failing to avoid an infinite loop.
+                for id in to_fetch {
+                    let n = attempts.entry(id).or_insert(0);
+                    *n += 1;
+                    if *n <= 3 && queued.contains(&id) {
+                        queue.push_back(id);
+                    } else {
+                        processed += 1;
+                        done.insert(id);
+                    }
+                }
+                continue;
+            }
+        };
+
+        // Smoothed batch duration (EWMA) for ETA estimation and next-call countdown.
+        let batch_elapsed_ms = batch_start.elapsed().as_millis() as f64;
+        avg_batch_ms = if has_batch_sample {
+            avg_batch_ms * 0.7 + batch_elapsed_ms * 0.3
+        } else {
+            batch_elapsed_ms
+        };
+        has_batch_sample = true;
+        next_batch_in_ms = last_batch_start.elapsed().as_millis() as u64;
+        last_batch_start = std::time::Instant::now();
+
+        {
+            let mut guard = FRANCHISE_CACHE.lock().map_err(|_| "cache lock".to_string())?;
+            let mut persisted: Vec<CachedFranchiseNode> = Vec::new();
+            for data in results {
+                let fetched_at = std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .map(|d| d.as_secs() as i64)
+                    .unwrap_or(0);
+                let cached = CachedFranchiseNode {
+                    node: data.node,
+                    targets: data.targets,
+                    fetched_at,
+                };
+                guard.insert(cached.node.id, cached.clone());
+                persisted.push(cached);
+            }
+            drop(guard);
+            let _ = persist_franchise_nodes(&app_handle, &persisted);
+        }
+
+        // Build the text list for this batch (each anime + its relations).
+        let mut items: Vec<PrefetchItem> = Vec::new();
+        let guard = FRANCHISE_CACHE.lock().map_err(|_| "cache lock".to_string())?;
+        for id in &batch {
+            let Some(c) = guard.get(id) else {
+                continue;
+            };
+            let relations = c
+                .targets
+                .iter()
+                .filter(|(_, _, mt, _)| is_anime_media(mt.as_deref()))
+                .map(|(tid, rt, _, y)| {
+                    let target_title = guard
+                        .get(tid)
+                        .map(|t| t.node.title.clone())
+                        .unwrap_or_else(|| "?".to_string());
+                    relation_line(rt, &target_title, *y)
+                })
+                .collect::<Vec<_>>();
+            items.push(PrefetchItem {
+                id: *id,
+                title: c.node.title.clone(),
+                relations,
+            });
+            processed += 1;
+            fetched_count += 1;
+            done.insert(*id);
+
+            for (target, _, media_type, _) in &c.targets {
+                if !is_anime_media(media_type.as_deref()) {
+                    continue;
+                }
+                if queued.insert(*target) {
+                    queue.push_back(*target);
+                }
+            }
+        }
+        drop(guard);
+
+        let remaining_batches = queue.len() as f64 / PREFETCH_BATCH_SIZE as f64;
+        let eta_secs = if has_batch_sample {
+            Some(((remaining_batches * avg_batch_ms / 1000.0).ceil() as u64).max(0))
+        } else {
+            None
+        };
+        let elapsed_ms = start_time.elapsed().as_millis() as u64;
+
+        emit_prefetch_progress(
+            &app_handle,
+            &PrefetchProgress {
+                done: done.len(),
+                total: done.len() + queue.len(),
+                remaining: queue.len(),
+                fetched: fetched_count,
+                skipped,
+                current: Some(current),
+                items,
+                elapsed_ms,
+                eta_secs,
+                next_batch_in_ms,
+            },
+        );
+    }
+
+    PREFETCH_RUNNING.store(false, Ordering::Relaxed);
+    Ok(PrefetchSummary {
+        processed,
+        fetched: fetched_count,
+        skipped,
+        cancelled,
+    })
+}
+
+#[tauri::command]
+pub fn cancel_anime_prefetch() {
+    PREFETCH_CANCEL.store(true, Ordering::Relaxed);
 }

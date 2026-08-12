@@ -1,8 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-type FranchiseScope = "all" | "main";
-
 export interface SettingsStore {
   dlLimit: number | null;
   ulLimit: number | null;
@@ -36,7 +34,6 @@ export interface SettingsStore {
   fastresumeEnabled: boolean;
   disablePersistence: boolean;
   parseTitles: boolean;
-  franchiseRelationScope: FranchiseScope;
   patch: (partial: Partial<SettingsStore>) => void;
 }
 
@@ -109,7 +106,6 @@ export const useSettingsStore = create<SettingsStore>()(
       fastresumeEnabled: true,
       disablePersistence: false,
       parseTitles: false,
-      franchiseRelationScope: "all",
 
       patch: (partial) => set(partial),
     }),

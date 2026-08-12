@@ -134,29 +134,16 @@ function getClusterX(
   nodeId: number,
   rootId: number,
   containerW: number,
-  edges: { source: number; target: number; relation_type: string }[],
+  relationMap: Map<number, string>,
+  jitter: number,
 ): number {
   if (nodeId === rootId) return containerW / 2;
 
-  const edge = edges.find(
-    (e) =>
-      (e.source === rootId && e.target === nodeId) ||
-      (e.target === rootId && e.source === nodeId),
-  );
-  if (edge) {
-    const ratio = RELATION_X[edge.relation_type] ?? 0.5;
-    return containerW * ratio;
-  }
+  const rel = relationMap.get(nodeId);
+  if (!rel) return containerW / 2;
 
-  const indirect = edges.find(
-    (e) => e.source === nodeId || e.target === nodeId,
-  );
-  if (indirect) {
-    const ratio = RELATION_X[indirect.relation_type] ?? 0.5;
-    return containerW * ratio;
-  }
-
-  return containerW / 2;
+  const ratio = RELATION_X[rel] ?? 0.5;
+  return containerW * ratio + jitter;
 }
 
 export function filterFranchiseNodesBySearch(
@@ -172,6 +159,42 @@ export function filterFranchiseNodesBySearch(
     }
   }
   return ids;
+}
+
+export function computeNodeRelationMap(
+  graph: FranchiseGraph,
+  nodeMap: Map<number, FranchiseNode>,
+): Map<number, string> {
+  const relation = new Map<number, string>([[graph.root_id, "ROOT"]]);
+  const adj = new Map<number, { node: number; type: string }[]>();
+  for (const e of graph.edges) {
+    if (!nodeMap.has(e.source) || !nodeMap.has(e.target)) continue;
+    if (!adj.has(e.source)) adj.set(e.source, []);
+    if (!adj.has(e.target)) adj.set(e.target, []);
+    adj.get(e.source)!.push({ node: e.target, type: e.relation_type });
+    adj.get(e.target)!.push({ node: e.source, type: e.relation_type });
+  }
+
+  const queue = [graph.root_id];
+  while (queue.length > 0) {
+    const cur = queue.shift()!;
+    for (const { node, type } of adj.get(cur) ?? []) {
+      if (!relation.has(node)) {
+        relation.set(node, type);
+        queue.push(node);
+      }
+    }
+  }
+  return relation;
+}
+
+export function sortFranchiseNodes(
+  nodes: FranchiseNode[],
+): FranchiseNode[] {
+  return [...nodes].sort((a, b) => {
+    if (a.year !== b.year) return (a.year ?? 0) - (b.year ?? 0);
+    return a.title.localeCompare(b.title);
+  });
 }
 
 export function buildEntryLookup(lists: AniListCollection[]) {
@@ -278,6 +301,7 @@ export function buildSimNodes(
   rootId: number,
   totalH: number,
   dims: { w: number; h: number },
+  relationMap: Map<number, string>,
 ) {
   const nodes: SimNode[] = [];
   const initPos = new Map<number, FranchiseNodePosition>();
@@ -287,6 +311,14 @@ export function buildSimNodes(
   const minYear = years.length > 0 ? Math.min(...years) : NaN;
   const maxYear = years.length > 0 ? Math.max(...years) : NaN;
   const yearRange = maxYear - minYear || 1;
+
+  const groupCount = new Map<string, number>();
+  const groupIndex = new Map<string, number>();
+  for (const node of values) {
+    if (node.id === rootId) continue;
+    const rel = relationMap.get(node.id) ?? "UNKNOWN";
+    groupCount.set(rel, (groupCount.get(rel) ?? 0) + 1);
+  }
 
   let idx = 0;
   for (const node of values) {
@@ -299,7 +331,23 @@ export function buildSimNodes(
     }
     idx++;
 
-    const clusterX = getClusterX(node.id, rootId, containerW, filtered.edges);
+    let jitter = 0;
+    if (node.id !== rootId) {
+      const rel = relationMap.get(node.id) ?? "UNKNOWN";
+      const count = groupCount.get(rel) ?? 1;
+      const index = groupIndex.get(rel) ?? 0;
+      groupIndex.set(rel, index + 1);
+      const span = count > 1 ? (count - 1) * dims.w * 1.4 : 0;
+      jitter = count > 1 ? -span / 2 + index * dims.w * 1.4 : 0;
+    }
+
+    const clusterX = getClusterX(
+      node.id,
+      rootId,
+      containerW,
+      relationMap,
+      jitter,
+    );
     nodes.push({
       id: node.id,
       x: clusterX,
@@ -332,7 +380,7 @@ export function runFranchiseSimulation(
 ): Simulation<SimNode, undefined> {
   const sim = forceSimulation(simNodes)
     .force("x", forceX<SimNode>((d) => d.clusterX).strength(0.06))
-    .force("collide", forceCollide(dims.w * 0.8))
+    .force("collide", forceCollide(dims.w))
     .alphaDecay(0.025)
     .on("tick", () => {
       const pos = new Map<number, FranchiseNodePosition>();

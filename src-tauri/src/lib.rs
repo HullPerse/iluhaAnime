@@ -646,6 +646,8 @@ pub fn run() {
             anilist::get_staff_characters,
             anilist::get_anilist_activity,
             anilist::get_anime_franchise,
+            anilist::prefetch_anime_relations,
+            anilist::cancel_anime_prefetch,
             start_torrent_download,
             get_torrent_info,
             list_torrents,

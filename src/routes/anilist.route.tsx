@@ -31,7 +31,7 @@ import { SmallLoader } from "@/components/shared/loader.component";
 import FiltersModal, {
   defaultFilters,
 } from "./components/anilist/filters.anilist";
-import AniListActivityModal from "./components/anilist/activity.anilist";
+import ActivityHistoryModal from "./components/anilist/activity.anilist";
 import BrowseAnimeModal from "./components/anilist/browse.anilist";
 import StatsModal from "./components/anilist/stats.anilist";
 import { usePagination, paginate } from "@/hooks/pagination.hook";
@@ -44,6 +44,7 @@ import AniListSortBar from "./components/anilist/sort.anilist";
 import AniListPaginationBar from "./components/anilist/pagination.anilist";
 import AniListRecsModal from "./components/anilist/rec.anilist";
 import AniListFavouritesModal from "./components/anilist/favourites.anilist";
+import PrefetchRelationsModal from "./components/anilist/prefetch.anilist";
 import { useSearchStore } from "@/store/search.store";
 
 function AnilistRoute() {
@@ -61,9 +62,13 @@ function AnilistRoute() {
   const [recs, setRecs] = useState<AniRecommendation[]>([]);
   const [recsLoading, setRecsLoading] = useState(false);
   const [showFavourites, setShowFavourites] = useState(false);
-  const [showActivity, setShowActivity] = useState(false);
+  const [activityHistory, setActivityHistory] = useState<{
+    open: boolean;
+    tab: "feed" | "calendar";
+  }>({ open: false, tab: "feed" });
   const [showBrowse, setShowBrowse] = useState(false);
   const [showStats, setShowStats] = useState(false);
+  const [showPrefetch, setShowPrefetch] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [searchFilters, setSearchFilters] =
     useState<SearchFilters>(defaultFilters);
@@ -88,6 +93,11 @@ function AnilistRoute() {
   const favouriteIds = useMemo(
     () => new Set(favourites.map((f) => f.id)),
     [favourites],
+  );
+
+  const allAnimeIds = useMemo(
+    () => lists.flatMap((l) => l.entries.map((e) => e.media.id)),
+    [lists],
   );
 
   useEffect(() => {
@@ -372,6 +382,7 @@ function AnilistRoute() {
           onStatsOpen={() => setShowStats(true)}
           onBrowseOpen={() => setShowBrowse(true)}
           onRecsOpen={() => setShowRecs(true)}
+          onPrefetchOpen={() => setShowPrefetch(true)}
           onLogout={handleLogout}
         />
       )}
@@ -393,9 +404,12 @@ function AnilistRoute() {
         <AniListSortBar
           sort={sort}
           onSortChange={setSort}
-          onActivityOpen={() => setShowActivity(true)}
+          onActivityOpen={() => setActivityHistory({ open: true, tab: "feed" })}
           onFavouritesOpen={() => setShowFavourites(true)}
           onRandom={handleRandomFromList}
+          onHistoryOpen={() =>
+            setActivityHistory({ open: true, tab: "calendar" })
+          }
           hasFavourites={favourites.length > 0}
         />
       )}
@@ -587,12 +601,14 @@ function AnilistRoute() {
         }}
       />
 
-      {user && showActivity && (
-        <AniListActivityModal
+      {user && activityHistory.open && (
+        <ActivityHistoryModal
           userId={user.id}
-          onClose={() => setShowActivity(false)}
+          lists={lists}
+          initialTab={activityHistory.tab}
+          onClose={() => setActivityHistory((s) => ({ ...s, open: false }))}
           onAnimeClick={(id) => {
-            setShowActivity(false);
+            setActivityHistory((s) => ({ ...s, open: false }));
             setSelectedAnime({ animeId: id, listEntry: entryLookup.get(id) });
           }}
         />
@@ -634,6 +650,13 @@ function AnilistRoute() {
             setShowBrowse(false);
             setSelectedAnime({ animeId: id, listEntry: entryLookup.get(id) });
           }}
+        />
+      )}
+
+      {showPrefetch && (
+        <PrefetchRelationsModal
+          animeIds={allAnimeIds}
+          onClose={() => setShowPrefetch(false)}
         />
       )}
     </main>

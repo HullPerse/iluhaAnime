@@ -1,8 +1,12 @@
-import { useSettingsStore } from "@/store/settings.store";
+import { Button } from "@/components/ui/button.component";
+import { Checkbox } from "@/components/ui/checkbox.component";
 import { Input } from "@/components/ui/input.component";
 import Select from "@/components/ui/select.component";
-import { Checkbox } from "@/components/ui/checkbox.component";
 import { SOURCE_INFOS } from "@/config/search.config";
+import { deleteAppCache } from "@/lib/app.cache";
+import { useI18n } from "@/lib/i18n";
+import { useSearchStore } from "@/store/search.store";
+import { useSettingsStore } from "@/store/settings.store";
 
 export default function SettingsSearch() {
   const {
@@ -12,8 +16,25 @@ export default function SettingsSearch() {
     anilistPageSize,
     anilistMaxPages,
     searchHistoryMaxItems,
+    autocompleteMode,
+    anilistSuggestionBoost,
     patch,
   } = useSettingsStore();
+  const { t } = useI18n();
+  const learningHistory = useSearchStore((state) => state.history);
+  const learningAnimeCount = useSearchStore((state) => state.animeIndex.length);
+  const learningQueryStats = useSearchStore((state) => state.queryStats);
+  const learningSuggestionStats = useSearchStore(
+    (state) => state.suggestionStats
+  );
+  const learnedQueries = Object.values(learningQueryStats).reduce(
+    (total, stat) => total + stat.count,
+    0
+  );
+  const selectedSuggestions = Object.values(learningSuggestionStats).reduce(
+    (total, stat) => total + stat.selectedCount,
+    0
+  );
 
   const toggleSource = (value: string) => {
     const next = visibleSources.includes(value)
@@ -26,7 +47,7 @@ export default function SettingsSearch() {
   };
 
   const defaultOpts = SOURCE_INFOS.filter((s) =>
-    visibleSources.includes(s.value),
+    visibleSources.includes(s.value)
   ).map((s) => ({
     value: s.value,
     label: s.nsfw ? `${s.label} (NSFW)` : s.label,
@@ -34,10 +55,12 @@ export default function SettingsSearch() {
 
   return (
     <div className="flex flex-col gap-3 p-4">
-      <p className="windows95-text text-muted font-bold w-full">Поиск</p>
+      <p className="windows95-text text-muted w-full font-bold">
+        {t("settings.search.title")}
+      </p>
 
-      <label className="flex items-center gap-2 windows95-text text-text">
-        <span className="w-48">Источник по умолчанию</span>
+      <label className="windows95-text text-text flex items-center gap-2">
+        <span className="w-48">{t("settings.search.defaultSource")}</span>
         <Select
           value={
             visibleSources.includes(defaultSearchSource)
@@ -53,14 +76,14 @@ export default function SettingsSearch() {
 
       <hr className="windows95-header w-full" />
 
-      <p className="windows95-text text-muted font-bold w-full">
-        Видимые источники
+      <p className="windows95-text text-muted w-full font-bold">
+        {t("settings.search.visibleSources")}
       </p>
       <div className="flex flex-col gap-1">
         {SOURCE_INFOS.map((info) => (
           <label
             key={info.value}
-            className="flex items-center gap-2 windows95-text text-text cursor-pointer select-none"
+            className="windows95-text text-text flex cursor-pointer items-center gap-2 select-none"
           >
             <Checkbox
               checked={visibleSources.includes(info.value)}
@@ -78,8 +101,8 @@ export default function SettingsSearch() {
 
       <hr className="windows95-header w-full" />
 
-      <label className="flex items-center gap-2 windows95-text text-text">
-        <span className="w-48">Результатов на странице</span>
+      <label className="windows95-text text-text flex items-center gap-2">
+        <span className="w-48">{t("settings.search.resultsPerPage")}</span>
         <Input
           type="number"
           min={5}
@@ -90,12 +113,12 @@ export default function SettingsSearch() {
         />
       </label>
 
-      <label className="flex items-center gap-2 windows95-text text-text">
-        <span className="w-48">Макс. записей истории поиска</span>
+      <label className="windows95-text text-text flex items-center gap-2">
+        <span className="w-48">{t("settings.search.historyMax")}</span>
         <Input
           type="number"
           min={0}
-          max={50}
+          max={500}
           value={searchHistoryMaxItems}
           onChange={(e) =>
             patch({ searchHistoryMaxItems: Number(e.target.value) })
@@ -104,12 +127,121 @@ export default function SettingsSearch() {
         />
       </label>
 
+      <label className="windows95-text text-text flex items-center gap-2">
+        <span className="w-48">{t("settings.search.autocompleteMode")}</span>
+        <Select
+          value={autocompleteMode}
+          onChange={(value) =>
+            patch({ autocompleteMode: value as typeof autocompleteMode })
+          }
+          options={[
+            {
+              value: "inline",
+              label: t("settings.search.autocompleteModeInline"),
+            },
+            {
+              value: "dropdown",
+              label: t("settings.search.autocompleteModeDropdown"),
+            },
+            {
+              value: "both",
+              label: t("settings.search.autocompleteModeBoth"),
+            },
+            {
+              value: "off",
+              label: t("settings.search.autocompleteModeOff"),
+            },
+          ]}
+          className="w-40"
+        />
+      </label>
+
+      {autocompleteMode === "off" ? (
+        <p className="windows95-text text-destructive w-full text-[10px]">
+          {t("settings.search.autocompleteModeOffHint")}
+        </p>
+      ) : autocompleteMode === "inline" || autocompleteMode === "both" ? (
+        <div className="flex flex-col gap-1">
+          <span className="windows95-text text-muted text-[10px]">
+            {t("settings.search.preview")}
+          </span>
+          <div className="windows95-border windows95-text flex min-h-7 items-center overflow-hidden whitespace-pre bg-white px-1.5">
+            <span className="relative z-10">fri</span>
+            <span
+              className="ml-0.5"
+              style={{
+                color: "var(--color-autocomplete, var(--color-muted))",
+                opacity: "var(--autocomplete-opacity, 0.6)",
+              }}
+            >
+              eren: Beyond Journey&apos;s End
+            </span>
+          </div>
+        </div>
+      ) : null}
+
       <hr className="windows95-header w-full" />
 
-      <p className="windows95-text text-muted font-bold w-full">AniList</p>
+      <p className="windows95-text text-muted w-full font-bold">
+        {t("settings.search.learning")}
+      </p>
+      <div className="windows95-text text-text grid grid-cols-2 gap-1 text-[10px]">
+        <span>{t("settings.search.learningHistory")}</span>
+        <span className="text-right tabular-nums">{learningHistory.length}</span>
+        <span>{t("settings.search.learningQueries")}</span>
+        <span className="text-right tabular-nums">{learnedQueries}</span>
+        <span>{t("settings.search.learningSelected")}</span>
+        <span className="text-right tabular-nums">{selectedSuggestions}</span>
+        <span>{t("settings.search.learningAnime")}</span>
+        <span className="text-right tabular-nums">{learningAnimeCount}</span>
+      </div>
 
-      <label className="flex items-center gap-2 windows95-text text-text">
-        <span className="w-48">Размер страницы</span>
+      <p className="windows95-text text-muted w-full font-bold">
+        {t("settings.search.anilist")}
+      </p>
+
+      <label className="windows95-text text-text flex items-center gap-2">
+        <span className="w-48">{t("settings.search.anilistBoost")}</span>
+        <Select
+          value={anilistSuggestionBoost}
+          onChange={(value) =>
+            patch({
+              anilistSuggestionBoost: value as typeof anilistSuggestionBoost,
+            })
+          }
+          options={[
+            { value: "off", label: t("settings.search.anilistBoostOff") },
+            {
+              value: "subtle",
+              label: t("settings.search.anilistBoostSubtle"),
+            },
+            {
+              value: "strong",
+              label: t("settings.search.anilistBoostStrong"),
+            },
+          ]}
+          className="w-40"
+        />
+      </label>
+
+      <div className="flex items-center gap-2">
+        <Button
+          onClick={() => {
+            useSearchStore.getState().resetAnimeSuggestions();
+            deleteAppCache("search", "learning");
+          }}
+        >
+          {t("settings.search.resetAnimeSuggestions")}
+        </Button>
+        <span className="windows95-text text-muted text-[10px]">
+          {t("settings.search.resetAnimeSuggestionsHint")}
+        </span>
+      </div>
+
+      <hr className="windows95-header w-full" />
+
+      <label className="windows95-text text-text flex items-center gap-2">
+        <span className="w-48">{t("settings.search.pageSize")}</span>
         <Input
           type="number"
           min={10}
@@ -120,8 +252,8 @@ export default function SettingsSearch() {
         />
       </label>
 
-      <label className="flex items-center gap-2 windows95-text text-text">
-        <span className="w-48">Макс. страниц</span>
+      <label className="windows95-text text-text flex items-center gap-2">
+        <span className="w-48">{t("settings.search.maxPages")}</span>
         <Input
           type="number"
           min={1}
@@ -131,7 +263,6 @@ export default function SettingsSearch() {
           className="w-16"
         />
       </label>
-
     </div>
   );
 }

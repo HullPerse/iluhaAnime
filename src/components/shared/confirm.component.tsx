@@ -1,5 +1,7 @@
-import Modal from "./modal.component";
 import { Button } from "@/components/ui/button.component";
+import { useI18n } from "@/lib/i18n";
+
+import Modal from "./modal.component";
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -18,20 +20,22 @@ function ConfirmDialog({
   title,
   message,
   confirmLabel = "OK",
-  cancelLabel = "Отмена",
+  cancelLabel,
   variant = "default",
   onConfirm,
   onCancel,
   onClose,
 }: ConfirmDialogProps) {
+  const { t } = useI18n();
   if (!open) return null;
+  const resolvedCancel = cancelLabel ?? t("common.cancel");
 
   return (
     <Modal header={title} onClose={onClose ?? onCancel} className="w-xl">
-      <section className="flex flex-col flex-1">
+      <section className="flex flex-1 flex-col">
         <p className="windows95-text text-text">{message}</p>
-        <div className="flex justify-end gap-1 ml-auto mt-auto">
-          <Button onClick={onCancel}>{cancelLabel}</Button>
+        <div className="mt-auto ml-auto flex justify-end gap-1">
+          <Button onClick={onCancel}>{resolvedCancel}</Button>
           <Button
             variant={variant === "destructive" ? "destructive" : "default"}
             onClick={onConfirm}

@@ -1,48 +1,69 @@
-import {
-  useState,
-  useEffect,
-  useRef,
-  ReactElement,
-  lazy,
-  Suspense,
-} from "react";
-import { useTorrentStore } from "@/store/download.store";
-import { useSearchStore } from "@/store/search.store";
-import TorrentFilePicker from "@/routes/components/search/picker.search";
-import { WindowLoader } from "./components/shared/loader.component";
-import { checkForUpdates } from "./lib/index.utils";
-import { getAction, KeybindAction } from "@/config/keybinds.config";
-import { useSettingsStore } from "@/store/settings.store";
-import { useNotificationStore } from "@/store/notification.store";
-import { applyTheme, useThemeStore } from "@/store/theme.store";
-import Updater from "./components/shared/updater.component";
-import { Update } from "@tauri-apps/plugin-updater";
-import { listen } from "@tauri-apps/api/event";
-import { invoke } from "@tauri-apps/api/core";
 import { useQuery } from "@tanstack/react-query";
-import Tabs from "./components/shared/tabs.component";
+import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
+import type { Update } from "@tauri-apps/plugin-updater";
+import { saveWindowState } from "@tauri-apps/plugin-window-state";
+import type { ReactElement } from "react";
+import { useState, useEffect, useRef, lazy, Suspense } from "react";
+
+import type { KeybindAction } from "@/config/keybinds.config";
+import { getAction } from "@/config/keybinds.config";
+import { readAppCache, writeAppCache } from "@/lib/app.cache";
+import { useI18n } from "@/lib/i18n";
+import type { TranslationKey } from "@/lib/i18n";
+import TorrentFilePicker from "@/routes/components/search/picker.search";
+import { useAniListNotificationsStore } from "@/store/anilist.store";
+import { useCacheStore } from "@/store/cache.store";
+import { useTorrentStore } from "@/store/download.store";
+import { useNotificationStore } from "@/store/notification.store";
+import type { NotificationType } from "@/types/notification";
+import { useSearchStore } from "@/store/search.store";
+import { useSettingsStore } from "@/store/settings.store";
+import { applyTheme, useThemeStore } from "@/store/theme.store";
+import type { FolderNode } from "@/types";
+import type { SearchLearningSnapshot } from "@/types/search";
+
+import { WindowLoader } from "./components/shared/loader.component";
 import NotificationTray from "./components/shared/notification.component";
+import Tabs from "./components/shared/tabs.component";
+import Updater from "./components/shared/updater.component";
+import { checkForUpdates } from "./lib/index.utils";
+import { resolveNotificationText } from "./lib/notification.utils";
+import type { ShowNotificationPayload } from "./lib/notification.utils";
 
 const SearchRoute = lazy(() => import("@/routes/search.route"));
 const TorrentRoute = lazy(() => import("@/routes/torrent.route"));
 const PlayerRoute = lazy(() => import("@/routes/player.route"));
 const AniListRoute = lazy(() => import("@/routes/anilist.route"));
 const SettingsRoute = lazy(() => import("@/routes/settings.route"));
+const VaultRoute = lazy(() => import("@/routes/vault.route"));
 
-type Tab = "search" | "torrent" | "player" | "anilist" | "settings";
+type Tab =
+  | "search"
+  | "torrent"
+  | "player"
+  | "anilist"
+  | "vault"
+  | "settings";
 
-const tabs: { id: Tab; label: string }[] = [
-  { id: "search", label: "Поиск" },
-  { id: "torrent", label: "Торрент" },
-  { id: "player", label: "Плеер" },
-  { id: "anilist", label: "AniList" },
-  { id: "settings", label: "Параметры" },
+const tabKeys: readonly { id: Tab; key: TranslationKey }[] = [
+  { id: "search", key: "app.search" },
+  { id: "torrent", key: "app.torrent" },
+  { id: "player", key: "app.player" },
+  { id: "anilist", key: "app.anilist" },
+  { id: "vault", key: "app.vault" },
+  { id: "settings", key: "app.settings" },
 ];
 
 function App() {
+  const { t } = useI18n();
+  const vaultTabEnabled = useSettingsStore((s) => s.vaultTabEnabled);
+  const tabs = tabKeys
+    .filter((tab) => tab.id !== "vault" || vaultTabEnabled)
+    .map((tab) => ({ ...tab, label: t(tab.key) }));
   const [activeTab, setActiveTab] = useState<Tab>("search");
   const initTabsRef = useRef(false);
-  const [updateAvailable, setUpdateAvailable] = useState<boolean>(false);
+  const [updateAvailable, setUpdateAvailable] = useState(false);
   const customScrollbar = useSettingsStore((s) => s.customScrollbar);
   const init = useTorrentStore((s) => s.init);
   const pendingTorrent = useTorrentStore((s) => s.pendingTorrent);
@@ -52,11 +73,16 @@ function App() {
   const cancelDownload = useTorrentStore((s) => s.cancelDownload);
 
   const enableAnimations = useSettingsStore((s) => s.enableAnimations);
+  const retroStyle = useSettingsStore((s) => s.retroStyle);
+  const uiDensity = useSettingsStore((s) => s.uiDensity);
+  const anilistReleaseNotifications = useSettingsStore(
+    (s) => s.anilistReleaseNotifications
+  );
   const { data } = useQuery({
-    queryKey: ["connection"],
     queryFn: async (): Promise<Update | null> => {
       return await checkForUpdates();
     },
+    queryKey: ["connection"],
   });
 
   useEffect(() => {
@@ -64,25 +90,50 @@ function App() {
   }, [data]);
 
   useEffect(() => {
-    document.documentElement.classList.toggle(
-      "no-animations",
-      !enableAnimations,
-    );
-  }, [enableAnimations]);
+    const root = document.documentElement;
+    root.classList.toggle("no-animations", !enableAnimations);
+    root.dataset.retroStyle = retroStyle;
+    root.dataset.uiDensity = uiDensity;
+  }, [enableAnimations, retroStyle, uiDensity]);
 
   useEffect(() => {
     document.documentElement.classList.toggle(
       "native-scrollbar",
-      !customScrollbar,
+      !customScrollbar
     );
   }, [customScrollbar]);
 
   useEffect(() => {
-    const cleanup = init();
+    let disposed = false;
+    let cleanup: (() => void) | undefined;
+
+    init()
+      .then((unlisten) => {
+        if (disposed) unlisten();
+        else cleanup = unlisten;
+      })
+      .catch((error: unknown) => {
+        const message = error instanceof Error ? error.message : String(error);
+        useNotificationStore.getState().add(t("app.torrent"), "error", message);
+      });
+
     return () => {
-      cleanup.then((fn) => fn());
+      disposed = true;
+      cleanup?.();
     };
   }, [init]);
+
+  useEffect(() => {
+    const save = () => {
+      saveWindowState().catch(() => {});
+    };
+    window.addEventListener("beforeunload", save);
+    document.addEventListener("visibilitychange", save);
+    return () => {
+      window.removeEventListener("beforeunload", save);
+      document.removeEventListener("visibilitychange", save);
+    };
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -92,18 +143,20 @@ function App() {
     return () => clearTimeout(timer);
   }, []);
 
-  const visibleTabs = tabs;
-
   useEffect(() => {
-    if (!initTabsRef.current && visibleTabs.length > 0) {
+    if (!initTabsRef.current && tabs.length > 0) {
       initTabsRef.current = true;
-      if (!visibleTabs.find((t) => t.id === activeTab)) {
-        setActiveTab(visibleTabs[0].id as Tab);
+      if (!tabs.some((t) => t.id === activeTab)) {
+        setActiveTab(tabs[0].id);
       }
     }
-  }, [visibleTabs, activeTab]);
+  }, [activeTab, tabs]);
 
-  //tab keybinds
+  useEffect(() => {
+    if (!vaultTabEnabled && activeTab === "vault") setActiveTab("search");
+  }, [activeTab, vaultTabEnabled]);
+
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.code === "AltLeft" || e.code === "AltRight") return;
@@ -113,10 +166,10 @@ function App() {
       if (!action) return;
 
       const actionMap: Partial<Record<KeybindAction, Tab>> = {
+        setAnilist: "anilist",
+        setPlayer: "player",
         setSearch: "search",
         setTorrent: "torrent",
-        setPlayer: "player",
-        setAnilist: "anilist",
       };
 
       const tab = actionMap[action.action];
@@ -153,22 +206,210 @@ function App() {
     });
   }, []);
 
-  // listen for backend notification events
   useEffect(() => {
-    const unlisten = listen<{ title: string; body: string; type: string }>(
-      "show-notification",
-      (event) => {
-        useNotificationStore
-          .getState()
-          .add(
-            event.payload.title,
-            event.payload.type as any,
-            event.payload.body,
-          );
-      },
+    const notificationTypes = new Set<NotificationType>([
+      "info",
+      "success",
+      "warning",
+      "error",
+    ]);
+    let disposed = false;
+    let unlisten: (() => void) | undefined;
+
+    listen<ShowNotificationPayload>("show-notification", (event) => {
+      const type = notificationTypes.has(event.payload.type as NotificationType)
+        ? (event.payload.type as NotificationType)
+        : "info";
+      const { title, body } = resolveNotificationText(
+        event.payload,
+        useSettingsStore.getState().language
+      );
+      useNotificationStore
+        .getState()
+        .add(title, type, body, event.payload.eventKey);
+    })
+      .then((cleanup) => {
+        if (disposed) cleanup();
+        else unlisten = cleanup;
+      })
+      .catch(() => {});
+
+    return () => {
+      disposed = true;
+      unlisten?.();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!anilistReleaseNotifications) return;
+    let disposed = false;
+    const pollAniListReleases = async () => {
+      try {
+        const user = await invoke<{ id: number } | null>("check_anilist_auth");
+        if (!user || disposed) return;
+        const lists = await invoke<
+          {
+            name: string;
+            entries: Array<{
+              media: {
+                id: number;
+                title: string;
+                next_episode: number | null;
+                next_airing_at: number | null;
+                status: string;
+              };
+              list_status: string;
+            }>;
+          }[]
+        >("get_anilist_lists", { userId: user.id });
+        if (disposed) return;
+        const observationStore = useAniListNotificationsStore.getState();
+        const now = Math.floor(Date.now() / 1000);
+        for (const list of lists)
+          for (const entry of list.entries) {
+            const { media } = entry;
+            const key = String(media.id);
+            const signature = `${media.status}|${media.next_episode ?? ""}|${media.next_airing_at ?? ""}|${entry.list_status}`;
+            const previous = observationStore.observations[key];
+            if (previous) {
+              if (
+                media.next_airing_at != null &&
+                media.next_airing_at <= now &&
+                previous.signature !== signature
+              ) {
+                useNotificationStore.getState().add(
+                  t("notification.anilistNewEpisode"),
+                  "info",
+                  t("notification.anilistNewEpisodeBody", {
+                    episode: media.next_episode ?? "?",
+                    title: media.title,
+                  })
+                );
+              } else if (
+                entry.list_status === "COMPLETED" &&
+                previous.status !== "COMPLETED"
+              ) {
+                useNotificationStore
+                  .getState()
+                  .add(
+                    t("notification.anilistCompleted"),
+                    "success",
+                    media.title
+                  );
+              } else if (
+                entry.list_status === "PLANNING" &&
+                previous.status !== "PLANNING"
+              ) {
+                useNotificationStore
+                  .getState()
+                  .add(t("notification.anilistPlanned"), "info", media.title);
+              }
+            }
+            observationStore.saveObservation(key, {
+              signature,
+              status: entry.list_status,
+              title: media.title,
+              updatedAt: Date.now(),
+            });
+          }
+        if (!observationStore.initialized)
+          observationStore.setInitialized(true);
+      } catch {}
+    };
+    pollAniListReleases();
+    const timer = window.setInterval(
+      () => pollAniListReleases(),
+      30 * 60 * 1000
     );
     return () => {
-      unlisten.then((fn) => fn());
+      disposed = true;
+      window.clearInterval(timer);
+    };
+  }, [anilistReleaseNotifications, t]);
+
+  useEffect(() => {
+    let disposed = false;
+    // Never expose a previous AniList user's title index before the current
+    // account has been verified.
+    useSearchStore.getState().clearAnimeIndex();
+    Promise.all([
+      readAppCache<{ path: string; tree: FolderNode }[]>(
+        "player",
+        "folderTrees"
+      ),
+      readAppCache<string>("torrent", "lastSaveDir"),
+      readAppCache<Record<number, boolean>>("torrent", "seedPreferences"),
+      readAppCache<Record<number, number>>("player", "episodeTracker"),
+      readAppCache<SearchLearningSnapshot>("search", "learning"),
+    ]).then(
+      ([folderTrees, lastSaveDir, seedPreferences, episodeTracker, learning]) => {
+        if (disposed) return;
+        const cache = useCacheStore.getState();
+        if (folderTrees?.payload) cache.setFolderTrees(folderTrees.payload);
+        if (lastSaveDir?.payload) {
+          cache.setLastSaveDir(lastSaveDir.payload);
+          useTorrentStore.setState({ lastSaveDir: lastSaveDir.payload });
+        }
+        if (seedPreferences?.payload)
+          useCacheStore.setState({ seedPreferences: seedPreferences.payload });
+        if (episodeTracker?.payload)
+          cache.setEpisodeTracker(episodeTracker.payload);
+        if (learning?.payload) {
+          useSearchStore.setState({
+            history: learning.payload.history ?? [],
+            queryStats: learning.payload.queryStats ?? {},
+            suggestionStats: learning.payload.suggestionStats ?? {},
+          });
+          invoke<{ id: number } | null>("check_anilist_auth")
+            .then((profile) => {
+              if (
+                !disposed &&
+                profile?.id === learning.payload?.animeProfileId
+              ) {
+                useSearchStore.setState({
+                  animeIndex: learning.payload.animeIndex ?? [],
+                  animeProfileId: profile.id,
+                });
+              }
+            })
+            .catch(() => {});
+        }
+      }
+    );
+    return () => {
+      disposed = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let timer: number | undefined;
+    const saveLearning = () => {
+      const state = useSearchStore.getState();
+      const snapshot: SearchLearningSnapshot = {
+        version: 1,
+        animeIndex: state.animeIndex,
+        animeProfileId: state.animeProfileId,
+        history: state.history,
+        queryStats: state.queryStats,
+        suggestionStats: state.suggestionStats,
+      };
+      writeAppCache("search", "learning", snapshot);
+    };
+    const unsubscribe = useSearchStore.subscribe((state, previous) => {
+      if (
+        state.animeIndex !== previous.animeIndex ||
+        state.animeProfileId !== previous.animeProfileId ||
+        state.history !== previous.history ||
+        state.queryStats !== previous.queryStats ||
+        state.suggestionStats !== previous.suggestionStats
+      ) {
+        if (timer !== undefined) window.clearTimeout(timer);
+        timer = window.setTimeout(saveLearning, 500);
+      }
+    });
+    return () => {
+      unsubscribe();
+      if (timer !== undefined) window.clearTimeout(timer);
     };
   }, []);
 
@@ -184,19 +425,26 @@ function App() {
       }).catch(() => {});
     };
     sync();
-    return useSettingsStore.subscribe(sync);
+    return useSettingsStore.subscribe((state, previous) => {
+      if (
+        state.notificationsEnabled !== previous.notificationsEnabled ||
+        state.notifyOnComplete !== previous.notifyOnComplete ||
+        state.notifyOnError !== previous.notifyOnError
+      ) {
+        sync();
+      }
+    });
   }, []);
 
   const getComponent = () => {
     const tabMap = {
-      search: <SearchRoute />,
-      torrent: <TorrentRoute />,
-      player: <PlayerRoute />,
       anilist: <AniListRoute />,
+      search: <SearchRoute />,
       settings: <SettingsRoute />,
-    } as Record<Tab, ReactElement>;
+      torrent: <TorrentRoute />,
+      vault: <VaultRoute />,      } as Record<Exclude<Tab, "player">, ReactElement>;
 
-    return tabMap[activeTab];
+    return tabMap[activeTab as Exclude<Tab, "player">];
   };
 
   return (
@@ -221,26 +469,36 @@ function App() {
       )}
 
       {/* WINDOW FRAME */}
-      <section className="relative z-10 h-full flex flex-col">
-        <div className="flex flex-col h-full windows95-active-border bg-primary">
+      <section className="relative z-10 flex h-full flex-col">
+        <div className="ui-panel flex h-full flex-col">
           {/* TITLE BAR + TAB BAR */}
-          <div className="flex items-center justify-between px-1 py-0.5 select-none bg-secondary">
-            <span className="text-white font-bold windows95-text">
+          <div className="ui-titlebar justify-between select-none">
+            <span className="windows95-text font-bold text-white">
               iluhaAnime
             </span>
             <NotificationTray />
           </div>
-          <div className="flex bg-primary pl-2 pt-1 gap-1">
+          <div className="shrink-0">
             <Tabs
-              tabs={visibleTabs}
+              ariaLabel={t("common.sections")}
+              tabs={tabs}
               activeTab={activeTab}
               onChange={(id) => setActiveTab(id as Tab)}
             />
           </div>
 
           {/* CONTENT PANEL */}
-          <div className="flex-1 overflow-hidden mx-1 mb-1 p-1 windows95-border">
-            <Suspense fallback={<WindowLoader />}>{getComponent()}</Suspense>
+          <div className="windows95-border bg-surface relative mx-1 mb-1 min-h-0 flex-1 overflow-hidden p-1">
+            <div className={activeTab === "player" ? "h-full" : "hidden"}>
+              <Suspense fallback={<WindowLoader />}>
+                <PlayerRoute />
+              </Suspense>
+            </div>
+            {activeTab !== "player" && (
+              <Suspense fallback={<WindowLoader />}>
+                {getComponent()}
+              </Suspense>
+            )}
           </div>
         </div>
       </section>

@@ -9,18 +9,25 @@ function ProgressBar({
   max: number;
   className?: string;
 }) {
-  const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
+  const safeMax = Math.max(0, max);
+  const safeValue = Math.max(0, Math.min(value, safeMax));
+  const pct = safeMax > 0 ? (safeValue / safeMax) * 100 : 0;
 
   return (
     <div
       className={cn(
-        "h-6 windows95-border relative overflow-hidden bg-white",
-        className,
+        "windows95-border relative h-6 overflow-hidden bg-white",
+        className
       )}
+      role="progressbar"
+      aria-valuemin={0}
+      aria-valuemax={safeMax}
+      aria-valuenow={safeValue}
     >
       <div
-        className="h-full bg-secondary transition-none"
+        className="bg-secondary h-full transition-none"
         style={{ width: `${pct}%` }}
+        aria-hidden="true"
       />
     </div>
   );

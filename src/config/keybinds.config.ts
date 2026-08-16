@@ -18,35 +18,35 @@ export interface KeybindDef {
 const KEYBINDS: KeybindDef[] = [
   {
     action: "setSearch",
-    code: "Digit1",
-    keys: "Alt+1",
-    description: "Поиск",
-    category: "navigation",
     alt: true,
+    category: "navigation",
+    code: "Digit1",
+    description: "app.search",
+    keys: "Alt+1",
   },
   {
     action: "setTorrent",
-    code: "Digit2",
-    keys: "Alt+2",
-    description: "Торренты",
-    category: "navigation",
     alt: true,
+    category: "navigation",
+    code: "Digit2",
+    description: "app.torrent",
+    keys: "Alt+2",
   },
   {
     action: "setPlayer",
-    code: "Digit3",
-    keys: "Alt+3",
-    description: "Плеер",
-    category: "navigation",
     alt: true,
+    category: "navigation",
+    code: "Digit3",
+    description: "app.player",
+    keys: "Alt+3",
   },
   {
     action: "setAnilist",
-    code: "Digit4",
-    keys: "Alt+4",
-    description: "AniList",
-    category: "navigation",
     alt: true,
+    category: "navigation",
+    code: "Digit4",
+    description: "app.anilist",
+    keys: "Alt+4",
   },
 ];
 
@@ -55,7 +55,7 @@ const codeMap = new Map<string, KeybindDef>();
 for (const kb of KEYBINDS) {
   codeMap.set(
     `${kb.code}:${kb.ctrl ?? false}:${kb.shift ?? false}:${kb.alt ?? false}`,
-    kb,
+    kb
   );
 }
 
@@ -63,9 +63,7 @@ export function getAction(
   code: string,
   ctrl: boolean,
   shift: boolean,
-  alt: boolean,
+  alt: boolean
 ): KeybindDef | undefined {
   return codeMap.get(`${code}:${ctrl}:${shift}:${alt}`);
 }
-
-

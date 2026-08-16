@@ -1,20 +1,25 @@
-import { useMemo } from "react";
 import { useDraggable } from "@dnd-kit/core";
-import { X } from "lucide-react";
+import { EyeOff, X } from "lucide-react";
+import { useMemo } from "react";
+
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
-import type { TorrentInfo, TorrentFileInfo } from "@/types/torrent";
+import { useI18n } from "@/lib/i18n";
 import type { FolderNode } from "@/types";
-import TorrentFilesPlayerSection from "./torrent.player";
+import type { TorrentInfo, TorrentFileInfo } from "@/types/torrent";
+
 import FolderView from "./folder.player";
+import TorrentFilesPlayerSection from "./torrent.player";
 
 export function DraggableFolder({
   tree,
   onRemove,
+  onHide,
   audioExtensions,
 }: {
   tree: FolderNode;
   onRemove: (path: string) => void;
+  onHide?: (path: string) => void;
   audioExtensions: string[];
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } =
@@ -27,13 +32,14 @@ export function DraggableFolder({
     tree.files.length + tree.children.reduce((s, c) => s + c.files.length, 0);
   const disabledExtensions = useMemo(
     () => new Set(audioExtensions),
-    [audioExtensions],
+    [audioExtensions]
   );
+  const { t } = useI18n();
 
   return (
     <div
       ref={setNodeRef}
-      className="flex flex-col windows95-active-border bg-primary"
+      className="windows95-active-border bg-primary flex flex-col"
       style={{
         opacity: isDragging ? 0.4 : undefined,
         transform: transform
@@ -44,19 +50,32 @@ export function DraggableFolder({
       <div
         {...listeners}
         {...attributes}
-        className="flex items-center gap-1 windows95-text cursor-grab active:cursor-grabbing hover:bg-surface px-0.5 py-0.5 w-full text-left select-none"
+        className="windows95-text hover:bg-surface flex w-full cursor-grab items-center gap-1 px-0.5 py-0.5 text-left select-none active:cursor-grabbing"
       >
         <ImageComponent
           src="/images/w2k_folder_closed.ico"
           alt=""
           className="size-4 shrink-0"
         />
-        <span className="truncate select-none flex-1" title={tree.name}>
+        <span className="flex-1 truncate select-none" title={tree.name}>
           {tree.name}
         </span>
-        <span className="text-muted whitespace-nowrap select-none text-[10px]">
-          {countAll} файлов
+        <span className="text-muted text-[10px] whitespace-nowrap select-none">
+          {t("player.folder.fileCount", { count: countAll })}
         </span>
+        {onHide && (
+          <Button
+            size="icon"
+            className="h-5 w-5"
+            title={t("player.visibility.hide")}
+            onClick={(e) => {
+              e.stopPropagation();
+              onHide(tree.path);
+            }}
+          >
+            <EyeOff className="size-3" />
+          </Button>
+        )}
         {onRemove && (
           <Button
             size="icon"
@@ -75,6 +94,7 @@ export function DraggableFolder({
         depth={0}
         searchQuery=""
         onRemove={onRemove}
+        onHide={onHide}
         disabledExtensions={disabledExtensions}
         hideRoot
       />
@@ -88,13 +108,16 @@ export function DraggableTorrent({
   isExpanded,
   torrentLoading,
   onToggleExpand,
+  onHide,
 }: {
   item: TorrentInfo;
   files: TorrentFileInfo[] | undefined;
   isExpanded: boolean;
   torrentLoading: boolean;
   onToggleExpand: () => void;
+  onHide?: () => void;
 }) {
+  const { t } = useI18n();
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({
       id: `torrent-${item.info_hash}`,
@@ -122,11 +145,24 @@ export function DraggableTorrent({
       <div
         {...listeners}
         {...attributes}
-        className="flex items-center gap-1 bg-secondary text-white px-1 cursor-grab active:cursor-grabbing select-none"
+        className="bg-secondary flex cursor-grab items-center gap-1 px-1 text-white select-none active:cursor-grabbing"
       >
-        <span className="flex-1 line-clamp-1 font-bold windows95-text py-0.5">
+        <span className="windows95-text line-clamp-1 flex-1 py-0.5 font-bold">
           {item.name}
         </span>
+        {onHide && (
+          <Button
+            size="icon"
+            className="size-5"
+            title={t("player.visibility.hide")}
+            onClick={(e) => {
+              e.stopPropagation();
+              onHide();
+            }}
+          >
+            <EyeOff className="size-3" />
+          </Button>
+        )}
       </div>
       <TorrentFilesPlayerSection
         item={item}
@@ -142,7 +178,7 @@ export function DraggableTorrent({
 
 export function DragOverlayItem({ name }: { name: string }) {
   return (
-    <div className="flex items-center gap-1 px-2 py-1 windows95-active-border bg-primary shadow-md text-xs windows95-text opacity-80">
+    <div className="windows95-active-border bg-primary windows95-text flex items-center gap-1 px-2 py-1 text-xs opacity-80 shadow-md">
       {name}
     </div>
   );

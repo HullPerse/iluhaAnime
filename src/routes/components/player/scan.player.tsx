@@ -1,3 +1,4 @@
+import { useI18n } from "@/lib/i18n";
 import type { ScanType } from "@/types";
 
 interface Props {
@@ -5,27 +6,31 @@ interface Props {
 }
 
 export default function FolderScanProgress({ scanProgress }: Props) {
+  const { t } = useI18n();
   if (!scanProgress) return null;
 
   return (
-    <section className="flex flex-col windows95-active-border w-full items-stretch windows95-text gap-1 px-1 py-1">
+    <section className="windows95-active-border windows95-text flex w-full flex-col items-stretch gap-1 px-1 py-1">
       <span>
         {scanProgress.total === 0
-          ? "Подсчёт файлов..."
-          : `Сканирование... ${scanProgress.current} / ${scanProgress.total}`}
+          ? t("player.scan.counting")
+          : t("player.scan.scanning", {
+              current: scanProgress.current,
+              total: scanProgress.total,
+            })}
       </span>
       {scanProgress.total > 0 && (
         <div className="flex flex-row items-center gap-1">
-          <div className="flex-1 h-4 windows95-border bg-white">
+          <div className="windows95-border h-4 flex-1 bg-white">
             <div
-              className="h-full bg-secondary"
+              className="bg-secondary h-full"
               style={{
                 width: `${(scanProgress.current / scanProgress.total) * 100}%`,
                 transition: "none",
               }}
             />
           </div>
-          <span className="text-[10px] shrink-0">
+          <span className="shrink-0 text-[10px]">
             {Math.round((scanProgress.current / scanProgress.total) * 100)}%
           </span>
         </div>

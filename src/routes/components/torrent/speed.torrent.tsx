@@ -1,6 +1,8 @@
-import { Input } from "@/components/ui/input.component";
-import { Button } from "@/components/ui/button.component";
 import { ArrowDown, ArrowUp, Check } from "lucide-react";
+
+import { Button } from "@/components/ui/button.component";
+import { Input } from "@/components/ui/input.component";
+import { enterSubmit } from "@/lib/keyboard.utils";
 
 interface Props {
   dlInput: string;
@@ -24,8 +26,10 @@ export default function SpeedLimitForm({
   const effective = (input: string) => (input === "" ? null : Number(input));
 
   return (
-    <section className="flex items-center gap-2 p-1 windows95-active-border bg-primary">
-      <span className="windows95-text"><ArrowDown /></span>
+    <section className="windows95-active-border flex items-center gap-2 bg-primary p-1">
+      <span className="windows95-text">
+        <ArrowDown />
+      </span>
       <Input
         type="number"
         className="w-16"
@@ -36,10 +40,12 @@ export default function SpeedLimitForm({
             onDlChange(e.target.value);
           }
         }}
-        onKeyDown={(e) => e.key === "Enter" && onApply()}
+        onKeyDown={enterSubmit(onApply)}
         onBlur={onApply}
       />
-      <span className="windows95-text"><ArrowUp /></span>
+      <span className="windows95-text">
+        <ArrowUp />
+      </span>
       <Input
         type="number"
         className="w-16"
@@ -50,14 +56,16 @@ export default function SpeedLimitForm({
             onUlChange(e.target.value);
           }
         }}
-        onKeyDown={(e) => e.key === "Enter" && onApply()}
+        onKeyDown={enterSubmit(onApply)}
         onBlur={onApply}
       />
       <Button
         size="icon"
         className="windows95-text size-6"
         onClick={onApply}
-        disabled={effective(dlInput) === dlLimit && effective(ulInput) === ulLimit}
+        disabled={
+          effective(dlInput) === dlLimit && effective(ulInput) === ulLimit
+        }
       >
         <Check className="size-4" />
       </Button>

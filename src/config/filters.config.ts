@@ -1,4 +1,4 @@
-import { SearchFilters } from "@/types/anilist";
+import type { AniListFilters } from "@/types/anilist";
 
 export const ANILIST_GENRES = [
   "Action",
@@ -224,7 +224,15 @@ export const ANILIST_NSFW_TAGS = [
   "Virginity",
   "Voyeur",
 ];
-export const FORMATS = ["TV", "TV_SHORT", "MOVIE", "OVA", "ONA", "SPECIAL", "MUSIC"];
+export const FORMATS = [
+  "TV",
+  "TV_SHORT",
+  "MOVIE",
+  "OVA",
+  "ONA",
+  "SPECIAL",
+  "MUSIC",
+];
 export const STATUSES = [
   "FINISHED",
   "RELEASING",
@@ -234,18 +242,18 @@ export const STATUSES = [
 ];
 export const SEASONS = ["WINTER", "SPRING", "SUMMER", "FALL"];
 
-export const defaultFilters: SearchFilters = {
-  tags: [],
-  genres: [],
+export const defaultFilters: AniListFilters = {
+  adult: false,
+  country: "",
+  episodes: [0, 0],
   format: "",
-  status: "",
+  genres: [],
+  score: [0, 0],
   season: "",
   seasonYear: null,
-  adult: false,
   sort: "",
   source: "",
-  country: "",
+  status: "",
+  tags: [],
   year: [0, 0],
-  episodes: [0, 0],
-  score: [0, 0],
 };

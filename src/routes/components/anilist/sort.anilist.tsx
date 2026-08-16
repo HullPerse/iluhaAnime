@@ -1,7 +1,9 @@
-import type { AniListSort } from "@/types/anilist";
+import { Activity, Heart, Dices, CalendarDays } from "lucide-react";
+
 import { Button } from "@/components/ui/button.component";
 import { getSortingLabel } from "@/lib/anilist.utils";
-import { Activity, Heart, Dices, CalendarDays } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
+import type { AniListSort } from "@/types/anilist";
 
 interface Props {
   sort: AniListSort;
@@ -22,6 +24,7 @@ export default function AniListSortBar({
   onHistoryOpen,
   hasFavourites,
 }: Props) {
+  const { t } = useI18n();
   const toggleSort = (key: AniListSort["key"]) => {
     onSortChange({
       key,
@@ -30,8 +33,10 @@ export default function AniListSortBar({
   };
 
   return (
-    <section className="windows95-border bg-white px-1 py-0.5 flex flex-row items-center gap-2">
-      <span className="windows95-text text-[10px] text-muted">Сортировка:</span>
+    <section className="windows95-border flex flex-row items-center gap-2 bg-white px-1 py-0.5">
+      <span className="windows95-text text-muted text-[10px]">
+        {t("anilist.sort.sorting")}
+      </span>
       {(["title", "score", "progress"] as AniListSort["key"][]).map((s) => {
         const isActive = sort.key === s;
         return (
@@ -42,12 +47,12 @@ export default function AniListSortBar({
             className="px-2 py-0.5"
             onClick={() => toggleSort(s)}
           >
-            {getSortingLabel(s, sort.dir)}
+            {t(getSortingLabel(s) as never)}
           </Button>
         );
       })}
 
-      <span className="w-px h-5 ml-auto bg-muted" />
+      <span className="bg-muted ml-auto h-5 w-px" />
       <div className="flex flex-row gap-1">
         <Button size="icon" className="h-6 w-6" onClick={onActivityOpen}>
           <Activity className="size-3.5" />
@@ -55,7 +60,7 @@ export default function AniListSortBar({
         <Button
           size="icon"
           className="h-6 w-6"
-          title="История активности"
+          title={t("anilist.sort.history")}
           onClick={onHistoryOpen}
         >
           <CalendarDays className="size-3.5" />
@@ -63,13 +68,18 @@ export default function AniListSortBar({
         <Button
           size="icon"
           className="h-6 w-6"
-          title="Избранное"
+          title={t("anilist.sort.favourites")}
           onClick={onFavouritesOpen}
           disabled={!hasFavourites}
         >
           <Heart className="size-3.5" />
         </Button>
-        <Button size="icon" className="h-6 w-6" title="Случайное из списка" onClick={onRandom}>
+        <Button
+          size="icon"
+          className="h-6 w-6"
+          title={t("anilist.sort.random")}
+          onClick={onRandom}
+        >
           <Dices className="size-3.5" />
         </Button>
       </div>

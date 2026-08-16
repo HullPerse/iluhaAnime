@@ -1,5 +1,3 @@
-import { useUpscaleQueueStore } from "@/store/upscale.store";
-import { Button } from "@/components/ui/button.component";
 import {
   Trash2,
   X,
@@ -11,6 +9,10 @@ import {
   Play,
 } from "lucide-react";
 
+import { Button } from "@/components/ui/button.component";
+import { useI18n } from "@/lib/i18n";
+import { useUpscaleQueueStore } from "@/store/upscale.store";
+
 export default function QueuePanel() {
   const items = useUpscaleQueueStore((s) => s.items);
   const paused = useUpscaleQueueStore((s) => s.paused);
@@ -19,41 +21,50 @@ export default function QueuePanel() {
   const clearAll = useUpscaleQueueStore((s) => s.clearAll);
   const restartItem = useUpscaleQueueStore((s) => s.restartItem);
   const setPaused = useUpscaleQueueStore((s) => s.setPaused);
+  const { t } = useI18n();
 
   if (items.length === 0) return null;
 
   const statusIcon = (status: string) => {
     switch (status) {
-      case "queued":
-        return <ListVideo className="size-3 text-muted" />;
-      case "processing":
-        return <Loader className="size-3 animate-spin text-highlight" />;
-      case "done":
-        return <span className="size-3 text-success">✓</span>;
-      case "error":
-        return <span className="size-3 text-destructive">✗</span>;
+      case "queued": {
+        return <ListVideo className="text-muted size-3" />;
+      }
+      case "processing": {
+        return <Loader className="text-highlight size-3 animate-spin" />;
+      }
+      case "done": {
+        return <span className="text-success size-3">✓</span>;
+      }
+      case "error": {
+        return <span className="text-destructive size-3">✗</span>;
+      }
     }
   };
 
   const activeCount = items.filter((i) => i.status !== "done").length;
   const hasProcessing = items.some((i) => i.status === "processing");
   const upscaleCount = items.filter(
-    (i) => i.jobType === "upscale" && i.status !== "done",
+    (i) => i.jobType === "upscale" && i.status !== "done"
   ).length;
   const convertCount = items.filter(
-    (i) => i.jobType === "convert" && i.status !== "done",
+    (i) => i.jobType === "convert" && i.status !== "done"
   ).length;
 
   return (
     <section className="windows95-active-border bg-primary p-1">
-      <div className="flex items-center gap-1 windows95-text text-xs font-bold mb-1">
+      <div className="windows95-text mb-1 flex items-center gap-1 text-xs font-bold">
         <ListVideo className="size-3" />
-        Очередь ({activeCount})
+        {t("player.queue.title", { count: activeCount })}
         {upscaleCount > 0 && (
-          <span className="text-muted font-normal">апскейл:{upscaleCount}</span>
+          <span className="text-muted font-normal">
+            {t("player.queue.upscaleShort", { count: upscaleCount })}
+          </span>
         )}
         {convertCount > 0 && (
-          <span className="text-muted font-normal">конв:{convertCount}</span>
+          <span className="text-muted font-normal">
+            {t("player.queue.convertShort", { count: convertCount })}
+          </span>
         )}
         <div className="ml-auto flex gap-1">
           {(activeCount > 0 || hasProcessing) && (
@@ -61,7 +72,9 @@ export default function QueuePanel() {
               size="icon"
               className="h-4 w-4"
               onClick={() => setPaused(!paused)}
-              title={paused ? "Продолжить" : "Пауза"}
+              title={
+                paused ? t("player.queue.resume") : t("player.queue.pause")
+              }
             >
               {paused ? (
                 <Play className="size-2.5" />
@@ -74,7 +87,7 @@ export default function QueuePanel() {
             size="icon"
             className="h-4 w-4"
             onClick={clearDone}
-            title="Удалить завершённые"
+            title={t("player.queue.clearDone")}
           >
             <Trash2 className="size-2.5" />
           </Button>
@@ -82,67 +95,67 @@ export default function QueuePanel() {
             size="icon"
             className="h-4 w-4"
             onClick={clearAll}
-            title="Очистить очередь"
+            title={t("player.queue.clearAll")}
           >
             <X className="size-2.5" />
           </Button>
         </div>
       </div>
       {paused && (
-        <div className="windows95-text text-[10px] text-highlight mb-1">
-          Пауза
+        <div className="windows95-text text-highlight mb-1 text-[10px]">
+          {t("player.queue.paused")}
         </div>
       )}
-      <div className="flex flex-col gap-0.5 max-h-40 overflow-y-auto">
+      <div className="flex max-h-40 flex-col gap-0.5 overflow-y-auto">
         {items.map((item) => (
           <div
             key={item.id}
-            className="flex items-center gap-1 windows95-text text-[10px] bg-white px-1 py-0.5"
+            className="windows95-text flex items-center gap-1 bg-white px-1 py-0.5 text-[10px]"
           >
             {item.jobType === "convert" ? (
-              <FileVideo className="size-3 text-muted" />
+              <FileVideo className="text-muted size-3" />
             ) : (
               statusIcon(item.status)
             )}
             {item.jobType === "convert" && item.status === "processing" && (
-              <Loader className="size-3 animate-spin text-highlight" />
+              <Loader className="text-highlight size-3 animate-spin" />
             )}
-            <span className="truncate flex-1">{item.name}</span>
+            <span className="flex-1 truncate">{item.name}</span>
 
             {item.status === "queued" && (
               <Button
                 size="icon"
                 className="h-3 w-3"
                 onClick={() => removeItem(item.id)}
-                title="Удалить"
+                title={t("common.delete")}
               >
                 <X className="size-2" />
               </Button>
             )}
             {item.status === "error" && (
               <>
-                <span className="text-destructive truncate max-w-25">
+                <span className="text-destructive max-w-25 truncate">
                   {item.error}
                 </span>
                 <Button
                   size="icon"
                   className="h-3 w-3"
                   onClick={() => restartItem(item.id)}
-                  title="Повторить"
+                  title={t("player.queue.retry")}
                 >
                   <RefreshCw className="size-2" />
                 </Button>
               </>
             )}
             {item.status === "processing" && item.current !== undefined && (
-              <div className="flex items-center gap-1 min-w-0">
-                <div className="w-20 h-4 windows95-border bg-white">
+              <div className="flex min-w-0 items-center gap-1">
+                <div className="windows95-border h-4 w-20 bg-white">
                   <div
-                    className="h-full bg-secondary"
+                    className="bg-secondary h-full"
                     style={{ width: `${item.progress}%`, transition: "none" }}
                   />
                 </div>
-                <span className="text-[10px] shrink-0 w-8 text-right">
+                <span className="w-8 shrink-0 text-right text-[10px]">
                   {item.progress}%
                 </span>
               </div>
@@ -152,7 +165,7 @@ export default function QueuePanel() {
                 size="icon"
                 className="h-3 w-3"
                 onClick={() => removeItem(item.id)}
-                title="Удалить"
+                title={t("common.delete")}
               >
                 <X className="size-2" />
               </Button>

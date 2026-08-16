@@ -1,9 +1,13 @@
-import { useSettingsStore } from "@/store/settings.store";
-import { Input } from "@/components/ui/input.component";
-import { Checkbox } from "@/components/ui/checkbox.component";
-import { useTorrentStore } from "@/store/download.store";
 import { invoke } from "@tauri-apps/api/core";
 import { useCallback } from "react";
+
+import { Checkbox } from "@/components/ui/checkbox.component";
+import { Input } from "@/components/ui/input.component";
+import { useI18n } from "@/lib/i18n";
+import { toSessionConfig } from "@/lib/session";
+import type { SessionConfigPayload } from "@/lib/session";
+import { useTorrentStore } from "@/store/download.store";
+import { useSettingsStore } from "@/store/settings.store";
 
 export default function SettingsTorrent() {
   const {
@@ -17,38 +21,34 @@ export default function SettingsTorrent() {
     patch,
   } = useSettingsStore();
   const setSpeedLimits = useTorrentStore((s) => s.setSpeedLimits);
+  const { t } = useI18n();
 
   const saveSessionConfig = useCallback(
-    (partial: Partial<{ fastresumeEnabled: boolean; disablePersistence: boolean }>) => {
-      const current = { fastresumeEnabled, disablePersistence, ...partial };
+    (
+      partial: Partial<
+        Pick<SessionConfigPayload, "fastresume" | "disablePersistence">
+      >
+    ) => {
       invoke("save_session_config", {
-        config: {
-          fastresume: current.fastresumeEnabled,
-          ipv4Only: false,
-          peerConnectTimeout: 30,
-          peerReadWriteTimeout: 30,
-          listenPort: 0,
-          enableUpnp: false,
-          disablePersistence: current.disablePersistence,
-        },
+        config: { ...toSessionConfig(), ...partial },
       }).catch(() => {});
     },
-    [fastresumeEnabled, disablePersistence],
+    []
   );
 
   return (
     <div className="flex flex-col gap-3 p-4">
-      <p className="windows95-text text-muted font-bold w-full">
-        Лимиты скорости
+      <p className="windows95-text text-muted w-full font-bold">
+        {t("settings.torrent.speedLimits")}
       </p>
 
-      <label className="flex items-center gap-2 windows95-text text-text">
-        <span className="w-48">Лимит загрузки (КБ/с)</span>
+      <label className="windows95-text text-text flex items-center gap-2">
+        <span className="w-48">{t("settings.torrent.dlLimit")}</span>
         <Input
           type="number"
           min={0}
           value={dlLimit ?? ""}
-          placeholder="Нет лимита"
+          placeholder={t("settings.torrent.noLimit")}
           onChange={(e) => {
             const v = e.target.value ? Number(e.target.value) : null;
             patch({ dlLimit: v });
@@ -58,13 +58,13 @@ export default function SettingsTorrent() {
         />
       </label>
 
-      <label className="flex items-center gap-2 windows95-text text-text">
-        <span className="w-48">Лимит отдачи (КБ/с)</span>
+      <label className="windows95-text text-text flex items-center gap-2">
+        <span className="w-48">{t("settings.torrent.ulLimit")}</span>
         <Input
           type="number"
           min={0}
           value={ulLimit ?? ""}
-          placeholder="Нет лимита"
+          placeholder={t("settings.torrent.noLimit")}
           onChange={(e) => {
             const v = e.target.value ? Number(e.target.value) : null;
             patch({ ulLimit: v });
@@ -76,21 +76,25 @@ export default function SettingsTorrent() {
 
       <hr className="windows95-header w-full" />
 
-      <p className="windows95-text text-muted font-bold w-full">Сохранение сессии торрента</p>
-      <span className="text-[10px] text-muted windows95-font">Управление быстрым восстановлением и сохранением состояния загрузки</span>
+      <p className="windows95-text text-muted w-full font-bold">
+        {t("settings.torrent.session")}
+      </p>
+      <span className="text-muted windows95-font text-[10px]">
+        {t("settings.torrent.sessionHint")}
+      </span>
 
-      <label className="flex items-center gap-2 windows95-text text-text cursor-pointer select-none">
+      <label className="windows95-text text-text flex cursor-pointer items-center gap-2 select-none">
         <Checkbox
           checked={fastresumeEnabled}
           onChange={(v) => {
             patch({ fastresumeEnabled: v });
-            saveSessionConfig({ fastresumeEnabled: v });
+            saveSessionConfig({ fastresume: v });
           }}
         />
-        <span>Fastresume (быстрое восстановление)</span>
+        <span>{t("settings.torrent.fastresume")}</span>
       </label>
 
-      <label className="flex items-center gap-2 windows95-text text-text cursor-pointer select-none">
+      <label className="windows95-text text-text flex cursor-pointer items-center gap-2 select-none">
         <Checkbox
           checked={disablePersistence}
           onChange={(v) => {
@@ -98,38 +102,40 @@ export default function SettingsTorrent() {
             saveSessionConfig({ disablePersistence: v });
           }}
         />
-        <span>Отключить персистентность сессии</span>
+        <span>{t("settings.torrent.disablePersistence")}</span>
       </label>
 
       <hr className="windows95-header w-full" />
 
-      <p className="windows95-text text-muted font-bold w-full">Уведомления</p>
+      <p className="windows95-text text-muted w-full font-bold">
+        {t("settings.torrent.notifications")}
+      </p>
 
-        <label className="flex items-center gap-2 windows95-text text-text cursor-pointer select-none">
-          <Checkbox
-            checked={notificationsEnabled}
-            onChange={(v) => patch({ notificationsEnabled: v })}
-          />
-          <span>Включить уведомления</span>
-        </label>
+      <label className="windows95-text text-text flex cursor-pointer items-center gap-2 select-none">
+        <Checkbox
+          checked={notificationsEnabled}
+          onChange={(v) => patch({ notificationsEnabled: v })}
+        />
+        <span>{t("settings.torrent.enableNotifications")}</span>
+      </label>
 
-        <label className="flex items-center gap-2 windows95-text text-text pl-4 cursor-pointer select-none">
-          <Checkbox
-            checked={notifyOnComplete}
-            disabled={!notificationsEnabled}
-            onChange={(v) => patch({ notifyOnComplete: v })}
-          />
-          <span>При завершении загрузки</span>
-        </label>
+      <label className="windows95-text text-text flex cursor-pointer items-center gap-2 pl-4 select-none">
+        <Checkbox
+          checked={notifyOnComplete}
+          disabled={!notificationsEnabled}
+          onChange={(v) => patch({ notifyOnComplete: v })}
+        />
+        <span>{t("settings.torrent.onComplete")}</span>
+      </label>
 
-        <label className="flex items-center gap-2 windows95-text text-text pl-4 cursor-pointer select-none">
-          <Checkbox
-            checked={notifyOnError}
-            disabled={!notificationsEnabled}
-            onChange={(v) => patch({ notifyOnError: v })}
-          />
-          <span>При ошибке</span>
-        </label>
+      <label className="windows95-text text-text flex cursor-pointer items-center gap-2 pl-4 select-none">
+        <Checkbox
+          checked={notifyOnError}
+          disabled={!notificationsEnabled}
+          onChange={(v) => patch({ notifyOnError: v })}
+        />
+        <span>{t("settings.torrent.onError")}</span>
+      </label>
     </div>
   );
 }

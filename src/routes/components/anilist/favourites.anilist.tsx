@@ -1,7 +1,10 @@
-import type { FavouriteAnime } from "@/types/anilist";
+import { Star } from "lucide-react";
+
 import Modal from "@/components/shared/modal.component";
 import ImageComponent from "@/components/ui/image.component";
-import { Star } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
+import { enterOrSpace } from "@/lib/keyboard.utils";
+import type { FavouriteAnime } from "@/types/anilist";
 
 interface Props {
   open: boolean;
@@ -16,51 +19,65 @@ export default function AniListFavouritesModal({
   onClose,
   onAnimeClick,
 }: Props) {
+  const { t } = useI18n();
   if (!open) return null;
 
   return (
-    <Modal header="Избранное" onClose={onClose} className="w-2xl">
+    <Modal
+      header={t("anilist.favourites.title")}
+      onClose={onClose}
+      className="w-2xl"
+    >
       {favourites.length === 0 ? (
-        <div className="flex items-center justify-center flex-1">
-          <span className="windows95-text">Нет избранного</span>
+        <div className="flex flex-1 items-center justify-center">
+          <span className="windows95-text">
+            {t("anilist.favourites.empty")}
+          </span>
         </div>
       ) : (
         <div className="flex flex-col gap-1">
           {favourites.map((fav) => (
             <div
               key={fav.id}
-              className="flex flex-row items-center gap-2 windows95-active-border bg-primary p-1 hover:bg-surface hover:cursor-pointer"
+              className="windows95-active-border bg-primary hover:bg-surface flex flex-row items-center gap-2 p-1 hover:cursor-pointer"
+              role="button"
+              tabIndex={0}
+              aria-label={fav.title.romaji}
               onClick={() => {
                 onClose();
                 onAnimeClick(fav.id);
               }}
+              onKeyDown={enterOrSpace(() => {
+                onClose();
+                onAnimeClick(fav.id);
+              })}
             >
               {fav.cover_image?.medium ? (
                 <ImageComponent
                   src={fav.cover_image.medium}
                   alt="cover_image.medium"
-                  className="w-13 h-18 shrink-0 windows95-active-border"
+                  className="windows95-active-border h-18 w-13 shrink-0"
                 />
               ) : (
-                <div className="w-10 h-14 shrink-0 windows95-active-border bg-white flex items-center justify-center text-[9px]">
+                <div className="windows95-active-border flex h-14 w-10 shrink-0 items-center justify-center bg-white text-[9px]">
                   ?
                 </div>
               )}
-              <div className="flex flex-col min-w-0 flex-1">
+              <div className="flex min-w-0 flex-1 flex-col">
                 <span
-                  className="text-[10px] font-bold truncate windows95-text"
+                  className="windows95-text truncate text-[10px] font-bold"
                   title={fav.title.romaji}
                 >
                   {fav.title.romaji}
                 </span>
-                <div className="flex flex-row gap-2 text-[9px] items-center mt-0.5">
+                <div className="mt-0.5 flex flex-row items-center gap-2 text-[9px]">
                   {fav.mean_score != null && (
-                    <span className="flex flex-row px-1 bg-secondary text-primary text-[10px] font-bold items-center justify-center gap-0.5">
+                    <span className="bg-secondary text-primary flex flex-row items-center justify-center gap-0.5 px-1 text-[10px] font-bold">
                       <Star className="size-3 fill-white" /> {fav.mean_score}
                     </span>
                   )}
                   {fav.format && (
-                    <span className="text-[10px] windows95-font px-1 bg-white windows95-border text-text">
+                    <span className="windows95-font windows95-border text-text bg-white px-1 text-[10px]">
                       {fav.format}
                     </span>
                   )}

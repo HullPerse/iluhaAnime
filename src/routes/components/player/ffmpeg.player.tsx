@@ -1,10 +1,14 @@
-import { Button } from "@/components/ui/button.component";
 import { invoke } from "@tauri-apps/api/core";
-import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { listen } from "@tauri-apps/api/event";
+import type { UnlistenFn } from "@tauri-apps/api/event";
 import { Download, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
-type FFMPEGStatus = "checking" | "ok" | "missing" | "downloading";
+import { Button } from "@/components/ui/button.component";
+import { FFMPEG_SOURCE_SIZES } from "@/config/player.config";
+import { useI18n } from "@/lib/i18n";
+import { useSettingsStore } from "@/store/settings.store";
+import type { FFMPEGStatus } from "@/types/settings";
 
 function FFMPEG({
   status,
@@ -13,11 +17,14 @@ function FFMPEG({
   status: FFMPEGStatus;
   setStatus: (value: FFMPEGStatus) => void;
 }) {
+  const ffmpegSource = useSettingsStore((state) => state.ffmpegSource);
   const handleDownload = useCallback(async () => {
     setStatus("downloading");
 
     try {
-      await invoke<string>("download_ffmpeg");
+      await invoke<string>("download_ffmpeg", {
+        source: useSettingsStore.getState().ffmpegSource,
+      });
       setStatus("ok");
     } catch {
       setStatus("missing");
@@ -35,6 +42,8 @@ function FFMPEG({
     downloaded: number;
     total: number;
   } | null>(null);
+  const { t } = useI18n();
+
   const [dlStage, setDlStage] = useState<string>("");
 
   useEffect(() => {
@@ -46,7 +55,9 @@ function FFMPEG({
     let unlisten: UnlistenFn;
     listen<{ downloaded: number; total: number; stage: string }>(
       "ffmpeg-download-progress",
-      (e: { payload: { downloaded: number; total: number; stage: string } }) => {
+      (e: {
+        payload: { downloaded: number; total: number; stage: string };
+      }) => {
         if (e.payload.stage === "done") {
           setDlProgress(null);
           setDlStage("done");
@@ -57,7 +68,7 @@ function FFMPEG({
           });
           setDlStage(e.payload.stage);
         }
-      },
+      }
     ).then((fn: UnlistenFn) => {
       unlisten = fn;
     });
@@ -68,22 +79,22 @@ function FFMPEG({
 
   if (status === "checking")
     return (
-      <main className="flex flex-row w-full items-center windows95-text gap-1 px-1">
-        Проверка на наличие FFmpeg...
+      <main className="windows95-text flex min-w-0 flex-1 flex-row items-center gap-1 px-1">
+        {t("player.ffmpeg.checking")}
       </main>
     );
   if (status === "downloading")
     return (
-      <main className="flex flex-row w-full items-stretch windows95-text gap-1 px-1 py-1">
+      <main className="windows95-text flex min-w-0 flex-1 flex-row items-stretch gap-1 px-1 py-1">
         <span>
           {dlStage === "extracting"
-            ? "Извлечение FFmpeg..."
-            : "Загрузка FFmpeg..."}
+            ? t("player.ffmpeg.extracting")
+            : t("player.ffmpeg.downloading")}
         </span>
-        <div className="flex flex-row items-center gap-1 flex-1">
-          <div className="flex-1 h-4 windows95-border bg-white">
+        <div className="flex flex-1 flex-row items-center gap-1">
+          <div className="windows95-border h-4 flex-1 bg-white">
             <div
-              className="h-full bg-secondary"
+              className="bg-secondary h-full"
               style={{
                 width:
                   dlProgress && dlProgress.total > 0
@@ -93,7 +104,7 @@ function FFMPEG({
               }}
             />
           </div>
-          <span className="text-[10px] w-10 text-right shrink-0">
+          <span className="w-10 shrink-0 text-right text-[10px]">
             {dlProgress && dlProgress.total > 0
               ? `${Math.round((dlProgress.downloaded / dlProgress.total) * 100)}%`
               : "0%"}
@@ -103,27 +114,29 @@ function FFMPEG({
     );
   if (status === "missing")
     return (
-      <main className="flex flex-row w-full items-center windows95-text gap-1 px-1">
+      <main className="windows95-text flex min-w-0 flex-1 flex-row items-center gap-1 px-1">
         <span className="windows95-text text-destructive">
-          FFmpeg не найден
+          {t("player.ffmpeg.missing")}
         </span>
-        <Button onClick={handleDownload} className="ml-auto">
+        <Button onClick={handleDownload} className="ml-auto min-h-5.75">
           <Download />
-          Скачать (~50МБ)
+          {t("player.ffmpeg.download", {
+            size: FFMPEG_SOURCE_SIZES[ffmpegSource] ?? 50,
+          })}
         </Button>
       </main>
     );
   if (status === "ok")
     return (
-      <main className="flex flex-row w-full items-center windows95-text gap-1 px-1">
-        <span className="windows95-text">FFmpeg установлен</span>
+      <main className="windows95-text flex min-w-0 flex-1 flex-row items-center gap-1 px-1">
+        <span className="windows95-text">{t("player.ffmpeg.installed")}</span>
         <Button
           onClick={handleRemove}
           variant="destructive"
-          className="ml-auto"
+          className="ml-auto min-h-5.75"
         >
           <Trash2 />
-          Удалить
+          {t("common.delete")}
         </Button>
       </main>
     );

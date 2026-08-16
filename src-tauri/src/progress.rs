@@ -3,19 +3,14 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use tokio::sync::watch;
 
-
 pub struct StreamRegistry {
     streams: Arc<Mutex<HashMap<u64, watch::Sender<f64>>>>,
     counter: AtomicU64,
 }
 
-impl Clone for StreamRegistry {
-    fn clone(&self) -> Self {
-        Self {
-            streams: self.streams.clone(),
-            counter: AtomicU64::new(self.counter.load(Ordering::Relaxed)),
-        }
-    }
+pub struct StreamRegistration<'a> {
+    registry: &'a StreamRegistry,
+    id: u64,
 }
 
 impl StreamRegistry {
@@ -33,5 +28,21 @@ impl StreamRegistry {
             streams.insert(id, tx.clone());
         }
         (id, tx)
+    }
+
+    pub fn registration(&self, id: u64) -> StreamRegistration<'_> {
+        StreamRegistration { registry: self, id }
+    }
+
+    fn remove(&self, id: u64) {
+        if let Ok(mut streams) = self.streams.lock() {
+            streams.remove(&id);
+        }
+    }
+}
+
+impl Drop for StreamRegistration<'_> {
+    fn drop(&mut self) {
+        self.registry.remove(self.id);
     }
 }

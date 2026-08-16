@@ -1,7 +1,16 @@
-import type { AniUser } from "@/types/anilist";
+import {
+  Calendar,
+  Flame,
+  UserStar,
+  LogOut,
+  GitBranch,
+  Users,
+} from "lucide-react";
+
 import { Button } from "@/components/ui/button.component";
-import { Calendar, Flame, UserStar, LogOut, GitBranch } from "lucide-react";
 import ImageComponent from "@/components/ui/image.component";
+import { useI18n } from "@/lib/i18n";
+import type { AniUser } from "@/types/anilist";
 
 interface Props {
   user: AniUser;
@@ -10,6 +19,7 @@ interface Props {
   onBrowseOpen: () => void;
   onRecsOpen: () => void;
   onPrefetchOpen: () => void;
+  onFriendsOpen: () => void;
   onLogout: () => void;
 }
 
@@ -20,24 +30,27 @@ export default function AniListProfileHeader({
   onBrowseOpen,
   onRecsOpen,
   onPrefetchOpen,
+  onFriendsOpen,
   onLogout,
 }: Props) {
+  const { t } = useI18n();
+
   return (
-    <main className="flex flex-col windows95-active-border bg-primary p-1 w-full">
+    <main className="windows95-active-border bg-primary flex w-full flex-col p-1">
       <section className="flex flex-row items-center gap-2">
-        <div className="relative w-10 h-10 bg-white">
+        <div className="relative h-10 w-10 bg-white">
           <ImageComponent
             src={user.avatar ? user.avatar : "/images/user_avatar.ico"}
             alt="user avatar"
-            className="h-10 w-10 windows95-active-border"
+            className="windows95-active-border h-10 w-10"
           />
 
           <Button
-            className="absolute top-0 right-0 w-10 h-10 opacity-0 hover:opacity-70"
+            className="absolute top-0 right-0 h-10 w-10 opacity-0 hover:opacity-70"
             size="icon"
             variant="error"
             onClick={onLogout}
-            title="Выйти"
+            title={t("anilist.header.logout")}
           >
             <LogOut />
           </Button>
@@ -51,17 +64,26 @@ export default function AniListProfileHeader({
               "..."
             ) : (
               <>
-                {user.anime_count} аниме · {user.episodes_watched} эп.
-                {user.mean_score != null && <> · ср. {user.mean_score}</>}
+                {t("anilist.header.animeCount", {
+                  count: user.anime_count,
+                  episodes: user.episodes_watched,
+                })}
+                {user.mean_score != null && (
+                  <>
+                    {" "}
+                    ·{" "}
+                    {t("anilist.header.meanScore", { score: user.mean_score })}
+                  </>
+                )}
               </>
             )}
           </span>
         </div>
         <Button
           size="icon"
-          className="h-7 w-7 text-[10px] ml-auto"
+          className="ml-auto h-7 w-7 text-[10px]"
           onClick={onStatsOpen}
-          title="Календарь"
+          title={t("anilist.header.calendar")}
         >
           <Calendar className="size-3" />
         </Button>
@@ -76,9 +98,17 @@ export default function AniListProfileHeader({
           size="icon"
           className="h-7 w-7 text-[10px]"
           onClick={onPrefetchOpen}
-          title="Предзагрузка связей"
+          title={t("anilist.header.prefetch")}
         >
           <GitBranch className="size-3" />
+        </Button>
+        <Button
+          size="icon"
+          className="h-7 w-7 text-[10px]"
+          onClick={onFriendsOpen}
+          title={t("anilist.friends.title")}
+        >
+          <Users className="size-3" />
         </Button>
         <Button size="default" className="h-7 text-[10px]" onClick={onRecsOpen}>
           <UserStar className="size-3" />

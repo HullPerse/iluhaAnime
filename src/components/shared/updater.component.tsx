@@ -1,41 +1,48 @@
+import type { Update } from "@tauri-apps/plugin-updater";
 import { useState } from "react";
+
+import { useI18n } from "@/lib/i18n";
+import { installUpdate } from "@/lib/index.utils";
+
 import { Button } from "../ui/button.component";
+import ImageComponent from "../ui/image.component";
 import { SmallLoader } from "./loader.component";
 import Modal from "./modal.component";
-import { installUpdate } from "@/lib/index.utils";
-import { Update } from "@tauri-apps/plugin-updater";
-import ImageComponent from "../ui/image.component";
 
 function Updater({ update, onClose }: { update: Update; onClose: () => void }) {
   const [loading, setLoading] = useState<boolean>(false);
+  const { t } = useI18n();
 
   return (
     <Modal
-      header="Обновление"
+      header={t("updater.title")}
       onClose={onClose}
-      className="w-lg h-70 flex items-center gap-2"
+      className="flex h-70 w-lg items-center gap-2"
     >
-      <span className="text-center windows95-font text-xl font-bold underline text-text">
-        {`Доступно обновление ${update.currentVersion} -> ${update.version}`}
+      <span className="windows95-font text-text text-center text-xl font-bold underline">
+        {t("updater.available", {
+          current: update.currentVersion,
+          version: update.version,
+        })}
       </span>
-      <section className="flex windows95-border w-28 h-28 self-center items-center justify-center">
+      <section className="windows95-border flex h-28 w-28 items-center justify-center self-center">
         <ImageComponent
           src="/images/update_icon.ico"
           alt="update icon"
-          className="w-24 h-24"
+          className="h-24 w-24"
         />
       </section>
 
-      <section className="windows95-font text-md text-text font-semibold leading-relaxed whitespace-pre-line text-center">
-        <span className="">Обновить приложение до новой версии?</span>
-        <div className="flex flex-row gap-1 w-full">
+      <section className="windows95-font text-md text-text text-center leading-relaxed font-semibold whitespace-pre-line">
+        <span className="">{t("updater.prompt")}</span>
+        <div className="flex w-full flex-row gap-1">
           <Button
             variant="destructive"
             className="h-9 flex-1"
             onClick={onClose}
             disabled={loading}
           >
-            ОТМЕНИТЬ
+            {t("updater.cancel")}
           </Button>
           <Button
             variant="success"
@@ -44,15 +51,15 @@ function Updater({ update, onClose }: { update: Update; onClose: () => void }) {
               setLoading(true);
 
               await installUpdate(update)
-                .catch((e) => {
-                  console.error(`Error while installing update`, e);
+                .catch((error) => {
+                  console.error(`Error while installing update`, error);
                   setLoading(false);
                 })
                 .finally(() => setLoading(false));
             }}
             disabled={loading}
           >
-            {loading ? <SmallLoader /> : "ОБНОВИТЬ"}
+            {loading ? <SmallLoader /> : t("updater.install")}
           </Button>
         </div>
       </section>

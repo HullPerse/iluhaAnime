@@ -60,6 +60,23 @@ export interface AniUser {
   favourites?: FavouriteAnime[];
 }
 
+export interface AniUserProfile extends AniUser {
+  banner_image: string | null;
+  about: string | null;
+  is_following: boolean | null;
+  is_follower: boolean | null;
+}
+
+export interface AniFriend {
+  id: number;
+  name: string;
+  avatar: string | null;
+  added_at: number;
+  /** Cached profile data to avoid repeating the same AniList request. */
+  profile?: AniUserProfile;
+  profile_fetched_at?: number;
+}
+
 export interface FavouriteAnime {
   id: number;
   title: { romaji: string; english: string | null };
@@ -164,12 +181,12 @@ export interface AniActivity {
   user_avatar: string | null;
 }
 
-export type AniListSort = {
+export interface AniListSort {
   key: "title" | "score" | "progress";
   dir: "asc" | "desc";
-};
+}
 
-export interface SearchFilters {
+export interface AniListFilters {
   tags: string[];
   genres: string[];
   format: string;
@@ -210,8 +227,8 @@ export interface FranchiseGraph {
 
 export interface Props {
   open: boolean;
-  filters: SearchFilters;
-  onApply: (filters: SearchFilters) => void;
+  filters: AniListFilters;
+  onApply: (filters: AniListFilters) => void;
   onReset: () => void;
   onClose: () => void;
 }
@@ -264,4 +281,33 @@ export interface AnilistRouteData {
   user: AniUser | null;
   lists: AniListCollection[];
   favourites: FavouriteAnime[];
+}
+
+export interface AniListFriendsStore {
+  friends: AniFriend[];
+  addFriend: (
+    friend: Omit<AniFriend, "added_at" | "profile" | "profile_fetched_at">
+  ) => void;
+  cacheProfile: (profile: AniUserProfile) => void;
+  removeFriend: (id: number) => void;
+}
+
+export interface AniListObservation {
+  signature: string;
+  status: string;
+  title: string;
+  updatedAt: number;
+}
+
+export interface AniListNotificationsStore {
+  observations: Record<string, AniListObservation>;
+  initialized: boolean;
+  saveObservation: (id: string, observation: AniListObservation) => void;
+  setInitialized: (value: boolean) => void;
+}
+
+export interface FilteredGraph {
+  edges: { source: number; target: number; relation_type: string }[];
+  ids: Set<number>;
+  nodeMap: Map<number, FranchiseNode>;
 }

@@ -1,13 +1,18 @@
+import { useState } from "react";
+
 import ChipsRow from "@/components/shared/chips.component";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
-import { Input } from "@/components/ui/input.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
+import { Input } from "@/components/ui/input.component";
+import { Radio } from "@/components/ui/radio.component";
 import { DualSlider } from "@/components/ui/range.component";
 import Select from "@/components/ui/select.component";
-import { Radio } from "@/components/ui/radio.component";
-import { statusLabels, seasonLabels, formatLabels } from "@/config/anilist.config";
-import { useState } from "react";
+import {
+  statusLabels,
+  seasonLabels,
+  formatLabels,
+} from "@/config/anilist.config";
 import {
   ANILIST_GENRES,
   ANILIST_NSFW_TAGS,
@@ -17,12 +22,14 @@ import {
   SEASONS,
   STATUSES,
 } from "@/config/filters.config";
-import { Props, SearchFilters } from "@/types/anilist";
+import { useI18n } from "@/lib/i18n";
+import type { Props, AniListFilters } from "@/types/anilist";
 
 const NSFW_TAG_SET = new Set(ANILIST_NSFW_TAGS);
 
 function FiltersModal({ open, filters, onApply, onReset, onClose }: Props) {
-  const [local, setLocal] = useState<SearchFilters>(filters);
+  const { t } = useI18n();
+  const [local, setLocal] = useState<AniListFilters>(filters);
   const [genreSelect, setGenreSelect] = useState("");
   const [tagSelect, setTagSelect] = useState("");
   const [nsfwTagSelect, setNsfwTagSelect] = useState("");
@@ -62,26 +69,32 @@ function FiltersModal({ open, filters, onApply, onReset, onClose }: Props) {
   };
 
   const genreOpts = ANILIST_GENRES.filter((g) => !local.genres.includes(g)).map(
-    (g) => ({ value: g, label: g }),
+    (g) => ({ value: g, label: g })
   );
 
   const tagOpts = ANILIST_TAGS.filter((t) => !local.tags.includes(t)).map(
-    (t) => ({ value: t, label: t }),
+    (t) => ({ value: t, label: t })
   );
 
   const nsfwTagOpts = ANILIST_NSFW_TAGS.filter(
-    (t) => !local.tags.includes(t),
+    (t) => !local.tags.includes(t)
   ).map((t) => ({ value: t, label: t }));
 
   return (
-    <Modal header="Фильтры поиска" onClose={onClose} className="w-xl">
-      <div className="flex flex-col gap-3 p-2 overflow-y-auto">
-        <p className="windows95-text text-text font-bold">Жанры</p>
+    <Modal
+      header={t("anilist.filters.title")}
+      onClose={onClose}
+      className="w-xl"
+    >
+      <div className="flex flex-col gap-3 overflow-y-auto p-2">
+        <p className="windows95-text text-text font-bold">
+          {t("anilist.filters.genres")}
+        </p>
         <Select
           className="w-full"
           value={genreSelect}
           onChange={addGenre}
-          placeholder="Выберите жанр..."
+          placeholder={t("anilist.filters.genrePlaceholder")}
           options={genreOpts}
           indexed
         />
@@ -95,12 +108,14 @@ function FiltersModal({ open, filters, onApply, onReset, onClose }: Props) {
           }
         />
 
-        <p className="windows95-text text-text font-bold mt-1">Тэги</p>
+        <p className="windows95-text text-text mt-1 font-bold">
+          {t("anilist.filters.tags")}
+        </p>
         <Select
           className="w-full"
           value={tagSelect}
           onChange={addTag}
-          placeholder="Выберите тэг..."
+          placeholder={t("anilist.filters.tagPlaceholder")}
           options={tagOpts}
           indexed
         />
@@ -116,14 +131,14 @@ function FiltersModal({ open, filters, onApply, onReset, onClose }: Props) {
 
         {local.adult && (
           <>
-            <p className="windows95-text font-bold mt-1 text-destructive">
-              NSFW тэги
+            <p className="windows95-text text-destructive mt-1 font-bold">
+              {t("anilist.filters.nsfwTags")}
             </p>
             <Select
               className="w-full"
               value={nsfwTagSelect}
               onChange={addNsfwTag}
-              placeholder="Выберите NSFW тэг..."
+              placeholder={t("anilist.filters.nsfwPlaceholder")}
               options={nsfwTagOpts}
             />
             <ChipsRow
@@ -140,66 +155,75 @@ function FiltersModal({ open, filters, onApply, onReset, onClose }: Props) {
 
         <hr className="windows95-header w-full" />
 
-        <p className="windows95-text text-text font-bold mt-1">Формат</p>
+        <p className="windows95-text text-text mt-1 font-bold">
+          {t("anilist.filters.format")}
+        </p>
         <div className="flex flex-wrap gap-1">
           {FORMATS.map((f) => (
             <label
               key={f}
-              className="flex items-center gap-1 cursor-pointer select-none windows95-text"
+              className="windows95-text flex cursor-pointer items-center gap-1 select-none"
             >
               <Radio
                 checked={local.format === f}
                 onChange={() => setLocal((p) => ({ ...p, format: f }))}
               />
-              {formatLabels[f]}
+              {t(formatLabels[f] as never)}
             </label>
           ))}
-          <label className="flex items-center gap-1 cursor-pointer select-none windows95-text">
+          <label className="windows95-text flex cursor-pointer items-center gap-1 select-none">
             <Radio
               checked={local.format === ""}
               onChange={() => setLocal((p) => ({ ...p, format: "" }))}
             />
-            Любой
+            {t("anilist.filters.any")}
           </label>
         </div>
 
-        <p className="windows95-text text-text font-bold mt-1">Статус</p>
+        <p className="windows95-text text-text mt-1 font-bold">
+          {t("anilist.filters.status")}
+        </p>
         <div className="flex flex-wrap gap-1">
           {STATUSES.map((s) => (
             <label
               key={s}
-              className="flex items-center gap-1 cursor-pointer select-none windows95-text"
+              className="windows95-text flex cursor-pointer items-center gap-1 select-none"
             >
               <Radio
                 checked={local.status === s}
                 onChange={() => setLocal((p) => ({ ...p, status: s }))}
               />
-              {statusLabels[s]}
+              {t(statusLabels[s] as never)}
             </label>
           ))}
-          <label className="flex items-center gap-1 cursor-pointer select-none windows95-text">
+          <label className="windows95-text flex cursor-pointer items-center gap-1 select-none">
             <Radio
               checked={local.status === ""}
               onChange={() => setLocal((p) => ({ ...p, status: "" }))}
             />
-            Любой
+            {t("anilist.filters.any")}
           </label>
         </div>
 
-        <p className="windows95-text text-text font-bold mt-1">Сезон и год</p>
+        <p className="windows95-text text-text mt-1 font-bold">
+          {t("anilist.filters.seasonAndYear")}
+        </p>
         <div className="flex items-center gap-2">
           <Select
             className="w-24"
             value={local.season}
             onChange={(v) => setLocal((p) => ({ ...p, season: v }))}
             options={[
-              { value: "", label: "Любой" },
-              ...SEASONS.map((s) => ({ value: s, label: seasonLabels[s] })),
+              { value: "", label: t("anilist.filters.any") },
+              ...SEASONS.map((s) => ({
+                value: s,
+                label: t(seasonLabels[s] as never),
+              })),
             ]}
           />
           <Input
             type="number"
-            placeholder="Год"
+            placeholder={t("anilist.filters.yearPlaceholder")}
             className="w-20"
             value={local.seasonYear ?? ""}
             onChange={(e) =>
@@ -211,50 +235,74 @@ function FiltersModal({ open, filters, onApply, onReset, onClose }: Props) {
           />
         </div>
 
-        <p className="windows95-text text-text font-bold mt-1">Сортировка</p>
+        <p className="windows95-text text-text mt-1 font-bold">
+          {t("anilist.filters.sort")}
+        </p>
         <Select
           className="w-full"
           value={local.sort}
           onChange={(v) => setLocal((p) => ({ ...p, sort: v }))}
           options={[
-            { value: "", label: "По релевантности" },
-            { value: "SCORE_DESC", label: "По рейтингу ↓" },
-            { value: "SCORE_ASC", label: "По рейтингу ↑" },
-            { value: "POPULARITY_DESC", label: "По популярности ↓" },
-            { value: "TRENDING_DESC", label: "По трендам ↓" },
-            { value: "START_DATE_DESC", label: "По дате выхода ↓" },
+            { value: "", label: t("anilist.filters.sortRelevance") },
+            { value: "SCORE_DESC", label: t("anilist.filters.sortScoreDesc") },
+            { value: "SCORE_ASC", label: t("anilist.filters.sortScoreAsc") },
+            {
+              value: "POPULARITY_DESC",
+              label: t("anilist.filters.sortPopularityDesc"),
+            },
+            {
+              value: "TRENDING_DESC",
+              label: t("anilist.filters.sortTrendingDesc"),
+            },
+            {
+              value: "START_DATE_DESC",
+              label: t("anilist.filters.sortStartDateDesc"),
+            },
           ]}
         />
 
-        <p className="windows95-text text-text font-bold mt-1">Источник</p>
+        <p className="windows95-text text-text mt-1 font-bold">
+          {t("anilist.filters.source")}
+        </p>
         <Select
           className="w-full"
           value={local.source}
           onChange={(v) => setLocal((p) => ({ ...p, source: v }))}
           options={[
-            { value: "", label: "Любой" },
-            { value: "ORIGINAL", label: "Оригинал" },
-            { value: "MANGA", label: "Манга" },
-            { value: "LIGHT_NOVEL", label: "Ранобэ" },
-            { value: "VISUAL_NOVEL", label: "Визуальная новелла" },
-            { value: "VIDEO_GAME", label: "Игра" },
-            { value: "NOVEL", label: "Новелла" },
-            { value: "WEB_MANGA", label: "Веб-манга" },
-            { value: "OTHER", label: "Другое" },
+            { value: "", label: t("anilist.filters.any") },
+            { value: "ORIGINAL", label: t("anilist.filters.sourceOriginal") },
+            { value: "MANGA", label: t("anilist.filters.sourceManga") },
+            {
+              value: "LIGHT_NOVEL",
+              label: t("anilist.filters.sourceLightNovel"),
+            },
+            {
+              value: "VISUAL_NOVEL",
+              label: t("anilist.filters.sourceVisualNovel"),
+            },
+            {
+              value: "VIDEO_GAME",
+              label: t("anilist.filters.sourceVideoGame"),
+            },
+            { value: "NOVEL", label: t("anilist.filters.sourceNovel") },
+            { value: "WEB_MANGA", label: t("anilist.filters.sourceWebManga") },
+            { value: "OTHER", label: t("anilist.filters.sourceOther") },
           ]}
         />
 
-        <p className="windows95-text text-text font-bold mt-1">Страна</p>
+        <p className="windows95-text text-text mt-1 font-bold">
+          {t("anilist.filters.country")}
+        </p>
         <div className="flex flex-wrap gap-1">
           {[
-            ["", "Любая"],
-            ["JP", "Япония"],
-            ["CN", "Китай"],
-            ["KR", "Корея"],
+            ["", t("anilist.filters.countryAny")],
+            ["JP", t("anilist.filters.countryJapan")],
+            ["CN", t("anilist.filters.countryChina")],
+            ["KR", t("anilist.filters.countryKorea")],
           ].map(([v, l]) => (
             <label
               key={v}
-              className="flex items-center gap-1 cursor-pointer select-none windows95-text"
+              className="windows95-text flex cursor-pointer items-center gap-1 select-none"
             >
               <Radio
                 checked={local.country === v}
@@ -265,7 +313,9 @@ function FiltersModal({ open, filters, onApply, onReset, onClose }: Props) {
           ))}
         </div>
 
-        <p className="windows95-text text-text font-bold mt-1">Год выпуска</p>
+        <p className="windows95-text text-text mt-1 font-bold">
+          {t("anilist.filters.releaseYear")}
+        </p>
         <DualSlider
           min={1960}
           max={2026}
@@ -278,8 +328,8 @@ function FiltersModal({ open, filters, onApply, onReset, onClose }: Props) {
           onChange={(v) => setLocal((p) => ({ ...p, year: v }))}
         />
 
-        <p className="windows95-text text-text font-bold mt-1">
-          Количество эпизодов
+        <p className="windows95-text text-text mt-1 font-bold">
+          {t("anilist.filters.episodes")}
         </p>
         <DualSlider
           min={0}
@@ -293,7 +343,9 @@ function FiltersModal({ open, filters, onApply, onReset, onClose }: Props) {
           onChange={(v) => setLocal((p) => ({ ...p, episodes: v }))}
         />
 
-        <p className="windows95-text text-text font-bold mt-1">Оценка</p>
+        <p className="windows95-text text-text mt-1 font-bold">
+          {t("anilist.filters.score")}
+        </p>
         <DualSlider
           min={0}
           max={100}
@@ -307,14 +359,14 @@ function FiltersModal({ open, filters, onApply, onReset, onClose }: Props) {
           onChange={(v) => setLocal((p) => ({ ...p, score: v }))}
         />
 
-        <label className="flex items-center gap-2 mt-1 cursor-pointer select-none windows95-text">
+        <label className="windows95-text mt-1 flex cursor-pointer items-center gap-2 select-none">
           <Checkbox checked={local.adult} onChange={toggleAdult} />
-          Включить взрослый контент (18+)
+          {t("anilist.filters.adult")}
         </label>
 
-        <div className="flex justify-end gap-1 mt-3">
+        <div className="mt-3 flex justify-end gap-1">
           <Button variant="outline" onClick={handleReset}>
-            Сбросить
+            {t("anilist.filters.reset")}
           </Button>
           <Button
             onClick={() => {
@@ -322,7 +374,7 @@ function FiltersModal({ open, filters, onApply, onReset, onClose }: Props) {
               onClose();
             }}
           >
-            Применить
+            {t("anilist.filters.apply")}
           </Button>
         </div>
       </div>

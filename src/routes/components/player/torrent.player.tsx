@@ -1,12 +1,15 @@
-import { useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/core";
-import type { TorrentInfo, TorrentFileInfo } from "@/types/torrent";
-import { Button } from "@/components/ui/button.component";
 import { openPath } from "@tauri-apps/plugin-opener";
-import TorrentFilesSection from "../torrent/file.torrent";
 import { ChevronDown, ChevronRight, Loader, RefreshCw } from "lucide-react";
+import { useCallback } from "react";
+
+import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
+import { useI18n } from "@/lib/i18n";
+import type { TorrentInfo, TorrentFileInfo } from "@/types/torrent";
+
+import TorrentFilesSection from "../torrent/file.torrent";
 
 interface Props {
   item: TorrentInfo;
@@ -30,9 +33,9 @@ export default function TorrentFilesPlayerSection({
     queryFn: () =>
       invoke<{ path: string; name: string; size: number }[]>(
         "scan_extra_files",
-        { path: item.save_dir! },
+        { path: item.save_dir! }
       ).then((result) =>
-        result.map((f) => ({ name: f.name, size: f.size, fullPath: f.path })),
+        result.map((f) => ({ name: f.name, size: f.size, fullPath: f.path }))
       ),
     enabled: !!item.save_dir,
   });
@@ -41,46 +44,57 @@ export default function TorrentFilesPlayerSection({
     (_filePath: string) => {
       refetch();
     },
-    [refetch],
+    [refetch]
   );
 
   const handleDeleteExtraFile = useCallback(() => {
     refetch();
   }, [refetch]);
 
+  const { t } = useI18n();
+
   return (
-    <section className="flex flex-col windows95-active-border bg-primary gap-1">
+    <section className="windows95-active-border bg-primary flex flex-col gap-1">
       {!hideHeader && (
-        <div className="flex items-center gap-1 bg-secondary text-white px-1">
-          <span className="flex-1 line-clamp-1 font-bold windows95-text py-0.5">
+        <div className="bg-secondary flex items-center gap-1 px-1 text-white">
+          <span className="windows95-text line-clamp-1 flex-1 py-0.5 font-bold">
             {item.name}
           </span>
         </div>
       )}
 
       {torrentLoading && !files ? (
-        <div className="flex items-center gap-1 px-0.5 py-0.5 windows95-text">
+        <div className="windows95-text flex items-center gap-1 px-0.5 py-0.5">
           <Loader className="size-3 animate-spin" />
-          <span className="text-xs">Загрузка файлов...</span>
+          <span className="text-xs">{t("player.files.loading")}</span>
         </div>
       ) : files ? (
         <section className="flex flex-col gap-1">
-          <div
-            role="button"
-            className="flex items-center gap-1 windows95-text cursor-pointer hover:bg-surface px-0.5 py-0.5 w-full text-left select-none"
-            onClick={onToggleExpand}
-          >
-            {isExpanded ? (
-              <ChevronDown className="size-3" />
-            ) : (
-              <ChevronRight className="size-3" />
-            )}
-            Файлы: ({files.filter((f) => f.completed).length}){" "}
-            {data.length > 0 && `+ ${data.length} апскейл`}
+          <div className="windows95-text flex w-full items-center gap-1 text-left select-none">
+            <button
+              type="button"
+              aria-expanded={isExpanded}
+              aria-label={t("player.files.count", {
+                count: files.filter((f) => f.completed).length,
+              })}
+              className="windows95-text hover:bg-surface focus-visible:outline-text flex min-w-0 flex-1 cursor-pointer items-center gap-1 border-0 bg-transparent p-0 text-left focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-dotted"
+              onClick={onToggleExpand}
+            >
+              {isExpanded ? (
+                <ChevronDown className="size-3" />
+              ) : (
+                <ChevronRight className="size-3" />
+              )}
+              {t("player.files.count", {
+                count: files.filter((f) => f.completed).length,
+              })}{" "}
+              {data.length > 0 &&
+                t("player.files.upscales", { count: data.length })}
+            </button>
             <Button
               size="icon"
               className="ml-auto size-5"
-              title="Обновить апскейлы"
+              title={t("player.files.refresh")}
               onClick={(e) => {
                 e.stopPropagation();
                 refetch();
@@ -91,7 +105,7 @@ export default function TorrentFilesPlayerSection({
             <Button
               size="icon"
               className="size-5"
-              title="Открыть в папке"
+              title={t("player.files.openFolder")}
               onClick={(e) => {
                 e.stopPropagation();
                 openPath(item.save_dir);
@@ -119,7 +133,7 @@ export default function TorrentFilesPlayerSection({
       ) : null}
 
       {item.error && (
-        <span className="flex w-full items-center gap-1 text-destructive windows95-text">
+        <span className="text-destructive windows95-text flex w-full items-center gap-1">
           {item.error}
         </span>
       )}

@@ -80,36 +80,36 @@ export const playerIcons = [
 ];
 
 export const GPU_LABELS: Record<string, string> = {
+  amf: "AMD AMF",
   cpu: "CPU (x264)",
   nvenc: "NVIDIA NVENC",
-  amf: "AMD AMF",
   qsv: "Intel QSV",
 };
 
 export const RESOLUTIONS = [
-  { label: "Оригинальное", value: "original" },
-  { label: "1920\u00d71080 (1080p)", value: "1920x1080" },
-  { label: "2560\u00d71440 (2K)", value: "2560x1440" },
-  { label: "3840\u00d72160 (4K)", value: "3840x2160" },
+  { label: "player.option.original", value: "original" },
+  { label: "1920\u00D71080 (1080p)", value: "1920x1080" },
+  { label: "2560\u00D71440 (2K)", value: "2560x1440" },
+  { label: "3840\u00D72160 (4K)", value: "3840x2160" },
 ];
 
 export const FPS_OPTIONS = [
-  { label: "Оригинальный", value: "" },
+  { label: "player.option.fpsOriginal", value: "" },
   { label: "30", value: "30" },
-  { label: "60 (дублирование)", value: "60" },
-  { label: "60 (интерполяция)", value: "60i" },
+  { label: "player.option.fps60dup", value: "60" },
+  { label: "player.option.fps60interp", value: "60i" },
 ];
 
 export const QUALITY_OPTIONS = [
-  { label: "Самый быстрый", value: "ultrafast" },
-  { label: "Быстрый", value: "fast" },
-  { label: "Медленный", value: "slow" },
-  { label: "Самый медленный", value: "veryslow" },
+  { label: "player.option.qualityFastest", value: "ultrafast" },
+  { label: "player.option.qualityFast", value: "fast" },
+  { label: "player.option.qualitySlow", value: "slow" },
+  { label: "player.option.qualitySlowest", value: "veryslow" },
 ];
 
 export const UPSCALER_OPTIONS = [
   { label: "Lanczos (ffmpeg)", value: "ffmpeg" },
-  { label: "Anime4K (GPU шейдеры)", value: "anime4k" },
+  { label: "player.option.upscalerAnime4k", value: "anime4k" },
 ];
 
 export const ANIME4K_PRESETS: {
@@ -120,29 +120,30 @@ export const ANIME4K_PRESETS: {
   gpuBackend: string;
 }[] = [
   {
-    label: "Самый быстрый",
-    value: "lightning",
-    shaders: ["clamp", "upscale_cnn_x2_s"],
+    gpuBackend: "gpu",
+    label: "player.preset.lightning",
     quality: "ultrafast",
-    gpuBackend: "gpu",
+    shaders: ["clamp", "upscale_cnn_x2_s"],
+    value: "lightning",
   },
   {
-    label: "Быстрый",
-    value: "fast",
-    shaders: ["clamp", "restore_cnn_ul", "upscale_cnn_x2_ul"],
+    gpuBackend: "gpu",
+    label: "player.preset.fast",
     quality: "fast",
-    gpuBackend: "gpu",
+    shaders: ["clamp", "restore_cnn_ul", "upscale_cnn_x2_ul"],
+    value: "fast",
   },
   {
-    label: "Сбалансированный",
-    value: "balanced",
-    shaders: ["clamp", "restore_cnn_l", "upscale_cnn_x2_l", "thin_fast"],
-    quality: "slow",
     gpuBackend: "cpu",
+    label: "player.preset.balanced",
+    quality: "slow",
+    shaders: ["clamp", "restore_cnn_l", "upscale_cnn_x2_l", "thin_fast"],
+    value: "balanced",
   },
   {
-    label: "Качественный",
-    value: "quality",
+    gpuBackend: "cpu",
+    label: "player.preset.quality",
+    quality: "slow",
     shaders: [
       "clamp",
       "denoise_bilateral_mean",
@@ -150,12 +151,12 @@ export const ANIME4K_PRESETS: {
       "upscale_denoise_cnn_x2_vl",
       "thin_hq",
     ],
-    quality: "slow",
-    gpuBackend: "cpu",
+    value: "quality",
   },
   {
-    label: "Максимальный",
-    value: "maximum",
+    gpuBackend: "cpu",
+    label: "player.preset.maximum",
+    quality: "veryslow",
     shaders: [
       "clamp",
       "denoise_bilateral_median",
@@ -165,31 +166,31 @@ export const ANIME4K_PRESETS: {
       "thin_hq",
       "darken_hq",
     ],
-    quality: "veryslow",
-    gpuBackend: "cpu",
+    value: "maximum",
   },
   {
-    label: "С шумоподавлением",
-    value: "denoise",
+    gpuBackend: "cpu",
+    label: "player.preset.denoise",
+    quality: "slow",
     shaders: [
       "clamp",
       "denoise_bilateral_median",
       "restore_cnn_ul",
       "upscale_denoise_cnn_x2_ul",
     ],
-    quality: "slow",
-    gpuBackend: "cpu",
+    value: "denoise",
   },
   {
-    label: "Для чистого аниме",
-    value: "clean",
-    shaders: ["clamp", "restore_cnn_m", "upscale_cnn_x2_m", "thin_fast"],
+    gpuBackend: "cpu",
+    label: "player.preset.clean",
     quality: "fast",
-    gpuBackend: "cpu",
+    shaders: ["clamp", "restore_cnn_m", "upscale_cnn_x2_m", "thin_fast"],
+    value: "clean",
   },
   {
-    label: "Ретро (DVD)",
-    value: "retro",
+    gpuBackend: "cpu",
+    label: "player.preset.retro",
+    quality: "slow",
     shaders: [
       "clamp",
       "denoise_bilateral_mean",
@@ -197,8 +198,7 @@ export const ANIME4K_PRESETS: {
       "restore_cnn_soft_vl",
       "upscale_denoise_cnn_x2_vl",
     ],
-    quality: "slow",
-    gpuBackend: "cpu",
+    value: "retro",
   },
 ];
 
@@ -213,6 +213,14 @@ export const FORMAT_OPTIONS = [
 ];
 
 export const TABS = [
-  { id: "upscale" as const, label: "Апскейл" },
-  { id: "convert" as const, label: "Конвертация" },
+  { id: "upscale" as const, label: "player.tab.upscale" },
+  { id: "convert" as const, label: "player.tab.convert" },
 ];
+
+export const THUMB_INTERVAL = 20;
+
+export const FFMPEG_SOURCE_SIZES: Record<string, number> = {
+  essentials: 30,
+  github: 160,
+  "github-mirror": 160,
+};

@@ -1,6 +1,9 @@
-import { ReactNode } from "react";
-import { cn } from "@/lib/index.utils";
 import { ChevronDown, ChevronRight } from "lucide-react";
+import type { ReactNode } from "react";
+import { useId } from "react";
+
+import { useI18n } from "@/lib/i18n";
+import { cn } from "@/lib/index.utils";
 
 function Section({
   header,
@@ -17,17 +20,23 @@ function Section({
   expanded?: boolean;
   files?: number;
 }) {
+  const contentId = useId();
+  const { t } = useI18n();
+
   return (
-    <main className="windows95-border">
-      <section className="flex flex-row w-full items-center bg-secondary text-white windows95-text font-bold px-1 py-0.5 justify-between">
+    <section className="windows95-border" aria-label={header}>
+      <header className="bg-secondary windows95-text flex w-full flex-row items-center justify-between px-1 py-0.5 font-bold text-white">
         <span>
           {header} {onExpand && files ? `[${files}]` : null}
         </span>
 
         {onExpand && (
-          <div
-            role="button"
-            className="size-5 flex gap-1 windows95-text cursor-pointer bg-secondary hover:bg-muted text-white px-0.5 py-0.5  text-center items-center justify-center select-none"
+          <button
+            type="button"
+            aria-expanded={expanded}
+            aria-controls={contentId}
+            aria-label={expanded ? t("common.collapse") : t("common.expand")}
+            className="windows95-text bg-secondary hover:bg-muted flex size-5 cursor-pointer items-center justify-center gap-1 px-0.5 py-0.5 text-center text-white select-none"
             onClick={onExpand}
           >
             {expanded ? (
@@ -35,14 +44,18 @@ function Section({
             ) : (
               <ChevronRight className="size-3" />
             )}
-          </div>
+          </button>
         )}
-      </section>
+      </header>
 
-      <div hidden={onExpand && !expanded} className={cn("p-1", className)}>
+      <div
+        id={contentId}
+        hidden={onExpand && !expanded}
+        className={cn("p-2", className)}
+      >
         {children}
       </div>
-    </main>
+    </section>
   );
 }
 

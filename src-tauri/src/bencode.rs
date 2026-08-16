@@ -37,15 +37,25 @@ pub fn extract_announce_url(torrent_bytes: &[u8]) -> Result<String, String> {
 }
 
 fn find_info_value_bytes(bytes: &[u8]) -> Result<&[u8], String> {
-    let marker = b"4:info";
-    let start = bytes
-        .windows(marker.len())
-        .position(|w| w == marker)
-        .ok_or_else(|| "Info key not found in torrent".to_string())?
-        + marker.len();
-
-    let end = skip_bencode_value(bytes, start)?;
-    Ok(&bytes[start..end])
+    // Walk the top-level dictionary: keys are bencode strings, and we need the
+    // value of the `info` key. A raw substring search for the marker `4:info` is
+    // unsafe because a string value (e.g. a tracker URL or comment) may contain
+    // that exact byte sequence and would be mistaken for the real key.
+    if bytes.first() != Some(&b'd') {
+        return Err("Torrent must be a bencoded dictionary".to_string());
+    }
+    let mut pos = 1;
+    while pos < bytes.len() && bytes[pos] != b'e' {
+        let key_end = skip_bencode_value(bytes, pos)?;
+        if bytes[pos..key_end] == *b"4:info" {
+            let value_start = key_end;
+            let value_end = skip_bencode_value(bytes, value_start)?;
+            return Ok(&bytes[value_start..value_end]);
+        }
+        // Not the info key: skip past its value and continue.
+        pos = skip_bencode_value(bytes, key_end)?;
+    }
+    Err("Info key not found in torrent".to_string())
 }
 
 fn skip_bencode_value(bytes: &[u8], pos: usize) -> Result<usize, String> {
@@ -168,5 +178,47 @@ mod tests {
     fn extract_announce_url_errors_without_announce() {
         let torrent = b"d4:infod4:name5:helloee";
         assert!(extract_announce_url(torrent).is_err());
+    }
+
+    #[test]
+    fn find_info_value_bytes_ignores_decoy_marker_inside_string_values() {
+        // The tracker URL contains the byte sequence `4:info` before the real
+        // key. A naive raw substring search would stop at the decoy and fail.
+        let bytes = b"d8:announce29:https://x.com/4:info/announce4:infod4:name4:testee";
+        let result = find_info_value_bytes(bytes);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), b"d4:name4:teste");
+        assert_eq!(extract_torrent_name(bytes).unwrap(), "test");
+    }
+
+    #[test]
+    fn extract_info_hash_matches_sha1_of_verified_info_slice() {
+        use sha1::{Digest, Sha1};
+        let torrent =
+            b"d8:announce42:udp://tracker.opentrackr.org:1337/announce4:infod6:lengthi1000e4:name4:test12:piece lengthi16384e6:pieces20:01234567890123456789ee";
+        let info =
+            b"d6:lengthi1000e4:name4:test12:piece lengthi16384e6:pieces20:01234567890123456789e";
+        let mut hasher = Sha1::new();
+        hasher.update(info);
+        let expected = hex::encode(hasher.finalize());
+        assert_eq!(extract_info_hash(torrent).unwrap(), expected);
+    }
+
+    #[test]
+    fn extract_torrent_name_prefers_utf8_name() {
+        let torrent = b"d4:infod10:name.utf-85:hello4:name4:oldsee";
+        assert_eq!(extract_torrent_name(torrent).unwrap(), "hello");
+    }
+
+    #[test]
+    fn extract_torrent_name_errors_when_name_missing() {
+        let torrent = b"d4:infod1:a1:xee";
+        assert_eq!(extract_torrent_name(torrent).unwrap_err(), "No name found");
+    }
+
+    #[test]
+    fn find_info_value_bytes_rejects_non_dict_roots() {
+        assert!(find_info_value_bytes(b"li42ee").is_err());
+        assert!(find_info_value_bytes(b"").is_err());
     }
 }

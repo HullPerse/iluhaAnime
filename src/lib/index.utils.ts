@@ -1,8 +1,12 @@
-import { LanguageTag } from "@/types";
-import { type ClassValue, clsx } from "clsx";
+import type { Update } from "@tauri-apps/plugin-updater";
+import { check } from "@tauri-apps/plugin-updater";
+import { clsx } from "clsx";
+import type { ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { Update, check } from "@tauri-apps/plugin-updater";
-import { type TorrentTreeNode } from "./torrent.utils";
+
+import type { LanguageTag } from "@/types";
+
+import type { TorrentTreeNode } from "./torrent.utils";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -25,20 +29,20 @@ export function detectLanguages(title: string): LanguageTag[] {
     tags.push({ code: "dual", label: "Dual" });
 
   const langMap: Record<string, string> = {
-    "POR-BR": "PT",
-    POR: "PT",
-    "SPA-LA": "ES",
-    SPA: "ES",
-    FRE: "FR",
-    FR: "FR",
-    GER: "DE",
-    DE: "DE",
-    ITA: "IT",
-    JPN: "JP",
-    JP: "JP",
-    CHI: "ZH",
-    KOR: "KO",
     ARA: "AR",
+    CHI: "ZH",
+    DE: "DE",
+    FR: "FR",
+    FRE: "FR",
+    GER: "DE",
+    ITA: "IT",
+    JP: "JP",
+    JPN: "JP",
+    KOR: "KO",
+    POR: "PT",
+    "POR-BR": "PT",
+    SPA: "ES",
+    "SPA-LA": "ES",
     THA: "TH",
     VIE: "VI",
   };
@@ -49,6 +53,16 @@ export function detectLanguages(title: string): LanguageTag[] {
   }
 
   return tags;
+}
+
+export function formatTime(seconds: number): string {
+  if (seconds < 0 || !Number.isFinite(seconds)) return "0:00";
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+  if (h > 0)
+    return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  return `${m}:${String(s).padStart(2, "0")}`;
 }
 
 export function formatSize(size: string): string {
@@ -62,16 +76,16 @@ export function formatSize(size: string): string {
 export const parseSize = (s: string): number => {
   const match = s.match(/^([\d.]+)\s*(B|KB|KiB|MB|MiB|GB|GiB)?$/);
   if (!match) return 0;
-  const num = parseFloat(match[1]);
+  const num = Number.parseFloat(match[1]);
   const unit = match[2] || "B";
   const multipliers: Record<string, number> = {
     B: 1,
+    GB: 1073741824,
+    GiB: 1073741824,
     KB: 1024,
     KiB: 1024,
     MB: 1048576,
     MiB: 1048576,
-    GB: 1073741824,
-    GiB: 1073741824,
   };
   return num * (multipliers[unit] || 1);
 };
@@ -85,16 +99,16 @@ export async function installUpdate(update: Update) {
   if (!update) return;
   try {
     await update.downloadAndInstall();
-  } catch (e) {
-    console.error("Failed to install update:", e);
+  } catch (error) {
+    console.error("Failed to install update:", error);
   }
 }
 
 export async function checkForUpdates(): Promise<Update | null> {
   try {
     return await check();
-  } catch (e) {
-    console.debug("Auto-update check skipped:", e);
+  } catch (error) {
+    console.debug("Auto-update check skipped:", error);
     return null;
   }
 }
@@ -106,5 +120,3 @@ export function collectFileIndices(node: TorrentTreeNode): number[] {
   }
   return indices;
 }
-
-

@@ -4,12 +4,14 @@ import {
   createRouter,
   useNavigate,
 } from "@tanstack/react-router";
+import { CircleX } from "lucide-react";
 import { lazy, useEffect } from "react";
 
-import OutletComponent from "@/components/shared/outlet.component";
-import { BigLoader } from "@/components/shared/loader.component";
 import { BigError } from "@/components/shared/error.component";
-import { CircleX } from "lucide-react";
+import { BigLoader } from "@/components/shared/loader.component";
+import OutletComponent from "@/components/shared/outlet.component";
+import { translate } from "@/lib/i18n";
+import { useSettingsStore } from "@/store/settings.store";
 
 const App = lazy(() => import("@/App"));
 
@@ -28,7 +30,11 @@ const ErrorPage = () => {
   const navigate = useNavigate();
   return (
     <BigError
-      error={new Error("Произошла ошибка")}
+      error={
+        new Error(
+          translate(useSettingsStore.getState().language, "common.error")
+        )
+      }
       icon={<CircleX className="size-28 animate-pulse text-red-500" />}
       onRetry={() => navigate({ to: "/" })}
     />

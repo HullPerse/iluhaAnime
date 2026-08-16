@@ -1,4 +1,6 @@
 import { memo, useCallback, useEffect, useRef, useState } from "react";
+
+import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/index.utils";
 
 interface ImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
@@ -27,6 +29,7 @@ const Image = ({
   quality = 80,
   ...props
 }: ImageProps) => {
+  const { t } = useI18n();
   const [isLoaded, setIsLoaded] = useState(false);
   const [finalSrc, setFinalSrc] = useState(src);
   const [retryKey, setRetryKey] = useState(0);
@@ -59,7 +62,7 @@ const Image = ({
     }
   }, []);
 
-  const showWebp = !isExternal(finalSrc) && !finalSrc.match(/\.(ico|svg)$/i);
+  const showWebp = !isExternal(finalSrc) && !/\.(ico|svg)$/i.test(finalSrc);
   const webpSrc = showWebp
     ? `${finalSrc.split("?")[0]}?format=webp&quality=${quality}`
     : finalSrc;
@@ -67,9 +70,10 @@ const Image = ({
   return (
     <div
       className={cn(
-        "relative flex w-full items-center overflow-hidden",
-        className,
+        "bg-background/20 relative flex w-full items-center overflow-hidden",
+        className
       )}
+      aria-busy={!isLoaded && Boolean(finalSrc)}
       style={{
         aspectRatio: width && height ? `${width}/${height}` : undefined,
       }}
@@ -87,7 +91,7 @@ const Image = ({
               className={cn(
                 "absolute inset-0 h-full w-full transition-opacity duration-300",
                 type === "cover" ? "object-cover" : "object-contain",
-                isLoaded ? "opacity-100" : "opacity-0",
+                isLoaded ? "opacity-100" : "opacity-0"
               )}
               loading="lazy"
               decoding="async"
@@ -107,7 +111,7 @@ const Image = ({
             className={cn(
               "absolute inset-0 h-full w-full transition-opacity duration-300",
               type === "cover" ? "object-cover" : "object-contain",
-              isLoaded ? "opacity-100" : "opacity-0",
+              isLoaded ? "opacity-100" : "opacity-0"
             )}
             loading="lazy"
             decoding="async"
@@ -118,11 +122,11 @@ const Image = ({
         )
       ) : (
         <div
-          className="flex h-full w-full items-center justify-center border border-primary/20 bg-background/40"
-          role="presentation"
-          aria-hidden="true"
+          className="border-primary/20 bg-background/40 flex h-full w-full items-center justify-center border"
+          role="img"
+          aria-label={alt || t("image.unavailable")}
         >
-          <span className="text-muted-foreground text-xs">Изображение</span>
+          <span className="text-muted text-xs">{t("image.fallback")}</span>
         </div>
       )}
     </div>

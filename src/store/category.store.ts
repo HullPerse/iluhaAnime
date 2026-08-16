@@ -1,39 +1,8 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-export interface Category {
-  id: string;
-  icon: string;
-  name: string;
-  order: number;
-  createdAt: number;
-}
-
-interface CategoryEntry {
-  id: string;
-  type: "torrent" | "folder";
-  name: string;
-  torrentId?: number;
-  infoHash?: string;
-  saveDir?: string;
-  totalBytes?: number;
-  folderPath?: string;
-}
-
-interface CategoryStore {
-  categories: Category[];
-  entries: Record<string, CategoryEntry[]>;
-
-  addCategory: (name: string) => string;
-  removeCategory: (id: string) => void;
-  renameCategory: (id: string, name: string) => void;
-  changeIcon: (id: string, icon: string) => void;
-  reorderCategories: (ids: string[]) => void;
-  addEntry: (categoryId: string, entry: Omit<CategoryEntry, "id">) => void;
-  removeEntry: (categoryId: string, entryId: string) => void;
-  removeEntriesByFolderPath: (path: string) => void;
-  removeEntriesByTorrentId: (id: number) => void;
-}
+import type { Category, CategoryEntry } from "@/types";
+import type { CategoryStore } from "@/types/category";
 
 let nextId = 1;
 function genId(): string {
@@ -53,9 +22,6 @@ function getNextCategoryName(existing: string[], base: string): string {
 export const useCategoryStore = create<CategoryStore>()(
   persist(
     (set) => ({
-      categories: [],
-      entries: {},
-
       addCategory: (name) => {
         const id = genId();
         set((s) => {
@@ -76,40 +42,6 @@ export const useCategoryStore = create<CategoryStore>()(
         });
         return id;
       },
-
-      removeCategory: (id) =>
-        set((s) => {
-          const { [id]: _, ...rest } = s.entries;
-          return {
-            categories: s.categories.filter((c) => c.id !== id),
-            entries: rest,
-          };
-        }),
-
-      renameCategory: (id, name) =>
-        set((s) => ({
-          categories: s.categories.map((c) =>
-            c.id === id ? { ...c, name } : c,
-          ),
-        })),
-
-      changeIcon: (id, icon) =>
-        set((s) => ({
-          categories: s.categories.map((c) =>
-            c.id === id ? { ...c, icon } : c,
-          ),
-        })),
-
-      reorderCategories: (ids) =>
-        set((s) => ({
-          categories: ids
-            .map((id, i) => {
-              const cat = s.categories.find((c) => c.id === id);
-              return cat ? { ...cat, order: i } : cat;
-            })
-            .filter(Boolean) as Category[],
-        })),
-
       addEntry: (categoryId, entry) =>
         set((s) => {
           const list = s.entries[categoryId] || [];
@@ -129,7 +61,42 @@ export const useCategoryStore = create<CategoryStore>()(
             },
           };
         }),
-
+      categories: [],
+      changeIcon: (id, icon) =>
+        set((s) => ({
+          categories: s.categories.map((c) =>
+            c.id === id ? { ...c, icon } : c
+          ),
+        })),
+      entries: {},
+      removeCategory: (id) =>
+        set((s) => {
+          const { [id]: _, ...rest } = s.entries;
+          return {
+            categories: s.categories.filter((c) => c.id !== id),
+            entries: rest,
+          };
+        }),
+      removeEntriesByFolderPath: (path) =>
+        set((s) => {
+          const entries = { ...s.entries };
+          for (const catId of Object.keys(entries)) {
+            entries[catId] = entries[catId].filter(
+              (e) => e.type !== "folder" || e.folderPath !== path
+            );
+          }
+          return { entries };
+        }),
+      removeEntriesByTorrentId: (id) =>
+        set((s) => {
+          const entries = { ...s.entries };
+          for (const catId of Object.keys(entries)) {
+            entries[catId] = entries[catId].filter(
+              (e) => e.type !== "torrent" || e.torrentId !== id
+            );
+          }
+          return { entries };
+        }),
       removeEntry: (categoryId, entryId) =>
         set((s) => {
           const list = s.entries[categoryId];
@@ -141,32 +108,25 @@ export const useCategoryStore = create<CategoryStore>()(
             },
           };
         }),
-
-      removeEntriesByFolderPath: (path) =>
-        set((s) => {
-          const entries = { ...s.entries };
-          for (const catId of Object.keys(entries)) {
-            entries[catId] = entries[catId].filter(
-              (e) => e.type !== "folder" || e.folderPath !== path,
-            );
-          }
-          return { entries };
-        }),
-
-      removeEntriesByTorrentId: (id) =>
-        set((s) => {
-          const entries = { ...s.entries };
-          for (const catId of Object.keys(entries)) {
-            entries[catId] = entries[catId].filter(
-              (e) => e.type !== "torrent" || e.torrentId !== id,
-            );
-          }
-          return { entries };
-        }),
+      renameCategory: (id, name) =>
+        set((s) => ({
+          categories: s.categories.map((c) =>
+            c.id === id ? { ...c, name } : c
+          ),
+        })),
+      reorderCategories: (ids) =>
+        set((s) => ({
+          categories: ids
+            .map((id, i) => {
+              const cat = s.categories.find((c) => c.id === id);
+              return cat ? { ...cat, order: i } : cat;
+            })
+            .filter(Boolean) as Category[],
+        })),
     }),
     {
       name: "categories",
       version: 1,
-    },
-  ),
+    }
+  )
 );

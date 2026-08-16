@@ -1,6 +1,7 @@
-import type { AniListCollection } from "@/types/anilist";
 import { Button } from "@/components/ui/button.component";
 import { listStatusLabels } from "@/config/anilist.config";
+import { useI18n } from "@/lib/i18n";
+import type { AniListCollection } from "@/types/anilist";
 
 interface Props {
   lists: AniListCollection[];
@@ -17,6 +18,7 @@ export default function AniListTabs({
   searchTerms,
   global,
 }: Props) {
+  const { t } = useI18n();
   return (
     <section className="relative flex flex-row gap-1">
       {lists
@@ -28,7 +30,7 @@ export default function AniListTabs({
           return (
             <Button
               key={item.name}
-              className={`px-3 py-0.5 cursor-pointer windows95-text active:outline-dotted active:outline-1 active:outline-offset-[-3px] active:outline-text ${
+              className={`windows95-text active:outline-text cursor-pointer px-3 py-0.5 active:outline-1 active:outline-offset-[-3px] active:outline-dotted ${
                 isActive
                   ? "windows95-active-border border-b-transparent"
                   : "windows95-border bg-surface"
@@ -41,7 +43,11 @@ export default function AniListTabs({
               onClick={() => onSelect(item.name)}
               disabled={isActive}
             >
-              {listStatusLabels[item.name.toUpperCase()] ?? item.name} (
+              {t(
+                (listStatusLabels[item.name.toUpperCase()] ??
+                  item.name) as never
+              )}{" "}
+              (
               {
                 item.entries.filter((e) => {
                   if (!searchTerms.trim() || global) return true;

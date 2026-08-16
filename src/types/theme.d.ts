@@ -8,6 +8,10 @@ export interface ThemeDefinition {
     secondary: string;
     text: string;
     muted: string;
+    /** Ghost-text color for inline autocomplete. Falls back to muted for old themes. */
+    autocomplete?: string;
+    /** Ghost-text opacity from 0 to 1. Falls back to 0.6 for old themes. */
+    autocompleteOpacity?: number;
     highlight: string;
     destructive: string;
     success: string;
@@ -16,4 +20,12 @@ export interface ThemeDefinition {
     winHighlight: string;
     winShadow: string;
   };
+}
+
+export interface ThemeStore {
+  currentTheme: string;
+  customThemes: ThemeDefinition[];
+  setTheme: (name: string) => void;
+  addCustomTheme: (theme: ThemeDefinition) => void;
+  removeCustomTheme: (name: string) => void;
 }

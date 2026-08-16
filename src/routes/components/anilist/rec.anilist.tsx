@@ -1,7 +1,10 @@
-import type { AniRecommendation } from "@/types/anilist";
-import Modal from "@/components/shared/modal.component";
 import { Loader, Star } from "lucide-react";
+
+import Modal from "@/components/shared/modal.component";
 import ImageComponent from "@/components/ui/image.component";
+import { useI18n } from "@/lib/i18n";
+import { enterOrSpace } from "@/lib/keyboard.utils";
+import type { AniRecommendation } from "@/types/anilist";
 
 interface Props {
   open: boolean;
@@ -18,54 +21,66 @@ export default function AniListRecsModal({
   onClose,
   onAnimeClick,
 }: Props) {
+  const { t } = useI18n();
   if (!open) return null;
 
   return (
-    <Modal header="Рекомендации" onClose={onClose} className="w-3xl">
+    <Modal header={t("anilist.recs.title")} onClose={onClose} className="w-3xl">
       {loading ? (
-        <div className="flex items-center justify-center flex-1">
-          <Loader className="size-6 animate-spin windows95-text" />
+        <div className="flex flex-1 items-center justify-center">
+          <Loader className="windows95-text size-6 animate-spin" />
         </div>
       ) : recommendations.length === 0 ? (
-        <div className="flex items-center justify-center flex-1">
-          <span className="windows95-text">Нет рекомендаций</span>
+        <div className="flex flex-1 items-center justify-center">
+          <span className="windows95-text">{t("anilist.recs.empty")}</span>
         </div>
       ) : (
         <div className="flex flex-col gap-1">
           {recommendations.map((r) => (
             <div
               key={r.id}
-              className="flex flex-row items-center gap-2 windows95-active-border bg-primary p-1 hover:bg-surface hover:cursor-pointer"
+              className="windows95-active-border bg-primary hover:bg-surface flex flex-row items-center gap-2 p-1 hover:cursor-pointer"
+              role="button"
+              tabIndex={0}
+              aria-label={r.title}
               onClick={() => {
                 onClose();
                 onAnimeClick(r.id);
               }}
+              onKeyDown={enterOrSpace(() => {
+                onClose();
+                onAnimeClick(r.id);
+              })}
             >
               {r.cover_url && (
                 <ImageComponent
                   src={r.cover_url}
                   alt="cover_url"
-                  className="w-13 h-18 shrink-0 windows95-active-border"
+                  className="windows95-active-border h-18 w-13 shrink-0"
                 />
               )}
-              <div className="flex flex-col min-w-0 flex-1">
+              <div className="flex min-w-0 flex-1 flex-col">
                 <span
-                  className="text-[10px] font-bold truncate windows95-text"
+                  className="windows95-text truncate text-[10px] font-bold"
                   title={r.title}
                 >
                   {r.title}
                 </span>
-                <div className="flex flex-row gap-2 text-[9px] windows95-text">
+                <div className="windows95-text flex flex-row gap-2 text-[9px]">
                   {r.score && (
                     <span>
-                      <Star className="size-2.5 inline" /> {r.score}
+                      <Star className="inline size-2.5" /> {r.score}
                     </span>
                   )}
                   {r.format && <span>{r.format}</span>}
-                  {r.episodes && <span>{r.episodes} эп.</span>}
+                  {r.episodes && (
+                    <span>
+                      {r.episodes} {t("anilist.details.epsShort")}
+                    </span>
+                  )}
                 </div>
               </div>
-              <span className="flex flex-row gap-1 text-[9px] shrink-0 windows95-text items-center">
+              <span className="windows95-text flex shrink-0 flex-row items-center gap-1 text-[9px]">
                 <Star className="size-3" /> {r.recommendation_rating}
               </span>
             </div>

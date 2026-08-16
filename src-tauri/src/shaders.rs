@@ -419,7 +419,6 @@ fn find_meta(id: &str) -> Option<&ShaderMeta> {
     CATALOG.iter().find(|s| s.id == id)
 }
 
-
 pub fn build_shader_chain(selected: &[String]) -> Result<Vec<String>, String> {
     let selected_set: HashSet<&str> = selected.iter().map(std::string::String::as_str).collect();
 
@@ -460,10 +459,9 @@ pub fn build_shader_chain(selected: &[String]) -> Result<Vec<String>, String> {
 
     for &cat in &order {
         for meta in CATALOG {
-            if meta.category == cat && selected_set.contains(meta.id)
-                && !meta.filename.is_empty() {
-                    chain.push(meta.filename.to_string());
-                }
+            if meta.category == cat && selected_set.contains(meta.id) && !meta.filename.is_empty() {
+                chain.push(meta.filename.to_string());
+            }
         }
     }
 

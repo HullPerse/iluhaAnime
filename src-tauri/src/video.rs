@@ -2,22 +2,93 @@
     clippy::too_many_arguments,
     clippy::too_many_lines,
     clippy::cast_possible_truncation,
-    clippy::cast_sign_loss,
+    clippy::cast_sign_loss
 )]
 
+use base64::{engine::general_purpose::STANDARD, Engine as _};
 use serde::Serialize;
 use std::collections::HashMap;
-#[cfg(windows)]
-use std::os::windows::process::CommandExt;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
 use tauri::{Emitter, Manager};
 use tokio::io::{AsyncBufReadExt, AsyncReadExt};
 use tokio::process::Command;
+use tokio_util::sync::CancellationToken;
 
 pub static FFMPEG_SEM: tokio::sync::Semaphore = tokio::sync::Semaphore::const_new(3);
 
-pub struct CancelFlag(pub Arc<AtomicBool>);
+fn is_supported_media_path(path: &std::path::Path) -> bool {
+    const EXTENSIONS: &[&str] = &[
+        "mp4", "m4v", "webm", "ogg", "ogv", "mov", "mkv", "avi", "wmv", "flv", "ts", "m2ts", "3gp",
+    ];
+    path.extension()
+        .and_then(|value| value.to_str())
+        .map(|value| EXTENSIONS.contains(&value.to_ascii_lowercase().as_str()))
+        .unwrap_or(false)
+}
+
+struct CancellationState {
+    next_id: AtomicU64,
+    tokens: Mutex<HashMap<u64, CancellationToken>>,
+}
+
+#[derive(Clone)]
+pub struct CancelFlag(Arc<CancellationState>);
+
+impl CancelFlag {
+    pub fn new() -> Self {
+        Self(Arc::new(CancellationState {
+            next_id: AtomicU64::new(1),
+            tokens: Mutex::new(HashMap::new()),
+        }))
+    }
+
+    pub fn begin(&self) -> CancellationGuard {
+        let id = self.0.next_id.fetch_add(1, Ordering::Relaxed);
+        let token = CancellationToken::new();
+        self.0
+            .tokens
+            .lock()
+            .expect("cancel state poisoned")
+            .insert(id, token.clone());
+        CancellationGuard {
+            id,
+            token,
+            state: self.0.clone(),
+        }
+    }
+
+    /// Cancel every active video operation. The existing command has no
+    /// operation id, so cancelling all is the least surprising behavior while
+    /// still keeping each operation's token independent.
+    pub fn cancel(&self) {
+        if let Ok(tokens) = self.0.tokens.lock() {
+            for token in tokens.values() {
+                token.cancel();
+            }
+        }
+    }
+}
+
+pub struct CancellationGuard {
+    id: u64,
+    token: CancellationToken,
+    state: Arc<CancellationState>,
+}
+
+impl CancellationGuard {
+    pub fn is_cancelled(&self) -> bool {
+        self.token.is_cancelled()
+    }
+}
+
+impl Drop for CancellationGuard {
+    fn drop(&mut self) {
+        if let Ok(mut tokens) = self.state.tokens.lock() {
+            tokens.remove(&self.id);
+        }
+    }
+}
 
 pub struct ActiveChildren(pub Arc<Mutex<Vec<u32>>>);
 
@@ -45,7 +116,11 @@ impl ActiveChildren {
     }
 
     pub fn kill_all(&self) {
-        let pids = self.0.lock().map(|g| g.clone()).unwrap_or_default();
+        let pids = self
+            .0
+            .lock()
+            .map(|mut guard| std::mem::take(&mut *guard))
+            .unwrap_or_default();
         for pid in pids {
             let _ = kill_pid(pid);
         }
@@ -248,10 +323,7 @@ fn build_encoder_args(gpu_backend: &str, quality: &str) -> Vec<String> {
     }
 }
 
-async fn validate_input_file(
-    app_handle: &tauri::AppHandle,
-    path: &str,
-) -> Result<f64, String> {
+async fn validate_input_file(app_handle: &tauri::AppHandle, path: &str) -> Result<f64, String> {
     let meta = std::fs::metadata(path).map_err(|_| {
         "Файл не найден. Возможно, он был удалён, перемещён или ещё не докачан.".to_string()
     })?;
@@ -317,6 +389,139 @@ async fn get_video_dimensions(
 }
 
 #[tauri::command]
+pub async fn get_media_keyframe(
+    app_handle: tauri::AppHandle,
+    path: String,
+) -> Result<String, String> {
+    let canonical = std::fs::canonicalize(&path).map_err(|e| format!("media path: {e}"))?;
+    let metadata = tokio::fs::metadata(&canonical)
+        .await
+        .map_err(|e| format!("media metadata: {e}"))?;
+    if !metadata.is_file() || !is_supported_media_path(&canonical) {
+        return Err("The keyframe path is not a supported video file".to_string());
+    }
+    let canonical_path = canonical.to_string_lossy().to_string();
+    let duration = get_video_duration(&app_handle, &canonical_path).await?;
+    if !duration.is_finite() || duration <= 0.0 {
+        return Err("Video duration is unavailable".to_string());
+    }
+    let mut command = Command::new(ffmpeg_exe(&app_handle));
+    command.args([
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-ss",
+        &(duration / 2.0).to_string(),
+        "-i",
+        &canonical_path,
+        "-frames:v",
+        "1",
+        "-vf",
+        "scale=480:-2",
+        "-f",
+        "image2pipe",
+        "-vcodec",
+        "mjpeg",
+        "pipe:1",
+    ]);
+    #[cfg(windows)]
+    command.creation_flags(0x0800_0000);
+    let _permit = FFMPEG_SEM
+        .acquire()
+        .await
+        .map_err(|_| "ffmpeg semaphore closed".to_string())?;
+    let output = command
+        .output()
+        .await
+        .map_err(|e| format!("ffmpeg not found: {e}"))?;
+    if !output.status.success() || output.stdout.is_empty() {
+        return Err("Could not generate a video keyframe".to_string());
+    }
+    // Thumbnails are UI metadata, not media copies. Keep network/UI payloads
+    // bounded even when a codec produces an unusually large JPEG.
+    if output.stdout.len() > 256 * 1024 {
+        return Err("Generated keyframe is too large".to_string());
+    }
+    Ok(format!(
+        "data:image/jpeg;base64,{}",
+        STANDARD.encode(output.stdout)
+    ))
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TimelineSprite {
+    pub data_url: String,
+    pub columns: u32,
+    pub rows: u32,
+    pub interval_secs: f64,
+    pub duration: f64,
+}
+
+#[tauri::command]
+pub async fn get_media_timeline_sprite(
+    app_handle: tauri::AppHandle,
+    path: String,
+) -> Result<TimelineSprite, String> {
+    let canonical = std::fs::canonicalize(&path).map_err(|e| format!("media path: {e}"))?;
+    let metadata = tokio::fs::metadata(&canonical)
+        .await
+        .map_err(|e| format!("media metadata: {e}"))?;
+    if !metadata.is_file() || !is_supported_media_path(&canonical) {
+        return Err("The timeline path is not a supported video file".to_string());
+    }
+    let canonical_path = canonical.to_string_lossy().to_string();
+    let duration = get_video_duration(&app_handle, &canonical_path).await?;
+    if !duration.is_finite() || duration <= 0.0 {
+        return Err("Video duration is unavailable".to_string());
+    }
+    let columns = 5u32;
+    let interval_secs = (duration / 40.0).max(10.0).ceil();
+    let frame_count = ((duration / interval_secs).ceil() as u32).clamp(1, 40);
+    let rows = frame_count.div_ceil(columns);
+    let mut command = Command::new(ffmpeg_exe(&app_handle));
+    command.args([
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-i",
+        &canonical_path,
+        "-vf",
+        &format!("fps=1/{interval_secs},scale=180:-2,tile={columns}x{rows}"),
+        "-frames:v",
+        "1",
+        "-f",
+        "image2",
+        "-vcodec",
+        "mjpeg",
+        "pipe:1",
+    ]);
+    #[cfg(windows)]
+    command.creation_flags(0x0800_0000);
+    let _permit = FFMPEG_SEM
+        .acquire()
+        .await
+        .map_err(|_| "ffmpeg semaphore closed".to_string())?;
+    let output = command
+        .output()
+        .await
+        .map_err(|e| format!("ffmpeg not found: {e}"))?;
+    if !output.status.success() || output.stdout.is_empty() {
+        return Err("Could not generate timeline thumbnails".to_string());
+    }
+    if output.stdout.len() > 2 * 1024 * 1024 {
+        return Err("Generated timeline sprite is too large".to_string());
+    }
+    Ok(TimelineSprite {
+        data_url: format!("data:image/jpeg;base64,{}", STANDARD.encode(output.stdout)),
+        columns,
+        rows,
+        interval_secs,
+        duration,
+    })
+}
+
+#[tauri::command]
 pub async fn upscale_video(
     app_handle: tauri::AppHandle,
     input_path: String,
@@ -334,10 +539,10 @@ pub async fn upscale_video(
     registry: tauri::State<'_, crate::progress::StreamRegistry>,
 ) -> Result<(String, u64), String> {
     let (progress_id, sender) = registry.create();
+    let _progress_registration = registry.registration(progress_id);
     let pid_for_task = progress_id;
 
-    cancel_flag.0.store(false, Ordering::SeqCst);
-    let cancel = cancel_flag.0.clone();
+    let cancel = cancel_flag.begin();
 
     let duration = validate_input_file(&app_handle, &input_path).await?;
 
@@ -432,7 +637,7 @@ pub async fn upscale_video(
         args.push("-nostats".to_string());
         args.push(output_path.clone());
 
-        let permit_encode = FFMPEG_SEM
+        let _permit_encode = FFMPEG_SEM
             .acquire()
             .await
             .map_err(|_| "semaphore closed".to_string())?;
@@ -450,8 +655,6 @@ pub async fn upscale_video(
         let child_pid = child.id().ok_or("no child pid")?;
         let children = app_handle.state::<ActiveChildren>();
         children.register(child_pid);
-        drop(permit_encode);
-
         let child_stdout = child.stdout.take().ok_or("no stdout")?;
         let child_stderr = child.stderr.take();
 
@@ -464,7 +667,7 @@ pub async fn upscale_video(
             .await
             .map_err(|e| format!("read progress: {e}"))?
         {
-            if cancel.load(Ordering::SeqCst) {
+            if cancel.is_cancelled() {
                 children.unregister(child_pid);
                 let _ = child.kill().await;
                 let _ = std::fs::remove_file(&output_path);
@@ -512,7 +715,7 @@ pub async fn upscale_video(
             None => String::new(),
         };
 
-        if cancel.load(Ordering::SeqCst) {
+        if cancel.is_cancelled() {
             children.unregister(child_pid);
             let _ = std::fs::remove_file(&output_path);
             return Err("Операция отменена".to_string());
@@ -629,7 +832,7 @@ pub async fn upscale_video(
             .await
             .map_err(|e| format!("read ffmpeg output: {e}"))?
         {
-            if cancel.load(Ordering::SeqCst) {
+            if cancel.is_cancelled() {
                 children.unregister(child_pid);
                 let _ = child.kill().await;
                 let _ = std::fs::remove_file(&out_for_ffmpeg);
@@ -712,14 +915,14 @@ pub async fn check_gpu_encoders(app_handle: tauri::AppHandle) -> Vec<String> {
     let mut available = vec!["cpu".to_string()];
 
     let ffmpeg = ffmpeg_exe(&app_handle);
-    let res = {
-        let mut c = std::process::Command::new(&ffmpeg);
-        c.args(["-hide_banner", "-encoders"]);
+    let output = {
+        let mut command = Command::new(ffmpeg);
+        command.args(["-hide_banner", "-encoders"]);
         #[cfg(windows)]
-        c.creation_flags(0x0800_0000);
-        c.output()
+        command.creation_flags(0x0800_0000);
+        command.output().await
     };
-    let output = match res {
+    let output = match output {
         Ok(o) if o.status.success() => o,
         _ => return available,
     };
@@ -748,8 +951,7 @@ pub async fn convert_video(
     copy_streams: bool,
     cancel_flag: tauri::State<'_, CancelFlag>,
 ) -> Result<(String, u64), String> {
-    cancel_flag.0.store(false, Ordering::SeqCst);
-    let cancel = cancel_flag.0.clone();
+    let cancel = cancel_flag.begin();
 
     let _ = app_handle.emit(
         "upscale-progress",
@@ -825,7 +1027,7 @@ pub async fn convert_video(
         .await
         .map_err(|e| format!("read progress: {e}"))?
     {
-        if cancel.load(Ordering::SeqCst) {
+        if cancel.is_cancelled() {
             children.unregister(child_pid);
             let _ = child.kill().await;
             let _ = std::fs::remove_file(&output_path);
@@ -882,13 +1084,32 @@ pub async fn convert_video(
 
 #[tauri::command]
 pub async fn cancel_upscale(cancel_flag: tauri::State<'_, CancelFlag>) -> Result<(), String> {
-    cancel_flag.0.store(true, Ordering::SeqCst);
+    cancel_flag.cancel();
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn cancellation_tokens_are_independent_and_cleaned_up() {
+        let flag = CancelFlag::new();
+        let first = flag.begin();
+        let second = flag.begin();
+
+        first.token.cancel();
+        assert!(first.is_cancelled());
+        assert!(!second.is_cancelled());
+
+        drop(first);
+        flag.cancel();
+        assert!(second.is_cancelled());
+        drop(second);
+
+        let next = flag.begin();
+        assert!(!next.is_cancelled());
+    }
 
     #[test]
     fn parse_ffmpeg_time_parses_valid() {
@@ -915,5 +1136,41 @@ mod tests {
         let result = parse_ffmpeg_time("100:00:00.000");
         assert!(result.is_some());
         assert!((result.unwrap() - 360000.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn is_supported_media_path_accepts_known_video_extensions() {
+        for ext in [
+            "mp4", "m4v", "webm", "ogg", "ogv", "mov", "mkv", "avi", "wmv", "flv", "ts", "m2ts",
+            "3gp",
+        ] {
+            assert!(
+                is_supported_media_path(std::path::Path::new(&format!("video.{ext}"))),
+                "{ext}"
+            );
+        }
+    }
+
+    #[test]
+    fn is_supported_media_path_is_case_insensitive() {
+        assert!(is_supported_media_path(std::path::Path::new("VIDEO.MKV")));
+        assert!(is_supported_media_path(std::path::Path::new("Episode.Mp4")));
+    }
+
+    #[test]
+    fn is_supported_media_path_rejects_non_video_files() {
+        assert!(!is_supported_media_path(std::path::Path::new(
+            "subtitles.srt"
+        )));
+        assert!(!is_supported_media_path(std::path::Path::new("notes.txt")));
+        assert!(!is_supported_media_path(std::path::Path::new(
+            "video.mkv.exe"
+        )));
+    }
+
+    #[test]
+    fn is_supported_media_path_rejects_missing_extension() {
+        assert!(!is_supported_media_path(std::path::Path::new("video")));
+        assert!(!is_supported_media_path(std::path::Path::new("video.")));
     }
 }

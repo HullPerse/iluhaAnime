@@ -1,10 +1,21 @@
-import { defineConfig } from "vitest/config";
-import react from "@vitejs/plugin-react";
-import tailwindcss from "@tailwindcss/vite";
-import { resolve } from "path";
-import viteCompression from "vite-plugin-compression";
+import { resolve } from "node:path";
 
-export default defineConfig(async () => ({
+import tailwindcss from "@tailwindcss/vite";
+import react from "@vitejs/plugin-react";
+import viteCompression from "vite-plugin-compression";
+import { defineConfig } from "vitest/config";
+
+export default defineConfig({
+  build: {
+    sourcemap: false,
+  },
+
+  clearScreen: false,
+
+  optimizeDeps: {
+    include: ["d3-force"],
+  },
+
   plugins: [
     react(),
     tailwindcss(),
@@ -14,30 +25,23 @@ export default defineConfig(async () => ({
     }),
   ],
 
-  clearScreen: false,
-  build: {
-    sourcemap: false,
-  },
   resolve: {
     alias: {
       "@": resolve(import.meta.dirname, "./src"),
     },
   },
 
-  test: {
-    environment: "node",
-    include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
-  },
-
-  optimizeDeps: {
-    include: ["d3-force"],
-  },
-
   server: {
-    port: 1420,
     host: "127.0.0.1",
+    port: 1420,
     watch: {
       ignored: ["**/src-tauri/**"],
     },
   },
-}));
+
+  test: {
+    environment: "jsdom",
+    include: ["src/tests/**/*.test.ts", "src/tests/**/*.test.tsx"],
+    setupFiles: ["src/tests/test-setup.ts"],
+  },
+});

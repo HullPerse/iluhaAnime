@@ -1,20 +1,14 @@
-import { useState, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/core";
 import { Wand2, Ban, Check, Loader, ListVideo } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+
 import Modal from "@/components/shared/modal.component";
 import ProgressBar from "@/components/shared/progress.component";
+import Tabs from "@/components/shared/tabs.component";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import Select from "@/components/ui/select.component";
-import Tabs from "@/components/shared/tabs.component";
-import FFMPEG from "./ffmpeg.player";
-import ShaderPicker from "./shader.player";
-import {
-  useUpscaleQueueStore,
-  type UpscaleConfig,
-  type ConvertConfig,
-} from "@/store/upscale.store";
 import {
   ANIME4K_PRESETS,
   FORMAT_OPTIONS,
@@ -25,7 +19,13 @@ import {
   TABS,
   UPSCALER_OPTIONS,
 } from "@/config/player.config";
+import { useI18n } from "@/lib/i18n";
 import { fileNameFromPath, formatETA } from "@/lib/player.utils";
+import { useUpscaleQueueStore } from "@/store/upscale.store";
+import type { UpscaleConfig, ConvertConfig } from "@/types";
+
+import FFMPEG from "./ffmpeg.player";
+import ShaderPicker from "./shader.player";
 
 export default function UpscalePlayer({
   filePath,
@@ -54,16 +54,18 @@ export default function UpscalePlayer({
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
   const [localError, setLocalError] = useState<string | null>(null);
 
+  const { t } = useI18n();
+
   const activeItem = useUpscaleQueueStore((s) =>
-    activeItemId ? (s.items.find((i) => i.id === activeItemId) ?? null) : null,
+    activeItemId ? (s.items.find((i) => i.id === activeItemId) ?? null) : null
   );
 
   const isInQueue = useUpscaleQueueStore((s) =>
     s.items.some(
       (i) =>
         i.filePath === filePath &&
-        (i.status === "queued" || i.status === "processing"),
-    ),
+        (i.status === "queued" || i.status === "processing")
+    )
   );
 
   const { data: upscaleConfig } = useQuery({
@@ -96,7 +98,7 @@ export default function UpscalePlayer({
         setGpuBackend("cpu");
       }
     },
-    [availableGpu],
+    [availableGpu]
   );
 
   useEffect(() => {
@@ -130,7 +132,7 @@ export default function UpscalePlayer({
   const startUpscale = useCallback(() => {
     const noop = resolution === "original" && !fpsValue;
     if (noop) {
-      setLocalError("Выберите другое разрешение или FPS");
+      setLocalError(t("player.upscale.selectResolution"));
       return;
     }
 
@@ -152,7 +154,7 @@ export default function UpscalePlayer({
       interpolate,
       quality,
       gpuBackend,
-      aiUpscaler: upscaler !== "ffmpeg" ? upscaler : null,
+      aiUpscaler: upscaler === "ffmpeg" ? null : upscaler,
       selectedShaders: upscaler === "anime4k" ? selectedShaders : undefined,
     };
     const id = useUpscaleQueueStore
@@ -167,6 +169,7 @@ export default function UpscalePlayer({
     gpuBackend,
     upscaler,
     selectedShaders,
+    t,
   ]);
 
   const startConvert = useCallback(() => {
@@ -204,7 +207,7 @@ export default function UpscalePlayer({
         interpolate,
         quality,
         gpuBackend,
-        aiUpscaler: upscaler !== "ffmpeg" ? upscaler : null,
+        aiUpscaler: upscaler === "ffmpeg" ? null : upscaler,
         selectedShaders: upscaler === "anime4k" ? selectedShaders : undefined,
       };
       useUpscaleQueueStore
@@ -257,8 +260,7 @@ export default function UpscalePlayer({
         ? "initializing"
         : null;
   const etaSecs =
-    activeItem &&
-    activeItem.speed &&
+    activeItem?.speed &&
     activeItem.speed > 0 &&
     activeItem.current != null &&
     activeItem.total != null
@@ -279,7 +281,9 @@ export default function UpscalePlayer({
           e.stopPropagation();
           setOpen(true);
         }}
-        title={isInQueue ? "Уже в очереди" : "Улучшить качество (апскейл)"}
+        title={
+          isInQueue ? t("player.upscale.inQueue") : t("player.upscale.title")
+        }
         disabled={!exists || isInQueue}
       >
         <Wand2 className="size-3" />
@@ -287,29 +291,46 @@ export default function UpscalePlayer({
 
       {open && (
         <Modal
-          header={`${activeTab === "upscale" ? "Апскейл" : "Конвертация"}: ${fileNameFromPath(filePath)}`}
+          header={`${t(activeTab === "upscale" ? "player.tab.upscale" : "player.tab.convert")}: ${fileNameFromPath(filePath)}`}
           onClose={handleClose}
           className="min-w-xl"
         >
           {showConfig && (
             <div className="flex flex-col">
-              <Tabs tabs={TABS} activeTab={activeTab} onChange={setActiveTab} />
+              <Tabs
+                tabs={TABS.map((tab) => ({
+                  ...tab,
+                  label: t(tab.label as never),
+                }))}
+                activeTab={activeTab}
+                onChange={setActiveTab}
+              />
 
-              <section className="flex-1 overflow-hidden p-1 windows95-border">
+              <section className="windows95-border flex-1 overflow-hidden p-1">
                 {activeTab === "upscale" ? (
                   <div className="flex flex-col gap-2 pt-2">
-                    <label className="windows95-text text-xs">Разрешение</label>
+                    <label className="windows95-text text-xs">
+                      {t("player.upscale.resolution")}
+                    </label>
                     <Select
                       value={resolution}
                       onChange={setResolution}
-                      options={RESOLUTIONS}
+                      options={RESOLUTIONS.map((o) => ({
+                        ...o,
+                        label: t(o.label as never),
+                      }))}
                     />
 
-                    <label className="windows95-text text-xs">Апскейлер</label>
+                    <label className="windows95-text text-xs">
+                      {t("player.upscale.upscaler")}
+                    </label>
                     <Select
                       value={upscaler}
                       onChange={setUpscaler}
-                      options={UPSCALER_OPTIONS}
+                      options={UPSCALER_OPTIONS.map((o) => ({
+                        ...o,
+                        label: t(o.label as never),
+                      }))}
                     />
                     {upscaler === "ffmpeg" && (
                       <FFMPEG
@@ -320,26 +341,34 @@ export default function UpscalePlayer({
 
                     {upscaler === "anime4k" && (
                       <span className="windows95-text text-xs">
-                        Требуется GTX 970+ (Vulkan)
+                        {t("player.upscale.requiresVulkan")}
                       </span>
                     )}
 
-                    <label className="windows95-text text-xs">FPS</label>
+                    <label className="windows95-text text-xs">
+                      {t("player.upscale.fps")}
+                    </label>
                     <Select
                       value={fpsValue}
                       onChange={setFpsValue}
-                      options={FPS_OPTIONS}
+                      options={FPS_OPTIONS.map((o) => ({
+                        ...o,
+                        label: t(o.label as never),
+                      }))}
                     />
 
                     {upscaler === "anime4k" ? (
                       <>
                         <label className="windows95-text text-xs">
-                          Режим Anime4K
+                          {t("player.upscale.anime4kMode")}
                         </label>
                         <Select
                           value={anime4kPreset}
                           onChange={handlePresetChange}
-                          options={ANIME4K_PRESETS}
+                          options={ANIME4K_PRESETS.map((p) => ({
+                            ...p,
+                            label: t(p.label as never),
+                          }))}
                         />
                         <ShaderPicker
                           value={selectedShaders}
@@ -350,18 +379,21 @@ export default function UpscalePlayer({
                     ) : (
                       <>
                         <label className="windows95-text text-xs">
-                          Качество
+                          {t("player.upscale.quality")}
                         </label>
                         <Select
                           value={quality}
                           onChange={setQuality}
-                          options={QUALITY_OPTIONS}
+                          options={QUALITY_OPTIONS.map((o) => ({
+                            ...o,
+                            label: t(o.label as never),
+                          }))}
                         />
 
                         {gpuOptions.length > 1 && (
                           <>
                             <label className="windows95-text text-xs">
-                              Кодек / Ускоритель
+                              {t("player.upscale.codec")}
                             </label>
                             <Select
                               value={gpuBackend}
@@ -376,7 +408,7 @@ export default function UpscalePlayer({
                 ) : (
                   <div className="flex flex-col gap-2 pt-2">
                     <label className="windows95-text text-xs">
-                      Целевой формат
+                      {t("player.upscale.targetFormat")}
                     </label>
                     <Select
                       value={targetFormat}
@@ -384,43 +416,51 @@ export default function UpscalePlayer({
                       options={FORMAT_OPTIONS}
                     />
 
-                    <label className="flex items-center gap-2 windows95-text text-xs cursor-pointer select-none">
+                    <label className="windows95-text flex cursor-pointer items-center gap-2 text-xs select-none">
                       <Checkbox
                         checked={copyStreams}
                         onChange={setCopyStreams}
                       />
-                      <span>Копировать потоки (быстро)</span>
+                      <span>{t("player.upscale.copyStreams")}</span>
                     </label>
 
                     {!copyStreams && (
-                      <span className="windows95-text text-[10px] text-muted">
-                        Будет выполнено перекодирование в H.264 + AAC
+                      <span className="windows95-text text-muted text-[10px]">
+                        {t("player.upscale.reencode")}
                       </span>
                     )}
                   </div>
                 )}
               </section>
 
-              <div className="flex flex-row gap-1 mt-2 justify-end">
-                <Button onClick={handleClose}>Отмена</Button>
-                <Button onClick={handleAddToQueue}>В очередь</Button>
+              <div className="mt-2 flex flex-row justify-end gap-1">
+                <Button onClick={handleClose}>{t("common.cancel")}</Button>
+                <Button onClick={handleAddToQueue}>
+                  {t("player.upscale.toQueue")}
+                </Button>
                 <Button
                   onClick={
                     activeTab === "upscale" ? startUpscale : startConvert
                   }
                 >
-                  {activeTab === "upscale" ? "Запустить" : "Конвертировать"}
+                  {t(
+                    activeTab === "upscale"
+                      ? "player.upscale.start"
+                      : "player.upscale.convert"
+                  )}
                 </Button>
               </div>
             </div>
           )}
 
           {showProgress && (
-            <div className="flex flex-col gap-2 p-1 min-w-xl">
+            <div className="flex min-w-xl flex-col gap-2 p-1">
               {activeItem?.status === "queued" && (
                 <div className="flex flex-col items-center gap-2 py-4">
-                  <ListVideo className="size-5 text-muted" />
-                  <span className="windows95-text text-xs">В очереди...</span>
+                  <ListVideo className="text-muted size-5" />
+                  <span className="windows95-text text-xs">
+                    {t("player.upscale.queued")}
+                  </span>
                 </div>
               )}
 
@@ -429,7 +469,7 @@ export default function UpscalePlayer({
                   <div className="flex flex-col items-center gap-2 py-4">
                     <Loader className="size-5 animate-spin" />
                     <span className="windows95-text text-xs">
-                      Инициализация...
+                      {t("player.upscale.initializing")}
                     </span>
                   </div>
                 )}
@@ -440,49 +480,51 @@ export default function UpscalePlayer({
                     value={activeItem?.current ?? 0}
                     max={activeItem?.total ?? 1}
                   />
-                  <span className="windows95-text text-xs text-center">
+                  <span className="windows95-text text-center text-xs">
                     {activeItem?.progress ?? 0}%
                   </span>
                   {etaSecs != null && (
-                    <span className="windows95-text text-xs text-center text-muted">
-                      Осталось: {formatETA(etaSecs)}
+                    <span className="windows95-text text-muted text-center text-xs">
+                      {t("player.upscale.eta", { time: formatETA(etaSecs, t) })}
                     </span>
                   )}
                 </>
               )}
 
-              <div className="flex flex-row gap-1 mt-1 justify-center">
+              <div className="mt-1 flex flex-row justify-center gap-1">
                 <Button variant="destructive" onClick={handleCancel}>
                   <Ban className="size-3" />
-                  Отменить
+                  {t("player.upscale.cancel")}
                 </Button>
               </div>
             </div>
           )}
 
           {showLocalError && (
-            <div className="flex flex-col gap-2 p-1 items-center">
-              <span className="text-destructive windows95-text text-xs text-center">
+            <div className="flex flex-col items-center gap-2 p-1">
+              <span className="text-destructive windows95-text text-center text-xs">
                 {localError}
               </span>
-              <Button onClick={handleClose}>Закрыть</Button>
+              <Button onClick={handleClose}>{t("player.common.close")}</Button>
             </div>
           )}
 
           {showItemError && (
-            <div className="flex flex-col gap-2 p-1 items-center">
-              <span className="text-destructive windows95-text text-xs text-center">
-                {activeItem?.error ?? "Ошибка"}
+            <div className="flex flex-col items-center gap-2 p-1">
+              <span className="text-destructive windows95-text text-center text-xs">
+                {activeItem?.error ?? t("common.error")}
               </span>
-              <Button onClick={handleClose}>Закрыть</Button>
+              <Button onClick={handleClose}>{t("player.common.close")}</Button>
             </div>
           )}
 
           {showDone && (
-            <div className="flex flex-col gap-2 p-1 items-center">
-              <Check className="size-6 text-success" />
-              <span className="windows95-text text-xs">Готово!</span>
-              <Button onClick={handleClose}>Закрыть</Button>
+            <div className="flex flex-col items-center gap-2 p-1">
+              <Check className="text-success size-6" />
+              <span className="windows95-text text-xs">
+                {t("player.upscale.done")}
+              </span>
+              <Button onClick={handleClose}>{t("player.common.close")}</Button>
             </div>
           )}
         </Modal>

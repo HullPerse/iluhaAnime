@@ -1,9 +1,12 @@
-import type { Anime } from "@/types";
+import { Clipboard, Download, Eye, Loader } from "lucide-react";
+
+import { Button } from "@/components/ui/button.component";
+import ImageComponent from "@/components/ui/image.component";
+import { SOURCE_INFOS } from "@/config/search.config";
+import { useI18n } from "@/lib/i18n";
 import { detectLanguages, formatSize } from "@/lib/index.utils";
 import { getLanguageColors } from "@/lib/search.logic";
-import { Button } from "@/components/ui/button.component";
-import { Clipboard, Download, Loader } from "lucide-react";
-import ImageComponent from "@/components/ui/image.component";
+import type { Anime } from "@/types";
 
 interface Props {
   item: Anime;
@@ -13,6 +16,7 @@ interface Props {
   onOpenMagnet: (item: Anime) => void;
   onDownload: (item: Anime) => void;
   onOpenLink: (item: Anime) => void;
+  onOpenDetails: (item: Anime) => void;
 }
 
 export default function SearchResultItem({
@@ -23,25 +27,34 @@ export default function SearchResultItem({
   onOpenMagnet,
   onDownload,
   onOpenLink,
+  onOpenDetails,
 }: Props) {
   const isLoadingMag = loadingMagnet[item.link];
   const colors = getLanguageColors();
+  const { t } = useI18n();
+  const sourceLabel =
+    SOURCE_INFOS.find((info) => info.value === source)?.label ?? source;
+  const hasMagnet = Boolean(item.magnet) || source === "rutracker";
 
   return (
-    <div className="windows95-active-border bg-primary px-2 py-1.5 mb-0.5">
+    <div className="windows95-active-border bg-primary mb-0.5 px-2 py-1.5">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <h3
-            className="truncate font-bold leading-tight windows95-text"
+            className="windows95-text cursor-pointer truncate leading-tight font-bold hover:underline"
+            onClick={() => onOpenDetails(item)}
             title={item.title}
           >
             {item.title}
           </h3>
           <div className="mt-1 flex flex-wrap gap-1">
+            <span className="windows95-font bg-secondary px-1 text-[10px] text-white">
+              {sourceLabel}
+            </span>
             {detectLanguages(item.title).map((l) => (
               <span
                 key={l.code}
-                className={`px-1 text-[10px] windows95-font ${colors[l.code as keyof typeof colors] || "bg-muted text-white"}`}
+                className={`windows95-font px-1 text-[10px] ${colors[l.code as keyof typeof colors] || "bg-muted text-white"}`}
               >
                 {l.label}
               </span>
@@ -57,13 +70,23 @@ export default function SearchResultItem({
         </div>
       </div>
 
-      <div className="mt-1 flex gap-1">
+      <div className="mt-1 flex flex-wrap items-center gap-1">
+        {item.link && (
+          <Button
+            onClick={() => onOpenDetails(item)}
+            size="icon"
+            className="windows95-active-border bg-secondary windows95-text inline-flex size-6 cursor-pointer items-center gap-0.5 text-white no-underline"
+            title={t("search.more")}
+          >
+            <Eye className="size-3" />
+          </Button>
+        )}
         {isLoadingMag ? (
           <div className="flex items-center gap-1">
             <Loader className="size-3 animate-spin" />
-            <span className="windows95-text">Загрузка магнита...</span>
+            <span className="windows95-text">{t("search.loadingMagnet")}</span>
           </div>
-        ) : item.magnet || source === "rutracker" ? (
+        ) : hasMagnet ? (
           <>
             <Button
               size="icon"
@@ -76,31 +99,31 @@ export default function SearchResultItem({
             <Button
               onClick={() => onOpenMagnet(item)}
               disabled={loadingMagnet[item.link]}
-              className="windows95-active-border bg-primary px-2 py-0.5 windows95-text text-text no-underline"
+              className="windows95-active-border bg-primary windows95-text text-text px-2 py-0.5 no-underline"
             >
-              Магнит
+              {t("search.magnet")}
             </Button>
             <Button
               onClick={() => onDownload(item)}
               disabled={loadingMagnet[item.link]}
-              className="inline-flex items-center gap-0.5 windows95-active-border bg-primary px-2 py-0.5 windows95-text text-text no-underline cursor-pointer"
+              className="windows95-active-border bg-primary windows95-text text-text inline-flex cursor-pointer items-center gap-0.5 px-2 py-0.5 no-underline"
             >
               <Download className="size-3" />
-              Скачать
+              {t("search.download")}
             </Button>
           </>
         ) : (
           item.link && (
             <Button
               onClick={() => onOpenLink(item)}
-              className="inline-flex items-center gap-0.5 windows95-active-border bg-primary px-2 py-0.5 windows95-text text-text no-underline cursor-pointer"
+              className="windows95-active-border bg-primary windows95-text text-text inline-flex cursor-pointer items-center gap-0.5 px-2 py-0.5 no-underline"
             >
               <ImageComponent
                 src="/images/w2k_globe.ico"
                 alt=""
                 className="size-4"
               />
-              Открыть
+              {t("search.open")}
             </Button>
           )
         )}

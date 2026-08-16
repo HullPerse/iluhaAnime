@@ -1,120 +1,100 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-export interface SettingsStore {
-  dlLimit: number | null;
-  ulLimit: number | null;
-  notificationsEnabled: boolean;
-  notifyOnComplete: boolean;
-  notifyOnError: boolean;
-  defaultSearchSource: string;
-  visibleSources: string[];
-  resultsPerPage: number;
-  anilistPageSize: number;
-  anilistMaxPages: number;
-  searchHistoryMaxItems: number;
-  videoExtensions: string[];
-  audioExtensions: string[];
-  subtitleExtensions: string[];
-  showTrackFiles: "hide" | "torrent" | "folders";
-  modalAnimation: boolean;
-  enable3dBorders: boolean;
-  buttonPressEffect: boolean;
-  enableAnimations: boolean;
-  modalBackdropOpacity: number;
-  customScrollbar: boolean;
-  savedFolderPaths: string[];
-  httpApiPort: number;
-  ipv4Only: boolean;
-  peerConnectTimeout: number;
-  peerReadWriteTimeout: number;
-  listenPort: number;
-  enableUpnp: boolean;
-  enableMdns: boolean;
-  fastresumeEnabled: boolean;
-  disablePersistence: boolean;
-  parseTitles: boolean;
-  patch: (partial: Partial<SettingsStore>) => void;
+import { DEFAULT_SETTINGS } from "@/config/settings.config";
+import { detectSystemLocale } from "@/lib/locale.utils";
+import type { SettingsStore } from "@/types/settings";
+
+function applyUiPreferences(
+  retroStyle: SettingsStore["retroStyle"],
+  uiDensity: SettingsStore["uiDensity"]
+) {
+  if (typeof document === "undefined") return;
+  document.documentElement.dataset.retroStyle = retroStyle;
+  document.documentElement.dataset.uiDensity = uiDensity;
 }
 
 export const useSettingsStore = create<SettingsStore>()(
   persist(
     (set) => ({
-      dlLimit: null,
-      ulLimit: null,
-      notificationsEnabled: true,
-      notifyOnComplete: true,
-      notifyOnError: true,
-      defaultSearchSource: "erai-raws",
-      visibleSources: ["erai-raws", "rutracker", "nyaa", "nekobt"],
-      resultsPerPage: 20,
-      anilistPageSize: 40,
-      anilistMaxPages: 3,
-      searchHistoryMaxItems: 5,
-
-      videoExtensions: [
-        "mp4",
-        "mkv",
-        "avi",
-        "mov",
-        "webm",
-        "flv",
-        "wmv",
-        "m4v",
-        "mpg",
-        "mpeg",
-        "ts",
-        "m2ts",
-        "ogv",
-        "3gp",
-      ],
-      audioExtensions: [
-        "mp3",
-        "flac",
-        "aac",
-        "ogg",
-        "wav",
-        "opus",
-        "m4a",
-        "wma",
-      ],
-      subtitleExtensions: [
-        "srt",
-        "ass",
-        "ssa",
-        "vtt",
-        "sub",
-        "idx",
-        "sup",
-        "pgs",
-      ],
-      showTrackFiles: "hide",
-      modalAnimation: true,
-      enable3dBorders: true,
-      buttonPressEffect: true,
-      enableAnimations: true,
-      modalBackdropOpacity: 50,
-      customScrollbar: true,
-      savedFolderPaths: [],
-      httpApiPort: 11200,
-      ipv4Only: false,
-      peerConnectTimeout: 30,
-      peerReadWriteTimeout: 30,
-      listenPort: 0,
-      enableUpnp: false,
-      enableMdns: false,
-      fastresumeEnabled: true,
-      disablePersistence: false,
-      parseTitles: false,
-
-      patch: (partial) => set(partial),
+      ...DEFAULT_SETTINGS,
+      language: detectSystemLocale(),
+      hidePlayerFolder: (path) =>
+        set((state) => {
+          const normalized = path
+            .replace(/\\/g, "/")
+            .replace(/\/$/, "")
+            .toLowerCase();
+          return state.hiddenPlayerFolders.some(
+            (value) =>
+              value.replace(/\\/g, "/").replace(/\/$/, "").toLowerCase() ===
+              normalized
+          )
+            ? state
+            : { hiddenPlayerFolders: [...state.hiddenPlayerFolders, path] };
+        }),
+      hidePlayerTorrent: (infoHash) =>
+        set((state) =>
+          state.hiddenPlayerTorrents.includes(infoHash)
+            ? state
+            : {
+                hiddenPlayerTorrents: [...state.hiddenPlayerTorrents, infoHash],
+              }
+        ),
+      patch: (partial) =>
+        set((state) => {
+          const retroStyle = partial.retroStyle ?? state.retroStyle;
+          const uiDensity = partial.uiDensity ?? state.uiDensity;
+          applyUiPreferences(retroStyle, uiDensity);
+          return partial;
+        }),
+      unhidePlayerFolder: (path) =>
+        set((state) => {
+          const normalized = path
+            .replace(/\\/g, "/")
+            .replace(/\/$/, "")
+            .toLowerCase();
+          return {
+            hiddenPlayerFolders: state.hiddenPlayerFolders.filter(
+              (value) =>
+                value.replace(/\\/g, "/").replace(/\/$/, "").toLowerCase() !==
+                normalized
+            ),
+          };
+        }),
+      unhidePlayerTorrent: (infoHash) =>
+        set((state) => ({
+          hiddenPlayerTorrents: state.hiddenPlayerTorrents.filter(
+            (value) => value !== infoHash
+          ),
+        })),
     }),
     {
-      name: "settings",
-      version: 1,
       migrate: (persistedState: unknown, _version: number) => {
-        return persistedState as SettingsStore;
+        if (!persistedState || typeof persistedState !== "object") return {};
+        const state = persistedState as Partial<SettingsStore> & {
+          inlineAutocompleteEnabled?: boolean;
+        };
+        const migrated: Partial<SettingsStore> = {
+          ...state,
+          language: state.language === "en" ? "en" : "ru",
+        };
+        delete (migrated as Record<string, unknown>).inlineAutocompleteEnabled;
+        if (state.inlineAutocompleteEnabled === false) {
+          migrated.autocompleteMode = "off";
+        }
+        return migrated;
       },
-    },
-  ),
+      name: "settings",
+      onRehydrateStorage: () => (state) => {
+        if (state) applyUiPreferences(state.retroStyle, state.uiDensity);
+      },
+      version: 2,
+    }
+  )
+);
+
+applyUiPreferences(
+  useSettingsStore.getState().retroStyle,
+  useSettingsStore.getState().uiDensity
 );

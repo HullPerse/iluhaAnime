@@ -1,30 +1,34 @@
+import { forceSimulation, forceX, forceCollide } from "d3-force";
+import type { Simulation } from "d3-force";
+
 import {
   FILTER_GROUPS,
   IMG_H,
   NODE_H,
   NODE_W,
+  RELATION_FILTERS,
   RELATION_X,
 } from "@/config/anilist.config";
-import { HexType } from "@/types";
+import type { HexType } from "@/types";
 import type {
   AniListCollection,
   AniListEntry,
   AniListSort,
   AniMedia,
+  FilteredGraph,
+  FranchiseEdge,
   FranchiseGraph,
   FranchiseNode,
   FranchiseNodePosition,
   RelationFilter,
-  SearchFilters,
+  AniListFilters,
   SimNode,
 } from "@/types/anilist";
-import { forceSimulation, forceX, forceCollide } from "d3-force";
-import type { Simulation } from "d3-force";
 
 export function filterEntries(
   entries: AniListEntry[],
   searchTerms: string,
-  global: boolean,
+  global: boolean
 ) {
   return entries.filter((e) => {
     if (!searchTerms.trim() || global) return true;
@@ -41,72 +45,64 @@ export function filterEntries(
 export function sortEntries(
   filtered: AniListEntry[],
   direction: AniListSort["dir"],
-  method: AniListSort["key"],
+  method: AniListSort["key"]
 ): AniListEntry[] {
   const copy = [...filtered];
 
   const sortMap = {
-    title: () =>
+    progress: () =>
       copy.sort((a, b) => {
-        const c = a.media.title.localeCompare(b.media.title);
-        return direction === "asc" ? c : -c;
+        const d = (b.progress ?? -1) - (a.progress ?? -1);
+        return direction === "desc" ? d : -d;
       }),
     score: () =>
       copy.sort((a, b) => {
         const d = (b.media.score ?? -1) - (a.media.score ?? -1);
         return direction === "desc" ? d : -d;
       }),
-    progress: () =>
+    title: () =>
       copy.sort((a, b) => {
-        const d = (b.progress ?? -1) - (a.progress ?? -1);
-        return direction === "desc" ? d : -d;
+        const c = a.media.title.localeCompare(b.media.title);
+        return direction === "asc" ? c : -c;
       }),
   } as Record<AniListSort["key"], () => AniListEntry[]>;
 
   return sortMap[method]();
 }
 
-export function getSortingLabel(
-  sort: string,
-  direction: "asc" | "desc",
-): string {
+// Returns an i18n key; UI renders it through translate().
+export function getSortingLabel(sort: string): string {
   const labelMap: Record<string, string> = {
-    title: "Название",
-    score: "Рейтинг",
-    progress: "Прогресс",
-    relevance: "Релевантность",
-    popularity: "Популярность",
-    year: "Год",
+    popularity: "anilist.sort.popularity",
+    progress: "anilist.sort.progress",
+    relevance: "anilist.sort.relevance",
+    score: "anilist.sort.score",
+    title: "anilist.sort.title",
+    year: "anilist.sort.year",
   };
 
-  return `${labelMap[sort] ?? sort} ${direction === "asc" ? "↑" : "↓"}`;
+  return labelMap[sort] ?? sort;
 }
 
 export function getStatusColor(status: AniListEntry["list_status"]): HexType {
   const statusMap: Record<AniListEntry["list_status"], HexType> = {
-    CURRENT: "#e6b800",
     COMPLETED: "#4caf50",
+    CURRENT: "#e6b800",
     DROPPED: "#f44336",
-    PLANNING: "#2196f3",
     PAUSED: "#ff9800",
+    PLANNING: "#2196f3",
     REPEATING: "#9c27b0",
   };
 
   return statusMap[status] ?? "#888";
 }
 
-export interface FilteredGraph {
-  edges: { source: number; target: number; relation_type: string }[];
-  ids: Set<number>;
-  nodeMap: Map<number, FranchiseNode>;
-}
-
 export function filterGraph(
   graph: FranchiseGraph,
-  filters: Set<RelationFilter>,
+  filters: Set<RelationFilter>
 ): FilteredGraph {
   const filteredEdges = graph.edges.filter((e) =>
-    Array.from(filters).some((g) => FILTER_GROUPS[g].includes(e.relation_type)),
+    [...filters].some((g) => FILTER_GROUPS[g].includes(e.relation_type))
   );
   const ids = new Set<number>([graph.root_id]);
   filteredEdges.forEach((e) => {
@@ -120,14 +116,68 @@ export function filterGraph(
           ids.has(n.id) &&
           (n.id === graph.root_id ||
             n.media_type === "ANIME" ||
-            n.media_type == null),
+            n.media_type == null)
       )
-      .map((n) => [n.id, n]),
+      .map((n) => [n.id, n])
   );
   const edges = filteredEdges.filter(
-    (e) => nodeMap.has(e.source) && nodeMap.has(e.target),
+    (e) => nodeMap.has(e.source) && nodeMap.has(e.target)
   );
   return { edges, ids, nodeMap };
+}
+
+export function relationGroup(relType: string): RelationFilter {
+  for (const group of RELATION_FILTERS) {
+    if (FILTER_GROUPS[group].includes(relType)) return group;
+  }
+  return "OTHER";
+}
+
+export function groupFranchiseNodes(
+  nodes: FranchiseNode[],
+  relationMap: Map<number, string>
+): { group: RelationFilter; items: FranchiseNode[] }[] {
+  const buckets = new Map<RelationFilter, FranchiseNode[]>();
+  for (const node of nodes) {
+    const rel = relationMap.get(node.id) ?? "UNKNOWN";
+    const group = relationGroup(rel);
+    const bucket = buckets.get(group);
+    if (bucket) bucket.push(node);
+    else buckets.set(group, [node]);
+  }
+  return RELATION_FILTERS.map((group) => ({
+    group,
+    items: sortFranchiseNodes(buckets.get(group) ?? []),
+  })).filter((entry) => entry.items.length > 0);
+}
+
+export function computeMainlineIds(
+  graph: FranchiseGraph,
+  nodeMap: Map<number, FranchiseNode>,
+  rootId: number
+): Set<number> {
+  const mainline = new Set<number>([rootId]);
+  const adj = new Map<number, number[]>();
+  for (const edge of graph.edges) {
+    if (edge.relation_type !== "SEQUEL" && edge.relation_type !== "PREQUEL")
+      continue;
+    if (!nodeMap.has(edge.source) || !nodeMap.has(edge.target)) continue;
+    if (!adj.has(edge.source)) adj.set(edge.source, []);
+    if (!adj.has(edge.target)) adj.set(edge.target, []);
+    adj.get(edge.source)!.push(edge.target);
+    adj.get(edge.target)!.push(edge.source);
+  }
+  const queue = [rootId];
+  while (queue.length > 0) {
+    const cur = queue.shift()!;
+    for (const next of adj.get(cur) ?? []) {
+      if (!mainline.has(next)) {
+        mainline.add(next);
+        queue.push(next);
+      }
+    }
+  }
+  return mainline;
 }
 
 function getClusterX(
@@ -135,7 +185,7 @@ function getClusterX(
   rootId: number,
   containerW: number,
   relationMap: Map<number, string>,
-  jitter: number,
+  jitter: number
 ): number {
   if (nodeId === rootId) return containerW / 2;
 
@@ -148,7 +198,7 @@ function getClusterX(
 
 export function filterFranchiseNodesBySearch(
   nodeMap: Map<number, FranchiseNode>,
-  query: string,
+  query: string
 ): Set<number> | null {
   const lower = query.toLowerCase().trim();
   if (!lower) return null;
@@ -163,7 +213,7 @@ export function filterFranchiseNodesBySearch(
 
 export function computeNodeRelationMap(
   graph: FranchiseGraph,
-  nodeMap: Map<number, FranchiseNode>,
+  nodeMap: Map<number, FranchiseNode>
 ): Map<number, string> {
   const relation = new Map<number, string>([[graph.root_id, "ROOT"]]);
   const adj = new Map<number, { node: number; type: string }[]>();
@@ -188,9 +238,7 @@ export function computeNodeRelationMap(
   return relation;
 }
 
-export function sortFranchiseNodes(
-  nodes: FranchiseNode[],
-): FranchiseNode[] {
+export function sortFranchiseNodes(nodes: FranchiseNode[]): FranchiseNode[] {
   return [...nodes].sort((a, b) => {
     if (a.year !== b.year) return (a.year ?? 0) - (b.year ?? 0);
     return a.title.localeCompare(b.title);
@@ -205,9 +253,9 @@ export function buildEntryLookup(lists: AniListCollection[]) {
   for (const list of lists) {
     for (const e of list.entries) {
       map.set(e.media.id, {
+        list_status: e.list_status,
         progress: e.progress,
         score: e.score,
-        list_status: e.list_status,
       });
     }
   }
@@ -215,25 +263,14 @@ export function buildEntryLookup(lists: AniListCollection[]) {
 }
 
 export function searchFiltersToParams(
-  filters: SearchFilters,
+  filters: AniListFilters,
   query: string | null,
   perPage: number,
-  maxPages: number,
+  maxPages: number
 ) {
   return {
-    query,
-    tags: filters.tags.length > 0 ? filters.tags : null,
-    genres: filters.genres.length > 0 ? filters.genres : null,
-    format: filters.format || null,
-    status: filters.status || null,
-    season: filters.season || null,
-    seasonYear: filters.seasonYear,
     adult: filters.adult || null,
-    sort: filters.sort ? [filters.sort] : null,
-    source: filters.source || null,
     country: filters.country || null,
-    yearFrom: filters.year[0] > 0 ? filters.year[0] : null,
-    yearTo: filters.year[1] > 0 ? filters.year[1] : null,
     episodesFrom:
       filters.episodes[0] > 0 || filters.episodes[1] > 0
         ? filters.episodes[0]
@@ -242,19 +279,30 @@ export function searchFiltersToParams(
       filters.episodes[0] > 0 || filters.episodes[1] > 0
         ? filters.episodes[1]
         : null,
+    format: filters.format || null,
+    genres: filters.genres.length > 0 ? filters.genres : null,
+    maxPages,
+    perPage,
+    query,
     scoreFrom:
       filters.score[0] > 0 || filters.score[1] > 0 ? filters.score[0] : null,
     scoreTo:
       filters.score[0] > 0 || filters.score[1] > 0 ? filters.score[1] : null,
-    maxPages,
-    perPage,
+    season: filters.season || null,
+    seasonYear: filters.seasonYear,
+    sort: filters.sort ? [filters.sort] : null,
+    source: filters.source || null,
+    status: filters.status || null,
+    tags: filters.tags.length > 0 ? filters.tags : null,
+    yearFrom: filters.year[0] > 0 ? filters.year[0] : null,
+    yearTo: filters.year[1] > 0 ? filters.year[1] : null,
   };
 }
 
 export function sortAniMediaList(
   results: AniMedia[],
   key: string,
-  dir: "asc" | "desc",
+  dir: "asc" | "desc"
 ): AniMedia[] {
   if (key === "relevance") return results;
   return [...results].sort((a, b) => {
@@ -271,23 +319,23 @@ export function computeNodeDimensions(nodeCount: number) {
   const imgH = Math.round(IMG_H * scale);
   const barH = Math.max(16, Math.round((NODE_H - IMG_H) * scale));
   return {
-    w: Math.round(NODE_W * scale),
     h: imgH + barH,
     imgH,
     scale,
+    w: Math.round(NODE_W * scale),
   };
 }
 
 export function computeGraphMetrics(nodeCount: number) {
   const totalH = Math.max(300, Math.min(1400, nodeCount * 80));
   const displayH = Math.max(300, Math.min(totalH, 600));
-  return { totalH, displayH };
+  return { displayH, totalH };
 }
 
 function clampPosition(
   x: number,
   y: number,
-  bounds: { w: number; h: number; nodeW: number; nodeH: number },
+  bounds: { w: number; h: number; nodeW: number; nodeH: number }
 ): FranchiseNodePosition {
   return {
     x: Math.max(0, Math.min(bounds.w - bounds.nodeW, x)),
@@ -302,20 +350,22 @@ export function buildSimNodes(
   totalH: number,
   dims: { w: number; h: number },
   relationMap: Map<number, string>,
+  mainlineIds: Set<number> = new Set<number>()
 ) {
   const nodes: SimNode[] = [];
   const initPos = new Map<number, FranchiseNodePosition>();
   const values = [...filtered.nodeMap.values()];
 
   const years = values.map((n) => n.year).filter((y): y is number => y != null);
-  const minYear = years.length > 0 ? Math.min(...years) : NaN;
-  const maxYear = years.length > 0 ? Math.max(...years) : NaN;
+  const minYear = years.length > 0 ? Math.min(...years) : Number.NaN;
+  const maxYear = years.length > 0 ? Math.max(...years) : Number.NaN;
   const yearRange = maxYear - minYear || 1;
 
   const groupCount = new Map<string, number>();
   const groupIndex = new Map<string, number>();
   for (const node of values) {
     if (node.id === rootId) continue;
+    if (mainlineIds.has(node.id)) continue;
     const rel = relationMap.get(node.id) ?? "UNKNOWN";
     groupCount.set(rel, (groupCount.get(rel) ?? 0) + 1);
   }
@@ -332,7 +382,7 @@ export function buildSimNodes(
     idx++;
 
     let jitter = 0;
-    if (node.id !== rootId) {
+    if (node.id !== rootId && !mainlineIds.has(node.id)) {
       const rel = relationMap.get(node.id) ?? "UNKNOWN";
       const count = groupCount.get(rel) ?? 1;
       const index = groupIndex.get(rel) ?? 0;
@@ -341,34 +391,30 @@ export function buildSimNodes(
       jitter = count > 1 ? -span / 2 + index * dims.w * 1.4 : 0;
     }
 
-    const clusterX = getClusterX(
-      node.id,
-      rootId,
-      containerW,
-      relationMap,
-      jitter,
-    );
+    const clusterX = mainlineIds.has(node.id)
+      ? containerW / 2
+      : getClusterX(node.id, rootId, containerW, relationMap, jitter);
     nodes.push({
+      clusterX,
+      fy: y,
       id: node.id,
-      x: clusterX,
-      y,
       vx: 0,
       vy: 0,
-      fy: y,
-      clusterX,
+      x: clusterX,
+      y,
     });
     initPos.set(
       node.id,
       clampPosition(clusterX - dims.w / 2, y, {
-        w: containerW,
         h: totalH,
-        nodeW: dims.w,
         nodeH: dims.h,
-      }),
+        nodeW: dims.w,
+        w: containerW,
+      })
     );
   }
 
-  return { simNodes: nodes, initialPositions: initPos };
+  return { initialPositions: initPos, simNodes: nodes };
 }
 
 export function runFranchiseSimulation(
@@ -376,7 +422,7 @@ export function runFranchiseSimulation(
   containerW: number,
   totalH: number,
   dims: { w: number; h: number },
-  onTick: (positions: Map<number, FranchiseNodePosition>) => void,
+  onTick: (positions: Map<number, FranchiseNodePosition>) => void
 ): Simulation<SimNode, undefined> {
   const sim = forceSimulation(simNodes)
     .force("x", forceX<SimNode>((d) => d.clusterX).strength(0.06))
@@ -388,15 +434,100 @@ export function runFranchiseSimulation(
         pos.set(
           n.id,
           clampPosition(n.x - dims.w / 2, n.y - dims.h / 2, {
-            w: containerW,
             h: totalH,
-            nodeW: dims.w,
             nodeH: dims.h,
-          }),
+            nodeW: dims.w,
+            w: containerW,
+          })
         );
       }
       onTick(pos);
     });
 
   return sim;
+}
+
+export interface CollapsedGraph {
+  graph: FilteredGraph;
+  aggregators: Map<number, { group: RelationFilter; count: number }>;
+}
+
+const AGGREGATOR_ID_BASE = -1000;
+
+export function collapseGraph(
+  filtered: FilteredGraph,
+  relationMap: Map<number, string>,
+  rootId: number,
+  maxPerGroup: number,
+  expandedGroups: Set<RelationFilter>
+): CollapsedGraph {
+  const buckets = new Map<RelationFilter, number[]>();
+  for (const node of filtered.nodeMap.values()) {
+    if (node.id === rootId) continue;
+    const group = relationGroup(relationMap.get(node.id) ?? "UNKNOWN");
+    const bucket = buckets.get(group);
+    if (bucket) bucket.push(node.id);
+    else buckets.set(group, [node.id]);
+  }
+
+  const collapsedIds = new Set<number>();
+  const aggregators = new Map<number, { group: RelationFilter; count: number }>();
+  const idToAggregator = new Map<number, number>();
+  let aggIndex = 0;
+  for (const [group, ids] of buckets) {
+    if (expandedGroups.has(group)) continue;
+    if (ids.length <= maxPerGroup) continue;
+    const sorted = [...ids].sort((a, b) => {
+      const na = filtered.nodeMap.get(a)!;
+      const nb = filtered.nodeMap.get(b)!;
+      return (na.year ?? 0) - (nb.year ?? 0);
+    });
+    const hidden = sorted.slice(maxPerGroup);
+    const aggId = AGGREGATOR_ID_BASE - aggIndex;
+    aggIndex += 1;
+    for (const id of hidden) {
+      collapsedIds.add(id);
+      idToAggregator.set(id, aggId);
+    }
+    aggregators.set(aggId, { group, count: hidden.length });
+  }
+
+  if (collapsedIds.size === 0) {
+    return { graph: filtered, aggregators };
+  }
+
+  const nodeMap = new Map<number, FranchiseNode>();
+  for (const [id, node] of filtered.nodeMap) {
+    if (collapsedIds.has(id)) continue;
+    nodeMap.set(id, node);
+  }
+  for (const [aggId, info] of aggregators) {
+    nodeMap.set(aggId, {
+      cover_url: null,
+      episodes: null,
+      format: null,
+      id: aggId,
+      media_type: "ANIME",
+      score: null,
+      title: `${info.group} +${info.count}`,
+      year: null,
+    });
+  }
+
+  const edges: FranchiseEdge[] = [];
+  const seenEdges = new Set<string>();
+  for (const edge of filtered.edges) {
+    const source = idToAggregator.get(edge.source) ?? edge.source;
+    const target = idToAggregator.get(edge.target) ?? edge.target;
+    if (source === target) continue;
+    if (!nodeMap.has(source) || !nodeMap.has(target)) continue;
+    const key = `${source}:${target}:${edge.relation_type}`;
+    if (seenEdges.has(key)) continue;
+    seenEdges.add(key);
+    edges.push({ relation_type: edge.relation_type, source, target });
+  }
+
+  const ids = new Set(nodeMap.keys());
+  const graph: FilteredGraph = { edges, ids, nodeMap };
+  return { graph, aggregators };
 }

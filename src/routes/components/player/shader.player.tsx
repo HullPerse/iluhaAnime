@@ -1,8 +1,12 @@
-import { useState, useCallback, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/core";
 import { ChevronDown, ChevronUp, Clock } from "lucide-react";
+import { useState, useCallback, useMemo } from "react";
+
 import { Checkbox } from "@/components/ui/checkbox.component";
+import { CATEGORY_ORDER } from "@/config/shader.config";
+import { useI18n } from "@/lib/i18n";
+import type { TranslationKey } from "@/lib/i18n";
 
 interface ShaderInfo {
   id: string;
@@ -21,22 +25,26 @@ interface Props {
   durationSecs?: number;
 }
 
-const CATEGORY_LABELS: Record<string, string> = {
-  preprocess: "Предобработка",
-  restore: "Восстановление",
-  upscale: "Апскейл",
-  postprocess: "Постобработка",
+const CATEGORY_LABELS: Record<string, TranslationKey> = {
+  preprocess: "player.shader.preprocess",
+  restore: "player.shader.restore",
+  upscale: "player.shader.upscale",
+  postprocess: "player.shader.postprocess",
 };
 
-const CATEGORY_ORDER = ["preprocess", "restore", "upscale", "postprocess"];
-
-function formatETA(seconds: number): string {
+function formatETA(
+  seconds: number,
+  t: (
+    key: TranslationKey,
+    variables?: Record<string, string | number>
+  ) => string
+): string {
   if (!Number.isFinite(seconds) || seconds <= 0) return "";
-  if (seconds < 60) return "< 1 мин";
+  if (seconds < 60) return t("player.eta.lessThanMinute");
   const m = Math.floor(seconds / 60);
   const s = Math.round(seconds % 60);
-  if (s > 0) return `~${m} мин ${s} сек`;
-  return `~${m} мин`;
+  if (s > 0) return t("player.eta.minutesSeconds", { m, s });
+  return t("player.eta.minutes", { m });
 }
 
 export default function ShaderPicker({
@@ -45,8 +53,9 @@ export default function ShaderPicker({
   gpuBackend,
   durationSecs,
 }: Props) {
+  const { t } = useI18n();
   const [openCategories, setOpenCategories] = useState<Set<string>>(
-    new Set(["upscale", "restore"]),
+    new Set(["upscale", "restore"])
   );
 
   const { data: shaders = [] } = useQuery({
@@ -60,7 +69,7 @@ export default function ShaderPicker({
     for (const cat of CATEGORY_ORDER) {
       map.set(
         cat,
-        shaders.filter((s) => s.category === cat),
+        shaders.filter((s) => s.category === cat)
       );
     }
     return map;
@@ -75,10 +84,10 @@ export default function ShaderPicker({
         (s) =>
           s.id !== shader.id &&
           s.exclusive_group === shader.exclusive_group &&
-          selectedSet.has(s.id),
+          selectedSet.has(s.id)
       );
     },
-    [shaders, selectedSet],
+    [shaders, selectedSet]
   );
 
   const handleToggle = useCallback(
@@ -105,9 +114,9 @@ export default function ShaderPicker({
           next.add(shader.id);
         }
       }
-      onChange(Array.from(next));
+      onChange([...next]);
     },
-    [shaders, selectedSet, onChange],
+    [shaders, selectedSet, onChange]
   );
 
   const eta = useMemo(() => {
@@ -119,8 +128,8 @@ export default function ShaderPicker({
       return acc * sf;
     }, 1);
     const totalSpeed = baseSpeed * Math.max(penalty, 0.05);
-    return formatETA(durationSecs / totalSpeed);
-  }, [value, shaders, gpuBackend, durationSecs]);
+    return formatETA(durationSecs / totalSpeed, t);
+  }, [value, shaders, gpuBackend, durationSecs, t]);
 
   const toggleCategory = useCallback((cat: string) => {
     setOpenCategories((prev) => {
@@ -133,16 +142,18 @@ export default function ShaderPicker({
 
   if (shaders.length === 0) {
     return (
-      <div className="windows95-text text-xs p-1">Загрузка шейдеров...</div>
+      <div className="windows95-text p-1 text-xs">
+        {t("player.shader.loading")}
+      </div>
     );
   }
 
   return (
-    <div className="border windows95-border bg-white p-1 flex flex-col gap-1">
-      <div className="windows95-text text-xs font-bold flex items-center justify-between">
-        <span>Шейдеры Anime4K</span>
+    <div className="windows95-border flex flex-col gap-1 border bg-white p-1">
+      <div className="windows95-text flex items-center justify-between text-xs font-bold">
+        <span>{t("player.shader.title")}</span>
         {eta && (
-          <span className="flex items-center gap-1 text-muted-foreground">
+          <span className="text-muted-foreground flex items-center gap-1">
             <Clock className="size-3" />
             {eta}
           </span>
@@ -159,7 +170,7 @@ export default function ShaderPicker({
           <div key={cat} className="flex flex-col gap-0.5">
             <button
               type="button"
-              className="flex items-center gap-1 windows95-text text-xs hover:underline text-left"
+              className="windows95-text flex items-center gap-1 text-left text-xs hover:underline"
               onClick={() => toggleCategory(cat)}
             >
               {isOpen ? (
@@ -167,7 +178,7 @@ export default function ShaderPicker({
               ) : (
                 <ChevronDown className="size-3" />
               )}
-              {CATEGORY_LABELS[cat] || cat}
+              {t(CATEGORY_LABELS[cat] ?? (cat as never))}
             </button>
 
             {isOpen && (
@@ -182,7 +193,7 @@ export default function ShaderPicker({
                       return (
                         <label
                           key={shader.id}
-                          className={`flex items-center gap-1 windows95-text text-xs cursor-pointer select-none ${disabled ? "opacity-50 cursor-default" : ""}`}
+                          className={`windows95-text flex cursor-pointer items-center gap-1 text-xs select-none ${disabled ? "cursor-default opacity-50" : ""}`}
                           title={shader.description}
                         >
                           <Checkbox
@@ -193,7 +204,7 @@ export default function ShaderPicker({
                           <span>
                             {shader.id
                               .replace(/^(restore_|upscale_)/, "")
-                              .replace(/_/g, " ")
+                              .replaceAll(/_/g, " ")
                               .toUpperCase()}
                           </span>
                         </label>
@@ -206,7 +217,7 @@ export default function ShaderPicker({
                     return (
                       <label
                         key={shader.id}
-                        className="flex items-center gap-1 windows95-text text-xs cursor-pointer select-none"
+                        className="windows95-text flex cursor-pointer items-center gap-1 text-xs select-none"
                         title={shader.description}
                       >
                         <Checkbox
@@ -215,8 +226,8 @@ export default function ShaderPicker({
                         />
                         <span>
                           {shader.id
-                            .replace(/_/g, " ")
-                            .replace(/^./, (c) => c.toUpperCase())}
+                            .replaceAll(/_/g, " ")
+                            .replace(/^./u, (c: string) => c.toUpperCase())}
                         </span>
                       </label>
                     );

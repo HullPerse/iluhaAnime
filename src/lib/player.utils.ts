@@ -1,15 +1,77 @@
+import { convertFileSrc } from "@tauri-apps/api/core";
 import { parse } from "anitomy";
-import { FolderNode, Item, VideoFileEntry } from "@/types";
+
+import type { TranslationKey } from "@/lib/i18n";
+import type { FolderNode, Item, VideoFileEntry } from "@/types";
+import type { TranslationVariables } from "@/types";
+import type { VideoStreamInfo } from "@/types/player";
+
+export function toAssetUrl(path: string): string {
+  return convertFileSrc(path.replace(/\\/g, "/"));
+}
+
+export function collectFolderPaths(nodes: FolderNode[]): string[] {
+  const paths: string[] = [];
+  function walk(node: FolderNode) {
+    for (const f of node.files) paths.push(f.path);
+    for (const c of node.children) walk(c);
+  }
+  for (const n of nodes) walk(n);
+  return paths;
+}
+
+export function parseTime(input: string): number | null {
+  const parts = input.split(":").map((p) => p.trim());
+  if (parts.length === 3) {
+    const h = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10);
+    const s = parseFloat(parts[2]);
+    if (!isNaN(h) && !isNaN(m) && !isNaN(s)) return h * 3600 + m * 60 + s;
+  }
+  if (parts.length === 2) {
+    const m = parseInt(parts[0], 10);
+    const s = parseFloat(parts[1]);
+    if (!isNaN(m) && !isNaN(s)) return m * 60 + s;
+  }
+  if (parts.length === 1) {
+    const s = parseFloat(parts[0]);
+    if (!isNaN(s)) return s;
+  }
+  return null;
+}
+
+export const formatStreams = (stream: VideoStreamInfo): string => {
+  const parts: string[] = [];
+  if (stream.language) parts.push(stream.language.toUpperCase());
+  if (stream.is_forced) parts.push("[Forced]");
+  if (stream.is_comment) parts.push("[Commentary]");
+
+  const tech: string[] = [stream.codec_name.toUpperCase()];
+  if (stream.channels) tech.push(`${stream.channels}ch`);
+  if (stream.sample_rate)
+    tech.push(`${(stream.sample_rate / 1000).toFixed(1)}kHz`);
+  if (stream.bit_rate) tech.push(`${Math.round(stream.bit_rate / 1000)}kbps`);
+
+  parts.push(tech.join(" "));
+  if (stream.title) parts.push(stream.title);
+
+  return parts.join(", ") || `Дорожка ${stream.index}`;
+};
+
+export const isAssSub = (s: VideoStreamInfo): boolean =>
+  s.codec_name === "ass" ||
+  s.codec_name === "ssa" ||
+  (s.file_path ?? "").match(/\.(ass|ssa)$/i) !== null;
 
 export function buildTree(
   entries: VideoFileEntry[],
-  rootPath: string,
+  rootPath: string
 ): FolderNode {
   const root: FolderNode = {
-    path: rootPath,
-    name: rootPath.split(/[/\\]/).filter(Boolean).pop() || rootPath,
-    files: [],
     children: [],
+    files: [],
+    name: rootPath.split(/[/\\]/).filter(Boolean).pop() || rootPath,
+    path: rootPath,
   };
 
   for (const entry of entries) {
@@ -21,10 +83,10 @@ export function buildTree(
       let child = current.children.find((c) => c.name === parts[i]);
       if (!child) {
         child = {
-          path: `${current.path}/${parts[i]}`,
-          name: parts[i],
-          files: [],
           children: [],
+          files: [],
+          name: parts[i],
+          path: `${current.path}/${parts[i]}`,
         };
         current.children.push(child);
       }
@@ -38,7 +100,7 @@ export function buildTree(
 
 export function filterTreeByPaths(
   tree: FolderNode,
-  matchingPaths: Set<string>,
+  matchingPaths: Set<string>
 ): FolderNode | null {
   const filteredFiles = tree.files.filter((f) => matchingPaths.has(f.path));
   const filteredChildren = tree.children
@@ -47,7 +109,7 @@ export function filterTreeByPaths(
 
   if (filteredFiles.length === 0 && filteredChildren.length === 0) return null;
 
-  return { ...tree, files: filteredFiles, children: filteredChildren };
+  return { ...tree, children: filteredChildren, files: filteredFiles };
 }
 
 function nodeMatchesSearch(node: FolderNode, query: string): boolean {
@@ -65,13 +127,13 @@ export function flattenTree(
   searchQuery: string,
   disabledExtensions: Set<string> | undefined,
   depth: number,
-  trackExts?: Set<string>,
+  trackExts?: Set<string>
 ): Item[] {
   if (!node.children.length && !node.files.length) return [];
 
   let filteredFiles = searchQuery
     ? node.files.filter((f) =>
-        f.name.toLowerCase().includes(searchQuery.toLowerCase()),
+        f.name.toLowerCase().includes(searchQuery.toLowerCase())
       )
     : node.files;
 
@@ -93,7 +155,7 @@ export function flattenTree(
   const isOpen = open.has(node.path);
 
   if (depth > 0) {
-    items.push({ kind: "folder", node, depth });
+    items.push({ depth, kind: "folder", node });
   }
 
   if (isOpen || depth === 0) {
@@ -101,7 +163,7 @@ export function flattenTree(
       const ext = file.name.split(".").pop()?.toLowerCase();
       const disabled = disabledExtensions && ext && disabledExtensions.has(ext);
       if (!disabled) {
-        items.push({ kind: "file", file, depth: depth + 1 });
+        items.push({ depth: depth + 1, file, kind: "file" });
       }
     }
     for (const child of node.children) {
@@ -112,8 +174,8 @@ export function flattenTree(
           searchQuery,
           disabledExtensions,
           depth + 1,
-          trackExts,
-        ),
+          trackExts
+        )
       );
     }
   }
@@ -135,8 +197,8 @@ export function flattenTree(
             searchQuery,
             disabledExtensions,
             depth + 1,
-            trackExts,
-          ).length > 0,
+            trackExts
+          ).length > 0
       );
     if (!hasContent) return [];
   }
@@ -159,7 +221,7 @@ const seasonPatterns = (season: string) => [
 
 function cleanTitle(
   title: string | undefined,
-  season: string | undefined,
+  season: string | undefined
 ): string {
   if (!title) return "";
   let cleaned = title.trim();
@@ -171,12 +233,17 @@ function cleanTitle(
   return cleaned.trim() || title.trim();
 }
 
-export function formatParsedTitle(filename: string): string {
+export function formatParsedTitle(
+  filename: string,
+  t: (key: TranslationKey, variables?: TranslationVariables) => string
+): string {
   const parsed = parse(filename);
   if (!parsed) return filename;
 
   const title = cleanTitle(parsed.title, parsed.season);
-  const season = parsed.season ? `Season ${parsed.season}` : "";
+  const season = parsed.season
+    ? t("player.title.season", { n: parsed.season })
+    : "";
 
   const epNum = parsed.episode?.number ?? parsed.episode?.numberAlt;
   const epTitle = parsed.episode?.title;
@@ -187,28 +254,31 @@ export function formatParsedTitle(filename: string): string {
     const showRange =
       epNumAlt !== undefined && epNumAlt !== null && epNumAlt !== epNum;
     episodeStr = showRange
-      ? `Episodes ${epNum}-${epNumAlt}`
-      : `Episode ${epNum}`;
+      ? t("player.title.episodesRange", { from: epNum, to: epNumAlt })
+      : t("player.title.episode", { n: epNum });
     if (epTitle) episodeStr += `: ${epTitle}`;
   } else if (epTitle) {
-    episodeStr = `Episode: ${epTitle}`;
+    episodeStr = t("player.title.episodeColon", { title: epTitle });
   }
 
   return [title, season, episodeStr]
     .filter((part) => part && part.trim())
-    .join(" • ");
+    .join(", ");
 }
 
 export function fileNameFromPath(p: string): string {
-  const parts = p.replace(/\\/g, "/").split("/");
-  return parts[parts.length - 1] || p;
+  const parts = p.replaceAll(/\\/g, "/").split("/");
+  return parts.at(-1) || p;
 }
 
-export function formatETA(secs: number): string {
+export function formatETA(
+  secs: number,
+  t: (key: TranslationKey, variables?: TranslationVariables) => string
+): string {
   if (!Number.isFinite(secs)) return "";
-  if (secs <= 0) return "< 1 мин";
+  if (secs <= 0) return t("player.eta.lessThanMinute");
   const m = Math.floor(secs / 60);
   const s = Math.round(secs % 60);
-  if (m > 0) return `${m} мин ${s} сек`;
-  return `${s} сек`;
+  if (m > 0) return t("player.eta.minutesSeconds", { m, s });
+  return t("player.eta.seconds", { s });
 }

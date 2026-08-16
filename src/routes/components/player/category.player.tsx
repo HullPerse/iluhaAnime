@@ -1,19 +1,25 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useDroppable } from "@dnd-kit/core";
 import { useQuery } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/core";
-import { ChevronDown, ChevronRight, RefreshCw, X } from "lucide-react";
-import { useDroppable } from "@dnd-kit/core";
+import { ChevronDown, ChevronRight, EyeOff, RefreshCw, X } from "lucide-react";
+import { useState, useEffect, useRef, useMemo } from "react";
+
+import UserImageIcon from "@/components/shared/avatar.component";
+import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { Input } from "@/components/ui/input.component";
-import { Button } from "@/components/ui/button.component";
-import { useCategoryStore } from "@/store/category.store";
+import { useI18n } from "@/lib/i18n";
+import { normalizePlayerPath } from "@/lib/player.visibility";
 import { fmtSize } from "@/lib/torrent.utils";
-import FolderView from "./folder.player";
-import TorrentFilesSection from "../torrent/file.torrent";
+import { isUserImageIcon } from "@/lib/userimage.utils";
+import { useCategoryStore } from "@/store/category.store";
+import { useTorrentStore } from "@/store/download.store";
 import type { FolderNode } from "@/types";
 import type { TorrentInfo, TorrentFileInfo } from "@/types/torrent";
-import { useTorrentStore } from "@/store/download.store";
+
+import TorrentFilesSection from "../torrent/file.torrent";
 import CategoryIconModal from "./category/icon.category";
+import FolderView from "./folder.player";
 
 function TorrentCategoryEntry({
   tor,
@@ -27,9 +33,9 @@ function TorrentCategoryEntry({
     queryFn: () =>
       invoke<{ path: string; name: string; size: number }[]>(
         "scan_extra_files",
-        { path: tor.save_dir! },
+        { path: tor.save_dir! }
       ).then((result) =>
-        result.map((f) => ({ name: f.name, size: f.size, fullPath: f.path })),
+        result.map((f) => ({ name: f.name, size: f.size, fullPath: f.path }))
       ),
     enabled: !!tor.save_dir,
   });
@@ -60,6 +66,8 @@ function CategoryView({
   torrents,
   torrentFilesMap,
   audioExtensions,
+  onHideFolder,
+  onHideTorrent,
 }: {
   categoryId: string;
   onRemoveCategory: (id: string) => void;
@@ -67,13 +75,16 @@ function CategoryView({
   torrents: TorrentInfo[];
   torrentFilesMap: Record<number, TorrentFileInfo[] | undefined>;
   audioExtensions: string[];
+  onHideFolder?: (path: string) => void;
+  onHideTorrent?: (infoHash: string) => void;
 }) {
   const category = useCategoryStore((s) =>
-    s.categories.find((c) => c.id === categoryId),
+    s.categories.find((c) => c.id === categoryId)
   );
   const entries = useCategoryStore((s) => s.entries[categoryId]);
   const renameCategory = useCategoryStore((s) => s.renameCategory);
   const removeEntry = useCategoryStore((s) => s.removeEntry);
+  const { t } = useI18n();
 
   const { setNodeRef, isOver } = useDroppable({ id: categoryId });
 
@@ -82,12 +93,12 @@ function CategoryView({
   const [editIcon, setEditIcon] = useState(false);
   const [editName, setEditName] = useState("");
   const [expandedEntries, setExpandedEntries] = useState<Set<string>>(
-    new Set(),
+    new Set()
   );
   const renameRef = useRef<HTMLInputElement>(null);
   const audioExtensionsSet = useMemo(
     () => new Set(audioExtensions),
-    [audioExtensions],
+    [audioExtensions]
   );
 
   useEffect(() => {
@@ -97,16 +108,30 @@ function CategoryView({
   }, [editing]);
 
   if (!category) return null;
-  const count = entries?.length ?? 0;
+  const visibleEntries = (entries ?? []).filter((entry) =>
+    entry.type === "folder"
+      ? folderTrees.some(
+          (tree) =>
+            normalizePlayerPath(tree.path) ===
+            normalizePlayerPath(entry.folderPath ?? "")
+        )
+      : torrents.some((torrent) => torrent.info_hash === entry.infoHash)
+  );
+  const count = visibleEntries.length;
 
   const renderFolderEntry = (entry: (typeof entries)[0]) => {
-    const tree = folderTrees.find((t) => t.path === entry.folderPath);
+    const tree = folderTrees.find(
+      (candidate) =>
+        normalizePlayerPath(candidate.path) ===
+        normalizePlayerPath(entry.folderPath ?? "")
+    );
     if (!tree) return null;
     return (
       <FolderView
         node={tree}
         depth={0}
         searchQuery=""
+        onHide={onHideFolder}
         disabledExtensions={audioExtensionsSet}
         hideRoot
       />
@@ -116,7 +141,12 @@ function CategoryView({
   const renderTorrentEntry = (entry: (typeof entries)[0]) => {
     const tor = torrents.find((t) => t.info_hash === entry.infoHash);
     if (!tor) return null;
-    return <TorrentCategoryEntry tor={tor} torrentFilesMap={torrentFilesMap} />;
+    return (
+      <TorrentCategoryEntry
+        tor={tor}
+        torrentFilesMap={torrentFilesMap}
+      />
+    );
   };
 
   const toggleEntry = (entryId: string) => {
@@ -146,31 +176,47 @@ function CategoryView({
   return (
     <main
       ref={setNodeRef}
-      className={`flex flex-col windows95-active-border bg-primary ${isOver ? "ring-2 ring-highlight" : ""}`}
+      className={`windows95-active-border bg-primary flex flex-col ${isOver ? "ring-highlight ring-2" : ""}`}
     >
-      <section
-        role="button"
-        className="flex items-center gap-1 windows95-text cursor-pointer hover:bg-surface px-0.5 py-0.5 w-full text-left select-none"
-        onClick={() => setOpen(!open)}
-      >
-        {open ? (
-          <ChevronDown className="size-3 shrink-0" />
+      <section className="windows95-text flex w-full items-center gap-1 px-0.5 py-0.5 text-left select-none">
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-label={category.name}
+          className="windows95-text hover:bg-surface focus-visible:outline-text flex cursor-pointer items-center gap-1 border-0 bg-transparent p-0 text-left focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-dotted"
+          onClick={() => setOpen((value) => !value)}
+        >
+          {open ? (
+            <ChevronDown className="size-3 shrink-0" />
+          ) : (
+            <ChevronRight className="size-3 shrink-0" />
+          )}
+        </button>
+        {isUserImageIcon(category.icon) ? (
+          <UserImageIcon
+            icon={category.icon}
+            alt=""
+            className="border-surface size-4 shrink-0 hover:border"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleEditIcon();
+            }}
+          />
         ) : (
-          <ChevronRight className="size-3 shrink-0" />
+          <ImageComponent
+            src={`/images/${category.icon}`}
+            alt=""
+            className="border-surface size-4 shrink-0 hover:border"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleEditIcon();
+            }}
+          />
         )}
-        <ImageComponent
-          src={`/images/${category.icon}`}
-          alt=""
-          className="size-4 shrink-0 hover:border border-surface"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleEditIcon();
-          }}
-        />
         {editing ? (
           <Input
             ref={renameRef}
-            className="h-5 text-xs flex-1 min-w-0"
+            className="h-5 min-w-0 flex-1 text-xs"
             value={editName}
             onClick={(e) => e.stopPropagation()}
             onKeyDown={(e) => {
@@ -182,7 +228,7 @@ function CategoryView({
           />
         ) : (
           <span
-            className="truncate select-none w-fit"
+            className="w-fit truncate select-none"
             title={category.name}
             onClick={(e) => {
               e.stopPropagation();
@@ -192,7 +238,7 @@ function CategoryView({
             {category.name}
           </span>
         )}
-        <span className="text-muted whitespace-nowrap select-none text-[10px] ml-auto">
+        <span className="text-muted ml-auto text-[10px] whitespace-nowrap select-none">
           {count}
         </span>
         <Button
@@ -207,43 +253,60 @@ function CategoryView({
         </Button>
       </section>
 
-      {open && entries && entries.length > 0 && (
+      {open && visibleEntries.length > 0 && (
         <section className="flex flex-col gap-0.5 px-1 pb-1">
-          {entries
+          {[...visibleEntries]
             .sort((a, b) => a.type.localeCompare(b.type))
             .map((entry) => {
               const entryExpanded = expandedEntries.has(entry.id);
               return (
                 <div key={entry.id} className="flex flex-col">
-                  <div
-                    className="flex items-center gap-1 windows95-text py-0.5 px-1 hover:bg-surface cursor-pointer select-none"
-                    onClick={() => toggleEntry(entry.id)}
-                  >
-                    {entryExpanded ? (
-                      <ChevronDown className="size-3 shrink-0" />
-                    ) : (
-                      <ChevronRight className="size-3 shrink-0" />
-                    )}
-                    <ImageComponent
-                      src={
-                        entry.type === "folder"
-                          ? "/images/w2k_folder_closed.ico"
-                          : "/images/w2k_floppy.ico"
-                      }
-                      alt=""
-                      className="size-4 shrink-0"
-                    />
-                    <span
-                      className="truncate flex-1 text-xs"
-                      title={entry.name}
+                  <div className="windows95-text flex items-center gap-1 px-1 py-0.5 select-none">
+                    <button
+                      type="button"
+                      aria-expanded={entryExpanded}
+                      aria-label={entry.name}
+                      className="windows95-text hover:bg-surface focus-visible:outline-text flex min-w-0 flex-1 cursor-pointer items-center gap-1 border-0 bg-transparent p-0 text-left focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-dotted"
+                      onClick={() => toggleEntry(entry.id)}
                     >
-                      {entry.name}
-                    </span>
+                      {entryExpanded ? (
+                        <ChevronDown className="size-3 shrink-0" />
+                      ) : (
+                        <ChevronRight className="size-3 shrink-0" />
+                      )}
+                      <ImageComponent
+                        src={
+                          entry.type === "folder"
+                            ? "/images/w2k_folder_closed.ico"
+                            : "/images/w2k_floppy.ico"
+                        }
+                        alt=""
+                        className="size-4 shrink-0"
+                      />
+                      <span className="truncate text-xs" title={entry.name}>
+                        {entry.name}
+                      </span>
+                    </button>
                     {entry.totalBytes != null && (
                       <span className="text-muted text-[10px] whitespace-nowrap">
                         {fmtSize(entry.totalBytes)}
                       </span>
                     )}
+                    {entry.type === "torrent" &&
+                      entry.infoHash &&
+                      onHideTorrent && (
+                        <Button
+                          size="icon"
+                          className="size-4"
+                          title={t("player.visibility.hide")}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onHideTorrent(entry.infoHash!);
+                          }}
+                        >
+                          <EyeOff className="size-3" />
+                        </Button>
+                      )}
                     {entry.type === "torrent" && entry.torrentId != null && (
                       <Button
                         size="icon"

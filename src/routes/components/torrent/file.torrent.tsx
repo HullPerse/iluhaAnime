@@ -1,30 +1,33 @@
-import { buildTorrentTree, fmtSize } from "@/lib/torrent.utils";
-import type { TorrentTreeNode, TorrentTreeFile } from "@/lib/torrent.utils";
-import type { TorrentFileInfo, FilePriority } from "@/types/torrent";
-import { useRef, useState, useCallback, useMemo } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { invoke } from "@tauri-apps/api/core";
+import { openPath } from "@tauri-apps/plugin-opener";
+import { parse } from "anitomy";
 import {
   ChevronDown,
   ChevronRight,
   Loader,
   ListVideo,
   Monitor,
+  Play,
   RefreshCw,
 } from "lucide-react";
-import ImageComponent from "@/components/ui/image.component";
-import { openFileInPlayer } from "@/lib/media.utils";
+import { useRef, useState, useCallback, useMemo } from "react";
+
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
+import ImageComponent from "@/components/ui/image.component";
 import Select from "@/components/ui/select.component";
-import { useSettingsStore } from "@/store/settings.store";
-import UpscalePlayer from "@/routes/components/player/upscale.player";
-import { useUpscaleQueueStore } from "@/store/upscale.store";
-import { parse } from "anitomy";
-import { formatParsedTitle } from "@/lib/player.utils";
-import { useSearchStore } from "@/store/search.store";
+import { useI18n } from "@/lib/i18n";
 import { collectFileIndices } from "@/lib/index.utils";
-import { openPath } from "@tauri-apps/plugin-opener";
+import { joinMediaPath, openFileInPlayer } from "@/lib/media.utils";
+import { formatParsedTitle } from "@/lib/player.utils";
+import { buildTorrentTree, fmtSize } from "@/lib/torrent.utils";
+import type { TorrentTreeNode, TorrentTreeFile } from "@/lib/torrent.utils";
+import UpscalePlayer from "@/routes/components/player/upscale.player";
+import { useSearchStore } from "@/store/search.store";
+import { useSettingsStore } from "@/store/settings.store";
+import { useUpscaleQueueStore } from "@/store/upscale.store";
+import type { TorrentFileInfo, FilePriority } from "@/types/torrent";
 
 type TorrentTreeFileWithPath = TorrentTreeFile & { _fullPath: string };
 
@@ -37,7 +40,7 @@ function flattenTorrentTree(
   open: Set<string>,
   fileFilter?: (f: TorrentTreeFile) => boolean,
   rootFiles?: TorrentTreeFile[],
-  depth = 0,
+  depth = 0
 ): Item[] {
   const items: Item[] = [];
 
@@ -60,8 +63,8 @@ function flattenTorrentTree(
           open,
           fileFilter,
           undefined,
-          depth + 1,
-        ),
+          depth + 1
+        )
       );
     }
   }
@@ -80,6 +83,7 @@ function TorrentFilesSection({
   onUpscaleDone,
   onDeleteExtraFile,
   onRedownload,
+  onPlay,
 }: {
   id: number;
   files: TorrentFileInfo[];
@@ -89,22 +93,24 @@ function TorrentFilesSection({
   onFilePriorityChange?: (
     id: number,
     fileIndices: number[],
-    priority: FilePriority,
+    priority: FilePriority
   ) => void;
   onResume?: () => void;
   extraFiles?: { name: string; size: number; fullPath: string }[];
   onUpscaleDone?: (filePath: string) => void;
   onDeleteExtraFile?: () => void;
   onRedownload?: (fileIndex: number) => void;
+  onPlay?: (path: string, name: string) => void;
 }) {
   const setAnilistSearchQuery = useSearchStore(
-    (state) => state.setAnilistSearchQuery,
+    (state) => state.setAnilistSearchQuery
   );
 
   const parseTitles = useSettingsStore((s) => s.parseTitles);
   const showTrackFiles = useSettingsStore((s) => s.showTrackFiles);
   const audioExtensions = useSettingsStore((s) => s.audioExtensions);
   const subtitleExtensions = useSettingsStore((s) => s.subtitleExtensions);
+  const { t } = useI18n();
 
   const items = useUpscaleQueueStore((s) => s.items);
 
@@ -119,8 +125,8 @@ function TorrentFilesSection({
   const [selected, setSelected] = useState<Set<number>>(
     () =>
       new Set(
-        files.filter((f) => f.selected || f.completed).map((f) => f.index),
-      ),
+        files.filter((f) => f.selected || f.completed).map((f) => f.index)
+      )
   );
 
   const [open, setOpen] = useState<Set<string>>(new Set());
@@ -128,7 +134,7 @@ function TorrentFilesSection({
 
   const { nodes: trees, rootFiles } = useMemo(
     () => buildTorrentTree(files),
-    [files],
+    [files]
   );
 
   const toggle = useCallback((key: string) => {
@@ -142,11 +148,11 @@ function TorrentFilesSection({
 
   const trackExts = useMemo(
     () => new Set([...audioExtensions, ...subtitleExtensions]),
-    [audioExtensions, subtitleExtensions],
+    [audioExtensions, subtitleExtensions]
   );
 
   const fileFilter = useMemo(() => {
-    if (type !== "player") return undefined;
+    if (type !== "player") return;
     const hideTracks =
       showTrackFiles === "hide" || showTrackFiles === "folders";
     return (f: TorrentTreeFile) => {
@@ -233,7 +239,7 @@ function TorrentFilesSection({
             return (
               <div
                 key={`folder-${item.node.name}-${item.depth}-${vItem.index}`}
-                className="flex items-center gap-1 windows95-text cursor-pointer hover:bg-surface px-0.5 py-0.5 w-full text-left select-none absolute top-0 left-0"
+                className="windows95-text hover:bg-surface absolute top-0 left-0 flex w-full cursor-pointer items-center gap-1 px-0.5 py-0.5 text-left select-none"
                 style={{
                   height: 20,
                   transform: `translateY(${vItem.start}px)`,
@@ -241,7 +247,7 @@ function TorrentFilesSection({
                 }}
               >
                 <div
-                  className="flex items-center gap-1 flex-1 min-w-0"
+                  className="flex min-w-0 flex-1 items-center gap-1"
                   onClick={() => toggle(item.node.name + item.depth)}
                 >
                   {isOpen ? (
@@ -267,10 +273,10 @@ function TorrentFilesSection({
                             c.children.reduce(
                               (s3, cc) =>
                                 s3 + cc.files.reduce((s4, f) => s4 + f.size, 0),
-                              0,
+                              0
                             ),
-                          0,
-                        ),
+                          0
+                        )
                     )}
                   </span>
                 </div>
@@ -282,8 +288,11 @@ function TorrentFilesSection({
                       handlePriorityChange(folderIndices, v as FilePriority)
                     }
                     options={[
-                      { value: "normal", label: "Нормальный" },
-                      { value: "do_not_download", label: "Пропуск" },
+                      { value: "normal", label: t("torrent.priority.normal") },
+                      {
+                        value: "do_not_download",
+                        label: t("torrent.priority.skip"),
+                      },
                     ]}
                     arrow={false}
                   />
@@ -291,11 +300,11 @@ function TorrentFilesSection({
               </div>
             );
           }
-          const file = item.file;
+          const { file } = item;
           return (
             <div
               key={file.index}
-              className={`flex items-center gap-1 px-1 w-full windows95-text select-none absolute top-0 left-0 ${type === "torrent" && file.completed ? "" : "hover:bg-surface hover:cursor-pointer"}`}
+              className={`windows95-text absolute top-0 left-0 flex w-full items-center gap-1 px-1 select-none ${type === "torrent" && file.completed ? "" : "hover:bg-surface hover:cursor-pointer"}`}
               style={{
                 height: 18,
                 transform: `translateY(${vItem.start}px)`,
@@ -318,7 +327,7 @@ function TorrentFilesSection({
               />
 
               <span
-                className="truncate flex-1"
+                className="flex-1 truncate"
                 title={file.displayName}
                 onContextMenu={(e) => {
                   e.preventDefault();
@@ -332,14 +341,14 @@ function TorrentFilesSection({
                 }}
               >
                 {type === "player" && parseTitles
-                  ? formatParsedTitle(file.displayName)
+                  ? formatParsedTitle(file.displayName, t)
                   : file.displayName}
               </span>
 
               {file.selected && !file.completed && file.size > 0 && (
-                <div className="w-10 h-2 bg-surface windows95-border shrink-0 ml-1">
+                <div className="bg-surface windows95-border ml-1 h-2 w-10 shrink-0">
                   <div
-                    className="h-full bg-secondary transition-all duration-500"
+                    className="bg-secondary h-full transition-all duration-500"
                     style={{
                       width: `${Math.min(100, (file.progress_bytes / file.size) * 100)}%`,
                     }}
@@ -359,8 +368,11 @@ function TorrentFilesSection({
                       handlePriorityChange([file.index], v as FilePriority)
                     }
                     options={[
-                      { value: "normal", label: "Нормальный" },
-                      { value: "do_not_download", label: "Пропуск" },
+                      { value: "normal", label: t("torrent.priority.normal") },
+                      {
+                        value: "do_not_download",
+                        label: t("torrent.priority.skip"),
+                      },
                     ]}
                     arrow={false}
                   />
@@ -371,7 +383,7 @@ function TorrentFilesSection({
                 !file.exists &&
                 onRedownload && (
                   <Button
-                    title="Загрузить заново"
+                    title={t("torrent.redownload")}
                     size="icon"
                     className="size-4"
                     onClick={() => onRedownload(file.index)}
@@ -381,20 +393,20 @@ function TorrentFilesSection({
                 )}
 
               {type === "player" && (
-                <div className="flex flex-row gap-1 ml-auto">
+                <div className="ml-auto flex flex-row gap-1">
                   {(file as TorrentTreeFileWithPath)._fullPath ? (
                     <>
                       <Button
                         rendered={
                           !!extraFiles?.find((e) => e.name === file.displayName)
                         }
-                        title="Удалить"
+                        title={t("common.delete")}
                         size="icon"
                         className="size-4"
                         onClick={(e) => {
                           e.stopPropagation();
                           const upscaledFile = extraFiles?.find(
-                            (e) => e.name === file.displayName,
+                            (e) => e.name === file.displayName
                           );
 
                           if (!upscaledFile?.fullPath) return;
@@ -418,14 +430,14 @@ function TorrentFilesSection({
 
                       {(() => {
                         const status = queueMap.get(
-                          (file as TorrentTreeFileWithPath)._fullPath,
+                          (file as TorrentTreeFileWithPath)._fullPath
                         );
                         if (!status) return null;
                         if (status === "queued")
-                          return <ListVideo className="size-3 text-muted" />;
+                          return <ListVideo className="text-muted size-3" />;
                         if (status === "processing")
                           return (
-                            <Loader className="size-3 animate-spin text-highlight" />
+                            <Loader className="text-highlight size-3 animate-spin" />
                           );
                         return null;
                       })()}
@@ -435,15 +447,32 @@ function TorrentFilesSection({
                         onDone={onUpscaleDone}
                         exists={file.exists}
                       />
+                      {onPlay && (
+                        <Button
+                          title={t("player.folder.builtinPlayer")}
+                          size="icon"
+                          className="size-4"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onPlay(
+                              (file as TorrentTreeFileWithPath)._fullPath,
+                              file.displayName
+                            );
+                          }}
+                          disabled={!file.exists}
+                        >
+                          <Play className="size-3" />
+                        </Button>
+                      )}
                       <Button
-                        title="Открыть в медиа плеере"
+                        title={t("player.folder.openMediaPlayer")}
                         size="icon"
                         className="size-4"
-                        onClick={async (e) => {
+                        onClick={(e) => {
                           e.stopPropagation();
                           openFileInPlayer(
-                            (file as TorrentTreeFileWithPath)._fullPath,
-                          );
+                            (file as TorrentTreeFileWithPath)._fullPath
+                          ).catch(() => {});
                         }}
                         disabled={!file.exists}
                       >
@@ -454,33 +483,55 @@ function TorrentFilesSection({
                     <>
                       {(() => {
                         if (!path) return null;
-                        const status = queueMap.get(`${path}/${file.name}`);
+                        const status = queueMap.get(
+                          joinMediaPath(path, file.name)
+                        );
                         if (!status) return null;
                         if (status === "queued")
-                          return <ListVideo className="size-3 text-muted" />;
+                          return <ListVideo className="text-muted size-3" />;
                         if (status === "processing")
                           return (
-                            <Loader className="size-3 animate-spin text-highlight" />
+                            <Loader className="text-highlight size-3 animate-spin" />
                           );
                         return null;
                       })()}
 
                       {path && (
                         <UpscalePlayer
-                          filePath={`${path}/${file.name}`}
+                          filePath={joinMediaPath(path, file.name)}
                           exists={file.exists}
                           onDone={onUpscaleDone}
                         />
                       )}
-                      {path && (
+                      {path && onPlay && (
                         <Button
-                          title="Открыть в медиа плеере"
+                          title={t("player.folder.builtinPlayer")}
                           size="icon"
                           className="size-4"
-                          onClick={async (e) => {
+                          onClick={(e) => {
                             e.stopPropagation();
-                            if (!path) return;
-                            openFileInPlayer(`${path}/${file.name}`);
+                            onPlay(
+                              joinMediaPath(path, file.name),
+                              file.displayName
+                            );
+                          }}
+                          disabled={!file.exists}
+                        >
+                          <Play className="size-3" />
+                        </Button>
+                      )}
+                      {path && (
+                        <Button
+                          title={t("player.folder.openMediaPlayer")}
+                          size="icon"
+                          className="size-4"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (path) {
+                              openFileInPlayer(
+                                joinMediaPath(path, file.name)
+                              ).catch(() => {});
+                            }
                           }}
                           disabled={!file.exists}
                         >

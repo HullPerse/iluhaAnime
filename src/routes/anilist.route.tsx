@@ -1,25 +1,22 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import Auth from "./components/anilist/auth.anilist";
-import Details from "./components/anilist/details.anilist";
-import type {
-  AniListAnime,
-  AniListCollection,
-  AniListSort,
-  AniMedia,
-  AniRecommendation,
-  AniUser,
-  FavouriteAnime,
-  SearchFilters,
-  GlobalSort,
-  SearchMode,
-  AnilistRouteData,
-} from "@/types/anilist";
 import { invoke } from "@tauri-apps/api/core";
-import { Input } from "@/components/ui/input.component";
+import { Filter, Search, User, SearchX } from "lucide-react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useDeferredValue,
+} from "react";
+
+import { InlineAutocompleteInput } from "@/components/shared/autocomplete.component";
+import { SmallLoader } from "@/components/shared/loader.component";
+import Pagination from "@/components/shared/pagination.component";
 import { Button } from "@/components/ui/button.component";
-import { useSettingsStore } from "@/store/settings.store";
 import { seasonLabels } from "@/config/anilist.config";
+import { usePagination } from "@/hooks/pagination.hook";
+import { useUnifiedIndexSuggestions } from "@/hooks/unified.index.hook";
 import {
   filterEntries,
   sortEntries,
@@ -27,30 +24,63 @@ import {
   searchFiltersToParams,
   sortAniMediaList,
 } from "@/lib/anilist.utils";
-import { SmallLoader } from "@/components/shared/loader.component";
+import { useI18n } from "@/lib/i18n";
+import { enterSubmit } from "@/lib/keyboard.utils";
+import { paginate } from "@/lib/pagination.utils";
+import {
+  getInlineCompletion,
+  getSearchSuggestions,
+} from "@/lib/search.suggestions";
+import { useAniListFriendsStore } from "@/store/anilist.store";
+import { useSearchStore } from "@/store/search.store";
+import { useSettingsStore } from "@/store/settings.store";
+import type {
+  AniListAnime,
+  AniListCollection,
+  AniListFilters,
+  AniListSort,
+  AniMedia,
+  AniRecommendation,
+  AniUser,
+  FavouriteAnime,
+  GlobalSort,
+  SearchMode,
+  AnilistRouteData,
+} from "@/types/anilist";
+
+import ActivityHistoryModal from "./components/anilist/activity.anilist";
+import Auth from "./components/anilist/auth.anilist";
+import BrowseAnimeModal from "./components/anilist/browse.anilist";
+import AniListEntryCard from "./components/anilist/card.anilist";
+import Details from "./components/anilist/details.anilist";
+import AniListFavouritesModal from "./components/anilist/favourites.anilist";
 import FiltersModal, {
   defaultFilters,
 } from "./components/anilist/filters.anilist";
-import ActivityHistoryModal from "./components/anilist/activity.anilist";
-import BrowseAnimeModal from "./components/anilist/browse.anilist";
-import StatsModal from "./components/anilist/stats.anilist";
-import { usePagination, paginate } from "@/hooks/pagination.hook";
-import { Filter, Search, User, SearchX } from "lucide-react";
-
-import AniListEntryCard from "./components/anilist/card.component";
+import AniListFriendsModal from "./components/anilist/friends.anilist";
 import AniListProfileHeader from "./components/anilist/header.anilist";
 import AniListTabs from "./components/anilist/list.anilist";
-import AniListSortBar from "./components/anilist/sort.anilist";
-import AniListPaginationBar from "./components/anilist/pagination.anilist";
-import AniListRecsModal from "./components/anilist/rec.anilist";
-import AniListFavouritesModal from "./components/anilist/favourites.anilist";
 import PrefetchRelationsModal from "./components/anilist/prefetch.anilist";
-import { useSearchStore } from "@/store/search.store";
+import AniListRecsModal from "./components/anilist/rec.anilist";
+import AniListSortBar from "./components/anilist/sort.anilist";
+import StatsModal from "./components/anilist/stats.anilist";
 
 function AnilistRoute() {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const setAnilistSearchQuery = useSearchStore(
-    (state) => state.setAnilistSearchQuery,
+    (state) => state.setAnilistSearchQuery
+  );
+  const indexAniList = useSearchStore((state) => state.indexAniList);
+  const animeIndex = useSearchStore((state) => state.animeIndex);
+  const animeProfileId = useSearchStore((state) => state.animeProfileId);
+  const searchHistory = useSearchStore((state) => state.history);
+  const queryStats = useSearchStore((state) => state.queryStats);
+  const suggestionStats = useSearchStore((state) => state.suggestionStats);
+  const addQuery = useSearchStore((state) => state.addQuery);
+  const recordSuggestion = useSearchStore((state) => state.recordSuggestion);
+  const recordSuggestionIgnored = useSearchStore(
+    (state) => state.recordSuggestionIgnored
   );
 
   const [searchTerms, setSearchTerms] = useState<string>("");
@@ -69,12 +99,16 @@ function AnilistRoute() {
   const [showBrowse, setShowBrowse] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [showPrefetch, setShowPrefetch] = useState(false);
+  const [showFriends, setShowFriends] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [searchFilters, setSearchFilters] =
-    useState<SearchFilters>(defaultFilters);
+    useState<AniListFilters>(defaultFilters);
 
   const { data, isLoading } = useQuery<AnilistRouteData>({
     queryKey: ["anilist_data"],
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    refetchOnWindowFocus: false,
     queryFn: async () => {
       const user = await invoke<AniUser | null>("check_anilist_auth");
       if (!user) return { user: null, lists: [], favourites: [] };
@@ -90,14 +124,34 @@ function AnilistRoute() {
   const lists = data?.lists ?? [];
   const favourites = data?.favourites ?? [];
 
+  useEffect(() => {
+    if (user) indexAniList(lists, favourites, user.id);
+  }, [favourites, indexAniList, lists, user]);
+
+  useEffect(() => {
+    if (!user) return;
+    invoke("sync_franchise_to_index").catch(() => {});
+  }, [user]);
+
+  const friends = useAniListFriendsStore((state) => state.friends);
+  const addFriend = useAniListFriendsStore((state) => state.addFriend);
+  const cacheFriendProfile = useAniListFriendsStore(
+    (state) => state.cacheProfile
+  );
+  const removeFriend = useAniListFriendsStore((state) => state.removeFriend);
+  const friendIds = useMemo(
+    () => [...new Set(friends.map((friend) => friend.id))],
+    [friends]
+  );
+
   const favouriteIds = useMemo(
     () => new Set(favourites.map((f) => f.id)),
-    [favourites],
+    [favourites]
   );
 
   const allAnimeIds = useMemo(
     () => lists.flatMap((l) => l.entries.map((e) => e.media.id)),
-    [lists],
+    [lists]
   );
 
   useEffect(() => {
@@ -123,6 +177,9 @@ function AnilistRoute() {
   const [page, setPage] = useState<number>(1);
   const [loadingSearch, setLoadingSearch] = useState(false);
   const anilistPageSize = useSettingsStore((s) => s.anilistPageSize);
+  const anilistSuggestionBoost = useSettingsStore(
+    (s) => s.anilistSuggestionBoost
+  );
   const scrollRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -139,6 +196,8 @@ function AnilistRoute() {
   }, [lists]);
 
   const handleGlobal = useCallback(async () => {
+    const query = searchTerms.trim();
+    if (query) addQuery(query, "anilist");
     setGlobal(true);
     setLoadingSearch(true);
     setSearchResults([]);
@@ -147,14 +206,14 @@ function AnilistRoute() {
         searchFilters,
         searchTerms.trim() || null,
         anilistPageSize,
-        useSettingsStore.getState().anilistMaxPages,
+        useSettingsStore.getState().anilistMaxPages
       );
       const res = await invoke<AniMedia[]>("search_anilist", params);
       setSearchResults(res);
     } finally {
       setLoadingSearch(false);
     }
-  }, [searchTerms, searchFilters, anilistPageSize]);
+  }, [addQuery, anilistPageSize, searchFilters, searchTerms]);
 
   const handleSeason = useCallback(
     async (season: string, seasonYear: number | null) => {
@@ -163,7 +222,7 @@ function AnilistRoute() {
       setSearchResults([]);
       setSearchTerms("");
       setSearchTag(
-        `${seasonLabels[season] ?? season}${seasonYear ? ` ${seasonYear}` : ""}`,
+        `${t((seasonLabels[season] ?? season) as never)}${seasonYear ? ` ${seasonYear}` : ""}`
       );
       setSearchMode("season");
       try {
@@ -174,7 +233,7 @@ function AnilistRoute() {
           format: null,
           status: null,
           season: season || null,
-          seasonYear: seasonYear,
+          seasonYear,
           adult: null,
           sort: null,
           source: null,
@@ -193,7 +252,7 @@ function AnilistRoute() {
         setLoadingSearch(false);
       }
     },
-    [anilistPageSize],
+    [anilistPageSize]
   );
 
   const handleStudio = useCallback(async (id: number, name: string) => {
@@ -262,7 +321,7 @@ function AnilistRoute() {
       favourites: [],
     });
     setCurrentList("");
-  }, []);
+  }, [queryClient]);
 
   const handleRandomFromList = useCallback(() => {
     const list = lists.find((l) => l.name === currentList);
@@ -290,17 +349,51 @@ function AnilistRoute() {
     : sortedEntries.map((e) => e.media);
 
   const isLocal = !!searchTerms.trim() && !global;
+  const deferredSearchTerms = useDeferredValue(searchTerms);
+  const backendSuggestions = useUnifiedIndexSuggestions(
+    deferredSearchTerms,
+    "anilist",
+    8
+  );
+  const suggestions = useMemo(
+    () =>
+      getSearchSuggestions(deferredSearchTerms, {
+        animeEnabled: animeProfileId !== null,
+        animeIndex,
+        anilistBoost: anilistSuggestionBoost,
+        backendSuggestions,
+        history: searchHistory,
+        queryStats,
+        scope: "anilist",
+        suggestionStats,
+        limit: 8,
+      }),
+    [
+      animeIndex,
+      animeProfileId,
+      anilistSuggestionBoost,
+      backendSuggestions,
+      queryStats,
+      searchHistory,
+      deferredSearchTerms,
+      suggestionStats,
+    ]
+  );
+  const inlineCompletion = useMemo(
+    () => getInlineCompletion(deferredSearchTerms, suggestions),
+    [deferredSearchTerms, suggestions]
+  );
 
   const { total, from, to, lastPage } = usePagination(
     displayEntries.length,
     anilistPageSize,
     page,
-    setPage,
+    setPage
   );
 
   const pagedEntries = useMemo(
     () => paginate(displayEntries, page, anilistPageSize),
-    [displayEntries, page, anilistPageSize],
+    [displayEntries, page, anilistPageSize]
   );
 
   useEffect(() => {
@@ -322,25 +415,42 @@ function AnilistRoute() {
   }, []);
 
   return (
-    <main className="flex flex-col w-full h-full gap-1">
+    <main className="flex h-full w-full flex-col gap-1">
       {user && !isLoading && (
-        <section className="flex flex-row gap-2 w-full">
-          <Input
-            placeholder="Найти аниме..."
+        <section className="flex w-full flex-row gap-2">
+          <InlineAutocompleteInput
+            placeholder={t("anilist.route.searchPlaceholder")}
             value={searchTerms}
-            className="h-9 font-bold bg-white"
+            completion={inlineCompletion}
+            suggestions={suggestions}
+            history={searchHistory}
+            className="h-9 font-bold"
             autoFocus
             onChange={(e) => {
               setSearchTerms(e.target.value);
               if (global && !e.target.value.trim()) handleReset();
             }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") handleGlobal();
+            onAcceptCompletion={(value) => {
+              recordSuggestion(value);
+              setSearchTerms(value);
             }}
+            onDismissCompletion={() => {
+              if (inlineCompletion) recordSuggestionIgnored(inlineCompletion);
+            }}
+            onKeyDown={enterSubmit(() => {
+              if (
+                inlineCompletion &&
+                searchTerms.trim().toLocaleLowerCase() !==
+                  inlineCompletion.toLocaleLowerCase()
+              ) {
+                recordSuggestionIgnored(inlineCompletion);
+              }
+              handleGlobal();
+            })}
           />
           <Button
             size="icon"
-            title="Фильтры"
+            title={t("anilist.route.filters")}
             onClick={() => setShowFilters(true)}
             className="relative"
           >
@@ -351,7 +461,7 @@ function AnilistRoute() {
               (searchFilters.season ? 1 : 0) +
               (searchFilters.adult ? 1 : 0) >
               0 && (
-              <span className="absolute -top-1 -right-1 size-3 text-[8px] bg-secondary text-white flex items-center justify-center">
+              <span className="bg-secondary absolute -top-1 -right-1 flex size-3 items-center justify-center text-[8px] text-white">
                 {searchFilters.tags.length +
                   (searchFilters.format ? 1 : 0) +
                   (searchFilters.status ? 1 : 0) +
@@ -362,7 +472,7 @@ function AnilistRoute() {
           </Button>
           <Button
             size="icon"
-            title={global ? "Вернуться к профилю" : "Поиск"}
+            title={global ? t("anilist.route.backToProfile") : t("app.search")}
             onClick={() => (global ? handleReset() : handleGlobal())}
             disabled={loadingSearch}
           >
@@ -383,6 +493,7 @@ function AnilistRoute() {
           onBrowseOpen={() => setShowBrowse(true)}
           onRecsOpen={() => setShowRecs(true)}
           onPrefetchOpen={() => setShowPrefetch(true)}
+          onFriendsOpen={() => setShowFriends(true)}
           onLogout={handleLogout}
         />
       )}
@@ -415,9 +526,9 @@ function AnilistRoute() {
       )}
 
       {global && searchResults.length > 0 && (
-        <section className="windows95-border bg-primary px-1 py-0.5 flex flex-row items-center gap-2">
-          <span className="windows95-text text-[10px] text-muted">
-            Сортировка:
+        <section className="windows95-border bg-primary flex flex-row items-center gap-2 px-1 py-0.5">
+          <span className="windows95-text text-muted text-[10px]">
+            {t("anilist.route.sorting")}
           </span>
           {(["relevance", "title", "score", "year"] as const).map((s) => {
             const isActive = globalSort.key === s;
@@ -443,12 +554,12 @@ function AnilistRoute() {
                 }}
               >
                 {isRelevance
-                  ? "Релевантность"
+                  ? t("anilist.route.sortRelevance")
                   : s === "title"
-                    ? "Название"
+                    ? t("anilist.route.sortTitle")
                     : s === "score"
-                      ? "Рейтинг"
-                      : "Год"}
+                      ? t("anilist.route.sortScore")
+                      : t("anilist.route.sortYear")}
               </Button>
             );
           })}
@@ -456,7 +567,7 @@ function AnilistRoute() {
       )}
 
       {isLoading && lists.length === 0 && (
-        <section className="flex items-center justify-center flex-1">
+        <section className="flex flex-1 items-center justify-center">
           <SmallLoader />
         </section>
       )}
@@ -466,36 +577,42 @@ function AnilistRoute() {
         !isLocal &&
         !user &&
         !isLoading && (
-          <section className="flex flex-col items-center justify-center flex-1 gap-2">
-            <User className="size-8 text-muted" />
-            <span className="windows95-text">Войдите в профиль</span>
-            <Button onClick={() => setAuth(true)}>Войти</Button>
+          <section className="flex flex-1 flex-col items-center justify-center gap-2">
+            <User className="text-muted size-8" />
+            <span className="windows95-text">
+              {t("anilist.route.loginPrompt")}
+            </span>
+            <Button onClick={() => setAuth(true)}>
+              {t("anilist.route.login")}
+            </Button>
           </section>
         )}
 
       {pagedEntries.length === 0 && isLocal && (
-        <section className="flex flex-col items-center justify-center flex-1 gap-2">
-          <SearchX className="size-8 text-muted" />
-          <span className="windows95-text">Ничего не найдено в списке</span>
+        <section className="flex flex-1 flex-col items-center justify-center gap-2">
+          <SearchX className="text-muted size-8" />
+          <span className="windows95-text">{t("anilist.route.emptyList")}</span>
         </section>
       )}
 
       {loadingSearch && global && (
-        <section className="flex flex-col items-center justify-center flex-1 gap-2">
+        <section className="flex flex-1 flex-col items-center justify-center gap-2">
           <SmallLoader />
         </section>
       )}
 
       {!searchResults.length && global && !loadingSearch && (
-        <section className="flex flex-col items-center justify-center flex-1 gap-2">
-          <SearchX className="size-8 text-muted" />
-          <span className="windows95-text">Ничего не найдено на AniList</span>
+        <section className="flex flex-1 flex-col items-center justify-center gap-2">
+          <SearchX className="text-muted size-8" />
+          <span className="windows95-text">
+            {t("anilist.route.emptyAnilist")}
+          </span>
         </section>
       )}
 
       {pagedEntries.length > 0 && (
         <section
-          className="flex flex-col w-full h-full overflow-y-auto p-1 gap-1 border windows95-border"
+          className="windows95-border flex min-h-0 w-full flex-1 flex-col gap-1 overflow-y-auto border bg-white p-1"
           ref={scrollRef}
         >
           {pagedEntries.map((item) => (
@@ -510,7 +627,7 @@ function AnilistRoute() {
       )}
 
       {(user || global) && displayEntries.length > 0 && (
-        <AniListPaginationBar
+        <Pagination
           total={total}
           page={page}
           lastPage={lastPage}
@@ -519,7 +636,7 @@ function AnilistRoute() {
           onPageChange={setPage}
           statusText={
             global
-              ? `Поиск: ${searchResults.length} результатов${searchTag ? ` · ${searchMode === "studio" ? "студия" : searchMode === "season" ? "сезон" : "тег"}: ${searchTag}` : ""}`
+              ? `${t("anilist.route.searchResults", { count: searchResults.length })}${searchTag ? ` · ${searchMode === "studio" ? t("anilist.route.studio") : searchMode === "season" ? t("anilist.route.season") : t("anilist.route.tag")}: ${searchTag}` : ""}`
               : isLocal
                 ? `${currentList}: ${filteredEntries.length} / ${activeEntries.length}`
                 : user
@@ -554,10 +671,10 @@ function AnilistRoute() {
             try {
               const updated = await invoke<FavouriteAnime[]>(
                 "toggle_favourite",
-                { animeId },
+                { animeId }
               );
               queryClient.setQueryData(["anilist_data"], (old: any) =>
-                old ? { ...old, favourites: updated } : old,
+                old ? { ...old, favourites: updated } : old
               );
             } catch {}
           }}
@@ -572,7 +689,7 @@ function AnilistRoute() {
           onBack={
             animeHistory.length > 0
               ? () => {
-                  const prev = animeHistory[animeHistory.length - 1];
+                  const prev = animeHistory.at(-1);
                   if (prev) {
                     setAnimeHistory((h) => h.slice(0, -1));
                     setSelectedAnime(prev);
@@ -604,6 +721,7 @@ function AnilistRoute() {
       {user && activityHistory.open && (
         <ActivityHistoryModal
           userId={user.id}
+          friendIds={friendIds}
           lists={lists}
           initialTab={activityHistory.tab}
           onClose={() => setActivityHistory((s) => ({ ...s, open: false }))}
@@ -611,6 +729,22 @@ function AnilistRoute() {
             setActivityHistory((s) => ({ ...s, open: false }));
             setSelectedAnime({ animeId: id, listEntry: entryLookup.get(id) });
           }}
+        />
+      )}
+
+      {user && showFriends && (
+        <AniListFriendsModal
+          friends={friends}
+          onAdd={(profile) => {
+            addFriend({
+              id: profile.id,
+              name: profile.name,
+              avatar: profile.avatar,
+            });
+            cacheFriendProfile(profile);
+          }}
+          onRemove={removeFriend}
+          onClose={() => setShowFriends(false)}
         />
       )}
 

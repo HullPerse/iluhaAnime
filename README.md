@@ -2,14 +2,14 @@
 
 <p align="center">
   <b>Anime Torrent & Tracker</b>
-  <b>(only russian localization currently)</b>
+  <b>(English and Russian localization)</b>
 </p>
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"/></a>
-  <img src="https://img.shields.io/badge/version-2.1.0-blue" alt="Version 2.1.0"/>
+  <img src="https://img.shields.io/badge/version-2.x-blue" alt="Version 2.x"/>
   <img src="https://img.shields.io/badge/Tauri-2-blueviolet" alt="Tauri 2"/>
-  <img src="https://img.shields.io/badge/React-18-61dafb" alt="React 18"/>
+  <img src="https://img.shields.io/badge/React-19-61dafb" alt="React 19"/>
   <img src="https://img.shields.io/badge/platform-Windows-lightgrey" alt="Platform: Windows"/>
 </p>
 

@@ -1,32 +1,37 @@
 use notify::{Config, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use std::collections::HashSet;
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 use tauri::{AppHandle, Emitter};
 use tokio::sync::mpsc;
+use tokio_util::sync::CancellationToken;
 
 pub struct FolderWatcher {
     watcher: Option<RecommendedWatcher>,
-    cancel: Arc<AtomicBool>,
+    cancel: CancellationToken,
     dirty_tx: mpsc::UnboundedSender<PathBuf>,
 }
 
 impl FolderWatcher {
     pub fn new() -> Self {
+        let (dirty_tx, _dirty_rx) = mpsc::unbounded_channel();
         Self {
             watcher: None,
-            cancel: Arc::new(AtomicBool::new(false)),
-            dirty_tx: mpsc::unbounded_channel().0,
+            cancel: CancellationToken::new(),
+            dirty_tx,
         }
     }
 
     pub fn start(&mut self, app_handle: AppHandle, folders: Vec<String>) -> Result<(), String> {
-        self.cancel.store(false, Ordering::SeqCst);
-        let cancel = self.cancel.clone();
+        self.stop();
+        if folders.is_empty() {
+            return Ok(());
+        }
 
-        let paths: Vec<PathBuf> = folders.iter().map(PathBuf::from).collect();
+        let cancel = CancellationToken::new();
+        self.cancel = cancel.clone();
+        let paths: Vec<PathBuf> = folders.into_iter().map(PathBuf::from).collect();
 
         let (tx, rx) = std::sync::mpsc::channel();
         let (dirty_tx, mut dirty_rx) = mpsc::unbounded_channel::<PathBuf>();
@@ -34,39 +39,38 @@ impl FolderWatcher {
 
         let mut watcher = RecommendedWatcher::new(tx, Config::default())
             .map_err(|e| format!("create watcher: {e}"))?;
-
         for path in &paths {
             watcher
                 .watch(path, RecursiveMode::Recursive)
                 .map_err(|e| format!("watch {}: {e}", path.display()))?;
         }
 
-        let cancel_bridge = cancel.clone();
-        tokio::task::spawn_blocking(move || loop {
-            match rx.recv() {
-                Ok(Ok(event)) => {
-                    if matches!(
-                        event.kind,
-                        EventKind::Create(_) | EventKind::Modify(_) | EventKind::Remove(_)
-                    ) {
-                        if let Some(path) = event.paths.first() {
-                            if let Some(parent) = path.parent().map(std::path::Path::to_path_buf) {
-                                let _ = dirty_tx.send(parent);
+        let event_cancel = cancel.clone();
+        tokio::task::spawn_blocking(move || {
+            while !event_cancel.is_cancelled() {
+                match rx.recv() {
+                    Ok(Ok(event)) => {
+                        if matches!(
+                            event.kind,
+                            EventKind::Create(_) | EventKind::Modify(_) | EventKind::Remove(_)
+                        ) {
+                            if let Some(path) = event.paths.first() {
+                                if let Some(parent) = path.parent().map(PathBuf::from) {
+                                    let _ = dirty_tx.send(parent);
+                                }
                             }
                         }
                     }
+                    Ok(Err(_)) => {}
+                    Err(_) => break,
                 }
-                Ok(Err(_)) => {}
-                Err(_) => break,
-            }
-            if cancel_bridge.load(Ordering::SeqCst) {
-                break;
             }
         });
 
-        let cancel_deb = cancel;
+        let debounce_cancel = cancel;
         let paths_clone = paths.clone();
-        let dirty_set: Arc<tokio::sync::Mutex<HashSet<PathBuf>>> = Arc::new(tokio::sync::Mutex::new(HashSet::new()));
+        let dirty_set: Arc<tokio::sync::Mutex<HashSet<PathBuf>>> =
+            Arc::new(tokio::sync::Mutex::new(HashSet::new()));
         let set_clone = dirty_set;
         tokio::spawn(async move {
             loop {
@@ -77,11 +81,10 @@ impl FolderWatcher {
                     () = tokio::time::sleep(Duration::from_secs(2)) => {
                         let changed: Vec<String> = {
                             let mut set = set_clone.lock().await;
-                            if set.is_empty() { continue; }
                             set.drain()
-                                .filter_map(|p| {
-                                    paths_clone.iter().find(|root| p.starts_with(root))
-                                        .map(|r| r.to_string_lossy().to_string())
+                                .filter_map(|path| {
+                                    paths_clone.iter().find(|root| path.starts_with(root))
+                                        .map(|root| root.to_string_lossy().to_string())
                                 })
                                 .collect()
                         };
@@ -90,7 +93,7 @@ impl FolderWatcher {
                         }
                     }
                 }
-                if cancel_deb.load(Ordering::SeqCst) {
+                if debounce_cancel.is_cancelled() {
                     break;
                 }
             }
@@ -101,10 +104,10 @@ impl FolderWatcher {
     }
 
     pub fn stop(&mut self) {
-        self.cancel.store(true, Ordering::SeqCst);
-        if let Some(mut w) = self.watcher.take() {
-            let _ = w.unwatch(std::path::Path::new(""));
-        }
+        self.cancel.cancel();
+        // Dropping the watcher closes notify's channel and lets the blocking
+        // receiver exit instead of waiting forever on an invalid unwatch path.
+        self.watcher.take();
     }
 }
 

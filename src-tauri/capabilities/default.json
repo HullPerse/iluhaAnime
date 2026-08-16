@@ -25,6 +25,7 @@
         }
       ]
     },
-    "fs:default"
+    "fs:default",
+    "window-state:default"
   ]
 }

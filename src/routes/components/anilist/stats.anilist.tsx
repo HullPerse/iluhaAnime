@@ -1,25 +1,21 @@
-import Modal from "@/components/shared/modal.component";
-import type { AniListCollection } from "@/types/anilist";
-import { useState, useMemo } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useState, useMemo } from "react";
+
+import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
+import { monthLabel } from "@/lib/activity.anilist.utils";
+import { useI18n } from "@/lib/i18n";
+import type { Locale } from "@/types";
+import type { AniListCollection } from "@/types/anilist";
 
-const DAY_LABELS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
-const MONTH_LABELS = [
-  "Январь",
-  "Февраль",
-  "Март",
-  "Апрель",
-  "Май",
-  "Июнь",
-  "Июль",
-  "Август",
-  "Сентябрь",
-  "Октябрь",
-  "Ноябрь",
-  "Декабрь",
-];
+import PersonalStats from "./stats.personal";
+
+function dayLabel(day: number, locale: Locale): string {
+  return new Date(2024, 0, day + 1).toLocaleDateString(locale, {
+    weekday: "short",
+  });
+}
 
 function StatsModal({
   lists,
@@ -30,6 +26,7 @@ function StatsModal({
   onClose: () => void;
   onAnimeClick: (id: number) => void;
 }) {
+  const { t, locale } = useI18n();
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
@@ -81,9 +78,9 @@ function StatsModal({
     const cells: { date: number; entries: typeof allEntries }[] = [];
     for (let d = 1; d <= daysInMonth; d++) {
       const dateStart = Math.floor(new Date(year, month, d).getTime() / 1000);
-      const dateEnd = dateStart + 86400;
+      const dateEnd = dateStart + 86_400;
       const dayEntries = allEntries.filter(
-        (e) => e.airingAt >= dateStart && e.airingAt < dateEnd,
+        (e) => e.airingAt >= dateStart && e.airingAt < dateEnd
       );
       cells.push({ date: d, entries: dayEntries });
     }
@@ -96,57 +93,18 @@ function StatsModal({
   const isCurrentMonth = now.getMonth() === month && now.getFullYear() === year;
 
   const dayEntries =
-    selectedDay != null ? (calendarCells[selectedDay - 1]?.entries ?? []) : [];
+    selectedDay == null ? [] : (calendarCells[selectedDay - 1]?.entries ?? []);
 
   return (
-    <Modal header="Календарь" onClose={onClose} className="w-3xl">
-      {selectedDay != null ? (
-        <main className="flex flex-col gap-2">
-          <section className="flex items-center gap-2">
-            <Button
-              className="flex flex-row gap-1 items-center justify-center"
-              onClick={() => setSelectedDay(null)}
-            >
-              <ChevronLeft /> Назад
-            </Button>
-            <span className="windows95-text text-xs font-bold">
-              {selectedDay} {MONTH_LABELS[month]} {year}
-            </span>
-          </section>
-          <section className="windows95-border bg-white min-h-80 overflow-y-auto">
-            {dayEntries.map((entry) => (
-              <div
-                key={entry.id}
-                className="flex items-center gap-2 px-2 py-1 hover:bg-surface cursor-pointer border-b border-t-muted border-l-muted border-r-white border-b-white"
-                onClick={() => onAnimeClick(entry.id)}
-              >
-                {entry.coverUrl && (
-                  <ImageComponent
-                    src={entry.coverUrl}
-                    alt="coverUrl"
-                    className="w-8 h-11 shrink-0 windows95-border"
-                  />
-                )}
-                <span className="truncate flex-1 text-[11px] windows95-font">
-                  {entry.title}
-                </span>
-                {entry.episode != null && (
-                  <span className="text-muted shrink-0 text-[10px] windows95-font">
-                    Эп. {entry.episode}
-                  </span>
-                )}
-              </div>
-            ))}
-            {dayEntries.length === 0 && (
-              <div className="flex items-center justify-center h-80 text-[11px] text-muted windows95-font">
-                Нет релизов
-              </div>
-            )}
-          </section>
-        </main>
-      ) : (
+    <Modal
+      header={t("anilist.stats.title")}
+      onClose={onClose}
+      className="w-3xl"
+    >
+      <PersonalStats lists={lists} />
+      {selectedDay == null ? (
         <main className="flex flex-col">
-          <div className="flex items-center justify-between px-1 mb-1 h-6">
+          <div className="mb-1 flex h-6 items-center justify-between px-1">
             <Button
               onClick={prevMonth}
               size="icon"
@@ -155,8 +113,8 @@ function StatsModal({
             >
               <ChevronLeft className="size-3" />
             </Button>
-            <span className="windows95-text text-xs font-bold ">
-              {MONTH_LABELS[month]} {year}
+            <span className="windows95-text text-xs font-bold">
+{monthLabel(month, locale, "long")} {year}
             </span>
             <Button onClick={nextMonth} size="icon" className="size-6">
               <ChevronRight className="size-3" />
@@ -165,14 +123,14 @@ function StatsModal({
 
           <div className="windows95-border bg-white">
             <div className="grid grid-cols-7">
-              {DAY_LABELS.map((label, i) => (
+              {[0, 1, 2, 3, 4, 5, 6].map((i) => (
                 <div
-                  key={label}
-                  className={`text-[10px] font-bold windows95-font text-center p-1 border-r border-b border-t-muted border-l-muted ${
+                  key={i}
+                  className={`windows95-font border-t-muted border-l-muted border-r border-b p-1 text-center text-[10px] font-bold ${
                     i >= 5 ? "text-destructive" : "text-text"
                   }`}
                 >
-                  {label}
+                  {dayLabel(i, locale)}
                 </div>
               ))}
             </div>
@@ -184,7 +142,7 @@ function StatsModal({
                   return (
                     <div
                       key={`empty-${idx}`}
-                      className="h-26 border-r border-b border-t-muted border-l-muted bg-surface/30"
+                      className="border-t-muted border-l-muted bg-surface/30 h-26 border-r border-b"
                     />
                   );
                 }
@@ -196,7 +154,7 @@ function StatsModal({
                 return (
                   <div
                     key={day}
-                    className={`relative h-26 border-r border-b border-t-muted border-l-muted flex flex-col overflow-hidden ${
+                    className={`border-t-muted border-l-muted relative flex h-26 flex-col overflow-hidden border-r border-b ${
                       isToday
                         ? "bg-secondary/10"
                         : isWeekend
@@ -205,9 +163,9 @@ function StatsModal({
                     }`}
                   >
                     <span
-                      className={`text-[10px] leading-tight px-1 ${
+                      className={`px-1 text-[10px] leading-tight ${
                         isToday
-                          ? "bg-secondary text-white font-bold"
+                          ? "bg-secondary font-bold text-white"
                           : isWeekend
                             ? "text-destructive font-bold"
                             : "text-text font-bold"
@@ -217,7 +175,7 @@ function StatsModal({
                     </span>
                     {mainEntry ? (
                       <div
-                        className="flex-1 flex flex-col items-center justify-center gap-1 cursor-pointer min-w-0"
+                        className="flex min-w-0 flex-1 cursor-pointer flex-col items-center justify-center gap-1"
                         onClick={() => onAnimeClick(mainEntry.id)}
                         title={mainEntry.title}
                       >
@@ -225,22 +183,29 @@ function StatsModal({
                           <ImageComponent
                             src={mainEntry.coverUrl}
                             alt="coverUrl"
-                            className="w-10 h-13 object-cover windows95-border"
+                            className="windows95-border h-13 w-10 object-cover"
                           />
                         )}
-                        <span className="truncate text-[9px] windows95-font leading-tight text-center w-full px-1">
+                        <span className="windows95-font w-full truncate px-1 text-center text-[9px] leading-tight">
                           {mainEntry.title}
                         </span>
                         {mainEntry.episode != null && (
                           <div className="flex items-center gap-1">
-                            <span className="text-muted text-[8px] windows95-font">
-                              Эп. {mainEntry.episode}
+                            <span className="text-muted windows95-font text-[8px]">
+                              {t("anilist.activity.episode", {
+                                n: mainEntry.episode,
+                              })}
                             </span>
                           </div>
                         )}
                         {cell.entries.length > 1 && (
                           <button
-                            className="absolute top-0.5 right-0.5 size-5 flex flex-row items-center justify-center bg-secondary text-white border-black windows95-font text-[10px] hover:bg-secondary/80 hover:cursor-pointer"
+                            type="button"
+                            aria-label={t("anilist.stats.moreReleases", {
+                              count: cell.entries.length,
+                              date: `${day} ${monthLabel(month, locale, "long")} ${year}`,
+                            })}
+                            className="bg-secondary windows95-font hover:bg-secondary/80 absolute top-0.5 right-0.5 flex size-5 flex-row items-center justify-center border-black text-[10px] text-white hover:cursor-pointer"
                             onClick={(e) => {
                               e.stopPropagation();
                               setSelectedDay(day);
@@ -257,6 +222,50 @@ function StatsModal({
               })}
             </div>
           </div>
+        </main>
+      ) : (
+        <main className="flex flex-col gap-2">
+          <section className="flex items-center gap-2">
+            <Button
+              className="flex flex-row items-center justify-center gap-1"
+              onClick={() => setSelectedDay(null)}
+            >
+              <ChevronLeft /> {t("anilist.stats.back")}
+            </Button>
+            <span className="windows95-text text-xs font-bold">
+              {selectedDay} {monthLabel(month, locale, "long")} {year}
+            </span>
+          </section>
+          <section className="windows95-border min-h-80 overflow-y-auto bg-white">
+            {dayEntries.map((entry) => (
+              <div
+                key={entry.id}
+                className="hover:bg-surface border-t-muted border-l-muted flex cursor-pointer items-center gap-2 border-b border-r-white border-b-white px-2 py-1"
+                onClick={() => onAnimeClick(entry.id)}
+              >
+                {entry.coverUrl && (
+                  <ImageComponent
+                    src={entry.coverUrl}
+                    alt="coverUrl"
+                    className="windows95-border h-11 w-8 shrink-0"
+                  />
+                )}
+                <span className="windows95-font flex-1 truncate text-[11px]">
+                  {entry.title}
+                </span>
+                {entry.episode != null && (
+                  <span className="text-muted windows95-font shrink-0 text-[10px]">
+                    {t("anilist.activity.episode", { n: entry.episode })}
+                  </span>
+                )}
+              </div>
+            ))}
+            {dayEntries.length === 0 && (
+              <div className="text-muted windows95-font flex h-80 items-center justify-center text-[11px]">
+                {t("anilist.stats.noReleases")}
+              </div>
+            )}
+          </section>
         </main>
       )}
     </Modal>

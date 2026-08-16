@@ -1,5 +1,15 @@
-import { TorrentFileInfo, TorrentInfo, TorrentStore } from "@/types/torrent";
-import { type Event } from "@tauri-apps/api/event";
+import type { Event } from "@tauri-apps/api/event";
+
+import type { TranslationKey } from "@/lib/i18n";
+import type { TranslationVariables } from "@/types";
+import type {
+  TorrentFileInfo,
+  TorrentInfo,
+  TorrentStore,
+  FilePriority,
+} from "@/types/torrent";
+
+type TFunc = (key: TranslationKey, variables?: TranslationVariables) => string;
 
 export function fmtSpeed(bps: number): string {
   if (bps <= 0) return "";
@@ -8,14 +18,17 @@ export function fmtSpeed(bps: number): string {
   return `${(bps / (1024 * 1024)).toFixed(1)} MB/s`;
 }
 
-export function fmtETA(secs: number | null): string {
+export function fmtETA(secs: number | null, t: TFunc): string {
   if (!secs || secs <= 0 || !isFinite(secs)) return "";
-  if (secs < 60) return `${Math.round(secs)} сек`;
+  if (secs < 60) return t("torrent.eta.seconds", { s: Math.round(secs) });
   if (secs < 3600)
-    return `${Math.floor(secs / 60)} мин ${Math.round(secs % 60)} сек`;
+    return t("torrent.eta.minutesSeconds", {
+      m: Math.floor(secs / 60),
+      s: Math.round(secs % 60),
+    });
   const h = Math.floor(secs / 3600);
   const m = Math.floor((secs % 3600) / 60);
-  return `${h} ч ${m} мин`;
+  return t("torrent.eta.hoursMinutes", { h, m });
 }
 
 export function fmtSize(bytes: number) {
@@ -26,46 +39,73 @@ export function fmtSize(bytes: number) {
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 }
 
-export function fmtElapsed(sec: number): string {
+export function fmtElapsed(sec: number, t: TFunc): string {
   const m = Math.floor(sec / 60);
   const s = sec % 60;
-  if (m === 0) return `${s} сек`;
-  if (s === 0) return `${m} мин`;
-  return `${m} мин ${s} сек`;
+  if (m === 0) return t("torrent.eta.seconds", { s });
+  if (s === 0) return t("torrent.eta.minutes", { m });
+  return t("torrent.eta.minutesSeconds", { m, s });
 }
 
-export type TorrentLifecycle = "staging" | "live" | "seeding" | "completed";
+export type TorrentLifecycle =
+  | "staging"
+  | "live"
+  | "paused"
+  | "seeding"
+  | "completed";
 
-export function getTorrentLifecycle(state: string, finished: boolean): TorrentLifecycle {
+export function getTorrentLifecycle(
+  state: string,
+  finished: boolean
+): TorrentLifecycle {
   if (state === "initializing") return "staging";
   if (state === "live" && finished) return "seeding";
   if (state === "live" && !finished) return "live";
   if (state === "paused" && finished) return "completed";
-  if (state === "paused" && !finished) return "live";
+  if (state === "paused" && !finished) return "paused";
   return "live";
 }
 
-export function getLifecycleLabel(lifecycle: TorrentLifecycle): string {
+export function getLifecycleLabel(
+  lifecycle: TorrentLifecycle,
+  t: TFunc
+): string {
   switch (lifecycle) {
-    case "staging": return "Подготовка";
-    case "live": return "Загружается";
-    case "seeding": return "Раздаётся";
-    case "completed": return "Завершено";
+    case "staging": {
+      return t("torrent.lifecycle.staging");
+    }
+    case "live": {
+      return t("torrent.lifecycle.live");
+    }
+    case "paused": {
+      return t("torrent.lifecycle.paused");
+    }
+    case "seeding": {
+      return t("torrent.lifecycle.seeding");
+    }
+    case "completed": {
+      return t("torrent.lifecycle.completed");
+    }
   }
 }
 
-export function stateLabel(state: string): string {
+export function stateLabel(state: string, t: TFunc): string {
   switch (state) {
-    case "live":
-      return "Загружается";
-    case "paused":
-      return "Пауза";
-    case "initializing":
-      return "Инициализация";
-    case "error":
-      return "Ошибка";
-    default:
+    case "live": {
+      return t("torrent.state.live");
+    }
+    case "paused": {
+      return t("torrent.state.paused");
+    }
+    case "initializing": {
+      return t("torrent.state.initializing");
+    }
+    case "error": {
+      return t("torrent.state.error");
+    }
+    default: {
       return state;
+    }
   }
 }
 
@@ -78,7 +118,7 @@ export interface FileGroup {
     size: number;
     completed?: boolean;
     selected?: boolean;
-    priority?: string;
+    priority?: FilePriority;
     exists?: boolean;
   }[];
 }
@@ -97,7 +137,7 @@ export interface TorrentTreeFile {
   progress_bytes: number;
   completed: boolean;
   selected: boolean;
-  priority: string;
+  priority: FilePriority;
   exists: boolean;
 }
 
@@ -105,10 +145,10 @@ export function buildTorrentTree(files: TorrentFileInfo[]): {
   nodes: TorrentTreeNode[];
   rootFiles: TorrentTreeFile[];
 } {
-  const root: TorrentTreeNode = { name: "", files: [], children: [] };
+  const root: TorrentTreeNode = { children: [], files: [], name: "" };
 
   for (const file of files) {
-    const parts = file.name.replace(/\\/g, "/").split("/");
+    const parts = file.name.replaceAll(/\\/g, "/").split("/");
     const fileName = parts.pop()!;
 
     let node = root;
@@ -117,22 +157,22 @@ export function buildTorrentTree(files: TorrentFileInfo[]): {
       let child = node.children.find((c) => c.name === part);
 
       if (!child) {
-        child = { name: part, files: [], children: [] };
+        child = { children: [], files: [], name: part };
         node.children.push(child);
       }
       node = child;
     }
 
     node.files.push({
+      completed: file.completed,
+      displayName: fileName,
+      exists: file.exists,
       index: file.index,
       name: file.name,
-      displayName: fileName,
-      size: file.size,
-      progress_bytes: file.progress_bytes,
-      completed: file.completed,
-      selected: file.selected,
       priority: file.priority,
-      exists: file.exists,
+      progress_bytes: file.progress_bytes,
+      selected: file.selected,
+      size: file.size,
     });
   }
 
@@ -146,7 +186,7 @@ export function buildTorrentTree(files: TorrentFileInfo[]): {
   return {
     nodes: root.children.sort((a, b) => a.name.localeCompare(b.name)),
     rootFiles: root.files.sort((a, b) =>
-      a.displayName.localeCompare(b.displayName),
+      a.displayName.localeCompare(b.displayName)
     ),
   };
 }
@@ -158,9 +198,9 @@ export function groupFilesByDirectory(
     size: number;
     completed?: boolean;
     selected?: boolean;
-    priority?: string;
+    priority?: FilePriority;
     exists?: boolean;
-  }[],
+  }[]
 ): FileGroup[] {
   const groups = new Map<string, FileGroup>();
 
@@ -178,7 +218,7 @@ export function groupFilesByDirectory(
     }
   }
 
-  return Array.from(groups.entries())
+  return [...groups.entries()]
     .sort(([a], [b]) => {
       if (a === "") return -1;
       if (b === "") return 1;
@@ -187,14 +227,14 @@ export function groupFilesByDirectory(
     .map(([_, group]) => ({
       ...group,
       files: group.files.sort((a, b) =>
-        a.displayName.localeCompare(b.displayName),
+        a.displayName.localeCompare(b.displayName)
       ),
     }));
 }
 
 export function TorrentListen(
   state: TorrentStore,
-  event: Event<TorrentInfo[]>,
+  event: Event<TorrentInfo[]>
 ) {
   const next = event.payload;
   const prev = state.torrents;
@@ -213,6 +253,7 @@ export function TorrentListen(
       p.finished !== t.finished ||
       p.error !== t.error ||
       p.uploaded_bytes !== t.uploaded_bytes ||
+      p.share_ratio !== t.share_ratio ||
       p.total_bytes !== t.total_bytes ||
       p.sequential_download !== t.sequential_download ||
       p.eta_secs !== t.eta_secs ||

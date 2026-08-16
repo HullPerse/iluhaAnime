@@ -1,4 +1,3 @@
-import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/core";
 import {
@@ -14,29 +13,24 @@ import {
   CalendarDays,
   List,
 } from "lucide-react";
+import { useMemo, useState } from "react";
+
 import Modal from "@/components/shared/modal.component";
 import Tabs from "@/components/shared/tabs.component";
 import { Button } from "@/components/ui/button.component";
+import { Checkbox } from "@/components/ui/checkbox.component";
 import ImageComponent from "@/components/ui/image.component";
+import { CELL_GAP, CELL_LEVELS, CELL_SIZE } from "@/config/activity.config";
+import {
+  buildActivityMap,
+  buildYearGrid,
+  formatActivityTime,
+  groupLabel,
+  monthLabel,
+} from "@/lib/activity.anilist.utils";
+import { useI18n } from "@/lib/i18n";
+import type { TranslationKey } from "@/lib/i18n";
 import type { AniActivity, AniListCollection } from "@/types/anilist";
-
-const MONTH_LABELS = [
-  "Янв",
-  "Фев",
-  "Мар",
-  "Апр",
-  "Май",
-  "Июн",
-  "Июл",
-  "Авг",
-  "Сен",
-  "Окт",
-  "Ноя",
-  "Де",
-];
-const CELL_LEVELS = ["#ebedf0", "#9be9a8", "#40c463", "#30a14e", "#216e39"];
-const CELL_SIZE = 16;
-const CELL_GAP = 4;
 
 const STATUS_ICONS: Record<string, typeof Play> = {
   CURRENT: Play,
@@ -48,49 +42,23 @@ const STATUS_ICONS: Record<string, typeof Play> = {
 };
 
 const STATUS_LABELS: Record<string, string> = {
-  CURRENT: "начал(а) смотреть",
-  COMPLETED: "посмотрел(а)",
-  DROPPED: "бросил(а)",
-  PLANNING: "запланировал(а)",
-  PAUSED: "поставил(а) на паузу",
-  REPEATING: "пересматривает",
+  CURRENT: "anilist.activity.status.CURRENT",
+  COMPLETED: "anilist.activity.status.COMPLETED",
+  DROPPED: "anilist.activity.status.DROPPED",
+  PLANNING: "anilist.activity.status.PLANNING",
+  PAUSED: "anilist.activity.status.PAUSED",
+  REPEATING: "anilist.activity.status.REPEATING",
 };
 
-const STATUS_FILTERS = [
-  { value: "", label: "Все" },
-  { value: "CURRENT", label: "Начал" },
-  { value: "COMPLETED", label: "Завершил" },
-  { value: "DROPPED", label: "Бросил" },
-  { value: "PAUSED", label: "Пауза" },
-  { value: "PLANNING", label: "План" },
-  { value: "REPEATING", label: "Повтор" },
+const STATUS_FILTERS: { value: string; key: TranslationKey }[] = [
+  { value: "", key: "anilist.activity.filterAll" },
+  { value: "CURRENT", key: "anilist.activity.filterCurrent" },
+  { value: "COMPLETED", key: "anilist.activity.filterCompleted" },
+  { value: "DROPPED", key: "anilist.activity.filterDropped" },
+  { value: "PAUSED", key: "anilist.activity.filterPaused" },
+  { value: "PLANNING", key: "anilist.activity.filterPlanning" },
+  { value: "REPEATING", key: "anilist.activity.filterRepeating" },
 ];
-
-function formatTime(unix: number): string {
-  const now = Date.now() / 1000;
-  const diff = now - unix;
-  if (diff < 60) return "только что";
-  if (diff < 3600) return `${Math.floor(diff / 60)} мин. назад`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)} ч. назад`;
-  return new Date(unix * 1000).toLocaleDateString("ru-RU");
-}
-
-function groupLabel(unix: number): string {
-  const d = new Date(unix * 1000);
-  const today = new Date();
-  const startToday = new Date(
-    today.getFullYear(),
-    today.getMonth(),
-    today.getDate(),
-  );
-  const startDay = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  const diffDays = Math.round(
-    (startToday.getTime() - startDay.getTime()) / 86400000,
-  );
-  if (diffDays === 0) return "Сегодня";
-  if (diffDays === 1) return "Вчера";
-  return d.toLocaleDateString("ru-RU");
-}
 
 function FeedItem({
   a,
@@ -99,29 +67,31 @@ function FeedItem({
   a: AniActivity;
   onAnimeClick: (id: number) => void;
 }) {
+  const { t, locale } = useI18n();
   const Icon = STATUS_ICONS[a.status ?? ""];
 
   if (a.activity_type !== "list" || !a.media_id) {
     return (
-      <div className="flex flex-row items-start gap-2 px-1 py-1 windows95-active-border bg-primary">
+      <div className="windows95-active-border bg-primary flex flex-row items-start gap-2 px-1 py-1">
         {a.user_avatar ? (
           <ImageComponent
             src={a.user_avatar}
             alt="user_avatar"
-            className="w-7 h-7 shrink-0 windows95-active-border"
+            className="windows95-active-border h-7 w-7 shrink-0"
           />
         ) : (
-          <div className="w-7 h-7 shrink-0 windows95-active-border bg-white flex items-center justify-center text-[9px] font-bold">
-            {a.user_name[0]}
+          <div className="windows95-active-border flex h-7 w-7 shrink-0 items-center justify-center bg-white text-[9px] font-bold">
+            {a.user_name[0] ?? "?"}
           </div>
         )}
-        <div className="flex flex-col min-w-0 flex-1">
-          <span className="text-[10px] windows95-text">
+        <div className="flex min-w-0 flex-1 flex-col">
+          <span className="windows95-text text-[10px]">
             <span className="font-bold">{a.user_name}</span>{" "}
-            <span className="text-muted">[заметка]</span> {a.text}
+            <span className="text-muted">{t("anilist.activity.note")}</span>{" "}
+            {a.text}
           </span>
-          <span className="text-[9px] text-muted">
-            {formatTime(a.created_at)}
+          <span className="text-muted text-[9px]">
+            {formatActivityTime(a.created_at, t, locale)}
           </span>
         </div>
       </div>
@@ -129,35 +99,37 @@ function FeedItem({
   }
 
   return (
-    <div className="flex flex-row items-center gap-2 px-1 py-1 windows95-active-border bg-primary">
+    <div className="windows95-active-border bg-primary flex flex-row items-center gap-2 px-1 py-1">
       {a.media_cover && (
         <ImageComponent
           src={a.media_cover}
           alt="media_cover"
-          className="h-16 w-11 object-cover shrink-0 windows95-active-border hover:cursor-pointer"
+          className="windows95-active-border h-16 w-11 shrink-0 object-cover hover:cursor-pointer"
           onClick={() => onAnimeClick(a.media_id!)}
         />
       )}
-      <div className="flex flex-col min-w-0 flex-1">
-        <span className="text-[10px] windows95-text">
+      <div className="flex min-w-0 flex-1 flex-col">
+        <span className="windows95-text text-[10px]">
           {a.user_name && (
             <>
               <span className="font-bold">{a.user_name}</span>{" "}
             </>
           )}
-          {Icon && <Icon className="size-2.5 inline" />}{" "}
-          {STATUS_LABELS[a.status ?? ""] ?? a.status}{" "}
+          {Icon && <Icon className="inline size-2.5" />}{" "}
+          {t(
+            (STATUS_LABELS[a.status ?? ""] ?? a.status ?? "") as TranslationKey
+          )}{" "}
         </span>
         <span
-          className="text-[11px] windows95-text font-bold underline decoration-dotted hover:cursor-pointer line-clamp-2"
+          className="windows95-text line-clamp-2 text-[11px] font-bold underline decoration-dotted hover:cursor-pointer"
           onClick={() => onAnimeClick(a.media_id!)}
         >
           {a.media_title}
         </span>
-        <span className="text-[9px] text-muted windows95-font">
+        <span className="text-muted windows95-font text-[9px]">
           {a.progress ? `${a.progress}` : ""}
           {a.progress ? " · " : ""}
-          {formatTime(a.created_at)}
+          {formatActivityTime(a.created_at, t, locale)}
         </span>
       </div>
     </div>
@@ -166,94 +138,145 @@ function FeedItem({
 
 function FeedTab({
   userId,
+  friendIds,
   lists,
   onAnimeClick,
 }: {
   userId: number;
+  friendIds: number[];
   lists: AniListCollection[];
   onAnimeClick: (id: number) => void;
 }) {
+  const { t, locale } = useI18n();
   const [statusFilter, setStatusFilter] = useState("");
+  const [includeFriends, setIncludeFriends] = useState(false);
+  const activityUserIds = useMemo(() => {
+    const ids = includeFriends ? [userId, ...friendIds] : [userId];
+    return [
+      ...new Set(ids.filter((id) => Number.isInteger(id) && id > 0)),
+    ].sort((a, b) => a - b);
+  }, [friendIds, includeFriends, userId]);
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["anilist_activity", userId],
+  const { data, isLoading, isError, error, refetch } = useQuery({
+    queryKey: ["anilist_activity", activityUserIds],
     queryFn: () =>
-      invoke<AniActivity[]>("get_anilist_activity", { userIds: [userId] }),
+      invoke<AniActivity[]>("get_anilist_activity", {
+        userIds: activityUserIds,
+      }),
     enabled: userId > 0,
+    staleTime: 60_000,
   });
 
   const listItems = useMemo(() => {
-    const filtered: AniActivity[] = [];
-    for (const list of lists) {
-      for (const entry of list.entries) {
-        if (statusFilter !== "" && entry.list_status !== statusFilter) continue;
-        const item: AniActivity = {
-          id: entry.media.id,
-          created_at: entry.created_at ?? 0,
-          activity_type: "list",
-          status: entry.list_status,
-          progress: entry.progress != null ? String(entry.progress) : null,
-          text: null,
-          media_id: entry.media.id,
-          media_title: entry.media.title,
-          media_cover: entry.media.cover_url,
-          user_id: userId,
-          user_name: "",
-          user_avatar: null,
-        };
-        filtered.push(item);
-      }
-    }
+    const activities = (data ?? []).filter(
+      (activity) =>
+        activity.activity_type === "list" &&
+        activity.media_id != null &&
+        (statusFilter === "" || activity.status === statusFilter)
+    );
+
+    // AniList activity is the authoritative history. The list fallback keeps
+    // the view useful when AniList returns no list activities for an account.
+    const filtered =
+      activities.length > 0 || includeFriends
+        ? activities
+        : lists.flatMap((list) =>
+            list.entries
+              .filter(
+                (entry) =>
+                  statusFilter === "" || entry.list_status === statusFilter
+              )
+              .map<AniActivity>((entry) => ({
+                id: entry.media.id,
+                created_at: entry.created_at ?? 0,
+                activity_type: "list",
+                status: entry.list_status,
+                progress:
+                  entry.progress == null ? null : String(entry.progress),
+                text: null,
+                media_id: entry.media.id,
+                media_title: entry.media.title,
+                media_cover: entry.media.cover_url,
+                user_id: userId,
+                user_name: "",
+                user_avatar: null,
+              }))
+          );
+
     const groups = new Map<string, AniActivity[]>();
-    for (const a of filtered) {
-      if (a.created_at <= 0) continue;
-      const label = groupLabel(a.created_at);
+    for (const activity of filtered) {
+      if (activity.created_at <= 0) continue;
+      const label = groupLabel(activity.created_at, t, locale);
       if (!groups.has(label)) groups.set(label, []);
-      groups.get(label)!.push(a);
+      groups.get(label)!.push(activity);
     }
     return groups;
-  }, [lists, statusFilter, userId]);
+  }, [data, includeFriends, lists, locale, statusFilter, userId]);
 
   const textItems = useMemo(
     () => (data ?? []).filter((a) => a.activity_type !== "list"),
-    [data],
+    [data]
   );
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center flex-1 p-6">
-        <Loader className="size-6 animate-spin windows95-text" />
+      <div className="flex flex-1 items-center justify-center p-6">
+        <Loader className="windows95-text size-6 animate-spin" />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-2 p-6">
+        <span className="windows95-text text-destructive text-center">
+          {t("anilist.activity.loadError", {
+            error: String(error ?? t("anilist.activity.unknownError")),
+          })}
+        </span>
+        <Button onClick={() => refetch()} className="text-[10px]">
+          {t("anilist.activity.retry")}
+        </Button>
       </div>
     );
   }
 
   if (!data?.length && lists.every((l) => l.entries.length === 0)) {
     return (
-      <div className="flex items-center justify-center flex-1 p-6">
-        <span className="windows95-text">Нет активности</span>
+      <div className="flex flex-1 items-center justify-center p-6">
+        <span className="windows95-text">{t("anilist.activity.empty")}</span>
       </div>
     );
   }
 
   return (
     <div className="flex flex-col gap-1">
-      <div className="flex flex-wrap gap-1 shrink-0">
+      <div className="flex shrink-0 flex-wrap items-center gap-1">
         {STATUS_FILTERS.map((f) => (
           <Button
             key={f.value}
-            className={`px-1.5 py-0.5 text-[10px] windows95-text ${statusFilter === f.value ? "windows95-active-border text-white bg-secondary" : "windows95-border bg-white"}`}
+            className={`windows95-text px-1.5 py-0.5 text-[10px] ${statusFilter === f.value ? "windows95-active-border bg-secondary text-white" : "windows95-border bg-white"}`}
             variant="ghost"
             onClick={() => setStatusFilter(f.value)}
           >
-            {f.label}
+            {t(f.key)}
           </Button>
         ))}
+        {friendIds.length > 0 && (
+          <label
+            className="windows95-text ml-auto flex items-center gap-1 text-[10px]"
+            title={t("anilist.activity.friendsHint")}
+          >
+            <Checkbox checked={includeFriends} onChange={setIncludeFriends} />
+            {t("anilist.activity.includeFriends")}
+          </label>
+        )}
       </div>
 
       {textItems.length > 0 && (
-        <section className="flex flex-col gap-0.5 mt-1">
-          <span className="text-[10px] windows95-text font-bold text-muted flex items-center gap-1">
-            <List className="size-3" /> Заметки
+        <section className="mt-1 flex flex-col gap-0.5">
+          <span className="windows95-text text-muted flex items-center gap-1 text-[10px] font-bold">
+            <List className="size-3" /> {t("anilist.activity.notes")}
           </span>
           <div className="flex flex-col gap-0.5">
             {textItems.map((a) => (
@@ -266,13 +289,13 @@ function FeedTab({
       {listItems.size === 0 ? (
         <div className="flex items-center justify-center p-4">
           <span className="windows95-text text-muted text-[10px]">
-            Нет записей с таким статусом
+            {t("anilist.activity.emptyStatus")}
           </span>
         </div>
       ) : (
         [...listItems.entries()].map(([label, items]) => (
-          <section key={label} className="flex flex-col gap-0.5 mt-1">
-            <span className="text-[10px] windows95-text font-bold text-muted flex items-center gap-1">
+          <section key={label} className="mt-1 flex flex-col gap-0.5">
+            <span className="windows95-text text-muted flex items-center gap-1 text-[10px] font-bold">
               <CalendarDays className="size-3" /> {label}
             </span>
             <div className="flex flex-col gap-0.5">
@@ -287,177 +310,32 @@ function FeedTab({
   );
 }
 
-function dayKey(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-}
-
-interface DayActivityItem {
-  id: number;
-  title: string;
-  cover: string | null;
-  progress: number | null;
-  events: string;
-}
-
-interface DayActivity {
-  added: number;
-  progress: number;
-  completed: number;
-  count: number;
-  items: DayActivityItem[];
-}
-
-interface YearGridCell {
-  date: Date;
-  level: number;
-  count: number;
-}
-
-function buildActivityMap(
-  lists: AniListCollection[],
-): Map<string, DayActivity> {
-  const map = new Map<string, DayActivity>();
-
-  const addEvent = (key: string, kind: string, item: DayActivityItem) => {
-    let day = map.get(key);
-    if (!day) {
-      day = { added: 0, progress: 0, completed: 0, count: 0, items: [] };
-      map.set(key, day);
-    }
-    if (kind === "added") day.added++;
-    else if (kind === "progress") day.progress++;
-    else day.completed++;
-    day.count++;
-
-    const existing = day.items.find((it) => it.id === item.id);
-    if (existing) {
-      if (!existing.events.includes(kind)) {
-        existing.events = `${existing.events}, ${kind}`;
-      }
-    } else {
-      day.items.push({ ...item, events: kind });
-    }
-  };
-
-  const kindLabel: Record<string, string> = {
-    added: "добавлено",
-    progress: "обновлено",
-    completed: "завершено",
-  };
-
-  for (const list of lists) {
-    for (const entry of list.entries) {
-      const item: DayActivityItem = {
-        id: entry.media.id,
-        title: entry.media.title,
-        cover: entry.media.cover_url,
-        progress: entry.progress,
-        events: "",
-      };
-      if (entry.created_at) {
-        addEvent(dayKey(new Date(entry.created_at * 1000)), "added", item);
-      }
-      if (entry.completed_at) {
-        const [y, m, d] = entry.completed_at.split("-").map(Number);
-        if (y && m && d) {
-          addEvent(dayKey(new Date(y, m - 1, d)), "completed", item);
-        }
-      }
-      if (entry.updated_at) {
-        addEvent(dayKey(new Date(entry.updated_at * 1000)), "progress", item);
-      }
-    }
-  }
-
-  for (const day of map.values()) {
-    for (const it of day.items) {
-      it.events = it.events
-        .split(", ")
-        .map((k) => kindLabel[k] ?? k)
-        .join(" · ");
-    }
-  }
-  return map;
-}
-
-function buildYearGrid(
-  year: number,
-  activity: Map<string, DayActivity>,
-): {
-  columns: { month: number; cells: YearGridCell[] }[];
-  totalCount: number;
-} {
-  const firstDay = new Date(year, 0, 1);
-  const lastDay = new Date(year, 11, 31);
-  const start = new Date(firstDay);
-  start.setDate(firstDay.getDate() - firstDay.getDay());
-
-  let totalCount = 0;
-  let maxCount = 0;
-  for (const act of activity.values()) {
-    if (act.count > maxCount) maxCount = act.count;
-    totalCount += act.count;
-  }
-
-  const buckets = maxCount > 0 ? (maxCount - 1) / 3 : 1;
-  const columns: { month: number; cells: YearGridCell[] }[] = [];
-  const cursor = new Date(start);
-  while (cursor <= lastDay) {
-    const cells: YearGridCell[] = [];
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(cursor);
-      d.setDate(cursor.getDate() + i);
-      const inYear = d.getFullYear() === year;
-      const act = inYear ? activity.get(dayKey(d)) : undefined;
-      cells.push({
-        date: new Date(d),
-        level:
-          inYear && act && act.count > 0
-            ? Math.min(4, 1 + Math.round(act.count / buckets))
-            : 0,
-        count: act?.count ?? 0,
-      });
-    }
-    columns.push({ month: cursor.getMonth(), cells });
-    cursor.setDate(cursor.getDate() + 7);
-  }
-  return { columns, totalCount };
-}
-
 function CalendarTab({
   lists,
-  onAnimeClick,
 }: {
   lists: AniListCollection[];
-  onAnimeClick: (id: number) => void;
 }) {
+  const { t, locale } = useI18n();
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
-  const [hoverKey, setHoverKey] = useState<string | null>(null);
-  const [selectedKey, setSelectedKey] = useState<string | null>(null);
 
-  const activity = useMemo(() => buildActivityMap(lists), [lists]);
+  const activity = useMemo(() => buildActivityMap(lists, t), [lists, t]);
   const grid = useMemo(() => buildYearGrid(year, activity), [year, activity]);
 
   const pitch = CELL_SIZE + CELL_GAP;
-
-  const activeKey = selectedKey ?? hoverKey;
-  const activeActivity = activeKey ? activity.get(activeKey) : undefined;
 
   const goPrevYear = () => setYear((y) => y - 1);
   const goNextYear = () => setYear((y) => Math.min(y + 1, now.getFullYear()));
 
   return (
-    <main className="flex flex-col gap-2 w-full">
+    <main className="flex w-full flex-col gap-2">
       <section className="flex items-center justify-between px-1">
         <Button onClick={goPrevYear} size="icon" className="size-6">
           <ChevronLeft className="size-3" />
         </Button>
         <span className="windows95-text text-xs font-bold">
-          {year} · Событий: {grid.totalCount}
+          {year} ·{" "}
+          {t("anilist.activity.eventsCount", { count: grid.totalCount })}
         </span>
         <Button
           onClick={goNextYear}
@@ -469,22 +347,22 @@ function CalendarTab({
         </Button>
       </section>
 
-      <div className="flex flex-col md:flex-row gap-2 items-stretch h-80">
-        <section className="windows95-border bg-white flex-1 min-w-0 h-full flex flex-col overflow-x-auto">
-          <div className="p-2 flex flex-col flex-1 min-h-0">
-            <div className="h-4 relative mb-0.5">
+      <div className="flex h-80 flex-col items-stretch gap-2 md:flex-row">
+        <section className="windows95-border flex h-full min-w-0 flex-1 flex-col overflow-x-auto bg-white">
+          <div className="flex min-h-0 flex-1 flex-col p-2">
+            <div className="relative mb-0.5 h-4">
               {grid.columns.map((col, ci) => {
                 if (col.month === grid.columns[ci - 1]?.month) return null;
                 return (
                   <span
                     key={`m${ci}`}
-                    className="absolute top-0 text-[9px] windows95-font text-text leading-4 truncate"
+                    className="windows95-font text-text absolute top-0 truncate text-[9px] leading-4"
                     style={{
                       left: ci * pitch,
                       maxWidth: pitch * 2,
                     }}
                   >
-                    {MONTH_LABELS[col.month]}
+                    {monthLabel(col.month, locale)}
                   </span>
                 );
               })}
@@ -496,41 +374,27 @@ function CalendarTab({
                     const isToday =
                       year === now.getFullYear() &&
                       cell.date.toDateString() === now.toDateString();
-                    const key = dayKey(cell.date);
-                    const isActive = key === activeKey;
                     return (
                       <button
+                        type="button"
                         key={r}
-                        className="shrink-0 border border-black/20 cursor-pointer"
+                        aria-label={t("anilist.activity.daySummary", {
+                          date: cell.date.toLocaleDateString(locale),
+                          count: cell.count,
+                        })}
+                        className="shrink-0 cursor-pointer border border-black/20"
                         style={{
                           width: CELL_SIZE,
                           height: CELL_SIZE,
                           backgroundColor: CELL_LEVELS[cell.level] || undefined,
-                          outline: isActive
-                            ? "1px solid var(--color-highlight)"
-                            : undefined,
-                          outlineOffset: 1,
                           boxShadow: isToday
                             ? "0 0 0 1px var(--color-secondary) inset"
                             : undefined,
-                          filter: cell.count > 0 ? undefined : undefined,
-                        }}
-                        onMouseEnter={() =>
-                          cell.count > 0 && setHoverKey(dayKey(cell.date))
-                        }
-                        onMouseLeave={() => setHoverKey(null)}
-                        onClick={() => {
-                          if (cell.count === 0) return;
-                          setSelectedKey((prev) =>
-                            prev === dayKey(cell.date)
-                              ? null
-                              : dayKey(cell.date),
-                          );
                         }}
                         title={
                           cell.count > 0
-                            ? `${cell.date.toLocaleDateString("ru-RU")}: ${cell.count}`
-                            : cell.date.toLocaleDateString("ru-RU")
+                            ? `${cell.date.toLocaleDateString(locale)}: ${cell.count}`
+                            : cell.date.toLocaleDateString(locale)
                         }
                       />
                     );
@@ -540,68 +404,6 @@ function CalendarTab({
             </div>
           </div>
         </section>
-
-        <section className="md:w-64 shrink-0 windows95-border bg-white flex flex-col overflow-hidden h-full">
-          {activeActivity ? (
-            <div className="flex flex-col min-h-0">
-              <div className="flex items-center justify-between px-2 py-1 border-b border-b-muted/40">
-                <span className="windows95-text text-[10px] font-bold">
-                  {activeKey
-                    ? new Date(
-                        Number(activeKey.split("-")[0]),
-                        Number(activeKey.split("-")[1]) - 1,
-                        Number(activeKey.split("-")[2]),
-                      ).toLocaleDateString("ru-RU")
-                    : ""}
-                </span>
-                <Button
-                  onClick={() => setSelectedKey(null)}
-                  className="px-1 py-0 text-[9px] windows95-text"
-                  variant="ghost"
-                >
-                  ✕
-                </Button>
-              </div>
-              <div className="px-2 py-0.5 text-[9px] windows95-text text-muted border-b border-b-muted/40 flex flex-col gap-0.5">
-                <span>Добавлено: {activeActivity.added}</span>
-                <span>Обновлено: {activeActivity.progress}</span>
-                <span>Завершено: {activeActivity.completed}</span>
-              </div>
-              <div className="overflow-y-auto flex-1 min-h-0">
-                {activeActivity.items.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center gap-2 px-2 py-1 hover:bg-surface cursor-pointer border-b border-b-muted/40"
-                    onClick={() => onAnimeClick(item.id)}
-                  >
-                    {item.cover && (
-                      <ImageComponent
-                        src={item.cover}
-                        alt="cover"
-                        className="w-7 h-10 shrink-0 windows95-border"
-                      />
-                    )}
-                    <div className="flex flex-col min-w-0 flex-1">
-                      <span className="truncate text-[10px] windows95-font">
-                        {item.title}
-                      </span>
-                      <span className="text-muted text-[8px] windows95-font">
-                        {item.events}
-                        {item.progress != null && ` · Эп. ${item.progress}`}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center justify-center flex-1 p-3">
-              <span className="text-[10px] windows95-text text-muted text-center">
-                Наведите курсор на день с активностью, чтобы увидеть детали
-              </span>
-            </div>
-          )}
-        </section>
       </div>
     </main>
   );
@@ -609,34 +411,46 @@ function CalendarTab({
 
 function ActivityHistoryModal({
   userId,
+  friendIds,
   lists,
   initialTab,
   onClose,
   onAnimeClick,
 }: {
   userId: number;
+  friendIds: number[];
   lists: AniListCollection[];
   initialTab: "feed" | "calendar";
   onClose: () => void;
   onAnimeClick: (id: number) => void;
 }) {
   const [tab, setTab] = useState<"feed" | "calendar">(initialTab);
+  const { t } = useI18n();
 
   return (
-    <Modal header="Активность и история" onClose={onClose} className="w-5xl">
+    <Modal
+      header={t("anilist.activity.title")}
+      onClose={onClose}
+      className="w-5xl"
+    >
       <Tabs
         tabs={[
-          { id: "feed", label: "Лента" },
-          { id: "calendar", label: "Календарь" },
+          { id: "feed", label: t("anilist.activity.feed") },
+          { id: "calendar", label: t("anilist.activity.calendar") },
         ]}
         activeTab={tab}
         onChange={setTab}
       />
-      <div className="flex-1 min-h-0 overflow-y-auto w-full bg-primary">
+      <div className="bg-primary min-h-0 w-full flex-1 overflow-y-auto">
         {tab === "feed" ? (
-          <FeedTab userId={userId} lists={lists} onAnimeClick={onAnimeClick} />
+          <FeedTab
+            userId={userId}
+            friendIds={friendIds}
+            lists={lists}
+            onAnimeClick={onAnimeClick}
+          />
         ) : (
-          <CalendarTab lists={lists} onAnimeClick={onAnimeClick} />
+          <CalendarTab lists={lists} />
         )}
       </div>
     </Modal>

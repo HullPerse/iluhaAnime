@@ -7,6 +7,46 @@ export interface Anime {
   leechers: number;
   category: string;
   link: string;
+  website?: string;
+}
+
+export interface TorrentDetailField {
+  label: string;
+  value: string;
+}
+
+export interface TorrentDetailFile {
+  name: string;
+  size: string;
+}
+
+export interface TorrentDetailComment {
+  author: string;
+  date: string;
+  text: string;
+}
+
+export interface TorrentDetails {
+  source: string;
+  url: string;
+  title: string;
+  description: string;
+  category: string;
+  size: string;
+  uploadedAt: string;
+  updatedAt: string;
+  seeders: number;
+  leechers: number;
+  completed: number;
+  downloads: number;
+  infoHash: string;
+  magnet: string;
+  torrentUrl: string;
+  fields: TorrentDetailField[];
+  files: TorrentDetailFile[];
+  screenshots: string[];
+  comments: TorrentDetailComment[];
+  notice: string | null;
 }
 
 export type FilePriority = "do_not_download" | "normal";
@@ -25,6 +65,7 @@ export interface TorrentInfo {
   total_bytes: number;
   progress_bytes: number;
   uploaded_bytes: number;
+  share_ratio: number;
   download_speed: number;
   upload_speed: number;
   peers_connected: number;
@@ -93,11 +134,12 @@ export interface TorrentStore {
   seedPreferences: Record<number, boolean>;
   prepareTorrentDownload: (magnet: string) => Promise<void>;
   prepareTorrentDownloadFromFile: (filePath: string) => Promise<void>;
+  prepareTorrentDownloadFromBytes: (fileBytes: number[]) => Promise<void>;
   confirmDownload: (
     selectedIndices: number[],
     saveDir: string,
     subFolder: string | undefined,
-    sequential?: boolean,
+    sequential?: boolean
   ) => Promise<void>;
   cancelDownload: () => Promise<void>;
   pauseTorrent: (id: number) => Promise<void>;
@@ -105,27 +147,27 @@ export interface TorrentStore {
   removeTorrent: (id: number, deleteFiles: boolean) => Promise<void>;
   setSpeedLimits: (
     dlKbps: number | null,
-    ulKbps: number | null,
+    ulKbps: number | null
   ) => Promise<void>;
   loadTorrentFiles: (id: number) => Promise<boolean>;
   updateTorrentOnlyFiles: (id: number, indices: number[]) => Promise<void>;
   setFilePriority: (
     id: number,
     fileIndices: number[],
-    priority: FilePriority,
+    priority: FilePriority
   ) => Promise<void>;
   setSequentialDownload: (id: number, enabled: boolean) => Promise<void>;
   setSeedPreference: (id: number, enabled: boolean) => void;
   redownloadFile: (
     id: number,
     fileIndex: number,
-    infoHash: string,
+    infoHash: string
   ) => Promise<void>;
   recheckTorrent: (id: number) => Promise<TorrentCheckResult | null>;
   setTorrentLimits: (
     id: number,
     dlKbps: number | null,
-    ulKbps: number | null,
+    ulKbps: number | null
   ) => Promise<void>;
   getTorrentLimits: (id: number) => Promise<TorrentLimits>;
 }

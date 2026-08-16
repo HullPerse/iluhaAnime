@@ -13,31 +13,43 @@ struct DownloadProgress {
     stage: String,
 }
 
-const fn download_urls() -> Result<(&'static str, &'static str, &'static str), String> {
-    #[cfg(target_os = "windows")]
-    return Ok((
-        "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n8.1-latest-win64-gpl-8.1.zip",
-        "bin/ffmpeg.exe",
-        "bin/ffprobe.exe",
-    ));
+const BTTBN_WIN64: &str =
+    "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n8.1-latest-win64-gpl-8.1.zip";
+const BTTBN_LINUX: &str =
+    "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n8.1-latest-linux64-gpl-8.1.tar.xz";
+const GYAN_ESSENTIALS: &str = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip";
+const GITHUB_PROXY: &str = "https://gh-proxy.com/";
 
-    #[cfg(target_os = "linux")]
-    return Ok((
-        "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n8.1-latest-linux64-gpl-8.1.tar.xz",
-        "bin/ffmpeg",
-        "bin/ffprobe",
-    ));
+fn download_urls(source: &str) -> Result<(String, &'static str, &'static str), String> {
+    let (github_url, ffmpeg_in, ffprobe_in) = if cfg!(target_os = "windows") {
+        (BTTBN_WIN64, "bin/ffmpeg.exe", "bin/ffprobe.exe")
+    } else if cfg!(target_os = "linux") {
+        (BTTBN_LINUX, "bin/ffmpeg", "bin/ffprobe")
+    } else {
+        return Err("ffmpeg auto-download is only supported on Windows and Linux".to_string());
+    };
 
-    #[cfg(not(any(target_os = "windows", target_os = "linux")))]
-    return Err("ffmpeg auto-download is only supported on Windows and Linux".to_string());
+    let url = match source {
+        "github" => github_url.to_string(),
+        "github-mirror" => format!("{GITHUB_PROXY}{github_url}"),
+        // "essentials" (default) — small build; gyan.dev is Windows-only,
+        // so Linux falls back to the GitHub archive.
+        _ if cfg!(target_os = "windows") => GYAN_ESSENTIALS.to_string(),
+        _ => github_url.to_string(),
+    };
+
+    Ok((url, ffmpeg_in, ffprobe_in))
 }
 
 #[tauri::command]
-pub async fn download_ffmpeg(app_handle: tauri::AppHandle) -> Result<String, String> {
+pub async fn download_ffmpeg(
+    app_handle: tauri::AppHandle,
+    source: Option<String>,
+) -> Result<String, String> {
     let dir = video::ffmpeg_bin_dir(&app_handle);
     std::fs::create_dir_all(&dir).map_err(|e| format!("create dir: {e}"))?;
 
-    let (url, ffmpeg_in, ffprobe_in) = download_urls()?;
+    let (url, ffmpeg_in, ffprobe_in) = download_urls(source.as_deref().unwrap_or("essentials"))?;
 
     let ffmpeg_out = dir.join(if cfg!(target_os = "windows") {
         "ffmpeg.exe"
@@ -248,34 +260,48 @@ mod tests {
 
     #[test]
     fn download_urls_succeeds_on_windows_and_linux() {
-        let result = download_urls();
-        #[cfg(target_os = "windows")]
-        assert!(result.is_ok());
-        #[cfg(target_os = "linux")]
-        assert!(result.is_ok());
-        #[cfg(not(any(target_os = "windows", target_os = "linux")))]
-        assert!(result.is_err());
+        for source in ["essentials", "github", "github-mirror"] {
+            let result = download_urls(source);
+            #[cfg(target_os = "windows")]
+            assert!(result.is_ok(), "{source}: {result:?}");
+            #[cfg(target_os = "linux")]
+            assert!(result.is_ok(), "{source}: {result:?}");
+            #[cfg(not(any(target_os = "windows", target_os = "linux")))]
+            assert!(result.is_err());
+        }
     }
 
     #[test]
     fn download_urls_returns_expected_url() {
-        let result = download_urls();
         #[cfg(target_os = "windows")]
         {
-            let (url, _, _) = result.unwrap();
-            assert!(url.contains("github.com"));
-            assert!(url.contains("ffmpeg"));
+            let (url, ffmpeg_in, ffprobe_in) = download_urls("essentials").unwrap();
+            assert!(url.contains("gyan.dev"), "{url}");
+            assert_eq!(ffmpeg_in, "bin/ffmpeg.exe");
+            assert_eq!(ffprobe_in, "bin/ffprobe.exe");
+
+            let (url, _, _) = download_urls("github").unwrap();
+            assert!(url.contains("github.com"), "{url}");
+            assert!(!url.contains("gh-proxy.com"), "{url}");
+
+            let (url, _, _) = download_urls("github-mirror").unwrap();
+            assert!(url.contains("gh-proxy.com"), "{url}");
+            assert!(url.contains("github.com"), "{url}");
         }
         #[cfg(target_os = "linux")]
         {
-            let (url, _, _) = result.unwrap();
-            assert!(url.contains("github.com"));
-            assert!(url.contains("ffmpeg"));
+            // gyan.dev is Windows-only; essentials falls back to GitHub on Linux.
+            for source in ["essentials", "github"] {
+                let (url, _, _) = download_urls(source).unwrap();
+                assert!(url.contains("github.com"), "{source}: {url}");
+            }
+            let (url, _, _) = download_urls("github-mirror").unwrap();
+            assert!(url.contains("gh-proxy.com"), "{url}");
         }
         #[cfg(not(any(target_os = "windows", target_os = "linux")))]
         {
             assert_eq!(
-                result.unwrap_err(),
+                download_urls("essentials").unwrap_err(),
                 "ffmpeg auto-download is only supported on Windows and Linux"
             );
         }

@@ -1,8 +1,11 @@
-import { useState, useMemo, useRef, useEffect } from "react";
-import { ChevronDown } from "lucide-react";
-import { cn } from "@/lib/index.utils";
-import { Input } from "./input.component";
 import { Select as BaseSelect } from "@base-ui/react/select";
+import { ChevronDown } from "lucide-react";
+import { useState, useMemo, useRef, useEffect } from "react";
+
+import { useI18n } from "@/lib/i18n";
+import { cn } from "@/lib/index.utils";
+
+import { Input } from "./input.component";
 
 function Select({
   value,
@@ -25,6 +28,7 @@ function Select({
   searchable?: boolean;
   indexed?: boolean;
 }) {
+  const { t } = useI18n();
   const [search, setSearch] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -35,7 +39,7 @@ function Select({
     const q = search.toLowerCase();
     return options.filter(
       (o) =>
-        o.label.toLowerCase().includes(q) || o.value.toLowerCase().includes(q),
+        o.label.toLowerCase().includes(q) || o.value.toLowerCase().includes(q)
     );
   }, [options, search, showSearch]);
 
@@ -52,18 +56,18 @@ function Select({
     >
       <BaseSelect.Trigger
         className={cn(
-          "flex flex-row items-center w-full h-6 px-1 windows95-border bg-white text-text windows95-text",
-          disabled ? "opacity-50 cursor-default" : "cursor-pointer",
-          className,
+          "windows95-border text-text windows95-text flex min-h-[var(--ui-control-height)] w-full flex-row items-center bg-white px-1",
+          disabled ? "cursor-default opacity-50" : "cursor-pointer",
+          className
         )}
         onPointerDown={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
       >
-        <span className="flex-1 text-left truncate">
+        <span className="flex-1 truncate text-left">
           {options.find((o) => o.value === value)?.label ?? placeholder ?? ""}
         </span>
         {arrow && (
-          <BaseSelect.Icon className="shrink-0 flex items-center justify-center h-4 w-4 windows95-active-border bg-primary ml-1">
+          <BaseSelect.Icon className="windows95-active-border bg-primary ml-1 flex h-4 w-4 shrink-0 items-center justify-center">
             <ChevronDown className="size-2.5" />
           </BaseSelect.Icon>
         )}
@@ -76,7 +80,7 @@ function Select({
           onPointerDown={(e) => e.stopPropagation()}
         >
           <BaseSelect.Popup
-            className="windows95-active-border bg-white w-full flex flex-col origin-(--transform-origin)"
+            className="windows95-active-border flex w-full origin-(--transform-origin) flex-col bg-white"
             style={{ width: "var(--anchor-width)" }}
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}
@@ -91,16 +95,16 @@ function Select({
                   setSearch(e.target.value);
                 }}
                 onPointerDown={(e) => e.stopPropagation()}
-                className="flex-1 min-h-6 h-6 max-h-6 windows95-text bg-surface outline-none"
-                placeholder="Поиск..."
+                className="windows95-text bg-surface min-h-6 flex-1 outline-none"
+                placeholder={t("common.search")}
               />
             )}
-            <BaseSelect.List className="overflow-y-auto flex-1 max-h-60">
+            <BaseSelect.List className="max-h-60 flex-1 overflow-y-auto">
               {filteredOptions.map((o, i) => (
                 <BaseSelect.Item
                   key={o.value}
                   value={o.value}
-                  className="px-1 py-0.5 windows95-text windows95-border cursor-pointer truncate data-highlighted:bg-highlight data-highlighted:text-white text-text"
+                  className="windows95-text windows95-border data-highlighted:bg-highlight text-text cursor-pointer truncate px-1 py-0.5 data-highlighted:text-white"
                   onPointerDown={(e) => e.stopPropagation()}
                   onClick={(e) => e.stopPropagation()}
                 >
@@ -110,8 +114,8 @@ function Select({
                 </BaseSelect.Item>
               ))}
               {filteredOptions.length === 0 && (
-                <div className="px-1 py-0.5 windows95-text text-text/50">
-                  Нет результатов
+                <div className="windows95-text text-text/50 px-1 py-0.5">
+                  {t("common.noResults")}
                 </div>
               )}
             </BaseSelect.List>

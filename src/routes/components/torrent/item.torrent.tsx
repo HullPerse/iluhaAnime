@@ -1,14 +1,4 @@
-import { memo, useEffect, useState } from "react";
-import type { TorrentInfo, TorrentFileInfo } from "@/types/torrent";
-import ProgressBar from "@/components/shared/progress.component";
-import { Button } from "@/components/ui/button.component";
-import { Checkbox } from "@/components/ui/checkbox.component";
-import { Input } from "@/components/ui/input.component";
-import { ConfirmDialog } from "@/components/shared/confirm.component";
-import { fmtSize, fmtETA, fmtSpeed, stateLabel } from "@/lib/torrent.utils";
 import { openPath } from "@tauri-apps/plugin-opener";
-import { useTorrentStore } from "@/store/download.store";
-import TorrentFilesSection from "./file.torrent";
 import {
   Pause,
   Play,
@@ -19,7 +9,25 @@ import {
   ArrowUp,
   Search,
 } from "lucide-react";
+import { memo, useEffect, useState } from "react";
+
+import { ConfirmDialog } from "@/components/shared/confirm.component";
+import ProgressBar from "@/components/shared/progress.component";
+import { Button } from "@/components/ui/button.component";
+import { Checkbox } from "@/components/ui/checkbox.component";
 import ImageComponent from "@/components/ui/image.component";
+import { Input } from "@/components/ui/input.component";
+import { useI18n } from "@/lib/i18n";
+import { enterOrSpace } from "@/lib/keyboard.utils";
+import { fmtSize, fmtETA, fmtSpeed, stateLabel } from "@/lib/torrent.utils";
+import { useTorrentStore } from "@/store/download.store";
+import type {
+  FilePriority,
+  TorrentInfo,
+  TorrentFileInfo,
+} from "@/types/torrent";
+
+import TorrentFilesSection from "./file.torrent";
 
 interface Props {
   item: TorrentInfo;
@@ -31,7 +39,7 @@ interface Props {
   onSeedChange: (enabled: boolean) => void;
   onRemove: (deleteFiles: boolean) => void;
   onUpdateFiles: (indices: number[]) => void;
-  onFilePriorityChange: (indices: number[], priority: string) => void;
+  onFilePriorityChange: (indices: number[], priority: FilePriority) => void;
   onSetSequential: (enabled: boolean) => void;
   onRetry: () => void;
   onRedownload: (fileIndex: number) => void;
@@ -39,6 +47,7 @@ interface Props {
 }
 
 function TorrentLimitsSection({ id }: { id: number }) {
+  const { t } = useI18n();
   const [dlInput, setDlInput] = useState("");
   const [ulInput, setUlInput] = useState("");
 
@@ -68,16 +77,16 @@ function TorrentLimitsSection({ id }: { id: number }) {
   };
 
   return (
-    <div className="flex flex-row items-center gap-1 flex-wrap">
-      <span className="windows95-text text-[10px]">Лимиты КБ/с:</span>
+    <div className="flex flex-row flex-wrap items-center gap-1">
+      <span className="windows95-text text-[10px]">{t("torrent.limits")}</span>
       <Input
-        className="w-16 h-5 text-[10px]"
+        className="h-5 w-16 text-[10px]"
         placeholder="DL"
         value={dlInput}
         onChange={(e) => setDlInput(e.target.value)}
       />
       <Input
-        className="w-16 h-5 text-[10px]"
+        className="h-5 w-16 text-[10px]"
         placeholder="UL"
         value={ulInput}
         onChange={(e) => setUlInput(e.target.value)}
@@ -85,7 +94,7 @@ function TorrentLimitsSection({ id }: { id: number }) {
       <Button
         size="icon"
         className="size-5"
-        title="Применить лимиты"
+        title={t("torrent.limits.apply")}
         onClick={applyLimits}
       >
         <Check className="size-3" />
@@ -114,38 +123,41 @@ function TorrentItem({
   const isPaused = item.state === "paused";
   const isLive = item.state === "live";
   const [pendingDelete, setPendingDelete] = useState(false);
+  const { t } = useI18n();
 
   return (
-    <div className="flex flex-col p-2 windows95-active-border bg-primary gap-2">
+    <div className="windows95-active-border flex flex-col gap-2 bg-primary p-2 hover:bg-surface">
       <section className="flex flex-row items-center justify-between">
-        <h3 className="line-clamp-1 text-xs font-bold leading-tight windows95-font">
+        <h3 className="windows95-font line-clamp-1 text-xs leading-tight font-bold">
           {item.name}
         </h3>
         <div className="flex flex-row items-center gap-1">
           {item.finished ? (
-            <label className="flex items-center gap-0.5 cursor-pointer">
+            <label className="flex cursor-pointer items-center gap-0.5">
               <Checkbox
                 checked={isLive}
                 onChange={(v) => onSeedChange(v)}
                 className="size-3"
               />
-              <span className="windows95-text text-[10px]">Раздавать</span>
+              <span className="windows95-text text-[10px]">
+                {t("torrent.seed")}
+              </span>
             </label>
           ) : (
             <>
               {isLive && (
                 <Button
-                  title="Поставить на паузу"
+                  title={t("torrent.pause")}
                   size="icon"
                   className="size-6"
                   onClick={onPause}
                 >
-                  <Pause />
+                  <Pause className="size-4" />
                 </Button>
               )}
               {isPaused && (
                 <Button
-                  title="Продолжить скачивание"
+                  title={t("torrent.resume")}
                   size="icon"
                   className="size-6"
                   onClick={onResume}
@@ -157,7 +169,7 @@ function TorrentItem({
           )}
           {item.save_dir && (
             <Button
-              title="Открыть в папке"
+              title={t("torrent.openFolder")}
               size="icon"
               className="size-6"
               onClick={() => openPath(item.save_dir)}
@@ -170,15 +182,15 @@ function TorrentItem({
             </Button>
           )}
           <Button
-            title="Последовательная загрузка"
-            className="size-6 text-[9px] windows95-font flex items-center justify-center"
+            title={t("torrent.sequential")}
+            className="windows95-font flex size-6 items-center justify-center text-[9px]"
             variant={item.sequential_download ? "default" : "outline"}
             onClick={() => onSetSequential(!item.sequential_download)}
           >
             {item.sequential_download && <Check className="size-4" />}
           </Button>
           <Button
-            title="Проверить файлы"
+            title={t("torrent.recheck")}
             size="icon"
             className="size-6"
             onClick={(e) => {
@@ -190,7 +202,7 @@ function TorrentItem({
           </Button>
           <Button
             variant="error"
-            title="Удалить торрент"
+            title={t("torrent.delete")}
             size="icon"
             className="size-6"
             onClick={(e) => {
@@ -207,7 +219,7 @@ function TorrentItem({
         </div>
       </section>
 
-      <section className="flex flex-row items-start justify-between gap-1 w-full">
+      <section className="flex w-full flex-row items-start justify-between gap-1">
         <div className="flex w-full flex-col">
           <ProgressBar
             value={item.progress_bytes}
@@ -216,36 +228,45 @@ function TorrentItem({
           />
           <div className="flex items-center gap-1">
             <span className="windows95-text text-muted">
-              {!item.finished ? stateLabel(item.state) : "Завершено"}
+              {item.finished
+                ? t("torrent.state.completed")
+                : stateLabel(item.state, t)}
             </span>
-            <span className="text-[10px] windows95-font">
+            <span className="windows95-font text-[10px]">
               {item.total_bytes > 0
                 ? `${fmtSize(item.progress_bytes)} / ${fmtSize(item.total_bytes)} (${progress.toFixed(1)}%)`
                 : fmtSize(item.progress_bytes)}
             </span>
-            <span className="text-[10px] windows95-font text-muted">
+            <span className="windows95-font text-muted text-[10px]">
               {fmtSpeed(item.download_speed)}
-              {fmtSpeed(item.download_speed) && fmtETA(item.eta_secs) && " · "}
-              {fmtETA(item.eta_secs)}
+              {item.share_ratio > 0 && (
+                <span className="ml-1">
+                  {t("torrent.ratio", { ratio: item.share_ratio.toFixed(2) })}
+                </span>
+              )}
+              {fmtSpeed(item.download_speed) &&
+                fmtETA(item.eta_secs, t) &&
+                " · "}
+              {fmtETA(item.eta_secs, t)}
             </span>
-            <span className="flex flex-row ml-auto">
+            <span className="ml-auto flex flex-row">
               {(item.upload_speed > 0 ||
                 item.uploaded_bytes > 0 ||
                 item.peers_connected > 0) && (
                 <div className="flex items-center gap-1">
                   {item.upload_speed > 0 && (
-                    <span className="text-[10px] text-muted windows95-font">
-                      <ArrowUp className="size-2.5 inline" />{" "}
+                    <span className="text-muted windows95-font text-[10px]">
+                      <ArrowUp className="inline size-2.5" />{" "}
                       {fmtSpeed(item.upload_speed)}
                     </span>
                   )}
                   {item.uploaded_bytes > 0 && (
-                    <span className="text-[10px] text-muted windows95-font">
-                      <ArrowUp className="size-2.5 inline" />{" "}
+                    <span className="text-muted windows95-font text-[10px]">
+                      <ArrowUp className="inline size-2.5" />{" "}
                       {fmtSize(item.uploaded_bytes)}
                     </span>
                   )}
-                  <span className="text-[10px] text-muted windows95-font">
+                  <span className="text-muted windows95-font text-[10px]">
                     P: {item.peers_connected}
                   </span>
                 </div>
@@ -259,19 +280,29 @@ function TorrentItem({
         <section>
           <div
             role="button"
-            className="flex items-center gap-1 windows95-text cursor-pointer hover:bg-surface px-0.5 py-0.5 w-full text-left select-none"
+            tabIndex={0}
+            aria-expanded={isExpanded}
+            aria-label={t("torrent.filesCount", {
+              done: files.filter((f) => f.completed).length,
+              total: files.length,
+            })}
+            className="windows95-text hover:bg-surface focus-visible:outline-text flex w-full cursor-pointer items-center gap-1 px-0.5 py-0.5 text-left select-none focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-dotted"
             onClick={onToggleExpand}
+            onKeyDown={enterOrSpace(onToggleExpand)}
           >
             {isExpanded ? (
               <ChevronDown className="size-3" />
             ) : (
               <ChevronRight className="size-3" />
             )}
-            {`Файлы (${files.filter((f) => f.completed).length} / ${files.length})`}
+            {t("torrent.filesCount", {
+              done: files.filter((f) => f.completed).length,
+              total: files.length,
+            })}
             {files.some((f) => f.completed && !f.exists) && (
               <span className="text-destructive ml-1">
                 · {files.filter((f) => f.completed && !f.exists).length}{" "}
-                отсутствуют
+                {t("torrent.missing")}
               </span>
             )}
           </div>
@@ -296,13 +327,13 @@ function TorrentItem({
 
       {item.error && (
         <div className="mt-1 flex items-center gap-1">
-          <span className="text-[10px] text-destructive windows95-font">
+          <span className="text-destructive windows95-font text-[10px]">
             {item.error}
           </span>
           <Button
             size="icon"
-            className="size-4 ml-auto"
-            title="Повторить"
+            className="ml-auto size-4"
+            title={t("torrent.retry")}
             onClick={onRetry}
           >
             <RefreshCw className="size-3" />
@@ -313,10 +344,10 @@ function TorrentItem({
       {pendingDelete && (
         <ConfirmDialog
           open
-          title="Удаление торрента"
-          message="Удалить скачанные файлы вместе с торрентом?"
-          confirmLabel="Удалить с файлами"
-          cancelLabel="Оставить файлы"
+          title={t("torrent.deleteTitle")}
+          message={t("torrent.deleteMessage")}
+          confirmLabel={t("torrent.deleteWithFiles")}
+          cancelLabel={t("torrent.keepFiles")}
           variant="destructive"
           onConfirm={() => {
             onRemove(true);
@@ -340,6 +371,7 @@ export default memo(TorrentItem, (prev, next) => {
   if (prev.item.download_speed !== next.item.download_speed) return false;
   if (prev.item.upload_speed !== next.item.upload_speed) return false;
   if (prev.item.uploaded_bytes !== next.item.uploaded_bytes) return false;
+  if (prev.item.share_ratio !== next.item.share_ratio) return false;
   if (prev.item.total_bytes !== next.item.total_bytes) return false;
   if (prev.item.progress_bytes !== next.item.progress_bytes) return false;
   if (prev.item.finished !== next.item.finished) return false;

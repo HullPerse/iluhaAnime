@@ -31,3 +31,5 @@ glucose
 public/icons
 
 .attune/
+
+.playwright-mcp

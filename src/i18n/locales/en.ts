@@ -1,6 +1,8 @@
 const en = {
   "anilist.activity.calendar": "Calendar",
   "anilist.activity.daySummary": "{{date}}: {{count}} activities",
+  "anilist.activity.dayHint":
+    "Hover over a day or click to see details.",
   "anilist.activity.empty": "No activity",
   "anilist.activity.emptyStatus": "No entries with this status",
   "anilist.activity.episode": "Ep. {{n}}",
@@ -544,6 +546,7 @@ const en = {
   "search.loadingMagnet": "Loading magnet...",
   "search.suggestion.anime": "Anime",
   "search.suggestion.history": "History",
+  "search.removeFromHistory": "Remove from history",
   "search.suggestion.local": "Local",
   "search.suggestion.torrent": "Torrent",
   "search.magnet": "Magnet",

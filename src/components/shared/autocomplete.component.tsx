@@ -3,6 +3,7 @@ import {
   HardDrive,
   History,
   Magnet,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import * as React from "react";
@@ -20,6 +21,7 @@ interface Props extends React.ComponentProps<typeof Input> {
   history?: string[];
   suggestions?: SearchSuggestion[];
   onAcceptCompletion?: (value: string) => void;
+  onRemoveHistory?: (query: string) => void;
   onSelectSuggestion?: (value: string) => void;
   onDismissCompletion?: () => void;
 }
@@ -137,6 +139,7 @@ export function InlineAutocompleteInput({
   onDismissCompletion,
   onFocus,
   onKeyDown,
+  onRemoveHistory,
   onSelectSuggestion,
   suggestions = EMPTY_SUGGESTIONS,
   value,
@@ -408,6 +411,26 @@ export function InlineAutocompleteInput({
                           {suggestion.subtitle ??
                             t(suggestionKindLabels[suggestion.kind])}
                         </span>
+                        {suggestion.kind === "history" && onRemoveHistory && (
+                          <span
+                            role="button"
+                            tabIndex={-1}
+                            aria-label={t("search.removeFromHistory")}
+                            className={cn(
+                              "flex size-4 shrink-0 cursor-pointer items-center justify-center",
+                              active
+                                ? "text-white hover:bg-white/20"
+                                : "text-muted group-hover:text-white group-hover:opacity-70"
+                            )}
+                            onMouseDown={(event) => event.preventDefault()}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              onRemoveHistory(suggestion.value);
+                            }}
+                          >
+                            <X className="size-3" />
+                          </span>
+                        )}
                       </button>
                     );
                   })}

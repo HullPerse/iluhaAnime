@@ -67,7 +67,9 @@ export default function ThemeEditor({
     ...defaults,
     ...theme?.colors,
     autocomplete:
-      theme?.colors.autocomplete ?? theme?.colors.muted ?? defaults.autocomplete,
+      theme?.colors.autocomplete ??
+      theme?.colors.muted ??
+      defaults.autocomplete,
     autocompleteOpacity:
       theme?.colors.autocompleteOpacity ?? defaults.autocompleteOpacity,
   }));
@@ -144,6 +146,7 @@ export default function ThemeEditor({
           onChange={(value) =>
             setColors((prev) => ({ ...prev, autocompleteOpacity: value }))
           }
+          suffix="%"
         />
 
         {/* Live preview */}

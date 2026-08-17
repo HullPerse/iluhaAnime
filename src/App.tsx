@@ -439,12 +439,14 @@ function App() {
   const getComponent = () => {
     const tabMap = {
       anilist: <AniListRoute />,
+      player: <PlayerRoute />,
       search: <SearchRoute />,
       settings: <SettingsRoute />,
       torrent: <TorrentRoute />,
-      vault: <VaultRoute />,      } as Record<Exclude<Tab, "player">, ReactElement>;
+      vault: <VaultRoute />,
+    } as Record<Tab, ReactElement>;
 
-    return tabMap[activeTab as Exclude<Tab, "player">];
+    return tabMap[activeTab];
   };
 
   return (
@@ -489,16 +491,9 @@ function App() {
 
           {/* CONTENT PANEL */}
           <div className="windows95-border bg-surface relative mx-1 mb-1 min-h-0 flex-1 overflow-hidden p-1">
-            <div className={activeTab === "player" ? "h-full" : "hidden"}>
-              <Suspense fallback={<WindowLoader />}>
-                <PlayerRoute />
-              </Suspense>
-            </div>
-            {activeTab !== "player" && (
-              <Suspense fallback={<WindowLoader />}>
-                {getComponent()}
-              </Suspense>
-            )}
+            <Suspense fallback={<WindowLoader />}>
+              {getComponent()}
+            </Suspense>
           </div>
         </div>
       </section>

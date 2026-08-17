@@ -1,8 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/core";
 import { openPath } from "@tauri-apps/plugin-opener";
-import { ChevronDown, ChevronRight, Loader, RefreshCw } from "lucide-react";
+import { ChevronDown, ChevronRight, RefreshCw } from "lucide-react";
 import { useCallback } from "react";
+
+import { SmallLoader } from "@/components/shared/loader.component";
 
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
@@ -65,7 +67,7 @@ export default function TorrentFilesPlayerSection({
 
       {torrentLoading && !files ? (
         <div className="windows95-text flex items-center gap-1 px-0.5 py-0.5">
-          <Loader className="size-3 animate-spin" />
+          <SmallLoader size={3} />
           <span className="text-xs">{t("player.files.loading")}</span>
         </div>
       ) : files ? (

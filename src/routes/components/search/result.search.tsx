@@ -1,7 +1,8 @@
-import { Clipboard, Download, Eye, Loader } from "lucide-react";
+import { Clipboard, Download, Eye } from "lucide-react";
 
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
+import { SmallLoader } from "@/components/shared/loader.component";
 import { SOURCE_INFOS } from "@/config/search.config";
 import { useI18n } from "@/lib/i18n";
 import { detectLanguages, formatSize } from "@/lib/index.utils";
@@ -83,7 +84,7 @@ export default function SearchResultItem({
         )}
         {isLoadingMag ? (
           <div className="flex items-center gap-1">
-            <Loader className="size-3 animate-spin" />
+            <SmallLoader size={3} />
             <span className="windows95-text">{t("search.loadingMagnet")}</span>
           </div>
         ) : hasMagnet ? (

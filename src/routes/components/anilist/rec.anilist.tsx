@@ -1,7 +1,8 @@
-import { Loader, Star } from "lucide-react";
+import { Star } from "lucide-react";
 
 import Modal from "@/components/shared/modal.component";
 import ImageComponent from "@/components/ui/image.component";
+import { SmallLoader } from "@/components/shared/loader.component";
 import { useI18n } from "@/lib/i18n";
 import { enterOrSpace } from "@/lib/keyboard.utils";
 import type { AniRecommendation } from "@/types/anilist";
@@ -28,7 +29,7 @@ export default function AniListRecsModal({
     <Modal header={t("anilist.recs.title")} onClose={onClose} className="w-3xl">
       {loading ? (
         <div className="flex flex-1 items-center justify-center">
-          <Loader className="windows95-text size-6 animate-spin" />
+          <SmallLoader size={6} className="windows95-text" />
         </div>
       ) : recommendations.length === 0 ? (
         <div className="flex flex-1 items-center justify-center">

@@ -6,7 +6,6 @@ import type { ReactZoomPanPinchRef } from "react-zoom-pan-pinch";
 
 import { SmallLoader } from "@/components/shared/loader.component";
 import { Button } from "@/components/ui/button.component";
-import { RELATION_FILTERS } from "@/config/anilist.config";
 import {
   FRANCHISE_CACHE_TTL_MS,
   FRANCHISE_CACHE_VERSION,
@@ -48,7 +47,7 @@ function FranchiseGraphSection({
 }: FranchiseGraphSectionProps) {
   const { t } = useI18n();
   const [activeFilters, setActiveFilters] = useState<Set<RelationFilter>>(
-    () => new Set(RELATION_FILTERS)
+    () => new Set(["SEQUEL", "PREQUEL", "SIDE_STORY"])
   );
   const [positions, setPositions] = useState<
     Map<number, FranchiseNodePosition>
@@ -58,7 +57,7 @@ function FranchiseGraphSection({
   const [refreshKey, setRefreshKey] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [resetKey, setResetKey] = useState(0);
-  const [listView, setListView] = useState(true);
+  const [listView, setListView] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Set<RelationFilter>>(
     new Set()
   );

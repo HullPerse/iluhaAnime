@@ -1,9 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/core";
-import { Loader, Star } from "lucide-react";
+import { Star } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import Modal from "@/components/shared/modal.component";
+import { SmallLoader } from "@/components/shared/loader.component";
 import Pagination from "@/components/shared/pagination.component";
 import Tabs from "@/components/shared/tabs.component";
 import ImageComponent from "@/components/ui/image.component";
@@ -91,7 +92,7 @@ export default function BrowseAnimeModal({
       <div className="flex flex-1 flex-col gap-1 overflow-y-auto p-1">
         {isLoading ? (
           <div className="flex flex-1 items-center justify-center">
-            <Loader className="windows95-text size-6 animate-spin" />
+            <SmallLoader size={6} className="windows95-text" />
           </div>
         ) : paged.length === 0 ? (
           <div className="flex flex-1 items-center justify-center">

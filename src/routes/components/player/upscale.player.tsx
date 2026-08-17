@@ -1,9 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/core";
-import { Wand2, Ban, Check, Loader, ListVideo } from "lucide-react";
+import { Wand2, Ban, Check, ListVideo } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 
 import Modal from "@/components/shared/modal.component";
+import { SmallLoader } from "@/components/shared/loader.component";
 import ProgressBar from "@/components/shared/progress.component";
 import Tabs from "@/components/shared/tabs.component";
 import { Button } from "@/components/ui/button.component";
@@ -467,7 +468,7 @@ export default function UpscalePlayer({
               {activeItem?.status === "processing" &&
                 stage === "initializing" && (
                   <div className="flex flex-col items-center gap-2 py-4">
-                    <Loader className="size-5 animate-spin" />
+                    <SmallLoader size={5} />
                     <span className="windows95-text text-xs">
                       {t("player.upscale.initializing")}
                     </span>

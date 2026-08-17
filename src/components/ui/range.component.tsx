@@ -93,7 +93,7 @@ function Slider({
         />
       </div>
       <span className="w-10 text-right tabular-nums">
-        {value}
+        {Math.floor((100 * Number(value.toFixed(2))) / max)}
         {suffix}
       </span>
     </div>

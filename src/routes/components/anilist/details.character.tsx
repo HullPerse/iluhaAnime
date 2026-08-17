@@ -1,10 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/core";
-import { ChevronLeft, Monitor, X, Loader } from "lucide-react";
+import { ChevronLeft, Monitor, X } from "lucide-react";
 import { useState, useEffect } from "react";
 
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
+import { SmallLoader } from "@/components/shared/loader.component";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/index.utils";
 import { enterOrSpace } from "@/lib/keyboard.utils";
@@ -253,7 +254,7 @@ function AniListCharacterDetailModal({
         <div className="flex flex-col gap-3 p-1">
           {mediaLoading ? (
             <div className="flex items-center justify-center py-4">
-              <Loader className="windows95-text size-5 animate-spin" />
+              <SmallLoader size={5} className="windows95-text" />
             </div>
           ) : (
             <>

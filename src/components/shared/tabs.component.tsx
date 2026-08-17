@@ -31,7 +31,10 @@ function Tabs<T extends string>({
             style={{
               zIndex: isActive ? 20 : 10,
             }}
-            onClick={() => onChange(tab.id)}
+            onClick={() => {
+              if (!isActive) onChange(tab.id);
+            }}
+            aria-disabled={isActive}
             onKeyDown={createListNavigationHandler({
               activeIndex: tabs.findIndex((item) => item.id === tab.id),
               axis: "horizontal",

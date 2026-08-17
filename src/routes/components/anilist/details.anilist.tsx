@@ -4,12 +4,13 @@ import {
   ChevronRight,
   CircleSmall,
   Heart,
-  Loader,
   Tag,
   Users,
   Star,
 } from "lucide-react";
 import { useState } from "react";
+
+import { SmallLoader } from "@/components/shared/loader.component";
 
 import Modal from "@/components/shared/modal.component";
 import Section from "@/components/shared/section.component";
@@ -109,7 +110,7 @@ function AniListDetailModal({
     >
       {isLoading ? (
         <section className="flex flex-1 items-center justify-center">
-          <Loader className="windows95-text size-6 animate-spin" />
+          <SmallLoader size={6} className="windows95-text" />
         </section>
       ) : isError ? (
         <section className="flex flex-1 flex-col items-center justify-center gap-2 p-4">
@@ -149,7 +150,7 @@ function AniListDetailModal({
                 }
               >
                 {favLoading ? (
-                  <Loader className="size-3 animate-spin" />
+                  <SmallLoader size={3} />
                 ) : (
                   <Heart
                     className={`size-4 ${isFavourited ? "fill-red-500 text-red-500" : "text-text"}`}
@@ -388,7 +389,7 @@ function AniListDetailModal({
         </section>
       ) : (
         <section className="flex flex-1 items-center justify-center">
-          <Loader className="windows95-text size-6 animate-spin" />
+          <SmallLoader size={6} className="windows95-text" />
         </section>
       )}
 

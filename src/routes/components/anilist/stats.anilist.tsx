@@ -9,8 +9,6 @@ import { useI18n } from "@/lib/i18n";
 import type { Locale } from "@/types";
 import type { AniListCollection } from "@/types/anilist";
 
-import PersonalStats from "./stats.personal";
-
 function dayLabel(day: number, locale: Locale): string {
   return new Date(2024, 0, day + 1).toLocaleDateString(locale, {
     weekday: "short",
@@ -101,7 +99,6 @@ function StatsModal({
       onClose={onClose}
       className="w-3xl"
     >
-      <PersonalStats lists={lists} />
       {selectedDay == null ? (
         <main className="flex flex-col">
           <div className="mb-1 flex h-6 items-center justify-between px-1">
@@ -114,7 +111,7 @@ function StatsModal({
               <ChevronLeft className="size-3" />
             </Button>
             <span className="windows95-text text-xs font-bold">
-{monthLabel(month, locale, "long")} {year}
+              {monthLabel(month, locale, "long")} {year}
             </span>
             <Button onClick={nextMonth} size="icon" className="size-6">
               <ChevronRight className="size-3" />

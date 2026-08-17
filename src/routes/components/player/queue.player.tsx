@@ -3,13 +3,13 @@ import {
   X,
   RefreshCw,
   ListVideo,
-  Loader,
   FileVideo,
   Pause,
   Play,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button.component";
+import { SmallLoader } from "@/components/shared/loader.component";
 import { useI18n } from "@/lib/i18n";
 import { useUpscaleQueueStore } from "@/store/upscale.store";
 
@@ -31,7 +31,7 @@ export default function QueuePanel() {
         return <ListVideo className="text-muted size-3" />;
       }
       case "processing": {
-        return <Loader className="text-highlight size-3 animate-spin" />;
+        return <SmallLoader size={3} className="text-highlight" />;
       }
       case "done": {
         return <span className="text-success size-3">✓</span>;
@@ -118,7 +118,7 @@ export default function QueuePanel() {
               statusIcon(item.status)
             )}
             {item.jobType === "convert" && item.status === "processing" && (
-              <Loader className="text-highlight size-3 animate-spin" />
+              <SmallLoader size={3} className="text-highlight" />
             )}
             <span className="flex-1 truncate">{item.name}</span>
 

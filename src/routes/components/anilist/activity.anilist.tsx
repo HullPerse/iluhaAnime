@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/core";
 import {
-  Loader,
   Play,
   Check,
   X,
@@ -15,6 +14,7 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 
+import { SmallLoader } from "@/components/shared/loader.component";
 import Modal from "@/components/shared/modal.component";
 import Tabs from "@/components/shared/tabs.component";
 import { Button } from "@/components/ui/button.component";
@@ -24,6 +24,7 @@ import { CELL_GAP, CELL_LEVELS, CELL_SIZE } from "@/config/activity.config";
 import {
   buildActivityMap,
   buildYearGrid,
+  dayKey,
   formatActivityTime,
   groupLabel,
   monthLabel,
@@ -221,7 +222,7 @@ function FeedTab({
   if (isLoading) {
     return (
       <div className="flex flex-1 items-center justify-center p-6">
-        <Loader className="windows95-text size-6 animate-spin" />
+        <SmallLoader size={6} />
       </div>
     );
   }
@@ -312,17 +313,24 @@ function FeedTab({
 
 function CalendarTab({
   lists,
+  onAnimeClick,
 }: {
   lists: AniListCollection[];
+  onAnimeClick: (id: number) => void;
 }) {
   const { t, locale } = useI18n();
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
+  const [hoverKey, setHoverKey] = useState<string | null>(null);
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
 
   const activity = useMemo(() => buildActivityMap(lists, t), [lists, t]);
   const grid = useMemo(() => buildYearGrid(year, activity), [year, activity]);
 
   const pitch = CELL_SIZE + CELL_GAP;
+
+  const activeKey = selectedKey ?? hoverKey;
+  const activeActivity = activeKey ? activity.get(activeKey) : undefined;
 
   const goPrevYear = () => setYear((y) => y - 1);
   const goNextYear = () => setYear((y) => Math.min(y + 1, now.getFullYear()));
@@ -374,6 +382,8 @@ function CalendarTab({
                     const isToday =
                       year === now.getFullYear() &&
                       cell.date.toDateString() === now.toDateString();
+                    const key = dayKey(cell.date);
+                    const isActive = key === activeKey;
                     return (
                       <button
                         type="button"
@@ -387,9 +397,25 @@ function CalendarTab({
                           width: CELL_SIZE,
                           height: CELL_SIZE,
                           backgroundColor: CELL_LEVELS[cell.level] || undefined,
+                          outline: isActive
+                            ? "1px solid var(--color-highlight)"
+                            : undefined,
+                          outlineOffset: 1,
                           boxShadow: isToday
                             ? "0 0 0 1px var(--color-secondary) inset"
                             : undefined,
+                        }}
+                        onMouseEnter={() =>
+                          cell.count > 0 && setHoverKey(dayKey(cell.date))
+                        }
+                        onMouseLeave={() => setHoverKey(null)}
+                        onClick={() => {
+                          if (cell.count === 0) return;
+                          setSelectedKey((prev) =>
+                            prev === dayKey(cell.date)
+                              ? null
+                              : dayKey(cell.date)
+                          );
                         }}
                         title={
                           cell.count > 0
@@ -403,6 +429,79 @@ function CalendarTab({
               ))}
             </div>
           </div>
+        </section>
+
+        <section className="windows95-border flex h-full shrink-0 flex-col overflow-hidden bg-white md:w-64">
+          {activeActivity ? (
+            <div className="flex min-h-0 flex-col">
+              <div className="border-muted/40 flex items-center justify-between border-b px-2 py-1">
+                <span className="windows95-text text-[10px] font-bold">
+                  {activeKey
+                    ? new Date(
+                        Number(activeKey.split("-")[0]),
+                        Number(activeKey.split("-")[1]) - 1,
+                        Number(activeKey.split("-")[2])
+                      ).toLocaleDateString(locale)
+                    : ""}
+                </span>
+                <Button
+                  onClick={() => setSelectedKey(null)}
+                  className="windows95-text px-1 py-0 text-[9px]"
+                  variant="ghost"
+                >
+                  {t("common.close")}
+                </Button>
+              </div>
+              <div className="border-muted/40 text-muted windows95-text flex flex-col gap-0.5 border-b px-2 py-0.5 text-[9px]">
+                <span>
+                  {t("anilist.activity.eventAdded")}: {activeActivity.added}
+                </span>
+                <span>
+                  {t("anilist.activity.eventProgress")}:{" "}
+                  {activeActivity.progress}
+                </span>
+                <span>
+                  {t("anilist.activity.eventCompleted")}:{" "}
+                  {activeActivity.completed}
+                </span>
+              </div>
+              <div className="min-h-0 flex-1 overflow-y-auto">
+                {activeActivity.items.map((item) => (
+                  <div
+                    key={item.id}
+                    className="border-muted/40 hover:bg-surface flex cursor-pointer items-center gap-2 border-b px-2 py-1"
+                    onClick={() => onAnimeClick(item.id)}
+                  >
+                    {item.cover && (
+                      <ImageComponent
+                        src={item.cover}
+                        alt="cover"
+                        className="windows95-border h-10 w-7 shrink-0"
+                      />
+                    )}
+                    <div className="flex min-w-0 flex-1 flex-col">
+                      <span className="windows95-font truncate text-[10px]">
+                        {item.title}
+                      </span>
+                      <span className="text-muted windows95-font text-[8px]">
+                        {item.events}
+                        {item.progress != null &&
+                          ` · ${t("anilist.activity.episode", {
+                            n: item.progress,
+                          })}`}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-1 items-center justify-center p-3">
+              <span className="windows95-text text-muted text-center text-[10px]">
+                {t("anilist.activity.dayHint")}
+              </span>
+            </div>
+          )}
         </section>
       </div>
     </main>
@@ -450,7 +549,7 @@ function ActivityHistoryModal({
             onAnimeClick={onAnimeClick}
           />
         ) : (
-          <CalendarTab lists={lists} />
+          <CalendarTab lists={lists} onAnimeClick={onAnimeClick} />
         )}
       </div>
     </Modal>

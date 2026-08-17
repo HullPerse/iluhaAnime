@@ -1,6 +1,8 @@
 const ru = {
   "anilist.activity.calendar": "Календарь",
   "anilist.activity.daySummary": "{{date}}: {{count}} действий",
+  "anilist.activity.dayHint":
+    "Наведите на день или кликните, чтобы увидеть подробности.",
   "anilist.activity.empty": "Нет активности",
   "anilist.activity.emptyStatus": "Нет записей с таким статусом",
   "anilist.activity.episode": "Эп. {{n}}",
@@ -547,6 +549,7 @@ const ru = {
   "search.loadingMagnet": "Загрузка магнита...",
   "search.suggestion.anime": "Аниме",
   "search.suggestion.history": "История",
+  "search.removeFromHistory": "Удалить из истории",
   "search.suggestion.local": "Локально",
   "search.suggestion.torrent": "Торрент",
   "search.magnet": "Магнит",

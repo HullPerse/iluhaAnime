@@ -5,13 +5,14 @@ import { parse } from "anitomy";
 import {
   ChevronDown,
   ChevronRight,
-  Loader,
   ListVideo,
   Monitor,
   Play,
   RefreshCw,
 } from "lucide-react";
 import { useRef, useState, useCallback, useMemo } from "react";
+
+import { SmallLoader } from "@/components/shared/loader.component";
 
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
@@ -436,9 +437,7 @@ function TorrentFilesSection({
                         if (status === "queued")
                           return <ListVideo className="text-muted size-3" />;
                         if (status === "processing")
-                          return (
-                            <Loader className="text-highlight size-3 animate-spin" />
-                          );
+                          return <SmallLoader size={3} className="text-highlight" />;
                         return null;
                       })()}
 
@@ -490,9 +489,7 @@ function TorrentFilesSection({
                         if (status === "queued")
                           return <ListVideo className="text-muted size-3" />;
                         if (status === "processing")
-                          return (
-                            <Loader className="text-highlight size-3 animate-spin" />
-                          );
+                          return <SmallLoader size={3} className="text-highlight" />;
                         return null;
                       })()}
 

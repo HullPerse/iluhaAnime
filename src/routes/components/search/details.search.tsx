@@ -6,12 +6,13 @@ import {
   FileText,
   Image as ImageIcon,
   Info,
-  Loader,
   MessageSquare,
   RefreshCw,
   Rss,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+
+import { SmallLoader } from "@/components/shared/loader.component";
 import type { ReactNode } from "react";
 
 import Modal from "@/components/shared/modal.component";
@@ -63,7 +64,7 @@ function MetaItem({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="windows95-border bg-surface min-w-0 px-1.5 py-1">
       <div className="windows95-text text-muted text-[9px]">{label}</div>
-      <div className="windows95-text mt-0.5 text-[11px] break-words">
+      <div className="windows95-text mt-0.5 text-[11px] wrap-break-word">
         {value}
       </div>
     </div>
@@ -201,7 +202,7 @@ function TorrentDetailsModal({
     >
       {loading && (
         <div className="flex min-h-48 flex-col items-center justify-center gap-2">
-          <Loader className="size-6 animate-spin" />
+          <SmallLoader size={6} />
           <span className="windows95-text">{t("search.details.loading")}</span>
           <span className="windows95-text text-muted text-[10px]">
             {t("search.details.cleaned")}
@@ -233,7 +234,7 @@ function TorrentDetailsModal({
           <div className="windows95-border bg-surface p-1.5">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div className="min-w-0 flex-1">
-                <h2 className="windows95-text font-bold break-words">
+                <h2 className="windows95-text font-bold wrap-break-word">
                   {view.title}
                 </h2>
                 <p className="windows95-text text-muted mt-1 text-[10px] break-all">
@@ -327,7 +328,7 @@ function TorrentDetailsModal({
             icon={<Rss className="size-3" />}
             title={t("search.details.description")}
           >
-            <p className="windows95-text max-h-64 overflow-y-auto text-[11px] break-words whitespace-pre-wrap">
+            <p className="windows95-text max-h-64 overflow-y-auto text-[11px] wrap-break-word whitespace-pre-wrap">
               {view.description || t("search.details.noDescription")}
             </p>
           </DetailSection>
@@ -347,7 +348,7 @@ function TorrentDetailsModal({
                     <div className="windows95-text text-muted text-[9px]">
                       {field.label}
                     </div>
-                    <div className="windows95-text mt-0.5 text-[10px] break-words whitespace-pre-wrap">
+                    <div className="windows95-text mt-0.5 text-[10px] wrap-break-word whitespace-pre-wrap">
                       {field.value}
                     </div>
                   </div>
@@ -445,7 +446,7 @@ function TorrentDetailsModal({
                         {comment.date}
                       </span>
                     </div>
-                    <p className="windows95-text mt-1 text-[10px] break-words whitespace-pre-wrap">
+                    <p className="windows95-text mt-1 text-[10px] wrap-break-word whitespace-pre-wrap">
                       {comment.text}
                     </p>
                   </article>

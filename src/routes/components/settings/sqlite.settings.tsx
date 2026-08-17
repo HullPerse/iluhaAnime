@@ -26,11 +26,11 @@ import { Checkbox } from "@/components/ui/checkbox.component";
 import Image from "@/components/ui/image.component";
 import { Input } from "@/components/ui/input.component";
 import Select from "@/components/ui/select.component";
+import { MAX_CELL_PREVIEW, PAGE_SIZE } from "@/config/sqlite.config";
 import { usePagination } from "@/hooks/pagination.hook";
 import { useI18n } from "@/lib/i18n";
 import { enterSubmit, modEnter } from "@/lib/keyboard.utils";
 import { useSettingsStore } from "@/store/settings.store";
-import { MAX_CELL_PREVIEW, PAGE_SIZE } from "@/config/sqlite.config";
 import type {
   SqliteDatabaseInfo,
   SqliteRowsPage,
@@ -108,12 +108,7 @@ function BlobImageCell({
     return <span className="text-muted block text-[9px]">[BLOB]</span>;
   return (
     <div className="windows95-border mx-auto size-16 shrink-0 overflow-hidden bg-white">
-      <Image
-        src={src}
-        alt={alt}
-        type="contain"
-        className="h-full w-full"
-      />
+      <Image src={src} alt={alt} type="contain" className="h-full w-full" />
     </div>
   );
 }
@@ -266,12 +261,13 @@ export default function SqliteSettings() {
   const primaryKeys = (selectedTableInfo?.columns ?? [])
     .filter((column) => column.primaryKey)
     .map((column) => column.name);
-  const { total, from, to, lastPage, setPage: setPaged } = usePagination(
-    rows?.total ?? 0,
-    PAGE_SIZE,
-    page,
-    setPage
-  );
+  const {
+    total,
+    from,
+    to,
+    lastPage,
+    setPage: setPaged,
+  } = usePagination(rows?.total ?? 0, PAGE_SIZE, page, setPage);
 
   // Serializes a row into the values of its primary-key columns, in the same
   // order as `primaryKeys`. Returns null when any PK value is unknown.
@@ -312,9 +308,15 @@ export default function SqliteSettings() {
       selectedTableInfo?.columns.find((item) => item.name === column)
         ?.dataType ?? ""
     ).toUpperCase();
-    return !["INTEGER", "INT", "REAL", "NUMERIC", "FLOAT", "DOUBLE", "BLOB"].includes(
-      type
-    );
+    return ![
+      "INTEGER",
+      "INT",
+      "REAL",
+      "NUMERIC",
+      "FLOAT",
+      "DOUBLE",
+      "BLOB",
+    ].includes(type);
   };
 
   const filterableColumns = useMemo(
@@ -688,7 +690,9 @@ export default function SqliteSettings() {
         {rowsArray.map((row, rowIndex) => {
           const rowKeys = interactive ? primaryKeyValues(row) : null;
           const rowId = rowKeys ? rowKeys.join(" | ") : `${rowIndex}`;
-          const selected = interactive ? !!rowKeys && !!selectedRows[rowId] : false;
+          const selected = interactive
+            ? !!rowKeys && !!selectedRows[rowId]
+            : false;
           return (
             <tr
               key={`${rowId}-${rowIndex}`}
@@ -750,7 +754,7 @@ export default function SqliteSettings() {
                 return (
                   <td
                     key={`${cellIndex}-${rowIndex}`}
-                    className="max-w-72 max-h-20 overflow-hidden px-1 py-1 break-words whitespace-pre-wrap"
+                    className="max-h-20 max-w-72 overflow-hidden px-1 py-1 wrap-break-word whitespace-pre-wrap"
                   >
                     {cell}
                   </td>
@@ -873,7 +877,10 @@ export default function SqliteSettings() {
               onChange={(event) => setQuerySql(event.target.value)}
               onKeyDown={(event) => {
                 modEnter(runQuery)(event);
-                if (event.key === "ArrowUp" && queryHistoryRef.current.length > 0) {
+                if (
+                  event.key === "ArrowUp" &&
+                  queryHistoryRef.current.length > 0
+                ) {
                   event.preventDefault();
                   navigateQueryHistory("up");
                 } else if (
@@ -1028,8 +1035,7 @@ export default function SqliteSettings() {
                 className="h-5"
                 disabled={!rows || rows.rows.length === 0}
                 onClick={() =>
-                  rows &&
-                  exportRows(rows.columns, rows.rows, selectedTable)
+                  rows && exportRows(rows.columns, rows.rows, selectedTable)
                 }
                 title={t("settings.sqliteExport")}
               >
@@ -1209,7 +1215,7 @@ export default function SqliteSettings() {
                     />
                   </div>
                 )}
-                <pre className="windows95-border text-text windows95-text max-h-64 min-h-20 w-full overflow-auto bg-white p-1 text-[10px] break-words whitespace-pre-wrap">
+                <pre className="windows95-border text-text windows95-text max-h-64 min-h-20 w-full overflow-auto bg-white p-1 text-[10px] wrap-break-word whitespace-pre-wrap">
                   {cellValue}
                 </pre>
               </>

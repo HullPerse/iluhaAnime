@@ -94,6 +94,7 @@ function SearchRoute() {
     addQuery,
     recordSuggestion,
     recordSuggestionIgnored,
+    removeQuery,
     crossSearchQuery,
     setCrossSearchQuery,
   } = useSearchStore((state) => state);
@@ -320,6 +321,7 @@ function SearchRoute() {
             onDismissCompletion={() => {
               if (inlineCompletion) recordSuggestionIgnored(inlineCompletion);
             }}
+            onRemoveHistory={removeQuery}
             onKeyDown={enterSubmit(handleSearch)}
           />
         </div>

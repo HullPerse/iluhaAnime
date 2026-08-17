@@ -4,13 +4,14 @@ import { parse } from "anitomy";
 import {
   ChevronDown,
   ChevronRight,
-  Loader,
   ListVideo,
   Monitor,
   EyeOff,
   X,
 } from "lucide-react";
 import { useState, useRef, useMemo, useCallback } from "react";
+
+import { SmallLoader } from "@/components/shared/loader.component";
 
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
@@ -323,7 +324,10 @@ function FolderView({
                       );
                     if (status === "processing")
                       return (
-                        <Loader className="text-highlight size-3 shrink-0 animate-spin" />
+                        <SmallLoader
+                          size={3}
+                          className="text-highlight shrink-0"
+                        />
                       );
                     return null;
                   })()}

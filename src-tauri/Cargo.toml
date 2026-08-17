@@ -1,6 +1,6 @@
 [package]
 name = "iluhaAnime"
-version = "3.0.1"
+version = "3.0.2"
 description = "Anime Tracker and Player"
 authors = ["HullPerse"]
 edition = "2021"

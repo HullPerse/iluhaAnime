@@ -471,7 +471,10 @@ export function collapseGraph(
   }
 
   const collapsedIds = new Set<number>();
-  const aggregators = new Map<number, { group: RelationFilter; count: number }>();
+  const aggregators = new Map<
+    number,
+    { group: RelationFilter; count: number }
+  >();
   const idToAggregator = new Map<number, number>();
   let aggIndex = 0;
   for (const [group, ids] of buckets) {

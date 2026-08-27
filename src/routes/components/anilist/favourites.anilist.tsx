@@ -59,25 +59,25 @@ export default function AniListFavouritesModal({
                   className="windows95-active-border h-18 w-13 shrink-0"
                 />
               ) : (
-                <div className="windows95-active-border flex h-14 w-10 shrink-0 items-center justify-center bg-white text-[9px]">
+                <div className="windows95-active-border flex h-14 w-10 shrink-0 items-center justify-center bg-white text-xs">
                   ?
                 </div>
               )}
               <div className="flex min-w-0 flex-1 flex-col">
                 <span
-                  className="windows95-text truncate text-[10px] font-bold"
+                  className="windows95-text truncate text-xs font-bold"
                   title={fav.title.romaji}
                 >
                   {fav.title.romaji}
                 </span>
-                <div className="mt-0.5 flex flex-row items-center gap-2 text-[9px]">
+                <div className="mt-0.5 flex flex-row items-center gap-2 text-xs">
                   {fav.mean_score != null && (
-                    <span className="bg-secondary text-primary flex flex-row items-center justify-center gap-0.5 px-1 text-[10px] font-bold">
+                    <span className="bg-secondary text-primary flex flex-row items-center justify-center gap-0.5 px-1 text-xs font-bold">
                       <Star className="size-3 fill-white" /> {fav.mean_score}
                     </span>
                   )}
                   {fav.format && (
-                    <span className="windows95-font windows95-border text-text bg-white px-1 text-[10px]">
+                    <span className="windows95-font windows95-border text-text bg-white px-1 text-xs">
                       {fav.format}
                     </span>
                   )}

@@ -46,7 +46,7 @@ function displayCell(value: unknown): string {
 function previewCell(value: unknown): string {
   const rendered = displayCell(value);
   return rendered.length > MAX_CELL_PREVIEW
-    ? `${rendered.slice(0, MAX_CELL_PREVIEW)}…`
+    ? `${rendered.slice(0, MAX_CELL_PREVIEW)}...`
     : rendered;
 }
 
@@ -100,12 +100,12 @@ function BlobImageCell({
     return () => {
       cancelled = true;
     };
-  }, [database, table, column, JSON.stringify(keys)]);
+  }, [database, table, column, JSON.stringify(keys), keys]);
 
   if (state === "loading")
-    return <span className="text-muted block text-[9px]">…</span>;
+    return <span className="text-muted block text-xs">...</span>;
   if (state === "not-image" || !src)
-    return <span className="text-muted block text-[9px]">[BLOB]</span>;
+    return <span className="text-muted block text-xs">[BLOB]</span>;
   return (
     <div className="windows95-border mx-auto size-16 shrink-0 overflow-hidden bg-white">
       <Image src={src} alt={alt} type="contain" className="h-full w-full" />
@@ -285,7 +285,7 @@ export default function SqliteSettings() {
     () =>
       databases.map((database) => ({
         value: database.id,
-        label: `${database.label}${database.available ? "" : ` · ${t("settings.sqliteUnavailable")}`}`,
+        label: `${database.label}${database.available ? "" : ` - ${t("settings.sqliteUnavailable")}`}`,
       })),
     [databases, t]
   );
@@ -319,12 +319,8 @@ export default function SqliteSettings() {
     ].includes(type);
   };
 
-  const filterableColumns = useMemo(
-    () =>
-      (selectedTableInfo?.columns ?? []).filter(
-        (column) => column.dataType.toUpperCase() !== "BLOB"
-      ),
-    [selectedTableInfo]
+  const filterableColumns = (selectedTableInfo?.columns ?? []).filter(
+    (column) => column.dataType.toUpperCase() !== "BLOB"
   );
 
   // Clicking a column tag fills in the filter template and puts the caret
@@ -626,7 +622,7 @@ export default function SqliteSettings() {
     rowsArray: Array<unknown>[],
     interactive: boolean
   ) => (
-    <table className="min-w-full border-collapse text-left text-[10px]">
+    <table className="min-w-full border-collapse text-left text-xs">
       <thead className="bg-secondary sticky top-0 text-white">
         <tr>
           {interactive && primaryKeys.length > 0 && (
@@ -785,7 +781,7 @@ export default function SqliteSettings() {
       <header className="windows95-active-border bg-primary flex items-center gap-1 p-1">
         <Database className="size-4" />
         <strong>{t("settings.sqliteTitle")}</strong>
-        <span className="text-muted text-[9px]">
+        <span className="text-muted text-xs">
           {t("settings.sqliteReadOnlyHint")}
         </span>
         <div className="ml-auto flex items-center gap-1">
@@ -815,7 +811,7 @@ export default function SqliteSettings() {
         </div>
       </header>
 
-      <section className="windows95-border bg-surface p-2 text-[10px]">
+      <section className="windows95-border bg-surface p-2 text-xs">
         <div className="flex items-start gap-1">
           <AlertTriangle className="text-highlight mt-0.5 size-3 shrink-0" />
           <span>
@@ -827,13 +823,13 @@ export default function SqliteSettings() {
       </section>
 
       {error && (
-        <section className="windows95-border bg-destructive/10 text-destructive p-2 text-[10px]">
+        <section className="windows95-border bg-destructive/10 text-destructive p-2 text-xs">
           {error}
         </section>
       )}
 
       <section className="grid gap-2 md:grid-cols-2">
-        <label className="flex flex-col gap-1 text-[10px]">
+        <label className="flex flex-col gap-1 text-xs">
           {t("settings.sqliteDatabase")}
           <Select
             value={selectedDatabase}
@@ -850,7 +846,7 @@ export default function SqliteSettings() {
           />
         </label>
         {mode === "browse" && (
-          <label className="flex flex-col gap-1 text-[10px]">
+          <label className="flex flex-col gap-1 text-xs">
             {t("settings.sqliteTable")}
             <Select
               value={selectedTable}
@@ -869,7 +865,7 @@ export default function SqliteSettings() {
       {mode === "query" ? (
         <section className="flex flex-col gap-2">
           <section className="windows95-border bg-primary p-2">
-            <div className="mb-1 text-[10px]">
+            <div className="mb-1 text-xs">
               <strong>{t("settings.sqliteQueryTitle")}</strong>
             </div>
             <textarea
@@ -894,10 +890,10 @@ export default function SqliteSettings() {
               placeholder={t("settings.sqliteQueryPlaceholder")}
               disabled={queryLoading}
               spellCheck={false}
-              className="windows95-border text-text windows95-text placeholder:text-muted disabled:bg-primary disabled:text-muted min-h-20 w-full resize-y bg-white p-1 font-mono text-[10px] outline-none"
+              className="windows95-border text-text windows95-text placeholder:text-muted disabled:bg-primary disabled:text-muted min-h-20 w-full resize-y bg-white p-1 font-mono text-xs outline-none"
             />
             <div className="mt-1 flex items-center justify-between gap-1">
-              <span className="text-muted text-[9px]">
+              <span className="text-muted text-xs">
                 {t("settings.sqliteQueryHistory")}
               </span>
               <Button
@@ -918,14 +914,14 @@ export default function SqliteSettings() {
                 <SmallLoader />
               </div>
             ) : !queryResult || queryResult.rows.length === 0 ? (
-              <div className="text-muted flex min-h-40 items-center justify-center p-3 text-[10px]">
+              <div className="text-muted flex min-h-40 items-center justify-center p-3 text-xs">
                 {queryResult
                   ? t("settings.sqliteQueryEmpty")
                   : t("settings.sqliteEmpty")}
               </div>
             ) : (
               <>
-                <div className="text-muted sticky left-0 flex items-center justify-between gap-1 border-b border-black/10 p-1 text-[10px]">
+                <div className="text-muted sticky left-0 flex items-center justify-between gap-1 border-b border-black/10 p-1 text-xs">
                   <span>
                     {t("settings.sqliteQueryResultSummary", {
                       count: queryResult.rows.length,
@@ -954,7 +950,7 @@ export default function SqliteSettings() {
         <>
           {selectedTableInfo && (
             <section className="windows95-border bg-primary p-2">
-              <div className="mb-1 flex items-center gap-1 text-[10px]">
+              <div className="mb-1 flex items-center gap-1 text-xs">
                 <strong>{t("settings.sqliteSchema")}</strong>
                 <span className="text-muted">{selectedTableInfo.name}</span>
               </div>
@@ -962,11 +958,11 @@ export default function SqliteSettings() {
                 {selectedTableInfo.columns.map((column) => (
                   <span
                     key={column.name}
-                    className="windows95-border bg-white px-1 py-0.5 text-[9px]"
+                    className="windows95-border bg-white px-1 py-0.5 text-xs"
                     title={column.dataType || t("settings.sqliteUnknownType")}
                   >
                     {column.name}
-                    {column.primaryKey ? " · PK" : ""}
+                    {column.primaryKey ? " - PK" : ""}
                   </span>
                 ))}
               </div>
@@ -994,13 +990,13 @@ export default function SqliteSettings() {
                   <Search className="size-3" />
                 </Button>
               </div>
-              <span className="text-muted text-[10px]">
+              <span className="text-muted text-xs">
                 {rows
                   ? t("settings.sqliteRowsSummary", { count: rows.total })
                   : ""}
               </span>
               {primaryKeys.length > 0 && (
-                <span className="text-muted text-[10px]">
+                <span className="text-muted text-xs">
                   {Object.keys(selectedRows).length > 0
                     ? t("settings.sqliteSelectedCount", {
                         count: Object.keys(selectedRows).length,
@@ -1024,7 +1020,7 @@ export default function SqliteSettings() {
                   })}
                 </Button>
               )}
-              <label className="flex items-center gap-1 text-[10px]">
+              <label className="flex items-center gap-1 text-xs">
                 <Checkbox
                   checked={showImages}
                   onChange={(v) => patchSettings({ sqliteShowImages: v })}
@@ -1045,14 +1041,14 @@ export default function SqliteSettings() {
             </div>
             {filterableColumns.length > 0 && (
               <div className="flex flex-wrap items-center gap-1">
-                <span className="text-muted text-[9px]">
+                <span className="text-muted text-xs">
                   {t("settings.sqliteFilterFields")}
                 </span>
                 {filterableColumns.map((column) => (
                   <button
                     key={column.name}
                     type="button"
-                    className="windows95-border hover:bg-surface active:bg-secondary windows95-text bg-white px-1 py-0.5 text-[9px] active:text-white"
+                    className="windows95-border hover:bg-surface active:bg-secondary windows95-text bg-white px-1 py-0.5 text-xs active:text-white"
                     title={t("settings.sqliteFilterTag", {
                       template: `${column.name} ${isTextColumn(column.name) ? "~" : "="} `,
                     })}
@@ -1063,7 +1059,7 @@ export default function SqliteSettings() {
                 ))}
               </div>
             )}
-            <span className="text-muted text-[9px]">
+            <span className="text-muted text-xs">
               {t("settings.sqliteFilterHint")}
             </span>
           </section>
@@ -1074,7 +1070,7 @@ export default function SqliteSettings() {
                 <SmallLoader />
               </div>
             ) : !rows || rows.rows.length === 0 ? (
-              <div className="text-muted flex min-h-40 items-center justify-center p-3 text-[10px]">
+              <div className="text-muted flex min-h-40 items-center justify-center p-3 text-xs">
                 {t("settings.sqliteEmpty")}
               </div>
             ) : (
@@ -1129,13 +1125,13 @@ export default function SqliteSettings() {
 
       {selectedCell && (
         <Modal
-          header={`${t("settings.sqliteCellTitle")} · ${selectedCell.column}`}
+          header={`${t("settings.sqliteCellTitle")} - ${selectedCell.column}`}
           onClose={() => setSelectedCell(null)}
           className="w-xl"
         >
           <section className="flex flex-col gap-2">
             <div className="flex flex-wrap items-center justify-between gap-1">
-              <span className="text-muted text-[10px]">
+              <span className="text-muted text-xs">
                 {t("settings.sqliteCellColumn")}: {selectedCell.column}
               </span>
               <div className="flex gap-1">
@@ -1178,7 +1174,7 @@ export default function SqliteSettings() {
                   placeholder={t("settings.sqliteCellPlaceholder")}
                   disabled={cellSaving}
                   spellCheck={false}
-                  className="windows95-border text-text windows95-text placeholder:text-muted disabled:bg-primary disabled:text-muted min-h-24 w-full resize-y bg-white p-1 font-mono text-[10px] outline-none"
+                  className="windows95-border text-text windows95-text placeholder:text-muted disabled:bg-primary disabled:text-muted min-h-24 w-full resize-y bg-white p-1 font-mono text-xs outline-none"
                 />
                 <div className="flex justify-end gap-1">
                   <Button
@@ -1215,7 +1211,7 @@ export default function SqliteSettings() {
                     />
                   </div>
                 )}
-                <pre className="windows95-border text-text windows95-text max-h-64 min-h-20 w-full overflow-auto bg-white p-1 text-[10px] wrap-break-word whitespace-pre-wrap">
+                <pre className="windows95-border text-text windows95-text max-h-64 min-h-20 w-full overflow-auto bg-white p-1 text-xs wrap-break-word whitespace-pre-wrap">
                   {cellValue}
                 </pre>
               </>

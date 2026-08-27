@@ -29,7 +29,7 @@ function TorrentFilePicker({
     saveDir: string,
     subFolder: string | undefined,
     sequential?: boolean
-  ) => void;
+  ) => Promise<void>;
   onCancel: () => void;
   loading?: boolean;
 }) {
@@ -101,7 +101,7 @@ function TorrentFilePicker({
     });
     if (dir) setSaveDir(dir);
     setBrowsing(false);
-  }, []);
+  }, [t]);
 
   const handleConfirm = useCallback(async () => {
     if (!torrent) return;
@@ -109,6 +109,8 @@ function TorrentFilePicker({
     const subFolder = torrent.hasCommonFolder ? undefined : torrent.name;
     try {
       await onConfirm([...selected], saveDir, subFolder, sequential);
+    } catch {
+      // onConfirm handles its own errors via store; keep picker open on failure
     } finally {
       setIsLoading(false);
     }
@@ -146,9 +148,9 @@ function TorrentFilePicker({
             <label className="windows95-text bg-primary flex cursor-pointer items-center gap-1 px-1 py-0.5 select-none">
               <Checkbox checked={allSelected} onChange={toggleAll} />
               {allSelected ? t("picker.deselectAll") : t("picker.selectAll")}
-              <span className="text-muted ml-auto text-[10px]">
+              <span className="text-muted ml-auto text-xs">
                 {fmtSize(selectedSize)} / {fmtSize(totalSize)}
-                {" · "}
+                {" - "}
                 {t("picker.fileCount", { count: torrent!.files.length })}
               </span>
             </label>
@@ -158,7 +160,7 @@ function TorrentFilePicker({
               groupFilesByDirectory(torrent.files).map((group) => (
                 <div key={group.dir || "__root__"}>
                   {group.dir && (
-                    <div className="windows95-font flex items-center gap-1 px-1 py-0.5 text-[10px] select-none">
+                    <div className="windows95-font flex items-center gap-1 px-1 py-0.5 text-xs select-none">
                       <ImageComponent
                         src="/images/w2k_folder_closed.ico"
                         alt=""
@@ -193,11 +195,11 @@ function TorrentFilePicker({
                         >
                           {item.displayName}
                         </span>
-                        <span className="text-muted shrink-0 text-[10px]">
+                        <span className="text-muted shrink-0 text-xs">
                           {fmtSize(item.size)}
                         </span>
                         {conflict && (
-                          <span className="text-destructive shrink-0 text-[10px]">
+                          <span className="text-destructive shrink-0 text-xs">
                             {t("picker.exists")}
                           </span>
                         )}

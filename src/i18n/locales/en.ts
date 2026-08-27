@@ -1,8 +1,7 @@
 const en = {
   "anilist.activity.calendar": "Calendar",
   "anilist.activity.daySummary": "{{date}}: {{count}} activities",
-  "anilist.activity.dayHint":
-    "Hover over a day or click to see details.",
+  "anilist.activity.dayHint": "Hover over a day or click to see details.",
   "anilist.activity.empty": "No activity",
   "anilist.activity.emptyStatus": "No entries with this status",
   "anilist.activity.episode": "Ep. {{n}}",
@@ -26,7 +25,9 @@ const en = {
   "anilist.activity.loadError": "Failed to load activity: {{error}}",
   "anilist.activity.minutesAgo": "{{count}} min. ago",
   "anilist.activity.note": "Note",
+  "anilist.activity.nextYear": "Next year",
   "anilist.activity.notes": "Notes",
+  "anilist.activity.prevYear": "Previous year",
   "anilist.activity.retry": "Retry",
   "anilist.activity.status.COMPLETED": "completed",
   "anilist.activity.status.CURRENT": "started watching",
@@ -279,7 +280,8 @@ const en = {
   "app.search": "Search",
   "app.settings": "Settings",
   "app.torrent": "Torrent",
-  "app.vault": "Collection",
+  "app.vault": "Vault",
+  "app.collection": "Collection",
   "common.cancel": "Cancel",
   "common.close": "Close",
   "common.collapse": "Collapse section",
@@ -560,12 +562,16 @@ const en = {
   "search.nekobt.save": "Save",
   "search.nekobt.title": "nekoBT: enter API key",
   "search.erai.errNetwork": "Cannot connect to Erai-Raws.",
-  "search.erai.errNoSession": "No Erai-Raws session was found. Sign in in the browser first, then save.",
+  "search.erai.errNoSession":
+    "No Erai-Raws session was found. Sign in in the browser first, then save.",
   "search.erai.errUnknown": "Erai-Raws login failed. Try again.",
-  "search.erai.errWebviewNotFound": "The in-app browser window is not open. Open it first.",
+  "search.erai.errWebviewNotFound":
+    "The in-app browser window is not open. Open it first.",
   "search.erai.errWebviewOpen": "Could not open the Erai-Raws browser window.",
-  "search.erai.errWebviewSave": "Could not read the Erai-Raws session. Make sure you are signed in.",
-  "search.erai.hint": "Erai-Raws hides some pages behind an account. Sign in in the built-in browser, then save the session.",
+  "search.erai.errWebviewSave":
+    "Could not read the Erai-Raws session. Make sure you are signed in.",
+  "search.erai.hint":
+    "Erai-Raws hides some pages behind an account. Sign in in the built-in browser, then save the session.",
   "search.erai.openBrowser": "Open Erai-Raws",
   "search.erai.saveSession": "Save session",
   "search.erai.title": "Erai-Raws: sign in",
@@ -654,7 +660,7 @@ const en = {
   "settings.search.autocompleteModeOffHint":
     "Suggestions are off: search history and learning stats will not be recorded.",
   "settings.search.autocompleteFooterHint":
-    "Tab accept · ↑↓ navigate · Esc close",
+    "Tab accept - ↑↓ navigate - Esc close",
   "settings.search.historyMax": "Max search history entries",
   "settings.search.learning": "Local learning",
   "settings.search.learningAnime": "AniList titles indexed",
@@ -695,13 +701,13 @@ const en = {
   "settings.sqliteEnable": "Enable SQLite browser",
   "settings.sqliteExport": "Export JSON",
   "settings.sqliteExportDone": "Export saved",
-  "settings.sqliteQueryHistory": "↑/↓ — query history",
+  "settings.sqliteQueryHistory": "↑/↓ - query history",
   "settings.sqliteSelectAll": "Select all",
   "settings.sqliteSelectedCount": "Selected: {{count}}",
   "settings.sqliteFilter": "Apply filter",
   "settings.sqliteFilterFields": "Fields:",
   "settings.sqliteFilterHint":
-    "Filter: field operator value. Operators: =, !=, >, <, >=, <=, ~ (contains), ^ (starts with), $ (ends with). AND: &&, OR: ||. Example: title ~ \"text\" && id > 5",
+    'Filter: field operator value. Operators: =, !=, >, <, >=, <=, ~ (contains), ^ (starts with), $ (ends with). AND: &&, OR: ||. Example: title ~ "text" && id > 5',
   "settings.sqliteFilterPlaceholder": "Filter: field = value",
   "settings.sqliteFilterTag": "Insert template: {{template}}",
   "settings.sqliteModeBrowse": "Browse",
@@ -794,8 +800,11 @@ const en = {
     "Settings for fast resume and saved download state.",
   "settings.torrent.speedLimits": "Speed limits",
   "settings.torrent.ulLimit": "Upload limit (KB/s)",
-  "settings.vaultTab": "Collection tab",
-  "settings.vaultTabDescription":
+  "settings.tabs": "Tabs",
+  "settings.vaultTab": "Vault",
+  "settings.vaultTabDescription": "Show the Vault tab in the main menu",
+  "settings.collectionTab": "Collection",
+  "settings.collectionTabDescription":
     "Show the Collection tab in the main menu",
   "settings.experimental": "Experimental",
   "torrent.addMagnet": "magnet",

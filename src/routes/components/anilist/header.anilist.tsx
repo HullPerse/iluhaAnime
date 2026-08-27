@@ -59,7 +59,7 @@ export default function AniListProfileHeader({
           <span className="windows95-text font-bold">
             {user.name.toUpperCase()}
           </span>
-          <span className="windows95-text text-[10px]">
+          <span className="windows95-text text-xs">
             {loadingList ? (
               "..."
             ) : (
@@ -71,7 +71,7 @@ export default function AniListProfileHeader({
                 {user.mean_score != null && (
                   <>
                     {" "}
-                    ·{" "}
+                    -{" "}
                     {t("anilist.header.meanScore", { score: user.mean_score })}
                   </>
                 )}
@@ -81,7 +81,7 @@ export default function AniListProfileHeader({
         </div>
         <Button
           size="icon"
-          className="ml-auto h-7 w-7 text-[10px]"
+          className="ml-auto h-7 w-7 text-xs"
           onClick={onStatsOpen}
           title={t("anilist.header.calendar")}
         >
@@ -89,14 +89,14 @@ export default function AniListProfileHeader({
         </Button>
         <Button
           size="icon"
-          className="h-7 w-7 text-[10px]"
+          className="h-7 w-7 text-xs"
           onClick={onBrowseOpen}
         >
           <Flame className="size-3" />
         </Button>
         <Button
           size="icon"
-          className="h-7 w-7 text-[10px]"
+          className="h-7 w-7 text-xs"
           onClick={onPrefetchOpen}
           title={t("anilist.header.prefetch")}
         >
@@ -104,13 +104,13 @@ export default function AniListProfileHeader({
         </Button>
         <Button
           size="icon"
-          className="h-7 w-7 text-[10px]"
+          className="h-7 w-7 text-xs"
           onClick={onFriendsOpen}
           title={t("anilist.friends.title")}
         >
           <Users className="size-3" />
         </Button>
-        <Button size="default" className="h-7 text-[10px]" onClick={onRecsOpen}>
+        <Button size="default" className="h-7 text-xs" onClick={onRecsOpen}>
           <UserStar className="size-3" />
         </Button>
       </section>

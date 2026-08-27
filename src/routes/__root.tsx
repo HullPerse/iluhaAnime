@@ -28,13 +28,10 @@ const indexRoute = createRoute({
 
 const ErrorPage = () => {
   const navigate = useNavigate();
+  const language = useSettingsStore((state) => state.language);
   return (
     <BigError
-      error={
-        new Error(
-          translate(useSettingsStore.getState().language, "common.error")
-        )
-      }
+      error={new Error(translate(language, "common.error"))}
       icon={<CircleX className="size-28 animate-pulse text-red-500" />}
       onRetry={() => navigate({ to: "/" })}
     />

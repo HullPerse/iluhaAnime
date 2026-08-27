@@ -16,7 +16,7 @@ import Pagination from "@/components/shared/pagination.component";
 import { Button } from "@/components/ui/button.component";
 import { seasonLabels } from "@/config/anilist.config";
 import { usePagination } from "@/hooks/pagination.hook";
-import { useUnifiedIndexSuggestions } from "@/hooks/unified.index.hook";
+import { useSugggestions } from "@/hooks/suggestion.hook";
 import {
   filterEntries,
   sortEntries,
@@ -184,7 +184,7 @@ function AnilistRoute() {
 
   useEffect(() => {
     scrollRef.current?.scrollTo(0, 0);
-  }, [page]);
+  }, []);
 
   useEffect(() => {
     if (lists.length === 0) return;
@@ -213,7 +213,7 @@ function AnilistRoute() {
     } finally {
       setLoadingSearch(false);
     }
-  }, [addQuery, anilistPageSize, searchFilters, searchTerms]);
+  }, [addQuery, searchTerms]);
 
   const handleSeason = useCallback(
     async (season: string, seasonYear: number | null) => {
@@ -252,7 +252,7 @@ function AnilistRoute() {
         setLoadingSearch(false);
       }
     },
-    [anilistPageSize]
+    [t]
   );
 
   const handleStudio = useCallback(async (id: number, name: string) => {
@@ -350,7 +350,7 @@ function AnilistRoute() {
 
   const isLocal = !!searchTerms.trim() && !global;
   const deferredSearchTerms = useDeferredValue(searchTerms);
-  const backendSuggestions = useUnifiedIndexSuggestions(
+  const backendSuggestions = useSugggestions(
     deferredSearchTerms,
     "anilist",
     8
@@ -412,7 +412,7 @@ function AnilistRoute() {
         setAnilistSearchQuery(null);
       }
     });
-  }, []);
+  }, [setAnilistSearchQuery]);
 
   return (
     <main className="flex h-full w-full flex-col gap-1">
@@ -461,7 +461,7 @@ function AnilistRoute() {
               (searchFilters.season ? 1 : 0) +
               (searchFilters.adult ? 1 : 0) >
               0 && (
-              <span className="bg-secondary absolute -top-1 -right-1 flex size-3 items-center justify-center text-[8px] text-white">
+              <span className="bg-secondary absolute -top-1 -right-1 flex size-3 items-center justify-center text-xs text-white">
                 {searchFilters.tags.length +
                   (searchFilters.format ? 1 : 0) +
                   (searchFilters.status ? 1 : 0) +
@@ -527,7 +527,7 @@ function AnilistRoute() {
 
       {global && searchResults.length > 0 && (
         <section className="windows95-border bg-primary flex flex-row items-center gap-2 px-1 py-0.5">
-          <span className="windows95-text text-muted text-[10px]">
+          <span className="windows95-text text-muted text-xs">
             {t("anilist.route.sorting")}
           </span>
           {(["relevance", "title", "score", "year"] as const).map((s) => {

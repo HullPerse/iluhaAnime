@@ -19,10 +19,7 @@ import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/lib/i18n";
 import type { TranslationKey } from "@/lib/i18n";
 import { cn } from "@/lib/index.utils";
-import {
-  copyNotification,
-  formatRelativeTime,
-} from "@/lib/notification.utils";
+import { copyNotification, formatRelativeTime } from "@/lib/notification.utils";
 import { fmtETA, fmtSize, fmtSpeed, stateLabel } from "@/lib/torrent.utils";
 import { useTorrentStore } from "@/store/download.store";
 import { useNotificationStore } from "@/store/notification.store";
@@ -83,12 +80,12 @@ function ActiveTorrentItem({ item }: { item: TorrentInfo }) {
       <div className="flex items-center gap-1">
         <Download className="text-secondary size-3 shrink-0" />
         <span
-          className="windows95-text min-w-0 flex-1 truncate text-[10px] font-bold"
+          className="windows95-text min-w-0 flex-1 truncate text-xs font-bold"
           title={item.name}
         >
           {item.name}
         </span>
-        <span className="windows95-text shrink-0 text-[10px]">
+        <span className="windows95-text shrink-0 text-xs">
           {percentage}%
         </span>
       </div>
@@ -105,14 +102,12 @@ function ActiveTorrentItem({ item }: { item: TorrentInfo }) {
           style={{ width: `${percentage}%` }}
         />
       </div>
-      <div className="text-muted windows95-text mt-0.5 flex flex-wrap gap-x-2 text-[9px]">
+      <div className="text-muted windows95-text mt-0.5 flex flex-wrap gap-x-2 text-xs">
         <span>
           {fmtSize(item.progress_bytes)} / {fmtSize(item.total_bytes)}
         </span>
         <span>{stateLabel(item.state, t)}</span>
-        {speed && (
-          <span>{t("torrent.summary.download", { speed })}</span>
-        )}
+        {speed && <span>{t("torrent.summary.download", { speed })}</span>}
         {eta && <span>ETA {eta}</span>}
       </div>
     </div>
@@ -121,7 +116,10 @@ function ActiveTorrentItem({ item }: { item: TorrentInfo }) {
 
 interface NotificationRowProps {
   item: NotificationItem;
-  t: (key: TranslationKey, variables?: Record<string, string | number>) => string;
+  t: (
+    key: TranslationKey,
+    variables?: Record<string, string | number>
+  ) => string;
   markRead: (id: number) => void;
   clear: (id: number) => void;
 }
@@ -158,15 +156,15 @@ function NotificationRow({ item, t, markRead, clear }: NotificationRowProps) {
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1">
-          <span className="windows95-text min-w-0 flex-1 truncate text-[10px] font-bold">
+          <span className="windows95-text min-w-0 flex-1 truncate text-xs font-bold">
             {item.title}
           </span>
-          <span className="text-muted shrink-0 text-[8px]">
+          <span className="text-muted shrink-0 text-xs">
             {formatRelativeTime(item.timestamp, t)}
           </span>
         </div>
         {item.message && (
-          <div className="text-muted truncate text-[9px]">{item.message}</div>
+          <div className="text-muted truncate text-xs">{item.message}</div>
         )}
       </div>
       <Button
@@ -248,7 +246,7 @@ export default function NotificationTray() {
         {unreadCount > 0 ? (
           <>
             <BellDot className="size-3" />
-            <span className="bg-destructive absolute -top-1 -right-1 flex size-3.5 items-center justify-center rounded-full text-[8px] text-white">
+            <span className="bg-destructive absolute -top-1 -right-1 flex size-3.5 items-center justify-center rounded-full text-xs text-white">
               {unreadCount > 9 ? "9+" : unreadCount}
             </span>
           </>
@@ -264,7 +262,7 @@ export default function NotificationTray() {
           aria-label={t("notification.title")}
         >
           <div className="bg-secondary border-muted flex items-center justify-between border-b px-1 py-0.5 text-white">
-            <span className="windows95-text text-[10px] font-bold">
+            <span className="windows95-text text-xs font-bold">
               {t("notification.count", { count: items.length })}
             </span>
             <div className="flex gap-0.5">
@@ -303,7 +301,7 @@ export default function NotificationTray() {
                   title={t(filterKeys[f])}
                   aria-pressed={filter === f}
                   className={cn(
-                    "windows95-text windows95-active-border px-1 py-px text-[8px] select-none hover:cursor-pointer",
+                    "windows95-text windows95-active-border px-1 py-px text-xs select-none hover:cursor-pointer",
                     filter === f
                       ? "bg-secondary text-white"
                       : "bg-primary text-text hover:bg-surface"
@@ -318,7 +316,7 @@ export default function NotificationTray() {
           <div className="max-h-60 overflow-y-auto">
             {filter === "downloads" ? (
               activeDownloads.length === 0 ? (
-                <div className="text-muted flex items-center justify-center py-4 text-[10px]">
+                <div className="text-muted flex items-center justify-center py-4 text-xs">
                   {t("notification.downloadsEmpty")}
                 </div>
               ) : (
@@ -329,7 +327,7 @@ export default function NotificationTray() {
             ) : (
               <>
                 {visible.length === 0 && (
-                  <div className="text-muted flex items-center justify-center py-4 text-[10px]">
+                  <div className="text-muted flex items-center justify-center py-4 text-xs">
                     {items.length === 0
                       ? t("notification.empty")
                       : t("notification.filterEmpty")}

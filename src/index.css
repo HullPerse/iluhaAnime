@@ -5,6 +5,8 @@
   src: url("/fonts/perfect-dos-vga-437.woff2") format("woff2");
 }
 
+/* Design tokens. Themes override the --color-* values at runtime by writing
+   inline styles on <html>, so utilities must keep referencing the vars. */
 :root {
   --font-family: "MS Sans Serif", "Microsoft Sans Serif", "Segoe UI", system-ui;
   --color-background: #222222;
@@ -21,22 +23,21 @@
   --color-surface: #d0d0d0;
   --color-win-highlight: #ffffff;
   --color-win-shadow: #808080;
-  --color-desktop: #018281;
-  --color-multi: #800080;
-  --color-dual: #808000;
+  --color-title-text: #ffffff;
   --ui-control-height: 26px;
   --ui-panel-gap: 0.375rem;
   --ui-font-size: 12px;
   --ui-icon-size: 2rem;
   --ui-check-size: 1rem;
-  --color-title-text: #ffffff;
   --ui-focus-color: var(--color-highlight);
   --ui-focus-width: 2px;
   --ui-focus-offset: 1px;
   --ui-panel-shadow: 1px 1px 0 var(--color-win-shadow);
 }
 
-@theme {
+/* Tailwind theme mapping. Inline keeps the utilities bound to the vars above,
+   so runtime theme switching keeps working. */
+@theme inline {
   --color-background: var(--color-background);
   --color-primary: var(--color-primary);
   --color-secondary: var(--color-secondary);
@@ -49,9 +50,6 @@
   --color-surface: var(--color-surface);
   --color-win-highlight: var(--color-win-highlight);
   --color-win-shadow: var(--color-win-shadow);
-  --color-desktop: var(--color-desktop);
-  --color-multi: var(--color-multi);
-  --color-dual: var(--color-dual);
 }
 
 @layer base {
@@ -59,6 +57,7 @@
     border-radius: 0 !important;
     scroll-behavior: smooth;
   }
+
   html,
   body {
     overflow: hidden;
@@ -74,18 +73,42 @@
     font: inherit;
   }
 
-  input::file-selector-button {
-    border: 2px solid;
-    border-top-color: var(--color-win-highlight);
-    border-left-color: var(--color-win-highlight);
-    border-bottom-color: var(--color-win-shadow);
-    border-right-color: var(--color-win-shadow);
-  }
-
   button:disabled,
   [aria-disabled="true"] {
     cursor: not-allowed;
   }
+
+  input::file-selector-button {
+    border: 2px solid;
+    border-color: var(--color-win-highlight) var(--color-win-shadow)
+      var(--color-win-shadow) var(--color-win-highlight);
+  }
+}
+
+/* Windows 95 bevels. Sides are (top right bottom left). */
+.windows95-border {
+  border: 2px solid;
+  border-color: var(--color-muted) var(--color-win-highlight)
+    var(--color-win-highlight) var(--color-muted);
+}
+
+.windows95-active-border {
+  border: 2px solid;
+  border-color: var(--color-win-highlight) var(--color-muted) var(--color-muted)
+    var(--color-win-highlight);
+}
+
+.windows95-small-border {
+  border: 1px solid;
+  border-color: var(--color-win-highlight) var(--color-win-shadow)
+    var(--color-win-shadow) var(--color-win-highlight);
+}
+
+.windows95-3d-border {
+  box-shadow:
+    inset 1px 1px 0 var(--color-win-highlight),
+    inset -1px -1px 0 var(--color-win-shadow),
+    1px 1px 0 var(--color-win-shadow);
 }
 
 .windows95-text {
@@ -97,52 +120,18 @@
   font-family: var(--font-family);
 }
 
-.windows95-border {
-  border: 2px solid;
-  border-top-color: var(--color-muted);
-  border-left-color: var(--color-muted);
-  border-bottom-color: var(--color-win-highlight);
-  border-right-color: var(--color-win-highlight);
-}
-
-.windows95-active-border {
-  border: 2px solid;
-  border-top-color: var(--color-win-highlight);
-  border-left-color: var(--color-win-highlight);
-  border-bottom-color: var(--color-muted);
-  border-right-color: var(--color-muted);
-}
-
-.windows95-select {
-  --tw-outline-style: none;
-  outline-style: none;
-  background-color: var(--color-surface);
-  color: var(--color-text);
-}
-
-.windows95-select:focus-visible {
-  outline-style: dotted;
-  outline-width: 1px;
-  outline-offset: -3px;
-  outline-color: var(--color-text);
-}
-
 *:focus-visible {
-  outline-style: dotted;
-  outline-width: 1px;
+  outline: 1px dotted var(--color-text);
   outline-offset: -3px;
-  outline-color: var(--color-text);
 }
 
-/* Shared layout vocabulary. Screens should compose these instead of inventing
-   a new bevel, toolbar, or empty state for every route. */
+/* Shared layout vocabulary. Screens compose these instead of inventing a new
+   bevel, toolbar, or empty state for every route. */
 .ui-panel {
   background: var(--color-primary);
   border: 2px solid;
-  border-top-color: var(--color-win-highlight);
-  border-left-color: var(--color-win-highlight);
-  border-bottom-color: var(--color-win-shadow);
-  border-right-color: var(--color-win-shadow);
+  border-color: var(--color-win-highlight) var(--color-win-shadow)
+    var(--color-win-shadow) var(--color-win-highlight);
   box-shadow: var(--ui-panel-shadow);
 }
 
@@ -169,16 +158,6 @@
   font-weight: 700;
 }
 
-.ui-titlebar .text-white {
-  color: var(--color-title-text, #ffffff);
-}
-
-/* Legacy title strips can opt into the computed foreground when their accent
-   color is light; the default Win95 palette remains unchanged. */
-[data-theme]:not([data-theme="win95"]) .bg-secondary.text-white {
-  color: var(--color-title-text, #ffffff) !important;
-}
-
 .ui-empty-state {
   display: flex;
   min-height: 10rem;
@@ -187,29 +166,24 @@
   gap: 0.5rem;
   padding: 1rem;
   border: 2px solid;
-  border-top-color: var(--color-win-shadow);
-  border-left-color: var(--color-win-shadow);
-  border-bottom-color: var(--color-win-highlight);
-  border-right-color: var(--color-win-highlight);
+  border-color: var(--color-win-shadow) var(--color-win-highlight)
+    var(--color-win-highlight) var(--color-win-shadow);
   background: color-mix(in srgb, var(--color-surface) 70%, transparent);
   color: var(--color-muted);
   text-align: center;
 }
 
-.ui-field-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  min-height: var(--ui-control-height);
-  font-family: var(--font-family);
-  font-size: var(--ui-font-size, 11px);
+/* Legacy title strips opt into the computed foreground when their accent
+   color is light; the default Win95 palette remains unchanged. */
+.ui-titlebar .text-white {
+  color: var(--color-title-text, #ffffff);
 }
 
-.ui-icon-button {
-  min-width: 24px;
-  min-height: 24px;
+[data-theme]:not([data-theme="win95"]) .bg-secondary.text-white {
+  color: var(--color-title-text, #ffffff) !important;
 }
 
+/* Dense layout mode. */
 [data-ui-density="compact"] {
   --ui-control-height: 20px;
   --ui-panel-gap: 0.125rem;
@@ -228,15 +202,11 @@
   gap: 0.125rem;
 }
 
-[data-ui-density="compact"] .ui-field-label {
-  gap: 0.25rem;
-  font-size: 10px;
-}
-
 [data-ui-density="compact"] .ui-panel {
   gap: 0.125rem;
 }
 
+/* Soft retro style: thinner bevels, softer shadow. */
 [data-retro-style="soft"] {
   --ui-panel-shadow: 1px 1px 0
     color-mix(in srgb, var(--color-win-shadow) 60%, transparent);
@@ -254,6 +224,11 @@
     inset -1px -1px 0 var(--color-win-shadow);
 }
 
+[data-retro-style="soft"] .ui-titlebar {
+  min-height: calc(var(--ui-control-height) + 2px);
+}
+
+/* High-contrast retro style: pure black/white bevels, stronger focus. */
 [data-retro-style="high-contrast"] {
   --ui-focus-color: #ffff00;
   --ui-focus-width: 3px;
@@ -268,35 +243,19 @@
   outline-offset: var(--ui-focus-offset) !important;
 }
 
-/* Pure black/white bevels so every control pops regardless of theme. */
 [data-retro-style="high-contrast"] .windows95-border {
   border-width: 2px;
-  border-top-color: #000000;
-  border-left-color: #000000;
-  border-bottom-color: #ffffff;
-  border-right-color: #ffffff;
+  border-color: #000000 #ffffff #ffffff #000000;
 }
 
-[data-retro-style="high-contrast"] .windows95-active-border {
+[data-retro-style="high-contrast"] .windows95-active-border,
+[data-retro-style="high-contrast"] .ui-panel {
   border-width: 2px;
-  border-top-color: #ffffff;
-  border-left-color: #ffffff;
-  border-bottom-color: #000000;
-  border-right-color: #000000;
+  border-color: #ffffff #000000 #000000 #ffffff;
 }
 
 [data-retro-style="high-contrast"] .windows95-small-border {
-  border-top-color: #ffffff;
-  border-left-color: #ffffff;
-  border-bottom-color: #000000;
-  border-right-color: #000000;
-}
-
-[data-retro-style="high-contrast"] .ui-panel {
-  border-top-color: #ffffff;
-  border-left-color: #ffffff;
-  border-bottom-color: #000000;
-  border-right-color: #000000;
+  border-color: #ffffff #000000 #000000 #ffffff;
 }
 
 [data-retro-style="high-contrast"] .windows95-3d-border {
@@ -306,45 +265,7 @@
     2px 2px 0 #000000;
 }
 
-[data-retro-style="soft"] .ui-titlebar {
-  min-height: calc(var(--ui-control-height) + 2px);
-}
-
-.windows95-small-border {
-  border: 1px solid;
-  border-top-color: var(--color-win-highlight);
-  border-left-color: var(--color-win-highlight);
-  border-bottom-color: var(--color-win-shadow);
-  border-right-color: var(--color-win-shadow);
-}
-
-.windows95-3d-border {
-  box-shadow:
-    inset 1px 1px 0 var(--color-win-highlight),
-    inset -1px -1px 0 var(--color-win-shadow),
-    1px 1px 0 var(--color-win-shadow);
-}
-
-.no-animations *,
-.no-animations *::before,
-.no-animations *::after {
-  animation: none !important;
-  transition: none !important;
-  scroll-behavior: auto !important;
-}
-
-@keyframes ui-loading-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* Loading indicators remain animated even when decorative animations are off. */
-.ui-loading-spinner,
-.no-animations .ui-loading-spinner {
-  animation: ui-loading-spin 1s linear infinite !important;
-}
-
+/* Windows 95 scrollbars. */
 :root:not(.native-scrollbar) ::-webkit-scrollbar {
   width: 14px;
   height: 16px;
@@ -358,10 +279,8 @@
 :root:not(.native-scrollbar) ::-webkit-scrollbar-thumb {
   background: var(--color-primary);
   border: 2px solid;
-  border-top-color: var(--color-win-highlight);
-  border-left-color: var(--color-win-highlight);
-  border-bottom-color: var(--color-win-shadow);
-  border-right-color: var(--color-win-shadow);
+  border-color: var(--color-win-highlight) var(--color-win-shadow)
+    var(--color-win-shadow) var(--color-win-highlight);
 }
 
 :root:not(.native-scrollbar) ::-webkit-scrollbar-button {
@@ -372,59 +291,11 @@
   background: var(--color-win-highlight);
 }
 
-@property --tw-translate-x {
-  syntax: "*";
-  inherits: false;
-  initial-value: 0;
-}
-@property --tw-translate-y {
-  syntax: "*";
-  inherits: false;
-  initial-value: 0;
-}
-@property --tw-translate-z {
-  syntax: "*";
-  inherits: false;
-  initial-value: 0;
-}
-
-input::-webkit-outer-spin-button,
-input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-}
-
-input[type="number"] {
-  -moz-appearance: textfield; /* Firefox */
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    scroll-behavior: auto !important;
-    animation-duration: 0.001ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.001ms !important;
-  }
-}
-
-.windows95-header {
-  border: none;
-  border-top: 1px solid var(--color-muted);
-  margin: 0.25rem 0;
-}
-
-select,
-::picker(select) {
-  cursor: pointer;
-}
-
 :root:not(.native-scrollbar) ::-webkit-resizer {
   background-color: var(--color-primary);
-  border-top: 1px solid var(--color-win-highlight);
-  border-left: 1px solid var(--color-win-highlight);
-  border-right: 1px solid var(--color-win-shadow);
-  border-bottom: 1px solid var(--color-win-shadow);
+  border: 1px solid;
+  border-color: var(--color-win-highlight) var(--color-win-shadow)
+    var(--color-win-shadow) var(--color-win-highlight);
   box-shadow:
     inset 1px 1px 0 var(--color-win-highlight),
     inset -1px -1px 0 var(--color-win-shadow);
@@ -443,23 +314,49 @@ select,
   background-size: 10px 10px;
 }
 
-@keyframes reaction-rise {
-  from {
-    transform: translate(-50%, -50%) scale(0.6);
-    opacity: 0;
-  }
-  15% {
-    opacity: 1;
-  }
+/* Number inputs keep their native arrows hidden. */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+select,
+::picker(select) {
+  cursor: pointer;
+}
+
+/* Motion. Loading indicators stay animated even when decorative animations
+   are off; reduced-motion users get static UI. */
+.no-animations *,
+.no-animations *::before,
+.no-animations *::after {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}
+
+@keyframes ui-loading-spin {
   to {
-    transform: translate(
-        calc(-50% + var(--reaction-x, 0px)),
-        calc(-50% - 120px)
-      )
-      scale(1.15);
-    opacity: 0;
+    transform: rotate(360deg);
   }
 }
-.reaction-burst {
-  animation: reaction-rise 2.4s ease-out forwards;
+
+.ui-loading-spinner,
+.no-animations .ui-loading-spinner {
+  animation: ui-loading-spin 1s linear infinite !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }

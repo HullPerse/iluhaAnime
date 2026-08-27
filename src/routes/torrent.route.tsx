@@ -1,10 +1,16 @@
 import { listen } from "@tauri-apps/api/event";
-import { Inbox, Plus, SortAsc, SortDesc } from "lucide-react";
-import { useState, useEffect, useMemo, useRef, useCallback, useDeferredValue } from "react";
+import { Plus, SortAsc, SortDesc } from "lucide-react";
+import {
+  useState,
+  useEffect,
+  useMemo,
+  useRef,
+  useCallback,
+  useDeferredValue,
+} from "react";
 
 import { InlineAutocompleteInput } from "@/components/shared/autocomplete.component";
 import Pagination from "@/components/shared/pagination.component";
-import { EmptyState } from "@/components/shared/state.component";
 import { Button } from "@/components/ui/button.component";
 import { TORRENT_PAGE_SIZE } from "@/config/torrent.config";
 import { usePagination } from "@/hooks/pagination.hook";
@@ -125,8 +131,7 @@ function TorrentRoute() {
         extraValues: extraValues.values,
         limit: 8,
       }),
-    // Recompute only when the query or the set of names actually changes.
-    [deferredFilterQuery, extraValues.signature]
+    [deferredFilterQuery, extraValues.values]
   );
   const inlineCompletion = useMemo(
     () => getInlineCompletion(deferredFilterQuery, suggestions),
@@ -135,7 +140,7 @@ function TorrentRoute() {
 
   useEffect(() => {
     setPage(1);
-  }, [filterQuery, lifecycleFilter, sortBy, sortAsc]);
+  }, []);
 
   useEffect(() => {
     setPage((current) => Math.min(current, lastPage));
@@ -143,7 +148,7 @@ function TorrentRoute() {
 
   useEffect(() => {
     listRef.current?.scrollTo({ top: 0, behavior: "smooth" });
-  }, [page]);
+  }, []);
 
   const summary = useMemo(() => {
     const active = torrents.filter(
@@ -189,7 +194,7 @@ function TorrentRoute() {
       disposed = true;
       unlisten?.();
     };
-  }, []);
+  }, [prepareTorrentDownloadFromFile]);
 
   useEffect(() => {
     const loadMissing = () => {
@@ -277,7 +282,7 @@ function TorrentRoute() {
     if (dl !== null || ul !== null) {
       setSpeedLimits(dl, ul);
     }
-  }, []);
+  }, [setSpeedLimits]);
 
   useEffect(() => {
     const totalDl = torrents.reduce((s, t) => s + t.download_speed, 0);
@@ -322,21 +327,21 @@ function TorrentRoute() {
         role="status"
         aria-live="polite"
       >
-        <span className="windows95-text text-[10px]">
+        <span className="windows95-text text-xs">
           {t("torrent.summary.total", { count: torrents.length })}
         </span>
-        <span className="windows95-text text-highlight text-[10px]">
+        <span className="windows95-text text-highlight text-xs">
           {t("torrent.summary.active", { count: summary.active })}
         </span>
-        <span className="windows95-text text-success text-[10px]">
+        <span className="windows95-text text-success text-xs">
           {t("torrent.summary.seeding", { count: summary.seeding })}
         </span>
-        <span className="windows95-text ml-auto text-[10px]">
+        <span className="windows95-text ml-auto text-xs">
           {t("torrent.summary.download", {
             speed: fmtSpeed(summary.download) || "0 B/s",
           })}
         </span>
-        <span className="windows95-text text-[10px]">
+        <span className="windows95-text text-xs">
           {t("torrent.summary.upload", {
             speed: fmtSpeed(summary.upload) || "0 B/s",
           })}
@@ -350,7 +355,7 @@ function TorrentRoute() {
             key={lc}
             variant={lifecycleFilter === lc ? "outline" : "default"}
             size="default"
-            className="px-1 py-0.5 text-[10px]"
+            className="px-1 py-0.5 text-xs"
             onClick={() => setLifecycleFilter(lc)}
           >
             {lc === "all" ? t("torrent.all") : getLifecycleLabel(lc, t)}
@@ -397,16 +402,7 @@ function TorrentRoute() {
           {t("torrent.addMagnet")}
         </Button>
       </section>
-      {filteredTorrents.length === 0 && (
-        <EmptyState icon={<Inbox className="size-8" />}>
-          <span>
-            {filterQuery || lifecycleFilter !== "all"
-              ? t("torrent.emptyFiltered")
-              : t("torrent.empty")}
-          </span>
-          <span className="block text-[10px]">{t("torrent.emptyHint")}</span>
-        </EmptyState>
-      )}
+
       {total > 0 && (
         <section
           ref={listRef}

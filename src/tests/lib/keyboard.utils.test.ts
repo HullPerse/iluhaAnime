@@ -1,6 +1,5 @@
-import { describe, expect, it, vi } from "vitest";
-
 import type { KeyboardEvent } from "react";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   createListNavigationHandler,
@@ -10,7 +9,9 @@ import {
   moveIndex,
 } from "@/lib/keyboard.utils";
 
-function keyEvent(overrides: Partial<KeyboardEvent<Element>> = {}): KeyboardEvent<Element> {
+function keyEvent(
+  overrides: Partial<KeyboardEvent<Element>> = {}
+): KeyboardEvent<Element> {
   return {
     key: "",
     preventDefault: vi.fn(),

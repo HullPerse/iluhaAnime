@@ -10,13 +10,18 @@ import {
   type ActivityTranslate,
   type DayActivity,
 } from "@/lib/activity.anilist.utils";
-import type { AniListCollection, AniListEntry, AniMedia } from "@/types/anilist";
+import type {
+  AniListCollection,
+  AniListEntry,
+  AniMedia,
+} from "@/types/anilist";
 
 function makeT(): ActivityTranslate {
   return (key, variables) => {
     if (key === "anilist.activity.minutesAgo")
       return `${variables?.count ?? 0} min`;
-    if (key === "anilist.activity.hoursAgo") return `${variables?.count ?? 0} h`;
+    if (key === "anilist.activity.hoursAgo")
+      return `${variables?.count ?? 0} h`;
     if (key === "anilist.activity.eventAdded") return "Added";
     if (key === "anilist.activity.eventProgress") return "Progress";
     if (key === "anilist.activity.eventCompleted") return "Completed";
@@ -139,7 +144,10 @@ describe("buildActivityMap", () => {
     const collections: AniListCollection[] = [
       makeCollection({
         entries: [
-          makeEntry({ media: makeMedia({ id: 1, title: "A" }), created_at: created }),
+          makeEntry({
+            media: makeMedia({ id: 1, title: "A" }),
+            created_at: created,
+          }),
           makeEntry({
             media: makeMedia({ id: 1, title: "A" }),
             created_at: created,
@@ -179,7 +187,7 @@ describe("buildActivityMap", () => {
     const map = buildActivityMap(collections, t);
     const day = map.get("2024-05-10");
     expect(day?.items).toHaveLength(1);
-    expect(day?.items[0].events).toBe("Added · Progress");
+    expect(day?.items[0].events).toBe("Added - Progress");
   });
 });
 

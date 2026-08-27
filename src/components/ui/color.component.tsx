@@ -102,7 +102,7 @@ function ColorPicker({
                 setR(v);
                 setHexInput(rgbaToHex({ a: 1, b, g, r: v }, false));
               }}
-              className="h-5 w-14 text-[10px]"
+              className="h-5 w-14 text-xs"
             />
             <span className="ml-1 w-3">G</span>
             <Input
@@ -118,7 +118,7 @@ function ColorPicker({
                 setG(v);
                 setHexInput(rgbaToHex({ a: 1, b, g: v, r }, false));
               }}
-              className="h-5 w-14 text-[10px]"
+              className="h-5 w-14 text-xs"
             />
             <span className="ml-1 w-3">B</span>
             <Input
@@ -134,7 +134,7 @@ function ColorPicker({
                 setB(v);
                 setHexInput(rgbaToHex({ a: 1, b: v, g, r }, false));
               }}
-              className="h-5 w-14 text-[10px]"
+              className="h-5 w-14 text-xs"
             />
           </label>
           <label className="windows95-text text-text flex items-center gap-1">
@@ -142,7 +142,7 @@ function ColorPicker({
             <Input
               value={hexInput.replace("#", "")}
               onChange={(e) => onHexChange(`#${e.target.value}`)}
-              className="h-5 w-24 text-[10px] uppercase"
+              className="h-5 w-24 text-xs uppercase"
               placeholder="000000"
             />
           </label>

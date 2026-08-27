@@ -34,7 +34,7 @@ export default function AniListSortBar({
 
   return (
     <section className="windows95-border flex flex-row items-center gap-2 bg-white px-1 py-0.5">
-      <span className="windows95-text text-muted text-[10px]">
+      <span className="windows95-text text-muted text-xs">
         {t("anilist.sort.sorting")}
       </span>
       {(["title", "score", "progress"] as AniListSort["key"][]).map((s) => {
@@ -54,13 +54,19 @@ export default function AniListSortBar({
 
       <span className="bg-muted ml-auto h-5 w-px" />
       <div className="flex flex-row gap-1">
-        <Button size="icon" className="h-6 w-6" onClick={onActivityOpen}>
+        <Button
+          size="icon"
+          className="h-6 w-6"
+          onClick={onActivityOpen}
+          aria-label={t("anilist.sort.history")}
+        >
           <Activity className="size-3.5" />
         </Button>
         <Button
           size="icon"
           className="h-6 w-6"
           title={t("anilist.sort.history")}
+          aria-label={t("anilist.sort.history")}
           onClick={onHistoryOpen}
         >
           <CalendarDays className="size-3.5" />
@@ -69,6 +75,7 @@ export default function AniListSortBar({
           size="icon"
           className="h-6 w-6"
           title={t("anilist.sort.favourites")}
+          aria-label={t("anilist.sort.favourites")}
           onClick={onFavouritesOpen}
           disabled={!hasFavourites}
         >
@@ -78,6 +85,7 @@ export default function AniListSortBar({
           size="icon"
           className="h-6 w-6"
           title={t("anilist.sort.random")}
+          aria-label={t("anilist.sort.random")}
           onClick={onRandom}
         >
           <Dices className="size-3.5" />

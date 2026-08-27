@@ -1,5 +1,5 @@
 const chipClass =
-  "windows95-border px-1 text-[10px] windows95-text cursor-pointer hover:bg-surface bg-white";
+  "windows95-border px-1 text-xs windows95-text cursor-pointer hover:bg-surface bg-white";
 
 import { useI18n } from "@/lib/i18n";
 

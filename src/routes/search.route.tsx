@@ -15,27 +15,27 @@ import { SmallLoader } from "@/components/shared/loader.component";
 import { Button } from "@/components/ui/button.component";
 import Select from "@/components/ui/select.component";
 import { SOURCE_INFOS } from "@/config/search.config";
+import { useSugggestions } from "@/hooks/suggestion.hook";
 import { useI18n } from "@/lib/i18n";
 import { enterSubmit } from "@/lib/keyboard.utils";
-import { useUnifiedIndexSuggestions } from "@/hooks/unified.index.hook";
-import {
-  getInlineCompletion,
-  getSearchSuggestions,
-} from "@/lib/search.suggestions";
 import { copyMagnet, openMagnet, downloadMagnet } from "@/lib/magnet.utils";
 import {
   sortAnimeResults,
   filterAnimeResults,
   getVisibleSources,
 } from "@/lib/search.logic";
+import {
+  getInlineCompletion,
+  getSearchSuggestions,
+} from "@/lib/search.suggestions";
 import SearchAuthButtons from "@/routes/components/search/auth.search";
 import TorrentDetailsModal from "@/routes/components/search/details.search";
+import EraiLoginModal from "@/routes/components/search/erai.search";
 import SearchFiltersBar from "@/routes/components/search/filters.search";
 import SearchFiltersModal from "@/routes/components/search/modal.filters";
 import NekoBtApiModal from "@/routes/components/search/nekobt.search";
 import SearchResultItem from "@/routes/components/search/result.search";
 import RutrackerLoginModal from "@/routes/components/search/rutracker.search";
-import EraiLoginModal from "@/routes/components/search/erai.search";
 import { useSearchStore } from "@/store/search.store";
 import { useSettingsStore } from "@/store/settings.store";
 import type { Anime, Source } from "@/types";
@@ -190,7 +190,7 @@ function SearchRoute() {
   useEffect(() => {
     setMagnets({});
     setLoadingMagnet({});
-  }, [source, submittedQuery, searchRequest, nyaaPage, sortBy, sortDirection]);
+  }, []);
 
   useEffect(() => {
     if (crossSearchQuery) {
@@ -255,11 +255,7 @@ function SearchRoute() {
   };
 
   const deferredSearch = useDeferredValue(searchParams);
-  const backendSuggestions = useUnifiedIndexSuggestions(
-    deferredSearch,
-    "torrent",
-    8
-  );
+  const backendSuggestions = useSugggestions(deferredSearch, "torrent", 8);
   const suggestions = useMemo(
     () =>
       getSearchSuggestions(deferredSearch, {
@@ -274,6 +270,7 @@ function SearchRoute() {
         limit: 8,
       }),
     [
+      animeIndex,
       anilistSuggestionBoost,
       animeProfileId,
       backendSuggestions,
@@ -400,7 +397,7 @@ function SearchRoute() {
       )}
 
       {data && data.length > 0 && (
-        <span className="windows95-text px-1 text-[10px]">
+        <span className="windows95-text px-1 text-xs">
           {isPagedSource
             ? t("search.pageResults", {
                 page: nyaaPage,
@@ -419,7 +416,7 @@ function SearchRoute() {
         <section className="ui-empty-state flex-1 flex-col">
           <Inbox className="size-8" />
           <span className="windows95-text">{t("search.nothingFound")}</span>
-          <span className="windows95-text text-[10px]">
+          <span className="windows95-text text-xs">
             {t("search.tryDifferent")}
           </span>
         </section>

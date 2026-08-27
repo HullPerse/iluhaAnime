@@ -118,7 +118,9 @@ describe("InlineAutocompleteInput", () => {
     await user.keyboard("{Escape}");
 
     expect(onDismiss).toHaveBeenCalledOnce();
-    expect(view.container.querySelector(".inline-autocomplete-ghost")).toBeNull();
+    expect(
+      view.container.querySelector(".inline-autocomplete-ghost")
+    ).toBeNull();
   });
 
   it("shows the suggestion menu when focused", async () => {
@@ -172,7 +174,9 @@ describe("InlineAutocompleteInput", () => {
       />
     );
 
-    expect(view.container.querySelector(".inline-autocomplete-ghost")).toBeNull();
+    expect(
+      view.container.querySelector(".inline-autocomplete-ghost")
+    ).toBeNull();
     await user.click(screen.getByRole("textbox", { name: "Search" }));
     expect(screen.getByRole("listbox")).not.toBeNull();
   });
@@ -220,7 +224,9 @@ describe("InlineAutocompleteInput", () => {
     );
     expect(sections).toEqual(["anime", "history", "local"]);
 
-    const options = screen.getAllByRole("option").map((node) => node.textContent);
+    const options = screen
+      .getAllByRole("option")
+      .map((node) => node.textContent);
     expect(options[0]).toContain("Frieren");
     expect(options[1]).toContain("Frieren S2");
     expect(options[2]).toContain("Frieren 1080p");
@@ -262,7 +268,9 @@ describe("InlineAutocompleteInput", () => {
 
     await user.click(screen.getByRole("textbox", { name: "Search" }));
 
-    const historyOptions = screen.getAllByRole("option").map((node) => node.textContent);
+    const historyOptions = screen
+      .getAllByRole("option")
+      .map((node) => node.textContent);
     expect(historyOptions[0]).toContain("monster");
     expect(historyOptions[1]).toContain("frieren 1080p");
     expect(historyOptions[2]).toContain("shingeki season 2");

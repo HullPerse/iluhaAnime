@@ -41,7 +41,7 @@ function AniListAuthModal({
     <Modal header={t("anilist.auth.title")} onClose={onClose}>
       <div className="flex flex-col gap-2 p-1">
         <span className="windows95-text">{t("anilist.auth.intro")}</span>
-        <ul className="windows95-text list-disc pl-4 text-[10px]">
+        <ul className="windows95-text list-disc pl-4 text-xs">
           <li>
             {t("anilist.auth.step1")}{" "}
             <a

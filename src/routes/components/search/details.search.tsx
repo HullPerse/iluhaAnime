@@ -11,10 +11,9 @@ import {
   Rss,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-
-import { SmallLoader } from "@/components/shared/loader.component";
 import type { ReactNode } from "react";
 
+import { SmallLoader } from "@/components/shared/loader.component";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
@@ -48,9 +47,9 @@ function DetailSection({
     <section className="windows95-border bg-white">
       <header className="bg-secondary flex items-center gap-1 px-1 py-0.5 text-white">
         {icon}
-        <span className="windows95-font text-[10px] font-bold">{title}</span>
+        <span className="windows95-font text-xs font-bold">{title}</span>
         {typeof count === "number" && (
-          <span className="windows95-font ml-auto text-[10px] text-white/70">
+          <span className="windows95-font ml-auto text-xs text-white/70">
             {count}
           </span>
         )}
@@ -63,8 +62,8 @@ function DetailSection({
 function MetaItem({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="windows95-border bg-surface min-w-0 px-1.5 py-1">
-      <div className="windows95-text text-muted text-[9px]">{label}</div>
-      <div className="windows95-text mt-0.5 text-[11px] wrap-break-word">
+      <div className="windows95-text text-muted text-xs">{label}</div>
+      <div className="windows95-text mt-0.5 text-xs wrap-break-word">
         {value}
       </div>
     </div>
@@ -96,6 +95,7 @@ function TorrentDetailsModal({
   const detailUrl = item.link;
 
   useEffect(() => {
+    if (retry < 0) return;
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -120,7 +120,7 @@ function TorrentDetailsModal({
     return () => {
       cancelled = true;
     };
-  }, [detailUrl, retry, source]);
+  }, [detailUrl, source, retry]);
 
   const view = useMemo(() => {
     if (!details) return null;
@@ -204,7 +204,7 @@ function TorrentDetailsModal({
         <div className="flex min-h-48 flex-col items-center justify-center gap-2">
           <SmallLoader size={6} />
           <span className="windows95-text">{t("search.details.loading")}</span>
-          <span className="windows95-text text-muted text-[10px]">
+          <span className="windows95-text text-muted text-xs">
             {t("search.details.cleaned")}
           </span>
         </div>
@@ -237,8 +237,8 @@ function TorrentDetailsModal({
                 <h2 className="windows95-text font-bold wrap-break-word">
                   {view.title}
                 </h2>
-                <p className="windows95-text text-muted mt-1 text-[10px] break-all">
-                  {source} · {view.url || item.link}
+                <p className="windows95-text text-muted mt-1 text-xs break-all">
+                  {source} - {view.url || item.link}
                 </p>
               </div>
               <div className="flex flex-wrap justify-end gap-1">
@@ -276,7 +276,7 @@ function TorrentDetailsModal({
           </div>
 
           {view.notice && (
-            <div className="windows95-border flex items-start gap-1 bg-yellow-100 p-1 text-[10px] text-black">
+            <div className="windows95-border flex items-start gap-1 bg-yellow-100 p-1 text-xs text-black">
               <Info className="mt-0.5 size-3 shrink-0" />
               <span className="windows95-text whitespace-pre-wrap">
                 {view.notice}
@@ -287,7 +287,7 @@ function TorrentDetailsModal({
           <div className="grid grid-cols-2 gap-1 sm:grid-cols-3 lg:grid-cols-7">
             <MetaItem
               label={t("search.details.size")}
-              value={formatSize(view.size) || "—"}
+              value={formatSize(view.size) || "-"}
             />
             <MetaItem
               label={t("search.details.seeders")}
@@ -301,7 +301,7 @@ function TorrentDetailsModal({
               <MetaItem
                 label={t("search.details.downloads")}
                 value={
-                  view.downloads > 0 ? view.downloads.toLocaleString() : "—"
+                  view.downloads > 0 ? view.downloads.toLocaleString() : "-"
                 }
               />
             ) : (
@@ -312,15 +312,15 @@ function TorrentDetailsModal({
             )}
             <MetaItem
               label={t("search.details.category")}
-              value={view.category || "—"}
+              value={view.category || "-"}
             />
             <MetaItem
               label={t("search.details.added")}
-              value={view.uploadedAt || "—"}
+              value={view.uploadedAt || "-"}
             />
             <MetaItem
               label={t("search.details.updated")}
-              value={view.updatedAt || "—"}
+              value={view.updatedAt || "-"}
             />
           </div>
 
@@ -328,7 +328,7 @@ function TorrentDetailsModal({
             icon={<Rss className="size-3" />}
             title={t("search.details.description")}
           >
-            <p className="windows95-text max-h-64 overflow-y-auto text-[11px] wrap-break-word whitespace-pre-wrap">
+            <p className="windows95-text max-h-64 overflow-y-auto text-xs wrap-break-word whitespace-pre-wrap">
               {view.description || t("search.details.noDescription")}
             </p>
           </DetailSection>
@@ -345,10 +345,10 @@ function TorrentDetailsModal({
                     key={`${field.label}-${index}`}
                     className="windows95-border bg-surface min-w-0 px-1.5 py-1"
                   >
-                    <div className="windows95-text text-muted text-[9px]">
+                    <div className="windows95-text text-muted text-xs">
                       {field.label}
                     </div>
-                    <div className="windows95-text mt-0.5 text-[10px] wrap-break-word whitespace-pre-wrap">
+                    <div className="windows95-text mt-0.5 text-xs wrap-break-word whitespace-pre-wrap">
                       {field.value}
                     </div>
                   </div>
@@ -362,7 +362,7 @@ function TorrentDetailsModal({
               icon={<Info className="size-3" />}
               title={t("search.details.hash")}
             >
-              <p className="windows95-text text-[10px] break-all">
+              <p className="windows95-text text-xs break-all">
                 {view.infoHash}
               </p>
             </DetailSection>
@@ -408,13 +408,13 @@ function TorrentDetailsModal({
                     className="flex min-w-0 gap-2 border-b border-black/10 px-1 py-0.5"
                   >
                     <span
-                      className="windows95-text min-w-0 flex-1 truncate text-[10px]"
+                      className="windows95-text min-w-0 flex-1 truncate text-xs"
                       title={file.name}
                     >
                       {file.name}
                     </span>
-                    <span className="windows95-text text-muted shrink-0 text-[10px]">
-                      {file.size || "—"}
+                    <span className="windows95-text text-muted shrink-0 text-xs">
+                      {file.size || "-"}
                     </span>
                   </div>
                 ))}
@@ -428,7 +428,7 @@ function TorrentDetailsModal({
             count={view.comments.length}
           >
             {view.comments.length === 0 ? (
-              <span className="windows95-text text-muted text-[10px]">
+              <span className="windows95-text text-muted text-xs">
                 {t("search.details.noComments")}
               </span>
             ) : (
@@ -438,7 +438,7 @@ function TorrentDetailsModal({
                     key={`${comment.author}-${comment.date}-${index}`}
                     className="windows95-border bg-surface min-w-0 p-1"
                   >
-                    <div className="windows95-text flex justify-between gap-2 text-[10px]">
+                    <div className="windows95-text flex justify-between gap-2 text-xs">
                       <strong className="truncate">
                         {comment.author || t("search.details.anonymous")}
                       </strong>
@@ -446,7 +446,7 @@ function TorrentDetailsModal({
                         {comment.date}
                       </span>
                     </div>
-                    <p className="windows95-text mt-1 text-[10px] wrap-break-word whitespace-pre-wrap">
+                    <p className="windows95-text mt-1 text-xs wrap-break-word whitespace-pre-wrap">
                       {comment.text}
                     </p>
                   </article>

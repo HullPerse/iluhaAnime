@@ -111,7 +111,7 @@ afterEach(() => {
 });
 
 describe("FranchiseGraphSection", () => {
-  it("shows the grouped list by default with every related anime", async () => {
+  it("shows the graph by default, applies the default relation filters, and toggles to the list", async () => {
     const user = userEvent.setup();
     renderFranchise();
 
@@ -122,32 +122,47 @@ describe("FranchiseGraphSection", () => {
       });
     });
 
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Franchise root" })).toBeTruthy();
-      expect(screen.getByRole("button", { name: "Second season" })).toBeTruthy();
-      expect(screen.getByRole("button", { name: "Side story" })).toBeTruthy();
-      expect(screen.getByRole("button", { name: "Spin-off" })).toBeTruthy();
-    });
-    expect(
-      screen
-        .getAllByRole("button")
-        .filter((button) =>
-          [
-            "Franchise root",
-            "Second season",
-            "Side story",
-            "Spin-off",
-          ].includes(button.getAttribute("aria-label") ?? "")
-        )
-    ).toHaveLength(4);
-
-    await user.click(screen.getByRole("button", { name: "Graph" }));
-
+    // Graph is the default view; nodes render once positions are computed.
     await waitFor(() => {
       expect(document.querySelector("#franchise-node-1")).not.toBeNull();
       expect(document.querySelector("#franchise-node-2")).not.toBeNull();
       expect(document.querySelector("#franchise-node-3")).not.toBeNull();
-      expect(document.querySelector("#franchise-node-4")).not.toBeNull();
+    });
+
+    // Graph nodes carry their title in the title attribute.
+    expect(
+      document.querySelector("#franchise-node-1")?.getAttribute("title")
+    ).toContain("Franchise root");
+    expect(
+      document.querySelector("#franchise-node-2")?.getAttribute("title")
+    ).toContain("Second season");
+    expect(
+      document.querySelector("#franchise-node-3")?.getAttribute("title")
+    ).toContain("Side story");
+
+    // SPIN_OFF is not in the default filter set, so it never renders.
+    expect(screen.queryByText("Spin-off")).toBeNull();
+
+    // Switch to the list view: items are buttons with aria-label = title.
+    await user.click(screen.getByRole("button", { name: "List" }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: "Franchise root" })
+      ).toBeTruthy();
+      expect(
+        screen.getByRole("button", { name: "Second season" })
+      ).toBeTruthy();
+      expect(screen.getByRole("button", { name: "Side story" })).toBeTruthy();
+      expect(screen.queryByRole("button", { name: "Spin-off" })).toBeNull();
+    });
+
+    // And back to the graph.
+    await user.click(screen.getByRole("button", { name: "Graph" }));
+
+    await waitFor(() => {
+      expect(document.querySelector("#franchise-node-1")).not.toBeNull();
+      expect(document.querySelector("#franchise-node-4")).toBeNull();
     });
   });
 });

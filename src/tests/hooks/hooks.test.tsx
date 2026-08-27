@@ -70,29 +70,29 @@ describe("usePagination", () => {
 
   it("clamps page requests through setPage", () => {
     const calls: number[] = [];
-    let captured: PaginationResult | null = null;
+    const holder: { current: PaginationResult | null } = { current: null };
     function Capture() {
-      captured = usePagination(25, 10, 1, (p) => calls.push(p));
+      holder.current = usePagination(25, 10, 1, (p) => calls.push(p));
       return null;
     }
     renderToStaticMarkup(createElement(Capture));
-    captured!.setPage(99);
-    captured!.setPage(-5);
-    captured!.setPage(2);
+    holder.current!.setPage(99);
+    holder.current!.setPage(-5);
+    holder.current!.setPage(2);
     expect(calls).toEqual([3, 1, 2]);
   });
 
   it("returns a PaginationResult-shaped object", () => {
-    let captured: PaginationResult | null = null;
+    const holder: { current: PaginationResult | null } = { current: null };
     function Capture() {
-      captured = usePagination(10, 5, 1, () => {});
+      holder.current = usePagination(10, 5, 1, () => {});
       return null;
     }
     renderToStaticMarkup(createElement(Capture));
-    expect(captured).not.toBeNull();
-    expect(captured!.total).toBe(10);
-    expect(captured!.lastPage).toBe(2);
-    expect(captured!.setPage).toBeTypeOf("function");
+    expect(holder.current).not.toBeNull();
+    expect(holder.current!.total).toBe(10);
+    expect(holder.current!.lastPage).toBe(2);
+    expect(holder.current!.setPage).toBeTypeOf("function");
   });
 });
 

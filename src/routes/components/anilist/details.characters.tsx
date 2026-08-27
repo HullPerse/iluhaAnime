@@ -5,7 +5,7 @@ import { useState } from "react";
 import Pagination from "@/components/shared/pagination.component";
 import Section from "@/components/shared/section.component";
 import ImageComponent from "@/components/ui/image.component";
-import { CHAR_PAGE_SIZE } from "@/config/anime.pagination.config";
+import { CHAR_PAGE_SIZE } from "@/config/pagination.config";
 import { usePagination } from "@/hooks/pagination.hook";
 import { useI18n } from "@/lib/i18n";
 import { enterOrSpace } from "@/lib/keyboard.utils";
@@ -85,12 +85,12 @@ function AniListCharactersPanel({
               className="windows95-active-border h-20 w-14 object-cover"
             />
           ) : (
-            <div className="windows95-active-border flex h-12 w-10 items-center justify-center bg-white text-[8px] font-bold">
+            <div className="windows95-active-border flex h-12 w-10 items-center justify-center bg-white text-xs font-bold">
               ?
             </div>
           )}
           <span
-            className="windows95-text w-10 truncate text-center text-[8px] leading-tight"
+            className="windows95-text w-10 truncate text-center text-xs leading-tight"
             title={edge.character.name}
           >
             {edge.character.name}

@@ -12,7 +12,6 @@ import {
 import { useState, useRef, useMemo, useCallback } from "react";
 
 import { SmallLoader } from "@/components/shared/loader.component";
-
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/lib/i18n";
@@ -170,7 +169,7 @@ function FolderView({
           )}
           {depth === 0 && (
             <>
-              <span className="text-muted text-[10px] whitespace-nowrap select-none">
+              <span className="text-muted text-xs whitespace-nowrap select-none">
                 {t("player.folder.fileCount", { count: countAll })}
               </span>
               {onGenerate && (
@@ -217,7 +216,8 @@ function FolderView({
           style={{ maxHeight: flatItems.length > 50 ? 300 : undefined }}
         >
           <div
-            style={{ height: virtualizer.getTotalSize(), position: "relative" }}
+            className="relative"
+            style={{ height: virtualizer.getTotalSize() }}
           >
             {virtualizer.getVirtualItems().map((vItem, index) => {
               const item = flatItems[vItem.index];

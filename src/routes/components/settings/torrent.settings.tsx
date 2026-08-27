@@ -4,8 +4,8 @@ import { useCallback } from "react";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import { Input } from "@/components/ui/input.component";
 import { useI18n } from "@/lib/i18n";
-import { toSessionConfig } from "@/lib/session";
-import type { SessionConfigPayload } from "@/lib/session";
+import { toSessionConfig } from "@/lib/session.utils";
+import type { SessionConfigPayload } from "@/lib/session.utils";
 import { useTorrentStore } from "@/store/download.store";
 import { useSettingsStore } from "@/store/settings.store";
 
@@ -74,12 +74,12 @@ export default function SettingsTorrent() {
         />
       </label>
 
-      <hr className="windows95-header w-full" />
+      <hr className="border-muted my-1 w-full border-t" />
 
       <p className="windows95-text text-muted w-full font-bold">
         {t("settings.torrent.session")}
       </p>
-      <span className="text-muted windows95-font text-[10px]">
+      <span className="text-muted windows95-font text-xs">
         {t("settings.torrent.sessionHint")}
       </span>
 
@@ -105,7 +105,7 @@ export default function SettingsTorrent() {
         <span>{t("settings.torrent.disablePersistence")}</span>
       </label>
 
-      <hr className="windows95-header w-full" />
+      <hr className="border-muted my-1 w-full border-t" />
 
       <p className="windows95-text text-muted w-full font-bold">
         {t("settings.torrent.notifications")}

@@ -1,8 +1,8 @@
 import { Clipboard, Download, Eye } from "lucide-react";
 
+import { SmallLoader } from "@/components/shared/loader.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
-import { SmallLoader } from "@/components/shared/loader.component";
 import { SOURCE_INFOS } from "@/config/search.config";
 import { useI18n } from "@/lib/i18n";
 import { detectLanguages, formatSize } from "@/lib/index.utils";
@@ -49,13 +49,13 @@ export default function SearchResultItem({
             {item.title}
           </h3>
           <div className="mt-1 flex flex-wrap gap-1">
-            <span className="windows95-font bg-secondary px-1 text-[10px] text-white">
+            <span className="windows95-font bg-secondary px-1 text-xs text-white">
               {sourceLabel}
             </span>
             {detectLanguages(item.title).map((l) => (
               <span
                 key={l.code}
-                className={`windows95-font px-1 text-[10px] ${colors[l.code as keyof typeof colors] || "bg-muted text-white"}`}
+                className={`windows95-font px-1 text-xs ${colors[l.code as keyof typeof colors] || "bg-muted text-white"}`}
               >
                 {l.label}
               </span>

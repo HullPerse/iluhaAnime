@@ -1,4 +1,4 @@
-#![allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+#![allow(clippy::cast_possible_truncation, clippy::cast_sign_loss, clippy::cast_possible_wrap)]
 
 use serde::{Deserialize, Serialize};
 use std::cmp::Reverse;
@@ -29,7 +29,7 @@ fn update_rate_limit(header: Option<&str>) {
     let Some(limit) = header.and_then(|v| v.parse::<usize>().ok()) else {
         return;
     };
-    if limit >= 10 && limit <= 90 {
+    if (10..=90).contains(&limit) {
         // Keep a small reserve below AniList's advertised 90/minute ceiling.
         RATE_LIMIT_ADAPTIVE.store(limit.min(RATE_LIMIT_PER_MIN), Ordering::Relaxed);
     }
@@ -237,11 +237,11 @@ fn persist_franchise_nodes(
                 node.id as i64,
                 node.title,
                 node.cover_url,
-                node.episodes.map(|n| n as i64),
-                node.score.map(|n| n as i64),
+                node.episodes.map(i64::from),
+                node.score.map(i64::from),
                 node.format,
                 node.media_type,
-                node.year.map(|n| n as i64),
+                node.year.map(i64::from),
                 targets_json,
                 cached.fetched_at,
             ])
@@ -254,8 +254,7 @@ fn persist_franchise_nodes(
 fn is_fresh(cached: &CachedFranchiseNode) -> bool {
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| d.as_secs() as i64)
-        .unwrap_or(0);
+        .map_or(0, |d| d.as_secs() as i64);
     now - cached.fetched_at < FRANCHISE_CACHE_TTL_SECS
 }
 
@@ -471,7 +470,7 @@ pub async fn get_anilist_profile(
     user_id: Option<u64>,
     user_name: Option<String>,
 ) -> Result<AniUserProfile, String> {
-    if user_id.is_none() && user_name.as_deref().map_or(true, str::is_empty) {
+    if user_id.is_none() && user_name.as_deref().is_none_or(str::is_empty) {
         return Err("A user id or name is required".to_string());
     }
 
@@ -481,7 +480,7 @@ pub async fn get_anilist_profile(
     // the signed-in AniList account.
     let token = load_token(&app_handle).ok();
     let query = if token.is_some() {
-        r#"
+        r"
             query ($userId: Int, $userName: String) {
                 User(id: $userId, name: $userName) {
                     id
@@ -496,9 +495,9 @@ pub async fn get_anilist_profile(
                     }
                 }
             }
-        "#
+        "
     } else {
-        r#"
+        r"
             query ($userId: Int, $userName: String) {
                 User(id: $userId, name: $userName) {
                     id
@@ -511,7 +510,7 @@ pub async fn get_anilist_profile(
                     }
                 }
             }
-        "#
+        "
     };
     let mut variables = serde_json::Map::new();
     if let Some(id) = user_id {
@@ -1547,7 +1546,7 @@ pub async fn anilist_logout(app_handle: tauri::AppHandle) -> Result<(), String> 
     let _ = fs::remove_file(&path);
     // Drop this account's anime entries from the unified index so the next
     // (possibly unauthenticated) user never sees them in suggestions.
-    let _ = app_db::prune_unified_index_scope(app_handle.clone(), "anilist".into(), Vec::new());
+    let _ = app_db::prune_unified_index_scope(app_handle, "anilist".into(), Vec::new());
     Ok(())
 }
 
@@ -2039,7 +2038,7 @@ fn parse_franchise_targets(
         .unwrap_or_default()
 }
 
-const FRANCHISE_BATCH_QUERY: &str = r#"
+const FRANCHISE_BATCH_QUERY: &str = r"
     query ($ids: [Int], $page: Int, $perPage: Int) {
         Page(page: $page, perPage: $perPage) {
             media(id_in: $ids, type: ANIME) {
@@ -2069,7 +2068,7 @@ const FRANCHISE_BATCH_QUERY: &str = r#"
             }
         }
     }
-"#;
+";
 
 #[derive(Debug, Clone, Serialize)]
 pub struct FranchiseQueryMetrics {
@@ -2078,6 +2077,7 @@ pub struct FranchiseQueryMetrics {
     pub body_bytes: usize,
 }
 
+#[must_use]
 pub fn franchise_query_body(ids: &[u64]) -> serde_json::Value {
     // AniList's Page limit is 50; cap the helper as well so callers cannot
     // accidentally create a body whose perPage and id list disagree.
@@ -2092,12 +2092,12 @@ pub fn franchise_query_body(ids: &[u64]) -> serde_json::Value {
     })
 }
 
+#[must_use]
 pub fn franchise_query_metrics(ids: &[u64]) -> FranchiseQueryMetrics {
     let body = franchise_query_body(ids);
     let query_bytes = FRANCHISE_BATCH_QUERY.len();
     let body_bytes = serde_json::to_vec(&body)
-        .map(|bytes| bytes.len())
-        .unwrap_or(0);
+        .map_or(0, |bytes| bytes.len());
     FranchiseQueryMetrics {
         id_count: ids.len(),
         query_bytes,
@@ -2226,8 +2226,7 @@ pub async fn get_anime_franchise(
             };
             let fetched_at = std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .map(|d| d.as_secs() as i64)
-                .unwrap_or(0);
+                .map_or(0, |d| d.as_secs() as i64);
             let mut persisted: Vec<CachedFranchiseNode> = Vec::new();
             for data in fresh {
                 let cached = CachedFranchiseNode {
@@ -2308,8 +2307,8 @@ pub async fn get_anime_franchise(
 
 fn relation_line(rel_type: &str, title: &str, year: Option<i32>) -> String {
     match year {
-        Some(y) => format!("{rel_type} · {title} ({y})"),
-        None => format!("{rel_type} · {title}"),
+        Some(y) => format!("{rel_type} - {title} ({y})"),
+        None => format!("{rel_type} - {title}"),
     }
 }
 
@@ -2403,29 +2402,26 @@ pub async fn prefetch_anime_relations(
             .unwrap_or_else(|| "?".to_string());
 
         let batch_start = std::time::Instant::now();
-        let results = match fetch_franchise_batch_once(&to_fetch).await {
-            Ok(r) => r,
-            Err(_) => {
-                // Failed batch (rate limit exhausted etc.): re-queue for another attempt,
-                // but drop ids that keep failing to avoid an infinite loop.
-                for id in to_fetch {
-                    let n = attempts.entry(id).or_insert(0);
-                    *n += 1;
-                    if *n <= 3 && queued.contains(&id) {
-                        queue.push_back(id);
-                    } else {
-                        processed += 1;
-                        done.insert(id);
-                    }
+        let results = if let Ok(r) = fetch_franchise_batch_once(&to_fetch).await { r } else {
+            // Failed batch (rate limit exhausted etc.): re-queue for another attempt,
+            // but drop ids that keep failing to avoid an infinite loop.
+            for id in to_fetch {
+                let n = attempts.entry(id).or_insert(0);
+                *n += 1;
+                if *n <= 3 && queued.contains(&id) {
+                    queue.push_back(id);
+                } else {
+                    processed += 1;
+                    done.insert(id);
                 }
-                continue;
             }
+            continue;
         };
 
         // Smoothed batch duration (EWMA) for ETA estimation and next-call countdown.
         let batch_elapsed_ms = batch_start.elapsed().as_millis() as f64;
         avg_batch_ms = if has_batch_sample {
-            avg_batch_ms * 0.7 + batch_elapsed_ms * 0.3
+            batch_elapsed_ms.mul_add(0.3, avg_batch_ms * 0.7)
         } else {
             batch_elapsed_ms
         };
@@ -2441,8 +2437,7 @@ pub async fn prefetch_anime_relations(
             for data in results {
                 let fetched_at = std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .map(|d| d.as_secs() as i64)
-                    .unwrap_or(0);
+                    .map_or(0, |d| d.as_secs() as i64);
                 let cached = CachedFranchiseNode {
                     node: data.node,
                     targets: data.targets,
@@ -2472,9 +2467,7 @@ pub async fn prefetch_anime_relations(
                 .filter(|(_, _, mt, _)| is_anime_media(mt.as_deref()))
                 .map(|(tid, rt, _, y)| {
                     let target_title = guard
-                        .get(tid)
-                        .map(|t| t.node.title.clone())
-                        .unwrap_or_else(|| "?".to_string());
+                        .get(tid).map_or_else(|| "?".to_string(), |t| t.node.title.clone());
                     relation_line(rt, &target_title, *y)
                 })
                 .collect::<Vec<_>>();
@@ -2502,7 +2495,7 @@ pub async fn prefetch_anime_relations(
 
         let remaining_batches = queue.len() as f64 / PREFETCH_BATCH_SIZE as f64;
         let eta_secs = if has_batch_sample {
-            Some(((remaining_batches * avg_batch_ms / 1000.0).ceil() as u64).max(0))
+            Some((remaining_batches * avg_batch_ms / 1000.0).ceil() as u64)
         } else {
             None
         };
@@ -2541,7 +2534,7 @@ pub fn cancel_anime_prefetch() {
     }
 }
 
-/// Backfills the cached AniList franchise nodes into the unified search index
+/// Backfills the cached `AniList` franchise nodes into the unified search index
 /// so related titles participate in the same autocomplete learning pipeline as
 /// the user's own list, history and local files.
 #[tauri::command]
@@ -2613,9 +2606,9 @@ mod tests {
     fn relation_lines_include_year_only_when_available() {
         assert_eq!(
             relation_line("SEQUEL", "Next", Some(2025)),
-            "SEQUEL · Next (2025)"
+            "SEQUEL - Next (2025)"
         );
-        assert_eq!(relation_line("OTHER", "Unknown", None), "OTHER · Unknown");
+        assert_eq!(relation_line("OTHER", "Unknown", None), "OTHER - Unknown");
     }
 
     #[test]

@@ -8,8 +8,8 @@ import {
   Play,
 } from "lucide-react";
 
-import { Button } from "@/components/ui/button.component";
 import { SmallLoader } from "@/components/shared/loader.component";
+import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/lib/i18n";
 import { useUpscaleQueueStore } from "@/store/upscale.store";
 
@@ -102,7 +102,7 @@ export default function QueuePanel() {
         </div>
       </div>
       {paused && (
-        <div className="windows95-text text-highlight mb-1 text-[10px]">
+        <div className="windows95-text text-highlight mb-1 text-xs">
           {t("player.queue.paused")}
         </div>
       )}
@@ -110,7 +110,7 @@ export default function QueuePanel() {
         {items.map((item) => (
           <div
             key={item.id}
-            className="windows95-text flex items-center gap-1 bg-white px-1 py-0.5 text-[10px]"
+            className="windows95-text flex items-center gap-1 bg-white px-1 py-0.5 text-xs"
           >
             {item.jobType === "convert" ? (
               <FileVideo className="text-muted size-3" />
@@ -151,11 +151,11 @@ export default function QueuePanel() {
               <div className="flex min-w-0 items-center gap-1">
                 <div className="windows95-border h-4 w-20 bg-white">
                   <div
-                    className="bg-secondary h-full"
-                    style={{ width: `${item.progress}%`, transition: "none" }}
+                    className="bg-secondary h-full transition-none"
+                    style={{ width: `${item.progress}%` }}
                   />
                 </div>
-                <span className="w-8 shrink-0 text-right text-[10px]">
+                <span className="w-8 shrink-0 text-right text-xs">
                   {item.progress}%
                 </span>
               </div>

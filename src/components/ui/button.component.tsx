@@ -47,9 +47,9 @@ function Button({
   VariantProps<typeof buttonVariants> & {
     rendered?: boolean;
   }) {
-  if (!rendered) return null;
-
   const buttonPressEffect = useSettingsStore((s) => s.buttonPressEffect);
+
+  if (!rendered) return null;
 
   return (
     <ButtonPrimitive

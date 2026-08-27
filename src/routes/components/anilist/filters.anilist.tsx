@@ -153,7 +153,7 @@ function FiltersModal({ open, filters, onApply, onReset, onClose }: Props) {
           </>
         )}
 
-        <hr className="windows95-header w-full" />
+        <hr className="border-muted my-1 w-full border-t" />
 
         <p className="windows95-text text-text mt-1 font-bold">
           {t("anilist.filters.format")}

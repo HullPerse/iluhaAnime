@@ -60,8 +60,8 @@ const FranNode = memo(
         onKeyDown={enterOrSpace(() => onRelated?.(node.id))}
         title={
           isAggregator
-            ? `${node.title} · ${t("anilist.franchise.expand")}`
-            : `${node.title} (${node.year ?? "?"}) · ${node.score ?? "—"} · ${node.format ?? ""}`
+            ? `${node.title} - ${t("anilist.franchise.expand")}`
+            : `${node.title} (${node.year ?? "?"}) - ${node.score ?? "-"} - ${node.format ?? ""}`
         }
         className={cn(
           "windows95-text windows95-active-border bg-primary absolute flex cursor-grab flex-col items-stretch overflow-hidden transition-opacity duration-300 select-none active:cursor-grabbing",
@@ -81,7 +81,7 @@ const FranNode = memo(
         {isRoot && <div className="bg-secondary h-0.5 w-full shrink-0" />}
         {isAggregator ? (
           <div
-            className="windows95-font flex items-center justify-center bg-primary text-center text-[10px] break-all"
+            className="windows95-font bg-primary flex items-center justify-center text-center text-xs break-all"
             style={{
               height: dims.imgH,
               color: relationType
@@ -108,7 +108,7 @@ const FranNode = memo(
           </div>
         )}
         {node.format && !isAggregator && (
-          <span className="windows95-font absolute top-0 left-0 bg-black/70 px-0.5 text-[7px] leading-2 text-white">
+          <span className="windows95-font absolute top-0 left-0 bg-black/70 px-0.5 text-xs leading-2 text-white">
             {formatShort(node.format)}
           </span>
         )}

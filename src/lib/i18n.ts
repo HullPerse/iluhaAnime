@@ -16,14 +16,13 @@ function repairLegacyCyrillic(value: string): string {
   const legacyDecoder = new TextDecoder("windows-1251");
   const reverseCodePage = new Map<string, number>();
   for (let byte = 0; byte <= 0xff; byte++) {
-    reverseCodePage.set(
-      legacyDecoder.decode(new Uint8Array([byte])),
-      byte
-    );
+    reverseCodePage.set(legacyDecoder.decode(new Uint8Array([byte])), byte);
   }
   const bytes = new Uint8Array(
-    Array.from(value, (character) =>
-      reverseCodePage.get(character) ?? character.codePointAt(0) ?? 0x3f
+    Array.from(
+      value,
+      (character) =>
+        reverseCodePage.get(character) ?? character.codePointAt(0) ?? 0x3f
     )
   );
   const repaired = new TextDecoder("utf-8").decode(bytes);

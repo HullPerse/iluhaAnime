@@ -25,7 +25,7 @@ import { ConfirmDialog } from "@/components/shared/confirm.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { useDebounce } from "@/hooks/debounce.hook";
-import { useUnifiedIndexSuggestions } from "@/hooks/unified.index.hook";
+import { useSugggestions } from "@/hooks/suggestion.hook";
 import { parseVaultFilename } from "@/lib/anime.vault";
 import { useI18n } from "@/lib/i18n";
 import { buildTree, filterTreeByPaths } from "@/lib/player.utils";
@@ -171,11 +171,7 @@ function PlayerRoute() {
   );
 
   const deferredSearch = useDeferredValue(search);
-  const backendSuggestions = useUnifiedIndexSuggestions(
-    deferredSearch,
-    "player",
-    8
-  );
+  const backendSuggestions = useSugggestions(deferredSearch, "player", 8);
   const suggestions = useMemo(
     () =>
       getSearchSuggestions(deferredSearch, {
@@ -409,7 +405,7 @@ function PlayerRoute() {
     return () => {
       invoke("stop_watching_folders").catch(() => {});
     };
-  }, [savedFolderPaths]);
+  }, []);
 
   useEffect(() => {
     let unlisten: (() => void) | undefined;
@@ -458,7 +454,7 @@ function PlayerRoute() {
       disposed = true;
       unlisten?.();
     };
-  }, [persistMediaRecords, videoExtensions]);
+  }, [persistMediaRecords, videoExtensions, queryClient]);
 
   const handleOpenFolder = useCallback(async () => {
     const folder = await open({ multiple: false, directory: true });
@@ -588,7 +584,7 @@ function PlayerRoute() {
 
         <section className="ui-toolbar ui-panel w-full">
           <FFMPEG status={ffmpegStatus} setStatus={setFfmpegStatus} />
-          <span className="text-muted ml-auto text-[10px]">v9.0</span>
+          <span className="text-muted ml-auto text-xs">v9.0</span>
         </section>
 
         {!loading && folderTrees.length > 0 && (
@@ -672,7 +668,7 @@ function PlayerRoute() {
               <span className="windows95-text">
                 {t("player.route.libraryEmpty")}
               </span>
-              <span className="windows95-text text-[10px]">
+              <span className="windows95-text text-xs">
                 {t("player.route.addFolderHint")}
               </span>
             </section>

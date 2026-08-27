@@ -130,7 +130,7 @@ export default function ThemeEditor({
                 value={colors[key] ?? colors.muted}
                 onChange={(v) => patchColor(key, v)}
               />
-              <span className="text-muted font-mono text-[10px]">
+              <span className="text-muted font-mono text-xs">
                 {colors[key] ?? colors.muted}
               </span>
             </label>

@@ -78,15 +78,15 @@ function TorrentLimitsSection({ id }: { id: number }) {
 
   return (
     <div className="flex flex-row flex-wrap items-center gap-1">
-      <span className="windows95-text text-[10px]">{t("torrent.limits")}</span>
+      <span className="windows95-text text-xs">{t("torrent.limits")}</span>
       <Input
-        className="h-5 w-16 text-[10px]"
+        className="h-5 w-16 text-xs"
         placeholder="DL"
         value={dlInput}
         onChange={(e) => setDlInput(e.target.value)}
       />
       <Input
-        className="h-5 w-16 text-[10px]"
+        className="h-5 w-16 text-xs"
         placeholder="UL"
         value={ulInput}
         onChange={(e) => setUlInput(e.target.value)}
@@ -126,7 +126,7 @@ function TorrentItem({
   const { t } = useI18n();
 
   return (
-    <div className="windows95-active-border flex flex-col gap-2 bg-primary p-2 hover:bg-surface">
+    <div className="windows95-active-border bg-primary hover:bg-surface flex flex-col gap-2 p-2">
       <section className="flex flex-row items-center justify-between">
         <h3 className="windows95-font line-clamp-1 text-xs leading-tight font-bold">
           {item.name}
@@ -139,7 +139,7 @@ function TorrentItem({
                 onChange={(v) => onSeedChange(v)}
                 className="size-3"
               />
-              <span className="windows95-text text-[10px]">
+              <span className="windows95-text text-xs">
                 {t("torrent.seed")}
               </span>
             </label>
@@ -183,7 +183,7 @@ function TorrentItem({
           )}
           <Button
             title={t("torrent.sequential")}
-            className="windows95-font flex size-6 items-center justify-center text-[9px]"
+            className="windows95-font flex size-6 items-center justify-center text-xs"
             variant={item.sequential_download ? "default" : "outline"}
             onClick={() => onSetSequential(!item.sequential_download)}
           >
@@ -232,12 +232,12 @@ function TorrentItem({
                 ? t("torrent.state.completed")
                 : stateLabel(item.state, t)}
             </span>
-            <span className="windows95-font text-[10px]">
+            <span className="windows95-font text-xs">
               {item.total_bytes > 0
                 ? `${fmtSize(item.progress_bytes)} / ${fmtSize(item.total_bytes)} (${progress.toFixed(1)}%)`
                 : fmtSize(item.progress_bytes)}
             </span>
-            <span className="windows95-font text-muted text-[10px]">
+            <span className="windows95-font text-muted text-xs">
               {fmtSpeed(item.download_speed)}
               {item.share_ratio > 0 && (
                 <span className="ml-1">
@@ -246,7 +246,7 @@ function TorrentItem({
               )}
               {fmtSpeed(item.download_speed) &&
                 fmtETA(item.eta_secs, t) &&
-                " · "}
+                " - "}
               {fmtETA(item.eta_secs, t)}
             </span>
             <span className="ml-auto flex flex-row">
@@ -255,18 +255,18 @@ function TorrentItem({
                 item.peers_connected > 0) && (
                 <div className="flex items-center gap-1">
                   {item.upload_speed > 0 && (
-                    <span className="text-muted windows95-font text-[10px]">
+                    <span className="text-muted windows95-font text-xs">
                       <ArrowUp className="inline size-2.5" />{" "}
                       {fmtSpeed(item.upload_speed)}
                     </span>
                   )}
                   {item.uploaded_bytes > 0 && (
-                    <span className="text-muted windows95-font text-[10px]">
+                    <span className="text-muted windows95-font text-xs">
                       <ArrowUp className="inline size-2.5" />{" "}
                       {fmtSize(item.uploaded_bytes)}
                     </span>
                   )}
-                  <span className="text-muted windows95-font text-[10px]">
+                  <span className="text-muted windows95-font text-xs">
                     P: {item.peers_connected}
                   </span>
                 </div>
@@ -301,7 +301,7 @@ function TorrentItem({
             })}
             {files.some((f) => f.completed && !f.exists) && (
               <span className="text-destructive ml-1">
-                · {files.filter((f) => f.completed && !f.exists).length}{" "}
+                - {files.filter((f) => f.completed && !f.exists).length}{" "}
                 {t("torrent.missing")}
               </span>
             )}
@@ -327,7 +327,7 @@ function TorrentItem({
 
       {item.error && (
         <div className="mt-1 flex items-center gap-1">
-          <span className="text-destructive windows95-font text-[10px]">
+          <span className="text-destructive windows95-font text-xs">
             {item.error}
           </span>
           <Button

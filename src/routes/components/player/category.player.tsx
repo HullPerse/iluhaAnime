@@ -141,12 +141,7 @@ function CategoryView({
   const renderTorrentEntry = (entry: (typeof entries)[0]) => {
     const tor = torrents.find((t) => t.info_hash === entry.infoHash);
     if (!tor) return null;
-    return (
-      <TorrentCategoryEntry
-        tor={tor}
-        torrentFilesMap={torrentFilesMap}
-      />
-    );
+    return <TorrentCategoryEntry tor={tor} torrentFilesMap={torrentFilesMap} />;
   };
 
   const toggleEntry = (entryId: string) => {
@@ -238,7 +233,7 @@ function CategoryView({
             {category.name}
           </span>
         )}
-        <span className="text-muted ml-auto text-[10px] whitespace-nowrap select-none">
+        <span className="text-muted ml-auto text-xs whitespace-nowrap select-none">
           {count}
         </span>
         <Button
@@ -288,7 +283,7 @@ function CategoryView({
                       </span>
                     </button>
                     {entry.totalBytes != null && (
-                      <span className="text-muted text-[10px] whitespace-nowrap">
+                      <span className="text-muted text-xs whitespace-nowrap">
                         {fmtSize(entry.totalBytes)}
                       </span>
                     )}

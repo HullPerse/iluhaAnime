@@ -43,7 +43,7 @@ function FranchiseToolbar({
             onClick={() => onToggleFilter(group)}
             variant="default"
             className={cn(
-              "h-auto px-1.5 py-0.5 text-[10px]",
+              "h-auto px-1.5 py-0.5 text-xs",
               activeFilters.has(group) && "bg-secondary text-white"
             )}
           >
@@ -57,12 +57,12 @@ function FranchiseToolbar({
           placeholder={t("common.search")}
           value={searchQuery}
           onChange={(event) => onSearchChange(event.target.value)}
-          className="h-6 w-24 text-[10px]"
+          className="h-6 w-24 text-xs"
         />
         {cacheSource && (
           <span
             className={cn(
-              "windows95-font px-1 py-0.5 text-[9px] leading-none",
+              "windows95-font px-1 py-0.5 text-xs leading-none",
               cacheSource === "fresh"
                 ? "bg-secondary text-white"
                 : "bg-surface text-muted"
@@ -80,7 +80,7 @@ function FranchiseToolbar({
         )}
         {countDiff && (
           <span
-            className="windows95-font bg-secondary/20 text-secondary px-1 py-0.5 text-[9px] leading-none"
+            className="windows95-font bg-secondary/20 text-secondary px-1 py-0.5 text-xs leading-none"
             title={t("anilist.franchise.diffTitle")}
           >
             {countDiff}
@@ -88,15 +88,17 @@ function FranchiseToolbar({
         )}
         <Button
           onClick={onToggleView}
-          className="h-auto px-1.5 py-0.5 text-[10px]"
+          className="h-auto px-1.5 py-0.5 text-xs"
           variant="default"
           title={t("anilist.franchise.toggleView")}
         >
-          {listView ? t("anilist.franchise.graph") : t("anilist.franchise.list")}
+          {listView
+            ? t("anilist.franchise.graph")
+            : t("anilist.franchise.list")}
         </Button>
         <Button
           onClick={onResetLayout}
-          className="h-auto px-1.5 py-0.5 text-[10px]"
+          className="h-auto px-1.5 py-0.5 text-xs"
           variant="default"
           title={t("anilist.franchise.resetLayout")}
         >
@@ -104,7 +106,7 @@ function FranchiseToolbar({
         </Button>
         <Button
           onClick={onRefresh}
-          className="h-auto px-1.5 py-0.5 text-[10px]"
+          className="h-auto px-1.5 py-0.5 text-xs"
           variant="default"
           title={t("anilist.franchise.refreshTitle")}
         >

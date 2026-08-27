@@ -30,7 +30,7 @@ export default function FolderScanProgress({ scanProgress }: Props) {
               }}
             />
           </div>
-          <span className="shrink-0 text-[10px]">
+          <span className="shrink-0 text-xs">
             {Math.round((scanProgress.current / scanProgress.total) * 100)}%
           </span>
         </div>

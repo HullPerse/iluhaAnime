@@ -5,7 +5,6 @@ import { ChevronDown, ChevronRight, RefreshCw } from "lucide-react";
 import { useCallback } from "react";
 
 import { SmallLoader } from "@/components/shared/loader.component";
-
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/lib/i18n";

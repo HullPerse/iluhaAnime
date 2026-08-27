@@ -593,12 +593,12 @@ pub async fn rutracker_browser_fetch(
     for _ in 0..900 {
         tokio::time::sleep(std::time::Duration::from_millis(100)).await;
         let poll_script = format!(
-            r#"(() => {{
+            r"(() => {{
                 const value = window[{request_key}];
                 if (!value || value.pending) return null;
                 delete window[{request_key}];
                 return value;
-            }})()"#
+            }})()"
         );
         let result = eval_webview_script(&window, poll_script).await?;
         let Some(value) = result else {
@@ -695,7 +695,7 @@ async fn harvest_webview_cookies(
                     if let Ok(settings2) = settings.cast::<ICoreWebView2Settings2>() {
                         let mut ua = windows_core::PWSTR::null();
                         unsafe {
-                            let _ = settings2.UserAgent(&mut ua);
+                            let _ = settings2.UserAgent(&raw mut ua);
                         }
                         user_agent = pwstr_to_string(ua);
                     }
@@ -723,7 +723,7 @@ async fn harvest_webview_cookies(
                             if let Some(list) = list {
                                 let mut count: u32 = 0;
                                 unsafe {
-                                    let _ = list.Count(&mut count);
+                                    let _ = list.Count(&raw mut count);
                                 }
                                 for i in 0..count {
                                     if let Ok(cookie) = unsafe { list.GetValueAtIndex(i) } {
@@ -731,9 +731,9 @@ async fn harvest_webview_cookies(
                                         let mut value = windows_core::PWSTR::null();
                                         let mut domain = windows_core::PWSTR::null();
                                         unsafe {
-                                            let _ = cookie.Name(&mut name);
-                                            let _ = cookie.Value(&mut value);
-                                            let _ = cookie.Domain(&mut domain);
+                                            let _ = cookie.Name(&raw mut name);
+                                            let _ = cookie.Value(&raw mut value);
+                                            let _ = cookie.Domain(&raw mut domain);
                                         }
                                         let name = pwstr_to_string(name);
                                         let value = pwstr_to_string(value);

@@ -28,15 +28,15 @@ function FranchiseList({
     <div className="h-full w-full overflow-y-auto">
       {root && (
         <div className="sticky top-0 z-10 bg-white/95">
-          <div className="windows95-text flex items-center gap-1 px-2 py-0.5 text-[9px] uppercase tracking-wide">
+          <div className="windows95-text flex items-center gap-1 px-2 py-0.5 text-xs tracking-wide uppercase">
             {t("anilist.franchise.current")}
           </div>
           <button
             type="button"
             aria-label={root.title}
             onClick={() => onNodeClick(root.id)}
-            className="windows95-text hover:bg-secondary/20 flex w-full cursor-pointer items-center gap-2 px-2 py-1 text-left text-[10px]"
-            title={`${root.title} (${root.year ?? "?"}) · ${root.score ?? "—"} · ${root.format ?? ""}`}
+            className="windows95-text hover:bg-secondary/20 flex w-full cursor-pointer items-center gap-2 px-2 py-1 text-left text-xs"
+            title={`${root.title} (${root.year ?? "?"}) - ${root.score ?? "-"} - ${root.format ?? ""}`}
           >
             {root.cover_url && (
               <img
@@ -50,8 +50,8 @@ function FranchiseList({
               <span className="w-full truncate">{root.title}</span>
               <span className="text-muted">
                 {root.year ?? "?"}
-                {root.format ? ` · ${root.format}` : ""}
-                {root.score == null ? "" : ` · ${root.score}`}
+                {root.format ? ` - ${root.format}` : ""}
+                {root.score == null ? "" : ` - ${root.score}`}
               </span>
             </div>
           </button>
@@ -59,7 +59,7 @@ function FranchiseList({
       )}
       {groups.map(({ group, items }) => (
         <div key={group}>
-          <div className="windows95-text bg-secondary/10 flex items-center gap-1 px-2 py-0.5 text-[9px] uppercase tracking-wide">
+          <div className="windows95-text bg-secondary/10 flex items-center gap-1 px-2 py-0.5 text-xs tracking-wide uppercase">
             {t(FILTER_LABELS[group] as never)}
             <span className="text-muted">({items.length})</span>
           </div>
@@ -73,10 +73,10 @@ function FranchiseList({
                 aria-label={node.title}
                 onClick={() => onNodeClick(node.id)}
                 className={cn(
-                  "windows95-text hover:bg-secondary/20 flex w-full cursor-pointer items-center gap-2 px-2 py-1 text-left text-[10px] transition-opacity duration-300",
+                  "windows95-text hover:bg-secondary/20 flex w-full cursor-pointer items-center gap-2 px-2 py-1 text-left text-xs transition-opacity duration-300",
                   dimmed && "opacity-30"
                 )}
-                title={`${node.title} (${node.year ?? "?"}) · ${node.score ?? "—"} · ${node.format ?? ""}`}
+                title={`${node.title} (${node.year ?? "?"}) - ${node.score ?? "-"} - ${node.format ?? ""}`}
               >
                 {node.cover_url && (
                   <img
@@ -90,8 +90,8 @@ function FranchiseList({
                   <span className="w-full truncate">{node.title}</span>
                   <span className="text-muted">
                     {node.year ?? "?"}
-                    {node.format ? ` · ${node.format}` : ""}
-                    {node.score == null ? "" : ` · ${node.score}`}
+                    {node.format ? ` - ${node.format}` : ""}
+                    {node.score == null ? "" : ` - ${node.score}`}
                   </span>
                 </div>
               </button>

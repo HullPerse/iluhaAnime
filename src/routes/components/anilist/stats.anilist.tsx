@@ -107,13 +107,19 @@ function StatsModal({
               size="icon"
               className="size-6"
               disabled={month === now.getMonth() && year === now.getFullYear()}
+              aria-label={t("common.previous")}
             >
               <ChevronLeft className="size-3" />
             </Button>
             <span className="windows95-text text-xs font-bold">
               {monthLabel(month, locale, "long")} {year}
             </span>
-            <Button onClick={nextMonth} size="icon" className="size-6">
+            <Button
+              onClick={nextMonth}
+              size="icon"
+              className="size-6"
+              aria-label={t("common.next")}
+            >
               <ChevronRight className="size-3" />
             </Button>
           </div>
@@ -123,7 +129,7 @@ function StatsModal({
               {[0, 1, 2, 3, 4, 5, 6].map((i) => (
                 <div
                   key={i}
-                  className={`windows95-font border-t-muted border-l-muted border-r border-b p-1 text-center text-[10px] font-bold ${
+                  className={`windows95-font border-t-muted border-l-muted border-r border-b p-1 text-center text-xs font-bold ${
                     i >= 5 ? "text-destructive" : "text-text"
                   }`}
                 >
@@ -160,7 +166,7 @@ function StatsModal({
                     }`}
                   >
                     <span
-                      className={`px-1 text-[10px] leading-tight ${
+                      className={`px-1 text-xs leading-tight ${
                         isToday
                           ? "bg-secondary font-bold text-white"
                           : isWeekend
@@ -183,12 +189,12 @@ function StatsModal({
                             className="windows95-border h-13 w-10 object-cover"
                           />
                         )}
-                        <span className="windows95-font w-full truncate px-1 text-center text-[9px] leading-tight">
+                        <span className="windows95-font w-full truncate px-1 text-center text-xs leading-tight">
                           {mainEntry.title}
                         </span>
                         {mainEntry.episode != null && (
                           <div className="flex items-center gap-1">
-                            <span className="text-muted windows95-font text-[8px]">
+                            <span className="text-muted windows95-font text-xs">
                               {t("anilist.activity.episode", {
                                 n: mainEntry.episode,
                               })}
@@ -202,7 +208,7 @@ function StatsModal({
                               count: cell.entries.length,
                               date: `${day} ${monthLabel(month, locale, "long")} ${year}`,
                             })}
-                            className="bg-secondary windows95-font hover:bg-secondary/80 absolute top-0.5 right-0.5 flex size-5 flex-row items-center justify-center border-black text-[10px] text-white hover:cursor-pointer"
+                            className="bg-secondary windows95-font hover:bg-secondary/80 absolute top-0.5 right-0.5 flex size-5 flex-row items-center justify-center border-black text-xs text-white hover:cursor-pointer"
                             onClick={(e) => {
                               e.stopPropagation();
                               setSelectedDay(day);
@@ -247,18 +253,18 @@ function StatsModal({
                     className="windows95-border h-11 w-8 shrink-0"
                   />
                 )}
-                <span className="windows95-font flex-1 truncate text-[11px]">
+                <span className="windows95-font flex-1 truncate text-xs">
                   {entry.title}
                 </span>
                 {entry.episode != null && (
-                  <span className="text-muted windows95-font shrink-0 text-[10px]">
+                  <span className="text-muted windows95-font shrink-0 text-xs">
                     {t("anilist.activity.episode", { n: entry.episode })}
                   </span>
                 )}
               </div>
             ))}
             {dayEntries.length === 0 && (
-              <div className="text-muted windows95-font flex h-80 items-center justify-center text-[11px]">
+              <div className="text-muted windows95-font flex h-80 items-center justify-center text-xs">
                 {t("anilist.stats.noReleases")}
               </div>
             )}

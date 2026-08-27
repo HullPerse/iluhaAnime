@@ -74,7 +74,7 @@ export default function SettingsSearch() {
         />
       </label>
 
-      <hr className="windows95-header w-full" />
+      <hr className="border-muted my-1 w-full border-t" />
 
       <p className="windows95-text text-muted w-full font-bold">
         {t("settings.search.visibleSources")}
@@ -90,7 +90,7 @@ export default function SettingsSearch() {
               onChange={() => toggleSource(info.value)}
             />
             {info.nsfw && (
-              <span className="text-destructive text-[10px] font-bold">
+              <span className="text-destructive text-xs font-bold">
                 [NSFW]
               </span>
             )}
@@ -99,7 +99,7 @@ export default function SettingsSearch() {
         ))}
       </div>
 
-      <hr className="windows95-header w-full" />
+      <hr className="border-muted my-1 w-full border-t" />
 
       <label className="windows95-text text-text flex items-center gap-2">
         <span className="w-48">{t("settings.search.resultsPerPage")}</span>
@@ -157,15 +157,15 @@ export default function SettingsSearch() {
       </label>
 
       {autocompleteMode === "off" ? (
-        <p className="windows95-text text-destructive w-full text-[10px]">
+        <p className="windows95-text text-destructive w-full text-xs">
           {t("settings.search.autocompleteModeOffHint")}
         </p>
       ) : autocompleteMode === "inline" || autocompleteMode === "both" ? (
         <div className="flex flex-col gap-1">
-          <span className="windows95-text text-muted text-[10px]">
+          <span className="windows95-text text-muted text-xs">
             {t("settings.search.preview")}
           </span>
-          <div className="windows95-border windows95-text flex min-h-7 items-center overflow-hidden whitespace-pre bg-white px-1.5">
+          <div className="windows95-border windows95-text flex min-h-7 items-center overflow-hidden bg-white px-1.5 whitespace-pre">
             <span className="relative z-10">fri</span>
             <span
               className="ml-0.5"
@@ -180,14 +180,16 @@ export default function SettingsSearch() {
         </div>
       ) : null}
 
-      <hr className="windows95-header w-full" />
+      <hr className="border-muted my-1 w-full border-t" />
 
       <p className="windows95-text text-muted w-full font-bold">
         {t("settings.search.learning")}
       </p>
-      <div className="windows95-text text-text grid grid-cols-2 gap-1 text-[10px]">
+      <div className="windows95-text text-text grid grid-cols-2 gap-1 text-xs">
         <span>{t("settings.search.learningHistory")}</span>
-        <span className="text-right tabular-nums">{learningHistory.length}</span>
+        <span className="text-right tabular-nums">
+          {learningHistory.length}
+        </span>
         <span>{t("settings.search.learningQueries")}</span>
         <span className="text-right tabular-nums">{learnedQueries}</span>
         <span>{t("settings.search.learningSelected")}</span>
@@ -233,12 +235,12 @@ export default function SettingsSearch() {
         >
           {t("settings.search.resetAnimeSuggestions")}
         </Button>
-        <span className="windows95-text text-muted text-[10px]">
+        <span className="windows95-text text-muted text-xs">
           {t("settings.search.resetAnimeSuggestionsHint")}
         </span>
       </div>
 
-      <hr className="windows95-header w-full" />
+      <hr className="border-muted my-1 w-full border-t" />
 
       <label className="windows95-text text-text flex items-center gap-2">
         <span className="w-48">{t("settings.search.pageSize")}</span>

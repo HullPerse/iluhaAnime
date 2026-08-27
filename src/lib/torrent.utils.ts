@@ -224,7 +224,7 @@ export function groupFilesByDirectory(
       if (b === "") return 1;
       return a.localeCompare(b);
     })
-    .map(([_, group]) => ({
+    .map(([, group]) => ({
       ...group,
       files: group.files.sort((a, b) =>
         a.displayName.localeCompare(b.displayName)

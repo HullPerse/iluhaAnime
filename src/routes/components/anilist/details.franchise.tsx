@@ -10,10 +10,6 @@ import {
   FRANCHISE_CACHE_TTL_MS,
   FRANCHISE_CACHE_VERSION,
 } from "@/config/franchise.config";
-import { FranchiseGraph as FranchiseGraphView } from "./franchise.graph";
-import { FranchiseList } from "./franchise.list";
-import { FranchiseToolbar } from "./franchise.toolbar";
-
 import {
   filterGraph,
   filterFranchiseNodesBySearch,
@@ -35,6 +31,10 @@ import type {
   SimNode,
   FranchiseGraphSectionProps,
 } from "@/types/anilist";
+
+import { FranchiseGraph as FranchiseGraphView } from "./franchise.graph";
+import { FranchiseList } from "./franchise.list";
+import { FranchiseToolbar } from "./franchise.toolbar";
 
 function franchiseCacheKey(animeId: number): string {
   return `${animeId}:all:v${FRANCHISE_CACHE_VERSION}`;
@@ -117,7 +117,7 @@ function FranchiseGraphSection({
     setResetKey((key) => key + 1);
     setExpandedGroups(new Set());
     zoomedOnceRef.current = false;
-  }, [animeId]);
+  }, []);
 
   useEffect(() => {
     if (data) {
@@ -184,6 +184,7 @@ function FranchiseGraphSection({
   );
 
   useEffect(() => {
+    if (resetKey < 0) return;
     if (!collapsed || collapsed.graph.nodeMap.size === 0) return;
 
     const { simNodes, initialPositions } = buildSimNodes(
@@ -213,7 +214,16 @@ function FranchiseGraphSection({
       sim.stop();
       simRef.current = null;
     };
-  }, [collapsed, animeId, containerWidth, totalH, dims, resetKey, relationMap, mainlineIds]);
+  }, [
+    collapsed,
+    animeId,
+    containerWidth,
+    totalH,
+    dims,
+    resetKey,
+    relationMap,
+    mainlineIds,
+  ]);
 
   useEffect(() => {
     if (!dragging || !transformRef.current) return;
@@ -315,12 +325,14 @@ function FranchiseGraphSection({
         <span className="text-destructive windows95-text">
           {t("anilist.franchise.loadError", {
             error:
-              (error as any)?.message ?? t("anilist.franchise.unknownError"),
+              error instanceof Error
+                ? error.message
+                : t("anilist.franchise.unknownError"),
           })}
         </span>
         <Button
           onClick={() => refetch()}
-          className="cursor-pointer px-2 py-1 text-[10px]"
+          className="cursor-pointer px-2 py-1 text-xs"
           variant="default"
         >
           {t("anilist.franchise.retry")}
@@ -370,36 +382,34 @@ function FranchiseGraphSection({
 
       <section
         ref={containerRef}
-        className="windows95-border relative bg-white"
-        style={{ height: displayH, overflow: "hidden" }}
+        className="windows95-border relative overflow-hidden bg-white"
+        style={{ height: displayH }}
       >
-        {listView ? (
-          collapsed && (
-            <FranchiseList
-              nodes={[...collapsed.graph.nodeMap.values()]}
-              animeId={animeId}
-              relationMap={relationMap}
-              searchMatchIds={searchMatchIds}
-              onNodeClick={handleNodeClick}
-            />
-          )
-        ) : (
-          collapsed && (
-            <FranchiseGraphView
-              filtered={collapsed.graph}
-              animeId={animeId}
-              containerWidth={containerWidth}
-              totalHeight={totalH}
-              dims={dims}
-              positions={pos}
-              relationMap={relationMap}
-              searchMatchIds={searchMatchIds}
-              transformRef={transformRef}
-              onNodeClick={handleNodeClick}
-              onNodeMouseDown={handleNodeMouseDown}
-            />
-          )
-        )}
+        {listView
+          ? collapsed && (
+              <FranchiseList
+                nodes={[...collapsed.graph.nodeMap.values()]}
+                animeId={animeId}
+                relationMap={relationMap}
+                searchMatchIds={searchMatchIds}
+                onNodeClick={handleNodeClick}
+              />
+            )
+          : collapsed && (
+              <FranchiseGraphView
+                filtered={collapsed.graph}
+                animeId={animeId}
+                containerWidth={containerWidth}
+                totalHeight={totalH}
+                dims={dims}
+                positions={pos}
+                relationMap={relationMap}
+                searchMatchIds={searchMatchIds}
+                transformRef={transformRef}
+                onNodeClick={handleNodeClick}
+                onNodeMouseDown={handleNodeMouseDown}
+              />
+            )}
       </section>
     </main>
   );

@@ -81,17 +81,17 @@ function FeedItem({
             className="windows95-active-border h-7 w-7 shrink-0"
           />
         ) : (
-          <div className="windows95-active-border flex h-7 w-7 shrink-0 items-center justify-center bg-white text-[9px] font-bold">
+          <div className="windows95-active-border flex h-7 w-7 shrink-0 items-center justify-center bg-white text-xs font-bold">
             {a.user_name[0] ?? "?"}
           </div>
         )}
         <div className="flex min-w-0 flex-1 flex-col">
-          <span className="windows95-text text-[10px]">
+          <span className="windows95-text text-xs">
             <span className="font-bold">{a.user_name}</span>{" "}
             <span className="text-muted">{t("anilist.activity.note")}</span>{" "}
             {a.text}
           </span>
-          <span className="text-muted text-[9px]">
+          <span className="text-muted text-xs">
             {formatActivityTime(a.created_at, t, locale)}
           </span>
         </div>
@@ -110,7 +110,7 @@ function FeedItem({
         />
       )}
       <div className="flex min-w-0 flex-1 flex-col">
-        <span className="windows95-text text-[10px]">
+        <span className="windows95-text text-xs">
           {a.user_name && (
             <>
               <span className="font-bold">{a.user_name}</span>{" "}
@@ -122,14 +122,14 @@ function FeedItem({
           )}{" "}
         </span>
         <span
-          className="windows95-text line-clamp-2 text-[11px] font-bold underline decoration-dotted hover:cursor-pointer"
+          className="windows95-text line-clamp-2 text-xs font-bold underline decoration-dotted hover:cursor-pointer"
           onClick={() => onAnimeClick(a.media_id!)}
         >
           {a.media_title}
         </span>
-        <span className="text-muted windows95-font text-[9px]">
+        <span className="text-muted windows95-font text-xs">
           {a.progress ? `${a.progress}` : ""}
-          {a.progress ? " · " : ""}
+          {a.progress ? " - " : ""}
           {formatActivityTime(a.created_at, t, locale)}
         </span>
       </div>
@@ -212,7 +212,7 @@ function FeedTab({
       groups.get(label)!.push(activity);
     }
     return groups;
-  }, [data, includeFriends, lists, locale, statusFilter, userId]);
+  }, [data, includeFriends, lists, locale, statusFilter, userId, t]);
 
   const textItems = useMemo(
     () => (data ?? []).filter((a) => a.activity_type !== "list"),
@@ -235,7 +235,7 @@ function FeedTab({
             error: String(error ?? t("anilist.activity.unknownError")),
           })}
         </span>
-        <Button onClick={() => refetch()} className="text-[10px]">
+        <Button onClick={() => refetch()} className="text-xs">
           {t("anilist.activity.retry")}
         </Button>
       </div>
@@ -256,7 +256,7 @@ function FeedTab({
         {STATUS_FILTERS.map((f) => (
           <Button
             key={f.value}
-            className={`windows95-text px-1.5 py-0.5 text-[10px] ${statusFilter === f.value ? "windows95-active-border bg-secondary text-white" : "windows95-border bg-white"}`}
+            className={`windows95-text px-1.5 py-0.5 text-xs ${statusFilter === f.value ? "windows95-active-border bg-secondary text-white" : "windows95-border bg-white"}`}
             variant="ghost"
             onClick={() => setStatusFilter(f.value)}
           >
@@ -265,7 +265,7 @@ function FeedTab({
         ))}
         {friendIds.length > 0 && (
           <label
-            className="windows95-text ml-auto flex items-center gap-1 text-[10px]"
+            className="windows95-text ml-auto flex items-center gap-1 text-xs"
             title={t("anilist.activity.friendsHint")}
           >
             <Checkbox checked={includeFriends} onChange={setIncludeFriends} />
@@ -276,7 +276,7 @@ function FeedTab({
 
       {textItems.length > 0 && (
         <section className="mt-1 flex flex-col gap-0.5">
-          <span className="windows95-text text-muted flex items-center gap-1 text-[10px] font-bold">
+          <span className="windows95-text text-muted flex items-center gap-1 text-xs font-bold">
             <List className="size-3" /> {t("anilist.activity.notes")}
           </span>
           <div className="flex flex-col gap-0.5">
@@ -289,14 +289,14 @@ function FeedTab({
 
       {listItems.size === 0 ? (
         <div className="flex items-center justify-center p-4">
-          <span className="windows95-text text-muted text-[10px]">
+          <span className="windows95-text text-muted text-xs">
             {t("anilist.activity.emptyStatus")}
           </span>
         </div>
       ) : (
         [...listItems.entries()].map(([label, items]) => (
           <section key={label} className="mt-1 flex flex-col gap-0.5">
-            <span className="windows95-text text-muted flex items-center gap-1 text-[10px] font-bold">
+            <span className="windows95-text text-muted flex items-center gap-1 text-xs font-bold">
               <CalendarDays className="size-3" /> {label}
             </span>
             <div className="flex flex-col gap-0.5">
@@ -338,11 +338,16 @@ function CalendarTab({
   return (
     <main className="flex w-full flex-col gap-2">
       <section className="flex items-center justify-between px-1">
-        <Button onClick={goPrevYear} size="icon" className="size-6">
+        <Button
+          onClick={goPrevYear}
+          size="icon"
+          className="size-6"
+          aria-label={t("anilist.activity.prevYear")}
+        >
           <ChevronLeft className="size-3" />
         </Button>
         <span className="windows95-text text-xs font-bold">
-          {year} ·{" "}
+          {year} -{" "}
           {t("anilist.activity.eventsCount", { count: grid.totalCount })}
         </span>
         <Button
@@ -350,6 +355,7 @@ function CalendarTab({
           size="icon"
           className="size-6"
           disabled={year >= now.getFullYear()}
+          aria-label={t("anilist.activity.nextYear")}
         >
           <ChevronRight className="size-3" />
         </Button>
@@ -364,7 +370,7 @@ function CalendarTab({
                 return (
                   <span
                     key={`m${ci}`}
-                    className="windows95-font text-text absolute top-0 truncate text-[9px] leading-4"
+                    className="windows95-font text-text absolute top-0 truncate text-xs leading-4"
                     style={{
                       left: ci * pitch,
                       maxWidth: pitch * 2,
@@ -435,7 +441,7 @@ function CalendarTab({
           {activeActivity ? (
             <div className="flex min-h-0 flex-col">
               <div className="border-muted/40 flex items-center justify-between border-b px-2 py-1">
-                <span className="windows95-text text-[10px] font-bold">
+                <span className="windows95-text text-xs font-bold">
                   {activeKey
                     ? new Date(
                         Number(activeKey.split("-")[0]),
@@ -446,13 +452,13 @@ function CalendarTab({
                 </span>
                 <Button
                   onClick={() => setSelectedKey(null)}
-                  className="windows95-text px-1 py-0 text-[9px]"
+                  className="windows95-text px-1 py-0 text-xs"
                   variant="ghost"
                 >
                   {t("common.close")}
                 </Button>
               </div>
-              <div className="border-muted/40 text-muted windows95-text flex flex-col gap-0.5 border-b px-2 py-0.5 text-[9px]">
+              <div className="border-muted/40 text-muted windows95-text flex flex-col gap-0.5 border-b px-2 py-0.5 text-xs">
                 <span>
                   {t("anilist.activity.eventAdded")}: {activeActivity.added}
                 </span>
@@ -480,13 +486,13 @@ function CalendarTab({
                       />
                     )}
                     <div className="flex min-w-0 flex-1 flex-col">
-                      <span className="windows95-font truncate text-[10px]">
+                      <span className="windows95-font truncate text-xs">
                         {item.title}
                       </span>
-                      <span className="text-muted windows95-font text-[8px]">
+                      <span className="text-muted windows95-font text-xs">
                         {item.events}
                         {item.progress != null &&
-                          ` · ${t("anilist.activity.episode", {
+                          ` - ${t("anilist.activity.episode", {
                             n: item.progress,
                           })}`}
                       </span>
@@ -497,7 +503,7 @@ function CalendarTab({
             </div>
           ) : (
             <div className="flex flex-1 items-center justify-center p-3">
-              <span className="windows95-text text-muted text-center text-[10px]">
+              <span className="windows95-text text-muted text-center text-xs">
                 {t("anilist.activity.dayHint")}
               </span>
             </div>

@@ -160,13 +160,14 @@ function DualSlider({
       role="group"
       aria-label={sliderLabel}
     >
-      {label && <span className="w-24 shrink-0 text-[10px]">{label}</span>}
+      {label && <span className="w-24 shrink-0 text-xs">{label}</span>}
       <div
         ref={ref}
         className="windows95-border relative h-4 flex-1 cursor-pointer bg-white"
         onMouseDown={(e) => {
           e.preventDefault();
-          const rect = ref.current!.getBoundingClientRect();
+          const rect = ref.current?.getBoundingClientRect();
+          if (!rect) return;
           const raw = (e.clientX - rect.left) / rect.width;
           const mid = (low + high) / 200;
           setDragTarget(raw < mid ? "min" : "max");
@@ -234,7 +235,7 @@ function DualSlider({
           }}
         />
       </div>
-      <span className="w-18 max-w-18 min-w-18 text-right text-[10px] tabular-nums">
+      <span className="w-18 max-w-18 min-w-18 text-right text-xs tabular-nums">
         {value[0]}
         {suffix} - {value[1]}
         {suffix}

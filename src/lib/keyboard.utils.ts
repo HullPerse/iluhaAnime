@@ -1,6 +1,10 @@
 import type { KeyboardEvent } from "react";
 
-export function moveIndex(current: number, delta: number, length: number): number {
+export function moveIndex(
+  current: number,
+  delta: number,
+  length: number
+): number {
   if (length <= 0) return -1;
   return (current + delta + length) % length;
 }

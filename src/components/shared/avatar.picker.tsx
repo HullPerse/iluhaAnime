@@ -36,7 +36,7 @@ export default function UserImagePicker({
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     refresh();
@@ -77,11 +77,11 @@ export default function UserImagePicker({
   return (
     <section className="windows95-border bg-primary mt-2 p-1">
       <div className="mb-1 flex items-center justify-between">
-        <span className="windows95-text text-[10px]">
+        <span className="windows95-text text-xs">
           {t("player.category.uploadedImages")}
         </span>
         <Button
-          className="h-5 px-1 text-[9px]"
+          className="h-5 px-1 text-xs"
           onClick={() => upload()}
           disabled={uploading}
         >
@@ -94,7 +94,7 @@ export default function UserImagePicker({
           <SmallLoader />
         </div>
       ) : images.length === 0 ? (
-        <span className="windows95-text text-muted text-[9px]">
+        <span className="windows95-text text-muted text-xs">
           {t("player.category.noUploadedImages")}
         </span>
       ) : (

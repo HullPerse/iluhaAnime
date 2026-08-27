@@ -57,7 +57,7 @@ export default function SearchFiltersModal({
           }
         />
 
-        <hr className="windows95-header w-full" />
+        <hr className="border-muted my-1 w-full border-t" />
 
         <label className="windows95-text flex cursor-pointer items-center gap-2 select-none">
           <Checkbox
@@ -67,7 +67,7 @@ export default function SearchFiltersModal({
           {t("search.filters.onlyMagnet")}
         </label>
 
-        <hr className="windows95-header w-full" />
+        <hr className="border-muted my-1 w-full border-t" />
 
         <p className="windows95-text text-text font-bold">
           {t("search.filters.quality")}
@@ -114,7 +114,7 @@ export default function SearchFiltersModal({
           ]}
         />
 
-        <hr className="windows95-header w-full" />
+        <hr className="border-muted my-1 w-full border-t" />
 
         <p className="windows95-text text-text font-bold">
           {t("search.filters.size")}
@@ -130,7 +130,7 @@ export default function SearchFiltersModal({
               patch({ sizeMin: Math.max(0, Number(e.target.value) || 0) })
             }
           />
-          <span className="windows95-text">—</span>
+          <span className="windows95-text">-</span>
           <Input
             type="number"
             min={0}

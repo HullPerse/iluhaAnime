@@ -32,7 +32,7 @@ fn download_urls(source: &str) -> Result<(String, &'static str, &'static str), S
     let url = match source {
         "github" => github_url.to_string(),
         "github-mirror" => format!("{GITHUB_PROXY}{github_url}"),
-        // "essentials" (default) — small build; gyan.dev is Windows-only,
+        // "essentials" (default) - small build; gyan.dev is Windows-only,
         // so Linux falls back to the GitHub archive.
         _ if cfg!(target_os = "windows") => GYAN_ESSENTIALS.to_string(),
         _ => github_url.to_string(),

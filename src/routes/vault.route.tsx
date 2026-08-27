@@ -11,7 +11,6 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { ConfirmDialog } from "@/components/shared/confirm.component";
-import { EmptyState } from "@/components/shared/state.component";
 import { Button } from "@/components/ui/button.component";
 import {
   buildOrganizationPreview,
@@ -159,7 +158,7 @@ export default function VaultRoute() {
       });
       if (result.errors.length > 0) {
         setError(
-          `${t("vault.movedSummary", { count: result.moved })} ${result.errors.join(" · ")}`
+          `${t("vault.movedSummary", { count: result.moved })} ${result.errors.join(" - ")}`
         );
       }
       setPendingApply(false);
@@ -193,7 +192,7 @@ export default function VaultRoute() {
       <header className="windows95-active-border bg-primary flex flex-wrap items-center gap-1 p-1">
         <img src="/images/w98_directory_zipper.ico" alt="" className="size-5" />
         <strong>{t("vault.title")}</strong>
-        <span className="text-muted text-[10px]">{t("vault.safeMode")}</span>
+        <span className="text-muted text-xs">{t("vault.safeMode")}</span>
         <Button
           className="ml-auto"
           onClick={scan}
@@ -204,13 +203,8 @@ export default function VaultRoute() {
         </Button>
       </header>
 
-      {savedFolderPaths.length === 0 && (
-        <EmptyState>
-          <span>{t("vault.noFolders")}</span>
-        </EmptyState>
-      )}
       {error && (
-        <section className="windows95-border bg-destructive/10 text-destructive p-2 text-[10px]">
+        <section className="windows95-border bg-destructive/10 text-destructive p-2 text-xs">
           {error}
         </section>
       )}
@@ -243,7 +237,7 @@ export default function VaultRoute() {
           <section className="windows95-active-border bg-primary p-2">
             <div className="flex flex-wrap items-center gap-1">
               <strong>{t("vault.episodeMatrix")}</strong>
-              <span className="text-muted text-[10px]">
+              <span className="text-muted text-xs">
                 {t("vault.episodeMatrixHint")}
               </span>
             </div>
@@ -266,17 +260,17 @@ export default function VaultRoute() {
                       );
                     }
                   })}
-                  className={`border-muted grid grid-cols-[minmax(0,1fr)_auto_auto_auto] items-center gap-2 border-b px-1 py-0.5 text-[9px] ${row.duplicateCount > 0 ? "hover:bg-surface cursor-pointer" : ""}`}
+                  className={`border-muted grid grid-cols-[minmax(0,1fr)_auto_auto_auto] items-center gap-2 border-b px-1 py-0.5 text-xs ${row.duplicateCount > 0 ? "hover:bg-surface cursor-pointer" : ""}`}
                 >
                   <span className="truncate" title={row.bestRelease.path}>
-                    {row.title} · S{String(row.season).padStart(2, "0")}E
+                    {row.title} - S{String(row.season).padStart(2, "0")}E
                     {String(row.episode).padStart(2, "0")}
                   </span>
                   <span className="text-muted">
-                    {row.bestRelease.quality ?? "—"}
+                    {row.bestRelease.quality ?? "-"}
                   </span>
                   <span className="text-muted">
-                    {row.bestRelease.codec ?? "—"}
+                    {row.bestRelease.codec ?? "-"}
                   </span>
                   <span
                     className={
@@ -296,20 +290,25 @@ export default function VaultRoute() {
                 </div>
               ))}
               {episodeMatrix.length === 0 && (
-                <div className="text-muted p-2 text-[10px]">
+                <div className="text-muted p-2 text-xs">
                   {t("vault.noEpisodes")}
                 </div>
               )}
             </div>
             {selectedEpisode && (
-              <div className="windows95-border mt-1 bg-white p-1 text-[9px]">
-                <strong>{t("vault.releasesFor", { title: selectedEpisode.title })}</strong>
+              <div className="windows95-border mt-1 bg-white p-1 text-xs">
+                <strong>
+                  {t("vault.releasesFor", { title: selectedEpisode.title })}
+                </strong>
                 {selectedEpisode.releases.map((release) => (
                   <div
                     key={release.path}
                     className="border-muted flex items-center gap-2 border-b py-0.5 last:border-0"
                   >
-                    <span className="min-w-0 flex-1 truncate" title={release.path}>
+                    <span
+                      className="min-w-0 flex-1 truncate"
+                      title={release.path}
+                    >
                       {release.name}
                     </span>
                     <span className="text-muted shrink-0">
@@ -329,7 +328,7 @@ export default function VaultRoute() {
           <section className="windows95-active-border bg-primary p-2">
             <div className="flex flex-wrap items-center gap-1">
               <strong>{t("vault.organization")}</strong>
-              <span className="text-muted text-[10px]">
+              <span className="text-muted text-xs">
                 {t("vault.organizationHint")}
               </span>
               <Button
@@ -345,7 +344,7 @@ export default function VaultRoute() {
               {plan.slice(0, 100).map((item) => (
                 <div
                   key={item.sourcePath}
-                  className="border-muted grid grid-cols-[1fr_auto] gap-2 border-b px-1 py-0.5 text-[9px]"
+                  className="border-muted grid grid-cols-[1fr_auto] gap-2 border-b px-1 py-0.5 text-xs"
                 >
                   <span className="truncate" title={item.sourcePath}>
                     {item.sourcePath}
@@ -360,13 +359,13 @@ export default function VaultRoute() {
                 </div>
               ))}
               {plan.length === 0 && (
-                <div className="text-muted p-2 text-[10px]">
+                <div className="text-muted p-2 text-xs">
                   {t("vault.noPlan")}
                 </div>
               )}
             </div>
             <div className="mt-1 flex flex-wrap items-center gap-1">
-              <span className="text-muted flex-1 text-[10px]">
+              <span className="text-muted flex-1 text-xs">
                 {t("vault.noMoves")}
               </span>
               <Button
@@ -387,7 +386,7 @@ export default function VaultRoute() {
                 (kind) => (
                   <Button
                     key={kind}
-                    className="px-1 py-0.5 text-[9px]"
+                    className="px-1 py-0.5 text-xs"
                     variant={issueFilter === kind ? "outline" : "default"}
                     onClick={() => setIssueFilter(kind)}
                   >
@@ -400,22 +399,26 @@ export default function VaultRoute() {
               {visibleIssues.slice(0, 80).map((issue, index) => (
                 <div
                   key={`${issue.kind}-${index}`}
-                  className="flex gap-1 text-[10px]"
+                  className="flex gap-1 text-xs"
                 >
                   <AlertTriangle className="text-highlight mt-0.5 size-3 shrink-0" />
                   <span>{issue.message}</span>
                 </div>
               ))}
               {visibleIssues.length === 0 && (
-                <div className="text-success flex items-center gap-1 text-[10px]">
+                <div className="text-success flex items-center gap-1 text-xs">
                   <CheckCircle2 className="size-3" />
-                  {t(issueFilter === "all" ? "vault.healthy" : "vault.noFilteredIssues")}
+                  {t(
+                    issueFilter === "all"
+                      ? "vault.healthy"
+                      : "vault.noFilteredIssues"
+                  )}
                 </div>
               )}
             </div>
           </section>
 
-          <section className="windows95-active-border bg-primary p-2 text-[10px]">
+          <section className="windows95-active-border bg-primary p-2 text-xs">
             <strong>{t("vault.optimizer")}</strong>
             <p className="text-muted">
               {t("vault.optimizerHint", {
@@ -461,7 +464,7 @@ function Metric({
     <section className="windows95-active-border bg-primary flex items-center gap-1 p-2">
       <div>{icon}</div>
       <div className="min-w-0">
-        <div className="text-muted truncate text-[9px]">{label}</div>
+        <div className="text-muted truncate text-xs">{label}</div>
         <strong className="text-sm">{value}</strong>
       </div>
     </section>

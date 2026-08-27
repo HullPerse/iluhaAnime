@@ -57,7 +57,7 @@ export default function SearchFiltersBar({
       <Button size="icon" className="relative size-5.5" onClick={onOpenFilters}>
         <Filter className="size-3" />
         {activeFilterCount > 0 && (
-          <span className="bg-secondary absolute -top-1 -right-1 flex h-3 w-3 items-center justify-center text-[8px] text-white">
+          <span className="bg-secondary absolute -top-1 -right-1 flex h-3 w-3 items-center justify-center text-xs text-white">
             {activeFilterCount}
           </span>
         )}

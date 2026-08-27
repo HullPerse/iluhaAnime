@@ -108,7 +108,7 @@ export async function checkForUpdates(): Promise<Update | null> {
   try {
     return await check();
   } catch (error) {
-    console.debug("Auto-update check skipped:", error);
+    console.error(error);
     return null;
   }
 }

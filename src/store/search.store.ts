@@ -138,10 +138,10 @@ export const useSearchStore = create<SearchStore>()(
         if (!q) return;
         const maxHistory = useSettingsStore.getState().searchHistoryMaxItems;
         set((state) => {
-          const history = [q, ...state.history.filter((item) => item !== q)].slice(
-            0,
-            Math.max(0, maxHistory)
-          );
+          const history = [
+            q,
+            ...state.history.filter((item) => item !== q),
+          ].slice(0, Math.max(0, maxHistory));
           return {
             history,
             queryStats: updateStat(state.queryStats ?? {}, q),
@@ -161,7 +161,8 @@ export const useSearchStore = create<SearchStore>()(
       animeIndex: [],
       animeProfileId: null,
       clearAnimeIndex: () => set({ animeIndex: [], animeProfileId: null }),
-      resetAnimeSuggestions: () => set({ animeIndex: [], animeProfileId: null }),
+      resetAnimeSuggestions: () =>
+        set({ animeIndex: [], animeProfileId: null }),
       crossSearchQuery: null,
       filters: { ...defaultFilters },
       history: [],

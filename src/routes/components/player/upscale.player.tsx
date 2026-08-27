@@ -3,8 +3,8 @@ import { invoke } from "@tauri-apps/api/core";
 import { Wand2, Ban, Check, ListVideo } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 
-import Modal from "@/components/shared/modal.component";
 import { SmallLoader } from "@/components/shared/loader.component";
+import Modal from "@/components/shared/modal.component";
 import ProgressBar from "@/components/shared/progress.component";
 import Tabs from "@/components/shared/tabs.component";
 import { Button } from "@/components/ui/button.component";
@@ -117,7 +117,7 @@ export default function UpscalePlayer({
     if (upscaler === "anime4k") {
       handlePresetChange(anime4kPreset);
     }
-  }, [upscaler, availableGpu]);
+  }, [upscaler, anime4kPreset, handlePresetChange]);
 
   useEffect(() => {
     if (activeItem?.status === "done") {
@@ -426,7 +426,7 @@ export default function UpscalePlayer({
                     </label>
 
                     {!copyStreams && (
-                      <span className="windows95-text text-muted text-[10px]">
+                      <span className="windows95-text text-muted text-xs">
                         {t("player.upscale.reencode")}
                       </span>
                     )}

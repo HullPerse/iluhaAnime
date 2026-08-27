@@ -124,7 +124,10 @@ describe("search suggestions", () => {
   });
 
   it("matches multi-word queries against distinct words", () => {
-    const match = fuzzyMatchScore("frieren journey", "Frieren: Beyond Journey's End");
+    const match = fuzzyMatchScore(
+      "frieren journey",
+      "Frieren: Beyond Journey's End"
+    );
     expect(match).not.toBeNull();
     expect(fuzzyMatchScore("frieren journey", "Fruits Basket")).toBeNull();
     expect(match!).toBeGreaterThan(500);
@@ -138,6 +141,8 @@ describe("search suggestions", () => {
   });
 
   it("rejects multi-word queries missing a word", () => {
-    expect(fuzzyMatchScore("frieren zzz", "Frieren: Beyond Journey's End")).toBeNull();
+    expect(
+      fuzzyMatchScore("frieren zzz", "Frieren: Beyond Journey's End")
+    ).toBeNull();
   });
 });

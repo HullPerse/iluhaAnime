@@ -26,7 +26,7 @@ async fn acquire_scraper_slot() -> Result<tokio::sync::SemaphorePermit<'static>,
     let mut last_request = clock.lock().await;
     let elapsed = last_request.elapsed();
     if elapsed < SCRAPER_MIN_INTERVAL {
-        tokio::time::sleep(SCRAPER_MIN_INTERVAL - elapsed).await;
+        tokio::time::sleep(SCRAPER_MIN_INTERVAL.checked_sub(elapsed).unwrap()).await;
     }
     *last_request = Instant::now();
     drop(last_request);
@@ -180,7 +180,7 @@ pub fn build_no_redirect_client() -> Result<reqwest::Client, String> {
 }
 
 /// User-Agent used when no in-app-browser session is stored. The webview
-/// captures its own (Edge WebView2) User-Agent at save time, because
+/// captures its own (Edge `WebView2`) User-Agent at save time, because
 /// rutracker's anti-bot clearance cookies are bound to the exact User-Agent
 /// that passed the challenge.
 pub const RUTRACKER_DEFAULT_UA: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36";
@@ -1386,7 +1386,7 @@ fn first_detail_text_multiline(doc: &Html, selectors: &[&str]) -> String {
 }
 
 fn detail_number(value: &str) -> u32 {
-    let digits: String = value.chars().filter(|c| c.is_ascii_digit()).collect();
+    let digits: String = value.chars().filter(char::is_ascii_digit).collect();
     digits.parse().unwrap_or(0)
 }
 
@@ -1841,9 +1841,7 @@ fn parse_detail_comments(doc: &Html, source: &str) -> Vec<TorrentDetailComment> 
             .unwrap_or_default();
         let body = block
             .select(&body_sel)
-            .next()
-            .map(element_text_multiline)
-            .unwrap_or_else(|| element_text_multiline(block));
+            .next().map_or_else(|| element_text_multiline(block), element_text_multiline);
         if !comments
             .iter()
             .any(|comment: &TorrentDetailComment| comment.text == body)
@@ -2083,8 +2081,7 @@ fn animetosho_size(text: &str) -> String {
     let lower = text.to_lowercase();
     let window = lower
         .find("file name")
-        .map(|label_start| &text[label_start..text.len().min(label_start + 300)])
-        .unwrap_or(text);
+        .map_or(text, |label_start| &text[label_start..text.len().min(label_start + 300)]);
     let Ok(re) = regex_lite::Regex::new(r"\(([0-9.,]+\s*(?:[KMGT]i?B|байт|B))\s*\)") else {
         return String::new();
     };
@@ -2304,10 +2301,10 @@ fn parse_torrent_detail_html(source: &str, url: &str, html: &str) -> TorrentDeta
         || !comments.is_empty()
         || !magnet.is_empty()
         || !torrent_url.is_empty();
-    let notice = if !has_details {
-        Some("Источник вернул страницу без доступных деталей. Оригинал можно открыть во внешнем браузере.".to_string())
-    } else {
+    let notice = if has_details {
         None
+    } else {
+        Some("Источник вернул страницу без доступных деталей. Оригинал можно открыть во внешнем браузере.".to_string())
     };
 
     TorrentDetails {

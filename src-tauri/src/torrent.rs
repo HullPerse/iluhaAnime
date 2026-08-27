@@ -206,7 +206,7 @@ fn available_disk_space(path: &Path) -> Result<u64> {
     let mut total = 0u64;
     let mut total_free = 0u64;
     let success =
-        unsafe { GetDiskFreeSpaceExW(wide.as_ptr(), &mut free, &mut total, &mut total_free) };
+        unsafe { GetDiskFreeSpaceExW(wide.as_ptr(), &raw mut free, &raw mut total, &raw mut total_free) };
     if success == 0 {
         anyhow::bail!("could not determine free disk space");
     }
@@ -1152,6 +1152,7 @@ impl TorrentManager {
             read_only: false,
             basic_auth: Some(("iluha".into(), token)),
             allow_create: true,
+            max_upload_body_size: None,
         };
         let http_api = HttpApi::new(api, Some(http_opts));
         let addr: std::net::SocketAddr = ([127, 0, 0, 1], 0).into();
@@ -1597,18 +1598,15 @@ impl TorrentManager {
             progress < total
         });
 
-        match first_incomplete {
-            Some(target) => {
-                let only: HashSet<usize> = std::iter::once(target).collect();
-                self.session
-                    .update_only_files(&handle, &only)
-                    .await
-                    .map_err(|e| format!("{e:#}"))?;
-            }
-            None => {
-                self.sequential_torrents.remove(&id);
-                self.save_preferences();
-            }
+        if let Some(target) = first_incomplete {
+            let only: HashSet<usize> = std::iter::once(target).collect();
+            self.session
+                .update_only_files(&handle, &only)
+                .await
+                .map_err(|e| format!("{e:#}"))?;
+        } else {
+            self.sequential_torrents.remove(&id);
+            self.save_preferences();
         }
 
         Ok(())

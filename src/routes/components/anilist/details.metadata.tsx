@@ -43,7 +43,7 @@ function AniListMetadata({
             {t((statusLabels[anime.status] ?? anime.status) as never)}
           </span>
           {anime.format && (
-            <span className="windows95-font windows95-border text-text bg-white px-1 text-[10px]">
+            <span className="windows95-font windows95-border text-text bg-white px-1 text-xs">
               {t((formatLabels[anime.format] ?? anime.format) as never)}
             </span>
           )}
@@ -87,24 +87,24 @@ function AniListMetadata({
 
         {anime.next_episode != null && anime.next_airing_at != null && (
           <span className="windows95-text text-success font-bold">
-            {t("anilist.metadata.nextEpisode", { n: anime.next_episode })} ·{" "}
+            {t("anilist.metadata.nextEpisode", { n: anime.next_episode })} -{" "}
             {new Date(anime.next_airing_at * 1000).toLocaleDateString(locale)}
           </span>
         )}
 
         <div className="mt-1 flex flex-wrap items-center gap-2">
           {bestRank && (
-            <span className="windows95-text windows95-border bg-white px-1 text-[10px]">
+            <span className="windows95-text windows95-border bg-white px-1 text-xs">
               #{bestRank.rank} {bestRank.context}
             </span>
           )}
           {anime.popularity != null && (
-            <span className="windows95-text flex flex-row items-center gap-0.5 text-[10px]">
+            <span className="windows95-text flex flex-row items-center gap-0.5 text-xs">
               <Eye className="size-2.5" /> {anime.popularity.toLocaleString()}
             </span>
           )}
           {anime.favourites != null && (
-            <span className="windows95-text flex flex-row items-center gap-0.5 text-[10px]">
+            <span className="windows95-text flex flex-row items-center gap-0.5 text-xs">
               <Heart className="size-2.5" /> {anime.favourites.toLocaleString()}
             </span>
           )}

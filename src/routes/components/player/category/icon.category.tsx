@@ -1,8 +1,8 @@
 import { useState } from "react";
 
 import UserImageIcon from "@/components/shared/avatar.component";
-import Modal from "@/components/shared/modal.component";
 import UserImagePicker from "@/components/shared/avatar.picker";
+import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { playerIcons } from "@/config/player.config";
@@ -74,7 +74,7 @@ function CategoryIconModal({
       <UserImagePicker selected={selected} onSelect={handleUserImage} />
 
       {selected.startsWith("user-image:") && (
-        <div className="windows95-text mt-1 flex items-center gap-1 text-[10px]">
+        <div className="windows95-text mt-1 flex items-center gap-1 text-xs">
           <span>{t("player.category.selected")}</span>
           <UserImageIcon
             icon={selected}

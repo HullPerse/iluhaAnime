@@ -55,9 +55,10 @@ const KIND_ORDER: SearchSuggestion["kind"][] = [
 
 const EMPTY_SUGGESTIONS: SearchSuggestion[] = [];
 
-function groupSuggestions(
-  suggestions: SearchSuggestion[]
-): { items: SearchSuggestion[]; sections: SuggestionSection[] } {
+function groupSuggestions(suggestions: SearchSuggestion[]): {
+  items: SearchSuggestion[];
+  sections: SuggestionSection[];
+} {
   const groups = new Map<SearchSuggestion["kind"], SearchSuggestion[]>();
   for (const suggestion of suggestions) {
     const group = groups.get(suggestion.kind) ?? [];
@@ -171,7 +172,8 @@ export function InlineAutocompleteInput({
   );
 
   const { items: groupedSuggestions, sections } = useMemo(
-    () => groupSuggestions(isEmptyQuery ? emptyHistorySuggestions : suggestions),
+    () =>
+      groupSuggestions(isEmptyQuery ? emptyHistorySuggestions : suggestions),
     [emptyHistorySuggestions, isEmptyQuery, suggestions]
   );
 
@@ -208,7 +210,7 @@ export function InlineAutocompleteInput({
   useEffect(() => {
     setDismissed(false);
     setActiveIndex(-1);
-  }, [completion, currentValue, mode]);
+  }, []);
 
   useEffect(() => {
     const input = inputRef.current;
@@ -301,151 +303,154 @@ export function InlineAutocompleteInput({
           aria-haspopup={enabled ? "listbox" : undefined}
           aria-keyshortcuts="Tab, Enter, Escape, ArrowDown, ArrowUp, Home, End"
           className={cn("relative z-10 h-full w-full bg-transparent")}
-        onBlur={(event) => {
-          setFocused(false);
-          setActiveIndex(-1);
-          onBlur?.(event);
-        }}
-        onFocus={(event) => {
-          setFocused(true);
-          setDismissed(false);
-          onFocus?.(event);
-        }}
-        onKeyDown={createListNavigationHandler({
-          activeIndex: safeActiveIndex,
-          count: groupedSuggestions.length,
-          enabled: showMenu,
-          setActiveIndex,
-          onEnter: (index) => selectSuggestion(groupedSuggestions[index]),
-          onTab: (index) => selectSuggestion(groupedSuggestions[index]),
-          onEscape: () => {
-            if (!ghostValue && !showMenu && !completion) return false;
-            setDismissed(true);
+          onBlur={(event) => {
+            setFocused(false);
             setActiveIndex(-1);
-            onDismissCompletion?.();
-            return true;
-          },
-          onUnhandled: (event) => {
-            if (
-              event.key === "Tab" &&
-              !event.shiftKey &&
-              ghostValue &&
-              onAcceptCompletion
-            ) {
-              event.preventDefault();
-              onAcceptCompletion(ghostValue);
-              return;
-            }
-            onKeyDown?.(event);
-          },
-        })}
-        value={value}
-      />
-      {showMenu && (
-        <div
-          id={listboxId}
-          ref={listRef}
-          role="listbox"
-          className="windows95-active-border absolute top-full left-0 z-40 mt-1 flex max-h-72 min-w-64 flex-col bg-white"
-          style={{ width: menuWidth }}
-        >
+            onBlur?.(event);
+          }}
+          onFocus={(event) => {
+            setFocused(true);
+            setDismissed(false);
+            onFocus?.(event);
+          }}
+          onKeyDown={createListNavigationHandler({
+            activeIndex: safeActiveIndex,
+            count: groupedSuggestions.length,
+            enabled: showMenu,
+            setActiveIndex,
+            onEnter: (index) => selectSuggestion(groupedSuggestions[index]),
+            onTab: (index) => selectSuggestion(groupedSuggestions[index]),
+            onEscape: () => {
+              if (!ghostValue && !showMenu && !completion) return false;
+              setDismissed(true);
+              setActiveIndex(-1);
+              onDismissCompletion?.();
+              return true;
+            },
+            onUnhandled: (event) => {
+              if (
+                event.key === "Tab" &&
+                !event.shiftKey &&
+                ghostValue &&
+                onAcceptCompletion
+              ) {
+                event.preventDefault();
+                onAcceptCompletion(ghostValue);
+                return;
+              }
+              onKeyDown?.(event);
+            },
+          })}
+          value={value}
+        />
+        {showMenu && (
           <div
-            ref={scrollRef}
-            className="flex-1 overflow-y-auto overscroll-contain p-0.5"
+            id={listboxId}
+            ref={listRef}
+            role="listbox"
+            className="windows95-active-border absolute top-full left-0 z-40 mt-1 flex max-h-72 min-w-64 flex-col bg-white"
+            style={{ width: menuWidth }}
           >
-            {sections.map((section) => (
-              <div key={section.kind} role="presentation">
-                {!isEmptyQuery && (
-                  <div
-                    data-section={section.kind}
-                    className="windows95-text text-text bg-primary border-muted/40 flex items-center gap-1 border-b px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider select-none"
-                  >
-                    {t(suggestionKindLabels[section.kind])}
-                  </div>
-                )}
-                {groupedSuggestions
-                  .slice(section.startIndex, section.endIndex)
-                  .map((suggestion, index) => {
-                    const itemIndex = section.startIndex + index;
-                    const active = itemIndex === safeActiveIndex;
-                    const Icon = suggestionIcons[suggestion.kind];
-                    return (
-                      <button
-                        key={`${suggestion.kind}-${suggestion.value}`}
-                        id={`${listboxId}-${itemIndex}`}
-                        type="button"
-                        role="option"
-                        data-index={itemIndex}
-                        aria-selected={active}
-                        className={cn(
-                          "windows95-text text-text group flex w-full cursor-pointer items-center gap-1.5 px-1.5 py-1 text-left select-none",
-                          active
-                            ? "bg-highlight text-white"
-                            : "hover:bg-highlight hover:text-white"
-                        )}
-                        onMouseDown={(event) => event.preventDefault()}
-                        onMouseEnter={() => setActiveIndex(itemIndex)}
-                        onClick={() => selectSuggestion(suggestion)}
-                      >
-                        <span
-                          className={cn(
-                            "flex size-4 shrink-0 items-center justify-center",
-                            active
-                              ? "text-white"
-                              : "text-muted group-hover:text-white"
-                          )}
+            <div
+              ref={scrollRef}
+              className="flex-1 overflow-y-auto overscroll-contain p-0.5"
+            >
+              {sections.map((section) => (
+                <div key={section.kind} role="presentation">
+                  {!isEmptyQuery && (
+                    <div
+                      data-section={section.kind}
+                      className="windows95-text text-text bg-primary border-muted/40 flex items-center gap-1 border-b px-1.5 py-0.5 text-xs font-bold tracking-wider uppercase select-none"
+                    >
+                      {t(suggestionKindLabels[section.kind])}
+                    </div>
+                  )}
+                  {groupedSuggestions
+                    .slice(section.startIndex, section.endIndex)
+                    .map((suggestion, index) => {
+                      const itemIndex = section.startIndex + index;
+                      const active = itemIndex === safeActiveIndex;
+                      const Icon = suggestionIcons[suggestion.kind];
+                      return (
+                        <div
+                          key={`${suggestion.kind}-${suggestion.value}`}
+                          className="flex w-full items-center"
                         >
-                          <Icon className="size-3.5" />
-                        </span>
-                        <span className="min-w-0 flex-1 truncate">
-                          {renderHighlighted(suggestion.value, active)}
-                        </span>
-                        <span
-                          className={cn(
-                            "shrink-0 text-[9px]",
-                            active
-                              ? "text-white/70"
-                              : "text-muted group-hover:text-white/70"
-                          )}
-                        >
-                          {suggestion.subtitle ??
-                            t(suggestionKindLabels[suggestion.kind])}
-                        </span>
-                        {suggestion.kind === "history" && onRemoveHistory && (
-                          <span
-                            role="button"
+                          <div
+                            id={`${listboxId}-${itemIndex}`}
+                            role="option"
+                            data-index={itemIndex}
+                            aria-selected={active}
                             tabIndex={-1}
-                            aria-label={t("search.removeFromHistory")}
                             className={cn(
-                              "flex size-4 shrink-0 cursor-pointer items-center justify-center",
+                              "windows95-text text-text group flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 px-1.5 py-1 text-left select-none",
                               active
-                                ? "text-white hover:bg-white/20"
-                                : "text-muted group-hover:text-white group-hover:opacity-70"
+                                ? "bg-highlight text-white"
+                                : "hover:bg-highlight hover:text-white"
                             )}
                             onMouseDown={(event) => event.preventDefault()}
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              onRemoveHistory(suggestion.value);
-                            }}
+                            onMouseEnter={() => setActiveIndex(itemIndex)}
+                            onClick={() => selectSuggestion(suggestion)}
                           >
-                            <X className="size-3" />
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-              </div>
-            ))}
+                            <span
+                              className={cn(
+                                "flex size-4 shrink-0 items-center justify-center",
+                                active
+                                  ? "text-white"
+                                  : "text-muted group-hover:text-white"
+                              )}
+                            >
+                              <Icon className="size-3.5" />
+                            </span>
+                            <span className="min-w-0 flex-1 truncate">
+                              {renderHighlighted(suggestion.value, active)}
+                            </span>
+                            <span
+                              className={cn(
+                                "shrink-0 text-xs",
+                                active
+                                  ? "text-white/70"
+                                  : "text-muted group-hover:text-white/70"
+                              )}
+                            >
+                              {suggestion.subtitle ??
+                                t(suggestionKindLabels[suggestion.kind])}
+                            </span>
+                          </div>
+                          {suggestion.kind === "history" && onRemoveHistory && (
+                            <button
+                              type="button"
+                              aria-label={t("search.removeFromHistory")}
+                              className={cn(
+                                "flex size-4 shrink-0 cursor-pointer items-center justify-center px-1",
+                                active
+                                  ? "text-white hover:bg-white/20"
+                                  : "text-muted hover:text-white"
+                              )}
+                              onMouseDown={(event) => event.preventDefault()}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                onRemoveHistory(suggestion.value);
+                              }}
+                            >
+                              <X className="size-3" />
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                </div>
+              ))}
+            </div>
+            <div
+              role="presentation"
+              data-footer
+              className="windows95-text text-text/60 bg-primary border-muted/40 flex shrink-0 items-center gap-1 border-t px-1.5 py-1 text-xs select-none"
+            >
+              {t("settings.search.autocompleteFooterHint")}
+            </div>
           </div>
-          <div
-            role="presentation"
-            data-footer
-            className="windows95-text text-text/60 bg-primary border-muted/40 flex shrink-0 items-center gap-1 border-t px-1.5 py-1 text-[9px] select-none"
-          >
-            {t("settings.search.autocompleteFooterHint")}
-          </div>
-        </div>
-      )}
+        )}
       </div>
     </div>
   );

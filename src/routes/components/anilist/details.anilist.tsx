@@ -11,20 +11,22 @@ import {
 import { useState } from "react";
 
 import { SmallLoader } from "@/components/shared/loader.component";
-
 import Modal from "@/components/shared/modal.component";
 import Section from "@/components/shared/section.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
-import { RELATION_LABEL, SUPPORTED_RELATION_TYPES } from "@/config/anilist.config";
+import {
+  RELATION_LABEL,
+  SUPPORTED_RELATION_TYPES,
+} from "@/config/anilist.config";
 import { useI18n } from "@/lib/i18n";
 import { enterOrSpace } from "@/lib/keyboard.utils";
 import { useSearchStore } from "@/store/search.store";
 import type { AniMedia, AniVoiceActor } from "@/types/anilist";
 
+import AniListCharacterDetailModal from "./details.character";
 import AniListCharactersPanel from "./details.characters";
 import AniListActionControls from "./details.controls";
-import AniListCharacterDetailModal from "./details.character";
 import FranchiseGraphSection from "./details.franchise";
 import AniListMetadata from "./details.metadata";
 
@@ -148,6 +150,11 @@ function AniListDetailModal({
                     ? t("anilist.details.removeFav")
                     : t("anilist.details.addFav")
                 }
+                aria-label={
+                  isFavourited
+                    ? t("anilist.details.removeFav")
+                    : t("anilist.details.addFav")
+                }
               >
                 {favLoading ? (
                   <SmallLoader size={3} />
@@ -231,17 +238,17 @@ function AniListDetailModal({
                       <span className="windows95-text line-clamp-1 font-bold">
                         {r.media.title}
                       </span>
-                      <div className="flex flex-col text-[9px]">
+                      <div className="flex flex-col text-xs">
                         <span className="ml-1 flex flex-row gap-1">
                           {`[ ${t(RELATION_LABEL[r.relation_type] as never) ?? r.relation_type} ]`}
                         </span>
                         <span>
-                          · {t("anilist.details.format")}:{" "}
+                          - {t("anilist.details.format")}:{" "}
                           {r.media.format && <>{r.media.format}</>}
                         </span>
 
                         <span className="flex flex-row gap-1">
-                          · {t("anilist.details.rating")}:{" "}
+                          - {t("anilist.details.rating")}:{" "}
                           {r.media.score && (
                             <>
                               {" "}
@@ -250,7 +257,7 @@ function AniListDetailModal({
                           )}
                         </span>
                         <span className="flex flex-row gap-1">
-                          · {t("anilist.details.episodes")}:
+                          - {t("anilist.details.episodes")}:
                           {r.media.episodes && (
                             <>
                               {" "}

@@ -13,7 +13,7 @@ pub enum AppError {
 }
 
 impl AppError {
-    pub fn code(&self) -> &'static str {
+    pub const fn code(&self) -> &'static str {
         match self {
             Self::Io(_) => "io_error",
             Self::Json(_) => "json_error",

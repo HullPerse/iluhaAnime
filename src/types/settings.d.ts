@@ -1,12 +1,7 @@
 import type { Locale } from "./i18n";
 import type { AutocompleteMode } from "./search";
 
-export type SettingsTab =
-  | "general"
-  | "search"
-  | "torrent"
-  | "theme"
-  | "sqlite";
+export type SettingsTab = "general" | "search" | "torrent" | "theme" | "sqlite";
 
 export type FFMPEGStatus = "checking" | "ok" | "missing" | "downloading";
 
@@ -59,6 +54,7 @@ export interface SettingsStore {
   sqliteBrowserEnabled: boolean;
   sqliteShowImages: boolean;
   vaultTabEnabled: boolean;
+  collectionTabEnabled: boolean;
   ffmpegSource: "essentials" | "github" | "github-mirror";
   toastDuration: number;
   patch: (partial: Partial<SettingsStore>) => void;

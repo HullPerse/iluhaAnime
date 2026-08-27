@@ -28,12 +28,7 @@ function Radio({
       onClick={disabled ? undefined : () => onChange(!checked)}
       onKeyDown={disabled ? undefined : enterOrSpace(() => onChange(!checked))}
     >
-      {checked && (
-        <span
-          className="size-1.5 shrink-0"
-          style={{ backgroundColor: "var(--color-text)" }}
-        />
-      )}
+      {checked && <span className="bg-text size-1.5 shrink-0" />}
     </span>
   );
 }

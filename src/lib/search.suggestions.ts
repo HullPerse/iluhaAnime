@@ -79,10 +79,7 @@ function wordMatchScore(queryWord: string, targetWord: string): number | null {
 }
 
 /** Matches every query word against distinct candidate words, in order. */
-function multiWordScore(
-  queryWords: string[],
-  target: string
-): number | null {
+function multiWordScore(queryWords: string[], target: string): number | null {
   const targetWords = target.split(" ");
   const used = new Set<number>();
   let total = 0;
@@ -111,7 +108,10 @@ function multiWordScore(
 }
 
 /** Returns a relevance score, or null when the candidate is not close enough. */
-export function fuzzyMatchScore(query: string, candidate: string): number | null {
+export function fuzzyMatchScore(
+  query: string,
+  candidate: string
+): number | null {
   const q = normalizeSearchText(query);
   const target = normalizeSearchText(candidate);
   if (!q || !target) return null;
@@ -130,7 +130,8 @@ export function fuzzyMatchScorePreNormalized(
 /** Relevance score for already-normalized query and candidate. */
 function normalizedMatchScore(q: string, target: string): number | null {
   if (target === q) return 1_000;
-  if (target.startsWith(q)) return 900 - Math.min(120, target.length - q.length);
+  if (target.startsWith(q))
+    return 900 - Math.min(120, target.length - q.length);
 
   const queryWords = q.split(" ");
   if (queryWords.length > 1) {
@@ -149,8 +150,7 @@ function normalizedMatchScore(q: string, target: string): number | null {
     const character = target[index];
     if (character === q[queryIndex]) {
       if (queryIndex === 0) {
-        firstMatchAtBoundary =
-          index === 0 || target[index - 1] === " ";
+        firstMatchAtBoundary = index === 0 || target[index - 1] === " ";
       }
       queryIndex++;
     } else if (queryIndex > 0) gaps++;
@@ -160,7 +160,9 @@ function normalizedMatchScore(q: string, target: string): number | null {
     }
   }
 
-  if (Math.abs(target.length - q.length) <= Math.max(2, Math.floor(q.length / 3))) {
+  if (
+    Math.abs(target.length - q.length) <= Math.max(2, Math.floor(q.length / 3))
+  ) {
     const distance = levenshtein(q, target);
     if (distance <= Math.max(1, Math.floor(q.length / 4))) {
       return 300 - distance * 35;
@@ -188,11 +190,13 @@ function statBoost(
 }
 
 function animeSubtitle(anime: SearchAnimeSuggestion): string {
-  const status = anime.favourite ? "favourite" : anime.status.toLocaleLowerCase();
+  const status = anime.favourite
+    ? "favourite"
+    : anime.status.toLocaleLowerCase();
   const season = [anime.season, anime.seasonYear]
     .filter((value) => value != null && value !== "")
     .join(" ");
-  return season ? `${status} · ${season}` : status;
+  return season ? `${status} - ${season}` : status;
 }
 
 function animeBoost(
@@ -211,9 +215,7 @@ function animeBoost(
   };
   const scoreBoost = anime.score && anime.score > 0 ? anime.score * 2 : 0;
   const base =
-    (anime.favourite ? 55 : 0) +
-    (statusBoost[anime.status] ?? 0) +
-    scoreBoost;
+    (anime.favourite ? 55 : 0) + (statusBoost[anime.status] ?? 0) + scoreBoost;
   return boost === "strong" ? base * 1.5 : base;
 }
 
@@ -249,7 +251,8 @@ export function getSearchSuggestions(
     const key = normalizeSearchText(suggestion.value);
     if (!key || key === normalizedQuery) return;
     const current = candidates.get(key);
-    if (!current || suggestion.score > current.score) candidates.set(key, suggestion);
+    if (!current || suggestion.score > current.score)
+      candidates.set(key, suggestion);
   };
 
   for (const suggestion of options.backendSuggestions ?? []) {
@@ -264,7 +267,10 @@ export function getSearchSuggestions(
     if (match == null) continue;
     put({
       kind: "history",
-      score: match + statBoost(value, options.queryStats) + statBoost(value, options.suggestionStats),
+      score:
+        match +
+        statBoost(value, options.queryStats) +
+        statBoost(value, options.suggestionStats),
       subtitle: "history",
       value,
     });

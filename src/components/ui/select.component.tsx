@@ -1,6 +1,6 @@
 import { Select as BaseSelect } from "@base-ui/react/select";
 import { ChevronDown } from "lucide-react";
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useRef } from "react";
 
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/index.utils";
@@ -43,15 +43,15 @@ function Select({
     );
   }, [options, search, showSearch]);
 
-  useEffect(() => {
-    if (!search) return;
-    setSearch("");
-  }, [value]);
+
 
   return (
     <BaseSelect.Root
       value={value}
-      onValueChange={(v) => onChange(v ?? "")}
+      onValueChange={(v) => {
+        setSearch("");
+        onChange(v ?? "");
+      }}
       disabled={disabled}
     >
       <BaseSelect.Trigger

@@ -4,7 +4,14 @@ import { listen } from "@tauri-apps/api/event";
 import type { Update } from "@tauri-apps/plugin-updater";
 import { saveWindowState } from "@tauri-apps/plugin-window-state";
 import type { ReactElement } from "react";
-import { useState, useEffect, useRef, lazy, Suspense } from "react";
+import {
+  useState,
+  useEffect,
+  useRef,
+  lazy,
+  Suspense,
+  useTransition,
+} from "react";
 
 import type { KeybindAction } from "@/config/keybinds.config";
 import { getAction } from "@/config/keybinds.config";
@@ -16,14 +23,14 @@ import { useAniListNotificationsStore } from "@/store/anilist.store";
 import { useCacheStore } from "@/store/cache.store";
 import { useTorrentStore } from "@/store/download.store";
 import { useNotificationStore } from "@/store/notification.store";
-import type { NotificationType } from "@/types/notification";
 import { useSearchStore } from "@/store/search.store";
 import { useSettingsStore } from "@/store/settings.store";
 import { applyTheme, useThemeStore } from "@/store/theme.store";
 import type { FolderNode } from "@/types";
+import type { NotificationType } from "@/types/notification";
 import type { SearchLearningSnapshot } from "@/types/search";
 
-import { WindowLoader } from "./components/shared/loader.component";
+import { SmallLoader, TabLoader } from "./components/shared/loader.component";
 import NotificationTray from "./components/shared/notification.component";
 import Tabs from "./components/shared/tabs.component";
 import Updater from "./components/shared/updater.component";
@@ -44,6 +51,7 @@ type Tab =
   | "player"
   | "anilist"
   | "vault"
+  | "collection"
   | "settings";
 
 const tabKeys: readonly { id: Tab; key: TranslationKey }[] = [
@@ -52,6 +60,7 @@ const tabKeys: readonly { id: Tab; key: TranslationKey }[] = [
   { id: "player", key: "app.player" },
   { id: "anilist", key: "app.anilist" },
   { id: "vault", key: "app.vault" },
+  { id: "collection", key: "app.collection" },
   { id: "settings", key: "app.settings" },
 ];
 
@@ -62,6 +71,7 @@ function App() {
     .filter((tab) => tab.id !== "vault" || vaultTabEnabled)
     .map((tab) => ({ ...tab, label: t(tab.key) }));
   const [activeTab, setActiveTab] = useState<Tab>("search");
+  const [isPending, startTransition] = useTransition();
   const initTabsRef = useRef(false);
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const customScrollbar = useSettingsStore((s) => s.customScrollbar);
@@ -71,6 +81,10 @@ function App() {
   const lastSaveDir = useTorrentStore((s) => s.lastSaveDir);
   const confirmDownload = useTorrentStore((s) => s.confirmDownload);
   const cancelDownload = useTorrentStore((s) => s.cancelDownload);
+
+  const setActiveTabTransition = (tab: Tab) => {
+    startTransition(() => setActiveTab(tab));
+  };
 
   const enableAnimations = useSettingsStore((s) => s.enableAnimations);
   const retroStyle = useSettingsStore((s) => s.retroStyle);
@@ -121,7 +135,7 @@ function App() {
       disposed = true;
       cleanup?.();
     };
-  }, [init]);
+  }, [init, t]);
 
   useEffect(() => {
     const save = () => {
@@ -146,16 +160,15 @@ function App() {
   useEffect(() => {
     if (!initTabsRef.current && tabs.length > 0) {
       initTabsRef.current = true;
-      if (!tabs.some((t) => t.id === activeTab)) {
-        setActiveTab(tabs[0].id);
-      }
+      if (!tabs.some((t) => t.id === activeTab))
+        startTransition(() => setActiveTab(tabs[0].id));
     }
   }, [activeTab, tabs]);
 
   useEffect(() => {
-    if (!vaultTabEnabled && activeTab === "vault") setActiveTab("search");
+    if (!vaultTabEnabled && activeTab === "vault")
+      startTransition(() => setActiveTab("search"));
   }, [activeTab, vaultTabEnabled]);
-
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -173,7 +186,7 @@ function App() {
       };
 
       const tab = actionMap[action.action];
-      if (tab) setActiveTab(tab);
+      if (tab) startTransition(() => setActiveTab(tab));
     };
 
     window.addEventListener("keydown", handler);
@@ -182,26 +195,26 @@ function App() {
 
   useEffect(() => {
     const current = useSearchStore.getState().crossSearchQuery;
-    if (current) setActiveTab("search");
+    if (current) startTransition(() => setActiveTab("search"));
     return useSearchStore.subscribe((state, prev) => {
       if (
         state.crossSearchQuery &&
         state.crossSearchQuery !== prev.crossSearchQuery
       ) {
-        setActiveTab("search");
+        startTransition(() => setActiveTab("search"));
       }
     });
   }, []);
 
   useEffect(() => {
     const current = useSearchStore.getState().anilistSearchQuery;
-    if (current) setActiveTab("anilist");
+    if (current) startTransition(() => setActiveTab("anilist"));
     return useSearchStore.subscribe((state, prev) => {
       if (
         state.anilistSearchQuery &&
         state.anilistSearchQuery !== prev.anilistSearchQuery
       ) {
-        setActiveTab("anilist");
+        startTransition(() => setActiveTab("anilist"));
       }
     });
   }, []);
@@ -342,7 +355,13 @@ function App() {
       readAppCache<Record<number, number>>("player", "episodeTracker"),
       readAppCache<SearchLearningSnapshot>("search", "learning"),
     ]).then(
-      ([folderTrees, lastSaveDir, seedPreferences, episodeTracker, learning]) => {
+      ([
+        folderTrees,
+        lastSaveDir,
+        seedPreferences,
+        episodeTracker,
+        learning,
+      ]) => {
         if (disposed) return;
         const cache = useCacheStore.getState();
         if (folderTrees?.payload) cache.setFolderTrees(folderTrees.payload);
@@ -485,15 +504,18 @@ function App() {
               ariaLabel={t("common.sections")}
               tabs={tabs}
               activeTab={activeTab}
-              onChange={(id) => setActiveTab(id as Tab)}
+              onChange={(id) => setActiveTabTransition(id as Tab)}
             />
           </div>
 
           {/* CONTENT PANEL */}
           <div className="windows95-border bg-surface relative mx-1 mb-1 min-h-0 flex-1 overflow-hidden p-1">
-            <Suspense fallback={<WindowLoader />}>
-              {getComponent()}
-            </Suspense>
+            <Suspense fallback={<TabLoader />}>{getComponent()}</Suspense>
+            {isPending && (
+              <div className="bg-surface/70 absolute inset-0 flex items-center justify-center">
+                <SmallLoader size={6} />
+              </div>
+            )}
           </div>
         </div>
       </section>

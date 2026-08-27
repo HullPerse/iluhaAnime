@@ -148,7 +148,7 @@ export function buildActivityMap(
       it.events = it.events
         .split(", ")
         .map((k) => kindLabel[k] ?? k)
-        .join(" · ");
+        .join(" - ");
     }
   }
   return map;

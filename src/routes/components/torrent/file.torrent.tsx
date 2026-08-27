@@ -13,7 +13,6 @@ import {
 import { useRef, useState, useCallback, useMemo } from "react";
 
 import { SmallLoader } from "@/components/shared/loader.component";
-
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import ImageComponent from "@/components/ui/image.component";
@@ -222,7 +221,7 @@ function TorrentFilesSection({
       ref={scrollRef}
       className="windows95-border h-fit max-h-40 overflow-y-auto bg-white py-0.5"
     >
-      <div style={{ height: virtualizer.getTotalSize(), position: "relative" }}>
+      <div className="relative" style={{ height: virtualizer.getTotalSize() }}>
         {virtualizer.getVirtualItems().map((vItem) => {
           const item = flatItems[vItem.index];
           if (!item) return null;
@@ -349,7 +348,7 @@ function TorrentFilesSection({
               {file.selected && !file.completed && file.size > 0 && (
                 <div className="bg-surface windows95-border ml-1 h-2 w-10 shrink-0">
                   <div
-                    className="bg-secondary h-full transition-all duration-500"
+                    className="bg-secondary h-full transition-[width] duration-500"
                     style={{
                       width: `${Math.min(100, (file.progress_bytes / file.size) * 100)}%`,
                     }}
@@ -437,7 +436,9 @@ function TorrentFilesSection({
                         if (status === "queued")
                           return <ListVideo className="text-muted size-3" />;
                         if (status === "processing")
-                          return <SmallLoader size={3} className="text-highlight" />;
+                          return (
+                            <SmallLoader size={3} className="text-highlight" />
+                          );
                         return null;
                       })()}
 
@@ -489,7 +490,9 @@ function TorrentFilesSection({
                         if (status === "queued")
                           return <ListVideo className="text-muted size-3" />;
                         if (status === "processing")
-                          return <SmallLoader size={3} className="text-highlight" />;
+                          return (
+                            <SmallLoader size={3} className="text-highlight" />
+                          );
                         return null;
                       })()}
 

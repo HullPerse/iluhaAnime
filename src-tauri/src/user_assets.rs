@@ -49,7 +49,7 @@ fn open_database(app: &tauri::AppHandle) -> Result<Connection, String> {
     Ok(conn)
 }
 
-pub(crate) fn image_mime(bytes: &[u8], extension: Option<&str>) -> Option<&'static str> {
+pub fn image_mime(bytes: &[u8], extension: Option<&str>) -> Option<&'static str> {
     if bytes.starts_with(b"\x89PNG\r\n\x1a\n") {
         return Some("image/png");
     }

@@ -2,8 +2,9 @@ import { TransformComponent, TransformWrapper } from "react-zoom-pan-pinch";
 import type { ReactZoomPanPinchRef } from "react-zoom-pan-pinch";
 
 import { EDGE_STYLES } from "@/config/anilist.config";
-import { FranNode } from "./graph.node";
 import type { FilteredGraph, FranchiseNodePosition } from "@/types/anilist";
+
+import { FranNode } from "./graph.node";
 
 interface FranchiseGraphProps {
   filtered: FilteredGraph;

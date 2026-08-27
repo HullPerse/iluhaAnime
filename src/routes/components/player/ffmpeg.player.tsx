@@ -104,7 +104,7 @@ function FFMPEG({
               }}
             />
           </div>
-          <span className="w-10 shrink-0 text-right text-[10px]">
+          <span className="w-10 shrink-0 text-right text-xs">
             {dlProgress && dlProgress.total > 0
               ? `${Math.round((dlProgress.downloaded / dlProgress.total) * 100)}%`
               : "0%"}

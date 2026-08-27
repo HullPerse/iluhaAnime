@@ -66,7 +66,7 @@ function AniListActionControls({
 
   return (
     <div className="windows95-border">
-      <div className="bg-secondary windows95-font flex flex-row px-1 py-0.5 text-[10px] font-bold text-white">
+      <div className="bg-secondary windows95-font flex flex-row px-1 py-0.5 text-xs font-bold text-white">
         {listEntry
           ? t("anilist.controls.editList")
           : t("anilist.controls.addToList")}
@@ -104,10 +104,10 @@ function AniListActionControls({
             max={anime.episodes ?? 9999}
             value={editProgress}
             onChange={(e) => setEditProgress(e.target.value)}
-            className="h-7 w-20 text-[11px]"
+            className="h-7 w-20 text-xs"
           />
           {anime.episodes && (
-            <span className="windows95-text text-[10px]">
+            <span className="windows95-text text-xs">
               / {anime.episodes} {t("anilist.details.epsShort")}
             </span>
           )}
@@ -125,10 +125,10 @@ function AniListActionControls({
               })),
             ]}
           />
-          <span className="windows95-text text-[10px]">/ 10</span>
+          <span className="windows95-text text-xs">/ 10</span>
         </div>
         {saveError && (
-          <span className="text-destructive text-[10px] font-bold">
+          <span className="text-destructive text-xs font-bold">
             {saveError}
           </span>
         )}

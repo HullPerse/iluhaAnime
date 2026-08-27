@@ -33,7 +33,8 @@ beforeEach(() => {
   // Replace the real store actions with spies so no Tauri IPC is triggered.
   useTorrentStore.setState({
     prepareTorrentDownload: prepareTorrentDownloadSpy as never,
-    prepareTorrentDownloadFromBytes: prepareTorrentDownloadFromBytesSpy as never,
+    prepareTorrentDownloadFromBytes:
+      prepareTorrentDownloadFromBytesSpy as never,
   });
 });
 

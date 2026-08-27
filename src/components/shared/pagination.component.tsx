@@ -1,5 +1,4 @@
 import { ArrowLeft, ArrowRight } from "lucide-react";
-import { useState, useEffect } from "react";
 
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
@@ -16,14 +15,9 @@ export default function Pagination({
   statusText,
 }: PaginationProps) {
   const { t } = useI18n();
-  const [input, setInput] = useState(String(page));
-
-  useEffect(() => {
-    setInput(String(page));
-  }, [page]);
 
   return (
-    <section className="windows95-border flex flex-row items-center justify-between bg-primary px-1 py-0.5">
+    <section className="windows95-border bg-primary flex flex-row items-center justify-between px-1 py-0.5">
       <span className="windows95-text">{statusText}</span>
       <span className="windows95-text">
         {total > 0 && t("common.paginationShown", { from, to, total })}
@@ -38,9 +32,9 @@ export default function Pagination({
           <ArrowLeft />
         </Button>
         <Input
-          value={input}
+          key={page}
+          defaultValue={String(page)}
           onChange={(e) => {
-            setInput(e.target.value);
             const num = Number(e.target.value);
             if (Number.isFinite(num) && num >= 1) {
               onPageChange(Math.min(num, lastPage));

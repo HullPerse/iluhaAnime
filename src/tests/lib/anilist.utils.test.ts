@@ -573,13 +573,11 @@ describe("groupFranchiseNodes", () => {
       [4, "SIDE_STORY"],
     ]);
     const groups = groupFranchiseNodes(nodes, relationMap);
-    expect(groups.map((g) => g.group)).toEqual([
-      "SEQUEL",
-      "PREQUEL",
-      "SIDE_STORY",
-      "SPIN_OFF",
-      "OTHER",
-    ].filter((g) => ["SEQUEL", "SIDE_STORY"].includes(g)));
+    expect(groups.map((g) => g.group)).toEqual(
+      ["SEQUEL", "PREQUEL", "SIDE_STORY", "SPIN_OFF", "OTHER"].filter((g) =>
+        ["SEQUEL", "SIDE_STORY"].includes(g)
+      )
+    );
     const sequel = groups.find((g) => g.group === "SEQUEL")!;
     expect(sequel.items.map((n) => n.id)).toEqual([2]);
     const side = groups.find((g) => g.group === "SIDE_STORY")!;
@@ -603,9 +601,7 @@ describe("computeMainlineIds", () => {
       ],
       root_id: 1,
     };
-    const nodeMap = new Map(
-      graph.nodes.map((n) => [n.id, n] as const)
-    );
+    const nodeMap = new Map(graph.nodes.map((n) => [n.id, n] as const));
     const ids = computeMainlineIds(graph, nodeMap, 1);
     expect(ids).toEqual(new Set([1, 2, 3]));
   });

@@ -67,19 +67,17 @@ export default function EraiLoginModal({
   };
 
   return (
-    <Modal
-      header={t("search.erai.title")}
-      onClose={close}
-      className="w-xl"
-    >
+    <Modal header={t("search.erai.title")} onClose={close} className="w-xl">
       <div className="flex flex-col gap-2 p-1">
-        <span className="windows95-text text-muted text-[10px] leading-snug">
+        <span className="windows95-text text-muted text-xs leading-snug">
           {t("search.erai.hint")}
         </span>
         <Button onClick={openBrowser} disabled={loading}>
           {loading ? <SmallLoader /> : t("search.erai.openBrowser")}
         </Button>
-        {error && <span className="text-destructive windows95-text">{error}</span>}
+        {error && (
+          <span className="text-destructive windows95-text">{error}</span>
+        )}
         <div className="mt-1 flex justify-end gap-1">
           <Button onClick={close}>{t("common.cancel")}</Button>
           <Button onClick={saveSession} disabled={loading}>

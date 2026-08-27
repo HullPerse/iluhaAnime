@@ -12,6 +12,14 @@ import { useI18n } from "@/lib/i18n";
 import { enterSubmit } from "@/lib/keyboard.utils";
 import type { AniFriend, AniUserProfile } from "@/types/anilist";
 
+function hasFreshCachedProfile(friend: AniFriend | undefined): boolean {
+  return (
+    !!friend?.profile &&
+    typeof friend.profile_fetched_at === "number" &&
+    Date.now() - (friend.profile_fetched_at as number) < PROFILE_CACHE_TTL_MS
+  );
+}
+
 interface Props {
   friends: AniFriend[];
   onAdd: (profile: AniUserProfile) => void;
@@ -41,11 +49,6 @@ export default function AniListFriendsModal({
       return next;
     });
   }, [friends]);
-
-  const hasFreshCachedProfile = (friend: AniFriend | undefined) =>
-    !!friend?.profile &&
-    typeof friend.profile_fetched_at === "number" &&
-    Date.now() - friend.profile_fetched_at < PROFILE_CACHE_TTL_MS;
 
   const loadProfile = async (value: string, force = false) => {
     const input = value.trim();
@@ -94,13 +97,13 @@ export default function AniListFriendsModal({
         <section className="windows95-border bg-white p-1">
           <div className="bg-secondary mb-1 flex items-center gap-1 px-1 py-0.5 text-white">
             <Users className="size-3" />
-            <span className="windows95-font text-[10px]">
+            <span className="windows95-font text-xs">
               {t("anilist.friends.list")}
             </span>
           </div>
           <div className="flex flex-col gap-1">
             {friends.length === 0 ? (
-              <span className="windows95-text text-muted p-2 text-center text-[10px]">
+              <span className="windows95-text text-muted p-2 text-center text-xs">
                 {t("anilist.friends.empty")}
               </span>
             ) : (
@@ -130,7 +133,7 @@ export default function AniListFriendsModal({
                       alt={friend.name}
                       className="windows95-active-border size-7 shrink-0"
                     />
-                    <span className="windows95-text truncate text-[10px]">
+                    <span className="windows95-text truncate text-xs">
                       {friend.name}
                     </span>
                   </button>
@@ -165,7 +168,7 @@ export default function AniListFriendsModal({
             </Button>
           </div>
           {error && (
-            <div className="windows95-border text-destructive flex items-start gap-1 bg-white p-1 text-[10px]">
+            <div className="windows95-border text-destructive flex items-start gap-1 bg-white p-1 text-xs">
               <X className="mt-0.5 size-3 shrink-0" />
               <span className="windows95-text">{error}</span>
             </div>
@@ -191,20 +194,20 @@ export default function AniListFriendsModal({
                   <h3 className="windows95-text text-sm font-bold">
                     {selected.name}
                   </h3>
-                  <p className="windows95-text text-[10px]">
-                    {selected.anime_count} {t("anilist.friends.anime")} ·{" "}
+                  <p className="windows95-text text-xs">
+                    {selected.anime_count} {t("anilist.friends.anime")} -{" "}
                     {selected.episodes_watched} {t("anilist.friends.episodes")}
                     {selected.mean_score != null &&
-                      ` · ${t("anilist.friends.score")}: ${selected.mean_score}`}
+                      ` - ${t("anilist.friends.score")}: ${selected.mean_score}`}
                   </p>
-                  <p className="windows95-text text-muted mt-1 text-[10px]">
+                  <p className="windows95-text text-muted mt-1 text-xs">
                     {selected.is_following == null
                       ? t("anilist.friends.relationshipUnavailable")
                       : selected.is_following
                         ? t("anilist.friends.following")
                         : t("anilist.friends.notFollowing")}
                     {selected.is_follower === true
-                      ? ` · ${t("anilist.friends.followsYou")}`
+                      ? ` - ${t("anilist.friends.followsYou")}`
                       : ""}
                   </p>
                 </div>
@@ -218,13 +221,13 @@ export default function AniListFriendsModal({
                 </Button>
               </div>
               {selected.about && (
-                <p className="windows95-text border-t border-black/20 p-2 text-[10px] whitespace-pre-wrap">
+                <p className="windows95-text border-t border-black/20 p-2 text-xs whitespace-pre-wrap">
                   {selected.about}
                 </p>
               )}
             </div>
           ) : (
-            <div className="windows95-text text-muted flex flex-1 items-center justify-center p-6 text-center text-[10px]">
+            <div className="windows95-text text-muted flex flex-1 items-center justify-center p-6 text-center text-xs">
               {t("anilist.friends.help")}
             </div>
           )}

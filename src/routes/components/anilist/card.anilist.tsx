@@ -71,11 +71,11 @@ function AniListEntryCard({ item, entryLookup, onClick }: Props) {
 
           <div className="windows95-text mt-auto flex flex-row items-center gap-2 font-bold">
             {item.score && (
-              <span className="bg-secondary text-primary flex flex-row items-center gap-0.5 px-1 text-[10px]">
+              <span className="bg-secondary text-primary flex flex-row items-center gap-0.5 px-1 text-xs">
                 <Star className="size-3 fill-white" /> {item.score}
               </span>
             )}
-            <span className="text-text text-[10px]">
+            <span className="text-text text-xs">
               {t(
                 (statusLabels[item.status.toUpperCase()] ??
                   item.status) as never
@@ -91,7 +91,7 @@ function AniListEntryCard({ item, entryLookup, onClick }: Props) {
                     }}
                   />
                 </div>
-                <span className="windows95-text text-[10px]">
+                <span className="windows95-text text-xs">
                   {entry.progress}/{item.episodes}
                 </span>
               </div>
@@ -99,12 +99,12 @@ function AniListEntryCard({ item, entryLookup, onClick }: Props) {
             {entry?.progress != null &&
               entry?.progress > 0 &&
               !item.episodes && (
-                <span className="bg-secondary px-1 text-[10px] text-white">
+                <span className="bg-secondary px-1 text-xs text-white">
                   {entry.progress}
                 </span>
               )}
             {!entry && item.episodes && (
-              <span className="text-text text-[10px]">
+              <span className="text-text text-xs">
                 {item.episodes} {t("anilist.details.epsShort")}
               </span>
             )}

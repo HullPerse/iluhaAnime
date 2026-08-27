@@ -17,6 +17,7 @@ export default function SettingsGeneral() {
     anilistReleaseNotifications,
     sqliteBrowserEnabled,
     vaultTabEnabled,
+    collectionTabEnabled,
     ffmpegSource,
     patch,
   } = useSettingsStore();
@@ -53,12 +54,14 @@ export default function SettingsGeneral() {
               label: t("settings.ffmpegSource.essentials"),
             },
             { value: "github", label: t("settings.ffmpegSource.github") },
-            { value: "github-mirror", label: t("settings.ffmpegSource.mirror") },
+            {
+              value: "github-mirror",
+              label: t("settings.ffmpegSource.mirror"),
+            },
           ]}
           className="w-52"
         />
       </label>
-
 
       <label className="windows95-text text-text flex cursor-pointer items-center gap-2 select-none">
         <Checkbox
@@ -80,13 +83,11 @@ export default function SettingsGeneral() {
         <span>{t("settings.anilistReleaseNotifications")}</span>
       </label>
 
-      <hr className="windows95-header w-full" />
+      <hr className="border-muted my-1 w-full border-t" />
 
       <div className="windows95-text flex flex-col gap-1">
-        <span className="text-[10px] font-bold">
-          {t("settings.sqliteBrowser")}
-        </span>
-        <span className="text-[9px]">
+        <span className="text-xs font-bold">{t("settings.sqliteBrowser")}</span>
+        <span className="text-xs">
           {t("settings.sqliteBrowserDescription")}
         </span>
         <Button
@@ -104,31 +105,40 @@ export default function SettingsGeneral() {
         </Button>
       </div>
 
-      <hr className="windows95-header w-full" />
+      <hr className="border-muted my-1 w-full border-t" />
 
       <div className="windows95-text flex flex-col gap-1">
-        <span className="text-[10px] font-bold">
-          {t("settings.vaultTab")}{" "}
-          <span className="text-[8px] font-normal text-orange-500">
-            {t("settings.experimental")}
+        <span>{t("settings.tabs")}:</span>
+
+        <label className="windows95-text text-text flex cursor-pointer items-center gap-2 select-none">
+          <Checkbox
+            checked={collectionTabEnabled}
+            onChange={(v) => patch({ collectionTabEnabled: v })}
+          />
+          <span title={t("settings.collectionTabDescription")}>
+            {t("settings.collectionTab")}
           </span>
-        </span>
+        </label>
+
         <label className="windows95-text text-text flex cursor-pointer items-center gap-2 select-none">
           <Checkbox
             checked={vaultTabEnabled}
             onChange={(v) => patch({ vaultTabEnabled: v })}
           />
-          <span>{t("settings.vaultTabDescription")}</span>
+          <span title={t("settings.vaultTabDescription")}>
+            {t("settings.vaultTab")}{" "}
+            <span className="text-orange-400">{`[${t("settings.experimental")}]`}</span>
+          </span>
         </label>
       </div>
 
-      <hr className="windows95-header w-full" />
+      <hr className="border-muted my-1 w-full border-t" />
 
       <div className="flex flex-col gap-1">
-        <span className="windows95-text text-[10px] font-bold">
+        <span className="windows95-text text-xs font-bold">
           {t("settings.resetData")}
         </span>
-        <span className="windows95-text text-[9px]">
+        <span className="windows95-text text-xs">
           {t("settings.resetDescription")}
         </span>
         <Button

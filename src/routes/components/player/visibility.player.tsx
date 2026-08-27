@@ -40,7 +40,7 @@ export default function PlayerVisibilityModal({
     >
       <div className="flex max-h-[min(32rem,65vh)] flex-col gap-2 overflow-y-auto">
         {isEmpty && (
-          <div className="windows95-border bg-surface windows95-text p-3 text-center text-[11px]">
+          <div className="windows95-border bg-surface windows95-text p-3 text-center text-xs">
             {t("player.visibility.empty")}
           </div>
         )}
@@ -49,7 +49,7 @@ export default function PlayerVisibilityModal({
           <section className="windows95-border bg-primary">
             <header className="bg-secondary flex items-center gap-1 px-1 py-0.5 text-white">
               <FolderOpen className="size-3" />
-              <span className="windows95-font text-[10px] font-bold">
+              <span className="windows95-font text-xs font-bold">
                 {t("player.visibility.folders")}
               </span>
             </header>
@@ -61,7 +61,7 @@ export default function PlayerVisibilityModal({
                 >
                   <FolderOpen className="size-4 shrink-0" />
                   <span
-                    className="windows95-text min-w-0 flex-1 truncate text-[10px]"
+                    className="windows95-text min-w-0 flex-1 truncate text-xs"
                     title={folder.path}
                   >
                     {folder.name}
@@ -84,7 +84,7 @@ export default function PlayerVisibilityModal({
           <section className="windows95-border bg-primary">
             <header className="bg-secondary flex items-center gap-1 px-1 py-0.5 text-white">
               <HardDrive className="size-3" />
-              <span className="windows95-font text-[10px] font-bold">
+              <span className="windows95-font text-xs font-bold">
                 {t("player.visibility.torrents")}
               </span>
             </header>
@@ -96,7 +96,7 @@ export default function PlayerVisibilityModal({
                 >
                   <HardDrive className="size-4 shrink-0" />
                   <span
-                    className="windows95-text min-w-0 flex-1 truncate text-[10px]"
+                    className="windows95-text min-w-0 flex-1 truncate text-xs"
                     title={torrent.infoHash}
                   >
                     {torrent.name}
@@ -116,7 +116,7 @@ export default function PlayerVisibilityModal({
         )}
 
         {!isEmpty && (
-          <div className="text-muted flex items-center gap-1 text-[10px]">
+          <div className="text-muted flex items-center gap-1 text-xs">
             <Trash2 className="size-3" />
             <span className="windows95-text">
               {t("player.visibility.note")}

@@ -7,12 +7,12 @@ import Select from "@/components/ui/select.component";
 import { THEMES } from "@/config/themes.config";
 import { useI18n } from "@/lib/i18n";
 import { useSettingsStore } from "@/store/settings.store";
-import type { SettingsStore } from "@/types/settings";
 import {
   useThemeStore,
   themeToJson,
   parseRetroismTheme,
 } from "@/store/theme.store";
+import type { SettingsStore } from "@/types/settings";
 import type { ThemeDefinition } from "@/types/theme";
 
 import ThemeEditor from "./theme.editor";
@@ -72,7 +72,7 @@ function ThemeCard({
             title={tr("settings.theme.color.winShadow")}
           />
         </div>
-        <span className="windows95-text text-text text-[10px]">
+        <span className="windows95-text text-text text-xs">
           {t.label}
           {isCustom && tr("settings.theme.custom")}
         </span>
@@ -81,7 +81,7 @@ function ThemeCard({
         <div className="flex gap-1">
           {onEdit && (
             <Button
-              className="text-[9px] underline"
+              className="text-xs underline"
               size="default"
               onClick={onEdit}
             >
@@ -90,7 +90,7 @@ function ThemeCard({
           )}
           {onDelete && (
             <Button
-              className="text-[9px] underline"
+              className="text-xs underline"
               variant="destructive"
               size="default"
               onClick={onDelete}
@@ -151,7 +151,9 @@ export default function SettingsTheme() {
   const removeCustomTheme = useThemeStore((s) => s.removeCustomTheme);
   const { t: tr } = useI18n();
   const [showEditor, setShowEditor] = useState(false);
-  const [editingTheme, setEditingTheme] = useState<ThemeDefinition | undefined>();
+  const [editingTheme, setEditingTheme] = useState<
+    ThemeDefinition | undefined
+  >();
   const [importError, setImportError] = useState("");
 
   const builtins = THEMES;
@@ -201,7 +203,7 @@ export default function SettingsTheme() {
           <span className="windows95-text text-text font-bold">
             {tr("settings.theme.retroStyle")}
           </span>
-          <span className="windows95-text text-muted text-[10px]">
+          <span className="windows95-text text-muted text-xs">
             {tr("settings.theme.retroStyleHint")}
           </span>
         </div>
@@ -224,7 +226,7 @@ export default function SettingsTheme() {
           <span className="windows95-text text-text font-bold">
             {tr("settings.theme.density")}
           </span>
-          <span className="windows95-text text-muted text-[10px]">
+          <span className="windows95-text text-muted text-xs">
             {tr("settings.theme.densityHint")}
           </span>
         </div>
@@ -283,7 +285,7 @@ export default function SettingsTheme() {
         )}
       </div>
 
-      <hr className="windows95-header my-2 w-full" />
+      <hr className="border-muted my-2 w-full border-t" />
 
       <p className="windows95-text text-muted w-full font-bold">
         {tr("settings.theme.effects")}

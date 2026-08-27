@@ -30,7 +30,7 @@ impl StreamRegistry {
         (id, tx)
     }
 
-    pub fn registration(&self, id: u64) -> StreamRegistration<'_> {
+    pub const fn registration(&self, id: u64) -> StreamRegistration<'_> {
         StreamRegistration { registry: self, id }
     }
 

@@ -24,6 +24,20 @@ export function WindowLoader({ className }: { className?: string }) {
   );
 }
 
+export function TabLoader({ className }: { className?: string }) {
+  return (
+    <div
+      className={cn(
+        "bg-surface text-secondary flex h-full w-full min-h-40 flex-col items-center justify-center gap-2",
+        className
+      )}
+      aria-busy="true"
+    >
+      <SmallLoader size={6} />
+    </div>
+  );
+}
+
 export function SmallLoader({
   size = 4,
   className,

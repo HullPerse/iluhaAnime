@@ -26,7 +26,7 @@ export default function SpeedLimitForm({
   const effective = (input: string) => (input === "" ? null : Number(input));
 
   return (
-    <section className="windows95-active-border flex items-center gap-2 bg-primary p-1">
+    <section className="windows95-active-border bg-primary flex items-center gap-2 p-1">
       <span className="windows95-text">
         <ArrowDown />
       </span>

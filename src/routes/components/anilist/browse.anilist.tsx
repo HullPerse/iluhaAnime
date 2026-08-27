@@ -3,8 +3,8 @@ import { invoke } from "@tauri-apps/api/core";
 import { Star } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import Modal from "@/components/shared/modal.component";
 import { SmallLoader } from "@/components/shared/loader.component";
+import Modal from "@/components/shared/modal.component";
 import Pagination from "@/components/shared/pagination.component";
 import Tabs from "@/components/shared/tabs.component";
 import ImageComponent from "@/components/ui/image.component";
@@ -13,7 +13,7 @@ import {
   seasonLabels,
   statusLabels,
 } from "@/config/anilist.config";
-import { BROWSE_PAGE_SIZE } from "@/config/anime.pagination.config";
+import { BROWSE_PAGE_SIZE } from "@/config/pagination.config";
 import { usePagination } from "@/hooks/pagination.hook";
 import { getStatusColor } from "@/lib/anilist.utils";
 import { useI18n } from "@/lib/i18n";
@@ -74,12 +74,12 @@ export default function BrowseAnimeModal({
 
   useEffect(() => {
     setPage(1);
-  }, [activeTab]);
+  }, []);
   const paged = paginate(data, page, BROWSE_PAGE_SIZE);
 
   return (
     <Modal
-      header={t(tabs.find((tab) => tab.id === activeTab)!.key)}
+      header={t(tabs.find((tab) => tab.id === activeTab)?.key ?? tabs[0].key)}
       onClose={onClose}
       className="w-3xl"
     >
@@ -136,7 +136,7 @@ export default function BrowseAnimeModal({
 
                     {item.title}
                   </span>
-                  <div className="windows95-text mt-1 flex flex-wrap gap-x-2 gap-y-0.5 text-[10px]">
+                  <div className="windows95-text mt-1 flex flex-wrap gap-x-2 gap-y-0.5 text-xs">
                     {item.score && (
                       <span className="bg-secondary text-primary flex flex-row items-center gap-0.5 px-1 font-bold">
                         <Star className="size-3 fill-white" /> {item.score}
@@ -170,7 +170,7 @@ export default function BrowseAnimeModal({
                       {item.genres.slice(0, 4).map((g) => (
                         <span
                           key={g}
-                          className="windows95-border bg-white px-1 text-[9px]"
+                          className="windows95-border bg-white px-1 text-xs"
                         >
                           {g}
                         </span>

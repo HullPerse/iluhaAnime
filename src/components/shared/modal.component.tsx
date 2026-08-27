@@ -55,7 +55,7 @@ function Modal({
         )}
         <Dialog.Popup
           className={cn(
-            "bg-primary windows95-active-border fixed top-1/2 left-1/2 z-50 flex h-fit w-fit max-w-[80%] min-h-42 max-h-[80%] -translate-x-1/2 -translate-y-1/2 flex-col items-center",
+            "bg-primary windows95-active-border fixed top-1/2 left-1/2 z-50 flex h-fit max-h-[80%] min-h-42 w-fit max-w-[80%] -translate-x-1/2 -translate-y-1/2 flex-col items-center",
             modalAnimation ? "transition-opacity duration-150" : "",
             visible ? "opacity-100" : "opacity-0",
             enable3dBorders ? "windows95-3d-border" : "",

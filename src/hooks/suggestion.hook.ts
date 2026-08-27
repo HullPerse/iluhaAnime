@@ -2,11 +2,11 @@ import { invoke } from "@tauri-apps/api/core";
 import { useEffect, useState } from "react";
 
 import { fuzzyMatchScore } from "@/lib/search.suggestions";
-import type { SearchSuggestion, SearchSuggestionKind } from "@/lib/search.suggestions";
 import type {
-  SearchSuggestionScope,
-  UnifiedIndexRow,
-} from "@/types/search";
+  SearchSuggestion,
+  SearchSuggestionKind,
+} from "@/lib/search.suggestions";
+import type { SearchSuggestionScope, UnifiedIndexRow } from "@/types/search";
 
 function suggestionKind(kind: string): SearchSuggestionKind {
   if (kind === "anime" || kind === "anime_alias") return "anime";
@@ -15,7 +15,7 @@ function suggestionKind(kind: string): SearchSuggestionKind {
   return "history";
 }
 
-export function useUnifiedIndexSuggestions(
+export function useSugggestions(
   query: string,
   scope: SearchSuggestionScope,
   limit = 8
@@ -33,7 +33,7 @@ export function useUnifiedIndexSuggestions(
     const timer = window.setTimeout(() => {
       invoke<UnifiedIndexRow[]>("search_unified_index", {
         query: normalized,
-        scope: null,
+        scope,
         limit,
       })
         .then((rows) => {

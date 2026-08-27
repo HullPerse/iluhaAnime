@@ -246,8 +246,7 @@ fn initialize_schema(connection: &Connection) -> Result<(), String> {
 
     if version > CURRENT_SCHEMA_VERSION {
         return Err(format!(
-            "app database is newer than this application ({} > {})",
-            version, CURRENT_SCHEMA_VERSION
+            "app database is newer than this application ({version} > {CURRENT_SCHEMA_VERSION})"
         ));
     }
 
@@ -658,7 +657,7 @@ fn path_is_in_scope(path: &str, scopes: &[String]) -> bool {
     let path = Path::new(path);
     scopes
         .iter()
-        .map(|scope| Path::new(scope))
+        .map(Path::new)
         .any(|scope| path.starts_with(scope))
 }
 

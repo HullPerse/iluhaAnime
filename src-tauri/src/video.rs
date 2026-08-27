@@ -23,8 +23,7 @@ fn is_supported_media_path(path: &std::path::Path) -> bool {
     ];
     path.extension()
         .and_then(|value| value.to_str())
-        .map(|value| EXTENSIONS.contains(&value.to_ascii_lowercase().as_str()))
-        .unwrap_or(false)
+        .is_some_and(|value| EXTENSIONS.contains(&value.to_ascii_lowercase().as_str()))
 }
 
 struct CancellationState {

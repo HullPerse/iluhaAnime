@@ -3,9 +3,9 @@ import { invoke } from "@tauri-apps/api/core";
 import { ChevronLeft, Monitor, X } from "lucide-react";
 import { useState, useEffect } from "react";
 
+import { SmallLoader } from "@/components/shared/loader.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
-import { SmallLoader } from "@/components/shared/loader.component";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/index.utils";
 import { enterOrSpace } from "@/lib/keyboard.utils";
@@ -60,7 +60,12 @@ function OverlayWindow({
         <section className="bg-secondary flex w-full flex-row items-center justify-between p-1">
           <div className="flex min-w-0 flex-row items-center gap-1">
             {onBack && (
-              <Button onClick={onBack} size="icon" className="size-4">
+              <Button
+                onClick={onBack}
+                size="icon"
+                className="size-4"
+                aria-label={t("common.previous")}
+              >
                 <ChevronLeft className="size-2.5" />
               </Button>
             )}
@@ -172,7 +177,7 @@ function AniListCharacterDetailModal({
 
           {staffDetail.characters.length > 0 && (
             <div>
-              <span className="windows95-text text-[11px] font-bold">
+              <span className="windows95-text text-xs font-bold">
                 {t("anilist.characters.charactersOf", {
                   count: staffDetail.characters.length,
                 })}
@@ -198,11 +203,11 @@ function AniListCharacterDetailModal({
                         className="windows95-active-border h-16 w-12 object-cover"
                       />
                     ) : (
-                      <div className="windows95-active-border flex h-16 w-12 items-center justify-center bg-white text-[8px] font-bold">
+                      <div className="windows95-active-border flex h-16 w-12 items-center justify-center bg-white text-xs font-bold">
                         ?
                       </div>
                     )}
-                    <span className="windows95-text w-full truncate text-center text-[7px] leading-tight">
+                    <span className="windows95-text w-full truncate text-center text-xs leading-tight">
                       {c.name}
                     </span>
                   </div>
@@ -213,7 +218,7 @@ function AniListCharacterDetailModal({
 
           {staffDetail.media.length > 0 && (
             <div>
-              <span className="windows95-text text-[11px] font-bold">
+              <span className="windows95-text text-xs font-bold">
                 {t("anilist.characters.animeOf", {
                   count: staffDetail.media.length,
                 })}
@@ -237,11 +242,11 @@ function AniListCharacterDetailModal({
                         className="windows95-active-border h-16 w-12 object-cover"
                       />
                     ) : (
-                      <div className="windows95-active-border flex h-16 w-12 items-center justify-center bg-white text-[8px] font-bold">
+                      <div className="windows95-active-border flex h-16 w-12 items-center justify-center bg-white text-xs font-bold">
                         ?
                       </div>
                     )}
-                    <span className="windows95-text w-full truncate text-center text-[7px] leading-tight">
+                    <span className="windows95-text w-full truncate text-center text-xs leading-tight">
                       {m.title}
                     </span>
                   </div>
@@ -260,7 +265,7 @@ function AniListCharacterDetailModal({
             <>
               {currentVAs.length > 0 && (
                 <div>
-                  <span className="windows95-text text-[11px] font-bold">
+                  <span className="windows95-text text-xs font-bold">
                     {t("anilist.characters.voiceActors")}
                   </span>
                   <div className="mt-1 flex flex-wrap gap-2">
@@ -281,16 +286,16 @@ function AniListCharacterDetailModal({
                             className="windows95-active-border h-18 w-13 shrink-0 object-cover"
                           />
                         ) : (
-                          <div className="windows95-active-border flex h-8 w-8 items-center justify-center bg-white text-[8px] font-bold">
+                          <div className="windows95-active-border flex h-8 w-8 items-center justify-center bg-white text-xs font-bold">
                             ?
                           </div>
                         )}
                         <div className="flex flex-col">
-                          <span className="windows95-text text-[10px] leading-tight font-bold">
+                          <span className="windows95-text text-xs leading-tight font-bold">
                             {va.name}
                           </span>
                           {va.native_name && (
-                            <span className="windows95-text text-muted text-[8px]">
+                            <span className="windows95-text text-muted text-xs">
                               {va.native_name}
                             </span>
                           )}
@@ -303,7 +308,7 @@ function AniListCharacterDetailModal({
 
               {media && media.length > 0 && (
                 <div>
-                  <span className="windows95-text text-[11px] font-bold">
+                  <span className="windows95-text text-xs font-bold">
                     {t("anilist.characters.appearsIn", { count: media.length })}
                   </span>
                   <div className="mt-1 flex flex-wrap gap-1">
@@ -325,11 +330,11 @@ function AniListCharacterDetailModal({
                             className="windows95-active-border h-16 w-12 object-cover"
                           />
                         ) : (
-                          <div className="windows95-active-border flex h-16 w-12 items-center justify-center bg-white text-[8px] font-bold">
+                          <div className="windows95-active-border flex h-16 w-12 items-center justify-center bg-white text-xs font-bold">
                             ?
                           </div>
                         )}
-                        <span className="windows95-text w-full truncate text-center text-[7px] leading-tight">
+                        <span className="windows95-text w-full truncate text-center text-xs leading-tight">
                           {m.title}
                         </span>
                       </div>

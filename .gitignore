@@ -22,9 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-AGENTS.md
 .opencode
 .env
+resources
 
 plans
 glucose
@@ -33,3 +33,10 @@ public/icons
 .attune/
 
 .playwright-mcp
+
+# slop
+.agents
+skills-lock.json
+.docs
+AGENTS.md
+coverage/

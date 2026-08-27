@@ -52,6 +52,7 @@ function Tabs<T extends string>({
             aria-selected={isActive}
             tabIndex={isActive ? 0 : -1}
             data-tab-id={tab.id}
+            disabled={isActive}
           >
             {tab.label}
           </Button>

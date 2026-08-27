@@ -47,7 +47,7 @@ const Image = ({
     if (imgRef.current?.complete) {
       setIsLoaded(true);
     }
-  }, [finalSrc, retryKey]);
+  }, []);
 
   const handleLoad = useCallback(() => {
     setIsLoaded(true);

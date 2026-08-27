@@ -45,8 +45,7 @@ impl FileIndexer {
                 let matches_extension = path
                     .extension()
                     .and_then(|extension| extension.to_str())
-                    .map(|extension| ext_set.contains(&extension.to_lowercase()))
-                    .unwrap_or(false);
+                    .is_some_and(|extension| ext_set.contains(&extension.to_lowercase()));
                 if !matches_extension {
                     continue;
                 }
@@ -137,8 +136,7 @@ impl FileIndexer {
                     || entry
                         .path
                         .rsplit_once('.')
-                        .map(|(_, extension)| ext_set.contains(&extension.to_lowercase()))
-                        .unwrap_or(false)
+                        .is_some_and(|(_, extension)| ext_set.contains(&extension.to_lowercase()))
             })
             .filter_map(|entry| {
                 let name = entry.name.to_lowercase();
@@ -166,7 +164,7 @@ fn substring_score(query: &str, target: &str) -> Option<i32> {
     if position == 0 {
         score += 500;
     }
-    if position > 0 && target[..position].chars().last() == Some(' ') {
+    if position > 0 && target[..position].ends_with(' ') {
         score += 200;
     }
     Some(score)

@@ -346,13 +346,10 @@ fn quote_sqlite_identifier(identifier: &str) -> Result<String, String> {
 fn allowed_sqlite_table(database: &str, table: &str) -> bool {
     matches!(
         (database, table),
-        ("franchise", "franchise_nodes")
-            | ("user_assets", "user_images")
-            | ("app_data", "cache_entries")
-            | ("app_data", "media_records")
-            | ("app_data", "release_analysis")
-            | ("app_data", "anime_statistics")
-            | ("app_data", "unified_index")
+        ("franchise", "franchise_nodes") | ("user_assets", "user_images") |
+("app_data",
+"cache_entries" | "media_records" | "release_analysis" | "anime_statistics" |
+"unified_index")
     )
 }
 
@@ -506,7 +503,7 @@ impl SqliteFilterValue {
             Self::Null => Value::Null,
             Self::Integer(value) => Value::Integer(*value),
             Self::Real(value) => Value::Real(*value),
-            Self::Bool(value) => Value::Integer(*value as i64),
+            Self::Bool(value) => Value::Integer(i64::from(*value)),
             Self::Text(value) => Value::Text(value.clone()),
         }
     }
@@ -598,7 +595,7 @@ fn parse_sqlite_filter_value(raw: &str) -> SqliteFilterValue {
     }
     let first = value.chars().next();
     let last = value.chars().last();
-    if first == last && matches!(first, Some('"') | Some('\'')) {
+    if first == last && matches!(first, Some('"' | '\'')) {
         let quote = first.unwrap();
         let inner = &value[quote.len_utf8()..value.len() - quote.len_utf8()];
         let doubled = format!("{quote}{quote}");
@@ -818,7 +815,7 @@ async fn get_sqlite_rows(
             .join(", ");
         let page = page.max(1);
         let page_size = page_size.clamp(1, 100);
-        let offset = (page - 1) as u64 * page_size as u64;
+        let offset = u64::from(page - 1) * u64::from(page_size);
         let filter_value = filter
             .map(|value| value.trim().chars().take(MAX_SQLITE_SEARCH_CHARS).collect::<String>())
             .filter(|value| !value.is_empty());
@@ -860,16 +857,15 @@ async fn get_sqlite_rows(
                 columns
                     .iter()
                     .find(|column| column.primary_key)
-                    .map(|column| column.name.as_str())
-                    .unwrap_or(column_names.first().map(String::as_str).unwrap_or("rowid")),
+                    .map_or(column_names.first().map_or("rowid", String::as_str), |column| column.name.as_str()),
             )?,
         };
         let order_direction = match order_direction.as_deref() {
-            Some("desc") | Some("DESC") => "DESC",
+            Some("desc" | "DESC") => "DESC",
             _ => "ASC",
         };
-        let mut all_params = where_params.clone();
-        all_params.push(Value::Integer(page_size as i64));
+        let mut all_params = where_params;
+        all_params.push(Value::Integer(i64::from(page_size)));
         all_params.push(Value::Integer(offset as i64));
         let rows_sql = format!("SELECT {quoted_columns} FROM {quoted_table}{where_sql} ORDER BY {order_column} {order_direction}, rowid LIMIT ? OFFSET ?");
         let mut statement = connection.prepare(&rows_sql).map_err(|error| format!("rows query: {error}"))?;
@@ -939,7 +935,7 @@ async fn delete_sqlite_row(
             })
             .collect::<Result<Vec<_>, String>>()?
             .join(" AND ");
-        let params = keys.iter().map(|key| key.as_str()).collect::<Vec<_>>();
+        let params = keys.iter().map(std::string::String::as_str).collect::<Vec<_>>();
         let deleted = connection
             .execute(
                 &format!("DELETE FROM {quoted_table} WHERE {where_clause}"),
@@ -994,7 +990,7 @@ async fn delete_sqlite_rows(
             if primary_keys.len() != row_keys.len() {
                 return Err("Primary key value count does not match".to_string());
             }
-            let params = row_keys.iter().map(|key| key.as_str()).collect::<Vec<_>>();
+            let params = row_keys.iter().map(std::string::String::as_str).collect::<Vec<_>>();
             connection
                 .execute(
                     &format!("DELETE FROM {quoted_table} WHERE {where_clause}"),
@@ -1126,17 +1122,17 @@ async fn run_sqlite_query(
             .split(|character: char| !character.is_ascii_alphabetic())
             .find(|token| !token.is_empty())
             .map(str::to_ascii_uppercase);
-        if !matches!(first_keyword.as_deref(), Some("SELECT") | Some("EXPLAIN")) {
+        if !matches!(first_keyword.as_deref(), Some("SELECT" | "EXPLAIN")) {
             return Err("Only SELECT and EXPLAIN queries are allowed".to_string());
         }
         let connection = open_sqlite_browser_database_read_only(&app_handle, &database)?;
         let mut statement = connection
-            .prepare(&trimmed)
+            .prepare(trimmed)
             .map_err(|error| format!("query prepare: {error}"))?;
         let column_names = statement
             .column_names()
             .iter()
-            .map(|name| name.to_string())
+            .map(std::string::ToString::to_string)
             .collect::<Vec<_>>();
         let mut query_rows = statement
             .query([])
@@ -1231,7 +1227,7 @@ async fn get_sqlite_cell(
             .collect::<Result<Vec<_>, String>>()?
             .join(" AND ");
         let sql = format!("SELECT {quoted_column} FROM {quoted_table} WHERE {where_clause}");
-        let params = keys.iter().map(|key| key.as_str()).collect::<Vec<_>>();
+        let params = keys.iter().map(std::string::String::as_str).collect::<Vec<_>>();
         let value = connection
             .query_row(&sql, rusqlite::params_from_iter(params), |row| {
                 Ok(sqlite_value_ref_to_string(row.get_ref(0)?))
@@ -1294,7 +1290,7 @@ async fn get_sqlite_cell_blob(
             .collect::<Result<Vec<_>, String>>()?
             .join(" AND ");
         let sql = format!("SELECT {quoted_column} FROM {quoted_table} WHERE {where_clause}");
-        let params = keys.iter().map(|key| key.as_str()).collect::<Vec<_>>();
+        let params = keys.iter().map(std::string::String::as_str).collect::<Vec<_>>();
         let blob = connection
             .query_row(&sql, rusqlite::params_from_iter(params), |row| {
                 row.get::<_, Vec<u8>>(0)
@@ -1365,7 +1361,7 @@ async fn apply_vault_organization(
                 }
             };
             let target = std::path::PathBuf::from(&item.target_path);
-            let Some(target_name) = target.file_name().map(|name| name.to_owned()) else {
+            let Some(target_name) = target.file_name().map(std::borrow::ToOwned::to_owned) else {
                 result
                     .errors
                     .push(format!("Invalid target path: {}", item.target_path));
@@ -2089,7 +2085,7 @@ pub fn run() {
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
         .run(|app_handle, event| {
-            if let tauri::RunEvent::Exit = event {
+            if matches!(event, tauri::RunEvent::Exit) {
                 tracing::info!("shutting down iluhaAnime backend");
                 let cancel = app_handle.state::<CancelFlag>();
                 cancel.cancel();

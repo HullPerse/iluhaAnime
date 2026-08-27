@@ -13,6 +13,7 @@ pub struct BackendCapabilities {
 
 #[tauri::command]
 #[specta::specta]
+#[must_use]
 pub fn get_backend_capabilities() -> BackendCapabilities {
     BackendCapabilities {
         api_version: "2".to_string(),

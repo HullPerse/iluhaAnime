@@ -1,30 +1,12 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { invoke } from "@tauri-apps/api/core";
-import { openPath } from "@tauri-apps/plugin-opener";
-import { parse } from "anitomy";
-import {
-  ChevronDown,
-  ChevronRight,
-  ListVideo,
-  Monitor,
-  Play,
-  RefreshCw,
-} from "lucide-react";
 import { useRef, useState, useCallback, useMemo } from "react";
 
-import { SmallLoader } from "@/components/shared/loader.component";
-import { Button } from "@/components/ui/button.component";
-import { Checkbox } from "@/components/ui/checkbox.component";
-import ImageComponent from "@/components/ui/image.component";
-import Select from "@/components/ui/select.component";
-import { useI18n } from "@/lib/i18n";
-import { collectFileIndices } from "@/lib/index.utils";
-import { joinMediaPath, openFileInPlayer } from "@/lib/media.utils";
-import { formatParsedTitle } from "@/lib/player.utils";
-import { buildTorrentTree, fmtSize } from "@/lib/torrent.utils";
+import { buildTorrentTree } from "@/lib/torrent.utils";
 import type { TorrentTreeNode, TorrentTreeFile } from "@/lib/torrent.utils";
-import UpscalePlayer from "@/routes/components/player/upscale.player";
-import { useSearchStore } from "@/store/search.store";
+import {
+  FolderRow,
+  TorrentFileRow,
+} from "@/routes/components/torrent/row.torrent";
 import { useSettingsStore } from "@/store/settings.store";
 import { useUpscaleQueueStore } from "@/store/upscale.store";
 import type { TorrentFileInfo, FilePriority } from "@/types/torrent";
@@ -102,15 +84,9 @@ function TorrentFilesSection({
   onRedownload?: (fileIndex: number) => void;
   onPlay?: (path: string, name: string) => void;
 }) {
-  const setAnilistSearchQuery = useSearchStore(
-    (state) => state.setAnilistSearchQuery
-  );
-
-  const parseTitles = useSettingsStore((s) => s.parseTitles);
   const showTrackFiles = useSettingsStore((s) => s.showTrackFiles);
   const audioExtensions = useSettingsStore((s) => s.audioExtensions);
   const subtitleExtensions = useSettingsStore((s) => s.subtitleExtensions);
-  const { t } = useI18n();
 
   const items = useUpscaleQueueStore((s) => s.items);
 
@@ -226,323 +202,43 @@ function TorrentFilesSection({
           const item = flatItems[vItem.index];
           if (!item) return null;
           if (item.kind === "folder") {
-            const isOpen = open.has(item.node.name + item.depth);
-            const folderIndices = collectFileIndices(item.node);
-            const folderFiles = folderIndices
-              .map((i) => files.find((f) => f.index === i))
-              .filter((f): f is TorrentFileInfo => f !== undefined);
-            const folderPriority =
-              folderFiles.length > 0 &&
-              folderFiles.every((f) => f.priority === folderFiles[0].priority)
-                ? folderFiles[0].priority
-                : "normal";
             return (
-              <div
+              <FolderRow
                 key={`folder-${item.node.name}-${item.depth}-${vItem.index}`}
-                className="windows95-text hover:bg-surface absolute top-0 left-0 flex w-full cursor-pointer items-center gap-1 px-0.5 py-0.5 text-left select-none"
-                style={{
-                  height: 20,
-                  transform: `translateY(${vItem.start}px)`,
-                  paddingLeft: `${item.depth * 12 + 2}px`,
-                }}
-              >
-                <div
-                  className="flex min-w-0 flex-1 items-center gap-1"
-                  onClick={() => toggle(item.node.name + item.depth)}
-                >
-                  {isOpen ? (
-                    <ChevronDown className="size-3 shrink-0" />
-                  ) : (
-                    <ChevronRight className="size-3 shrink-0" />
-                  )}
-                  <ImageComponent
-                    src="/images/w2k_folder_closed.ico"
-                    alt=""
-                    className="size-4 shrink-0"
-                  />
-                  <span className="truncate font-bold" title={item.node.name}>
-                    {item.node.name}
-                  </span>
-                  <span className="text-muted whitespace-nowrap">
-                    {fmtSize(
-                      item.node.files.reduce((s, f) => s + f.size, 0) +
-                        item.node.children.reduce(
-                          (s, c) =>
-                            s +
-                            c.files.reduce((s2, f) => s2 + f.size, 0) +
-                            c.children.reduce(
-                              (s3, cc) =>
-                                s3 + cc.files.reduce((s4, f) => s4 + f.size, 0),
-                              0
-                            ),
-                          0
-                        )
-                    )}
-                  </span>
-                </div>
-                {handlePriorityChange && type === "torrent" && (
-                  <Select
-                    className="w-28"
-                    value={folderPriority}
-                    onChange={(v) =>
-                      handlePriorityChange(folderIndices, v as FilePriority)
-                    }
-                    options={[
-                      { value: "normal", label: t("torrent.priority.normal") },
-                      {
-                        value: "do_not_download",
-                        label: t("torrent.priority.skip"),
-                      },
-                    ]}
-                    arrow={false}
-                  />
-                )}
-              </div>
+                node={item.node}
+                depth={item.depth}
+                virtualStart={vItem.start}
+                files={files}
+                isOpen={open.has(item.node.name + item.depth)}
+                type={type}
+                onToggleFolder={() => toggle(item.node.name + item.depth)}
+                onPriorityChange={handlePriorityChange}
+              />
             );
           }
           const { file } = item;
           return (
-            <div
+            <TorrentFileRow
               key={file.index}
-              className={`windows95-text absolute top-0 left-0 flex w-full items-center gap-1 px-1 select-none ${type === "torrent" && file.completed ? "" : "hover:bg-surface hover:cursor-pointer"}`}
-              style={{
-                height: 18,
-                transform: `translateY(${vItem.start}px)`,
-                paddingLeft: `${item.depth * 12 + 2}px`,
-              }}
-            >
-              {onToggle && (
-                <Checkbox
-                  checked={selected.has(file.index)}
-                  onChange={() => handleToggleFile(file.index, file.completed)}
-                  disabled={file.completed}
-                  className="size-3"
-                />
-              )}
-
-              <ImageComponent
-                src="/images/w2k_wmp_11.ico"
-                alt=""
-                className="size-4"
-              />
-
-              <span
-                className="flex-1 truncate"
-                title={file.displayName}
-                onContextMenu={(e) => {
-                  e.preventDefault();
-                  if (type === "player") openPath(String(path));
-                }}
-                onClick={() => {
-                  if (type === "torrent") return;
-                  const parsed = parse(file.displayName);
-                  if (!parsed) return;
-                  setAnilistSearchQuery(String(parsed.title));
-                }}
-              >
-                {type === "player" && parseTitles
-                  ? formatParsedTitle(file.displayName, t)
-                  : file.displayName}
-              </span>
-
-              {file.selected && !file.completed && file.size > 0 && (
-                <div className="bg-surface windows95-border ml-1 h-2 w-10 shrink-0">
-                  <div
-                    className="bg-secondary h-full transition-[width] duration-500"
-                    style={{
-                      width: `${Math.min(100, (file.progress_bytes / file.size) * 100)}%`,
-                    }}
-                  />
-                </div>
-              )}
-
-              <span className="text-muted shrink-0">{fmtSize(file.size)}</span>
-
-              {handlePriorityChange &&
-                type === "torrent" &&
-                !file.completed && (
-                  <Select
-                    className="w-28"
-                    value={file.priority || "normal"}
-                    onChange={(v) =>
-                      handlePriorityChange([file.index], v as FilePriority)
-                    }
-                    options={[
-                      { value: "normal", label: t("torrent.priority.normal") },
-                      {
-                        value: "do_not_download",
-                        label: t("torrent.priority.skip"),
-                      },
-                    ]}
-                    arrow={false}
-                  />
-                )}
-
-              {type === "torrent" &&
-                file.completed &&
-                !file.exists &&
-                onRedownload && (
-                  <Button
-                    title={t("torrent.redownload")}
-                    size="icon"
-                    className="size-4"
-                    onClick={() => onRedownload(file.index)}
-                  >
-                    <RefreshCw className="size-3" />
-                  </Button>
-                )}
-
-              {type === "player" && (
-                <div className="ml-auto flex flex-row gap-1">
-                  {(file as TorrentTreeFileWithPath)._fullPath ? (
-                    <>
-                      <Button
-                        rendered={
-                          !!extraFiles?.find((e) => e.name === file.displayName)
-                        }
-                        title={t("common.delete")}
-                        size="icon"
-                        className="size-4"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const upscaledFile = extraFiles?.find(
-                            (e) => e.name === file.displayName
-                          );
-
-                          if (!upscaledFile?.fullPath) return;
-
-                          invoke("delete_extra_file", {
-                            path: upscaledFile.fullPath,
-                          }).catch(() => {});
-
-                          onDeleteExtraFile?.();
-                        }}
-                        disabled={
-                          !extraFiles?.find((e) => e.name === file.displayName)
-                        }
-                      >
-                        <ImageComponent
-                          src="/images/w2k_dustbin.ico"
-                          alt=""
-                          className="size-4"
-                        />
-                      </Button>
-
-                      {(() => {
-                        const status = queueMap.get(
-                          (file as TorrentTreeFileWithPath)._fullPath
-                        );
-                        if (!status) return null;
-                        if (status === "queued")
-                          return <ListVideo className="text-muted size-3" />;
-                        if (status === "processing")
-                          return (
-                            <SmallLoader size={3} className="text-highlight" />
-                          );
-                        return null;
-                      })()}
-
-                      <UpscalePlayer
-                        filePath={(file as TorrentTreeFileWithPath)._fullPath}
-                        onDone={onUpscaleDone}
-                        exists={file.exists}
-                      />
-                      {onPlay && (
-                        <Button
-                          title={t("player.folder.builtinPlayer")}
-                          size="icon"
-                          className="size-4"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onPlay(
-                              (file as TorrentTreeFileWithPath)._fullPath,
-                              file.displayName
-                            );
-                          }}
-                          disabled={!file.exists}
-                        >
-                          <Play className="size-3" />
-                        </Button>
-                      )}
-                      <Button
-                        title={t("player.folder.openMediaPlayer")}
-                        size="icon"
-                        className="size-4"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openFileInPlayer(
-                            (file as TorrentTreeFileWithPath)._fullPath
-                          ).catch(() => {});
-                        }}
-                        disabled={!file.exists}
-                      >
-                        <Monitor className="size-3" />
-                      </Button>
-                    </>
-                  ) : (
-                    <>
-                      {(() => {
-                        if (!path) return null;
-                        const status = queueMap.get(
-                          joinMediaPath(path, file.name)
-                        );
-                        if (!status) return null;
-                        if (status === "queued")
-                          return <ListVideo className="text-muted size-3" />;
-                        if (status === "processing")
-                          return (
-                            <SmallLoader size={3} className="text-highlight" />
-                          );
-                        return null;
-                      })()}
-
-                      {path && (
-                        <UpscalePlayer
-                          filePath={joinMediaPath(path, file.name)}
-                          exists={file.exists}
-                          onDone={onUpscaleDone}
-                        />
-                      )}
-                      {path && onPlay && (
-                        <Button
-                          title={t("player.folder.builtinPlayer")}
-                          size="icon"
-                          className="size-4"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onPlay(
-                              joinMediaPath(path, file.name),
-                              file.displayName
-                            );
-                          }}
-                          disabled={!file.exists}
-                        >
-                          <Play className="size-3" />
-                        </Button>
-                      )}
-                      {path && (
-                        <Button
-                          title={t("player.folder.openMediaPlayer")}
-                          size="icon"
-                          className="size-4"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (path) {
-                              openFileInPlayer(
-                                joinMediaPath(path, file.name)
-                              ).catch(() => {});
-                            }
-                          }}
-                          disabled={!file.exists}
-                        >
-                          <Monitor className="size-3" />
-                        </Button>
-                      )}
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
+              file={file}
+              depth={item.depth}
+              virtualStart={vItem.start}
+              type={type}
+              checked={selected.has(file.index)}
+              onToggleFile={
+                onToggle
+                  ? () => handleToggleFile(file.index, file.completed)
+                  : undefined
+              }
+              onPriorityChange={handlePriorityChange}
+              queueMap={queueMap}
+              extraFiles={extraFiles}
+              path={path}
+              onDeleteExtraFile={onDeleteExtraFile}
+              onUpscaleDone={onUpscaleDone}
+              onPlay={onPlay}
+              onRedownload={onRedownload}
+            />
           );
         })}
       </div>

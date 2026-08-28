@@ -55,7 +55,7 @@ export default function SettingsSearch() {
 
   return (
     <div className="flex flex-col gap-3 p-4">
-      <p className="windows95-text text-muted w-full font-bold">
+      <p className="windows95-text text-hint w-full font-bold">
         {t("settings.search.title")}
       </p>
 
@@ -76,7 +76,7 @@ export default function SettingsSearch() {
 
       <hr className="border-muted my-1 w-full border-t" />
 
-      <p className="windows95-text text-muted w-full font-bold">
+      <p className="windows95-text text-hint w-full font-bold">
         {t("settings.search.visibleSources")}
       </p>
       <div className="flex flex-col gap-1">
@@ -162,7 +162,7 @@ export default function SettingsSearch() {
         </p>
       ) : autocompleteMode === "inline" || autocompleteMode === "both" ? (
         <div className="flex flex-col gap-1">
-          <span className="windows95-text text-muted text-xs">
+          <span className="windows95-text text-hint text-xs">
             {t("settings.search.preview")}
           </span>
           <div className="windows95-border windows95-text flex min-h-7 items-center overflow-hidden bg-white px-1.5 whitespace-pre">
@@ -182,7 +182,7 @@ export default function SettingsSearch() {
 
       <hr className="border-muted my-1 w-full border-t" />
 
-      <p className="windows95-text text-muted w-full font-bold">
+      <p className="windows95-text text-hint w-full font-bold">
         {t("settings.search.learning")}
       </p>
       <div className="windows95-text text-text grid grid-cols-2 gap-1 text-xs">
@@ -198,7 +198,7 @@ export default function SettingsSearch() {
         <span className="text-right tabular-nums">{learningAnimeCount}</span>
       </div>
 
-      <p className="windows95-text text-muted w-full font-bold">
+      <p className="windows95-text text-hint w-full font-bold">
         {t("settings.search.anilist")}
       </p>
 
@@ -235,7 +235,7 @@ export default function SettingsSearch() {
         >
           {t("settings.search.resetAnimeSuggestions")}
         </Button>
-        <span className="windows95-text text-muted text-xs">
+        <span className="windows95-text text-hint text-xs">
           {t("settings.search.resetAnimeSuggestionsHint")}
         </span>
       </div>

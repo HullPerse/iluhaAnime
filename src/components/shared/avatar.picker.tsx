@@ -94,7 +94,7 @@ export default function UserImagePicker({
           <SmallLoader />
         </div>
       ) : images.length === 0 ? (
-        <span className="windows95-text text-muted text-xs">
+        <span className="windows95-text text-hint text-xs">
           {t("player.category.noUploadedImages")}
         </span>
       ) : (

@@ -116,7 +116,7 @@ export default function PlayerVisibilityModal({
         )}
 
         {!isEmpty && (
-          <div className="text-muted flex items-center gap-1 text-xs">
+          <div className="text-hint flex items-center gap-1 text-xs">
             <Trash2 className="size-3" />
             <span className="windows95-text">
               {t("player.visibility.note")}

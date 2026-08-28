@@ -14,6 +14,7 @@ import { useI18n, type TranslationKey } from "@/lib/i18n";
 import { cn } from "@/lib/index.utils";
 import { createListNavigationHandler } from "@/lib/keyboard.utils";
 import type { SearchSuggestion } from "@/lib/search.suggestions";
+import type { AutocompleteMode } from "@/types/search";
 import { useSettingsStore } from "@/store/settings.store";
 
 interface Props extends React.ComponentProps<typeof Input> {
@@ -146,7 +147,6 @@ export function InlineAutocompleteInput({
   value,
   ...props
 }: Props) {
-  const { t } = useI18n();
   const [dismissed, setDismissed] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [focused, setFocused] = useState(false);
@@ -187,25 +187,16 @@ export function InlineAutocompleteInput({
     ? Math.min(activeIndex, groupedSuggestions.length - 1)
     : -1;
   const activeSuggestion =
-    safeActiveIndex >= 0 ? groupedSuggestions[safeActiveIndex] : undefined;
-
-  const ghostCandidate =
-    mode === "inline" || mode === "both"
-      ? (activeSuggestion?.value ?? completion ?? null)
-      : null;
-  const ghostValue =
-    enabled &&
-    (mode === "inline" || mode === "both") &&
-    !dismissed &&
-    focused &&
-    ghostCandidate &&
-    currentValue.trim().length > 0 &&
-    ghostCandidate
-      .toLocaleLowerCase()
-      .startsWith(currentValue.toLocaleLowerCase())
-      ? ghostCandidate
-      : null;
-  const ghostSuffix = ghostValue ? ghostValue.slice(currentValue.length) : "";
+    safeActiveIndex >= 0 ? groupedSuggestions[safeActiveIndex] : undefined;    const ghostValue = computeGhostValue({
+      mode,
+      enabled,
+      dismissed,
+      focused,
+      activeSuggestion,
+      completion,
+      currentValue,
+    });
+    const ghostSuffix = ghostValue ? ghostValue.slice(currentValue.length) : "";
 
   useEffect(() => {
     setDismissed(false);
@@ -240,25 +231,6 @@ export function InlineAutocompleteInput({
     setActiveIndex(-1);
   };
 
-  const renderHighlighted = (candidate: string, active: boolean) =>
-    splitHighlighted(candidate, currentValue).map((segment, index) =>
-      segment.matched ? (
-        <span
-          key={index}
-          className={cn(
-            "text-highlight font-bold",
-            active
-              ? "text-white underline"
-              : "group-hover:text-white group-hover:underline"
-          )}
-        >
-          {segment.text}
-        </span>
-      ) : (
-        <span key={index}>{segment.text}</span>
-      )
-    );
-
   return (
     <div className="relative min-w-0 flex-1">
       <div className={cn("relative", className)}>
@@ -289,15 +261,7 @@ export function InlineAutocompleteInput({
           aria-activedescendant={
             activeSuggestion ? `${listboxId}-${safeActiveIndex}` : undefined
           }
-          aria-autocomplete={
-            mode === "inline"
-              ? "inline"
-              : mode === "both"
-                ? "both"
-                : mode === "dropdown"
-                  ? "list"
-                  : "none"
-          }
+          aria-autocomplete={getAriaAutocomplete(mode)}
           aria-controls={showMenu ? listboxId : undefined}
           aria-expanded={showMenu || undefined}
           aria-haspopup={enabled ? "listbox" : undefined}
@@ -344,113 +308,260 @@ export function InlineAutocompleteInput({
           value={value}
         />
         {showMenu && (
-          <div
-            id={listboxId}
-            ref={listRef}
-            role="listbox"
-            className="windows95-active-border absolute top-full left-0 z-40 mt-1 flex max-h-72 min-w-64 flex-col bg-white"
-            style={{ width: menuWidth }}
-          >
-            <div
-              ref={scrollRef}
-              className="flex-1 overflow-y-auto overscroll-contain p-0.5"
-            >
-              {sections.map((section) => (
-                <div key={section.kind} role="presentation">
-                  {!isEmptyQuery && (
-                    <div
-                      data-section={section.kind}
-                      className="windows95-text text-text bg-primary border-muted/40 flex items-center gap-1 border-b px-1.5 py-0.5 text-xs font-bold tracking-wider uppercase select-none"
-                    >
-                      {t(suggestionKindLabels[section.kind])}
-                    </div>
-                  )}
-                  {groupedSuggestions
-                    .slice(section.startIndex, section.endIndex)
-                    .map((suggestion, index) => {
-                      const itemIndex = section.startIndex + index;
-                      const active = itemIndex === safeActiveIndex;
-                      const Icon = suggestionIcons[suggestion.kind];
-                      return (
-                        <div
-                          key={`${suggestion.kind}-${suggestion.value}`}
-                          className="flex w-full items-center"
-                        >
-                          <div
-                            id={`${listboxId}-${itemIndex}`}
-                            role="option"
-                            data-index={itemIndex}
-                            aria-selected={active}
-                            tabIndex={-1}
-                            className={cn(
-                              "windows95-text text-text group flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 px-1.5 py-1 text-left select-none",
-                              active
-                                ? "bg-highlight text-white"
-                                : "hover:bg-highlight hover:text-white"
-                            )}
-                            onMouseDown={(event) => event.preventDefault()}
-                            onMouseEnter={() => setActiveIndex(itemIndex)}
-                            onClick={() => selectSuggestion(suggestion)}
-                          >
-                            <span
-                              className={cn(
-                                "flex size-4 shrink-0 items-center justify-center",
-                                active
-                                  ? "text-white"
-                                  : "text-muted group-hover:text-white"
-                              )}
-                            >
-                              <Icon className="size-3.5" />
-                            </span>
-                            <span className="min-w-0 flex-1 truncate">
-                              {renderHighlighted(suggestion.value, active)}
-                            </span>
-                            <span
-                              className={cn(
-                                "shrink-0 text-xs",
-                                active
-                                  ? "text-white/70"
-                                  : "text-muted group-hover:text-white/70"
-                              )}
-                            >
-                              {suggestion.subtitle ??
-                                t(suggestionKindLabels[suggestion.kind])}
-                            </span>
-                          </div>
-                          {suggestion.kind === "history" && onRemoveHistory && (
-                            <button
-                              type="button"
-                              aria-label={t("search.removeFromHistory")}
-                              className={cn(
-                                "flex size-4 shrink-0 cursor-pointer items-center justify-center px-1",
-                                active
-                                  ? "text-white hover:bg-white/20"
-                                  : "text-muted hover:text-white"
-                              )}
-                              onMouseDown={(event) => event.preventDefault()}
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                onRemoveHistory(suggestion.value);
-                              }}
-                            >
-                              <X className="size-3" />
-                            </button>
-                          )}
-                        </div>
-                      );
-                    })}
-                </div>
-              ))}
-            </div>
-            <div
-              role="presentation"
-              data-footer
-              className="windows95-text text-text/60 bg-primary border-muted/40 flex shrink-0 items-center gap-1 border-t px-1.5 py-1 text-xs select-none"
-            >
-              {t("settings.search.autocompleteFooterHint")}
-            </div>
-          </div>
+          <SuggestionMenu
+            listboxId={listboxId}
+            listRef={listRef}
+            scrollRef={scrollRef}
+            menuWidth={menuWidth}
+            sections={sections}
+            items={groupedSuggestions}
+            activeIndex={safeActiveIndex}
+            isEmptyQuery={isEmptyQuery}
+            currentValue={currentValue}
+            onHover={setActiveIndex}
+            onSelect={selectSuggestion}
+            onRemoveHistory={onRemoveHistory}
+          />
         )}
+      </div>
+    </div>
+  );
+}
+
+function getAriaAutocomplete(mode: AutocompleteMode): "inline" | "both" | "list" | "none" {
+  if (mode === "inline") return "inline";
+  if (mode === "both") return "both";
+  if (mode === "dropdown") return "list";
+  return "none";
+}
+
+function computeGhostValue({
+  mode,
+  enabled,
+  dismissed,
+  focused,
+  activeSuggestion,
+  completion,
+  currentValue,
+}: {
+  mode: AutocompleteMode;
+  enabled: boolean;
+  dismissed: boolean;
+  focused: boolean;
+  activeSuggestion?: SearchSuggestion;
+  completion?: string | null;
+  currentValue: string;
+}): string | null {
+  if (!enabled) return null;
+  if (mode !== "inline" && mode !== "both") return null;
+  if (dismissed || !focused) return null;
+  const candidate = activeSuggestion?.value ?? completion ?? null;
+  if (!candidate) return null;
+  if (currentValue.trim().length === 0) return null;
+  if (
+    !candidate
+      .toLocaleLowerCase()
+      .startsWith(currentValue.toLocaleLowerCase())
+  ) {
+    return null;
+  }
+  return candidate;
+}
+
+function HighlightedText({
+  candidate,
+  query,
+  active,
+}: {
+  candidate: string;
+  query: string;
+  active: boolean;
+}) {
+  return (
+    <>
+      {splitHighlighted(candidate, query).map((segment, index) =>
+        segment.matched ? (
+          <span
+            key={index}
+            className={cn(
+              "text-highlight font-bold",
+              active
+                ? "text-white underline"
+                : "group-hover:text-white group-hover:underline"
+            )}
+          >
+            {segment.text}
+          </span>
+        ) : (
+          <span key={index}>{segment.text}</span>
+        )
+      )}
+    </>
+  );
+}
+
+function SuggestionItem({
+  suggestion,
+  itemIndex,
+  active,
+  listboxId,
+  currentValue,
+  onHover,
+  onSelect,
+  onRemove,
+}: {
+  suggestion: SearchSuggestion;
+  itemIndex: number;
+  active: boolean;
+  listboxId: string;
+  currentValue: string;
+  onHover: (index: number) => void;
+  onSelect: (suggestion: SearchSuggestion) => void;
+  onRemove?: (value: string) => void;
+}) {
+  const { t } = useI18n();
+  const Icon = suggestionIcons[suggestion.kind];
+  return (
+    <div className="flex w-full items-center">
+      <div
+        id={`${listboxId}-${itemIndex}`}
+        role="option"
+        data-index={itemIndex}
+        aria-selected={active}
+        tabIndex={-1}
+        className={cn(
+          "windows95-text text-text group flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 px-1.5 py-1 text-left select-none",
+          active
+            ? "bg-highlight text-white"
+            : "hover:bg-highlight hover:text-white"
+        )}
+        onMouseDown={(event) => event.preventDefault()}
+        onMouseEnter={() => onHover(itemIndex)}
+        onClick={() => onSelect(suggestion)}
+      >
+        <span
+          className={cn(
+            "flex size-4 shrink-0 items-center justify-center",
+            active ? "text-white" : "text-hint group-hover:text-white"
+          )}
+        >
+          <Icon className="size-3.5" />
+        </span>
+        <span className="min-w-0 flex-1 truncate">
+          <HighlightedText
+            candidate={suggestion.value}
+            query={currentValue}
+            active={active}
+          />
+        </span>
+        <span
+          className={cn(
+            "shrink-0 text-xs",
+            active
+              ? "text-white/70"
+              : "text-hint group-hover:text-white/70"
+          )}
+        >
+          {suggestion.subtitle ?? t(suggestionKindLabels[suggestion.kind])}
+        </span>
+      </div>
+      {suggestion.kind === "history" && onRemove && (
+        <button
+          type="button"
+          aria-label={t("search.removeFromHistory")}
+          className={cn(
+            "flex size-4 shrink-0 cursor-pointer items-center justify-center px-1",
+            active
+              ? "text-white hover:bg-white/20"
+              : "text-hint hover:text-white"
+          )}
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={(event) => {
+            event.stopPropagation();
+            onRemove(suggestion.value);
+          }}
+        >
+          <X className="size-3" />
+        </button>
+      )}
+    </div>
+  );
+}
+
+function SuggestionMenu({
+  listboxId,
+  listRef,
+  scrollRef,
+  menuWidth,
+  sections,
+  items,
+  activeIndex,
+  isEmptyQuery,
+  currentValue,
+  onHover,
+  onSelect,
+  onRemoveHistory,
+}: {
+  listboxId: string;
+  listRef: React.RefObject<HTMLDivElement | null>;
+  scrollRef: React.RefObject<HTMLDivElement | null>;
+  menuWidth: number | undefined;
+  sections: SuggestionSection[];
+  items: SearchSuggestion[];
+  activeIndex: number;
+  isEmptyQuery: boolean;
+  currentValue: string;
+  onHover: (index: number) => void;
+  onSelect: (suggestion: SearchSuggestion) => void;
+  onRemoveHistory?: (query: string) => void;
+}) {
+  const { t } = useI18n();
+  return (
+    <div
+      id={listboxId}
+      ref={listRef}
+      role="listbox"
+      className="windows95-active-border absolute top-full left-0 z-40 mt-1 flex max-h-72 min-w-64 flex-col bg-white"
+      style={{ width: menuWidth }}
+    >
+      <div
+        ref={scrollRef}
+        className="flex-1 overflow-y-auto overscroll-contain p-0.5"
+      >
+        {sections.map((section) => (
+          <div key={section.kind} role="presentation">
+            {!isEmptyQuery && (
+              <div
+                data-section={section.kind}
+                className="windows95-text text-text bg-primary border-muted/40 flex items-center gap-1 border-b px-1.5 py-0.5 text-xs font-bold tracking-wider uppercase select-none"
+              >
+                {t(suggestionKindLabels[section.kind])}
+              </div>
+            )}
+            {items
+              .slice(section.startIndex, section.endIndex)
+              .map((suggestion, index) => (
+                <SuggestionItem
+                  key={`${suggestion.kind}-${suggestion.value}`}
+                  suggestion={suggestion}
+                  itemIndex={section.startIndex + index}
+                  active={section.startIndex + index === activeIndex}
+                  listboxId={listboxId}
+                  currentValue={currentValue}
+                  onHover={onHover}
+                  onSelect={onSelect}
+                  onRemove={onRemoveHistory}
+                />
+              ))}
+          </div>
+        ))}
+      </div>
+      <div
+        role="presentation"
+        data-footer
+        className="windows95-text text-text/60 bg-primary border-muted/40 flex shrink-0 items-center gap-1 border-t px-1.5 py-1 text-xs select-none"
+      >
+        {t("settings.search.autocompleteFooterHint")}
       </div>
     </div>
   );

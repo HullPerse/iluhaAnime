@@ -35,7 +35,7 @@ function PasswordInput({
         }
         title={visible ? t("common.hidePassword") : t("common.showPassword")}
         onClick={() => setVisible((prev) => !prev)}
-        className="text-muted windows95-text hover:text-text focus-visible:outline-text absolute inset-y-0 right-0 flex w-6 items-center justify-center hover:cursor-pointer focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-dotted active:translate-x-px active:translate-y-px"
+        className="text-hint windows95-text hover:text-text focus-visible:outline-text absolute inset-y-0 right-0 flex w-6 items-center justify-center hover:cursor-pointer focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-dotted active:translate-x-px active:translate-y-px"
       >
         {visible ? <EyeOff className="size-3" /> : <Eye className="size-3" />}
       </button>

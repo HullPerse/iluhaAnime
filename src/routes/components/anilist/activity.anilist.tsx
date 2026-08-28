@@ -28,7 +28,7 @@ import {
   formatActivityTime,
   groupLabel,
   monthLabel,
-} from "@/lib/activity.anilist.utils";
+} from "@/lib/activity.utils";
 import { useI18n } from "@/lib/i18n";
 import type { TranslationKey } from "@/lib/i18n";
 import type { AniActivity, AniListCollection } from "@/types/anilist";
@@ -88,10 +88,10 @@ function FeedItem({
         <div className="flex min-w-0 flex-1 flex-col">
           <span className="windows95-text text-xs">
             <span className="font-bold">{a.user_name}</span>{" "}
-            <span className="text-muted">{t("anilist.activity.note")}</span>{" "}
+            <span className="text-hint">{t("anilist.activity.note")}</span>{" "}
             {a.text}
           </span>
-          <span className="text-muted text-xs">
+          <span className="text-hint text-xs">
             {formatActivityTime(a.created_at, t, locale)}
           </span>
         </div>
@@ -127,7 +127,7 @@ function FeedItem({
         >
           {a.media_title}
         </span>
-        <span className="text-muted windows95-font text-xs">
+        <span className="text-hint windows95-font text-xs">
           {a.progress ? `${a.progress}` : ""}
           {a.progress ? " - " : ""}
           {formatActivityTime(a.created_at, t, locale)}
@@ -276,7 +276,7 @@ function FeedTab({
 
       {textItems.length > 0 && (
         <section className="mt-1 flex flex-col gap-0.5">
-          <span className="windows95-text text-muted flex items-center gap-1 text-xs font-bold">
+          <span className="windows95-text text-hint flex items-center gap-1 text-xs font-bold">
             <List className="size-3" /> {t("anilist.activity.notes")}
           </span>
           <div className="flex flex-col gap-0.5">
@@ -289,14 +289,14 @@ function FeedTab({
 
       {listItems.size === 0 ? (
         <div className="flex items-center justify-center p-4">
-          <span className="windows95-text text-muted text-xs">
+          <span className="windows95-text text-hint text-xs">
             {t("anilist.activity.emptyStatus")}
           </span>
         </div>
       ) : (
         [...listItems.entries()].map(([label, items]) => (
           <section key={label} className="mt-1 flex flex-col gap-0.5">
-            <span className="windows95-text text-muted flex items-center gap-1 text-xs font-bold">
+            <span className="windows95-text text-hint flex items-center gap-1 text-xs font-bold">
               <CalendarDays className="size-3" /> {label}
             </span>
             <div className="flex flex-col gap-0.5">
@@ -458,7 +458,7 @@ function CalendarTab({
                   {t("common.close")}
                 </Button>
               </div>
-              <div className="border-muted/40 text-muted windows95-text flex flex-col gap-0.5 border-b px-2 py-0.5 text-xs">
+              <div className="border-muted/40 text-hint windows95-text flex flex-col gap-0.5 border-b px-2 py-0.5 text-xs">
                 <span>
                   {t("anilist.activity.eventAdded")}: {activeActivity.added}
                 </span>
@@ -489,7 +489,7 @@ function CalendarTab({
                       <span className="windows95-font truncate text-xs">
                         {item.title}
                       </span>
-                      <span className="text-muted windows95-font text-xs">
+                      <span className="text-hint windows95-font text-xs">
                         {item.events}
                         {item.progress != null &&
                           ` - ${t("anilist.activity.episode", {
@@ -503,7 +503,7 @@ function CalendarTab({
             </div>
           ) : (
             <div className="flex flex-1 items-center justify-center p-3">
-              <span className="windows95-text text-muted text-center text-xs">
+              <span className="windows95-text text-hint text-center text-xs">
                 {t("anilist.activity.dayHint")}
               </span>
             </div>

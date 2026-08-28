@@ -48,7 +48,7 @@ function FranchiseList({
             )}
             <div className="flex min-w-0 flex-col items-start">
               <span className="w-full truncate">{root.title}</span>
-              <span className="text-muted">
+              <span className="text-hint">
                 {root.year ?? "?"}
                 {root.format ? ` - ${root.format}` : ""}
                 {root.score == null ? "" : ` - ${root.score}`}
@@ -61,7 +61,7 @@ function FranchiseList({
         <div key={group}>
           <div className="windows95-text bg-secondary/10 flex items-center gap-1 px-2 py-0.5 text-xs tracking-wide uppercase">
             {t(FILTER_LABELS[group] as never)}
-            <span className="text-muted">({items.length})</span>
+            <span className="text-hint">({items.length})</span>
           </div>
           {items.map((node) => {
             const dimmed =
@@ -88,7 +88,7 @@ function FranchiseList({
                 )}
                 <div className="flex min-w-0 flex-col items-start">
                   <span className="w-full truncate">{node.title}</span>
-                  <span className="text-muted">
+                  <span className="text-hint">
                     {node.year ?? "?"}
                     {node.format ? ` - ${node.format}` : ""}
                     {node.score == null ? "" : ` - ${node.score}`}

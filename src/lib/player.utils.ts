@@ -121,6 +121,42 @@ function nodeMatchesSearch(node: FolderNode, query: string): boolean {
   return node.children.some((c) => nodeMatchesSearch(c, q));
 }
 
+function filterTreeFiles(node: FolderNode, query: string, trackExts?: Set<string>): FolderNode["files"] {
+  const files = query ? node.files.filter((file) => file.name.toLowerCase().includes(query.toLowerCase())) : node.files;
+  return trackExts
+    ? files.filter((file) => {
+        const ext = file.name.split(".").pop()?.toLowerCase();
+        return !ext || !trackExts.has(ext);
+      })
+    : files;
+}
+
+function shouldSkipTreeNode(
+  node: FolderNode,
+  files: FolderNode["files"],
+  query: string
+): boolean {
+  if (!query) return false;
+  return files.length === 0 && !node.children.some((child) => nodeMatchesSearch(child, query));
+}
+
+function appendTreeFiles(
+  items: Item[],
+  files: FolderNode["files"],
+  depth: number,
+  disabledExtensions?: Set<string>
+): void {
+  for (const file of files) {
+    const ext = file.name.split(".").pop()?.toLowerCase();
+    if (ext && disabledExtensions?.has(ext)) continue;
+    items.push({ depth: depth + 1, file, kind: "file" });
+  }
+}
+
+function isEmptyTreeFolder(items: Item[], node: FolderNode, depth: number): boolean {
+  return depth > 0 && items.length === 1 && items[0]?.kind === "folder" && items[0].node.path === node.path;
+}
+
 export function flattenTree(
   node: FolderNode,
   open: Set<string>,
@@ -130,80 +166,22 @@ export function flattenTree(
   trackExts?: Set<string>
 ): Item[] {
   if (!node.children.length && !node.files.length) return [];
-
-  let filteredFiles = searchQuery
-    ? node.files.filter((f) =>
-        f.name.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : node.files;
-
-  if (trackExts) {
-    filteredFiles = filteredFiles.filter((f) => {
-      const ext = f.name.split(".").pop()?.toLowerCase();
-      return ext ? !trackExts.has(ext) : true;
-    });
-  }
-
-  const hasFilteredChildren = searchQuery
-    ? node.children.some((c) => nodeMatchesSearch(c, searchQuery))
-    : node.children.length > 0;
-
-  if (searchQuery && filteredFiles.length === 0 && !hasFilteredChildren)
-    return [];
-
-  const items: Item[] = [];
+  const filteredFiles = filterTreeFiles(node, searchQuery, trackExts);
+  if (shouldSkipTreeNode(node, filteredFiles, searchQuery)) return [];
+  const items: Item[] = depth > 0 ? [{ depth, kind: "folder", node }] : [];
   const isOpen = open.has(node.path);
-
-  if (depth > 0) {
-    items.push({ depth, kind: "folder", node });
-  }
-
   if (isOpen || depth === 0) {
-    for (const file of filteredFiles) {
-      const ext = file.name.split(".").pop()?.toLowerCase();
-      const disabled = disabledExtensions && ext && disabledExtensions.has(ext);
-      if (!disabled) {
-        items.push({ depth: depth + 1, file, kind: "file" });
-      }
-    }
+    appendTreeFiles(items, filteredFiles, depth, disabledExtensions);
     for (const child of node.children) {
-      items.push(
-        ...flattenTree(
-          child,
-          open,
-          searchQuery,
-          disabledExtensions,
-          depth + 1,
-          trackExts
-        )
-      );
+      items.push(...flattenTree(child, open, searchQuery, disabledExtensions, depth + 1, trackExts));
     }
   }
-
-  if (
-    depth > 0 &&
-    items.length === 1 &&
-    items[0].kind === "folder" &&
-    items[0].node.path === node.path
-  ) {
-    if (isOpen) return [];
-    const hasContent =
-      filteredFiles.length > 0 ||
-      node.children.some(
-        (c) =>
-          flattenTree(
-            c,
-            open,
-            searchQuery,
-            disabledExtensions,
-            depth + 1,
-            trackExts
-          ).length > 0
-      );
-    if (!hasContent) return [];
-  }
-
-  return items;
+  if (!isEmptyTreeFolder(items, node, depth)) return items;
+  if (isOpen) return [];
+  const hasContent = filteredFiles.length > 0 || node.children.some((child) =>
+    flattenTree(child, open, searchQuery, disabledExtensions, depth + 1, trackExts).length > 0
+  );
+  return hasContent ? items : [];
 }
 
 export function buildOutputPath(inputPath: string, suffix: string): string {

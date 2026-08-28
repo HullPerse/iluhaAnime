@@ -19,7 +19,6 @@ import { readAppCache, writeAppCache } from "@/lib/app.cache";
 import { useI18n } from "@/lib/i18n";
 import type { TranslationKey } from "@/lib/i18n";
 import TorrentFilePicker from "@/routes/components/search/picker.search";
-import { useAniListNotificationsStore } from "@/store/anilist.store";
 import { useCacheStore } from "@/store/cache.store";
 import { useTorrentStore } from "@/store/download.store";
 import { useNotificationStore } from "@/store/notification.store";
@@ -32,8 +31,10 @@ import type { SearchLearningSnapshot } from "@/types/search";
 
 import { SmallLoader, TabLoader } from "./components/shared/loader.component";
 import NotificationTray from "./components/shared/notification.component";
+import StatusBar from "./components/shared/status.component";
 import Tabs from "./components/shared/tabs.component";
 import Updater from "./components/shared/updater.component";
+import { pollAniListReleases } from "./lib/anilist.notifications";
 import { checkForUpdates } from "./lib/index.utils";
 import { resolveNotificationText } from "./lib/notification.utils";
 import type { ShowNotificationPayload } from "./lib/notification.utils";
@@ -44,6 +45,7 @@ const PlayerRoute = lazy(() => import("@/routes/player.route"));
 const AniListRoute = lazy(() => import("@/routes/anilist.route"));
 const SettingsRoute = lazy(() => import("@/routes/settings.route"));
 const VaultRoute = lazy(() => import("@/routes/vault.route"));
+const CollectionRoute = lazy(() => import("@/routes/collection.route"));
 
 type Tab =
   | "search"
@@ -67,9 +69,12 @@ const tabKeys: readonly { id: Tab; key: TranslationKey }[] = [
 function App() {
   const { t } = useI18n();
   const vaultTabEnabled = useSettingsStore((s) => s.vaultTabEnabled);
+  const collectionTabEnabled = useSettingsStore((s) => s.collectionTabEnabled);
   const tabs = tabKeys
     .filter((tab) => tab.id !== "vault" || vaultTabEnabled)
+    .filter((tab) => tab.id !== "collection" || collectionTabEnabled)
     .map((tab) => ({ ...tab, label: t(tab.key) }));
+
   const [activeTab, setActiveTab] = useState<Tab>("search");
   const [isPending, startTransition] = useTransition();
   const initTabsRef = useRef(false);
@@ -171,6 +176,11 @@ function App() {
   }, [activeTab, vaultTabEnabled]);
 
   useEffect(() => {
+    if (!collectionTabEnabled && activeTab === "collection")
+      startTransition(() => setActiveTab("search"));
+  }, [activeTab, collectionTabEnabled]);
+
+  useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.code === "AltLeft" || e.code === "AltRight") return;
       if (!e.altKey) return;
@@ -256,9 +266,10 @@ function App() {
   useEffect(() => {
     if (!anilistReleaseNotifications) return;
     let disposed = false;
-    const pollAniListReleases = async () => {
-      try {
-        const user = await invoke<{ id: number } | null>("check_anilist_auth");
+    const pollReleases = async () => {
+      await pollAniListReleases(t, () => disposed);
+    };
+    /*
         if (!user || disposed) return;
         const lists = await invoke<
           {
@@ -278,27 +289,78 @@ function App() {
         if (disposed) return;
         const observationStore = useAniListNotificationsStore.getState();
         const now = Math.floor(Date.now() / 1000);
+        const missed: Array<{ title: string; episode: number }> = [];
+        let airingCount = 0;
+        let hasPrevious = 0;
+        let notified = 0;
         for (const list of lists)
           for (const entry of list.entries) {
             const { media } = entry;
             const key = String(media.id);
             const signature = `${media.status}|${media.next_episode ?? ""}|${media.next_airing_at ?? ""}|${entry.list_status}`;
             const previous = observationStore.observations[key];
+            if (media.next_airing_at != null) airingCount++;
             if (previous) {
+              hasPrevious++;
+              // Missed while app was closed: previous next airing was in the past and episode advanced.
+              // Show ALL missed episodes from previous.nextEpisode up to (but not including) current next_episode.
+              const prevAired = previous.nextAiringAt != null && previous.nextAiringAt <= now;
+              const episodeAdvanced =
+                previous.nextEpisode != null &&
+                media.next_episode != null &&
+                media.next_episode !== previous.nextEpisode;
+              const prevStillCurrent =
+                media.next_episode === previous.nextEpisode && media.next_airing_at === previous.nextAiringAt;
+              if (prevAired && episodeAdvanced && !prevStillCurrent) {
+                // previous.nextEpisode is the episode that aired while we were away.
+                // If current next_episode > previous.nextEpisode + 1, multiple episodes aired.
+                // current upcoming, not aired yet
+                const start = previous.nextEpisode as number;
+                const end = media.next_episode as number;
+                for (let ep = start; ep < end; ep++) {
+                  const dedupKey = `${key}:${ep}`;
+                  const already = useNotificationStore
+                    .getState()
+                    .items.some((n) => n.eventKey === dedupKey);
+                  if (already) continue;
+                  missed.push({ title: media.title, episode: ep });
+                  notified++;
+                  useNotificationStore.getState().add(
+                    t("notification.anilistNewEpisode"),
+                    "info",
+                    t("notification.anilistNewEpisodeBody", {
+                      episode: String(ep),
+                      title: media.title,
+                    }),
+                    dedupKey
+                  );
+                }
+              }
+              // Also handle case where current next episode is now airing (app was open)
               if (
                 media.next_airing_at != null &&
                 media.next_airing_at <= now &&
-                previous.signature !== signature
+                previous.signature !== signature &&
+                media.next_airing_at !== previous.nextAiringAt
               ) {
-                useNotificationStore.getState().add(
-                  t("notification.anilistNewEpisode"),
-                  "info",
-                  t("notification.anilistNewEpisodeBody", {
-                    episode: media.next_episode ?? "?",
-                    title: media.title,
-                  })
-                );
-              } else if (
+                const dedupKey = `${key}:${media.next_episode}`;
+                const already = useNotificationStore
+                  .getState()
+                  .items.some((n) => n.eventKey === dedupKey);
+                if (!already) {
+                  notified++;
+                  useNotificationStore.getState().add(
+                    t("notification.anilistNewEpisode"),
+                    "info",
+                    t("notification.anilistNewEpisodeBody", {
+                      episode: media.next_episode ?? "?",
+                      title: media.title,
+                    }),
+                    dedupKey
+                  );
+                }
+              }
+              if (
                 entry.list_status === "COMPLETED" &&
                 previous.status !== "COMPLETED"
               ) {
@@ -323,17 +385,14 @@ function App() {
               status: entry.list_status,
               title: media.title,
               updatedAt: Date.now(),
+              nextEpisode: media.next_episode,
+              nextAiringAt: media.next_airing_at,
             });
           }
-        if (!observationStore.initialized)
-          observationStore.setInitialized(true);
-      } catch {}
-    };
-    pollAniListReleases();
-    const timer = window.setInterval(
-      () => pollAniListReleases(),
-      30 * 60 * 1000
-    );
+        }
+      */
+    pollReleases();
+    const timer = window.setInterval(() => pollReleases(), 30 * 60 * 1000);
     return () => {
       disposed = true;
       window.clearInterval(timer);
@@ -463,6 +522,7 @@ function App() {
       settings: <SettingsRoute />,
       torrent: <TorrentRoute />,
       vault: <VaultRoute />,
+      collection: <CollectionRoute />,
     } as Record<Tab, ReactElement>;
 
     return tabMap[activeTab];
@@ -517,6 +577,11 @@ function App() {
               </div>
             )}
           </div>
+
+          {/* STATUS BAR */}
+          <StatusBar
+            tabLabel={tabs.find((tab) => tab.id === activeTab)?.label ?? ""}
+          />
         </div>
       </section>
     </main>

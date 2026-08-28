@@ -28,7 +28,7 @@ export default function QueuePanel() {
   const statusIcon = (status: string) => {
     switch (status) {
       case "queued": {
-        return <ListVideo className="text-muted size-3" />;
+        return <ListVideo className="text-hint size-3" />;
       }
       case "processing": {
         return <SmallLoader size={3} className="text-highlight" />;
@@ -57,12 +57,12 @@ export default function QueuePanel() {
         <ListVideo className="size-3" />
         {t("player.queue.title", { count: activeCount })}
         {upscaleCount > 0 && (
-          <span className="text-muted font-normal">
+          <span className="text-hint font-normal">
             {t("player.queue.upscaleShort", { count: upscaleCount })}
           </span>
         )}
         {convertCount > 0 && (
-          <span className="text-muted font-normal">
+          <span className="text-hint font-normal">
             {t("player.queue.convertShort", { count: convertCount })}
           </span>
         )}
@@ -113,7 +113,7 @@ export default function QueuePanel() {
             className="windows95-text flex items-center gap-1 bg-white px-1 py-0.5 text-xs"
           >
             {item.jobType === "convert" ? (
-              <FileVideo className="text-muted size-3" />
+              <FileVideo className="text-hint size-3" />
             ) : (
               statusIcon(item.status)
             )}

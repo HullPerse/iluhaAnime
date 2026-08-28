@@ -85,9 +85,7 @@ function ActiveTorrentItem({ item }: { item: TorrentInfo }) {
         >
           {item.name}
         </span>
-        <span className="windows95-text shrink-0 text-xs">
-          {percentage}%
-        </span>
+        <span className="windows95-text shrink-0 text-xs">{percentage}%</span>
       </div>
       <div
         className="windows95-border mt-1 h-2 bg-white"
@@ -102,7 +100,7 @@ function ActiveTorrentItem({ item }: { item: TorrentInfo }) {
           style={{ width: `${percentage}%` }}
         />
       </div>
-      <div className="text-muted windows95-text mt-0.5 flex flex-wrap gap-x-2 text-xs">
+      <div className="text-hint windows95-text mt-0.5 flex flex-wrap gap-x-2 text-xs">
         <span>
           {fmtSize(item.progress_bytes)} / {fmtSize(item.total_bytes)}
         </span>
@@ -159,12 +157,12 @@ function NotificationRow({ item, t, markRead, clear }: NotificationRowProps) {
           <span className="windows95-text min-w-0 flex-1 truncate text-xs font-bold">
             {item.title}
           </span>
-          <span className="text-muted shrink-0 text-xs">
+          <span className="text-hint shrink-0 text-xs">
             {formatRelativeTime(item.timestamp, t)}
           </span>
         </div>
         {item.message && (
-          <div className="text-muted truncate text-xs">{item.message}</div>
+          <div className="text-hint truncate text-xs">{item.message}</div>
         )}
       </div>
       <Button
@@ -212,6 +210,9 @@ export default function NotificationTray() {
     [torrents]
   );
   const { t } = useI18n();
+  // Screen-reader announcements: the tray itself is closed most of the time,
+  // so new notifications must be announced through a hidden live region.
+  const latest = items[0];
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -235,6 +236,15 @@ export default function NotificationTray() {
 
   return (
     <div ref={ref} className="relative">
+      <div
+        className="sr-only"
+        role={latest?.type === "error" ? "alert" : "status"}
+        aria-live={latest?.type === "error" ? "assertive" : "polite"}
+      >
+        {latest
+          ? `${latest.title}${latest.message ? `. ${latest.message}` : ""}`
+          : ""}
+      </div>
       <Button
         size="icon"
         className="relative h-5 w-5"
@@ -316,7 +326,7 @@ export default function NotificationTray() {
           <div className="max-h-60 overflow-y-auto">
             {filter === "downloads" ? (
               activeDownloads.length === 0 ? (
-                <div className="text-muted flex items-center justify-center py-4 text-xs">
+                <div className="text-hint flex items-center justify-center py-4 text-xs">
                   {t("notification.downloadsEmpty")}
                 </div>
               ) : (
@@ -327,7 +337,7 @@ export default function NotificationTray() {
             ) : (
               <>
                 {visible.length === 0 && (
-                  <div className="text-muted flex items-center justify-center py-4 text-xs">
+                  <div className="text-hint flex items-center justify-center py-4 text-xs">
                     {items.length === 0
                       ? t("notification.empty")
                       : t("notification.filterEmpty")}

@@ -55,6 +55,7 @@ export interface SettingsStore {
   sqliteShowImages: boolean;
   vaultTabEnabled: boolean;
   collectionTabEnabled: boolean;
+  tmdbApiKey: string | null;
   ffmpegSource: "essentials" | "github" | "github-mirror";
   toastDuration: number;
   patch: (partial: Partial<SettingsStore>) => void;

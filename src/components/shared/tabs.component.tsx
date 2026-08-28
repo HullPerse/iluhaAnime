@@ -34,7 +34,6 @@ function Tabs<T extends string>({
             onClick={() => {
               if (!isActive) onChange(tab.id);
             }}
-            aria-disabled={isActive}
             onKeyDown={createListNavigationHandler({
               activeIndex: tabs.findIndex((item) => item.id === tab.id),
               axis: "horizontal",
@@ -52,7 +51,6 @@ function Tabs<T extends string>({
             aria-selected={isActive}
             tabIndex={isActive ? 0 : -1}
             data-tab-id={tab.id}
-            disabled={isActive}
           >
             {tab.label}
           </Button>

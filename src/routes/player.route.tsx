@@ -584,13 +584,13 @@ function PlayerRoute() {
 
         <section className="ui-toolbar ui-panel w-full">
           <FFMPEG status={ffmpegStatus} setStatus={setFfmpegStatus} />
-          <span className="text-muted ml-auto text-xs">v9.0</span>
+          <span className="text-hint ml-auto text-xs">v9.0</span>
         </section>
 
         {!loading && folderTrees.length > 0 && (
           <section className="ui-panel p-1">
             <div className="flex items-center gap-1">
-              <Search className="text-muted size-4" />
+              <Search className="text-hint size-4" />
               <InlineAutocompleteInput
                 className="font-bold"
                 placeholder={t("player.route.searchFolders")}

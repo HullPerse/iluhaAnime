@@ -18,7 +18,7 @@ pub struct UserImage {
     pub created_at: i64,
 }
 
-fn database_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+pub fn database_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     let dir = app
         .path()
         .app_data_dir()
@@ -120,6 +120,61 @@ pub fn import_user_image(app: tauri::AppHandle, path: String) -> Result<UserImag
         params![id, name, mime_type, data, created_at],
     )
     .map_err(|e| format!("save image: {e}"))?;
+    get_user_image(app, id)
+}
+
+#[tauri::command]
+pub async fn download_remote_image(
+    app: tauri::AppHandle,
+    url: String,
+    name_hint: Option<String>,
+) -> Result<UserImage, String> {
+    let url = url.trim();
+    if url.is_empty() || url.len() > 4_096 {
+        return Err("Remote image URL is empty or too long".to_string());
+    }
+    if !url.starts_with("https://") && !url.starts_with("http://") {
+        return Err("Remote image URL must use http(s)".to_string());
+    }
+    let client = reqwest::Client::builder()
+        .user_agent("iluhaAnime/3.0")
+        .build()
+        .map_err(|e| format!("image http client: {e}"))?;
+    let response = client
+        .get(url)
+        .send()
+        .await
+        .map_err(|e| format!("image download: {e}"))?;
+    if !response.status().is_success() {
+        return Err(format!(
+            "image download failed: status {}",
+            response.status()
+        ));
+    }
+    let bytes = response
+        .bytes()
+        .await
+        .map_err(|e| format!("image body: {e}"))?;
+    let data = bytes.to_vec();
+    if data.is_empty() || data.len() as u64 > MAX_IMAGE_BYTES {
+        return Err("Downloaded image is empty or exceeds 4 MiB".to_string());
+    }
+    let mime_type = image_mime(&data, None).ok_or_else(|| {
+        "Downloaded data is not a supported image (PNG/JPEG/GIF/WebP)".to_string()
+    })?;
+    let id = hex::encode(Sha1::digest(&data))[..20].to_string();
+    let name = name_hint
+        .as_deref()
+        .filter(|s| !s.is_empty())
+        .map(|s| s.chars().take(120).collect::<String>())
+        .unwrap_or_else(|| "remote-cover".to_string());
+    let created_at = now_seconds();
+    let conn = open_database(&app)?;
+    conn.execute(
+        "INSERT OR IGNORE INTO user_images (id, name, mime_type, data, created_at) VALUES (?1, ?2, ?3, ?4, ?5)",
+        params![id, name, mime_type, data, created_at],
+    )
+    .map_err(|e| format!("save remote image: {e}"))?;
     get_user_image(app, id)
 }
 

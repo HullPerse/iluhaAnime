@@ -233,7 +233,7 @@ function CategoryView({
             {category.name}
           </span>
         )}
-        <span className="text-muted ml-auto text-xs whitespace-nowrap select-none">
+        <span className="text-hint ml-auto text-xs whitespace-nowrap select-none">
           {count}
         </span>
         <Button
@@ -283,7 +283,7 @@ function CategoryView({
                       </span>
                     </button>
                     {entry.totalBytes != null && (
-                      <span className="text-muted text-xs whitespace-nowrap">
+                      <span className="text-hint text-xs whitespace-nowrap">
                         {fmtSize(entry.totalBytes)}
                       </span>
                     )}

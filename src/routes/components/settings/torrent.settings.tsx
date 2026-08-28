@@ -38,7 +38,7 @@ export default function SettingsTorrent() {
 
   return (
     <div className="flex flex-col gap-3 p-4">
-      <p className="windows95-text text-muted w-full font-bold">
+      <p className="windows95-text text-hint w-full font-bold">
         {t("settings.torrent.speedLimits")}
       </p>
 
@@ -76,10 +76,10 @@ export default function SettingsTorrent() {
 
       <hr className="border-muted my-1 w-full border-t" />
 
-      <p className="windows95-text text-muted w-full font-bold">
+      <p className="windows95-text text-hint w-full font-bold">
         {t("settings.torrent.session")}
       </p>
-      <span className="text-muted windows95-font text-xs">
+      <span className="text-hint windows95-font text-xs">
         {t("settings.torrent.sessionHint")}
       </span>
 
@@ -107,7 +107,7 @@ export default function SettingsTorrent() {
 
       <hr className="border-muted my-1 w-full border-t" />
 
-      <p className="windows95-text text-muted w-full font-bold">
+      <p className="windows95-text text-hint w-full font-bold">
         {t("settings.torrent.notifications")}
       </p>
 

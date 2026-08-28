@@ -205,8 +205,14 @@ fn available_disk_space(path: &Path) -> Result<u64> {
     let mut free = 0u64;
     let mut total = 0u64;
     let mut total_free = 0u64;
-    let success =
-        unsafe { GetDiskFreeSpaceExW(wide.as_ptr(), &raw mut free, &raw mut total, &raw mut total_free) };
+    let success = unsafe {
+        GetDiskFreeSpaceExW(
+            wide.as_ptr(),
+            &raw mut free,
+            &raw mut total,
+            &raw mut total_free,
+        )
+    };
     if success == 0 {
         anyhow::bail!("could not determine free disk space");
     }

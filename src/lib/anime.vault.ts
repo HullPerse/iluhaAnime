@@ -108,89 +108,84 @@ export function restoreVaultEntries(
   });
 }
 
+function collectSubtitleNames(entries: { name: string }[]): Set<string> {
+  return new Set(
+    entries
+      .filter((entry) => /\.(?:ass|ssa|srt|vtt|sup|sub)$/i.test(entry.name))
+      .map((entry) => vaultEpisodeKey(parseVaultFilename(entry.name)))
+  );
+}
+
+function collectEpisodeGroups(files: VaultMediaFile[]): Map<string, VaultMediaFile[]> {
+  const groups = new Map<string, VaultMediaFile[]>();
+  for (const file of files) {
+    const key = `${file.title.toLowerCase()}|${file.season}|${file.episode ?? "unknown"}`;
+    const group = groups.get(key) ?? [];
+    group.push(file);
+    groups.set(key, group);
+  }
+  return groups;
+}
+
+function buildVaultIssues(
+  files: VaultMediaFile[],
+  formatIssue?: VaultIssueFormatter
+): { issues: VaultIssue[]; reclaimableBytes: number } {
+  const issues: VaultIssue[] = files
+    .filter((file) => !file.subtitleLikely)
+    .map((file) => ({
+      kind: "subtitle" as const,
+      message: formatIssue?.("vault.issue.noSubtitle", { name: file.name }) ?? `No matching subtitle detected for ${file.name}`,
+      paths: [file.path],
+      severity: "warning" as const,
+    }));
+  let reclaimableBytes = 0;
+  for (const [key, group] of collectEpisodeGroups(files)) {
+    if (group.length < 2) continue;
+    const ordered = [...group].sort((a, b) => b.size - a.size);
+    const duplicates = ordered.slice(1);
+    reclaimableBytes += duplicates.reduce((sum, file) => sum + file.size, 0);
+    issues.push({
+      kind: "duplicate",
+      message: formatIssue?.("vault.issue.duplicate", { key }) ?? `Duplicate episode candidate: ${key}`,
+      paths: duplicates.map((file) => file.path),
+      severity: "warning",
+    });
+  }
+  const seasons = new Map<string, Set<number>>();
+  for (const file of files) {
+    if (file.episode == null) continue;
+    const key = `${file.title.toLowerCase()}|${file.season}`;
+    const episodes = seasons.get(key) ?? new Set<number>();
+    episodes.add(file.episode);
+    seasons.set(key, episodes);
+  }
+  for (const [key, episodes] of seasons) {
+    const missing = Array.from({ length: Math.max(...episodes) }, (_, i) => i + 1).filter((episode) => !episodes.has(episode));
+    if (missing.length === 0) continue;
+    issues.push({
+      kind: "missing",
+      message: formatIssue?.("vault.issue.missing", { episodes: missing.join(", "), key }) ?? `${key}: missing episodes ${missing.join(", ")}`,
+      paths: [],
+      severity: "warning",
+    });
+  }
+  return { issues, reclaimableBytes };
+}
+
 export function buildVaultHealthReport(
   entries: { path: string; name: string; size: number }[],
   formatIssue?: VaultIssueFormatter
 ): VaultHealthReport {
-  const subtitleNames = new Set<string>();
-  for (const entry of entries) {
-    if (/\.(?:ass|ssa|srt|vtt|sup|sub)$/i.test(entry.name)) {
-      subtitleNames.add(vaultEpisodeKey(parseVaultFilename(entry.name)));
-    }
-  }
+  const subtitleNames = collectSubtitleNames(entries);
   const files = entries
-    .filter((entry) =>
-      VIDEO_EXTENSIONS.has(entry.name.split(".").pop()?.toLowerCase() ?? "")
-    )
+    .filter((entry) => VIDEO_EXTENSIONS.has(entry.name.split(".").pop()?.toLowerCase() ?? ""))
     .map((entry) => toVaultMediaFile(entry, subtitleNames));
-  const issues: VaultIssue[] = [];
-  const byEpisode = new Map<string, VaultMediaFile[]>();
-  for (const file of files) {
-    const key = `${file.title.toLowerCase()}|${file.season}|${file.episode ?? "unknown"}`;
-    const group = byEpisode.get(key) ?? [];
-    group.push(file);
-    byEpisode.set(key, group);
-    if (!file.subtitleLikely)
-      issues.push({
-        kind: "subtitle",
-        message:
-          formatIssue?.("vault.issue.noSubtitle", { name: file.name }) ??
-          `No matching subtitle detected for ${file.name}`,
-        paths: [file.path],
-        severity: "warning",
-      });
-  }
-  let reclaimableBytes = 0;
-  for (const [key, group] of byEpisode) {
-    if (group.length < 2) continue;
-    const ordered = [...group].sort((a, b) => b.size - a.size);
-    const duplicatePaths = ordered.slice(1).map((file) => file.path);
-    reclaimableBytes += ordered
-      .slice(1)
-      .reduce((sum, file) => sum + file.size, 0);
-    issues.push({
-      kind: "duplicate",
-      message:
-        formatIssue?.("vault.issue.duplicate", { key }) ??
-        `Duplicate episode candidate: ${key}`,
-      paths: duplicatePaths,
-      severity: "warning",
-    });
-  }
-  const seasonGroups = new Map<string, Set<number>>();
-  for (const file of files) {
-    if (file.episode == null) continue;
-    const key = `${file.title.toLowerCase()}|${file.season}`;
-    const episodes = seasonGroups.get(key) ?? new Set<number>();
-    episodes.add(file.episode);
-    seasonGroups.set(key, episodes);
-  }
-  for (const [key, episodes] of seasonGroups) {
-    const max = Math.max(...episodes);
-    const missing = Array.from({ length: max }, (_, index) => index + 1).filter(
-      (episode) => !episodes.has(episode)
-    );
-    if (missing.length > 0)
-      issues.push({
-        kind: "missing",
-        message:
-          formatIssue?.("vault.issue.missing", {
-            episodes: missing.join(", "),
-            key,
-          }) ??
-          `${key}: missing episode${missing.length === 1 ? "" : "s"} ${missing.join(", ")}`,
-        paths: [],
-        severity: "warning",
-      });
-  }
-  const okCount = Math.max(
-    0,
-    files.length - issues.filter((issue) => issue.kind !== "subtitle").length
-  );
+  const { issues, reclaimableBytes } = buildVaultIssues(files, formatIssue);
   return {
     files,
     issues,
-    okCount,
+    okCount: Math.max(0, files.length - issues.filter((issue) => issue.kind !== "subtitle").length),
     reclaimableBytes,
     totalBytes: files.reduce((sum, file) => sum + file.size, 0),
   };

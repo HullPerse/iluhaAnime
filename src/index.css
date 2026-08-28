@@ -14,6 +14,9 @@
   --color-secondary: #000080;
   --color-text: #000000;
   --color-muted: #808080;
+  /* Hint text: darker than the bevel gray so 11-12px labels stay readable
+     on the light chrome. Derived from text+muted so themes adapt. */
+  --color-hint: color-mix(in srgb, var(--color-text) 55%, var(--color-muted));
   --color-autocomplete: var(--color-muted);
   --autocomplete-opacity: 0.6;
   --color-highlight: #0000ff;
@@ -43,6 +46,7 @@
   --color-secondary: var(--color-secondary);
   --color-text: var(--color-text);
   --color-muted: var(--color-muted);
+  --color-hint: var(--color-hint);
   --color-highlight: var(--color-highlight);
   --color-destructive: var(--color-destructive);
   --color-success: var(--color-success);
@@ -120,9 +124,45 @@
   font-family: var(--font-family);
 }
 
+/* Focus tracks currentColor: on dark Win95 surfaces (secondary/highlight)
+   interactive elements carry text-white, so the dotted ring inverts to white
+   and stays visible exactly where a black ring would disappear. */
 *:focus-visible {
-  outline: 1px dotted var(--color-text);
+  outline: 1px dotted currentColor;
   outline-offset: -3px;
+}
+
+/* Status bar: recessed Win95 cells along the window frame bottom. */
+.ui-statusbar {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  padding: 2px;
+  background: var(--color-primary);
+}
+
+.ui-statusbar-cell {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0 0.375rem;
+  min-height: calc(var(--ui-control-height) - 8px);
+  border: 1px solid;
+  border-color: var(--color-win-shadow) var(--color-win-highlight)
+    var(--color-win-highlight) var(--color-win-shadow);
+  font-family: var(--font-family);
+  font-size: var(--ui-font-size);
+  white-space: nowrap;
+}
+
+/* Vertical divider between semantic control groups inside .ui-toolbar. */
+.ui-toolbar-separator {
+  align-self: stretch;
+  width: 2px;
+  margin: 0 2px;
+  border-left: 1px solid var(--color-win-shadow);
+  border-right: 1px solid var(--color-win-highlight);
 }
 
 /* Shared layout vocabulary. Screens compose these instead of inventing a new
@@ -169,7 +209,7 @@
   border-color: var(--color-win-shadow) var(--color-win-highlight)
     var(--color-win-highlight) var(--color-win-shadow);
   background: color-mix(in srgb, var(--color-surface) 70%, transparent);
-  color: var(--color-muted);
+  color: var(--color-hint);
   text-align: center;
 }
 

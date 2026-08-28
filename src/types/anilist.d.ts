@@ -297,6 +297,8 @@ export interface AniListObservation {
   status: string;
   title: string;
   updatedAt: number;
+  nextEpisode: number | null;
+  nextAiringAt: number | null;
 }
 
 export interface AniListNotificationsStore {

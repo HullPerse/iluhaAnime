@@ -40,6 +40,7 @@ pub mod ipc;
 mod progress;
 mod scrapers;
 mod shaders;
+mod tmdb;
 mod torrent;
 mod user_assets;
 mod video;
@@ -346,10 +347,16 @@ fn quote_sqlite_identifier(identifier: &str) -> Result<String, String> {
 fn allowed_sqlite_table(database: &str, table: &str) -> bool {
     matches!(
         (database, table),
-        ("franchise", "franchise_nodes") | ("user_assets", "user_images") |
-("app_data",
-"cache_entries" | "media_records" | "release_analysis" | "anime_statistics" |
-"unified_index")
+        ("franchise", "franchise_nodes")
+            | ("user_assets", "user_images")
+            | (
+                "app_data",
+                "cache_entries"
+                    | "media_records"
+                    | "release_analysis"
+                    | "anime_statistics"
+                    | "unified_index"
+            )
     )
 }
 
@@ -935,7 +942,10 @@ async fn delete_sqlite_row(
             })
             .collect::<Result<Vec<_>, String>>()?
             .join(" AND ");
-        let params = keys.iter().map(std::string::String::as_str).collect::<Vec<_>>();
+        let params = keys
+            .iter()
+            .map(std::string::String::as_str)
+            .collect::<Vec<_>>();
         let deleted = connection
             .execute(
                 &format!("DELETE FROM {quoted_table} WHERE {where_clause}"),
@@ -990,7 +1000,10 @@ async fn delete_sqlite_rows(
             if primary_keys.len() != row_keys.len() {
                 return Err("Primary key value count does not match".to_string());
             }
-            let params = row_keys.iter().map(std::string::String::as_str).collect::<Vec<_>>();
+            let params = row_keys
+                .iter()
+                .map(std::string::String::as_str)
+                .collect::<Vec<_>>();
             connection
                 .execute(
                     &format!("DELETE FROM {quoted_table} WHERE {where_clause}"),
@@ -1227,7 +1240,10 @@ async fn get_sqlite_cell(
             .collect::<Result<Vec<_>, String>>()?
             .join(" AND ");
         let sql = format!("SELECT {quoted_column} FROM {quoted_table} WHERE {where_clause}");
-        let params = keys.iter().map(std::string::String::as_str).collect::<Vec<_>>();
+        let params = keys
+            .iter()
+            .map(std::string::String::as_str)
+            .collect::<Vec<_>>();
         let value = connection
             .query_row(&sql, rusqlite::params_from_iter(params), |row| {
                 Ok(sqlite_value_ref_to_string(row.get_ref(0)?))
@@ -1290,7 +1306,10 @@ async fn get_sqlite_cell_blob(
             .collect::<Result<Vec<_>, String>>()?
             .join(" AND ");
         let sql = format!("SELECT {quoted_column} FROM {quoted_table} WHERE {where_clause}");
-        let params = keys.iter().map(std::string::String::as_str).collect::<Vec<_>>();
+        let params = keys
+            .iter()
+            .map(std::string::String::as_str)
+            .collect::<Vec<_>>();
         let blob = connection
             .query_row(&sql, rusqlite::params_from_iter(params), |row| {
                 row.get::<_, Vec<u8>>(0)
@@ -2024,6 +2043,7 @@ pub fn run() {
             anilist::cancel_anime_prefetch,
             anilist::sync_franchise_to_index,
             user_assets::import_user_image,
+            user_assets::download_remote_image,
             user_assets::list_user_images,
             user_assets::get_user_image,
             user_assets::delete_user_image,
@@ -2037,6 +2057,26 @@ pub fn run() {
             app_db::search_unified_index,
             app_db::save_vault_media_records,
             app_db::get_vault_media_records,
+            app_db::list_collection_statuses,
+            app_db::upsert_collection_status,
+            app_db::delete_collection_status,
+            app_db::list_collection_items,
+            app_db::upsert_collection_item,
+            app_db::delete_collection_item,
+            app_db::upsert_collection_review,
+            app_db::list_collection_reviews,
+            app_db::delete_collection_review,
+            app_db::append_collection_event,
+            app_db::list_collection_events,
+            app_db::list_custom_field_defs,
+            app_db::upsert_custom_field_def,
+            app_db::delete_custom_field_def,
+            app_db::search_collection_items,
+            app_db::export_collection_data,
+            app_db::export_collection_zip,
+            app_db::import_collection_data,
+            tmdb::search_tmdb,
+            tmdb::get_tmdb_details,
             reset_sqlite_data,
             list_sqlite_databases,
             get_sqlite_tables,

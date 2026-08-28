@@ -351,7 +351,7 @@ function FranchiseGraphSection({
 
   if (!data || data.nodes.length === 0) {
     return (
-      <div className="text-muted windows95-text flex h-20 items-center justify-center text-sm">
+      <div className="text-hint windows95-text flex h-20 items-center justify-center text-sm">
         {t("anilist.franchise.empty")}
       </div>
     );

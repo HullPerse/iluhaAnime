@@ -1,4 +1,8 @@
-#![allow(clippy::cast_possible_truncation, clippy::cast_sign_loss, clippy::cast_possible_wrap)]
+#![allow(
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    clippy::cast_possible_wrap
+)]
 
 use serde::{Deserialize, Serialize};
 use std::cmp::Reverse;
@@ -2096,8 +2100,7 @@ pub fn franchise_query_body(ids: &[u64]) -> serde_json::Value {
 pub fn franchise_query_metrics(ids: &[u64]) -> FranchiseQueryMetrics {
     let body = franchise_query_body(ids);
     let query_bytes = FRANCHISE_BATCH_QUERY.len();
-    let body_bytes = serde_json::to_vec(&body)
-        .map_or(0, |bytes| bytes.len());
+    let body_bytes = serde_json::to_vec(&body).map_or(0, |bytes| bytes.len());
     FranchiseQueryMetrics {
         id_count: ids.len(),
         query_bytes,
@@ -2178,7 +2181,11 @@ pub async fn get_anime_franchise(
     // side stories and misc relations, so even a small node budget walks the
     // whole mainline chain (e.g. Fate/Zero -> Fate/kaleid Prisma Illya).
     let mut frontier: BinaryHeap<Reverse<FrontierEntry>> = BinaryHeap::new();
-    frontier.push(Reverse(FrontierEntry { rank: 0, depth: 0, id }));
+    frontier.push(Reverse(FrontierEntry {
+        rank: 0,
+        depth: 0,
+        id,
+    }));
 
     while node_ids.len() < MAX_FRANCHISE_NODES {
         if frontier.is_empty() {
@@ -2250,10 +2257,7 @@ pub async fn get_anime_franchise(
             pending_persist.extend(persisted);
         }
 
-        let depths: HashMap<u64, u8> = batch
-            .iter()
-            .map(|entry| (entry.id, entry.depth))
-            .collect();
+        let depths: HashMap<u64, u8> = batch.iter().map(|entry| (entry.id, entry.depth)).collect();
 
         for data in results {
             if node_ids.len() >= MAX_FRANCHISE_NODES {
@@ -2402,7 +2406,9 @@ pub async fn prefetch_anime_relations(
             .unwrap_or_else(|| "?".to_string());
 
         let batch_start = std::time::Instant::now();
-        let results = if let Ok(r) = fetch_franchise_batch_once(&to_fetch).await { r } else {
+        let results = if let Ok(r) = fetch_franchise_batch_once(&to_fetch).await {
+            r
+        } else {
             // Failed batch (rate limit exhausted etc.): re-queue for another attempt,
             // but drop ids that keep failing to avoid an infinite loop.
             for id in to_fetch {
@@ -2467,7 +2473,8 @@ pub async fn prefetch_anime_relations(
                 .filter(|(_, _, mt, _)| is_anime_media(mt.as_deref()))
                 .map(|(tid, rt, _, y)| {
                     let target_title = guard
-                        .get(tid).map_or_else(|| "?".to_string(), |t| t.node.title.clone());
+                        .get(tid)
+                        .map_or_else(|| "?".to_string(), |t| t.node.title.clone());
                     relation_line(rt, &target_title, *y)
                 })
                 .collect::<Vec<_>>();
@@ -2540,7 +2547,9 @@ pub fn cancel_anime_prefetch() {
 #[tauri::command]
 pub fn sync_franchise_to_index(app_handle: tauri::AppHandle) -> Result<usize, String> {
     load_franchise_cache(&app_handle);
-    let guard = FRANCHISE_CACHE.lock().map_err(|_| "cache lock".to_string())?;
+    let guard = FRANCHISE_CACHE
+        .lock()
+        .map_err(|_| "cache lock".to_string())?;
     let mut entries: Vec<app_db::UnifiedIndexEntryInput> = Vec::new();
     for (id, cached) in guard.iter() {
         if !is_anime_media(cached.node.media_type.as_deref()) {

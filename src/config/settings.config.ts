@@ -69,4 +69,6 @@ export const DEFAULT_SETTINGS: SettingsDefaults = {
     "3gp",
   ],
   visibleSources: ["erai-raws", "rutracker", "nyaa", "nekobt"],
+  tmdbApiKey: null as string | null,
+  collectionTabEnabled: true,
 };

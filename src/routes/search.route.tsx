@@ -54,9 +54,10 @@ function SearchRoute() {
     [visibleSources]
   );
 
-  const initialSource = visibleSources.includes(defaultSource)
-    ? defaultSource
-    : (visibleSources[0] ?? "");
+  const initialSource = resolveInitialSource(
+    visibleSources,
+    defaultSource
+  ) as Source;
 
   const [searchParams, setSearchParams] = useState("");
   const [submittedQuery, setSubmittedQuery] = useState("");
@@ -99,22 +100,7 @@ function SearchRoute() {
     setCrossSearchQuery,
   } = useSearchStore((state) => state);
 
-  const { data: sessions } = useQuery({
-    queryKey: ["search_sessions"],
-    queryFn: async () => {
-      const [rutracker, nekobt, erai] = await Promise.all([
-        invoke<boolean>("check_rutracker_session").catch(() => false),
-        invoke<boolean>("check_nekobt_session").catch(() => false),
-        invoke<boolean>("check_erai_session").catch(() => false),
-      ]);
-      return { rutracker, nekobt, erai };
-    },
-    staleTime: 5 * 60 * 1000,
-  });
-
-  const rutrackerAuth = sessions?.rutracker ?? false;
-  const nekobtAuth = sessions?.nekobt ?? false;
-  const eraiAuth = sessions?.erai ?? false;
+  const { rutrackerAuth, nekobtAuth, eraiAuth } = useSearchSessions();
 
   useEffect(() => {
     if (!visibleSources.includes(source) && visibleSources.length > 0) {
@@ -123,8 +109,7 @@ function SearchRoute() {
     }
   }, [visibleSources, source]);
 
-  const isPagedSource =
-    source === "nyaa" || source === "nekobt" || source === "sukebei";
+  const isPagedSource = isPagedSearchSource(source);
   const queryKey = useMemo(
     () =>
       [
@@ -202,7 +187,7 @@ function SearchRoute() {
     }
   }, [crossSearchQuery, setCrossSearchQuery]);
 
-  const serverSideSort = source === "nyaa" || source === "sukebei";
+  const serverSideSort = serverSideSortSource(source);
 
   const filtered = useMemo(
     () => filterAnimeResults(data, filters),
@@ -334,6 +319,7 @@ function SearchRoute() {
             <Search className="pointer-events-none" />
           )}
         </Button>
+        <span className="ui-toolbar-separator" aria-hidden />
         <Select
           className="h-9 max-w-30 min-w-30"
           value={source}
@@ -379,48 +365,19 @@ function SearchRoute() {
         />
       )}
 
-      {isError && (
-        <section
-          className="windows95-border bg-surface text-destructive flex items-center gap-2 px-2 py-1"
-          role="alert"
-        >
-          <AlertCircle className="size-4 shrink-0" />
-          <span className="windows95-text flex-1 truncate">
-            {error instanceof Error
-              ? error.message
-              : String(error ?? t("search.error"))}
-          </span>
-          <Button className="h-5" onClick={() => refetch()}>
-            {t("search.retry")}
-          </Button>
-        </section>
-      )}
+      {isError && <SearchErrorBar error={error} onRetry={() => refetch()} />}
 
       {data && data.length > 0 && (
-        <span className="windows95-text px-1 text-xs">
-          {isPagedSource
-            ? t("search.pageResults", {
-                page: nyaaPage,
-                shown: displayItems?.length ?? 0,
-                total: data.length,
-                status:
-                  data.length < resultsPerPage
-                    ? t("search.allShown")
-                    : t("search.moreAvailable"),
-              })
-            : t("search.resultsCount", { count: data.length })}
-        </span>
+        <SearchResultsSummary
+          data={data}
+          shown={displayItems?.length ?? 0}
+          isPagedSource={isPagedSource}
+          page={nyaaPage}
+          resultsPerPage={resultsPerPage}
+        />
       )}
 
-      {data?.length === 0 && !isError && (
-        <section className="ui-empty-state flex-1 flex-col">
-          <Inbox className="size-8" />
-          <span className="windows95-text">{t("search.nothingFound")}</span>
-          <span className="windows95-text text-xs">
-            {t("search.tryDifferent")}
-          </span>
-        </section>
-      )}
+      <SearchEmptyState visible={data?.length === 0 && !isError} />
 
       {displayItems && (
         <section className="flex min-h-0 w-full flex-1 flex-col gap-1 overflow-y-auto p-0.5">
@@ -451,53 +408,25 @@ function SearchRoute() {
       )}
 
       {isPagedSource && displayItems && displayItems.length > 0 && (
-        <section className="flex items-center justify-end gap-1 py-1">
-          <span className="windows95-text mr-1">
-            {t("search.page", { page: nyaaPage })}
-          </span>
-          <Button
-            size="icon"
-            className="size-5"
-            disabled={nyaaPage <= 1 || isLoading}
-            onClick={() => setNyaaPage((p) => Math.max(1, p - 1))}
-          >
-            <ChevronLeft className="size-3" />
-          </Button>
-          <Button
-            size="icon"
-            className="size-5"
-            disabled={(data?.length ?? 0) < resultsPerPage || isLoading}
-            onClick={() => setNyaaPage((p) => p + 1)}
-          >
-            <ChevronRight className="size-3" />
-          </Button>
-        </section>
+        <SearchPager
+          page={nyaaPage}
+          pageFull={(data?.length ?? 0) >= resultsPerPage}
+          isLoading={isLoading}
+          onPageChange={setNyaaPage}
+        />
       )}
 
-      {showLogin && (
-        <RutrackerLoginModal
-          setRutrackerAuth={() =>
-            queryClient.invalidateQueries({ queryKey: ["search_sessions"] })
-          }
-          setShowLogin={setShowLogin}
-        />
-      )}
-      {showEraiLogin && (
-        <EraiLoginModal
-          setEraiAuth={() =>
-            queryClient.invalidateQueries({ queryKey: ["search_sessions"] })
-          }
-          setShowLogin={setShowEraiLogin}
-        />
-      )}
-      {showApiModal && (
-        <NekoBtApiModal
-          setNekoBtAuth={() =>
-            queryClient.invalidateQueries({ queryKey: ["search_sessions"] })
-          }
-          setShowApiModal={setShowApiModal}
-        />
-      )}
+      <SearchSessionModals
+        showLogin={showLogin}
+        showEraiLogin={showEraiLogin}
+        showApiModal={showApiModal}
+        setShowLogin={setShowLogin}
+        setShowEraiLogin={setShowEraiLogin}
+        setShowApiModal={setShowApiModal}
+        onAuthenticated={() =>
+          queryClient.invalidateQueries({ queryKey: ["search_sessions"] })
+        }
+      />
       {selectedTorrent && (
         <TorrentDetailsModal
           item={selectedTorrent.item}
@@ -518,6 +447,188 @@ function SearchRoute() {
         />
       )}
     </main>
+  );
+}
+
+function resolveInitialSource(
+  visibleSources: string[],
+  defaultSource: string
+): string {
+  if (visibleSources.includes(defaultSource)) return defaultSource;
+  return visibleSources[0] ?? "";
+}
+
+function isPagedSearchSource(source: Source): boolean {
+  return source === "nyaa" || source === "nekobt" || source === "sukebei";
+}
+
+function serverSideSortSource(source: Source): boolean {
+  return source === "nyaa" || source === "sukebei";
+}
+
+function useSearchSessions() {
+  const { data: sessions } = useQuery({
+    queryKey: ["search_sessions"],
+    queryFn: async () => {
+      const [rutracker, nekobt, erai] = await Promise.all([
+        invoke<boolean>("check_rutracker_session").catch(() => false),
+        invoke<boolean>("check_nekobt_session").catch(() => false),
+        invoke<boolean>("check_erai_session").catch(() => false),
+      ]);
+      return { rutracker, nekobt, erai };
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  return {
+    rutrackerAuth: sessions?.rutracker ?? false,
+    nekobtAuth: sessions?.nekobt ?? false,
+    eraiAuth: sessions?.erai ?? false,
+  };
+}
+
+function SearchEmptyState({ visible }: { visible: boolean }) {
+  const { t } = useI18n();
+  if (!visible) return null;
+  return (
+    <section className="ui-empty-state flex-1 flex-col">
+      <Inbox className="size-8" />
+      <span className="windows95-text">{t("search.nothingFound")}</span>
+      <span className="windows95-text text-xs">{t("search.tryDifferent")}</span>
+    </section>
+  );
+}
+
+function SearchErrorBar({
+  error,
+  onRetry,
+}: {
+  error: unknown;
+  onRetry: () => void;
+}) {
+  const { t } = useI18n();
+  return (
+    <section
+      className="windows95-border bg-surface text-destructive flex items-center gap-2 px-2 py-1"
+      role="alert"
+    >
+      <AlertCircle className="size-4 shrink-0" />
+      <span className="windows95-text flex-1 truncate">
+        {error instanceof Error
+          ? error.message
+          : String(error ?? t("search.error"))}
+      </span>
+      <Button className="h-5" onClick={onRetry}>
+        {t("search.retry")}
+      </Button>
+    </section>
+  );
+}
+
+function SearchResultsSummary({
+  data,
+  shown,
+  isPagedSource,
+  page,
+  resultsPerPage,
+}: {
+  data: Anime[];
+  shown: number;
+  isPagedSource: boolean;
+  page: number;
+  resultsPerPage: number;
+}) {
+  const { t } = useI18n();
+  return (
+    <span className="windows95-text px-1 text-xs">
+      {isPagedSource
+        ? t("search.pageResults", {
+            page,
+            shown,
+            total: data.length,
+            status:
+              data.length < resultsPerPage
+                ? t("search.allShown")
+                : t("search.moreAvailable"),
+          })
+        : t("search.resultsCount", { count: data.length })}
+    </span>
+  );
+}
+
+function SearchPager({
+  page,
+  pageFull,
+  isLoading,
+  onPageChange,
+}: {
+  page: number;
+  pageFull: boolean;
+  isLoading: boolean;
+  onPageChange: (page: number) => void;
+}) {
+  const { t } = useI18n();
+  return (
+    <section className="flex items-center justify-end gap-1 py-1">
+      <span className="windows95-text mr-1">{t("search.page", { page })}</span>
+      <Button
+        size="icon"
+        className="size-5"
+        disabled={page <= 1 || isLoading}
+        onClick={() => onPageChange(Math.max(1, page - 1))}
+      >
+        <ChevronLeft className="size-3" />
+      </Button>
+      <Button
+        size="icon"
+        className="size-5"
+        disabled={!pageFull || isLoading}
+        onClick={() => onPageChange(page + 1)}
+      >
+        <ChevronRight className="size-3" />
+      </Button>
+    </section>
+  );
+}
+
+function SearchSessionModals({
+  showLogin,
+  showEraiLogin,
+  showApiModal,
+  setShowLogin,
+  setShowEraiLogin,
+  setShowApiModal,
+  onAuthenticated,
+}: {
+  showLogin: boolean;
+  showEraiLogin: boolean;
+  showApiModal: boolean;
+  setShowLogin: (value: boolean) => void;
+  setShowEraiLogin: (value: boolean) => void;
+  setShowApiModal: (value: boolean) => void;
+  onAuthenticated: () => void;
+}) {
+  return (
+    <>
+      {showLogin && (
+        <RutrackerLoginModal
+          setRutrackerAuth={onAuthenticated}
+          setShowLogin={setShowLogin}
+        />
+      )}
+      {showEraiLogin && (
+        <EraiLoginModal
+          setEraiAuth={onAuthenticated}
+          setShowLogin={setShowEraiLogin}
+        />
+      )}
+      {showApiModal && (
+        <NekoBtApiModal
+          setNekoBtAuth={onAuthenticated}
+          setShowApiModal={setShowApiModal}
+        />
+      )}
+    </>
   );
 }
 

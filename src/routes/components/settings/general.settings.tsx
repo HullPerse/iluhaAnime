@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ConfirmDialog } from "@/components/shared/confirm.component";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
+import { Input } from "@/components/ui/input.component";
 import Select from "@/components/ui/select.component";
 import { useI18n } from "@/lib/i18n";
 import { useSettingsStore } from "@/store/settings.store";
@@ -18,6 +19,7 @@ export default function SettingsGeneral() {
     sqliteBrowserEnabled,
     vaultTabEnabled,
     collectionTabEnabled,
+    tmdbApiKey,
     ffmpegSource,
     patch,
   } = useSettingsStore();
@@ -103,6 +105,25 @@ export default function SettingsGeneral() {
             ? t("settings.sqliteDisable")
             : t("settings.sqliteEnable")}
         </Button>
+      </div>
+
+      <hr className="border-muted my-1 w-full border-t" />
+
+      <div className="flex flex-col gap-1">
+        <span className="windows95-text text-xs font-bold">
+          {t("settings.tmdbApiKey")}
+        </span>
+        <span className="windows95-text text-xs">
+          {t("settings.tmdbApiKeyDescription")}
+        </span>
+        <Input
+          value={tmdbApiKey ?? ""}
+          onChange={(e) => patch({ tmdbApiKey: e.target.value.trim() || null })}
+          placeholder={t("settings.tmdbApiKeyPlaceholder")}
+          spellCheck={false}
+          className="w-full max-w-130"
+          aria-label={t("settings.tmdbApiKey")}
+        />
       </div>
 
       <hr className="border-muted my-1 w-full border-t" />

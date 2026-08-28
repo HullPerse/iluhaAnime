@@ -9,7 +9,7 @@ import {
   monthLabel,
   type ActivityTranslate,
   type DayActivity,
-} from "@/lib/activity.anilist.utils";
+} from "@/lib/activity.utils";
 import type {
   AniListCollection,
   AniListEntry,

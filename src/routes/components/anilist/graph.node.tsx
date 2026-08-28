@@ -101,7 +101,7 @@ const FranNode = memo(
           />
         ) : (
           <div
-            className="bg-primary text-muted flex items-center justify-center text-xs"
+            className="bg-primary text-hint flex items-center justify-center text-xs"
             style={{ height: dims.imgH }}
           >
             -

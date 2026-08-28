@@ -4,6 +4,7 @@ import { persist } from "zustand/middleware";
 import type {
   AniListFriendsStore,
   AniListNotificationsStore,
+  AniListObservation,
 } from "@/types/anilist";
 
 export const useAniListFriendsStore = create<AniListFriendsStore>()(
@@ -98,6 +99,32 @@ export const useAniListNotificationsStore = create<AniListNotificationsStore>()(
         })),
       setInitialized: (initialized) => set({ initialized }),
     }),
-    { name: "anilistReleaseObservations", version: 1 }
+    {
+      migrate: (persistedState: unknown, version: number) => {
+        if (!persistedState || typeof persistedState !== "object") return { initialized: false, observations: {} };
+        const state = persistedState as Partial<AniListNotificationsStore> & {
+          observations?: Record<string, Partial<AniListObservation> & { signature?: string }>;
+        };
+        // v1 -> v2: add nextEpisode/nextAiringAt for missed-episode detection while app was closed
+        if (version < 2) {
+          const migrated = { ...state.observations } as Record<string, AniListObservation>;
+          for (const key of Object.keys(migrated)) {
+            const obs = migrated[key] as Partial<AniListObservation>;
+            migrated[key] = {
+              signature: obs.signature ?? "",
+              status: obs.status ?? "",
+              title: obs.title ?? "",
+              updatedAt: obs.updatedAt ?? 0,
+              nextEpisode: obs.nextEpisode ?? null,
+              nextAiringAt: obs.nextAiringAt ?? null,
+            };
+          }
+          return { initialized: !!state.initialized, observations: migrated };
+        }
+        return state as AniListNotificationsStore;
+      },
+      name: "anilistReleaseObservations",
+      version: 2,
+    }
   )
 );

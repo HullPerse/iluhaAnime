@@ -12,7 +12,7 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
         type={type}
         data-slot="input"
         className={cn(
-          "windows95-border text-text windows95-text file:bg-primary file:windows95-text file:text-text placeholder:text-muted focus-visible:outline-text disabled:bg-primary disabled:text-muted aria-invalid:border-destructive min-h-[var(--ui-control-height)] w-full min-w-0 bg-white px-1.5 outline-none file:mr-1 file:inline-flex file:h-5 file:px-1 focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-dotted disabled:pointer-events-none disabled:opacity-50",
+          "windows95-border text-text windows95-text file:bg-primary file:windows95-text file:text-text placeholder:text-hint focus-visible:outline-text disabled:bg-primary disabled:text-hint aria-invalid:border-destructive min-h-[var(--ui-control-height)] w-full min-w-0 bg-white px-1.5 outline-none file:mr-1 file:inline-flex file:h-5 file:px-1 focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-dotted disabled:pointer-events-none disabled:opacity-50",
           className
         )}
         {...props}

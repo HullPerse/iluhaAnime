@@ -22,6 +22,59 @@ export interface ListNavigationOptions<T extends Element = Element> {
   onUnhandled?: (event: KeyboardEvent<T>) => void;
 }
 
+function handleListNavigationKey<T extends Element>(
+  event: KeyboardEvent<T>,
+  options: {
+    key: string;
+    nextKey: string;
+    previousKey: string;
+    enabled: boolean;
+    count: number;
+    activeIndex: number;
+    move: (delta: number) => void;
+    setActiveIndex: (index: number) => void;
+    onFocus?: (index: number, event: KeyboardEvent<T>) => void;
+    onEnter?: (index: number) => void;
+    onTab?: (index: number) => void;
+    onEscape?: () => boolean;
+  }
+): boolean {
+  const { key, nextKey, previousKey, enabled, count, activeIndex, move, setActiveIndex, onFocus, onEnter, onTab, onEscape } = options;
+  if (key === "Escape" && onEscape?.()) {
+    event.preventDefault();
+    return true;
+  }
+  if (!enabled) return false;
+  if (key === nextKey) {
+    event.preventDefault();
+    move(1);
+    return true;
+  }
+  if (key === previousKey) {
+    event.preventDefault();
+    move(-1);
+    return true;
+  }
+  const boundary = key === "Home" ? 0 : key === "End" ? count - 1 : null;
+  if (boundary !== null) {
+    event.preventDefault();
+    setActiveIndex(boundary);
+    onFocus?.(boundary, event);
+    return true;
+  }
+  if (key === "Enter" && count > 0 && activeIndex >= 0) {
+    event.preventDefault();
+    onEnter?.(activeIndex);
+    return true;
+  }
+  if (key === "Tab" && !event.shiftKey && count > 0 && activeIndex >= 0) {
+    event.preventDefault();
+    onTab?.(activeIndex);
+    return true;
+  }
+  return false;
+}
+
 export function createListNavigationHandler<T extends Element = Element>({
   count,
   activeIndex,
@@ -45,44 +98,21 @@ export function createListNavigationHandler<T extends Element = Element>({
   };
 
   return (event) => {
-    const { key } = event;
-    if (key === "Escape" && onEscape && onEscape()) {
-      event.preventDefault();
-      return;
-    }
-    if (enabled) {
-      if (key === nextKey) {
-        move(event, 1);
-        return;
-      }
-      if (key === previousKey) {
-        move(event, -1);
-        return;
-      }
-      if (key === "Home") {
-        event.preventDefault();
-        setActiveIndex(0);
-        onFocus?.(0, event);
-        return;
-      }
-      if (key === "End") {
-        event.preventDefault();
-        setActiveIndex(count - 1);
-        onFocus?.(count - 1, event);
-        return;
-      }
-      if (key === "Enter" && count > 0 && activeIndex >= 0) {
-        event.preventDefault();
-        onEnter?.(activeIndex);
-        return;
-      }
-      if (key === "Tab" && !event.shiftKey && count > 0 && activeIndex >= 0) {
-        event.preventDefault();
-        onTab?.(activeIndex);
-        return;
-      }
-    }
-    onUnhandled?.(event);
+    const handled = handleListNavigationKey(event, {
+      key: event.key,
+      nextKey,
+      previousKey,
+      enabled,
+      count,
+      activeIndex,
+      move: (delta) => move(event, delta),
+      setActiveIndex,
+      onFocus,
+      onEnter,
+      onTab,
+      onEscape,
+    });
+    if (!handled) onUnhandled?.(event);
   };
 }
 

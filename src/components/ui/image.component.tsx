@@ -126,7 +126,7 @@ const Image = ({
           role="img"
           aria-label={alt || t("image.unavailable")}
         >
-          <span className="text-muted text-xs">{t("image.fallback")}</span>
+          <span className="text-hint text-xs">{t("image.fallback")}</span>
         </div>
       )}
     </div>

@@ -1458,8 +1458,7 @@ fn parse_detail_fields(doc: &Html) -> Vec<TorrentDetailField> {
 
 fn parse_bootstrap_detail_fields(doc: &Html) -> Vec<TorrentDetailField> {
     let row_sel = Selector::parse(".panel-body .row").expect("hardcoded selector");
-    let cell_sel =
-        Selector::parse("div[class*='col-md-']").expect("hardcoded selector");
+    let cell_sel = Selector::parse("div[class*='col-md-']").expect("hardcoded selector");
     let mut fields = Vec::new();
     for row in doc.select(&row_sel) {
         let cells: Vec<String> = row
@@ -1532,7 +1531,10 @@ fn parse_detail_files(doc: &Html) -> Vec<TorrentDetailFile> {
                     parts.last().cloned().unwrap_or_default(),
                 )
             } else if parts.len() == 1 {
-                let size_text = parts[0].trim().trim_start_matches('(').trim_end_matches(')');
+                let size_text = parts[0]
+                    .trim()
+                    .trim_start_matches('(')
+                    .trim_end_matches(')');
                 if looks_like_file_size(size_text) {
                     let name = text
                         .trim_end()
@@ -1841,7 +1843,8 @@ fn parse_detail_comments(doc: &Html, source: &str) -> Vec<TorrentDetailComment> 
             .unwrap_or_default();
         let body = block
             .select(&body_sel)
-            .next().map_or_else(|| element_text_multiline(block), element_text_multiline);
+            .next()
+            .map_or_else(|| element_text_multiline(block), element_text_multiline);
         if !comments
             .iter()
             .any(|comment: &TorrentDetailComment| comment.text == body)
@@ -2079,9 +2082,9 @@ fn animetosho_size(text: &str) -> String {
         return trimmed.to_string();
     }
     let lower = text.to_lowercase();
-    let window = lower
-        .find("file name")
-        .map_or(text, |label_start| &text[label_start..text.len().min(label_start + 300)]);
+    let window = lower.find("file name").map_or(text, |label_start| {
+        &text[label_start..text.len().min(label_start + 300)]
+    });
     let Ok(re) = regex_lite::Regex::new(r"\(([0-9.,]+\s*(?:[KMGT]i?B|байт|B))\s*\)") else {
         return String::new();
     };
@@ -3046,8 +3049,14 @@ mod tests {
             "  seeders: {} | leechers: {} | completed: {} | downloads: {}",
             details.seeders, details.leechers, details.completed, details.downloads
         );
-        println!("  uploaded: {} | updated: {}", details.uploaded_at, details.updated_at);
-        println!("  magnet: {} | torrent: {}", details.magnet, details.torrent_url);
+        println!(
+            "  uploaded: {} | updated: {}",
+            details.uploaded_at, details.updated_at
+        );
+        println!(
+            "  magnet: {} | torrent: {}",
+            details.magnet, details.torrent_url
+        );
         println!("  notice: {:?}", details.notice);
     }
 

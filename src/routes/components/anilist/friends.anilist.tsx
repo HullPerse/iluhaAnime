@@ -103,7 +103,7 @@ export default function AniListFriendsModal({
           </div>
           <div className="flex flex-col gap-1">
             {friends.length === 0 ? (
-              <span className="windows95-text text-muted p-2 text-center text-xs">
+              <span className="windows95-text text-hint p-2 text-center text-xs">
                 {t("anilist.friends.empty")}
               </span>
             ) : (
@@ -200,7 +200,7 @@ export default function AniListFriendsModal({
                     {selected.mean_score != null &&
                       ` - ${t("anilist.friends.score")}: ${selected.mean_score}`}
                   </p>
-                  <p className="windows95-text text-muted mt-1 text-xs">
+                  <p className="windows95-text text-hint mt-1 text-xs">
                     {selected.is_following == null
                       ? t("anilist.friends.relationshipUnavailable")
                       : selected.is_following
@@ -227,7 +227,7 @@ export default function AniListFriendsModal({
               )}
             </div>
           ) : (
-            <div className="windows95-text text-muted flex flex-1 items-center justify-center p-6 text-center text-xs">
+            <div className="windows95-text text-hint flex flex-1 items-center justify-center p-6 text-center text-xs">
               {t("anilist.friends.help")}
             </div>
           )}

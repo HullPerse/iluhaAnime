@@ -62,7 +62,7 @@ function DetailSection({
 function MetaItem({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="windows95-border bg-surface min-w-0 px-1.5 py-1">
-      <div className="windows95-text text-muted text-xs">{label}</div>
+      <div className="windows95-text text-hint text-xs">{label}</div>
       <div className="windows95-text mt-0.5 text-xs wrap-break-word">
         {value}
       </div>
@@ -73,6 +73,35 @@ function MetaItem({ label, value }: { label: string; value: ReactNode }) {
 function nonEmpty(value: string | undefined, fallback: string): string {
   return value?.trim() || fallback;
 }
+
+function buildTorrentView(
+  details: TorrentDetails,
+  item: Anime,
+  magnets: Record<string, string>,
+  source: Source
+) {
+  const shellTitle =
+    source === "nekobt" && /^(home|neko\s*bt)$/i.test(details.title);
+  return {
+    ...details,
+    title: shellTitle ? item.title : nonEmpty(details.title, item.title),
+    description: details.description?.trim() ?? "",
+    category: nonEmpty(details.category, item.category),
+    size: nonEmpty(details.size, item.size),
+    seeders: details.seeders || item.seeders,
+    leechers: details.leechers || item.leechers,
+    magnet: nonEmpty(details.magnet, magnets[item.link] || item.magnet),
+    torrentUrl: nonEmpty(details.torrentUrl, item.torrent),
+    fields: Array.isArray(details.fields) ? details.fields : [],
+    files: Array.isArray(details.files) ? details.files : [],
+    screenshots: Array.isArray(details.screenshots)
+      ? details.screenshots
+      : [],
+    comments: Array.isArray(details.comments) ? details.comments : [],
+  };
+}
+
+type TorrentView = ReturnType<typeof buildTorrentView>;
 
 function TorrentDetailsModal({
   item,
@@ -122,28 +151,10 @@ function TorrentDetailsModal({
     };
   }, [detailUrl, source, retry]);
 
-  const view = useMemo(() => {
-    if (!details) return null;
-    const shellTitle =
-      source === "nekobt" && /^(home|neko\s*bt)$/i.test(details.title);
-    return {
-      ...details,
-      title: shellTitle ? item.title : nonEmpty(details.title, item.title),
-      description: details.description?.trim() ?? "",
-      category: nonEmpty(details.category, item.category),
-      size: nonEmpty(details.size, item.size),
-      seeders: details.seeders || item.seeders,
-      leechers: details.leechers || item.leechers,
-      magnet: nonEmpty(details.magnet, magnets[item.link] || item.magnet),
-      torrentUrl: nonEmpty(details.torrentUrl, item.torrent),
-      fields: Array.isArray(details.fields) ? details.fields : [],
-      files: Array.isArray(details.files) ? details.files : [],
-      screenshots: Array.isArray(details.screenshots)
-        ? details.screenshots
-        : [],
-      comments: Array.isArray(details.comments) ? details.comments : [],
-    };
-  }, [details, item, magnets, source]);
+  const view = useMemo(
+    () => (details ? buildTorrentView(details, item, magnets, source) : null),
+    [details, item, magnets, source]
+  );
 
   const actionItem = useMemo<Anime>(
     () => ({
@@ -175,24 +186,6 @@ function TorrentDetailsModal({
     } catch {}
   };
 
-  const metadataFields = view?.fields.filter((field) => {
-    const label = field.label.toLowerCase();
-    return ![
-      "size",
-      "размер",
-      "seeder",
-      "leecher",
-      "category",
-      "категория",
-      "uploaded",
-      "added",
-      "updated",
-      "hash",
-      "хеш",
-      "completed",
-    ].some((known) => label.includes(known));
-  });
-
   return (
     <Modal
       header={view?.title || item.title}
@@ -204,7 +197,7 @@ function TorrentDetailsModal({
         <div className="flex min-h-48 flex-col items-center justify-center gap-2">
           <SmallLoader size={6} />
           <span className="windows95-text">{t("search.details.loading")}</span>
-          <span className="windows95-text text-muted text-xs">
+          <span className="windows95-text text-hint text-xs">
             {t("search.details.cleaned")}
           </span>
         </div>
@@ -230,14 +223,71 @@ function TorrentDetailsModal({
       )}
 
       {view && !loading && (
-        <div className="flex min-w-0 flex-col gap-2">
+        <TorrentDetailsBody
+          view={view}
+          item={item}
+          source={source}
+          actionItem={actionItem}
+          loadingMagnet={loadingMagnet}
+          onCopyMagnet={onCopyMagnet}
+          onOpenMagnet={onOpenMagnet}
+          onDownload={onDownload}
+          openOriginal={openOriginal}
+        />
+      )}
+    </Modal>
+  );
+}
+
+function TorrentDetailsBody({
+  view,
+  item,
+  source,
+  actionItem,
+  loadingMagnet,
+  onCopyMagnet,
+  onOpenMagnet,
+  onDownload,
+  openOriginal,
+}: {
+  view: TorrentView;
+  item: Anime;
+  source: Source;
+  actionItem: Anime;
+  loadingMagnet: Record<string, boolean>;
+  onCopyMagnet: (item: Anime) => void;
+  onOpenMagnet: (item: Anime) => void;
+  onDownload: (item: Anime) => void;
+  openOriginal: () => Promise<void>;
+}) {
+  const { t } = useI18n();
+  const metadataFields = view.fields.filter((field) => {
+    const label = field.label.toLowerCase();
+    return ![
+      "size",
+      "размер",
+      "seeder",
+      "leecher",
+      "category",
+      "категория",
+      "uploaded",
+      "added",
+      "updated",
+      "hash",
+      "хеш",
+      "completed",
+    ].some((known) => label.includes(known));
+  });
+
+  return (
+    <div className="flex min-w-0 flex-col gap-2">
           <div className="windows95-border bg-surface p-1.5">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div className="min-w-0 flex-1">
                 <h2 className="windows95-text font-bold wrap-break-word">
                   {view.title}
                 </h2>
-                <p className="windows95-text text-muted mt-1 text-xs break-all">
+                <p className="windows95-text text-hint mt-1 text-xs break-all">
                   {source} - {view.url || item.link}
                 </p>
               </div>
@@ -345,7 +395,7 @@ function TorrentDetailsModal({
                     key={`${field.label}-${index}`}
                     className="windows95-border bg-surface min-w-0 px-1.5 py-1"
                   >
-                    <div className="windows95-text text-muted text-xs">
+                    <div className="windows95-text text-hint text-xs">
                       {field.label}
                     </div>
                     <div className="windows95-text mt-0.5 text-xs wrap-break-word whitespace-pre-wrap">
@@ -413,7 +463,7 @@ function TorrentDetailsModal({
                     >
                       {file.name}
                     </span>
-                    <span className="windows95-text text-muted shrink-0 text-xs">
+                    <span className="windows95-text text-hint shrink-0 text-xs">
                       {file.size || "-"}
                     </span>
                   </div>
@@ -428,7 +478,7 @@ function TorrentDetailsModal({
             count={view.comments.length}
           >
             {view.comments.length === 0 ? (
-              <span className="windows95-text text-muted text-xs">
+              <span className="windows95-text text-hint text-xs">
                 {t("search.details.noComments")}
               </span>
             ) : (
@@ -442,7 +492,7 @@ function TorrentDetailsModal({
                       <strong className="truncate">
                         {comment.author || t("search.details.anonymous")}
                       </strong>
-                      <span className="text-muted shrink-0">
+                      <span className="text-hint shrink-0">
                         {comment.date}
                       </span>
                     </div>
@@ -454,9 +504,7 @@ function TorrentDetailsModal({
               </div>
             )}
           </DetailSection>
-        </div>
-      )}
-    </Modal>
+    </div>
   );
 }
 

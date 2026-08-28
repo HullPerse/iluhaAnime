@@ -192,7 +192,7 @@ function RutrackerLoginModal({
           </div>
         ) : mode === "cookies" ? (
           <div className="flex flex-col gap-2">
-            <span className="windows95-text text-muted text-xs leading-snug">
+            <span className="windows95-text text-hint text-xs leading-snug">
               {t("search.rutracker.cookiesHint")}
             </span>
             <textarea
@@ -200,12 +200,12 @@ function RutrackerLoginModal({
               onChange={(e) => setCookies(e.target.value)}
               placeholder="bb_session=...; bb_data=...; uid=..."
               spellCheck={false}
-              className="windows95-border windows95-text placeholder:text-muted focus-visible:outline-text h-28 w-full resize-y bg-white p-1 outline-none focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-dotted"
+              className="windows95-border windows95-text placeholder:text-hint focus-visible:outline-text h-28 w-full resize-y bg-white p-1 outline-none focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-dotted"
             />
           </div>
         ) : (
           <div className="flex flex-col gap-2">
-            <span className="windows95-text text-muted text-xs leading-snug">
+            <span className="windows95-text text-hint text-xs leading-snug">
               {t("search.rutracker.browserHint")}
             </span>
             <Button onClick={handleOpenBrowser} disabled={loading}>

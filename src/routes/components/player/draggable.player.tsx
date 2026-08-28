@@ -60,7 +60,7 @@ export function DraggableFolder({
         <span className="flex-1 truncate select-none" title={tree.name}>
           {tree.name}
         </span>
-        <span className="text-muted text-xs whitespace-nowrap select-none">
+        <span className="text-hint text-xs whitespace-nowrap select-none">
           {t("player.folder.fileCount", { count: countAll })}
         </span>
         {onHide && (

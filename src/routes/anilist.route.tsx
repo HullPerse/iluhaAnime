@@ -24,17 +24,19 @@ import {
   searchFiltersToParams,
   sortAniMediaList,
 } from "@/lib/anilist.utils";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, type TranslationKey } from "@/lib/i18n";
 import { enterSubmit } from "@/lib/keyboard.utils";
 import { paginate } from "@/lib/pagination.utils";
 import {
   getInlineCompletion,
   getSearchSuggestions,
+  type SearchSuggestion,
 } from "@/lib/search.suggestions";
 import { useAniListFriendsStore } from "@/store/anilist.store";
 import { useSearchStore } from "@/store/search.store";
 import { useSettingsStore } from "@/store/settings.store";
 import type {
+  AniFriend,
   AniListAnime,
   AniListCollection,
   AniListFilters,
@@ -42,6 +44,7 @@ import type {
   AniMedia,
   AniRecommendation,
   AniUser,
+  AniUserProfile,
   FavouriteAnime,
   GlobalSort,
   SearchMode,
@@ -340,15 +343,88 @@ function AnilistRoute() {
 
   const entryLookup = useMemo(() => buildEntryLookup(lists), [lists]);
 
+  const openAnimeFromLookup = useCallback(
+    (id: number) => {
+      setSelectedAnime({ animeId: id, listEntry: entryLookup.get(id) });
+    },
+    [entryLookup]
+  );
+
+  const handleAnimeBack = useMemo(
+    () => buildAnimeBackHandler(animeHistory, setAnimeHistory, setSelectedAnime),
+    [animeHistory]
+  );
+
+  const toggleFavourite = useCallback(
+    async (animeId: number) => {
+      try {
+        const updated = await invoke<FavouriteAnime[]>("toggle_favourite", {
+          animeId,
+        });
+        queryClient.setQueryData(["anilist_data"], (old: unknown) =>
+          old ? { ...(old as AnilistRouteData), favourites: updated } : old
+        );
+      } catch {}
+    },
+    [queryClient]
+  );
+
+  const handleRelated = useCallback(
+    (id: number) => {
+      setAnimeHistory((prev) =>
+        selectedAnime ? [...prev, selectedAnime] : prev
+      );
+      setSelectedAnime({ animeId: id, listEntry: entryLookup.get(id) });
+    },
+    [selectedAnime, entryLookup]
+  );
+
+  const handleDetailsClose = useCallback(() => {
+    setSelectedAnime(null);
+    setAnimeHistory([]);
+  }, []);
+
+  const handleDetailsSaved = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["anilist_data"] });
+  }, [queryClient]);
+
+  const handleAuthSuccess = useCallback(
+    (authUser: AniUser) => {
+      setAuth(false);
+      queryClient.setQueryData(["anilist_data"], {
+        user: authUser,
+        lists: [],
+        favourites: [],
+      });
+      queryClient.invalidateQueries({ queryKey: ["anilist_data"] });
+    },
+    [queryClient]
+  );
+
+  const handleAddFriend = useCallback(
+    (profile: AniUserProfile) => {
+      addFriend({
+        id: profile.id,
+        name: profile.name,
+        avatar: profile.avatar,
+      });
+      cacheFriendProfile(profile);
+    },
+    [addFriend, cacheFriendProfile]
+  );
+
   const activeEntries =
     lists.find((c) => c.name === currentList)?.entries ?? [];
   const filteredEntries = filterEntries(activeEntries, searchTerms, global);
   const sortedEntries = sortEntries(filteredEntries, sort.dir, sort.key);
-  const displayEntries = global
-    ? sortAniMediaList(searchResults, globalSort.key, globalSort.dir)
-    : sortedEntries.map((e) => e.media);
+  const displayEntries = pickDisplayEntries(
+    global,
+    searchResults,
+    sortedEntries,
+    globalSort
+  );
 
-  const isLocal = !!searchTerms.trim() && !global;
+  const isLocal = isLocalSearch(searchTerms, global);
   const deferredSearchTerms = useDeferredValue(searchTerms);
   const backendSuggestions = useSugggestions(
     deferredSearchTerms,
@@ -417,383 +493,776 @@ function AnilistRoute() {
   return (
     <main className="flex h-full w-full flex-col gap-1">
       {user && !isLoading && (
-        <section className="flex w-full flex-row gap-2">
-          <InlineAutocompleteInput
-            placeholder={t("anilist.route.searchPlaceholder")}
-            value={searchTerms}
-            completion={inlineCompletion}
-            suggestions={suggestions}
-            history={searchHistory}
-            className="h-9 font-bold"
-            autoFocus
-            onChange={(e) => {
-              setSearchTerms(e.target.value);
-              if (global && !e.target.value.trim()) handleReset();
-            }}
-            onAcceptCompletion={(value) => {
-              recordSuggestion(value);
-              setSearchTerms(value);
-            }}
-            onDismissCompletion={() => {
-              if (inlineCompletion) recordSuggestionIgnored(inlineCompletion);
-            }}
-            onKeyDown={enterSubmit(() => {
-              if (
-                inlineCompletion &&
-                searchTerms.trim().toLocaleLowerCase() !==
-                  inlineCompletion.toLocaleLowerCase()
-              ) {
-                recordSuggestionIgnored(inlineCompletion);
-              }
-              handleGlobal();
-            })}
-          />
-          <Button
-            size="icon"
-            title={t("anilist.route.filters")}
-            onClick={() => setShowFilters(true)}
-            className="relative"
-          >
-            <Filter className="size-4" />
-            {searchFilters.tags.length +
-              (searchFilters.format ? 1 : 0) +
-              (searchFilters.status ? 1 : 0) +
-              (searchFilters.season ? 1 : 0) +
-              (searchFilters.adult ? 1 : 0) >
-              0 && (
-              <span className="bg-secondary absolute -top-1 -right-1 flex size-3 items-center justify-center text-xs text-white">
-                {searchFilters.tags.length +
-                  (searchFilters.format ? 1 : 0) +
-                  (searchFilters.status ? 1 : 0) +
-                  (searchFilters.season ? 1 : 0) +
-                  (searchFilters.adult ? 1 : 0)}
-              </span>
-            )}
-          </Button>
-          <Button
-            size="icon"
-            title={global ? t("anilist.route.backToProfile") : t("app.search")}
-            onClick={() => (global ? handleReset() : handleGlobal())}
-            disabled={loadingSearch}
-          >
-            {global ? (
-              <User className="size-4" />
-            ) : (
-              <Search className="size-4" />
-            )}
-          </Button>
-        </section>
-      )}
-
-      {user && !global && !isLocal && (
-        <AniListProfileHeader
-          user={user}
-          loadingList={isLoading}
-          onStatsOpen={() => setShowStats(true)}
-          onBrowseOpen={() => setShowBrowse(true)}
-          onRecsOpen={() => setShowRecs(true)}
-          onPrefetchOpen={() => setShowPrefetch(true)}
-          onFriendsOpen={() => setShowFriends(true)}
-          onLogout={handleLogout}
+        <AniListSearchToolbar
+          searchTerms={searchTerms}
+          onSearchTermsChange={setSearchTerms}
+          global={global}
+          inlineCompletion={inlineCompletion}
+          suggestions={suggestions}
+          searchHistory={searchHistory}
+          onRecordSuggestion={recordSuggestion}
+          onRecordSuggestionIgnored={recordSuggestionIgnored}
+          onGlobal={handleGlobal}
+          onReset={handleReset}
+          filters={searchFilters}
+          onFiltersOpen={() => setShowFilters(true)}
+          loadingSearch={loadingSearch}
         />
       )}
 
-      {!isLoading && user && lists.length > 0 && !global && (
+      <AniListProfileSections
+        user={user}
+        isLoading={isLoading}
+        isLocal={isLocal}
+        global={global}
+        lists={lists}
+        currentList={currentList}
+        onSelectList={(name) => {
+          setCurrentList(name);
+          if (global) handleReset();
+        }}
+        searchTerms={searchTerms}
+        sort={sort}
+        onSortChange={setSort}
+        hasFavourites={favourites.length > 0}
+        onActivityFeed={() => setActivityHistory({ open: true, tab: "feed" })}
+        onActivityCalendar={() =>
+          setActivityHistory({ open: true, tab: "calendar" })
+        }
+        onFavourites={() => setShowFavourites(true)}
+        onRandom={handleRandomFromList}
+        onStats={() => setShowStats(true)}
+        onBrowse={() => setShowBrowse(true)}
+        onRecs={() => setShowRecs(true)}
+        onPrefetch={() => setShowPrefetch(true)}
+        onFriends={() => setShowFriends(true)}
+        onLogout={handleLogout}
+      />
+
+      {global && searchResults.length > 0 && (
+        <AniListGlobalSortBar
+          sortKey={globalSort.key}
+          onSortChange={setGlobalSort}
+        />
+      )}
+
+      <AniListStateViews
+        view={resolveAniListView({
+          isLoading,
+          hasLists: lists.length > 0,
+          global,
+          isLocal,
+          hasUser: !!user,
+          loadingSearch,
+          hasSearchResults: searchResults.length > 0,
+        })}
+        onLogin={() => setAuth(true)}
+      />
+
+      <AniListResults
+        entries={pagedEntries}
+        entryLookup={entryLookup}
+        onSelect={(anime) => setSelectedAnime(anime)}
+        scrollRef={scrollRef}
+        showPagination={(!!user || global) && displayEntries.length > 0}
+        pagination={{
+          global,
+          isLocal,
+          hasUser: !!user,
+          searchResultsCount: searchResults.length,
+          searchTag,
+          searchMode,
+          currentList,
+          filteredCount: filteredEntries.length,
+          activeCount: activeEntries.length,
+          total,
+          page,
+          lastPage,
+          from,
+          to,
+          onPageChange: setPage,
+        }}
+      />
+
+      <AniListDetailModalHost
+        selectedAnime={selectedAnime}
+        favouriteIds={favouriteIds}
+        isLoggedIn={!!user}
+        onFavouriteToggle={toggleFavourite}
+        onTag={handleTag}
+        onGenre={handleGenre}
+        onStudio={handleStudio}
+        onSeason={handleSeason}
+        onRelated={handleRelated}
+        onBack={handleAnimeBack}
+        onClose={handleDetailsClose}
+        onSaved={handleDetailsSaved}
+      />
+
+      <AniListSecondaryModals
+        entryLookup={entryLookup}
+        views={{
+          auth,
+          recs: showRecs,
+          recsLoading,
+          activity: activityHistory.open && !!user,
+          friends: showFriends && !!user,
+          favourites: showFavourites,
+          filters: showFilters,
+          stats: showStats,
+          browse: showBrowse,
+          prefetch: showPrefetch,
+        }}
+        onAuthSuccess={handleAuthSuccess}
+        onAuthClose={() => setAuth(false)}
+        recs={recs}
+        onRecsClose={() => setShowRecs(false)}
+        onRecsAnime={openAnimeFromLookup}
+        userId={user?.id ?? null}
+        friendIds={friendIds}
+        lists={lists}
+        activityTab={activityHistory.tab}
+        onActivityClose={() => setActivityHistory((s) => ({ ...s, open: false }))}
+        onActivityAnime={openAnimeFromLookup}
+        friends={friends}
+        onAddFriend={handleAddFriend}
+        onRemoveFriend={removeFriend}
+        onFriendsClose={() => setShowFriends(false)}
+        favourites={favourites}
+        onFavouritesClose={() => setShowFavourites(false)}
+        onFavouritesAnime={openAnimeFromLookup}
+        filters={searchFilters}
+        onFiltersApply={setSearchFilters}
+        onFiltersReset={() => setSearchFilters(defaultFilters)}
+        onFiltersClose={() => setShowFilters(false)}
+        onStatsClose={() => setShowStats(false)}
+        onStatsAnime={openAnimeFromLookup}
+        onBrowseClose={() => setShowBrowse(false)}
+        onBrowseAnime={openAnimeFromLookup}
+        animeIds={allAnimeIds}
+        onPrefetchClose={() => setShowPrefetch(false)}
+      />
+    </main>
+  );
+}
+
+function buildAnimeBackHandler(
+  animeHistory: AniListAnime[],
+  setAnimeHistory: React.Dispatch<React.SetStateAction<AniListAnime[]>>,
+  setSelectedAnime: React.Dispatch<React.SetStateAction<AniListAnime>>
+): (() => void) | undefined {
+  if (animeHistory.length === 0) return undefined;
+  return () => {
+    const prev = animeHistory.at(-1);
+    if (prev) {
+      setAnimeHistory((h) => h.slice(0, -1));
+      setSelectedAnime(prev);
+    }
+  };
+}
+
+function pickDisplayEntries(
+  global: boolean,
+  searchResults: AniMedia[],
+  sortedEntries: ReturnType<typeof sortEntries>,
+  globalSort: GlobalSort
+): AniMedia[] {
+  if (global) {
+    return sortAniMediaList(searchResults, globalSort.key, globalSort.dir);
+  }
+  return sortedEntries.map((e) => e.media);
+}
+
+function isLocalSearch(searchTerms: string, global: boolean): boolean {
+  return searchTerms.trim().length > 0 && !global;
+}
+
+function AniListProfileSections({
+  user,
+  isLoading,
+  isLocal,
+  global,
+  lists,
+  currentList,
+  onSelectList,
+  searchTerms,
+  sort,
+  onSortChange,
+  hasFavourites,
+  onActivityFeed,
+  onActivityCalendar,
+  onFavourites,
+  onRandom,
+  onStats,
+  onBrowse,
+  onRecs,
+  onPrefetch,
+  onFriends,
+  onLogout,
+}: {
+  user: AniUser | null;
+  isLoading: boolean;
+  isLocal: boolean;
+  global: boolean;
+  lists: AniListCollection[];
+  currentList: string;
+  onSelectList: (name: string) => void;
+  searchTerms: string;
+  sort: AniListSort;
+  onSortChange: React.Dispatch<React.SetStateAction<AniListSort>>;
+  hasFavourites: boolean;
+  onActivityFeed: () => void;
+  onActivityCalendar: () => void;
+  onFavourites: () => void;
+  onRandom: () => void;
+  onStats: () => void;
+  onBrowse: () => void;
+  onRecs: () => void;
+  onPrefetch: () => void;
+  onFriends: () => void;
+  onLogout: () => void;
+}) {
+  const showProfile = !!user && !global && !isLocal;
+  const showListBar = !!user && !global && lists.length > 0;
+  return (
+    <>
+      {showProfile && (
+        <AniListProfileHeader
+          user={user}
+          loadingList={isLoading}
+          onStatsOpen={onStats}
+          onBrowseOpen={onBrowse}
+          onRecsOpen={onRecs}
+          onPrefetchOpen={onPrefetch}
+          onFriendsOpen={onFriends}
+          onLogout={onLogout}
+        />
+      )}
+
+      {!isLoading && showListBar && (
         <AniListTabs
           lists={lists}
           currentList={currentList}
-          onSelect={(name) => {
-            setCurrentList(name);
-            if (global) handleReset();
-          }}
+          onSelect={onSelectList}
           searchTerms={searchTerms}
           global={global}
         />
       )}
 
-      {user && !global && lists.length > 0 && (
+      {showListBar && (
         <AniListSortBar
           sort={sort}
-          onSortChange={setSort}
-          onActivityOpen={() => setActivityHistory({ open: true, tab: "feed" })}
-          onFavouritesOpen={() => setShowFavourites(true)}
-          onRandom={handleRandomFromList}
-          onHistoryOpen={() =>
-            setActivityHistory({ open: true, tab: "calendar" })
-          }
-          hasFavourites={favourites.length > 0}
+          onSortChange={onSortChange}
+          onActivityOpen={onActivityFeed}
+          onFavouritesOpen={onFavourites}
+          onRandom={onRandom}
+          onHistoryOpen={onActivityCalendar}
+          hasFavourites={hasFavourites}
         />
       )}
+    </>
+  );
+}
 
-      {global && searchResults.length > 0 && (
-        <section className="windows95-border bg-primary flex flex-row items-center gap-2 px-1 py-0.5">
-          <span className="windows95-text text-muted text-xs">
-            {t("anilist.route.sorting")}
-          </span>
-          {(["relevance", "title", "score", "year"] as const).map((s) => {
-            const isActive = globalSort.key === s;
-            const isRelevance = s === "relevance";
-            return (
-              <Button
-                key={s}
-                variant={isActive ? "outline" : "default"}
-                size="default"
-                className="px-2 py-0.5"
-                onClick={() => {
-                  if (isRelevance)
-                    setGlobalSort({ key: "relevance", dir: "desc" });
-                  else
-                    setGlobalSort((prev) => ({
-                      key: s,
-                      dir: isActive
-                        ? prev.dir === "asc"
-                          ? "desc"
-                          : "asc"
-                        : prev.dir,
-                    }));
-                }}
-              >
-                {isRelevance
-                  ? t("anilist.route.sortRelevance")
-                  : s === "title"
-                    ? t("anilist.route.sortTitle")
-                    : s === "score"
-                      ? t("anilist.route.sortScore")
-                      : t("anilist.route.sortYear")}
-              </Button>
-            );
-          })}
-        </section>
-      )}
-
-      {isLoading && lists.length === 0 && (
-        <section className="flex flex-1 items-center justify-center">
-          <SmallLoader />
-        </section>
-      )}
-
-      {pagedEntries.length === 0 &&
-        !global &&
-        !isLocal &&
-        !user &&
-        !isLoading && (
-          <section className="flex flex-1 flex-col items-center justify-center gap-2">
-            <User className="text-muted size-8" />
-            <span className="windows95-text">
-              {t("anilist.route.loginPrompt")}
-            </span>
-            <Button onClick={() => setAuth(true)}>
-              {t("anilist.route.login")}
-            </Button>
-          </section>
-        )}
-
-      {pagedEntries.length === 0 && isLocal && (
-        <section className="flex flex-1 flex-col items-center justify-center gap-2">
-          <SearchX className="text-muted size-8" />
-          <span className="windows95-text">{t("anilist.route.emptyList")}</span>
-        </section>
-      )}
-
-      {loadingSearch && global && (
-        <section className="flex flex-1 flex-col items-center justify-center gap-2">
-          <SmallLoader />
-        </section>
-      )}
-
-      {!searchResults.length && global && !loadingSearch && (
-        <section className="flex flex-1 flex-col items-center justify-center gap-2">
-          <SearchX className="text-muted size-8" />
-          <span className="windows95-text">
-            {t("anilist.route.emptyAnilist")}
-          </span>
-        </section>
-      )}
-
-      {pagedEntries.length > 0 && (
+function AniListResults({
+  entries,
+  entryLookup,
+  onSelect,
+  scrollRef,
+  showPagination,
+  pagination,
+}: {
+  entries: AniMedia[];
+  entryLookup: ReturnType<typeof buildEntryLookup>;
+  onSelect: (anime: AniListAnime) => void;
+  scrollRef: React.RefObject<HTMLElement | null>;
+  showPagination: boolean;
+  pagination: React.ComponentProps<typeof AniListResultsPagination>;
+}) {
+  return (
+    <>
+      {entries.length > 0 && (
         <section
           className="windows95-border flex min-h-0 w-full flex-1 flex-col gap-1 overflow-y-auto border bg-white p-1"
           ref={scrollRef}
         >
-          {pagedEntries.map((item) => (
+          {entries.map((item) => (
             <AniListEntryCard
               key={item.id}
               item={item}
               entryLookup={entryLookup}
-              onClick={(anime) => setSelectedAnime(anime)}
+              onClick={onSelect}
             />
           ))}
         </section>
       )}
 
-      {(user || global) && displayEntries.length > 0 && (
-        <Pagination
-          total={total}
-          page={page}
-          lastPage={lastPage}
-          from={from}
-          to={to}
-          onPageChange={setPage}
-          statusText={
-            global
-              ? `${t("anilist.route.searchResults", { count: searchResults.length })}${searchTag ? ` · ${searchMode === "studio" ? t("anilist.route.studio") : searchMode === "season" ? t("anilist.route.season") : t("anilist.route.tag")}: ${searchTag}` : ""}`
-              : isLocal
-                ? `${currentList}: ${filteredEntries.length} / ${activeEntries.length}`
-                : user
-                  ? `${currentList}: ${activeEntries.length}`
-                  : undefined
-          }
-        />
-      )}
+      {showPagination && <AniListResultsPagination {...pagination} />}
+    </>
+  );
+}
 
-      {auth && (
-        <Auth
-          onAuth={(user) => {
-            setAuth(false);
-            queryClient.setQueryData(["anilist_data"], {
-              user,
-              lists: [],
-              favourites: [],
-            });
-            queryClient.invalidateQueries({ queryKey: ["anilist_data"] });
-          }}
-          onClose={() => setAuth(false)}
-        />
-      )}
+function AniListSearchToolbar({
+  searchTerms,
+  onSearchTermsChange,
+  global,
+  inlineCompletion,
+  suggestions,
+  searchHistory,
+  onRecordSuggestion,
+  onRecordSuggestionIgnored,
+  onGlobal,
+  onReset,
+  filters,
+  onFiltersOpen,
+  loadingSearch,
+}: {
+  searchTerms: string;
+  onSearchTermsChange: (value: string) => void;
+  global: boolean;
+  inlineCompletion: string | null;
+  suggestions: SearchSuggestion[];
+  searchHistory: string[];
+  onRecordSuggestion: (value: string) => void;
+  onRecordSuggestionIgnored: (value: string) => void;
+  onGlobal: () => void;
+  onReset: () => void;
+  filters: AniListFilters;
+  onFiltersOpen: () => void;
+  loadingSearch: boolean;
+}) {
+  const { t } = useI18n();
+  const activeFilterCount =
+    filters.tags.length +
+    (filters.format ? 1 : 0) +
+    (filters.status ? 1 : 0) +
+    (filters.season ? 1 : 0) +
+    (filters.adult ? 1 : 0);
 
-      {selectedAnime && (
-        <Details
-          animeId={selectedAnime.animeId}
-          listEntry={selectedAnime.listEntry}
-          isLoggedIn={!!user}
-          favouriteIds={favouriteIds}
-          onFavouriteToggle={async (animeId) => {
-            try {
-              const updated = await invoke<FavouriteAnime[]>(
-                "toggle_favourite",
-                { animeId }
-              );
-              queryClient.setQueryData(["anilist_data"], (old: any) =>
-                old ? { ...old, favourites: updated } : old
-              );
-            } catch {}
-          }}
-          onTag={handleTag}
-          onGenre={handleGenre}
-          onStudio={handleStudio}
-          onSeason={handleSeason}
-          onRelated={(id) => {
-            setAnimeHistory((prev) => [...prev, selectedAnime]);
-            setSelectedAnime({ animeId: id, listEntry: entryLookup.get(id) });
-          }}
-          onBack={
-            animeHistory.length > 0
-              ? () => {
-                  const prev = animeHistory.at(-1);
-                  if (prev) {
-                    setAnimeHistory((h) => h.slice(0, -1));
-                    setSelectedAnime(prev);
-                  }
-                }
-              : undefined
-          }
-          onClose={() => {
-            setSelectedAnime(null);
-            setAnimeHistory([]);
-          }}
-          onSaved={() => {
-            queryClient.invalidateQueries({ queryKey: ["anilist_data"] });
-          }}
-        />
-      )}
+  const submitSearch = () => {
+    if (
+      inlineCompletion &&
+      searchTerms.trim().toLocaleLowerCase() !==
+        inlineCompletion.toLocaleLowerCase()
+    ) {
+      onRecordSuggestionIgnored(inlineCompletion);
+    }
+    onGlobal();
+  };
+
+  return (
+    <section className="flex w-full flex-row gap-2">
+      <InlineAutocompleteInput
+        placeholder={t("anilist.route.searchPlaceholder")}
+        value={searchTerms}
+        completion={inlineCompletion}
+        suggestions={suggestions}
+        history={searchHistory}
+        className="h-9 font-bold"
+        autoFocus
+        onChange={(e) => {
+          onSearchTermsChange(e.target.value);
+          if (global && !e.target.value.trim()) onReset();
+        }}
+        onAcceptCompletion={(value) => {
+          onRecordSuggestion(value);
+          onSearchTermsChange(value);
+        }}
+        onDismissCompletion={() => {
+          if (inlineCompletion) onRecordSuggestionIgnored(inlineCompletion);
+        }}
+        onKeyDown={enterSubmit(submitSearch)}
+      />
+      <Button
+        size="icon"
+        title={t("anilist.route.filters")}
+        onClick={onFiltersOpen}
+        className="relative"
+      >
+        <Filter className="size-4" />
+        {activeFilterCount > 0 && (
+          <span className="bg-secondary absolute -top-1 -right-1 flex size-3 items-center justify-center text-xs text-white">
+            {activeFilterCount}
+          </span>
+        )}
+      </Button>
+      <Button
+        size="icon"
+        title={global ? t("anilist.route.backToProfile") : t("app.search")}
+        onClick={() => (global ? onReset() : onGlobal())}
+        disabled={loadingSearch}
+      >
+        {global ? <User className="size-4" /> : <Search className="size-4" />}
+      </Button>
+    </section>
+  );
+}
+
+function AniListGlobalSortBar({
+  sortKey,
+  onSortChange,
+}: {
+  sortKey: GlobalSort["key"];
+  onSortChange: React.Dispatch<React.SetStateAction<GlobalSort>>;
+}) {
+  const { t } = useI18n();
+  const labels: Record<GlobalSort["key"], TranslationKey> = {
+    relevance: "anilist.route.sortRelevance",
+    title: "anilist.route.sortTitle",
+    score: "anilist.route.sortScore",
+    year: "anilist.route.sortYear",
+  };
+  return (
+    <section className="windows95-border bg-primary flex flex-row items-center gap-2 px-1 py-0.5">
+      <span className="windows95-text text-hint text-xs">
+        {t("anilist.route.sorting")}
+      </span>
+      {(["relevance", "title", "score", "year"] as const).map((s) => {
+        const isActive = sortKey === s;
+        const isRelevance = s === "relevance";
+        return (
+          <Button
+            key={s}
+            variant={isActive ? "outline" : "default"}
+            size="default"
+            className="px-2 py-0.5"
+            onClick={() => {
+              if (isRelevance)
+                onSortChange({ key: "relevance", dir: "desc" });
+              else
+                onSortChange((prev) => ({
+                  key: s,
+                  dir: isActive
+                    ? prev.dir === "asc"
+                      ? "desc"
+                      : "asc"
+                    : prev.dir,
+                }));
+            }}
+          >
+            {t(labels[s])}
+          </Button>
+        );
+      })}
+    </section>
+  );
+}
+
+type AniListViewState =
+  | "loading"
+  | "globalLoading"
+  | "globalEmpty"
+  | "localEmpty"
+  | "login";
+
+function resolveAniListView(params: {
+  isLoading: boolean;
+  hasLists: boolean;
+  global: boolean;
+  isLocal: boolean;
+  hasUser: boolean;
+  loadingSearch: boolean;
+  hasSearchResults: boolean;
+}): AniListViewState | null {
+  if (params.isLoading && !params.hasLists) return "loading";
+  if (params.global) {
+    if (params.loadingSearch) return "globalLoading";
+    if (!params.hasSearchResults) return "globalEmpty";
+    return null;
+  }
+  if (params.isLocal) return "localEmpty";
+  if (!params.hasUser) return "login";
+  return null;
+}
+
+function AniListStateViews({
+  view,
+  onLogin,
+}: {
+  view: AniListViewState | null;
+  onLogin: () => void;
+}) {
+  const { t } = useI18n();
+  switch (view) {
+    case "loading":
+    case "globalLoading": {
+      return (
+        <section className="flex flex-1 items-center justify-center">
+          <SmallLoader />
+        </section>
+      );
+    }
+    case "globalEmpty": {
+      return (
+        <section className="flex flex-1 flex-col items-center justify-center gap-2">
+          <SearchX className="text-hint size-8" />
+          <span className="windows95-text">{t("anilist.route.emptyAnilist")}</span>
+        </section>
+      );
+    }
+    case "localEmpty": {
+      return (
+        <section className="flex flex-1 flex-col items-center justify-center gap-2">
+          <SearchX className="text-hint size-8" />
+          <span className="windows95-text">{t("anilist.route.emptyList")}</span>
+        </section>
+      );
+    }
+    case "login": {
+      return (
+        <section className="flex flex-1 flex-col items-center justify-center gap-2">
+          <User className="text-hint size-8" />
+          <span className="windows95-text">{t("anilist.route.loginPrompt")}</span>
+          <Button onClick={onLogin}>{t("anilist.route.login")}</Button>
+        </section>
+      );
+    }
+    default: {
+      return null;
+    }
+  }
+}
+
+function AniListResultsPagination({
+  global,
+  isLocal,
+  hasUser,
+  searchResultsCount,
+  searchTag,
+  searchMode,
+  currentList,
+  filteredCount,
+  activeCount,
+  total,
+  page,
+  lastPage,
+  from,
+  to,
+  onPageChange,
+}: {
+  global: boolean;
+  isLocal: boolean;
+  hasUser: boolean;
+  searchResultsCount: number;
+  searchTag: string | null;
+  searchMode: SearchMode;
+  currentList: string;
+  filteredCount: number;
+  activeCount: number;
+  total: number;
+  page: number;
+  lastPage: number;
+  from: number;
+  to: number;
+  onPageChange: (page: number) => void;
+}) {
+  const { t } = useI18n();
+  const statusText = global
+    ? `${t("anilist.route.searchResults", { count: searchResultsCount })}${searchTag ? ` · ${searchMode === "studio" ? t("anilist.route.studio") : searchMode === "season" ? t("anilist.route.season") : t("anilist.route.tag")}: ${searchTag}` : ""}`
+    : isLocal
+      ? `${currentList}: ${filteredCount} / ${activeCount}`
+      : hasUser
+        ? `${currentList}: ${activeCount}`
+        : undefined;
+  return (
+    <Pagination
+      total={total}
+      page={page}
+      lastPage={lastPage}
+      from={from}
+      to={to}
+      onPageChange={onPageChange}
+      statusText={statusText}
+    />
+  );
+}
+
+function AniListDetailModalHost({
+  selectedAnime,
+  favouriteIds,
+  isLoggedIn,
+  onFavouriteToggle,
+  onTag,
+  onGenre,
+  onStudio,
+  onSeason,
+  onRelated,
+  onBack,
+  onClose,
+  onSaved,
+}: {
+  selectedAnime: AniListAnime;
+  favouriteIds: Set<number>;
+  isLoggedIn: boolean;
+  onFavouriteToggle: (animeId: number) => Promise<void>;
+  onTag: (tag: string) => Promise<void>;
+  onGenre: (genre: string) => Promise<void>;
+  onStudio: (id: number, name: string) => Promise<void>;
+  onSeason: (season: string, seasonYear: number | null) => Promise<void>;
+  onRelated: (id: number) => void;
+  onBack: (() => void) | undefined;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  if (!selectedAnime) return null;
+  return (
+    <Details
+      animeId={selectedAnime.animeId}
+      listEntry={selectedAnime.listEntry}
+      isLoggedIn={isLoggedIn}
+      favouriteIds={favouriteIds}
+      onFavouriteToggle={onFavouriteToggle}
+      onTag={onTag}
+      onGenre={onGenre}
+      onStudio={onStudio}
+      onSeason={onSeason}
+      onRelated={onRelated}
+      onBack={onBack}
+      onClose={onClose}
+      onSaved={onSaved}
+    />
+  );
+}
+
+type AniListModalViews = {
+  auth: boolean;
+  recs: boolean;
+  recsLoading: boolean;
+  activity: boolean;
+  friends: boolean;
+  favourites: boolean;
+  filters: boolean;
+  stats: boolean;
+  browse: boolean;
+  prefetch: boolean;
+};
+
+function AniListSecondaryModals({
+  entryLookup,
+  views,
+  onAuthSuccess,
+  onAuthClose,
+  recs,
+  onRecsClose,
+  onRecsAnime,
+  userId,
+  friendIds,
+  lists,
+  activityTab,
+  onActivityClose,
+  onActivityAnime,
+  friends,
+  onAddFriend,
+  onRemoveFriend,
+  onFriendsClose,
+  favourites,
+  onFavouritesClose,
+  onFavouritesAnime,
+  filters,
+  onFiltersApply,
+  onFiltersReset,
+  onFiltersClose,
+  onStatsClose,
+  onStatsAnime,
+  onBrowseClose,
+  onBrowseAnime,
+  animeIds,
+  onPrefetchClose,
+}: {
+  entryLookup: ReturnType<typeof buildEntryLookup>;
+  views: AniListModalViews;
+  onAuthSuccess: (user: AniUser) => void;
+  onAuthClose: () => void;
+  recs: AniRecommendation[];
+  onRecsClose: () => void;
+  onRecsAnime: (id: number) => void;
+  userId: number | null;
+  friendIds: number[];
+  lists: AniListCollection[];
+  activityTab: "feed" | "calendar";
+  onActivityClose: () => void;
+  onActivityAnime: (id: number) => void;
+  friends: AniFriend[];
+  onAddFriend: (profile: AniUserProfile) => void;
+  onRemoveFriend: (id: number) => void;
+  onFriendsClose: () => void;
+  favourites: FavouriteAnime[];
+  onFavouritesClose: () => void;
+  onFavouritesAnime: (id: number) => void;
+  filters: AniListFilters;
+  onFiltersApply: (filters: AniListFilters) => void;
+  onFiltersReset: () => void;
+  onFiltersClose: () => void;
+  onStatsClose: () => void;
+  onStatsAnime: (id: number) => void;
+  onBrowseClose: () => void;
+  onBrowseAnime: (id: number) => void;
+  animeIds: number[];
+  onPrefetchClose: () => void;
+}) {
+  return (
+    <>
+      {views.auth && <Auth onAuth={onAuthSuccess} onClose={onAuthClose} />}
 
       <AniListRecsModal
-        open={showRecs}
-        loading={recsLoading}
+        open={views.recs}
+        loading={views.recsLoading}
         recommendations={recs}
-        onClose={() => setShowRecs(false)}
-        onAnimeClick={(id) => {
-          setShowRecs(false);
-          setSelectedAnime({ animeId: id, listEntry: entryLookup.get(id) });
-        }}
+        onClose={onRecsClose}
+        onAnimeClick={onRecsAnime}
       />
 
-      {user && activityHistory.open && (
+      {views.activity && userId != null && (
         <ActivityHistoryModal
-          userId={user.id}
+          userId={userId}
           friendIds={friendIds}
           lists={lists}
-          initialTab={activityHistory.tab}
-          onClose={() => setActivityHistory((s) => ({ ...s, open: false }))}
-          onAnimeClick={(id) => {
-            setActivityHistory((s) => ({ ...s, open: false }));
-            setSelectedAnime({ animeId: id, listEntry: entryLookup.get(id) });
-          }}
+          initialTab={activityTab}
+          onClose={onActivityClose}
+          onAnimeClick={onActivityAnime}
         />
       )}
 
-      {user && showFriends && (
+      {views.friends && (
         <AniListFriendsModal
           friends={friends}
-          onAdd={(profile) => {
-            addFriend({
-              id: profile.id,
-              name: profile.name,
-              avatar: profile.avatar,
-            });
-            cacheFriendProfile(profile);
-          }}
-          onRemove={removeFriend}
-          onClose={() => setShowFriends(false)}
+          onAdd={onAddFriend}
+          onRemove={onRemoveFriend}
+          onClose={onFriendsClose}
         />
       )}
 
       <AniListFavouritesModal
-        open={showFavourites}
+        open={views.favourites}
         favourites={favourites}
-        onClose={() => setShowFavourites(false)}
-        onAnimeClick={(id) => {
-          setShowFavourites(false);
-          setSelectedAnime({ animeId: id, listEntry: entryLookup.get(id) });
-        }}
+        onClose={onFavouritesClose}
+        onAnimeClick={onFavouritesAnime}
       />
 
       <FiltersModal
-        open={showFilters}
-        filters={searchFilters}
-        onApply={setSearchFilters}
-        onReset={() => setSearchFilters(defaultFilters)}
-        onClose={() => setShowFilters(false)}
+        open={views.filters}
+        filters={filters}
+        onApply={onFiltersApply}
+        onReset={onFiltersReset}
+        onClose={onFiltersClose}
       />
 
-      {showStats && (
-        <StatsModal
-          lists={lists}
-          onClose={() => setShowStats(false)}
-          onAnimeClick={(id) => {
-            setSelectedAnime({ animeId: id, listEntry: entryLookup.get(id) });
-          }}
-        />
+      {views.stats && (
+        <StatsModal lists={lists} onClose={onStatsClose} onAnimeClick={onStatsAnime} />
       )}
 
-      {showBrowse && (
+      {views.browse && (
         <BrowseAnimeModal
           entries={entryLookup}
-          onClose={() => setShowBrowse(false)}
-          onAnimeClick={(id) => {
-            setShowBrowse(false);
-            setSelectedAnime({ animeId: id, listEntry: entryLookup.get(id) });
-          }}
+          onClose={onBrowseClose}
+          onAnimeClick={onBrowseAnime}
         />
       )}
 
-      {showPrefetch && (
-        <PrefetchRelationsModal
-          animeIds={allAnimeIds}
-          onClose={() => setShowPrefetch(false)}
-        />
+      {views.prefetch && (
+        <PrefetchRelationsModal animeIds={animeIds} onClose={onPrefetchClose} />
       )}
-    </main>
+    </>
   );
 }
 

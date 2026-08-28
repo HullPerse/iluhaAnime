@@ -203,7 +203,7 @@ export default function SettingsTheme() {
           <span className="windows95-text text-text font-bold">
             {tr("settings.theme.retroStyle")}
           </span>
-          <span className="windows95-text text-muted text-xs">
+          <span className="windows95-text text-hint text-xs">
             {tr("settings.theme.retroStyleHint")}
           </span>
         </div>
@@ -226,7 +226,7 @@ export default function SettingsTheme() {
           <span className="windows95-text text-text font-bold">
             {tr("settings.theme.density")}
           </span>
-          <span className="windows95-text text-muted text-xs">
+          <span className="windows95-text text-hint text-xs">
             {tr("settings.theme.densityHint")}
           </span>
         </div>
@@ -287,7 +287,7 @@ export default function SettingsTheme() {
 
       <hr className="border-muted my-2 w-full border-t" />
 
-      <p className="windows95-text text-muted w-full font-bold">
+      <p className="windows95-text text-hint w-full font-bold">
         {tr("settings.theme.effects")}
       </p>
 

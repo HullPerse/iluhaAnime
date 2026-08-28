@@ -65,7 +65,7 @@ function FranchiseToolbar({
               "windows95-font px-1 py-0.5 text-xs leading-none",
               cacheSource === "fresh"
                 ? "bg-secondary text-white"
-                : "bg-surface text-muted"
+                : "bg-surface text-hint"
             )}
             title={
               cacheSource === "fresh"

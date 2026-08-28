@@ -295,7 +295,7 @@ function AniListCharacterDetailModal({
                             {va.name}
                           </span>
                           {va.native_name && (
-                            <span className="windows95-text text-muted text-xs">
+                            <span className="windows95-text text-hint text-xs">
                               {va.native_name}
                             </span>
                           )}

@@ -105,41 +105,43 @@ export function themeToJson(theme: ThemeDefinition): string {
   return JSON.stringify(theme, null, 2);
 }
 
+function themeString(value: unknown, fallback: string): string {
+  return typeof value === "string" && value.length > 0 ? value : fallback;
+}
+
+function parseRetroismColors(c: Record<string, unknown>): ThemeDefinition["colors"] | null {
+  if (!c.base && !c.primary) return null;
+  const muted = themeString(c.muted ?? c.shadow, "#808080");
+  return {
+    background: themeString(c.background ?? c.base, "#222222"),
+    destructive: themeString(c.destructive ?? c.urgent, "#800000"),
+    highlight: themeString(c.highlight, "#0000ff"),
+    linkHover: themeString(c.link_hover ?? c.linkHover, "#ff0000"),
+    muted,
+    autocomplete: parseHexColor(c.autocomplete, muted),
+    autocompleteOpacity: parseAutocompleteOpacity(c.autocompleteOpacity),
+    primary: themeString(c.primary ?? c.base, "#c0c0c0"),
+    secondary: themeString(c.secondary ?? c.accent, "#000080"),
+    success: themeString(c.success, "#008000"),
+    surface: themeString(c.surface, "#d0d0d0"),
+    text: themeString(c.text, "#000000"),
+    winHighlight: themeString(c.win_highlight ?? c.winHighlight ?? c.highlight, "#ffffff"),
+    winShadow: themeString(c.win_shadow ?? c.winShadow ?? c.shadow, muted),
+  };
+}
+
 export function parseRetroismTheme(json: string): ThemeDefinition | null {
   try {
-    const raw = JSON.parse(json);
-    const name = raw.name ?? `custom-${Date.now()}`;
-    const label = raw.label ?? raw.name ?? "Imported";
-    const c = raw.colors ?? raw;
-
-    if (c.base || c.primary) {
-      return {
-        colors: {
-          background: c.background ?? c.base ?? "#222222",
-          destructive: c.destructive ?? c.urgent ?? "#800000",
-          highlight: c.highlight ?? "#0000ff",
-          linkHover: c.link_hover ?? c.linkHover ?? "#ff0000",
-          muted: c.muted ?? c.shadow ?? "#808080",
-          autocomplete: parseHexColor(
-            c.autocomplete,
-            c.muted ?? c.shadow ?? "#808080"
-          ),
-          autocompleteOpacity: parseAutocompleteOpacity(c.autocompleteOpacity),
-          primary: c.primary ?? c.base ?? "#c0c0c0",
-          secondary: c.secondary ?? c.accent ?? "#000080",
-          success: c.success ?? "#008000",
-          surface: c.surface ?? "#d0d0d0",
-          text: c.text ?? "#000000",
-          winHighlight:
-            c.win_highlight ?? c.winHighlight ?? c.highlight ?? "#ffffff",
-          winShadow: c.win_shadow ?? c.winShadow ?? c.shadow ?? "#808080",
-        },
-        fontFamily: raw.fontFamily ?? c.font_family ?? undefined,
-        label,
-        name,
-      };
-    }
-    return null;
+    const raw = JSON.parse(json) as Record<string, unknown>;
+    const c = (raw.colors ?? raw) as Record<string, unknown>;
+    const colors = parseRetroismColors(c);
+    if (!colors) return null;
+    return {
+      colors,
+      fontFamily: (raw.fontFamily ?? c.font_family) as string | undefined,
+      label: (raw.label ?? raw.name ?? "Imported") as string,
+      name: (raw.name ?? `custom-${Date.now()}`) as string,
+    };
   } catch {
     return null;
   }

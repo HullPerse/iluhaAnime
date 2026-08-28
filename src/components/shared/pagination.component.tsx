@@ -17,7 +17,11 @@ export default function Pagination({
   const { t } = useI18n();
 
   return (
-    <section className="windows95-border bg-primary flex flex-row items-center justify-between px-1 py-0.5">
+    <section
+      className="windows95-border bg-primary flex flex-row items-center justify-between px-1 py-0.5"
+      role="navigation"
+      aria-label={t("common.paginationNav")}
+    >
       <span className="windows95-text">{statusText}</span>
       <span className="windows95-text">
         {total > 0 && t("common.paginationShown", { from, to, total })}
@@ -28,6 +32,7 @@ export default function Pagination({
           className="h-6 w-6"
           onClick={() => onPageChange(page - 1)}
           disabled={page === 1}
+          aria-label={t("common.paginationPrev")}
         >
           <ArrowLeft />
         </Button>
@@ -44,6 +49,8 @@ export default function Pagination({
           max={lastPage}
           type="number"
           inputMode="numeric"
+          aria-label={t("common.paginationPage", { page, lastPage })}
+          aria-current="page"
           className="windows95-text windows95-border flex h-6 w-10 items-center justify-center text-center font-bold"
         />
         <Button
@@ -51,6 +58,7 @@ export default function Pagination({
           className="h-6 w-6"
           onClick={() => onPageChange(page + 1)}
           disabled={page === lastPage}
+          aria-label={t("common.paginationNext")}
         >
           <ArrowRight />
         </Button>

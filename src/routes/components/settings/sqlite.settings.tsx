@@ -4,17 +4,23 @@ import {
   AlertTriangle,
   ArrowDown,
   ArrowUp,
+  RefreshCw,
   Check,
   Copy,
-  Database,
   Download,
   Pencil,
   Play,
-  RefreshCw,
   Search,
   Trash2,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { flushSync } from "react-dom";
 
 import { ConfirmDialog } from "@/components/shared/confirm.component";
@@ -103,13 +109,299 @@ function BlobImageCell({
   }, [database, table, column, JSON.stringify(keys), keys]);
 
   if (state === "loading")
-    return <span className="text-muted block text-xs">...</span>;
+    return <span className="text-hint block text-xs">...</span>;
   if (state === "not-image" || !src)
-    return <span className="text-muted block text-xs">[BLOB]</span>;
+    return <span className="text-hint block text-xs">[BLOB]</span>;
   return (
     <div className="windows95-border mx-auto size-16 shrink-0 overflow-hidden bg-white">
       <Image src={src} alt={alt} type="contain" className="h-full w-full" />
     </div>
+  );
+}
+
+type SortState = { column: string; direction: "asc" | "desc" } | null;
+function QueryPanel({
+  querySql,
+  setQuerySql,
+  runQuery,
+  navigateHistory,
+  queryLoading,
+  canRun,
+  getHistoryCount,
+}: {
+  querySql: string;
+  setQuerySql: (sql: string) => void;
+  runQuery: () => void;
+  navigateHistory: (direction: "up" | "down") => void;
+  queryLoading: boolean;
+  canRun: boolean;
+  getHistoryCount: () => number;
+}) {
+  const { t } = useI18n();
+  return (
+    <section className="windows95-border bg-primary p-2">
+      <div className="mb-1 text-xs">
+        <strong>{t("settings.sqliteQueryTitle")}</strong>
+      </div>
+      <textarea
+        value={querySql}
+        onChange={(event) => setQuerySql(event.target.value)}
+        onKeyDown={(event) => {
+          modEnter(runQuery)(event);
+          if (event.key === "ArrowUp" && getHistoryCount() > 0) {
+            event.preventDefault();
+            navigateHistory("up");
+          } else if (event.key === "ArrowDown" && getHistoryCount() > 0) {
+            event.preventDefault();
+            navigateHistory("down");
+          }
+        }}
+        placeholder={t("settings.sqliteQueryPlaceholder")}
+        disabled={queryLoading}
+        spellCheck={false}
+        className="windows95-border text-text windows95-text placeholder:text-hint disabled:bg-primary disabled:text-hint min-h-20 w-full resize-y bg-white p-1 font-mono text-xs outline-none"
+      />
+      <div className="mt-1 flex items-center justify-between gap-1">
+        <span className="text-hint text-xs">
+          {t("settings.sqliteQueryHistory")}
+        </span>
+        <Button
+          className="h-5"
+          variant="success"
+          onClick={runQuery}
+          disabled={queryLoading || !canRun}
+        >
+          {queryLoading ? <SmallLoader /> : <Play className="size-3" />}
+          {t("settings.sqliteQueryRun")}
+        </Button>
+      </div>
+    </section>
+  );
+}
+
+type RowsTableProps = {
+  columns: string[];
+  rowsArray: Array<unknown>[];
+  interactive: boolean;
+  primaryKeys: string[];
+  selectedRows: Record<string, string[]>;
+  sort: SortState;
+  blobColumns: Set<string>;
+  showImages: boolean;
+  deleting: boolean;
+  selectedDatabase: string;
+  selectedTable: string;
+  primaryKeyValues: (row: unknown[]) => string[] | null;
+  toggleAllRows: (rows: Array<unknown>[]) => void;
+  toggleSort: (column: string) => void;
+  toggleRowSelection: (keys: string[] | null) => void;
+  openCell: (row: unknown[], column: string) => void;
+  setPendingDelete: (keys: string[]) => void;
+};
+
+function RowCell({
+  value,
+  column,
+  interactive,
+  row,
+  rowKeys,
+  showImages,
+  blobColumns,
+  selectedDatabase,
+  selectedTable,
+  openCell,
+}: {
+  value: unknown;
+  column: string;
+  interactive: boolean;
+  row: unknown[];
+  rowKeys: string[] | null;
+  showImages: boolean;
+  blobColumns: Set<string>;
+  selectedDatabase: string;
+  selectedTable: string;
+  openCell: (row: unknown[], column: string) => void;
+}) {
+  const rendered = displayCell(value);
+  const preview = previewCell(value);
+  if (!interactive) return <>{preview}</>;
+  const showBlobImage = showImages && blobColumns.has(column);
+  const showUrlImage = showImages && isImageUrl(value);
+  return (
+    <button
+      type="button"
+      className="block w-full text-left hover:cursor-pointer"
+      title={rendered}
+      onClick={() => openCell(row, column)}
+    >
+      {showBlobImage && rowKeys ? (
+        <BlobImageCell
+          database={selectedDatabase}
+          table={selectedTable}
+          column={column}
+          keys={rowKeys}
+          alt={column}
+        />
+      ) : showUrlImage ? (
+        <Image
+          src={value as string}
+          alt={column}
+          type="contain"
+          className="h-12 w-12 bg-white object-contain"
+        />
+      ) : (
+        preview
+      )}
+    </button>
+  );
+}
+
+function RowsTable({
+  columns,
+  rowsArray,
+  interactive,
+  primaryKeys,
+  selectedRows,
+  sort,
+  blobColumns,
+  showImages,
+  deleting,
+  selectedDatabase,
+  selectedTable,
+  primaryKeyValues,
+  toggleAllRows,
+  toggleSort,
+  toggleRowSelection,
+  openCell,
+  setPendingDelete,
+}: RowsTableProps) {
+  const { t } = useI18n();
+  return (
+    <table className="min-w-full border-collapse text-left text-xs">
+      <thead className="bg-secondary sticky top-0 text-white">
+        <tr>
+          {interactive && primaryKeys.length > 0 && (
+            <th className="w-8 border-r border-white/30 px-1 py-1 font-normal">
+              <button
+                type="button"
+                className="flex items-center hover:cursor-pointer"
+                title={t("settings.sqliteSelectAll")}
+                onClick={() => toggleAllRows(rowsArray)}
+              >
+                {rowsArray.every(
+                  (row) =>
+                    !!selectedRows[primaryKeyValues(row)?.join(" | ") ?? ""]
+                ) ? (
+                  <Check className="size-3" />
+                ) : (
+                  <span className="block size-3 border border-white/60" />
+                )}
+              </button>
+            </th>
+          )}
+          {columns.map((column) => (
+            <th
+              key={column}
+              className="border-r border-white/30 px-1 py-1 font-normal"
+            >
+              {interactive ? (
+                <button
+                  type="button"
+                  className="flex w-full items-center gap-0.5 text-left hover:cursor-pointer"
+                  title={
+                    sort?.column === column
+                      ? sort.direction === "asc"
+                        ? t("settings.sqliteSortDesc")
+                        : t("settings.sqliteSortAsc")
+                      : t("settings.sqliteSortAsc")
+                  }
+                  onClick={() => toggleSort(column)}
+                >
+                  {column}
+                  {sort?.column === column &&
+                    (sort.direction === "asc" ? (
+                      <ArrowUp className="size-2.5" />
+                    ) : (
+                      <ArrowDown className="size-2.5" />
+                    ))}
+                </button>
+              ) : (
+                column
+              )}
+            </th>
+          ))}
+          {interactive && (
+            <th className="px-1 py-1 font-normal">
+              {t("settings.sqliteActions")}
+            </th>
+          )}
+        </tr>
+      </thead>
+      <tbody>
+        {rowsArray.map((row, rowIndex) => {
+          const rowKeys = interactive ? primaryKeyValues(row) : null;
+          const rowId = rowKeys ? rowKeys.join(" | ") : `${rowIndex}`;
+          const selected = interactive
+            ? !!rowKeys && !!selectedRows[rowId]
+            : false;
+          return (
+            <tr
+              key={`${rowId}-${rowIndex}`}
+              className={`${selected ? "bg-secondary/10" : ""} hover:bg-surface border-b border-black/10 align-top`}
+            >
+              {interactive && rowKeys && (
+                <td className="px-1 py-1">
+                  <button
+                    type="button"
+                    className="flex items-center hover:cursor-pointer"
+                    onClick={() => toggleRowSelection(rowKeys)}
+                    title={t("settings.sqliteSelectAll")}
+                  >
+                    {selected ? (
+                      <Check className="size-3" />
+                    ) : (
+                      <span className="block size-3 border border-black/40" />
+                    )}
+                  </button>
+                </td>
+              )}
+              {row.map((value, cellIndex) => (
+                <td
+                  key={`${cellIndex}-${rowIndex}`}
+                  className="max-h-20 max-w-72 overflow-hidden px-1 py-1 wrap-break-word whitespace-pre-wrap"
+                >
+                  <RowCell
+                    value={value}
+                    column={columns[cellIndex]}
+                    interactive={interactive}
+                    row={row}
+                    rowKeys={rowKeys}
+                    showImages={showImages}
+                    blobColumns={blobColumns}
+                    selectedDatabase={selectedDatabase}
+                    selectedTable={selectedTable}
+                    openCell={openCell}
+                  />
+                </td>
+              ))}
+              {interactive && (
+                <td className="px-1 py-1">
+                  <Button
+                    size="icon"
+                    className="size-5"
+                    title={t("settings.sqliteDeleteRow")}
+                    onClick={() => setPendingDelete(rowKeys ?? [])}
+                    disabled={!rowKeys || deleting}
+                  >
+                    <Trash2 className="size-3" />
+                  </Button>
+                </td>
+              )}
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
   );
 }
 
@@ -622,166 +914,187 @@ export default function SqliteSettings() {
     rowsArray: Array<unknown>[],
     interactive: boolean
   ) => (
-    <table className="min-w-full border-collapse text-left text-xs">
-      <thead className="bg-secondary sticky top-0 text-white">
-        <tr>
-          {interactive && primaryKeys.length > 0 && (
-            <th className="w-8 border-r border-white/30 px-1 py-1 font-normal">
-              <button
-                type="button"
-                className="flex items-center hover:cursor-pointer"
-                title={t("settings.sqliteSelectAll")}
-                onClick={() => toggleAllRows(rowsArray)}
-              >
-                {rowsArray.every(
-                  (row) =>
-                    !!selectedRows[primaryKeyValues(row)?.join(" | ") ?? ""]
-                ) ? (
-                  <Check className="size-3" />
-                ) : (
-                  <span className="block size-3 border border-white/60" />
-                )}
-              </button>
-            </th>
-          )}
-          {columns.map((column) => (
-            <th
-              key={column}
-              className="border-r border-white/30 px-1 py-1 font-normal"
-            >
-              {interactive ? (
-                <button
-                  type="button"
-                  className="flex w-full items-center gap-0.5 text-left hover:cursor-pointer"
-                  title={
-                    sort?.column === column
-                      ? sort.direction === "asc"
-                        ? t("settings.sqliteSortDesc")
-                        : t("settings.sqliteSortAsc")
-                      : t("settings.sqliteSortAsc")
-                  }
-                  onClick={() => toggleSort(column)}
-                >
-                  {column}
-                  {sort?.column === column &&
-                    (sort.direction === "asc" ? (
-                      <ArrowUp className="size-2.5" />
-                    ) : (
-                      <ArrowDown className="size-2.5" />
-                    ))}
-                </button>
-              ) : (
-                column
-              )}
-            </th>
-          ))}
-          {interactive && (
-            <th className="px-1 py-1 font-normal">
-              {t("settings.sqliteActions")}
-            </th>
-          )}
-        </tr>
-      </thead>
-      <tbody>
-        {rowsArray.map((row, rowIndex) => {
-          const rowKeys = interactive ? primaryKeyValues(row) : null;
-          const rowId = rowKeys ? rowKeys.join(" | ") : `${rowIndex}`;
-          const selected = interactive
-            ? !!rowKeys && !!selectedRows[rowId]
-            : false;
-          return (
-            <tr
-              key={`${rowId}-${rowIndex}`}
-              className={`${selected ? "bg-secondary/10" : ""} hover:bg-surface border-b border-black/10 align-top`}
-            >
-              {interactive && rowKeys && (
-                <td className="px-1 py-1">
-                  <button
-                    type="button"
-                    className="flex items-center hover:cursor-pointer"
-                    onClick={() => toggleRowSelection(rowKeys)}
-                    title={t("settings.sqliteSelectAll")}
-                  >
-                    {selected ? (
-                      <Check className="size-3" />
-                    ) : (
-                      <span className="block size-3 border border-black/40" />
-                    )}
-                  </button>
-                </td>
-              )}
-              {row.map((value, cellIndex) => {
-                const rendered = displayCell(value);
-                const preview = previewCell(value);
-                const column = columns[cellIndex];
-                const showBlobImage =
-                  interactive && showImages && blobColumns.has(column);
-                const showUrlImage =
-                  interactive && showImages && isImageUrl(value);
-                const cell = interactive ? (
-                  <button
-                    type="button"
-                    className="block w-full text-left hover:cursor-pointer"
-                    title={rendered}
-                    onClick={() => openCell(row, column)}
-                  >
-                    {showBlobImage && rowKeys ? (
-                      <BlobImageCell
-                        database={selectedDatabase}
-                        table={selectedTable}
-                        column={column}
-                        keys={rowKeys}
-                        alt={`${column}`}
-                      />
-                    ) : showUrlImage ? (
-                      <Image
-                        src={value}
-                        alt={column}
-                        type="contain"
-                        className="h-12 w-12 bg-white object-contain"
-                      />
-                    ) : (
-                      preview
-                    )}
-                  </button>
-                ) : (
-                  preview
-                );
-                return (
-                  <td
-                    key={`${cellIndex}-${rowIndex}`}
-                    className="max-h-20 max-w-72 overflow-hidden px-1 py-1 wrap-break-word whitespace-pre-wrap"
-                  >
-                    {cell}
-                  </td>
-                );
-              })}
-              {interactive && (
-                <td className="px-1 py-1">
-                  <Button
-                    size="icon"
-                    className="size-5"
-                    title={t("settings.sqliteDeleteRow")}
-                    onClick={() => setPendingDelete(rowKeys ?? [])}
-                    disabled={!rowKeys || deleting}
-                  >
-                    <Trash2 className="size-3" />
-                  </Button>
-                </td>
-              )}
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
+    <RowsTable
+      columns={columns}
+      rowsArray={rowsArray}
+      interactive={interactive}
+      primaryKeys={primaryKeys}
+      selectedRows={selectedRows}
+      sort={sort}
+      blobColumns={blobColumns}
+      showImages={showImages}
+      deleting={deleting}
+      selectedDatabase={selectedDatabase}
+      selectedTable={selectedTable}
+      primaryKeyValues={primaryKeyValues}
+      toggleAllRows={toggleAllRows}
+      toggleSort={toggleSort}
+      toggleRowSelection={toggleRowSelection}
+      openCell={openCell}
+      setPendingDelete={setPendingDelete}
+    />
+  );
+
+  const querySection = (
+    <section className="flex flex-col gap-2">
+      <QueryPanel
+        querySql={querySql}
+        setQuerySql={setQuerySql}
+        runQuery={runQuery}
+        navigateHistory={navigateQueryHistory}
+        queryLoading={queryLoading}
+        canRun={!!selectedDatabase}
+        getHistoryCount={() => queryHistoryRef.current.length}
+      />
+      <SqliteQueryResult
+        queryResult={queryResult}
+        queryLoading={queryLoading}
+        onExport={() => {
+          if (queryResult)
+            exportRows(queryResult.columns, queryResult.rows, "query-result");
+        }}
+        renderRowsTable={renderRowsTable}
+      />
+    </section>
   );
 
   return (
     <main className="windows95-text flex min-h-full flex-col gap-2 p-2">
+      <SqliteHeader
+        mode={mode}
+        setMode={setMode}
+        onRefresh={() => refreshDatabases()}
+        loading={loading}
+        deleting={deleting}
+        error={error}
+      />
+
+      <SqliteSelectorGrid
+        mode={mode}
+        selectedDatabase={selectedDatabase}
+        onSelectDatabase={(value) => {
+          setSelectedDatabase(value);
+          setTables([]);
+          setSelectedTable("");
+          setRows(null);
+          setQueryResult(null);
+          setPage(1);
+        }}
+        databaseOptions={databaseOptions}
+        selectedTable={selectedTable}
+        onSelectTable={(value) => {
+          setSelectedTable(value);
+          setPage(1);
+          setSort(null);
+        }}
+        tableOptions={tableOptions}
+        loading={loading}
+        deleting={deleting}
+        tableCount={tables.length}
+      />
+
+      {mode === "query" ? (
+        querySection
+      ) : (
+        <>
+          {selectedTableInfo && <SchemaSection tableInfo={selectedTableInfo} />}
+
+          <BrowseToolbar
+            filterInput={filterInput}
+            setFilterInput={setFilterInput}
+            filterInputRef={filterInputRef}
+            applyFilter={applyFilter}
+            rowsTotal={rows?.total}
+            selectedCount={Object.keys(selectedRows).length}
+            hasPrimaryKeys={primaryKeys.length > 0}
+            deleting={deleting}
+            onBatchDelete={() => setPendingBatchDelete(true)}
+            showImages={showImages}
+            setShowImages={(v) => patchSettings({ sqliteShowImages: v })}
+            canExport={!!rows && rows.rows.length > 0}
+            onExport={() =>
+              rows && exportRows(rows.columns, rows.rows, selectedTable)
+            }
+          />
+          <SqliteFilterTags
+            columns={filterableColumns}
+            isTextColumn={isTextColumn}
+            onTagClick={insertFilterTemplate}
+          />
+          <span className="text-hint text-xs">
+            {t("settings.sqliteFilterHint")}
+          </span>
+
+          <SqliteBrowseResult
+            loadingRows={loadingRows}
+            rows={rows}
+            total={total}
+            page={page}
+            lastPage={lastPage}
+            from={from}
+            to={to}
+            onPageChange={setPaged}
+            renderRowsTable={renderRowsTable}
+          />
+        </>
+      )}
+
+      <SqliteDialogs
+        pendingDelete={pendingDelete}
+        pendingBatchDelete={pendingBatchDelete}
+        selectedRows={selectedRows}
+        selectedTable={selectedTable}
+        onDeleteRow={() => deleteRow()}
+        onCancelDelete={() => setPendingDelete(null)}
+        onDeleteBatch={() => deleteBatch()}
+        onCancelBatch={() => setPendingBatchDelete(false)}
+      />
+
+      {selectedCell && (
+        <CellModal
+          selectedCell={selectedCell}
+          cellValue={cellValue}
+          cellLoading={cellLoading}
+          cellEditing={cellEditing}
+          cellEdit={cellEdit}
+          cellSaving={cellSaving}
+          cellCopied={cellCopied}
+          cellIsImage={cellIsImage}
+          canEditCell={canEditCell}
+          cellIsBlob={cellIsBlob}
+          onClose={() => setSelectedCell(null)}
+          onCopy={copyCell}
+          onEdit={() => setCellEditing(true)}
+          onEditChange={setCellEdit}
+          onCancelEdit={() => setCellEditing(false)}
+          onSave={saveCell}
+        />
+      )}
+    </main>
+  );
+}
+
+function SqliteHeader({
+  mode,
+  setMode,
+  onRefresh,
+  loading,
+  deleting,
+  error,
+}: {
+  mode: "browse" | "query";
+  setMode: (mode: "browse" | "query") => void;
+  onRefresh: () => void;
+  loading: boolean;
+  deleting: boolean;
+  error: string | null;
+}) {
+  const { t } = useI18n();
+  return (
+    <>
       <header className="windows95-active-border bg-primary flex items-center gap-1 p-1">
-        <Database className="size-4" />
         <strong>{t("settings.sqliteTitle")}</strong>
-        <span className="text-muted text-xs">
+        <span className="text-hint text-xs">
           {t("settings.sqliteReadOnlyHint")}
         </span>
         <div className="ml-auto flex items-center gap-1">
@@ -802,7 +1115,7 @@ export default function SqliteSettings() {
           <Button
             size="icon"
             className="size-6"
-            onClick={() => refreshDatabases()}
+            onClick={onRefresh}
             disabled={loading || deleting}
             title={t("settings.sqliteRefresh")}
           >
@@ -827,269 +1140,218 @@ export default function SqliteSettings() {
           {error}
         </section>
       )}
+    </>
+  );
+}
 
-      <section className="grid gap-2 md:grid-cols-2">
+function SqliteSelectorGrid({
+  mode,
+  selectedDatabase,
+  onSelectDatabase,
+  databaseOptions,
+  selectedTable,
+  onSelectTable,
+  tableOptions,
+  loading,
+  deleting,
+  tableCount,
+}: {
+  mode: "browse" | "query";
+  selectedDatabase: string;
+  onSelectDatabase: (value: string) => void;
+  databaseOptions: { value: string; label: string }[];
+  selectedTable: string;
+  onSelectTable: (value: string) => void;
+  tableOptions: { value: string; label: string }[];
+  loading: boolean;
+  deleting: boolean;
+  tableCount: number;
+}) {
+  const { t } = useI18n();
+  return (
+    <section className="grid gap-2 md:grid-cols-2">
+      <label className="flex flex-col gap-1 text-xs">
+        {t("settings.sqliteDatabase")}
+        <Select
+          value={selectedDatabase}
+          onChange={onSelectDatabase}
+          options={databaseOptions}
+          disabled={loading || deleting}
+        />
+      </label>
+      {mode === "browse" && (
         <label className="flex flex-col gap-1 text-xs">
-          {t("settings.sqliteDatabase")}
+          {t("settings.sqliteTable")}
           <Select
-            value={selectedDatabase}
-            onChange={(value) => {
-              setSelectedDatabase(value);
-              setTables([]);
-              setSelectedTable("");
-              setRows(null);
-              setQueryResult(null);
-              setPage(1);
-            }}
-            options={databaseOptions}
-            disabled={loading || deleting}
+            value={selectedTable}
+            onChange={onSelectTable}
+            options={tableOptions}
+            disabled={loading || deleting || tableCount === 0}
           />
         </label>
-        {mode === "browse" && (
-          <label className="flex flex-col gap-1 text-xs">
-            {t("settings.sqliteTable")}
-            <Select
-              value={selectedTable}
-              onChange={(value) => {
-                setSelectedTable(value);
-                setPage(1);
-                setSort(null);
-              }}
-              options={tableOptions}
-              disabled={loading || deleting || tables.length === 0}
-            />
-          </label>
+      )}
+    </section>
+  );
+}
+
+function SqliteQueryResult({
+  queryResult,
+  queryLoading,
+  onExport,
+  renderRowsTable,
+}: {
+  queryResult: SqliteRowsPage | null;
+  queryLoading: boolean;
+  onExport: () => void;
+  renderRowsTable: (
+    columns: string[],
+    rowsArray: Array<unknown>[],
+    interactive: boolean
+  ) => ReactNode;
+}) {
+  const { t } = useI18n();
+  return (
+    <section className="windows95-border min-h-40 overflow-auto bg-white">
+      {queryLoading ? (
+        <div className="flex min-h-40 items-center justify-center">
+          <SmallLoader />
+        </div>
+      ) : !queryResult || queryResult.rows.length === 0 ? (
+        <div className="text-hint flex min-h-40 items-center justify-center p-3 text-xs">
+          {queryResult
+            ? t("settings.sqliteQueryEmpty")
+            : t("settings.sqliteEmpty")}
+        </div>
+      ) : (
+        <>
+          <div className="text-hint sticky left-0 flex items-center justify-between gap-1 border-b border-black/10 p-1 text-xs">
+            <span>
+              {t("settings.sqliteQueryResultSummary", {
+                count: queryResult.rows.length,
+              })}
+            </span>
+            <Button className="h-5" onClick={onExport}>
+              <Download className="size-3" />
+              {t("settings.sqliteExport")}
+            </Button>
+          </div>
+          {renderRowsTable(queryResult.columns, queryResult.rows, false)}
+        </>
+      )}
+    </section>
+  );
+}
+
+function SqliteFilterTags({
+  columns,
+  isTextColumn,
+  onTagClick,
+}: {
+  columns: SqliteTableInfo["columns"];
+  isTextColumn: (column: string) => boolean;
+  onTagClick: (column: string) => void;
+}) {
+  const { t } = useI18n();
+  if (columns.length === 0) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-1">
+      <span className="text-hint text-xs">
+        {t("settings.sqliteFilterFields")}
+      </span>
+      {columns.map((column) => (
+        <button
+          key={column.name}
+          type="button"
+          className="windows95-border hover:bg-surface active:bg-secondary windows95-text bg-white px-1 py-0.5 text-xs active:text-white"
+          title={t("settings.sqliteFilterTag", {
+            template: `${column.name} ${isTextColumn(column.name) ? "~" : "="} `,
+          })}
+          onClick={() => onTagClick(column.name)}
+        >
+          {column.name}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function SqliteBrowseResult({
+  loadingRows,
+  rows,
+  total,
+  page,
+  lastPage,
+  from,
+  to,
+  onPageChange,
+  renderRowsTable,
+}: {
+  loadingRows: boolean;
+  rows: SqliteRowsPage | null;
+  total: number;
+  page: number;
+  lastPage: number;
+  from: number;
+  to: number;
+  onPageChange: (page: number) => void;
+  renderRowsTable: (
+    columns: string[],
+    rowsArray: Array<unknown>[],
+    interactive: boolean
+  ) => ReactNode;
+}) {
+  const { t } = useI18n();
+  return (
+    <>
+      <section className="windows95-border min-h-40 overflow-auto bg-white">
+        {loadingRows ? (
+          <div className="flex min-h-40 items-center justify-center">
+            <SmallLoader />
+          </div>
+        ) : !rows || rows.rows.length === 0 ? (
+          <div className="text-hint flex min-h-40 items-center justify-center p-3 text-xs">
+            {t("settings.sqliteEmpty")}
+          </div>
+        ) : (
+          renderRowsTable(rows.columns, rows.rows, true)
         )}
       </section>
 
-      {mode === "query" ? (
-        <section className="flex flex-col gap-2">
-          <section className="windows95-border bg-primary p-2">
-            <div className="mb-1 text-xs">
-              <strong>{t("settings.sqliteQueryTitle")}</strong>
-            </div>
-            <textarea
-              value={querySql}
-              onChange={(event) => setQuerySql(event.target.value)}
-              onKeyDown={(event) => {
-                modEnter(runQuery)(event);
-                if (
-                  event.key === "ArrowUp" &&
-                  queryHistoryRef.current.length > 0
-                ) {
-                  event.preventDefault();
-                  navigateQueryHistory("up");
-                } else if (
-                  event.key === "ArrowDown" &&
-                  queryHistoryRef.current.length > 0
-                ) {
-                  event.preventDefault();
-                  navigateQueryHistory("down");
-                }
-              }}
-              placeholder={t("settings.sqliteQueryPlaceholder")}
-              disabled={queryLoading}
-              spellCheck={false}
-              className="windows95-border text-text windows95-text placeholder:text-muted disabled:bg-primary disabled:text-muted min-h-20 w-full resize-y bg-white p-1 font-mono text-xs outline-none"
-            />
-            <div className="mt-1 flex items-center justify-between gap-1">
-              <span className="text-muted text-xs">
-                {t("settings.sqliteQueryHistory")}
-              </span>
-              <Button
-                className="h-5"
-                variant="success"
-                onClick={() => runQuery()}
-                disabled={queryLoading || !selectedDatabase}
-              >
-                {queryLoading ? <SmallLoader /> : <Play className="size-3" />}
-                {t("settings.sqliteQueryRun")}
-              </Button>
-            </div>
-          </section>
+      <Pagination
+        total={total}
+        page={page}
+        lastPage={lastPage}
+        from={from}
+        to={to}
+        onPageChange={onPageChange}
+        statusText={t("settings.sqlitePage", { page, total: lastPage })}
+      />
+    </>
+  );
+}
 
-          <section className="windows95-border min-h-40 overflow-auto bg-white">
-            {queryLoading ? (
-              <div className="flex min-h-40 items-center justify-center">
-                <SmallLoader />
-              </div>
-            ) : !queryResult || queryResult.rows.length === 0 ? (
-              <div className="text-muted flex min-h-40 items-center justify-center p-3 text-xs">
-                {queryResult
-                  ? t("settings.sqliteQueryEmpty")
-                  : t("settings.sqliteEmpty")}
-              </div>
-            ) : (
-              <>
-                <div className="text-muted sticky left-0 flex items-center justify-between gap-1 border-b border-black/10 p-1 text-xs">
-                  <span>
-                    {t("settings.sqliteQueryResultSummary", {
-                      count: queryResult.rows.length,
-                    })}
-                  </span>
-                  <Button
-                    className="h-5"
-                    onClick={() =>
-                      exportRows(
-                        queryResult.columns,
-                        queryResult.rows,
-                        "query-result"
-                      )
-                    }
-                  >
-                    <Download className="size-3" />
-                    {t("settings.sqliteExport")}
-                  </Button>
-                </div>
-                {renderRowsTable(queryResult.columns, queryResult.rows, false)}
-              </>
-            )}
-          </section>
-        </section>
-      ) : (
-        <>
-          {selectedTableInfo && (
-            <section className="windows95-border bg-primary p-2">
-              <div className="mb-1 flex items-center gap-1 text-xs">
-                <strong>{t("settings.sqliteSchema")}</strong>
-                <span className="text-muted">{selectedTableInfo.name}</span>
-              </div>
-              <div className="flex flex-wrap gap-1">
-                {selectedTableInfo.columns.map((column) => (
-                  <span
-                    key={column.name}
-                    className="windows95-border bg-white px-1 py-0.5 text-xs"
-                    title={column.dataType || t("settings.sqliteUnknownType")}
-                  >
-                    {column.name}
-                    {column.primaryKey ? " - PK" : ""}
-                  </span>
-                ))}
-              </div>
-            </section>
-          )}
-
-          <section className="flex flex-col gap-1">
-            <div className="flex flex-wrap items-center gap-1">
-              <div className="flex min-w-56 flex-1 gap-1">
-                <Input
-                  ref={filterInputRef}
-                  value={filterInput}
-                  onChange={(event) => setFilterInput(event.target.value)}
-                  onKeyDown={enterSubmit(applyFilter)}
-                  placeholder={t("settings.sqliteFilterPlaceholder")}
-                  disabled={deleting}
-                />
-                <Button
-                  size="icon"
-                  className="size-6"
-                  onClick={applyFilter}
-                  title={t("settings.sqliteFilter")}
-                  disabled={deleting}
-                >
-                  <Search className="size-3" />
-                </Button>
-              </div>
-              <span className="text-muted text-xs">
-                {rows
-                  ? t("settings.sqliteRowsSummary", { count: rows.total })
-                  : ""}
-              </span>
-              {primaryKeys.length > 0 && (
-                <span className="text-muted text-xs">
-                  {Object.keys(selectedRows).length > 0
-                    ? t("settings.sqliteSelectedCount", {
-                        count: Object.keys(selectedRows).length,
-                      })
-                    : ""}
-                </span>
-              )}
-              {primaryKeys.length > 0 && (
-                <Button
-                  className="h-5"
-                  variant="destructive"
-                  disabled={Object.keys(selectedRows).length === 0 || deleting}
-                  onClick={() => setPendingBatchDelete(true)}
-                  title={t("settings.sqliteDeleteSelected", {
-                    count: Object.keys(selectedRows).length,
-                  })}
-                >
-                  <Trash2 className="size-3" />
-                  {t("settings.sqliteDeleteSelected", {
-                    count: Object.keys(selectedRows).length,
-                  })}
-                </Button>
-              )}
-              <label className="flex items-center gap-1 text-xs">
-                <Checkbox
-                  checked={showImages}
-                  onChange={(v) => patchSettings({ sqliteShowImages: v })}
-                />
-                {t("settings.sqliteShowImages")}
-              </label>
-              <Button
-                className="h-5"
-                disabled={!rows || rows.rows.length === 0}
-                onClick={() =>
-                  rows && exportRows(rows.columns, rows.rows, selectedTable)
-                }
-                title={t("settings.sqliteExport")}
-              >
-                <Download className="size-3" />
-                {t("settings.sqliteExport")}
-              </Button>
-            </div>
-            {filterableColumns.length > 0 && (
-              <div className="flex flex-wrap items-center gap-1">
-                <span className="text-muted text-xs">
-                  {t("settings.sqliteFilterFields")}
-                </span>
-                {filterableColumns.map((column) => (
-                  <button
-                    key={column.name}
-                    type="button"
-                    className="windows95-border hover:bg-surface active:bg-secondary windows95-text bg-white px-1 py-0.5 text-xs active:text-white"
-                    title={t("settings.sqliteFilterTag", {
-                      template: `${column.name} ${isTextColumn(column.name) ? "~" : "="} `,
-                    })}
-                    onClick={() => insertFilterTemplate(column.name)}
-                  >
-                    {column.name}
-                  </button>
-                ))}
-              </div>
-            )}
-            <span className="text-muted text-xs">
-              {t("settings.sqliteFilterHint")}
-            </span>
-          </section>
-
-          <section className="windows95-border min-h-40 overflow-auto bg-white">
-            {loadingRows ? (
-              <div className="flex min-h-40 items-center justify-center">
-                <SmallLoader />
-              </div>
-            ) : !rows || rows.rows.length === 0 ? (
-              <div className="text-muted flex min-h-40 items-center justify-center p-3 text-xs">
-                {t("settings.sqliteEmpty")}
-              </div>
-            ) : (
-              renderRowsTable(rows.columns, rows.rows, true)
-            )}
-          </section>
-
-          <Pagination
-            total={total}
-            page={page}
-            lastPage={lastPage}
-            from={from}
-            to={to}
-            onPageChange={setPaged}
-            statusText={t("settings.sqlitePage", { page, total: lastPage })}
-          />
-        </>
-      )}
-
+function SqliteDialogs({
+  pendingDelete,
+  pendingBatchDelete,
+  selectedRows,
+  selectedTable,
+  onDeleteRow,
+  onCancelDelete,
+  onDeleteBatch,
+  onCancelBatch,
+}: {
+  pendingDelete: string[] | null;
+  pendingBatchDelete: boolean;
+  selectedRows: Record<string, string[]>;
+  selectedTable: string;
+  onDeleteRow: () => void;
+  onCancelDelete: () => void;
+  onDeleteBatch: () => void;
+  onCancelBatch: () => void;
+}) {
+  const { t } = useI18n();
+  return (
+    <>
       {pendingDelete && (
         <ConfirmDialog
           open
@@ -1102,9 +1364,9 @@ export default function SqliteSettings() {
           })}
           confirmLabel={t("common.delete")}
           variant="destructive"
-          onConfirm={() => deleteRow()}
-          onCancel={() => setPendingDelete(null)}
-          onClose={() => setPendingDelete(null)}
+          onConfirm={onDeleteRow}
+          onCancel={onCancelDelete}
+          onClose={onCancelDelete}
         />
       )}
 
@@ -1117,108 +1379,255 @@ export default function SqliteSettings() {
           })}
           confirmLabel={t("common.delete")}
           variant="destructive"
-          onConfirm={() => deleteBatch()}
-          onCancel={() => setPendingBatchDelete(false)}
-          onClose={() => setPendingBatchDelete(false)}
+          onConfirm={onDeleteBatch}
+          onCancel={onCancelBatch}
+          onClose={onCancelBatch}
         />
       )}
+    </>
+  );
+}
 
-      {selectedCell && (
-        <Modal
-          header={`${t("settings.sqliteCellTitle")} - ${selectedCell.column}`}
-          onClose={() => setSelectedCell(null)}
-          className="w-xl"
+function BrowseToolbar({
+  filterInput,
+  setFilterInput,
+  filterInputRef,
+  applyFilter,
+  rowsTotal,
+  selectedCount,
+  hasPrimaryKeys,
+  deleting,
+  onBatchDelete,
+  showImages,
+  setShowImages,
+  canExport,
+  onExport,
+}: {
+  filterInput: string;
+  setFilterInput: (value: string) => void;
+  filterInputRef: React.RefObject<HTMLInputElement | null>;
+  applyFilter: () => void;
+  rowsTotal?: number;
+  selectedCount: number;
+  hasPrimaryKeys: boolean;
+  deleting: boolean;
+  onBatchDelete: () => void;
+  showImages: boolean;
+  setShowImages: (value: boolean) => void;
+  canExport: boolean;
+  onExport: () => void;
+}) {
+  const { t } = useI18n();
+  return (
+    <div className="flex flex-wrap items-center gap-1">
+      <div className="flex min-w-56 flex-1 gap-1">
+        <Input
+          ref={filterInputRef}
+          value={filterInput}
+          onChange={(event) => setFilterInput(event.target.value)}
+          onKeyDown={enterSubmit(applyFilter)}
+          placeholder={t("settings.sqliteFilterPlaceholder")}
+          disabled={deleting}
+        />
+        <Button
+          size="icon"
+          className="size-6"
+          onClick={applyFilter}
+          title={t("settings.sqliteFilter")}
+          disabled={deleting}
         >
-          <section className="flex flex-col gap-2">
-            <div className="flex flex-wrap items-center justify-between gap-1">
-              <span className="text-muted text-xs">
-                {t("settings.sqliteCellColumn")}: {selectedCell.column}
-              </span>
-              <div className="flex gap-1">
-                <Button
-                  className="h-5"
-                  onClick={() => copyCell()}
-                  disabled={!cellValue || cellLoading}
-                >
-                  {cellCopied ? (
-                    <Check className="size-3" />
-                  ) : (
-                    <Copy className="size-3" />
-                  )}
-                  {cellCopied
-                    ? t("settings.sqliteCellCopied")
-                    : t("settings.sqliteCellCopy")}
-                </Button>
-                <Button
-                  className="h-5"
-                  onClick={() => setCellEditing(true)}
-                  disabled={!canEditCell}
-                  title={
-                    cellIsBlob ? t("settings.sqliteUnknownType") : undefined
-                  }
-                >
-                  <Pencil className="size-3" />
-                  {t("settings.sqliteCellEdit")}
-                </Button>
-              </div>
-            </div>
-            {cellLoading ? (
-              <div className="flex min-h-20 items-center justify-center">
-                <SmallLoader />
-              </div>
-            ) : cellEditing ? (
-              <>
-                <textarea
-                  value={cellEdit}
-                  onChange={(event) => setCellEdit(event.target.value)}
-                  placeholder={t("settings.sqliteCellPlaceholder")}
-                  disabled={cellSaving}
-                  spellCheck={false}
-                  className="windows95-border text-text windows95-text placeholder:text-muted disabled:bg-primary disabled:text-muted min-h-24 w-full resize-y bg-white p-1 font-mono text-xs outline-none"
-                />
-                <div className="flex justify-end gap-1">
-                  <Button
-                    className="h-5"
-                    onClick={() => setCellEditing(false)}
-                    disabled={cellSaving}
-                  >
-                    {t("settings.sqliteCellCancel")}
-                  </Button>
-                  <Button
-                    className="h-5"
-                    variant="success"
-                    onClick={() => saveCell()}
-                    disabled={cellSaving}
-                  >
-                    {cellSaving ? (
-                      <SmallLoader />
-                    ) : (
-                      <Check className="size-3" />
-                    )}
-                    {t("settings.sqliteCellSave")}
-                  </Button>
-                </div>
-              </>
-            ) : (
-              <>
-                {cellIsImage && (
-                  <div className="windows95-border bg-primary flex h-64 items-center justify-center p-1">
-                    <Image
-                      src={cellValue}
-                      alt={selectedCell?.column ?? ""}
-                      type="contain"
-                      className="h-full w-full bg-white"
-                    />
-                  </div>
-                )}
-                <pre className="windows95-border text-text windows95-text max-h-64 min-h-20 w-full overflow-auto bg-white p-1 text-xs wrap-break-word whitespace-pre-wrap">
-                  {cellValue}
-                </pre>
-              </>
-            )}
-          </section>
-        </Modal>
+          <Search className="size-3" />
+        </Button>
+      </div>
+      <span className="text-hint text-xs">
+        {rowsTotal != null
+          ? t("settings.sqliteRowsSummary", { count: rowsTotal })
+          : ""}
+      </span>
+      {hasPrimaryKeys && (
+        <span className="text-hint text-xs">
+          {selectedCount > 0
+            ? t("settings.sqliteSelectedCount", { count: selectedCount })
+            : ""}
+        </span>
       )}
-    </main>
+      {hasPrimaryKeys && (
+        <Button
+          className="h-5"
+          variant="destructive"
+          disabled={selectedCount === 0 || deleting}
+          onClick={onBatchDelete}
+          title={t("settings.sqliteDeleteSelected", { count: selectedCount })}
+        >
+          <Trash2 className="size-3" />
+          {t("settings.sqliteDeleteSelected", { count: selectedCount })}
+        </Button>
+      )}
+      <label className="flex items-center gap-1 text-xs">
+        <Checkbox checked={showImages} onChange={setShowImages} />
+        {t("settings.sqliteShowImages")}
+      </label>
+      <Button
+        className="h-5"
+        disabled={!canExport}
+        onClick={onExport}
+        title={t("settings.sqliteExport")}
+      >
+        <Download className="size-3" />
+        {t("settings.sqliteExport")}
+      </Button>
+    </div>
+  );
+}
+
+function SchemaSection({ tableInfo }: { tableInfo: SqliteTableInfo }) {
+  const { t } = useI18n();
+  return (
+    <section className="windows95-border bg-primary p-2">
+      <div className="mb-1 flex items-center gap-1 text-xs">
+        <strong>{t("settings.sqliteSchema")}</strong>
+        <span className="text-hint">{tableInfo.name}</span>
+      </div>
+      <div className="flex flex-wrap gap-1">
+        {tableInfo.columns.map((column) => (
+          <span
+            key={column.name}
+            className="windows95-border bg-white px-1 py-0.5 text-xs"
+            title={column.dataType || t("settings.sqliteUnknownType")}
+          >
+            {column.name}
+            {column.primaryKey ? " - PK" : ""}
+          </span>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function CellModal({
+  selectedCell,
+  cellValue,
+  cellLoading,
+  cellEditing,
+  cellEdit,
+  cellSaving,
+  cellCopied,
+  cellIsImage,
+  canEditCell,
+  cellIsBlob,
+  onClose,
+  onCopy,
+  onEdit,
+  onEditChange,
+  onCancelEdit,
+  onSave,
+}: {
+  selectedCell: { column: string; keys: string[] | null; display: string };
+  cellValue: string;
+  cellLoading: boolean;
+  cellEditing: boolean;
+  cellEdit: string;
+  cellSaving: boolean;
+  cellCopied: boolean;
+  cellIsImage: boolean;
+  canEditCell: boolean;
+  cellIsBlob: boolean;
+  onClose: () => void;
+  onCopy: () => void;
+  onEdit: () => void;
+  onEditChange: (value: string) => void;
+  onCancelEdit: () => void;
+  onSave: () => void;
+}) {
+  const { t } = useI18n();
+  return (
+    <Modal
+      header={`${t("settings.sqliteCellTitle")} - ${selectedCell.column}`}
+      onClose={onClose}
+      className="w-xl"
+    >
+      <section className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-1">
+          <span className="text-hint text-xs">
+            {t("settings.sqliteCellColumn")}: {selectedCell.column}
+          </span>
+          <div className="flex gap-1">
+            <Button
+              className="h-5"
+              onClick={onCopy}
+              disabled={!cellValue || cellLoading}
+            >
+              {cellCopied ? (
+                <Check className="size-3" />
+              ) : (
+                <Copy className="size-3" />
+              )}
+              {cellCopied
+                ? t("settings.sqliteCellCopied")
+                : t("settings.sqliteCellCopy")}
+            </Button>
+            <Button
+              className="h-5"
+              onClick={onEdit}
+              disabled={!canEditCell}
+              title={cellIsBlob ? t("settings.sqliteUnknownType") : undefined}
+            >
+              <Pencil className="size-3" />
+              {t("settings.sqliteCellEdit")}
+            </Button>
+          </div>
+        </div>
+        {cellLoading ? (
+          <div className="flex min-h-20 items-center justify-center">
+            <SmallLoader />
+          </div>
+        ) : cellEditing ? (
+          <>
+            <textarea
+              value={cellEdit}
+              onChange={(event) => onEditChange(event.target.value)}
+              placeholder={t("settings.sqliteCellPlaceholder")}
+              disabled={cellSaving}
+              spellCheck={false}
+              className="windows95-border text-text windows95-text placeholder:text-hint disabled:bg-primary disabled:text-hint min-h-24 w-full resize-y bg-white p-1 font-mono text-xs outline-none"
+            />
+            <div className="flex justify-end gap-1">
+              <Button
+                className="h-5"
+                onClick={onCancelEdit}
+                disabled={cellSaving}
+              >
+                {t("settings.sqliteCellCancel")}
+              </Button>
+              <Button
+                className="h-5"
+                variant="success"
+                onClick={onSave}
+                disabled={cellSaving}
+              >
+                {cellSaving ? <SmallLoader /> : <Check className="size-3" />}
+                {t("settings.sqliteCellSave")}
+              </Button>
+            </div>
+          </>
+        ) : (
+          <>
+            {cellIsImage && (
+              <div className="windows95-border bg-primary flex h-64 items-center justify-center p-1">
+                <Image
+                  src={cellValue}
+                  alt={selectedCell.column}
+                  type="contain"
+                  className="h-full w-full bg-white"
+                />
+              </div>
+            )}
+            <pre className="windows95-border text-text windows95-text max-h-64 min-h-20 w-full overflow-auto bg-white p-1 text-xs wrap-break-word whitespace-pre-wrap">
+              {cellValue}
+            </pre>
+          </>
+        )}
+      </section>
+    </Modal>
   );
 }

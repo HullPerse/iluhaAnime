@@ -169,7 +169,7 @@ function FolderView({
           )}
           {depth === 0 && (
             <>
-              <span className="text-muted text-xs whitespace-nowrap select-none">
+              <span className="text-hint text-xs whitespace-nowrap select-none">
                 {t("player.folder.fileCount", { count: countAll })}
               </span>
               {onGenerate && (
@@ -309,7 +309,7 @@ function FolderView({
                     {parseTitles ? formatParsedTitle(file.name, t) : file.name}
                   </span>
 
-                  <span className="windows95-text text-muted">
+                  <span className="windows95-text text-hint">
                     {fmtSize(file.size)}
                   </span>
 
@@ -320,7 +320,7 @@ function FolderView({
                     if (!status) return null;
                     if (status === "queued")
                       return (
-                        <ListVideo className="text-muted size-3 shrink-0" />
+                        <ListVideo className="text-hint size-3 shrink-0" />
                       );
                     if (status === "processing")
                       return (

@@ -236,6 +236,38 @@ function getNormalizedAnimeTitles(
   return titles;
 }
 
+function addSuggestionSources(
+  query: string,
+  normalizedQuery: string,
+  options: SearchSuggestionOptions,
+  put: (suggestion: SearchSuggestion) => void
+): void {
+  for (const suggestion of options.backendSuggestions ?? []) {
+    if (!options.animeEnabled && suggestion.kind === "anime") continue;
+    put(suggestion);
+  }
+  for (const value of options.history ?? []) {
+    const match = fuzzyMatchScore(query, value);
+    if (match == null) continue;
+    put({ kind: "history", score: match + statBoost(value, options.queryStats) + statBoost(value, options.suggestionStats), subtitle: "history", value });
+  }
+  if (options.scope !== "player" && options.scope !== "filter") {
+    const normalizedTitles = getNormalizedAnimeTitles(options.animeIndex ?? []);
+    for (let index = 0; index < normalizedTitles.length; index++) {
+      const anime = options.animeIndex?.[index];
+      if (!anime) continue;
+      const match = Math.max(...normalizedTitles[index]!.map((title) => fuzzyMatchScorePreNormalized(normalizedQuery, title) ?? -Infinity));
+      if (!Number.isFinite(match)) continue;
+      put({ kind: "anime", score: match + animeBoost(anime, options.anilistBoost ?? "subtle") + statBoost(anime.title, options.suggestionStats), subtitle: animeSubtitle(anime), value: anime.title });
+    }
+  }
+  for (const extra of options.extraValues ?? []) {
+    const match = fuzzyMatchScore(query, extra.value);
+    if (match == null) continue;
+    put({ kind: extra.kind ?? "local", score: match + statBoost(extra.value, options.suggestionStats), value: extra.value });
+  }
+}
+
 export function getSearchSuggestions(
   query: string,
   options: SearchSuggestionOptions = {}
@@ -245,70 +277,13 @@ export function getSearchSuggestions(
 
   const limit = Math.max(1, options.limit ?? 8);
   const candidates = new Map<string, SearchSuggestion>();
-  const scope = options.scope;
-  const anilistBoost = options.anilistBoost ?? "subtle";
   const put = (suggestion: SearchSuggestion) => {
     const key = normalizeSearchText(suggestion.value);
     if (!key || key === normalizedQuery) return;
     const current = candidates.get(key);
-    if (!current || suggestion.score > current.score)
-      candidates.set(key, suggestion);
+    if (!current || suggestion.score > current.score) candidates.set(key, suggestion);
   };
-
-  for (const suggestion of options.backendSuggestions ?? []) {
-    // Backend anime entries come from whoever was last logged into AniList.
-    // Without an authenticated profile they would leak another account's list.
-    if (!options.animeEnabled && suggestion.kind === "anime") continue;
-    put(suggestion);
-  }
-
-  for (const value of options.history ?? []) {
-    const match = fuzzyMatchScore(query, value);
-    if (match == null) continue;
-    put({
-      kind: "history",
-      score:
-        match +
-        statBoost(value, options.queryStats) +
-        statBoost(value, options.suggestionStats),
-      subtitle: "history",
-      value,
-    });
-  }
-
-  if (scope !== "player" && scope !== "filter") {
-    const normalizedTitles = getNormalizedAnimeTitles(options.animeIndex ?? []);
-    for (let index = 0; index < normalizedTitles.length; index++) {
-      const anime = options.animeIndex?.[index];
-      if (!anime) continue;
-      const titles = normalizedTitles[index];
-      let match = -Infinity;
-      for (const title of titles) {
-        const score = fuzzyMatchScorePreNormalized(normalizedQuery, title);
-        if (score != null && score > match) match = score;
-      }
-      if (!Number.isFinite(match)) continue;
-      put({
-        kind: "anime",
-        score:
-          match +
-          animeBoost(anime, anilistBoost) +
-          statBoost(anime.title, options.suggestionStats),
-        subtitle: animeSubtitle(anime),
-        value: anime.title,
-      });
-    }
-  }
-
-  for (const extra of options.extraValues ?? []) {
-    const match = fuzzyMatchScore(query, extra.value);
-    if (match == null) continue;
-    put({
-      kind: extra.kind ?? "local",
-      score: match + statBoost(extra.value, options.suggestionStats),
-      value: extra.value,
-    });
-  }
+  addSuggestionSources(query, normalizedQuery, options, put);
 
   return [...candidates.values()]
     .sort((a, b) => b.score - a.score || a.value.localeCompare(b.value))

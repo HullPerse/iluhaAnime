@@ -50,7 +50,6 @@ const legacyRulesToDisable = [
   "prefer-named-capture-group",
   "require-unicode-regexp",
   "sort-keys",
-  "complexity",
   "promise/prefer-await-to-then",
   "promise/prefer-await-to-callbacks",
   "promise/avoid-new",

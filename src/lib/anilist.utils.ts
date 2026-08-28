@@ -343,6 +343,38 @@ function clampPosition(
   };
 }
 
+function getNodeYearY(
+  node: FranchiseNode,
+  index: number,
+  count: number,
+  minYear: number,
+  yearRange: number,
+  totalH: number,
+  nodeH: number
+): number {
+  if (node.year != null && !Number.isNaN(minYear)) {
+    return 20 + ((node.year - minYear) / yearRange) * (totalH - nodeH - 40);
+  }
+  return 20 + (index / count) * (totalH - nodeH - 40);
+}
+
+function getNodeJitter(
+  node: FranchiseNode,
+  rootId: number,
+  mainlineIds: Set<number>,
+  relationMap: Map<number, string>,
+  groupCount: Map<string, number>,
+  groupIndex: Map<string, number>,
+  nodeW: number
+): number {
+  if (node.id === rootId || mainlineIds.has(node.id)) return 0;
+  const relation = relationMap.get(node.id) ?? "UNKNOWN";
+  const count = groupCount.get(relation) ?? 1;
+  const index = groupIndex.get(relation) ?? 0;
+  groupIndex.set(relation, index + 1);
+  return count > 1 ? -(count - 1) * nodeW * 0.7 + index * nodeW * 1.4 : 0;
+}
+
 export function buildSimNodes(
   filtered: FilteredGraph,
   containerW: number,
@@ -355,65 +387,26 @@ export function buildSimNodes(
   const nodes: SimNode[] = [];
   const initPos = new Map<number, FranchiseNodePosition>();
   const values = [...filtered.nodeMap.values()];
-
   const years = values.map((n) => n.year).filter((y): y is number => y != null);
   const minYear = years.length > 0 ? Math.min(...years) : Number.NaN;
   const maxYear = years.length > 0 ? Math.max(...years) : Number.NaN;
   const yearRange = maxYear - minYear || 1;
-
   const groupCount = new Map<string, number>();
   const groupIndex = new Map<string, number>();
   for (const node of values) {
-    if (node.id === rootId) continue;
-    if (mainlineIds.has(node.id)) continue;
-    const rel = relationMap.get(node.id) ?? "UNKNOWN";
-    groupCount.set(rel, (groupCount.get(rel) ?? 0) + 1);
+    if (node.id === rootId || mainlineIds.has(node.id)) continue;
+    const relation = relationMap.get(node.id) ?? "UNKNOWN";
+    groupCount.set(relation, (groupCount.get(relation) ?? 0) + 1);
   }
-
-  let idx = 0;
-  for (const node of values) {
-    let y: number;
-    if (node.year != null && !isNaN(minYear)) {
-      const t = (node.year - minYear) / yearRange;
-      y = 20 + t * (totalH - dims.h - 40);
-    } else {
-      y = 20 + (idx / values.length) * (totalH - dims.h - 40);
-    }
-    idx++;
-
-    let jitter = 0;
-    if (node.id !== rootId && !mainlineIds.has(node.id)) {
-      const rel = relationMap.get(node.id) ?? "UNKNOWN";
-      const count = groupCount.get(rel) ?? 1;
-      const index = groupIndex.get(rel) ?? 0;
-      groupIndex.set(rel, index + 1);
-      const span = count > 1 ? (count - 1) * dims.w * 1.4 : 0;
-      jitter = count > 1 ? -span / 2 + index * dims.w * 1.4 : 0;
-    }
-
-    const clusterX = mainlineIds.has(node.id)
-      ? containerW / 2
-      : getClusterX(node.id, rootId, containerW, relationMap, jitter);
-    nodes.push({
-      clusterX,
-      fy: y,
-      id: node.id,
-      vx: 0,
-      vy: 0,
-      x: clusterX,
-      y,
-    });
-    initPos.set(
-      node.id,
-      clampPosition(clusterX - dims.w / 2, y, {
-        h: totalH,
-        nodeH: dims.h,
-        nodeW: dims.w,
-        w: containerW,
-      })
-    );
+  for (const [index, node] of values.entries()) {
+    const y = getNodeYearY(node, index, values.length, minYear, yearRange, totalH, dims.h);
+    const jitter = getNodeJitter(node, rootId, mainlineIds, relationMap, groupCount, groupIndex, dims.w);
+    const clusterX = mainlineIds.has(node.id) ? containerW / 2 : getClusterX(node.id, rootId, containerW, relationMap, jitter);
+    nodes.push({ clusterX, fy: y, id: node.id, vx: 0, vy: 0, x: clusterX, y });
+    initPos.set(node.id, clampPosition(clusterX - dims.w / 2, y, {
+      h: totalH, nodeH: dims.h, nodeW: dims.w, w: containerW,
+    }));
   }
-
   return { initialPositions: initPos, simNodes: nodes };
 }
 

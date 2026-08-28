@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
-import { monthLabel } from "@/lib/activity.anilist.utils";
+import { monthLabel } from "@/lib/activity.utils";
 import { useI18n } from "@/lib/i18n";
 import type { Locale } from "@/types";
 import type { AniListCollection } from "@/types/anilist";
@@ -194,7 +194,7 @@ function StatsModal({
                         </span>
                         {mainEntry.episode != null && (
                           <div className="flex items-center gap-1">
-                            <span className="text-muted windows95-font text-xs">
+                            <span className="text-hint windows95-font text-xs">
                               {t("anilist.activity.episode", {
                                 n: mainEntry.episode,
                               })}
@@ -257,14 +257,14 @@ function StatsModal({
                   {entry.title}
                 </span>
                 {entry.episode != null && (
-                  <span className="text-muted windows95-font shrink-0 text-xs">
+                  <span className="text-hint windows95-font shrink-0 text-xs">
                     {t("anilist.activity.episode", { n: entry.episode })}
                   </span>
                 )}
               </div>
             ))}
             {dayEntries.length === 0 && (
-              <div className="text-muted windows95-font flex h-80 items-center justify-center text-xs">
+              <div className="text-hint windows95-font flex h-80 items-center justify-center text-xs">
                 {t("anilist.stats.noReleases")}
               </div>
             )}

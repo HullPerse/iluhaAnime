@@ -138,7 +138,7 @@ function TorrentFilePicker({
       {loading ? (
         <section className="flex flex-col items-center justify-center gap-2 py-4">
           <SmallLoader />
-          <span className="windows95-text text-muted">
+          <span className="windows95-text text-hint">
             {fmtElapsed(elapsed, t)}
           </span>
         </section>
@@ -148,7 +148,7 @@ function TorrentFilePicker({
             <label className="windows95-text bg-primary flex cursor-pointer items-center gap-1 px-1 py-0.5 select-none">
               <Checkbox checked={allSelected} onChange={toggleAll} />
               {allSelected ? t("picker.deselectAll") : t("picker.selectAll")}
-              <span className="text-muted ml-auto text-xs">
+              <span className="text-hint ml-auto text-xs">
                 {fmtSize(selectedSize)} / {fmtSize(totalSize)}
                 {" - "}
                 {t("picker.fileCount", { count: torrent!.files.length })}
@@ -169,7 +169,7 @@ function TorrentFilePicker({
                       <span className="truncate font-bold" title={group.dir}>
                         {group.dir}
                       </span>
-                      <span className="text-muted ml-auto">
+                      <span className="text-hint ml-auto">
                         {fmtSize(group.files.reduce((s, f) => s + f.size, 0))}
                       </span>
                     </div>
@@ -195,7 +195,7 @@ function TorrentFilePicker({
                         >
                           {item.displayName}
                         </span>
-                        <span className="text-muted shrink-0 text-xs">
+                        <span className="text-hint shrink-0 text-xs">
                           {fmtSize(item.size)}
                         </span>
                         {conflict && (

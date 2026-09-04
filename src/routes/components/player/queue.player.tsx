@@ -1,12 +1,4 @@
-import {
-  Trash2,
-  X,
-  RefreshCw,
-  ListVideo,
-  FileVideo,
-  Pause,
-  Play,
-} from "lucide-react";
+import { Check, Trash2, X, RefreshCw, ListVideo, FileVideo, Pause, Play } from "lucide-react";
 
 import { SmallLoader } from "@/components/shared/loader.component";
 import { Button } from "@/components/ui/button.component";
@@ -34,22 +26,18 @@ export default function QueuePanel() {
         return <SmallLoader size={3} className="text-highlight" />;
       }
       case "done": {
-        return <span className="text-success size-3">✓</span>;
+        return <Check className="text-success size-3" />;
       }
       case "error": {
-        return <span className="text-destructive size-3">✗</span>;
+        return <X className="text-destructive size-3" />;
       }
     }
   };
 
   const activeCount = items.filter((i) => i.status !== "done").length;
   const hasProcessing = items.some((i) => i.status === "processing");
-  const upscaleCount = items.filter(
-    (i) => i.jobType === "upscale" && i.status !== "done"
-  ).length;
-  const convertCount = items.filter(
-    (i) => i.jobType === "convert" && i.status !== "done"
-  ).length;
+  const upscaleCount = items.filter((i) => i.jobType === "upscale" && i.status !== "done").length;
+  const convertCount = items.filter((i) => i.jobType === "convert" && i.status !== "done").length;
 
   return (
     <section className="windows95-active-border bg-primary p-1">
@@ -58,12 +46,12 @@ export default function QueuePanel() {
         {t("player.queue.title", { count: activeCount })}
         {upscaleCount > 0 && (
           <span className="text-hint font-normal">
-            {t("player.queue.upscaleShort", { count: upscaleCount })}
+            {t("player.queue.upscale.short", { count: upscaleCount })}
           </span>
         )}
         {convertCount > 0 && (
           <span className="text-hint font-normal">
-            {t("player.queue.convertShort", { count: convertCount })}
+            {t("player.queue.convert.short", { count: convertCount })}
           </span>
         )}
         <div className="ml-auto flex gap-1">
@@ -72,22 +60,16 @@ export default function QueuePanel() {
               size="icon"
               className="h-4 w-4"
               onClick={() => setPaused(!paused)}
-              title={
-                paused ? t("player.queue.resume") : t("player.queue.pause")
-              }
+              title={paused ? t("player.queue.resume") : t("player.queue.pause")}
             >
-              {paused ? (
-                <Play className="size-2.5" />
-              ) : (
-                <Pause className="size-2.5" />
-              )}
+              {paused ? <Play className="size-2.5" /> : <Pause className="size-2.5" />}
             </Button>
           )}
           <Button
             size="icon"
             className="h-4 w-4"
             onClick={clearDone}
-            title={t("player.queue.clearDone")}
+            title={t("player.queue.clear.done")}
           >
             <Trash2 className="size-2.5" />
           </Button>
@@ -95,16 +77,14 @@ export default function QueuePanel() {
             size="icon"
             className="h-4 w-4"
             onClick={clearAll}
-            title={t("player.queue.clearAll")}
+            title={t("player.queue.clear.all")}
           >
             <X className="size-2.5" />
           </Button>
         </div>
       </div>
       {paused && (
-        <div className="windows95-text text-highlight mb-1 text-xs">
-          {t("player.queue.paused")}
-        </div>
+        <div className="windows95-text text-highlight mb-1 text-xs">{t("player.queue.paused")}</div>
       )}
       <div className="flex max-h-40 flex-col gap-0.5 overflow-y-auto">
         {items.map((item) => (
@@ -134,9 +114,7 @@ export default function QueuePanel() {
             )}
             {item.status === "error" && (
               <>
-                <span className="text-destructive max-w-25 truncate">
-                  {item.error}
-                </span>
+                <span className="text-destructive max-w-25 truncate">{item.error}</span>
                 <Button
                   size="icon"
                   className="h-3 w-3"
@@ -155,9 +133,7 @@ export default function QueuePanel() {
                     style={{ width: `${item.progress}%` }}
                   />
                 </div>
-                <span className="w-8 shrink-0 text-right text-xs">
-                  {item.progress}%
-                </span>
+                <span className="w-8 shrink-0 text-right text-xs">{item.progress}%</span>
               </div>
             )}
             {item.status === "done" && (

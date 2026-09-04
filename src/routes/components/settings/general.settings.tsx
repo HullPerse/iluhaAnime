@@ -1,3 +1,4 @@
+import { cn } from "@/lib/index.utils";
 import { invoke } from "@tauri-apps/api/core";
 import { useState } from "react";
 
@@ -5,6 +6,7 @@ import { ConfirmDialog } from "@/components/shared/confirm.component";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import { Input } from "@/components/ui/input.component";
+import { PasswordInput } from "@/components/ui/password.component";
 import Select from "@/components/ui/select.component";
 import { useI18n } from "@/lib/i18n";
 import { useSettingsStore } from "@/store/settings.store";
@@ -15,186 +17,267 @@ export default function SettingsGeneral() {
   const {
     language,
     parseTitles,
-    anilistReleaseNotifications,
     sqliteBrowserEnabled,
-    vaultTabEnabled,
     collectionTabEnabled,
+    anilistTabEnabled,
     tmdbApiKey,
+    tmdbProxyUrl,
     ffmpegSource,
     patch,
   } = useSettingsStore();
   const { t } = useI18n();
   const [pendingClear, setPendingClear] = useState(false);
   const [resetError, setResetError] = useState<string | null>(null);
-  const [pendingSqliteEnable, setPendingSqliteEnable] = useState(false);
+  const [tmdbTesting, setTmdbTesting] = useState(false);
+  const [tmdbTest, setTmdbTest] = useState<{ ok: boolean; msg: string } | null>(null);
+
+  const handleTmdbTest = async () => {
+    setTmdbTesting(true);
+    setTmdbTest(null);
+    try {
+      const res = await invoke<string>("test_tmdb_connection", {
+        proxyUrl: tmdbProxyUrl,
+        proxy_url: tmdbProxyUrl,
+      });
+      setTmdbTest({ ok: true, msg: res });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setTmdbTest({ ok: false, msg });
+    } finally {
+      setTmdbTesting(false);
+    }
+  };
 
   return (
     <div className="flex flex-col gap-3 p-4">
-      <label className="windows95-text text-text flex items-center gap-2">
-        <span className="w-48">{t("settings.language")}</span>
-        <Select
-          value={language}
-          onChange={(value) => patch({ language: value as Locale })}
-          options={[
-            { value: "ru", label: t("settings.language.ru") },
-            { value: "en", label: t("settings.language.en") },
-          ]}
-          className="w-32"
-        />
-      </label>
-
-      <label className="windows95-text text-text flex items-center gap-2">
-        <span className="w-48">{t("settings.ffmpegSource")}</span>
-        <Select
-          value={ffmpegSource}
-          onChange={(value) =>
-            patch({ ffmpegSource: value as SettingsStore["ffmpegSource"] })
-          }
-          options={[
-            {
-              value: "essentials",
-              label: t("settings.ffmpegSource.essentials"),
-            },
-            { value: "github", label: t("settings.ffmpegSource.github") },
-            {
-              value: "github-mirror",
-              label: t("settings.ffmpegSource.mirror"),
-            },
-          ]}
-          className="w-52"
-        />
-      </label>
-
-      <label className="windows95-text text-text flex cursor-pointer items-center gap-2 select-none">
-        <Checkbox
-          checked={parseTitles}
-          onChange={(v) => {
-            patch({ parseTitles: v });
-          }}
-        />
-        <span>
-          {t("settings.parseTitles")} {t("settings.parseTitlesExample")}
+      {/* Language */}
+      <div className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
+        <span className="windows95-text text-text flex items-center text-xs font-bold">
+          {t("settings.language")}
         </span>
-      </label>
-
-      <label className="windows95-text text-text flex cursor-pointer items-center gap-2 select-none">
-        <Checkbox
-          checked={anilistReleaseNotifications}
-          onChange={(v) => patch({ anilistReleaseNotifications: v })}
-        />
-        <span>{t("settings.anilistReleaseNotifications")}</span>
-      </label>
-
-      <hr className="border-muted my-1 w-full border-t" />
-
-      <div className="windows95-text flex flex-col gap-1">
-        <span className="text-xs font-bold">{t("settings.sqliteBrowser")}</span>
-        <span className="text-xs">
-          {t("settings.sqliteBrowserDescription")}
-        </span>
-        <Button
-          className="mt-1 w-fit"
-          variant={sqliteBrowserEnabled ? "destructive" : "default"}
-          onClick={() =>
-            sqliteBrowserEnabled
-              ? patch({ sqliteBrowserEnabled: false })
-              : setPendingSqliteEnable(true)
-          }
-        >
-          {sqliteBrowserEnabled
-            ? t("settings.sqliteDisable")
-            : t("settings.sqliteEnable")}
-        </Button>
-      </div>
-
-      <hr className="border-muted my-1 w-full border-t" />
-
-      <div className="flex flex-col gap-1">
-        <span className="windows95-text text-xs font-bold">
-          {t("settings.tmdbApiKey")}
-        </span>
-        <span className="windows95-text text-xs">
-          {t("settings.tmdbApiKeyDescription")}
-        </span>
-        <Input
-          value={tmdbApiKey ?? ""}
-          onChange={(e) => patch({ tmdbApiKey: e.target.value.trim() || null })}
-          placeholder={t("settings.tmdbApiKeyPlaceholder")}
-          spellCheck={false}
-          className="w-full max-w-130"
-          aria-label={t("settings.tmdbApiKey")}
-        />
-      </div>
-
-      <hr className="border-muted my-1 w-full border-t" />
-
-      <div className="windows95-text flex flex-col gap-1">
-        <span>{t("settings.tabs")}:</span>
-
-        <label className="windows95-text text-text flex cursor-pointer items-center gap-2 select-none">
-          <Checkbox
-            checked={collectionTabEnabled}
-            onChange={(v) => patch({ collectionTabEnabled: v })}
+        <div className="flex flex-col gap-0.5">
+          <Select
+            value={language}
+            onChange={(value) => patch({ language: value as Locale })}
+            options={[
+              { value: "ru", label: t("settings.language.ru") },
+              { value: "en", label: t("settings.language.en") },
+            ]}
+            className="w-32"
           />
-          <span title={t("settings.collectionTabDescription")}>
-            {t("settings.collectionTab")}
-          </span>
-        </label>
+          <span className="text-hint text-[12px]">{t("settings.language.hint")}</span>
+        </div>
 
-        <label className="windows95-text text-text flex cursor-pointer items-center gap-2 select-none">
-          <Checkbox
-            checked={vaultTabEnabled}
-            onChange={(v) => patch({ vaultTabEnabled: v })}
+        {/* FFmpeg source */}
+        <span className="windows95-text text-text flex items-center text-xs font-bold">
+          {t("settings.ffmpeg.source")}
+        </span>
+        <div className="flex flex-col gap-0.5">
+          <Select
+            value={ffmpegSource}
+            onChange={(value) => patch({ ffmpegSource: value as SettingsStore["ffmpegSource"] })}
+            options={[
+              {
+                value: "essentials",
+                label: t("settings.ffmpeg.source.essentials"),
+              },
+              { value: "github", label: t("settings.ffmpeg.source.github") },
+              {
+                value: "github-mirror",
+                label: t("settings.ffmpeg.source.mirror"),
+              },
+            ]}
+            className="w-52"
           />
-          <span title={t("settings.vaultTabDescription")}>
-            {t("settings.vaultTab")}{" "}
-            <span className="text-orange-400">{`[${t("settings.experimental")}]`}</span>
-          </span>
-        </label>
+          <span className="text-hint text-[12px]">{t("settings.ffmpeg.source.hint")}</span>
+        </div>
       </div>
 
       <hr className="border-muted my-1 w-full border-t" />
 
-      <div className="flex flex-col gap-1">
-        <span className="windows95-text text-xs font-bold">
-          {t("settings.resetData")}
+      {/* Behavior checkboxes */}
+      <div className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
+        <span className="windows95-text text-text text-xs font-bold">
+          {t("settings.parse.titles")}
         </span>
-        <span className="windows95-text text-xs">
-          {t("settings.resetDescription")}
-        </span>
-        <Button
-          variant="destructive"
-          className="mt-1 w-fit"
-          onClick={() => {
-            setResetError(null);
-            setPendingClear(true);
-          }}
-        >
-          {t("settings.resetButton")}
-        </Button>
+        <div className="flex flex-col gap-0.5">
+          <label className="windows95-text text-text flex cursor-pointer items-center gap-2 select-none">
+            <Checkbox
+              checked={parseTitles}
+              onChange={(v) => {
+                patch({ parseTitles: v });
+              }}
+            />
+            <span>{t("common.on")}</span>
+          </label>
+          <span className="text-hint text-[12px]">{t("settings.parse.titles.example")}</span>
+        </div>
       </div>
 
-      {pendingSqliteEnable && (
-        <ConfirmDialog
-          open
-          title={t("settings.sqliteWarningTitle")}
-          message={t("settings.sqliteWarningMessage")}
-          confirmLabel={t("settings.sqliteEnable")}
-          variant="destructive"
-          onConfirm={() => {
-            patch({ sqliteBrowserEnabled: true });
-            setPendingSqliteEnable(false);
-          }}
-          onCancel={() => setPendingSqliteEnable(false)}
-          onClose={() => setPendingSqliteEnable(false)}
-        />
-      )}
+      <hr className="border-muted my-1 w-full border-t" />
+
+      {/* Visible tabs */}
+      <div className="flex flex-col gap-1">
+        <span className="windows95-text text-text text-xs font-bold">{t("settings.tabs")}:</span>
+        <div className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-1">
+          <span />
+          <div className="flex flex-col gap-4">
+            <label className="windows95-text text-text flex cursor-pointer items-center gap-1.5 select-none">
+              <Checkbox
+                checked={collectionTabEnabled}
+                onChange={(v) => patch({ collectionTabEnabled: v })}
+              />
+              <span className="text-xs">{t("settings.collection.tab")}</span>
+            </label>
+            <label className="windows95-text text-text flex cursor-pointer items-center gap-1.5 select-none">
+              <Checkbox
+                checked={anilistTabEnabled}
+                onChange={(v) => patch({ anilistTabEnabled: v })}
+              />
+              <span className="text-xs">{t("settings.anilist.tab")}</span>
+            </label>
+            <label
+              className="windows95-text text-text flex cursor-pointer items-center gap-1.5 select-none"
+              title={t("settings.sqlite.browser.description")}
+            >
+              <Checkbox
+                checked={sqliteBrowserEnabled}
+                onChange={(v) => patch({ sqliteBrowserEnabled: v })}
+              />
+              <span className="text-xs">{t("settings.sqlite")}</span>
+            </label>
+          </div>
+        </div>
+        <span className="text-hint text-[12px]">{t("settings.tabs.hint")}</span>
+      </div>
+
+      <hr className="border-muted my-1 w-full border-t" />
+
+      {/* TMDB */}
+      <div className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
+        <span className="windows95-text text-text text-xs font-bold">
+          {t("settings.tmdb.api.key")}
+        </span>
+        <div className="flex flex-col gap-0.5">
+          <span className="text-hint text-[12px]">{t("settings.tmdb.api.key.description")}</span>
+          <PasswordInput
+            value={tmdbApiKey ?? ""}
+            onChange={(e) => patch({ tmdbApiKey: e.target.value.trim() || null })}
+            placeholder={t("settings.tmdb.api.key.placeholder")}
+            spellCheck={false}
+            wrapperClassName="w-full max-w-130"
+            aria-label={t("settings.tmdb.api.key")}
+          />
+        </div>
+
+        <span className="windows95-text text-text text-xs font-bold">
+          {t("settings.tmdb.proxy.url")}
+        </span>
+        <div className="flex flex-col gap-0.5">
+          <span className="text-hint text-[12px]">{t("settings.tmdb.proxy.url.description")}</span>
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-center">
+            <Select
+              value={(() => {
+                const p = tmdbProxyUrl ?? "";
+                const presets = [
+                  "socks5://127.0.0.1:10808",
+                  "socks5://127.0.0.1:1080",
+                  "socks5h://127.0.0.1:10808",
+                  "http://127.0.0.1:7890",
+                  "http://127.0.0.1:10809",
+                  "http://127.0.0.1:8080",
+                ];
+                if (p === "") return "";
+                if (presets.includes(p)) return p;
+                return "custom";
+              })()}
+              onChange={(v) => {
+                if (v === "custom") return;
+                patch({ tmdbProxyUrl: v || null });
+              }}
+              options={[
+                { value: "", label: t("settings.tmdb.proxy.no") },
+                {
+                  value: "socks5://127.0.0.1:10808",
+                  label: "socks5://127.0.0.1:10808",
+                },
+                {
+                  value: "socks5://127.0.0.1:1080",
+                  label: "socks5://127.0.0.1:1080",
+                },
+                {
+                  value: "socks5h://127.0.0.1:10808",
+                  label: "socks5h://127.0.0.1:10808",
+                },
+                {
+                  value: "http://127.0.0.1:7890",
+                  label: "http://127.0.0.1:7890",
+                },
+                {
+                  value: "http://127.0.0.1:10809",
+                  label: "http://127.0.0.1:10809",
+                },
+                {
+                  value: "http://127.0.0.1:8080",
+                  label: "http://127.0.0.1:8080",
+                },
+                { value: "custom", label: t("settings.tmdb.proxy.custom") },
+              ]}
+              className="w-full max-w-60"
+            />
+            <Input
+              value={tmdbProxyUrl ?? ""}
+              onChange={(e) => patch({ tmdbProxyUrl: e.target.value.trim() || null })}
+              placeholder="socks5://127.0.0.1:10808"
+              spellCheck={false}
+              className="w-full max-w-70"
+              aria-label={t("settings.tmdb.proxy.url")}
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <Button className="h-6 px-2 text-xs" onClick={handleTmdbTest} disabled={tmdbTesting}>
+              {tmdbTesting ? t("settings.tmdb.proxy.testing") : t("settings.tmdb.proxy.test")}
+            </Button>
+            {tmdbTest && (
+              <span
+                className={cn("windows95-text text-xs", tmdbTest.ok ? "text-success" : "text-destructive")}
+              >
+                {tmdbTest.ok
+                  ? `${t("settings.tmdb.proxy.test.ok")} - ${tmdbTest.msg}`
+                  : `${t("settings.tmdb.proxy.test.fail")}: ${tmdbTest.msg}`}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <hr className="border-muted my-1 w-full border-t" />
+
+      {/* Reset */}
+      <div className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
+        <span className="windows95-text text-destructive text-xs font-bold">
+          {t("settings.reset.data")}
+        </span>
+        <div className="flex flex-col gap-1">
+          <span className="text-hint text-[12px]">{t("settings.reset.description")}</span>
+          <Button
+            variant="destructive"
+            className="w-fit"
+            onClick={() => {
+              setResetError(null);
+              setPendingClear(true);
+            }}
+          >
+            {t("settings.reset.button")}
+          </Button>
+        </div>
+      </div>
 
       {pendingClear && (
         <ConfirmDialog
           open
-          title={t("settings.resetTitle")}
-          message={resetError ?? t("settings.resetMessage")}
+          title={t("settings.reset.title")}
+          message={resetError ?? t("settings.reset.message")}
           confirmLabel={t("common.delete")}
           variant="destructive"
           onConfirm={async () => {
@@ -214,9 +297,7 @@ export default function SettingsGeneral() {
               }
               window.location.reload();
             } catch (error: unknown) {
-              setResetError(
-                error instanceof Error ? error.message : String(error)
-              );
+              setResetError(error instanceof Error ? error.message : String(error));
             }
           }}
           onCancel={() => setPendingClear(false)}

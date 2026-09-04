@@ -1,3 +1,4 @@
+import { cn } from "@/lib/index.utils";
 import { useQuery } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/core";
 import { ChevronDown, ChevronUp, Clock } from "lucide-react";
@@ -34,25 +35,17 @@ const CATEGORY_LABELS: Record<string, TranslationKey> = {
 
 function formatETA(
   seconds: number,
-  t: (
-    key: TranslationKey,
-    variables?: Record<string, string | number>
-  ) => string
+  t: (key: TranslationKey, variables?: Record<string, string | number>) => string
 ): string {
   if (!Number.isFinite(seconds) || seconds <= 0) return "";
-  if (seconds < 60) return t("player.eta.lessThanMinute");
+  if (seconds < 60) return t("player.eta.less.than.minute");
   const m = Math.floor(seconds / 60);
   const s = Math.round(seconds % 60);
-  if (s > 0) return t("player.eta.minutesSeconds", { m, s });
+  if (s > 0) return t("player.eta.minutes.seconds", { m, s });
   return t("player.eta.minutes", { m });
 }
 
-export default function ShaderPicker({
-  value,
-  onChange,
-  gpuBackend,
-  durationSecs,
-}: Props) {
+export default function ShaderPicker({ value, onChange, gpuBackend, durationSecs }: Props) {
   const { t } = useI18n();
   const [openCategories, setOpenCategories] = useState<Set<string>>(
     new Set(["upscale", "restore"])
@@ -95,10 +88,7 @@ export default function ShaderPicker({
       const next = new Set(selectedSet);
       if (shader.exclusive_group) {
         for (const s of shaders) {
-          if (
-            s.id !== shader.id &&
-            s.exclusive_group === shader.exclusive_group
-          ) {
+          if (s.id !== shader.id && s.exclusive_group === shader.exclusive_group) {
             next.delete(s.id);
           }
         }
@@ -121,8 +111,7 @@ export default function ShaderPicker({
 
   const eta = useMemo(() => {
     if (!durationSecs || durationSecs <= 0) return "";
-    const baseSpeed =
-      { nvenc: 2.5, amf: 1.8, qsv: 1.5, cpu: 0.8 }[gpuBackend] || 0.8;
+    const baseSpeed = { nvenc: 2.5, amf: 1.8, qsv: 1.5, cpu: 0.8 }[gpuBackend] || 0.8;
     const penalty = value.reduce((acc, id) => {
       const sf = shaders.find((s) => s.id === id)?.speed_factor ?? 1;
       return acc * sf;
@@ -141,11 +130,7 @@ export default function ShaderPicker({
   }, []);
 
   if (shaders.length === 0) {
-    return (
-      <div className="windows95-text p-1 text-xs">
-        {t("player.shader.loading")}
-      </div>
-    );
+    return <div className="windows95-text p-1 text-xs">{t("player.shader.loading")}</div>;
   }
 
   return (
@@ -173,18 +158,12 @@ export default function ShaderPicker({
               className="windows95-text flex items-center gap-1 text-left text-xs hover:underline"
               onClick={() => toggleCategory(cat)}
             >
-              {isOpen ? (
-                <ChevronUp className="size-3" />
-              ) : (
-                <ChevronDown className="size-3" />
-              )}
+              {isOpen ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
               {t(CATEGORY_LABELS[cat] ?? (cat as never))}
             </button>
 
             {isOpen && (
-              <div
-                className={`flex flex-col gap-0.5 pl-4 ${hasExclusive ? "" : ""}`}
-              >
+              <div className={cn("flex flex-col gap-0.5 pl-4")}>
                 {hasExclusive ? (
                   <div className="flex flex-wrap gap-2">
                     {items.map((shader) => {
@@ -193,7 +172,7 @@ export default function ShaderPicker({
                       return (
                         <label
                           key={shader.id}
-                          className={`windows95-text flex cursor-pointer items-center gap-1 text-xs select-none ${disabled ? "cursor-default opacity-50" : ""}`}
+                          className={cn("windows95-text flex cursor-pointer items-center gap-1 text-xs select-none", disabled && "cursor-default opacity-50")}
                           title={shader.description}
                         >
                           <Checkbox
@@ -220,10 +199,7 @@ export default function ShaderPicker({
                         className="windows95-text flex cursor-pointer items-center gap-1 text-xs select-none"
                         title={shader.description}
                       >
-                        <Checkbox
-                          checked={checked}
-                          onChange={() => handleToggle(shader)}
-                        />
+                        <Checkbox checked={checked} onChange={() => handleToggle(shader)} />
                         <span>
                           {shader.id
                             .replaceAll(/_/g, " ")

@@ -16,15 +16,10 @@ import {
 } from "@/lib/torrent.utils";
 import type { TorrentInfo, TorrentStore } from "@/types/torrent";
 
-const ru = (
-  key: Parameters<typeof translate>[1],
-  vars?: Parameters<typeof translate>[2]
-) => translate("ru", key, vars);
+const ru = (key: Parameters<typeof translate>[1], vars?: Parameters<typeof translate>[2]) =>
+  translate("ru", key, vars);
 
-function makeInfo(
-  id: number,
-  overrides: Partial<TorrentInfo> = {}
-): TorrentInfo {
+function makeInfo(id: number, overrides: Partial<TorrentInfo> = {}): TorrentInfo {
   return {
     download_speed: 0,
     error: null,
@@ -205,10 +200,7 @@ describe("buildTorrentTree", () => {
     expect(rootFiles.map((f) => f.displayName)).toEqual(["movie.mkv"]);
     expect(nodes).toHaveLength(1);
     expect(nodes[0].name).toBe("Season 1");
-    expect(nodes[0].files.map((f) => f.displayName)).toEqual([
-      "ep1.mkv",
-      "ep2.mkv",
-    ]);
+    expect(nodes[0].files.map((f) => f.displayName)).toEqual(["ep1.mkv", "ep2.mkv"]);
   });
 });
 

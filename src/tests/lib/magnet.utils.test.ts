@@ -33,8 +33,7 @@ beforeEach(() => {
   // Replace the real store actions with spies so no Tauri IPC is triggered.
   useTorrentStore.setState({
     prepareTorrentDownload: prepareTorrentDownloadSpy as never,
-    prepareTorrentDownloadFromBytes:
-      prepareTorrentDownloadFromBytesSpy as never,
+    prepareTorrentDownloadFromBytes: prepareTorrentDownloadFromBytesSpy as never,
   });
 });
 
@@ -55,14 +54,10 @@ function makeMagnets() {
   return {
     getLoading: () => loading,
     getMagnets: () => magnets,
-    setLoadingMagnet: (
-      fn: (prev: Record<string, boolean>) => Record<string, boolean>
-    ) => {
+    setLoadingMagnet: (fn: (prev: Record<string, boolean>) => Record<string, boolean>) => {
       loading = fn(loading);
     },
-    setMagnets: (
-      fn: (prev: Record<string, string>) => Record<string, string>
-    ) => {
+    setMagnets: (fn: (prev: Record<string, string>) => Record<string, string>) => {
       magnets = fn(magnets);
     },
   };
@@ -79,30 +74,18 @@ describe("copyMagnet", () => {
   it("fetches a missing magnet from the backend and copies it", async () => {
     invokeSpy.mockResolvedValueOnce("magnet:?xt=urn:btih:fetched");
     const m = makeMagnets();
-    await copyMagnet(
-      { ...item, magnet: "" },
-      m.getMagnets(),
-      m.setMagnets,
-      m.setLoadingMagnet
-    );
+    await copyMagnet({ ...item, magnet: "" }, m.getMagnets(), m.setMagnets, m.setLoadingMagnet);
     expect(invokeSpy).toHaveBeenCalledWith("rutracker_get_magnet", {
       topicId: "topic-123",
     });
     expect(writeTextSpy).toHaveBeenCalledWith("magnet:?xt=urn:btih:fetched");
-    expect(m.getMagnets()["https://example.test/show"]).toBe(
-      "magnet:?xt=urn:btih:fetched"
-    );
+    expect(m.getMagnets()["https://example.test/show"]).toBe("magnet:?xt=urn:btih:fetched");
   });
 
   it("shows an error and does not copy when fetching fails", async () => {
     invokeSpy.mockRejectedValueOnce(new Error("boom"));
     const m = makeMagnets();
-    await copyMagnet(
-      { ...item, magnet: "" },
-      m.getMagnets(),
-      m.setMagnets,
-      m.setLoadingMagnet
-    );
+    await copyMagnet({ ...item, magnet: "" }, m.getMagnets(), m.setMagnets, m.setLoadingMagnet);
     expect(writeTextSpy).not.toHaveBeenCalled();
     expect(useNotificationStore.getState().items[0].type).toBe("error");
   });
@@ -118,12 +101,7 @@ describe("openMagnet", () => {
   it("does nothing when no magnet is available", async () => {
     invokeSpy.mockRejectedValueOnce(new Error("boom"));
     const m = makeMagnets();
-    await openMagnet(
-      { ...item, magnet: "" },
-      m.getMagnets(),
-      m.setMagnets,
-      m.setLoadingMagnet
-    );
+    await openMagnet({ ...item, magnet: "" }, m.getMagnets(), m.setMagnets, m.setLoadingMagnet);
     expect(openUrlSpy).not.toHaveBeenCalled();
   });
 });
@@ -132,12 +110,7 @@ describe("downloadMagnet", () => {
   it("prefers .torrent bytes for a rutracker result (dl.php)", async () => {
     invokeSpy.mockResolvedValueOnce([1, 2, 3]);
     const m = makeMagnets();
-    await downloadMagnet(
-      item,
-      m.getMagnets(),
-      m.setMagnets,
-      m.setLoadingMagnet
-    );
+    await downloadMagnet(item, m.getMagnets(), m.setMagnets, m.setLoadingMagnet);
     expect(invokeSpy).toHaveBeenCalledWith("rutracker_get_torrent_bytes", {
       topicId: "topic-123",
     });
@@ -165,27 +138,15 @@ describe("downloadMagnet", () => {
     invokeSpy.mockRejectedValueOnce(new Error("blocked"));
     invokeSpy.mockResolvedValueOnce("magnet:?xt=urn:btih:fetched");
     const m = makeMagnets();
-    await downloadMagnet(
-      { ...item, magnet: "" },
-      m.getMagnets(),
-      m.setMagnets,
-      m.setLoadingMagnet
-    );
+    await downloadMagnet({ ...item, magnet: "" }, m.getMagnets(), m.setMagnets, m.setLoadingMagnet);
     expect(prepareTorrentDownloadFromBytesSpy).not.toHaveBeenCalled();
-    expect(prepareTorrentDownloadSpy).toHaveBeenCalledWith(
-      "magnet:?xt=urn:btih:fetched"
-    );
+    expect(prepareTorrentDownloadSpy).toHaveBeenCalledWith("magnet:?xt=urn:btih:fetched");
   });
 
   it("starts a torrent download with an already-present magnet", async () => {
     invokeSpy.mockRejectedValueOnce(new Error("blocked"));
     const m = makeMagnets();
-    await downloadMagnet(
-      item,
-      m.getMagnets(),
-      m.setMagnets,
-      m.setLoadingMagnet
-    );
+    await downloadMagnet(item, m.getMagnets(), m.setMagnets, m.setLoadingMagnet);
     expect(prepareTorrentDownloadSpy).toHaveBeenCalledWith(item.magnet);
   });
 });

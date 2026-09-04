@@ -18,17 +18,14 @@ export default function SettingsTorrent() {
     notifyOnError,
     fastresumeEnabled,
     disablePersistence,
+    resultsPerPage,
     patch,
   } = useSettingsStore();
   const setSpeedLimits = useTorrentStore((s) => s.setSpeedLimits);
   const { t } = useI18n();
 
   const saveSessionConfig = useCallback(
-    (
-      partial: Partial<
-        Pick<SessionConfigPayload, "fastresume" | "disablePersistence">
-      >
-    ) => {
+    (partial: Partial<Pick<SessionConfigPayload, "fastresume" | "disablePersistence">>) => {
       invoke("save_session_config", {
         config: { ...toSessionConfig(), ...partial },
       }).catch(() => {});
@@ -39,16 +36,16 @@ export default function SettingsTorrent() {
   return (
     <div className="flex flex-col gap-3 p-4">
       <p className="windows95-text text-hint w-full font-bold">
-        {t("settings.torrent.speedLimits")}
+        {t("settings.torrent.speed.limits")}
       </p>
 
       <label className="windows95-text text-text flex items-center gap-2">
-        <span className="w-48">{t("settings.torrent.dlLimit")}</span>
+        <span className="w-48">{t("settings.torrent.dl.limit")}</span>
         <Input
           type="number"
           min={0}
           value={dlLimit ?? ""}
-          placeholder={t("settings.torrent.noLimit")}
+          placeholder={t("settings.torrent.no.limit")}
           onChange={(e) => {
             const v = e.target.value ? Number(e.target.value) : null;
             patch({ dlLimit: v });
@@ -59,12 +56,12 @@ export default function SettingsTorrent() {
       </label>
 
       <label className="windows95-text text-text flex items-center gap-2">
-        <span className="w-48">{t("settings.torrent.ulLimit")}</span>
+        <span className="w-48">{t("settings.torrent.ul.limit")}</span>
         <Input
           type="number"
           min={0}
           value={ulLimit ?? ""}
-          placeholder={t("settings.torrent.noLimit")}
+          placeholder={t("settings.torrent.no.limit")}
           onChange={(e) => {
             const v = e.target.value ? Number(e.target.value) : null;
             patch({ ulLimit: v });
@@ -76,12 +73,8 @@ export default function SettingsTorrent() {
 
       <hr className="border-muted my-1 w-full border-t" />
 
-      <p className="windows95-text text-hint w-full font-bold">
-        {t("settings.torrent.session")}
-      </p>
-      <span className="text-hint windows95-font text-xs">
-        {t("settings.torrent.sessionHint")}
-      </span>
+      <p className="windows95-text text-hint w-full font-bold">{t("settings.torrent.session")}</p>
+      <span className="text-hint windows95-font text-xs">{t("settings.torrent.session.hint")}</span>
 
       <label className="windows95-text text-text flex cursor-pointer items-center gap-2 select-none">
         <Checkbox
@@ -102,7 +95,7 @@ export default function SettingsTorrent() {
             saveSessionConfig({ disablePersistence: v });
           }}
         />
-        <span>{t("settings.torrent.disablePersistence")}</span>
+        <span>{t("settings.torrent.disable.persistence")}</span>
       </label>
 
       <hr className="border-muted my-1 w-full border-t" />
@@ -116,7 +109,7 @@ export default function SettingsTorrent() {
           checked={notificationsEnabled}
           onChange={(v) => patch({ notificationsEnabled: v })}
         />
-        <span>{t("settings.torrent.enableNotifications")}</span>
+        <span>{t("settings.torrent.enable.notifications")}</span>
       </label>
 
       <label className="windows95-text text-text flex cursor-pointer items-center gap-2 pl-4 select-none">
@@ -125,7 +118,7 @@ export default function SettingsTorrent() {
           disabled={!notificationsEnabled}
           onChange={(v) => patch({ notifyOnComplete: v })}
         />
-        <span>{t("settings.torrent.onComplete")}</span>
+        <span>{t("settings.torrent.on.complete")}</span>
       </label>
 
       <label className="windows95-text text-text flex cursor-pointer items-center gap-2 pl-4 select-none">
@@ -134,8 +127,29 @@ export default function SettingsTorrent() {
           disabled={!notificationsEnabled}
           onChange={(v) => patch({ notifyOnError: v })}
         />
-        <span>{t("settings.torrent.onError")}</span>
+        <span>{t("settings.torrent.on.error")}</span>
       </label>
+
+      <hr className="border-muted my-1 w-full border-t" />
+
+      <p className="windows95-text text-hint w-full font-bold">{t("settings.torrent.search")}</p>
+
+      <div className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
+        <span className="windows95-text text-text text-xs font-bold">
+          {t("settings.torrent.results.per.page")}
+        </span>
+        <div className="flex flex-col gap-0.5">
+          <Input
+            type="number"
+            min={5}
+            max={100}
+            value={resultsPerPage}
+            onChange={(e) => patch({ resultsPerPage: Number(e.target.value) })}
+            className="w-16"
+          />
+          <span className="text-hint text-[12px]">{t("settings.torrent.results.per.page.hint")}</span>
+        </div>
+      </div>
     </div>
   );
 }

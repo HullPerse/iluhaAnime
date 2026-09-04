@@ -1,11 +1,4 @@
-import {
-  Calendar,
-  Flame,
-  UserStar,
-  LogOut,
-  GitBranch,
-  Users,
-} from "lucide-react";
+import { Calendar, Flame, UserStar, LogOut, GitBranch, Users } from "lucide-react";
 
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
@@ -56,24 +49,18 @@ export default function AniListProfileHeader({
           </Button>
         </div>
         <div className="flex flex-col">
-          <span className="windows95-text font-bold">
-            {user.name.toUpperCase()}
-          </span>
+          <span className="windows95-text font-bold">{user.name.toUpperCase()}</span>
           <span className="windows95-text text-xs">
             {loadingList ? (
               "..."
             ) : (
               <>
-                {t("anilist.header.animeCount", {
+                {t("anilist.header.anime.count", {
                   count: user.anime_count,
                   episodes: user.episodes_watched,
                 })}
                 {user.mean_score != null && (
-                  <>
-                    {" "}
-                    -{" "}
-                    {t("anilist.header.meanScore", { score: user.mean_score })}
-                  </>
+                  <> - {t("anilist.header.mean.score", { score: user.mean_score })}</>
                 )}
               </>
             )}
@@ -87,11 +74,7 @@ export default function AniListProfileHeader({
         >
           <Calendar className="size-3" />
         </Button>
-        <Button
-          size="icon"
-          className="h-7 w-7 text-xs"
-          onClick={onBrowseOpen}
-        >
+        <Button size="icon" className="h-7 w-7 text-xs" onClick={onBrowseOpen}>
           <Flame className="size-3" />
         </Button>
         <Button

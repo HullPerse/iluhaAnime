@@ -22,12 +22,7 @@ export type {
   UnifiedIndexRow,
 } from "./search";
 export type { MediaTrack, VideoFileEntry } from "./fs";
-export type {
-  SettingsTab,
-  FFMPEGStatus,
-  ScanType,
-  SettingsStore,
-} from "./settings";
+export type { SettingsTab, FFMPEGStatus, ScanType, SettingsStore } from "./settings";
 export type {
   SqliteDatabaseInfo,
   SqliteColumnInfo,
@@ -48,12 +43,7 @@ export type {
   UpscaleProgressPayload,
   UpscaleQueueStore,
 } from "./upscale";
-export type {
-  FranchiseCacheEntry,
-  AppCacheRecord,
-  RawAppCacheRecord,
-  CacheStore,
-} from "./cache";
+export type { FranchiseCacheEntry, AppCacheRecord, RawAppCacheRecord, CacheStore } from "./cache";
 export type {
   NotificationType,
   NotificationItem,
@@ -88,7 +78,7 @@ export interface ModalWindow {
   hideHeader?: boolean;
   hideBackdrop?: boolean;
   modal?: boolean;
-  children: ReactNode;
+  children?: ReactNode;
 }
 
 export type HexType = `#${string}`;

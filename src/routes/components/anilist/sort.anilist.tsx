@@ -34,9 +34,7 @@ export default function AniListSortBar({
 
   return (
     <section className="windows95-border flex flex-row items-center gap-2 bg-white px-1 py-0.5">
-      <span className="windows95-text text-hint text-xs">
-        {t("anilist.sort.sorting")}
-      </span>
+      <span className="windows95-text text-hint text-xs">{t("anilist.sort.sorting")}</span>
       {(["title", "score", "progress"] as AniListSort["key"][]).map((s) => {
         const isActive = sort.key === s;
         return (

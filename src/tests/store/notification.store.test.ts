@@ -76,6 +76,13 @@ describe("useNotificationStore", () => {
       });
     });
 
+    it("records in the tray without the native popup when system is false", () => {
+      getState().add("Backlog", "info", "Found at startup", "backlog-key", { system: false });
+      expect(tauriNotifySpy).not.toHaveBeenCalled();
+      expect(getState().items).toHaveLength(1);
+      expect(getState().unreadCount).toBe(1);
+    });
+
     it("skips the native toast when notifications are disabled in settings", () => {
       useSettingsStore.setState({ notificationsEnabled: false });
       getState().add("Quiet", "info", "Still recorded in the tray");
@@ -219,21 +226,11 @@ describe("useNotificationStore", () => {
     });
 
     it("does not duplicate a persisted item when a keyed backend event replays", () => {
-      getState().add(
-        "Загрузка завершена",
-        "success",
-        "Anime",
-        "torrent-complete:1:abc"
-      );
+      getState().add("Загрузка завершена", "success", "Anime", "torrent-complete:1:abc");
       const { id } = getState().items[0];
       getState().markRead(id);
 
-      getState().add(
-        "Загрузка завершена",
-        "success",
-        "Anime",
-        "torrent-complete:1:abc"
-      );
+      getState().add("Загрузка завершена", "success", "Anime", "torrent-complete:1:abc");
 
       expect(getState().items).toHaveLength(1);
       expect(getState().items[0].read).toBe(true);
@@ -241,20 +238,10 @@ describe("useNotificationStore", () => {
     });
 
     it("suppresses a keyed event after clear all", () => {
-      getState().add(
-        "Загрузка завершена",
-        "success",
-        "Anime",
-        "torrent-complete:1:abc"
-      );
+      getState().add("Загрузка завершена", "success", "Anime", "torrent-complete:1:abc");
       getState().clearAll();
 
-      getState().add(
-        "Загрузка завершена",
-        "success",
-        "Anime",
-        "torrent-complete:1:abc"
-      );
+      getState().add("Загрузка завершена", "success", "Anime", "torrent-complete:1:abc");
       expect(getState().items).toHaveLength(0);
     });
 

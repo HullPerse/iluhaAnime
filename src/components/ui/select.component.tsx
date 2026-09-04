@@ -20,7 +20,11 @@ function Select({
 }: {
   value: string;
   onChange: (v: string) => void;
-  options: readonly { value: string; label: string }[];
+  options: readonly {
+    value: string;
+    label: string;
+    style?: React.CSSProperties;
+  }[];
   className?: string;
   placeholder?: string;
   arrow?: boolean;
@@ -33,38 +37,48 @@ function Select({
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const showSearch = searchable ?? options.length > 8;
+  const selectedOption = options.find((o) => o.value === value);
 
   const filteredOptions = useMemo(() => {
     if (!showSearch || !search) return options;
     const q = search.toLowerCase();
     return options.filter(
-      (o) =>
-        o.label.toLowerCase().includes(q) || o.value.toLowerCase().includes(q)
+      (o) => o.label.toLowerCase().includes(q) || o.value.toLowerCase().includes(q)
     );
   }, [options, search, showSearch]);
 
-
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) setSearch("");
+    else if (showSearch) requestAnimationFrame(() => searchInputRef.current?.focus());
+  };
 
   return (
     <BaseSelect.Root
       value={value}
+      onOpenChange={handleOpenChange}
       onValueChange={(v) => {
+        // Base UI resets the selection to null (reason "none") whenever the visible items
+        // change and the current value is not among them, e.g. while typing in the search
+        // box. Treating that as a user selection would clear the search query on every
+        // keystroke, so null resets are ignored. Real selections (item press, typeahead)
+        // always carry a non-null option value.
+        if (v === null) return;
         setSearch("");
-        onChange(v ?? "");
+        onChange(v);
       }}
       disabled={disabled}
     >
       <BaseSelect.Trigger
         className={cn(
-          "windows95-border text-text windows95-text flex min-h-[var(--ui-control-height)] w-full flex-row items-center bg-white px-1",
+          "windows95-border text-text windows95-text flex min-h-(--ui-control-height) w-full flex-row items-center bg-white px-1",
           disabled ? "cursor-default opacity-50" : "cursor-pointer",
           className
         )}
         onPointerDown={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
       >
-        <span className="flex-1 truncate text-left">
-          {options.find((o) => o.value === value)?.label ?? placeholder ?? ""}
+        <span className="flex-1 truncate text-left" style={selectedOption?.style}>
+          {selectedOption?.label ?? placeholder ?? ""}
         </span>
         {arrow && (
           <BaseSelect.Icon className="windows95-active-border bg-primary ml-1 flex h-4 w-4 shrink-0 items-center justify-center">
@@ -75,16 +89,12 @@ function Select({
       <BaseSelect.Portal>
         <BaseSelect.Positioner
           className="z-50"
+          side="bottom"
+          align="start"
           sideOffset={4}
-          alignItemWithTrigger
           onPointerDown={(e) => e.stopPropagation()}
         >
-          <BaseSelect.Popup
-            className="windows95-active-border flex w-full origin-(--transform-origin) flex-col bg-white"
-            style={{ width: "var(--anchor-width)" }}
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={(e) => e.stopPropagation()}
-          >
+          <BaseSelect.Popup className="windows95-active-border flex max-h-[min(12rem,var(--available-height))] w-(--anchor-width) max-w-(--available-width) origin-(--transform-origin) flex-col overflow-hidden bg-white">
             {showSearch && (
               <Input
                 ref={searchInputRef}
@@ -94,12 +104,15 @@ function Select({
                   e.stopPropagation();
                   setSearch(e.target.value);
                 }}
+                onKeyDown={(e) => e.stopPropagation()}
+                onClick={(e) => e.stopPropagation()}
                 onPointerDown={(e) => e.stopPropagation()}
-                className="windows95-text bg-surface min-h-6 flex-1 outline-none"
+                autoFocus
+                className="windows95-text bg-surface border-muted h-6 min-h-6 w-full shrink-0 border-b outline-none"
                 placeholder={t("common.search")}
               />
             )}
-            <BaseSelect.List className="max-h-60 flex-1 overflow-y-auto">
+            <BaseSelect.List className="max-h-48 flex-1 overflow-y-auto overscroll-contain outline-0">
               {filteredOptions.map((o, i) => (
                 <BaseSelect.Item
                   key={o.value}
@@ -115,7 +128,7 @@ function Select({
               ))}
               {filteredOptions.length === 0 && (
                 <div className="windows95-text text-text/50 px-1 py-0.5">
-                  {t("common.noResults")}
+                  {t("common.no.results")}
                 </div>
               )}
             </BaseSelect.List>

@@ -145,29 +145,14 @@ export interface TorrentStore {
   pauseTorrent: (id: number) => Promise<void>;
   resumeTorrent: (id: number) => Promise<void>;
   removeTorrent: (id: number, deleteFiles: boolean) => Promise<void>;
-  setSpeedLimits: (
-    dlKbps: number | null,
-    ulKbps: number | null
-  ) => Promise<void>;
+  setSpeedLimits: (dlKbps: number | null, ulKbps: number | null) => Promise<void>;
   loadTorrentFiles: (id: number) => Promise<boolean>;
   updateTorrentOnlyFiles: (id: number, indices: number[]) => Promise<void>;
-  setFilePriority: (
-    id: number,
-    fileIndices: number[],
-    priority: FilePriority
-  ) => Promise<void>;
+  setFilePriority: (id: number, fileIndices: number[], priority: FilePriority) => Promise<void>;
   setSequentialDownload: (id: number, enabled: boolean) => Promise<void>;
   setSeedPreference: (id: number, enabled: boolean) => void;
-  redownloadFile: (
-    id: number,
-    fileIndex: number,
-    infoHash: string
-  ) => Promise<void>;
+  redownloadFile: (id: number, fileIndex: number, infoHash: string) => Promise<void>;
   recheckTorrent: (id: number) => Promise<TorrentCheckResult | null>;
-  setTorrentLimits: (
-    id: number,
-    dlKbps: number | null,
-    ulKbps: number | null
-  ) => Promise<void>;
+  setTorrentLimits: (id: number, dlKbps: number | null, ulKbps: number | null) => Promise<void>;
   getTorrentLimits: (id: number) => Promise<TorrentLimits>;
 }

@@ -44,13 +44,9 @@ function NekoBtApiModal({
   };
 
   return (
-    <Modal
-      header={t("search.nekobt.title")}
-      onClose={handleClose}
-      className="w-xl"
-    >
+    <Modal header={t("search.nekobt.title")} onClose={handleClose} className="w-xl">
       <div className="flex flex-col gap-2 p-1">
-        <span className="windows95-text">{t("search.nekobt.apiKey")}</span>
+        <span className="windows95-text">{t("search.nekobt.api.key")}</span>
         <Input
           placeholder={t("search.nekobt.placeholder")}
           value={apiKey}
@@ -59,9 +55,7 @@ function NekoBtApiModal({
             if (!loading) handleSubmit();
           })}
         />
-        {error && (
-          <span className="text-destructive windows95-text">{error}</span>
-        )}
+        {error && <span className="text-destructive windows95-text">{error}</span>}
         <div className="mt-1 flex justify-end gap-1">
           <Button onClick={handleClose}>{t("common.cancel")}</Button>
           <Button onClick={handleSubmit} disabled={loading}>

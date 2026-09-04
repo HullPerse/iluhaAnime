@@ -20,6 +20,32 @@ async function resolveCachedImage(blobId: string): Promise<string | null> {
   }
 }
 
+const inflightCoverDownloads = new Map<string, Promise<string | null>>();
+
+function downloadCover(remoteUrl: string): Promise<string | null> {
+  const cached = coverCache.get(remoteUrl);
+  if (cached) return Promise.resolve(cached.dataUrl);
+  const inflight = inflightCoverDownloads.get(remoteUrl);
+  if (inflight) return inflight;
+  const request = invoke<{ id: string; dataUrl: string }>("download_remote_image", {
+    url: remoteUrl,
+    nameHint: "collection-cover",
+  }).then(
+    (img) => {
+      coverCache.set(remoteUrl, { dataUrl: img.dataUrl, blobId: img.id });
+      return img.dataUrl;
+    },
+    () => remoteUrl
+  );
+  request.finally(() => {
+    if (inflightCoverDownloads.get(remoteUrl) === request) {
+      inflightCoverDownloads.delete(remoteUrl);
+    }
+  });
+  inflightCoverDownloads.set(remoteUrl, request);
+  return request;
+}
+
 export function useCoverCache(
   remoteUrl: string | null | undefined,
   blobId?: string | null
@@ -56,39 +82,25 @@ export function useCoverCache(
       return;
     }
     let cancelled = false;
-    invoke<{ id: string; dataUrl: string }>("download_remote_image", {
-      url: remoteUrl,
-      nameHint: "collection-cover",
-    })
-      .then((img) => {
-        if (cancelled) return;
-        coverCache.set(remoteUrl, { dataUrl: img.dataUrl, blobId: img.id });
-        setDataUrl(img.dataUrl);
-      })
-      .catch(() => {
-        // Offline or failed: fall back to remote URL (will fail to load, placeholder shown).
-        if (!cancelled) setDataUrl(remoteUrl);
-      });
+    downloadCover(remoteUrl).then((url) => {
+      if (!cancelled && url) setDataUrl(url);
+    });
     return () => {
       cancelled = true;
     };
   }, [blobId, remoteUrl]);
 
   const cache = useCallback(async () => {
-    if (
-      !remoteUrl ||
-      remoteUrl.startsWith("data:") ||
-      remoteUrl.startsWith("/")
-    ) {
+    if (!remoteUrl || remoteUrl.startsWith("data:") || remoteUrl.startsWith("/")) {
       return null;
     }
     const cached = coverCache.get(remoteUrl);
     if (cached) return cached.blobId;
     try {
-      const img = await invoke<{ id: string; dataUrl: string }>(
-        "download_remote_image",
-        { url: remoteUrl, nameHint: "collection-cover" }
-      );
+      const img = await invoke<{ id: string; dataUrl: string }>("download_remote_image", {
+        url: remoteUrl,
+        nameHint: "collection-cover",
+      });
       coverCache.set(remoteUrl, { dataUrl: img.dataUrl, blobId: img.id });
       setDataUrl(img.dataUrl);
       return img.id;

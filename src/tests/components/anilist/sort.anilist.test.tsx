@@ -5,9 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import AniListSortBar from "@/routes/components/anilist/sort.anilist";
 import { useSettingsStore } from "@/store/settings.store";
 
-function renderSort(
-  overrides: Partial<React.ComponentProps<typeof AniListSortBar>> = {}
-) {
+function renderSort(overrides: Partial<React.ComponentProps<typeof AniListSortBar>> = {}) {
   const defaultProps = {
     sort: { key: "title" as const, dir: "desc" as const },
     onSortChange: vi.fn(),
@@ -48,9 +46,7 @@ describe("AniListSortBar", () => {
       onSortChange,
     });
     const section = container.querySelector("section")!;
-    const buttons = Array.from(
-      section.querySelectorAll("button[data-slot='button']")
-    );
+    const buttons = Array.from(section.querySelectorAll("button[data-slot='button']"));
     const titleBtn = buttons.find((b) => b.textContent?.trim() === "Title");
     expect(titleBtn).toBeTruthy();
     await user.click(titleBtn!);

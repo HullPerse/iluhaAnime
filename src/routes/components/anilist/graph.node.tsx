@@ -1,11 +1,6 @@
 import { memo } from "react";
 
-import {
-  IMG_H,
-  NODE_BORDER_COLORS,
-  NODE_H,
-  NODE_W,
-} from "@/config/anilist.config";
+import { IMG_H, NODE_BORDER_COLORS, NODE_H, NODE_W } from "@/config/anilist.config";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/index.utils";
 import { enterOrSpace } from "@/lib/keyboard.utils";
@@ -73,9 +68,7 @@ const FranNode = memo(
           width: dims.w,
           height: dims.h,
           borderColor:
-            !isRoot && relationType
-              ? (NODE_BORDER_COLORS[relationType] ?? "#bdc3c7")
-              : undefined,
+            !isRoot && relationType ? (NODE_BORDER_COLORS[relationType] ?? "#bdc3c7") : undefined,
         }}
       >
         {isRoot && <div className="bg-secondary h-0.5 w-full shrink-0" />}
@@ -84,9 +77,7 @@ const FranNode = memo(
             className="windows95-font bg-primary flex items-center justify-center text-center text-xs break-all"
             style={{
               height: dims.imgH,
-              color: relationType
-                ? (NODE_BORDER_COLORS[relationType] ?? "#bdc3c7")
-                : "#bdc3c7",
+              color: relationType ? (NODE_BORDER_COLORS[relationType] ?? "#bdc3c7") : "#bdc3c7",
             }}
           >
             {node.title}

@@ -95,10 +95,7 @@ function ColorPicker({
               max={255}
               value={r}
               onChange={(e) => {
-                const v = Math.min(
-                  255,
-                  Math.max(0, Number(e.target.value) || 0)
-                );
+                const v = Math.min(255, Math.max(0, Number(e.target.value) || 0));
                 setR(v);
                 setHexInput(rgbaToHex({ a: 1, b, g, r: v }, false));
               }}
@@ -111,10 +108,7 @@ function ColorPicker({
               max={255}
               value={g}
               onChange={(e) => {
-                const v = Math.min(
-                  255,
-                  Math.max(0, Number(e.target.value) || 0)
-                );
+                const v = Math.min(255, Math.max(0, Number(e.target.value) || 0));
                 setG(v);
                 setHexInput(rgbaToHex({ a: 1, b, g: v, r }, false));
               }}
@@ -127,10 +121,7 @@ function ColorPicker({
               max={255}
               value={b}
               onChange={(e) => {
-                const v = Math.min(
-                  255,
-                  Math.max(0, Number(e.target.value) || 0)
-                );
+                const v = Math.min(255, Math.max(0, Number(e.target.value) || 0));
                 setB(v);
                 setHexInput(rgbaToHex({ a: 1, b: v, g, r }, false));
               }}
@@ -183,10 +174,7 @@ function ColorPickerTrigger({
     if (!open) return;
     const handler = (e: MouseEvent) => {
       const t = e.target as Node;
-      if (
-        !triggerRef.current?.contains(t) &&
-        !popoverRef.current?.contains(t)
-      ) {
+      if (!triggerRef.current?.contains(t) && !popoverRef.current?.contains(t)) {
         setOpen(false);
       }
     };

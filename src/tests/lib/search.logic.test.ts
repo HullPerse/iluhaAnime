@@ -7,9 +7,7 @@ import type { SearchFilters } from "@/types/search";
 
 describe("qualityMatch", () => {
   it("matches 1080p in title", () => {
-    expect(qualityMatch("[Group] Anime Title [1080p][HEVC]", "1080p")).toBe(
-      true
-    );
+    expect(qualityMatch("[Group] Anime Title [1080p][HEVC]", "1080p")).toBe(true);
   });
 
   it("matches 720p in title", () => {
@@ -54,10 +52,7 @@ describe("formatSize (display)", () => {
 });
 
 describe("sorting logic", () => {
-  function sortBy(
-    items: Anime[],
-    sort: "seeders" | "leechers" | "size"
-  ): Anime[] {
+  function sortBy(items: Anime[], sort: "seeders" | "leechers" | "size"): Anime[] {
     return [...items].sort((a, b) => {
       const sortMap = {
         leechers: b.leechers - a.leechers,

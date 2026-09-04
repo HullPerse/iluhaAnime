@@ -1,3 +1,4 @@
+import { cn } from "@/lib/index.utils";
 import { open } from "@tauri-apps/plugin-dialog";
 import { useState, useEffect, useRef, useCallback } from "react";
 
@@ -8,11 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox.component";
 import ImageComponent from "@/components/ui/image.component";
 import { Input } from "@/components/ui/input.component";
 import { useI18n } from "@/lib/i18n";
-import {
-  fmtSize,
-  fmtElapsed,
-  groupFilesByDirectory,
-} from "@/lib/torrent.utils";
+import { fmtSize, fmtElapsed, groupFilesByDirectory } from "@/lib/torrent.utils";
 import type { PickerTorrent } from "@/types/torrent";
 
 function TorrentFilePicker({
@@ -39,10 +36,7 @@ function TorrentFilePicker({
   const [sequential, setSequential] = useState(false);
 
   const [selected, setSelected] = useState<Set<number>>(
-    () =>
-      new Set(
-        torrent?.files.filter((f) => f.selected).map((f) => f.index) ?? []
-      )
+    () => new Set(torrent?.files.filter((f) => f.selected).map((f) => f.index) ?? [])
   );
   const [elapsed, setElapsed] = useState(0);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -51,11 +45,7 @@ function TorrentFilePicker({
   useEffect(() => {
     if (!torrent) return;
     setSaveDir(defaultSaveDir);
-    setSelected(
-      new Set(
-        torrent.files.filter((file) => file.selected).map((file) => file.index)
-      )
-    );
+    setSelected(new Set(torrent.files.filter((file) => file.selected).map((file) => file.index)));
     setSequential(false);
     setIsLoading(false);
   }, [torrent, defaultSaveDir]);
@@ -97,7 +87,7 @@ function TorrentFilePicker({
     setBrowsing(true);
     const dir = await open({
       directory: true,
-      title: t("picker.selectFolder"),
+      title: t("picker.select.folder"),
     });
     if (dir) setSaveDir(dir);
     setBrowsing(false);
@@ -119,39 +109,31 @@ function TorrentFilePicker({
   const allSelected = torrent ? selected.size === torrent.files.length : false;
 
   const selectedSize = torrent
-    ? torrent.files
-        .filter((f) => selected.has(f.index))
-        .reduce((s, f) => s + f.size, 0)
+    ? torrent.files.filter((f) => selected.has(f.index)).reduce((s, f) => s + f.size, 0)
     : 0;
   const totalSize = torrent ? torrent.files.reduce((s, f) => s + f.size, 0) : 0;
 
   return (
     <Modal
-      header={
-        loading
-          ? t("picker.loadingMetadata")
-          : (torrent?.name ?? t("picker.download"))
-      }
+      header={loading ? t("picker.loading.metadata") : (torrent?.name ?? t("picker.download"))}
       onClose={onCancel}
       className="w-3xl"
     >
       {loading ? (
         <section className="flex flex-col items-center justify-center gap-2 py-4">
           <SmallLoader />
-          <span className="windows95-text text-hint">
-            {fmtElapsed(elapsed, t)}
-          </span>
+          <span className="windows95-text text-hint">{fmtElapsed(elapsed, t)}</span>
         </section>
       ) : (
         <section className="flex h-full w-full flex-1 flex-col items-center gap-2 py-4">
           <div className="windows95-border flex h-full w-full overflow-y-auto">
             <label className="windows95-text bg-primary flex cursor-pointer items-center gap-1 px-1 py-0.5 select-none">
               <Checkbox checked={allSelected} onChange={toggleAll} />
-              {allSelected ? t("picker.deselectAll") : t("picker.selectAll")}
+              {allSelected ? t("picker.deselect.all") : t("picker.select.all")}
               <span className="text-hint ml-auto text-xs">
                 {fmtSize(selectedSize)} / {fmtSize(totalSize)}
                 {" - "}
-                {t("picker.fileCount", { count: torrent!.files.length })}
+                {t("picker.file.count", { count: torrent!.files.length })}
               </span>
             </label>
           </div>
@@ -175,29 +157,22 @@ function TorrentFilePicker({
                     </div>
                   )}
                   {group.files.map((item) => {
-                    const conflict = torrent!.conflictingFiles.includes(
-                      item.name
-                    );
+                    const conflict = torrent!.conflictingFiles.includes(item.name);
 
                     return (
                       <label
                         key={item.index}
-                        className={`windows95-text hover:bg-surface flex w-full cursor-pointer items-center gap-1 px-1 py-0.5 select-none ${group.dir ? "pl-5" : ""} windows95-border`}
+                        className={cn("windows95-text hover:bg-surface flex w-full cursor-pointer items-center gap-1 px-1 py-0.5 select-none windows95-border", group.dir && "pl-5")}
                       >
                         <Checkbox
                           checked={selected.has(item.index)}
                           onChange={() => toggleFile(item.index)}
                           className="shrink-0"
                         />
-                        <span
-                          className="windows95-text flex-1 truncate"
-                          title={item.displayName}
-                        >
+                        <span className="windows95-text flex-1 truncate" title={item.displayName}>
                           {item.displayName}
                         </span>
-                        <span className="text-hint shrink-0 text-xs">
-                          {fmtSize(item.size)}
-                        </span>
+                        <span className="text-hint shrink-0 text-xs">{fmtSize(item.size)}</span>
                         {conflict && (
                           <span className="text-destructive shrink-0 text-xs">
                             {t("picker.exists")}
@@ -211,9 +186,7 @@ function TorrentFilePicker({
           </div>
 
           <div className="flex w-full items-center gap-1">
-            <span className="windows95-text shrink-0">
-              {t("picker.folder")}
-            </span>
+            <span className="windows95-text shrink-0">{t("picker.folder")}</span>
             <Input className="flex-1" value={saveDir} readOnly />
             <Button onClick={browseFolder} disabled={browsing || loading}>
               {t("picker.browse")}
@@ -222,19 +195,14 @@ function TorrentFilePicker({
 
           <div className="flex w-full items-center justify-between">
             <label className="windows95-text flex cursor-pointer items-center gap-1 select-none">
-              <Checkbox
-                checked={sequential}
-                onChange={(v) => setSequential(v)}
-              />
+              <Checkbox checked={sequential} onChange={(v) => setSequential(v)} />
               {t("picker.sequential")}
             </label>
             <div className="flex gap-1">
               <Button onClick={onCancel}>{t("common.cancel")}</Button>
               <Button
                 onClick={handleConfirm}
-                disabled={
-                  isLoading || loading || selected.size === 0 || !saveDir
-                }
+                disabled={isLoading || loading || selected.size === 0 || !saveDir}
               >
                 {isLoading ? <SmallLoader /> : t("picker.download")}
               </Button>

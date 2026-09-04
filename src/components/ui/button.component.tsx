@@ -22,13 +22,11 @@ const buttonVariants = cva(
       variant: {
         default: "",
         destructive: "text-destructive active:bg-destructive active:text-white",
-        error:
-          "bg-primary text-destructive active:bg-destructive active:text-white",
+        error: "bg-primary text-destructive active:bg-destructive active:text-white",
         ghost:
           "hover:bg-primary hover:border-b-muted hover:border-r-muted border-transparent bg-transparent hover:border-t-white hover:border-l-white",
         link: "text-highlight hover:text-link-hover border-transparent bg-transparent underline hover:underline active:translate-x-0 active:translate-y-0",
-        outline:
-          "border-t-muted border-l-muted border-r-white border-b-white bg-white",
+        outline: "border-t-muted border-l-muted border-r-white border-b-white bg-white",
         secondary: "bg-surface",
         success: "bg-primary text-success active:bg-success active:text-white",
       },

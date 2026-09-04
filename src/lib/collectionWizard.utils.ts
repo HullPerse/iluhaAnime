@@ -26,6 +26,47 @@ export type WizardSaveValues = {
   finishedAt: string;
 };
 
+function parseCommaList(value: string): string[] {
+  return value
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function parseNonNegative(value: string): number {
+  return Math.max(0, Number(value) || 0);
+}
+
+function parseOptionalPositive(value: string): number | null {
+  if (!value) return null;
+  return Math.max(1, Number(value) || 1);
+}
+
+function parseOptionalNonNegative(value: string): number | null {
+  if (!value) return null;
+  return Math.max(0, Number(value) || 0);
+}
+
+function parseRating(value: string): number | null {
+  if (!value) return null;
+  return Math.min(10, Math.max(1, Number(value) || 0));
+}
+
+function parseOptionalYear(value: string): number | null {
+  if (!value) return null;
+  return Number(value) || null;
+}
+
+function parseOptionalTrimmed(value: string): string | null {
+  const trimmed = value.trim();
+  return trimmed || null;
+}
+
+function parseTimestamp(value: string): number | null {
+  if (!value) return null;
+  return new Date(value).getTime();
+}
+
 export function buildWizardItem(
   values: WizardSaveValues,
   coverBlobId: string | null,
@@ -33,27 +74,21 @@ export function buildWizardItem(
 ): Omit<CollectionItem, "id" | "addedAt" | "updatedAt"> {
   return {
     title: values.title.trim(),
-    altTitles: values.altTitles
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean),
+    altTitles: parseCommaList(values.altTitles),
     type: values.type,
     status: values.status,
-    progressValue: Math.max(0, Number(values.progressValue) || 0),
-    progressTotal: values.progressTotal ? Math.max(1, Number(values.progressTotal) || 1) : null,
+    progressValue: parseNonNegative(values.progressValue),
+    progressTotal: parseOptionalPositive(values.progressTotal),
     progressUnit: values.progressUnit,
-    durationMinutes: values.durationMinutes ? Math.max(0, Number(values.durationMinutes) || 0) : null,
-    rating: values.rating ? Math.min(10, Math.max(1, Number(values.rating) || 0)) : null,
+    durationMinutes: parseOptionalNonNegative(values.durationMinutes),
+    rating: parseRating(values.rating),
     priority: values.priority,
     isFavorite: values.isFavorite,
-    year: values.year ? Number(values.year) || null : null,
-    genres: values.genres
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean),
-    studio: values.studio.trim() || null,
-    description: values.description.trim() || null,
-    notes: values.notes.trim() || null,
+    year: parseOptionalYear(values.year),
+    genres: parseCommaList(values.genres),
+    studio: parseOptionalTrimmed(values.studio),
+    description: parseOptionalTrimmed(values.description),
+    notes: parseOptionalTrimmed(values.notes),
     coverUrl: values.coverUrl,
     coverBlobId,
     thumbBlobId: coverBlobId,
@@ -61,10 +96,14 @@ export function buildWizardItem(
     customFields: values.customFields,
     localPath: values.localPath || null,
     localKind: values.localKind,
-    startedAt: values.startedAt ? new Date(values.startedAt).getTime() : null,
+    startedAt: parseTimestamp(values.startedAt),
     finishedAt: resolveFinishedAt(values.status, values.finishedAt),
     lastWatchedAt: initial?.lastWatchedAt ?? null,
     rewatchCount: initial?.rewatchCount ?? 0,
+    sitesToView: initial?.sitesToView ?? [],
+    tvCurrentSeason: initial?.tvCurrentSeason ?? null,
+    tvCurrentEpisode: initial?.tvCurrentEpisode ?? null,
+    detailsJson: initial?.detailsJson ?? null,
   };
 }
 

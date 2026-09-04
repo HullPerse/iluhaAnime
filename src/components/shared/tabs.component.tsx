@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button.component";
+import { cn } from "@/lib/index.utils";
 import { createListNavigationHandler } from "@/lib/keyboard.utils";
 
 function Tabs<T extends string>({
@@ -14,7 +15,7 @@ function Tabs<T extends string>({
 }) {
   return (
     <div
-      className="bg-primary flex max-w-full shrink-0 gap-1 overflow-x-auto pt-1 pl-2"
+      className="flex max-w-full shrink-0 gap-1 overflow-x-auto pt-1 pl-2"
       role="tablist"
       aria-label={ariaLabel}
     >
@@ -23,11 +24,12 @@ function Tabs<T extends string>({
         return (
           <Button
             key={tab.id}
-            className={`windows95-text active:outline-text relative cursor-pointer px-3 py-0.5 active:outline-1 active:outline-offset-[-3px] active:outline-dotted ${
+            className={cn(
+              "windows95-text active:outline-text relative cursor-pointer px-3 py-0.5 active:outline-1 active:outline-offset-[-3px] active:outline-dotted",
               isActive
                 ? "windows95-active-border border-b-transparent"
                 : "windows95-small-border bg-surface"
-            }`}
+            )}
             style={{
               zIndex: isActive ? 20 : 10,
             }}
@@ -42,8 +44,7 @@ function Tabs<T extends string>({
               onFocus: (index, event) => {
                 onChange(tabs[index].id);
                 const tabList = event.currentTarget.parentElement;
-                const buttons =
-                  tabList?.querySelectorAll<HTMLButtonElement>("[role=tab]");
+                const buttons = tabList?.querySelectorAll<HTMLButtonElement>("[role=tab]");
                 buttons?.[index]?.focus();
               },
             })}
@@ -51,6 +52,7 @@ function Tabs<T extends string>({
             aria-selected={isActive}
             tabIndex={isActive ? 0 : -1}
             data-tab-id={tab.id}
+            disabled={isActive}
           >
             {tab.label}
           </Button>

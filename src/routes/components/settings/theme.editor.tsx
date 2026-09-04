@@ -10,10 +10,7 @@ import type { TranslationKey } from "@/lib/i18n";
 import { applyTheme, useThemeStore } from "@/store/theme.store";
 import type { ThemeDefinition } from "@/types/theme";
 
-type ThemeColorKey = Exclude<
-  keyof ThemeDefinition["colors"],
-  "autocompleteOpacity"
->;
+type ThemeColorKey = Exclude<keyof ThemeDefinition["colors"], "autocompleteOpacity">;
 
 const COLOR_KEYS: {
   key: ThemeColorKey;
@@ -29,8 +26,8 @@ const COLOR_KEYS: {
   { key: "destructive", label: "settings.theme.color.destructive" },
   { key: "success", label: "settings.theme.color.success" },
   { key: "surface", label: "settings.theme.color.surface" },
-  { key: "winHighlight", label: "settings.theme.color.winHighlight" },
-  { key: "winShadow", label: "settings.theme.color.winShadow" },
+  { key: "winHighlight", label: "settings.theme.color.win.highlight" },
+  { key: "winShadow", label: "settings.theme.color.win.shadow" },
 ];
 
 export default function ThemeEditor({
@@ -66,12 +63,8 @@ export default function ThemeEditor({
   const [colors, setColors] = useState<ThemeDefinition["colors"]>(() => ({
     ...defaults,
     ...theme?.colors,
-    autocomplete:
-      theme?.colors.autocomplete ??
-      theme?.colors.muted ??
-      defaults.autocomplete,
-    autocompleteOpacity:
-      theme?.colors.autocompleteOpacity ?? defaults.autocompleteOpacity,
+    autocomplete: theme?.colors.autocomplete ?? theme?.colors.muted ?? defaults.autocomplete,
+    autocompleteOpacity: theme?.colors.autocompleteOpacity ?? defaults.autocompleteOpacity,
   }));
 
   useEffect(() => {
@@ -87,9 +80,7 @@ export default function ThemeEditor({
 
   const handleSave = () => {
     if (!name.trim()) return;
-    const safeName =
-      theme?.name ??
-      `custom-${name.trim().toLowerCase().replaceAll(/\s+/g, "-")}`;
+    const safeName = theme?.name ?? `custom-${name.trim().toLowerCase().replaceAll(/\s+/g, "-")}`;
     const nextTheme = {
       name: safeName,
       label: name.trim(),
@@ -104,9 +95,7 @@ export default function ThemeEditor({
 
   return (
     <Modal
-      header={
-        isEdit ? t("settings.theme.editTitle") : t("settings.theme.createTitle")
-      }
+      header={isEdit ? t("settings.theme.edit.title") : t("settings.theme.create.title")}
       onClose={onClose}
     >
       <div className="flex flex-col gap-3 p-2">
@@ -115,37 +104,30 @@ export default function ThemeEditor({
           <Input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder={t("settings.theme.namePlaceholder")}
+            placeholder={t("settings.theme.name.placeholder")}
           />
         </label>
 
         <div className="grid grid-cols-2 gap-x-4 gap-y-2">
           {COLOR_KEYS.map(({ key, label }) => (
-            <label
-              key={key}
-              className="windows95-text text-text flex items-center gap-2"
-            >
+            <label key={key} className="windows95-text text-text flex items-center gap-2">
               <span className="w-28 shrink-0">{t(label)}</span>
               <ColorPickerTrigger
                 value={colors[key] ?? colors.muted}
                 onChange={(v) => patchColor(key, v)}
               />
-              <span className="text-hint font-mono text-xs">
-                {colors[key] ?? colors.muted}
-              </span>
+              <span className="text-hint font-mono text-xs">{colors[key] ?? colors.muted}</span>
             </label>
           ))}
         </div>
 
         <Slider
-          label={t("settings.theme.autocompleteOpacity")}
+          label={t("settings.theme.autocomplete.opacity")}
           min={0}
           max={1}
           step={0.05}
           value={colors.autocompleteOpacity ?? 0.6}
-          onChange={(value) =>
-            setColors((prev) => ({ ...prev, autocompleteOpacity: value }))
-          }
+          onChange={(value) => setColors((prev) => ({ ...prev, autocompleteOpacity: value }))}
           suffix="%"
         />
 
@@ -170,7 +152,7 @@ export default function ThemeEditor({
               opacity: colors.autocompleteOpacity,
             }}
           >
-            {t("settings.theme.autocompletePreview")}
+            {t("settings.theme.autocomplete.preview")}
           </span>
         </div>
 
@@ -184,7 +166,7 @@ export default function ThemeEditor({
               }))
             }
           >
-            {t("settings.theme.autocompleteReset")}
+            {t("settings.theme.autocomplete.reset")}
           </Button>
           <Button onClick={onClose}>{t("common.cancel")}</Button>
           <Button onClick={handleSave} disabled={!name.trim()}>

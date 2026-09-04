@@ -27,9 +27,7 @@ const baseAnime: AniMedia = {
   end_date: "2024-03-31",
   popularity: 5000,
   favourites: 200,
-  rankings: [
-    { rank: 42, type_: "POPULAR", context: "most popular in winter 2024" },
-  ],
+  rankings: [{ rank: 42, type_: "POPULAR", context: "most popular in winter 2024" }],
   relations: [],
 };
 
@@ -51,9 +49,7 @@ describe("AniListMetadata", () => {
   });
 
   it("hides score badge when null", () => {
-    const { container } = render(
-      <AniListMetadata anime={{ ...baseAnime, score: null }} />
-    );
+    const { container } = render(<AniListMetadata anime={{ ...baseAnime, score: null }} />);
     const badges = container.querySelectorAll(".bg-secondary");
     expect(badges).toHaveLength(0);
   });

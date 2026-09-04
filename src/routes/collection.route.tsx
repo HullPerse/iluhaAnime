@@ -1,354 +1,290 @@
-import { useVirtualizer } from "@tanstack/react-virtual";
-import { invoke } from "@tauri-apps/api/core";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import { ConfirmDialog } from "@/components/shared/confirm.component";
 import { SelectDialog } from "@/components/shared/prompt.component";
-import { CARD_H, CARD_W } from "@/config/collection.config";
 import { useCollectionDataActions } from "@/hooks/collectionData.hook";
+import { useCollectionMetadata } from "@/hooks/collectionMetadata.hook";
+import { useSearchField } from "@/hooks/searchField.hook";
+import { DEFAULT_FILTERS } from "@/lib/collection.filters";
+import {
+  useCollectionData,
+  useCollectionMutations,
+  useCollectionSearch,
+} from "@/lib/collection.queries";
 import { filterCollectionItems } from "@/lib/collectionFilter.utils";
 import { calculateCollectionStats } from "@/lib/collectionStats.utils";
-import { useCollectionData, useCollectionMutations, useCollectionSearch } from "@/lib/collection.queries";
-import { useI18n, type TranslationKey } from "@/lib/i18n";
-import { StatusMetaContext } from "@/routes/components/collection/context.collection";
-import { StatusManagerModal } from "@/routes/components/collection/status.modal";
+import { useI18n } from "@/lib/i18n";
 import { useCollectionStore } from "@/store/collection.store";
-import { useNotificationStore } from "@/store/notification.store";
-import { useSettingsStore } from "@/store/settings.store";
 import type { CollectionItem, CollectionStatus } from "@/types/collection";
-import { CollectionDetailModal } from "./components/collection/detail.collection";
-import { CollectionFiltersPanel } from "./components/collection/filters.collection";
-import { CollectionItemsGrid } from "./components/collection/grid.collection";
-import { CollectionStatusGroups } from "./components/collection/grouped.collection";
-import { CollectionStatisticsSection } from "./components/collection/stats.collection";
-import { CollectionStatusTabs } from "./components/collection/statusTabs.collection";
-import { CollectionToolbar } from "./components/collection/toolbar.collection";
-import { WizardModal } from "./components/collection/wizard/modal.wizard";
 
-export { CARD_H, CARD_POSTER_H, CARD_W } from "@/config/collection.config";
-export { CollectionCard } from "./components/collection/card.collection";
+import { DetailCollection } from "./components/collection/detail.collection";
+import FilterCollection from "./components/collection/filter.collection";
+import GridCollection from "./components/collection/grid.collection";
+import ImportAnilistCollection from "./components/collection/importAnilist.collection";
+import ListCollection from "./components/collection/list.collection";
+import { StatusCollection } from "./components/collection/status.collection";
+import { StatusManagerCollection } from "./components/collection/statusManager.collection";
+import ToolbarCollection from "./components/collection/toolbar.collection";
+import { WizardModalCollection } from "./components/collection/wizard/modal.wizard";
 
 export default function CollectionRoute() {
-  const {
-    selectedStatus,
-    searchQuery,
-    sortBy,
-    sortDir,
-    filters,
-    activeSection,
-    groupByStatus,
-    collapsedStatuses,
-    setSearchQuery,
-    setSelectedStatus,
-    setSort,
-    setFilters,
-    setGroupByStatus,
-    toggleStatusCollapsed,
-  } = useCollectionStore();
-  const { items, reviews, customFieldDefs, statuses } = useCollectionData();
+  const { items, statuses, customFieldDefs } = useCollectionData();
   const mutations = useCollectionMutations();
   const dataActions = useCollectionDataActions();
   const { t } = useI18n();
-  const addItem = (item: Omit<CollectionItem, "id" | "addedAt" | "updatedAt">) =>
-    mutations.addItem(item);
-  const updateItem = (id: string, patch: Partial<CollectionItem>) =>
-    mutations.updateItem(id, patch);
-  const removeItem = (id: string) => mutations.removeItem(id);
-  const notifyMetadata = useCallback(
-    (type: "success" | "error" | "info", key: TranslationKey) => {
-      useNotificationStore.getState().add(t("app.collection"), type, t(key));
-    },
-    [t]
-  );
 
-  const refreshAniListMetadata = useCallback(
-    async (item: CollectionItem) => {
-      const m = await invoke<{
-        title: string;
-        duration: number | null;
-        episodes: number | null;
-        genres: string[];
-        studios: { name: string }[];
-        cover_url: string | null;
-        season_year: number | null;
-      }>("get_anime_by_id", { id: item.externalIds.anilist });
-      updateItem(item.id, {
-        title: m.title || item.title,
-        durationMinutes: m.duration ?? item.durationMinutes,
-        progressTotal: m.episodes ?? item.progressTotal,
-        genres: m.genres.length ? m.genres : item.genres,
-        studio: m.studios[0]?.name ?? item.studio,
-        coverUrl: m.cover_url ?? item.coverUrl,
-        year: m.season_year ?? item.year,
-      });
-    },
-    [updateItem]
-  );
+  const {
+    sortBy,
+    sortDir,
+    setSort,
+    searchQuery,
+    setSearchQuery,
+    filters,
+    setFilters,
+    viewMode,
+    displayMode,
+    selectedStatus,
+    setSelectedStatus,
+  } = useCollectionStore();
 
-  const refreshTmdbMetadata = useCallback(
-    async (item: CollectionItem) => {
-      const tmdbKey = useSettingsStore.getState().tmdbApiKey;
-      if (!tmdbKey) {
-        notifyMetadata("error", "collection.wizard.tmdbKeyMissing");
-        return;
-      }
-      const d = await invoke<{
-        title: string;
-        overview: string | null;
-        year: number | null;
-        runtimeMinutes: number | null;
-        genres: string[];
-        posters: { url: string }[];
-      }>("get_tmdb_details", {
-        apiKey: tmdbKey,
-        tmdbId: item.externalIds.tmdb,
-        mediaType: item.type === "movie" ? "movie" : "tv",
-      });
-      updateItem(item.id, {
-        title: d.title || item.title,
-        description: d.overview ?? item.description,
-        year: d.year ?? item.year,
-        durationMinutes: d.runtimeMinutes ?? item.durationMinutes,
-        genres: d.genres.length ? d.genres : item.genres,
-        coverUrl: d.posters[0]?.url ?? item.coverUrl,
-      });
-    },
-    [notifyMetadata, updateItem]
-  );
+  const [showWizard, setShowWizard] = useState<boolean>(false);
+  const [editingItem, setEditingItem] = useState<CollectionItem | null>(null);
+  const [detailItem, setDetailItem] = useState<CollectionItem | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
+  const [anilistImport, setAnilistImport] = useState<boolean>(false);
+  const [statusManager, setStatusManager] = useState<boolean>(false);
+  const [showFilters, setShowFilters] = useState<boolean>(false);
 
-  const refreshMetadata = useCallback(
-    async (item: CollectionItem) => {
-      try {
-        if (item.externalIds.anilist != null)
-          await refreshAniListMetadata(item);
-        else if (item.externalIds.tmdb != null) await refreshTmdbMetadata(item);
-        else {
-          notifyMetadata("info", "collection.details.noExternalId");
-          return;
-        }
-        notifyMetadata("success", "collection.details.metadataRefreshed");
-      } catch {
-        notifyMetadata("error", "collection.details.metadataRefreshError");
-      }
-    },
-    [notifyMetadata, refreshAniListMetadata, refreshTmdbMetadata]
+  const updateItem = useCallback(
+    (id: string, patch: Partial<CollectionItem>) => mutations.updateItem(id, patch),
+    [mutations]
   );
+  const { refreshMetadata } = useCollectionMetadata(updateItem);
+
   const setItemStatus = useCallback(
     (item: CollectionItem, status: CollectionStatus) => {
       const patch: Partial<CollectionItem> = { status };
       if (status === "completed") patch.finishedAt = Date.now();
-      if (status === "watching" && !item.startedAt)
-        patch.startedAt = Date.now();
+      if (status === "watching" && !item.startedAt) patch.startedAt = Date.now();
       updateItem(item.id, patch);
     },
     [updateItem]
   );
-  const [showWizard, setShowWizard] = useState(false);
-  const [editingItem, setEditingItem] = useState<CollectionItem | null>(null);
-  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
-  const [detailItem, setDetailItem] = useState<CollectionItem | null>(null);
-  const [showFilters, setShowFilters] = useState(false);
-  const [showStatusManager, setShowStatusManager] = useState(false);
-  const parentRef = useRef<HTMLDivElement>(null);
-  const [gridColumns, setGridColumns] = useState(4);
-  useEffect(() => {
-    const el = parentRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver((entries) => {
-      const w = entries[0]?.contentRect.width ?? el.clientWidth;
-      const cols = Math.max(1, Math.min(8, Math.floor((w + 4) / (CARD_W + 4))));
-      setGridColumns((prev) => (prev !== cols ? cols : prev));
-    });
-    ro.observe(el);
-    // initial
-    const w = el.clientWidth;
-    if (w) {
-      const cols = Math.max(1, Math.min(8, Math.floor((w + 4) / (CARD_W + 4))));
-      setGridColumns(cols);
+
+  const collectionSuggestionItems = useMemo(
+    () =>
+      items.map((item) => ({
+        title: item.title,
+        altTitles: item.altTitles,
+        subtitle: item.status,
+      })),
+    [items]
+  );
+
+  const collectionExtraValues = useMemo<Array<{ kind: "local"; value: string }>>(() => {
+    const hints: Array<{ kind: "local"; value: string }> = [];
+    const push = (value: string) => hints.push({ kind: "local", value });
+    push("source:anilist");
+    push("source:tmdb");
+    push("source:custom");
+    push("type:anime");
+    push("type:movie");
+    push("type:series");
+    push("type:custom");
+    for (const s of statuses) push(`status:${s.id}`);
+    for (const p of ["low", "normal", "high"] as const) push(`priority:${p}`);
+    const studios = new Set<string>();
+    const genres = new Set<string>();
+    const years = new Set<string>();
+    const ratings = new Set<string>();
+    for (const item of items) {
+      if (item.studio) studios.add(item.studio);
+      for (const g of item.genres) if (g) genres.add(g);
+      if (item.year != null) years.add(String(item.year));
+      if (item.rating != null) ratings.add(String(item.rating));
     }
-    return () => ro.disconnect();
-  }, []);
+    for (const v of studios) push(`studio:${v}`);
+    for (const v of genres) push(`genre:${v}`);
+    for (const v of years) push(`year:${v}`);
+    for (const v of ratings) push(`rating:${v}`);
+    return hints;
+  }, [items, statuses]);
+
+  const field = useSearchField({
+    scope: "filter",
+    query: searchQuery,
+    setQuery: setSearchQuery,
+    collectionItems: collectionSuggestionItems,
+    extraValues: collectionExtraValues,
+    historyScope: "filter",
+  });
 
   const searchResults = useCollectionSearch(searchQuery, items);
-  const filteredItems = useMemo(
+
+  const filtered = useMemo(
     () =>
       filterCollectionItems(
         items,
         searchResults,
-        groupByStatus ? "all" : selectedStatus,
+        selectedStatus,
         searchQuery,
         filters,
         sortBy,
         sortDir
       ),
-    [
-      items,
-      searchResults,
-      groupByStatus,
-      selectedStatus,
-      searchQuery,
-      filters,
-      sortBy,
-      sortDir,
-    ]
+    [items, searchResults, searchQuery, selectedStatus, filters, sortBy, sortDir]
   );
 
-  const stats = useMemo(
-    () => calculateCollectionStats(items, statuses),
-    [items, statuses]
-  );
+  const statusCounts = useMemo(() => {
+    const stats = calculateCollectionStats(items, statuses);
+    return { ...stats.byStatus, all: stats.total } as Record<string, number>;
+  }, [items, statuses]);
 
-  const rowVirtualizer = useVirtualizer({
-    count: Math.ceil(filteredItems.length / gridColumns),
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => CARD_H + 8,
-    overscan: 2,
-  });
+  const handleAdd = useCallback(() => {
+    setEditingItem(null);
+    setShowWizard(true);
+  }, []);
+
+  const handleEdit = useCallback((item: CollectionItem) => {
+    setEditingItem(item);
+    setShowWizard(true);
+  }, []);
+
+  const handleStatusManager = useCallback(() => setStatusManager(true), []);
+  const handleAnilistImport = useCallback(() => setAnilistImport(true), []);
 
   return (
-    <StatusMetaContext.Provider value={statuses}>
-      <main className="flex h-full w-full flex-col gap-1 overflow-hidden">
-        <CollectionToolbar
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          sortBy={sortBy}
-          sortDir={sortDir}
-          onSortChange={setSort}
-          groupByStatus={groupByStatus}
-          onToggleGroupBy={() => setGroupByStatus(!groupByStatus)}
-          onToggleFilters={() => setShowFilters((v) => !v)}
-          onAdd={() => {
+    <main className="flex h-full w-full flex-col gap-1 overflow-hidden">
+      <ToolbarCollection
+        handleAdd={handleAdd}
+        handleStatusManager={handleStatusManager}
+        handleAnilistImport={handleAnilistImport}
+        handleShowFilters={() => setShowFilters((v) => !v)}
+        field={field}
+        sortBy={sortBy}
+        sortDir={sortDir}
+        onSortChange={setSort}
+      />
+
+      <FilterCollection
+        open={showFilters}
+        filters={filters}
+        onApply={(f) => setFilters(f)}
+        onReset={() => setFilters({ ...DEFAULT_FILTERS, mediaTypes: [], genres: [] })}
+        onClose={() => setShowFilters(false)}
+      />
+
+      <StatusCollection
+        statuses={statuses}
+        selectedStatus={selectedStatus}
+        onSelect={setSelectedStatus}
+        counts={statusCounts}
+      />
+
+      {viewMode === "grid" ? (
+        <GridCollection
+          items={filtered}
+          statuses={statuses}
+          display={displayMode}
+          onOpen={setDetailItem}
+          onEdit={handleEdit}
+          onSetStatus={setItemStatus}
+        />
+      ) : (
+        <ListCollection
+          items={filtered}
+          statuses={statuses}
+          onOpen={setDetailItem}
+          onEdit={handleEdit}
+          onSetStatus={setItemStatus}
+        />
+      )}
+
+      {showWizard && (
+        <WizardModalCollection
+          open={showWizard}
+          onClose={() => {
+            setShowWizard(false);
             setEditingItem(null);
+          }}
+          onSave={(item) => {
+            if (editingItem) updateItem(editingItem.id, item);
+            else mutations.addItem(item);
+          }}
+          onDelete={(id) => {
+            mutations.removeItem(id);
+            setShowWizard(false);
+            setEditingItem(null);
+          }}
+          initial={editingItem}
+          statuses={statuses}
+          customFieldDefs={customFieldDefs}
+        />
+      )}
+      {anilistImport && (
+        <ImportAnilistCollection
+          open={anilistImport}
+          onClose={() => setAnilistImport(false)}
+          onImported={() => {}}
+        />
+      )}
+
+      {detailItem && (
+        <DetailCollection
+          item={detailItem}
+          items={items}
+          statuses={statuses}
+          onClose={() => setDetailItem(null)}
+          onOpenItem={setDetailItem}
+          onEdit={(item) => {
+            setEditingItem(item);
+            setDetailItem(null);
             setShowWizard(true);
           }}
-          onOpenStatusManager={() => setShowStatusManager(true)}
-          onExportJson={dataActions.handleExportJson}
-          onExportZip={dataActions.handleExportZip}
-          onImportFile={dataActions.handleImportFile}
+          onDelete={(id) => {
+            setDetailItem(null);
+            setPendingDelete(id);
+          }}
+          updateItem={updateItem}
+          refreshMetadata={refreshMetadata}
         />
+      )}
 
-        {showFilters && (
-          <CollectionFiltersPanel filters={filters} setFilters={setFilters} />
-        )}
-
-        {activeSection === "library" && !groupByStatus && (
-          <CollectionStatusTabs
-            statuses={statuses}
-            selectedStatus={selectedStatus}
-            onSelect={setSelectedStatus}
-          />
-        )}
-
-        <div className="min-h-0 flex-1 overflow-hidden">
-          {activeSection === "statistics" ? (
-            <CollectionStatisticsSection stats={stats} />
-          ) : groupByStatus ? (
-            <CollectionStatusGroups
-              items={filteredItems}
-              statuses={statuses}
-              collapsed={collapsedStatuses}
-              onToggleCollapsed={toggleStatusCollapsed}
-              onEdit={(item) => {
-                setEditingItem(item);
-                setShowWizard(true);
-              }}
-              onOpen={setDetailItem}
-              onSetStatus={setItemStatus}
-            />
-          ) : (
-            <CollectionItemsGrid
-              items={filteredItems}
-              rowVirtualizer={rowVirtualizer}
-              scrollRef={parentRef}
-              columns={gridColumns}
-              onEdit={(item) => {
-                setEditingItem(item);
-                setShowWizard(true);
-              }}
-              onOpen={setDetailItem}
-              onSetStatus={setItemStatus}
-            />
-          )}
-        </div>
-
-        {showWizard && (
-          <WizardModal
-            open={showWizard}
-            onClose={() => {
-              setShowWizard(false);
-              setEditingItem(null);
-            }}
-            onSave={(item) => {
-              if (editingItem) updateItem(editingItem.id, item);
-              else addItem(item);
-            }}
-            onDelete={(id) => {
-              removeItem(id);
-              setShowWizard(false);
-              setEditingItem(null);
-            }}
-            initial={editingItem}
-            customFieldDefs={customFieldDefs}
-          />
-        )}
-
-        {detailItem && (
-          <CollectionDetailModal
-            item={detailItem}
-            reviews={reviews}
-            items={items}
-            onClose={() => setDetailItem(null)}
-            onOpenItem={setDetailItem}
-            onEdit={(item) => {
-              setEditingItem(item);
-              setDetailItem(null);
-              setShowWizard(true);
-            }}
-            onDelete={(id) => {
-              setDetailItem(null);
-              setPendingDelete(id);
-            }}
-            updateItem={updateItem}
-            refreshMetadata={refreshMetadata}
-          />
-        )}
-
-        {pendingDelete && (
-          <ConfirmDialog
-            open
-            title={t("collection.deleteMediaTitle")}
-            message={t("collection.deleteMediaMessage")}
-            confirmLabel={t("common.delete")}
-            variant="destructive"
-            onConfirm={() => {
-              removeItem(pendingDelete);
-              setPendingDelete(null);
-            }}
-            onCancel={() => setPendingDelete(null)}
-            onClose={() => setPendingDelete(null)}
-          />
-        )}
-        {dataActions.importStrategyOpen && dataActions.importFile && (
-          <SelectDialog
-            header={t("collection.import.title")}
-            label={t("collection.import.overwriteConfirm")}
-            options={[
-              { value: "overwrite", label: t("collection.import.overwrite") },
-              { value: "skip", label: t("collection.import.skip") },
-            ]}
-            onSubmit={dataActions.handleConfirmImport}
-            onClose={dataActions.handleCloseImport}
-          />
-        )}
-        {showStatusManager && (
-          <StatusManagerModal
-            statuses={statuses}
-            onUpsert={(status) => mutations.upsertStatus(status)}
-            onDelete={(id) => mutations.deleteStatus(id)}
-            onClose={() => setShowStatusManager(false)}
-          />
-        )}
-      </main>
-    </StatusMetaContext.Provider>
+      {pendingDelete && (
+        <ConfirmDialog
+          open
+          title={t("collection.delete.media.title")}
+          message={t("collection.delete.media.message")}
+          confirmLabel={t("common.delete")}
+          variant="destructive"
+          onConfirm={() => {
+            mutations.removeItem(pendingDelete);
+            setPendingDelete(null);
+          }}
+          onCancel={() => setPendingDelete(null)}
+          onClose={() => setPendingDelete(null)}
+        />
+      )}
+      {dataActions.importStrategyOpen && dataActions.importFile && (
+        <SelectDialog
+          header={t("collection.import.title")}
+          label={t("collection.import.overwrite.confirm")}
+          options={[
+            { value: "overwrite", label: t("collection.import.overwrite") },
+            { value: "skip", label: t("collection.import.skip") },
+          ]}
+          onSubmit={dataActions.handleConfirmImport}
+          onClose={dataActions.handleCloseImport}
+        />
+      )}
+      {statusManager && (
+        <StatusManagerCollection
+          statuses={statuses}
+          onUpsert={(status) => mutations.upsertStatus(status)}
+          onDelete={(id) => mutations.deleteStatus(id)}
+          onClose={() => setStatusManager(false)}
+        />
+      )}
+    </main>
   );
-}
+}

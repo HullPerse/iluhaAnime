@@ -3,9 +3,6 @@ import ultracite from "ultracite/oxfmt";
 
 export default defineConfig({
   ...ultracite,
-  ignorePatterns: [
-    ...(ultracite.ignorePatterns ?? []),
-    "src-tauri/**",
-    "md/**",
-  ],
+  printWidth: 100,
+  ignorePatterns: [...(ultracite.ignorePatterns ?? []), "src-tauri/**", "md/**"],
 });

@@ -6,10 +6,7 @@ import type { ReactZoomPanPinchRef } from "react-zoom-pan-pinch";
 
 import { SmallLoader } from "@/components/shared/loader.component";
 import { Button } from "@/components/ui/button.component";
-import {
-  FRANCHISE_CACHE_TTL_MS,
-  FRANCHISE_CACHE_VERSION,
-} from "@/config/franchise.config";
+import { FRANCHISE_CACHE_TTL_MS, FRANCHISE_CACHE_VERSION } from "@/config/franchise.config";
 import {
   filterGraph,
   filterFranchiseNodesBySearch,
@@ -49,21 +46,15 @@ function FranchiseGraphSection({
   const [activeFilters, setActiveFilters] = useState<Set<RelationFilter>>(
     () => new Set(["SEQUEL", "PREQUEL", "SIDE_STORY"])
   );
-  const [positions, setPositions] = useState<
-    Map<number, FranchiseNodePosition>
-  >(new Map());
+  const [positions, setPositions] = useState<Map<number, FranchiseNodePosition>>(new Map());
   const [containerWidth, setContainerWidth] = useState(800);
   const [dragging, setDragging] = useState<DragState | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [resetKey, setResetKey] = useState(0);
   const [listView, setListView] = useState(false);
-  const [expandedGroups, setExpandedGroups] = useState<Set<RelationFilter>>(
-    new Set()
-  );
-  const [cacheSource, setCacheSource] = useState<"cache" | "fresh" | null>(
-    null
-  );
+  const [expandedGroups, setExpandedGroups] = useState<Set<RelationFilter>>(new Set());
+  const [cacheSource, setCacheSource] = useState<"cache" | "fresh" | null>(null);
   const [countDiff, setCountDiff] = useState<string | null>(null);
   const prevNodeCountRef = useRef<number | null>(null);
 
@@ -101,7 +92,7 @@ function FranchiseGraphSection({
         const prev = prevNodeCountRef.current;
         const cur = fresh.nodes.length;
         if (prev !== cur) {
-          setCountDiff(t("anilist.franchise.updatedCount", { prev, cur }));
+          setCountDiff(t("anilist.franchise.updated.count", { prev, cur }));
         }
       }
       prevNodeCountRef.current = fresh.nodes.length;
@@ -121,9 +112,7 @@ function FranchiseGraphSection({
 
   useEffect(() => {
     if (data) {
-      useCacheStore
-        .getState()
-        .setFranchiseCache(franchiseCacheKey(animeId), data);
+      useCacheStore.getState().setFranchiseCache(franchiseCacheKey(animeId), data);
       prevNodeCountRef.current = data.nodes.length;
     }
   }, [data, animeId]);
@@ -135,17 +124,13 @@ function FranchiseGraphSection({
 
   const relationMap = useMemo(
     () =>
-      data && filtered
-        ? computeNodeRelationMap(data, filtered.nodeMap)
-        : new Map<number, string>(),
+      data && filtered ? computeNodeRelationMap(data, filtered.nodeMap) : new Map<number, string>(),
     [data, filtered]
   );
 
   const mainlineIds = useMemo(
     () =>
-      data && filtered
-        ? computeMainlineIds(data, filtered.nodeMap, animeId)
-        : new Set<number>(),
+      data && filtered ? computeMainlineIds(data, filtered.nodeMap, animeId) : new Set<number>(),
     [data, filtered, animeId]
   );
 
@@ -155,10 +140,7 @@ function FranchiseGraphSection({
   }, [filtered, relationMap, animeId, expandedGroups]);
 
   const searchMatchIds = useMemo(
-    () =>
-      collapsed
-        ? filterFranchiseNodesBySearch(collapsed.graph.nodeMap, searchQuery)
-        : null,
+    () => (collapsed ? filterFranchiseNodesBySearch(collapsed.graph.nodeMap, searchQuery) : null),
     [searchQuery, collapsed]
   );
 
@@ -178,10 +160,7 @@ function FranchiseGraphSection({
 
   const totalNodes = collapsed?.graph.nodeMap.size ?? 0;
   const dims = useMemo(() => computeNodeDimensions(totalNodes), [totalNodes]);
-  const { totalH, displayH } = useMemo(
-    () => computeGraphMetrics(totalNodes),
-    [totalNodes]
-  );
+  const { totalH, displayH } = useMemo(() => computeGraphMetrics(totalNodes), [totalNodes]);
 
   useEffect(() => {
     if (resetKey < 0) return;
@@ -199,31 +178,16 @@ function FranchiseGraphSection({
 
     setPositions(initialPositions);
 
-    const sim = runFranchiseSimulation(
-      simNodes,
-      containerWidth,
-      totalH,
-      dims,
-      (nextPositions) => {
-        setPositions(nextPositions);
-      }
-    );
+    const sim = runFranchiseSimulation(simNodes, containerWidth, totalH, dims, (nextPositions) => {
+      setPositions(nextPositions);
+    });
 
     simRef.current = sim;
     return () => {
       sim.stop();
       simRef.current = null;
     };
-  }, [
-    collapsed,
-    animeId,
-    containerWidth,
-    totalH,
-    dims,
-    resetKey,
-    relationMap,
-    mainlineIds,
-  ]);
+  }, [collapsed, animeId, containerWidth, totalH, dims, resetKey, relationMap, mainlineIds]);
 
   useEffect(() => {
     if (!dragging || !transformRef.current) return;
@@ -254,20 +218,10 @@ function FranchiseGraphSection({
   }, [dragging]);
 
   useEffect(() => {
-    if (
-      !expanded ||
-      positions.size === 0 ||
-      zoomedOnceRef.current ||
-      !transformRef.current
-    )
-      return;
+    if (!expanded || positions.size === 0 || zoomedOnceRef.current || !transformRef.current) return;
     zoomedOnceRef.current = true;
     requestAnimationFrame(() => {
-      transformRef.current?.zoomToElement(
-        `franchise-node-${animeId}`,
-        1.5,
-        300
-      );
+      transformRef.current?.zoomToElement(`franchise-node-${animeId}`, 1.5, 300);
     });
   }, [expanded, positions, animeId]);
 
@@ -290,25 +244,22 @@ function FranchiseGraphSection({
     [onRelated, collapsed]
   );
 
-  const handleNodeMouseDown = useCallback(
-    (e: React.MouseEvent, nodeId: number) => {
-      if (e.button !== 0) return;
-      e.stopPropagation();
-      e.preventDefault();
-      dragMovedRef.current = false;
-      simRef.current?.alpha(0).stop();
-      const p = positionsRef.current.get(nodeId);
-      if (!p) return;
-      setDragging({
-        id: nodeId,
-        startMouseX: e.clientX,
-        startMouseY: e.clientY,
-        startNodeX: p.x,
-        startNodeY: p.y,
-      });
-    },
-    []
-  );
+  const handleNodeMouseDown = useCallback((e: React.MouseEvent, nodeId: number) => {
+    if (e.button !== 0) return;
+    e.stopPropagation();
+    e.preventDefault();
+    dragMovedRef.current = false;
+    simRef.current?.alpha(0).stop();
+    const p = positionsRef.current.get(nodeId);
+    if (!p) return;
+    setDragging({
+      id: nodeId,
+      startMouseX: e.clientX,
+      startMouseY: e.clientY,
+      startNodeX: p.x,
+      startNodeY: p.y,
+    });
+  }, []);
 
   const toggleFilter = (group: RelationFilter) => {
     setActiveFilters((prev) => {
@@ -323,11 +274,8 @@ function FranchiseGraphSection({
     return (
       <div className="flex flex-col items-center justify-center gap-2 p-4 text-sm">
         <span className="text-destructive windows95-text">
-          {t("anilist.franchise.loadError", {
-            error:
-              error instanceof Error
-                ? error.message
-                : t("anilist.franchise.unknownError"),
+          {t("anilist.franchise.load.error", {
+            error: error instanceof Error ? error.message : t("anilist.franchise.unknown.error"),
           })}
         </span>
         <Button
@@ -373,9 +321,7 @@ function FranchiseGraphSection({
         onResetLayout={resetSimulation}
         onRefresh={() => {
           setCountDiff(null);
-          useCacheStore
-            .getState()
-            .clearFranchiseCache(franchiseCacheKey(animeId));
+          useCacheStore.getState().clearFranchiseCache(franchiseCacheKey(animeId));
           setRefreshKey((key) => key + 1);
         }}
       />

@@ -15,16 +15,16 @@ type EraiErrorCode =
   | "network";
 
 const ERROR_KEYS: Record<EraiErrorCode, TranslationKey> = {
-  webview_open: "search.erai.errWebviewOpen",
-  webview_save: "search.erai.errWebviewSave",
-  webview_not_found: "search.erai.errWebviewNotFound",
-  no_session: "search.erai.errNoSession",
-  network: "search.erai.errNetwork",
+  webview_open: "search.erai.err.webview.open",
+  webview_save: "search.erai.err.webview.save",
+  webview_not_found: "search.erai.err.webview.not.found",
+  no_session: "search.erai.err.no.session",
+  network: "search.erai.err.network",
 };
 
 function mapError(raw: string, t: (key: TranslationKey) => string): string {
   const code = raw.split(":")[0].trim() as EraiErrorCode;
-  return t(ERROR_KEYS[code] ?? "search.erai.errUnknown");
+  return t(ERROR_KEYS[code] ?? "search.erai.err.unknown");
 }
 
 export default function EraiLoginModal({
@@ -73,15 +73,13 @@ export default function EraiLoginModal({
           {t("search.erai.hint")}
         </span>
         <Button onClick={openBrowser} disabled={loading}>
-          {loading ? <SmallLoader /> : t("search.erai.openBrowser")}
+          {loading ? <SmallLoader /> : t("search.erai.open.browser")}
         </Button>
-        {error && (
-          <span className="text-destructive windows95-text">{error}</span>
-        )}
+        {error && <span className="text-destructive windows95-text">{error}</span>}
         <div className="mt-1 flex justify-end gap-1">
           <Button onClick={close}>{t("common.cancel")}</Button>
           <Button onClick={saveSession} disabled={loading}>
-            {loading ? <SmallLoader /> : t("search.erai.saveSession")}
+            {loading ? <SmallLoader /> : t("search.erai.save.session")}
           </Button>
         </div>
       </div>

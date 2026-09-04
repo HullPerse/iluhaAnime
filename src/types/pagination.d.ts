@@ -1,3 +1,5 @@
+import type { RefObject } from "react";
+
 export interface PaginationResult {
   total: number;
   from: number;
@@ -15,4 +17,5 @@ export interface PaginationProps {
   to: number;
   onPageChange: (page: number) => void;
   statusText?: string;
+  scrollRef?: RefObject<HTMLElement | null>;
 }

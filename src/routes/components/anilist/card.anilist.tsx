@@ -10,10 +10,7 @@ import type { AniMedia, AniListAnime } from "@/types/anilist";
 
 interface Props {
   item: AniMedia;
-  entryLookup: Map<
-    number,
-    { progress: number | null; score: number | null; list_status: string }
-  >;
+  entryLookup: Map<number, { progress: number | null; score: number | null; list_status: string }>;
   onClick: (anime: AniListAnime) => void;
 }
 
@@ -59,10 +56,7 @@ function AniListEntryCard({ item, entryLookup, onClick }: Props) {
                     height: 10,
                     backgroundColor: getStatusColor(entry.list_status),
                   }}
-                  title={t(
-                    (listStatusLabels[entry.list_status] ??
-                      entry.list_status) as never
-                  )}
+                  title={t((listStatusLabels[entry.list_status] ?? entry.list_status) as never)}
                 />
               )}
               {item.title}
@@ -76,10 +70,7 @@ function AniListEntryCard({ item, entryLookup, onClick }: Props) {
               </span>
             )}
             <span className="text-text text-xs">
-              {t(
-                (statusLabels[item.status.toUpperCase()] ??
-                  item.status) as never
-              )}
+              {t((statusLabels[item.status.toUpperCase()] ?? item.status) as never)}
             </span>
             {entry?.progress != null && item.episodes && (
               <div className="flex items-center gap-1">
@@ -96,16 +87,12 @@ function AniListEntryCard({ item, entryLookup, onClick }: Props) {
                 </span>
               </div>
             )}
-            {entry?.progress != null &&
-              entry?.progress > 0 &&
-              !item.episodes && (
-                <span className="bg-secondary px-1 text-xs text-white">
-                  {entry.progress}
-                </span>
-              )}
+            {entry?.progress != null && entry?.progress > 0 && !item.episodes && (
+              <span className="bg-secondary px-1 text-xs text-white">{entry.progress}</span>
+            )}
             {!entry && item.episodes && (
               <span className="text-text text-xs">
-                {item.episodes} {t("anilist.details.epsShort")}
+                {item.episodes} {t("anilist.details.eps.short")}
               </span>
             )}
           </div>

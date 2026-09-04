@@ -1,16 +1,10 @@
 import type { Update } from "@tauri-apps/plugin-updater";
 import { check } from "@tauri-apps/plugin-updater";
-import { clsx } from "clsx";
-import type { ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
-
 import type { LanguageTag } from "@/types";
-
 import type { TorrentTreeNode } from "./torrent.utils";
 
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
+export { cn } from "cn";
+
 
 export function detectLanguages(title: string): LanguageTag[] {
   const tags: LanguageTag[] = [];
@@ -19,14 +13,12 @@ export function detectLanguages(title: string): LanguageTag[] {
   if (/\bRUS\b/.test(upper) || /\bRU\b/.test(upper) || /\[Рус\]/.test(title))
     tags.push({ code: "ru", label: "RU" });
 
-  if (/\bENG\b/.test(upper) || /\bEN\b/.test(upper))
-    tags.push({ code: "en", label: "EN" });
+  if (/\bENG\b/.test(upper) || /\bEN\b/.test(upper)) tags.push({ code: "en", label: "EN" });
 
   if (/\bMULTISUB\b/.test(upper) || /\bMULTIPLE SUBTITLE\b/.test(upper))
     tags.push({ code: "multi", label: "Multi" });
 
-  if (/\bDUAL[- ]?AUDIO\b/.test(upper))
-    tags.push({ code: "dual", label: "Dual" });
+  if (/\bDUAL[- ]?AUDIO\b/.test(upper)) tags.push({ code: "dual", label: "Dual" });
 
   const langMap: Record<string, string> = {
     ARA: "AR",
@@ -60,8 +52,7 @@ export function formatTime(seconds: number): string {
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
   const s = Math.floor(seconds % 60);
-  if (h > 0)
-    return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  if (h > 0) return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 

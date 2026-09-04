@@ -2,12 +2,7 @@ import type { Event } from "@tauri-apps/api/event";
 
 import type { TranslationKey } from "@/lib/i18n";
 import type { TranslationVariables } from "@/types";
-import type {
-  TorrentFileInfo,
-  TorrentInfo,
-  TorrentStore,
-  FilePriority,
-} from "@/types/torrent";
+import type { TorrentFileInfo, TorrentInfo, TorrentStore, FilePriority } from "@/types/torrent";
 
 type TFunc = (key: TranslationKey, variables?: TranslationVariables) => string;
 
@@ -22,20 +17,19 @@ export function fmtETA(secs: number | null, t: TFunc): string {
   if (!secs || secs <= 0 || !isFinite(secs)) return "";
   if (secs < 60) return t("torrent.eta.seconds", { s: Math.round(secs) });
   if (secs < 3600)
-    return t("torrent.eta.minutesSeconds", {
+    return t("torrent.eta.minutes.seconds", {
       m: Math.floor(secs / 60),
       s: Math.round(secs % 60),
     });
   const h = Math.floor(secs / 3600);
   const m = Math.floor((secs % 3600) / 60);
-  return t("torrent.eta.hoursMinutes", { h, m });
+  return t("torrent.eta.hours.minutes", { h, m });
 }
 
 export function fmtSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  if (bytes < 1024 * 1024 * 1024)
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 }
 
@@ -44,20 +38,12 @@ export function fmtElapsed(sec: number, t: TFunc): string {
   const s = sec % 60;
   if (m === 0) return t("torrent.eta.seconds", { s });
   if (s === 0) return t("torrent.eta.minutes", { m });
-  return t("torrent.eta.minutesSeconds", { m, s });
+  return t("torrent.eta.minutes.seconds", { m, s });
 }
 
-export type TorrentLifecycle =
-  | "staging"
-  | "live"
-  | "paused"
-  | "seeding"
-  | "completed";
+export type TorrentLifecycle = "staging" | "live" | "paused" | "seeding" | "completed";
 
-export function getTorrentLifecycle(
-  state: string,
-  finished: boolean
-): TorrentLifecycle {
+export function getTorrentLifecycle(state: string, finished: boolean): TorrentLifecycle {
   if (state === "initializing") return "staging";
   if (state === "live" && finished) return "seeding";
   if (state === "live" && !finished) return "live";
@@ -66,10 +52,7 @@ export function getTorrentLifecycle(
   return "live";
 }
 
-export function getLifecycleLabel(
-  lifecycle: TorrentLifecycle,
-  t: TFunc
-): string {
+export function getLifecycleLabel(lifecycle: TorrentLifecycle, t: TFunc): string {
   switch (lifecycle) {
     case "staging": {
       return t("torrent.lifecycle.staging");
@@ -185,9 +168,7 @@ export function buildTorrentTree(files: TorrentFileInfo[]): {
 
   return {
     nodes: root.children.sort((a, b) => a.name.localeCompare(b.name)),
-    rootFiles: root.files.sort((a, b) =>
-      a.displayName.localeCompare(b.displayName)
-    ),
+    rootFiles: root.files.sort((a, b) => a.displayName.localeCompare(b.displayName)),
   };
 }
 
@@ -226,16 +207,11 @@ export function groupFilesByDirectory(
     })
     .map(([, group]) => ({
       ...group,
-      files: group.files.sort((a, b) =>
-        a.displayName.localeCompare(b.displayName)
-      ),
+      files: group.files.sort((a, b) => a.displayName.localeCompare(b.displayName)),
     }));
 }
 
-export function TorrentListen(
-  state: TorrentStore,
-  event: Event<TorrentInfo[]>
-) {
+export function TorrentListen(state: TorrentStore, event: Event<TorrentInfo[]>) {
   const next = event.payload;
   const prev = state.torrents;
 

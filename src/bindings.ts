@@ -4,8 +4,7 @@ import { invoke as __TAURI_INVOKE } from "@tauri-apps/api/core";
 
 /** Commands */
 export const commands = {
-  getBackendCapabilities: () =>
-    __TAURI_INVOKE<BackendCapabilities>("get_backend_capabilities"),
+  getBackendCapabilities: () => __TAURI_INVOKE<BackendCapabilities>("get_backend_capabilities"),
 };
 
 /* Types */

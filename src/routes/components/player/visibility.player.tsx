@@ -33,11 +33,7 @@ export default function PlayerVisibilityModal({
   const isEmpty = folders.length === 0 && torrents.length === 0;
 
   return (
-    <Modal
-      header={t("player.visibility.title")}
-      onClose={onClose}
-      className="w-[min(40rem,92vw)]"
-    >
+    <Modal header={t("player.visibility.title")} onClose={onClose} className="w-[min(40rem,92vw)]">
       <div className="flex max-h-[min(32rem,65vh)] flex-col gap-2 overflow-y-auto">
         {isEmpty && (
           <div className="windows95-border bg-surface windows95-text p-3 text-center text-xs">
@@ -118,9 +114,7 @@ export default function PlayerVisibilityModal({
         {!isEmpty && (
           <div className="text-hint flex items-center gap-1 text-xs">
             <Trash2 className="size-3" />
-            <span className="windows95-text">
-              {t("player.visibility.note")}
-            </span>
+            <span className="windows95-text">{t("player.visibility.note")}</span>
           </div>
         )}
       </div>

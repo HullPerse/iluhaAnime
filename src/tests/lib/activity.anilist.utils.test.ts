@@ -10,21 +10,15 @@ import {
   type ActivityTranslate,
   type DayActivity,
 } from "@/lib/activity.utils";
-import type {
-  AniListCollection,
-  AniListEntry,
-  AniMedia,
-} from "@/types/anilist";
+import type { AniListCollection, AniListEntry, AniMedia } from "@/types/anilist";
 
 function makeT(): ActivityTranslate {
   return (key, variables) => {
-    if (key === "anilist.activity.minutesAgo")
-      return `${variables?.count ?? 0} min`;
-    if (key === "anilist.activity.hoursAgo")
-      return `${variables?.count ?? 0} h`;
-    if (key === "anilist.activity.eventAdded") return "Added";
-    if (key === "anilist.activity.eventProgress") return "Progress";
-    if (key === "anilist.activity.eventCompleted") return "Completed";
+    if (key === "anilist.activity.minutes.ago") return `${variables?.count ?? 0} min`;
+    if (key === "anilist.activity.hours.ago") return `${variables?.count ?? 0} h`;
+    if (key === "anilist.activity.event.added") return "Added";
+    if (key === "anilist.activity.event.progress") return "Progress";
+    if (key === "anilist.activity.event.completed") return "Completed";
     return key;
   };
 }
@@ -71,9 +65,7 @@ function makeEntry(overrides: Partial<AniListEntry> = {}): AniListEntry {
   };
 }
 
-function makeCollection(
-  overrides: Partial<AniListCollection> = {}
-): AniListCollection {
+function makeCollection(overrides: Partial<AniListCollection> = {}): AniListCollection {
   return {
     name: "Watching",
     entries: [],
@@ -103,9 +95,7 @@ describe("formatActivityTime", () => {
   const now = Date.now() / 1000;
   const t = makeT();
   it("returns justNow within a minute", () => {
-    expect(formatActivityTime(now - 30, t, "en")).toBe(
-      "anilist.activity.justNow"
-    );
+    expect(formatActivityTime(now - 30, t, "en")).toBe("anilist.activity.just.now");
   });
   it("returns minutesAgo within an hour", () => {
     expect(formatActivityTime(now - 120, t, "en")).toBe("2 min");
@@ -126,9 +116,7 @@ describe("groupLabel", () => {
     expect(groupLabel(now, t, "en")).toBe("anilist.activity.today");
   });
   it("returns yesterday for the previous day", () => {
-    expect(groupLabel(now - 86_400, t, "en")).toBe(
-      "anilist.activity.yesterday"
-    );
+    expect(groupLabel(now - 86_400, t, "en")).toBe("anilist.activity.yesterday");
   });
   it("returns absolute date for older", () => {
     const result = groupLabel(now - 3 * 86_400, t, "en");
@@ -200,9 +188,7 @@ describe("buildYearGrid", () => {
     expect(columns.length).toBeGreaterThan(0);
     const allCells = columns.flatMap((c) => c.cells);
     expect(allCells.some((cell) => cell.count === 2)).toBe(true);
-    expect(
-      allCells.filter((cell) => cell.date.getFullYear() === 2024).length
-    ).toBeGreaterThan(0);
+    expect(allCells.filter((cell) => cell.date.getFullYear() === 2024).length).toBeGreaterThan(0);
   });
 
   it("assigns level 4 to the busiest day", () => {

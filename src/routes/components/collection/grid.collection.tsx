@@ -1,85 +1,215 @@
-import type { Virtualizer } from "@tanstack/react-virtual";
-import type { RefObject } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
+import { useEffect, useMemo, useRef, useState } from "react";
 
-import type { CollectionItem, CollectionStatus } from "@/types/collection";
+import Pagination from "@/components/shared/pagination.component";
+import { CARD_POSTER_H, CARD_W } from "@/config/collection.config";
+import { useGridColumns } from "@/hooks/gridColumns.hook";
+import { usePagination } from "@/hooks/pagination.hook";
+import { paginate } from "@/lib/pagination.utils";
+import { useSettingsStore } from "@/store/settings.store";
+import type {
+  CollectionItem,
+  CollectionStatus,
+  CollectionStatusDef,
+  CollectionStore,
+} from "@/types/collection";
 
 import { CollectionCard } from "./card.collection";
 
-export function CollectionItemsGrid({
-  items,
-  rowVirtualizer,
-  scrollRef,
+const ROW_GAP = 8;
+// Title block (h-10) + status bar (h-7) below the poster.
+const CARD_TEXT_H = 68;
+
+interface GridCollectionProps {
+  items: CollectionItem[];
+  statuses: CollectionStatusDef[];
+  display: CollectionStore["displayMode"];
+  onOpen?: (item: CollectionItem) => void;
+  onEdit?: (item: CollectionItem) => void;
+  onSetStatus?: (item: CollectionItem, status: CollectionStatus) => void;
+}
+
+function GridRow({
+  rowItems,
   columns,
-  onEdit,
+  statuses,
   onOpen,
+  onEdit,
   onSetStatus,
 }: {
-  items: CollectionItem[];
-  rowVirtualizer: Virtualizer<HTMLDivElement, Element>;
-  scrollRef: RefObject<HTMLDivElement | null>;
+  rowItems: CollectionItem[];
   columns: number;
-  onEdit: (item: CollectionItem) => void;
-  onOpen: (item: CollectionItem) => void;
+  statuses: CollectionStatusDef[];
+  onOpen?: (item: CollectionItem) => void;
+  onEdit?: (item: CollectionItem) => void;
   onSetStatus?: (item: CollectionItem, status: CollectionStatus) => void;
 }) {
   return (
-    <div
-      ref={scrollRef}
-      className="flex min-h-0 flex-1 flex-col overflow-y-auto p-1"
+    <div className="flex w-full gap-2">
+      {rowItems.map((item) => (
+        <div key={item.id} className="min-w-0 flex-1">
+          <CollectionCard
+            item={item}
+            statuses={statuses}
+            onOpen={onOpen}
+            onEdit={onEdit}
+            onSetStatus={onSetStatus}
+          />
+        </div>
+      ))}
+      {rowItems.length < columns &&
+        Array.from({ length: columns - rowItems.length }, (_, fill) => (
+          <div key={`fill-${fill}`} aria-hidden className="min-w-0 flex-1" />
+        ))}
+    </div>
+  );
+}
+
+function GridScrollView({
+  items,
+  statuses,
+  onOpen,
+  onEdit,
+  onSetStatus,
+}: {
+  items: CollectionItem[];
+  statuses: CollectionStatusDef[];
+  onOpen?: (item: CollectionItem) => void;
+  onEdit?: (item: CollectionItem) => void;
+  onSetStatus?: (item: CollectionItem, status: CollectionStatus) => void;
+}) {
+  const parentRef = useRef<HTMLDivElement>(null);
+  const { columns, columnWidth } = useGridColumns(parentRef, CARD_W, ROW_GAP);
+  const rowVirtualizer = useVirtualizer({
+    count: Math.ceil(items.length / columns),
+    getScrollElement: () => parentRef.current,
+    getItemKey: (index) => items[index * columns]?.id ?? index,
+    estimateSize: () => (columnWidth * CARD_POSTER_H) / CARD_W + CARD_TEXT_H + ROW_GAP,
+    overscan: 2,
+  });
+
+  return (
+    <section
+      ref={parentRef}
+      className="windows95-border min-h-0 w-full flex-1 [scrollbar-gutter:stable] overflow-y-auto border bg-white p-1"
     >
-      {items.length <= 24 ? (
+      <div className="relative w-full" style={{ height: rowVirtualizer.getTotalSize() }}>
+        {rowVirtualizer.getVirtualItems().map((virtualRow) => (
+          <div
+            key={virtualRow.key}
+            data-index={virtualRow.index}
+            ref={(el) => {
+              if (el) rowVirtualizer.measureElement(el);
+            }}
+            className="absolute top-0 left-0 w-full pb-2"
+            style={{ transform: `translateY(${virtualRow.start}px)` }}
+          >
+            <GridRow
+              rowItems={items.slice(
+                virtualRow.index * columns,
+                virtualRow.index * columns + columns
+              )}
+              columns={columns}
+              statuses={statuses}
+              onOpen={onOpen}
+              onEdit={onEdit}
+              onSetStatus={onSetStatus}
+            />
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function GridPagedView({
+  items,
+  statuses,
+  onOpen,
+  onEdit,
+  onSetStatus,
+}: {
+  items: CollectionItem[];
+  statuses: CollectionStatusDef[];
+  onOpen?: (item: CollectionItem) => void;
+  onEdit?: (item: CollectionItem) => void;
+  onSetStatus?: (item: CollectionItem, status: CollectionStatus) => void;
+}) {
+  const pageSize = useSettingsStore((s) => s.pageSize);
+  const [page, setPage] = useState(1);
+  const scrollRef = useRef<HTMLElement>(null);
+  const { total, from, to, lastPage } = usePagination(items.length, pageSize, page, setPage);
+  const visible = useMemo(() => paginate(items, page, pageSize), [items, page, pageSize]);
+
+  useEffect(() => {
+    setPage(1);
+  }, []);
+  useEffect(() => {
+    setPage((current) => Math.min(current, lastPage));
+  }, [lastPage]);
+
+  return (
+    <div className="flex min-h-0 w-full flex-1 flex-col gap-1 overflow-hidden">
+      <section
+        ref={scrollRef}
+        className="windows95-border min-h-0 w-full flex-1 [scrollbar-gutter:stable] overflow-y-auto border bg-white p-1"
+      >
         <div
-          className="flex flex-wrap content-start gap-1 p-1"
-          style={{ minHeight: "100%" }}
+          className="grid content-start gap-2"
+          style={{ gridTemplateColumns: `repeat(auto-fit, minmax(${CARD_W}px, 1fr))` }}
         >
-          {items.map((item) => (
+          {visible.map((item) => (
             <CollectionCard
               key={item.id}
               item={item}
-              onEdit={onEdit}
+              statuses={statuses}
               onOpen={onOpen}
+              onEdit={onEdit}
               onSetStatus={onSetStatus}
             />
           ))}
         </div>
-      ) : (
-        <div
-          style={{
-            height: `${rowVirtualizer.getTotalSize()}px`,
-            position: "relative",
-            width: "100%",
-          }}
-        >
-          {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-            const start = virtualRow.index * columns;
-            const rowItems = items.slice(start, start + columns);
-            return (
-              <div
-                key={virtualRow.key}
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  width: "100%",
-                  transform: `translateY(${virtualRow.start}px)`,
-                }}
-              >
-                <div className="flex gap-1 px-1 py-1">
-                  {rowItems.map((item) => (
-                    <CollectionCard
-                      key={item.id}
-                      item={item}
-                      onEdit={onEdit}
-                      onOpen={onOpen}
-                      onSetStatus={onSetStatus}
-                    />
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+      </section>
+      {total > 0 && (
+        <Pagination
+          total={total}
+          page={page}
+          lastPage={lastPage}
+          from={from}
+          to={to}
+          onPageChange={setPage}
+          scrollRef={scrollRef}
+        />
       )}
     </div>
+  );
+}
+
+export default function GridCollection({
+  items,
+  statuses,
+  display,
+  onOpen,
+  onEdit,
+  onSetStatus,
+}: GridCollectionProps) {
+  if (display === "pagination")
+    return (
+      <GridPagedView
+        items={items}
+        statuses={statuses}
+        onOpen={onOpen}
+        onEdit={onEdit}
+        onSetStatus={onSetStatus}
+      />
+    );
+  return (
+    <GridScrollView
+      items={items}
+      statuses={statuses}
+      onOpen={onOpen}
+      onEdit={onEdit}
+      onSetStatus={onSetStatus}
+    />
   );
 }

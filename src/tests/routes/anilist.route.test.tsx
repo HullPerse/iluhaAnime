@@ -64,9 +64,7 @@ function listInvoke(cmd: string): Promise<unknown> {
       return Promise.resolve(user);
     }
     case "get_anilist_lists": {
-      return Promise.resolve([
-        { name: "Watching", isCustomList: false, entries: [] },
-      ]);
+      return Promise.resolve([{ name: "Watching", isCustomList: false, entries: [] }]);
     }
     case "get_favourites": {
       return Promise.resolve([]);

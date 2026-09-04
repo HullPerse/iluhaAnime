@@ -1,3 +1,4 @@
+import { cn } from "@/lib/index.utils";
 import { useQuery } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/core";
 import {
@@ -52,22 +53,16 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const STATUS_FILTERS: { value: string; key: TranslationKey }[] = [
-  { value: "", key: "anilist.activity.filterAll" },
-  { value: "CURRENT", key: "anilist.activity.filterCurrent" },
-  { value: "COMPLETED", key: "anilist.activity.filterCompleted" },
-  { value: "DROPPED", key: "anilist.activity.filterDropped" },
-  { value: "PAUSED", key: "anilist.activity.filterPaused" },
-  { value: "PLANNING", key: "anilist.activity.filterPlanning" },
-  { value: "REPEATING", key: "anilist.activity.filterRepeating" },
+  { value: "", key: "anilist.activity.filter.all" },
+  { value: "CURRENT", key: "anilist.activity.filter.current" },
+  { value: "COMPLETED", key: "anilist.activity.filter.completed" },
+  { value: "DROPPED", key: "anilist.activity.filter.dropped" },
+  { value: "PAUSED", key: "anilist.activity.filter.paused" },
+  { value: "PLANNING", key: "anilist.activity.filter.planning" },
+  { value: "REPEATING", key: "anilist.activity.filter.repeating" },
 ];
 
-function FeedItem({
-  a,
-  onAnimeClick,
-}: {
-  a: AniActivity;
-  onAnimeClick: (id: number) => void;
-}) {
+function FeedItem({ a, onAnimeClick }: { a: AniActivity; onAnimeClick: (id: number) => void }) {
   const { t, locale } = useI18n();
   const Icon = STATUS_ICONS[a.status ?? ""];
 
@@ -88,12 +83,9 @@ function FeedItem({
         <div className="flex min-w-0 flex-1 flex-col">
           <span className="windows95-text text-xs">
             <span className="font-bold">{a.user_name}</span>{" "}
-            <span className="text-hint">{t("anilist.activity.note")}</span>{" "}
-            {a.text}
+            <span className="text-hint">{t("anilist.activity.note")}</span> {a.text}
           </span>
-          <span className="text-hint text-xs">
-            {formatActivityTime(a.created_at, t, locale)}
-          </span>
+          <span className="text-hint text-xs">{formatActivityTime(a.created_at, t, locale)}</span>
         </div>
       </div>
     );
@@ -117,9 +109,7 @@ function FeedItem({
             </>
           )}
           {Icon && <Icon className="inline size-2.5" />}{" "}
-          {t(
-            (STATUS_LABELS[a.status ?? ""] ?? a.status ?? "") as TranslationKey
-          )}{" "}
+          {t((STATUS_LABELS[a.status ?? ""] ?? a.status ?? "") as TranslationKey)}{" "}
         </span>
         <span
           className="windows95-text line-clamp-2 text-xs font-bold underline decoration-dotted hover:cursor-pointer"
@@ -153,9 +143,7 @@ function FeedTab({
   const [includeFriends, setIncludeFriends] = useState(false);
   const activityUserIds = useMemo(() => {
     const ids = includeFriends ? [userId, ...friendIds] : [userId];
-    return [
-      ...new Set(ids.filter((id) => Number.isInteger(id) && id > 0)),
-    ].sort((a, b) => a - b);
+    return [...new Set(ids.filter((id) => Number.isInteger(id) && id > 0))].sort((a, b) => a - b);
   }, [friendIds, includeFriends, userId]);
 
   const { data, isLoading, isError, error, refetch } = useQuery({
@@ -183,17 +171,13 @@ function FeedTab({
         ? activities
         : lists.flatMap((list) =>
             list.entries
-              .filter(
-                (entry) =>
-                  statusFilter === "" || entry.list_status === statusFilter
-              )
+              .filter((entry) => statusFilter === "" || entry.list_status === statusFilter)
               .map<AniActivity>((entry) => ({
                 id: entry.media.id,
                 created_at: entry.created_at ?? 0,
                 activity_type: "list",
                 status: entry.list_status,
-                progress:
-                  entry.progress == null ? null : String(entry.progress),
+                progress: entry.progress == null ? null : String(entry.progress),
                 text: null,
                 media_id: entry.media.id,
                 media_title: entry.media.title,
@@ -214,10 +198,7 @@ function FeedTab({
     return groups;
   }, [data, includeFriends, lists, locale, statusFilter, userId, t]);
 
-  const textItems = useMemo(
-    () => (data ?? []).filter((a) => a.activity_type !== "list"),
-    [data]
-  );
+  const textItems = useMemo(() => (data ?? []).filter((a) => a.activity_type !== "list"), [data]);
 
   if (isLoading) {
     return (
@@ -231,8 +212,8 @@ function FeedTab({
     return (
       <div className="flex flex-col items-center justify-center gap-2 p-6">
         <span className="windows95-text text-destructive text-center">
-          {t("anilist.activity.loadError", {
-            error: String(error ?? t("anilist.activity.unknownError")),
+          {t("anilist.activity.load.error", {
+            error: String(error ?? t("anilist.activity.unknown.error")),
           })}
         </span>
         <Button onClick={() => refetch()} className="text-xs">
@@ -256,7 +237,12 @@ function FeedTab({
         {STATUS_FILTERS.map((f) => (
           <Button
             key={f.value}
-            className={`windows95-text px-1.5 py-0.5 text-xs ${statusFilter === f.value ? "windows95-active-border bg-secondary text-white" : "windows95-border bg-white"}`}
+            className={cn(
+              "windows95-text px-1.5 py-0.5 text-xs",
+              statusFilter === f.value
+                ? "windows95-active-border bg-secondary text-white"
+                : "windows95-border bg-white"
+            )}
             variant="ghost"
             onClick={() => setStatusFilter(f.value)}
           >
@@ -266,10 +252,10 @@ function FeedTab({
         {friendIds.length > 0 && (
           <label
             className="windows95-text ml-auto flex items-center gap-1 text-xs"
-            title={t("anilist.activity.friendsHint")}
+            title={t("anilist.activity.friends.hint")}
           >
             <Checkbox checked={includeFriends} onChange={setIncludeFriends} />
-            {t("anilist.activity.includeFriends")}
+            {t("anilist.activity.include.friends")}
           </label>
         )}
       </div>
@@ -290,7 +276,7 @@ function FeedTab({
       {listItems.size === 0 ? (
         <div className="flex items-center justify-center p-4">
           <span className="windows95-text text-hint text-xs">
-            {t("anilist.activity.emptyStatus")}
+            {t("anilist.activity.empty.status")}
           </span>
         </div>
       ) : (
@@ -342,20 +328,19 @@ function CalendarTab({
           onClick={goPrevYear}
           size="icon"
           className="size-6"
-          aria-label={t("anilist.activity.prevYear")}
+          aria-label={t("anilist.activity.prev.year")}
         >
           <ChevronLeft className="size-3" />
         </Button>
         <span className="windows95-text text-xs font-bold">
-          {year} -{" "}
-          {t("anilist.activity.eventsCount", { count: grid.totalCount })}
+          {year} - {t("anilist.activity.events.count", { count: grid.totalCount })}
         </span>
         <Button
           onClick={goNextYear}
           size="icon"
           className="size-6"
           disabled={year >= now.getFullYear()}
-          aria-label={t("anilist.activity.nextYear")}
+          aria-label={t("anilist.activity.next.year")}
         >
           <ChevronRight className="size-3" />
         </Button>
@@ -386,15 +371,14 @@ function CalendarTab({
                 <div key={ci} className="flex flex-col gap-1">
                   {col.cells.map((cell, r) => {
                     const isToday =
-                      year === now.getFullYear() &&
-                      cell.date.toDateString() === now.toDateString();
+                      year === now.getFullYear() && cell.date.toDateString() === now.toDateString();
                     const key = dayKey(cell.date);
                     const isActive = key === activeKey;
                     return (
                       <button
                         type="button"
                         key={r}
-                        aria-label={t("anilist.activity.daySummary", {
+                        aria-label={t("anilist.activity.day.summary", {
                           date: cell.date.toLocaleDateString(locale),
                           count: cell.count,
                         })}
@@ -403,24 +387,16 @@ function CalendarTab({
                           width: CELL_SIZE,
                           height: CELL_SIZE,
                           backgroundColor: CELL_LEVELS[cell.level] || undefined,
-                          outline: isActive
-                            ? "1px solid var(--color-highlight)"
-                            : undefined,
+                          outline: isActive ? "1px solid var(--color-highlight)" : undefined,
                           outlineOffset: 1,
-                          boxShadow: isToday
-                            ? "0 0 0 1px var(--color-secondary) inset"
-                            : undefined,
+                          boxShadow: isToday ? "0 0 0 1px var(--color-secondary) inset" : undefined,
                         }}
-                        onMouseEnter={() =>
-                          cell.count > 0 && setHoverKey(dayKey(cell.date))
-                        }
+                        onMouseEnter={() => cell.count > 0 && setHoverKey(dayKey(cell.date))}
                         onMouseLeave={() => setHoverKey(null)}
                         onClick={() => {
                           if (cell.count === 0) return;
                           setSelectedKey((prev) =>
-                            prev === dayKey(cell.date)
-                              ? null
-                              : dayKey(cell.date)
+                            prev === dayKey(cell.date) ? null : dayKey(cell.date)
                           );
                         }}
                         title={
@@ -460,15 +436,13 @@ function CalendarTab({
               </div>
               <div className="border-muted/40 text-hint windows95-text flex flex-col gap-0.5 border-b px-2 py-0.5 text-xs">
                 <span>
-                  {t("anilist.activity.eventAdded")}: {activeActivity.added}
+                  {t("anilist.activity.event.added")}: {activeActivity.added}
                 </span>
                 <span>
-                  {t("anilist.activity.eventProgress")}:{" "}
-                  {activeActivity.progress}
+                  {t("anilist.activity.event.progress")}: {activeActivity.progress}
                 </span>
                 <span>
-                  {t("anilist.activity.eventCompleted")}:{" "}
-                  {activeActivity.completed}
+                  {t("anilist.activity.event.completed")}: {activeActivity.completed}
                 </span>
               </div>
               <div className="min-h-0 flex-1 overflow-y-auto">
@@ -486,9 +460,7 @@ function CalendarTab({
                       />
                     )}
                     <div className="flex min-w-0 flex-1 flex-col">
-                      <span className="windows95-font truncate text-xs">
-                        {item.title}
-                      </span>
+                      <span className="windows95-font truncate text-xs">{item.title}</span>
                       <span className="text-hint windows95-font text-xs">
                         {item.events}
                         {item.progress != null &&
@@ -504,7 +476,7 @@ function CalendarTab({
           ) : (
             <div className="flex flex-1 items-center justify-center p-3">
               <span className="windows95-text text-hint text-center text-xs">
-                {t("anilist.activity.dayHint")}
+                {t("anilist.activity.day.hint")}
               </span>
             </div>
           )}
@@ -533,11 +505,7 @@ function ActivityHistoryModal({
   const { t } = useI18n();
 
   return (
-    <Modal
-      header={t("anilist.activity.title")}
-      onClose={onClose}
-      className="w-5xl"
-    >
+    <Modal header={t("anilist.activity.title")} onClose={onClose} className="w-5xl">
       <Tabs
         tabs={[
           { id: "feed", label: t("anilist.activity.feed") },

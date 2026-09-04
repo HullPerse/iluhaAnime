@@ -30,11 +30,7 @@ beforeEach(() => {
 describe("notification helpers", () => {
   it("showError calls store add with type error", () => {
     showError("Test Error", "Something broke");
-    expect(addSpy).toHaveBeenCalledWith(
-      "Test Error",
-      "error",
-      "Something broke"
-    );
+    expect(addSpy).toHaveBeenCalledWith("Test Error", "error", "Something broke");
   });
 
   it("showWarning calls store add with type warning", () => {
@@ -62,8 +58,7 @@ describe("notification helpers", () => {
   });
 });
 
-const t = (key: TranslationKey, vars?: TranslationVariables) =>
-  translate("en", key, vars);
+const t = (key: TranslationKey, vars?: TranslationVariables) => translate("en", key, vars);
 
 describe("copyNotification", () => {
   const item = {
@@ -96,9 +91,7 @@ describe("copyNotification", () => {
 
 describe("resolveNotificationText", () => {
   it("passes through plain title/body payloads", () => {
-    expect(
-      resolveNotificationText({ body: "World", title: "Hello" }, "en")
-    ).toEqual({
+    expect(resolveNotificationText({ body: "World", title: "Hello" }, "en")).toEqual({
       body: "World",
       title: "Hello",
     });

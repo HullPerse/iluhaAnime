@@ -1,9 +1,4 @@
-import {
-  createRootRoute,
-  createRoute,
-  createRouter,
-  useNavigate,
-} from "@tanstack/react-router";
+import { createRootRoute, createRoute, createRouter, useNavigate } from "@tanstack/react-router";
 import { CircleX } from "lucide-react";
 import { lazy, useEffect } from "react";
 

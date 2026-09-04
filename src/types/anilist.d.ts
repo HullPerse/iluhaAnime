@@ -285,9 +285,7 @@ export interface AnilistRouteData {
 
 export interface AniListFriendsStore {
   friends: AniFriend[];
-  addFriend: (
-    friend: Omit<AniFriend, "added_at" | "profile" | "profile_fetched_at">
-  ) => void;
+  addFriend: (friend: Omit<AniFriend, "added_at" | "profile" | "profile_fetched_at">) => void;
   cacheProfile: (profile: AniUserProfile) => void;
   removeFriend: (id: number) => void;
 }
@@ -304,8 +302,10 @@ export interface AniListObservation {
 export interface AniListNotificationsStore {
   observations: Record<string, AniListObservation>;
   initialized: boolean;
+  knownListNames: string[];
   saveObservation: (id: string, observation: AniListObservation) => void;
   setInitialized: (value: boolean) => void;
+  setKnownListNames: (names: string[]) => void;
 }
 
 export interface FilteredGraph {

@@ -12,16 +12,8 @@ import { enterOrSpace } from "@/lib/keyboard.utils";
 import { useCategoryStore } from "@/store/category.store";
 import type { UserImage } from "@/types";
 
-function CategoryIconModal({
-  id,
-  handleClose,
-}: {
-  id: string;
-  handleClose: () => void;
-}) {
-  const category = useCategoryStore((s) =>
-    s.categories.find((c) => c.id === id)
-  );
+function CategoryIconModal({ id, handleClose }: { id: string; handleClose: () => void }) {
+  const category = useCategoryStore((s) => s.categories.find((c) => c.id === id));
 
   const changeIcon = useCategoryStore((s) => s.changeIcon);
 
@@ -41,11 +33,7 @@ function CategoryIconModal({
   };
 
   return (
-    <Modal
-      header={t("player.category.changeIcon")}
-      onClose={handleClose}
-      className="w-xl"
-    >
+    <Modal header={t("player.category.change.icon")} onClose={handleClose} className="w-xl">
       {/* ALL ICONS LIST + CURRENT ICON */}
       <section className="windows95-border grid h-64 grid-cols-8 gap-2 overflow-x-hidden overflow-y-scroll bg-white p-1">
         {playerIcons.map((icon) => (
@@ -62,11 +50,7 @@ function CategoryIconModal({
             onClick={() => setSelected(icon)}
             onKeyDown={enterOrSpace(() => setSelected(icon))}
           >
-            <ImageComponent
-              src={`/images/${icon}`}
-              alt="icon"
-              className="h-14 w-14"
-            />
+            <ImageComponent src={`/images/${icon}`} alt="icon" className="h-14 w-14" />
           </div>
         ))}
       </section>
@@ -76,23 +60,14 @@ function CategoryIconModal({
       {selected.startsWith("user-image:") && (
         <div className="windows95-text mt-1 flex items-center gap-1 text-xs">
           <span>{t("player.category.selected")}</span>
-          <UserImageIcon
-            icon={selected}
-            className="windows95-border size-6 bg-white"
-          />
+          <UserImageIcon icon={selected} className="windows95-border size-6 bg-white" />
         </div>
       )}
 
       {/* SAVE AND CANCEL */}
       <section className="windows95-text mt-2 ml-auto flex flex-row gap-1">
-        <Button onClick={handleClose}>
-          {t("common.cancel").toUpperCase()}
-        </Button>
-        <Button
-          variant="success"
-          onClick={handleChangeIcon}
-          disabled={selected === category?.icon}
-        >
+        <Button onClick={handleClose}>{t("common.cancel").toUpperCase()}</Button>
+        <Button variant="success" onClick={handleChangeIcon} disabled={selected === category?.icon}>
           {t("player.category.save").toUpperCase()}
         </Button>
       </section>

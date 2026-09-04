@@ -1,10 +1,6 @@
 import type { KeyboardEvent } from "react";
 
-export function moveIndex(
-  current: number,
-  delta: number,
-  length: number
-): number {
+export function moveIndex(current: number, delta: number, length: number): number {
   if (length <= 0) return -1;
   return (current + delta + length) % length;
 }
@@ -39,7 +35,20 @@ function handleListNavigationKey<T extends Element>(
     onEscape?: () => boolean;
   }
 ): boolean {
-  const { key, nextKey, previousKey, enabled, count, activeIndex, move, setActiveIndex, onFocus, onEnter, onTab, onEscape } = options;
+  const {
+    key,
+    nextKey,
+    previousKey,
+    enabled,
+    count,
+    activeIndex,
+    move,
+    setActiveIndex,
+    onFocus,
+    onEnter,
+    onTab,
+    onEscape,
+  } = options;
   if (key === "Escape" && onEscape?.()) {
     event.preventDefault();
     return true;
@@ -116,9 +125,7 @@ export function createListNavigationHandler<T extends Element = Element>({
   };
 }
 
-export function enterOrSpace(
-  onActivate: () => void
-): (event: KeyboardEvent) => void {
+export function enterOrSpace(onActivate: () => void): (event: KeyboardEvent) => void {
   return (event) => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
@@ -127,9 +134,7 @@ export function enterOrSpace(
   };
 }
 
-export function enterSubmit(
-  onSubmit: () => void
-): (event: KeyboardEvent) => void {
+export function enterSubmit(onSubmit: () => void): (event: KeyboardEvent) => void {
   return (event) => {
     if (event.key === "Enter") onSubmit();
   };

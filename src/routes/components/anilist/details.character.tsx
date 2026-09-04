@@ -10,11 +10,7 @@ import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/index.utils";
 import { enterOrSpace } from "@/lib/keyboard.utils";
 import { useSettingsStore } from "@/store/settings.store";
-import type {
-  AniCharacterMediaEdge,
-  AniVoiceActor,
-  AniStaffDetail,
-} from "@/types/anilist";
+import type { AniCharacterMediaEdge, AniVoiceActor, AniStaffDetail } from "@/types/anilist";
 
 function OverlayWindow({
   header,
@@ -45,16 +41,20 @@ function OverlayWindow({
   return (
     <main className="fixed inset-0 z-90 flex items-center justify-center">
       <div
-        className={`absolute inset-0 ${modalAnimation ? "transition-opacity duration-150" : ""} ${visible ? "opacity-100" : "opacity-0"}`}
+        className={cn(
+          "absolute inset-0",
+          modalAnimation && "transition-opacity duration-150",
+          visible ? "opacity-100" : "opacity-0"
+        )}
         style={{ backgroundColor: `rgba(0,0,0,${backdropOpacity / 100})` }}
         onClick={onClose}
       />
       <div
         className={cn(
           "bg-primary windows95-active-border relative flex h-fit max-h-[80%] min-h-42 w-fit max-w-[80%] min-w-lg flex-col",
-          modalAnimation ? "transition-opacity duration-150" : "",
+          modalAnimation && "transition-opacity duration-150",
           visible ? "opacity-100" : "opacity-0",
-          enable3dBorders ? "windows95-3d-border" : ""
+          enable3dBorders && "windows95-3d-border"
         )}
       >
         <section className="bg-secondary flex w-full flex-row items-center justify-between p-1">
@@ -70,9 +70,7 @@ function OverlayWindow({
               </Button>
             )}
             <Monitor className="size-3 shrink-0 text-white" />
-            <span className="windows95-text line-clamp-1 font-bold text-white">
-              {header}
-            </span>
+            <span className="windows95-text line-clamp-1 font-bold text-white">{header}</span>
           </div>
           <div className="flex shrink-0 flex-row items-center gap-0.5">
             <button
@@ -149,8 +147,7 @@ function AniListCharacterDetailModal({
     setSelectedVa(null);
   };
 
-  const header =
-    view === "voiceActor" && selectedVa ? selectedVa.name : currentName;
+  const header = view === "voiceActor" && selectedVa ? selectedVa.name : currentName;
 
   return (
     <OverlayWindow
@@ -169,16 +166,14 @@ function AniListCharacterDetailModal({
               />
             )}
             <div className="flex flex-col gap-1">
-              <span className="windows95-text font-bold">
-                {staffDetail.name}
-              </span>
+              <span className="windows95-text font-bold">{staffDetail.name}</span>
             </div>
           </div>
 
           {staffDetail.characters.length > 0 && (
             <div>
               <span className="windows95-text text-xs font-bold">
-                {t("anilist.characters.charactersOf", {
+                {t("anilist.characters.characters.of", {
                   count: staffDetail.characters.length,
                 })}
               </span>
@@ -190,9 +185,7 @@ function AniListCharacterDetailModal({
                     tabIndex={0}
                     aria-label={c.name}
                     onClick={() => handleCharacterClick(c.id, c.name)}
-                    onKeyDown={enterOrSpace(() =>
-                      handleCharacterClick(c.id, c.name)
-                    )}
+                    onKeyDown={enterOrSpace(() => handleCharacterClick(c.id, c.name))}
                     className="hover:bg-surface flex w-14 cursor-pointer flex-col items-center gap-0.5 p-0.5"
                     title={c.name}
                   >
@@ -219,7 +212,7 @@ function AniListCharacterDetailModal({
           {staffDetail.media.length > 0 && (
             <div>
               <span className="windows95-text text-xs font-bold">
-                {t("anilist.characters.animeOf", {
+                {t("anilist.characters.anime.of", {
                   count: staffDetail.media.length,
                 })}
               </span>
@@ -266,7 +259,7 @@ function AniListCharacterDetailModal({
               {currentVAs.length > 0 && (
                 <div>
                   <span className="windows95-text text-xs font-bold">
-                    {t("anilist.characters.voiceActors")}
+                    {t("anilist.characters.voice.actors")}
                   </span>
                   <div className="mt-1 flex flex-wrap gap-2">
                     {currentVAs.map((va) => (
@@ -309,7 +302,7 @@ function AniListCharacterDetailModal({
               {media && media.length > 0 && (
                 <div>
                   <span className="windows95-text text-xs font-bold">
-                    {t("anilist.characters.appearsIn", { count: media.length })}
+                    {t("anilist.characters.appears.in", { count: media.length })}
                   </span>
                   <div className="mt-1 flex flex-wrap gap-1">
                     {media.map((m) => (

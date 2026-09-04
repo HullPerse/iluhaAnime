@@ -224,22 +224,8 @@ export const ANILIST_NSFW_TAGS = [
   "Virginity",
   "Voyeur",
 ];
-export const FORMATS = [
-  "TV",
-  "TV_SHORT",
-  "MOVIE",
-  "OVA",
-  "ONA",
-  "SPECIAL",
-  "MUSIC",
-];
-export const STATUSES = [
-  "FINISHED",
-  "RELEASING",
-  "NOT_YET_RELEASED",
-  "CANCELLED",
-  "HIATUS",
-];
+export const FORMATS = ["TV", "TV_SHORT", "MOVIE", "OVA", "ONA", "SPECIAL", "MUSIC"];
+export const STATUSES = ["FINISHED", "RELEASING", "NOT_YET_RELEASED", "CANCELLED", "HIATUS"];
 export const SEASONS = ["WINTER", "SPRING", "SUMMER", "FALL"];
 
 export const defaultFilters: AniListFilters = {

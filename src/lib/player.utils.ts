@@ -48,8 +48,7 @@ export const formatStreams = (stream: VideoStreamInfo): string => {
 
   const tech: string[] = [stream.codec_name.toUpperCase()];
   if (stream.channels) tech.push(`${stream.channels}ch`);
-  if (stream.sample_rate)
-    tech.push(`${(stream.sample_rate / 1000).toFixed(1)}kHz`);
+  if (stream.sample_rate) tech.push(`${(stream.sample_rate / 1000).toFixed(1)}kHz`);
   if (stream.bit_rate) tech.push(`${Math.round(stream.bit_rate / 1000)}kbps`);
 
   parts.push(tech.join(" "));
@@ -63,10 +62,7 @@ export const isAssSub = (s: VideoStreamInfo): boolean =>
   s.codec_name === "ssa" ||
   (s.file_path ?? "").match(/\.(ass|ssa)$/i) !== null;
 
-export function buildTree(
-  entries: VideoFileEntry[],
-  rootPath: string
-): FolderNode {
+export function buildTree(entries: VideoFileEntry[], rootPath: string): FolderNode {
   const root: FolderNode = {
     children: [],
     files: [],
@@ -98,10 +94,7 @@ export function buildTree(
   return root;
 }
 
-export function filterTreeByPaths(
-  tree: FolderNode,
-  matchingPaths: Set<string>
-): FolderNode | null {
+export function filterTreeByPaths(tree: FolderNode, matchingPaths: Set<string>): FolderNode | null {
   const filteredFiles = tree.files.filter((f) => matchingPaths.has(f.path));
   const filteredChildren = tree.children
     .map((c) => filterTreeByPaths(c, matchingPaths))
@@ -121,8 +114,14 @@ function nodeMatchesSearch(node: FolderNode, query: string): boolean {
   return node.children.some((c) => nodeMatchesSearch(c, q));
 }
 
-function filterTreeFiles(node: FolderNode, query: string, trackExts?: Set<string>): FolderNode["files"] {
-  const files = query ? node.files.filter((file) => file.name.toLowerCase().includes(query.toLowerCase())) : node.files;
+function filterTreeFiles(
+  node: FolderNode,
+  query: string,
+  trackExts?: Set<string>
+): FolderNode["files"] {
+  const files = query
+    ? node.files.filter((file) => file.name.toLowerCase().includes(query.toLowerCase()))
+    : node.files;
   return trackExts
     ? files.filter((file) => {
         const ext = file.name.split(".").pop()?.toLowerCase();
@@ -131,11 +130,7 @@ function filterTreeFiles(node: FolderNode, query: string, trackExts?: Set<string
     : files;
 }
 
-function shouldSkipTreeNode(
-  node: FolderNode,
-  files: FolderNode["files"],
-  query: string
-): boolean {
+function shouldSkipTreeNode(node: FolderNode, files: FolderNode["files"], query: string): boolean {
   if (!query) return false;
   return files.length === 0 && !node.children.some((child) => nodeMatchesSearch(child, query));
 }
@@ -154,7 +149,12 @@ function appendTreeFiles(
 }
 
 function isEmptyTreeFolder(items: Item[], node: FolderNode, depth: number): boolean {
-  return depth > 0 && items.length === 1 && items[0]?.kind === "folder" && items[0].node.path === node.path;
+  return (
+    depth > 0 &&
+    items.length === 1 &&
+    items[0]?.kind === "folder" &&
+    items[0].node.path === node.path
+  );
 }
 
 export function flattenTree(
@@ -173,14 +173,19 @@ export function flattenTree(
   if (isOpen || depth === 0) {
     appendTreeFiles(items, filteredFiles, depth, disabledExtensions);
     for (const child of node.children) {
-      items.push(...flattenTree(child, open, searchQuery, disabledExtensions, depth + 1, trackExts));
+      items.push(
+        ...flattenTree(child, open, searchQuery, disabledExtensions, depth + 1, trackExts)
+      );
     }
   }
   if (!isEmptyTreeFolder(items, node, depth)) return items;
   if (isOpen) return [];
-  const hasContent = filteredFiles.length > 0 || node.children.some((child) =>
-    flattenTree(child, open, searchQuery, disabledExtensions, depth + 1, trackExts).length > 0
-  );
+  const hasContent =
+    filteredFiles.length > 0 ||
+    node.children.some(
+      (child) =>
+        flattenTree(child, open, searchQuery, disabledExtensions, depth + 1, trackExts).length > 0
+    );
   return hasContent ? items : [];
 }
 
@@ -197,10 +202,7 @@ const seasonPatterns = (season: string) => [
   new RegExp(`\\s+${season}(?:st|nd|rd|th)\\s+Season\\s*$`, "i"),
 ];
 
-function cleanTitle(
-  title: string | undefined,
-  season: string | undefined
-): string {
+function cleanTitle(title: string | undefined, season: string | undefined): string {
   if (!title) return "";
   let cleaned = title.trim();
   if (season) {
@@ -219,9 +221,7 @@ export function formatParsedTitle(
   if (!parsed) return filename;
 
   const title = cleanTitle(parsed.title, parsed.season);
-  const season = parsed.season
-    ? t("player.title.season", { n: parsed.season })
-    : "";
+  const season = parsed.season ? t("player.title.season", { n: parsed.season }) : "";
 
   const epNum = parsed.episode?.number ?? parsed.episode?.numberAlt;
   const epTitle = parsed.episode?.title;
@@ -229,19 +229,16 @@ export function formatParsedTitle(
 
   let episodeStr = "";
   if (epNum !== undefined && epNum !== null) {
-    const showRange =
-      epNumAlt !== undefined && epNumAlt !== null && epNumAlt !== epNum;
+    const showRange = epNumAlt !== undefined && epNumAlt !== null && epNumAlt !== epNum;
     episodeStr = showRange
-      ? t("player.title.episodesRange", { from: epNum, to: epNumAlt })
+      ? t("player.title.episodes.range", { from: epNum, to: epNumAlt })
       : t("player.title.episode", { n: epNum });
     if (epTitle) episodeStr += `: ${epTitle}`;
   } else if (epTitle) {
-    episodeStr = t("player.title.episodeColon", { title: epTitle });
+    episodeStr = t("player.title.episode.colon", { title: epTitle });
   }
 
-  return [title, season, episodeStr]
-    .filter((part) => part && part.trim())
-    .join(", ");
+  return [title, season, episodeStr].filter((part) => part && part.trim()).join(", ");
 }
 
 export function fileNameFromPath(p: string): string {
@@ -254,9 +251,9 @@ export function formatETA(
   t: (key: TranslationKey, variables?: TranslationVariables) => string
 ): string {
   if (!Number.isFinite(secs)) return "";
-  if (secs <= 0) return t("player.eta.lessThanMinute");
+  if (secs <= 0) return t("player.eta.less.than.minute");
   const m = Math.floor(secs / 60);
   const s = Math.round(secs % 60);
-  if (m > 0) return t("player.eta.minutesSeconds", { m, s });
+  if (m > 0) return t("player.eta.minutes.seconds", { m, s });
   return t("player.eta.seconds", { s });
 }

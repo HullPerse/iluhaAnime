@@ -62,15 +62,7 @@ describe("ConfirmDialog", () => {
     const user = userEvent.setup();
     const onConfirm = vi.fn();
     const onCancel = vi.fn();
-    render(
-      <ConfirmDialog
-        open
-        title="T"
-        message="M"
-        onConfirm={onConfirm}
-        onCancel={onCancel}
-      />
-    );
+    render(<ConfirmDialog open title="T" message="M" onConfirm={onConfirm} onCancel={onCancel} />);
     await user.click(screen.getByRole("button", { name: "OK" }));
     expect(onConfirm).toHaveBeenCalledTimes(1);
     expect(onCancel).not.toHaveBeenCalled();

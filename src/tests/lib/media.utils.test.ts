@@ -25,12 +25,8 @@ describe("joinMediaPath", () => {
   });
 
   it("strips leading separators from the relative path", () => {
-    expect(joinMediaPath("C:\\Anime", "\\Season 1\\ep.mkv")).toBe(
-      "C:\\Anime/Season 1\\ep.mkv"
-    );
-    expect(joinMediaPath("C:\\Anime", "/Season 1/ep.mkv")).toBe(
-      "C:\\Anime/Season 1/ep.mkv"
-    );
+    expect(joinMediaPath("C:\\Anime", "\\Season 1\\ep.mkv")).toBe("C:\\Anime/Season 1\\ep.mkv");
+    expect(joinMediaPath("C:\\Anime", "/Season 1/ep.mkv")).toBe("C:\\Anime/Season 1/ep.mkv");
   });
 });
 

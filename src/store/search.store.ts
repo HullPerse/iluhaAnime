@@ -2,6 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+import { SEARCH_RANKING } from "@/config/searchRanking.config";
 import { createDebouncedStorage } from "@/lib/debounced.storage";
 import { normalizeSearchText } from "@/lib/search.suggestions";
 import { useSettingsStore } from "@/store/settings.store";
@@ -13,7 +14,8 @@ import type {
   SearchStore,
 } from "@/types/search";
 
-const MAX_LEARNING_ITEMS = 2_000;
+const MAX_LEARNING_ITEMS = SEARCH_RANKING.MAX_LEARNING_ITEMS;
+const TTL_MS = SEARCH_RANKING.TTL_MS;
 
 type SearchPersistedState = Pick<
   SearchStore,
@@ -41,6 +43,20 @@ function normalize(value: string): string {
   return normalizeSearchText(value);
 }
 
+function purgeExpired(stats: Record<string, SearchQueryStat>): Record<string, SearchQueryStat> {
+  const now = Date.now();
+  let changed = false;
+  const next: Record<string, SearchQueryStat> = {};
+  for (const [key, value] of Object.entries(stats)) {
+    if (now - value.lastUsedAt > TTL_MS) {
+      changed = true;
+      continue;
+    }
+    next[key] = value;
+  }
+  return changed ? next : stats;
+}
+
 function updateStat(
   stats: Record<string, SearchQueryStat>,
   value: string,
@@ -49,9 +65,10 @@ function updateStat(
 ): Record<string, SearchQueryStat> {
   const key = normalize(value);
   if (!key) return stats;
-  const current = stats[key];
+  const purged = purgeExpired(stats);
+  const current = purged[key];
   const next = {
-    ...stats,
+    ...purged,
     [key]: {
       count: (current?.count ?? 0) + (selected || ignored ? 0 : 1),
       lastIgnoredAt: ignored ? Date.now() : current?.lastIgnoredAt,
@@ -80,9 +97,23 @@ function syncUnifiedIndex(
   }>
 ): void {
   if (entries.length === 0) return;
-  invoke("upsert_unified_index", { entries }).catch(() => {
-    // Browser preview and older installations may not expose the backend index yet.
-  });
+  invoke("upsert_unified_index", { entries })
+    .then(() => {
+      if (entries.length > 100) {
+        invoke("optimize_unified_index").catch(() => {});
+      }
+      // also sync embeddings when semantic enabled (fire-and-forget, throttled)
+      if (useSettingsStore.getState().searchSemanticEnabled) {
+        // lazy: only first 50 to avoid 100s cold start
+        const toEmbed = entries.slice(0, 50);
+        for (const e of toEmbed) {
+          invoke("upsert_embedding", { id: e.id, text: e.value }).catch(() => {});
+        }
+      }
+    })
+    .catch(() => {
+      // Browser preview and older installations may not expose the backend index yet.
+    });
 }
 
 function buildAnimeIndex(
@@ -113,9 +144,7 @@ function buildAnimeIndex(
     const romaji = favourite.title.romaji;
     const title = favourite.title.english ?? romaji;
     entries.set(favourite.id, {
-      aliases: [romaji, favourite.title.english ?? ""].filter(
-        (alias) => alias && alias !== title
-      ),
+      aliases: [romaji, favourite.title.english ?? ""].filter((alias) => alias && alias !== title),
       favourite: true,
       id: favourite.id,
       score: favourite.mean_score,
@@ -138,10 +167,10 @@ export const useSearchStore = create<SearchStore>()(
         if (!q) return;
         const maxHistory = useSettingsStore.getState().searchHistoryMaxItems;
         set((state) => {
-          const history = [
-            q,
-            ...state.history.filter((item) => item !== q),
-          ].slice(0, Math.max(0, maxHistory));
+          const history = [q, ...state.history.filter((item) => item !== q)].slice(
+            0,
+            Math.max(0, maxHistory)
+          );
           return {
             history,
             queryStats: updateStat(state.queryStats ?? {}, q),
@@ -161,8 +190,7 @@ export const useSearchStore = create<SearchStore>()(
       animeIndex: [],
       animeProfileId: null,
       clearAnimeIndex: () => set({ animeIndex: [], animeProfileId: null }),
-      resetAnimeSuggestions: () =>
-        set({ animeIndex: [], animeProfileId: null }),
+      resetAnimeSuggestions: () => set({ animeIndex: [], animeProfileId: null }),
       crossSearchQuery: null,
       filters: { ...defaultFilters },
       history: [],
@@ -211,12 +239,7 @@ export const useSearchStore = create<SearchStore>()(
       recordSuggestionIgnored: (value) => {
         if (useSettingsStore.getState().autocompleteMode === "off") return;
         set((state) => ({
-          suggestionStats: updateStat(
-            state.suggestionStats ?? {},
-            value,
-            false,
-            true
-          ),
+          suggestionStats: updateStat(state.suggestionStats ?? {}, value, false, true),
         }));
         invoke("record_unified_index_action", {
           action: "ignore",
@@ -227,11 +250,40 @@ export const useSearchStore = create<SearchStore>()(
         set((state) => ({
           history: state.history.filter((item) => item !== query),
         })),
+      purgeExpired: () =>
+        set((state) => ({
+          queryStats: purgeExpired(state.queryStats ?? {}),
+          suggestionStats: purgeExpired(state.suggestionStats ?? {}),
+        })),
+      clearScope: async (scope) => {
+        try {
+          await invoke("clear_unified_index_scope", { scope });
+        } catch {
+          // Fallback: prune scope with empty keep list on older backend
+          await invoke("prune_unified_index_scope", {
+            scope,
+            keepIds: [],
+          }).catch(() => {});
+        }
+      },
+      clearAllLearning: async () => {
+        set({ history: [], queryStats: {}, suggestionStats: {} });
+        const scopes = ["global", "anilist", "torrent", "player", "filter"];
+        for (const scope of scopes) {
+          try {
+            await invoke("clear_unified_index_scope", { scope });
+          } catch {
+            await invoke("prune_unified_index_scope", {
+              scope,
+              keepIds: [],
+            }).catch(() => {});
+          }
+        }
+      },
       resetFilters: () => set({ filters: { ...defaultFilters } }),
       setAnilistSearchQuery: (query) => set({ anilistSearchQuery: query }),
       setCrossSearchQuery: (query) => set({ crossSearchQuery: query }),
-      setFilters: (partial) =>
-        set((state) => ({ filters: { ...state.filters, ...partial } })),
+      setFilters: (partial) => set((state) => ({ filters: { ...state.filters, ...partial } })),
       setSortBy: (sort) => set({ sortBy: sort }),
       setSortDirection: (dir) => set({ sortDirection: dir }),
       sortBy: "seeders" as const,

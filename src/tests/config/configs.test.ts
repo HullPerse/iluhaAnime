@@ -11,7 +11,6 @@ import {
   statusLabels,
   seasonLabels,
 } from "@/config/anilist.config";
-import { getAction } from "@/config/keybinds.config";
 import {
   ANIME4K_PRESETS,
   FPS_OPTIONS,
@@ -20,20 +19,48 @@ import {
   QUALITY_OPTIONS,
   RESOLUTIONS,
 } from "@/config/player.config";
+import { tabForAltDigit } from "@/config/tabs.config";
 
-describe("keybinds getAction", () => {
-  it("maps Alt+digit combos to navigation actions", () => {
-    expect(getAction("Digit1", false, false, true)?.action).toBe("setSearch");
-    expect(getAction("Digit2", false, false, true)?.action).toBe("setTorrent");
-    expect(getAction("Digit3", false, false, true)?.action).toBe("setPlayer");
-    expect(getAction("Digit4", false, false, true)?.action).toBe("setAnilist");
-    expect(getAction("Digit5", false, false, true)).toBeUndefined();
+const ALL_TABS = {
+  collectionTabEnabled: true,
+  anilistTabEnabled: true,
+  searchTabEnabled: true,
+  torrentTabEnabled: true,
+  playerTabEnabled: true,
+};
+
+const NO_COLLECTION_ANILIST = {
+  collectionTabEnabled: false,
+  anilistTabEnabled: false,
+  searchTabEnabled: true,
+  torrentTabEnabled: true,
+  playerTabEnabled: true,
+};
+
+describe("tabForAltDigit", () => {
+  it("maps Alt+digit to the visible tab at that position", () => {
+    expect(tabForAltDigit(ALL_TABS, 1)).toBe("search");
+    expect(tabForAltDigit(ALL_TABS, 2)).toBe("torrent");
+    expect(tabForAltDigit(ALL_TABS, 3)).toBe("player");
+    expect(tabForAltDigit(ALL_TABS, 4)).toBe("anilist");
+    expect(tabForAltDigit(ALL_TABS, 5)).toBe("collection");
+    expect(tabForAltDigit(ALL_TABS, 6)).toBe("settings");
+    expect(tabForAltDigit(ALL_TABS, 7)).toBeUndefined();
   });
 
-  it("does not match when modifiers differ", () => {
-    expect(getAction("Digit1", false, false, false)).toBeUndefined();
-    expect(getAction("Digit1", true, false, true)).toBeUndefined();
-    expect(getAction("KeyA", false, false, true)).toBeUndefined();
+  it("follows the visible strip when tabs are disabled", () => {
+    expect(tabForAltDigit(NO_COLLECTION_ANILIST, 1)).toBe("search");
+    expect(tabForAltDigit(NO_COLLECTION_ANILIST, 2)).toBe("torrent");
+    expect(tabForAltDigit(NO_COLLECTION_ANILIST, 3)).toBe("player");
+    expect(tabForAltDigit(NO_COLLECTION_ANILIST, 4)).toBe("settings");
+    expect(tabForAltDigit(NO_COLLECTION_ANILIST, 5)).toBeUndefined();
+  });
+
+  it("ignores non-positive and non-integer digits", () => {
+    expect(tabForAltDigit(ALL_TABS, 0)).toBeUndefined();
+    expect(tabForAltDigit(ALL_TABS, -1)).toBeUndefined();
+    expect(tabForAltDigit(ALL_TABS, 1.5)).toBeUndefined();
+    expect(tabForAltDigit(ALL_TABS, Number.NaN)).toBeUndefined();
   });
 });
 
@@ -64,15 +91,13 @@ describe("anilist config integrity", () => {
     expect(statusLabels.FINISHED).toBe("anilist.status.FINISHED");
     expect(statusLabels.RELEASING).toBe("anilist.status.RELEASING");
     expect(seasonLabels.WINTER).toBe("anilist.season.WINTER");
-    expect(listStatusLabels.COMPLETED).toBe("anilist.listStatus.COMPLETED");
+    expect(listStatusLabels.COMPLETED).toBe("anilist.list.status.COMPLETED");
   });
 
   it("derives list status options from labels", () => {
-    expect(listStatusOptions).toHaveLength(
-      Object.keys(listStatusLabels).length
-    );
+    expect(listStatusOptions).toHaveLength(Object.keys(listStatusLabels).length);
     expect(listStatusOptions[0]).toEqual({
-      label: "anilist.listStatus.CURRENT",
+      label: "anilist.list.status.CURRENT",
       value: "CURRENT",
     });
   });
@@ -90,12 +115,7 @@ describe("player config data", () => {
     expect(RESOLUTIONS[0].value).toBe("original");
     expect(RESOLUTIONS.some((r) => r.value === "3840x2160")).toBe(true);
     expect(FPS_OPTIONS.some((f) => f.value === "60i")).toBe(true);
-    expect(QUALITY_OPTIONS.map((q) => q.value)).toEqual([
-      "ultrafast",
-      "fast",
-      "slow",
-      "veryslow",
-    ]);
+    expect(QUALITY_OPTIONS.map((q) => q.value)).toEqual(["ultrafast", "fast", "slow", "veryslow"]);
     expect(FORMAT_OPTIONS.map((f) => f.value)).toContain("mkv");
   });
 

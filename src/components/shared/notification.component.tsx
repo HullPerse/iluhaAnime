@@ -42,28 +42,28 @@ const typeIcons: Record<NotificationType, ReactNode> = {
 
 type Filter = NotificationType | "all" | "downloads";
 
-const FILTERS: readonly Filter[] = [
-  "all",
-  "info",
-  "success",
-  "warning",
-  "error",
-  "downloads",
-];
+const FILTERS: readonly Filter[] = ["all", "info", "success", "warning", "error", "downloads"];
 
 const filterKeys: Record<Filter, TranslationKey> = {
-  all: "notification.filterAll",
-  downloads: "notification.filterDownloads",
-  error: "notification.filterError",
-  info: "notification.filterInfo",
-  success: "notification.filterSuccess",
-  warning: "notification.filterWarning",
+  all: "notification.filter.all",
+  downloads: "notification.filter.downloads",
+  error: "notification.filter.error",
+  info: "notification.filter.info",
+  success: "notification.filter.success",
+  warning: "notification.filter.warning",
 };
 
 function isCurrentDownload(torrent: TorrentInfo): boolean {
-  return (
-    !torrent.finished && torrent.state !== "paused" && torrent.state !== "error"
-  );
+  return !torrent.finished && torrent.state !== "paused" && torrent.state !== "error";
+}
+
+function getVisibleNotifications(
+  allItems: NotificationItem[],
+  currentFilter: Filter
+): NotificationItem[] {
+  if (currentFilter === "downloads") return [];
+  if (currentFilter === "all") return allItems;
+  return allItems.filter((i) => i.type === currentFilter);
 }
 
 const EMPTY_TORRENTS: TorrentInfo[] = [];
@@ -95,10 +95,7 @@ function ActiveTorrentItem({ item }: { item: TorrentInfo }) {
         aria-valuemax={100}
         aria-valuenow={percentage}
       >
-        <div
-          className="bg-secondary h-full"
-          style={{ width: `${percentage}%` }}
-        />
+        <div className="bg-secondary h-full" style={{ width: `${percentage}%` }} />
       </div>
       <div className="text-hint windows95-text mt-0.5 flex flex-wrap gap-x-2 text-xs">
         <span>
@@ -114,10 +111,7 @@ function ActiveTorrentItem({ item }: { item: TorrentInfo }) {
 
 interface NotificationRowProps {
   item: NotificationItem;
-  t: (
-    key: TranslationKey,
-    variables?: Record<string, string | number>
-  ) => string;
+  t: (key: TranslationKey, variables?: Record<string, string | number>) => string;
   markRead: (id: number) => void;
   clear: (id: number) => void;
 }
@@ -144,14 +138,15 @@ function NotificationRow({ item, t, markRead, clear }: NotificationRowProps) {
 
   return (
     <div
-      className={`border-muted/30 hover:bg-surface/50 flex cursor-pointer items-start gap-1 border-b px-1 py-0.5 ${item.read ? "opacity-60" : ""}`}
+      className={cn(
+        "border-muted/30 hover:bg-surface/50 flex cursor-pointer items-start gap-1 border-b px-1 py-0.5",
+        item.read && "opacity-60"
+      )}
       onClick={() => {
         markRead(item.id);
       }}
     >
-      <span className={`mt-0.5 shrink-0 ${typeColors[item.type]}`}>
-        {typeIcons[item.type]}
-      </span>
+      <span className={cn("mt-0.5 shrink-0", typeColors[item.type])}>{typeIcons[item.type]}</span>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1">
           <span className="windows95-text min-w-0 flex-1 truncate text-xs font-bold">
@@ -161,9 +156,7 @@ function NotificationRow({ item, t, markRead, clear }: NotificationRowProps) {
             {formatRelativeTime(item.timestamp, t)}
           </span>
         </div>
-        {item.message && (
-          <div className="text-hint truncate text-xs">{item.message}</div>
-        )}
+        {item.message && <div className="text-hint truncate text-xs">{item.message}</div>}
       </div>
       <Button
         size="icon"
@@ -194,21 +187,15 @@ function NotificationRow({ item, t, markRead, clear }: NotificationRowProps) {
 }
 
 export default function NotificationTray() {
-  const { items, unreadCount, markRead, markAllRead, clear, clearAll } =
-    useNotificationStore();
+  const { items, unreadCount, markRead, markAllRead, clear, clearAll } = useNotificationStore();
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState<Filter>("all");
   const ref = useRef<HTMLDivElement>(null);
 
   // Only track live torrent progress while the tray is open, so the per-second
   // torrent refresh does not re-render the tray (and its subtree) when closed.
-  const torrents = useTorrentStore((state) =>
-    open ? state.torrents : EMPTY_TORRENTS
-  );
-  const activeDownloads = useMemo(
-    () => torrents.filter(isCurrentDownload),
-    [torrents]
-  );
+  const torrents = useTorrentStore((state) => (open ? state.torrents : EMPTY_TORRENTS));
+  const activeDownloads = useMemo(() => torrents.filter(isCurrentDownload), [torrents]);
   const { t } = useI18n();
   // Screen-reader announcements: the tray itself is closed most of the time,
   // so new notifications must be announced through a hidden live region.
@@ -224,15 +211,7 @@ export default function NotificationTray() {
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
 
-  const visible = useMemo(
-    () =>
-      filter === "all" || filter === "downloads"
-        ? filter === "downloads"
-          ? []
-          : items
-        : items.filter((i) => i.type === filter),
-    [items, filter]
-  );
+  const visible = useMemo(() => getVisibleNotifications(items, filter), [items, filter]);
 
   return (
     <div ref={ref} className="relative">
@@ -241,9 +220,7 @@ export default function NotificationTray() {
         role={latest?.type === "error" ? "alert" : "status"}
         aria-live={latest?.type === "error" ? "assertive" : "polite"}
       >
-        {latest
-          ? `${latest.title}${latest.message ? `. ${latest.message}` : ""}`
-          : ""}
+        {latest ? `${latest.title}${latest.message ? `. ${latest.message}` : ""}` : ""}
       </div>
       <Button
         size="icon"
@@ -280,8 +257,8 @@ export default function NotificationTray() {
                 size="icon"
                 className="h-4 w-4"
                 onClick={markAllRead}
-                title={t("notification.markAllRead")}
-                aria-label={t("notification.markAllRead")}
+                title={t("notification.mark.all.read")}
+                aria-label={t("notification.mark.all.read")}
                 disabled={unreadCount === 0 || filter === "downloads"}
               >
                 <CheckCheck className="size-2.5" />
@@ -290,8 +267,8 @@ export default function NotificationTray() {
                 size="icon"
                 className="h-4 w-4"
                 onClick={clearAll}
-                title={t("notification.clearAll")}
-                aria-label={t("notification.clearAll")}
+                title={t("notification.clear.all")}
+                aria-label={t("notification.clear.all")}
                 disabled={items.length === 0 || filter === "downloads"}
               >
                 <Trash2 className="size-2.5" />
@@ -299,9 +276,7 @@ export default function NotificationTray() {
             </div>
           </div>
 
-          {(items.length > 0 ||
-            activeDownloads.length > 0 ||
-            filter === "downloads") && (
+          {(items.length > 0 || activeDownloads.length > 0 || filter === "downloads") && (
             <div className="border-muted/30 bg-primary/60 flex flex-wrap gap-0.5 border-b px-1 py-0.5">
               {FILTERS.map((f) => (
                 <button
@@ -327,7 +302,7 @@ export default function NotificationTray() {
             {filter === "downloads" ? (
               activeDownloads.length === 0 ? (
                 <div className="text-hint flex items-center justify-center py-4 text-xs">
-                  {t("notification.downloadsEmpty")}
+                  {t("notification.downloads.empty")}
                 </div>
               ) : (
                 activeDownloads.map((torrent) => (
@@ -338,9 +313,7 @@ export default function NotificationTray() {
               <>
                 {visible.length === 0 && (
                   <div className="text-hint flex items-center justify-center py-4 text-xs">
-                    {items.length === 0
-                      ? t("notification.empty")
-                      : t("notification.filterEmpty")}
+                    {items.length === 0 ? t("notification.empty") : t("notification.filter.empty")}
                   </div>
                 )}
                 {visible.map((item) => (

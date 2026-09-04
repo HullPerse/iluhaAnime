@@ -23,11 +23,7 @@ import {
 import { useI18n } from "@/lib/i18n";
 import { fileNameFromPath, formatETA } from "@/lib/player.utils";
 import { useUpscaleQueueStore } from "@/store/upscale.store";
-import type {
-  UpscaleConfig,
-  ConvertConfig,
-  UpscaleQueueItem,
-} from "@/types";
+import type { UpscaleConfig, ConvertConfig, UpscaleQueueItem } from "@/types";
 
 import FFMPEG from "./ffmpeg.player";
 import ShaderPicker from "./shader.player";
@@ -49,9 +45,9 @@ export default function UpscalePlayer({
   const [gpuBackend, setGpuBackend] = useState("cpu");
   const [availableGpu, setAvailableGpu] = useState<string[]>(["cpu"]);
   const [upscaler, setUpscaler] = useState("ffmpeg");
-  const [ffmpegStatus, setFfmpegStatus] = useState<
-    "checking" | "ok" | "missing" | "downloading"
-  >("checking");
+  const [ffmpegStatus, setFfmpegStatus] = useState<"checking" | "ok" | "missing" | "downloading">(
+    "checking"
+  );
   const [anime4kPreset, setAnime4kPreset] = useState("lightning");
   const [selectedShaders, setSelectedShaders] = useState<string[]>([]);
   const [targetFormat, setTargetFormat] = useState("mp4");
@@ -67,9 +63,7 @@ export default function UpscalePlayer({
 
   const isInQueue = useUpscaleQueueStore((s) =>
     s.items.some(
-      (i) =>
-        i.filePath === filePath &&
-        (i.status === "queued" || i.status === "processing")
+      (i) => i.filePath === filePath && (i.status === "queued" || i.status === "processing")
     )
   );
 
@@ -137,21 +131,15 @@ export default function UpscalePlayer({
   const startUpscale = useCallback(() => {
     const noop = resolution === "original" && !fpsValue;
     if (noop) {
-      setLocalError(t("player.upscale.selectResolution"));
+      setLocalError(t("player.upscale.select.resolution"));
       return;
     }
 
     setLocalError(null);
 
-    const [w, h] =
-      resolution === "original" ? [0, 0] : resolution.split("x").map(Number);
+    const [w, h] = resolution === "original" ? [0, 0] : resolution.split("x").map(Number);
     const interpolate = fpsValue === "60i";
-    const fps =
-      fpsValue === "60" || fpsValue === "60i"
-        ? 60
-        : fpsValue
-          ? Number(fpsValue)
-          : null;
+    const fps = fpsValue === "60" || fpsValue === "60i" ? 60 : fpsValue ? Number(fpsValue) : null;
     const config: UpscaleConfig = {
       width: w,
       height: h,
@@ -166,16 +154,7 @@ export default function UpscalePlayer({
       .getState()
       .addUpscaleItem(filePath, fileNameFromPath(filePath), config);
     setActiveItemId(id);
-  }, [
-    filePath,
-    resolution,
-    fpsValue,
-    quality,
-    gpuBackend,
-    upscaler,
-    selectedShaders,
-    t,
-  ]);
+  }, [filePath, resolution, fpsValue, quality, gpuBackend, upscaler, selectedShaders, t]);
 
   const startConvert = useCallback(() => {
     setLocalError(null);
@@ -196,15 +175,9 @@ export default function UpscalePlayer({
 
   const handleAddToQueue = useCallback(() => {
     if (activeTab === "upscale") {
-      const [w, h] =
-        resolution === "original" ? [0, 0] : resolution.split("x").map(Number);
+      const [w, h] = resolution === "original" ? [0, 0] : resolution.split("x").map(Number);
       const interpolate = fpsValue === "60i";
-      const fps =
-        fpsValue === "60" || fpsValue === "60i"
-          ? 60
-          : fpsValue
-            ? Number(fpsValue)
-            : null;
+      const fps = fpsValue === "60" || fpsValue === "60i" ? 60 : fpsValue ? Number(fpsValue) : null;
       const config: UpscaleConfig = {
         width: w,
         height: h,
@@ -215,17 +188,13 @@ export default function UpscalePlayer({
         aiUpscaler: upscaler === "ffmpeg" ? null : upscaler,
         selectedShaders: upscaler === "anime4k" ? selectedShaders : undefined,
       };
-      useUpscaleQueueStore
-        .getState()
-        .addUpscaleItem(filePath, fileNameFromPath(filePath), config);
+      useUpscaleQueueStore.getState().addUpscaleItem(filePath, fileNameFromPath(filePath), config);
     } else {
       const config: ConvertConfig = {
         targetFormat,
         copyStreams,
       };
-      useUpscaleQueueStore
-        .getState()
-        .addConvertItem(filePath, fileNameFromPath(filePath), config);
+      useUpscaleQueueStore.getState().addConvertItem(filePath, fileNameFromPath(filePath), config);
     }
     setOpen(false);
     resetState();
@@ -251,8 +220,7 @@ export default function UpscalePlayer({
 
   const showConfig = !activeItemId;
   const showProgress =
-    activeItem &&
-    (activeItem.status === "queued" || activeItem.status === "processing");
+    activeItem && (activeItem.status === "queued" || activeItem.status === "processing");
 
   const gpuOptions = availableGpu.map((b) => ({
     value: b,
@@ -268,9 +236,7 @@ export default function UpscalePlayer({
           e.stopPropagation();
           setOpen(true);
         }}
-        title={
-          isInQueue ? t("player.upscale.inQueue") : t("player.upscale.title")
-        }
+        title={isInQueue ? t("player.upscale.in.queue") : t("player.upscale.title")}
         disabled={!exists || isInQueue}
       >
         <Wand2 className="size-3" />
@@ -322,30 +288,15 @@ export default function UpscalePlayer({
 
               <div className="mt-2 flex flex-row justify-end gap-1">
                 <Button onClick={handleClose}>{t("common.cancel")}</Button>
-                <Button onClick={handleAddToQueue}>
-                  {t("player.upscale.toQueue")}
-                </Button>
-                <Button
-                  onClick={
-                    activeTab === "upscale" ? startUpscale : startConvert
-                  }
-                >
-                  {t(
-                    activeTab === "upscale"
-                      ? "player.upscale.start"
-                      : "player.upscale.convert"
-                  )}
+                <Button onClick={handleAddToQueue}>{t("player.upscale.to.queue")}</Button>
+                <Button onClick={activeTab === "upscale" ? startUpscale : startConvert}>
+                  {t(activeTab === "upscale" ? "player.upscale.start" : "player.upscale.convert")}
                 </Button>
               </div>
             </div>
           )}
 
-          {showProgress && (
-            <UpscaleProgressPanel
-              activeItem={activeItem}
-              onCancel={handleCancel}
-            />
-          )}
+          {showProgress && <UpscaleProgressPanel activeItem={activeItem} onCancel={handleCancel} />}
 
           <UpscaleStatusPanels
             localError={localError}
@@ -399,9 +350,7 @@ function UpscaleConfigPanel({
   selectedShaders: string[];
   setSelectedShaders: (value: string[]) => void;
   ffmpegStatus: "checking" | "ok" | "missing" | "downloading";
-  setFfmpegStatus: (
-    status: "checking" | "ok" | "missing" | "downloading"
-  ) => void;
+  setFfmpegStatus: (status: "checking" | "ok" | "missing" | "downloading") => void;
   targetFormat: string;
   setTargetFormat: (value: string) => void;
   copyStreams: boolean;
@@ -411,24 +360,16 @@ function UpscaleConfigPanel({
   if (activeTab === "convert") {
     return (
       <div className="flex flex-col gap-2 pt-2">
-        <label className="windows95-text text-xs">
-          {t("player.upscale.targetFormat")}
-        </label>
-        <Select
-          value={targetFormat}
-          onChange={setTargetFormat}
-          options={FORMAT_OPTIONS}
-        />
+        <label className="windows95-text text-xs">{t("player.upscale.target.format")}</label>
+        <Select value={targetFormat} onChange={setTargetFormat} options={FORMAT_OPTIONS} />
 
         <label className="windows95-text flex cursor-pointer items-center gap-2 text-xs select-none">
           <Checkbox checked={copyStreams} onChange={setCopyStreams} />
-          <span>{t("player.upscale.copyStreams")}</span>
+          <span>{t("player.upscale.copy.streams")}</span>
         </label>
 
         {!copyStreams && (
-          <span className="windows95-text text-hint text-xs">
-            {t("player.upscale.reencode")}
-          </span>
+          <span className="windows95-text text-hint text-xs">{t("player.upscale.reencode")}</span>
         )}
       </div>
     );
@@ -436,9 +377,7 @@ function UpscaleConfigPanel({
 
   return (
     <div className="flex flex-col gap-2 pt-2">
-      <label className="windows95-text text-xs">
-        {t("player.upscale.resolution")}
-      </label>
+      <label className="windows95-text text-xs">{t("player.upscale.resolution")}</label>
       <Select
         value={resolution}
         onChange={setResolution}
@@ -448,9 +387,7 @@ function UpscaleConfigPanel({
         }))}
       />
 
-      <label className="windows95-text text-xs">
-        {t("player.upscale.upscaler")}
-      </label>
+      <label className="windows95-text text-xs">{t("player.upscale.upscaler")}</label>
       <Select
         value={upscaler}
         onChange={setUpscaler}
@@ -459,19 +396,13 @@ function UpscaleConfigPanel({
           label: t(o.label as never),
         }))}
       />
-      {upscaler === "ffmpeg" && (
-        <FFMPEG status={ffmpegStatus} setStatus={setFfmpegStatus} />
-      )}
+      {upscaler === "ffmpeg" && <FFMPEG status={ffmpegStatus} setStatus={setFfmpegStatus} />}
 
       {upscaler === "anime4k" && (
-        <span className="windows95-text text-xs">
-          {t("player.upscale.requiresVulkan")}
-        </span>
+        <span className="windows95-text text-xs">{t("player.upscale.requires.vulkan")}</span>
       )}
 
-      <label className="windows95-text text-xs">
-        {t("player.upscale.fps")}
-      </label>
+      <label className="windows95-text text-xs">{t("player.upscale.fps")}</label>
       <Select
         value={fpsValue}
         onChange={setFpsValue}
@@ -483,9 +414,7 @@ function UpscaleConfigPanel({
 
       {upscaler === "anime4k" ? (
         <>
-          <label className="windows95-text text-xs">
-            {t("player.upscale.anime4kMode")}
-          </label>
+          <label className="windows95-text text-xs">{t("player.upscale.anime4k.mode")}</label>
           <Select
             value={anime4kPreset}
             onChange={onPresetChange}
@@ -502,9 +431,7 @@ function UpscaleConfigPanel({
         </>
       ) : (
         <>
-          <label className="windows95-text text-xs">
-            {t("player.upscale.quality")}
-          </label>
+          <label className="windows95-text text-xs">{t("player.upscale.quality")}</label>
           <Select
             value={quality}
             onChange={setQuality}
@@ -516,14 +443,8 @@ function UpscaleConfigPanel({
 
           {gpuOptions.length > 1 && (
             <>
-              <label className="windows95-text text-xs">
-                {t("player.upscale.codec")}
-              </label>
-              <Select
-                value={gpuBackend}
-                onChange={setGpuBackend}
-                options={gpuOptions}
-              />
+              <label className="windows95-text text-xs">{t("player.upscale.codec")}</label>
+              <Select value={gpuBackend} onChange={setGpuBackend} options={gpuOptions} />
             </>
           )}
         </>
@@ -542,9 +463,7 @@ function UpscaleProgressPanel({
   const { t } = useI18n();
   if (!activeItem) return null;
   const stage =
-    activeItem.current != null &&
-    activeItem.total != null &&
-    activeItem.total > 0
+    activeItem.current != null && activeItem.total != null && activeItem.total > 0
       ? "encoding"
       : activeItem.status === "processing"
         ? "initializing"
@@ -562,27 +481,21 @@ function UpscaleProgressPanel({
       {activeItem.status === "queued" && (
         <div className="flex flex-col items-center gap-2 py-4">
           <ListVideo className="text-hint size-5" />
-          <span className="windows95-text text-xs">
-            {t("player.upscale.queued")}
-          </span>
+          <span className="windows95-text text-xs">{t("player.upscale.queued")}</span>
         </div>
       )}
 
       {activeItem.status === "processing" && stage === "initializing" && (
         <div className="flex flex-col items-center gap-2 py-4">
           <SmallLoader size={5} />
-          <span className="windows95-text text-xs">
-            {t("player.upscale.initializing")}
-          </span>
+          <span className="windows95-text text-xs">{t("player.upscale.initializing")}</span>
         </div>
       )}
 
       {stage === "encoding" && (
         <>
           <ProgressBar value={activeItem.current ?? 0} max={activeItem.total ?? 1} />
-          <span className="windows95-text text-center text-xs">
-            {activeItem.progress ?? 0}%
-          </span>
+          <span className="windows95-text text-center text-xs">{activeItem.progress ?? 0}%</span>
           {etaSecs != null && (
             <span className="windows95-text text-hint text-center text-xs">
               {t("player.upscale.eta", { time: formatETA(etaSecs, t) })}
@@ -614,9 +527,7 @@ function UpscaleStatusPanels({
   if (localError && !activeItem) {
     return (
       <div className="flex flex-col items-center gap-2 p-1">
-        <span className="text-destructive windows95-text text-center text-xs">
-          {localError}
-        </span>
+        <span className="text-destructive windows95-text text-center text-xs">{localError}</span>
         <Button onClick={onClose}>{t("player.common.close")}</Button>
       </div>
     );
@@ -635,9 +546,7 @@ function UpscaleStatusPanels({
     return (
       <div className="flex flex-col items-center gap-2 p-1">
         <Check className="text-success size-6" />
-        <span className="windows95-text text-xs">
-          {t("player.upscale.done")}
-        </span>
+        <span className="windows95-text text-xs">{t("player.upscale.done")}</span>
         <Button onClick={onClose}>{t("player.common.close")}</Button>
       </div>
     );

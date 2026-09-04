@@ -16,12 +16,7 @@ interface Props {
   onAddFile: (filePath: string) => void;
 }
 
-export default function AddTorrentModal({
-  open,
-  onClose,
-  onAddMagnet,
-  onAddFile,
-}: Props) {
+export default function AddTorrentModal({ open, onClose, onAddMagnet, onAddFile }: Props) {
   const [magnetInput, setMagnetInput] = useState("");
   const { t } = useI18n();
 
@@ -45,13 +40,9 @@ export default function AddTorrentModal({
   };
 
   return (
-    <Modal
-      header={t("torrent.addTitle")}
-      onClose={handleClose}
-      className="w-xl"
-    >
+    <Modal header={t("torrent.add.title")} onClose={handleClose} className="w-xl">
       <div className="flex flex-col gap-2 py-2">
-        <span className="windows95-text">{t("torrent.magnetLink")}</span>
+        <span className="windows95-text">{t("torrent.magnet.link")}</span>
         <Input
           className="w-full"
           placeholder="magnet:?xt=urn:btih:..."
@@ -78,7 +69,7 @@ export default function AddTorrentModal({
               }
             }}
           >
-            {t("torrent.chooseFile")}
+            {t("torrent.choose.file")}
           </Button>
         </div>
         <div className="mt-2 flex justify-end gap-1">

@@ -94,22 +94,22 @@ export const RESOLUTIONS = [
 ];
 
 export const FPS_OPTIONS = [
-  { label: "player.option.fpsOriginal", value: "" },
+  { label: "player.option.fps.original", value: "" },
   { label: "30", value: "30" },
   { label: "player.option.fps60dup", value: "60" },
   { label: "player.option.fps60interp", value: "60i" },
 ];
 
 export const QUALITY_OPTIONS = [
-  { label: "player.option.qualityFastest", value: "ultrafast" },
-  { label: "player.option.qualityFast", value: "fast" },
-  { label: "player.option.qualitySlow", value: "slow" },
-  { label: "player.option.qualitySlowest", value: "veryslow" },
+  { label: "player.option.quality.fastest", value: "ultrafast" },
+  { label: "player.option.quality.fast", value: "fast" },
+  { label: "player.option.quality.slow", value: "slow" },
+  { label: "player.option.quality.slowest", value: "veryslow" },
 ];
 
 export const UPSCALER_OPTIONS = [
   { label: "Lanczos (ffmpeg)", value: "ffmpeg" },
-  { label: "player.option.upscalerAnime4k", value: "anime4k" },
+  { label: "player.option.upscaler.anime4k", value: "anime4k" },
 ];
 
 export const ANIME4K_PRESETS: {
@@ -172,12 +172,7 @@ export const ANIME4K_PRESETS: {
     gpuBackend: "cpu",
     label: "player.preset.denoise",
     quality: "slow",
-    shaders: [
-      "clamp",
-      "denoise_bilateral_median",
-      "restore_cnn_ul",
-      "upscale_denoise_cnn_x2_ul",
-    ],
+    shaders: ["clamp", "denoise_bilateral_median", "restore_cnn_ul", "upscale_denoise_cnn_x2_ul"],
     value: "denoise",
   },
   {

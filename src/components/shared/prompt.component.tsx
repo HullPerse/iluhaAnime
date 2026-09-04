@@ -82,19 +82,11 @@ interface SelectDialogProps {
 }
 
 /** Win95 replacement for prompt-as-id-list: pick one option from a list. */
-export function SelectDialog({
-  header,
-  label,
-  options,
-  onSubmit,
-  onClose,
-}: SelectDialogProps) {
+export function SelectDialog({ header, label, options, onSubmit, onClose }: SelectDialogProps) {
   const { t } = useI18n();
   const [filter, setFilter] = useState("");
   const needle = filter.trim().toLowerCase();
-  const visible = needle
-    ? options.filter((o) => o.label.toLowerCase().includes(needle))
-    : options;
+  const visible = needle ? options.filter((o) => o.label.toLowerCase().includes(needle)) : options;
 
   return (
     <Modal header={header} onClose={onClose} contentClassName="w-80">
@@ -119,9 +111,7 @@ export function SelectDialog({
           </button>
         ))}
         {visible.length === 0 && (
-          <p className="text-hint windows95-text p-2 text-xs">
-            {t("common.noResults")}
-          </p>
+          <p className="text-hint windows95-text p-2 text-xs">{t("common.no.results")}</p>
         )}
       </div>
     </Modal>

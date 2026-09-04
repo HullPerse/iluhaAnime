@@ -7,11 +7,7 @@ import { translate } from "@/lib/i18n";
 import { buildOutputPath } from "@/lib/player.utils";
 import { useSettingsStore } from "@/store/settings.store";
 import type { ConvertConfig, UpscaleConfig } from "@/types";
-import type {
-  UpscaleQueueItem,
-  UpscaleProgressPayload,
-  UpscaleQueueStore,
-} from "@/types/upscale";
+import type { UpscaleQueueItem, UpscaleProgressPayload, UpscaleQueueStore } from "@/types/upscale";
 
 let processingLock = false;
 
@@ -99,30 +95,23 @@ export const useUpscaleQueueStore = create<UpscaleQueueStore>()((set, get) => ({
 
     let unlisten: UnlistenFn | undefined;
     try {
-      unlisten = await listen<UpscaleProgressPayload>(
-        "upscale-progress",
-        (e) => {
-          const p = e.payload;
-          set((s) => ({
-            items: s.items.map((i) =>
-              i.id === next.id
-                ? {
-                    ...i,
-                    progress:
-                      p.total > 0 ? Math.round((p.current / p.total) * 100) : 0,
-                    current: p.current,
-                    total: p.total,
-                    speed: p.speed,
-                    status:
-                      p.stage === "done"
-                        ? ("done" as const)
-                        : ("processing" as const),
-                  }
-                : i
-            ),
-          }));
-        }
-      );
+      unlisten = await listen<UpscaleProgressPayload>("upscale-progress", (e) => {
+        const p = e.payload;
+        set((s) => ({
+          items: s.items.map((i) =>
+            i.id === next.id
+              ? {
+                  ...i,
+                  progress: p.total > 0 ? Math.round((p.current / p.total) * 100) : 0,
+                  current: p.current,
+                  total: p.total,
+                  speed: p.speed,
+                  status: p.stage === "done" ? ("done" as const) : ("processing" as const),
+                }
+              : i
+          ),
+        }));
+      });
 
       if (next.jobType === "upscale") {
         const cfg = next.config as UpscaleConfig;
@@ -149,19 +138,13 @@ export const useUpscaleQueueStore = create<UpscaleQueueStore>()((set, get) => ({
       }
 
       set((s) => ({
-        items: s.items.map((i) =>
-          i.id === next.id ? { ...i, status: "done", progress: 100 } : i
-        ),
+        items: s.items.map((i) => (i.id === next.id ? { ...i, status: "done", progress: 100 } : i)),
       }));
     } catch (e: unknown) {
       const msg =
-        typeof e === "string"
-          ? e
-          : translate(useSettingsStore.getState().language, "common.error");
+        typeof e === "string" ? e : translate(useSettingsStore.getState().language, "common.error");
       set((s) => ({
-        items: s.items.map((i) =>
-          i.id === next.id ? { ...i, status: "error", error: msg } : i
-        ),
+        items: s.items.map((i) => (i.id === next.id ? { ...i, status: "error", error: msg } : i)),
       }));
     } finally {
       unlisten?.();

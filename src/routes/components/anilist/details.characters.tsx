@@ -17,11 +17,7 @@ function AniListCharactersPanel({
   onCharacterClick,
 }: {
   animeId: number;
-  onCharacterClick?: (
-    characterId: number,
-    name: string,
-    voiceActors: AniVoiceActor[]
-  ) => void;
+  onCharacterClick?: (characterId: number, name: string, voiceActors: AniVoiceActor[]) => void;
 }) {
   const { t } = useI18n();
   const [showCharacters, setShowCharacters] = useState<boolean>(false);
@@ -62,18 +58,10 @@ function AniListCharactersPanel({
           tabIndex={0}
           aria-label={edge.character.name}
           onClick={() =>
-            onCharacterClick?.(
-              edge.character.id,
-              edge.character.name,
-              edge.voice_actors
-            )
+            onCharacterClick?.(edge.character.id, edge.character.name, edge.voice_actors)
           }
           onKeyDown={enterOrSpace(() =>
-            onCharacterClick?.(
-              edge.character.id,
-              edge.character.name,
-              edge.voice_actors
-            )
+            onCharacterClick?.(edge.character.id, edge.character.name, edge.voice_actors)
           )}
           className="hover:bg-surface flex cursor-pointer flex-col items-center gap-0.5 p-0.5"
           title={edge.character.name}

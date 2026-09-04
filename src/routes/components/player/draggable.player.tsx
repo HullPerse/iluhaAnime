@@ -22,18 +22,13 @@ export function DraggableFolder({
   onHide?: (path: string) => void;
   audioExtensions: string[];
 }) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } =
-    useDraggable({
-      id: `folder-${tree.path}`,
-      data: { type: "folder", name: tree.name, folderPath: tree.path },
-    });
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: `folder-${tree.path}`,
+    data: { type: "folder", name: tree.name, folderPath: tree.path },
+  });
 
-  const countAll =
-    tree.files.length + tree.children.reduce((s, c) => s + c.files.length, 0);
-  const disabledExtensions = useMemo(
-    () => new Set(audioExtensions),
-    [audioExtensions]
-  );
+  const countAll = tree.files.length + tree.children.reduce((s, c) => s + c.files.length, 0);
+  const disabledExtensions = useMemo(() => new Set(audioExtensions), [audioExtensions]);
   const { t } = useI18n();
 
   return (
@@ -42,9 +37,7 @@ export function DraggableFolder({
       className="windows95-active-border bg-primary flex flex-col"
       style={{
         opacity: isDragging ? 0.4 : undefined,
-        transform: transform
-          ? `translate(${transform.x}px, ${transform.y}px)`
-          : undefined,
+        transform: transform ? `translate(${transform.x}px, ${transform.y}px)` : undefined,
       }}
     >
       <div
@@ -52,16 +45,12 @@ export function DraggableFolder({
         {...attributes}
         className="windows95-text hover:bg-surface flex w-full cursor-grab items-center gap-1 px-0.5 py-0.5 text-left select-none active:cursor-grabbing"
       >
-        <ImageComponent
-          src="/images/w2k_folder_closed.ico"
-          alt=""
-          className="size-4 shrink-0"
-        />
+        <ImageComponent src="/images/w2k_folder_closed.ico" alt="" className="size-4 shrink-0" />
         <span className="flex-1 truncate select-none" title={tree.name}>
           {tree.name}
         </span>
         <span className="text-hint text-xs whitespace-nowrap select-none">
-          {t("player.folder.fileCount", { count: countAll })}
+          {t("player.folder.file.count", { count: countAll })}
         </span>
         {onHide && (
           <Button
@@ -118,18 +107,17 @@ export function DraggableTorrent({
   onHide?: () => void;
 }) {
   const { t } = useI18n();
-  const { attributes, listeners, setNodeRef, transform, isDragging } =
-    useDraggable({
-      id: `torrent-${item.info_hash}`,
-      data: {
-        type: "torrent",
-        name: item.name,
-        infoHash: item.info_hash,
-        torrentId: item.id,
-        saveDir: item.save_dir,
-        totalBytes: item.total_bytes,
-      },
-    });
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: `torrent-${item.info_hash}`,
+    data: {
+      type: "torrent",
+      name: item.name,
+      infoHash: item.info_hash,
+      torrentId: item.id,
+      saveDir: item.save_dir,
+      totalBytes: item.total_bytes,
+    },
+  });
 
   return (
     <div
@@ -137,9 +125,7 @@ export function DraggableTorrent({
       className="flex flex-col"
       style={{
         opacity: isDragging ? 0.4 : undefined,
-        transform: transform
-          ? `translate(${transform.x}px, ${transform.y}px)`
-          : undefined,
+        transform: transform ? `translate(${transform.x}px, ${transform.y}px)` : undefined,
       }}
     >
       <div
@@ -147,9 +133,7 @@ export function DraggableTorrent({
         {...attributes}
         className="bg-secondary flex cursor-grab items-center gap-1 px-1 text-white select-none active:cursor-grabbing"
       >
-        <span className="windows95-text line-clamp-1 flex-1 py-0.5 font-bold">
-          {item.name}
-        </span>
+        <span className="windows95-text line-clamp-1 flex-1 py-0.5 font-bold">{item.name}</span>
         {onHide && (
           <Button
             size="icon"

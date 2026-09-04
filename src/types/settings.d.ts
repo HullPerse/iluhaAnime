@@ -1,7 +1,7 @@
 import type { Locale } from "./i18n";
 import type { AutocompleteMode } from "./search";
 
-export type SettingsTab = "general" | "search" | "torrent" | "theme" | "sqlite";
+export type SettingsTab = "general" | "search" | "torrent" | "theme" | "sqlite" | "notifications";
 
 export type FFMPEGStatus = "checking" | "ok" | "missing" | "downloading";
 
@@ -16,8 +16,9 @@ export interface SettingsStore {
   notifyOnError: boolean;
   defaultSearchSource: string;
   visibleSources: string[];
+  searchProxyUrls: Record<string, string>;
   resultsPerPage: number;
-  anilistPageSize: number;
+  pageSize: number;
   anilistMaxPages: number;
   searchHistoryMaxItems: number;
   autocompleteMode: AutocompleteMode;
@@ -51,12 +52,24 @@ export interface SettingsStore {
   disablePersistence: boolean;
   parseTitles: boolean;
   anilistReleaseNotifications: boolean;
+  notifyNewEpisodes: boolean;
+  notifyStatusChanges: boolean;
+  anilistPollIntervalMin: number;
+  anilistNotifyLists: string[] | null;
   sqliteBrowserEnabled: boolean;
   sqliteShowImages: boolean;
-  vaultTabEnabled: boolean;
   collectionTabEnabled: boolean;
+  anilistTabEnabled: boolean;
+  searchTabEnabled: boolean;
+  torrentTabEnabled: boolean;
+  playerTabEnabled: boolean;
   tmdbApiKey: string | null;
+  tmdbProxyUrl: string | null;
   ffmpegSource: "essentials" | "github" | "github-mirror";
-  toastDuration: number;
+  fastembedSource: "q" | "full";
+  searchSymSpellEnabled: boolean;
+  searchSemanticEnabled: boolean;
+  searchIntentEnabled: boolean;
+  appFont: string | null;
   patch: (partial: Partial<SettingsStore>) => void;
 }

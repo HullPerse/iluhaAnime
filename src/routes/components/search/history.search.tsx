@@ -10,12 +10,7 @@ interface Props {
   onRemove: (query: string) => void;
 }
 
-export default function SearchHistoryDropdown({
-  history,
-  show,
-  onSelect,
-  onRemove,
-}: Props) {
+export default function SearchHistoryDropdown({ history, show, onSelect, onRemove }: Props) {
   if (!show || history.length === 0) return null;
 
   return (

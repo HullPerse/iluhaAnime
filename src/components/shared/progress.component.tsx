@@ -15,10 +15,7 @@ function ProgressBar({
 
   return (
     <div
-      className={cn(
-        "windows95-border relative h-6 overflow-hidden bg-white",
-        className
-      )}
+      className={cn("windows95-border relative h-6 overflow-hidden bg-white", className)}
       role="progressbar"
       aria-valuemin={0}
       aria-valuemax={safeMax}

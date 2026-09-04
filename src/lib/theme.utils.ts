@@ -8,11 +8,7 @@ function luminance(hex: string): number {
 function mix(c1: string, c2: string, t: number): string {
   const [r1, g1, b1] = hexToRgb(c1)!;
   const [r2, g2, b2] = hexToRgb(c2)!;
-  return rgbToHex(
-    r1 * t + r2 * (1 - t),
-    g1 * t + g2 * (1 - t),
-    b1 * t + b2 * (1 - t)
-  );
+  return rgbToHex(r1 * t + r2 * (1 - t), g1 * t + g2 * (1 - t), b1 * t + b2 * (1 - t));
 }
 
 function tint(hex: string, amount: number): string {
@@ -38,10 +34,7 @@ export interface GeneratedThemeColors {
   winShadow: string;
 }
 
-export function generateFromAccent(
-  accent: string,
-  bg: string
-): GeneratedThemeColors {
+export function generateFromAccent(accent: string, bg: string): GeneratedThemeColors {
   const isLight = luminance(bg) > 128;
   const lum = luminance(accent);
   const isAccentLight = lum > 180;
@@ -65,9 +58,7 @@ export function generateFromAccent(
     };
   }
 
-  const primary = isAccentLight
-    ? tint(accent, 0.82)
-    : tint(shade(accent, 0.3), 0.78);
+  const primary = isAccentLight ? tint(accent, 0.82) : tint(shade(accent, 0.3), 0.78);
   const surface = tint(primary, 0.1);
   return {
     background: bg,

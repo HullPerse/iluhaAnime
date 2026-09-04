@@ -8,12 +8,7 @@ vi.mock("@tauri-apps/api/core", () => ({
   invoke: invokeMock,
 }));
 
-import {
-  clearAppCache,
-  deleteAppCache,
-  readAppCache,
-  writeAppCache,
-} from "@/lib/app.cache";
+import { clearAppCache, deleteAppCache, readAppCache, writeAppCache } from "@/lib/app.cache";
 
 beforeEach(() => {
   invokeMock.mockReset();
@@ -33,10 +28,7 @@ describe("readAppCache", () => {
       updated_at: 1234,
     });
 
-    const record = await readAppCache<{ path: string }[]>(
-      "player",
-      "folderTrees"
-    );
+    const record = await readAppCache<{ path: string }[]>("player", "folderTrees");
 
     expect(invokeMock).toHaveBeenCalledWith("get_app_cache", {
       key: "folderTrees",

@@ -103,11 +103,16 @@ impl reqwest::dns::Resolve for Ipv4FirstResolver {
     }
 }
 
+fn resolve_proxy(proxy: Option<String>, proxy_camel: Option<String>) -> Option<String> {
+    proxy.or(proxy_camel).map(|s| s.trim().to_string()).filter(|s| !s.is_empty())
+}
+
 fn build_client_inner(
     timeout_secs: u64,
     no_redirect: bool,
     http1_only: bool,
     user_agent: &str,
+    proxy: Option<&str>,
 ) -> Result<reqwest::Client, String> {
     let mut headers = reqwest::header::HeaderMap::new();
     headers.insert(
@@ -143,6 +148,10 @@ fn build_client_inner(
         .connect_timeout(std::time::Duration::from_secs(10))
         .dns_resolver(Arc::new(Ipv4FirstResolver))
         .default_headers(headers);
+    if let Some(url) = proxy {
+        let proxy = reqwest::Proxy::all(url).map_err(|e| format!("Invalid proxy URL: {e}"))?;
+        builder = builder.proxy(proxy);
+    }
     if no_redirect {
         builder = builder.redirect(reqwest::redirect::Policy::none());
     }
@@ -158,6 +167,7 @@ pub fn build_client() -> Result<reqwest::Client, String> {
         false,
         false,
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
+        None,
     )
 }
 
@@ -167,6 +177,7 @@ pub fn build_nyaa_client() -> Result<reqwest::Client, String> {
         false,
         false,
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
+        None,
     )
 }
 
@@ -176,6 +187,7 @@ pub fn build_no_redirect_client() -> Result<reqwest::Client, String> {
         true,
         true,
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
+        None,
     )
 }
 
@@ -195,11 +207,11 @@ pub fn build_rutracker_client() -> Result<reqwest::Client, String> {
 /// Same as [`build_rutracker_client`] but with an explicit User-Agent, the
 /// one captured from the in-app browser, when available.
 pub fn build_rutracker_client_with_ua(user_agent: &str) -> Result<reqwest::Client, String> {
-    build_client_inner(30, false, true, user_agent)
+    build_client_inner(30, false, true, user_agent, None)
 }
 
 pub fn build_nekobt_client() -> Result<reqwest::Client, String> {
-    build_client_inner(30, false, false, "iluhaAnime/1.0")
+    build_client_inner(30, false, false, "iluhaAnime/1.0", None)
 }
 
 /// Downloads a .torrent file from an arbitrary URL (nyaa-style sources such as
@@ -390,8 +402,15 @@ async fn search_nyaa_impl(
     order: Option<String>,
     json_converter: fn(NyaaJsonItem) -> Option<NyaaItem>,
     html_parser: fn(&str) -> Vec<NyaaItem>,
+    proxy: Option<&str>,
 ) -> Result<Vec<NyaaItem>, String> {
-    let client = build_nyaa_client()?;
+    let client = build_client_inner(
+        90,
+        false,
+        false,
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
+        proxy,
+    )?;
 
     let mut params = vec![("q", query.as_str()), ("c", category), ("format", "json")];
     let page_str = page.map(|p| p.to_string());
@@ -784,11 +803,21 @@ fn parse_rus_number(s: &str) -> u32 {
 }
 
 #[tauri::command]
+#[allow(non_snake_case)]
 pub async fn search_erairaws(
     query: String,
     encoding: Option<String>,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
 ) -> Result<Vec<NyaaItem>, String> {
-    let client = build_client()?;
+    let proxy = resolve_proxy(proxy_url, proxyUrl);
+    let client = build_client_inner(
+        30,
+        false,
+        false,
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
+        proxy.as_deref(),
+    )?;
 
     let search_query = match encoding.as_deref() {
         None | Some("" | "all") => format!("{query} erai-raws"),
@@ -839,12 +868,16 @@ pub async fn search_erairaws(
 }
 
 #[tauri::command]
+#[allow(non_snake_case)]
 pub async fn search_nyaa(
     query: String,
     page: Option<u32>,
     sort: Option<String>,
     order: Option<String>,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
 ) -> Result<Vec<NyaaItem>, String> {
+    let proxy = resolve_proxy(proxy_url, proxyUrl);
     search_nyaa_impl(
         "https://nyaa.si/",
         "1_0",
@@ -854,6 +887,7 @@ pub async fn search_nyaa(
         order,
         nyaa_json_to_item,
         parse_nyaa_entries,
+        proxy.as_deref(),
     )
     .await
 }
@@ -1000,12 +1034,16 @@ fn parse_sukebei_entries(html: &str) -> Vec<NyaaItem> {
 }
 
 #[tauri::command]
+#[allow(non_snake_case)]
 pub async fn search_sukebei(
     query: String,
     page: Option<u32>,
     sort: Option<String>,
     order: Option<String>,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
 ) -> Result<Vec<NyaaItem>, String> {
+    let proxy = resolve_proxy(proxy_url, proxyUrl);
     search_nyaa_impl(
         "https://sukebei.nyaa.si/",
         "0_0",
@@ -1015,15 +1053,20 @@ pub async fn search_sukebei(
         order,
         sukebei_json_to_item,
         parse_sukebei_entries,
+        proxy.as_deref(),
     )
     .await
 }
 
 #[tauri::command]
+#[allow(non_snake_case)]
 pub async fn search_rutracker(
     app_handle: tauri::AppHandle,
     query: String,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
 ) -> Result<Vec<NyaaItem>, String> {
+    let proxy = resolve_proxy(proxy_url, proxyUrl);
     let cookies = load_rutracker_cookies(&app_handle);
     if cookies.is_empty() {
         return Err("Not authenticated. Please login to rutracker first.".to_string());
@@ -1039,7 +1082,7 @@ pub async fn search_rutracker(
     } else {
         let user_agent = load_rutracker_user_agent(&app_handle)
             .unwrap_or_else(|| RUTRACKER_DEFAULT_UA.to_string());
-        let client = build_rutracker_client_with_ua(&user_agent)?;
+        let client = build_client_inner(30, false, true, &user_agent, proxy.as_deref())?;
         let _slot = acquire_scraper_slot().await?;
         let resp = client
             .get("https://rutracker.org/forum/tracker.php")
@@ -1075,11 +1118,15 @@ pub async fn search_rutracker(
 }
 
 #[tauri::command]
+#[allow(non_snake_case)]
 pub async fn search_nekobt(
     app_handle: tauri::AppHandle,
     query: String,
     page: Option<u32>,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
 ) -> Result<Vec<NyaaItem>, String> {
+    let proxy = resolve_proxy(proxy_url, proxyUrl);
     let key = load_nekobt_api_key(&app_handle);
     if key.is_empty() {
         return Err("Not authenticated. Please enter your nekoBT API key first.".to_string());
@@ -1089,7 +1136,7 @@ pub async fn search_nekobt(
         return Err("Search query is empty".to_string());
     }
 
-    let client = build_nekobt_client()?;
+    let client = build_client_inner(30, false, false, "iluhaAnime/1.0", proxy.as_deref())?;
     let page = page.unwrap_or(1);
     let offset = (u64::from(page).saturating_sub(1)) * 20;
     let limit = 20u64;
@@ -1160,6 +1207,63 @@ pub async fn search_nekobt(
 
     Ok(items)
 }
+fn source_test_url(source: &str) -> Option<&'static str> {
+    match source {
+        "erai-raws" => Some("https://animetosho.org/"),
+        "rutracker" => Some("https://rutracker.org/forum/index.php"),
+        "nyaa" => Some("https://nyaa.si/"),
+        "nekobt" => Some("https://nekobt.to/"),
+        "sukebei" => Some("https://sukebei.nyaa.si/"),
+        _ => None,
+    }
+}
+
+#[tauri::command]
+#[allow(non_snake_case)]
+pub async fn test_source_connection(
+    source: String,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
+) -> Result<String, String> {
+    let url = source_test_url(&source)
+        .ok_or_else(|| format!("Unknown source: {source}"))?
+        .to_string();
+    let proxy = resolve_proxy(proxy_url, proxyUrl);
+    let client = build_client_inner(
+        10,
+        false,
+        false,
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
+        proxy.as_deref(),
+    )?;
+    let start = Instant::now();
+    let resp = client
+        .get(&url)
+        .send()
+        .await
+        .map_err(|e| {
+            let msg = e.to_string();
+            if msg.contains("proxy") || msg.contains("Proxy") || msg.contains("tunnel") {
+                format!("Proxy error: {msg}")
+            } else {
+                format!("Connection failed: {msg}")
+            }
+        })?;
+    let elapsed = start.elapsed().as_millis();
+    let status = resp.status().as_u16();
+    if resp.status().is_success() {
+        Ok(format!("OK {elapsed}ms (HTTP {status})"))
+    } else if status == 403 || status == 429 {
+        Ok(format!("OK {elapsed}ms (HTTP {status} - reachable)"))
+    } else if (400..500).contains(&status) {
+        Err(format!("HTTP {status} after {elapsed}ms"))
+    } else if (500..600).contains(&status) {
+        Err(format!("Server error HTTP {status} after {elapsed}ms"))
+    } else {
+        Ok(format!("OK {elapsed}ms (HTTP {status})"))
+    }
+}
+
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]

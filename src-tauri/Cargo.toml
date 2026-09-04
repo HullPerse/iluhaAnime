@@ -1,6 +1,6 @@
 [package]
 name = "iluhaAnime"
-version = "3.1.0"
+version = "3.1.2"
 description = "Anime Tracker and Player"
 authors = ["HullPerse"]
 edition = "2021"
@@ -29,8 +29,10 @@ tauri-plugin-notification = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 url = "2"
+unicode-normalization = "0.1"
+fastembed = "4"
 rusqlite = { version = "0.40", features = ["bundled"] }
-reqwest = { version = "0.12", features = ["json", "cookies", "stream"] }
+reqwest = { version = "0.12", features = ["json", "cookies", "stream", "socks"] }
 futures = "0.3"
 encoding_rs = "0.8"
 scraper = "0.27"
@@ -69,9 +71,19 @@ specta-typescript = "0.0.12"
 [target.'cfg(windows)'.dependencies]
 webview2-com = "0.38"
 windows-core = "0.61"
+windows = { version = "0.61", features = ["Win32_Graphics_Gdi", "Win32_Foundation"] }
+winreg = "0.52"
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-updater = "2"
+
+[[bin]]
+name = "export_bindings"
+path = "src/bin/export_bindings.rs"
+required-features = ["export-bindings"]
+
+[features]
+export-bindings = []
 
 [[bench]]
 name = "anilist_queries"

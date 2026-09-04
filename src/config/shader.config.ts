@@ -1,6 +1,1 @@
-export const CATEGORY_ORDER = [
-  "preprocess",
-  "restore",
-  "upscale",
-  "postprocess",
-];
+export const CATEGORY_ORDER = ["preprocess", "restore", "upscale", "postprocess"];

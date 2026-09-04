@@ -1,63 +1,63 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import {
-  Search,
-  ChevronLeft,
-  ChevronRight,
-  AlertCircle,
-  Inbox,
-} from "lucide-react";
-import { useEffect, useState, useMemo, useDeferredValue } from "react";
+import { Search } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 
 import { InlineAutocompleteInput } from "@/components/shared/autocomplete.component";
 import { SmallLoader } from "@/components/shared/loader.component";
 import { Button } from "@/components/ui/button.component";
 import Select from "@/components/ui/select.component";
 import { SOURCE_INFOS } from "@/config/search.config";
-import { useSugggestions } from "@/hooks/suggestion.hook";
+import { useAutocomplete } from "@/hooks/autocomplete.hook";
+import { useSearchSessions } from "@/hooks/searchSessions.hook";
 import { useI18n } from "@/lib/i18n";
 import { enterSubmit } from "@/lib/keyboard.utils";
 import { copyMagnet, openMagnet, downloadMagnet } from "@/lib/magnet.utils";
+import { filterAnimeResults, getVisibleSources, sortAnimeResults } from "@/lib/search.logic";
 import {
-  sortAnimeResults,
-  filterAnimeResults,
-  getVisibleSources,
-} from "@/lib/search.logic";
-import {
-  getInlineCompletion,
-  getSearchSuggestions,
-} from "@/lib/search.suggestions";
+  isPagedSearchSource,
+  resolveInitialSource,
+  serverSideSortSource,
+} from "@/lib/searchRoute.utils";
 import SearchAuthButtons from "@/routes/components/search/auth.search";
 import TorrentDetailsModal from "@/routes/components/search/details.search";
-import EraiLoginModal from "@/routes/components/search/erai.search";
+import SearchEmptyState from "@/routes/components/search/empty.search";
+import SearchErrorBar from "@/routes/components/search/error.search";
 import SearchFiltersBar from "@/routes/components/search/filters.search";
 import SearchFiltersModal from "@/routes/components/search/modal.filters";
-import NekoBtApiModal from "@/routes/components/search/nekobt.search";
+import SearchPager from "@/routes/components/search/pager.search";
 import SearchResultItem from "@/routes/components/search/result.search";
-import RutrackerLoginModal from "@/routes/components/search/rutracker.search";
+import SearchSessionModals from "@/routes/components/search/sessions.search";
+import SearchResultsSummary from "@/routes/components/search/summary.search";
 import { useSearchStore } from "@/store/search.store";
 import { useSettingsStore } from "@/store/settings.store";
 import type { Anime, Source } from "@/types";
 import type { SearchFilters } from "@/types/search";
 
+function countActiveFilters(f: SearchFilters): number {
+  let count = 0;
+  if (f.minSeeders > 0) count++;
+  if (f.hasMagnet) count++;
+  if (f.quality !== "all") count++;
+  if (f.language !== "all") count++;
+  if (f.sizeMin > 0 || f.sizeMax > 0) count++;
+  if (f.codec !== "all") count++;
+  return count;
+}
+
 function SearchRoute() {
   const defaultSource = useSettingsStore((s) => s.defaultSearchSource);
   const visibleSources = useSettingsStore((s) => s.visibleSources);
   const resultsPerPage = useSettingsStore((s) => s.resultsPerPage);
-  const anilistSuggestionBoost = useSettingsStore(
-    (s) => s.anilistSuggestionBoost
-  );
+  const anilistSuggestionBoost = useSettingsStore((s) => s.anilistSuggestionBoost);
 
   const sourceOptions = useMemo(
     () => getVisibleSources(visibleSources, SOURCE_INFOS),
     [visibleSources]
   );
 
-  const initialSource = resolveInitialSource(
-    visibleSources,
-    defaultSource
-  ) as Source;
+  const initialSource = resolveInitialSource(visibleSources, defaultSource) as Source;
 
   const [searchParams, setSearchParams] = useState("");
   const [submittedQuery, setSubmittedQuery] = useState("");
@@ -68,9 +68,7 @@ function SearchRoute() {
   const [showEraiLogin, setShowEraiLogin] = useState(false);
   const [showApiModal, setShowApiModal] = useState(false);
   const [magnets, setMagnets] = useState<Record<string, string>>({});
-  const [loadingMagnet, setLoadingMagnet] = useState<Record<string, boolean>>(
-    {}
-  );
+  const [loadingMagnet, setLoadingMagnet] = useState<Record<string, boolean>>({});
   const [nyaaPage, setNyaaPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
   const { t } = useI18n();
@@ -102,6 +100,8 @@ function SearchRoute() {
 
   const { rutrackerAuth, nekobtAuth, eraiAuth } = useSearchSessions();
 
+  const searchProxyUrls = useSettingsStore((s) => s.searchProxyUrls);
+
   useEffect(() => {
     if (!visibleSources.includes(source) && visibleSources.length > 0) {
       setSource(visibleSources[0] as Source);
@@ -120,51 +120,32 @@ function SearchRoute() {
         nyaaPage,
         sortBy,
         sortDirection,
+        searchProxyUrls[source],
       ] as const,
-    [source, submittedQuery, searchRequest, nyaaPage, sortBy, sortDirection]
+    [source, submittedQuery, searchRequest, nyaaPage, sortBy, sortDirection, searchProxyUrls]
   );
+
+  const fetchBySource = async (): Promise<Anime[]> => {
+    const proxyUrl = searchProxyUrls[source] || undefined;
+    const base = { query: submittedQuery, proxyUrl } as Record<string, unknown>;
+    const paged = { ...base, page: nyaaPage, sort: sortBy, order: sortDirection };
+    if (source === "rutracker") return invoke<Anime[]>("search_rutracker", base as never);
+    if (source === "nyaa") return invoke<Anime[]>("search_nyaa", paged as never);
+    if (source === "sukebei") return invoke<Anime[]>("search_sukebei", paged as never);
+    if (source === "nekobt")
+      return invoke<Anime[]>("search_nekobt", { ...base, page: nyaaPage } as never);
+    return invoke<Anime[]>("search_erairaws", base as never);
+  };
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey,
-    queryFn: async (): Promise<Anime[]> => {
-      if (source === "rutracker") {
-        return await invoke<Anime[]>("search_rutracker", {
-          query: submittedQuery,
-        });
-      }
-      if (source === "nyaa") {
-        return await invoke<Anime[]>("search_nyaa", {
-          query: submittedQuery,
-          page: nyaaPage,
-          sort: sortBy,
-          order: sortDirection,
-        });
-      }
-      if (source === "sukebei") {
-        return await invoke<Anime[]>("search_sukebei", {
-          query: submittedQuery,
-          page: nyaaPage,
-          sort: sortBy,
-          order: sortDirection,
-        });
-      }
-      if (source === "nekobt") {
-        return await invoke<Anime[]>("search_nekobt", {
-          query: submittedQuery,
-          page: nyaaPage,
-        });
-      }
-      return await invoke<Anime[]>("search_erairaws", {
-        query: submittedQuery,
-      });
-    },
+    queryFn: fetchBySource,
     enabled: Boolean(submittedQuery),
   });
 
   useEffect(() => {
     if (!isError || source !== "rutracker") return;
-    const message =
-      error instanceof Error ? error.message : String(error ?? "");
+    const message = error instanceof Error ? error.message : String(error ?? "");
     if (!message.trim().startsWith("blocked:")) return;
     queryClient.setQueryData<{ rutracker: boolean; nekobt: boolean }>(
       ["search_sessions"],
@@ -189,16 +170,10 @@ function SearchRoute() {
 
   const serverSideSort = serverSideSortSource(source);
 
-  const filtered = useMemo(
-    () => filterAnimeResults(data, filters),
-    [data, filters]
-  );
+  const filtered = useMemo(() => filterAnimeResults(data, filters), [data, filters]);
 
   const sorted = useMemo(
-    () =>
-      serverSideSort
-        ? filtered
-        : sortAnimeResults(filtered, sortBy, sortDirection),
+    () => (serverSideSort ? filtered : sortAnimeResults(filtered, sortBy, sortDirection)),
     [filtered, sortBy, sortDirection, serverSideSort]
   );
 
@@ -207,16 +182,7 @@ function SearchRoute() {
     [sorted, isPagedSource, resultsPerPage]
   );
 
-  const activeFilterCount = useMemo(() => {
-    let count = 0;
-    if (filters.minSeeders > 0) count++;
-    if (filters.hasMagnet) count++;
-    if (filters.quality !== "all") count++;
-    if (filters.language !== "all") count++;
-    if (filters.sizeMin > 0 || filters.sizeMax > 0) count++;
-    if (filters.codec !== "all") count++;
-    return count;
-  }, [filters]);
+  const activeFilterCount = useMemo(() => countActiveFilters(filters), [filters]);
 
   const handleLogout = async () => {
     try {
@@ -239,44 +205,21 @@ function SearchRoute() {
     } catch {}
   };
 
-  const deferredSearch = useDeferredValue(searchParams);
-  const backendSuggestions = useSugggestions(deferredSearch, "torrent", 8);
-  const suggestions = useMemo(
-    () =>
-      getSearchSuggestions(deferredSearch, {
-        animeEnabled: animeProfileId !== null,
-        animeIndex,
-        backendSuggestions,
-        history,
-        queryStats,
-        suggestionStats,
-        scope: "torrent",
-        anilistBoost: anilistSuggestionBoost,
-        limit: 8,
-      }),
-    [
-      animeIndex,
-      anilistSuggestionBoost,
-      animeProfileId,
-      backendSuggestions,
-      history,
-      queryStats,
-      deferredSearch,
-      suggestionStats,
-    ]
-  );
-  const inlineCompletion = useMemo(
-    () => getInlineCompletion(deferredSearch, suggestions),
-    [deferredSearch, suggestions]
-  );
+  const { suggestions, inlineCompletion } = useAutocomplete({
+    query: searchParams,
+    scope: "torrent",
+    history,
+    queryStats,
+    suggestionStats,
+    animeIndex,
+    animeProfileId,
+    anilistBoost: anilistSuggestionBoost,
+  });
 
   const handleSearch = () => {
     const trimmed = searchParams.trim();
     if (!trimmed) return;
-    if (
-      inlineCompletion &&
-      trimmed.toLocaleLowerCase() !== inlineCompletion.toLocaleLowerCase()
-    ) {
+    if (inlineCompletion && trimmed.toLocaleLowerCase() !== inlineCompletion.toLocaleLowerCase()) {
       recordSuggestionIgnored(inlineCompletion);
     }
     addQuery(trimmed, "torrent");
@@ -289,7 +232,7 @@ function SearchRoute() {
       <section className="ui-toolbar ui-panel w-full flex-row">
         <div className="relative flex flex-1 items-center justify-center gap-1">
           <InlineAutocompleteInput
-            placeholder={t("search.findPlaceholder")}
+            placeholder={t("search.find.placeholder")}
             value={searchParams}
             completion={inlineCompletion}
             suggestions={suggestions}
@@ -313,11 +256,7 @@ function SearchRoute() {
           onClick={handleSearch}
           disabled={isLoading || sourceOptions.length === 0}
         >
-          {isLoading ? (
-            <SmallLoader />
-          ) : (
-            <Search className="pointer-events-none" />
-          )}
+          {isLoading ? <SmallLoader /> : <Search className="pointer-events-none" />}
         </Button>
         <span className="ui-toolbar-separator" aria-hidden />
         <Select
@@ -349,9 +288,7 @@ function SearchRoute() {
         direction={sortDirection}
         activeFilterCount={activeFilterCount}
         onSortChange={setSortBy}
-        onDirectionChange={() =>
-          setSortDirection(sortDirection === "desc" ? "asc" : "desc")
-        }
+        onDirectionChange={() => setSortDirection(sortDirection === "desc" ? "asc" : "desc")}
         onOpenFilters={() => setShowFilters(true)}
       />
 
@@ -387,15 +324,9 @@ function SearchRoute() {
               item={item}
               source={source}
               loadingMagnet={loadingMagnet}
-              onCopyMagnet={(i) =>
-                copyMagnet(i, magnets, setMagnets, setLoadingMagnet)
-              }
-              onOpenMagnet={(i) =>
-                openMagnet(i, magnets, setMagnets, setLoadingMagnet)
-              }
-              onDownload={(i) =>
-                downloadMagnet(i, magnets, setMagnets, setLoadingMagnet)
-              }
+              onCopyMagnet={(i) => copyMagnet(i, magnets, setMagnets, setLoadingMagnet)}
+              onOpenMagnet={(i) => openMagnet(i, magnets, setMagnets, setLoadingMagnet)}
+              onDownload={(i) => downloadMagnet(i, magnets, setMagnets, setLoadingMagnet)}
               onOpenLink={async (i) => {
                 try {
                   await openUrl(i.link);
@@ -423,9 +354,7 @@ function SearchRoute() {
         setShowLogin={setShowLogin}
         setShowEraiLogin={setShowEraiLogin}
         setShowApiModal={setShowApiModal}
-        onAuthenticated={() =>
-          queryClient.invalidateQueries({ queryKey: ["search_sessions"] })
-        }
+        onAuthenticated={() => queryClient.invalidateQueries({ queryKey: ["search_sessions"] })}
       />
       {selectedTorrent && (
         <TorrentDetailsModal
@@ -434,12 +363,8 @@ function SearchRoute() {
           magnets={magnets}
           loadingMagnet={loadingMagnet}
           onClose={() => setSelectedTorrent(null)}
-          onCopyMagnet={(item) =>
-            copyMagnet(item, magnets, setMagnets, setLoadingMagnet)
-          }
-          onOpenMagnet={(item) =>
-            openMagnet(item, magnets, setMagnets, setLoadingMagnet)
-          }
+          onCopyMagnet={(item) => copyMagnet(item, magnets, setMagnets, setLoadingMagnet)}
+          onOpenMagnet={(item) => openMagnet(item, magnets, setMagnets, setLoadingMagnet)}
           onDownload={async (item) => {
             setSelectedTorrent(null);
             await downloadMagnet(item, magnets, setMagnets, setLoadingMagnet);
@@ -447,188 +372,6 @@ function SearchRoute() {
         />
       )}
     </main>
-  );
-}
-
-function resolveInitialSource(
-  visibleSources: string[],
-  defaultSource: string
-): string {
-  if (visibleSources.includes(defaultSource)) return defaultSource;
-  return visibleSources[0] ?? "";
-}
-
-function isPagedSearchSource(source: Source): boolean {
-  return source === "nyaa" || source === "nekobt" || source === "sukebei";
-}
-
-function serverSideSortSource(source: Source): boolean {
-  return source === "nyaa" || source === "sukebei";
-}
-
-function useSearchSessions() {
-  const { data: sessions } = useQuery({
-    queryKey: ["search_sessions"],
-    queryFn: async () => {
-      const [rutracker, nekobt, erai] = await Promise.all([
-        invoke<boolean>("check_rutracker_session").catch(() => false),
-        invoke<boolean>("check_nekobt_session").catch(() => false),
-        invoke<boolean>("check_erai_session").catch(() => false),
-      ]);
-      return { rutracker, nekobt, erai };
-    },
-    staleTime: 5 * 60 * 1000,
-  });
-
-  return {
-    rutrackerAuth: sessions?.rutracker ?? false,
-    nekobtAuth: sessions?.nekobt ?? false,
-    eraiAuth: sessions?.erai ?? false,
-  };
-}
-
-function SearchEmptyState({ visible }: { visible: boolean }) {
-  const { t } = useI18n();
-  if (!visible) return null;
-  return (
-    <section className="ui-empty-state flex-1 flex-col">
-      <Inbox className="size-8" />
-      <span className="windows95-text">{t("search.nothingFound")}</span>
-      <span className="windows95-text text-xs">{t("search.tryDifferent")}</span>
-    </section>
-  );
-}
-
-function SearchErrorBar({
-  error,
-  onRetry,
-}: {
-  error: unknown;
-  onRetry: () => void;
-}) {
-  const { t } = useI18n();
-  return (
-    <section
-      className="windows95-border bg-surface text-destructive flex items-center gap-2 px-2 py-1"
-      role="alert"
-    >
-      <AlertCircle className="size-4 shrink-0" />
-      <span className="windows95-text flex-1 truncate">
-        {error instanceof Error
-          ? error.message
-          : String(error ?? t("search.error"))}
-      </span>
-      <Button className="h-5" onClick={onRetry}>
-        {t("search.retry")}
-      </Button>
-    </section>
-  );
-}
-
-function SearchResultsSummary({
-  data,
-  shown,
-  isPagedSource,
-  page,
-  resultsPerPage,
-}: {
-  data: Anime[];
-  shown: number;
-  isPagedSource: boolean;
-  page: number;
-  resultsPerPage: number;
-}) {
-  const { t } = useI18n();
-  return (
-    <span className="windows95-text px-1 text-xs">
-      {isPagedSource
-        ? t("search.pageResults", {
-            page,
-            shown,
-            total: data.length,
-            status:
-              data.length < resultsPerPage
-                ? t("search.allShown")
-                : t("search.moreAvailable"),
-          })
-        : t("search.resultsCount", { count: data.length })}
-    </span>
-  );
-}
-
-function SearchPager({
-  page,
-  pageFull,
-  isLoading,
-  onPageChange,
-}: {
-  page: number;
-  pageFull: boolean;
-  isLoading: boolean;
-  onPageChange: (page: number) => void;
-}) {
-  const { t } = useI18n();
-  return (
-    <section className="flex items-center justify-end gap-1 py-1">
-      <span className="windows95-text mr-1">{t("search.page", { page })}</span>
-      <Button
-        size="icon"
-        className="size-5"
-        disabled={page <= 1 || isLoading}
-        onClick={() => onPageChange(Math.max(1, page - 1))}
-      >
-        <ChevronLeft className="size-3" />
-      </Button>
-      <Button
-        size="icon"
-        className="size-5"
-        disabled={!pageFull || isLoading}
-        onClick={() => onPageChange(page + 1)}
-      >
-        <ChevronRight className="size-3" />
-      </Button>
-    </section>
-  );
-}
-
-function SearchSessionModals({
-  showLogin,
-  showEraiLogin,
-  showApiModal,
-  setShowLogin,
-  setShowEraiLogin,
-  setShowApiModal,
-  onAuthenticated,
-}: {
-  showLogin: boolean;
-  showEraiLogin: boolean;
-  showApiModal: boolean;
-  setShowLogin: (value: boolean) => void;
-  setShowEraiLogin: (value: boolean) => void;
-  setShowApiModal: (value: boolean) => void;
-  onAuthenticated: () => void;
-}) {
-  return (
-    <>
-      {showLogin && (
-        <RutrackerLoginModal
-          setRutrackerAuth={onAuthenticated}
-          setShowLogin={setShowLogin}
-        />
-      )}
-      {showEraiLogin && (
-        <EraiLoginModal
-          setEraiAuth={onAuthenticated}
-          setShowLogin={setShowEraiLogin}
-        />
-      )}
-      {showApiModal && (
-        <NekoBtApiModal
-          setNekoBtAuth={onAuthenticated}
-          setShowApiModal={setShowApiModal}
-        />
-      )}
-    </>
   );
 }
 

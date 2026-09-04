@@ -26,15 +26,9 @@ function AniListActionControls({
   onClose?: () => void;
 }) {
   const { t } = useI18n();
-  const [editStatus, setEditStatus] = useState(
-    listEntry?.list_status ?? "PLANNING"
-  );
-  const [editProgress, setEditProgress] = useState(
-    listEntry?.progress?.toString() ?? ""
-  );
-  const [editScore, setEditScore] = useState(
-    listEntry?.score?.toString() ?? ""
-  );
+  const [editStatus, setEditStatus] = useState(listEntry?.list_status ?? "PLANNING");
+  const [editProgress, setEditProgress] = useState(listEntry?.progress?.toString() ?? "");
+  const [editScore, setEditScore] = useState(listEntry?.score?.toString() ?? "");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
 
@@ -59,7 +53,7 @@ function AniListActionControls({
       onSaved?.();
       onClose?.();
     } catch {
-      setSaveError(t("anilist.controls.saveError"));
+      setSaveError(t("anilist.controls.save.error"));
       setSaving(false);
     }
   };
@@ -67,13 +61,11 @@ function AniListActionControls({
   return (
     <div className="windows95-border">
       <div className="bg-secondary windows95-font flex flex-row px-1 py-0.5 text-xs font-bold text-white">
-        {listEntry
-          ? t("anilist.controls.editList")
-          : t("anilist.controls.addToList")}
+        {listEntry ? t("anilist.controls.edit.list") : t("anilist.controls.add.to.list")}
         <Button
           size="icon"
           className="ml-auto size-4"
-          title={t("anilist.controls.openSite")}
+          title={t("anilist.controls.open.site")}
           onClick={() => {
             openUrl(`https://anilist.co/anime/${anime.id}`);
           }}
@@ -95,9 +87,7 @@ function AniListActionControls({
           />
         </div>
         <div className="windows95-text flex flex-row items-center gap-2">
-          <span className="w-20 shrink-0">
-            {t("anilist.controls.progress")}
-          </span>
+          <span className="w-20 shrink-0">{t("anilist.controls.progress")}</span>
           <Input
             type="number"
             min={0}
@@ -108,7 +98,7 @@ function AniListActionControls({
           />
           {anime.episodes && (
             <span className="windows95-text text-xs">
-              / {anime.episodes} {t("anilist.details.epsShort")}
+              / {anime.episodes} {t("anilist.details.eps.short")}
             </span>
           )}
         </div>
@@ -127,11 +117,7 @@ function AniListActionControls({
           />
           <span className="windows95-text text-xs">/ 10</span>
         </div>
-        {saveError && (
-          <span className="text-destructive text-xs font-bold">
-            {saveError}
-          </span>
-        )}
+        {saveError && <span className="text-destructive text-xs font-bold">{saveError}</span>}
         <div className="mt-0.5 flex flex-row justify-end gap-2">
           <Button onClick={handleSave} disabled={saving}>
             {saving ? t("anilist.controls.saving") : t("anilist.controls.save")}

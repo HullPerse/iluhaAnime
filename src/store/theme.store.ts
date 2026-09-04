@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 import { THEMES } from "@/config/themes.config";
+import { DEFAULT_FONT_FAMILY, getStoredAppFont, toCssFontFamily } from "@/lib/font.utils";
 import type { ThemeDefinition, ThemeStore } from "@/types/theme";
 
 function getTitleText(color: string): string {
@@ -11,9 +12,7 @@ function getTitleText(color: string): string {
   const red = (value >> 16) & 0xff;
   const green = (value >> 8) & 0xff;
   const blue = value & 0xff;
-  return 0.299 * red + 0.587 * green + 0.114 * blue > 160
-    ? "#000000"
-    : "#ffffff";
+  return 0.299 * red + 0.587 * green + 0.114 * blue > 160 ? "#000000" : "#ffffff";
 }
 
 function parseAutocompleteOpacity(value: unknown): number {
@@ -22,18 +21,11 @@ function parseAutocompleteOpacity(value: unknown): number {
 }
 
 function parseHexColor(value: unknown, fallback: string): string {
-  return typeof value === "string" && /^#[\da-f]{6}$/i.test(value)
-    ? value
-    : fallback;
+  return typeof value === "string" && /^#[\da-f]{6}$/i.test(value) ? value : fallback;
 }
 
-function findTheme(
-  name: string,
-  custom: ThemeDefinition[]
-): ThemeDefinition | undefined {
-  return (
-    THEMES.find((t) => t.name === name) ?? custom.find((t) => t.name === name)
-  );
+function findTheme(name: string, custom: ThemeDefinition[]): ThemeDefinition | undefined {
+  return THEMES.find((t) => t.name === name) ?? custom.find((t) => t.name === name);
 }
 
 export function applyTheme(name: string, customThemes: ThemeDefinition[] = []) {
@@ -50,30 +42,23 @@ export function applyTheme(name: string, customThemes: ThemeDefinition[] = []) {
   root.style.setProperty("--color-text", c.text, "important");
   root.style.setProperty("--color-muted", c.muted, "important");
   root.style.setProperty("--color-autocomplete", autocomplete, "important");
-  root.style.setProperty(
-    "--autocomplete-opacity",
-    String(autocompleteOpacity),
-    "important"
-  );
+  root.style.setProperty("--autocomplete-opacity", String(autocompleteOpacity), "important");
   root.style.setProperty("--color-highlight", c.highlight, "important");
   root.style.setProperty("--color-destructive", c.destructive, "important");
   root.style.setProperty("--color-success", c.success, "important");
   root.style.setProperty("--color-link-hover", c.linkHover, "important");
   root.style.setProperty("--color-surface", c.surface, "important");
   root.style.setProperty("--color-win-highlight", c.winHighlight, "important");
-  root.style.setProperty("--color-win-shadow", c.winShadow, "important");
-  root.style.setProperty(
-    "--color-title-text",
-    getTitleText(c.secondary),
-    "important"
-  );
+  root.style.setProperty("--color-title-text", getTitleText(c.secondary), "important");
   if (root.dataset) root.dataset.theme = theme.name;
-  root.style.setProperty(
-    "--font-family",
-    theme.fontFamily ??
-      "MS Sans Serif, Microsoft Sans Serif, Segoe UI, system-ui",
-    "important"
-  );
+  let storedAppFont: string | null = null;
+  try {
+    storedAppFont = getStoredAppFont();
+  } catch {}
+  const fontCss = storedAppFont
+    ? toCssFontFamily(storedAppFont)
+    : (theme.fontFamily ?? DEFAULT_FONT_FAMILY);
+  root.style.setProperty("--font-family", fontCss, "important");
 
   try {
     localStorage.setItem(
@@ -105,28 +90,37 @@ export function themeToJson(theme: ThemeDefinition): string {
   return JSON.stringify(theme, null, 2);
 }
 
-function themeString(value: unknown, fallback: string): string {
-  return typeof value === "string" && value.length > 0 ? value : fallback;
+function firstString(c: Record<string, unknown>, keys: string[]): unknown {
+  for (const key of keys) {
+    const value = c[key];
+    if (typeof value === "string" && value.length > 0) return value;
+  }
+  return undefined;
+}
+
+function pickString(c: Record<string, unknown>, keys: string[], fallback: string): string {
+  const found = firstString(c, keys);
+  return typeof found === "string" ? found : fallback;
 }
 
 function parseRetroismColors(c: Record<string, unknown>): ThemeDefinition["colors"] | null {
   if (!c.base && !c.primary) return null;
-  const muted = themeString(c.muted ?? c.shadow, "#808080");
+  const muted = pickString(c, ["muted", "shadow"], "#808080");
   return {
-    background: themeString(c.background ?? c.base, "#222222"),
-    destructive: themeString(c.destructive ?? c.urgent, "#800000"),
-    highlight: themeString(c.highlight, "#0000ff"),
-    linkHover: themeString(c.link_hover ?? c.linkHover, "#ff0000"),
+    background: pickString(c, ["background", "base"], "#222222"),
+    destructive: pickString(c, ["destructive", "urgent"], "#800000"),
+    highlight: pickString(c, ["highlight"], "#0000ff"),
+    linkHover: pickString(c, ["link_hover", "linkHover"], "#ff0000"),
     muted,
     autocomplete: parseHexColor(c.autocomplete, muted),
     autocompleteOpacity: parseAutocompleteOpacity(c.autocompleteOpacity),
-    primary: themeString(c.primary ?? c.base, "#c0c0c0"),
-    secondary: themeString(c.secondary ?? c.accent, "#000080"),
-    success: themeString(c.success, "#008000"),
-    surface: themeString(c.surface, "#d0d0d0"),
-    text: themeString(c.text, "#000000"),
-    winHighlight: themeString(c.win_highlight ?? c.winHighlight ?? c.highlight, "#ffffff"),
-    winShadow: themeString(c.win_shadow ?? c.winShadow ?? c.shadow, muted),
+    primary: pickString(c, ["primary", "base"], "#c0c0c0"),
+    secondary: pickString(c, ["secondary", "accent"], "#000080"),
+    success: pickString(c, ["success"], "#008000"),
+    surface: pickString(c, ["surface"], "#d0d0d0"),
+    text: pickString(c, ["text"], "#000000"),
+    winHighlight: pickString(c, ["win_highlight", "winHighlight", "highlight"], "#ffffff"),
+    winShadow: pickString(c, ["win_shadow", "winShadow", "shadow"], muted),
   };
 }
 

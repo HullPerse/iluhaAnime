@@ -8,11 +8,7 @@ import Modal from "@/components/shared/modal.component";
 import Pagination from "@/components/shared/pagination.component";
 import Tabs from "@/components/shared/tabs.component";
 import ImageComponent from "@/components/ui/image.component";
-import {
-  listStatusLabels,
-  seasonLabels,
-  statusLabels,
-} from "@/config/anilist.config";
+import { listStatusLabels, seasonLabels, statusLabels } from "@/config/anilist.config";
 import { BROWSE_PAGE_SIZE } from "@/config/pagination.config";
 import { usePagination } from "@/hooks/pagination.hook";
 import { getStatusColor } from "@/lib/anilist.utils";
@@ -65,12 +61,7 @@ export default function BrowseAnimeModal({
       }),
   });
 
-  const { total, from, to, lastPage } = usePagination(
-    data.length,
-    BROWSE_PAGE_SIZE,
-    page,
-    setPage
-  );
+  const { total, from, to, lastPage } = usePagination(data.length, BROWSE_PAGE_SIZE, page, setPage);
 
   useEffect(() => {
     setPage(1);
@@ -96,7 +87,7 @@ export default function BrowseAnimeModal({
           </div>
         ) : paged.length === 0 ? (
           <div className="flex flex-1 items-center justify-center">
-            <span className="windows95-text">{t("common.noResults")}</span>
+            <span className="windows95-text">{t("common.no.results")}</span>
           </div>
         ) : (
           paged.map((item) => {
@@ -128,8 +119,7 @@ export default function BrowseAnimeModal({
                           backgroundColor: getStatusColor(entry.list_status),
                         }}
                         title={t(
-                          (listStatusLabels[entry.list_status] ??
-                            entry.list_status) as never
+                          (listStatusLabels[entry.list_status] ?? entry.list_status) as never
                         )}
                       />
                     )}
@@ -143,35 +133,26 @@ export default function BrowseAnimeModal({
                       </span>
                     )}
                     {item.format && (
-                      <span className="windows95-border bg-white px-1">
-                        {item.format}
-                      </span>
+                      <span className="windows95-border bg-white px-1">{item.format}</span>
                     )}
                     {item.episodes && (
                       <span>
-                        {item.episodes} {t("anilist.details.epsShort")}
+                        {item.episodes} {t("anilist.details.eps.short")}
                       </span>
                     )}
                     <span>
-                      {t(
-                        (statusLabels[item.status.toUpperCase()] ??
-                          item.status) as never
-                      )}
+                      {t((statusLabels[item.status.toUpperCase()] ?? item.status) as never)}
                     </span>
                     {item.season && item.season_year && (
                       <span>
-                        {t((seasonLabels[item.season] ?? item.season) as never)}{" "}
-                        {item.season_year}
+                        {t((seasonLabels[item.season] ?? item.season) as never)} {item.season_year}
                       </span>
                     )}
                   </div>
                   {item.genres.length > 0 && (
                     <div className="mt-1 flex flex-wrap gap-1">
                       {item.genres.slice(0, 4).map((g) => (
-                        <span
-                          key={g}
-                          className="windows95-border bg-white px-1 text-xs"
-                        >
+                        <span key={g} className="windows95-border bg-white px-1 text-xs">
                           {g}
                         </span>
                       ))}

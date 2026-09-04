@@ -1,11 +1,7 @@
 import { Calendar, Star, Tv, Heart, Eye } from "lucide-react";
 
 import ImageComponent from "@/components/ui/image.component";
-import {
-  formatLabels,
-  seasonLabels,
-  statusLabels,
-} from "@/config/anilist.config";
+import { formatLabels, seasonLabels, statusLabels } from "@/config/anilist.config";
 import { useI18n } from "@/lib/i18n";
 import type { AniMedia } from "@/types/anilist";
 
@@ -18,9 +14,7 @@ function AniListMetadata({
 }) {
   const { t, locale } = useI18n();
   const bestRank =
-    anime.rankings.length > 0
-      ? anime.rankings.reduce((a, b) => (a.rank < b.rank ? a : b))
-      : null;
+    anime.rankings.length > 0 ? anime.rankings.reduce((a, b) => (a.rank < b.rank ? a : b)) : null;
 
   return (
     <main className="flex flex-row gap-3">
@@ -53,13 +47,11 @@ function AniListMetadata({
           <Tv className="size-3" />
           {anime.episodes != null && (
             <span>
-              {anime.episodes} {t("anilist.details.epsShort")}
+              {anime.episodes} {t("anilist.details.eps.short")}
             </span>
           )}
           {anime.duration != null && (
-            <span>
-              × {t("anilist.metadata.minutes", { count: anime.duration })}
-            </span>
+            <span>× {t("anilist.metadata.minutes", { count: anime.duration })}</span>
           )}
         </div>
 
@@ -68,8 +60,7 @@ function AniListMetadata({
             className="windows95-text cursor-pointer underline"
             onClick={() => onSeason?.(anime.season!, anime.season_year)}
           >
-            {t((seasonLabels[anime.season] ?? anime.season) as never)}{" "}
-            {anime.season_year}
+            {t((seasonLabels[anime.season] ?? anime.season) as never)} {anime.season_year}
           </div>
         )}
 
@@ -78,16 +69,14 @@ function AniListMetadata({
             <Calendar className="size-3" />
             <span>
               {anime.start_date}
-              {anime.end_date && anime.status === "FINISHED"
-                ? ` - ${anime.end_date}`
-                : null}
+              {anime.end_date && anime.status === "FINISHED" ? ` - ${anime.end_date}` : null}
             </span>
           </div>
         )}
 
         {anime.next_episode != null && anime.next_airing_at != null && (
           <span className="windows95-text text-success font-bold">
-            {t("anilist.metadata.nextEpisode", { n: anime.next_episode })} -{" "}
+            {t("anilist.metadata.next.episode", { n: anime.next_episode })} -{" "}
             {new Date(anime.next_airing_at * 1000).toLocaleDateString(locale)}
           </span>
         )}

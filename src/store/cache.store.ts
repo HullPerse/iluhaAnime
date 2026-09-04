@@ -53,10 +53,7 @@ export const useCacheStore = create<CacheStore>()(
     }),
     {
       migrate: (persistedState: unknown, version: number) => {
-        const state =
-          persistedState && typeof persistedState === "object"
-            ? persistedState
-            : {};
+        const state = persistedState && typeof persistedState === "object" ? persistedState : {};
         // Any state from version < 4 may contain stale franchise graphs that
         // were served without a backend call (including root-only / 1-node
         // entries). Drop them all so the backend cache is re-queried.

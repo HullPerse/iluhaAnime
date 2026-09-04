@@ -19,21 +19,12 @@ const notificationStorage = createJSONStorage(() => window.localStorage);
 
 let nextId = 1;
 
-function notificationSignature(
-  type: NotificationType,
-  title: string,
-  message?: string
-): string {
+function notificationSignature(type: NotificationType, title: string, message?: string): string {
   return `${type}\u0000${title}\u0000${message ?? ""}`;
 }
 
-function pruneDismissed(
-  dismissed: DismissedEntry[],
-  now: number
-): DismissedEntry[] {
-  return dismissed
-    .filter((entry) => now - entry.at < DISMISS_TTL_MS)
-    .slice(0, MAX_DISMISSED);
+function pruneDismissed(dismissed: DismissedEntry[], now: number): DismissedEntry[] {
+  return dismissed.filter((entry) => now - entry.at < DISMISS_TTL_MS).slice(0, MAX_DISMISSED);
 }
 
 export const useNotificationStore = create<NotificationStore>()(
@@ -43,7 +34,8 @@ export const useNotificationStore = create<NotificationStore>()(
         title: string,
         type: NotificationType = "info",
         message?: string,
-        eventKey?: string
+        eventKey?: string,
+        options?: { system?: boolean }
       ) => {
         const now = Date.now();
 
@@ -51,9 +43,7 @@ export const useNotificationStore = create<NotificationStore>()(
         const dismissed = pruneDismissed(get().dismissed, now);
         if (
           dismissed.some(
-            (entry) =>
-              (eventKey && entry.eventKey === eventKey) ||
-              entry.signature === signature
+            (entry) => (eventKey && entry.eventKey === eventKey) || entry.signature === signature
           )
         ) {
           return;
@@ -97,7 +87,7 @@ export const useNotificationStore = create<NotificationStore>()(
           unreadCount: s.unreadCount + 1,
         }));
 
-        if (useSettingsStore.getState().notificationsEnabled) {
+        if ((options?.system ?? true) && useSettingsStore.getState().notificationsEnabled) {
           try {
             tauriNotify({ title, body: message ?? "" });
           } catch {}
@@ -111,11 +101,7 @@ export const useNotificationStore = create<NotificationStore>()(
             ? pruneDismissed(
                 [
                   {
-                    signature: notificationSignature(
-                      removed.type,
-                      removed.title,
-                      removed.message
-                    ),
+                    signature: notificationSignature(removed.type, removed.title, removed.message),
                     ...(removed.eventKey ? { eventKey: removed.eventKey } : {}),
                     at: Date.now(),
                   },
@@ -138,11 +124,7 @@ export const useNotificationStore = create<NotificationStore>()(
             s.items.reduce<DismissedEntry[]>(
               (entries, item) => [
                 {
-                  signature: notificationSignature(
-                    item.type,
-                    item.title,
-                    item.message
-                  ),
+                  signature: notificationSignature(item.type, item.title, item.message),
                   ...(item.eventKey ? { eventKey: item.eventKey } : {}),
                   at: now,
                 },
@@ -165,9 +147,7 @@ export const useNotificationStore = create<NotificationStore>()(
       },
       markRead: (id: number) => {
         set((s) => {
-          const items = s.items.map((i) =>
-            i.id === id ? { ...i, read: true } : i
-          );
+          const items = s.items.map((i) => (i.id === id ? { ...i, read: true } : i));
           return { items, unreadCount: items.filter((i) => !i.read).length };
         });
       },
@@ -177,15 +157,12 @@ export const useNotificationStore = create<NotificationStore>()(
       merge: (persisted, current) => {
         let storageStillExists = false;
         try {
-          storageStillExists =
-            notificationStorage?.getItem(NOTIFICATION_STORAGE_KEY) != null;
+          storageStillExists = notificationStorage?.getItem(NOTIFICATION_STORAGE_KEY) != null;
         } catch {}
         const persistedState = persisted as
           | { items?: NotificationItem[]; dismissed?: DismissedEntry[] }
           | undefined;
-        const items =
-          (storageStillExists ? persistedState?.items : undefined) ??
-          current.items;
+        const items = (storageStillExists ? persistedState?.items : undefined) ?? current.items;
         const dismissed = storageStillExists
           ? pruneDismissed(persistedState?.dismissed ?? [], Date.now())
           : current.dismissed;

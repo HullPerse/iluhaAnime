@@ -63,9 +63,7 @@ const Image = ({
   }, []);
 
   const showWebp = !isExternal(finalSrc) && !/\.(ico|svg)$/i.test(finalSrc);
-  const webpSrc = showWebp
-    ? `${finalSrc.split("?")[0]}?format=webp&quality=${quality}`
-    : finalSrc;
+  const webpSrc = showWebp ? `${finalSrc.split("?")[0]}?format=webp&quality=${quality}` : finalSrc;
 
   return (
     <div

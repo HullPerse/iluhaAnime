@@ -15,19 +15,12 @@ export function userImageId(value: string): string | null {
 }
 
 /** Create a small transferable thumbnail for LAN room discovery/handshake. */
-export async function userImageThumbnail(
-  dataUrl: string,
-  maxSize = 96
-): Promise<string> {
-  if (dataUrl.length <= 220_000 || typeof window === "undefined")
-    return dataUrl;
+export async function userImageThumbnail(dataUrl: string, maxSize = 96): Promise<string> {
+  if (dataUrl.length <= 220_000 || typeof window === "undefined") return dataUrl;
   return new Promise((resolve) => {
     const image = new window.Image();
     image.onload = () => {
-      const scale = Math.min(
-        1,
-        maxSize / Math.max(image.naturalWidth, image.naturalHeight)
-      );
+      const scale = Math.min(1, maxSize / Math.max(image.naturalWidth, image.naturalHeight));
       const width = Math.max(1, Math.round(image.naturalWidth * scale));
       const height = Math.max(1, Math.round(image.naturalHeight * scale));
       const canvas = document.createElement("canvas");

@@ -43,10 +43,7 @@ export async function writeAppCache<T>(
   }
 }
 
-export async function deleteAppCache(
-  namespace: string,
-  key: string
-): Promise<boolean> {
+export async function deleteAppCache(namespace: string, key: string): Promise<boolean> {
   try {
     await invoke("delete_app_cache", { key, namespace });
     return true;

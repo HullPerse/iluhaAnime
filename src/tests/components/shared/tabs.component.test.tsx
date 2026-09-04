@@ -16,15 +16,9 @@ afterEach(cleanup);
 describe("Tabs", () => {
   it("renders all tabs and marks the active one", () => {
     render(<Tabs tabs={TABS} activeTab="two" onChange={() => {}} />);
-    expect(
-      screen.getByRole("tab", { name: "One" }).getAttribute("aria-selected")
-    ).toBe("false");
-    expect(
-      screen.getByRole("tab", { name: "Two" }).getAttribute("aria-selected")
-    ).toBe("true");
-    expect(
-      screen.getByRole("tab", { name: "Three" }).getAttribute("aria-selected")
-    ).toBe("false");
+    expect(screen.getByRole("tab", { name: "One" }).getAttribute("aria-selected")).toBe("false");
+    expect(screen.getByRole("tab", { name: "Two" }).getAttribute("aria-selected")).toBe("true");
+    expect(screen.getByRole("tab", { name: "Three" }).getAttribute("aria-selected")).toBe("false");
   });
 
   it("calls onChange with the clicked tab id", async () => {
@@ -38,9 +32,7 @@ describe("Tabs", () => {
   it("moves to the next tab on ArrowRight and wraps past the end", async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
-    const view = render(
-      <Tabs tabs={TABS} activeTab="one" onChange={onChange} />
-    );
+    const view = render(<Tabs tabs={TABS} activeTab="one" onChange={onChange} />);
     screen.getByRole("tab", { name: "One" }).focus();
     await user.keyboard("{ArrowRight}");
     expect(onChange).toHaveBeenLastCalledWith("two");
@@ -54,9 +46,7 @@ describe("Tabs", () => {
   it("moves to the previous tab on ArrowLeft and wraps past the start", async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
-    const view = render(
-      <Tabs tabs={TABS} activeTab="two" onChange={onChange} />
-    );
+    const view = render(<Tabs tabs={TABS} activeTab="two" onChange={onChange} />);
     screen.getByRole("tab", { name: "Two" }).focus();
     await user.keyboard("{ArrowLeft}");
     expect(onChange).toHaveBeenLastCalledWith("one");

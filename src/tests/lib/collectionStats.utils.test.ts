@@ -53,6 +53,10 @@ function makeItem(overrides: Partial<CollectionItem> = {}): CollectionItem {
     rewatchCount: 0,
     addedAt: 0,
     updatedAt: 0,
+    sitesToView: [],
+    tvCurrentSeason: null,
+    tvCurrentEpisode: null,
+    detailsJson: null,
     ...overrides,
   };
 }
@@ -103,20 +107,13 @@ describe("calculateCollectionStats", () => {
   });
 
   it("returns null average when no item is rated", () => {
-    const stats = calculateCollectionStats(
-      [makeItem({ rating: null })],
-      STATUSES
-    );
+    const stats = calculateCollectionStats([makeItem({ rating: null })], STATUSES);
     expect(stats.avgRating).toBeNull();
   });
 
   it("builds the rating distribution", () => {
     const stats = calculateCollectionStats(
-      [
-        makeItem({ rating: 8 }),
-        makeItem({ rating: 8 }),
-        makeItem({ rating: 7 }),
-      ],
+      [makeItem({ rating: 8 }), makeItem({ rating: 8 }), makeItem({ rating: 7 })],
       STATUSES
     );
     expect(stats.ratingDistribution).toEqual({ 8: 2, 7: 1 });

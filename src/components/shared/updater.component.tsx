@@ -26,22 +26,13 @@ function Updater({ update, onClose }: { update: Update; onClose: () => void }) {
         })}
       </span>
       <section className="windows95-border flex h-28 w-28 items-center justify-center self-center">
-        <ImageComponent
-          src="/images/update_icon.ico"
-          alt="update icon"
-          className="h-24 w-24"
-        />
+        <ImageComponent src="/images/update_icon.ico" alt="update icon" className="h-24 w-24" />
       </section>
 
       <section className="windows95-font text-md text-text text-center leading-relaxed font-semibold whitespace-pre-line">
         <span className="">{t("updater.prompt")}</span>
         <div className="flex w-full flex-row gap-1">
-          <Button
-            variant="destructive"
-            className="h-9 flex-1"
-            onClick={onClose}
-            disabled={loading}
-          >
+          <Button variant="destructive" className="h-9 flex-1" onClick={onClose} disabled={loading}>
             {t("updater.cancel")}
           </Button>
           <Button

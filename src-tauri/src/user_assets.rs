@@ -123,11 +123,40 @@ pub fn import_user_image(app: tauri::AppHandle, path: String) -> Result<UserImag
     get_user_image(app, id)
 }
 
+fn resolve_proxy(proxy: Option<String>, proxy_camel: Option<String>) -> Option<String> {
+    proxy
+        .or(proxy_camel)
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+}
+
+fn client_for_image_proxy(proxy: Option<&str>) -> Result<reqwest::Client, String> {
+    if let Some(url) = proxy {
+        let proxy = reqwest::Proxy::all(url).map_err(|e| format!("Invalid proxy URL: {e}"))?;
+        reqwest::Client::builder()
+            .user_agent("iluhaAnime/3.0")
+            .proxy(proxy)
+            .timeout(Duration::from_secs(15))
+            .build()
+            .map_err(|e| format!("image http client (proxy): {e}"))
+    } else {
+        reqwest::Client::builder()
+            .user_agent("iluhaAnime/3.0")
+            .timeout(Duration::from_secs(15))
+            .build()
+            .map_err(|e| format!("image http client: {e}"))
+    }
+}
+
+#[allow(non_snake_case)]
 #[tauri::command]
 pub async fn download_remote_image(
     app: tauri::AppHandle,
     url: String,
     name_hint: Option<String>,
+    nameHint: Option<String>,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
 ) -> Result<UserImage, String> {
     let url = url.trim();
     if url.is_empty() || url.len() > 4_096 {
@@ -136,10 +165,9 @@ pub async fn download_remote_image(
     if !url.starts_with("https://") && !url.starts_with("http://") {
         return Err("Remote image URL must use http(s)".to_string());
     }
-    let client = reqwest::Client::builder()
-        .user_agent("iluhaAnime/3.0")
-        .build()
-        .map_err(|e| format!("image http client: {e}"))?;
+    let name_hint = name_hint.or(nameHint);
+    let proxy = resolve_proxy(proxy_url, proxyUrl);
+    let client = client_for_image_proxy(proxy.as_deref())?;
     let response = client
         .get(url)
         .send()
@@ -165,9 +193,7 @@ pub async fn download_remote_image(
     let id = hex::encode(Sha1::digest(&data))[..20].to_string();
     let name = name_hint
         .as_deref()
-        .filter(|s| !s.is_empty())
-        .map(|s| s.chars().take(120).collect::<String>())
-        .unwrap_or_else(|| "remote-cover".to_string());
+        .filter(|s| !s.is_empty()).map_or_else(|| "remote-cover".to_string(), |s| s.chars().take(120).collect::<String>());
     let created_at = now_seconds();
     let conn = open_database(&app)?;
     conn.execute(

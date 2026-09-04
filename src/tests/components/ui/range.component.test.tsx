@@ -21,12 +21,8 @@ function rect(width = 100): DOMRect {
 }
 
 function renderSlider(onChange: (v: number) => void) {
-  const view = render(
-    <Slider min={0} max={100} step={10} value={50} onChange={onChange} />
-  );
-  const track = view.container.querySelector(
-    ".windows95-border"
-  ) as HTMLElement;
+  const view = render(<Slider min={0} max={100} step={10} value={50} onChange={onChange} />);
+  const track = view.container.querySelector(".windows95-border") as HTMLElement;
   track.getBoundingClientRect = () => rect();
   return track;
 }

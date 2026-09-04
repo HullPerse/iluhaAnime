@@ -44,16 +44,8 @@ export interface UpscaleQueueStore {
   processing: boolean;
   paused: boolean;
   setPaused: (paused: boolean) => void;
-  addUpscaleItem: (
-    filePath: string,
-    name: string,
-    config: UpscaleConfig
-  ) => string;
-  addConvertItem: (
-    filePath: string,
-    name: string,
-    config: ConvertConfig
-  ) => string;
+  addUpscaleItem: (filePath: string, name: string, config: UpscaleConfig) => string;
+  addConvertItem: (filePath: string, name: string, config: ConvertConfig) => string;
   removeItem: (id: string) => void;
   clearDone: () => void;
   clearAll: () => void;

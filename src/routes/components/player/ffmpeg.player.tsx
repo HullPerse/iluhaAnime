@@ -55,9 +55,7 @@ function FFMPEG({
     let unlisten: UnlistenFn;
     listen<{ downloaded: number; total: number; stage: string }>(
       "ffmpeg-download-progress",
-      (e: {
-        payload: { downloaded: number; total: number; stage: string };
-      }) => {
+      (e: { payload: { downloaded: number; total: number; stage: string } }) => {
         if (e.payload.stage === "done") {
           setDlProgress(null);
           setDlStage("done");
@@ -115,9 +113,7 @@ function FFMPEG({
   if (status === "missing")
     return (
       <main className="windows95-text flex min-w-0 flex-1 flex-row items-center gap-1 px-1">
-        <span className="windows95-text text-destructive">
-          {t("player.ffmpeg.missing")}
-        </span>
+        <span className="windows95-text text-destructive">{t("player.ffmpeg.missing")}</span>
         <Button onClick={handleDownload} className="ml-auto min-h-5.75">
           <Download />
           {t("player.ffmpeg.download", {
@@ -130,11 +126,7 @@ function FFMPEG({
     return (
       <main className="windows95-text flex min-w-0 flex-1 flex-row items-center gap-1 px-1">
         <span className="windows95-text">{t("player.ffmpeg.installed")}</span>
-        <Button
-          onClick={handleRemove}
-          variant="destructive"
-          className="ml-auto min-h-5.75"
-        >
+        <Button onClick={handleRemove} variant="destructive" className="ml-auto min-h-5.75">
           <Trash2 />
           {t("common.delete")}
         </Button>

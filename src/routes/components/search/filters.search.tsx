@@ -27,7 +27,7 @@ export default function SearchFiltersBar({
   return (
     <section className="flex w-full flex-row items-center gap-2">
       <div className="flex items-center gap-1">
-        <span className="text-text windows95-text">{t("search.sortBy")}</span>
+        <span className="text-text windows95-text">{t("search.sort.by")}</span>
         <Select
           className="w-22"
           value={sort}
@@ -41,16 +41,10 @@ export default function SearchFiltersBar({
         <Button
           size="icon"
           className="size-5.5"
-          title={
-            direction === "desc" ? t("search.sortDesc") : t("search.sortAsc")
-          }
+          title={direction === "desc" ? t("search.sort.desc") : t("search.sort.asc")}
           onClick={onDirectionChange}
         >
-          {direction === "desc" ? (
-            <SortDesc className="size-3" />
-          ) : (
-            <SortAsc className="size-3" />
-          )}
+          {direction === "desc" ? <SortDesc className="size-3" /> : <SortAsc className="size-3" />}
         </Button>
       </div>
 

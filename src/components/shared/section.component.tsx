@@ -39,20 +39,12 @@ function Section({
             className="windows95-text bg-secondary hover:bg-muted flex size-5 cursor-pointer items-center justify-center gap-1 px-0.5 py-0.5 text-center text-white select-none"
             onClick={onExpand}
           >
-            {expanded ? (
-              <ChevronDown className="size-3" />
-            ) : (
-              <ChevronRight className="size-3" />
-            )}
+            {expanded ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
           </button>
         )}
       </header>
 
-      <div
-        id={contentId}
-        hidden={onExpand && !expanded}
-        className={cn("p-2", className)}
-      >
+      <div id={contentId} hidden={onExpand && !expanded} className={cn("p-2", className)}>
         {children}
       </div>
     </section>

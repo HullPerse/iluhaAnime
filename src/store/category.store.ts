@@ -54,19 +54,14 @@ export const useCategoryStore = create<CategoryStore>()(
           return {
             entries: {
               ...s.entries,
-              [categoryId]: [
-                ...list,
-                { ...entry, id: genEntryId() } as CategoryEntry,
-              ],
+              [categoryId]: [...list, { ...entry, id: genEntryId() } as CategoryEntry],
             },
           };
         }),
       categories: [],
       changeIcon: (id, icon) =>
         set((s) => ({
-          categories: s.categories.map((c) =>
-            c.id === id ? { ...c, icon } : c
-          ),
+          categories: s.categories.map((c) => (c.id === id ? { ...c, icon } : c)),
         })),
       entries: {},
       removeCategory: (id) =>
@@ -110,9 +105,7 @@ export const useCategoryStore = create<CategoryStore>()(
         }),
       renameCategory: (id, name) =>
         set((s) => ({
-          categories: s.categories.map((c) =>
-            c.id === id ? { ...c, name } : c
-          ),
+          categories: s.categories.map((c) => (c.id === id ? { ...c, name } : c)),
         })),
       reorderCategories: (ids) =>
         set((s) => ({

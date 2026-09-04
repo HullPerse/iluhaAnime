@@ -12,15 +12,12 @@ import { router } from "@/routes/__root";
 import { useNotificationStore } from "@/store/notification.store";
 import { useSettingsStore } from "@/store/settings.store";
 
-const appError = () =>
-  translate(useSettingsStore.getState().language, "common.error");
+const appError = () => translate(useSettingsStore.getState().language, "common.error");
 
 window.addEventListener("error", (event) => {
   event.preventDefault();
   console.error("Uncaught error:", event.error);
-  useNotificationStore
-    .getState()
-    .add(appError(), "error", event.error?.message || String(event));
+  useNotificationStore.getState().add(appError(), "error", event.error?.message || String(event));
 });
 
 window.addEventListener("unhandledrejection", (event) => {

@@ -1,13 +1,6 @@
 import { listen } from "@tauri-apps/api/event";
 import { Plus, SortAsc, SortDesc } from "lucide-react";
-import {
-  useState,
-  useEffect,
-  useMemo,
-  useRef,
-  useCallback,
-  useDeferredValue,
-} from "react";
+import { useState, useEffect, useMemo, useRef, useCallback, useDeferredValue } from "react";
 
 import { InlineAutocompleteInput } from "@/components/shared/autocomplete.component";
 import Pagination from "@/components/shared/pagination.component";
@@ -16,10 +9,7 @@ import { TORRENT_PAGE_SIZE } from "@/config/torrent.config";
 import { usePagination } from "@/hooks/pagination.hook";
 import { useI18n } from "@/lib/i18n";
 import { paginate } from "@/lib/pagination.utils";
-import {
-  getInlineCompletion,
-  getSearchSuggestions,
-} from "@/lib/search.suggestions";
+import { getInlineCompletion, getSearchSuggestions } from "@/lib/search.suggestions";
 import {
   fmtSpeed,
   getTorrentLifecycle,
@@ -43,56 +33,38 @@ function TorrentRoute() {
   const resumeTorrent = useTorrentStore((state) => state.resumeTorrent);
   const removeTorrent = useTorrentStore((state) => state.removeTorrent);
   const setSpeedLimits = useTorrentStore((state) => state.setSpeedLimits);
-  const updateTorrentOnlyFiles = useTorrentStore(
-    (state) => state.updateTorrentOnlyFiles
-  );
-  const prepareTorrentDownload = useTorrentStore(
-    (state) => state.prepareTorrentDownload
-  );
+  const updateTorrentOnlyFiles = useTorrentStore((state) => state.updateTorrentOnlyFiles);
+  const prepareTorrentDownload = useTorrentStore((state) => state.prepareTorrentDownload);
   const prepareTorrentDownloadFromFile = useTorrentStore(
     (state) => state.prepareTorrentDownloadFromFile
   );
   const setFilePriority = useTorrentStore((state) => state.setFilePriority);
-  const setSequentialDownload = useTorrentStore(
-    (state) => state.setSequentialDownload
-  );
+  const setSequentialDownload = useTorrentStore((state) => state.setSequentialDownload);
   const setSeedPreference = useTorrentStore((state) => state.setSeedPreference);
   const redownloadFile = useTorrentStore((state) => state.redownloadFile);
   const recheckTorrent = useTorrentStore((state) => state.recheckTorrent);
 
-  const [dlInput, setDlInput] = useState(
-    dlLimit === null ? "" : String(dlLimit)
-  );
-  const [ulInput, setUlInput] = useState(
-    ulLimit === null ? "" : String(ulLimit)
-  );
+  const [dlInput, setDlInput] = useState(dlLimit === null ? "" : String(dlLimit));
+  const [ulInput, setUlInput] = useState(ulLimit === null ? "" : String(ulLimit));
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const [showMagnetModal, setShowMagnetModal] = useState(false);
   const [filterQuery, setFilterQuery] = useState("");
-  const [sortBy, setSortBy] = useState<"name" | "size" | "progress" | "speed">(
-    "name"
-  );
+  const [sortBy, setSortBy] = useState<"name" | "size" | "progress" | "speed">("name");
   const [sortAsc, setSortAsc] = useState(true);
   const [page, setPage] = useState(1);
   const listRef = useRef<HTMLElement>(null);
   const { t } = useI18n();
 
-  const [lifecycleFilter, setLifecycleFilter] = useState<
-    TorrentLifecycle | "all"
-  >("all");
+  const [lifecycleFilter, setLifecycleFilter] = useState<TorrentLifecycle | "all">("all");
 
   const lifecycleTorrents = useMemo(() => {
     if (lifecycleFilter === "all") return torrents;
-    return torrents.filter(
-      (t) => getTorrentLifecycle(t.state, t.finished) === lifecycleFilter
-    );
+    return torrents.filter((t) => getTorrentLifecycle(t.state, t.finished) === lifecycleFilter);
   }, [torrents, lifecycleFilter]);
 
   const filteredTorrents = useMemo(() => {
     const list = filterQuery.trim()
-      ? lifecycleTorrents.filter((t) =>
-          t.name.toLowerCase().includes(filterQuery.toLowerCase())
-        )
+      ? lifecycleTorrents.filter((t) => t.name.toLowerCase().includes(filterQuery.toLowerCase()))
       : lifecycleTorrents;
     return [...list].sort((a, b) => {
       let cmp = 0;
@@ -151,19 +123,12 @@ function TorrentRoute() {
   }, []);
 
   const summary = useMemo(() => {
-    const active = torrents.filter(
-      (item) => !item.finished && item.state === "live"
-    ).length;
-    const seeding = torrents.filter(
-      (item) => item.finished && item.state === "live"
-    ).length;
+    const active = torrents.filter((item) => !item.finished && item.state === "live").length;
+    const seeding = torrents.filter((item) => item.finished && item.state === "live").length;
     return {
       active,
       seeding,
-      download: torrents.reduce(
-        (total, item) => total + item.download_speed,
-        0
-      ),
+      download: torrents.reduce((total, item) => total + item.download_speed, 0),
       upload: torrents.reduce((total, item) => total + item.upload_speed, 0),
     };
   }, [torrents]);
@@ -348,9 +313,7 @@ function TorrentRoute() {
         </span>
       </section>
       <section className="windows95-active-border bg-primary flex items-center gap-1 p-0.5">
-        {(
-          ["all", "staging", "live", "paused", "seeding", "completed"] as const
-        ).map((lc) => (
+        {(["all", "staging", "live", "paused", "seeding", "completed"] as const).map((lc) => (
           <Button
             key={lc}
             variant={lifecycleFilter === lc ? "outline" : "default"}
@@ -365,7 +328,7 @@ function TorrentRoute() {
       <section className="windows95-active-border bg-primary flex items-center gap-2 p-1">
         <InlineAutocompleteInput
           className="ml-2 w-32 font-bold"
-          placeholder={t("torrent.filterPlaceholder")}
+          placeholder={t("torrent.filter.placeholder")}
           value={filterQuery}
           completion={inlineCompletion}
           suggestions={suggestions}
@@ -386,20 +349,16 @@ function TorrentRoute() {
           size="icon"
           className="size-5"
           onClick={() => setSortAsc((v) => !v)}
-          title={sortAsc ? t("torrent.sortAsc") : t("torrent.sortDesc")}
+          title={sortAsc ? t("torrent.sort.asc") : t("torrent.sort.desc")}
         >
-          {sortAsc ? (
-            <SortAsc className="size-3" />
-          ) : (
-            <SortDesc className="size-3" />
-          )}
+          {sortAsc ? <SortAsc className="size-3" /> : <SortDesc className="size-3" />}
         </Button>
         <Button
           className="windows95-text flex items-center"
           onClick={() => setShowMagnetModal(true)}
         >
           <Plus className="size-4" />
-          {t("torrent.addMagnet")}
+          {t("torrent.add.magnet")}
         </Button>
       </section>
 
@@ -427,35 +386,26 @@ function TorrentRoute() {
                   else pauseTorrent(item.id);
                 }}
                 onRemove={(deleteFiles) => removeTorrent(item.id, deleteFiles)}
-                onUpdateFiles={(indices) =>
-                  updateTorrentOnlyFiles(item.id, indices)
-                }
+                onUpdateFiles={(indices) => updateTorrentOnlyFiles(item.id, indices)}
                 onFilePriorityChange={(indices, priority) =>
                   setFilePriority(item.id, indices, priority)
                 }
-                onSetSequential={(enabled) =>
-                  setSequentialDownload(item.id, enabled)
-                }
+                onSetSequential={(enabled) => setSequentialDownload(item.id, enabled)}
                 onRetry={async () => {
                   await removeTorrent(item.id, false);
                   const magnet = `magnet:?xt=urn:btih:${item.info_hash}`;
                   prepareTorrentDownload(magnet);
                 }}
-                onRedownload={(fileIndex) =>
-                  redownloadFile(item.id, fileIndex, item.info_hash)
-                }
+                onRedownload={(fileIndex) => redownloadFile(item.id, fileIndex, item.info_hash)}
                 onRecheck={async () => {
                   const result = await recheckTorrent(item.id);
                   if (!result) return;
                   const { add } = useNotificationStore.getState();
-                  if (
-                    result.missing.length === 0 &&
-                    result.size_mismatch.length === 0
-                  ) {
+                  if (result.missing.length === 0 && result.size_mismatch.length === 0) {
                     add(
-                      t("torrent.recheckTitle"),
+                      t("torrent.recheck.title"),
                       "success",
-                      t("torrent.recheckOk", {
+                      t("torrent.recheck.ok", {
                         ok: result.ok,
                         total: result.total,
                       })
@@ -464,20 +414,20 @@ function TorrentRoute() {
                     const parts: string[] = [];
                     if (result.missing.length)
                       parts.push(
-                        t("torrent.recheckMissing", {
+                        t("torrent.recheck.missing", {
                           count: result.missing.length,
                         })
                       );
                     if (result.size_mismatch.length)
                       parts.push(
-                        t("torrent.recheckSize", {
+                        t("torrent.recheck.size", {
                           count: result.size_mismatch.length,
                         })
                       );
                     add(
-                      t("torrent.recheckTitle"),
+                      t("torrent.recheck.title"),
                       "error",
-                      `${parts.join("; ")} ${t("torrent.recheckSummary", {
+                      `${parts.join("; ")} ${t("torrent.recheck.summary", {
                         ok: result.ok,
                         total: result.total,
                       })}`

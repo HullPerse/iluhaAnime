@@ -1,3 +1,4 @@
+import { cn } from "@/lib/index.utils";
 import { useDroppable } from "@dnd-kit/core";
 import { useQuery } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/core";
@@ -31,12 +32,9 @@ function TorrentCategoryEntry({
   const { data = [], refetch } = useQuery({
     queryKey: ["extra_files", tor.save_dir],
     queryFn: () =>
-      invoke<{ path: string; name: string; size: number }[]>(
-        "scan_extra_files",
-        { path: tor.save_dir! }
-      ).then((result) =>
-        result.map((f) => ({ name: f.name, size: f.size, fullPath: f.path }))
-      ),
+      invoke<{ path: string; name: string; size: number }[]>("scan_extra_files", {
+        path: tor.save_dir!,
+      }).then((result) => result.map((f) => ({ name: f.name, size: f.size, fullPath: f.path }))),
     enabled: !!tor.save_dir,
   });
 
@@ -78,9 +76,7 @@ function CategoryView({
   onHideFolder?: (path: string) => void;
   onHideTorrent?: (infoHash: string) => void;
 }) {
-  const category = useCategoryStore((s) =>
-    s.categories.find((c) => c.id === categoryId)
-  );
+  const category = useCategoryStore((s) => s.categories.find((c) => c.id === categoryId));
   const entries = useCategoryStore((s) => s.entries[categoryId]);
   const renameCategory = useCategoryStore((s) => s.renameCategory);
   const removeEntry = useCategoryStore((s) => s.removeEntry);
@@ -92,14 +88,9 @@ function CategoryView({
   const [editing, setEditing] = useState(false);
   const [editIcon, setEditIcon] = useState(false);
   const [editName, setEditName] = useState("");
-  const [expandedEntries, setExpandedEntries] = useState<Set<string>>(
-    new Set()
-  );
+  const [expandedEntries, setExpandedEntries] = useState<Set<string>>(new Set());
   const renameRef = useRef<HTMLInputElement>(null);
-  const audioExtensionsSet = useMemo(
-    () => new Set(audioExtensions),
-    [audioExtensions]
-  );
+  const audioExtensionsSet = useMemo(() => new Set(audioExtensions), [audioExtensions]);
 
   useEffect(() => {
     if (editing) {
@@ -111,9 +102,7 @@ function CategoryView({
   const visibleEntries = (entries ?? []).filter((entry) =>
     entry.type === "folder"
       ? folderTrees.some(
-          (tree) =>
-            normalizePlayerPath(tree.path) ===
-            normalizePlayerPath(entry.folderPath ?? "")
+          (tree) => normalizePlayerPath(tree.path) === normalizePlayerPath(entry.folderPath ?? "")
         )
       : torrents.some((torrent) => torrent.info_hash === entry.infoHash)
   );
@@ -122,8 +111,7 @@ function CategoryView({
   const renderFolderEntry = (entry: (typeof entries)[0]) => {
     const tree = folderTrees.find(
       (candidate) =>
-        normalizePlayerPath(candidate.path) ===
-        normalizePlayerPath(entry.folderPath ?? "")
+        normalizePlayerPath(candidate.path) === normalizePlayerPath(entry.folderPath ?? "")
     );
     if (!tree) return null;
     return (
@@ -171,7 +159,7 @@ function CategoryView({
   return (
     <main
       ref={setNodeRef}
-      className={`windows95-active-border bg-primary flex flex-col ${isOver ? "ring-highlight ring-2" : ""}`}
+      className={cn("windows95-active-border bg-primary flex flex-col", isOver && "ring-highlight ring-2")}
     >
       <section className="windows95-text flex w-full items-center gap-1 px-0.5 py-0.5 text-left select-none">
         <button
@@ -233,9 +221,7 @@ function CategoryView({
             {category.name}
           </span>
         )}
-        <span className="text-hint ml-auto text-xs whitespace-nowrap select-none">
-          {count}
-        </span>
+        <span className="text-hint ml-auto text-xs whitespace-nowrap select-none">{count}</span>
         <Button
           size="icon"
           className="size-5"
@@ -287,30 +273,26 @@ function CategoryView({
                         {fmtSize(entry.totalBytes)}
                       </span>
                     )}
-                    {entry.type === "torrent" &&
-                      entry.infoHash &&
-                      onHideTorrent && (
-                        <Button
-                          size="icon"
-                          className="size-4"
-                          title={t("player.visibility.hide")}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onHideTorrent(entry.infoHash!);
-                          }}
-                        >
-                          <EyeOff className="size-3" />
-                        </Button>
-                      )}
+                    {entry.type === "torrent" && entry.infoHash && onHideTorrent && (
+                      <Button
+                        size="icon"
+                        className="size-4"
+                        title={t("player.visibility.hide")}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onHideTorrent(entry.infoHash!);
+                        }}
+                      >
+                        <EyeOff className="size-3" />
+                      </Button>
+                    )}
                     {entry.type === "torrent" && entry.torrentId != null && (
                       <Button
                         size="icon"
                         className="size-4"
                         onClick={(e) => {
                           e.stopPropagation();
-                          useTorrentStore
-                            .getState()
-                            .loadTorrentFiles(entry.torrentId!);
+                          useTorrentStore.getState().loadTorrentFiles(entry.torrentId!);
                         }}
                       >
                         <RefreshCw className="size-3" />
@@ -340,12 +322,7 @@ function CategoryView({
         </section>
       )}
 
-      {editIcon && (
-        <CategoryIconModal
-          id={categoryId}
-          handleClose={() => setEditIcon(false)}
-        />
-      )}
+      {editIcon && <CategoryIconModal id={categoryId} handleClose={() => setEditIcon(false)} />}
     </main>
   );
 }

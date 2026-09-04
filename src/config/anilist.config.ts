@@ -20,13 +20,7 @@ export const NODE_W = 70;
 export const NODE_H = 95;
 export const IMG_H = 80;
 
-export const RELATION_FILTERS = [
-  "SEQUEL",
-  "PREQUEL",
-  "SIDE_STORY",
-  "SPIN_OFF",
-  "OTHER",
-] as const;
+export const RELATION_FILTERS = ["SEQUEL", "PREQUEL", "SIDE_STORY", "SPIN_OFF", "OTHER"] as const;
 
 export const FILTER_GROUPS: Record<string, string[]> = {
   OTHER: [
@@ -46,10 +40,7 @@ export const FILTER_GROUPS: Record<string, string[]> = {
   SPIN_OFF: ["SPIN_OFF"],
 };
 
-export const EDGE_STYLES: Record<
-  string,
-  { color: string; dash: string; width: number }
-> = {
+export const EDGE_STYLES: Record<string, { color: string; dash: string; width: number }> = {
   ADAPTATION: { color: "#7f8c8d", dash: "4,3", width: 0.75 },
   ALTERNATIVE: { color: "#95a5a6", dash: "4,4", width: 0.75 },
   CHARACTER: { color: "#95a5a6", dash: "4,4", width: 0.75 },
@@ -131,13 +122,13 @@ export const seasonLabels: Record<string, string> = {
 };
 
 export const listStatusLabels: Record<string, string> = {
-  COMPLETED: "anilist.listStatus.COMPLETED",
-  CURRENT: "anilist.listStatus.CURRENT",
-  DROPPED: "anilist.listStatus.DROPPED",
-  PAUSED: "anilist.listStatus.PAUSED",
-  PLANNING: "anilist.listStatus.PLANNING",
-  REPEATING: "anilist.listStatus.REPEATING",
-  WATCHING: "anilist.listStatus.WATCHING",
+  COMPLETED: "anilist.list.status.COMPLETED",
+  CURRENT: "anilist.list.status.CURRENT",
+  DROPPED: "anilist.list.status.DROPPED",
+  PAUSED: "anilist.list.status.PAUSED",
+  PLANNING: "anilist.list.status.PLANNING",
+  REPEATING: "anilist.list.status.REPEATING",
+  WATCHING: "anilist.list.status.WATCHING",
 };
 
 const listStatusOrder = [

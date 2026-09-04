@@ -21,11 +21,7 @@ import { useI18n } from "@/lib/i18n";
 import { enterOrSpace } from "@/lib/keyboard.utils";
 import { fmtSize, fmtETA, fmtSpeed, stateLabel } from "@/lib/torrent.utils";
 import { useTorrentStore } from "@/store/download.store";
-import type {
-  FilePriority,
-  TorrentInfo,
-  TorrentFileInfo,
-} from "@/types/torrent";
+import type { FilePriority, TorrentInfo, TorrentFileInfo } from "@/types/torrent";
 
 import TorrentFilesSection from "./file.torrent";
 
@@ -57,10 +53,8 @@ function TorrentLimitsSection({ id }: { id: number }) {
       .getTorrentLimits(id)
       .then((limits) => {
         if (cancelled) return;
-        if (limits.downloadBps !== null)
-          setDlInput(String(Math.round(limits.downloadBps / 1024)));
-        if (limits.uploadBps !== null)
-          setUlInput(String(Math.round(limits.uploadBps / 1024)));
+        if (limits.downloadBps !== null) setDlInput(String(Math.round(limits.downloadBps / 1024)));
+        if (limits.uploadBps !== null) setUlInput(String(Math.round(limits.uploadBps / 1024)));
       });
     return () => {
       cancelled = true;
@@ -112,48 +106,27 @@ function TorrentHeader({
   onDelete,
 }: Pick<
   Props,
-  | "item"
-  | "onPause"
-  | "onResume"
-  | "onSeedChange"
-  | "onSetSequential"
-  | "onRecheck"
+  "item" | "onPause" | "onResume" | "onSeedChange" | "onSetSequential" | "onRecheck"
 > & { isLive: boolean; isPaused: boolean; onDelete: () => void }) {
   const { t } = useI18n();
   return (
     <section className="flex flex-row items-center justify-between">
-      <h3 className="windows95-font line-clamp-1 text-xs leading-tight font-bold">
-        {item.name}
-      </h3>
+      <h3 className="windows95-font line-clamp-1 text-xs leading-tight font-bold">{item.name}</h3>
       <div className="flex flex-row items-center gap-1">
         {item.finished ? (
           <label className="flex cursor-pointer items-center gap-0.5">
-            <Checkbox
-              checked={isLive}
-              onChange={onSeedChange}
-              className="size-3"
-            />
+            <Checkbox checked={isLive} onChange={onSeedChange} className="size-3" />
             <span className="windows95-text text-xs">{t("torrent.seed")}</span>
           </label>
         ) : (
           <>
             {isLive && (
-              <Button
-                title={t("torrent.pause")}
-                size="icon"
-                className="size-6"
-                onClick={onPause}
-              >
+              <Button title={t("torrent.pause")} size="icon" className="size-6" onClick={onPause}>
                 <Pause className="size-4" />
               </Button>
             )}
             {isPaused && (
-              <Button
-                title={t("torrent.resume")}
-                size="icon"
-                className="size-6"
-                onClick={onResume}
-              >
+              <Button title={t("torrent.resume")} size="icon" className="size-6" onClick={onResume}>
                 <Play />
               </Button>
             )}
@@ -161,16 +134,12 @@ function TorrentHeader({
         )}
         {item.save_dir && (
           <Button
-            title={t("torrent.openFolder")}
+            title={t("torrent.open.folder")}
             size="icon"
             className="size-6"
             onClick={() => openPath(item.save_dir)}
           >
-            <ImageComponent
-              src="/images/w2k_folder_closed.ico"
-              alt=""
-              className="size-4"
-            />
+            <ImageComponent src="/images/w2k_folder_closed.ico" alt="" className="size-4" />
           </Button>
         )}
         <Button
@@ -202,11 +171,7 @@ function TorrentHeader({
             onDelete();
           }}
         >
-          <ImageComponent
-            src="/images/w2k_dustbin.ico"
-            alt=""
-            className="size-4"
-          />
+          <ImageComponent src="/images/w2k_dustbin.ico" alt="" className="size-4" />
         </Button>
       </div>
     </section>
@@ -219,16 +184,10 @@ function TorrentProgress({ item }: { item: TorrentInfo }) {
   return (
     <section className="flex w-full flex-row items-start justify-between gap-1">
       <div className="flex w-full flex-col">
-        <ProgressBar
-          value={item.progress_bytes}
-          max={item.total_bytes}
-          className="h-3"
-        />
+        <ProgressBar value={item.progress_bytes} max={item.total_bytes} className="h-3" />
         <div className="flex items-center gap-1">
           <span className="windows95-text text-hint">
-            {item.finished
-              ? t("torrent.state.completed")
-              : stateLabel(item.state, t)}
+            {item.finished ? t("torrent.state.completed") : stateLabel(item.state, t)}
           </span>
           <span className="windows95-font text-xs">
             {item.total_bytes > 0
@@ -246,25 +205,19 @@ function TorrentProgress({ item }: { item: TorrentInfo }) {
             {fmtETA(item.eta_secs, t)}
           </span>
           <span className="ml-auto flex flex-row">
-            {(item.upload_speed > 0 ||
-              item.uploaded_bytes > 0 ||
-              item.peers_connected > 0) && (
+            {(item.upload_speed > 0 || item.uploaded_bytes > 0 || item.peers_connected > 0) && (
               <div className="flex items-center gap-1">
                 {item.upload_speed > 0 && (
                   <span className="text-hint windows95-font text-xs">
-                    <ArrowUp className="inline size-2.5" />{" "}
-                    {fmtSpeed(item.upload_speed)}
+                    <ArrowUp className="inline size-2.5" /> {fmtSpeed(item.upload_speed)}
                   </span>
                 )}
                 {item.uploaded_bytes > 0 && (
                   <span className="text-hint windows95-font text-xs">
-                    <ArrowUp className="inline size-2.5" />{" "}
-                    {fmtSize(item.uploaded_bytes)}
+                    <ArrowUp className="inline size-2.5" /> {fmtSize(item.uploaded_bytes)}
                   </span>
                 )}
-                <span className="text-hint windows95-font text-xs">
-                  P: {item.peers_connected}
-                </span>
+                <span className="text-hint windows95-font text-xs">P: {item.peers_connected}</span>
               </div>
             )}
           </span>
@@ -302,7 +255,7 @@ function TorrentFiles({
         role="button"
         tabIndex={0}
         aria-expanded={isExpanded}
-        aria-label={t("torrent.filesCount", {
+        aria-label={t("torrent.files.count", {
           done: completed,
           total: files.length,
         })}
@@ -310,12 +263,8 @@ function TorrentFiles({
         onClick={onToggleExpand}
         onKeyDown={enterOrSpace(onToggleExpand)}
       >
-        {isExpanded ? (
-          <ChevronDown className="size-3" />
-        ) : (
-          <ChevronRight className="size-3" />
-        )}
-        {t("torrent.filesCount", { done: completed, total: files.length })}
+        {isExpanded ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
+        {t("torrent.files.count", { done: completed, total: files.length })}
         {missing > 0 && (
           <span className="text-destructive ml-1">
             - {missing} {t("torrent.missing")}
@@ -342,23 +291,12 @@ function TorrentFiles({
   );
 }
 
-function TorrentError({
-  error,
-  onRetry,
-}: {
-  error: string;
-  onRetry: () => void;
-}) {
+function TorrentError({ error, onRetry }: { error: string; onRetry: () => void }) {
   const { t } = useI18n();
   return (
     <div className="mt-1 flex items-center gap-1">
       <span className="text-destructive windows95-font text-xs">{error}</span>
-      <Button
-        size="icon"
-        className="ml-auto size-4"
-        title={t("torrent.retry")}
-        onClick={onRetry}
-      >
+      <Button size="icon" className="ml-auto size-4" title={t("torrent.retry")} onClick={onRetry}>
         <RefreshCw className="size-3" />
       </Button>
     </div>
@@ -415,10 +353,10 @@ function TorrentItem({
       {pendingDelete && (
         <ConfirmDialog
           open
-          title={t("torrent.deleteTitle")}
-          message={t("torrent.deleteMessage")}
-          confirmLabel={t("torrent.deleteWithFiles")}
-          cancelLabel={t("torrent.keepFiles")}
+          title={t("torrent.delete.title")}
+          message={t("torrent.delete.message")}
+          confirmLabel={t("torrent.delete.with.files")}
+          cancelLabel={t("torrent.keep.files")}
           variant="destructive"
           onConfirm={() => {
             onRemove(true);

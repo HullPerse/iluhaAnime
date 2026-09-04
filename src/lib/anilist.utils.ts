@@ -25,11 +25,7 @@ import type {
   SimNode,
 } from "@/types/anilist";
 
-export function filterEntries(
-  entries: AniListEntry[],
-  searchTerms: string,
-  global: boolean
-) {
+export function filterEntries(entries: AniListEntry[], searchTerms: string, global: boolean) {
   return entries.filter((e) => {
     if (!searchTerms.trim() || global) return true;
 
@@ -97,10 +93,7 @@ export function getStatusColor(status: AniListEntry["list_status"]): HexType {
   return statusMap[status] ?? "#888";
 }
 
-export function filterGraph(
-  graph: FranchiseGraph,
-  filters: Set<RelationFilter>
-): FilteredGraph {
+export function filterGraph(graph: FranchiseGraph, filters: Set<RelationFilter>): FilteredGraph {
   const filteredEdges = graph.edges.filter((e) =>
     [...filters].some((g) => FILTER_GROUPS[g].includes(e.relation_type))
   );
@@ -114,15 +107,11 @@ export function filterGraph(
       .filter(
         (n) =>
           ids.has(n.id) &&
-          (n.id === graph.root_id ||
-            n.media_type === "ANIME" ||
-            n.media_type == null)
+          (n.id === graph.root_id || n.media_type === "ANIME" || n.media_type == null)
       )
       .map((n) => [n.id, n])
   );
-  const edges = filteredEdges.filter(
-    (e) => nodeMap.has(e.source) && nodeMap.has(e.target)
-  );
+  const edges = filteredEdges.filter((e) => nodeMap.has(e.source) && nodeMap.has(e.target));
   return { edges, ids, nodeMap };
 }
 
@@ -159,8 +148,7 @@ export function computeMainlineIds(
   const mainline = new Set<number>([rootId]);
   const adj = new Map<number, number[]>();
   for (const edge of graph.edges) {
-    if (edge.relation_type !== "SEQUEL" && edge.relation_type !== "PREQUEL")
-      continue;
+    if (edge.relation_type !== "SEQUEL" && edge.relation_type !== "PREQUEL") continue;
     if (!nodeMap.has(edge.source) || !nodeMap.has(edge.target)) continue;
     if (!adj.has(edge.source)) adj.set(edge.source, []);
     if (!adj.has(edge.target)) adj.set(edge.target, []);
@@ -262,6 +250,26 @@ export function buildEntryLookup(lists: AniListCollection[]) {
   return map;
 }
 
+function emptyToNull<T>(value: T | null | undefined | ""): T | null {
+  return value ? (value as T) : null;
+}
+
+function arrayToNull<T>(arr: T[]): T[] | null {
+  return arr.length > 0 ? arr : null;
+}
+
+function rangeStartToNull(pair: [number, number]): number | null {
+  return pair[0] > 0 || pair[1] > 0 ? pair[0] : null;
+}
+
+function rangeEndToNull(pair: [number, number]): number | null {
+  return pair[0] > 0 || pair[1] > 0 ? pair[1] : null;
+}
+
+function singlePositiveToNull(pair: [number, number], index: 0 | 1): number | null {
+  return pair[index] > 0 ? pair[index] : null;
+}
+
 export function searchFiltersToParams(
   filters: AniListFilters,
   query: string | null,
@@ -269,33 +277,25 @@ export function searchFiltersToParams(
   maxPages: number
 ) {
   return {
-    adult: filters.adult || null,
-    country: filters.country || null,
-    episodesFrom:
-      filters.episodes[0] > 0 || filters.episodes[1] > 0
-        ? filters.episodes[0]
-        : null,
-    episodesTo:
-      filters.episodes[0] > 0 || filters.episodes[1] > 0
-        ? filters.episodes[1]
-        : null,
-    format: filters.format || null,
-    genres: filters.genres.length > 0 ? filters.genres : null,
+    adult: emptyToNull(filters.adult),
+    country: emptyToNull(filters.country),
+    episodesFrom: rangeStartToNull(filters.episodes),
+    episodesTo: rangeEndToNull(filters.episodes),
+    format: emptyToNull(filters.format),
+    genres: arrayToNull(filters.genres),
     maxPages,
     perPage,
     query,
-    scoreFrom:
-      filters.score[0] > 0 || filters.score[1] > 0 ? filters.score[0] : null,
-    scoreTo:
-      filters.score[0] > 0 || filters.score[1] > 0 ? filters.score[1] : null,
-    season: filters.season || null,
+    scoreFrom: rangeStartToNull(filters.score),
+    scoreTo: rangeEndToNull(filters.score),
+    season: emptyToNull(filters.season),
     seasonYear: filters.seasonYear,
     sort: filters.sort ? [filters.sort] : null,
-    source: filters.source || null,
-    status: filters.status || null,
-    tags: filters.tags.length > 0 ? filters.tags : null,
-    yearFrom: filters.year[0] > 0 ? filters.year[0] : null,
-    yearTo: filters.year[1] > 0 ? filters.year[1] : null,
+    source: emptyToNull(filters.source),
+    status: emptyToNull(filters.status),
+    tags: arrayToNull(filters.tags),
+    yearFrom: singlePositiveToNull(filters.year, 0),
+    yearTo: singlePositiveToNull(filters.year, 1),
   };
 }
 
@@ -400,12 +400,28 @@ export function buildSimNodes(
   }
   for (const [index, node] of values.entries()) {
     const y = getNodeYearY(node, index, values.length, minYear, yearRange, totalH, dims.h);
-    const jitter = getNodeJitter(node, rootId, mainlineIds, relationMap, groupCount, groupIndex, dims.w);
-    const clusterX = mainlineIds.has(node.id) ? containerW / 2 : getClusterX(node.id, rootId, containerW, relationMap, jitter);
+    const jitter = getNodeJitter(
+      node,
+      rootId,
+      mainlineIds,
+      relationMap,
+      groupCount,
+      groupIndex,
+      dims.w
+    );
+    const clusterX = mainlineIds.has(node.id)
+      ? containerW / 2
+      : getClusterX(node.id, rootId, containerW, relationMap, jitter);
     nodes.push({ clusterX, fy: y, id: node.id, vx: 0, vy: 0, x: clusterX, y });
-    initPos.set(node.id, clampPosition(clusterX - dims.w / 2, y, {
-      h: totalH, nodeH: dims.h, nodeW: dims.w, w: containerW,
-    }));
+    initPos.set(
+      node.id,
+      clampPosition(clusterX - dims.w / 2, y, {
+        h: totalH,
+        nodeH: dims.h,
+        nodeW: dims.w,
+        w: containerW,
+      })
+    );
   }
   return { initialPositions: initPos, simNodes: nodes };
 }
@@ -447,13 +463,11 @@ export interface CollapsedGraph {
 
 const AGGREGATOR_ID_BASE = -1000;
 
-export function collapseGraph(
+function buildRelationBuckets(
   filtered: FilteredGraph,
   relationMap: Map<number, string>,
-  rootId: number,
-  maxPerGroup: number,
-  expandedGroups: Set<RelationFilter>
-): CollapsedGraph {
+  rootId: number
+): Map<RelationFilter, number[]> {
   const buckets = new Map<RelationFilter, number[]>();
   for (const node of filtered.nodeMap.values()) {
     if (node.id === rootId) continue;
@@ -462,12 +476,21 @@ export function collapseGraph(
     if (bucket) bucket.push(node.id);
     else buckets.set(group, [node.id]);
   }
+  return buckets;
+}
 
+function createAggregators(
+  buckets: Map<RelationFilter, number[]>,
+  filtered: FilteredGraph,
+  maxPerGroup: number,
+  expandedGroups: Set<RelationFilter>
+): {
+  collapsedIds: Set<number>;
+  aggregators: Map<number, { group: RelationFilter; count: number }>;
+  idToAggregator: Map<number, number>;
+} {
   const collapsedIds = new Set<number>();
-  const aggregators = new Map<
-    number,
-    { group: RelationFilter; count: number }
-  >();
+  const aggregators = new Map<number, { group: RelationFilter; count: number }>();
   const idToAggregator = new Map<number, number>();
   let aggIndex = 0;
   for (const [group, ids] of buckets) {
@@ -487,11 +510,14 @@ export function collapseGraph(
     }
     aggregators.set(aggId, { group, count: hidden.length });
   }
+  return { collapsedIds, aggregators, idToAggregator };
+}
 
-  if (collapsedIds.size === 0) {
-    return { graph: filtered, aggregators };
-  }
-
+function buildCollapsedNodeMap(
+  filtered: FilteredGraph,
+  collapsedIds: Set<number>,
+  aggregators: Map<number, { group: RelationFilter; count: number }>
+): Map<number, FranchiseNode> {
   const nodeMap = new Map<number, FranchiseNode>();
   for (const [id, node] of filtered.nodeMap) {
     if (collapsedIds.has(id)) continue;
@@ -509,21 +535,46 @@ export function collapseGraph(
       year: null,
     });
   }
+  return nodeMap;
+}
 
-  const edges: FranchiseEdge[] = [];
-  const seenEdges = new Set<string>();
-  for (const edge of filtered.edges) {
+function rewireEdges(
+  edges: FranchiseEdge[],
+  idToAggregator: Map<number, number>,
+  nodeMap: Map<number, FranchiseNode>
+): FranchiseEdge[] {
+  const out: FranchiseEdge[] = [];
+  const seen = new Set<string>();
+  for (const edge of edges) {
     const source = idToAggregator.get(edge.source) ?? edge.source;
     const target = idToAggregator.get(edge.target) ?? edge.target;
     if (source === target) continue;
     if (!nodeMap.has(source) || !nodeMap.has(target)) continue;
     const key = `${source}:${target}:${edge.relation_type}`;
-    if (seenEdges.has(key)) continue;
-    seenEdges.add(key);
-    edges.push({ relation_type: edge.relation_type, source, target });
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({ relation_type: edge.relation_type, source, target });
   }
+  return out;
+}
 
+export function collapseGraph(
+  filtered: FilteredGraph,
+  relationMap: Map<number, string>,
+  rootId: number,
+  maxPerGroup: number,
+  expandedGroups: Set<RelationFilter>
+): CollapsedGraph {
+  const buckets = buildRelationBuckets(filtered, relationMap, rootId);
+  const { collapsedIds, aggregators, idToAggregator } = createAggregators(
+    buckets,
+    filtered,
+    maxPerGroup,
+    expandedGroups
+  );
+  if (collapsedIds.size === 0) return { graph: filtered, aggregators };
+  const nodeMap = buildCollapsedNodeMap(filtered, collapsedIds, aggregators);
+  const edges = rewireEdges(filtered.edges, idToAggregator, nodeMap);
   const ids = new Set(nodeMap.keys());
-  const graph: FilteredGraph = { edges, ids, nodeMap };
-  return { graph, aggregators };
+  return { graph: { edges, ids, nodeMap }, aggregators };
 }

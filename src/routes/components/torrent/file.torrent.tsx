@@ -3,10 +3,7 @@ import { useRef, useState, useCallback, useMemo } from "react";
 
 import { buildTorrentTree } from "@/lib/torrent.utils";
 import type { TorrentTreeNode, TorrentTreeFile } from "@/lib/torrent.utils";
-import {
-  FolderRow,
-  TorrentFileRow,
-} from "@/routes/components/torrent/row.torrent";
+import { FolderRow, TorrentFileRow } from "@/routes/components/torrent/row.torrent";
 import { useSettingsStore } from "@/store/settings.store";
 import { useUpscaleQueueStore } from "@/store/upscale.store";
 import type { TorrentFileInfo, FilePriority } from "@/types/torrent";
@@ -39,15 +36,7 @@ function flattenTorrentTree(
       for (const file of files) {
         items.push({ kind: "file", file, depth: depth + 1 });
       }
-      items.push(
-        ...flattenTorrentTree(
-          node.children,
-          open,
-          fileFilter,
-          undefined,
-          depth + 1
-        )
-      );
+      items.push(...flattenTorrentTree(node.children, open, fileFilter, undefined, depth + 1));
     }
   }
   return items;
@@ -72,11 +61,7 @@ function TorrentFilesSection({
   type: "torrent" | "player";
   path?: string;
   onToggle?: (id: number, indices: number[]) => void;
-  onFilePriorityChange?: (
-    id: number,
-    fileIndices: number[],
-    priority: FilePriority
-  ) => void;
+  onFilePriorityChange?: (id: number, fileIndices: number[], priority: FilePriority) => void;
   onResume?: () => void;
   extraFiles?: { name: string; size: number; fullPath: string }[];
   onUpscaleDone?: (filePath: string) => void;
@@ -99,19 +84,13 @@ function TorrentFilesSection({
   }, [items]);
 
   const [selected, setSelected] = useState<Set<number>>(
-    () =>
-      new Set(
-        files.filter((f) => f.selected || f.completed).map((f) => f.index)
-      )
+    () => new Set(files.filter((f) => f.selected || f.completed).map((f) => f.index))
   );
 
   const [open, setOpen] = useState<Set<string>>(new Set());
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const { nodes: trees, rootFiles } = useMemo(
-    () => buildTorrentTree(files),
-    [files]
-  );
+  const { nodes: trees, rootFiles } = useMemo(() => buildTorrentTree(files), [files]);
 
   const toggle = useCallback((key: string) => {
     setOpen((prev) => {
@@ -129,8 +108,7 @@ function TorrentFilesSection({
 
   const fileFilter = useMemo(() => {
     if (type !== "player") return;
-    const hideTracks =
-      showTrackFiles === "hide" || showTrackFiles === "folders";
+    const hideTracks = showTrackFiles === "hide" || showTrackFiles === "folders";
     return (f: TorrentTreeFile) => {
       if (!f.completed) return false;
       if (hideTracks) {
@@ -226,9 +204,7 @@ function TorrentFilesSection({
               type={type}
               checked={selected.has(file.index)}
               onToggleFile={
-                onToggle
-                  ? () => handleToggleFile(file.index, file.completed)
-                  : undefined
+                onToggle ? () => handleToggleFile(file.index, file.completed) : undefined
               }
               onPriorityChange={handlePriorityChange}
               queueMap={queueMap}

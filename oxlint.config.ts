@@ -178,6 +178,7 @@ export default defineConfig({
   rules: {
     complexity: "error",
     curly: "off",
+    "no-console": ["warn", { allow: ["warn", "error"] }],
     "no-else-return": "off",
     "typescript/await-thenable": "error",
     "typescript/consistent-return": "warn",

@@ -8,8 +8,32 @@ import {
   wizardDefaultsMeta,
   wizardDefaultsProgress,
 } from "@/lib/collectionWizard.utils";
-import type { CollectionItem, CollectionStatus } from "@/types/collection";
 import type { WizardSaveValues } from "@/lib/collectionWizard.utils";
+import type { CollectionItem, CollectionStatus } from "@/types/collection";
+
+function toPreviewNumber(value: string): number {
+  return Number(value) || 0;
+}
+
+function toPreviewOptionalNumber(value: string): number | null {
+  return value ? Number(value) || null : null;
+}
+
+function toPreviewList(value: string): string[] {
+  return value
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function toPreviewTrimmed(value: string): string | null {
+  const t = value.trim();
+  return t || null;
+}
+
+function toPreviewTimestamp(value: string): number | null {
+  return value ? new Date(value).getTime() : null;
+}
 
 export function useWizardForm(initial: CollectionItem | null | undefined) {
   const identity = useMemo(() => wizardDefaultsIdentity(initial), [initial]);
@@ -24,7 +48,9 @@ export function useWizardForm(initial: CollectionItem | null | undefined) {
   const [status, setStatus] = useState<CollectionStatus>(identity.status);
   const [progressValue, setProgressValue] = useState(progress.progressValue);
   const [progressTotal, setProgressTotal] = useState(progress.progressTotal);
-  const [progressUnit, setProgressUnit] = useState<CollectionItem["progressUnit"]>(progress.progressUnit);
+  const [progressUnit, setProgressUnit] = useState<CollectionItem["progressUnit"]>(
+    progress.progressUnit
+  );
   const [rating, setRating] = useState(progress.rating);
   const [priority, setPriority] = useState<CollectionItem["priority"]>(progress.priority);
   const [isFavorite, setIsFavorite] = useState(progress.isFavorite);
@@ -108,21 +134,18 @@ export function useWizardForm(initial: CollectionItem | null | undefined) {
       altTitles: [],
       type,
       status,
-      progressValue: Number(progressValue) || 0,
-      progressTotal: progressTotal ? Number(progressTotal) || null : null,
+      progressValue: toPreviewNumber(progressValue),
+      progressTotal: toPreviewOptionalNumber(progressTotal),
       progressUnit,
-      durationMinutes: durationMinutes ? Number(durationMinutes) || null : null,
-      rating: rating ? Number(rating) || null : null,
+      durationMinutes: toPreviewOptionalNumber(durationMinutes),
+      rating: toPreviewOptionalNumber(rating),
       priority,
       isFavorite,
-      year: year ? Number(year) || null : null,
-      genres: genres
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean),
-      studio: studio.trim() || null,
-      description: description.trim() || null,
-      notes: notes.trim() || null,
+      year: toPreviewOptionalNumber(year),
+      genres: toPreviewList(genres),
+      studio: toPreviewTrimmed(studio),
+      description: toPreviewTrimmed(description),
+      notes: toPreviewTrimmed(notes),
       coverUrl: coverUrl || null,
       coverBlobId: null,
       thumbBlobId: null,
@@ -130,12 +153,16 @@ export function useWizardForm(initial: CollectionItem | null | undefined) {
       customFields,
       localPath: localPath || null,
       localKind,
-      startedAt: startedAt ? new Date(startedAt).getTime() : null,
-      finishedAt: finishedAt ? new Date(finishedAt).getTime() : null,
+      startedAt: toPreviewTimestamp(startedAt),
+      finishedAt: toPreviewTimestamp(finishedAt),
       lastWatchedAt: null,
       rewatchCount: 0,
       addedAt: Date.now(),
       updatedAt: Date.now(),
+      sitesToView: [],
+      tvCurrentSeason: null,
+      tvCurrentEpisode: null,
+      detailsJson: null,
     }),
     [
       title,

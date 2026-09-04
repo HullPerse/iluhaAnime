@@ -42,9 +42,7 @@ const tree: FolderNode = {
 describe("player visibility helpers", () => {
   it("normalizes Windows separators and trailing slashes", () => {
     expect(normalizePlayerPath("C:\\Anime\\")).toBe("c:/anime");
-    expect(
-      isPlayerPathHidden("C:\\Anime\\Hidden\\episode.mkv", ["c:/anime/hidden"])
-    ).toBe(true);
+    expect(isPlayerPathHidden("C:\\Anime\\Hidden\\episode.mkv", ["c:/anime/hidden"])).toBe(true);
   });
 
   it("removes a hidden nested folder without mutating the source tree", () => {

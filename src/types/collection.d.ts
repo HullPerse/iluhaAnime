@@ -17,7 +17,6 @@ export interface CollectionExternalIds {
   mal?: number;
   tmdb?: number;
   imdb?: string;
-  shikimori?: number;
 }
 
 export interface CollectionItem {
@@ -51,18 +50,16 @@ export interface CollectionItem {
   rewatchCount: number;
   addedAt: number;
   updatedAt: number;
-}
-
-export interface CollectionReview {
-  id: string;
-  itemId: string | null;
-  rating: number;
-  comment: string;
-  imageBlobId: string | null;
-  createdAt: number;
-  updatedAt: number;
-  orphaned: boolean;
-  snapshotTitle: string | null;
+  sitesToView: Array<{ url: string }>;
+  tvCurrentSeason: number | null;
+  tvCurrentEpisode: number | null;
+  detailsJson: {
+    seasons?: Array<{
+      seasonNumber: number;
+      episodeCount: number;
+      name: string;
+    }>;
+  } | null;
 }
 
 export type CustomFieldType = "text" | "number" | "select" | "date";
@@ -89,28 +86,96 @@ export interface CollectionStore {
   sortBy: "date" | "name" | "rating";
   sortDir: "asc" | "desc";
   filters: CollectionFilters;
-  activeSection: "library" | "statistics";
   groupByStatus: boolean;
   collapsedStatuses: Set<string>;
-  setActiveSection: (section: CollectionStore["activeSection"]) => void;
+  coverDithered: boolean;
+  viewMode: "grid" | "list";
+  displayMode: "scroll" | "pagination";
   setSearchQuery: (query: string) => void;
   setSelectedStatus: (status: CollectionStore["selectedStatus"]) => void;
-  setSort: (
-    by: CollectionStore["sortBy"],
-    dir: CollectionStore["sortDir"]
-  ) => void;
+  setSort: (by: CollectionStore["sortBy"], dir: CollectionStore["sortDir"]) => void;
   setFilters: (patch: Partial<CollectionFilters>) => void;
   setGroupByStatus: (groupByStatus: boolean) => void;
   toggleStatusCollapsed: (statusId: string) => void;
+  setCoverDithered: (value: boolean) => void;
+  setViewMode: (mode: CollectionStore["viewMode"]) => void;
+  setDisplayMode: (mode: CollectionStore["displayMode"]) => void;
 }
 
 export interface CollectionFilters {
   ratingMin: number | null;
+  ratingMax: number | null;
   yearFrom: number | null;
   yearTo: number | null;
   provider: "any" | "anilist" | "tmdb" | "custom";
   linked: "any" | "yes" | "no";
   hasNote: "any" | "yes" | "no";
+  mediaTypes: CollectionType[];
+  genres: string[];
   hiddenStatuses?: string[];
   defaultStatus?: CollectionStatus;
+}
+
+export interface ReleaseSubscription {
+  id: string;
+  mediaId: number;
+  mediaType: "movie" | "tv";
+  title: string;
+  lastCheckedAt: number | null;
+  nextAiringAt: number | null;
+  createdAt: number;
+}
+
+export type CollectionConfig = {
+  STATUS: CollectionStatus | "all";
+  SORT: "date" | "name" | "rating";
+  DIR: "asc" | "desc";
+};
+
+export type SearchFieldParams = {
+  scope: SearchSuggestionScope;
+  query: string;
+  setQuery: (value: string) => void;
+  history?: string[];
+  queryStats?: Record<string, SearchQueryStat>;
+  suggestionStats?: Record<string, SearchQueryStat>;
+  animeIndex?: SearchAnimeSuggestion[];
+  animeProfileId?: number | null;
+  anilistBoost?: AnilistSuggestionBoost;
+  extraValues?: Array<{ kind?: SearchSuggestionKind; value: string }>;
+  collectionItems?: CollectionSuggestionItem[];
+  collectionBoost?: number;
+  limit?: number;
+  onSubmit?: (trimmed: string) => void;
+  submitOnSelect?: boolean;
+  historyScope?: string;
+};
+
+export interface SearchFieldInputProps {
+  value: string;
+  completion: string | null;
+  suggestions: SearchSuggestion[];
+  history: string[];
+  onChange: (event: ChangeEvent<HTMLInputElement>) => void;
+  onAcceptCompletion: (value: string) => void;
+  onDismissCompletion: () => void;
+  onSelectSuggestion: (value: string) => void;
+  onRemoveHistory: (query: string) => void;
+  onKeyDown: (event: KeyboardEvent<HTMLInputElement>) => void;
+}
+
+export interface SearchField {
+  suggestions: SearchSuggestion[];
+  inlineCompletion: string | null;
+  deferredQuery: string;
+  history: string[];
+  removeQuery: (query: string) => void;
+  recordSuggestion: (value: string) => void;
+  recordSuggestionIgnored: (value: string) => void;
+  addQuery: (query: string, scope?: string) => void;
+  handleSubmit: () => void;
+  handleSelect: (value: string) => void;
+  handleAcceptCompletion: (value: string) => void;
+  handleDismissCompletion: () => void;
+  inputProps: SearchFieldInputProps;
 }

@@ -1,7 +1,9 @@
-import { resolve } from "node:path";
+import { readdir, stat } from "node:fs/promises";
+import { resolve, join } from "node:path";
 
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
+import { imagetools } from "vite-imagetools";
 import viteCompression from "vite-plugin-compression";
 import { defineConfig } from "vitest/config";
 
@@ -19,10 +21,34 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
+    imagetools({
+      cache: {
+        enabled: true,
+        dir: "node_modules/.cache/vite-imagetools",
+      },
+    }),
     viteCompression({
       algorithm: "brotliCompress",
       ext: ".br",
     }),
+    {
+      name: "icon-sprite",
+      apply: "build",
+      async buildStart() {
+        try {
+          const dir = resolve(import.meta.dirname, "./src/assets/icons");
+          const files = await readdir(dir);
+
+          let total = 0;
+
+          for (const f of files) {
+            const s = await stat(join(dir, f));
+            total += s.size;
+          }
+          this.info?.(`icon-sprite: ${files.length} icons, ${(total / 1024).toFixed(1)}KB`);
+        } catch {}
+      },
+    },
   ],
 
   resolve: {

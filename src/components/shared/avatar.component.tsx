@@ -55,10 +55,7 @@ export default function UserImageIcon({
 
   if (!id && !inlineDataUrl && !icon.includes(".")) {
     return (
-      <span
-        className={cn("inline-flex items-center justify-center", className)}
-        aria-label={alt}
-      >
+      <span className={cn("inline-flex items-center justify-center", className)} aria-label={alt}>
         {icon}
       </span>
     );
@@ -66,13 +63,7 @@ export default function UserImageIcon({
 
   return (
     <img
-      src={
-        id && src
-          ? src
-          : id || inlineDataUrl
-            ? src || fallback
-            : `/images/${icon}`
-      }
+      src={id && src ? src : id || inlineDataUrl ? src || fallback : `/images/${icon}`}
       alt={alt}
       className={cn("object-contain", className)}
       loading="lazy"

@@ -4,13 +4,14 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::fs;
 use std::io::Write;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tauri::Manager;
+use unicode_normalization::UnicodeNormalization;
 
 const DATABASE_FILE: &str = "app_data.sqlite3";
 const MAX_PAYLOAD_BYTES: usize = 8 * 1024 * 1024;
-const CURRENT_SCHEMA_VERSION: i64 = 7;
+const CURRENT_SCHEMA_VERSION: i64 = 13;
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -22,28 +23,7 @@ pub struct AppCacheRecord {
     pub updated_at: i64,
 }
 
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct MediaRecordInput {
-    pub path: String,
-    pub name: String,
-    pub size: u64,
-    pub title: String,
-    pub season: u32,
-    pub episode: Option<u32>,
-    pub quality: Option<String>,
-    pub codec: Option<String>,
-    pub subtitle_likely: bool,
-}
 
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct MediaRecord {
-    pub path: String,
-    pub identity: serde_json::Value,
-    pub metadata: serde_json::Value,
-    pub scanned_at: i64,
-}
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -72,16 +52,32 @@ pub struct UnifiedIndexEntry {
 }
 
 fn normalize_index_text(value: &str) -> String {
-    value
+    let nfkd: String = value.nfkd().collect();
+    let without_marks: String = nfkd
         .chars()
-        .flat_map(char::to_lowercase)
-        .collect::<String>()
-        .split_whitespace()
-        .collect::<Vec<_>>()
-        .join(" ")
-        .chars()
-        .take(256)
-        .collect()
+        .filter(|c| {
+            let code = *c as u32;
+            !(0x0300..=0x036F).contains(&code)
+                && !(0x1AB0..=0x1AFF).contains(&code)
+                && !(0x1DC0..=0x1DFF).contains(&code)
+                && !(0x20D0..=0x20FF).contains(&code)
+                && !(0xFE20..=0xFE2F).contains(&code)
+        })
+        .collect();
+    let lower = without_marks.to_lowercase();
+    let mut normalized = String::with_capacity(lower.len());
+    let mut prev_was_space = true;
+    for ch in lower.chars() {
+        if ch.is_alphanumeric() {
+            normalized.push(ch);
+            prev_was_space = false;
+        } else if !prev_was_space {
+            normalized.push(' ');
+            prev_was_space = true;
+        }
+    }
+    let trimmed = normalized.trim();
+    trimmed.chars().take(256).collect()
 }
 
 fn build_fts_match_query(normalized: &str) -> String {
@@ -283,17 +279,6 @@ fn initialize_schema(connection: &Connection) -> Result<(), String> {
                     added_at INTEGER NOT NULL,
                     updated_at INTEGER NOT NULL
                 );
-                CREATE TABLE IF NOT EXISTS collection_reviews (
-                    id TEXT PRIMARY KEY,
-                    item_id TEXT REFERENCES collection_items(id) ON DELETE SET NULL,
-                    rating INTEGER NOT NULL CHECK(rating BETWEEN 1 AND 10),
-                    comment TEXT NOT NULL,
-                    image_blob_id TEXT,
-                    created_at INTEGER NOT NULL,
-                    updated_at INTEGER NOT NULL,
-                    orphaned INTEGER NOT NULL DEFAULT 0,
-                    snapshot_title TEXT
-                );
                 CREATE TABLE IF NOT EXISTS collection_events (
                     id TEXT PRIMARY KEY,
                     item_id TEXT REFERENCES collection_items(id) ON DELETE SET NULL,
@@ -359,12 +344,13 @@ fn initialize_schema(connection: &Connection) -> Result<(), String> {
                     is_core INTEGER NOT NULL DEFAULT 0
                 );
                 INSERT OR IGNORE INTO collection_statuses (id, label, color, order_index, is_core) VALUES
-                    ('planned','Planned','#9ca3af',0,1),
-                    ('watching','Watching','#3b82f6',1,1),
-                    ('completed','Completed','#22c55e',2,1),
-                    ('paused','Paused','#f59e0b',3,1),
-                    ('dropped','Dropped','#ef4444',4,1),
-                    ('rewatching','Rewatching','#a855f7',5,1);
+                    ('favorites','Favorites','#ec4899',0,1),
+                    ('planned','Planned','#9ca3af',1,1),
+                    ('watching','Watching','#3b82f6',2,1),
+                    ('completed','Completed','#22c55e',3,1),
+                    ('paused','Paused','#f59e0b',4,1),
+                    ('dropped','Dropped','#ef4444',5,1),
+                    ('rewatching','Rewatching','#a855f7',6,1);
                 CREATE TABLE collection_items_v5 (
                     id TEXT PRIMARY KEY,
                     title TEXT NOT NULL,
@@ -503,6 +489,137 @@ fn initialize_schema(connection: &Connection) -> Result<(), String> {
         transaction
             .commit()
             .map_err(|error| format!("app database collections removal commit: {error}"))?;
+    }
+
+    // v8: drop the vault feature (media_records). The vault tab and its
+    // organization logic were removed entirely.
+    if version < 8 {
+        let transaction = connection
+            .unchecked_transaction()
+            .map_err(|error| format!("app database vault removal transaction: {error}"))?;
+        transaction
+            .execute_batch(
+                "
+                DROP TABLE IF EXISTS media_records;
+                PRAGMA user_version = 8;
+                ",
+            )
+            .map_err(|error| format!("app database vault removal schema: {error}"))?;
+        transaction
+            .commit()
+            .map_err(|error| format!("app database vault removal commit: {error}"))?;
+    }
+
+    // v9: tracker parity (movie-tracker) — sitesToView, TV progress, details snapshot, release subscriptions.
+    if version < 9 {
+        let transaction = connection
+            .unchecked_transaction()
+            .map_err(|error| format!("app database tracker parity transaction: {error}"))?;
+        transaction
+            .execute_batch(
+                "
+                ALTER TABLE collection_items ADD COLUMN sites_to_view TEXT NOT NULL DEFAULT '[]';
+                ALTER TABLE collection_items ADD COLUMN tv_current_season INTEGER;
+                ALTER TABLE collection_items ADD COLUMN tv_current_episode INTEGER;
+                ALTER TABLE collection_items ADD COLUMN details_json TEXT;
+                CREATE TABLE IF NOT EXISTS release_subscriptions (
+                    id TEXT PRIMARY KEY,
+                    media_id INTEGER NOT NULL,
+                    media_type TEXT NOT NULL CHECK(media_type IN ('movie','tv')),
+                    title TEXT NOT NULL,
+                    last_checked_at INTEGER,
+                    next_airing_at INTEGER,
+                    created_at INTEGER NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS idx_release_subscriptions_media
+                    ON release_subscriptions(media_id, media_type);
+                PRAGMA user_version = 9;
+                ",
+            )
+            .map_err(|error| format!("app database tracker parity schema: {error}"))?;
+        transaction
+            .commit()
+            .map_err(|error| format!("app database tracker parity commit: {error}"))?;
+    }
+
+    if version < 10 {
+        let transaction = connection
+            .unchecked_transaction()
+            .map_err(|error| format!("app database embeddings transaction: {error}"))?;
+        transaction
+            .execute_batch(
+                "
+                CREATE TABLE IF NOT EXISTS unified_index_vec (
+                    id TEXT PRIMARY KEY,
+                    embedding BLOB NOT NULL,
+                    updated_at INTEGER NOT NULL
+                );
+                PRAGMA user_version = 10;
+                ",
+            )
+            .map_err(|error| format!("app database embeddings schema: {error}"))?;
+        transaction
+            .commit()
+            .map_err(|error| format!("app database embeddings commit: {error}"))?;
+    }
+    // v11: "favorites" core status first; existing core statuses shift down one slot.
+    if version < 11 {
+        let transaction = connection
+            .unchecked_transaction()
+            .map_err(|error| format!("app database favorites status transaction: {error}"))?;
+        transaction
+            .execute_batch(
+                "
+                UPDATE collection_statuses SET order_index = order_index + 1
+                    WHERE id IN ('planned','watching','completed','paused','dropped','rewatching');
+                INSERT OR IGNORE INTO collection_statuses (id, label, color, order_index, is_core) VALUES
+                    ('favorites','Favorites','#ec4899',0,1);
+                PRAGMA user_version = 11;
+                ",
+            )
+            .map_err(|error| format!("app database favorites status schema: {error}"))?;
+        transaction
+            .commit()
+            .map_err(|error| format!("app database favorites status commit: {error}"))?;
+    }
+    // v12: drop dead tables — never-implemented release_analysis/anime_statistics,
+    // ghost playback_events/room_sessions, and write-only collection_events.
+    if version < 12 {
+        let transaction = connection
+            .unchecked_transaction()
+            .map_err(|error| format!("app database dead tables transaction: {error}"))?;
+        transaction
+            .execute_batch(
+                "
+                DROP TABLE IF EXISTS collection_events;
+                DROP TABLE IF EXISTS release_analysis;
+                DROP TABLE IF EXISTS anime_statistics;
+                DROP TABLE IF EXISTS playback_events;
+                DROP TABLE IF EXISTS room_sessions;
+                PRAGMA user_version = 12;
+                ",
+            )
+            .map_err(|error| format!("app database dead tables schema: {error}"))?;
+        transaction
+            .commit()
+            .map_err(|error| format!("app database dead tables commit: {error}"))?;
+    }
+    // v13: drop collection_reviews — the reviews feature was removed entirely.
+    if version < 13 {
+        let transaction = connection
+            .unchecked_transaction()
+            .map_err(|error| format!("app database reviews removal transaction: {error}"))?;
+        transaction
+            .execute_batch(
+                "
+                DROP TABLE IF EXISTS collection_reviews;
+                PRAGMA user_version = 13;
+                ",
+            )
+            .map_err(|error| format!("app database reviews removal schema: {error}"))?;
+        transaction
+            .commit()
+            .map_err(|error| format!("app database reviews removal commit: {error}"))?;
     }
 
     if version > CURRENT_SCHEMA_VERSION {
@@ -787,6 +904,24 @@ pub fn prune_unified_index_scope(
 }
 
 #[tauri::command]
+pub fn clear_unified_index_scope(
+    app: tauri::AppHandle,
+    scope: String,
+) -> Result<usize, String> {
+    if scope.is_empty() || scope.len() > 64 {
+        return Err("Unified index scope is invalid".into());
+    }
+    let connection = open_database(&app)?;
+    let deleted = connection
+        .execute(
+            "DELETE FROM unified_index WHERE scope = ?1",
+            params![scope],
+        )
+        .map_err(|error| format!("clear unified index scope: {error}"))?;
+    Ok(deleted)
+}
+
+#[tauri::command]
 pub fn record_unified_index_action(
     app: tauri::AppHandle,
     id: String,
@@ -914,131 +1049,71 @@ pub fn search_unified_index(
 }
 
 #[tauri::command]
+pub fn optimize_unified_index(app: tauri::AppHandle) -> Result<(), String> {
+    let connection = open_database(&app)?;
+    connection
+        .execute("INSERT INTO unified_index_fts(unified_index_fts) VALUES('optimize')", [])
+        .map_err(|error| format!("optimize unified index: {error}"))?;
+    Ok(())
+}
+
+pub fn upsert_unified_index_embedding(
+    app: &tauri::AppHandle,
+    id: String,
+    embedding: Vec<f32>,
+) -> Result<(), String> {
+    if id.is_empty() || id.len() > 512 || embedding.is_empty() || embedding.len() > 4096 {
+        return Err("Invalid embedding".into());
+    }
+    let bytes: Vec<u8> = embedding.iter().flat_map(|v| v.to_le_bytes()).collect();
+    let connection = open_database(app)?;
+    connection
+        .execute(
+            "INSERT INTO unified_index_vec (id, embedding, updated_at) VALUES (?1, ?2, ?3)
+             ON CONFLICT(id) DO UPDATE SET embedding = excluded.embedding, updated_at = excluded.updated_at",
+            params![id, bytes, now_seconds()],
+        )
+        .map_err(|e| format!("upsert embedding: {e}"))?;
+    Ok(())
+}
+
+pub fn get_all_embeddings(
+    app: &tauri::AppHandle,
+) -> Result<Vec<(String, Vec<f32>)>, String> {
+    let connection = open_database(app)?;
+    let mut stmt = connection
+        .prepare("SELECT id, embedding FROM unified_index_vec")
+        .map_err(|e| format!("prepare embeddings: {e}"))?;
+    let rows = stmt
+        .query_map([], |row| {
+            let id: String = row.get(0)?;
+            let bytes: Vec<u8> = row.get(1)?;
+            Ok((id, bytes))
+        })
+        .map_err(|e| format!("query embeddings: {e}"))?;
+    let mut out = Vec::new();
+    for r in rows {
+        let (id, bytes) = r.map_err(|e| format!("read embedding: {e}"))?;
+        if bytes.len() % 4 != 0 {
+            continue;
+        }
+        let floats: Vec<f32> = bytes
+            .chunks_exact(4)
+            .map(|c| f32::from_le_bytes([c[0], c[1], c[2], c[3]]))
+            .collect();
+        out.push((id, floats));
+    }
+    Ok(out)
+}
+
+#[cfg(test)]
 fn path_is_in_scope(path: &str, scopes: &[String]) -> bool {
-    let path = Path::new(path);
+    let path = std::path::Path::new(path);
     scopes
         .iter()
-        .map(Path::new)
+        .map(std::path::Path::new)
         .any(|scope| path.starts_with(scope))
 }
-
-#[tauri::command]
-pub fn save_vault_media_records(
-    app: tauri::AppHandle,
-    records: Vec<MediaRecordInput>,
-    scopes: Vec<String>,
-) -> Result<usize, String> {
-    if records.len() > 20_000
-        || scopes.len() > 100
-        || scopes.iter().any(|scope| scope.len() > 4_096)
-    {
-        return Err("Vault scan contains too many records or invalid scopes".to_string());
-    }
-    let connection = open_database(&app)?;
-    let transaction = connection
-        .unchecked_transaction()
-        .map_err(|error| format!("vault records transaction: {error}"))?;
-    let scanned_at = now_seconds();
-    for record in &records {
-        if record.path.is_empty()
-            || record.path.len() > 4_096
-            || record.name.len() > 1_024
-            || record.title.len() > 512
-            || record
-                .quality
-                .as_ref()
-                .is_some_and(|value| value.len() > 64)
-            || record.codec.as_ref().is_some_and(|value| value.len() > 64)
-        {
-            return Err("Vault media record contains an oversized or invalid field".to_string());
-        }
-        let identity = serde_json::json!({
-            "title": record.title,
-            "season": record.season,
-            "episode": record.episode,
-            "quality": record.quality,
-            "codec": record.codec,
-            "subtitleLikely": record.subtitle_likely,
-        });
-        let metadata = serde_json::json!({
-            "name": record.name,
-            "size": record.size,
-        });
-        transaction
-            .execute(
-                "INSERT INTO media_records (path, identity_json, metadata_json, scanned_at)
-                 VALUES (?1, ?2, ?3, ?4)
-                 ON CONFLICT(path) DO UPDATE SET
-                    identity_json = excluded.identity_json,
-                    metadata_json = excluded.metadata_json,
-                    scanned_at = excluded.scanned_at",
-                params![
-                    record.path,
-                    identity.to_string(),
-                    metadata.to_string(),
-                    scanned_at
-                ],
-            )
-            .map_err(|error| format!("save vault media record: {error}"))?;
-    }
-    if !scopes.is_empty() {
-        let current_paths: HashSet<&str> =
-            records.iter().map(|record| record.path.as_str()).collect();
-        let stored_paths = {
-            let mut statement = transaction
-                .prepare("SELECT path FROM media_records")
-                .map_err(|error| format!("list vault media records for pruning: {error}"))?;
-            let paths = statement
-                .query_map([], |row| row.get::<_, String>(0))
-                .map_err(|error| format!("list vault media records query: {error}"))?
-                .collect::<Result<Vec<_>, _>>()
-                .map_err(|error| format!("list vault media records rows: {error}"))?;
-            paths
-        };
-        for path in stored_paths {
-            if path_is_in_scope(&path, &scopes) && !current_paths.contains(path.as_str()) {
-                transaction
-                    .execute("DELETE FROM media_records WHERE path = ?1", params![path])
-                    .map_err(|error| format!("prune stale vault media record: {error}"))?;
-            }
-        }
-    }
-    transaction
-        .commit()
-        .map_err(|error| format!("save vault records commit: {error}"))?;
-    Ok(records.len())
-}
-
-#[tauri::command]
-pub fn get_vault_media_records(
-    app: tauri::AppHandle,
-    limit: Option<u32>,
-) -> Result<Vec<MediaRecord>, String> {
-    let connection = open_database(&app)?;
-    let limit = limit.unwrap_or(20_000).clamp(1, 20_000);
-    let mut statement = connection
-        .prepare(
-            "SELECT path, identity_json, metadata_json, scanned_at
-             FROM media_records ORDER BY path LIMIT ?1",
-        )
-        .map_err(|error| format!("read vault media records: {error}"))?;
-    let rows = statement
-        .query_map(params![limit], |row| {
-            let identity_json: String = row.get(1)?;
-            let metadata_json: String = row.get(2)?;
-            Ok(MediaRecord {
-                path: row.get(0)?,
-                identity: serde_json::from_str(&identity_json).unwrap_or(serde_json::Value::Null),
-                metadata: serde_json::from_str(&metadata_json).unwrap_or(serde_json::Value::Null),
-                scanned_at: row.get(3)?,
-            })
-        })
-        .map_err(|error| format!("read vault media records query: {error}"))?;
-    rows.collect::<Result<Vec<_>, _>>()
-        .map_err(|error| format!("read vault media records rows: {error}"))
-}
-
-// ===== Collection tracker types =====
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -1073,6 +1148,18 @@ pub struct CollectionItemRow {
     pub rewatch_count: i64,
     pub added_at: i64,
     pub updated_at: i64,
+    #[serde(default = "default_sites_to_view")]
+    pub sites_to_view: serde_json::Value,
+    #[serde(default)]
+    pub tv_current_season: Option<i64>,
+    #[serde(default)]
+    pub tv_current_episode: Option<i64>,
+    #[serde(default)]
+    pub details_json: Option<serde_json::Value>,
+}
+
+const fn default_sites_to_view() -> serde_json::Value {
+    serde_json::Value::Array(vec![])
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -1108,56 +1195,10 @@ pub struct CollectionItemInput {
     pub rewatch_count: i64,
     pub added_at: i64,
     pub updated_at: i64,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CollectionReviewRow {
-    pub id: String,
-    pub item_id: Option<String>,
-    pub rating: i64,
-    pub comment: String,
-    pub image_blob_id: Option<String>,
-    pub created_at: i64,
-    pub updated_at: i64,
-    pub orphaned: bool,
-    pub snapshot_title: Option<String>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CollectionReviewInput {
-    pub id: String,
-    pub item_id: Option<String>,
-    pub rating: i64,
-    pub comment: String,
-    pub image_blob_id: Option<String>,
-    pub created_at: i64,
-    pub updated_at: i64,
-    pub orphaned: bool,
-    pub snapshot_title: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CollectionEventRow {
-    pub id: String,
-    pub item_id: Option<String>,
-    pub kind: String,
-    pub from_value: Option<String>,
-    pub to_value: Option<String>,
-    pub at: i64,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CollectionEventInput {
-    pub id: String,
-    pub item_id: Option<String>,
-    pub kind: String,
-    pub from_value: Option<String>,
-    pub to_value: Option<String>,
-    pub at: i64,
+    pub sites_to_view: Option<serde_json::Value>,
+    pub tv_current_season: Option<i64>,
+    pub tv_current_episode: Option<i64>,
+    pub details_json: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1179,6 +1220,18 @@ pub struct CollectionStatusRow {
     pub is_core: bool,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReleaseSubscriptionRow {
+    pub id: String,
+    pub media_id: i64,
+    pub media_type: String,
+    pub title: String,
+    pub last_checked_at: Option<i64>,
+    pub next_airing_at: Option<i64>,
+    pub created_at: i64,
+}
+
 fn validate_collection_color(value: &str) -> Result<(), String> {
     let bytes = value.as_bytes();
     if bytes.len() != 7 || bytes[0] != b'#' || !bytes[1..].iter().all(u8::is_ascii_hexdigit) {
@@ -1187,7 +1240,8 @@ fn validate_collection_color(value: &str) -> Result<(), String> {
     Ok(())
 }
 
-const CORE_COLLECTION_STATUS_IDS: [&str; 6] = [
+const CORE_COLLECTION_STATUS_IDS: [&str; 7] = [
+    "favorites",
     "planned",
     "watching",
     "completed",
@@ -1249,7 +1303,7 @@ pub fn upsert_collection_status(
                 status.label,
                 status.color,
                 status.order_index,
-                is_core as i64
+                i64::from(is_core)
             ],
         )
         .map_err(|e| format!("upsert collection status: {e}"))?;
@@ -1297,7 +1351,7 @@ pub fn list_collection_items(app: tauri::AppHandle) -> Result<Vec<CollectionItem
                     genres_json, studio, description, notes, cover_url, cover_blob_id,
                     thumb_blob_id, external_ids_json, custom_fields_json, local_path,
                     local_kind, started_at, finished_at, last_watched_at, rewatch_count,
-                    added_at, updated_at
+                    added_at, updated_at, sites_to_view, tv_current_season, tv_current_episode, details_json
              FROM collection_items ORDER BY updated_at DESC",
         )
         .map_err(|e| format!("list collection items: {e}"))?;
@@ -1307,6 +1361,8 @@ pub fn list_collection_items(app: tauri::AppHandle) -> Result<Vec<CollectionItem
             let genres: String = row.get(13)?;
             let external_ids: String = row.get(20)?;
             let custom_fields: String = row.get(21)?;
+            let sites_to_view: String = row.get(30).unwrap_or_else(|_| "[]".to_string());
+            let details_json: Option<String> = row.get(33).ok().flatten();
             Ok(CollectionItemRow {
                 id: row.get(0)?,
                 title: row.get(1)?,
@@ -1341,6 +1397,13 @@ pub fn list_collection_items(app: tauri::AppHandle) -> Result<Vec<CollectionItem
                 rewatch_count: row.get(27)?,
                 added_at: row.get(28)?,
                 updated_at: row.get(29)?,
+                sites_to_view: serde_json::from_str(&sites_to_view)
+                    .unwrap_or(serde_json::Value::Array(vec![])),
+                tv_current_season: row.get(31)?,
+                tv_current_episode: row.get(32)?,
+                details_json: details_json
+                    .as_deref()
+                    .and_then(|s| serde_json::from_str(s).ok()),
             })
         })
         .map_err(|e| format!("list collection items query: {e}"))?;
@@ -1363,6 +1426,46 @@ pub fn upsert_collection_item(
         .map_err(|e| format!("serialize external_ids: {e}"))?;
     let custom_fields = serde_json::to_string(&item.custom_fields)
         .map_err(|e| format!("serialize custom_fields: {e}"))?;
+    let sites_to_view = item
+        .sites_to_view
+        .as_ref().map_or_else(|| "[]".to_string(), |v| serde_json::to_string(v).unwrap_or_else(|_| "[]".to_string()));
+    // Validate sitesToView: array of {url} max 3, each url length limited, block javascript:/data:
+    {
+        let parsed: serde_json::Value =
+            serde_json::from_str(&sites_to_view).unwrap_or(serde_json::Value::Array(vec![]));
+        if let Some(arr) = parsed.as_array() {
+            if arr.len() > 3 {
+                return Err("sitesToView exceeds 3 entries".into());
+            }
+            for entry in arr {
+                if let Some(url) = entry.get("url").and_then(|v| v.as_str()) {
+                    if url.len() > 2048 {
+                        return Err("sitesToView url too long".into());
+                    }
+                    let lower = url.to_lowercase();
+                    if lower.starts_with("javascript:") || lower.starts_with("data:") {
+                        return Err("sitesToView url scheme not allowed".into());
+                    }
+                }
+            }
+        }
+    }
+    let details_json = item
+        .details_json
+        .as_ref()
+        .map(|v| serde_json::to_string(v).unwrap_or_default());
+    // Validate tv progress: if one set, both must be set? Allow partial but warn.
+    // Basic range check.
+    if let Some(s) = item.tv_current_season {
+        if !(1..=100).contains(&s) {
+            return Err("tvCurrentSeason out of range".into());
+        }
+    }
+    if let Some(e) = item.tv_current_episode {
+        if !(1..=500).contains(&e) {
+            return Err("tvCurrentEpisode out of range".into());
+        }
+    }
     let connection = open_database(&app)?;
     connection
         .execute(
@@ -1371,10 +1474,11 @@ pub fn upsert_collection_item(
                 progress_unit, duration_minutes, rating, priority, is_favorite, year,
                 genres_json, studio, description, notes, cover_url, cover_blob_id,
                 thumb_blob_id, external_ids_json, custom_fields_json, local_path, local_kind,
-                started_at, finished_at, last_watched_at, rewatch_count, added_at, updated_at
+                started_at, finished_at, last_watched_at, rewatch_count, added_at, updated_at,
+                sites_to_view, tv_current_season, tv_current_episode, details_json
              ) VALUES (
                 ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17,
-                ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28, ?29, ?30
+                ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28, ?29, ?30, ?31, ?32, ?33, ?34
              )
              ON CONFLICT(id) DO UPDATE SET
                 title = excluded.title, alt_titles_json = excluded.alt_titles_json,
@@ -1390,15 +1494,18 @@ pub fn upsert_collection_item(
                 custom_fields_json = excluded.custom_fields_json, local_path = excluded.local_path,
                 local_kind = excluded.local_kind, started_at = excluded.started_at,
                 finished_at = excluded.finished_at, last_watched_at = excluded.last_watched_at,
-                rewatch_count = excluded.rewatch_count, updated_at = excluded.updated_at",
+                rewatch_count = excluded.rewatch_count, updated_at = excluded.updated_at,
+                sites_to_view = excluded.sites_to_view, tv_current_season = excluded.tv_current_season,
+                tv_current_episode = excluded.tv_current_episode, details_json = excluded.details_json",
             params![
                 item.id, item.title, alt_titles, item.r#type, item.status, item.progress_value,
                 item.progress_total, item.progress_unit, item.duration_minutes, item.rating,
-                item.priority, item.is_favorite as i64, item.year, genres, item.studio,
+                item.priority, i64::from(item.is_favorite), item.year, genres, item.studio,
                 item.description, item.notes, item.cover_url, item.cover_blob_id,
                 item.thumb_blob_id, external_ids, custom_fields, item.local_path,
                 item.local_kind, item.started_at, item.finished_at, item.last_watched_at,
-                item.rewatch_count, item.added_at, item.updated_at
+                item.rewatch_count, item.added_at, item.updated_at, sites_to_view,
+                item.tv_current_season, item.tv_current_episode, details_json
             ],
         )
         .map_err(|e| format!("upsert collection item: {e}"))?;
@@ -1408,149 +1515,10 @@ pub fn upsert_collection_item(
 #[tauri::command]
 pub fn delete_collection_item(app: tauri::AppHandle, id: String) -> Result<(), String> {
     let connection = open_database(&app)?;
-    // Orphan reviews: ON DELETE SET NULL on FK + flag orphaned + snapshot title.
-    let title: Option<String> = connection
-        .query_row(
-            "SELECT title FROM collection_items WHERE id = ?1",
-            params![&id],
-            |row| row.get(0),
-        )
-        .ok();
-    let tx = connection
-        .unchecked_transaction()
-        .map_err(|e| format!("delete item transaction: {e}"))?;
-    tx.execute(
-        "UPDATE collection_reviews SET orphaned = 1, snapshot_title = COALESCE(snapshot_title, ?2)
-         WHERE item_id = ?1",
-        params![&id, title],
-    )
-    .map_err(|e| format!("orphan reviews: {e}"))?;
-    tx.execute("DELETE FROM collection_items WHERE id = ?1", params![&id])
+    connection
+        .execute("DELETE FROM collection_items WHERE id = ?1", params![&id])
         .map_err(|e| format!("delete collection item: {e}"))?;
-    tx.commit()
-        .map_err(|e| format!("delete item commit: {e}"))?;
     Ok(())
-}
-
-#[tauri::command]
-pub fn upsert_collection_review(
-    app: tauri::AppHandle,
-    review: CollectionReviewInput,
-) -> Result<(), String> {
-    validate_collection_text(&review.id, 128, "id")?;
-    validate_collection_text(&review.comment, 8_000, "comment")?;
-    if !(1..=10).contains(&review.rating) {
-        return Err("Review rating must be between 1 and 10".into());
-    }
-    let connection = open_database(&app)?;
-    connection
-        .execute(
-            "INSERT INTO collection_reviews
-                (id, item_id, rating, comment, image_blob_id, created_at, updated_at, orphaned, snapshot_title)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
-             ON CONFLICT(id) DO UPDATE SET
-                item_id = excluded.item_id, rating = excluded.rating, comment = excluded.comment,
-                image_blob_id = excluded.image_blob_id, updated_at = excluded.updated_at,
-                orphaned = excluded.orphaned, snapshot_title = excluded.snapshot_title",
-            params![
-                review.id, review.item_id, review.rating, review.comment,
-                review.image_blob_id, review.created_at, review.updated_at,
-                review.orphaned as i64, review.snapshot_title
-            ],
-        )
-        .map_err(|e| format!("upsert review: {e}"))?;
-    Ok(())
-}
-
-#[tauri::command]
-pub fn list_collection_reviews(app: tauri::AppHandle) -> Result<Vec<CollectionReviewRow>, String> {
-    let connection = open_database(&app)?;
-    let mut statement = connection
-        .prepare(
-            "SELECT id, item_id, rating, comment, image_blob_id, created_at, updated_at, orphaned, snapshot_title
-             FROM collection_reviews ORDER BY created_at DESC",
-        )
-        .map_err(|e| format!("list reviews: {e}"))?;
-    let rows = statement
-        .query_map([], |row| {
-            Ok(CollectionReviewRow {
-                id: row.get(0)?,
-                item_id: row.get(1)?,
-                rating: row.get(2)?,
-                comment: row.get(3)?,
-                image_blob_id: row.get(4)?,
-                created_at: row.get(5)?,
-                updated_at: row.get(6)?,
-                orphaned: row.get::<_, i64>(7)? != 0,
-                snapshot_title: row.get(8)?,
-            })
-        })
-        .map_err(|e| format!("list reviews query: {e}"))?;
-    rows.collect::<Result<Vec<_>, _>>()
-        .map_err(|e| format!("read reviews: {e}"))
-}
-
-#[tauri::command]
-pub fn delete_collection_review(app: tauri::AppHandle, id: String) -> Result<(), String> {
-    let connection = open_database(&app)?;
-    connection
-        .execute("DELETE FROM collection_reviews WHERE id = ?1", params![id])
-        .map_err(|e| format!("delete review: {e}"))?;
-    Ok(())
-}
-
-#[tauri::command]
-pub fn append_collection_event(
-    app: tauri::AppHandle,
-    event: CollectionEventInput,
-) -> Result<(), String> {
-    validate_collection_text(&event.id, 128, "id")?;
-    validate_collection_text(&event.kind, 64, "kind")?;
-    let connection = open_database(&app)?;
-    connection
-        .execute(
-            "INSERT INTO collection_events (id, item_id, kind, from_value, to_value, at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-            params![
-                event.id,
-                event.item_id,
-                event.kind,
-                event.from_value,
-                event.to_value,
-                event.at
-            ],
-        )
-        .map_err(|e| format!("append event: {e}"))?;
-    Ok(())
-}
-
-#[tauri::command]
-pub fn list_collection_events(
-    app: tauri::AppHandle,
-    limit: Option<u32>,
-) -> Result<Vec<CollectionEventRow>, String> {
-    let limit = limit.unwrap_or(500).clamp(1, 5_000);
-    let connection = open_database(&app)?;
-    let mut statement = connection
-        .prepare(
-            "SELECT id, item_id, kind, from_value, to_value, at
-             FROM collection_events ORDER BY at DESC LIMIT ?1",
-        )
-        .map_err(|e| format!("list events: {e}"))?;
-    let rows = statement
-        .query_map(params![limit], |row| {
-            Ok(CollectionEventRow {
-                id: row.get(0)?,
-                item_id: row.get(1)?,
-                kind: row.get(2)?,
-                from_value: row.get(3)?,
-                to_value: row.get(4)?,
-                at: row.get(5)?,
-            })
-        })
-        .map_err(|e| format!("list events query: {e}"))?;
-    rows.collect::<Result<Vec<_>, _>>()
-        .map_err(|e| format!("read events: {e}"))
 }
 
 #[tauri::command]
@@ -1619,13 +1587,77 @@ pub fn delete_custom_field_def(app: tauri::AppHandle, id: String) -> Result<(), 
 }
 
 #[tauri::command]
+pub fn list_release_subscriptions(app: tauri::AppHandle) -> Result<Vec<ReleaseSubscriptionRow>, String> {
+    let connection = open_database(&app)?;
+    let mut statement = connection
+        .prepare(
+            "SELECT id, media_id, media_type, title, last_checked_at, next_airing_at, created_at
+             FROM release_subscriptions ORDER BY created_at DESC",
+        )
+        .map_err(|e| format!("list release subscriptions: {e}"))?;
+    let rows = statement
+        .query_map([], |row| {
+            Ok(ReleaseSubscriptionRow {
+                id: row.get(0)?,
+                media_id: row.get(1)?,
+                media_type: row.get(2)?,
+                title: row.get(3)?,
+                last_checked_at: row.get(4)?,
+                next_airing_at: row.get(5)?,
+                created_at: row.get(6)?,
+            })
+        })
+        .map_err(|e| format!("list release subscriptions query: {e}"))?;
+    rows.collect::<Result<Vec<_>, _>>()
+        .map_err(|e| format!("read release subscriptions: {e}"))
+}
+
+#[tauri::command]
+pub fn upsert_release_subscription(
+    app: tauri::AppHandle,
+    sub: ReleaseSubscriptionRow,
+) -> Result<(), String> {
+    validate_collection_text(&sub.id, 128, "id")?;
+    validate_collection_text(&sub.title, 512, "title")?;
+    if !matches!(sub.media_type.as_str(), "movie" | "tv") {
+        return Err("mediaType must be movie or tv".into());
+    }
+    let connection = open_database(&app)?;
+    connection
+        .execute(
+            "INSERT INTO release_subscriptions
+                (id, media_id, media_type, title, last_checked_at, next_airing_at, created_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+             ON CONFLICT(id) DO UPDATE SET
+                media_id = excluded.media_id, media_type = excluded.media_type,
+                title = excluded.title, last_checked_at = excluded.last_checked_at,
+                next_airing_at = excluded.next_airing_at",
+            params![
+                sub.id, sub.media_id, sub.media_type, sub.title,
+                sub.last_checked_at, sub.next_airing_at, sub.created_at
+            ],
+        )
+        .map_err(|e| format!("upsert release subscription: {e}"))?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn delete_release_subscription(app: tauri::AppHandle, id: String) -> Result<(), String> {
+    let connection = open_database(&app)?;
+    connection
+        .execute("DELETE FROM release_subscriptions WHERE id = ?1", params![id])
+        .map_err(|e| format!("delete release subscription: {e}"))?;
+    Ok(())
+}
+
+#[tauri::command]
 pub fn search_collection_items(
     app: tauri::AppHandle,
     query: String,
     limit: Option<u32>,
 ) -> Result<Vec<CollectionItemRow>, String> {
     let normalized = normalize_index_text(&query);
-    let limit = limit.unwrap_or(50).clamp(1, 500) as i64;
+    let limit = i64::from(limit.unwrap_or(50).clamp(1, 500));
     let connection = open_database(&app)?;
     if normalized.chars().count() >= 3 {
         let match_query = build_fts_match_query(&normalized);
@@ -1637,7 +1669,7 @@ pub fn search_collection_items(
                         ci.description, ci.notes, ci.cover_url, ci.cover_blob_id, ci.thumb_blob_id,
                         ci.external_ids_json, ci.custom_fields_json, ci.local_path, ci.local_kind,
                         ci.started_at, ci.finished_at, ci.last_watched_at, ci.rewatch_count,
-                        ci.added_at, ci.updated_at
+                        ci.added_at, ci.updated_at, ci.sites_to_view, ci.tv_current_season, ci.tv_current_episode, ci.details_json
                  FROM collection_items_fts
                  JOIN collection_items ci ON ci.rowid = collection_items_fts.rowid
                  WHERE collection_items_fts MATCH ?1
@@ -1651,6 +1683,8 @@ pub fn search_collection_items(
                 let genres: String = row.get(13)?;
                 let external_ids: String = row.get(20)?;
                 let custom_fields: String = row.get(21)?;
+                let sites_to_view: String = row.get(30).unwrap_or_else(|_| "[]".to_string());
+                let details_json: Option<String> = row.get(33).ok().flatten();
                 Ok(CollectionItemRow {
                     id: row.get(0)?,
                     title: row.get(1)?,
@@ -1686,6 +1720,13 @@ pub fn search_collection_items(
                     rewatch_count: row.get(27)?,
                     added_at: row.get(28)?,
                     updated_at: row.get(29)?,
+                    sites_to_view: serde_json::from_str(&sites_to_view)
+                        .unwrap_or(serde_json::Value::Array(vec![])),
+                    tv_current_season: row.get(31)?,
+                    tv_current_episode: row.get(32)?,
+                    details_json: details_json
+                        .as_deref()
+                        .and_then(|s| serde_json::from_str(s).ok()),
                 })
             })
             .map_err(|e| format!("search collection items query: {e}"))?;
@@ -1701,7 +1742,7 @@ pub fn search_collection_items(
                     genres_json, studio, description, notes, cover_url, cover_blob_id,
                     thumb_blob_id, external_ids_json, custom_fields_json, local_path,
                     local_kind, started_at, finished_at, last_watched_at, rewatch_count,
-                    added_at, updated_at
+                    added_at, updated_at, sites_to_view, tv_current_season, tv_current_episode, details_json
              FROM collection_items
              WHERE title LIKE ?1 COLLATE NOCASE OR alt_titles_json LIKE ?1 COLLATE NOCASE
              ORDER BY updated_at DESC LIMIT ?2",
@@ -1713,6 +1754,8 @@ pub fn search_collection_items(
             let genres: String = row.get(13)?;
             let external_ids: String = row.get(20)?;
             let custom_fields: String = row.get(21)?;
+            let sites_to_view: String = row.get(30).unwrap_or_else(|_| "[]".to_string());
+            let details_json: Option<String> = row.get(33).ok().flatten();
             Ok(CollectionItemRow {
                 id: row.get(0)?,
                 title: row.get(1)?,
@@ -1747,6 +1790,13 @@ pub fn search_collection_items(
                 rewatch_count: row.get(27)?,
                 added_at: row.get(28)?,
                 updated_at: row.get(29)?,
+                sites_to_view: serde_json::from_str(&sites_to_view)
+                    .unwrap_or(serde_json::Value::Array(vec![])),
+                tv_current_season: row.get(31)?,
+                tv_current_episode: row.get(32)?,
+                details_json: details_json
+                    .as_deref()
+                    .and_then(|s| serde_json::from_str(s).ok()),
             })
         })
         .map_err(|e| format!("search collection items like query: {e}"))?;
@@ -1754,54 +1804,24 @@ pub fn search_collection_items(
         .map_err(|e| format!("read search collection items like: {e}"))
 }
 
-// ===== Export / Import =====
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CollectionExport {
     pub version: u32,
     pub exported_at: i64,
     pub items: Vec<CollectionItemRow>,
-    pub reviews: Vec<CollectionReviewRow>,
-    pub events: Vec<CollectionEventRow>,
     pub custom_field_defs: Vec<CustomFieldDefRow>,
 }
 
 #[tauri::command]
 pub fn export_collection_data(app: tauri::AppHandle) -> Result<CollectionExport, String> {
-    let connection = open_database(&app)?;
     // Items
     let items = list_collection_items(app.clone())?;
-    // Reviews
-    let reviews = list_collection_reviews(app.clone())?;
-    // Events
-    let mut stmt = connection
-        .prepare(
-            "SELECT id, item_id, kind, from_value, to_value, at FROM collection_events ORDER BY at",
-        )
-        .map_err(|e| format!("export events: {e}"))?;
-    let events: Vec<CollectionEventRow> = stmt
-        .query_map([], |row| {
-            Ok(CollectionEventRow {
-                id: row.get(0)?,
-                item_id: row.get(1)?,
-                kind: row.get(2)?,
-                from_value: row.get(3)?,
-                to_value: row.get(4)?,
-                at: row.get(5)?,
-            })
-        })
-        .map_err(|e| format!("export events query: {e}"))?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| format!("export events rows: {e}"))?;
-    // Field defs
     let custom_field_defs = list_custom_field_defs(app)?;
     Ok(CollectionExport {
         version: 1,
         exported_at: now_seconds(),
         items,
-        reviews,
-        events,
         custom_field_defs,
     })
 }
@@ -1828,13 +1848,12 @@ pub fn import_collection_data(
         // Duplicate detection: by external_ids (anilist/tmdb) or title+year.
         let external_ids = serde_json::from_str::<serde_json::Value>(
             &serde_json::to_string(&item.external_ids)
-                .unwrap_or_default()
-                .to_string(),
+                .unwrap_or_default().clone(),
         )
         .unwrap_or_default();
         let existing: Option<String> = {
-            let anilist = external_ids.get("anilist").and_then(|v| v.as_i64());
-            let tmdb = external_ids.get("tmdb").and_then(|v| v.as_i64());
+            let anilist = external_ids.get("anilist").and_then(serde_json::Value::as_i64);
+            let tmdb = external_ids.get("tmdb").and_then(serde_json::Value::as_i64);
             let mut query = String::from("SELECT id FROM collection_items WHERE ");
             let mut params_vec: Vec<Box<dyn rusqlite::ToSql>> = vec![];
             if let Some(al) = anilist {
@@ -1849,7 +1868,7 @@ pub fn import_collection_data(
                 params_vec.push(Box::new(item.year));
             }
             let params_refs: Vec<&dyn rusqlite::ToSql> =
-                params_vec.iter().map(|p| p.as_ref()).collect();
+                params_vec.iter().map(std::convert::AsRef::as_ref).collect();
             connection
                 .query_row(&query, params_refs.as_slice(), |row| {
                     row.get::<_, String>(0)
@@ -1894,6 +1913,10 @@ pub fn import_collection_data(
                         rewatch_count: item.rewatch_count,
                         added_at: item.added_at,
                         updated_at: item.updated_at,
+                        sites_to_view: Some(item.sites_to_view.clone()),
+                        tv_current_season: item.tv_current_season,
+                        tv_current_episode: item.tv_current_episode,
+                        details_json: item.details_json.clone(),
                     },
                 )?;
                 summary.overwritten += 1;
@@ -1934,6 +1957,10 @@ pub fn import_collection_data(
                         rewatch_count: item.rewatch_count,
                         added_at: item.added_at,
                         updated_at: item.updated_at,
+                        sites_to_view: Some(item.sites_to_view.clone()),
+                        tv_current_season: item.tv_current_season,
+                        tv_current_episode: item.tv_current_episode,
+                        details_json: item.details_json.clone(),
                     },
                 )?;
                 summary.created += 1;
@@ -1962,8 +1989,6 @@ pub struct ImportSummary {
     pub overwritten: usize,
     pub created: usize,
 }
-
-// ===== ZIP export with embedded covers =====
 
 #[tauri::command]
 pub async fn export_collection_zip(app: tauri::AppHandle, out_path: String) -> Result<(), String> {
@@ -2078,18 +2103,27 @@ mod tests {
         initialize_schema(&connection).expect("schema migration");
         let table_count: i64 = connection
             .query_row(
-                "            SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name IN ('cache_entries', 'media_records', 'release_analysis', 'anime_statistics', 'unified_index', 'collection_items', 'collection_reviews', 'collection_events', 'custom_field_defs')",
+                "            SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name IN ('cache_entries', 'unified_index', 'collection_items', 'custom_field_defs')",
                 [],
                 |row| row.get(0),
             )
             .expect("table count");
-        assert_eq!(table_count, 9);
+        assert_eq!(table_count, 4);
+        let vault_gone: i64 = connection
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'media_records'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("vault table gone");
+        assert_eq!(vault_gone, 0);
     }
 
     #[test]
     fn unified_index_normalizes_and_orders_entries() {
         assert_eq!(normalize_index_text("  Frieren   S02  "), "frieren s02");
-        assert_eq!(normalize_index_text("ЖЁсткий  Тест"), "жёсткий тест");
+        // NFKD + strip marks: Ё -> Е, й -> и (matches TS normalizeSearchText)
+        assert_eq!(normalize_index_text("ЖЁсткий  Тест"), "жесткии тест");
     }
 
     #[test]
@@ -2112,42 +2146,17 @@ mod tests {
     }
 
     #[test]
-    fn media_records_are_upsertable_with_normalized_json() {
+    fn media_records_table_is_dropped() {
         let connection = Connection::open_in_memory().expect("in-memory database");
         initialize_schema(&connection).expect("schema migration");
-        let identity = serde_json::json!({
-            "title": "Frieren",
-            "season": 1,
-            "episode": 4,
-            "quality": "1080p",
-            "codec": "hevc",
-            "subtitleLikely": true,
-        });
-        connection
-            .execute(
-                "INSERT INTO media_records (path, identity_json, metadata_json, scanned_at)
-                 VALUES (?1, ?2, ?3, ?4)
-                 ON CONFLICT(path) DO UPDATE SET identity_json = excluded.identity_json",
-                params!["/anime/frieren.mkv", identity.to_string(), "{}", 1_i64],
-            )
-            .expect("insert record");
-        connection
-            .execute(
-                "INSERT INTO media_records (path, identity_json, metadata_json, scanned_at)
-                 VALUES (?1, ?2, ?3, ?4)
-                 ON CONFLICT(path) DO UPDATE SET identity_json = excluded.identity_json",
-                params!["/anime/frieren.mkv", "{\"episode\":5}", "{}", 2_i64],
-            )
-            .expect("upsert record");
-        let (count, episode): (i64, i64) = connection
+        let count: i64 = connection
             .query_row(
-                "SELECT COUNT(*), json_extract(identity_json, '$.episode') FROM media_records",
+                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'media_records'",
                 [],
-                |row| Ok((row.get(0)?, row.get(1)?)),
+                |row| row.get(0),
             )
-            .expect("read record");
-        assert_eq!(count, 1);
-        assert_eq!(episode, 5);
+            .expect("read vault gone");
+        assert_eq!(count, 0);
     }
 
     #[test]

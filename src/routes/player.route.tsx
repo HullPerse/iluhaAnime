@@ -1,51 +1,27 @@
-import {
-  DndContext,
-  DragOverlay,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from "@dnd-kit/core";
+import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
 import { useQueryClient } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
 import { EyeOff, FolderOpen, Search, X } from "lucide-react";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  useDeferredValue,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { InlineAutocompleteInput } from "@/components/shared/autocomplete.component";
 import { ConfirmDialog } from "@/components/shared/confirm.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
+import { useAutocomplete } from "@/hooks/autocomplete.hook";
 import { useDebounce } from "@/hooks/debounce.hook";
-import { useSugggestions } from "@/hooks/suggestion.hook";
-import { parseVaultFilename } from "@/lib/anime.vault";
 import { useI18n } from "@/lib/i18n";
 import { buildTree, filterTreeByPaths } from "@/lib/player.utils";
 import { filterTreeByHiddenPaths } from "@/lib/player.visibility";
-import {
-  getInlineCompletion,
-  getSearchSuggestions,
-} from "@/lib/search.suggestions";
 import { useCacheStore } from "@/store/cache.store";
 import { useCategoryStore } from "@/store/category.store";
 import { useTorrentStore } from "@/store/download.store";
 import { useSearchStore } from "@/store/search.store";
 import { useSettingsStore } from "@/store/settings.store";
-import type {
-  FolderNode,
-  VideoFileEntry,
-  FFMPEGStatus,
-  ScanType,
-  FileSearchResult,
-} from "@/types";
+import type { FolderNode, VideoFileEntry, FFMPEGStatus, ScanType, FileSearchResult } from "@/types";
 
 import CategoryView from "./components/player/category.player";
 import {
@@ -96,21 +72,15 @@ function PlayerRoute() {
   const suggestionStats = useSearchStore((state) => state.suggestionStats);
   const animeProfileId = useSearchStore((state) => state.animeProfileId);
   const recordSuggestion = useSearchStore((state) => state.recordSuggestion);
-  const recordSuggestionIgnored = useSearchStore(
-    (state) => state.recordSuggestionIgnored
-  );
+  const recordSuggestionIgnored = useSearchStore((state) => state.recordSuggestionIgnored);
   const [torrentLoading, setTorrentLoading] = useState<Set<number>>(new Set());
   const fetchingRef = useRef<Set<number>>(new Set());
   const scannedPathsRef = useRef<string[] | null>(null);
 
-  const [pendingDeleteCategory, setPendingDeleteCategory] = useState<
-    string | null
-  >(null);
+  const [pendingDeleteCategory, setPendingDeleteCategory] = useState<string | null>(null);
   const [activeDrag, setActiveDrag] = useState<{ name: string } | null>(null);
   const [showHiddenItems, setShowHiddenItems] = useState(false);
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
-  );
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
   const [searchResults, setSearchResults] = useState<FileSearchResult[]>([]);
   const [, setSearching] = useState(false);
   const debouncedSearch = useDebounce(search.trim(), 300);
@@ -170,37 +140,16 @@ function PlayerRoute() {
     [folderTrees, hiddenPlayerFolders]
   );
 
-  const deferredSearch = useDeferredValue(search);
-  const backendSuggestions = useSugggestions(deferredSearch, "player", 8);
-  const suggestions = useMemo(
-    () =>
-      getSearchSuggestions(deferredSearch, {
-        animeEnabled: animeProfileId !== null,
-        backendSuggestions,
-        extraValues: searchResults.map((result) => ({
-          kind: "local" as const,
-          value: result.name,
-        })),
-        history: searchHistory,
-        queryStats,
-        scope: "player",
-        suggestionStats,
-        limit: 8,
-      }),
-    [
-      animeProfileId,
-      backendSuggestions,
-      queryStats,
-      deferredSearch,
-      searchHistory,
-      searchResults,
-      suggestionStats,
-    ]
-  );
-  const inlineCompletion = useMemo(
-    () => getInlineCompletion(deferredSearch, suggestions),
-    [deferredSearch, suggestions]
-  );
+  const { suggestions, inlineCompletion } = useAutocomplete({
+    query: search,
+    scope: "player",
+    history: searchHistory,
+    queryStats,
+    suggestionStats,
+    animeIndex: undefined,
+    animeProfileId,
+    extraValues: searchResults.map((result) => ({ kind: "local" as const, value: result.name })),
+  });
 
   const displayTrees = useMemo(() => {
     let trees = visibleFolderTrees;
@@ -216,9 +165,7 @@ function PlayerRoute() {
   const filteredTorrents = useMemo(
     () =>
       torrents.filter(
-        (t) =>
-          !categorizedHashes.has(t.info_hash) &&
-          !hiddenPlayerTorrents.includes(t.info_hash)
+        (t) => !categorizedHashes.has(t.info_hash) && !hiddenPlayerTorrents.includes(t.info_hash)
       ),
     [torrents, categorizedHashes, hiddenPlayerTorrents]
   );
@@ -237,8 +184,7 @@ function PlayerRoute() {
     folderTrees.forEach(visit);
     return hiddenPlayerFolders.map((path) => ({
       path,
-      name:
-        names.get(path) ?? path.split(/[\\/]/).filter(Boolean).pop() ?? path,
+      name: names.get(path) ?? path.split(/[\\/]/).filter(Boolean).pop() ?? path,
     }));
   }, [folderTrees, hiddenPlayerFolders]);
 
@@ -246,9 +192,7 @@ function PlayerRoute() {
     () =>
       hiddenPlayerTorrents.map((infoHash) => ({
         infoHash,
-        name:
-          torrents.find((torrent) => torrent.info_hash === infoHash)?.name ??
-          infoHash,
+        name: torrents.find((torrent) => torrent.info_hash === infoHash)?.name ?? infoHash,
       })),
     [hiddenPlayerTorrents, torrents]
   );
@@ -309,28 +253,7 @@ function PlayerRoute() {
   );
 
   const persistMediaRecords = useCallback(
-    async (entries: VideoFileEntry[], scopes: string[]) => {
-      if (scopes.length === 0) return;
-      const records = entries.map((entry) => {
-        const parsed = parseVaultFilename(entry.name);
-        return {
-          path: entry.path,
-          name: entry.name,
-          size: entry.size,
-          title: parsed.title,
-          season: parsed.season,
-          episode: parsed.episode,
-          quality: parsed.quality,
-          codec: parsed.codec,
-          subtitleLikely: /(?:\bsub(?:s|title)?\b|\beng\b|\bru\b)/iu.test(
-            entry.name
-          ),
-        };
-      });
-      await invoke("save_vault_media_records", { records, scopes }).catch(
-        () => {}
-      );
-    },
+    async (_entries: VideoFileEntry[], _scopes: string[]) => {},
     []
   );
 
@@ -388,9 +311,7 @@ function PlayerRoute() {
       await rebuildIndex(savedFolderPaths);
       await persistMediaRecords(indexedEntries, scannedScopes);
       if (cancelled) return;
-      useCacheStore
-        .getState()
-        .setFolderTrees(trees.map((t) => ({ path: t.path, tree: t })));
+      useCacheStore.getState().setFolderTrees(trees.map((t) => ({ path: t.path, tree: t })));
     })();
 
     return () => {
@@ -416,10 +337,10 @@ function PlayerRoute() {
       (async () => {
         for (const path of changed) {
           try {
-            const entries = await invoke<VideoFileEntry[]>(
-              "scan_video_folder",
-              { path, extensions: videoExtensions }
-            );
+            const entries = await invoke<VideoFileEntry[]>("scan_video_folder", {
+              path,
+              extensions: videoExtensions,
+            });
             if (!disposed) {
               await invoke("refresh_file_index", {
                 paths: [path],
@@ -431,9 +352,7 @@ function PlayerRoute() {
                 if (entries?.length) next.push(buildTree(entries, path));
                 useCacheStore
                   .getState()
-                  .setFolderTrees(
-                    next.map((tree) => ({ path: tree.path, tree }))
-                  );
+                  .setFolderTrees(next.map((tree) => ({ path: tree.path, tree })));
                 return next;
               });
             }
@@ -485,9 +404,7 @@ function PlayerRoute() {
       patch({ savedFolderPaths: next.map((t) => t.path) });
       rebuildIndex(next.map((t) => t.path));
       persistMediaRecords(entries, [folder]);
-      useCacheStore
-        .getState()
-        .setFolderTrees(next.map((t) => ({ path: t.path, tree: t })));
+      useCacheStore.getState().setFolderTrees(next.map((t) => ({ path: t.path, tree: t })));
     } catch {
     } finally {
       const unlisten = await unlistenPromise.catch(() => {});
@@ -503,9 +420,7 @@ function PlayerRoute() {
         const next = prev.filter((t) => t.path !== path);
         patch({ savedFolderPaths: next.map((t) => t.path) });
         rebuildIndex(next.map((t) => t.path));
-        useCacheStore
-          .getState()
-          .setFolderTrees(next.map((t) => ({ path: t.path, tree: t })));
+        useCacheStore.getState().setFolderTrees(next.map((t) => ({ path: t.path, tree: t })));
         return next;
       });
     },
@@ -526,7 +441,7 @@ function PlayerRoute() {
   const removeCategory = useCategoryStore((s) => s.removeCategory);
 
   const handleCreateCategory = useCallback(() => {
-    addCategory(t("player.route.newCategory"));
+    addCategory(t("player.route.new.category"));
   }, [addCategory, t]);
 
   const handleRemoveCategory = useCallback((id: string) => {
@@ -546,9 +461,7 @@ function PlayerRoute() {
     <DndContext
       sensors={sensors}
       onDragStart={(event: DragStartEvent) => {
-        const data = event.active.data.current as
-          | Partial<CategoryDragData>
-          | undefined;
+        const data = event.active.data.current as Partial<CategoryDragData> | undefined;
         setActiveDrag(data?.name ? { name: data.name } : null);
       }}
       onDragEnd={handleDragEnd}
@@ -557,20 +470,12 @@ function PlayerRoute() {
       <main className="flex h-full w-full flex-col gap-1 overflow-y-auto">
         <section className="ui-toolbar ui-panel w-full">
           <Button onClick={handleOpenFolder}>
-            <ImageComponent
-              src="/images/w2k_folder_closed.ico"
-              alt=""
-              className="size-4"
-            />
-            {t("player.route.addFolder")}
+            <ImageComponent src="/images/w2k_folder_closed.ico" alt="" className="size-4" />
+            {t("player.route.add.folder")}
           </Button>{" "}
           <Button onClick={handleCreateCategory}>
-            <ImageComponent
-              src="/images/w2k_folder_closed.ico"
-              alt=""
-              className="size-4"
-            />
-            {t("player.route.createCategory")}
+            <ImageComponent src="/images/w2k_folder_closed.ico" alt="" className="size-4" />
+            {t("player.route.create.category")}
           </Button>
           <Button
             size="icon"
@@ -593,7 +498,7 @@ function PlayerRoute() {
               <Search className="text-hint size-4" />
               <InlineAutocompleteInput
                 className="font-bold"
-                placeholder={t("player.route.searchFolders")}
+                placeholder={t("player.route.search.folders")}
                 value={search}
                 completion={inlineCompletion}
                 suggestions={suggestions}
@@ -604,16 +509,11 @@ function PlayerRoute() {
                   setSearch(value);
                 }}
                 onDismissCompletion={() => {
-                  if (inlineCompletion)
-                    recordSuggestionIgnored(inlineCompletion);
+                  if (inlineCompletion) recordSuggestionIgnored(inlineCompletion);
                 }}
               />
               {search && (
-                <Button
-                  size="icon"
-                  className="h-5 w-5"
-                  onClick={() => setSearch("")}
-                >
+                <Button size="icon" className="h-5 w-5" onClick={() => setSearch("")}>
                   <X />
                 </Button>
               )}
@@ -665,12 +565,8 @@ function PlayerRoute() {
           categories.length === 0 && (
             <section className="ui-empty-state flex-col">
               <FolderOpen className="size-8" />
-              <span className="windows95-text">
-                {t("player.route.libraryEmpty")}
-              </span>
-              <span className="windows95-text text-xs">
-                {t("player.route.addFolderHint")}
-              </span>
+              <span className="windows95-text">{t("player.route.library.empty")}</span>
+              <span className="windows95-text text-xs">{t("player.route.add.folder.hint")}</span>
             </section>
           )}
 
@@ -690,8 +586,8 @@ function PlayerRoute() {
         {pendingDeleteCategory && (
           <ConfirmDialog
             open
-            title={t("player.route.deleteCategoryTitle")}
-            message={t("player.route.deleteCategoryMessage")}
+            title={t("player.route.delete.category.title")}
+            message={t("player.route.delete.category.message")}
             confirmLabel={t("common.delete")}
             variant="destructive"
             onConfirm={() => {
@@ -704,9 +600,7 @@ function PlayerRoute() {
         )}
       </main>
 
-      <DragOverlay>
-        {activeDrag ? <DragOverlayItem name={activeDrag.name} /> : null}
-      </DragOverlay>
+      <DragOverlay>{activeDrag ? <DragOverlayItem name={activeDrag.name} /> : null}</DragOverlay>
 
       {showHiddenItems && (
         <PlayerVisibilityModal

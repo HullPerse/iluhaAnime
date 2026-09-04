@@ -66,9 +66,7 @@ describe("useSettingsStore hidden player items", () => {
     useSettingsStore.setState({ hiddenPlayerFolders: [] });
     useSettingsStore.getState().hidePlayerFolder("C:\\Anime\\Season 1");
     useSettingsStore.getState().hidePlayerFolder("c:/anime/season 1/");
-    expect(useSettingsStore.getState().hiddenPlayerFolders).toEqual([
-      "C:\\Anime\\Season 1",
-    ]);
+    expect(useSettingsStore.getState().hiddenPlayerFolders).toEqual(["C:\\Anime\\Season 1"]);
 
     useSettingsStore.getState().unhidePlayerFolder("c:/anime/season 1");
     expect(useSettingsStore.getState().hiddenPlayerFolders).toEqual([]);
@@ -78,9 +76,7 @@ describe("useSettingsStore hidden player items", () => {
     useSettingsStore.setState({ hiddenPlayerTorrents: [] });
     useSettingsStore.getState().hidePlayerTorrent("ABC123");
     useSettingsStore.getState().hidePlayerTorrent("ABC123");
-    expect(useSettingsStore.getState().hiddenPlayerTorrents).toEqual([
-      "ABC123",
-    ]);
+    expect(useSettingsStore.getState().hiddenPlayerTorrents).toEqual(["ABC123"]);
     useSettingsStore.getState().unhidePlayerTorrent("ABC123");
     expect(useSettingsStore.getState().hiddenPlayerTorrents).toEqual([]);
   });

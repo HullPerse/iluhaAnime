@@ -971,6 +971,7 @@ pub async fn search_anilist(
                 ) {
                     id
                     title { romaji english native }
+                    synonyms
                     episodes
                     duration
                     status
@@ -1001,6 +1002,7 @@ pub async fn search_anilist_by_tag(tag: String) -> Result<Vec<AniMedia>, String>
                     media(type: ANIME, tag_in: [$tag]) {
                         id
                         title { romaji english native }
+                        synonyms
                         episodes, duration, status, averageScore
                         genres, tags { name }
                         description(asHtml: false)
@@ -1029,6 +1031,7 @@ pub async fn search_anilist_by_genre(genre: String) -> Result<Vec<AniMedia>, Str
                     media(type: ANIME, genre_in: [$genre]) {
                         id
                         title { romaji english native }
+                        synonyms
                         episodes, duration, status, averageScore
                         genres, tags { name }
                         description(asHtml: false)
@@ -1057,6 +1060,7 @@ pub async fn search_anilist_by_studio(studio_id: u64) -> Result<Vec<AniMedia>, S
                         nodes {
                             id
                             title { romaji english native }
+                            synonyms
                             episodes, duration, status, averageScore
                             genres, tags { name }
                             description (asHtml: false)

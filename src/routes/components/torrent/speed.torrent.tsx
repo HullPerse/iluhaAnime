@@ -63,9 +63,7 @@ export default function SpeedLimitForm({
         size="icon"
         className="windows95-text size-6"
         onClick={onApply}
-        disabled={
-          effective(dlInput) === dlLimit && effective(ulInput) === ulLimit
-        }
+        disabled={effective(dlInput) === dlLimit && effective(ulInput) === ulLimit}
       >
         <Check className="size-4" />
       </Button>

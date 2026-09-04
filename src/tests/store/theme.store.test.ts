@@ -103,18 +103,14 @@ describe("parseRetroismTheme", () => {
   });
 
   it("generates a name when missing", () => {
-    const theme = parseRetroismTheme(
-      JSON.stringify({ base: "#222222", primary: "#c0c0c0" })
-    );
+    const theme = parseRetroismTheme(JSON.stringify({ base: "#222222", primary: "#c0c0c0" }));
     expect(theme!.name).toMatch(/^custom-/);
   });
 });
 
 describe("themeToJson", () => {
   it("serializes a theme to readable JSON", () => {
-    const theme = parseRetroismTheme(
-      JSON.stringify({ base: "#222222", label: "T", name: "t" })
-    )!;
+    const theme = parseRetroismTheme(JSON.stringify({ base: "#222222", label: "T", name: "t" }))!;
     const json = themeToJson(theme);
     const parsed = JSON.parse(json);
     expect(parsed.name).toBe("t");
@@ -136,16 +132,8 @@ describe("useThemeStore", () => {
       })
     )!;
     applyTheme("custom", [theme]);
-    expect(setProperty).toHaveBeenCalledWith(
-      "--color-autocomplete",
-      "#00ff41",
-      "important"
-    );
-    expect(setProperty).toHaveBeenCalledWith(
-      "--autocomplete-opacity",
-      "0.35",
-      "important"
-    );
+    expect(setProperty).toHaveBeenCalledWith("--color-autocomplete", "#00ff41", "important");
+    expect(setProperty).toHaveBeenCalledWith("--autocomplete-opacity", "0.35", "important");
   });
 
   it("starts with the default win95 theme", () => {

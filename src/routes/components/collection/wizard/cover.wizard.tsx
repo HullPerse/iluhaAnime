@@ -1,16 +1,39 @@
 import { invoke } from "@tauri-apps/api/core";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { ImagePlus } from "lucide-react";
-import { useState } from "react";
+import { memo, useState } from "react";
 
 import { InputDialog } from "@/components/shared/prompt.component";
 import { Button } from "@/components/ui/button.component";
+import { WIZARD_COVER_MAX } from "@/config/collection.config";
 import { generatePlaceholder } from "@/lib/collection.utils";
 import { useI18n } from "@/lib/i18n";
 import { showError } from "@/lib/notification.utils";
 import type { UserImage } from "@/types";
 
-export function WizardCoverPanel({
+function CoverThumb({
+  url,
+  selected,
+  onPick,
+}: {
+  url: string;
+  selected: boolean;
+  onPick: (url: string) => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onPick(url)}
+      className={`windows95-border h-16 w-12 shrink-0 overflow-hidden ${selected ? "outline-secondary outline-2" : ""}`}
+    >
+      <img src={url} alt="" loading="lazy" className="h-full w-full object-cover" />
+    </button>
+  );
+}
+
+const MemoCoverThumb = memo(CoverThumb);
+
+export function WizardCoverPanelCollection({
   coverOptions,
   coverUrl,
   setCoverUrl,
@@ -28,22 +51,14 @@ export function WizardCoverPanel({
   const { t } = useI18n();
   const [pastingUrl, setPastingUrl] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const pasteUrl = () => setPastingUrl(true);
+
   const uploadLocal = async () => {
     if (!onUploadLocal) return;
-    const selectedPath = await openDialog({
-      directory: false,
-      multiple: false,
-      filters: [
-        { name: "Image", extensions: ["png", "jpg", "jpeg", "gif", "webp"] },
-      ],
-    });
+    const selectedPath = await openDialog({ multiple: false, directory: false });
     if (!selectedPath || Array.isArray(selectedPath)) return;
     setUploading(true);
     try {
-      const image = await invoke<UserImage>("import_user_image", {
-        path: selectedPath,
-      });
+      const image = await invoke<UserImage>("import_user_image", { path: selectedPath });
       onUploadLocal(image.id, image.dataUrl);
     } catch {
       showError(t("common.error"), t("collection.wizard.uploadError"));
@@ -51,10 +66,9 @@ export function WizardCoverPanel({
       setUploading(false);
     }
   };
+
   const usePlaceholder = () => {
-    const data = generatePlaceholder(
-      title || t("collection.wizard.placeholderCover")
-    );
+    const data = generatePlaceholder(title || t("collection.wizard.placeholderCover"));
     setCoverUrl(data);
     setCoverOptions((prev) => [data, ...prev]);
   };
@@ -65,36 +79,14 @@ export function WizardCoverPanel({
         <span className="text-xs font-bold">
           {t("collection.wizard.pickCover")} <span className="text-destructive">*</span>
         </span>
-        {coverOptions.length > 0 && (
-          <div className="flex gap-1 overflow-x-auto">
-            {coverOptions.map((url) => (
-              <button
-                key={url}
-                type="button"
-                onClick={() => setCoverUrl(url)}
-                className={`windows95-border h-14 w-10 shrink-0 overflow-hidden ${coverUrl === url ? "outline-secondary outline-2" : ""}`}
-              >
-                <img src={url} alt="" className="h-full w-full object-cover" />
-              </button>
-            ))}
-          </div>
-        )}
         {coverUrl && (
-          <img
-            src={coverUrl}
-            alt="selected"
-            className="windows95-border h-16 w-12 object-cover"
-          />
+          <img src={coverUrl} alt="selected" className="windows95-border h-16 w-12 object-cover" />
         )}
         <div className="ml-auto flex gap-1">
-          <Button
-            className="h-6 px-2 text-xs"
-            onClick={uploadLocal}
-            disabled={uploading}
-          >
+          <Button className="h-6 px-2 text-xs" onClick={uploadLocal} disabled={uploading}>
             <ImagePlus className="size-3" /> {t("collection.wizard.uploadImage")}
           </Button>
-          <Button className="h-6 px-2 text-xs" onClick={pasteUrl}>
+          <Button className="h-6 px-2 text-xs" onClick={() => setPastingUrl(true)}>
             {t("collection.wizard.pasteUrl")}
           </Button>
           <Button className="h-6 px-2 text-xs" onClick={usePlaceholder}>
@@ -102,10 +94,15 @@ export function WizardCoverPanel({
           </Button>
         </div>
       </div>
+      {coverOptions.length > 0 && (
+        <div className="grid grid-cols-4 gap-1 overflow-x-auto">
+          {coverOptions.slice(0, WIZARD_COVER_MAX).map((url) => (
+            <MemoCoverThumb key={url} url={url} selected={coverUrl === url} onPick={setCoverUrl} />
+          ))}
+        </div>
+      )}
       {!coverUrl && (
-        <p className="text-destructive text-xs">
-          {t("collection.wizard.coverRequired")}
-        </p>
+        <p className="text-destructive text-xs">{t("collection.wizard.coverRequired")}</p>
       )}
       {pastingUrl && (
         <InputDialog

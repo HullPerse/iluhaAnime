@@ -13,8 +13,7 @@ export function hexToRgba(hex: string): RGBA | null {
   const r = Number.parseInt(clean.slice(0, 2), 16);
   const g = Number.parseInt(clean.slice(2, 4), 16);
   const b = Number.parseInt(clean.slice(4, 6), 16);
-  const a =
-    clean.length === 8 ? Number.parseInt(clean.slice(6, 8), 16) / 255 : 1;
+  const a = clean.length === 8 ? Number.parseInt(clean.slice(6, 8), 16) / 255 : 1;
   if ([r, g, b].some(Number.isNaN)) return null;
   return { a, b, g, r };
 }

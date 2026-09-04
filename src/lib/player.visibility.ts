@@ -2,17 +2,10 @@ import type { FolderNode } from "@/types";
 
 /** Normalize paths for stable comparisons across Windows and POSIX separators. */
 export function normalizePlayerPath(path: string): string {
-  return path
-    .replaceAll(/\\/g, "/")
-    .replaceAll(/\/+/g, "/")
-    .replace(/\/$/, "")
-    .toLowerCase();
+  return path.replaceAll(/\\/g, "/").replaceAll(/\/+/g, "/").replace(/\/$/, "").toLowerCase();
 }
 
-export function isPlayerPathHidden(
-  path: string,
-  hiddenPaths: string[]
-): boolean {
+export function isPlayerPathHidden(path: string, hiddenPaths: string[]): boolean {
   const normalized = normalizePlayerPath(path);
   return hiddenPaths.some((hiddenPath) => {
     const hidden = normalizePlayerPath(hiddenPath);

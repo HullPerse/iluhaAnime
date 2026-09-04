@@ -24,7 +24,8 @@ export interface NotificationStore {
     title: string,
     type?: NotificationType,
     message?: string,
-    eventKey?: string
+    eventKey?: string,
+    options?: { system?: boolean }
   ) => void;
   markRead: (id: number) => void;
   markAllRead: () => void;

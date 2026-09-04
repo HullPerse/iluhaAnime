@@ -1,3 +1,6 @@
+import { ANIME_STATUS_BOOST } from "@/config/animeStatus.config";
+import { SEARCH_RANKING } from "@/config/searchRanking.config";
+import { useSettingsStore } from "@/store/settings.store";
 import type {
   AnilistSuggestionBoost,
   SearchAnimeSuggestion,
@@ -6,6 +9,11 @@ import type {
   SearchSuggestionOptions,
 } from "@/types/search";
 
+import { normalizeSearchText } from "./normalize.utils";
+import { recencyBoost } from "./searchRanking.utils";
+import { semanticScore } from "./semantic.utils";
+import { buildSymSpellFromTitles } from "./symspell.utils";
+
 export type {
   AnilistSuggestionBoost,
   SearchSuggestion,
@@ -13,18 +21,7 @@ export type {
   SearchSuggestionOptions,
 } from "@/types/search";
 
-const MAX_QUERY_LENGTH = 200;
-
-export function normalizeSearchText(value: string): string {
-  return value
-    .normalize("NFKD")
-    .replaceAll(/[\u0300-\u036F]/gu, "")
-    .toLocaleLowerCase()
-    .replaceAll(/[^\p{Letter}\p{Number}]+/gu, " ")
-    .trim()
-    .replaceAll(/\s+/gu, " ")
-    .slice(0, MAX_QUERY_LENGTH);
-}
+export { normalizeSearchText } from "./normalize.utils";
 
 function levenshtein(a: string, b: string): number {
   const previous = Array.from({ length: b.length + 1 }, (_, index) => index);
@@ -66,8 +63,7 @@ function wordMatchScore(queryWord: string, targetWord: string): number | null {
   }
 
   if (
-    Math.abs(targetWord.length - queryWord.length) <=
-    Math.max(2, Math.floor(queryWord.length / 3))
+    Math.abs(targetWord.length - queryWord.length) <= Math.max(2, Math.floor(queryWord.length / 3))
   ) {
     const distance = levenshtein(queryWord, targetWord);
     if (distance <= Math.max(1, Math.floor(queryWord.length / 4))) {
@@ -108,10 +104,7 @@ function multiWordScore(queryWords: string[], target: string): number | null {
 }
 
 /** Returns a relevance score, or null when the candidate is not close enough. */
-export function fuzzyMatchScore(
-  query: string,
-  candidate: string
-): number | null {
+export function fuzzyMatchScore(query: string, candidate: string): number | null {
   const q = normalizeSearchText(query);
   const target = normalizeSearchText(candidate);
   if (!q || !target) return null;
@@ -127,31 +120,32 @@ export function fuzzyMatchScorePreNormalized(
   return normalizedMatchScore(normalizedQuery, normalizedCandidate);
 }
 
-/** Relevance score for already-normalized query and candidate. */
-function normalizedMatchScore(q: string, target: string): number | null {
-  if (target === q) return 1_000;
-  if (target.startsWith(q))
-    return 900 - Math.min(120, target.length - q.length);
+function scoreExact(q: string, target: string): number | null {
+  return target === q ? 1_000 : null;
+}
 
+function scorePrefix(q: string, target: string): number | null {
+  return target.startsWith(q) ? 900 - Math.min(120, target.length - q.length) : null;
+}
+
+function scoreMultiWord(q: string, target: string): number | null {
   const queryWords = q.split(" ");
-  if (queryWords.length > 1) {
-    const multi = multiWordScore(queryWords, target);
-    if (multi != null) return multi;
-  }
+  if (queryWords.length <= 1) return null;
+  return multiWordScore(queryWords, target);
+}
 
-  if (target.includes(q)) return 650 - Math.min(100, target.indexOf(q));
+function scoreIncludes(q: string, target: string): number | null {
+  return target.includes(q) ? 650 - Math.min(100, target.indexOf(q)) : null;
+}
 
-  if (q.length < 3) return null;
-
+function scoreGapped(q: string, target: string): number | null {
   let queryIndex = 0;
   let gaps = 0;
   let firstMatchAtBoundary = false;
   for (let index = 0; index < target.length; index++) {
     const character = target[index];
     if (character === q[queryIndex]) {
-      if (queryIndex === 0) {
-        firstMatchAtBoundary = index === 0 || target[index - 1] === " ";
-      }
+      if (queryIndex === 0) firstMatchAtBoundary = index === 0 || target[index - 1] === " ";
       queryIndex++;
     } else if (queryIndex > 0) gaps++;
     if (queryIndex === q.length) {
@@ -159,74 +153,65 @@ function normalizedMatchScore(q: string, target: string): number | null {
       return 430 - Math.min(180, gaps * 8) + boundaryBonus;
     }
   }
-
-  if (
-    Math.abs(target.length - q.length) <= Math.max(2, Math.floor(q.length / 3))
-  ) {
-    const distance = levenshtein(q, target);
-    if (distance <= Math.max(1, Math.floor(q.length / 4))) {
-      return 300 - distance * 35;
-    }
-  }
-
   return null;
 }
 
-function statBoost(
-  value: string,
-  stats: Record<string, SearchQueryStat> | undefined
-): number {
+function scoreLevenshtein(q: string, target: string): number | null {
+  if (Math.abs(target.length - q.length) > Math.max(2, Math.floor(q.length / 3))) return null;
+  const distance = levenshtein(q, target);
+  if (distance > Math.max(1, Math.floor(q.length / 4))) return null;
+  return 300 - distance * 35;
+}
+
+/** Relevance score for already-normalized query and candidate. */
+function normalizedMatchScore(q: string, target: string): number | null {
+  return (
+    scoreExact(q, target) ??
+    scorePrefix(q, target) ??
+    scoreMultiWord(q, target) ??
+    scoreIncludes(q, target) ??
+    (q.length < 3 ? null : (scoreGapped(q, target) ?? scoreLevenshtein(q, target)))
+  );
+}
+
+function statBoost(value: string, stats: Record<string, SearchQueryStat> | undefined): number {
   const stat = stats?.[normalizeSearchText(value)];
   if (!stat) return 0;
   const ageHours = Math.max(0, (Date.now() - stat.lastUsedAt) / 3_600_000);
-  const recency = Math.max(0, 60 - Math.min(60, ageHours));
-  const ignoredPenalty = Math.min(80, (stat.ignoredCount ?? 0) * 10);
+  const recency = recencyBoost(ageHours);
+  const ignoredPenalty = Math.min(
+    SEARCH_RANKING.IGNORED_PENALTY_CAP,
+    (stat.ignoredCount ?? 0) * 10
+  );
   return (
-    Math.min(120, stat.count * 8) +
+    Math.min(SEARCH_RANKING.COUNT_CAP, stat.count * SEARCH_RANKING.COUNT_WEIGHT) +
     recency +
-    Math.min(80, stat.selectedCount * 20) -
+    Math.min(
+      SEARCH_RANKING.SELECTED_BOOST_CAP,
+      stat.selectedCount * SEARCH_RANKING.LEARNING_SELECTED_WEIGHT
+    ) -
     ignoredPenalty
   );
 }
 
 function animeSubtitle(anime: SearchAnimeSuggestion): string {
-  const status = anime.favourite
-    ? "favourite"
-    : anime.status.toLocaleLowerCase();
+  const status = anime.favourite ? "favourite" : anime.status.toLocaleLowerCase();
   const season = [anime.season, anime.seasonYear]
     .filter((value) => value != null && value !== "")
     .join(" ");
   return season ? `${status} - ${season}` : status;
 }
 
-function animeBoost(
-  anime: SearchAnimeSuggestion,
-  boost: AnilistSuggestionBoost
-): number {
+function animeBoost(anime: SearchAnimeSuggestion, boost: AnilistSuggestionBoost): number {
   if (boost === "off") return 0;
-  const statusBoost: Record<string, number> = {
-    COMPLETED: 24,
-    CURRENT: 42,
-    DROPPED: -12,
-    FAVOURITE: 52,
-    PAUSED: 10,
-    PLANNING: 28,
-    REPEATING: 38,
-  };
   const scoreBoost = anime.score && anime.score > 0 ? anime.score * 2 : 0;
-  const base =
-    (anime.favourite ? 55 : 0) + (statusBoost[anime.status] ?? 0) + scoreBoost;
+  const base = (anime.favourite ? 55 : 0) + (ANIME_STATUS_BOOST[anime.status] ?? 0) + scoreBoost;
   return boost === "strong" ? base * 1.5 : base;
 }
 
-const animeNormalizedTitlesCache = new WeakMap<
-  SearchAnimeSuggestion[],
-  string[][]
->();
+const animeNormalizedTitlesCache = new WeakMap<SearchAnimeSuggestion[], string[][]>();
 
-function getNormalizedAnimeTitles(
-  animeIndex: SearchAnimeSuggestion[]
-): string[][] {
+function getNormalizedAnimeTitles(animeIndex: SearchAnimeSuggestion[]): string[][] {
   const cached = animeNormalizedTitlesCache.get(animeIndex);
   if (cached) return cached;
   const titles = animeIndex.map((anime) =>
@@ -234,6 +219,115 @@ function getNormalizedAnimeTitles(
   );
   animeNormalizedTitlesCache.set(animeIndex, titles);
   return titles;
+}
+
+function addHistorySuggestions(
+  query: string,
+  options: SearchSuggestionOptions,
+  put: (s: SearchSuggestion) => void
+): void {
+  for (const value of options.history ?? []) {
+    const match = fuzzyMatchScore(query, value);
+    if (match == null) continue;
+    put({
+      kind: "history",
+      score:
+        match + statBoost(value, options.queryStats) + statBoost(value, options.suggestionStats),
+      subtitle: "history",
+      value,
+    });
+  }
+}
+
+function addAnimeSuggestions(
+  normalizedQuery: string,
+  options: SearchSuggestionOptions,
+  put: (s: SearchSuggestion) => void
+): void {
+  if (options.scope === "player" || options.scope === "filter") return;
+  const normalizedTitles = getNormalizedAnimeTitles(options.animeIndex ?? []);
+  for (let index = 0; index < normalizedTitles.length; index++) {
+    const anime = options.animeIndex?.[index];
+    if (!anime) continue;
+    const match = Math.max(
+      ...normalizedTitles[index]!.map(
+        (title) => fuzzyMatchScorePreNormalized(normalizedQuery, title) ?? -Infinity
+      )
+    );
+    if (!Number.isFinite(match)) continue;
+    put({
+      kind: "anime",
+      score:
+        match +
+        animeBoost(anime, options.anilistBoost ?? "subtle") +
+        statBoost(anime.title, options.suggestionStats),
+      subtitle: animeSubtitle(anime),
+      value: anime.title,
+    });
+  }
+}
+
+function addExtraSuggestions(
+  query: string,
+  options: SearchSuggestionOptions,
+  put: (s: SearchSuggestion) => void
+): void {
+  for (const extra of options.extraValues ?? []) {
+    const match = fuzzyMatchScore(query, extra.value);
+    if (match == null) continue;
+    put({
+      kind: extra.kind ?? "local",
+      score: match + statBoost(extra.value, options.suggestionStats),
+      value: extra.value,
+    });
+  }
+}
+
+const collectionNormalizedCache = new WeakMap<
+  NonNullable<SearchSuggestionOptions["collectionItems"]>,
+  string[][]
+>();
+
+function getNormalizedCollectionTitles(
+  items: NonNullable<SearchSuggestionOptions["collectionItems"]>
+): string[][] {
+  const cached = collectionNormalizedCache.get(items);
+  if (cached) return cached;
+  const titles = items.map((item) =>
+    [item.title, ...(item.altTitles ?? [])].map(normalizeSearchText)
+  );
+  collectionNormalizedCache.set(items, titles);
+  return titles;
+}
+
+function addCollectionSuggestions(
+  normalizedQuery: string,
+  options: SearchSuggestionOptions,
+  put: (s: SearchSuggestion) => void
+): void {
+  const items = options.collectionItems;
+  if (!items || items.length === 0) return;
+  const boost = options.collectionBoost ?? SEARCH_RANKING.COLLECTION_BOOST;
+  const normalizedTitles = getNormalizedCollectionTitles(items);
+  for (let index = 0; index < normalizedTitles.length; index++) {
+    const item = items[index];
+    if (!item) continue;
+    const titles = normalizedTitles[index] ?? [];
+    let best: number | null = null;
+    for (const t of titles) {
+      const m = fuzzyMatchScorePreNormalized(normalizedQuery, t);
+      if (m != null && (best == null || m > best)) best = m;
+    }
+    if (best == null) continue;
+    const stat =
+      statBoost(item.title, options.suggestionStats) + statBoost(item.title, options.queryStats);
+    put({
+      kind: "local",
+      score: best + boost + stat,
+      subtitle: item.subtitle,
+      value: item.title,
+    });
+  }
 }
 
 function addSuggestionSources(
@@ -246,25 +340,63 @@ function addSuggestionSources(
     if (!options.animeEnabled && suggestion.kind === "anime") continue;
     put(suggestion);
   }
-  for (const value of options.history ?? []) {
-    const match = fuzzyMatchScore(query, value);
-    if (match == null) continue;
-    put({ kind: "history", score: match + statBoost(value, options.queryStats) + statBoost(value, options.suggestionStats), subtitle: "history", value });
+  addCollectionSuggestions(normalizedQuery, options, put);
+  addHistorySuggestions(query, options, put);
+  addAnimeSuggestions(normalizedQuery, options, put);
+  addExtraSuggestions(query, options, put);
+}
+
+function applySymSpellFallback(
+  query: string,
+  normalizedQuery: string,
+  options: SearchSuggestionOptions,
+  limit: number,
+  candidates: Map<string, SearchSuggestion>,
+  put: (s: SearchSuggestion) => void
+): void {
+  if (candidates.size >= limit) return;
+  if (!useSettingsStore.getState().searchSymSpellEnabled) return;
+  if (normalizedQuery.length < 3) return;
+  const titlesForSymSpell = [
+    ...(options.history ?? []),
+    ...(options.animeIndex?.map((a) => a.title) ?? []),
+    ...(options.extraValues?.map((e) => e.value) ?? []),
+  ];
+  if (titlesForSymSpell.length === 0) return;
+  const sym = buildSymSpellFromTitles(titlesForSymSpell);
+  const corrected = sym.suggest(query);
+  if (!corrected) return;
+  if (normalizeSearchText(corrected) === normalizedQuery) return;
+  const cands = getSearchSuggestions(corrected, { ...options, limit: 2 });
+  for (const c of cands) {
+    put({ ...c, score: c.score - 50, subtitle: `${c.subtitle ?? c.kind} (did you mean)` });
   }
-  if (options.scope !== "player" && options.scope !== "filter") {
-    const normalizedTitles = getNormalizedAnimeTitles(options.animeIndex ?? []);
-    for (let index = 0; index < normalizedTitles.length; index++) {
-      const anime = options.animeIndex?.[index];
-      if (!anime) continue;
-      const match = Math.max(...normalizedTitles[index]!.map((title) => fuzzyMatchScorePreNormalized(normalizedQuery, title) ?? -Infinity));
-      if (!Number.isFinite(match)) continue;
-      put({ kind: "anime", score: match + animeBoost(anime, options.anilistBoost ?? "subtle") + statBoost(anime.title, options.suggestionStats), subtitle: animeSubtitle(anime), value: anime.title });
-    }
-  }
-  for (const extra of options.extraValues ?? []) {
-    const match = fuzzyMatchScore(query, extra.value);
-    if (match == null) continue;
-    put({ kind: extra.kind ?? "local", score: match + statBoost(extra.value, options.suggestionStats), value: extra.value });
+}
+
+function applySemanticFallback(
+  query: string,
+  normalizedQuery: string,
+  options: SearchSuggestionOptions,
+  candidates: Map<string, SearchSuggestion>,
+  put: (s: SearchSuggestion) => void
+): void {
+  if (candidates.size !== 0) return;
+  if (normalizedQuery.length < 3) return;
+  if (!useSettingsStore.getState().searchSemanticEnabled) return;
+  const semanticCandidates = [
+    ...(options.history ?? []),
+    ...(options.animeIndex?.map((a) => a.title) ?? []),
+    ...(options.collectionItems?.map((c) => c.title) ?? []),
+  ];
+  if (semanticCandidates.length === 0) return;
+  const limited = semanticCandidates.slice(0, 100);
+  for (const value of limited) {
+    if (normalizeSearchText(value) === normalizedQuery) continue;
+    const s = semanticScore(query, value, semanticCandidates);
+    if (s <= 0.25) continue;
+    const base = s * 180;
+    const boost = statBoost(value, options.suggestionStats) * 0.3;
+    put({ kind: "history", score: base + boost, subtitle: "semantic", value });
   }
 }
 
@@ -274,7 +406,6 @@ export function getSearchSuggestions(
 ): SearchSuggestion[] {
   const normalizedQuery = normalizeSearchText(query);
   if (!normalizedQuery) return [];
-
   const limit = Math.max(1, options.limit ?? 8);
   const candidates = new Map<string, SearchSuggestion>();
   const put = (suggestion: SearchSuggestion) => {
@@ -284,17 +415,15 @@ export function getSearchSuggestions(
     if (!current || suggestion.score > current.score) candidates.set(key, suggestion);
   };
   addSuggestionSources(query, normalizedQuery, options, put);
-
+  applySymSpellFallback(query, normalizedQuery, options, limit, candidates, put);
+  applySemanticFallback(query, normalizedQuery, options, candidates, put);
   return [...candidates.values()]
     .sort((a, b) => b.score - a.score || a.value.localeCompare(b.value))
     .slice(0, limit);
 }
 
 /** Inline completion only accepts a prefix, just like editor ghost text. */
-export function getInlineCompletion(
-  query: string,
-  suggestions: SearchSuggestion[]
-): string | null {
+export function getInlineCompletion(query: string, suggestions: SearchSuggestion[]): string | null {
   const normalizedQuery = normalizeSearchText(query);
   if (normalizedQuery.length < 2) return null;
   const suggestion = suggestions.find((item) => {

@@ -33,27 +33,19 @@ describe("translate", () => {
   });
 
   it("returns the key itself when missing everywhere", () => {
-    expect(translate("en", "does.not.exist" as "app.search")).toBe(
-      "does.not.exist"
-    );
+    expect(translate("en", "does.not.exist" as "app.search")).toBe("does.not.exist");
   });
 
   it("replaces variables in templates", () => {
-    expect(
-      translate("en", "Hello {{name}}" as "app.search", { name: "Bob" })
-    ).toBe("Hello Bob");
+    expect(translate("en", "Hello {{name}}" as "app.search", { name: "Bob" })).toBe("Hello Bob");
   });
 
   it("keeps unresolved variables as-is", () => {
-    expect(translate("en", "Hello {{name}}" as "app.search", {})).toBe(
-      "Hello {{name}}"
-    );
+    expect(translate("en", "Hello {{name}}" as "app.search", {})).toBe("Hello {{name}}");
   });
 
   it("supports numeric variables", () => {
-    expect(
-      translate("en", "{{count}} items" as "app.search", { count: 5 })
-    ).toBe("5 items");
+    expect(translate("en", "{{count}} items" as "app.search", { count: 5 })).toBe("5 items");
   });
 });
 
@@ -68,8 +60,6 @@ describe("useI18n", () => {
     // getServerSnapshot), which defaults to the detected system locale.
     // Locale switching itself is covered deterministically by translate().
     const html = renderToStaticMarkup(createElement(Probe));
-    expect(html).toBe(
-      `<span>${INITIAL_LOCALE}:${translate(INITIAL_LOCALE, "app.search")}</span>`
-    );
+    expect(html).toBe(`<span>${INITIAL_LOCALE}:${translate(INITIAL_LOCALE, "app.search")}</span>`);
   });
 });

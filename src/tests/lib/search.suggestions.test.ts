@@ -67,9 +67,7 @@ describe("search suggestions", () => {
       limit: 5,
     });
     expect(hidden.map((item) => item.kind)).not.toContain("anime");
-    expect(hidden).toContainEqual(
-      expect.objectContaining({ value: "frieren 1080p" })
-    );
+    expect(hidden).toContainEqual(expect.objectContaining({ value: "frieren 1080p" }));
 
     const shown = getSearchSuggestions("fri", {
       animeEnabled: true,
@@ -94,9 +92,7 @@ describe("search suggestions", () => {
       limit: 5,
     });
     expect(suggestions[0]?.value).toBe("frieren 1080p");
-    expect(new Set(suggestions.map((item) => item.value)).size).toBe(
-      suggestions.length
-    );
+    expect(new Set(suggestions.map((item) => item.value)).size).toBe(suggestions.length);
   });
 
   it("penalizes ignored suggestions and supports scope filtering", () => {
@@ -117,17 +113,12 @@ describe("search suggestions", () => {
 
   it("returns only prefix completions for ghost text", () => {
     const suggestions = getSearchSuggestions("fr", { animeIndex });
-    expect(getInlineCompletion("fr", suggestions)).toBe(
-      "Frieren: Beyond Journey's End"
-    );
+    expect(getInlineCompletion("fr", suggestions)).toBe("Frieren: Beyond Journey's End");
     expect(getInlineCompletion("x", suggestions)).toBeNull();
   });
 
   it("matches multi-word queries against distinct words", () => {
-    const match = fuzzyMatchScore(
-      "frieren journey",
-      "Frieren: Beyond Journey's End"
-    );
+    const match = fuzzyMatchScore("frieren journey", "Frieren: Beyond Journey's End");
     expect(match).not.toBeNull();
     expect(fuzzyMatchScore("frieren journey", "Fruits Basket")).toBeNull();
     expect(match!).toBeGreaterThan(500);
@@ -141,8 +132,6 @@ describe("search suggestions", () => {
   });
 
   it("rejects multi-word queries missing a word", () => {
-    expect(
-      fuzzyMatchScore("frieren zzz", "Frieren: Beyond Journey's End")
-    ).toBeNull();
+    expect(fuzzyMatchScore("frieren zzz", "Frieren: Beyond Journey's End")).toBeNull();
   });
 });

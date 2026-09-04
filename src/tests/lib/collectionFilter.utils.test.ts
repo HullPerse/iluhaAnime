@@ -1,10 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  applyCollectionFilters,
-  filterCollectionItems,
-} from "@/lib/collectionFilter.utils";
-import type { CollectionItem } from "@/types/collection";
+import { applyCollectionFilters, filterCollectionItems } from "@/lib/collectionFilter.utils";
+import type { CollectionItem, CollectionType } from "@/types/collection";
 
 function makeItem(overrides: Partial<CollectionItem> = {}): CollectionItem {
   return {
@@ -38,31 +35,30 @@ function makeItem(overrides: Partial<CollectionItem> = {}): CollectionItem {
     rewatchCount: 0,
     addedAt: 0,
     updatedAt: 0,
+    sitesToView: [],
+    tvCurrentSeason: null,
+    tvCurrentEpisode: null,
+    detailsJson: null,
     ...overrides,
   };
 }
 
 const DEFAULT_FILTERS = {
   ratingMin: null,
+  ratingMax: null,
   yearFrom: null,
   yearTo: null,
-  provider: "any",
-  linked: "any",
-  hasNote: "any",
+  provider: "any" as const,
+  linked: "any" as const,
+  hasNote: "any" as const,
+  mediaTypes: [] as unknown as CollectionType[],
+  genres: [] as string[],
 } as const;
 
 describe("filterCollectionItems", () => {
   it("returns all items for an empty query and no filters", () => {
     const items = [makeItem(), makeItem({ id: "b" }), makeItem({ id: "c" })];
-    const result = filterCollectionItems(
-      items,
-      [],
-      "all",
-      "",
-      DEFAULT_FILTERS,
-      "date",
-      "desc"
-    );
+    const result = filterCollectionItems(items, [], "all", "", DEFAULT_FILTERS, "date", "desc");
     expect(result).toHaveLength(3);
   });
 
@@ -90,51 +86,25 @@ describe("filterCollectionItems", () => {
     const items = [byTitle, byAlt, byGenre, byStudio, other];
 
     expect(
-      filterCollectionItems(
-        items,
-        [],
-        "all",
-        "na",
-        DEFAULT_FILTERS,
-        "date",
-        "desc"
-      ).map((i) => i.id)
+      filterCollectionItems(items, [], "all", "na", DEFAULT_FILTERS, "date", "desc").map(
+        (i) => i.id
+      )
     ).toEqual(["title", "alt"]);
     expect(
-      filterCollectionItems(
-        items,
-        [],
-        "all",
-        "ad",
-        DEFAULT_FILTERS,
-        "date",
-        "desc"
-      ).map((i) => i.id)
+      filterCollectionItems(items, [], "all", "ad", DEFAULT_FILTERS, "date", "desc").map(
+        (i) => i.id
+      )
     ).toEqual(["genre"]);
     expect(
-      filterCollectionItems(
-        items,
-        [],
-        "all",
-        "ha",
-        DEFAULT_FILTERS,
-        "date",
-        "desc"
-      ).map((i) => i.id)
+      filterCollectionItems(items, [], "all", "ha", DEFAULT_FILTERS, "date", "desc").map(
+        (i) => i.id
+      )
     ).toEqual(["studio"]);
   });
 
   it("is case-insensitive for short queries", () => {
     const a = makeItem({ id: "a", title: "Naruto" });
-    const result = filterCollectionItems(
-      [a],
-      [],
-      "all",
-      "NA",
-      DEFAULT_FILTERS,
-      "date",
-      "desc"
-    );
+    const result = filterCollectionItems([a], [], "all", "NA", DEFAULT_FILTERS, "date", "desc");
     expect(result.map((i) => i.id)).toEqual(["a"]);
   });
 
@@ -158,26 +128,14 @@ describe("filterCollectionItems", () => {
     const mid = makeItem({ id: "mid", updatedAt: 200 });
     const fresh = makeItem({ id: "fresh", updatedAt: 300 });
     expect(
-      filterCollectionItems(
-        [old, fresh, mid],
-        [],
-        "all",
-        "",
-        DEFAULT_FILTERS,
-        "date",
-        "desc"
-      ).map((i) => i.id)
+      filterCollectionItems([old, fresh, mid], [], "all", "", DEFAULT_FILTERS, "date", "desc").map(
+        (i) => i.id
+      )
     ).toEqual(["fresh", "mid", "old"]);
     expect(
-      filterCollectionItems(
-        [old, fresh, mid],
-        [],
-        "all",
-        "",
-        DEFAULT_FILTERS,
-        "date",
-        "asc"
-      ).map((i) => i.id)
+      filterCollectionItems([old, fresh, mid], [], "all", "", DEFAULT_FILTERS, "date", "asc").map(
+        (i) => i.id
+      )
     ).toEqual(["old", "mid", "fresh"]);
   });
 
@@ -185,26 +143,14 @@ describe("filterCollectionItems", () => {
     const bleach = makeItem({ id: "b", title: "Bleach" });
     const naruto = makeItem({ id: "n", title: "Naruto" });
     expect(
-      filterCollectionItems(
-        [naruto, bleach],
-        [],
-        "all",
-        "",
-        DEFAULT_FILTERS,
-        "name",
-        "asc"
-      ).map((i) => i.id)
+      filterCollectionItems([naruto, bleach], [], "all", "", DEFAULT_FILTERS, "name", "asc").map(
+        (i) => i.id
+      )
     ).toEqual(["b", "n"]);
     expect(
-      filterCollectionItems(
-        [naruto, bleach],
-        [],
-        "all",
-        "",
-        DEFAULT_FILTERS,
-        "name",
-        "desc"
-      ).map((i) => i.id)
+      filterCollectionItems([naruto, bleach], [], "all", "", DEFAULT_FILTERS, "name", "desc").map(
+        (i) => i.id
+      )
     ).toEqual(["n", "b"]);
   });
 

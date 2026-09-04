@@ -4,9 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import SpeedLimitForm from "@/routes/components/torrent/speed.torrent";
 
-function renderSpeed(
-  overrides: Partial<React.ComponentProps<typeof SpeedLimitForm>> = {}
-) {
+function renderSpeed(overrides: Partial<React.ComponentProps<typeof SpeedLimitForm>> = {}) {
   const defaultProps = {
     dlInput: "",
     ulInput: "",

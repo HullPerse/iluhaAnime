@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
 import { PasswordInput } from "@/components/ui/password.component";
 import { useI18n } from "@/lib/i18n";
-import { enterSubmit } from "@/lib/keyboard.utils";
 import type { TranslationKey } from "@/lib/i18n";
+import { enterSubmit } from "@/lib/keyboard.utils";
 
 type RutrackerErrorCode =
   | "wrong_credentials"
@@ -25,23 +25,23 @@ type RutrackerErrorCode =
   | "no_session";
 
 const ERROR_KEYS: Record<RutrackerErrorCode, TranslationKey> = {
-  wrong_credentials: "search.rutracker.errWrongCredentials",
-  blocked: "search.rutracker.errBlocked",
-  network: "search.rutracker.errNetwork",
-  login_failed: "search.rutracker.errLoginFailed",
-  session_failed: "search.rutracker.errSessionFailed",
-  cookies_invalid: "search.rutracker.errCookiesInvalid",
-  cookies_parse: "search.rutracker.errCookiesParse",
-  webview_open: "search.rutracker.errWebviewOpen",
-  webview_save: "search.rutracker.errWebviewSave",
-  webview_not_found: "search.rutracker.errWebviewNotFound",
-  no_cookies: "search.rutracker.errNoCookies",
-  no_session: "search.rutracker.errNoSession",
+  wrong_credentials: "search.rutracker.err.wrong.credentials",
+  blocked: "search.rutracker.err.blocked",
+  network: "search.rutracker.err.network",
+  login_failed: "search.rutracker.err.login.failed",
+  session_failed: "search.rutracker.err.session.failed",
+  cookies_invalid: "search.rutracker.err.cookies.invalid",
+  cookies_parse: "search.rutracker.err.cookies.parse",
+  webview_open: "search.rutracker.err.webview.open",
+  webview_save: "search.rutracker.err.webview.save",
+  webview_not_found: "search.rutracker.err.webview.not.found",
+  no_cookies: "search.rutracker.err.no.cookies",
+  no_session: "search.rutracker.err.no.session",
 };
 
 function mapError(raw: string, t: (key: TranslationKey) => string): string {
   const code = raw.split(":")[0].trim() as RutrackerErrorCode;
-  const label = t(ERROR_KEYS[code] ?? "search.rutracker.errUnknown");
+  const label = t(ERROR_KEYS[code] ?? "search.rutracker.err.unknown");
   if (code === "network") {
     const detail = raw.split(":").slice(1).join(":").trim();
     if (detail) return `${label}\n${detail}`;
@@ -132,11 +132,7 @@ function RutrackerLoginModal({
   };
 
   return (
-    <Modal
-      header={t("search.rutracker.title")}
-      onClose={handleClose}
-      className="w-xl"
-    >
+    <Modal header={t("search.rutracker.title")} onClose={handleClose} className="w-xl">
       <div className="flex flex-col gap-2 p-1">
         <div className="flex gap-1">
           <Button
@@ -147,7 +143,7 @@ function RutrackerLoginModal({
               setError("");
             }}
           >
-            {t("search.rutracker.loginTab")}
+            {t("search.rutracker.login.tab")}
           </Button>
           <Button
             variant={mode === "cookies" ? "default" : "ghost"}
@@ -157,7 +153,7 @@ function RutrackerLoginModal({
               setError("");
             }}
           >
-            {t("search.rutracker.cookiesTab")}
+            {t("search.rutracker.cookies.tab")}
           </Button>
           <Button
             variant={mode === "browser" ? "default" : "ghost"}
@@ -167,7 +163,7 @@ function RutrackerLoginModal({
               setError("");
             }}
           >
-            {t("search.rutracker.browserTab")}
+            {t("search.rutracker.browser.tab")}
           </Button>
         </div>
 
@@ -193,7 +189,7 @@ function RutrackerLoginModal({
         ) : mode === "cookies" ? (
           <div className="flex flex-col gap-2">
             <span className="windows95-text text-hint text-xs leading-snug">
-              {t("search.rutracker.cookiesHint")}
+              {t("search.rutracker.cookies.hint")}
             </span>
             <textarea
               value={cookies}
@@ -206,17 +202,15 @@ function RutrackerLoginModal({
         ) : (
           <div className="flex flex-col gap-2">
             <span className="windows95-text text-hint text-xs leading-snug">
-              {t("search.rutracker.browserHint")}
+              {t("search.rutracker.browser.hint")}
             </span>
             <Button onClick={handleOpenBrowser} disabled={loading}>
-              {loading ? <SmallLoader /> : t("search.rutracker.openBrowser")}
+              {loading ? <SmallLoader /> : t("search.rutracker.open.browser")}
             </Button>
           </div>
         )}
 
-        {error && (
-          <span className="text-destructive windows95-text">{error}</span>
-        )}
+        {error && <span className="text-destructive windows95-text">{error}</span>}
         <div className="mt-1 flex justify-end gap-1">
           <Button onClick={handleClose}>{t("common.cancel")}</Button>
           {mode === "login" ? (
@@ -227,19 +221,12 @@ function RutrackerLoginModal({
               {loading ? <SmallLoader /> : t("search.rutracker.login")}
             </Button>
           ) : mode === "cookies" ? (
-            <Button
-              onClick={handleSaveCookies}
-              disabled={loading || !cookies.trim()}
-            >
-              {loading ? <SmallLoader /> : t("search.rutracker.saveCookies")}
+            <Button onClick={handleSaveCookies} disabled={loading || !cookies.trim()}>
+              {loading ? <SmallLoader /> : t("search.rutracker.save.cookies")}
             </Button>
           ) : (
             <Button onClick={handleSaveBrowserSession} disabled={loading}>
-              {loading ? (
-                <SmallLoader />
-              ) : (
-                t("search.rutracker.saveBrowserSession")
-              )}
+              {loading ? <SmallLoader /> : t("search.rutracker.save.browser.session")}
             </Button>
           )}
         </div>

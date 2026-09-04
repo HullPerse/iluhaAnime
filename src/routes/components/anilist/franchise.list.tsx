@@ -64,8 +64,7 @@ function FranchiseList({
             <span className="text-hint">({items.length})</span>
           </div>
           {items.map((node) => {
-            const dimmed =
-              searchMatchIds !== null && !searchMatchIds.has(node.id);
+            const dimmed = searchMatchIds !== null && !searchMatchIds.has(node.id);
             return (
               <button
                 type="button"

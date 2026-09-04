@@ -11,10 +11,8 @@ import {
   formatParsedTitle,
 } from "@/lib/player.utils";
 
-const ru = (
-  key: Parameters<typeof translate>[1],
-  vars?: Parameters<typeof translate>[2]
-) => translate("ru", key, vars);
+const ru = (key: Parameters<typeof translate>[1], vars?: Parameters<typeof translate>[2]) =>
+  translate("ru", key, vars);
 
 function makeEntry(path: string, name: string, size = 100) {
   return { name, path, size };
@@ -22,10 +20,7 @@ function makeEntry(path: string, name: string, size = 100) {
 
 describe("buildTree", () => {
   it("builds a flat root with files directly inside", () => {
-    const tree = buildTree(
-      [makeEntry("C:\\Anime\\movie.mkv", "movie.mkv")],
-      "C:\\Anime"
-    );
+    const tree = buildTree([makeEntry("C:\\Anime\\movie.mkv", "movie.mkv")], "C:\\Anime");
     expect(tree.name).toBe("Anime");
     expect(tree.files.map((f) => f.name)).toEqual(["movie.mkv"]);
     expect(tree.children).toEqual([]);
@@ -43,10 +38,7 @@ describe("buildTree", () => {
     expect(tree.files.map((f) => f.name)).toEqual(["movie.mkv"]);
     expect(tree.children).toHaveLength(1);
     expect(tree.children[0].name).toBe("One Piece");
-    expect(tree.children[0].files.map((f) => f.name)).toEqual([
-      "ep1.mkv",
-      "ep2.mkv",
-    ]);
+    expect(tree.children[0].files.map((f) => f.name)).toEqual(["ep1.mkv", "ep2.mkv"]);
   });
 });
 
@@ -66,10 +58,7 @@ describe("filterTreeByPaths", () => {
   });
 
   it("returns null when nothing matches", () => {
-    const tree = buildTree(
-      [makeEntry("C:\\Anime\\movie.mkv", "movie.mkv")],
-      "C:\\Anime"
-    );
+    const tree = buildTree([makeEntry("C:\\Anime\\movie.mkv", "movie.mkv")], "C:\\Anime");
     expect(filterTreeByPaths(tree, new Set(["C:\\missing.mkv"]))).toBeNull();
   });
 });
@@ -77,10 +66,7 @@ describe("filterTreeByPaths", () => {
 describe("flattenTree", () => {
   it("flattens root files at depth 1 when the root is open", () => {
     const tree = buildTree(
-      [
-        makeEntry("C:\\Anime\\a.mkv", "a.mkv"),
-        makeEntry("C:\\Anime\\b.mp4", "b.mp4"),
-      ],
+      [makeEntry("C:\\Anime\\a.mkv", "a.mkv"), makeEntry("C:\\Anime\\b.mp4", "b.mp4")],
       "C:\\Anime"
     );
     const items = flattenTree(tree, new Set(), "", undefined, 0);
@@ -89,10 +75,7 @@ describe("flattenTree", () => {
   });
 
   it("pushes folder items for closed children without their files", () => {
-    const tree = buildTree(
-      [makeEntry("C:\\Anime\\Movies\\c.mkv", "c.mkv")],
-      "C:\\Anime"
-    );
+    const tree = buildTree([makeEntry("C:\\Anime\\Movies\\c.mkv", "c.mkv")], "C:\\Anime");
     const items = flattenTree(tree, new Set(), "", undefined, 0);
     const folders = items.filter((i) => i.kind === "folder");
     expect(folders).toHaveLength(1);
@@ -101,17 +84,8 @@ describe("flattenTree", () => {
   });
 
   it("expands open children and includes their files", () => {
-    const tree = buildTree(
-      [makeEntry("C:\\Anime\\Movies\\c.mkv", "c.mkv")],
-      "C:\\Anime"
-    );
-    const items = flattenTree(
-      tree,
-      new Set(["C:\\Anime/Movies"]),
-      "",
-      undefined,
-      0
-    );
+    const tree = buildTree([makeEntry("C:\\Anime\\Movies\\c.mkv", "c.mkv")], "C:\\Anime");
+    const items = flattenTree(tree, new Set(["C:\\Anime/Movies"]), "", undefined, 0);
     expect(items.some((i) => i.kind === "file")).toBe(true);
   });
 
@@ -131,10 +105,7 @@ describe("flattenTree", () => {
 
   it("hides files with disabled extensions", () => {
     const tree = buildTree(
-      [
-        makeEntry("C:\\Anime\\a.mkv", "a.mkv"),
-        makeEntry("C:\\Anime\\b.mp4", "b.mp4"),
-      ],
+      [makeEntry("C:\\Anime\\a.mkv", "a.mkv"), makeEntry("C:\\Anime\\b.mp4", "b.mp4")],
       "C:\\Anime"
     );
     const items = flattenTree(tree, new Set(), "", new Set(["mp4"]), 0);
@@ -144,27 +115,15 @@ describe("flattenTree", () => {
   });
 
   it("prunes folders whose content was filtered out by track extensions", () => {
-    const tree = buildTree(
-      [makeEntry("C:\\Anime\\Subs\\ep1.ass", "ep1.ass")],
-      "C:\\Anime"
-    );
-    const items = flattenTree(
-      tree,
-      new Set(),
-      "",
-      undefined,
-      0,
-      new Set(["ass"])
-    );
+    const tree = buildTree([makeEntry("C:\\Anime\\Subs\\ep1.ass", "ep1.ass")], "C:\\Anime");
+    const items = flattenTree(tree, new Set(), "", undefined, 0, new Set(["ass"]));
     expect(items).toHaveLength(0);
   });
 });
 
 describe("buildOutputPath", () => {
   it("inserts the suffix before the extension", () => {
-    expect(buildOutputPath("C:\\Anime\\ep1.mkv", ".720p")).toBe(
-      "C:\\Anime\\ep1.720p.mkv"
-    );
+    expect(buildOutputPath("C:\\Anime\\ep1.mkv", ".720p")).toBe("C:\\Anime\\ep1.720p.mkv");
   });
 
   it("appends the suffix when there is no extension", () => {
@@ -178,9 +137,7 @@ describe("buildOutputPath", () => {
 
 describe("formatParsedTitle", () => {
   it("formats a simple episode", () => {
-    expect(formatParsedTitle("[Erai-raws] Naruto - 01 [1080p].mkv", ru)).toBe(
-      "Naruto, Серия 1"
-    );
+    expect(formatParsedTitle("[Erai-raws] Naruto - 01 [1080p].mkv", ru)).toBe("Naruto, Серия 1");
   });
 
   it("includes season when present", () => {
@@ -190,9 +147,7 @@ describe("formatParsedTitle", () => {
   });
 
   it("handles zero-padded episode numbers", () => {
-    expect(formatParsedTitle("One Piece 001.mkv", ru)).toBe(
-      "One Piece, Серия 1"
-    );
+    expect(formatParsedTitle("One Piece 001.mkv", ru)).toBe("One Piece, Серия 1");
   });
 });
 

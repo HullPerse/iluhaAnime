@@ -61,10 +61,7 @@ export default function AniListRecsModal({
                 />
               )}
               <div className="flex min-w-0 flex-1 flex-col">
-                <span
-                  className="windows95-text truncate text-xs font-bold"
-                  title={r.title}
-                >
+                <span className="windows95-text truncate text-xs font-bold" title={r.title}>
                   {r.title}
                 </span>
                 <div className="windows95-text flex flex-row gap-2 text-xs">
@@ -76,7 +73,7 @@ export default function AniListRecsModal({
                   {r.format && <span>{r.format}</span>}
                   {r.episodes && (
                     <span>
-                      {r.episodes} {t("anilist.details.epsShort")}
+                      {r.episodes} {t("anilist.details.eps.short")}
                     </span>
                   )}
                 </div>

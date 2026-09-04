@@ -56,9 +56,7 @@ function AniListAuthModal({
           <li>{t("anilist.auth.step2")}</li>
           <li>
             {t("anilist.auth.step3")}{" "}
-            <span className="text-text">
-              https://anilist.co/api/v2/oauth/pin
-            </span>
+            <span className="text-text">https://anilist.co/api/v2/oauth/pin</span>
           </li>
           <li>{t("anilist.auth.step4")}</li>
           <li>
@@ -71,16 +69,14 @@ function AniListAuthModal({
           <li>{t("anilist.auth.step7")}</li>
         </ul>
         <Input
-          placeholder={t("anilist.auth.tokenPlaceholder")}
+          placeholder={t("anilist.auth.token.placeholder")}
           value={token}
           onChange={(e) => setToken(e.target.value)}
           onKeyDown={enterSubmit(() => {
             if (!loading) handleSubmit();
           })}
         />
-        {error && (
-          <span className="text-destructive windows95-text">{error}</span>
-        )}
+        {error && <span className="text-destructive windows95-text">{error}</span>}
         <div className="mt-1 flex justify-end gap-1">
           <Button onClick={onClose}>{t("common.cancel")}</Button>
           <Button onClick={handleSubmit} disabled={loading}>

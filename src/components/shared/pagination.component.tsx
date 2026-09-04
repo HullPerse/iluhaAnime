@@ -13,26 +13,32 @@ export default function Pagination({
   to,
   onPageChange,
   statusText,
+  scrollRef,
 }: PaginationProps) {
   const { t } = useI18n();
+
+  const handlePageChange = (next: number) => {
+    onPageChange(next);
+    scrollRef?.current?.scrollTo?.(0, 0);
+  };
 
   return (
     <section
       className="windows95-border bg-primary flex flex-row items-center justify-between px-1 py-0.5"
       role="navigation"
-      aria-label={t("common.paginationNav")}
+      aria-label={t("common.pagination.nav")}
     >
       <span className="windows95-text">{statusText}</span>
       <span className="windows95-text">
-        {total > 0 && t("common.paginationShown", { from, to, total })}
+        {total > 0 && t("common.pagination.shown", { from, to, total })}
       </span>
       <div className="windows95-text flex flex-row items-center gap-1">
         <Button
           size="icon"
           className="h-6 w-6"
-          onClick={() => onPageChange(page - 1)}
+          onClick={() => handlePageChange(page - 1)}
           disabled={page === 1}
-          aria-label={t("common.paginationPrev")}
+          aria-label={t("common.pagination.prev")}
         >
           <ArrowLeft />
         </Button>
@@ -42,23 +48,23 @@ export default function Pagination({
           onChange={(e) => {
             const num = Number(e.target.value);
             if (Number.isFinite(num) && num >= 1) {
-              onPageChange(Math.min(num, lastPage));
+              handlePageChange(Math.min(num, lastPage));
             }
           }}
           min={1}
           max={lastPage}
           type="number"
           inputMode="numeric"
-          aria-label={t("common.paginationPage", { page, lastPage })}
+          aria-label={t("common.pagination.page", { page, lastPage })}
           aria-current="page"
           className="windows95-text windows95-border flex h-6 w-10 items-center justify-center text-center font-bold"
         />
         <Button
           size="icon"
           className="h-6 w-6"
-          onClick={() => onPageChange(page + 1)}
+          onClick={() => handlePageChange(page + 1)}
           disabled={page === lastPage}
-          aria-label={t("common.paginationNext")}
+          aria-label={t("common.pagination.next")}
         >
           <ArrowRight />
         </Button>

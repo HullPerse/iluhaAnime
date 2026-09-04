@@ -1,112 +1,104 @@
-import { Filter, ListTree, Palette, Plus, Search, X } from "lucide-react";
+import { Filter, Palette, Plus, SortAsc, SortDesc } from "lucide-react";
+import { useMemo } from "react";
 
+import { InlineAutocompleteInput } from "@/components/shared/autocomplete.component";
 import { Button } from "@/components/ui/button.component";
+import Select from "@/components/ui/select.component";
+import { useCollectionDataActions } from "@/hooks/collectionData.hook";
 import { useI18n } from "@/lib/i18n";
-import type { CollectionStore } from "@/types/collection";
-import { DataMenu } from "./dataMenu.collection";
+import { tokenizeIntent } from "@/lib/intentParser.utils";
+import type { CollectionStore, SearchField } from "@/types/collection";
 
-type SortBy = CollectionStore["sortBy"];
-type SortDir = CollectionStore["sortDir"];
+import DataCollection from "./data.collection";
 
-export function CollectionToolbar({
-  searchQuery,
-  onSearchChange,
+export default function ToolbarCollection({
+  field,
   sortBy,
   sortDir,
+  handleAdd,
+  handleStatusManager,
+  handleAnilistImport,
+  handleShowFilters,
   onSortChange,
-  groupByStatus,
-  onToggleGroupBy,
-  onToggleFilters,
-  onAdd,
-  onOpenStatusManager,
-  onExportJson,
-  onExportZip,
-  onImportFile,
 }: {
-  searchQuery: string;
-  onSearchChange: (query: string) => void;
-  sortBy: SortBy;
-  sortDir: SortDir;
-  onSortChange: (by: SortBy, dir: SortDir) => void;
-  groupByStatus: boolean;
-  onToggleGroupBy: () => void;
-  onToggleFilters: () => void;
-  onAdd: () => void;
-  onOpenStatusManager: () => void;
-  onExportJson: () => void;
-  onExportZip: () => void;
-  onImportFile: (file: File) => void;
+  field: SearchField;
+  sortBy: CollectionStore["sortBy"];
+  sortDir: CollectionStore["sortDir"];
+  handleAdd: () => void;
+  handleStatusManager: () => void;
+  handleAnilistImport: () => void;
+  handleShowFilters: () => void;
+  onSortChange: (by: CollectionStore["sortBy"], dir: CollectionStore["sortDir"]) => void;
 }) {
   const { t } = useI18n();
+  const dataActions = useCollectionDataActions();
+  const highlightRanges = useMemo(
+    () => tokenizeIntent(field.inputProps.value ?? ""),
+    [field.inputProps.value]
+  );
+
   return (
-    <section className="ui-toolbar ui-panel flex flex-wrap items-center gap-1">
-      <Button onClick={onAdd}>
-        <Plus className="size-3" /> {t("collection.addMedia")}
+    <main className="ui-toolbar ui-panel w-full flex-row">
+      <Button onClick={handleAdd} size="icon" className="size-7" title={t("collection.add.media")}>
+        <Plus className="size-5" />
       </Button>
-      <Button onClick={onOpenStatusManager}>
-        <Palette className="size-3" /> {t("collection.statusManager.toolbar")}
+      <Button
+        onClick={handleStatusManager}
+        size="icon"
+        className="size-7"
+        title={t("collection.status.manager.toolbar")}
+      >
+        <Palette className="size-5" />
       </Button>
-      <DataMenu
-        onExportJson={onExportJson}
-        onExportZip={onExportZip}
-        onImportFile={onImportFile}
+
+      <span className="ui-toolbar-separator" aria-hidden />
+      <InlineAutocompleteInput
+        placeholder={t("collection.search.title")}
+        className="h-9 font-bold"
+        {...field.inputProps}
+        highlightRanges={highlightRanges}
       />
-      <div className="ml-auto flex items-center gap-1">
-        <div className="windows95-border flex items-center gap-1 bg-white px-1">
-          <Search className="text-hint size-3" />
-          <input
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            placeholder={t("collection.searchTitle")}
-            className="w-32 bg-transparent py-0.5 text-xs outline-none"
-          />
-          {searchQuery && (
-            <button
-              type="button"
-              onClick={() => onSearchChange("")}
-              className="p-0.5"
-            >
-              <X className="size-3" />
-            </button>
-          )}
-        </div>
-        <select
-          value={sortBy}
-          onChange={(e) => onSortChange(e.target.value as SortBy, sortDir)}
-          className="windows95-border bg-white px-1 py-0.5 text-xs"
-        >
-          <option value="date">{t("collection.sortDate")}</option>
-          <option value="name">{t("collection.sortName")}</option>
-          <option value="rating">{t("collection.sortRating")}</option>
-        </select>
-        <Button
-          size="icon"
-          className="size-6"
-          onClick={() => onSortChange(sortBy, sortDir === "asc" ? "desc" : "asc")}
-        >
-          {sortDir === "asc" ? "↑" : "↓"}
-        </Button>
-        <Button
-          size="icon"
-          variant={groupByStatus ? "outline" : "default"}
-          className="size-6"
-          onClick={onToggleGroupBy}
-          aria-label={t("collection.groupByStatus")}
-          aria-pressed={groupByStatus}
-          title={t("collection.groupByStatus")}
-        >
-          <ListTree className="size-3" />
-        </Button>
-        <Button
-          size="icon"
-          variant="outline"
-          className="size-6"
-          onClick={onToggleFilters}
-          aria-label={t("collection.filters.title")}
-        >
-          <Filter className="size-3" />
-        </Button>
-      </div>
-    </section>
+      <span className="ui-toolbar-separator" aria-hidden />
+
+      <Select
+        className="w-28"
+        value={sortBy}
+        onChange={(v) => onSortChange(v as CollectionStore["sortBy"], sortDir)}
+        options={[
+          { value: "date", label: t("collection.sort.date") },
+          { value: "name", label: t("collection.sort.name") },
+          { value: "rating", label: t("collection.sort.rating") },
+        ]}
+      />
+
+      <Button
+        size="icon"
+        className="size-7"
+        title={t("collection.sortdir")}
+        onClick={() => onSortChange(sortBy, sortDir === "asc" ? "desc" : "asc")}
+      >
+        {sortDir === "desc" ? <SortDesc className="size-5" /> : <SortAsc className="size-5" />}
+      </Button>
+
+      <Button
+        size="icon"
+        className="size-7"
+        title={t("collection.filters.title")}
+        onClick={handleShowFilters}
+      >
+        <Filter className="size-5" />
+      </Button>
+
+      {/*<span className="windows95-text text-hint ml-auto text-xs">
+        {filtered.length} / {items.length}
+      </span>*/}
+
+      <DataCollection
+        onHandleJson={dataActions.handleExportJson}
+        onHandleZip={dataActions.handleExportZip}
+        onHandleImport={dataActions.handleImportFile}
+        onHandleAnilist={handleAnilistImport}
+      />
+    </main>
   );
 }

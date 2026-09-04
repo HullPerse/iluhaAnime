@@ -13,18 +13,11 @@ describe("usePagination", () => {
     page: number;
     setPage: (page: number) => void;
   }) {
-    const result = usePagination(
-      props.totalItems,
-      props.pageSize,
-      props.page,
-      props.setPage
-    );
+    const result = usePagination(props.totalItems, props.pageSize, props.page, props.setPage);
     return createElement(
       "span",
       null,
-      [result.total, result.from, result.to, result.lastPage, result.page].join(
-        ":"
-      )
+      [result.total, result.from, result.to, result.lastPage, result.page].join(":")
     );
   }
 
@@ -45,27 +38,17 @@ describe("usePagination", () => {
   }
 
   it("computes totals, ranges and last page", () => {
-    expect(render({ page: 1, pageSize: 10, totalItems: 25 })).toBe(
-      "<span>25:1:10:3:1</span>"
-    );
-    expect(render({ page: 2, pageSize: 10, totalItems: 25 })).toBe(
-      "<span>25:11:20:3:2</span>"
-    );
-    expect(render({ page: 3, pageSize: 10, totalItems: 25 })).toBe(
-      "<span>25:21:25:3:3</span>"
-    );
+    expect(render({ page: 1, pageSize: 10, totalItems: 25 })).toBe("<span>25:1:10:3:1</span>");
+    expect(render({ page: 2, pageSize: 10, totalItems: 25 })).toBe("<span>25:11:20:3:2</span>");
+    expect(render({ page: 3, pageSize: 10, totalItems: 25 })).toBe("<span>25:21:25:3:3</span>");
   });
 
   it("clamps the displayed page to the last page", () => {
-    expect(render({ page: 4, pageSize: 10, totalItems: 5 })).toBe(
-      "<span>5:1:5:1:1</span>"
-    );
+    expect(render({ page: 4, pageSize: 10, totalItems: 5 })).toBe("<span>5:1:5:1:1</span>");
   });
 
   it("handles empty collections with zero range", () => {
-    expect(render({ page: 1, pageSize: 10, totalItems: 0 })).toBe(
-      "<span>0:0:0:1:1</span>"
-    );
+    expect(render({ page: 1, pageSize: 10, totalItems: 0 })).toBe("<span>0:0:0:1:1</span>");
   });
 
   it("clamps page requests through setPage", () => {
@@ -103,16 +86,12 @@ describe("useDebounce", () => {
   }
 
   it("returns the initial value immediately on first render", () => {
-    const html = renderToStaticMarkup(
-      createElement(Probe, { delay: 300, value: "hello" })
-    );
+    const html = renderToStaticMarkup(createElement(Probe, { delay: 300, value: "hello" }));
     expect(html).toBe("<span>hello</span>");
   });
 
   it("handles the zero-delay case without crashing", () => {
-    const html = renderToStaticMarkup(
-      createElement(Probe, { delay: 0, value: "x" })
-    );
+    const html = renderToStaticMarkup(createElement(Probe, { delay: 0, value: "x" }));
     expect(html).toBe("<span>x</span>");
   });
 });

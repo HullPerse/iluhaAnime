@@ -24,6 +24,7 @@ const MAX_SQLITE_QUERY_ROWS: usize = 1_000;
 
 mod anilist;
 mod app_db;
+mod embeddings;
 
 /// Narrow, offline-only API used by the query benchmark target.
 #[doc(hidden)]
@@ -351,11 +352,7 @@ fn allowed_sqlite_table(database: &str, table: &str) -> bool {
             | ("user_assets", "user_images")
             | (
                 "app_data",
-                "cache_entries"
-                    | "media_records"
-                    | "release_analysis"
-                    | "anime_statistics"
-                    | "unified_index"
+                "cache_entries" | "unified_index" | "collection_items"
             )
     )
 }
@@ -1330,156 +1327,95 @@ async fn get_sqlite_cell_blob(
     .map_err(|error| format!("SQLite cell blob: {error}"))
 }
 
-#[derive(serde::Deserialize)]
-struct VaultOrganizationMove {
-    source_path: String,
-    target_path: String,
-}
 
-#[derive(serde::Serialize)]
-struct VaultOrganizationResult {
-    moved: usize,
-    skipped: usize,
-    errors: Vec<String>,
-}
 
 #[tauri::command]
-async fn apply_vault_organization(
-    root: String,
-    moves: Vec<VaultOrganizationMove>,
-) -> Result<VaultOrganizationResult, String> {
-    tokio::task::spawn_blocking(move || {
-        if moves.len() > 500 {
-            return Err("Too many organization moves in one operation".to_string());
-        }
-        let root =
-            std::fs::canonicalize(&root).map_err(|error| format!("organization root: {error}"))?;
-        if !root.is_dir() {
-            return Err("Organization root is not a directory".to_string());
-        }
-        let mut result = VaultOrganizationResult {
-            moved: 0,
-            skipped: 0,
-            errors: Vec::new(),
+fn list_system_fonts() -> Result<Vec<String>, String> {
+    #[cfg(windows)]
+    {
+        use std::collections::HashSet;
+        use windows::Win32::Foundation::LPARAM;
+        use windows::Win32::Graphics::Gdi::{
+            EnumFontFamiliesExW, GetDC, ReleaseDC, DEFAULT_CHARSET, LOGFONTW, TEXTMETRICW,
         };
-        for item in moves {
-            let source = match std::fs::canonicalize(&item.source_path) {
-                Ok(path) if path.is_file() => path,
-                Ok(_) => {
-                    result
-                        .errors
-                        .push(format!("Source is not a file: {}", item.source_path));
-                    continue;
-                }
-                Err(error) => {
-                    result.errors.push(format!(
-                        "Source unavailable ({}): {error}",
-                        item.source_path
-                    ));
-                    continue;
-                }
-            };
-            let target = std::path::PathBuf::from(&item.target_path);
-            let Some(target_name) = target.file_name().map(std::borrow::ToOwned::to_owned) else {
-                result
-                    .errors
-                    .push(format!("Invalid target path: {}", item.target_path));
-                continue;
-            };
-            let Some(target_parent) = target.parent() else {
-                result
-                    .errors
-                    .push(format!("Invalid target path: {}", item.target_path));
-                continue;
-            };
-            if target
-                .components()
-                .any(|component| matches!(component, std::path::Component::ParentDir))
-            {
-                result.errors.push(format!(
-                    "Target escapes organization root: {}",
-                    item.target_path
-                ));
-                continue;
-            }
-            // Check the nearest existing ancestor before creating anything.
-            // This prevents a malicious target from creating directories outside
-            // the selected root and only then failing the scope check.
-            let mut existing_parent = target_parent;
-            let mut missing_ancestor = false;
-            while !existing_parent.exists() {
-                let Some(parent) = existing_parent.parent() else {
-                    missing_ancestor = true;
-                    break;
-                };
-                existing_parent = parent;
-            }
-            if missing_ancestor {
-                result
-                    .errors
-                    .push(format!("Target folder unavailable: {}", item.target_path));
-                continue;
-            }
-            match std::fs::canonicalize(existing_parent) {
-                Ok(path) if path.starts_with(&root) => {}
-                Ok(_) => {
-                    result.errors.push(format!(
-                        "Target escapes organization root: {}",
-                        item.target_path
-                    ));
-                    continue;
-                }
-                Err(error) => {
-                    result
-                        .errors
-                        .push(format!("Target folder unavailable: {error}"));
-                    continue;
+
+        unsafe extern "system" fn collect_family(
+            lplf: *const LOGFONTW,
+            _lptm: *const TEXTMETRICW,
+            _font_type: u32,
+            lparam: LPARAM,
+        ) -> i32 {
+            let set = &mut *(lparam.0 as *mut HashSet<String>);
+            if !lplf.is_null() {
+                let lf = &*lplf;
+                let len = lf
+                    .lfFaceName
+                    .iter()
+                    .position(|&c| c == 0)
+                    .unwrap_or(lf.lfFaceName.len());
+                let name = String::from_utf16_lossy(&lf.lfFaceName[..len]);
+                let name = name.trim();
+                if !name.is_empty() {
+                    set.insert(name.to_string());
                 }
             }
-            if let Err(error) = std::fs::create_dir_all(target_parent) {
-                result
-                    .errors
-                    .push(format!("Could not create target folder: {error}"));
-                continue;
-            }
-            let target_parent = match std::fs::canonicalize(target_parent) {
-                Ok(path) if path.starts_with(&root) => path,
-                Ok(_) => {
-                    result.errors.push(format!(
-                        "Target escapes organization root: {}",
-                        item.target_path
-                    ));
-                    continue;
-                }
-                Err(error) => {
-                    result
-                        .errors
-                        .push(format!("Target folder unavailable: {error}"));
-                    continue;
-                }
-            };
-            let target = target_parent.join(target_name);
-            if source == target {
-                result.skipped += 1;
-                continue;
-            }
-            if target.exists() {
-                result
-                    .errors
-                    .push(format!("Target already exists: {}", target.display()));
-                continue;
-            }
-            match std::fs::rename(&source, &target) {
-                Ok(()) => result.moved += 1,
-                Err(error) => result
-                    .errors
-                    .push(format!("Could not move {}: {error}", source.display())),
+            1
+        }
+
+        let mut families: HashSet<String> = HashSet::new();
+        let hdc = unsafe { GetDC(None) };
+        if !hdc.is_invalid() {
+            let mut logfont: LOGFONTW = Default::default();
+            logfont.lfCharSet = DEFAULT_CHARSET;
+            let set_ptr = &mut families as *mut HashSet<String>;
+            unsafe {
+                EnumFontFamiliesExW(
+                    hdc,
+                    &logfont,
+                    Some(collect_family),
+                    LPARAM(set_ptr as isize),
+                    0,
+                );
+                ReleaseDC(None, hdc);
             }
         }
-        Ok(result)
-    })
-    .await
-    .map_err(|error| format!("organization task failed: {error}"))?
+
+        // Дополняем реестром: пользовательские шрифты (HKCU) и полные имена,
+        // которые GDI может обрезать до 31 символа.
+        for hive in [
+            winreg::enums::HKEY_LOCAL_MACHINE,
+            winreg::enums::HKEY_CURRENT_USER,
+        ] {
+            let root = winreg::RegKey::predef(hive);
+            if let Ok(fonts_key) =
+                root.open_subkey("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Fonts")
+            {
+                for (name, _) in fonts_key.enum_values().filter_map(Result::ok) {
+                    let family = name
+                        .split(" (")
+                        .next()
+                        .unwrap_or(&name)
+                        .trim()
+                        .to_string();
+                    if !family.is_empty() {
+                        families.insert(family);
+                    }
+                }
+            }
+        }
+
+        let mut list: Vec<String> = families.into_iter().collect();
+        list.sort_by_key(|a| a.to_lowercase());
+        Ok(list)
+    }
+    #[cfg(not(windows))]
+    {
+        Ok(vec![
+            "Arial".to_string(),
+            "Segoe UI".to_string(),
+            "MS Sans Serif".to_string(),
+        ])
+    }
 }
 
 #[tauri::command]
@@ -2053,21 +1989,24 @@ pub fn run() {
             app_db::clear_app_cache,
             app_db::check_app_database_integrity,
             app_db::upsert_unified_index,
+            app_db::clear_unified_index_scope,
+            app_db::optimize_unified_index,
             app_db::record_unified_index_action,
             app_db::search_unified_index,
-            app_db::save_vault_media_records,
-            app_db::get_vault_media_records,
+            embeddings::init_fastembed,
+            embeddings::is_fastembed_initialized,
+            embeddings::check_fastembed,
+            embeddings::download_fastembed,
+            embeddings::remove_fastembed,
+            embeddings::embed_text,
+            embeddings::upsert_embedding,
+            embeddings::search_semantic,
             app_db::list_collection_statuses,
             app_db::upsert_collection_status,
             app_db::delete_collection_status,
             app_db::list_collection_items,
             app_db::upsert_collection_item,
             app_db::delete_collection_item,
-            app_db::upsert_collection_review,
-            app_db::list_collection_reviews,
-            app_db::delete_collection_review,
-            app_db::append_collection_event,
-            app_db::list_collection_events,
             app_db::list_custom_field_defs,
             app_db::upsert_custom_field_def,
             app_db::delete_custom_field_def,
@@ -2075,8 +2014,14 @@ pub fn run() {
             app_db::export_collection_data,
             app_db::export_collection_zip,
             app_db::import_collection_data,
+            app_db::list_release_subscriptions,
+            app_db::upsert_release_subscription,
+            app_db::delete_release_subscription,
             tmdb::search_tmdb,
             tmdb::get_tmdb_details,
+            tmdb::get_tmdb_rate_limit,
+            tmdb::test_tmdb_connection,
+            scrapers::test_source_connection,
             reset_sqlite_data,
             list_sqlite_databases,
             get_sqlite_tables,
@@ -2094,8 +2039,8 @@ pub fn run() {
             pause_torrent,
             resume_torrent,
             remove_torrent,
+            list_system_fonts,
             scan_video_folder,
-            apply_vault_organization,
             scan_extra_files,
             delete_extra_file,
             start_watching_folders,
@@ -2148,6 +2093,7 @@ mod sqlite_browser_tests {
         assert!(allowed_sqlite_table("franchise", "franchise_nodes"));
         assert!(allowed_sqlite_table("user_assets", "user_images"));
         assert!(allowed_sqlite_table("app_data", "cache_entries"));
+        assert!(allowed_sqlite_table("app_data", "collection_items"));
         assert!(!allowed_sqlite_table("franchise", "sqlite_master"));
         assert!(!allowed_sqlite_table("user_assets", "franchise_nodes"));
         assert!(!allowed_sqlite_table("app_data", "sqlite_master"));

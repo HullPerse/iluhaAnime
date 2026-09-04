@@ -6,13 +6,7 @@ import { useI18n } from "@/lib/i18n";
 import { Button } from "../ui/button.component";
 import { SmallLoader } from "./loader.component";
 
-export function EmptyState({
-  children,
-  icon,
-}: {
-  children: ReactNode;
-  icon?: ReactNode;
-}) {
+export function EmptyState({ children, icon }: { children: ReactNode; icon?: ReactNode }) {
   return (
     <section className="ui-empty-state windows95-text">
       {icon}
@@ -31,13 +25,7 @@ export function LoadingState({ label }: { label?: string }) {
   );
 }
 
-export function RetryState({
-  children,
-  onRetry,
-}: {
-  children: ReactNode;
-  onRetry: () => void;
-}) {
+export function RetryState({ children, onRetry }: { children: ReactNode; onRetry: () => void }) {
   const { t } = useI18n();
   return (
     <section className="ui-empty-state windows95-text flex-col">

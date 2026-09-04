@@ -17,10 +17,7 @@ interface UserImagePickerProps {
   onSelect: (icon: string, image?: UserImage) => void;
 }
 
-export default function UserImagePicker({
-  selected,
-  onSelect,
-}: UserImagePickerProps) {
+export default function UserImagePicker({ selected, onSelect }: UserImagePickerProps) {
   const { t } = useI18n();
   const [images, setImages] = useState<UserImage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,7 +29,7 @@ export default function UserImagePicker({
       setImages(await invoke<UserImage[]>("list_user_images"));
     } catch {
       setImages([]);
-      showError(t("common.error"), t("player.category.loadImagesError"));
+      showError(t("common.error"), t("player.category.load.images.error"));
     } finally {
       setLoading(false);
     }
@@ -45,11 +42,9 @@ export default function UserImagePicker({
   const upload = async () => {
     const selectedPath = await open({
       directory: false,
-      filters: [
-        { name: "Image", extensions: ["png", "jpg", "jpeg", "gif", "webp"] },
-      ],
+      filters: [{ name: "Image", extensions: ["png", "jpg", "jpeg", "gif", "webp"] }],
       multiple: false,
-      title: t("player.category.uploadImage"),
+      title: t("player.category.upload.image"),
     });
     if (!selectedPath || Array.isArray(selectedPath)) return;
     setUploading(true);
@@ -57,13 +52,10 @@ export default function UserImagePicker({
       const image = await invoke<UserImage>("import_user_image", {
         path: selectedPath,
       });
-      setImages((items) => [
-        image,
-        ...items.filter((item) => item.id !== image.id),
-      ]);
+      setImages((items) => [image, ...items.filter((item) => item.id !== image.id)]);
       onSelect(userImageIcon(image.id), image);
     } catch {
-      showError(t("common.error"), t("player.category.uploadError"));
+      showError(t("common.error"), t("player.category.upload.error"));
     } finally {
       setUploading(false);
     }
@@ -77,14 +69,8 @@ export default function UserImagePicker({
   return (
     <section className="windows95-border bg-primary mt-2 p-1">
       <div className="mb-1 flex items-center justify-between">
-        <span className="windows95-text text-xs">
-          {t("player.category.uploadedImages")}
-        </span>
-        <Button
-          className="h-5 px-1 text-xs"
-          onClick={() => upload()}
-          disabled={uploading}
-        >
+        <span className="windows95-text text-xs">{t("player.category.uploaded.images")}</span>
+        <Button className="h-5 px-1 text-xs" onClick={() => upload()} disabled={uploading}>
           {uploading ? <SmallLoader /> : <ImagePlus className="mr-1 size-3" />}
           {t("player.category.upload")}
         </Button>
@@ -95,17 +81,14 @@ export default function UserImagePicker({
         </div>
       ) : images.length === 0 ? (
         <span className="windows95-text text-hint text-xs">
-          {t("player.category.noUploadedImages")}
+          {t("player.category.no.uploaded.images")}
         </span>
       ) : (
         <div className="grid max-h-28 grid-cols-6 gap-1 overflow-y-auto">
           {images.map((image) => {
             const icon = userImageIcon(image.id);
             return (
-              <div
-                key={image.id}
-                className="group relative flex flex-col items-center gap-px"
-              >
+              <div key={image.id} className="group relative flex flex-col items-center gap-px">
                 <button
                   type="button"
                   title={image.name}
@@ -115,15 +98,11 @@ export default function UserImagePicker({
                     selected === icon && "bg-secondary"
                   )}
                 >
-                  <UserImageIcon
-                    icon={icon}
-                    dataUrl={image.dataUrl}
-                    className="size-full"
-                  />
+                  <UserImageIcon icon={icon} dataUrl={image.dataUrl} className="size-full" />
                 </button>
                 <button
                   type="button"
-                  title={t("player.category.deleteImage")}
+                  title={t("player.category.delete.image")}
                   onClick={() => remove(image)}
                   className="bg-destructive absolute -top-1 -right-1 hidden size-3 items-center justify-center text-white group-hover:flex"
                 >

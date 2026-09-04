@@ -31,14 +31,8 @@ export function BigError({
       <main className="bg-primary windows95-active-border windows95-3d-border fixed top-1/2 left-1/2 z-50 flex w-xl max-w-[90%] -translate-x-1/2 -translate-y-1/2 flex-col">
         <section className="bg-secondary flex w-full items-center justify-between p-1">
           <div className="flex min-w-0 items-center gap-1">
-            <ImageComponent
-              src="/images/w2k_computer.ico"
-              alt=""
-              className="size-4 shrink-0"
-            />
-            <span className="windows95-text font-bold text-white">
-              {t("common.error")}
-            </span>
+            <ImageComponent src="/images/w2k_computer.ico" alt="" className="size-4 shrink-0" />
+            <span className="windows95-text font-bold text-white">{t("common.error")}</span>
           </div>
           {onRetry && (
             <button
@@ -54,14 +48,9 @@ export function BigError({
         </section>
         <section className="bg-primary flex flex-col items-center gap-4 p-4">
           {icon}
-          <span className="text-text text-center text-base font-bold">
-            {error.message}
-          </span>
+          <span className="text-text text-center text-base font-bold">{error.message}</span>
           {onRetry && (
-            <Button
-              className="flex h-8 w-28 items-center gap-1"
-              onClick={onRetry}
-            >
+            <Button className="flex h-8 w-28 items-center gap-1" onClick={onRetry}>
               <RotateCcw className="size-4" />
               {t("common.continue")}
             </Button>

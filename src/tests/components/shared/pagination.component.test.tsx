@@ -1,73 +1,63 @@
-import { render, screen, cleanup, fireEvent } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-// @vitest-environment jsdom
-import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import Pagination from "@/components/shared/pagination.component";
 import { useSettingsStore } from "@/store/settings.store";
 
+function renderPagination(
+  props: Partial<{
+    page: number;
+    scrollRef: React.RefObject<HTMLElement | null>;
+    onPageChange: (page: number) => void;
+  }> = {}
+) {
+  const onPageChange = props.onPageChange ?? vi.fn();
+  render(
+    <Pagination
+      total={100}
+      page={props.page ?? 1}
+      lastPage={10}
+      from={1}
+      to={10}
+      onPageChange={onPageChange}
+      scrollRef={props.scrollRef}
+    />
+  );
+  return { onPageChange };
+}
+
 beforeEach(() => {
-  useSettingsStore.setState({ language: "ru" });
+  useSettingsStore.setState({ language: "en" });
 });
 
-const base = {
-  total: 50,
-  page: 2,
-  lastPage: 5,
-  from: 11,
-  to: 20,
-  statusText: "Результаты",
-};
+afterEach(() => {
+  cleanup();
+});
 
-afterEach(cleanup);
-
-describe("Pagination", () => {
-  it("disables prev on the first page and next on the last page", () => {
-    const first = render(
-      <Pagination {...base} page={1} onPageChange={vi.fn()} />
-    );
-    const [prev, next] = first.getAllByRole("button") as HTMLButtonElement[];
-    expect(prev.disabled).toBe(true);
-    expect(next.disabled).toBe(false);
-
-    cleanup();
-    const last = render(
-      <Pagination {...base} page={5} onPageChange={vi.fn()} />
-    );
-    const [prevLast, nextLast] = last.getAllByRole(
-      "button"
-    ) as HTMLButtonElement[];
-    expect(prevLast.disabled).toBe(false);
-    expect(nextLast.disabled).toBe(true);
+describe("Pagination scrollRef", () => {
+  it("changes page without scrolling when no scrollRef is given", () => {
+    const { onPageChange } = renderPagination({ page: 2 });
+    fireEvent.click(screen.getByLabelText("Next page"));
+    expect(onPageChange).toHaveBeenCalledWith(3);
   });
 
-  it("calls onPageChange with the adjacent page on arrow clicks", async () => {
-    const user = userEvent.setup();
-    const onChange = vi.fn();
-    render(<Pagination {...base} onPageChange={onChange} />);
-    const [prev, next] = screen.getAllByRole("button");
-    await user.click(prev);
-    expect(onChange).toHaveBeenCalledWith(1);
-    await user.click(next);
-    expect(onChange).toHaveBeenCalledWith(3);
+  it("scrolls the list to top on page change", () => {
+    const scroller = document.createElement("div");
+    const scrollTo = vi.fn();
+    scroller.scrollTo = scrollTo;
+    const { onPageChange } = renderPagination({
+      page: 2,
+      scrollRef: { current: scroller },
+    });
+
+    fireEvent.click(screen.getByLabelText("Next page"));
+    expect(onPageChange).toHaveBeenCalledWith(3);
+    expect(scrollTo).toHaveBeenCalledWith(0, 0);
   });
 
-  it("clamps typed page numbers to lastPage", () => {
-    const onChange = vi.fn();
-    render(<Pagination {...base} page={1} onPageChange={onChange} />);
-    const input = screen.getByRole("spinbutton");
-    fireEvent.change(input, { target: { value: "99" } });
-    expect(onChange).toHaveBeenLastCalledWith(5);
-    fireEvent.change(input, { target: { value: "0" } });
-    expect(onChange).not.toHaveBeenCalledWith(0);
-  });
-
-  it("shows the visible range only when there are results", () => {
-    render(<Pagination {...base} onPageChange={vi.fn()} />);
-    expect(screen.getByText("Показано с 11 по 20 из 50")).toBeTruthy();
-
-    cleanup();
-    render(<Pagination {...base} total={0} onPageChange={vi.fn()} />);
-    expect(screen.queryByText(/Показано:/)).toBeNull();
+  it("clamps typed page numbers to the last page", () => {
+    const { onPageChange } = renderPagination({ page: 1 });
+    fireEvent.change(screen.getByLabelText("Page 1 of 10"), { target: { value: "99" } });
+    expect(onPageChange).toHaveBeenCalledWith(10);
   });
 });

@@ -33,9 +33,7 @@ describe("useCategoryStore categories", () => {
   it("changes a category icon", () => {
     const id = useCategoryStore.getState().addCategory("Anime");
     useCategoryStore.getState().changeIcon(id, "w2k_computer.ico");
-    expect(useCategoryStore.getState().categories[0].icon).toBe(
-      "w2k_computer.ico"
-    );
+    expect(useCategoryStore.getState().categories[0].icon).toBe("w2k_computer.ico");
   });
 
   it("removes a category along with its entries", () => {
@@ -55,10 +53,7 @@ describe("useCategoryStore categories", () => {
     const a = useCategoryStore.getState().addCategory("A");
     const b = useCategoryStore.getState().addCategory("B");
     useCategoryStore.getState().reorderCategories([b, a]);
-    expect(useCategoryStore.getState().categories.map((c) => c.id)).toEqual([
-      b,
-      a,
-    ]);
+    expect(useCategoryStore.getState().categories.map((c) => c.id)).toEqual([b, a]);
     expect(useCategoryStore.getState().categories[0].order).toBe(0);
     expect(useCategoryStore.getState().categories[1].order).toBe(1);
   });
@@ -132,14 +127,10 @@ describe("useCategoryStore entries", () => {
     useCategoryStore
       .getState()
       .addEntry(b, { folderPath: "C:\\Shared", name: "F", type: "folder" });
-    useCategoryStore
-      .getState()
-      .addEntry(b, { folderPath: "C:\\Other", name: "G", type: "folder" });
+    useCategoryStore.getState().addEntry(b, { folderPath: "C:\\Other", name: "G", type: "folder" });
     useCategoryStore.getState().removeEntriesByFolderPath("C:\\Shared");
     expect(useCategoryStore.getState().entries[a]).toHaveLength(0);
-    expect(
-      useCategoryStore.getState().entries[b].map((e) => e.folderPath)
-    ).toEqual(["C:\\Other"]);
+    expect(useCategoryStore.getState().entries[b].map((e) => e.folderPath)).toEqual(["C:\\Other"]);
   });
 
   it("removes entries by torrent id", () => {

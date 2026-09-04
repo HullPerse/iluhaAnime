@@ -32,12 +32,9 @@ export default function TorrentFilesPlayerSection({
   const { data = [], refetch } = useQuery({
     queryKey: ["extra_files", item.save_dir],
     queryFn: () =>
-      invoke<{ path: string; name: string; size: number }[]>(
-        "scan_extra_files",
-        { path: item.save_dir! }
-      ).then((result) =>
-        result.map((f) => ({ name: f.name, size: f.size, fullPath: f.path }))
-      ),
+      invoke<{ path: string; name: string; size: number }[]>("scan_extra_files", {
+        path: item.save_dir!,
+      }).then((result) => result.map((f) => ({ name: f.name, size: f.size, fullPath: f.path }))),
     enabled: !!item.save_dir,
   });
 
@@ -58,9 +55,7 @@ export default function TorrentFilesPlayerSection({
     <section className="windows95-active-border bg-primary flex flex-col gap-1">
       {!hideHeader && (
         <div className="bg-secondary flex items-center gap-1 px-1 text-white">
-          <span className="windows95-text line-clamp-1 flex-1 py-0.5 font-bold">
-            {item.name}
-          </span>
+          <span className="windows95-text line-clamp-1 flex-1 py-0.5 font-bold">{item.name}</span>
         </div>
       )}
 
@@ -89,8 +84,7 @@ export default function TorrentFilesPlayerSection({
               {t("player.files.count", {
                 count: files.filter((f) => f.completed).length,
               })}{" "}
-              {data.length > 0 &&
-                t("player.files.upscales", { count: data.length })}
+              {data.length > 0 && t("player.files.upscales", { count: data.length })}
             </button>
             <Button
               size="icon"
@@ -106,17 +100,13 @@ export default function TorrentFilesPlayerSection({
             <Button
               size="icon"
               className="size-5"
-              title={t("player.files.openFolder")}
+              title={t("player.files.open.folder")}
               onClick={(e) => {
                 e.stopPropagation();
                 openPath(item.save_dir);
               }}
             >
-              <ImageComponent
-                src="/images/w2k_folder_closed.ico"
-                alt=""
-                className="size-4"
-              />
+              <ImageComponent src="/images/w2k_folder_closed.ico" alt="" className="size-4" />
             </Button>
           </div>
           {isExpanded && (

@@ -1,122 +1,112 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/core";
+import { useMemo } from "react";
 
+import { buildCollectionSearchIndex, searchCollectionIndex } from "@/lib/collectionSearch.utils";
+import { parseIntent } from "@/lib/intentParser.utils";
 import type {
   CollectionItem,
-  CollectionReview,
   CollectionStatusDef,
   CustomFieldDef,
+  ReleaseSubscription,
 } from "@/types/collection";
 
-const QUERY_KEY = "collection-data" as const;
+export const COLLECTION_QUERY_KEY = "collection-data" as const;
 
 export const DEFAULT_COLLECTION_STATUSES: CollectionStatusDef[] = [
-  { id: "planned", label: "Planned", color: "#9ca3af", order: 0, isCore: true },
+  { id: "favorites", label: "Favorites", color: "#ec4899", order: 0, isCore: true },
+  { id: "planned", label: "Planned", color: "#9ca3af", order: 1, isCore: true },
   {
     id: "watching",
     label: "Watching",
     color: "#3b82f6",
-    order: 1,
+    order: 2,
     isCore: true,
   },
   {
     id: "completed",
     label: "Completed",
     color: "#22c55e",
-    order: 2,
+    order: 3,
     isCore: true,
   },
-  { id: "paused", label: "Paused", color: "#f59e0b", order: 3, isCore: true },
-  { id: "dropped", label: "Dropped", color: "#ef4444", order: 4, isCore: true },
+  { id: "paused", label: "Paused", color: "#f59e0b", order: 4, isCore: true },
+  { id: "dropped", label: "Dropped", color: "#ef4444", order: 5, isCore: true },
   {
     id: "rewatching",
     label: "Rewatching",
     color: "#a855f7",
-    order: 5,
+    order: 6,
     isCore: true,
   },
 ];
 
 interface CollectionDataState {
   items: CollectionItem[];
-  reviews: CollectionReview[];
   customFieldDefs: CustomFieldDef[];
   statuses: CollectionStatusDef[];
 }
 
 const EMPTY: CollectionDataState = {
   items: [],
-  reviews: [],
   customFieldDefs: [],
   statuses: DEFAULT_COLLECTION_STATUSES,
 };
 
-// Rust returns camelCase via serde rename_all, but numbers/booleans land as-is.
-// Map to strict TS types: number-ish fields stay number, isFavorite -> boolean.
-interface RawCollectionItem extends Omit<CollectionItem, "isFavorite"> {
+interface RawCollectionItem extends Omit<
+  CollectionItem,
+  "isFavorite" | "sitesToView" | "tvCurrentSeason" | "tvCurrentEpisode" | "detailsJson"
+> {
   isFavorite: boolean | number;
+  sitesToView?: unknown;
+  tvCurrentSeason?: number | null;
+  tvCurrentEpisode?: number | null;
+  detailsJson?: unknown;
 }
 
 function normalizeItem(raw: RawCollectionItem): CollectionItem {
-  return { ...raw, isFavorite: Boolean(raw.isFavorite) };
+  const sitesToView = Array.isArray(raw.sitesToView)
+    ? (raw.sitesToView as Array<{ url: string }>)
+    : [];
+  return {
+    ...(raw as unknown as CollectionItem),
+    isFavorite: Boolean(raw.isFavorite),
+    sitesToView,
+    tvCurrentSeason: raw.tvCurrentSeason ?? null,
+    tvCurrentEpisode: raw.tvCurrentEpisode ?? null,
+    detailsJson: (raw.detailsJson as CollectionItem["detailsJson"]) ?? null,
+  };
 }
 
 async function fetchCollectionData(): Promise<CollectionDataState> {
   try {
-    const [items, reviews, customFieldDefs, statuses] = await Promise.all([
+    const [items, customFieldDefs, statuses] = await Promise.all([
       invoke<RawCollectionItem[]>("list_collection_items"),
-      invoke<CollectionReview[]>("list_collection_reviews"),
       invoke<CustomFieldDef[]>("list_custom_field_defs"),
       invoke<CollectionStatusDef[]>("list_collection_statuses"),
     ]);
     return {
       items: items.map(normalizeItem),
-      reviews: reviews.map((r) => ({ ...r, orphaned: Boolean(r.orphaned) })),
       customFieldDefs,
       statuses: statuses.length > 0 ? statuses : DEFAULT_COLLECTION_STATUSES,
     };
   } catch {
-    // Database not ready (e.g., schema v4 migration pending on first run).
-    // Fall back to empty; store seeds defaults via mutation if needed.
     return EMPTY;
   }
 }
 
-// FTS5 search via Rust for queries >=3 chars; client-side fallback for shorter.
-export function useCollectionSearch(
-  query: string,
-  allItems: CollectionItem[]
-): CollectionItem[] {
-  const trimmed = query.trim();
-  const { data } = useQuery({
-    queryKey: ["collection-search", trimmed],
-    queryFn: async (): Promise<CollectionItem[]> => {
-      if (trimmed.length < 3) return allItems;
-      try {
-        const res = await invoke<RawCollectionItem[]>(
-          "search_collection_items",
-          {
-            query: trimmed,
-            limit: 500,
-          }
-        );
-        return res.map(normalizeItem);
-      } catch {
-        return allItems;
-      }
-    },
-    staleTime: 0,
-  });
-  if (trimmed.length < 3) return allItems;
-  return data ?? allItems;
+export function useCollectionSearch(query: string, allItems: CollectionItem[]): CollectionItem[] {
+  const intent = parseIntent(query);
+  const trimmed = intent.cleanQuery.trim();
+  const index = useMemo(() => buildCollectionSearchIndex(allItems), [allItems]);
+  return trimmed.length < 3 ? allItems : searchCollectionIndex(index, trimmed);
 }
 
 export function useCollectionData(): CollectionDataState {
   const { data } = useQuery({
-    queryKey: [QUERY_KEY],
+    queryKey: [COLLECTION_QUERY_KEY],
     queryFn: fetchCollectionData,
-    // Keep fresh: data is the source of truth, UI mutations invalidate.
-    staleTime: 0,
+    staleTime: 60_000,
     gcTime: Infinity,
   });
   return data ?? EMPTY;
@@ -124,8 +114,7 @@ export function useCollectionData(): CollectionDataState {
 
 export function useCollectionMutations() {
   const queryClient = useQueryClient();
-  const invalidate = () =>
-    queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: [COLLECTION_QUERY_KEY] });
 
   const genId = (prefix: string) =>
     `${prefix}_${Math.random().toString(36).slice(2, 10)}_${Date.now()}`;
@@ -146,13 +135,7 @@ export function useCollectionMutations() {
   });
 
   const updateItem = useMutation({
-    mutationFn: async ({
-      id,
-      patch,
-    }: {
-      id: string;
-      patch: Partial<CollectionItem>;
-    }) => {
+    mutationFn: async ({ id, patch }: { id: string; patch: Partial<CollectionItem> }) => {
       const items = await invoke<RawCollectionItem[]>("list_collection_items");
       const cur = items.find((i) => i.id === id);
       if (!cur) return;
@@ -169,66 +152,6 @@ export function useCollectionMutations() {
   const removeItem = useMutation({
     mutationFn: async (id: string) => {
       await invoke("delete_collection_item", { id });
-    },
-    onSuccess: invalidate,
-  });
-
-  const addReview = useMutation({
-    mutationFn: async ({
-      itemId,
-      review,
-    }: {
-      itemId: string;
-      review: Omit<
-        CollectionReview,
-        | "id"
-        | "itemId"
-        | "createdAt"
-        | "updatedAt"
-        | "orphaned"
-        | "snapshotTitle"
-      >;
-    }) => {
-      const id = genId("rev");
-      const at = Date.now();
-      const full: CollectionReview = {
-        ...review,
-        id,
-        itemId,
-        createdAt: at,
-        updatedAt: at,
-        orphaned: false,
-        snapshotTitle: null,
-      };
-      await invoke("upsert_collection_review", { review: full });
-      return id;
-    },
-    onSuccess: invalidate,
-  });
-
-  const updateReview = useMutation({
-    mutationFn: async ({
-      id,
-      patch,
-    }: {
-      id: string;
-      patch: Partial<Pick<CollectionReview, "rating" | "comment">>;
-    }) => {
-      const reviews = await invoke<CollectionReview[]>(
-        "list_collection_reviews"
-      );
-      const cur = reviews.find((r) => r.id === id);
-      if (!cur) return;
-      await invoke("upsert_collection_review", {
-        review: { ...cur, ...patch, updatedAt: Date.now() },
-      });
-    },
-    onSuccess: invalidate,
-  });
-
-  const removeReview = useMutation({
-    mutationFn: async (id: string) => {
-      await invoke("delete_collection_review", { id });
     },
     onSuccess: invalidate,
   });
@@ -270,28 +193,52 @@ export function useCollectionMutations() {
     updateItem: (id: string, patch: Partial<CollectionItem>) =>
       updateItem.mutateAsync({ id, patch }),
     removeItem: (id: string) => removeItem.mutateAsync(id),
-    addReview: (
-      itemId: string,
-      review: Omit<
-        CollectionReview,
-        | "id"
-        | "itemId"
-        | "createdAt"
-        | "updatedAt"
-        | "orphaned"
-        | "snapshotTitle"
-      >
-    ) => addReview.mutateAsync({ itemId, review }),
-    updateReview: (
-      id: string,
-      patch: Partial<Pick<CollectionReview, "rating" | "comment">>
-    ) => updateReview.mutateAsync({ id, patch }),
-    removeReview: (id: string) => removeReview.mutateAsync(id),
-    addCustomFieldDef: (def: Omit<CustomFieldDef, "id">) =>
-      addCustomFieldDef.mutateAsync(def),
+    addCustomFieldDef: (def: Omit<CustomFieldDef, "id">) => addCustomFieldDef.mutateAsync(def),
     removeCustomFieldDef: (id: string) => removeCustomFieldDef.mutateAsync(id),
-    upsertStatus: (status: CollectionStatusDef) =>
-      upsertStatus.mutateAsync(status),
+    upsertStatus: (status: CollectionStatusDef) => upsertStatus.mutateAsync(status),
     deleteStatus: (id: string) => deleteStatus.mutateAsync(id),
+  };
+}
+
+const RELEASE_KEY = "release-subscriptions" as const;
+
+export function useReleaseSubscriptions(): ReleaseSubscription[] {
+  const { data } = useQuery({
+    queryKey: [RELEASE_KEY],
+    queryFn: async () => invoke<ReleaseSubscription[]>("list_release_subscriptions"),
+    staleTime: 0,
+  });
+  return data ?? [];
+}
+
+export function useReleaseSubscriptionMutations() {
+  const queryClient = useQueryClient();
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: [RELEASE_KEY] });
+  const genId = (prefix: string) =>
+    `${prefix}_${Math.random().toString(36).slice(2, 10)}_${Date.now()}`;
+  const upsert = useMutation({
+    mutationFn: async (sub: Omit<ReleaseSubscription, "id" | "createdAt"> & { id?: string }) => {
+      const full: ReleaseSubscription = {
+        id: sub.id ?? genId("rel"),
+        mediaId: sub.mediaId,
+        mediaType: sub.mediaType,
+        title: sub.title,
+        lastCheckedAt: sub.lastCheckedAt ?? null,
+        nextAiringAt: sub.nextAiringAt ?? null,
+        createdAt: Date.now(),
+      };
+      await invoke("upsert_release_subscription", { sub: full });
+      return full.id;
+    },
+    onSuccess: invalidate,
+  });
+  const remove = useMutation({
+    mutationFn: async (id: string) => invoke("delete_release_subscription", { id }),
+    onSuccess: invalidate,
+  });
+  return {
+    upsert: (sub: Omit<ReleaseSubscription, "id" | "createdAt"> & { id?: string }) =>
+      upsert.mutateAsync(sub),
+    remove: (id: string) => remove.mutateAsync(id),
   };
 }

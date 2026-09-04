@@ -47,7 +47,7 @@ export function useCollectionDataActions() {
       });
       if (!path) return;
       await invoke("export_collection_zip", { outPath: path });
-      notify("success", "collection.export.zipDone");
+      notify("success", "collection.export.zip.done");
     } catch {
       notify("error", "collection.export.error");
     }
@@ -74,9 +74,7 @@ export function useCollectionDataActions() {
           })
         );
       } catch (err) {
-        useNotificationStore
-          .getState()
-          .add(t("app.collection"), "error", String(err));
+        useNotificationStore.getState().add(t("app.collection"), "error", String(err));
       }
     },
     [t]

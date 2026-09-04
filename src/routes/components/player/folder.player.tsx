@@ -1,14 +1,7 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { openPath } from "@tauri-apps/plugin-opener";
 import { parse } from "anitomy";
-import {
-  ChevronDown,
-  ChevronRight,
-  ListVideo,
-  Monitor,
-  EyeOff,
-  X,
-} from "lucide-react";
+import { ChevronDown, ChevronRight, ListVideo, Monitor, EyeOff, X } from "lucide-react";
 import { useState, useRef, useMemo, useCallback } from "react";
 
 import { SmallLoader } from "@/components/shared/loader.component";
@@ -49,9 +42,7 @@ function FolderView({
   const showTrackFiles = useSettingsStore((s) => s.showTrackFiles);
   const audioExtensions = useSettingsStore((s) => s.audioExtensions);
   const subtitleExtensions = useSettingsStore((s) => s.subtitleExtensions);
-  const setAnilistSearchQuery = useSearchStore(
-    (state) => state.setAnilistSearchQuery
-  );
+  const setAnilistSearchQuery = useSearchStore((state) => state.setAnilistSearchQuery);
   const parseTitles = useSettingsStore((state) => state.parseTitles);
   const { t } = useI18n();
 
@@ -88,15 +79,7 @@ function FolderView({
   }, []);
 
   const flatItems = useMemo(
-    () =>
-      flattenTree(
-        node,
-        open,
-        searchQuery,
-        disabledExtensions,
-        depth,
-        trackExts
-      ),
+    () => flattenTree(node, open, searchQuery, disabledExtensions, depth, trackExts),
     [node, open, searchQuery, disabledExtensions, depth, trackExts]
   );
 
@@ -117,8 +100,7 @@ function FolderView({
     );
   };
 
-  const countAll =
-    node.files.length + node.children.reduce((s, c) => s + c.files.length, 0);
+  const countAll = node.files.length + node.children.reduce((s, c) => s + c.files.length, 0);
 
   if (flatItems.length === 0) return null;
 
@@ -170,24 +152,20 @@ function FolderView({
           {depth === 0 && (
             <>
               <span className="text-hint text-xs whitespace-nowrap select-none">
-                {t("player.folder.fileCount", { count: countAll })}
+                {t("player.folder.file.count", { count: countAll })}
               </span>
               {onGenerate && (
                 <Button
                   size="icon"
                   className="h-5 w-5"
-                  title={t("player.folder.generatePreview")}
+                  title={t("player.folder.generate.preview")}
                   disabled={isGenerating}
                   onClick={(e) => {
                     e.stopPropagation();
                     onGenerate(node.path, node.name);
                   }}
                 >
-                  <ImageComponent
-                    src="/images/w2k_bitmap_image.ico"
-                    alt=""
-                    className="size-4"
-                  />
+                  <ImageComponent src="/images/w2k_bitmap_image.ico" alt="" className="size-4" />
                 </Button>
               )}
               {onRemove && (
@@ -215,10 +193,7 @@ function FolderView({
           className="overflow-y-auto"
           style={{ maxHeight: flatItems.length > 50 ? 300 : undefined }}
         >
-          <div
-            className="relative"
-            style={{ height: virtualizer.getTotalSize() }}
-          >
+          <div className="relative" style={{ height: virtualizer.getTotalSize() }}>
             {virtualizer.getVirtualItems().map((vItem, index) => {
               const item = flatItems[vItem.index];
               if (!item) return null;
@@ -252,10 +227,7 @@ function FolderView({
                         alt=""
                         className="size-4 shrink-0"
                       />
-                      <span
-                        className="truncate select-none"
-                        title={item.node.name}
-                      >
+                      <span className="truncate select-none" title={item.node.name}>
                         {item.node.name}
                       </span>
                     </button>
@@ -288,11 +260,7 @@ function FolderView({
                     paddingLeft: `${item.depth * 12 + 2}px`,
                   }}
                 >
-                  <ImageComponent
-                    src="/images/w2k_wmp_11.ico"
-                    alt=""
-                    className="size-4"
-                  />
+                  <ImageComponent src="/images/w2k_wmp_11.ico" alt="" className="size-4" />
                   <span
                     title={file.name}
                     className="windows95-text flex-1 truncate select-none"
@@ -309,45 +277,31 @@ function FolderView({
                     {parseTitles ? formatParsedTitle(file.name, t) : file.name}
                   </span>
 
-                  <span className="windows95-text text-hint">
-                    {fmtSize(file.size)}
-                  </span>
+                  <span className="windows95-text text-hint">{fmtSize(file.size)}</span>
 
                   {(() => {
-                    const status = file.path
-                      ? queueMap.get(file.path)
-                      : undefined;
+                    const status = file.path ? queueMap.get(file.path) : undefined;
                     if (!status) return null;
                     if (status === "queued")
-                      return (
-                        <ListVideo className="text-hint size-3 shrink-0" />
-                      );
+                      return <ListVideo className="text-hint size-3 shrink-0" />;
                     if (status === "processing")
-                      return (
-                        <SmallLoader
-                          size={3}
-                          className="text-highlight shrink-0"
-                        />
-                      );
+                      return <SmallLoader size={3} className="text-highlight shrink-0" />;
                     return null;
                   })()}
 
-                  {!disabled && file.path && (
-                    <UpscalePlayer filePath={file.path} />
-                  )}
+                  {!disabled && file.path && <UpscalePlayer filePath={file.path} />}
                   <Button
                     size="icon"
                     className="h-4 w-4"
                     disabled={disabled}
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (file.path)
-                        openFileInPlayer(file.path).catch(() => {});
+                      if (file.path) openFileInPlayer(file.path).catch(() => {});
                     }}
                     title={
                       disabled
-                        ? t("player.folder.trackDisabled")
-                        : t("player.folder.openMediaPlayer")
+                        ? t("player.folder.track.disabled")
+                        : t("player.folder.open.media.player")
                     }
                   >
                     <Monitor className="size-3" />

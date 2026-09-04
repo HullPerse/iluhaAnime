@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { SOURCE_INFOS } from "@/config/search.config";
 import { useI18n } from "@/lib/i18n";
-import { detectLanguages, formatSize } from "@/lib/index.utils";
+import { cn, detectLanguages, formatSize } from "@/lib/index.utils";
 import { getLanguageColors } from "@/lib/search.logic";
 import type { Anime } from "@/types";
 
@@ -33,8 +33,7 @@ export default function SearchResultItem({
   const isLoadingMag = loadingMagnet[item.link];
   const colors = getLanguageColors();
   const { t } = useI18n();
-  const sourceLabel =
-    SOURCE_INFOS.find((info) => info.value === source)?.label ?? source;
+  const sourceLabel = SOURCE_INFOS.find((info) => info.value === source)?.label ?? source;
   const hasMagnet = Boolean(item.magnet) || source === "rutracker";
 
   return (
@@ -55,7 +54,7 @@ export default function SearchResultItem({
             {detectLanguages(item.title).map((l) => (
               <span
                 key={l.code}
-                className={`windows95-font px-1 text-xs ${colors[l.code as keyof typeof colors] || "bg-muted text-white"}`}
+                className={cn("windows95-font px-1 text-xs", colors[l.code as keyof typeof colors] || "bg-muted text-white")}
               >
                 {l.label}
               </span>
@@ -65,9 +64,7 @@ export default function SearchResultItem({
         <div className="flex shrink-0 items-center gap-1">
           <span className="windows95-text">{formatSize(item.size)}</span>
           <span className="windows95-text text-success">S:{item.seeders}</span>
-          <span className="windows95-text text-destructive">
-            L:{item.leechers}
-          </span>
+          <span className="windows95-text text-destructive">L:{item.leechers}</span>
         </div>
       </div>
 
@@ -85,7 +82,7 @@ export default function SearchResultItem({
         {isLoadingMag ? (
           <div className="flex items-center gap-1">
             <SmallLoader size={3} />
-            <span className="windows95-text">{t("search.loadingMagnet")}</span>
+            <span className="windows95-text">{t("search.loading.magnet")}</span>
           </div>
         ) : hasMagnet ? (
           <>
@@ -119,11 +116,7 @@ export default function SearchResultItem({
               onClick={() => onOpenLink(item)}
               className="windows95-active-border bg-primary windows95-text text-text inline-flex cursor-pointer items-center gap-0.5 px-2 py-0.5 no-underline"
             >
-              <ImageComponent
-                src="/images/w2k_globe.ico"
-                alt=""
-                className="size-4"
-              />
+              <ImageComponent src="/images/w2k_globe.ico" alt="" className="size-4" />
               {t("search.open")}
             </Button>
           )

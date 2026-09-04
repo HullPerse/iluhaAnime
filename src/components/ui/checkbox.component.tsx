@@ -1,3 +1,5 @@
+import { Check } from "lucide-react";
+
 import { Checkbox as CheckboxPrimitive } from "@base-ui/react/checkbox";
 
 import { cn } from "@/lib/index.utils";
@@ -25,7 +27,7 @@ function Checkbox({
       )}
     >
       <CheckboxPrimitive.Indicator>
-        <span style={{ transform: "scaleX(1.4)" }}>✓</span>
+        <Check className="size-3" aria-hidden />
       </CheckboxPrimitive.Indicator>
     </CheckboxPrimitive.Root>
   );

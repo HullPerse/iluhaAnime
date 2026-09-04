@@ -23,9 +23,7 @@ describe("useAniListFriendsStore", () => {
     expect(useAniListFriendsStore.getState().friends).toEqual([
       expect.objectContaining({ ...friend }),
     ]);
-    expect(
-      useAniListFriendsStore.getState().friends[0].added_at
-    ).toBeGreaterThan(0);
+    expect(useAniListFriendsStore.getState().friends[0].added_at).toBeGreaterThan(0);
   });
 
   it("updates an existing friend instead of duplicating it", () => {
@@ -73,8 +71,6 @@ describe("useAniListFriendsStore", () => {
 
     useAniListFriendsStore.getState().removeFriend(friend.id);
 
-    expect(
-      useAniListFriendsStore.getState().friends.map((item) => item.id)
-    ).toEqual([7]);
+    expect(useAniListFriendsStore.getState().friends.map((item) => item.id)).toEqual([7]);
   });
 });

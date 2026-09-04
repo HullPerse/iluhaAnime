@@ -149,27 +149,25 @@ describe("sortEntries", () => {
   ];
 
   it("sorts by title ascending and descending", () => {
-    expect(
-      sortEntries(entries, "asc", "title").map((e) => e.media.title)
-    ).toEqual(["AoT", "Bleach", "Naruto"]);
-    expect(
-      sortEntries(entries, "desc", "title").map((e) => e.media.title)
-    ).toEqual(["Naruto", "Bleach", "AoT"]);
+    expect(sortEntries(entries, "asc", "title").map((e) => e.media.title)).toEqual([
+      "AoT",
+      "Bleach",
+      "Naruto",
+    ]);
+    expect(sortEntries(entries, "desc", "title").map((e) => e.media.title)).toEqual([
+      "Naruto",
+      "Bleach",
+      "AoT",
+    ]);
   });
 
   it("sorts by score descending and ascending", () => {
-    expect(
-      sortEntries(entries, "desc", "score").map((e) => e.media.score)
-    ).toEqual([9, 8, 7]);
-    expect(
-      sortEntries(entries, "asc", "score").map((e) => e.media.score)
-    ).toEqual([7, 8, 9]);
+    expect(sortEntries(entries, "desc", "score").map((e) => e.media.score)).toEqual([9, 8, 7]);
+    expect(sortEntries(entries, "asc", "score").map((e) => e.media.score)).toEqual([7, 8, 9]);
   });
 
   it("sorts by progress descending", () => {
-    expect(
-      sortEntries(entries, "desc", "progress").map((e) => e.progress)
-    ).toEqual([10, 5, 1]);
+    expect(sortEntries(entries, "desc", "progress").map((e) => e.progress)).toEqual([10, 5, 1]);
   });
 });
 
@@ -225,19 +223,11 @@ describe("filterGraph", () => {
   it("includes OTHER group relation types", () => {
     const mangaGraph: FranchiseGraph = {
       edges: [{ source: 1, target: 4, relation_type: "ADAPTATION" }],
-      nodes: [
-        makeNode({ id: 1, title: "Naruto" }),
-        makeNode({ id: 4, title: "Manga" }),
-      ],
+      nodes: [makeNode({ id: 1, title: "Naruto" }), makeNode({ id: 4, title: "Manga" })],
       root_id: 1,
     };
-    const filtered = filterGraph(
-      mangaGraph,
-      new Set<RelationFilter>(["OTHER"])
-    );
-    expect(filtered.edges).toEqual([
-      { relation_type: "ADAPTATION", source: 1, target: 4 },
-    ]);
+    const filtered = filterGraph(mangaGraph, new Set<RelationFilter>(["OTHER"]));
+    expect(filtered.edges).toEqual([{ relation_type: "ADAPTATION", source: 1, target: 4 }]);
   });
 
   it("drops non-anime nodes and their edges", () => {
@@ -272,13 +262,7 @@ describe("filterGraph", () => {
     };
     const filtered = filterGraph(
       franchiseGraph,
-      new Set<RelationFilter>([
-        "SEQUEL",
-        "PREQUEL",
-        "SIDE_STORY",
-        "SPIN_OFF",
-        "OTHER",
-      ])
+      new Set<RelationFilter>(["SEQUEL", "PREQUEL", "SIDE_STORY", "SPIN_OFF", "OTHER"])
     );
     expect(filtered.nodeMap.size).toBe(6);
     expect(filtered.edges).toHaveLength(5);
@@ -331,11 +315,7 @@ describe("sortFranchiseNodes", () => {
       makeNode({ id: 2, title: "Alpha", year: 2002 }),
       makeNode({ id: 3, title: "Beta", year: 2005 }),
     ];
-    expect(sortFranchiseNodes(nodes).map((n) => n.title)).toEqual([
-      "Alpha",
-      "Beta",
-      "Zeta",
-    ]);
+    expect(sortFranchiseNodes(nodes).map((n) => n.title)).toEqual(["Alpha", "Beta", "Zeta"]);
   });
 
   it("treats missing years as zero", () => {
@@ -343,10 +323,7 @@ describe("sortFranchiseNodes", () => {
       makeNode({ id: 1, title: "Unknown", year: null }),
       makeNode({ id: 2, title: "Old", year: 1999 }),
     ];
-    expect(sortFranchiseNodes(nodes).map((n) => n.title)).toEqual([
-      "Unknown",
-      "Old",
-    ]);
+    expect(sortFranchiseNodes(nodes).map((n) => n.title)).toEqual(["Unknown", "Old"]);
   });
 });
 
@@ -437,27 +414,25 @@ describe("sortAniMediaList", () => {
   ];
 
   it("keeps relevance order untouched", () => {
-    expect(
-      sortAniMediaList(results, "relevance", "asc").map((m) => m.id)
-    ).toEqual([1, 2, 3]);
+    expect(sortAniMediaList(results, "relevance", "asc").map((m) => m.id)).toEqual([1, 2, 3]);
   });
 
   it("sorts by title", () => {
-    expect(
-      sortAniMediaList(results, "title", "asc").map((m) => m.title)
-    ).toEqual(["AoT", "Bleach", "Naruto"]);
+    expect(sortAniMediaList(results, "title", "asc").map((m) => m.title)).toEqual([
+      "AoT",
+      "Bleach",
+      "Naruto",
+    ]);
   });
 
   it("sorts by score descending by default", () => {
-    expect(
-      sortAniMediaList(results, "score", "desc").map((m) => m.score)
-    ).toEqual([9, 8, 7]);
+    expect(sortAniMediaList(results, "score", "desc").map((m) => m.score)).toEqual([9, 8, 7]);
   });
 
   it("sorts by year ascending", () => {
-    expect(
-      sortAniMediaList(results, "year", "asc").map((m) => m.season_year)
-    ).toEqual([2002, 2004, 2013]);
+    expect(sortAniMediaList(results, "year", "asc").map((m) => m.season_year)).toEqual([
+      2002, 2004, 2013,
+    ]);
   });
 });
 
@@ -505,14 +480,7 @@ describe("buildSimNodes", () => {
       [1, "ROOT"],
       [2, "SEQUEL"],
     ]);
-    const { simNodes } = buildSimNodes(
-      filtered,
-      1000,
-      1,
-      600,
-      { h: 95, w: 70 },
-      relationMap
-    );
+    const { simNodes } = buildSimNodes(filtered, 1000, 1, 600, { h: 95, w: 70 }, relationMap);
     expect(simNodes).toHaveLength(2);
     const root = simNodes.find((n) => n.id === 1)!;
     expect(root.clusterX).toBe(500);
@@ -593,12 +561,7 @@ describe("computeMainlineIds", () => {
         { relation_type: "SEQUEL", source: 2, target: 3 },
         { relation_type: "SIDE_STORY", source: 1, target: 4 },
       ],
-      nodes: [
-        makeNode({ id: 1 }),
-        makeNode({ id: 2 }),
-        makeNode({ id: 3 }),
-        makeNode({ id: 4 }),
-      ],
+      nodes: [makeNode({ id: 1 }), makeNode({ id: 2 }), makeNode({ id: 3 }), makeNode({ id: 4 })],
       root_id: 1,
     };
     const nodeMap = new Map(graph.nodes.map((n) => [n.id, n] as const));
@@ -633,13 +596,7 @@ describe("collapseGraph", () => {
       [4, "SIDE_STORY"],
       [5, "SPIN_OFF"],
     ]);
-    const { graph, aggregators } = collapseGraph(
-      filtered,
-      relationMap,
-      1,
-      2,
-      new Set()
-    );
+    const { graph, aggregators } = collapseGraph(filtered, relationMap, 1, 2, new Set());
     expect(graph.nodeMap.size).toBe(5);
     const aggregatorId = [...aggregators.keys()][0];
     expect(aggregators.get(aggregatorId)?.count).toBe(1);

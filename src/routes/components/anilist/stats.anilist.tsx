@@ -1,3 +1,4 @@
+import { cn } from "@/lib/index.utils";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useState, useMemo } from "react";
 
@@ -77,9 +78,7 @@ function StatsModal({
     for (let d = 1; d <= daysInMonth; d++) {
       const dateStart = Math.floor(new Date(year, month, d).getTime() / 1000);
       const dateEnd = dateStart + 86_400;
-      const dayEntries = allEntries.filter(
-        (e) => e.airingAt >= dateStart && e.airingAt < dateEnd
-      );
+      const dayEntries = allEntries.filter((e) => e.airingAt >= dateStart && e.airingAt < dateEnd);
       cells.push({ date: d, entries: dayEntries });
     }
     return cells;
@@ -90,15 +89,10 @@ function StatsModal({
   const today = now.getDate();
   const isCurrentMonth = now.getMonth() === month && now.getFullYear() === year;
 
-  const dayEntries =
-    selectedDay == null ? [] : (calendarCells[selectedDay - 1]?.entries ?? []);
+  const dayEntries = selectedDay == null ? [] : (calendarCells[selectedDay - 1]?.entries ?? []);
 
   return (
-    <Modal
-      header={t("anilist.stats.title")}
-      onClose={onClose}
-      className="w-3xl"
-    >
+    <Modal header={t("anilist.stats.title")} onClose={onClose} className="w-3xl">
       {selectedDay == null ? (
         <main className="flex flex-col">
           <div className="mb-1 flex h-6 items-center justify-between px-1">
@@ -129,9 +123,7 @@ function StatsModal({
               {[0, 1, 2, 3, 4, 5, 6].map((i) => (
                 <div
                   key={i}
-                  className={`windows95-font border-t-muted border-l-muted border-r border-b p-1 text-center text-xs font-bold ${
-                    i >= 5 ? "text-destructive" : "text-text"
-                  }`}
+                  className={cn("windows95-font border-t-muted border-l-muted border-r border-b p-1 text-center text-xs font-bold", i >= 5 ? "text-destructive" : "text-text")}
                 >
                   {dayLabel(i, locale)}
                 </div>
@@ -157,22 +149,10 @@ function StatsModal({
                 return (
                   <div
                     key={day}
-                    className={`border-t-muted border-l-muted relative flex h-26 flex-col overflow-hidden border-r border-b ${
-                      isToday
-                        ? "bg-secondary/10"
-                        : isWeekend
-                          ? "bg-surface/20"
-                          : "bg-white"
-                    }`}
+                    className={cn("border-t-muted border-l-muted relative flex h-26 flex-col overflow-hidden border-r border-b", isToday ? "bg-secondary/10" : isWeekend ? "bg-surface/20" : "bg-white")}
                   >
                     <span
-                      className={`px-1 text-xs leading-tight ${
-                        isToday
-                          ? "bg-secondary font-bold text-white"
-                          : isWeekend
-                            ? "text-destructive font-bold"
-                            : "text-text font-bold"
-                      }`}
+                      className={cn("px-1 text-xs leading-tight", isToday ? "bg-secondary font-bold text-white" : isWeekend ? "text-destructive font-bold" : "text-text font-bold")}
                     >
                       {day}
                     </span>
@@ -204,7 +184,7 @@ function StatsModal({
                         {cell.entries.length > 1 && (
                           <button
                             type="button"
-                            aria-label={t("anilist.stats.moreReleases", {
+                            aria-label={t("anilist.stats.more.releases", {
                               count: cell.entries.length,
                               date: `${day} ${monthLabel(month, locale, "long")} ${year}`,
                             })}
@@ -253,9 +233,7 @@ function StatsModal({
                     className="windows95-border h-11 w-8 shrink-0"
                   />
                 )}
-                <span className="windows95-font flex-1 truncate text-xs">
-                  {entry.title}
-                </span>
+                <span className="windows95-font flex-1 truncate text-xs">{entry.title}</span>
                 {entry.episode != null && (
                   <span className="text-hint windows95-font shrink-0 text-xs">
                     {t("anilist.activity.episode", { n: entry.episode })}
@@ -265,7 +243,7 @@ function StatsModal({
             ))}
             {dayEntries.length === 0 && (
               <div className="text-hint windows95-font flex h-80 items-center justify-center text-xs">
-                {t("anilist.stats.noReleases")}
+                {t("anilist.stats.no.releases")}
               </div>
             )}
           </section>

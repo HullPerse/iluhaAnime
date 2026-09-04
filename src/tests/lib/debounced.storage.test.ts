@@ -44,10 +44,7 @@ describe("createDebouncedStorage", () => {
 
     vi.advanceTimersByTime(1);
     expect(storage.setItem).toHaveBeenCalledTimes(1);
-    expect(storage.setItem).toHaveBeenCalledWith(
-      "search",
-      JSON.stringify(value())
-    );
+    expect(storage.setItem).toHaveBeenCalledWith("search", JSON.stringify(value()));
   });
 
   it("coalesces rapid writes to the same key into one", () => {

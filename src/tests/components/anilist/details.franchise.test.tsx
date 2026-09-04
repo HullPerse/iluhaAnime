@@ -66,12 +66,8 @@ vi.mock("@tauri-apps/api/core", () => ({
 }));
 
 vi.mock("react-zoom-pan-pinch", () => ({
-  TransformComponent: ({ children }: { children: ReactNode }) => (
-    <div>{children}</div>
-  ),
-  TransformWrapper: ({ children }: { children: ReactNode }) => (
-    <div>{children}</div>
-  ),
+  TransformComponent: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  TransformWrapper: ({ children }: { children: ReactNode }) => <div>{children}</div>,
 }));
 
 import FranchiseGraphSection from "@/routes/components/anilist/details.franchise";
@@ -91,8 +87,7 @@ function renderFranchise() {
 beforeEach(() => {
   invokeMock.mockReset();
   invokeMock.mockImplementation((command: string) => {
-    if (command === "get_anime_franchise")
-      return Promise.resolve(franchiseGraph);
+    if (command === "get_anime_franchise") return Promise.resolve(franchiseGraph);
     return Promise.resolve(undefined);
   });
   useSettingsStore.setState({ language: "en" });
@@ -130,15 +125,15 @@ describe("FranchiseGraphSection", () => {
     });
 
     // Graph nodes carry their title in the title attribute.
-    expect(
-      document.querySelector("#franchise-node-1")?.getAttribute("title")
-    ).toContain("Franchise root");
-    expect(
-      document.querySelector("#franchise-node-2")?.getAttribute("title")
-    ).toContain("Second season");
-    expect(
-      document.querySelector("#franchise-node-3")?.getAttribute("title")
-    ).toContain("Side story");
+    expect(document.querySelector("#franchise-node-1")?.getAttribute("title")).toContain(
+      "Franchise root"
+    );
+    expect(document.querySelector("#franchise-node-2")?.getAttribute("title")).toContain(
+      "Second season"
+    );
+    expect(document.querySelector("#franchise-node-3")?.getAttribute("title")).toContain(
+      "Side story"
+    );
 
     // SPIN_OFF is not in the default filter set, so it never renders.
     expect(screen.queryByText("Spin-off")).toBeNull();
@@ -147,12 +142,8 @@ describe("FranchiseGraphSection", () => {
     await user.click(screen.getByRole("button", { name: "List" }));
 
     await waitFor(() => {
-      expect(
-        screen.getByRole("button", { name: "Franchise root" })
-      ).toBeTruthy();
-      expect(
-        screen.getByRole("button", { name: "Second season" })
-      ).toBeTruthy();
+      expect(screen.getByRole("button", { name: "Franchise root" })).toBeTruthy();
+      expect(screen.getByRole("button", { name: "Second season" })).toBeTruthy();
       expect(screen.getByRole("button", { name: "Side story" })).toBeTruthy();
       expect(screen.queryByRole("button", { name: "Spin-off" })).toBeNull();
     });

@@ -1,14 +1,8 @@
+import { cn } from "@/lib/index.utils";
 import { invoke } from "@tauri-apps/api/core";
 import { openPath } from "@tauri-apps/plugin-opener";
 import { parse } from "anitomy";
-import {
-  ChevronDown,
-  ChevronRight,
-  ListVideo,
-  Monitor,
-  Play,
-  RefreshCw,
-} from "lucide-react";
+import { ChevronDown, ChevronRight, ListVideo, Monitor, Play, RefreshCw } from "lucide-react";
 
 import { SmallLoader } from "@/components/shared/loader.component";
 import { Button } from "@/components/ui/button.component";
@@ -30,8 +24,7 @@ type TorrentTreeFileWithPath = TorrentTreeFile & { _fullPath: string };
 
 function QueueStatusIcon({ status }: { status: string | undefined }) {
   if (status === "queued") return <ListVideo className="text-hint size-3" />;
-  if (status === "processing")
-    return <SmallLoader size={3} className="text-highlight" />;
+  if (status === "processing") return <SmallLoader size={3} className="text-highlight" />;
   return null;
 }
 
@@ -60,8 +53,7 @@ export function FolderRow({
     .map((i) => files.find((f) => f.index === i))
     .filter((f): f is TorrentFileInfo => f !== undefined);
   const folderPriority =
-    folderFiles.length > 0 &&
-    folderFiles.every((f) => f.priority === folderFiles[0].priority)
+    folderFiles.length > 0 && folderFiles.every((f) => f.priority === folderFiles[0].priority)
       ? folderFiles[0].priority
       : "normal";
 
@@ -74,20 +66,13 @@ export function FolderRow({
         paddingLeft: `${depth * 12 + 2}px`,
       }}
     >
-      <div
-        className="flex min-w-0 flex-1 items-center gap-1"
-        onClick={onToggleFolder}
-      >
+      <div className="flex min-w-0 flex-1 items-center gap-1" onClick={onToggleFolder}>
         {isOpen ? (
           <ChevronDown className="size-3 shrink-0" />
         ) : (
           <ChevronRight className="size-3 shrink-0" />
         )}
-        <ImageComponent
-          src="/images/w2k_folder_closed.ico"
-          alt=""
-          className="size-4 shrink-0"
-        />
+        <ImageComponent src="/images/w2k_folder_closed.ico" alt="" className="size-4 shrink-0" />
         <span className="truncate font-bold" title={node.name}>
           {node.name}
         </span>
@@ -98,11 +83,7 @@ export function FolderRow({
                 (s, c) =>
                   s +
                   c.files.reduce((s2, f) => s2 + f.size, 0) +
-                  c.children.reduce(
-                    (s3, cc) =>
-                      s3 + cc.files.reduce((s4, f) => s4 + f.size, 0),
-                    0
-                  ),
+                  c.children.reduce((s3, cc) => s3 + cc.files.reduce((s4, f) => s4 + f.size, 0), 0),
                 0
               )
           )}
@@ -168,23 +149,15 @@ function PlayerFileActions({
             }}
             disabled={!upscaledExtra}
           >
-            <ImageComponent
-              src="/images/w2k_dustbin.ico"
-              alt=""
-              className="size-4"
-            />
+            <ImageComponent src="/images/w2k_dustbin.ico" alt="" className="size-4" />
           </Button>
 
           <QueueStatusIcon status={queueMap.get(fullPath)} />
 
-          <UpscalePlayer
-            filePath={fullPath}
-            onDone={onUpscaleDone}
-            exists={file.exists}
-          />
+          <UpscalePlayer filePath={fullPath} onDone={onUpscaleDone} exists={file.exists} />
           {onPlay && (
             <Button
-              title={t("player.folder.builtinPlayer")}
+              title={t("player.folder.builtin.player")}
               size="icon"
               className="size-4"
               onClick={(e) => {
@@ -197,7 +170,7 @@ function PlayerFileActions({
             </Button>
           )}
           <Button
-            title={t("player.folder.openMediaPlayer")}
+            title={t("player.folder.open.media.player")}
             size="icon"
             className="size-4"
             onClick={(e) => {
@@ -211,11 +184,7 @@ function PlayerFileActions({
         </>
       ) : (
         <>
-          {path && (
-            <QueueStatusIcon
-              status={queueMap.get(joinMediaPath(path, file.name))}
-            />
-          )}
+          {path && <QueueStatusIcon status={queueMap.get(joinMediaPath(path, file.name))} />}
 
           {path && (
             <UpscalePlayer
@@ -226,7 +195,7 @@ function PlayerFileActions({
           )}
           {path && onPlay && (
             <Button
-              title={t("player.folder.builtinPlayer")}
+              title={t("player.folder.builtin.player")}
               size="icon"
               className="size-4"
               onClick={(e) => {
@@ -240,15 +209,13 @@ function PlayerFileActions({
           )}
           {path && (
             <Button
-              title={t("player.folder.openMediaPlayer")}
+              title={t("player.folder.open.media.player")}
               size="icon"
               className="size-4"
               onClick={(e) => {
                 e.stopPropagation();
                 if (path) {
-                  openFileInPlayer(joinMediaPath(path, file.name)).catch(
-                    () => {}
-                  );
+                  openFileInPlayer(joinMediaPath(path, file.name)).catch(() => {});
                 }
               }}
               disabled={!file.exists}
@@ -295,14 +262,12 @@ export function TorrentFileRow({
 }) {
   const { t } = useI18n();
   const parseTitles = useSettingsStore((s) => s.parseTitles);
-  const setAnilistSearchQuery = useSearchStore(
-    (state) => state.setAnilistSearchQuery
-  );
+  const setAnilistSearchQuery = useSearchStore((state) => state.setAnilistSearchQuery);
   const fullPath = (file as TorrentTreeFileWithPath)._fullPath;
 
   return (
     <div
-      className={`windows95-text absolute top-0 left-0 flex w-full items-center gap-1 px-1 select-none ${type === "torrent" && file.completed ? "" : "hover:bg-surface hover:cursor-pointer"}`}
+      className={cn("windows95-text absolute top-0 left-0 flex w-full items-center gap-1 px-1 select-none", !(type === "torrent" && file.completed) && "hover:bg-surface hover:cursor-pointer")}
       style={{
         height: 18,
         transform: `translateY(${virtualStart}px)`,
@@ -318,11 +283,7 @@ export function TorrentFileRow({
         />
       )}
 
-      <ImageComponent
-        src="/images/w2k_wmp_11.ico"
-        alt=""
-        className="size-4"
-      />
+      <ImageComponent src="/images/w2k_wmp_11.ico" alt="" className="size-4" />
 
       <span
         className="flex-1 truncate"

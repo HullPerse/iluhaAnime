@@ -7,15 +7,83 @@ import type {
   AniListObservation,
 } from "@/types/anilist";
 
+function isValidFriend(
+  friend: unknown
+): friend is {
+  id: number;
+  name: string;
+  avatar?: unknown;
+  profile?: { id: number };
+  added_at?: unknown;
+  profile_fetched_at?: unknown;
+} {
+  if (!friend || typeof friend !== "object") return false;
+  const f = friend as { id: unknown; name: unknown };
+  return (
+    typeof f.id === "number" &&
+    Number.isInteger(f.id) &&
+    f.id > 0 &&
+    typeof f.name === "string" &&
+    f.name.trim().length > 0
+  );
+}
+
+function normalizeFriend(friend: unknown): AniListFriendsStore["friends"] {
+  if (!isValidFriend(friend)) return [];
+  const typed = friend as {
+    id: number;
+    name: string;
+    avatar?: unknown;
+    profile?: { id: number };
+    added_at?: unknown;
+    profile_fetched_at?: unknown;
+  };
+  const profile = typed.profile?.id === typed.id ? typed.profile : undefined;
+  const base: AniListFriendsStore["friends"][number] = {
+    id: typed.id,
+    name: typed.name.trim(),
+    avatar: typeof typed.avatar === "string" ? typed.avatar : null,
+    added_at: typeof typed.added_at === "number" && typed.added_at > 0 ? typed.added_at : 0,
+    ...(profile
+      ? { profile: profile as unknown as AniListFriendsStore["friends"][number]["profile"] }
+      : {}),
+    ...(typeof typed.profile_fetched_at === "number"
+      ? { profile_fetched_at: typed.profile_fetched_at }
+      : {}),
+  } as AniListFriendsStore["friends"][number];
+  return [base];
+}
+
+function normalizeObservation(obs: Partial<AniListObservation>): AniListObservation {
+  return {
+    signature: obs.signature ?? "",
+    status: obs.status ?? "",
+    title: obs.title ?? "",
+    updatedAt: obs.updatedAt ?? 0,
+    nextEpisode: obs.nextEpisode ?? null,
+    nextAiringAt: obs.nextAiringAt ?? null,
+  };
+}
+
+function migrateObservationsV2(
+  state: Partial<AniListNotificationsStore> & {
+    observations?: Record<string, Partial<AniListObservation>>;
+  }
+): Partial<AniListNotificationsStore> {
+  const migrated = { ...state.observations } as Record<string, AniListObservation>;
+  for (const key of Object.keys(migrated)) {
+    migrated[key] = normalizeObservation(migrated[key] as Partial<AniListObservation>);
+  }
+  return { initialized: !!state.initialized, observations: migrated };
+}
+
 export const useAniListFriendsStore = create<AniListFriendsStore>()(
   persist(
     (set) => ({
       addFriend: (friend) =>
         set((state) => ({
           friends: state.friends.some((item) => item.id === friend.id)
-            ? state.friends.map((item) =>
-                item.id === friend.id ? { ...item, ...friend } : item
-              )
+            ? state.friends.map((item) => (item.id === friend.id ? { ...item, ...friend } : item))
             : [...state.friends, { ...friend, added_at: Date.now() }],
         })),
       cacheProfile: (profile) =>
@@ -45,41 +113,7 @@ export const useAniListFriendsStore = create<AniListFriendsStore>()(
         }
         const state = persistedState as Partial<AniListFriendsStore>;
         return {
-          friends: Array.isArray(state.friends)
-            ? state.friends.flatMap((friend) => {
-                if (
-                  !friend ||
-                  typeof friend !== "object" ||
-                  typeof friend.id !== "number" ||
-                  !Number.isInteger(friend.id) ||
-                  friend.id <= 0 ||
-                  typeof friend.name !== "string" ||
-                  friend.name.trim().length === 0
-                ) {
-                  return [];
-                }
-                const profile =
-                  friend.profile && friend.profile.id === friend.id
-                    ? friend.profile
-                    : undefined;
-                return [
-                  {
-                    id: friend.id,
-                    name: friend.name.trim(),
-                    avatar:
-                      typeof friend.avatar === "string" ? friend.avatar : null,
-                    added_at:
-                      typeof friend.added_at === "number" && friend.added_at > 0
-                        ? friend.added_at
-                        : 0,
-                    ...(profile ? { profile } : {}),
-                    ...(typeof friend.profile_fetched_at === "number"
-                      ? { profile_fetched_at: friend.profile_fetched_at }
-                      : {}),
-                  },
-                ];
-              })
-            : [],
+          friends: Array.isArray(state.friends) ? state.friends.flatMap(normalizeFriend) : [],
         };
       },
       name: "anilistFriends",
@@ -93,38 +127,29 @@ export const useAniListNotificationsStore = create<AniListNotificationsStore>()(
     (set) => ({
       initialized: false,
       observations: {},
+      knownListNames: [],
       saveObservation: (id, observation) =>
         set((state) => ({
           observations: { ...state.observations, [id]: observation },
         })),
       setInitialized: (initialized) => set({ initialized }),
+      setKnownListNames: (knownListNames) => set({ knownListNames }),
     }),
     {
       migrate: (persistedState: unknown, version: number) => {
-        if (!persistedState || typeof persistedState !== "object") return { initialized: false, observations: {} };
+        if (!persistedState || typeof persistedState !== "object")
+          return { initialized: false, observations: {}, knownListNames: [] };
         const state = persistedState as Partial<AniListNotificationsStore> & {
           observations?: Record<string, Partial<AniListObservation> & { signature?: string }>;
         };
-        // v1 -> v2: add nextEpisode/nextAiringAt for missed-episode detection while app was closed
-        if (version < 2) {
-          const migrated = { ...state.observations } as Record<string, AniListObservation>;
-          for (const key of Object.keys(migrated)) {
-            const obs = migrated[key] as Partial<AniListObservation>;
-            migrated[key] = {
-              signature: obs.signature ?? "",
-              status: obs.status ?? "",
-              title: obs.title ?? "",
-              updatedAt: obs.updatedAt ?? 0,
-              nextEpisode: obs.nextEpisode ?? null,
-              nextAiringAt: obs.nextAiringAt ?? null,
-            };
-          }
-          return { initialized: !!state.initialized, observations: migrated };
-        }
-        return state as AniListNotificationsStore;
+        if (version < 2) return { ...migrateObservationsV2(state), knownListNames: [] };
+        return {
+          ...(state as AniListNotificationsStore),
+          knownListNames: Array.isArray(state.knownListNames) ? state.knownListNames : [],
+        };
       },
       name: "anilistReleaseObservations",
-      version: 2,
+      version: 3,
     }
   )
 );

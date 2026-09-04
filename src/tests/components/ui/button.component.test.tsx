@@ -13,9 +13,7 @@ describe("Button", () => {
       </form>
     );
 
-    expect(
-      screen.getByRole("button", { name: "Action" }).getAttribute("type")
-    ).toBe("button");
+    expect(screen.getByRole("button", { name: "Action" }).getAttribute("type")).toBe("button");
   });
 
   it("preserves an explicit submit type", () => {
@@ -25,9 +23,7 @@ describe("Button", () => {
       </form>
     );
 
-    expect(
-      screen.getByRole("button", { name: "Save" }).getAttribute("type")
-    ).toBe("submit");
+    expect(screen.getByRole("button", { name: "Save" }).getAttribute("type")).toBe("submit");
   });
 
   it("marks small loaders with the persistent spinner class", () => {

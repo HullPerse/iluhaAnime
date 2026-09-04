@@ -21,8 +21,7 @@ function repairLegacyCyrillic(value: string): string {
   const bytes = new Uint8Array(
     Array.from(
       value,
-      (character) =>
-        reverseCodePage.get(character) ?? character.codePointAt(0) ?? 0x3f
+      (character) => reverseCodePage.get(character) ?? character.codePointAt(0) ?? 0x3f
     )
   );
   const repaired = new TextDecoder("utf-8").decode(bytes);

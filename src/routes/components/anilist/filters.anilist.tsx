@@ -1,18 +1,16 @@
+import { Star } from "lucide-react";
+
 import { useState } from "react";
 
 import ChipsRow from "@/components/shared/chips.component";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
+import Combobox from "@/components/ui/combobox.component";
 import { Input } from "@/components/ui/input.component";
 import { Radio } from "@/components/ui/radio.component";
 import { DualSlider } from "@/components/ui/range.component";
-import Select from "@/components/ui/select.component";
-import {
-  statusLabels,
-  seasonLabels,
-  formatLabels,
-} from "@/config/anilist.config";
+import { statusLabels, seasonLabels, formatLabels } from "@/config/anilist.config";
 import {
   ANILIST_GENRES,
   ANILIST_NSFW_TAGS,
@@ -68,33 +66,30 @@ function FiltersModal({ open, filters, onApply, onReset, onClose }: Props) {
     onClose();
   };
 
-  const genreOpts = ANILIST_GENRES.filter((g) => !local.genres.includes(g)).map(
-    (g) => ({ value: g, label: g })
-  );
+  const genreOpts = ANILIST_GENRES.filter((g) => !local.genres.includes(g)).map((g) => ({
+    value: g,
+    label: g,
+  }));
 
-  const tagOpts = ANILIST_TAGS.filter((t) => !local.tags.includes(t)).map(
-    (t) => ({ value: t, label: t })
-  );
+  const tagOpts = ANILIST_TAGS.filter((t) => !local.tags.includes(t)).map((t) => ({
+    value: t,
+    label: t,
+  }));
 
-  const nsfwTagOpts = ANILIST_NSFW_TAGS.filter(
-    (t) => !local.tags.includes(t)
-  ).map((t) => ({ value: t, label: t }));
+  const nsfwTagOpts = ANILIST_NSFW_TAGS.filter((t) => !local.tags.includes(t)).map((t) => ({
+    value: t,
+    label: t,
+  }));
 
   return (
-    <Modal
-      header={t("anilist.filters.title")}
-      onClose={onClose}
-      className="w-xl"
-    >
+    <Modal header={t("anilist.filters.title")} onClose={onClose} className="w-xl">
       <div className="flex flex-col gap-3 overflow-y-auto p-2">
-        <p className="windows95-text text-text font-bold">
-          {t("anilist.filters.genres")}
-        </p>
-        <Select
+        <p className="windows95-text text-text font-bold">{t("anilist.filters.genres")}</p>
+        <Combobox
           className="w-full"
           value={genreSelect}
           onChange={addGenre}
-          placeholder={t("anilist.filters.genrePlaceholder")}
+          placeholder={t("anilist.filters.genre.placeholder")}
           options={genreOpts}
           indexed
         />
@@ -108,14 +103,12 @@ function FiltersModal({ open, filters, onApply, onReset, onClose }: Props) {
           }
         />
 
-        <p className="windows95-text text-text mt-1 font-bold">
-          {t("anilist.filters.tags")}
-        </p>
-        <Select
+        <p className="windows95-text text-text mt-1 font-bold">{t("anilist.filters.tags")}</p>
+        <Combobox
           className="w-full"
           value={tagSelect}
           onChange={addTag}
-          placeholder={t("anilist.filters.tagPlaceholder")}
+          placeholder={t("anilist.filters.tag.placeholder")}
           options={tagOpts}
           indexed
         />
@@ -132,13 +125,13 @@ function FiltersModal({ open, filters, onApply, onReset, onClose }: Props) {
         {local.adult && (
           <>
             <p className="windows95-text text-destructive mt-1 font-bold">
-              {t("anilist.filters.nsfwTags")}
+              {t("anilist.filters.nsfw.tags")}
             </p>
-            <Select
+            <Combobox
               className="w-full"
               value={nsfwTagSelect}
               onChange={addNsfwTag}
-              placeholder={t("anilist.filters.nsfwPlaceholder")}
+              placeholder={t("anilist.filters.nsfw.placeholder")}
               options={nsfwTagOpts}
             />
             <ChipsRow
@@ -155,9 +148,7 @@ function FiltersModal({ open, filters, onApply, onReset, onClose }: Props) {
 
         <hr className="border-muted my-1 w-full border-t" />
 
-        <p className="windows95-text text-text mt-1 font-bold">
-          {t("anilist.filters.format")}
-        </p>
+        <p className="windows95-text text-text mt-1 font-bold">{t("anilist.filters.format")}</p>
         <div className="flex flex-wrap gap-1">
           {FORMATS.map((f) => (
             <label
@@ -180,9 +171,7 @@ function FiltersModal({ open, filters, onApply, onReset, onClose }: Props) {
           </label>
         </div>
 
-        <p className="windows95-text text-text mt-1 font-bold">
-          {t("anilist.filters.status")}
-        </p>
+        <p className="windows95-text text-text mt-1 font-bold">{t("anilist.filters.status")}</p>
         <div className="flex flex-wrap gap-1">
           {STATUSES.map((s) => (
             <label
@@ -206,10 +195,10 @@ function FiltersModal({ open, filters, onApply, onReset, onClose }: Props) {
         </div>
 
         <p className="windows95-text text-text mt-1 font-bold">
-          {t("anilist.filters.seasonAndYear")}
+          {t("anilist.filters.season.and.year")}
         </p>
         <div className="flex items-center gap-2">
-          <Select
+          <Combobox
             className="w-24"
             value={local.season}
             onChange={(v) => setLocal((p) => ({ ...p, season: v }))}
@@ -223,7 +212,7 @@ function FiltersModal({ open, filters, onApply, onReset, onClose }: Props) {
           />
           <Input
             type="number"
-            placeholder={t("anilist.filters.yearPlaceholder")}
+            placeholder={t("anilist.filters.year.placeholder")}
             className="w-20"
             value={local.seasonYear ?? ""}
             onChange={(e) =>
@@ -235,70 +224,64 @@ function FiltersModal({ open, filters, onApply, onReset, onClose }: Props) {
           />
         </div>
 
-        <p className="windows95-text text-text mt-1 font-bold">
-          {t("anilist.filters.sort")}
-        </p>
-        <Select
+        <p className="windows95-text text-text mt-1 font-bold">{t("anilist.filters.sort")}</p>
+        <Combobox
           className="w-full"
           value={local.sort}
           onChange={(v) => setLocal((p) => ({ ...p, sort: v }))}
           options={[
-            { value: "", label: t("anilist.filters.sortRelevance") },
-            { value: "SCORE_DESC", label: t("anilist.filters.sortScoreDesc") },
-            { value: "SCORE_ASC", label: t("anilist.filters.sortScoreAsc") },
+            { value: "", label: t("anilist.filters.sort.relevance") },
+            { value: "SCORE_DESC", label: t("anilist.filters.sort.score.desc") },
+            { value: "SCORE_ASC", label: t("anilist.filters.sort.score.asc") },
             {
               value: "POPULARITY_DESC",
-              label: t("anilist.filters.sortPopularityDesc"),
+              label: t("anilist.filters.sort.popularity.desc"),
             },
             {
               value: "TRENDING_DESC",
-              label: t("anilist.filters.sortTrendingDesc"),
+              label: t("anilist.filters.sort.trending.desc"),
             },
             {
               value: "START_DATE_DESC",
-              label: t("anilist.filters.sortStartDateDesc"),
+              label: t("anilist.filters.sort.start.date.desc"),
             },
           ]}
         />
 
-        <p className="windows95-text text-text mt-1 font-bold">
-          {t("anilist.filters.source")}
-        </p>
-        <Select
+        <p className="windows95-text text-text mt-1 font-bold">{t("anilist.filters.source")}</p>
+        <Combobox
           className="w-full"
           value={local.source}
           onChange={(v) => setLocal((p) => ({ ...p, source: v }))}
           options={[
             { value: "", label: t("anilist.filters.any") },
-            { value: "ORIGINAL", label: t("anilist.filters.sourceOriginal") },
-            { value: "MANGA", label: t("anilist.filters.sourceManga") },
+            { value: "ORIGINAL", label: t("anilist.filters.source.original") },
+            { value: "MANGA", label: t("anilist.filters.source.manga") },
             {
               value: "LIGHT_NOVEL",
-              label: t("anilist.filters.sourceLightNovel"),
+              label: t("anilist.filters.source.light.novel"),
             },
             {
               value: "VISUAL_NOVEL",
-              label: t("anilist.filters.sourceVisualNovel"),
+              label: t("anilist.filters.source.visual.novel"),
             },
             {
               value: "VIDEO_GAME",
-              label: t("anilist.filters.sourceVideoGame"),
+              label: t("anilist.filters.source.video.game"),
             },
-            { value: "NOVEL", label: t("anilist.filters.sourceNovel") },
-            { value: "WEB_MANGA", label: t("anilist.filters.sourceWebManga") },
-            { value: "OTHER", label: t("anilist.filters.sourceOther") },
+            { value: "NOVEL", label: t("anilist.filters.source.novel") },
+            { value: "WEB_MANGA", label: t("anilist.filters.source.web.manga") },
+            { value: "OTHER", label: t("anilist.filters.source.other") },
           ]}
         />
 
-        <p className="windows95-text text-text mt-1 font-bold">
-          {t("anilist.filters.country")}
-        </p>
+        <p className="windows95-text text-text mt-1 font-bold">{t("anilist.filters.country")}</p>
         <div className="flex flex-wrap gap-1">
           {[
-            ["", t("anilist.filters.countryAny")],
-            ["JP", t("anilist.filters.countryJapan")],
-            ["CN", t("anilist.filters.countryChina")],
-            ["KR", t("anilist.filters.countryKorea")],
+            ["", t("anilist.filters.country.any")],
+            ["JP", t("anilist.filters.country.japan")],
+            ["CN", t("anilist.filters.country.china")],
+            ["KR", t("anilist.filters.country.korea")],
           ].map(([v, l]) => (
             <label
               key={v}
@@ -314,48 +297,35 @@ function FiltersModal({ open, filters, onApply, onReset, onClose }: Props) {
         </div>
 
         <p className="windows95-text text-text mt-1 font-bold">
-          {t("anilist.filters.releaseYear")}
+          {t("anilist.filters.release.year")}
         </p>
         <DualSlider
+          wheel
           min={1960}
           max={2026}
           step={1}
-          value={
-            local.year[0] === 0 && local.year[1] === 0
-              ? [1960, 2026]
-              : local.year
-          }
+          value={local.year[0] === 0 && local.year[1] === 0 ? [1960, 2026] : local.year}
           onChange={(v) => setLocal((p) => ({ ...p, year: v }))}
         />
 
-        <p className="windows95-text text-text mt-1 font-bold">
-          {t("anilist.filters.episodes")}
-        </p>
+        <p className="windows95-text text-text mt-1 font-bold">{t("anilist.filters.episodes")}</p>
         <DualSlider
+          wheel
           min={0}
           max={2000}
           step={1}
-          value={
-            local.episodes[0] === 0 && local.episodes[1] === 0
-              ? [0, 2000]
-              : local.episodes
-          }
+          value={local.episodes[0] === 0 && local.episodes[1] === 0 ? [0, 2000] : local.episodes}
           onChange={(v) => setLocal((p) => ({ ...p, episodes: v }))}
         />
 
-        <p className="windows95-text text-text mt-1 font-bold">
-          {t("anilist.filters.score")}
-        </p>
+        <p className="windows95-text text-text mt-1 font-bold">{t("anilist.filters.score")}</p>
         <DualSlider
+          wheel
           min={0}
           max={100}
           step={1}
-          suffix="★"
-          value={
-            local.score[0] === 0 && local.score[1] === 0
-              ? [0, 100]
-              : local.score
-          }
+          suffix={<Star className="size-3" fill="currentColor" aria-hidden />}
+          value={local.score[0] === 0 && local.score[1] === 0 ? [0, 100] : local.score}
           onChange={(v) => setLocal((p) => ({ ...p, score: v }))}
         />
 

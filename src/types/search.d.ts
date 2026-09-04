@@ -39,6 +39,12 @@ export interface SearchSuggestion {
   value: string;
 }
 
+export interface CollectionSuggestionItem {
+  title: string;
+  altTitles?: string[];
+  subtitle?: string;
+}
+
 export interface SearchSuggestionOptions {
   animeIndex?: SearchAnimeSuggestion[];
   extraValues?: Array<{ kind?: SearchSuggestionKind; value: string }>;
@@ -50,6 +56,8 @@ export interface SearchSuggestionOptions {
   anilistBoost?: AnilistSuggestionBoost;
   backendSuggestions?: SearchSuggestion[];
   animeEnabled?: boolean;
+  collectionItems?: CollectionSuggestionItem[];
+  collectionBoost?: number;
 }
 
 export interface UnifiedIndexRow {
@@ -107,6 +115,9 @@ export interface SearchStore {
   clearAnimeIndex: () => void;
   resetAnimeSuggestions: () => void;
   removeQuery: (query: string) => void;
+  purgeExpired: () => void;
+  clearScope: (scope: string) => Promise<void>;
+  clearAllLearning: () => Promise<void>;
   setCrossSearchQuery: (query: string | null) => void;
   setAnilistSearchQuery: (query: string | null) => void;
   setSortBy: (sort: SortKey) => void;

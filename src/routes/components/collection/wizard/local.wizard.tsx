@@ -4,7 +4,7 @@ import { FolderOpen } from "lucide-react";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/lib/i18n";
 
-export function WizardLocalPanel({
+export function WizardLocalPanelCollection({
   localPath,
   setLocalPath,
   setLocalKind,
@@ -32,9 +32,7 @@ export function WizardLocalPanel({
   return (
     <div className="flex flex-col gap-1">
       <div className="flex items-center gap-1">
-        <span className="text-hint shrink-0 text-xs">
-          {t("collection.wizard.localHint")}
-        </span>
+        <span className="text-hint shrink-0 text-xs">{t("collection.wizard.localHint")}</span>
         <input
           value={localPath}
           readOnly

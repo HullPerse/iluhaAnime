@@ -2,10 +2,7 @@ import type { TranslationKey } from "@/lib/i18n";
 import type { Locale, TranslationVariables } from "@/types";
 import type { AniListCollection } from "@/types/anilist";
 
-export type ActivityTranslate = (
-  key: TranslationKey,
-  variables?: TranslationVariables
-) => string;
+export type ActivityTranslate = (key: TranslationKey, variables?: TranslationVariables) => string;
 
 export function monthLabel(
   month: number,
@@ -17,41 +14,27 @@ export function monthLabel(
   });
 }
 
-export function formatActivityTime(
-  unix: number,
-  t: ActivityTranslate,
-  locale: Locale
-): string {
+export function formatActivityTime(unix: number, t: ActivityTranslate, locale: Locale): string {
   const now = Date.now() / 1000;
   const diff = now - unix;
-  if (diff < 60) return t("anilist.activity.justNow");
+  if (diff < 60) return t("anilist.activity.just.now");
   if (diff < 3600)
-    return t("anilist.activity.minutesAgo", {
+    return t("anilist.activity.minutes.ago", {
       count: Math.floor(diff / 60),
     });
   if (diff < 86_400)
-    return t("anilist.activity.hoursAgo", {
+    return t("anilist.activity.hours.ago", {
       count: Math.floor(diff / 3600),
     });
   return new Date(unix * 1000).toLocaleDateString(locale);
 }
 
-export function groupLabel(
-  unix: number,
-  t: ActivityTranslate,
-  locale: Locale
-): string {
+export function groupLabel(unix: number, t: ActivityTranslate, locale: Locale): string {
   const d = new Date(unix * 1000);
   const today = new Date();
-  const startToday = new Date(
-    today.getFullYear(),
-    today.getMonth(),
-    today.getDate()
-  );
+  const startToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   const startDay = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  const diffDays = Math.round(
-    (startToday.getTime() - startDay.getTime()) / 86_400_000
-  );
+  const diffDays = Math.round((startToday.getTime() - startDay.getTime()) / 86_400_000);
   if (diffDays === 0) return t("anilist.activity.today");
   if (diffDays === 1) return t("anilist.activity.yesterday");
   return d.toLocaleDateString(locale);
@@ -114,9 +97,9 @@ export function buildActivityMap(
   };
 
   const kindLabel: Record<string, string> = {
-    added: t("anilist.activity.eventAdded"),
-    progress: t("anilist.activity.eventProgress"),
-    completed: t("anilist.activity.eventCompleted"),
+    added: t("anilist.activity.event.added"),
+    progress: t("anilist.activity.event.progress"),
+    completed: t("anilist.activity.event.completed"),
   };
 
   for (const list of lists) {
@@ -187,9 +170,7 @@ export function buildYearGrid(
       cells.push({
         date: new Date(d),
         level:
-          inYear && act && act.count > 0
-            ? Math.min(4, 1 + Math.round(act.count / buckets))
-            : 0,
+          inYear && act && act.count > 0 ? Math.min(4, 1 + Math.round(act.count / buckets)) : 0,
         count: act?.count ?? 0,
       });
     }

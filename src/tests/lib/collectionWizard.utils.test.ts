@@ -44,6 +44,10 @@ function makeItem(overrides: Partial<CollectionItem> = {}): CollectionItem {
     rewatchCount: 2,
     addedAt: Date.UTC(2024, 0, 1),
     updatedAt: Date.UTC(2024, 0, 1),
+    sitesToView: [],
+    tvCurrentSeason: null,
+    tvCurrentEpisode: null,
+    detailsJson: null,
     ...overrides,
   };
 }
@@ -167,9 +171,7 @@ describe("buildWizardItem", () => {
 
 describe("resolveFinishedAt", () => {
   it("returns the parsed timestamp for an explicit date", () => {
-    expect(resolveFinishedAt("planned", "2024-05-01")).toBe(
-      new Date("2024-05-01").getTime()
-    );
+    expect(resolveFinishedAt("planned", "2024-05-01")).toBe(new Date("2024-05-01").getTime());
   });
 
   it("returns null for non-completed statuses without a date", () => {

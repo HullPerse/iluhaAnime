@@ -30,9 +30,7 @@ describe("InlineAutocompleteInput", () => {
     const ghost = view.container.querySelector(".inline-autocomplete-ghost");
     expect(ghost?.classList.contains("border-2")).toBe(true);
     expect(ghost?.classList.contains("px-1.5")).toBe(true);
-    expect(ghost?.querySelector("span")?.classList.contains("font-bold")).toBe(
-      true
-    );
+    expect(ghost?.querySelector("span")?.classList.contains("font-bold")).toBe(true);
     expect(ghost?.textContent).toContain("eren: Beyond Journey's End");
   });
 
@@ -112,15 +110,11 @@ describe("InlineAutocompleteInput", () => {
 
     const input = screen.getByRole("textbox", { name: "Search" });
     await user.click(input);
-    expect(
-      view.container.querySelector(".inline-autocomplete-ghost")
-    ).not.toBeNull();
+    expect(view.container.querySelector(".inline-autocomplete-ghost")).not.toBeNull();
     await user.keyboard("{Escape}");
 
     expect(onDismiss).toHaveBeenCalledOnce();
-    expect(
-      view.container.querySelector(".inline-autocomplete-ghost")
-    ).toBeNull();
+    expect(view.container.querySelector(".inline-autocomplete-ghost")).toBeNull();
   });
 
   it("shows the suggestion menu when focused", async () => {
@@ -174,9 +168,7 @@ describe("InlineAutocompleteInput", () => {
       />
     );
 
-    expect(
-      view.container.querySelector(".inline-autocomplete-ghost")
-    ).toBeNull();
+    expect(view.container.querySelector(".inline-autocomplete-ghost")).toBeNull();
     await user.click(screen.getByRole("textbox", { name: "Search" }));
     expect(screen.getByRole("listbox")).not.toBeNull();
   });
@@ -195,9 +187,7 @@ describe("InlineAutocompleteInput", () => {
     );
 
     await user.click(screen.getByRole("textbox", { name: "Search" }));
-    expect(
-      view.container.querySelector(".inline-autocomplete-ghost")
-    ).not.toBeNull();
+    expect(view.container.querySelector(".inline-autocomplete-ghost")).not.toBeNull();
     expect(screen.getByRole("listbox")).not.toBeNull();
   });
 
@@ -224,9 +214,7 @@ describe("InlineAutocompleteInput", () => {
     );
     expect(sections).toEqual(["anime", "history", "local"]);
 
-    const options = screen
-      .getAllByRole("option")
-      .map((node) => node.textContent);
+    const options = screen.getAllByRole("option").map((node) => node.textContent);
     expect(options[0]).toContain("Frieren");
     expect(options[1]).toContain("Frieren S2");
     expect(options[2]).toContain("Frieren 1080p");
@@ -268,9 +256,7 @@ describe("InlineAutocompleteInput", () => {
 
     await user.click(screen.getByRole("textbox", { name: "Search" }));
 
-    const historyOptions = screen
-      .getAllByRole("option")
-      .map((node) => node.textContent);
+    const historyOptions = screen.getAllByRole("option").map((node) => node.textContent);
     expect(historyOptions[0]).toContain("monster");
     expect(historyOptions[1]).toContain("frieren 1080p");
     expect(historyOptions[2]).toContain("shingeki season 2");
@@ -278,4 +264,32 @@ describe("InlineAutocompleteInput", () => {
     await user.click(screen.getByRole("option", { name: /frieren 1080p/ }));
     expect(onAccept).toHaveBeenCalledWith("frieren 1080p");
   });
+  it("highlights token ranges in the backdrop and hides the input text", () => {
+    const view = render(
+      <InlineAutocompleteInput
+        aria-label="Search"
+        value="studio:MAPPA frieren"
+        highlightRanges={[{ start: 0, end: 12 }]}
+        onChange={() => {}}
+      />
+    );
+
+    const highlighted = view.container.querySelector(".bg-highlight");
+    expect(highlighted?.textContent).toBe("studio:MAPPA");
+    expect(screen.getByRole("textbox", { name: "Search" }).classList.contains("text-transparent")).toBe(
+      true
+    );
+  });
+
+  it("renders no highlight layer without ranges", () => {
+    const view = render(
+      <InlineAutocompleteInput aria-label="Search" value="frieren" onChange={() => {}} />
+    );
+
+    expect(view.container.querySelector(".bg-highlight")).toBeNull();
+    expect(
+      screen.getByRole("textbox", { name: "Search" }).classList.contains("text-transparent")
+    ).toBe(false);
+  });
+
 });

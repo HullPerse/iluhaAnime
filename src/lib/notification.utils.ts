@@ -33,10 +33,7 @@ export function copyNotification(item: NotificationItem): Promise<void> {
   return writeText(lines.join("\n"));
 }
 
-type Translate = (
-  key: TranslationKey,
-  variables?: TranslationVariables
-) => string;
+type Translate = (key: TranslationKey, variables?: TranslationVariables) => string;
 
 export function formatRelativeTime(
   timestamp: number,
@@ -45,11 +42,11 @@ export function formatRelativeTime(
 ): string {
   const diff = Math.max(0, now - timestamp);
   const minutes = Math.floor(diff / 60_000);
-  if (minutes < 1) return t("notification.justNow");
-  if (minutes < 60) return t("notification.minutesAgo", { count: minutes });
+  if (minutes < 1) return t("notification.just.now");
+  if (minutes < 60) return t("notification.minutes.ago", { count: minutes });
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return t("notification.hoursAgo", { count: hours });
-  return t("notification.daysAgo", { count: Math.floor(hours / 24) });
+  if (hours < 24) return t("notification.hours.ago", { count: hours });
+  return t("notification.days.ago", { count: Math.floor(hours / 24) });
 }
 
 export interface ShowNotificationPayload {

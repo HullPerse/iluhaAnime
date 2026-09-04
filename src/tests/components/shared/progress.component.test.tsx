@@ -25,18 +25,18 @@ describe("ProgressBar", () => {
     const { container } = render(<ProgressBar value={150} max={100} />);
     const bar = screen.getByRole("progressbar");
     expect(bar.getAttribute("aria-valuenow")).toBe("100");
-    expect(
-      container.querySelector('[aria-hidden="true"]')?.getAttribute("style")
-    ).toContain("width: 100%");
+    expect(container.querySelector('[aria-hidden="true"]')?.getAttribute("style")).toContain(
+      "width: 100%"
+    );
   });
 
   it("clamps negative values to zero", () => {
     const { container } = render(<ProgressBar value={-10} max={100} />);
     const bar = screen.getByRole("progressbar");
     expect(bar.getAttribute("aria-valuenow")).toBe("0");
-    expect(
-      container.querySelector('[aria-hidden="true"]')?.getAttribute("style")
-    ).toContain("width: 0%");
+    expect(container.querySelector('[aria-hidden="true"]')?.getAttribute("style")).toContain(
+      "width: 0%"
+    );
   });
 
   it("renders an empty bar when max is zero", () => {
@@ -44,8 +44,8 @@ describe("ProgressBar", () => {
     const bar = screen.getByRole("progressbar");
     expect(bar.getAttribute("aria-valuenow")).toBe("0");
     expect(bar.getAttribute("aria-valuemax")).toBe("0");
-    expect(
-      container.querySelector('[aria-hidden="true"]')?.getAttribute("style")
-    ).toContain("width: 0%");
+    expect(container.querySelector('[aria-hidden="true"]')?.getAttribute("style")).toContain(
+      "width: 0%"
+    );
   });
 });

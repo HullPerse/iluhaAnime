@@ -47,7 +47,11 @@ function Modal({
       <Dialog.Portal className="z-9999">
         {!hideBackdrop && (
           <Dialog.Backdrop
-            className={`fixed inset-0 z-40 ${modalAnimation ? "transition-opacity duration-150" : ""} ${visible ? "opacity-100" : "opacity-0"}`}
+            className={cn(
+              "fixed inset-0 z-40",
+              modalAnimation && "transition-opacity duration-150",
+              visible ? "opacity-100" : "opacity-0"
+            )}
             style={{ backgroundColor: `rgba(0,0,0,${backdropOpacity / 100})` }}
             onClick={(e) => e.stopPropagation()}
             onPointerDown={(e) => e.stopPropagation()}
@@ -56,18 +60,16 @@ function Modal({
         <Dialog.Popup
           className={cn(
             "bg-primary windows95-active-border fixed top-1/2 left-1/2 z-50 flex h-fit max-h-[80%] min-h-42 w-fit max-w-[80%] -translate-x-1/2 -translate-y-1/2 flex-col items-center",
-            modalAnimation ? "transition-opacity duration-150" : "",
+            modalAnimation && "transition-opacity duration-150",
             visible ? "opacity-100" : "opacity-0",
-            enable3dBorders ? "windows95-3d-border" : "",
+            enable3dBorders && "windows95-3d-border",
             className
           )}
           onClick={(e) => e.stopPropagation()}
           data-hotkeys-disabled
           data-no-wheel
         >
-          {hideHeader && (
-            <Dialog.Title className="sr-only">{header}</Dialog.Title>
-          )}
+          {hideHeader && <Dialog.Title className="sr-only">{header}</Dialog.Title>}
           {!hideHeader && (
             <section className="ui-titlebar w-full justify-between">
               <div className="flex min-w-0 flex-row items-center gap-1">
@@ -76,11 +78,7 @@ function Modal({
                     <ChevronLeft className="size-2.5" />
                   </Button>
                 )}
-                <ImageComponent
-                  src="/images/w2k_computer.ico"
-                  alt=""
-                  className="size-4 shrink-0"
-                />
+                <ImageComponent src="/images/w2k_computer.ico" alt="" className="size-4 shrink-0" />
                 <Dialog.Title className="windows95-text line-clamp-1 font-bold text-white">
                   {header}
                 </Dialog.Title>

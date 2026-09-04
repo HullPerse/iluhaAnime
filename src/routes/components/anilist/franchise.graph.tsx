@@ -95,8 +95,7 @@ function FranchiseGraph({
           {[...filtered.nodeMap.values()].map((node) => {
             const position = positions.get(node.id);
             if (!position) return null;
-            const dimmed =
-              searchMatchIds !== null && !searchMatchIds.has(node.id);
+            const dimmed = searchMatchIds !== null && !searchMatchIds.has(node.id);
             return (
               <FranNode
                 key={node.id}

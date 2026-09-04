@@ -46,10 +46,7 @@ function formatDuration(totalSec: number): string {
     : `${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
 }
 
-function formatProgressLog(
-  items: PrefetchItem[],
-  noRelations: string
-): string[] {
+function formatProgressLog(items: PrefetchItem[], noRelations: string): string[] {
   return items.flatMap((item) =>
     item.relations.length === 0
       ? [`${item.title} → ${noRelations}`]
@@ -82,50 +79,43 @@ function CacheSummary({
   finished: PrefetchSummary | null;
   t: (key: any, params?: any) => string;
 }) {
-  const { fetched, skipped, cached, fetchedPercent } = getCachePercentages(
-    progress,
-    finished
-  );
+  const { fetched, skipped, cached, fetchedPercent } = getCachePercentages(progress, finished);
   return progress || finished ? (
     <section className="windows95-active-border flex flex-col gap-1 bg-white p-1">
       <div className="windows95-text flex items-center justify-between text-xs font-bold">
-        <span>{t("anilist.prefetch.cacheVisualTitle")}</span>
+        <span>{t("anilist.prefetch.cache.visual.title")}</span>
         <span className="text-hint">{cached}%</span>
       </div>
       <div className="windows95-border bg-surface flex h-3 gap-px overflow-hidden p-px">
         <div
           className="bg-secondary transition-[width] duration-300"
           style={{ width: `${fetchedPercent}%` }}
-          title={t("anilist.prefetch.cacheFetched")}
+          title={t("anilist.prefetch.cache.fetched")}
         />
         <div
           className="bg-green-500 transition-[width] duration-300"
           style={{ width: `${cached}%` }}
-          title={t("anilist.prefetch.cacheHit")}
+          title={t("anilist.prefetch.cache.hit")}
         />
       </div>
       <div className="windows95-text grid grid-cols-3 gap-1 text-xs">
         <div className="bg-primary px-1 py-0.5">
-          <div className="text-hint">
-            {t("anilist.prefetch.cacheProcessed")}
-          </div>
+          <div className="text-hint">{t("anilist.prefetch.cache.processed")}</div>
           <strong>{progress?.done ?? finished?.processed ?? 0}</strong>
         </div>
         <div className="bg-secondary/15 px-1 py-0.5">
-          <div className="text-hint">{t("anilist.prefetch.cacheFetched")}</div>
+          <div className="text-hint">{t("anilist.prefetch.cache.fetched")}</div>
           <strong>{fetched}</strong>
         </div>
         <div className="bg-green-100 px-1 py-0.5">
-          <div className="text-hint">{t("anilist.prefetch.cacheHit")}</div>
+          <div className="text-hint">{t("anilist.prefetch.cache.hit")}</div>
           <strong>{skipped}</strong>
         </div>
       </div>
       {progress?.current && (
         <div className="windows95-text flex items-center gap-1 text-xs">
           <span className="bg-secondary inline-block size-1.5 animate-pulse rounded-full" />
-          <span className="text-hint">
-            {t("anilist.prefetch.cacheCurrent")}
-          </span>
+          <span className="text-hint">{t("anilist.prefetch.cache.current")}</span>
           <span className="min-w-0 truncate font-bold">{progress.current}</span>
         </div>
       )}
@@ -136,9 +126,7 @@ function CacheSummary({
               key={item.id}
               className={cn(
                 "windows95-border max-w-35 truncate px-1 py-px text-xs",
-                item.relations.length > 0
-                  ? "bg-secondary/10 text-text"
-                  : "bg-surface text-hint"
+                item.relations.length > 0 ? "bg-secondary/10 text-text" : "bg-surface text-hint"
               )}
               title={item.title}
             >
@@ -170,30 +158,25 @@ function RunningSummary({
         </span>
       </div>
       <div className="windows95-text text-hint text-xs">
-        {t("anilist.prefetch.fetched")}: {progress.fetched} -{" "}
-        {t("anilist.prefetch.skipped")}: {progress.skipped}
+        {t("anilist.prefetch.fetched")}: {progress.fetched} - {t("anilist.prefetch.skipped")}:{" "}
+        {progress.skipped}
         {progress.current ? (
           <>
             {" "}
-            - {t("anilist.prefetch.current")}:{" "}
-            <strong>{progress.current}</strong>
+            - {t("anilist.prefetch.current")}: <strong>{progress.current}</strong>
           </>
         ) : null}
       </div>
       <div className="windows95-text text-hint flex flex-row items-center justify-between text-xs">
         <span>
-          {t("anilist.prefetch.time")}:{" "}
-          {formatDuration(progress.elapsed_ms / 1000)}
+          {t("anilist.prefetch.time")}: {formatDuration(progress.elapsed_ms / 1000)}
         </span>
         <span>
           {t("anilist.prefetch.eta")}: ~
-          {progress.eta_secs == null
-            ? "..."
-            : formatDuration(progress.eta_secs)}
+          {progress.eta_secs == null ? "..." : formatDuration(progress.eta_secs)}
         </span>
         <span>
-          {t("anilist.prefetch.nextBatch")}:{" "}
-          {(progress.next_batch_in_ms / 1000).toFixed(1)}с
+          {t("anilist.prefetch.next.batch")}: {(progress.next_batch_in_ms / 1000).toFixed(1)}с
         </span>
       </div>
     </div>
@@ -204,16 +187,13 @@ export default function PrefetchRelationsModal({ animeIds, onClose }: Props) {
   const { t } = useI18n();
   const [running, setRunning] = useState(false);
   const [finished, setFinished] = useState<PrefetchSummary | null>(null);
-  const [progress, setProgress] = useState<PrefetchProgressPayload | null>(
-    null
-  );
+  const [progress, setProgress] = useState<PrefetchProgressPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [log, setLog] = useState<string[]>([]);
   const logRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (log.length > 0)
-      logRef.current?.scrollTo(0, logRef.current.scrollHeight);
+    if (log.length > 0) logRef.current?.scrollTo(0, logRef.current.scrollHeight);
   }, [log]);
 
   const start = async () => {
@@ -229,10 +209,7 @@ export default function PrefetchRelationsModal({ animeIds, onClose }: Props) {
         setProgress(event.payload);
         setLog((previous) => [
           ...previous,
-          ...formatProgressLog(
-            event.payload.items,
-            t("anilist.prefetch.noRelations")
-          ),
+          ...formatProgressLog(event.payload.items, t("anilist.prefetch.no.relations")),
         ]);
       }
     );
@@ -259,9 +236,7 @@ export default function PrefetchRelationsModal({ animeIds, onClose }: Props) {
   return (
     <Modal header={t("anilist.prefetch.title")} onClose={onClose}>
       <div className="flex w-full max-w-full flex-col gap-2">
-        <p className="windows95-text text-hint text-xs">
-          {t("anilist.prefetch.description")}
-        </p>
+        <p className="windows95-text text-hint text-xs">{t("anilist.prefetch.description")}</p>
         <CacheSummary progress={progress} finished={finished} t={t} />
         {!running && !finished && !error && (
           <Button onClick={start} className="w-full">
@@ -278,8 +253,8 @@ export default function PrefetchRelationsModal({ animeIds, onClose }: Props) {
             </span>
             <span>
               {t("anilist.prefetch.processed")}: {finished.processed} -{" "}
-              {t("anilist.prefetch.fetched")}: {finished.fetched} -{" "}
-              {t("anilist.prefetch.skipped")}: {finished.skipped}
+              {t("anilist.prefetch.fetched")}: {finished.fetched} - {t("anilist.prefetch.skipped")}:{" "}
+              {finished.skipped}
             </span>
           </div>
         )}
@@ -291,11 +266,7 @@ export default function PrefetchRelationsModal({ animeIds, onClose }: Props) {
         {(log.length > 0 || running) && (
           <div className="flex flex-col gap-1">
             {running && (
-              <Button
-                onClick={cancel}
-                variant="error"
-                className="h-auto px-2 py-0.5 text-xs"
-              >
+              <Button onClick={cancel} variant="error" className="h-auto px-2 py-0.5 text-xs">
                 {t("anilist.prefetch.stop")}
               </Button>
             )}

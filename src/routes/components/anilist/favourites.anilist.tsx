@@ -13,26 +13,15 @@ interface Props {
   onAnimeClick: (id: number) => void;
 }
 
-export default function AniListFavouritesModal({
-  open,
-  favourites,
-  onClose,
-  onAnimeClick,
-}: Props) {
+export default function AniListFavouritesModal({ open, favourites, onClose, onAnimeClick }: Props) {
   const { t } = useI18n();
   if (!open) return null;
 
   return (
-    <Modal
-      header={t("anilist.favourites.title")}
-      onClose={onClose}
-      className="w-2xl"
-    >
+    <Modal header={t("anilist.favourites.title")} onClose={onClose} className="w-2xl">
       {favourites.length === 0 ? (
         <div className="flex flex-1 items-center justify-center">
-          <span className="windows95-text">
-            {t("anilist.favourites.empty")}
-          </span>
+          <span className="windows95-text">{t("anilist.favourites.empty")}</span>
         </div>
       ) : (
         <div className="flex flex-col gap-1">

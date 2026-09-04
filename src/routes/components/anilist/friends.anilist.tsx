@@ -1,3 +1,4 @@
+import { cn } from "@/lib/index.utils";
 import { invoke } from "@tauri-apps/api/core";
 import { UserPlus, Trash2, RefreshCw, Users, X } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -27,12 +28,7 @@ interface Props {
   onClose: () => void;
 }
 
-export default function AniListFriendsModal({
-  friends,
-  onAdd,
-  onRemove,
-  onClose,
-}: Props) {
+export default function AniListFriendsModal({ friends, onAdd, onRemove, onClose }: Props) {
   const { t } = useI18n();
   const [query, setQuery] = useState("");
   const [profiles, setProfiles] = useState<Record<number, AniUserProfile>>({});
@@ -88,18 +84,12 @@ export default function AniListFriendsModal({
   const selected = selectedId == null ? null : profiles[selectedId];
 
   return (
-    <Modal
-      header={t("anilist.friends.title")}
-      onClose={onClose}
-      className="w-4xl max-w-[92vw]"
-    >
+    <Modal header={t("anilist.friends.title")} onClose={onClose} className="w-4xl max-w-[92vw]">
       <div className="grid min-h-80 grid-cols-1 gap-2 md:grid-cols-[minmax(13rem,0.8fr)_minmax(0,1.4fr)]">
         <section className="windows95-border bg-white p-1">
           <div className="bg-secondary mb-1 flex items-center gap-1 px-1 py-0.5 text-white">
             <Users className="size-3" />
-            <span className="windows95-font text-xs">
-              {t("anilist.friends.list")}
-            </span>
+            <span className="windows95-font text-xs">{t("anilist.friends.list")}</span>
           </div>
           <div className="flex flex-col gap-1">
             {friends.length === 0 ? (
@@ -110,20 +100,15 @@ export default function AniListFriendsModal({
               friends.map((friend) => (
                 <div
                   key={friend.id}
-                  className={`flex items-center gap-1 p-1 ${selectedId === friend.id ? "bg-surface" : ""}`}
+                  className={cn("flex items-center gap-1 p-1", selectedId === friend.id && "bg-surface")}
                 >
                   <button
                     type="button"
                     className="flex min-w-0 flex-1 items-center gap-1 text-left"
                     onClick={() => {
                       setSelectedId(friend.id);
-                      const saved = friends.find(
-                        (item) => item.id === friend.id
-                      );
-                      if (
-                        !profiles[friend.id] &&
-                        !hasFreshCachedProfile(saved)
-                      ) {
+                      const saved = friends.find((item) => item.id === friend.id);
+                      if (!profiles[friend.id] && !hasFreshCachedProfile(saved)) {
                         loadProfile(friend.name);
                       }
                     }}
@@ -133,9 +118,7 @@ export default function AniListFriendsModal({
                       alt={friend.name}
                       className="windows95-active-border size-7 shrink-0"
                     />
-                    <span className="windows95-text truncate text-xs">
-                      {friend.name}
-                    </span>
+                    <span className="windows95-text truncate text-xs">{friend.name}</span>
                   </button>
                   <Button
                     size="icon"
@@ -160,10 +143,7 @@ export default function AniListFriendsModal({
               placeholder={t("anilist.friends.placeholder")}
               className="min-w-0 flex-1"
             />
-            <Button
-              onClick={() => loadProfile(query)}
-              disabled={loading || !query.trim()}
-            >
+            <Button onClick={() => loadProfile(query)} disabled={loading || !query.trim()}>
               {loading ? <SmallLoader /> : <UserPlus className="size-3" />}
             </Button>
           </div>
@@ -191,9 +171,7 @@ export default function AniListFriendsModal({
                   className="windows95-active-border size-16 shrink-0"
                 />
                 <div className="min-w-0 flex-1">
-                  <h3 className="windows95-text text-sm font-bold">
-                    {selected.name}
-                  </h3>
+                  <h3 className="windows95-text text-sm font-bold">{selected.name}</h3>
                   <p className="windows95-text text-xs">
                     {selected.anime_count} {t("anilist.friends.anime")} -{" "}
                     {selected.episodes_watched} {t("anilist.friends.episodes")}
@@ -202,13 +180,11 @@ export default function AniListFriendsModal({
                   </p>
                   <p className="windows95-text text-hint mt-1 text-xs">
                     {selected.is_following == null
-                      ? t("anilist.friends.relationshipUnavailable")
+                      ? t("anilist.friends.relationship.unavailable")
                       : selected.is_following
                         ? t("anilist.friends.following")
-                        : t("anilist.friends.notFollowing")}
-                    {selected.is_follower === true
-                      ? ` - ${t("anilist.friends.followsYou")}`
-                      : ""}
+                        : t("anilist.friends.not.following")}
+                    {selected.is_follower === true ? ` - ${t("anilist.friends.follows.you")}` : ""}
                   </p>
                 </div>
                 <Button

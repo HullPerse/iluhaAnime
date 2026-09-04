@@ -1,11 +1,4 @@
-import {
-  Film,
-  HardDrive,
-  History,
-  Magnet,
-  X,
-  type LucideIcon,
-} from "lucide-react";
+import { Film, HardDrive, History, Magnet, X, type LucideIcon } from "lucide-react";
 import * as React from "react";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 
@@ -13,9 +6,15 @@ import { Input } from "@/components/ui/input.component";
 import { useI18n, type TranslationKey } from "@/lib/i18n";
 import { cn } from "@/lib/index.utils";
 import { createListNavigationHandler } from "@/lib/keyboard.utils";
+import { normalizeSearchText } from "@/lib/search.suggestions";
 import type { SearchSuggestion } from "@/lib/search.suggestions";
-import type { AutocompleteMode } from "@/types/search";
 import { useSettingsStore } from "@/store/settings.store";
+import type { AutocompleteMode } from "@/types/search";
+
+export interface HighlightRange {
+  start: number;
+  end: number;
+}
 
 interface Props extends React.ComponentProps<typeof Input> {
   completion?: string | null;
@@ -25,6 +24,7 @@ interface Props extends React.ComponentProps<typeof Input> {
   onRemoveHistory?: (query: string) => void;
   onSelectSuggestion?: (value: string) => void;
   onDismissCompletion?: () => void;
+  highlightRanges?: readonly HighlightRange[];
 }
 
 const suggestionIcons: Record<SearchSuggestion["kind"], LucideIcon> = {
@@ -47,12 +47,7 @@ interface SuggestionSection {
   endIndex: number;
 }
 
-const KIND_ORDER: SearchSuggestion["kind"][] = [
-  "anime",
-  "history",
-  "local",
-  "torrent",
-];
+const KIND_ORDER: SearchSuggestion["kind"][] = ["anime", "history", "local", "torrent"];
 
 const EMPTY_SUGGESTIONS: SearchSuggestion[] = [];
 
@@ -109,9 +104,7 @@ function splitHighlighted(value: string, query: string): HighlightSegment[] {
   let matched = false;
 
   for (let index = 0; index < value.length; index++) {
-    const isMatch =
-      queryIndex < needle.length &&
-      matchKey(value[index]) === needle[queryIndex];
+    const isMatch = queryIndex < needle.length && matchKey(value[index]) === needle[queryIndex];
     if (isMatch) {
       if (!matched) {
         if (index > cursor) {
@@ -132,6 +125,83 @@ function splitHighlighted(value: string, query: string): HighlightSegment[] {
   return segments;
 }
 
+const EMPTY_RANGES: readonly HighlightRange[] = [];
+
+interface HighlightToken {
+  text: string;
+  highlighted: boolean;
+}
+
+function splitHighlightRanges(value: string, ranges: readonly HighlightRange[]): HighlightToken[] {
+  const sorted = [...ranges]
+    .filter((r) => r.start < r.end && r.start < value.length)
+    .sort((a, b) => a.start - b.start);
+  const segments: HighlightToken[] = [];
+  let cursor = 0;
+  for (const r of sorted) {
+    const start = Math.max(0, r.start);
+    const end = Math.min(value.length, r.end);
+    if (start < cursor) continue;
+    if (start > cursor) segments.push({ text: value.slice(cursor, start), highlighted: false });
+    segments.push({ text: value.slice(start, end), highlighted: true });
+    cursor = end;
+  }
+  if (cursor < value.length) segments.push({ text: value.slice(cursor), highlighted: false });
+  return segments;
+}
+
+function BackdropLayer({
+  currentValue,
+  highlightSegments,
+  hasHighlight,
+  ghostSuffix,
+  backdropRef,
+}: {
+  currentValue: string;
+  highlightSegments: HighlightToken[];
+  hasHighlight: boolean;
+  ghostSuffix: string;
+  backdropRef: React.RefObject<HTMLDivElement | null>;
+}) {
+  if (!ghostSuffix && !hasHighlight) return null;
+  return (
+    <div
+      aria-hidden="true"
+      ref={backdropRef}
+      className="inline-autocomplete-ghost windows95-text pointer-events-none absolute inset-0 z-0 flex items-center overflow-hidden border-2 border-transparent px-1.5 whitespace-pre"
+    >
+      <span className="windows95-text font-bold whitespace-pre">
+        {hasHighlight ? (
+          highlightSegments.map((segment, index) =>
+            segment.highlighted ? (
+              <span key={index} className="bg-highlight text-white">
+                {segment.text}
+              </span>
+            ) : (
+              <span key={index} className="text-text">
+                {segment.text}
+              </span>
+            )
+          )
+        ) : (
+          <span className="text-transparent">{currentValue}</span>
+        )}
+        {ghostSuffix && (
+          <span
+            className="windows95-text font-bold"
+            style={{
+              color: "var(--color-autocomplete, var(--color-muted))",
+              opacity: "var(--autocomplete-opacity, 0.6)",
+            }}
+          >
+            {ghostSuffix}
+          </span>
+        )}
+      </span>
+    </div>
+  );
+}
+
 export function InlineAutocompleteInput({
   className,
   completion,
@@ -143,7 +213,9 @@ export function InlineAutocompleteInput({
   onKeyDown,
   onRemoveHistory,
   onSelectSuggestion,
+  onScroll,
   suggestions = EMPTY_SUGGESTIONS,
+  highlightRanges = EMPTY_RANGES,
   value,
   ...props
 }: Props) {
@@ -153,6 +225,7 @@ export function InlineAutocompleteInput({
   const listRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const backdropRef = useRef<HTMLDivElement | null>(null);
   const [menuWidth, setMenuWidth] = useState<number | undefined>(undefined);
   const listboxId = useId();
 
@@ -172,31 +245,29 @@ export function InlineAutocompleteInput({
   );
 
   const { items: groupedSuggestions, sections } = useMemo(
-    () =>
-      groupSuggestions(isEmptyQuery ? emptyHistorySuggestions : suggestions),
+    () => groupSuggestions(isEmptyQuery ? emptyHistorySuggestions : suggestions),
     [emptyHistorySuggestions, isEmptyQuery, suggestions]
   );
 
   const showMenu =
-    enabled &&
-    mode !== "inline" &&
-    !dismissed &&
-    focused &&
-    groupedSuggestions.length > 0;
-  const safeActiveIndex = showMenu
-    ? Math.min(activeIndex, groupedSuggestions.length - 1)
-    : -1;
-  const activeSuggestion =
-    safeActiveIndex >= 0 ? groupedSuggestions[safeActiveIndex] : undefined;    const ghostValue = computeGhostValue({
-      mode,
-      enabled,
-      dismissed,
-      focused,
-      activeSuggestion,
-      completion,
-      currentValue,
-    });
-    const ghostSuffix = ghostValue ? ghostValue.slice(currentValue.length) : "";
+    enabled && mode !== "inline" && !dismissed && focused && groupedSuggestions.length > 0;
+  const safeActiveIndex = showMenu ? Math.min(activeIndex, groupedSuggestions.length - 1) : -1;
+  const activeSuggestion = safeActiveIndex >= 0 ? groupedSuggestions[safeActiveIndex] : undefined;
+  const ghostValue = computeGhostValue({
+    mode,
+    enabled,
+    dismissed,
+    focused,
+    activeSuggestion,
+    completion,
+    currentValue,
+  });
+  const ghostSuffix = ghostValue ? ghostValue.slice(currentValue.length) : "";
+  const highlightSegments = useMemo(
+    () => splitHighlightRanges(currentValue, highlightRanges ?? EMPTY_RANGES),
+    [currentValue, highlightRanges]
+  );
+  const hasHighlight = highlightSegments.some((s) => s.highlighted);
 
   useEffect(() => {
     setDismissed(false);
@@ -235,38 +306,33 @@ export function InlineAutocompleteInput({
     <div className="relative min-w-0 flex-1">
       <div className={cn("relative", className)}>
         {enabled && (
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-0 z-0 bg-white"
-          />
+          <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0 bg-white" />
         )}
-        {ghostValue && ghostSuffix && (
-          <div
-            aria-hidden="true"
-            className="inline-autocomplete-ghost pointer-events-none absolute inset-0 z-0 flex items-center overflow-hidden border-2 border-transparent px-1.5 whitespace-pre"
-            style={{
-              color: "var(--color-autocomplete, var(--color-muted))",
-              opacity: "var(--autocomplete-opacity, 0.6)",
-            }}
-          >
-            <span className="windows95-text font-bold whitespace-pre">
-              <span className="text-transparent">{currentValue}</span>
-              {ghostSuffix}
-            </span>
-          </div>
-        )}
+        <BackdropLayer
+          currentValue={currentValue}
+          highlightSegments={highlightSegments}
+          hasHighlight={hasHighlight}
+          ghostSuffix={ghostSuffix}
+          backdropRef={backdropRef}
+        />
         <Input
           {...props}
           ref={inputRef}
-          aria-activedescendant={
-            activeSuggestion ? `${listboxId}-${safeActiveIndex}` : undefined
-          }
+          aria-activedescendant={activeSuggestion ? `${listboxId}-${safeActiveIndex}` : undefined}
           aria-autocomplete={getAriaAutocomplete(mode)}
           aria-controls={showMenu ? listboxId : undefined}
           aria-expanded={showMenu || undefined}
           aria-haspopup={enabled ? "listbox" : undefined}
           aria-keyshortcuts="Tab, Enter, Escape, ArrowDown, ArrowUp, Home, End"
-          className={cn("relative z-10 h-full w-full bg-transparent")}
+          className={cn(
+            "relative z-10 h-full w-full bg-transparent",
+            hasHighlight && "text-transparent caret-[var(--color-text)] selection:bg-highlight/30"
+          )}
+          onScroll={(event) => {
+            if (backdropRef.current)
+              backdropRef.current.scrollLeft = event.currentTarget.scrollLeft;
+            onScroll?.(event);
+          }}
           onBlur={(event) => {
             setFocused(false);
             setActiveIndex(-1);
@@ -292,12 +358,7 @@ export function InlineAutocompleteInput({
               return true;
             },
             onUnhandled: (event) => {
-              if (
-                event.key === "Tab" &&
-                !event.shiftKey &&
-                ghostValue &&
-                onAcceptCompletion
-              ) {
+              if (event.key === "Tab" && !event.shiftKey && ghostValue && onAcceptCompletion) {
                 event.preventDefault();
                 onAcceptCompletion(ghostValue);
                 return;
@@ -358,11 +419,9 @@ function computeGhostValue({
   const candidate = activeSuggestion?.value ?? completion ?? null;
   if (!candidate) return null;
   if (currentValue.trim().length === 0) return null;
-  if (
-    !candidate
-      .toLocaleLowerCase()
-      .startsWith(currentValue.toLocaleLowerCase())
-  ) {
+  const normCandidate = normalizeSearchText(candidate);
+  const normCurrent = normalizeSearchText(currentValue);
+  if (!normCandidate.startsWith(normCurrent) || normCandidate === normCurrent) {
     return null;
   }
   return candidate;
@@ -385,9 +444,7 @@ function HighlightedText({
             key={index}
             className={cn(
               "text-highlight font-bold",
-              active
-                ? "text-white underline"
-                : "group-hover:text-white group-hover:underline"
+              active ? "text-white underline" : "group-hover:text-white group-hover:underline"
             )}
           >
             {segment.text}
@@ -430,10 +487,8 @@ function SuggestionItem({
         aria-selected={active}
         tabIndex={-1}
         className={cn(
-          "windows95-text text-text group flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 px-1.5 py-1 text-left select-none",
-          active
-            ? "bg-highlight text-white"
-            : "hover:bg-highlight hover:text-white"
+          "windows95-text text-text group flex min-w-0 flex-1 cursor-pointer items-center gap-1 px-1 py-0.5 text-left text-xs select-none",
+          active ? "bg-highlight text-white" : "hover:bg-highlight hover:text-white"
         )}
         onMouseDown={(event) => event.preventDefault()}
         onMouseEnter={() => onHover(itemIndex)}
@@ -445,21 +500,15 @@ function SuggestionItem({
             active ? "text-white" : "text-hint group-hover:text-white"
           )}
         >
-          <Icon className="size-3.5" />
+          <Icon className="size-3" />
         </span>
         <span className="min-w-0 flex-1 truncate">
-          <HighlightedText
-            candidate={suggestion.value}
-            query={currentValue}
-            active={active}
-          />
+          <HighlightedText candidate={suggestion.value} query={currentValue} active={active} />
         </span>
         <span
           className={cn(
             "shrink-0 text-xs",
-            active
-              ? "text-white/70"
-              : "text-hint group-hover:text-white/70"
+            active ? "text-white/70" : "text-hint group-hover:text-white/70"
           )}
         >
           {suggestion.subtitle ?? t(suggestionKindLabels[suggestion.kind])}
@@ -468,12 +517,10 @@ function SuggestionItem({
       {suggestion.kind === "history" && onRemove && (
         <button
           type="button"
-          aria-label={t("search.removeFromHistory")}
+          aria-label={t("search.remove.from.history")}
           className={cn(
             "flex size-4 shrink-0 cursor-pointer items-center justify-center px-1",
-            active
-              ? "text-white hover:bg-white/20"
-              : "text-hint hover:text-white"
+            active ? "text-white hover:bg-white/20" : "text-hint hover:text-white"
           )}
           onMouseDown={(event) => event.preventDefault()}
           onClick={(event) => {
@@ -521,47 +568,42 @@ function SuggestionMenu({
       id={listboxId}
       ref={listRef}
       role="listbox"
-      className="windows95-active-border absolute top-full left-0 z-40 mt-1 flex max-h-72 min-w-64 flex-col bg-white"
+      className="windows95-border absolute top-full left-0 z-40 mt-0 flex max-h-48 min-w-64 flex-col bg-white shadow-none"
       style={{ width: menuWidth }}
     >
-      <div
-        ref={scrollRef}
-        className="flex-1 overflow-y-auto overscroll-contain p-0.5"
-      >
+      <div ref={scrollRef} className="flex-1 overflow-y-auto overscroll-contain p-0">
         {sections.map((section) => (
           <div key={section.kind} role="presentation">
             {!isEmptyQuery && (
               <div
                 data-section={section.kind}
-                className="windows95-text text-text bg-primary border-muted/40 flex items-center gap-1 border-b px-1.5 py-0.5 text-xs font-bold tracking-wider uppercase select-none"
+                className="windows95-text text-hint bg-primary flex items-center gap-1 px-1 py-0.5 text-xs font-bold tracking-wider uppercase select-none"
               >
                 {t(suggestionKindLabels[section.kind])}
               </div>
             )}
-            {items
-              .slice(section.startIndex, section.endIndex)
-              .map((suggestion, index) => (
-                <SuggestionItem
-                  key={`${suggestion.kind}-${suggestion.value}`}
-                  suggestion={suggestion}
-                  itemIndex={section.startIndex + index}
-                  active={section.startIndex + index === activeIndex}
-                  listboxId={listboxId}
-                  currentValue={currentValue}
-                  onHover={onHover}
-                  onSelect={onSelect}
-                  onRemove={onRemoveHistory}
-                />
-              ))}
+            {items.slice(section.startIndex, section.endIndex).map((suggestion, index) => (
+              <SuggestionItem
+                key={`${suggestion.kind}-${suggestion.value}`}
+                suggestion={suggestion}
+                itemIndex={section.startIndex + index}
+                active={section.startIndex + index === activeIndex}
+                listboxId={listboxId}
+                currentValue={currentValue}
+                onHover={onHover}
+                onSelect={onSelect}
+                onRemove={onRemoveHistory}
+              />
+            ))}
           </div>
         ))}
       </div>
       <div
         role="presentation"
         data-footer
-        className="windows95-text text-text/60 bg-primary border-muted/40 flex shrink-0 items-center gap-1 border-t px-1.5 py-1 text-xs select-none"
+        className="windows95-text text-hint bg-primary flex shrink-0 items-center gap-1 px-1 py-0.5 text-xs select-none"
       >
-        {t("settings.search.autocompleteFooterHint")}
+        {t("settings.search.autocomplete.footer.hint")}
       </div>
     </div>
   );

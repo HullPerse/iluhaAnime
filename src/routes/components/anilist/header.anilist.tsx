@@ -2,19 +2,8 @@ import { Calendar, Flame, UserStar, LogOut, GitBranch, Users } from "lucide-reac
 
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
-import { useI18n } from "@/lib/i18n";
-import type { AniUser } from "@/types/anilist";
-
-interface Props {
-  user: AniUser;
-  loadingList: boolean;
-  onStatsOpen: () => void;
-  onBrowseOpen: () => void;
-  onRecsOpen: () => void;
-  onPrefetchOpen: () => void;
-  onFriendsOpen: () => void;
-  onLogout: () => void;
-}
+import { useI18n } from "@/lib/locale/i18n.utils";
+import type { AniHeaderProps as Props } from "@/types/anilist";
 
 export default function AniListProfileHeader({
   user,
@@ -29,7 +18,7 @@ export default function AniListProfileHeader({
   const { t } = useI18n();
 
   return (
-    <main className="windows95-active-border bg-primary flex w-full flex-col p-1">
+    <div className="windows95-active-border bg-primary flex w-full flex-col p-1">
       <section className="flex flex-row items-center gap-2">
         <div className="relative h-10 w-10 bg-white">
           <ImageComponent
@@ -97,6 +86,6 @@ export default function AniListProfileHeader({
           <UserStar className="size-3" />
         </Button>
       </section>
-    </main>
+    </div>
   );
 }

@@ -1,15 +1,17 @@
-import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { open, confirm } from "@tauri-apps/plugin-dialog";
 import { create } from "zustand";
 
-import { translate } from "@/lib/i18n";
-import { showError } from "@/lib/notification.utils";
-import { TorrentListen } from "@/lib/torrent.utils";
+import { translate } from "@/lib/locale/i18n.utils";
+import { TorrentListen, findNewErrors } from "@/lib/torrent/common.utils";
+import { attempt, withFallback } from "@/lib/utils/attempt.utils";
+import { invokeTyped } from "@/lib/utils/invoke.utils";
+import { showError } from "@/lib/utils/notification.utils";
 import { useCacheStore } from "@/store/cache.store";
 import { useSettingsStore } from "@/store/settings.store";
 import type { FilePriority } from "@/types";
 import type {
+  SpeedLimits,
   TorrentCheckResult,
   TorrentFileInfo,
   TorrentInfo,
@@ -42,39 +44,44 @@ async function startDownloadForPending(
   subFolder: string | undefined
 ): Promise<number | undefined> {
   if (pending.magnet) {
-    return invoke<number>("start_torrent_download", {
-      magnet: pending.magnet,
-      saveDir,
-      onlyFiles,
-      subFolder: subFolder || null,
-    }).catch((err) => {
-      showError(tr("download.error.start"), String(err));
+    const [id, error] = await attempt(
+      invokeTyped<number>("start_torrent_download", {
+        magnet: pending.magnet,
+        saveDir,
+        onlyFiles,
+        subFolder: subFolder || null,
+      })
+    );
+    if (error) {
+      showError(tr("download.error.start"), error.message);
       return undefined;
-    });
+    }
+    return id;
   }
   if (pending.fileBytes) {
-    return invoke<number>("start_torrent_download_from_file", {
-      fileBytes: pending.fileBytes,
-      saveDir,
-      onlyFiles,
-      subFolder: subFolder || null,
-    }).catch((err) => {
-      showError(tr("download.error.start"), String(err));
+    const [id, error] = await attempt(
+      invokeTyped<number>("start_torrent_download_from_file", {
+        fileBytes: pending.fileBytes,
+        saveDir,
+        onlyFiles,
+        subFolder: subFolder || null,
+      })
+    );
+    if (error) {
+      showError(tr("download.error.start"), error.message);
       return undefined;
-    });
+    }
+    return id;
   }
   return undefined;
 }
 
 async function clearPreviousTorrentIfNeeded(id: number | undefined): Promise<void> {
   if (!id) return;
-  await invoke("remove_torrent", { id, deleteFiles: false }).catch((err) =>
-    showError(tr("download.error.clear"), String(err))
-  );
+  const [, error] = await attempt(invokeTyped("remove_torrent", { id, deleteFiles: false }));
+  if (error) showError(tr("download.error.clear"), error.message);
 }
 
-// Multiple visible torrent panels can ask for the same metadata during a
-// refresh. Keep one backend request per torrent in flight at a time.
 const fileLoadInFlight = new Set<number>();
 
 export const useTorrentStore = create<TorrentStore>((set, get) => ({
@@ -85,10 +92,10 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
       return;
     }
     if (pending.id) {
-      await invoke("remove_torrent", {
-        id: pending.id,
-        deleteFiles: false,
-      }).catch((err) => showError(tr("download.error.cancel"), String(err)));
+      const [, error] = await attempt(
+        invokeTyped("remove_torrent", { id: pending.id, deleteFiles: false })
+      );
+      if (error) showError(tr("download.error.cancel"), error.message);
     }
     set({ preparingTorrent: false, pendingTorrent: null });
   },
@@ -105,57 +112,57 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
       if (!overwrite) return;
     }
     useCacheStore.getState().setLastSaveDir(saveDir);
-    set({ lastSaveDir: saveDir });
     await clearPreviousTorrentIfNeeded(pending.id);
     const onlyFiles = resolveOnlyFiles(pending.files, selectedIndices);
     const id = await startDownloadForPending(pending, saveDir, onlyFiles, subFolder);
     if (id === undefined) return;
     set({ pendingTorrent: null });
     if (!sequential) return;
-    await invoke("set_sequential_download", { id, enabled: true }).catch((err) =>
-      showError(tr("download.error.sequential"), String(err))
-    );
+    const [, error] = await attempt(invokeTyped("set_sequential_download", { id, enabled: true }));
+    if (error) showError(tr("download.error.sequential"), error.message);
   },
-  dlLimit: null,
+  limits: { download: null, upload: null },
   getTorrentLimits: async (id: number) => {
-    return invoke<TorrentLimits>("get_torrent_limits", { id }).catch(() => ({
+    return withFallback(invokeTyped<TorrentLimits>("get_torrent_limits", { id }), {
       downloadBps: null,
       uploadBps: null,
-    }));
+    });
   },
   init: async () => {
-    const initial = await invoke<TorrentInfo[]>("list_torrents");
+    const initial = await invokeTyped<TorrentInfo[]>("list_torrents");
     set({ torrents: initial ?? [] });
 
-    const prefs = get().seedPreferences;
+    const prefs = useCacheStore.getState().seedPreferences;
     for (const t of initial ?? []) {
       if (t.finished && !prefs[t.id] && t.state === "live") {
-        invoke("pause_torrent", { id: t.id }).catch(() => {});
+        invokeTyped("pause_torrent", { id: t.id }).catch(() => {});
       }
     }
 
     const unlisten = await listen<TorrentInfo[]>("torrents-update", (event) => {
+      const prev = get().torrents;
       set((state) => TorrentListen(state, event));
-      const prefs = useTorrentStore.getState().seedPreferences;
+      for (const t of findNewErrors(prev, event.payload)) {
+        showError(tr("torrent.state.error"), `${t.name}: ${t.error}`);
+      }
+      const prefs = useCacheStore.getState().seedPreferences;
       for (const t of event.payload) {
         if (t.finished && !prefs[t.id] && t.state === "live") {
-          invoke("pause_torrent", { id: t.id }).catch(() => {});
+          invokeTyped("pause_torrent", { id: t.id }).catch(() => {});
         }
       }
     });
 
     return unlisten;
   },
-  lastSaveDir: useCacheStore.getState().lastSaveDir,
   loadTorrentFiles: async (id: number) => {
-    // A second caller can safely treat the existing request as in progress;
-    // it should not turn request deduplication into a fake backend failure.
     if (fileLoadInFlight.has(id)) return true;
     fileLoadInFlight.add(id);
     try {
-      const files = await invoke<TorrentFileInfo[]>("get_running_torrent_files", {
-        id,
-      }).catch(() => null);
+      const files = await withFallback(
+        invokeTyped<TorrentFileInfo[]>("get_running_torrent_files", { id }),
+        null
+      );
       if (files) {
         set((state) => {
           const prev = state.torrentFilesMap[id];
@@ -187,14 +194,13 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
   },
   metadataCache: new Map(),
   pauseTorrent: async (id: number) => {
-    await invoke("pause_torrent", { id }).catch((err) =>
-      showError(tr("download.error.pause"), String(err))
-    );
+    const [, error] = await attempt(invokeTyped("pause_torrent", { id }));
+    if (error) showError(tr("download.error.pause"), error.message);
   },
   pendingTorrent: null,
   prepareTorrentDownload: async (magnet: string) => {
     if (get().preparingTorrent) return;
-    let saveDir = get().lastSaveDir;
+    let saveDir = useCacheStore.getState().lastSaveDir;
     if (!saveDir) {
       const dir = await open({
         directory: true,
@@ -203,7 +209,6 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
       if (!dir) return;
       saveDir = dir;
       useCacheStore.getState().setLastSaveDir(saveDir);
-      set({ lastSaveDir: saveDir });
     }
 
     set({ preparingTorrent: true });
@@ -224,16 +229,16 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
       return;
     }
 
-    const result = await invoke<{
-      id: number;
-      name: string;
-      files: TorrentFileInfo[];
-      conflicting_files: string[];
-      has_common_folder: boolean;
-    }>("get_torrent_info", { magnet, saveDir }).catch((err) => {
-      showError(tr("download.error.get.info"), String(err));
-      return null;
-    });
+    const [result, error] = await attempt(
+      invokeTyped<{
+        id: number;
+        name: string;
+        files: TorrentFileInfo[];
+        conflicting_files: string[];
+        has_common_folder: boolean;
+      }>("get_torrent_info", { magnet, saveDir })
+    );
+    if (error) showError(tr("download.error.get.info"), error.message);
 
     if (!result) {
       set({ preparingTorrent: false });
@@ -265,7 +270,7 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
   },
   prepareTorrentDownloadFromFile: async (filePath: string) => {
     if (get().preparingTorrent) return;
-    let saveDir = get().lastSaveDir;
+    let saveDir = useCacheStore.getState().lastSaveDir;
     if (!saveDir) {
       const dir = await open({
         directory: true,
@@ -274,17 +279,14 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
       if (!dir) return;
       saveDir = dir;
       useCacheStore.getState().setLastSaveDir(saveDir);
-      set({ lastSaveDir: saveDir });
     }
 
     set({ preparingTorrent: true });
 
-    const fileBytes = await invoke<number[]>("read_file_bytes", {
-      path: filePath,
-    }).catch((err) => {
-      showError(tr("download.error.read.file"), String(err));
-      return null;
-    });
+    const [fileBytes, error] = await attempt(
+      invokeTyped<number[]>("read_file_bytes", { path: filePath })
+    );
+    if (error) showError(tr("download.error.read.file"), error.message);
 
     if (!fileBytes) {
       set({ preparingTorrent: false });
@@ -307,16 +309,16 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
       return;
     }
 
-    const result = await invoke<{
-      id: number;
-      name: string;
-      files: TorrentFileInfo[];
-      conflicting_files: string[];
-      has_common_folder: boolean;
-    }>("get_torrent_info_from_file", { fileBytes, saveDir }).catch((err) => {
-      showError(tr("download.error.get.info"), String(err));
-      return null;
-    });
+    const [result, infoError] = await attempt(
+      invokeTyped<{
+        id: number;
+        name: string;
+        files: TorrentFileInfo[];
+        conflicting_files: string[];
+        has_common_folder: boolean;
+      }>("get_torrent_info_from_file", { fileBytes, saveDir })
+    );
+    if (infoError) showError(tr("download.error.get.info"), infoError.message);
 
     if (!result) {
       set({ preparingTorrent: false });
@@ -348,7 +350,7 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
   },
   prepareTorrentDownloadFromBytes: async (fileBytes: number[]) => {
     if (get().preparingTorrent) return;
-    let saveDir = get().lastSaveDir;
+    let saveDir = useCacheStore.getState().lastSaveDir;
     if (!saveDir) {
       const dir = await open({
         directory: true,
@@ -357,21 +359,20 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
       if (!dir) return;
       saveDir = dir;
       useCacheStore.getState().setLastSaveDir(saveDir);
-      set({ lastSaveDir: saveDir });
     }
 
     set({ preparingTorrent: true });
 
-    const result = await invoke<{
-      id: number;
-      name: string;
-      files: TorrentFileInfo[];
-      conflicting_files: string[];
-      has_common_folder: boolean;
-    }>("get_torrent_info_from_file", { fileBytes, saveDir }).catch((err) => {
-      showError(tr("download.error.get.info"), String(err));
-      return null;
-    });
+    const [result, error] = await attempt(
+      invokeTyped<{
+        id: number;
+        name: string;
+        files: TorrentFileInfo[];
+        conflicting_files: string[];
+        has_common_folder: boolean;
+      }>("get_torrent_info_from_file", { fileBytes, saveDir })
+    );
+    if (error) showError(tr("download.error.get.info"), error.message);
 
     if (!result) {
       set({ preparingTorrent: false });
@@ -392,26 +393,20 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
   },
   preparingTorrent: false,
   recheckTorrent: async (id: number) => {
-    const result = await invoke<TorrentCheckResult>("recheck_torrent", {
-      id,
-    }).catch((err) => {
-      showError(tr("download.error.recheck"), String(err));
-      return null;
-    });
+    const [result, error] = await attempt(
+      invokeTyped<TorrentCheckResult>("recheck_torrent", { id })
+    );
+    if (error) showError(tr("download.error.recheck"), error.message);
     if (result) {
       useTorrentStore.getState().loadTorrentFiles(id);
     }
     return result;
   },
   redownloadFile: async (id: number, fileIndex: number, infoHash: string) => {
-    const newId = await invoke<number>("redownload_file", {
-      id,
-      fileIndex,
-      infoHash,
-    }).catch((err) => {
-      showError(tr("download.error.redownload"), String(err));
-      return null;
-    });
+    const [newId, error] = await attempt(
+      invokeTyped<number>("redownload_file", { id, fileIndex, infoHash })
+    );
+    if (error) showError(tr("download.error.redownload"), error.message);
     if (newId === null) return;
     const state = useTorrentStore.getState();
     if (state.torrentFilesMap[newId]) {
@@ -421,71 +416,64 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
     }
   },
   removeTorrent: async (id: number, deleteFiles: boolean) => {
+    const { [id]: _, ...seedRest } = useCacheStore.getState().seedPreferences;
+    useCacheStore.setState({ seedPreferences: seedRest });
     set((s) => {
-      const { [id]: _, ...rest } = s.torrentFilesMap;
-      const { [id]: __, ...seedRest } = s.seedPreferences;
-      useCacheStore.setState({ seedPreferences: seedRest });
-      return { torrentFilesMap: rest, seedPreferences: seedRest };
+      const { [id]: __, ...rest } = s.torrentFilesMap;
+      return { torrentFilesMap: rest };
     });
-    await invoke("remove_torrent", { id, deleteFiles }).catch((err) =>
-      showError(tr("download.error.remove"), String(err))
-    );
+    const [, error] = await attempt(invokeTyped("remove_torrent", { id, deleteFiles }));
+    if (error) showError(tr("download.error.remove"), error.message);
   },
   resumeTorrent: async (id: number) => {
-    await invoke("resume_torrent", { id }).catch((err) =>
-      showError(tr("download.error.resume"), String(err))
-    );
+    const [, error] = await attempt(invokeTyped("resume_torrent", { id }));
+    if (error) showError(tr("download.error.resume"), error.message);
   },
-  seedPreferences: useCacheStore.getState().seedPreferences,
   setFilePriority: async (id: number, fileIndices: number[], priority: FilePriority) => {
-    await invoke("set_file_priority", { id, fileIndices, priority }).catch((err) =>
-      showError(tr("download.error.priority"), String(err))
+    const [, error] = await attempt(
+      invokeTyped("set_file_priority", { id, fileIndices, priority })
     );
+    if (error) showError(tr("download.error.priority"), error.message);
     const state = useTorrentStore.getState();
     if (state.torrentFilesMap[id]) {
       state.loadTorrentFiles(id);
     }
   },
-  setSeedPreference: (id: number, enabled: boolean) => {
-    set((state) => {
-      const prefs = { ...state.seedPreferences, [id]: enabled };
-      useCacheStore.setState({ seedPreferences: prefs });
-      return { seedPreferences: prefs };
-    });
-  },
   setSequentialDownload: async (id: number, enabled: boolean) => {
-    await invoke("set_sequential_download", { id, enabled }).catch((err) =>
-      showError(tr("download.error.sequential"), String(err))
-    );
+    const [, error] = await attempt(invokeTyped("set_sequential_download", { id, enabled }));
+    if (error) showError(tr("download.error.sequential"), error.message);
     set((state) => ({
       torrents: state.torrents.map((t) =>
         t.id === id ? { ...t, sequential_download: enabled } : t
       ),
     }));
   },
-  setSpeedLimits: async (dlKbps: number | null, ulKbps: number | null) => {
-    set({ dlLimit: dlKbps, ulLimit: ulKbps });
-    const dlBps = dlKbps !== null ? dlKbps * 1024 : null;
-    const ulBps = ulKbps !== null ? ulKbps * 1024 : null;
-    await invoke("set_global_speed_limits", {
-      downloadBps: dlBps,
-      uploadBps: ulBps,
-    }).catch((err) => showError(tr("download.error.limit"), String(err)));
+  setSpeedLimits: async (limits: SpeedLimits) => {
+    set({ limits });
+    const downloadBps = limits.download !== null ? limits.download * 1024 : null;
+    const uploadBps = limits.upload !== null ? limits.upload * 1024 : null;
+    const [, error] = await attempt(
+      invokeTyped("set_global_speed_limits", { downloadBps, uploadBps })
+    );
+    if (error) showError(tr("download.error.limit"), error.message);
   },
-  setTorrentLimits: async (id: number, dlKbps: number | null, ulKbps: number | null) => {
-    const downloadBps = dlKbps !== null && dlKbps > 0 ? Math.round(dlKbps * 1024) : null;
-    const uploadBps = ulKbps !== null && ulKbps > 0 ? Math.round(ulKbps * 1024) : null;
-    await invoke("set_torrent_limits", {
-      id,
-      limits: { downloadBps, uploadBps },
-    }).catch((err) => showError(tr("download.error.set.limits"), String(err)));
+  setTorrentLimits: async (id: number, limits: SpeedLimits) => {
+    const downloadBps =
+      limits.download !== null && limits.download > 0 ? Math.round(limits.download * 1024) : null;
+    const uploadBps =
+      limits.upload !== null && limits.upload > 0 ? Math.round(limits.upload * 1024) : null;
+    const [, error] = await attempt(
+      invokeTyped("set_torrent_limits", { id, limits: { downloadBps, uploadBps } })
+    );
+    if (error) showError(tr("download.error.set.limits"), error.message);
   },
   torrentFilesMap: {},
   torrents: [],
-  ulLimit: null,
+  lastActiveAt: {},
   updateTorrentOnlyFiles: async (id: number, indices: number[]) => {
-    await invoke("update_torrent_only_files", { id, onlyFiles: indices }).catch((err) =>
-      showError(tr("download.error.update"), String(err))
+    const [, error] = await attempt(
+      invokeTyped("update_torrent_only_files", { id, onlyFiles: indices })
     );
+    if (error) showError(tr("download.error.update"), error.message);
   },
 }));

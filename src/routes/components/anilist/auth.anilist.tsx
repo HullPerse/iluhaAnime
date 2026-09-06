@@ -1,12 +1,12 @@
-import { invoke } from "@tauri-apps/api/core";
 import { useState } from "react";
 
 import { SmallLoader } from "@/components/shared/loader.component";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
-import { useI18n } from "@/lib/i18n";
-import { enterSubmit } from "@/lib/keyboard.utils";
+import { useI18n } from "@/lib/locale/i18n.utils";
+import { invokeTyped } from "@/lib/utils/invoke.utils";
+import { enterSubmit } from "@/lib/utils/keyboard.utils";
 import type { AniUser } from "@/types/anilist";
 
 function AniListAuthModal({
@@ -26,7 +26,7 @@ function AniListAuthModal({
     setLoading(true);
     setError("");
     try {
-      const user = await invoke<AniUser>("anilist_login", {
+      const user = await invokeTyped<AniUser>("anilist_login", {
         token: token.trim(),
       });
       onAuth(user);
@@ -68,7 +68,11 @@ function AniListAuthModal({
           <li>{t("anilist.auth.step6")}</li>
           <li>{t("anilist.auth.step7")}</li>
         </ul>
+        <label className="windows95-text text-xs font-bold" htmlFor="anilist-token">
+          {t("anilist.auth.token.label")}
+        </label>
         <Input
+          id="anilist-token"
           placeholder={t("anilist.auth.token.placeholder")}
           value={token}
           onChange={(e) => setToken(e.target.value)}
@@ -76,10 +80,14 @@ function AniListAuthModal({
             if (!loading) handleSubmit();
           })}
         />
-        {error && <span className="text-destructive windows95-text">{error}</span>}
+        {error && (
+          <span className="text-destructive windows95-text" title={error}>
+            {t("anilist.auth.failed")}
+          </span>
+        )}
         <div className="mt-1 flex justify-end gap-1">
           <Button onClick={onClose}>{t("common.cancel")}</Button>
-          <Button onClick={handleSubmit} disabled={loading}>
+          <Button onClick={handleSubmit} disabled={loading || !token.trim()}>
             {loading ? <SmallLoader /> : t("anilist.auth.save")}
           </Button>
         </div>

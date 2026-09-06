@@ -5,6 +5,7 @@ import {
   Grid3x3,
   Hash,
   Infinity as InfinityIcon,
+  Layers,
   List,
   Palette,
   Upload,
@@ -23,7 +24,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown.component";
 import ImageComponent from "@/components/ui/image.component";
-import { useI18n } from "@/lib/i18n";
+import { useI18n } from "@/lib/locale/i18n.utils";
 import { useCollectionStore } from "@/store/collection.store";
 
 export default function DataCollection({
@@ -38,8 +39,16 @@ export default function DataCollection({
   onHandleAnilist: () => void;
 }) {
   const { t } = useI18n();
-  const { coverDithered, viewMode, displayMode, setCoverDithered, setViewMode, setDisplayMode } =
-    useCollectionStore();
+  const {
+    coverDithered,
+    groupByStatus,
+    viewMode,
+    displayMode,
+    setCoverDithered,
+    setGroupByStatus,
+    setViewMode,
+    setDisplayMode,
+  } = useCollectionStore();
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -65,18 +74,10 @@ export default function DataCollection({
               value={viewMode}
               onValueChange={(v) => setViewMode(v as typeof viewMode)}
             >
-              <DropdownMenuRadioItem
-                value="grid"
-                disabled={viewMode === "grid"}
-                title={t("collection.view.mode")}
-              >
+              <DropdownMenuRadioItem value="grid" title={t("collection.view.mode")}>
                 <Grid3x3 className="size-4" /> {t("collection.view.mode.grid")}
               </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem
-                value="list"
-                disabled={viewMode === "list"}
-                title={t("collection.view.mode")}
-              >
+              <DropdownMenuRadioItem value="list" title={t("collection.view.mode")}>
                 <List className="size-4" /> {t("collection.view.mode.list")}
               </DropdownMenuRadioItem>
             </DropdownMenuRadioGroup>
@@ -85,22 +86,24 @@ export default function DataCollection({
                 value={displayMode}
                 onValueChange={(v) => setDisplayMode(v as typeof displayMode)}
               >
-                <DropdownMenuRadioItem
-                  value="scroll"
-                  disabled={displayMode === "scroll"}
-                  title={t("collection.display.mode")}
-                >
+                <DropdownMenuRadioItem value="scroll" title={t("collection.display.mode")}>
                   <InfinityIcon className="size-4" /> {t("collection.display.mode.scroll")}
                 </DropdownMenuRadioItem>
                 <DropdownMenuRadioItem
                   value="pagination"
-                  disabled={displayMode === "pagination"}
-                  title={t("collection.display.mode")}
+                  title={t("collection.display.mode.pagination")}
                 >
                   <Hash className="size-4" /> {t("collection.display.mode.pagination")}
                 </DropdownMenuRadioItem>
               </DropdownMenuRadioGroup>
             )}
+            <DropdownMenuCheckboxItem
+              checked={groupByStatus}
+              onCheckedChange={(checked) => setGroupByStatus(checked)}
+              title={t("collection.group.by.status")}
+            >
+              <Layers className="size-4" /> {t("collection.group.by.status")}
+            </DropdownMenuCheckboxItem>
             <DropdownMenuCheckboxItem
               checked={coverDithered}
               onCheckedChange={(checked) => setCoverDithered(checked)}

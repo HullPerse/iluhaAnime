@@ -1,8 +1,6 @@
-import { Check } from "lucide-react";
-
 import { Checkbox as CheckboxPrimitive } from "@base-ui/react/checkbox";
-
-import { cn } from "@/lib/index.utils";
+import { cn } from "cn";
+import { Check } from "lucide-react";
 
 function Checkbox({
   checked,

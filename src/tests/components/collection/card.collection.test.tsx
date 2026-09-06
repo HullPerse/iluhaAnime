@@ -87,4 +87,14 @@ describe("CollectionCard interactions", () => {
     expect(screen.queryByRole("button", { name: "Naruto" })).toBeNull();
     expect(screen.getByText("Planned")).toBeTruthy();
   });
+
+  it("marks the selected card with an outline", () => {
+    const { container, rerender } = render(
+      <CollectionCard item={makeItem()} statuses={STATUSES} onOpen={() => {}} />
+    );
+    const root = () => (container.firstChild as HTMLElement).className;
+    expect(root().includes("outline-2")).toBe(false);
+    rerender(<CollectionCard item={makeItem()} statuses={STATUSES} selected onOpen={() => {}} />);
+    expect(root().includes("outline-2")).toBe(true);
+  });
 });

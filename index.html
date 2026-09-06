@@ -4,49 +4,7 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <script>
-      try {
-        var r = document.documentElement;
-        var appFont = null;
-        try {
-          appFont = localStorage.getItem("appFont");
-          if (!appFont) {
-            var sRaw = localStorage.getItem("settings");
-            if (sRaw) {
-              var sParsed = JSON.parse(sRaw);
-              var st = (sParsed && sParsed.state) || sParsed;
-              if (st && typeof st.appFont === "string" && st.appFont) appFont = st.appFont;
-            }
-          }
-        } catch (e2) {}
-        if (appFont) {
-          r.style.setProperty(
-            "--font-family",
-            '"' +
-              appFont.replace(/"/g, '\\"') +
-              '", "MS Sans Serif", "Microsoft Sans Serif", "Segoe UI", system-ui',
-            "important"
-          );
-        }
-        var v = JSON.parse(localStorage.getItem("themeVars") || "{}");
-        if (v.background) {
-          r.style.setProperty("--color-background", v.background, "important");
-          r.style.setProperty("--color-primary", v.primary, "important");
-          r.style.setProperty("--color-secondary", v.secondary, "important");
-          r.style.setProperty("--color-text", v.text, "important");
-          r.style.setProperty("--color-muted", v.muted, "important");
-          r.style.setProperty("--color-highlight", v.highlight, "important");
-          r.style.setProperty("--color-destructive", v.destructive, "important");
-          r.style.setProperty("--color-success", v.success, "important");
-          r.style.setProperty("--color-link-hover", v.linkHover, "important");
-          r.style.setProperty("--color-surface", v.surface, "important");
-          r.style.setProperty("--color-win-highlight", v.winHighlight, "important");
-          r.style.setProperty("--color-win-shadow", v.winShadow, "important");
-          if (!appFont && v.fontFamily)
-            r.style.setProperty("--font-family", v.fontFamily, "important");
-        }
-      } catch (e) {}
-    </script>
+    <script src="/theme-init.js"></script>
     <title>Tauri + React + Typescript</title>
   </head>
 

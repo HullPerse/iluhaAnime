@@ -1,23 +1,24 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { ConfirmDialog } from "@/components/shared/confirm.component";
-import { SelectDialog } from "@/components/shared/prompt.component";
-import { useCollectionDataActions } from "@/hooks/collectionData.hook";
-import { useCollectionMetadata } from "@/hooks/collectionMetadata.hook";
-import { useSearchField } from "@/hooks/searchField.hook";
-import { DEFAULT_FILTERS } from "@/lib/collection.filters";
+import { SelectDialog } from "@/components/shared/selectDialog.component";
+import { useCollectionDataActions } from "@/hooks/collection/data.hook";
+import { useCollectionMetadata } from "@/hooks/collection/metadata.hook";
 import {
   useCollectionData,
   useCollectionMutations,
   useCollectionSearch,
-} from "@/lib/collection.queries";
-import { filterCollectionItems } from "@/lib/collectionFilter.utils";
-import { calculateCollectionStats } from "@/lib/collectionStats.utils";
-import { useI18n } from "@/lib/i18n";
+} from "@/hooks/collection/queries.hook";
+import { useSearchField } from "@/hooks/search/field.hook";
+import { filterCollectionItems } from "@/lib/collection/filter.utils";
+import { groupItemsByStatus } from "@/lib/collection/group.utils";
+import { calculateCollectionStats } from "@/lib/collection/stats.utils";
+import { useI18n } from "@/lib/locale/i18n.utils";
+import { FILTER_KEYS } from "@/lib/search/intent.utils";
 import { useCollectionStore } from "@/store/collection.store";
-import type { CollectionItem, CollectionStatus } from "@/types/collection";
+import type { CollectionItem, CollectionStatus, WizardPrefill } from "@/types/collection";
 
-import { DetailCollection } from "./components/collection/detail.collection";
+import { DetailCollection } from "./components/collection/detail/modal.detail";
 import FilterCollection from "./components/collection/filter.collection";
 import GridCollection from "./components/collection/grid.collection";
 import ImportAnilistCollection from "./components/collection/importAnilist.collection";
@@ -25,7 +26,7 @@ import ListCollection from "./components/collection/list.collection";
 import { StatusCollection } from "./components/collection/status.collection";
 import { StatusManagerCollection } from "./components/collection/statusManager.collection";
 import ToolbarCollection from "./components/collection/toolbar.collection";
-import { WizardModalCollection } from "./components/collection/wizard/modal.wizard";
+import { WizardModal } from "./components/collection/wizard/modal.wizard";
 
 export default function CollectionRoute() {
   const { items, statuses, customFieldDefs } = useCollectionData();
@@ -45,10 +46,16 @@ export default function CollectionRoute() {
     displayMode,
     selectedStatus,
     setSelectedStatus,
+    groupByStatus,
+    collapsedStatuses,
+    toggleStatusCollapsed,
+    wizardPrefill,
+    consumeWizardPrefill,
   } = useCollectionStore();
 
   const [showWizard, setShowWizard] = useState<boolean>(false);
   const [editingItem, setEditingItem] = useState<CollectionItem | null>(null);
+  const [wizardDraft, setWizardDraft] = useState<WizardPrefill | null>(null);
   const [detailItem, setDetailItem] = useState<CollectionItem | null>(null);
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const [anilistImport, setAnilistImport] = useState<boolean>(false);
@@ -93,6 +100,9 @@ export default function CollectionRoute() {
     push("type:custom");
     for (const s of statuses) push(`status:${s.id}`);
     for (const p of ["low", "normal", "high"] as const) push(`priority:${p}`);
+    for (const key of Object.keys(FILTER_KEYS)) push(`${key}:`);
+    for (const by of ["date", "name", "rating"] as const) push(`sort:${by}`);
+    for (const provider of ["anilist", "tmdb", "custom"] as const) push(`provider:${provider}`);
     const studios = new Set<string>();
     const genres = new Set<string>();
     const years = new Set<string>();
@@ -140,6 +150,12 @@ export default function CollectionRoute() {
     return { ...stats.byStatus, all: stats.total } as Record<string, number>;
   }, [items, statuses]);
 
+  const grouped = useMemo(
+    () =>
+      groupByStatus && selectedStatus === "all" ? groupItemsByStatus(filtered, statuses) : null,
+    [groupByStatus, selectedStatus, filtered, statuses]
+  );
+
   const handleAdd = useCallback(() => {
     setEditingItem(null);
     setShowWizard(true);
@@ -149,12 +165,19 @@ export default function CollectionRoute() {
     setEditingItem(item);
     setShowWizard(true);
   }, []);
+  useEffect(() => {
+    if (!wizardPrefill) return;
+    setEditingItem(null);
+    setWizardDraft(wizardPrefill);
+    setShowWizard(true);
+    consumeWizardPrefill();
+  }, [wizardPrefill, consumeWizardPrefill]);
 
   const handleStatusManager = useCallback(() => setStatusManager(true), []);
   const handleAnilistImport = useCallback(() => setAnilistImport(true), []);
 
   return (
-    <main className="flex h-full w-full flex-col gap-1 overflow-hidden">
+    <div className="flex h-full w-full flex-col gap-1 overflow-hidden">
       <ToolbarCollection
         handleAdd={handleAdd}
         handleStatusManager={handleStatusManager}
@@ -166,13 +189,14 @@ export default function CollectionRoute() {
         onSortChange={setSort}
       />
 
-      <FilterCollection
-        open={showFilters}
-        filters={filters}
-        onApply={(f) => setFilters(f)}
-        onReset={() => setFilters({ ...DEFAULT_FILTERS, mediaTypes: [], genres: [] })}
-        onClose={() => setShowFilters(false)}
-      />
+      {showFilters && (
+        <FilterCollection
+          open={showFilters}
+          filters={filters}
+          onApply={(f) => setFilters(f)}
+          onClose={() => setShowFilters(false)}
+        />
+      )}
 
       <StatusCollection
         statuses={statuses}
@@ -180,36 +204,44 @@ export default function CollectionRoute() {
         onSelect={setSelectedStatus}
         counts={statusCounts}
       />
-
       {viewMode === "grid" ? (
         <GridCollection
           items={filtered}
           statuses={statuses}
-          display={displayMode}
+          display={grouped ? "scroll" : displayMode}
+          selectedId={detailItem?.id}
           onOpen={setDetailItem}
           onEdit={handleEdit}
           onSetStatus={setItemStatus}
+          groups={grouped ?? undefined}
+          collapsedStatuses={collapsedStatuses}
+          onToggleStatusCollapsed={toggleStatusCollapsed}
         />
       ) : (
         <ListCollection
           items={filtered}
           statuses={statuses}
+          selectedId={detailItem?.id}
           onOpen={setDetailItem}
           onEdit={handleEdit}
           onSetStatus={setItemStatus}
+          groups={grouped ?? undefined}
+          collapsedStatuses={collapsedStatuses}
+          onToggleStatusCollapsed={toggleStatusCollapsed}
         />
       )}
-
       {showWizard && (
-        <WizardModalCollection
+        <WizardModal
           open={showWizard}
           onClose={() => {
             setShowWizard(false);
             setEditingItem(null);
+            setWizardDraft(null);
           }}
           onSave={(item) => {
             if (editingItem) updateItem(editingItem.id, item);
             else mutations.addItem(item);
+            setWizardDraft(null);
           }}
           onDelete={(id) => {
             mutations.removeItem(id);
@@ -217,6 +249,7 @@ export default function CollectionRoute() {
             setEditingItem(null);
           }}
           initial={editingItem}
+          prefill={wizardDraft}
           statuses={statuses}
           customFieldDefs={customFieldDefs}
         />
@@ -285,6 +318,6 @@ export default function CollectionRoute() {
           onClose={() => setStatusManager(false)}
         />
       )}
-    </main>
+    </div>
   );
 }

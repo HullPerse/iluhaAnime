@@ -1,9 +1,5 @@
 import { describe, expect, it, vi, beforeAll, beforeEach } from "vitest";
 
-// The theme store applies the current theme to the DOM on import (via
-// document) and persist reads window.localStorage. We stub both before
-// loading the module. No test here touches the persist API directly, so the
-// bare localStorage stub is sufficient.
 const setProperty = vi.fn();
 const style = { setProperty };
 const localStorageMock = {
@@ -136,9 +132,10 @@ describe("useThemeStore", () => {
     expect(setProperty).toHaveBeenCalledWith("--autocomplete-opacity", "0.35", "important");
   });
 
-  it("starts with the default win95 theme", () => {
-    expect(useThemeStore.getState().currentTheme).toBe("win95");
-    expect(useThemeStore.getState().customThemes).toEqual([]);
+  it("applies window chrome colors to the document", () => {
+    applyTheme("win95");
+    expect(setProperty).toHaveBeenCalledWith("--color-win-highlight", "#ffffff", "important");
+    expect(setProperty).toHaveBeenCalledWith("--color-win-shadow", "#808080", "important");
   });
 
   it("adds a custom theme", () => {

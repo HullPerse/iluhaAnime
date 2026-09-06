@@ -5,8 +5,16 @@ export interface UpscaleConfig {
   interpolate: boolean;
   quality: string;
   gpuBackend: string;
+  videoCodec: string;
   aiUpscaler: string | null;
   selectedShaders?: string[];
+  temporalDenoise?: boolean;
+}
+
+export interface PreviewFrame {
+  timestamp: number;
+  before: string;
+  after: string;
 }
 
 export interface ConvertConfig {
@@ -29,6 +37,7 @@ export interface UpscaleQueueItem {
   current?: number;
   total?: number;
   speed?: number;
+  stage?: string;
   error?: string;
 }
 
@@ -51,4 +60,14 @@ export interface UpscaleQueueStore {
   clearAll: () => void;
   restartItem: (id: string) => void;
   processNext: () => Promise<void>;
+}
+
+export interface ShaderInfo {
+  id: string;
+  filename: string;
+  category: string;
+  description: string;
+  speed_factor: number;
+  is_default: boolean;
+  exclusive_group: string | null;
 }

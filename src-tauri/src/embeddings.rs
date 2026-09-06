@@ -1,7 +1,7 @@
 use std::sync::{Mutex, OnceLock};
 
 use fastembed::{EmbeddingModel, InitOptions, TextEmbedding};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use tauri::{Emitter, Manager};
 
 static MODEL: OnceLock<Mutex<Option<TextEmbedding>>> = OnceLock::new();
@@ -17,33 +17,11 @@ struct DownloadProgress {
     stage: String,
 }
 
-#[allow(dead_code)]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SemanticHit {
-    pub id: String,
-    pub score: f32,
-}
-
-#[allow(dead_code)]
-const FASTEMBED_Q_FILES: &[&str] = &[
-    "config.json",
-    "tokenizer.json",
-    "tokenizer_config.json",
-    "special_tokens_map.json",
-    "model.onnx",
-    "model.onnx_data",
-];
-#[allow(dead_code)]
-const FASTEMBED_FULL_FILES: &[&str] = &[
-    "config.json",
-    "tokenizer.json",
-    "tokenizer_config.json",
-    "special_tokens_map.json",
-    "model.onnx",
-];
 
 pub fn init_model(cache_dir: Option<std::path::PathBuf>) -> Result<(), String> {
-    let mut guard = model_lock().lock().map_err(|e| format!("embed lock: {e}"))?;
+    let mut guard = model_lock()
+        .lock()
+        .map_err(|e| format!("embed lock: {e}"))?;
     if guard.is_some() {
         return Ok(());
     }
@@ -51,7 +29,6 @@ pub fn init_model(cache_dir: Option<std::path::PathBuf>) -> Result<(), String> {
     if let Some(dir) = cache_dir {
         options = options.with_cache_dir(dir);
     }
-    // Show progress off for desktop
     options = options.with_show_download_progress(false);
     let model = TextEmbedding::try_new(options).map_err(|e| format!("init fastembed: {e}"))?;
     *guard = Some(model);
@@ -68,7 +45,9 @@ pub fn is_fastembed_initialized() -> Result<bool, String> {
 }
 
 pub fn embed_batch(texts: Vec<String>) -> Result<Vec<Vec<f32>>, String> {
-    let mut guard = model_lock().lock().map_err(|e| format!("embed lock: {e}"))?;
+    let mut guard = model_lock()
+        .lock()
+        .map_err(|e| format!("embed lock: {e}"))?;
     let model = guard.as_mut().ok_or("fastembed not initialized")?;
     model.embed(texts, None).map_err(|e| format!("embed: {e}"))
 }
@@ -96,21 +75,6 @@ pub fn cosine(a: &[f32], b: &[f32]) -> f32 {
     dot / (na.sqrt() * nb.sqrt())
 }
 
-#[allow(dead_code)]
-fn fastembed_base_url(source: &str) -> &'static str {
-    match source {
-        "full" => "https://huggingface.co/qdrant/all-MiniLM-L6-v2-onnx/resolve/main/",
-        _ => "https://huggingface.co/qdrant/all-MiniLM-L6-v2-onnx-Q/resolve/main/",
-    }
-}
-
-#[allow(dead_code)]
-fn fastembed_files(source: &str) -> &'static [&'static str] {
-    match source {
-        "full" => FASTEMBED_FULL_FILES,
-        _ => FASTEMBED_Q_FILES,
-    }
-}
 
 #[tauri::command]
 pub fn check_fastembed(app: tauri::AppHandle) -> Result<bool, String> {
@@ -119,12 +83,9 @@ pub fn check_fastembed(app: tauri::AppHandle) -> Result<bool, String> {
         .app_data_dir()
         .map(|p| p.join("fastembed_cache"))
         .map_err(|e| format!("no app data dir: {e}"))?;
-    // check if model.onnx exists in cache (hf-hub layout: models--qdrant--all-MiniLM-L6-v2-onnx-Q/snapshots/<hash>/model.onnx)
-    // fallback: check if init would succeed without download
     if !dir.exists() {
         return Ok(false);
     }
-    // search for model.onnx
     let found = walkdir::WalkDir::new(&dir)
         .into_iter()
         .filter_map(Result::ok)
@@ -143,7 +104,6 @@ pub async fn remove_fastembed(app: tauri::AppHandle) -> Result<(), String> {
         return Err("Fastembed not found".into());
     }
     std::fs::remove_dir_all(&dir).map_err(|e| format!("remove fastembed: {e}"))?;
-    // clear in-memory model
     if let Ok(mut guard) = model_lock().lock() {
         *guard = None;
     }
@@ -167,7 +127,6 @@ pub async fn download_fastembed(
         return Ok(dir.to_string_lossy().to_string());
     }
 
-    // emit smooth progress while init downloads model (like ffmpeg)
     let app_clone = app.clone();
     let progress_handle = tokio::spawn(async move {
         let mut pct = 0u64;
@@ -190,10 +149,11 @@ pub async fn download_fastembed(
 
     let dir_clone = dir.clone();
     let src_for_init = src_owned.clone();
-    // choose model based on source
     let init_res: Result<(), String> =
         tokio::task::spawn_blocking(move || -> Result<(), String> {
-            let mut guard = model_lock().lock().map_err(|e| format!("embed lock: {e}"))?;
+            let mut guard = model_lock()
+                .lock()
+                .map_err(|e| format!("embed lock: {e}"))?;
             if guard.is_some() {
                 return Ok(());
             }
@@ -238,33 +198,6 @@ pub async fn download_fastembed(
 }
 
 #[tauri::command]
-pub fn init_fastembed(app: tauri::AppHandle) -> Result<(), String> {
-    let dir = app
-        .path()
-        .app_data_dir()
-        .map(|p| p.join("fastembed_cache"))
-        .ok();
-    if let Some(ref d) = dir {
-        let _ = std::fs::create_dir_all(d);
-    }
-    init_model(dir)
-}
-
-#[tauri::command]
-pub fn embed_text(app: tauri::AppHandle, text: String) -> Result<Vec<f32>, String> {
-    // lazy init
-    if !is_initialized() {
-        let dir = app
-            .path()
-            .app_data_dir()
-            .map(|p| p.join("fastembed_cache"))
-            .ok();
-        let _ = init_model(dir);
-    }
-    embed_one(text)
-}
-
-#[tauri::command]
 pub fn upsert_embedding(app: tauri::AppHandle, id: String, text: String) -> Result<(), String> {
     if !is_initialized() {
         let dir = app
@@ -276,6 +209,47 @@ pub fn upsert_embedding(app: tauri::AppHandle, id: String, text: String) -> Resu
     }
     let emb = embed_one(text)?;
     crate::app_db::upsert_unified_index_embedding(&app, id, emb)
+}
+
+#[derive(Clone, Serialize)]
+struct BackfillProgress {
+    done: usize,
+    total: usize,
+}
+
+#[tauri::command]
+pub async fn backfill_missing_embeddings(app: tauri::AppHandle) -> Result<usize, String> {
+    if !is_initialized() {
+        let dir = app
+            .path()
+            .app_data_dir()
+            .map(|p| p.join("fastembed_cache"))
+            .ok();
+        init_model(dir)?;
+    }
+    let pending = crate::app_db::list_entries_missing_embeddings(&app)?;
+    let total = pending.len();
+    let mut done = 0usize;
+    let batches: Vec<Vec<(String, String)>> = pending
+        .chunks(64)
+        .map(<[(String, String)]>::to_vec)
+        .collect();
+    for batch in batches {
+        let count = batch.len();
+        let texts: Vec<String> = batch.iter().map(|(_, text)| text.clone()).collect();
+        let vectors = tokio::task::spawn_blocking(move || embed_batch(texts))
+            .await
+            .map_err(|e| format!("embed join: {e}"))??;
+        for ((id, _), vector) in batch.into_iter().zip(vectors) {
+            crate::app_db::upsert_unified_index_embedding(&app, id, vector)?;
+        }
+        done += count;
+        let _ = app.emit(
+            "embeddings-backfill-progress",
+            BackfillProgress { done, total },
+        );
+    }
+    Ok(done)
 }
 
 #[tauri::command]
@@ -290,7 +264,6 @@ pub fn search_semantic(
             .app_data_dir()
             .map(|p| p.join("fastembed_cache"))
             .ok();
-        // try init, if fails return empty
         if init_model(dir).is_err() {
             return Ok(Vec::new());
         }
@@ -339,11 +312,7 @@ pub fn search_semantic(
             )
             .ok();
         if let Some(mut e) = entry {
-            // boost with semantic score
             if let Some(s) = scores.get(&e.id) {
-                // store semantic score in use_count? no, just return as is, frontend will recompute
-                // we abuse last_used_at? better to just return and frontend will blend
-                // For now, we set use_count to semantic*100 for sorting hint
                 e.use_count = (*s * 100.0) as i64;
             }
             out.push(e);

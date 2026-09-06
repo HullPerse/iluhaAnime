@@ -1,33 +1,22 @@
-import { invoke } from "@tauri-apps/api/core";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-import { SEARCH_RANKING } from "@/config/searchRanking.config";
-import { createDebouncedStorage } from "@/lib/debounced.storage";
-import { normalizeSearchText } from "@/lib/search.suggestions";
+import { SEARCH_RANKING } from "@/config/search/ranking.config";
+import { normalizeSearchText } from "@/lib/search/suggestions.utils";
+import { createDebouncedStorage } from "@/lib/store/storage.utils";
+import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSettingsStore } from "@/store/settings.store";
 import type { AniListCollection, FavouriteAnime } from "@/types/anilist";
 import type {
   SearchAnimeSuggestion,
   SearchFilters,
+  SearchPersistedState,
   SearchQueryStat,
   SearchStore,
 } from "@/types/search";
 
 const MAX_LEARNING_ITEMS = SEARCH_RANKING.MAX_LEARNING_ITEMS;
 const TTL_MS = SEARCH_RANKING.TTL_MS;
-
-type SearchPersistedState = Pick<
-  SearchStore,
-  | "animeIndex"
-  | "animeProfileId"
-  | "filters"
-  | "history"
-  | "queryStats"
-  | "sortBy"
-  | "sortDirection"
-  | "suggestionStats"
->;
 
 const defaultFilters: SearchFilters = {
   codec: "all",
@@ -97,23 +86,19 @@ function syncUnifiedIndex(
   }>
 ): void {
   if (entries.length === 0) return;
-  invoke("upsert_unified_index", { entries })
+  invokeTyped("upsert_unified_index", { entries })
     .then(() => {
       if (entries.length > 100) {
-        invoke("optimize_unified_index").catch(() => {});
+        invokeTyped("optimize_unified_index").catch(() => {});
       }
-      // also sync embeddings when semantic enabled (fire-and-forget, throttled)
       if (useSettingsStore.getState().searchSemanticEnabled) {
-        // lazy: only first 50 to avoid 100s cold start
         const toEmbed = entries.slice(0, 50);
         for (const e of toEmbed) {
-          invoke("upsert_embedding", { id: e.id, text: e.value }).catch(() => {});
+          invokeTyped("upsert_embedding", { id: e.id, text: e.value }).catch(() => {});
         }
       }
     })
-    .catch(() => {
-      // Browser preview and older installations may not expose the backend index yet.
-    });
+    .catch(() => {});
 }
 
 function buildAnimeIndex(
@@ -231,7 +216,7 @@ export const useSearchStore = create<SearchStore>()(
         set((state) => ({
           suggestionStats: updateStat(state.suggestionStats ?? {}, value, true),
         }));
-        invoke("record_unified_index_action", {
+        invokeTyped("record_unified_index_action", {
           action: "select",
           id: `history:global:${normalize(value)}`,
         }).catch(() => {});
@@ -241,7 +226,7 @@ export const useSearchStore = create<SearchStore>()(
         set((state) => ({
           suggestionStats: updateStat(state.suggestionStats ?? {}, value, false, true),
         }));
-        invoke("record_unified_index_action", {
+        invokeTyped("record_unified_index_action", {
           action: "ignore",
           id: `history:global:${normalize(value)}`,
         }).catch(() => {});
@@ -257,10 +242,9 @@ export const useSearchStore = create<SearchStore>()(
         })),
       clearScope: async (scope) => {
         try {
-          await invoke("clear_unified_index_scope", { scope });
+          await invokeTyped("clear_unified_index_scope", { scope });
         } catch {
-          // Fallback: prune scope with empty keep list on older backend
-          await invoke("prune_unified_index_scope", {
+          await invokeTyped("prune_unified_index_scope", {
             scope,
             keepIds: [],
           }).catch(() => {});
@@ -271,12 +255,12 @@ export const useSearchStore = create<SearchStore>()(
         const scopes = ["global", "anilist", "torrent", "player", "filter"];
         for (const scope of scopes) {
           try {
-            await invoke("clear_unified_index_scope", { scope });
+            await invokeTyped("clear_unified_index_scope", { scope });
           } catch {
-            await invoke("prune_unified_index_scope", {
+            await invokeTyped("prune_unified_index_scope", {
               scope,
               keepIds: [],
-            }).catch(() => {});
+            }).catch((error) => console.warn("clear learning: prune fallback failed", error));
           }
         }
       },

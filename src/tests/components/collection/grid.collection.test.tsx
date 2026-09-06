@@ -1,6 +1,7 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { groupItemsByStatus } from "@/lib/collection/group.utils";
 import GridCollection from "@/routes/components/collection/grid.collection";
 import { useSettingsStore } from "@/store/settings.store";
 import type { CollectionItem, CollectionStatusDef } from "@/types/collection";
@@ -65,12 +66,14 @@ function stubResizeObserver() {
         this.callback = callback;
       }
       observe(target: Element) {
+        const isHeader = target.firstElementChild?.getAttribute("role") === "button";
+        const blockSize = isHeader ? 24 : 120;
         this.callback(
           [
             {
               target,
-              borderBoxSize: [{ inlineSize: 800, blockSize: 600 }],
-              contentRect: { width: 800, height: 600 },
+              borderBoxSize: [{ inlineSize: 800, blockSize }],
+              contentRect: { width: 800, height: blockSize },
             } as unknown as ResizeObserverEntry,
           ],
           this as unknown as ResizeObserver
@@ -113,5 +116,41 @@ describe("GridCollection", () => {
     render(<GridCollection items={[]} statuses={STATUSES} display="scroll" />);
     expect(document.querySelector("section")).not.toBeNull();
     expect(screen.queryByTitle("Frieren")).toBeNull();
+  });
+});
+
+describe("GridCollection grouped", () => {
+  it("renders a status group header above its cards in scroll mode", () => {
+    const groups = groupItemsByStatus(ITEMS, STATUSES);
+    render(<GridCollection items={ITEMS} statuses={STATUSES} display="scroll" groups={groups} />);
+    expect(screen.getByRole("button", { name: /watching/i })).not.toBeNull();
+    expect(screen.getByRole("button", { name: /completed/i })).not.toBeNull();
+    expect(screen.getByTitle("Frieren")).not.toBeNull();
+    expect(screen.getByTitle("Sousou")).not.toBeNull();
+  });
+
+  it("forces scroll view when grouped even with pagination display", () => {
+    const groups = groupItemsByStatus(ITEMS, STATUSES);
+    render(
+      <GridCollection items={ITEMS} statuses={STATUSES} display="pagination" groups={groups} />
+    );
+    expect(screen.getByRole("button", { name: /watching/i })).not.toBeNull();
+    expect(screen.queryByLabelText("Next page")).toBeNull();
+  });
+
+  it("hides cards of a collapsed group but keeps its header", () => {
+    const groups = groupItemsByStatus(ITEMS, STATUSES);
+    render(
+      <GridCollection
+        items={ITEMS}
+        statuses={STATUSES}
+        display="scroll"
+        groups={groups}
+        collapsedStatuses={new Set(["completed"])}
+      />
+    );
+    expect(screen.getByRole("button", { name: /completed/i })).not.toBeNull();
+    expect(screen.queryByTitle("Sousou")).toBeNull();
+    expect(screen.getByTitle("Frieren")).not.toBeNull();
   });
 });

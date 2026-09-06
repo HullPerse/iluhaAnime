@@ -2,11 +2,11 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
-import { statusLabel } from "@/lib/collection.utils";
-import { useI18n } from "@/lib/i18n";
+import { SCROLL_STEP } from "@/config/collection/statuses.config";
+import { statusLabel } from "@/lib/collection/status.utils";
+import { useI18n } from "@/lib/locale/i18n.utils";
 import type { CollectionStatus, CollectionStatusDef } from "@/types/collection";
 
-const SCROLL_STEP = 200;
 export function StatusCollection({
   statuses,
   selectedStatus,
@@ -19,7 +19,7 @@ export function StatusCollection({
   counts?: Record<string, number>;
 }) {
   const { t } = useI18n();
-  const scrollRef = useRef<HTMLElement | null>(null);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -69,9 +69,9 @@ export function StatusCollection({
 
   return (
     <div className="relative">
-      <main
+      <div
         ref={scrollRef}
-        className="windows95-active-border bg-primary overflow-x-auto p-1"
+        className="windows95-active-border bg-primary scroll-px-8 overflow-x-auto p-1"
         aria-label={t("collection.section.library")}
       >
         <div ref={contentRef} className="flex w-max gap-1">
@@ -81,6 +81,7 @@ export function StatusCollection({
               data-status-tab={tab.id}
               variant={selectedStatus === tab.id ? "outline" : "default"}
               className="h-6 px-2 text-xs"
+              aria-current={selectedStatus === tab.id ? true : undefined}
               onClick={() => onSelect(tab.id)}
             >
               {tab.color && (
@@ -95,7 +96,7 @@ export function StatusCollection({
             </Button>
           ))}
         </div>
-      </main>
+      </div>
       {canScrollLeft && (
         <Button
           size="icon"

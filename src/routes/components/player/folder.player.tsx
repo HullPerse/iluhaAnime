@@ -1,22 +1,24 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { openPath } from "@tauri-apps/plugin-opener";
 import { parse } from "anitomy";
-import { ChevronDown, ChevronRight, ListVideo, Monitor, EyeOff, X } from "lucide-react";
-import { useState, useRef, useMemo, useCallback } from "react";
+import { ChevronDown, ChevronRight, ListVideo, Monitor, EyeOff, Search, X } from "lucide-react";
+import { useState, useRef, useMemo, useCallback, type RefObject } from "react";
 
 import { SmallLoader } from "@/components/shared/loader.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
-import { useI18n } from "@/lib/i18n";
-import { openFileInPlayer } from "@/lib/media.utils";
-import { formatParsedTitle, flattenTree } from "@/lib/player.utils";
-import { fmtSize } from "@/lib/torrent.utils";
+import { FOLDER_LIST_MAX_HEIGHT, FOLDER_VIRTUALIZE_AFTER } from "@/config/player/folders.config";
+import { useI18n } from "@/lib/locale/i18n.utils";
+import { formatParsedTitle } from "@/lib/player/title.utils";
+import { flattenTree } from "@/lib/player/tree.utils";
+import { fmtSize } from "@/lib/torrent/common.utils";
+import { openFileInPlayer } from "@/lib/utils/media.utils";
 import { useSearchStore } from "@/store/search.store";
 import { useSettingsStore } from "@/store/settings.store";
 import { useUpscaleQueueStore } from "@/store/upscale.store";
 import type { FolderNode } from "@/types/index";
 
-import UpscalePlayer from "./upscale.player";
+import UpscalePlayer from "./upscale/modal.upscale";
 
 function FolderView({
   node,
@@ -28,6 +30,10 @@ function FolderView({
   isGenerating,
   disabledExtensions,
   hideRoot,
+  contentSized,
+  listMaxHeight,
+  listMinHeight,
+  scrollRef,
 }: {
   node: FolderNode;
   depth: number;
@@ -38,6 +44,10 @@ function FolderView({
   isGenerating?: boolean;
   disabledExtensions?: Set<string>;
   hideRoot?: boolean;
+  contentSized?: boolean;
+  listMaxHeight?: number;
+  listMinHeight?: number;
+  scrollRef?: RefObject<HTMLDivElement | null>;
 }) {
   const showTrackFiles = useSettingsStore((s) => s.showTrackFiles);
   const audioExtensions = useSettingsStore((s) => s.audioExtensions);
@@ -67,7 +77,8 @@ function FolderView({
   const [open, setOpen] = useState<Set<string>>(
     () => new Set(node.children.length > 0 ? [node.path] : [])
   );
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const localScrollRef = useRef<HTMLDivElement>(null);
+  const scrollElementRef = scrollRef ?? localScrollRef;
 
   const toggle = useCallback((path: string) => {
     setOpen((prev) => {
@@ -85,7 +96,7 @@ function FolderView({
 
   const virtualizer = useVirtualizer({
     count: flatItems.length,
-    getScrollElement: () => scrollRef.current,
+    getScrollElement: () => scrollElementRef.current,
     estimateSize: () => 20,
     overscan: 20,
   });
@@ -107,7 +118,7 @@ function FolderView({
   const showHeader = !hideRoot || depth > 0;
 
   return (
-    <main className="flex w-full flex-col">
+    <div className="flex w-full flex-col">
       {showHeader && (
         <div
           className="windows95-text flex w-full items-center gap-1 px-0.5 py-0.5"
@@ -165,7 +176,11 @@ function FolderView({
                     onGenerate(node.path, node.name);
                   }}
                 >
-                  <ImageComponent src="/images/w2k_bitmap_image.ico" alt="" className="size-4" />
+                  <ImageComponent
+                    src="/images/w2k_bitmap_image.ico"
+                    alt=""
+                    className="size-4 bg-transparent"
+                  />
                 </Button>
               )}
               {onRemove && (
@@ -189,9 +204,15 @@ function FolderView({
 
       {open.has(node.path) && (
         <div
-          ref={scrollRef}
+          ref={scrollElementRef}
           className="overflow-y-auto"
-          style={{ maxHeight: flatItems.length > 50 ? 300 : undefined }}
+          style={{
+            maxHeight: contentSized
+              ? listMaxHeight
+              : (listMaxHeight ??
+                (flatItems.length > FOLDER_VIRTUALIZE_AFTER ? FOLDER_LIST_MAX_HEIGHT : undefined)),
+            minHeight: listMinHeight,
+          }}
         >
           <div className="relative" style={{ height: virtualizer.getTotalSize() }}>
             {virtualizer.getVirtualItems().map((vItem, index) => {
@@ -225,7 +246,7 @@ function FolderView({
                       <ImageComponent
                         src="/images/w2k_folder_closed.ico"
                         alt=""
-                        className="size-4 shrink-0"
+                        className="size-4 shrink-0 bg-transparent"
                       />
                       <span className="truncate select-none" title={item.node.name}>
                         {item.node.name}
@@ -263,15 +284,13 @@ function FolderView({
                   <ImageComponent src="/images/w2k_wmp_11.ico" alt="" className="size-4" />
                   <span
                     title={file.name}
-                    className="windows95-text flex-1 truncate select-none"
+                    className="windows95-text flex-1 truncate select-none hover:cursor-pointer"
                     onContextMenu={(e) => {
                       e.preventDefault();
                       openPath(file.path.replace(file.name, ""));
                     }}
                     onClick={() => {
-                      const parsed = parse(file.name);
-                      if (!parsed) return;
-                      setAnilistSearchQuery(String(parsed.title));
+                      if (!disabled && file.path) openFileInPlayer(file.path);
                     }}
                   >
                     {parseTitles ? formatParsedTitle(file.name, t) : file.name}
@@ -296,7 +315,7 @@ function FolderView({
                     disabled={disabled}
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (file.path) openFileInPlayer(file.path).catch(() => {});
+                      if (file.path) openFileInPlayer(file.path);
                     }}
                     title={
                       disabled
@@ -306,13 +325,26 @@ function FolderView({
                   >
                     <Monitor className="size-3" />
                   </Button>
+                  <Button
+                    size="icon"
+                    className="h-4 w-4"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const parsed = parse(file.name);
+                      if (parsed) setAnilistSearchQuery(String(parsed.title));
+                    }}
+                    title={t("player.folder.search.anilist")}
+                    aria-label={t("player.folder.search.anilist")}
+                  >
+                    <Search className="size-3" />
+                  </Button>
                 </div>
               );
             })}
           </div>
         </div>
       )}
-    </main>
+    </div>
   );
 }
 

@@ -6,20 +6,22 @@ import {
   NODE_BORDER_COLORS,
   RELATION_FILTERS,
   RELATION_X,
+} from "@/config/anilist/graph.config";
+import {
   listStatusLabels,
   listStatusOptions,
   statusLabels,
   seasonLabels,
-} from "@/config/anilist.config";
+} from "@/config/anilist/labels.config";
 import {
-  ANIME4K_PRESETS,
   FPS_OPTIONS,
   FORMAT_OPTIONS,
   GPU_LABELS,
   QUALITY_OPTIONS,
   RESOLUTIONS,
-} from "@/config/player.config";
-import { tabForAltDigit } from "@/config/tabs.config";
+} from "@/config/player/options.config";
+import { ANIME4K_PRESETS } from "@/config/player/presets.config";
+import { tabForAltDigit } from "@/config/settings/tabs.config";
 
 const ALL_TABS = {
   collectionTabEnabled: true,

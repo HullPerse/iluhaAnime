@@ -1,16 +1,22 @@
-import { invoke } from "@tauri-apps/api/core";
 import { X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import Tabs from "@/components/shared/tabs.component";
 import { Button } from "@/components/ui/button.component";
-import { WIZARD_SEARCH_DEBOUNCE_MS } from "@/config/collection.config";
-import { useWizardForm } from "@/hooks/collectionWizard.hook";
+import {
+  WIZARD_COVER_MAX,
+  WIZARD_SEARCH_DEBOUNCE_MS,
+  WIZARD_TABS,
+} from "@/config/collection/defaults.config";
+import { useDiscardGuard, useDirtySinceMount } from "@/hooks/collection/discard.hook";
+import { useCollectionData } from "@/hooks/collection/queries.hook";
+import { useWizardSearch } from "@/hooks/collection/search.hook";
+import { useWizardForm } from "@/hooks/collection/wizard.hook";
 import { useEscapeClose } from "@/hooks/useEscapeClose.hook";
-import { useWizardSearch, type WizardSearchResult } from "@/hooks/wizardSearch.hook";
-import { useCollectionData } from "@/lib/collection.queries";
-import { useI18n } from "@/lib/i18n";
-import { normalizeSearchText } from "@/lib/search.suggestions";
+import { withStoredMedia } from "@/lib/collection/media.utils";
+import { useI18n } from "@/lib/locale/i18n.utils";
+import { normalizeSearchText } from "@/lib/search/suggestions.utils";
+import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSearchStore } from "@/store/search.store";
 import { useSettingsStore } from "@/store/settings.store";
 import type {
@@ -18,59 +24,25 @@ import type {
   CollectionStatus,
   CollectionStatusDef,
   CustomFieldDef,
+  WizardPrefill,
+  WizardSearchResult,
+  WizardTab,
 } from "@/types/collection";
 
-import { CollectionCard } from "../card.collection";
-import { WizardCoverPanelCollection } from "./cover.wizard";
-import { WizardDetailsPanelCollection } from "./details.wizard";
-import { WizardLocalPanelCollection } from "./local.wizard";
-import { WizardSourcePanelCollection } from "./source.wizard";
+import { WizardCoverPanel } from "./cover.wizard";
+import { WizardDetailsPanel } from "./details.wizard";
+import { WizardFooter } from "./footer.wizard";
+import { WizardLocalPanel } from "./local.wizard";
+import { WizardPreview } from "./preview.wizard";
+import { WizardSourcePanel } from "./source.wizard";
 
-const TABS = [
-  { id: "source", labelKey: "collection.wizard.source" },
-  { id: "details", labelKey: "collection.wizard.details" },
-  { id: "cover", labelKey: "collection.wizard.cover" },
-  { id: "local", labelKey: "collection.wizard.local" },
-] as const;
-
-type WizardTab = (typeof TABS)[number]["id"];
-
-function WizardPreview({
-  title,
-  coverUrl,
-  previewItem,
-  statuses,
-}: {
-  title: string;
-  coverUrl: string;
-  previewItem: CollectionItem;
-  statuses: CollectionStatusDef[];
-}) {
-  const { t } = useI18n();
-  return (
-    <div className="flex w-full shrink-0 flex-col gap-2 md:w-[200px]">
-      <div className="windows95-border bg-primary sticky top-0 p-2">
-        <div className="mb-1 text-xs font-bold">Preview</div>
-        <div className="flex justify-center">
-          <CollectionCard item={previewItem} statuses={statuses} />
-        </div>
-        {!title.trim() && (
-          <p className="text-destructive mt-1 text-xs">{t("collection.wizard.title")} *</p>
-        )}
-        {!coverUrl && (
-          <p className="text-destructive text-xs">{t("collection.wizard.coverRequired")}</p>
-        )}
-      </div>
-    </div>
-  );
-}
-
-export function WizardModalCollection({
+export function WizardModal({
   open,
   onClose,
   onSave,
   onDelete,
   initial,
+  prefill,
   statuses,
   customFieldDefs,
 }: {
@@ -79,13 +51,14 @@ export function WizardModalCollection({
   onSave: (item: Omit<CollectionItem, "id" | "addedAt" | "updatedAt">) => void;
   onDelete?: (id: string) => void;
   initial?: CollectionItem | null;
+  prefill?: WizardPrefill | null;
   statuses: CollectionStatusDef[];
   customFieldDefs: CustomFieldDef[];
 }) {
   const [tab, setTab] = useState<WizardTab>(initial ? "details" : "source");
   const [source, setSource] = useState<"anilist" | "tmdb" | "custom">("custom");
   const [search, setSearch] = useState("");
-  // Local uploads are only read at save time; refs avoid pointless re-renders.
+
   const coverBlobIdRef = useRef<string | null>(initial?.coverBlobId ?? null);
   const uploadedCoversRef = useRef<{ id: string; dataUrl: string }[]>([]);
   const form = useWizardForm(initial);
@@ -134,13 +107,20 @@ export function WizardModalCollection({
     buildItem,
     previewItem,
   } = form;
+  const prefillApplied = useRef(false);
+  useEffect(() => {
+    if (initial || !prefill || prefillApplied.current) return;
+    prefillApplied.current = true;
+    setTitle(prefill.title);
+    setCoverUrl(prefill.coverUrl ?? "");
+    setStatus(prefill.status);
+  }, [initial, prefill, setTitle, setCoverUrl, setStatus]);
+  const [coverBroken, setCoverBroken] = useState(false);
   const tmdbApiKey = useSettingsStore((s) => s.tmdbApiKey);
   const tmdbProxyUrl = useSettingsStore((s) => s.tmdbProxyUrl);
   const { t } = useI18n();
   const { items: collectionItems } = useCollectionData();
   const animeIndex = useSearchStore((s) => s.animeIndex);
-  // Demote only titles already present in the chosen status. The same title in
-  // another status is a deliberate second entry and stays a normal pick.
   const existingTitles = useMemo(() => {
     const set = new Set<string>();
     for (const it of collectionItems) {
@@ -152,6 +132,16 @@ export function WizardModalCollection({
     }
     return set;
   }, [collectionItems, status]);
+  const duplicateTitle = useMemo(() => {
+    const current = normalizeSearchText(title.trim());
+    if (!current) return false;
+    return collectionItems.some(
+      (it) =>
+        it.id !== initial?.id &&
+        (normalizeSearchText(it.title) === current ||
+          it.altTitles.some((alt) => normalizeSearchText(alt) === current))
+    );
+  }, [collectionItems, title, initial]);
   const favIds = useMemo(
     () => new Set(animeIndex.filter((a) => a.favourite).map((a) => a.id)),
     [animeIndex]
@@ -162,6 +152,7 @@ export function WizardModalCollection({
 
   const selectCover = useCallback(
     (url: string) => {
+      setCoverBroken(false);
       setCoverUrl(url);
       const match = uploadedCoversRef.current.find((c) => c.dataUrl === url);
       coverBlobIdRef.current = match?.id ?? null;
@@ -176,6 +167,7 @@ export function WizardModalCollection({
         ...uploadedCoversRef.current.filter((c) => c.id !== id),
       ];
       coverBlobIdRef.current = id;
+      setCoverBroken(false);
       setCoverUrl(dataUrl);
       setCoverOptions((prev) => (prev.includes(dataUrl) ? prev : [dataUrl, ...prev]));
     },
@@ -185,6 +177,7 @@ export function WizardModalCollection({
   function applyCoverFromResult(cover: string | null): void {
     if (!cover) return;
     coverBlobIdRef.current = null;
+    setCoverBroken(false);
     setCoverUrl(cover);
     setCoverOptions((prev) => (prev.includes(cover) ? prev : [cover, ...prev]));
   }
@@ -195,6 +188,8 @@ export function WizardModalCollection({
     setExternalIds((prev) => ({ ...prev, [key]: resultId }));
   }
 
+  const tmdbPickRef = useRef(0);
+  const mediaRef = useRef<{ stills: string[]; trailerYoutubeId: string | null } | null>(null);
   const handlePickResult = (r: WizardSearchResult) => {
     setTitle(r.title);
     if (r.altTitles?.length) {
@@ -207,6 +202,58 @@ export function WizardModalCollection({
     if (r.genres?.length) setGenres(r.genres.join(", "));
     if (r.studio) setStudio(r.studio);
     applyExternalId(r.id);
+    if (source === "tmdb" && tmdbApiKey && (r.mediaType === "movie" || r.mediaType === "tv")) {
+      tmdbPickRef.current += 1;
+      const pickId = tmdbPickRef.current;
+      const mediaType = r.mediaType;
+      invokeTyped<{
+        title: string;
+        overview: string | null;
+        year: number | null;
+        runtimeMinutes: number | null;
+        genres: string[];
+        posters: { url: string }[];
+      }>("get_tmdb_details", {
+        apiKey: tmdbApiKey,
+        tmdbId: r.id,
+        mediaType,
+        proxyUrl: tmdbProxyUrl || undefined,
+      } as unknown as Record<string, unknown>)
+        .then((d) => {
+          if (tmdbPickRef.current !== pickId) return;
+          if (d.overview) setDescription(d.overview);
+          if (d.genres.length) setGenres(d.genres.join(", "));
+          if (d.year) setYear(String(d.year));
+          if (d.runtimeMinutes) setDurationMinutes(String(d.runtimeMinutes));
+          setType(mediaType === "movie" ? "movie" : "series");
+          const posters = d.posters.map((p) => p.url).filter(Boolean);
+          if (posters.length)
+            setCoverOptions((prev) =>
+              [...new Set([...posters, ...prev])].slice(0, WIZARD_COVER_MAX)
+            );
+          invokeTyped<{
+            backdrops: { url: string }[];
+            trailerYoutubeId: string | null;
+          }>("get_tmdb_media", {
+            apiKey: tmdbApiKey,
+            tmdbId: r.id,
+            mediaType,
+            proxyUrl: tmdbProxyUrl || undefined,
+          } as unknown as Record<string, unknown>)
+            .then((m) => {
+              if (tmdbPickRef.current !== pickId) return;
+              mediaRef.current = {
+                stills: m.backdrops
+                  .map((b) => b.url)
+                  .filter(Boolean)
+                  .slice(0, 8),
+                trailerYoutubeId: m.trailerYoutubeId,
+              };
+            })
+            .catch(() => {});
+        })
+        .catch(() => {});
+    }
   };
 
   async function resolveCoverBlobId(
@@ -216,7 +263,7 @@ export function WizardModalCollection({
     if (currentBlobId) return currentBlobId;
     if (!url.startsWith("http://") && !url.startsWith("https://")) return null;
     try {
-      const cached = await invoke<{ id: string }>("download_remote_image", {
+      const cached = await invokeTyped<{ id: string }>("download_remote_image", {
         url,
         nameHint: "collection-cover",
       });
@@ -229,7 +276,16 @@ export function WizardModalCollection({
   const handleSave = async () => {
     if (!title.trim() || !coverUrl) return;
     const blobId = await resolveCoverBlobId(coverBlobIdRef.current, coverUrl);
-    onSave(buildItem(blobId));
+    const built = buildItem(blobId);
+    const media = mediaRef.current;
+    onSave(
+      media
+        ? {
+            ...built,
+            detailsJson: withStoredMedia(built.detailsJson, media.stills, media.trailerYoutubeId),
+          }
+        : built
+    );
     onClose();
   };
 
@@ -243,23 +299,45 @@ export function WizardModalCollection({
     return () => window.clearTimeout(id);
   }, [search, source, editing, runSearch]);
 
-  useEscapeClose(onClose, open);
-
+  const draftSignature = JSON.stringify([
+    title,
+    altTitles,
+    type,
+    status,
+    progressValue,
+    progressTotal,
+    progressUnit,
+    rating,
+    isFavorite,
+    year,
+    description,
+    durationMinutes,
+    genres,
+    studio,
+    startedAt,
+    finishedAt,
+    coverUrl,
+    localPath,
+  ]);
+  const dirty = useDirtySinceMount(draftSignature);
+  const { confirmDiscard, requestClose, cancelDiscard } = useDiscardGuard(dirty, onClose);
+  useEscapeClose(requestClose, open);
   if (!open) return null;
-  const visibleTabs = editing ? TABS.filter((tab) => tab.id !== "source") : TABS;
+  const visibleTabs = editing ? WIZARD_TABS.filter((tab) => tab.id !== "source") : WIZARD_TABS;
   const activeTab: WizardTab = editing && tab === "source" ? "details" : tab;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-2">
       <div className="windows95-active-border bg-primary flex max-h-[92vh] w-full max-w-4xl flex-col">
         <div className="ui-titlebar justify-between">
           <span className="font-bold text-white">
-            {editing ? t("collection.editMedia") : t("collection.addMedia")}
+            {editing ? t("collection.edit.media") : t("collection.addMedia")}
           </span>
-          <Button size="icon" className="size-5" onClick={onClose}>
+          <Button size="icon" className="size-5" onClick={requestClose}>
             <X className="size-3" />
           </Button>
         </div>
         <Tabs
+          ariaLabel={editing ? t("collection.edit.media") : t("collection.addMedia")}
           tabs={visibleTabs.map((tab) => ({ id: tab.id, label: t(tab.labelKey) }))}
           activeTab={activeTab}
           onChange={setTab}
@@ -268,7 +346,7 @@ export function WizardModalCollection({
           <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-1">
             {activeTab === "source" && !editing && (
               <section className="windows95-border bg-primary p-2">
-                <WizardSourcePanelCollection
+                <WizardSourcePanel
                   source={source}
                   setSource={setSource}
                   search={search}
@@ -284,9 +362,10 @@ export function WizardModalCollection({
             )}
             {activeTab === "details" && (
               <section className="windows95-border bg-primary p-2">
-                <WizardDetailsPanelCollection
+                <WizardDetailsPanel
                   title={title}
                   setTitle={setTitle}
+                  duplicateTitle={duplicateTitle}
                   type={type}
                   setType={setType}
                   status={status}
@@ -327,19 +406,20 @@ export function WizardModalCollection({
             )}
             {activeTab === "cover" && (
               <section className="windows95-border bg-primary p-2">
-                <WizardCoverPanelCollection
+                <WizardCoverPanel
                   coverOptions={coverOptions}
                   coverUrl={coverUrl}
                   setCoverUrl={selectCover}
                   setCoverOptions={setCoverOptions}
                   title={title}
                   onUploadLocal={handleUploadLocalCover}
+                  onPreviewFailedChange={setCoverBroken}
                 />
               </section>
             )}
             {activeTab === "local" && (
               <section className="windows95-border bg-primary p-2">
-                <WizardLocalPanelCollection
+                <WizardLocalPanel
                   localPath={localPath}
                   setLocalPath={setLocalPath}
                   setLocalKind={setLocalKind}
@@ -354,34 +434,18 @@ export function WizardModalCollection({
             statuses={statuses}
           />
         </div>
-        <div className="windows95-border-t bg-primary flex items-center gap-2 p-2">
-          <span className="text-hint hidden text-xs md:inline">
-            {editing
-              ? t("collection.editMedia")
-              : `${searchResults.length ? `${searchResults.length} results` : ""}`}
-          </span>
-          {editing && initial && onDelete && (
-            <Button
-              variant="destructive"
-              onClick={() => {
-                onDelete(initial.id);
-                onClose();
-              }}
-            >
-              {t("common.delete")}
-            </Button>
-          )}
-          <div className="ml-auto flex gap-1">
-            <Button onClick={onClose}>{t("common.cancel")}</Button>
-            <Button
-              variant="outline"
-              disabled={!title.trim() || !coverUrl}
-              onClick={() => handleSave().catch(() => undefined)}
-            >
-              {t("collection.wizard.save")}
-            </Button>
-          </div>
-        </div>
+        <WizardFooter
+          editing={editing}
+          initial={initial}
+          onDelete={onDelete}
+          onClose={onClose}
+          requestClose={requestClose}
+          canSave={Boolean(title.trim() && coverUrl && !coverBroken)}
+          onSave={() => handleSave().catch(() => undefined)}
+          confirmDiscard={confirmDiscard}
+          cancelDiscard={cancelDiscard}
+          resultsLabel={`${searchResults.length ? `${searchResults.length} results` : ""}`}
+        />
       </div>
     </div>
   );

@@ -1,5 +1,4 @@
-import { cn } from "@/lib/index.utils";
-import { invoke } from "@tauri-apps/api/core";
+import { cn } from "cn";
 import { UserPlus, Trash2, RefreshCw, Users, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -8,25 +7,14 @@ import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { Input } from "@/components/ui/input.component";
-import { PROFILE_CACHE_TTL_MS } from "@/config/friends.config";
-import { useI18n } from "@/lib/i18n";
-import { enterSubmit } from "@/lib/keyboard.utils";
-import type { AniFriend, AniUserProfile } from "@/types/anilist";
+import { hasFreshCachedProfile } from "@/lib/anilist/friends.utils";
+import { useI18n } from "@/lib/locale/i18n.utils";
+import { invokeTyped } from "@/lib/utils/invoke.utils";
+import { enterSubmit } from "@/lib/utils/keyboard.utils";
+import type { AniUserProfile } from "@/types/anilist";
+import type { AniFriendsProps as Props } from "@/types/anilist";
 
-function hasFreshCachedProfile(friend: AniFriend | undefined): boolean {
-  return (
-    !!friend?.profile &&
-    typeof friend.profile_fetched_at === "number" &&
-    Date.now() - (friend.profile_fetched_at as number) < PROFILE_CACHE_TTL_MS
-  );
-}
-
-interface Props {
-  friends: AniFriend[];
-  onAdd: (profile: AniUserProfile) => void;
-  onRemove: (id: number) => void;
-  onClose: () => void;
-}
+import { FriendLatestActivity } from "./activity/friendActivity.activity";
 
 export default function AniListFriendsModal({ friends, onAdd, onRemove, onClose }: Props) {
   const { t } = useI18n();
@@ -66,7 +54,7 @@ export default function AniListFriendsModal({ friends, onAdd, onRemove, onClose 
     setLoading(true);
     setError(null);
     try {
-      const profile = await invoke<AniUserProfile>("get_anilist_profile", {
+      const profile = await invokeTyped<AniUserProfile>("get_anilist_profile", {
         userId: id,
         userName: id === undefined ? input : undefined,
       });
@@ -100,7 +88,10 @@ export default function AniListFriendsModal({ friends, onAdd, onRemove, onClose 
               friends.map((friend) => (
                 <div
                   key={friend.id}
-                  className={cn("flex items-center gap-1 p-1", selectedId === friend.id && "bg-surface")}
+                  className={cn(
+                    "flex items-center gap-1 p-1",
+                    selectedId === friend.id && "bg-surface"
+                  )}
                 >
                   <button
                     type="button"
@@ -201,6 +192,9 @@ export default function AniListFriendsModal({ friends, onAdd, onRemove, onClose 
                   {selected.about}
                 </p>
               )}
+              <div className="border-t border-black/20 p-2">
+                <FriendLatestActivity friendId={selected.id} />
+              </div>
             </div>
           ) : (
             <div className="windows95-text text-hint flex flex-1 items-center justify-center p-6 text-center text-xs">

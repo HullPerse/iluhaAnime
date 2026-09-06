@@ -1,12 +1,14 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { COVER_CACHE_CAPACITY } from "@/hooks/collection/cache.hook";
+
 const invokeMock = vi.fn();
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (...args: unknown[]) => invokeMock(...args),
 }));
 
-import { useCoverCache } from "@/hooks/coverCache.hook";
+import { useCoverCache } from "@/hooks/collection/cache.hook";
 
 let resolveGate!: (value: { id: string; dataUrl: string }) => void;
 beforeEach(() => {
@@ -59,5 +61,32 @@ describe("useCoverCache", () => {
       expect(result.current.cachedUrl).toBe("https://example.com/offline.jpg");
     });
     unmount();
+  });
+
+  it("re-downloads an evicted cover after the LRU capacity is reached", async () => {
+    invokeMock.mockImplementation((_command: string, args: { url: string }) =>
+      Promise.resolve({ id: `blob-${args.url}`, dataUrl: `data:image/png;base64,${args.url}` })
+    );
+    const hooks: { result: { current: { cachedUrl: string | null } }; unmount: () => void }[] = [];
+    for (let i = 0; i <= COVER_CACHE_CAPACITY + 5; i++) {
+      const hook = renderHook(() => useCoverCache(`https://example.com/fill-${i}.jpg`, null));
+      hooks.push(hook);
+    }
+    await waitFor(() => {
+      expect(hooks.at(-1)?.result.current.cachedUrl).toBe(
+        `data:image/png;base64,https://example.com/fill-${COVER_CACHE_CAPACITY + 5}.jpg`
+      );
+    });
+    for (const hook of hooks) hook.unmount();
+
+    invokeMock.mockClear();
+    invokeMock.mockImplementation((_command: string, args: { url: string }) =>
+      Promise.resolve({ id: `blob-${args.url}`, dataUrl: `data:image/png;base64,${args.url}` })
+    );
+    const remounted = renderHook(() => useCoverCache("https://example.com/fill-0.jpg", null));
+    await waitFor(() => {
+      expect(invokeMock).toHaveBeenCalledTimes(1);
+    });
+    remounted.unmount();
   });
 });

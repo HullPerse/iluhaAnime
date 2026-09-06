@@ -12,7 +12,6 @@ function renderSort(overrides: Partial<React.ComponentProps<typeof AniListSortBa
     onActivityOpen: vi.fn(),
     onFavouritesOpen: vi.fn(),
     onRandom: vi.fn(),
-    onHistoryOpen: vi.fn(),
     hasFavourites: true,
   };
   return {
@@ -26,11 +25,6 @@ beforeEach(() => {
 });
 
 describe("AniListSortBar", () => {
-  it("renders sort label", () => {
-    const { container } = renderSort();
-    expect(container.textContent).toContain("Sort:");
-  });
-
   it("renders three sort toggle buttons", () => {
     const { container } = renderSort();
     const section = container.querySelector("section")!;

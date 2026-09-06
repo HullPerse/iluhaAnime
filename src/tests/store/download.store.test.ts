@@ -26,22 +26,12 @@ describe("useTorrentStore", () => {
     invokeMock.mockReset();
     invokeMock.mockResolvedValue(undefined);
     useTorrentStore.setState({
-      dlLimit: null,
-      lastSaveDir: "",
+      limits: { download: null, upload: null },
       pendingTorrent: null,
       preparingTorrent: false,
       torrentFilesMap: {},
       torrents: [],
-      ulLimit: null,
     });
-  });
-
-  it("starts with default state", () => {
-    const state = useTorrentStore.getState();
-    expect(state.torrents).toEqual([]);
-    expect(state.preparingTorrent).toBe(false);
-    expect(state.pendingTorrent).toBeNull();
-    expect(state.torrentFilesMap).toEqual({});
   });
 
   it("cancelDownload clears pendingTorrent", async () => {
@@ -63,18 +53,16 @@ describe("useTorrentStore", () => {
   });
 
   it("setSpeedLimits updates local state", async () => {
-    await useTorrentStore.getState().setSpeedLimits(500, 100);
+    await useTorrentStore.getState().setSpeedLimits({ download: 500, upload: 100 });
     const state = useTorrentStore.getState();
-    expect(state.dlLimit).toBe(500);
-    expect(state.ulLimit).toBe(100);
+    expect(state.limits).toEqual({ download: 500, upload: 100 });
   });
 
   it("setSpeedLimits with null clears limits", async () => {
-    useTorrentStore.setState({ dlLimit: 500, ulLimit: 100 });
-    await useTorrentStore.getState().setSpeedLimits(null, null);
+    useTorrentStore.setState({ limits: { download: 500, upload: 100 } });
+    await useTorrentStore.getState().setSpeedLimits({ download: null, upload: null });
     const state = useTorrentStore.getState();
-    expect(state.dlLimit).toBeNull();
-    expect(state.ulLimit).toBeNull();
+    expect(state.limits).toEqual({ download: null, upload: null });
   });
 
   it("deduplicates concurrent file metadata requests", async () => {

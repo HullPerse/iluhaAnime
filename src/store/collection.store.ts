@@ -1,8 +1,13 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-import { DEFAULT_FILTERS } from "@/lib/collection.filters";
-import type { CollectionFilters, CollectionStatus, CollectionStore } from "@/types/collection";
+import { DEFAULT_FILTERS } from "@/config/collection/filters.config";
+import type {
+  CollectionFilters,
+  CollectionStatus,
+  CollectionStore,
+  WizardPrefill,
+} from "@/types/collection";
 
 function toSet(value: unknown): Set<string> {
   if (Array.isArray(value)) return new Set(value as string[]);
@@ -66,6 +71,7 @@ export const useCollectionStore = create<CollectionStore>()(
       coverDithered: false,
       viewMode: "grid",
       displayMode: "pagination",
+      wizardPrefill: null,
 
       setSearchQuery: (searchQuery) => set({ searchQuery }),
       setSelectedStatus: (selectedStatus) => set({ selectedStatus }),
@@ -82,6 +88,8 @@ export const useCollectionStore = create<CollectionStore>()(
       setCoverDithered: (coverDithered) => set({ coverDithered }),
       setViewMode: (viewMode) => set({ viewMode }),
       setDisplayMode: (displayMode) => set({ displayMode }),
+      requestWizardPrefill: (prefill: WizardPrefill) => set({ wizardPrefill: prefill }),
+      consumeWizardPrefill: () => set({ wizardPrefill: null }),
     }),
     {
       name: "collection-ui",

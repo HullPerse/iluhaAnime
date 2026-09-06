@@ -1,25 +1,27 @@
 import { useQuery } from "@tanstack/react-query";
-import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import type { Update } from "@tauri-apps/plugin-updater";
 import { saveWindowState } from "@tauri-apps/plugin-window-state";
 import { useEffect, useRef, useState, useTransition } from "react";
 
-import { tabForAltDigit, visibleTabs, type TabId } from "@/config/tabs.config";
-import { pollAniListReleases } from "@/lib/anilist.notifications";
-import { readAppCache, writeAppCache } from "@/lib/app.cache";
-import { useI18n } from "@/lib/i18n";
-import { checkForUpdates } from "@/lib/index.utils";
-import { resolveNotificationText, type ShowNotificationPayload } from "@/lib/notification.utils";
+import { tabForAltDigit, visibleTabs } from "@/config/settings/tabs.config";
+import { pollAniListReleases } from "@/lib/anilist/notifications.utils";
+import { useI18n } from "@/lib/locale/i18n.utils";
+import { readAppCache, writeAppCache } from "@/lib/store/cache.utils";
+import { invokeTyped } from "@/lib/utils/invoke.utils";
+import { resolveNotificationText } from "@/lib/utils/notification.utils";
+import { checkForUpdates } from "@/lib/utils/update.utils";
 import { useCacheStore } from "@/store/cache.store";
+import { useCollectionStore } from "@/store/collection.store";
 import { useTorrentStore } from "@/store/download.store";
 import { useNotificationStore } from "@/store/notification.store";
 import { useSearchStore } from "@/store/search.store";
 import { useSettingsStore } from "@/store/settings.store";
 import { applyTheme, useThemeStore } from "@/store/theme.store";
 import type { FolderNode } from "@/types";
-import type { NotificationType } from "@/types/notification";
+import type { NotificationType, ShowNotificationPayload } from "@/types/notification";
 import type { SearchLearningSnapshot } from "@/types/search";
+import type { TabId } from "@/types/settings";
 
 export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
   const { t } = useI18n();
@@ -74,7 +76,9 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
   }, [customScrollbar]);
 
   useEffect(() => {
-    const save = () => saveWindowState().catch(() => {});
+    const save = () => {
+      saveWindowState().catch(() => {});
+    };
     window.addEventListener("beforeunload", save);
     document.addEventListener("visibilitychange", save);
     return () => {
@@ -167,6 +171,16 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
       }
     });
   }, [setActiveTab]);
+  useEffect(() => {
+    const switchToCollection = () => {
+      if (!useSettingsStore.getState().collectionTabEnabled) return;
+      startTransition(() => setActiveTab("collection"));
+    };
+    if (useCollectionStore.getState().wizardPrefill) switchToCollection();
+    return useCollectionStore.subscribe((state, prev) => {
+      if (state.wizardPrefill && state.wizardPrefill !== prev.wizardPrefill) switchToCollection();
+    });
+  }, [setActiveTab]);
 
   useEffect(() => {
     const notificationTypes = new Set<NotificationType>(["info", "success", "warning", "error"]);
@@ -215,7 +229,7 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
   useEffect(() => {
     const sync = () => {
       const s = useSettingsStore.getState();
-      invoke("set_notification_settings", {
+      invokeTyped("set_notification_settings", {
         config: {
           enabled: s.notificationsEnabled,
           on_complete: s.notifyOnComplete,
@@ -249,7 +263,6 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
       if (folderTrees?.payload) cache.setFolderTrees(folderTrees.payload);
       if (lastSaveDir?.payload) {
         cache.setLastSaveDir(lastSaveDir.payload);
-        useTorrentStore.setState({ lastSaveDir: lastSaveDir.payload });
       }
       if (seedPreferences?.payload)
         useCacheStore.setState({ seedPreferences: seedPreferences.payload });
@@ -270,7 +283,7 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
           queryStats: filterStats(learning.payload.queryStats ?? {}),
           suggestionStats: filterStats(learning.payload.suggestionStats ?? {}),
         });
-        invoke<{ id: number } | null>("check_anilist_auth")
+        invokeTyped<{ id: number } | null>("check_anilist_auth")
           .then((profile) => {
             if (!disposed && profile && profile.id === learning.payload?.animeProfileId) {
               useSearchStore.setState({

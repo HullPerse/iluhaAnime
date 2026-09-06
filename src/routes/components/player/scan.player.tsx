@@ -1,9 +1,5 @@
-import { useI18n } from "@/lib/i18n";
-import type { ScanType } from "@/types";
-
-interface Props {
-  scanProgress: ScanType;
-}
+import { useI18n } from "@/lib/locale/i18n.utils";
+import type { ScanPlayerProps as Props } from "@/types/player";
 
 export default function FolderScanProgress({ scanProgress }: Props) {
   const { t } = useI18n();

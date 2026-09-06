@@ -132,7 +132,6 @@
   outline-offset: -3px;
 }
 
-/* Status bar: recessed Win95 cells along the window frame bottom. */
 .ui-statusbar {
   display: flex;
   align-items: stretch;
@@ -156,7 +155,6 @@
   white-space: nowrap;
 }
 
-/* Vertical divider between semantic control groups inside .ui-toolbar. */
 .ui-toolbar-separator {
   align-self: stretch;
   width: 2px;
@@ -165,8 +163,6 @@
   border-right: 1px solid var(--color-win-highlight);
 }
 
-/* Shared layout vocabulary. Screens compose these instead of inventing a new
-   bevel, toolbar, or empty state for every route. */
 .ui-panel {
   background: var(--color-primary);
   border: 2px solid;
@@ -180,7 +176,6 @@
   flex-wrap: wrap;
   align-items: center;
   gap: var(--ui-panel-gap);
-  min-height: var(--ui-control-height);
   padding: 0.25rem;
   background: var(--color-primary);
 }
@@ -198,23 +193,6 @@
   font-weight: 700;
 }
 
-.ui-empty-state {
-  display: flex;
-  min-height: 10rem;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 1rem;
-  border: 2px solid;
-  border-color: var(--color-win-shadow) var(--color-win-highlight) var(--color-win-highlight)
-    var(--color-win-shadow);
-  background: color-mix(in srgb, var(--color-surface) 70%, transparent);
-  color: var(--color-hint);
-  text-align: center;
-}
-
-/* Legacy title strips opt into the computed foreground when their accent
-   color is light; the default Win95 palette remains unchanged. */
 .ui-titlebar .text-white {
   color: var(--color-title-text, #ffffff);
 }
@@ -223,7 +201,6 @@
   color: var(--color-title-text, #ffffff) !important;
 }
 
-/* Dense layout mode. */
 [data-ui-density="compact"] {
   --ui-control-height: 20px;
   --ui-panel-gap: 0.125rem;
@@ -246,7 +223,6 @@
   gap: 0.125rem;
 }
 
-/* Soft retro style: thinner bevels, softer shadow. */
 [data-retro-style="soft"] {
   --ui-panel-shadow: 1px 1px 0 color-mix(in srgb, var(--color-win-shadow) 60%, transparent);
 }
@@ -267,7 +243,6 @@
   min-height: calc(var(--ui-control-height) + 2px);
 }
 
-/* High-contrast retro style: pure black/white bevels, stronger focus. */
 [data-retro-style="high-contrast"] {
   --ui-focus-color: #ffff00;
   --ui-focus-width: 3px;
@@ -304,7 +279,6 @@
     2px 2px 0 #000000;
 }
 
-/* Windows 95 scrollbars. */
 :root:not(.native-scrollbar) ::-webkit-scrollbar {
   width: 14px;
   height: 16px;
@@ -353,7 +327,6 @@
   background-size: 10px 10px;
 }
 
-/* Number inputs keep their native arrows hidden. */
 input::-webkit-outer-spin-button,
 input::-webkit-inner-spin-button {
   -webkit-appearance: none;
@@ -361,6 +334,11 @@ input::-webkit-inner-spin-button {
 
 input[type="number"] {
   -moz-appearance: textfield;
+}
+
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
 }
 
 select,
@@ -389,7 +367,8 @@ select,
   animation: ui-loading-spin 1s linear infinite !important;
 }
 
-@media (prefers-reduced-motion: reduce) {
+/*@media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {
@@ -398,4 +377,4 @@ select,
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
   }
-}
+}*/

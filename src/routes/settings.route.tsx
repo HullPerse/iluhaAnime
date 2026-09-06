@@ -2,12 +2,17 @@ import type { ReactNode } from "react";
 import { lazy, Suspense, useEffect, useState } from "react";
 
 import { SmallLoader } from "@/components/shared/loader.component";
-import Tabs from "@/components/shared/tabs.component";
-import { useI18n } from "@/lib/i18n";
-import type { TranslationKey } from "@/lib/i18n";
+import { Button } from "@/components/ui/button.component";
+import { SETTINGS_TAB_KEYS } from "@/config/settings/tabs.config";
+import { useI18n } from "@/lib/locale/i18n.utils";
+import type { TranslationKey } from "@/lib/locale/i18n.utils";
+import { readSettingsTab } from "@/lib/settings/tab.utils";
+import { attemptSync } from "@/lib/utils/attempt.utils";
+import { SettingsChangelog } from "@/routes/components/settings/changelog.settings";
 import SettingsGeneral from "@/routes/components/settings/general.settings";
 import SettingsNotifications from "@/routes/components/settings/notifications.settings";
 import SettingsSearch from "@/routes/components/settings/search.settings";
+import { SettingsSummary } from "@/routes/components/settings/summary.settings";
 import SettingsTheme from "@/routes/components/settings/theme.settings";
 import SettingsTorrent from "@/routes/components/settings/torrent.settings";
 import { useSettingsStore } from "@/store/settings.store";
@@ -15,25 +20,21 @@ import type { SettingsTab } from "@/types";
 
 const SettingsSqlite = lazy(() => import("@/routes/components/settings/sqlite/sqlite.settings"));
 
-const tabKeys: { id: SettingsTab; key: TranslationKey }[] = [
-  { id: "general", key: "settings.general" },
-  { id: "notifications", key: "settings.notifications" },
-  { id: "search", key: "settings.search" },
-  { id: "torrent", key: "settings.torrent" },
-  { id: "theme", key: "settings.theme" },
-];
-
 export default function SettingsRoute() {
   const { t } = useI18n();
   const sqliteBrowserEnabled = useSettingsStore((state) => state.sqliteBrowserEnabled);
-  const [activeTab, setActiveTab] = useState<SettingsTab>("general");
-  const visibleTabKeys = sqliteBrowserEnabled
-    ? [...tabKeys, { id: "sqlite" as const, key: "settings.sqlite" as TranslationKey }]
-    : tabKeys;
+  const [activeTab, setActiveTab] = useState<SettingsTab>(() => readSettingsTab());
+  const navKeys = sqliteBrowserEnabled
+    ? [...SETTINGS_TAB_KEYS, { id: "sqlite" as const, key: "settings.sqlite" as TranslationKey }]
+    : SETTINGS_TAB_KEYS;
   useEffect(() => {
     if (!sqliteBrowserEnabled && activeTab === "sqlite") setActiveTab("general");
   }, [activeTab, sqliteBrowserEnabled]);
-  const tabs = visibleTabKeys.map((tab) => ({ ...tab, label: t(tab.key) }));
+
+  useEffect(() => {
+    const [, error] = attemptSync(() => sessionStorage.setItem("settingsTab", activeTab));
+    if (error) console.error(error);
+  }, [activeTab]);
 
   const components: Record<SettingsTab, ReactNode> = {
     general: <SettingsGeneral />,
@@ -41,6 +42,7 @@ export default function SettingsRoute() {
     torrent: <SettingsTorrent />,
     search: <SettingsSearch />,
     theme: <SettingsTheme />,
+    changelog: <SettingsChangelog />,
     sqlite: (
       <Suspense
         fallback={
@@ -55,16 +57,27 @@ export default function SettingsRoute() {
   };
 
   return (
-    <div className="flex h-full flex-col">
-      <Tabs
-        ariaLabel={t("common.sections")}
-        tabs={tabs}
-        activeTab={activeTab}
-        onChange={setActiveTab}
-      />
-      <div className="windows95-border bg-primary mx-1 mb-1 min-h-0 flex-1 overflow-auto p-1">
+    <div className="flex h-full flex-row gap-1">
+      <nav
+        aria-label={t("common.sections")}
+        className="windows95-border flex w-32 shrink-0 flex-col gap-0.5 overflow-y-auto bg-white p-1"
+      >
+        {navKeys.map((tab) => (
+          <Button
+            key={tab.id}
+            variant={activeTab === tab.id ? "outline" : "default"}
+            className="justify-start text-xs"
+            aria-current={activeTab === tab.id}
+            onClick={() => setActiveTab(tab.id)}
+          >
+            {t(tab.key)}
+          </Button>
+        ))}
+      </nav>
+      <div className="windows95-border bg-primary min-h-0 flex-1 overflow-auto p-1">
         {components[activeTab]}
       </div>
+      <SettingsSummary onJump={setActiveTab} />
     </div>
   );
 }

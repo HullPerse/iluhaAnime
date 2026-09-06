@@ -140,7 +140,7 @@ impl FileIndexer {
             })
             .filter_map(|entry| {
                 let name = entry.name.to_lowercase();
-                let score = substring_score(&query, &name)?;
+                let score = fuzzy_file_score(&query, &name)?;
                 Some((score, entry))
             })
             .collect();
@@ -169,10 +169,57 @@ fn substring_score(query: &str, target: &str) -> Option<i32> {
     }
     Some(score)
 }
+fn levenshtein_capped(a: &[char], b: &[char], cap: usize) -> Option<usize> {
+    if a.len().abs_diff(b.len()) > cap {
+        return None;
+    }
+    let mut prev: Vec<usize> = (0..=b.len()).collect();
+    let mut curr = vec![0; b.len() + 1];
+    for (i, &ac) in a.iter().enumerate() {
+        curr[0] = i + 1;
+        let mut row_min = curr[0];
+        for (j, &bc) in b.iter().enumerate() {
+            let cost = usize::from(ac != bc);
+            curr[j + 1] = (prev[j] + cost).min(prev[j + 1] + 1).min(curr[j] + 1);
+            row_min = row_min.min(curr[j + 1]);
+        }
+        if row_min > cap {
+            return None;
+        }
+        std::mem::swap(&mut prev, &mut curr);
+    }
+    let distance = prev[b.len()];
+    (distance <= cap).then_some(distance)
+}
+fn fuzzy_file_score(query: &str, target: &str) -> Option<i32> {
+    if let Some(score) = substring_score(query, target) {
+        return Some(score);
+    }
+    let query_chars: Vec<char> = query.chars().collect();
+    if query_chars.len() < 3 {
+        return None;
+    }
+    let threshold = (query_chars.len() / 4).clamp(1, 3);
+    let stem = target.rsplit_once('.').map_or(target, |(stem, _)| stem);
+    let mut best: Option<usize> = None;
+    let mut consider = |text: &str| {
+        let chars: Vec<char> = text.chars().collect();
+        if let Some(distance) = levenshtein_capped(&query_chars, &chars, threshold) {
+            best = Some(best.map_or(distance, |known| known.min(distance)));
+        }
+    };
+    consider(stem);
+    for token in stem.split(|c: char| !c.is_alphanumeric()) {
+        if !token.is_empty() {
+            consider(token);
+        }
+    }
+    best.map(|distance| 600 - distance as i32 * 150)
+}
 
 #[cfg(test)]
 mod tests {
-    use super::substring_score;
+    use super::{fuzzy_file_score, substring_score};
 
     #[test]
     fn scores_prefix_matches_higher() {
@@ -182,5 +229,20 @@ mod tests {
     #[test]
     fn handles_unicode_without_slicing_a_character() {
         assert_eq!(substring_score("ан", "тест ан"), Some(1200));
+    }
+    #[test]
+    fn typo_matches_word_with_single_deletion() {
+        assert_eq!(fuzzy_file_score("friren", "frieren s01e01.mkv"), Some(450));
+    }
+    #[test]
+    fn typo_scores_below_substring_match() {
+        let typo = fuzzy_file_score("friren", "frieren s01e01.mkv");
+        let exact = substring_score("frieren", "frieren s01e01.mkv");
+        assert!(typo < exact);
+    }
+    #[test]
+    fn rejects_distant_and_short_queries() {
+        assert_eq!(fuzzy_file_score("xyz", "frieren.mkv"), None);
+        assert_eq!(fuzzy_file_score("ab", "xb"), None);
     }
 }

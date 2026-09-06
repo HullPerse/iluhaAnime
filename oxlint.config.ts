@@ -29,7 +29,6 @@ const legacyRulesToDisable = [
   "jsx-a11y/prefer-tag-over-role",
   "jsx-a11y/label-has-associated-control",
   "jsx-a11y/control-has-associated-label",
-  "react/exhaustive-deps",
   "no-eq-null",
   "eqeqeq",
   "no-nested-ternary",

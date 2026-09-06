@@ -1,6 +1,7 @@
-import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { groupItemsByStatus } from "@/lib/collection/group.utils";
 import ListCollection from "@/routes/components/collection/list.collection";
 import { useSettingsStore } from "@/store/settings.store";
 import type { CollectionItem, CollectionStatusDef } from "@/types/collection";
@@ -72,12 +73,14 @@ function stubResizeObserver() {
         this.callback = callback;
       }
       observe(target: Element) {
+        const isHeader = target.firstElementChild?.getAttribute("role") === "button";
+        const blockSize = isHeader ? 24 : 120;
         this.callback(
           [
             {
               target,
-              borderBoxSize: [{ inlineSize: 800, blockSize: 600 }],
-              contentRect: { width: 800, height: 600 },
+              borderBoxSize: [{ inlineSize: 800, blockSize }],
+              contentRect: { width: 800, height: blockSize },
             } as unknown as ResizeObserverEntry,
           ],
           this as unknown as ResizeObserver
@@ -115,5 +118,46 @@ describe("ListCollection", () => {
     render(<ListCollection items={[]} statuses={STATUSES} />);
     expect(document.querySelector("section")).not.toBeNull();
     expect(screen.queryByTitle("Frieren")).toBeNull();
+  });
+});
+
+describe("ListCollection grouped", () => {
+  it("renders a status group header above its items", () => {
+    const groups = groupItemsByStatus(ITEMS, STATUSES);
+    render(<ListCollection items={ITEMS} statuses={STATUSES} groups={groups} />);
+    expect(screen.getByRole("button", { name: /watching/i })).not.toBeNull();
+    expect(screen.getByRole("button", { name: /completed/i })).not.toBeNull();
+    expect(screen.getByTitle("Frieren")).not.toBeNull();
+    expect(screen.getByTitle("Sousou")).not.toBeNull();
+  });
+
+  it("hides items of a collapsed group but keeps its header", () => {
+    const groups = groupItemsByStatus(ITEMS, STATUSES);
+    render(
+      <ListCollection
+        items={ITEMS}
+        statuses={STATUSES}
+        groups={groups}
+        collapsedStatuses={new Set(["completed"])}
+      />
+    );
+    expect(screen.getByRole("button", { name: /completed/i })).not.toBeNull();
+    expect(screen.queryByTitle("Sousou")).toBeNull();
+    expect(screen.getByTitle("Frieren")).not.toBeNull();
+  });
+
+  it("toggles the collapsed status when the header is clicked", () => {
+    const groups = groupItemsByStatus(ITEMS, STATUSES);
+    const onToggle = vi.fn();
+    render(
+      <ListCollection
+        items={ITEMS}
+        statuses={STATUSES}
+        groups={groups}
+        onToggleStatusCollapsed={onToggle}
+      />
+    );
+    fireEvent.click(screen.getByRole("button", { name: /watching/i }));
+    expect(onToggle).toHaveBeenCalledWith("watching");
   });
 });

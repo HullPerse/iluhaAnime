@@ -1,10 +1,10 @@
 import { Dialog } from "@base-ui/react/dialog";
+import { cn } from "cn";
 import { ChevronLeft, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import ImageComponent from "@/components/ui/image.component";
-import { useI18n } from "@/lib/i18n";
-import { cn } from "@/lib/index.utils";
+import { useI18n } from "@/lib/locale/i18n.utils";
 import { useSettingsStore } from "@/store/settings.store";
 import type { ModalWindow } from "@/types";
 

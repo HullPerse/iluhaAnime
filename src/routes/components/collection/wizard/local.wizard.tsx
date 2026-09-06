@@ -2,9 +2,9 @@ import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { FolderOpen } from "lucide-react";
 
 import { Button } from "@/components/ui/button.component";
-import { useI18n } from "@/lib/i18n";
+import { useI18n } from "@/lib/locale/i18n.utils";
 
-export function WizardLocalPanelCollection({
+export function WizardLocalPanel({
   localPath,
   setLocalPath,
   setLocalKind,
@@ -32,11 +32,11 @@ export function WizardLocalPanelCollection({
   return (
     <div className="flex flex-col gap-1">
       <div className="flex items-center gap-1">
-        <span className="text-hint shrink-0 text-xs">{t("collection.wizard.localHint")}</span>
+        <span className="text-hint shrink-0 text-xs">{t("collection.wizard.local.hint")}</span>
         <input
           value={localPath}
           readOnly
-          placeholder={t("collection.wizard.noFileLinked")}
+          placeholder={t("collection.wizard.no.file.linked")}
           className="windows95-border min-w-0 flex-1 bg-white px-1 py-0.5 text-xs"
         />
         <Button className="h-6 px-2 text-xs" onClick={pickFile}>

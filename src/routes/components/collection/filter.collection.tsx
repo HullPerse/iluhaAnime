@@ -1,5 +1,4 @@
 import { Star } from "lucide-react";
-
 import { useState } from "react";
 
 import ChipsRow from "@/components/shared/chips.component";
@@ -7,33 +6,23 @@ import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import Combobox from "@/components/ui/combobox.component";
+import { DualSlider } from "@/components/ui/dualSlider.component";
 import { Radio } from "@/components/ui/radio.component";
-import { DualSlider } from "@/components/ui/range.component";
-import { ANILIST_GENRES } from "@/config/filters.config";
-import { DEFAULT_FILTERS } from "@/lib/collection.filters";
-import { useI18n } from "@/lib/i18n";
+import { ANILIST_GENRES } from "@/config/anilist/filters.config";
+import { RATING_MAX, RATING_MIN, YEAR_MAX, YEAR_MIN } from "@/config/collection/filters.config";
+import { freshDefaults } from "@/lib/collection/filter.utils";
+import { useI18n } from "@/lib/locale/i18n.utils";
 import type { CollectionFilters, CollectionType } from "@/types/collection";
-
-const RATING_MIN = 0;
-const RATING_MAX = 10;
-const YEAR_MIN = 1874;
-const YEAR_MAX = new Date().getFullYear();
-
-function freshDefaults(): CollectionFilters {
-  return { ...DEFAULT_FILTERS, mediaTypes: [], genres: [] };
-}
 
 export default function FilterCollection({
   open,
   filters,
   onApply,
-  onReset,
   onClose,
 }: {
   open: boolean;
   filters: CollectionFilters;
   onApply: (filters: CollectionFilters) => void;
-  onReset: () => void;
   onClose: () => void;
 }) {
   const { t } = useI18n();
@@ -59,10 +48,7 @@ export default function FilterCollection({
 
   const handleReset = () => {
     setLocal(freshDefaults());
-    onReset();
-    onClose();
   };
-
   const providerOptions = [
     { value: "any", label: t("collection.filters.any") },
     { value: "anilist", label: "AniList" },
@@ -206,6 +192,9 @@ export default function FilterCollection({
         <div className="mt-3 flex justify-end gap-1">
           <Button variant="outline" onClick={handleReset}>
             {t("collection.filters.reset")}
+          </Button>
+          <Button variant="default" onClick={onClose}>
+            {t("common.cancel")}
           </Button>
           <Button
             onClick={() => {

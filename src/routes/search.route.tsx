@@ -1,5 +1,4 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -8,24 +7,29 @@ import { InlineAutocompleteInput } from "@/components/shared/autocomplete.compon
 import { SmallLoader } from "@/components/shared/loader.component";
 import { Button } from "@/components/ui/button.component";
 import Select from "@/components/ui/select.component";
-import { SOURCE_INFOS } from "@/config/search.config";
-import { useAutocomplete } from "@/hooks/autocomplete.hook";
-import { useSearchSessions } from "@/hooks/searchSessions.hook";
-import { useI18n } from "@/lib/i18n";
-import { enterSubmit } from "@/lib/keyboard.utils";
-import { copyMagnet, openMagnet, downloadMagnet } from "@/lib/magnet.utils";
-import { filterAnimeResults, getVisibleSources, sortAnimeResults } from "@/lib/search.logic";
+import { SOURCE_INFOS } from "@/config/search/sources.config";
+import { useSearchField } from "@/hooks/search/field.hook";
+import { useSearchSessions } from "@/hooks/search/sessions.hook";
+import { useI18n } from "@/lib/locale/i18n.utils";
+import { countActiveFilters } from "@/lib/search/filters.utils";
+import {
+  filterAnimeResults,
+  getVisibleSources,
+  sortAnimeResults,
+} from "@/lib/search/results.utils";
 import {
   isPagedSearchSource,
   resolveInitialSource,
   serverSideSortSource,
-} from "@/lib/searchRoute.utils";
+} from "@/lib/search/route.utils";
+import { copyMagnet, openMagnet, downloadMagnet } from "@/lib/torrent/magnet.utils";
+import { invokeTyped } from "@/lib/utils/invoke.utils";
 import SearchAuthButtons from "@/routes/components/search/auth.search";
-import TorrentDetailsModal from "@/routes/components/search/details.search";
-import SearchEmptyState from "@/routes/components/search/empty.search";
+import TorrentDetailsModal from "@/routes/components/search/details/modal.details";
 import SearchErrorBar from "@/routes/components/search/error.search";
-import SearchFiltersBar from "@/routes/components/search/filters.search";
-import SearchFiltersModal from "@/routes/components/search/modal.filters";
+import { SearchFilterChips } from "@/routes/components/search/filterChips.search";
+import SearchFiltersBar from "@/routes/components/search/filters/bar.filters";
+import SearchFiltersModal from "@/routes/components/search/filters/modal.filters";
 import SearchPager from "@/routes/components/search/pager.search";
 import SearchResultItem from "@/routes/components/search/result.search";
 import SearchSessionModals from "@/routes/components/search/sessions.search";
@@ -35,22 +39,10 @@ import { useSettingsStore } from "@/store/settings.store";
 import type { Anime, Source } from "@/types";
 import type { SearchFilters } from "@/types/search";
 
-function countActiveFilters(f: SearchFilters): number {
-  let count = 0;
-  if (f.minSeeders > 0) count++;
-  if (f.hasMagnet) count++;
-  if (f.quality !== "all") count++;
-  if (f.language !== "all") count++;
-  if (f.sizeMin > 0 || f.sizeMax > 0) count++;
-  if (f.codec !== "all") count++;
-  return count;
-}
-
 function SearchRoute() {
   const defaultSource = useSettingsStore((s) => s.defaultSearchSource);
   const visibleSources = useSettingsStore((s) => s.visibleSources);
   const resultsPerPage = useSettingsStore((s) => s.resultsPerPage);
-  const anilistSuggestionBoost = useSettingsStore((s) => s.anilistSuggestionBoost);
 
   const sourceOptions = useMemo(
     () => getVisibleSources(visibleSources, SOURCE_INFOS),
@@ -77,26 +69,16 @@ function SearchRoute() {
     source: Source;
   } | null>(null);
 
-  const {
-    sortBy,
-    sortDirection,
-    filters,
-    setSortBy,
-    setSortDirection,
-    setFilters,
-    resetFilters,
-    history,
-    queryStats,
-    suggestionStats,
-    animeIndex,
-    animeProfileId,
-    addQuery,
-    recordSuggestion,
-    recordSuggestionIgnored,
-    removeQuery,
-    crossSearchQuery,
-    setCrossSearchQuery,
-  } = useSearchStore((state) => state);
+  const sortBy = useSearchStore((s) => s.sortBy);
+  const sortDirection = useSearchStore((s) => s.sortDirection);
+  const filters = useSearchStore((s) => s.filters);
+  const setSortBy = useSearchStore((s) => s.setSortBy);
+  const setSortDirection = useSearchStore((s) => s.setSortDirection);
+  const setFilters = useSearchStore((s) => s.setFilters);
+  const resetFilters = useSearchStore((s) => s.resetFilters);
+
+  const crossSearchQuery = useSearchStore((s) => s.crossSearchQuery);
+  const setCrossSearchQuery = useSearchStore((s) => s.setCrossSearchQuery);
 
   const { rutrackerAuth, nekobtAuth, eraiAuth } = useSearchSessions();
 
@@ -129,18 +111,19 @@ function SearchRoute() {
     const proxyUrl = searchProxyUrls[source] || undefined;
     const base = { query: submittedQuery, proxyUrl } as Record<string, unknown>;
     const paged = { ...base, page: nyaaPage, sort: sortBy, order: sortDirection };
-    if (source === "rutracker") return invoke<Anime[]>("search_rutracker", base as never);
-    if (source === "nyaa") return invoke<Anime[]>("search_nyaa", paged as never);
-    if (source === "sukebei") return invoke<Anime[]>("search_sukebei", paged as never);
+    if (source === "rutracker") return invokeTyped<Anime[]>("search_rutracker", base as never);
+    if (source === "nyaa") return invokeTyped<Anime[]>("search_nyaa", paged as never);
+    if (source === "sukebei") return invokeTyped<Anime[]>("search_sukebei", paged as never);
     if (source === "nekobt")
-      return invoke<Anime[]>("search_nekobt", { ...base, page: nyaaPage } as never);
-    return invoke<Anime[]>("search_erairaws", base as never);
+      return invokeTyped<Anime[]>("search_nekobt", { ...base, page: nyaaPage } as never);
+    return invokeTyped<Anime[]>("search_erairaws", base as never);
   };
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey,
     queryFn: fetchBySource,
     enabled: Boolean(submittedQuery),
+    retry: false,
   });
 
   useEffect(() => {
@@ -186,68 +169,51 @@ function SearchRoute() {
 
   const handleLogout = async () => {
     try {
-      await invoke("rutracker_logout");
+      await invokeTyped("rutracker_logout");
       queryClient.invalidateQueries({ queryKey: ["search_sessions"] });
-    } catch {}
+    } catch (error) {
+      console.warn("rutracker_logout failed", error);
+    }
   };
 
   const handleNekoBtLogout = async () => {
     try {
-      await invoke("nekobt_logout");
+      await invokeTyped("nekobt_logout");
       queryClient.invalidateQueries({ queryKey: ["search_sessions"] });
-    } catch {}
+    } catch (error) {
+      console.warn("nekobt_logout failed", error);
+    }
   };
 
   const handleEraiLogout = async () => {
     try {
-      await invoke("erai_logout");
+      await invokeTyped("erai_logout");
       queryClient.invalidateQueries({ queryKey: ["search_sessions"] });
-    } catch {}
-  };
-
-  const { suggestions, inlineCompletion } = useAutocomplete({
-    query: searchParams,
-    scope: "torrent",
-    history,
-    queryStats,
-    suggestionStats,
-    animeIndex,
-    animeProfileId,
-    anilistBoost: anilistSuggestionBoost,
-  });
-
-  const handleSearch = () => {
-    const trimmed = searchParams.trim();
-    if (!trimmed) return;
-    if (inlineCompletion && trimmed.toLocaleLowerCase() !== inlineCompletion.toLocaleLowerCase()) {
-      recordSuggestionIgnored(inlineCompletion);
+    } catch (error) {
+      console.warn("erai_logout failed", error);
     }
-    addQuery(trimmed, "torrent");
-    setSubmittedQuery(trimmed);
-    setSearchRequest((request) => request + 1);
   };
+
+  const field = useSearchField({
+    scope: "torrent",
+    query: searchParams,
+    setQuery: setSearchParams,
+
+    onSubmit: (query) => {
+      setSubmittedQuery(query);
+      setSearchRequest((request) => request + 1);
+    },
+  });
+  const handleSearch = field.handleSubmit;
 
   return (
-    <main className="flex h-full w-full flex-col gap-1">
+    <div className="flex h-full w-full flex-col gap-1">
       <section className="ui-toolbar ui-panel w-full flex-row">
         <div className="relative flex flex-1 items-center justify-center gap-1">
           <InlineAutocompleteInput
             placeholder={t("search.find.placeholder")}
-            value={searchParams}
-            completion={inlineCompletion}
-            suggestions={suggestions}
-            history={history}
             className="h-9 font-bold"
-            onChange={(e) => setSearchParams(e.target.value)}
-            onAcceptCompletion={(value) => {
-              recordSuggestion(value);
-              setSearchParams(value);
-            }}
-            onDismissCompletion={() => {
-              if (inlineCompletion) recordSuggestionIgnored(inlineCompletion);
-            }}
-            onRemoveHistory={removeQuery}
-            onKeyDown={enterSubmit(handleSearch)}
+            {...field.inputProps}
           />
         </div>
         <Button
@@ -291,6 +257,7 @@ function SearchRoute() {
         onDirectionChange={() => setSortDirection(sortDirection === "desc" ? "asc" : "desc")}
         onOpenFilters={() => setShowFilters(true)}
       />
+      <SearchFilterChips query={searchParams} filters={filters} onChange={setFilters} />
 
       {showFilters && (
         <SearchFiltersModal
@@ -314,8 +281,6 @@ function SearchRoute() {
         />
       )}
 
-      <SearchEmptyState visible={data?.length === 0 && !isError} />
-
       {displayItems && (
         <section className="flex min-h-0 w-full flex-1 flex-col gap-1 overflow-y-auto p-0.5">
           {displayItems.map((item, index) => (
@@ -326,11 +291,13 @@ function SearchRoute() {
               loadingMagnet={loadingMagnet}
               onCopyMagnet={(i) => copyMagnet(i, magnets, setMagnets, setLoadingMagnet)}
               onOpenMagnet={(i) => openMagnet(i, magnets, setMagnets, setLoadingMagnet)}
-              onDownload={(i) => downloadMagnet(i, magnets, setMagnets, setLoadingMagnet)}
+              onDownload={(i) => downloadMagnet(i, magnets, setMagnets, setLoadingMagnet, source)}
               onOpenLink={async (i) => {
                 try {
                   await openUrl(i.link);
-                } catch {}
+                } catch (error) {
+                  console.warn("openUrl failed", error);
+                }
               }}
               onOpenDetails={(i) => setSelectedTorrent({ item: i, source })}
             />
@@ -367,11 +334,17 @@ function SearchRoute() {
           onOpenMagnet={(item) => openMagnet(item, magnets, setMagnets, setLoadingMagnet)}
           onDownload={async (item) => {
             setSelectedTorrent(null);
-            await downloadMagnet(item, magnets, setMagnets, setLoadingMagnet);
+            await downloadMagnet(
+              item,
+              magnets,
+              setMagnets,
+              setLoadingMagnet,
+              selectedTorrent.source
+            );
           }}
         />
       )}
-    </main>
+    </div>
   );
 }
 

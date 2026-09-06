@@ -1,16 +1,21 @@
 import type { Locale } from "./i18n";
 import type { AutocompleteMode } from "./search";
+import type { SpeedLimits } from "./torrent";
 
-export type SettingsTab = "general" | "search" | "torrent" | "theme" | "sqlite" | "notifications";
+export type SettingsTab =
+  | "general"
+  | "search"
+  | "torrent"
+  | "theme"
+  | "sqlite"
+  | "notifications"
+  | "changelog";
 
 export type FFMPEGStatus = "checking" | "ok" | "missing" | "downloading";
 
-export type ScanType = { current: number; total: number } | null;
-
 export interface SettingsStore {
   language: Locale;
-  dlLimit: number | null;
-  ulLimit: number | null;
+  limits: SpeedLimits;
   notificationsEnabled: boolean;
   notifyOnComplete: boolean;
   notifyOnError: boolean;
@@ -35,13 +40,16 @@ export interface SettingsStore {
   customScrollbar: boolean;
   retroStyle: "classic" | "soft" | "high-contrast";
   uiDensity: "comfortable" | "compact";
+  collectionGroupHeaderStyle: "torrent" | "folder";
   savedFolderPaths: string[];
+  playerFolderHeights: Record<string, number>;
   hiddenPlayerFolders: string[];
   hiddenPlayerTorrents: string[];
   hidePlayerFolder: (path: string) => void;
   unhidePlayerFolder: (path: string) => void;
   hidePlayerTorrent: (infoHash: string) => void;
   unhidePlayerTorrent: (infoHash: string) => void;
+  setPlayerFolderHeight: (path: string, height: number | null) => void;
   httpApiPort: number;
   ipv4Only: boolean;
   peerConnectTimeout: number;
@@ -73,3 +81,42 @@ export interface SettingsStore {
   appFont: string | null;
   patch: (partial: Partial<SettingsStore>) => void;
 }
+
+export interface SessionConfigPayload {
+  fastresume: boolean;
+  ipv4Only: boolean;
+  peerConnectTimeout: number;
+  peerReadWriteTimeout: number;
+  listenPort: number;
+  enableUpnp: boolean;
+  disablePersistence: boolean;
+}
+
+export type TabId =
+  | "search"
+  | "torrent"
+  | "player"
+  | "anilist"
+  | "collection"
+  | "settings"
+  | "preview";
+
+export type SettingsDefaults = Omit<
+  SettingsStore,
+  | "language"
+  | "hidePlayerFolder"
+  | "unhidePlayerFolder"
+  | "hidePlayerTorrent"
+  | "unhidePlayerTorrent"
+  | "setPlayerFolderHeight"
+  | "patch"
+>;
+
+export type TabSettings = Pick<
+  SettingsStore,
+  | "collectionTabEnabled"
+  | "anilistTabEnabled"
+  | "searchTabEnabled"
+  | "torrentTabEnabled"
+  | "playerTabEnabled"
+>;

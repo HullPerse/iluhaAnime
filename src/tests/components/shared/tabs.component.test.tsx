@@ -1,4 +1,4 @@
-import { render, screen, cleanup } from "@testing-library/react";
+import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 // @vitest-environment jsdom
 import { describe, it, expect, vi, afterEach } from "vitest";
@@ -21,6 +21,14 @@ describe("Tabs", () => {
     expect(screen.getByRole("tab", { name: "Three" }).getAttribute("aria-selected")).toBe("false");
   });
 
+  it("disables the active tab and keeps others enabled", () => {
+    render(<Tabs tabs={TABS} activeTab="two" onChange={() => {}} />);
+    const two = screen.getByRole("tab", { name: "Two" });
+    expect(two.getAttribute("disabled")).not.toBeNull();
+    expect(screen.getByRole("tab", { name: "One" }).getAttribute("disabled")).toBeNull();
+    expect(screen.getByRole("tab", { name: "Three" }).getAttribute("disabled")).toBeNull();
+  });
+
   it("calls onChange with the clicked tab id", async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
@@ -30,50 +38,41 @@ describe("Tabs", () => {
   });
 
   it("moves to the next tab on ArrowRight and wraps past the end", async () => {
-    const user = userEvent.setup();
     const onChange = vi.fn();
     const view = render(<Tabs tabs={TABS} activeTab="one" onChange={onChange} />);
-    screen.getByRole("tab", { name: "One" }).focus();
-    await user.keyboard("{ArrowRight}");
-    expect(onChange).toHaveBeenLastCalledWith("two");
+    fireEvent.keyDown(screen.getByRole("tab", { name: "Two" }), { key: "ArrowRight" });
+    expect(onChange).toHaveBeenLastCalledWith("three");
 
-    view.rerender(<Tabs tabs={TABS} activeTab="three" onChange={onChange} />);
-    screen.getByRole("tab", { name: "Three" }).focus();
-    await user.keyboard("{ArrowRight}");
+    view.rerender(<Tabs tabs={TABS} activeTab="two" onChange={onChange} />);
+    fireEvent.keyDown(screen.getByRole("tab", { name: "Three" }), { key: "ArrowRight" });
     expect(onChange).toHaveBeenLastCalledWith("one");
   });
 
   it("moves to the previous tab on ArrowLeft and wraps past the start", async () => {
-    const user = userEvent.setup();
     const onChange = vi.fn();
     const view = render(<Tabs tabs={TABS} activeTab="two" onChange={onChange} />);
-    screen.getByRole("tab", { name: "Two" }).focus();
-    await user.keyboard("{ArrowLeft}");
-    expect(onChange).toHaveBeenLastCalledWith("one");
+    fireEvent.keyDown(screen.getByRole("tab", { name: "One" }), { key: "ArrowLeft" });
+    expect(onChange).toHaveBeenLastCalledWith("three");
 
     view.rerender(<Tabs tabs={TABS} activeTab="one" onChange={onChange} />);
-    screen.getByRole("tab", { name: "One" }).focus();
-    await user.keyboard("{ArrowLeft}");
-    expect(onChange).toHaveBeenLastCalledWith("three");
+    fireEvent.keyDown(screen.getByRole("tab", { name: "Three" }), { key: "ArrowLeft" });
+    expect(onChange).toHaveBeenLastCalledWith("two");
   });
 
   it("jumps to the first and last tab with Home and End", async () => {
-    const user = userEvent.setup();
     const onChange = vi.fn();
     render(<Tabs tabs={TABS} activeTab="two" onChange={onChange} />);
-    screen.getByRole("tab", { name: "Two" }).focus();
-    await user.keyboard("{Home}");
+    const three = screen.getByRole("tab", { name: "Three" });
+    fireEvent.keyDown(three, { key: "Home" });
     expect(onChange).toHaveBeenLastCalledWith("one");
-    await user.keyboard("{End}");
+    fireEvent.keyDown(three, { key: "End" });
     expect(onChange).toHaveBeenLastCalledWith("three");
   });
 
   it("ignores unrelated keys", async () => {
-    const user = userEvent.setup();
     const onChange = vi.fn();
     render(<Tabs tabs={TABS} activeTab="two" onChange={onChange} />);
-    screen.getByRole("tab", { name: "Two" }).focus();
-    await user.keyboard("a");
+    fireEvent.keyDown(screen.getByRole("tab", { name: "One" }), { key: "a" });
     expect(onChange).not.toHaveBeenCalled();
   });
 });

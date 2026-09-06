@@ -7,9 +7,7 @@ import type {
   AniListObservation,
 } from "@/types/anilist";
 
-function isValidFriend(
-  friend: unknown
-): friend is {
+function isValidFriend(friend: unknown): friend is {
   id: number;
   name: string;
   avatar?: unknown;

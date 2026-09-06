@@ -2,7 +2,7 @@ import { AlertTriangle, RefreshCw } from "lucide-react";
 
 import { SmallLoader } from "@/components/shared/loader.component";
 import { Button } from "@/components/ui/button.component";
-import { useI18n } from "@/lib/i18n";
+import { useI18n } from "@/lib/locale/i18n.utils";
 
 export function SqliteHeader({
   mode,
@@ -24,7 +24,9 @@ export function SqliteHeader({
     <>
       <section className="ui-toolbar ui-panel">
         <strong className="windows95-text text-xs">{t("settings.sqlite.title")}</strong>
-        <span className="text-hint windows95-text text-xs">{t("settings.sqlite.read.only.hint")}</span>
+        <span className="text-hint windows95-text text-xs">
+          {t("settings.sqlite.read.only.hint")}
+        </span>
         <div className="ml-auto flex items-center gap-1">
           <Button
             variant={mode === "browse" ? "outline" : "default"}

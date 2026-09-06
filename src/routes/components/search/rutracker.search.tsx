@@ -1,4 +1,3 @@
-import { invoke } from "@tauri-apps/api/core";
 import { useState } from "react";
 
 import { SmallLoader } from "@/components/shared/loader.component";
@@ -6,48 +5,11 @@ import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
 import { PasswordInput } from "@/components/ui/password.component";
-import { useI18n } from "@/lib/i18n";
-import type { TranslationKey } from "@/lib/i18n";
-import { enterSubmit } from "@/lib/keyboard.utils";
-
-type RutrackerErrorCode =
-  | "wrong_credentials"
-  | "blocked"
-  | "network"
-  | "login_failed"
-  | "session_failed"
-  | "cookies_invalid"
-  | "cookies_parse"
-  | "webview_open"
-  | "webview_save"
-  | "webview_not_found"
-  | "no_cookies"
-  | "no_session";
-
-const ERROR_KEYS: Record<RutrackerErrorCode, TranslationKey> = {
-  wrong_credentials: "search.rutracker.err.wrong.credentials",
-  blocked: "search.rutracker.err.blocked",
-  network: "search.rutracker.err.network",
-  login_failed: "search.rutracker.err.login.failed",
-  session_failed: "search.rutracker.err.session.failed",
-  cookies_invalid: "search.rutracker.err.cookies.invalid",
-  cookies_parse: "search.rutracker.err.cookies.parse",
-  webview_open: "search.rutracker.err.webview.open",
-  webview_save: "search.rutracker.err.webview.save",
-  webview_not_found: "search.rutracker.err.webview.not.found",
-  no_cookies: "search.rutracker.err.no.cookies",
-  no_session: "search.rutracker.err.no.session",
-};
-
-function mapError(raw: string, t: (key: TranslationKey) => string): string {
-  const code = raw.split(":")[0].trim() as RutrackerErrorCode;
-  const label = t(ERROR_KEYS[code] ?? "search.rutracker.err.unknown");
-  if (code === "network") {
-    const detail = raw.split(":").slice(1).join(":").trim();
-    if (detail) return `${label}\n${detail}`;
-  }
-  return label;
-}
+import { useI18n } from "@/lib/locale/i18n.utils";
+import { mapError } from "@/lib/search/rutracker.utils";
+import { invokeTyped } from "@/lib/utils/invoke.utils";
+import { enterSubmit } from "@/lib/utils/keyboard.utils";
+import { useSettingsStore } from "@/store/settings.store";
 
 function RutrackerLoginModal({
   setRutrackerAuth,
@@ -57,7 +19,10 @@ function RutrackerLoginModal({
   setShowLogin: (value: boolean) => void;
 }) {
   const { t } = useI18n();
-  const [mode, setMode] = useState<"login" | "cookies" | "browser">("login");
+  const rutrackerProxy = useSettingsStore((s) => s.searchProxyUrls["rutracker"] ?? "");
+  const [mode, setMode] = useState<"login" | "cookies" | "browser">(
+    rutrackerProxy.trim() ? "cookies" : "login"
+  );
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [cookies, setCookies] = useState("");
@@ -78,9 +43,11 @@ function RutrackerLoginModal({
     setLoading(true);
     setError("");
     try {
-      await invoke("rutracker_login", {
+      await invokeTyped("rutracker_login", {
         username: username.trim(),
         password,
+        proxyUrl: rutrackerProxy || undefined,
+        proxy_url: rutrackerProxy || undefined,
       });
       handleSuccess();
     } catch (error) {
@@ -97,7 +64,11 @@ function RutrackerLoginModal({
     setLoading(true);
     setError("");
     try {
-      await invoke("rutracker_set_cookies", { cookies: cookies.trim() });
+      await invokeTyped("rutracker_set_cookies", {
+        cookies: cookies.trim(),
+        proxyUrl: rutrackerProxy || undefined,
+        proxy_url: rutrackerProxy || undefined,
+      });
       handleSuccess();
     } catch (error) {
       setError(mapError(String(error), t));
@@ -110,7 +81,7 @@ function RutrackerLoginModal({
     setLoading(true);
     setError("");
     try {
-      await invoke("rutracker_webview_login");
+      await invokeTyped("rutracker_webview_login");
     } catch (error) {
       setError(mapError(String(error), t));
     } finally {
@@ -122,7 +93,7 @@ function RutrackerLoginModal({
     setLoading(true);
     setError("");
     try {
-      await invoke("rutracker_finish_webview_login");
+      await invokeTyped("rutracker_finish_webview_login");
       handleSuccess();
     } catch (error) {
       setError(mapError(String(error), t));
@@ -142,6 +113,7 @@ function RutrackerLoginModal({
               setMode("login");
               setError("");
             }}
+            disabled={mode === "login"}
           >
             {t("search.rutracker.login.tab")}
           </Button>
@@ -152,6 +124,7 @@ function RutrackerLoginModal({
               setMode("cookies");
               setError("");
             }}
+            disabled={mode === "cookies"}
           >
             {t("search.rutracker.cookies.tab")}
           </Button>
@@ -162,6 +135,7 @@ function RutrackerLoginModal({
               setMode("browser");
               setError("");
             }}
+            disabled={mode === "browser"}
           >
             {t("search.rutracker.browser.tab")}
           </Button>

@@ -1,7 +1,7 @@
 import { AlertCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button.component";
-import { useI18n } from "@/lib/i18n";
+import { useI18n } from "@/lib/locale/i18n.utils";
 
 export default function SearchErrorBar({
   error,
@@ -17,7 +17,10 @@ export default function SearchErrorBar({
       role="alert"
     >
       <AlertCircle className="size-4 shrink-0" />
-      <span className="windows95-text flex-1 truncate">
+      <span
+        className="windows95-text flex-1 break-words"
+        title={String(error instanceof Error ? error.message : (error ?? ""))}
+      >
         {error instanceof Error ? error.message : String(error ?? t("search.error"))}
       </span>
       <Button className="h-5" onClick={onRetry}>

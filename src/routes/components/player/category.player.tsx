@@ -1,7 +1,5 @@
-import { cn } from "@/lib/index.utils";
 import { useDroppable } from "@dnd-kit/core";
-import { useQuery } from "@tanstack/react-query";
-import { invoke } from "@tauri-apps/api/core";
+import { cn } from "cn";
 import { ChevronDown, ChevronRight, EyeOff, RefreshCw, X } from "lucide-react";
 import { useState, useEffect, useRef, useMemo } from "react";
 
@@ -9,53 +7,19 @@ import UserImageIcon from "@/components/shared/avatar.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { Input } from "@/components/ui/input.component";
-import { useI18n } from "@/lib/i18n";
-import { normalizePlayerPath } from "@/lib/player.visibility";
-import { fmtSize } from "@/lib/torrent.utils";
-import { isUserImageIcon } from "@/lib/userimage.utils";
+import { useI18n } from "@/lib/locale/i18n.utils";
+import { normalizePlayerPath } from "@/lib/player/visibility.utils";
+import { fmtSize } from "@/lib/torrent/common.utils";
+import { isUserImageIcon } from "@/lib/utils/image.utils";
 import { useCategoryStore } from "@/store/category.store";
 import { useTorrentStore } from "@/store/download.store";
+import { useSettingsStore } from "@/store/settings.store";
 import type { FolderNode } from "@/types";
 import type { TorrentInfo, TorrentFileInfo } from "@/types/torrent";
 
-import TorrentFilesSection from "../torrent/file.torrent";
+import { TorrentCategoryEntry } from "./category/entry.category";
 import CategoryIconModal from "./category/icon.category";
 import FolderView from "./folder.player";
-
-function TorrentCategoryEntry({
-  tor,
-  torrentFilesMap,
-}: {
-  tor: TorrentInfo;
-  torrentFilesMap: Record<number, TorrentFileInfo[] | undefined>;
-}) {
-  const { data = [], refetch } = useQuery({
-    queryKey: ["extra_files", tor.save_dir],
-    queryFn: () =>
-      invoke<{ path: string; name: string; size: number }[]>("scan_extra_files", {
-        path: tor.save_dir!,
-      }).then((result) => result.map((f) => ({ name: f.name, size: f.size, fullPath: f.path }))),
-    enabled: !!tor.save_dir,
-  });
-
-  const files = (torrentFilesMap[tor.id] || []).filter((f) => f.completed);
-  if (files.length === 0) return null;
-
-  const handleUpscaleDone = () => refetch();
-  const handleDeleteExtraFile = () => refetch();
-
-  return (
-    <TorrentFilesSection
-      id={tor.id}
-      files={files}
-      type="player"
-      path={tor.save_dir}
-      extraFiles={data}
-      onUpscaleDone={handleUpscaleDone}
-      onDeleteExtraFile={handleDeleteExtraFile}
-    />
-  );
-}
 
 function CategoryView({
   categoryId,
@@ -63,7 +27,6 @@ function CategoryView({
   folderTrees,
   torrents,
   torrentFilesMap,
-  audioExtensions,
   onHideFolder,
   onHideTorrent,
 }: {
@@ -72,7 +35,6 @@ function CategoryView({
   folderTrees: FolderNode[];
   torrents: TorrentInfo[];
   torrentFilesMap: Record<number, TorrentFileInfo[] | undefined>;
-  audioExtensions: string[];
   onHideFolder?: (path: string) => void;
   onHideTorrent?: (infoHash: string) => void;
 }) {
@@ -84,12 +46,15 @@ function CategoryView({
 
   const { setNodeRef, isOver } = useDroppable({ id: categoryId });
 
-  const [open, setOpen] = useState(true);
+  const collapsedIds = useCategoryStore((s) => s.collapsedIds);
+  const setCategoryCollapsed = useCategoryStore((s) => s.setCategoryCollapsed);
+  const [open, setOpen] = useState(() => !collapsedIds.includes(categoryId));
   const [editing, setEditing] = useState(false);
   const [editIcon, setEditIcon] = useState(false);
   const [editName, setEditName] = useState("");
   const [expandedEntries, setExpandedEntries] = useState<Set<string>>(new Set());
   const renameRef = useRef<HTMLInputElement>(null);
+  const audioExtensions = useSettingsStore((s) => s.audioExtensions);
   const audioExtensionsSet = useMemo(() => new Set(audioExtensions), [audioExtensions]);
 
   useEffect(() => {
@@ -157,9 +122,12 @@ function CategoryView({
   const handleEditIcon = () => setEditIcon(true);
 
   return (
-    <main
+    <div
       ref={setNodeRef}
-      className={cn("windows95-active-border bg-primary flex flex-col", isOver && "ring-highlight ring-2")}
+      className={cn(
+        "windows95-active-border bg-primary flex flex-col",
+        isOver && "ring-highlight ring-2"
+      )}
     >
       <section className="windows95-text flex w-full items-center gap-1 px-0.5 py-0.5 text-left select-none">
         <button
@@ -167,7 +135,11 @@ function CategoryView({
           aria-expanded={open}
           aria-label={category.name}
           className="windows95-text hover:bg-surface focus-visible:outline-text flex cursor-pointer items-center gap-1 border-0 bg-transparent p-0 text-left focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-dotted"
-          onClick={() => setOpen((value) => !value)}
+          onClick={() => {
+            const next = !open;
+            setOpen(next);
+            setCategoryCollapsed(categoryId, !next);
+          }}
         >
           {open ? (
             <ChevronDown className="size-3 shrink-0" />
@@ -179,7 +151,7 @@ function CategoryView({
           <UserImageIcon
             icon={category.icon}
             alt=""
-            className="border-surface size-4 shrink-0 hover:border"
+            className="border-surface size-4 shrink-0"
             onClick={(e) => {
               e.stopPropagation();
               handleEditIcon();
@@ -189,7 +161,7 @@ function CategoryView({
           <ImageComponent
             src={`/images/${category.icon}`}
             alt=""
-            className="border-surface size-4 shrink-0 hover:border"
+            className="border-surface size-4 shrink-0"
             onClick={(e) => {
               e.stopPropagation();
               handleEditIcon();
@@ -323,7 +295,7 @@ function CategoryView({
       )}
 
       {editIcon && <CategoryIconModal id={categoryId} handleClose={() => setEditIcon(false)} />}
-    </main>
+    </div>
   );
 }
 

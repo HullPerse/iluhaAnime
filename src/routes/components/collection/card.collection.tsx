@@ -1,75 +1,25 @@
-import { Edit2, Star } from "lucide-react";
+import { Star } from "lucide-react";
 import { memo, useMemo } from "react";
 
-import { Button } from "@/components/ui/button.component";
 import Image from "@/components/ui/image.component";
-import { CARD_POSTER_H, CARD_W } from "@/config/collection.config";
-import { useCoverCache } from "@/hooks/coverCache.hook";
-import { generatePlaceholder, statusColorOf, statusLabel } from "@/lib/collection.utils";
-import { useI18n } from "@/lib/i18n";
-import { enterOrSpace } from "@/lib/keyboard.utils";
-import type { CollectionItem, CollectionStatus, CollectionStatusDef } from "@/types/collection";
+import { CARD_POSTER_H, CARD_W, GENRE_PREVIEW_COUNT } from "@/config/collection/card.config";
+import { useCoverCache } from "@/hooks/collection/cache.hook";
+import { generatePlaceholder } from "@/lib/collection/placeholder.utils";
+import { statusColorOf, statusLabel } from "@/lib/collection/status.utils";
+import { useI18n } from "@/lib/locale/i18n.utils";
+import { enterOrSpace } from "@/lib/utils/keyboard.utils";
+import type { CollectionCardProps } from "@/types/collection";
 
-interface CollectionCardProps {
-  item: CollectionItem;
-  statuses: CollectionStatusDef[];
-  onOpen?: (item: CollectionItem) => void;
-  onEdit?: (item: CollectionItem) => void;
-  onSetStatus?: (item: CollectionItem, status: CollectionStatus) => void;
-}
+import { CardStatusBar } from "./cardStatusBar.collection";
 
-function CardStatusBar({
+function CollectionCardView({
   item,
   statuses,
+  selected,
+  onOpen,
   onEdit,
   onSetStatus,
-}: {
-  item: CollectionItem;
-  statuses: CollectionStatusDef[];
-  onEdit?: (item: CollectionItem) => void;
-  onSetStatus?: (item: CollectionItem, status: CollectionStatus) => void;
-}) {
-  const { t } = useI18n();
-  return (
-    <div className="windows95-border-t bg-primary flex h-7 shrink-0 items-center gap-1 px-1">
-      {onSetStatus ? (
-        <select
-          value={item.status}
-          onClick={(e) => e.stopPropagation()}
-          onChange={(e) => onSetStatus(item, e.target.value as CollectionStatus)}
-          className="windows95-border h-5 min-w-0 flex-1 bg-white px-1 text-xs leading-none"
-          aria-label={t("collection.card.status")}
-          title={statusLabel(statuses, item.status, t)}
-        >
-          {statuses.map((s) => (
-            <option key={s.id} value={s.id}>
-              {statusLabel(statuses, s.id, t)}
-            </option>
-          ))}
-        </select>
-      ) : (
-        <span className="windows95-border bg-white px-1 py-0.5 text-xs leading-none">
-          {statusLabel(statuses, item.status, t)}
-        </span>
-      )}
-      {onEdit && (
-        <Button
-          size="icon"
-          className="size-5 shrink-0"
-          onClick={(e) => {
-            e.stopPropagation();
-            onEdit(item);
-          }}
-          aria-label={t("collection.card.edit")}
-        >
-          <Edit2 className="size-3" />
-        </Button>
-      )}
-    </div>
-  );
-}
-
-function CollectionCardView({ item, statuses, onOpen, onEdit, onSetStatus }: CollectionCardProps) {
+}: CollectionCardProps) {
   const { t } = useI18n();
   const { cachedUrl } = useCoverCache(item.coverUrl, item.thumbBlobId ?? item.coverBlobId);
   const cover = useMemo(() => {
@@ -84,9 +34,11 @@ function CollectionCardView({ item, statuses, onOpen, onEdit, onSetStatus }: Col
       : null;
 
   return (
-    <div className="windows95-active-border flex w-full flex-col overflow-hidden bg-white select-none [contain-intrinsic-size:auto] [content-visibility:auto]">
+    <div
+      className={`windows95-active-border flex w-full flex-col overflow-hidden bg-white select-none [contain-intrinsic-size:auto] [content-visibility:auto] ${selected ? "outline-secondary outline-2" : ""}`}
+    >
       <div
-        className={`relative w-full shrink-0 overflow-hidden bg-white ${onOpen ? "hover:cursor-pointer focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-dotted" : ""}`}
+        className={`relative w-full shrink-0 overflow-hidden bg-white ${onOpen ? "hover:cursor-pointer hover:brightness-110 focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-dotted active:brightness-90" : ""}`}
         style={{ aspectRatio: `${CARD_W} / ${CARD_POSTER_H}` }}
         role={onOpen ? "button" : undefined}
         tabIndex={onOpen ? 0 : undefined}
@@ -120,7 +72,7 @@ function CollectionCardView({ item, statuses, onOpen, onEdit, onSetStatus }: Col
             <Star className="inline size-3 fill-yellow-400" />
           </span>
         )}
-        {item.rating != null && (
+        {item.rating != null && item.rating > 0 && (
           <span className="bg-secondary absolute bottom-1 left-1 px-1 py-0.5 text-xs leading-none font-bold text-white">
             {item.rating}/10
           </span>
@@ -138,9 +90,13 @@ function CollectionCardView({ item, statuses, onOpen, onEdit, onSetStatus }: Col
           </h3>
           <div className="text-hint flex items-center gap-1 truncate text-xs leading-none">
             {item.year != null && <span className="shrink-0">{item.year}</span>}
-            {item.type !== "custom" && <span className="shrink-0 capitalize">{item.type}</span>}
             {item.genres[0] && (
-              <span className="min-w-0 truncate">{item.genres.slice(0, 2).join(", ")}</span>
+              <span
+                className="min-w-0 truncate"
+                title={item.genres.slice(0, GENRE_PREVIEW_COUNT).join(", ")}
+              >
+                {item.genres.slice(0, GENRE_PREVIEW_COUNT).join(", ")}
+              </span>
             )}
             <span className="ml-auto shrink-0 font-bold">
               {item.progressTotal
@@ -162,9 +118,8 @@ function sameCardVisual(prev: CollectionCardProps, next: CollectionCardProps): b
   const b = next.item;
   return (
     prev.statuses === next.statuses &&
+    prev.selected === next.selected &&
     prev.onOpen === next.onOpen &&
-    prev.onEdit === next.onEdit &&
-    prev.onSetStatus === next.onSetStatus &&
     a.id === b.id &&
     a.title === b.title &&
     a.coverUrl === b.coverUrl &&
@@ -178,7 +133,8 @@ function sameCardVisual(prev: CollectionCardProps, next: CollectionCardProps): b
     a.progressValue === b.progressValue &&
     a.progressTotal === b.progressTotal &&
     a.progressUnit === b.progressUnit &&
-    a.genres.slice(0, 2).join(",") === b.genres.slice(0, 2).join(",")
+    a.genres.slice(0, GENRE_PREVIEW_COUNT).join(",") ===
+      b.genres.slice(0, GENRE_PREVIEW_COUNT).join(",")
   );
 }
 

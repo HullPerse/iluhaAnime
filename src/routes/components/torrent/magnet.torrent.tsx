@@ -5,16 +5,10 @@ import { useEffect, useState } from "react";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
-import { MAGNET_RX } from "@/config/torrent.config";
-import { useI18n } from "@/lib/i18n";
-import { enterSubmit } from "@/lib/keyboard.utils";
-
-interface Props {
-  open: boolean;
-  onClose: () => void;
-  onAddMagnet: (magnet: string) => void;
-  onAddFile: (filePath: string) => void;
-}
+import { MAGNET_RX } from "@/config/torrent/common.config";
+import { useI18n } from "@/lib/locale/i18n.utils";
+import { enterSubmit } from "@/lib/utils/keyboard.utils";
+import type { MagnetTorrentProps as Props } from "@/types/torrent";
 
 export default function AddTorrentModal({ open, onClose, onAddMagnet, onAddFile }: Props) {
   const [magnetInput, setMagnetInput] = useState("");

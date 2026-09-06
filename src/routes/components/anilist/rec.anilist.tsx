@@ -3,17 +3,9 @@ import { Star } from "lucide-react";
 import { SmallLoader } from "@/components/shared/loader.component";
 import Modal from "@/components/shared/modal.component";
 import ImageComponent from "@/components/ui/image.component";
-import { useI18n } from "@/lib/i18n";
-import { enterOrSpace } from "@/lib/keyboard.utils";
-import type { AniRecommendation } from "@/types/anilist";
-
-interface Props {
-  open: boolean;
-  loading: boolean;
-  recommendations: AniRecommendation[];
-  onClose: () => void;
-  onAnimeClick: (id: number) => void;
-}
+import { useI18n } from "@/lib/locale/i18n.utils";
+import { enterOrSpace } from "@/lib/utils/keyboard.utils";
+import type { AniRecProps as Props } from "@/types/anilist";
 
 export default function AniListRecsModal({
   open,

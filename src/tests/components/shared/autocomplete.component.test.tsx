@@ -276,9 +276,9 @@ describe("InlineAutocompleteInput", () => {
 
     const highlighted = view.container.querySelector(".bg-highlight");
     expect(highlighted?.textContent).toBe("studio:MAPPA");
-    expect(screen.getByRole("textbox", { name: "Search" }).classList.contains("text-transparent")).toBe(
-      true
-    );
+    expect(
+      screen.getByRole("textbox", { name: "Search" }).classList.contains("text-transparent")
+    ).toBe(true);
   });
 
   it("renders no highlight layer without ranges", () => {
@@ -291,5 +291,4 @@ describe("InlineAutocompleteInput", () => {
       screen.getByRole("textbox", { name: "Search" }).classList.contains("text-transparent")
     ).toBe(false);
   });
-
 });

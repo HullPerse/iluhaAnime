@@ -1,30 +1,16 @@
-import { cn } from "@/lib/index.utils";
 import { useQuery } from "@tanstack/react-query";
-import { invoke } from "@tauri-apps/api/core";
+import { cn } from "cn";
 import { ChevronDown, ChevronUp, Clock } from "lucide-react";
 import { useState, useCallback, useMemo } from "react";
 
 import { Checkbox } from "@/components/ui/checkbox.component";
-import { CATEGORY_ORDER } from "@/config/shader.config";
-import { useI18n } from "@/lib/i18n";
-import type { TranslationKey } from "@/lib/i18n";
-
-interface ShaderInfo {
-  id: string;
-  filename: string;
-  category: string;
-  description: string;
-  speed_factor: number;
-  is_default: boolean;
-  exclusive_group: string | null;
-}
-
-interface Props {
-  value: string[];
-  onChange: (selected: string[]) => void;
-  gpuBackend: string;
-  durationSecs?: number;
-}
+import { CATEGORY_ORDER } from "@/config/player/shaders.config";
+import { useI18n } from "@/lib/locale/i18n.utils";
+import type { TranslationKey } from "@/lib/locale/i18n.utils";
+import { formatETA } from "@/lib/player/title.utils";
+import { invokeTyped } from "@/lib/utils/invoke.utils";
+import type { ShaderPlayerProps as Props } from "@/types/player";
+import type { ShaderInfo } from "@/types/upscale";
 
 const CATEGORY_LABELS: Record<string, TranslationKey> = {
   preprocess: "player.shader.preprocess",
@@ -32,19 +18,6 @@ const CATEGORY_LABELS: Record<string, TranslationKey> = {
   upscale: "player.shader.upscale",
   postprocess: "player.shader.postprocess",
 };
-
-function formatETA(
-  seconds: number,
-  t: (key: TranslationKey, variables?: Record<string, string | number>) => string
-): string {
-  if (!Number.isFinite(seconds) || seconds <= 0) return "";
-  if (seconds < 60) return t("player.eta.less.than.minute");
-  const m = Math.floor(seconds / 60);
-  const s = Math.round(seconds % 60);
-  if (s > 0) return t("player.eta.minutes.seconds", { m, s });
-  return t("player.eta.minutes", { m });
-}
-
 export default function ShaderPicker({ value, onChange, gpuBackend, durationSecs }: Props) {
   const { t } = useI18n();
   const [openCategories, setOpenCategories] = useState<Set<string>>(
@@ -53,7 +26,7 @@ export default function ShaderPicker({ value, onChange, gpuBackend, durationSecs
 
   const { data: shaders = [] } = useQuery({
     queryKey: ["anime4k_shaders"],
-    queryFn: () => invoke<ShaderInfo[]>("list_anime4k_shaders"),
+    queryFn: () => invokeTyped<ShaderInfo[]>("list_anime4k_shaders"),
     staleTime: Infinity,
   });
 
@@ -111,7 +84,7 @@ export default function ShaderPicker({ value, onChange, gpuBackend, durationSecs
 
   const eta = useMemo(() => {
     if (!durationSecs || durationSecs <= 0) return "";
-    const baseSpeed = { nvenc: 2.5, amf: 1.8, qsv: 1.5, cpu: 0.8 }[gpuBackend] || 0.8;
+    const baseSpeed = { nvenc: 5.0, amf: 1.8, qsv: 1.5, cpu: 2.0 }[gpuBackend] || 2.0;
     const penalty = value.reduce((acc, id) => {
       const sf = shaders.find((s) => s.id === id)?.speed_factor ?? 1;
       return acc * sf;
@@ -172,7 +145,10 @@ export default function ShaderPicker({ value, onChange, gpuBackend, durationSecs
                       return (
                         <label
                           key={shader.id}
-                          className={cn("windows95-text flex cursor-pointer items-center gap-1 text-xs select-none", disabled && "cursor-default opacity-50")}
+                          className={cn(
+                            "windows95-text flex cursor-pointer items-center gap-1 text-xs select-none",
+                            disabled && "cursor-default opacity-50"
+                          )}
                           title={shader.description}
                         >
                           <Checkbox

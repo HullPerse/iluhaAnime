@@ -1,12 +1,12 @@
-import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import type { UnlistenFn } from "@tauri-apps/api/event";
 import { Download, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
-import { FFMPEG_SOURCE_SIZES } from "@/config/player.config";
-import { useI18n } from "@/lib/i18n";
+import { FFMPEG_SOURCE_SIZES } from "@/config/player/sources.config";
+import { useI18n } from "@/lib/locale/i18n.utils";
+import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSettingsStore } from "@/store/settings.store";
 import type { FFMPEGStatus } from "@/types/settings";
 
@@ -18,24 +18,28 @@ function FFMPEG({
   setStatus: (value: FFMPEGStatus) => void;
 }) {
   const ffmpegSource = useSettingsStore((state) => state.ffmpegSource);
+  const [dlError, setDlError] = useState<string | null>(null);
   const handleDownload = useCallback(async () => {
     setStatus("downloading");
-
+    setDlError(null);
     try {
-      await invoke<string>("download_ffmpeg", {
+      await invokeTyped<string>("download_ffmpeg", {
         source: useSettingsStore.getState().ffmpegSource,
       });
       setStatus("ok");
-    } catch {
+    } catch (error) {
+      setDlError(error instanceof Error ? error.message : String(error));
       setStatus("missing");
     }
   }, [setStatus]);
 
   const handleRemove = useCallback(async () => {
     try {
-      await invoke("remove_ffmpeg");
+      await invokeTyped("remove_ffmpeg");
       setStatus("missing");
-    } catch {}
+    } catch (error) {
+      console.warn("remove_ffmpeg failed", error);
+    }
   }, [setStatus]);
 
   const [dlProgress, setDlProgress] = useState<{
@@ -77,13 +81,13 @@ function FFMPEG({
 
   if (status === "checking")
     return (
-      <main className="windows95-text flex min-w-0 flex-1 flex-row items-center gap-1 px-1">
+      <div className="windows95-text flex min-w-0 flex-1 flex-row items-center gap-1 px-1">
         {t("player.ffmpeg.checking")}
-      </main>
+      </div>
     );
   if (status === "downloading")
     return (
-      <main className="windows95-text flex min-w-0 flex-1 flex-row items-stretch gap-1 px-1 py-1">
+      <div className="windows95-text flex min-w-0 flex-1 flex-row items-stretch gap-1 px-1 py-1">
         <span>
           {dlStage === "extracting"
             ? t("player.ffmpeg.extracting")
@@ -108,29 +112,37 @@ function FFMPEG({
               : "0%"}
           </span>
         </div>
-      </main>
+      </div>
     );
   if (status === "missing")
     return (
-      <main className="windows95-text flex min-w-0 flex-1 flex-row items-center gap-1 px-1">
+      <div className="windows95-text flex min-w-0 flex-1 flex-row items-center gap-1 px-1">
         <span className="windows95-text text-destructive">{t("player.ffmpeg.missing")}</span>
+        {dlError && (
+          <span
+            className="text-destructive min-w-0 flex-1 truncate text-xs"
+            title={t("player.ffmpeg.download.error", { message: dlError })}
+          >
+            {t("player.ffmpeg.download.error", { message: dlError })}
+          </span>
+        )}
         <Button onClick={handleDownload} className="ml-auto min-h-5.75">
           <Download />
           {t("player.ffmpeg.download", {
             size: FFMPEG_SOURCE_SIZES[ffmpegSource] ?? 50,
           })}
         </Button>
-      </main>
+      </div>
     );
   if (status === "ok")
     return (
-      <main className="windows95-text flex min-w-0 flex-1 flex-row items-center gap-1 px-1">
+      <div className="windows95-text flex min-w-0 flex-1 flex-row items-center gap-1 px-1">
         <span className="windows95-text">{t("player.ffmpeg.installed")}</span>
         <Button onClick={handleRemove} variant="destructive" className="ml-auto min-h-5.75">
           <Trash2 />
           {t("common.delete")}
         </Button>
-      </main>
+      </div>
     );
 }
 

@@ -1,20 +1,13 @@
-import { cn } from "@/lib/index.utils";
+import { cn } from "cn";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useState, useMemo } from "react";
 
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
-import { monthLabel } from "@/lib/activity.utils";
-import { useI18n } from "@/lib/i18n";
-import type { Locale } from "@/types";
+import { dayLabel, monthLabel } from "@/lib/anilist/activity.utils";
+import { useI18n } from "@/lib/locale/i18n.utils";
 import type { AniListCollection } from "@/types/anilist";
-
-function dayLabel(day: number, locale: Locale): string {
-  return new Date(2024, 0, day + 1).toLocaleDateString(locale, {
-    weekday: "short",
-  });
-}
 
 function StatsModal({
   lists,
@@ -94,7 +87,7 @@ function StatsModal({
   return (
     <Modal header={t("anilist.stats.title")} onClose={onClose} className="w-3xl">
       {selectedDay == null ? (
-        <main className="flex flex-col">
+        <div className="flex flex-col">
           <div className="mb-1 flex h-6 items-center justify-between px-1">
             <Button
               onClick={prevMonth}
@@ -123,7 +116,10 @@ function StatsModal({
               {[0, 1, 2, 3, 4, 5, 6].map((i) => (
                 <div
                   key={i}
-                  className={cn("windows95-font border-t-muted border-l-muted border-r border-b p-1 text-center text-xs font-bold", i >= 5 ? "text-destructive" : "text-text")}
+                  className={cn(
+                    "windows95-font border-t-muted border-l-muted border-r border-b p-1 text-center text-xs font-bold",
+                    i >= 5 ? "text-destructive" : "text-text"
+                  )}
                 >
                   {dayLabel(i, locale)}
                 </div>
@@ -149,10 +145,20 @@ function StatsModal({
                 return (
                   <div
                     key={day}
-                    className={cn("border-t-muted border-l-muted relative flex h-26 flex-col overflow-hidden border-r border-b", isToday ? "bg-secondary/10" : isWeekend ? "bg-surface/20" : "bg-white")}
+                    className={cn(
+                      "border-t-muted border-l-muted relative flex h-26 flex-col overflow-hidden border-r border-b",
+                      isToday ? "bg-secondary/10" : isWeekend ? "bg-surface/20" : "bg-white"
+                    )}
                   >
                     <span
-                      className={cn("px-1 text-xs leading-tight", isToday ? "bg-secondary font-bold text-white" : isWeekend ? "text-destructive font-bold" : "text-text font-bold")}
+                      className={cn(
+                        "px-1 text-xs leading-tight",
+                        isToday
+                          ? "bg-secondary font-bold text-white"
+                          : isWeekend
+                            ? "text-destructive font-bold"
+                            : "text-text font-bold"
+                      )}
                     >
                       {day}
                     </span>
@@ -205,9 +211,9 @@ function StatsModal({
               })}
             </div>
           </div>
-        </main>
+        </div>
       ) : (
-        <main className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2">
           <section className="flex items-center gap-2">
             <Button
               className="flex flex-row items-center justify-center gap-1"
@@ -247,7 +253,7 @@ function StatsModal({
               </div>
             )}
           </section>
-        </main>
+        </div>
       )}
     </Modal>
   );

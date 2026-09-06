@@ -1,23 +1,22 @@
 import { useQuery } from "@tanstack/react-query";
-import { invoke } from "@tauri-apps/api/core";
 import { Star } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { SmallLoader } from "@/components/shared/loader.component";
 import Modal from "@/components/shared/modal.component";
 import Pagination from "@/components/shared/pagination.component";
 import Tabs from "@/components/shared/tabs.component";
 import ImageComponent from "@/components/ui/image.component";
-import { listStatusLabels, seasonLabels, statusLabels } from "@/config/anilist.config";
-import { BROWSE_PAGE_SIZE } from "@/config/pagination.config";
+import { BROWSE_GENRE_COUNT } from "@/config/anilist/filters.config";
+import { listStatusLabels, seasonLabels, statusLabels } from "@/config/anilist/labels.config";
+import { BROWSE_PAGE_SIZE } from "@/config/anilist/pagination.config";
 import { usePagination } from "@/hooks/pagination.hook";
-import { getStatusColor } from "@/lib/anilist.utils";
-import { useI18n } from "@/lib/i18n";
-import type { TranslationKey } from "@/lib/i18n";
-import { paginate } from "@/lib/pagination.utils";
-import type { AniMedia } from "@/types/anilist";
-
-type BrowseTab = "popular" | "trending" | "top";
+import { getStatusColor } from "@/lib/anilist/entries.utils";
+import { useI18n } from "@/lib/locale/i18n.utils";
+import type { TranslationKey } from "@/lib/locale/i18n.utils";
+import { invokeTyped } from "@/lib/utils/invoke.utils";
+import { paginate } from "@/lib/utils/pagination.utils";
+import type { AniMedia, BrowseTab } from "@/types/anilist";
 
 const tabs: { id: BrowseTab; key: TranslationKey }[] = [
   { id: "popular", key: "anilist.browse.popular" },
@@ -49,12 +48,13 @@ export default function BrowseAnimeModal({
 }) {
   const { t } = useI18n();
   const [activeTab, setActiveTab] = useState<BrowseTab>("popular");
+  const scrollRef = useRef<HTMLDivElement>(null);
   const [page, setPage] = useState(1);
 
   const { data = [], isLoading } = useQuery({
     queryKey: ["anilist_browse", activeTab],
     queryFn: () =>
-      invoke<AniMedia[]>("search_anilist", {
+      invokeTyped<AniMedia[]>("search_anilist", {
         query: null,
         sort: SORT_MAP[activeTab],
         adult: false,
@@ -75,12 +75,13 @@ export default function BrowseAnimeModal({
       className="w-3xl"
     >
       <Tabs
+        ariaLabel={t("common.sections")}
         tabs={tabs.map((tab) => ({ id: tab.id, label: t(tab.key) }))}
         activeTab={activeTab}
         onChange={(id) => setActiveTab(id)}
       />
 
-      <div className="flex flex-1 flex-col gap-1 overflow-y-auto p-1">
+      <div ref={scrollRef} className="flex flex-1 flex-col gap-1 overflow-y-auto p-1">
         {isLoading ? (
           <div className="flex flex-1 items-center justify-center">
             <SmallLoader size={6} className="windows95-text" />
@@ -151,7 +152,7 @@ export default function BrowseAnimeModal({
                   </div>
                   {item.genres.length > 0 && (
                     <div className="mt-1 flex flex-wrap gap-1">
-                      {item.genres.slice(0, 4).map((g) => (
+                      {item.genres.slice(0, BROWSE_GENRE_COUNT).map((g) => (
                         <span key={g} className="windows95-border bg-white px-1 text-xs">
                           {g}
                         </span>
@@ -173,6 +174,7 @@ export default function BrowseAnimeModal({
           from={from}
           to={to}
           onPageChange={setPage}
+          scrollRef={scrollRef}
         />
       )}
     </Modal>

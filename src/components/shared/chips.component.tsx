@@ -3,7 +3,7 @@ import { X } from "lucide-react";
 const chipClass =
   "windows95-border text-xs windows95-text inline-flex cursor-pointer items-center gap-0.5 bg-white px-1 hover:bg-surface";
 
-import { useI18n } from "@/lib/i18n";
+import { useI18n } from "@/lib/locale/i18n.utils";
 
 function ChipsRow({ items, onRemove }: { items: string[]; onRemove: (v: string) => void }) {
   const { t } = useI18n();

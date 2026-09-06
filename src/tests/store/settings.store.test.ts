@@ -1,14 +1,10 @@
 import { describe, expect, it, vi, beforeAll } from "vitest";
 
-// zustand v5 only exposes the persist API when storage is available, so we
-// stub localStorage before dynamically importing the store.
 const storage = new Map<string, string>();
 
 let useSettingsStore: (typeof import("@/store/settings.store"))["useSettingsStore"];
 
 beforeAll(async () => {
-  // zustand persist reads `window.localStorage`; nothing else here touches
-  // window, so a minimal stub is safe.
   vi.stubGlobal("window", {
     localStorage: {
       getItem: (k: string) => storage.get(k) ?? null,
@@ -47,17 +43,46 @@ describe("useSettingsStore migration", () => {
 
   it("preserves other persisted fields", () => {
     const migrate = useSettingsStore.persist.getOptions()?.migrate;
-    const result = migrate!({ dlLimit: 500, language: "en" } as never, 1) as {
+    const result = migrate!({ language: "en", pageSize: 10 } as never, 1) as {
       language: string;
-      dlLimit: number;
+      pageSize: number;
     };
     expect(result.language).toBe("en");
-    expect(result.dlLimit).toBe(500);
+    expect(result.pageSize).toBe(10);
+  });
+
+  it("migrates legacy dlLimit/ulLimit into limits.download/upload", () => {
+    const migrate = useSettingsStore.persist.getOptions()?.migrate;
+    const result = migrate!({ dlLimit: 500, ulLimit: 100, language: "en" } as never, 14) as {
+      limits: { download: number | null; upload: number | null };
+      language: string;
+    };
+    expect(result.language).toBe("en");
+    expect(result.limits).toEqual({ download: 500, upload: 100 });
+    expect("dlLimit" in result).toBe(false);
+    expect("ulLimit" in result).toBe(false);
   });
 
   it("returns an empty object for non-object state", () => {
     const migrate = useSettingsStore.persist.getOptions()?.migrate;
     expect(migrate!(null, 1)).toEqual({});
+  });
+
+  it("defaults playerFolderHeights during v16 migration", () => {
+    const migrate = useSettingsStore.persist.getOptions()?.migrate;
+    const result = migrate!({ language: "en" } as never, 15) as {
+      playerFolderHeights: Record<string, number>;
+    };
+    expect(result.playerFolderHeights).toEqual({});
+  });
+
+  it("keeps persisted playerFolderHeights on v16 migration", () => {
+    const migrate = useSettingsStore.persist.getOptions()?.migrate;
+    const heights = { "c:/anime": 420 };
+    const result = migrate!({ language: "en", playerFolderHeights: heights } as never, 15) as {
+      playerFolderHeights: Record<string, number>;
+    };
+    expect(result.playerFolderHeights).toEqual(heights);
   });
 });
 
@@ -79,6 +104,18 @@ describe("useSettingsStore hidden player items", () => {
     expect(useSettingsStore.getState().hiddenPlayerTorrents).toEqual(["ABC123"]);
     useSettingsStore.getState().unhidePlayerTorrent("ABC123");
     expect(useSettingsStore.getState().hiddenPlayerTorrents).toEqual([]);
+  });
+
+  it("stores folder heights under a normalized path key", () => {
+    useSettingsStore.setState({ playerFolderHeights: {} });
+    useSettingsStore.getState().setPlayerFolderHeight("C:\\Anime\\\\Season\\", 420);
+    expect(useSettingsStore.getState().playerFolderHeights).toEqual({ "c:/anime/season": 420 });
+
+    useSettingsStore.getState().setPlayerFolderHeight("c:/anime/season", 555);
+    expect(useSettingsStore.getState().playerFolderHeights["c:/anime/season"]).toBe(555);
+
+    useSettingsStore.getState().setPlayerFolderHeight("C:/ANIME/SEASON", null);
+    expect(useSettingsStore.getState().playerFolderHeights).toEqual({});
   });
 });
 
@@ -106,10 +143,10 @@ describe("useSettingsStore autocomplete", () => {
 
 describe("useSettingsStore patch", () => {
   it("applies partial updates", () => {
-    useSettingsStore.setState({ dlLimit: null, language: "ru" });
-    useSettingsStore.getState().patch({ dlLimit: 200 });
+    useSettingsStore.setState({ limits: { download: null, upload: null }, language: "ru" });
+    useSettingsStore.getState().patch({ limits: { download: 200, upload: null } });
     const s = useSettingsStore.getState();
-    expect(s.dlLimit).toBe(200);
+    expect(s.limits.download).toBe(200);
     expect(s.language).toBe("ru");
   });
 });

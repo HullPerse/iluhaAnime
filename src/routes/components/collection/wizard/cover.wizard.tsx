@@ -1,45 +1,26 @@
-import { invoke } from "@tauri-apps/api/core";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { ImagePlus } from "lucide-react";
-import { memo, useState } from "react";
+import { useState } from "react";
 
 import { InputDialog } from "@/components/shared/prompt.component";
 import { Button } from "@/components/ui/button.component";
-import { WIZARD_COVER_MAX } from "@/config/collection.config";
-import { generatePlaceholder } from "@/lib/collection.utils";
-import { useI18n } from "@/lib/i18n";
-import { showError } from "@/lib/notification.utils";
+import { WIZARD_COVER_MAX } from "@/config/collection/defaults.config";
+import { generatePlaceholder } from "@/lib/collection/placeholder.utils";
+import { useI18n } from "@/lib/locale/i18n.utils";
+import { invokeTyped } from "@/lib/utils/invoke.utils";
+import { showError } from "@/lib/utils/notification.utils";
 import type { UserImage } from "@/types";
 
-function CoverThumb({
-  url,
-  selected,
-  onPick,
-}: {
-  url: string;
-  selected: boolean;
-  onPick: (url: string) => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={() => onPick(url)}
-      className={`windows95-border h-16 w-12 shrink-0 overflow-hidden ${selected ? "outline-secondary outline-2" : ""}`}
-    >
-      <img src={url} alt="" loading="lazy" className="h-full w-full object-cover" />
-    </button>
-  );
-}
+import { MemoCoverThumb } from "./coverThumb.wizard";
 
-const MemoCoverThumb = memo(CoverThumb);
-
-export function WizardCoverPanelCollection({
+export function WizardCoverPanel({
   coverOptions,
   coverUrl,
   setCoverUrl,
   setCoverOptions,
   title,
   onUploadLocal,
+  onPreviewFailedChange,
 }: {
   coverOptions: string[];
   coverUrl: string;
@@ -47,10 +28,13 @@ export function WizardCoverPanelCollection({
   setCoverOptions: React.Dispatch<React.SetStateAction<string[]>>;
   title: string;
   onUploadLocal?: (id: string, dataUrl: string) => void;
+  onPreviewFailedChange?: (failed: boolean) => void;
 }) {
   const { t } = useI18n();
   const [pastingUrl, setPastingUrl] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [previewState, setPreviewState] = useState({ url: "", failed: false });
+  const previewFailed = previewState.url === coverUrl && previewState.failed;
 
   const uploadLocal = async () => {
     if (!onUploadLocal) return;
@@ -58,17 +42,18 @@ export function WizardCoverPanelCollection({
     if (!selectedPath || Array.isArray(selectedPath)) return;
     setUploading(true);
     try {
-      const image = await invoke<UserImage>("import_user_image", { path: selectedPath });
+      const image = await invokeTyped<UserImage>("import_user_image", { path: selectedPath });
       onUploadLocal(image.id, image.dataUrl);
     } catch {
-      showError(t("common.error"), t("collection.wizard.uploadError"));
+      showError(t("common.error"), t("collection.wizard.upload.error"));
     } finally {
       setUploading(false);
     }
   };
 
   const usePlaceholder = () => {
-    const data = generatePlaceholder(title || t("collection.wizard.placeholderCover"));
+    const data = generatePlaceholder(title || t("collection.wizard.placeholder.cover"));
+    onPreviewFailedChange?.(false);
     setCoverUrl(data);
     setCoverOptions((prev) => [data, ...prev]);
   };
@@ -77,20 +62,33 @@ export function WizardCoverPanelCollection({
     <div className="mb-2 flex flex-col gap-1">
       <div className="flex flex-wrap items-center gap-1">
         <span className="text-xs font-bold">
-          {t("collection.wizard.pickCover")} <span className="text-destructive">*</span>
+          {t("collection.wizard.pick.cover")} <span className="text-destructive">*</span>
         </span>
-        {coverUrl && (
-          <img src={coverUrl} alt="selected" className="windows95-border h-16 w-12 object-cover" />
+        {coverUrl && !previewFailed && (
+          <img
+            src={coverUrl}
+            alt="selected"
+            className="windows95-border h-16 w-12 object-cover"
+            onError={() => {
+              setPreviewState({ url: coverUrl, failed: true });
+              onPreviewFailedChange?.(true);
+            }}
+          />
+        )}
+        {previewFailed && (
+          <span className="text-destructive text-xs">
+            {t("collection.wizard.cover.invalid.url")}
+          </span>
         )}
         <div className="ml-auto flex gap-1">
           <Button className="h-6 px-2 text-xs" onClick={uploadLocal} disabled={uploading}>
-            <ImagePlus className="size-3" /> {t("collection.wizard.uploadImage")}
+            <ImagePlus className="size-3" /> {t("collection.wizard.upload.image")}
           </Button>
           <Button className="h-6 px-2 text-xs" onClick={() => setPastingUrl(true)}>
-            {t("collection.wizard.pasteUrl")}
+            {t("collection.wizard.paste.url")}
           </Button>
           <Button className="h-6 px-2 text-xs" onClick={usePlaceholder}>
-            {t("collection.wizard.placeholderCover")}
+            {t("collection.wizard.placeholder.cover")}
           </Button>
         </div>
       </div>
@@ -102,17 +100,28 @@ export function WizardCoverPanelCollection({
         </div>
       )}
       {!coverUrl && (
-        <p className="text-destructive text-xs">{t("collection.wizard.coverRequired")}</p>
+        <p className="text-destructive text-xs">{t("collection.wizard.cover.required")}</p>
       )}
       {pastingUrl && (
         <InputDialog
-          header={t("collection.wizard.pasteUrl")}
-          label={t("collection.wizard.pasteUrl")}
+          header={t("collection.wizard.paste.url")}
+          label={t("collection.wizard.paste.url")}
           placeholder="https://"
           onSubmit={(url) => {
+            const value = url.trim();
+            if (
+              !value ||
+              (!value.startsWith("http://") &&
+                !value.startsWith("https://") &&
+                !value.startsWith("data:"))
+            ) {
+              showError(t("common.error"), t("collection.wizard.cover.invalid.url"));
+              return;
+            }
             setPastingUrl(false);
-            setCoverUrl(url);
-            setCoverOptions((prev) => [url, ...prev]);
+            onPreviewFailedChange?.(false);
+            setCoverUrl(value);
+            setCoverOptions((prev) => [value, ...prev]);
           }}
           onClose={() => setPastingUrl(false)}
         />

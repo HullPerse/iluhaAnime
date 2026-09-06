@@ -1,5 +1,4 @@
 import { Star } from "lucide-react";
-
 import { useState } from "react";
 
 import ChipsRow from "@/components/shared/chips.component";
@@ -7,10 +6,9 @@ import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import Combobox from "@/components/ui/combobox.component";
+import { DualSlider } from "@/components/ui/dualSlider.component";
 import { Input } from "@/components/ui/input.component";
 import { Radio } from "@/components/ui/radio.component";
-import { DualSlider } from "@/components/ui/range.component";
-import { statusLabels, seasonLabels, formatLabels } from "@/config/anilist.config";
 import {
   ANILIST_GENRES,
   ANILIST_NSFW_TAGS,
@@ -19,13 +17,14 @@ import {
   FORMATS,
   SEASONS,
   STATUSES,
-} from "@/config/filters.config";
-import { useI18n } from "@/lib/i18n";
-import type { Props, AniListFilters } from "@/types/anilist";
+} from "@/config/anilist/filters.config";
+import { statusLabels, seasonLabels, formatLabels } from "@/config/anilist/labels.config";
+import { useI18n } from "@/lib/locale/i18n.utils";
+import type { AniListFiltersModalProps, AniListFilters } from "@/types/anilist";
 
 const NSFW_TAG_SET = new Set(ANILIST_NSFW_TAGS);
 
-function FiltersModal({ open, filters, onApply, onReset, onClose }: Props) {
+function FiltersModal({ open, filters, onApply, onReset, onClose }: AniListFiltersModalProps) {
   const { t } = useI18n();
   const [local, setLocal] = useState<AniListFilters>(filters);
   const [genreSelect, setGenreSelect] = useState("");

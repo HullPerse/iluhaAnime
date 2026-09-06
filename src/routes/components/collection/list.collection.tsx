@@ -4,23 +4,32 @@ import { memo, useMemo, useRef } from "react";
 
 import { Button } from "@/components/ui/button.component";
 import Image from "@/components/ui/image.component";
-import { useCoverCache } from "@/hooks/coverCache.hook";
-import { generatePlaceholder, statusColorOf, statusLabel } from "@/lib/collection.utils";
-import { useI18n } from "@/lib/i18n";
-import { enterOrSpace } from "@/lib/keyboard.utils";
-import type { CollectionItem, CollectionStatus, CollectionStatusDef } from "@/types/collection";
+import { HEADER_ESTIMATE, ROW_ESTIMATE } from "@/config/collection/card.config";
+import { useCoverCache } from "@/hooks/collection/cache.hook";
+import { generatePlaceholder } from "@/lib/collection/placeholder.utils";
+import { statusColorOf, statusLabel } from "@/lib/collection/status.utils";
+import { useI18n } from "@/lib/locale/i18n.utils";
+import { enterOrSpace } from "@/lib/utils/keyboard.utils";
+import { useSettingsStore } from "@/store/settings.store";
+import type {
+  CollectionGroup,
+  CollectionItem,
+  CollectionStatus,
+  CollectionStatusDef,
+  GroupedRow,
+} from "@/types/collection";
+import type { CollectionRowProps } from "@/types/collection";
 
-const ROW_ESTIMATE = 116;
+import { GroupHeaderCollection } from "./groupHeader.collection";
 
-interface CollectionRowProps {
-  item: CollectionItem;
-  statuses: CollectionStatusDef[];
-  onOpen?: (item: CollectionItem) => void;
-  onEdit?: (item: CollectionItem) => void;
-  onSetStatus?: (item: CollectionItem, status: CollectionStatus) => void;
-}
-
-function CollectionRowView({ item, statuses, onOpen, onEdit, onSetStatus }: CollectionRowProps) {
+function CollectionRowView({
+  item,
+  statuses,
+  selected,
+  onOpen,
+  onEdit,
+  onSetStatus,
+}: CollectionRowProps) {
   const { t } = useI18n();
   const { cachedUrl } = useCoverCache(item.coverUrl, item.thumbBlobId ?? item.coverBlobId);
   const cover = useMemo(() => {
@@ -35,8 +44,10 @@ function CollectionRowView({ item, statuses, onOpen, onEdit, onSetStatus }: Coll
       : null;
 
   return (
-    <div className="windows95-active-border bg-primary flex max-h-36 min-h-28 flex-row p-2 [contain-intrinsic-size:auto_116px] [content-visibility:auto]">
-      <main className="flex w-full flex-row items-start justify-between gap-2 xl:flex-row-reverse">
+    <div
+      className={`windows95-active-border bg-primary flex max-h-36 min-h-28 flex-row p-2 [contain-intrinsic-size:auto_116px] [content-visibility:auto] ${selected ? "outline-secondary outline-2" : ""}`}
+    >
+      <div className="flex w-full flex-row items-start justify-between gap-2 xl:flex-row-reverse">
         <section className="flex h-full min-w-0 flex-1 flex-col">
           <div className="flex flex-row gap-2">
             <h2
@@ -58,7 +69,7 @@ function CollectionRowView({ item, statuses, onOpen, onEdit, onSetStatus }: Coll
           </div>
 
           <div className="windows95-text mt-auto flex flex-row items-center gap-2 font-bold">
-            {item.rating != null && (
+            {item.rating != null && item.rating > 0 && (
               <span className="bg-secondary text-primary flex flex-row items-center gap-0.5 px-1 text-xs">
                 <Star className="size-3 fill-white" /> {item.rating}
               </span>
@@ -120,7 +131,7 @@ function CollectionRowView({ item, statuses, onOpen, onEdit, onSetStatus }: Coll
           <div
             className={
               onOpen
-                ? "shrink-0 hover:cursor-pointer focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-dotted"
+                ? "shrink-0 hover:cursor-pointer hover:brightness-110 focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-dotted active:brightness-90"
                 : "shrink-0"
             }
             role={onOpen ? "button" : undefined}
@@ -137,7 +148,7 @@ function CollectionRowView({ item, statuses, onOpen, onEdit, onSetStatus }: Coll
             />
           </div>
         )}
-      </main>
+      </div>
     </div>
   );
 }
@@ -147,9 +158,9 @@ function sameRowVisual(prev: CollectionRowProps, next: CollectionRowProps): bool
   const b = next.item;
   return (
     prev.statuses === next.statuses &&
+    prev.selected === next.selected &&
     prev.onOpen === next.onOpen &&
     prev.onEdit === next.onEdit &&
-    prev.onSetStatus === next.onSetStatus &&
     a.id === b.id &&
     a.title === b.title &&
     a.coverUrl === b.coverUrl &&
@@ -168,22 +179,55 @@ const CollectionRow = memo(CollectionRowView, sameRowVisual);
 export default function ListCollection({
   items,
   statuses,
+  selectedId,
   onOpen,
   onEdit,
   onSetStatus,
+  groups,
+  collapsedStatuses,
+  onToggleStatusCollapsed,
 }: {
   items: CollectionItem[];
   statuses: CollectionStatusDef[];
+  selectedId?: string | null;
   onOpen?: (item: CollectionItem) => void;
   onEdit?: (item: CollectionItem) => void;
   onSetStatus?: (item: CollectionItem, status: CollectionStatus) => void;
+  groups?: CollectionGroup[];
+  collapsedStatuses?: Set<string>;
+  onToggleStatusCollapsed?: (statusId: string) => void;
 }) {
   const parentRef = useRef<HTMLElement>(null);
+  const headerVariant = useSettingsStore((s) => s.collectionGroupHeaderStyle);
+  const grouped = Boolean(groups?.length);
+  const rows = useMemo<GroupedRow[] | null>(() => {
+    if (!groups?.length) return null;
+    const out: GroupedRow[] = [];
+    for (const group of groups) {
+      out.push({ kind: "header", status: group.status });
+      if (collapsedStatuses?.has(group.status.id)) continue;
+      for (const item of group.items) out.push({ kind: "item", item });
+    }
+    return out;
+  }, [groups, collapsedStatuses]);
+  const groupCounts = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const group of groups ?? []) map.set(group.status.id, group.items.length);
+    return map;
+  }, [groups]);
+
   const rowVirtualizer = useVirtualizer({
-    count: items.length,
+    count: grouped ? rows!.length : items.length,
     getScrollElement: () => parentRef.current,
-    getItemKey: (index) => items[index]?.id ?? index,
-    estimateSize: () => ROW_ESTIMATE,
+    getItemKey: (index) => {
+      if (!grouped) return items[index]?.id ?? index;
+      const row = rows![index];
+      return row.kind === "header" ? `header-${row.status.id}` : row.item.id;
+    },
+    estimateSize: (index) => {
+      if (!grouped) return ROW_ESTIMATE;
+      return rows![index].kind === "header" ? HEADER_ESTIMATE : ROW_ESTIMATE;
+    },
     overscan: 4,
   });
 
@@ -194,8 +238,15 @@ export default function ListCollection({
     >
       <div className="relative w-full" style={{ height: rowVirtualizer.getTotalSize() }}>
         {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-          const item = items[virtualRow.index];
-          if (!item) return null;
+          const row = grouped ? rows![virtualRow.index] : null;
+          if (grouped && !row) return null;
+          const isHeader = grouped && row!.kind === "header";
+          let item: CollectionItem | null = null;
+          if (!grouped) {
+            item = items[virtualRow.index] ?? null;
+          } else if (row!.kind === "item") {
+            item = row!.item;
+          }
           return (
             <div
               key={virtualRow.key}
@@ -206,13 +257,24 @@ export default function ListCollection({
               className="absolute top-0 left-0 w-full pb-1"
               style={{ transform: `translateY(${virtualRow.start}px)` }}
             >
-              <CollectionRow
-                item={item}
-                statuses={statuses}
-                onOpen={onOpen}
-                onEdit={onEdit}
-                onSetStatus={onSetStatus}
-              />
+              {isHeader ? (
+                <GroupHeaderCollection
+                  status={row!.status}
+                  count={groupCounts.get(row!.status.id) ?? 0}
+                  collapsed={Boolean(collapsedStatuses?.has(row!.status.id))}
+                  variant={headerVariant}
+                  onToggle={() => onToggleStatusCollapsed?.(row!.status.id)}
+                />
+              ) : item ? (
+                <CollectionRow
+                  item={item}
+                  statuses={statuses}
+                  selected={selectedId != null && item.id === selectedId}
+                  onOpen={onOpen}
+                  onEdit={onEdit}
+                  onSetStatus={onSetStatus}
+                />
+              ) : null}
             </div>
           );
         })}

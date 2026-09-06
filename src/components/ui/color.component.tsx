@@ -3,10 +3,10 @@ import { createPortal } from "react-dom";
 
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
-import { PALETTE } from "@/config/colors.config";
-import { hexToRgba, rgbaToHex } from "@/lib/color.utils";
-import { useI18n } from "@/lib/i18n";
-import { enterOrSpace } from "@/lib/keyboard.utils";
+import { PALETTE } from "@/config/utils/colors.config";
+import { useI18n } from "@/lib/locale/i18n.utils";
+import { hexToRgba, rgbaToHex } from "@/lib/utils/color.utils";
+import { enterOrSpace } from "@/lib/utils/keyboard.utils";
 
 function ColorPicker({
   value,
@@ -56,7 +56,6 @@ function ColorPicker({
 
   return (
     <div className="windows95-active-border bg-primary flex flex-col gap-2 p-2">
-      {/* Palette grid */}
       <div className="grid grid-cols-8 gap-0.5">
         {PALETTE.map((c) => (
           <button
@@ -76,7 +75,6 @@ function ColorPicker({
         ))}
       </div>
 
-      {/* Custom color */}
       <div className="mt-1 flex items-center gap-2">
         <div
           className="windows95-border size-8 shrink-0"

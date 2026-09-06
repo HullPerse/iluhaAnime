@@ -2,15 +2,14 @@ import { Plus } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
-import { useCollectionMutations } from "@/lib/collection.queries";
-import { useI18n } from "@/lib/i18n";
+import { FIELD_TYPES } from "@/config/collection/defaults.config";
+import { useCollectionMutations } from "@/hooks/collection/queries.hook";
+import { useI18n } from "@/lib/locale/i18n.utils";
 import type { CustomFieldDef } from "@/types/collection";
 
-import { WizardCustomFieldInputCollection } from "./customFieldInput.wizard";
+import { WizardCustomFieldInput } from "./customFieldInput.wizard";
 
-const FIELD_TYPES = ["text", "number", "select", "date"] as const;
-
-export function WizardCustomFieldsCollection({
+export function WizardCustomFields({
   defs,
   values,
   onChange,
@@ -47,12 +46,12 @@ export function WizardCustomFieldsCollection({
   return (
     <div className="windows95-border bg-white p-2">
       <div className="flex items-center justify-between">
-        <strong className="text-xs">{t("collection.wizard.customFields")}</strong>
+        <strong className="text-xs">{t("collection.wizard.custom.fields")}</strong>
         <Button
           size="icon"
           className="size-5"
           onClick={() => setShowBuilder((v) => !v)}
-          aria-label={t("collection.wizard.customFields")}
+          aria-label={t("collection.wizard.custom.fields")}
         >
           <Plus className="size-3" />
         </Button>
@@ -92,7 +91,7 @@ export function WizardCustomFieldsCollection({
       {defs.map((def) => (
         <label key={def.id} className="mt-1 flex flex-col gap-1 text-xs">
           {def.name}
-          <WizardCustomFieldInputCollection def={def} value={values[def.id]} onChange={onChange} />
+          <WizardCustomFieldInput def={def} value={values[def.id]} onChange={onChange} />
         </label>
       ))}
     </div>

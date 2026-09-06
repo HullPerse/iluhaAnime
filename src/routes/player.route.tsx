@@ -1,49 +1,39 @@
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
 import { useQueryClient } from "@tanstack/react-query";
-import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
-import { EyeOff, FolderOpen, Search, X } from "lucide-react";
+import { EyeOff, Search, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { InlineAutocompleteInput } from "@/components/shared/autocomplete.component";
 import { ConfirmDialog } from "@/components/shared/confirm.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
-import { useAutocomplete } from "@/hooks/autocomplete.hook";
 import { useDebounce } from "@/hooks/debounce.hook";
-import { useI18n } from "@/lib/i18n";
-import { buildTree, filterTreeByPaths } from "@/lib/player.utils";
-import { filterTreeByHiddenPaths } from "@/lib/player.visibility";
+import { usePolling } from "@/hooks/polling.hook";
+import { useSearchField } from "@/hooks/search/field.hook";
+import { useI18n } from "@/lib/locale/i18n.utils";
+import { buildTree, filterTreeByPaths } from "@/lib/player/tree.utils";
+import { filterTreeByHiddenPaths } from "@/lib/player/visibility.utils";
+import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useCacheStore } from "@/store/cache.store";
 import { useCategoryStore } from "@/store/category.store";
 import { useTorrentStore } from "@/store/download.store";
-import { useSearchStore } from "@/store/search.store";
+import { useJobsStore } from "@/store/jobs.store";
 import { useSettingsStore } from "@/store/settings.store";
 import type { FolderNode, VideoFileEntry, FFMPEGStatus, ScanType, FileSearchResult } from "@/types";
+import type { CategoryDragData } from "@/types/category";
 
 import CategoryView from "./components/player/category.player";
-import {
-  DraggableFolder,
-  DraggableTorrent,
-  DragOverlayItem,
-} from "./components/player/draggable.player";
+import { DraggableFolder } from "./components/player/draggable/folder.draggable";
+import { DragOverlayItem } from "./components/player/draggable/overlay.draggable";
+import { DraggableTorrent } from "./components/player/draggable/torrent.draggable";
 import FFMPEG from "./components/player/ffmpeg.player";
 import QueuePanel from "./components/player/queue.player";
 import FolderScanProgress from "./components/player/scan.player";
+import { QueueStrip } from "./components/player/strip.player";
 import PlayerVisibilityModal from "./components/player/visibility.player";
-
-type CategoryDragData =
-  | { type: "folder"; name: string; folderPath: string }
-  | {
-      type: "torrent";
-      name: string;
-      infoHash: string;
-      torrentId: number;
-      saveDir: string;
-      totalBytes: number;
-    };
 
 function PlayerRoute() {
   const { t } = useI18n();
@@ -57,7 +47,6 @@ function PlayerRoute() {
   const [scanProgress, setScanProgress] = useState<ScanType>(null);
   const [ffmpegStatus, setFfmpegStatus] = useState<FFMPEGStatus>("checking");
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
-  const audioExtensions = useSettingsStore((s) => s.audioExtensions);
   const videoExtensions = useSettingsStore((s) => s.videoExtensions);
   const savedFolderPaths = useSettingsStore((s) => s.savedFolderPaths);
   const hiddenPlayerFolders = useSettingsStore((s) => s.hiddenPlayerFolders);
@@ -67,14 +56,8 @@ function PlayerRoute() {
   const hidePlayerTorrent = useSettingsStore((s) => s.hidePlayerTorrent);
   const unhidePlayerTorrent = useSettingsStore((s) => s.unhidePlayerTorrent);
   const patch = useSettingsStore((s) => s.patch);
-  const searchHistory = useSearchStore((state) => state.history);
-  const queryStats = useSearchStore((state) => state.queryStats);
-  const suggestionStats = useSearchStore((state) => state.suggestionStats);
-  const animeProfileId = useSearchStore((state) => state.animeProfileId);
-  const recordSuggestion = useSearchStore((state) => state.recordSuggestion);
-  const recordSuggestionIgnored = useSearchStore((state) => state.recordSuggestionIgnored);
+
   const [torrentLoading, setTorrentLoading] = useState<Set<number>>(new Set());
-  const fetchingRef = useRef<Set<number>>(new Set());
   const scannedPathsRef = useRef<string[] | null>(null);
 
   const [pendingDeleteCategory, setPendingDeleteCategory] = useState<string | null>(null);
@@ -96,7 +79,7 @@ function PlayerRoute() {
 
     setSearching(true);
     setSearchResults([]);
-    invoke<FileSearchResult[]>("search_file_index", {
+    invokeTyped<FileSearchResult[]>("search_file_index", {
       query: debouncedSearch,
       extensions: videoExtensions,
       limit: 100,
@@ -140,14 +123,10 @@ function PlayerRoute() {
     [folderTrees, hiddenPlayerFolders]
   );
 
-  const { suggestions, inlineCompletion } = useAutocomplete({
-    query: search,
+  const field = useSearchField({
     scope: "player",
-    history: searchHistory,
-    queryStats,
-    suggestionStats,
-    animeIndex: undefined,
-    animeProfileId,
+    query: search,
+    setQuery: setSearch,
     extraValues: searchResults.map((result) => ({ kind: "local" as const, value: result.name })),
   });
 
@@ -198,63 +177,37 @@ function PlayerRoute() {
   );
 
   useEffect(() => {
-    invoke<boolean>("check_ffprobe")
+    invokeTyped<boolean>("check_ffprobe")
       .then((ok) => setFfmpegStatus(ok ? "ok" : "missing"))
       .catch(() => setFfmpegStatus("missing"));
   }, []);
 
-  useEffect(() => {
-    const loadMissing = () => {
-      const state = useTorrentStore.getState();
-      state.torrents.forEach((t) => {
-        if (!state.torrentFilesMap[t.id] && !fetchingRef.current.has(t.id)) {
-          fetchingRef.current.add(t.id);
-          setTorrentLoading((prev) => new Set(prev).add(t.id));
-          state
-            .loadTorrentFiles(t.id)
-            .then((success) => {
-              if (success) {
-                fetchingRef.current.delete(t.id);
-              } else {
-                setTimeout(() => {
-                  fetchingRef.current.delete(t.id);
-                }, 3000);
-              }
-            })
-            .catch(() => {
-              fetchingRef.current.delete(t.id);
-            })
-            .finally(() => {
-              setTorrentLoading((prev) => {
-                const next = new Set(prev);
-                next.delete(t.id);
-                return next;
-              });
-            });
-        }
-      });
-    };
-
-    loadMissing();
-    const interval = setInterval(loadMissing, 5000);
-    return () => clearInterval(interval);
-  }, []);
+  usePolling({
+    intervalMs: 5000,
+    collectKeys: () => useTorrentStore.getState().torrents.map((t) => t.id),
+    shouldFetch: (id) => !useTorrentStore.getState().torrentFilesMap[id],
+    fetch: (id) => useTorrentStore.getState().loadTorrentFiles(id),
+    onStart: (id) => setTorrentLoading((prev) => new Set(prev).add(id)),
+    onSettle: (id) =>
+      setTorrentLoading((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      }),
+  });
 
   const rebuildIndex = useCallback(
     async (paths: string[]) => {
       try {
-        await invoke("rebuild_file_index", {
+        await invokeTyped("rebuild_file_index", {
           paths,
           extensions: videoExtensions,
         });
-      } catch {}
+      } catch (error) {
+        console.warn("rebuild_file_index failed", error);
+      }
     },
     [videoExtensions]
-  );
-
-  const persistMediaRecords = useCallback(
-    async (_entries: VideoFileEntry[], _scopes: string[]) => {},
-    []
   );
 
   useEffect(() => {
@@ -283,33 +236,25 @@ function PlayerRoute() {
 
     (async () => {
       const trees: FolderNode[] = [];
-      const indexedEntries: VideoFileEntry[] = [];
-      const scannedScopes: string[] = [];
       for (let i = 0; i < savedFolderPaths.length; i++) {
         if (cancelled) return;
         const path = savedFolderPaths[i];
         setScanProgress({ current: i, total: savedFolderPaths.length });
         try {
-          const entries = await invoke<VideoFileEntry[]>("scan_video_folder", {
+          const entries = await invokeTyped<VideoFileEntry[]>("scan_video_folder", {
             path,
             extensions: videoExtensions,
           });
           if (!cancelled) {
-            scannedScopes.push(path);
-            indexedEntries.push(...(entries ?? []));
             if (entries?.length) trees.push(buildTree(entries, path));
           }
-        } catch {
-          // A removed or inaccessible folder should not prevent other folders
-          // from appearing.
-        }
+        } catch {}
       }
       if (cancelled) return;
       setFolderTrees(trees);
       setScanProgress(null);
       scannedPathsRef.current = [...savedFolderPaths];
       await rebuildIndex(savedFolderPaths);
-      await persistMediaRecords(indexedEntries, scannedScopes);
       if (cancelled) return;
       useCacheStore.getState().setFolderTrees(trees.map((t) => ({ path: t.path, tree: t })));
     })();
@@ -317,14 +262,37 @@ function PlayerRoute() {
     return () => {
       cancelled = true;
     };
-  }, [savedFolderPaths, videoExtensions, persistMediaRecords, rebuildIndex]);
+  }, [savedFolderPaths, videoExtensions, rebuildIndex]);
+  useEffect(() => {
+    const jobs = useJobsStore.getState();
+    if (loading && scanProgress) {
+      const total = Math.max(scanProgress.total, 1);
+      jobs.upsertJob({
+        id: "folder-scan",
+        title:
+          scanProgress.total === 0
+            ? t("player.scan.counting")
+            : t("player.scan.scanning", {
+                current: scanProgress.current,
+                total: scanProgress.total,
+              }),
+        stage: "",
+        done: scanProgress.current,
+        total,
+        status: "running",
+        failures: [],
+      });
+    } else if (jobs.jobs["folder-scan"]?.status === "running") {
+      jobs.finishJob("folder-scan");
+    }
+  }, [loading, scanProgress, t]);
 
   useEffect(() => {
     const paths = useSettingsStore.getState().savedFolderPaths;
     if (paths.length === 0) return;
-    invoke("start_watching_folders", { folders: paths }).catch(() => {});
+    invokeTyped("start_watching_folders", { folders: paths }).catch(() => {});
     return () => {
-      invoke("stop_watching_folders").catch(() => {});
+      invokeTyped("stop_watching_folders").catch(() => {});
     };
   }, []);
 
@@ -337,16 +305,15 @@ function PlayerRoute() {
       (async () => {
         for (const path of changed) {
           try {
-            const entries = await invoke<VideoFileEntry[]>("scan_video_folder", {
+            const entries = await invokeTyped<VideoFileEntry[]>("scan_video_folder", {
               path,
               extensions: videoExtensions,
             });
             if (!disposed) {
-              await invoke("refresh_file_index", {
+              await invokeTyped("refresh_file_index", {
                 paths: [path],
                 extensions: videoExtensions,
               });
-              await persistMediaRecords(entries ?? [], [path]);
               setFolderTrees((prev) => {
                 const next = prev.filter((tree) => tree.path !== path);
                 if (entries?.length) next.push(buildTree(entries, path));
@@ -356,9 +323,7 @@ function PlayerRoute() {
                 return next;
               });
             }
-          } catch {
-            // The watched path may have been removed between the event and scan.
-          }
+          } catch {}
         }
       })();
     })
@@ -366,14 +331,12 @@ function PlayerRoute() {
         if (disposed) fn();
         else unlisten = fn;
       })
-      .catch(() => {
-        // The window may close before Tauri finishes listener registration.
-      });
+      .catch(() => {});
     return () => {
       disposed = true;
       unlisten?.();
     };
-  }, [persistMediaRecords, videoExtensions, queryClient]);
+  }, [videoExtensions, queryClient]);
 
   const handleOpenFolder = useCallback(async () => {
     const folder = await open({ multiple: false, directory: true });
@@ -393,7 +356,7 @@ function PlayerRoute() {
     });
 
     try {
-      const entries = await invoke<VideoFileEntry[]>("scan_video_folder", {
+      const entries = await invokeTyped<VideoFileEntry[]>("scan_video_folder", {
         path: folder,
         extensions: videoExtensions,
       });
@@ -403,22 +366,23 @@ function PlayerRoute() {
       setFolderTrees(next);
       patch({ savedFolderPaths: next.map((t) => t.path) });
       rebuildIndex(next.map((t) => t.path));
-      persistMediaRecords(entries, [folder]);
       useCacheStore.getState().setFolderTrees(next.map((t) => ({ path: t.path, tree: t })));
-    } catch {
+    } catch (error) {
+      console.warn("scan_video_folder failed", error);
     } finally {
       const unlisten = await unlistenPromise.catch(() => {});
       unlisten?.();
       setLoading(false);
       setScanProgress(null);
     }
-  }, [folderTrees, videoExtensions, patch, persistMediaRecords, rebuildIndex]);
+  }, [folderTrees, videoExtensions, patch, rebuildIndex]);
 
   const handleRemoveFolder = useCallback(
     (path: string) => {
       setFolderTrees((prev) => {
         const next = prev.filter((t) => t.path !== path);
         patch({ savedFolderPaths: next.map((t) => t.path) });
+        useSettingsStore.getState().setPlayerFolderHeight(path, null);
         rebuildIndex(next.map((t) => t.path));
         useCacheStore.getState().setFolderTrees(next.map((t) => ({ path: t.path, tree: t })));
         return next;
@@ -467,7 +431,7 @@ function PlayerRoute() {
       onDragEnd={handleDragEnd}
       onDragCancel={() => setActiveDrag(null)}
     >
-      <main className="flex h-full w-full flex-col gap-1 overflow-y-auto">
+      <div className="flex h-full w-full flex-col gap-1 overflow-y-auto">
         <section className="ui-toolbar ui-panel w-full">
           <Button onClick={handleOpenFolder}>
             <ImageComponent src="/images/w2k_folder_closed.ico" alt="" className="size-4" />
@@ -499,18 +463,7 @@ function PlayerRoute() {
               <InlineAutocompleteInput
                 className="font-bold"
                 placeholder={t("player.route.search.folders")}
-                value={search}
-                completion={inlineCompletion}
-                suggestions={suggestions}
-                history={searchHistory}
-                onChange={(e) => setSearch(e.target.value)}
-                onAcceptCompletion={(value) => {
-                  recordSuggestion(value);
-                  setSearch(value);
-                }}
-                onDismissCompletion={() => {
-                  if (inlineCompletion) recordSuggestionIgnored(inlineCompletion);
-                }}
+                {...field.inputProps}
               />
               {search && (
                 <Button size="icon" className="h-5 w-5" onClick={() => setSearch("")}>
@@ -523,7 +476,7 @@ function PlayerRoute() {
 
         {loading && <FolderScanProgress scanProgress={scanProgress} />}
 
-        <QueuePanel />
+        <QueuePanel scan={loading ? scanProgress : null} />
 
         {categories.length > 0 && (
           <section className="windows95-text flex w-full flex-col gap-2">
@@ -537,7 +490,6 @@ function PlayerRoute() {
                   folderTrees={visibleFolderTrees}
                   torrents={categoryTorrents}
                   torrentFilesMap={torrentFilesMap}
-                  audioExtensions={audioExtensions}
                   onHideFolder={hidePlayerFolder}
                   onHideTorrent={hidePlayerTorrent}
                 />
@@ -553,22 +505,10 @@ function PlayerRoute() {
                 tree={tree}
                 onRemove={handleRemoveFolder}
                 onHide={hidePlayerFolder}
-                audioExtensions={audioExtensions}
               />
             ))}
           </section>
         )}
-
-        {!loading &&
-          displayTrees.length === 0 &&
-          filteredTorrents.length === 0 &&
-          categories.length === 0 && (
-            <section className="ui-empty-state flex-col">
-              <FolderOpen className="size-8" />
-              <span className="windows95-text">{t("player.route.library.empty")}</span>
-              <span className="windows95-text text-xs">{t("player.route.add.folder.hint")}</span>
-            </section>
-          )}
 
         {!loading &&
           filteredTorrents.map((item) => (
@@ -582,6 +522,7 @@ function PlayerRoute() {
               onHide={() => hidePlayerTorrent(item.info_hash)}
             />
           ))}
+        <QueueStrip />
 
         {pendingDeleteCategory && (
           <ConfirmDialog
@@ -598,9 +539,13 @@ function PlayerRoute() {
             onClose={() => setPendingDeleteCategory(null)}
           />
         )}
-      </main>
+      </div>
 
-      <DragOverlay>{activeDrag ? <DragOverlayItem name={activeDrag.name} /> : null}</DragOverlay>
+      {activeDrag && (
+        <DragOverlay>
+          <DragOverlayItem name={activeDrag.name} />
+        </DragOverlay>
+      )}
 
       {showHiddenItems && (
         <PlayerVisibilityModal

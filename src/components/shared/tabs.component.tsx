@@ -1,6 +1,7 @@
+import { cn } from "cn";
+
 import { Button } from "@/components/ui/button.component";
-import { cn } from "@/lib/index.utils";
-import { createListNavigationHandler } from "@/lib/keyboard.utils";
+import { createListNavigationHandler } from "@/lib/utils/keyboard.utils";
 
 function Tabs<T extends string>({
   tabs,
@@ -51,7 +52,6 @@ function Tabs<T extends string>({
             role="tab"
             aria-selected={isActive}
             tabIndex={isActive ? 0 : -1}
-            data-tab-id={tab.id}
             disabled={isActive}
           >
             {tab.label}

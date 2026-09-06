@@ -1,5 +1,5 @@
 import { ConfirmDialog } from "@/components/shared/confirm.component";
-import { useI18n } from "@/lib/i18n";
+import { useI18n } from "@/lib/locale/i18n.utils";
 
 export function SqliteDialogs({
   pendingDelete,
@@ -42,7 +42,9 @@ export function SqliteDialogs({
         <ConfirmDialog
           open
           title={t("settings.sqlite.delete.title")}
-          message={t("settings.sqlite.delete.selected", { count: Object.keys(selectedRows).length })}
+          message={t("settings.sqlite.delete.selected", {
+            count: Object.keys(selectedRows).length,
+          })}
           confirmLabel={t("common.delete")}
           variant="destructive"
           onConfirm={onDeleteBatch}

@@ -1,20 +1,8 @@
 import { UserPlus, LogOut } from "lucide-react";
 
 import { Button } from "@/components/ui/button.component";
-import { useI18n } from "@/lib/i18n";
-
-interface Props {
-  source: string;
-  rutrackerAuth: boolean;
-  nekobtAuth: boolean;
-  eraiAuth: boolean;
-  onLoginOpen: () => void;
-  onApiModalOpen: () => void;
-  onEraiLoginOpen: () => void;
-  onLogout: () => Promise<void>;
-  onNekoBtLogout: () => Promise<void>;
-  onEraiLogout: () => Promise<void>;
-}
+import { useI18n } from "@/lib/locale/i18n.utils";
+import type { AuthSearchProps as Props } from "@/types/search";
 
 export default function SearchAuthButtons({
   source,

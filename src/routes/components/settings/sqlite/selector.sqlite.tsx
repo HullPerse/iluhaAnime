@@ -1,5 +1,5 @@
 import Select from "@/components/ui/select.component";
-import { useI18n } from "@/lib/i18n";
+import { useI18n } from "@/lib/locale/i18n.utils";
 
 export function SqliteSelectorGrid({
   mode,

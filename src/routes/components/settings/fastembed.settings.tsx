@@ -1,13 +1,15 @@
-import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import type { UnlistenFn } from "@tauri-apps/api/event";
 import { Download, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
-import { useI18n } from "@/lib/i18n";
+import { useI18n } from "@/lib/locale/i18n.utils";
+import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSettingsStore } from "@/store/settings.store";
 import type { FFMPEGStatus } from "@/types/settings";
+
+import { FastembedBackfill } from "./fastembedBackfill.settings";
 
 function FastembedDownload({
   status,
@@ -22,7 +24,7 @@ function FastembedDownload({
     setStatus("downloading");
     setError(null);
     try {
-      await invoke<string>("download_fastembed", {
+      await invokeTyped<string>("download_fastembed", {
         source: useSettingsStore.getState().fastembedSource,
       });
       setStatus("ok");
@@ -34,9 +36,11 @@ function FastembedDownload({
 
   const handleRemove = useCallback(async () => {
     try {
-      await invoke("remove_fastembed");
+      await invokeTyped("remove_fastembed");
       setStatus("missing");
-    } catch {}
+    } catch (error) {
+      console.warn("remove_fastembed failed", error);
+    }
   }, [setStatus]);
 
   const [dlProgress, setDlProgress] = useState<{
@@ -78,13 +82,13 @@ function FastembedDownload({
 
   if (status === "checking")
     return (
-      <main className="windows95-text flex min-w-0 flex-1 flex-row items-center gap-1 px-1">
+      <div className="windows95-text flex min-w-0 flex-1 flex-row items-center gap-1 px-1">
         {t("player.fastembed.checking")}
-      </main>
+      </div>
     );
   if (status === "downloading")
     return (
-      <main className="windows95-text flex min-w-0 flex-1 flex-row items-stretch gap-1 px-1 py-1">
+      <div className="windows95-text flex min-w-0 flex-1 flex-row items-stretch gap-1 px-1 py-1">
         <span>
           {dlStage === "extracting"
             ? t("player.fastembed.extracting")
@@ -109,11 +113,11 @@ function FastembedDownload({
               : "0%"}
           </span>
         </div>
-      </main>
+      </div>
     );
   if (status === "missing")
     return (
-      <main className="windows95-text flex min-w-0 flex-1 flex-col gap-1 px-1">
+      <div className="windows95-text flex min-w-0 flex-1 flex-col gap-1 px-1">
         <div className="flex min-w-0 flex-1 flex-row items-center gap-1">
           <span className="windows95-text text-destructive">{t("player.fastembed.missing")}</span>
           <span className="windows95-text text-hint ml-1 text-xs">
@@ -130,17 +134,20 @@ function FastembedDownload({
           </Button>
         </div>
         {error && <span className="windows95-text text-destructive text-xs">{error}</span>}
-      </main>
+      </div>
     );
   if (status === "ok")
     return (
-      <main className="windows95-text flex min-w-0 flex-1 flex-row items-center gap-1 px-1">
-        <span className="windows95-text">{t("player.fastembed.installed")}</span>
-        <Button onClick={handleRemove} variant="destructive" className="ml-auto min-h-5.75">
-          <Trash2 />
-          {t("common.delete")}
-        </Button>
-      </main>
+      <div className="windows95-text flex min-w-0 flex-1 flex-col gap-1 px-1">
+        <div className="flex min-w-0 flex-1 flex-row items-center gap-1">
+          <span className="windows95-text">{t("player.fastembed.installed")}</span>
+          <Button onClick={handleRemove} variant="destructive" className="ml-auto min-h-5.75">
+            <Trash2 />
+            {t("common.delete")}
+          </Button>
+        </div>
+        <FastembedBackfill />
+      </div>
     );
 }
 

@@ -1,0 +1,1 @@
+export const AUTOCOMPLETE_HISTORY_LIMIT = 12;

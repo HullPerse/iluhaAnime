@@ -59,6 +59,7 @@ export const useCategoryStore = create<CategoryStore>()(
           };
         }),
       categories: [],
+      collapsedIds: [],
       changeIcon: (id, icon) =>
         set((s) => ({
           categories: s.categories.map((c) => (c.id === id ? { ...c, icon } : c)),
@@ -115,6 +116,14 @@ export const useCategoryStore = create<CategoryStore>()(
               return cat ? { ...cat, order: i } : cat;
             })
             .filter(Boolean) as Category[],
+        })),
+      setCategoryCollapsed: (id, collapsed) =>
+        set((s) => ({
+          collapsedIds: collapsed
+            ? s.collapsedIds.includes(id)
+              ? s.collapsedIds
+              : [...s.collapsedIds, id]
+            : s.collapsedIds.filter((c) => c !== id),
         })),
     }),
     {

@@ -1,7 +1,7 @@
+import { cn } from "cn";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 
-import { useI18n } from "@/lib/i18n";
-import { cn } from "@/lib/index.utils";
+import { useI18n } from "@/lib/locale/i18n.utils";
 
 interface ImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   src: string;
@@ -44,22 +44,15 @@ const Image = ({
   }, [src]);
 
   useEffect(() => {
-    if (imgRef.current?.complete) {
-      setIsLoaded(true);
-    }
+    if (imgRef.current?.complete) setIsLoaded(true);
   }, []);
 
-  const handleLoad = useCallback(() => {
-    setIsLoaded(true);
-  }, []);
+  const handleLoad = useCallback(() => setIsLoaded(true), []);
 
   const handleError = useCallback(() => {
     attemptRef.current += 1;
-    if (attemptRef.current <= 2) {
-      setRetryKey((k) => k + 1);
-    } else {
-      setFinalSrc("");
-    }
+    if (attemptRef.current <= 2) setRetryKey((k) => k + 1);
+    else setFinalSrc("");
   }, []);
 
   const showWebp = !isExternal(finalSrc) && !/\.(ico|svg)$/i.test(finalSrc);
@@ -67,10 +60,7 @@ const Image = ({
 
   return (
     <div
-      className={cn(
-        "bg-background/20 relative flex w-full items-center overflow-hidden",
-        className
-      )}
+      className={cn("relative flex w-full items-center overflow-hidden", className)}
       aria-busy={!isLoaded && Boolean(finalSrc)}
       style={{
         aspectRatio: width && height ? `${width}/${height}` : undefined,
@@ -87,7 +77,7 @@ const Image = ({
               width={width}
               height={height}
               className={cn(
-                "absolute inset-0 h-full w-full transition-opacity duration-300",
+                "absolute inset-0 h-full w-full transition-opacity duration-200",
                 type === "cover" ? "object-cover" : "object-contain",
                 isLoaded ? "opacity-100" : "opacity-0"
               )}
@@ -107,7 +97,7 @@ const Image = ({
             width={width}
             height={height}
             className={cn(
-              "absolute inset-0 h-full w-full transition-opacity duration-300",
+              "absolute inset-0 h-full w-full transition-opacity duration-200",
               type === "cover" ? "object-cover" : "object-contain",
               isLoaded ? "opacity-100" : "opacity-0"
             )}

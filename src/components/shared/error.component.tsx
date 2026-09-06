@@ -1,19 +1,10 @@
-import { CircleX, RotateCcw } from "lucide-react";
-import { Component } from "react";
-import type { ReactNode, ErrorInfo } from "react";
+import { RotateCcw } from "lucide-react";
+import type { ReactNode } from "react";
 
 import ImageComponent from "@/components/ui/image.component";
-import { useI18n } from "@/lib/i18n";
+import { useI18n } from "@/lib/locale/i18n.utils";
 
 import { Button } from "../ui/button.component";
-
-interface Props {
-  children: ReactNode;
-}
-
-interface State {
-  error: Error | null;
-}
 
 export function BigError({
   error,
@@ -28,7 +19,7 @@ export function BigError({
   return (
     <>
       <div className="fixed inset-0 z-40 bg-black/60" />
-      <main className="bg-primary windows95-active-border windows95-3d-border fixed top-1/2 left-1/2 z-50 flex w-xl max-w-[90%] -translate-x-1/2 -translate-y-1/2 flex-col">
+      <div className="bg-primary windows95-active-border windows95-3d-border fixed top-1/2 left-1/2 z-50 flex w-xl max-w-[90%] -translate-x-1/2 -translate-y-1/2 flex-col">
         <section className="bg-secondary flex w-full items-center justify-between p-1">
           <div className="flex min-w-0 items-center gap-1">
             <ImageComponent src="/images/w2k_computer.ico" alt="" className="size-4 shrink-0" />
@@ -56,32 +47,7 @@ export function BigError({
             </Button>
           )}
         </section>
-      </main>
+      </div>
     </>
   );
-}
-
-export class ErrorBoundary extends Component<Props, State> {
-  state: State = { error: null };
-
-  static getDerivedStateFromError(error: Error): State {
-    return { error };
-  }
-
-  componentDidCatch(error: Error, _info: ErrorInfo) {
-    console.error("ErrorBoundary caught:", error);
-  }
-
-  render() {
-    if (this.state.error) {
-      return (
-        <BigError
-          error={this.state.error}
-          icon={<CircleX className="size-28 animate-pulse text-red-500" />}
-          onRetry={() => this.setState({ error: null })}
-        />
-      );
-    }
-    return this.props.children;
-  }
 }

@@ -1,9 +1,9 @@
 import { Select as BaseSelect } from "@base-ui/react/select";
+import { cn } from "cn";
 import { ChevronDown } from "lucide-react";
 import { useState, useMemo, useRef } from "react";
 
-import { useI18n } from "@/lib/i18n";
-import { cn } from "@/lib/index.utils";
+import { useI18n } from "@/lib/locale/i18n.utils";
 
 import { Input } from "./input.component";
 
@@ -57,11 +57,6 @@ function Select({
       value={value}
       onOpenChange={handleOpenChange}
       onValueChange={(v) => {
-        // Base UI resets the selection to null (reason "none") whenever the visible items
-        // change and the current value is not among them, e.g. while typing in the search
-        // box. Treating that as a user selection would clear the search query on every
-        // keystroke, so null resets are ignored. Real selections (item press, typeahead)
-        // always carry a non-null option value.
         if (v === null) return;
         setSearch("");
         onChange(v);

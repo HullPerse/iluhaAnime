@@ -1,12 +1,14 @@
 import type { ReactElement } from "react";
 import { lazy, Suspense, useState } from "react";
 
-import type { TabId } from "@/config/tabs.config";
 import { useApp } from "@/hooks/app.hook";
-import { useI18n } from "@/lib/i18n";
+import { useI18n } from "@/lib/locale/i18n.utils";
 import TorrentFilePicker from "@/routes/components/search/picker.search";
+import { useCacheStore } from "@/store/cache.store";
 import { useTorrentStore } from "@/store/download.store";
+import type { TabId } from "@/types/settings";
 
+import { JobCenterPanel } from "./components/shared/jobs.component";
 import { SmallLoader, TabLoader } from "./components/shared/loader.component";
 import NotificationTray from "./components/shared/notification.component";
 import StatusBar from "./components/shared/status.component";
@@ -28,7 +30,7 @@ export default function App() {
 
   const pendingTorrent = useTorrentStore((s) => s.pendingTorrent);
   const preparingTorrent = useTorrentStore((s) => s.preparingTorrent);
-  const lastSaveDir = useTorrentStore((s) => s.lastSaveDir);
+  const lastSaveDir = useCacheStore((s) => s.lastSaveDir);
   const confirmDownload = useTorrentStore((s) => s.confirmDownload);
   const cancelDownload = useTorrentStore((s) => s.cancelDownload);
 
@@ -86,7 +88,12 @@ export default function App() {
               </div>
             )}
           </div>
-          <StatusBar tabLabel={tabs.find((tab) => tab.id === activeTab)?.label ?? ""} />
+          <div className="relative">
+            <div className="absolute right-1 bottom-1 z-30 w-96 max-w-[calc(100%-0.5rem)]">
+              <JobCenterPanel />
+            </div>
+            <StatusBar tabLabel={tabs.find((tab) => tab.id === activeTab)?.label ?? ""} />
+          </div>
         </div>
       </section>
     </main>

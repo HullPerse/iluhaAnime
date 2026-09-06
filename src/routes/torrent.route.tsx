@@ -1,24 +1,23 @@
 import { listen } from "@tauri-apps/api/event";
 import { Plus, SortAsc, SortDesc } from "lucide-react";
-import { useState, useEffect, useMemo, useRef, useCallback, useDeferredValue } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 
 import { InlineAutocompleteInput } from "@/components/shared/autocomplete.component";
 import Pagination from "@/components/shared/pagination.component";
 import { Button } from "@/components/ui/button.component";
-import { TORRENT_PAGE_SIZE } from "@/config/torrent.config";
+import Select from "@/components/ui/select.component";
+import { TORRENT_PAGE_SIZE } from "@/config/torrent/common.config";
 import { usePagination } from "@/hooks/pagination.hook";
-import { useI18n } from "@/lib/i18n";
-import { paginate } from "@/lib/pagination.utils";
-import { getInlineCompletion, getSearchSuggestions } from "@/lib/search.suggestions";
-import {
-  fmtSpeed,
-  getTorrentLifecycle,
-  getLifecycleLabel,
-  type TorrentLifecycle,
-} from "@/lib/torrent.utils";
+import { usePolling } from "@/hooks/polling.hook";
+import { useSearchField } from "@/hooks/search/field.hook";
+import { useI18n } from "@/lib/locale/i18n.utils";
+import { fmtSpeed, getTorrentLifecycle, getLifecycleLabel } from "@/lib/torrent/common.utils";
+import { paginate } from "@/lib/utils/pagination.utils";
+import { useCacheStore } from "@/store/cache.store";
 import { useTorrentStore } from "@/store/download.store";
 import { useNotificationStore } from "@/store/notification.store";
 import { useSettingsStore } from "@/store/settings.store";
+import type { TorrentLifecycle } from "@/types/torrent";
 
 import TorrentItem from "./components/torrent/item.torrent";
 import AddTorrentModal from "./components/torrent/magnet.torrent";
@@ -26,8 +25,7 @@ import SpeedLimitForm from "./components/torrent/speed.torrent";
 
 function TorrentRoute() {
   const torrents = useTorrentStore((state) => state.torrents);
-  const dlLimit = useTorrentStore((state) => state.dlLimit);
-  const ulLimit = useTorrentStore((state) => state.ulLimit);
+  const limits = useTorrentStore((state) => state.limits);
   const torrentFilesMap = useTorrentStore((state) => state.torrentFilesMap);
   const pauseTorrent = useTorrentStore((state) => state.pauseTorrent);
   const resumeTorrent = useTorrentStore((state) => state.resumeTorrent);
@@ -40,12 +38,16 @@ function TorrentRoute() {
   );
   const setFilePriority = useTorrentStore((state) => state.setFilePriority);
   const setSequentialDownload = useTorrentStore((state) => state.setSequentialDownload);
-  const setSeedPreference = useTorrentStore((state) => state.setSeedPreference);
+  const setSeedPreference = useCacheStore((state) => state.setSeedPreference);
   const redownloadFile = useTorrentStore((state) => state.redownloadFile);
   const recheckTorrent = useTorrentStore((state) => state.recheckTorrent);
 
-  const [dlInput, setDlInput] = useState(dlLimit === null ? "" : String(dlLimit));
-  const [ulInput, setUlInput] = useState(ulLimit === null ? "" : String(ulLimit));
+  const [downloadInput, setDownloadInput] = useState(
+    limits.download === null ? "" : String(limits.download)
+  );
+  const [uploadInput, setUploadInput] = useState(
+    limits.upload === null ? "" : String(limits.upload)
+  );
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const [showMagnetModal, setShowMagnetModal] = useState(false);
   const [filterQuery, setFilterQuery] = useState("");
@@ -86,7 +88,6 @@ function TorrentRoute() {
     () => paginate(filteredTorrents, page, TORRENT_PAGE_SIZE),
     [filteredTorrents, page]
   );
-  const deferredFilterQuery = useDeferredValue(filterQuery);
   const extraValues = useMemo(() => {
     const names = torrents.map((torrent) => torrent.name);
     return {
@@ -97,18 +98,12 @@ function TorrentRoute() {
       })),
     };
   }, [torrents]);
-  const suggestions = useMemo(
-    () =>
-      getSearchSuggestions(deferredFilterQuery, {
-        extraValues: extraValues.values,
-        limit: 8,
-      }),
-    [deferredFilterQuery, extraValues.values]
-  );
-  const inlineCompletion = useMemo(
-    () => getInlineCompletion(deferredFilterQuery, suggestions),
-    [deferredFilterQuery, suggestions]
-  );
+  const field = useSearchField({
+    scope: "torrent",
+    query: filterQuery,
+    setQuery: setFilterQuery,
+    extraValues: extraValues.values,
+  });
 
   useEffect(() => {
     setPage(1);
@@ -133,10 +128,6 @@ function TorrentRoute() {
     };
   }, [torrents]);
 
-  const fetchingRef = useRef<Set<number>>(new Set());
-  const fileRetryAtRef = useRef<Map<number, number>>(new Map());
-  const fileRetryCountRef = useRef<Map<number, number>>(new Map());
-
   useEffect(() => {
     let disposed = false;
     let unlisten: (() => void) | undefined;
@@ -152,82 +143,31 @@ function TorrentRoute() {
         if (disposed) cleanup();
         else unlisten = cleanup;
       })
-      .catch(() => {
-        // The listener may fail while the Tauri window is shutting down.
-      });
+      .catch(() => {});
     return () => {
       disposed = true;
       unlisten?.();
     };
   }, [prepareTorrentDownloadFromFile]);
 
-  useEffect(() => {
-    const loadMissing = () => {
-      const state = useTorrentStore.getState();
-      state.torrents.forEach((t) => {
-        const retryAt = fileRetryAtRef.current.get(t.id) ?? 0;
-        if (
-          !state.torrentFilesMap[t.id] &&
-          !fetchingRef.current.has(t.id) &&
-          retryAt <= Date.now()
-        ) {
-          fetchingRef.current.add(t.id);
-          state
-            .loadTorrentFiles(t.id)
-            .then((success) => {
-              fetchingRef.current.delete(t.id);
-              if (success) {
-                fileRetryAtRef.current.delete(t.id);
-                fileRetryCountRef.current.delete(t.id);
-                return;
-              }
-              const attempts = (fileRetryCountRef.current.get(t.id) ?? 0) + 1;
-              fileRetryCountRef.current.set(t.id, attempts);
-              fileRetryAtRef.current.set(
-                t.id,
-                Date.now() + Math.min(30_000, 2000 * 2 ** Math.min(attempts, 4))
-              );
-            })
-            .catch(() => {
-              fetchingRef.current.delete(t.id);
-              fileRetryAtRef.current.set(t.id, Date.now() + 5000);
-            });
-        }
-      });
-    };
+  usePolling({
+    intervalMs: 5000,
+    collectKeys: () => useTorrentStore.getState().torrents.map((t) => t.id),
+    shouldFetch: (id) => !useTorrentStore.getState().torrentFilesMap[id],
+    fetch: (id) => useTorrentStore.getState().loadTorrentFiles(id),
+  });
 
-    loadMissing();
-    const interval = setInterval(loadMissing, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    if (expanded.size === 0) return;
-    const interval = setInterval(() => {
-      const state = useTorrentStore.getState();
-      state.torrents.forEach((t) => {
-        if (
-          expanded.has(t.id) &&
-          state.torrentFilesMap[t.id] &&
-          !fetchingRef.current.has(t.id) &&
-          (fileRetryAtRef.current.get(t.id) ?? 0) <= Date.now()
-        ) {
-          fetchingRef.current.add(t.id);
-          state
-            .loadTorrentFiles(t.id)
-            .then((success) => {
-              if (success) {
-                fileRetryAtRef.current.delete(t.id);
-                fileRetryCountRef.current.delete(t.id);
-              }
-            })
-            .catch(() => {})
-            .finally(() => fetchingRef.current.delete(t.id));
-        }
-      });
-    }, 2000);
-    return () => clearInterval(interval);
-  }, [expanded]);
+  usePolling({
+    intervalMs: 2000,
+    enabled: expanded.size > 0,
+    collectKeys: () =>
+      useTorrentStore
+        .getState()
+        .torrents.filter((t) => expanded.has(t.id))
+        .map((t) => t.id),
+    shouldFetch: (id) => Boolean(useTorrentStore.getState().torrentFilesMap[id]),
+    fetch: (id) => useTorrentStore.getState().loadTorrentFiles(id),
+  });
 
   useEffect(() => {
     const handleFocus = () => {
@@ -243,9 +183,9 @@ function TorrentRoute() {
   }, []);
 
   useEffect(() => {
-    const { dlLimit: dl, ulLimit: ul } = useSettingsStore.getState();
-    if (dl !== null || ul !== null) {
-      setSpeedLimits(dl, ul);
+    const { limits: prefs } = useSettingsStore.getState();
+    if (prefs.download !== null || prefs.upload !== null) {
+      setSpeedLimits(prefs);
     }
   }, [setSpeedLimits]);
 
@@ -260,12 +200,12 @@ function TorrentRoute() {
   }, [torrents]);
 
   const applySpeedLimits = useCallback(() => {
-    const dl = dlInput === "" ? null : Number(dlInput);
-    const ul = ulInput === "" ? null : Number(ulInput);
-    if (dl !== null && (isNaN(dl) || dl <= 0)) return;
-    if (ul !== null && (isNaN(ul) || ul <= 0)) return;
-    setSpeedLimits(dl, ul);
-  }, [dlInput, ulInput, setSpeedLimits]);
+    const download = downloadInput === "" ? null : Number(downloadInput);
+    const upload = uploadInput === "" ? null : Number(uploadInput);
+    if (download !== null && (isNaN(download) || download <= 0)) return;
+    if (upload !== null && (isNaN(upload) || upload <= 0)) return;
+    setSpeedLimits({ download, upload });
+  }, [downloadInput, uploadInput, setSpeedLimits]);
 
   const toggleExpanded = useCallback((id: number) => {
     setExpanded((prev) => {
@@ -277,14 +217,13 @@ function TorrentRoute() {
   }, []);
 
   return (
-    <main className="flex h-full w-full flex-col gap-1 overflow-y-auto">
+    <div className="flex h-full w-full flex-col gap-1 overflow-y-auto">
       <SpeedLimitForm
-        dlInput={dlInput}
-        ulInput={ulInput}
-        dlLimit={dlLimit}
-        ulLimit={ulLimit}
-        onDlChange={setDlInput}
-        onUlChange={setUlInput}
+        limits={limits}
+        downloadInput={downloadInput}
+        uploadInput={uploadInput}
+        onDownloadChange={setDownloadInput}
+        onUploadChange={setUploadInput}
         onApply={applySpeedLimits}
       />
       <section
@@ -312,39 +251,37 @@ function TorrentRoute() {
           })}
         </span>
       </section>
-      <section className="windows95-active-border bg-primary flex items-center gap-1 p-0.5">
+      <section className="windows95-active-border bg-primary flex flex-wrap items-center gap-1 p-0.5">
         {(["all", "staging", "live", "paused", "seeding", "completed"] as const).map((lc) => (
           <Button
             key={lc}
             variant={lifecycleFilter === lc ? "outline" : "default"}
             size="default"
             className="px-1 py-0.5 text-xs"
+            aria-pressed={lifecycleFilter === lc}
             onClick={() => setLifecycleFilter(lc)}
           >
             {lc === "all" ? t("torrent.all") : getLifecycleLabel(lc, t)}
           </Button>
         ))}
       </section>
-      <section className="windows95-active-border bg-primary flex items-center gap-2 p-1">
+      <section className="windows95-active-border bg-primary flex flex-wrap items-center gap-2 p-1">
         <InlineAutocompleteInput
           className="ml-2 w-32 font-bold"
           placeholder={t("torrent.filter.placeholder")}
-          value={filterQuery}
-          completion={inlineCompletion}
-          suggestions={suggestions}
-          onChange={(e) => setFilterQuery(e.target.value)}
-          onAcceptCompletion={(value) => setFilterQuery(value)}
+          {...field.inputProps}
         />
-        <select
-          className="windows95-border windows95-text bg-win-highlight h-6 w-24"
+        <Select
+          className="h-6 w-24"
           value={sortBy}
-          onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-        >
-          <option value="name">{t("torrent.sort.name")}</option>
-          <option value="size">{t("torrent.sort.size")}</option>
-          <option value="progress">{t("torrent.sort.progress")}</option>
-          <option value="speed">{t("torrent.sort.speed")}</option>
-        </select>
+          onChange={(v) => setSortBy(v as typeof sortBy)}
+          options={[
+            { value: "name", label: t("torrent.sort.name") },
+            { value: "size", label: t("torrent.sort.size") },
+            { value: "progress", label: t("torrent.sort.progress") },
+            { value: "speed", label: t("torrent.sort.speed") },
+          ]}
+        />
         <Button
           size="icon"
           className="size-5"
@@ -458,7 +395,7 @@ function TorrentRoute() {
           onAddFile={(path) => prepareTorrentDownloadFromFile(path)}
         />
       )}
-    </main>
+    </div>
   );
 }
 

@@ -6,12 +6,11 @@ import SpeedLimitForm from "@/routes/components/torrent/speed.torrent";
 
 function renderSpeed(overrides: Partial<React.ComponentProps<typeof SpeedLimitForm>> = {}) {
   const defaultProps = {
-    dlInput: "",
-    ulInput: "",
-    dlLimit: null,
-    ulLimit: null,
-    onDlChange: vi.fn(),
-    onUlChange: vi.fn(),
+    limits: { download: null, upload: null },
+    downloadInput: "",
+    uploadInput: "",
+    onDownloadChange: vi.fn(),
+    onUploadChange: vi.fn(),
     onApply: vi.fn(),
   };
   return {
@@ -34,53 +33,49 @@ describe("SpeedLimitForm", () => {
 
   it("disables the apply button when inputs match current limits", () => {
     const { container } = renderSpeed({
-      dlInput: "100",
-      ulInput: "50",
-      dlLimit: 100,
-      ulLimit: 50,
+      downloadInput: "100",
+      uploadInput: "50",
+      limits: { download: 100, upload: 50 },
     });
     expect(getApplyButton(container).disabled).toBe(true);
   });
 
   it("enables the apply button when inputs differ from current limits", () => {
     const { container } = renderSpeed({
-      dlInput: "200",
-      ulInput: "50",
-      dlLimit: 100,
-      ulLimit: 50,
+      downloadInput: "200",
+      uploadInput: "50",
+      limits: { download: 100, upload: 50 },
     });
     expect(getApplyButton(container).disabled).toBe(false);
   });
 
   it("enables the apply button when limits are null and inputs are non-empty", () => {
     const { container } = renderSpeed({
-      dlInput: "100",
-      ulInput: "",
-      dlLimit: null,
-      ulLimit: null,
+      downloadInput: "100",
+      uploadInput: "",
+      limits: { download: null, upload: null },
     });
     expect(getApplyButton(container).disabled).toBe(false);
   });
 
   it("rejects non-numeric input", async () => {
     const user = userEvent.setup();
-    const onDlChange = vi.fn();
-    renderSpeed({ onDlChange });
+    const onDownloadChange = vi.fn();
+    renderSpeed({ onDownloadChange });
 
     const input = screen.getAllByRole("spinbutton")[0];
     await user.type(input, "abc");
 
-    expect(onDlChange).not.toHaveBeenCalled();
+    expect(onDownloadChange).not.toHaveBeenCalled();
   });
 
   it("calls onApply when clicking the apply button", async () => {
     const user = userEvent.setup();
     const onApply = vi.fn();
     const { container } = renderSpeed({
-      dlInput: "100",
-      ulInput: "50",
-      dlLimit: null,
-      ulLimit: null,
+      downloadInput: "100",
+      uploadInput: "50",
+      limits: { download: null, upload: null },
       onApply,
     });
 

@@ -1,46 +1,17 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useRef, useState, useCallback, useMemo } from "react";
 
-import { buildTorrentTree } from "@/lib/torrent.utils";
-import type { TorrentTreeNode, TorrentTreeFile } from "@/lib/torrent.utils";
-import { FolderRow, TorrentFileRow } from "@/routes/components/torrent/row.torrent";
+import { buildTorrentTree, flattenTorrentTree } from "@/lib/torrent/tree.utils";
+import { TorrentFileRow } from "@/routes/components/torrent/rows/file.rows";
+import { FolderRow } from "@/routes/components/torrent/rows/folder.rows";
 import { useSettingsStore } from "@/store/settings.store";
 import { useUpscaleQueueStore } from "@/store/upscale.store";
-import type { TorrentFileInfo, FilePriority } from "@/types/torrent";
-
-type TorrentTreeFileWithPath = TorrentTreeFile & { _fullPath: string };
-
-type Item =
-  | { kind: "folder"; node: TorrentTreeNode; depth: number }
-  | { kind: "file"; file: TorrentTreeFile; depth: number };
-
-function flattenTorrentTree(
-  nodes: TorrentTreeNode[],
-  open: Set<string>,
-  fileFilter?: (f: TorrentTreeFile) => boolean,
-  rootFiles?: TorrentTreeFile[],
-  depth = 0
-): Item[] {
-  const items: Item[] = [];
-
-  if (depth === 0 && rootFiles) {
-    for (const file of rootFiles) {
-      items.push({ kind: "file", file, depth: 0 });
-    }
-  }
-
-  for (const node of nodes) {
-    items.push({ kind: "folder", node, depth });
-    if (open.has(node.name + depth)) {
-      const files = fileFilter ? node.files.filter(fileFilter) : node.files;
-      for (const file of files) {
-        items.push({ kind: "file", file, depth: depth + 1 });
-      }
-      items.push(...flattenTorrentTree(node.children, open, fileFilter, undefined, depth + 1));
-    }
-  }
-  return items;
-}
+import type {
+  FilePriority,
+  TorrentFileInfo,
+  TorrentTreeFile,
+  TorrentTreeFileWithPath,
+} from "@/types/torrent";
 
 function TorrentFilesSection({
   id,
@@ -134,7 +105,7 @@ function TorrentFilesSection({
           selected: false,
           priority: "normal",
           exists: true,
-          _fullPath: file.fullPath,
+          fullPath: file.fullPath,
         };
         items.push({ kind: "file", file: extraFile, depth: 0 });
       }

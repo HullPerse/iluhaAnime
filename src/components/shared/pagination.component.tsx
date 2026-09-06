@@ -2,7 +2,7 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
-import { useI18n } from "@/lib/i18n";
+import { useI18n } from "@/lib/locale/i18n.utils";
 import type { PaginationProps } from "@/types";
 
 export default function Pagination({

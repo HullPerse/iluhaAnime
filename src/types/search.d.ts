@@ -1,3 +1,5 @@
+import type { Anime } from "./torrent";
+
 export interface LanguageTag {
   code: string;
   label: string;
@@ -132,4 +134,167 @@ export interface SourceInfo {
   value: Source;
   label: string;
   nsfw: boolean;
+}
+
+export type CompareOp = ":" | "=" | ">" | ">=" | "<" | "<=" | "!=";
+
+export interface NumericCond {
+  op: ">" | ">=" | "<" | "<=" | "!=";
+  value: number;
+}
+
+export interface NegationCond {
+  key: string;
+  value: string;
+}
+
+export interface ParsedIntent {
+  cleanQuery: string;
+  year?: number;
+  studio?: string;
+  genre?: string;
+  type?: string;
+  status?: string;
+  rating?: number;
+  episodes?: number;
+  progress?: number;
+  priority?: string;
+  sortBy?: "date" | "name" | "rating";
+  sortDir?: "asc" | "desc";
+  provider?: string;
+  yearOps: NumericCond[];
+  ratingOps: NumericCond[];
+  episodesOps: NumericCond[];
+  progressOps: NumericCond[];
+  negations: NegationCond[];
+  rawFilters: Record<string, string>;
+}
+
+export interface IntentToken {
+  start: number;
+  end: number;
+  key: string;
+  op: CompareOp;
+  value: string;
+}
+
+export interface HighlightRange {
+  start: number;
+  end: number;
+}
+
+export interface SuggestionSection {
+  kind: SearchSuggestionKind;
+  startIndex: number;
+  endIndex: number;
+}
+
+export interface HighlightSegment {
+  text: string;
+  matched: boolean;
+}
+
+export interface HighlightToken {
+  text: string;
+  highlighted: boolean;
+}
+
+export type EraiErrorCode =
+  | "webview_open"
+  | "webview_save"
+  | "webview_not_found"
+  | "no_session"
+  | "network";
+
+export type RutrackerErrorCode =
+  | "wrong_credentials"
+  | "blocked"
+  | "network"
+  | "login_failed"
+  | "session_failed"
+  | "cookies_invalid"
+  | "cookies_parse"
+  | "webview_open"
+  | "webview_save"
+  | "webview_not_found"
+  | "no_cookies"
+  | "no_session";
+
+export interface AutocompleteParams {
+  query: string;
+  scope: SearchSuggestionScope;
+  history?: string[];
+  queryStats?: SearchSuggestionOptions["queryStats"];
+  suggestionStats?: SearchSuggestionOptions["suggestionStats"];
+  animeIndex?: SearchSuggestionOptions["animeIndex"];
+  animeProfileId?: number | null;
+  anilistBoost?: SearchSuggestionOptions["anilistBoost"];
+  extraValues?: SearchSuggestionOptions["extraValues"];
+  collectionItems?: SearchSuggestionOptions["collectionItems"];
+  collectionBoost?: number;
+  limit?: number;
+}
+
+export type SearchPersistedState = Pick<
+  SearchStore,
+  | "animeIndex"
+  | "animeProfileId"
+  | "filters"
+  | "history"
+  | "queryStats"
+  | "sortBy"
+  | "sortDirection"
+  | "suggestionStats"
+>;
+
+export interface AuthSearchProps {
+  source: string;
+  rutrackerAuth: boolean;
+  nekobtAuth: boolean;
+  eraiAuth: boolean;
+  onLoginOpen: () => void;
+  onApiModalOpen: () => void;
+  onEraiLoginOpen: () => void;
+  onLogout: () => Promise<void>;
+  onNekoBtLogout: () => Promise<void>;
+  onEraiLogout: () => Promise<void>;
+}
+
+export interface TorrentDetailsProps {
+  item: Anime;
+  source: Source;
+  magnets: Record<string, string>;
+  loadingMagnet: Record<string, boolean>;
+  onClose: () => void;
+  onCopyMagnet: (item: Anime) => void;
+  onOpenMagnet: (item: Anime) => void;
+  onDownload: (item: Anime) => void;
+}
+
+export interface SearchFiltersProps {
+  sort: SortKey;
+  direction: SortDirection;
+  activeFilterCount: number;
+  onSortChange: (sort: SortKey) => void;
+  onDirectionChange: () => void;
+  onOpenFilters: () => void;
+}
+
+export interface ModalFiltersProps {
+  open: boolean;
+  filters: SearchFilters;
+  onApply: (filters: SearchFilters) => void;
+  onReset: () => void;
+  onClose: () => void;
+}
+
+export interface ResultSearchProps {
+  item: Anime;
+  source: string;
+  loadingMagnet: Record<string, boolean>;
+  onCopyMagnet: (item: Anime) => void;
+  onOpenMagnet: (item: Anime) => void;
+  onDownload: (item: Anime) => void;
+  onOpenLink: (item: Anime) => void;
+  onOpenDetails: (item: Anime) => void;
 }

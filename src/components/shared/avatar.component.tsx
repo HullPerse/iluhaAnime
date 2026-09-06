@@ -1,9 +1,9 @@
-import { invoke } from "@tauri-apps/api/core";
+import { cn } from "cn";
 import { useEffect, useState } from "react";
 import type { MouseEventHandler } from "react";
 
-import { cn } from "@/lib/index.utils";
-import { userImageId } from "@/lib/userimage.utils";
+import { userImageId } from "@/lib/utils/image.utils";
+import { invokeTyped } from "@/lib/utils/invoke.utils";
 import type { UserImage } from "@/types";
 
 interface UserImageIconProps {
@@ -41,7 +41,7 @@ export default function UserImageIcon({
         active = false;
       };
     }
-    invoke<UserImage>("get_user_image", { id })
+    invokeTyped<UserImage>("get_user_image", { id })
       .then((image) => {
         if (active) setSrc(image.dataUrl);
       })

@@ -1,8 +1,8 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-import { THEMES } from "@/config/themes.config";
-import { DEFAULT_FONT_FAMILY, getStoredAppFont, toCssFontFamily } from "@/lib/font.utils";
+import { THEMES } from "@/config/settings/themes.config";
+import { DEFAULT_FONT_FAMILY, getStoredAppFont, toCssFontFamily } from "@/lib/utils/font.utils";
 import type { ThemeDefinition, ThemeStore } from "@/types/theme";
 
 function getTitleText(color: string): string {
@@ -49,12 +49,9 @@ export function applyTheme(name: string, customThemes: ThemeDefinition[] = []) {
   root.style.setProperty("--color-link-hover", c.linkHover, "important");
   root.style.setProperty("--color-surface", c.surface, "important");
   root.style.setProperty("--color-win-highlight", c.winHighlight, "important");
-  root.style.setProperty("--color-title-text", getTitleText(c.secondary), "important");
+  root.style.setProperty("--color-win-shadow", c.winShadow, "important");
   if (root.dataset) root.dataset.theme = theme.name;
-  let storedAppFont: string | null = null;
-  try {
-    storedAppFont = getStoredAppFont();
-  } catch {}
+  const storedAppFont = getStoredAppFont();
   const fontCss = storedAppFont
     ? toCssFontFamily(storedAppFont)
     : (theme.fontFamily ?? DEFAULT_FONT_FAMILY);

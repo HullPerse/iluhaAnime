@@ -1,0 +1,53 @@
+const changelog320 = {
+  "changelog.3_2_0.added.upscale_cascade": "Anime4K: постоянный дебанд и автокаскад 2x в 2x",
+  "changelog.3_2_0.added.upscale_preview": "Превью кадров апскейла лентой с сравнением до/после",
+  "changelog.3_2_0.added.upscale_realcugan": "RealCUGAN-SE вторым AI-апскейлером",
+  "changelog.3_2_0.added.upscale_suggest": "Автоподбор пресета по анализу кадра",
+  "changelog.3_2_0.added.upscale_codec": "Вывод HEVC и 10 бит",
+  "changelog.3_2_0.added.upscale_rife": "Интерполяция кадров RIFE",
+  "changelog.3_2_0.added.upscale_temporal": "Временной денойз для цепочек Anime4K",
+  "changelog.3_2_0.added.upscale_eta": "Оценка времени задач апскейла",
+  "changelog.3_2_0.added.stills": "Кадры аниме (TMDB, запасной Jikan)",
+  "changelog.3_2_0.added.trailer": "Трейлеры внутри деталей аниме и коллекции",
+  "changelog.3_2_0.added.media_db": "Кадры и трейлеры хранятся в базе коллекции",
+  "changelog.3_2_0.added.jobcenter": "Центр задач в статусбаре с единым прогрессом",
+  "changelog.3_2_0.added.queue": "Очередь плеера сверху с деревом этапов и нижней полосой",
+  "changelog.3_2_0.added.scan_task": "Скан папок строкой-задачей в панели очереди",
+  "changelog.3_2_0.added.folder_resize": "Растягиваемые панели папок в плеере",
+  "changelog.3_2_0.added.torrent_states":
+    "Пять стейтов торрента с цветами, простоем и ошибками в трей",
+  "changelog.3_2_0.added.chips": "Быстрые чипы-фильтры под строкой поиска торрентов",
+  "changelog.3_2_0.added.bridge":
+    "Добавление из AniList в коллекцию в один клик с маппингом статуса",
+  "changelog.3_2_0.added.prefetch_resume":
+    "Фоновая предзагрузка связей с продолжением после рестарта",
+  "changelog.3_2_0.added.summary": "Сводка настроек: версия, бинари, бэкапы, обучение",
+  "changelog.3_2_0.added.changelog_tab": "Эта вкладка журнала изменений",
+  "changelog.3_2_0.added.import_modes": "Импорт AniList: сводка, sync-режим, добивка метадаты",
+  "changelog.3_2_0.added.friends_activity": "Строки последней активности друзей",
+  "changelog.3_2_0.added.favorites": "Ядро-статус Favorites первым",
+  "changelog.3_2_0.added.proxies": "Прокси на источник для входа, сессий и скачивания",
+  "changelog.3_2_0.added.notifications_lists":
+    "Уведомления релизов AniList по спискам с интервалом",
+  "changelog.3_2_0.added.sqlite_views": "SQLite-браузер: виртуализация, режимы, бэкапы",
+  "changelog.3_2_0.added.search_tags": "Теги поиска: OR-списки, сортировка, прогресс, эпизоды",
+  "changelog.3_2_0.added.backfill": "Ручная кнопка добивки эмбеддингов",
+  "changelog.3_2_0.added.github": "Ссылки проекта в статусбаре",
+  "changelog.3_2_0.changed.settings_layout": "Настройки пересобраны в master-detail со сводкой",
+  "changelog.3_2_0.changed.toasts": "Тосты удалены; вместо них трей и системные попапы",
+  "changelog.3_2_0.changed.shikimori": "Интеграция Shikimori удалена",
+  "changelog.3_2_0.changed.vault": "Вкладка Vault удалена",
+  "changelog.3_2_0.changed.duplicates": "Слияние дублей удалено; в визарде осталось предупреждение",
+  "changelog.3_2_0.changed.activity_button": "Одна кнопка активности, открывается на ленте",
+  "changelog.3_2_0.changed.anilist_tabs": "Табы списков AniList на общем контроле",
+  "changelog.3_2_0.fixed.fts": "Смена статуса больше не падает с SQL-ошибкой",
+  "changelog.3_2_0.fixed.activity_modal": "Модалка активности больше не открывается сама",
+  "changelog.3_2_0.fixed.eye": "Дублирующаяся системная иконка пароля подавлена",
+  "changelog.3_2_0.fixed.lost_update": "Правки коллекции больше не затирают друг друга",
+  "changelog.3_2_0.fixed.updated_at": "Починен порядок сортировки после редактирования",
+  "changelog.3_2_0.fixed.cloudflare": "Детект Cloudflare и честные тесты соединения",
+  "changelog.3_2_0.fixed.search_hang":
+    "Поиск торрентов быстро падает вместо зависания на плохих прокси",
+} as const;
+
+export default changelog320;

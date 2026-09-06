@@ -1,3 +1,5 @@
+import type { TranslationVariables } from "./i18n";
+
 export type NotificationType = "info" | "success" | "warning" | "error";
 
 export interface NotificationItem {
@@ -32,3 +34,16 @@ export interface NotificationStore {
   clear: (id: number) => void;
   clearAll: () => void;
 }
+
+export interface ShowNotificationPayload {
+  title?: string;
+  body?: string;
+  type?: string;
+  eventKey?: string;
+  titleKey?: string;
+  titleVars?: TranslationVariables;
+  bodyKey?: string;
+  bodyVars?: TranslationVariables;
+}
+
+export type NotificationFilter = NotificationType | "all" | "downloads";

@@ -32,8 +32,6 @@ fn download_urls(source: &str) -> Result<(String, &'static str, &'static str), S
     let url = match source {
         "github" => github_url.to_string(),
         "github-mirror" => format!("{GITHUB_PROXY}{github_url}"),
-        // "essentials" (default) - small build; gyan.dev is Windows-only,
-        // so Linux falls back to the GitHub archive.
         _ if cfg!(target_os = "windows") => GYAN_ESSENTIALS.to_string(),
         _ => github_url.to_string(),
     };
@@ -239,21 +237,6 @@ pub async fn check_ffprobe(app_handle: tauri::AppHandle) -> Result<bool, String>
     }
 }
 
-#[tauri::command]
-pub async fn check_libplacebo(app_handle: tauri::AppHandle) -> bool {
-    let ffmpeg = video::ffmpeg_exe(&app_handle);
-    let output = std::process::Command::new(&ffmpeg)
-        .args(["-filters"])
-        .output();
-    match output {
-        Ok(o) => {
-            let stdout = String::from_utf8_lossy(&o.stdout);
-            stdout.contains("libplacebo")
-        }
-        Err(_) => false,
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -290,7 +273,6 @@ mod tests {
         }
         #[cfg(target_os = "linux")]
         {
-            // gyan.dev is Windows-only; essentials falls back to GitHub on Linux.
             for source in ["essentials", "github"] {
                 let (url, _, _) = download_urls(source).unwrap();
                 assert!(url.contains("github.com"), "{source}: {url}");

@@ -1,15 +1,16 @@
-import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
+import { cn } from "cn";
 import { ImagePlus, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 import UserImageIcon from "@/components/shared/avatar.component";
 import { SmallLoader } from "@/components/shared/loader.component";
 import { Button } from "@/components/ui/button.component";
-import { useI18n } from "@/lib/i18n";
-import { cn } from "@/lib/index.utils";
-import { showError } from "@/lib/notification.utils";
-import { userImageIcon } from "@/lib/userimage.utils";
+import { useI18n } from "@/lib/locale/i18n.utils";
+import { attempt } from "@/lib/utils/attempt.utils";
+import { userImageIcon } from "@/lib/utils/image.utils";
+import { invokeTyped } from "@/lib/utils/invoke.utils";
+import { showError } from "@/lib/utils/notification.utils";
 import type { UserImage } from "@/types";
 
 interface UserImagePickerProps {
@@ -26,7 +27,7 @@ export default function UserImagePicker({ selected, onSelect }: UserImagePickerP
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      setImages(await invoke<UserImage[]>("list_user_images"));
+      setImages(await invokeTyped<UserImage[]>("list_user_images"));
     } catch {
       setImages([]);
       showError(t("common.error"), t("player.category.load.images.error"));
@@ -49,7 +50,7 @@ export default function UserImagePicker({ selected, onSelect }: UserImagePickerP
     if (!selectedPath || Array.isArray(selectedPath)) return;
     setUploading(true);
     try {
-      const image = await invoke<UserImage>("import_user_image", {
+      const image = await invokeTyped<UserImage>("import_user_image", {
         path: selectedPath,
       });
       setImages((items) => [image, ...items.filter((item) => item.id !== image.id)]);
@@ -62,7 +63,11 @@ export default function UserImagePicker({ selected, onSelect }: UserImagePickerP
   };
 
   const remove = async (image: UserImage) => {
-    await invoke("delete_user_image", { id: image.id }).catch(() => {});
+    const [, error] = await attempt(invokeTyped("delete_user_image", { id: image.id }));
+    if (error) {
+      showError(t("common.error"), error.message);
+      return;
+    }
     setImages((items) => items.filter((item) => item.id !== image.id));
   };
 

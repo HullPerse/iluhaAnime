@@ -1,10 +1,10 @@
-import { useI18n } from "@/lib/i18n";
+import { useI18n } from "@/lib/locale/i18n.utils";
 import type { CollectionItem, CustomFieldDef } from "@/types/collection";
 
-import { WizardCustomFieldsCollection } from "./customFields.wizard";
-import { WizardLinkedIdsCollection } from "./linked.wizard";
+import { WizardCustomFields } from "./customFields.wizard";
+import { WizardLinkedIds } from "./linked.wizard";
 
-export function WizardMoreFieldsCollection(props: {
+export function WizardMoreFields(props: {
   altTitles: string;
   setAltTitles: (value: string) => void;
   year: string;
@@ -31,7 +31,7 @@ export function WizardMoreFieldsCollection(props: {
     <div className="windows95-border bg-primary flex flex-col gap-1.5 p-2">
       <div className="grid grid-cols-[100px_1fr] gap-x-3 gap-y-1.5">
         <span className="text-text flex items-center text-xs font-bold">
-          {t("collection.wizard.altTitles")}
+          {t("collection.wizard.alt.titles")}
         </span>
         <input
           value={props.altTitles}
@@ -76,7 +76,7 @@ export function WizardMoreFieldsCollection(props: {
         />
 
         <span className="text-text flex items-center text-xs font-bold">
-          {t("collection.wizard.startedAt")}
+          {t("collection.wizard.started.at")}
         </span>
         <input
           value={props.startedAt}
@@ -85,7 +85,7 @@ export function WizardMoreFieldsCollection(props: {
         />
 
         <span className="text-text flex items-center text-xs font-bold">
-          {t("collection.wizard.finishedAt")}
+          {t("collection.wizard.finished.at")}
         </span>
         <input
           value={props.finishedAt}
@@ -94,7 +94,7 @@ export function WizardMoreFieldsCollection(props: {
         />
       </div>
 
-      <WizardLinkedIdsCollection externalIds={props.externalIds} />
+      <WizardLinkedIds externalIds={props.externalIds} />
 
       <div className="grid grid-cols-[100px_1fr] gap-x-3 gap-y-0.5">
         <span className="text-text flex items-center text-xs font-bold">
@@ -109,7 +109,7 @@ export function WizardMoreFieldsCollection(props: {
       </div>
 
       {props.customFieldDefs.length > 0 && (
-        <WizardCustomFieldsCollection
+        <WizardCustomFields
           defs={props.customFieldDefs}
           values={props.customFields}
           onChange={props.onCustomFieldsChange}

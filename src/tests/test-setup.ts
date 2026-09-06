@@ -1,8 +1,3 @@
-// Vitest setup: runs before every test file's imports.
-// The vitest jsdom environment does not expose window.localStorage here, but
-// zustand persist (settings/cache/theme stores) reads it at module-import time
-// via createJSONStorage(() => window.localStorage). Provide a working stub in
-// jsdom only; node-environment tests stub their own globals.
 if (
   typeof window !== "undefined" &&
   (window as { localStorage?: unknown }).localStorage === undefined

@@ -1,8 +1,8 @@
 import type { Update } from "@tauri-apps/plugin-updater";
 import { useState } from "react";
 
-import { useI18n } from "@/lib/i18n";
-import { installUpdate } from "@/lib/index.utils";
+import { useI18n } from "@/lib/locale/i18n.utils";
+import { installUpdate } from "@/lib/utils/update.utils";
 
 import { Button } from "../ui/button.component";
 import ImageComponent from "../ui/image.component";
@@ -11,6 +11,7 @@ import Modal from "./modal.component";
 
 function Updater({ update, onClose }: { update: Update; onClose: () => void }) {
   const [loading, setLoading] = useState<boolean>(false);
+  const [installError, setInstallError] = useState<string | null>(null);
   const { t } = useI18n();
 
   return (
@@ -31,6 +32,11 @@ function Updater({ update, onClose }: { update: Update; onClose: () => void }) {
 
       <section className="windows95-font text-md text-text text-center leading-relaxed font-semibold whitespace-pre-line">
         <span className="">{t("updater.prompt")}</span>
+        {installError && (
+          <span className="text-destructive block text-sm font-normal">
+            {t("updater.install.error", { message: installError })}
+          </span>
+        )}
         <div className="flex w-full flex-row gap-1">
           <Button variant="destructive" className="h-9 flex-1" onClick={onClose} disabled={loading}>
             {t("updater.cancel")}
@@ -40,13 +46,14 @@ function Updater({ update, onClose }: { update: Update; onClose: () => void }) {
             className="h-9 flex-1"
             onClick={async () => {
               setLoading(true);
-
-              await installUpdate(update)
-                .catch((error) => {
-                  console.error(`Error while installing update`, error);
-                  setLoading(false);
-                })
-                .finally(() => setLoading(false));
+              setInstallError(null);
+              try {
+                await installUpdate(update);
+              } catch (error) {
+                setInstallError(error instanceof Error ? error.message : String(error));
+              } finally {
+                setLoading(false);
+              }
             }}
             disabled={loading}
           >

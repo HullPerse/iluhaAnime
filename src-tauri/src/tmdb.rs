@@ -17,8 +17,9 @@ static CLIENT: LazyLock<Client> = LazyLock::new(|| {
 const API_HOST: &str = "https://api.themoviedb.org/3";
 const IMAGE_HOST: &str = "https://image.tmdb.org";
 
-static TMDB_LAST_REQUEST: LazyLock<tokio::sync::Mutex<Instant>> =
-    LazyLock::new(|| tokio::sync::Mutex::new(Instant::now().checked_sub(Duration::from_secs(10)).unwrap()));
+static TMDB_LAST_REQUEST: LazyLock<tokio::sync::Mutex<Instant>> = LazyLock::new(|| {
+    tokio::sync::Mutex::new(Instant::now().checked_sub(Duration::from_secs(10)).unwrap())
+});
 static TMDB_REMAINING: AtomicI32 = AtomicI32::new(-1);
 static TMDB_RESET_AT: AtomicI64 = AtomicI64::new(0);
 static TMDB_RETRY_AFTER: AtomicI64 = AtomicI64::new(0);
@@ -65,6 +66,56 @@ pub struct TmdbDetails {
     pub posters: Vec<TmdbPoster>,
 }
 
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TmdbBackdrop {
+    pub url: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TmdbMedia {
+    pub backdrops: Vec<TmdbBackdrop>,
+    pub trailer_youtube_id: Option<String>,
+}
+
+fn parse_tmdb_media(json: &serde_json::Value) -> TmdbMedia {
+    let mut backdrops = Vec::new();
+    if let Some(imgs) = json["images"]["backdrops"].as_array() {
+        for img in imgs.iter().take(8) {
+            if let Some(path) = img["file_path"].as_str().filter(|p| !p.is_empty()) {
+                backdrops.push(TmdbBackdrop {
+                    url: format!("{IMAGE_HOST}/t/p/w780{path}"),
+                });
+            }
+        }
+    }
+    let results: Vec<&serde_json::Value> = json["videos"]["results"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter(|v| v["site"].as_str() == Some("YouTube"))
+        .collect();
+    let pick = |kind: &str| {
+        results
+            .iter()
+            .filter(|v| v["type"].as_str() == Some(kind))
+            .find_map(|v| {
+                v["key"]
+                    .as_str()
+                    .filter(|k| !k.is_empty())
+                    .map(String::from)
+            })
+    };
+    let trailer_youtube_id = pick("Trailer")
+        .or_else(|| pick("Teaser"))
+        .or_else(|| pick("Clip"));
+    TmdbMedia {
+        backdrops,
+        trailer_youtube_id,
+    }
+}
+
 fn poster_url(path: Option<&str>) -> Option<String> {
     path.filter(|p| !p.is_empty())
         .map(|p| format!("{IMAGE_HOST}/t/p/w500{p}"))
@@ -75,8 +126,6 @@ fn year_from_date(date: Option<&str>) -> Option<i32> {
 }
 
 fn is_bearer_token(token: &str) -> bool {
-    // v4 read access token is a JWT (eyJ...) and >100 chars,
-    // v3 api_key is 32 hex chars. Detect to support both.
     token.starts_with("eyJ") || token.len() > 64 || token.contains('.') && token.len() > 40
 }
 
@@ -144,7 +193,9 @@ pub async fn test_tmdb_connection(
     if resp.status().is_success() || status == 401 {
         Ok(format!("OK {elapsed}ms (HTTP {status})"))
     } else if status == 429 {
-        Ok(format!("OK {elapsed}ms (HTTP 429 - rate limited, proxy works)"))
+        Ok(format!(
+            "OK {elapsed}ms (HTTP 429 - rate limited, proxy works)"
+        ))
     } else if (400..500).contains(&status) {
         Err(format!("HTTP {status} after {elapsed}ms"))
     } else {
@@ -169,7 +220,6 @@ async fn throttle_tmdb() {
 }
 
 fn update_rate_limit(headers: &reqwest::header::HeaderMap) {
-    // TMDB uses various headers - try common ones.
     let remaining = headers
         .get("x-ratelimit-remaining")
         .or_else(|| headers.get("x-rate-limit-remaining"))
@@ -186,7 +236,6 @@ fn update_rate_limit(headers: &reqwest::header::HeaderMap) {
         .and_then(|v| v.to_str().ok())
         .and_then(|v| v.parse::<i64>().ok());
     if let Some(rs) = reset {
-        // TMDB reset is often seconds since epoch or delta.
         let at = if rs > 1_000_000_000 {
             rs
         } else {
@@ -300,9 +349,7 @@ pub async fn search_tmdb(
             .and_then(|v| v.parse::<i64>().ok())
             .unwrap_or(10);
         TMDB_RETRY_AFTER.store(now_secs() + retry, Ordering::Relaxed);
-        return Err(format!(
-            "TMDB rate limit exceeded, try again in {retry}s"
-        ));
+        return Err(format!("TMDB rate limit exceeded, try again in {retry}s"));
     }
     if !status.is_success() {
         let body = response.text().await.unwrap_or_default();
@@ -323,7 +370,6 @@ pub async fn search_tmdb(
     let mut out = Vec::new();
     for item in results {
         let media_type = item["media_type"].as_str().unwrap_or("");
-        // Only movies and tv; skip person/tv aggregates.
         if !matches!(media_type, "movie" | "tv") {
             continue;
         }
@@ -348,7 +394,6 @@ pub async fn search_tmdb(
                 alt_titles.push(orig.to_string());
             }
         }
-        // also include alternative title if title is original and name differs
         if let Some(alt) = item["title"]
             .as_str()
             .zip(item["original_title"].as_str())
@@ -390,7 +435,9 @@ pub async fn get_tmdb_details(
         return Err("TMDB API key is not set".into());
     }
     let tmdb_id = tmdb_id.or(tmdbId).ok_or("TMDB id is missing")?;
-    let media_type = media_type.or(mediaType).ok_or("TMDB media_type is missing")?;
+    let media_type = media_type
+        .or(mediaType)
+        .ok_or("TMDB media_type is missing")?;
     if !matches!(media_type.as_str(), "movie" | "tv") {
         return Err("TMDB media_type must be movie or tv".into());
     }
@@ -410,21 +457,21 @@ pub async fn get_tmdb_details(
     } else {
         request = request.query(&[("api_key", api_key.as_str())]);
     }
-    let response = request
-        .send()
-        .await
-        .map_err(|e| {
-            let msg = e.to_string();
-            let hint = if msg.contains("sending request for url")
-                || msg.contains("dns error")
-                || msg.contains("failed to lookup address")
-            {
-                " (TMDB is not reachable - set TMDB proxy in Settings if api.themoviedb.org is blocked)"
-            } else {
-                ""
-            };
-            redact_key(format!("TMDB details request failed: {msg}{hint}"), &api_key)
-        })?;
+    let response = request.send().await.map_err(|e| {
+        let msg = e.to_string();
+        let hint = if msg.contains("sending request for url")
+            || msg.contains("dns error")
+            || msg.contains("failed to lookup address")
+        {
+            " (TMDB is not reachable - set TMDB proxy in Settings if api.themoviedb.org is blocked)"
+        } else {
+            ""
+        };
+        redact_key(
+            format!("TMDB details request failed: {msg}{hint}"),
+            &api_key,
+        )
+    })?;
     update_rate_limit(response.headers());
 
     let status = response.status();
@@ -439,9 +486,7 @@ pub async fn get_tmdb_details(
             .and_then(|v| v.parse::<i64>().ok())
             .unwrap_or(10);
         TMDB_RETRY_AFTER.store(now_secs() + retry, Ordering::Relaxed);
-        return Err(format!(
-            "TMDB rate limit exceeded, try again in {retry}s"
-        ));
+        return Err(format!("TMDB rate limit exceeded, try again in {retry}s"));
     }
     if !status.is_success() {
         let body = response.text().await.unwrap_or_default();
@@ -514,4 +559,96 @@ pub async fn get_tmdb_details(
         genres,
         posters,
     })
+}
+#[allow(non_snake_case)]
+#[tauri::command]
+pub async fn get_tmdb_media(
+    api_key: Option<String>,
+    apiKey: Option<String>,
+    tmdb_id: Option<i64>,
+    tmdbId: Option<i64>,
+    media_type: Option<String>,
+    mediaType: Option<String>,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
+) -> Result<TmdbMedia, String> {
+    let api_key = resolve_api_key(api_key, apiKey);
+    if api_key.is_empty() {
+        return Err("TMDB API key is not set".into());
+    }
+    let tmdb_id = tmdb_id.or(tmdbId).ok_or("TMDB id is missing")?;
+    let media_type = media_type
+        .or(mediaType)
+        .ok_or("TMDB media_type is missing")?;
+    if !matches!(media_type.as_str(), "movie" | "tv") {
+        return Err("TMDB media_type must be movie or tv".into());
+    }
+    let endpoint = format!("{API_HOST}/{media_type}/{tmdb_id}");
+    let bearer = is_bearer_token(&api_key);
+    let proxy = resolve_proxy(proxy_url, proxyUrl);
+    let client = client_for_proxy(proxy.as_deref())?;
+    throttle_tmdb().await;
+    let mut request = client.get(&endpoint).query(&[
+        ("language", "en-US"),
+        ("append_to_response", "videos,images"),
+        ("include_image_language", "en,null"),
+    ]);
+    if bearer {
+        request = request.header("Authorization", format!("Bearer {api_key}"));
+    } else {
+        request = request.query(&[("api_key", api_key.as_str())]);
+    }
+    let response = request
+        .send()
+        .await
+        .map_err(|e| redact_key(format!("TMDB media request failed: {e}"), &api_key))?;
+    update_rate_limit(response.headers());
+    let status = response.status();
+    if status == reqwest::StatusCode::UNAUTHORIZED {
+        return Err("TMDB API key is invalid".into());
+    }
+    if !status.is_success() {
+        return Err(format!("TMDB media failed with status {status}"));
+    }
+    let json: serde_json::Value = response
+        .json()
+        .await
+        .map_err(|e| format!("TMDB media parse failed: {e}"))?;
+    Ok(parse_tmdb_media(&json))
+}
+
+#[cfg(test)]
+mod tmdb_media_tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn parses_backdrops_and_trailer() {
+        let json = json!({
+            "images": { "backdrops": [
+                { "file_path": "/a.jpg" },
+                { "file_path": "" },
+                { "file_path": "/b.jpg" },
+            ]},
+            "videos": { "results": [
+                { "site": "YouTube", "type": "Teaser", "key": "teaser1" },
+                { "site": "Vimeo", "type": "Trailer", "key": "nope" },
+                { "site": "YouTube", "type": "Trailer", "key": "abc123" },
+            ]},
+        });
+        let media = parse_tmdb_media(&json);
+        assert_eq!(media.backdrops.len(), 2);
+        assert_eq!(
+            media.backdrops[0].url,
+            "https://image.tmdb.org/t/p/w780/a.jpg"
+        );
+        assert_eq!(media.trailer_youtube_id.as_deref(), Some("abc123"));
+    }
+
+    #[test]
+    fn empty_media_without_images_or_videos() {
+        let media = parse_tmdb_media(&json!({}));
+        assert!(media.backdrops.is_empty());
+        assert_eq!(media.trailer_youtube_id, None);
+    }
 }

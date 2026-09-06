@@ -1,4 +1,4 @@
-import { useI18n } from "@/lib/i18n";
+import { useI18n } from "@/lib/locale/i18n.utils";
 import type { Anime } from "@/types";
 
 export default function SearchResultsSummary({
@@ -22,7 +22,8 @@ export default function SearchResultsSummary({
             page,
             shown,
             total: data.length,
-            status: data.length < resultsPerPage ? t("search.all.shown") : t("search.more.available"),
+            status:
+              data.length < resultsPerPage ? t("search.all.shown") : t("search.more.available"),
           })
         : t("search.results.count", { count: data.length })}
     </span>

@@ -2,29 +2,23 @@ import { ArrowDown, ArrowUp, Check } from "lucide-react";
 
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
-import { enterSubmit } from "@/lib/keyboard.utils";
-
-interface Props {
-  dlInput: string;
-  ulInput: string;
-  dlLimit: number | null;
-  ulLimit: number | null;
-  onDlChange: (value: string) => void;
-  onUlChange: (value: string) => void;
-  onApply: () => void;
-}
+import { useI18n } from "@/lib/locale/i18n.utils";
+import { enterSubmit } from "@/lib/utils/keyboard.utils";
+import type { SpeedTorrentProps as Props } from "@/types/torrent";
 
 export default function SpeedLimitForm({
-  dlInput,
-  ulInput,
-  dlLimit,
-  ulLimit,
-  onDlChange,
-  onUlChange,
+  limits,
+  downloadInput,
+  uploadInput,
+  onDownloadChange,
+  onUploadChange,
   onApply,
 }: Props) {
   const effective = (input: string) => (input === "" ? null : Number(input));
-
+  const { t } = useI18n();
+  const invalid =
+    (downloadInput !== "" && !(Number(downloadInput) > 0)) ||
+    (uploadInput !== "" && !(Number(uploadInput) > 0));
   return (
     <section className="windows95-active-border bg-primary flex items-center gap-2 p-1">
       <span className="windows95-text">
@@ -34,10 +28,10 @@ export default function SpeedLimitForm({
         type="number"
         className="w-16"
         placeholder="KB/s"
-        value={dlInput}
+        value={downloadInput}
         onChange={(e) => {
           if (e.target.value === "" || /^\d+$/.test(e.target.value)) {
-            onDlChange(e.target.value);
+            onDownloadChange(e.target.value);
           }
         }}
         onKeyDown={enterSubmit(onApply)}
@@ -50,10 +44,10 @@ export default function SpeedLimitForm({
         type="number"
         className="w-16"
         placeholder="KB/s"
-        value={ulInput}
+        value={uploadInput}
         onChange={(e) => {
           if (e.target.value === "" || /^\d+$/.test(e.target.value)) {
-            onUlChange(e.target.value);
+            onUploadChange(e.target.value);
           }
         }}
         onKeyDown={enterSubmit(onApply)}
@@ -63,10 +57,14 @@ export default function SpeedLimitForm({
         size="icon"
         className="windows95-text size-6"
         onClick={onApply}
-        disabled={effective(dlInput) === dlLimit && effective(ulInput) === ulLimit}
+        disabled={
+          effective(downloadInput) === limits.download && effective(uploadInput) === limits.upload
+        }
+        title={invalid ? t("torrent.limits.invalid") : undefined}
       >
         <Check className="size-4" />
       </Button>
+      {invalid && <span className="text-destructive text-xs">{t("torrent.limits.invalid")}</span>}
     </section>
   );
 }

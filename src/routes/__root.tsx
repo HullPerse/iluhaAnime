@@ -5,7 +5,7 @@ import { lazy, useEffect } from "react";
 import { BigError } from "@/components/shared/error.component";
 import { BigLoader } from "@/components/shared/loader.component";
 import OutletComponent from "@/components/shared/outlet.component";
-import { translate } from "@/lib/i18n";
+import { translate } from "@/lib/locale/i18n.utils";
 import { useSettingsStore } from "@/store/settings.store";
 
 const App = lazy(() => import("@/App"));

@@ -1,5 +1,6 @@
-import { cn } from "@/lib/index.utils";
-import { enterOrSpace } from "@/lib/keyboard.utils";
+import { cn } from "cn";
+
+import { enterOrSpace } from "@/lib/utils/keyboard.utils";
 
 function Radio({
   checked,

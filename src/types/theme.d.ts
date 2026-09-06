@@ -8,9 +8,7 @@ export interface ThemeDefinition {
     secondary: string;
     text: string;
     muted: string;
-    /** Ghost-text color for inline autocomplete. Falls back to muted for old themes. */
     autocomplete?: string;
-    /** Ghost-text opacity from 0 to 1. Falls back to 0.6 for old themes. */
     autocompleteOpacity?: number;
     highlight: string;
     destructive: string;
@@ -29,3 +27,5 @@ export interface ThemeStore {
   addCustomTheme: (theme: ThemeDefinition) => void;
   removeCustomTheme: (name: string) => void;
 }
+
+export type ThemeColorKey = Exclude<keyof ThemeDefinition["colors"], "autocompleteOpacity">;

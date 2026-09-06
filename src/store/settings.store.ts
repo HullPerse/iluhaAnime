@@ -1,9 +1,10 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-import { DEFAULT_SETTINGS } from "@/config/settings.config";
-import { applyFontFamily, DEFAULT_FONT_FAMILY } from "@/lib/font.utils";
-import { detectSystemLocale } from "@/lib/locale.utils";
+import { DEFAULT_SETTINGS } from "@/config/settings/defaults.config";
+import { detectSystemLocale } from "@/lib/locale/system.utils";
+import { normalizePlayerPath } from "@/lib/player/visibility.utils";
+import { applyFontFamily, DEFAULT_FONT_FAMILY } from "@/lib/utils/font.utils";
 import type { SettingsStore } from "@/types/settings";
 
 function cleanupLegacyFlags(
@@ -134,6 +135,50 @@ function applySettingsV13(
   return migrated;
 }
 
+function applySettingsV14(
+  migrated: Partial<SettingsStore>,
+  version: number
+): Partial<SettingsStore> {
+  if (version >= 14) return migrated;
+  if (migrated.collectionGroupHeaderStyle === undefined)
+    migrated.collectionGroupHeaderStyle = DEFAULT_SETTINGS.collectionGroupHeaderStyle;
+  return migrated;
+}
+
+function applySettingsV15(
+  migrated: Partial<SettingsStore>,
+  version: number
+): Partial<SettingsStore> {
+  if (version >= 15) return migrated;
+  const legacy = migrated as Partial<SettingsStore> & {
+    dlLimit?: number | null;
+    ulLimit?: number | null;
+  };
+  if (migrated.limits === undefined) {
+    migrated.limits = {
+      download: legacy.dlLimit ?? null,
+      upload: legacy.ulLimit ?? null,
+    };
+  }
+  delete (migrated as Record<string, unknown>).dlLimit;
+  delete (migrated as Record<string, unknown>).ulLimit;
+  return migrated;
+}
+
+function applySettingsV16(
+  migrated: Partial<SettingsStore>,
+  version: number
+): Partial<SettingsStore> {
+  if (version >= 16) return migrated;
+  if (migrated.playerFolderHeights === undefined || migrated.playerFolderHeights === null) {
+    migrated.playerFolderHeights = {};
+  }
+  if (typeof migrated.playerFolderHeights !== "object") {
+    migrated.playerFolderHeights = {};
+  }
+  return migrated;
+}
+
 function applyUiPreferences(
   retroStyle: SettingsStore["retroStyle"],
   uiDensity: SettingsStore["uiDensity"]
@@ -202,6 +247,15 @@ export const useSettingsStore = create<SettingsStore>()(
         set((state) => ({
           hiddenPlayerTorrents: state.hiddenPlayerTorrents.filter((value) => value !== infoHash),
         })),
+      setPlayerFolderHeight: (path, height) =>
+        set((state) => {
+          const key = normalizePlayerPath(path);
+          if (!key) return state;
+          const heights = { ...state.playerFolderHeights };
+          if (height === null) delete heights[key];
+          else heights[key] = height;
+          return { playerFolderHeights: heights };
+        }),
     }),
     {
       migrate: (persistedState: unknown, version: number) => {
@@ -226,6 +280,9 @@ export const useSettingsStore = create<SettingsStore>()(
         migrated = applySettingsV11(migrated, version);
         migrated = applySettingsV12(migrated, version);
         migrated = applySettingsV13(migrated, version);
+        migrated = applySettingsV14(migrated, version);
+        migrated = applySettingsV15(migrated, version);
+        migrated = applySettingsV16(migrated, version);
         return migrated;
       },
       name: "settings",
@@ -235,7 +292,7 @@ export const useSettingsStore = create<SettingsStore>()(
           if (state.appFont) applyFontFamily(state.appFont);
         }
       },
-      version: 13,
+      version: 16,
     }
   )
 );

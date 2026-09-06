@@ -1,7 +1,7 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button.component";
-import { useI18n } from "@/lib/i18n";
+import { useI18n } from "@/lib/locale/i18n.utils";
 
 export default function SearchPager({
   page,
@@ -23,6 +23,8 @@ export default function SearchPager({
         className="size-5"
         disabled={page <= 1 || isLoading}
         onClick={() => onPageChange(Math.max(1, page - 1))}
+        title={t("common.previous")}
+        aria-label={t("common.previous")}
       >
         <ChevronLeft className="size-3" />
       </Button>
@@ -31,6 +33,8 @@ export default function SearchPager({
         className="size-5"
         disabled={!pageFull || isLoading}
         onClick={() => onPageChange(page + 1)}
+        title={t("common.next")}
+        aria-label={t("common.next")}
       >
         <ChevronRight className="size-3" />
       </Button>

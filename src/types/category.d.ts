@@ -20,14 +20,27 @@ export interface CategoryEntry {
 export interface CategoryStore {
   categories: Category[];
   entries: Record<string, CategoryEntry[]>;
+  collapsedIds: string[];
 
   addCategory: (name: string) => string;
   removeCategory: (id: string) => void;
   renameCategory: (id: string, name: string) => void;
   changeIcon: (id: string, icon: string) => void;
   reorderCategories: (ids: string[]) => void;
+  setCategoryCollapsed: (id: string, collapsed: boolean) => void;
   addEntry: (categoryId: string, entry: Omit<CategoryEntry, "id">) => void;
   removeEntry: (categoryId: string, entryId: string) => void;
   removeEntriesByFolderPath: (path: string) => void;
   removeEntriesByTorrentId: (id: number) => void;
 }
+
+export type CategoryDragData =
+  | { type: "folder"; name: string; folderPath: string }
+  | {
+      type: "torrent";
+      name: string;
+      infoHash: string;
+      torrentId: number;
+      saveDir: string;
+      totalBytes: number;
+    };

@@ -1,7 +1,8 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import Slider, { DualSlider } from "@/components/ui/range.component";
+import { DualSlider } from "@/components/ui/dualSlider.component";
+import Slider from "@/components/ui/range.component";
 import { useSettingsStore } from "@/store/settings.store";
 
 function mockTrackRect(el: Element, width = 100) {
@@ -72,13 +73,13 @@ describe("Slider keyboard", () => {
   });
 });
 
-  it("focuses the track on mouse down so arrows work after click", () => {
-    const onChange = vi.fn();
-    render(<Slider min={0} max={10} step={1} value={5} onChange={onChange} />);
-    const track = screen.getByRole("slider");
-    fireEvent.mouseDown(track);
-    expect(document.activeElement).toBe(track);
-  });
+it("focuses the track on mouse down so arrows work after click", () => {
+  const onChange = vi.fn();
+  render(<Slider min={0} max={10} step={1} value={5} onChange={onChange} />);
+  const track = screen.getByRole("slider");
+  fireEvent.mouseDown(track);
+  expect(document.activeElement).toBe(track);
+});
 
 describe("DualSlider keyboard", () => {
   it("steps the focused thumb and clamps against the other", () => {
@@ -91,7 +92,6 @@ describe("DualSlider keyboard", () => {
     expect(onChange).toHaveBeenLastCalledWith([3, 6]);
   });
 });
-
 
 describe("DualSlider wheel", () => {
   function renderDual(value: [number, number]) {
@@ -139,5 +139,4 @@ describe("DualSlider wheel", () => {
     track.dispatchEvent(event);
     expect(event.defaultPrevented).toBe(true);
   });
-
 });

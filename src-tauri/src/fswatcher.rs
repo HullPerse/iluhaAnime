@@ -105,8 +105,6 @@ impl FolderWatcher {
 
     pub fn stop(&mut self) {
         self.cancel.cancel();
-        // Dropping the watcher closes notify's channel and lets the blocking
-        // receiver exit instead of waiting forever on an invalid unwatch path.
         self.watcher.take();
     }
 }

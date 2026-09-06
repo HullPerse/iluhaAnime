@@ -37,10 +37,6 @@ pub fn extract_announce_url(torrent_bytes: &[u8]) -> Result<String, String> {
 }
 
 fn find_info_value_bytes(bytes: &[u8]) -> Result<&[u8], String> {
-    // Walk the top-level dictionary: keys are bencode strings, and we need the
-    // value of the `info` key. A raw substring search for the marker `4:info` is
-    // unsafe because a string value (e.g. a tracker URL or comment) may contain
-    // that exact byte sequence and would be mistaken for the real key.
     if bytes.first() != Some(&b'd') {
         return Err("Torrent must be a bencoded dictionary".to_string());
     }
@@ -52,7 +48,6 @@ fn find_info_value_bytes(bytes: &[u8]) -> Result<&[u8], String> {
             let value_end = skip_bencode_value(bytes, value_start)?;
             return Ok(&bytes[value_start..value_end]);
         }
-        // Not the info key: skip past its value and continue.
         pos = skip_bencode_value(bytes, key_end)?;
     }
     Err("Info key not found in torrent".to_string())
@@ -182,8 +177,6 @@ mod tests {
 
     #[test]
     fn find_info_value_bytes_ignores_decoy_marker_inside_string_values() {
-        // The tracker URL contains the byte sequence `4:info` before the real
-        // key. A naive raw substring search would stop at the decoy and fail.
         let bytes = b"d8:announce29:https://x.com/4:info/announce4:infod4:name4:testee";
         let result = find_info_value_bytes(bytes);
         assert!(result.is_ok());

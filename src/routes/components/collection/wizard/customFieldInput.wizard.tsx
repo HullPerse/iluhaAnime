@@ -1,6 +1,6 @@
 import type { CustomFieldDef } from "@/types/collection";
 
-export function WizardCustomFieldInputCollection({
+export function WizardCustomFieldInput({
   def,
   value,
   onChange,

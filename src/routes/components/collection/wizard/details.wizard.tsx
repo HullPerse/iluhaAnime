@@ -2,8 +2,8 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
-import { statusLabel } from "@/lib/collection.utils";
-import { useI18n } from "@/lib/i18n";
+import { statusLabel } from "@/lib/collection/status.utils";
+import { useI18n } from "@/lib/locale/i18n.utils";
 import type {
   CollectionItem,
   CollectionStatus,
@@ -11,11 +11,12 @@ import type {
   CustomFieldDef,
 } from "@/types/collection";
 
-import { WizardMoreFieldsCollection } from "./more.wizard";
+import { WizardMoreFields } from "./more.wizard";
 
-export function WizardDetailsPanelCollection(props: {
+export function WizardDetailsPanel(props: {
   title: string;
   setTitle: (value: string) => void;
+  duplicateTitle: boolean;
   type: CollectionItem["type"];
   setType: (value: CollectionItem["type"]) => void;
   status: CollectionStatus;
@@ -66,6 +67,14 @@ export function WizardDetailsPanelCollection(props: {
           className="windows95-border bg-white px-2 py-1 text-xs"
           aria-label={t("collection.wizard.title")}
         />
+        {props.duplicateTitle && (
+          <>
+            <span />
+            <span className="text-destructive text-xs">
+              {t("collection.wizard.duplicate.title")}
+            </span>
+          </>
+        )}
 
         <span className="text-text flex items-center text-xs font-bold">
           {t("collection.wizard.status")}
@@ -168,7 +177,7 @@ export function WizardDetailsPanelCollection(props: {
       </Button>
 
       {showMore && (
-        <WizardMoreFieldsCollection
+        <WizardMoreFields
           altTitles={props.altTitles}
           setAltTitles={props.setAltTitles}
           year={props.year}

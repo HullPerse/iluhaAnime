@@ -1,24 +1,14 @@
+import { cn } from "cn";
 import { Clipboard, Download, Eye } from "lucide-react";
 
 import { SmallLoader } from "@/components/shared/loader.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
-import { SOURCE_INFOS } from "@/config/search.config";
-import { useI18n } from "@/lib/i18n";
-import { cn, detectLanguages, formatSize } from "@/lib/index.utils";
-import { getLanguageColors } from "@/lib/search.logic";
-import type { Anime } from "@/types";
-
-interface Props {
-  item: Anime;
-  source: string;
-  loadingMagnet: Record<string, boolean>;
-  onCopyMagnet: (item: Anime) => void;
-  onOpenMagnet: (item: Anime) => void;
-  onDownload: (item: Anime) => void;
-  onOpenLink: (item: Anime) => void;
-  onOpenDetails: (item: Anime) => void;
-}
+import { SOURCE_INFOS } from "@/config/search/sources.config";
+import { useI18n } from "@/lib/locale/i18n.utils";
+import { detectLanguages, formatSize } from "@/lib/search/format.utils";
+import { getLanguageColors } from "@/lib/search/results.utils";
+import type { ResultSearchProps as Props } from "@/types/search";
 
 export default function SearchResultItem({
   item,
@@ -54,7 +44,10 @@ export default function SearchResultItem({
             {detectLanguages(item.title).map((l) => (
               <span
                 key={l.code}
-                className={cn("windows95-font px-1 text-xs", colors[l.code as keyof typeof colors] || "bg-muted text-white")}
+                className={cn(
+                  "windows95-font px-1 text-xs",
+                  colors[l.code as keyof typeof colors] || "bg-muted text-white"
+                )}
               >
                 {l.label}
               </span>

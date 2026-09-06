@@ -1,3 +1,4 @@
+import { cn } from "cn";
 import { useState } from "react";
 
 import UserImageIcon from "@/components/shared/avatar.component";
@@ -5,12 +6,10 @@ import UserImagePicker from "@/components/shared/avatar.picker";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
-import { playerIcons } from "@/config/player.config";
-import { useI18n } from "@/lib/i18n";
-import { cn } from "@/lib/index.utils";
-import { enterOrSpace } from "@/lib/keyboard.utils";
+import { playerIcons } from "@/config/player/icons.config";
+import { useI18n } from "@/lib/locale/i18n.utils";
+import { enterOrSpace } from "@/lib/utils/keyboard.utils";
 import { useCategoryStore } from "@/store/category.store";
-import type { UserImage } from "@/types";
 
 function CategoryIconModal({ id, handleClose }: { id: string; handleClose: () => void }) {
   const category = useCategoryStore((s) => s.categories.find((c) => c.id === id));
@@ -28,13 +27,12 @@ function CategoryIconModal({ id, handleClose }: { id: string; handleClose: () =>
     handleClose();
   };
 
-  const handleUserImage = (icon: string, _image?: UserImage) => {
+  const handleUserImage = (icon: string) => {
     setSelected(icon);
   };
 
   return (
     <Modal header={t("player.category.change.icon")} onClose={handleClose} className="w-xl">
-      {/* ALL ICONS LIST + CURRENT ICON */}
       <section className="windows95-border grid h-64 grid-cols-8 gap-2 overflow-x-hidden overflow-y-scroll bg-white p-1">
         {playerIcons.map((icon) => (
           <div
@@ -64,7 +62,6 @@ function CategoryIconModal({ id, handleClose }: { id: string; handleClose: () =>
         </div>
       )}
 
-      {/* SAVE AND CANCEL */}
       <section className="windows95-text mt-2 ml-auto flex flex-row gap-1">
         <Button onClick={handleClose}>{t("common.cancel").toUpperCase()}</Button>
         <Button variant="success" onClick={handleChangeIcon} disabled={selected === category?.icon}>

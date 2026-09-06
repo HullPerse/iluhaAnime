@@ -17,10 +17,10 @@ const origScrollIntoView = proto.scrollIntoView;
 
 function renderStrip(selectedStatus: CollectionStatus | "all" = "all") {
   const onSelect = vi.fn();
-  render(
+  const view = render(
     <StatusCollection statuses={STATUSES} selectedStatus={selectedStatus} onSelect={onSelect} />
   );
-  return { onSelect, strip: document.querySelector("main") as HTMLElement };
+  return { onSelect, strip: view.container.querySelector(".overflow-x-auto") as HTMLElement };
 }
 
 function mockOverflow(

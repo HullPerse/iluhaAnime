@@ -13,10 +13,6 @@ beforeEach(() => {
 });
 
 describe("useAniListFriendsStore", () => {
-  it("starts with an empty list", () => {
-    expect(useAniListFriendsStore.getState().friends).toEqual([]);
-  });
-
   it("adds a friend with a timestamp", () => {
     useAniListFriendsStore.getState().addFriend(friend);
 

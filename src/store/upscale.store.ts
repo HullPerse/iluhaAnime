@@ -1,10 +1,10 @@
-import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import type { UnlistenFn } from "@tauri-apps/api/event";
 import { create } from "zustand";
 
-import { translate } from "@/lib/i18n";
-import { buildOutputPath } from "@/lib/player.utils";
+import { translate } from "@/lib/locale/i18n.utils";
+import { buildOutputPath } from "@/lib/player/tree.utils";
+import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSettingsStore } from "@/store/settings.store";
 import type { ConvertConfig, UpscaleConfig } from "@/types";
 import type { UpscaleQueueItem, UpscaleProgressPayload, UpscaleQueueStore } from "@/types/upscale";
@@ -57,7 +57,7 @@ export const useUpscaleQueueStore = create<UpscaleQueueStore>()((set, get) => ({
   },
   clearAll: () => {
     if (get().processing) {
-      invoke("cancel_upscale");
+      invokeTyped("cancel_upscale");
     }
     set({ items: [] });
   },
@@ -88,6 +88,7 @@ export const useUpscaleQueueStore = create<UpscaleQueueStore>()((set, get) => ({
               current: undefined,
               total: undefined,
               speed: undefined,
+              stage: undefined,
             }
           : i
       ),
@@ -106,6 +107,7 @@ export const useUpscaleQueueStore = create<UpscaleQueueStore>()((set, get) => ({
                   current: p.current,
                   total: p.total,
                   speed: p.speed,
+                  stage: p.stage,
                   status: p.stage === "done" ? ("done" as const) : ("processing" as const),
                 }
               : i
@@ -115,7 +117,7 @@ export const useUpscaleQueueStore = create<UpscaleQueueStore>()((set, get) => ({
 
       if (next.jobType === "upscale") {
         const cfg = next.config as UpscaleConfig;
-        await invoke("upscale_video", {
+        await invokeTyped("upscale_video", {
           inputPath: next.filePath,
           outputPath: next.outputPath,
           width: cfg.width,
@@ -124,12 +126,14 @@ export const useUpscaleQueueStore = create<UpscaleQueueStore>()((set, get) => ({
           interpolate: cfg.interpolate,
           quality: cfg.quality,
           gpuBackend: cfg.gpuBackend,
+          videoCodec: cfg.videoCodec,
           aiUpscaler: cfg.aiUpscaler,
           selectedShaders: cfg.selectedShaders,
+          temporalDenoise: cfg.temporalDenoise,
         });
       } else {
         const cfg = next.config as ConvertConfig;
-        await invoke("convert_video", {
+        await invokeTyped("convert_video", {
           inputPath: next.filePath,
           outputPath: next.outputPath,
           targetFormat: cfg.targetFormat,
@@ -158,7 +162,7 @@ export const useUpscaleQueueStore = create<UpscaleQueueStore>()((set, get) => ({
     const item = get().items.find((i) => i.id === id);
     set((s) => ({ items: s.items.filter((i) => i.id !== id) }));
     if (item?.status === "processing") {
-      invoke("cancel_upscale").catch(() => {});
+      invokeTyped("cancel_upscale").catch(() => {});
       set({ processing: false });
     }
   },

@@ -1,19 +1,10 @@
-import { Activity, Heart, Dices, CalendarDays } from "lucide-react";
+import { Activity, Heart, Dices, SortAsc, SortDesc } from "lucide-react";
 
 import { Button } from "@/components/ui/button.component";
-import { getSortingLabel } from "@/lib/anilist.utils";
-import { useI18n } from "@/lib/i18n";
+import { getSortingLabel } from "@/lib/anilist/entries.utils";
+import { useI18n } from "@/lib/locale/i18n.utils";
 import type { AniListSort } from "@/types/anilist";
-
-interface Props {
-  sort: AniListSort;
-  onSortChange: (sort: AniListSort) => void;
-  onActivityOpen: () => void;
-  onFavouritesOpen: () => void;
-  onRandom: () => void;
-  onHistoryOpen: () => void;
-  hasFavourites: boolean;
-}
+import type { AniSortProps as Props } from "@/types/anilist";
 
 export default function AniListSortBar({
   sort,
@@ -21,7 +12,6 @@ export default function AniListSortBar({
   onActivityOpen,
   onFavouritesOpen,
   onRandom,
-  onHistoryOpen,
   hasFavourites,
 }: Props) {
   const { t } = useI18n();
@@ -46,6 +36,12 @@ export default function AniListSortBar({
             onClick={() => toggleSort(s)}
           >
             {t(getSortingLabel(s) as never)}
+            {isActive &&
+              (sort.dir === "asc" ? (
+                <SortAsc className="size-3" />
+              ) : (
+                <SortDesc className="size-3" />
+              ))}
           </Button>
         );
       })}
@@ -59,15 +55,6 @@ export default function AniListSortBar({
           aria-label={t("anilist.sort.history")}
         >
           <Activity className="size-3.5" />
-        </Button>
-        <Button
-          size="icon"
-          className="h-6 w-6"
-          title={t("anilist.sort.history")}
-          aria-label={t("anilist.sort.history")}
-          onClick={onHistoryOpen}
-        >
-          <CalendarDays className="size-3.5" />
         </Button>
         <Button
           size="icon"

@@ -1,10 +1,4 @@
-import type { FranchiseGraph } from "./anilist";
 import type { FolderNode } from "./torrent";
-
-export interface FranchiseCacheEntry {
-  graph: FranchiseGraph;
-  fetchedAt: number;
-}
 
 export interface AppCacheRecord<T = unknown> {
   namespace: string;
@@ -23,18 +17,33 @@ export interface RawAppCacheRecord {
 }
 
 export interface CacheStore {
-  franchiseCache: Record<string, FranchiseCacheEntry>;
   folderTrees: { path: string; tree: FolderNode }[];
   lastSaveDir: string;
   seedPreferences: Record<number, boolean>;
   episodeTracker: Record<number, number>;
   initialScanDone: boolean;
 
-  setFranchiseCache: (key: string, graph: FranchiseGraph) => void;
-  clearFranchiseCache: (key: string) => void;
   setFolderTrees: (trees: { path: string; tree: FolderNode }[]) => void;
   setLastSaveDir: (dir: string) => void;
   setSeedPreference: (id: number, enabled: boolean) => void;
   setEpisodeTracker: (tracker: Record<number, number>) => void;
   setInitialScanDone: (v: boolean) => void;
+}
+
+export interface LruCacheStats {
+  capacity: number;
+  size: number;
+  hits: number;
+  misses: number;
+  evictions: number;
+}
+
+export interface LruCache<K, V> {
+  get: (key: K) => V | undefined;
+  peek: (key: K) => V | undefined;
+  set: (key: K, value: V) => void;
+  has: (key: K) => boolean;
+  delete: (key: K) => boolean;
+  clear: () => void;
+  stats: () => LruCacheStats;
 }

@@ -191,9 +191,10 @@ pub async fn download_remote_image(
         "Downloaded data is not a supported image (PNG/JPEG/GIF/WebP)".to_string()
     })?;
     let id = hex::encode(Sha1::digest(&data))[..20].to_string();
-    let name = name_hint
-        .as_deref()
-        .filter(|s| !s.is_empty()).map_or_else(|| "remote-cover".to_string(), |s| s.chars().take(120).collect::<String>());
+    let name = name_hint.as_deref().filter(|s| !s.is_empty()).map_or_else(
+        || "remote-cover".to_string(),
+        |s| s.chars().take(120).collect::<String>(),
+    );
     let created_at = now_seconds();
     let conn = open_database(&app)?;
     conn.execute(

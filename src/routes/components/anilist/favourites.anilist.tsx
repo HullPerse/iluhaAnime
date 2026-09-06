@@ -2,16 +2,9 @@ import { Star } from "lucide-react";
 
 import Modal from "@/components/shared/modal.component";
 import ImageComponent from "@/components/ui/image.component";
-import { useI18n } from "@/lib/i18n";
-import { enterOrSpace } from "@/lib/keyboard.utils";
-import type { FavouriteAnime } from "@/types/anilist";
-
-interface Props {
-  open: boolean;
-  favourites: FavouriteAnime[];
-  onClose: () => void;
-  onAnimeClick: (id: number) => void;
-}
+import { useI18n } from "@/lib/locale/i18n.utils";
+import { enterOrSpace } from "@/lib/utils/keyboard.utils";
+import type { AniFavouritesProps as Props } from "@/types/anilist";
 
 export default function AniListFavouritesModal({ open, favourites, onClose, onAnimeClick }: Props) {
   const { t } = useI18n();

@@ -1,4 +1,3 @@
-/** Status ids are user-extensible since schema v5; core ids seeded in DB. */
 export type CollectionStatus = string;
 export type CollectionType = "anime" | "movie" | "series" | "custom";
 export type ProgressUnit = "episodes" | "seasons" | "minutes" | "pages";
@@ -10,6 +9,11 @@ export interface CollectionStatusDef {
   color: string;
   order: number;
   isCore: boolean;
+}
+
+export interface CollectionGroup {
+  status: CollectionStatusDef;
+  items: CollectionItem[];
 }
 
 export interface CollectionExternalIds {
@@ -59,6 +63,8 @@ export interface CollectionItem {
       episodeCount: number;
       name: string;
     }>;
+    stills?: string[];
+    trailerYoutubeId?: string | null;
   } | null;
 }
 
@@ -80,6 +86,12 @@ export interface CollectionStats {
   ratingDistribution: Record<number, number>;
 }
 
+export interface WizardPrefill {
+  title: string;
+  coverUrl: string | null;
+  status: CollectionStatus;
+}
+
 export interface CollectionStore {
   selectedStatus: CollectionStatus | "all";
   searchQuery: string;
@@ -91,6 +103,7 @@ export interface CollectionStore {
   coverDithered: boolean;
   viewMode: "grid" | "list";
   displayMode: "scroll" | "pagination";
+  wizardPrefill: WizardPrefill | null;
   setSearchQuery: (query: string) => void;
   setSelectedStatus: (status: CollectionStore["selectedStatus"]) => void;
   setSort: (by: CollectionStore["sortBy"], dir: CollectionStore["sortDir"]) => void;
@@ -100,6 +113,8 @@ export interface CollectionStore {
   setCoverDithered: (value: boolean) => void;
   setViewMode: (mode: CollectionStore["viewMode"]) => void;
   setDisplayMode: (mode: CollectionStore["displayMode"]) => void;
+  requestWizardPrefill: (prefill: WizardPrefill) => void;
+  consumeWizardPrefill: () => void;
 }
 
 export interface CollectionFilters {
@@ -114,16 +129,6 @@ export interface CollectionFilters {
   genres: string[];
   hiddenStatuses?: string[];
   defaultStatus?: CollectionStatus;
-}
-
-export interface ReleaseSubscription {
-  id: string;
-  mediaId: number;
-  mediaType: "movie" | "tv";
-  title: string;
-  lastCheckedAt: number | null;
-  nextAiringAt: number | null;
-  createdAt: number;
 }
 
 export type CollectionConfig = {
@@ -178,4 +183,125 @@ export interface SearchField {
   handleAcceptCompletion: (value: string) => void;
   handleDismissCompletion: () => void;
   inputProps: SearchFieldInputProps;
+}
+
+export interface CollectionSearchIndex {
+  items: CollectionItem[];
+  byToken: Map<string, Set<number>>;
+  normalized: Array<{ title: string; altTitles: string[]; genres: string[]; studio: string }>;
+}
+
+export interface ImportBatchGroup {
+  name: string;
+  count: number;
+}
+
+export type WizardSaveValues = {
+  title: string;
+  altTitles: string;
+  type: CollectionItem["type"];
+  status: CollectionStatus;
+  progressValue: string;
+  progressTotal: string;
+  progressUnit: CollectionItem["progressUnit"];
+  durationMinutes: string;
+  rating: string;
+  priority: CollectionItem["priority"];
+  isFavorite: boolean;
+  year: string;
+  genres: string;
+  studio: string;
+  description: string;
+  notes: string;
+  coverUrl: string;
+  externalIds: CollectionItem["externalIds"];
+  customFields: Record<string, unknown>;
+  localPath: string;
+  localKind: CollectionItem["localKind"];
+  startedAt: string;
+  finishedAt: string;
+};
+
+export type WizardSearchResult = {
+  id: number;
+  title: string;
+  cover_url: string | null;
+  year?: number;
+  duration?: number | null;
+  episodes?: number | null;
+  genres?: string[];
+  studio?: string | null;
+  mediaType?: string;
+  altTitles?: string[];
+};
+
+export type TmdbRateLimit = {
+  remaining: number | null;
+  resetAt: number | null;
+  retryAfterSecs: number | null;
+};
+
+export interface GridLayout {
+  columns: number;
+  columnWidth: number;
+}
+
+export type GridVirtualRow =
+  | { kind: "header"; status: CollectionStatusDef }
+  | { kind: "grid"; items: CollectionItem[] };
+
+export type GroupedRow =
+  | { kind: "header"; status: CollectionStatusDef }
+  | { kind: "item"; item: CollectionItem };
+
+export type WizardTab = "source" | "details" | "cover" | "local";
+
+export type FilterParams = CollectionFilters;
+
+export interface CollectionDataState {
+  items: CollectionItem[];
+  customFieldDefs: CustomFieldDef[];
+  statuses: CollectionStatusDef[];
+}
+
+export interface RawCollectionItem extends Omit<
+  CollectionItem,
+  "isFavorite" | "sitesToView" | "tvCurrentSeason" | "tvCurrentEpisode" | "detailsJson"
+> {
+  isFavorite: boolean | number;
+  sitesToView?: unknown;
+  tvCurrentSeason?: number | null;
+  tvCurrentEpisode?: number | null;
+  detailsJson?: unknown;
+}
+
+export interface CollectionCardProps {
+  item: CollectionItem;
+  statuses: CollectionStatusDef[];
+  selected?: boolean;
+  onOpen?: (item: CollectionItem) => void;
+  onEdit?: (item: CollectionItem) => void;
+  onSetStatus?: (item: CollectionItem, status: CollectionStatus) => void;
+}
+
+export interface GridCollectionProps {
+  items: CollectionItem[];
+  statuses: CollectionStatusDef[];
+  display: CollectionStore["displayMode"];
+  selectedId?: string | null;
+  onOpen?: (item: CollectionItem) => void;
+  onEdit?: (item: CollectionItem) => void;
+  onSetStatus?: (item: CollectionItem, status: CollectionStatus) => void;
+  groups?: CollectionGroup[];
+  collapsedStatuses?: Set<string>;
+  onToggleStatusCollapsed?: (statusId: string) => void;
+}
+
+export interface CollectionRowProps {
+  item: CollectionItem;
+  statuses: CollectionStatusDef[];
+  selected?: boolean;
+  onOpen?: (item: CollectionItem) => void;
+  onEdit?: (item: CollectionItem) => void;
+  onSetStatus?: (item: CollectionItem, status: CollectionStatus) => void;
 }

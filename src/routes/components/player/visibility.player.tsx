@@ -2,25 +2,8 @@ import { Eye, FolderOpen, HardDrive, Trash2 } from "lucide-react";
 
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
-import { useI18n } from "@/lib/i18n";
-
-interface HiddenFolder {
-  path: string;
-  name: string;
-}
-
-interface HiddenTorrent {
-  infoHash: string;
-  name: string;
-}
-
-interface Props {
-  folders: HiddenFolder[];
-  torrents: HiddenTorrent[];
-  onUnhideFolder: (path: string) => void;
-  onUnhideTorrent: (infoHash: string) => void;
-  onClose: () => void;
-}
+import { useI18n } from "@/lib/locale/i18n.utils";
+import type { VisibilityPlayerProps as Props } from "@/types/player";
 
 export default function PlayerVisibilityModal({
   folders,

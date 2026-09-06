@@ -1,26 +1,13 @@
+import { cn } from "cn";
 import { Box } from "lucide-react";
 
-import { useI18n } from "@/lib/i18n";
-import { cn } from "@/lib/index.utils";
+import { useI18n } from "@/lib/locale/i18n.utils";
 
 export function BigLoader() {
   return (
-    <main className="bg-primary text-secondary absolute flex h-screen w-screen flex-col items-center justify-center font-extrabold">
+    <div className="bg-primary text-secondary absolute flex h-screen w-screen flex-col items-center justify-center font-extrabold">
       <Box className="size-28 animate-spin" />
-    </main>
-  );
-}
-
-export function WindowLoader({ className }: { className?: string }) {
-  return (
-    <main
-      className={cn(
-        "bg-surface text-secondary flex h-full w-full flex-col items-center justify-center font-extrabold",
-        className
-      )}
-    >
-      <Box className="size-28 animate-spin" />
-    </main>
+    </div>
   );
 }
 

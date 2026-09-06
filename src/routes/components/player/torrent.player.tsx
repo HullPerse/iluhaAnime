@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { invoke } from "@tauri-apps/api/core";
 import { openPath } from "@tauri-apps/plugin-opener";
 import { ChevronDown, ChevronRight, RefreshCw } from "lucide-react";
 import { useCallback } from "react";
@@ -7,19 +6,11 @@ import { useCallback } from "react";
 import { SmallLoader } from "@/components/shared/loader.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
-import { useI18n } from "@/lib/i18n";
-import type { TorrentInfo, TorrentFileInfo } from "@/types/torrent";
+import { useI18n } from "@/lib/locale/i18n.utils";
+import { invokeTyped } from "@/lib/utils/invoke.utils";
+import type { TorrentPlayerProps as Props } from "@/types/player";
 
 import TorrentFilesSection from "../torrent/file.torrent";
-
-interface Props {
-  item: TorrentInfo;
-  files: TorrentFileInfo[] | undefined;
-  isExpanded: boolean;
-  torrentLoading: boolean;
-  onToggleExpand: () => void;
-  hideHeader?: boolean;
-}
 
 export default function TorrentFilesPlayerSection({
   item,
@@ -32,18 +23,15 @@ export default function TorrentFilesPlayerSection({
   const { data = [], refetch } = useQuery({
     queryKey: ["extra_files", item.save_dir],
     queryFn: () =>
-      invoke<{ path: string; name: string; size: number }[]>("scan_extra_files", {
+      invokeTyped<{ path: string; name: string; size: number }[]>("scan_extra_files", {
         path: item.save_dir!,
       }).then((result) => result.map((f) => ({ name: f.name, size: f.size, fullPath: f.path }))),
     enabled: !!item.save_dir,
   });
 
-  const handleUpscaleDone = useCallback(
-    (_filePath: string) => {
-      refetch();
-    },
-    [refetch]
-  );
+  const handleUpscaleDone = useCallback(() => {
+    refetch();
+  }, [refetch]);
 
   const handleDeleteExtraFile = useCallback(() => {
     refetch();

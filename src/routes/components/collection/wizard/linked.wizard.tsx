@@ -1,11 +1,7 @@
-import { useI18n } from "@/lib/i18n";
+import { useI18n } from "@/lib/locale/i18n.utils";
 import type { CollectionItem } from "@/types/collection";
 
-export function WizardLinkedIdsCollection({
-  externalIds,
-}: {
-  externalIds: CollectionItem["externalIds"];
-}) {
+export function WizardLinkedIds({ externalIds }: { externalIds: CollectionItem["externalIds"] }) {
   const { t } = useI18n();
   const hasAny =
     externalIds.anilist != null ||

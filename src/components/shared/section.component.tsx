@@ -1,9 +1,9 @@
+import { cn } from "cn";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import type { ReactNode } from "react";
 import { useId } from "react";
 
-import { useI18n } from "@/lib/i18n";
-import { cn } from "@/lib/index.utils";
+import { useI18n } from "@/lib/locale/i18n.utils";
 
 function Section({
   header,

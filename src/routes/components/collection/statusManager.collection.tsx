@@ -1,15 +1,15 @@
 import { Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 
+import { ConfirmDialog } from "@/components/shared/confirm.component";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { ColorPickerTrigger } from "@/components/ui/color.component";
 import { Input } from "@/components/ui/input.component";
-import { buildCustomStatusId } from "@/lib/collection.utils";
-import { useI18n } from "@/lib/i18n";
+import { DEFAULT_NEW_COLOR } from "@/config/collection/statuses.config";
+import { buildCustomStatusId } from "@/lib/collection/status.utils";
+import { useI18n } from "@/lib/locale/i18n.utils";
 import type { CollectionStatusDef } from "@/types/collection";
-
-const DEFAULT_NEW_COLOR = "#0ea5e9";
 
 function StatusRow({
   status,
@@ -53,7 +53,12 @@ function StatusRow({
           variant="destructive"
           aria-label={`${t("common.delete")} ${status.label}`}
           title={t("collection.status.manager.delete.hint")}
-          onClick={() => onDelete(status.id)}
+          onClick={(e) => {
+            if (e.currentTarget.ownerDocument.activeElement instanceof HTMLInputElement) {
+              e.currentTarget.ownerDocument.activeElement.blur();
+            }
+            onDelete(status.id);
+          }}
         >
           <Trash2 className="size-3" />
         </Button>
@@ -76,6 +81,9 @@ export function StatusManagerCollection({
   const { t } = useI18n();
   const [newLabel, setNewLabel] = useState("");
   const [newColor, setNewColor] = useState(DEFAULT_NEW_COLOR);
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
+  const newId = buildCustomStatusId(newLabel);
+  const duplicateId = newId !== "" && statuses.some((s) => s.id === newId);
 
   const addStatus = () => {
     const id = buildCustomStatusId(newLabel);
@@ -96,7 +104,12 @@ export function StatusManagerCollection({
         <p className="text-hint windows95-font text-xs">{t("collection.status.manager.hint")}</p>
         <ul className="windows95-border flex max-h-64 flex-col overflow-y-auto bg-white">
           {statuses.map((status) => (
-            <StatusRow key={status.id} status={status} onUpsert={onUpsert} onDelete={onDelete} />
+            <StatusRow
+              key={status.id}
+              status={status}
+              onUpsert={onUpsert}
+              onDelete={setPendingDelete}
+            />
           ))}
         </ul>
         <div className="windows95-border flex items-center gap-1 p-1">
@@ -115,7 +128,8 @@ export function StatusManagerCollection({
           <Button
             size="icon"
             variant="success"
-            disabled={!newLabel.trim()}
+            disabled={!newLabel.trim() || duplicateId}
+            title={duplicateId ? t("collection.status.manager.delete.note") : undefined}
             aria-label={t("collection.status.manager.add")}
             onClick={addStatus}
           >
@@ -126,6 +140,21 @@ export function StatusManagerCollection({
           {t("collection.status.manager.delete.note")}
         </p>
       </div>
+      {pendingDelete && (
+        <ConfirmDialog
+          open
+          title={t("collection.status.manager.delete.title")}
+          message={t("collection.status.manager.delete.message")}
+          confirmLabel={t("common.delete")}
+          variant="destructive"
+          onConfirm={() => {
+            onDelete(pendingDelete);
+            setPendingDelete(null);
+          }}
+          onCancel={() => setPendingDelete(null)}
+          onClose={() => setPendingDelete(null)}
+        />
+      )}
     </Modal>
   );
 }

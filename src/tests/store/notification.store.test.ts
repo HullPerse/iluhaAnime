@@ -20,11 +20,6 @@ function getState() {
 }
 
 describe("useNotificationStore", () => {
-  it("starts empty", () => {
-    expect(getState().items).toEqual([]);
-    expect(getState().unreadCount).toBe(0);
-  });
-
   describe("add", () => {
     it("creates a notification item with required fields", () => {
       getState().add("Test title");

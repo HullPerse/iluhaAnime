@@ -2,7 +2,7 @@ import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { DEFAULT_FILTERS } from "@/lib/collection.filters";
+import { DEFAULT_FILTERS } from "@/config/collection/filters.config";
 import FilterCollection from "@/routes/components/collection/filter.collection";
 import { useSettingsStore } from "@/store/settings.store";
 import type { CollectionFilters } from "@/types/collection";
@@ -15,18 +15,9 @@ const DEFAULT_MODAL_FILTERS: CollectionFilters = {
 
 function renderModal(filters: CollectionFilters = DEFAULT_MODAL_FILTERS) {
   const onApply = vi.fn();
-  const onReset = vi.fn();
   const onClose = vi.fn();
-  render(
-    <FilterCollection
-      open
-      filters={filters}
-      onApply={onApply}
-      onReset={onReset}
-      onClose={onClose}
-    />
-  );
-  return { onApply, onReset, onClose };
+  render(<FilterCollection open filters={filters} onApply={onApply} onClose={onClose} />);
+  return { onApply, onClose };
 }
 
 async function clickOption(text: string, role: string) {
@@ -50,7 +41,6 @@ describe("FilterCollection modal", () => {
         open={false}
         filters={{ ...DEFAULT_FILTERS, mediaTypes: [], genres: [] }}
         onApply={vi.fn()}
-        onReset={vi.fn()}
         onClose={vi.fn()}
       />
     );
@@ -77,8 +67,8 @@ describe("FilterCollection modal", () => {
     expect(onApply.mock.calls[0]![0]).toMatchObject({ provider: "tmdb" });
   });
 
-  it("resets without applying on Reset", async () => {
-    const { onApply, onReset, onClose } = renderModal({
+  it("resets the draft without applying on Reset", async () => {
+    const { onApply, onClose } = renderModal({
       ...DEFAULT_FILTERS,
       provider: "tmdb",
       mediaTypes: [],
@@ -86,7 +76,17 @@ describe("FilterCollection modal", () => {
     });
     const user = userEvent.setup();
     await user.click(screen.getByRole("button", { name: "Reset filters" }));
-    expect(onReset).toHaveBeenCalledTimes(1);
+    expect(onApply).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Apply" }));
+    expect(onApply).toHaveBeenCalledTimes(1);
+    expect(onApply.mock.calls[0]![0]).toMatchObject({ provider: "any", genres: [] });
+  });
+
+  it("closes without applying on Cancel", async () => {
+    const { onApply, onClose } = renderModal();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
     expect(onClose).toHaveBeenCalledTimes(1);
     expect(onApply).not.toHaveBeenCalled();
   });

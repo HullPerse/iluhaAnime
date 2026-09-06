@@ -1,3 +1,4 @@
+import { cn } from "cn";
 import {
   Bell,
   BellDot,
@@ -16,15 +17,27 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import type { ReactNode } from "react";
 
 import { Button } from "@/components/ui/button.component";
-import { useI18n } from "@/lib/i18n";
-import type { TranslationKey } from "@/lib/i18n";
-import { cn } from "@/lib/index.utils";
-import { copyNotification, formatRelativeTime } from "@/lib/notification.utils";
-import { fmtETA, fmtSize, fmtSpeed, stateLabel } from "@/lib/torrent.utils";
+import { useI18n } from "@/lib/locale/i18n.utils";
+import type { TranslationKey } from "@/lib/locale/i18n.utils";
+import {
+  fmtETA,
+  fmtSize,
+  fmtSpeed,
+  isCurrentDownload,
+  stateLabel,
+} from "@/lib/torrent/common.utils";
+import {
+  COPIED_FEEDBACK_MS,
+  copyNotification,
+  formatRelativeTime,
+  getVisibleNotifications,
+} from "@/lib/utils/notification.utils";
 import { useTorrentStore } from "@/store/download.store";
 import { useNotificationStore } from "@/store/notification.store";
-import type { NotificationItem, NotificationType } from "@/types/notification";
+import type { NotificationFilter, NotificationItem, NotificationType } from "@/types/notification";
 import type { TorrentInfo } from "@/types/torrent";
+
+import ProgressBar from "./progress.component";
 
 const typeColors: Record<NotificationType, string> = {
   error: "text-red-600",
@@ -40,11 +53,16 @@ const typeIcons: Record<NotificationType, ReactNode> = {
   warning: <AlertTriangle className="size-2.5" />,
 };
 
-type Filter = NotificationType | "all" | "downloads";
+const FILTERS: readonly NotificationFilter[] = [
+  "all",
+  "info",
+  "success",
+  "warning",
+  "error",
+  "downloads",
+];
 
-const FILTERS: readonly Filter[] = ["all", "info", "success", "warning", "error", "downloads"];
-
-const filterKeys: Record<Filter, TranslationKey> = {
+const filterKeys: Record<NotificationFilter, TranslationKey> = {
   all: "notification.filter.all",
   downloads: "notification.filter.downloads",
   error: "notification.filter.error",
@@ -52,19 +70,6 @@ const filterKeys: Record<Filter, TranslationKey> = {
   success: "notification.filter.success",
   warning: "notification.filter.warning",
 };
-
-function isCurrentDownload(torrent: TorrentInfo): boolean {
-  return !torrent.finished && torrent.state !== "paused" && torrent.state !== "error";
-}
-
-function getVisibleNotifications(
-  allItems: NotificationItem[],
-  currentFilter: Filter
-): NotificationItem[] {
-  if (currentFilter === "downloads") return [];
-  if (currentFilter === "all") return allItems;
-  return allItems.filter((i) => i.type === currentFilter);
-}
 
 const EMPTY_TORRENTS: TorrentInfo[] = [];
 
@@ -87,16 +92,12 @@ function ActiveTorrentItem({ item }: { item: TorrentInfo }) {
         </span>
         <span className="windows95-text shrink-0 text-xs">{percentage}%</span>
       </div>
-      <div
-        className="windows95-border mt-1 h-2 bg-white"
-        role="progressbar"
-        aria-label={`${item.name} ${percentage}%`}
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={percentage}
-      >
-        <div className="bg-secondary h-full" style={{ width: `${percentage}%` }} />
-      </div>
+      <ProgressBar
+        value={percentage}
+        max={100}
+        className="mt-1 h-2"
+        ariaLabel={`${item.name} ${percentage}%`}
+      />
       <div className="text-hint windows95-text mt-0.5 flex flex-wrap gap-x-2 text-xs">
         <span>
           {fmtSize(item.progress_bytes)} / {fmtSize(item.total_bytes)}
@@ -132,7 +133,7 @@ function NotificationRow({ item, t, markRead, clear }: NotificationRowProps) {
       await copyNotification(item);
       setCopied(true);
       if (timer.current) window.clearTimeout(timer.current);
-      timer.current = window.setTimeout(() => setCopied(false), 1500);
+      timer.current = window.setTimeout(() => setCopied(false), COPIED_FEEDBACK_MS);
     } catch {}
   };
 
@@ -189,16 +190,12 @@ function NotificationRow({ item, t, markRead, clear }: NotificationRowProps) {
 export default function NotificationTray() {
   const { items, unreadCount, markRead, markAllRead, clear, clearAll } = useNotificationStore();
   const [open, setOpen] = useState(false);
-  const [filter, setFilter] = useState<Filter>("all");
+  const [filter, setFilter] = useState<NotificationFilter>("all");
   const ref = useRef<HTMLDivElement>(null);
 
-  // Only track live torrent progress while the tray is open, so the per-second
-  // torrent refresh does not re-render the tray (and its subtree) when closed.
   const torrents = useTorrentStore((state) => (open ? state.torrents : EMPTY_TORRENTS));
   const activeDownloads = useMemo(() => torrents.filter(isCurrentDownload), [torrents]);
   const { t } = useI18n();
-  // Screen-reader announcements: the tray itself is closed most of the time,
-  // so new notifications must be announced through a hidden live region.
   const latest = items[0];
 
   useEffect(() => {
@@ -244,7 +241,7 @@ export default function NotificationTray() {
 
       {open && (
         <div
-          className="windows95-border absolute top-full right-0 z-50 mt-1 w-100 bg-white shadow-md"
+          className="windows95-border absolute top-full right-0 z-50 mt-1 w-100 max-w-[90vw] bg-white shadow-md"
           role="region"
           aria-label={t("notification.title")}
         >

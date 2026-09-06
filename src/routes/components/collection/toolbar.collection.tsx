@@ -4,9 +4,9 @@ import { useMemo } from "react";
 import { InlineAutocompleteInput } from "@/components/shared/autocomplete.component";
 import { Button } from "@/components/ui/button.component";
 import Select from "@/components/ui/select.component";
-import { useCollectionDataActions } from "@/hooks/collectionData.hook";
-import { useI18n } from "@/lib/i18n";
-import { tokenizeIntent } from "@/lib/intentParser.utils";
+import { useCollectionDataActions } from "@/hooks/collection/data.hook";
+import { useI18n } from "@/lib/locale/i18n.utils";
+import { tokenizeIntent } from "@/lib/search/intent.utils";
 import type { CollectionStore, SearchField } from "@/types/collection";
 
 import DataCollection from "./data.collection";
@@ -38,7 +38,7 @@ export default function ToolbarCollection({
   );
 
   return (
-    <main className="ui-toolbar ui-panel w-full flex-row">
+    <div className="ui-toolbar ui-panel w-full flex-row">
       <Button onClick={handleAdd} size="icon" className="size-7" title={t("collection.add.media")}>
         <Plus className="size-5" />
       </Button>
@@ -89,16 +89,12 @@ export default function ToolbarCollection({
         <Filter className="size-5" />
       </Button>
 
-      {/*<span className="windows95-text text-hint ml-auto text-xs">
-        {filtered.length} / {items.length}
-      </span>*/}
-
       <DataCollection
         onHandleJson={dataActions.handleExportJson}
         onHandleZip={dataActions.handleExportZip}
         onHandleImport={dataActions.handleImportFile}
         onHandleAnilist={handleAnilistImport}
       />
-    </main>
+    </div>
   );
 }

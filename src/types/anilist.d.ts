@@ -1,6 +1,13 @@
+import type { CSSProperties, MouseEvent as ReactMouseEvent } from "react";
+
+import { RELATION_FILTERS } from "@/config/anilist/graph.config";
+import type { TranslationKey } from "@/lib/locale/i18n.utils";
+
+import type { TranslationVariables } from "./i18n";
+
 export interface AniRanking {
   rank: number;
-  type_: string;
+  type: string;
   context: string;
 }
 
@@ -37,6 +44,8 @@ export interface AniMedia {
   tags: string[];
   description: string | null;
   cover_url: string | null;
+  id_mal?: number | null;
+  trailer_youtube_id?: string | null;
   season: string | null;
   season_year: number | null;
   studios: AniStudio[];
@@ -72,7 +81,6 @@ export interface AniFriend {
   name: string;
   avatar: string | null;
   added_at: number;
-  /** Cached profile data to avoid repeating the same AniList request. */
   profile?: AniUserProfile;
   profile_fetched_at?: number;
 }
@@ -225,7 +233,7 @@ export interface FranchiseGraph {
   edges: FranchiseEdge[];
 }
 
-export interface Props {
+export interface AniListFiltersModalProps {
   open: boolean;
   filters: AniListFilters;
   onApply: (filters: AniListFilters) => void;
@@ -256,6 +264,12 @@ export interface DragState {
   startMouseY: number;
   startNodeX: number;
   startNodeY: number;
+}
+
+export interface FranchiseCamera {
+  x: number;
+  y: number;
+  scale: number;
 }
 
 export interface ContextMenuState {
@@ -312,4 +326,249 @@ export interface FilteredGraph {
   edges: { source: number; target: number; relation_type: string }[];
   ids: Set<number>;
   nodeMap: Map<number, FranchiseNode>;
+}
+
+export type ActivityTranslate = (key: TranslationKey, variables?: TranslationVariables) => string;
+
+export interface DayActivityItem {
+  id: number;
+  title: string;
+  cover: string | null;
+  progress: number | null;
+  events: string;
+}
+
+export interface DayActivity {
+  added: number;
+  progress: number;
+  completed: number;
+  count: number;
+  items: DayActivityItem[];
+}
+
+export interface YearGridCell {
+  date: Date;
+  level: number;
+  count: number;
+}
+
+export interface CollapsedGraph {
+  graph: FilteredGraph;
+  aggregators: Map<number, { group: RelationFilter; count: number }>;
+}
+
+export type AniListViewState = "loading" | "globalLoading" | "globalEmpty" | "localEmpty" | "login";
+
+export type BrowseTab = "popular" | "trending" | "top";
+
+export interface PrefetchItem {
+  id: number;
+  title: string;
+  relations: string[];
+}
+
+export interface PrefetchProgressPayload {
+  done: number;
+  total: number;
+  remaining: number;
+  fetched: number;
+  skipped: number;
+  current: string | null;
+  items: PrefetchItem[];
+  elapsed_ms: number;
+  eta_secs: number | null;
+  next_batch_in_ms: number;
+}
+
+export interface PrefetchSummary {
+  processed: number;
+  fetched: number;
+  skipped: number;
+  cancelled: boolean;
+}
+
+export type AniListModalViews = {
+  auth: boolean;
+  recs: boolean;
+  recsLoading: boolean;
+  activity: boolean;
+  friends: boolean;
+  favourites: boolean;
+  filters: boolean;
+  stats: boolean;
+  browse: boolean;
+  prefetch: boolean;
+};
+
+export interface AniNotificationEntry {
+  media: {
+    id: number;
+    title: string;
+    next_episode: number | null;
+    next_airing_at: number | null;
+    status: string;
+  };
+  list_status: string;
+  listName: string;
+}
+
+export interface CameraPoint {
+  x: number;
+  y: number;
+}
+
+export interface CameraTransform {
+  scale: number;
+  x: number;
+  y: number;
+}
+
+export interface UseFranchiseViewportOptions {
+  initialScale?: number;
+  maxScale?: number;
+  minScale?: number;
+  wheelStep?: number;
+}
+
+export interface FranchiseViewport {
+  getScale: () => number;
+  transformStyle: CSSProperties;
+  wrapperProps: {
+    onMouseDown: (event: ReactMouseEvent) => void;
+    ref: (node: HTMLDivElement | null) => void;
+  };
+  zoomToElement: (elementId: string, targetScale: number, animationDurationMs?: number) => void;
+}
+
+export interface AniCardProps {
+  item: AniMedia;
+  entryLookup: Map<number, { progress: number | null; score: number | null; list_status: string }>;
+  onClick: (anime: AniListAnime) => void;
+}
+
+export interface AniListDetailModalHostProps {
+  selectedAnime: AniListAnime;
+  favouriteIds: Set<number>;
+  isLoggedIn: boolean;
+  onFavouriteToggle: (animeId: number) => Promise<void>;
+  onTag: (tag: string) => Promise<void>;
+  onGenre: (genre: string) => Promise<void>;
+  onStudio: (id: number, name: string) => Promise<void>;
+  onSeason: (season: string, seasonYear: number | null) => Promise<void>;
+  onRelated: (id: number) => void;
+  onBack: (() => void) | undefined;
+  onClose: () => void;
+  onSaved: () => void;
+}
+
+export interface AniDetailProps {
+  animeId: number;
+  listEntry?: {
+    progress: number | null;
+    score: number | null;
+    list_status: string;
+  };
+  isLoggedIn: boolean;
+  favouriteIds?: Set<number>;
+  onFavouriteToggle?: (animeId: number) => void;
+  onTag: (value: string) => void;
+  onGenre: (value: string) => void;
+  onSeason?: (season: string, year: number | null) => void;
+  onStudio?: (id: number, name: string) => void;
+  onRelated?: (id: number) => void;
+  onBack?: () => void;
+  onClose: () => void;
+  onSaved?: () => void;
+}
+
+export type AniDetailViewProps = AniDetailProps & {
+  anime?: AniMedia;
+  isLoading: boolean;
+  isError: boolean;
+  error: unknown;
+  refetch: () => void;
+};
+
+export interface AniFavouritesProps {
+  open: boolean;
+  favourites: FavouriteAnime[];
+  onClose: () => void;
+  onAnimeClick: (id: number) => void;
+}
+
+export interface FranchiseGraphProps {
+  filtered: FilteredGraph;
+  animeId: number;
+  containerWidth: number;
+  totalHeight: number;
+  dims: { w: number; h: number; imgH: number };
+  positions: Map<number, FranchiseNodePosition>;
+  relationMap: Map<number, string>;
+  searchMatchIds: Set<number> | null;
+  viewport: FranchiseViewport;
+  onNodeClick: (nodeId: number) => void;
+  onNodeMouseDown: (event: ReactMouseEvent, nodeId: number) => void;
+}
+
+export interface FranchiseListProps {
+  nodes: FranchiseNode[];
+  animeId: number;
+  relationMap: Map<number, string>;
+  searchMatchIds: Set<number> | null;
+  onNodeClick: (nodeId: number) => void;
+}
+
+export type FranchiseCacheSource = "cache" | "fresh" | null;
+
+export interface FranchiseToolbarProps {
+  activeFilters: Set<RelationFilter>;
+  searchQuery: string;
+  cacheSource: FranchiseCacheSource;
+  countDiff: string | null;
+  listView: boolean;
+  onToggleFilter: (filter: RelationFilter) => void;
+  onSearchChange: (query: string) => void;
+  onToggleView: () => void;
+  onResetLayout: () => void;
+  onRefresh: () => void;
+}
+
+export interface AniFriendsProps {
+  friends: AniFriend[];
+  onAdd: (profile: AniUserProfile) => void;
+  onRemove: (id: number) => void;
+  onClose: () => void;
+}
+
+export interface AniHeaderProps {
+  user: AniUser;
+  loadingList: boolean;
+  onStatsOpen: () => void;
+  onBrowseOpen: () => void;
+  onRecsOpen: () => void;
+  onPrefetchOpen: () => void;
+  onFriendsOpen: () => void;
+  onLogout: () => void;
+}
+
+export interface AniPrefetchProps {
+  animeIds: number[];
+  onClose: () => void;
+}
+
+export interface AniRecProps {
+  open: boolean;
+  loading: boolean;
+  recommendations: AniRecommendation[];
+  onClose: () => void;
+  onAnimeClick: (id: number) => void;
+}
+
+export interface AniSortProps {
+  sort: AniListSort;
+  onSortChange: (sort: AniListSort) => void;
+  onActivityOpen: () => void;
+  onFavouritesOpen: () => void;
+  onRandom: () => void;
+  hasFavourites: boolean;
 }

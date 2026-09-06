@@ -94,6 +94,11 @@ export interface TorrentLimits {
   uploadBps: number | null;
 }
 
+export interface SpeedLimits {
+  download: number | null;
+  upload: number | null;
+}
+
 export interface TorrentCheckResult {
   id: number;
   missing: string[];
@@ -122,16 +127,14 @@ export interface CachedTorrentMeta {
 
 export interface TorrentStore {
   torrents: TorrentInfo[];
-  dlLimit: number | null;
-  ulLimit: number | null;
-  lastSaveDir: string;
+  lastActiveAt: Record<number, number>;
+  limits: SpeedLimits;
   pendingTorrent: PickerTorrent | null;
   preparingTorrent: boolean;
   torrentFilesMap: Record<number, TorrentFileInfo[]>;
   metadataCache: Map<string, CachedTorrentMeta>;
 
   init: () => Promise<() => void>;
-  seedPreferences: Record<number, boolean>;
   prepareTorrentDownload: (magnet: string) => Promise<void>;
   prepareTorrentDownloadFromFile: (filePath: string) => Promise<void>;
   prepareTorrentDownloadFromBytes: (fileBytes: number[]) => Promise<void>;
@@ -145,14 +148,122 @@ export interface TorrentStore {
   pauseTorrent: (id: number) => Promise<void>;
   resumeTorrent: (id: number) => Promise<void>;
   removeTorrent: (id: number, deleteFiles: boolean) => Promise<void>;
-  setSpeedLimits: (dlKbps: number | null, ulKbps: number | null) => Promise<void>;
+  setSpeedLimits: (limits: SpeedLimits) => Promise<void>;
   loadTorrentFiles: (id: number) => Promise<boolean>;
   updateTorrentOnlyFiles: (id: number, indices: number[]) => Promise<void>;
   setFilePriority: (id: number, fileIndices: number[], priority: FilePriority) => Promise<void>;
   setSequentialDownload: (id: number, enabled: boolean) => Promise<void>;
-  setSeedPreference: (id: number, enabled: boolean) => void;
   redownloadFile: (id: number, fileIndex: number, infoHash: string) => Promise<void>;
   recheckTorrent: (id: number) => Promise<TorrentCheckResult | null>;
-  setTorrentLimits: (id: number, dlKbps: number | null, ulKbps: number | null) => Promise<void>;
+  setTorrentLimits: (id: number, limits: SpeedLimits) => Promise<void>;
   getTorrentLimits: (id: number) => Promise<TorrentLimits>;
+}
+
+export type TorrentDisplayState =
+  | "downloading"
+  | "seeding"
+  | "done"
+  | "error"
+  | "stalled"
+  | "paused";
+
+export type TorrentLifecycle = "staging" | "live" | "paused" | "seeding" | "completed";
+
+export interface FileGroup {
+  dir: string;
+  files: {
+    index: number;
+    name: string;
+    displayName: string;
+    size: number;
+    completed?: boolean;
+    selected?: boolean;
+    priority?: FilePriority;
+    exists?: boolean;
+  }[];
+}
+
+export interface TorrentTreeNode {
+  name: string;
+  files: TorrentTreeFile[];
+  children: TorrentTreeNode[];
+}
+
+export interface TorrentTreeFile {
+  index: number;
+  name: string;
+  displayName: string;
+  size: number;
+  progress_bytes: number;
+  completed: boolean;
+  selected: boolean;
+  priority: FilePriority;
+  exists: boolean;
+}
+
+export type TorrentTreeFileWithPath = TorrentTreeFile & { fullPath: string };
+
+export type Item =
+  | { kind: "folder"; node: TorrentTreeNode; depth: number }
+  | { kind: "file"; file: TorrentTreeFile; depth: number };
+
+export interface TorrentView {
+  source: string;
+  url: string;
+  title: string;
+  description: string;
+  category: string;
+  size: string;
+  uploadedAt: string;
+  updatedAt: string;
+  seeders: number;
+  leechers: number;
+  completed: number;
+  downloads: number;
+  infoHash: string;
+  magnet: string;
+  torrentUrl: string;
+  fields: TorrentDetailField[];
+  files: TorrentDetailFile[];
+  screenshots: string[];
+  comments: TorrentDetailComment[];
+  notice: string | null;
+}
+
+export interface CollectableNode {
+  files: { index: number }[];
+  children: CollectableNode[];
+}
+
+export interface TorrentItemProps {
+  item: TorrentInfo;
+  files: TorrentFileInfo[] | undefined;
+  isExpanded: boolean;
+  onToggleExpand: () => void;
+  onPause: () => void;
+  onResume: () => void;
+  onSeedChange: (enabled: boolean) => void;
+  onRemove: (deleteFiles: boolean) => void;
+  onUpdateFiles: (indices: number[]) => void;
+  onFilePriorityChange: (indices: number[], priority: FilePriority) => void;
+  onSetSequential: (enabled: boolean) => void;
+  onRetry: () => void;
+  onRedownload: (fileIndex: number) => void;
+  onRecheck: () => void;
+}
+
+export interface MagnetTorrentProps {
+  open: boolean;
+  onClose: () => void;
+  onAddMagnet: (magnet: string) => void;
+  onAddFile: (filePath: string) => void;
+}
+
+export interface SpeedTorrentProps {
+  limits: SpeedLimits;
+  downloadInput: string;
+  uploadInput: string;
+  onDownloadChange: (value: string) => void;
+  onUploadChange: (value: string) => void;
+  onApply: () => void;
 }

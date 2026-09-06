@@ -22,7 +22,7 @@ export type {
   UnifiedIndexRow,
 } from "./search";
 export type { MediaTrack, VideoFileEntry } from "./fs";
-export type { SettingsTab, FFMPEGStatus, ScanType, SettingsStore } from "./settings";
+export type { SettingsTab, FFMPEGStatus, SettingsStore } from "./settings";
 export type {
   SqliteDatabaseInfo,
   SqliteColumnInfo,
@@ -30,7 +30,7 @@ export type {
   SqliteRowsPage,
 } from "./sqlite";
 export type { Locale, TranslationVariables } from "./i18n";
-export type { VideoStreamInfo } from "./player";
+export type { VideoStreamInfo, ScanType } from "./player";
 export type { PaginationProps, PaginationResult } from "./pagination";
 export type { Category, CategoryEntry, CategoryStore } from "./category";
 export type { UserImage } from "./image.userimage";
@@ -43,23 +43,13 @@ export type {
   UpscaleProgressPayload,
   UpscaleQueueStore,
 } from "./upscale";
-export type { FranchiseCacheEntry, AppCacheRecord, RawAppCacheRecord, CacheStore } from "./cache";
+export type { AppCacheRecord, RawAppCacheRecord, CacheStore } from "./cache";
 export type {
   NotificationType,
   NotificationItem,
   DismissedEntry,
   NotificationStore,
 } from "./notification";
-export type { PersonalAnimeStats } from "./stats";
-export type {
-  VaultMediaFile,
-  VaultIssue,
-  VaultHealthReport,
-  VaultOrganizationPlan,
-  VaultEpisodeMatrixRow,
-  VaultStoredMediaRecord,
-  VaultMetadata,
-} from "./vault";
 export type {
   LocalAnimeCandidate,
   LocalAnimeRecommendation,

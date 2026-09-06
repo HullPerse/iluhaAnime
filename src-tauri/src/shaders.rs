@@ -35,7 +35,7 @@ const CATALOG: &[ShaderMeta] = &[
         filename: "Anime4K_Clamp_Highlights.glsl",
         category: "preprocess",
         description_ru: "Предотвращает засветку ярких участков",
-        speed_factor: 0.98,
+        speed_factor: 1.0,
         is_default: true,
         exclusive_group: None,
     },
@@ -44,7 +44,7 @@ const CATALOG: &[ShaderMeta] = &[
         filename: "Anime4K_Denoise_Bilateral_Mode.glsl",
         category: "preprocess",
         description_ru: "Убирает шум билатеральным фильтром (режим)",
-        speed_factor: 0.93,
+        speed_factor: 0.81,
         is_default: false,
         exclusive_group: Some("denoise"),
     },
@@ -53,7 +53,7 @@ const CATALOG: &[ShaderMeta] = &[
         filename: "Anime4K_Denoise_Bilateral_Median.glsl",
         category: "preprocess",
         description_ru: "Убирает шум билатеральным фильтром (медиана)",
-        speed_factor: 0.92,
+        speed_factor: 0.76,
         is_default: false,
         exclusive_group: Some("denoise"),
     },
@@ -62,7 +62,7 @@ const CATALOG: &[ShaderMeta] = &[
         filename: "Anime4K_Denoise_Bilateral_Mean.glsl",
         category: "preprocess",
         description_ru: "Убирает шум билатеральным фильтром (среднее)",
-        speed_factor: 0.94,
+        speed_factor: 0.85,
         is_default: false,
         exclusive_group: Some("denoise"),
     },
@@ -71,7 +71,7 @@ const CATALOG: &[ShaderMeta] = &[
         filename: "Anime4K_Deblur_Original.glsl",
         category: "preprocess",
         description_ru: "Убирает размытие движения (оригинальный алгоритм)",
-        speed_factor: 0.88,
+        speed_factor: 0.79,
         is_default: false,
         exclusive_group: Some("deblur"),
     },
@@ -80,7 +80,7 @@ const CATALOG: &[ShaderMeta] = &[
         filename: "Anime4K_Deblur_DoG.glsl",
         category: "preprocess",
         description_ru: "Убирает размытие движения (DoG)",
-        speed_factor: 0.90,
+        speed_factor: 0.85,
         is_default: false,
         exclusive_group: Some("deblur"),
     },
@@ -98,7 +98,7 @@ const CATALOG: &[ShaderMeta] = &[
         filename: "Anime4K_Restore_CNN_VL.glsl",
         category: "restore",
         description_ru: "Восстановление линий - очень быстрое (VL)",
-        speed_factor: 0.88,
+        speed_factor: 0.58,
         is_default: false,
         exclusive_group: Some("restore"),
     },
@@ -107,7 +107,7 @@ const CATALOG: &[ShaderMeta] = &[
         filename: "Anime4K_Restore_CNN_UL.glsl",
         category: "restore",
         description_ru: "Восстановление линий - ультра-быстрое (UL)",
-        speed_factor: 0.80,
+        speed_factor: 0.45,
         is_default: true,
         exclusive_group: Some("restore"),
     },
@@ -116,7 +116,7 @@ const CATALOG: &[ShaderMeta] = &[
         filename: "Anime4K_Restore_CNN_L.glsl",
         category: "restore",
         description_ru: "Восстановление линий - лёгкое (L)",
-        speed_factor: 0.65,
+        speed_factor: 0.67,
         is_default: false,
         exclusive_group: Some("restore"),
     },
@@ -125,7 +125,7 @@ const CATALOG: &[ShaderMeta] = &[
         filename: "Anime4K_Restore_CNN_M.glsl",
         category: "restore",
         description_ru: "Восстановление линий - среднее (M)",
-        speed_factor: 0.50,
+        speed_factor: 0.71,
         is_default: false,
         exclusive_group: Some("restore"),
     },
@@ -134,7 +134,7 @@ const CATALOG: &[ShaderMeta] = &[
         filename: "Anime4K_Restore_CNN_S.glsl",
         category: "restore",
         description_ru: "Восстановление линий - стандартное, качество (S)",
-        speed_factor: 0.30,
+        speed_factor: 0.73,
         is_default: false,
         exclusive_group: Some("restore"),
     },
@@ -143,7 +143,7 @@ const CATALOG: &[ShaderMeta] = &[
         filename: "Anime4K_Restore_CNN_Soft_VL.glsl",
         category: "restore",
         description_ru: "Мягкое восстановление - очень быстрое (VL)",
-        speed_factor: 0.87,
+        speed_factor: 0.52,
         is_default: false,
         exclusive_group: Some("restore"),
     },
@@ -152,7 +152,7 @@ const CATALOG: &[ShaderMeta] = &[
         filename: "Anime4K_Restore_CNN_Soft_UL.glsl",
         category: "restore",
         description_ru: "Мягкое восстановление - ультра-быстрое (UL)",
-        speed_factor: 0.78,
+        speed_factor: 0.44,
         is_default: false,
         exclusive_group: Some("restore"),
     },
@@ -161,7 +161,7 @@ const CATALOG: &[ShaderMeta] = &[
         filename: "Anime4K_Restore_CNN_Soft_L.glsl",
         category: "restore",
         description_ru: "Мягкое восстановление - лёгкое (L)",
-        speed_factor: 0.63,
+        speed_factor: 0.71,
         is_default: false,
         exclusive_group: Some("restore"),
     },
@@ -170,7 +170,7 @@ const CATALOG: &[ShaderMeta] = &[
         filename: "Anime4K_Restore_CNN_Soft_M.glsl",
         category: "restore",
         description_ru: "Мягкое восстановление - среднее (M)",
-        speed_factor: 0.48,
+        speed_factor: 0.73,
         is_default: false,
         exclusive_group: Some("restore"),
     },
@@ -179,7 +179,25 @@ const CATALOG: &[ShaderMeta] = &[
         filename: "Anime4K_Restore_CNN_Soft_S.glsl",
         category: "restore",
         description_ru: "Мягкое восстановление - стандартное, качество (S)",
-        speed_factor: 0.28,
+        speed_factor: 0.81,
+        is_default: false,
+        exclusive_group: Some("restore"),
+    },
+    ShaderMeta {
+        id: "restore_gan_ul",
+        filename: "Anime4K_Restore_GAN_UL.glsl",
+        category: "restore",
+        description_ru: "GAN восстановление - экспериментальное (UL)",
+        speed_factor: 0.5,
+        is_default: false,
+        exclusive_group: Some("restore"),
+    },
+    ShaderMeta {
+        id: "restore_gan_uul",
+        filename: "Anime4K_Restore_GAN_UUL.glsl",
+        category: "restore",
+        description_ru: "GAN восстановление - экспериментальное (UUL)",
+        speed_factor: 0.54,
         is_default: false,
         exclusive_group: Some("restore"),
     },
@@ -188,7 +206,7 @@ const CATALOG: &[ShaderMeta] = &[
         filename: "Anime4K_Upscale_CNN_x2_VL.glsl",
         category: "upscale",
         description_ru: "2x CNN апскейл - очень быстрый (VL)",
-        speed_factor: 0.82,
+        speed_factor: 0.65,
         is_default: false,
         exclusive_group: Some("upscale"),
     },
@@ -197,7 +215,7 @@ const CATALOG: &[ShaderMeta] = &[
         filename: "Anime4K_Upscale_CNN_x2_UL.glsl",
         category: "upscale",
         description_ru: "2x CNN апскейл - ультра-быстрый (UL)",
-        speed_factor: 0.70,
+        speed_factor: 0.51,
         is_default: true,
         exclusive_group: Some("upscale"),
     },
@@ -206,7 +224,7 @@ const CATALOG: &[ShaderMeta] = &[
         filename: "Anime4K_Upscale_CNN_x2_L.glsl",
         category: "upscale",
         description_ru: "2x CNN апскейл - лёгкий (L)",
-        speed_factor: 0.55,
+        speed_factor: 0.85,
         is_default: false,
         exclusive_group: Some("upscale"),
     },
@@ -215,7 +233,7 @@ const CATALOG: &[ShaderMeta] = &[
         filename: "Anime4K_Upscale_CNN_x2_M.glsl",
         category: "upscale",
         description_ru: "2x CNN апскейл - средний (M)",
-        speed_factor: 0.40,
+        speed_factor: 0.92,
         is_default: false,
         exclusive_group: Some("upscale"),
     },
@@ -224,7 +242,7 @@ const CATALOG: &[ShaderMeta] = &[
         filename: "Anime4K_Upscale_CNN_x2_S.glsl",
         category: "upscale",
         description_ru: "2x CNN апскейл - стандартный, качество (S)",
-        speed_factor: 0.25,
+        speed_factor: 1.0,
         is_default: false,
         exclusive_group: Some("upscale"),
     },
@@ -233,7 +251,7 @@ const CATALOG: &[ShaderMeta] = &[
         filename: "Anime4K_Upscale_Denoise_CNN_x2_VL.glsl",
         category: "upscale",
         description_ru: "2x апскейл + шумодав - очень быстрый (VL)",
-        speed_factor: 0.78,
+        speed_factor: 0.65,
         is_default: false,
         exclusive_group: Some("upscale"),
     },
@@ -242,7 +260,7 @@ const CATALOG: &[ShaderMeta] = &[
         filename: "Anime4K_Upscale_Denoise_CNN_x2_UL.glsl",
         category: "upscale",
         description_ru: "2x апскейл + шумодав - ультра-быстрый (UL)",
-        speed_factor: 0.65,
+        speed_factor: 0.5,
         is_default: false,
         exclusive_group: Some("upscale"),
     },
@@ -251,7 +269,7 @@ const CATALOG: &[ShaderMeta] = &[
         filename: "Anime4K_Upscale_Denoise_CNN_x2_L.glsl",
         category: "upscale",
         description_ru: "2x апскейл + шумодав - лёгкий (L)",
-        speed_factor: 0.50,
+        speed_factor: 0.85,
         is_default: false,
         exclusive_group: Some("upscale"),
     },
@@ -260,7 +278,7 @@ const CATALOG: &[ShaderMeta] = &[
         filename: "Anime4K_Upscale_Denoise_CNN_x2_M.glsl",
         category: "upscale",
         description_ru: "2x апскейл + шумодав - средний (M)",
-        speed_factor: 0.35,
+        speed_factor: 0.92,
         is_default: false,
         exclusive_group: Some("upscale"),
     },
@@ -269,7 +287,7 @@ const CATALOG: &[ShaderMeta] = &[
         filename: "Anime4K_Upscale_Denoise_CNN_x2_S.glsl",
         category: "upscale",
         description_ru: "2x апскейл + шумодав - стандартный (S)",
-        speed_factor: 0.20,
+        speed_factor: 1.0,
         is_default: false,
         exclusive_group: Some("upscale"),
     },
@@ -277,8 +295,8 @@ const CATALOG: &[ShaderMeta] = &[
         id: "upscale_deblur_original_x2",
         filename: "Anime4K_Upscale_Deblur_Original_x2.glsl",
         category: "upscale",
-        description_ru: "2x апскейл + деblur (оригинал)",
-        speed_factor: 0.60,
+        description_ru: "2x апскейл + деблур (оригинал)",
+        speed_factor: 0.79,
         is_default: false,
         exclusive_group: Some("upscale"),
     },
@@ -286,8 +304,8 @@ const CATALOG: &[ShaderMeta] = &[
         id: "upscale_deblur_dog_x2",
         filename: "Anime4K_Upscale_Deblur_DoG_x2.glsl",
         category: "upscale",
-        description_ru: "2x апскейл + деblur (DoG)",
-        speed_factor: 0.62,
+        description_ru: "2x апскейл + деблур (DoG)",
+        speed_factor: 0.85,
         is_default: false,
         exclusive_group: Some("upscale"),
     },
@@ -296,7 +314,7 @@ const CATALOG: &[ShaderMeta] = &[
         filename: "Anime4K_Upscale_Original_x2.glsl",
         category: "upscale",
         description_ru: "2x апскейл - оригинальный алгоритм (быстрый)",
-        speed_factor: 0.75,
+        speed_factor: 1.0,
         is_default: false,
         exclusive_group: Some("upscale"),
     },
@@ -305,7 +323,7 @@ const CATALOG: &[ShaderMeta] = &[
         filename: "Anime4K_Upscale_DTD_x2.glsl",
         category: "upscale",
         description_ru: "2x апскейл - DTD алгоритм",
-        speed_factor: 0.68,
+        speed_factor: 0.88,
         is_default: false,
         exclusive_group: Some("upscale"),
     },
@@ -314,7 +332,61 @@ const CATALOG: &[ShaderMeta] = &[
         filename: "Anime4K_Upscale_DoG_x2.glsl",
         category: "upscale",
         description_ru: "2x апскейл - DoG алгоритм",
-        speed_factor: 0.70,
+        speed_factor: 1.0,
+        is_default: false,
+        exclusive_group: Some("upscale"),
+    },
+    ShaderMeta {
+        id: "upscale_gan_x2_s",
+        filename: "Anime4K_Upscale_GAN_x2_S.glsl",
+        category: "upscale",
+        description_ru: "2x GAN апскейл - экспериментальный (S)",
+        speed_factor: 0.79,
+        is_default: false,
+        exclusive_group: Some("upscale"),
+    },
+    ShaderMeta {
+        id: "upscale_gan_x2_m",
+        filename: "Anime4K_Upscale_GAN_x2_M.glsl",
+        category: "upscale",
+        description_ru: "2x GAN апскейл - экспериментальный (M)",
+        speed_factor: 0.61,
+        is_default: false,
+        exclusive_group: Some("upscale"),
+    },
+    ShaderMeta {
+        id: "upscale_gan_x3_l",
+        filename: "Anime4K_Upscale_GAN_x3_L.glsl",
+        category: "upscale",
+        description_ru: "3x GAN апскейл - экспериментальный (L)",
+        speed_factor: 0.33,
+        is_default: false,
+        exclusive_group: Some("upscale"),
+    },
+    ShaderMeta {
+        id: "upscale_gan_x3_vl",
+        filename: "Anime4K_Upscale_GAN_x3_VL.glsl",
+        category: "upscale",
+        description_ru: "3x GAN апскейл - экспериментальный (VL)",
+        speed_factor: 0.21,
+        is_default: false,
+        exclusive_group: Some("upscale"),
+    },
+    ShaderMeta {
+        id: "upscale_gan_x4_ul",
+        filename: "Anime4K_Upscale_GAN_x4_UL.glsl",
+        category: "upscale",
+        description_ru: "4x GAN апскейл - экспериментальный (UL)",
+        speed_factor: 0.13,
+        is_default: false,
+        exclusive_group: Some("upscale"),
+    },
+    ShaderMeta {
+        id: "upscale_gan_x4_uul",
+        filename: "Anime4K_Upscale_GAN_x4_UUL.glsl",
+        category: "upscale",
+        description_ru: "4x GAN апскейл - экспериментальный (UUL)",
+        speed_factor: 0.07,
         is_default: false,
         exclusive_group: Some("upscale"),
     },
@@ -323,7 +395,7 @@ const CATALOG: &[ShaderMeta] = &[
         filename: "Anime4K_Thin_VeryFast.glsl",
         category: "postprocess",
         description_ru: "Утоньшает линии - очень быстро",
-        speed_factor: 0.95,
+        speed_factor: 0.79,
         is_default: false,
         exclusive_group: Some("thin"),
     },
@@ -332,7 +404,7 @@ const CATALOG: &[ShaderMeta] = &[
         filename: "Anime4K_Thin_Fast.glsl",
         category: "postprocess",
         description_ru: "Утоньшает линии - быстро",
-        speed_factor: 0.93,
+        speed_factor: 0.79,
         is_default: false,
         exclusive_group: Some("thin"),
     },
@@ -341,7 +413,7 @@ const CATALOG: &[ShaderMeta] = &[
         filename: "Anime4K_Thin_HQ.glsl",
         category: "postprocess",
         description_ru: "Утоньшает линии - качество",
-        speed_factor: 0.88,
+        speed_factor: 0.79,
         is_default: false,
         exclusive_group: Some("thin"),
     },
@@ -350,7 +422,7 @@ const CATALOG: &[ShaderMeta] = &[
         filename: "Anime4K_Darken_VeryFast.glsl",
         category: "postprocess",
         description_ru: "Затемняет линии - очень быстро",
-        speed_factor: 0.95,
+        speed_factor: 0.85,
         is_default: false,
         exclusive_group: Some("darken"),
     },
@@ -359,7 +431,7 @@ const CATALOG: &[ShaderMeta] = &[
         filename: "Anime4K_Darken_Fast.glsl",
         category: "postprocess",
         description_ru: "Затемняет линии - быстро",
-        speed_factor: 0.93,
+        speed_factor: 0.76,
         is_default: false,
         exclusive_group: Some("darken"),
     },
@@ -368,7 +440,7 @@ const CATALOG: &[ShaderMeta] = &[
         filename: "Anime4K_Darken_HQ.glsl",
         category: "postprocess",
         description_ru: "Затемняет линии - качество",
-        speed_factor: 0.88,
+        speed_factor: 0.81,
         is_default: false,
         exclusive_group: Some("darken"),
     },
@@ -417,6 +489,19 @@ pub fn list_shaders() -> Vec<ShaderInfo> {
 
 fn find_meta(id: &str) -> Option<&ShaderMeta> {
     CATALOG.iter().find(|s| s.id == id)
+}
+
+pub fn is_upscale_file(filename: &str) -> bool {
+    CATALOG
+        .iter()
+        .any(|s| s.filename == filename && s.category == "upscale")
+}
+pub fn speed_factor(id: &str) -> Option<f64> {
+    find_meta(id).map(|s| s.speed_factor)
+}
+
+pub fn is_2x_upscale_id(id: &str) -> bool {
+    find_meta(id).is_some_and(|s| s.category == "upscale" && s.filename.contains("_x2"))
 }
 
 pub fn build_shader_chain(selected: &[String]) -> Result<Vec<String>, String> {
@@ -468,36 +553,6 @@ pub fn build_shader_chain(selected: &[String]) -> Result<Vec<String>, String> {
     Ok(chain)
 }
 
-#[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
-pub fn estimate_time(duration_secs: f64, selected: &[String], gpu_backend: &str) -> String {
-    let base_speed = match gpu_backend {
-        "nvenc" => 2.5,
-        "amf" => 1.8,
-        "qsv" => 1.5,
-        _ => 0.8,
-    };
-
-    let penalty: f64 = selected
-        .iter()
-        .filter_map(|id| find_meta(id).map(|m| m.speed_factor))
-        .product();
-
-    let total_speed = base_speed * penalty.max(0.05);
-    let eta = duration_secs / total_speed;
-
-    if eta < 60.0 {
-        "< 1 мин".to_string()
-    } else {
-        let m = (eta / 60.0).floor() as u32;
-        let s = (eta % 60.0).round() as u32;
-        if s > 0 {
-            format!("~{m} мин {s} сек")
-        } else {
-            format!("~{m} мин")
-        }
-    }
-}
-
 #[tauri::command]
 pub fn list_anime4k_shaders() -> Vec<ShaderInfo> {
     list_shaders()
@@ -508,11 +563,16 @@ pub fn default_anime4k_shaders() -> Vec<String> {
     default_selection()
 }
 
-#[tauri::command]
-pub fn estimate_anime4k_time(
-    duration_secs: f64,
-    selected: Vec<String>,
-    gpu_backend: String,
-) -> String {
-    estimate_time(duration_secs, &selected, &gpu_backend)
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn upscale_file_detection() {
+        assert!(is_upscale_file("Anime4K_Upscale_CNN_x2_S.glsl"));
+        assert!(is_upscale_file("Anime4K_Upscale_GAN_x4_UUL.glsl"));
+        assert!(!is_upscale_file("Anime4K_Restore_CNN_S.glsl"));
+        assert!(!is_upscale_file(""));
+        assert!(!is_upscale_file("nope.glsl"));
+    }
 }

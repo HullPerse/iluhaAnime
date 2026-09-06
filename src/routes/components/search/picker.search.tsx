@@ -1,5 +1,5 @@
-import { cn } from "@/lib/index.utils";
 import { open } from "@tauri-apps/plugin-dialog";
+import { cn } from "cn";
 import { useState, useEffect, useRef, useCallback } from "react";
 
 import { SmallLoader } from "@/components/shared/loader.component";
@@ -8,8 +8,10 @@ import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import ImageComponent from "@/components/ui/image.component";
 import { Input } from "@/components/ui/input.component";
-import { useI18n } from "@/lib/i18n";
-import { fmtSize, fmtElapsed, groupFilesByDirectory } from "@/lib/torrent.utils";
+import { PICKER_ELAPSED_TICK_MS } from "@/config/torrent/common.config";
+import { useI18n } from "@/lib/locale/i18n.utils";
+import { fmtSize, fmtElapsed } from "@/lib/torrent/common.utils";
+import { groupFilesByDirectory } from "@/lib/torrent/tree.utils";
 import type { PickerTorrent } from "@/types/torrent";
 
 function TorrentFilePicker({
@@ -56,7 +58,7 @@ function TorrentFilePicker({
       setElapsed(0);
       const interval = setInterval(() => {
         setElapsed(Math.floor((Date.now() - startRef.current!) / 1000));
-      }, 1000);
+      }, PICKER_ELAPSED_TICK_MS);
       return () => clearInterval(interval);
     } else {
       startRef.current = null;
@@ -100,7 +102,6 @@ function TorrentFilePicker({
     try {
       await onConfirm([...selected], saveDir, subFolder, sequential);
     } catch {
-      // onConfirm handles its own errors via store; keep picker open on failure
     } finally {
       setIsLoading(false);
     }
@@ -162,7 +163,10 @@ function TorrentFilePicker({
                     return (
                       <label
                         key={item.index}
-                        className={cn("windows95-text hover:bg-surface flex w-full cursor-pointer items-center gap-1 px-1 py-0.5 select-none windows95-border", group.dir && "pl-5")}
+                        className={cn(
+                          "windows95-text hover:bg-surface windows95-border flex w-full cursor-pointer items-center gap-1 px-1 py-0.5 select-none",
+                          group.dir && "pl-5"
+                        )}
                       >
                         <Checkbox
                           checked={selected.has(item.index)}

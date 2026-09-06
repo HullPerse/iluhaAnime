@@ -90,7 +90,9 @@ export const useNotificationStore = create<NotificationStore>()(
         if ((options?.system ?? true) && useSettingsStore.getState().notificationsEnabled) {
           try {
             tauriNotify({ title, body: message ?? "" });
-          } catch {}
+          } catch (error) {
+            console.warn("notification: system toast failed", error);
+          }
         }
       },
       clear: (id: number) => {

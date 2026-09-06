@@ -1,12 +1,13 @@
-import { invoke } from "@tauri-apps/api/core";
 import { useState } from "react";
 
 import { SmallLoader } from "@/components/shared/loader.component";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
-import { useI18n } from "@/lib/i18n";
-import { enterSubmit } from "@/lib/keyboard.utils";
+import { useI18n } from "@/lib/locale/i18n.utils";
+import { invokeTyped } from "@/lib/utils/invoke.utils";
+import { enterSubmit } from "@/lib/utils/keyboard.utils";
+import { useSettingsStore } from "@/store/settings.store";
 
 function NekoBtApiModal({
   setNekoBtAuth,
@@ -17,6 +18,7 @@ function NekoBtApiModal({
 }) {
   const { t } = useI18n();
   const [apiKey, setApiKey] = useState("");
+  const nekobtProxy = useSettingsStore((s) => s.searchProxyUrls["nekobt"] ?? "");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -34,7 +36,11 @@ function NekoBtApiModal({
     setLoading(true);
     setError("");
     try {
-      await invoke("nekobt_set_api_key", { apiKey: apiKey.trim() });
+      await invokeTyped("nekobt_set_api_key", {
+        apiKey: apiKey.trim(),
+        proxyUrl: nekobtProxy || undefined,
+        proxy_url: nekobtProxy || undefined,
+      });
       handleSuccess();
     } catch (error) {
       setError(String(error));

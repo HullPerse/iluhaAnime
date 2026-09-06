@@ -1,31 +1,11 @@
-import { invoke } from "@tauri-apps/api/core";
 import { useState } from "react";
 
 import { SmallLoader } from "@/components/shared/loader.component";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
-import { useI18n } from "@/lib/i18n";
-import type { TranslationKey } from "@/lib/i18n";
-
-type EraiErrorCode =
-  | "webview_open"
-  | "webview_save"
-  | "webview_not_found"
-  | "no_session"
-  | "network";
-
-const ERROR_KEYS: Record<EraiErrorCode, TranslationKey> = {
-  webview_open: "search.erai.err.webview.open",
-  webview_save: "search.erai.err.webview.save",
-  webview_not_found: "search.erai.err.webview.not.found",
-  no_session: "search.erai.err.no.session",
-  network: "search.erai.err.network",
-};
-
-function mapError(raw: string, t: (key: TranslationKey) => string): string {
-  const code = raw.split(":")[0].trim() as EraiErrorCode;
-  return t(ERROR_KEYS[code] ?? "search.erai.err.unknown");
-}
+import { useI18n } from "@/lib/locale/i18n.utils";
+import { mapError } from "@/lib/search/erai.utils";
+import { invokeTyped } from "@/lib/utils/invoke.utils";
 
 export default function EraiLoginModal({
   setEraiAuth,
@@ -44,7 +24,7 @@ export default function EraiLoginModal({
     setLoading(true);
     setError("");
     try {
-      await invoke("erai_webview_login");
+      await invokeTyped("erai_webview_login");
     } catch (reason) {
       setError(mapError(String(reason), t));
     } finally {
@@ -56,7 +36,7 @@ export default function EraiLoginModal({
     setLoading(true);
     setError("");
     try {
-      await invoke("erai_finish_webview_login");
+      await invokeTyped("erai_finish_webview_login");
       setEraiAuth(true);
       close();
     } catch (reason) {

@@ -12,7 +12,7 @@ use crate::errors::AppResult;
 use crate::scrapers::{
     build_nekobt_client, build_no_redirect_client, build_rutracker_client,
     build_rutracker_client_with_ua, cookies_to_header, decode_windows_1251,
-    extract_cookies_from_headers, url_encode,
+    extract_cookies_from_headers, resolve_proxy, url_encode,
 };
 
 const KEYRING_SERVICE: &str = "iluhaAnime";
@@ -71,9 +71,6 @@ fn save_rutracker_cookies(
     Ok(())
 }
 
-/// Persists the User-Agent the in-app browser used when the rutracker session
-/// was captured. Anti-bot clearance cookies are bound to the User-Agent that
-/// passed the challenge, so the HTTP client must send the same one.
 pub fn save_rutracker_user_agent(_app_handle: &tauri::AppHandle, user_agent: &str) {
     let trimmed = user_agent.trim();
     if !trimmed.is_empty() {
@@ -108,8 +105,6 @@ pub fn load_rutracker_cookies(app_handle: &tauri::AppHandle) -> HashMap<String, 
 
 const MAX_AUTH_RESPONSE_BYTES: usize = 2 * 1024 * 1024;
 
-/// Decodes a response body: rutracker serves windows-1251, but anti-bot
-/// challenge pages are usually UTF-8; try UTF-8 first, then fall back.
 fn decode_page(bytes: &[u8]) -> String {
     match std::str::from_utf8(bytes) {
         Ok(text) => text.to_string(),
@@ -117,15 +112,8 @@ fn decode_page(bytes: &[u8]) -> String {
     }
 }
 
-/// Recognizes anti-bot challenge / block pages so we can tell the user the
-/// real reason instead of a misleading "wrong password" error.
 fn detect_challenge(text: &str) -> Option<&'static str> {
     let lower = text.to_lowercase();
-    // NOTE: `challenge-platform` is deliberately NOT a marker: Cloudflare's
-    // JS-detection injects `/cdn-cgi/challenge-platform/scripts/jsd/main.js`
-    // into every normal HTML page, so matching it would flag regular pages as
-    // challenges. Only `cf-chl` / `just a moment` (etc.) identify a real
-    // challenge interstitial.
     const MARKERS: &[(&str, &str)] = &[
         ("ddos-guard", "anti-bot challenge (DDoS-Guard)"),
         ("cf-chl", "anti-bot challenge (Cloudflare)"),
@@ -142,7 +130,6 @@ fn detect_challenge(text: &str) -> Option<&'static str> {
     None
 }
 
-/// True when the fetched page shows a logged-in rutracker session.
 fn session_is_logged_in(text: &str) -> bool {
     if detect_challenge(text).is_some() {
         return false;
@@ -166,16 +153,10 @@ async fn read_body_limited(resp: reqwest::Response) -> Result<Vec<u8>, String> {
     Ok(body)
 }
 
-/// Parses one line of the Netscape `cookies.txt` export format:
-/// `domain \t includeSubdomains \t path \t secure \t expiry \t name \t value`
-/// (domain may carry the `#HttpOnly_` prefix). Returns None when the line is
-/// not in that shape so callers can fall back to `key=value` parsing.
 fn parse_netscape_cookie_line(line: &str) -> Option<HashMap<String, String>> {
     let mut fields = line.split('\t');
     let domain = fields.next()?;
     let domain = domain.strip_prefix("#HttpOnly_").unwrap_or(domain).trim();
-    // A Netscape data line starts with a bare domain; comments start with '#',
-    // and `key=value` pairs contain '=' or spaces.
     if domain.is_empty()
         || domain.starts_with('#')
         || domain.contains('=')
@@ -198,11 +179,6 @@ fn parse_netscape_cookie_line(line: &str) -> Option<HashMap<String, String>> {
     Some(map)
 }
 
-/// Parses a pasted cookie block. Accepts any of:
-/// - a JSON object (`{"bb_session":"..."}`),
-/// - a `key=value; key2=value2` string or raw Cookie request-header line,
-/// - a Netscape `cookies.txt` export (tab-separated, e.g. from a
-///   "cookies.txt" browser extension).
 fn parse_cookie_input(input: &str) -> Result<HashMap<String, String>, String> {
     let trimmed = input.trim();
     if trimmed.is_empty() {
@@ -284,13 +260,17 @@ pub fn load_nekobt_api_key(app_handle: &tauri::AppHandle) -> String {
 }
 
 #[tauri::command]
+#[allow(non_snake_case)]
 pub async fn rutracker_login(
     app_handle: tauri::AppHandle,
     username: String,
     password: String,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
 ) -> Result<String, String> {
-    let no_redirect = build_no_redirect_client()?;
-    let client = build_rutracker_client()?;
+    let proxy = resolve_proxy(proxy_url, proxyUrl);
+    let no_redirect = build_no_redirect_client(proxy.as_deref())?;
+    let client = build_rutracker_client(proxy.as_deref())?;
     let mut cookies = HashMap::new();
 
     let init_resp = no_redirect
@@ -313,8 +293,6 @@ pub async fn rutracker_login(
         extract_cookies_from_headers(redirected.headers(), &mut cookies);
     }
 
-    // If even the front page is a challenge/block page, fail early with the reason.
-    // (3xx redirects are handled above and are fine to continue from.)
     if init_resp.status().is_client_error() || init_resp.status().is_server_error() {
         let init_status = init_resp.status();
         let bytes = read_body_limited(init_resp).await?;
@@ -378,7 +356,6 @@ pub async fn rutracker_login(
         extract_cookies_from_headers(final_resp.headers(), &mut cookies);
     }
 
-    // Validate that the session actually stuck before saving anything.
     let check_resp = client
         .get("https://rutracker.org/forum/index.php")
         .header("Cookie", cookies_to_header(&cookies))
@@ -401,22 +378,29 @@ pub async fn rutracker_login(
 }
 
 #[tauri::command]
-pub async fn check_rutracker_session(app_handle: tauri::AppHandle) -> Result<bool, String> {
+#[allow(non_snake_case)]
+pub async fn check_rutracker_session(
+    app_handle: tauri::AppHandle,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
+) -> Result<bool, String> {
+    let proxy = resolve_proxy(proxy_url, proxyUrl);
     let cookies = load_rutracker_cookies(&app_handle);
     if cookies.is_empty() {
         return Ok(false);
     }
-
-    if let Some(response) =
-        rutracker_browser_fetch(&app_handle, "https://rutracker.org/forum/index.php").await?
-    {
-        if !(200..300).contains(&response.status) {
-            return Ok(false);
+    // WebView2 ignores reqwest proxy strings, so the browser path runs direct-only.
+    if proxy.is_none() {
+        if let Some(response) =
+            rutracker_browser_fetch(&app_handle, "https://rutracker.org/forum/index.php").await?
+        {
+            if !(200..300).contains(&response.status) {
+                return Ok(false);
+            }
+            return Ok(session_is_logged_in(&decode_page(&response.body)));
         }
-        return Ok(session_is_logged_in(&decode_page(&response.body)));
     }
-
-    let client = build_rutracker_client()?;
+    let client = build_rutracker_client(proxy.as_deref())?;
     let resp = client
         .get("https://rutracker.org/forum/index.php")
         .header("Cookie", cookies_to_header(&cookies))
@@ -433,20 +417,20 @@ pub async fn check_rutracker_session(app_handle: tauri::AppHandle) -> Result<boo
     Ok(session_is_logged_in(&text))
 }
 
-/// Lets the user import the session cookies from their browser, the reliable
-/// workaround when rutracker's anti-bot or a browser-only VPN blocks the app's
-/// own login requests.
 #[tauri::command]
+#[allow(non_snake_case)]
 pub async fn rutracker_set_cookies(
     app_handle: tauri::AppHandle,
     cookies: String,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
 ) -> Result<String, String> {
     let parsed = parse_cookie_input(&cookies)?;
     if parsed.is_empty() {
         return Err("cookies_parse".to_string());
     }
-
-    let client = build_rutracker_client()?;
+    let proxy = resolve_proxy(proxy_url, proxyUrl);
+    let client = build_rutracker_client(proxy.as_deref())?;
     let resp = client
         .get("https://rutracker.org/forum/index.php")
         .header("Cookie", cookies_to_header(&parsed))
@@ -480,9 +464,6 @@ pub async fn rutracker_set_cookies(
     Ok("ok".to_string())
 }
 
-/// Opens an in-app browser (WebView2/Chromium) at rutracker so the Cloudflare
-/// JS challenge can complete and the user can log in. A raw HTTP client like
-/// reqwest cannot pass that challenge; a real browser engine can.
 #[cfg(target_os = "windows")]
 #[tauri::command]
 pub async fn rutracker_webview_login(app_handle: tauri::AppHandle) -> Result<String, String> {
@@ -516,8 +497,6 @@ pub async fn rutracker_webview_login(_app_handle: tauri::AppHandle) -> Result<St
     Err("In-app browser login is only available on Windows".to_string())
 }
 
-/// Captures the rutracker session cookies (including HttpOnly ones such as
-/// `cf_clearance`/`bb_session`) from the WebView2 login window and saves them.
 #[cfg(not(target_os = "windows"))]
 #[tauri::command]
 pub async fn rutracker_finish_webview_login(
@@ -547,8 +526,6 @@ pub async fn rutracker_finish_webview_login(
     }
     save_rutracker_user_agent(&app_handle, &user_agent);
     save_rutracker_cookies(&app_handle, &cookies)?;
-    // Keep the browser profile alive: Cloudflare clearance is bound to the
-    // browser context, so search/details/download requests must run there too.
     let _ = window.hide();
     Ok("ok".to_string())
 }
@@ -686,9 +663,6 @@ async fn harvest_webview_cookies(
                 let manager = unsafe { core.CookieManager() }
                     .map_err(|e| format!("CookieManager: {e}"))?;
 
-                // The User-Agent the webview used to pass the anti-bot
-                // challenge: clearance cookies are bound to it, so the HTTP
-                // client must send the exact same string.
                 let mut user_agent = String::new();
                 if let Ok(settings) = unsafe { core.Settings() } {
                     use webview2_com::Microsoft::Web::WebView2::Win32::ICoreWebView2Settings2;
@@ -701,12 +675,6 @@ async fn harvest_webview_cookies(
                     }
                 }
 
-                // An empty URI makes WebView2 return every cookie in the
-                // profile. Rutracker scopes its session cookies to /forum/ and
-                // may set them on a mirror domain, so a single page-URI lookup
-                // can silently miss bb_session even after a successful login.
-                // Query the profile as a whole and fall back to the canonical
-                // forum URL for good measure.
                 let mut receivers = Vec::new();
                 for uri in [
                     windows_core::w!(""),
@@ -739,11 +707,6 @@ async fn harvest_webview_cookies(
                                         let value = pwstr_to_string(value);
                                         let domain = pwstr_to_string(domain).to_lowercase();
                                         let name_lower = name.to_lowercase();
-                                        // Keep rutracker session cookies plus
-                                        // anti-bot clearance cookies (DDoS-Guard
-                                        // / Cloudflare), which rutracker's
-                                        // protected paths such as tracker.php
-                                        // require in addition to bb_session.
                                         let domain_matches =
                                             domain_markers.iter().any(|marker| domain.contains(marker));
                                         if !name.is_empty()
@@ -826,12 +789,17 @@ fn save_erai_cookies(cookies: &HashMap<String, String>) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub async fn check_erai_session() -> Result<bool, String> {
+#[allow(non_snake_case)]
+pub async fn check_erai_session(
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
+) -> Result<bool, String> {
+    let proxy = resolve_proxy(proxy_url, proxyUrl);
     let cookies = load_erai_cookies();
     if cookies.is_empty() {
         return Ok(false);
     }
-    let client = crate::scrapers::build_client()?;
+    let client = crate::scrapers::build_client(proxy.as_deref())?;
     let response = client
         .get("https://www.erai-raws.info/")
         .header("Cookie", cookies_to_header(&cookies))
@@ -946,28 +914,32 @@ pub async fn erai_logout() -> Result<(), String> {
     Ok(())
 }
 
-/// Downloads the raw .torrent file for a rutracker topic. The app feeds these
-/// bytes straight into the torrent session, so metadata is embedded and no
-/// DHT/peer round-trip is needed to resolve a magnet (useful when a VPN blocks
-/// P2P but allows the site itself).
 #[tauri::command]
+#[allow(non_snake_case)]
 pub async fn rutracker_get_torrent_bytes(
     app_handle: tauri::AppHandle,
     topic_id: String,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
 ) -> Result<Vec<u8>, String> {
+    let proxy = resolve_proxy(proxy_url, proxyUrl);
     let cookies = load_rutracker_cookies(&app_handle);
     if cookies.is_empty() {
         return Err("Not authenticated".to_string());
     }
-
     let download_url = format!("https://rutracker.org/forum/dl.php?t={topic_id}");
-    let browser_response = rutracker_browser_fetch(&app_handle, &download_url).await?;
+    // WebView2 ignores reqwest proxy strings, so the browser path runs direct-only.
+    let browser_response = if proxy.is_none() {
+        rutracker_browser_fetch(&app_handle, &download_url).await?
+    } else {
+        None
+    };
     let (status, bytes) = if let Some(response) = browser_response {
         (response.status, response.body)
     } else {
         let user_agent = load_rutracker_user_agent(&app_handle)
             .unwrap_or_else(|| crate::scrapers::RUTRACKER_DEFAULT_UA.to_string());
-        let client = build_rutracker_client_with_ua(&user_agent)?;
+        let client = build_rutracker_client_with_ua(&user_agent, proxy.as_deref())?;
         let resp = client
             .get(&download_url)
             .header("Cookie", cookies_to_header(&cookies))
@@ -1004,11 +976,14 @@ pub async fn rutracker_get_torrent_bytes(
 }
 
 #[tauri::command]
+#[allow(non_snake_case)]
 pub async fn rutracker_get_magnet(
     app_handle: tauri::AppHandle,
     topic_id: String,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
 ) -> Result<String, String> {
-    let bytes = rutracker_get_torrent_bytes(app_handle, topic_id).await?;
+    let bytes = rutracker_get_torrent_bytes(app_handle, topic_id, proxy_url, proxyUrl).await?;
     let info_hash = extract_info_hash(&bytes)?;
     let name = extract_torrent_name(&bytes).unwrap_or_default();
 
@@ -1029,16 +1004,19 @@ pub async fn rutracker_get_magnet(
 }
 
 #[tauri::command]
+#[allow(non_snake_case)]
 pub async fn nekobt_set_api_key(
     app_handle: tauri::AppHandle,
     api_key: String,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
 ) -> Result<String, String> {
     let key = api_key.trim().to_string();
     if key.is_empty() {
         return Err("API key cannot be empty".to_string());
     }
-
-    let client = build_nekobt_client()?;
+    let proxy = resolve_proxy(proxy_url, proxyUrl);
+    let client = build_nekobt_client(proxy.as_deref())?;
     let resp = client
         .get("https://nekobt.to/api/v1/announcements")
         .header("Cookie", format!("ssid={key}"))
@@ -1073,13 +1051,18 @@ pub async fn nekobt_set_api_key(
 }
 
 #[tauri::command]
-pub async fn check_nekobt_session(app_handle: tauri::AppHandle) -> Result<bool, String> {
+#[allow(non_snake_case)]
+pub async fn check_nekobt_session(
+    app_handle: tauri::AppHandle,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
+) -> Result<bool, String> {
+    let proxy = resolve_proxy(proxy_url, proxyUrl);
     let key = load_nekobt_api_key(&app_handle);
     if key.is_empty() {
         return Ok(false);
     }
-
-    let client = build_nekobt_client()?;
+    let client = build_nekobt_client(proxy.as_deref())?;
     let resp = client
         .get("https://nekobt.to/api/v1/announcements")
         .header("Cookie", format!("ssid={key}"))
@@ -1185,6 +1168,13 @@ mod tests {
         assert!(!session_is_logged_in("login-form-full"));
         assert!(!session_is_logged_in("Just a moment... DDoS-Guard"));
     }
+    #[test]
+    fn captcha_word_alone_is_treated_as_block() {
+        assert_eq!(
+            detect_challenge("please solve the captcha"),
+            Some("captcha")
+        );
+    }
 
     #[test]
     fn decode_page_prefers_utf8_over_windows1251() {
@@ -1194,16 +1184,10 @@ mod tests {
         assert_eq!(decode_page(&cp1251), "Привет");
     }
 
-    /// Live smoke test: the rutracker client (HTTP/1.1 + IPv4-first) must be
-    /// able to complete a request to the forum front page; the previous
-    /// connection-level failure ("network" error) is gone. rutracker is behind
-    /// a Cloudflare JS challenge, so the response may be a challenge page
-    /// rather than the real forum; that's expected and reported, not failed.
-    /// Run with: `cargo test -- --ignored`.
     #[tokio::test]
     #[ignore]
     async fn rutracker_client_can_reach_forum() {
-        let client = build_rutracker_client().unwrap();
+        let client = build_rutracker_client(None).unwrap();
         let resp = client
             .get("https://rutracker.org/forum/index.php")
             .send()

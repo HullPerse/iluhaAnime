@@ -40,3 +40,4 @@ skills-lock.json
 .docs
 AGENTS.md
 coverage/
+bun.lock

@@ -1,8 +1,8 @@
+import { cn } from "cn";
 import { Eye, EyeOff } from "lucide-react";
 import * as React from "react";
 
-import { useI18n } from "@/lib/i18n";
-import { cn } from "@/lib/index.utils";
+import { useI18n } from "@/lib/locale/i18n.utils";
 
 import { Input } from "./input.component";
 
@@ -24,7 +24,7 @@ function PasswordInput({ className, wrapperClassName, ...props }: PasswordInputP
       <Input
         type={visible ? "text" : "password"}
         className={cn(
-          "h-full min-w-0 flex-1 border-0 bg-transparent px-1.5 pr-4 shadow-none focus-visible:ring-0 focus-visible:outline-none",
+          "h-full min-w-0 flex-1 border-0 bg-transparent px-1.5 pr-7 shadow-none focus-visible:ring-0 focus-visible:outline-none",
           className
         )}
         {...props}

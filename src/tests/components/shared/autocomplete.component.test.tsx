@@ -292,3 +292,42 @@ describe("InlineAutocompleteInput", () => {
     ).toBe(false);
   });
 });
+
+describe("InlineAutocompleteInput placement", () => {
+  it("renders the menu below the input by default", async () => {
+    const user = userEvent.setup();
+    useSettingsStore.setState({ autocompleteMode: "dropdown" });
+    render(
+      <InlineAutocompleteInput
+        aria-label="Search"
+        suggestions={[{ kind: "anime", score: 100, value: "Frieren" }]}
+        value="fri"
+        onChange={() => {}}
+      />
+    );
+
+    await user.click(screen.getByRole("textbox", { name: "Search" }));
+    const menu = await screen.findByRole("listbox");
+    expect(menu.classList.contains("top-full")).toBe(true);
+    expect(menu.classList.contains("bottom-full")).toBe(false);
+  });
+
+  it("renders the menu above the input with placement above", async () => {
+    const user = userEvent.setup();
+    useSettingsStore.setState({ autocompleteMode: "dropdown" });
+    render(
+      <InlineAutocompleteInput
+        aria-label="Search"
+        placement="above"
+        suggestions={[{ kind: "anime", score: 100, value: "Frieren" }]}
+        value="fri"
+        onChange={() => {}}
+      />
+    );
+
+    await user.click(screen.getByRole("textbox", { name: "Search" }));
+    const menu = await screen.findByRole("listbox");
+    expect(menu.classList.contains("bottom-full")).toBe(true);
+    expect(menu.classList.contains("top-full")).toBe(false);
+  });
+});

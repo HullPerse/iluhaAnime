@@ -26,14 +26,14 @@ export default function UserImagePicker({ selected, onSelect }: UserImagePickerP
 
   const refresh = useCallback(async () => {
     setLoading(true);
-    try {
-      setImages(await invokeTyped<UserImage[]>("list_user_images"));
-    } catch {
+    const [data, error] = await attempt(invokeTyped<UserImage[]>("list_user_images"));
+    if (error) {
       setImages([]);
       showError(t("common.error"), t("player.category.load.images.error"));
-    } finally {
-      setLoading(false);
+    } else {
+      setImages(data);
     }
+    setLoading(false);
   }, [t]);
 
   useEffect(() => {
@@ -49,17 +49,16 @@ export default function UserImagePicker({ selected, onSelect }: UserImagePickerP
     });
     if (!selectedPath || Array.isArray(selectedPath)) return;
     setUploading(true);
-    try {
-      const image = await invokeTyped<UserImage>("import_user_image", {
-        path: selectedPath,
-      });
+    const [image, error] = await attempt(
+      invokeTyped<UserImage>("import_user_image", { path: selectedPath })
+    );
+    if (error) {
+      showError(t("common.error"), t("player.category.upload.error"));
+    } else {
       setImages((items) => [image, ...items.filter((item) => item.id !== image.id)]);
       onSelect(userImageIcon(image.id), image);
-    } catch {
-      showError(t("common.error"), t("player.category.upload.error"));
-    } finally {
-      setUploading(false);
     }
+    setUploading(false);
   };
 
   const remove = async (image: UserImage) => {

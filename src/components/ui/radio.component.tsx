@@ -19,7 +19,7 @@ function Radio({
       aria-checked={checked}
       tabIndex={disabled ? -1 : 0}
       className={cn(
-        "text-text inline-flex size-[var(--ui-check-size)] shrink-0 items-center justify-center bg-white",
+        "text-text inline-flex size-(--ui-check-size) shrink-0 items-center justify-center bg-white",
         disabled ? "opacity-50" : "cursor-pointer",
         className
       )}

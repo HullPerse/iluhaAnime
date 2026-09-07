@@ -4,7 +4,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { SearchFilterChips } from "@/routes/components/search/filterChips.search";
+import { SearchFilterChips } from "@/routes/components/search/default/filterChips.search";
 import type { SearchFilters } from "@/types/search";
 
 afterEach(() => {

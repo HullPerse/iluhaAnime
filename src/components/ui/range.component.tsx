@@ -29,7 +29,8 @@ function Slider({
   const { t } = useI18n();
   const ref = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
-  const pct = (value - min) / (max - min);
+  const clamped = Math.max(min, Math.min(max, value));
+  const pct = (clamped - min) / (max - min);
 
   const setFromClientX = useCallback(
     (clientX: number) => {
@@ -47,9 +48,9 @@ function Slider({
     (e: WheelEvent) => {
       e.preventDefault();
       const amount = (e.shiftKey ? step * 10 : step) * (e.deltaY > 0 ? -1 : 1);
-      onChange(Math.max(min, Math.min(max, value + amount)));
+      onChange(Math.max(min, Math.min(max, clamped + amount)));
     },
-    [min, max, step, value, onChange]
+    [min, max, step, clamped, onChange]
   );
 
   useEffect(() => {
@@ -74,7 +75,7 @@ function Slider({
 
   return (
     <div className="flex items-center gap-1 select-none">
-      {label && <span className="w-24 shrink-0">{label}</span>}
+      {label && <span className="w-24 shrink-0 text-xs">{label}</span>}
       <div
         ref={ref}
         role="slider"
@@ -82,17 +83,17 @@ function Slider({
         aria-label={label ?? t("common.slider")}
         aria-valuemin={min}
         aria-valuemax={max}
-        aria-valuenow={value}
-        aria-valuetext={`${value}${suffixText(suffix)}`}
+        aria-valuenow={clamped}
+        aria-valuetext={`${clamped}${suffixText(suffix)}`}
         className="windows95-border relative h-4 flex-1 cursor-pointer bg-white"
         onKeyDown={(e) => {
           const amount = e.shiftKey ? step * 10 : step;
 
           const keyMap: Record<string, () => void> = {
-            ArrowLeft: () => onChange(Math.max(min, value - amount)),
-            ArrowDown: () => onChange(Math.max(min, value - amount)),
-            ArrowRight: () => onChange(Math.min(max, value + amount)),
-            ArrowUp: () => onChange(Math.min(max, value + amount)),
+            ArrowLeft: () => onChange(Math.max(min, clamped - amount)),
+            ArrowDown: () => onChange(Math.max(min, clamped - amount)),
+            ArrowRight: () => onChange(Math.min(max, clamped + amount)),
+            ArrowUp: () => onChange(Math.min(max, clamped + amount)),
             Home: () => onChange(min),
             End: () => onChange(max),
           };
@@ -120,7 +121,7 @@ function Slider({
         />
       </div>
       <span className="inline-flex w-10 items-center justify-end gap-0.5 text-right tabular-nums">
-        {Math.floor((100 * Number(value.toFixed(2))) / max)}
+        {Math.floor((100 * Number(clamped.toFixed(2))) / max)}
         {suffix}
       </span>
     </div>

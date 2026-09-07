@@ -100,7 +100,6 @@ export interface CollectionStore {
   filters: CollectionFilters;
   groupByStatus: boolean;
   collapsedStatuses: Set<string>;
-  coverDithered: boolean;
   viewMode: "grid" | "list";
   displayMode: "scroll" | "pagination";
   wizardPrefill: WizardPrefill | null;
@@ -110,7 +109,6 @@ export interface CollectionStore {
   setFilters: (patch: Partial<CollectionFilters>) => void;
   setGroupByStatus: (groupByStatus: boolean) => void;
   toggleStatusCollapsed: (statusId: string) => void;
-  setCoverDithered: (value: boolean) => void;
   setViewMode: (mode: CollectionStore["viewMode"]) => void;
   setDisplayMode: (mode: CollectionStore["displayMode"]) => void;
   requestWizardPrefill: (prefill: WizardPrefill) => void;

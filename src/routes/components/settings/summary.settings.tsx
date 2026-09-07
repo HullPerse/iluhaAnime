@@ -1,5 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { getVersion } from "@tauri-apps/api/app";
+import { Check, X } from "lucide-react";
+import type { ReactNode } from "react";
 
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
@@ -17,7 +19,7 @@ function SummaryRow({
   onAction,
 }: {
   label: string;
-  value: string;
+  value: ReactNode;
   actionLabel?: string;
   onAction?: () => void;
 }) {
@@ -25,7 +27,10 @@ function SummaryRow({
   return (
     <div className="flex flex-row items-center gap-1 px-1">
       <span className="windows95-text text-hint w-24 shrink-0 text-xs">{label}</span>
-      <span className="windows95-text min-w-0 flex-1 truncate text-xs" title={value}>
+      <span
+        className="windows95-text min-w-0 flex-1 truncate text-xs"
+        title={typeof value === "string" ? value : undefined}
+      >
         {value}
       </span>
       {actionLabel && onAction ? (
@@ -39,7 +44,6 @@ function SummaryRow({
 export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void }) {
   const { t } = useI18n();
   const historyCount = useSearchStore((s) => s.history.length);
-  const animeCount = useSearchStore((s) => s.animeIndex.length);
   const model = useQuery({
     queryKey: ["summary_fastembed"],
     queryFn: () => withFallback(invokeTyped<boolean>("check_fastembed"), false),
@@ -80,11 +84,13 @@ export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void
       <SummaryRow
         label={t("settings.summary.model")}
         value={
-          model.data === undefined
-            ? "..."
-            : model.data
-              ? t("player.fastembed.installed")
-              : t("player.fastembed.missing")
+          model.data === undefined ? (
+            "..."
+          ) : model.data ? (
+            <Check className="size-4 text-success" aria-label={t("player.fastembed.installed")} />
+          ) : (
+            <X className="size-4 text-destructive" aria-label={t("player.fastembed.missing")} />
+          )
         }
         actionLabel={t("settings.summary.open")}
         onAction={() => onJump("search")}
@@ -92,11 +98,13 @@ export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void
       <SummaryRow
         label="FFmpeg"
         value={
-          ffmpeg.data === undefined
-            ? "..."
-            : ffmpeg.data
-              ? t("player.fastembed.installed")
-              : t("player.fastembed.missing")
+          ffmpeg.data === undefined ? (
+            "..."
+          ) : ffmpeg.data ? (
+            <Check className="size-4 text-success" aria-label={t("player.fastembed.installed")} />
+          ) : (
+            <X className="size-4 text-destructive" aria-label={t("player.fastembed.missing")} />
+          )
         }
       />
       <SummaryRow
@@ -113,7 +121,7 @@ export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void
       />
       <SummaryRow
         label={t("settings.summary.learning")}
-        value={`${historyCount} / ${animeCount}`}
+        value={`${historyCount}`}
         actionLabel={t("settings.summary.open")}
         onAction={() => onJump("search")}
       />

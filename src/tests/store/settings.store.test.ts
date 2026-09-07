@@ -84,6 +84,64 @@ describe("useSettingsStore migration", () => {
     };
     expect(result.playerFolderHeights).toEqual(heights);
   });
+
+  it("defaults selectedDitherId during v18 migration", () => {
+    const migrate = useSettingsStore.persist.getOptions()?.migrate;
+    const result = migrate!({ language: "en" } as never, 17) as {
+      selectedDitherId: string | null;
+    };
+    expect(result.selectedDitherId).toBeNull();
+  });
+
+  it("keeps persisted selectedDitherId on v18 migration", () => {
+    const migrate = useSettingsStore.persist.getOptions()?.migrate;
+    const result = migrate!({ language: "en", selectedDitherId: "aaa" } as never, 17) as {
+      selectedDitherId: string | null;
+    };
+    expect(result.selectedDitherId).toBe("aaa");
+  });
+
+  it("reshapes legacy shadows and defaults the wallpaper shadow on v20", () => {
+    const migrate = useSettingsStore.persist.getOptions()?.migrate;
+    const off = { top: false, right: false, bottom: false, left: false };
+    const result = migrate!({ language: "en" } as never, 18) as {
+      searchShadow?: { sides: typeof off; intensity: number; color: string };
+      wallpaperShadow?: { sides: typeof off; intensity: number; color: string };
+      wallpaperFilters?: { brightness: number };
+    };
+    expect(result.searchShadow).toEqual({ sides: off, intensity: 50, color: "#000000" });
+    expect(result.wallpaperShadow).toEqual({ sides: off, intensity: 50, color: "#000000" });
+    expect(result.wallpaperFilters?.brightness).toBe(75);
+  });
+
+  it("converts stored single-side shadows on v20", () => {
+    const migrate = useSettingsStore.persist.getOptions()?.migrate;
+    const top = migrate!(
+      {
+        language: "en",
+        wallpaperShadow: { side: "top", intensity: 80, color: "#ff0000" },
+      } as never,
+      18
+    ) as { searchShadow?: { sides: Record<string, boolean>; intensity: number; color: string } };
+    expect(top.searchShadow).toEqual({
+      sides: { top: true, right: false, bottom: false, left: false },
+      intensity: 80,
+      color: "#ff0000",
+    });
+    const around = migrate!(
+      {
+        language: "en",
+        wallpaperShadow: { side: "around", intensity: 30, color: "#112233" },
+      } as never,
+      18
+    ) as { searchShadow?: { sides: Record<string, boolean> } };
+    expect(around.searchShadow?.sides).toEqual({
+      top: true,
+      right: true,
+      bottom: true,
+      left: true,
+    });
+  });
 });
 
 describe("useSettingsStore hidden player items", () => {

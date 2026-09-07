@@ -33,7 +33,7 @@ export type { Locale, TranslationVariables } from "./i18n";
 export type { VideoStreamInfo, ScanType } from "./player";
 export type { PaginationProps, PaginationResult } from "./pagination";
 export type { Category, CategoryEntry, CategoryStore } from "./category";
-export type { UserImage } from "./image.userimage";
+export type { DitherImageMeta, UserImage } from "./image.userimage";
 export type {
   ConvertConfig,
   UpscaleConfig,

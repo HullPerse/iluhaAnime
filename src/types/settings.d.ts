@@ -1,5 +1,5 @@
 import type { Locale } from "./i18n";
-import type { AutocompleteMode } from "./search";
+import type { AutocompleteMode, SearchType } from "./search";
 import type { SpeedLimits } from "./torrent";
 
 export type SettingsTab =
@@ -78,8 +78,34 @@ export interface SettingsStore {
   searchSymSpellEnabled: boolean;
   searchSemanticEnabled: boolean;
   searchIntentEnabled: boolean;
+  searchType: SearchType;
+  selectedDitherId: string | null;
   appFont: string | null;
+  wallpaperFilters: WallpaperDisplayFilters;
+  wallpaperShadow: WallpaperShadow;
+  searchShadow: WallpaperShadow;
   patch: (partial: Partial<SettingsStore>) => void;
+}
+
+export interface WallpaperDisplayFilters {
+  brightness: number;
+  contrast: number;
+  saturate: number;
+  blur: number;
+  opacity: number;
+}
+
+export interface WallpaperShadowSides {
+  top: boolean;
+  right: boolean;
+  bottom: boolean;
+  left: boolean;
+}
+
+export interface WallpaperShadow {
+  sides: WallpaperShadowSides;
+  intensity: number;
+  color: string;
 }
 
 export interface SessionConfigPayload {

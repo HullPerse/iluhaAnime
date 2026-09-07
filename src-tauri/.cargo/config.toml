@@ -1,0 +1,4 @@
+[profile.dev]
+debug = "line-tables-only"
+codegen-units = 256
+incremental = true

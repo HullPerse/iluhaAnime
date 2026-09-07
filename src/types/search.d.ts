@@ -1,3 +1,4 @@
+import type { SearchField } from "./collection";
 import type { Anime } from "./torrent";
 
 export interface LanguageTag {
@@ -6,6 +7,7 @@ export interface LanguageTag {
 }
 export type SortKey = "seeders" | "leechers" | "size";
 export type SortDirection = "asc" | "desc";
+export type SearchType = "default" | "modern";
 
 export interface SettingsScraper {
   sort: SortKey;
@@ -246,7 +248,6 @@ export type SearchPersistedState = Pick<
   | "sortDirection"
   | "suggestionStats"
 >;
-
 export interface AuthSearchProps {
   source: string;
   rutrackerAuth: boolean;
@@ -258,6 +259,7 @@ export interface AuthSearchProps {
   onLogout: () => Promise<void>;
   onNekoBtLogout: () => Promise<void>;
   onEraiLogout: () => Promise<void>;
+  layout?: "toolbar" | "titlebar";
 }
 
 export interface TorrentDetailsProps {
@@ -279,13 +281,16 @@ export interface SearchFiltersProps {
   onDirectionChange: () => void;
   onOpenFilters: () => void;
 }
-
 export interface ModalFiltersProps {
   open: boolean;
   filters: SearchFilters;
   onApply: (filters: SearchFilters) => void;
   onReset: () => void;
   onClose: () => void;
+  sort?: SortKey;
+  direction?: SortDirection;
+  onSortChange?: (sort: SortKey) => void;
+  onDirectionChange?: () => void;
 }
 
 export interface ResultSearchProps {
@@ -297,4 +302,60 @@ export interface ResultSearchProps {
   onDownload: (item: Anime) => void;
   onOpenLink: (item: Anime) => void;
   onOpenDetails: (item: Anime) => void;
+}
+
+export interface SelectedSearchTorrent {
+  item: Anime;
+  source: Source;
+}
+
+export interface SearchQueryController {
+  source: Source;
+  sourceOptions: { value: string; label: string }[];
+  isLoading: boolean;
+  searchParams: string;
+  submittedQuery: string;
+  field: SearchField;
+  handleSearch: () => void;
+  resetSearch: () => void;
+  changeSource: (value: string) => void;
+  sortBy: SortKey;
+  sortDirection: SortDirection;
+  setSortBy: (sort: SortKey) => void;
+  toggleSortDirection: () => void;
+  filters: SearchFilters;
+  setFilters: (filters: Partial<SearchFilters>) => void;
+  resetFilters: () => void;
+  activeFilterCount: number;
+  showFilters: boolean;
+  setShowFilters: (open: boolean) => void;
+  isError: boolean;
+  error: unknown;
+  refetch: () => void;
+  data: Anime[] | undefined;
+  displayItems: Anime[] | undefined;
+  isPagedSource: boolean;
+  nyaaPage: number;
+  setNyaaPage: (page: number) => void;
+  resultsPerPage: number;
+  rutrackerAuth: boolean;
+  nekobtAuth: boolean;
+  eraiAuth: boolean;
+  showLogin: boolean;
+  showEraiLogin: boolean;
+  showApiModal: boolean;
+  setShowLogin: (open: boolean) => void;
+  setShowEraiLogin: (open: boolean) => void;
+  setShowApiModal: (open: boolean) => void;
+  handleLogout: () => Promise<void>;
+  handleNekoBtLogout: () => Promise<void>;
+  handleEraiLogout: () => Promise<void>;
+  onAuthenticated: () => void;
+  magnets: Record<string, string>;
+  loadingMagnet: Record<string, boolean>;
+  copyMagnetFor: (item: Anime) => void;
+  openMagnetFor: (item: Anime) => void;
+  downloadMagnetFor: (item: Anime) => Promise<void>;
+  selectedTorrent: SelectedSearchTorrent | null;
+  setSelectedTorrent: (selection: SelectedSearchTorrent | null) => void;
 }

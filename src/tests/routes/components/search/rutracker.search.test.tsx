@@ -1,7 +1,7 @@
 import { cleanup, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import RutrackerLoginModal from "@/routes/components/search/rutracker.search";
+import RutrackerLoginModal from "@/routes/components/search/default/rutracker.search";
 import { useSettingsStore } from "@/store/settings.store";
 
 const COOKIES_PLACEHOLDER = "bb_session=...; bb_data=...; uid=...";

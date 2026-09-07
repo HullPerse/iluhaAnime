@@ -3,7 +3,7 @@ import { lazy, Suspense, useState } from "react";
 
 import { useApp } from "@/hooks/app.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
-import TorrentFilePicker from "@/routes/components/search/picker.search";
+import TorrentFilePicker from "@/routes/components/search/default/picker.search";
 import { useCacheStore } from "@/store/cache.store";
 import { useTorrentStore } from "@/store/download.store";
 import type { TabId } from "@/types/settings";
@@ -33,6 +33,8 @@ export default function App() {
   const lastSaveDir = useCacheStore((s) => s.lastSaveDir);
   const confirmDownload = useTorrentStore((s) => s.confirmDownload);
   const cancelDownload = useTorrentStore((s) => s.cancelDownload);
+
+  const visibleTabs = tabs;
 
   const getComponent = () => {
     const tabMap = {
@@ -75,12 +77,12 @@ export default function App() {
             {" "}
             <Tabs
               ariaLabel={t("common.sections")}
-              tabs={tabs}
+              tabs={visibleTabs}
               activeTab={activeTab}
               onChange={(id) => setActiveTabTransition(id as TabId)}
             />
           </div>
-          <div className="windows95-border bg-surface relative mx-1 mb-1 min-h-0 flex-1 overflow-hidden p-1">
+          <div className="windows95-border bg-surface relative mx-1 mb-1 min-h-0 flex-1 overflow-hidden">
             <Suspense fallback={<TabLoader />}>{getComponent()}</Suspense>
             {isPending && (
               <div className="bg-surface/70 absolute inset-0 flex items-center justify-center">
@@ -92,7 +94,7 @@ export default function App() {
             <div className="absolute right-1 bottom-1 z-30 w-96 max-w-[calc(100%-0.5rem)]">
               <JobCenterPanel />
             </div>
-            <StatusBar tabLabel={tabs.find((tab) => tab.id === activeTab)?.label ?? ""} />
+            <StatusBar tabLabel={visibleTabs.find((tab) => tab.id === activeTab)?.label ?? ""} />
           </div>
         </div>
       </section>

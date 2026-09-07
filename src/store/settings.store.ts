@@ -1,7 +1,11 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-import { DEFAULT_SETTINGS } from "@/config/settings/defaults.config";
+import {
+  DEFAULT_SETTINGS,
+  DEFAULT_WALLPAPER_FILTERS,
+  DEFAULT_WALLPAPER_SHADOW,
+} from "@/config/settings/defaults.config";
 import { detectSystemLocale } from "@/lib/locale/system.utils";
 import { normalizePlayerPath } from "@/lib/player/visibility.utils";
 import { applyFontFamily, DEFAULT_FONT_FAMILY } from "@/lib/utils/font.utils";
@@ -179,6 +183,80 @@ function applySettingsV16(
   return migrated;
 }
 
+function applySettingsV17(
+  migrated: Partial<SettingsStore>,
+  version: number
+): Partial<SettingsStore> {
+  if (version >= 17) return migrated;
+  if (migrated.searchType !== "default" && migrated.searchType !== "modern") {
+    migrated.searchType = DEFAULT_SETTINGS.searchType;
+  }
+  return migrated;
+}
+
+function applySettingsV18(
+  migrated: Partial<SettingsStore>,
+  version: number
+): Partial<SettingsStore> {
+  if (version >= 18) return migrated;
+  if (migrated.selectedDitherId === undefined) migrated.selectedDitherId = null;
+  return migrated;
+}
+
+function applySettingsV19(
+  migrated: Partial<SettingsStore>,
+  version: number
+): Partial<SettingsStore> {
+  if (version >= 19) return migrated;
+  if (migrated.wallpaperFilters === undefined) {
+    migrated.wallpaperFilters = { ...DEFAULT_WALLPAPER_FILTERS };
+  }
+  if (migrated.wallpaperShadow === undefined) {
+    migrated.wallpaperShadow = { ...DEFAULT_WALLPAPER_SHADOW };
+  }
+  return migrated;
+}
+
+function applySettingsV20(
+  migrated: Partial<SettingsStore>,
+  version: number
+): Partial<SettingsStore> {
+  if (version >= 20) return migrated;
+  const legacy = (migrated as Record<string, unknown>).wallpaperShadow as
+    | { side?: unknown; intensity?: unknown; color?: unknown }
+    | undefined;
+  const sides = { top: false, right: false, bottom: false, left: false };
+  if (legacy && typeof legacy === "object") {
+    if (legacy.side === "around") {
+      sides.top = true;
+      sides.right = true;
+      sides.bottom = true;
+      sides.left = true;
+    } else {
+      const side = legacy.side;
+      if (side === "top" || side === "right" || side === "bottom" || side === "left") {
+        sides[side] = true;
+      }
+    }
+  }
+  if (migrated.searchShadow === undefined) {
+    migrated.searchShadow = {
+      sides,
+      intensity: typeof legacy?.intensity === "number" ? legacy.intensity : 50,
+      color: typeof legacy?.color === "string" ? legacy.color : "#000000",
+    };
+  }
+  delete (migrated as Record<string, unknown>).wallpaperShadow;
+  if (migrated.wallpaperShadow === undefined) {
+    migrated.wallpaperShadow = {
+      sides: { top: false, right: false, bottom: false, left: false },
+      intensity: 50,
+      color: "#000000",
+    };
+  }
+  return migrated;
+}
+
 function applyUiPreferences(
   retroStyle: SettingsStore["retroStyle"],
   uiDensity: SettingsStore["uiDensity"]
@@ -283,6 +361,10 @@ export const useSettingsStore = create<SettingsStore>()(
         migrated = applySettingsV14(migrated, version);
         migrated = applySettingsV15(migrated, version);
         migrated = applySettingsV16(migrated, version);
+        migrated = applySettingsV17(migrated, version);
+        migrated = applySettingsV18(migrated, version);
+        migrated = applySettingsV19(migrated, version);
+        migrated = applySettingsV20(migrated, version);
         return migrated;
       },
       name: "settings",
@@ -292,7 +374,7 @@ export const useSettingsStore = create<SettingsStore>()(
           if (state.appFont) applyFontFamily(state.appFont);
         }
       },
-      version: 16,
+      version: 20,
     }
   )
 );

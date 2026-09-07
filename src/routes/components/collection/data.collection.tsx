@@ -7,7 +7,6 @@ import {
   Infinity as InfinityIcon,
   Layers,
   List,
-  Palette,
   Upload,
 } from "lucide-react";
 import { useRef } from "react";
@@ -21,6 +20,7 @@ import {
   DropdownMenuItem,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown.component";
 import ImageComponent from "@/components/ui/image.component";
@@ -39,16 +39,8 @@ export default function DataCollection({
   onHandleAnilist: () => void;
 }) {
   const { t } = useI18n();
-  const {
-    coverDithered,
-    groupByStatus,
-    viewMode,
-    displayMode,
-    setCoverDithered,
-    setGroupByStatus,
-    setViewMode,
-    setDisplayMode,
-  } = useCollectionStore();
+  const { groupByStatus, viewMode, displayMode, setGroupByStatus, setViewMode, setDisplayMode } =
+    useCollectionStore();
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -97,6 +89,9 @@ export default function DataCollection({
                 </DropdownMenuRadioItem>
               </DropdownMenuRadioGroup>
             )}
+          </DropdownMenuGroup>
+          <DropdownMenuSeparator />
+          <DropdownMenuGroup>
             <DropdownMenuCheckboxItem
               checked={groupByStatus}
               onCheckedChange={(checked) => setGroupByStatus(checked)}
@@ -104,14 +99,8 @@ export default function DataCollection({
             >
               <Layers className="size-4" /> {t("collection.group.by.status")}
             </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={coverDithered}
-              onCheckedChange={(checked) => setCoverDithered(checked)}
-              title={t("collection.dither")}
-            >
-              <Palette className="size-4" /> {t("collection.dither")}
-            </DropdownMenuCheckboxItem>
           </DropdownMenuGroup>
+          <DropdownMenuSeparator />
           <DropdownMenuGroup>
             <DropdownMenuItem onClick={onHandleAnilist}>
               <ImageComponent

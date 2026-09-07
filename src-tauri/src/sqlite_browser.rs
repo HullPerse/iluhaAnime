@@ -187,7 +187,7 @@ fn allowed_sqlite_table(database: &str, table: &str) -> bool {
     matches!(
         (database, table),
         ("franchise", "franchise_nodes")
-            | ("user_assets", "user_images")
+            | ("user_assets", "user_images" | "dither_images")
             | (
                 "app_data",
                 "cache_entries" | "unified_index" | "collection_items"
@@ -1407,6 +1407,7 @@ mod sqlite_browser_tests {
         assert!(sqlite_database_spec("other").is_none());
         assert!(allowed_sqlite_table("franchise", "franchise_nodes"));
         assert!(allowed_sqlite_table("user_assets", "user_images"));
+        assert!(allowed_sqlite_table("user_assets", "dither_images"));
         assert!(allowed_sqlite_table("app_data", "cache_entries"));
         assert!(allowed_sqlite_table("app_data", "collection_items"));
         assert!(!allowed_sqlite_table("franchise", "sqlite_master"));

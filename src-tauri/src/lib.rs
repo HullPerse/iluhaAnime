@@ -62,7 +62,23 @@ impl Default for NotificationConfig {
 }
 
 pub(crate) struct TorrentBackend {
-    pub(crate) manager: Arc<TorrentManager>,
+    cell: tokio::sync::OnceCell<Result<Arc<TorrentManager>, String>>,
+    notify: tokio::sync::Notify,
+}
+
+async fn backend_manager(
+    backend: &tauri::State<'_, TorrentBackend>,
+) -> Result<Arc<TorrentManager>, String> {
+    tokio::time::timeout(std::time::Duration::from_secs(120), async {
+        loop {
+            if let Some(ready) = backend.cell.get() {
+                return ready.clone();
+            }
+            backend.notify.notified().await;
+        }
+    })
+    .await
+    .map_err(|_| "torrent engine is still starting".to_string())?
 }
 
 #[tauri::command]
@@ -73,8 +89,8 @@ async fn start_torrent_download(
     sub_folder: Option<String>,
     manager: tauri::State<'_, TorrentBackend>,
 ) -> Result<usize, String> {
-    manager
-        .manager
+    backend_manager(&manager)
+        .await?
         .add_torrent(magnet, save_dir, only_files, sub_folder)
         .await
         .map_err(|e| format!("{e:#}"))
@@ -86,7 +102,7 @@ async fn get_torrent_info(
     save_dir: String,
     manager: tauri::State<'_, TorrentBackend>,
 ) -> Result<TorrentInfoResult, String> {
-    manager.manager.get_torrent_info(magnet, save_dir).await
+    backend_manager(&manager).await?.get_torrent_info(magnet, save_dir).await
 }
 
 #[tauri::command]
@@ -97,8 +113,8 @@ async fn start_torrent_download_from_file(
     sub_folder: Option<String>,
     manager: tauri::State<'_, TorrentBackend>,
 ) -> Result<usize, String> {
-    manager
-        .manager
+    backend_manager(&manager)
+        .await?
         .add_torrent_from_bytes(file_bytes, save_dir, only_files, sub_folder)
         .await
         .map_err(|e| format!("{e:#}"))
@@ -110,21 +126,23 @@ async fn get_torrent_info_from_file(
     save_dir: String,
     manager: tauri::State<'_, TorrentBackend>,
 ) -> Result<TorrentInfoResult, String> {
-    manager
-        .manager
+    backend_manager(&manager)
+        .await?
         .get_torrent_info_from_bytes(file_bytes, save_dir)
         .await
 }
 
 #[tauri::command]
-fn list_torrents(manager: tauri::State<'_, TorrentBackend>) -> Result<Vec<TorrentInfo>, String> {
-    Ok(manager.manager.collect_torrents())
+async fn list_torrents(
+    manager: tauri::State<'_, TorrentBackend>,
+) -> Result<Vec<TorrentInfo>, String> {
+    Ok(backend_manager(&manager).await?.collect_torrents())
 }
 
 #[tauri::command]
 async fn pause_torrent(id: usize, manager: tauri::State<'_, TorrentBackend>) -> Result<(), String> {
-    manager
-        .manager
+    backend_manager(&manager)
+        .await?
         .pause_torrent(id)
         .await
         .map_err(|e| format!("{e:#}"))
@@ -135,8 +153,8 @@ async fn resume_torrent(
     id: usize,
     manager: tauri::State<'_, TorrentBackend>,
 ) -> Result<(), String> {
-    manager
-        .manager
+    backend_manager(&manager)
+        .await?
         .resume_torrent(id)
         .await
         .map_err(|e| format!("{e:#}"))
@@ -148,8 +166,8 @@ async fn remove_torrent(
     delete_files: bool,
     manager: tauri::State<'_, TorrentBackend>,
 ) -> Result<(), String> {
-    manager
-        .manager
+    backend_manager(&manager)
+        .await?
         .remove_torrent(id, delete_files)
         .await
         .map_err(|e| format!("{e:#}"))
@@ -386,12 +404,12 @@ async fn scan_extra_files(path: String) -> Result<Vec<VideoFileEntry>, String> {
 }
 
 #[tauri::command]
-fn set_global_speed_limits(
+async fn set_global_speed_limits(
     download_bps: Option<u32>,
     upload_bps: Option<u32>,
     manager: tauri::State<'_, TorrentBackend>,
 ) -> Result<(), String> {
-    manager.manager.set_global_limits(
+    backend_manager(&manager).await?.set_global_limits(
         download_bps.and_then(NonZeroU32::new),
         upload_bps.and_then(NonZeroU32::new),
     );
@@ -403,7 +421,7 @@ async fn get_running_torrent_files(
     id: usize,
     manager: tauri::State<'_, TorrentBackend>,
 ) -> Result<Vec<TorrentFileInfo>, String> {
-    manager.manager.get_running_torrent_files(id)
+    backend_manager(&manager).await?.get_running_torrent_files(id)
 }
 
 #[tauri::command]
@@ -411,7 +429,7 @@ async fn save_session_config(
     config: torrent::SessionConfig,
     manager: tauri::State<'_, TorrentBackend>,
 ) -> Result<(), String> {
-    manager.manager.save_session_config(config);
+    backend_manager(&manager).await?.save_session_config(config);
     Ok(())
 }
 
@@ -421,8 +439,8 @@ async fn update_torrent_only_files(
     only_files: Vec<usize>,
     manager: tauri::State<'_, TorrentBackend>,
 ) -> Result<(), String> {
-    manager
-        .manager
+    backend_manager(&manager)
+        .await?
         .update_torrent_only_files(id, only_files)
         .await
 }
@@ -439,8 +457,8 @@ async fn set_file_priority(
         "normal" => FilePriority::Normal,
         _ => return Err("Invalid priority. Use: do_not_download, normal".to_string()),
     };
-    manager
-        .manager
+    backend_manager(&manager)
+        .await?
         .set_file_priority(id, file_indices, priority_enum)
         .await
 }
@@ -452,8 +470,8 @@ async fn redownload_file(
     info_hash: String,
     manager: tauri::State<'_, TorrentBackend>,
 ) -> Result<usize, String> {
-    manager
-        .manager
+    backend_manager(&manager)
+        .await?
         .redownload_file(id, file_index, info_hash)
         .await
 }
@@ -484,7 +502,7 @@ async fn set_sequential_download(
     enabled: bool,
     manager: tauri::State<'_, TorrentBackend>,
 ) -> Result<(), String> {
-    manager.manager.set_sequential_download(id, enabled).await
+    backend_manager(&manager).await?.set_sequential_download(id, enabled).await
 }
 
 #[tauri::command]
@@ -492,7 +510,7 @@ async fn recheck_torrent(
     id: usize,
     manager: tauri::State<'_, TorrentBackend>,
 ) -> Result<TorrentCheckResult, String> {
-    manager.manager.recheck_torrent(id)
+    backend_manager(&manager).await?.recheck_torrent(id)
 }
 
 #[tauri::command]
@@ -501,7 +519,7 @@ async fn set_torrent_limits(
     limits: TorrentLimits,
     manager: tauri::State<'_, TorrentBackend>,
 ) -> Result<(), String> {
-    manager.manager.set_torrent_limits(id, limits).await
+    backend_manager(&manager).await?.set_torrent_limits(id, limits).await
 }
 
 #[tauri::command]
@@ -509,7 +527,7 @@ async fn get_torrent_limits(
     id: usize,
     manager: tauri::State<'_, TorrentBackend>,
 ) -> Result<TorrentLimits, String> {
-    Ok(manager.manager.get_torrent_limits(id))
+    Ok(backend_manager(&manager).await?.get_torrent_limits(id))
 }
 
 async fn persist_file_index(
@@ -635,25 +653,37 @@ pub fn run() {
             handle.manage(std::sync::Mutex::new(fswatcher::FolderWatcher::new()));
             handle.manage(file_index::FileIndexer::new());
 
-            tauri::async_runtime::block_on(async {
-                let manager =
-                    match TorrentManager::new(app_data).await {
-                        Ok(m) => Arc::new(m),
-                        Err(e) => {
-                            let _ = handle.emit("show-notification", serde_json::json!({
-                            "title": "Критическая ошибка",
-                            "body": format!("Не удалось инициализировать торрент-сессию: {e}"),
-                            "type": "error",
-                        }));
-                            return;
-                        }
-                    };
+            handle.manage(TorrentBackend {
+                cell: tokio::sync::OnceCell::new(),
+                notify: tokio::sync::Notify::new(),
+            });
+            tauri::async_runtime::spawn(async move {
+                let manager = match TorrentManager::new(app_data).await {
+                    Ok(m) => Arc::new(m),
+                    Err(e) => {
+                        let _ = handle.emit("show-notification", serde_json::json!({
+                        "title": "Критическая ошибка",
+                        "body": format!("Не удалось инициализировать торрент-сессию: {e}"),
+                        "type": "error",
+                    }));
+                        handle
+                            .state::<TorrentBackend>()
+                            .cell
+                            .set(Err(format!("{e:#}")))
+                            .ok();
+                        handle.state::<TorrentBackend>().notify.notify_one();
+                        return;
+                    }
+                };
                 manager.start_http_api();
-                handle.manage(TorrentBackend {
-                    manager: manager.clone(),
-                });
                 let app_clone = handle.clone();
-                let mgr_clone = manager;
+                let mgr_clone = manager.clone();
+                handle
+                    .state::<TorrentBackend>()
+                    .cell
+                    .set(Ok(manager))
+                    .ok();
+                handle.state::<TorrentBackend>().notify.notify_one();
                 tokio::spawn(async move {
                     let mut prev_states: HashMap<usize, (bool, Option<String>)> = HashMap::new();
                     let mut notified_errors: HashMap<usize, String> = HashMap::new();
@@ -817,9 +847,15 @@ pub fn run() {
             anilist::cancel_anime_prefetch,
             anilist::sync_franchise_to_index,
             user_assets::import_user_image,
+            user_assets::import_dither_image,
             user_assets::download_remote_image,
             user_assets::list_user_images,
+            user_assets::list_dither_image_meta,
             user_assets::get_user_image,
+            user_assets::get_dither_images,
+            user_assets::get_dither_image,
+            user_assets::update_dither_image_data,
+            user_assets::delete_dither_image,
             user_assets::delete_user_image,
             app_db::get_app_cache,
             app_db::put_app_cache,

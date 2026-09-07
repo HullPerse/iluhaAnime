@@ -48,6 +48,23 @@ describe("SettingsSummary", () => {
     expect(await screen.findByText("3.0.2")).toBeDefined();
     expect(await screen.findByText(/1970/)).toBeDefined();
   });
+  it("shows binary status as icons and learning as a single count", async () => {
+    mockInvoke.mockImplementation((cmd: string) => {
+      if (cmd === "check_fastembed") return Promise.resolve(true);
+      if (cmd === "check_ffprobe") return Promise.resolve(false);
+      if (cmd === "list_sqlite_databases") return Promise.resolve([{ id: "app", available: true }]);
+      if (cmd === "list_sqlite_backups")
+        return Promise.resolve([{ name: "b", sizeBytes: 1, modifiedMs: 1000 }]);
+      return Promise.resolve(null);
+    });
+    renderSummary();
+    expect(
+      await screen.findByLabelText(/Model installed|Модель установлена/)
+    ).toBeDefined();
+    expect(screen.getByLabelText(/Model not found|Модель не найдена/)).toBeDefined();
+    const learningLabel = screen.getByText(/Learning|Обучение/);
+    expect(learningLabel.closest("div")?.textContent).not.toMatch(/\//);
+  });
 
   it("jumps to the owning tab from a row action", async () => {
     const user = userEvent.setup();
@@ -69,5 +86,14 @@ describe("SettingsChangelog", () => {
     expect(screen.queryByText(/Новое|Added/)).toBeNull();
     await user.click(screen.getByRole("button", { name: /3\.2\.0/ }));
     expect(screen.getByText(/Новое|Added/)).toBeDefined();
+  });
+  it("prefixes every entry with its area scope", () => {
+    render(<SettingsChangelog />);
+    const rows = screen.getAllByRole("listitem");
+    expect(rows.length).toBeGreaterThan(0);
+    for (const row of rows) {
+      expect(row.textContent).toMatch(/\[.+\]:/);
+    }
+    expect(screen.getAllByText(/Апскейл|Upscale/).length).toBeGreaterThan(0);
   });
 });

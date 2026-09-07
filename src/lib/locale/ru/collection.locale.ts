@@ -9,7 +9,6 @@ const collection = {
   "collection.display.mode": "Изменить отображение",
   "collection.display.mode.scroll": "Бесконечный скролл",
   "collection.display.mode.pagination": "Пагинация",
-  "collection.dither": "Дизеринг",
   "collection.group.by.status": "Группировать по статусу",
   "collection.group.toggle": "Свернуть/развернуть группу",
   "collection.filters.provider": "Источник",

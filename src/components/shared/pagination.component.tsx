@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
@@ -40,7 +40,7 @@ export default function Pagination({
           disabled={page === 1}
           aria-label={t("common.pagination.prev")}
         >
-          <ArrowLeft />
+          <ChevronLeft className="size-3" />
         </Button>
         <Input
           key={page}
@@ -66,7 +66,7 @@ export default function Pagination({
           disabled={page === lastPage}
           aria-label={t("common.pagination.next")}
         >
-          <ArrowRight />
+          <ChevronRight className="size-3" />
         </Button>
       </div>
     </section>

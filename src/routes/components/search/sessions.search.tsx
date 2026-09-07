@@ -1,6 +1,6 @@
-import EraiLoginModal from "@/routes/components/search/erai.search";
-import NekoBtApiModal from "@/routes/components/search/nekobt.search";
-import RutrackerLoginModal from "@/routes/components/search/rutracker.search";
+import EraiLoginModal from "@/routes/components/search/default/erai.search";
+import NekoBtApiModal from "@/routes/components/search/default/nekobt.search";
+import RutrackerLoginModal from "@/routes/components/search/default/rutracker.search";
 
 export default function SearchSessionModals({
   showLogin,

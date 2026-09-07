@@ -1,3 +1,4 @@
+import { SortAsc, SortDesc } from "lucide-react";
 import { useState } from "react";
 
 import Modal from "@/components/shared/modal.component";
@@ -5,11 +6,22 @@ import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import Combobox from "@/components/ui/combobox.component";
 import { Input } from "@/components/ui/input.component";
+import Select from "@/components/ui/select.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
-import type { SearchFilters } from "@/types/search";
+import type { SearchFilters, SortKey } from "@/types/search";
 import type { ModalFiltersProps as Props } from "@/types/search";
 
-export default function SearchFiltersModal({ open, filters, onApply, onReset, onClose }: Props) {
+export default function SearchFiltersModal({
+  open,
+  filters,
+  onApply,
+  onReset,
+  onClose,
+  sort,
+  direction,
+  onSortChange,
+  onDirectionChange,
+}: Props) {
   const { t } = useI18n();
   const [local, setLocal] = useState<SearchFilters>(filters);
 
@@ -25,6 +37,36 @@ export default function SearchFiltersModal({ open, filters, onApply, onReset, on
   return (
     <Modal header={t("search.filters.title")} onClose={onClose} className="w-xl">
       <div className="flex flex-col gap-3 overflow-y-auto p-2">
+        {sort && direction && onSortChange && onDirectionChange && (
+          <>
+            <div className="flex items-center gap-1">
+              <span className="windows95-text text-text">{t("search.sort.by")}</span>
+              <Select
+                className="w-22"
+                value={sort}
+                onChange={(v) => onSortChange(v as SortKey)}
+                options={[
+                  { value: "seeders", label: t("search.sort.seeders") },
+                  { value: "leechers", label: t("search.sort.leechers") },
+                  { value: "size", label: t("search.sort.size") },
+                ]}
+              />
+              <Button
+                size="icon"
+                className="size-5.5"
+                title={direction === "desc" ? t("search.sort.desc") : t("search.sort.asc")}
+                onClick={onDirectionChange}
+              >
+                {direction === "desc" ? (
+                  <SortDesc className="size-3" />
+                ) : (
+                  <SortAsc className="size-3" />
+                )}
+              </Button>
+            </div>
+            <hr className="border-muted my-1 w-full border-t" />
+          </>
+        )}
         <p className="windows95-text text-text font-bold">{t("search.filters.min.seeders")}</p>
         <Input
           type="number"

@@ -1,4 +1,18 @@
-import type { SettingsDefaults } from "@/types/settings";
+import type { SettingsDefaults, WallpaperDisplayFilters, WallpaperShadow } from "@/types/settings";
+
+export const DEFAULT_WALLPAPER_FILTERS: WallpaperDisplayFilters = {
+  brightness: 75,
+  contrast: 100,
+  saturate: 100,
+  blur: 0,
+  opacity: 100,
+};
+
+export const DEFAULT_WALLPAPER_SHADOW: WallpaperShadow = {
+  sides: { top: false, right: false, bottom: false, left: false },
+  intensity: 50,
+  color: "#000000",
+};
 
 export const DEFAULT_SETTINGS: SettingsDefaults = {
   anilistMaxPages: 3,
@@ -74,5 +88,10 @@ export const DEFAULT_SETTINGS: SettingsDefaults = {
   searchSymSpellEnabled: true,
   searchSemanticEnabled: true,
   searchIntentEnabled: true,
+  searchType: "default",
+  selectedDitherId: null as string | null,
   appFont: null as string | null,
+  wallpaperFilters: { ...DEFAULT_WALLPAPER_FILTERS },
+  wallpaperShadow: { ...DEFAULT_WALLPAPER_SHADOW },
+  searchShadow: { ...DEFAULT_WALLPAPER_SHADOW },
 };

@@ -26,6 +26,7 @@ interface Props extends React.ComponentProps<typeof Input> {
   onSelectSuggestion?: (value: string) => void;
   onDismissCompletion?: () => void;
   highlightRanges?: readonly HighlightRange[];
+  placement?: "below" | "above";
 }
 
 const suggestionIcons: Record<SearchSuggestion["kind"], LucideIcon> = {
@@ -143,6 +144,7 @@ export function InlineAutocompleteInput({
   onRemoveHistory,
   onSelectSuggestion,
   onScroll,
+  placement = "below",
   suggestions = EMPTY_SUGGESTIONS,
   highlightRanges = EMPTY_RANGES,
   value,
@@ -255,7 +257,7 @@ export function InlineAutocompleteInput({
           aria-keyshortcuts="Tab, Enter, Escape, ArrowDown, ArrowUp, Home, End"
           className={cn(
             "relative z-10 h-full w-full bg-transparent",
-            hasHighlight && "selection:bg-highlight/30 text-transparent caret-[var(--color-text)]"
+            hasHighlight && "selection:bg-highlight/30 caret-text text-transparent"
           )}
           onScroll={(event) => {
             if (backdropRef.current)
@@ -311,6 +313,7 @@ export function InlineAutocompleteInput({
             onHover={setActiveIndex}
             onSelect={selectSuggestion}
             onRemoveHistory={onRemoveHistory}
+            placement={placement}
           />
         )}
       </div>
@@ -439,6 +442,7 @@ function SuggestionMenu({
   onHover,
   onSelect,
   onRemoveHistory,
+  placement,
 }: {
   listboxId: string;
   listRef: React.RefObject<HTMLDivElement | null>;
@@ -452,6 +456,7 @@ function SuggestionMenu({
   onHover: (index: number) => void;
   onSelect: (suggestion: SearchSuggestion) => void;
   onRemoveHistory?: (query: string) => void;
+  placement: "below" | "above";
 }) {
   const { t } = useI18n();
   return (
@@ -459,7 +464,10 @@ function SuggestionMenu({
       id={listboxId}
       ref={listRef}
       role="listbox"
-      className="windows95-border absolute top-full left-0 z-40 mt-0 flex max-h-48 min-w-64 flex-col bg-white shadow-none"
+      className={cn(
+        "windows95-border absolute left-0 z-40 flex max-h-48 min-w-64 flex-col bg-white shadow-none",
+        placement === "above" ? "bottom-full mb-0" : "top-full mt-0"
+      )}
       style={{ width: menuWidth }}
     >
       <div ref={scrollRef} className="flex-1 overflow-y-auto overscroll-contain p-0">

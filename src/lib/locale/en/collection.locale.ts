@@ -10,7 +10,6 @@ const collection = {
   "collection.display.mode": "Change display mode",
   "collection.display.mode.scroll": "Infinite scroll",
   "collection.display.mode.pagination": "Pagination",
-  "collection.dither": "Dither",
   "collection.group.by.status": "Group by status",
   "collection.group.toggle": "Collapse/expand group",
   "collection.filters.provider": "Source",

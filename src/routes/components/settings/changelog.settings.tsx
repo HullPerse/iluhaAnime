@@ -1,24 +1,25 @@
 import { useState } from "react";
 
-import { CHANGELOG } from "@/config/settings/changelog.config";
+import { CHANGELOG, type ChangelogEntry } from "@/config/settings/changelog.config";
 import { useI18n, type TranslationKey } from "@/lib/locale/i18n.utils";
 
 function ChangelogCategory({
   titleKey,
-  keys,
+  entries,
 }: {
   titleKey: TranslationKey;
-  keys: TranslationKey[];
+  entries: ChangelogEntry[];
 }) {
   const { t } = useI18n();
-  if (keys.length === 0) return null;
+  if (entries.length === 0) return null;
   return (
     <div className="windows95-border flex flex-col bg-white p-1">
       <span className="windows95-text px-1 text-xs font-bold">{t(titleKey)}</span>
       <ul className="flex flex-col">
-        {keys.map((key) => (
-          <li key={key} className="windows95-text px-1 text-xs">
-            - {t(key)}
+        {entries.map((entry) => (
+          <li key={entry.key} className="windows95-text px-1 text-xs">
+            - <span className="font-bold">[{t(`settings.changelog.scope.${entry.scope}`)}]:</span>{" "}
+            {t(entry.key)}
           </li>
         ))}
       </ul>
@@ -45,9 +46,9 @@ export function SettingsChangelog() {
             </button>
             {expanded ? (
               <div className="flex flex-col gap-1 pt-1">
-                <ChangelogCategory titleKey="settings.changelog.added" keys={entry.added} />
-                <ChangelogCategory titleKey="settings.changelog.changed" keys={entry.changed} />
-                <ChangelogCategory titleKey="settings.changelog.fixed" keys={entry.fixed} />
+                <ChangelogCategory titleKey="settings.changelog.added" entries={entry.added} />
+                <ChangelogCategory titleKey="settings.changelog.changed" entries={entry.changed} />
+                <ChangelogCategory titleKey="settings.changelog.fixed" entries={entry.fixed} />
               </div>
             ) : null}
           </div>

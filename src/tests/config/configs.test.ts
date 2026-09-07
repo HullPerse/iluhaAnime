@@ -22,6 +22,12 @@ import {
 } from "@/config/player/options.config";
 import { ANIME4K_PRESETS } from "@/config/player/presets.config";
 import { tabForAltDigit } from "@/config/settings/tabs.config";
+import {
+  DITHER_DEFAULT_PALETTE,
+  DITHER_DEFAULTS,
+  DITHER_PRESETS,
+  resolveDitherPreset,
+} from "@/config/utils/dither.config";
 
 const ALL_TABS = {
   collectionTabEnabled: true,
@@ -128,5 +134,52 @@ describe("player config data", () => {
       expect(preset.quality).toMatch(/^(ultrafast|fast|slow|veryslow)$/);
       expect(preset.gpuBackend).toMatch(/^(cpu|gpu)$/);
     }
+  });
+});
+
+describe("dither presets", () => {
+  it("resolves the empty preset to neutral bypass values", () => {
+    const empty = resolveDitherPreset("empty");
+    expect(empty.levels).toBe(256);
+    expect(empty.ditherStrength).toBe(0);
+    expect(empty.paletteBias).toBe(0);
+    expect(empty.shadowCrush).toBe(0);
+  });
+  it("exposes six complete presets", () => {
+    expect(DITHER_PRESETS.map((preset) => preset.id)).toEqual([
+      "empty",
+      "default",
+      "deep",
+      "soft",
+      "natural",
+      "capy",
+    ]);
+    const expected = Object.keys(DITHER_DEFAULTS)
+      .filter((key) => key !== "scale")
+      .sort();
+    for (const preset of DITHER_PRESETS) {
+      expect(Object.keys(preset.options).sort()).toEqual(expected);
+    }
+  });
+
+  it("keeps the natural preset free of color-press knobs", () => {
+    const natural = resolveDitherPreset("natural");
+    expect(natural.ditherMatrix).toBe("blue64");
+    expect(natural.ink).toBe(0);
+    expect(natural.blackPoint).toBe(0);
+    expect(natural.shadowCrush).toBe(0);
+    expect(natural.edgeDistortion).toBe(0);
+    expect(natural.misregistration).toBe(0);
+    expect(natural.vignette).toBe(0);
+    expect(natural.paletteBias).toBeLessThanOrEqual(0.2);
+    expect(natural.palette).toEqual(DITHER_DEFAULT_PALETTE);
+  });
+  it("wires the capy preset to the halftone dot pass", () => {
+    const capy = resolveDitherPreset("capy");
+    expect(capy.halftoneSize).toBe(2);
+    expect(capy.halftoneSoftness).toBeGreaterThan(0);
+  });
+  it("defaults the grain to gray", () => {
+    expect(resolveDitherPreset("default").grayGrain).toBe(true);
   });
 });

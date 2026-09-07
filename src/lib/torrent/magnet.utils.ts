@@ -2,6 +2,7 @@ import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { openUrl } from "@tauri-apps/plugin-opener";
 
 import { translate } from "@/lib/locale/i18n.utils";
+import { attempt } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useTorrentStore } from "@/store/download.store";
 import { useNotificationStore } from "@/store/notification.store";
@@ -59,9 +60,8 @@ export async function openMagnet(
 ) {
   const magnet = item.magnet || (await ensureMagnet(item, magnets, setMagnets, setLoadingMagnet));
   if (magnet) {
-    try {
-      await openUrl(magnet);
-    } catch {
+    const [, error] = await attempt(openUrl(magnet));
+    if (error) {
       useNotificationStore
         .getState()
         .add(

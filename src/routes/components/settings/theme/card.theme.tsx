@@ -5,22 +5,22 @@ import { useI18n } from "@/lib/locale/i18n.utils";
 import type { ThemeDefinition } from "@/types/theme";
 
 export function ThemeCard({
-  t,
+  theme,
   isActive,
   isCustom,
   onSelect,
   onDelete,
   onEdit,
 }: {
-  t: ThemeDefinition;
+  theme: ThemeDefinition;
   isActive: boolean;
   isCustom?: boolean;
   onSelect: () => void;
   onDelete?: () => void;
   onEdit?: () => void;
 }) {
-  const c = t.colors;
-  const { t: tr } = useI18n();
+  const c = theme.colors;
+  const { t } = useI18n();
   return (
     <div className="flex flex-col items-center gap-1">
       <button
@@ -30,46 +30,46 @@ export function ThemeCard({
           isActive && "ring-text ring-2 ring-inset"
         )}
         onClick={onSelect}
-        title={t.label}
+        title={theme.label}
         aria-pressed={isActive}
       >
         <div className="flex gap-0.5">
           <div
             className="border-muted size-5 border"
             style={{ background: c.primary }}
-            title={tr("settings.theme.color.primary")}
+            title={t("settings.theme.color.primary")}
           />
           <div
             className="border-muted size-5 border"
             style={{ background: c.secondary }}
-            title={tr("settings.theme.color.secondary")}
+            title={t("settings.theme.color.secondary")}
           />
           <div
             className="border-muted size-5 border"
             style={{ background: c.text }}
-            title={tr("settings.theme.color.text")}
+            title={t("settings.theme.color.text")}
           />
           <div
             className="border-muted size-5 border"
             style={{ background: c.winHighlight }}
-            title={tr("settings.theme.color.win.highlight")}
+            title={t("settings.theme.color.win.highlight")}
           />
           <div
             className="border-muted size-5 border"
             style={{ background: c.winShadow }}
-            title={tr("settings.theme.color.win.shadow")}
+            title={t("settings.theme.color.win.shadow")}
           />
         </div>
         <span className="windows95-text text-text text-xs">
-          {t.label}
-          {isCustom && tr("settings.theme.custom")}
+          {theme.label}
+          {isCustom && t("settings.theme.custom")}
         </span>
       </button>
       {isCustom && (onEdit || onDelete) && (
         <div className="flex gap-1">
           {onEdit && (
             <Button className="text-xs underline" size="default" onClick={onEdit}>
-              {tr("settings.theme.edit")}
+              {t("settings.theme.edit")}
             </Button>
           )}
           {onDelete && (
@@ -79,7 +79,7 @@ export function ThemeCard({
               size="default"
               onClick={onDelete}
             >
-              {tr("settings.theme.delete")}
+              {t("settings.theme.delete")}
             </Button>
           )}
         </div>

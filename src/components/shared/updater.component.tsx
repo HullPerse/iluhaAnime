@@ -2,6 +2,7 @@ import type { Update } from "@tauri-apps/plugin-updater";
 import { useState } from "react";
 
 import { useI18n } from "@/lib/locale/i18n.utils";
+import { attempt } from "@/lib/utils/attempt.utils";
 import { installUpdate } from "@/lib/utils/update.utils";
 
 import { Button } from "../ui/button.component";
@@ -47,13 +48,11 @@ function Updater({ update, onClose }: { update: Update; onClose: () => void }) {
             onClick={async () => {
               setLoading(true);
               setInstallError(null);
-              try {
-                await installUpdate(update);
-              } catch (error) {
+              const [, error] = await attempt(installUpdate(update));
+              if (error) {
                 setInstallError(error instanceof Error ? error.message : String(error));
-              } finally {
-                setLoading(false);
               }
+              setLoading(false);
             }}
             disabled={loading}
           >

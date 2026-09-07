@@ -36,7 +36,6 @@ function migrateFromLegacy(
     filters: (state.filters as CollectionFilters | undefined) ?? { ...DEFAULT_FILTERS },
     groupByStatus: false,
     collapsedStatuses: toSet(state.collapsedStatuses),
-    coverDithered: false,
   } as CollectionStore;
 }
 
@@ -52,7 +51,6 @@ function migrateCurrent(
     filters: resolveFilters(state, version),
     groupByStatus: Boolean(state.groupByStatus),
     collapsedStatuses: toSet(state.collapsedStatuses),
-    coverDithered: Boolean(state.coverDithered),
     viewMode: (state.viewMode as CollectionStore["viewMode"]) ?? "grid",
     displayMode: state.displayMode === "scroll" ? "scroll" : "pagination",
   } as CollectionStore;
@@ -68,7 +66,6 @@ export const useCollectionStore = create<CollectionStore>()(
       filters: { ...DEFAULT_FILTERS },
       groupByStatus: false,
       collapsedStatuses: new Set<string>(),
-      coverDithered: false,
       viewMode: "grid",
       displayMode: "pagination",
       wizardPrefill: null,
@@ -85,7 +82,6 @@ export const useCollectionStore = create<CollectionStore>()(
           else next.add(statusId);
           return { collapsedStatuses: next };
         }),
-      setCoverDithered: (coverDithered) => set({ coverDithered }),
       setViewMode: (viewMode) => set({ viewMode }),
       setDisplayMode: (displayMode) => set({ displayMode }),
       requestWizardPrefill: (prefill: WizardPrefill) => set({ wizardPrefill: prefill }),
@@ -110,7 +106,6 @@ export const useCollectionStore = create<CollectionStore>()(
         filters: state.filters,
         groupByStatus: state.groupByStatus,
         collapsedStatuses: Array.from(state.collapsedStatuses) as unknown as Set<string>,
-        coverDithered: state.coverDithered,
         viewMode: state.viewMode,
         displayMode: state.displayMode,
       }),

@@ -54,4 +54,25 @@ describe("Slider", () => {
     fireEvent.mouseMove(window, { clientX: 104 });
     expect(onChange).toHaveBeenLastCalledWith(100);
   });
+
+  it("saturates the display at the edges for out-of-range values", () => {
+    const high = render(<Slider min={2} max={64} step={1} value={256} onChange={vi.fn()} />);
+    const highTrack = high.container.querySelector('[role="slider"]') as HTMLElement;
+    expect(highTrack.getAttribute("aria-valuenow")).toBe("64");
+    expect((highTrack.querySelector(".bg-highlight") as HTMLElement).style.width).toBe("100%");
+    high.unmount();
+    const low = render(<Slider min={2} max={64} step={1} value={-5} onChange={vi.fn()} />);
+    const lowTrack = low.container.querySelector('[role="slider"]') as HTMLElement;
+    expect(lowTrack.getAttribute("aria-valuenow")).toBe("2");
+    expect((lowTrack.querySelector(".bg-highlight") as HTMLElement).style.width).toBe("0%");
+  });
+
+  it("steps back into range from an out-of-range value", () => {
+    const onChange = vi.fn();
+    const view = render(<Slider min={2} max={64} step={1} value={256} onChange={onChange} />);
+    const track = view.container.querySelector('[role="slider"]') as HTMLElement;
+    fireEvent.keyDown(track, { key: "ArrowLeft" });
+    expect(onChange).toHaveBeenCalledWith(63);
+  });
 });
+

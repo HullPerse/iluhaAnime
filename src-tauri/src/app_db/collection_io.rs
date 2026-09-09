@@ -1,13 +1,12 @@
 use base64::Engine as _;
-use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::Write;
 use std::path::PathBuf;
 
 use super::collection::{
-    CollectionItemInput, CollectionItemRow, CustomFieldDefRow, list_collection_items,
-    list_custom_field_defs, upsert_collection_item, upsert_custom_field_def,
+    list_collection_items, list_custom_field_defs, upsert_collection_item, upsert_custom_field_def,
+    CollectionItemInput, CollectionItemRow, CustomFieldDefRow,
 };
 use super::db::{database_path, now_seconds, open_database};
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -200,8 +199,6 @@ pub struct ImportSummary {
 #[tauri::command]
 pub async fn export_collection_zip(app: tauri::AppHandle, out_path: String) -> Result<(), String> {
     let data = export_collection_data(app.clone())?;
-    let assets_db = crate::user_assets::database_path(&app)?;
-    let assets_conn = Connection::open(&assets_db).map_err(|e| format!("open assets db: {e}"))?;
     let mut zip = zip::ZipWriter::new(
         std::fs::File::create(&out_path).map_err(|e| format!("create zip file: {e}"))?,
     );
@@ -231,17 +228,15 @@ pub async fn export_collection_zip(app: tauri::AppHandle, out_path: String) -> R
             "jpg"
         };
         let name = format!("images/{}.{}", item.id, ext);
-        let bytes_opt: Option<Vec<u8>> = if let Some(blob_id) = &item.cover_blob_id {
-            assets_conn
-                .query_row(
-                    "SELECT data FROM user_images WHERE id = ?1",
-                    params![blob_id],
-                    |row| row.get::<_, Vec<u8>>(0),
-                )
-                .ok()
-        } else {
-            None
-        };
+        let bytes_opt: Option<Vec<u8>> = item
+            .cover_blob_id
+            .as_deref()
+            .and_then(|blob_id| crate::user_assets::read_user_image_bytes(&app, blob_id).ok())
+            .flatten()
+            .filter(|bytes| !bytes.is_empty());
+        #[allow(clippy::option_if_let_else)] // the None branch runs an async download
+        #[allow(clippy::option_if_let_else)]
+        // the None branch runs an async download; map_or_else would bury it
         let bytes = match bytes_opt {
             Some(b) => b,
             None => {

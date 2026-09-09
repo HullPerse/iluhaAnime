@@ -7,9 +7,11 @@ import { Input } from "@/components/ui/input.component";
 import Select from "@/components/ui/select.component";
 import { listStatusOptions } from "@/config/anilist/labels.config";
 import { buildAnilistPrefill } from "@/lib/collection/import.utils";
+import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useCollectionStore } from "@/store/collection.store";
+import { useSettingsStore } from "@/store/settings.store";
 import type { AniMedia } from "@/types/anilist";
 
 function AniListActionControls({
@@ -51,6 +53,7 @@ function AniListActionControls({
         status: editStatus,
         progress: editProgress ? Number.parseInt(editProgress, 10) : null,
         score: editScore ? Number.parseFloat(editScore) : null,
+        ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
       });
       onSaved?.();
       onClose?.();

@@ -31,6 +31,12 @@ export const useCacheStore = create<CacheStore>()(
           writeAppCache("torrent", "seedPreferences", seedPreferences);
           return { seedPreferences };
         }),
+      removeSeedPreference: (id) =>
+        set((s) => {
+          const { [id]: _, ...seedPreferences } = s.seedPreferences;
+          writeAppCache("torrent", "seedPreferences", seedPreferences);
+          return { seedPreferences };
+        }),
     }),
     {
       migrate: (persistedState: unknown) => {

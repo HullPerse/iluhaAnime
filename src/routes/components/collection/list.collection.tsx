@@ -2,6 +2,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { Edit2, Star } from "lucide-react";
 import { memo, useMemo, useRef } from "react";
 
+import { FavPeopleStar } from "@/components/shared/favPeopleStar.component";
 import { Button } from "@/components/ui/button.component";
 import Image from "@/components/ui/image.component";
 import { HEADER_ESTIMATE, ROW_ESTIMATE } from "@/config/collection/card.config";
@@ -30,7 +31,7 @@ function CollectionRowView({
   onEdit,
   onSetStatus,
 }: CollectionRowProps) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { cachedUrl } = useCoverCache(item.coverUrl, item.thumbBlobId ?? item.coverBlobId);
   const cover = useMemo(() => {
     if (cachedUrl) return cachedUrl;
@@ -62,8 +63,9 @@ function CollectionRowView({
                   height: 10,
                   backgroundColor: statusColorOf(statuses, item.status),
                 }}
-                title={statusLabel(statuses, item.status, t)}
+                title={statusLabel(statuses, item.status, t, locale)}
               />
+              <FavPeopleStar animeId={item.externalIds.anilist} />
               {item.title}
             </h2>
           </div>
@@ -84,12 +86,14 @@ function CollectionRowView({
               >
                 {statuses.map((s) => (
                   <option key={s.id} value={s.id}>
-                    {statusLabel(statuses, s.id, t)}
+                    {statusLabel(statuses, s.id, t, locale)}
                   </option>
                 ))}
               </select>
             ) : (
-              <span className="text-text text-xs">{statusLabel(statuses, item.status, t)}</span>
+              <span className="text-text text-xs">
+                {statusLabel(statuses, item.status, t, locale)}
+              </span>
             )}
             {progress && (
               <div className="flex items-center gap-1">
@@ -129,11 +133,8 @@ function CollectionRowView({
 
         {cover && (
           <div
-            className={
-              onOpen
-                ? "shrink-0 hover:cursor-pointer hover:brightness-110 focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-dotted active:brightness-90"
-                : "shrink-0"
-            }
+            className="flex h-full hover:cursor-pointer hover:brightness-110 focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-dotted active:brightness-90"
+
             role={onOpen ? "button" : undefined}
             tabIndex={onOpen ? 0 : undefined}
             onClick={onOpen ? () => onOpen(item) : undefined}
@@ -143,7 +144,7 @@ function CollectionRowView({
             <Image
               src={cover}
               alt={`${item.title} cover`}
-              className="windows95-active-border h-full w-14 shrink-0"
+              className="windows95-active-border h-full w-14"
               loading="eager"
             />
           </div>
@@ -234,7 +235,7 @@ export default function ListCollection({
   return (
     <section
       ref={parentRef}
-      className="windows95-border flex min-h-0 w-full flex-1 [scrollbar-gutter:stable] flex-col gap-1 overflow-y-auto border bg-white p-1"
+      className="windows95-border flex min-h-0 w-full flex-1 scrollbar-gutter-stable flex-col gap-1 overflow-y-auto border bg-white p-1"
     >
       <div className="relative w-full" style={{ height: rowVirtualizer.getTotalSize() }}>
         {rowVirtualizer.getVirtualItems().map((virtualRow) => {

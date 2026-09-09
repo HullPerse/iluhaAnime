@@ -100,7 +100,7 @@ afterEach(() => {
 });
 
 describe("FranchiseGraphSection", () => {
-  it("shows the graph by default, applies the default relation filters, and toggles to the list", async () => {
+  it("shows the list by default, applies the default relation filters, and toggles to the graph", async () => {
     const user = userEvent.setup();
     renderFranchise();
 
@@ -110,6 +110,17 @@ describe("FranchiseGraphSection", () => {
         scope: "all",
       });
     });
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Franchise root" })).toBeTruthy();
+      expect(screen.getByRole("button", { name: "Second season" })).toBeTruthy();
+      expect(screen.getByRole("button", { name: "Side story" })).toBeTruthy();
+      expect(screen.queryByRole("button", { name: "Spin-off" })).toBeNull();
+    });
+
+    expect(document.querySelector("#franchise-node-1")).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "Graph" }));
 
     await waitFor(() => {
       expect(document.querySelector("#franchise-node-1")).not.toBeNull();
@@ -127,22 +138,13 @@ describe("FranchiseGraphSection", () => {
       "Side story"
     );
 
-    expect(screen.queryByText("Spin-off")).toBeNull();
+    expect(document.querySelector("#franchise-node-4")).toBeNull();
 
     await user.click(screen.getByRole("button", { name: "List" }));
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "Franchise root" })).toBeTruthy();
-      expect(screen.getByRole("button", { name: "Second season" })).toBeTruthy();
-      expect(screen.getByRole("button", { name: "Side story" })).toBeTruthy();
-      expect(screen.queryByRole("button", { name: "Spin-off" })).toBeNull();
-    });
-
-    await user.click(screen.getByRole("button", { name: "Graph" }));
-
-    await waitFor(() => {
-      expect(document.querySelector("#franchise-node-1")).not.toBeNull();
-      expect(document.querySelector("#franchise-node-4")).toBeNull();
+      expect(document.querySelector("#franchise-node-1")).toBeNull();
     });
   });
 });

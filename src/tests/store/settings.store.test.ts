@@ -85,6 +85,22 @@ describe("useSettingsStore migration", () => {
     expect(result.playerFolderHeights).toEqual(heights);
   });
 
+  it("defaults anilistProxyUrl during v21 migration", () => {
+    const migrate = useSettingsStore.persist.getOptions()?.migrate;
+    const result = migrate!({ language: "en" } as never, 20) as {
+      anilistProxyUrl: string | null;
+    };
+    expect(result.anilistProxyUrl).toBeNull();
+  });
+
+  it("keeps persisted anilistProxyUrl on v21 migration", () => {
+    const migrate = useSettingsStore.persist.getOptions()?.migrate;
+    const result = migrate!({ language: "en", anilistProxyUrl: "http://127.0.0.1:7890" } as never, 20) as {
+      anilistProxyUrl: string | null;
+    };
+    expect(result.anilistProxyUrl).toBe("http://127.0.0.1:7890");
+  });
+
   it("defaults selectedDitherId during v18 migration", () => {
     const migrate = useSettingsStore.persist.getOptions()?.migrate;
     const result = migrate!({ language: "en" } as never, 17) as {

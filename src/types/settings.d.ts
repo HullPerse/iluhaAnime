@@ -73,10 +73,9 @@ export interface SettingsStore {
   playerTabEnabled: boolean;
   tmdbApiKey: string | null;
   tmdbProxyUrl: string | null;
+  anilistProxyUrl: string | null;
   ffmpegSource: "essentials" | "github" | "github-mirror";
-  fastembedSource: "q" | "full";
   searchSymSpellEnabled: boolean;
-  searchSemanticEnabled: boolean;
   searchIntentEnabled: boolean;
   searchType: SearchType;
   selectedDitherId: string | null;
@@ -124,8 +123,7 @@ export type TabId =
   | "player"
   | "anilist"
   | "collection"
-  | "settings"
-  | "preview";
+  | "settings";
 
 export type SettingsDefaults = Omit<
   SettingsStore,

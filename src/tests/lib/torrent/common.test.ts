@@ -6,6 +6,7 @@ import {
   DISPLAY_BAR_CLASS,
   STALL_AFTER_MS,
   displayStateLabel,
+  findJustFinished,
   findNewErrors,
   fmtElapsed,
   fmtETA,
@@ -16,6 +17,7 @@ import {
   getTorrentLifecycle,
   stateLabel,
   TorrentListen,
+  torrentErrorText,
 } from "@/lib/torrent/common.utils";
 import type { TorrentInfo, TorrentStore } from "@/types/torrent";
 
@@ -220,6 +222,58 @@ describe("TorrentListen", () => {
     const state = { torrents: [makeInfo(1)], lastActiveAt: { 1: TICK, 9: TICK } };
     const result = TorrentListen(state as unknown as TorrentStore, makeEvent([makeInfo(1)]), NOW);
     expect(result).toEqual({ lastActiveAt: { 1: TICK } });
+  });
+
+  it("returns a patch when the backend order changes", () => {
+    const current = [makeInfo(1), makeInfo(2)];
+    const next = [makeInfo(2), makeInfo(1)];
+    const result = TorrentListen(makeState(current), makeEvent(next), NOW);
+    expect(result).toEqual({ torrents: next });
+  });
+});
+
+describe("torrentErrorText", () => {
+  it("maps engine strings to localized keys", () => {
+    expect(torrentErrorText("torrent with id 0 did not exist", ru)).toBe(
+      ru("download.error.gone")
+    );
+    expect(torrentErrorText("torrent not found or no metadata", ru)).toBe(
+      ru("download.error.gone")
+    );
+    expect(torrentErrorText("torrent is already paused", ru)).toBe(
+      ru("download.error.already.paused")
+    );
+    expect(torrentErrorText("torrent is already live", ru)).toBe(
+      ru("download.error.already.live")
+    );
+    expect(torrentErrorText("torrent list is stale, refresh and retry", ru)).toBe(
+      ru("download.error.stale")
+    );
+  });
+
+  it("keeps raw detail for partial file deletion", () => {
+    const raw = "torrent deleted, but could not delete files: access denied";
+    expect(torrentErrorText(raw, ru)).toBe(`${ru("download.error.files.kept")} ${raw}`);
+  });
+
+  it("passes unknown errors through", () => {
+    expect(torrentErrorText("boom", ru)).toBe("boom");
+  });
+});
+
+describe("findJustFinished", () => {
+  const live = (id: number, overrides: Partial<TorrentInfo> = {}) =>
+    makeInfo(id, { finished: true, state: "live", ...overrides });
+  it("lists newly finished torrents without a seed preference", () => {
+    expect(findJustFinished([makeInfo(1)], [makeInfo(1), live(2)], {})).toEqual([live(2)]);
+  });
+  it("skips torrents finished before the previous tick", () => {
+    expect(findJustFinished([live(1)], [live(1)], {})).toEqual([]);
+  });
+  it("skips opted-in seeds and non-live rows", () => {
+    expect(findJustFinished([], [live(1)], { 1: true })).toEqual([]);
+    expect(findJustFinished([], [live(1, { state: "paused" })], {})).toEqual([]);
+    expect(findJustFinished([], [makeInfo(1)], {})).toEqual([]);
   });
 });
 

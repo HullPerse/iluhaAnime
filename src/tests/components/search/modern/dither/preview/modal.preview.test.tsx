@@ -3,14 +3,16 @@ import userEvent from "@testing-library/user-event";
 import { useEffect, type Ref } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { toUserImage } from "@/lib/utils/image.utils";
 import DitherPreviewModal from "@/routes/components/search/modern/dither/preview/modal.preview";
 import { useNotificationStore } from "@/store/notification.store";
 import { useSettingsStore } from "@/store/settings.store";
-import type { UserImage } from "@/types";
+import type { UserImage, UserImageFile } from "@/types";
 
 const mockInvoke = vi.fn();
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (...args: unknown[]) => mockInvoke(...args),
+  convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
 }));
 
 let lastCanvasSrc = "";
@@ -44,9 +46,15 @@ const IMAGE: UserImage = {
   id: "aaa",
   name: "first.png",
   mimeType: "image/png",
-  dataUrl: "data:image/png;base64,AAAA",
-  originalSrc: "data:image/png;base64,OOOO",
+  url: "data:image/png;base64,AAAA",
+  originalUrl: "data:image/png;base64,OOOO",
   createdAt: 10,
+};
+
+const UPDATED_FILE: UserImageFile = {
+  ...IMAGE,
+  path: "C:/images/aaa.baked.png",
+  originalPath: "C:/images/aaa.original.png",
 };
 
 function errorMessages() {
@@ -91,8 +99,8 @@ describe("DitherPreviewModal", () => {
 
   it("bakes the canvas into the database and goes back", async () => {
     const user = userEvent.setup();
-    const updated: UserImage = { ...IMAGE, dataUrl: "data:image/png;base64,BAKED" };
-    mockInvoke.mockResolvedValue(updated);
+    const updated = toUserImage(UPDATED_FILE);
+    mockInvoke.mockResolvedValue(UPDATED_FILE);
     const onBack = vi.fn();
     const onSaved = vi.fn();
     render(<DitherPreviewModal image={IMAGE} onBack={onBack} onSaved={onSaved} />);
@@ -138,6 +146,17 @@ describe("DitherPreviewModal", () => {
     await user.click(color);
     expect((color as HTMLButtonElement).disabled).toBe(true);
     expect((gray as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("removes a palette entry when its swatch row is deleted", async () => {
+    const user = userEvent.setup();
+    render(<DitherPreviewModal image={IMAGE} onBack={vi.fn()} onSaved={vi.fn()} />);
+    await waitFor(() => expect(lastCanvasSrc).toBeTruthy());
+    const rows = screen.getAllByRole("button", { name: "x" });
+    const initial = rows.length;
+    expect(initial).toBeGreaterThanOrEqual(2);
+    await user.click(rows[0]);
+    expect(screen.getAllByRole("button", { name: "x" })).toHaveLength(initial - 1);
   });
 
   it("holds the canvas render for 200ms after a slider move", () => {

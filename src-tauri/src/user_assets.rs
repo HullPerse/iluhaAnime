@@ -1,12 +1,18 @@
 use base64::{engine::general_purpose::STANDARD, Engine as _};
-use rusqlite::{params, params_from_iter, Connection};
+use rusqlite::{params, Connection};
 use serde::Serialize;
 use sha1::{Digest, Sha1};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tauri::Manager;
+
 const MAX_IMAGE_BYTES: u64 = 4 * 1024 * 1024;
+
+const USER_IMAGES_TABLE: &str = "user_images";
+const DITHER_IMAGES_TABLE: &str = "dither_images";
+const REMOTE_IMAGES_TABLE: &str = "remote_images";
+const REMOTE_IMAGE_CACHE_CAP: i64 = 500;
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -14,21 +20,39 @@ pub struct UserImage {
     pub id: String,
     pub name: String,
     pub mime_type: String,
-    pub data_url: String,
-    pub original_src: Option<String>,
+    /// Absolute path of the image file on disk. The webview turns it into an
+    /// asset-protocol URL with convertFileSrc; bytes never travel through IPC.
+    pub path: String,
+    /// Absolute path of the dither source file, when the original was kept.
+    pub original_path: Option<String>,
+    pub created_at: i64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DitherImageMeta {
+    pub id: String,
+    pub name: String,
+    pub mime_type: String,
+    pub has_original: bool,
     pub created_at: i64,
 }
 
 pub fn database_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
-    let dir = app
-        .path()
-        .app_data_dir()
-        .map_err(|e| format!("app data dir: {e}"))?;
-    Ok(dir.join("user_assets.sqlite3"))
+    Ok(assets_root(app)?.join("user_assets.sqlite3"))
 }
 
-fn open_database(app: &tauri::AppHandle) -> Result<Connection, String> {
-    let path = database_path(app)?;
+fn assets_root(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+    app.path()
+        .app_data_dir()
+        .map_err(|e| format!("app data dir: {e}"))
+}
+
+fn images_dir(app: &tauri::AppHandle, table: &str) -> Result<PathBuf, String> {
+    Ok(assets_root(app)?.join("images").join(table))
+}
+
+fn open_database_at(path: &Path) -> Result<Connection, String> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).map_err(|e| format!("create assets dir: {e}"))?;
     }
@@ -37,39 +61,56 @@ fn open_database(app: &tauri::AppHandle) -> Result<Connection, String> {
         .map_err(|e| format!("assets db timeout: {e}"))?;
     conn.pragma_update(None, "journal_mode", "WAL")
         .map_err(|e| format!("assets db journal: {e}"))?;
+    drop_legacy_blob_schema(&conn)?;
     conn.execute_batch(
         "CREATE TABLE IF NOT EXISTS user_images (
             id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
             mime_type TEXT NOT NULL,
-            data BLOB NOT NULL,
             created_at INTEGER NOT NULL
         );
         CREATE TABLE IF NOT EXISTS dither_images (
             id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
-            mime_type TEXT NOT NULL,
-            data BLOB NOT NULL,
-            original_data BLOB,
+            mime_type NOT NULL,
+            original_ext TEXT,
             created_at INTEGER NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS remote_images (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            mime_type TEXT NOT NULL,
+            created_at INTEGER NOT NULL,
+            url TEXT NOT NULL UNIQUE
         );",
     )
     .map_err(|e| format!("assets db schema: {e}"))?;
-    let has_original: i64 = conn
+    Ok(conn)
+}
+
+fn open_database(app: &tauri::AppHandle) -> Result<Connection, String> {
+    open_database_at(&database_path(app)?)
+}
+
+/// The pre-filesystem schema stored bytes in BLOB columns. The user authorized
+/// wiping stored images once instead of migrating them, so any database that
+/// still carries the blob columns is dropped (and vacuumed) before use.
+fn drop_legacy_blob_schema(conn: &Connection) -> Result<(), String> {
+    let has_blob_column: i64 = conn
         .query_row(
-            "SELECT COUNT(*) FROM pragma_table_info('dither_images') WHERE name = 'original_data'",
+            "SELECT COUNT(*) FROM pragma_table_info('user_images') WHERE name = 'data'",
             [],
             |row| row.get(0),
         )
         .map_err(|e| format!("assets db schema check: {e}"))?;
-    if has_original == 0 {
-        conn.execute(
-            "ALTER TABLE dither_images ADD COLUMN original_data BLOB",
-            [],
-        )
-        .map_err(|e| format!("assets db migrate dither: {e}"))?;
+    if has_blob_column == 0 {
+        return Ok(());
     }
-    Ok(conn)
+    conn.execute_batch(
+        "DROP TABLE IF EXISTS dither_images; DROP TABLE IF EXISTS user_images; VACUUM;",
+    )
+    .map_err(|e| format!("assets db legacy wipe: {e}"))?;
+    Ok(())
 }
 
 pub fn image_mime(bytes: &[u8], extension: Option<&str>) -> Option<&'static str> {
@@ -94,6 +135,16 @@ pub fn image_mime(bytes: &[u8], extension: Option<&str>) -> Option<&'static str>
     }
 }
 
+fn mime_ext(mime_type: &str) -> &'static str {
+    match mime_type {
+        "image/png" => "png",
+        "image/jpeg" => "jpg",
+        "image/gif" => "gif",
+        "image/webp" => "webp",
+        _ => "img",
+    }
+}
+
 fn now_seconds() -> i64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -101,23 +152,121 @@ fn now_seconds() -> i64 {
         .as_secs() as i64
 }
 
-fn image_from_row(
+fn content_id(bytes: &[u8]) -> String {
+    hex::encode(Sha1::digest(bytes))[..20].to_string()
+}
+
+fn write_image_file(dir: &Path, file_name: &str, bytes: &[u8]) -> Result<PathBuf, String> {
+    fs::create_dir_all(dir).map_err(|e| format!("create image dir: {e}"))?;
+    let path = dir.join(file_name);
+    let temp = dir.join(format!(".{file_name}.tmp"));
+    fs::write(&temp, bytes).map_err(|e| format!("write image file: {e}"))?;
+    fs::rename(&temp, &path).map_err(|e| format!("commit image file: {e}"))?;
+    Ok(path)
+}
+
+/// A failed removal leaves an orphan content-addressed file behind, which is
+/// harmless (the id namespace owns the file, the index row is already gone).
+fn remove_image_files(dir: &Path, base_names: &[String]) {
+    for name in base_names {
+        let _ = fs::remove_file(dir.join(name));
+    }
+}
+
+/// Every mime that can reach this store maps to one extension; deleting an
+/// image or replacing a rebake removes the file under every possible name.
+fn image_file_names(id: &str, suffix: &str, exts: &[&str]) -> Vec<String> {
+    exts.iter()
+        .map(|ext| {
+            if suffix.is_empty() {
+                format!("{id}.{ext}")
+            } else {
+                format!("{id}.{suffix}.{ext}")
+            }
+        })
+        .collect()
+}
+
+fn data_file_names(id: &str) -> Vec<String> {
+    image_file_names(id, "", &["png", "jpg", "gif", "webp", "img"])
+}
+
+fn dither_original_file_names(id: &str) -> Vec<String> {
+    image_file_names(id, "original", &["png", "jpg", "gif", "webp", "img"])
+}
+
+fn import_image_bytes(
+    dir: &Path,
+    conn: &Connection,
+    table: &str,
+    bytes: &[u8],
+    name: String,
+) -> Result<(), String> {
+    let id = content_id(bytes);
+    let mime_type = image_mime(bytes, None)
+        .ok_or_else(|| "Unsupported image. Use PNG, JPEG, GIF, or WebP.".to_string())?;
+    write_image_file(dir, &format!("{id}.{}", mime_ext(mime_type)), bytes)?;
+    conn.execute(
+        &format!(
+            "INSERT OR IGNORE INTO {table} (id, name, mime_type, created_at) VALUES (?1, ?2, ?3, ?4)"
+        ),
+        params![id, name, mime_type, now_seconds()],
+    )
+    .map_err(|e| format!("save image: {e}"))?;
+    Ok(())
+}
+
+fn user_image_from_row(
     id: String,
     name: String,
     mime_type: String,
-    data: Vec<u8>,
-    original: Option<Vec<u8>>,
-    created_at: i64,
-) -> UserImage {
-    UserImage {
+    dir: &Path,
+) -> Result<UserImage, String> {
+    let path = dir.join(format!("{id}.{}", mime_ext(&mime_type)));
+    if !path.is_file() {
+        return Err(format!("image file missing: {id}"));
+    }
+    Ok(UserImage {
         id,
         name,
-        data_url: format!("data:{mime_type};base64,{}", STANDARD.encode(&data)),
-        original_src: original
-            .map(|bytes| format!("data:{mime_type};base64,{}", STANDARD.encode(bytes))),
+        path: path.to_string_lossy().into_owned(),
+        original_path: None,
         mime_type,
-        created_at,
+        created_at: 0,
+    })
+}
+
+fn dither_image_from_row(
+    id: String,
+    name: String,
+    mime_type: String,
+    original_ext: Option<String>,
+    dir: &Path,
+) -> Result<UserImage, String> {
+    let path = dir.join(format!("{id}.{}", mime_ext(&mime_type)));
+    if !path.is_file() {
+        return Err(format!("image file missing: {id}"));
     }
+    let original_path = original_ext.and_then(|ext| {
+        let candidate = dir.join(format!("{id}.original.{ext}"));
+        candidate
+            .is_file()
+            .then(|| candidate.to_string_lossy().into_owned())
+    });
+    #[allow(clippy::missing_const_for_fn)]
+    Ok(UserImage {
+        id,
+        name,
+        path: path.to_string_lossy().into_owned(),
+        original_path,
+        mime_type,
+        created_at: 0,
+    })
+}
+
+const fn fill_created_at(mut image: UserImage, created_at: i64) -> UserImage {
+    image.created_at = created_at;
+    image
 }
 
 #[tauri::command]
@@ -128,10 +277,8 @@ pub fn import_user_image(app: tauri::AppHandle, path: String) -> Result<UserImag
         return Err("Image must be a non-empty file smaller than 4 MiB".to_string());
     }
     let data = fs::read(source).map_err(|e| format!("read image: {e}"))?;
-    let extension = source.extension().and_then(|value| value.to_str());
-    let mime_type = image_mime(&data, extension)
+    image_mime(&data, source.extension().and_then(|v| v.to_str()))
         .ok_or_else(|| "Unsupported image. Use PNG, JPEG, GIF, or WebP.".to_string())?;
-    let id = hex::encode(Sha1::digest(&data))[..20].to_string();
     let name = source
         .file_name()
         .and_then(|value| value.to_str())
@@ -139,14 +286,10 @@ pub fn import_user_image(app: tauri::AppHandle, path: String) -> Result<UserImag
         .chars()
         .take(120)
         .collect::<String>();
-    let created_at = now_seconds();
+    let dir = images_dir(&app, USER_IMAGES_TABLE)?;
     let conn = open_database(&app)?;
-    conn.execute(
-        "INSERT OR IGNORE INTO user_images (id, name, mime_type, data, created_at) VALUES (?1, ?2, ?3, ?4, ?5)",
-        params![id, name, mime_type, data, created_at],
-    )
-    .map_err(|e| format!("save image: {e}"))?;
-    get_user_image(app, id)
+    import_image_bytes(&dir, &conn, USER_IMAGES_TABLE, &data, name)?;
+    get_user_image(app, content_id(&data))
 }
 
 fn resolve_proxy(proxy: Option<String>, proxy_camel: Option<String>) -> Option<String> {
@@ -213,72 +356,235 @@ pub async fn download_remote_image(
     if data.is_empty() || data.len() as u64 > MAX_IMAGE_BYTES {
         return Err("Downloaded image is empty or exceeds 4 MiB".to_string());
     }
-    let mime_type = image_mime(&data, None).ok_or_else(|| {
-        "Downloaded data is not a supported image (PNG/JPEG/GIF/WebP)".to_string()
-    })?;
-    let id = hex::encode(Sha1::digest(&data))[..20].to_string();
+    if image_mime(&data, None).is_none() {
+        return Err("Downloaded data is not a supported image (PNG/JPEG/GIF/WebP)".to_string());
+    }
     let name = name_hint.as_deref().filter(|s| !s.is_empty()).map_or_else(
         || "remote-cover".to_string(),
         |s| s.chars().take(120).collect::<String>(),
     );
-    let created_at = now_seconds();
+    let dir = images_dir(&app, USER_IMAGES_TABLE)?;
     let conn = open_database(&app)?;
+    import_image_bytes(&dir, &conn, USER_IMAGES_TABLE, &data, name)?;
+    get_user_image(app, content_id(&data))
+}
+
+fn lookup_remote_image(dir: &Path, conn: &Connection, url: &str) -> Option<UserImage> {
+    let (id, name, mime_type): (String, String, String) = conn
+        .query_row(
+            "SELECT id, name, mime_type FROM remote_images WHERE url = ?1",
+            params![url],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        )
+        .ok()?;
+    user_image_from_row(id, name, mime_type, dir).ok()
+}
+
+fn evict_remote_image_cache(dir: &Path, conn: &Connection, cap: i64) -> Result<(), String> {
+    let stale: Vec<(String, String)> = conn
+        .prepare(
+            "SELECT id, mime_type FROM remote_images ORDER BY created_at DESC, rowid DESC LIMIT -1 OFFSET ?1",
+        )
+        .map_err(|e| format!("remote image cache query: {e}"))?
+        .query_map([cap], |row| Ok((row.get(0)?, row.get(1)?)))
+        .map_err(|e| format!("remote image cache scan: {e}"))?
+        .collect::<Result<Vec<(String, String)>, _>>()
+        .map_err(|e| format!("remote image cache scan: {e}"))?;
+    for (id, mime_type) in &stale {
+        conn.execute("DELETE FROM remote_images WHERE id = ?1", params![id])
+            .map_err(|e| format!("remote image cache prune: {e}"))?;
+        remove_image_files(dir, &[format!("{id}.{}", mime_ext(mime_type))]);
+    }
+    Ok(())
+}
+
+#[allow(non_snake_case)]
+#[tauri::command]
+pub async fn fetch_remote_image(
+    app: tauri::AppHandle,
+    url: String,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
+) -> Result<UserImage, String> {
+    let url = url.trim();
+    if url.is_empty() || url.len() > 4_096 {
+        return Err("Remote image URL is empty or too long".to_string());
+    }
+    if !url.starts_with("https://") && !url.starts_with("http://") {
+        return Err("Remote image URL must use http(s)".to_string());
+    }
+    let dir = images_dir(&app, REMOTE_IMAGES_TABLE)?;
+    let conn = open_database(&app)?;
+    if let Some(image) = lookup_remote_image(&dir, &conn, url) {
+        return Ok(image);
+    }
+    let proxy = resolve_proxy(proxy_url, proxyUrl);
+    let client = client_for_image_proxy(proxy.as_deref())?;
+    let response = client
+        .get(url)
+        .send()
+        .await
+        .map_err(|e| format!("cached image download: {e}"))?;
+    if !response.status().is_success() {
+        return Err(format!(
+            "cached image download failed: status {}",
+            response.status()
+        ));
+    }
+    let data = response
+        .bytes()
+        .await
+        .map_err(|e| format!("cached image body: {e}"))?
+        .to_vec();
+    if data.is_empty() || data.len() as u64 > MAX_IMAGE_BYTES {
+        return Err("Downloaded image is empty or exceeds 4 MiB".to_string());
+    }
+    let mime_type = image_mime(&data, None)
+        .ok_or_else(|| "Downloaded data is not a supported image (PNG/JPEG/GIF/WebP)".to_string())?;
+    let id = content_id(&data);
+    write_image_file(&dir, &format!("{id}.{}", mime_ext(mime_type)), &data)?;
     conn.execute(
-        "INSERT OR IGNORE INTO user_images (id, name, mime_type, data, created_at) VALUES (?1, ?2, ?3, ?4, ?5)",
-        params![id, name, mime_type, data, created_at],
+        "INSERT OR REPLACE INTO remote_images (id, name, mime_type, created_at, url) VALUES (?1, ?2, ?3, ?4, ?5)",
+        params![id, "remote-image", mime_type, now_seconds(), url],
     )
-    .map_err(|e| format!("save remote image: {e}"))?;
-    get_user_image(app, id)
+    .map_err(|e| format!("save cached image: {e}"))?;
+    evict_remote_image_cache(&dir, &conn, REMOTE_IMAGE_CACHE_CAP)?;
+    user_image_from_row(id, "remote-image".into(), mime_type.to_string(), &dir)
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RemoteImageStats {
+    pub count: i64,
+    pub bytes: u64,
+}
+
+fn remote_image_stats(dir: &Path, conn: &Connection) -> Result<RemoteImageStats, String> {
+    let count: i64 = conn
+        .query_row("SELECT COUNT(*) FROM remote_images", [], |row| row.get(0))
+        .map_err(|e| format!("remote images count: {e}"))?;
+    // Bytes come from the directory, not the table: it also counts orphan files
+    // left by failed removals, which is what the user actually sees on disk.
+    let mut bytes = 0u64;
+    if let Ok(entries) = fs::read_dir(dir) {
+        for entry in entries.flatten() {
+            if let Ok(meta) = entry.metadata() {
+                if meta.is_file() {
+                    bytes += meta.len();
+                }
+            }
+        }
+    }
+    Ok(RemoteImageStats { count, bytes })
+}
+
+fn clear_remote_images(dir: &Path, conn: &Connection) -> Result<usize, String> {
+    let rows: Vec<(String, String)> = conn
+        .prepare("SELECT id, mime_type FROM remote_images")
+        .map_err(|e| format!("remote images scan: {e}"))?
+        .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))
+        .map_err(|e| format!("remote images scan: {e}"))?
+        .collect::<Result<Vec<(String, String)>, _>>()
+        .map_err(|e| format!("remote images scan: {e}"))?;
+    let names: Vec<String> = rows
+        .iter()
+        .map(|(id, mime)| format!("{id}.{}", mime_ext(mime)))
+        .collect();
+    remove_image_files(dir, &names);
+    conn.execute("DELETE FROM remote_images", [])
+        .map_err(|e| format!("remote images clear: {e}"))?;
+    Ok(rows.len())
+}
+
+#[tauri::command]
+pub fn get_remote_images_stats(app: tauri::AppHandle) -> Result<RemoteImageStats, String> {
+    let dir = images_dir(&app, REMOTE_IMAGES_TABLE)?;
+    let conn = open_database(&app)?;
+    remote_image_stats(&dir, &conn)
+}
+
+/// Wipes only the remote image cache (re-downloadable); user imports and dither
+/// images are user data and are never touched.
+#[tauri::command]
+pub fn clear_remote_image_cache(app: tauri::AppHandle) -> Result<usize, String> {
+    let dir = images_dir(&app, REMOTE_IMAGES_TABLE)?;
+    let conn = open_database(&app)?;
+    clear_remote_images(&dir, &conn)
 }
 
 #[tauri::command]
 pub fn list_user_images(app: tauri::AppHandle) -> Result<Vec<UserImage>, String> {
+    let dir = images_dir(&app, USER_IMAGES_TABLE)?;
     let conn = open_database(&app)?;
     let mut statement = conn
-        .prepare("SELECT id, name, mime_type, data, created_at FROM user_images ORDER BY created_at DESC")
+        .prepare("SELECT id, name, mime_type, created_at FROM user_images ORDER BY created_at DESC")
         .map_err(|e| format!("list images: {e}"))?;
     let rows = statement
         .query_map([], |row| {
-            Ok(image_from_row(
-                row.get(0)?,
-                row.get(1)?,
-                row.get(2)?,
-                row.get(3)?,
-                None,
-                row.get(4)?,
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, i64>(3)?,
             ))
         })
         .map_err(|e| format!("list image rows: {e}"))?;
-    Ok(rows.filter_map(Result::ok).collect())
+    Ok(rows
+        .filter_map(Result::ok)
+        .filter_map(|(id, name, mime_type, created_at)| {
+            user_image_from_row(id, name, mime_type, &dir)
+                .ok()
+                .map(|image| fill_created_at(image, created_at))
+        })
+        .collect())
 }
 
 #[tauri::command]
 pub fn get_user_image(app: tauri::AppHandle, id: String) -> Result<UserImage, String> {
+    let dir = images_dir(&app, USER_IMAGES_TABLE)?;
     let conn = open_database(&app)?;
     conn.query_row(
-        "SELECT id, name, mime_type, data, created_at FROM user_images WHERE id = ?1",
+        "SELECT id, name, mime_type, created_at FROM user_images WHERE id = ?1",
         params![id],
         |row| {
-            Ok(image_from_row(
-                row.get(0)?,
-                row.get(1)?,
-                row.get(2)?,
-                row.get(3)?,
-                None,
-                row.get(4)?,
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, i64>(3)?,
             ))
         },
     )
-    .map_err(|e| format!("image not found: {e}"))
+    .map_err(|_| format!("image not found: {id}"))
+    .and_then(|(id, name, mime_type, created_at)| {
+        user_image_from_row(id, name, mime_type, &dir)
+            .map(|image| fill_created_at(image, created_at))
+    })
 }
 
 #[tauri::command]
 pub fn delete_user_image(app: tauri::AppHandle, id: String) -> Result<(), String> {
+    let dir = images_dir(&app, USER_IMAGES_TABLE)?;
     let conn = open_database(&app)?;
-    conn.execute("DELETE FROM user_images WHERE id = ?1", params![id])
+    let changed = conn
+        .execute("DELETE FROM user_images WHERE id = ?1", params![id])
         .map_err(|e| format!("delete image: {e}"))?;
+    if changed > 0 {
+        remove_image_files(&dir, &data_file_names(&id));
+    }
     Ok(())
 }
+
+/// The dither original keeps the extension it was imported with; only the
+/// processed file changes on rebake, so the original file name is stable.
+fn dither_data_file(id: &str, mime_type: &str) -> String {
+    format!("{id}.{}", mime_ext(mime_type))
+}
+
+fn dither_original_file(id: &str, original_ext: &str) -> String {
+    format!("{id}.original.{original_ext}")
+}
+
 #[tauri::command]
 pub fn import_dither_image(app: tauri::AppHandle, path: String) -> Result<UserImage, String> {
     let source = Path::new(&path);
@@ -290,7 +596,7 @@ pub fn import_dither_image(app: tauri::AppHandle, path: String) -> Result<UserIm
     let extension = source.extension().and_then(|value| value.to_str());
     let mime_type = image_mime(&data, extension)
         .ok_or_else(|| "Unsupported image. Use PNG, JPEG, GIF, or WebP.".to_string())?;
-    let id = hex::encode(Sha1::digest(&data))[..20].to_string();
+    let id = content_id(&data);
     let name = source
         .file_name()
         .and_then(|value| value.to_str())
@@ -298,83 +604,109 @@ pub fn import_dither_image(app: tauri::AppHandle, path: String) -> Result<UserIm
         .chars()
         .take(120)
         .collect::<String>();
-    let created_at = now_seconds();
-    let original = data.clone();
+    let dir = images_dir(&app, DITHER_IMAGES_TABLE)?;
     let conn = open_database(&app)?;
+    import_image_bytes(&dir, &conn, DITHER_IMAGES_TABLE, &data, name)?;
+    let original = data.clone();
+    write_image_file(
+        &dir,
+        &dither_original_file(&id, mime_ext(mime_type)),
+        &original,
+    )?;
     conn.execute(
-        "INSERT OR IGNORE INTO dither_images (id, name, mime_type, data, original_data, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-        params![id, name, mime_type, data, original, created_at],
+        "UPDATE dither_images SET original_ext = ?2 WHERE id = ?1",
+        params![id, mime_ext(mime_type)],
     )
-    .map_err(|e| format!("save dither image: {e}"))?;
-    dither_image_from_connection(&conn, &id)
+    .map_err(|e| format!("save dither original: {e}"))?;
+    get_dither_image(app, id)
 }
 
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct DitherImageMeta {
-    pub id: String,
-    pub name: String,
-    pub mime_type: String,
-    pub has_original: bool,
-    pub created_at: i64,
-}
-
-fn query_dither_image_meta(conn: &Connection) -> Result<Vec<DitherImageMeta>, String> {
+fn query_dither_image_meta(conn: &Connection, dir: &Path) -> Result<Vec<DitherImageMeta>, String> {
     let mut statement = conn
-        .prepare("SELECT id, name, mime_type, original_data IS NOT NULL, created_at FROM dither_images ORDER BY created_at DESC")
+        .prepare("SELECT id, name, mime_type, original_ext, created_at FROM dither_images ORDER BY created_at DESC")
         .map_err(|e| format!("list dither image meta: {e}"))?;
     let rows = statement
         .query_map([], |row| {
-            Ok(DitherImageMeta {
-                id: row.get(0)?,
-                name: row.get(1)?,
-                mime_type: row.get(2)?,
-                has_original: row.get(3)?,
-                created_at: row.get(4)?,
-            })
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, Option<String>>(3)?,
+                row.get::<_, i64>(4)?,
+            ))
         })
         .map_err(|e| format!("list dither image meta rows: {e}"))?;
-    Ok(rows.filter_map(Result::ok).collect())
+    Ok(rows
+        .filter_map(Result::ok)
+        .map(
+            |(id, name, mime_type, original_ext, created_at)| DitherImageMeta {
+                has_original: original_ext
+                    .is_some_and(|ext| dir.join(dither_original_file(&id, &ext)).is_file()),
+                id,
+                name,
+                mime_type,
+                created_at,
+            },
+        )
+        .collect())
 }
 
-fn query_dither_images(conn: &Connection, ids: &[String]) -> Result<Vec<UserImage>, String> {
+fn query_dither_images(
+    dir: &Path,
+    conn: &Connection,
+    ids: &[String],
+) -> Result<Vec<UserImage>, String> {
     if ids.is_empty() {
         return Ok(Vec::new());
     }
     let placeholders = ids.iter().map(|_| "?").collect::<Vec<_>>().join(",");
-    let query = format!("SELECT id, name, mime_type, data, original_data, created_at FROM dither_images WHERE id IN ({placeholders})");
+    let query = format!(
+        "SELECT id, name, mime_type, original_ext, created_at FROM dither_images WHERE id IN ({placeholders})"
+    );
     let mut statement = conn
         .prepare(&query)
         .map_err(|e| format!("get dither images: {e}"))?;
     let rows = statement
-        .query_map(params_from_iter(ids), |row| {
-            Ok(image_from_row(
-                row.get(0)?,
-                row.get(1)?,
-                row.get(2)?,
-                row.get(3)?,
-                row.get(4)?,
-                row.get(5)?,
+        .query_map(rusqlite::params_from_iter(ids), |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, Option<String>>(3)?,
+                row.get::<_, i64>(4)?,
             ))
         })
         .map_err(|e| format!("get dither image rows: {e}"))?;
-    Ok(rows.filter_map(Result::ok).collect())
+    Ok(rows
+        .filter_map(Result::ok)
+        .filter_map(|(id, name, mime_type, original_ext, created_at)| {
+            dither_image_from_row(id, name, mime_type, original_ext, dir)
+                .ok()
+                .map(|image| fill_created_at(image, created_at))
+        })
+        .collect())
 }
 
 #[tauri::command]
 pub fn list_dither_image_meta(app: tauri::AppHandle) -> Result<Vec<DitherImageMeta>, String> {
+    let dir = images_dir(&app, DITHER_IMAGES_TABLE)?;
     let conn = open_database(&app)?;
-    query_dither_image_meta(&conn)
+    query_dither_image_meta(&conn, &dir)
 }
 
 #[tauri::command]
-pub fn get_dither_images(app: tauri::AppHandle, ids: Vec<String>) -> Result<Vec<UserImage>, String> {
+pub fn get_dither_images(
+    app: tauri::AppHandle,
+    ids: Vec<String>,
+) -> Result<Vec<UserImage>, String> {
+    let dir = images_dir(&app, DITHER_IMAGES_TABLE)?;
     let conn = open_database(&app)?;
-    query_dither_images(&conn, &ids)
+    query_dither_images(&dir, &conn, &ids)
 }
 
 #[tauri::command]
 pub fn delete_dither_image(app: tauri::AppHandle, id: String) -> Result<(), String> {
+    let dir = images_dir(&app, DITHER_IMAGES_TABLE)?;
     let conn = open_database(&app)?;
     let changed = conn
         .execute("DELETE FROM dither_images WHERE id = ?1", params![id])
@@ -382,6 +714,9 @@ pub fn delete_dither_image(app: tauri::AppHandle, id: String) -> Result<(), Stri
     if changed == 0 {
         return Err("dither image not found".to_string());
     }
+    let mut names = data_file_names(&id);
+    names.extend(dither_original_file_names(&id));
+    remove_image_files(&dir, &names);
     Ok(())
 }
 
@@ -403,30 +738,33 @@ fn parse_data_url_image(data_url: &str) -> Result<(String, Vec<u8>), String> {
     Ok((mime_type.to_string(), bytes))
 }
 
-fn dither_image_from_connection(conn: &Connection, id: &str) -> Result<UserImage, String> {
+#[tauri::command]
+pub fn get_dither_image(app: tauri::AppHandle, id: String) -> Result<UserImage, String> {
+    let dir = images_dir(&app, DITHER_IMAGES_TABLE)?;
+    let conn = open_database(&app)?;
     conn.query_row(
-        "SELECT id, name, mime_type, data, original_data, created_at FROM dither_images WHERE id = ?1",
+        "SELECT id, name, mime_type, original_ext, created_at FROM dither_images WHERE id = ?1",
         params![id],
         |row| {
-            Ok(image_from_row(
-                row.get(0)?,
-                row.get(1)?,
-                row.get(2)?,
-                row.get(3)?,
-                row.get(4)?,
-                row.get(5)?,
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, Option<String>>(3)?,
+                row.get::<_, i64>(4)?,
             ))
         },
     )
-    .map_err(|e| format!("dither image not found: {e}"))
+    .map_err(|_| format!("dither image not found: {id}"))
+    .and_then(|(id, name, mime_type, original_ext, created_at)| {
+        dither_image_from_row(id, name, mime_type, original_ext, &dir)
+            .map(|image| fill_created_at(image, created_at))
+    })
 }
 
-#[tauri::command]
-pub fn get_dither_image(app: tauri::AppHandle, id: String) -> Result<UserImage, String> {
-    let conn = open_database(&app)?;
-    dither_image_from_connection(&conn, &id)
-}
-
+/// Replacing a baked frame can change the mime type, so the old data file is
+/// removed under every extension it could have been written with. The original
+/// file keeps its import-time extension and is never touched here.
 #[allow(non_snake_case)]
 #[tauri::command]
 pub fn update_dither_image_data(
@@ -440,22 +778,73 @@ pub fn update_dither_image_data(
         return Err("image must be a base64 data URL".to_string());
     }
     let (mime_type, data) = parse_data_url_image(payload)?;
+    let dir = images_dir(&app, DITHER_IMAGES_TABLE)?;
     let conn = open_database(&app)?;
     let changed = conn
         .execute(
-            "UPDATE dither_images SET data = ?1, mime_type = ?2 WHERE id = ?3",
-            params![data, mime_type, id],
+            "UPDATE dither_images SET mime_type = ?2 WHERE id = ?1",
+            params![id, mime_type],
         )
         .map_err(|e| format!("update dither image: {e}"))?;
     if changed == 0 {
         return Err("dither image not found".to_string());
     }
-    dither_image_from_connection(&conn, &id)
+    remove_image_files(&dir, &data_file_names(&id));
+    write_image_file(&dir, &dither_data_file(&id, &mime_type), &data)?;
+    get_dither_image(app, id)
+}
+
+/// Cross-module helper for the collection export: reads the stored bytes of a
+/// user image by id without touching the IPC shape.
+pub fn read_user_image_bytes(app: &tauri::AppHandle, id: &str) -> Result<Option<Vec<u8>>, String> {
+    let dir = images_dir(app, USER_IMAGES_TABLE)?;
+    let conn = open_database(app)?;
+    let mime_type: Option<String> = conn
+        .query_row(
+            "SELECT mime_type FROM user_images WHERE id = ?1",
+            params![id],
+            |row| row.get(0),
+        )
+        .map(Some)
+        .or_else(|error| match error {
+            rusqlite::Error::QueryReturnedNoRows => Ok(None),
+            error => Err(format!("read image row: {error}")),
+        })?;
+    let Some(mime_type) = mime_type else {
+        return Ok(None);
+    };
+    let path = dir.join(format!("{id}.{}", mime_ext(&mime_type)));
+    if !path.is_file() {
+        return Ok(None);
+    }
+    fs::read(&path)
+        .map(Some)
+        .map_err(|e| format!("read image file: {e}"))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn temp_root(tag: &str) -> PathBuf {
+        let dir =
+            std::env::temp_dir().join(format!("iluha_user_assets_{}_{}", tag, std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("temp root");
+        dir
+    }
+
+    fn png_bytes() -> Vec<u8> {
+        let mut bytes = b"\x89PNG\r\n\x1a\n".to_vec();
+        bytes.extend_from_slice(b"pixel-data-one");
+        bytes
+    }
+
+    fn jpeg_bytes() -> Vec<u8> {
+        let mut bytes = b"\xff\xd8\xff".to_vec();
+        bytes.extend_from_slice(b"pixel-data-two");
+        bytes
+    }
 
     #[test]
     fn detects_supported_image_signatures() {
@@ -476,82 +865,170 @@ mod tests {
         assert_eq!(image_mime(b"legacy", Some("txt")), None);
     }
 
-    fn memory_dither_db() -> Connection {
-        let conn = Connection::open_in_memory().expect("memory db");
-        conn.execute_batch(
-            "CREATE TABLE dither_images (
-                id TEXT PRIMARY KEY,
-                name TEXT NOT NULL,
-                mime_type TEXT NOT NULL,
-                data BLOB NOT NULL,
-                original_data BLOB,
-                created_at INTEGER NOT NULL
-            );
-            INSERT INTO dither_images VALUES ('aaa', 'first.png', 'image/png', X'AABB', X'CCDD', 10);
-            INSERT INTO dither_images VALUES ('bbb', 'second.jpg', 'image/jpeg', X'EEFF', NULL, 5);",
-        )
-        .expect("seed dither images");
-        conn
+    #[test]
+    fn mime_ext_maps_the_four_supported_types() {
+        assert_eq!(mime_ext("image/png"), "png");
+        assert_eq!(mime_ext("image/jpeg"), "jpg");
+        assert_eq!(mime_ext("image/gif"), "gif");
+        assert_eq!(mime_ext("image/webp"), "webp");
+        assert_eq!(mime_ext("image/other"), "img");
     }
 
     #[test]
-    fn meta_lists_without_bytes_and_flags_originals() {
-        let conn = memory_dither_db();
-        let metas = query_dither_image_meta(&conn).expect("meta list");
-        assert_eq!(metas.len(), 2);
-        assert_eq!(metas[0].id, "aaa");
-        assert!(metas[0].has_original);
-        assert_eq!(metas[1].id, "bbb");
-        assert!(!metas[1].has_original);
-    }
-
-    #[test]
-    fn batch_get_returns_only_known_ids_with_bytes() {
-        let conn = memory_dither_db();
-        let images = query_dither_images(&conn, &["bbb".to_string(), "stale".to_string()])
-            .expect("batch get");
-        assert_eq!(images.len(), 1);
-        assert_eq!(images[0].id, "bbb");
-        assert_eq!(images[0].data_url, "data:image/jpeg;base64,7v8=");
-        assert_eq!(images[0].original_src, None);
-    }
-
-    #[test]
-    fn batch_get_with_no_ids_returns_empty() {
-        let conn = memory_dither_db();
-        let images = query_dither_images(&conn, &[]).expect("empty batch get");
-        assert!(images.is_empty());
-    }
-
-    #[test]
-    fn creates_data_urls_without_losing_mime_type() {
-        let image = image_from_row(
-            "abc".to_string(),
-            "icon.png".to_string(),
-            "image/png".to_string(),
-            vec![1, 2, 3],
-            None,
-            10,
-        );
-        assert_eq!(image.data_url, "data:image/png;base64,AQID");
+    fn import_writes_file_and_row_and_get_returns_path() {
+        let root = temp_root("import_roundtrip");
+        let db = open_database_at(&root.join("user_assets.sqlite3")).expect("db");
+        let dir = root.join("images").join(USER_IMAGES_TABLE);
+        let bytes = png_bytes();
+        import_image_bytes(&dir, &db, USER_IMAGES_TABLE, &bytes, "cover.png".into())
+            .expect("import");
+        let id = content_id(&bytes);
+        let image = user_image_from_row(id.clone(), "cover.png".into(), "image/png".into(), &dir)
+            .expect("image");
+        assert!(image.path.ends_with(&format!("{id}.png")));
         assert_eq!(image.mime_type, "image/png");
-        assert_eq!(image.original_src, None);
+        assert_eq!(image.original_path, None);
+        drop(db);
+        std::fs::remove_dir_all(&root).expect("cleanup");
     }
 
     #[test]
-    fn maps_stored_original_bytes_to_original_src() {
-        let image = image_from_row(
-            "abc".to_string(),
-            "icon.png".to_string(),
-            "image/png".to_string(),
-            vec![9, 9, 9],
-            Some(vec![1, 2, 3]),
-            10,
-        );
+    fn reimporting_same_bytes_keeps_single_row_and_file() {
+        let root = temp_root("dedup");
+        let db = open_database_at(&root.join("user_assets.sqlite3")).expect("db");
+        let dir = root.join("images").join(USER_IMAGES_TABLE);
+        let bytes = png_bytes();
+        import_image_bytes(&dir, &db, USER_IMAGES_TABLE, &bytes, "a.png".into()).expect("first");
+        import_image_bytes(&dir, &db, USER_IMAGES_TABLE, &bytes, "b.png".into()).expect("second");
+        let count: i64 = db
+            .query_row("SELECT COUNT(*) FROM user_images", [], |row| row.get(0))
+            .expect("count");
+        assert_eq!(count, 1);
+        let entries = std::fs::read_dir(&dir).expect("dir").count();
+        assert_eq!(entries, 1);
+        drop(db);
+        std::fs::remove_dir_all(&root).expect("cleanup");
+    }
+
+    #[test]
+    fn missing_file_reports_image_file_missing() {
+        let root = temp_root("missing");
+        let db = open_database_at(&root.join("user_assets.sqlite3")).expect("db");
+        let dir = root.join("images").join(USER_IMAGES_TABLE);
+        let bytes = png_bytes();
+        import_image_bytes(&dir, &db, USER_IMAGES_TABLE, &bytes, "a.png".into()).expect("import");
+        std::fs::remove_file(dir.join(format!("{}.png", content_id(&bytes)))).expect("remove");
+        let result =
+            user_image_from_row(content_id(&bytes), "a.png".into(), "image/png".into(), &dir);
         assert_eq!(
-            image.original_src,
-            Some("data:image/png;base64,AQID".to_string())
+            result.unwrap_err(),
+            format!("image file missing: {}", content_id(&bytes))
         );
+        drop(db);
+        std::fs::remove_dir_all(&root).expect("cleanup");
+    }
+
+    #[test]
+    fn update_replaces_data_file_and_keeps_original() {
+        let root = temp_root("update_dither");
+        let db = open_database_at(&root.join("user_assets.sqlite3")).expect("db");
+        let dir = root.join("images").join(DITHER_IMAGES_TABLE);
+        let bytes = png_bytes();
+        let id = content_id(&bytes);
+        import_image_bytes(&dir, &db, DITHER_IMAGES_TABLE, &bytes, "art.png".into())
+            .expect("import");
+        db.execute(
+            "UPDATE dither_images SET original_ext = 'png' WHERE id = ?1",
+            params![id],
+        )
+        .expect("original flag");
+        let original = dither_original_file(&id, "png");
+        write_image_file(&dir, &original, &bytes).expect("original file");
+
+        let rebaked = jpeg_bytes();
+        let (mime, data) = ("image/jpeg".to_string(), rebaked.clone());
+        remove_image_files(&dir, &data_file_names(&id));
+        write_image_file(&dir, &dither_data_file(&id, &mime), &data).expect("new data");
+        db.execute(
+            "UPDATE dither_images SET mime_type = ?2 WHERE id = ?1",
+            params![id, mime],
+        )
+        .expect("mime update");
+
+        assert!(!dir.join(format!("{id}.png")).exists());
+        assert!(dir.join(format!("{id}.jpg")).exists());
+        assert!(dir.join(&original).exists());
+        drop(db);
+        std::fs::remove_dir_all(&root).expect("cleanup");
+    }
+
+    #[test]
+    fn delete_removes_every_file_variant() {
+        let root = temp_root("delete_files");
+        let db = open_database_at(&root.join("user_assets.sqlite3")).expect("db");
+        let dir = root.join("images").join(DITHER_IMAGES_TABLE);
+        let bytes = png_bytes();
+        let id = content_id(&bytes);
+        import_image_bytes(&dir, &db, DITHER_IMAGES_TABLE, &bytes, "art.png".into())
+            .expect("import");
+        db.execute(
+            "UPDATE dither_images SET original_ext = 'png' WHERE id = ?1",
+            params![id],
+        )
+        .expect("original flag");
+        write_image_file(&dir, &dither_original_file(&id, "png"), &bytes).expect("original file");
+        assert!(dir.join(format!("{id}.png")).exists());
+        assert!(dir.join(dither_original_file(&id, "png")).exists());
+
+        db.execute("DELETE FROM dither_images WHERE id = ?1", params![id])
+            .expect("row delete");
+        remove_image_files(&dir, &data_file_names(&id));
+        remove_image_files(
+            &dir,
+            &image_file_names(&id, "original", &["png", "jpg", "gif", "webp", "img"]),
+        );
+        assert!(std::fs::read_dir(&dir).expect("dir").count() == 0);
+        drop(db);
+        std::fs::remove_dir_all(&root).expect("cleanup");
+    }
+
+    #[test]
+    fn legacy_blob_schema_is_wiped_and_recreated() {
+        let root = temp_root("legacy_wipe");
+        let db_path = root.join("user_assets.sqlite3");
+        {
+            let conn = Connection::open(&db_path).expect("legacy db");
+            conn.execute_batch(
+                "CREATE TABLE user_images (
+                    id TEXT PRIMARY KEY, name TEXT NOT NULL, mime_type TEXT NOT NULL,
+                    data BLOB NOT NULL, created_at INTEGER NOT NULL
+                );
+                INSERT INTO user_images VALUES ('old', 'old.png', 'image/png', X'0102', 1);",
+            )
+            .expect("legacy schema");
+        }
+        let conn = open_database_at(&db_path).expect("reopened");
+        let columns: Vec<String> = {
+            let mut statement = conn
+                .prepare("SELECT name FROM pragma_table_info('user_images')")
+                .expect("pragma");
+            let rows = statement
+                .query_map([], |row| row.get::<_, String>(0))
+                .expect("map");
+            rows.filter_map(Result::ok).collect()
+        };
+        assert!(!columns.iter().any(|column| column == "data"));
+        let count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM user_images", [], |row| row.get(0))
+            .expect("count");
+        assert_eq!(count, 0);
+        let file_size = std::fs::metadata(&db_path).expect("meta").len();
+        assert!(
+            file_size < 64 * 1024,
+            "vacuum should reclaim blob pages, got {file_size}"
+        );
+        drop(conn);
+        std::fs::remove_dir_all(&root).expect("cleanup");
     }
 
     #[test]
@@ -570,5 +1047,114 @@ mod tests {
         assert!(parse_data_url_image("data:image/png;base64,!!!").is_err());
         assert!(parse_data_url_image("data:image/png;base64,").is_err());
         assert!(parse_data_url_image("data:image/png;base64,aGVsbG8=").is_err());
+    }
+
+    fn insert_remote_row(db: &Connection, dir: &Path, n: u8, created_at: i64) -> String {
+        let mut bytes = png_bytes();
+        bytes.extend_from_slice(&[n]);
+        let id = content_id(&bytes);
+        write_image_file(dir, &format!("{id}.png"), &bytes).expect("write");
+        db.execute(
+            "INSERT INTO remote_images (id, name, mime_type, created_at, url) VALUES (?1, 'n', 'image/png', ?2, ?3)",
+            params![id, created_at, format!("https://img/{n}.jpg")],
+        )
+        .expect("insert");
+        id
+    }
+
+    #[test]
+    fn remote_cache_lookup_hits_by_url_and_ignores_missing_files() {
+        let root = temp_root("remote_lookup");
+        let db = open_database_at(&root.join("user_assets.sqlite3")).expect("db");
+        let dir = root.join("images").join(REMOTE_IMAGES_TABLE);
+        let id = insert_remote_row(&db, &dir, 7, 1);
+        let hit = lookup_remote_image(&dir, &db, "https://img/7.jpg").expect("hit");
+        assert_eq!(hit.id, id);
+        assert!(lookup_remote_image(&dir, &db, "https://img/other.jpg").is_none());
+        db.execute(
+            "INSERT INTO remote_images (id, name, mime_type, created_at, url) VALUES ('dead', 'n', 'image/png', 2, 'https://img/dead.jpg')",
+            [],
+        )
+        .expect("insert");
+        assert!(lookup_remote_image(&dir, &db, "https://img/dead.jpg").is_none());
+        drop(db);
+        std::fs::remove_dir_all(&root).expect("cleanup");
+    }
+
+    #[test]
+    fn remote_cache_evicts_oldest_rows_and_files() {
+        let root = temp_root("remote_evict");
+        let db = open_database_at(&root.join("user_assets.sqlite3")).expect("db");
+        let dir = root.join("images").join(REMOTE_IMAGES_TABLE);
+        let mut ids = Vec::new();
+        for n in 0..4u8 {
+            ids.push(insert_remote_row(&db, &dir, n, i64::from(n)));
+        }
+        evict_remote_image_cache(&dir, &db, 2).expect("evict");
+        let count: i64 = db
+            .query_row("SELECT COUNT(*) FROM remote_images", [], |row| row.get(0))
+            .expect("count");
+        assert_eq!(count, 2);
+        for (n, id) in ids.iter().enumerate() {
+            let kept = n >= 2;
+            let rows: i64 = db
+                .query_row("SELECT COUNT(*) FROM remote_images WHERE id = ?1", params![id], |row| {
+                    row.get(0)
+                })
+                .expect("count row");
+            assert_eq!(rows, i64::from(kept));
+            assert_eq!(dir.join(format!("{id}.png")).is_file(), kept);
+        }
+        drop(db);
+        std::fs::remove_dir_all(&root).expect("cleanup");
+    }
+
+    #[test]
+    fn remote_stats_count_rows_and_count_orphan_files_in_bytes() {
+        let root = temp_root("remote_stats");
+        let db = open_database_at(&root.join("user_assets.sqlite3")).expect("db");
+        let dir = root.join("images").join(REMOTE_IMAGES_TABLE);
+        insert_remote_row(&db, &dir, 1, 1);
+        insert_remote_row(&db, &dir, 2, 2);
+        // Orphan file with no index row: counted in bytes, not in rows.
+        std::fs::write(dir.join("orphan.png"), b"orphan-bytes").expect("write");
+        let stats = remote_image_stats(&dir, &db).expect("stats");
+        assert_eq!(stats.count, 2);
+        let expected: u64 = std::fs::read_dir(&dir)
+            .expect("read dir")
+            .flatten()
+            .filter_map(|e| e.metadata().ok())
+            .filter(|m| m.is_file())
+            .map(|m| m.len())
+            .sum();
+        assert_eq!(stats.bytes, expected);
+        drop(db);
+        std::fs::remove_dir_all(&root).expect("cleanup");
+    }
+
+    #[test]
+    fn remote_clear_removes_all_rows_and_files_but_keeps_other_files() {
+        let root = temp_root("remote_clear");
+        let db = open_database_at(&root.join("user_assets.sqlite3")).expect("db");
+        let dir = root.join("images").join(REMOTE_IMAGES_TABLE);
+        let mut ids = Vec::new();
+        for n in 0..3u8 {
+            ids.push(insert_remote_row(&db, &dir, n, i64::from(n)));
+        }
+        let cleared = clear_remote_images(&dir, &db).expect("clear");
+        assert_eq!(cleared, 3);
+        let count: i64 = db
+            .query_row("SELECT COUNT(*) FROM remote_images", [], |row| row.get(0))
+            .expect("count");
+        assert_eq!(count, 0);
+        for id in &ids {
+            assert!(!dir.join(format!("{id}.png")).exists());
+        }
+        // The images dir itself survives (other flows may write into it later).
+        assert!(dir.exists());
+        // A second clear is a harmless no-op.
+        assert_eq!(clear_remote_images(&dir, &db).expect("clear again"), 0);
+        drop(db);
+        std::fs::remove_dir_all(&root).expect("cleanup");
     }
 }

@@ -13,7 +13,6 @@ import { isTagLikeQuery } from "./intent.utils";
 import { normalizeSearchText } from "./normalize.utils";
 import { recencyBoost } from "./ranking.utils";
 import { fuzzyMatchScore, fuzzyMatchScorePreNormalized } from "./score.utils";
-import { semanticScore } from "./semantic.utils";
 import { buildSymSpellFromTitles, type SymSpell } from "./symspell.utils";
 
 export { fuzzyMatchScore };
@@ -57,7 +56,11 @@ function animeSubtitle(anime: SearchAnimeSuggestion): string {
 function animeBoost(anime: SearchAnimeSuggestion, boost: AnilistSuggestionBoost): number {
   if (boost === "off") return 0;
   const scoreBoost = anime.score && anime.score > 0 ? anime.score * 2 : 0;
-  const base = (anime.favourite ? 55 : 0) + (ANIME_STATUS_BOOST[anime.status] ?? 0) + scoreBoost;
+  const base =
+    (anime.favourite ? 55 : 0) +
+    (anime.hasFavPeople ? 55 : 0) +
+    (ANIME_STATUS_BOOST[anime.status] ?? 0) +
+    scoreBoost;
   return boost === "strong" ? base * 1.5 : base;
 }
 
@@ -243,32 +246,6 @@ function applySymSpellFallback(
   }
 }
 
-function applySemanticFallback(
-  query: string,
-  normalizedQuery: string,
-  options: SearchSuggestionOptions,
-  candidates: Map<string, SearchSuggestion>,
-  put: (s: SearchSuggestion) => void
-): void {
-  if (candidates.size !== 0) return;
-  if (normalizedQuery.length < 3) return;
-  if (!useSettingsStore.getState().searchSemanticEnabled) return;
-  const semanticCandidates = [
-    ...(options.history ?? []),
-    ...(options.animeIndex?.map((a) => a.title) ?? []),
-    ...(options.collectionItems?.map((c) => c.title) ?? []),
-  ];
-  if (semanticCandidates.length === 0) return;
-  const limited = semanticCandidates.slice(0, 100);
-  for (const value of limited) {
-    if (normalizeSearchText(value) === normalizedQuery) continue;
-    const s = semanticScore(query, value, semanticCandidates);
-    if (s <= 0.25) continue;
-    const base = s * 180;
-    const boost = statBoost(value, options.suggestionStats) * 0.3;
-    put({ kind: "history", score: base + boost, subtitle: "semantic", value });
-  }
-}
 
 export function getSearchSuggestions(
   query: string,
@@ -286,7 +263,6 @@ export function getSearchSuggestions(
   };
   addSuggestionSources(query, normalizedQuery, options, put);
   applySymSpellFallback(query, normalizedQuery, options, limit, candidates, put);
-  applySemanticFallback(query, normalizedQuery, options, candidates, put);
   return [...candidates.values()]
     .sort((a, b) => b.score - a.score || a.value.localeCompare(b.value))
     .slice(0, limit);

@@ -65,6 +65,12 @@ export interface CollectionItem {
     }>;
     stills?: string[];
     trailerYoutubeId?: string | null;
+    staff?: Array<{ id: number; name: string; role: string }>;
+    characters?: Array<{
+      id: number;
+      name: string;
+      voiceActors: Array<{ id: number; name: string }>;
+    }>;
   } | null;
 }
 
@@ -186,7 +192,13 @@ export interface SearchField {
 export interface CollectionSearchIndex {
   items: CollectionItem[];
   byToken: Map<string, Set<number>>;
-  normalized: Array<{ title: string; altTitles: string[]; genres: string[]; studio: string }>;
+  normalized: Array<{
+    title: string;
+    altTitles: string[];
+    genres: string[];
+    studio: string;
+    people: string;
+  }>;
 }
 
 export interface ImportBatchGroup {
@@ -228,9 +240,11 @@ export type WizardSearchResult = {
   duration?: number | null;
   episodes?: number | null;
   genres?: string[];
+  tags?: string[];
   studio?: string | null;
   mediaType?: string;
   altTitles?: string[];
+  description?: string;
 };
 
 export type TmdbRateLimit = {

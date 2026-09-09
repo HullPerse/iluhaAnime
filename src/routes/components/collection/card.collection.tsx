@@ -1,17 +1,39 @@
 import { Star } from "lucide-react";
-import { memo, useMemo } from "react";
+import { memo } from "react";
 
+import { FavPeopleStar } from "@/components/shared/favPeopleStar.component";
 import Image from "@/components/ui/image.component";
 import { CARD_POSTER_H, CARD_W, GENRE_PREVIEW_COUNT } from "@/config/collection/card.config";
 import { useCoverCache } from "@/hooks/collection/cache.hook";
+import { useRemoteImage } from "@/hooks/remoteImage.hook";
 import { generatePlaceholder } from "@/lib/collection/placeholder.utils";
 import { statusColorOf, statusLabel } from "@/lib/collection/status.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { enterOrSpace } from "@/lib/utils/keyboard.utils";
+import { useSettingsStore } from "@/store/settings.store";
 import type { CollectionCardProps } from "@/types/collection";
 
 import { CardStatusBar } from "./cardStatusBar.collection";
 
+function resolveCardCover(
+  item: Pick<CollectionCardProps["item"], "coverUrl" | "title">,
+  cachedUrl: string | null,
+  remoteSrc: string | null,
+  allowDirect: boolean
+): string {
+  if (cachedUrl) return cachedUrl;
+  if (remoteSrc) return remoteSrc;
+  if (allowDirect && item.coverUrl) return item.coverUrl;
+  if (item.title) return generatePlaceholder(item.title);
+  return "";
+}
+
+function uncachedCoverSource(
+  item: Pick<CollectionCardProps["item"], "coverUrl" | "coverBlobId" | "thumbBlobId">
+): string | null {
+  if (item.thumbBlobId ?? item.coverBlobId) return null;
+  return item.coverUrl ?? null;
+}
 function CollectionCardView({
   item,
   statuses,
@@ -20,14 +42,11 @@ function CollectionCardView({
   onEdit,
   onSetStatus,
 }: CollectionCardProps) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { cachedUrl } = useCoverCache(item.coverUrl, item.thumbBlobId ?? item.coverBlobId);
-  const cover = useMemo(() => {
-    if (cachedUrl) return cachedUrl;
-    if (item.coverUrl) return item.coverUrl;
-    if (item.title) return generatePlaceholder(item.title);
-    return "";
-  }, [cachedUrl, item.coverUrl, item.title]);
+  const tmdbProxyUrl = useSettingsStore((s) => s.tmdbProxyUrl);
+  const remoteSrc = useRemoteImage(uncachedCoverSource(item));
+  const cover = resolveCardCover(item, cachedUrl, remoteSrc, !tmdbProxyUrl);
   const progressPercent =
     item.progressTotal != null && item.progressTotal > 0
       ? Math.min(100, (item.progressValue / item.progressTotal) * 100)
@@ -62,7 +81,7 @@ function CollectionCardView({
         <span
           className="windows95-border absolute top-1 left-1 h-3 w-3"
           style={{ backgroundColor: statusColorOf(statuses, item.status) }}
-          aria-label={statusLabel(statuses, item.status, t)}
+          aria-label={statusLabel(statuses, item.status, t, locale)}
         />
         {item.isFavorite && (
           <span
@@ -85,9 +104,12 @@ function CollectionCardView({
       </div>
       <div className="bg-primary flex min-h-0 flex-1 flex-col">
         <div className="flex h-10 shrink-0 flex-col justify-center gap-0 px-1 py-1">
-          <h3 className="windows95-text truncate text-xs leading-none font-bold" title={item.title}>
-            {item.title}
-          </h3>
+          <div className="flex min-w-0 flex-1 items-center gap-0.5">
+            <FavPeopleStar animeId={item.externalIds.anilist} />
+            <h3 className="windows95-text min-w-0 flex-1 truncate text-xs leading-none font-bold" title={item.title}>
+              {item.title}
+            </h3>
+          </div>
           <div className="text-hint flex items-center gap-1 truncate text-xs leading-none">
             {item.year != null && <span className="shrink-0">{item.year}</span>}
             {item.genres[0] && (

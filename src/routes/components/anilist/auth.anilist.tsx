@@ -1,12 +1,15 @@
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { useState } from "react";
 
 import { SmallLoader } from "@/components/shared/loader.component";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
+import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { enterSubmit } from "@/lib/utils/keyboard.utils";
+import { useSettingsStore } from "@/store/settings.store";
 import type { AniUser } from "@/types/anilist";
 
 function AniListAuthModal({
@@ -28,6 +31,7 @@ function AniListAuthModal({
     try {
       const user = await invokeTyped<AniUser>("anilist_login", {
         token: token.trim(),
+        ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
       });
       onAuth(user);
     } catch (error) {
@@ -42,16 +46,16 @@ function AniListAuthModal({
       <div className="flex flex-col gap-2 p-1">
         <span className="windows95-text">{t("anilist.auth.intro")}</span>
         <ul className="windows95-text list-disc pl-4 text-xs">
-          <li>
+          <li className="flex flex-row gap-1">
             {t("anilist.auth.step1")}{" "}
-            <a
-              className="underline"
-              href="https://anilist.co/settings/developer"
-              target="_blank"
-              rel="noreferrer"
+            <div
+              role="button"
+              className="font-bold hover:cursor-pointer hover:underline"
+              onClick={() => openUrl("https://anilist.co/settings/developer")}
+              tabIndex={-1}
             >
               anilist.co/settings/developer
-            </a>
+            </div>
           </li>
           <li>{t("anilist.auth.step2")}</li>
           <li>

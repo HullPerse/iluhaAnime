@@ -1,7 +1,7 @@
 use rusqlite::{params, OptionalExtension};
 use serde::Serialize;
 
-use super::db::{MAX_PAYLOAD_BYTES, now_seconds, open_database};
+use super::db::{now_seconds, open_database, MAX_PAYLOAD_BYTES};
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]

@@ -44,6 +44,7 @@ export interface AniMedia {
   tags: string[];
   description: string | null;
   cover_url: string | null;
+  banner_image?: string | null;
   id_mal?: number | null;
   trailer_youtube_id?: string | null;
   season: string | null;
@@ -91,6 +92,17 @@ export interface FavouriteAnime {
   cover_image: { medium: string | null } | null;
   mean_score: number | null;
   format: string | null;
+}
+
+export interface FavouritePerson {
+  id: number;
+  name: string;
+  image: string | null;
+}
+
+export interface FavouritePeople {
+  staff: FavouritePerson[];
+  characters: FavouritePerson[];
 }
 
 export interface AniListEntry {
@@ -164,6 +176,12 @@ export interface AniStaffMediaEdge {
   id: number;
   title: string;
   cover_url: string | null;
+}
+
+export interface AniAnimeStaffEdge {
+  role: string;
+  id: number;
+  name: string;
 }
 
 export interface AniStaffDetail {
@@ -295,6 +313,7 @@ export interface AnilistRouteData {
   user: AniUser | null;
   lists: AniListCollection[];
   favourites: FavouriteAnime[];
+  people: FavouritePeople;
 }
 
 export interface AniListFriendsStore {
@@ -449,8 +468,12 @@ export interface AniCardProps {
 export interface AniListDetailModalHostProps {
   selectedAnime: AniListAnime;
   favouriteIds: Set<number>;
+  favouriteStaffIds?: Set<number>;
+  favouriteCharacterIds?: Set<number>;
   isLoggedIn: boolean;
   onFavouriteToggle: (animeId: number) => Promise<void>;
+  onStaffFavouriteToggle?: (staffId: number) => void;
+  onCharacterFavouriteToggle?: (characterId: number) => void;
   onTag: (tag: string) => Promise<void>;
   onGenre: (genre: string) => Promise<void>;
   onStudio: (id: number, name: string) => Promise<void>;
@@ -470,7 +493,11 @@ export interface AniDetailProps {
   };
   isLoggedIn: boolean;
   favouriteIds?: Set<number>;
+  favouriteStaffIds?: Set<number>;
+  favouriteCharacterIds?: Set<number>;
   onFavouriteToggle?: (animeId: number) => void;
+  onStaffFavouriteToggle?: (staffId: number) => void;
+  onCharacterFavouriteToggle?: (characterId: number) => void;
   onTag: (value: string) => void;
   onGenre: (value: string) => void;
   onSeason?: (season: string, year: number | null) => void;
@@ -487,6 +514,7 @@ export type AniDetailViewProps = AniDetailProps & {
   isError: boolean;
   error: unknown;
   refetch: () => void;
+  onTrailer: (youtubeId: string) => void;
 };
 
 export interface AniFavouritesProps {

@@ -41,6 +41,7 @@ function TorrentRoute() {
   const setSeedPreference = useCacheStore((state) => state.setSeedPreference);
   const redownloadFile = useTorrentStore((state) => state.redownloadFile);
   const recheckTorrent = useTorrentStore((state) => state.recheckTorrent);
+  const opInFlight = useTorrentStore((state) => state.opInFlight);
 
   const [downloadInput, setDownloadInput] = useState(
     limits.download === null ? "" : String(limits.download)
@@ -314,28 +315,32 @@ function TorrentRoute() {
                 item={item}
                 files={files}
                 isExpanded={isExpanded}
+                busy={opInFlight[item.id] !== undefined}
                 onToggleExpand={() => toggleExpanded(item.id)}
-                onPause={() => pauseTorrent(item.id)}
-                onResume={() => resumeTorrent(item.id)}
+                onPause={() => pauseTorrent(item.id, item.info_hash)}
+                onResume={() => resumeTorrent(item.id, item.info_hash)}
                 onSeedChange={(enabled) => {
                   setSeedPreference(item.id, enabled);
-                  if (enabled) resumeTorrent(item.id);
-                  else pauseTorrent(item.id);
+                  if (enabled) resumeTorrent(item.id, item.info_hash);
+                  else pauseTorrent(item.id, item.info_hash);
                 }}
-                onRemove={(deleteFiles) => removeTorrent(item.id, deleteFiles)}
-                onUpdateFiles={(indices) => updateTorrentOnlyFiles(item.id, indices)}
+                onRemove={(deleteFiles) => removeTorrent(item.id, deleteFiles, item.info_hash)}
+                onUpdateFiles={(indices) => updateTorrentOnlyFiles(item.id, indices, item.info_hash)}
                 onFilePriorityChange={(indices, priority) =>
-                  setFilePriority(item.id, indices, priority)
+                  setFilePriority(item.id, indices, priority, item.info_hash)
                 }
-                onSetSequential={(enabled) => setSequentialDownload(item.id, enabled)}
+                onSetSequential={(enabled) =>
+                  setSequentialDownload(item.id, enabled, item.info_hash)
+                }
                 onRetry={async () => {
-                  await removeTorrent(item.id, false);
+                  const removed = await removeTorrent(item.id, false, item.info_hash);
+                  if (!removed) return;
                   const magnet = `magnet:?xt=urn:btih:${item.info_hash}`;
                   prepareTorrentDownload(magnet);
                 }}
                 onRedownload={(fileIndex) => redownloadFile(item.id, fileIndex, item.info_hash)}
                 onRecheck={async () => {
-                  const result = await recheckTorrent(item.id);
+                  const result = await recheckTorrent(item.id, item.info_hash);
                   if (!result) return;
                   const { add } = useNotificationStore.getState();
                   if (result.missing.length === 0 && result.size_mismatch.length === 0) {

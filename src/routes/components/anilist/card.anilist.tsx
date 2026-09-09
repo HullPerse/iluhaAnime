@@ -1,6 +1,7 @@
 import { Plus, Star } from "lucide-react";
 import { memo } from "react";
 
+import { FavPeopleStar } from "@/components/shared/favPeopleStar.component";
 import { Button } from "@/components/ui/button.component";
 import Image from "@/components/ui/image.component";
 import { listStatusLabels, statusLabels } from "@/config/anilist/labels.config";
@@ -39,7 +40,8 @@ function AniListEntryCard({ item, entryLookup, onClick }: Props) {
     >
       <div className="flex w-full flex-row items-start justify-between gap-2 xl:flex-row-reverse">
         <section className="flex h-full min-w-0 flex-1 flex-col">
-          <div className="flex flex-row gap-2">
+          <div className="flex min-w-0 flex-1 flex-row items-center gap-1">
+            <FavPeopleStar animeId={item.id} className="size-3 fill-yellow-400 text-yellow-600" />
             <h2
               className="windows95-text flex min-w-0 flex-1 flex-row gap-1 truncate leading-tight font-bold"
               title={item.title}

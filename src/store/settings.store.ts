@@ -37,7 +37,6 @@ function applySettingsV4(
 ): Partial<SettingsStore> {
   if (version >= 4) return migrated;
   if (migrated.searchSymSpellEnabled === undefined) migrated.searchSymSpellEnabled = true;
-  if (migrated.searchSemanticEnabled === undefined) migrated.searchSemanticEnabled = true;
   if (migrated.searchIntentEnabled === undefined) migrated.searchIntentEnabled = true;
   return migrated;
 }
@@ -47,7 +46,6 @@ function applySettingsV5(
   version: number
 ): Partial<SettingsStore> {
   if (version >= 5) return migrated;
-  if (migrated.fastembedSource === undefined) migrated.fastembedSource = "q";
   return migrated;
 }
 
@@ -257,6 +255,15 @@ function applySettingsV20(
   return migrated;
 }
 
+function applySettingsV21(
+  migrated: Partial<SettingsStore>,
+  version: number
+): Partial<SettingsStore> {
+  if (version >= 21) return migrated;
+  if (migrated.anilistProxyUrl === undefined) migrated.anilistProxyUrl = null;
+  return migrated;
+}
+
 function applyUiPreferences(
   retroStyle: SettingsStore["retroStyle"],
   uiDensity: SettingsStore["uiDensity"]
@@ -365,6 +372,7 @@ export const useSettingsStore = create<SettingsStore>()(
         migrated = applySettingsV18(migrated, version);
         migrated = applySettingsV19(migrated, version);
         migrated = applySettingsV20(migrated, version);
+        migrated = applySettingsV21(migrated, version);
         return migrated;
       },
       name: "settings",
@@ -374,7 +382,7 @@ export const useSettingsStore = create<SettingsStore>()(
           if (state.appFont) applyFontFamily(state.appFont);
         }
       },
-      version: 20,
+      version: 21,
     }
   )
 );

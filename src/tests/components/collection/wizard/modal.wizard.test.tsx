@@ -10,6 +10,7 @@ import type { CollectionItem, CollectionStatusDef } from "@/types/collection";
 const mockInvoke = vi.fn();
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (...args: unknown[]) => mockInvoke(...args),
+  convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
 }));
 
 const mockOpenDialog = vi.fn();
@@ -98,7 +99,14 @@ describe("WizardModal add mode", () => {
     mockOpenDialog.mockResolvedValue("C:\\fake\\cover.png");
     mockInvoke.mockImplementation(async (cmd: string) => {
       if (cmd === "import_user_image") {
-        return { id: "blob_1", dataUrl: "data:image/png;base64,AAAA" };
+        return {
+          id: "blob_1",
+          name: "cover.png",
+          mimeType: "image/png",
+          path: "C:/images/blob_1.png",
+          originalPath: null,
+          createdAt: 0,
+        };
       }
       return null;
     });
@@ -254,5 +262,39 @@ describe("WizardModal TMDB metadata", () => {
       stills: ["https://img/s1.jpg"],
       trailerYoutubeId: "t1",
     });
+  });
+});
+
+describe("WizardModal AniList tags", () => {
+  it("merges anilist tags into genres when picking a result", async () => {
+    mockInvoke.mockImplementation((cmd: unknown) => {
+      if (cmd === "search_anilist")
+        return Promise.resolve([
+          {
+            id: 7,
+            title: "Frieren",
+            titles: ["Frieren"],
+            cover_url: null,
+            season_year: 2023,
+            duration: 24,
+            episodes: 28,
+            genres: ["Adventure"],
+            tags: ["Male Protagonist", "adventure"],
+            studios: [{ id: 1, name: "Madhouse" }],
+          },
+        ]);
+      return Promise.resolve([]);
+    });
+    const user = userEvent.setup();
+    renderWizard();
+    await user.click(screen.getByRole("button", { name: "AniList" }));
+    await user.type(screen.getByRole("textbox"), "frieren");
+    await waitFor(() => expect(screen.getByRole("button", { name: /Frieren/ })).toBeTruthy());
+    await user.click(screen.getByRole("button", { name: /Frieren/ }));
+    await user.click(screen.getByRole("tab", { name: "Details" }));
+    await user.click(screen.getByRole("button", { name: "More options" }));
+    await waitFor(() =>
+      expect(screen.getByDisplayValue("Adventure, Male Protagonist")).toBeTruthy()
+    );
   });
 });

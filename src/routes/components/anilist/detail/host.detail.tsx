@@ -4,8 +4,12 @@ import type { AniListDetailModalHostProps } from "@/types/anilist";
 export default function AniListDetailModalHost({
   selectedAnime,
   favouriteIds,
+  favouriteStaffIds,
+  favouriteCharacterIds,
   isLoggedIn,
   onFavouriteToggle,
+  onStaffFavouriteToggle,
+  onCharacterFavouriteToggle,
   onTag,
   onGenre,
   onStudio,
@@ -22,7 +26,11 @@ export default function AniListDetailModalHost({
       listEntry={selectedAnime.listEntry}
       isLoggedIn={isLoggedIn}
       favouriteIds={favouriteIds}
+      favouriteStaffIds={favouriteStaffIds}
+      favouriteCharacterIds={favouriteCharacterIds}
       onFavouriteToggle={onFavouriteToggle}
+      onStaffFavouriteToggle={onStaffFavouriteToggle}
+      onCharacterFavouriteToggle={onCharacterFavouriteToggle}
       onTag={onTag}
       onGenre={onGenre}
       onStudio={onStudio}

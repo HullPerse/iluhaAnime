@@ -1,8 +1,8 @@
+use super::schema::initialize_schema;
 use rusqlite::Connection;
 use std::fs;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
-use super::schema::initialize_schema;
 use tauri::Manager;
 pub const DATABASE_FILE: &str = "app_data.sqlite3";
 pub const MAX_PAYLOAD_BYTES: usize = 8 * 1024 * 1024;

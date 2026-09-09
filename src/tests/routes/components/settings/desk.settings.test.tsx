@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -11,16 +11,24 @@ import { SettingsSummary } from "@/routes/components/settings/summary.settings";
 const mockInvoke = vi.fn();
 
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: (...args: unknown[]) => mockInvoke(...args),
+  invoke: (cmd: string, args?: Record<string, unknown>) => mockInvoke(cmd, args),
 }));
 
 vi.mock("@tauri-apps/api/app", () => ({
   getVersion: () => Promise.resolve("3.0.2"),
 }));
 
+const confirmMock = vi.fn(async (..._args: unknown[]) => true);
+vi.mock("@tauri-apps/plugin-dialog", () => ({
+  confirm: (message: string, options?: Record<string, unknown>) => confirmMock(message, options),
+  open: vi.fn(),
+}));
+
 afterEach(() => {
   cleanup();
   mockInvoke.mockReset();
+  confirmMock.mockReset();
+  confirmMock.mockImplementation(() => Promise.resolve(true));
 });
 
 function renderSummary(onJump: (tab: string) => void = () => {}) {
@@ -37,7 +45,6 @@ function renderSummary(onJump: (tab: string) => void = () => {}) {
 describe("SettingsSummary", () => {
   it("shows binary status, version, backup date, and learning counts", async () => {
     mockInvoke.mockImplementation((cmd: string) => {
-      if (cmd === "check_fastembed") return Promise.resolve(true);
       if (cmd === "check_ffprobe") return Promise.resolve(false);
       if (cmd === "list_sqlite_databases") return Promise.resolve([{ id: "app", available: true }]);
       if (cmd === "list_sqlite_backups")
@@ -50,7 +57,6 @@ describe("SettingsSummary", () => {
   });
   it("shows binary status as icons and learning as a single count", async () => {
     mockInvoke.mockImplementation((cmd: string) => {
-      if (cmd === "check_fastembed") return Promise.resolve(true);
       if (cmd === "check_ffprobe") return Promise.resolve(false);
       if (cmd === "list_sqlite_databases") return Promise.resolve([{ id: "app", available: true }]);
       if (cmd === "list_sqlite_backups")
@@ -58,23 +64,32 @@ describe("SettingsSummary", () => {
       return Promise.resolve(null);
     });
     renderSummary();
-    expect(
-      await screen.findByLabelText(/Model installed|Модель установлена/)
-    ).toBeDefined();
-    expect(screen.getByLabelText(/Model not found|Модель не найдена/)).toBeDefined();
+    expect(await screen.findByLabelText(/FFmpeg not found|FFmpeg не найден/)).toBeDefined();
     const learningLabel = screen.getByText(/Learning|Обучение/);
     expect(learningLabel.closest("div")?.textContent).not.toMatch(/\//);
   });
 
-  it("jumps to the owning tab from a row action", async () => {
+  it("shows the remote image cache size and clears it after confirmation", async () => {
     const user = userEvent.setup();
-    mockInvoke.mockResolvedValue(null);
-    const onJump = vi.fn();
-    renderSummary(onJump);
-    const buttons = await screen.findAllByRole("button", { name: /Открыть|Open/ });
-    await user.click(buttons[0]);
-    expect(onJump).toHaveBeenCalledWith("search");
+    let cleared = false;
+    mockInvoke.mockImplementation((cmd: string) => {
+      if (cmd === "get_remote_images_stats")
+        return Promise.resolve(cleared ? { count: 0, bytes: 0 } : { count: 12, bytes: 1536 });
+      if (cmd === "clear_remote_image_cache") {
+        cleared = true;
+        return Promise.resolve(12);
+      }
+      return Promise.resolve(null);
+    });
+    renderSummary();
+    expect(await screen.findByText("12 · 2 KB")).toBeDefined();
+    await user.click(screen.getByRole("button", { name: /Clear|Очистить/ }));
+    await waitFor(() => {
+      expect(mockInvoke).toHaveBeenCalledWith("clear_remote_image_cache", undefined);
+    });
+    expect(await screen.findByText("0 · 0 B")).toBeDefined();
   });
+
 });
 describe("SettingsChangelog", () => {
   it("renders collapsible versions with categorized entries", async () => {

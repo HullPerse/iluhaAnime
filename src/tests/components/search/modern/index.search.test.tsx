@@ -2,14 +2,16 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { assetUrl } from "@/lib/utils/image.utils";
 import SearchModern from "@/routes/components/search/modern/index.search";
 import { useNotificationStore } from "@/store/notification.store";
 import { useSettingsStore } from "@/store/settings.store";
-import type { UserImage } from "@/types";
+import type { UserImageFile } from "@/types";
 
 const mockInvoke = vi.fn();
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (...args: unknown[]) => mockInvoke(...args),
+  convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
 }));
 function renderModern() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -20,19 +22,19 @@ function renderModern() {
   );
 }
 
-const FIRST: UserImage = {
+const FIRST: UserImageFile = {
   id: "aaa",
   name: "first.png",
   mimeType: "image/png",
-  dataUrl: "data:image/png;base64,AAAA",
-  originalSrc: "data:image/png;base64,AAAA",
+  path: "C:/images/aaa.png",
+  originalPath: "C:/images/aaa.original.png",
   createdAt: 10,
 };
-const SECOND: UserImage = {
+const SECOND: UserImageFile = {
   ...FIRST,
   id: "bbb",
   name: "second.png",
-  dataUrl: "data:image/png;base64,BBBB",
+  path: "C:/images/bbb.png",
 };
 
 function wallpaperSrc(): string | null {
@@ -68,7 +70,7 @@ describe("SearchModern wallpaper", () => {
     mockInvoke.mockResolvedValue(FIRST);
     renderModern();
     await waitFor(() => expect(mockInvoke).toHaveBeenCalledWith("get_dither_image", { id: "aaa" }));
-    await waitFor(() => expect(wallpaperSrc()).toBe("data:image/png;base64,AAAA"));
+    await waitFor(() => expect(wallpaperSrc()).toBe(assetUrl(FIRST.path)));
     expect(mockInvoke).not.toHaveBeenCalledWith("list_dither_image_meta", expect.anything());
   });
 
@@ -96,10 +98,10 @@ describe("SearchModern wallpaper", () => {
 
   it("shows a loader while the wallpaper resolves", async () => {
     useSettingsStore.setState({ selectedDitherId: "aaa" });
-    let resolveImage!: (value: UserImage) => void;
+    let resolveImage!: (value: UserImageFile) => void;
     mockInvoke.mockImplementation(
       () =>
-        new Promise<UserImage>((resolve) => {
+        new Promise<UserImageFile>((resolve) => {
           resolveImage = resolve;
         })
     );
@@ -108,18 +110,18 @@ describe("SearchModern wallpaper", () => {
     await act(async () => {
       resolveImage(FIRST);
     });
-    await waitFor(() => expect(wallpaperSrc()).toBe("data:image/png;base64,AAAA"));
+    await waitFor(() => expect(wallpaperSrc()).toBe(assetUrl(FIRST.path)));
   });
 
   it("keeps the previous image while the next one loads", async () => {
     useSettingsStore.setState({ selectedDitherId: "aaa" });
     mockInvoke.mockResolvedValue(FIRST);
     renderModern();
-    await waitFor(() => expect(wallpaperSrc()).toBe("data:image/png;base64,AAAA"));
-    let resolveSecond!: (value: UserImage) => void;
+    await waitFor(() => expect(wallpaperSrc()).toBe(assetUrl(FIRST.path)));
+    let resolveSecond!: (value: UserImageFile) => void;
     mockInvoke.mockImplementation(
       () =>
-        new Promise<UserImage>((resolve) => {
+        new Promise<UserImageFile>((resolve) => {
           resolveSecond = resolve;
         })
     );
@@ -127,12 +129,12 @@ describe("SearchModern wallpaper", () => {
       useSettingsStore.setState({ selectedDitherId: "bbb" });
     });
     await waitFor(() => expect(mockInvoke).toHaveBeenCalledWith("get_dither_image", { id: "bbb" }));
-    expect(wallpaperSrc()).toBe("data:image/png;base64,AAAA");
+    expect(wallpaperSrc()).toBe(assetUrl(FIRST.path));
     expect(document.querySelector('div.bg-surface[aria-busy="true"]')).toBeNull();
     await act(async () => {
       resolveSecond(SECOND);
     });
-    await waitFor(() => expect(wallpaperSrc()).toBe("data:image/png;base64,BBBB"));
+    await waitFor(() => expect(wallpaperSrc()).toBe(assetUrl(SECOND.path)));
   });
 
   it("paints the wallpaper shadow on an overlay above the image", async () => {
@@ -146,7 +148,7 @@ describe("SearchModern wallpaper", () => {
     });
     mockInvoke.mockResolvedValue(FIRST);
     renderModern();
-    await waitFor(() => expect(wallpaperSrc()).toBe("data:image/png;base64,AAAA"));
+    await waitFor(() => expect(wallpaperSrc()).toBe(assetUrl(FIRST.path)));
     const overlay = document.querySelector('div[style*="box-shadow"]');
     expect(overlay?.getAttribute("style")).toContain("inset");
   });

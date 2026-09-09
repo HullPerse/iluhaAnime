@@ -1,5 +1,5 @@
 import { cn } from "cn";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
@@ -12,8 +12,6 @@ import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSearchStore } from "@/store/search.store";
 import { useSettingsStore } from "@/store/settings.store";
 
-import FastembedDownload from "./fastembed.settings";
-
 export default function SettingsSearch() {
   const {
     defaultSearchSource,
@@ -25,7 +23,6 @@ export default function SettingsSearch() {
     autocompleteMode,
     anilistSuggestionBoost,
     searchSymSpellEnabled,
-    searchSemanticEnabled,
     searchIntentEnabled,
     patch,
   } = useSettingsStore();
@@ -401,16 +398,6 @@ export default function SettingsSearch() {
                 </label>
                 <label
                   className="windows95-text text-text flex cursor-pointer items-center gap-2 select-none"
-                  title={t("settings.search.toggle.semantic.hint")}
-                >
-                  <Checkbox
-                    checked={searchSemanticEnabled}
-                    onChange={() => patch({ searchSemanticEnabled: !searchSemanticEnabled })}
-                  />
-                  <span>{t("settings.search.toggle.semantic")}</span>
-                </label>
-                <label
-                  className="windows95-text text-text flex cursor-pointer items-center gap-2 select-none"
                   title={t("settings.search.toggle.intent.hint")}
                 >
                   <Checkbox
@@ -423,16 +410,6 @@ export default function SettingsSearch() {
               </div>
             </div>
           </div>
-
-          <div
-            className="windows95-text text-hint bg-primary windows95-border p-2 text-[12px] leading-tight"
-            title={t("settings.search.fastembed.info.hint")}
-          >
-            <span className="font-bold">{t("settings.search.fastembed.info.title")}</span>{" "}
-            {t("settings.search.fastembed.info.description")}
-          </div>
-
-          <FastembedSection />
 
           <div className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
             <span className="windows95-text text-text text-xs font-bold">
@@ -523,37 +500,3 @@ export default function SettingsSearch() {
   );
 }
 
-function FastembedSection() {
-  const { t } = useI18n();
-  const fastembedSource = useSettingsStore((s) => s.fastembedSource);
-  const patch = useSettingsStore((s) => s.patch);
-  const [status, setStatus] = useState<"checking" | "ok" | "missing" | "downloading">("checking");
-
-  useEffect(() => {
-    invokeTyped<boolean>("check_fastembed")
-      .then((ok) => setStatus(ok ? "ok" : "missing"))
-      .catch(() => setStatus("missing"));
-  }, []);
-
-  return (
-    <div className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-0.5">
-      <span className="windows95-text text-text flex items-center text-xs font-bold">
-        {t("settings.fastembed.source")}
-      </span>
-      <div className="flex flex-col gap-1">
-        <Select
-          value={fastembedSource}
-          onChange={(v) => patch({ fastembedSource: v as "q" | "full" })}
-          options={[
-            { value: "q", label: t("settings.fastembed.source.q") },
-            { value: "full", label: t("settings.fastembed.source.full") },
-          ]}
-          className="w-40"
-        />
-        <div className="ui-panel bg-primary p-1">
-          <FastembedDownload status={status} setStatus={setStatus} />
-        </div>
-      </div>
-    </div>
-  );
-}

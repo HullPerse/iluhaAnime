@@ -1,9 +1,12 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getVersion } from "@tauri-apps/api/app";
+import { confirm } from "@tauri-apps/plugin-dialog";
 import { Check, X } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { Button } from "@/components/ui/button.component";
+import { resetCoverCache } from "@/hooks/collection/cache.hook";
+import { resetRemoteImageCache } from "@/hooks/remoteImage.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { formatBackupDate } from "@/lib/settings/backup.utils";
 import { withFallback } from "@/lib/utils/attempt.utils";
@@ -41,14 +44,16 @@ function SummaryRow({
     </div>
   );
 }
+export function formatCacheBytes(bytes: number): string {
+  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  if (bytes >= 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${bytes} B`;
+}
+
 export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void }) {
   const { t } = useI18n();
+  const queryClient = useQueryClient();
   const historyCount = useSearchStore((s) => s.history.length);
-  const model = useQuery({
-    queryKey: ["summary_fastembed"],
-    queryFn: () => withFallback(invokeTyped<boolean>("check_fastembed"), false),
-    staleTime: Infinity,
-  });
   const ffmpeg = useQuery({
     queryKey: ["summary_ffprobe"],
     queryFn: () => withFallback(invokeTyped<boolean>("check_ffprobe"), false),
@@ -76,34 +81,29 @@ export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void
     },
     staleTime: 60_000,
   });
+  const images = useQuery({
+    queryKey: ["summary_remote_images"],
+    queryFn: () =>
+      withFallback(invokeTyped<{ count: number; bytes: number }>("get_remote_images_stats"), {
+        count: 0,
+        bytes: 0,
+      }),
+    staleTime: 60_000,
+  });
   const text = (value: string | undefined, fallback: string) => value ?? fallback;
   return (
     <div className="ui-panel flex w-56 shrink-0 flex-col gap-1 overflow-y-auto p-1">
       <span className="windows95-text px-1 text-xs font-bold">{t("settings.summary.title")}</span>
       <SummaryRow label={`${t("settings.summary.app.version")}`} value={text(version.data, "?")} />
       <SummaryRow
-        label={t("settings.summary.model")}
-        value={
-          model.data === undefined ? (
-            "..."
-          ) : model.data ? (
-            <Check className="size-4 text-success" aria-label={t("player.fastembed.installed")} />
-          ) : (
-            <X className="size-4 text-destructive" aria-label={t("player.fastembed.missing")} />
-          )
-        }
-        actionLabel={t("settings.summary.open")}
-        onAction={() => onJump("search")}
-      />
-      <SummaryRow
         label="FFmpeg"
         value={
           ffmpeg.data === undefined ? (
             "..."
           ) : ffmpeg.data ? (
-            <Check className="size-4 text-success" aria-label={t("player.fastembed.installed")} />
+            <Check className="size-4 text-success" aria-label={t("player.ffmpeg.installed")} />
           ) : (
-            <X className="size-4 text-destructive" aria-label={t("player.fastembed.missing")} />
+            <X className="size-4 text-destructive" aria-label={t("player.ffmpeg.missing")} />
           )
         }
       />
@@ -124,6 +124,28 @@ export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void
         value={`${historyCount}`}
         actionLabel={t("settings.summary.open")}
         onAction={() => onJump("search")}
+      />
+      <SummaryRow
+        label={t("settings.summary.images")}
+        value={
+          images.data === undefined
+            ? "..."
+            : `${images.data?.count ?? 0} · ${formatCacheBytes(images.data?.bytes ?? 0)}`
+        }
+        actionLabel={t("settings.summary.images.clear")}
+        onAction={async () => {
+          const ok = await confirm(t("settings.summary.images.confirm"));
+          if (!ok) return;
+          await withFallback(
+            invokeTyped<number>("clear_remote_image_cache").then((removed) => {
+              resetCoverCache();
+              resetRemoteImageCache();
+              return removed;
+            }),
+            0
+          );
+          await queryClient.invalidateQueries({ queryKey: ["summary_remote_images"] });
+        }}
       />
     </div>
   );

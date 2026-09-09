@@ -53,7 +53,7 @@ export function WizardDetailsPanel(props: {
   customFields: Record<string, unknown>;
   onCustomFieldsChange: React.Dispatch<React.SetStateAction<Record<string, unknown>>>;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [showMore, setShowMore] = useState(false);
   return (
     <div className="flex flex-col gap-1.5">
@@ -86,7 +86,7 @@ export function WizardDetailsPanel(props: {
         >
           {props.statuses.map((s) => (
             <option key={s.id} value={s.id}>
-              {statusLabel(props.statuses, s.id, t)}
+              {statusLabel(props.statuses, s.id, t, locale)}
             </option>
           ))}
         </select>

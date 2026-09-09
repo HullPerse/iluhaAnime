@@ -42,8 +42,10 @@ const settings = {
   "settings.summary.backup": "Бэкап",
   "settings.summary.binaries": "Бинари",
   "settings.summary.learning": "Обучение",
-  "settings.summary.model": "Модель",
   "settings.summary.none": "нет",
+  "settings.summary.images": "Изображения",
+  "settings.summary.images.clear": "Очистить",
+  "settings.summary.images.confirm": "Очистить кэш загруженных изображений? Картинки скачаются заново по мере просмотра.",
   "settings.summary.open": "Открыть",
   "settings.summary.title": "Сводка",
   "settings.search.default.source": "Источник по умолчанию",
@@ -77,9 +79,7 @@ const settings = {
   "settings.search.toggles": "Умный поиск",
   "settings.search.toggles.hint": "Всё включено по умолчанию. Выключи для скорости.",
   "settings.search.toggle.sym.spell": "Исправление опечаток",
-  "settings.search.toggle.semantic": "Семантика (TF-IDF)",
   "settings.search.toggle.intent": "Парсер (year: studio:)",
-  "settings.fastembed.source": "Источник модели",
   "settings.search.reset.anime.suggestions": "Сбросить подсказки AniList",
   "settings.search.reset.anime.suggestions.hint":
     "Удалит локальный индекс названий AniList, но сохранит историю поиска.",
@@ -256,6 +256,16 @@ const settings = {
   "settings.tmdb.proxy.test.ok": "TMDB доступен",
   "settings.tmdb.proxy.test.fail": "Ошибка",
   "settings.search.proxy.per.source": "Прокси для источников",
+  "settings.anilist.proxy.title": "Прокси AniList",
+  "settings.anilist.proxy.url": "Прокси AniList",
+  "settings.anilist.proxy.url.description":
+    "Необязательно. Укажите, если graphql.anilist.co заблокирован. Проверяет сайт и загружает одно аниме через прокси. Примеры: socks5://127.0.0.1:10808 или http://127.0.0.1:7890.",
+  "settings.anilist.proxy.no": "Без прокси",
+  "settings.anilist.proxy.custom": "Свой",
+  "settings.anilist.proxy.test": "Проверить",
+  "settings.anilist.proxy.testing": "Проверка...",
+  "settings.anilist.proxy.test.ok": "AniList доступен",
+  "settings.anilist.proxy.test.fail": "Ошибка",
   "settings.search.proxy.per.source.hint":
     "Отдельный прокси для каждого включённого источника. Укажите, если источник заблокирован. Применяется к поиску, входу, деталям и скачиванию.",
   "settings.search.proxy.test.all": "Проверить все",
@@ -269,8 +279,6 @@ const settings = {
   "settings.ffmpeg.source.essentials": "gyan.dev (essentials, ~30 МБ)",
   "settings.ffmpeg.source.github": "GitHub (BtbN, ~160 МБ)",
   "settings.ffmpeg.source.mirror": "GitHub через зеркало (gh-proxy)",
-  "settings.fastembed.source.q": "Квантованная Q (30МБ)",
-  "settings.fastembed.source.full": "Полная (80МБ)",
   "settings.ffmpeg.source.hint":
     "Откуда качать FFmpeg: в Essentials только кодеки воспроизведения, в Full все энкодеры.",
   "settings.anilist.release.notifications.hint":
@@ -284,15 +292,8 @@ const settings = {
   "settings.search.anilist.max.pages.hint": "Максимум страниц для загрузки из AniList.",
   "settings.search.toggle.sym.spell.hint":
     "Исправляет опечатки: friren -> frieren. Словарь из ваших аниме и истории, работает офлайн.",
-  "settings.search.toggle.semantic.hint":
-    "Ищет по смыслу текста (TF-IDF, без модели): time travel -> Steins;Gate, даже если этих слов нет в названии.",
   "settings.search.toggle.intent.hint":
     "Парсит фильтры прямо в строке: year:2024 studio:MAPPA genre:isekai - фильтры открывать не нужно.",
-  "settings.search.fastembed.info.title": "Что за модель fastembed?",
-  "settings.search.fastembed.info.description":
-    "30MB квантованная (Q) или 80MB полная. Кодирует смысл, ищет «похожие по описанию», а не только по буквам. Офлайн после скачки, не отправляет данные. Выберите выше Q (быстрее) или Full (точнее).",
-  "settings.search.fastembed.info.hint":
-    "Нейромодель для поиска по смыслу, а не буквам (30MB). Один раз качается с Hugging Face, дальше работает офлайн и ничего не отправляет.",
   "settings.torrent.sessionHint":
     "Настройки быстрого восстановления и сохранения состояния загрузки.",
   "settings.default.tab": "Стартовая вкладка",

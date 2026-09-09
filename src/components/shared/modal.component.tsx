@@ -74,7 +74,13 @@ function Modal({
             <section className="ui-titlebar w-full justify-between">
               <div className="flex min-w-0 flex-row items-center gap-1">
                 {onBack && (
-                  <Button onClick={onBack} size="icon" className="size-4">
+                  <Button
+                    onClick={onBack}
+                    size="icon"
+                    className="size-4"
+                    aria-label={t("common.back")}
+                    title={t("common.back")}
+                  >
                     <ChevronLeft className="size-2.5" />
                   </Button>
                 )}

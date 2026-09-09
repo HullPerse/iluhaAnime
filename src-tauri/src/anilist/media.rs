@@ -6,7 +6,8 @@
 
 use serde::Serialize;
 
-use super::client::graphql_request;
+use super::auth::optional_token;
+use super::client::{graphql_request, resolve_proxy};
 
 #[derive(Debug, Serialize)]
 pub struct AniRanking {
@@ -52,6 +53,7 @@ pub struct AniMedia {
     pub tags: Vec<String>,
     pub description: Option<String>,
     pub cover_url: Option<String>,
+    pub banner_image: Option<String>,
     pub id_mal: Option<i64>,
     pub trailer_youtube_id: Option<String>,
     pub season: Option<String>,
@@ -120,6 +122,13 @@ pub struct AniStaffMediaEdge {
     pub id: u64,
     pub title: String,
     pub cover_url: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct AniAnimeStaffEdge {
+    pub role: String,
+    pub id: u64,
+    pub name: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -210,6 +219,7 @@ pub fn parse_animedia(m: &serde_json::Value) -> AniMedia {
             .as_str()
             .or_else(|| m["coverImage"]["medium"].as_str())
             .map(String::from),
+        banner_image: m["bannerImage"].as_str().map(String::from),
         id_mal: m["idMal"].as_i64(),
         trailer_youtube_id: m["trailer"]
             .get("site")
@@ -290,8 +300,10 @@ const MAX_PAGES: u32 = 3;
 async fn fetch_page(
     body: serde_json::Value,
     _per_page: u32,
+    token: Option<&str>,
+    proxy: Option<&str>,
 ) -> Result<(Vec<AniMedia>, u32), String> {
-    let json = graphql_request(body, None).await?;
+    let json = graphql_request(body, token, proxy).await?;
     let p = &json["data"]["Page"];
     let total = p["pageInfo"]["total"].as_u64().unwrap_or(0) as u32;
     let media = p["media"]
@@ -347,12 +359,29 @@ async fn fetch_paginated(
     variables: serde_json::Value,
     max_pages: u32,
     per_page: u32,
+    token: Option<&str>,
+    proxy: Option<&str>,
 ) -> Result<Vec<AniMedia>, String> {
-    fetch_paginated_with(base_query, variables, max_pages, per_page, fetch_page).await
+    let proxy = proxy.map(str::to_string);
+    let token = token.map(str::to_string);
+    fetch_paginated_with(
+        base_query,
+        variables,
+        max_pages,
+        per_page,
+        move |body, per_page| {
+            let proxy = proxy.clone();
+            let token = token.clone();
+            async move { fetch_page(body, per_page, token.as_deref(), proxy.as_deref()).await }
+        },
+    )
+    .await
 }
 #[allow(clippy::too_many_arguments)]
 #[tauri::command]
+#[allow(non_snake_case)]
 pub async fn search_anilist(
+    app_handle: tauri::AppHandle,
     query: Option<String>,
     tags: Option<Vec<String>>,
     genres: Option<Vec<String>>,
@@ -372,6 +401,8 @@ pub async fn search_anilist(
     score_to: Option<i32>,
     max_pages: Option<u32>,
     per_page: Option<u32>,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
 ) -> Result<Vec<AniMedia>, String> {
     let mut variables = serde_json::json!({ "page": 1 });
 
@@ -512,11 +543,21 @@ pub async fn search_anilist(
         }
     ";
 
-    fetch_paginated(gql, variables, mp, pp).await
+    let proxy = resolve_proxy(proxy_url, proxyUrl);
+    let token = optional_token(&app_handle);
+    fetch_paginated(gql, variables, mp, pp, token.as_deref(), proxy.as_deref()).await
 }
 
 #[tauri::command]
-pub async fn search_anilist_by_tag(tag: String) -> Result<Vec<AniMedia>, String> {
+#[allow(non_snake_case)]
+pub async fn search_anilist_by_tag(
+    app_handle: tauri::AppHandle,
+    tag: String,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
+) -> Result<Vec<AniMedia>, String> {
+    let token = optional_token(&app_handle);
+    let proxy = resolve_proxy(proxy_url, proxyUrl);
     fetch_paginated(
         r"
             query ($tag: String, $page: Int) {
@@ -540,12 +581,22 @@ pub async fn search_anilist_by_tag(tag: String) -> Result<Vec<AniMedia>, String>
         serde_json::json!({ "tag": tag, "page": 1, "perPage": 20 }),
         MAX_PAGES,
         20,
+        token.as_deref(),
+        proxy.as_deref(),
     )
     .await
 }
 
 #[tauri::command]
-pub async fn search_anilist_by_genre(genre: String) -> Result<Vec<AniMedia>, String> {
+#[allow(non_snake_case)]
+pub async fn search_anilist_by_genre(
+    app_handle: tauri::AppHandle,
+    genre: String,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
+) -> Result<Vec<AniMedia>, String> {
+    let token = optional_token(&app_handle);
+    let proxy = resolve_proxy(proxy_url, proxyUrl);
     fetch_paginated(
         r"
             query ($genre: String, $page: Int) {
@@ -569,12 +620,20 @@ pub async fn search_anilist_by_genre(genre: String) -> Result<Vec<AniMedia>, Str
         serde_json::json!({ "genre": genre, "page": 1, "perPage": 20 }),
         MAX_PAGES,
         20,
+        token.as_deref(),
+        proxy.as_deref(),
     )
     .await
 }
 
 #[tauri::command]
-pub async fn search_anilist_by_studio(studio_id: u64) -> Result<Vec<AniMedia>, String> {
+#[allow(non_snake_case)]
+pub async fn search_anilist_by_studio(
+    app_handle: tauri::AppHandle,
+    studio_id: u64,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
+) -> Result<Vec<AniMedia>, String> {
     let body = serde_json::json!({
         "query": r"
             query ($id: Int) {
@@ -598,7 +657,9 @@ pub async fn search_anilist_by_studio(studio_id: u64) -> Result<Vec<AniMedia>, S
         ",
         "variables": { "id": studio_id }
     });
-    let json = graphql_request(body, None).await?;
+    let proxy = resolve_proxy(proxy_url, proxyUrl);
+    let token = optional_token(&app_handle);
+    let json = graphql_request(body, token.as_deref(), proxy.as_deref()).await?;
     if json.get("errors").is_some() {
         return Err(format!("{:?}", json["errors"]));
     }
@@ -612,7 +673,13 @@ pub async fn search_anilist_by_studio(studio_id: u64) -> Result<Vec<AniMedia>, S
     Ok(nodes.iter().map(parse_animedia).collect())
 }
 #[tauri::command]
-pub async fn get_anime_by_id(id: u64) -> Result<AniMedia, String> {
+#[allow(non_snake_case)]
+pub async fn get_anime_by_id(
+    app_handle: tauri::AppHandle,
+    id: u64,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
+) -> Result<AniMedia, String> {
     let body = serde_json::json!({
         "query": r"
             query ($id: Int) {
@@ -624,6 +691,7 @@ pub async fn get_anime_by_id(id: u64) -> Result<AniMedia, String> {
                     genres, tags { name }
                     description (asHtml: false)
                     coverImage { medium large }
+                    bannerImage
                     idMal
                     trailer { id site }
                     startDate { year month day }
@@ -637,7 +705,9 @@ pub async fn get_anime_by_id(id: u64) -> Result<AniMedia, String> {
         ",
         "variables": { "id": id }
     });
-    let json = graphql_request(body, None).await?;
+    let proxy = resolve_proxy(proxy_url, proxyUrl);
+    let token = optional_token(&app_handle);
+    let json = graphql_request(body, token.as_deref(), proxy.as_deref()).await?;
     let m = &json["data"]["Media"];
     if m.is_null() {
         return Err(format!("Anime with id {id} not found"));
@@ -720,6 +790,7 @@ mod tests {
             "title": { "romaji": "One Piece" },
             "status": "RELEASING",
             "coverImage": { "large": "https://img/large.jpg" },
+            "bannerImage": "https://img/banner.jpg",
             "idMal": 21,
             "trailer": { "id": "abc123", "site": "youtube" },
         });

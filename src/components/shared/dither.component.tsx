@@ -27,7 +27,6 @@ type DitherStatus = "loading" | "ready" | "error";
 function DitherCanvas({
   src,
   className,
-  crossOrigin,
   ariaLabel,
   capToDisplay,
   maxLongSide,
@@ -179,8 +178,11 @@ function DitherCanvas({
       canvas.height = entry.height;
       ctx.putImageData(new ImageData(entry.pixels, entry.width, entry.height), 0, 0);
     };
+    // The canvas pipeline reads pixels back (getImageData), so every source
+    // must load as CORS-clean or getImageData throws on a tainted canvas. The
+    // asset protocol answers with the window origin, data URLs need no request.
     const image = new Image();
-    if (crossOrigin !== undefined) image.crossOrigin = crossOrigin;
+    image.crossOrigin = "anonymous";
     const processSource = (
       source: CanvasImageSource,
       sourceWidth: number,
@@ -316,7 +318,7 @@ function DitherCanvas({
       image.onerror = null;
       unsubscribeJob?.();
     };
-  }, [src, crossOrigin, capToDisplay, maxLongSide, effectScale, effectOptions]);
+  }, [src, capToDisplay, maxLongSide, effectScale, effectOptions]);
 
   return (
     <div className={cn("relative", className)}>

@@ -11,6 +11,7 @@ export function TorrentHeader({
   item,
   isLive,
   isPaused,
+  busy,
   onPause,
   onResume,
   onSeedChange,
@@ -20,7 +21,7 @@ export function TorrentHeader({
 }: Pick<
   TorrentItemProps,
   "item" | "onPause" | "onResume" | "onSeedChange" | "onSetSequential" | "onRecheck"
-> & { isLive: boolean; isPaused: boolean; onDelete: () => void }) {
+> & { isLive: boolean; isPaused: boolean; busy: boolean; onDelete: () => void }) {
   const { t } = useI18n();
   return (
     <section className="flex flex-row items-center justify-between">
@@ -36,11 +37,23 @@ export function TorrentHeader({
         ) : (
           <>
             {isLive ? (
-              <Button title={t("torrent.pause")} size="icon" className="size-6" onClick={onPause}>
+              <Button
+                title={t("torrent.pause")}
+                size="icon"
+                className="size-6"
+                onClick={onPause}
+                disabled={busy}
+              >
                 <Pause className="size-4" />
               </Button>
             ) : isPaused ? (
-              <Button title={t("torrent.resume")} size="icon" className="size-6" onClick={onResume}>
+              <Button
+                title={t("torrent.resume")}
+                size="icon"
+                className="size-6"
+                onClick={onResume}
+                disabled={busy}
+              >
                 <Play />
               </Button>
             ) : (

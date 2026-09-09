@@ -8,10 +8,10 @@ import { SmallLoader } from "@/components/shared/loader.component";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
-import { userImageIcon } from "@/lib/utils/image.utils";
+import { toUserImage, userImageIcon } from "@/lib/utils/image.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { showError } from "@/lib/utils/notification.utils";
-import type { UserImage } from "@/types";
+import type { UserImage, UserImageFile } from "@/types";
 
 interface UserImagePickerProps {
   selected?: string;
@@ -26,12 +26,12 @@ export default function UserImagePicker({ selected, onSelect }: UserImagePickerP
 
   const refresh = useCallback(async () => {
     setLoading(true);
-    const [data, error] = await attempt(invokeTyped<UserImage[]>("list_user_images"));
+    const [data, error] = await attempt(invokeTyped<UserImageFile[]>("list_user_images"));
     if (error) {
       setImages([]);
       showError(t("common.error"), t("player.category.load.images.error"));
     } else {
-      setImages(data);
+      setImages(data.map(toUserImage));
     }
     setLoading(false);
   }, [t]);
@@ -102,7 +102,7 @@ export default function UserImagePicker({ selected, onSelect }: UserImagePickerP
                     selected === icon && "bg-secondary"
                   )}
                 >
-                  <UserImageIcon icon={icon} dataUrl={image.dataUrl} className="size-full" />
+                  <UserImageIcon icon={icon} url={image.url} className="size-full" />
                 </button>
                 <button
                   type="button"

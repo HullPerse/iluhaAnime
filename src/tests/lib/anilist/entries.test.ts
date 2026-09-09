@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  applyIntentToFilters,
   buildEntryLookup,
   filterEntries,
   getSortingLabel,
@@ -268,5 +269,74 @@ describe("sortAniMediaList", () => {
     expect(sortAniMediaList(results, "year", "asc").map((m) => m.season_year)).toEqual([
       2002, 2004, 2013,
     ]);
+  });
+});
+
+describe("applyIntentToFilters", () => {
+  it("maps year, genre, tag, type, status, rating, and episodes, stripping tokens", () => {
+    const { filters, query } = applyIntentToFilters(
+      makeFilters(),
+      'frieren year:2023 genre:Fantasy tag:"Female Protagonist" type:tv status:finished rating>=8 episodes:28'
+    );
+    expect(query).toBe("frieren");
+    expect(filters.year).toEqual([2023, 2023]);
+    expect(filters.genres).toEqual(["Fantasy"]);
+    expect(filters.tags).toEqual(["Female Protagonist"]);
+    expect(filters.format).toBe("TV");
+    expect(filters.status).toBe("FINISHED");
+    expect(filters.score).toEqual([80, 0]);
+    expect(filters.episodes).toEqual([28, 28]);
+  });
+
+  it("matches canonical names case-insensitively, including quoted multi-word values", () => {
+    const { filters, query } = applyIntentToFilters(makeFilters(), 'genre="sci-fi" tag:space');
+    expect(query).toBeNull();
+    expect(filters.genres).toEqual(["Sci-Fi"]);
+    expect(filters.tags).toEqual(["Space"]);
+  });
+
+  it("keeps unknown values and unsupported keys in the text", () => {
+    const { filters, query } = applyIntentToFilters(
+      makeFilters(),
+      "naruto genre:xyz studio:MAPPA status!=FINISHED"
+    );
+    expect(filters.genres).toEqual([]);
+    expect(query).toBe("naruto genre:xyz studio:MAPPA status!=FINISHED");
+  });
+
+  it("lets text win over modal scalars and unions arrays", () => {
+    const { filters, query } = applyIntentToFilters(
+      makeFilters({ format: "TV", genres: ["Action"], year: [2010, 2015] }),
+      "bleach year:2022 genre:comedy type:movie"
+    );
+    expect(query).toBe("bleach");
+    expect(filters.year).toEqual([2022, 2022]);
+    expect(filters.format).toBe("MOVIE");
+    expect(filters.genres).toEqual(["Action", "Comedy"]);
+  });
+
+  it("maps year comparisons to an inclusive range", () => {
+    const { filters, query } = applyIntentToFilters(makeFilters(), "aot year>2020 year<2025");
+    expect(query).toBe("aot");
+    expect(filters.year).toEqual([2021, 2024]);
+  });
+
+  it("keeps modal bounds the text does not specify", () => {
+    const { filters } = applyIntentToFilters(makeFilters({ score: [0, 90] }), "aot rating>=8");
+    expect(filters.score).toEqual([80, 90]);
+  });
+
+  it("gates NSFW tags on the adult filter", () => {
+    const blocked = applyIntentToFilters(makeFilters(), "tag:Ahegao");
+    expect(blocked.filters.tags).toEqual([]);
+    expect(blocked.query).toBe("tag:Ahegao");
+    const allowed = applyIntentToFilters(makeFilters({ adult: true }), "tag:Ahegao");
+    expect(allowed.filters.tags).toEqual(["Ahegao"]);
+    expect(allowed.query).toBeNull();
+  });
+
+  it("passes empty queries through as null", () => {
+    const { query } = applyIntentToFilters(makeFilters(), "   ");
+    expect(query).toBeNull();
   });
 });

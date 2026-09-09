@@ -48,6 +48,24 @@ describe("search suggestions", () => {
     expect(suggestions[0]?.kind).toBe("anime");
   });
 
+  it("boosts anime featuring a favourite character or staff member", () => {
+    const base: SearchAnimeSuggestion = {
+      aliases: [],
+      favourite: false,
+      id: 3,
+      score: 0,
+      status: "COMPLETED",
+      title: "Bloom Into You",
+    };
+    const plain = getSearchSuggestions("bloom", { animeIndex: [base], limit: 5 });
+    const boosted = getSearchSuggestions("bloom", {
+      animeIndex: [{ ...base, hasFavPeople: true }],
+      limit: 5,
+    });
+    expect(boosted[0]?.value).toBe("Bloom Into You");
+    expect(boosted[0]?.score).toBeGreaterThan(plain[0]?.score ?? 0);
+  });
+
   it("hides backend anime suggestions when AniList is not authenticated", () => {
     const backendSuggestions = [
       {

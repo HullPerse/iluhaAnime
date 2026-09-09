@@ -4,9 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { formatProgressLog } from "@/lib/anilist/prefetch.utils";
+import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { deleteAppCache, readAppCache, writeAppCache } from "@/lib/store/cache.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
+import { useSettingsStore } from "@/store/settings.store";
 import type { PrefetchProgressPayload, PrefetchSummary } from "@/types/anilist";
 import type { AniPrefetchProps as Props } from "@/types/anilist";
 
@@ -90,6 +92,7 @@ export default function PrefetchRelationsModal({ animeIds, onClose }: Props) {
     try {
       const result = await invokeTyped<PrefetchSummary>("prefetch_anime_relations", {
         animeIds: seeds,
+        ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
       });
       if (!mountedRef.current) return;
       setFinished(result);

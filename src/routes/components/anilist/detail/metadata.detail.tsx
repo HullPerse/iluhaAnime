@@ -2,25 +2,29 @@ import { Calendar, Star, Tv, Heart, Eye } from "lucide-react";
 
 import ImageComponent from "@/components/ui/image.component";
 import { formatLabels, seasonLabels, statusLabels } from "@/config/anilist/labels.config";
+import { useRemoteImage } from "@/hooks/remoteImage.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import type { AniMedia } from "@/types/anilist";
 
 function AniListMetadata({
   anime,
+  hasFavouritePeople,
   onSeason,
 }: {
   anime: AniMedia;
+  hasFavouritePeople?: boolean;
   onSeason?: (season: string, seasonYear: number | null) => void;
 }) {
   const { t, locale } = useI18n();
   const bestRank =
     anime.rankings.length > 0 ? anime.rankings.reduce((a, b) => (a.rank < b.rank ? a : b)) : null;
+  const coverSrc = useRemoteImage(anime.cover_url);
 
   return (
     <div className="flex flex-row gap-3">
       <section className="windows95-border shrink-0 self-start bg-white">
         <ImageComponent
-          src={anime.cover_url ? anime.cover_url : "/images/unknown_source.png"}
+          src={coverSrc ?? "/images/unknown_source.png"}
           alt={anime.title}
           className="block h-54 w-36"
         />
@@ -28,6 +32,14 @@ function AniListMetadata({
 
       <section className="flex min-w-0 flex-1 flex-col gap-1.5">
         <div className="flex flex-wrap items-center gap-1">
+          {hasFavouritePeople && (
+            <span
+              className="windows95-text flex flex-row items-center bg-white px-1"
+              title={t("anilist.details.fav.people")}
+            >
+              <Star className="size-3 fill-yellow-400 text-yellow-600" />
+            </span>
+          )}
           {anime.score != null && (
             <span className="windows95-text bg-secondary flex flex-row items-center gap-1 px-1 font-bold text-white">
               <Star className="size-3 fill-white" /> {anime.score}

@@ -7,11 +7,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import DitherSettings from "@/routes/components/search/modern/dither/settings.dither";
 import { useNotificationStore } from "@/store/notification.store";
 import { useSettingsStore } from "@/store/settings.store";
-import type { UserImage } from "@/types";
+import type { UserImageFile } from "@/types";
 
 const mockInvoke = vi.fn();
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (...args: unknown[]) => mockInvoke(...args),
+  convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
 }));
 
 const mockOpenDialog = vi.fn();
@@ -35,48 +36,48 @@ vi.mock("@/components/shared/dither.component", () => {
   return { default: MockDitherCanvas };
 });
 
-const FIRST: UserImage = {
+const FIRST: UserImageFile = {
   id: "aaa",
   name: "first.png",
   mimeType: "image/png",
-  dataUrl: "data:image/png;base64,AAAA",
-  originalSrc: "data:image/png;base64,AAAA",
+  path: "C:/images/aaa.png",
+  originalPath: "C:/images/aaa.original.png",
   createdAt: 10,
 };
 
-const SECOND: UserImage = {
+const SECOND: UserImageFile = {
   id: "bbb",
   name: "second.jpg",
   mimeType: "image/jpeg",
-  dataUrl: "data:image/jpeg;base64,BBBB",
-  originalSrc: null,
+  path: "C:/images/bbb.jpg",
+  originalPath: null,
   createdAt: 5,
 };
 
-const THIRD: UserImage = {
+const THIRD: UserImageFile = {
   id: "ccc",
   name: "third.gif",
   mimeType: "image/gif",
-  dataUrl: "data:image/gif;base64,CCCC",
-  originalSrc: null,
+  path: "C:/images/ccc.gif",
+  originalPath: null,
   createdAt: 3,
 };
 
-const FOURTH: UserImage = {
+const FOURTH: UserImageFile = {
   id: "ddd",
   name: "fourth.webp",
   mimeType: "image/webp",
-  dataUrl: "data:image/webp;base64,DDDD",
-  originalSrc: null,
+  path: "C:/images/ddd.webp",
+  originalPath: null,
   createdAt: 1,
 };
 
-function serveLibrary(rows: UserImage[]) {
+function serveLibrary(rows: UserImageFile[]) {
   const metas = rows.map((row) => ({
     id: row.id,
     name: row.name,
     mimeType: row.mimeType,
-    hasOriginal: row.originalSrc !== null,
+    hasOriginal: row.originalPath !== null,
     createdAt: row.createdAt,
   }));
   const byId = new Map(rows.map((row) => [row.id, row]));
@@ -171,7 +172,7 @@ describe("DitherSettings database images", () => {
     mockOpenDialog.mockResolvedValue("C:\\fake\\new.png");
     renderPanel();
     await waitFor(() => expect(screen.getByAltText("second.jpg")).toBeTruthy());
-    const added: UserImage = { ...FIRST, id: "eee", name: "new.png" };
+    const added: UserImageFile = { ...FIRST, id: "eee", name: "new.png" };
     mockInvoke.mockImplementation(async (cmd: string, args?: { ids?: string[] }) => {
       if (cmd === "import_dither_image") return added;
       return serve(cmd, args);
@@ -189,11 +190,11 @@ describe("DitherSettings database images", () => {
   it("shows an uploading placeholder with the file name while importing", async () => {
     const user = userEvent.setup();
     mockOpenDialog.mockResolvedValue("C:\\fake\\slow.png");
-    let resolveImport!: (value: UserImage) => void;
+    let resolveImport!: (value: UserImageFile) => void;
     const serve = serveLibrary([SECOND]);
     mockInvoke.mockImplementation(async (cmd: string, args?: { ids?: string[] }) => {
       if (cmd === "import_dither_image")
-        return new Promise<UserImage>((resolve) => {
+        return new Promise<UserImageFile>((resolve) => {
           resolveImport = resolve;
         });
       return serve(cmd, args);
@@ -326,7 +327,7 @@ describe("DitherSettings database images", () => {
 
   it("opens the editor from the cached page row without a single fetch", async () => {
     const user = userEvent.setup();
-    const baked: UserImage = { ...FIRST, dataUrl: "data:image/png;base64,BAKED" };
+    const baked: UserImageFile = { ...FIRST, path: "C:/images/aaa.baked.png" };
     const serve = serveLibrary([FIRST]);
     mockInvoke.mockImplementation(async (cmd: string, args?: { ids?: string[] }) => {
       if (cmd === "update_dither_image_data") return baked;
@@ -380,12 +381,12 @@ describe("DitherSettings database images", () => {
 
   it("bakes through a hidden full-frame canvas while saving", async () => {
     const user = userEvent.setup();
-    const baked: UserImage = { ...FIRST, dataUrl: "data:image/png;base64,BAKED" };
+    const baked: UserImageFile = { ...FIRST, path: "C:/images/aaa.baked.png" };
     const serve = serveLibrary([FIRST]);
-    let resolveUpdate!: (value: UserImage) => void;
+    let resolveUpdate!: (value: UserImageFile) => void;
     mockInvoke.mockImplementation(async (cmd: string, args?: { ids?: string[] }) => {
       if (cmd === "update_dither_image_data")
-        return new Promise<UserImage>((resolve) => {
+        return new Promise<UserImageFile>((resolve) => {
           resolveUpdate = resolve;
         });
       return serve(cmd, args);

@@ -133,8 +133,10 @@ export interface TorrentStore {
   preparingTorrent: boolean;
   torrentFilesMap: Record<number, TorrentFileInfo[]>;
   metadataCache: Map<string, CachedTorrentMeta>;
+  opInFlight: Record<number, "pause" | "resume" | "remove">;
 
   init: () => Promise<() => void>;
+  refreshTorrents: () => Promise<void>;
   prepareTorrentDownload: (magnet: string) => Promise<void>;
   prepareTorrentDownloadFromFile: (filePath: string) => Promise<void>;
   prepareTorrentDownloadFromBytes: (fileBytes: number[]) => Promise<void>;
@@ -145,17 +147,22 @@ export interface TorrentStore {
     sequential?: boolean
   ) => Promise<void>;
   cancelDownload: () => Promise<void>;
-  pauseTorrent: (id: number) => Promise<void>;
-  resumeTorrent: (id: number) => Promise<void>;
-  removeTorrent: (id: number, deleteFiles: boolean) => Promise<void>;
+  pauseTorrent: (id: number, infoHash?: string) => Promise<void>;
+  resumeTorrent: (id: number, infoHash?: string) => Promise<void>;
+  removeTorrent: (id: number, deleteFiles: boolean, infoHash?: string) => Promise<boolean>;
   setSpeedLimits: (limits: SpeedLimits) => Promise<void>;
   loadTorrentFiles: (id: number) => Promise<boolean>;
-  updateTorrentOnlyFiles: (id: number, indices: number[]) => Promise<void>;
-  setFilePriority: (id: number, fileIndices: number[], priority: FilePriority) => Promise<void>;
-  setSequentialDownload: (id: number, enabled: boolean) => Promise<void>;
+  updateTorrentOnlyFiles: (id: number, indices: number[], infoHash?: string) => Promise<void>;
+  setFilePriority: (
+    id: number,
+    fileIndices: number[],
+    priority: FilePriority,
+    infoHash?: string
+  ) => Promise<void>;
+  setSequentialDownload: (id: number, enabled: boolean, infoHash?: string) => Promise<void>;
   redownloadFile: (id: number, fileIndex: number, infoHash: string) => Promise<void>;
-  recheckTorrent: (id: number) => Promise<TorrentCheckResult | null>;
-  setTorrentLimits: (id: number, limits: SpeedLimits) => Promise<void>;
+  recheckTorrent: (id: number, infoHash?: string) => Promise<TorrentCheckResult | null>;
+  setTorrentLimits: (id: number, limits: SpeedLimits, infoHash?: string) => Promise<void>;
   getTorrentLimits: (id: number) => Promise<TorrentLimits>;
 }
 
@@ -239,6 +246,7 @@ export interface TorrentItemProps {
   item: TorrentInfo;
   files: TorrentFileInfo[] | undefined;
   isExpanded: boolean;
+  busy: boolean;
   onToggleExpand: () => void;
   onPause: () => void;
   onResume: () => void;

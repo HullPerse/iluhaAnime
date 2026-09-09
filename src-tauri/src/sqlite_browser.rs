@@ -56,6 +56,11 @@ pub async fn reset_sqlite_data(app_handle: tauri::AppHandle) -> Result<Vec<Strin
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
         Err(error) => return Err(format!("remove session dir: {error}")),
     }
+    match std::fs::remove_dir_all(app_dir.join("images")) {
+        Ok(()) => removed.push("Stored image files".to_string()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+        Err(error) => return Err(format!("remove images dir: {error}")),
+    }
     for (label, path) in databases {
         let mut removed_this = false;
         for suffix in ["", "-wal", "-shm"] {

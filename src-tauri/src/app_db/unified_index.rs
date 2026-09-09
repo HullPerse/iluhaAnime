@@ -344,84 +344,11 @@ pub fn optimize_unified_index(app: tauri::AppHandle) -> Result<(), String> {
     Ok(())
 }
 
-pub fn upsert_unified_index_embedding(
-    app: &tauri::AppHandle,
-    id: String,
-    embedding: Vec<f32>,
-) -> Result<(), String> {
-    if id.is_empty() || id.len() > 512 || embedding.is_empty() || embedding.len() > 4096 {
-        return Err("Invalid embedding".into());
-    }
-    let bytes: Vec<u8> = embedding.iter().flat_map(|v| v.to_le_bytes()).collect();
-    let connection = open_database(app)?;
-    connection
-        .execute(
-            "INSERT INTO unified_index_vec (id, embedding, updated_at) VALUES (?1, ?2, ?3)
-             ON CONFLICT(id) DO UPDATE SET embedding = excluded.embedding, updated_at = excluded.updated_at",
-            params![id, bytes, now_seconds()],
-        )
-        .map_err(|e| format!("upsert embedding: {e}"))?;
-    Ok(())
-}
-
-pub fn list_entries_missing_embeddings(
-    app: &tauri::AppHandle,
-) -> Result<Vec<(String, String)>, String> {
-    let connection = open_database(app)?;
-    missing_embeddings_in(&connection)
-}
-
-fn missing_embeddings_in(
-    connection: &rusqlite::Connection,
-) -> Result<Vec<(String, String)>, String> {
-    let mut stmt = connection
-        .prepare(
-            "SELECT ui.id, ui.value FROM unified_index ui
-             LEFT JOIN unified_index_vec v ON v.id = ui.id
-             WHERE v.id IS NULL AND ui.value <> ''",
-        )
-        .map_err(|e| format!("prepare missing embeddings: {e}"))?;
-    let rows = stmt
-        .query_map([], |row| {
-            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
-        })
-        .map_err(|e| format!("query missing embeddings: {e}"))?;
-    rows.collect::<Result<Vec<_>, _>>()
-        .map_err(|e| format!("read missing embeddings: {e}"))
-}
-
-pub fn get_all_embeddings(app: &tauri::AppHandle) -> Result<Vec<(String, Vec<f32>)>, String> {
-    let connection = open_database(app)?;
-    let mut stmt = connection
-        .prepare("SELECT id, embedding FROM unified_index_vec")
-        .map_err(|e| format!("prepare embeddings: {e}"))?;
-    let rows = stmt
-        .query_map([], |row| {
-            let id: String = row.get(0)?;
-            let bytes: Vec<u8> = row.get(1)?;
-            Ok((id, bytes))
-        })
-        .map_err(|e| format!("query embeddings: {e}"))?;
-    let mut out = Vec::new();
-    for r in rows {
-        let (id, bytes) = r.map_err(|e| format!("read embedding: {e}"))?;
-        if bytes.len() % 4 != 0 {
-            continue;
-        }
-        let floats: Vec<f32> = bytes
-            .chunks_exact(4)
-            .map(|c| f32::from_le_bytes([c[0], c[1], c[2], c[3]]))
-            .collect();
-        out.push((id, floats));
-    }
-    Ok(out)
-}
-
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::schema::initialize_schema;
-    use rusqlite::{Connection, params};
+    use super::*;
+    use rusqlite::{params, Connection};
 
     fn path_is_in_scope(path: &str, scopes: &[String]) -> bool {
         let path = std::path::Path::new(path);
@@ -553,33 +480,6 @@ mod tests {
             )
             .expect("fts count");
         assert_eq!(count, 1);
-    }
-
-    #[test]
-    fn missing_embeddings_include_alias_rows() {
-        let connection = Connection::open_in_memory().expect("in-memory database");
-        initialize_schema(&connection).expect("schema migration");
-        for (id, kind, value) in [
-            ("anime:1", "anime", "Shingeki no Kyojin"),
-            (
-                "anime:1:alias:attack on titan",
-                "anime_alias",
-                "Attack on Titan",
-            ),
-        ] {
-            connection
-                .execute(
-                    "INSERT INTO unified_index
-                        (id, kind, scope, value, normalized_value, metadata_json, updated_at)
-                     VALUES (?1, ?2, 'anilist', ?3, ?3, '{}', 0)",
-                    params![id, kind, value],
-                )
-                .expect("insert entry");
-        }
-        let missing = missing_embeddings_in(&connection).expect("missing list");
-        let ids: Vec<String> = missing.into_iter().map(|(id, _)| id).collect();
-        assert!(ids.contains(&"anime:1".to_string()));
-        assert!(ids.contains(&"anime:1:alias:attack on titan".to_string()));
     }
 
     #[test]

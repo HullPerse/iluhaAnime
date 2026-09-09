@@ -2,14 +2,17 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState, useDeferredValue } from "react";
 
 import { seasonLabels } from "@/config/anilist/labels.config";
+import { useFavouritePeopleToggles, useSyncFavPeopleAnimeIds } from "@/hooks/anilist/people.hook";
 import { usePagination } from "@/hooks/pagination.hook";
 import { useSuggestions } from "@/hooks/search/suggestion.hook";
 import {
+  applyIntentToFilters,
   filterEntries,
   sortEntries,
   buildEntryLookup,
   searchFiltersToParams,
 } from "@/lib/anilist/entries.utils";
+import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import {
   buildAnimeBackHandler,
   pickDisplayEntries,
@@ -33,11 +36,13 @@ import type {
   AniUser,
   AniUserProfile,
   FavouriteAnime,
+  FavouritePeople,
   GlobalSort,
   SearchMode,
   AnilistRouteData,
 } from "@/types/anilist";
 
+const NO_PEOPLE: FavouritePeople = { staff: [], characters: [] };
 const NO_LISTS: AniListCollection[] = [];
 const NO_FAVOURITES: FavouriteAnime[] = [];
 
@@ -49,6 +54,10 @@ import AniListResults from "./components/anilist/results.anilist";
 import AniListSearchToolbar from "./components/anilist/searchToolbar.anilist";
 import AniListSecondaryModals from "./components/anilist/secondaryModals.anilist";
 import AniListStateViews from "./components/anilist/stateViews.anilist";
+
+function routePeople(data: AnilistRouteData | undefined): FavouritePeople {
+  return data?.people ?? NO_PEOPLE;
+}
 
 function AnilistRoute() {
   const { t } = useI18n();
@@ -90,13 +99,26 @@ function AnilistRoute() {
     gcTime: 30 * 60 * 1000,
     refetchOnWindowFocus: false,
     queryFn: async () => {
-      const user = await invokeTyped<AniUser | null>("check_anilist_auth");
-      if (!user) return { user: null, lists: [], favourites: [] };
-      const [lists, favourites] = await Promise.all([
-        invokeTyped<AniListCollection[]>("get_anilist_lists", { userId: user.id }),
-        invokeTyped<FavouriteAnime[]>("get_favourites", { userId: user.id }),
+      const user = await invokeTyped<AniUser | null>(
+        "check_anilist_auth",
+        anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl)
+      );
+      if (!user) return { user: null, lists: [], favourites: [], people: { staff: [], characters: [] } };
+      const [lists, favourites, people] = await Promise.all([
+        invokeTyped<AniListCollection[]>("get_anilist_lists", {
+          userId: user.id,
+          ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
+        }),
+        invokeTyped<FavouriteAnime[]>("get_favourites", {
+          userId: user.id,
+          ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
+        }),
+        invokeTyped<FavouritePeople>("get_favourite_people", {
+          userId: user.id,
+          ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
+        }),
       ]);
-      return { user, lists, favourites };
+      return { user, lists, favourites, people };
     },
   });
 
@@ -104,22 +126,33 @@ function AnilistRoute() {
   const lists = data?.lists ?? NO_LISTS;
   const favourites = data?.favourites ?? NO_FAVOURITES;
 
-  useEffect(() => {
-    if (user) indexAniList(lists, favourites, user.id);
-  }, [favourites, indexAniList, lists, user]);
 
   useEffect(() => {
     if (!user) return;
     invokeTyped("sync_franchise_to_index").catch(() => {});
   }, [user]);
 
+  const favouriteIds = useMemo(() => new Set(favourites.map((f) => f.id)), [favourites]);
+
+  const people = routePeople(data);
+  const favouriteStaffIds = useMemo(() => new Set(people.staff.map((p) => p.id)), [people]);
+  const favouriteCharacterIds = useMemo(
+    () => new Set(people.characters.map((p) => p.id)),
+    [people]
+  );
+  useSyncFavPeopleAnimeIds(people.staff, people.characters, !!user);
+  const sharedFavPeopleIds = useSearchStore((s) => s.favPeopleAnimeIds);
+  const favPeopleAnimeIds = useMemo(() => new Set(sharedFavPeopleIds), [sharedFavPeopleIds]);
+
+  useEffect(() => {
+    if (user) indexAniList(lists, favourites, user.id, favPeopleAnimeIds);
+  }, [favPeopleAnimeIds, favourites, indexAniList, lists, user]);
   const friends = useAniListFriendsStore((state) => state.friends);
+
   const addFriend = useAniListFriendsStore((state) => state.addFriend);
   const cacheFriendProfile = useAniListFriendsStore((state) => state.cacheProfile);
   const removeFriend = useAniListFriendsStore((state) => state.removeFriend);
   const friendIds = useMemo(() => [...new Set(friends.map((friend) => friend.id))], [friends]);
-
-  const favouriteIds = useMemo(() => new Set(favourites.map((f) => f.id)), [favourites]);
 
   const allAnimeIds = useMemo(
     () => lists.flatMap((l) => l.entries.map((e) => e.media.id)),
@@ -131,6 +164,7 @@ function AnilistRoute() {
     setRecsLoading(true);
     invokeTyped<AniRecommendation[]>("get_profile_recommendations", {
       userId: user.id,
+      ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
     })
       .then(setRecs)
       .catch(() => setRecs([]))
@@ -172,13 +206,17 @@ function AnilistRoute() {
     setLoadingSearch(true);
     setSearchResults([]);
     try {
+      const { filters: mergedFilters, query } = applyIntentToFilters(searchFilters, searchTerms);
       const params = searchFiltersToParams(
-        searchFilters,
-        searchTerms.trim() || null,
+        mergedFilters,
+        query,
         useSettingsStore.getState().pageSize,
         useSettingsStore.getState().anilistMaxPages
       );
-      const res = await invokeTyped<AniMedia[]>("search_anilist", params);
+      const res = await invokeTyped<AniMedia[]>("search_anilist", {
+        ...params,
+        ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
+      });
       setSearchResults(res);
     } finally {
       setLoadingSearch(false);
@@ -216,6 +254,7 @@ function AnilistRoute() {
           scoreTo: null,
           maxPages: useSettingsStore.getState().anilistMaxPages,
           perPage: useSettingsStore.getState().pageSize,
+          ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
         });
         setSearchResults(res);
       } finally {
@@ -235,6 +274,7 @@ function AnilistRoute() {
     try {
       const res = await invokeTyped<AniMedia[]>("search_anilist_by_studio", {
         studioId: id,
+        ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
       });
       setSearchResults(res);
     } finally {
@@ -250,7 +290,10 @@ function AnilistRoute() {
     setSearchResults([]);
     setSearchTerms("");
     try {
-      const res = await invokeTyped<AniMedia[]>("search_anilist_by_tag", { tag });
+      const res = await invokeTyped<AniMedia[]>("search_anilist_by_tag", {
+        tag,
+        ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
+      });
       setSearchResults(res);
     } finally {
       setLoadingSearch(false);
@@ -267,6 +310,7 @@ function AnilistRoute() {
     try {
       const res = await invokeTyped<AniMedia[]>("search_anilist_by_genre", {
         genre,
+        ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
       });
       setSearchResults(res);
     } finally {
@@ -289,6 +333,7 @@ function AnilistRoute() {
       user: null,
       lists: [],
       favourites: [],
+      people: { staff: [], characters: [] },
     });
     setCurrentList("");
   }, [queryClient]);
@@ -327,6 +372,7 @@ function AnilistRoute() {
       try {
         const updated = await invokeTyped<FavouriteAnime[]>("toggle_favourite", {
           animeId,
+          ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
         });
         queryClient.setQueryData(["anilist_data"], (old: unknown) =>
           old ? { ...(old as AnilistRouteData), favourites: updated } : old
@@ -337,6 +383,9 @@ function AnilistRoute() {
     },
     [queryClient]
   );
+
+  const { toggleStaff: toggleFavouriteStaff, toggleCharacter: toggleFavouriteCharacter } =
+    useFavouritePeopleToggles();
 
   const handleRelated = useCallback(
     (id: number) => {
@@ -362,6 +411,7 @@ function AnilistRoute() {
         user: authUser,
         lists: [],
         favourites: [],
+        people: { staff: [], characters: [] },
       });
       queryClient.invalidateQueries({ queryKey: ["anilist_data"] });
     },
@@ -539,8 +589,12 @@ function AnilistRoute() {
       <AniListDetailModalHost
         selectedAnime={selectedAnime}
         favouriteIds={favouriteIds}
+        favouriteStaffIds={favouriteStaffIds}
+        favouriteCharacterIds={favouriteCharacterIds}
         isLoggedIn={!!user}
         onFavouriteToggle={toggleFavourite}
+        onStaffFavouriteToggle={toggleFavouriteStaff}
+        onCharacterFavouriteToggle={toggleFavouriteCharacter}
         onTag={handleTag}
         onGenre={handleGenre}
         onStudio={handleStudio}

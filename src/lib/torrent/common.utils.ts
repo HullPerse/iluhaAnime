@@ -49,9 +49,22 @@ export function findNewErrors(prev: TorrentInfo[], next: TorrentInfo[]): Torrent
   const prevError = new Set(prev.filter((t) => t.error).map((t) => t.id));
   return next.filter((t) => t.error && !prevError.has(t.id));
 }
+export function findJustFinished(
+  prev: TorrentInfo[],
+  next: TorrentInfo[],
+  seedPreferences: Record<number, boolean>
+): TorrentInfo[] {
+  const prevById = new Map(prev.map((t) => [t.id, t]));
+  return next.filter((t) => {
+    if (!t.finished || t.state !== "live" || seedPreferences[t.id]) return false;
+    const was = prevById.get(t.id);
+    return was === undefined || !was.finished;
+  });
+}
 
 export function fmtSpeed(bps: number): string {
-  if (bps <= 0) return "";
+  if (!bps || bps <= 0 || !isFinite(bps)) return "";
+
   if (bps < 1024) return `${bps.toFixed(0)} B/s`;
   if (bps < 1024 * 1024) return `${(bps / 1024).toFixed(1)} KB/s`;
   return `${(bps / (1024 * 1024)).toFixed(1)} MB/s`;
@@ -152,28 +165,72 @@ export function TorrentListen(
     }
   }
 
-  const changed = next.some((t, i) => {
-    const p = prev[i];
-    if (!p) return true;
-    return (
-      p.progress_bytes !== t.progress_bytes ||
-      p.state !== t.state ||
-      p.download_speed !== t.download_speed ||
-      p.upload_speed !== t.upload_speed ||
-      p.peers_connected !== t.peers_connected ||
-      p.finished !== t.finished ||
-      p.error !== t.error ||
-      p.uploaded_bytes !== t.uploaded_bytes ||
-      p.share_ratio !== t.share_ratio ||
-      p.total_bytes !== t.total_bytes ||
-      p.sequential_download !== t.sequential_download ||
-      p.eta_secs !== t.eta_secs ||
-      p.name !== t.name ||
-      p.save_dir !== t.save_dir
-    );
-  });
+  let changed = next.length !== prev.length || next.some((t, i) => prev[i]?.id !== t.id);
+  if (!changed) {
+    changed = next.some((t) => {
+      const p = prevById.get(t.id);
+      if (!p) return true;
+      return (
+        p.progress_bytes !== t.progress_bytes ||
+        p.state !== t.state ||
+        p.download_speed !== t.download_speed ||
+        p.upload_speed !== t.upload_speed ||
+        p.peers_connected !== t.peers_connected ||
+        p.finished !== t.finished ||
+        p.error !== t.error ||
+        p.uploaded_bytes !== t.uploaded_bytes ||
+        p.share_ratio !== t.share_ratio ||
+        p.total_bytes !== t.total_bytes ||
+        p.sequential_download !== t.sequential_download ||
+        p.eta_secs !== t.eta_secs ||
+        p.name !== t.name ||
+        p.save_dir !== t.save_dir
+      );
+    });
+  }
 
   if (stampsChanged)
     return changed ? { torrents: next, lastActiveAt: stamps } : { lastActiveAt: stamps };
   return changed ? { torrents: next } : {};
+}
+
+const GONE_ERRORS = [
+  "torrent not found",
+  "Torrent not found",
+  "no such torrent in db",
+];
+
+const KNOWN_TORRENT_ERRORS: { match: (raw: string) => boolean; key: TranslationKey }[] = [
+  { match: (raw) => GONE_ERRORS.some((known) => raw.startsWith(known)), key: "download.error.gone" },
+  {
+    match: (raw) => raw.startsWith("torrent with id ") && raw.includes("did not exist"),
+    key: "download.error.gone",
+  },
+  { match: (raw) => raw === "torrent is already paused", key: "download.error.already.paused" },
+  { match: (raw) => raw === "torrent is already live", key: "download.error.already.live" },
+  {
+    match: (raw) => raw === "torrent is initializing, can't pause",
+    key: "download.error.initializing",
+  },
+  {
+    match: (raw) => raw === "can't pause torrent in error state",
+    key: "download.error.state",
+  },
+  {
+    match: (raw) => raw === "torrent list is stale, refresh and retry",
+    key: "download.error.stale",
+  },
+  {
+    match: (raw) => raw.startsWith("torrent reconfigure failed and the torrent is gone:"),
+    key: "download.error.restore",
+  },
+];
+
+export function torrentErrorText(raw: string, t: TFunc): string {
+  if (raw.startsWith("torrent deleted, but could not delete files:")) {
+    return `${t("download.error.files.kept")} ${raw}`;
+  }
+  const known = KNOWN_TORRENT_ERRORS.find((entry) => entry.match(raw));
+  if (known === undefined) return raw;
+  return t(known.key);
 }

@@ -26,6 +26,7 @@ export interface CacheStore {
   setFolderTrees: (trees: { path: string; tree: FolderNode }[]) => void;
   setLastSaveDir: (dir: string) => void;
   setSeedPreference: (id: number, enabled: boolean) => void;
+  removeSeedPreference: (id: number) => void;
   setEpisodeTracker: (tracker: Record<number, number>) => void;
   setInitialScanDone: (v: boolean) => void;
 }

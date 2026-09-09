@@ -1,8 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 
+import { TrailerEmbed } from "@/components/shared/mediaLightbox.component";
 import Modal from "@/components/shared/modal.component";
+import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
+import { useSettingsStore } from "@/store/settings.store";
 import type { AniMedia } from "@/types/anilist";
 import type { AniDetailProps as DetailProps } from "@/types/anilist";
 
@@ -10,9 +14,21 @@ import { AniListDetailView } from "./view.detail";
 
 function AniListDetailModal(props: DetailProps) {
   const { t } = useI18n();
+  const [trailer, setTrailer] = useState<{ animeId: number; youtubeId: string } | null>(null);
+  const trailerId = trailer !== null && trailer.animeId === props.animeId ? trailer.youtubeId : null;
+  const anilistProxyUrl = useSettingsStore((s) => s.anilistProxyUrl);
   const query = useQuery({
-    queryKey: ["anime_detail", props.animeId],
-    queryFn: () => invokeTyped<AniMedia>("get_anime_by_id", { id: props.animeId }),
+    queryKey: [
+      "anime_detail",
+      props.animeId,
+      anilistProxyUrl ?? "",
+      props.isLoggedIn ? 1 : 0,
+    ],
+    queryFn: () =>
+      invokeTyped<AniMedia>("get_anime_by_id", {
+        id: props.animeId,
+        ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
+      }),
     staleTime: 1000 * 60 * 60,
     retry: 1,
   });
@@ -20,17 +36,22 @@ function AniListDetailModal(props: DetailProps) {
     <Modal
       header={query.data?.title ?? t("anilist.details.loading")}
       onClose={props.onClose}
-      onBack={props.onBack}
+      onBack={trailerId ? () => setTrailer(null) : props.onBack}
       className="min-w-2xl"
     >
-      <AniListDetailView
-        {...props}
-        anime={query.data}
-        isLoading={query.isLoading}
-        isError={query.isError}
-        error={query.error}
-        refetch={query.refetch}
-      />
+      {trailerId ? (
+        <TrailerEmbed youtubeId={trailerId} title={t("anilist.details.trailer")} />
+      ) : (
+        <AniListDetailView
+          {...props}
+          anime={query.data}
+          isLoading={query.isLoading}
+          isError={query.isError}
+          error={query.error}
+          refetch={query.refetch}
+          onTrailer={(youtubeId) => setTrailer({ animeId: props.animeId, youtubeId })}
+        />
+      )}
     </Modal>
   );
 }

@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { useTorrentStore } from "@/store/download.store";
 
-export function TorrentLimitsSection({ id }: { id: number }) {
+export function TorrentLimitsSection({ id, infoHash }: { id: number; infoHash?: string }) {
   const { t } = useI18n();
   const [downloadInput, setDownloadInput] = useState("");
   const [uploadInput, setUploadInput] = useState("");
@@ -30,7 +30,7 @@ export function TorrentLimitsSection({ id }: { id: number }) {
     const upload = uploadInput === "" ? null : Number(uploadInput);
     if (download !== null && (!Number.isFinite(download) || download <= 0)) return;
     if (upload !== null && (!Number.isFinite(upload) || upload <= 0)) return;
-    useTorrentStore.getState().setTorrentLimits(id, { download, upload });
+    useTorrentStore.getState().setTorrentLimits(id, { download, upload }, infoHash);
   };
   const invalid =
     (downloadInput !== "" && !(Number(downloadInput) > 0)) ||

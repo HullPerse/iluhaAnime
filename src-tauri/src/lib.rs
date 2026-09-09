@@ -14,7 +14,6 @@ use tauri::{Emitter, Manager};
 
 mod anilist;
 mod app_db;
-mod embeddings;
 
 #[doc(hidden)]
 pub mod benchmark_api {
@@ -102,7 +101,10 @@ async fn get_torrent_info(
     save_dir: String,
     manager: tauri::State<'_, TorrentBackend>,
 ) -> Result<TorrentInfoResult, String> {
-    backend_manager(&manager).await?.get_torrent_info(magnet, save_dir).await
+    backend_manager(&manager)
+        .await?
+        .get_torrent_info(magnet, save_dir)
+        .await
 }
 
 #[tauri::command]
@@ -140,10 +142,14 @@ async fn list_torrents(
 }
 
 #[tauri::command]
-async fn pause_torrent(id: usize, manager: tauri::State<'_, TorrentBackend>) -> Result<(), String> {
+async fn pause_torrent(
+    id: usize,
+    info_hash: Option<String>,
+    manager: tauri::State<'_, TorrentBackend>,
+) -> Result<(), String> {
     backend_manager(&manager)
         .await?
-        .pause_torrent(id)
+        .pause_torrent(id, info_hash)
         .await
         .map_err(|e| format!("{e:#}"))
 }
@@ -151,11 +157,12 @@ async fn pause_torrent(id: usize, manager: tauri::State<'_, TorrentBackend>) -> 
 #[tauri::command]
 async fn resume_torrent(
     id: usize,
+    info_hash: Option<String>,
     manager: tauri::State<'_, TorrentBackend>,
 ) -> Result<(), String> {
     backend_manager(&manager)
         .await?
-        .resume_torrent(id)
+        .resume_torrent(id, info_hash)
         .await
         .map_err(|e| format!("{e:#}"))
 }
@@ -164,11 +171,12 @@ async fn resume_torrent(
 async fn remove_torrent(
     id: usize,
     delete_files: bool,
+    info_hash: Option<String>,
     manager: tauri::State<'_, TorrentBackend>,
 ) -> Result<(), String> {
     backend_manager(&manager)
         .await?
-        .remove_torrent(id, delete_files)
+        .remove_torrent(id, delete_files, info_hash)
         .await
         .map_err(|e| format!("{e:#}"))
 }
@@ -421,7 +429,9 @@ async fn get_running_torrent_files(
     id: usize,
     manager: tauri::State<'_, TorrentBackend>,
 ) -> Result<Vec<TorrentFileInfo>, String> {
-    backend_manager(&manager).await?.get_running_torrent_files(id)
+    backend_manager(&manager)
+        .await?
+        .get_running_torrent_files(id)
 }
 
 #[tauri::command]
@@ -437,11 +447,12 @@ async fn save_session_config(
 async fn update_torrent_only_files(
     id: usize,
     only_files: Vec<usize>,
+    info_hash: Option<String>,
     manager: tauri::State<'_, TorrentBackend>,
 ) -> Result<(), String> {
     backend_manager(&manager)
         .await?
-        .update_torrent_only_files(id, only_files)
+        .update_torrent_only_files(id, only_files, info_hash)
         .await
 }
 
@@ -450,6 +461,7 @@ async fn set_file_priority(
     id: usize,
     file_indices: Vec<usize>,
     priority: String,
+    info_hash: Option<String>,
     manager: tauri::State<'_, TorrentBackend>,
 ) -> Result<(), String> {
     let priority_enum = match priority.as_str() {
@@ -459,7 +471,7 @@ async fn set_file_priority(
     };
     backend_manager(&manager)
         .await?
-        .set_file_priority(id, file_indices, priority_enum)
+        .set_file_priority(id, file_indices, priority_enum, info_hash)
         .await
 }
 
@@ -500,26 +512,37 @@ async fn stop_watching_folders(
 async fn set_sequential_download(
     id: usize,
     enabled: bool,
+    info_hash: Option<String>,
     manager: tauri::State<'_, TorrentBackend>,
 ) -> Result<(), String> {
-    backend_manager(&manager).await?.set_sequential_download(id, enabled).await
+    backend_manager(&manager)
+        .await?
+        .set_sequential_download(id, enabled, info_hash)
+        .await
 }
 
 #[tauri::command]
 async fn recheck_torrent(
     id: usize,
+    info_hash: Option<String>,
     manager: tauri::State<'_, TorrentBackend>,
 ) -> Result<TorrentCheckResult, String> {
-    backend_manager(&manager).await?.recheck_torrent(id)
+    backend_manager(&manager)
+        .await?
+        .recheck_torrent(id, info_hash)
 }
 
 #[tauri::command]
 async fn set_torrent_limits(
     id: usize,
     limits: TorrentLimits,
+    info_hash: Option<String>,
     manager: tauri::State<'_, TorrentBackend>,
 ) -> Result<(), String> {
-    backend_manager(&manager).await?.set_torrent_limits(id, limits).await
+    backend_manager(&manager)
+        .await?
+        .set_torrent_limits(id, limits, info_hash)
+        .await
 }
 
 #[tauri::command]
@@ -658,31 +681,27 @@ pub fn run() {
                 notify: tokio::sync::Notify::new(),
             });
             tauri::async_runtime::spawn(async move {
-                let manager = match TorrentManager::new(app_data).await {
-                    Ok(m) => Arc::new(m),
-                    Err(e) => {
-                        let _ = handle.emit("show-notification", serde_json::json!({
+                let manager =
+                    match TorrentManager::new(app_data).await {
+                        Ok(m) => Arc::new(m),
+                        Err(e) => {
+                            let _ = handle.emit("show-notification", serde_json::json!({
                         "title": "Критическая ошибка",
                         "body": format!("Не удалось инициализировать торрент-сессию: {e}"),
                         "type": "error",
                     }));
-                        handle
-                            .state::<TorrentBackend>()
-                            .cell
-                            .set(Err(format!("{e:#}")))
-                            .ok();
-                        handle.state::<TorrentBackend>().notify.notify_one();
-                        return;
-                    }
-                };
-                manager.start_http_api();
+                            handle
+                                .state::<TorrentBackend>()
+                                .cell
+                                .set(Err(format!("{e:#}")))
+                                .ok();
+                            handle.state::<TorrentBackend>().notify.notify_one();
+                            return;
+                        }
+                    };
                 let app_clone = handle.clone();
                 let mgr_clone = manager.clone();
-                handle
-                    .state::<TorrentBackend>()
-                    .cell
-                    .set(Ok(manager))
-                    .ok();
+                handle.state::<TorrentBackend>().cell.set(Ok(manager)).ok();
                 handle.state::<TorrentBackend>().notify.notify_one();
                 tokio::spawn(async move {
                     let mut prev_states: HashMap<usize, (bool, Option<String>)> = HashMap::new();
@@ -826,9 +845,11 @@ pub fn run() {
             anilist::search_anilist,
             anilist::search_anilist_by_studio,
             anilist::get_profile_recommendations,
+            anilist::get_anime_recommendations,
             anilist::search_anilist_by_tag,
             anilist::search_anilist_by_genre,
             anilist::get_anime_by_id,
+            anilist::client::test_anilist_connection,
             jikan::get_anime_stills,
             anilist::get_anilist_profile,
             anilist::anilist_login,
@@ -838,9 +859,13 @@ pub fn run() {
             anilist::save_anilist_entry,
             anilist::toggle_favourite,
             anilist::get_favourites,
+            anilist::get_favourite_people,
+            anilist::toggle_favourite_staff,
+            anilist::toggle_favourite_character,
             anilist::get_anime_characters,
-            anilist::get_character_media,
+            anilist::get_anime_staff,
             anilist::get_staff_characters,
+            anilist::get_character_media,
             anilist::get_anilist_activity,
             anilist::get_anime_franchise,
             anilist::prefetch_anime_relations,
@@ -849,7 +874,10 @@ pub fn run() {
             user_assets::import_user_image,
             user_assets::import_dither_image,
             user_assets::download_remote_image,
+            user_assets::fetch_remote_image,
             user_assets::list_user_images,
+            user_assets::get_remote_images_stats,
+            user_assets::clear_remote_image_cache,
             user_assets::list_dither_image_meta,
             user_assets::get_user_image,
             user_assets::get_dither_images,
@@ -865,13 +893,6 @@ pub fn run() {
             app_db::optimize_unified_index,
             app_db::record_unified_index_action,
             app_db::search_unified_index,
-            embeddings::is_fastembed_initialized,
-            embeddings::check_fastembed,
-            embeddings::download_fastembed,
-            embeddings::remove_fastembed,
-            embeddings::upsert_embedding,
-            embeddings::backfill_missing_embeddings,
-            embeddings::search_semantic,
             app_db::list_collection_statuses,
             app_db::upsert_collection_status,
             app_db::delete_collection_status,

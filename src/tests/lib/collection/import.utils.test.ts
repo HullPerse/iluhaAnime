@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { buildAnilistPrefill, entryDiffers, entrySyncState } from "@/lib/collection/import.utils";
+import {
+  buildAnilistPrefill,
+  entryDiffers,
+  entrySyncState,
+  entryToWizardValues,
+  mediaToWizardValues,
+} from "@/lib/collection/import.utils";
+import type { QuickAddListEntry, QuickAddMedia } from "@/lib/collection/import.utils";
 import type { AniListEntry } from "@/types/anilist";
 import type { CollectionItem } from "@/types/collection";
 
@@ -116,5 +123,65 @@ describe("buildAnilistPrefill", () => {
   it("maps completed and dropped", () => {
     expect(buildAnilistPrefill(media, "COMPLETED").status).toBe("completed");
     expect(buildAnilistPrefill(media, "DROPPED").status).toBe("dropped");
+  });
+});
+
+describe("entryToWizardValues", () => {
+  it("merges anilist tags into genres without duplicates", () => {
+    const base = makeEntry();
+    const values = entryToWizardValues({
+      ...base,
+      media: { ...base.media, genres: ["Action"], tags: ["School", "Action"] },
+    });
+    expect(values.genres).toBe("Action, School");
+  });
+});
+
+describe("mediaToWizardValues", () => {
+  const media: QuickAddMedia = {
+    id: 21,
+    title: "Frieren",
+    titles: ["Sousou no Frieren"],
+    episodes: 28,
+    duration: 24,
+    score: 91,
+    genres: ["Adventure"],
+    tags: ["Male Protagonist", "adventure"],
+    description: "An elven mage journey",
+    cover_url: "https://example.com/f.jpg",
+    season_year: 2023,
+    studios: [{ id: 1, name: "Madhouse" }],
+  };
+  const entry: QuickAddListEntry = { progress: 5, score: 8, list_status: "CURRENT" };
+
+  it("takes status, progress, score and favorite from the anilist state", () => {
+    const values = mediaToWizardValues(media, entry, true);
+    expect(values.status).toBe("watching");
+    expect(values.progressValue).toBe("5");
+    expect(values.rating).toBe("8");
+    expect(values.isFavorite).toBe(true);
+    expect(values.externalIds).toEqual({ anilist: 21 });
+  });
+
+  it("merges tags into genres and fills media fields", () => {
+    const values = mediaToWizardValues(media, entry, false);
+    expect(values.genres).toBe("Adventure, Male Protagonist");
+    expect(values.studio).toBe("Madhouse");
+    expect(values.year).toBe("2023");
+    expect(values.description).toBe("An elven mage journey");
+    expect(values.progressTotal).toBe("28");
+  });
+
+  it("falls back to planned, zero progress and media score without a list entry", () => {
+    const values = mediaToWizardValues(media, undefined, false);
+    expect(values.status).toBe("planned");
+    expect(values.progressValue).toBe("0");
+    expect(values.rating).toBe("9");
+    expect(values.isFavorite).toBe(false);
+  });
+
+  it("leaves rating empty when neither entry nor media has a score", () => {
+    const values = mediaToWizardValues({ ...media, score: null }, undefined, false);
+    expect(values.rating).toBe("");
   });
 });

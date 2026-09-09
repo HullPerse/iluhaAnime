@@ -21,11 +21,6 @@ export function DetailFactsCollection({
         />
         {statusText} {item.isFavorite && `(${t("collection.wizard.favorite")})`}
       </div>
-      {item.altTitles.length > 0 && (
-        <div className="break-words">
-          {t("collection.details.alt.titles")}: {item.altTitles.join(", ")}
-        </div>
-      )}
       <div>
         {t("collection.details.type")}: {t(`collection.type.${item.type}` as TranslationKey)}
       </div>

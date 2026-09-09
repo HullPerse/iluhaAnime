@@ -41,6 +41,9 @@ export function useFranchiseViewport(options: UseFranchiseViewportOptions = {}):
     null
   );
   const animationRef = useRef<number | null>(null);
+  const rafRef = useRef<number | null>(null);
+  const pendingCameraRef = useRef<FranchiseCamera | null>(null);
+  const wheelCleanupRef = useRef<(() => void) | null>(null);
 
   const cancelAnimation = useCallback(() => {
     if (animationRef.current !== null) {
@@ -57,8 +60,29 @@ export function useFranchiseViewport(options: UseFranchiseViewportOptions = {}):
     },
     [cancelAnimation]
   );
-
   useEffect(() => cancelAnimation, [cancelAnimation]);
+
+  const scheduleCamera = useCallback(
+    (next: FranchiseCamera) => {
+      pendingCameraRef.current = next;
+      if (rafRef.current !== null) return;
+      rafRef.current = requestAnimationFrame(() => {
+        rafRef.current = null;
+        const pending = pendingCameraRef.current;
+        pendingCameraRef.current = null;
+        if (pending) applyCamera(pending);
+      });
+    },
+    [applyCamera]
+  );
+
+  useEffect(
+    () => () => {
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+      wheelCleanupRef.current?.();
+    },
+    []
+  );
 
   const animateTo = useCallback(
     (target: FranchiseCamera, durationMs: number) => {
@@ -117,19 +141,19 @@ export function useFranchiseViewport(options: UseFranchiseViewportOptions = {}):
     [animateTo, maxScale, minScale]
   );
 
-  useEffect(() => {
-    const wrapper = wrapperRef.current;
-    if (!wrapper) return;
-    const handleWheel = (event: WheelEvent) => {
+  const handleWheel = useCallback(
+    (event: WheelEvent) => {
+      const wrapper = wrapperRef.current;
+      if (!wrapper) return;
       event.preventDefault();
       const rect = wrapper.getBoundingClientRect();
       const pointer: CameraPoint = { x: event.clientX - rect.left, y: event.clientY - rect.top };
       const factor = event.deltaY < 0 ? 1 + wheelStep : 1 / (1 + wheelStep);
-      applyCamera(zoomCameraAt(cameraRef.current, pointer, factor, minScale, maxScale));
-    };
-    wrapper.addEventListener("wheel", handleWheel, { passive: false });
-    return () => wrapper.removeEventListener("wheel", handleWheel);
-  }, [applyCamera, maxScale, minScale, wheelStep]);
+      scheduleCamera(zoomCameraAt(cameraRef.current, pointer, factor, minScale, maxScale));
+    },
+    [scheduleCamera, maxScale, minScale, wheelStep]
+  );
+
 
   const handleMouseDown = useCallback((event: ReactMouseEvent) => {
     if (event.button !== 0 && event.button !== 1 && event.button !== 2) return;
@@ -148,7 +172,7 @@ export function useFranchiseViewport(options: UseFranchiseViewportOptions = {}):
     const handleMouseMove = (event: MouseEvent) => {
       const start = panStartRef.current;
       if (!start) return;
-      applyCamera(
+      scheduleCamera(
         panCameraBy(start.camera, event.clientX - start.clientX, event.clientY - start.clientY)
       );
     };
@@ -162,7 +186,7 @@ export function useFranchiseViewport(options: UseFranchiseViewportOptions = {}):
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [applyCamera, isPanning]);
+  }, [scheduleCamera, isPanning]);
 
   const wrapperProps = {
     onMouseDown: (event: ReactMouseEvent) => {
@@ -170,7 +194,13 @@ export function useFranchiseViewport(options: UseFranchiseViewportOptions = {}):
       setIsPanning(true);
     },
     ref: (node: HTMLDivElement | null) => {
+      wheelCleanupRef.current?.();
+      wheelCleanupRef.current = null;
       wrapperRef.current = node;
+      if (node) {
+        node.addEventListener("wheel", handleWheel, { passive: false });
+        wheelCleanupRef.current = () => node.removeEventListener("wheel", handleWheel);
+      }
     },
   };
 

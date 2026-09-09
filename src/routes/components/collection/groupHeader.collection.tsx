@@ -19,8 +19,8 @@ export function GroupHeaderCollection({
   variant: "torrent" | "folder";
   onToggle: () => void;
 }) {
-  const { t } = useI18n();
-  const label = statusLabel([status], status.id, t);
+  const { t, locale } = useI18n();
+  const label = statusLabel([status], status.id, t, locale);
   const isTorrent = variant === "torrent";
 
   return (

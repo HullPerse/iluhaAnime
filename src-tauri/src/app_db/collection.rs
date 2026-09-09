@@ -815,10 +815,10 @@ pub fn delete_custom_field_def(app: tauri::AppHandle, id: String) -> Result<(), 
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::db::now_seconds;
     use super::super::schema::initialize_schema;
     use super::super::unified_index::build_fts_match_query;
+    use super::*;
     use rusqlite::Connection;
     #[test]
     fn collection_item_status_update_keeps_fts_index_in_sync() {

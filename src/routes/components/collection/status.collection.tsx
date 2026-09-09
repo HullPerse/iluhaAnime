@@ -18,7 +18,7 @@ export function StatusCollection({
   onSelect: (status: CollectionStatus | "all") => void;
   counts?: Record<string, number>;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -28,7 +28,7 @@ export function StatusCollection({
     { id: "all" as CollectionStatus | "all", label: t("collection.library.all"), color: null },
     ...statuses.map((s) => ({
       id: s.id,
-      label: statusLabel(statuses, s.id, t),
+      label: statusLabel(statuses, s.id, t, locale),
       color: s.color,
     })),
   ];

@@ -9,10 +9,11 @@ use crate::auth::{
 };
 
 use super::clients::{
-    NyaaItem, RUTRACKER_DEFAULT_UA, absolute_detail_url, acquire_scraper_slot, build_client_inner,
-    build_rutracker_client, cloudflare_blocked_error, cookies_to_header, decode_rutracker_page,
-    format_file_size, is_cloudflare_challenge, is_rutracker_challenge, is_valid_torrent,
-    parse_rus_number, parse_seeders_leechers, resolve_proxy, rutracker_challenge_error, url_encode,
+    absolute_detail_url, acquire_scraper_slot, build_client_inner, build_rutracker_client,
+    cloudflare_blocked_error, cookies_to_header, decode_rutracker_page, format_file_size,
+    is_cloudflare_challenge, is_rutracker_challenge, is_valid_torrent, parse_rus_number,
+    parse_seeders_leechers, resolve_proxy, rutracker_challenge_error, url_encode, NyaaItem,
+    RUTRACKER_DEFAULT_UA,
 };
 
 #[derive(Deserialize)]

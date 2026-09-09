@@ -13,6 +13,7 @@ export const FILTER_KEYS: Record<string, true> = {
   priority: true,
   provider: true,
   source: true,
+  tag: true,
 };
 
 export function isTagLikeQuery(rawQuery: string, normalizedQuery: string): boolean {
@@ -109,7 +110,8 @@ export function parseIntent(query: string): ParsedIntent {
     if (y !== undefined) out.year = y;
   }
   if (rawFilters["studio"]) out.studio = rawFilters["studio"];
-  if (rawFilters["genre"]) out.genre = rawFilters["genre"];
+  if (rawFilters["genre"] ?? rawFilters["tag"])
+    out.genre = [rawFilters["genre"], rawFilters["tag"]].filter(Boolean).join("|");
   if (rawFilters["type"]) out.type = rawFilters["type"].toLowerCase();
   if (rawFilters["status"]) out.status = rawFilters["status"].toLowerCase();
   if (rawFilters["rating"]) {

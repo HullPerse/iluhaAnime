@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import Select from "@/components/ui/select.component";
 import { POLL_INTERVALS_MIN } from "@/config/settings/notifications.config";
+import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useAniListNotificationsStore } from "@/store/anilist.store";
@@ -30,13 +31,17 @@ export default function SettingsNotifications() {
     setListsLoading(true);
     setListsFailed(false);
     try {
-      const user = await invokeTyped<{ id: number } | null>("check_anilist_auth");
+      const user = await invokeTyped<{ id: number } | null>(
+        "check_anilist_auth",
+        anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl)
+      );
       if (!user) {
         setListsFailed(true);
         return;
       }
       const lists = await invokeTyped<AniListCollection[]>("get_anilist_lists", {
         userId: user.id,
+        ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
       });
       useAniListNotificationsStore.getState().setKnownListNames(lists.map((list) => list.name));
     } catch {

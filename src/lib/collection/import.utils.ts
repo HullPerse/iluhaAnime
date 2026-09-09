@@ -3,7 +3,7 @@ import { invokeTyped } from "@/lib/utils/invoke.utils";
 import type { AniListEntry, AniMedia } from "@/types/anilist";
 import type { CollectionItem, WizardPrefill, WizardSaveValues } from "@/types/collection";
 
-import { buildWizardItem, parseNonNegative, parseRating } from "./wizard.utils";
+import { buildWizardItem, mergeGenreTags, parseNonNegative, parseRating } from "./wizard.utils";
 
 export interface AniListSyncState {
   status: string;
@@ -51,7 +51,7 @@ export function buildAnilistPrefill(
 export function entryToWizardValues(entry: AniListEntry): WizardSaveValues {
   const m = entry.media;
   const year = m.season_year ? String(m.season_year) : "";
-  const genres = (m.genres ?? []).join(", ");
+  const genres = mergeGenreTags(m.genres ?? [], m.tags ?? []).join(", ");
   const studio = m.studios?.[0]?.name ?? "";
   const coverUrl = m.cover_url ?? "";
   const progressValue = entry.progress != null ? String(entry.progress) : "0";
@@ -80,6 +80,73 @@ export function entryToWizardValues(entry: AniListEntry): WizardSaveValues {
     notes: "",
     coverUrl,
     externalIds: { anilist: m.id },
+    customFields: {},
+    localPath: "",
+    localKind: null,
+    startedAt: "",
+    finishedAt: "",
+  };
+}
+
+export type QuickAddMedia = Pick<
+  AniMedia,
+  | "id"
+  | "title"
+  | "titles"
+  | "episodes"
+  | "duration"
+  | "score"
+  | "genres"
+  | "tags"
+  | "description"
+  | "cover_url"
+  | "season_year"
+  | "studios"
+  | "id_mal"
+  | "trailer_youtube_id"
+>;
+
+export interface QuickAddListEntry {
+  progress: number | null;
+  score: number | null;
+  list_status: string;
+}
+
+export function mediaToWizardValues(
+  media: QuickAddMedia,
+  entry: QuickAddListEntry | undefined,
+  isFavorite: boolean
+): WizardSaveValues {
+  const year = media.season_year ? String(media.season_year) : "";
+  const genres = mergeGenreTags(media.genres ?? [], media.tags ?? []).join(", ");
+  const studio = media.studios?.[0]?.name ?? "";
+  const coverUrl = media.cover_url ?? "";
+  const progressValue = entry?.progress != null ? String(entry.progress) : "0";
+  const progressTotal = media.episodes != null ? String(media.episodes) : "";
+  return {
+    title: media.title,
+    altTitles: media.titles.join(", "),
+    type: "anime",
+    status: anilistStatusToCollection(entry?.list_status ?? "PLANNING"),
+    progressValue,
+    progressTotal,
+    progressUnit: "episodes",
+    durationMinutes: media.duration ? String(media.duration) : "",
+    rating:
+      entry?.score != null
+        ? String(Math.round(entry.score))
+        : media.score
+          ? String(Math.round(media.score / 10))
+          : "",
+    priority: "normal",
+    isFavorite,
+    year,
+    genres,
+    studio,
+    description: media.description ?? "",
+    notes: "",
+    coverUrl,
+    externalIds: { anilist: media.id },
     customFields: {},
     localPath: "",
     localKind: null,

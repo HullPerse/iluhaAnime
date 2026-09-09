@@ -87,6 +87,16 @@ describe("parseIntent operators", () => {
   });
 });
 
+describe("parseIntent tag alias", () => {
+  it("treats tag as genre", () => {
+    expect(parseIntent('tag:"sci fi"').genre).toBe("sci fi");
+  });
+
+  it("merges tag with genre as an OR group", () => {
+    expect(parseIntent("genre:action tag:comedy").genre).toBe("action|comedy");
+  });
+});
+
 describe("isTagLikeQuery", () => {
   it("treats colon queries and key prefixes as tag-like", () => {
     expect(isTagLikeQuery("year:2", "year 2")).toBe(true);

@@ -12,6 +12,7 @@ import {
   computeNodeRelationMap,
   computeMainlineIds,
 } from "@/lib/anilist/graph.utils";
+import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import {
   computeNodeDimensions,
   computeGraphMetrics,
@@ -20,6 +21,7 @@ import {
 } from "@/lib/anilist/sim.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
+import { useSettingsStore } from "@/store/settings.store";
 import type {
   FranchiseGraph,
   FranchiseNodePosition,
@@ -48,7 +50,7 @@ function FranchiseGraphSection({
   const [refreshKey, setRefreshKey] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [resetKey, setResetKey] = useState(0);
-  const [listView, setListView] = useState(false);
+  const [listView, setListView] = useState(true);
   const [expandedGroups, setExpandedGroups] = useState<Set<RelationFilter>>(new Set());
   const [cacheSource, setCacheSource] = useState<"cache" | "fresh" | null>(null);
   const [countDiff, setCountDiff] = useState<string | null>(null);
@@ -59,6 +61,8 @@ function FranchiseGraphSection({
   const viewport = useFranchiseViewport();
   const { getScale, zoomToElement } = viewport;
   const dragMovedRef = useRef(false);
+  const dragRafRef = useRef<number | null>(null);
+  const dragPointRef = useRef<{ x: number; y: number } | null>(null);
   const zoomedOnceRef = useRef(false);
   const positionsRef = useRef(positions);
   useEffect(() => {
@@ -71,6 +75,7 @@ function FranchiseGraphSection({
       const fresh = await invokeTyped<FranchiseGraph>("get_anime_franchise", {
         id: animeId,
         scope: refreshKey ? "fresh" : "all",
+        ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
       });
       setCacheSource("fresh");
       if (prevNodeCountRef.current != null) {
@@ -117,7 +122,6 @@ function FranchiseGraphSection({
       data && filtered ? computeMainlineIds(data, filtered.nodeMap, animeId) : new Set<number>(),
     [data, filtered, animeId]
   );
-
   const collapsed = useMemo(() => {
     if (!filtered) return null;
     return collapseGraph(filtered, relationMap, animeId, 10, expandedGroups);
@@ -181,17 +185,29 @@ function FranchiseGraphSection({
       const dx = (e.clientX - dragging.startMouseX) / scale;
       const dy = (e.clientY - dragging.startMouseY) / scale;
       if (Math.abs(dx) > 5 || Math.abs(dy) > 5) dragMovedRef.current = true;
-      setPositions((prev) => {
-        const next = new Map(prev);
-        next.set(dragging.id, {
-          x: dragging.startNodeX + dx,
-          y: dragging.startNodeY + dy,
+      dragPointRef.current = { x: dragging.startNodeX + dx, y: dragging.startNodeY + dy };
+      if (dragRafRef.current !== null) return;
+      dragRafRef.current = requestAnimationFrame(() => {
+        dragRafRef.current = null;
+        const point = dragPointRef.current;
+        dragPointRef.current = null;
+        if (!point) return;
+        setPositions((prev) => {
+          const next = new Map(prev);
+          next.set(dragging.id, point);
+          return next;
         });
-        return next;
       });
     };
 
-    const handleMouseUp = () => setDragging(null);
+    const handleMouseUp = () => {
+      if (dragRafRef.current !== null) {
+        cancelAnimationFrame(dragRafRef.current);
+        dragRafRef.current = null;
+      }
+      dragPointRef.current = null;
+      setDragging(null);
+    };
 
     window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("mouseup", handleMouseUp);
@@ -308,11 +324,6 @@ function FranchiseGraphSection({
           setRefreshKey((key) => key + 1);
         }}
       />
-      {!listView && (
-        <span className="text-hint windows95-text px-1 text-xs">
-          {t("anilist.franchise.pan.hint")}
-        </span>
-      )}
 
       <section
         ref={containerRef}

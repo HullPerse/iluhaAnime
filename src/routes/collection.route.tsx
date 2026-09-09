@@ -278,7 +278,6 @@ export default function CollectionRoute() {
             setDetailItem(null);
             setPendingDelete(id);
           }}
-          updateItem={updateItem}
           refreshMetadata={refreshMetadata}
         />
       )}

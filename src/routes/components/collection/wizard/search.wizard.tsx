@@ -1,13 +1,21 @@
 import { Search } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { useMemo } from "react";
 
+import { FavPeopleStar } from "@/components/shared/favPeopleStar.component";
 import { InlineAutocompleteInput } from "@/components/shared/autocomplete.component";
 import { Button } from "@/components/ui/button.component";
+import { useRemoteImage } from "@/hooks/remoteImage.hook";
 import { WIZARD_HISTORY_COUNT } from "@/config/collection/defaults.config";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import type { SearchSuggestion } from "@/lib/search/suggestions.utils";
 import { useSearchStore } from "@/store/search.store";
 import type { WizardSearchResult } from "@/types/collection";
+
+function SearchResultCover({ url }: { url: string }) {
+  const src = useRemoteImage(url);
+  if (!src) return null;
+  return <img src={src} alt="" className="size-8 object-cover" />;
+}
 
 export function WizardSourceSearch({
   source,
@@ -29,11 +37,7 @@ export function WizardSourceSearch({
   onPickResult: (result: WizardSearchResult) => void;
 }) {
   const { t } = useI18n();
-  const [focused, setFocused] = useState(false);
-  const [picked, setPicked] = useState(false);
-
   const history = useSearchStore((s) => s.history);
-
   const suggestions: SearchSuggestion[] = useMemo(
     () =>
       history
@@ -42,43 +46,17 @@ export function WizardSourceSearch({
         .map((h) => ({ kind: "history" as const, score: 0, value: h })),
     [history]
   );
-
-  const showDropdown = focused && !picked && searchResults.length > 0;
-
-  const handlePick = useCallback(
-    (r: WizardSearchResult) => {
-      setPicked(true);
-      onPickResult(r);
-    },
-    [onPickResult]
-  );
-
-  const handleSearchChange = useCallback(
-    (value: string) => {
-      setSearch(value);
-      if (picked) setPicked(false);
-    },
-    [setSearch, picked]
-  );
-
+  const showResults = searchResults.length > 0;
   return (
     <div className="flex flex-col gap-1">
       <div className="flex gap-1">
         <InlineAutocompleteInput
           value={search}
-          onChange={(e) => handleSearchChange(e.target.value)}
+          onChange={(e) => setSearch(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter") onSearch();
           }}
-          onFocus={() => {
-            setFocused(true);
-            setPicked(false);
-          }}
-          onBlur={() => setFocused(false)}
-          onSelectSuggestion={(value) => {
-            setSearch(value);
-            setPicked(false);
-          }}
+          onSelectSuggestion={setSearch}
           placeholder={
             source === "anilist"
               ? t("collection.wizard.search.anilist")
@@ -102,17 +80,17 @@ export function WizardSourceSearch({
       {source === "tmdb" && !hasTmdbKey && (
         <p className="text-hint text-xs">{t("collection.wizard.tmdbKeyMissing")}</p>
       )}
-      {showDropdown && (
+      {showResults && (
         <div className="windows95-border flex flex-col gap-1 bg-white p-1">
           {searchResults.map((r) => (
             <button
               key={r.id}
               type="button"
               className="windows95-border flex cursor-pointer items-center gap-1 bg-white p-1 text-left text-xs hover:bg-[var(--color-highlight)] hover:text-white"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => handlePick(r)}
+              onClick={() => onPickResult(r)}
             >
-              {r.cover_url && <img src={r.cover_url} alt="" className="size-8 object-cover" />}
+              {r.cover_url && <SearchResultCover url={r.cover_url} />}
+              <FavPeopleStar animeId={source === "anilist" ? r.id : null} />
               <span className="flex-1 truncate">{r.title}</span>
               {r.year && <span className="text-hint">{r.year}</span>}
             </button>

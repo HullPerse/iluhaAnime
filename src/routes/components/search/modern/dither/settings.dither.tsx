@@ -20,13 +20,14 @@ import {
 import { usePagination } from "@/hooks/pagination.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
+import { toUserImage } from "@/lib/utils/image.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { showError } from "@/lib/utils/notification.utils";
 import { paginate } from "@/lib/utils/pagination.utils";
 import { DitherUploadPlaceholder } from "@/routes/components/search/modern/dither/placeholder.dither";
 import DitherPreviewModal from "@/routes/components/search/modern/dither/preview/modal.preview";
 import { useSettingsStore } from "@/store/settings.store";
-import type { DitherImageMeta, UserImage } from "@/types";
+import type { DitherImageMeta, UserImage, UserImageFile } from "@/types";
 import type { TranslationKey } from "@/types/i18n";
 import type {
   WallpaperDisplayFilters,
@@ -134,8 +135,8 @@ function DitherSettings({ onClose }: { onClose: () => void }) {
       id: DITHER_PLACEHOLDER_ID,
       name: t("search.dither.placeholder"),
       mimeType: "image/jpeg",
-      dataUrl: DITHER_PLACEHOLDER_SRC,
-      originalSrc: null,
+      url: DITHER_PLACEHOLDER_SRC,
+      originalUrl: null,
       createdAt: 0,
     }),
     [t]
@@ -166,7 +167,7 @@ function DitherSettings({ onClose }: { onClose: () => void }) {
     if (!picked || Array.isArray(picked)) return;
     setUploadName(picked.split(/[/\\]/).pop() ?? picked);
     const [image, error] = await attempt(
-      invokeTyped<UserImage>("import_dither_image", { path: picked })
+      invokeTyped<UserImageFile>("import_dither_image", { path: picked })
     );
     if (error) showError(t("common.error"), t("search.dither.upload.error"));
     else {
@@ -175,13 +176,14 @@ function DitherSettings({ onClose }: { onClose: () => void }) {
           id: image.id,
           name: image.name,
           mimeType: image.mimeType,
-          hasOriginal: image.originalSrc !== null,
+          hasOriginal: image.originalPath !== null,
           createdAt: image.createdAt,
         },
         ...items.filter((item) => item.id !== image.id),
       ]);
-      setRows((prev) => ({ ...prev, [image.id]: image }));
-      setSelected(image.id);
+      const mapped = toUserImage(image);
+      setRows((prev) => ({ ...prev, [mapped.id]: mapped }));
+      setSelected(mapped.id);
       setPage(1);
     }
     setUploadName(null);
@@ -206,15 +208,16 @@ function DitherSettings({ onClose }: { onClose: () => void }) {
     }
     setPreviewBusy(true);
     const [image, error] = await attempt(
-      invokeTyped<UserImage>("get_dither_image", { id: selected })
+      invokeTyped<UserImageFile>("get_dither_image", { id: selected })
     );
     setPreviewBusy(false);
     if (error) {
       showError(t("common.error"), t("search.dither.load.error"));
       return;
     }
-    setRows((prev) => ({ ...prev, [image.id]: image }));
-    setPreviewImage(image);
+    const mapped = toUserImage(image);
+    setRows((prev) => ({ ...prev, [mapped.id]: mapped }));
+    setPreviewImage(mapped);
     setPreview(true);
   };
   const patchDisplayFilters = (partial: Partial<WallpaperDisplayFilters>) => {
@@ -243,14 +246,14 @@ function DitherSettings({ onClose }: { onClose: () => void }) {
     if (missing.length === 0) return;
     let cancelled = false;
     setPageLoading(true);
-    attempt(invokeTyped<UserImage[]>("get_dither_images", { ids: missing })).then(
+    attempt(invokeTyped<UserImageFile[]>("get_dither_images", { ids: missing })).then(
       ([data, error]) => {
         if (cancelled) return;
         if (error) showError(t("common.error"), t("search.dither.load.error"));
         else
           setRows((prev) => {
             const next = { ...prev };
-            for (const image of data) next[image.id] = image;
+            for (const image of data.map(toUserImage)) next[image.id] = image;
             return next;
           });
         setPageLoading(false);
@@ -289,7 +292,7 @@ function DitherSettings({ onClose }: { onClose: () => void }) {
                 return (
                   <ImageComponent
                     key={image.id}
-                    src={image.dataUrl}
+                    src={image.url}
                     alt={image.name}
                     title={image.name}
                     onClick={() => setSelected(image.id)}

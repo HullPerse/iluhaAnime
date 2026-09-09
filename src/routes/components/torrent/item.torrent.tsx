@@ -13,6 +13,7 @@ function TorrentItem({
   item,
   files,
   isExpanded,
+  busy,
   onToggleExpand,
   onPause,
   onResume,
@@ -35,6 +36,7 @@ function TorrentItem({
         item={item}
         isLive={isLive}
         isPaused={isPaused}
+        busy={busy}
         onPause={onPause}
         onResume={onResume}
         onSeedChange={onSeedChange}
@@ -78,10 +80,8 @@ function TorrentItem({
     </div>
   );
 }
-
-export default memo(
-  TorrentItem,
-  (prev, next) =>
+export function areTorrentItemsEqual(prev: Props, next: Props): boolean {
+  return (
     prev.item.id === next.item.id &&
     prev.item.progress === next.item.progress &&
     prev.item.state === next.item.state &&
@@ -96,6 +96,13 @@ export default memo(
     prev.item.error === next.item.error &&
     prev.item.peers_connected === next.item.peers_connected &&
     prev.item.sequential_download === next.item.sequential_download &&
+    prev.item.name === next.item.name &&
+    prev.item.save_dir === next.item.save_dir &&
+    prev.item.info_hash === next.item.info_hash &&
     prev.isExpanded === next.isExpanded &&
+    prev.busy === next.busy &&
     prev.files === next.files
-);
+  );
+}
+
+export default memo(TorrentItem, areTorrentItemsEqual);

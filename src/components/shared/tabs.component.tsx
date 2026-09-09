@@ -14,11 +14,25 @@ function Tabs<T extends string>({
   onChange: (id: T) => void;
   ariaLabel?: string;
 }) {
+  const handleKeyDown = createListNavigationHandler<HTMLDivElement>({
+    activeIndex: tabs.findIndex((item) => item.id === activeTab),
+    axis: "horizontal",
+    count: tabs.length,
+    setActiveIndex: () => {},
+    onFocus: (index, event) => {
+      onChange(tabs[index].id);
+      const buttons = event.currentTarget.querySelectorAll<HTMLButtonElement>("[role=tab]");
+      buttons?.[index]?.focus();
+    },
+  });
+
   return (
     <div
       className="flex max-w-full shrink-0 gap-1 overflow-x-auto pt-1 pl-2"
       role="tablist"
       aria-label={ariaLabel}
+      tabIndex={0}
+      onKeyDown={handleKeyDown}
     >
       {tabs.map((tab) => {
         const isActive = activeTab === tab.id;
@@ -37,18 +51,6 @@ function Tabs<T extends string>({
             onClick={() => {
               if (!isActive) onChange(tab.id);
             }}
-            onKeyDown={createListNavigationHandler({
-              activeIndex: tabs.findIndex((item) => item.id === tab.id),
-              axis: "horizontal",
-              count: tabs.length,
-              setActiveIndex: () => {},
-              onFocus: (index, event) => {
-                onChange(tabs[index].id);
-                const tabList = event.currentTarget.parentElement;
-                const buttons = tabList?.querySelectorAll<HTMLButtonElement>("[role=tab]");
-                buttons?.[index]?.focus();
-              },
-            })}
             role="tab"
             aria-selected={isActive}
             tabIndex={isActive ? 0 : -1}

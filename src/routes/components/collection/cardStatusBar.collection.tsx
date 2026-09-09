@@ -16,7 +16,7 @@ export function CardStatusBar({
   onEdit?: (item: CollectionItem) => void;
   onSetStatus?: (item: CollectionItem, status: CollectionStatus) => void;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   return (
     <div className="windows95-border-t bg-primary flex h-7 shrink-0 items-center gap-1 px-1">
       {onSetStatus ? (
@@ -26,17 +26,17 @@ export function CardStatusBar({
           onChange={(e) => onSetStatus(item, e.target.value as CollectionStatus)}
           className="windows95-border h-5 min-w-0 flex-1 bg-white px-1 text-xs leading-none"
           aria-label={t("collection.card.status")}
-          title={statusLabel(statuses, item.status, t)}
+          title={statusLabel(statuses, item.status, t, locale)}
         >
           {statuses.map((s) => (
             <option key={s.id} value={s.id}>
-              {statusLabel(statuses, s.id, t)}
+              {statusLabel(statuses, s.id, t, locale)}
             </option>
           ))}
         </select>
       ) : (
         <span className="windows95-border bg-white px-1 py-0.5 text-xs leading-none">
-          {statusLabel(statuses, item.status, t)}
+          {statusLabel(statuses, item.status, t, locale)}
         </span>
       )}
       {onEdit && (

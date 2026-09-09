@@ -96,6 +96,11 @@
   border-color: var(--color-win-highlight) var(--color-muted) var(--color-muted) var(--color-win-highlight);
 }
 
+/* Gold border marking a favourited person/character (AniList). */
+.windows95-fav-border {
+  border: 2px solid var(--color-fav-gold, #facc15);
+}
+
 .windows95-small-border {
   border: 1px solid;
   border-color: var(--color-win-highlight) var(--color-win-shadow) var(--color-win-shadow) var(--color-win-highlight);

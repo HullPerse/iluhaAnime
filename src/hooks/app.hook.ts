@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 
 import { tabForAltDigit, visibleTabs } from "@/config/settings/tabs.config";
 import { pollAniListReleases } from "@/lib/anilist/notifications.utils";
+import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { readAppCache, writeAppCache } from "@/lib/store/cache.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
@@ -283,7 +284,10 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
           queryStats: filterStats(learning.payload.queryStats ?? {}),
           suggestionStats: filterStats(learning.payload.suggestionStats ?? {}),
         });
-        invokeTyped<{ id: number } | null>("check_anilist_auth")
+        invokeTyped<{ id: number } | null>(
+          "check_anilist_auth",
+          anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl)
+        )
           .then((profile) => {
             if (!disposed && profile && profile.id === learning.payload?.animeProfileId) {
               useSearchStore.setState({

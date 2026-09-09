@@ -31,7 +31,6 @@ import { DragOverlayItem } from "./components/player/draggable/overlay.draggable
 import { DraggableTorrent } from "./components/player/draggable/torrent.draggable";
 import FFMPEG from "./components/player/ffmpeg.player";
 import QueuePanel from "./components/player/queue.player";
-import FolderScanProgress from "./components/player/scan.player";
 import { QueueStrip } from "./components/player/strip.player";
 import PlayerVisibilityModal from "./components/player/visibility.player";
 
@@ -473,8 +472,6 @@ function PlayerRoute() {
             </div>
           </section>
         )}
-
-        {loading && <FolderScanProgress scanProgress={scanProgress} />}
 
         <QueuePanel scan={loading ? scanProgress : null} />
 

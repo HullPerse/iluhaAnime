@@ -37,26 +37,33 @@ describe("Tabs", () => {
     expect(onChange).toHaveBeenCalledWith("three");
   });
 
-  it("moves to the next tab on ArrowRight and wraps past the end", async () => {
+  it("moves from the active tab on ArrowRight and wraps past the end", async () => {
     const onChange = vi.fn();
     const view = render(<Tabs tabs={TABS} activeTab="one" onChange={onChange} />);
-    fireEvent.keyDown(screen.getByRole("tab", { name: "Two" }), { key: "ArrowRight" });
-    expect(onChange).toHaveBeenLastCalledWith("three");
+    const tablist = screen.getByRole("tablist");
+    expect(tablist.getAttribute("tabindex")).toBe("0");
+    fireEvent.keyDown(tablist, { key: "ArrowRight" });
+    expect(onChange).toHaveBeenLastCalledWith("two");
 
     view.rerender(<Tabs tabs={TABS} activeTab="two" onChange={onChange} />);
-    fireEvent.keyDown(screen.getByRole("tab", { name: "Three" }), { key: "ArrowRight" });
+    fireEvent.keyDown(tablist, { key: "ArrowRight" });
+    expect(onChange).toHaveBeenLastCalledWith("three");
+
+    view.rerender(<Tabs tabs={TABS} activeTab="three" onChange={onChange} />);
+    fireEvent.keyDown(tablist, { key: "ArrowRight" });
     expect(onChange).toHaveBeenLastCalledWith("one");
   });
 
-  it("moves to the previous tab on ArrowLeft and wraps past the start", async () => {
+  it("moves from the active tab on ArrowLeft and wraps past the start", async () => {
     const onChange = vi.fn();
     const view = render(<Tabs tabs={TABS} activeTab="two" onChange={onChange} />);
-    fireEvent.keyDown(screen.getByRole("tab", { name: "One" }), { key: "ArrowLeft" });
-    expect(onChange).toHaveBeenLastCalledWith("three");
+    const tablist = screen.getByRole("tablist");
+    fireEvent.keyDown(tablist, { key: "ArrowLeft" });
+    expect(onChange).toHaveBeenLastCalledWith("one");
 
     view.rerender(<Tabs tabs={TABS} activeTab="one" onChange={onChange} />);
-    fireEvent.keyDown(screen.getByRole("tab", { name: "Three" }), { key: "ArrowLeft" });
-    expect(onChange).toHaveBeenLastCalledWith("two");
+    fireEvent.keyDown(tablist, { key: "ArrowLeft" });
+    expect(onChange).toHaveBeenLastCalledWith("three");
   });
 
   it("jumps to the first and last tab with Home and End", async () => {

@@ -53,7 +53,7 @@ export function TorrentFiles({
       </div>
       {isExpanded && (
         <>
-          <TorrentLimitsSection id={item.id} />
+          <TorrentLimitsSection id={item.id} infoHash={item.info_hash} />
           <TorrentFilesSection
             id={item.id}
             files={files}

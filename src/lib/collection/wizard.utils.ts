@@ -6,6 +6,19 @@ function parseCommaList(value: string): string[] {
     .map((s) => s.trim())
     .filter(Boolean);
 }
+export function mergeGenreTags(genres: readonly string[], tags: readonly string[]): string[] {
+  const seen = new Set(
+    genres.map((g) => g.trim().toLowerCase()).filter(Boolean)
+  );
+  const out = genres.map((g) => g.trim()).filter(Boolean);
+  for (const tag of tags) {
+    const t = tag.trim();
+    if (!t || seen.has(t.toLowerCase())) continue;
+    seen.add(t.toLowerCase());
+    out.push(t);
+  }
+  return out;
+}
 
 export function parseNonNegative(value: string): number {
   return Math.max(0, Number(value) || 0);

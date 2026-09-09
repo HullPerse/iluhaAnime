@@ -91,19 +91,14 @@ function syncUnifiedIndex(
       if (entries.length > 100) {
         invokeTyped("optimize_unified_index").catch(() => {});
       }
-      if (useSettingsStore.getState().searchSemanticEnabled) {
-        const toEmbed = entries.slice(0, 50);
-        for (const e of toEmbed) {
-          invokeTyped("upsert_embedding", { id: e.id, text: e.value }).catch(() => {});
-        }
-      }
     })
     .catch(() => {});
 }
 
 function buildAnimeIndex(
   lists: AniListCollection[],
-  favourites: FavouriteAnime[]
+  favourites: FavouriteAnime[],
+  favPeopleAnimeIds: Set<number>
 ): SearchAnimeSuggestion[] {
   const favouriteIds = new Set(favourites.map((item) => item.id));
   const entries = new Map<number, SearchAnimeSuggestion>();
@@ -114,6 +109,7 @@ function buildAnimeIndex(
       entries.set(media.id, {
         aliases: media.titles.filter((title) => title !== media.title),
         favourite: favouriteIds.has(media.id),
+        hasFavPeople: favPeopleAnimeIds.has(media.id),
         id: media.id,
         score: entry.score,
         season: media.season,
@@ -131,6 +127,7 @@ function buildAnimeIndex(
     entries.set(favourite.id, {
       aliases: [romaji, favourite.title.english ?? ""].filter((alias) => alias && alias !== title),
       favourite: true,
+      hasFavPeople: favPeopleAnimeIds.has(favourite.id),
       id: favourite.id,
       score: favourite.mean_score,
       season: null,
@@ -176,11 +173,13 @@ export const useSearchStore = create<SearchStore>()(
       animeProfileId: null,
       clearAnimeIndex: () => set({ animeIndex: [], animeProfileId: null }),
       resetAnimeSuggestions: () => set({ animeIndex: [], animeProfileId: null }),
+      favPeopleAnimeIds: [],
+      setFavPeopleAnimeIds: (ids) => set({ favPeopleAnimeIds: ids }),
       crossSearchQuery: null,
       filters: { ...defaultFilters },
       history: [],
-      indexAniList: (lists, favourites, profileId) => {
-        const animeIndex = buildAnimeIndex(lists, favourites);
+      indexAniList: (lists, favourites, profileId, favPeopleAnimeIds = new Set()) => {
+        const animeIndex = buildAnimeIndex(lists, favourites, favPeopleAnimeIds);
         set({ animeIndex, animeProfileId: profileId });
         syncUnifiedIndex(
           animeIndex.flatMap((anime) => [

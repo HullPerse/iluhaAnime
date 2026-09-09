@@ -1,10 +1,13 @@
 import { useCallback } from "react";
 
+import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { readStoredMedia, withStoredMedia } from "@/lib/collection/media.utils";
+import { mergeGenreTags } from "@/lib/collection/wizard.utils";
 import { useI18n, type TranslationKey } from "@/lib/locale/i18n.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useNotificationStore } from "@/store/notification.store";
 import { useSettingsStore } from "@/store/settings.store";
+import type { AniAnimeStaffEdge, AniCharacterEdge } from "@/types/anilist";
 import type { CollectionItem } from "@/types/collection";
 
 export function useCollectionMetadata(
@@ -25,25 +28,57 @@ export function useCollectionMetadata(
         title: string;
         duration: number | null;
         episodes: number | null;
+        tags: string[];
         genres: string[];
         studios: { name: string }[];
         cover_url: string | null;
         season_year: number | null;
         trailer_youtube_id: string | null;
-      }>("get_anime_by_id", { id: item.externalIds.anilist });
+        description: string | null;
+      }>("get_anime_by_id", {
+        id: item.externalIds.anilist,
+        ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
+      });
+      const mergedGenres = mergeGenreTags(m.genres ?? [], m.tags ?? []);
+      const nextDescription = m.description || item.description || null;
+      const anilistId = item.externalIds.anilist;
+      const [characters, staff] = anilistId
+        ? await Promise.all([
+            invokeTyped<AniCharacterEdge[]>("get_anime_characters", {
+              id: anilistId,
+              page: 1,
+              ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
+            }).catch(() => [] as AniCharacterEdge[]),
+            invokeTyped<AniAnimeStaffEdge[]>("get_anime_staff", {
+              id: anilistId,
+              ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
+            }).catch(() => [] as AniAnimeStaffEdge[]),
+          ])
+        : [[], []];
       updateItem(item.id, {
+        ...(nextDescription ? { description: nextDescription } : {}),
         title: m.title || item.title,
         durationMinutes: m.duration ?? item.durationMinutes,
         progressTotal: m.episodes ?? item.progressTotal,
-        genres: m.genres.length ? m.genres : item.genres,
+        genres: mergedGenres.length ? mergedGenres : item.genres,
         studio: m.studios[0]?.name ?? item.studio,
         coverUrl: m.cover_url ?? item.coverUrl,
         year: m.season_year ?? item.year,
-        detailsJson: withStoredMedia(
-          item.detailsJson,
-          readStoredMedia(item.detailsJson).stills,
-          m.trailer_youtube_id ?? readStoredMedia(item.detailsJson).trailerYoutubeId
-        ),
+        detailsJson: {
+          ...withStoredMedia(
+            item.detailsJson,
+            readStoredMedia(item.detailsJson).stills,
+            m.trailer_youtube_id ?? readStoredMedia(item.detailsJson).trailerYoutubeId
+          ),
+          staff: staff.slice(0, 30).map((s) => ({ id: s.id, name: s.name, role: s.role })),
+          characters: characters.map((c) => ({
+            id: c.character.id,
+            name: c.character.name,
+            voiceActors: c.voice_actors
+              .slice(0, 3)
+              .map((v) => ({ id: v.id, name: v.name })),
+          })),
+        },
       });
     },
     [updateItem]

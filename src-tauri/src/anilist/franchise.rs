@@ -7,6 +7,7 @@
 use serde::{Deserialize, Serialize};
 use std::cmp::Reverse;
 use std::collections::{BinaryHeap, HashMap, HashSet, VecDeque};
+use std::future::Future;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{LazyLock, Mutex};
 use std::time::Duration;
@@ -16,7 +17,8 @@ use tokio_util::sync::CancellationToken;
 
 use crate::app_db;
 
-use super::client::graphql_request;
+use super::auth::optional_token;
+use super::client::{graphql_request, resolve_proxy};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CachedFranchiseNode {
     pub node: FranchiseNode,
@@ -432,11 +434,15 @@ pub fn franchise_query_metrics(ids: &[u64]) -> FranchiseQueryMetrics {
     }
 }
 
-async fn fetch_franchise_batch_once(ids: &[u64]) -> Result<Vec<FetchedFranchiseNode>, String> {
+async fn fetch_franchise_batch_once(
+    ids: &[u64],
+    token: Option<&str>,
+    proxy: Option<&str>,
+) -> Result<Vec<FetchedFranchiseNode>, String> {
     if ids.is_empty() {
         return Ok(Vec::new());
     }
-    let json = graphql_request(franchise_query_body(ids), None).await?;
+    let json = graphql_request(franchise_query_body(ids), token, proxy).await?;
     let media = json["data"]["Page"]["media"]
         .as_array()
         .ok_or_else(|| "AniList franchise response did not contain media".to_string())?;
@@ -451,19 +457,24 @@ async fn fetch_franchise_batch_once(ids: &[u64]) -> Result<Vec<FetchedFranchiseN
         .collect())
 }
 
-fn fetch_franchise_batch(
-    ids: &[u64],
-) -> std::pin::Pin<
-    Box<dyn std::future::Future<Output = Result<Vec<FetchedFranchiseNode>, String>> + Send + '_>,
-> {
-    Box::pin(fetch_franchise_batch_inner(ids))
+fn fetch_franchise_batch<'a>(
+    ids: &'a [u64],
+    token: Option<&'a str>,
+    proxy: Option<&'a str>,
+) -> std::pin::Pin<Box<dyn Future<Output = Result<Vec<FetchedFranchiseNode>, String>> + Send + 'a>>
+{
+    Box::pin(fetch_franchise_batch_inner(ids, token, proxy))
 }
 
-async fn fetch_franchise_batch_inner(ids: &[u64]) -> Result<Vec<FetchedFranchiseNode>, String> {
+async fn fetch_franchise_batch_inner(
+    ids: &[u64],
+    token: Option<&str>,
+    proxy: Option<&str>,
+) -> Result<Vec<FetchedFranchiseNode>, String> {
     if ids.is_empty() {
         return Ok(Vec::new());
     }
-    match fetch_franchise_batch_once(ids).await {
+    match fetch_franchise_batch_once(ids, token, proxy).await {
         Ok(result) => Ok(result),
         Err(err) => {
             eprintln!("anilist franchise batch failed ({} ids): {err}", ids.len());
@@ -473,18 +484,21 @@ async fn fetch_franchise_batch_inner(ids: &[u64]) -> Result<Vec<FetchedFranchise
                 return Err(err);
             }
             let mid = ids.len() / 2;
-            let mut result = fetch_franchise_batch(&ids[..mid]).await?;
-            result.extend(fetch_franchise_batch(&ids[mid..]).await?);
+            let mut result = fetch_franchise_batch(&ids[..mid], token, proxy).await?;
+            result.extend(fetch_franchise_batch(&ids[mid..], token, proxy).await?);
             Ok(result)
         }
     }
 }
 
 #[tauri::command]
+#[allow(non_snake_case)]
 pub async fn get_anime_franchise(
     app_handle: tauri::AppHandle,
     id: u64,
     scope: String,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
 ) -> Result<FranchiseGraph, String> {
     let bypass_cache = scope == "fresh";
     load_franchise_cache(&app_handle);
@@ -538,7 +552,9 @@ pub async fn get_anime_franchise(
         }
 
         if !fetch_ids.is_empty() {
-            let fresh = match fetch_franchise_batch(&fetch_ids).await {
+            let proxy = resolve_proxy(proxy_url.clone(), proxyUrl.clone());
+            let token = optional_token(&app_handle);
+            let fresh = match fetch_franchise_batch(&fetch_ids, token.as_deref(), proxy.as_deref()).await {
                 Ok(fresh) => fresh,
                 Err(err) => {
                     flush_pending_franchise_cache(&app_handle, &mut pending_persist);
@@ -634,9 +650,12 @@ fn emit_prefetch_progress(app_handle: &tauri::AppHandle, progress: &PrefetchProg
 }
 
 #[tauri::command]
+#[allow(non_snake_case)]
 pub async fn prefetch_anime_relations(
     app_handle: tauri::AppHandle,
     anime_ids: Vec<u64>,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
 ) -> Result<PrefetchSummary, String> {
     if PREFETCH_RUNNING.load(Ordering::Relaxed) {
         return Err("Prefetch already running".to_string());
@@ -716,7 +735,9 @@ pub async fn prefetch_anime_relations(
             .unwrap_or_else(|| "?".to_string());
 
         let batch_start = std::time::Instant::now();
-        let results = if let Ok(r) = fetch_franchise_batch_once(&to_fetch).await {
+        let proxy = resolve_proxy(proxy_url.clone(), proxyUrl.clone());
+        let token = optional_token(&app_handle);
+        let results = if let Ok(r) = fetch_franchise_batch_once(&to_fetch, token.as_deref(), proxy.as_deref()).await {
             r
         } else {
             for id in to_fetch {

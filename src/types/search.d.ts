@@ -1,3 +1,4 @@
+import type { AniListCollection, FavouriteAnime } from "./anilist";
 import type { SearchField } from "./collection";
 import type { Anime } from "./torrent";
 
@@ -83,6 +84,7 @@ export interface SearchAnimeSuggestion {
   status: string;
   score: number | null;
   favourite: boolean;
+  hasFavPeople?: boolean;
   season?: string | null;
   seasonYear?: number | null;
 }
@@ -102,6 +104,7 @@ export interface SearchStore {
   suggestionStats: Record<string, SearchQueryStat>;
   animeIndex: SearchAnimeSuggestion[];
   animeProfileId: number | null;
+  favPeopleAnimeIds: number[];
   crossSearchQuery: string | null;
   anilistSearchQuery: string | null;
   sortBy: SortKey;
@@ -112,9 +115,10 @@ export interface SearchStore {
   recordSuggestion: (value: string) => void;
   recordSuggestionIgnored: (value: string) => void;
   indexAniList: (
-    lists: import("./anilist").AniListCollection[],
-    favourites: import("./anilist").FavouriteAnime[],
-    profileId: number
+    lists: AniListCollection[],
+    favourites: FavouriteAnime[],
+    profileId: number,
+    favPeopleAnimeIds?: Set<number>
   ) => void;
   clearAnimeIndex: () => void;
   resetAnimeSuggestions: () => void;
@@ -123,6 +127,7 @@ export interface SearchStore {
   clearScope: (scope: string) => Promise<void>;
   clearAllLearning: () => Promise<void>;
   setCrossSearchQuery: (query: string | null) => void;
+  setFavPeopleAnimeIds: (ids: number[]) => void;
   setAnilistSearchQuery: (query: string | null) => void;
   setSortBy: (sort: SortKey) => void;
   setSortDirection: (dir: SortDirection) => void;

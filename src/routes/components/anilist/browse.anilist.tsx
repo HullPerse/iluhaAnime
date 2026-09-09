@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Star } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
+import { FavPeopleStar } from "@/components/shared/favPeopleStar.component";
 import { SmallLoader } from "@/components/shared/loader.component";
 import Modal from "@/components/shared/modal.component";
 import Pagination from "@/components/shared/pagination.component";
@@ -12,10 +13,12 @@ import { listStatusLabels, seasonLabels, statusLabels } from "@/config/anilist/l
 import { BROWSE_PAGE_SIZE } from "@/config/anilist/pagination.config";
 import { usePagination } from "@/hooks/pagination.hook";
 import { getStatusColor } from "@/lib/anilist/entries.utils";
+import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { paginate } from "@/lib/utils/pagination.utils";
+import { useSettingsStore } from "@/store/settings.store";
 import type { AniMedia, BrowseTab } from "@/types/anilist";
 
 const tabs: { id: BrowseTab; key: TranslationKey }[] = [
@@ -58,6 +61,7 @@ export default function BrowseAnimeModal({
         query: null,
         sort: SORT_MAP[activeTab],
         adult: false,
+        ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
       }),
   });
 
@@ -110,6 +114,7 @@ export default function BrowseAnimeModal({
                 )}
                 <div className="ml-2 flex min-w-0 flex-1 flex-col">
                   <span className="windows95-text flex items-center truncate font-bold">
+                    <FavPeopleStar animeId={item.id} />
                     {entry && (
                       <span
                         className="windows95-border mt-0.5 mr-0.5 shrink-0"

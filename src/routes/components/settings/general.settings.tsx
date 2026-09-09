@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox.component";
 import { Input } from "@/components/ui/input.component";
 import { PasswordInput } from "@/components/ui/password.component";
 import Select from "@/components/ui/select.component";
+import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSettingsStore } from "@/store/settings.store";
@@ -22,6 +23,7 @@ export default function SettingsGeneral() {
     anilistTabEnabled,
     tmdbApiKey,
     tmdbProxyUrl,
+    anilistProxyUrl,
     ffmpegSource,
     patch,
   } = useSettingsStore();
@@ -31,6 +33,9 @@ export default function SettingsGeneral() {
   const [tmdbTesting, setTmdbTesting] = useState(false);
   const [tmdbTest, setTmdbTest] = useState<{ ok: boolean; msg: string } | null>(null);
   const tmdbProxyInputRef = useRef<HTMLInputElement>(null);
+  const [anilistTesting, setAnilistTesting] = useState(false);
+  const [anilistTest, setAnilistTest] = useState<{ ok: boolean; msg: string } | null>(null);
+  const anilistProxyInputRef = useRef<HTMLInputElement>(null);
 
   const handleTmdbTest = async () => {
     setTmdbTesting(true);
@@ -46,6 +51,22 @@ export default function SettingsGeneral() {
       setTmdbTest({ ok: false, msg });
     } finally {
       setTmdbTesting(false);
+    }
+  };
+  const handleAnilistTest = async () => {
+    setAnilistTesting(true);
+    setAnilistTest(null);
+    try {
+      const res = await invokeTyped<string>(
+        "test_anilist_connection",
+        anilistProxyArgs(anilistProxyUrl)
+      );
+      setAnilistTest({ ok: true, msg: res });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setAnilistTest({ ok: false, msg });
+    } finally {
+      setAnilistTesting(false);
     }
   };
 
@@ -250,6 +271,110 @@ export default function SettingsGeneral() {
                     {tmdbTest.ok
                       ? `${t("settings.tmdb.proxy.test.ok")} - ${tmdbTest.msg}`
                       : `${t("settings.tmdb.proxy.test.fail")}: ${tmdbTest.msg}`}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="ui-panel">
+        <div className="ui-titlebar">
+          <span className="font-bold text-white">{t("settings.anilist.proxy.title")}</span>
+        </div>
+        <div className="flex flex-col gap-1 p-2">
+          <div className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
+            <span className="windows95-text text-text text-xs font-bold">
+              {t("settings.anilist.proxy.url")}
+            </span>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-hint text-[12px]">
+                {t("settings.anilist.proxy.url.description")}
+              </span>
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center">
+                <Select
+                  value={(() => {
+                    const p = anilistProxyUrl ?? "";
+                    const presets = [
+                      "socks5://127.0.0.1:10808",
+                      "socks5://127.0.0.1:1080",
+                      "socks5h://127.0.0.1:10808",
+                      "http://127.0.0.1:7890",
+                      "http://127.0.0.1:10809",
+                      "http://127.0.0.1:8080",
+                    ];
+                    if (p === "") return "";
+                    if (presets.includes(p)) return p;
+                    return "custom";
+                  })()}
+                  onChange={(v) => {
+                    if (v === "custom") {
+                      anilistProxyInputRef.current?.focus();
+                      return;
+                    }
+                    patch({ anilistProxyUrl: v || null });
+                  }}
+                  options={[
+                    { value: "", label: t("settings.anilist.proxy.no") },
+                    {
+                      value: "socks5://127.0.0.1:10808",
+                      label: "socks5://127.0.0.1:10808",
+                    },
+                    {
+                      value: "socks5://127.0.0.1:1080",
+                      label: "socks5://127.0.0.1:1080",
+                    },
+                    {
+                      value: "socks5h://127.0.0.1:10808",
+                      label: "socks5h://127.0.0.1:10808",
+                    },
+                    {
+                      value: "http://127.0.0.1:7890",
+                      label: "http://127.0.0.1:7890",
+                    },
+                    {
+                      value: "http://127.0.0.1:10809",
+                      label: "http://127.0.0.1:10809",
+                    },
+                    {
+                      value: "http://127.0.0.1:8080",
+                      label: "http://127.0.0.1:8080",
+                    },
+                    { value: "custom", label: t("settings.anilist.proxy.custom") },
+                  ]}
+                  className="w-full max-w-60"
+                />
+                <Input
+                  ref={anilistProxyInputRef}
+                  value={anilistProxyUrl ?? ""}
+                  onChange={(e) => patch({ anilistProxyUrl: e.target.value.trim() || null })}
+                  placeholder="socks5://127.0.0.1:10808"
+                  spellCheck={false}
+                  className="w-full max-w-70"
+                  aria-label={t("settings.anilist.proxy.url")}
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  className="h-6 px-2 text-xs"
+                  onClick={handleAnilistTest}
+                  disabled={anilistTesting}
+                >
+                  {anilistTesting
+                    ? t("settings.anilist.proxy.testing")
+                    : t("settings.anilist.proxy.test")}
+                </Button>
+                {anilistTest && (
+                  <span
+                    className={cn(
+                      "windows95-text text-xs",
+                      anilistTest.ok ? "text-success" : "text-destructive"
+                    )}
+                  >
+                    {anilistTest.ok
+                      ? `${t("settings.anilist.proxy.test.ok")} - ${anilistTest.msg}`
+                      : `${t("settings.anilist.proxy.test.fail")}: ${anilistTest.msg}`}
                   </span>
                 )}
               </div>

@@ -2,7 +2,6 @@ import type { Ref } from "react";
 
 export type DitherRGB = [number, number, number];
 
-export type DitherCrossOrigin = "" | "anonymous" | "use-credentials";
 export interface DitherEffectOptions {
   levels: number;
   ditherStrength: number;
@@ -33,7 +32,6 @@ export interface DitherEffectOptions {
 export interface DitherCanvasProps extends Partial<DitherEffectOptions> {
   src: string;
   className?: string;
-  crossOrigin?: DitherCrossOrigin;
   ariaLabel?: string;
   capToDisplay?: boolean;
   maxLongSide?: number;

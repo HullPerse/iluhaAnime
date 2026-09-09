@@ -1,5 +1,5 @@
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { Play, RefreshCw, RotateCcw } from "lucide-react";
+import { Play, RefreshCw } from "lucide-react";
 
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
@@ -8,11 +8,9 @@ import type { CollectionItem } from "@/types/collection";
 
 export function DetailActionsCollection({
   item,
-  updateItem,
   refreshMetadata,
 }: {
   item: CollectionItem;
-  updateItem: (id: string, patch: Partial<CollectionItem>) => void;
   refreshMetadata: (item: CollectionItem) => Promise<void>;
 }) {
   const { t } = useI18n();
@@ -29,14 +27,6 @@ export function DetailActionsCollection({
     }
   };
 
-  const rewatch = () => {
-    updateItem(item.id, {
-      rewatchCount: item.rewatchCount + 1,
-      status: "rewatching",
-      lastWatchedAt: Date.now(),
-    });
-  };
-
   return (
     <div className="mt-2 flex flex-wrap gap-1">
       <Button onClick={openLocal} disabled={!item.localPath}>
@@ -47,9 +37,6 @@ export function DetailActionsCollection({
           {t("collection.details.anilist")}
         </Button>
       )}
-      <Button variant="outline" onClick={rewatch}>
-        <RotateCcw className="size-3" /> {t("collection.details.rewatch")}
-      </Button>
       <Button
         variant="outline"
         disabled={item.externalIds.anilist == null && item.externalIds.tmdb == null}

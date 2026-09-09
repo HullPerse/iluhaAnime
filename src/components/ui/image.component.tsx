@@ -34,10 +34,12 @@ const Image = ({
   const [finalSrc, setFinalSrc] = useState(src);
   const [retryKey, setRetryKey] = useState(0);
   const attemptRef = useRef(0);
+  const srcRef = useRef(src);
 
   const imgRef = useRef<HTMLImageElement>(null);
 
   useEffect(() => {
+    srcRef.current = src;
     setFinalSrc(src);
     setIsLoaded(false);
     attemptRef.current = 0;
@@ -49,7 +51,8 @@ const Image = ({
 
   const handleLoad = useCallback(() => setIsLoaded(true), []);
 
-  const handleError = useCallback(() => {
+  const handleError = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
+    if (e.currentTarget.getAttribute("src") !== srcRef.current) return;
     attemptRef.current += 1;
     if (attemptRef.current <= 2) setRetryKey((k) => k + 1);
     else setFinalSrc("");

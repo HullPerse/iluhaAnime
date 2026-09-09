@@ -9,9 +9,10 @@ use crate::auth::{
 };
 
 use super::clients::{
-    RUTRACKER_DEFAULT_UA, absolute_detail_url, acquire_scraper_slot, build_client,
-    build_nekobt_client, build_rutracker_client_with_ua, cookies_to_header, decode_rutracker_page,
+    absolute_detail_url, acquire_scraper_slot, build_client, build_nekobt_client,
+    build_rutracker_client_with_ua, cookies_to_header, decode_rutracker_page,
     is_rutracker_challenge, parse_rus_number, resolve_proxy, rutracker_challenge_error,
+    RUTRACKER_DEFAULT_UA,
 };
 
 #[derive(Debug, Serialize)]
@@ -1264,8 +1265,8 @@ pub async fn get_torrent_details(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::search::{search_erairaws, search_nyaa, search_sukebei};
+    use super::*;
 
     #[test]
     fn detail_url_validation_rejects_cross_source_and_spoofed_hosts() {
@@ -1543,7 +1544,6 @@ mod tests {
             "Audio: GoFile | MdiaLoad\nSubtitles: CR [eng, ASS]"
         );
     }
-
 
     #[test]
     fn nyaa_detail_parser_maps_tracker_metadata_and_file_list() {

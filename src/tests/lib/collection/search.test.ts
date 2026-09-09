@@ -19,3 +19,30 @@ describe("collection search index", () => {
     expect(searchCollectionIndex(index, "pier").map((x) => x.id)).toEqual(["c"]);
   });
 });
+
+describe("collection people search", () => {
+  const withPeople = item("d", "Horimiya", {
+    detailsJson: {
+      staff: [{ id: 1, name: "Masashi Ishihama", role: "Director" }],
+      characters: [
+        {
+          id: 2,
+          name: "Kyouko Hori",
+          voiceActors: [{ id: 3, name: "Haruka Tomatsu" }],
+        },
+      ],
+    },
+  });
+
+  it("finds staff, characters, and voice actors by name", () => {
+    const index = buildCollectionSearchIndex([withPeople]);
+    expect(searchCollectionIndex(index, "ishihama").map((x) => x.id)).toEqual(["d"]);
+    expect(searchCollectionIndex(index, "kyouko").map((x) => x.id)).toEqual(["d"]);
+    expect(searchCollectionIndex(index, "tomatsu").map((x) => x.id)).toEqual(["d"]);
+  });
+
+  it("ignores items without stored people", () => {
+    const index = buildCollectionSearchIndex([item("e", "Naruto")]);
+    expect(searchCollectionIndex(index, "ishihama")).toEqual([]);
+  });
+});

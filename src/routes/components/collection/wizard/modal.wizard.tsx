@@ -13,12 +13,16 @@ import { useCollectionData } from "@/hooks/collection/queries.hook";
 import { useWizardSearch } from "@/hooks/collection/search.hook";
 import { useWizardForm } from "@/hooks/collection/wizard.hook";
 import { useEscapeClose } from "@/hooks/useEscapeClose.hook";
+import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { withStoredMedia } from "@/lib/collection/media.utils";
+import { mergeGenreTags } from "@/lib/collection/wizard.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { normalizeSearchText } from "@/lib/search/suggestions.utils";
+import { isDirectImageSrc } from "@/lib/utils/image.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSearchStore } from "@/store/search.store";
 import { useSettingsStore } from "@/store/settings.store";
+import type { AniAnimeStaffEdge, AniCharacterEdge } from "@/types/anilist";
 import type {
   CollectionItem,
   CollectionStatus,
@@ -60,7 +64,7 @@ export function WizardModal({
   const [search, setSearch] = useState("");
 
   const coverBlobIdRef = useRef<string | null>(initial?.coverBlobId ?? null);
-  const uploadedCoversRef = useRef<{ id: string; dataUrl: string }[]>([]);
+  const uploadedCoversRef = useRef<{ id: string; url: string }[]>([]);
   const form = useWizardForm(initial);
   const {
     title,
@@ -154,22 +158,22 @@ export function WizardModal({
     (url: string) => {
       setCoverBroken(false);
       setCoverUrl(url);
-      const match = uploadedCoversRef.current.find((c) => c.dataUrl === url);
+      const match = uploadedCoversRef.current.find((c) => c.url === url);
       coverBlobIdRef.current = match?.id ?? null;
     },
     [setCoverUrl]
   );
 
   const handleUploadLocalCover = useCallback(
-    (id: string, dataUrl: string) => {
+    (id: string, url: string) => {
       uploadedCoversRef.current = [
-        { id, dataUrl },
+        { id, url },
         ...uploadedCoversRef.current.filter((c) => c.id !== id),
       ];
       coverBlobIdRef.current = id;
       setCoverBroken(false);
-      setCoverUrl(dataUrl);
-      setCoverOptions((prev) => (prev.includes(dataUrl) ? prev : [dataUrl, ...prev]));
+      setCoverUrl(url);
+      setCoverOptions((prev) => (prev.includes(url) ? prev : [url, ...prev]));
     },
     [setCoverOptions, setCoverUrl]
   );
@@ -199,8 +203,10 @@ export function WizardModal({
     applyCoverFromResult(r.cover_url);
     if (r.duration) setDurationMinutes(String(r.duration));
     if (r.episodes) setProgressTotal(String(r.episodes));
-    if (r.genres?.length) setGenres(r.genres.join(", "));
+    const mergedGenres = mergeGenreTags(r.genres ?? [], r.tags ?? []);
+    if (mergedGenres.length) setGenres(mergedGenres.join(", "));
     if (r.studio) setStudio(r.studio);
+    if (r.description) setDescription(r.description);
     applyExternalId(r.id);
     if (source === "tmdb" && tmdbApiKey && (r.mediaType === "movie" || r.mediaType === "tv")) {
       tmdbPickRef.current += 1;
@@ -261,6 +267,7 @@ export function WizardModal({
     url: string
   ): Promise<string | null> {
     if (currentBlobId) return currentBlobId;
+    if (isDirectImageSrc(url)) return null;
     if (!url.startsWith("http://") && !url.startsWith("https://")) return null;
     try {
       const cached = await invokeTyped<{ id: string }>("download_remote_image", {
@@ -278,14 +285,46 @@ export function WizardModal({
     const blobId = await resolveCoverBlobId(coverBlobIdRef.current, coverUrl);
     const built = buildItem(blobId);
     const media = mediaRef.current;
-    onSave(
-      media
-        ? {
-            ...built,
-            detailsJson: withStoredMedia(built.detailsJson, media.stills, media.trailerYoutubeId),
-          }
-        : built
-    );
+    const base = media
+      ? {
+          ...built,
+          detailsJson: withStoredMedia(built.detailsJson, media.stills, media.trailerYoutubeId),
+        }
+      : built;
+    const anilistId = base.externalIds.anilist;
+    if (!anilistId) {
+      onSave(base);
+      onClose();
+      return;
+    }
+    const proxyArgs = anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl);
+    const [characters, staff] = await Promise.all([
+      invokeTyped<AniCharacterEdge[]>("get_anime_characters", {
+        id: anilistId,
+        page: 1,
+        ...proxyArgs,
+      }).catch(() => [] as AniCharacterEdge[]),
+      invokeTyped<AniAnimeStaffEdge[]>("get_anime_staff", {
+        id: anilistId,
+        ...proxyArgs,
+      }).catch(() => [] as AniAnimeStaffEdge[]),
+    ]);
+    onSave({
+      ...base,
+      detailsJson: {
+        ...base.detailsJson,
+        staff: staff.length
+          ? staff.slice(0, 30).map((s) => ({ id: s.id, name: s.name, role: s.role }))
+          : (base.detailsJson?.staff ?? []),
+        characters: characters.length
+          ? characters.map((c) => ({
+              id: c.character.id,
+              name: c.character.name,
+              voiceActors: c.voice_actors.slice(0, 3).map((v) => ({ id: v.id, name: v.name })),
+            }))
+          : (base.detailsJson?.characters ?? []),
+      },
+    });
     onClose();
   };
 

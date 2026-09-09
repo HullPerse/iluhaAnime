@@ -5,23 +5,31 @@ import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ditherDecodeCache, ditherRenderCache } from "@/lib/utils/dither.utils";
+import { toUserImage } from "@/lib/utils/image.utils";
 import DitherPreviewModal from "@/routes/components/search/modern/dither/preview/modal.preview";
 import { useNotificationStore } from "@/store/notification.store";
 import { useSettingsStore } from "@/store/settings.store";
-import type { UserImage } from "@/types";
+import type { UserImage, UserImageFile } from "@/types";
 
 const mockInvoke = vi.fn();
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (...args: unknown[]) => mockInvoke(...args),
+  convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
 }));
 
 const IMAGE: UserImage = {
   id: "aaa",
   name: "first.png",
   mimeType: "image/png",
-  dataUrl: "data:image/png;base64,AAAA",
-  originalSrc: "data:image/png;base64,OOOO",
+  url: "data:image/png;base64,AAAA",
+  originalUrl: "data:image/png;base64,OOOO",
   createdAt: 10,
+};
+
+const UPDATED_FILE: UserImageFile = {
+  ...IMAGE,
+  path: "C:/images/aaa.baked.png",
+  originalPath: "C:/images/aaa.original.png",
 };
 
 function installCanvasHarness(source: Uint8ClampedArray) {
@@ -83,8 +91,8 @@ describe("DitherPreviewModal save wiring", () => {
     const user = userEvent.setup();
     ditherRenderCache.clear();
     ditherDecodeCache.clear();
-    const updated: UserImage = { ...IMAGE, dataUrl: "data:image/png;base64,BAKED" };
-    mockInvoke.mockResolvedValue(updated);
+    const updated = toUserImage(UPDATED_FILE);
+    mockInvoke.mockResolvedValue(UPDATED_FILE);
     const source = new Uint8ClampedArray(2 * 1 * 4).fill(200);
     installCanvasHarness(source);
     const images = installImageHarness(4, 2);
@@ -118,8 +126,8 @@ describe("DitherPreviewModal save wiring under StrictMode", () => {
     const user = userEvent.setup();
     ditherRenderCache.clear();
     ditherDecodeCache.clear();
-    const updated: UserImage = { ...IMAGE, dataUrl: "data:image/png;base64,BAKED" };
-    mockInvoke.mockResolvedValue(updated);
+    const updated = toUserImage(UPDATED_FILE);
+    mockInvoke.mockResolvedValue(UPDATED_FILE);
     const source = new Uint8ClampedArray(2 * 1 * 4).fill(200);
     installCanvasHarness(source);
     const images = installImageHarness(4, 2);
@@ -156,10 +164,10 @@ describe("DitherPreviewModal save wiring under StrictMode", () => {
     ditherRenderCache.clear();
     ditherDecodeCache.clear();
     try {
-      let resolveUpdate!: (value: UserImage) => void;
+      let resolveUpdate!: (value: UserImageFile) => void;
       mockInvoke.mockImplementation(
         () =>
-          new Promise<UserImage>((resolve) => {
+          new Promise<UserImageFile>((resolve) => {
             resolveUpdate = resolve;
           })
       );
@@ -193,9 +201,8 @@ describe("DitherPreviewModal save wiring under StrictMode", () => {
       expect((screen.getByRole("button", { name: "Save" }) as HTMLButtonElement).disabled).toBe(
         false
       );
-      const updated: UserImage = { ...IMAGE, dataUrl: "data:image/png;base64,BAKED" };
       await act(async () => {
-        resolveUpdate(updated);
+        resolveUpdate(UPDATED_FILE);
       });
       expect(mockInvoke).toHaveBeenCalledTimes(1);
     } finally {

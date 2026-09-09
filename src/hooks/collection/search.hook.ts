@@ -1,8 +1,10 @@
 import { useCallback, useState } from "react";
 
 import { SEARCH_RANKING } from "@/config/search/ranking.config";
+import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { fuzzyMatchScore, normalizeSearchText } from "@/lib/search/suggestions.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
+import { useSettingsStore } from "@/store/settings.store";
 import type { WizardSearchResult } from "@/types/collection";
 
 function rankWizardResults(
@@ -51,9 +53,16 @@ export function useWizardSearch(
         duration: number | null;
         episodes: number | null;
         genres: string[];
+        tags: string[];
         studios: { id: number; name: string }[];
+        description: string | null;
       }[]
-    >("search_anilist", { query: search, per_page: 8, max_pages: 1 });
+    >("search_anilist", {
+      query: search,
+      per_page: 8,
+      max_pages: 1,
+      ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
+    });
     const mapped = res.map((r) => ({
       id: r.id,
       title: r.title,
@@ -62,8 +71,10 @@ export function useWizardSearch(
       duration: r.duration,
       episodes: r.episodes,
       genres: r.genres,
+      tags: r.tags ?? [],
       studio: r.studios[0]?.name ?? null,
       altTitles: r.titles ?? [],
+      description: r.description ?? undefined,
     }));
     const ranked =
       existingTitles || favouriteIds
@@ -88,6 +99,7 @@ export function useWizardSearch(
         cover_url: string | null;
         year?: number | null;
         mediaType: string;
+        overview: string | null;
         altTitles?: string[];
       }[]
     >("search_tmdb", {
@@ -103,6 +115,7 @@ export function useWizardSearch(
       cover_url: r.cover_url,
       year: r.year ?? undefined,
       mediaType: r.mediaType,
+      description: r.overview ?? undefined,
       altTitles: r.altTitles ?? [],
     }));
     const ranked =

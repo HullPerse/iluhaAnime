@@ -3,7 +3,7 @@ import { open, confirm } from "@tauri-apps/plugin-dialog";
 import { create } from "zustand";
 
 import { translate } from "@/lib/locale/i18n.utils";
-import { TorrentListen, findNewErrors } from "@/lib/torrent/common.utils";
+import { TorrentListen, findJustFinished, findNewErrors, torrentErrorText } from "@/lib/torrent/common.utils";
 import { attempt, withFallback } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { showError } from "@/lib/utils/notification.utils";
@@ -133,10 +133,8 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
     set({ torrents: initial ?? [] });
 
     const prefs = useCacheStore.getState().seedPreferences;
-    for (const t of initial ?? []) {
-      if (t.finished && !prefs[t.id] && t.state === "live") {
-        invokeTyped("pause_torrent", { id: t.id }).catch(() => {});
-      }
+    for (const t of findJustFinished([], initial ?? [], prefs)) {
+      invokeTyped("pause_torrent", { id: t.id }).catch(() => {});
     }
 
     const unlisten = await listen<TorrentInfo[]>("torrents-update", (event) => {
@@ -146,16 +144,26 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
         showError(tr("torrent.state.error"), `${t.name}: ${t.error}`);
       }
       const prefs = useCacheStore.getState().seedPreferences;
-      for (const t of event.payload) {
-        if (t.finished && !prefs[t.id] && t.state === "live") {
-          invokeTyped("pause_torrent", { id: t.id }).catch(() => {});
-        }
+      for (const t of findJustFinished(prev, event.payload, prefs)) {
+        invokeTyped("pause_torrent", { id: t.id }).catch(() => {});
       }
     });
 
     return unlisten;
   },
+  refreshTorrents: async () => {
+    const [list] = await attempt(invokeTyped<TorrentInfo[]>("list_torrents"));
+    if (!list) return;
+    set((state) => {
+      const ids = new Set(list.map((t) => t.id));
+      const lastActiveAt = Object.fromEntries(
+        Object.entries(state.lastActiveAt).filter(([key]) => ids.has(Number(key)))
+      );
+      return { torrents: list, lastActiveAt };
+    });
+  },
   loadTorrentFiles: async (id: number) => {
+    if (!id) return false;
     if (fileLoadInFlight.has(id)) return true;
     fileLoadInFlight.add(id);
     try {
@@ -193,9 +201,27 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
     }
   },
   metadataCache: new Map(),
-  pauseTorrent: async (id: number) => {
-    const [, error] = await attempt(invokeTyped("pause_torrent", { id }));
-    if (error) showError(tr("download.error.pause"), error.message);
+  pauseTorrent: async (id: number, infoHash?: string) => {
+    if (!id || get().opInFlight[id] !== undefined) return;
+    const prev = get().torrents.find((t) => t.id === id);
+    set((state) => ({
+      opInFlight: { ...state.opInFlight, [id]: "pause" as const },
+      torrents: state.torrents.map((t) => (t.id === id ? { ...t, state: "paused" } : t)),
+    }));
+    const [, error] = await attempt(invokeTyped("pause_torrent", { id, infoHash }));
+    if (error) {
+      showError(tr("download.error.pause"), torrentErrorText(error.message, tr));
+      if (prev !== undefined) {
+        set((state) => ({ torrents: state.torrents.map((t) => (t.id === id ? prev : t)) }));
+      }
+    } else {
+      await get().refreshTorrents();
+    }
+    set((state) => {
+      const next = { ...state.opInFlight };
+      delete next[id];
+      return { opInFlight: next };
+    });
   },
   pendingTorrent: null,
   prepareTorrentDownload: async (magnet: string) => {
@@ -392,56 +418,102 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
     });
   },
   preparingTorrent: false,
-  recheckTorrent: async (id: number) => {
+  recheckTorrent: async (id: number, infoHash?: string) => {
+    if (!id) return null;
     const [result, error] = await attempt(
-      invokeTyped<TorrentCheckResult>("recheck_torrent", { id })
+      invokeTyped<TorrentCheckResult>("recheck_torrent", { id, infoHash })
     );
-    if (error) showError(tr("download.error.recheck"), error.message);
+    if (error) showError(tr("download.error.recheck"), torrentErrorText(error.message, tr));
     if (result) {
       useTorrentStore.getState().loadTorrentFiles(id);
     }
     return result;
   },
   redownloadFile: async (id: number, fileIndex: number, infoHash: string) => {
+    if (!id) return;
     const [newId, error] = await attempt(
       invokeTyped<number>("redownload_file", { id, fileIndex, infoHash })
     );
-    if (error) showError(tr("download.error.redownload"), error.message);
+    if (error) showError(tr("download.error.redownload"), torrentErrorText(error.message, tr));
     if (newId === null) return;
-    const state = useTorrentStore.getState();
-    if (state.torrentFilesMap[newId]) {
-      state.loadTorrentFiles(newId);
-    } else if (state.torrentFilesMap[id]) {
-      state.loadTorrentFiles(id);
-    }
+    await useTorrentStore.getState().loadTorrentFiles(newId);
   },
-  removeTorrent: async (id: number, deleteFiles: boolean) => {
-    const { [id]: _, ...seedRest } = useCacheStore.getState().seedPreferences;
-    useCacheStore.setState({ seedPreferences: seedRest });
-    set((s) => {
-      const { [id]: __, ...rest } = s.torrentFilesMap;
-      return { torrentFilesMap: rest };
-    });
-    const [, error] = await attempt(invokeTyped("remove_torrent", { id, deleteFiles }));
-    if (error) showError(tr("download.error.remove"), error.message);
-  },
-  resumeTorrent: async (id: number) => {
-    const [, error] = await attempt(invokeTyped("resume_torrent", { id }));
-    if (error) showError(tr("download.error.resume"), error.message);
-  },
-  setFilePriority: async (id: number, fileIndices: number[], priority: FilePriority) => {
+  removeTorrent: async (id: number, deleteFiles: boolean, infoHash?: string) => {
+    if (!id || get().opInFlight[id] !== undefined) return false;
+    set((state) => ({ opInFlight: { ...state.opInFlight, [id]: "remove" as const } }));
     const [, error] = await attempt(
-      invokeTyped("set_file_priority", { id, fileIndices, priority })
+      invokeTyped("remove_torrent", { id, deleteFiles, infoHash })
     );
-    if (error) showError(tr("download.error.priority"), error.message);
+    set((state) => {
+      const next = { ...state.opInFlight };
+      delete next[id];
+      return { opInFlight: next };
+    });
+    if (error) {
+      showError(tr("download.error.remove"), torrentErrorText(error.message, tr));
+      return false;
+    }
+    useCacheStore.getState().removeSeedPreference(id);
+    set((state) => {
+      const torrentFilesMap = { ...state.torrentFilesMap };
+      delete torrentFilesMap[id];
+      const lastActiveAt = { ...state.lastActiveAt };
+      delete lastActiveAt[id];
+      return {
+        torrents: state.torrents.filter((t) => t.id !== id),
+        torrentFilesMap,
+        lastActiveAt,
+      };
+    });
+    return true;
+  },
+  resumeTorrent: async (id: number, infoHash?: string) => {
+    if (!id || get().opInFlight[id] !== undefined) return;
+    const prev = get().torrents.find((t) => t.id === id);
+    set((state) => ({
+      opInFlight: { ...state.opInFlight, [id]: "resume" as const },
+      torrents: state.torrents.map((t) => (t.id === id ? { ...t, state: "live" } : t)),
+    }));
+    const [, error] = await attempt(invokeTyped("resume_torrent", { id, infoHash }));
+    if (error) {
+      showError(tr("download.error.resume"), torrentErrorText(error.message, tr));
+      if (prev !== undefined) {
+        set((state) => ({ torrents: state.torrents.map((t) => (t.id === id ? prev : t)) }));
+      }
+    } else {
+      await get().refreshTorrents();
+    }
+    set((state) => {
+      const next = { ...state.opInFlight };
+      delete next[id];
+      return { opInFlight: next };
+    });
+  },
+  setFilePriority: async (
+    id: number,
+    fileIndices: number[],
+    priority: FilePriority,
+    infoHash?: string
+  ) => {
+    if (!id) return;
+    const [, error] = await attempt(
+      invokeTyped("set_file_priority", { id, fileIndices, priority, infoHash })
+    );
+    if (error) showError(tr("download.error.priority"), torrentErrorText(error.message, tr));
     const state = useTorrentStore.getState();
     if (state.torrentFilesMap[id]) {
       state.loadTorrentFiles(id);
     }
   },
-  setSequentialDownload: async (id: number, enabled: boolean) => {
-    const [, error] = await attempt(invokeTyped("set_sequential_download", { id, enabled }));
-    if (error) showError(tr("download.error.sequential"), error.message);
+  setSequentialDownload: async (id: number, enabled: boolean, infoHash?: string) => {
+    if (!id) return;
+    const [, error] = await attempt(
+      invokeTyped("set_sequential_download", { id, enabled, infoHash })
+    );
+    if (error) {
+      showError(tr("download.error.sequential"), torrentErrorText(error.message, tr));
+      return;
+    }
     set((state) => ({
       torrents: state.torrents.map((t) =>
         t.id === id ? { ...t, sequential_download: enabled } : t
@@ -457,23 +529,26 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
     );
     if (error) showError(tr("download.error.limit"), error.message);
   },
-  setTorrentLimits: async (id: number, limits: SpeedLimits) => {
+  setTorrentLimits: async (id: number, limits: SpeedLimits, infoHash?: string) => {
+    if (!id) return;
     const downloadBps =
       limits.download !== null && limits.download > 0 ? Math.round(limits.download * 1024) : null;
     const uploadBps =
       limits.upload !== null && limits.upload > 0 ? Math.round(limits.upload * 1024) : null;
     const [, error] = await attempt(
-      invokeTyped("set_torrent_limits", { id, limits: { downloadBps, uploadBps } })
+      invokeTyped("set_torrent_limits", { id, limits: { downloadBps, uploadBps }, infoHash })
     );
-    if (error) showError(tr("download.error.set.limits"), error.message);
+    if (error) showError(tr("download.error.set.limits"), torrentErrorText(error.message, tr));
   },
+  opInFlight: {},
   torrentFilesMap: {},
   torrents: [],
   lastActiveAt: {},
-  updateTorrentOnlyFiles: async (id: number, indices: number[]) => {
+  updateTorrentOnlyFiles: async (id: number, indices: number[], infoHash?: string) => {
+    if (!id) return;
     const [, error] = await attempt(
-      invokeTyped("update_torrent_only_files", { id, onlyFiles: indices })
+      invokeTyped("update_torrent_only_files", { id, onlyFiles: indices, infoHash })
     );
-    if (error) showError(tr("download.error.update"), error.message);
+    if (error) showError(tr("download.error.update"), torrentErrorText(error.message, tr));
   },
 }));

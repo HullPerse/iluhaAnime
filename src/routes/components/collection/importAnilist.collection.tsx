@@ -5,11 +5,14 @@ import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import { COLLECTION_QUERY_KEY, useCollectionData } from "@/hooks/collection/queries.hook";
+import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { entryDiffers, entrySyncState, runImportBatch } from "@/lib/collection/import.utils";
+import { resolveStatusLabel } from "@/lib/collection/status.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useNotificationStore } from "@/store/notification.store";
+import { useSettingsStore } from "@/store/settings.store";
 import type { AniListCollection, AniListEntry, AniUser } from "@/types/anilist";
 import type { CollectionItem, ImportBatchGroup } from "@/types/collection";
 
@@ -40,7 +43,7 @@ export default function ImportAnilistCollection({
   onClose: () => void;
   onImported: () => void;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const queryClient = useQueryClient();
   const { items, statuses } = useCollectionData();
   const [user, setUser] = useState<AniUser | null>(null);
@@ -63,8 +66,10 @@ export default function ImportAnilistCollection({
   const [opDone, setOpDone] = useState<{ ok: number } | null>(null);
   const abortRef = useRef(false);
 
-  const statusById = useMemo(() => new Map(statuses.map((s) => [s.id, s])), [statuses]);
-  const statusLabel = (id: string) => statusById.get(id)?.label ?? id;
+  const labelById = useMemo<Record<string, string>>(
+    () => Object.fromEntries(statuses.map((s) => [s.id, s.label])),
+    [statuses]
+  );
 
   const itemByAnilistId = useMemo(() => {
     const map = new Map<number, CollectionItem>();
@@ -128,7 +133,10 @@ export default function ImportAnilistCollection({
     setOpFailures([]);
     setOpDone(null);
     abortRef.current = false;
-    invokeTyped<AniUser | null>("check_anilist_auth")
+    invokeTyped<AniUser | null>(
+      "check_anilist_auth",
+      anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl)
+    )
       .then((u) => {
         setUser(u);
         setAuthChecked(true);
@@ -136,6 +144,7 @@ export default function ImportAnilistCollection({
         setLoading(true);
         return invokeTyped<AniListCollection[]>("get_anilist_lists", {
           userId: u.id,
+          ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
         })
           .then((ls) => setLists(ls))
           .catch((e) => setError(String(e)))
@@ -247,8 +256,8 @@ export default function ImportAnilistCollection({
     if (s.status !== item.status)
       parts.push(
         t("collection.import.anilist.change.status", {
-          from: statusLabel(item.status),
-          to: statusLabel(s.status),
+          from: resolveStatusLabel(labelById[item.status] ?? item.status, locale),
+          to: resolveStatusLabel(labelById[s.status] ?? s.status, locale),
         })
       );
     if (s.progressValue !== item.progressValue)
@@ -325,7 +334,10 @@ export default function ImportAnilistCollection({
       if (abortRef.current) break;
       setOpCurrent(item.title);
       const [m, err] = await attempt(
-        invokeTyped<typeof ANIME_META>("get_anime_by_id", { id: item.externalIds.anilist })
+        invokeTyped<typeof ANIME_META>("get_anime_by_id", {
+          id: item.externalIds.anilist,
+          ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
+        })
       );
       if (err || !m) {
         failed.push({ id: item.id, title: item.title });

@@ -1,3 +1,4 @@
+import { X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import DitherCanvas from "@/components/shared/dither.component";
@@ -5,6 +6,7 @@ import { SmallLoader } from "@/components/shared/loader.component";
 import Modal from "@/components/shared/modal.component";
 import ProgressBar from "@/components/shared/progress.component";
 import { Button } from "@/components/ui/button.component";
+import { ColorPickerTrigger } from "@/components/ui/color.component";
 import Slider from "@/components/ui/range.component";
 import {
   DITHER_DEFAULTS,
@@ -16,12 +18,81 @@ import {
 import { useDebounce } from "@/hooks/debounce.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
+import { hexToRgba } from "@/lib/utils/color.utils";
+import { toUserImage } from "@/lib/utils/image.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { showError } from "@/lib/utils/notification.utils";
-import type { UserImage } from "@/types";
-import type { DitherEffectOptions } from "@/types/dither";
+import type { UserImage, UserImageFile } from "@/types";
+import type { DitherEffectOptions, DitherRGB } from "@/types/dither";
 
 import DitherControls from "./controls.preview";
+
+function rgbToHex([r, g, b]: DitherRGB): string {
+  const toHex = (n: number) => n.toString(16).padStart(2, "0");
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
+function hexToSwatch(palette: DitherRGB[]): string | null {
+  const last = palette.at(-1);
+  return last ? rgbToHex(last) : null;
+}
+
+function PalettePicker({
+  palette,
+  onChange,
+}: {
+  palette: DitherRGB[];
+  onChange: (palette: DitherRGB[]) => void;
+}) {
+  const [custom, setCustom] = useState<string | null>(null);
+
+  const patch = (index: number, hex: string) => {
+    const rgba = hexToRgba(hex);
+    if (!rgba) return;
+    const next = [...palette];
+    next[index] = [rgba.r, rgba.g, rgba.b];
+    onChange(next);
+    setCustom(hexToSwatch(next));
+  };
+
+  return (
+    <div className="flex flex-col gap-1">
+      {palette.map(([r, g, b], index) => {
+        const hex = rgbToHex([r, g, b]);
+        return (
+          <div key={`${index}-${hex}`} className="flex items-center gap-1">
+            <ColorPickerTrigger value={hex} onChange={(value) => patch(index, value)} />
+            <span className="windows95-text flex-1 truncate text-xs">
+              #{hex.replace("#", "").toUpperCase()}
+            </span>
+            <Button
+              size="icon"
+              className="h-4 w-4"
+              title="x"
+              disabled={palette.length <= 2}
+              onClick={() => onChange(palette.filter((_, i) => i !== index))}
+            >
+              <X className="size-2.5" />
+            </Button>
+          </div>
+        );
+      })}
+      {custom && (
+        <Button
+          className="h-5 px-1 text-xs"
+          title="+"
+          onClick={() => {
+            const rgba = hexToRgba(custom);
+            if (!rgba) return;
+            onChange([...palette, [rgba.r, rgba.g, rgba.b]]);
+          }}
+        >
+          +
+        </Button>
+      )}
+    </div>
+  );
+}
 
 const PRESET_LABELS: Record<
   DitherPresetId,
@@ -66,7 +137,7 @@ export default function DitherPreviewModal({
   const [baking, setBaking] = useState(false);
   const [bakeProgress, setBakeProgress] = useState<{ done: number; total: number } | null>(null);
   const bakeTimerRef = useRef(0);
-  const src = image.originalSrc ?? image.dataUrl;
+  const src = image.originalUrl ?? image.url;
 
   const applyPreset = (id: DitherPresetId) => {
     setPresetId(id);
@@ -128,7 +199,7 @@ export default function DitherPreviewModal({
       return;
     }
     const [updated, error] = await attempt(
-      invokeTyped<UserImage>("update_dither_image_data", {
+      invokeTyped<UserImageFile>("update_dither_image_data", {
         id: image.id,
         dataUrl,
       })
@@ -139,7 +210,7 @@ export default function DitherPreviewModal({
     setBaking(false);
     setBakeProgress(null);
     if (error) return showError(t("common.error"), t("search.dither.save.error"));
-    onSaved(updated);
+    onSaved(toUserImage(updated));
     onBack();
   };
 
@@ -147,7 +218,7 @@ export default function DitherPreviewModal({
     <Modal header={t("search.dither.preview")} onClose={onBack} onBack={onBack} className="w-2xl">
       <DitherCanvas
         src={src}
-        className="h-64 w-full"
+        className="aspect-video w-full"
         capToDisplay
         scale={renderScale}
         {...renderOptions}
@@ -219,6 +290,7 @@ export default function DitherPreviewModal({
           {t("search.dither.grain.color")}
         </Button>
       </div>
+      <PalettePicker palette={options.palette} onChange={(palette) => patchOptions({ palette })} />
       <Slider
         label={t("search.dither.opt.scale")}
         min={0.1}

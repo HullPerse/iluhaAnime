@@ -5,8 +5,8 @@ use tauri::Manager;
 use crate::app_db;
 use crate::auth::{delete_secret, load_secret, save_secret};
 
-use super::client::graphql_request;
-use super::media::{AniListEntry, AniMedia, collect_titles, parse_date};
+use super::client::{graphql_request, resolve_proxy};
+use super::media::{collect_titles, parse_date, AniListEntry, AniMedia};
 
 fn token_path(app_handle: &tauri::AppHandle) -> Result<PathBuf, String> {
     let dir = app_handle
@@ -39,6 +39,11 @@ pub fn load_token(app_handle: &tauri::AppHandle) -> Result<String, String> {
     }
     Ok(token)
 }
+
+pub fn optional_token(app_handle: &tauri::AppHandle) -> Option<String> {
+    load_token(app_handle).ok().filter(|token| !token.is_empty())
+}
+
 #[derive(Debug, Serialize)]
 pub struct AniUser {
     pub id: u64,
@@ -63,10 +68,13 @@ pub struct AniUserProfile {
     pub is_follower: Option<bool>,
 }
 #[tauri::command]
+#[allow(non_snake_case)]
 pub async fn get_anilist_profile(
     app_handle: tauri::AppHandle,
     user_id: Option<u64>,
     user_name: Option<String>,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
 ) -> Result<AniUserProfile, String> {
     if user_id.is_none() && user_name.as_deref().is_none_or(str::is_empty) {
         return Err("A user id or name is required".to_string());
@@ -117,7 +125,8 @@ pub async fn get_anilist_profile(
         "query": query,
         "variables": variables,
     });
-    let json = graphql_request(body, token.as_deref()).await?;
+    let proxy = resolve_proxy(proxy_url, proxyUrl);
+    let json = graphql_request(body, token.as_deref(), proxy.as_deref()).await?;
     let user = &json["data"]["User"];
     if user.is_null() {
         return Err("AniList user was not found".to_string());
@@ -140,7 +149,13 @@ pub async fn get_anilist_profile(
     })
 }
 #[tauri::command]
-pub async fn anilist_login(app_handle: tauri::AppHandle, token: String) -> Result<AniUser, String> {
+#[allow(non_snake_case)]
+pub async fn anilist_login(
+    app_handle: tauri::AppHandle,
+    token: String,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
+) -> Result<AniUser, String> {
     let body = serde_json::json!({
         "query": r"
             query {
@@ -153,7 +168,8 @@ pub async fn anilist_login(app_handle: tauri::AppHandle, token: String) -> Resul
             }
         "
     });
-    let json = graphql_request(body, Some(&token)).await?;
+    let proxy = resolve_proxy(proxy_url, proxyUrl);
+    let json = graphql_request(body, Some(&token), proxy.as_deref()).await?;
     let v = &json["data"]["Viewer"];
     if v.is_null() {
         return Err("Invalid token".to_string());
@@ -171,7 +187,12 @@ pub async fn anilist_login(app_handle: tauri::AppHandle, token: String) -> Resul
     Ok(user)
 }
 #[tauri::command]
-pub async fn check_anilist_auth(app_handle: tauri::AppHandle) -> Result<Option<AniUser>, String> {
+#[allow(non_snake_case)]
+pub async fn check_anilist_auth(
+    app_handle: tauri::AppHandle,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
+) -> Result<Option<AniUser>, String> {
     let Ok(token) = load_token(&app_handle) else {
         return Ok(None);
     };
@@ -187,7 +208,8 @@ pub async fn check_anilist_auth(app_handle: tauri::AppHandle) -> Result<Option<A
             }
         "
     });
-    let Ok(json) = graphql_request(body, Some(&token)).await else {
+    let proxy = resolve_proxy(proxy_url, proxyUrl);
+    let Ok(json) = graphql_request(body, Some(&token), proxy.as_deref()).await else {
         return Ok(None);
     };
     let v = &json["data"]["Viewer"];
@@ -205,9 +227,12 @@ pub async fn check_anilist_auth(app_handle: tauri::AppHandle) -> Result<Option<A
     }))
 }
 #[tauri::command]
+#[allow(non_snake_case)]
 pub async fn get_anilist_lists(
     app_handle: tauri::AppHandle,
     user_id: u64,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
 ) -> Result<Vec<AniListCollection>, String> {
     let token = load_token(&app_handle)?;
     let body = serde_json::json!({
@@ -231,6 +256,7 @@ pub async fn get_anilist_lists(
                                 genres
                                 tags { name }
                                 coverImage { medium large }
+                                bannerImage
                                 status
                                 nextAiringEpisode { episode airingAt }
                             }
@@ -241,7 +267,8 @@ pub async fn get_anilist_lists(
         ",
         "variables": { "userId": user_id }
     });
-    let json = graphql_request(body, Some(&token)).await?;
+    let proxy = resolve_proxy(proxy_url, proxyUrl);
+    let json = graphql_request(body, Some(&token), proxy.as_deref()).await?;
     let lists = json["data"]["MediaListCollection"]["lists"]
         .as_array()
         .ok_or_else(|| "Unexpected response".to_string())?;
@@ -294,6 +321,7 @@ pub async fn get_anilist_lists(
                                         .as_str()
                                         .or_else(|| m["coverImage"]["medium"].as_str())
                                         .map(String::from),
+                                    banner_image: m["bannerImage"].as_str().map(String::from),
                                     id_mal: m["idMal"].as_i64(),
                                     trailer_youtube_id: None,
                                     season: None,
@@ -340,12 +368,15 @@ pub async fn anilist_logout(app_handle: tauri::AppHandle) -> Result<(), String> 
 }
 #[allow(clippy::cast_possible_wrap)]
 #[tauri::command]
+#[allow(non_snake_case)]
 pub async fn save_anilist_entry(
     app_handle: tauri::AppHandle,
     media_id: u64,
     status: String,
     progress: Option<i32>,
     score: Option<f64>,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
 ) -> Result<(), String> {
     let token = load_token(&app_handle)?;
     let body = serde_json::json!({
@@ -365,7 +396,8 @@ pub async fn save_anilist_entry(
             "score": score
         }
     });
-    let json = graphql_request(body, Some(&token)).await?;
+    let proxy = resolve_proxy(proxy_url, proxyUrl);
+    let json = graphql_request(body, Some(&token), proxy.as_deref()).await?;
     if json.get("errors").is_some() {
         return Err(format!("{:?}", json["errors"]));
     }

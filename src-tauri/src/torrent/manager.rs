@@ -20,7 +20,6 @@ use librqbit::{
     PeerConnectionOptions, Session, SessionOptions, SessionPersistenceConfig,
 };
 use serde::{Deserialize, Serialize};
-use sha1::{Digest, Sha1};
 use std::net::{Ipv4Addr, Ipv6Addr};
 
 use super::helpers::{
@@ -231,6 +230,7 @@ impl TorrentManager {
         self: &Arc<Self>,
         id: usize,
         limits: TorrentLimits,
+        info_hash: Option<String>,
     ) -> Result<(), String> {
         let lock = self
             .limit_locks
@@ -238,6 +238,7 @@ impl TorrentManager {
             .or_insert_with(|| Arc::new(tokio::sync::Mutex::new(())))
             .clone();
         let _guard = lock.lock().await;
+        self.verify_torrent(id, info_hash.as_deref())?;
         let previous_limits = self.get_torrent_limits(id);
         let magnet = self
             .magnet_links
@@ -311,7 +312,7 @@ impl TorrentManager {
                 self.torrent_limits.insert(id, previous_limits);
             }
             self.save_torrent_limits();
-            let _ = self
+            if let Err(restore_error) = self
                 .add_torrent_inner(
                     AddTorrent::from_url(magnet),
                     save_dir,
@@ -321,11 +322,16 @@ impl TorrentManager {
                     None,
                     to_rqbit_limits(previous_limits),
                 )
-                .await;
+                .await
+            {
+                return Err(format!(
+                    "torrent reconfigure failed and the torrent is gone: {restore_error:#}"
+                ));
+            }
         }
 
         if result.is_ok() && was_paused {
-            self.pause_torrent(id)
+            self.pause_torrent(id, info_hash.clone())
                 .await
                 .map_err(|error| format!("torrent restored but could not pause it: {error:#}"))?;
         }
@@ -573,27 +579,43 @@ impl TorrentManager {
         id: usize,
         magnet: String,
         only_files: Option<Vec<usize>>,
+        expected_hash: Option<&str>,
     ) -> Result<usize, String> {
+        self.verify_torrent(id, expected_hash)?;
         let save_dir = self
             .save_dirs
             .get(&id)
             .map(|r| r.clone())
             .unwrap_or_default();
-        self.remove_torrent(id, false)
+        let limits = self.get_torrent_limits(id);
+        let sequential = self.sequential_torrents.contains(&id);
+        let priorities = self.file_priorities.get(&id).map(|r| r.clone());
+        self.remove_torrent(id, false, None)
             .await
             .map_err(|e| format!("{e:#}"))?;
-        let limits = to_rqbit_limits(self.get_torrent_limits(id));
-        self.add_torrent_inner(
-            AddTorrent::from_url(magnet.clone()),
-            save_dir,
-            only_files,
-            None,
-            Some(id),
-            Some(magnet),
-            limits,
-        )
-        .await
-        .map_err(|e| format!("{e:#}"))
+        let added = self
+            .add_torrent_inner(
+                AddTorrent::from_url(magnet.clone()),
+                save_dir,
+                only_files,
+                None,
+                Some(id),
+                Some(magnet),
+                to_rqbit_limits(limits),
+            )
+            .await;
+        if limits != TorrentLimits::default() {
+            self.torrent_limits.insert(id, limits);
+        }
+        if sequential {
+            self.sequential_torrents.insert(id);
+        }
+        if let Some(priorities) = priorities {
+            self.file_priorities.insert(id, priorities);
+        }
+        self.save_torrent_limits();
+        self.save_preferences();
+        added.map_err(|e| format!("{e:#}"))
     }
 
     pub async fn redownload_file(
@@ -617,9 +639,8 @@ impl TorrentManager {
             .map(|r| r.clone())
             .unwrap_or_else(|| format!("magnet:?xt=urn:btih:{info_hash}"));
         let new_id = self
-            .replace_torrent(id, magnet, Some(vec![file_index]))
+            .replace_torrent(id, magnet, Some(vec![file_index]), Some(info_hash.as_str()))
             .await?;
-
         {
             let set: HashSet<usize> = selected_indices.into_iter().collect();
             let handle_opt = self.session.with_torrents(|iter| {
@@ -816,35 +837,100 @@ impl TorrentManager {
         })
     }
 
-    pub async fn pause_torrent(self: &Arc<Self>, id: usize) -> Result<()> {
-        if let Some(handle) = self.session.with_torrents(|iter| {
-            for (tid, handle) in iter {
-                if tid == id {
-                    return Some(handle.clone());
+    fn verify_torrent(&self, id: usize, expected_hash: Option<&str>) -> Result<(), String> {
+        let actual = self
+            .session
+            .with_torrents(|iter| {
+                for (tid, handle) in iter {
+                    if tid == id {
+                        return Some(handle.info_hash().as_string());
+                    }
                 }
+                None
+            })
+            .ok_or_else(|| "torrent not found".to_string())?;
+        if let Some(expected) = expected_hash {
+            if actual != expected {
+                return Err("torrent list is stale, refresh and retry".to_string());
             }
-            None
-        }) {
-            self.session.pause(&handle).await?;
         }
         Ok(())
     }
 
-    pub async fn resume_torrent(self: &Arc<Self>, id: usize) -> Result<()> {
-        if let Some(handle) = self.session.with_torrents(|iter| {
-            for (tid, handle) in iter {
-                if tid == id {
-                    return Some(handle.clone());
+    pub async fn pause_torrent(
+        self: &Arc<Self>,
+        id: usize,
+        info_hash: Option<String>,
+    ) -> Result<()> {
+        self.verify_torrent(id, info_hash.as_deref())
+            .map_err(|e| anyhow::anyhow!(e))?;
+        let handle = self
+            .session
+            .with_torrents(|iter| {
+                for (tid, handle) in iter {
+                    if tid == id {
+                        return Some(handle.clone());
+                    }
                 }
-            }
-            None
-        }) {
-            self.session.unpause(&handle).await?;
+                None
+            })
+            .ok_or_else(|| anyhow::anyhow!("torrent not found"))?;
+        if handle.is_paused() {
+            return Ok(());
         }
+        self.session.pause(&handle).await?;
         Ok(())
     }
 
-    pub async fn remove_torrent(self: &Arc<Self>, id: usize, delete_files: bool) -> Result<()> {
+    pub async fn resume_torrent(
+        self: &Arc<Self>,
+        id: usize,
+        info_hash: Option<String>,
+    ) -> Result<()> {
+        self.verify_torrent(id, info_hash.as_deref())
+            .map_err(|e| anyhow::anyhow!(e))?;
+        let handle = self
+            .session
+            .with_torrents(|iter| {
+                for (tid, handle) in iter {
+                    if tid == id {
+                        return Some(handle.clone());
+                    }
+                }
+                None
+            })
+            .ok_or_else(|| anyhow::anyhow!("torrent not found"))?;
+        if handle.live().is_some() {
+            return Ok(());
+        }
+        self.session.unpause(&handle).await?;
+        Ok(())
+    }
+
+    pub async fn remove_torrent(
+        self: &Arc<Self>,
+        id: usize,
+        delete_files: bool,
+        info_hash: Option<String>,
+    ) -> Result<()> {
+        let exists = self.session.with_torrents(|iter| {
+            for (tid, _) in iter {
+                if tid == id {
+                    return true;
+                }
+            }
+            false
+        });
+        if !exists {
+            return Ok(());
+        }
+        self.verify_torrent(id, info_hash.as_deref())
+            .map_err(|e| anyhow::anyhow!(e))?;
+        let lock = self.limit_locks.get(&id).map(|entry| entry.clone());
+        let _guard = match lock {
+            Some(lock) => Some(lock.lock_owned().await),
+            None => None,
+        };
         self.session.delete(id.into(), delete_files).await?;
         self.save_dirs.remove(&id);
         self.magnet_links.remove(&id);
@@ -859,53 +945,6 @@ impl TorrentManager {
         self.save_torrent_limits();
         self.save_preferences();
         Ok(())
-    }
-
-    pub fn start_http_api(self: &Arc<Self>) {
-        use librqbit::api::Api;
-        use librqbit::http_api::{HttpApi, HttpApiOptions};
-
-        let api = Api::new(self.session.clone(), None, None);
-
-        let token_seed = {
-            let now = std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_nanos()
-                .to_le_bytes();
-            let pid = std::process::id().to_le_bytes();
-            let mut seed = Vec::with_capacity(16);
-            seed.extend_from_slice(&now);
-            seed.extend_from_slice(&pid);
-            seed
-        };
-        let token = hex::encode(Sha1::digest(&token_seed));
-
-        let http_opts = HttpApiOptions {
-            read_only: false,
-            basic_auth: Some(("iluha".into(), token)),
-            allow_create: true,
-            max_upload_body_size: None,
-        };
-        let http_api = HttpApi::new(api, Some(http_opts));
-        let addr: std::net::SocketAddr = ([127, 0, 0, 1], 0).into();
-        let listener = match librqbit_dualstack_sockets::TcpListener::bind_tcp(
-            addr,
-            librqbit_dualstack_sockets::BindOpts::default(),
-        ) {
-            Ok(l) => l,
-            Err(e) => {
-                eprintln!("error binding HTTP API server: {e}");
-                return;
-            }
-        };
-        let bound_port = listener.bind_addr().port();
-        eprintln!("HTTP API listening on http://127.0.0.1:{bound_port} (user: iluha)");
-        tokio::spawn(async move {
-            if let Err(e) = http_api.make_http_api_and_run(listener, None).await {
-                eprintln!("HTTP API stopped: {e:#}");
-            }
-        });
     }
 
     pub fn set_global_limits(
@@ -1026,10 +1065,11 @@ impl TorrentManager {
                         }
                         let full_path = Path::new(&save_dir).join(&file.relative_filename);
                         let selected = only_files.contains(&i);
-
                         if selected {
                             unhide_file(&full_path);
-                        } else if stats.file_progress.get(i).copied().unwrap_or(0) == 0 {
+                        } else if stats.file_progress.get(i).copied().unwrap_or(0) == 0
+                            && std::fs::metadata(&full_path).is_err()
+                        {
                             let _ = std::fs::File::create(&full_path);
                             hide_file(&full_path);
                         }
@@ -1084,7 +1124,9 @@ impl TorrentManager {
         self: &Arc<Self>,
         id: usize,
         only_files: Vec<usize>,
+        info_hash: Option<String>,
     ) -> Result<(), String> {
+        self.verify_torrent(id, info_hash.as_deref())?;
         let handle_opt = self.session.with_torrents(|iter| {
             for (tid, handle) in iter {
                 if tid == id {
@@ -1113,7 +1155,9 @@ impl TorrentManager {
         id: usize,
         file_indices: Vec<usize>,
         priority: FilePriority,
+        info_hash: Option<String>,
     ) -> Result<(), String> {
+        self.verify_torrent(id, info_hash.as_deref())?;
         {
             let mut entry = self.file_priorities.entry(id).or_default();
             for &idx in &file_indices {
@@ -1169,7 +1213,13 @@ impl TorrentManager {
         Ok(())
     }
 
-    pub async fn set_sequential_download(&self, id: usize, enabled: bool) -> Result<(), String> {
+    pub async fn set_sequential_download(
+        &self,
+        id: usize,
+        enabled: bool,
+        info_hash: Option<String>,
+    ) -> Result<(), String> {
+        self.verify_torrent(id, info_hash.as_deref())?;
         let handle_opt = self.session.with_torrents(|iter| {
             for (tid, handle) in iter {
                 if tid == id {
@@ -1288,7 +1338,12 @@ impl TorrentManager {
         Ok(())
     }
 
-    pub fn recheck_torrent(&self, id: usize) -> Result<TorrentCheckResult, String> {
+    pub fn recheck_torrent(
+        &self,
+        id: usize,
+        info_hash: Option<String>,
+    ) -> Result<TorrentCheckResult, String> {
+        self.verify_torrent(id, info_hash.as_deref())?;
         let save_dir = self
             .save_dirs
             .get(&id)
@@ -1346,12 +1401,12 @@ impl TorrentManager {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::helpers::{
         is_safe_relative_path, with_fallback_trackers, with_fallback_trackers_bytes,
     };
     use super::super::types::FilePriority;
-    use librqbit::{create_torrent, CreateTorrentOptions, torrent_from_bytes};
+    use super::*;
+    use librqbit::{create_torrent, torrent_from_bytes, CreateTorrentOptions};
     #[test]
     fn is_safe_relative_path_rejects_absolute_and_traversal_paths() {
         assert!(!is_safe_relative_path(""));

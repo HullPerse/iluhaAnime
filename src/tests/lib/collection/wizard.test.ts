@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildWizardItem,
+  mergeGenreTags,
   resolveFinishedAt,
   wizardDefaultsDates,
   wizardDefaultsIdentity,
@@ -294,5 +295,25 @@ describe("wizardDefaultsMedia", () => {
       localKind: "folder",
       customFields: { mood: "epic" },
     });
+  });
+});
+
+describe("mergeGenreTags", () => {
+  it("appends tags after genres", () => {
+    expect(mergeGenreTags(["Action"], ["Male Protagonist"])).toEqual([
+      "Action",
+      "Male Protagonist",
+    ]);
+  });
+
+  it("drops duplicates case-insensitively and skips blanks", () => {
+    expect(mergeGenreTags(["Action"], ["action", "  ", "Action", "Drama"])).toEqual([
+      "Action",
+      "Drama",
+    ]);
+  });
+
+  it("keeps genres when tags are empty", () => {
+    expect(mergeGenreTags(["Action"], [])).toEqual(["Action"]);
   });
 });

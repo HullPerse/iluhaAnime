@@ -1,25 +1,86 @@
 import { useQuery } from "@tanstack/react-query";
+import { cn } from "cn";
+import { Heart } from "lucide-react";
 import { useState } from "react";
 
 import { SmallLoader } from "@/components/shared/loader.component";
+import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
+import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { enterOrSpace } from "@/lib/utils/keyboard.utils";
+import { useSettingsStore } from "@/store/settings.store";
 import type { AniCharacterMediaEdge, AniVoiceActor, AniStaffDetail } from "@/types/anilist";
-
 import { OverlayWindow } from "../overlayWindow.anilist";
+
+
+function PersonFavButton({
+  id,
+  favouriteIds,
+  labelled,
+  onToggle,
+}: {
+  id: number;
+  favouriteIds?: Set<number>;
+  labelled?: boolean;
+  onToggle?: (id: number) => void;
+}) {
+  const { t } = useI18n();
+  const isFav = favouriteIds?.has(id) ?? false;
+  const label = isFav ? t("anilist.details.remove.fav") : t("anilist.details.add.fav");
+  const heart = (
+    <Heart
+      className={cn("size-4", isFav ? "fill-red-500 text-red-500" : "text-text")}
+    />
+  );
+  if (labelled) {
+    return (
+      <Button
+        variant="outline"
+        onClick={() => onToggle?.(id)}
+        title={label}
+        aria-label={label}
+        aria-pressed={isFav}
+      >
+        {heart}
+      </Button>
+    );
+  }
+  return (
+    <Button
+      size="icon"
+      className="size-5"
+      onClick={() => onToggle?.(id)}
+      title={label}
+      aria-label={label}
+      aria-pressed={isFav}
+    >
+      {heart}
+    </Button>
+  );
+}
 
 function AniListCharacterDetailModal({
   characterId: initialId,
   characterName: initialName,
   voiceActors: initialVAs,
+  isLoggedIn,
+  favouriteCharacterIds,
+  favouriteStaffIds,
+  onCharacterFavouriteToggle,
+  onStaffFavouriteToggle,
   onRelated,
   onClose,
 }: {
   characterId: number;
   characterName: string;
   voiceActors: AniVoiceActor[];
+  isLoggedIn: boolean;
+  favouriteCharacterIds?: Set<number>;
+  favouriteStaffIds?: Set<number>;
+  onCharacterFavouriteToggle?: (id: number) => void;
+  onStaffFavouriteToggle?: (id: number) => void;
   onRelated?: (id: number) => void;
   onClose: () => void;
 }) {
@@ -35,6 +96,7 @@ function AniListCharacterDetailModal({
     queryFn: () =>
       invokeTyped<AniCharacterMediaEdge[]>("get_character_media", {
         id: currentId,
+        ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
       }),
   });
 
@@ -43,6 +105,7 @@ function AniListCharacterDetailModal({
     queryFn: () =>
       invokeTyped<AniStaffDetail>("get_staff_characters", {
         id: selectedVa!.id,
+        ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
       }),
     enabled: view === "voiceActor" && !!selectedVa,
   });
@@ -64,7 +127,6 @@ function AniListCharacterDetailModal({
     setView("character");
     setSelectedVa(null);
   };
-
   const header = view === "voiceActor" && selectedVa ? selectedVa.name : currentName;
 
   return (
@@ -84,7 +146,16 @@ function AniListCharacterDetailModal({
               />
             )}
             <div className="flex flex-col gap-1">
-              <span className="windows95-text font-bold">{staffDetail.name}</span>
+              <div className="flex items-center gap-1">
+                <span className="windows95-text font-bold">{staffDetail.name}</span>
+                {isLoggedIn && selectedVa && (
+                  <PersonFavButton
+                    id={selectedVa.id}
+                    favouriteIds={favouriteStaffIds}
+                    onToggle={onStaffFavouriteToggle}
+                  />
+                )}
+              </div>
             </div>
           </div>
 
@@ -174,6 +245,16 @@ function AniListCharacterDetailModal({
             </div>
           ) : (
             <>
+              {isLoggedIn && (
+                <div>
+                  <PersonFavButton
+                    id={currentId}
+                    favouriteIds={favouriteCharacterIds}
+                    labelled
+                    onToggle={onCharacterFavouriteToggle}
+                  />
+                </div>
+              )}
               {currentVAs.length > 0 && (
                 <div>
                   <span className="windows95-text text-xs font-bold">

@@ -7,9 +7,11 @@ import { Button } from "@/components/ui/button.component";
 import { WIZARD_COVER_MAX } from "@/config/collection/defaults.config";
 import { generatePlaceholder } from "@/lib/collection/placeholder.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
+import { assetUrl } from "@/lib/utils/image.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { showError } from "@/lib/utils/notification.utils";
-import type { UserImage } from "@/types";
+import { useRemoteImage } from "@/hooks/remoteImage.hook";
+import type { UserImageFile } from "@/types";
 
 import { MemoCoverThumb } from "./coverThumb.wizard";
 
@@ -27,7 +29,7 @@ export function WizardCoverPanel({
   setCoverUrl: (url: string) => void;
   setCoverOptions: React.Dispatch<React.SetStateAction<string[]>>;
   title: string;
-  onUploadLocal?: (id: string, dataUrl: string) => void;
+  onUploadLocal?: (id: string, url: string) => void;
   onPreviewFailedChange?: (failed: boolean) => void;
 }) {
   const { t } = useI18n();
@@ -35,6 +37,7 @@ export function WizardCoverPanel({
   const [uploading, setUploading] = useState(false);
   const [previewState, setPreviewState] = useState({ url: "", failed: false });
   const previewFailed = previewState.url === coverUrl && previewState.failed;
+  const previewSrc = useRemoteImage(coverUrl || null);
 
   const uploadLocal = async () => {
     if (!onUploadLocal) return;
@@ -42,8 +45,8 @@ export function WizardCoverPanel({
     if (!selectedPath || Array.isArray(selectedPath)) return;
     setUploading(true);
     try {
-      const image = await invokeTyped<UserImage>("import_user_image", { path: selectedPath });
-      onUploadLocal(image.id, image.dataUrl);
+      const image = await invokeTyped<UserImageFile>("import_user_image", { path: selectedPath });
+      onUploadLocal(image.id, assetUrl(image.path));
     } catch {
       showError(t("common.error"), t("collection.wizard.upload.error"));
     } finally {
@@ -64,17 +67,25 @@ export function WizardCoverPanel({
         <span className="text-xs font-bold">
           {t("collection.wizard.pick.cover")} <span className="text-destructive">*</span>
         </span>
-        {coverUrl && !previewFailed && (
-          <img
-            src={coverUrl}
-            alt="selected"
-            className="windows95-border h-16 w-12 object-cover"
-            onError={() => {
-              setPreviewState({ url: coverUrl, failed: true });
-              onPreviewFailedChange?.(true);
-            }}
-          />
-        )}
+        {coverUrl ? (
+          <div className="h-16 w-12 shrink-0">
+            {!previewFailed && previewSrc ? (
+              <img
+                src={previewSrc}
+                alt="selected"
+                className="windows95-border h-full w-full object-cover"
+                onError={() => {
+                  setPreviewState({ url: coverUrl, failed: true });
+                  onPreviewFailedChange?.(true);
+                }}
+              />
+            ) : (
+              <div className="windows95-border flex h-full w-full items-center justify-center bg-white">
+                <span className="text-hint text-xs">-</span>
+              </div>
+            )}
+          </div>
+        ) : null}
         {previewFailed && (
           <span className="text-destructive text-xs">
             {t("collection.wizard.cover.invalid.url")}

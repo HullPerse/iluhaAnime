@@ -8,9 +8,11 @@ import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { Input } from "@/components/ui/input.component";
 import { hasFreshCachedProfile } from "@/lib/anilist/friends.utils";
+import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { enterSubmit } from "@/lib/utils/keyboard.utils";
+import { useSettingsStore } from "@/store/settings.store";
 import type { AniUserProfile } from "@/types/anilist";
 import type { AniFriendsProps as Props } from "@/types/anilist";
 
@@ -57,6 +59,7 @@ export default function AniListFriendsModal({ friends, onAdd, onRemove, onClose 
       const profile = await invokeTyped<AniUserProfile>("get_anilist_profile", {
         userId: id,
         userName: id === undefined ? input : undefined,
+        ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
       });
       setProfiles((current) => ({ ...current, [profile.id]: profile }));
       setSelectedId(profile.id);

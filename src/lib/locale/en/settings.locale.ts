@@ -42,8 +42,10 @@ const settings = {
   "settings.summary.backup": "Backup",
   "settings.summary.binaries": "Binaries",
   "settings.summary.learning": "Learning",
-  "settings.summary.model": "Model",
   "settings.summary.none": "none",
+  "settings.summary.images": "Images",
+  "settings.summary.images.clear": "Clear",
+  "settings.summary.images.confirm": "Clear the downloaded image cache? Images will re-download as you browse.",
   "settings.summary.open": "Open",
   "settings.summary.title": "Summary",
   "settings.search.default.source": "Default source",
@@ -77,9 +79,7 @@ const settings = {
   "settings.search.toggles": "Smart search toggles",
   "settings.search.toggles.hint": "All enabled by default. Disable to make search faster.",
   "settings.search.toggle.sym.spell": "Typo correction (SymSpell)",
-  "settings.search.toggle.semantic": "Semantic (TF-IDF)",
   "settings.search.toggle.intent": "Intent parser (year: studio:)",
-  "settings.fastembed.source": "Model source",
   "settings.search.reset.anime.suggestions": "Reset AniList suggestions",
   "settings.search.reset.anime.suggestions.hint":
     "Clears the local AniList title index; your search history stays.",
@@ -256,6 +256,16 @@ const settings = {
   "settings.tmdb.proxy.test.ok": "TMDB reachable",
   "settings.tmdb.proxy.test.fail": "Failed",
   "settings.search.proxy.per.source": "Proxy per source",
+  "settings.anilist.proxy.title": "AniList proxy",
+  "settings.anilist.proxy.url": "AniList proxy",
+  "settings.anilist.proxy.url.description":
+    "Optional. Use if graphql.anilist.co is blocked. Checks the site and fetches one anime through the proxy. Examples: socks5://127.0.0.1:10808 or http://127.0.0.1:7890.",
+  "settings.anilist.proxy.no": "No proxy",
+  "settings.anilist.proxy.custom": "Custom",
+  "settings.anilist.proxy.test": "Test connection",
+  "settings.anilist.proxy.testing": "Testing...",
+  "settings.anilist.proxy.test.ok": "AniList reachable",
+  "settings.anilist.proxy.test.fail": "Failed",
   "settings.search.proxy.per.source.hint":
     "A separate proxy for each enabled source. Use if a source is blocked. Applies to search, sign-in, details and downloads.",
   "settings.search.proxy.test.all": "Test all",
@@ -269,8 +279,6 @@ const settings = {
   "settings.ffmpeg.source.essentials": "gyan.dev (essentials, ~30 MB)",
   "settings.ffmpeg.source.github": "GitHub (BtbN, ~160 MB)",
   "settings.ffmpeg.source.mirror": "GitHub via mirror (gh-proxy)",
-  "settings.fastembed.source.q": "Quantized Q (30MB)",
-  "settings.fastembed.source.full": "Full (80MB)",
   "settings.ffmpeg.source.hint":
     "Where to download FFmpeg binaries: Essentials has playback codecs only, Full has all encoders.",
   "settings.anilist.release.notifications.hint":
@@ -283,15 +291,8 @@ const settings = {
   "settings.search.anilist.max.pages.hint": "Maximum pages to fetch from AniList.",
   "settings.search.toggle.sym.spell.hint":
     "Fixes typos: friren -> frieren. Dictionary built from your anime and history, works offline.",
-  "settings.search.toggle.semantic.hint":
-    "Searches by meaning (TF-IDF, no model): time travel -> Steins;Gate, even if the title doesn't contain those words.",
   "settings.search.toggle.intent.hint":
     "Parses filters right in the query: year:2024 studio:MAPPA genre:isekai - no need to open filters.",
-  "settings.search.fastembed.info.title": "What is the fastembed model?",
-  "settings.search.fastembed.info.description":
-    '30MB quantized (Q) or 80MB full. Encodes meaning, finds "similar by description", not just by letters. Offline after download, no data sent. Choose Q (faster) or Full (more accurate) above.',
-  "settings.search.fastembed.info.hint":
-    "Neural model that searches by meaning, not letters (30MB quantized). Downloads once from Hugging Face, then works offline and sends nothing.",
 } as const;
 
 export default settings;

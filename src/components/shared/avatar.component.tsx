@@ -2,16 +2,16 @@ import { cn } from "cn";
 import { useEffect, useState } from "react";
 import type { MouseEventHandler } from "react";
 
-import { userImageId } from "@/lib/utils/image.utils";
+import { assetUrl, userImageId } from "@/lib/utils/image.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
-import type { UserImage } from "@/types";
+import type { UserImageFile } from "@/types";
 
 interface UserImageIconProps {
   icon: string;
   alt?: string;
   className?: string;
   fallback?: string;
-  dataUrl?: string;
+  url?: string;
   onClick?: MouseEventHandler<HTMLImageElement>;
 }
 
@@ -20,30 +20,30 @@ export default function UserImageIcon({
   alt = "",
   className,
   fallback = "/images/user_avatar.ico",
-  dataUrl,
+  url,
   onClick,
 }: UserImageIconProps) {
   const id = userImageId(icon);
   const inlineDataUrl = icon.startsWith("data:image/") ? icon : undefined;
-  const [src, setSrc] = useState(dataUrl ?? inlineDataUrl ?? "");
+  const [src, setSrc] = useState(url ?? inlineDataUrl ?? "");
 
   useEffect(() => {
     let active = true;
     if (!id) {
-      setSrc(dataUrl ?? inlineDataUrl ?? "");
+      setSrc(url ?? inlineDataUrl ?? "");
       return () => {
         active = false;
       };
     }
-    if (dataUrl) {
-      setSrc(dataUrl);
+    if (url) {
+      setSrc(url);
       return () => {
         active = false;
       };
     }
-    invokeTyped<UserImage>("get_user_image", { id })
+    invokeTyped<UserImageFile>("get_user_image", { id })
       .then((image) => {
-        if (active) setSrc(image.dataUrl);
+        if (active) setSrc(assetUrl(image.path));
       })
       .catch(() => {
         if (active) setSrc("");
@@ -51,7 +51,7 @@ export default function UserImageIcon({
     return () => {
       active = false;
     };
-  }, [dataUrl, id, inlineDataUrl]);
+  }, [url, id, inlineDataUrl]);
 
   if (!id && !inlineDataUrl && !icon.includes(".")) {
     return (

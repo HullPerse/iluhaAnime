@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { cn } from "cn";
 import { useState } from "react";
 
 import Pagination from "@/components/shared/pagination.component";
@@ -6,10 +7,13 @@ import Section from "@/components/shared/section.component";
 import ImageComponent from "@/components/ui/image.component";
 import { CHAR_PAGE_SIZE } from "@/config/anilist/pagination.config";
 import { usePagination } from "@/hooks/pagination.hook";
+import { useFavPeopleCharacterSet } from "@/hooks/anilist/people.hook";
+import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { enterOrSpace } from "@/lib/utils/keyboard.utils";
 import { paginate } from "@/lib/utils/pagination.utils";
+import { useSettingsStore } from "@/store/settings.store";
 import type { AniCharacterEdge, AniVoiceActor } from "@/types/anilist";
 
 function AniListCharactersPanel({
@@ -22,6 +26,7 @@ function AniListCharactersPanel({
   const { t } = useI18n();
   const [showCharacters, setShowCharacters] = useState<boolean>(false);
   const [charPage, setCharPage] = useState(1);
+  const favCharacterIds = useFavPeopleCharacterSet();
 
   const { data, isLoading } = useQuery({
     queryKey: ["anime_characters", animeId],
@@ -29,6 +34,7 @@ function AniListCharactersPanel({
       invokeTyped<AniCharacterEdge[]>("get_anime_characters", {
         id: animeId,
         page: 1,
+        ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
       }),
   });
 
@@ -70,10 +76,22 @@ function AniListCharactersPanel({
             <ImageComponent
               src={edge.character.image}
               alt="character.image"
-              className="windows95-active-border h-20 w-14 object-cover"
+              className={cn(
+                "h-20 w-14 object-cover",
+                favCharacterIds.has(edge.character.id)
+                  ? "windows95-fav-border"
+                  : "windows95-active-border"
+              )}
             />
           ) : (
-            <div className="windows95-active-border flex h-12 w-10 items-center justify-center bg-white text-xs font-bold">
+            <div
+              className={cn(
+                "flex h-12 w-10 items-center justify-center bg-white text-xs font-bold",
+                favCharacterIds.has(edge.character.id)
+                  ? "windows95-fav-border"
+                  : "windows95-active-border"
+              )}
+            >
               ?
             </div>
           )}

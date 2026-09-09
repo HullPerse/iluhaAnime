@@ -1,24 +1,26 @@
 import { useCallback, useEffect, useState } from "react";
 
+import { assetUrl, isDirectImageSrc } from "@/lib/utils/image.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { createLruCache } from "@/lib/utils/lruCache.utils";
+import { useSettingsStore } from "@/store/settings.store";
+import type { UserImageFile } from "@/types";
 
 export const COVER_CACHE_CAPACITY = 200;
 
-const coverCache = createLruCache<string, { dataUrl: string; blobId: string }>(
-  COVER_CACHE_CAPACITY
-);
+const coverCache = createLruCache<string, { url: string; blobId: string }>(COVER_CACHE_CAPACITY);
 const imageDataCache = createLruCache<string, string>(COVER_CACHE_CAPACITY);
 
 async function resolveCachedImage(blobId: string): Promise<string | null> {
   const cached = imageDataCache.get(blobId);
   if (cached) return cached;
   try {
-    const image = await invokeTyped<{ dataUrl: string }>("get_user_image", {
+    const image = await invokeTyped<UserImageFile>("get_user_image", {
       id: blobId,
     });
-    imageDataCache.set(blobId, image.dataUrl);
-    return image.dataUrl;
+    const url = assetUrl(image.path);
+    imageDataCache.set(blobId, url);
+    return url;
   } catch {
     return null;
   }
@@ -26,18 +28,29 @@ async function resolveCachedImage(blobId: string): Promise<string | null> {
 
 const inflightCoverDownloads = new Map<string, Promise<string | null>>();
 
-function downloadCover(remoteUrl: string): Promise<string | null> {
+/** Called after the backend cache is wiped so stale disk paths stop resolving. */
+export function resetCoverCache(): void {
+  coverCache.clear();
+  imageDataCache.clear();
+  inflightCoverDownloads.clear();
+}
+
+function downloadCover(remoteUrl: string, proxyUrl: string | null): Promise<string | null> {
   const cached = coverCache.get(remoteUrl);
-  if (cached) return Promise.resolve(cached.dataUrl);
+  if (cached) return Promise.resolve(cached.url);
   const inflight = inflightCoverDownloads.get(remoteUrl);
   if (inflight) return inflight;
-  const request = invokeTyped<{ id: string; dataUrl: string }>("download_remote_image", {
+  // proxyUrl is required for tmdb images: without it the WebView loads image.tmdb.org
+  // directly, which refuses cross-origin/desktop requests and the cover disappears.
+  const request = invokeTyped<UserImageFile>("download_remote_image", {
     url: remoteUrl,
     nameHint: "collection-cover",
+    proxyUrl,
   }).then(
     (img) => {
-      coverCache.set(remoteUrl, { dataUrl: img.dataUrl, blobId: img.id });
-      return img.dataUrl;
+      const url = assetUrl(img.path);
+      coverCache.set(remoteUrl, { url, blobId: img.id });
+      return url;
     },
     () => remoteUrl
   );
@@ -57,61 +70,70 @@ export function useCoverCache(
   cachedUrl: string | null;
   cache: () => Promise<string | null>;
 } {
-  const [dataUrl, setDataUrl] = useState<string | null>(
+  const [coverUrl, setCoverUrl] = useState<string | null>(
     (blobId && (imageDataCache.peek(blobId) ?? null)) ||
-      (remoteUrl ? (coverCache.peek(remoteUrl)?.dataUrl ?? null) : null)
+      (remoteUrl ? (coverCache.peek(remoteUrl)?.url ?? null) : null)
   );
+  const tmdbProxyUrl = useSettingsStore((s) => s.tmdbProxyUrl);
 
   useEffect(() => {
-    if (blobId) {
-      let cancelled = false;
-      resolveCachedImage(blobId).then((resolved) => {
-        if (!cancelled && resolved) setDataUrl(resolved);
-      });
-      return () => {
-        cancelled = true;
-      };
-    }
-    if (!remoteUrl) {
-      setDataUrl(null);
-      return;
-    }
-    const cached = coverCache.get(remoteUrl);
-    if (cached) {
-      setDataUrl(cached.dataUrl);
-      return;
-    }
-    if (remoteUrl.startsWith("data:") || remoteUrl.startsWith("/")) {
-      setDataUrl(remoteUrl);
-      return;
-    }
     let cancelled = false;
-    downloadCover(remoteUrl).then((url) => {
-      if (!cancelled && url) setDataUrl(url);
-    });
+    const fromRemote = () => {
+      if (!remoteUrl) {
+        setCoverUrl(null);
+        return;
+      }
+      const cached = coverCache.get(remoteUrl);
+      if (cached) {
+        setCoverUrl(cached.url);
+        return;
+      }
+      if (isDirectImageSrc(remoteUrl)) {
+        setCoverUrl(remoteUrl);
+        return;
+      }
+      downloadCover(remoteUrl, tmdbProxyUrl).then((url) => {
+        if (!cancelled && url) setCoverUrl(url);
+      });
+    };
+    if (blobId) {
+      resolveCachedImage(blobId).then((resolved) => {
+        if (cancelled) return;
+        if (resolved) {
+          setCoverUrl(resolved);
+          return;
+        }
+        // Stored file gone (wiped or moved): fall back to the remote cover and re-cache it.
+        fromRemote();
+      });
+    } else {
+      fromRemote();
+    }
     return () => {
       cancelled = true;
     };
-  }, [blobId, remoteUrl]);
+  }, [blobId, remoteUrl, tmdbProxyUrl]);
 
   const cache = useCallback(async () => {
-    if (!remoteUrl || remoteUrl.startsWith("data:") || remoteUrl.startsWith("/")) {
+    if (!remoteUrl || isDirectImageSrc(remoteUrl)) {
       return null;
     }
     const cached = coverCache.get(remoteUrl);
     if (cached) return cached.blobId;
     try {
-      const img = await invokeTyped<{ id: string; dataUrl: string }>("download_remote_image", {
+      const img = await invokeTyped<UserImageFile>("download_remote_image", {
         url: remoteUrl,
         nameHint: "collection-cover",
+        proxyUrl: tmdbProxyUrl,
       });
-      coverCache.set(remoteUrl, { dataUrl: img.dataUrl, blobId: img.id });
-      setDataUrl(img.dataUrl);
+      const url = assetUrl(img.path);
+      coverCache.set(remoteUrl, { url, blobId: img.id });
+      setCoverUrl(url);
       return img.id;
     } catch {
       return null;
     }
-  }, [remoteUrl]);
+  }, [remoteUrl, tmdbProxyUrl]);
 
-  return { cachedUrl: dataUrl, cache };
+  return { cachedUrl: coverUrl, cache };
 }

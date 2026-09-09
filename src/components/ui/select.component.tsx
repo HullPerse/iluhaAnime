@@ -17,6 +17,7 @@ function Select({
   disabled,
   searchable,
   indexed = false,
+  label,
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -31,6 +32,7 @@ function Select({
   disabled?: boolean;
   searchable?: boolean;
   indexed?: boolean;
+  label?: string;
 }) {
   const { t } = useI18n();
   const [search, setSearch] = useState("");
@@ -64,6 +66,7 @@ function Select({
       disabled={disabled}
     >
       <BaseSelect.Trigger
+        aria-label={label}
         className={cn(
           "windows95-border text-text windows95-text flex min-h-(--ui-control-height) w-full flex-row items-center bg-white px-1",
           disabled ? "cursor-default opacity-50" : "cursor-pointer",

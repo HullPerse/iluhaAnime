@@ -1,6 +1,6 @@
 [package]
 name = "iluhaAnime"
-version = "4.0.1"
+version = "4.0.2"
 description = "Anime Tracker and Player"
 authors = ["HullPerse"]
 edition = "2021"
@@ -63,6 +63,7 @@ tauri-plugin-window-state = "2"
 sysinfo = "0.39"
 tauri-plugin-deep-link = "2"
 tauri-plugin-single-instance = "2"
+image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
 [target.'cfg(windows)'.dependencies]
 webview2-com = "0.38"
 windows-core = "0.61"

@@ -173,6 +173,63 @@ fn now_seconds() -> i64 {
 fn content_id(bytes: &[u8]) -> String {
     hex::encode(Sha1::digest(bytes))[..20].to_string()
 }
+const THUMB_W: u32 = 336;
+const THUMB_PREFIX: &str = "t336_";
+
+fn thumb_id(id: &str) -> String {
+    if id.starts_with(THUMB_PREFIX) {
+        id.to_string()
+    } else {
+        format!("{THUMB_PREFIX}{id}")
+    }
+}
+
+fn make_thumb336(bytes: &[u8]) -> Option<Vec<u8>> {
+    let mime_type = image_mime(bytes, None)?;
+    if mime_type != "image/png" && mime_type != "image/jpeg" {
+        return None;
+    }
+    let image = image::load_from_memory(bytes).ok()?;
+    let resized = if image.width() > THUMB_W {
+        let height = (u64::from(image.height()) * u64::from(THUMB_W) / u64::from(image.width()))
+            .max(1) as u32;
+        image.resize(THUMB_W, height, image::imageops::FilterType::Triangle)
+    } else {
+        image
+    };
+    let rgb = image::DynamicImage::ImageRgb8(resized.to_rgb8());
+    let mut out = Vec::new();
+    image::codecs::jpeg::JpegEncoder::new_with_quality(&mut out, 80)
+        .encode_image(&rgb)
+        .ok()?;
+    if out.is_empty() {
+        return None;
+    }
+    Some(out)
+}
+
+fn ensure_thumb(conn: &Connection, dir: &Path, id: &str, name: &str, orig_bytes: &[u8]) {
+    if id.starts_with(THUMB_PREFIX) {
+        return;
+    }
+    let Some(thumb) = make_thumb336(orig_bytes) else {
+        return;
+    };
+    let tid = thumb_id(id);
+    let _ = write_image_file(dir, &format!("{tid}.jpg"), &thumb);
+    let _ = conn.execute(
+        "INSERT OR IGNORE INTO user_images (id, name, mime_type, created_at) VALUES (?1, ?2, 'image/jpeg', ?3)",
+        params![tid, name, now_seconds()],
+    );
+}
+fn remote_thumb_file(dir: &Path, id: &str) -> PathBuf {
+    dir.join(format!("{}.jpg", thumb_id(id)))
+}
+
+fn write_remote_thumb(dir: &Path, id: &str, orig_bytes: &[u8]) -> Option<PathBuf> {
+    let thumb = make_thumb336(orig_bytes)?;
+    write_image_file(dir, &format!("{}.jpg", thumb_id(id)), &thumb).ok()
+}
 
 fn write_image_file(dir: &Path, file_name: &str, bytes: &[u8]) -> Result<PathBuf, String> {
     fs::create_dir_all(dir).map_err(|e| format!("create image dir: {e}"))?;
@@ -305,7 +362,8 @@ pub fn import_user_image(app: tauri::AppHandle, path: String) -> Result<UserImag
         .collect::<String>();
     let dir = images_dir(&app, USER_IMAGES_TABLE)?;
     let conn = open_database(&app)?;
-    import_image_bytes(&dir, &conn, USER_IMAGES_TABLE, &data, name)?;
+    import_image_bytes(&dir, &conn, USER_IMAGES_TABLE, &data, name.clone())?;
+    ensure_thumb(&conn, &dir, &content_id(&data), &name, &data);
     get_user_image(app, content_id(&data))
 }
 
@@ -382,7 +440,8 @@ pub async fn download_remote_image(
     );
     let dir = images_dir(&app, USER_IMAGES_TABLE)?;
     let conn = open_database(&app)?;
-    import_image_bytes(&dir, &conn, USER_IMAGES_TABLE, &data, name)?;
+    import_image_bytes(&dir, &conn, USER_IMAGES_TABLE, &data, name.clone())?;
+    ensure_thumb(&conn, &dir, &content_id(&data), &name, &data);
     get_user_image(app, content_id(&data))
 }
 
@@ -394,7 +453,16 @@ fn lookup_remote_image(dir: &Path, conn: &Connection, url: &str) -> Option<UserI
             |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
         )
         .ok()?;
-    user_image_from_row(id, name, mime_type, dir).ok()
+    let image = user_image_from_row(id.clone(), name, mime_type, dir).ok()?;
+    let thumb = remote_thumb_file(dir, &id);
+    if thumb.is_file() {
+        return Some(UserImage {
+            path: thumb.to_string_lossy().into_owned(),
+            mime_type: "image/jpeg".to_string(),
+            ..image
+        });
+    }
+    Some(image)
 }
 
 fn evict_remote_image_cache(dir: &Path, conn: &Connection, cap: i64) -> Result<(), String> {
@@ -411,6 +479,7 @@ fn evict_remote_image_cache(dir: &Path, conn: &Connection, cap: i64) -> Result<(
         conn.execute("DELETE FROM remote_images WHERE id = ?1", params![id])
             .map_err(|e| format!("remote image cache prune: {e}"))?;
         remove_image_files(dir, &[format!("{id}.{}", mime_ext(mime_type))]);
+        remove_image_files(dir, &[format!("{}.jpg", thumb_id(id))]);
     }
     Ok(())
 }
@@ -467,6 +536,17 @@ pub async fn fetch_remote_image(
     )
     .map_err(|e| format!("save cached image: {e}"))?;
     evict_remote_image_cache(&dir, &conn, REMOTE_IMAGE_CACHE_CAP)?;
+    if let Some(thumb_path) = write_remote_thumb(&dir, &id, &data) {
+        return Ok(UserImage {
+            id: id.clone(),
+            name: "remote-image".to_string(),
+            path: thumb_path.to_string_lossy().into_owned(),
+            original_path: None,
+            mime_type: "image/jpeg".to_string(),
+            created_at: 0,
+            dither_options: None,
+        });
+    }
     user_image_from_row(id, "remote-image".into(), mime_type.to_string(), &dir)
 }
 
@@ -502,10 +582,11 @@ fn clear_remote_images(dir: &Path, conn: &Connection) -> Result<usize, String> {
         .map_err(|e| format!("remote images scan: {e}"))?
         .collect::<Result<Vec<(String, String)>, _>>()
         .map_err(|e| format!("remote images scan: {e}"))?;
-    let names: Vec<String> = rows
-        .iter()
-        .map(|(id, mime)| format!("{id}.{}", mime_ext(mime)))
-        .collect();
+    let mut names: Vec<String> = Vec::new();
+    for (id, mime) in &rows {
+        names.push(format!("{id}.{}", mime_ext(mime)));
+        names.push(format!("{}.jpg", thumb_id(id)));
+    }
     remove_image_files(dir, &names);
     conn.execute("DELETE FROM remote_images", [])
         .map_err(|e| format!("remote images clear: {e}"))?;
@@ -553,40 +634,69 @@ pub fn list_user_images(app: tauri::AppHandle) -> Result<Vec<UserImage>, String>
         .collect())
 }
 
+fn load_user_image(conn: &Connection, dir: &Path, id: &str) -> Result<UserImage, String> {
+    let (row_id, name, mime_type, created_at): (String, String, String, i64) = conn
+        .query_row(
+            "SELECT id, name, mime_type, created_at FROM user_images WHERE id = ?1",
+            params![id],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+        )
+        .map_err(|_| format!("image not found: {id}"))?;
+    let original = user_image_from_row(row_id.clone(), name.clone(), mime_type, dir)
+        .map(|image| fill_created_at(image, created_at))?;
+    if row_id.starts_with(THUMB_PREFIX) {
+        return Ok(original);
+    }
+    let thumb_path = dir.join(format!("{}.jpg", thumb_id(&row_id)));
+    if !thumb_path.is_file() {
+        if let Ok(bytes) = fs::read(&original.path) {
+            ensure_thumb(conn, dir, &row_id, &name, &bytes);
+        }
+    }
+    if thumb_path.is_file() {
+        Ok(UserImage {
+            path: thumb_path.to_string_lossy().into_owned(),
+            mime_type: "image/jpeg".to_string(),
+            ..original
+        })
+    } else {
+        Ok(original)
+    }
+}
+
 #[tauri::command]
 pub fn get_user_image(app: tauri::AppHandle, id: String) -> Result<UserImage, String> {
     let dir = images_dir(&app, USER_IMAGES_TABLE)?;
     let conn = open_database(&app)?;
-    conn.query_row(
-        "SELECT id, name, mime_type, created_at FROM user_images WHERE id = ?1",
-        params![id],
-        |row| {
-            Ok((
-                row.get::<_, String>(0)?,
-                row.get::<_, String>(1)?,
-                row.get::<_, String>(2)?,
-                row.get::<_, i64>(3)?,
-            ))
-        },
-    )
-    .map_err(|_| format!("image not found: {id}"))
-    .and_then(|(id, name, mime_type, created_at)| {
-        user_image_from_row(id, name, mime_type, &dir)
-            .map(|image| fill_created_at(image, created_at))
-    })
+    load_user_image(&conn, &dir, &id)
+}
+
+fn remove_user_image(conn: &Connection, dir: &Path, id: &str) -> Result<(), String> {
+    let changed = conn
+        .execute("DELETE FROM user_images WHERE id = ?1", params![id])
+        .map_err(|e| format!("delete image: {e}"))?;
+    let tid = thumb_id(id);
+    let thumb_changed = if tid == id {
+        0
+    } else {
+        conn.execute("DELETE FROM user_images WHERE id = ?1", params![tid])
+            .map_err(|e| format!("delete image: {e}"))?
+    };
+    if changed + thumb_changed > 0 {
+        let mut names = data_file_names(id);
+        if tid != id {
+            names.extend(data_file_names(&tid));
+        }
+        remove_image_files(dir, &names);
+    }
+    Ok(())
 }
 
 #[tauri::command]
 pub fn delete_user_image(app: tauri::AppHandle, id: String) -> Result<(), String> {
     let dir = images_dir(&app, USER_IMAGES_TABLE)?;
     let conn = open_database(&app)?;
-    let changed = conn
-        .execute("DELETE FROM user_images WHERE id = ?1", params![id])
-        .map_err(|e| format!("delete image: {e}"))?;
-    if changed > 0 {
-        remove_image_files(&dir, &data_file_names(&id));
-    }
-    Ok(())
+    remove_user_image(&conn, &dir, &id)
 }
 
 fn dither_data_file(id: &str, mime_type: &str) -> String {
@@ -1196,6 +1306,122 @@ mod tests {
         }
         assert!(dir.exists());
         assert_eq!(clear_remote_images(&dir, &db).expect("clear again"), 0);
+        drop(db);
+        std::fs::remove_dir_all(&root).expect("cleanup");
+    }
+    fn real_png_bytes(width: u32, height: u32) -> Vec<u8> {
+        let img = image::RgbImage::from_fn(width, height, |x, y| {
+            image::Rgb([(x % 256) as u8, (y % 256) as u8, 128])
+        });
+        let mut cursor = std::io::Cursor::new(Vec::new());
+        image::DynamicImage::ImageRgb8(img)
+            .write_to(&mut cursor, image::ImageFormat::Png)
+            .expect("encode png");
+        cursor.into_inner()
+    }
+
+    fn real_jpeg_bytes(width: u32, height: u32) -> Vec<u8> {
+        let img = image::RgbImage::from_fn(width, height, |x, y| {
+            image::Rgb([(y % 256) as u8, (x % 256) as u8, 64])
+        });
+        let mut cursor = std::io::Cursor::new(Vec::new());
+        image::DynamicImage::ImageRgb8(img)
+            .write_to(&mut cursor, image::ImageFormat::Jpeg)
+            .expect("encode jpeg");
+        cursor.into_inner()
+    }
+
+    fn thumb_dims(bytes: &[u8]) -> (u32, u32) {
+        let img = image::load_from_memory(bytes).expect("decode thumb");
+        (img.width(), img.height())
+    }
+
+    #[test]
+    fn thumb_id_prefixes_once() {
+        assert_eq!(thumb_id("abc123"), "t336_abc123");
+        assert_eq!(thumb_id("t336_abc123"), "t336_abc123");
+    }
+
+    #[test]
+    fn make_thumb336_keeps_small_png_dimensions_as_jpeg() {
+        let thumb = make_thumb336(&real_png_bytes(100, 60)).expect("thumb");
+        assert_eq!(&thumb[0..3], &[0xFF, 0xD8, 0xFF]);
+        assert_eq!(thumb_dims(&thumb), (100, 60));
+    }
+
+    #[test]
+    fn make_thumb336_resizes_wide_jpeg_to_336() {
+        let thumb = make_thumb336(&real_jpeg_bytes(800, 400)).expect("thumb");
+        assert_eq!(&thumb[0..3], &[0xFF, 0xD8, 0xFF]);
+        assert_eq!(thumb_dims(&thumb), (336, 168));
+    }
+
+    #[test]
+    fn make_thumb336_rejects_gif_and_garbage() {
+        assert!(make_thumb336(b"GIF89a\x01\x00\x01\x00\x80\x00\x00").is_none());
+        assert!(make_thumb336(b"definitely not image bytes").is_none());
+    }
+
+    #[test]
+    fn store_plus_prefer_roundtrip_serves_thumb() {
+        let root = temp_root("thumb_roundtrip");
+        let db = open_database_at(&root.join("user_assets.sqlite3")).expect("db");
+        let dir = root.join("images").join(USER_IMAGES_TABLE);
+        let bytes = real_png_bytes(800, 400);
+        let id = content_id(&bytes);
+        import_image_bytes(&dir, &db, USER_IMAGES_TABLE, &bytes, "wide.png".into())
+            .expect("import");
+        ensure_thumb(&db, &dir, &id, "wide.png", &bytes);
+        let tid = thumb_id(&id);
+        assert!(dir.join(format!("{tid}.jpg")).is_file());
+        let served = load_user_image(&db, &dir, &id).expect("load");
+        assert_eq!(served.id, id);
+        assert!(served.path.ends_with(&format!("{tid}.jpg")));
+        assert_eq!(served.mime_type, "image/jpeg");
+        let count: i64 = db
+            .query_row("SELECT COUNT(*) FROM user_images", [], |row| row.get(0))
+            .expect("count");
+        assert_eq!(count, 2);
+        drop(db);
+        std::fs::remove_dir_all(&root).expect("cleanup");
+    }
+
+    #[test]
+    fn read_repair_creates_missing_thumb_for_legacy_row() {
+        let root = temp_root("thumb_repair");
+        let db = open_database_at(&root.join("user_assets.sqlite3")).expect("db");
+        let dir = root.join("images").join(USER_IMAGES_TABLE);
+        let bytes = real_jpeg_bytes(200, 100);
+        let id = content_id(&bytes);
+        import_image_bytes(&dir, &db, USER_IMAGES_TABLE, &bytes, "legacy.jpg".into())
+            .expect("import");
+        let tid = thumb_id(&id);
+        assert!(!dir.join(format!("{tid}.jpg")).exists());
+        let served = load_user_image(&db, &dir, &id).expect("load");
+        assert!(served.path.ends_with(&format!("{tid}.jpg")));
+        assert!(dir.join(format!("{tid}.jpg")).is_file());
+        drop(db);
+        std::fs::remove_dir_all(&root).expect("cleanup");
+    }
+
+    #[test]
+    fn delete_removes_image_and_thumb_files_and_rows() {
+        let root = temp_root("thumb_delete");
+        let db = open_database_at(&root.join("user_assets.sqlite3")).expect("db");
+        let dir = root.join("images").join(USER_IMAGES_TABLE);
+        let bytes = real_png_bytes(400, 300);
+        let id = content_id(&bytes);
+        import_image_bytes(&dir, &db, USER_IMAGES_TABLE, &bytes, "art.png".into()).expect("import");
+        ensure_thumb(&db, &dir, &id, "art.png", &bytes);
+        let tid = thumb_id(&id);
+        assert!(dir.join(format!("{id}.png")).is_file());
+        assert!(dir.join(format!("{tid}.jpg")).is_file());
+        remove_user_image(&db, &dir, &id).expect("delete");
+        let count: i64 = db
+            .query_row("SELECT COUNT(*) FROM user_images", [], |row| row.get(0))
+            .expect("count");
+        assert_eq!(count, 0);
+        assert_eq!(std::fs::read_dir(&dir).expect("dir").count(), 0);
         drop(db);
         std::fs::remove_dir_all(&root).expect("cleanup");
     }

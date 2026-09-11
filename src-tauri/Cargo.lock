@@ -2658,7 +2658,7 @@ dependencies = [
 
 [[package]]
 name = "iluhaAnime"
-version = "4.0.1"
+version = "4.0.2"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -2667,6 +2667,7 @@ dependencies = [
  "flate2",
  "futures",
  "hex 0.4.3",
+ "image",
  "keyring",
  "librqbit",
  "librqbit-bencode",
@@ -2721,6 +2722,8 @@ dependencies = [
  "num-traits",
  "png 0.18.1",
  "tiff",
+ "zune-core",
+ "zune-jpeg",
 ]
 
 [[package]]

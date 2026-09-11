@@ -43,6 +43,9 @@ export function useCollectionMetadata(
       const mergedGenres = mergeGenreTags(m.genres ?? [], m.tags ?? []);
       const nextDescription = m.description || item.description || null;
       const anilistId = item.externalIds.anilist;
+      const nextCoverUrl = m.cover_url ?? item.coverUrl;
+      const coverChanged =
+        nextCoverUrl !== item.coverUrl && (item.coverBlobId != null || item.thumbBlobId != null);
       const [characters, staff] = anilistId
         ? await Promise.all([
             invokeTyped<AniCharacterEdge[]>("get_anime_characters", {
@@ -65,7 +68,8 @@ export function useCollectionMetadata(
           progressTotal: m.episodes ?? item.progressTotal,
           genres: mergedGenres.length ? mergedGenres : item.genres,
           studio: m.studios[0]?.name ?? item.studio,
-          coverUrl: m.cover_url ?? item.coverUrl,
+          coverUrl: nextCoverUrl,
+          ...(coverChanged ? { coverBlobId: null, thumbBlobId: null } : {}),
           year: m.season_year ?? item.year,
           releaseDate: m.start_date ?? item.releaseDate,
           detailsJson: {
@@ -110,6 +114,9 @@ export function useCollectionMetadata(
         mediaType: item.type === "movie" ? "movie" : "tv",
         proxyUrl: tmdbProxyUrl || undefined,
       });
+      const nextCoverUrl = d.posters[0]?.url ?? item.coverUrl;
+      const coverChanged =
+        nextCoverUrl !== item.coverUrl && (item.coverBlobId != null || item.thumbBlobId != null);
       updateItem(
         item.id,
         {
@@ -119,7 +126,8 @@ export function useCollectionMetadata(
           releaseDate: d.release_date ?? item.releaseDate,
           durationMinutes: d.runtimeMinutes ?? item.durationMinutes,
           genres: d.genres.length ? d.genres : item.genres,
-          coverUrl: d.posters[0]?.url ?? item.coverUrl,
+          coverUrl: nextCoverUrl,
+          ...(coverChanged ? { coverBlobId: null, thumbBlobId: null } : {}),
         },
         { touch: false }
       );

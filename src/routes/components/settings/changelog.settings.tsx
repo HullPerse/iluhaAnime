@@ -6,7 +6,7 @@ import type { ChangelogEntry } from "@/types/settings";
 
 export function SettingsChangelog() {
   const { t } = useI18n();
-  const [open, setOpen] = useState<Record<string, boolean>>({ "4.0.1": true });
+  const [open, setOpen] = useState<Record<string, boolean>>({ "4.0.2": true });
   return (
     <div className="flex flex-col gap-1">
       {CHANGELOG.map((entry) => {

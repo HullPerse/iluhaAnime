@@ -1,3 +1,4 @@
+import changelog404 from "./changelog/v4_0_4.ru";
 import changelog403 from "./changelog/v4_0_3.ru";
 import changelog402 from "./changelog/v4_0_2.ru";
 import changelog401 from "./changelog/v4_0_1.ru";
@@ -14,6 +15,7 @@ import updater from "./ru/updater.locale";
 
 const ru = {
   ...anilist,
+  ...changelog404,
   ...changelog403,
   ...changelog402,
   ...changelog401,

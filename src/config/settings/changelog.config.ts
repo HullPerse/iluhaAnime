@@ -14,6 +14,12 @@ function entry(key: TranslationKey, scope: ChangelogScope): ChangelogEntry {
 
 export const CHANGELOG: ChangelogVersion[] = [
   {
+    version: "4.0.4",
+    added: [entry("changelog.4_0_4.added.friend_scores", "anilist")],
+    changed: [entry("changelog.4_0_4.changed.friends_modal", "anilist")],
+    fixed: [entry("changelog.4_0_4.fixed.youtube_build", "anilist")],
+  },
+  {
     version: "4.0.3",
     added: [
       entry("changelog.4_0_3.added.torrent_links", "torrents"),

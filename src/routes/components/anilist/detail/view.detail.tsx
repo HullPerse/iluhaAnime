@@ -14,6 +14,7 @@ import { DetailHeaderActions } from "./actions.detail";
 import AniListCharacterDetailModal from "./character.detail";
 import AniListCharactersPanel from "./characters.detail";
 import AniListActionControls from "./controls.detail";
+import { FriendsScoresSection } from "./friendsScores.detail";
 import { GenresTagsSection } from "./genres.detail";
 import AniListMetadata from "./metadata.detail";
 import FranchiseGraphSection from "./section.detail";
@@ -154,6 +155,8 @@ export function AniListDetailView({
       )}
 
       <SimilarSection animeId={anime.id} relations={anime.relations} onRelated={onRelated} />
+
+      <FriendsScoresSection animeId={anime.id} />
 
       <AniListActionControls
         anime={anime}

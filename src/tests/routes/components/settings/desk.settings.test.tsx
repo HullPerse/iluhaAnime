@@ -114,11 +114,11 @@ describe("SettingsChangelog", () => {
   it("renders collapsible versions with categorized entries", async () => {
     const user = userEvent.setup();
     render(<SettingsChangelog />);
-    expect(screen.getByText("4.0.3")).toBeDefined();
-    expect(screen.getByText(/Изменено|Changed/)).toBeDefined();
-    await user.click(screen.getByRole("button", { name: /4\.0\.3/ }));
-    expect(screen.queryByText(/Изменено|Changed/)).toBeNull();
-    await user.click(screen.getByRole("button", { name: /4\.0\.3/ }));
+    expect(screen.getByText("4.0.4")).toBeDefined();
+    expect(screen.getByText(/Добавлено|Added/)).toBeDefined();
+    await user.click(screen.getByRole("button", { name: /4\.0\.4/ }));
+    expect(screen.queryByText(/Добавлено|Added/)).toBeNull();
+    await user.click(screen.getByRole("button", { name: /4\.0\.4/ }));
   });
   it("prefixes every entry with its area scope", () => {
     render(<SettingsChangelog />);
@@ -127,6 +127,6 @@ describe("SettingsChangelog", () => {
     for (const row of rows) {
       expect(row.textContent).toMatch(/\[.+\]:/);
     }
-    expect(screen.getAllByText(/Коллекция|Collection/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/AniList/).length).toBeGreaterThan(0);
   });
 });

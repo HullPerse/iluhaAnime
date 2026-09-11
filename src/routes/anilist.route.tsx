@@ -480,7 +480,6 @@ function AnilistRoute() {
         onAddFriend={handleAddFriend}
         onRemoveFriend={removeFriend}
         onFriendsClose={() => setShowFriends(false)}
-        onFriendsAnime={openAnimeFromLookup}
         favourites={favourites}
         onFavouritesClose={() => setShowFavourites(false)}
         onFavouritesAnime={openAnimeFromLookup}

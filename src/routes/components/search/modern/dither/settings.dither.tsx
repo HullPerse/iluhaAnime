@@ -27,8 +27,8 @@ import { DitherUploadPlaceholder } from "@/routes/components/search/modern/dithe
 import DitherPreviewModal from "@/routes/components/search/modern/dither/preview/modal.preview";
 import { ShadowControls } from "@/routes/components/search/modern/dither/shadow.dither";
 import { useSettingsStore } from "@/store/settings.store";
-import type { DitherImageMeta, UserImage, UserImageFile } from "@/types/image.userimage";
 import type { TranslationKey } from "@/types/i18n";
+import type { DitherImageMeta, UserImage, UserImageFile } from "@/types/image.userimage";
 import type { WallpaperDisplayFilters } from "@/types/settings";
 
 const DISPLAY_PRESETS: readonly {
@@ -83,7 +83,6 @@ function DitherSettings({ onClose }: { onClose: () => void }) {
   const displayFilters = useSettingsStore((state) => state.wallpaperFilters);
   const searchShadow = useSettingsStore((state) => state.searchShadow);
   const wallpaperShadow = useSettingsStore((state) => state.wallpaperShadow);
-  const parallax = useSettingsStore((state) => state.wallpaperParallax);
   const scanlines = useSettingsStore((state) => state.wallpaperScanlines);
   const [metas, setMetas] = useState<DitherImageMeta[]>([]);
   const [rows, setRows] = useState<Record<string, UserImage>>({});
@@ -373,13 +372,6 @@ function DitherSettings({ onClose }: { onClose: () => void }) {
           />
         ))}
         <div className="flex flex-row gap-2">
-          <label className="flex cursor-pointer flex-row items-center gap-1">
-            <Checkbox
-              checked={parallax}
-              onChange={(checked) => patchSettings({ wallpaperParallax: checked })}
-            />
-            <span className="windows95-text text-xs">{t("search.dither.display.parallax")}</span>
-          </label>
           <label className="flex cursor-pointer flex-row items-center gap-1">
             <Checkbox
               checked={scanlines}

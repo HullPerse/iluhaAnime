@@ -4,8 +4,11 @@ import { useState } from "react";
 import { SmallLoader } from "@/components/shared/loader.component";
 import Section from "@/components/shared/section.component";
 import ImageComponent from "@/components/ui/image.component";
+import { listStatusLabels } from "@/config/anilist/labels.config";
+import { getStatusColor } from "@/lib/anilist/entries.utils";
 import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
+import { toLocaleKey } from "@/lib/locale/key.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useAniListFriendsStore } from "@/store/anilist.store";
 import { useSettingsStore } from "@/store/settings.store";
@@ -16,7 +19,7 @@ interface FriendScore {
   name: string;
   avatar: string | null;
   score: number | null;
-  progress: number | null;
+  status: string;
 }
 
 async function loadFriendScores(animeId: number, friends: FriendScore[]): Promise<FriendScore[]> {
@@ -26,12 +29,16 @@ async function loadFriendScores(animeId: number, friends: FriendScore[]): Promis
         userId: friend.id,
         ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
       }).then((lists) => {
-        const entry = lists.flatMap((list) => list.entries).find((item) => item.media.id === animeId);
-        return entry ? { ...friend, score: entry.score, progress: entry.progress } : null;
-      }),
-    ),
+        const entry = lists
+          .flatMap((list) => list.entries)
+          .find((item) => item.media.id === animeId);
+        return entry ? { ...friend, score: entry.score, status: entry.list_status } : null;
+      })
+    )
   );
-  const rows = settled.flatMap((result) => (result.status === "fulfilled" && result.value ? [result.value] : []));
+  const rows = settled.flatMap((result) =>
+    result.status === "fulfilled" && result.value ? [result.value] : []
+  );
   if (rows.length === 0) {
     const failure = settled.find((result) => result.status === "rejected");
     if (failure) throw failure.reason;
@@ -48,7 +55,7 @@ export function FriendsScoresSection({ animeId }: { animeId: number }) {
     name: friend.name,
     avatar: friend.avatar,
     score: null,
-    progress: null,
+    status: "",
   }));
   const key = base
     .map((friend) => friend.id)
@@ -84,20 +91,35 @@ export function FriendsScoresSection({ animeId }: { animeId: number }) {
         </div>
       ) : (
         <div className="flex flex-col gap-0.5">
-          {rows.map((row) => (
-            <div key={row.id} className="flex min-w-0 items-center gap-1 p-0.5">
-              <ImageComponent
-                src={row.avatar || "/images/user_avatar.ico"}
-                alt={row.name}
-                className="windows95-active-border size-7 shrink-0"
-              />
-              <span className="windows95-text min-w-0 flex-1 truncate text-xs">{row.name}</span>
-              <span className="text-hint shrink-0 text-xs">
-                {row.progress ?? "-"}
-                {row.score != null && row.score !== 0 ? ` - ${row.score}/10` : ""}
-              </span>
-            </div>
-          ))}
+          {rows.map((row) => {
+            const label = t(toLocaleKey(listStatusLabels[row.status] ?? row.status));
+            const hint =
+              row.score != null && row.score !== 0 ? `${label} - ${row.score}/10` : label;
+            return (
+              <div key={row.id} className="flex min-w-0 items-center gap-1 p-0.5">
+                <ImageComponent
+                  src={row.avatar || "/images/user_avatar.ico"}
+                  alt={row.name}
+                  className="windows95-active-border size-7 shrink-0"
+                />
+                <span className="windows95-text min-w-0 flex-1 truncate text-xs">{row.name}</span>
+                <span
+                  className="windows95-border shrink-0"
+                  style={{
+                    display: "inline-block",
+                    width: 10,
+                    height: 10,
+                    backgroundColor: getStatusColor(row.status),
+                  }}
+                  title={hint}
+                  aria-label={hint}
+                />
+                <span className="text-hint shrink-0 text-xs">
+                  {row.score != null && row.score !== 0 ? `${row.score}/10` : "-"}
+                </span>
+              </div>
+            );
+          })}
         </div>
       )}
     </Section>

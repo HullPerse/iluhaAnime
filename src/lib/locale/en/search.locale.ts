@@ -168,7 +168,6 @@ const search = {
   "search.dither.display.shadow.softness": "Softness",
   "search.dither.display.shadow.intensity": "Intensity",
   "search.dither.display.shadow.color": "Color",
-  "search.dither.display.parallax": "Parallax",
   "search.dither.display.scanlines": "Scanlines",
   "search.dither.opt.edgeDistortion": "Edge distortion",
   "search.dither.opt.misregistration": "Misregistration",

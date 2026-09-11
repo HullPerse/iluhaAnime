@@ -111,7 +111,10 @@ describe("useSettingsStore migration", () => {
 
   it("keeps persisted anilistProxyUrl on v21 migration", () => {
     const migrate = useSettingsStore.persist.getOptions()?.migrate;
-    const result = migrate!({ language: "en", anilistProxyUrl: "http://127.0.0.1:7890" } as never, 20) as {
+    const result = migrate!(
+      { language: "en", anilistProxyUrl: "http://127.0.0.1:7890" } as never,
+      20
+    ) as {
       anilistProxyUrl: string | null;
     };
     expect(result.anilistProxyUrl).toBe("http://127.0.0.1:7890");
@@ -256,24 +259,29 @@ describe("useSettingsStore patch", () => {
 });
 
 describe("wallpaper effect settings v25 migration", () => {
-  it("defaults parallax on and scanlines off", () => {
+  it("drops the removed parallax flag and defaults scanlines off", () => {
     const migrate = useSettingsStore.persist.getOptions()?.migrate;
-    const result = migrate!({ language: "en" } as never, 24) as {
-      wallpaperParallax: boolean;
-      wallpaperScanlines: boolean;
-    };
-    expect(result.wallpaperParallax).toBe(true);
+    const result = migrate!(
+      {
+        language: "en",
+        wallpaperParallax: true,
+        wallpaperScanlines: undefined,
+      } as never,
+      24
+    ) as { wallpaperParallax?: boolean; wallpaperScanlines: boolean };
+    expect(result.wallpaperParallax).toBeUndefined();
     expect(result.wallpaperScanlines).toBe(false);
   });
 
-  it("keeps persisted wallpaper effect flags", () => {
+  it("keeps persisted scanlines", () => {
     const migrate = useSettingsStore.persist.getOptions()?.migrate;
-    const result = migrate!({
-      language: "en",
-      wallpaperParallax: false,
-      wallpaperScanlines: true,
-    } as never, 24) as { wallpaperParallax: boolean; wallpaperScanlines: boolean };
-    expect(result.wallpaperParallax).toBe(false);
+    const result = migrate!(
+      {
+        language: "en",
+        wallpaperScanlines: true,
+      } as never,
+      24
+    ) as { wallpaperScanlines: boolean };
     expect(result.wallpaperScanlines).toBe(true);
   });
 });

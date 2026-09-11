@@ -84,7 +84,9 @@ describe("FriendsScoresSection", () => {
     expect(mockInvoke).not.toHaveBeenCalled();
     await expand();
     expect(await screen.findByText("Sakura")).toBeDefined();
-    expect(screen.getByText(/9\/10/)).toBeDefined();
+    expect(screen.getByText("9/10")).toBeDefined();
+    expect(screen.getByTitle(/9\/10/)).toBeDefined();
+    expect(screen.queryByText("12")).toBeNull();
     expect(screen.queryByText("Momo")).toBeNull();
     expect(mockInvoke).toHaveBeenCalledTimes(2);
   });
@@ -107,6 +109,7 @@ describe("FriendsScoresSection", () => {
     });
     await userEvent.setup().click(screen.getByRole("button", { name: /retry|повторить/i }));
     expect(await screen.findByText("Sakura")).toBeDefined();
-    expect(screen.getByText(/8\/10/)).toBeDefined();
+    expect(screen.getByText("8/10")).toBeDefined();
+    expect(screen.getByTitle(/8\/10/)).toBeDefined();
   });
 });

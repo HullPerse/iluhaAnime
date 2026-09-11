@@ -3,8 +3,6 @@ import { useEffect, useRef, useState } from "react";
 
 import { useI18n } from "@/lib/locale/i18n.utils";
 
-export const WALLPAPER_PARALLAX_RANGE = 18;
-
 const WALLPAPER_MAX_DPR = 2;
 const WALLPAPER_LOAD_RETRIES = 2;
 
@@ -13,23 +11,14 @@ interface WallpaperCanvasProps {
   alt: string;
   className?: string;
   filter?: string;
-  parallax?: boolean;
 }
 
-export default function WallpaperCanvas({
-  src,
-  alt,
-  className,
-  filter,
-  parallax = false,
-}: WallpaperCanvasProps) {
+export default function WallpaperCanvas({ src, alt, className, filter }: WallpaperCanvasProps) {
   const { t } = useI18n();
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
   const sourceRef = useRef(src);
-  const parallaxRef = useRef(parallax);
-  const frameRef = useRef(0);
   const paintRef = useRef(() => {});
   const [paintedSrc, setPaintedSrc] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
@@ -57,11 +46,7 @@ export default function WallpaperCanvas({
         setFailed(true);
         return;
       }
-      const bleed = (parallaxRef.current ? WALLPAPER_PARALLAX_RANGE : 0) * dpr;
-      const scale = Math.max(
-        (canvas.width + bleed * 2) / naturalWidth,
-        (canvas.height + bleed * 2) / naturalHeight
-      );
+      const scale = Math.max(canvas.width / naturalWidth, canvas.height / naturalHeight);
       const drawWidth = naturalWidth * scale;
       const drawHeight = naturalHeight * scale;
       ctx.drawImage(
@@ -113,58 +98,6 @@ export default function WallpaperCanvas({
     observer.observe(wrap);
     return () => observer.disconnect();
   }, []);
-
-  useEffect(() => {
-    parallaxRef.current = parallax;
-    if (!parallax && canvasRef.current) canvasRef.current.style.transform = "";
-    paintRef.current();
-  }, [parallax]);
-
-  useEffect(() => {
-    const wrap = wrapRef.current;
-    if (!wrap || !parallax || failed) return;
-    if (
-      typeof window !== "undefined" &&
-      typeof window.matchMedia === "function" &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    ) {
-      return;
-    }
-    const write = (clientX: number, clientY: number) => {
-      frameRef.current = 0;
-      const rect = wrap.getBoundingClientRect();
-      if (rect.width <= 0 || rect.height <= 0) return;
-      const target = canvasRef.current;
-      if (!target) return;
-      const nx = (clientX - rect.left) / rect.width - 0.5;
-      const ny = (clientY - rect.top) / rect.height - 0.5;
-      target.style.transform = `translate3d(${(-nx * 2 * WALLPAPER_PARALLAX_RANGE).toFixed(2)}px, ${(-ny * 2 * WALLPAPER_PARALLAX_RANGE).toFixed(2)}px, 0)`;
-    };
-    const onMove = (event: MouseEvent) => {
-      if (frameRef.current !== 0) return;
-      const { clientX, clientY } = event;
-      if (typeof window.requestAnimationFrame !== "function") {
-        write(clientX, clientY);
-        return;
-      }
-      frameRef.current = window.requestAnimationFrame(() => write(clientX, clientY));
-    };
-    const onLeave = () => {
-      if (frameRef.current !== 0) {
-        window.cancelAnimationFrame(frameRef.current);
-        frameRef.current = 0;
-      }
-      if (canvasRef.current) canvasRef.current.style.transform = "";
-    };
-    wrap.addEventListener("mousemove", onMove);
-    wrap.addEventListener("mouseleave", onLeave);
-    return () => {
-      wrap.removeEventListener("mousemove", onMove);
-      wrap.removeEventListener("mouseleave", onLeave);
-      if (frameRef.current !== 0) window.cancelAnimationFrame(frameRef.current);
-      frameRef.current = 0;
-    };
-  }, [parallax, failed]);
 
   if (failed) {
     return (

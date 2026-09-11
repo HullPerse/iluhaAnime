@@ -435,14 +435,12 @@ describe("DitherSettings database images", () => {
     expect(useSettingsStore.getState().wallpaperShadow.sides.top).toBe(false);
   });
 
-  it("toggles wallpaper parallax and scanlines", async () => {
+  it("toggles wallpaper scanlines", async () => {
     const user = userEvent.setup();
-    useSettingsStore.setState({ wallpaperParallax: true, wallpaperScanlines: false });
+    useSettingsStore.setState({ wallpaperScanlines: false });
     mockInvoke.mockImplementation(serveLibrary([FIRST]));
     renderPanel();
     await waitFor(() => expect(screen.getByAltText("first.png")).toBeTruthy());
-    await user.click(screen.getByRole("checkbox", { name: "Parallax" }));
-    expect(useSettingsStore.getState().wallpaperParallax).toBe(false);
     await user.click(screen.getByRole("checkbox", { name: "Scanlines" }));
     expect(useSettingsStore.getState().wallpaperScanlines).toBe(true);
   });

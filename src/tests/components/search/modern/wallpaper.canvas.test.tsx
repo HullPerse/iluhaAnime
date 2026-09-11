@@ -23,7 +23,6 @@ class ControlledImage {
   }
 }
 
-
 function lastImage(): ControlledImage {
   const current = ControlledImage.instances.at(-1);
   if (!current) throw new Error("no image instance");
@@ -88,29 +87,12 @@ describe("WallpaperCanvas", () => {
     expect(screen.getByRole("img")).toBeTruthy();
   });
 
-  it("shifts the frame against the cursor when parallax is on", async () => {
-    const { container } = render(<WallpaperCanvas src="a.png" alt="wallpaper" parallax />);
+  it("ignores mouse movement", async () => {
+    render(<WallpaperCanvas src="a.png" alt="wallpaper" />);
     await act(async () => {
       lastImage().onload?.();
     });
-    const wrap = container.querySelector("div") as HTMLElement;
-    wrap.getBoundingClientRect = () =>
-      ({ left: 0, top: 0, width: 200, height: 100 }) as DOMRect;
-    fireEvent.mouseMove(wrap, { clientX: 200, clientY: 0 });
-    await waitFor(() => expect(canvas()?.style.transform).toContain("translate3d"));
-    fireEvent.mouseLeave(wrap);
-    expect(canvas()?.style.transform).toBe("");
-  });
-
-  it("keeps the frame still when parallax is off", async () => {
-    const { container } = render(<WallpaperCanvas src="a.png" alt="wallpaper" />);
-    await act(async () => {
-      lastImage().onload?.();
-    });
-    const wrap = container.querySelector("div") as HTMLElement;
-    wrap.getBoundingClientRect = () =>
-      ({ left: 0, top: 0, width: 200, height: 100 }) as DOMRect;
-    fireEvent.mouseMove(wrap, { clientX: 200, clientY: 0 });
+    fireEvent.mouseMove(window, { clientX: 200, clientY: 0 });
     await waitFor(() => expect(canvas()?.dataset.src).toBe("a.png"));
     expect(canvas()?.style.transform).toBe("");
   });

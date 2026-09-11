@@ -320,7 +320,7 @@ function applySettingsV25(
   version: number
 ): Partial<SettingsStore> {
   if (version >= 25) return migrated;
-  if (migrated.wallpaperParallax === undefined) migrated.wallpaperParallax = true;
+  delete (migrated as Record<string, unknown>).wallpaperParallax;
   if (migrated.wallpaperScanlines === undefined) migrated.wallpaperScanlines = false;
   return migrated;
 }

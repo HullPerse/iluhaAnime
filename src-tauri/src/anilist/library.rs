@@ -627,35 +627,7 @@ pub async fn get_anime_characters(
     let edges = json["data"]["Media"]["characters"]["edges"]
         .as_array()
         .ok_or_else(|| "Failed to parse characters".to_string())?;
-    Ok(edges
-        .iter()
-        .map(|e| AniCharacterEdge {
-            role: e["role"].as_str().unwrap_or("").to_string(),
-            character: {
-                let n = &e["node"];
-                AniCharacterNode {
-                    id: n["id"].as_u64().unwrap_or(0),
-                    name: n["name"]["full"].as_str().unwrap_or("").to_string(),
-                    native_name: n["name"]["native"].as_str().map(String::from),
-                    image: n["image"]["medium"].as_str().map(String::from),
-                }
-            },
-            voice_actors: e["voiceActors"]
-                .as_array()
-                .map(|vas| {
-                    vas.iter()
-                        .map(|va| AniVoiceActor {
-                            id: va["id"].as_u64().unwrap_or(0),
-                            name: va["name"]["full"].as_str().unwrap_or("").to_string(),
-                            native_name: va["name"]["native"].as_str().map(String::from),
-                            image: va["image"]["medium"].as_str().map(String::from),
-                            language: va["language"].as_str().map(String::from),
-                        })
-                        .collect()
-                })
-                .unwrap_or_default(),
-        })
-        .collect())
+    Ok(parse_character_edges(edges))
 }
 
 #[tauri::command]
@@ -956,6 +928,43 @@ pub async fn get_anime_staff(
         .collect())
 }
 
+fn parse_character_edges(edges: &[serde_json::Value]) -> Vec<AniCharacterEdge> {
+    let mut seen = std::collections::HashSet::new();
+    edges
+        .iter()
+        .filter_map(|e| {
+            let character_id = e["node"]["id"].as_u64().unwrap_or(0);
+            if !seen.insert(character_id) {
+                return None;
+            }
+            let n = &e["node"];
+            Some(AniCharacterEdge {
+                role: e["role"].as_str().unwrap_or("").to_string(),
+                character: AniCharacterNode {
+                    id: character_id,
+                    name: n["name"]["full"].as_str().unwrap_or("").to_string(),
+                    native_name: n["name"]["native"].as_str().map(String::from),
+                    image: n["image"]["medium"].as_str().map(String::from),
+                },
+                voice_actors: e["voiceActors"]
+                    .as_array()
+                    .map(|vas| {
+                        vas.iter()
+                            .map(|va| AniVoiceActor {
+                                id: va["id"].as_u64().unwrap_or(0),
+                                name: va["name"]["full"].as_str().unwrap_or("").to_string(),
+                                native_name: va["name"]["native"].as_str().map(String::from),
+                                image: va["image"]["medium"].as_str().map(String::from),
+                                language: va["language"].as_str().map(String::from),
+                            })
+                            .collect()
+                    })
+                    .unwrap_or_default(),
+            })
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -974,5 +983,34 @@ mod tests {
         let (query, slots) = build_fav_people_media_query(&[], &[]);
         assert!(slots.is_empty());
         assert!(query.contains("query ($page: Int)"));
+    }
+
+    #[test]
+    fn character_edges_deduplicate_same_character() {
+        let payload = serde_json::json!([
+            {
+                "role": "MAIN",
+                "node": {"id": 95, "name": {"full": "Hero", "native": null}, "image": {"medium": null}},
+                "voiceActors": [],
+            },
+            {
+                "role": "SUPPORTING",
+                "node": {"id": 95, "name": {"full": "Hero", "native": null}, "image": {"medium": null}},
+                "voiceActors": [],
+            },
+            {
+                "role": "MAIN",
+                "node": {"id": 96, "name": {"full": "Sidekick", "native": null}, "image": {"medium": null}},
+                "voiceActors": [
+                    {"id": 7, "name": {"full": "VA", "native": null}, "image": {"medium": null}, "language": "JAPANESE"},
+                ],
+            },
+        ]);
+        let edges = parse_character_edges(payload.as_array().unwrap());
+        assert_eq!(edges.len(), 2);
+        assert_eq!(edges[0].character.id, 95);
+        assert_eq!(edges[0].role, "MAIN");
+        assert_eq!(edges[1].character.id, 96);
+        assert_eq!(edges[1].voice_actors.len(), 1);
     }
 }

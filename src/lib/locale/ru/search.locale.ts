@@ -175,7 +175,6 @@ const search = {
   "search.dither.display.shadow.softness": "Мягкость",
   "search.dither.display.shadow.intensity": "Интенсивность",
   "search.dither.display.shadow.color": "Цвет",
-  "search.dither.display.parallax": "Параллакс",
   "search.dither.display.scanlines": "Сканлайны",
   "search.dither.opt.edgeDistortion": "Искажение краёв",
   "search.dither.opt.misregistration": "Разведение каналов",

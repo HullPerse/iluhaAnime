@@ -84,7 +84,6 @@ export interface SettingsStore {
   appFont: string | null;
   wallpaperFilters: WallpaperDisplayFilters;
   wallpaperShadow: WallpaperShadow;
-  wallpaperParallax: boolean;
   wallpaperScanlines: boolean;
   searchShadow: WallpaperShadow;
   patch: (partial: Partial<SettingsStore>) => void;
@@ -123,13 +122,7 @@ export interface SessionConfigPayload {
   disablePersistence: boolean;
 }
 
-export type TabId =
-  | "search"
-  | "torrent"
-  | "player"
-  | "anilist"
-  | "collection"
-  | "settings";
+export type TabId = "search" | "torrent" | "player" | "anilist" | "collection" | "settings";
 
 export type SettingsDefaults = Omit<
   SettingsStore,

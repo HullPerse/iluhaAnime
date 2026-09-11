@@ -97,7 +97,6 @@ export const DEFAULT_SETTINGS: SettingsDefaults = {
   appFont: null as string | null,
   wallpaperFilters: { ...DEFAULT_WALLPAPER_FILTERS },
   wallpaperShadow: { ...DEFAULT_WALLPAPER_SHADOW },
-  wallpaperParallax: true,
   wallpaperScanlines: false,
   searchShadow: { ...DEFAULT_WALLPAPER_SHADOW },
 };

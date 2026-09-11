@@ -1,12 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { Popover } from "@base-ui/react/popover";
+import { useCallback, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
 import { PALETTE } from "@/config/utils/colors.config";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { hexToRgba, rgbaToHex } from "@/lib/utils/color.utils";
-import { enterOrSpace } from "@/lib/utils/keyboard.utils";
 
 function ColorPicker({
   value,
@@ -154,61 +153,22 @@ function ColorPickerTrigger({
   onChange: (hex: string) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const triggerRef = useRef<HTMLDivElement>(null);
-  const popoverRef = useRef<HTMLDivElement>(null);
-  const [pos, setPos] = useState({ left: 0, top: 0 });
-
-  const toggleOpen = () => {
-    setOpen((current) => {
-      if (!current && triggerRef.current) {
-        const rect = triggerRef.current.getBoundingClientRect();
-        setPos({ left: rect.left, top: rect.bottom + 4 });
-      }
-      return !current;
-    });
-  };
-
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: MouseEvent) => {
-      const t = e.target as Node;
-      if (!triggerRef.current?.contains(t) && !popoverRef.current?.contains(t)) {
-        setOpen(false);
-      }
-    };
-    const keydown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
-    };
-    document.addEventListener("mousedown", handler);
-    document.addEventListener("keydown", keydown);
-    return () => {
-      document.removeEventListener("mousedown", handler);
-      document.removeEventListener("keydown", keydown);
-    };
-  }, [open]);
-
   return (
-    <div className="inline-block">
-      <div
-        ref={triggerRef}
+    <Popover.Root open={open} onOpenChange={setOpen}>
+      <Popover.Trigger
+        type="button"
         className="windows95-border h-6 min-h-(--ui-control-height) w-10 cursor-pointer"
         style={{ background: value }}
-        onClick={toggleOpen}
-        role="button"
-        tabIndex={0}
-        onKeyDown={enterOrSpace(toggleOpen)}
       />
-      {open &&
-        createPortal(
-          <div
-            ref={popoverRef}
-            style={{
-              left: pos.left,
-              position: "fixed",
-              top: pos.top,
-              zIndex: 9999,
-            }}
-          >
+      <Popover.Portal>
+        <Popover.Positioner
+          className="z-50 outline-none"
+          side="bottom"
+          align="start"
+          sideOffset={4}
+          collisionPadding={12}
+        >
+          <Popover.Popup className="outline-none">
             <ColorPicker
               value={value}
               onConfirm={(hex) => {
@@ -217,10 +177,10 @@ function ColorPickerTrigger({
               }}
               onCancel={() => setOpen(false)}
             />
-          </div>,
-          document.body
-        )}
-    </div>
+          </Popover.Popup>
+        </Popover.Positioner>
+      </Popover.Portal>
+    </Popover.Root>
   );
 }
 

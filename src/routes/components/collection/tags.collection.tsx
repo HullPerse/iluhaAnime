@@ -55,6 +55,7 @@ export function TagsReferenceModal({ open, onClose }: { open: boolean; onClose: 
           </li>
         ))}
         <li className="windows95-text text-hint pt-1 text-xs">{t("collection.tags.or")}</li>
+        <li className="windows95-text text-hint text-xs">{t("collection.tags.range")}</li>
       </ul>
       <p className="windows95-text text-xs">{t("collection.tags.approx.title")}</p>
       <ul className="windows95-border flex flex-col gap-1 bg-white p-1">

@@ -34,6 +34,11 @@ describe("TagsReferenceModal", () => {
     expect(screen.getByText("tag=fantasy|romance")).toBeTruthy();
   });
 
+  it("documents the ... range syntax", () => {
+    render(<TagsReferenceModal open onClose={() => {}} />);
+    expect(screen.getByText(/year=2000\.\.\.2010/)).toBeTruthy();
+  });
+
   it("edits and resets approximate tolerances", async () => {
     const user = userEvent.setup();
     useSettingsStore.setState({

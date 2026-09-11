@@ -1,3 +1,4 @@
+import changelog401 from "./changelog/v4_0_1.en";
 import changelog400 from "./changelog/v4_0_0.en";
 import changelog320 from "./changelog/v3_2_0.en";
 import anilist from "./en/anilist.locale";
@@ -11,6 +12,7 @@ import updater from "./en/updater.locale";
 
 const en = {
   ...anilist,
+  ...changelog401,
   ...changelog400,
   ...changelog320,
   ...common,

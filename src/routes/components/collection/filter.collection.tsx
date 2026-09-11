@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import Combobox from "@/components/ui/combobox.component";
 import { DualSlider } from "@/components/ui/dualSlider.component";
-import { Radio } from "@/components/ui/radio.component";
+import { Radio, RadioGroup } from "@/components/ui/radio.component";
 import { ANILIST_GENRES } from "@/config/anilist/filters.config";
 import { RATING_MAX, RATING_MIN, YEAR_MAX, YEAR_MIN } from "@/config/collection/filters.config";
 import { freshDefaults } from "@/lib/collection/filter.utils";
@@ -100,7 +100,11 @@ export default function FilterCollection({
         <p className="windows95-text text-text mt-1 font-bold">
           {t("collection.filters.provider")}
         </p>
-        <div className="flex flex-wrap gap-1">
+        <RadioGroup
+          value={local.provider}
+          onChange={(v) => setLocal((p) => ({ ...p, provider: v }))}
+          className="flex flex-wrap gap-1"
+        >
           {providerOptions.map((option) => {
             const select = () => setLocal((p) => ({ ...p, provider: option.value }));
             return (
@@ -109,15 +113,19 @@ export default function FilterCollection({
                 className="windows95-text flex cursor-pointer items-center gap-1 select-none"
                 onClick={select}
               >
-                <Radio checked={local.provider === option.value} onChange={select} />
+                <Radio value={option.value} />
                 {option.label}
               </label>
             );
           })}
-        </div>
+        </RadioGroup>
 
         <p className="windows95-text text-text mt-1 font-bold">{t("collection.filters.linked")}</p>
-        <div className="flex flex-wrap gap-1">
+        <RadioGroup
+          value={local.linked}
+          onChange={(v) => setLocal((p) => ({ ...p, linked: v }))}
+          className="flex flex-wrap gap-1"
+        >
           {yesNoOptions.map((option) => {
             const select = () => setLocal((p) => ({ ...p, linked: option.value }));
             return (
@@ -126,17 +134,21 @@ export default function FilterCollection({
                 className="windows95-text flex cursor-pointer items-center gap-1 select-none"
                 onClick={select}
               >
-                <Radio checked={local.linked === option.value} onChange={select} />
+                <Radio value={option.value} />
                 {option.label}
               </label>
             );
           })}
-        </div>
+        </RadioGroup>
 
         <p className="windows95-text text-text mt-1 font-bold">
           {t("collection.filters.has.note")}
         </p>
-        <div className="flex flex-wrap gap-1">
+        <RadioGroup
+          value={local.hasNote}
+          onChange={(v) => setLocal((p) => ({ ...p, hasNote: v }))}
+          className="flex flex-wrap gap-1"
+        >
           {yesNoOptions.map((option) => {
             const select = () => setLocal((p) => ({ ...p, hasNote: option.value }));
             return (
@@ -145,12 +157,12 @@ export default function FilterCollection({
                 className="windows95-text flex cursor-pointer items-center gap-1 select-none"
                 onClick={select}
               >
-                <Radio checked={local.hasNote === option.value} onChange={select} />
+                <Radio value={option.value} />
                 {option.label}
               </label>
             );
           })}
-        </div>
+        </RadioGroup>
 
         <p className="windows95-text text-text mt-1 font-bold">
           {t("collection.filters.media.types")}

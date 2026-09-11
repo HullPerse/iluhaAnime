@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox.component";
 import Combobox from "@/components/ui/combobox.component";
 import { DualSlider } from "@/components/ui/dualSlider.component";
 import { Input } from "@/components/ui/input.component";
-import { Radio } from "@/components/ui/radio.component";
+import { Radio, RadioGroup } from "@/components/ui/radio.component";
 import {
   ANILIST_GENRES,
   ANILIST_NSFW_TAGS,
@@ -156,50 +156,46 @@ function FiltersModal({
         <hr className="border-muted my-1 w-full border-t" />
 
         <p className="windows95-text text-text mt-1 font-bold">{t("anilist.filters.format")}</p>
-        <div className="flex flex-wrap gap-1">
+        <RadioGroup
+          value={local.format}
+          onChange={(v) => setLocal((p) => ({ ...p, format: v }))}
+          className="flex flex-wrap gap-1"
+        >
           {FORMATS.map((f) => (
             <label
               key={f}
               className="windows95-text flex cursor-pointer items-center gap-1 select-none"
             >
-              <Radio
-                checked={local.format === f}
-                onChange={() => setLocal((p) => ({ ...p, format: f }))}
-              />
+              <Radio value={f} />
               {t(formatLabels[f])}
             </label>
           ))}
           <label className="windows95-text flex cursor-pointer items-center gap-1 select-none">
-            <Radio
-              checked={local.format === ""}
-              onChange={() => setLocal((p) => ({ ...p, format: "" }))}
-            />
+            <Radio value="" />
             {t("anilist.filters.any")}
           </label>
-        </div>
+        </RadioGroup>
 
         <p className="windows95-text text-text mt-1 font-bold">{t("anilist.filters.status")}</p>
-        <div className="flex flex-wrap gap-1">
+        <RadioGroup
+          value={local.status}
+          onChange={(v) => setLocal((p) => ({ ...p, status: v }))}
+          className="flex flex-wrap gap-1"
+        >
           {STATUSES.map((s) => (
             <label
               key={s}
               className="windows95-text flex cursor-pointer items-center gap-1 select-none"
             >
-              <Radio
-                checked={local.status === s}
-                onChange={() => setLocal((p) => ({ ...p, status: s }))}
-              />
+              <Radio value={s} />
               {t(statusLabels[s])}
             </label>
           ))}
           <label className="windows95-text flex cursor-pointer items-center gap-1 select-none">
-            <Radio
-              checked={local.status === ""}
-              onChange={() => setLocal((p) => ({ ...p, status: "" }))}
-            />
+            <Radio value="" />
             {t("anilist.filters.any")}
           </label>
-        </div>
+        </RadioGroup>
 
         <p className="windows95-text text-text mt-1 font-bold">
           {t("anilist.filters.season.and.year")}
@@ -283,7 +279,11 @@ function FiltersModal({
         />
 
         <p className="windows95-text text-text mt-1 font-bold">{t("anilist.filters.country")}</p>
-        <div className="flex flex-wrap gap-1">
+        <RadioGroup
+          value={local.country}
+          onChange={(v) => setLocal((p) => ({ ...p, country: v }))}
+          className="flex flex-wrap gap-1"
+        >
           {[
             ["", t("anilist.filters.country.any")],
             ["JP", t("anilist.filters.country.japan")],
@@ -294,14 +294,11 @@ function FiltersModal({
               key={v}
               className="windows95-text flex cursor-pointer items-center gap-1 select-none"
             >
-              <Radio
-                checked={local.country === v}
-                onChange={() => setLocal((p) => ({ ...p, country: v }))}
-              />
+              <Radio value={v} />
               {l}
             </label>
           ))}
-        </div>
+        </RadioGroup>
 
         <p className="windows95-text text-text mt-1 font-bold">
           {t("anilist.filters.release.year")}

@@ -93,12 +93,12 @@ describe("SettingsChangelog", () => {
   it("renders collapsible versions with categorized entries", async () => {
     const user = userEvent.setup();
     render(<SettingsChangelog />);
-    expect(screen.getByText("4.0.0")).toBeDefined();
-    expect(screen.getByText(/Новое|Added/)).toBeDefined();
-    await user.click(screen.getByRole("button", { name: /4\.0\.0/ }));
-    expect(screen.queryByText(/Новое|Added/)).toBeNull();
-    await user.click(screen.getByRole("button", { name: /4\.0\.0/ }));
-    expect(screen.getByText(/Новое|Added/)).toBeDefined();
+    expect(screen.getByText("4.0.1")).toBeDefined();
+    expect(screen.getByText(/Изменено|Changed/)).toBeDefined();
+    await user.click(screen.getByRole("button", { name: /4\.0\.1/ }));
+    expect(screen.queryByText(/Изменено|Changed/)).toBeNull();
+    await user.click(screen.getByRole("button", { name: /4\.0\.1/ }));
+    expect(screen.getByText(/Изменено|Changed/)).toBeDefined();
   });
   it("prefixes every entry with its area scope", () => {
     render(<SettingsChangelog />);

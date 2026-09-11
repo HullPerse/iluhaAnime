@@ -1,23 +1,46 @@
+import { Radio as BaseRadio } from "@base-ui/react/radio";
+import { RadioGroup as BaseRadioGroup } from "@base-ui/react/radio-group";
 import { cn } from "cn";
+import type { ReactNode } from "react";
 
-import { enterOrSpace } from "@/lib/utils/keyboard.utils";
-
-function Radio({
-  checked,
+function RadioGroup<T extends string>({
+  value,
   onChange,
   disabled,
   className,
+  children,
 }: {
-  checked: boolean;
-  onChange: (v: boolean) => void;
+  value: T;
+  onChange: (v: T) => void;
+  disabled?: boolean;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <BaseRadioGroup
+      value={value}
+      onValueChange={onChange}
+      disabled={disabled}
+      className={className}
+    >
+      {children}
+    </BaseRadioGroup>
+  );
+}
+
+function Radio({
+  value,
+  disabled,
+  className,
+}: {
+  value: string;
   disabled?: boolean;
   className?: string;
 }) {
   return (
-    <span
-      role="radio"
-      aria-checked={checked}
-      tabIndex={disabled ? -1 : 0}
+    <BaseRadio.Root
+      value={value}
+      disabled={disabled}
       className={cn(
         "text-text inline-flex size-(--ui-check-size) shrink-0 items-center justify-center bg-white",
         disabled ? "opacity-50" : "cursor-pointer",
@@ -31,12 +54,10 @@ function Radio({
         borderTopColor: "var(--color-win-shadow)",
         boxShadow: "inset 1px 1px 0 rgba(0,0,0,0.15)",
       }}
-      onClick={disabled ? undefined : () => onChange(!checked)}
-      onKeyDown={disabled ? undefined : enterOrSpace(() => onChange(!checked))}
     >
-      {checked && <span className="bg-text size-1.5 shrink-0" />}
-    </span>
+      <BaseRadio.Indicator className="bg-text size-1.5 shrink-0" />
+    </BaseRadio.Root>
   );
 }
 
-export { Radio };
+export { Radio, RadioGroup };

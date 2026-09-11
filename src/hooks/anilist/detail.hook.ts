@@ -6,6 +6,7 @@ import { useDeepLinkStore } from "@/store/deeplink.store";
 import type { AniListAnime, AniListCollection } from "@/types/anilist";
 
 export function useAnilistDetail(lists: AniListCollection[]) {
+  const target = useDeepLinkStore((state) => state.target);
   const [selectedAnime, setSelectedAnime] = useState<AniListAnime>(null);
   const [animeHistory, setAnimeHistory] = useState<AniListAnime[]>([]);
   const [detailFromFilters, setDetailFromFilters] = useState(false);
@@ -42,11 +43,10 @@ export function useAnilistDetail(lists: AniListCollection[]) {
     setDetailFromFilters(false);
   }, []);
   useEffect(() => {
-    const target = useDeepLinkStore.getState().target;
     if (!target) return;
     showDetail({ animeId: target.id, listEntry: entryLookup.get(target.id) }, false);
     useDeepLinkStore.getState().consume();
-  }, [entryLookup, showDetail]);
+  }, [target, entryLookup, showDetail]);
   return {
     detailFromFilters,
     entryLookup,

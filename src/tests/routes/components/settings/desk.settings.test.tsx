@@ -114,11 +114,11 @@ describe("SettingsChangelog", () => {
   it("renders collapsible versions with categorized entries", async () => {
     const user = userEvent.setup();
     render(<SettingsChangelog />);
-    expect(screen.getByText("4.0.2")).toBeDefined();
+    expect(screen.getByText("4.0.3")).toBeDefined();
     expect(screen.getByText(/Изменено|Changed/)).toBeDefined();
-    await user.click(screen.getByRole("button", { name: /4\.0\.2/ }));
+    await user.click(screen.getByRole("button", { name: /4\.0\.3/ }));
     expect(screen.queryByText(/Изменено|Changed/)).toBeNull();
-    await user.click(screen.getByRole("button", { name: /4\.0\.2/ }));
+    await user.click(screen.getByRole("button", { name: /4\.0\.3/ }));
   });
   it("prefixes every entry with its area scope", () => {
     render(<SettingsChangelog />);

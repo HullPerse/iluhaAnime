@@ -14,6 +14,31 @@ function entry(key: TranslationKey, scope: ChangelogScope): ChangelogEntry {
 
 export const CHANGELOG: ChangelogVersion[] = [
   {
+    version: "4.0.3",
+    added: [
+      entry("changelog.4_0_3.added.torrent_links", "torrents"),
+      entry("changelog.4_0_3.added.link_paste", "app"),
+      entry("changelog.4_0_3.added.friend_lists", "anilist"),
+      entry("changelog.4_0_3.added.continue_row", "collection"),
+      entry("changelog.4_0_3.added.credits_seasons", "collection"),
+      entry("changelog.4_0_3.added.diagnostics", "torrents"),
+      entry("changelog.4_0_3.added.bulk_actions", "torrents"),
+      entry("changelog.4_0_3.added.torrent_network", "settings"),
+      entry("changelog.4_0_3.added.media_panel", "settings"),
+      entry("changelog.4_0_3.added.did_you_mean", "search"),
+      entry("changelog.4_0_3.added.queue_retry", "player"),
+    ],
+    changed: [
+      entry("changelog.4_0_3.changed.torrent_notify", "torrents"),
+      entry("changelog.4_0_3.changed.root_sizes", "player"),
+      entry("changelog.4_0_3.changed.sqlite_jump", "settings"),
+    ],
+    fixed: [
+      entry("changelog.4_0_3.fixed.anime_link_tab", "anilist"),
+      entry("changelog.4_0_3.fixed.fav_errors", "anilist"),
+    ],
+  },
+  {
     version: "4.0.2",
     added: [],
     changed: [entry("changelog.4_0_2.changed.cover_thumbs", "collection")],

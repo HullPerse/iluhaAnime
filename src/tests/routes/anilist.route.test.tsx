@@ -357,4 +357,15 @@ describe("AnilistRoute deep link", () => {
     await screen.findAllByText("One Piece");
     expect(useDeepLinkStore.getState().target).toBeNull();
   });
+
+  it("opens a link arriving while the route is already mounted", async () => {
+    mockInvoke.mockImplementation(randomPoolInvoke);
+    useDeepLinkStore.setState({ target: null });
+    renderRoute();
+    await screen.findByText("TESTUSER");
+    expect(screen.queryByText("One Piece")).toBeNull();
+    useDeepLinkStore.setState({ target: { id: 21, source: "anilist" } });
+    await screen.findAllByText("One Piece");
+    expect(useDeepLinkStore.getState().target).toBeNull();
+  });
 });

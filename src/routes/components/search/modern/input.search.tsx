@@ -28,6 +28,7 @@ function InputSearch() {
     resetSearch,
     isLoading,
     submittedQuery,
+    didYouMean,
     source,
     searchParams,
     sourceOptions,
@@ -83,7 +84,9 @@ function InputSearch() {
             alt=""
             className="size-4 shrink-0"
           />
-          <span className="windows95-text line-clamp-1 font-bold text-white">{t("search.title")}</span>
+          <span className="windows95-text line-clamp-1 font-bold text-white">
+            {t("search.title")}
+          </span>
         </div>
         <div className="flex shrink-0 flex-row items-center gap-0.5">
           <SearchAuthButtons
@@ -120,6 +123,11 @@ function InputSearch() {
             className="h-9 font-bold"
             placement={docked ? "below" : "above"}
             {...field.inputProps}
+            highlightRanges={
+              didYouMean && searchParams === submittedQuery
+                ? [{ start: 0, end: searchParams.length }]
+                : undefined
+            }
           />
         </div>
         <div className="flex w-full flex-row items-center justify-between gap-1">

@@ -1,11 +1,13 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
 import {
   fuzzyMatchScore,
   getInlineCompletion,
   getSearchSuggestions,
   normalizeSearchText,
+  suggestSpelling,
 } from "@/lib/search/suggestions.utils";
+import { useSettingsStore } from "@/store/settings.store";
 import type { SearchAnimeSuggestion } from "@/types/search";
 
 const animeIndex: SearchAnimeSuggestion[] = [
@@ -226,5 +228,29 @@ describe("search suggestions", () => {
       extraValues: [{ value: "year=2020" }],
     });
     expect(suggestions[0]?.value).toBe("Naruto");
+  });
+});
+
+describe("suggestSpelling", () => {
+  beforeEach(() => {
+    useSettingsStore.setState({ searchSymSpellEnabled: true });
+  });
+
+  it("corrects a typo from anime titles", () => {
+    expect(suggestSpelling("friren", { animeIndex })).toBe("frieren");
+  });
+
+  it("stays silent on exact matches", () => {
+    expect(suggestSpelling("frieren", { animeIndex })).toBeNull();
+  });
+
+  it("stays silent on short queries and empty titles", () => {
+    expect(suggestSpelling("fr", { animeIndex })).toBeNull();
+    expect(suggestSpelling("friren", {})).toBeNull();
+  });
+
+  it("stays silent when symspell is disabled", () => {
+    useSettingsStore.setState({ searchSymSpellEnabled: false });
+    expect(suggestSpelling("friren", { animeIndex })).toBeNull();
   });
 });

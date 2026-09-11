@@ -1,4 +1,3 @@
-
 use tauri::{Emitter, Manager};
 
 pub const SCHEME: &str = "iluhaanime";

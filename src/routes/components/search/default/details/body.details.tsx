@@ -1,5 +1,5 @@
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { ExternalLink, FileText, Image as ImageIcon, Info, MessageSquare, Rss } from "lucide-react";
+import { FileText, Image as ImageIcon, Info, MessageSquare, Rss } from "lucide-react";
 
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
@@ -20,7 +20,6 @@ export function TorrentDetailsBody({
   onCopyMagnet,
   onOpenMagnet,
   onDownload,
-  openOriginal,
 }: {
   view: TorrentView;
   item: Anime;
@@ -30,7 +29,6 @@ export function TorrentDetailsBody({
   onCopyMagnet: (item: Anime) => void;
   onOpenMagnet: (item: Anime) => void;
   onDownload: (item: Anime) => void;
-  openOriginal: () => Promise<void>;
 }) {
   const { t } = useI18n();
   const metadataFields = view.fields.filter((field) => {
@@ -62,10 +60,6 @@ export function TorrentDetailsBody({
             </p>
           </div>
           <div className="flex flex-wrap justify-end gap-1">
-            <Button onClick={() => openOriginal()} title={t("search.details.open.source")}>
-              <ExternalLink className="mr-1 size-3" />
-              {t("search.details.original")}
-            </Button>
             {(actionItem.magnet || source === "rutracker") && (
               <>
                 <Button

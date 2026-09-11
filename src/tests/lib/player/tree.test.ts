@@ -5,6 +5,7 @@ import {
   buildTree,
   filterTreeByPaths,
   flattenTree,
+  summarizeTree,
 } from "@/lib/player/tree.utils";
 
 function makeEntry(path: string, name: string, size = 100) {
@@ -53,6 +54,24 @@ describe("filterTreeByPaths", () => {
   it("returns null when nothing matches", () => {
     const tree = buildTree([makeEntry("C:\\Anime\\movie.mkv", "movie.mkv")], "C:\\Anime");
     expect(filterTreeByPaths(tree, new Set(["C:\\missing.mkv"]))).toBeNull();
+  });
+});
+
+describe("summarizeTree", () => {
+  it("counts files and bytes recursively", () => {
+    const tree = buildTree(
+      [
+        makeEntry("C:\\Anime\\movie.mkv", "movie.mkv", 100),
+        makeEntry("C:\\Anime\\One Piece\\ep1.mkv", "ep1.mkv", 200),
+        makeEntry("C:\\Anime\\One Piece\\ep2.mkv", "ep2.mkv", 300),
+      ],
+      "C:\\Anime"
+    );
+    expect(summarizeTree(tree)).toEqual({ count: 3, bytes: 600 });
+  });
+
+  it("reports zero for an empty tree", () => {
+    expect(summarizeTree(buildTree([], "C:\\Anime"))).toEqual({ count: 0, bytes: 0 });
   });
 });
 

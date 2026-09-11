@@ -587,6 +587,7 @@ export interface AniFriendsProps {
   onAdd: (profile: AniUserProfile) => void;
   onRemove: (id: number) => void;
   onClose: () => void;
+  onAnime: (id: number) => void;
 }
 
 export interface AniHeaderProps {

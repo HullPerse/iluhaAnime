@@ -1,5 +1,3 @@
-import { openUrl } from "@tauri-apps/plugin-opener";
-import { ExternalLink } from "lucide-react";
 import { useState, useEffect } from "react";
 
 import { Button } from "@/components/ui/button.component";
@@ -67,16 +65,6 @@ function AniListActionControls({
     <div className="windows95-border">
       <div className="bg-secondary windows95-font flex flex-row px-1 py-0.5 text-xs font-bold text-white">
         {listEntry ? t("anilist.controls.edit.list") : t("anilist.controls.add.to.list")}
-        <Button
-          size="icon"
-          className="ml-auto size-4"
-          title={t("anilist.controls.open.site")}
-          onClick={() => {
-            openUrl(`https://anilist.co/anime/${anime.id}`);
-          }}
-        >
-          <ExternalLink className="size-3" />
-        </Button>
       </div>
       <div className="flex flex-col gap-2 p-1.5">
         <div className="windows95-text flex flex-row items-center gap-2">

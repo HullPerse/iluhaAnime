@@ -136,8 +136,13 @@ function rowMetaParts(item: CollectionItem): string[] {
   if (genres) parts.push(genres);
   return parts;
 }
-
-function CollectionRowView({ item, statuses, selected, onOpen, onSetStatus }: CollectionRowProps) {
+function CollectionRowView({
+  item,
+  statuses,
+  selected,
+  onOpen,
+  onSetStatus,
+}: CollectionRowProps) {
   const { t, locale } = useI18n();
   const { cachedUrl } = useCoverCache(item.coverUrl, item.thumbBlobId ?? item.coverBlobId);
   const cover = useMemo(() => {
@@ -146,10 +151,6 @@ function CollectionRowView({ item, statuses, selected, onOpen, onSetStatus }: Co
     if (item.title) return generatePlaceholder(item.title);
     return "";
   }, [cachedUrl, item.coverUrl, item.title]);
-  const progress =
-    item.progressTotal != null && item.progressTotal > 0
-      ? { value: item.progressValue, total: item.progressTotal }
-      : null;
   const meta = rowMetaParts(item);
   return (
     <div
@@ -202,32 +203,33 @@ function CollectionRowView({ item, statuses, selected, onOpen, onSetStatus }: Co
                   label: statusLabel(statuses, s.id, t, locale),
                 }))}
                 label={t("collection.card.status")}
-                className="w-auto max-w-44 min-w-0 flex-none min-h-0 text-xs font-normal"
+                className="min-h-0 w-auto max-w-44 min-w-0 flex-none text-xs font-normal"
               />
             ) : (
               <span className="text-text text-xs">
                 {statusLabel(statuses, item.status, t, locale)}
               </span>
             )}
-            {progress && (
+            {item.progressTotal != null && item.progressTotal > 0 ? (
               <div className="flex items-center gap-1">
                 <div className="windows95-border relative h-3.5 w-20 overflow-hidden bg-white">
                   <div
                     className="bg-secondary h-full"
                     style={{
-                      width: `${Math.min(100, Math.round((progress.value / progress.total) * 100))}%`,
+                      width: `${Math.min(100, Math.round((item.progressValue / item.progressTotal) * 100))}%`,
                     }}
                   />
                 </div>
                 <span className="windows95-text text-xs">
-                  {progress.value}/{progress.total}
+                  {item.progressValue}/{item.progressTotal}
                 </span>
               </div>
-            )}
-            {!progress && item.progressValue > 0 && (
-              <span className="bg-secondary px-1 text-xs text-white">
-                {item.progressValue} {item.progressUnit}
-              </span>
+            ) : (
+              item.progressValue > 0 && (
+                <span className="bg-secondary px-1 text-xs text-white">
+                  {item.progressValue} {item.progressUnit}
+                </span>
+              )
             )}
           </div>
         </section>

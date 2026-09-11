@@ -107,6 +107,21 @@ export interface TorrentCheckResult {
   total: number;
 }
 
+export interface TorrentDiagPeer {
+  addr: string;
+  state: string;
+  client_name: string | null;
+  down_bytes: number;
+  up_bytes: number;
+  errors: number;
+}
+
+export interface TorrentDiagnostics {
+  id: number;
+  peers: TorrentDiagPeer[];
+  trackers: string[];
+}
+
 export interface PickerTorrent {
   magnet?: string;
   fileBytes?: number[];
@@ -245,6 +260,7 @@ export interface TorrentItemProps {
 
 export interface MagnetTorrentProps {
   open: boolean;
+  initialMagnet?: string | null;
   onClose: () => void;
   onAddMagnet: (magnet: string) => void;
   onAddFile: (filePath: string) => void;

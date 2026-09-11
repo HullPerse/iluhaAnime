@@ -15,13 +15,14 @@ import {
   resolveInitialSource,
   serverSideSortSource,
 } from "@/lib/search/route.utils";
+import { suggestSpelling } from "@/lib/search/suggestions.utils";
 import { copyMagnet, downloadMagnet, openMagnet } from "@/lib/torrent/magnet.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSearchStore } from "@/store/search.store";
 import { useSettingsStore } from "@/store/settings.store";
-import type { Anime } from "@/types/torrent";
 import type { Source, SearchQueryController, SelectedSearchTorrent } from "@/types/search";
+import type { Anime } from "@/types/torrent";
 
 export function useSearchQuery(): SearchQueryController {
   const defaultSource = useSettingsStore((s) => s.defaultSearchSource);
@@ -194,6 +195,18 @@ export function useSearchQuery(): SearchQueryController {
       setSearchRequest((request) => request + 1);
     },
   });
+  const animeIndex = useSearchStore((s) => s.animeIndex);
+  const searchHistory = useSearchStore((s) => s.history);
+  const didYouMean = useMemo(() => {
+    if (!submittedQuery || isLoading || (data?.length ?? 0) > 0) return null;
+    return suggestSpelling(submittedQuery, { history: searchHistory, animeIndex });
+  }, [submittedQuery, isLoading, data, searchHistory, animeIndex]);
+  const applyDidYouMean = () => {
+    if (!didYouMean) return;
+    setSearchParams(didYouMean);
+    setSubmittedQuery(didYouMean);
+    setSearchRequest((request) => request + 1);
+  };
 
   return {
     source,
@@ -201,6 +214,8 @@ export function useSearchQuery(): SearchQueryController {
     isLoading,
     searchParams,
     submittedQuery,
+    didYouMean,
+    applyDidYouMean,
     field,
     handleSearch: field.handleSubmit,
     resetSearch,

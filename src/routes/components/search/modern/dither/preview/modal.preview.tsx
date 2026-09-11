@@ -347,7 +347,24 @@ export default function DitherPreviewModal({
   };
 
   return (
-    <Modal header={t("search.dither.preview")} onClose={onBack} onBack={onBack} className="w-2xl">
+    <Modal
+      header={t("search.dither.preview")}
+      onClose={onBack}
+      onBack={onBack}
+      headerActions={
+        <button
+          type="button"
+          onClick={extractFromImage}
+          disabled={extracting}
+          title={t("search.dither.palette.from.image")}
+          aria-label={t("search.dither.palette.from.image")}
+          className="windows95-active-border bg-primary text-text windows95-text flex size-5 cursor-pointer items-center justify-center hover:brightness-110 active:translate-x-px active:translate-y-px disabled:cursor-default disabled:brightness-90"
+        >
+          <Pipette className="size-2.5" />
+        </button>
+      }
+      className="w-2xl"
+    >
       <DitherCanvas
         src={src}
         className="bg-primary h-56 w-full shrink-0"
@@ -434,15 +451,6 @@ export default function DitherPreviewModal({
               onPick={(palette) => patchOptions({ palette })}
             />
           </div>
-          <Button
-            size="icon"
-            className="size-11 text-xs"
-            title={t("search.dither.palette.from.image")}
-            onClick={extractFromImage}
-            disabled={extracting}
-          >
-            <Pipette />
-          </Button>
         </div>
         <Slider
           label={t("search.dither.opt.scale")}

@@ -13,6 +13,7 @@ import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSettingsStore } from "@/store/settings.store";
 import type { Locale } from "@/types/i18n";
 import type { SettingsStore } from "@/types/settings";
+import SettingsMedia from "./media.settings";
 
 export default function SettingsGeneral() {
   const {
@@ -448,6 +449,8 @@ export default function SettingsGeneral() {
           </div>
         </div>
       </section>
+
+      <SettingsMedia />
 
       <hr className="border-muted my-1 w-full border-t" />
 

@@ -27,8 +27,8 @@ use super::helpers::{
     with_fallback_trackers, with_fallback_trackers_bytes,
 };
 use super::types::{
-    FilePriority, SessionConfig, TorrentCheckResult, TorrentFileInfo, TorrentInfo,
-    TorrentInfoResult, TorrentLimits,
+    FilePriority, SessionConfig, TorrentCheckResult, TorrentDiagPeer, TorrentDiagnostics,
+    TorrentFileInfo, TorrentInfo, TorrentInfoResult, TorrentLimits,
 };
 #[derive(Serialize, Deserialize, Default)]
 struct TorrentPreferences {
@@ -1397,6 +1397,54 @@ impl TorrentManager {
         });
         result.ok_or_else(|| "torrent not found or no metadata".to_string())
     }
+
+    pub fn torrent_diagnostics(
+        &self,
+        id: usize,
+        info_hash: Option<String>,
+    ) -> Result<TorrentDiagnostics, String> {
+        self.verify_torrent(id, info_hash.as_deref())?;
+        let found = self.session.with_torrents(|iter| {
+            for (tid, handle) in iter {
+                if tid != id {
+                    continue;
+                }
+                let mut peers: Vec<TorrentDiagPeer> = handle
+                    .live()
+                    .map(|live| {
+                        live.per_peer_stats_snapshot(PeerStatsFilter::default())
+                            .peers
+                            .into_iter()
+                            .map(|(addr, stats)| TorrentDiagPeer {
+                                addr,
+                                state: stats.state.to_string(),
+                                client_name: stats.client_name,
+                                down_bytes: stats.counters.fetched_bytes,
+                                up_bytes: stats.counters.uploaded_bytes,
+                                errors: stats.counters.errors,
+                            })
+                            .collect()
+                    })
+                    .unwrap_or_default();
+                peers.sort_by(|a, b| b.down_bytes.cmp(&a.down_bytes));
+                peers.truncate(100);
+                let mut trackers: Vec<String> = handle
+                    .shared()
+                    .trackers
+                    .iter()
+                    .map(|url| url.to_string())
+                    .collect();
+                trackers.sort();
+                return Some(TorrentDiagnostics {
+                    id,
+                    peers,
+                    trackers,
+                });
+            }
+            None
+        });
+        found.ok_or_else(|| "Torrent not found".to_string())
+    }
 }
 
 #[cfg(test)]
@@ -1407,6 +1455,17 @@ mod tests {
     use super::super::types::FilePriority;
     use super::*;
     use librqbit::{create_torrent, torrent_from_bytes, CreateTorrentOptions};
+    #[tokio::test(flavor = "multi_thread")]
+    async fn diagnostics_rejects_unknown_id() {
+        let dir = std::env::temp_dir().join(format!("iluha-diag-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("create temp dir");
+        let manager = TorrentManager::new_test(dir).await.expect("manager");
+        let error = manager
+            .torrent_diagnostics(999, None)
+            .expect_err("unknown id");
+        assert_eq!(error, "torrent not found");
+    }
     #[test]
     fn is_safe_relative_path_rejects_absolute_and_traversal_paths() {
         assert!(!is_safe_relative_path(""));

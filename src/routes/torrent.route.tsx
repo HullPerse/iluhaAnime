@@ -25,10 +25,12 @@ import {
   useUpdateOnlyFiles,
 } from "@/hooks/torrent/queries.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
+import { applyBulkAction } from "@/lib/torrent/bulk.utils";
 import { fmtSpeed, getLifecycleLabel, getTorrentLifecycle } from "@/lib/torrent/common.utils";
 import { reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { paginate } from "@/lib/utils/pagination.utils";
 import { useCacheStore } from "@/store/cache.store";
+import { useDeepLinkStore } from "@/store/deeplink.store";
 import { useTorrentStore } from "@/store/download.store";
 import { useNotificationStore } from "@/store/notification.store";
 import { useSettingsStore } from "@/store/settings.store";
@@ -68,6 +70,8 @@ function TorrentRoute() {
   );
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const [showMagnetModal, setShowMagnetModal] = useState(false);
+  const [magnetPrefill, setMagnetPrefill] = useState<string | null>(null);
+  const torrentTarget = useDeepLinkStore((state) => state.torrentTarget);
   const [filterQuery, setFilterQuery] = useState("");
   const [sortBy, setSortBy] = useState<"name" | "size" | "progress" | "speed">("name");
   const [sortAsc, setSortAsc] = useState(true);
@@ -106,6 +110,45 @@ function TorrentRoute() {
     () => paginate(filteredTorrents, page, TORRENT_PAGE_SIZE),
     [filteredTorrents, page]
   );
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const erroredTorrents = useMemo(
+    () => filteredTorrents.filter((torrent) => torrent.error),
+    [filteredTorrents]
+  );
+  const runBulk = async (kind: "pause" | "resume" | "retry") => {
+    const targets =
+      kind === "retry" ? filteredTorrents.filter((torrent) => torrent.error) : filteredTorrents;
+    if (targets.length === 0 || bulkBusy) return;
+    setBulkBusy(true);
+    try {
+      const { done, failed } = await applyBulkAction(targets, (torrent) => {
+        if (kind === "pause")
+          return pauseMutation.mutateAsync({ id: torrent.id, infoHash: torrent.info_hash });
+        if (kind === "resume")
+          return resumeMutation.mutateAsync({ id: torrent.id, infoHash: torrent.info_hash });
+        return removeMutation
+          .mutateAsync({ id: torrent.id, deleteFiles: false, infoHash: torrent.info_hash })
+          .then((removed) => {
+            if (removed) prepareTorrentDownload(`magnet:?xt=urn:btih:${torrent.info_hash}`);
+          });
+      });
+      useNotificationStore
+        .getState()
+        .add(
+          t("torrent.bulk.title"),
+          failed > 0 ? "error" : "success",
+          t("torrent.bulk.done", { done, failed })
+        );
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+  useEffect(() => {
+    if (!torrentTarget) return;
+    setMagnetPrefill(`magnet:?xt=urn:btih:${torrentTarget.infoHash}`);
+    setShowMagnetModal(true);
+    useDeepLinkStore.getState().consumeTorrent();
+  }, [torrentTarget]);
   const visibleIds = useMemo(() => pagedTorrents.map((t) => t.id), [pagedTorrents]);
   const { files: torrentFilesMap, errors: torrentFilesErrors } = useTorrentFilesMap(
     visibleIds,
@@ -290,6 +333,27 @@ function TorrentRoute() {
           <Plus className="size-4" />
           {t("torrent.add.magnet")}
         </Button>
+        <Button
+          className="windows95-text flex items-center"
+          disabled={bulkBusy || filteredTorrents.length === 0}
+          onClick={() => runBulk("pause")}
+        >
+          {t("torrent.bulk.pause.all")}
+        </Button>
+        <Button
+          className="windows95-text flex items-center"
+          disabled={bulkBusy || filteredTorrents.length === 0}
+          onClick={() => runBulk("resume")}
+        >
+          {t("torrent.bulk.resume.all")}
+        </Button>
+        <Button
+          className="windows95-text flex items-center"
+          disabled={bulkBusy || erroredTorrents.length === 0}
+          onClick={() => runBulk("retry")}
+        >
+          {t("torrent.bulk.retry.errors")}
+        </Button>
       </section>
 
       {torrentsLoading && total === 0 && (
@@ -414,7 +478,11 @@ function TorrentRoute() {
       {showMagnetModal && (
         <AddTorrentModal
           open={showMagnetModal}
-          onClose={() => setShowMagnetModal(false)}
+          initialMagnet={magnetPrefill}
+          onClose={() => {
+            setShowMagnetModal(false);
+            setMagnetPrefill(null);
+          }}
           onAddMagnet={(magnet) => prepareTorrentDownload(magnet)}
           onAddFile={(path) => prepareTorrentDownloadFromFile(path)}
         />

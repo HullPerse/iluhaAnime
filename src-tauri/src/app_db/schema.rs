@@ -550,6 +550,22 @@ pub fn initialize_schema(connection: &Connection) -> Result<(), String> {
             .commit()
             .map_err(|error| format!("app database release date commit: {error}"))?;
     }
+    if version < 17 {
+        let transaction = connection
+            .unchecked_transaction()
+            .map_err(|error| format!("app database embeddings removal transaction: {error}"))?;
+        transaction
+            .execute_batch(
+                "
+                DROP TABLE IF EXISTS unified_index_vec;
+                PRAGMA user_version = 17;
+                ",
+            )
+            .map_err(|error| format!("app database embeddings removal schema: {error}"))?;
+        transaction
+            .commit()
+            .map_err(|error| format!("app database embeddings removal commit: {error}"))?;
+    }
 
     if version > CURRENT_SCHEMA_VERSION {
         return Err(format!(
@@ -597,6 +613,24 @@ mod tests {
             )
             .expect("read vault gone");
         assert_eq!(count, 0);
+    }
+
+    #[test]
+    fn embeddings_vec_table_is_dropped() {
+        let connection = Connection::open_in_memory().expect("in-memory database");
+        initialize_schema(&connection).expect("schema migration");
+        let count: i64 = connection
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'unified_index_vec'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("read vec gone");
+        assert_eq!(count, 0);
+        let version: i64 = connection
+            .pragma_query_value(None, "user_version", |row| row.get(0))
+            .expect("read user version");
+        assert_eq!(version, CURRENT_SCHEMA_VERSION);
     }
     #[test]
     fn migration_v15_rewrites_seconds_scale_updated_at_to_milliseconds() {

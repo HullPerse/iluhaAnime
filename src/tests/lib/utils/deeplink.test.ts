@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest";
 
-import { buildAnimeLink, ingestDeepLinks, parseAnimeLink } from "@/lib/utils/deeplink.utils";
+import {
+  allowsPastedLink,
+  buildAnimeLink,
+  buildTorrentLink,
+  ingestDeepLinks,
+  isEditablePasteTarget,
+  parseAnimeLink,
+  parsePastedLink,
+  parseTorrentLink,
+} from "@/lib/utils/deeplink.utils";
 import type { AnimeDeepLink } from "@/lib/utils/deeplink.utils";
 
 describe("buildAnimeLink", () => {
@@ -110,5 +119,113 @@ describe("ingestDeepLinks", () => {
     s.run(["junk", 7]);
     expect(s.opened).toEqual([]);
     expect(s.invalidCalls()).toBe(1);
+  });
+});
+
+describe("parseTorrentLink", () => {
+  it("parses a valid link and lowercases the hash", () => {
+    expect(
+      parseTorrentLink("iluhaanime://torrent/ABCDEF0123456789ABCDEF0123456789ABCDEF01")
+    ).toEqual({ infoHash: "abcdef0123456789abcdef0123456789abcdef01" });
+  });
+
+  it("rejects wrong shape", () => {
+    expect(parseTorrentLink("iluhaanime://anime/anilist/21")).toBeNull();
+    expect(parseTorrentLink("iluhaanime://torrent/")).toBeNull();
+    expect(parseTorrentLink("iluhaanime://torrent/abc")).toBeNull();
+    expect(
+      parseTorrentLink("iluhaanime://torrent/xyzXYZ0123456789xyzXYZ0123456789xyzXYZ01")
+    ).toBeNull();
+    expect(
+      parseTorrentLink("iluhaanime://torrent/abcdef0123456789abcdef0123456789abcdef01?x=1")
+    ).toBeNull();
+  });
+
+  it("round-trips through the builder", () => {
+    const hash = "abcdef0123456789abcdef0123456789abcdef01";
+    expect(parseTorrentLink(buildTorrentLink(hash))).toEqual({ infoHash: hash });
+  });
+
+  it("routes torrent links to the torrent opener", () => {
+    const openedAnime: AnimeDeepLink[] = [];
+    const openedTorrents: { infoHash: string }[] = [];
+    let invalid = 0;
+    ingestDeepLinks(
+      ["iluhaanime://torrent/abcdef0123456789abcdef0123456789abcdef01"],
+      (link) => {
+        openedAnime.push(link);
+      },
+      () => {
+        invalid += 1;
+      },
+      (link) => {
+        openedTorrents.push(link);
+      }
+    );
+    expect(openedAnime).toEqual([]);
+    expect(openedTorrents).toEqual([{ infoHash: "abcdef0123456789abcdef0123456789abcdef01" }]);
+    expect(invalid).toBe(0);
+  });
+
+  it("flags torrent links without a torrent opener", () => {
+    let invalid = 0;
+    ingestDeepLinks(
+      ["iluhaanime://torrent/abcdef0123456789abcdef0123456789abcdef01"],
+      () => {},
+      () => {
+        invalid += 1;
+      }
+    );
+    expect(invalid).toBe(1);
+  });
+});
+
+describe("parsePastedLink", () => {
+  it("routes both link kinds", () => {
+    expect(parsePastedLink("iluhaanime://anime/anilist/21")).toEqual({
+      kind: "anime",
+      link: { source: "anilist", id: 21 },
+    });
+    expect(
+      parsePastedLink("iluhaanime://torrent/abcdef0123456789abcdef0123456789abcdef01")
+    ).toEqual({
+      kind: "torrent",
+      link: { infoHash: "abcdef0123456789abcdef0123456789abcdef01" },
+    });
+  });
+
+  it("ignores non-link text silently", () => {
+    expect(parsePastedLink("just some text")).toBeNull();
+    expect(parsePastedLink("")).toBeNull();
+  });
+
+  it("flags scheme garbage as invalid", () => {
+    expect(parsePastedLink("iluhaanime://nope")).toBe("invalid");
+  });
+});
+
+describe("allowsPastedLink", () => {
+  it("matches links to their tabs only", () => {
+    expect(allowsPastedLink("anime", "anilist")).toBe(true);
+    expect(allowsPastedLink("torrent", "torrent")).toBe(true);
+    expect(allowsPastedLink("anime", "torrent")).toBe(false);
+    expect(allowsPastedLink("torrent", "anilist")).toBe(false);
+    expect(allowsPastedLink("anime", "search")).toBe(false);
+  });
+});
+
+describe("isEditablePasteTarget", () => {
+  it("detects inputs, textareas, and editors", () => {
+    expect(isEditablePasteTarget(document.createElement("input"))).toBe(true);
+    expect(isEditablePasteTarget(document.createElement("textarea"))).toBe(true);
+    const editor = document.createElement("div");
+    editor.setAttribute("contenteditable", "true");
+    expect(isEditablePasteTarget(editor)).toBe(true);
+  });
+
+  it("passes buttons and null through", () => {
+    expect(isEditablePasteTarget(document.createElement("button"))).toBe(false);
+    expect(isEditablePasteTarget(document.createElement("div"))).toBe(false);
+    expect(isEditablePasteTarget(null)).toBe(false);
   });
 });

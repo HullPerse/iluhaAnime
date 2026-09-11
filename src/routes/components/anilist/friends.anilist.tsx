@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import { SmallLoader } from "@/components/shared/loader.component";
 import Modal from "@/components/shared/modal.component";
+import Tabs from "@/components/shared/tabs.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { Input } from "@/components/ui/input.component";
@@ -17,12 +18,14 @@ import type { AniUserProfile } from "@/types/anilist";
 import type { AniFriendsProps as Props } from "@/types/anilist";
 
 import { FriendLatestActivity } from "./activity/friendActivity.activity";
+import { FriendListsView } from "./lists.anilist";
 
-export default function AniListFriendsModal({ friends, onAdd, onRemove, onClose }: Props) {
+export default function AniListFriendsModal({ friends, onAdd, onRemove, onClose, onAnime }: Props) {
   const { t } = useI18n();
   const [query, setQuery] = useState("");
   const [profiles, setProfiles] = useState<Record<number, AniUserProfile>>({});
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [view, setView] = useState<"profile" | "lists">("profile");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -98,9 +101,9 @@ export default function AniListFriendsModal({ friends, onAdd, onRemove, onClose 
                 >
                   <button
                     type="button"
-                    className="flex min-w-0 flex-1 items-center gap-1 text-left"
                     onClick={() => {
                       setSelectedId(friend.id);
+                      setView("profile");
                       const saved = friends.find((item) => item.id === friend.id);
                       if (!profiles[friend.id] && !hasFreshCachedProfile(saved)) {
                         loadProfile(friend.name);
@@ -148,6 +151,22 @@ export default function AniListFriendsModal({ friends, onAdd, onRemove, onClose 
             </div>
           )}
           {selected ? (
+            <Tabs
+              tabs={[
+                { id: "profile", label: t("anilist.friends.profile") },
+                { id: "lists", label: t("anilist.friends.lists") },
+              ]}
+              activeTab={view}
+              onChange={setView}
+              ariaLabel={t("anilist.friends.title")}
+            />
+          ) : null}
+          {selected && view === "lists" ? (
+            <div className="windows95-border min-h-0 flex-1 overflow-y-auto bg-white">
+              <FriendListsView friendId={selected.id} onAnime={onAnime} />
+            </div>
+          ) : null}
+          {selected && view === "profile" ? (
             <div className="windows95-border min-h-0 flex-1 overflow-y-auto bg-white">
               {selected.banner_image && (
                 <div className="bg-secondary h-20 overflow-hidden">

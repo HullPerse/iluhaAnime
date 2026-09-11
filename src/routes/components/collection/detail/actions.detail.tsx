@@ -1,18 +1,12 @@
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { Play, RefreshCw } from "lucide-react";
+import { Play } from "lucide-react";
 
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import type { CollectionItem } from "@/types/collection";
 
-export function DetailActionsCollection({
-  item,
-  refreshMetadata,
-}: {
-  item: CollectionItem;
-  refreshMetadata: (item: CollectionItem) => Promise<void>;
-}) {
+export function DetailActionsCollection({ item }: { item: CollectionItem }) {
   const { t } = useI18n();
   const openLocal = async () => {
     if (!item.localPath) return;
@@ -37,13 +31,6 @@ export function DetailActionsCollection({
           {t("collection.details.anilist")}
         </Button>
       )}
-      <Button
-        variant="outline"
-        disabled={item.externalIds.anilist == null && item.externalIds.tmdb == null}
-        onClick={() => refreshMetadata(item)}
-      >
-        <RefreshCw className="size-3" /> {t("collection.details.refresh.metadata")}
-      </Button>
     </div>
   );
 }

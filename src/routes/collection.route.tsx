@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 
-import { ConfirmDialog } from "@/components/shared/confirm.component";
 import { TabLoader } from "@/components/shared/loader.component";
-import { SelectDialog } from "@/components/shared/selectDialog.component";
 import { Button } from "@/components/ui/button.component";
 import { useCollectionDataActions } from "@/hooks/collection/data.hook";
 import { useCollectionMetadata } from "@/hooks/collection/metadata.hook";
@@ -25,15 +23,13 @@ import type {
   WizardPrefill,
 } from "@/types/collection";
 
-import { DetailCollection } from "./components/collection/detail/modal.detail";
+import ContinueCollection, { CONTINUE_MAX } from "./components/collection/continue.collection";
 import FilterCollection from "./components/collection/filter.collection";
 import GridCollection from "./components/collection/grid.collection";
-import ImportAnilistCollection from "./components/collection/importAnilist.collection";
 import ListCollection from "./components/collection/list.collection";
+import CollectionModals from "./components/collection/modals.collection";
 import { StatusCollection } from "./components/collection/status.collection";
-import { StatusManagerCollection } from "./components/collection/statusManager.collection";
 import ToolbarCollection from "./components/collection/toolbar.collection";
-import { WizardModal } from "./components/collection/wizard/modal.wizard";
 
 function CollectionQuerySlot({
   status,
@@ -69,7 +65,6 @@ export default function CollectionRoute() {
     useCollectionData();
   const mutations = useCollectionMutations();
   const dataActions = useCollectionDataActions();
-  const { t } = useI18n();
 
   const {
     sortBy,
@@ -113,6 +108,17 @@ export default function CollectionRoute() {
       updateItem(item.id, patch);
     },
     [updateItem]
+  );
+  const continueItems = useMemo(
+    () =>
+      items
+        .filter(
+          (item) =>
+            item.status === "watching" || (item.progressValue > 0 && item.status !== "completed")
+        )
+        .sort((a, b) => b.updatedAt - a.updatedAt)
+        .slice(0, CONTINUE_MAX),
+    [items]
   );
 
   const collectionSuggestionItems = useMemo(
@@ -248,6 +254,10 @@ export default function CollectionRoute() {
         onSelect={setSelectedStatus}
         counts={statusCounts}
       />
+      <ContinueCollection
+        items={continueItems}
+        onOpen={setDetailItem}
+      />
       <CollectionQuerySlot
         status={{ isLoading, isFetching, isError, error, refetch }}
         isEmpty={items.length === 0}
@@ -278,93 +288,59 @@ export default function CollectionRoute() {
           />
         )}
       </CollectionQuerySlot>
-      {showWizard && (
-        <WizardModal
-          open={showWizard}
-          onClose={() => {
-            setShowWizard(false);
-            setEditingItem(null);
-            setWizardDraft(null);
-          }}
-          onSave={(item) => {
-            if (editingItem) updateItem(editingItem.id, item);
-            else mutations.addItem(item);
-            setWizardDraft(null);
-          }}
-          onDelete={(id) => {
-            mutations.removeItem(id);
-            setShowWizard(false);
-            setEditingItem(null);
-          }}
-          initial={editingItem}
-          prefill={wizardDraft}
-          statuses={statuses}
-          customFieldDefs={customFieldDefs}
-        />
-      )}
-      {anilistImport && (
-        <ImportAnilistCollection
-          open={anilistImport}
-          onClose={() => setAnilistImport(false)}
-          onImported={() => {}}
-        />
-      )}
-
-      {detailItem && (
-        <DetailCollection
-          item={detailItem}
-          items={items}
-          statuses={statuses}
-          onClose={() => setDetailItem(null)}
-          onOpenItem={setDetailItem}
-          onEdit={(item) => {
-            setEditingItem(item);
-            setDetailItem(null);
-            setShowWizard(true);
-          }}
-          onDelete={(id) => {
-            setDetailItem(null);
-            setPendingDelete(id);
-          }}
-          refreshMetadata={refreshMetadata}
-        />
-      )}
-
-      {pendingDelete && (
-        <ConfirmDialog
-          open
-          title={t("collection.delete.media.title")}
-          message={t("collection.delete.media.message")}
-          confirmLabel={t("common.delete")}
-          variant="destructive"
-          onConfirm={() => {
+      <CollectionModals
+        showWizard={showWizard}
+        editingItem={editingItem}
+        wizardDraft={wizardDraft}
+        statuses={statuses}
+        customFieldDefs={customFieldDefs}
+        anilistImport={anilistImport}
+        detailItem={detailItem}
+        items={items}
+        pendingDelete={pendingDelete}
+        statusManager={statusManager}
+        showImportStrategy={dataActions.importStrategyOpen && Boolean(dataActions.importFile)}
+        onWizardClose={() => {
+          setShowWizard(false);
+          setEditingItem(null);
+          setWizardDraft(null);
+        }}
+        onWizardSave={(item) => {
+          if (editingItem) updateItem(editingItem.id, item);
+          else mutations.addItem(item);
+          setWizardDraft(null);
+        }}
+        onWizardDelete={(id) => {
+          mutations.removeItem(id);
+          setShowWizard(false);
+          setEditingItem(null);
+        }}
+        onImportClose={() => setAnilistImport(false)}
+        onDetailClose={() => setDetailItem(null)}
+        onOpenItem={setDetailItem}
+        onDetailEdit={(item) => {
+          setEditingItem(item);
+          setDetailItem(null);
+          setShowWizard(true);
+        }}
+        onDetailDelete={(id) => {
+          setDetailItem(null);
+          setPendingDelete(id);
+        }}
+        refreshMetadata={refreshMetadata}
+        onConfirmDelete={() => {
+          if (pendingDelete) {
             mutations.removeItem(pendingDelete);
             setPendingDelete(null);
-          }}
-          onCancel={() => setPendingDelete(null)}
-          onClose={() => setPendingDelete(null)}
-        />
-      )}
-      {dataActions.importStrategyOpen && dataActions.importFile && (
-        <SelectDialog
-          header={t("collection.import.title")}
-          label={t("collection.import.overwrite.confirm")}
-          options={[
-            { value: "overwrite", label: t("collection.import.overwrite") },
-            { value: "skip", label: t("collection.import.skip") },
-          ]}
-          onSubmit={dataActions.handleConfirmImport}
-          onClose={dataActions.handleCloseImport}
-        />
-      )}
-      {statusManager && (
-        <StatusManagerCollection
-          statuses={statuses}
-          onUpsert={(status) => mutations.upsertStatus(status)}
-          onDelete={(id) => mutations.deleteStatus(id)}
-          onClose={() => setStatusManager(false)}
-        />
-      )}
+          }
+        }}
+        onCancelDelete={() => setPendingDelete(null)}
+        onConfirmImport={dataActions.handleConfirmImport}
+        onCloseImport={dataActions.handleCloseImport}
+        onUpsertStatus={(status) => mutations.upsertStatus(status)}
+        onDeleteStatus={(id) => mutations.deleteStatus(id)}
+        onStatusManagerClose={() => setStatusManager(false)}
+      />
     </div>
   );
 }

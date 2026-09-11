@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
 import {
   FAV_PEOPLE_MAX_PAGES,
@@ -10,8 +10,10 @@ import {
   unionFavAnimeIds,
 } from "@/lib/anilist/people.utils";
 import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
+import { translate } from "@/lib/locale/i18n.utils";
 import { readAppCache, writeAppCache } from "@/lib/store/cache.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
+import { useNotificationStore } from "@/store/notification.store";
 import { useSearchStore } from "@/store/search.store";
 import { useSettingsStore } from "@/store/settings.store";
 import type {
@@ -116,7 +118,10 @@ export function useFavPeopleAnimeSet(): Set<number> {
 
 export function useFavouritePeopleToggles() {
   const queryClient = useQueryClient();
+  const staffPendingRef = useRef(false);
   const toggleStaff = async (staffId: number) => {
+    if (staffPendingRef.current) return;
+    staffPendingRef.current = true;
     try {
       const updated = await invokeTyped<FavouritePerson[]>("toggle_favourite_staff", {
         staffId,
@@ -131,10 +136,21 @@ export function useFavouritePeopleToggles() {
           : old
       );
     } catch (error) {
-      console.warn("toggle_favourite_staff failed", error);
+      useNotificationStore
+        .getState()
+        .add(
+          translate(useSettingsStore.getState().language, "anilist.fav.toggle.failed"),
+          "error",
+          error instanceof Error ? error.message : String(error)
+        );
+    } finally {
+      staffPendingRef.current = false;
     }
   };
+  const characterPendingRef = useRef(false);
   const toggleCharacter = async (characterId: number) => {
+    if (characterPendingRef.current) return;
+    characterPendingRef.current = true;
     try {
       const updated = await invokeTyped<FavouritePerson[]>("toggle_favourite_character", {
         characterId,
@@ -149,7 +165,15 @@ export function useFavouritePeopleToggles() {
           : old
       );
     } catch (error) {
-      console.warn("toggle_favourite_character failed", error);
+      useNotificationStore
+        .getState()
+        .add(
+          translate(useSettingsStore.getState().language, "anilist.fav.toggle.failed"),
+          "error",
+          error instanceof Error ? error.message : String(error)
+        );
+    } finally {
+      characterPendingRef.current = false;
     }
   };
   return { toggleStaff, toggleCharacter };

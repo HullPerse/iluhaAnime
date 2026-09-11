@@ -43,6 +43,7 @@ export default function QueuePanel({ scan }: { scan: ScanType }) {
 
   const activeCount = items.filter((i) => i.status !== "done").length;
   const hasProcessing = items.some((i) => i.status === "processing");
+  const failedCount = items.filter((i) => i.status === "error").length;
 
   return (
     <section className="windows95-active-border bg-primary p-1">
@@ -65,6 +66,20 @@ export default function QueuePanel({ scan }: { scan: ScanType }) {
               title={paused ? t("player.queue.resume") : t("player.queue.pause")}
             >
               {paused ? <Play className="size-2.5" /> : <Pause className="size-2.5" />}
+            </Button>
+          )}
+          {failedCount > 0 && (
+            <Button
+              size="icon"
+              className="h-4 w-4"
+              onClick={() => {
+                items
+                  .filter((item) => item.status === "error")
+                  .forEach((item) => restartItem(item.id));
+              }}
+              title={t("player.queue.retry.failed")}
+            >
+              <RefreshCw className="size-2.5" />
             </Button>
           )}
           <Button
@@ -132,7 +147,9 @@ export default function QueuePanel({ scan }: { scan: ScanType }) {
                   )}
                   {item.status === "error" && (
                     <>
-                      <span className="text-destructive max-w-25 truncate">{item.error}</span>
+                      <span className="text-destructive max-w-25 truncate" title={item.error}>
+                        {item.error}
+                      </span>
                       <Button
                         size="icon"
                         className="h-3 w-3"

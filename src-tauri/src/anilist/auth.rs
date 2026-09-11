@@ -41,7 +41,9 @@ pub fn load_token(app_handle: &tauri::AppHandle) -> Result<String, String> {
 }
 
 pub fn optional_token(app_handle: &tauri::AppHandle) -> Option<String> {
-    load_token(app_handle).ok().filter(|token| !token.is_empty())
+    load_token(app_handle)
+        .ok()
+        .filter(|token| !token.is_empty())
 }
 
 #[derive(Debug, Serialize)]

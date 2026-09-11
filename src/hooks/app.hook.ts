@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { listen } from "@tauri-apps/api/event";
 import type { Update } from "@tauri-apps/plugin-updater";
 import { saveWindowState } from "@tauri-apps/plugin-window-state";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 
 import { tabForAltDigit, visibleTabs } from "@/config/settings/tabs.config";
 import { usePolling } from "@/hooks/polling.hook";
@@ -10,7 +10,13 @@ import { pollAniListReleases } from "@/lib/anilist/notifications.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { readAppCache, writeAppCache } from "@/lib/store/cache.utils";
 import { reportBackgroundError } from "@/lib/utils/attempt.utils";
-import { DEEP_LINK_EVENT, ingestDeepLinks } from "@/lib/utils/deeplink.utils";
+import {
+  DEEP_LINK_EVENT,
+  allowsPastedLink,
+  ingestDeepLinks,
+  isEditablePasteTarget,
+  parsePastedLink,
+} from "@/lib/utils/deeplink.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { resolveNotificationText, showError } from "@/lib/utils/notification.utils";
 import { checkForUpdates } from "@/lib/utils/update.utils";
@@ -52,7 +58,10 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
     label: t(tab.key),
   }));
   const [isPending, startTransition] = useTransition();
-  const setActiveTabTransition = (tab: TabId) => startTransition(() => setActiveTab(tab));
+  const setActiveTabTransition = useCallback(
+    (tab: TabId) => startTransition(() => setActiveTab(tab)),
+    [setActiveTab]
+  );
 
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const { data } = useQuery({
@@ -198,7 +207,15 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
       ingestDeepLinks(
         urls,
         (link) => useDeepLinkStore.getState().openAnime(link),
-        () => showError(t("common.error"), t("anilist.details.link.invalid"))
+        () => showError(t("common.error"), t("anilist.details.link.invalid")),
+        (link) => {
+          if (!useSettingsStore.getState().torrentTabEnabled) {
+            showError(t("common.error"), t("anilist.details.link.invalid"));
+            return;
+          }
+          useDeepLinkStore.getState().openTorrent(link);
+          setActiveTabTransition("torrent");
+        }
       );
     };
     invokeTyped<string[]>("take_pending_deep_links")
@@ -218,7 +235,30 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
       disposed = true;
       unlisten?.();
     };
-  }, [t]);
+  }, [t, setActiveTabTransition]);
+
+  useEffect(() => {
+    const handler = (event: ClipboardEvent) => {
+      if (event.defaultPrevented) return;
+      if (isEditablePasteTarget(event.target)) return;
+      const text = event.clipboardData?.getData("text") ?? "";
+      const parsed = parsePastedLink(text);
+      if (!parsed) return;
+      if (parsed === "invalid") {
+        if (activeTab === "anilist" || activeTab === "torrent") {
+          event.preventDefault();
+          showError(t("common.error"), t("anilist.details.link.invalid"));
+        }
+        return;
+      }
+      if (!allowsPastedLink(parsed.kind, activeTab)) return;
+      event.preventDefault();
+      if (parsed.kind === "anime") useDeepLinkStore.getState().openAnime(parsed.link);
+      else useDeepLinkStore.getState().openTorrent(parsed.link);
+    };
+    window.addEventListener("paste", handler);
+    return () => window.removeEventListener("paste", handler);
+  }, [t, activeTab]);
 
   useEffect(() => {
     const switchToAnilist = () => {

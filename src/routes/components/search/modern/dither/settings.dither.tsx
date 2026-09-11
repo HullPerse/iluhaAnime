@@ -245,7 +245,23 @@ function DitherSettings({ onClose }: { onClose: () => void }) {
     );
 
   return (
-    <Modal header={t("search.dither.title")} onClose={onClose} className="w-xl">
+    <Modal
+      header={t("search.dither.title")}
+      onClose={onClose}
+      headerActions={
+        <button
+          type="button"
+          onClick={() => upload()}
+          disabled={uploading}
+          title={t("search.dither.add")}
+          aria-label={t("search.dither.add")}
+          className="windows95-active-border bg-primary text-text windows95-text flex size-5 cursor-pointer items-center justify-center hover:brightness-110 active:translate-x-px active:translate-y-px disabled:cursor-default disabled:brightness-90"
+        >
+          <Plus className="size-2.5" />
+        </button>
+      }
+      className="w-xl"
+    >
       <section className="border-secondary bg-win-highlight relative flex h-24 w-full flex-row border-2">
         <div className="flex flex-row items-center justify-center gap-1 p-1">
           {loading || pageLoading ? (
@@ -319,16 +335,6 @@ function DitherSettings({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="absolute top-1 right-1 z-50 flex flex-row gap-1">
-          <Button
-            size="icon"
-            className="size-6"
-            title={t("search.dither.add")}
-            aria-label={t("search.dither.add")}
-            onClick={() => upload()}
-            disabled={uploading}
-          >
-            <Plus />
-          </Button>
           <Button
             size="icon"
             className="size-6"

@@ -28,4 +28,11 @@ describe("useDeepLinkStore", () => {
     useDeepLinkStore.getState().consume();
     expect(useDeepLinkStore.getState().target).toBeNull();
   });
+
+  it("opens and consumes a torrent target", () => {
+    useDeepLinkStore.getState().openTorrent({ infoHash: "abc" });
+    expect(useDeepLinkStore.getState().torrentTarget).toEqual({ infoHash: "abc" });
+    useDeepLinkStore.getState().consumeTorrent();
+    expect(useDeepLinkStore.getState().torrentTarget).toBeNull();
+  });
 });

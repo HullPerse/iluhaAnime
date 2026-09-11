@@ -1,4 +1,4 @@
-import { ChevronLeft, Edit2, Images, X } from "lucide-react";
+import { ChevronLeft, Edit2, Images, RefreshCw, X } from "lucide-react";
 import { useState } from "react";
 
 import { FavPeopleStar } from "@/components/shared/favPeopleStar.component";
@@ -12,11 +12,53 @@ import type { CollectionItem, CollectionStatusDef } from "@/types/collection";
 
 import { DetailActionsCollection } from "./actions.detail";
 import { DetailCoverCollection } from "./cover.detail";
+import { CreditsCollection } from "./credits.detail";
 import { DetailFactsCollection } from "./facts.detail";
+import { SeasonsCollection } from "./seasons.detail";
 import { SimilarCollection } from "./similar.detail";
 import { SitesCollection } from "./sites.detail";
 import { TitlesCollection } from "./titles.detail";
 import { MediaViewerContent } from "./viewer.detail";
+
+function DetailHeaderActions({
+  item,
+  canOpenMedia,
+  onMedia,
+  onRefresh,
+}: {
+  item: CollectionItem;
+  canOpenMedia: boolean;
+  onMedia: () => void;
+  onRefresh: () => void;
+}) {
+  const { t } = useI18n();
+  const canRefresh = item.externalIds.anilist != null || item.externalIds.tmdb != null;
+  return (
+    <>
+      <Button
+        size="icon"
+        className="size-5"
+        onClick={onRefresh}
+        disabled={!canRefresh}
+        aria-label={t("collection.details.refresh.metadata")}
+        title={t("collection.details.refresh.metadata")}
+      >
+        <RefreshCw className="size-3" />
+      </Button>
+      {canOpenMedia ? (
+        <Button
+          size="icon"
+          className="size-5"
+          onClick={onMedia}
+          aria-label={t("collection.details.media")}
+          title={t("collection.details.media")}
+        >
+          <Images className="size-3" />
+        </Button>
+      ) : null}
+    </>
+  );
+}
 
 export function DetailCollection({
   item,
@@ -73,17 +115,14 @@ export function DetailCollection({
             </span>
           </div>
           <div className="flex shrink-0 flex-row items-center gap-0.5">
-            {!mediaOpen && canOpenMedia ? (
-              <Button
-                size="icon"
-                className="size-5"
-                onClick={() => setMediaView({ itemId: item.id, tab: "frames" })}
-                aria-label={t("collection.details.media")}
-                title={t("collection.details.media")}
-              >
-                <Images className="size-3" />
-              </Button>
-            ) : null}
+            {!mediaOpen && (
+              <DetailHeaderActions
+                item={item}
+                canOpenMedia={canOpenMedia}
+                onMedia={() => setMediaView({ itemId: item.id, tab: "frames" })}
+                onRefresh={() => refreshMetadata(item)}
+              />
+            )}
             <Button size="icon" className="size-5" onClick={onClose}>
               <X className="size-3" />
             </Button>
@@ -109,7 +148,7 @@ export function DetailCollection({
                     statuses={statuses}
                     statusText={statusLabel(statuses, item.status, t, locale)}
                   />
-                  <DetailActionsCollection item={item} refreshMetadata={refreshMetadata} />
+                  <DetailActionsCollection item={item} />
                 </div>
               </div>
               <div className="mt-2">
@@ -138,6 +177,8 @@ export function DetailCollection({
                 </div>
               )}
               <SitesCollection item={item} />
+              <CreditsCollection item={item} />
+              <SeasonsCollection item={item} />
               <SimilarCollection items={items} item={item} onOpenItem={onOpenItem} />
             </>
           )}

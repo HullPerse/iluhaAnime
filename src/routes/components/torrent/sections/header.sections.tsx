@@ -1,5 +1,5 @@
 import { openPath } from "@tauri-apps/plugin-opener";
-import { Pause, Play, Check, Search } from "lucide-react";
+import { Gauge, Pause, Play, Check, Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
@@ -18,9 +18,16 @@ export function TorrentHeader({
   onSetSequential,
   onRecheck,
   onDelete,
+  onToggleExpand,
 }: Pick<
   TorrentItemProps,
-  "item" | "onPause" | "onResume" | "onSeedChange" | "onSetSequential" | "onRecheck"
+  | "item"
+  | "onPause"
+  | "onResume"
+  | "onSeedChange"
+  | "onSetSequential"
+  | "onRecheck"
+  | "onToggleExpand"
 > & { isLive: boolean; isPaused: boolean; busy: boolean; onDelete: () => void }) {
   const { t } = useI18n();
   return (
@@ -90,6 +97,18 @@ export function TorrentHeader({
           onClick={() => onSetSequential(!item.sequential_download)}
         >
           {item.sequential_download && <Check className="size-4" />}
+        </Button>
+        <Button
+          title={t("torrent.limits")}
+          aria-label={t("torrent.limits")}
+          size="icon"
+          className="size-6"
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleExpand();
+          }}
+        >
+          <Gauge className="size-4" />
         </Button>
         <Button
           title={t("torrent.recheck")}

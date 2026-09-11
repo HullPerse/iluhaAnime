@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { SettingsChangelog } from "@/routes/components/settings/changelog.settings";
 import { SettingsSummary } from "@/routes/components/settings/summary.settings";
+import { useSettingsStore } from "@/store/settings.store";
 
 const mockInvoke = vi.fn();
 
@@ -86,6 +87,26 @@ describe("SettingsSummary", () => {
       expect(mockInvoke).toHaveBeenCalledWith("clear_remote_image_cache", undefined);
     });
     expect(await screen.findByText("0 · 0 B")).toBeDefined();
+  });
+
+  it("enables the sqlite tab when jumping to backups from a gated state", async () => {
+    const user = userEvent.setup();
+    useSettingsStore.setState({ sqliteBrowserEnabled: false });
+    mockInvoke.mockImplementation((cmd: string) => {
+      if (cmd === "check_ffprobe") return Promise.resolve(false);
+      if (cmd === "list_sqlite_databases") return Promise.resolve([{ id: "app", available: true }]);
+      if (cmd === "list_sqlite_backups")
+        return Promise.resolve([{ name: "b", sizeBytes: 1, modifiedMs: 1000 }]);
+      return Promise.resolve(null);
+    });
+    const onJump = vi.fn();
+    renderSummary(onJump);
+
+    const openButtons = await screen.findAllByRole("button", { name: "Open" });
+    await user.click(openButtons[0]);
+
+    expect(useSettingsStore.getState().sqliteBrowserEnabled).toBe(true);
+    expect(onJump).toHaveBeenCalledWith("sqlite");
   });
 
 });

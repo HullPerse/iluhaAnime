@@ -72,6 +72,7 @@ export type CommandName =
   | "get_tmdb_media"
   | "get_tmdb_rate_limit"
   | "get_torrent_details"
+  | "get_torrent_diagnostics"
   | "get_torrent_info"
   | "get_torrent_info_from_file"
   | "get_torrent_limits"

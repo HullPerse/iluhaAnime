@@ -11,7 +11,9 @@ import {
 } from "@/config/player/folders.config";
 import { useBottomResize } from "@/hooks/folderResize.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
+import { summarizeTree } from "@/lib/player/tree.utils";
 import { normalizePlayerPath } from "@/lib/player/visibility.utils";
+import { formatBytes } from "@/lib/utils/bytes.utils";
 import { useSettingsStore } from "@/store/settings.store";
 import type { FolderNode } from "@/types/torrent";
 
@@ -35,7 +37,7 @@ export function DraggableFolder({
     data: { type: "folder", name: tree.name, folderPath: tree.path },
   });
 
-  const countAll = tree.files.length + tree.children.reduce((s, c) => s + c.files.length, 0);
+  const summary = useMemo(() => summarizeTree(tree), [tree]);
   const audioExtensions = useSettingsStore((s) => s.audioExtensions);
   const disabledExtensions = useMemo(() => new Set(audioExtensions), [audioExtensions]);
   const { t } = useI18n();
@@ -90,7 +92,7 @@ export function DraggableFolder({
           {tree.name}
         </span>
         <span className="text-hint text-xs whitespace-nowrap select-none">
-          {t("player.folder.file.count", { count: countAll })}
+          {t("player.folder.file.count", { count: summary.count })}, {formatBytes(summary.bytes)}
         </span>
         {onHide && (
           <Button

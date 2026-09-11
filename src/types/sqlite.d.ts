@@ -38,6 +38,12 @@ export interface SqliteBackupInfo {
 
 export type SortState = { column: string; direction: "asc" | "desc" } | null;
 
+export interface SqliteSelectedCell {
+  column: string;
+  keys: string[] | null;
+  display: string;
+}
+
 export type RowsTableProps = {
   columns: string[];
   rowsArray: Array<unknown>[];

@@ -4,33 +4,21 @@ import { InlineAutocompleteInput } from "@/components/shared/autocomplete/input.
 import { Button } from "@/components/ui/button.component";
 import { countActiveAnilistFilters } from "@/lib/anilist/filters.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
-import type { SearchSuggestion } from "@/lib/search/suggestions.utils";
 import { enterSubmit } from "@/lib/utils/keyboard.utils";
 import type { AniListFilters } from "@/types/anilist";
+import type { SearchField } from "@/types/collection";
 
 export default function AniListSearchToolbar({
-  searchTerms,
-  onSearchTermsChange,
+  field,
   global,
-  inlineCompletion,
-  suggestions,
-  searchHistory,
-  onRecordSuggestion,
-  onRecordSuggestionIgnored,
   onGlobal,
   onReset,
   filters,
   onFiltersOpen,
   loadingSearch,
 }: {
-  searchTerms: string;
-  onSearchTermsChange: (value: string) => void;
+  field: SearchField;
   global: boolean;
-  inlineCompletion: string | null;
-  suggestions: SearchSuggestion[];
-  searchHistory: string[];
-  onRecordSuggestion: (value: string) => void;
-  onRecordSuggestionIgnored: (value: string) => void;
   onGlobal: () => void;
   onReset: () => void;
   filters: AniListFilters;
@@ -40,12 +28,14 @@ export default function AniListSearchToolbar({
   const { t } = useI18n();
   const activeFilterCount = countActiveAnilistFilters(filters);
 
+  // Custom submit on purpose: handleGlobal owns history recording, field.handleSubmit would record twice.
   const submitSearch = () => {
     if (
-      inlineCompletion &&
-      searchTerms.trim().toLocaleLowerCase() !== inlineCompletion.toLocaleLowerCase()
+      field.inlineCompletion &&
+      field.inputProps.value.trim().toLocaleLowerCase() !==
+        field.inlineCompletion.toLocaleLowerCase()
     ) {
-      onRecordSuggestionIgnored(inlineCompletion);
+      field.recordSuggestionIgnored(field.inlineCompletion);
     }
     onGlobal();
   };
@@ -54,21 +44,11 @@ export default function AniListSearchToolbar({
     <div className="ui-toolbar ui-panel w-full flex-row">
       <InlineAutocompleteInput
         placeholder={t("anilist.route.search.placeholder")}
-        value={searchTerms}
-        completion={inlineCompletion}
-        suggestions={suggestions}
-        history={searchHistory}
+        {...field.inputProps}
         className="h-9 font-bold"
-        onChange={(e) => {
-          onSearchTermsChange(e.target.value);
-          if (global && !e.target.value.trim()) onReset();
-        }}
-        onAcceptCompletion={(value) => {
-          onRecordSuggestion(value);
-          onSearchTermsChange(value);
-        }}
-        onDismissCompletion={() => {
-          if (inlineCompletion) onRecordSuggestionIgnored(inlineCompletion);
+        onChange={(event) => {
+          field.inputProps.onChange(event);
+          if (global && !event.target.value.trim()) onReset();
         }}
         onKeyDown={enterSubmit(submitSearch)}
       />

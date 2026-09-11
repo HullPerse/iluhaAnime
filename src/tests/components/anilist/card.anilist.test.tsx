@@ -1,14 +1,14 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-afterEach(() => cleanup());
+import AniListEntryCard from "@/routes/components/anilist/card.anilist";
+import type { AniMedia } from "@/types/anilist";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: vi.fn(),
 }));
 
-import AniListEntryCard from "@/routes/components/anilist/card.anilist";
-import type { AniMedia } from "@/types/anilist";
+afterEach(() => cleanup());
 
 function makeItem(overrides: Partial<AniMedia> = {}): AniMedia {
   return {
@@ -58,7 +58,6 @@ describe("AniListEntryCard user score", () => {
     renderCard(8);
     expect(screen.getByTitle(/My score|Моя оценка/).textContent).toContain("8");
   });
-
   it("hides the user score badge when the entry score is zero", () => {
     renderCard(0);
     expect(screen.queryByTitle(/My score|Моя оценка/)).toBeNull();
@@ -83,3 +82,4 @@ describe("AniListEntryCard user score", () => {
     expect(screen.queryByTitle(/favourites|избранном/)).toBeNull();
   });
 });
+

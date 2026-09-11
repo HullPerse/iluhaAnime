@@ -40,8 +40,8 @@ mod user_assets;
 mod video;
 use file_index::FileEntry;
 use torrent::{
-    FilePriority, TorrentCheckResult, TorrentFileInfo, TorrentInfo, TorrentInfoResult,
-    TorrentLimits, TorrentManager,
+    FilePriority, TorrentCheckResult, TorrentDiagnostics, TorrentFileInfo, TorrentInfo,
+    TorrentInfoResult, TorrentLimits, TorrentManager,
 };
 use video::{ActiveChildren, CancelFlag};
 
@@ -533,6 +533,16 @@ async fn recheck_torrent(
         .await?
         .recheck_torrent(id, info_hash)
 }
+#[tauri::command]
+async fn get_torrent_diagnostics(
+    id: usize,
+    info_hash: Option<String>,
+    manager: tauri::State<'_, TorrentBackend>,
+) -> Result<TorrentDiagnostics, String> {
+    backend_manager(&manager)
+        .await?
+        .torrent_diagnostics(id, info_hash)
+}
 
 #[tauri::command]
 async fn set_torrent_limits(
@@ -754,7 +764,7 @@ pub fn run() {
                                         let _ = app_clone.emit(
                                             "show-notification",
                                             serde_json::json!({
-                                                "title": "Загрузка завершена",
+                                                "titleKey": "torrent.notify.complete.title",
                                                 "body": &t.name,
                                                 "type": "success",
                                                 "eventKey": format!(
@@ -775,7 +785,7 @@ pub fn run() {
                                                 let _ = app_clone.emit(
                                                     "show-notification",
                                                     serde_json::json!({
-                                                        "title": "Ошибка загрузки",
+                                                        "titleKey": "torrent.notify.error.title",
                                                         "body": &msg,
                                                         "type": "error",
                                                     }),
@@ -972,6 +982,7 @@ pub fn run() {
             redownload_file,
             set_sequential_download,
             recheck_torrent,
+            get_torrent_diagnostics,
             set_torrent_limits,
             get_torrent_limits,
             get_torrent_info_from_file,

@@ -5,12 +5,15 @@ import { SearchFilterChips } from "@/routes/components/search/default/filterChip
 import SearchPager from "@/routes/components/search/default/pager.search";
 import SearchResultItem from "@/routes/components/search/default/result.search";
 import SearchResultsSummary from "@/routes/components/search/default/summary.search";
+import DidYouMeanRow from "@/routes/components/search/didyoumean.search";
 import type { SearchQueryController } from "@/types/search";
 
 export default function ModernResults({ controller }: { controller: SearchQueryController }) {
   const {
     isLoading,
     searchParams,
+    didYouMean,
+    applyDidYouMean,
     filters,
     setFilters,
     isError,
@@ -34,6 +37,12 @@ export default function ModernResults({ controller }: { controller: SearchQueryC
     <>
       <SearchFilterChips query={searchParams} filters={filters} onChange={setFilters} />
       {isError && <SearchErrorBar error={error} onRetry={() => refetch()} />}
+      <DidYouMeanRow
+        correction={didYouMean}
+        loading={isLoading}
+        resultCount={data?.length ?? 0}
+        onPick={applyDidYouMean}
+      />
       {data && data.length > 0 && (
         <SearchResultsSummary
           data={data}

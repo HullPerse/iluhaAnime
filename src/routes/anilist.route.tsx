@@ -6,7 +6,7 @@ import { useFavouritePeopleToggles, useSyncFavPeopleAnimeIds } from "@/hooks/ani
 import { useAnilistRandom } from "@/hooks/anilist/random.hook";
 import { useAnilistSearch } from "@/hooks/anilist/search.hook";
 import { usePagination } from "@/hooks/pagination.hook";
-import { useAutocomplete } from "@/hooks/search/autocomplete.hook";
+import { useSearchField } from "@/hooks/search/field.hook";
 import {
   filterEntries,
   sortEntries,
@@ -17,10 +17,12 @@ import {
   isLocalSearch,
   resolveAniListView,
 } from "@/lib/anilist/route.utils";
+import { translate } from "@/lib/locale/i18n.utils";
 import { reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { paginate } from "@/lib/utils/pagination.utils";
 import { useAniListFriendsStore } from "@/store/anilist.store";
+import { useNotificationStore } from "@/store/notification.store";
 import { useSearchStore } from "@/store/search.store";
 import { useSettingsStore } from "@/store/settings.store";
 import type {
@@ -62,8 +64,6 @@ function AnilistRoute() {
   const searchHistory = useSearchStore((state) => state.history);
   const queryStats = useSearchStore((state) => state.queryStats);
   const suggestionStats = useSearchStore((state) => state.suggestionStats);
-  const recordSuggestionIgnored = useSearchStore((state) => state.recordSuggestionIgnored);
-  const recordSuggestion = useSearchStore((state) => state.recordSuggestion);
 
   const [currentList, setCurrentList] = useState<string>("");
   const [auth, setAuth] = useState<boolean>(false);
@@ -230,8 +230,11 @@ function AnilistRoute() {
     entryLookup,
     showDetail
   );
+  const favPendingRef = useRef(false);
   const toggleFavourite = useCallback(
     async (animeId: number) => {
+      if (favPendingRef.current) return;
+      favPendingRef.current = true;
       try {
         const updated = await invokeTyped<FavouriteAnime[]>("toggle_favourite", {
           animeId,
@@ -241,12 +244,17 @@ function AnilistRoute() {
           old ? { ...(old as AnilistRouteData), favourites: updated } : old
         );
       } catch (error) {
-        console.warn("toggle_favourite failed", error);
+        useNotificationStore.getState().add(
+          translate(useSettingsStore.getState().language, "anilist.fav.toggle.failed"),
+          "error",
+          error instanceof Error ? error.message : String(error)
+        );
+      } finally {
+        favPendingRef.current = false;
       }
     },
     [queryClient]
   );
-
   const { toggleStaff: toggleFavouriteStaff, toggleCharacter: toggleFavouriteCharacter } =
     useFavouritePeopleToggles();
 
@@ -280,19 +288,19 @@ function AnilistRoute() {
     [addFriend, cacheFriendProfile]
   );
 
-  const { deferredQuery: deferredSearchTerms, suggestions, inlineCompletion } = useAutocomplete(
-    {
-      query: searchTerms,
-      scope: "anilist",
-      limit: 8,
-      history: searchHistory,
-      queryStats,
-      suggestionStats,
-      animeIndex,
-      animeProfileId,
-      anilistBoost: anilistSuggestionBoost,
-    }
-  );
+  const field = useSearchField({
+    query: searchTerms,
+    setQuery: setSearchTerms,
+    scope: "anilist",
+    limit: 8,
+    history: searchHistory,
+    queryStats,
+    suggestionStats,
+    animeIndex,
+    animeProfileId,
+    anilistBoost: anilistSuggestionBoost,
+  });
+  const { deferredQuery: deferredSearchTerms } = field;
 
   const activeEntries = lists.find((c) => c.name === currentList)?.entries ?? [];
   const filteredEntries = filterEntries(activeEntries, deferredSearchTerms, global);
@@ -334,14 +342,8 @@ function AnilistRoute() {
     <div className="flex h-full w-full flex-col gap-1">
       {user && !isLoading && (
         <AniListSearchToolbar
-          searchTerms={searchTerms}
-          onSearchTermsChange={setSearchTerms}
+          field={field}
           global={global}
-          inlineCompletion={inlineCompletion}
-          suggestions={suggestions}
-          searchHistory={searchHistory}
-          onRecordSuggestion={recordSuggestion}
-          onRecordSuggestionIgnored={recordSuggestionIgnored}
           onGlobal={handleGlobal}
           onReset={handleReset}
           filters={searchFilters}
@@ -478,6 +480,7 @@ function AnilistRoute() {
         onAddFriend={handleAddFriend}
         onRemoveFriend={removeFriend}
         onFriendsClose={() => setShowFriends(false)}
+        onFriendsAnime={openAnimeFromLookup}
         favourites={favourites}
         onFavouritesClose={() => setShowFavourites(false)}
         onFavouritesAnime={openAnimeFromLookup}

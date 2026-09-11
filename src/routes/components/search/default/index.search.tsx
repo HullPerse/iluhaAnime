@@ -5,6 +5,7 @@ import { InlineAutocompleteInput } from "@/components/shared/autocomplete/input.
 import { SmallLoader } from "@/components/shared/loader.component";
 import { Button } from "@/components/ui/button.component";
 import Select from "@/components/ui/select.component";
+import { useSearchQuery } from "@/hooks/search/query.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import SearchAuthButtons from "@/routes/components/search/auth.search";
 import TorrentDetailsModal from "@/routes/components/search/default/details/modal.details";
@@ -14,8 +15,8 @@ import SearchFiltersBar from "@/routes/components/search/default/filters/bar.fil
 import SearchPager from "@/routes/components/search/default/pager.search";
 import SearchResultItem from "@/routes/components/search/default/result.search";
 import SearchResultsSummary from "@/routes/components/search/default/summary.search";
+import DidYouMeanRow from "@/routes/components/search/didyoumean.search";
 import SearchFiltersModal from "@/routes/components/search/filters.modal";
-import { useSearchQuery } from "@/hooks/search/query.hook";
 import SearchSessionModals from "@/routes/components/search/sessions.search";
 import type { SearchFilters } from "@/types/search";
 
@@ -26,6 +27,9 @@ function SearchDefault() {
     sourceOptions,
     isLoading,
     searchParams,
+    submittedQuery,
+    didYouMean,
+    applyDidYouMean,
     field,
     handleSearch,
     changeSource,
@@ -78,6 +82,11 @@ function SearchDefault() {
             placeholder={t("search.find.placeholder")}
             className="h-9 font-bold"
             {...field.inputProps}
+            highlightRanges={
+              didYouMean && searchParams === submittedQuery
+                ? [{ start: 0, end: searchParams.length }]
+                : undefined
+            }
           />
         </div>
         <Button
@@ -131,6 +140,12 @@ function SearchDefault() {
       )}
 
       {isError && <SearchErrorBar error={error} onRetry={() => refetch()} />}
+      <DidYouMeanRow
+        correction={didYouMean}
+        loading={isLoading}
+        resultCount={data?.length ?? 0}
+        onPick={applyDidYouMean}
+      />
 
       {data && data.length > 0 && (
         <SearchResultsSummary

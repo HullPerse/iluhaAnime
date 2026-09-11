@@ -13,6 +13,7 @@ import { withFallback } from "@/lib/utils/attempt.utils";
 import { formatBytes } from "@/lib/utils/bytes.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSearchStore } from "@/store/search.store";
+import { useSettingsStore } from "@/store/settings.store";
 import type { SettingsTab } from "@/types/settings";
 import type { SqliteBackupInfo, SqliteDatabaseInfo } from "@/types/sqlite";
 
@@ -20,6 +21,8 @@ export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void
   const { t } = useI18n();
   const queryClient = useQueryClient();
   const historyCount = useSearchStore((s) => s.history.length);
+  const sqliteBrowserEnabled = useSettingsStore((s) => s.sqliteBrowserEnabled);
+  const patchSettings = useSettingsStore((s) => s.patch);
   const ffmpeg = useQuery({
     queryKey: ["summary_ffprobe"],
     queryFn: () => withFallback(invokeTyped<boolean>("check_ffprobe"), false),
@@ -67,9 +70,9 @@ export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void
           ffmpeg.data === undefined ? (
             "..."
           ) : ffmpeg.data ? (
-            <Check className="size-4 text-success" aria-label={t("player.ffmpeg.installed")} />
+            <Check className="text-success size-4" aria-label={t("player.ffmpeg.installed")} />
           ) : (
-            <X className="size-4 text-destructive" aria-label={t("player.ffmpeg.missing")} />
+            <X className="text-destructive size-4" aria-label={t("player.ffmpeg.missing")} />
           )
         }
       />
@@ -83,7 +86,10 @@ export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void
               : t("settings.summary.none")
         }
         actionLabel={t("settings.summary.open")}
-        onAction={() => onJump("sqlite")}
+        onAction={() => {
+          if (!sqliteBrowserEnabled) patchSettings({ sqliteBrowserEnabled: true });
+          onJump("sqlite");
+        }}
       />
       <SummaryRow
         label={t("settings.summary.learning")}

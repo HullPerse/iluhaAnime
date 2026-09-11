@@ -104,6 +104,17 @@ function TorrentDetailsModal({
     <Modal
       header={view?.title || item.title}
       onClose={onClose}
+      headerActions={
+        <button
+          type="button"
+          onClick={() => openOriginal()}
+          title={t("search.details.open.source")}
+          aria-label={t("search.details.open.source")}
+          className="windows95-active-border bg-primary text-text windows95-text flex size-5 cursor-pointer items-center justify-center hover:brightness-110 active:translate-x-px active:translate-y-px"
+        >
+          <ExternalLink className="size-2.5" />
+        </button>
+      }
       className="w-[min(78rem,calc(100vw-1rem))]"
       contentClassName="gap-2 p-2"
     >
@@ -141,7 +152,6 @@ function TorrentDetailsModal({
           onCopyMagnet={onCopyMagnet}
           onOpenMagnet={onOpenMagnet}
           onDownload={onDownload}
-          openOriginal={openOriginal}
         />
       )}
     </Modal>

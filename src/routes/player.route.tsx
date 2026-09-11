@@ -1,5 +1,4 @@
-import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
-import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
+import { DndContext, DragOverlay } from "@dnd-kit/core";
 import { useQueryClient } from "@tanstack/react-query";
 import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
@@ -11,6 +10,7 @@ import { ConfirmDialog } from "@/components/shared/confirm.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { useDebounce } from "@/hooks/debounce.hook";
+import { usePlayerDrag } from "@/hooks/player/drag.hook";
 import { useSearchField } from "@/hooks/search/field.hook";
 import { useTorrentFilesMap, useTorrents } from "@/hooks/torrent/queries.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
@@ -21,7 +21,6 @@ import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useCacheStore } from "@/store/cache.store";
 import { useCategoryStore } from "@/store/category.store";
 import { useSettingsStore } from "@/store/settings.store";
-import type { CategoryDragData } from "@/types/category";
 import type { VideoFileEntry } from "@/types/fs";
 import type { ScanType, FileSearchResult } from "@/types/player";
 import type { FFMPEGStatus } from "@/types/settings";
@@ -68,9 +67,8 @@ function PlayerRoute() {
   const [torrentLoading, setTorrentLoading] = useState<Set<number>>(new Set());
 
   const [pendingDeleteCategory, setPendingDeleteCategory] = useState<string | null>(null);
-  const [activeDrag, setActiveDrag] = useState<{ name: string } | null>(null);
+  const drag = usePlayerDrag();
   const [showHiddenItems, setShowHiddenItems] = useState(false);
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
   const [searchResults, setSearchResults] = useState<FileSearchResult[]>([]);
   const [, setSearching] = useState(false);
   const debouncedSearch = useDebounce(search.trim(), 300);
@@ -398,24 +396,12 @@ function PlayerRoute() {
     setPendingDeleteCategory(id);
   }, []);
 
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    setActiveDrag(null);
-    if (!over) return;
-    const data = active.data.current as CategoryDragData | undefined;
-    if (!data) return;
-    useCategoryStore.getState().addEntry(String(over.id), data);
-  };
-
   return (
     <DndContext
-      sensors={sensors}
-      onDragStart={(event: DragStartEvent) => {
-        const data = event.active.data.current as Partial<CategoryDragData> | undefined;
-        setActiveDrag(data?.name ? { name: data.name } : null);
-      }}
-      onDragEnd={handleDragEnd}
-      onDragCancel={() => setActiveDrag(null)}
+      sensors={drag.sensors}
+      onDragStart={drag.handleDragStart}
+      onDragEnd={drag.handleDragEnd}
+      onDragCancel={drag.handleDragCancel}
     >
       <div className="flex h-full w-full flex-col gap-1 overflow-y-auto">
         <section className="ui-toolbar ui-panel w-full">
@@ -525,9 +511,9 @@ function PlayerRoute() {
         )}
       </div>
 
-      {activeDrag && (
+      {drag.activeDrag && (
         <DragOverlay>
-          <DragOverlayItem name={activeDrag.name} />
+          <DragOverlayItem name={drag.activeDrag.name} />
         </DragOverlay>
       )}
 

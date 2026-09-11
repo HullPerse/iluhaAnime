@@ -25,8 +25,7 @@ static TABLE_CELL_SEL: LazyLock<Selector> = LazyLock::new(|| hardcoded_selector(
 static TABLE_ROW_BARE_SEL: LazyLock<Selector> = LazyLock::new(|| hardcoded_selector("tr"));
 static DESC_LIST_SEL: LazyLock<Selector> = LazyLock::new(|| hardcoded_selector("dl"));
 static DESC_TERM_SEL: LazyLock<Selector> = LazyLock::new(|| hardcoded_selector("dt, dd"));
-static PANEL_ROW_SEL: LazyLock<Selector> =
-    LazyLock::new(|| hardcoded_selector(".panel-body .row"));
+static PANEL_ROW_SEL: LazyLock<Selector> = LazyLock::new(|| hardcoded_selector(".panel-body .row"));
 static PANEL_CELL_SEL: LazyLock<Selector> =
     LazyLock::new(|| hardcoded_selector("div[class*='col-md-']"));
 static DATA_CELL_SEL: LazyLock<Selector> = LazyLock::new(|| hardcoded_selector("td, span"));
@@ -47,17 +46,15 @@ static COMMENT_AUTHOR_SEL: LazyLock<Selector> =
     LazyLock::new(|| hardcoded_selector(".author, .username, .user, [class*='author']"));
 static COMMENT_DATE_SEL: LazyLock<Selector> =
     LazyLock::new(|| hardcoded_selector("time, .date, .timestamp, [class*='date']"));
-static COMMENT_BODY_SEL: LazyLock<Selector> = LazyLock::new(|| {
-    hardcoded_selector(".comment-body, .comment-content, .post_body, .text, p")
-});
+static COMMENT_BODY_SEL: LazyLock<Selector> =
+    LazyLock::new(|| hardcoded_selector(".comment-body, .comment-content, .post_body, .text, p"));
 static COMMENT_MSG_SEL: LazyLock<Selector> =
     LazyLock::new(|| hardcoded_selector(".comment_message, .user_message_c"));
 static BODY_SEL: LazyLock<Selector> = LazyLock::new(|| hardcoded_selector("body"));
 static FILE_ROW_SEL: LazyLock<Selector> = LazyLock::new(|| {
     hardcoded_selector("#tor-filelist li, #tor-filelist tr, #tor-filelist .file, #tor-filelist .ft-file, .filetree li, .filetree tr")
 });
-static FILE_CELL_SEL: LazyLock<Selector> =
-    LazyLock::new(|| hardcoded_selector("td, th, span, a"));
+static FILE_CELL_SEL: LazyLock<Selector> = LazyLock::new(|| hardcoded_selector("td, th, span, a"));
 static FILE_NESTED_SEL: LazyLock<Selector> = LazyLock::new(|| hardcoded_selector("li, tr"));
 static ANCHOR_SEL: LazyLock<Selector> = LazyLock::new(|| hardcoded_selector("a"));
 
@@ -676,10 +673,7 @@ fn parse_detail_comments(doc: &Html, source: &str) -> Vec<TorrentDetailComment> 
     for block in doc.select(&block_sel) {
         let is_primary_description = match source {
             "rutracker" => block.select(&body_sel).next().is_some(),
-            "erai-raws" => block
-                .select(&COMMENT_MSG_SEL)
-                .next()
-                .is_some(),
+            "erai-raws" => block.select(&COMMENT_MSG_SEL).next().is_some(),
             _ => false,
         };
         if is_primary_description && !skipped_primary_description {

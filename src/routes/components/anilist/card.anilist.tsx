@@ -1,4 +1,3 @@
-import { toLocaleKey } from "@/lib/locale/key.utils";
 import { Heart, Star } from "lucide-react";
 import { memo } from "react";
 
@@ -7,6 +6,7 @@ import Image from "@/components/ui/image.component";
 import { listStatusLabels, statusLabels } from "@/config/anilist/labels.config";
 import { getStatusColor } from "@/lib/anilist/entries.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
+import { toLocaleKey } from "@/lib/locale/key.utils";
 import { enterOrSpace } from "@/lib/utils/keyboard.utils";
 import type { AniCardProps as Props } from "@/types/anilist";
 

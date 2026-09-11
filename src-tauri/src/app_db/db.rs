@@ -6,7 +6,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::Manager;
 pub const DATABASE_FILE: &str = "app_data.sqlite3";
 pub const MAX_PAYLOAD_BYTES: usize = 8 * 1024 * 1024;
-pub const CURRENT_SCHEMA_VERSION: i64 = 16;
+pub const CURRENT_SCHEMA_VERSION: i64 = 17;
 pub fn now_seconds() -> i64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)

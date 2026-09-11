@@ -7,16 +7,26 @@ import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
 import { MAGNET_RX } from "@/config/torrent/common.config";
 import { useI18n } from "@/lib/locale/i18n.utils";
-import { enterSubmit } from "@/lib/utils/keyboard.utils";
 import { reportBackgroundError } from "@/lib/utils/attempt.utils";
+import { enterSubmit } from "@/lib/utils/keyboard.utils";
 import type { MagnetTorrentProps as Props } from "@/types/torrent";
 
-export default function AddTorrentModal({ open, onClose, onAddMagnet, onAddFile }: Props) {
+export default function AddTorrentModal({
+  open,
+  initialMagnet,
+  onClose,
+  onAddMagnet,
+  onAddFile,
+}: Props) {
   const [magnetInput, setMagnetInput] = useState("");
   const { t } = useI18n();
 
   useEffect(() => {
     if (!open) return;
+    if (initialMagnet) {
+      setMagnetInput(initialMagnet);
+      return;
+    }
     (async () => {
       try {
         const text = await readText();
@@ -27,7 +37,7 @@ export default function AddTorrentModal({ open, onClose, onAddMagnet, onAddFile 
         reportBackgroundError("magnet.clipboard", error);
       }
     })();
-  }, [open]);
+  }, [open, initialMagnet]);
 
   if (!open) return null;
 

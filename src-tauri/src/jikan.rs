@@ -79,7 +79,6 @@ pub async fn get_anime_stills(mal_id: u64) -> Result<Vec<AnimeStill>, String> {
     Ok(parse_stills(&json))
 }
 
-
 #[cfg(test)]
 mod jikan_tests {
     use super::*;

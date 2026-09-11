@@ -245,7 +245,23 @@ function applySymSpellFallback(
     put({ ...c, score: c.score - 50, subtitle: `${c.subtitle ?? c.kind} (did you mean)` });
   }
 }
-
+export function suggestSpelling(
+  query: string,
+  options: Pick<SearchSuggestionOptions, "history" | "animeIndex" | "extraValues"> = {}
+): string | null {
+  const normalizedQuery = normalizeSearchText(query);
+  if (!useSettingsStore.getState().searchSymSpellEnabled) return null;
+  if (normalizedQuery.length < 3) return null;
+  const history = options.history ?? [];
+  const extra = options.extraValues?.map((entry) => entry.value) ?? [];
+  const titles = [...history, ...(options.animeIndex?.map((entry) => entry.title) ?? []), ...extra];
+  if (titles.length === 0) return null;
+  const basis: object | undefined = options.animeIndex ?? options.history ?? options.extraValues;
+  const fingerprint = `${titles.length}|${history.join("\n")}|${extra.join("\n")}`;
+  const corrected = symSpellFor(titles, basis, fingerprint).suggest(query);
+  if (!corrected || normalizeSearchText(corrected) === normalizedQuery) return null;
+  return corrected;
+}
 
 export function getSearchSuggestions(
   query: string,

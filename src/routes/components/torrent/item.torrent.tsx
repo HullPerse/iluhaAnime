@@ -4,6 +4,7 @@ import { ConfirmDialog } from "@/components/shared/confirm.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import type { TorrentItemProps as Props } from "@/types/torrent";
 
+import { TorrentDiagnosticsSection } from "./sections/diagnostics.sections";
 import { TorrentError } from "./sections/error.sections";
 import { TorrentFiles } from "./sections/files.sections";
 import { TorrentHeader } from "./sections/header.sections";
@@ -43,6 +44,7 @@ function TorrentItem({
         onSeedChange={onSeedChange}
         onSetSequential={onSetSequential}
         onRecheck={onRecheck}
+        onToggleExpand={onToggleExpand}
         onDelete={() => setPendingDelete(true)}
       />
       <TorrentProgress item={item} />
@@ -62,6 +64,9 @@ function TorrentItem({
         </span>
       )}
       {item.error && <TorrentError error={item.error} onRetry={onRetry} />}
+      {isExpanded && (item.error || isLive) && (
+        <TorrentDiagnosticsSection id={item.id} infoHash={item.info_hash} enabled={isExpanded} />
+      )}
       {pendingDelete && (
         <ConfirmDialog
           open

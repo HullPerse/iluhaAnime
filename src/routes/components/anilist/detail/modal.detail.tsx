@@ -1,4 +1,6 @@
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { useQuery } from "@tanstack/react-query";
+import { ExternalLink } from "lucide-react";
 import { useState } from "react";
 
 import { TrailerEmbed } from "@/components/shared/lightbox/lightbox.media";
@@ -52,6 +54,18 @@ function AniListDetailModal(props: DetailProps) {
               onToggle={toggleFavorite}
             />
           ) : null}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              openUrl(`https://anilist.co/anime/${query.data?.id ?? props.animeId}`);
+            }}
+            title={t("anilist.controls.open.site")}
+            aria-label={t("anilist.controls.open.site")}
+            className="windows95-active-border bg-primary text-text windows95-text flex size-5 cursor-pointer items-center justify-center hover:brightness-110 active:translate-x-px active:translate-y-px"
+          >
+            <ExternalLink className="size-2.5" />
+          </button>
         </>
       }
       className="min-w-2xl"

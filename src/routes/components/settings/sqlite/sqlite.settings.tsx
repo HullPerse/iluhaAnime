@@ -4,13 +4,16 @@ import { flushSync } from "react-dom";
 
 import { PAGE_SIZE, QUERY_HISTORY_MAX } from "@/config/settings/sqlite.config";
 import { usePagination } from "@/hooks/pagination.hook";
+import { useSqliteCell } from "@/hooks/sqlite/cell.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
-import { reportBackgroundError } from "@/lib/utils/attempt.utils";
-import { isImageUrl } from "@/lib/utils/image.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
-import { COPIED_FEEDBACK_MS } from "@/lib/utils/notification.utils";
 import { useSettingsStore } from "@/store/settings.store";
-import type { SqliteDatabaseInfo, SqliteRowsPage, SqliteTableInfo, SortState } from "@/types/sqlite";
+import type {
+  SqliteDatabaseInfo,
+  SqliteRowsPage,
+  SqliteTableInfo,
+  SortState,
+} from "@/types/sqlite";
 
 import { BackupPanel } from "./backup.sqlite";
 import { SqliteBrowseResult } from "./browseResult.sqlite";
@@ -67,20 +70,6 @@ export default function SqliteSettings() {
   const [queryLoading, setQueryLoading] = useState(false);
   const queryHistoryRef = useRef<string[]>([]);
   const queryHistoryIndexRef = useRef(-1);
-
-  const [selectedCell, setSelectedCell] = useState<{
-    column: string;
-    keys: string[] | null;
-    display: string;
-  } | null>(null);
-  const [cellValue, setCellValue] = useState("");
-  const [cellLoading, setCellLoading] = useState(false);
-  const [cellEditing, setCellEditing] = useState(false);
-  const [cellEdit, setCellEdit] = useState("");
-  const [cellSaving, setCellSaving] = useState(false);
-  const [cellCopied, setCellCopied] = useState(false);
-  const copiedTimerRef = useRef<number | null>(null);
-  const [cellIsImage, setCellIsImage] = useState(false);
 
   const refreshDatabases = useCallback(async () => {
     setLoading(true);
@@ -205,6 +194,15 @@ export default function SqliteSettings() {
     }
     return values;
   };
+  const cell = useSqliteCell({
+    rows,
+    selectedDatabase,
+    selectedTable,
+    primaryKeyValues,
+    selectedTableInfo,
+    loadRows,
+    setError,
+  });
   const databaseOptions = useMemo(
     () =>
       databases.map((database) => ({
@@ -378,97 +376,6 @@ export default function SqliteSettings() {
     }
   };
 
-  function isBlobColumn(column: string): boolean {
-    const blobColumns = new Set(
-      (selectedTableInfo?.columns ?? [])
-        .filter((c) => c.dataType.toUpperCase() === "BLOB")
-        .map((c) => c.name)
-    );
-    return blobColumns.has(column);
-  }
-
-  async function loadBlobCell(column: string, keys: string[]): Promise<void> {
-    const blob = await invokeTyped<string | null>("get_sqlite_cell_blob", {
-      database: selectedDatabase!,
-      table: selectedTable!,
-      column,
-      keys,
-    });
-    if (!blob) return;
-    setCellValue(blob);
-    setCellEdit(blob);
-    setCellIsImage(true);
-  }
-
-  async function loadTextCell(column: string, keys: string[]): Promise<void> {
-    const value = await invokeTyped<string | null>("get_sqlite_cell", {
-      database: selectedDatabase!,
-      table: selectedTable!,
-      column,
-      keys,
-    });
-    const resolved = value ?? "NULL";
-    setCellValue(resolved);
-    setCellEdit(resolved);
-    if (isImageUrl(resolved)) setCellIsImage(true);
-  }
-
-  const openCell = async (row: unknown[], column: string) => {
-    const keys = primaryKeyValues(row);
-    const display = displayCell(row[rows?.columns.indexOf(column) ?? -1] as unknown);
-    setSelectedCell({ column, keys, display });
-    setCellValue(display);
-    setCellEdit(display);
-    setCellEditing(false);
-    setCellCopied(false);
-    setCellIsImage(false);
-    if (copiedTimerRef.current !== null) window.clearTimeout(copiedTimerRef.current);
-    if (!keys || !selectedDatabase || !selectedTable) return;
-    setCellLoading(true);
-    try {
-      if (isBlobColumn(column)) await loadBlobCell(column, keys);
-      else await loadTextCell(column, keys);
-    } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : String(error));
-    } finally {
-      setCellLoading(false);
-    }
-  };
-
-  const copyCell = async () => {
-    if (!cellValue) return;
-    try {
-      await navigator.clipboard.writeText(cellValue);
-      setCellCopied(true);
-      if (copiedTimerRef.current !== null) window.clearTimeout(copiedTimerRef.current);
-      copiedTimerRef.current = window.setTimeout(() => setCellCopied(false), COPIED_FEEDBACK_MS);
-    } catch (error) {
-      reportBackgroundError("sqlite.copy-cell", error);
-    }
-  };
-
-  const saveCell = async () => {
-    if (!selectedCell || !selectedCell.keys || !selectedDatabase || !selectedTable || cellSaving)
-      return;
-    setCellSaving(true);
-    setError(null);
-    try {
-      await invokeTyped("update_sqlite_cell", {
-        database: selectedDatabase,
-        table: selectedTable,
-        column: selectedCell.column,
-        keys: selectedCell.keys,
-        value: cellEdit,
-      });
-      setSelectedCell(null);
-      await loadRows();
-    } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : String(error));
-    } finally {
-      setCellSaving(false);
-    }
-  };
-
   const deleteRow = async () => {
     if (
       !pendingDelete ||
@@ -503,16 +410,11 @@ export default function SqliteSettings() {
     }
   };
 
-  const cellColumnInfo = selectedTableInfo?.columns.find(
-    (column) => column.name === selectedCell?.column
-  );
-  const cellIsBlob = cellColumnInfo?.dataType.toUpperCase() === "BLOB";
   const blobColumns = new Set(
     (selectedTableInfo?.columns ?? [])
       .filter((column) => column.dataType.toUpperCase() === "BLOB")
       .map((column) => column.name)
   );
-  const canEditCell = !!selectedCell?.keys && !cellIsBlob && !cellLoading && !cellSaving;
 
   const renderRowsTable = (
     columns: string[],
@@ -537,7 +439,7 @@ export default function SqliteSettings() {
       toggleAllRows={toggleAllRows}
       toggleSort={toggleSort}
       toggleRowSelection={toggleRowSelection}
-      openCell={openCell}
+      openCell={cell.openCell}
       setPendingDelete={setPendingDelete}
       hideId={hideIdValue}
       baseIndex={baseIndexValue}
@@ -567,7 +469,7 @@ export default function SqliteSettings() {
       toggleAllRows={toggleAllRows}
       toggleSort={toggleSort}
       toggleRowSelection={toggleRowSelection}
-      openCell={openCell}
+      openCell={cell.openCell}
       setPendingDelete={setPendingDelete}
       hideId={hideId}
       baseIndex={0}
@@ -747,24 +649,24 @@ export default function SqliteSettings() {
         onCancelBatch={() => setPendingBatchDelete(false)}
       />
 
-      {selectedCell && (
+      {cell.selectedCell && (
         <CellModal
-          selectedCell={selectedCell}
-          cellValue={cellValue}
-          cellLoading={cellLoading}
-          cellEditing={cellEditing}
-          cellEdit={cellEdit}
-          cellSaving={cellSaving}
-          cellCopied={cellCopied}
-          cellIsImage={cellIsImage}
-          canEditCell={!!canEditCell}
-          cellIsBlob={!!cellIsBlob}
-          onClose={() => setSelectedCell(null)}
-          onCopy={copyCell}
-          onEdit={() => setCellEditing(true)}
-          onEditChange={setCellEdit}
-          onCancelEdit={() => setCellEditing(false)}
-          onSave={saveCell}
+          selectedCell={cell.selectedCell}
+          cellValue={cell.cellValue}
+          cellLoading={cell.cellLoading}
+          cellEditing={cell.cellEditing}
+          cellEdit={cell.cellEdit}
+          cellSaving={cell.cellSaving}
+          cellCopied={cell.cellCopied}
+          cellIsImage={cell.cellIsImage}
+          canEditCell={!!cell.canEditCell}
+          cellIsBlob={!!cell.cellIsBlob}
+          onClose={() => cell.closeCell()}
+          onCopy={() => cell.copyCell()}
+          onEdit={() => cell.setCellEditing(true)}
+          onEditChange={(value) => cell.setCellEdit(value)}
+          onCancelEdit={() => cell.setCellEditing(false)}
+          onSave={() => cell.saveCell()}
         />
       )}
     </div>

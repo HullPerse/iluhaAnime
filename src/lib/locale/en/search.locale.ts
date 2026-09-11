@@ -25,6 +25,7 @@ const search = {
   "search.details.seeders": "Seeders",
   "search.details.size": "Size",
   "search.details.updated": "Updated",
+  "search.did.you.mean": "Did you mean:",
   "search.download": "Download",
   "search.error": "Search error",
   "search.filters.any": "Any",

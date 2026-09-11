@@ -1107,5 +1107,4 @@ mod tests {
         assert_eq!(clamp_filter_paging(0, Some(0)), (1, 1));
         assert_eq!(clamp_filter_paging(99_999, Some(500)), (10_000, 50));
     }
-
 }

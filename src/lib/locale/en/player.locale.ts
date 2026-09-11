@@ -62,6 +62,7 @@ const player = {
   "player.queue.paused": "Paused",
   "player.queue.resume": "Resume",
   "player.queue.retry": "Retry",
+  "player.queue.retry.failed": "Retry failed",
   "player.queue.title": "Queue ({{count}})",
   "player.queue.step.extract": "Extract",
   "player.queue.step.upscale": "Upscale",

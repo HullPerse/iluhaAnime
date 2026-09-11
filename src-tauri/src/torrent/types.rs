@@ -24,6 +24,23 @@ pub struct TorrentCheckResult {
 }
 
 #[derive(Serialize, Clone, Debug)]
+pub struct TorrentDiagPeer {
+    pub addr: String,
+    pub state: String,
+    pub client_name: Option<String>,
+    pub down_bytes: u64,
+    pub up_bytes: u64,
+    pub errors: u32,
+}
+
+#[derive(Serialize, Clone, Debug)]
+pub struct TorrentDiagnostics {
+    pub id: usize,
+    pub peers: Vec<TorrentDiagPeer>,
+    pub trackers: Vec<String>,
+}
+
+#[derive(Serialize, Clone, Debug)]
 pub struct TorrentFileInfo {
     pub index: usize,
     pub name: String,

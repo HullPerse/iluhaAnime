@@ -320,6 +320,8 @@ export interface SearchQueryController {
   isLoading: boolean;
   searchParams: string;
   submittedQuery: string;
+  didYouMean: string | null;
+  applyDidYouMean: () => void;
   field: SearchField;
   handleSearch: () => void;
   resetSearch: () => void;

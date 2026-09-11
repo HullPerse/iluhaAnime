@@ -556,13 +556,14 @@ pub async fn get_anime_franchise(
         if !fetch_ids.is_empty() {
             let proxy = resolve_proxy(proxy_url.clone(), proxyUrl.clone());
             let token = optional_token(&app_handle);
-            let fresh = match fetch_franchise_batch(&fetch_ids, token.as_deref(), proxy.as_deref()).await {
-                Ok(fresh) => fresh,
-                Err(err) => {
-                    flush_pending_franchise_cache(&app_handle, &mut pending_persist);
-                    return Err(err);
-                }
-            };
+            let fresh =
+                match fetch_franchise_batch(&fetch_ids, token.as_deref(), proxy.as_deref()).await {
+                    Ok(fresh) => fresh,
+                    Err(err) => {
+                        flush_pending_franchise_cache(&app_handle, &mut pending_persist);
+                        return Err(err);
+                    }
+                };
             let fetched_at = std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
                 .map_or(0, |d| d.as_secs() as i64);
@@ -739,7 +740,9 @@ pub async fn prefetch_anime_relations(
         let batch_start = std::time::Instant::now();
         let proxy = resolve_proxy(proxy_url.clone(), proxyUrl.clone());
         let token = optional_token(&app_handle);
-        let results = if let Ok(r) = fetch_franchise_batch_once(&to_fetch, token.as_deref(), proxy.as_deref()).await {
+        let results = if let Ok(r) =
+            fetch_franchise_batch_once(&to_fetch, token.as_deref(), proxy.as_deref()).await
+        {
             r
         } else {
             for id in to_fetch {

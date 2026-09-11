@@ -4,8 +4,8 @@ use std::sync::{
 };
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
-use reqwest::Client;
 use crate::auth::{delete_secret, load_secret, save_secret};
+use reqwest::Client;
 use serde::Serialize;
 
 static CLIENT: LazyLock<Client> = LazyLock::new(|| {

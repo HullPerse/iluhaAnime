@@ -35,7 +35,30 @@ export default function SearchFiltersModal({
   };
 
   return (
-    <Modal header={t("search.filters.title")} onClose={onClose} className="w-xl">
+    <Modal
+      header={t("search.filters.title")}
+      onClose={onClose}
+      headerActions={
+        sort &&
+        direction &&
+        onDirectionChange && (
+          <button
+            type="button"
+            onClick={onDirectionChange}
+            title={direction === "desc" ? t("search.sort.desc") : t("search.sort.asc")}
+            aria-label={direction === "desc" ? t("search.sort.desc") : t("search.sort.asc")}
+            className="windows95-active-border bg-primary text-text windows95-text flex size-5 cursor-pointer items-center justify-center hover:brightness-110 active:translate-x-px active:translate-y-px"
+          >
+            {direction === "desc" ? (
+              <SortDesc className="size-2.5" />
+            ) : (
+              <SortAsc className="size-2.5" />
+            )}
+          </button>
+        )
+      }
+      className="w-xl"
+    >
       <div className="flex flex-col gap-3 overflow-y-auto p-2">
         {sort && direction && onSortChange && onDirectionChange && (
           <>
@@ -51,18 +74,6 @@ export default function SearchFiltersModal({
                   { value: "size", label: t("search.sort.size") },
                 ]}
               />
-              <Button
-                size="icon"
-                className="size-5.5"
-                title={direction === "desc" ? t("search.sort.desc") : t("search.sort.asc")}
-                onClick={onDirectionChange}
-              >
-                {direction === "desc" ? (
-                  <SortDesc className="size-3" />
-                ) : (
-                  <SortAsc className="size-3" />
-                )}
-              </Button>
             </div>
             <hr className="border-muted my-1 w-full border-t" />
           </>

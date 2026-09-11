@@ -27,6 +27,7 @@ const search = {
   "search.details.updated": "Обновлён",
   "search.chips.seeds": "Сиды 10+",
   "search.chips.title": "Фильтры",
+  "search.did.you.mean": "Возможно, вы имели в виду:",
   "search.download": "Скачать",
   "search.error": "Ошибка поиска",
   "search.filters.any": "Любой",
@@ -84,17 +85,15 @@ const search = {
   "search.rutracker.browser.tab": "Встроенный браузер",
   "search.rutracker.cookies.tab": "Вставить cookies",
   "search.rutracker.err.blocked":
-    'Rutracker блокирует приложение (анти-бот). Вставьте cookies или включите VPN.',
+    "Rutracker блокирует приложение (анти-бот). Вставьте cookies или включите VPN.",
   "search.rutracker.err.cookies.invalid":
     "Cookies недействительны или истекли. Войдите в браузере и скопируйте новые.",
   "search.rutracker.err.cookies.parse": "Не удалось разобрать вставленные cookies.",
   "search.rutracker.err.login.failed": "Вход не удался (неожиданный ответ сервера).",
-  "search.rutracker.err.network":
-    "Нет связи с rutracker. Включите VPN для всей системы.",
+  "search.rutracker.err.network": "Нет связи с rutracker. Включите VPN для всей системы.",
   "search.rutracker.err.no.cookies":
     "Cookies не найдены. Убедитесь, что вы вошли в аккаунт во встроенном браузере.",
-  "search.rutracker.err.no.session":
-    "Нет сессии rutracker. Войдите в браузере, затем сохраните.",
+  "search.rutracker.err.no.session": "Нет сессии rutracker. Войдите в браузере, затем сохраните.",
   "search.rutracker.err.session.failed":
     "Вход прошёл, но сессия не сохранилась. Попробуйте ещё раз или вставьте cookies.",
   "search.rutracker.err.unknown":

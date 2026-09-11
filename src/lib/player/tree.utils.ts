@@ -1,5 +1,5 @@
-import type { FolderNode } from "@/types/torrent";
 import type { VideoFileEntry } from "@/types/fs";
+import type { FolderNode } from "@/types/torrent";
 
 export type PlayerTreeItem =
   | { kind: "folder"; node: FolderNode; depth: number }
@@ -46,6 +46,17 @@ export function filterTreeByPaths(tree: FolderNode, matchingPaths: Set<string>):
   if (filteredFiles.length === 0 && filteredChildren.length === 0) return null;
 
   return { ...tree, children: filteredChildren, files: filteredFiles };
+}
+export function summarizeTree(node: FolderNode): { count: number; bytes: number } {
+  let count = node.files.length;
+  let bytes = 0;
+  for (const file of node.files) bytes += file.size;
+  for (const child of node.children) {
+    const childSummary = summarizeTree(child);
+    count += childSummary.count;
+    bytes += childSummary.bytes;
+  }
+  return { count, bytes };
 }
 
 function nodeMatchesSearch(node: FolderNode, query: string): boolean {

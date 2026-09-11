@@ -9,6 +9,7 @@ import { useI18n } from "@/lib/locale/i18n.utils";
 import { deleteAppCache, readAppCache, writeAppCache } from "@/lib/store/cache.utils";
 import { reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
+import { useNotificationStore } from "@/store/notification.store";
 import { useSettingsStore } from "@/store/settings.store";
 import type { PrefetchProgressPayload, PrefetchSummary } from "@/types/anilist";
 import type { AniPrefetchProps as Props } from "@/types/anilist";
@@ -130,7 +131,13 @@ export default function PrefetchRelationsModal({ animeIds, onClose }: Props) {
     try {
       await invokeTyped("cancel_anime_prefetch");
     } catch (error) {
-      console.warn("cancel_anime_prefetch failed", error);
+      useNotificationStore
+        .getState()
+        .add(
+          t("anilist.prefetch.cancel.failed"),
+          "error",
+          error instanceof Error ? error.message : String(error)
+        );
     }
   };
   return (

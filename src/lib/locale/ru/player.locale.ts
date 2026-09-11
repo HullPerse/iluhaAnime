@@ -68,6 +68,7 @@ const player = {
   "player.queue.paused": "Пауза",
   "player.queue.resume": "Продолжить",
   "player.queue.retry": "Повторить",
+  "player.queue.retry.failed": "Повторить упавшие",
   "player.queue.title": "Очередь ({{count}})",
   "player.queue.step.extract": "Извлечение",
   "player.queue.step.upscale": "Апскейл",

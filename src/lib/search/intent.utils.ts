@@ -2,6 +2,7 @@ import type { CompareOp, IntentToken, NumericCond, ParsedIntent } from "@/types/
 
 export const FILTER_KEYS: Record<string, true> = {
   year: true,
+  date: true,
   studio: true,
   genre: true,
   type: true,
@@ -17,7 +18,7 @@ export const FILTER_KEYS: Record<string, true> = {
 };
 
 export function isTagLikeQuery(rawQuery: string, normalizedQuery: string): boolean {
-  if (rawQuery.includes(":")) return true;
+  if (rawQuery.includes("=")) return true;
   if (normalizedQuery.length < 2) return false;
   for (const key of Object.keys(FILTER_KEYS)) {
     if (key.startsWith(normalizedQuery)) return true;
@@ -31,8 +32,40 @@ function parseYear(value: string): number | undefined {
   return n;
 }
 
+export function parseDateValue(value: string): { iso: string; yearOnly: boolean } | undefined {
+  const yearOnly = /^(\d{4})$/.exec(value);
+  if (yearOnly) {
+    const text = yearOnly[1];
+    const year = Number(text);
+    if (text === undefined || year < 1900 || year > 2100) return undefined;
+    return { iso: text, yearOnly: true };
+  }
+  const ru = /^(\d{1,2})\.(\d{1,2})\.(\d{4})$/.exec(value);
+  if (ru) {
+    const day = Number(ru[1]);
+    const month = Number(ru[2]);
+    const year = Number(ru[3]);
+    if (day < 1 || day > 31 || month < 1 || month > 12 || year < 1900 || year > 2100)
+      return undefined;
+    return {
+      iso: `${ru[3]}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
+      yearOnly: false,
+    };
+  }
+  const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (iso) {
+    const month = Number(iso[2]);
+    const day = Number(iso[3]);
+    const year = Number(iso[1]);
+    if (day < 1 || day > 31 || month < 1 || month > 12 || year < 1900 || year > 2100)
+      return undefined;
+    return { iso: value, yearOnly: false };
+  }
+  return undefined;
+}
+
 function parseRating(value: string): number | undefined {
-  const n = Number(value);
+  const n = Number(value.replace(",", "."));
   if (Number.isNaN(n) || n < 0 || n > 10) return undefined;
   return n;
 }
@@ -44,9 +77,10 @@ function parseEpisodes(value: string): number | undefined {
 
 function parseSort(
   value: string
-): { by: "date" | "name" | "rating"; dir: "asc" | "desc" } | undefined {
+): { by: "date" | "name" | "rating" | "year"; dir: "asc" | "desc" } | undefined {
   const [field, dir] = value.toLowerCase().split(":");
-  if (field !== "date" && field !== "name" && field !== "rating") return undefined;
+  if (field !== "date" && field !== "name" && field !== "rating" && field !== "year")
+    return undefined;
   if (dir !== undefined && dir !== "asc" && dir !== "desc") return undefined;
   return { by: field, dir: dir ?? (field === "name" ? "asc" : "desc") };
 }
@@ -54,14 +88,12 @@ function parseSort(
 const TOKEN_RE = /(?:[^\s"]+|"[^"]*")+/g;
 
 function matchFilterToken(token: string): { key: string; op: CompareOp; value: string } | null {
-  const colon = token.indexOf(":");
-  const opMatch = token.match(/^(.*?)(>=|<=|!=|=|>|<|:)(.*)$/);
+  const opMatch = token.match(/^(.*?)(>=|<=|!=|=|>|<)(.*)$/);
   if (!opMatch) return null;
   const key = (opMatch[1] ?? "").toLowerCase();
-  const op = (opMatch[2] ?? ":") as CompareOp;
+  const op = opMatch[2] as CompareOp;
   let value = opMatch[3] ?? "";
   if (!key || !FILTER_KEYS[key] || !value) return null;
-  if (colon > 0 && op !== ":") return null;
   if (value.startsWith('"') && value.endsWith('"')) value = value.slice(1, -1);
   if (!value) return null;
   return { key, op, value };
@@ -78,54 +110,92 @@ export function tokenizeIntent(query: string): IntentToken[] {
   return out;
 }
 
-// oxlint-disable-next-line complexity
-export function parseIntent(query: string): ParsedIntent {
+type FilterToken = { key: string; op: CompareOp; value: string };
+
+const SPACED_OP_RE = new RegExp(
+  `\\b(${Object.keys(FILTER_KEYS).join("|")})\\s*(>=|<=|!=|=|>|<)\\s*`,
+  "g"
+);
+
+function joinSpacedOps(query: string): string {
+  return query.replace(SPACED_OP_RE, "$1$2");
+}
+
+function collectFilterTokens(tokens: string[]): {
+  rawFilters: Record<string, string>;
+  conditions: FilterToken[];
+  remaining: string[];
+} {
   const rawFilters: Record<string, string> = {};
-  const conditions: Array<{ key: string; op: CompareOp; value: string }> = [];
+  const conditions: FilterToken[] = [];
   const remaining: string[] = [];
-  const tokens = query.match(TOKEN_RE) ?? [];
   for (const token of tokens) {
     const found = matchFilterToken(token);
     if (found) {
-      if (found.op === ":" || found.op === "=") rawFilters[found.key] = found.value;
+      if (found.op === "=") rawFilters[found.key] = found.value;
       conditions.push(found);
       continue;
     }
     remaining.push(token);
   }
+  return { rawFilters, conditions, remaining };
+}
 
-  const cleanQuery = remaining.join(" ").trim();
+const RAW_APPLIED_FIELD: Record<string, keyof ParsedIntent | undefined> = {
+  episodes: "episodes",
+  genre: "genre",
+  priority: "priority",
+  progress: "progress",
+  provider: "provider",
+  rating: "rating",
+  sort: "sortBy",
+  source: "provider",
+  status: "status",
+  studio: "studio",
+  tag: "genre",
+  type: "type",
+  year: "year",
+};
+
+function rawFilterApplied(out: ParsedIntent, key: string): boolean {
+  const field = RAW_APPLIED_FIELD[key];
+  return field === undefined || out[field] !== undefined;
+}
+
+export function parseIntent(query: string): ParsedIntent {
+  const tokens = joinSpacedOps(query).match(TOKEN_RE) ?? [];
+  const { rawFilters, conditions, remaining } = collectFilterTokens(tokens);
   const out: ParsedIntent = {
-    cleanQuery,
+    cleanQuery: "",
     yearOps: [],
     ratingOps: [],
     episodesOps: [],
     progressOps: [],
+    dateConds: [],
     negations: [],
     rawFilters,
   };
-
-  if (rawFilters["year"]) {
-    const y = parseYear(rawFilters["year"]);
-    if (y !== undefined) out.year = y;
+  applyRawFilters(out, rawFilters);
+  for (const [key, raw] of Object.entries(rawFilters)) {
+    if (!rawFilterApplied(out, key)) remaining.push(`${key}=${raw}`);
   }
+  for (const cond of conditions) {
+    if (!applyCondition(out, cond)) remaining.push(`${cond.key}${cond.op}${cond.value}`);
+  }
+  out.cleanQuery = remaining.join(" ").trim();
+  return out;
+}
+
+function applyRawFilters(out: ParsedIntent, rawFilters: Record<string, string>): void {
+  applyNumericFilter(rawFilters["year"], parseYear, (value) => (out.year = value));
   if (rawFilters["studio"]) out.studio = rawFilters["studio"];
   if (rawFilters["genre"] ?? rawFilters["tag"])
     out.genre = [rawFilters["genre"], rawFilters["tag"]].filter(Boolean).join("|");
   if (rawFilters["type"]) out.type = rawFilters["type"].toLowerCase();
   if (rawFilters["status"]) out.status = rawFilters["status"].toLowerCase();
-  if (rawFilters["rating"]) {
-    const r = parseRating(rawFilters["rating"]);
-    if (r !== undefined) out.rating = r;
-  }
-  if (rawFilters["episodes"]) {
-    const e = parseEpisodes(rawFilters["episodes"]);
-    if (e !== undefined) out.episodes = e;
-  }
-  if (rawFilters["progress"]) {
-    const p = parseEpisodes(rawFilters["progress"]);
-    if (p !== undefined) out.progress = p;
-  }
+  applyNumericFilter(rawFilters["rating"], parseRating, (value) => (out.rating = value));
+  applyNumericFilter(rawFilters["episodes"], parseEpisodes, (value) => (out.episodes = value));
+  applyNumericFilter(rawFilters["progress"], parseEpisodes, (value) => (out.progress = value));
   if (rawFilters["sort"]) {
     const s = parseSort(rawFilters["sort"]);
     if (s !== undefined) {
@@ -136,37 +206,46 @@ export function parseIntent(query: string): ParsedIntent {
   if (rawFilters["priority"]) out.priority = rawFilters["priority"].toLowerCase();
   if (rawFilters["provider"] ?? rawFilters["source"])
     out.provider = (rawFilters["provider"] ?? rawFilters["source"] ?? "").toLowerCase();
+}
 
-  for (const cond of conditions) {
-    if (
-      cond.op === "!=" &&
-      cond.key !== "year" &&
-      cond.key !== "rating" &&
-      cond.key !== "episodes" &&
-      cond.key !== "progress"
-    ) {
-      out.negations.push({ key: cond.key, value: cond.value });
-      continue;
-    }
-    if (cond.key === "year" && cond.op !== ":" && cond.op !== "=") {
-      const y = parseYear(cond.value);
-      if (y !== undefined) out.yearOps.push({ op: cond.op as NumericCond["op"], value: y });
-      continue;
-    }
-    if (cond.key === "rating" && cond.op !== ":" && cond.op !== "=") {
-      const r = parseRating(cond.value);
-      if (r !== undefined) out.ratingOps.push({ op: cond.op as NumericCond["op"], value: r });
-      continue;
-    }
-    if (cond.key === "episodes" && cond.op !== ":" && cond.op !== "=") {
-      const e = parseEpisodes(cond.value);
-      if (e !== undefined) out.episodesOps.push({ op: cond.op as NumericCond["op"], value: e });
-      continue;
-    }
-    if (cond.key === "progress" && cond.op !== ":" && cond.op !== "=") {
-      const p = parseEpisodes(cond.value);
-      if (p !== undefined) out.progressOps.push({ op: cond.op as NumericCond["op"], value: p });
-    }
+function applyNumericFilter(
+  raw: string | undefined,
+  parse: (value: string) => number | undefined,
+  assign: (value: number) => void
+): void {
+  if (raw === undefined) return;
+  const value = parse(raw);
+  if (value !== undefined) assign(value);
+}
+
+const NUMERIC_CONDITIONS: Record<
+  string,
+  { parse: (value: string) => number | undefined; target: (out: ParsedIntent) => NumericCond[] }
+> = {
+  year: { parse: parseYear, target: (out) => out.yearOps },
+  rating: { parse: parseRating, target: (out) => out.ratingOps },
+  episodes: { parse: parseEpisodes, target: (out) => out.episodesOps },
+  progress: { parse: parseEpisodes, target: (out) => out.progressOps },
+};
+
+const NEGATION_ALIAS: Record<string, string> = { tag: "genre", source: "provider" };
+
+function applyCondition(out: ParsedIntent, cond: FilterToken): boolean {
+  if (cond.op === "=" && cond.key !== "date") return true;
+  if (cond.op === "!=" && !(cond.key in NUMERIC_CONDITIONS)) {
+    out.negations.push({ key: NEGATION_ALIAS[cond.key] ?? cond.key, value: cond.value });
+    return true;
   }
-  return out;
+  if (cond.key === "date") {
+    const parsed = parseDateValue(cond.value);
+    if (!parsed) return false;
+    out.dateConds.push({ op: cond.op, iso: parsed.iso, yearOnly: parsed.yearOnly });
+    return true;
+  }
+  const numeric = NUMERIC_CONDITIONS[cond.key];
+  if (!numeric) return false;
+  const value = numeric.parse(cond.value);
+  if (value === undefined) return false;
+  numeric.target(out).push({ op: cond.op as NumericCond["op"], value });
+  return true;
 }

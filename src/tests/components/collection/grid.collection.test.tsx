@@ -26,6 +26,7 @@ function makeItem(overrides: Partial<CollectionItem> = {}): CollectionItem {
     priority: "normal",
     isFavorite: false,
     year: 2023,
+    releaseDate: null,
     genres: ["Adventure", "Fantasy"],
     studio: "Madhouse",
     description: null,

@@ -105,6 +105,24 @@ export interface FavouritePeople {
   characters: FavouritePerson[];
 }
 
+export type FavPersonKind = "staff" | "character";
+
+export interface CachedFavPerson {
+  kind: FavPersonKind;
+  animeIds: number[];
+  updatedAt: number;
+}
+
+export interface FavPeopleIndexCache {
+  version: 1;
+  people: Record<string, CachedFavPerson>;
+}
+
+export interface FavPersonMediaPage {
+  key: string;
+  anime_ids: number[];
+}
+
 export interface AniListEntry {
   media: AniMedia;
   progress: number | null;
@@ -208,7 +226,7 @@ export interface AniActivity {
 }
 
 export interface AniListSort {
-  key: "title" | "score" | "progress";
+  key: "title" | "score" | "myScore" | "progress";
   dir: "asc" | "desc";
 }
 
@@ -257,6 +275,8 @@ export interface AniListFiltersModalProps {
   onApply: (filters: AniListFilters) => void;
   onReset: () => void;
   onClose: () => void;
+  onRandom: (filters: AniListFilters) => void;
+  randomPending: boolean;
 }
 
 export type RelationFilter = (typeof RELATION_FILTERS)[number];
@@ -462,6 +482,7 @@ export interface FranchiseViewport {
 export interface AniCardProps {
   item: AniMedia;
   entryLookup: Map<number, { progress: number | null; score: number | null; list_status: string }>;
+  isFavorite: boolean;
   onClick: (anime: AniListAnime) => void;
 }
 
@@ -598,5 +619,18 @@ export interface AniSortProps {
   onActivityOpen: () => void;
   onFavouritesOpen: () => void;
   onRandom: () => void;
+  onSpotlight: () => void;
   hasFavourites: boolean;
+}
+
+export interface AnimeShowcase {
+  stills: string[];
+  trailerYoutubeId: string | null;
+}
+
+export type SpotlightKind = "day" | "week" | "month";
+
+export interface FavPersonRef {
+  kind: FavPersonKind;
+  id: number;
 }

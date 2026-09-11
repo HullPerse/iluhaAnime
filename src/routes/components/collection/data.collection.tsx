@@ -1,5 +1,6 @@
 import {
   Archive,
+  Dices,
   Download,
   EllipsisVertical,
   Grid3x3,
@@ -7,9 +8,10 @@ import {
   Infinity as InfinityIcon,
   Layers,
   List,
+  Tags,
   Upload,
 } from "lucide-react";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
 import {
@@ -27,29 +29,41 @@ import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { useCollectionStore } from "@/store/collection.store";
 
+import { TagsReferenceModal } from "./tags.collection";
+
 export default function DataCollection({
   onHandleJson,
   onHandleZip,
   onHandleImport,
   onHandleAnilist,
+  onRandom,
+  randomDisabled,
 }: {
   onHandleJson: () => void;
   onHandleZip: () => void;
   onHandleImport: (file: File) => void;
   onHandleAnilist: () => void;
+  onRandom: () => void;
+  randomDisabled: boolean;
 }) {
   const { t } = useI18n();
   const { groupByStatus, viewMode, displayMode, setGroupByStatus, setViewMode, setDisplayMode } =
     useCollectionStore();
 
   const inputRef = useRef<HTMLInputElement>(null);
+  const [tagsOpen, setTagsOpen] = useState(false);
 
   return (
     <>
       <DropdownMenu>
         <DropdownMenuTrigger
           render={
-            <Button size="default" className="size-7" title={t("collection.data")}>
+            <Button
+              size="default"
+              className="size-7"
+              title={t("collection.data")}
+              aria-label={t("collection.data")}
+            >
               <EllipsisVertical className="size-5" />
             </Button>
           }
@@ -102,6 +116,15 @@ export default function DataCollection({
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
+            <DropdownMenuItem onClick={onRandom} disabled={randomDisabled}>
+              <Dices className="size-4" /> {t("collection.random")}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setTagsOpen(true)}>
+              <Tags className="size-4" /> {t("collection.tags.title")}
+            </DropdownMenuItem>
+          </DropdownMenuGroup>
+          <DropdownMenuSeparator />
+          <DropdownMenuGroup>
             <DropdownMenuItem onClick={onHandleAnilist}>
               <ImageComponent
                 src="https://anilist.co/favicon.ico"
@@ -133,6 +156,7 @@ export default function DataCollection({
           if (file) onHandleImport(file);
         }}
       />
+      <TagsReferenceModal open={tagsOpen} onClose={() => setTagsOpen(false)} />
     </>
   );
 }

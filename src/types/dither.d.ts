@@ -49,6 +49,7 @@ export interface DitherCacheEntry {
 }
 
 export interface DitherWorkerRequest {
+  type: "render";
   id: number;
   width: number;
   height: number;
@@ -69,4 +70,48 @@ export interface DitherWorkerProgress {
   id: number;
   done: number;
   total: number;
+}
+
+export type DitherPalettePresetId = "default" | "red" | "gameboy" | "pico8" | "gray";
+
+export interface DitherPalettePreset {
+  id: DitherPalettePresetId;
+  colors: DitherRGB[];
+}
+
+export type DitherPresetId = "empty" | "default" | "deep" | "soft" | "natural" | "capy";
+
+export interface DitherPreset {
+  id: DitherPresetId;
+  options: DitherEffectOptions;
+}
+
+export type DitherSliderField = Exclude<
+  keyof DitherEffectOptions,
+  "palette" | "ditherMatrix" | "grayGrain"
+>;
+
+export interface DitherRenderContext {
+  source: Uint8ClampedArray<ArrayBuffer>;
+  output: Uint8ClampedArray<ArrayBuffer>;
+  width: number;
+  height: number;
+  options: DitherEffectOptions;
+  step: number;
+  invStep: number;
+  orderedSteps: [number, number, number];
+  inkTarget: DitherRGB;
+  usePalette: boolean;
+  keepBlack: number;
+  curveAmount: number;
+  crushBase: number;
+  squeezeBase: number;
+  localBoost: number;
+  inkDensity: number;
+  shift: number;
+  hasWarp: boolean;
+  hasNoise: boolean;
+  hasVignette: boolean;
+  vignetteX: Float32Array | null;
+  vignetteY: Float32Array | null;
 }

@@ -1,3 +1,4 @@
+import { toLocaleKey } from "@/lib/locale/key.utils";
 import { useQuery } from "@tanstack/react-query";
 
 import { Checkbox } from "@/components/ui/checkbox.component";
@@ -12,9 +13,9 @@ import {
 } from "@/config/player/options.config";
 import { ANIME4K_PRESETS } from "@/config/player/presets.config";
 import { useI18n } from "@/lib/locale/i18n.utils";
-import { formatETA } from "@/lib/player/title.utils";
 import { withFallback } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
+import { formatETA } from "@/lib/utils/time.utils";
 
 import FFMPEG from "../ffmpeg.player";
 import { UpscalePreview } from "../preview.player";
@@ -144,7 +145,7 @@ export function UpscaleConfigPanel({
         onChange={setResolution}
         options={RESOLUTIONS.map((o) => ({
           ...o,
-          label: t(o.label as never),
+          label: t(toLocaleKey(o.label)),
         }))}
       />
 
@@ -154,7 +155,7 @@ export function UpscaleConfigPanel({
         onChange={setUpscaler}
         options={UPSCALER_OPTIONS.map((o) => ({
           ...o,
-          label: t(o.label as never),
+          label: t(toLocaleKey(o.label)),
         }))}
       />
       {upscaler === "ffmpeg" && <FFMPEG status={ffmpegStatus} setStatus={setFfmpegStatus} />}
@@ -169,7 +170,7 @@ export function UpscaleConfigPanel({
         onChange={setFpsValue}
         options={FPS_OPTIONS.map((o) => ({
           ...o,
-          label: t(o.label as never),
+          label: t(toLocaleKey(o.label)),
         }))}
       />
       {fpsValue === "60i" && <RIFE />}
@@ -179,12 +180,12 @@ export function UpscaleConfigPanel({
         onChange={setVideoCodec}
         options={VIDEO_CODEC_OPTIONS.map((o) => ({
           ...o,
-          label: t(o.label as never),
+          label: t(toLocaleKey(o.label)),
         }))}
       />
       {estimate && estimate.seconds > 0 && (
         <span className="text-hint text-xs">
-          {t("player.upscale.estimated", { time: formatETA(estimate.seconds, t) })}
+          {t("player.upscale.estimated", { time: formatETA(estimate.seconds, t, "minute") })}
         </span>
       )}
 
@@ -196,17 +197,19 @@ export function UpscaleConfigPanel({
             onChange={onPresetChange}
             options={ANIME4K_PRESETS.map((p) => ({
               ...p,
-              label: t(p.label as never),
+              label: t(toLocaleKey(p.label)),
             }))}
           />
           {suggestion && (
             <span className="text-hint text-xs">
               {t("player.upscale.suggested", {
                 preset: t(
-                  (ANIME4K_PRESETS.find((p) => p.value === suggestion.preset)?.label ??
-                    suggestion.preset) as never
+                  toLocaleKey(
+                    ANIME4K_PRESETS.find((p) => p.value === suggestion.preset)?.label ??
+                      suggestion.preset
+                  )
                 ),
-                reason: t(`player.upscale.suggest.${suggestion.reason}` as never),
+                reason: t(toLocaleKey(`player.upscale.suggest.${suggestion.reason}`)),
               })}
             </span>
           )}
@@ -235,7 +238,7 @@ export function UpscaleConfigPanel({
             onChange={setQuality}
             options={QUALITY_OPTIONS.map((o) => ({
               ...o,
-              label: t(o.label as never),
+              label: t(toLocaleKey(o.label)),
             }))}
           />
 

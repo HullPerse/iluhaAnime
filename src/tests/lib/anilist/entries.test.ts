@@ -134,6 +134,16 @@ describe("sortEntries", () => {
     expect(sortEntries(entries, "asc", "score").map((e) => e.media.score)).toEqual([7, 8, 9]);
   });
 
+  it("sorts by user score with unscored entries last", () => {
+    const scored = [
+      makeEntry({ score: 5, media: makeMedia({ id: 1 }) }),
+      makeEntry({ score: 9, media: makeMedia({ id: 2 }) }),
+      makeEntry({ score: null, media: makeMedia({ id: 3 }) }),
+    ];
+    expect(sortEntries(scored, "desc", "myScore").map((e) => e.score)).toEqual([9, 5, null]);
+    expect(sortEntries(scored, "asc", "myScore").map((e) => e.score)).toEqual([null, 5, 9]);
+  });
+
   it("sorts by progress descending", () => {
     expect(sortEntries(entries, "desc", "progress").map((e) => e.progress)).toEqual([10, 5, 1]);
   });
@@ -143,6 +153,7 @@ describe("getSortingLabel", () => {
   it("returns i18n keys for known sorts", () => {
     expect(getSortingLabel("title")).toBe("anilist.sort.title");
     expect(getSortingLabel("score")).toBe("anilist.sort.score");
+    expect(getSortingLabel("myScore")).toBe("anilist.sort.myScore");
     expect(getSortingLabel("progress")).toBe("anilist.sort.progress");
   });
 
@@ -276,7 +287,7 @@ describe("applyIntentToFilters", () => {
   it("maps year, genre, tag, type, status, rating, and episodes, stripping tokens", () => {
     const { filters, query } = applyIntentToFilters(
       makeFilters(),
-      'frieren year:2023 genre:Fantasy tag:"Female Protagonist" type:tv status:finished rating>=8 episodes:28'
+      'frieren year=2023 genre=Fantasy tag="Female Protagonist" type=tv status=finished rating>=8 episodes=28'
     );
     expect(query).toBe("frieren");
     expect(filters.year).toEqual([2023, 2023]);
@@ -289,7 +300,7 @@ describe("applyIntentToFilters", () => {
   });
 
   it("matches canonical names case-insensitively, including quoted multi-word values", () => {
-    const { filters, query } = applyIntentToFilters(makeFilters(), 'genre="sci-fi" tag:space');
+    const { filters, query } = applyIntentToFilters(makeFilters(), 'genre="sci-fi" tag=space');
     expect(query).toBeNull();
     expect(filters.genres).toEqual(["Sci-Fi"]);
     expect(filters.tags).toEqual(["Space"]);
@@ -307,7 +318,7 @@ describe("applyIntentToFilters", () => {
   it("lets text win over modal scalars and unions arrays", () => {
     const { filters, query } = applyIntentToFilters(
       makeFilters({ format: "TV", genres: ["Action"], year: [2010, 2015] }),
-      "bleach year:2022 genre:comedy type:movie"
+      "bleach year=2022 genre=comedy type=movie"
     );
     expect(query).toBe("bleach");
     expect(filters.year).toEqual([2022, 2022]);
@@ -327,10 +338,10 @@ describe("applyIntentToFilters", () => {
   });
 
   it("gates NSFW tags on the adult filter", () => {
-    const blocked = applyIntentToFilters(makeFilters(), "tag:Ahegao");
+    const blocked = applyIntentToFilters(makeFilters(), "tag=Ahegao");
     expect(blocked.filters.tags).toEqual([]);
-    expect(blocked.query).toBe("tag:Ahegao");
-    const allowed = applyIntentToFilters(makeFilters({ adult: true }), "tag:Ahegao");
+    expect(blocked.query).toBe("tag=Ahegao");
+    const allowed = applyIntentToFilters(makeFilters({ adult: true }), "tag=Ahegao");
     expect(allowed.filters.tags).toEqual(["Ahegao"]);
     expect(allowed.query).toBeNull();
   });

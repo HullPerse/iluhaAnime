@@ -2,8 +2,7 @@ import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 
 import { translate } from "@/lib/locale/i18n.utils";
 import { useNotificationStore } from "@/store/notification.store";
-import type { Locale } from "@/types";
-import type { TFunc, TranslationKey } from "@/types/i18n";
+import type { Locale, TFunc, TranslationKey } from "@/types/i18n";
 import type {
   NotificationFilter,
   NotificationItem,

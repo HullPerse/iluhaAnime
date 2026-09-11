@@ -6,6 +6,7 @@ import { buildCollectionSearchIndex, searchCollectionIndex } from "@/lib/collect
 import { parseIntent } from "@/lib/search/intent.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import type {
+  CollectionDataResult,
   CollectionDataState,
   CollectionItem,
   CollectionStatusDef,
@@ -35,21 +36,30 @@ function normalizeItem(raw: RawCollectionItem): CollectionItem {
   };
 }
 
+type StatusRow = Omit<CollectionStatusDef, "order"> & { order?: number; orderIndex?: number };
+
+function normalizeStatus(row: StatusRow, fallback: number): CollectionStatusDef {
+  return {
+    color: row.color,
+    id: row.id,
+    isCore: row.isCore,
+    label: row.label,
+    order: row.orderIndex ?? row.order ?? fallback,
+  };
+}
+
 async function fetchCollectionData(): Promise<CollectionDataState> {
-  try {
-    const [items, customFieldDefs, statuses] = await Promise.all([
-      invokeTyped<RawCollectionItem[]>("list_collection_items"),
-      invokeTyped<CustomFieldDef[]>("list_custom_field_defs"),
-      invokeTyped<CollectionStatusDef[]>("list_collection_statuses"),
-    ]);
-    return {
-      items: items.map(normalizeItem),
-      customFieldDefs,
-      statuses: statuses.length > 0 ? statuses : DEFAULT_COLLECTION_STATUSES,
-    };
-  } catch {
-    return EMPTY;
-  }
+  const [items, customFieldDefs, statusRows] = await Promise.all([
+    invokeTyped<RawCollectionItem[]>("list_collection_items"),
+    invokeTyped<CustomFieldDef[]>("list_custom_field_defs"),
+    invokeTyped<StatusRow[]>("list_collection_statuses"),
+  ]);
+  const statuses = statusRows.map((row, index) => normalizeStatus(row, index));
+  return {
+    items: items.map(normalizeItem),
+    customFieldDefs,
+    statuses: statuses.length > 0 ? statuses : DEFAULT_COLLECTION_STATUSES,
+  };
 }
 
 export function useCollectionSearch(query: string, allItems: CollectionItem[]): CollectionItem[] {
@@ -59,14 +69,14 @@ export function useCollectionSearch(query: string, allItems: CollectionItem[]): 
   return trimmed.length < 3 ? allItems : searchCollectionIndex(index, trimmed);
 }
 
-export function useCollectionData(): CollectionDataState {
-  const { data } = useQuery({
+export function useCollectionData(): CollectionDataResult {
+  const { data, isLoading, isError, isFetching, error, refetch } = useQuery({
     queryKey: [COLLECTION_QUERY_KEY],
     queryFn: fetchCollectionData,
     staleTime: 60_000,
     gcTime: Infinity,
   });
-  return data ?? EMPTY;
+  return { ...(data ?? EMPTY), isLoading, isError, isFetching, error, refetch };
 }
 
 export function useCollectionMutations() {
@@ -92,8 +102,16 @@ export function useCollectionMutations() {
   });
 
   const updateItem = useMutation({
-    mutationFn: async ({ id, patch }: { id: string; patch: Partial<CollectionItem> }) => {
-      await invokeTyped("patch_collection_item", { id, patch });
+    mutationFn: async ({
+      id,
+      patch,
+      touch,
+    }: {
+      id: string;
+      patch: Partial<CollectionItem>;
+      touch?: boolean;
+    }) => {
+      await invokeTyped("patch_collection_item", { id, patch, touch_updated: touch });
     },
     onMutate: async ({ id, patch }) => {
       await queryClient.cancelQueries({ queryKey: [COLLECTION_QUERY_KEY] });
@@ -146,7 +164,8 @@ export function useCollectionMutations() {
 
   const upsertStatus = useMutation({
     mutationFn: async (status: CollectionStatusDef) => {
-      await invokeTyped("upsert_collection_status", { status });
+      const { order, ...rest } = status;
+      await invokeTyped("upsert_collection_status", { status: { ...rest, orderIndex: order } });
     },
     onSuccess: invalidate,
   });
@@ -168,8 +187,8 @@ export function useCollectionMutations() {
   return {
     addItem: (item: Omit<CollectionItem, "id" | "addedAt" | "updatedAt">) =>
       addItem.mutateAsync({ item }),
-    updateItem: (id: string, patch: Partial<CollectionItem>) =>
-      updateItem.mutateAsync({ id, patch }),
+    updateItem: (id: string, patch: Partial<CollectionItem>, opts?: { touch?: boolean }) =>
+      updateItem.mutateAsync({ id, patch, touch: opts?.touch }),
     removeItem: (id: string) => removeItem.mutateAsync(id),
     addCustomFieldDef: (def: Omit<CustomFieldDef, "id">) => addCustomFieldDef.mutateAsync(def),
     removeCustomFieldDef: (id: string) => removeCustomFieldDef.mutateAsync(id),

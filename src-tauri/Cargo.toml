@@ -60,6 +60,9 @@ thiserror = "2"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 keyring = "4"
 tauri-plugin-window-state = "2"
+sysinfo = "0.39"
+tauri-plugin-deep-link = "2"
+tauri-plugin-single-instance = "2"
 [target.'cfg(windows)'.dependencies]
 webview2-com = "0.38"
 windows-core = "0.61"

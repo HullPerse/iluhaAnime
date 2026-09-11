@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import Combobox from "@/components/ui/combobox.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
+import { reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSettingsStore } from "@/store/settings.store";
 
@@ -21,7 +22,9 @@ export function FontSelector() {
         )
           return parsed.fonts;
       }
-    } catch {}
+    } catch (error) {
+      reportBackgroundError("fonts.cache.parse", error);
+    }
     return [];
   });
   const [loading, setLoading] = useState(fonts.length === 0);
@@ -37,7 +40,9 @@ export function FontSelector() {
         setLoading(false);
         try {
           localStorage.setItem("systemFontsCache", JSON.stringify({ fonts: list, ts: Date.now() }));
-        } catch {}
+        } catch (error) {
+          reportBackgroundError("fonts.cache.write", error);
+        }
       })
       .catch(() => {
         if (!cancelled) {

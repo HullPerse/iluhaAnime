@@ -1,10 +1,8 @@
-// @vitest-environment jsdom
-
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { InlineAutocompleteInput } from "@/components/shared/autocomplete.component";
+import { InlineAutocompleteInput } from "@/components/shared/autocomplete/input.autocomplete";
 import { useSettingsStore } from "@/store/settings.store";
 
 afterEach(() => {
@@ -268,14 +266,14 @@ describe("InlineAutocompleteInput", () => {
     const view = render(
       <InlineAutocompleteInput
         aria-label="Search"
-        value="studio:MAPPA frieren"
+        value="studio=MAPPA frieren"
         highlightRanges={[{ start: 0, end: 12 }]}
         onChange={() => {}}
       />
     );
 
     const highlighted = view.container.querySelector(".bg-highlight");
-    expect(highlighted?.textContent).toBe("studio:MAPPA");
+    expect(highlighted?.textContent).toBe("studio=MAPPA");
     expect(
       screen.getByRole("textbox", { name: "Search" }).classList.contains("text-transparent")
     ).toBe(true);

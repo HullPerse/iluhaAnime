@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 import { THEMES } from "@/config/settings/themes.config";
+import { reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { DEFAULT_FONT_FAMILY, getStoredAppFont, toCssFontFamily } from "@/lib/utils/font.utils";
 import type { ThemeDefinition, ThemeStore } from "@/types/theme";
 
@@ -80,7 +81,9 @@ export function applyTheme(name: string, customThemes: ThemeDefinition[] = []) {
         winShadow: c.winShadow,
       })
     );
-  } catch {}
+  } catch (error) {
+    reportBackgroundError("theme.serialize", error);
+  }
 }
 
 export function themeToJson(theme: ThemeDefinition): string {

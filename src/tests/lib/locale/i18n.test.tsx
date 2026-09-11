@@ -54,3 +54,39 @@ describe("useI18n", () => {
     expect(html).toBe(`<span>${INITIAL_LOCALE}:${translate(INITIAL_LOCALE, "app.search")}</span>`);
   });
 });
+
+describe("translate plurals", () => {
+  it("selects Russian one/few/many forms by count", () => {
+    expect(translate("ru", "search.results.count", { count: 1 })).toBe("1 результат");
+    expect(translate("ru", "search.results.count", { count: 2 })).toBe("2 результата");
+    expect(translate("ru", "search.results.count", { count: 5 })).toBe("5 результатов");
+    expect(translate("ru", "search.results.count", { count: 21 })).toBe("21 результат");
+  });
+
+  it("selects English one/other forms by count", () => {
+    expect(translate("en", "search.results.count", { count: 1 })).toBe("1 result");
+    expect(translate("en", "search.results.count", { count: 5 })).toBe("5 results");
+  });
+
+  it("falls back to the base key when no plural form exists", () => {
+    expect(translate("ru", "torrent.summary.seeding", { count: 1 })).toBe("Раздаётся: 1");
+    expect(translate("en", "torrent.summary.seeding", { count: 1 })).toBe("1 seeding");
+  });
+
+  it("ignores non-numeric count for plural selection", () => {
+    expect(translate("ru", "search.results.count", { count: "5" })).toBe("5 результатов");
+  });
+
+  it("falls back to the Russian suffixed form when English lacks it", () => {
+    expect(translate("en", "torrent.summary.active", { count: 1 })).toBe("Активный: 1");
+  });
+
+  it("selects many for zero and base for fractions in Russian", () => {
+    expect(translate("ru", "search.results.count", { count: 0 })).toBe("0 результатов");
+    expect(translate("ru", "search.results.count", { count: 1.5 })).toBe("1.5 результатов");
+  });
+
+  it("returns the key itself when nothing matches", () => {
+    expect(translate("ru", "zzz.missing.key" as never)).toBe("zzz.missing.key");
+  });
+});

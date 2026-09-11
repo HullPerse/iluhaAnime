@@ -1,6 +1,6 @@
 import { User } from "lucide-react";
 
-import { SmallLoader } from "@/components/shared/loader.component";
+import { TabLoader } from "@/components/shared/loader.component";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import type { AniListViewState } from "@/types/anilist";
@@ -16,11 +16,7 @@ export default function AniListStateViews({
   switch (view) {
     case "loading":
     case "globalLoading": {
-      return (
-        <section className="flex flex-1 items-center justify-center">
-          <SmallLoader />
-        </section>
-      );
+      return <TabLoader className="flex-1" />;
     }
     case "login": {
       return (

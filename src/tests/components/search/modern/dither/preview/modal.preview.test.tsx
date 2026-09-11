@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useEffect, type Ref } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -7,7 +7,7 @@ import { toUserImage } from "@/lib/utils/image.utils";
 import DitherPreviewModal from "@/routes/components/search/modern/dither/preview/modal.preview";
 import { useNotificationStore } from "@/store/notification.store";
 import { useSettingsStore } from "@/store/settings.store";
-import type { UserImage, UserImageFile } from "@/types";
+import type { UserImage, UserImageFile } from "@/types/image.userimage";
 
 const mockInvoke = vi.fn();
 vi.mock("@tauri-apps/api/core", () => ({
@@ -48,6 +48,7 @@ const IMAGE: UserImage = {
   mimeType: "image/png",
   url: "data:image/png;base64,AAAA",
   originalUrl: "data:image/png;base64,OOOO",
+  ditherOptions: null,
   createdAt: 10,
 };
 
@@ -56,6 +57,22 @@ const UPDATED_FILE: UserImageFile = {
   path: "C:/images/aaa.baked.png",
   originalPath: "C:/images/aaa.original.png",
 };
+
+class FakeImage {
+  onload: (() => void) | null = null;
+  onerror: (() => void) | null = null;
+  crossOrigin = "";
+  naturalWidth = 4;
+  naturalHeight = 1;
+  _src = "";
+  get src(): string {
+    return this._src;
+  }
+  set src(value: string) {
+    this._src = value;
+    queueMicrotask(() => this.onload?.());
+  }
+}
 
 function errorMessages() {
   return useNotificationStore
@@ -148,15 +165,16 @@ describe("DitherPreviewModal", () => {
     expect((gray as HTMLButtonElement).disabled).toBe(false);
   });
 
-  it("removes a palette entry when its swatch row is deleted", async () => {
+  it("removes a palette entry when its swatch is deleted", async () => {
     const user = userEvent.setup();
     render(<DitherPreviewModal image={IMAGE} onBack={vi.fn()} onSaved={vi.fn()} />);
     await waitFor(() => expect(lastCanvasSrc).toBeTruthy());
-    const rows = screen.getAllByRole("button", { name: "x" });
-    const initial = rows.length;
+    const swatches = screen.getAllByTitle(/#[0-9A-F]{6}/i);
+    const initial = swatches.length;
     expect(initial).toBeGreaterThanOrEqual(2);
-    await user.click(rows[0]);
-    expect(screen.getAllByRole("button", { name: "x" })).toHaveLength(initial - 1);
+    await user.click(swatches[0]);
+    await user.click(screen.getByRole("button", { name: "x" }));
+    expect(screen.getAllByTitle(/#[0-9A-F]{6}/i)).toHaveLength(initial - 1);
   });
 
   it("holds the canvas render for 200ms after a slider move", () => {
@@ -190,6 +208,96 @@ describe("DitherPreviewModal", () => {
       expect(lastCanvasScale).toBe(live);
     } finally {
       vi.useRealTimers();
+    }
+  });
+  it("applies a palette preset to the swatch strip", async () => {
+    const user = userEvent.setup();
+    render(<DitherPreviewModal image={IMAGE} onBack={vi.fn()} onSaved={vi.fn()} />);
+    await waitFor(() => expect(lastCanvasSrc).toBeTruthy());
+    await user.click(screen.getByRole("button", { name: "GameBoy" }));
+    expect(screen.getAllByTitle(/#[0-9A-F]{6}/)).toHaveLength(4);
+    expect(screen.getByTitle("#0F380F")).toBeTruthy();
+  });
+
+  it("extracts the palette from the image on demand", async () => {
+    const user = userEvent.setup();
+    const red = new Uint8ClampedArray([
+      255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255,
+    ]);
+    const getContext = vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
+      drawImage: vi.fn(),
+      getImageData: vi.fn(() => ({ data: red })),
+    } as unknown as CanvasRenderingContext2D);
+    vi.stubGlobal("Image", FakeImage);
+    try {
+      render(<DitherPreviewModal image={IMAGE} onBack={vi.fn()} onSaved={vi.fn()} />);
+      await waitFor(() => expect(lastCanvasSrc).toBeTruthy());
+      await user.click(screen.getByRole("button", { name: "From image" }));
+      await waitFor(() => expect(screen.getByTitle("#FF0000")).toBeTruthy());
+    } finally {
+      vi.unstubAllGlobals();
+      getContext.mockRestore();
+    }
+  });
+
+  it("applies every palette preset with its swatch count", async () => {
+    const user = userEvent.setup();
+    render(<DitherPreviewModal image={IMAGE} onBack={vi.fn()} onSaved={vi.fn()} />);
+    await waitFor(() => expect(lastCanvasSrc).toBeTruthy());
+    const strip = screen.getByTitle("From image").closest("div")!;
+    const pick = (name: string) => user.click(within(strip).getByRole("button", { name }));
+    await pick("PICO-8");
+    expect(screen.getAllByTitle(/#[0-9A-F]{6}/)).toHaveLength(16);
+    await pick("Gray ramp");
+    expect(screen.getAllByTitle(/#[0-9A-F]{6}/)).toHaveLength(8);
+    await pick("Red ramp");
+    expect(screen.getAllByTitle(/#[0-9A-F]{6}/)).toHaveLength(12);
+    await pick("Default");
+    expect(screen.getAllByTitle(/#[0-9A-F]{6}/)).toHaveLength(12);
+  });
+
+  it("re-applies a preset over an extracted palette", async () => {
+    const user = userEvent.setup();
+    const red = new Uint8ClampedArray([
+      255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255,
+    ]);
+    const getContext = vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
+      drawImage: vi.fn(),
+      getImageData: vi.fn(() => ({ data: red })),
+    } as unknown as CanvasRenderingContext2D);
+    vi.stubGlobal("Image", FakeImage);
+    try {
+      render(<DitherPreviewModal image={IMAGE} onBack={vi.fn()} onSaved={vi.fn()} />);
+      await waitFor(() => expect(lastCanvasSrc).toBeTruthy());
+      await user.click(screen.getByRole("button", { name: "From image" }));
+      await waitFor(() => expect(screen.getByTitle("#FF0000")).toBeTruthy());
+      await user.click(screen.getByRole("button", { name: "GameBoy" }));
+      expect(screen.getAllByTitle(/#[0-9A-F]{6}/)).toHaveLength(4);
+      expect(screen.queryByTitle("#FF0000")).toBeNull();
+    } finally {
+      vi.unstubAllGlobals();
+      getContext.mockRestore();
+    }
+  });
+
+  it("notifies when palette extraction fails", async () => {
+    const user = userEvent.setup();
+    const getContext = vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
+    vi.stubGlobal("Image", FakeImage);
+    try {
+      render(<DitherPreviewModal image={IMAGE} onBack={vi.fn()} onSaved={vi.fn()} />);
+      await waitFor(() => expect(lastCanvasSrc).toBeTruthy());
+      await user.click(screen.getByRole("button", { name: "From image" }));
+      await waitFor(() =>
+        expect(
+          useNotificationStore
+            .getState()
+            .items.some((item) => item.message === "Could not read image colors.")
+        ).toBe(true)
+      );
+    } finally {
+      vi.unstubAllGlobals();
+      getContext.mockRestore();
     }
   });
 });

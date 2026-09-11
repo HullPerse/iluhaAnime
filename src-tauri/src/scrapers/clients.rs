@@ -16,7 +16,12 @@ pub async fn acquire_scraper_slot() -> Result<tokio::sync::SemaphorePermit<'stat
     let mut last_request = SCRAPER_LAST_REQUEST.lock().await;
     let elapsed = last_request.elapsed();
     if elapsed < SCRAPER_MIN_INTERVAL {
-        tokio::time::sleep(SCRAPER_MIN_INTERVAL.checked_sub(elapsed).unwrap()).await;
+        tokio::time::sleep(
+            SCRAPER_MIN_INTERVAL
+                .checked_sub(elapsed)
+                .expect("scraper throttle delay underflow: elapsed exceeds interval"),
+        )
+        .await;
     }
     *last_request = Instant::now();
     drop(last_request);

@@ -3,7 +3,7 @@ import { Filter, SortAsc, SortDesc } from "lucide-react";
 import { Button } from "@/components/ui/button.component";
 import Select from "@/components/ui/select.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
-import type { SortKey } from "@/types";
+import type { SortKey } from "@/types/search";
 import type { SearchFiltersProps as Props } from "@/types/search";
 
 export default function SearchFiltersBar({

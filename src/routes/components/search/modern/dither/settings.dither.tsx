@@ -7,8 +7,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { SmallLoader } from "@/components/shared/loader.component";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
-import { Checkbox } from "@/components/ui/checkbox.component";
-import { ColorPickerTrigger } from "@/components/ui/color.component";
 import ImageComponent from "@/components/ui/image.component";
 import Slider from "@/components/ui/range.component";
 import { DEFAULT_WALLPAPER_FILTERS } from "@/config/settings/defaults.config";
@@ -26,14 +24,11 @@ import { showError } from "@/lib/utils/notification.utils";
 import { paginate } from "@/lib/utils/pagination.utils";
 import { DitherUploadPlaceholder } from "@/routes/components/search/modern/dither/placeholder.dither";
 import DitherPreviewModal from "@/routes/components/search/modern/dither/preview/modal.preview";
+import { ShadowControls } from "@/routes/components/search/modern/dither/shadow.dither";
 import { useSettingsStore } from "@/store/settings.store";
-import type { DitherImageMeta, UserImage, UserImageFile } from "@/types";
+import type { DitherImageMeta, UserImage, UserImageFile } from "@/types/image.userimage";
 import type { TranslationKey } from "@/types/i18n";
-import type {
-  WallpaperDisplayFilters,
-  WallpaperShadow,
-  WallpaperShadowSides,
-} from "@/types/settings";
+import type { WallpaperDisplayFilters } from "@/types/settings";
 
 const DISPLAY_PRESETS: readonly {
   id: string;
@@ -62,54 +57,19 @@ const DISPLAY_PRESETS: readonly {
   },
 ];
 
-const SHADOW_SIDE_KEYS: readonly (keyof WallpaperShadowSides)[] = [
-  "top",
-  "right",
-  "bottom",
-  "left",
+const DISPLAY_SLIDERS: readonly {
+  key: keyof WallpaperDisplayFilters;
+  label: TranslationKey;
+  min: number;
+  max: number;
+  step: number;
+}[] = [
+  { key: "brightness", label: "search.dither.display.brightness", min: 0, max: 200, step: 5 },
+  { key: "contrast", label: "search.dither.display.contrast", min: 0, max: 200, step: 5 },
+  { key: "saturate", label: "search.dither.display.saturate", min: 0, max: 200, step: 5 },
+  { key: "blur", label: "search.dither.display.blur", min: 0, max: 20, step: 1 },
+  { key: "opacity", label: "search.dither.display.opacity", min: 0, max: 100, step: 5 },
 ];
-
-function ShadowControls({
-  heading,
-  value,
-  onPatch,
-}: {
-  heading: string;
-  value: WallpaperShadow;
-  onPatch: (partial: Partial<WallpaperShadow>) => void;
-}) {
-  const { t } = useI18n();
-  return (
-    <>
-      <h3 className="windows95-text text-xs font-bold">{heading}</h3>
-      <div className="flex flex-row gap-2">
-        {SHADOW_SIDE_KEYS.map((side) => (
-          <label key={side} className="flex cursor-pointer flex-row items-center gap-1">
-            <Checkbox
-              checked={value.sides[side]}
-              onChange={(checked) => onPatch({ sides: { ...value.sides, [side]: checked } })}
-            />
-            <span className="windows95-text text-xs">
-              {t(`search.dither.display.shadow.${side}` as TranslationKey)}
-            </span>
-          </label>
-        ))}
-      </div>
-      <Slider
-        label={t("search.dither.display.shadow.intensity")}
-        min={0}
-        max={100}
-        step={5}
-        value={value.intensity}
-        onChange={(intensity) => onPatch({ intensity })}
-      />
-      <div className="flex flex-row items-center gap-1">
-        <span className="windows95-text text-xs">{t("search.dither.display.shadow.color")}</span>
-        <ColorPickerTrigger value={value.color} onChange={(color) => onPatch({ color })} />
-      </div>
-    </>
-  );
-}
 
 function DitherSettings({ onClose }: { onClose: () => void }) {
   const { t } = useI18n();
@@ -137,6 +97,7 @@ function DitherSettings({ onClose }: { onClose: () => void }) {
       mimeType: "image/jpeg",
       url: DITHER_PLACEHOLDER_SRC,
       originalUrl: null,
+      ditherOptions: null,
       createdAt: 0,
     }),
     [t]
@@ -160,11 +121,15 @@ function DitherSettings({ onClose }: { onClose: () => void }) {
   const upload = async () => {
     const picked = await openDialog({
       directory: false,
-      filters: [{ name: "Image", extensions: ["png", "jpg", "jpeg", "gif", "webp"] }],
+      filters: [{ extensions: ["png", "jpg", "jpeg", "webp"], name: "Image" }],
       multiple: false,
       title: t("search.dither.upload.image"),
     });
     if (!picked || Array.isArray(picked)) return;
+    if (picked.toLowerCase().endsWith(".gif")) {
+      showError(t("common.error"), t("search.dither.upload.gif"));
+      return;
+    }
     setUploadName(picked.split(/[/\\]/).pop() ?? picked);
     const [image, error] = await attempt(
       invokeTyped<UserImageFile>("import_dither_image", { path: picked })
@@ -278,7 +243,6 @@ function DitherSettings({ onClose }: { onClose: () => void }) {
 
   return (
     <Modal header={t("search.dither.title")} onClose={onClose} className="w-xl">
-      {/*image selection scroll*/}
       <section className="border-secondary bg-win-highlight relative flex h-24 w-full flex-row border-2">
         <div className="flex flex-row items-center justify-center gap-1 p-1">
           {loading || pageLoading ? (
@@ -319,6 +283,7 @@ function DitherSettings({ onClose }: { onClose: () => void }) {
             size="icon"
             className="size-6"
             title={t("common.previous")}
+            aria-label={t("common.previous")}
             onClick={() => setPage((prev) => prev - 1)}
             disabled={page === 1}
           >
@@ -329,6 +294,7 @@ function DitherSettings({ onClose }: { onClose: () => void }) {
             size="icon"
             className="size-6"
             title={t("common.next")}
+            aria-label={t("common.next")}
             onClick={() => setPage((prev) => prev + 1)}
             disabled={page === lastPage}
           >
@@ -341,6 +307,7 @@ function DitherSettings({ onClose }: { onClose: () => void }) {
             size="icon"
             className="size-6"
             title={t("common.delete")}
+            aria-label={t("common.delete")}
             onClick={() => remove()}
             disabled={!selected || isPlaceholderSelected}
           >
@@ -353,6 +320,7 @@ function DitherSettings({ onClose }: { onClose: () => void }) {
             size="icon"
             className="size-6"
             title={t("search.dither.add")}
+            aria-label={t("search.dither.add")}
             onClick={() => upload()}
             disabled={uploading}
           >
@@ -362,6 +330,7 @@ function DitherSettings({ onClose }: { onClose: () => void }) {
             size="icon"
             className="size-6"
             title={t("search.dither.edit")}
+            aria-label={t("search.dither.edit")}
             onClick={() => openPreview()}
             disabled={!selected || isPlaceholderSelected || previewBusy}
           >
@@ -369,7 +338,6 @@ function DitherSettings({ onClose }: { onClose: () => void }) {
           </Button>
         </div>
       </section>
-      {/*display filters*/}
       <section className="flex w-full flex-col gap-1">
         <h3 className="windows95-text text-xs font-bold">{t("search.dither.display.title")}</h3>
         <div className="flex flex-row gap-1">
@@ -384,49 +352,21 @@ function DitherSettings({ onClose }: { onClose: () => void }) {
             </Button>
           ))}
         </div>
-        <Slider
-          label={t("search.dither.display.brightness")}
-          min={0}
-          max={200}
-          step={5}
-          value={displayFilters.brightness}
-          onChange={(value) => patchDisplayFilters({ brightness: value })}
-        />
-        <Slider
-          label={t("search.dither.display.contrast")}
-          min={0}
-          max={200}
-          step={5}
-          value={displayFilters.contrast}
-          onChange={(value) => patchDisplayFilters({ contrast: value })}
-        />
-        <Slider
-          label={t("search.dither.display.saturate")}
-          min={0}
-          max={200}
-          step={5}
-          value={displayFilters.saturate}
-          onChange={(value) => patchDisplayFilters({ saturate: value })}
-        />
-        <Slider
-          label={t("search.dither.display.blur")}
-          min={0}
-          max={20}
-          step={1}
-          value={displayFilters.blur}
-          onChange={(value) => patchDisplayFilters({ blur: value })}
-        />
-        <Slider
-          label={t("search.dither.display.opacity")}
-          min={0}
-          max={100}
-          step={5}
-          value={displayFilters.opacity}
-          onChange={(value) => patchDisplayFilters({ opacity: value })}
-        />
+        {DISPLAY_SLIDERS.map((row) => (
+          <Slider
+            key={row.key}
+            label={t(row.label)}
+            min={row.min}
+            max={row.max}
+            step={row.step}
+            value={displayFilters[row.key]}
+            onChange={(value) => patchDisplayFilters({ [row.key]: value })}
+          />
+        ))}
         <ShadowControls
           heading={t("search.dither.display.shadow.title")}
           value={searchShadow}
+          showLength={false}
           onPatch={(partial) => patchSettings({ searchShadow: { ...searchShadow, ...partial } })}
         />
         <ShadowControls
@@ -438,7 +378,6 @@ function DitherSettings({ onClose }: { onClose: () => void }) {
         />
       </section>
 
-      {/*buttons*/}
       <section className="mt-auto flex w-full flex-row gap-2">
         <Button className="flex-1" variant="success" onClick={() => save()}>
           {t("search.dither.save")}

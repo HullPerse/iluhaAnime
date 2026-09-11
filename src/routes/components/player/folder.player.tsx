@@ -1,4 +1,5 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { cn } from "cn";
 import { openPath } from "@tauri-apps/plugin-opener";
 import { parse } from "anitomy";
 import { ChevronDown, ChevronRight, ListVideo, Monitor, EyeOff, Search, X } from "lucide-react";
@@ -11,12 +12,12 @@ import { FOLDER_LIST_MAX_HEIGHT, FOLDER_VIRTUALIZE_AFTER } from "@/config/player
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { formatParsedTitle } from "@/lib/player/title.utils";
 import { flattenTree } from "@/lib/player/tree.utils";
-import { fmtSize } from "@/lib/torrent/common.utils";
+import { formatBytes } from "@/lib/utils/bytes.utils";
 import { openFileInPlayer } from "@/lib/utils/media.utils";
 import { useSearchStore } from "@/store/search.store";
 import { useSettingsStore } from "@/store/settings.store";
 import { useUpscaleQueueStore } from "@/store/upscale.store";
-import type { FolderNode } from "@/types/index";
+import type { FolderNode } from "@/types/torrent";
 
 import UpscalePlayer from "./upscale/modal.upscale";
 
@@ -271,11 +272,16 @@ function FolderView({
 
               const { file } = item;
               const disabled = isDisabled(file.name);
+              const queueStatus = file.path ? queueMap.get(file.path) : undefined;
+              const busy = queueStatus === "queued" || queueStatus === "processing";
 
               return (
                 <div
                   key={index}
-                  className="windows95-border hover:bg-surface absolute top-0 left-0 flex h-5 w-full items-center gap-1 bg-white px-1 hover:cursor-pointer"
+                  className={cn(
+                    "windows95-border hover:bg-surface absolute top-0 left-0 flex h-5 w-full items-center gap-1 bg-white px-1 hover:cursor-pointer",
+                    busy && "opacity-50"
+                  )}
                   style={{
                     transform: `translateY(${vItem.start}px)`,
                     paddingLeft: `${item.depth * 12 + 2}px`,
@@ -290,29 +296,24 @@ function FolderView({
                       openPath(file.path.replace(file.name, ""));
                     }}
                     onClick={() => {
-                      if (!disabled && file.path) openFileInPlayer(file.path);
+                      if (!disabled && !busy && file.path) openFileInPlayer(file.path);
                     }}
                   >
                     {parseTitles ? formatParsedTitle(file.name, t) : file.name}
                   </span>
 
-                  <span className="windows95-text text-hint">{fmtSize(file.size)}</span>
+                  <span className="windows95-text text-hint">{formatBytes(file.size)}</span>
 
-                  {(() => {
-                    const status = file.path ? queueMap.get(file.path) : undefined;
-                    if (!status) return null;
-                    if (status === "queued")
-                      return <ListVideo className="text-hint size-3 shrink-0" />;
-                    if (status === "processing")
-                      return <SmallLoader size={3} className="text-highlight shrink-0" />;
-                    return null;
-                  })()}
+                  {queueStatus === "queued" && <ListVideo className="text-hint size-3 shrink-0" />}
+                  {queueStatus === "processing" && (
+                    <SmallLoader size={3} className="text-highlight shrink-0" />
+                  )}
 
                   {!disabled && file.path && <UpscalePlayer filePath={file.path} />}
                   <Button
                     size="icon"
                     className="h-4 w-4"
-                    disabled={disabled}
+                    disabled={disabled || busy}
                     onClick={(e) => {
                       e.stopPropagation();
                       if (file.path) openFileInPlayer(file.path);
@@ -328,6 +329,7 @@ function FolderView({
                   <Button
                     size="icon"
                     className="h-4 w-4"
+                    disabled={busy}
                     onClick={(e) => {
                       e.stopPropagation();
                       const parsed = parse(file.name);

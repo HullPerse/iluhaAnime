@@ -1,4 +1,4 @@
-import type { Locale } from "@/types";
+import type { Locale } from "@/types/i18n";
 
 export function detectSystemLocale(): Locale {
   if (typeof navigator === "undefined") return "en";

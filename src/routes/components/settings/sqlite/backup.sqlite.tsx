@@ -3,7 +3,8 @@ import { useCallback, useEffect, useState } from "react";
 import { ConfirmDialog } from "@/components/shared/confirm.component";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
-import { formatBackupDate, formatBackupSize } from "@/lib/settings/backup.utils";
+import { formatBackupDate } from "@/lib/settings/backup.utils";
+import { formatBytes } from "@/lib/utils/bytes.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import type { SqliteBackupInfo } from "@/types/sqlite";
 
@@ -172,7 +173,7 @@ export function BackupPanel({
                     {backup.name}
                   </span>
                   <span className="windows95-text text-hint text-right text-xs">
-                    {formatBackupSize(backup.sizeBytes)}
+                    {formatBytes(backup.sizeBytes)}
                   </span>
                 </label>
               </li>

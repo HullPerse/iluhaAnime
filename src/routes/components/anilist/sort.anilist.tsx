@@ -1,4 +1,4 @@
-import { Activity, Heart, Dices, SortAsc, SortDesc } from "lucide-react";
+import { Activity, Heart, Dices, Sparkles, SortAsc, SortDesc } from "lucide-react";
 
 import { Button } from "@/components/ui/button.component";
 import { getSortingLabel } from "@/lib/anilist/entries.utils";
@@ -12,6 +12,7 @@ export default function AniListSortBar({
   onActivityOpen,
   onFavouritesOpen,
   onRandom,
+  onSpotlight,
   hasFavourites,
 }: Props) {
   const { t } = useI18n();
@@ -25,7 +26,7 @@ export default function AniListSortBar({
   return (
     <section className="windows95-border flex flex-row items-center gap-2 bg-white px-1 py-0.5">
       <span className="windows95-text text-hint text-xs">{t("anilist.sort.sorting")}</span>
-      {(["title", "score", "progress"] as AniListSort["key"][]).map((s) => {
+      {(["title", "score", "myScore", "progress"] as AniListSort["key"][]).map((s) => {
         const isActive = sort.key === s;
         return (
           <Button
@@ -35,7 +36,7 @@ export default function AniListSortBar({
             className="px-2 py-0.5"
             onClick={() => toggleSort(s)}
           >
-            {t(getSortingLabel(s) as never)}
+            {t(getSortingLabel(s))}
             {isActive &&
               (sort.dir === "asc" ? (
                 <SortAsc className="size-3" />
@@ -74,6 +75,15 @@ export default function AniListSortBar({
           onClick={onRandom}
         >
           <Dices className="size-3.5" />
+        </Button>
+        <Button
+          size="icon"
+          className="h-6 w-6"
+          title={t("anilist.sort.spotlight")}
+          aria-label={t("anilist.sort.spotlight")}
+          onClick={onSpotlight}
+        >
+          <Sparkles className="size-3.5" />
         </Button>
       </div>
     </section>

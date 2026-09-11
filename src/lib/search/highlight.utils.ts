@@ -8,7 +8,7 @@ import type {
 
 import { normalizeSearchText } from "./normalize.utils";
 
-export function matchKey(value: string): string {
+function matchKey(value: string): string {
   return value
     .normalize("NFKD")
     .replace(/\p{Mark}/gu, "")

@@ -122,7 +122,9 @@ fn load_franchise_cache(app_handle: &AppHandle) {
         eprintln!("unable to iterate AniList franchise cache");
         return;
     };
-    let mut guard = FRANCHISE_CACHE.lock().unwrap();
+    let mut guard = FRANCHISE_CACHE
+        .lock()
+        .expect("franchise cache mutex poisoned");
     for row in rows.flatten() {
         let (
             id,

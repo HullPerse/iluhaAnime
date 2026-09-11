@@ -51,3 +51,19 @@ export function createLruCache<K, V>(capacity: number): LruCache<K, V> {
     },
   };
 }
+
+export function inflightFetch<V>(
+  inflight: Map<string, Promise<V>>,
+  key: string,
+  start: () => Promise<V>
+): Promise<V> {
+  const pending = inflight.get(key);
+  if (pending) return pending;
+  const request = start();
+  const cleanup = () => {
+    if (inflight.get(key) === request) inflight.delete(key);
+  };
+  request.then(cleanup).catch(cleanup);
+  inflight.set(key, request);
+  return request;
+}

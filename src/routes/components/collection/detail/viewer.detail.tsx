@@ -1,10 +1,10 @@
 import { SmallLoader } from "@/components/shared/loader.component";
-import { MediaLightboxContent } from "@/components/shared/mediaLightbox.component";
+import { MediaLightboxContent } from "@/components/shared/lightbox/lightbox.media";
 import type { FilmstripTab } from "@/components/shared/filmstrip.component";
 import Tabs from "@/components/shared/tabs.component";
 import { useCollectionMedia } from "@/hooks/collection/media.hook";
-import type { StoredMedia } from "@/lib/collection/media.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
+import type { StoredMedia } from "@/types/collection";
 
 interface MediaViewerParts {
   tmdbId: number | null;

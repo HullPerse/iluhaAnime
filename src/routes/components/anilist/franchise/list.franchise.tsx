@@ -53,7 +53,7 @@ function FranchiseList({
       {groups.map(({ group, items }) => (
         <div key={group}>
           <div className="windows95-text bg-secondary/10 flex items-center gap-1 px-2 py-0.5 text-xs tracking-wide uppercase">
-            {t(FILTER_LABELS[group] as never)}
+            {t(FILTER_LABELS[group])}
             <span className="text-hint">({items.length})</span>
           </div>
           {items.map((node) => {

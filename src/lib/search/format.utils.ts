@@ -1,6 +1,6 @@
 import { LANG_CODE_MAP } from "@/config/search/languages.config";
 import { SIZE_MULTIPLIERS } from "@/config/search/sizes.config";
-import type { LanguageTag } from "@/types";
+import type { LanguageTag } from "@/types/search";
 
 export function detectLanguages(title: string): LanguageTag[] {
   const tags: LanguageTag[] = [];

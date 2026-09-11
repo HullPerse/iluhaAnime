@@ -10,45 +10,11 @@ import { resetRemoteImageCache } from "@/hooks/remoteImage.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { formatBackupDate } from "@/lib/settings/backup.utils";
 import { withFallback } from "@/lib/utils/attempt.utils";
+import { formatBytes } from "@/lib/utils/bytes.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSearchStore } from "@/store/search.store";
 import type { SettingsTab } from "@/types/settings";
 import type { SqliteBackupInfo, SqliteDatabaseInfo } from "@/types/sqlite";
-
-function SummaryRow({
-  label,
-  value,
-  actionLabel,
-  onAction,
-}: {
-  label: string;
-  value: ReactNode;
-  actionLabel?: string;
-  onAction?: () => void;
-}) {
-  const handleAction = () => onAction?.();
-  return (
-    <div className="flex flex-row items-center gap-1 px-1">
-      <span className="windows95-text text-hint w-24 shrink-0 text-xs">{label}</span>
-      <span
-        className="windows95-text min-w-0 flex-1 truncate text-xs"
-        title={typeof value === "string" ? value : undefined}
-      >
-        {value}
-      </span>
-      {actionLabel && onAction ? (
-        <Button className="h-5 shrink-0 px-1 text-xs" onClick={handleAction}>
-          {actionLabel}
-        </Button>
-      ) : null}
-    </div>
-  );
-}
-export function formatCacheBytes(bytes: number): string {
-  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  if (bytes >= 1024) return `${Math.round(bytes / 1024)} KB`;
-  return `${bytes} B`;
-}
 
 export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void }) {
   const { t } = useI18n();
@@ -130,7 +96,7 @@ export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void
         value={
           images.data === undefined
             ? "..."
-            : `${images.data?.count ?? 0} · ${formatCacheBytes(images.data?.bytes ?? 0)}`
+            : `${images.data?.count ?? 0} · ${formatBytes(images.data?.bytes ?? 0)}`
         }
         actionLabel={t("settings.summary.images.clear")}
         onAction={async () => {
@@ -147,6 +113,36 @@ export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void
           await queryClient.invalidateQueries({ queryKey: ["summary_remote_images"] });
         }}
       />
+    </div>
+  );
+}
+
+function SummaryRow({
+  label,
+  value,
+  actionLabel,
+  onAction,
+}: {
+  label: string;
+  value: ReactNode;
+  actionLabel?: string;
+  onAction?: () => void;
+}) {
+  const handleAction = () => onAction?.();
+  return (
+    <div className="flex flex-row items-center gap-1 px-1">
+      <span className="windows95-text text-hint w-24 shrink-0 text-xs">{label}</span>
+      <span
+        className="windows95-text min-w-0 flex-1 truncate text-xs"
+        title={typeof value === "string" ? value : undefined}
+      >
+        {value}
+      </span>
+      {actionLabel && onAction ? (
+        <Button className="h-5 shrink-0 px-1 text-xs" onClick={handleAction}>
+          {actionLabel}
+        </Button>
+      ) : null}
     </div>
   );
 }

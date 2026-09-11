@@ -6,7 +6,7 @@ import { assetUrl } from "@/lib/utils/image.utils";
 import SearchModern from "@/routes/components/search/modern/index.search";
 import { useNotificationStore } from "@/store/notification.store";
 import { useSettingsStore } from "@/store/settings.store";
-import type { UserImageFile } from "@/types";
+import type { UserImageFile } from "@/types/image.userimage";
 
 const mockInvoke = vi.fn();
 vi.mock("@tauri-apps/api/core", () => ({
@@ -28,6 +28,7 @@ const FIRST: UserImageFile = {
   mimeType: "image/png",
   path: "C:/images/aaa.png",
   originalPath: "C:/images/aaa.original.png",
+  ditherOptions: null,
   createdAt: 10,
 };
 const SECOND: UserImageFile = {
@@ -51,6 +52,8 @@ beforeEach(() => {
       sides: { top: false, right: false, bottom: false, left: false },
       intensity: 50,
       color: "#000000",
+      length: 8,
+      softness: 40,
     },
   });
   useNotificationStore.setState({ items: [], unreadCount: 0, dismissed: [] });
@@ -144,19 +147,21 @@ describe("SearchModern wallpaper", () => {
         sides: { top: true, right: false, bottom: false, left: false },
         intensity: 50,
         color: "#000000",
+        length: 8,
+        softness: 40,
       },
     });
     mockInvoke.mockResolvedValue(FIRST);
     renderModern();
     await waitFor(() => expect(wallpaperSrc()).toBe(assetUrl(FIRST.path)));
-    const overlay = document.querySelector('div[style*="box-shadow"]');
-    expect(overlay?.getAttribute("style")).toContain("inset");
+    const overlay = document.querySelector('div[style*="linear-gradient"]');
+    expect(overlay?.getAttribute("style")).toContain("linear-gradient");
   });
 
   it("renders no shadow overlay by default", async () => {
     mockInvoke.mockResolvedValue([]);
     renderModern();
     await waitFor(() => expect(wallpaperSrc()).toBe("/wallpaper_placeholder.jpg"));
-    expect(document.querySelector('div[style*="box-shadow"]')).toBeNull();
+    expect(document.querySelector('div[style*="linear-gradient"]')).toBeNull();
   });
 });

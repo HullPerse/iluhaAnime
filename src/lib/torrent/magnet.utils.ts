@@ -7,7 +7,7 @@ import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useTorrentStore } from "@/store/download.store";
 import { useNotificationStore } from "@/store/notification.store";
 import { useSettingsStore } from "@/store/settings.store";
-import type { Anime } from "@/types";
+import type { Anime } from "@/types/torrent";
 
 async function ensureMagnet(
   item: Anime,

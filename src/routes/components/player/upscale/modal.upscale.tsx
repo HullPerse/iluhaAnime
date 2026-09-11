@@ -12,7 +12,7 @@ import { fileNameFromPath } from "@/lib/player/title.utils";
 import { withFallback } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useUpscaleQueueStore } from "@/store/upscale.store";
-import type { UpscaleConfig, ConvertConfig } from "@/types";
+import type { UpscaleConfig, ConvertConfig } from "@/types/upscale";
 
 import { UpscaleConfigPanel } from "./config.upscale";
 import { UpscaleProgressPanel } from "./progress.upscale";
@@ -170,6 +170,8 @@ export default function UpscalePlayer({
       .getState()
       .addUpscaleItem(filePath, fileNameFromPath(filePath), config);
     setActiveItemId(id);
+    setOpen(false);
+    resetState();
   }, [
     filePath,
     resolution,
@@ -181,6 +183,7 @@ export default function UpscalePlayer({
     selectedShaders,
     temporalDenoise,
     t,
+    resetState,
   ]);
 
   const startConvert = useCallback(() => {
@@ -194,7 +197,9 @@ export default function UpscalePlayer({
       .getState()
       .addConvertItem(filePath, fileNameFromPath(filePath), config);
     setActiveItemId(id);
-  }, [filePath, targetFormat, copyStreams]);
+    setOpen(false);
+    resetState();
+  }, [filePath, targetFormat, copyStreams, resetState]);
 
   const handleCancel = useCallback(async () => {
     await invokeTyped("cancel_upscale");
@@ -285,7 +290,7 @@ export default function UpscalePlayer({
                 ariaLabel={t(activeTab === "upscale" ? "player.tab.upscale" : "player.tab.convert")}
                 tabs={TABS.map((tab) => ({
                   ...tab,
-                  label: t(tab.label as never),
+                  label: t(tab.label),
                 }))}
                 activeTab={activeTab}
                 onChange={setActiveTab}

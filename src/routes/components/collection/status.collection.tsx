@@ -2,10 +2,21 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
-import { SCROLL_STEP } from "@/config/collection/statuses.config";
 import { statusLabel } from "@/lib/collection/status.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import type { CollectionStatus, CollectionStatusDef } from "@/types/collection";
+
+const TAB_W = 132;
+const SHRINK_AT = 16;
+const SHRINK_MIN_AT = 24;
+
+export function shrinkLevelFor(text: string): 0 | 1 | 2 {
+  if (text.length > SHRINK_MIN_AT) return 2;
+  if (text.length > SHRINK_AT) return 1;
+  return 0;
+}
+
+const SHRINK_CLASS = ["text-xs", "text-[10px]", "text-[9px]"] as const;
 
 export function StatusCollection({
   statuses,
@@ -19,106 +30,99 @@ export function StatusCollection({
   counts?: Record<string, number>;
 }) {
   const { t, locale } = useI18n();
-  const scrollRef = useRef<HTMLDivElement | null>(null);
-  const contentRef = useRef<HTMLDivElement | null>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
+  const rowRef = useRef<HTMLDivElement | null>(null);
+  const [perPage, setPerPage] = useState(4);
+  const [page, setPage] = useState(0);
 
   const tabs = [
     { id: "all" as CollectionStatus | "all", label: t("collection.library.all"), color: null },
-    ...statuses.map((s) => ({
-      id: s.id,
-      label: statusLabel(statuses, s.id, t, locale),
-      color: s.color,
-    })),
+    ...statuses
+      .map((s) => ({
+        id: s.id,
+        label: statusLabel(statuses, s.id, t, locale),
+        color: s.color,
+        isCore: s.isCore,
+        rank: Number.isFinite(s.order) ? s.order : Number.MAX_SAFE_INTEGER,
+      }))
+      .sort((a, b) => Number(b.isCore) - Number(a.isCore) || a.rank - b.rank)
+      .map(({ id, label, color }) => ({ id, label, color })),
   ];
+  const selectedIndex = Math.max(
+    0,
+    tabs.findIndex((tab) => tab.id === selectedStatus)
+  );
+  const pageCount = Math.max(1, Math.ceil(tabs.length / perPage));
+  const safePage = Math.min(page, pageCount - 1);
+  const visible = tabs.slice(safePage * perPage, safePage * perPage + perPage);
 
   useEffect(() => {
-    const scroller = scrollRef.current;
-    const content = contentRef.current;
-    if (!scroller || !content) return;
-    const update = () => {
-      setCanScrollLeft(scroller.scrollLeft > 1);
-      setCanScrollRight(scroller.scrollLeft + scroller.clientWidth < scroller.scrollWidth - 1);
-    };
+    const el = rowRef.current;
+    if (!el) return;
+    const update = () => setPerPage(Math.max(1, Math.floor((el.clientWidth + 4) / (TAB_W + 4))));
     update();
-    scroller.addEventListener("scroll", update, { passive: true });
-    if (typeof ResizeObserver === "undefined")
-      return () => scroller.removeEventListener("scroll", update);
+    if (typeof ResizeObserver === "undefined") return;
     const observer = new ResizeObserver(update);
-    observer.observe(scroller);
-    observer.observe(content);
-    return () => {
-      scroller.removeEventListener("scroll", update);
-      observer.disconnect();
-    };
+    observer.observe(el);
+    return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
-    const selected = scrollRef.current?.querySelector(`[data-status-tab="${selectedStatus}"]`);
-    if (selected && typeof selected.scrollIntoView === "function") {
-      selected.scrollIntoView({ block: "nearest", inline: "nearest" });
-    }
-  }, [selectedStatus]);
+    setPage(Math.floor(selectedIndex / perPage));
+  }, [selectedIndex, perPage]);
 
-  const scrollByStep = (direction: 1 | -1) => {
-    if (typeof scrollRef.current?.scrollBy === "function") {
-      scrollRef.current.scrollBy({ left: direction * SCROLL_STEP, behavior: "smooth" });
-    }
+  const stepPage = (direction: 1 | -1) => {
+    setPage((safePage + direction + pageCount) % pageCount);
   };
 
   return (
-    <div className="relative">
-      <div
-        ref={scrollRef}
-        className="windows95-active-border bg-primary scroll-px-8 overflow-x-auto p-1"
-        aria-label={t("collection.section.library")}
+    <div
+      className="windows95-active-border bg-primary flex items-center gap-1 p-1"
+      aria-label={t("collection.section.library")}
+    >
+      <Button
+        size="icon"
+        className="size-6 shrink-0"
+        title={t("common.previous")}
+        aria-label={t("common.previous")}
+        onClick={() => stepPage(-1)}
       >
-        <div ref={contentRef} className="flex w-max gap-1">
-          {tabs.map((tab) => (
+        <ChevronLeft className="size-4" />
+      </Button>
+      <div ref={rowRef} className="flex min-w-0 flex-1 gap-1 overflow-hidden">
+        {visible.map((tab) => {
+          const text =
+            counts && counts[tab.id] != null ? `${tab.label} (${counts[tab.id]})` : tab.label;
+          return (
             <Button
               key={tab.id}
-              data-status-tab={tab.id}
               variant={selectedStatus === tab.id ? "outline" : "default"}
-              className="h-6 px-2 text-xs"
+              className="h-6 w-33 shrink-0 px-1"
               aria-current={selectedStatus === tab.id ? true : undefined}
               onClick={() => onSelect(tab.id)}
             >
               {tab.color && (
                 <span
-                  className="windows95-border inline-block size-2.5"
+                  className="windows95-border inline-block size-2.5 shrink-0"
                   style={{ backgroundColor: tab.color }}
                   aria-hidden
                 />
               )}
-              {tab.label}
-              {counts && counts[tab.id] != null && ` (${counts[tab.id]})`}
+              <span className={`min-w-0 flex-1 truncate ${SHRINK_CLASS[shrinkLevelFor(text)]}`}>
+                {text}
+              </span>
             </Button>
-          ))}
-        </div>
+          );
+        })}
       </div>
-      {canScrollLeft && (
-        <Button
-          size="icon"
-          className="absolute top-1/2 left-1 z-10 -translate-y-1/2"
-          title={t("common.previous")}
-          aria-label={t("common.previous")}
-          onClick={() => scrollByStep(-1)}
-        >
-          <ChevronLeft className="size-4" />
-        </Button>
-      )}
-      {canScrollRight && (
-        <Button
-          size="icon"
-          className="absolute top-1/2 right-1 z-10 -translate-y-1/2"
-          title={t("common.next")}
-          aria-label={t("common.next")}
-          onClick={() => scrollByStep(1)}
-        >
-          <ChevronRight className="size-4" />
-        </Button>
-      )}
+      <Button
+        size="icon"
+        className="size-6 shrink-0"
+        title={t("common.next")}
+        aria-label={t("common.next")}
+        onClick={() => stepPage(1)}
+      >
+        <ChevronRight className="size-4" />
+      </Button>
     </div>
   );
 }

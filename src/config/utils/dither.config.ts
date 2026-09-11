@@ -1,4 +1,11 @@
-import type { DitherEffectOptions, DitherRGB } from "@/types/dither";
+import type {
+  DitherEffectOptions,
+  DitherPalettePreset,
+  DitherPreset,
+  DitherPresetId,
+  DitherRGB,
+  DitherSliderField,
+} from "@/types/dither";
 
 export const DITHER_BAYER_4: readonly number[] = [
   0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5,
@@ -36,6 +43,51 @@ export const DITHER_RED_RAMP_PALETTE: DitherRGB[] = [
   [153, 17, 17],
   [187, 102, 102],
   [238, 221, 221],
+];
+
+const DITHER_GAMEBOY_PALETTE: DitherRGB[] = [
+  [15, 56, 15],
+  [48, 98, 48],
+  [139, 172, 15],
+  [155, 188, 15],
+];
+
+const DITHER_GRAY_RAMP_PALETTE: DitherRGB[] = [
+  [0, 0, 0],
+  [36, 36, 36],
+  [73, 73, 73],
+  [109, 109, 109],
+  [146, 146, 146],
+  [182, 182, 182],
+  [219, 219, 219],
+  [255, 255, 255],
+];
+
+const DITHER_PICO8_PALETTE: DitherRGB[] = [
+  [0, 0, 0],
+  [29, 43, 83],
+  [126, 37, 83],
+  [0, 135, 81],
+  [171, 82, 54],
+  [95, 87, 79],
+  [194, 195, 199],
+  [255, 241, 232],
+  [255, 0, 77],
+  [255, 163, 0],
+  [255, 236, 39],
+  [0, 228, 54],
+  [41, 173, 255],
+  [131, 118, 156],
+  [255, 119, 168],
+  [255, 204, 170],
+];
+
+export const DITHER_PALETTE_PRESETS: DitherPalettePreset[] = [
+  { id: "default", colors: DITHER_DEFAULT_PALETTE },
+  { id: "red", colors: DITHER_RED_RAMP_PALETTE },
+  { id: "gameboy", colors: DITHER_GAMEBOY_PALETTE },
+  { id: "pico8", colors: DITHER_PICO8_PALETTE },
+  { id: "gray", colors: DITHER_GRAY_RAMP_PALETTE },
 ];
 
 export const DITHER_DEFAULTS: {
@@ -147,13 +199,6 @@ export const DITHER_PLACEHOLDER_ID = "placeholder";
 
 export const DITHER_PLACEHOLDER_SRC = "/wallpaper_placeholder.jpg";
 
-export type DitherPresetId = "empty" | "default" | "deep" | "soft" | "natural" | "capy";
-
-export interface DitherPreset {
-  id: DitherPresetId;
-  options: DitherEffectOptions;
-}
-
 const DITHER_NEUTRAL_OPTIONS: DitherEffectOptions = {
   levels: 256,
   ditherStrength: 0,
@@ -242,33 +287,33 @@ export const DITHER_PRESETS: readonly DitherPreset[] = [
     id: "capy",
     options: {
       ...DEFAULT_EFFECT_OPTIONS,
-      levels: 4,
+      levels: 24,
 
-      ditherMatrix: "blue64",
-      ditherStrength: 0.85,
+      ditherMatrix: "bayer4",
+      ditherStrength: 0.7,
       ditherAmount: 1,
 
       grain: 0,
-      texture: 0.03,
-      halftone: 0.05,
-      halftoneSize: 2,
-      halftoneSoftness: 0.3,
-      monochromeNoise: 0.015,
+      texture: 0,
+      halftone: 0,
+      halftoneSize: 0,
+      halftoneSoftness: 0,
+      monochromeNoise: 0,
 
-      ink: 0.02,
+      ink: 0,
       edgeDistortion: 0,
       misregistration: 0,
 
       paper: 0,
-      vignette: 0,
+      vignette: 0.35,
 
       paletteBias: 0,
-      shadowCrush: 0.05,
-      highlightCompression: 0.1,
+      shadowCrush: 0.35,
+      highlightCompression: 0,
 
-      contrastCurve: 0.15,
-      blackPoint: 0.05,
-      localContrast: 0.15,
+      contrastCurve: 0.2,
+      blackPoint: 0.25,
+      localContrast: 0,
       inkDensity: 0,
     },
   },
@@ -278,11 +323,6 @@ export function resolveDitherPreset(id: DitherPresetId): DitherEffectOptions {
   const found = DITHER_PRESETS.find((preset) => preset.id === id);
   return found ? { ...found.options } : { ...DITHER_NEUTRAL_OPTIONS };
 }
-
-export type DitherSliderField = Exclude<
-  keyof DitherEffectOptions,
-  "palette" | "ditherMatrix" | "grayGrain"
->;
 
 export interface DitherSliderDef {
   field: DitherSliderField;

@@ -31,6 +31,7 @@ function makeItem(): CollectionItem {
     priority: "normal",
     isFavorite: false,
     year: 2002,
+    releaseDate: null,
     genres: [],
     studio: null,
     description: null,

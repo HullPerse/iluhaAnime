@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { groupItemsByStatus } from "@/lib/collection/group.utils";
@@ -26,6 +27,7 @@ function makeItem(overrides: Partial<CollectionItem> = {}): CollectionItem {
     priority: "normal",
     isFavorite: false,
     year: 2023,
+    releaseDate: null,
     genres: ["Adventure", "Fantasy"],
     studio: "Madhouse",
     description: null,
@@ -60,6 +62,10 @@ const ITEMS = [
     rating: null,
     progressValue: 0,
     progressTotal: null,
+    year: 2024,
+    releaseDate: null,
+    studio: "Bones",
+    genres: ["Drama"],
   }),
 ];
 
@@ -118,6 +124,20 @@ describe("ListCollection", () => {
     render(<ListCollection items={[]} statuses={STATUSES} />);
     expect(document.querySelector("section")).not.toBeNull();
     expect(screen.queryByTitle("Frieren")).toBeNull();
+  });
+
+  it("opens the detail when the row body is clicked", async () => {
+    const user = userEvent.setup();
+    const onOpen = vi.fn();
+    render(<ListCollection items={ITEMS} statuses={STATUSES} onOpen={onOpen} />);
+    await user.click(screen.getByText("2023 • Madhouse • Adventure, Fantasy"));
+    expect(onOpen).toHaveBeenCalledTimes(1);
+    expect(onOpen.mock.calls[0]?.[0]).toMatchObject({ id: "1" });
+  });
+
+  it("shows the year, studio, and genres meta line", () => {
+    render(<ListCollection items={ITEMS} statuses={STATUSES} />);
+    expect(screen.getByText("2023 • Madhouse • Adventure, Fantasy")).toBeTruthy();
   });
 });
 

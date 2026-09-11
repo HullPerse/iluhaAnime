@@ -4,10 +4,10 @@ import { create } from "zustand";
 
 import { translate } from "@/lib/locale/i18n.utils";
 import { buildOutputPath } from "@/lib/player/tree.utils";
+import { reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSettingsStore } from "@/store/settings.store";
-import type { ConvertConfig, UpscaleConfig } from "@/types";
-import type { UpscaleQueueItem, UpscaleProgressPayload, UpscaleQueueStore } from "@/types/upscale";
+import type { ConvertConfig, UpscaleConfig, UpscaleQueueItem, UpscaleProgressPayload, UpscaleQueueStore } from "@/types/upscale";
 
 let processingLock = false;
 
@@ -162,7 +162,9 @@ export const useUpscaleQueueStore = create<UpscaleQueueStore>()((set, get) => ({
     const item = get().items.find((i) => i.id === id);
     set((s) => ({ items: s.items.filter((i) => i.id !== id) }));
     if (item?.status === "processing") {
-      invokeTyped("cancel_upscale").catch(() => {});
+      invokeTyped("cancel_upscale").catch((error) =>
+        reportBackgroundError("upscale.cancel", error)
+      );
       set({ processing: false });
     }
   },

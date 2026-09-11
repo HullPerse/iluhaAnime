@@ -8,6 +8,7 @@ import Select from "@/components/ui/select.component";
 import { SOURCE_INFOS } from "@/config/search/sources.config";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { deleteAppCache } from "@/lib/store/cache.utils";
+import { reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSearchStore } from "@/store/search.store";
 import { useSettingsStore } from "@/store/settings.store";
@@ -313,7 +314,7 @@ export default function SettingsSearch() {
                 <div className="flex flex-col gap-0.5">
                   <span className="text-hint text-[12px]">{t("settings.search.preview")}</span>
                   <div className="windows95-border windows95-text flex min-h-7 items-center overflow-hidden bg-white px-1.5 whitespace-pre">
-                    <span className="relative z-10">fri</span>
+                    <span className="relative z-10">{t("settings.search.preview.typed")}</span>
                     <span
                       className="ml-0.5"
                       style={{
@@ -321,7 +322,7 @@ export default function SettingsSearch() {
                         opacity: "var(--autocomplete-opacity, 0.6)",
                       }}
                     >
-                      eren: Beyond Journey&apos;s End
+                      {t("settings.search.preview.ghost")}
                     </span>
                   </div>
                 </div>
@@ -474,7 +475,7 @@ export default function SettingsSearch() {
               useSearchStore
                 .getState()
                 .clearAllLearning()
-                .catch(() => {});
+                .catch((error) => reportBackgroundError("learning.clear", error));
               deleteAppCache("search", "learning");
             }}
           >

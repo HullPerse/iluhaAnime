@@ -9,7 +9,7 @@ import ImageComponent from "@/components/ui/image.component";
 import Select from "@/components/ui/select.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { formatParsedTitle } from "@/lib/player/title.utils";
-import { fmtSize } from "@/lib/torrent/common.utils";
+import { formatBytes } from "@/lib/utils/bytes.utils";
 import { useSearchStore } from "@/store/search.store";
 import { useSettingsStore } from "@/store/settings.store";
 import type { FilePriority, TorrentTreeFile, TorrentTreeFileWithPath } from "@/types/torrent";
@@ -105,7 +105,7 @@ export function TorrentFileRow({
         </div>
       )}
 
-      <span className="text-hint shrink-0">{fmtSize(file.size)}</span>
+          <span className="text-hint shrink-0">{formatBytes(file.size)}</span>
 
       {onPriorityChange && type === "torrent" && !file.completed && (
         <Select

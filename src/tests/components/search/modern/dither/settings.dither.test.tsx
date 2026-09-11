@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import DitherSettings from "@/routes/components/search/modern/dither/settings.dither";
 import { useNotificationStore } from "@/store/notification.store";
 import { useSettingsStore } from "@/store/settings.store";
-import type { UserImageFile } from "@/types";
+import type { UserImageFile } from "@/types/image.userimage";
 
 const mockInvoke = vi.fn();
 vi.mock("@tauri-apps/api/core", () => ({
@@ -42,6 +42,7 @@ const FIRST: UserImageFile = {
   mimeType: "image/png",
   path: "C:/images/aaa.png",
   originalPath: "C:/images/aaa.original.png",
+  ditherOptions: null,
   createdAt: 10,
 };
 
@@ -51,6 +52,7 @@ const SECOND: UserImageFile = {
   mimeType: "image/jpeg",
   path: "C:/images/bbb.jpg",
   originalPath: null,
+  ditherOptions: null,
   createdAt: 5,
 };
 
@@ -60,6 +62,7 @@ const THIRD: UserImageFile = {
   mimeType: "image/gif",
   path: "C:/images/ccc.gif",
   originalPath: null,
+  ditherOptions: null,
   createdAt: 3,
 };
 
@@ -69,6 +72,7 @@ const FOURTH: UserImageFile = {
   mimeType: "image/webp",
   path: "C:/images/ddd.webp",
   originalPath: null,
+  ditherOptions: null,
   createdAt: 1,
 };
 

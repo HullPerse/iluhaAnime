@@ -8,9 +8,6 @@ import {
   displayStateLabel,
   findJustFinished,
   findNewErrors,
-  fmtElapsed,
-  fmtETA,
-  fmtSize,
   fmtSpeed,
   getDisplayState,
   getLifecycleLabel,
@@ -18,8 +15,9 @@ import {
   stateLabel,
   TorrentListen,
   torrentErrorText,
+  type TorrentListState,
 } from "@/lib/torrent/common.utils";
-import type { TorrentInfo, TorrentStore } from "@/types/torrent";
+import type { TorrentInfo } from "@/types/torrent";
 
 const ru = (key: Parameters<typeof translate>[1], vars?: Parameters<typeof translate>[2]) =>
   translate("ru", key, vars);
@@ -51,31 +49,9 @@ function makeEvent(payload: TorrentInfo[]): Event<TorrentInfo[]> {
   return { event: "torrents", id: 1, payload };
 }
 
-function makeState(torrents: TorrentInfo[]): TorrentStore {
-  return { torrents } as unknown as TorrentStore;
+function makeState(torrents: TorrentInfo[]): TorrentListState {
+  return { torrents, lastActiveAt: {} };
 }
-
-describe("fmtSize", () => {
-  it("formats bytes", () => {
-    expect(fmtSize(0)).toBe("0 B");
-    expect(fmtSize(512)).toBe("512 B");
-  });
-
-  it("formats KB", () => {
-    expect(fmtSize(1024)).toBe("1.0 KB");
-    expect(fmtSize(1536)).toBe("1.5 KB");
-  });
-
-  it("formats MB", () => {
-    expect(fmtSize(1_048_576)).toBe("1.0 MB");
-    expect(fmtSize(1_572_864)).toBe("1.5 MB");
-  });
-
-  it("formats GB", () => {
-    expect(fmtSize(1_073_741_824)).toBe("1.00 GB");
-    expect(fmtSize(1_610_612_736)).toBe("1.50 GB");
-  });
-});
 
 describe("fmtSpeed", () => {
   it("returns empty for zero or negative", () => {
@@ -96,26 +72,6 @@ describe("fmtSpeed", () => {
   });
 });
 
-describe("fmtETA", () => {
-  it("returns empty for null or invalid", () => {
-    expect(fmtETA(null, ru)).toBe("");
-    expect(fmtETA(0, ru)).toBe("");
-    expect(fmtETA(Infinity, ru)).toBe("");
-  });
-
-  it("formats seconds", () => {
-    expect(fmtETA(45, ru)).toBe("45 сек");
-  });
-
-  it("formats minutes and seconds", () => {
-    expect(fmtETA(125, ru)).toBe("2 мин 5 сек");
-  });
-
-  it("formats hours and minutes", () => {
-    expect(fmtETA(3661, ru)).toBe("1 ч 1 мин");
-  });
-});
-
 describe("stateLabel", () => {
   it("returns Russian labels for known states", () => {
     expect(stateLabel("live", ru)).toBe("Загружается");
@@ -127,20 +83,6 @@ describe("stateLabel", () => {
   it("returns raw state for unknown states", () => {
     expect(stateLabel("checking", ru)).toBe("checking");
     expect(stateLabel("", ru)).toBe("");
-  });
-});
-
-describe("fmtElapsed", () => {
-  it("formats seconds only", () => {
-    expect(fmtElapsed(45, ru)).toBe("45 сек");
-  });
-
-  it("formats whole minutes", () => {
-    expect(fmtElapsed(120, ru)).toBe("2 мин");
-  });
-
-  it("formats minutes and seconds", () => {
-    expect(fmtElapsed(125, ru)).toBe("2 мин 5 сек");
   });
 });
 
@@ -220,7 +162,7 @@ describe("TorrentListen", () => {
 
   it("drops stamps of removed torrents", () => {
     const state = { torrents: [makeInfo(1)], lastActiveAt: { 1: TICK, 9: TICK } };
-    const result = TorrentListen(state as unknown as TorrentStore, makeEvent([makeInfo(1)]), NOW);
+    const result = TorrentListen(state as TorrentListState, makeEvent([makeInfo(1)]), NOW);
     expect(result).toEqual({ lastActiveAt: { 1: TICK } });
   });
 
@@ -234,18 +176,14 @@ describe("TorrentListen", () => {
 
 describe("torrentErrorText", () => {
   it("maps engine strings to localized keys", () => {
-    expect(torrentErrorText("torrent with id 0 did not exist", ru)).toBe(
-      ru("download.error.gone")
-    );
+    expect(torrentErrorText("torrent with id 0 did not exist", ru)).toBe(ru("download.error.gone"));
     expect(torrentErrorText("torrent not found or no metadata", ru)).toBe(
       ru("download.error.gone")
     );
     expect(torrentErrorText("torrent is already paused", ru)).toBe(
       ru("download.error.already.paused")
     );
-    expect(torrentErrorText("torrent is already live", ru)).toBe(
-      ru("download.error.already.live")
-    );
+    expect(torrentErrorText("torrent is already live", ru)).toBe(ru("download.error.already.live"));
     expect(torrentErrorText("torrent list is stale, refresh and retry", ru)).toBe(
       ru("download.error.stale")
     );
@@ -326,7 +264,15 @@ describe("getDisplayState", () => {
     expect(Object.keys(DISPLAY_BAR_CLASS).sort()).toEqual(
       ["done", "downloading", "error", "paused", "seeding", "stalled"].sort()
     );
-  });
+    expect(DISPLAY_BAR_CLASS).toEqual({
+      downloading: "bg-torrent-downloading",
+      seeding: "bg-torrent-seeding",
+      done: "bg-torrent-done",
+      error: "bg-torrent-error",
+      stalled: "bg-torrent-idle",
+      paused: "bg-torrent-idle",
+    });
+});
 });
 
 describe("findNewErrors", () => {

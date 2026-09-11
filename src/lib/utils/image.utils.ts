@@ -1,6 +1,6 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
 
-import type { UserImage, UserImageFile } from "@/types";
+import type { UserImage, UserImageFile } from "@/types/image.userimage";
 
 export const USER_IMAGE_PREFIX = "user-image:";
 
@@ -18,7 +18,6 @@ export function userImageId(value: string): string | null {
   return id || null;
 }
 
-/** Asset-protocol URL for a stored user image file (streamed from disk, no IPC bytes). */
 export function assetUrl(path: string): string {
   return convertFileSrc(path);
 }
@@ -30,11 +29,11 @@ export function toUserImage(raw: UserImageFile): UserImage {
     mimeType: raw.mimeType,
     url: assetUrl(raw.path),
     originalUrl: raw.originalPath === null ? null : assetUrl(raw.originalPath),
+    ditherOptions: raw.ditherOptions ?? null,
     createdAt: raw.createdAt,
   };
 }
 
-/** Covers that are usable as an <img> src without the download path. */
 export function isDirectImageSrc(value: string): boolean {
   return (
     value.startsWith("data:") ||

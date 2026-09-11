@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach } from "vitest";
 
-import { useSearchStore } from "@/store/search.store";
+import { migrateSearchState, useSearchStore } from "@/store/search.store";
 import { useSettingsStore } from "@/store/settings.store";
 
 const defaultFilters = {
@@ -128,5 +128,22 @@ describe("useSearchStore filters", () => {
     useSearchStore.getState().setFilters({ hasMagnet: true, minSeeders: 9 });
     useSearchStore.getState().resetFilters();
     expect(useSearchStore.getState().filters).toEqual(defaultFilters);
+  });
+});
+
+describe("migrateSearchState", () => {
+  it("strips the legacy backend-owned index keys", () => {
+    expect(
+      migrateSearchState(
+        { history: ["a"], animeIndex: [{ id: 1 }], animeProfileId: 7 },
+        0
+      )
+    ).toEqual({ history: ["a"] });
+  });
+
+  it("passes through current versions untouched", () => {
+    const state = { history: ["a"] };
+    expect(migrateSearchState(state, 1)).toBe(state);
+    expect(migrateSearchState(null, 0)).toBeNull();
   });
 });

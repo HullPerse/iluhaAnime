@@ -11,12 +11,6 @@ import { showError } from "@/lib/utils/notification.utils";
 import UpscalePlayer from "@/routes/components/player/upscale/modal.upscale";
 import type { TorrentTreeFile } from "@/types/torrent";
 
-function QueueStatusIcon({ status }: { status: string | undefined }) {
-  if (status === "queued") return <ListVideo className="text-hint size-3" />;
-  if (status === "processing") return <SmallLoader size={3} className="text-highlight" />;
-  return null;
-}
-
 export function PlayerFileActions({
   file,
   fullPath,
@@ -136,4 +130,10 @@ export function PlayerFileActions({
       )}
     </div>
   );
+}
+
+function QueueStatusIcon({ status }: { status: string | undefined }) {
+  if (status === "queued") return <ListVideo className="text-hint size-3" />;
+  if (status === "processing") return <SmallLoader size={3} className="text-highlight" />;
+  return null;
 }

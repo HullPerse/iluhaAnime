@@ -25,6 +25,7 @@ import { tabForAltDigit } from "@/config/settings/tabs.config";
 import {
   DITHER_DEFAULT_PALETTE,
   DITHER_DEFAULTS,
+  DITHER_PALETTE_PRESETS,
   DITHER_PRESETS,
   resolveDitherPreset,
 } from "@/config/utils/dither.config";
@@ -174,12 +175,48 @@ describe("dither presets", () => {
     expect(natural.paletteBias).toBeLessThanOrEqual(0.2);
     expect(natural.palette).toEqual(DITHER_DEFAULT_PALETTE);
   });
-  it("wires the capy preset to the halftone dot pass", () => {
+  it("gives the capy preset the fine bayer look with a dark falloff", () => {
     const capy = resolveDitherPreset("capy");
-    expect(capy.halftoneSize).toBe(2);
-    expect(capy.halftoneSoftness).toBeGreaterThan(0);
+    expect(capy.ditherMatrix).toBe("bayer4");
+    expect(capy.levels).toBe(24);
+    expect(capy.halftone).toBe(0);
+    expect(capy.vignette).toBeGreaterThan(0);
+    expect(capy.shadowCrush).toBeGreaterThan(0);
   });
   it("defaults the grain to gray", () => {
     expect(resolveDitherPreset("default").grayGrain).toBe(true);
+  });
+});
+
+describe("dither palette presets", () => {
+  it("exposes the five documented presets", () => {
+    expect(DITHER_PALETTE_PRESETS.map((preset) => preset.id)).toEqual([
+      "default",
+      "red",
+      "gameboy",
+      "pico8",
+      "gray",
+    ]);
+  });
+
+  it("keeps every preset at two or more valid colors", () => {
+    for (const preset of DITHER_PALETTE_PRESETS) {
+      expect(preset.colors.length).toBeGreaterThanOrEqual(2);
+      for (const [r, g, b] of preset.colors) {
+        for (const channel of [r, g, b]) {
+          expect(Number.isInteger(channel)).toBe(true);
+          expect(channel).toBeGreaterThanOrEqual(0);
+          expect(channel).toBeLessThanOrEqual(255);
+        }
+      }
+    }
+  });
+
+  it("pins the classic sizes", () => {
+    const byId: Record<string, number> = {};
+    for (const preset of DITHER_PALETTE_PRESETS) byId[preset.id] = preset.colors.length;
+    expect(byId["gameboy"]).toBe(4);
+    expect(byId["pico8"]).toBe(16);
+    expect(byId["gray"]).toBe(8);
   });
 });

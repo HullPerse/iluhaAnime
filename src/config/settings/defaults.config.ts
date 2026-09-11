@@ -12,6 +12,8 @@ export const DEFAULT_WALLPAPER_SHADOW: WallpaperShadow = {
   sides: { top: false, right: false, bottom: false, left: false },
   intensity: 50,
   color: "#000000",
+  length: 8,
+  softness: 40,
 };
 
 export const DEFAULT_SETTINGS: SettingsDefaults = {
@@ -77,7 +79,8 @@ export const DEFAULT_SETTINGS: SettingsDefaults = {
   ],
   visibleSources: ["erai-raws", "rutracker", "nyaa", "nekobt"],
   searchProxyUrls: {} as Record<string, string>,
-  tmdbApiKey: null as string | null,
+  tmdbKeySet: false,
+  tmdbPendingKey: null as string | null,
   tmdbProxyUrl: null as string | null,
   anilistProxyUrl: null as string | null,
   collectionTabEnabled: true,

@@ -1,5 +1,5 @@
 import { useI18n } from "@/lib/locale/i18n.utils";
-import type { Anime } from "@/types";
+import type { Anime } from "@/types/torrent";
 
 export default function SearchResultsSummary({
   data,

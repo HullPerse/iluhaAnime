@@ -10,8 +10,9 @@ import ImageComponent from "@/components/ui/image.component";
 import { Input } from "@/components/ui/input.component";
 import { PICKER_ELAPSED_TICK_MS } from "@/config/torrent/common.config";
 import { useI18n } from "@/lib/locale/i18n.utils";
-import { fmtSize, fmtElapsed } from "@/lib/torrent/common.utils";
+import { formatBytes } from "@/lib/utils/bytes.utils";
 import { groupFilesByDirectory } from "@/lib/torrent/tree.utils";
+import { formatElapsed } from "@/lib/utils/time.utils";
 import type { PickerTorrent } from "@/types/torrent";
 
 function TorrentFilePicker({
@@ -123,7 +124,7 @@ function TorrentFilePicker({
       {loading ? (
         <section className="flex flex-col items-center justify-center gap-2 py-4">
           <SmallLoader />
-          <span className="windows95-text text-hint">{fmtElapsed(elapsed, t)}</span>
+          <span className="windows95-text text-hint">{formatElapsed(elapsed, t)}</span>
         </section>
       ) : (
         <section className="flex h-full w-full flex-1 flex-col items-center gap-2 py-4">
@@ -132,7 +133,7 @@ function TorrentFilePicker({
               <Checkbox checked={allSelected} onChange={toggleAll} />
               {allSelected ? t("picker.deselect.all") : t("picker.select.all")}
               <span className="text-hint ml-auto text-xs">
-                {fmtSize(selectedSize)} / {fmtSize(totalSize)}
+                {formatBytes(selectedSize)} / {formatBytes(totalSize)}
                 {" - "}
                 {t("picker.file.count", { count: torrent!.files.length })}
               </span>
@@ -153,7 +154,7 @@ function TorrentFilePicker({
                         {group.dir}
                       </span>
                       <span className="text-hint ml-auto">
-                        {fmtSize(group.files.reduce((s, f) => s + f.size, 0))}
+                        {formatBytes(group.files.reduce((s, f) => s + f.size, 0))}
                       </span>
                     </div>
                   )}
@@ -176,7 +177,7 @@ function TorrentFilePicker({
                         <span className="windows95-text flex-1 truncate" title={item.displayName}>
                           {item.displayName}
                         </span>
-                        <span className="text-hint shrink-0 text-xs">{fmtSize(item.size)}</span>
+        <span className="text-hint shrink-0 text-xs">{formatBytes(item.size)}</span>
                         {conflict && (
                           <span className="text-destructive shrink-0 text-xs">
                             {t("picker.exists")}

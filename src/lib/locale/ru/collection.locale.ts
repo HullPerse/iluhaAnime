@@ -8,12 +8,14 @@ const collection = {
   "collection.edit.media": "Изменить медиа",
   "collection.search.title": "Поиск по названию...",
   "collection.sort.date": "Дата",
+  "collection.sort.year": "Год",
   "collection.filters.title": "Фильтры",
   "collection.view.mode": "Изменить вид",
   "collection.display.mode": "Изменить отображение",
   "collection.display.mode.scroll": "Бесконечный скролл",
   "collection.display.mode.pagination": "Пагинация",
   "collection.group.by.status": "Группировать по статусу",
+  "collection.random": "Случайное",
   "collection.group.toggle": "Свернуть/развернуть группу",
   "collection.filters.provider": "Источник",
   "collection.filters.linked": "Привязано",
@@ -46,6 +48,9 @@ const collection = {
   "collection.import.anilist.empty": "Списки не найдены",
   "collection.import.anilist.selected": "Выбрано {{selected}}/{{total}}",
   "collection.import.anilist.will.skip": "будет пропущено {{count}} дублей",
+  "collection.import.anilist.will.skip.one": "будет пропущен {{count}} дубль",
+  "collection.import.anilist.will.skip.few": "будет пропущено {{count}} дубля",
+  "collection.import.anilist.will.skip.many": "будет пропущено {{count}} дублей",
   "collection.import.anilist.already.exists": "Уже в коллекции - будет пропущено",
   "collection.import.anilist.duplicate.skip": "дубль - пропуск",
   "collection.import.anilist.hint":
@@ -62,6 +67,7 @@ const collection = {
   "collection.import.anilist.summary.existing": "Уже в коллекции: {{count}}",
   "collection.import.anilist.up.to.date": "Всё актуально - новых и изменённых нет",
   "collection.import.anilist.import.action": "Импортировать {{count}} новых",
+  "collection.import.anilist.import.action.one": "Импортировать {{count}} новый",
   "collection.import.anilist.sync.action": "Синхронизировать {{count}}",
   "collection.import.anilist.sync.hint": "Обновит статус, прогресс и оценку выбранных записей",
   "collection.import.anilist.sync.done": "Синхронизировано {{count}}",
@@ -69,6 +75,10 @@ const collection = {
   "collection.import.anilist.metadata.title": "Обновление метаданных",
   "collection.import.anilist.metadata.hint":
     "Обновит обложку, жанры, студию, год и длительность для {{count}} записей без изменения статуса и прогресса",
+  "collection.import.anilist.metadata.hint.one":
+    "Обновит обложку, жанры, студию, год и длительность для {{count}} записи без изменения статуса и прогресса",
+  "collection.import.anilist.metadata.hint.few":
+    "Обновит обложку, жанры, студию, год и длительность для {{count}} записи без изменения статуса и прогресса",
   "collection.import.anilist.metadata.start": "Обновить {{count}}",
   "collection.import.anilist.metadata.done": "Метаданные обновлены: {{count}}",
   "collection.import.anilist.back": "← Назад",
@@ -85,6 +95,10 @@ const collection = {
   "collection.sortdir": "Сортировка",
   "collection.sort.name": "Название",
   "collection.sort.rating": "Оценка",
+  "collection.tags.title": "Теги поиска",
+  "collection.tags.hint":
+    "Точное совпадение через =, диапазоны через >, <, >=, <=, !=. Пробелы вокруг оператора допустимы.",
+  "collection.tags.or": "Строковые фильтры понимают | для ИЛИ: genre=action|drama.",
   "collection.section.library": "Библиотека",
   "collection.library.all": "Все",
   "collection.type.anime": "Аниме",
@@ -133,6 +147,9 @@ const collection = {
   "collection.card.status": "Изменить статус",
 
   "collection.data": "Данные",
+  "collection.data.loading": "Загрузка коллекции...",
+  "collection.data.load.error": "Не удалось загрузить коллекцию: {{error}}",
+  "collection.data.retry": "Повторить",
   "collection.details.local": "Локально",
   "collection.details.year": "Год",
   "collection.details.rating": "Оценка",
@@ -175,9 +192,11 @@ const collection = {
     "Два названия через запятую: первое английское, второе русское - Watching,Смотрю. Одно название показывается на обоих языках.",
   "collection.status.manager.label": "Название статуса",
   "collection.status.manager.core": "базовый",
+  "collection.status.manager.core.title": "Встроенные",
+  "collection.status.manager.custom.title": "Свои",
   "collection.status.manager.delete.hint": "Удалить статус",
   "collection.status.manager.delete.note":
-    "При удалении кастомного статуса его позиции вернутся в «Запланировано». Базовые статусы удалить нельзя.",
+    'При удалении кастомного статуса его позиции вернутся в "Запланировано". Базовые статусы удалить нельзя.',
   "collection.status.manager.new": "Новый статус",
   "collection.status.manager.new.placeholder": "Название нового статуса",
   "collection.status.manager.add": "Добавить статус",
@@ -191,6 +210,13 @@ const collection = {
   "collection.status.manager.color": "Цвет статуса",
   "collection.status.manager.hex": "Hex-цвет",
   "collection.status.manager.apply": "Применить цвет",
+  "collection.status.manager.preview.en": "EN: {{value}}",
+  "collection.status.manager.preview.ru": "RU: {{value}}",
+  "collection.wizard.preview": "Предпросмотр",
+  "collection.wizard.unit.episodes": "эп",
+  "collection.wizard.unit.seasons": "сезоны",
+  "collection.wizard.unit.minutes": "мин",
+  "collection.wizard.unit.pages": "стр.",
 } as const;
 
 export default collection;

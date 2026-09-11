@@ -12,6 +12,7 @@ function renderSort(overrides: Partial<React.ComponentProps<typeof AniListSortBa
     onActivityOpen: vi.fn(),
     onFavouritesOpen: vi.fn(),
     onRandom: vi.fn(),
+    onSpotlight: vi.fn(),
     hasFavourites: true,
   };
   return {
@@ -45,6 +46,21 @@ describe("AniListSortBar", () => {
     expect(titleBtn).toBeTruthy();
     await user.click(titleBtn!);
     expect(onSortChange).toHaveBeenCalledOnce();
+  });
+
+  it("renders the user score sort and switches to it on click", async () => {
+    const user = userEvent.setup();
+    const onSortChange = vi.fn();
+    const { container } = renderSort({
+      sort: { key: "title", dir: "desc" },
+      onSortChange,
+    });
+    const section = container.querySelector("section")!;
+    const buttons = Array.from(section.querySelectorAll("button[data-slot='button']"));
+    const myScoreBtn = buttons.find((b) => b.textContent?.trim() === "Score");
+    expect(myScoreBtn).toBeTruthy();
+    await user.click(myScoreBtn!);
+    expect(onSortChange).toHaveBeenCalledWith({ key: "myScore", dir: "desc" });
   });
 
   it("calls onRandom when clicking the random button", async () => {

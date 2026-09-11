@@ -6,24 +6,26 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { EyeOff, Search, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { InlineAutocompleteInput } from "@/components/shared/autocomplete.component";
+import { InlineAutocompleteInput } from "@/components/shared/autocomplete/input.autocomplete";
 import { ConfirmDialog } from "@/components/shared/confirm.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { useDebounce } from "@/hooks/debounce.hook";
-import { usePolling } from "@/hooks/polling.hook";
 import { useSearchField } from "@/hooks/search/field.hook";
+import { useTorrentFilesMap, useTorrents } from "@/hooks/torrent/queries.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { buildTree, filterTreeByPaths } from "@/lib/player/tree.utils";
 import { filterTreeByHiddenPaths } from "@/lib/player/visibility.utils";
+import { reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useCacheStore } from "@/store/cache.store";
 import { useCategoryStore } from "@/store/category.store";
-import { useTorrentStore } from "@/store/download.store";
-import { useJobsStore } from "@/store/jobs.store";
 import { useSettingsStore } from "@/store/settings.store";
-import type { FolderNode, VideoFileEntry, FFMPEGStatus, ScanType, FileSearchResult } from "@/types";
 import type { CategoryDragData } from "@/types/category";
+import type { VideoFileEntry } from "@/types/fs";
+import type { ScanType, FileSearchResult } from "@/types/player";
+import type { FFMPEGStatus } from "@/types/settings";
+import type { FolderNode, TorrentInfo } from "@/types/torrent";
 
 import CategoryView from "./components/player/category.player";
 import { DraggableFolder } from "./components/player/draggable/folder.draggable";
@@ -34,11 +36,18 @@ import QueuePanel from "./components/player/queue.player";
 import { QueueStrip } from "./components/player/strip.player";
 import PlayerVisibilityModal from "./components/player/visibility.player";
 
+let scannedFingerprint: string | null = null;
+const NO_TORRENTS: TorrentInfo[] = [];
+
+function fingerprint(paths: string[], extensions: string[]): string {
+  return `${extensions.join(",")}\n${paths.join("\n")}`;
+}
+
 function PlayerRoute() {
   const { t } = useI18n();
   const queryClient = useQueryClient();
-  const torrents = useTorrentStore((state) => state.torrents);
-  const torrentFilesMap = useTorrentStore((state) => state.torrentFilesMap);
+  const { data } = useTorrents();
+  const torrents = data ?? NO_TORRENTS;
 
   const [folderTrees, setFolderTrees] = useState<FolderNode[]>([]);
   const [search, setSearch] = useState("");
@@ -57,7 +66,6 @@ function PlayerRoute() {
   const patch = useSettingsStore((s) => s.patch);
 
   const [torrentLoading, setTorrentLoading] = useState<Set<number>>(new Set());
-  const scannedPathsRef = useRef<string[] | null>(null);
 
   const [pendingDeleteCategory, setPendingDeleteCategory] = useState<string | null>(null);
   const [activeDrag, setActiveDrag] = useState<{ name: string } | null>(null);
@@ -181,19 +189,18 @@ function PlayerRoute() {
       .catch(() => setFfmpegStatus("missing"));
   }, []);
 
-  usePolling({
-    intervalMs: 5000,
-    collectKeys: () => useTorrentStore.getState().torrents.map((t) => t.id),
-    shouldFetch: (id) => !useTorrentStore.getState().torrentFilesMap[id],
-    fetch: (id) => useTorrentStore.getState().loadTorrentFiles(id),
-    onStart: (id) => setTorrentLoading((prev) => new Set(prev).add(id)),
-    onSettle: (id) =>
-      setTorrentLoading((prev) => {
-        const next = new Set(prev);
-        next.delete(id);
-        return next;
-      }),
-  });
+  const allTorrentIds = useMemo(() => torrents.map((t) => t.id), [torrents]);
+  const { files: torrentFilesMap, pendingIds: torrentPendingIds } = useTorrentFilesMap(
+    allTorrentIds,
+    5000
+  );
+  useEffect(() => {
+    setTorrentLoading((prev) => {
+      if (prev.size !== torrentPendingIds.size) return torrentPendingIds;
+      for (const id of torrentPendingIds) if (!prev.has(id)) return torrentPendingIds;
+      return prev;
+    });
+  }, [torrentPendingIds]);
 
   const rebuildIndex = useCallback(
     async (paths: string[]) => {
@@ -221,15 +228,8 @@ function PlayerRoute() {
     if (savedFolderPaths.length === 0) return;
     let cancelled = false;
 
-    const alreadyScanned =
-      scannedPathsRef.current &&
-      scannedPathsRef.current.length === savedFolderPaths.length &&
-      scannedPathsRef.current.every((p, i) => p === savedFolderPaths[i]);
-
-    if (alreadyScanned) {
-      rebuildIndex(savedFolderPaths);
-      return;
-    }
+    const print = fingerprint(savedFolderPaths, videoExtensions);
+    if (print === scannedFingerprint) return;
 
     setScanProgress({ current: 0, total: 0 });
 
@@ -247,12 +247,14 @@ function PlayerRoute() {
           if (!cancelled) {
             if (entries?.length) trees.push(buildTree(entries, path));
           }
-        } catch {}
+        } catch (error) {
+          reportBackgroundError("folders.scan", error);
+        }
       }
       if (cancelled) return;
       setFolderTrees(trees);
       setScanProgress(null);
-      scannedPathsRef.current = [...savedFolderPaths];
+      scannedFingerprint = print;
       await rebuildIndex(savedFolderPaths);
       if (cancelled) return;
       useCacheStore.getState().setFolderTrees(trees.map((t) => ({ path: t.path, tree: t })));
@@ -262,36 +264,17 @@ function PlayerRoute() {
       cancelled = true;
     };
   }, [savedFolderPaths, videoExtensions, rebuildIndex]);
-  useEffect(() => {
-    const jobs = useJobsStore.getState();
-    if (loading && scanProgress) {
-      const total = Math.max(scanProgress.total, 1);
-      jobs.upsertJob({
-        id: "folder-scan",
-        title:
-          scanProgress.total === 0
-            ? t("player.scan.counting")
-            : t("player.scan.scanning", {
-                current: scanProgress.current,
-                total: scanProgress.total,
-              }),
-        stage: "",
-        done: scanProgress.current,
-        total,
-        status: "running",
-        failures: [],
-      });
-    } else if (jobs.jobs["folder-scan"]?.status === "running") {
-      jobs.finishJob("folder-scan");
-    }
-  }, [loading, scanProgress, t]);
 
   useEffect(() => {
     const paths = useSettingsStore.getState().savedFolderPaths;
     if (paths.length === 0) return;
-    invokeTyped("start_watching_folders", { folders: paths }).catch(() => {});
+    invokeTyped("start_watching_folders", { folders: paths }).catch((error) =>
+      reportBackgroundError("folders.watch.start", error)
+    );
     return () => {
-      invokeTyped("stop_watching_folders").catch(() => {});
+      invokeTyped("stop_watching_folders").catch((error) =>
+        reportBackgroundError("folders.watch.stop", error)
+      );
     };
   }, []);
 
@@ -322,7 +305,9 @@ function PlayerRoute() {
                 return next;
               });
             }
-          } catch {}
+          } catch (error) {
+            reportBackgroundError("folders.rescan", error);
+          }
         }
       })();
     })
@@ -330,7 +315,7 @@ function PlayerRoute() {
         if (disposed) fn();
         else unlisten = fn;
       })
-      .catch(() => {});
+      .catch((error) => reportBackgroundError("folderscan.listen", error));
     return () => {
       disposed = true;
       unlisten?.();
@@ -369,7 +354,9 @@ function PlayerRoute() {
     } catch (error) {
       console.warn("scan_video_folder failed", error);
     } finally {
-      const unlisten = await unlistenPromise.catch(() => {});
+      const unlisten = await unlistenPromise.catch((error) =>
+        reportBackgroundError("folderscan.unlisten", error)
+      );
       unlisten?.();
       setLoading(false);
       setScanProgress(null);

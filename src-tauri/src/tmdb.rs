@@ -5,6 +5,7 @@ use std::sync::{
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use reqwest::Client;
+use crate::auth::{delete_secret, load_secret, save_secret};
 use serde::Serialize;
 
 static CLIENT: LazyLock<Client> = LazyLock::new(|| {
@@ -16,9 +17,51 @@ static CLIENT: LazyLock<Client> = LazyLock::new(|| {
 
 const API_HOST: &str = "https://api.themoviedb.org/3";
 const IMAGE_HOST: &str = "https://image.tmdb.org";
+const TMDB_CREDENTIAL: &str = "tmdb.api_key";
+
+pub fn save_tmdb_api_key(key: &str) -> Result<(), String> {
+    save_secret(TMDB_CREDENTIAL, key).map_err(|error| error.to_string())
+}
+
+pub fn load_tmdb_api_key() -> String {
+    load_secret(TMDB_CREDENTIAL).unwrap_or_default()
+}
+
+fn stored_api_key(explicit: String) -> String {
+    if explicit.is_empty() {
+        load_tmdb_api_key()
+    } else {
+        explicit
+    }
+}
+
+#[tauri::command]
+pub async fn tmdb_set_api_key(api_key: String) -> Result<String, String> {
+    let key = api_key.trim().to_string();
+    if key.is_empty() {
+        return Err("API key cannot be empty".to_string());
+    }
+    save_tmdb_api_key(&key)?;
+    Ok("ok".to_string())
+}
+
+#[tauri::command]
+pub async fn check_tmdb_session() -> Result<bool, String> {
+    Ok(!load_tmdb_api_key().is_empty())
+}
+
+#[tauri::command]
+pub async fn tmdb_logout() -> Result<(), String> {
+    delete_secret(TMDB_CREDENTIAL);
+    Ok(())
+}
 
 static TMDB_LAST_REQUEST: LazyLock<tokio::sync::Mutex<Instant>> = LazyLock::new(|| {
-    tokio::sync::Mutex::new(Instant::now().checked_sub(Duration::from_secs(10)).unwrap())
+    tokio::sync::Mutex::new(
+        Instant::now()
+            .checked_sub(Duration::from_secs(10))
+            .unwrap_or_else(Instant::now),
+    )
 });
 static TMDB_REMAINING: AtomicI32 = AtomicI32::new(-1);
 static TMDB_RESET_AT: AtomicI64 = AtomicI64::new(0);
@@ -61,6 +104,7 @@ pub struct TmdbDetails {
     pub media_type: String,
     pub overview: Option<String>,
     pub year: Option<i32>,
+    pub release_date: Option<String>,
     pub runtime_minutes: Option<i32>,
     pub genres: Vec<String>,
     pub posters: Vec<TmdbPoster>,
@@ -214,7 +258,12 @@ async fn throttle_tmdb() {
     let mut last = TMDB_LAST_REQUEST.lock().await;
     let elapsed = last.elapsed();
     if elapsed < Duration::from_millis(250) {
-        tokio::time::sleep(Duration::from_millis(250).checked_sub(elapsed).unwrap()).await;
+        tokio::time::sleep(
+            Duration::from_millis(250)
+                .checked_sub(elapsed)
+                .expect("TMDB throttle delay underflow: elapsed exceeds interval"),
+        )
+        .await;
     }
     *last = Instant::now();
 }
@@ -293,7 +342,7 @@ pub async fn search_tmdb(
     proxy_url: Option<String>,
     proxyUrl: Option<String>,
 ) -> Result<Vec<TmdbSearchResult>, String> {
-    let api_key = resolve_api_key(api_key, apiKey);
+    let api_key = stored_api_key(resolve_api_key(api_key, apiKey));
     if api_key.is_empty() {
         return Err("TMDB API key is not set. Add it in Settings.".into());
     }
@@ -430,7 +479,7 @@ pub async fn get_tmdb_details(
     proxy_url: Option<String>,
     proxyUrl: Option<String>,
 ) -> Result<TmdbDetails, String> {
-    let api_key = resolve_api_key(api_key, apiKey);
+    let api_key = stored_api_key(resolve_api_key(api_key, apiKey));
     if api_key.is_empty() {
         return Err("TMDB API key is not set".into());
     }
@@ -555,6 +604,7 @@ pub async fn get_tmdb_details(
         media_type,
         overview: json["overview"].as_str().map(String::from),
         year: year_from_date(date),
+        release_date: date.and_then(|d| (d.len() >= 10).then(|| d[..10].to_string())),
         runtime_minutes: runtime,
         genres,
         posters,
@@ -572,7 +622,7 @@ pub async fn get_tmdb_media(
     proxy_url: Option<String>,
     proxyUrl: Option<String>,
 ) -> Result<TmdbMedia, String> {
-    let api_key = resolve_api_key(api_key, apiKey);
+    let api_key = stored_api_key(resolve_api_key(api_key, apiKey));
     if api_key.is_empty() {
         return Err("TMDB API key is not set".into());
     }

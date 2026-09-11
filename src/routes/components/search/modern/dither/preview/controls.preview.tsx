@@ -1,7 +1,7 @@
 import Slider from "@/components/ui/range.component";
-import { DITHER_SLIDER_DEFS, type DitherSliderField } from "@/config/utils/dither.config";
+import { DITHER_SLIDER_DEFS } from "@/config/utils/dither.config";
 import { useI18n } from "@/lib/locale/i18n.utils";
-import type { DitherEffectOptions } from "@/types/dither";
+import type { DitherEffectOptions, DitherSliderField } from "@/types/dither";
 import type { TranslationKey } from "@/types/i18n";
 
 const SLIDER_LABELS: Record<DitherSliderField, TranslationKey> = {

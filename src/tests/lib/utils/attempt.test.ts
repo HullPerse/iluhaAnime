@@ -31,8 +31,8 @@ describe("attempt", () => {
   });
 
   it("normalizes non-Error rejections", async () => {
-    // oxlint-disable-next-line prefer-promise-reject-errors
-    await expect(attempt(Promise.reject("plain"))).resolves.toEqual([null, new Error("plain")]);
+    const plain = "plain" as unknown as Error;
+    await expect(attempt(Promise.reject(plain))).resolves.toEqual([null, new Error("plain")]);
   });
 });
 
@@ -51,10 +51,10 @@ describe("attemptSync", () => {
   });
 
   it("normalizes non-Error throws", () => {
+    const literal = "string throw" as unknown as Error;
     expect(
       attemptSync(() => {
-        // oxlint-disable-next-line no-throw-literal
-        throw "string throw";
+        throw literal;
       })
     ).toEqual([null, new Error("string throw")]);
   });

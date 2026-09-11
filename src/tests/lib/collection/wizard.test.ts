@@ -27,6 +27,7 @@ function makeItem(overrides: Partial<CollectionItem> = {}): CollectionItem {
     priority: "normal",
     isFavorite: true,
     year: 2002,
+    releaseDate: null,
     genres: ["Action", "Adventure"],
     studio: "Pierrot",
     description: "A ninja story.",
@@ -147,6 +148,24 @@ describe("buildWizardItem", () => {
     expect(item.finishedAt).not.toBeNull();
     expect(item.finishedAt!).toBeGreaterThanOrEqual(before);
     expect(item.finishedAt!).toBeLessThanOrEqual(Date.now());
+  });
+
+  it("resolves startedAt to now for watching items without a date", () => {
+    const before = Date.now();
+    const item = buildWizardItem(makeValues({ status: "watching", startedAt: "" }), null, null);
+    expect(item.startedAt).not.toBeNull();
+    expect(item.startedAt!).toBeGreaterThanOrEqual(before);
+    expect(item.startedAt!).toBeLessThanOrEqual(Date.now());
+  });
+
+  it("carries releaseDate from values and preserves it on edit", () => {
+    expect(
+      buildWizardItem(makeValues({ releaseDate: "2024-03-10" }), null, null).releaseDate
+    ).toBe("2024-03-10");
+    const initial = makeItem();
+    expect(buildWizardItem(makeValues(), null, initial).releaseDate).toBe(
+      initial.releaseDate
+    );
   });
 
   it("preserves rewatch and last-watched state from the initial item", () => {

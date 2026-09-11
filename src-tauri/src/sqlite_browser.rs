@@ -34,6 +34,7 @@ pub async fn reset_sqlite_data(app_handle: tauri::AppHandle) -> Result<Vec<Strin
         "rutracker.user_agent",
         "nekobt.api_key",
         "erai-raws.cookies",
+        "tmdb.api_key",
     ] {
         auth::delete_secret(account);
     }

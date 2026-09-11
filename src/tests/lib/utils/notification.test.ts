@@ -9,7 +9,7 @@ import {
   resolveNotificationText,
 } from "@/lib/utils/notification.utils";
 import { useNotificationStore } from "@/store/notification.store";
-import type { TranslationVariables } from "@/types";
+import type { TranslationVariables } from "@/types/i18n";
 
 const writeTextSpy = vi.fn();
 

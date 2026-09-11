@@ -15,18 +15,122 @@ import {
 import { useI18n } from "@/lib/locale/i18n.utils";
 import type { CollectionStatusDef } from "@/types/collection";
 
-function BilingualPreview({ value }: { value: string }) {
-  if (!value.includes(",")) return null;
-  const parts = splitStatusLabel(value);
-  if (!parts.en && !parts.ru) return null;
+export function StatusManagerCollection({
+  statuses,
+  onUpsert,
+  onDelete,
+  onClose,
+}: {
+  statuses: CollectionStatusDef[];
+  onUpsert: (status: CollectionStatusDef) => void;
+  onDelete: (id: string) => void;
+  onClose: () => void;
+}) {
+  const { t } = useI18n();
+  const [newLabel, setNewLabel] = useState("");
+  const [newColor, setNewColor] = useState(DEFAULT_NEW_COLOR);
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
+  const newId = buildCustomStatusId(newLabel);
+  const duplicateId = newId !== "" && statuses.some((s) => s.id === newId);
+
+  const addStatus = () => {
+    const label = normalizeStatusLabel(newLabel);
+    if (!label) return;
+    const id = buildCustomStatusId(label);
+    const order =
+      statuses.reduce((max, s) => (Number.isFinite(s.order) ? Math.max(max, s.order) : max), 0) + 1;
+    onUpsert({ id, label, color: newColor, order, isCore: false });
+    setNewLabel("");
+  };
+
   return (
-    <span
-      className="flex w-full flex-wrap items-center gap-1 pt-0.5 text-xs"
-      aria-live="polite"
+    <Modal
+      header={t("collection.status.manager.title")}
+      onClose={onClose}
+      className="w-105"
+      contentClassName="w-full"
     >
-      <span className="windows95-border bg-surface px-1">EN: {parts.en || "-"}</span>
-      <span className="windows95-border bg-white px-1">RU: {parts.ru || "-"}</span>
-    </span>
+      <div className="flex w-full flex-col gap-1">
+        <p className="text-hint windows95-font text-xs">{t("collection.status.manager.hint")}</p>
+        <p className="text-hint windows95-font text-xs">
+          {t("collection.status.manager.bilingual")}
+        </p>
+        <p className="bg-secondary windows95-text px-1 py-0.5 text-xs font-bold text-white">
+          {t("collection.status.manager.core.title")}
+        </p>
+        <ul className="windows95-border flex max-h-64 flex-col overflow-y-auto bg-white">
+          {statuses
+            .filter((status) => status.isCore)
+            .map((status) => (
+              <StatusRow
+                key={status.id}
+                status={status}
+                onUpsert={onUpsert}
+                onDelete={setPendingDelete}
+              />
+            ))}
+        </ul>
+        <p className="bg-secondary windows95-text flex items-center gap-1 px-1 py-0.5 text-xs font-bold text-white">
+          <span className="flex-1">{t("collection.status.manager.custom.title")}</span>
+          <span aria-hidden>({statuses.filter((status) => !status.isCore).length})</span>
+        </p>
+        <ul className="windows95-border bg-surface flex max-h-64 flex-col gap-1 overflow-y-auto p-1">
+          {statuses
+            .filter((status) => !status.isCore)
+            .map((status) => (
+              <StatusRow
+                key={status.id}
+                status={status}
+                onUpsert={onUpsert}
+                onDelete={setPendingDelete}
+              />
+            ))}
+        </ul>
+        <div className="windows95-border flex flex-wrap items-center gap-1 p-1">
+          <ColorPickerTrigger value={newColor} onChange={setNewColor} />
+          <Input
+            value={newLabel}
+            onChange={(e) => setNewLabel(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") addStatus();
+            }}
+            placeholder={t("collection.status.manager.new.placeholder")}
+            aria-label={t("collection.status.manager.new")}
+            className="h-5 flex-1 text-xs"
+            spellCheck={false}
+          />
+          <Button
+            size="icon"
+            variant="success"
+            disabled={!newLabel.trim() || duplicateId}
+            title={duplicateId ? t("collection.status.manager.delete.note") : undefined}
+            aria-label={t("collection.status.manager.add")}
+            onClick={addStatus}
+          >
+            <Plus className="size-3" />
+          </Button>
+          <BilingualPreview value={newLabel} />
+        </div>
+        <p className="text-hint windows95-font text-xs">
+          {t("collection.status.manager.delete.note")}
+        </p>
+      </div>
+      {pendingDelete && (
+        <ConfirmDialog
+          open
+          title={t("collection.status.manager.delete.title")}
+          message={t("collection.status.manager.delete.message")}
+          confirmLabel={t("common.delete")}
+          variant="destructive"
+          onConfirm={() => {
+            onDelete(pendingDelete);
+            setPendingDelete(null);
+          }}
+          onCancel={() => setPendingDelete(null)}
+          onClose={() => setPendingDelete(null)}
+        />
+      )}
+    </Modal>
   );
 }
 
@@ -95,97 +199,19 @@ function StatusRow({
   );
 }
 
-export function StatusManagerCollection({
-  statuses,
-  onUpsert,
-  onDelete,
-  onClose,
-}: {
-  statuses: CollectionStatusDef[];
-  onUpsert: (status: CollectionStatusDef) => void;
-  onDelete: (id: string) => void;
-  onClose: () => void;
-}) {
+function BilingualPreview({ value }: { value: string }) {
   const { t } = useI18n();
-  const [newLabel, setNewLabel] = useState("");
-  const [newColor, setNewColor] = useState(DEFAULT_NEW_COLOR);
-  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
-  const newId = buildCustomStatusId(newLabel);
-  const duplicateId = newId !== "" && statuses.some((s) => s.id === newId);
-
-  const addStatus = () => {
-    const label = normalizeStatusLabel(newLabel);
-    if (!label) return;
-    const id = buildCustomStatusId(label);
-    const order = statuses.reduce((max, s) => Math.max(max, s.order), 0) + 1;
-    onUpsert({ id, label, color: newColor, order, isCore: false });
-    setNewLabel("");
-  };
-
+  if (!value.includes(",")) return null;
+  const parts = splitStatusLabel(value);
+  if (!parts.en && !parts.ru) return null;
   return (
-    <Modal
-      header={t("collection.status.manager.title")}
-      onClose={onClose}
-      className="w-105"
-      contentClassName="w-full"
-    >
-      <div className="flex w-full flex-col gap-1">
-        <p className="text-hint windows95-font text-xs">{t("collection.status.manager.hint")}</p>
-        <p className="text-hint windows95-font text-xs">{t("collection.status.manager.bilingual")}</p>
-        <ul className="windows95-border flex max-h-64 flex-col overflow-y-auto bg-white">
-          {statuses.map((status) => (
-            <StatusRow
-              key={status.id}
-              status={status}
-              onUpsert={onUpsert}
-              onDelete={setPendingDelete}
-            />
-          ))}
-        </ul>
-        <div className="windows95-border flex flex-wrap items-center gap-1 p-1">
-          <ColorPickerTrigger value={newColor} onChange={setNewColor} />
-          <Input
-            value={newLabel}
-            onChange={(e) => setNewLabel(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") addStatus();
-            }}
-            placeholder={t("collection.status.manager.new.placeholder")}
-            aria-label={t("collection.status.manager.new")}
-            className="h-5 flex-1 text-xs"
-            spellCheck={false}
-          />
-          <Button
-            size="icon"
-            variant="success"
-            disabled={!newLabel.trim() || duplicateId}
-            title={duplicateId ? t("collection.status.manager.delete.note") : undefined}
-            aria-label={t("collection.status.manager.add")}
-            onClick={addStatus}
-          >
-            <Plus className="size-3" />
-          </Button>
-          <BilingualPreview value={newLabel} />
-        </div>
-        <p className="text-hint windows95-font text-xs">
-          {t("collection.status.manager.delete.note")}
-        </p>
-      </div>
-      {pendingDelete && (
-        <ConfirmDialog
-          open
-          title={t("collection.status.manager.delete.title")}
-          message={t("collection.status.manager.delete.message")}
-          confirmLabel={t("common.delete")}
-          variant="destructive"
-          onConfirm={() => {
-            onDelete(pendingDelete);
-            setPendingDelete(null);
-          }}
-          onCancel={() => setPendingDelete(null)}
-          onClose={() => setPendingDelete(null)}
-        />
-      )}
-    </Modal>
+    <span className="flex w-full flex-wrap items-center gap-1 pt-0.5 text-xs" aria-live="polite">
+      <span className="windows95-border bg-surface px-1">
+        {t("collection.status.manager.preview.en", { value: parts.en || "-" })}
+      </span>
+      <span className="windows95-border bg-white px-1">
+        {t("collection.status.manager.preview.ru", { value: parts.ru || "-" })}
+      </span>
+    </span>
   );
 }

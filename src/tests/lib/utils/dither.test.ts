@@ -12,9 +12,6 @@ import {
   applyHalftoneDots,
   clampChannel,
   darkestPaletteColor,
-  ditherBuffersEqual,
-  ditherCacheKey,
-  ditherRenderCache,
   hashNoise,
   lerp,
   lightestPaletteColor,
@@ -23,6 +20,12 @@ import {
   renderDitherImage,
   sampleChannel,
   smoothNoise,
+} from "@/lib/utils/dither.render.utils";
+import {
+  ditherBuffersEqual,
+  ditherCacheKey,
+  ditherRenderCache,
+  extractPaletteFromPixels,
   subscribeWorkerJob,
 } from "@/lib/utils/dither.utils";
 import type { DitherEffectOptions } from "@/types/dither";
@@ -529,5 +532,93 @@ describe("tonal shaping", () => {
     expect(new Set(BLUE_NOISE_64).size).toBe(4096);
     expect(Math.min(...BLUE_NOISE_64)).toBe(0);
     expect(Math.max(...BLUE_NOISE_64)).toBe(4095);
+  });
+});
+
+describe("extractPaletteFromPixels", () => {
+  function rgba(pixels: [number, number, number][], alpha = 255): Uint8ClampedArray {
+    const data = new Uint8ClampedArray(pixels.length * 4);
+    for (let i = 0; i < pixels.length; i++) {
+      const pixel = pixels[i];
+      if (!pixel) continue;
+      const [r, g, b] = pixel;
+      data[i * 4] = r;
+      data[i * 4 + 1] = g;
+      data[i * 4 + 2] = b;
+      data[i * 4 + 3] = alpha;
+    }
+    return data;
+  }
+
+  it("returns the single average for a solid color", () => {
+    const data = rgba([
+      [255, 0, 0],
+      [255, 0, 0],
+      [255, 0, 0],
+      [255, 0, 0],
+    ]);
+    expect(extractPaletteFromPixels(data, 4)).toEqual([[255, 0, 0]]);
+  });
+
+  it("splits halves along the widest channel", () => {
+    const data = rgba([
+      [255, 0, 0],
+      [255, 0, 0],
+      [255, 0, 0],
+      [255, 0, 0],
+      [0, 0, 255],
+      [0, 0, 255],
+      [0, 0, 255],
+      [0, 0, 255],
+    ]);
+    expect(extractPaletteFromPixels(data, 2)).toEqual([
+      [0, 0, 255],
+      [255, 0, 0],
+    ]);
+  });
+
+  it("clamps the count to two through eight", () => {
+    const pixels: [number, number, number][] = [];
+    for (let i = 0; i < 16; i++) pixels.push([i * 16, 0, 0]);
+    expect(extractPaletteFromPixels(rgba(pixels), 99).length).toBeLessThanOrEqual(8);
+    expect(extractPaletteFromPixels(rgba(pixels), 0).length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("skips transparent pixels and empty input", () => {
+    expect(extractPaletteFromPixels(rgba([[255, 0, 0]]), 2)).toEqual([[255, 0, 0]]);
+    expect(extractPaletteFromPixels(rgba([[255, 0, 0]], 0), 2)).toEqual([]);
+    expect(extractPaletteFromPixels(new Uint8ClampedArray(0), 4)).toEqual([]);
+  });
+
+  it("drops transparent pixels mixed with opaque ones", () => {
+    const data = rgba(
+      [
+        [255, 0, 0],
+        [0, 0, 255],
+      ],
+      255
+    );
+    data[7] = 0;
+    expect(extractPaletteFromPixels(data, 2)).toEqual([[255, 0, 0]]);
+  });
+
+  it("returns one color for a single pixel regardless of count", () => {
+    expect(extractPaletteFromPixels(rgba([[10, 20, 30]]), 1)).toEqual([[10, 20, 30]]);
+    expect(extractPaletteFromPixels(rgba([[10, 20, 30]]), 8)).toEqual([[10, 20, 30]]);
+  });
+
+  it("ignores trailing bytes of a truncated row", () => {
+    const full = rgba([
+      [255, 0, 0],
+      [255, 0, 0],
+    ]);
+    const truncated = full.slice(0, 7);
+    expect(extractPaletteFromPixels(truncated, 2)).toEqual([[255, 0, 0]]);
+  });
+
+  it("caps distinct colors at eight boxes", () => {
+    const pixels: [number, number, number][] = [];
+    for (let i = 0; i < 16; i++) pixels.push([i * 16, 0, 0]);
+    expect(extractPaletteFromPixels(rgba(pixels), 8)).toHaveLength(8);
   });
 });

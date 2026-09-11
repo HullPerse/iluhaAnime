@@ -16,11 +16,12 @@ import {
   serverSideSortSource,
 } from "@/lib/search/route.utils";
 import { copyMagnet, downloadMagnet, openMagnet } from "@/lib/torrent/magnet.utils";
+import { attempt } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSearchStore } from "@/store/search.store";
 import { useSettingsStore } from "@/store/settings.store";
-import type { Anime, Source } from "@/types";
-import type { SearchQueryController, SelectedSearchTorrent } from "@/types/search";
+import type { Anime } from "@/types/torrent";
+import type { Source, SearchQueryController, SelectedSearchTorrent } from "@/types/search";
 
 export function useSearchQuery(): SearchQueryController {
   const defaultSource = useSettingsStore((s) => s.defaultSearchSource);
@@ -89,12 +90,12 @@ export function useSearchQuery(): SearchQueryController {
     const proxyUrl = searchProxyUrls[source] || undefined;
     const base = { query: submittedQuery, proxyUrl } as Record<string, unknown>;
     const paged = { ...base, page: nyaaPage, sort: sortBy, order: sortDirection };
-    if (source === "rutracker") return invokeTyped<Anime[]>("search_rutracker", base as never);
-    if (source === "nyaa") return invokeTyped<Anime[]>("search_nyaa", paged as never);
-    if (source === "sukebei") return invokeTyped<Anime[]>("search_sukebei", paged as never);
+    if (source === "rutracker") return invokeTyped<Anime[]>("search_rutracker", base);
+    if (source === "nyaa") return invokeTyped<Anime[]>("search_nyaa", paged);
+    if (source === "sukebei") return invokeTyped<Anime[]>("search_sukebei", paged);
     if (source === "nekobt")
-      return invokeTyped<Anime[]>("search_nekobt", { ...base, page: nyaaPage } as never);
-    return invokeTyped<Anime[]>("search_erairaws", base as never);
+      return invokeTyped<Anime[]>("search_nekobt", { ...base, page: nyaaPage });
+    return invokeTyped<Anime[]>("search_erairaws", base);
   };
 
   const { data, isLoading, isError, error, refetch } = useQuery({
@@ -146,30 +147,21 @@ export function useSearchQuery(): SearchQueryController {
   const activeFilterCount = useMemo(() => countActiveFilters(filters), [filters]);
 
   const handleLogout = async () => {
-    try {
-      await invokeTyped("rutracker_logout");
-      queryClient.invalidateQueries({ queryKey: ["search_sessions"] });
-    } catch (error) {
-      console.warn("rutracker_logout failed", error);
-    }
+    const [, error] = await attempt(invokeTyped("rutracker_logout"));
+    if (error) console.warn("rutracker_logout failed", error);
+    else queryClient.invalidateQueries({ queryKey: ["search_sessions"] });
   };
 
   const handleNekoBtLogout = async () => {
-    try {
-      await invokeTyped("nekobt_logout");
-      queryClient.invalidateQueries({ queryKey: ["search_sessions"] });
-    } catch (error) {
-      console.warn("nekobt_logout failed", error);
-    }
+    const [, error] = await attempt(invokeTyped("nekobt_logout"));
+    if (error) console.warn("nekobt_logout failed", error);
+    else queryClient.invalidateQueries({ queryKey: ["search_sessions"] });
   };
 
   const handleEraiLogout = async () => {
-    try {
-      await invokeTyped("erai_logout");
-      queryClient.invalidateQueries({ queryKey: ["search_sessions"] });
-    } catch (error) {
-      console.warn("erai_logout failed", error);
-    }
+    const [, error] = await attempt(invokeTyped("erai_logout"));
+    if (error) console.warn("erai_logout failed", error);
+    else queryClient.invalidateQueries({ queryKey: ["search_sessions"] });
   };
 
   const onAuthenticated = () => queryClient.invalidateQueries({ queryKey: ["search_sessions"] });

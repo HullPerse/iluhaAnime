@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import { createLruCache } from "@/lib/utils/lruCache.utils";
+import { createLruCache, inflightFetch } from "@/lib/utils/lruCache.utils";
 
 describe("createLruCache", () => {
   it("stores and returns values", () => {
@@ -80,5 +80,38 @@ describe("createLruCache", () => {
     cache.set("b", 2);
     expect(cache.has("a")).toBe(false);
     expect(cache.has("b")).toBe(true);
+  });
+});
+
+describe("inflightFetch", () => {
+  it("runs the loader once for concurrent callers", async () => {
+    const inflight = new Map<string, Promise<string | null>>();
+    const start = vi.fn(async () => "v");
+    const [a, b] = await Promise.all([
+      inflightFetch(inflight, "k", start),
+      inflightFetch(inflight, "k", start),
+    ]);
+    expect(a).toBe("v");
+    expect(b).toBe("v");
+    expect(start).toHaveBeenCalledTimes(1);
+  });
+
+  it("starts a new load after the previous settles", async () => {
+    const inflight = new Map<string, Promise<string | null>>();
+    let n = 0;
+    const start = async () => `v${(n += 1)}`;
+    expect(await inflightFetch(inflight, "k", start)).toBe("v1");
+    expect(await inflightFetch(inflight, "k", start)).toBe("v2");
+  });
+
+  it("clears the entry on failure so the next caller retries", async () => {
+    const inflight = new Map<string, Promise<string | null>>();
+    const fail = vi.fn(async (): Promise<string | null> => {
+      throw new Error("down");
+    });
+    await expect(inflightFetch(inflight, "k", fail)).rejects.toThrow("down");
+    expect(inflight.has("k")).toBe(false);
+    const ok = async (): Promise<string | null> => "v";
+    expect(await inflightFetch(inflight, "k", ok)).toBe("v");
   });
 });

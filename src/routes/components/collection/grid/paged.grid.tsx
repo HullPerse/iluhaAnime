@@ -45,7 +45,7 @@ export function GridPagedView({
       >
         <div
           className="grid content-start gap-2"
-          style={{ gridTemplateColumns: `repeat(auto-fit, minmax(${CARD_W}px, 1fr))` }}
+          style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${CARD_W}px, 1fr))` }}
         >
           {visible.map((item) => (
             <CollectionCard

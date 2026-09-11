@@ -132,10 +132,10 @@ export function WizardDetailsPanel(props: {
             }
             className="windows95-border bg-white px-1 py-0.5 text-xs"
           >
-            <option value="episodes">ep</option>
-            <option value="seasons">seasons</option>
-            <option value="minutes">min</option>
-            <option value="pages">pages</option>
+            <option value="episodes">{t("collection.wizard.unit.episodes")}</option>
+            <option value="seasons">{t("collection.wizard.unit.seasons")}</option>
+            <option value="minutes">{t("collection.wizard.unit.minutes")}</option>
+            <option value="pages">{t("collection.wizard.unit.pages")}</option>
           </select>
         </div>
 

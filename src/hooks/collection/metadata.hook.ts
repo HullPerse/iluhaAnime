@@ -11,7 +11,7 @@ import type { AniAnimeStaffEdge, AniCharacterEdge } from "@/types/anilist";
 import type { CollectionItem } from "@/types/collection";
 
 export function useCollectionMetadata(
-  updateItem: (id: string, patch: Partial<CollectionItem>) => void
+  updateItem: (id: string, patch: Partial<CollectionItem>, opts?: { touch?: boolean }) => void
 ) {
   const { t } = useI18n();
 
@@ -33,6 +33,7 @@ export function useCollectionMetadata(
         studios: { name: string }[];
         cover_url: string | null;
         season_year: number | null;
+        start_date: string | null;
         trailer_youtube_id: string | null;
         description: string | null;
       }>("get_anime_by_id", {
@@ -55,40 +56,43 @@ export function useCollectionMetadata(
             }).catch(() => [] as AniAnimeStaffEdge[]),
           ])
         : [[], []];
-      updateItem(item.id, {
-        ...(nextDescription ? { description: nextDescription } : {}),
-        title: m.title || item.title,
-        durationMinutes: m.duration ?? item.durationMinutes,
-        progressTotal: m.episodes ?? item.progressTotal,
-        genres: mergedGenres.length ? mergedGenres : item.genres,
-        studio: m.studios[0]?.name ?? item.studio,
-        coverUrl: m.cover_url ?? item.coverUrl,
-        year: m.season_year ?? item.year,
-        detailsJson: {
-          ...withStoredMedia(
-            item.detailsJson,
-            readStoredMedia(item.detailsJson).stills,
-            m.trailer_youtube_id ?? readStoredMedia(item.detailsJson).trailerYoutubeId
-          ),
-          staff: staff.slice(0, 30).map((s) => ({ id: s.id, name: s.name, role: s.role })),
-          characters: characters.map((c) => ({
-            id: c.character.id,
-            name: c.character.name,
-            voiceActors: c.voice_actors
-              .slice(0, 3)
-              .map((v) => ({ id: v.id, name: v.name })),
-          })),
+      updateItem(
+        item.id,
+        {
+          ...(nextDescription ? { description: nextDescription } : {}),
+          title: m.title || item.title,
+          durationMinutes: m.duration ?? item.durationMinutes,
+          progressTotal: m.episodes ?? item.progressTotal,
+          genres: mergedGenres.length ? mergedGenres : item.genres,
+          studio: m.studios[0]?.name ?? item.studio,
+          coverUrl: m.cover_url ?? item.coverUrl,
+          year: m.season_year ?? item.year,
+          releaseDate: m.start_date ?? item.releaseDate,
+          detailsJson: {
+            ...withStoredMedia(
+              item.detailsJson,
+              readStoredMedia(item.detailsJson).stills,
+              m.trailer_youtube_id ?? readStoredMedia(item.detailsJson).trailerYoutubeId
+            ),
+            staff: staff.slice(0, 30).map((s) => ({ id: s.id, name: s.name, role: s.role })),
+            characters: characters.map((c) => ({
+              id: c.character.id,
+              name: c.character.name,
+              voiceActors: c.voice_actors.slice(0, 3).map((v) => ({ id: v.id, name: v.name })),
+            })),
+          },
         },
-      });
+        { touch: false }
+      );
     },
     [updateItem]
   );
 
   const refreshTmdb = useCallback(
     async (item: CollectionItem) => {
-      const tmdbKey = useSettingsStore.getState().tmdbApiKey;
+      const tmdbKeySet = useSettingsStore.getState().tmdbKeySet;
       const tmdbProxyUrl = useSettingsStore.getState().tmdbProxyUrl;
-      if (!tmdbKey) {
+      if (!tmdbKeySet) {
         notify("error", "collection.wizard.tmdb.key.missing");
         return;
       }
@@ -96,43 +100,53 @@ export function useCollectionMetadata(
         title: string;
         overview: string | null;
         year: number | null;
+        release_date: string | null;
         runtimeMinutes: number | null;
         genres: string[];
         posters: { url: string }[];
       }>("get_tmdb_details", {
-        apiKey: tmdbKey,
+        apiKey: "",
         tmdbId: item.externalIds.tmdb,
         mediaType: item.type === "movie" ? "movie" : "tv",
         proxyUrl: tmdbProxyUrl || undefined,
-      } as unknown as Record<string, unknown>);
-      updateItem(item.id, {
-        title: d.title || item.title,
-        description: d.overview ?? item.description,
-        year: d.year ?? item.year,
-        durationMinutes: d.runtimeMinutes ?? item.durationMinutes,
-        genres: d.genres.length ? d.genres : item.genres,
-        coverUrl: d.posters[0]?.url ?? item.coverUrl,
       });
+      updateItem(
+        item.id,
+        {
+          title: d.title || item.title,
+          description: d.overview ?? item.description,
+          year: d.year ?? item.year,
+          releaseDate: d.release_date ?? item.releaseDate,
+          durationMinutes: d.runtimeMinutes ?? item.durationMinutes,
+          genres: d.genres.length ? d.genres : item.genres,
+          coverUrl: d.posters[0]?.url ?? item.coverUrl,
+        },
+        { touch: false }
+      );
       const mediaType = item.type === "movie" ? "movie" : "tv";
       const media = await invokeTyped<{
         backdrops: { url: string }[];
         trailerYoutubeId: string | null;
       }>("get_tmdb_media", {
-        apiKey: tmdbKey,
+        apiKey: "",
         tmdbId: item.externalIds.tmdb,
         mediaType,
         proxyUrl: tmdbProxyUrl || undefined,
-      } as unknown as Record<string, unknown>);
-      updateItem(item.id, {
-        detailsJson: withStoredMedia(
-          item.detailsJson,
-          media.backdrops
-            .map((b) => b.url)
-            .filter(Boolean)
-            .slice(0, 8),
-          media.trailerYoutubeId
-        ),
       });
+      updateItem(
+        item.id,
+        {
+          detailsJson: withStoredMedia(
+            item.detailsJson,
+            media.backdrops
+              .map((b) => b.url)
+              .filter(Boolean)
+              .slice(0, 8),
+            media.trailerYoutubeId
+          ),
+        },
+        { touch: false }
+      );
     },
     [notify, updateItem]
   );

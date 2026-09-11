@@ -1,19 +1,4 @@
-export const RELATION_LABEL: Record<string, string> = {
-  ADAPTATION: "anilist.relation.ADAPTATION",
-  ALTERNATIVE: "anilist.relation.ALTERNATIVE",
-  CHARACTER: "anilist.relation.CHARACTER",
-  CONTAINS: "anilist.relation.CONTAINS",
-  OTHER: "anilist.relation.OTHER",
-  PARENT: "anilist.relation.PARENT",
-  PREQUEL: "anilist.relation.PREQUEL",
-  SEQUEL: "anilist.relation.SEQUEL",
-  SIDE_STORY: "anilist.relation.SIDE_STORY",
-  SOURCE: "anilist.relation.SOURCE",
-  SPIN_OFF: "anilist.relation.SPIN_OFF",
-  SUMMARY: "anilist.relation.SUMMARY",
-};
-
-export const SUPPORTED_RELATION_TYPES = new Set(["ANIME"]);
+import type { TranslationKey } from "@/types/i18n";
 
 export const NODE_W = 70;
 export const NODE_H = 95;
@@ -47,38 +32,38 @@ export const FILTER_GROUPS: Record<string, string[]> = {
 };
 
 export const EDGE_STYLES: Record<string, { color: string; dash: string; width: number }> = {
-  ADAPTATION: { color: "#7f8c8d", dash: "4,3", width: 0.75 },
-  ALTERNATIVE: { color: "#95a5a6", dash: "4,4", width: 0.75 },
-  CHARACTER: { color: "#95a5a6", dash: "4,4", width: 0.75 },
-  CONTAINS: { color: "#7f8c8d", dash: "4,3", width: 0.75 },
-  OTHER: { color: "#bdc3c7", dash: "3,3", width: 0.75 },
-  PARENT: { color: "#7f8c8d", dash: "4,3", width: 0.75 },
-  PREQUEL: { color: "#d97a30", dash: "", width: 1.5 },
-  SEQUEL: { color: "#4a90d9", dash: "", width: 1.5 },
-  SIDE_STORY: { color: "#5a9e6f", dash: "5,3", width: 1 },
-  SOURCE: { color: "#7f8c8d", dash: "4,3", width: 0.75 },
-  SPIN_OFF: { color: "#8e5ea2", dash: "4,4", width: 1 },
-  SUMMARY: { color: "#95a5a6", dash: "5,3", width: 0.75 },
-  UNKNOWN: { color: "#bdc3c7", dash: "3,3", width: 0.75 },
+  ADAPTATION: { color: "var(--color-graph-default)", dash: "4,3", width: 0.75 },
+  ALTERNATIVE: { color: "var(--color-graph-light)", dash: "4,4", width: 0.75 },
+  CHARACTER: { color: "var(--color-graph-light)", dash: "4,4", width: 0.75 },
+  CONTAINS: { color: "var(--color-graph-default)", dash: "4,3", width: 0.75 },
+  OTHER: { color: "var(--color-graph-pale)", dash: "3,3", width: 0.75 },
+  PARENT: { color: "var(--color-graph-default)", dash: "4,3", width: 0.75 },
+  PREQUEL: { color: "var(--color-graph-prequel)", dash: "", width: 1.5 },
+  SEQUEL: { color: "var(--color-graph-sequel)", dash: "", width: 1.5 },
+  SIDE_STORY: { color: "var(--color-graph-side)", dash: "5,3", width: 1 },
+  SOURCE: { color: "var(--color-graph-default)", dash: "4,3", width: 0.75 },
+  SPIN_OFF: { color: "var(--color-graph-spinoff)", dash: "4,4", width: 1 },
+  SUMMARY: { color: "var(--color-graph-light)", dash: "5,3", width: 0.75 },
+  UNKNOWN: { color: "var(--color-graph-pale)", dash: "3,3", width: 0.75 },
 };
 
 export const NODE_BORDER_COLORS: Record<string, string> = {
-  ADAPTATION: "#7f8c8d",
-  ALTERNATIVE: "#95a5a6",
-  CHARACTER: "#95a5a6",
-  CONTAINS: "#7f8c8d",
-  OTHER: "#bdc3c7",
-  PARENT: "#7f8c8d",
-  PREQUEL: "#d97a30",
-  SEQUEL: "#4a90d9",
-  SIDE_STORY: "#5a9e6f",
-  SOURCE: "#7f8c8d",
-  SPIN_OFF: "#8e5ea2",
-  SUMMARY: "#95a5a6",
-  UNKNOWN: "#bdc3c7",
+  ADAPTATION: "var(--color-graph-default)",
+  ALTERNATIVE: "var(--color-graph-light)",
+  CHARACTER: "var(--color-graph-light)",
+  CONTAINS: "var(--color-graph-default)",
+  OTHER: "var(--color-graph-pale)",
+  PARENT: "var(--color-graph-default)",
+  PREQUEL: "var(--color-graph-prequel)",
+  SEQUEL: "var(--color-graph-sequel)",
+  SIDE_STORY: "var(--color-graph-side)",
+  SOURCE: "var(--color-graph-default)",
+  SPIN_OFF: "var(--color-graph-spinoff)",
+  SUMMARY: "var(--color-graph-light)",
+  UNKNOWN: "var(--color-graph-pale)",
 };
 
-export const FILTER_LABELS: Record<string, string> = {
+export const FILTER_LABELS: Record<string, TranslationKey> = {
   OTHER: "anilist.filter.OTHER",
   PREQUEL: "anilist.filter.PREQUEL",
   SEQUEL: "anilist.filter.SEQUEL",

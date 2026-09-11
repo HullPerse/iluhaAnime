@@ -1,18 +1,14 @@
-// @vitest-environment jsdom
-
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { YouTubeMedia } from "@videojs/media/dom/youtube";
+import type { YouTubeAdapter } from "@videojs/youtube-video";
 import { forwardRef } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { VideoPlayer } from "@/components/shared/video.component";
+import { VideoPlayer } from "@/components/shared/video/player.video";
 
 const testEngine = {};
 const openUrlSpy = vi.fn();
 
-// The component syncs from media events ("playing"), so tests dispatch on the
-// instance the player actually registered.
-const mediaInstances: YouTubeMedia[] = [];
+const mediaInstances: YouTubeAdapter[] = [];
 
 vi.mock("@tauri-apps/plugin-opener", () => ({
   openUrl: (...args: unknown[]) => openUrlSpy(...args),
@@ -20,8 +16,6 @@ vi.mock("@tauri-apps/plugin-opener", () => ({
 
 let testTracks: TextTrack[] = [];
 
-// jsdom has no addTextTrack implementation, so the media reports a TextTrackList-like
-// fake (EventTarget + index protocol), mirroring the library's own EMPTY_TEXT_TRACKS.
 function fakeTrackList(): unknown {
   const target = new EventTarget();
   return new Proxy(target, {
@@ -37,10 +31,10 @@ function fakeTrackList(): unknown {
 
 vi.mock("@videojs/react/media/youtube-video", async () => {
   const { useMediaInstance } = await import("@videojs/react");
-  const { YouTubeMedia } = await import("@videojs/media/dom/youtube");
-  class TestYouTubeMedia extends YouTubeMedia {
-    constructor(...args: ConstructorParameters<typeof YouTubeMedia>) {
-      super(...args);
+  const { YouTubeAdapter } = await import("@videojs/youtube-video");
+  class TestYouTubeAdapter extends YouTubeAdapter {
+    constructor() {
+      super();
       mediaInstances.push(this);
     }
     get volume() {
@@ -50,8 +44,7 @@ vi.mock("@videojs/react/media/youtube-video", async () => {
       super.volume = value;
       this.dispatchEvent(new Event("volumechange"));
     }
-    // oxlint-disable-next-line class-literal-property-style
-    get duration() {
+    override get duration(): number {
       return 100;
     }
     get engine() {
@@ -65,12 +58,13 @@ vi.mock("@videojs/react/media/youtube-video", async () => {
   return {
     YouTubeVideo: forwardRef(
       ({ src }: { src: string }, ref: React.Ref<HTMLDivElement>) => {
-        useMediaInstance(TestYouTubeMedia);
+        useMediaInstance(TestYouTubeAdapter);
         return <div ref={ref} data-testid="youtube-player" data-src={src} />;
       }
     ),
   };
 });
+
 
 afterEach(() => {
   cleanup();

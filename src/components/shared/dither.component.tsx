@@ -2,12 +2,12 @@ import { cn } from "cn";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { DITHER_DEFAULTS } from "@/config/utils/dither.config";
+import { renderDitherImage } from "@/lib/utils/dither.render.utils";
 import {
   ditherCacheKey,
   ditherDecodeCache,
   ditherRenderCache,
   getDitherWorker,
-  renderDitherImage,
   resetDitherWorker,
   subscribeWorkerJob,
   withDitherDefaults,
@@ -178,10 +178,8 @@ function DitherCanvas({
       canvas.height = entry.height;
       ctx.putImageData(new ImageData(entry.pixels, entry.width, entry.height), 0, 0);
     };
-    // The canvas pipeline reads pixels back (getImageData), so every source
-    // must load as CORS-clean or getImageData throws on a tainted canvas. The
-    // asset protocol answers with the window origin, data URLs need no request.
     const image = new Image();
+    // getImageData throws on a tainted canvas: every source must load CORS-clean.
     image.crossOrigin = "anonymous";
     const processSource = (
       source: CanvasImageSource,
@@ -232,6 +230,7 @@ function DitherCanvas({
           };
           unsubscribeJob = subscribeWorkerJob(worker, onJobMessage, onJobError, onJobProgress);
           const request: DitherWorkerRequest = {
+            type: "render",
             id: jobId,
             width,
             height,

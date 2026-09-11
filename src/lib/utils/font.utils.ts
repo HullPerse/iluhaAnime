@@ -17,7 +17,8 @@ export function applyFontFamily(font: string | null): void {
   try {
     if (font) localStorage.setItem("appFont", font);
     else localStorage.removeItem("appFont");
-  } catch {}
+  } catch {
+  }
 }
 
 export function getStoredAppFont(): string | null {
@@ -34,6 +35,7 @@ export function getStoredAppFont(): string | null {
         if (typeof v === "string" && v.trim().length > 0) return v;
       }
     }
-  } catch {}
+  } catch {
+  }
   return null;
 }

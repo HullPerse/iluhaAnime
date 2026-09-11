@@ -2,45 +2,62 @@ import { listen } from "@tauri-apps/api/event";
 import { Plus, SortAsc, SortDesc } from "lucide-react";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 
-import { InlineAutocompleteInput } from "@/components/shared/autocomplete.component";
+import { InlineAutocompleteInput } from "@/components/shared/autocomplete/input.autocomplete";
+import { HostStatsLine } from "@/components/shared/hostStats.component";
+import { SmallLoader } from "@/components/shared/loader.component";
 import Pagination from "@/components/shared/pagination.component";
 import { Button } from "@/components/ui/button.component";
 import Select from "@/components/ui/select.component";
 import { TORRENT_PAGE_SIZE } from "@/config/torrent/common.config";
+import { useHostStats } from "@/hooks/hostStats.hook";
 import { usePagination } from "@/hooks/pagination.hook";
-import { usePolling } from "@/hooks/polling.hook";
 import { useSearchField } from "@/hooks/search/field.hook";
+import {
+  usePauseTorrent,
+  useRecheckTorrent,
+  useRedownloadFile,
+  useRemoveTorrent,
+  useResumeTorrent,
+  useSetFilePriority,
+  useSetSequentialDownload,
+  useTorrentFilesMap,
+  useTorrents,
+  useUpdateOnlyFiles,
+} from "@/hooks/torrent/queries.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
-import { fmtSpeed, getTorrentLifecycle, getLifecycleLabel } from "@/lib/torrent/common.utils";
+import { fmtSpeed, getLifecycleLabel, getTorrentLifecycle } from "@/lib/torrent/common.utils";
+import { reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { paginate } from "@/lib/utils/pagination.utils";
 import { useCacheStore } from "@/store/cache.store";
 import { useTorrentStore } from "@/store/download.store";
 import { useNotificationStore } from "@/store/notification.store";
 import { useSettingsStore } from "@/store/settings.store";
-import type { TorrentLifecycle } from "@/types/torrent";
+import type { TorrentInfo, TorrentLifecycle } from "@/types/torrent";
 
 import TorrentItem from "./components/torrent/item.torrent";
 import AddTorrentModal from "./components/torrent/magnet.torrent";
 import SpeedLimitForm from "./components/torrent/speed.torrent";
 
+const NO_TORRENTS: TorrentInfo[] = [];
+
 function TorrentRoute() {
-  const torrents = useTorrentStore((state) => state.torrents);
+  const { data, isLoading: torrentsLoading } = useTorrents();
+  const torrents = data ?? NO_TORRENTS;
   const limits = useTorrentStore((state) => state.limits);
-  const torrentFilesMap = useTorrentStore((state) => state.torrentFilesMap);
-  const pauseTorrent = useTorrentStore((state) => state.pauseTorrent);
-  const resumeTorrent = useTorrentStore((state) => state.resumeTorrent);
-  const removeTorrent = useTorrentStore((state) => state.removeTorrent);
+  const pauseMutation = usePauseTorrent();
+  const resumeMutation = useResumeTorrent();
+  const removeMutation = useRemoveTorrent();
+  const updateOnlyFilesMutation = useUpdateOnlyFiles();
   const setSpeedLimits = useTorrentStore((state) => state.setSpeedLimits);
-  const updateTorrentOnlyFiles = useTorrentStore((state) => state.updateTorrentOnlyFiles);
   const prepareTorrentDownload = useTorrentStore((state) => state.prepareTorrentDownload);
   const prepareTorrentDownloadFromFile = useTorrentStore(
     (state) => state.prepareTorrentDownloadFromFile
   );
-  const setFilePriority = useTorrentStore((state) => state.setFilePriority);
-  const setSequentialDownload = useTorrentStore((state) => state.setSequentialDownload);
+  const setFilePriorityMutation = useSetFilePriority();
+  const setSequentialMutation = useSetSequentialDownload();
   const setSeedPreference = useCacheStore((state) => state.setSeedPreference);
-  const redownloadFile = useTorrentStore((state) => state.redownloadFile);
-  const recheckTorrent = useTorrentStore((state) => state.recheckTorrent);
+  const redownloadMutation = useRedownloadFile();
+  const recheckMutation = useRecheckTorrent();
   const opInFlight = useTorrentStore((state) => state.opInFlight);
 
   const [downloadInput, setDownloadInput] = useState(
@@ -57,7 +74,7 @@ function TorrentRoute() {
   const [page, setPage] = useState(1);
   const listRef = useRef<HTMLElement>(null);
   const { t } = useI18n();
-
+  const hostStats = useHostStats(true);
   const [lifecycleFilter, setLifecycleFilter] = useState<TorrentLifecycle | "all">("all");
 
   const lifecycleTorrents = useMemo(() => {
@@ -88,6 +105,11 @@ function TorrentRoute() {
   const pagedTorrents = useMemo(
     () => paginate(filteredTorrents, page, TORRENT_PAGE_SIZE),
     [filteredTorrents, page]
+  );
+  const visibleIds = useMemo(() => pagedTorrents.map((t) => t.id), [pagedTorrents]);
+  const { files: torrentFilesMap, errors: torrentFilesErrors } = useTorrentFilesMap(
+    visibleIds,
+    2000
   );
   const extraValues = useMemo(() => {
     const names = torrents.map((torrent) => torrent.name);
@@ -144,44 +166,12 @@ function TorrentRoute() {
         if (disposed) cleanup();
         else unlisten = cleanup;
       })
-      .catch(() => {});
+      .catch((error) => reportBackgroundError("drag-drop.listen", error));
     return () => {
       disposed = true;
       unlisten?.();
     };
   }, [prepareTorrentDownloadFromFile]);
-
-  usePolling({
-    intervalMs: 5000,
-    collectKeys: () => useTorrentStore.getState().torrents.map((t) => t.id),
-    shouldFetch: (id) => !useTorrentStore.getState().torrentFilesMap[id],
-    fetch: (id) => useTorrentStore.getState().loadTorrentFiles(id),
-  });
-
-  usePolling({
-    intervalMs: 2000,
-    enabled: expanded.size > 0,
-    collectKeys: () =>
-      useTorrentStore
-        .getState()
-        .torrents.filter((t) => expanded.has(t.id))
-        .map((t) => t.id),
-    shouldFetch: (id) => Boolean(useTorrentStore.getState().torrentFilesMap[id]),
-    fetch: (id) => useTorrentStore.getState().loadTorrentFiles(id),
-  });
-
-  useEffect(() => {
-    const handleFocus = () => {
-      const state = useTorrentStore.getState();
-      state.torrents.forEach((t) => {
-        if (state.torrentFilesMap[t.id]) {
-          state.loadTorrentFiles(t.id);
-        }
-      });
-    };
-    window.addEventListener("focus", handleFocus);
-    return () => window.removeEventListener("focus", handleFocus);
-  }, []);
 
   useEffect(() => {
     const { limits: prefs } = useSettingsStore.getState();
@@ -197,7 +187,8 @@ function TorrentRoute() {
       totalDl > 0 || totalUl > 0
         ? ` download ${fmtSpeed(totalDl)} upload ${fmtSpeed(totalUl)}`
         : "";
-    document.title = `iluhaAnime${suffix}`;
+    const next = `iluhaAnime${suffix}`;
+    if (document.title !== next) document.title = next;
   }, [torrents]);
 
   const applySpeedLimits = useCallback(() => {
@@ -251,6 +242,7 @@ function TorrentRoute() {
             speed: fmtSpeed(summary.upload) || "0 B/s",
           })}
         </span>
+        <HostStatsLine stats={hostStats} showNet />
       </section>
       <section className="windows95-active-border bg-primary flex flex-wrap items-center gap-1 p-0.5">
         {(["all", "staging", "live", "paused", "seeding", "completed"] as const).map((lc) => (
@@ -300,6 +292,14 @@ function TorrentRoute() {
         </Button>
       </section>
 
+      {torrentsLoading && total === 0 && (
+        <section
+          aria-busy
+          className="windows95-border bg-primary flex min-h-0 w-full flex-1 items-center justify-center p-1"
+        >
+          <SmallLoader size={6} />
+        </section>
+      )}
       {total > 0 && (
         <section
           ref={listRef}
@@ -307,40 +307,59 @@ function TorrentRoute() {
         >
           {pagedTorrents.map((item) => {
             const isExpanded = expanded.has(item.id);
-            const files = torrentFilesMap[item.id];
+            const files = torrentFilesMap[item.id] ?? [];
 
             return (
               <TorrentItem
                 key={item.id}
                 item={item}
                 files={files}
+                filesError={torrentFilesErrors[item.id]}
                 isExpanded={isExpanded}
                 busy={opInFlight[item.id] !== undefined}
                 onToggleExpand={() => toggleExpanded(item.id)}
-                onPause={() => pauseTorrent(item.id, item.info_hash)}
-                onResume={() => resumeTorrent(item.id, item.info_hash)}
+                onPause={() => pauseMutation.mutate({ id: item.id, infoHash: item.info_hash })}
+                onResume={() => resumeMutation.mutate({ id: item.id, infoHash: item.info_hash })}
                 onSeedChange={(enabled) => {
                   setSeedPreference(item.id, enabled);
-                  if (enabled) resumeTorrent(item.id, item.info_hash);
-                  else pauseTorrent(item.id, item.info_hash);
+                  if (enabled) resumeMutation.mutate({ id: item.id, infoHash: item.info_hash });
+                  else pauseMutation.mutate({ id: item.id, infoHash: item.info_hash });
                 }}
-                onRemove={(deleteFiles) => removeTorrent(item.id, deleteFiles, item.info_hash)}
-                onUpdateFiles={(indices) => updateTorrentOnlyFiles(item.id, indices, item.info_hash)}
+                onRemove={(deleteFiles) =>
+                  removeMutation.mutate({ id: item.id, deleteFiles, infoHash: item.info_hash })
+                }
+                onUpdateFiles={(indices) =>
+                  updateOnlyFilesMutation.mutate({ id: item.id, indices, infoHash: item.info_hash })
+                }
                 onFilePriorityChange={(indices, priority) =>
-                  setFilePriority(item.id, indices, priority, item.info_hash)
+                  setFilePriorityMutation.mutate({
+                    id: item.id,
+                    fileIndices: indices,
+                    priority,
+                    infoHash: item.info_hash,
+                  })
                 }
                 onSetSequential={(enabled) =>
-                  setSequentialDownload(item.id, enabled, item.info_hash)
+                  setSequentialMutation.mutate({ id: item.id, enabled, infoHash: item.info_hash })
                 }
                 onRetry={async () => {
-                  const removed = await removeTorrent(item.id, false, item.info_hash);
+                  const removed = await removeMutation.mutateAsync({
+                    id: item.id,
+                    deleteFiles: false,
+                    infoHash: item.info_hash,
+                  });
                   if (!removed) return;
                   const magnet = `magnet:?xt=urn:btih:${item.info_hash}`;
                   prepareTorrentDownload(magnet);
                 }}
-                onRedownload={(fileIndex) => redownloadFile(item.id, fileIndex, item.info_hash)}
+                onRedownload={(fileIndex) =>
+                  redownloadMutation.mutate({ id: item.id, fileIndex, infoHash: item.info_hash })
+                }
                 onRecheck={async () => {
-                  const result = await recheckTorrent(item.id, item.info_hash);
+                  const result = await recheckMutation.mutateAsync({
+                    id: item.id,
+                    infoHash: item.info_hash,
+                  });
                   if (!result) return;
                   const { add } = useNotificationStore.getState();
                   if (result.missing.length === 0 && result.size_mismatch.length === 0) {

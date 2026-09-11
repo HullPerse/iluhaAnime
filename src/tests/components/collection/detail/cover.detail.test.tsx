@@ -1,5 +1,3 @@
-// @vitest-environment jsdom
-
 import type * as TauriCore from "@tauri-apps/api/core";
 import { cleanup, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -43,7 +41,6 @@ const coverItem = (coverUrl: string) =>
 describe("DetailCoverCollection", () => {
   it("reserves a fixed-size slot while the backend cover resolves", async () => {
     useSettingsStore.setState({ tmdbProxyUrl: "http://127.0.0.1:10809" });
-    // The tsconfig lib predates es2024, so Promise.withResolvers has no types here.
     let resolveDownload!: (value: unknown) => void;
     let resolveFetch!: (value: unknown) => void;
     mockInvoke.mockImplementation((cmd: string) => {

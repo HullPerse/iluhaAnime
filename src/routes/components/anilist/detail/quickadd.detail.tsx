@@ -1,30 +1,29 @@
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
-import { withStoredMedia } from "@/lib/collection/media.utils";
 import { useCollectionData, useCollectionMutations } from "@/hooks/collection/queries.hook";
-import {
-  mediaToWizardValues,
-  type QuickAddListEntry,
-  type QuickAddMedia,
-} from "@/lib/collection/import.utils";
+import { mediaToWizardValues } from "@/lib/collection/import.utils";
+import { withStoredMedia } from "@/lib/collection/media.utils";
 import { buildWizardItem } from "@/lib/collection/wizard.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
+import { attempt } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
-import { useSettingsStore } from "@/store/settings.store";
 import { useNotificationStore } from "@/store/notification.store";
+import { useSettingsStore } from "@/store/settings.store";
+import type { QuickAddListEntry, QuickAddMedia } from "@/types/collection";
 
 async function downloadCover(url: string): Promise<string | null> {
   if (!url.startsWith("http://") && !url.startsWith("https://")) return null;
-  try {
-    const cached = await invokeTyped<{ id: string }>("download_remote_image", {
+
+  const [data, error] = await attempt(
+    invokeTyped<{ id: string }>("download_remote_image", {
       url,
       nameHint: "collection-cover",
-    });
-    return cached.id;
-  } catch {
-    return null;
-  }
+    })
+  );
+
+  if (error) return null;
+  else return data.id;
 }
 
 interface AddedMedia {
@@ -32,47 +31,40 @@ interface AddedMedia {
   trailerYoutubeId: string | null;
 }
 
-/**
- * Fetches stills (TMDB with the key, Jikan as fallback) and the trailer for the
- * quick-added anime so the collection media viewer has content. Failures are
- * non-fatal: the viewer falls back to live fetching by anilist id.
- */
 async function fetchAddedMedia(media: QuickAddMedia): Promise<AddedMedia | null> {
-  const { tmdbApiKey, tmdbProxyUrl } = useSettingsStore.getState();
+  const { tmdbKeySet, tmdbProxyUrl } = useSettingsStore.getState();
   let media_type: "movie" | "tv" | null = null;
   let tmdbId: number | null = null;
-  if (tmdbApiKey) {
+  if (tmdbKeySet) {
     try {
       const results = await invokeTyped<{ id: number; media_type: string }[]>("search_tmdb", {
-        apiKey: tmdbApiKey,
+        apiKey: "",
         query: media.title,
         language: "ru-RU",
         includeAdult: false,
         proxyUrl: tmdbProxyUrl || undefined,
-      } as unknown as Record<string, unknown>);
+      });
       const first = results.find((r) => r.media_type === "movie" || r.media_type === "tv");
       if (first) {
         tmdbId = first.id;
         media_type = first.media_type as "movie" | "tv";
       }
     } catch {
-      // fall through to Jikan
     }
   }
   if (tmdbId != null && media_type != null) {
     try {
       const tmdb = await invokeTyped<AddedMedia>("get_tmdb_media", {
-        apiKey: tmdbApiKey,
+        apiKey: "",
         tmdbId,
         mediaType: media_type,
         proxyUrl: tmdbProxyUrl || undefined,
-      } as unknown as Record<string, unknown>);
+      });
       return {
         backdrops: tmdb.backdrops,
         trailerYoutubeId: tmdb.trailerYoutubeId ?? media.trailer_youtube_id ?? null,
       };
     } catch {
-      // fall through to Jikan
     }
   }
   if (media.id_mal != null) {
@@ -119,7 +111,10 @@ export default function QuickAddButton({
               ...built,
               detailsJson: withStoredMedia(
                 built.detailsJson,
-                added.backdrops.map((b) => b.url).filter(Boolean).slice(0, 8),
+                added.backdrops
+                  .map((b) => b.url)
+                  .filter(Boolean)
+                  .slice(0, 8),
                 added.trailerYoutubeId
               ),
             }

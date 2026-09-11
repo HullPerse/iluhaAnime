@@ -22,3 +22,7 @@ export async function withFallback<T>(promise: Promise<T>, fallback: T): Promise
   const [data, error] = await attempt(promise);
   return error ? fallback : data;
 }
+
+export function reportBackgroundError(scope: string, error: unknown): void {
+  console.warn(`background task failed: ${scope}`, error);
+}

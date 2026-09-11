@@ -1,6 +1,6 @@
 import { CORE_DEFAULT_LABELS } from "@/config/collection/defaults.config";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
-import type { Locale } from "@/types";
+import type { Locale } from "@/types/i18n";
 import type { CollectionStatusDef } from "@/types/collection";
 
 export function statusColorOf(statuses: CollectionStatusDef[], id: string): string {

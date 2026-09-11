@@ -4,11 +4,8 @@ import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { withFallback } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSettingsStore } from "@/store/settings.store";
+import type { ViewerMedia } from "@/types/collection";
 
-export interface ViewerMedia {
-  backdrops: { url: string }[];
-  trailerYoutubeId: string | null;
-}
 
 export function useCollectionMedia(
   tmdbId: number | null,
@@ -17,22 +14,22 @@ export function useCollectionMedia(
   fetchMedia: boolean,
   fetchTrailer: boolean
 ) {
-  const tmdbApiKey = useSettingsStore((s) => s.tmdbApiKey);
+  const tmdbKeySet = useSettingsStore((s) => s.tmdbKeySet);
   const tmdbProxyUrl = useSettingsStore((s) => s.tmdbProxyUrl);
   const anilistProxyUrl = useSettingsStore((s) => s.anilistProxyUrl);
   const media = useQuery({
-    queryKey: ["tmdb_media", tmdbId, mediaType, tmdbApiKey ? 1 : 0, tmdbProxyUrl ?? "", "v2"],
+    queryKey: ["tmdb_media", tmdbId, mediaType, tmdbKeySet ? 1 : 0, tmdbProxyUrl ?? "", "v2"],
     queryFn: () =>
       withFallback(
         invokeTyped<ViewerMedia>("get_tmdb_media", {
-          apiKey: tmdbApiKey,
+          apiKey: "",
           tmdbId,
           mediaType,
           proxyUrl: tmdbProxyUrl || undefined,
-        } as unknown as Record<string, unknown>),
+        }),
         null
       ),
-    enabled: fetchMedia && tmdbApiKey !== null && tmdbId !== null,
+    enabled: fetchMedia && tmdbKeySet && tmdbId !== null,
     staleTime: Infinity,
   });
   const trailer = useQuery({

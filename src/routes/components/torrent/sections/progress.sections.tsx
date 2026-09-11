@@ -5,11 +5,11 @@ import { useI18n } from "@/lib/locale/i18n.utils";
 import {
   DISPLAY_BAR_CLASS,
   displayStateLabel,
-  fmtETA,
-  fmtSize,
   fmtSpeed,
   getDisplayState,
 } from "@/lib/torrent/common.utils";
+import { formatBytes } from "@/lib/utils/bytes.utils";
+import { formatETA } from "@/lib/utils/time.utils";
 import { useTorrentStore } from "@/store/download.store";
 import type { TorrentInfo } from "@/types/torrent";
 
@@ -31,8 +31,8 @@ export function TorrentProgress({ item }: { item: TorrentInfo }) {
           <span className="windows95-text text-hint">{displayStateLabel(display, t)}</span>
           <span className="windows95-font text-xs">
             {item.total_bytes > 0
-              ? `${fmtSize(item.progress_bytes)} / ${fmtSize(item.total_bytes)} (${progress.toFixed(1)}%)`
-              : fmtSize(item.progress_bytes)}
+          ? `${formatBytes(item.progress_bytes)} / ${formatBytes(item.total_bytes)} (${progress.toFixed(1)}%)`
+          : formatBytes(item.progress_bytes)}
           </span>
           <span className="windows95-font text-hint text-xs">
             {fmtSpeed(item.download_speed)}
@@ -41,8 +41,8 @@ export function TorrentProgress({ item }: { item: TorrentInfo }) {
                 {t("torrent.ratio", { ratio: item.share_ratio.toFixed(2) })}
               </span>
             )}
-            {fmtSpeed(item.download_speed) && fmtETA(item.eta_secs, t) && " - "}
-            {fmtETA(item.eta_secs, t)}
+            {fmtSpeed(item.download_speed) && formatETA(item.eta_secs, t) && " - "}
+            {formatETA(item.eta_secs, t)}
           </span>
           <span className="ml-auto flex flex-row">
             {(item.upload_speed > 0 || item.uploaded_bytes > 0 || item.peers_connected > 0) && (
@@ -54,10 +54,10 @@ export function TorrentProgress({ item }: { item: TorrentInfo }) {
                 )}
                 {item.uploaded_bytes > 0 && (
                   <span className="text-hint windows95-font text-xs">
-                    <ArrowUp className="inline size-2.5" /> {fmtSize(item.uploaded_bytes)}
+          <ArrowUp className="inline size-2.5" /> {formatBytes(item.uploaded_bytes)}
                   </span>
                 )}
-                <span className="text-hint windows95-font text-xs">P: {item.peers_connected}</span>
+                <span className="text-hint windows95-font text-xs">{t("torrent.peers", { count: item.peers_connected })}</span>
               </div>
             )}
           </span>

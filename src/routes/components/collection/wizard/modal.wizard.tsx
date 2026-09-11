@@ -4,32 +4,26 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Tabs from "@/components/shared/tabs.component";
 import { Button } from "@/components/ui/button.component";
 import {
-  WIZARD_COVER_MAX,
   WIZARD_SEARCH_DEBOUNCE_MS,
   WIZARD_TABS,
 } from "@/config/collection/defaults.config";
 import { useDiscardGuard, useDirtySinceMount } from "@/hooks/collection/discard.hook";
+import { useWizardPick } from "@/hooks/collection/pick.hook";
 import { useCollectionData } from "@/hooks/collection/queries.hook";
+import { useWizardSave } from "@/hooks/collection/save.hook";
 import { useWizardSearch } from "@/hooks/collection/search.hook";
 import { useWizardForm } from "@/hooks/collection/wizard.hook";
-import { useEscapeClose } from "@/hooks/useEscapeClose.hook";
-import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
-import { withStoredMedia } from "@/lib/collection/media.utils";
-import { mergeGenreTags } from "@/lib/collection/wizard.utils";
+import { useEscapeClose } from "@/hooks/escapeClose.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { normalizeSearchText } from "@/lib/search/suggestions.utils";
-import { isDirectImageSrc } from "@/lib/utils/image.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSearchStore } from "@/store/search.store";
 import { useSettingsStore } from "@/store/settings.store";
-import type { AniAnimeStaffEdge, AniCharacterEdge } from "@/types/anilist";
 import type {
   CollectionItem,
   CollectionStatus,
   CollectionStatusDef,
   CustomFieldDef,
   WizardPrefill,
-  WizardSearchResult,
   WizardTab,
 } from "@/types/collection";
 
@@ -102,13 +96,11 @@ export function WizardModal({
     coverUrl,
     setCoverUrl,
     externalIds,
-    setExternalIds,
     localPath,
     setLocalPath,
     setLocalKind,
     customFields,
     setCustomFields,
-    buildItem,
     previewItem,
   } = form;
   const prefillApplied = useRef(false);
@@ -120,7 +112,7 @@ export function WizardModal({
     setStatus(prefill.status);
   }, [initial, prefill, setTitle, setCoverUrl, setStatus]);
   const [coverBroken, setCoverBroken] = useState(false);
-  const tmdbApiKey = useSettingsStore((s) => s.tmdbApiKey);
+  const tmdbKeySet = useSettingsStore((s) => s.tmdbKeySet);
   const tmdbProxyUrl = useSettingsStore((s) => s.tmdbProxyUrl);
   const { t } = useI18n();
   const { items: collectionItems } = useCollectionData();
@@ -151,7 +143,7 @@ export function WizardModal({
     [animeIndex]
   );
   const { searchResults, coverOptions, setCoverOptions, loading, searchError, runSearch } =
-    useWizardSearch(source, search, tmdbApiKey, tmdbProxyUrl, existingTitles, favIds);
+    useWizardSearch(source, search, tmdbKeySet, tmdbProxyUrl, existingTitles, favIds);
   const editing = Boolean(initial);
 
   const selectCover = useCallback(
@@ -178,155 +170,16 @@ export function WizardModal({
     [setCoverOptions, setCoverUrl]
   );
 
-  function applyCoverFromResult(cover: string | null): void {
-    if (!cover) return;
-    coverBlobIdRef.current = null;
-    setCoverBroken(false);
-    setCoverUrl(cover);
-    setCoverOptions((prev) => (prev.includes(cover) ? prev : [cover, ...prev]));
-  }
-
-  function applyExternalId(resultId: number): void {
-    const key = source === "anilist" ? "anilist" : source === "tmdb" ? "tmdb" : null;
-    if (!key) return;
-    setExternalIds((prev) => ({ ...prev, [key]: resultId }));
-  }
-
-  const tmdbPickRef = useRef(0);
-  const mediaRef = useRef<{ stills: string[]; trailerYoutubeId: string | null } | null>(null);
-  const handlePickResult = (r: WizardSearchResult) => {
-    setTitle(r.title);
-    if (r.altTitles?.length) {
-      setAltTitles(r.altTitles.join(", "));
-    }
-    if (r.year) setYear(String(r.year));
-    applyCoverFromResult(r.cover_url);
-    if (r.duration) setDurationMinutes(String(r.duration));
-    if (r.episodes) setProgressTotal(String(r.episodes));
-    const mergedGenres = mergeGenreTags(r.genres ?? [], r.tags ?? []);
-    if (mergedGenres.length) setGenres(mergedGenres.join(", "));
-    if (r.studio) setStudio(r.studio);
-    if (r.description) setDescription(r.description);
-    applyExternalId(r.id);
-    if (source === "tmdb" && tmdbApiKey && (r.mediaType === "movie" || r.mediaType === "tv")) {
-      tmdbPickRef.current += 1;
-      const pickId = tmdbPickRef.current;
-      const mediaType = r.mediaType;
-      invokeTyped<{
-        title: string;
-        overview: string | null;
-        year: number | null;
-        runtimeMinutes: number | null;
-        genres: string[];
-        posters: { url: string }[];
-      }>("get_tmdb_details", {
-        apiKey: tmdbApiKey,
-        tmdbId: r.id,
-        mediaType,
-        proxyUrl: tmdbProxyUrl || undefined,
-      } as unknown as Record<string, unknown>)
-        .then((d) => {
-          if (tmdbPickRef.current !== pickId) return;
-          if (d.overview) setDescription(d.overview);
-          if (d.genres.length) setGenres(d.genres.join(", "));
-          if (d.year) setYear(String(d.year));
-          if (d.runtimeMinutes) setDurationMinutes(String(d.runtimeMinutes));
-          setType(mediaType === "movie" ? "movie" : "series");
-          const posters = d.posters.map((p) => p.url).filter(Boolean);
-          if (posters.length)
-            setCoverOptions((prev) =>
-              [...new Set([...posters, ...prev])].slice(0, WIZARD_COVER_MAX)
-            );
-          invokeTyped<{
-            backdrops: { url: string }[];
-            trailerYoutubeId: string | null;
-          }>("get_tmdb_media", {
-            apiKey: tmdbApiKey,
-            tmdbId: r.id,
-            mediaType,
-            proxyUrl: tmdbProxyUrl || undefined,
-          } as unknown as Record<string, unknown>)
-            .then((m) => {
-              if (tmdbPickRef.current !== pickId) return;
-              mediaRef.current = {
-                stills: m.backdrops
-                  .map((b) => b.url)
-                  .filter(Boolean)
-                  .slice(0, 8),
-                trailerYoutubeId: m.trailerYoutubeId,
-              };
-            })
-            .catch(() => {});
-        })
-        .catch(() => {});
-    }
-  };
-
-  async function resolveCoverBlobId(
-    currentBlobId: string | null,
-    url: string
-  ): Promise<string | null> {
-    if (currentBlobId) return currentBlobId;
-    if (isDirectImageSrc(url)) return null;
-    if (!url.startsWith("http://") && !url.startsWith("https://")) return null;
-    try {
-      const cached = await invokeTyped<{ id: string }>("download_remote_image", {
-        url,
-        nameHint: "collection-cover",
-      });
-      return cached.id;
-    } catch {
-      return null;
-    }
-  }
-
-  const handleSave = async () => {
-    if (!title.trim() || !coverUrl) return;
-    const blobId = await resolveCoverBlobId(coverBlobIdRef.current, coverUrl);
-    const built = buildItem(blobId);
-    const media = mediaRef.current;
-    const base = media
-      ? {
-          ...built,
-          detailsJson: withStoredMedia(built.detailsJson, media.stills, media.trailerYoutubeId),
-        }
-      : built;
-    const anilistId = base.externalIds.anilist;
-    if (!anilistId) {
-      onSave(base);
-      onClose();
-      return;
-    }
-    const proxyArgs = anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl);
-    const [characters, staff] = await Promise.all([
-      invokeTyped<AniCharacterEdge[]>("get_anime_characters", {
-        id: anilistId,
-        page: 1,
-        ...proxyArgs,
-      }).catch(() => [] as AniCharacterEdge[]),
-      invokeTyped<AniAnimeStaffEdge[]>("get_anime_staff", {
-        id: anilistId,
-        ...proxyArgs,
-      }).catch(() => [] as AniAnimeStaffEdge[]),
-    ]);
-    onSave({
-      ...base,
-      detailsJson: {
-        ...base.detailsJson,
-        staff: staff.length
-          ? staff.slice(0, 30).map((s) => ({ id: s.id, name: s.name, role: s.role }))
-          : (base.detailsJson?.staff ?? []),
-        characters: characters.length
-          ? characters.map((c) => ({
-              id: c.character.id,
-              name: c.character.name,
-              voiceActors: c.voice_actors.slice(0, 3).map((v) => ({ id: v.id, name: v.name })),
-            }))
-          : (base.detailsJson?.characters ?? []),
-      },
-    });
-    onClose();
-  };
+  const { handlePickResult, mediaRef } = useWizardPick({
+    form,
+    source,
+    tmdbKeySet,
+    tmdbProxyUrl,
+    coverBlobIdRef,
+    setCoverBroken,
+    setCoverOptions,
+  });
+  const { handleSave } = useWizardSave({ form, coverBlobIdRef, mediaRef, onSave, onClose });
 
   useEffect(() => {
     if (editing) return;
@@ -392,7 +245,7 @@ export function WizardModal({
                   setSearch={setSearch}
                   onSearch={runSearch}
                   loading={loading}
-                  hasTmdbKey={!!tmdbApiKey}
+                  hasTmdbKey={tmdbKeySet}
                   searchError={searchError}
                   searchResults={searchResults}
                   onPickResult={handlePickResult}

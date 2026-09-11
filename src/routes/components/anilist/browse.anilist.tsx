@@ -1,9 +1,10 @@
+import { toLocaleKey } from "@/lib/locale/key.utils";
 import { useQuery } from "@tanstack/react-query";
 import { Star } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { FavPeopleStar } from "@/components/shared/favPeopleStar.component";
-import { SmallLoader } from "@/components/shared/loader.component";
+import { TabLoader } from "@/components/shared/loader.component";
 import Modal from "@/components/shared/modal.component";
 import Pagination from "@/components/shared/pagination.component";
 import Tabs from "@/components/shared/tabs.component";
@@ -63,6 +64,7 @@ export default function BrowseAnimeModal({
         adult: false,
         ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
       }),
+    placeholderData: (previous) => previous,
   });
 
   const { total, from, to, lastPage } = usePagination(data.length, BROWSE_PAGE_SIZE, page, setPage);
@@ -87,9 +89,7 @@ export default function BrowseAnimeModal({
 
       <div ref={scrollRef} className="flex flex-1 flex-col gap-1 overflow-y-auto p-1">
         {isLoading ? (
-          <div className="flex flex-1 items-center justify-center">
-            <SmallLoader size={6} className="windows95-text" />
-          </div>
+          <TabLoader className="flex-1" />
         ) : paged.length === 0 ? (
           <div className="flex flex-1 items-center justify-center">
             <span className="windows95-text">{t("common.no.results")}</span>
@@ -124,9 +124,7 @@ export default function BrowseAnimeModal({
                           height: 10,
                           backgroundColor: getStatusColor(entry.list_status),
                         }}
-                        title={t(
-                          (listStatusLabels[entry.list_status] ?? entry.list_status) as never
-                        )}
+                        title={t(toLocaleKey(listStatusLabels[entry.list_status] ?? entry.list_status))}
                       />
                     )}
 
@@ -147,11 +145,11 @@ export default function BrowseAnimeModal({
                       </span>
                     )}
                     <span>
-                      {t((statusLabels[item.status.toUpperCase()] ?? item.status) as never)}
+                      {t(toLocaleKey(statusLabels[item.status.toUpperCase()] ?? item.status))}
                     </span>
                     {item.season && item.season_year && (
                       <span>
-                        {t((seasonLabels[item.season] ?? item.season) as never)} {item.season_year}
+                        {t(toLocaleKey(seasonLabels[item.season] ?? item.season))} {item.season_year}
                       </span>
                     )}
                   </div>

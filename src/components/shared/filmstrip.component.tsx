@@ -6,7 +6,7 @@ import ImageComponent from "@/components/ui/image.component";
 import { useRemoteImage } from "@/hooks/remoteImage.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { enterOrSpace } from "@/lib/utils/keyboard.utils";
-import { VideoPlayer } from "@/components/shared/video.component";
+import { VideoPlayer } from "@/components/shared/video/player.video";
 
 function FilmstripThumb({ src }: { src: string }) {
   const resolved = useRemoteImage(src);
@@ -16,13 +16,6 @@ function FilmstripThumb({ src }: { src: string }) {
 
 export type FilmstripTab = "frames" | "trailer";
 
-/**
- * Design A "film strip": big scene on top, a thumbnail strip below with the
- * active frame highlighted; arrows and keyboard flip frames, the trailer is a
- * tab next to the frames instead of replacing them. Works uncontrolled or
- * controlled (activeTab + onTabChange, hideTabs hides the built-in row when
- * the parent renders its own tabs).
- */
 export function FilmstripViewer({
   stills,
   trailerYoutubeId,

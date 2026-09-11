@@ -65,8 +65,8 @@ function ColorPicker({
             className="focus-visible:outline-text size-5 cursor-pointer border focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-dotted"
             style={{
               background: c,
-              borderColor: hex === c ? "#ffffff" : "#808080",
-              outline: hex === c ? "2px solid #000080" : undefined,
+              borderColor: hex === c ? "var(--color-win-highlight)" : "var(--color-win-shadow)",
+              outline: hex === c ? "2px solid var(--color-secondary)" : undefined,
               outlineOffset: hex === c ? "-2px" : undefined,
             }}
             onClick={() => pickColor(c)}
@@ -191,7 +191,7 @@ function ColorPickerTrigger({
     <div className="inline-block">
       <div
         ref={triggerRef}
-        className="windows95-border h-6 min-h-[var(--ui-control-height)] w-10 cursor-pointer"
+        className="windows95-border h-6 min-h-(--ui-control-height) w-10 cursor-pointer"
         style={{ background: value }}
         onClick={toggleOpen}
         role="button"

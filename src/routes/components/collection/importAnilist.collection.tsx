@@ -1,3 +1,5 @@
+import { toLocaleKey } from "@/lib/locale/key.utils";
+import type { TranslationVariables } from "@/types/i18n";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -188,9 +190,9 @@ export default function ImportAnilistCollection({
   const notify = (
     type: "success" | "error" | "info",
     key: string,
-    vars?: Record<string, unknown>
+    vars?: TranslationVariables
   ) => {
-    useNotificationStore.getState().add(t("app.collection"), type, t(key as never, vars as never));
+    useNotificationStore.getState().add(t("app.collection"), type, t(toLocaleKey(key), vars));
   };
 
   const importEntries = async (entries: AniListEntry[]) => {

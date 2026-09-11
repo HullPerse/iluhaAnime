@@ -232,7 +232,10 @@ pub fn parse_animedia(m: &serde_json::Value) -> AniMedia {
                     .map(String::from)
             }),
         season: m["season"].as_str().map(String::from),
-        season_year: m["seasonYear"].as_i64().map(|n| n as i32),
+        season_year: m["seasonYear"]
+            .as_i64()
+            .map(|n| n as i32)
+            .or_else(|| m["startDate"]["year"].as_i64().map(|n| n as i32)),
         studios: m["studios"]["nodes"]
             .as_array()
             .map(|s| {
@@ -377,34 +380,95 @@ async fn fetch_paginated(
     )
     .await
 }
+const SEARCH_MEDIA_GQL: &str = r"
+    query (
+        $page: Int,
+        $perPage: Int,
+        $search: String,
+        $tag_in: [String],
+        $genre_in: [String],
+        $format: MediaFormat,
+        $status: MediaStatus,
+        $season: MediaSeason,
+        $seasonYear: Int,
+        $isAdult: Boolean,
+        $sort: [MediaSort],
+        $source: MediaSource,
+        $countryOfOrigin: CountryCode,
+        $startDate_greater: FuzzyDateInt,
+        $startDate_lesser: FuzzyDateInt,
+        $episodes_greater: Int,
+        $episodes_lesser: Int,
+        $averageScore_greater: Int,
+        $averageScore_lesser: Int
+    ) {
+        Page(page: $page, perPage: $perPage) {
+            pageInfo { total }
+            media(
+                search: $search
+                type: ANIME
+                tag_in: $tag_in
+                genre_in: $genre_in
+                format: $format
+                status: $status
+                season: $season
+                seasonYear: $seasonYear
+                isAdult: $isAdult
+                sort: $sort
+                source: $source
+                countryOfOrigin: $countryOfOrigin
+                startDate_greater: $startDate_greater
+                startDate_lesser: $startDate_lesser
+                episodes_greater: $episodes_greater
+                episodes_lesser: $episodes_lesser
+                averageScore_greater: $averageScore_greater
+                averageScore_lesser: $averageScore_lesser
+            ) {
+                id
+                title { romaji english native }
+                synonyms
+                episodes
+                duration
+                status
+                averageScore
+                genres
+                tags { name }
+                description(asHtml: false)
+                coverImage { medium large }
+                season
+                seasonYear
+                studios { nodes { id name } }
+                nextAiringEpisode { episode airingAt }
+            }
+        }
+    }
+";
+
+fn clamp_filter_paging(page: u32, per_page: Option<u32>) -> (u32, u32) {
+    (page.clamp(1, 10_000), per_page.unwrap_or(50).clamp(1, 50))
+}
+
 #[allow(clippy::too_many_arguments)]
-#[tauri::command]
-#[allow(non_snake_case)]
-pub async fn search_anilist(
-    app_handle: tauri::AppHandle,
-    query: Option<String>,
-    tags: Option<Vec<String>>,
-    genres: Option<Vec<String>>,
-    format: Option<String>,
-    status: Option<String>,
-    season: Option<String>,
+fn filter_search_variables(
+    query: &Option<String>,
+    tags: &Option<Vec<String>>,
+    genres: &Option<Vec<String>>,
+    format: &Option<String>,
+    status: &Option<String>,
+    season: &Option<String>,
     season_year: Option<i32>,
     adult: Option<bool>,
-    sort: Option<Vec<String>>,
-    source: Option<String>,
-    country: Option<String>,
+    sort: &Option<Vec<String>>,
+    source: &Option<String>,
+    country: &Option<String>,
     year_from: Option<i32>,
     year_to: Option<i32>,
     episodes_from: Option<i32>,
     episodes_to: Option<i32>,
     score_from: Option<i32>,
     score_to: Option<i32>,
-    max_pages: Option<u32>,
-    per_page: Option<u32>,
-    proxy_url: Option<String>,
-    proxyUrl: Option<String>,
-) -> Result<Vec<AniMedia>, String> {
-    let mut variables = serde_json::json!({ "page": 1 });
+) -> serde_json::Value {
+    let mut variables = serde_json::json!({});
 
     if let Some(q) = query.as_ref().filter(|q| !q.is_empty()) {
         variables["search"] = serde_json::json!(q);
@@ -474,54 +538,107 @@ pub async fn search_anilist(
         variables["averageScore_lesser"] = serde_json::json!(s);
     }
 
+    variables
+}
+#[allow(clippy::too_many_arguments)]
+#[tauri::command]
+#[allow(non_snake_case)]
+pub async fn search_anilist(
+    app_handle: tauri::AppHandle,
+    query: Option<String>,
+    tags: Option<Vec<String>>,
+    genres: Option<Vec<String>>,
+    format: Option<String>,
+    status: Option<String>,
+    season: Option<String>,
+    season_year: Option<i32>,
+    adult: Option<bool>,
+    sort: Option<Vec<String>>,
+    source: Option<String>,
+    country: Option<String>,
+    year_from: Option<i32>,
+    year_to: Option<i32>,
+    episodes_from: Option<i32>,
+    episodes_to: Option<i32>,
+    score_from: Option<i32>,
+    score_to: Option<i32>,
+    max_pages: Option<u32>,
+    per_page: Option<u32>,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
+) -> Result<Vec<AniMedia>, String> {
+    let mut variables = filter_search_variables(
+        &query,
+        &tags,
+        &genres,
+        &format,
+        &status,
+        &season,
+        season_year,
+        adult,
+        &sort,
+        &source,
+        &country,
+        year_from,
+        year_to,
+        episodes_from,
+        episodes_to,
+        score_from,
+        score_to,
+    );
+    variables["page"] = serde_json::json!(1);
+
     let mp = max_pages.unwrap_or(3).clamp(1, 20);
     let pp = per_page.unwrap_or(20).clamp(1, 50);
 
     variables["perPage"] = serde_json::json!(pp);
 
+    let gql = SEARCH_MEDIA_GQL;
+
+    let proxy = resolve_proxy(proxy_url, proxyUrl);
+    let token = optional_token(&app_handle);
+    fetch_paginated(gql, variables, mp, pp, token.as_deref(), proxy.as_deref()).await
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SpotlightPage {
+    pub media: Vec<AniMedia>,
+    pub total: u32,
+}
+
+#[tauri::command]
+#[allow(non_snake_case)]
+pub async fn get_spotlight_page(
+    app_handle: tauri::AppHandle,
+    page: u32,
+    per_page: u32,
+    score_from: i32,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
+) -> Result<SpotlightPage, String> {
+    let page = page.clamp(1, 10_000);
+    let per_page = per_page.clamp(1, 50);
+    let score = score_from.clamp(0, 100);
+    let variables = serde_json::json!({
+        "page": page,
+        "perPage": per_page,
+        "averageScore_greater": score,
+        "isAdult": false,
+    });
     let gql = r"
         query (
             $page: Int,
             $perPage: Int,
-            $search: String,
-            $tag_in: [String],
-            $genre_in: [String],
-            $format: MediaFormat,
-            $status: MediaStatus,
-            $season: MediaSeason,
-            $seasonYear: Int,
-            $isAdult: Boolean,
-            $sort: [MediaSort],
-            $source: MediaSource,
-            $countryOfOrigin: CountryCode,
-            $startDate_greater: FuzzyDateInt,
-            $startDate_lesser: FuzzyDateInt,
-            $episodes_greater: Int,
-            $episodes_lesser: Int,
             $averageScore_greater: Int,
-            $averageScore_lesser: Int
+            $isAdult: Boolean
         ) {
             Page(page: $page, perPage: $perPage) {
                 pageInfo { total }
                 media(
-                    search: $search
                     type: ANIME
-                    tag_in: $tag_in
-                    genre_in: $genre_in
-                    format: $format
-                    status: $status
-                    season: $season
-                    seasonYear: $seasonYear
-                    isAdult: $isAdult
-                    sort: $sort
-                    source: $source
-                    countryOfOrigin: $countryOfOrigin
-                    startDate_greater: $startDate_greater
-                    startDate_lesser: $startDate_lesser
-                    episodes_greater: $episodes_greater
-                    episodes_lesser: $episodes_lesser
                     averageScore_greater: $averageScore_greater
-                    averageScore_lesser: $averageScore_lesser
+                    isAdult: $isAdult
                 ) {
                     id
                     title { romaji english native }
@@ -542,10 +659,84 @@ pub async fn search_anilist(
             }
         }
     ";
-
     let proxy = resolve_proxy(proxy_url, proxyUrl);
     let token = optional_token(&app_handle);
-    fetch_paginated(gql, variables, mp, pp, token.as_deref(), proxy.as_deref()).await
+    let (media, total) = fetch_page(
+        serde_json::json!({ "query": gql, "variables": variables }),
+        per_page,
+        token.as_deref(),
+        proxy.as_deref(),
+    )
+    .await?;
+    Ok(SpotlightPage { media, total })
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FilterPage {
+    pub media: Vec<AniMedia>,
+    pub total: u32,
+}
+
+#[tauri::command]
+#[allow(non_snake_case)]
+#[allow(clippy::too_many_arguments)]
+pub async fn get_anilist_filter_page(
+    app_handle: tauri::AppHandle,
+    page: u32,
+    query: Option<String>,
+    tags: Option<Vec<String>>,
+    genres: Option<Vec<String>>,
+    format: Option<String>,
+    status: Option<String>,
+    season: Option<String>,
+    season_year: Option<i32>,
+    adult: Option<bool>,
+    sort: Option<Vec<String>>,
+    source: Option<String>,
+    country: Option<String>,
+    year_from: Option<i32>,
+    year_to: Option<i32>,
+    episodes_from: Option<i32>,
+    episodes_to: Option<i32>,
+    score_from: Option<i32>,
+    score_to: Option<i32>,
+    per_page: Option<u32>,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
+) -> Result<FilterPage, String> {
+    let mut variables = filter_search_variables(
+        &query,
+        &tags,
+        &genres,
+        &format,
+        &status,
+        &season,
+        season_year,
+        adult,
+        &sort,
+        &source,
+        &country,
+        year_from,
+        year_to,
+        episodes_from,
+        episodes_to,
+        score_from,
+        score_to,
+    );
+    let (page, pp) = clamp_filter_paging(page, per_page);
+    variables["page"] = serde_json::json!(page);
+    variables["perPage"] = serde_json::json!(pp);
+    let proxy = resolve_proxy(proxy_url, proxyUrl);
+    let token = optional_token(&app_handle);
+    let (media, total) = fetch_page(
+        serde_json::json!({ "query": SEARCH_MEDIA_GQL, "variables": variables }),
+        pp,
+        token.as_deref(),
+        proxy.as_deref(),
+    )
+    .await?;
+    Ok(FilterPage { media, total })
 }
 
 #[tauri::command]
@@ -694,6 +885,7 @@ pub async fn get_anime_by_id(
                     bannerImage
                     idMal
                     trailer { id site }
+                    seasonYear
                     startDate { year month day }
                     endDate { year month day }
                     studios { nodes { id name } }
@@ -809,4 +1001,111 @@ mod tests {
         });
         assert_eq!(parse_animedia(&m).trailer_youtube_id, None);
     }
+
+    #[test]
+    fn prefers_season_year_over_start_date() {
+        let m = serde_json::json!({
+            "id": 1,
+            "seasonYear": 2023,
+            "startDate": { "year": 2022 },
+        });
+        assert_eq!(parse_animedia(&m).season_year, Some(2023));
+    }
+
+    #[test]
+    fn falls_back_to_start_date_year() {
+        let m = serde_json::json!({
+            "id": 1,
+            "startDate": { "year": 2022 },
+        });
+        assert_eq!(parse_animedia(&m).season_year, Some(2022));
+    }
+
+    #[derive(Default)]
+    struct FilterArgs {
+        query: Option<String>,
+        tags: Option<Vec<String>>,
+        genres: Option<Vec<String>>,
+        format: Option<String>,
+        status: Option<String>,
+        season: Option<String>,
+        season_year: Option<i32>,
+        adult: Option<bool>,
+        sort: Option<Vec<String>>,
+        source: Option<String>,
+        country: Option<String>,
+        year_from: Option<i32>,
+        year_to: Option<i32>,
+        episodes_from: Option<i32>,
+        episodes_to: Option<i32>,
+        score_from: Option<i32>,
+        score_to: Option<i32>,
+    }
+
+    impl FilterArgs {
+        fn build(&self) -> serde_json::Value {
+            filter_search_variables(
+                &self.query,
+                &self.tags,
+                &self.genres,
+                &self.format,
+                &self.status,
+                &self.season,
+                self.season_year,
+                self.adult,
+                &self.sort,
+                &self.source,
+                &self.country,
+                self.year_from,
+                self.year_to,
+                self.episodes_from,
+                self.episodes_to,
+                self.score_from,
+                self.score_to,
+            )
+        }
+    }
+
+    #[test]
+    fn filter_variables_omit_empty_filters() {
+        let v = FilterArgs::default().build();
+        assert!(v.get("search").is_none());
+        assert!(v.get("tag_in").is_none());
+        assert!(v.get("genre_in").is_none());
+        assert!(v.get("isAdult").is_none());
+        assert!(v.get("page").is_none());
+    }
+
+    #[test]
+    fn filter_variables_map_ranges_and_flags() {
+        let v = FilterArgs {
+            tags: Some(vec![]),
+            genres: Some(vec!["Action".to_string()]),
+            adult: Some(true),
+            year_from: Some(2000),
+            year_to: Some(2010),
+            score_from: Some(70),
+            ..Default::default()
+        }
+        .build();
+        assert!(v.get("tag_in").is_none());
+        assert_eq!(v["genre_in"], serde_json::json!(["Action"]));
+        assert_eq!(v["isAdult"], serde_json::json!(true));
+        assert_eq!(v["startDate_greater"], serde_json::json!(2000 * 10000));
+        assert_eq!(
+            v["startDate_lesser"],
+            serde_json::json!(2010 * 10000 + 1231)
+        );
+        assert_eq!(v["averageScore_greater"], serde_json::json!(70));
+        assert!(v.get("averageScore_lesser").is_none());
+    }
+
+    #[test]
+    fn clamp_filter_paging_bounds_page_and_size() {
+        assert_eq!(clamp_filter_paging(3, Some(25)), (3, 25));
+        assert_eq!(clamp_filter_paging(1, None), (1, 50));
+        assert_eq!(clamp_filter_paging(0, Some(0)), (1, 1));
+        assert_eq!(clamp_filter_paging(99_999, Some(500)), (10_000, 50));
+    }
+
 }

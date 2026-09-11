@@ -54,12 +54,16 @@ describe("areTorrentItemsEqual", () => {
 
   it("repaints on rename, save dir change, and busy flip", () => {
     const base = props();
-    expect(
-      areTorrentItemsEqual(base, props({ item: info({ name: "Renamed" }) }))
-    ).toBe(false);
-    expect(
-      areTorrentItemsEqual(base, props({ item: info({ save_dir: "/other" }) }))
-    ).toBe(false);
+    expect(areTorrentItemsEqual(base, props({ item: info({ name: "Renamed" }) }))).toBe(false);
+    expect(areTorrentItemsEqual(base, props({ item: info({ save_dir: "/other" }) }))).toBe(false);
     expect(areTorrentItemsEqual(base, props({ busy: true }))).toBe(false);
+  });
+
+  it("repaints when the files error appears", () => {
+    const base = props();
+    expect(areTorrentItemsEqual(base, props({ filesError: "gone" }))).toBe(false);
+    expect(areTorrentItemsEqual(props({ filesError: "gone" }), props({ filesError: "gone" }))).toBe(
+      true
+    );
   });
 });

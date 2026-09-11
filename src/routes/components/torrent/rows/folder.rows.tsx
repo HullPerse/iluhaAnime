@@ -3,7 +3,7 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 import ImageComponent from "@/components/ui/image.component";
 import Select from "@/components/ui/select.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
-import { fmtSize } from "@/lib/torrent/common.utils";
+import { formatBytes } from "@/lib/utils/bytes.utils";
 import { collectFileIndices } from "@/lib/torrent/tree.utils";
 import type { TorrentTreeNode } from "@/types/torrent";
 import type { TorrentFileInfo, FilePriority } from "@/types/torrent";
@@ -57,7 +57,7 @@ export function FolderRow({
           {node.name}
         </span>
         <span className="text-hint whitespace-nowrap">
-          {fmtSize(
+          {formatBytes(
             node.files.reduce((s, f) => s + f.size, 0) +
               node.children.reduce(
                 (s, c) =>

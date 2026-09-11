@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { applyCollectionFilters, filterCollectionItems } from "@/lib/collection/filter.utils";
+import { applyCollectionFilters, filterCollectionItems, pickRandomItem } from "@/lib/collection/filter.utils";
 import type { CollectionItem, CollectionType } from "@/types/collection";
 
 function makeItem(overrides: Partial<CollectionItem> = {}): CollectionItem {
@@ -18,6 +18,7 @@ function makeItem(overrides: Partial<CollectionItem> = {}): CollectionItem {
     priority: "normal",
     isFavorite: false,
     year: 2002,
+    releaseDate: null,
     genres: ["Action"],
     studio: "Pierrot",
     description: null,
@@ -181,6 +182,23 @@ describe("filterCollectionItems", () => {
       ).map((i) => i.id)
     ).toEqual(["unrated", "mid", "high"]);
   });
+
+  it("sorts by release year with unknown years last in descending order", () => {
+    const old = makeItem({ id: "old", year: 1999 });
+    const fresh = makeItem({ id: "fresh", year: 2025 });
+    const unknown = makeItem({ id: "unknown", year: null });
+    expect(
+      filterCollectionItems(
+        [unknown, old, fresh],
+        [],
+        "all",
+        "",
+        DEFAULT_FILTERS,
+        "year",
+        "desc"
+      ).map((i) => i.id)
+    ).toEqual(["fresh", "old", "unknown"]);
+  });
 });
 
 describe("applyCollectionFilters", () => {
@@ -303,7 +321,7 @@ describe("filterCollectionItems intent operators", () => {
     );
 
   it("matches an exact release year", () => {
-    expect(run("year:2025")).toEqual(["fresh"]);
+    expect(run("year=2025")).toEqual(["fresh"]);
   });
 
   it("combines year comparisons as AND", () => {
@@ -320,7 +338,7 @@ describe("filterCollectionItems intent operators", () => {
   });
 
   it("matches any alternative separated by pipe", () => {
-    expect(run("status:completed|watching")).toEqual(["fresh", "mid", "old"]);
+    expect(run("status=completed|watching")).toEqual(["fresh", "mid", "old"]);
     expect(run("status!=completed|watching")).toEqual([]);
     const items = [
       makeItem({ id: "a", genres: ["Action"] }),
@@ -331,12 +349,12 @@ describe("filterCollectionItems intent operators", () => {
       filterCollectionItems(items, [], "all", query, DEFAULT_FILTERS, "name", "asc").map(
         (item) => item.id
       );
-    expect(ids("genre:action|drama")).toEqual(["a", "b"]);
+    expect(ids("genre=action|drama")).toEqual(["a", "b"]);
   });
 
   it("overrides the sort order from the tag", () => {
-    expect(run("sort:rating:asc")).toEqual(["mid", "old", "fresh"]);
-    expect(run("sort:name")).toEqual(["fresh", "mid", "old"]);
+    expect(run("sort=rating:asc")).toEqual(["mid", "old", "fresh"]);
+    expect(run("sort=name")).toEqual(["fresh", "mid", "old"]);
   });
 
   it("filters by watched progress", () => {
@@ -349,11 +367,46 @@ describe("filterCollectionItems intent operators", () => {
       filterCollectionItems(items, [], "all", query, DEFAULT_FILTERS, "name", "asc").map(
         (item) => item.id
       );
-    expect(ids("progress:0")).toEqual(["a"]);
+    expect(ids("progress=0")).toEqual(["a"]);
     expect(ids("progress>10")).toEqual(["b", "c"]);
   });
 
-  it("treats removed dead keys as plain text instead of silently dropping them", () => {
-    expect(run("season:winter")).toEqual([]);
+  it("filters by release date in year and full forms", () => {
+    const items = [
+      makeItem({ id: "a", year: 2024, releaseDate: "2024-03-10" }),
+      makeItem({ id: "b", year: 2024, releaseDate: null }),
+      makeItem({ id: "c", year: null, releaseDate: "2025-01-31" }),
+      makeItem({ id: "d", year: null, releaseDate: null }),
+    ];
+    const ids = (query: string) =>
+      filterCollectionItems(items, [], "all", query, DEFAULT_FILTERS, "name", "asc").map(
+        (item) => item.id
+      );
+    expect(ids("date=2024")).toEqual(["a", "b"]);
+    expect(ids('date="31.01.2025"')).toEqual(["c"]);
+    expect(ids("date>=2025-01-01")).toEqual(["c"]);
+    expect(ids("date<2024-01-01")).toEqual([]);
+  });
+});
+
+describe("pickRandomItem", () => {
+  const items = [
+    makeItem({ id: "a" }),
+    makeItem({ id: "b" }),
+    makeItem({ id: "c" }),
+  ];
+
+  it("returns undefined for an empty list", () => {
+    expect(pickRandomItem([])).toBeUndefined();
+  });
+
+  it("always picks the only item", () => {
+    expect(pickRandomItem([items[0]], () => 0.99)?.id).toBe("a");
+  });
+
+  it("maps the random value uniformly over indices", () => {
+    expect(pickRandomItem(items, () => 0)?.id).toBe("a");
+    expect(pickRandomItem(items, () => 0.34)?.id).toBe("b");
+    expect(pickRandomItem(items, () => 0.99)?.id).toBe("c");
   });
 });

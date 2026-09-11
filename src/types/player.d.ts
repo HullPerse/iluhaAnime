@@ -56,3 +56,9 @@ export interface VisibilityPlayerProps {
   onUnhideTorrent: (infoHash: string) => void;
   onClose: () => void;
 }
+
+export interface FileSearchResult {
+  path: string;
+  name: string;
+  size: number;
+}

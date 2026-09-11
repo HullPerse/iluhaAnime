@@ -25,6 +25,18 @@
   --color-win-highlight: #ffffff;
   --color-win-shadow: #808080;
   --color-title-text: #ffffff;
+  --color-torrent-downloading: #1d4ed8;
+  --color-torrent-seeding: #f97316;
+  --color-torrent-done: #15803d;
+  --color-torrent-error: #b91c1c;
+  --color-torrent-idle: #a3a3a3;
+  --color-graph-default: #7f8c8d;
+  --color-graph-light: #95a5a6;
+  --color-graph-pale: #bdc3c7;
+  --color-graph-prequel: #d97a30;
+  --color-graph-sequel: #4a90d9;
+  --color-graph-side: #5a9e6f;
+  --color-graph-spinoff: #8e5ea2;
   --ui-control-height: 26px;
   --ui-panel-gap: 0.375rem;
   --ui-font-size: 12px;
@@ -51,6 +63,18 @@
   --color-surface: var(--color-surface);
   --color-win-highlight: var(--color-win-highlight);
   --color-win-shadow: var(--color-win-shadow);
+  --color-torrent-downloading: var(--color-torrent-downloading);
+  --color-torrent-seeding: var(--color-torrent-seeding);
+  --color-torrent-done: var(--color-torrent-done);
+  --color-torrent-error: var(--color-torrent-error);
+  --color-torrent-idle: var(--color-torrent-idle);
+  --color-graph-default: var(--color-graph-default);
+  --color-graph-light: var(--color-graph-light);
+  --color-graph-pale: var(--color-graph-pale);
+  --color-graph-prequel: var(--color-graph-prequel);
+  --color-graph-sequel: var(--color-graph-sequel);
+  --color-graph-side: var(--color-graph-side);
+  --color-graph-spinoff: var(--color-graph-spinoff);
 }
 
 @layer base {
@@ -85,7 +109,6 @@
   }
 }
 
-/* Windows 95 bevels. Sides are (top right bottom left). */
 .windows95-border {
   border: 2px solid;
   border-color: var(--color-muted) var(--color-win-highlight) var(--color-win-highlight) var(--color-muted);
@@ -96,7 +119,6 @@
   border-color: var(--color-win-highlight) var(--color-muted) var(--color-muted) var(--color-win-highlight);
 }
 
-/* Gold border marking a favourited person/character (AniList). */
 .windows95-fav-border {
   border: 2px solid var(--color-fav-gold, #facc15);
 }
@@ -355,7 +377,6 @@ select,
   animation: ui-loading-spin 1s linear infinite !important;
 }
 
-/* Search dock motion stays alive when animations are off: positional feedback, not decoration. */
 @media (prefers-reduced-motion: no-preference) {
   .no-animations .search-dock-motion {
     transition-property: top, translate, grid-template-rows, opacity !important;

@@ -21,10 +21,12 @@ pub mod benchmark_api {
 }
 mod auth;
 mod bencode;
+mod deeplink;
 mod errors;
 mod ffmpeg;
 mod file_index;
 mod fswatcher;
+mod host_stats;
 mod jikan;
 mod progress;
 mod realcugan;
@@ -638,6 +640,10 @@ pub fn run() {
     tracing::info!("starting iluhaAnime backend");
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
+            deeplink::handle_second_instance(app, args);
+        }))
+        .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
@@ -675,6 +681,16 @@ pub fn run() {
             handle.manage(progress::StreamRegistry::new());
             handle.manage(std::sync::Mutex::new(fswatcher::FolderWatcher::new()));
             handle.manage(file_index::FileIndexer::new());
+            #[cfg(not(debug_assertions))]
+            {
+                use tauri_plugin_deep_link::DeepLinkExt;
+                if let Err(error) = app.deep_link().register(deeplink::SCHEME) {
+                    tracing::warn!("deep-link register failed: {error:#}");
+                }
+            }
+            handle.manage(deeplink::PendingLinks(std::sync::Mutex::new(
+                deeplink::extract_deep_link_urls(std::env::args()),
+            )));
 
             handle.manage(TorrentBackend {
                 cell: tokio::sync::OnceCell::new(),
@@ -843,6 +859,8 @@ pub fn run() {
             ffmpeg::download_ffmpeg,
             ffmpeg::remove_ffmpeg,
             anilist::search_anilist,
+            anilist::get_spotlight_page,
+            anilist::get_anilist_filter_page,
             anilist::search_anilist_by_studio,
             anilist::get_profile_recommendations,
             anilist::get_anime_recommendations,
@@ -860,6 +878,7 @@ pub fn run() {
             anilist::toggle_favourite,
             anilist::get_favourites,
             anilist::get_favourite_people,
+            anilist::get_fav_people_media,
             anilist::toggle_favourite_staff,
             anilist::toggle_favourite_character,
             anilist::get_anime_characters,
@@ -883,6 +902,7 @@ pub fn run() {
             user_assets::get_dither_images,
             user_assets::get_dither_image,
             user_assets::update_dither_image_data,
+            user_assets::set_dither_image_options,
             user_assets::delete_dither_image,
             user_assets::delete_user_image,
             app_db::get_app_cache,
@@ -912,6 +932,9 @@ pub fn run() {
             tmdb::get_tmdb_media,
             tmdb::get_tmdb_rate_limit,
             tmdb::test_tmdb_connection,
+            tmdb::tmdb_set_api_key,
+            tmdb::check_tmdb_session,
+            tmdb::tmdb_logout,
             scrapers::test_source_connection,
             sqlite_browser::reset_sqlite_data,
             sqlite_browser::list_sqlite_databases,
@@ -935,6 +958,7 @@ pub fn run() {
             resume_torrent,
             remove_torrent,
             list_system_fonts,
+            host_stats::get_host_stats,
             scan_video_folder,
             scan_extra_files,
             delete_extra_file,
@@ -957,6 +981,7 @@ pub fn run() {
             refresh_file_index,
             set_notification_settings,
             search_file_index,
+            deeplink::take_pending_deep_links,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

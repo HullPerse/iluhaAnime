@@ -3,7 +3,7 @@ import { cn } from "cn";
 import { CalendarDays, List } from "lucide-react";
 import { useMemo, useState } from "react";
 
-import { SmallLoader } from "@/components/shared/loader.component";
+import { TabLoader } from "@/components/shared/loader.component";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import { groupLabel } from "@/lib/anilist/activity.utils";
@@ -96,11 +96,7 @@ export function FeedTab({
   const textItems = useMemo(() => (data ?? []).filter((a) => a.activity_type !== "list"), [data]);
 
   if (isLoading) {
-    return (
-      <div className="flex flex-1 items-center justify-center p-6">
-        <SmallLoader size={6} />
-      </div>
-    );
+    return <TabLoader className="flex-1 p-6" />;
   }
 
   if (isError) {

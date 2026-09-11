@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { lazy, Suspense, useEffect, useState } from "react";
 
-import { SmallLoader } from "@/components/shared/loader.component";
+import { TabLoader } from "@/components/shared/loader.component";
 import { Button } from "@/components/ui/button.component";
 import { SETTINGS_TAB_KEYS } from "@/config/settings/tabs.config";
 import { useI18n } from "@/lib/locale/i18n.utils";
@@ -16,7 +16,7 @@ import { SettingsSummary } from "@/routes/components/settings/summary.settings";
 import SettingsTheme from "@/routes/components/settings/theme.settings";
 import SettingsTorrent from "@/routes/components/settings/torrent.settings";
 import { useSettingsStore } from "@/store/settings.store";
-import type { SettingsTab } from "@/types";
+import type { SettingsTab } from "@/types/settings";
 
 const SettingsSqlite = lazy(() => import("@/routes/components/settings/sqlite/sqlite.settings"));
 
@@ -44,13 +44,7 @@ export default function SettingsRoute() {
     theme: <SettingsTheme />,
     changelog: <SettingsChangelog />,
     sqlite: (
-      <Suspense
-        fallback={
-          <div className="flex min-h-40 items-center justify-center p-2">
-            <SmallLoader />
-          </div>
-        }
-      >
+      <Suspense fallback={<TabLoader className="min-h-40" />}>
         <SettingsSqlite />
       </Suspense>
     ),

@@ -5,12 +5,12 @@ import { flushSync } from "react-dom";
 import { PAGE_SIZE, QUERY_HISTORY_MAX } from "@/config/settings/sqlite.config";
 import { usePagination } from "@/hooks/pagination.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
+import { reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { isImageUrl } from "@/lib/utils/image.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { COPIED_FEEDBACK_MS } from "@/lib/utils/notification.utils";
 import { useSettingsStore } from "@/store/settings.store";
-import type { SqliteDatabaseInfo, SqliteRowsPage, SqliteTableInfo } from "@/types";
-import type { SortState } from "@/types/sqlite";
+import type { SqliteDatabaseInfo, SqliteRowsPage, SqliteTableInfo, SortState } from "@/types/sqlite";
 
 import { BackupPanel } from "./backup.sqlite";
 import { SqliteBrowseResult } from "./browseResult.sqlite";
@@ -442,7 +442,9 @@ export default function SqliteSettings() {
       setCellCopied(true);
       if (copiedTimerRef.current !== null) window.clearTimeout(copiedTimerRef.current);
       copiedTimerRef.current = window.setTimeout(() => setCellCopied(false), COPIED_FEEDBACK_MS);
-    } catch {}
+    } catch (error) {
+      reportBackgroundError("sqlite.copy-cell", error);
+    }
   };
 
   const saveCell = async () => {

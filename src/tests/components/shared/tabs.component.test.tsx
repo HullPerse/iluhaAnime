@@ -1,6 +1,5 @@
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-// @vitest-environment jsdom
 import { describe, it, expect, vi, afterEach } from "vitest";
 
 import Tabs from "@/components/shared/tabs.component";
@@ -81,5 +80,24 @@ describe("Tabs", () => {
     render(<Tabs tabs={TABS} activeTab="two" onChange={onChange} />);
     fireEvent.keyDown(screen.getByRole("tab", { name: "One" }), { key: "a" });
     expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("renders a color square when the tab provides one", () => {
+    render(
+      <Tabs
+        tabs={[
+          { id: "one", label: "One", color: "#4caf50" },
+          { id: "two", label: "Two" },
+        ]}
+        activeTab="two"
+        onChange={() => {}}
+      />,
+    );
+    const colored = screen.getByRole("tab", { name: "One" });
+    const square = colored.querySelector("span[aria-hidden='true']");
+    expect(square).not.toBeNull();
+    expect((square as HTMLElement).style.backgroundColor).not.toBe("");
+    const plain = screen.getByRole("tab", { name: "Two" });
+    expect(plain.querySelector("span[aria-hidden='true']")).toBeNull();
   });
 });

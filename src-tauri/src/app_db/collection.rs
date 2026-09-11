@@ -19,6 +19,7 @@ pub struct CollectionItemRow {
     pub priority: String,
     pub is_favorite: bool,
     pub year: Option<i64>,
+    pub release_date: Option<String>,
     pub genres: serde_json::Value,
     pub studio: Option<String>,
     pub description: Option<String>,
@@ -66,6 +67,7 @@ pub struct CollectionItemInput {
     pub priority: String,
     pub is_favorite: bool,
     pub year: Option<i64>,
+    pub release_date: Option<String>,
     pub genres: serde_json::Value,
     pub studio: Option<String>,
     pub description: Option<String>,
@@ -226,7 +228,8 @@ pub fn list_collection_items(app: tauri::AppHandle) -> Result<Vec<CollectionItem
                     genres_json, studio, description, notes, cover_url, cover_blob_id,
                     thumb_blob_id, external_ids_json, custom_fields_json, local_path,
                     local_kind, started_at, finished_at, last_watched_at, rewatch_count,
-                    added_at, updated_at, sites_to_view, tv_current_season, tv_current_episode, details_json
+                    added_at, updated_at, sites_to_view, tv_current_season, tv_current_episode, details_json,
+                    release_date
              FROM collection_items ORDER BY updated_at DESC",
         )
         .map_err(|e| format!("list collection items: {e}"))?;
@@ -238,6 +241,7 @@ pub fn list_collection_items(app: tauri::AppHandle) -> Result<Vec<CollectionItem
             let custom_fields: String = row.get(21)?;
             let sites_to_view: String = row.get(30).unwrap_or_else(|_| "[]".to_string());
             let details_json: Option<String> = row.get(33).ok().flatten();
+            let release_date: Option<String> = row.get(34).ok().flatten();
             Ok(CollectionItemRow {
                 id: row.get(0)?,
                 title: row.get(1)?,
@@ -279,6 +283,7 @@ pub fn list_collection_items(app: tauri::AppHandle) -> Result<Vec<CollectionItem
                 details_json: details_json
                     .as_deref()
                     .and_then(|s| serde_json::from_str(s).ok()),
+                release_date,
             })
         })
         .map_err(|e| format!("list collection items query: {e}"))?;
@@ -343,13 +348,13 @@ fn insert_collection_item_connection(
             "INSERT INTO collection_items (
                 id, title, alt_titles_json, type, status, progress_value, progress_total,
                 progress_unit, duration_minutes, rating, priority, is_favorite, year,
-                genres_json, studio, description, notes, cover_url, cover_blob_id,
+                release_date, genres_json, studio, description, notes, cover_url, cover_blob_id,
                 thumb_blob_id, external_ids_json, custom_fields_json, local_path, local_kind,
                 started_at, finished_at, last_watched_at, rewatch_count, added_at, updated_at,
                 sites_to_view, tv_current_season, tv_current_episode, details_json
              ) VALUES (
-                ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17,
-                ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28, ?29, ?30, ?31, ?32, ?33, ?34
+                ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18,
+                ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28, ?29, ?30, ?31, ?32, ?33, ?34, ?35
              )
              ON CONFLICT(id) DO UPDATE SET
                 title = excluded.title, alt_titles_json = excluded.alt_titles_json,
@@ -358,6 +363,7 @@ fn insert_collection_item_connection(
                 progress_unit = excluded.progress_unit, duration_minutes = excluded.duration_minutes,
                 rating = excluded.rating, priority = excluded.priority,
                 is_favorite = excluded.is_favorite, year = excluded.year,
+                release_date = excluded.release_date,
                 genres_json = excluded.genres_json, studio = excluded.studio,
                 description = excluded.description, notes = excluded.notes,
                 cover_url = excluded.cover_url, cover_blob_id = excluded.cover_blob_id,
@@ -371,7 +377,8 @@ fn insert_collection_item_connection(
             params![
                 item.id, item.title, alt_titles, item.r#type, item.status, item.progress_value,
                 item.progress_total, item.progress_unit, item.duration_minutes, item.rating,
-                item.priority, i64::from(item.is_favorite), item.year, genres, item.studio,
+                item.priority, i64::from(item.is_favorite), item.year, item.release_date,
+                genres, item.studio,
                 item.description, item.notes, item.cover_url, item.cover_blob_id,
                 item.thumb_blob_id, external_ids, custom_fields, item.local_path,
                 item.local_kind, item.started_at, item.finished_at, item.last_watched_at,
@@ -458,6 +465,8 @@ pub struct CollectionItemPatch {
     pub is_favorite: Option<bool>,
     #[serde(default, deserialize_with = "deserialize_some")]
     pub year: Option<Option<i64>>,
+    #[serde(default, deserialize_with = "deserialize_some")]
+    pub release_date: Option<Option<String>>,
     pub genres: Option<serde_json::Value>,
     #[serde(default, deserialize_with = "deserialize_some")]
     pub studio: Option<Option<String>>,
@@ -492,6 +501,8 @@ pub struct CollectionItemPatch {
     pub tv_current_episode: Option<Option<i64>>,
     #[serde(default, deserialize_with = "deserialize_some")]
     pub details_json: Option<Option<serde_json::Value>>,
+    #[serde(default)]
+    pub touch_updated: Option<bool>,
 }
 
 fn deserialize_some<'de, T, D>(deserializer: D) -> Result<Option<Option<T>>, D::Error>
@@ -615,6 +626,11 @@ fn patch_collection_item_connection(
     } else if let Some(None) = patch.year {
         sets.push("year = NULL");
     }
+    if let Some(Some(v)) = &patch.release_date {
+        set!("release_date = ?", v);
+    } else if let Some(None) = &patch.release_date {
+        sets.push("release_date = NULL");
+    }
     if let Some(v) = &patch.genres {
         let serialized = serde_json::to_string(v).map_err(|e| format!("serialize genres: {e}"))?;
         set!("genres_json = ?", serialized);
@@ -713,8 +729,10 @@ fn patch_collection_item_connection(
     if sets.is_empty() {
         return Ok(());
     }
-    sets.push("updated_at = ?");
-    params_vec.push(Box::new(now));
+    if patch.touch_updated != Some(false) {
+        sets.push("updated_at = ?");
+        params_vec.push(Box::new(now));
+    }
     params_vec.push(Box::new(id.to_string()));
 
     let sql = format!(
@@ -928,6 +946,7 @@ mod tests {
             priority: None,
             is_favorite: Some(true),
             year: None,
+            release_date: None,
             genres: None,
             studio: None,
             description: None,
@@ -947,6 +966,7 @@ mod tests {
             tv_current_season: None,
             tv_current_episode: None,
             details_json: None,
+            touch_updated: None,
         };
         patch_collection_item_connection(&connection, "item_1", &patch)
             .expect("patch collection item");
@@ -981,10 +1001,18 @@ mod tests {
     }
 
     #[test]
-    fn patch_collection_item_rejects_missing_item_and_invalid_ranges() {
+    fn patch_collection_item_sets_release_date_without_touching_updated_at() {
         let connection = Connection::open_in_memory().expect("in-memory database");
         initialize_schema(&connection).expect("schema migration");
-        let base = CollectionItemPatch {
+        connection
+            .execute(
+                "INSERT INTO collection_items
+                    (id, title, type, status, progress_unit, priority, added_at, updated_at)
+                 VALUES ('item_1', 'X', 'anime', 'planned', 'episodes', 'normal', 1000, 2000)",
+                [],
+            )
+            .expect("insert item");
+        let patch = CollectionItemPatch {
             title: None,
             alt_titles: None,
             r#type: None,
@@ -997,6 +1025,7 @@ mod tests {
             priority: None,
             is_favorite: None,
             year: None,
+            release_date: Some(Some("2024-01-15".to_string())),
             genres: None,
             studio: None,
             description: None,
@@ -1016,6 +1045,59 @@ mod tests {
             tv_current_season: None,
             tv_current_episode: None,
             details_json: None,
+            touch_updated: Some(false),
+        };
+        patch_collection_item_connection(&connection, "item_1", &patch)
+            .expect("patch collection item");
+        let (release_date, updated_at): (Option<String>, i64) = connection
+            .query_row(
+                "SELECT release_date, updated_at FROM collection_items WHERE id = 'item_1'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .expect("read patched row");
+        assert_eq!(release_date.as_deref(), Some("2024-01-15"));
+        assert_eq!(updated_at, 2000);
+    }
+
+    #[test]
+    fn patch_collection_item_rejects_missing_item_and_invalid_ranges() {
+        let connection = Connection::open_in_memory().expect("in-memory database");
+        initialize_schema(&connection).expect("schema migration");
+        let base = CollectionItemPatch {
+            title: None,
+            alt_titles: None,
+            r#type: None,
+            status: None,
+            progress_value: None,
+            progress_total: None,
+            progress_unit: None,
+            duration_minutes: None,
+            rating: None,
+            priority: None,
+            is_favorite: None,
+            year: None,
+            release_date: None,
+            genres: None,
+            studio: None,
+            description: None,
+            notes: None,
+            cover_url: None,
+            cover_blob_id: None,
+            thumb_blob_id: None,
+            external_ids: None,
+            custom_fields: None,
+            local_path: None,
+            local_kind: None,
+            started_at: None,
+            finished_at: None,
+            last_watched_at: None,
+            rewatch_count: None,
+            sites_to_view: None,
+            tv_current_season: None,
+            tv_current_episode: None,
+            details_json: None,
+            touch_updated: None,
         };
 
         let mut missing = base.clone();
@@ -1177,6 +1259,7 @@ mod tests {
             priority: None,
             is_favorite: None,
             year: None,
+            release_date: None,
             genres: None,
             studio: None,
             description: None,
@@ -1196,6 +1279,7 @@ mod tests {
             tv_current_season: None,
             tv_current_episode: None,
             details_json: None,
+            touch_updated: None,
         };
         patch_collection_item_connection(&connection, "item_ms", &patch)
             .expect("patch collection item");
@@ -1228,6 +1312,7 @@ mod tests {
             priority: "normal".into(),
             is_favorite: false,
             year: Some(1998),
+            release_date: None,
             genres: serde_json::json!(["Drama"]),
             studio: Some("Studio".into()),
             description: Some("desc".into()),

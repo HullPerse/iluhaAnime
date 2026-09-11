@@ -1,11 +1,13 @@
 import { Ban, ListVideo } from "lucide-react";
 
+import { HostStatsLine } from "@/components/shared/hostStats.component";
 import { SmallLoader } from "@/components/shared/loader.component";
 import ProgressBar from "@/components/shared/progress.component";
 import { Button } from "@/components/ui/button.component";
+import { useHostStats } from "@/hooks/hostStats.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
-import { formatETA } from "@/lib/player/title.utils";
-import type { UpscaleQueueItem } from "@/types";
+import { formatETA } from "@/lib/utils/time.utils";
+import type { UpscaleQueueItem } from "@/types/upscale";
 
 export function UpscaleProgressPanel({
   activeItem,
@@ -15,6 +17,7 @@ export function UpscaleProgressPanel({
   onCancel: () => void;
 }) {
   const { t } = useI18n();
+  const hostStats = useHostStats(activeItem?.status === "processing");
   if (!activeItem) return null;
   const stage =
     activeItem.current != null && activeItem.total != null && activeItem.total > 0
@@ -52,11 +55,12 @@ export function UpscaleProgressPanel({
           <span className="windows95-text text-center text-xs">{activeItem.progress ?? 0}%</span>
           {etaSecs != null && (
             <span className="windows95-text text-hint text-center text-xs">
-              {t("player.upscale.eta", { time: formatETA(etaSecs, t) })}
+              {t("player.upscale.eta", { time: formatETA(etaSecs, t, "minute") })}
             </span>
           )}
         </>
       )}
+      <HostStatsLine stats={activeItem.status === "processing" ? hostStats : null} className="windows95-text text-hint text-center text-xs" />
 
       <div className="mt-1 flex flex-row justify-center gap-1">
         <Button variant="destructive" onClick={onCancel}>

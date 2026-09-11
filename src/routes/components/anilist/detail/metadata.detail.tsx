@@ -1,3 +1,4 @@
+import { toLocaleKey } from "@/lib/locale/key.utils";
 import { Calendar, Star, Tv, Heart, Eye } from "lucide-react";
 
 import ImageComponent from "@/components/ui/image.component";
@@ -46,11 +47,11 @@ function AniListMetadata({
             </span>
           )}
           <span className="windows95-text">
-            {t((statusLabels[anime.status] ?? anime.status) as never)}
+            {t(toLocaleKey(statusLabels[anime.status] ?? anime.status))}
           </span>
           {anime.format && (
             <span className="windows95-font windows95-border text-text bg-white px-1 text-xs">
-              {t((formatLabels[anime.format] ?? anime.format) as never)}
+              {t(toLocaleKey(formatLabels[anime.format] ?? anime.format))}
             </span>
           )}
         </div>
@@ -72,7 +73,7 @@ function AniListMetadata({
             className="windows95-text cursor-pointer underline"
             onClick={() => onSeason?.(anime.season!, anime.season_year)}
           >
-            {t((seasonLabels[anime.season] ?? anime.season) as never)} {anime.season_year}
+            {t(toLocaleKey(seasonLabels[anime.season] ?? anime.season))} {anime.season_year}
           </div>
         )}
 

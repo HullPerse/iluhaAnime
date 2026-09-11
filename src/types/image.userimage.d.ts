@@ -4,16 +4,17 @@ export interface UserImage {
   mimeType: string;
   url: string;
   originalUrl: string | null;
+  ditherOptions: string | null;
   createdAt: number;
 }
 
-/** Wire shape returned by the Rust commands: absolute file path, no bytes. */
 export interface UserImageFile {
   id: string;
   name: string;
   mimeType: string;
   path: string;
   originalPath: string | null;
+  ditherOptions: string | null;
   createdAt: number;
 }
 

@@ -1,4 +1,8 @@
-import { renderDitherImage } from "@/lib/utils/dither.utils";
+import {
+  createDitherRenderContext,
+  finishDitherImage,
+  renderDitherRows,
+} from "@/lib/utils/dither.render.utils";
 import type {
   DitherWorkerProgress,
   DitherWorkerRequest,
@@ -10,21 +14,20 @@ const scope = self as unknown as Worker;
 scope.onmessage = (event: MessageEvent<DitherWorkerRequest>) => {
   const request = event.data;
   const source = new Uint8ClampedArray(request.pixels);
-  const output = renderDitherImage(
-    source,
-    request.width,
-    request.height,
-    request.options,
-    (doneRows) => {
-      const progress: DitherWorkerProgress = {
-        type: "progress",
-        id: request.id,
-        done: doneRows,
-        total: request.height,
-      };
-      scope.postMessage(progress, []);
-    }
-  );
+  const ctx = createDitherRenderContext(source, request.width, request.height, request.options);
+  const total = request.height;
+  for (let y = 0; y < total; y += 16) {
+    const end = Math.min(total, y + 16);
+    renderDitherRows(ctx, y, end);
+    const progress: DitherWorkerProgress = {
+      type: "progress",
+      id: request.id,
+      done: end,
+      total,
+    };
+    scope.postMessage(progress, []);
+  }
+  const output = finishDitherImage(ctx);
   const response: DitherWorkerResponse = {
     type: "result",
     id: request.id,

@@ -11,7 +11,7 @@ import { attempt } from "@/lib/utils/attempt.utils";
 import { toUserImage, userImageIcon } from "@/lib/utils/image.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { showError } from "@/lib/utils/notification.utils";
-import type { UserImage, UserImageFile } from "@/types";
+import type { UserImage, UserImageFile } from "@/types/image.userimage";
 
 interface UserImagePickerProps {
   selected?: string;
@@ -96,6 +96,7 @@ export default function UserImagePicker({ selected, onSelect }: UserImagePickerP
                 <button
                   type="button"
                   title={image.name}
+                  aria-label={image.name}
                   onClick={() => onSelect(icon, image)}
                   className={cn(
                     "windows95-border hover:bg-surface flex size-10 items-center justify-center bg-white p-0.5",
@@ -107,6 +108,7 @@ export default function UserImagePicker({ selected, onSelect }: UserImagePickerP
                 <button
                   type="button"
                   title={t("player.category.delete.image")}
+                  aria-label={t("player.category.delete.image")}
                   onClick={() => remove(image)}
                   className="bg-destructive absolute -top-1 -right-1 hidden size-3 items-center justify-center text-white group-hover:flex"
                 >

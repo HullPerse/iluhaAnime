@@ -1,17 +1,17 @@
 import { cn } from "cn";
 import { Filter, Search, X } from "lucide-react";
 
-import { InlineAutocompleteInput } from "@/components/shared/autocomplete.component";
+import { InlineAutocompleteInput } from "@/components/shared/autocomplete/input.autocomplete";
 import { SmallLoader } from "@/components/shared/loader.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import Select from "@/components/ui/select.component";
+import { useSearchQuery } from "@/hooks/search/query.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { buildShadow } from "@/lib/search/wallpaper.utils";
 import SearchAuthButtons from "@/routes/components/search/auth.search";
 import TorrentDetailsModal from "@/routes/components/search/default/details/modal.details";
 import SearchFiltersModal from "@/routes/components/search/filters.modal";
-import { useSearchQuery } from "@/hooks/search/query.hook";
 import SearchSessionModals from "@/routes/components/search/sessions.search";
 import { useSettingsStore } from "@/store/settings.store";
 import type { SearchFilters } from "@/types/search";
@@ -83,7 +83,7 @@ function InputSearch() {
             alt=""
             className="size-4 shrink-0"
           />
-          <span className="windows95-text line-clamp-1 font-bold text-white">Поиск</span>
+          <span className="windows95-text line-clamp-1 font-bold text-white">{t("search.title")}</span>
         </div>
         <div className="flex shrink-0 flex-row items-center gap-0.5">
           <SearchAuthButtons
@@ -105,6 +105,7 @@ function InputSearch() {
             size="icon"
             className="size-4"
             title={t("search.find.reset")}
+            aria-label={t("search.find.reset")}
             onClick={resetSearch}
             disabled={submittedQuery === "" && searchParams === "" && selectedTorrent === null}
           >
@@ -128,6 +129,7 @@ function InputSearch() {
               size="icon"
               className="relative"
               title={t("search.filters.title")}
+              aria-label={t("search.filters.title")}
               onClick={() => setShowFilters(true)}
             >
               <Filter className="pointer-events-none" />
@@ -149,6 +151,8 @@ function InputSearch() {
             <Button
               variant="default"
               size="icon"
+              title={t("search.find.submit")}
+              aria-label={t("search.find.submit")}
               onClick={handleSearch}
               disabled={isLoading || sourceOptions.length === 0 || !field.deferredQuery}
             >

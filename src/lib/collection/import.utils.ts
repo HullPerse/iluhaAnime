@@ -1,7 +1,14 @@
 import { IMPORT_CHUNK_SIZE } from "@/config/collection/defaults.config";
+import { withFallback } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import type { AniListEntry, AniMedia } from "@/types/anilist";
-import type { CollectionItem, WizardPrefill, WizardSaveValues } from "@/types/collection";
+import type {
+  CollectionItem,
+  QuickAddListEntry,
+  QuickAddMedia,
+  WizardPrefill,
+  WizardSaveValues,
+} from "@/types/collection";
 
 import { buildWizardItem, mergeGenreTags, parseNonNegative, parseRating } from "./wizard.utils";
 
@@ -37,6 +44,10 @@ export function anilistStatusToCollection(status: string): string {
   if (s === "REPEATING" || s === "REWATCHING") return "rewatching";
   return "planned";
 }
+
+export function anilistFormatToCollection(format: string | null): "anime" | "movie" {
+  return format === "MOVIE" ? "movie" : "anime";
+}
 export function buildAnilistPrefill(
   media: Pick<AniMedia, "title" | "cover_url">,
   listStatus: string | null
@@ -59,7 +70,7 @@ export function entryToWizardValues(entry: AniListEntry): WizardSaveValues {
   return {
     title: m.title,
     altTitles: m.titles.join(", "),
-    type: "anime",
+    type: anilistFormatToCollection(m.format),
     status: anilistStatusToCollection(entry.list_status),
     progressValue,
     progressTotal,
@@ -74,42 +85,19 @@ export function entryToWizardValues(entry: AniListEntry): WizardSaveValues {
     priority: "normal",
     isFavorite: false,
     year,
+    releaseDate: m.start_date ?? null,
     genres,
     studio,
     description: m.description ?? "",
     notes: "",
     coverUrl,
-    externalIds: { anilist: m.id },
+    externalIds: { anilist: m.id, ...(m.id_mal != null ? { mal: m.id_mal } : {}) },
     customFields: {},
     localPath: "",
     localKind: null,
     startedAt: "",
     finishedAt: "",
   };
-}
-
-export type QuickAddMedia = Pick<
-  AniMedia,
-  | "id"
-  | "title"
-  | "titles"
-  | "episodes"
-  | "duration"
-  | "score"
-  | "genres"
-  | "tags"
-  | "description"
-  | "cover_url"
-  | "season_year"
-  | "studios"
-  | "id_mal"
-  | "trailer_youtube_id"
->;
-
-export interface QuickAddListEntry {
-  progress: number | null;
-  score: number | null;
-  list_status: string;
 }
 
 export function mediaToWizardValues(
@@ -126,7 +114,7 @@ export function mediaToWizardValues(
   return {
     title: media.title,
     altTitles: media.titles.join(", "),
-    type: "anime",
+    type: anilistFormatToCollection(media.format),
     status: anilistStatusToCollection(entry?.list_status ?? "PLANNING"),
     progressValue,
     progressTotal,
@@ -141,12 +129,13 @@ export function mediaToWizardValues(
     priority: "normal",
     isFavorite,
     year,
+    releaseDate: media.start_date ?? null,
     genres,
     studio,
     description: media.description ?? "",
     notes: "",
     coverUrl,
-    externalIds: { anilist: media.id },
+    externalIds: { anilist: media.id, ...(media.id_mal != null ? { mal: media.id_mal } : {}) },
     customFields: {},
     localPath: "",
     localKind: null,
@@ -155,7 +144,7 @@ export function mediaToWizardValues(
   };
 }
 
-export function buildImportItem(entry: AniListEntry, now: number) {
+function buildImportItem(entry: AniListEntry, now: number) {
   const values = entryToWizardValues(entry);
   const item = buildWizardItem(values, null, null);
   return {
@@ -209,18 +198,16 @@ export async function runImportBatch(
     const chunk = entries.slice(start, start + IMPORT_CHUNK_SIZE);
     const now = Date.now();
     const items = chunk.map((entry) => buildImportItem(entry, now));
-    let outcome: { imported: number; failed: Array<{ index: number; error: string }> };
-    try {
-      outcome = await invokeTyped<{
+    const outcome = await withFallback(
+      invokeTyped<{
         imported: number;
         failed: Array<{ index: number; error: string }>;
-      }>("import_collection_items_batch", { items });
-    } catch {
-      outcome = {
+      }>("import_collection_items_batch", { items }),
+      {
         imported: 0,
         failed: chunk.map((_, index) => ({ index, error: "batch failed" })),
-      };
-    }
+      }
+    );
     imported += outcome.imported;
     const chunkFailed = new Set(outcome.failed.map((f) => f.index));
     for (let offset = 0; offset < chunk.length; offset++) {

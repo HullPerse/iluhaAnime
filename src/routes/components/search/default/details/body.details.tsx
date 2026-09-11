@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { formatSize } from "@/lib/search/format.utils";
-import type { Anime, Source } from "@/types";
-import type { TorrentView } from "@/types/torrent";
+import type { Anime, TorrentView } from "@/types/torrent";
+import type { Source } from "@/types/search";
 
 import { MetaItem } from "./meta.details";
 import { DetailSection } from "./section.details";

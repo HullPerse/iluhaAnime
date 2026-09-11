@@ -14,18 +14,6 @@ import type { AniRecommendation, AniRelation, FranchiseGraph } from "@/types/ani
 
 const SIMILAR_LIMIT = 8;
 
-function SimilarCover({ url }: { url: string }) {
-  const src = useRemoteImage(url);
-  if (!src) return null;
-  return (
-    <ImageComponent
-      src={src}
-      alt="cover_url"
-      className="windows95-active-border h-18 w-13 shrink-0"
-    />
-  );
-}
-
 export function SimilarSection({
   animeId,
   relations,
@@ -122,5 +110,17 @@ export function SimilarSection({
         </div>
       ))}
     </Section>
+  );
+}
+
+function SimilarCover({ url }: { url: string }) {
+  const src = useRemoteImage(url);
+  if (!src) return null;
+  return (
+    <ImageComponent
+      src={src}
+      alt="cover_url"
+      className="windows95-active-border h-18 w-13 shrink-0"
+    />
   );
 }

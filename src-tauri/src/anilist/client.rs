@@ -31,7 +31,9 @@ async fn acquire_request_slot() {
     loop {
         let now = Instant::now();
         {
-            let mut log = RATE_LOG.lock().unwrap();
+            let mut log = RATE_LOG
+                .lock()
+                .expect("AniList rate-limit log mutex poisoned");
             while let Some(&t) = log.front() {
                 if now.duration_since(t) >= Duration::from_secs(60) {
                     log.pop_front();

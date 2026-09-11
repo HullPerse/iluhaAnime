@@ -39,6 +39,7 @@ export function TorrentHeader({
             {isLive ? (
               <Button
                 title={t("torrent.pause")}
+                aria-label={t("torrent.pause")}
                 size="icon"
                 className="size-6"
                 onClick={onPause}
@@ -49,6 +50,7 @@ export function TorrentHeader({
             ) : isPaused ? (
               <Button
                 title={t("torrent.resume")}
+                aria-label={t("torrent.resume")}
                 size="icon"
                 className="size-6"
                 onClick={onResume}
@@ -72,6 +74,7 @@ export function TorrentHeader({
         {item.save_dir && (
           <Button
             title={t("torrent.open.folder")}
+            aria-label={t("torrent.open.folder")}
             size="icon"
             className="size-6"
             onClick={() => openPath(item.save_dir)}
@@ -81,6 +84,7 @@ export function TorrentHeader({
         )}
         <Button
           title={t("torrent.sequential")}
+          aria-label={t("torrent.sequential")}
           className="windows95-font flex size-6 items-center justify-center text-xs"
           variant={item.sequential_download ? "default" : "outline"}
           onClick={() => onSetSequential(!item.sequential_download)}
@@ -89,6 +93,7 @@ export function TorrentHeader({
         </Button>
         <Button
           title={t("torrent.recheck")}
+          aria-label={t("torrent.recheck")}
           size="icon"
           className="size-6"
           onClick={(e) => {
@@ -101,6 +106,7 @@ export function TorrentHeader({
         <Button
           variant="error"
           title={t("torrent.delete")}
+          aria-label={t("torrent.delete")}
           size="icon"
           className="size-6"
           onClick={(e) => {

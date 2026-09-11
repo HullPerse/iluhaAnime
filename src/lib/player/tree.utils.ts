@@ -1,4 +1,9 @@
-import type { FolderNode, Item, VideoFileEntry } from "@/types";
+import type { FolderNode } from "@/types/torrent";
+import type { VideoFileEntry } from "@/types/fs";
+
+export type PlayerTreeItem =
+  | { kind: "folder"; node: FolderNode; depth: number }
+  | { kind: "file"; file: FolderNode["files"][number]; depth: number };
 
 export function buildTree(entries: VideoFileEntry[], rootPath: string): FolderNode {
   const root: FolderNode = {
@@ -74,7 +79,7 @@ function shouldSkipTreeNode(node: FolderNode, files: FolderNode["files"], query:
 }
 
 function appendTreeFiles(
-  items: Item[],
+  items: PlayerTreeItem[],
   files: FolderNode["files"],
   depth: number,
   disabledExtensions?: Set<string>
@@ -86,7 +91,7 @@ function appendTreeFiles(
   }
 }
 
-function isEmptyTreeFolder(items: Item[], node: FolderNode, depth: number): boolean {
+function isEmptyTreeFolder(items: PlayerTreeItem[], node: FolderNode, depth: number): boolean {
   return (
     depth > 0 &&
     items.length === 1 &&
@@ -102,11 +107,11 @@ export function flattenTree(
   disabledExtensions: Set<string> | undefined,
   depth: number,
   trackExts?: Set<string>
-): Item[] {
+): PlayerTreeItem[] {
   if (!node.children.length && !node.files.length) return [];
   const filteredFiles = filterTreeFiles(node, searchQuery, trackExts);
   if (shouldSkipTreeNode(node, filteredFiles, searchQuery)) return [];
-  const items: Item[] = depth > 0 ? [{ depth, kind: "folder", node }] : [];
+  const items: PlayerTreeItem[] = depth > 0 ? [{ depth, kind: "folder", node }] : [];
   const isOpen = open.has(node.path);
   if (isOpen || depth === 0) {
     appendTreeFiles(items, filteredFiles, depth, disabledExtensions);

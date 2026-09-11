@@ -1,11 +1,8 @@
-import { cn } from "cn";
-import { ChevronRight, CircleSmall, Heart, Tag, Users } from "lucide-react";
 import { useState } from "react";
 
-import { SmallLoader } from "@/components/shared/loader.component";
+import { TabLoader } from "@/components/shared/loader.component";
 import Section from "@/components/shared/section.component";
 import { Button } from "@/components/ui/button.component";
-import { DETAIL_TAG_COUNT } from "@/config/anilist/filters.config";
 import { useFavPeopleAnimeSet } from "@/hooks/anilist/people.hook";
 import { useAnimeShowcase } from "@/hooks/showcase.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
@@ -13,15 +10,17 @@ import { useSearchStore } from "@/store/search.store";
 import type { AniVoiceActor } from "@/types/anilist";
 import type { AniDetailViewProps as ViewProps } from "@/types/anilist";
 
+import { DetailHeaderActions } from "./actions.detail";
 import AniListCharacterDetailModal from "./character.detail";
 import AniListCharactersPanel from "./characters.detail";
 import AniListActionControls from "./controls.detail";
+import { GenresTagsSection } from "./genres.detail";
 import AniListMetadata from "./metadata.detail";
-import QuickAddButton from "./quickadd.detail";
 import FranchiseGraphSection from "./section.detail";
 import { SimilarSection } from "./similar.detail";
+import { StudiosSection } from "./studios.detail";
+import { TitlesSection } from "./titles.detail";
 
-// oxlint-disable-next-line complexity
 export function AniListDetailView({
   animeId,
   listEntry,
@@ -29,7 +28,6 @@ export function AniListDetailView({
   favouriteIds,
   favouriteStaffIds,
   favouriteCharacterIds,
-  onFavouriteToggle,
   onStaffFavouriteToggle,
   onCharacterFavouriteToggle,
   onTag,
@@ -56,27 +54,16 @@ export function AniListDetailView({
     name: string;
     voiceActors: AniVoiceActor[];
   } | null>(null);
-  const [favoriteLoading, setFavoriteLoading] = useState(false);
   const showcase = useAnimeShowcase(anime);
   const headerTrailerId = showcase?.trailerYoutubeId ?? null;
   const isFavorite = favouriteIds?.has(animeId) ?? false;
   const hasFavouritePeople = useFavPeopleAnimeSet().has(animeId);
-  const toggleFavorite = () => {
-    if (favoriteLoading) return;
-    setFavoriteLoading(true);
-    onFavouriteToggle?.(animeId);
-    setFavoriteLoading(false);
-  };
   const handleSearchTorrents = (query?: string) => {
     setCrossSearchQuery(query ?? anime?.title ?? "");
     onClose();
   };
   if (isLoading) {
-    return (
-      <div className="flex min-h-48 flex-1 items-center justify-center">
-        <SmallLoader size={6} className="windows95-text" />
-      </div>
-    );
+    return <TabLoader className="min-h-48 flex-1" />;
   }
   if (isError) {
     const loginRequired = !isLoggedIn && /403/.test(String(error ?? ""));
@@ -92,11 +79,7 @@ export function AniListDetailView({
     );
   }
   if (!anime) {
-    return (
-      <div className="flex min-h-48 flex-1 items-center justify-center">
-        <SmallLoader size={6} className="windows95-text" />
-      </div>
-    );
+    return <TabLoader className="min-h-48 flex-1" />;
   }
   return (
     <section className="flex flex-col gap-2">
@@ -112,59 +95,18 @@ export function AniListDetailView({
           />
         </div>
         <div className="flex shrink-0 flex-col items-end justify-between gap-1 self-stretch">
-          {isLoggedIn ? (
-            <Button
-              size="icon"
-              className="shrink-0"
-              disabled={favoriteLoading}
-              onClick={toggleFavorite}
-              title={isFavorite ? t("anilist.details.remove.fav") : t("anilist.details.add.fav")}
-              aria-label={
-                isFavorite ? t("anilist.details.remove.fav") : t("anilist.details.add.fav")
-              }
-            >
-              {favoriteLoading ? (
-                <SmallLoader size={3} />
-              ) : (
-                <Heart
-                  className={cn("size-4", isFavorite ? "fill-red-500 text-red-500" : "text-text")}
-                />
-              )}
-            </Button>
-          ) : (
-            <span />
-          )}
-          {headerTrailerId ? (
-            <div className="flex flex-row gap-2">
-              <Button
-                className="h-5 shrink-0 px-1 text-xs"
-                onClick={() => onTrailer?.(headerTrailerId)}
-              >
-                {t("anilist.details.trailer")}
-              </Button>
-              <QuickAddButton anime={anime} listEntry={listEntry} isFavorite={isFavorite} />
-            </div>
-          ) : null}
+          <DetailHeaderActions
+            isFavorite={isFavorite}
+            trailerId={headerTrailerId}
+            onTrailer={onTrailer}
+            anime={anime}
+            listEntry={listEntry}
+          />
         </div>
       </div>
 
       {anime.studios.length > 0 && (
-        <Section header={t("anilist.details.studios")} className="flex flex-wrap gap-1 bg-white">
-          {anime.studios.map((s, i) => (
-            <Button
-              key={i}
-              onClick={() => {
-                onStudio?.(s.id, s.name);
-                onClose();
-              }}
-              className="bg-primary windows95-text flex flex-row gap-1 px-1 underline decoration-dotted"
-              variant="ghost"
-              title={t("anilist.details.studio.search")}
-            >
-              <Users className="size-3" /> {s.name}
-            </Button>
-          ))}
-        </Section>
+        <StudiosSection studios={anime.studios} onStudio={onStudio} onClose={onClose} />
       )}
       <AniListCharactersPanel
         animeId={anime.id}
@@ -198,64 +140,17 @@ export function AniListDetailView({
       )}
 
       {(anime.genres.length > 0 || anime.tags.length > 0) && (
-        <Section
-          header={t("anilist.details.genres.tags")}
-          className="flex flex-wrap gap-1 bg-white"
-        >
-          {anime.genres.map((g) => (
-            <Button
-              key={g}
-              onClick={() => {
-                onGenre(g);
-                onClose();
-              }}
-              className="windows95-text bg-secondary hover:bg-secondary/60 windows95-active-border flex flex-row gap-1 px-1 font-bold text-white"
-              variant="ghost"
-              title={t("anilist.details.genre.search")}
-            >
-              <CircleSmall className="size-3 fill-white" />
-              {g}
-            </Button>
-          ))}
-          {anime.tags.slice(0, DETAIL_TAG_COUNT).map((tag) => (
-            <Button
-              key={tag}
-              onClick={() => {
-                onTag(tag);
-                onClose();
-              }}
-              className="windows95-text bg-primary hover:bg-surface -mx-0.5 flex flex-row gap-1 truncate px-1 text-left underline decoration-dotted"
-              variant="ghost"
-              title={t("anilist.details.genre.search")}
-            >
-              <Tag className="size-3" /> {tag}
-            </Button>
-          ))}
-        </Section>
+        <GenresTagsSection
+          genres={anime.genres}
+          tags={anime.tags}
+          onGenre={onGenre}
+          onTag={onTag}
+          onClose={onClose}
+        />
       )}
 
       {(anime.title || anime.titles.length > 0) && (
-        <Section header={t("anilist.details.all.titles")} className="flex flex-wrap gap-1 bg-white">
-          <Button
-            onClick={() => handleSearchTorrents(anime.title)}
-            className="windows95-text bg-primary hover:bg-surface -mx-0.5 flex flex-row gap-1 truncate px-1 text-left underline decoration-dotted"
-            variant="ghost"
-            title={t("anilist.details.torrent.search")}
-          >
-            <ChevronRight className="size-3" /> {anime.title}
-          </Button>
-          {anime.titles.map((title) => (
-            <Button
-              key={title}
-              onClick={() => handleSearchTorrents(title)}
-              className="windows95-text bg-primary hover:bg-surface -mx-0.5 truncate px-1 text-left underline decoration-dotted"
-              variant="ghost"
-              title={t("anilist.details.torrent.search")}
-            >
-              <ChevronRight className="size-3" /> {title}
-            </Button>
-          ))}
-        </Section>
+        <TitlesSection anime={anime} onSearchTorrents={handleSearchTorrents} />
       )}
 
       <SimilarSection animeId={anime.id} relations={anime.relations} onRelated={onRelated} />

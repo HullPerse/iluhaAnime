@@ -29,4 +29,3 @@ export const DEFAULT_COLLECTION_STATUSES: CollectionStatusDef[] = [
 ];
 
 export const DEFAULT_NEW_COLOR = "#0ea5e9";
-export const SCROLL_STEP = 200;

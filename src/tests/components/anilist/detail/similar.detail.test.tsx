@@ -1,5 +1,3 @@
-// @vitest-environment jsdom
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -21,7 +19,7 @@ afterEach(() => {
 });
 
 beforeEach(() => {
-  useSettingsStore.setState({ language: "en", tmdbApiKey: null });
+  useSettingsStore.setState({ language: "en", tmdbKeySet: false });
 });
 
 function rec(id: number): AniRecommendation {

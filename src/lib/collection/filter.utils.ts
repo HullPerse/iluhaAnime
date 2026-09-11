@@ -7,7 +7,7 @@ import type {
   CollectionStatus,
   FilterParams,
 } from "@/types/collection";
-import type { NumericCond, ParsedIntent } from "@/types/search";
+import type { DateCond, NumericCond, ParsedIntent } from "@/types/search";
 
 function isIntentEnabled(): boolean {
   return useSettingsStore.getState().searchIntentEnabled;
@@ -29,6 +29,26 @@ function compareNumber(value: number, op: NumericCond["op"], target: number): bo
   return value !== target;
 }
 
+function compareIsoDate(value: string, op: DateCond["op"], target: string): boolean {
+  if (op === "=") return value === target;
+  if (op === "!=") return value !== target;
+  if (op === ">") return value > target;
+  if (op === ">=") return value >= target;
+  if (op === "<") return value < target;
+  return value <= target;
+}
+
+function matchDateCond(item: CollectionItem, cond: DateCond): boolean {
+  if (cond.yearOnly) {
+    const year = item.year ?? (item.releaseDate ? Number(item.releaseDate.slice(0, 4)) : null);
+    if (year == null || !Number.isInteger(year)) return false;
+    if (cond.op === "=") return year === Number(cond.iso);
+    return compareNumber(year, cond.op, Number(cond.iso));
+  }
+  if (item.releaseDate == null) return false;
+  return compareIsoDate(item.releaseDate, cond.op, cond.iso);
+}
+
 function splitOr(value: string): string[] {
   return value
     .split("|")
@@ -41,6 +61,9 @@ function applyIntentFilters(list: CollectionItem[], intent: ParsedIntent): Colle
   if (intent.year !== undefined) out = out.filter((item) => item.year === intent.year);
   for (const cond of intent.yearOps) {
     out = out.filter((item) => item.year != null && compareNumber(item.year, cond.op, cond.value));
+  }
+  for (const cond of intent.dateConds) {
+    out = out.filter((item) => matchDateCond(item, cond));
   }
   if (intent.genre) {
     const needles = splitOr(intent.genre);
@@ -79,7 +102,9 @@ function applyIntentFilters(list: CollectionItem[], intent: ParsedIntent): Colle
   if (intent.progress !== undefined)
     out = out.filter((item) => item.progressValue === intent.progress);
   for (const cond of intent.progressOps) {
-    out = out.filter((item) => compareNumber(item.progressValue, cond.op, cond.value));
+    out = out.filter(
+      (item) => item.progressValue != null && compareNumber(item.progressValue, cond.op, cond.value)
+    );
   }
   if (intent.priority) {
     const needles = splitOr(intent.priority);
@@ -149,7 +174,7 @@ function applyShortQueryFilter(list: CollectionItem[], cleanQuery: string): Coll
 
 function sortCollectionItems(
   list: CollectionItem[],
-  sortBy: "date" | "name" | "rating",
+  sortBy: "date" | "name" | "rating" | "year",
   sortDir: "asc" | "desc"
 ): CollectionItem[] {
   return [...list].sort((left, right) => {
@@ -157,6 +182,7 @@ function sortCollectionItems(
       date: left.updatedAt - right.updatedAt,
       name: left.title.localeCompare(right.title),
       rating: (left.rating ?? -1) - (right.rating ?? -1),
+      year: (left.year ?? -1) - (right.year ?? -1),
     };
     const result = values[sortBy];
     return sortDir === "asc" ? result : -result;
@@ -169,7 +195,7 @@ export function filterCollectionItems(
   selectedStatus: CollectionStatus | "all",
   searchQuery: string,
   filters: FilterParams,
-  sortBy: "date" | "name" | "rating",
+  sortBy: "date" | "name" | "rating" | "year",
   sortDir: "asc" | "desc"
 ): CollectionItem[] {
   const intentEnabled = isIntentEnabled();
@@ -244,4 +270,12 @@ export function applyCollectionFilters(
 
 export function freshDefaults(): CollectionFilters {
   return { ...DEFAULT_FILTERS, mediaTypes: [], genres: [] };
+}
+
+export function pickRandomItem(
+  items: readonly CollectionItem[],
+  rand: () => number = Math.random
+): CollectionItem | undefined {
+  if (items.length === 0) return undefined;
+  return items[Math.floor(rand() * items.length)];
 }

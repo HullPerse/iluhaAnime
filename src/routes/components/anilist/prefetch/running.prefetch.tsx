@@ -1,5 +1,5 @@
 import ProgressBar from "@/components/shared/progress.component";
-import { formatDuration } from "@/lib/anilist/prefetch.utils";
+import { formatClock } from "@/lib/utils/time.utils";
 import type { ActivityTranslate, PrefetchProgressPayload } from "@/types/anilist";
 
 export function RunningSummary({
@@ -32,11 +32,11 @@ export function RunningSummary({
       </div>
       <div className="windows95-text text-hint flex flex-row items-center justify-between text-xs">
         <span>
-          {t("anilist.prefetch.time")}: {formatDuration(progress.elapsed_ms / 1000)}
+          {t("anilist.prefetch.time")}: {formatClock(progress.elapsed_ms / 1000)}
         </span>
         <span>
           {t("anilist.prefetch.eta")}: ~
-          {progress.eta_secs == null ? "..." : formatDuration(progress.eta_secs)}
+          {progress.eta_secs == null ? "..." : formatClock(progress.eta_secs)}
         </span>
         <span>
           {t("anilist.prefetch.next.batch")}: {(progress.next_batch_in_ms / 1000).toFixed(1)}с

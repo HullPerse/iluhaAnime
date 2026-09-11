@@ -1,5 +1,3 @@
-// @vitest-environment jsdom
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -121,7 +119,7 @@ describe("AniListDetailView auth-gated error", () => {
 describe("AniListDetailView header trailer", () => {
   it("opens the trailer from the bottom-right header button", async () => {
     const user = userEvent.setup();
-    useSettingsStore.setState({ tmdbApiKey: null });
+    useSettingsStore.setState({ tmdbKeySet: true });
     const onTrailer = vi.fn();
     renderView(props({ anime: TRAILER_ANIME, isLoading: false, onTrailer }));
     await user.click(await screen.findByRole("button", { name: /Трейлер|Trailer/ }));
@@ -129,7 +127,7 @@ describe("AniListDetailView header trailer", () => {
   });
 
   it("shows no trailer button without a trailer id", async () => {
-    useSettingsStore.setState({ tmdbApiKey: null });
+    useSettingsStore.setState({ tmdbKeySet: false });
     renderView(props({ anime: { ...TRAILER_ANIME, trailer_youtube_id: null }, isLoading: false }));
     await screen.findByText("One Piece");
     expect(screen.queryByRole("button", { name: /Трейлер|Trailer/ })).toBeNull();

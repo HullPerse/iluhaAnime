@@ -3,6 +3,7 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
 import { useSettingsStore } from "@/store/settings.store";
+import { reportBackgroundError } from "@/lib/utils/attempt.utils";
 import type {
   DismissedEntry,
   NotificationItem,
@@ -160,7 +161,9 @@ export const useNotificationStore = create<NotificationStore>()(
         let storageStillExists = false;
         try {
           storageStillExists = notificationStorage?.getItem(NOTIFICATION_STORAGE_KEY) != null;
-        } catch {}
+        } catch (error) {
+          reportBackgroundError("notification.storage.check", error);
+        }
         const persistedState = persisted as
           | { items?: NotificationItem[]; dismissed?: DismissedEntry[] }
           | undefined;

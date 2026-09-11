@@ -4,29 +4,33 @@ import { isTagLikeQuery, parseIntent, tokenizeIntent } from "@/lib/search/intent
 
 describe("tokenizeIntent", () => {
   it("returns spans for known filter tokens", () => {
-    expect(tokenizeIntent("studio:MAPPA frieren")).toEqual([
-      { start: 0, end: 12, key: "studio", op: ":", value: "MAPPA" },
+    expect(tokenizeIntent("studio=MAPPA frieren")).toEqual([
+      { start: 0, end: 12, key: "studio", op: "=", value: "MAPPA" },
     ]);
   });
 
   it("keeps quoted values in one span", () => {
-    const query = 'genre:"sci fi" frieren';
+    const query = 'genre="sci fi" frieren';
     const tokens = tokenizeIntent(query);
     expect(tokens).toHaveLength(1);
-    expect(query.slice(tokens[0]!.start, tokens[0]!.end)).toBe('genre:"sci fi"');
+    expect(query.slice(tokens[0]!.start, tokens[0]!.end)).toBe('genre="sci fi"');
   });
   it("ignores unknown keys and empty values", () => {
-    expect(tokenizeIntent("foo:bar studio: year:2024")).toEqual([
-      { start: 16, end: 25, key: "year", op: ":", value: "2024" },
+    expect(tokenizeIntent("foo:bar studio= year=2024")).toEqual([
+      { start: 16, end: 25, key: "year", op: "=", value: "2024" },
     ]);
   });
 
   it("matches parseIntent filter keys", () => {
-    const query = 'studio:MAPPA year:2024 genre:"sci fi" frieren';
+    const query = 'studio=MAPPA year=2024 genre="sci fi" frieren';
     const keys = tokenizeIntent(query)
       .map((t) => t.key)
       .sort();
     expect(keys).toEqual(Object.keys(parseIntent(query).rawFilters).sort());
+  });
+
+  it("skips colon filters", () => {
+    expect(tokenizeIntent("studio:MAPPA year:2024")).toEqual([]);
   });
 });
 
@@ -39,7 +43,7 @@ describe("parseIntent operators", () => {
   });
 
   it("keeps exact matches alongside operator ranges", () => {
-    const intent = parseIntent("year>2020 year<2025 genre:action");
+    const intent = parseIntent("year>2020 year<2025 genre=action");
     expect(intent.year).toBeUndefined();
     expect(intent.yearOps).toEqual([
       { op: ">", value: 2020 },
@@ -49,7 +53,7 @@ describe("parseIntent operators", () => {
   });
 
   it("collects string negations without touching exact filters", () => {
-    const intent = parseIntent("status!=completed studio!=MAPPA year:2024");
+    const intent = parseIntent("status!=completed studio!=MAPPA year=2024");
     expect(intent.year).toBe(2024);
     expect(intent.status).toBeUndefined();
     expect(intent.negations).toEqual([
@@ -65,7 +69,7 @@ describe("parseIntent operators", () => {
   });
 
   it("parses episodes exact and comparisons", () => {
-    const exact = parseIntent("episodes:24");
+    const exact = parseIntent("episodes=24");
     expect(exact.episodes).toBe(24);
     const range = parseIntent("episodes>12 episodes!=24");
     expect(range.episodesOps).toEqual([
@@ -73,33 +77,80 @@ describe("parseIntent operators", () => {
       { op: "!=", value: 24 },
     ]);
   });
-
   it("parses sort field with optional direction", () => {
-    expect(parseIntent("sort:rating")).toMatchObject({ sortBy: "rating", sortDir: "desc" });
-    expect(parseIntent("sort:name:asc")).toMatchObject({ sortBy: "name", sortDir: "asc" });
-    expect(parseIntent("sort:year").sortBy).toBeUndefined();
+    expect(parseIntent("sort=rating")).toMatchObject({ sortBy: "rating", sortDir: "desc" });
+    expect(parseIntent("sort=name:asc")).toMatchObject({ sortBy: "name", sortDir: "asc" });
+    expect(parseIntent("sort=year")).toMatchObject({ sortBy: "year", sortDir: "desc" });
+    expect(parseIntent("sort=season").sortBy).toBeUndefined();
   });
 
   it("parses progress exact and comparisons", () => {
-    const intent = parseIntent("progress:0 progress>5");
+    const intent = parseIntent("progress=0 progress>5");
     expect(intent.progress).toBe(0);
     expect(intent.progressOps).toEqual([{ op: ">", value: 5 }]);
+  });
+
+  it("treats colon filters as plain text", () => {
+    expect(parseIntent("year:2024").cleanQuery).toBe("year:2024");
+    expect(parseIntent("year:2024").year).toBeUndefined();
+  });
+
+  it("joins operators separated by spaces", () => {
+    const intent = parseIntent("year >= 2020 rating >= 8");
+    expect(intent.cleanQuery).toBe("");
+    expect(intent.yearOps).toEqual([{ op: ">=", value: 2020 }]);
+    expect(intent.ratingOps).toEqual([{ op: ">=", value: 8 }]);
+  });
+
+  it("accepts comma decimals in rating", () => {
+    expect(parseIntent("rating>=8,5").ratingOps).toEqual([{ op: ">=", value: 8.5 }]);
+  });
+
+  it("keeps unparsable filters in the text query", () => {
+    expect(parseIntent("year>=1800").cleanQuery).toBe("year>=1800");
+    expect(parseIntent("year>=1800").yearOps).toEqual([]);
+    expect(parseIntent("rating>=99").cleanQuery).toBe("rating>=99");
+    expect(parseIntent("sort=bogus").cleanQuery).toBe("sort=bogus");
+  });
+
+  it("parses date in year, RU, and ISO forms", () => {
+    expect(parseIntent("date=2024").dateConds).toEqual([
+      { op: "=", iso: "2024", yearOnly: true },
+    ]);
+    expect(parseIntent('date="31.01.2025"').dateConds).toEqual([
+      { op: "=", iso: "2025-01-31", yearOnly: false },
+    ]);
+    expect(parseIntent("date>=2025-01-31").dateConds).toEqual([
+      { op: ">=", iso: "2025-01-31", yearOnly: false },
+    ]);
+    expect(parseIntent("date >= 2024").dateConds).toEqual([
+      { op: ">=", iso: "2024", yearOnly: true },
+    ]);
+  });
+
+  it("keeps invalid dates in the text query", () => {
+    expect(parseIntent("date=32.13.2024").cleanQuery).toBe("date=32.13.2024");
+    expect(parseIntent("date=32.13.2024").dateConds).toEqual([]);
   });
 });
 
 describe("parseIntent tag alias", () => {
   it("treats tag as genre", () => {
-    expect(parseIntent('tag:"sci fi"').genre).toBe("sci fi");
+    expect(parseIntent('tag="sci fi"').genre).toBe("sci fi");
   });
 
   it("merges tag with genre as an OR group", () => {
-    expect(parseIntent("genre:action tag:comedy").genre).toBe("action|comedy");
+    expect(parseIntent("genre=action tag=comedy").genre).toBe("action|comedy");
+  });
+
+  it("maps tag negations to genre", () => {
+    expect(parseIntent("tag!=comedy").negations).toEqual([{ key: "genre", value: "comedy" }]);
   });
 });
 
 describe("isTagLikeQuery", () => {
-  it("treats colon queries and key prefixes as tag-like", () => {
-    expect(isTagLikeQuery("year:2", "year 2")).toBe(true);
+  it("treats equals queries and key prefixes as tag-like", () => {
+    expect(isTagLikeQuery("year=2", "year 2")).toBe(true);
     expect(isTagLikeQuery("ye", "ye")).toBe(true);
     expect(isTagLikeQuery("status", "status")).toBe(true);
   });

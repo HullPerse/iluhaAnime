@@ -2,6 +2,7 @@ import { save } from "@tauri-apps/plugin-dialog";
 import { useCallback, useState } from "react";
 
 import { useI18n, type TranslationKey } from "@/lib/locale/i18n.utils";
+import { attempt } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useNotificationStore } from "@/store/notification.store";
 
@@ -35,17 +36,14 @@ export function useCollectionDataActions() {
   }, [notify]);
 
   const handleExportZip = useCallback(async () => {
-    try {
-      const path = await save({
-        defaultPath: `iluhaAnime-collection-${new Date().toISOString().slice(0, 10)}.zip`,
-        filters: [{ name: "ZIP", extensions: ["zip"] }],
-      });
-      if (!path) return;
-      await invokeTyped("export_collection_zip", { outPath: path });
-      notify("success", "collection.export.zip.done");
-    } catch {
-      notify("error", "collection.export.error");
-    }
+    const path = await save({
+      defaultPath: `iluhaAnime-collection-${new Date().toISOString().slice(0, 10)}.zip`,
+      filters: [{ name: "ZIP", extensions: ["zip"] }],
+    });
+    if (!path) return;
+    const [, error] = await attempt(invokeTyped("export_collection_zip", { outPath: path }));
+    if (error) notify("error", "collection.export.error");
+    else notify("success", "collection.export.zip.done");
   }, [notify]);
 
   const runImport = useCallback(

@@ -14,14 +14,23 @@ static CLIENT: LazyLock<Client> = LazyLock::new(|| {
 });
 
 static JIKAN_LAST_REQUEST: LazyLock<tokio::sync::Mutex<Instant>> = LazyLock::new(|| {
-    tokio::sync::Mutex::new(Instant::now().checked_sub(Duration::from_secs(10)).unwrap())
+    tokio::sync::Mutex::new(
+        Instant::now()
+            .checked_sub(Duration::from_secs(10))
+            .unwrap_or_else(Instant::now),
+    )
 });
 
 async fn throttle_jikan() {
     let mut last = JIKAN_LAST_REQUEST.lock().await;
     let elapsed = last.elapsed();
     if elapsed < Duration::from_millis(400) {
-        tokio::time::sleep(Duration::from_millis(400).checked_sub(elapsed).unwrap()).await;
+        tokio::time::sleep(
+            Duration::from_millis(400)
+                .checked_sub(elapsed)
+                .expect("Jikan throttle delay underflow: elapsed exceeds interval"),
+        )
+        .await;
     }
     *last = Instant::now();
 }

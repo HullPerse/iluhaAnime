@@ -12,6 +12,7 @@ import { TorrentProgress } from "./sections/progress.sections";
 function TorrentItem({
   item,
   files,
+  filesError,
   isExpanded,
   busy,
   onToggleExpand,
@@ -45,17 +46,20 @@ function TorrentItem({
         onDelete={() => setPendingDelete(true)}
       />
       <TorrentProgress item={item} />
-      {files && (
-        <TorrentFiles
-          item={item}
-          files={files}
-          isExpanded={isExpanded}
-          onToggleExpand={onToggleExpand}
-          onResume={onResume}
-          onUpdateFiles={onUpdateFiles}
-          onFilePriorityChange={onFilePriorityChange}
-          onRedownload={onRedownload}
-        />
+      <TorrentFiles
+        item={item}
+        files={files ?? []}
+        isExpanded={isExpanded}
+        onToggleExpand={onToggleExpand}
+        onResume={onResume}
+        onUpdateFiles={onUpdateFiles}
+        onFilePriorityChange={onFilePriorityChange}
+        onRedownload={onRedownload}
+      />
+      {filesError && (files ?? []).length === 0 && (
+        <span className="text-destructive windows95-text px-0.5 py-0.5">
+          {t("torrent.files.error")}: {filesError}
+        </span>
       )}
       {item.error && <TorrentError error={item.error} onRetry={onRetry} />}
       {pendingDelete && (
@@ -80,6 +84,10 @@ function TorrentItem({
     </div>
   );
 }
+
+function sameFilesState(prev: Props, next: Props): boolean {
+  return prev.files === next.files && prev.filesError === next.filesError;
+}
 export function areTorrentItemsEqual(prev: Props, next: Props): boolean {
   return (
     prev.item.id === next.item.id &&
@@ -91,8 +99,7 @@ export function areTorrentItemsEqual(prev: Props, next: Props): boolean {
     prev.item.share_ratio === next.item.share_ratio &&
     prev.item.total_bytes === next.item.total_bytes &&
     prev.item.progress_bytes === next.item.progress_bytes &&
-    prev.item.finished === next.item.finished &&
-    prev.item.eta_secs === next.item.eta_secs &&
+    sameFilesState(prev, next) &&
     prev.item.error === next.item.error &&
     prev.item.peers_connected === next.item.peers_connected &&
     prev.item.sequential_download === next.item.sequential_download &&
@@ -100,8 +107,7 @@ export function areTorrentItemsEqual(prev: Props, next: Props): boolean {
     prev.item.save_dir === next.item.save_dir &&
     prev.item.info_hash === next.item.info_hash &&
     prev.isExpanded === next.isExpanded &&
-    prev.busy === next.busy &&
-    prev.files === next.files
+    prev.busy === next.busy
   );
 }
 

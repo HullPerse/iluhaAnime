@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input.component";
 import { MAGNET_RX } from "@/config/torrent/common.config";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { enterSubmit } from "@/lib/utils/keyboard.utils";
+import { reportBackgroundError } from "@/lib/utils/attempt.utils";
 import type { MagnetTorrentProps as Props } from "@/types/torrent";
 
 export default function AddTorrentModal({ open, onClose, onAddMagnet, onAddFile }: Props) {
@@ -22,7 +23,9 @@ export default function AddTorrentModal({ open, onClose, onAddMagnet, onAddFile 
         if (text && MAGNET_RX.test(text.trim())) {
           setMagnetInput(text.trim());
         }
-      } catch {}
+      } catch (error) {
+        reportBackgroundError("magnet.clipboard", error);
+      }
     })();
   }, [open]);
 

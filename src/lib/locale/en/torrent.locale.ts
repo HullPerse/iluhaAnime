@@ -13,6 +13,7 @@ const torrent = {
   "torrent.eta.minutes.seconds": "{{m}} min {{s}} sec",
   "torrent.eta.seconds": "{{s}} sec",
   "torrent.files.count": "Files ({{done}} / {{total}})",
+  "torrent.files.error": "Failed to load files",
   "torrent.filter.placeholder": "Filter...",
   "torrent.keep.files": "Keep files",
   "torrent.lifecycle.completed": "Completed",
@@ -57,7 +58,12 @@ const torrent = {
   "torrent.summary.download": "Download: {{speed}}",
   "torrent.summary.seeding": "{{count}} seeding",
   "torrent.summary.total": "{{count}} torrents",
+  "torrent.summary.total.one": "{{count}} torrent",
   "torrent.summary.upload": "Upload: {{speed}}",
+  "torrent.eta.label": "ETA {{time}}",
+  "torrent.host.stats": "CPU {{cpu}}% - RAM {{used}} / {{total}}",
+  "torrent.host.stats.net": " - Net {{rx}} / {{tx}}",
+  "torrent.peers": "P: {{count}}",
 } as const;
 
 export default torrent;

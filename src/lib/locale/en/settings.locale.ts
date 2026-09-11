@@ -45,7 +45,8 @@ const settings = {
   "settings.summary.none": "none",
   "settings.summary.images": "Images",
   "settings.summary.images.clear": "Clear",
-  "settings.summary.images.confirm": "Clear the downloaded image cache? Images will re-download as you browse.",
+  "settings.summary.images.confirm":
+    "Clear the downloaded image cache? Images will re-download as you browse.",
   "settings.summary.open": "Open",
   "settings.summary.title": "Summary",
   "settings.search.default.source": "Default source",
@@ -79,11 +80,13 @@ const settings = {
   "settings.search.toggles": "Smart search toggles",
   "settings.search.toggles.hint": "All enabled by default. Disable to make search faster.",
   "settings.search.toggle.sym.spell": "Typo correction (SymSpell)",
-  "settings.search.toggle.intent": "Intent parser (year: studio:)",
+  "settings.search.toggle.intent": "Intent parser (year= studio=)",
   "settings.search.reset.anime.suggestions": "Reset AniList suggestions",
   "settings.search.reset.anime.suggestions.hint":
     "Clears the local AniList title index; your search history stays.",
   "settings.search.preview": "Preview",
+  "settings.search.preview.typed": "fri",
+  "settings.search.preview.ghost": "eren: Beyond Journey's End",
   "settings.search.max.pages": "Max pages",
   "settings.search.page.size": "Page size",
   "settings.search.visible.sources": "Visible sources",
@@ -145,12 +148,14 @@ const settings = {
   "settings.sqlite.query.hint": "SELECT and EXPLAIN only. The database is opened read-only.",
   "settings.sqlite.query.placeholder": "SELECT ...",
   "settings.sqlite.query.result.summary": "{{count}} rows",
+  "settings.sqlite.query.result.summary.one": "{{count}} row",
   "settings.sqlite.query.run": "Run",
   "settings.sqlite.query.title": "SQL query",
   "settings.sqlite.read.only.hint":
     "Only known app databases are shown. Destructive actions require confirmation.",
   "settings.sqlite.refresh": "Refresh database list",
   "settings.sqlite.rows.summary": "{{count}} rows",
+  "settings.sqlite.rows.summary.one": "{{count}} row",
   "settings.sqlite.safety.hint":
     "Only known application tables are available here. BLOB images load only when you open preview.",
   "settings.sqlite.schema": "Schema",
@@ -292,7 +297,11 @@ const settings = {
   "settings.search.toggle.sym.spell.hint":
     "Fixes typos: friren -> frieren. Dictionary built from your anime and history, works offline.",
   "settings.search.toggle.intent.hint":
-    "Parses filters right in the query: year:2024 studio:MAPPA genre:isekai - no need to open filters.",
+    "Parses filters right in the query: year=2024 studio=MAPPA genre=isekai rating>=8 year>=2000 year<2010 - no need to open filters. Exact match uses =, ranges use >, <, >=, <=, !=. Spaces around the operator are allowed. Unknown or out-of-range values stay in the text search.",
+  "settings.tmdb.api.key.save": "Save key",
+  "settings.tmdb.api.key.remove": "Remove key",
+  "settings.tmdb.api.key.stored": "Key stored in OS keyring",
+  "settings.tmdb.api.key.empty": "No key saved",
 } as const;
 
 export default settings;

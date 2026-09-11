@@ -47,7 +47,6 @@ export default defineConfig({
           }
           this.info?.(`icon-sprite: ${files.length} icons, ${(total / 1024).toFixed(1)}KB`);
         } catch {
-          // Reporting only: a missing icons folder must not fail the build.
         }
       },
     },

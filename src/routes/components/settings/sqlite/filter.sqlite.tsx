@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
 import Select from "@/components/ui/select.component";
-import type { SqliteTableInfo } from "@/types";
+import type { SqliteTableInfo } from "@/types/sqlite";
 
 export function SqliteFilterBuilder({
   columns,

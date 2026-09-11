@@ -7,7 +7,7 @@ import { CARD_POSTER_H, CARD_W, GENRE_PREVIEW_COUNT } from "@/config/collection/
 import { useCoverCache } from "@/hooks/collection/cache.hook";
 import { useRemoteImage } from "@/hooks/remoteImage.hook";
 import { generatePlaceholder } from "@/lib/collection/placeholder.utils";
-import { statusColorOf, statusLabel } from "@/lib/collection/status.utils";
+import { statusColorOf } from "@/lib/collection/status.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { enterOrSpace } from "@/lib/utils/keyboard.utils";
 import { useSettingsStore } from "@/store/settings.store";
@@ -42,7 +42,7 @@ function CollectionCardView({
   onEdit,
   onSetStatus,
 }: CollectionCardProps) {
-  const { t, locale } = useI18n();
+  const { t } = useI18n();
   const { cachedUrl } = useCoverCache(item.coverUrl, item.thumbBlobId ?? item.coverBlobId);
   const tmdbProxyUrl = useSettingsStore((s) => s.tmdbProxyUrl);
   const remoteSrc = useRemoteImage(uncachedCoverSource(item));
@@ -79,14 +79,15 @@ function CollectionCardView({
           </div>
         )}
         <span
-          className="windows95-border absolute top-1 left-1 h-3 w-3"
+          className="windows95-border absolute top-1 left-1 inline-block size-3"
           style={{ backgroundColor: statusColorOf(statuses, item.status) }}
-          aria-label={statusLabel(statuses, item.status, t, locale)}
+          aria-hidden
         />
+
         {item.isFavorite && (
           <span
             aria-hidden
-            className="absolute top-1 right-1 rounded bg-black/60 px-1 py-0.5 text-xs leading-none font-bold text-yellow-400"
+            className="absolute top-1 right-1 bg-black/60 px-1 py-0.5 text-xs leading-none font-bold text-yellow-400"
           >
             <Star className="inline size-3 fill-yellow-400" />
           </span>
@@ -106,7 +107,10 @@ function CollectionCardView({
         <div className="flex h-10 shrink-0 flex-col justify-center gap-0 px-1 py-1">
           <div className="flex min-w-0 flex-1 items-center gap-0.5">
             <FavPeopleStar animeId={item.externalIds.anilist} />
-            <h3 className="windows95-text min-w-0 flex-1 truncate text-xs leading-none font-bold" title={item.title}>
+            <h3
+              className="windows95-text min-w-0 flex-1 truncate text-xs leading-none font-bold"
+              title={item.title}
+            >
               {item.title}
             </h3>
           </div>

@@ -1,5 +1,3 @@
-// @vitest-environment jsdom
-
 import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import { useState } from "react";
 import { afterEach, describe, expect, it } from "vitest";

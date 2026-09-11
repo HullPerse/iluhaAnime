@@ -5,13 +5,13 @@ import { useState } from "react";
 import { InputDialog } from "@/components/shared/prompt.component";
 import { Button } from "@/components/ui/button.component";
 import { WIZARD_COVER_MAX } from "@/config/collection/defaults.config";
+import { useRemoteImage } from "@/hooks/remoteImage.hook";
 import { generatePlaceholder } from "@/lib/collection/placeholder.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { assetUrl } from "@/lib/utils/image.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { showError } from "@/lib/utils/notification.utils";
-import { useRemoteImage } from "@/hooks/remoteImage.hook";
-import type { UserImageFile } from "@/types";
+import type { UserImageFile } from "@/types/image.userimage";
 
 import { MemoCoverThumb } from "./coverThumb.wizard";
 
@@ -41,8 +41,16 @@ export function WizardCoverPanel({
 
   const uploadLocal = async () => {
     if (!onUploadLocal) return;
-    const selectedPath = await openDialog({ multiple: false, directory: false });
+    const selectedPath = await openDialog({
+      multiple: false,
+      directory: false,
+      filters: [{ name: "Images", extensions: ["png", "jpg", "jpeg", "gif", "webp"] }],
+    });
     if (!selectedPath || Array.isArray(selectedPath)) return;
+    if (!/\.(png|jpe?g|gif|webp)$/iu.test(selectedPath)) {
+      showError(t("common.error"), t("collection.wizard.upload.error"));
+      return;
+    }
     setUploading(true);
     try {
       const image = await invokeTyped<UserImageFile>("import_user_image", { path: selectedPath });

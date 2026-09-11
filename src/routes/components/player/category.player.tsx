@@ -1,4 +1,5 @@
 import { useDroppable } from "@dnd-kit/core";
+import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "cn";
 import { ChevronDown, ChevronRight, EyeOff, RefreshCw, X } from "lucide-react";
 import { useState, useEffect, useRef, useMemo } from "react";
@@ -7,15 +8,14 @@ import UserImageIcon from "@/components/shared/avatar.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { Input } from "@/components/ui/input.component";
+import { torrentFilesKey } from "@/hooks/torrent/queries.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { normalizePlayerPath } from "@/lib/player/visibility.utils";
-import { fmtSize } from "@/lib/torrent/common.utils";
+import { formatBytes } from "@/lib/utils/bytes.utils";
 import { isUserImageIcon } from "@/lib/utils/image.utils";
 import { useCategoryStore } from "@/store/category.store";
-import { useTorrentStore } from "@/store/download.store";
 import { useSettingsStore } from "@/store/settings.store";
-import type { FolderNode } from "@/types";
-import type { TorrentInfo, TorrentFileInfo } from "@/types/torrent";
+import type { TorrentInfo, TorrentFileInfo, FolderNode } from "@/types/torrent";
 
 import { TorrentCategoryEntry } from "./category/entry.category";
 import CategoryIconModal from "./category/icon.category";
@@ -38,6 +38,7 @@ function CategoryView({
   onHideFolder?: (path: string) => void;
   onHideTorrent?: (infoHash: string) => void;
 }) {
+  const queryClient = useQueryClient();
   const category = useCategoryStore((s) => s.categories.find((c) => c.id === categoryId));
   const entries = useCategoryStore((s) => s.entries[categoryId]);
   const renameCategory = useCategoryStore((s) => s.renameCategory);
@@ -242,7 +243,7 @@ function CategoryView({
                     </button>
                     {entry.totalBytes != null && (
                       <span className="text-hint text-xs whitespace-nowrap">
-                        {fmtSize(entry.totalBytes)}
+                        {formatBytes(entry.totalBytes)}
                       </span>
                     )}
                     {entry.type === "torrent" && entry.infoHash && onHideTorrent && (
@@ -264,7 +265,9 @@ function CategoryView({
                         className="size-4"
                         onClick={(e) => {
                           e.stopPropagation();
-                          useTorrentStore.getState().loadTorrentFiles(entry.torrentId!);
+                          queryClient.invalidateQueries({
+                            queryKey: torrentFilesKey(entry.torrentId!),
+                          });
                         }}
                       >
                         <RefreshCw className="size-3" />

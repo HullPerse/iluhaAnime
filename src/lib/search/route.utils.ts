@@ -1,4 +1,4 @@
-import type { Source } from "@/types";
+import type { Source } from "@/types/search";
 
 export function resolveInitialSource(visibleSources: string[], defaultSource: string): string {
   if (visibleSources.includes(defaultSource)) return defaultSource;

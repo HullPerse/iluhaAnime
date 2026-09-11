@@ -389,7 +389,6 @@ pub async fn check_rutracker_session(
     if cookies.is_empty() {
         return Ok(false);
     }
-    // WebView2 ignores reqwest proxy strings, so the browser path runs direct-only.
     if proxy.is_none() {
         if let Some(response) =
             rutracker_browser_fetch(&app_handle, "https://rutracker.org/forum/index.php").await?
@@ -928,7 +927,6 @@ pub async fn rutracker_get_torrent_bytes(
         return Err("Not authenticated".to_string());
     }
     let download_url = format!("https://rutracker.org/forum/dl.php?t={topic_id}");
-    // WebView2 ignores reqwest proxy strings, so the browser path runs direct-only.
     let browser_response = if proxy.is_none() {
         rutracker_browser_fetch(&app_handle, &download_url).await?
     } else {
@@ -1187,7 +1185,7 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn rutracker_client_can_reach_forum() {
-        let client = build_rutracker_client(None).unwrap();
+        let client = build_rutracker_client(None).expect("rutracker test client must build");
         let resp = client
             .get("https://rutracker.org/forum/index.php")
             .send()
@@ -1198,7 +1196,9 @@ mod tests {
             "expected a successful status, got {}",
             resp.status()
         );
-        let bytes = read_body_limited(resp).await.unwrap();
+        let bytes = read_body_limited(resp)
+            .await
+            .expect("bounded rutracker body must read");
         let text = decode_page(&bytes);
         println!(
             "rutracker responded with {} bytes; challenge: {:?}",

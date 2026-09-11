@@ -80,6 +80,7 @@ const search = {
   "search.page": "Page {{page}}",
   "search.page.results": "Page {{page}}: showing {{shown}} of {{total}} results ({{status}})",
   "search.results.count": "{{count}} results",
+  "search.results.count.one": "{{count}} result",
   "search.retry": "Retry",
   "search.rutracker.browser.hint":
     'rutracker is now behind a Cloudflare challenge that the app\'s network client cannot pass. Use the built-in browser instead: sign in there, then click "Save session".',
@@ -124,6 +125,7 @@ const search = {
   "search.dither.loading": "Loading images...",
   "search.dither.load.error": "Could not load images.",
   "search.dither.upload.error": "Could not save the image. Try again.",
+  "search.dither.upload.gif": "GIF images are not supported as wallpaper.",
   "search.dither.upload.image": "Upload dither image",
   "search.dither.uploading": "Uploading image...",
   "search.dither.preview": "Dither preview",
@@ -134,6 +136,13 @@ const search = {
   "search.dither.preset.deep": "Deep",
   "search.dither.preset.soft": "Soft",
   "search.dither.preset.capy": "Capy",
+  "search.dither.palette.preset.default": "Default",
+  "search.dither.palette.preset.red": "Red ramp",
+  "search.dither.palette.preset.gameboy": "GameBoy",
+  "search.dither.palette.preset.pico8": "PICO-8",
+  "search.dither.palette.preset.gray": "Gray ramp",
+  "search.dither.palette.from.image": "From image",
+  "search.dither.palette.extract.error": "Could not read image colors.",
   "search.dither.opt.ditherStrength": "Dither strength",
   "search.dither.opt.levels": "Levels",
   "search.dither.opt.ditherAmount": "Dither amount",
@@ -162,6 +171,8 @@ const search = {
   "search.dither.display.shadow.right": "Right",
   "search.dither.display.shadow.bottom": "Bottom",
   "search.dither.display.shadow.left": "Left",
+  "search.dither.display.shadow.length": "Length",
+  "search.dither.display.shadow.softness": "Softness",
   "search.dither.display.shadow.intensity": "Intensity",
   "search.dither.display.shadow.color": "Color",
   "search.dither.opt.edgeDistortion": "Edge distortion",
@@ -180,6 +191,8 @@ const search = {
   "search.dither.bake.timeout.frame": "The bake did not produce a frame within 30 seconds.",
   "search.dither.bake.timeout.database": "The database did not answer within 30 seconds.",
   "search.dither.title": "Dither settings",
+  "search.find.submit": "Search",
+  "search.title": "Search",
 } as const;
 
 export default search;

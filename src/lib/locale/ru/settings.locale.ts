@@ -45,7 +45,8 @@ const settings = {
   "settings.summary.none": "нет",
   "settings.summary.images": "Изображения",
   "settings.summary.images.clear": "Очистить",
-  "settings.summary.images.confirm": "Очистить кэш загруженных изображений? Картинки скачаются заново по мере просмотра.",
+  "settings.summary.images.confirm":
+    "Очистить кэш загруженных изображений? Картинки скачаются заново по мере просмотра.",
   "settings.summary.open": "Открыть",
   "settings.summary.title": "Сводка",
   "settings.search.default.source": "Источник по умолчанию",
@@ -79,11 +80,13 @@ const settings = {
   "settings.search.toggles": "Умный поиск",
   "settings.search.toggles.hint": "Всё включено по умолчанию. Выключи для скорости.",
   "settings.search.toggle.sym.spell": "Исправление опечаток",
-  "settings.search.toggle.intent": "Парсер (year: studio:)",
+  "settings.search.toggle.intent": "Парсер (year= studio=)",
   "settings.search.reset.anime.suggestions": "Сбросить подсказки AniList",
   "settings.search.reset.anime.suggestions.hint":
     "Удалит локальный индекс названий AniList, но сохранит историю поиска.",
   "settings.search.preview": "Предпросмотр",
+  "settings.search.preview.typed": "fri",
+  "settings.search.preview.ghost": "eren: Beyond Journey's End",
   "settings.search.max.pages": "Макс. страниц",
   "settings.search.page.size": "Размер страницы",
   "settings.search.visible.sources": "Видимые источники",
@@ -145,12 +148,18 @@ const settings = {
   "settings.sqlite.query.hint": "Только SELECT и EXPLAIN. База открыта в режиме только для чтения.",
   "settings.sqlite.query.placeholder": "SELECT ...",
   "settings.sqlite.query.result.summary": "Строк: {{count}}",
+  "settings.sqlite.query.result.summary.one": "Строка: {{count}}",
+  "settings.sqlite.query.result.summary.few": "Строки: {{count}}",
+  "settings.sqlite.query.result.summary.many": "Строк: {{count}}",
   "settings.sqlite.query.run": "Выполнить",
   "settings.sqlite.query.title": "SQL-запрос",
   "settings.sqlite.read.only.hint":
     "Показываются только известные базы приложения. Опасные действия требуют подтверждения.",
   "settings.sqlite.refresh": "Обновить список баз",
   "settings.sqlite.rows.summary": "Строк: {{count}}",
+  "settings.sqlite.rows.summary.one": "Строка: {{count}}",
+  "settings.sqlite.rows.summary.few": "Строки: {{count}}",
+  "settings.sqlite.rows.summary.many": "Строк: {{count}}",
   "settings.sqlite.safety.hint":
     "Здесь доступны только известные таблицы приложения. Картинки из BLOB-полей грузятся только в предпросмотре.",
   "settings.sqlite.schema": "Схема",
@@ -293,13 +302,17 @@ const settings = {
   "settings.search.toggle.sym.spell.hint":
     "Исправляет опечатки: friren -> frieren. Словарь из ваших аниме и истории, работает офлайн.",
   "settings.search.toggle.intent.hint":
-    "Парсит фильтры прямо в строке: year:2024 studio:MAPPA genre:isekai - фильтры открывать не нужно.",
+    "Парсит фильтры прямо в строке: year=2024 studio=MAPPA genre=isekai rating>=8 year>=2000 year<2010 - фильтры открывать не нужно. Точное совпадение через =, диапазоны через >, <, >=, <=, !=. Пробелы вокруг оператора допустимы. Неизвестные и вне диапазона значения остаются в текстовом поиске.",
   "settings.torrent.sessionHint":
     "Настройки быстрого восстановления и сохранения состояния загрузки.",
   "settings.default.tab": "Стартовая вкладка",
   "settings.defaultTab": "Стартовая вкладка",
   "settings.default.tab.last": "Последняя открытая",
   "settings.defaultTabLast": "Последняя открытая",
+  "settings.tmdb.api.key.save": "Сохранить ключ",
+  "settings.tmdb.api.key.remove": "Удалить ключ",
+  "settings.tmdb.api.key.stored": "Ключ хранится в системном хранилище",
+  "settings.tmdb.api.key.empty": "Ключ не сохранен",
 } as const;
 
 export default settings;

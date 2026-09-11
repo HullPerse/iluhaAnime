@@ -1,4 +1,4 @@
-import type { SourceInfo } from "@/types";
+import type { SourceInfo } from "@/types/search";
 
 export const SOURCE_INFOS: SourceInfo[] = [
   { label: "Erai-Raws", nsfw: false, value: "erai-raws" },

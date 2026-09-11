@@ -125,8 +125,20 @@ describe("useSettingsStore migration", () => {
       wallpaperShadow?: { sides: typeof off; intensity: number; color: string };
       wallpaperFilters?: { brightness: number };
     };
-    expect(result.searchShadow).toEqual({ sides: off, intensity: 50, color: "#000000" });
-    expect(result.wallpaperShadow).toEqual({ sides: off, intensity: 50, color: "#000000" });
+    expect(result.searchShadow).toEqual({
+      sides: off,
+      intensity: 50,
+      color: "#000000",
+      length: 8,
+      softness: 40,
+    });
+    expect(result.wallpaperShadow).toEqual({
+      sides: off,
+      intensity: 50,
+      color: "#000000",
+      length: 8,
+      softness: 40,
+    });
     expect(result.wallpaperFilters?.brightness).toBe(75);
   });
 
@@ -143,6 +155,8 @@ describe("useSettingsStore migration", () => {
       sides: { top: true, right: false, bottom: false, left: false },
       intensity: 80,
       color: "#ff0000",
+      length: 8,
+      softness: 40,
     });
     const around = migrate!(
       {

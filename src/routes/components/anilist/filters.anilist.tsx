@@ -1,4 +1,4 @@
-import { Star } from "lucide-react";
+import { Dices, Star } from "lucide-react";
 import { useState } from "react";
 
 import ChipsRow from "@/components/shared/chips.component";
@@ -24,7 +24,15 @@ import type { AniListFiltersModalProps, AniListFilters } from "@/types/anilist";
 
 const NSFW_TAG_SET = new Set(ANILIST_NSFW_TAGS);
 
-function FiltersModal({ open, filters, onApply, onReset, onClose }: AniListFiltersModalProps) {
+function FiltersModal({
+  open,
+  filters,
+  onApply,
+  onReset,
+  onClose,
+  onRandom,
+  randomPending,
+}: AniListFiltersModalProps) {
   const { t } = useI18n();
   const [local, setLocal] = useState<AniListFilters>(filters);
   const [genreSelect, setGenreSelect] = useState("");
@@ -158,7 +166,7 @@ function FiltersModal({ open, filters, onApply, onReset, onClose }: AniListFilte
                 checked={local.format === f}
                 onChange={() => setLocal((p) => ({ ...p, format: f }))}
               />
-              {t(formatLabels[f] as never)}
+              {t(formatLabels[f])}
             </label>
           ))}
           <label className="windows95-text flex cursor-pointer items-center gap-1 select-none">
@@ -181,7 +189,7 @@ function FiltersModal({ open, filters, onApply, onReset, onClose }: AniListFilte
                 checked={local.status === s}
                 onChange={() => setLocal((p) => ({ ...p, status: s }))}
               />
-              {t(statusLabels[s] as never)}
+              {t(statusLabels[s])}
             </label>
           ))}
           <label className="windows95-text flex cursor-pointer items-center gap-1 select-none">
@@ -205,7 +213,7 @@ function FiltersModal({ open, filters, onApply, onReset, onClose }: AniListFilte
               { value: "", label: t("anilist.filters.any") },
               ...SEASONS.map((s) => ({
                 value: s,
-                label: t(seasonLabels[s] as never),
+                label: t(seasonLabels[s]),
               })),
             ]}
           />
@@ -334,6 +342,15 @@ function FiltersModal({ open, filters, onApply, onReset, onClose }: AniListFilte
         </label>
 
         <div className="mt-3 flex justify-end gap-1">
+          <Button
+            variant="outline"
+            className="mr-auto"
+            disabled={randomPending}
+            onClick={() => onRandom(local)}
+          >
+            <Dices className="size-3" aria-hidden />
+            {t("anilist.filters.random")}
+          </Button>
           <Button variant="outline" onClick={handleReset}>
             {t("anilist.filters.reset")}
           </Button>

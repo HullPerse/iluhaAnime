@@ -44,6 +44,8 @@ export default function AniListSecondaryModals({
   onFiltersApply,
   onFiltersReset,
   onFiltersClose,
+  onFiltersRandom,
+  randomPending,
   onStatsClose,
   onStatsAnime,
   onBrowseClose,
@@ -75,6 +77,8 @@ export default function AniListSecondaryModals({
   onFiltersApply: (filters: AniListFilters) => void;
   onFiltersReset: () => void;
   onFiltersClose: () => void;
+  onFiltersRandom: (filters: AniListFilters) => void;
+  randomPending: boolean;
   onStatsClose: () => void;
   onStatsAnime: (id: number) => void;
   onBrowseClose: () => void;
@@ -127,6 +131,8 @@ export default function AniListSecondaryModals({
         onApply={onFiltersApply}
         onReset={onFiltersReset}
         onClose={onFiltersClose}
+        onRandom={onFiltersRandom}
+        randomPending={randomPending}
       />
 
       {views.stats && (

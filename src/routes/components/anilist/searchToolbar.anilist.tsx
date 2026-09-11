@@ -1,6 +1,6 @@
 import { Filter, Search, User } from "lucide-react";
 
-import { InlineAutocompleteInput } from "@/components/shared/autocomplete.component";
+import { InlineAutocompleteInput } from "@/components/shared/autocomplete/input.autocomplete";
 import { Button } from "@/components/ui/button.component";
 import { countActiveAnilistFilters } from "@/lib/anilist/filters.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
@@ -59,7 +59,6 @@ export default function AniListSearchToolbar({
         suggestions={suggestions}
         history={searchHistory}
         className="h-9 font-bold"
-        autoFocus
         onChange={(e) => {
           onSearchTermsChange(e.target.value);
           if (global && !e.target.value.trim()) onReset();

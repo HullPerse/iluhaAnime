@@ -18,7 +18,7 @@ export function WizardPreview({
   return (
     <div className="flex w-full shrink-0 flex-col gap-2 md:w-[200px]">
       <div className="windows95-border bg-primary sticky top-0 p-2">
-        <div className="mb-1 text-xs font-bold">Preview</div>
+        <div className="mb-1 text-xs font-bold">{t("collection.wizard.preview")}</div>
         <div className="flex justify-center">
           <CollectionCard item={previewItem} statuses={statuses} />
         </div>

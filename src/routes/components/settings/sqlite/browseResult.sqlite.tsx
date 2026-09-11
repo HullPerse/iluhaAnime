@@ -4,7 +4,7 @@ import { SmallLoader } from "@/components/shared/loader.component";
 import Pagination from "@/components/shared/pagination.component";
 import { PAGE_SIZE } from "@/config/settings/sqlite.config";
 import { useI18n } from "@/lib/locale/i18n.utils";
-import type { SqliteRowsPage } from "@/types";
+import type { SqliteRowsPage } from "@/types/sqlite";
 
 export function SqliteBrowseResult({
   loadingRows,

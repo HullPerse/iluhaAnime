@@ -2,7 +2,7 @@ import { Search } from "lucide-react";
 import { useMemo } from "react";
 
 import { FavPeopleStar } from "@/components/shared/favPeopleStar.component";
-import { InlineAutocompleteInput } from "@/components/shared/autocomplete.component";
+import { InlineAutocompleteInput } from "@/components/shared/autocomplete/input.autocomplete";
 import { Button } from "@/components/ui/button.component";
 import { useRemoteImage } from "@/hooks/remoteImage.hook";
 import { WIZARD_HISTORY_COUNT } from "@/config/collection/defaults.config";
@@ -10,12 +10,6 @@ import { useI18n } from "@/lib/locale/i18n.utils";
 import type { SearchSuggestion } from "@/lib/search/suggestions.utils";
 import { useSearchStore } from "@/store/search.store";
 import type { WizardSearchResult } from "@/types/collection";
-
-function SearchResultCover({ url }: { url: string }) {
-  const src = useRemoteImage(url);
-  if (!src) return null;
-  return <img src={src} alt="" className="size-8 object-cover" />;
-}
 
 export function WizardSourceSearch({
   source,
@@ -99,4 +93,10 @@ export function WizardSourceSearch({
       )}
     </div>
   );
+}
+
+function SearchResultCover({ url }: { url: string }) {
+  const src = useRemoteImage(url);
+  if (!src) return null;
+  return <img src={src} alt="" className="size-8 object-cover" />;
 }

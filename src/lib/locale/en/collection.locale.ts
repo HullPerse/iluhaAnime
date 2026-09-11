@@ -9,12 +9,14 @@ const collection = {
   "collection.edit.media": "Edit media",
   "collection.search.title": "Search title...",
   "collection.sort.date": "Date",
+  "collection.sort.year": "Year",
   "collection.filters.title": "Filters",
   "collection.view.mode": "Change view mode",
   "collection.display.mode": "Change display mode",
   "collection.display.mode.scroll": "Infinite scroll",
   "collection.display.mode.pagination": "Pagination",
   "collection.group.by.status": "Group by status",
+  "collection.random": "Random",
   "collection.group.toggle": "Collapse/expand group",
   "collection.filters.provider": "Source",
   "collection.filters.linked": "Linked",
@@ -46,6 +48,7 @@ const collection = {
   "collection.import.anilist.empty": "No lists found",
   "collection.import.anilist.selected": "Selected {{selected}}/{{total}}",
   "collection.import.anilist.will.skip": "will skip {{count}} duplicates",
+  "collection.import.anilist.will.skip.one": "will skip {{count}} duplicate",
   "collection.import.anilist.already.exists": "Already in collection - will be skipped",
   "collection.import.anilist.duplicate.skip": "duplicate - skip",
   "collection.import.anilist.hint":
@@ -70,6 +73,8 @@ const collection = {
   "collection.import.anilist.metadata.title": "Metadata update",
   "collection.import.anilist.metadata.hint":
     "Updates cover, genres, studio, year and duration for {{count}} entries without touching status or progress",
+  "collection.import.anilist.metadata.hint.one":
+    "Updates cover, genres, studio, year and duration for {{count}} entry without touching status or progress",
   "collection.import.anilist.metadata.start": "Update {{count}}",
   "collection.import.anilist.metadata.done": "Metadata updated: {{count}}",
   "collection.import.anilist.back": "← Back",
@@ -85,6 +90,10 @@ const collection = {
   "collection.wizard.cover.invalid.url": "Enter an http(s) or data: image URL",
   "collection.sort.name": "Name",
   "collection.sort.rating": "Rating",
+  "collection.tags.title": "Search tags",
+  "collection.tags.hint":
+    "Exact match uses =, ranges use >, <, >=, <=, !=. Spaces around the operator are allowed.",
+  "collection.tags.or": "String filters accept | for OR: genre=action|drama.",
   "collection.section.library": "Library",
   "collection.library.all": "All",
   "collection.type.anime": "Anime",
@@ -133,6 +142,9 @@ const collection = {
   "collection.card.status": "Change status",
 
   "collection.data": "Data",
+  "collection.data.loading": "Loading collection...",
+  "collection.data.load.error": "Failed to load collection: {{error}}",
+  "collection.data.retry": "Retry",
   "collection.details.local": "Local",
   "collection.details.year": "Year",
   "collection.details.rating": "Rating",
@@ -175,6 +187,8 @@ const collection = {
     "Two labels split with a comma: first English, second Russian - Watching,Смотрю. One label shows in both languages.",
   "collection.status.manager.label": "Status label",
   "collection.status.manager.core": "core",
+  "collection.status.manager.core.title": "Built-in",
+  "collection.status.manager.custom.title": "Custom",
   "collection.status.manager.delete.hint": "Delete status",
   "collection.status.manager.delete.note":
     "Deleting a custom status moves its items back to Planned. Core statuses cannot be deleted.",
@@ -191,6 +205,13 @@ const collection = {
   "collection.status.manager.color": "Status color",
   "collection.status.manager.hex": "Hex color",
   "collection.status.manager.apply": "Apply color",
+  "collection.status.manager.preview.en": "EN: {{value}}",
+  "collection.status.manager.preview.ru": "RU: {{value}}",
+  "collection.wizard.preview": "Preview",
+  "collection.wizard.unit.episodes": "ep",
+  "collection.wizard.unit.seasons": "seasons",
+  "collection.wizard.unit.minutes": "min",
+  "collection.wizard.unit.pages": "pages",
 } as const;
 
 export default collection;

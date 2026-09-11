@@ -36,6 +36,7 @@ function makeItem(overrides: Partial<CollectionItem> = {}): CollectionItem {
     priority: "normal",
     isFavorite: false,
     year: 2002,
+    releaseDate: null,
     genres: ["Action"],
     studio: "Pierrot",
     description: null,

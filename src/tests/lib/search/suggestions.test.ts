@@ -214,16 +214,16 @@ describe("search suggestions", () => {
     const suggestions = getSearchSuggestions("yea", {
       scope: "filter",
       collectionItems: [{ title: "Year One" }],
-      extraValues: [{ value: "year:2020" }],
+      extraValues: [{ value: "year=2020" }],
     });
-    expect(suggestions[0]?.value).toBe("year:2020");
+    expect(suggestions[0]?.value).toBe("year=2020");
   });
 
   it("keeps collection titles above tag hints for plain text", () => {
     const suggestions = getSearchSuggestions("ar", {
       scope: "filter",
       collectionItems: [{ title: "Naruto" }],
-      extraValues: [{ value: "year:2020" }],
+      extraValues: [{ value: "year=2020" }],
     });
     expect(suggestions[0]?.value).toBe("Naruto");
   });

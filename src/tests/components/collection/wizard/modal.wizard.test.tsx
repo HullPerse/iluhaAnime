@@ -145,6 +145,7 @@ describe("WizardModal edit mode", () => {
       priority: "normal",
       isFavorite: false,
       year: 2002,
+      releaseDate: null,
       genres: ["Action"],
       studio: "Pierrot",
       description: null,
@@ -177,7 +178,7 @@ describe("WizardModal edit mode", () => {
 
 describe("WizardModal TMDB metadata", () => {
   it("backfills genres and description when picking a TMDB result", async () => {
-    useSettingsStore.setState({ tmdbApiKey: "test-key" });
+    useSettingsStore.setState({ tmdbKeySet: true });
     mockInvoke.mockImplementation((cmd: unknown) => {
       if (cmd === "search_tmdb")
         return Promise.resolve([
@@ -216,7 +217,7 @@ describe("WizardModal TMDB metadata", () => {
   });
 
   it("stores stills and trailer in detailsJson on save", async () => {
-    useSettingsStore.setState({ tmdbApiKey: "test-key" });
+    useSettingsStore.setState({ tmdbKeySet: true });
     mockInvoke.mockImplementation((cmd: unknown) => {
       if (cmd === "search_tmdb")
         return Promise.resolve([

@@ -1,4 +1,4 @@
-import type { Locale } from "./i18n";
+import type { Locale, TranslationKey } from "./i18n";
 import type { AutocompleteMode, SearchType } from "./search";
 import type { SpeedLimits } from "./torrent";
 
@@ -71,7 +71,8 @@ export interface SettingsStore {
   searchTabEnabled: boolean;
   torrentTabEnabled: boolean;
   playerTabEnabled: boolean;
-  tmdbApiKey: string | null;
+  tmdbKeySet: boolean;
+  tmdbPendingKey: string | null;
   tmdbProxyUrl: string | null;
   anilistProxyUrl: string | null;
   ffmpegSource: "essentials" | "github" | "github-mirror";
@@ -105,6 +106,8 @@ export interface WallpaperShadow {
   sides: WallpaperShadowSides;
   intensity: number;
   color: string;
+  length: number;
+  softness: number;
 }
 
 export interface SessionConfigPayload {
@@ -144,3 +147,17 @@ export type TabSettings = Pick<
   | "torrentTabEnabled"
   | "playerTabEnabled"
 >;
+
+export type ChangelogScope =
+  | "upscale"
+  | "player"
+  | "torrents"
+  | "collection"
+  | "anilist"
+  | "settings"
+  | "app";
+
+export interface ChangelogEntry {
+  key: TranslationKey;
+  scope: ChangelogScope;
+}

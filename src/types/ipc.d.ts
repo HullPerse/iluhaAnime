@@ -1,3 +1,5 @@
+import type { AniMedia } from "@/types/anilist";
+
 export type CommandName =
   | "anilist_login"
   | "anilist_logout"
@@ -12,6 +14,7 @@ export type CommandName =
   | "check_realcugan"
   | "check_rife"
   | "check_rutracker_session"
+  | "check_tmdb_session"
   | "clear_remote_image_cache"
   | "clear_unified_index_scope"
   | "convert_video"
@@ -39,6 +42,7 @@ export type CommandName =
   | "fetch_remote_image"
   | "fetch_torrent_bytes"
   | "get_anilist_activity"
+  | "get_anilist_filter_page"
   | "get_anilist_lists"
   | "get_anilist_profile"
   | "get_anime_by_id"
@@ -52,7 +56,9 @@ export type CommandName =
   | "get_dither_image"
   | "get_dither_images"
   | "get_favourite_people"
+  | "get_fav_people_media"
   | "get_favourites"
+  | "get_host_stats"
   | "get_remote_images_stats"
   | "get_profile_recommendations"
   | "get_running_torrent_files"
@@ -60,6 +66,7 @@ export type CommandName =
   | "get_sqlite_cell_blob"
   | "get_sqlite_rows"
   | "get_sqlite_tables"
+  | "get_spotlight_page"
   | "get_staff_characters"
   | "get_tmdb_details"
   | "get_tmdb_media"
@@ -72,6 +79,7 @@ export type CommandName =
   | "import_collection_data"
   | "import_collection_items_batch"
   | "import_dither_image"
+  | "set_dither_image_options"
   | "import_user_image"
   | "list_anime4k_shaders"
   | "list_collection_items"
@@ -141,9 +149,12 @@ export type CommandName =
   | "stop_watching_folders"
   | "suggest_upscale_preset"
   | "sync_franchise_to_index"
+  | "take_pending_deep_links"
   | "test_anilist_connection"
   | "test_source_connection"
   | "test_tmdb_connection"
+  | "tmdb_logout"
+  | "tmdb_set_api_key"
   | "toggle_favourite"
   | "toggle_favourite_character"
   | "toggle_favourite_staff"
@@ -157,3 +168,21 @@ export type CommandName =
   | "upsert_unified_index"
   | "vacuum_sqlite_database"
   | "write_sqlite_export";
+
+export interface HostStats {
+  cpuUsage: number;
+  memoryUsed: number;
+  memoryTotal: number;
+  netRxBps: number;
+  netTxBps: number;
+}
+
+export interface SpotlightPage {
+  media: AniMedia[];
+  total: number;
+}
+
+export interface FilterPage {
+  media: AniMedia[];
+  total: number;
+}

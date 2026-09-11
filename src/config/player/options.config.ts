@@ -1,3 +1,5 @@
+import type { TranslationKey } from "@/types/i18n";
+
 export const GPU_LABELS: Record<string, string> = {
   amf: "AMD AMF",
   cpu: "CPU (x264)",
@@ -47,7 +49,7 @@ export const FORMAT_OPTIONS = [
   { label: "TS", value: "ts" },
 ];
 
-export const TABS = [
-  { id: "upscale" as const, label: "player.tab.upscale" },
-  { id: "convert" as const, label: "player.tab.convert" },
+export const TABS: { id: "upscale" | "convert"; label: TranslationKey }[] = [
+  { id: "upscale", label: "player.tab.upscale" },
+  { id: "convert", label: "player.tab.convert" },
 ];

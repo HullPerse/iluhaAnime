@@ -11,7 +11,7 @@ import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSettingsStore } from "@/store/settings.store";
-import type { Locale } from "@/types";
+import type { Locale } from "@/types/i18n";
 import type { SettingsStore } from "@/types/settings";
 
 export default function SettingsGeneral() {
@@ -21,7 +21,7 @@ export default function SettingsGeneral() {
     sqliteBrowserEnabled,
     collectionTabEnabled,
     anilistTabEnabled,
-    tmdbApiKey,
+    tmdbKeySet,
     tmdbProxyUrl,
     anilistProxyUrl,
     ffmpegSource,
@@ -36,6 +36,30 @@ export default function SettingsGeneral() {
   const [anilistTesting, setAnilistTesting] = useState(false);
   const [anilistTest, setAnilistTest] = useState<{ ok: boolean; msg: string } | null>(null);
   const anilistProxyInputRef = useRef<HTMLInputElement>(null);
+  const [tmdbInput, setTmdbInput] = useState("");
+  const [tmdbSaving, setTmdbSaving] = useState(false);
+  const handleTmdbSave = async () => {
+    const key = tmdbInput.trim();
+    if (!key || tmdbSaving) return;
+    setTmdbSaving(true);
+    try {
+      await invokeTyped<string>("tmdb_set_api_key", { api_key: key });
+      setTmdbInput("");
+      patch({ tmdbKeySet: true, tmdbPendingKey: null });
+    } catch (e) {
+      setTmdbTest({ ok: false, msg: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setTmdbSaving(false);
+    }
+  };
+  const handleTmdbRemove = async () => {
+    try {
+      await invokeTyped<string>("tmdb_logout");
+      patch({ tmdbKeySet: false });
+    } catch (e) {
+      setTmdbTest({ ok: false, msg: e instanceof Error ? e.message : String(e) });
+    }
+  };
 
   const handleTmdbTest = async () => {
     setTmdbTesting(true);
@@ -174,13 +198,34 @@ export default function SettingsGeneral() {
                 {t("settings.tmdb.api.key.description")}
               </span>
               <PasswordInput
-                value={tmdbApiKey ?? ""}
-                onChange={(e) => patch({ tmdbApiKey: e.target.value.trim() || null })}
+                value={tmdbInput}
+                onChange={(e) => setTmdbInput(e.target.value)}
                 placeholder={t("settings.tmdb.api.key.placeholder")}
                 spellCheck={false}
                 wrapperClassName="w-full max-w-130"
                 aria-label={t("settings.tmdb.api.key")}
               />
+              <div className="flex items-center gap-2">
+                <Button
+                  className="h-6 px-2 text-xs"
+                  onClick={handleTmdbSave}
+                  disabled={tmdbSaving || !tmdbInput.trim()}
+                >
+                  {t("settings.tmdb.api.key.save")}
+                </Button>
+                <Button
+                  className="h-6 px-2 text-xs"
+                  onClick={handleTmdbRemove}
+                  disabled={!tmdbKeySet}
+                >
+                  {t("settings.tmdb.api.key.remove")}
+                </Button>
+                <span className="windows95-text text-hint text-xs">
+                  {tmdbKeySet
+                    ? t("settings.tmdb.api.key.stored")
+                    : t("settings.tmdb.api.key.empty")}
+                </span>
+              </div>
             </div>
 
             <span className="windows95-text text-text text-xs font-bold">

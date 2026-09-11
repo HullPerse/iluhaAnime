@@ -32,7 +32,7 @@ function rankWizardResults(
 export function useWizardSearch(
   source: "anilist" | "tmdb" | "custom",
   search: string,
-  tmdbApiKey: string | null,
+  tmdbKeySet: boolean,
   tmdbProxyUrl?: string | null,
   existingTitles?: Set<string>,
   favouriteIds?: Set<number>
@@ -87,7 +87,7 @@ export function useWizardSearch(
   }, [search, existingTitles, favouriteIds]);
 
   const searchTmdb = useCallback(async () => {
-    if (!tmdbApiKey) {
+    if (!tmdbKeySet) {
       setSearchResults([]);
       setSearchError(null);
       return;
@@ -103,12 +103,12 @@ export function useWizardSearch(
         altTitles?: string[];
       }[]
     >("search_tmdb", {
-      apiKey: tmdbApiKey,
+      apiKey: "",
       query: search,
       language: "ru-RU",
       includeAdult: false,
       proxyUrl: tmdbProxyUrl || undefined,
-    } as unknown as Record<string, unknown>);
+    });
     const mapped = res.map((r) => ({
       id: r.id,
       title: r.title,
@@ -126,7 +126,7 @@ export function useWizardSearch(
     const covers = res.map((r) => r.cover_url).filter(Boolean) as string[];
     if (covers.length) setCoverOptions((prev) => [...new Set([...covers, ...prev])].slice(0, 8));
     setSearchError(null);
-  }, [search, tmdbApiKey, tmdbProxyUrl, existingTitles, favouriteIds]);
+  }, [search, tmdbKeySet, tmdbProxyUrl, existingTitles, favouriteIds]);
 
   const runSearch = useCallback(async () => {
     if (!search.trim()) {

@@ -2,7 +2,30 @@
 
 use scraper::{Html, Selector};
 use serde::Deserialize;
+use std::sync::LazyLock;
 use std::time::Instant;
+
+fn hardcoded_selector(raw: &str) -> Selector {
+    Selector::parse(raw).expect("hardcoded scraper selector must parse")
+}
+
+static ERAI_ENTRY_SEL: LazyLock<Selector> =
+    LazyLock::new(|| hardcoded_selector(".home_list_entry"));
+static ERAI_LINK_SEL: LazyLock<Selector> = LazyLock::new(|| hardcoded_selector(".link > a"));
+static ERAI_SIZE_SEL: LazyLock<Selector> = LazyLock::new(|| hardcoded_selector(".size"));
+static ANCHOR_SEL: LazyLock<Selector> = LazyLock::new(|| hardcoded_selector("a"));
+static SPAN_TITLE_SEL: LazyLock<Selector> = LazyLock::new(|| hardcoded_selector("span[title]"));
+static NYAA_ROW_SEL: LazyLock<Selector> =
+    LazyLock::new(|| hardcoded_selector("table.torrent-list tbody tr"));
+static CELL_SEL: LazyLock<Selector> = LazyLock::new(|| hardcoded_selector("td"));
+static RUTRACKER_ROW_SEL: LazyLock<Selector> =
+    LazyLock::new(|| hardcoded_selector("tr.hl-tr, tr.hl-tr1, tr.hl-tr2, tr[id^='trs-tr-']"));
+static RUTRACKER_TOPIC_SEL: LazyLock<Selector> =
+    LazyLock::new(|| hardcoded_selector("a[data-topic_id], a.tLink, a.med.tLink"));
+static RUTRACKER_SEED_SEL: LazyLock<Selector> =
+    LazyLock::new(|| hardcoded_selector(".seedmed, .seed, [class*='seed']"));
+static RUTRACKER_LEECH_SEL: LazyLock<Selector> =
+    LazyLock::new(|| hardcoded_selector(".leechmed, .leech, [class*='leech']"));
 
 use crate::auth::{
     load_nekobt_api_key, load_rutracker_cookies, load_rutracker_user_agent, rutracker_browser_fetch,
@@ -199,17 +222,17 @@ async fn search_nyaa_impl(
 
 fn parse_entries(html: &str) -> Vec<NyaaItem> {
     let doc = Html::parse_document(html);
-    let entry_sel = Selector::parse(".home_list_entry").expect("hardcoded selector");
-    let link_sel = Selector::parse(".link > a").expect("hardcoded selector");
-    let size_sel = Selector::parse(".size").expect("hardcoded selector");
-    let a_sel = Selector::parse("a").expect("hardcoded selector");
-    let span_sel = Selector::parse("span[title]").expect("hardcoded selector");
+    let entry_sel = &*ERAI_ENTRY_SEL;
+    let link_sel = &*ERAI_LINK_SEL;
+    let size_sel = &*ERAI_SIZE_SEL;
+    let a_sel = &*ANCHOR_SEL;
+    let span_sel = &*SPAN_TITLE_SEL;
 
     let mut items = Vec::new();
 
-    for entry in doc.select(&entry_sel) {
+    for entry in doc.select(entry_sel) {
         let title = entry
-            .select(&link_sel)
+            .select(link_sel)
             .next()
             .map(|a| a.text().collect::<String>().trim().to_string())
             .unwrap_or_default();
@@ -219,7 +242,7 @@ fn parse_entries(html: &str) -> Vec<NyaaItem> {
         }
 
         let size = entry
-            .select(&size_sel)
+            .select(size_sel)
             .next()
             .map(|s| s.text().collect::<String>().trim().to_string())
             .unwrap_or_default();
@@ -229,7 +252,7 @@ fn parse_entries(html: &str) -> Vec<NyaaItem> {
         let mut link = String::new();
         let mut website = String::new();
 
-        for a in entry.select(&a_sel) {
+        for a in entry.select(a_sel) {
             if let Some(h) = a.value().attr("href") {
                 if h.starts_with("magnet:") && magnet.is_empty() {
                     magnet = h.to_string();
@@ -258,7 +281,7 @@ fn parse_entries(html: &str) -> Vec<NyaaItem> {
         }
 
         let sealee = entry
-            .select(&span_sel)
+            .select(span_sel)
             .next()
             .and_then(|s| s.value().attr("title"))
             .unwrap_or("")
@@ -288,19 +311,19 @@ fn parse_entries(html: &str) -> Vec<NyaaItem> {
 
 fn parse_nyaa_entries(html: &str) -> Vec<NyaaItem> {
     let doc = Html::parse_document(html);
-    let row_sel = Selector::parse("table.torrent-list tbody tr").expect("hardcoded selector");
-    let td_sel = Selector::parse("td").expect("hardcoded selector");
-    let a_sel = Selector::parse("a").expect("hardcoded selector");
+    let row_sel = &*NYAA_ROW_SEL;
+    let td_sel = &*CELL_SEL;
+    let a_sel = &*ANCHOR_SEL;
 
     let mut items = Vec::new();
 
-    for row in doc.select(&row_sel) {
-        let tds: Vec<_> = row.select(&td_sel).collect();
+    for row in doc.select(row_sel) {
+        let tds: Vec<_> = row.select(td_sel).collect();
         if tds.len() < 8 {
             continue;
         }
 
-        let title_a = tds[1].select(&a_sel).last();
+        let title_a = tds[1].select(a_sel).last();
 
         let mut title = title_a
             .and_then(|a| a.value().attr("title"))
@@ -333,7 +356,7 @@ fn parse_nyaa_entries(html: &str) -> Vec<NyaaItem> {
         }
 
         let magnet = tds[2]
-            .select(&a_sel)
+            .select(a_sel)
             .find_map(|a| {
                 let h = a.value().attr("href")?;
                 if h.starts_with("magnet:") {
@@ -345,7 +368,7 @@ fn parse_nyaa_entries(html: &str) -> Vec<NyaaItem> {
             .unwrap_or_default();
 
         let torrent = tds[2]
-            .select(&a_sel)
+            .select(a_sel)
             .find_map(|a| {
                 let h = a.value().attr("href")?;
                 if h.ends_with(".torrent") {
@@ -408,20 +431,17 @@ fn rutracker_absolute_url(href: &str) -> String {
 
 fn parse_rutracker_entries(html: &str) -> Vec<NyaaItem> {
     let doc = Html::parse_document(html);
-    let row_sel = Selector::parse("tr.hl-tr, tr.hl-tr1, tr.hl-tr2, tr[id^='trs-tr-']")
-        .expect("hardcoded selector");
-    let td_sel = Selector::parse("td").expect("hardcoded selector");
-    let topic_sel =
-        Selector::parse("a[data-topic_id], a.tLink, a.med.tLink").expect("hardcoded selector");
-    let seed_sel = Selector::parse(".seedmed, .seed, [class*='seed']").expect("hardcoded selector");
-    let leech_sel =
-        Selector::parse(".leechmed, .leech, [class*='leech']").expect("hardcoded selector");
+    let row_sel = &*RUTRACKER_ROW_SEL;
+    let td_sel = &*CELL_SEL;
+    let topic_sel = &*RUTRACKER_TOPIC_SEL;
+    let seed_sel = &*RUTRACKER_SEED_SEL;
+    let leech_sel = &*RUTRACKER_LEECH_SEL;
 
     let mut items = Vec::new();
 
-    for row in doc.select(&row_sel) {
-        let tds: Vec<_> = row.select(&td_sel).collect();
-        let topic_anchor = row.select(&topic_sel).find(|anchor| {
+    for row in doc.select(row_sel) {
+        let tds: Vec<_> = row.select(td_sel).collect();
+        let topic_anchor = row.select(topic_sel).find(|anchor| {
             anchor
                 .value()
                 .attr("data-topic_id")
@@ -445,7 +465,7 @@ fn parse_rutracker_entries(html: &str) -> Vec<NyaaItem> {
             .map(|anchor| anchor.text().collect::<String>())
             .or_else(|| {
                 tds.get(3)
-                    .and_then(|cell| cell.select(&topic_sel).next())
+                    .and_then(|cell| cell.select(topic_sel).next())
                     .map(|anchor| anchor.text().collect::<String>())
             })
             .map(|title| title.trim().to_string())
@@ -465,13 +485,13 @@ fn parse_rutracker_entries(html: &str) -> Vec<NyaaItem> {
         };
         let size = cell_text(5).replace(['\u{a0}', '↓'], "").trim().to_string();
         let seeders = row
-            .select(&seed_sel)
+            .select(seed_sel)
             .next()
             .map(|cell| parse_rus_number(&cell.text().collect::<String>()))
             .filter(|value| *value > 0)
             .unwrap_or_else(|| parse_rus_number(&cell_text(6)));
         let leechers = row
-            .select(&leech_sel)
+            .select(leech_sel)
             .next()
             .map(|cell| parse_rus_number(&cell.text().collect::<String>()))
             .filter(|value| *value > 0)
@@ -617,19 +637,19 @@ fn sukebei_json_to_item(item: NyaaJsonItem) -> Option<NyaaItem> {
 
 fn parse_sukebei_entries(html: &str) -> Vec<NyaaItem> {
     let doc = Html::parse_document(html);
-    let row_sel = Selector::parse("table.torrent-list tbody tr").expect("hardcoded selector");
-    let td_sel = Selector::parse("td").expect("hardcoded selector");
-    let a_sel = Selector::parse("a").expect("hardcoded selector");
+    let row_sel = &*NYAA_ROW_SEL;
+    let td_sel = &*CELL_SEL;
+    let a_sel = &*ANCHOR_SEL;
 
     let mut items = Vec::new();
 
-    for row in doc.select(&row_sel) {
-        let tds: Vec<_> = row.select(&td_sel).collect();
+    for row in doc.select(row_sel) {
+        let tds: Vec<_> = row.select(td_sel).collect();
         if tds.len() < 8 {
             continue;
         }
 
-        let title_a = tds[1].select(&a_sel).next();
+        let title_a = tds[1].select(a_sel).next();
 
         let mut title = title_a
             .and_then(|a| a.value().attr("title"))
@@ -663,7 +683,7 @@ fn parse_sukebei_entries(html: &str) -> Vec<NyaaItem> {
         }
 
         let magnet = tds[2]
-            .select(&a_sel)
+            .select(a_sel)
             .find_map(|a| {
                 let h = a.value().attr("href")?;
                 if h.starts_with("magnet:") {
@@ -675,7 +695,7 @@ fn parse_sukebei_entries(html: &str) -> Vec<NyaaItem> {
             .unwrap_or_default();
 
         let torrent = tds[2]
-            .select(&a_sel)
+            .select(a_sel)
             .find_map(|a| {
                 let h = a.value().attr("href")?;
                 if h.ends_with(".torrent") {
@@ -771,7 +791,6 @@ pub async fn search_rutracker(
         "https://rutracker.org/forum/tracker.php?nm={}",
         url_encode(&query)
     );
-    // WebView2 ignores reqwest proxy strings, so the browser path runs direct-only.
     let browser_response = if proxy.is_none() {
         rutracker_browser_fetch(&app_handle, &search_url).await?
     } else {

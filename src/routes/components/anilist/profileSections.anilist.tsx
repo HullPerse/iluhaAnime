@@ -1,7 +1,9 @@
+import { toLocaleKey } from "@/lib/locale/key.utils";
 import { useMemo } from "react";
 
 import Tabs from "@/components/shared/tabs.component";
 import { listStatusLabels } from "@/config/anilist/labels.config";
+import { getStatusColor } from "@/lib/anilist/entries.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import AniListProfileHeader from "@/routes/components/anilist/header.anilist";
 import AniListSortBar from "@/routes/components/anilist/sort.anilist";
@@ -22,6 +24,7 @@ export default function AniListProfileSections({
   onActivityFeed,
   onFavourites,
   onRandom,
+  onSpotlight,
   onStats,
   onBrowse,
   onRecs,
@@ -43,6 +46,7 @@ export default function AniListProfileSections({
   onActivityFeed: () => void;
   onFavourites: () => void;
   onRandom: () => void;
+  onSpotlight: () => void;
   onStats: () => void;
   onBrowse: () => void;
   onRecs: () => void;
@@ -65,8 +69,9 @@ export default function AniListProfileSections({
             e.media.titles.some((title) => title.toLowerCase().includes(q))
           );
         }).length;
-        const label = t((listStatusLabels[item.name.toUpperCase()] ?? item.name) as never);
-        return { id: item.name, label: `${label} (${count})` };
+        const label = t(toLocaleKey(listStatusLabels[item.name.toUpperCase()] ?? item.name));
+        const color = getStatusColor(item.name.toUpperCase());
+        return { id: item.name, label: `${label} (${count})`, color };
       });
   }, [lists, searchTerms, global, t]);
   return (
@@ -100,6 +105,7 @@ export default function AniListProfileSections({
           onActivityOpen={onActivityFeed}
           onFavouritesOpen={onFavourites}
           onRandom={onRandom}
+          onSpotlight={onSpotlight}
           hasFavourites={hasFavourites}
         />
       )}

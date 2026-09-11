@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import InputSearch from "@/routes/components/search/modern/input.search";
 import { useSearchStore } from "@/store/search.store";
 import { useSettingsStore } from "@/store/settings.store";
-import type { Anime } from "@/types";
+import type { Anime } from "@/types/torrent";
 
 const mockInvoke = vi.fn();
 vi.mock("@tauri-apps/api/core", () => ({

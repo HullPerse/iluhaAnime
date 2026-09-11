@@ -1,11 +1,10 @@
-// @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import QuickAddButton from "@/routes/components/anilist/detail/quickadd.detail";
-import type { QuickAddListEntry, QuickAddMedia } from "@/lib/collection/import.utils";
+import type { QuickAddListEntry, QuickAddMedia } from "@/types/collection";
 
 const mockInvoke = vi.fn();
 
@@ -30,6 +29,8 @@ const media: QuickAddMedia = {
   description: "Journey",
   cover_url: "https://example.com/f.jpg",
   season_year: 2023,
+  start_date: null,
+  format: null,
   studios: [{ id: 1, name: "Madhouse" }],
 };
 

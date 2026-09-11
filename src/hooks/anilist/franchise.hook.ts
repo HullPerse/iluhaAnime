@@ -6,6 +6,7 @@ import {
   type MouseEvent as ReactMouseEvent,
 } from "react";
 
+import { FRANCHISE_VIEWPORT } from "@/config/anilist/graph.config";
 import {
   cameraCenteredOn,
   cameraTransform,
@@ -21,12 +22,7 @@ import type {
   UseFranchiseViewportOptions,
 } from "@/types/anilist";
 
-const DEFAULT_OPTIONS = {
-  initialScale: 0.4,
-  maxScale: 5,
-  minScale: 0.1,
-  wheelStep: 0.1,
-} as const;
+const DEFAULT_OPTIONS = FRANCHISE_VIEWPORT;
 
 const easeInOutCubic = (t: number): number => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
 

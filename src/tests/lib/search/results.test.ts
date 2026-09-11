@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { filterAnimeResults, sortAnimeResults } from "@/lib/search/results.utils";
-import type { Anime } from "@/types";
+import type { Anime } from "@/types/torrent";
 import type { SearchFilters } from "@/types/search";
 
 const sortItems: Anime[] = [

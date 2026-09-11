@@ -1,12 +1,3 @@
-import type { HexType } from "@/types";
-import type {
-  AniListCollection,
-  AniListEntry,
-  AniListSort,
-  AniMedia,
-  AniListFilters,
-} from "@/types/anilist";
-
 import {
   ANILIST_GENRES,
   ANILIST_NSFW_TAGS,
@@ -14,8 +5,18 @@ import {
   FORMATS,
   STATUSES,
 } from "@/config/anilist/filters.config";
+import { toLocaleKey } from "@/lib/locale/key.utils";
 import { parseIntent, tokenizeIntent } from "@/lib/search/intent.utils";
 import { useSettingsStore } from "@/store/settings.store";
+import type {
+  AniListCollection,
+  AniListEntry,
+  AniListSort,
+  AniMedia,
+  AniListFilters,
+} from "@/types/anilist";
+import type { HexType } from "@/types/color";
+import type { TranslationKey } from "@/types/i18n";
 import type { NumericCond } from "@/types/search";
 
 export function filterEntries(entries: AniListEntry[], searchTerms: string, global: boolean) {
@@ -49,6 +50,11 @@ export function sortEntries(
         const d = (b.media.score ?? -1) - (a.media.score ?? -1);
         return direction === "desc" ? d : -d;
       }),
+    myScore: () =>
+      copy.sort((a, b) => {
+        const d = (b.score ?? -1) - (a.score ?? -1);
+        return direction === "desc" ? d : -d;
+      }),
     title: () =>
       copy.sort((a, b) => {
         const c = a.media.title.localeCompare(b.media.title);
@@ -59,17 +65,18 @@ export function sortEntries(
   return sortMap[method]();
 }
 
-export function getSortingLabel(sort: string): string {
-  const labelMap: Record<string, string> = {
+export function getSortingLabel(sort: string): TranslationKey {
+  const labelMap: Record<string, TranslationKey> = {
     popularity: "anilist.sort.popularity",
     progress: "anilist.sort.progress",
     relevance: "anilist.sort.relevance",
     score: "anilist.sort.score",
+    myScore: "anilist.sort.myScore",
     title: "anilist.sort.title",
     year: "anilist.sort.year",
   };
 
-  return labelMap[sort] ?? sort;
+  return labelMap[sort] ?? toLocaleKey(sort);
 }
 
 export function getStatusColor(status: AniListEntry["list_status"]): HexType {
@@ -214,7 +221,6 @@ export function applyIntentToFilters(
     for (const name of matched) {
       if (name && !merged[target].includes(name)) merged[target].push(name);
     }
-    consume(key, ":", raw);
     consume(key, "=", raw);
   };
   applyList("genre", ANILIST_GENRES, "genres");
@@ -222,7 +228,6 @@ export function applyIntentToFilters(
 
   if (intent.year !== undefined) {
     merged.year = [intent.year, intent.year];
-    consume("year", ":", String(intent.year));
     consume("year", "=", String(intent.year));
   }
   for (const cond of intent.yearOps) {
@@ -236,7 +241,6 @@ export function applyIntentToFilters(
       merged.score[0] > 0 ? Math.max(merged.score[0], intent.rating * 10) : intent.rating * 10,
       merged.score[1],
     ];
-    consume("rating", ":", String(intent.rating));
     consume("rating", "=", String(intent.rating));
   }
   for (const cond of intent.ratingOps) {
@@ -247,7 +251,6 @@ export function applyIntentToFilters(
 
   if (intent.episodes !== undefined) {
     merged.episodes = [intent.episodes, intent.episodes];
-    consume("episodes", ":", String(intent.episodes));
     consume("episodes", "=", String(intent.episodes));
   }
   for (const cond of intent.episodesOps) {
@@ -263,7 +266,6 @@ export function applyIntentToFilters(
     if (!matched) return;
     if (key === "type") merged.format = matched;
     else merged.status = matched;
-    consume(key, ":", raw);
     consume(key, "=", raw);
   };
   applySingle("type", FORMATS);

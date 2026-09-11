@@ -54,6 +54,7 @@ export function useWizardForm(initial: CollectionItem | null | undefined) {
   const [priority, setPriority] = useState<CollectionItem["priority"]>(progress.priority);
   const [isFavorite, setIsFavorite] = useState(progress.isFavorite);
   const [year, setYear] = useState(meta.year);
+  const [releaseDate, setReleaseDate] = useState<string | null>(initial?.releaseDate ?? null);
   const [description, setDescription] = useState(meta.description);
   const [durationMinutes, setDurationMinutes] = useState(meta.durationMinutes);
   const [genres, setGenres] = useState(meta.genres);
@@ -83,6 +84,7 @@ export function useWizardForm(initial: CollectionItem | null | undefined) {
           priority,
           isFavorite,
           year,
+          releaseDate,
           genres,
           studio,
           description,
@@ -111,6 +113,7 @@ export function useWizardForm(initial: CollectionItem | null | undefined) {
       priority,
       isFavorite,
       year,
+      releaseDate,
       genres,
       studio,
       description,
@@ -141,6 +144,7 @@ export function useWizardForm(initial: CollectionItem | null | undefined) {
       priority,
       isFavorite,
       year: toPreviewOptionalNumber(year),
+      releaseDate,
       genres: toPreviewList(genres),
       studio: toPreviewTrimmed(studio),
       description: toPreviewTrimmed(description),
@@ -175,6 +179,7 @@ export function useWizardForm(initial: CollectionItem | null | undefined) {
       priority,
       isFavorite,
       year,
+      releaseDate,
       genres,
       studio,
       description,
@@ -212,6 +217,8 @@ export function useWizardForm(initial: CollectionItem | null | undefined) {
     setIsFavorite,
     year,
     setYear,
+    releaseDate,
+    setReleaseDate,
     description,
     setDescription,
     durationMinutes,

@@ -53,7 +53,7 @@ function createWrapper() {
 beforeEach(() => {
   invokeMock.mockReset();
   invokeMock.mockResolvedValue([]);
-  useSettingsStore.setState({ tmdbApiKey: "key", tmdbProxyUrl: null });
+  useSettingsStore.setState({ tmdbKeySet: true, tmdbProxyUrl: null });
 });
 
 describe("useAnimeShowcase", () => {
@@ -87,7 +87,7 @@ describe("useAnimeShowcase", () => {
   });
 
   it("yields no trailer without AniList id, TMDB key, or matches", async () => {
-    useSettingsStore.setState({ tmdbApiKey: null });
+    useSettingsStore.setState({ tmdbKeySet: false });
     const { result } = renderHook(() => useAnimeShowcase(makeMedia({})), {
       wrapper: createWrapper(),
     });

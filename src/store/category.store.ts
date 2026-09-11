@@ -1,8 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-import type { Category, CategoryEntry } from "@/types";
-import type { CategoryStore } from "@/types/category";
+import type { Category, CategoryEntry, CategoryStore } from "@/types/category";
 
 let nextId = 1;
 function genId(): string {

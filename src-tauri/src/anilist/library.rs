@@ -5,6 +5,7 @@
 )]
 
 use serde::Serialize;
+use std::fmt::Write as _;
 
 use super::auth::{load_token, optional_token};
 use super::client::{graphql_request, resolve_proxy};
@@ -662,14 +663,15 @@ pub async fn get_anime_characters(
 pub async fn get_character_media(
     app_handle: tauri::AppHandle,
     id: u64,
+    page: u64,
     proxy_url: Option<String>,
     proxyUrl: Option<String>,
 ) -> Result<Vec<AniCharacterMediaEdge>, String> {
     let body = serde_json::json!({
         "query": r"
-            query ($id: Int) {
+            query ($id: Int, $page: Int) {
                 Character(id: $id) {
-                    media(page: 1, perPage: 50, type: ANIME) {
+                    media(page: $page, perPage: 50, type: ANIME) {
                         edges {
                             node {
                                 id
@@ -681,7 +683,7 @@ pub async fn get_character_media(
                 }
             }
         ",
-        "variables": { "id": id }
+        "variables": { "id": id, "page": page }
     });
     let proxy = resolve_proxy(proxy_url, proxyUrl);
     let token = optional_token(&app_handle);
@@ -717,12 +719,13 @@ pub async fn get_character_media(
 pub async fn get_staff_characters(
     app_handle: tauri::AppHandle,
     id: u64,
+    page: u64,
     proxy_url: Option<String>,
     proxyUrl: Option<String>,
 ) -> Result<AniStaffDetail, String> {
     let body = serde_json::json!({
         "query": r"
-            query ($id: Int) {
+            query ($id: Int, $page: Int) {
                 Staff(id: $id) {
                     id
                     name { full native }
@@ -736,7 +739,7 @@ pub async fn get_staff_characters(
                             }
                         }
                     }
-                    staffMedia(page: 1, perPage: 50, type: ANIME) {
+                    staffMedia(page: $page, perPage: 50, type: ANIME) {
                         edges {
                             node {
                                 id
@@ -748,7 +751,7 @@ pub async fn get_staff_characters(
                 }
             }
         ",
-        "variables": { "id": id }
+        "variables": { "id": id, "page": page }
     });
     let proxy = resolve_proxy(proxy_url, proxyUrl);
     let token = optional_token(&app_handle);
@@ -818,6 +821,92 @@ pub async fn get_staff_characters(
     })
 }
 
+#[derive(Debug, Serialize)]
+pub struct FavPersonMediaPage {
+    pub key: String,
+    pub anime_ids: Vec<u64>,
+}
+
+const FAV_PEOPLE_BATCH_CAP: usize = 200;
+
+fn build_fav_people_media_query(
+    staff_ids: &[i64],
+    character_ids: &[i64],
+) -> (String, Vec<(String, String, String)>) {
+    let mut query = String::from("query ($page: Int) {");
+    let mut slots: Vec<(String, String, String)> = Vec::new();
+    for (index, id) in staff_ids
+        .iter()
+        .filter(|id| **id > 0)
+        .take(FAV_PEOPLE_BATCH_CAP)
+        .enumerate()
+    {
+        let alias = format!("s{index}");
+        let _ = write!(
+            query,
+            " {alias}: Staff(id: {id}) {{ staffMedia(page: $page, perPage: 50, type: ANIME) {{ edges {{ node {{ id }} }} }} }}"
+        );
+        slots.push((alias, format!("staff:{id}"), "staffMedia".to_string()));
+    }
+    for (index, id) in character_ids
+        .iter()
+        .filter(|id| **id > 0)
+        .take(FAV_PEOPLE_BATCH_CAP)
+        .enumerate()
+    {
+        let alias = format!("c{index}");
+        let _ = write!(
+            query,
+            " {alias}: Character(id: {id}) {{ media(page: $page, perPage: 50, type: ANIME) {{ edges {{ node {{ id }} }} }} }}"
+        );
+        slots.push((alias, format!("character:{id}"), "media".to_string()));
+    }
+    query.push_str(" }");
+    (query, slots)
+}
+
+#[tauri::command]
+#[allow(non_snake_case)]
+pub async fn get_fav_people_media(
+    app_handle: tauri::AppHandle,
+    staff_ids: Vec<i64>,
+    character_ids: Vec<i64>,
+    page: u64,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
+) -> Result<Vec<FavPersonMediaPage>, String> {
+    let (query, slots) = build_fav_people_media_query(&staff_ids, &character_ids);
+    if slots.is_empty() {
+        return Ok(vec![]);
+    }
+    let body = serde_json::json!({ "query": query, "variables": { "page": page } });
+    let proxy = resolve_proxy(proxy_url, proxyUrl);
+    let token = optional_token(&app_handle);
+    let json = graphql_request(body, token.as_deref(), proxy.as_deref()).await?;
+    if json.get("errors").is_some() {
+        return Err(format!("{:?}", json["errors"]));
+    }
+    let data = &json["data"];
+    let mut out = Vec::with_capacity(slots.len());
+    for (alias, key, field) in &slots {
+        let mut seen = std::collections::HashSet::new();
+        let mut anime_ids = Vec::new();
+        if let Some(edges) = data[alias][field]["edges"].as_array() {
+            for edge in edges {
+                let mid = edge["node"]["id"].as_u64().unwrap_or(0);
+                if mid != 0 && seen.insert(mid) {
+                    anime_ids.push(mid);
+                }
+            }
+        }
+        out.push(FavPersonMediaPage {
+            key: key.clone(),
+            anime_ids,
+        });
+    }
+    Ok(out)
+}
+
 #[tauri::command]
 #[allow(non_snake_case)]
 pub async fn get_anime_staff(
@@ -865,4 +954,25 @@ pub async fn get_anime_staff(
                 .to_string(),
         })
         .collect())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn fav_people_query_aliases_every_valid_id() {
+        let (query, slots) = build_fav_people_media_query(&[7, 0, -3], &[9]);
+        assert_eq!(slots.len(), 2);
+        assert!(query.contains("s0: Staff(id: 7)"));
+        assert!(query.contains("c0: Character(id: 9)"));
+        assert!(!query.contains("id: 0"));
+    }
+
+    #[test]
+    fn fav_people_query_is_empty_without_ids() {
+        let (query, slots) = build_fav_people_media_query(&[], &[]);
+        assert!(slots.is_empty());
+        assert!(query.contains("query ($page: Int)"));
+    }
 }

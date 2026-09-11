@@ -31,114 +31,6 @@ function previewCell(value: unknown, column?: string): string {
     : rendered;
 }
 
-function BlobImageCell({
-  database,
-  table,
-  column,
-  keys,
-  alt,
-}: {
-  database: string;
-  table: string;
-  column: string;
-  keys: string[];
-  alt: string;
-}) {
-  const [src, setSrc] = useState<string | null>(null);
-  const [state, setState] = useState<"loading" | "image" | "not-image">("loading");
-  const keysJson = useMemo(() => JSON.stringify(keys), [keys]);
-
-  useEffect(() => {
-    let cancelled = false;
-    setState("loading");
-    setSrc(null);
-    invokeTyped<string | null>("get_sqlite_cell_blob", {
-      database,
-      table,
-      column,
-      keys: JSON.parse(keysJson),
-    })
-      .then((value) => {
-        if (cancelled) return;
-        if (value) {
-          setSrc(value);
-          setState("image");
-        } else setState("not-image");
-      })
-      .catch(() => {
-        if (!cancelled) setState("not-image");
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [database, column, table, keysJson]);
-
-  if (state === "loading") return <span className="text-hint block text-xs">...</span>;
-  if (state === "not-image" || !src) return <span className="text-hint block text-xs">[BLOB]</span>;
-  return (
-    <div className="windows95-border mx-auto size-16 shrink-0 overflow-hidden bg-white">
-      <Image src={src} alt={alt} type="contain" className="h-full w-full" />
-    </div>
-  );
-}
-
-function RowCell({
-  value,
-  column,
-  interactive,
-  row,
-  rowKeys,
-  showImages,
-  blobColumns,
-  selectedDatabase,
-  selectedTable,
-  openCell,
-}: {
-  value: unknown;
-  column: string;
-  interactive: boolean;
-  row: unknown[];
-  rowKeys: string[] | null;
-  showImages: boolean;
-  blobColumns: Set<string>;
-  selectedDatabase: string;
-  selectedTable: string;
-  openCell: (row: unknown[], column: string) => void;
-}) {
-  const rendered = displayCell(value, column);
-  const preview = previewCell(value, column);
-  if (!interactive) return <>{preview}</>;
-  const showBlobImage = showImages && blobColumns.has(column);
-  const showUrlImage = showImages && isImageUrl(value);
-  return (
-    <button
-      type="button"
-      className="block w-full text-left hover:cursor-pointer"
-      title={rendered}
-      onClick={() => openCell(row, column)}
-    >
-      {showBlobImage && rowKeys ? (
-        <BlobImageCell
-          database={selectedDatabase}
-          table={selectedTable}
-          column={column}
-          keys={rowKeys}
-          alt={column}
-        />
-      ) : showUrlImage ? (
-        <Image
-          src={value as string}
-          alt={column}
-          type="contain"
-          className="h-12 w-12 bg-white object-contain"
-        />
-      ) : (
-        preview
-      )}
-    </button>
-  );
-}
-
 export function makeRowId(
   row: unknown[],
   rowIndex: number,
@@ -255,5 +147,113 @@ export function DataRow({
         </td>
       )}
     </tr>
+  );
+}
+
+function BlobImageCell({
+  database,
+  table,
+  column,
+  keys,
+  alt,
+}: {
+  database: string;
+  table: string;
+  column: string;
+  keys: string[];
+  alt: string;
+}) {
+  const [src, setSrc] = useState<string | null>(null);
+  const [state, setState] = useState<"loading" | "image" | "not-image">("loading");
+  const keysJson = useMemo(() => JSON.stringify(keys), [keys]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setState("loading");
+    setSrc(null);
+    invokeTyped<string | null>("get_sqlite_cell_blob", {
+      database,
+      table,
+      column,
+      keys: JSON.parse(keysJson),
+    })
+      .then((value) => {
+        if (cancelled) return;
+        if (value) {
+          setSrc(value);
+          setState("image");
+        } else setState("not-image");
+      })
+      .catch(() => {
+        if (!cancelled) setState("not-image");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [database, column, table, keysJson]);
+
+  if (state === "loading") return <span className="text-hint block text-xs">...</span>;
+  if (state === "not-image" || !src) return <span className="text-hint block text-xs">[BLOB]</span>;
+  return (
+    <div className="windows95-border mx-auto size-16 shrink-0 overflow-hidden bg-white">
+      <Image src={src} alt={alt} type="contain" className="h-full w-full" />
+    </div>
+  );
+}
+
+function RowCell({
+  value,
+  column,
+  interactive,
+  row,
+  rowKeys,
+  showImages,
+  blobColumns,
+  selectedDatabase,
+  selectedTable,
+  openCell,
+}: {
+  value: unknown;
+  column: string;
+  interactive: boolean;
+  row: unknown[];
+  rowKeys: string[] | null;
+  showImages: boolean;
+  blobColumns: Set<string>;
+  selectedDatabase: string;
+  selectedTable: string;
+  openCell: (row: unknown[], column: string) => void;
+}) {
+  const rendered = displayCell(value, column);
+  const preview = previewCell(value, column);
+  if (!interactive) return <>{preview}</>;
+  const showBlobImage = showImages && blobColumns.has(column);
+  const showUrlImage = showImages && isImageUrl(value);
+  return (
+    <button
+      type="button"
+      className="block w-full text-left hover:cursor-pointer"
+      title={rendered}
+      onClick={() => openCell(row, column)}
+    >
+      {showBlobImage && rowKeys ? (
+        <BlobImageCell
+          database={selectedDatabase}
+          table={selectedTable}
+          column={column}
+          keys={rowKeys}
+          alt={column}
+        />
+      ) : showUrlImage ? (
+        <Image
+          src={value as string}
+          alt={column}
+          type="contain"
+          className="h-12 w-12 bg-white object-contain"
+        />
+      ) : (
+        preview
+      )}
+    </button>
   );
 }

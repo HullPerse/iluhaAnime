@@ -4,6 +4,7 @@ import { persist } from "zustand/middleware";
 import { SEARCH_RANKING } from "@/config/search/ranking.config";
 import { normalizeSearchText } from "@/lib/search/suggestions.utils";
 import { createDebouncedStorage } from "@/lib/store/storage.utils";
+import { reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSettingsStore } from "@/store/settings.store";
 import type { AniListCollection, FavouriteAnime } from "@/types/anilist";
@@ -89,10 +90,12 @@ function syncUnifiedIndex(
   invokeTyped("upsert_unified_index", { entries })
     .then(() => {
       if (entries.length > 100) {
-        invokeTyped("optimize_unified_index").catch(() => {});
+        invokeTyped("optimize_unified_index").catch((error) =>
+          reportBackgroundError("index.optimize", error)
+        );
       }
     })
-    .catch(() => {});
+    .catch((error) => reportBackgroundError("index.upsert", error));
 }
 
 function buildAnimeIndex(
@@ -138,6 +141,15 @@ function buildAnimeIndex(
   }
 
   return [...entries.values()].slice(0, MAX_LEARNING_ITEMS);
+}
+
+export function migrateSearchState(persisted: unknown, version: number): SearchPersistedState {
+  if (!persisted || typeof persisted !== "object" || version >= 1)
+    return persisted as SearchPersistedState;
+  const rest = { ...(persisted as Record<string, unknown>) };
+  delete rest.animeIndex;
+  delete rest.animeProfileId;
+  return rest as SearchPersistedState;
 }
 
 export const useSearchStore = create<SearchStore>()(
@@ -218,7 +230,7 @@ export const useSearchStore = create<SearchStore>()(
         invokeTyped("record_unified_index_action", {
           action: "select",
           id: `history:global:${normalize(value)}`,
-        }).catch(() => {});
+        }).catch((error) => reportBackgroundError("learning.select", error));
       },
       recordSuggestionIgnored: (value) => {
         if (useSettingsStore.getState().autocompleteMode === "off") return;
@@ -228,7 +240,7 @@ export const useSearchStore = create<SearchStore>()(
         invokeTyped("record_unified_index_action", {
           action: "ignore",
           id: `history:global:${normalize(value)}`,
-        }).catch(() => {});
+        }).catch((error) => reportBackgroundError("learning.ignore", error));
       },
       removeQuery: (query) =>
         set((state) => ({
@@ -246,7 +258,7 @@ export const useSearchStore = create<SearchStore>()(
           await invokeTyped("prune_unified_index_scope", {
             scope,
             keepIds: [],
-          }).catch(() => {});
+          }).catch((error) => reportBackgroundError("scope.prune", error));
         }
       },
       clearAllLearning: async () => {
@@ -276,9 +288,9 @@ export const useSearchStore = create<SearchStore>()(
     {
       name: "searchState",
       storage: createDebouncedStorage<SearchPersistedState>(() => localStorage),
+      version: 1,
+      migrate: migrateSearchState,
       partialize: (state): SearchPersistedState => ({
-        animeIndex: state.animeIndex,
-        animeProfileId: state.animeProfileId,
         filters: state.filters,
         history: state.history,
         queryStats: state.queryStats,

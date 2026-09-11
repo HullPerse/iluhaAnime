@@ -20,11 +20,9 @@ pub struct UserImage {
     pub id: String,
     pub name: String,
     pub mime_type: String,
-    /// Absolute path of the image file on disk. The webview turns it into an
-    /// asset-protocol URL with convertFileSrc; bytes never travel through IPC.
     pub path: String,
-    /// Absolute path of the dither source file, when the original was kept.
     pub original_path: Option<String>,
+    pub dither_options: Option<String>,
     pub created_at: i64,
 }
 
@@ -74,6 +72,7 @@ fn open_database_at(path: &Path) -> Result<Connection, String> {
             name TEXT NOT NULL,
             mime_type NOT NULL,
             original_ext TEXT,
+            dither_options TEXT,
             created_at INTEGER NOT NULL
         );
         CREATE TABLE IF NOT EXISTS remote_images (
@@ -92,9 +91,6 @@ fn open_database(app: &tauri::AppHandle) -> Result<Connection, String> {
     open_database_at(&database_path(app)?)
 }
 
-/// The pre-filesystem schema stored bytes in BLOB columns. The user authorized
-/// wiping stored images once instead of migrating them, so any database that
-/// still carries the blob columns is dropped (and vacuumed) before use.
 fn drop_legacy_blob_schema(conn: &Connection) -> Result<(), String> {
     let has_blob_column: i64 = conn
         .query_row(
@@ -103,13 +99,24 @@ fn drop_legacy_blob_schema(conn: &Connection) -> Result<(), String> {
             |row| row.get(0),
         )
         .map_err(|e| format!("assets db schema check: {e}"))?;
-    if has_blob_column == 0 {
+    if has_blob_column > 0 {
+        conn.execute_batch(
+            "DROP TABLE IF EXISTS dither_images; DROP TABLE IF EXISTS user_images; VACUUM;",
+        )
+        .map_err(|e| format!("assets db legacy wipe: {e}"))?;
         return Ok(());
     }
-    conn.execute_batch(
-        "DROP TABLE IF EXISTS dither_images; DROP TABLE IF EXISTS user_images; VACUUM;",
-    )
-    .map_err(|e| format!("assets db legacy wipe: {e}"))?;
+    let has_options_column: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM pragma_table_info('dither_images') WHERE name = 'dither_options'",
+            [],
+            |row| row.get(0),
+        )
+        .map_err(|e| format!("assets db schema check: {e}"))?;
+    if has_options_column == 0 {
+        conn.execute_batch("ALTER TABLE dither_images ADD COLUMN dither_options TEXT")
+            .map_err(|e| format!("assets db options migration: {e}"))?;
+    }
     Ok(())
 }
 
@@ -165,16 +172,12 @@ fn write_image_file(dir: &Path, file_name: &str, bytes: &[u8]) -> Result<PathBuf
     Ok(path)
 }
 
-/// A failed removal leaves an orphan content-addressed file behind, which is
-/// harmless (the id namespace owns the file, the index row is already gone).
 fn remove_image_files(dir: &Path, base_names: &[String]) {
     for name in base_names {
         let _ = fs::remove_file(dir.join(name));
     }
 }
 
-/// Every mime that can reach this store maps to one extension; deleting an
-/// image or replacing a rebake removes the file under every possible name.
 fn image_file_names(id: &str, suffix: &str, exts: &[&str]) -> Vec<String> {
     exts.iter()
         .map(|ext| {
@@ -233,6 +236,7 @@ fn user_image_from_row(
         original_path: None,
         mime_type,
         created_at: 0,
+        dither_options: None,
     })
 }
 
@@ -241,6 +245,7 @@ fn dither_image_from_row(
     name: String,
     mime_type: String,
     original_ext: Option<String>,
+    dither_options: Option<String>,
     dir: &Path,
 ) -> Result<UserImage, String> {
     let path = dir.join(format!("{id}.{}", mime_ext(&mime_type)));
@@ -259,6 +264,7 @@ fn dither_image_from_row(
         name,
         path: path.to_string_lossy().into_owned(),
         original_path,
+        dither_options,
         mime_type,
         created_at: 0,
     })
@@ -463,8 +469,6 @@ fn remote_image_stats(dir: &Path, conn: &Connection) -> Result<RemoteImageStats,
     let count: i64 = conn
         .query_row("SELECT COUNT(*) FROM remote_images", [], |row| row.get(0))
         .map_err(|e| format!("remote images count: {e}"))?;
-    // Bytes come from the directory, not the table: it also counts orphan files
-    // left by failed removals, which is what the user actually sees on disk.
     let mut bytes = 0u64;
     if let Ok(entries) = fs::read_dir(dir) {
         for entry in entries.flatten() {
@@ -503,8 +507,6 @@ pub fn get_remote_images_stats(app: tauri::AppHandle) -> Result<RemoteImageStats
     remote_image_stats(&dir, &conn)
 }
 
-/// Wipes only the remote image cache (re-downloadable); user imports and dither
-/// images are user data and are never touched.
 #[tauri::command]
 pub fn clear_remote_image_cache(app: tauri::AppHandle) -> Result<usize, String> {
     let dir = images_dir(&app, REMOTE_IMAGES_TABLE)?;
@@ -575,8 +577,6 @@ pub fn delete_user_image(app: tauri::AppHandle, id: String) -> Result<(), String
     Ok(())
 }
 
-/// The dither original keeps the extension it was imported with; only the
-/// processed file changes on rebake, so the original file name is stable.
 fn dither_data_file(id: &str, mime_type: &str) -> String {
     format!("{id}.{}", mime_ext(mime_type))
 }
@@ -595,7 +595,10 @@ pub fn import_dither_image(app: tauri::AppHandle, path: String) -> Result<UserIm
     let data = fs::read(source).map_err(|e| format!("read image: {e}"))?;
     let extension = source.extension().and_then(|value| value.to_str());
     let mime_type = image_mime(&data, extension)
-        .ok_or_else(|| "Unsupported image. Use PNG, JPEG, GIF, or WebP.".to_string())?;
+        .ok_or_else(|| "Unsupported image. Use PNG, JPEG, or WebP.".to_string())?;
+    if mime_type == "image/gif" {
+        return Err("GIF images are not supported as wallpaper. Use PNG, JPEG, or WebP.".to_string());
+    }
     let id = content_id(&data);
     let name = source
         .file_name()
@@ -661,7 +664,7 @@ fn query_dither_images(
     }
     let placeholders = ids.iter().map(|_| "?").collect::<Vec<_>>().join(",");
     let query = format!(
-        "SELECT id, name, mime_type, original_ext, created_at FROM dither_images WHERE id IN ({placeholders})"
+        "SELECT id, name, mime_type, original_ext, dither_options, created_at FROM dither_images WHERE id IN ({placeholders})"
     );
     let mut statement = conn
         .prepare(&query)
@@ -673,14 +676,15 @@ fn query_dither_images(
                 row.get::<_, String>(1)?,
                 row.get::<_, String>(2)?,
                 row.get::<_, Option<String>>(3)?,
-                row.get::<_, i64>(4)?,
+                row.get::<_, Option<String>>(4)?,
+                row.get::<_, i64>(5)?,
             ))
         })
         .map_err(|e| format!("get dither image rows: {e}"))?;
     Ok(rows
         .filter_map(Result::ok)
-        .filter_map(|(id, name, mime_type, original_ext, created_at)| {
-            dither_image_from_row(id, name, mime_type, original_ext, dir)
+        .filter_map(|(id, name, mime_type, original_ext, dither_options, created_at)| {
+            dither_image_from_row(id, name, mime_type, original_ext, dither_options, dir)
                 .ok()
                 .map(|image| fill_created_at(image, created_at))
         })
@@ -743,7 +747,7 @@ pub fn get_dither_image(app: tauri::AppHandle, id: String) -> Result<UserImage, 
     let dir = images_dir(&app, DITHER_IMAGES_TABLE)?;
     let conn = open_database(&app)?;
     conn.query_row(
-        "SELECT id, name, mime_type, original_ext, created_at FROM dither_images WHERE id = ?1",
+        "SELECT id, name, mime_type, original_ext, dither_options, created_at FROM dither_images WHERE id = ?1",
         params![id],
         |row| {
             Ok((
@@ -751,20 +755,45 @@ pub fn get_dither_image(app: tauri::AppHandle, id: String) -> Result<UserImage, 
                 row.get::<_, String>(1)?,
                 row.get::<_, String>(2)?,
                 row.get::<_, Option<String>>(3)?,
-                row.get::<_, i64>(4)?,
+                row.get::<_, Option<String>>(4)?,
+                row.get::<_, i64>(5)?,
             ))
         },
     )
     .map_err(|_| format!("dither image not found: {id}"))
-    .and_then(|(id, name, mime_type, original_ext, created_at)| {
-        dither_image_from_row(id, name, mime_type, original_ext, &dir)
-            .map(|image| fill_created_at(image, created_at))
-    })
+    .and_then(
+        |(id, name, mime_type, original_ext, dither_options, created_at)| {
+            dither_image_from_row(id, name, mime_type, original_ext, dither_options, &dir)
+                .map(|image| fill_created_at(image, created_at))
+        },
+    )
 }
 
-/// Replacing a baked frame can change the mime type, so the old data file is
-/// removed under every extension it could have been written with. The original
-/// file keeps its import-time extension and is never touched here.
+#[tauri::command]
+pub fn set_dither_image_options(
+    app: tauri::AppHandle,
+    id: String,
+    options_json: String,
+) -> Result<UserImage, String> {
+    if serde_json::from_str::<serde_json::Value>(&options_json).is_err() {
+        return Err("dither options must be valid JSON".to_string());
+    }
+    if options_json.len() > 8192 {
+        return Err("dither options payload too large".to_string());
+    }
+    let conn = open_database(&app)?;
+    let changed = conn
+        .execute(
+            "UPDATE dither_images SET dither_options = ?2 WHERE id = ?1",
+            params![id, options_json],
+        )
+        .map_err(|e| format!("save dither options: {e}"))?;
+    if changed == 0 {
+        return Err("dither image not found".to_string());
+    }
+    get_dither_image(app, id)
+}
+
 #[allow(non_snake_case)]
 #[tauri::command]
 pub fn update_dither_image_data(
@@ -794,8 +823,6 @@ pub fn update_dither_image_data(
     get_dither_image(app, id)
 }
 
-/// Cross-module helper for the collection export: reads the stored bytes of a
-/// user image by id without touching the IPC shape.
 pub fn read_user_image_bytes(app: &tauri::AppHandle, id: &str) -> Result<Option<Vec<u8>>, String> {
     let dir = images_dir(app, USER_IMAGES_TABLE)?;
     let conn = open_database(app)?;
@@ -1116,7 +1143,6 @@ mod tests {
         let dir = root.join("images").join(REMOTE_IMAGES_TABLE);
         insert_remote_row(&db, &dir, 1, 1);
         insert_remote_row(&db, &dir, 2, 2);
-        // Orphan file with no index row: counted in bytes, not in rows.
         std::fs::write(dir.join("orphan.png"), b"orphan-bytes").expect("write");
         let stats = remote_image_stats(&dir, &db).expect("stats");
         assert_eq!(stats.count, 2);
@@ -1150,9 +1176,7 @@ mod tests {
         for id in &ids {
             assert!(!dir.join(format!("{id}.png")).exists());
         }
-        // The images dir itself survives (other flows may write into it later).
         assert!(dir.exists());
-        // A second clear is a harmless no-op.
         assert_eq!(clear_remote_images(&dir, &db).expect("clear again"), 0);
         drop(db);
         std::fs::remove_dir_all(&root).expect("cleanup");

@@ -1,5 +1,3 @@
-// @vitest-environment jsdom
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -25,7 +23,7 @@ afterEach(() => {
 });
 
 beforeEach(() => {
-  useSettingsStore.setState({ tmdbApiKey: null });
+  useSettingsStore.setState({ tmdbKeySet: true });
 });
 
 const ANIME = {

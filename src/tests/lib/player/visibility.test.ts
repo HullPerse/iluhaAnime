@@ -5,7 +5,7 @@ import {
   isPlayerPathHidden,
   normalizePlayerPath,
 } from "@/lib/player/visibility.utils";
-import type { FolderNode } from "@/types";
+import type { FolderNode } from "@/types/torrent";
 
 const tree: FolderNode = {
   children: [

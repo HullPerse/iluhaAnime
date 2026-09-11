@@ -1,6 +1,6 @@
 import { Star } from "lucide-react";
 
-import { SmallLoader } from "@/components/shared/loader.component";
+import { TabLoader } from "@/components/shared/loader.component";
 import Modal from "@/components/shared/modal.component";
 import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
@@ -20,9 +20,7 @@ export default function AniListRecsModal({
   return (
     <Modal header={t("anilist.recs.title")} onClose={onClose} className="w-3xl">
       {loading ? (
-        <div className="flex flex-1 items-center justify-center">
-          <SmallLoader size={6} className="windows95-text" />
-        </div>
+        <TabLoader className="flex-1" />
       ) : recommendations.length === 0 ? (
         <div className="flex flex-1 items-center justify-center">
           <span className="windows95-text">{t("anilist.recs.empty")}</span>

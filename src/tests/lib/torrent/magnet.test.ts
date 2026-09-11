@@ -4,7 +4,7 @@ import { copyMagnet, downloadMagnet, openMagnet } from "@/lib/torrent/magnet.uti
 import { useTorrentStore } from "@/store/download.store";
 import { useNotificationStore } from "@/store/notification.store";
 import { useSettingsStore } from "@/store/settings.store";
-import type { Anime } from "@/types";
+import type { Anime } from "@/types/torrent";
 
 const invokeSpy = vi.fn();
 const writeTextSpy = vi.fn();

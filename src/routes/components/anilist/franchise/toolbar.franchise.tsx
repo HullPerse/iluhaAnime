@@ -33,7 +33,7 @@ function FranchiseToolbar({
               activeFilters.has(group) && "bg-secondary text-white"
             )}
           >
-            {t(FILTER_LABELS[group] as never)}
+            {t(FILTER_LABELS[group])}
           </Button>
         ))}
       </div>

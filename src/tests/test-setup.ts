@@ -18,7 +18,6 @@ if (
   });
 }
 
-// Mirrors the runtime-injected Tauri internals so convertFileSrc works in jsdom.
 if (
   typeof window !== "undefined" &&
   (window as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ === undefined

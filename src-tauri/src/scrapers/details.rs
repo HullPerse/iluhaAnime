@@ -2,6 +2,7 @@ use futures::StreamExt;
 use scraper::{Html, Selector};
 use serde::Serialize;
 use std::collections::HashMap;
+use std::sync::LazyLock;
 
 use crate::auth::{
     load_erai_cookies, load_nekobt_api_key, load_rutracker_cookies, load_rutracker_user_agent,
@@ -14,6 +15,51 @@ use super::clients::{
     is_rutracker_challenge, parse_rus_number, resolve_proxy, rutracker_challenge_error,
     RUTRACKER_DEFAULT_UA,
 };
+
+fn hardcoded_selector(raw: &str) -> Selector {
+    Selector::parse(raw).expect("hardcoded scraper selector must parse")
+}
+
+static TABLE_ROW_SEL: LazyLock<Selector> = LazyLock::new(|| hardcoded_selector("table tr"));
+static TABLE_CELL_SEL: LazyLock<Selector> = LazyLock::new(|| hardcoded_selector("th, td"));
+static TABLE_ROW_BARE_SEL: LazyLock<Selector> = LazyLock::new(|| hardcoded_selector("tr"));
+static DESC_LIST_SEL: LazyLock<Selector> = LazyLock::new(|| hardcoded_selector("dl"));
+static DESC_TERM_SEL: LazyLock<Selector> = LazyLock::new(|| hardcoded_selector("dt, dd"));
+static PANEL_ROW_SEL: LazyLock<Selector> =
+    LazyLock::new(|| hardcoded_selector(".panel-body .row"));
+static PANEL_CELL_SEL: LazyLock<Selector> =
+    LazyLock::new(|| hardcoded_selector("div[class*='col-md-']"));
+static DATA_CELL_SEL: LazyLock<Selector> = LazyLock::new(|| hardcoded_selector("td, span"));
+static NESTED_LIST_SEL: LazyLock<Selector> = LazyLock::new(|| hardcoded_selector("li, tr, ul"));
+static IMAGE_SEL: LazyLock<Selector> = LazyLock::new(|| hardcoded_selector("img"));
+static POST_BODY_SEL: LazyLock<Selector> =
+    LazyLock::new(|| hardcoded_selector(".post_body, .post-message, .postcontent"));
+static SPOILER_SEL: LazyLock<Selector> = LazyLock::new(|| {
+    hardcoded_selector(".sp-wrap, .spoiler, .spoil, [class*='spoiler'], .screenshots, #screenshots")
+});
+static SPOILER_HEAD_SEL: LazyLock<Selector> =
+    LazyLock::new(|| hardcoded_selector(".sp-head, .sp-title, .spoiler-title, .spoil-head"));
+static SPOILER_BODY_SEL: LazyLock<Selector> =
+    LazyLock::new(|| hardcoded_selector(".sp-body, .spoiler-body, .sp-content, .spoil-body"));
+static COMMENT_SEL: LazyLock<Selector> =
+    LazyLock::new(|| hardcoded_selector(".comment, .comment-box, .comment-item, .post"));
+static COMMENT_AUTHOR_SEL: LazyLock<Selector> =
+    LazyLock::new(|| hardcoded_selector(".author, .username, .user, [class*='author']"));
+static COMMENT_DATE_SEL: LazyLock<Selector> =
+    LazyLock::new(|| hardcoded_selector("time, .date, .timestamp, [class*='date']"));
+static COMMENT_BODY_SEL: LazyLock<Selector> = LazyLock::new(|| {
+    hardcoded_selector(".comment-body, .comment-content, .post_body, .text, p")
+});
+static COMMENT_MSG_SEL: LazyLock<Selector> =
+    LazyLock::new(|| hardcoded_selector(".comment_message, .user_message_c"));
+static BODY_SEL: LazyLock<Selector> = LazyLock::new(|| hardcoded_selector("body"));
+static FILE_ROW_SEL: LazyLock<Selector> = LazyLock::new(|| {
+    hardcoded_selector("#tor-filelist li, #tor-filelist tr, #tor-filelist .file, #tor-filelist .ft-file, .filetree li, .filetree tr")
+});
+static FILE_CELL_SEL: LazyLock<Selector> =
+    LazyLock::new(|| hardcoded_selector("td, th, span, a"));
+static FILE_NESTED_SEL: LazyLock<Selector> = LazyLock::new(|| hardcoded_selector("li, tr"));
+static ANCHOR_SEL: LazyLock<Selector> = LazyLock::new(|| hardcoded_selector("a"));
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -229,8 +275,8 @@ fn detail_field(fields: &[TorrentDetailField], names: &[&str]) -> String {
 }
 
 fn parse_detail_fields(doc: &Html) -> Vec<TorrentDetailField> {
-    let row_sel = Selector::parse("table tr").expect("hardcoded selector");
-    let cell_sel = Selector::parse("th, td").expect("hardcoded selector");
+    let row_sel = TABLE_ROW_SEL.clone();
+    let cell_sel = TABLE_CELL_SEL.clone();
     let mut fields = Vec::new();
 
     for row in doc.select(&row_sel) {
@@ -248,8 +294,8 @@ fn parse_detail_fields(doc: &Html) -> Vec<TorrentDetailField> {
         }
     }
 
-    let dl_sel = Selector::parse("dl").expect("hardcoded selector");
-    let term_sel = Selector::parse("dt, dd").expect("hardcoded selector");
+    let dl_sel = DESC_LIST_SEL.clone();
+    let term_sel = DESC_TERM_SEL.clone();
     for definition_list in doc.select(&dl_sel) {
         let terms: Vec<String> = definition_list
             .select(&term_sel)
@@ -284,8 +330,8 @@ fn parse_detail_fields(doc: &Html) -> Vec<TorrentDetailField> {
 }
 
 fn parse_bootstrap_detail_fields(doc: &Html) -> Vec<TorrentDetailField> {
-    let row_sel = Selector::parse(".panel-body .row").expect("hardcoded selector");
-    let cell_sel = Selector::parse("div[class*='col-md-']").expect("hardcoded selector");
+    let row_sel = PANEL_ROW_SEL.clone();
+    let cell_sel = PANEL_CELL_SEL.clone();
     let mut fields = Vec::new();
     for row in doc.select(&row_sel) {
         let cells: Vec<String> = row
@@ -342,13 +388,13 @@ fn parse_detail_files(doc: &Html) -> Vec<TorrentDetailFile> {
             if text.is_empty() || text.len() > 500 {
                 continue;
             }
-            let cells = Selector::parse("td, span").expect("hardcoded selector");
+            let cells = DATA_CELL_SEL.clone();
             let parts: Vec<String> = element
                 .select(&cells)
                 .map(element_text)
                 .filter(|s| !s.is_empty())
                 .collect();
-            let nested_sel = Selector::parse("li, tr, ul").expect("hardcoded selector");
+            let nested_sel = NESTED_LIST_SEL.clone();
             let has_nested = element.select(&nested_sel).next().is_some();
             let (name, size) = if has_nested {
                 continue;
@@ -393,8 +439,8 @@ fn parse_detail_files(doc: &Html) -> Vec<TorrentDetailFile> {
     }
 
     if files.is_empty() {
-        let row_sel = Selector::parse("table tr").expect("hardcoded selector");
-        let cell_sel = Selector::parse("td, th").expect("hardcoded selector");
+        let row_sel = TABLE_ROW_SEL.clone();
+        let cell_sel = TABLE_CELL_SEL.clone();
         let file_name_re =
             regex_lite::Regex::new(r"(?i)(?:\.[a-z0-9]{1,8})(?:$|[\s)])").expect("hardcoded regex");
         for row in doc.select(&row_sel) {
@@ -447,7 +493,7 @@ fn collect_imgs(
     images: &mut Vec<String>,
     limit: usize,
 ) {
-    let image_sel = Selector::parse("img").expect("hardcoded selector");
+    let image_sel = IMAGE_SEL.clone();
     for image in element.select(&image_sel) {
         let value = image.value();
         let src = value
@@ -520,20 +566,14 @@ fn description_container<'a>(doc: &'a Html, source: &str) -> Option<scraper::Ele
 }
 
 fn collect_rutracker_screenshots(doc: &Html, origin: &str) -> Vec<String> {
-    let post_sel =
-        Selector::parse(".post_body, .post-message, .postcontent").expect("hardcoded selector");
+    let post_sel = POST_BODY_SEL.clone();
     let Some(post) = doc.select(&post_sel).next() else {
         return Vec::new();
     };
 
-    let spoiler_sel = Selector::parse(
-        ".sp-wrap, .spoiler, .spoil, [class*='spoiler'], .screenshots, #screenshots",
-    )
-    .expect("hardcoded selector");
-    let heading_sel = Selector::parse(".sp-head, .sp-title, .spoiler-title, .spoil-head")
-        .expect("hardcoded selector");
-    let body_sel = Selector::parse(".sp-body, .spoiler-body, .sp-content, .spoil-body")
-        .expect("hardcoded selector");
+    let spoiler_sel = SPOILER_SEL.clone();
+    let heading_sel = SPOILER_HEAD_SEL.clone();
+    let body_sel = SPOILER_BODY_SEL.clone();
     let mut images = Vec::new();
 
     for spoiler in post.select(&spoiler_sel) {
@@ -604,7 +644,7 @@ fn parse_detail_screenshots(doc: &Html, origin: &str, source: &str) -> Vec<Strin
     }
 
     if images.is_empty() {
-        let image_sel = Selector::parse("img").expect("hardcoded selector");
+        let image_sel = IMAGE_SEL.clone();
         for image in doc.select(&image_sel) {
             let value = image.value();
             let src = value
@@ -626,14 +666,10 @@ fn parse_detail_screenshots(doc: &Html, origin: &str, source: &str) -> Vec<Strin
 }
 
 fn parse_detail_comments(doc: &Html, source: &str) -> Vec<TorrentDetailComment> {
-    let block_sel = Selector::parse(".comment, .comment-box, .comment-item, .post")
-        .expect("hardcoded selector");
-    let author_sel = Selector::parse(".author, .username, .user, [class*='author']")
-        .expect("hardcoded selector");
-    let date_sel =
-        Selector::parse("time, .date, .timestamp, [class*='date']").expect("hardcoded selector");
-    let body_sel = Selector::parse(".comment-body, .comment-content, .post_body, .text, p")
-        .expect("hardcoded selector");
+    let block_sel = COMMENT_SEL.clone();
+    let author_sel = COMMENT_AUTHOR_SEL.clone();
+    let date_sel = COMMENT_DATE_SEL.clone();
+    let body_sel = COMMENT_BODY_SEL.clone();
     let mut comments = Vec::new();
     let mut skipped_primary_description = false;
 
@@ -641,10 +677,7 @@ fn parse_detail_comments(doc: &Html, source: &str) -> Vec<TorrentDetailComment> 
         let is_primary_description = match source {
             "rutracker" => block.select(&body_sel).next().is_some(),
             "erai-raws" => block
-                .select(
-                    &Selector::parse(".comment_message, .user_message_c")
-                        .expect("hardcoded selector"),
-                )
+                .select(&COMMENT_MSG_SEL)
                 .next()
                 .is_some(),
             _ => false,
@@ -710,7 +743,7 @@ fn text_stat_value(text: &str, labels: &[&str]) -> String {
 }
 
 fn parse_rutracker_topic_stats(doc: &Html) -> (String, String, u32, u32, u32) {
-    let body_sel = Selector::parse("body").expect("hardcoded selector");
+    let body_sel = BODY_SEL.clone();
     let text = doc
         .select(&body_sel)
         .next()
@@ -767,12 +800,9 @@ fn parse_rutracker_file_tree(response: &str) -> Vec<TorrentDetailFile> {
         })
         .unwrap_or_else(|| response.to_string());
     let doc = Html::parse_document(&html);
-    let row_sel = Selector::parse(
-        "#tor-filelist li, #tor-filelist tr, #tor-filelist .file, #tor-filelist .ft-file, .filetree li, .filetree tr",
-    )
-    .expect("hardcoded selector");
-    let cell_sel = Selector::parse("td, th, span, a").expect("hardcoded selector");
-    let nested_sel = Selector::parse("li, tr").expect("hardcoded selector");
+    let row_sel = FILE_ROW_SEL.clone();
+    let cell_sel = FILE_CELL_SEL.clone();
+    let nested_sel = FILE_NESTED_SEL.clone();
     let mut files = Vec::new();
 
     for row in doc.select(&row_sel) {
@@ -886,7 +916,7 @@ fn max_labeled_number(text: &str, label: &str) -> u32 {
 }
 
 fn parse_animetosho_stats(doc: &Html) -> (String, String, u32, u32, u32) {
-    let body_sel = Selector::parse("body").expect("hardcoded selector");
+    let body_sel = BODY_SEL.clone();
     let text = doc
         .select(&body_sel)
         .next()
@@ -922,8 +952,8 @@ fn animetosho_size(text: &str) -> String {
 }
 
 fn parse_animetosho_comment(doc: &Html) -> String {
-    let row_sel = Selector::parse("tr").expect("hardcoded selector");
-    let cell_sel = Selector::parse("th, td").expect("hardcoded selector");
+    let row_sel = TABLE_ROW_BARE_SEL.clone();
+    let cell_sel = TABLE_CELL_SEL.clone();
     for row in doc.select(&row_sel) {
         let cells: Vec<String> = row
             .select(&cell_sel)
@@ -938,8 +968,8 @@ fn parse_animetosho_comment(doc: &Html) -> String {
 }
 
 fn parse_animetosho_file(doc: &Html) -> Vec<TorrentDetailFile> {
-    let row_sel = Selector::parse("tr").expect("hardcoded selector");
-    let cell_sel = Selector::parse("th, td").expect("hardcoded selector");
+    let row_sel = TABLE_ROW_BARE_SEL.clone();
+    let cell_sel = TABLE_CELL_SEL.clone();
     for row in doc.select(&row_sel) {
         let cells: Vec<String> = row
             .select(&cell_sel)
@@ -1043,7 +1073,7 @@ fn parse_torrent_detail_html(source: &str, url: &str, html: &str) -> TorrentDeta
     }
     let mut magnet = String::new();
     let mut torrent_url = String::new();
-    let link_sel = Selector::parse("a").expect("hardcoded selector");
+    let link_sel = ANCHOR_SEL.clone();
     for link in doc.select(&link_sel) {
         let href = link.value().attr("href").unwrap_or_default();
         if href.starts_with("magnet:") && magnet.is_empty() {
@@ -1204,7 +1234,6 @@ pub async fn get_torrent_details(
         request = request.header("Cookie", format!("ssid={key}"));
     }
     const MAX_DETAIL_RESPONSE_BYTES: usize = 8 * 1024 * 1024;
-    // WebView2 ignores reqwest proxy strings, so the browser path runs direct-only.
     let browser_response = if source == "rutracker" && proxy.is_none() {
         rutracker_browser_fetch(&app_handle, &url).await?
     } else {

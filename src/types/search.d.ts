@@ -93,8 +93,6 @@ export interface SearchLearningSnapshot {
   history: string[];
   queryStats: Record<string, SearchQueryStat>;
   suggestionStats: Record<string, SearchQueryStat>;
-  animeIndex: SearchAnimeSuggestion[];
-  animeProfileId: number | null;
   version?: number;
 }
 
@@ -143,11 +141,17 @@ export interface SourceInfo {
   nsfw: boolean;
 }
 
-export type CompareOp = ":" | "=" | ">" | ">=" | "<" | "<=" | "!=";
+export type CompareOp = "=" | ">" | ">=" | "<" | "<=" | "!=";
 
 export interface NumericCond {
   op: ">" | ">=" | "<" | "<=" | "!=";
   value: number;
+}
+
+export interface DateCond {
+  op: "=" | ">" | ">=" | "<" | "<=" | "!=";
+  iso: string;
+  yearOnly: boolean;
 }
 
 export interface NegationCond {
@@ -166,13 +170,14 @@ export interface ParsedIntent {
   episodes?: number;
   progress?: number;
   priority?: string;
-  sortBy?: "date" | "name" | "rating";
+  sortBy?: "date" | "name" | "rating" | "year";
   sortDir?: "asc" | "desc";
   provider?: string;
   yearOps: NumericCond[];
   ratingOps: NumericCond[];
   episodesOps: NumericCond[];
   progressOps: NumericCond[];
+  dateConds: DateCond[];
   negations: NegationCond[];
   rawFilters: Record<string, string>;
 }
@@ -244,14 +249,7 @@ export interface AutocompleteParams {
 
 export type SearchPersistedState = Pick<
   SearchStore,
-  | "animeIndex"
-  | "animeProfileId"
-  | "filters"
-  | "history"
-  | "queryStats"
-  | "sortBy"
-  | "sortDirection"
-  | "suggestionStats"
+  "filters" | "history" | "queryStats" | "sortBy" | "sortDirection" | "suggestionStats"
 >;
 export interface AuthSearchProps {
   source: string;

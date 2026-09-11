@@ -45,11 +45,11 @@ export function GridScrollView({
   const parentRef = useRef<HTMLDivElement>(null);
   const { columns, columnWidth } = useGridColumns(parentRef, CARD_W, ROW_GAP);
   const headerVariant = useSettingsStore((s) => s.collectionGroupHeaderStyle);
-  const grouped = Boolean(groups?.length);
   const rows = useMemo(
-    () => (grouped ? buildRows(groups!, columns, collapsedStatuses) : null),
-    [groups, columns, collapsedStatuses, grouped]
+    () => (groups?.length ? buildRows(groups, columns, collapsedStatuses) : null),
+    [groups, columns, collapsedStatuses]
   );
+  const grouped = rows !== null;
   const groupCounts = useMemo(() => {
     const map = new Map<string, number>();
     for (const group of groups ?? []) map.set(group.status.id, group.items.length);
@@ -57,16 +57,17 @@ export function GridScrollView({
   }, [groups]);
   const cardHeight = (columnWidth * CARD_POSTER_H) / CARD_W + CARD_TEXT_H + ROW_GAP;
   const rowVirtualizer = useVirtualizer({
-    count: grouped ? rows!.length : Math.ceil(items.length / columns),
+    count: rows?.length ?? Math.ceil(items.length / columns),
     getScrollElement: () => parentRef.current,
     getItemKey: (index) => {
       if (!grouped) return items[index * columns]?.id ?? index;
-      const row = rows![index];
+      const row = rows?.[index];
+      if (!row) return index;
       return row.kind === "header" ? `header-${row.status.id}` : (row.items[0]?.id ?? index);
     },
     estimateSize: (index) => {
       if (!grouped) return cardHeight;
-      return rows![index].kind === "header" ? HEADER_ESTIMATE : cardHeight;
+      return rows?.[index]?.kind === "header" ? HEADER_ESTIMATE : cardHeight;
     },
     overscan: 2,
   });
@@ -78,19 +79,19 @@ export function GridScrollView({
     >
       <div className="relative w-full" style={{ height: rowVirtualizer.getTotalSize() }}>
         {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-          const row = grouped ? rows![virtualRow.index] : null;
+          const row = grouped ? (rows?.[virtualRow.index] ?? null) : null;
           if (grouped && !row) return null;
-          const isHeader = grouped && row!.kind === "header";
+          const isHeader = row?.kind === "header";
           let rowItems: CollectionItem[];
           if (!grouped) {
             rowItems = items.slice(
               virtualRow.index * columns,
               virtualRow.index * columns + columns
             );
-          } else if (row!.kind === "header") {
+          } else if (row?.kind === "header") {
             rowItems = [];
           } else {
-            rowItems = row!.items;
+            rowItems = row?.items ?? [];
           }
           return (
             <div
@@ -102,13 +103,13 @@ export function GridScrollView({
               className="absolute top-0 left-0 w-full pb-2"
               style={{ transform: `translateY(${virtualRow.start}px)` }}
             >
-              {isHeader ? (
+              {isHeader && row ? (
                 <GroupHeaderCollection
-                  status={row!.status}
-                  count={groupCounts.get(row!.status.id) ?? 0}
-                  collapsed={Boolean(collapsedStatuses?.has(row!.status.id))}
+                  status={row.status}
+                  count={groupCounts.get(row.status.id) ?? 0}
+                  collapsed={Boolean(collapsedStatuses?.has(row.status.id))}
                   variant={headerVariant}
-                  onToggle={() => onToggleStatusCollapsed?.(row!.status.id)}
+                  onToggle={() => onToggleStatusCollapsed?.(row.status.id)}
                 />
               ) : (
                 <GridRow

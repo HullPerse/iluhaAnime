@@ -7,9 +7,7 @@ function parseCommaList(value: string): string[] {
     .filter(Boolean);
 }
 export function mergeGenreTags(genres: readonly string[], tags: readonly string[]): string[] {
-  const seen = new Set(
-    genres.map((g) => g.trim().toLowerCase()).filter(Boolean)
-  );
+  const seen = new Set(genres.map((g) => g.trim().toLowerCase()).filter(Boolean));
   const out = genres.map((g) => g.trim()).filter(Boolean);
   for (const tag of tags) {
     const t = tag.trim();
@@ -72,6 +70,7 @@ export function buildWizardItem(
     priority: values.priority,
     isFavorite: values.isFavorite,
     year: parseOptionalYear(values.year),
+    releaseDate: values.releaseDate ?? initial?.releaseDate ?? null,
     genres: parseCommaList(values.genres),
     studio: parseOptionalTrimmed(values.studio),
     description: parseOptionalTrimmed(values.description),
@@ -83,7 +82,7 @@ export function buildWizardItem(
     customFields: values.customFields,
     localPath: values.localPath || null,
     localKind: values.localKind,
-    startedAt: parseTimestamp(values.startedAt),
+    startedAt: resolveStartedAt(values.status, values.startedAt),
     finishedAt: resolveFinishedAt(values.status, values.finishedAt),
     lastWatchedAt: initial?.lastWatchedAt ?? null,
     rewatchCount: initial?.rewatchCount ?? 0,
@@ -97,6 +96,11 @@ export function buildWizardItem(
 export function resolveFinishedAt(status: CollectionStatus, finishedAt: string): number | null {
   if (!finishedAt) return status === "completed" ? Date.now() : null;
   return new Date(finishedAt).getTime();
+}
+
+export function resolveStartedAt(status: CollectionStatus, startedAt: string): number | null {
+  if (!startedAt) return status === "watching" ? Date.now() : null;
+  return parseTimestamp(startedAt);
 }
 
 export function wizardDefaultsIdentity(initial?: CollectionItem | null) {

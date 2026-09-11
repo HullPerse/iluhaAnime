@@ -1,6 +1,6 @@
 import type { CollectionGroup, CollectionItem, GridVirtualRow } from "@/types/collection";
 
-export function chunkItems(items: CollectionItem[], columns: number): CollectionItem[][] {
+function chunkItems(items: CollectionItem[], columns: number): CollectionItem[][] {
   const out: CollectionItem[][] = [];
   for (let i = 0; i < items.length; i += columns) {
     out.push(items.slice(i, i + columns));

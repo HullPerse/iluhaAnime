@@ -8,11 +8,13 @@ function Tabs<T extends string>({
   activeTab,
   onChange,
   ariaLabel,
+  onPrefetch,
 }: {
-  tabs: readonly { id: T; label: string }[];
+  tabs: readonly { id: T; label: string; color?: string | null }[];
   activeTab: T;
   onChange: (id: T) => void;
   ariaLabel?: string;
+  onPrefetch?: (id: T) => void;
 }) {
   const handleKeyDown = createListNavigationHandler<HTMLDivElement>({
     activeIndex: tabs.findIndex((item) => item.id === activeTab),
@@ -51,11 +53,20 @@ function Tabs<T extends string>({
             onClick={() => {
               if (!isActive) onChange(tab.id);
             }}
+            onMouseEnter={() => onPrefetch?.(tab.id)}
+            onFocus={() => onPrefetch?.(tab.id)}
             role="tab"
             aria-selected={isActive}
             tabIndex={isActive ? 0 : -1}
             disabled={isActive}
           >
+            {tab.color && (
+              <span
+                className="windows95-border inline-block size-2.5 shrink-0"
+                style={{ backgroundColor: tab.color }}
+                aria-hidden
+              />
+            )}
             {tab.label}
           </Button>
         );

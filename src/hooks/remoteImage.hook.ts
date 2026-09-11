@@ -1,15 +1,15 @@
 import { useEffect, useState } from "react";
 
+import { createLruCache, inflightFetch } from "@/lib/utils/lruCache.utils";
+
 import { assetUrl } from "@/lib/utils/image.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
-import { createLruCache } from "@/lib/utils/lruCache.utils";
 import { useSettingsStore } from "@/store/settings.store";
-import type { UserImageFile } from "@/types";
+import type { UserImageFile } from "@/types/image.userimage";
 
 const resolvedUrls = createLruCache<string, string>(200);
 const inflight = new Map<string, Promise<string | null>>();
 
-/** Called after the backend cache is wiped so stale disk paths stop resolving. */
 export function resetRemoteImageCache(): void {
   resolvedUrls.clear();
   inflight.clear();
@@ -18,27 +18,21 @@ export function resetRemoteImageCache(): void {
 function fetchCachedImage(remoteUrl: string, proxyUrl: string): Promise<string | null> {
   const cached = resolvedUrls.get(remoteUrl);
   if (cached) return Promise.resolve(cached);
-  const pending = inflight.get(remoteUrl);
-  if (pending) return pending;
-  const request = invokeTyped<UserImageFile>("fetch_remote_image", {
-    url: remoteUrl,
-    proxyUrl,
-  }).then(
-    (image) => {
-      const url = assetUrl(image.path);
-      resolvedUrls.set(remoteUrl, url);
-      return url;
-    },
-    () => null
+  return inflightFetch(inflight, remoteUrl, () =>
+    invokeTyped<UserImageFile>("fetch_remote_image", {
+      url: remoteUrl,
+      proxyUrl,
+    }).then(
+      (image) => {
+        const url = assetUrl(image.path);
+        resolvedUrls.set(remoteUrl, url);
+        return url;
+      },
+      () => null
+    )
   );
-  request.finally(() => {
-    inflight.delete(remoteUrl);
-  });
-  inflight.set(remoteUrl, request);
-  return request;
 }
 
-/** Resolves a remote image through the backend disk cache when a TMDB proxy is set. */
 export function useRemoteImageStatus(remoteUrl: string | null | undefined): {
   src: string | null;
   failed: boolean;
@@ -64,7 +58,6 @@ export function useRemoteImageStatus(remoteUrl: string | null | undefined): {
   return state;
 }
 
-/** Resolves a remote image through the backend disk cache when a TMDB proxy is set. */
 export function useRemoteImage(remoteUrl: string | null | undefined): string | null {
   return useRemoteImageStatus(remoteUrl).src;
 }

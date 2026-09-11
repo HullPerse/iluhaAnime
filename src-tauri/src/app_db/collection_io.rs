@@ -102,6 +102,7 @@ pub fn import_collection_data(
                         priority: item.priority.clone(),
                         is_favorite: item.is_favorite,
                         year: item.year,
+                        release_date: item.release_date.clone(),
                         genres: item.genres.clone(),
                         studio: item.studio.clone(),
                         description: item.description.clone(),
@@ -146,6 +147,7 @@ pub fn import_collection_data(
                         priority: item.priority.clone(),
                         is_favorite: item.is_favorite,
                         year: item.year,
+                        release_date: item.release_date.clone(),
                         genres: item.genres.clone(),
                         studio: item.studio.clone(),
                         description: item.description.clone(),
@@ -236,7 +238,6 @@ pub async fn export_collection_zip(app: tauri::AppHandle, out_path: String) -> R
             .filter(|bytes| !bytes.is_empty());
         #[allow(clippy::option_if_let_else)] // the None branch runs an async download
         #[allow(clippy::option_if_let_else)]
-        // the None branch runs an async download; map_or_else would bury it
         let bytes = match bytes_opt {
             Some(b) => b,
             None => {

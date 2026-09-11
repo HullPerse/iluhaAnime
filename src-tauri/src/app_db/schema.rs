@@ -534,6 +534,23 @@ pub fn initialize_schema(connection: &Connection) -> Result<(), String> {
             .map_err(|error| format!("app database updated_at timebase commit: {error}"))?;
     }
 
+    if version < 16 {
+        let transaction = connection
+            .unchecked_transaction()
+            .map_err(|error| format!("app database release date transaction: {error}"))?;
+        transaction
+            .execute_batch(
+                "
+                ALTER TABLE collection_items ADD COLUMN release_date TEXT;
+                PRAGMA user_version = 16;
+                ",
+            )
+            .map_err(|error| format!("app database release date schema: {error}"))?;
+        transaction
+            .commit()
+            .map_err(|error| format!("app database release date commit: {error}"))?;
+    }
+
     if version > CURRENT_SCHEMA_VERSION {
         return Err(format!(
             "app database is newer than this application ({version} > {CURRENT_SCHEMA_VERSION})"

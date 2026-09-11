@@ -81,15 +81,18 @@ const search = {
   "search.page.results":
     "Страница {{page}}: показано {{shown}} из {{total}} результатов ({{status}})",
   "search.results.count": "{{count}} результатов",
+  "search.results.count.one": "{{count}} результат",
+  "search.results.count.few": "{{count}} результата",
+  "search.results.count.many": "{{count}} результатов",
   "search.retry": "Повторить",
   "search.rutracker.browser.hint":
-    "Rutracker теперь защищён Cloudflare-проверкой, которую сетевой клиент приложения пройти не может. Войдите во встроенном браузере, затем нажмите «Сохранить сессию».",
+    'Rutracker теперь защищён Cloudflare-проверкой, которую сетевой клиент приложения пройти не может. Войдите во встроенном браузере, затем нажмите "Сохранить сессию".',
   "search.rutracker.browser.tab": "Встроенный браузер",
   "search.rutracker.cookies.hint":
     "Откройте rutracker в браузере с включённым VPN и войдите в аккаунт. Затем скопируйте cookies из DevTools, раздел Application, или заголовок Cookie из запроса и вставьте их сюда.",
   "search.rutracker.cookies.tab": "Вставить cookies",
   "search.rutracker.err.blocked":
-    "Rutracker блокирует приложение (анти-бот). Используйте «Вставить cookies» или включите VPN для всей системы.",
+    'Rutracker блокирует приложение (анти-бот). Используйте "Вставить cookies" или включите VPN для всей системы.',
   "search.rutracker.err.cookies.invalid":
     "Cookies недействительны или истекли. Войдите в браузере и скопируйте новые.",
   "search.rutracker.err.cookies.parse": "Не удалось разобрать вставленные cookies.",
@@ -130,6 +133,7 @@ const search = {
   "search.dither.loading": "Загрузка изображений...",
   "search.dither.load.error": "Не удалось загрузить изображения.",
   "search.dither.upload.error": "Не удалось сохранить изображение. Попробуйте ещё раз.",
+  "search.dither.upload.gif": "GIF не поддерживаются в качестве фона.",
   "search.dither.upload.image": "Загрузить изображение для дизеринга",
   "search.dither.uploading": "Загрузка изображения...",
   "search.dither.preview": "Предпросмотр дизеринга",
@@ -140,6 +144,13 @@ const search = {
   "search.dither.preset.deep": "Глубокий",
   "search.dither.preset.soft": "Мягкий",
   "search.dither.preset.capy": "Капи",
+  "search.dither.palette.preset.default": "По умолчанию",
+  "search.dither.palette.preset.red": "Красный градиент",
+  "search.dither.palette.preset.gameboy": "GameBoy",
+  "search.dither.palette.preset.pico8": "PICO-8",
+  "search.dither.palette.preset.gray": "Серая шкала",
+  "search.dither.palette.from.image": "Из изображения",
+  "search.dither.palette.extract.error": "Не удалось прочитать цвета изображения.",
   "search.dither.opt.levels": "Уровни",
   "search.dither.opt.ditherStrength": "Сила дизеринга",
   "search.dither.opt.ditherAmount": "Количество дизеринга",
@@ -168,6 +179,8 @@ const search = {
   "search.dither.display.shadow.right": "Справа",
   "search.dither.display.shadow.bottom": "Снизу",
   "search.dither.display.shadow.left": "Слева",
+  "search.dither.display.shadow.length": "Длина",
+  "search.dither.display.shadow.softness": "Мягкость",
   "search.dither.display.shadow.intensity": "Интенсивность",
   "search.dither.display.shadow.color": "Цвет",
   "search.dither.opt.edgeDistortion": "Искажение краёв",
@@ -190,7 +203,9 @@ const search = {
   "search.pageResults":
     "Страница {{page}}: показано {{shown}} из {{total}} результатов ({{status}})",
   "search.rutracker.browserHint":
-    "Rutracker теперь защищён Cloudflare-проверкой, которую сетевой клиент приложения пройти не может. Войдите во встроенном браузере, затем нажмите «Сохранить сессию».",
+    'Rutracker теперь защищён Cloudflare-проверкой, которую сетевой клиент приложения пройти не может. Войдите во встроенном браузере, затем нажмите "Сохранить сессию".',
+  "search.find.submit": "Найти",
+  "search.title": "Поиск",
 } as const;
 
 export default search;

@@ -73,7 +73,10 @@ function notifyMissedEpisodes(
   system: boolean
 ): number {
   let count = 0;
-  for (let episode = previous.nextEpisode!; episode < media.next_episode!; episode++) {
+  const from = previous.nextEpisode;
+  const to = media.next_episode;
+  if (from == null || to == null) return count;
+  for (let episode = from; episode < to; episode++) {
     if (notifyEpisode(media.title, episode, `${key}:${episode}`, t, system)) count++;
   }
   return count;

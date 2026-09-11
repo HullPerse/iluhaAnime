@@ -16,34 +16,58 @@ export function buildWallpaperFilter(filters?: Partial<WallpaperDisplayFilters> 
   return parts.length > 0 ? parts.join(" ") : "none";
 }
 
-export function buildShadow(
-  shadow?: Partial<WallpaperShadow> | null,
-  inset = false
-): string | undefined {
-  const merged: WallpaperShadow = {
+export function buildShadow(shadow?: Partial<WallpaperShadow> | null): string | undefined {
+  const merged = mergeShadow(shadow);
+  if (merged.intensity <= 0) return undefined;
+  const offset = Math.round(Math.max(0, Math.min(100, merged.length)));
+  const blur = Math.round(Math.max(0, Math.min(100, merged.softness)));
+  const paint = rgbaOf(merged, Math.min(1, merged.intensity / 100));
+  const layers: string[] = [];
+  if (merged.sides.top) layers.push(`0 ${-offset}px ${blur}px ${paint}`);
+  if (merged.sides.right) layers.push(`${offset}px 0 ${blur}px ${paint}`);
+  if (merged.sides.bottom) layers.push(`0 ${offset}px ${blur}px ${paint}`);
+  if (merged.sides.left) layers.push(`${-offset}px 0 ${blur}px ${paint}`);
+  return layers.length > 0 ? layers.join(", ") : undefined;
+}
+
+export function buildShadowGradients(shadow?: Partial<WallpaperShadow> | null): string | undefined {
+  const merged = mergeShadow(shadow);
+  if (merged.intensity <= 0) return undefined;
+  const solid = Math.round(Math.max(0, Math.min(100, merged.length)));
+  const fade = Math.round(Math.max(0, Math.min(100, merged.softness)));
+  const end = solid + fade;
+  if (end <= 0) return undefined;
+  const paint = rgbaOf(merged, Math.min(1, merged.intensity / 100));
+  const layers: string[] = [];
+  if (merged.sides.top)
+    layers.push(
+      `linear-gradient(to bottom, ${paint} 0px, ${paint} ${solid}px, transparent ${end}px)`
+    );
+  if (merged.sides.right)
+    layers.push(
+      `linear-gradient(to left, ${paint} 0px, ${paint} ${solid}px, transparent ${end}px)`
+    );
+  if (merged.sides.bottom)
+    layers.push(
+      `linear-gradient(to top, ${paint} 0px, ${paint} ${solid}px, transparent ${end}px)`
+    );
+  if (merged.sides.left)
+    layers.push(
+      `linear-gradient(to right, ${paint} 0px, ${paint} ${solid}px, transparent ${end}px)`
+    );
+  return layers.length > 0 ? layers.join(", ") : undefined;
+}
+
+function mergeShadow(shadow?: Partial<WallpaperShadow> | null): WallpaperShadow {
+  return {
     ...DEFAULT_WALLPAPER_SHADOW,
     ...shadow,
     sides: { ...DEFAULT_WALLPAPER_SHADOW.sides, ...shadow?.sides },
   };
-  const level = Math.max(0, Math.min(100, merged.intensity)) / 50;
-  if (level <= 0) return undefined;
-  const parsed = hexToRgba(merged.color);
+}
+
+function rgbaOf(shadow: WallpaperShadow, alpha: number): string {
+  const parsed = hexToRgba(shadow.color);
   const base = parsed ?? { r: 0, g: 0, b: 0, a: 1 };
-  const paint = (alpha: number) =>
-    `rgba(${base.r},${base.g},${base.b},${Math.min(1, alpha * level)})`;
-  const reach = Math.round(8 * level);
-  const spread = Math.round(40 * level);
-  const prefix = inset ? "inset " : "";
-  const flip = inset ? -1 : 1;
-  const confine = inset ? ` ${-reach}px` : "";
-  const layers: string[] = [];
-  if (merged.sides.top)
-    layers.push(`${prefix}0 ${flip * -reach}px ${spread}px${confine} ${paint(0.5)}`);
-  if (merged.sides.right)
-    layers.push(`${prefix}${flip * reach}px 0 ${spread}px${confine} ${paint(0.5)}`);
-  if (merged.sides.bottom)
-    layers.push(`${prefix}0 ${flip * reach}px ${spread}px${confine} ${paint(0.5)}`);
-  if (merged.sides.left)
-    layers.push(`${prefix}${flip * -reach}px 0 ${spread}px${confine} ${paint(0.5)}`);
-  return layers.length > 0 ? layers.join(", ") : undefined;
+  return `rgba(${base.r},${base.g},${base.b},${alpha})`;
 }

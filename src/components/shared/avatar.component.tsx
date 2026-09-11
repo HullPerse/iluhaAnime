@@ -4,7 +4,7 @@ import type { MouseEventHandler } from "react";
 
 import { assetUrl, userImageId } from "@/lib/utils/image.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
-import type { UserImageFile } from "@/types";
+import type { UserImageFile } from "@/types/image.userimage";
 
 interface UserImageIconProps {
   icon: string;

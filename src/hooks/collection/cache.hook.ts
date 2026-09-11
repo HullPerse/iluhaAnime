@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 
+import { attempt } from "@/lib/utils/attempt.utils";
 import { assetUrl, isDirectImageSrc } from "@/lib/utils/image.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
-import { createLruCache } from "@/lib/utils/lruCache.utils";
+import { createLruCache, inflightFetch } from "@/lib/utils/lruCache.utils";
 import { useSettingsStore } from "@/store/settings.store";
-import type { UserImageFile } from "@/types";
+import type { UserImageFile } from "@/types/image.userimage";
 
 export const COVER_CACHE_CAPACITY = 200;
 
@@ -14,21 +15,17 @@ const imageDataCache = createLruCache<string, string>(COVER_CACHE_CAPACITY);
 async function resolveCachedImage(blobId: string): Promise<string | null> {
   const cached = imageDataCache.get(blobId);
   if (cached) return cached;
-  try {
-    const image = await invokeTyped<UserImageFile>("get_user_image", {
-      id: blobId,
-    });
-    const url = assetUrl(image.path);
-    imageDataCache.set(blobId, url);
-    return url;
-  } catch {
-    return null;
-  }
+  const [image, error] = await attempt(
+    invokeTyped<UserImageFile>("get_user_image", { id: blobId })
+  );
+  if (error) return null;
+  const url = assetUrl(image.path);
+  imageDataCache.set(blobId, url);
+  return url;
 }
 
 const inflightCoverDownloads = new Map<string, Promise<string | null>>();
 
-/** Called after the backend cache is wiped so stale disk paths stop resolving. */
 export function resetCoverCache(): void {
   coverCache.clear();
   imageDataCache.clear();
@@ -38,29 +35,20 @@ export function resetCoverCache(): void {
 function downloadCover(remoteUrl: string, proxyUrl: string | null): Promise<string | null> {
   const cached = coverCache.get(remoteUrl);
   if (cached) return Promise.resolve(cached.url);
-  const inflight = inflightCoverDownloads.get(remoteUrl);
-  if (inflight) return inflight;
-  // proxyUrl is required for tmdb images: without it the WebView loads image.tmdb.org
-  // directly, which refuses cross-origin/desktop requests and the cover disappears.
-  const request = invokeTyped<UserImageFile>("download_remote_image", {
-    url: remoteUrl,
-    nameHint: "collection-cover",
-    proxyUrl,
-  }).then(
-    (img) => {
-      const url = assetUrl(img.path);
-      coverCache.set(remoteUrl, { url, blobId: img.id });
-      return url;
-    },
-    () => remoteUrl
+  return inflightFetch(inflightCoverDownloads, remoteUrl, () =>
+    invokeTyped<UserImageFile>("download_remote_image", {
+      url: remoteUrl,
+      nameHint: "collection-cover",
+      proxyUrl,
+    }).then(
+      (img) => {
+        const url = assetUrl(img.path);
+        coverCache.set(remoteUrl, { url, blobId: img.id });
+        return url;
+      },
+      () => remoteUrl
+    )
   );
-  request.finally(() => {
-    if (inflightCoverDownloads.get(remoteUrl) === request) {
-      inflightCoverDownloads.delete(remoteUrl);
-    }
-  });
-  inflightCoverDownloads.set(remoteUrl, request);
-  return request;
 }
 
 export function useCoverCache(
@@ -103,7 +91,6 @@ export function useCoverCache(
           setCoverUrl(resolved);
           return;
         }
-        // Stored file gone (wiped or moved): fall back to the remote cover and re-cache it.
         fromRemote();
       });
     } else {

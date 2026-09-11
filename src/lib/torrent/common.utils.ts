@@ -4,7 +4,6 @@ import type { TFunc, TranslationKey } from "@/types/i18n";
 import type {
   TorrentDisplayState,
   TorrentLifecycle,
-  TorrentStore,
   TorrentInfo,
 } from "@/types/torrent";
 
@@ -24,12 +23,12 @@ export function getDisplayState(
 }
 
 export const DISPLAY_BAR_CLASS: Record<TorrentDisplayState, string> = {
-  downloading: "bg-blue-700",
-  seeding: "bg-orange-500",
-  done: "bg-green-700",
-  error: "bg-red-700",
-  stalled: "bg-neutral-400",
-  paused: "bg-neutral-400",
+  downloading: "bg-torrent-downloading",
+  seeding: "bg-torrent-seeding",
+  done: "bg-torrent-done",
+  error: "bg-torrent-error",
+  stalled: "bg-torrent-idle",
+  paused: "bg-torrent-idle",
 };
 
 const DISPLAY_LABEL_KEY: Record<TorrentDisplayState, TranslationKey> = {
@@ -70,36 +69,6 @@ export function fmtSpeed(bps: number): string {
   return `${(bps / (1024 * 1024)).toFixed(1)} MB/s`;
 }
 
-export function fmtETA(secs: number | null, t: TFunc): string {
-  if (!secs || secs <= 0 || !isFinite(secs)) return "";
-  if (secs < 60) return t("torrent.eta.seconds", { s: Math.round(secs) });
-  if (secs < 3600) {
-    return t("torrent.eta.minutes.seconds", {
-      m: Math.floor(secs / 60),
-      s: Math.round(secs % 60),
-    });
-  }
-
-  const h = Math.floor(secs / 3600);
-  const m = Math.floor((secs % 3600) / 60);
-  return t("torrent.eta.hours.minutes", { h, m });
-}
-
-export function fmtSize(bytes: number) {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
-}
-
-export function fmtElapsed(sec: number, t: TFunc): string {
-  const m = Math.floor(sec / 60);
-  const s = sec % 60;
-  if (m === 0) return t("torrent.eta.seconds", { s });
-  if (s === 0) return t("torrent.eta.minutes", { m });
-  return t("torrent.eta.minutes.seconds", { m, s });
-}
-
 export function isCurrentDownload(torrent: TorrentInfo): boolean {
   return !torrent.finished && torrent.state !== "paused" && torrent.state !== "error";
 }
@@ -138,11 +107,16 @@ export function stateLabel(state: string, t: TFunc): string {
   return key === undefined ? state : t(key);
 }
 
+export interface TorrentListState {
+  torrents: TorrentInfo[];
+  lastActiveAt: Record<number, number>;
+}
+
 export function TorrentListen(
-  state: TorrentStore,
+  state: TorrentListState,
   event: Event<TorrentInfo[]>,
   now: number = Date.now()
-): Partial<TorrentStore> {
+): Partial<TorrentListState> {
   const next = event.payload;
   const prev = state.torrents;
   const tick = Math.floor(now / 1000);
@@ -194,14 +168,13 @@ export function TorrentListen(
   return changed ? { torrents: next } : {};
 }
 
-const GONE_ERRORS = [
-  "torrent not found",
-  "Torrent not found",
-  "no such torrent in db",
-];
+const GONE_ERRORS = ["torrent not found", "Torrent not found", "no such torrent in db"];
 
 const KNOWN_TORRENT_ERRORS: { match: (raw: string) => boolean; key: TranslationKey }[] = [
-  { match: (raw) => GONE_ERRORS.some((known) => raw.startsWith(known)), key: "download.error.gone" },
+  {
+    match: (raw) => GONE_ERRORS.some((known) => raw.startsWith(known)),
+    key: "download.error.gone",
+  },
   {
     match: (raw) => raw.startsWith("torrent with id ") && raw.includes("did not exist"),
     key: "download.error.gone",

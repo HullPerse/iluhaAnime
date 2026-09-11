@@ -3,7 +3,7 @@ import { memo, useState } from "react";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { useRemoteImage } from "@/hooks/remoteImage.hook";
 
-function CoverThumbButton({
+function CoverThumbInner({
   url,
   selected,
   onPick,
@@ -42,16 +42,4 @@ function CoverThumbButton({
   );
 }
 
-function CoverThumb({
-  url,
-  selected,
-  onPick,
-}: {
-  url: string;
-  selected: boolean;
-  onPick: (url: string) => void;
-}) {
-  return <CoverThumbButton url={url} selected={selected} onPick={onPick} />;
-}
-
-export const MemoCoverThumb = memo(CoverThumb);
+export const MemoCoverThumb = memo(CoverThumbInner);

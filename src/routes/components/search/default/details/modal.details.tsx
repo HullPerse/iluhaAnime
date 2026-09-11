@@ -7,9 +7,10 @@ import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { buildTorrentView } from "@/lib/torrent/details.utils";
+import { reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSettingsStore } from "@/store/settings.store";
-import type { Anime, TorrentDetails } from "@/types";
+import type { Anime, TorrentDetails } from "@/types/torrent";
 import type { TorrentDetailsProps as Props } from "@/types/search";
 
 import { TorrentDetailsBody } from "./body.details";
@@ -89,7 +90,9 @@ function TorrentDetailsModal({
         try {
           await invokeTyped("erai_open_page", { pageUrl: item.website });
           return;
-        } catch {}
+        } catch (error) {
+          reportBackgroundError("erai.open-page", error);
+        }
       }
       await openUrl(originalUrl);
     } catch (error) {

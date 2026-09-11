@@ -1,5 +1,3 @@
-// @vitest-environment jsdom
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -82,7 +80,7 @@ describe("SettingsSummary", () => {
       return Promise.resolve(null);
     });
     renderSummary();
-    expect(await screen.findByText("12 · 2 KB")).toBeDefined();
+    expect(await screen.findByText("12 · 1.5 KB")).toBeDefined();
     await user.click(screen.getByRole("button", { name: /Clear|Очистить/ }));
     await waitFor(() => {
       expect(mockInvoke).toHaveBeenCalledWith("clear_remote_image_cache", undefined);

@@ -13,6 +13,7 @@ const torrent = {
   "torrent.eta.minutes.seconds": "{{m}} мин {{s}} сек",
   "torrent.eta.seconds": "{{s}} сек",
   "torrent.files.count": "Файлы ({{done}} / {{total}})",
+  "torrent.files.error": "Не удалось загрузить файлы",
   "torrent.filter.placeholder": "Фильтр...",
   "torrent.keep.files": "Оставить файлы",
   "torrent.lifecycle.completed": "Завершено",
@@ -54,10 +55,18 @@ const torrent = {
   "torrent.state.paused": "Пауза",
   "torrent.state.stalled": "Простаивает",
   "torrent.summary.active": "Активных: {{count}}",
+  "torrent.summary.active.one": "Активный: {{count}}",
   "torrent.summary.download": "Загрузка: {{speed}}",
   "torrent.summary.seeding": "Раздаётся: {{count}}",
   "torrent.summary.total": "Торрентов: {{count}}",
+  "torrent.summary.total.one": "Торрент: {{count}}",
+  "torrent.summary.total.few": "Торрента: {{count}}",
+  "torrent.summary.total.many": "Торрентов: {{count}}",
   "torrent.summary.upload": "Отдача: {{speed}}",
+  "torrent.eta.label": "ETA {{time}}",
+  "torrent.host.stats": "CPU {{cpu}}% - RAM {{used}} / {{total}}",
+  "torrent.host.stats.net": " - Сеть {{rx}} / {{tx}}",
+  "torrent.peers": "П: {{count}}",
 } as const;
 
 export default torrent;

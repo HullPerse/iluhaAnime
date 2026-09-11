@@ -7,6 +7,7 @@ import AniListResultsPagination from "./resultsPagination.anilist";
 export default function AniListResults({
   entries,
   entryLookup,
+  favouriteIds,
   onSelect,
   scrollRef,
   showPagination,
@@ -14,6 +15,7 @@ export default function AniListResults({
 }: {
   entries: AniMedia[];
   entryLookup: ReturnType<typeof buildEntryLookup>;
+  favouriteIds: Set<number>;
   onSelect: (anime: AniListAnime) => void;
   scrollRef: React.RefObject<HTMLElement | null>;
   showPagination: boolean;
@@ -31,6 +33,7 @@ export default function AniListResults({
               key={item.id}
               item={item}
               entryLookup={entryLookup}
+              isFavorite={favouriteIds.has(item.id)}
               onClick={onSelect}
             />
           ))}

@@ -1,18 +1,16 @@
-import { Plus, Star } from "lucide-react";
+import { toLocaleKey } from "@/lib/locale/key.utils";
+import { Heart, Star } from "lucide-react";
 import { memo } from "react";
 
 import { FavPeopleStar } from "@/components/shared/favPeopleStar.component";
-import { Button } from "@/components/ui/button.component";
 import Image from "@/components/ui/image.component";
 import { listStatusLabels, statusLabels } from "@/config/anilist/labels.config";
 import { getStatusColor } from "@/lib/anilist/entries.utils";
-import { buildAnilistPrefill } from "@/lib/collection/import.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { enterOrSpace } from "@/lib/utils/keyboard.utils";
-import { useCollectionStore } from "@/store/collection.store";
 import type { AniCardProps as Props } from "@/types/anilist";
 
-function AniListEntryCard({ item, entryLookup, onClick }: Props) {
+function AniListEntryCard({ item, entryLookup, isFavorite, onClick }: Props) {
   const { t } = useI18n();
   const entry = entryLookup.get(item.id);
 
@@ -40,7 +38,7 @@ function AniListEntryCard({ item, entryLookup, onClick }: Props) {
     >
       <div className="flex w-full flex-row items-start justify-between gap-2 xl:flex-row-reverse">
         <section className="flex h-full min-w-0 flex-1 flex-col">
-          <div className="flex min-w-0 flex-1 flex-row items-center gap-1">
+          <div className="flex min-w-0 flex-1 flex-row items-start gap-1">
             <FavPeopleStar animeId={item.id} className="size-3 fill-yellow-400 text-yellow-600" />
             <h2
               className="windows95-text flex min-w-0 flex-1 flex-row gap-1 truncate leading-tight font-bold"
@@ -55,28 +53,11 @@ function AniListEntryCard({ item, entryLookup, onClick }: Props) {
                     height: 10,
                     backgroundColor: getStatusColor(entry.list_status),
                   }}
-                  title={t((listStatusLabels[entry.list_status] ?? entry.list_status) as never)}
+                  title={t(toLocaleKey(listStatusLabels[entry.list_status] ?? entry.list_status))}
                 />
               )}
               {item.title}
             </h2>
-            <Button
-              size="icon"
-              className="size-5 shrink-0"
-              title={t("collection.add.media")}
-              aria-label={t("collection.add.media")}
-              onClick={(e) => {
-                e.stopPropagation();
-                useCollectionStore
-                  .getState()
-                  .requestWizardPrefill(buildAnilistPrefill(item, entry?.list_status ?? null));
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") e.stopPropagation();
-              }}
-            >
-              <Plus className="size-3" />
-            </Button>
           </div>
 
           <div className="windows95-text mt-auto flex flex-row items-center gap-2 font-bold">
@@ -85,8 +66,25 @@ function AniListEntryCard({ item, entryLookup, onClick }: Props) {
                 <Star className="size-3 fill-white" /> {item.score}
               </span>
             )}
+            {entry?.score != null && entry.score !== 0 && (
+              <span
+                className="bg-secondary text-primary flex flex-row items-center gap-0.5 px-1 text-xs"
+                title={t("anilist.card.my.score", { score: entry.score })}
+              >
+                <Star className="size-3 fill-yellow-400 text-yellow-600" /> {entry.score} / 10
+              </span>
+            )}
+            {isFavorite && (
+              <span
+                className="bg-secondary text-primary flex h-4 w-4 flex-row items-center justify-center"
+                title={t("anilist.card.favorite")}
+                aria-label={t("anilist.card.favorite")}
+              >
+                <Heart className="size-3 fill-red-400 text-red-100" />
+              </span>
+            )}
             <span className="text-text text-xs">
-              {t((statusLabels[item.status.toUpperCase()] ?? item.status) as never)}
+              {t(toLocaleKey(statusLabels[item.status.toUpperCase()] ?? item.status))}
             </span>
             {entry?.progress != null && item.episodes && (
               <div className="flex items-center gap-1">
@@ -134,5 +132,6 @@ export default memo(AniListEntryCard, (prev, next) => {
   if (prev.item.status !== next.item.status) return false;
   if (prev.item.cover_url !== next.item.cover_url) return false;
   if (prev.entryLookup !== next.entryLookup) return false;
+  if (prev.isFavorite !== next.isFavorite) return false;
   return true;
 });

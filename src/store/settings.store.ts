@@ -9,6 +9,8 @@ import {
 import { detectSystemLocale } from "@/lib/locale/system.utils";
 import { normalizePlayerPath } from "@/lib/player/visibility.utils";
 import { applyFontFamily, DEFAULT_FONT_FAMILY } from "@/lib/utils/font.utils";
+import { reportBackgroundError } from "@/lib/utils/attempt.utils";
+import { invokeTyped } from "@/lib/utils/invoke.utils";
 import type { SettingsStore } from "@/types/settings";
 
 function cleanupLegacyFlags(
@@ -97,7 +99,9 @@ function applySettingsV10(
   delete (migrated as Record<string, unknown>).lastActiveTab;
   try {
     localStorage.removeItem("lastActiveTab");
-  } catch {}
+  } catch (error) {
+    reportBackgroundError("settings.migrate.cleanup", error);
+  }
   return migrated;
 }
 
@@ -242,6 +246,8 @@ function applySettingsV20(
       sides,
       intensity: typeof legacy?.intensity === "number" ? legacy.intensity : 50,
       color: typeof legacy?.color === "string" ? legacy.color : "#000000",
+      length: DEFAULT_WALLPAPER_SHADOW.length,
+      softness: DEFAULT_WALLPAPER_SHADOW.softness,
     };
   }
   delete (migrated as Record<string, unknown>).wallpaperShadow;
@@ -250,6 +256,8 @@ function applySettingsV20(
       sides: { top: false, right: false, bottom: false, left: false },
       intensity: 50,
       color: "#000000",
+      length: DEFAULT_WALLPAPER_SHADOW.length,
+      softness: DEFAULT_WALLPAPER_SHADOW.softness,
     };
   }
   return migrated;
@@ -262,6 +270,48 @@ function applySettingsV21(
   if (version >= 21) return migrated;
   if (migrated.anilistProxyUrl === undefined) migrated.anilistProxyUrl = null;
   return migrated;
+}
+
+function applySettingsV22(
+  migrated: Partial<SettingsStore>,
+  version: number
+): Partial<SettingsStore> {
+  if (version >= 22) return migrated;
+  for (const key of ["searchShadow", "wallpaperShadow"] as const) {
+    const shadow = migrated[key];
+    if (shadow && typeof shadow === "object") {
+      if (typeof shadow.length !== "number") shadow.length = DEFAULT_WALLPAPER_SHADOW.length;
+      if (typeof shadow.softness !== "number") shadow.softness = DEFAULT_WALLPAPER_SHADOW.softness;
+    }
+  }
+  return migrated;
+}
+function applySettingsV23(
+  migrated: Partial<SettingsStore>,
+  version: number
+): Partial<SettingsStore> {
+  if (version >= 23) return migrated;
+  const legacy = (migrated as Record<string, unknown>).tmdbApiKey;
+  delete (migrated as Record<string, unknown>).tmdbApiKey;
+  if (typeof legacy === "string" && legacy.trim()) {
+    migrated.tmdbPendingKey = legacy.trim();
+  } else if (migrated.tmdbPendingKey === undefined) {
+    migrated.tmdbPendingKey = null;
+  }
+  if (migrated.tmdbKeySet === undefined) migrated.tmdbKeySet = false;
+  return migrated;
+}
+
+function drainTmdbPendingKey(state: SettingsStore): void {
+  const pending = state.tmdbPendingKey;
+  if (!pending) return;
+  invokeTyped("tmdb_set_api_key", { api_key: pending })
+    .then(() => {
+      useSettingsStore.getState().patch({ tmdbPendingKey: null, tmdbKeySet: true });
+    })
+    .catch(() => {
+      useSettingsStore.getState().patch({ tmdbKeySet: false });
+    });
 }
 
 function applyUiPreferences(
@@ -343,6 +393,7 @@ export const useSettingsStore = create<SettingsStore>()(
         }),
     }),
     {
+      name: "settings",
       migrate: (persistedState: unknown, version: number) => {
         if (!persistedState || typeof persistedState !== "object") return {};
         const state = persistedState as Partial<SettingsStore> & {
@@ -373,16 +424,18 @@ export const useSettingsStore = create<SettingsStore>()(
         migrated = applySettingsV19(migrated, version);
         migrated = applySettingsV20(migrated, version);
         migrated = applySettingsV21(migrated, version);
+        migrated = applySettingsV22(migrated, version);
+        migrated = applySettingsV23(migrated, version);
         return migrated;
       },
-      name: "settings",
       onRehydrateStorage: () => (state) => {
         if (state) {
           applyUiPreferences(state.retroStyle, state.uiDensity);
           if (state.appFont) applyFontFamily(state.appFont);
+          drainTmdbPendingKey(state);
         }
       },
-      version: 21,
+      version: 23,
     }
   )
 );

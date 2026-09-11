@@ -11,3 +11,5 @@ export interface RGBA {
   b: number;
   a: number;
 }
+
+export type HexType = `#${string}`;

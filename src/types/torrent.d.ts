@@ -126,20 +126,13 @@ export interface CachedTorrentMeta {
 }
 
 export interface TorrentStore {
-  torrents: TorrentInfo[];
   lastActiveAt: Record<number, number>;
   limits: SpeedLimits;
   pendingTorrent: PickerTorrent | null;
   preparingTorrent: boolean;
-  torrentFilesMap: Record<number, TorrentFileInfo[]>;
   metadataCache: Map<string, CachedTorrentMeta>;
   opInFlight: Record<number, "pause" | "resume" | "remove">;
 
-  init: () => Promise<() => void>;
-  refreshTorrents: () => Promise<void>;
-  prepareTorrentDownload: (magnet: string) => Promise<void>;
-  prepareTorrentDownloadFromFile: (filePath: string) => Promise<void>;
-  prepareTorrentDownloadFromBytes: (fileBytes: number[]) => Promise<void>;
   confirmDownload: (
     selectedIndices: number[],
     saveDir: string,
@@ -147,21 +140,10 @@ export interface TorrentStore {
     sequential?: boolean
   ) => Promise<void>;
   cancelDownload: () => Promise<void>;
-  pauseTorrent: (id: number, infoHash?: string) => Promise<void>;
-  resumeTorrent: (id: number, infoHash?: string) => Promise<void>;
-  removeTorrent: (id: number, deleteFiles: boolean, infoHash?: string) => Promise<boolean>;
+  prepareTorrentDownload: (magnet: string) => Promise<void>;
+  prepareTorrentDownloadFromFile: (filePath: string) => Promise<void>;
+  prepareTorrentDownloadFromBytes: (fileBytes: number[]) => Promise<void>;
   setSpeedLimits: (limits: SpeedLimits) => Promise<void>;
-  loadTorrentFiles: (id: number) => Promise<boolean>;
-  updateTorrentOnlyFiles: (id: number, indices: number[], infoHash?: string) => Promise<void>;
-  setFilePriority: (
-    id: number,
-    fileIndices: number[],
-    priority: FilePriority,
-    infoHash?: string
-  ) => Promise<void>;
-  setSequentialDownload: (id: number, enabled: boolean, infoHash?: string) => Promise<void>;
-  redownloadFile: (id: number, fileIndex: number, infoHash: string) => Promise<void>;
-  recheckTorrent: (id: number, infoHash?: string) => Promise<TorrentCheckResult | null>;
   setTorrentLimits: (id: number, limits: SpeedLimits, infoHash?: string) => Promise<void>;
   getTorrentLimits: (id: number) => Promise<TorrentLimits>;
 }
@@ -245,6 +227,7 @@ export interface CollectableNode {
 export interface TorrentItemProps {
   item: TorrentInfo;
   files: TorrentFileInfo[] | undefined;
+  filesError?: string;
   isExpanded: boolean;
   busy: boolean;
   onToggleExpand: () => void;

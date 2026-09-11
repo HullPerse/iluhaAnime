@@ -3,8 +3,7 @@ import { useMemo } from "react";
 import en from "@/lib/locale/en";
 import ru from "@/lib/locale/ru";
 import { useSettingsStore } from "@/store/settings.store";
-import type { Locale, TranslationVariables } from "@/types";
-import type { TranslationKey } from "@/types/i18n";
+import type { Locale, TranslationKey, TranslationVariables } from "@/types/i18n";
 
 export type { Locale, TranslationVariables };
 export type { TranslationKey };
@@ -28,14 +27,29 @@ function repairLegacyCyrillic(value: string): string {
   return repaired.includes("\uFFFD") ? value : repaired;
 }
 
+function resolvePluralKey(locale: Locale, key: string, count: number): string {
+  const category = new Intl.PluralRules(locale).select(count);
+  if (category === "other") return key;
+  const suffixed = `${key}.${category}`;
+  if (suffixed in dictionaries[locale]) return suffixed;
+  if (locale !== "ru" && suffixed in dictionaries.ru) return suffixed;
+  return key;
+}
+
 export function translate(
   locale: Locale,
   key: TranslationKey,
   variables?: TranslationVariables
 ): string {
   const safeLocale = locale === "en" ? "en" : "ru";
+  const resolvedKey =
+    variables && typeof variables.count === "number"
+      ? resolvePluralKey(safeLocale, key, variables.count)
+      : key;
   const template = repairLegacyCyrillic(
-    dictionaries[safeLocale][key] ?? dictionaries.ru[key] ?? key
+    dictionaries[safeLocale][resolvedKey as TranslationKey] ??
+      dictionaries.ru[resolvedKey as TranslationKey] ??
+      key
   );
   return variables
     ? template.replaceAll(/\{\{(\w+)\}\}/gu, (_match: string, name: string) =>

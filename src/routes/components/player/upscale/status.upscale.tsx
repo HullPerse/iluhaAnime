@@ -2,7 +2,7 @@ import { Check } from "lucide-react";
 
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
-import type { UpscaleQueueItem } from "@/types";
+import type { UpscaleQueueItem } from "@/types/upscale";
 
 export function UpscaleStatusPanels({
   localError,

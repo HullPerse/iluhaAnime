@@ -1,9 +1,4 @@
-import type { CollectionItem } from "@/types/collection";
-
-export interface StoredMedia {
-  stills: string[];
-  trailerYoutubeId: string | null;
-}
+import type { CollectionItem, StoredMedia } from "@/types/collection";
 
 export function readStoredMedia(detailsJson: CollectionItem["detailsJson"]): StoredMedia {
   return {

@@ -7,6 +7,7 @@ import { formatProgressLog } from "@/lib/anilist/prefetch.utils";
 import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { deleteAppCache, readAppCache, writeAppCache } from "@/lib/store/cache.utils";
+import { reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSettingsStore } from "@/store/settings.store";
 import type { PrefetchProgressPayload, PrefetchSummary } from "@/types/anilist";
@@ -53,7 +54,9 @@ export default function PrefetchRelationsModal({ animeIds, onClose }: Props) {
       ids,
       done: payload.done,
       total: payload.total,
-    } satisfies PrefetchSnapshot).catch(() => {});
+    } satisfies PrefetchSnapshot).catch((error) =>
+      reportBackgroundError("prefetch.persist", error)
+    );
   };
   const start = async (ids: number[] = animeIds) => {
     if (running) return;
@@ -76,7 +79,9 @@ export default function PrefetchRelationsModal({ animeIds, onClose }: Props) {
         ]);
         persistSnapshot(seeds, event.payload);
         if (event.payload.total > 0 && event.payload.done >= event.payload.total) {
-          deleteAppCache("anilist", "prefetch").catch(() => {});
+          deleteAppCache("anilist", "prefetch").catch((error) =>
+            reportBackgroundError("prefetch.cleanup", error)
+          );
           setStored(null);
           setRunning(false);
           unlistenRef.current?.();
@@ -97,8 +102,12 @@ export default function PrefetchRelationsModal({ animeIds, onClose }: Props) {
       if (!mountedRef.current) return;
       setFinished(result);
       setStored(null);
-      deleteAppCache("anilist", "prefetch").catch(() => {});
-      invokeTyped("sync_franchise_to_index").catch(() => {});
+      deleteAppCache("anilist", "prefetch").catch((error) =>
+        reportBackgroundError("prefetch.cleanup", error)
+      );
+      invokeTyped("sync_franchise_to_index").catch((error) =>
+        reportBackgroundError("franchise.sync", error)
+      );
     } catch (cause) {
       const message = typeof cause === "string" ? cause : String(cause);
       if (!mountedRef.current) return;

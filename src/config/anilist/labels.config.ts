@@ -1,4 +1,6 @@
-export const statusLabels: Record<string, string> = {
+import type { TranslationKey } from "@/types/i18n";
+
+export const statusLabels: Record<string, TranslationKey> = {
   CANCELLED: "anilist.status.CANCELLED",
   FINISHED: "anilist.status.FINISHED",
   HIATUS: "anilist.status.HIATUS",
@@ -6,7 +8,7 @@ export const statusLabels: Record<string, string> = {
   RELEASING: "anilist.status.RELEASING",
 };
 
-export const formatLabels: Record<string, string> = {
+export const formatLabels: Record<string, TranslationKey> = {
   MOVIE: "anilist.format.MOVIE",
   MUSIC: "anilist.format.MUSIC",
   ONA: "anilist.format.ONA",
@@ -16,14 +18,14 @@ export const formatLabels: Record<string, string> = {
   TV_SHORT: "anilist.format.TV_SHORT",
 };
 
-export const seasonLabels: Record<string, string> = {
+export const seasonLabels: Record<string, TranslationKey> = {
   FALL: "anilist.season.FALL",
   SPRING: "anilist.season.SPRING",
   SUMMER: "anilist.season.SUMMER",
   WINTER: "anilist.season.WINTER",
 };
 
-export const listStatusLabels: Record<string, string> = {
+export const listStatusLabels: Record<string, TranslationKey> = {
   COMPLETED: "anilist.list.status.COMPLETED",
   CURRENT: "anilist.list.status.CURRENT",
   DROPPED: "anilist.list.status.DROPPED",

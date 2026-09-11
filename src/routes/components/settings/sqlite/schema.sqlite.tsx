@@ -1,5 +1,5 @@
 import { useI18n } from "@/lib/locale/i18n.utils";
-import type { SqliteTableInfo } from "@/types";
+import type { SqliteTableInfo } from "@/types/sqlite";
 
 export function SchemaSection({ tableInfo }: { tableInfo: SqliteTableInfo }) {
   const { t } = useI18n();

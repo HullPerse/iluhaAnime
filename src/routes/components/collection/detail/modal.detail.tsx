@@ -4,7 +4,7 @@ import { useState } from "react";
 import { FavPeopleStar } from "@/components/shared/favPeopleStar.component";
 import Section from "@/components/shared/section.component";
 import { Button } from "@/components/ui/button.component";
-import { useEscapeClose } from "@/hooks/useEscapeClose.hook";
+import { useEscapeClose } from "@/hooks/escapeClose.hook";
 import { readStoredMedia } from "@/lib/collection/media.utils";
 import { statusLabel } from "@/lib/collection/status.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";

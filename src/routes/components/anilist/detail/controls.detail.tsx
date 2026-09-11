@@ -87,7 +87,7 @@ function AniListActionControls({
             onChange={(v) => setEditStatus(v)}
             options={listStatusOptions.map((o) => ({
               ...o,
-              label: t(o.label as never),
+              label: t(o.label),
             }))}
           />
         </div>

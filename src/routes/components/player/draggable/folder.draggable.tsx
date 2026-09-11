@@ -13,7 +13,7 @@ import { useBottomResize } from "@/hooks/folderResize.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { normalizePlayerPath } from "@/lib/player/visibility.utils";
 import { useSettingsStore } from "@/store/settings.store";
-import type { FolderNode } from "@/types";
+import type { FolderNode } from "@/types/torrent";
 
 import FolderView from "../folder.player";
 

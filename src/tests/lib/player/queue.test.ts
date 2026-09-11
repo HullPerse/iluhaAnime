@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { translate } from "@/lib/locale/i18n.utils";
 import { queueDepthSteps } from "@/lib/player/queue.utils";
-import type { UpscaleQueueItem } from "@/types";
+import type { UpscaleQueueItem } from "@/types/upscale";
 
 const ru = (key: Parameters<typeof translate>[1]) => translate("ru", key);
 

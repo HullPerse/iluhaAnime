@@ -52,15 +52,3 @@ export function fileNameFromPath(p: string): string {
   const parts = p.replaceAll(/\\/g, "/").split("/");
   return parts.at(-1) || p;
 }
-
-export function formatETA(
-  secs: number,
-  t: (key: TranslationKey, variables?: TranslationVariables) => string
-): string {
-  if (!Number.isFinite(secs)) return "";
-  if (secs <= 0) return t("player.eta.less.than.minute");
-  const m = Math.floor(secs / 60);
-  const s = Math.round(secs % 60);
-  if (m > 0) return t("player.eta.minutes.seconds", { m, s });
-  return t("player.eta.seconds", { s });
-}

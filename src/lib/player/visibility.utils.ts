@@ -1,4 +1,4 @@
-import type { FolderNode } from "@/types";
+import type { FolderNode } from "@/types/torrent";
 
 export function normalizePlayerPath(path: string): string {
   return path.replaceAll(/\\/g, "/").replaceAll(/\/+/g, "/").replace(/\/$/, "").toLowerCase();

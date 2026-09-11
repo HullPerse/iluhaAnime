@@ -1,19 +1,32 @@
 import { Dialog } from "@base-ui/react/dialog";
 import { cn } from "cn";
 import { ChevronLeft, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { useSettingsStore } from "@/store/settings.store";
-import type { ModalWindow } from "@/types";
 
 import { Button } from "../ui/button.component";
+
+interface ModalWindow {
+  header: string;
+  onClose: () => void;
+  onBack?: () => void;
+  headerActions?: ReactNode;
+  className?: string;
+  contentClassName?: string;
+  hideHeader?: boolean;
+  hideBackdrop?: boolean;
+  modal?: boolean;
+  children?: ReactNode;
+}
 
 function Modal({
   header,
   onClose,
   onBack,
+  headerActions,
   className,
   contentClassName,
   hideHeader = false,
@@ -90,6 +103,7 @@ function Modal({
                 </Dialog.Title>
               </div>
               <div className="flex shrink-0 flex-row items-center gap-0.5">
+                {headerActions}
                 <Dialog.Close
                   aria-label={t("common.close")}
                   title={t("common.close")}

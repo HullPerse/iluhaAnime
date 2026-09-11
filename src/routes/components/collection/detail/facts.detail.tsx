@@ -39,11 +39,9 @@ export function DetailFactsCollection({
           ))}
         </div>
       )}
-      {item.year && (
-        <div>
-          {t("collection.details.year")}: {item.year}
-        </div>
-      )}
+      <div>
+        {t("collection.details.year")}: {item.year ?? "-"}
+      </div>
       {item.rating != null && item.rating > 0 && (
         <div>
           {t("collection.details.rating")}: {item.rating}/10

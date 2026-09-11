@@ -5,24 +5,26 @@ import { saveWindowState } from "@tauri-apps/plugin-window-state";
 import { useEffect, useRef, useState, useTransition } from "react";
 
 import { tabForAltDigit, visibleTabs } from "@/config/settings/tabs.config";
+import { usePolling } from "@/hooks/polling.hook";
 import { pollAniListReleases } from "@/lib/anilist/notifications.utils";
-import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { readAppCache, writeAppCache } from "@/lib/store/cache.utils";
+import { reportBackgroundError } from "@/lib/utils/attempt.utils";
+import { DEEP_LINK_EVENT, ingestDeepLinks } from "@/lib/utils/deeplink.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
-import { resolveNotificationText } from "@/lib/utils/notification.utils";
+import { resolveNotificationText, showError } from "@/lib/utils/notification.utils";
 import { checkForUpdates } from "@/lib/utils/update.utils";
 import { useCacheStore } from "@/store/cache.store";
 import { useCollectionStore } from "@/store/collection.store";
-import { useTorrentStore } from "@/store/download.store";
+import { useDeepLinkStore } from "@/store/deeplink.store";
 import { useNotificationStore } from "@/store/notification.store";
 import { useSearchStore } from "@/store/search.store";
 import { useSettingsStore } from "@/store/settings.store";
 import { applyTheme, useThemeStore } from "@/store/theme.store";
-import type { FolderNode } from "@/types";
 import type { NotificationType, ShowNotificationPayload } from "@/types/notification";
 import type { SearchLearningSnapshot } from "@/types/search";
 import type { TabId } from "@/types/settings";
+import type { FolderNode } from "@/types/torrent";
 
 export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
   const { t } = useI18n();
@@ -38,7 +40,6 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
   const customScrollbar = useSettingsStore((s) => s.customScrollbar);
   const anilistReleaseNotifications = useSettingsStore((s) => s.anilistReleaseNotifications);
   const anilistPollIntervalMin = useSettingsStore((s) => s.anilistPollIntervalMin);
-  const init = useTorrentStore((s) => s.init);
 
   const tabs = visibleTabs({
     collectionTabEnabled,
@@ -78,7 +79,7 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
 
   useEffect(() => {
     const save = () => {
-      saveWindowState().catch(() => {});
+      saveWindowState().catch((error) => reportBackgroundError("window-state.save", error));
     };
     window.addEventListener("beforeunload", save);
     document.addEventListener("visibilitychange", save);
@@ -95,24 +96,6 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
     }, 0);
     return () => clearTimeout(timer);
   }, []);
-
-  useEffect(() => {
-    let disposed = false;
-    let cleanup: (() => void) | undefined;
-    init()
-      .then((unlisten) => {
-        if (disposed) unlisten();
-        else cleanup = unlisten;
-      })
-      .catch((error: unknown) => {
-        const message = error instanceof Error ? error.message : String(error);
-        useNotificationStore.getState().add(t("app.torrent"), "error", message);
-      });
-    return () => {
-      disposed = true;
-      cleanup?.();
-    };
-  }, [init, t]);
 
   useEffect(() => {
     if (activeTab === ("preview" as TabId)) return;
@@ -201,7 +184,7 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
         if (disposed) cleanup();
         else unlisten = cleanup;
       })
-      .catch(() => {});
+      .catch((error) => reportBackgroundError("notifications.listen", error));
     return () => {
       disposed = true;
       unlisten?.();
@@ -209,23 +192,72 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
   }, []);
 
   useEffect(() => {
-    if (!anilistReleaseNotifications) return;
     let disposed = false;
-    let firstPoll = true;
-    const pollReleases = async () => {
-      const ok = await pollAniListReleases(t, () => disposed, { system: !firstPoll });
-      if (ok) firstPoll = false;
+    let unlisten: (() => void) | undefined;
+    const ingest = (urls: unknown) => {
+      ingestDeepLinks(
+        urls,
+        (link) => useDeepLinkStore.getState().openAnime(link),
+        () => showError(t("common.error"), t("anilist.details.link.invalid"))
+      );
     };
-    pollReleases();
-    const timer = window.setInterval(
-      () => pollReleases(),
-      Math.max(1, anilistPollIntervalMin) * 60 * 1000
-    );
+    invokeTyped<string[]>("take_pending_deep_links")
+      .then((urls) => {
+        if (!disposed) ingest(urls);
+      })
+      .catch((error) => reportBackgroundError("deeplink.take-pending", error));
+    listen<string[]>(DEEP_LINK_EVENT, (event) => {
+      if (!disposed) ingest(event.payload);
+    })
+      .then((cleanup) => {
+        if (disposed) cleanup();
+        else unlisten = cleanup;
+      })
+      .catch((error) => reportBackgroundError("deeplink.listen", error));
     return () => {
       disposed = true;
-      window.clearInterval(timer);
+      unlisten?.();
     };
-  }, [anilistReleaseNotifications, anilistPollIntervalMin, t]);
+  }, [t]);
+
+  useEffect(() => {
+    const switchToAnilist = () => {
+      if (!useSettingsStore.getState().anilistTabEnabled) return;
+      startTransition(() => setActiveTab("anilist"));
+    };
+    if (useDeepLinkStore.getState().target) switchToAnilist();
+    return useDeepLinkStore.subscribe((state, prev) => {
+      if (state.target && state.target !== prev.target) switchToAnilist();
+    });
+  }, [setActiveTab]);
+
+  const releaseSignature = `${anilistReleaseNotifications}:${anilistPollIntervalMin}`;
+  const prevReleaseSignatureRef = useRef(releaseSignature);
+  const firstReleasePollRef = useRef(true);
+  const releaseCancelledRef = useRef(false);
+  useEffect(
+    () => () => {
+      releaseCancelledRef.current = true;
+    },
+    []
+  );
+  usePolling({
+    intervalMs: Math.max(1, anilistPollIntervalMin) * 60 * 1000,
+    enabled: anilistReleaseNotifications,
+    collectKeys: () => ["anilist-releases"],
+    shouldFetch: () => true,
+    fetch: async () => {
+      if (prevReleaseSignatureRef.current !== releaseSignature) {
+        prevReleaseSignatureRef.current = releaseSignature;
+        firstReleasePollRef.current = true;
+      }
+      const ok = await pollAniListReleases(t, () => releaseCancelledRef.current, {
+        system: !firstReleasePollRef.current,
+      });
+      if (ok) firstReleasePollRef.current = false;
+      return ok;
+    },
+  });
 
   useEffect(() => {
     const sync = () => {
@@ -236,7 +268,7 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
           on_complete: s.notifyOnComplete,
           on_error: s.notifyOnError,
         },
-      }).catch(() => {});
+      }).catch((error) => reportBackgroundError("notification-settings.sync", error));
     };
     sync();
     return useSettingsStore.subscribe((state, previous) => {
@@ -284,19 +316,6 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
           queryStats: filterStats(learning.payload.queryStats ?? {}),
           suggestionStats: filterStats(learning.payload.suggestionStats ?? {}),
         });
-        invokeTyped<{ id: number } | null>(
-          "check_anilist_auth",
-          anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl)
-        )
-          .then((profile) => {
-            if (!disposed && profile && profile.id === learning.payload?.animeProfileId) {
-              useSearchStore.setState({
-                animeIndex: learning.payload.animeIndex ?? [],
-                animeProfileId: profile.id,
-              });
-            }
-          })
-          .catch(() => {});
       }
     });
     return () => {
@@ -310,14 +329,14 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
       const state = useSearchStore.getState();
       const snapshot: SearchLearningSnapshot = {
         version: 1,
-        animeIndex: state.animeIndex,
-        animeProfileId: state.animeProfileId,
         history: state.history,
         queryStats: state.queryStats,
         suggestionStats: state.suggestionStats,
       };
       const run = () => {
-        writeAppCache("search", "learning", snapshot).catch(() => {});
+        writeAppCache("search", "learning", snapshot).catch((error) =>
+          reportBackgroundError("learning.persist", error)
+        );
       };
       if (typeof window.requestIdleCallback === "function") {
         window.requestIdleCallback(run, { timeout: 2000 });
@@ -327,8 +346,6 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
     };
     const unsubscribe = useSearchStore.subscribe((state, previous) => {
       if (
-        state.animeIndex !== previous.animeIndex ||
-        state.animeProfileId !== previous.animeProfileId ||
         state.history !== previous.history ||
         state.queryStats !== previous.queryStats ||
         state.suggestionStats !== previous.suggestionStats

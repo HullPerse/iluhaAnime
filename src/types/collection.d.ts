@@ -1,3 +1,5 @@
+import type { AniMedia } from "./anilist";
+
 export type CollectionStatus = string;
 export type CollectionType = "anime" | "movie" | "series" | "custom";
 export type ProgressUnit = "episodes" | "seasons" | "minutes" | "pages";
@@ -37,6 +39,7 @@ export interface CollectionItem {
   priority: Priority;
   isFavorite: boolean;
   year: number | null;
+  releaseDate: string | null;
   genres: string[];
   studio: string | null;
   description: string | null;
@@ -101,7 +104,7 @@ export interface WizardPrefill {
 export interface CollectionStore {
   selectedStatus: CollectionStatus | "all";
   searchQuery: string;
-  sortBy: "date" | "name" | "rating";
+  sortBy: "date" | "name" | "rating" | "year";
   sortDir: "asc" | "desc";
   filters: CollectionFilters;
   groupByStatus: boolean;
@@ -137,7 +140,7 @@ export interface CollectionFilters {
 
 export type CollectionConfig = {
   STATUS: CollectionStatus | "all";
-  SORT: "date" | "name" | "rating";
+  SORT: "date" | "name" | "rating" | "year";
   DIR: "asc" | "desc";
 };
 
@@ -219,6 +222,7 @@ export type WizardSaveValues = {
   priority: CollectionItem["priority"];
   isFavorite: boolean;
   year: string;
+  releaseDate?: string | null;
   genres: string;
   studio: string;
   description: string;
@@ -314,6 +318,54 @@ export interface CollectionRowProps {
   statuses: CollectionStatusDef[];
   selected?: boolean;
   onOpen?: (item: CollectionItem) => void;
-  onEdit?: (item: CollectionItem) => void;
   onSetStatus?: (item: CollectionItem, status: CollectionStatus) => void;
+}
+
+export interface CollectionDataResult extends CollectionDataState {
+  isLoading: boolean;
+  isError: boolean;
+  isFetching: boolean;
+  error: unknown;
+  refetch: () => void;
+}
+
+export interface StoredMedia {
+  stills: string[];
+  trailerYoutubeId: string | null;
+}
+
+export interface ViewerMedia {
+  backdrops: { url: string }[];
+  trailerYoutubeId: string | null;
+}
+
+export interface WizardPickedMedia {
+  stills: string[];
+  trailerYoutubeId: string | null;
+}
+
+export type QuickAddMedia = Pick<
+  AniMedia,
+  | "id"
+  | "title"
+  | "titles"
+  | "episodes"
+  | "duration"
+  | "score"
+  | "genres"
+  | "tags"
+  | "description"
+  | "format"
+  | "cover_url"
+  | "season_year"
+  | "start_date"
+  | "studios"
+  | "id_mal"
+  | "trailer_youtube_id"
+>;
+
+export interface QuickAddListEntry {
+  progress: number | null;
+  score: number | null;
+  list_status: string;
 }

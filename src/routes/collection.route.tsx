@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 
 import { ConfirmDialog } from "@/components/shared/confirm.component";
+import { TabLoader } from "@/components/shared/loader.component";
 import { SelectDialog } from "@/components/shared/selectDialog.component";
+import { Button } from "@/components/ui/button.component";
 import { useCollectionDataActions } from "@/hooks/collection/data.hook";
 import { useCollectionMetadata } from "@/hooks/collection/metadata.hook";
 import {
@@ -10,13 +12,18 @@ import {
   useCollectionSearch,
 } from "@/hooks/collection/queries.hook";
 import { useSearchField } from "@/hooks/search/field.hook";
-import { filterCollectionItems } from "@/lib/collection/filter.utils";
+import { filterCollectionItems, pickRandomItem } from "@/lib/collection/filter.utils";
 import { groupItemsByStatus } from "@/lib/collection/group.utils";
 import { calculateCollectionStats } from "@/lib/collection/stats.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { FILTER_KEYS } from "@/lib/search/intent.utils";
 import { useCollectionStore } from "@/store/collection.store";
-import type { CollectionItem, CollectionStatus, WizardPrefill } from "@/types/collection";
+import type {
+  CollectionDataResult,
+  CollectionItem,
+  CollectionStatus,
+  WizardPrefill,
+} from "@/types/collection";
 
 import { DetailCollection } from "./components/collection/detail/modal.detail";
 import FilterCollection from "./components/collection/filter.collection";
@@ -28,8 +35,38 @@ import { StatusManagerCollection } from "./components/collection/statusManager.c
 import ToolbarCollection from "./components/collection/toolbar.collection";
 import { WizardModal } from "./components/collection/wizard/modal.wizard";
 
+function CollectionQuerySlot({
+  status,
+  isEmpty,
+  children,
+}: {
+  status: Pick<CollectionDataResult, "isLoading" | "isFetching" | "isError" | "error" | "refetch">;
+  isEmpty: boolean;
+  children: ReactNode;
+}) {
+  const { t } = useI18n();
+  const { isLoading, isFetching, isError, error, refetch } = status;
+  if (isLoading || (isFetching && isEmpty)) return <TabLoader className="flex-1" />;
+  if (isError) {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center gap-2 p-6" role="alert">
+        <span className="windows95-text text-destructive text-center">
+          {t("collection.data.load.error", {
+            error: error instanceof Error ? error.message : String(error ?? t("common.error")),
+          })}
+        </span>
+        <Button onClick={() => refetch()} className="text-xs">
+          {t("collection.data.retry")}
+        </Button>
+      </div>
+    );
+  }
+  return <>{children}</>;
+}
+
 export default function CollectionRoute() {
-  const { items, statuses, customFieldDefs } = useCollectionData();
+  const { items, statuses, customFieldDefs, isLoading, isError, isFetching, error, refetch } =
+    useCollectionData();
   const mutations = useCollectionMutations();
   const dataActions = useCollectionDataActions();
   const { t } = useI18n();
@@ -91,18 +128,19 @@ export default function CollectionRoute() {
   const collectionExtraValues = useMemo<Array<{ kind: "local"; value: string }>>(() => {
     const hints: Array<{ kind: "local"; value: string }> = [];
     const push = (value: string) => hints.push({ kind: "local", value });
-    push("source:anilist");
-    push("source:tmdb");
-    push("source:custom");
-    push("type:anime");
-    push("type:movie");
-    push("type:series");
-    push("type:custom");
-    for (const s of statuses) push(`status:${s.id}`);
-    for (const p of ["low", "normal", "high"] as const) push(`priority:${p}`);
-    for (const key of Object.keys(FILTER_KEYS)) push(`${key}:`);
-    for (const by of ["date", "name", "rating"] as const) push(`sort:${by}`);
-    for (const provider of ["anilist", "tmdb", "custom"] as const) push(`provider:${provider}`);
+    const quote = (value: string) => (/\s/.test(value) ? `"${value}"` : value);
+    push("source=anilist");
+    push("source=tmdb");
+    push("source=custom");
+    push("type=anime");
+    push("type=movie");
+    push("type=series");
+    push("type=custom");
+    for (const s of statuses) push(`status=${s.id}`);
+    for (const p of ["low", "normal", "high"] as const) push(`priority=${p}`);
+    for (const key of Object.keys(FILTER_KEYS)) push(`${key}=`);
+    for (const by of ["date", "name", "rating", "year"] as const) push(`sort=${by}`);
+    for (const provider of ["anilist", "tmdb", "custom"] as const) push(`provider=${provider}`);
     const studios = new Set<string>();
     const genres = new Set<string>();
     const years = new Set<string>();
@@ -113,10 +151,10 @@ export default function CollectionRoute() {
       if (item.year != null) years.add(String(item.year));
       if (item.rating != null) ratings.add(String(item.rating));
     }
-    for (const v of studios) push(`studio:${v}`);
-    for (const v of genres) push(`genre:${v}`);
-    for (const v of years) push(`year:${v}`);
-    for (const v of ratings) push(`rating:${v}`);
+    for (const v of studios) push(`studio=${quote(v)}`);
+    for (const v of genres) push(`genre=${quote(v)}`);
+    for (const v of years) push(`year=${v}`);
+    for (const v of ratings) push(`rating=${v}`);
     return hints;
   }, [items, statuses]);
 
@@ -175,6 +213,10 @@ export default function CollectionRoute() {
 
   const handleStatusManager = useCallback(() => setStatusManager(true), []);
   const handleAnilistImport = useCallback(() => setAnilistImport(true), []);
+  const handleRandom = useCallback(() => {
+    const pick = pickRandomItem(filtered);
+    if (pick) setDetailItem(pick);
+  }, [filtered]);
 
   return (
     <div className="flex h-full w-full flex-col gap-1 overflow-hidden">
@@ -187,6 +229,8 @@ export default function CollectionRoute() {
         sortBy={sortBy}
         sortDir={sortDir}
         onSortChange={setSort}
+        onRandom={handleRandom}
+        randomDisabled={filtered.length === 0}
       />
 
       {showFilters && (
@@ -204,32 +248,36 @@ export default function CollectionRoute() {
         onSelect={setSelectedStatus}
         counts={statusCounts}
       />
-      {viewMode === "grid" ? (
-        <GridCollection
-          items={filtered}
-          statuses={statuses}
-          display={grouped ? "scroll" : displayMode}
-          selectedId={detailItem?.id}
-          onOpen={setDetailItem}
-          onEdit={handleEdit}
-          onSetStatus={setItemStatus}
-          groups={grouped ?? undefined}
-          collapsedStatuses={collapsedStatuses}
-          onToggleStatusCollapsed={toggleStatusCollapsed}
-        />
-      ) : (
-        <ListCollection
-          items={filtered}
-          statuses={statuses}
-          selectedId={detailItem?.id}
-          onOpen={setDetailItem}
-          onEdit={handleEdit}
-          onSetStatus={setItemStatus}
-          groups={grouped ?? undefined}
-          collapsedStatuses={collapsedStatuses}
-          onToggleStatusCollapsed={toggleStatusCollapsed}
-        />
-      )}
+      <CollectionQuerySlot
+        status={{ isLoading, isFetching, isError, error, refetch }}
+        isEmpty={items.length === 0}
+      >
+        {viewMode === "grid" ? (
+          <GridCollection
+            items={filtered}
+            statuses={statuses}
+            display={grouped ? "scroll" : displayMode}
+            selectedId={detailItem?.id}
+            onOpen={setDetailItem}
+            onEdit={handleEdit}
+            onSetStatus={setItemStatus}
+            groups={grouped ?? undefined}
+            collapsedStatuses={collapsedStatuses}
+            onToggleStatusCollapsed={toggleStatusCollapsed}
+          />
+        ) : (
+          <ListCollection
+            items={filtered}
+            statuses={statuses}
+            selectedId={detailItem?.id}
+            onOpen={setDetailItem}
+            onSetStatus={setItemStatus}
+            groups={grouped ?? undefined}
+            collapsedStatuses={collapsedStatuses}
+            onToggleStatusCollapsed={toggleStatusCollapsed}
+          />
+        )}
+      </CollectionQuerySlot>
       {showWizard && (
         <WizardModal
           open={showWizard}

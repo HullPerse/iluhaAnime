@@ -1,18 +1,5 @@
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
-
-export type ChangelogScope =
-  | "upscale"
-  | "player"
-  | "torrents"
-  | "collection"
-  | "anilist"
-  | "settings"
-  | "app";
-
-export interface ChangelogEntry {
-  key: TranslationKey;
-  scope: ChangelogScope;
-}
+import type { ChangelogEntry, ChangelogScope } from "@/types/settings";
 
 export interface ChangelogVersion {
   version: string;

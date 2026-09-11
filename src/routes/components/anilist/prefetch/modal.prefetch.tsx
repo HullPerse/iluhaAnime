@@ -136,7 +136,6 @@ export default function PrefetchRelationsModal({ animeIds, onClose }: Props) {
   return (
     <Modal header={t("anilist.prefetch.title")} onClose={onClose}>
       <div className="flex w-full max-w-full flex-col gap-2">
-        <p className="windows95-text text-hint text-xs">{t("anilist.prefetch.description")}</p>
         <p className="windows95-text text-hint text-xs">{t("anilist.prefetch.background.hint")}</p>
         {backgrounded && running ? (
           <p className="windows95-text text-xs font-bold">{t("anilist.prefetch.background")}</p>

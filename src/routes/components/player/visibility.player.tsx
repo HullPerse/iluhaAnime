@@ -1,4 +1,4 @@
-import { Eye, FolderOpen, HardDrive, Trash2 } from "lucide-react";
+import { Eye, FolderOpen, HardDrive } from "lucide-react";
 
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
@@ -94,12 +94,6 @@ export default function PlayerVisibilityModal({
           </section>
         )}
 
-        {!isEmpty && (
-          <div className="text-hint flex items-center gap-1 text-xs">
-            <Trash2 className="size-3" />
-            <span className="windows95-text">{t("player.visibility.note")}</span>
-          </div>
-        )}
       </div>
     </Modal>
   );

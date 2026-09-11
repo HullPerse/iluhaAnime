@@ -125,6 +125,7 @@ const PRESET_LABELS: Record<
   | "search.dither.preset.soft"
   | "search.dither.preset.natural"
   | "search.dither.preset.capy"
+  | "search.dither.preset.crt"
 > = {
   empty: "search.dither.preset.empty",
   default: "search.dither.preset.default",
@@ -132,6 +133,7 @@ const PRESET_LABELS: Record<
   soft: "search.dither.preset.soft",
   natural: "search.dither.preset.natural",
   capy: "search.dither.preset.capy",
+  crt: "search.dither.preset.crt",
 };
 
 const PALETTE_PRESET_LABELS: Record<
@@ -247,7 +249,6 @@ export default function DitherPreviewModal({
     if (extracting) return;
     setExtracting(true);
     const img = new Image();
-    // getImageData throws on a tainted canvas: the extract source must load CORS-clean.
     img.crossOrigin = "anonymous";
     img.onload = () => {
       try {
@@ -349,7 +350,7 @@ export default function DitherPreviewModal({
     <Modal header={t("search.dither.preview")} onClose={onBack} onBack={onBack} className="w-2xl">
       <DitherCanvas
         src={src}
-        className="aspect-video w-full"
+        className="bg-primary h-56 w-full shrink-0"
         capToDisplay
         scale={renderScale}
         {...renderOptions}
@@ -372,115 +373,117 @@ export default function DitherPreviewModal({
           }}
         />
       )}
-      <div className="flex flex-row gap-1">
-        {DITHER_PRESETS.map((preset) => (
-          <Button
-            key={preset.id}
-            className="h-5 flex-1 px-1 text-xs"
-            title={t(PRESET_LABELS[preset.id])}
-            onClick={() => applyPreset(preset.id)}
-            disabled={presetId === preset.id}
-          >
-            {t(PRESET_LABELS[preset.id])}
-          </Button>
-        ))}
-      </div>
-      <div className="flex flex-row gap-1">
-        <Button
-          className="h-5 flex-1 px-1 text-xs"
-          title="Bayer 4"
-          onClick={() => patchOptions({ ditherMatrix: "bayer4" })}
-          disabled={options.ditherMatrix === "bayer4"}
-        >
-          Bayer 4
-        </Button>
-        <Button
-          className="h-5 flex-1 px-1 text-xs"
-          title="Blue 64"
-          onClick={() => patchOptions({ ditherMatrix: "blue64" })}
-          disabled={options.ditherMatrix === "blue64"}
-        >
-          Blue 64
-        </Button>
-      </div>
-      <div className="flex flex-row gap-1">
-        <Button
-          className="h-5 flex-1 px-1 text-xs"
-          title={t("search.dither.grain.gray")}
-          onClick={() => patchOptions({ grayGrain: true })}
-          disabled={options.grayGrain}
-        >
-          {t("search.dither.grain.gray")}
-        </Button>
-        <Button
-          className="h-5 flex-1 px-1 text-xs"
-          title={t("search.dither.grain.color")}
-          onClick={() => patchOptions({ grayGrain: false })}
-          disabled={!options.grayGrain}
-        >
-          {t("search.dither.grain.color")}
-        </Button>
-      </div>
-      <PaletteSwatchStrip
-        palette={options.palette}
-        onChange={(palette) => patchOptions({ palette })}
-      />
-      <div className="flex flex-row items-stretch gap-1">
-        <div className="flex-1">
-          <PalettePresetStrip
-            active={options.palette}
-            onPick={(palette) => patchOptions({ palette })}
-          />
+      <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
+        <div className="grid grid-cols-3 gap-1">
+          {DITHER_PRESETS.map((preset) => (
+            <Button
+              key={preset.id}
+              className="h-5 flex-1 px-1 text-xs"
+              title={t(PRESET_LABELS[preset.id])}
+              onClick={() => applyPreset(preset.id)}
+              disabled={presetId === preset.id}
+            >
+              {t(PRESET_LABELS[preset.id])}
+            </Button>
+          ))}
         </div>
-        <Button
-          size="icon"
-          className="size-11 text-xs"
-          title={t("search.dither.palette.from.image")}
-          onClick={extractFromImage}
-          disabled={extracting}
-        >
-          <Pipette />
-        </Button>
-      </div>
-      <Slider
-        label={t("search.dither.opt.scale")}
-        min={0.1}
-        max={1}
-        step={0.05}
-        value={scale}
-        onChange={(value) => {
-          setScale(value);
-          setCanSave(false);
-        }}
-      />
-      <DitherControls options={options} onPatch={patchOptions} />
-      <section className="mt-auto flex w-full flex-row gap-2">
-        <Button
-          className="flex-1"
-          variant="success"
-          onClick={() => save()}
-          disabled={!canSave || saving || renderStale}
-        >
-          {saving ? (
-            bakeProgress && bakeProgress.total > 0 ? (
-              <span className="flex w-full items-center gap-2">
-                <ProgressBar
-                  value={bakeProgress.done}
-                  max={bakeProgress.total}
-                  className="h-4 flex-1"
-                />
-                <span className="tabular-nums">
-                  {Math.round((bakeProgress.done / bakeProgress.total) * 100)}%
+        <div className="flex flex-row gap-1">
+          <Button
+            className="h-5 flex-1 px-1 text-xs"
+            title="Bayer 4"
+            onClick={() => patchOptions({ ditherMatrix: "bayer4" })}
+            disabled={options.ditherMatrix === "bayer4"}
+          >
+            Bayer 4
+          </Button>
+          <Button
+            className="h-5 flex-1 px-1 text-xs"
+            title="Blue 64"
+            onClick={() => patchOptions({ ditherMatrix: "blue64" })}
+            disabled={options.ditherMatrix === "blue64"}
+          >
+            Blue 64
+          </Button>
+        </div>
+        <div className="flex flex-row gap-1">
+          <Button
+            className="h-5 flex-1 px-1 text-xs"
+            title={t("search.dither.grain.gray")}
+            onClick={() => patchOptions({ grayGrain: true })}
+            disabled={options.grayGrain}
+          >
+            {t("search.dither.grain.gray")}
+          </Button>
+          <Button
+            className="h-5 flex-1 px-1 text-xs"
+            title={t("search.dither.grain.color")}
+            onClick={() => patchOptions({ grayGrain: false })}
+            disabled={!options.grayGrain}
+          >
+            {t("search.dither.grain.color")}
+          </Button>
+        </div>
+        <PaletteSwatchStrip
+          palette={options.palette}
+          onChange={(palette) => patchOptions({ palette })}
+        />
+        <div className="flex flex-row items-stretch gap-1">
+          <div className="flex-1">
+            <PalettePresetStrip
+              active={options.palette}
+              onPick={(palette) => patchOptions({ palette })}
+            />
+          </div>
+          <Button
+            size="icon"
+            className="size-11 text-xs"
+            title={t("search.dither.palette.from.image")}
+            onClick={extractFromImage}
+            disabled={extracting}
+          >
+            <Pipette />
+          </Button>
+        </div>
+        <Slider
+          label={t("search.dither.opt.scale")}
+          min={0.1}
+          max={1}
+          step={0.05}
+          value={scale}
+          onChange={(value) => {
+            setScale(value);
+            setCanSave(false);
+          }}
+        />
+        <DitherControls options={options} onPatch={patchOptions} />
+        <section className="mt-auto flex w-full flex-row gap-2">
+          <Button
+            className="flex-1"
+            variant="success"
+            onClick={() => save()}
+            disabled={!canSave || saving || renderStale}
+          >
+            {saving ? (
+              bakeProgress && bakeProgress.total > 0 ? (
+                <span className="flex w-full items-center gap-2">
+                  <ProgressBar
+                    value={bakeProgress.done}
+                    max={bakeProgress.total}
+                    className="h-4 flex-1"
+                  />
+                  <span className="tabular-nums">
+                    {Math.round((bakeProgress.done / bakeProgress.total) * 100)}%
+                  </span>
                 </span>
-              </span>
+              ) : (
+                <SmallLoader />
+              )
             ) : (
-              <SmallLoader />
-            )
-          ) : (
-            t("search.dither.save")
-          )}
-        </Button>
-      </section>
+              t("search.dither.save")
+            )}
+          </Button>
+        </section>
+      </div>
     </Modal>
   );
 }

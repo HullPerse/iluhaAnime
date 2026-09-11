@@ -182,7 +182,6 @@ export function BackupPanel({
         )
       )}
 
-      <span className="windows95-text text-hint text-xs">{t("settings.sqlite.backup.hint")}</span>
       {notice && <span className="windows95-text text-xs">{notice}</span>}
       {error && <span className="windows95-text text-destructive text-xs">{error}</span>}
 

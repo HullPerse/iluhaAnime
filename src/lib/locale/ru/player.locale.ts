@@ -77,15 +77,11 @@ const player = {
   "player.realcugan.downloading": "Загрузка RealCUGAN... {{percent}}%",
   "player.realcugan.download.error": "Ошибка загрузки: {{message}}",
   "player.realcugan.installed": "RealCUGAN готов",
-  "player.realcugan.info":
-    "Лучшее качество для шумных исходников. Медленно: около 3 fps. Требует гигабайты свободного места во временных файлах.",
   "player.realcugan.missing": "RealCUGAN не скачан",
   "player.rife.download": "Скачать RIFE (~30МБ)",
   "player.rife.downloading": "Загрузка RIFE... {{percent}}%",
   "player.rife.download.error": "Ошибка загрузки: {{message}}",
   "player.rife.installed": "RIFE готов для интерполяции в 60 fps",
-  "player.rife.info":
-    "Плавное движение из 24 в 60 fps. Используется для 60i автоматически, если скачан.",
   "player.rife.missing": "RIFE не скачан, 60i откатится на ffmpeg",
   "player.route.add.folder": "Добавить папку",
 
@@ -150,7 +146,6 @@ const player = {
   "player.visibility.folders": "Скрытые папки",
   "player.visibility.hide": "Скрыть в плеере",
   "player.visibility.manage": "Управление скрытыми элементами",
-  "player.visibility.note": "Скрытие не удаляет файлы и не останавливает загрузку торрентов.",
   "player.visibility.title": "Скрытые элементы плеера",
   "player.visibility.torrents": "Скрытые торренты",
   "player.visibility.unhide": "Показать в плеере",

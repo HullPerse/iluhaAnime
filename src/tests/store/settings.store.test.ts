@@ -68,6 +68,22 @@ describe("useSettingsStore migration", () => {
     expect(migrate!(null, 1)).toEqual({});
   });
 
+  it("fills default tag tolerances during v24 migration", () => {
+    const migrate = useSettingsStore.persist.getOptions()?.migrate;
+    const result = migrate!({ language: "en" } as never, 23) as {
+      tagTolerances: Record<string, number>;
+    };
+    expect(result.tagTolerances).toEqual({ episodes: 2, progress: 5, rating: 1, year: 2 });
+  });
+
+  it("keeps customized tolerances during v24 migration", () => {
+    const migrate = useSettingsStore.persist.getOptions()?.migrate;
+    const result = migrate!({ language: "en", tagTolerances: { year: 5 } } as never, 23) as {
+      tagTolerances: Record<string, number>;
+    };
+    expect(result.tagTolerances.year).toBe(5);
+    expect(result.tagTolerances.rating).toBe(1);
+  });
   it("defaults playerFolderHeights during v16 migration", () => {
     const migrate = useSettingsStore.persist.getOptions()?.migrate;
     const result = migrate!({ language: "en" } as never, 15) as {
@@ -236,5 +252,28 @@ describe("useSettingsStore patch", () => {
     const s = useSettingsStore.getState();
     expect(s.limits.download).toBe(200);
     expect(s.language).toBe("ru");
+  });
+});
+
+describe("wallpaper effect settings v25 migration", () => {
+  it("defaults parallax on and scanlines off", () => {
+    const migrate = useSettingsStore.persist.getOptions()?.migrate;
+    const result = migrate!({ language: "en" } as never, 24) as {
+      wallpaperParallax: boolean;
+      wallpaperScanlines: boolean;
+    };
+    expect(result.wallpaperParallax).toBe(true);
+    expect(result.wallpaperScanlines).toBe(false);
+  });
+
+  it("keeps persisted wallpaper effect flags", () => {
+    const migrate = useSettingsStore.persist.getOptions()?.migrate;
+    const result = migrate!({
+      language: "en",
+      wallpaperParallax: false,
+      wallpaperScanlines: true,
+    } as never, 24) as { wallpaperParallax: boolean; wallpaperScanlines: boolean };
+    expect(result.wallpaperParallax).toBe(false);
+    expect(result.wallpaperScanlines).toBe(true);
   });
 });

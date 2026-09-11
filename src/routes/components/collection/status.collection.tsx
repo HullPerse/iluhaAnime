@@ -2,7 +2,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
-import { statusLabel } from "@/lib/collection/status.utils";
+import { sortStatuses, statusLabel } from "@/lib/collection/status.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import type { CollectionStatus, CollectionStatusDef } from "@/types/collection";
 
@@ -36,16 +36,11 @@ export function StatusCollection({
 
   const tabs = [
     { id: "all" as CollectionStatus | "all", label: t("collection.library.all"), color: null },
-    ...statuses
-      .map((s) => ({
-        id: s.id,
-        label: statusLabel(statuses, s.id, t, locale),
-        color: s.color,
-        isCore: s.isCore,
-        rank: Number.isFinite(s.order) ? s.order : Number.MAX_SAFE_INTEGER,
-      }))
-      .sort((a, b) => Number(b.isCore) - Number(a.isCore) || a.rank - b.rank)
-      .map(({ id, label, color }) => ({ id, label, color })),
+    ...sortStatuses(statuses).map((s) => ({
+      id: s.id,
+      label: statusLabel(statuses, s.id, t, locale),
+      color: s.color,
+    })),
   ];
   const selectedIndex = Math.max(
     0,

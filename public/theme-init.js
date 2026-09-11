@@ -16,12 +16,9 @@
   }
 
   function stored(key) {
-    try {
-      return localStorage.getItem(key);
-    } catch {
-      // Storage-unavailable: fall through to defaults for this paint.
-      return null;
-    }
+    const data = localStorage.getItem(key);
+    if (!data) return null;
+    return data;
   }
 
   try {
@@ -57,7 +54,5 @@
     if (typeof v.themeName === "string" && v.themeName.length > 0 && root.dataset) {
       root.dataset.theme = v.themeName;
     }
-  } catch {
-    // Corrupt themeVars must never block first paint.
-  }
+  } catch {}
 })();

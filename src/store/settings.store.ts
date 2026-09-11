@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+import { DEFAULT_TAG_TOLERANCES } from "@/config/search/tolerance.config";
 import {
   DEFAULT_SETTINGS,
   DEFAULT_WALLPAPER_FILTERS,
@@ -8,8 +9,8 @@ import {
 } from "@/config/settings/defaults.config";
 import { detectSystemLocale } from "@/lib/locale/system.utils";
 import { normalizePlayerPath } from "@/lib/player/visibility.utils";
-import { applyFontFamily, DEFAULT_FONT_FAMILY } from "@/lib/utils/font.utils";
 import { reportBackgroundError } from "@/lib/utils/attempt.utils";
+import { applyFontFamily, DEFAULT_FONT_FAMILY } from "@/lib/utils/font.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import type { SettingsStore } from "@/types/settings";
 
@@ -302,6 +303,28 @@ function applySettingsV23(
   return migrated;
 }
 
+function applySettingsV24(
+  migrated: Partial<SettingsStore>,
+  version: number
+): Partial<SettingsStore> {
+  if (version >= 24) return migrated;
+  migrated.tagTolerances = {
+    ...DEFAULT_TAG_TOLERANCES,
+    ...migrated.tagTolerances,
+  };
+  return migrated;
+}
+
+function applySettingsV25(
+  migrated: Partial<SettingsStore>,
+  version: number
+): Partial<SettingsStore> {
+  if (version >= 25) return migrated;
+  if (migrated.wallpaperParallax === undefined) migrated.wallpaperParallax = true;
+  if (migrated.wallpaperScanlines === undefined) migrated.wallpaperScanlines = false;
+  return migrated;
+}
+
 function drainTmdbPendingKey(state: SettingsStore): void {
   const pending = state.tmdbPendingKey;
   if (!pending) return;
@@ -426,6 +449,8 @@ export const useSettingsStore = create<SettingsStore>()(
         migrated = applySettingsV21(migrated, version);
         migrated = applySettingsV22(migrated, version);
         migrated = applySettingsV23(migrated, version);
+        migrated = applySettingsV24(migrated, version);
+        migrated = applySettingsV25(migrated, version);
         return migrated;
       },
       onRehydrateStorage: () => (state) => {
@@ -435,7 +460,7 @@ export const useSettingsStore = create<SettingsStore>()(
           drainTmdbPendingKey(state);
         }
       },
-      version: 23,
+      version: 25,
     }
   )
 );

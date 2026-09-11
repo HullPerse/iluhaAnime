@@ -1,5 +1,5 @@
 import type { Locale, TranslationKey } from "./i18n";
-import type { AutocompleteMode, SearchType } from "./search";
+import type { AutocompleteMode, SearchType, TagToleranceKey } from "./search";
 import type { SpeedLimits } from "./torrent";
 
 export type SettingsTab =
@@ -78,11 +78,14 @@ export interface SettingsStore {
   ffmpegSource: "essentials" | "github" | "github-mirror";
   searchSymSpellEnabled: boolean;
   searchIntentEnabled: boolean;
+  tagTolerances: Record<TagToleranceKey, number>;
   searchType: SearchType;
   selectedDitherId: string | null;
   appFont: string | null;
   wallpaperFilters: WallpaperDisplayFilters;
   wallpaperShadow: WallpaperShadow;
+  wallpaperParallax: boolean;
+  wallpaperScanlines: boolean;
   searchShadow: WallpaperShadow;
   patch: (partial: Partial<SettingsStore>) => void;
 }
@@ -155,7 +158,8 @@ export type ChangelogScope =
   | "collection"
   | "anilist"
   | "settings"
-  | "app";
+  | "app"
+  | "search";
 
 export interface ChangelogEntry {
   key: TranslationKey;

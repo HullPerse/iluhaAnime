@@ -1,4 +1,11 @@
-import type { CompareOp, IntentToken, NumericCond, ParsedIntent } from "@/types/search";
+import { DEFAULT_TAG_TOLERANCES } from "@/config/search/tolerance.config";
+import type {
+  CompareOp,
+  IntentToken,
+  NumericCond,
+  ParsedIntent,
+  TagToleranceKey,
+} from "@/types/search";
 
 export const FILTER_KEYS: Record<string, true> = {
   year: true,
@@ -88,7 +95,7 @@ function parseSort(
 const TOKEN_RE = /(?:[^\s"]+|"[^"]*")+/g;
 
 function matchFilterToken(token: string): { key: string; op: CompareOp; value: string } | null {
-  const opMatch = token.match(/^(.*?)(>=|<=|!=|=|>|<)(.*)$/);
+  const opMatch = token.match(/^(.*?)(~=|>=|<=|!=|=|>|<)(.*)$/);
   if (!opMatch) return null;
   const key = (opMatch[1] ?? "").toLowerCase();
   const op = opMatch[2] as CompareOp;
@@ -113,12 +120,17 @@ export function tokenizeIntent(query: string): IntentToken[] {
 type FilterToken = { key: string; op: CompareOp; value: string };
 
 const SPACED_OP_RE = new RegExp(
-  `\\b(${Object.keys(FILTER_KEYS).join("|")})\\s*(>=|<=|!=|=|>|<)\\s*`,
+  `\\b(${Object.keys(FILTER_KEYS).join("|")})\\s*(~=|>=|<=|!=|=|>|<)\\s*`,
   "g"
 );
 
 function joinSpacedOps(query: string): string {
-  return query.replace(SPACED_OP_RE, "$1$2");
+  return query.replace(/([\d"'])\s*\.\.\.\s*([\d"'])/g, "$1...$2").replace(SPACED_OP_RE, "$1$2");
+}
+
+function isRangeValue(key: string, value: string): boolean {
+  if (!value.includes("...")) return false;
+  return key in NUMERIC_CONDITIONS || key === "date";
 }
 
 function collectFilterTokens(tokens: string[]): {
@@ -132,7 +144,8 @@ function collectFilterTokens(tokens: string[]): {
   for (const token of tokens) {
     const found = matchFilterToken(token);
     if (found) {
-      if (found.op === "=") rawFilters[found.key] = found.value;
+      if (found.op === "=" && !isRangeValue(found.key, found.value))
+        rawFilters[found.key] = found.value;
       conditions.push(found);
       continue;
     }
@@ -162,7 +175,10 @@ function rawFilterApplied(out: ParsedIntent, key: string): boolean {
   return field === undefined || out[field] !== undefined;
 }
 
-export function parseIntent(query: string): ParsedIntent {
+export function parseIntent(
+  query: string,
+  tolerances: Record<TagToleranceKey, number> = DEFAULT_TAG_TOLERANCES
+): ParsedIntent {
   const tokens = joinSpacedOps(query).match(TOKEN_RE) ?? [];
   const { rawFilters, conditions, remaining } = collectFilterTokens(tokens);
   const out: ParsedIntent = {
@@ -180,7 +196,8 @@ export function parseIntent(query: string): ParsedIntent {
     if (!rawFilterApplied(out, key)) remaining.push(`${key}=${raw}`);
   }
   for (const cond of conditions) {
-    if (!applyCondition(out, cond)) remaining.push(`${cond.key}${cond.op}${cond.value}`);
+    if (!applyCondition(out, cond, tolerances))
+      remaining.push(`${cond.key}${cond.op}${cond.value}`);
   }
   out.cleanQuery = remaining.join(" ").trim();
   return out;
@@ -230,13 +247,25 @@ const NUMERIC_CONDITIONS: Record<
 
 const NEGATION_ALIAS: Record<string, string> = { tag: "genre", source: "provider" };
 
-function applyCondition(out: ParsedIntent, cond: FilterToken): boolean {
-  if (cond.op === "=" && cond.key !== "date") return true;
+function applyCondition(
+  out: ParsedIntent,
+  cond: FilterToken,
+  tolerances: Record<TagToleranceKey, number>
+): boolean {
+  if (cond.op === "=" && cond.key !== "date") {
+    const numeric = NUMERIC_CONDITIONS[cond.key];
+    if (numeric && cond.value.includes("...")) return applyNumericRange(out, numeric, cond.value);
+    return true;
+  }
   if (cond.op === "!=" && !(cond.key in NUMERIC_CONDITIONS)) {
     out.negations.push({ key: NEGATION_ALIAS[cond.key] ?? cond.key, value: cond.value });
     return true;
   }
   if (cond.key === "date") {
+    if (cond.op === "~=") return false;
+    if (cond.op === "=" && cond.value.includes("...")) {
+      return applyDateRange(out, cond.value);
+    }
     const parsed = parseDateValue(cond.value);
     if (!parsed) return false;
     out.dateConds.push({ op: cond.op, iso: parsed.iso, yearOnly: parsed.yearOnly });
@@ -244,8 +273,54 @@ function applyCondition(out: ParsedIntent, cond: FilterToken): boolean {
   }
   const numeric = NUMERIC_CONDITIONS[cond.key];
   if (!numeric) return false;
+  if (cond.op === "~=") {
+    const value = numeric.parse(cond.value);
+    if (value === undefined) return false;
+    const tolerance = tolerances[cond.key as TagToleranceKey] ?? 0;
+    numeric.target(out).push({ op: ">=", value: value - tolerance });
+    numeric.target(out).push({ op: "<=", value: value + tolerance });
+    return true;
+  }
   const value = numeric.parse(cond.value);
   if (value === undefined) return false;
   numeric.target(out).push({ op: cond.op as NumericCond["op"], value });
+  return true;
+}
+
+function applyNumericRange(
+  out: ParsedIntent,
+  numeric: {
+    parse: (value: string) => number | undefined;
+    target: (out: ParsedIntent) => NumericCond[];
+  },
+  raw: string
+): boolean {
+  const [fromRaw = "", toRaw = ""] = raw.split("...");
+  const from = fromRaw ? numeric.parse(fromRaw) : undefined;
+  const to = toRaw ? numeric.parse(toRaw) : undefined;
+  if (fromRaw && from === undefined) return false;
+  if (toRaw && to === undefined) return false;
+  if (from === undefined && to === undefined) return false;
+  const [low, high] = from !== undefined && to !== undefined && from > to ? [to, from] : [from, to];
+  if (low !== undefined) numeric.target(out).push({ op: ">=", value: low });
+  if (high !== undefined) numeric.target(out).push({ op: "<=", value: high });
+  return true;
+}
+
+function applyDateRange(out: ParsedIntent, raw: string): boolean {
+  const [fromRaw = "", toRaw = ""] = raw.split("...");
+  const from = fromRaw ? parseDateValue(fromRaw) : undefined;
+  const to = toRaw ? parseDateValue(toRaw) : undefined;
+  if (fromRaw && !from) return false;
+  if (toRaw && !to) return false;
+  if (!from && !to) return false;
+  const bounds = [
+    from && { op: ">=" as const, iso: from.iso, yearOnly: from.yearOnly },
+    to && { op: "<=" as const, iso: to.iso, yearOnly: to.yearOnly },
+  ];
+  const ordered = from && to && from.iso > to.iso ? [bounds[1], bounds[0]] : bounds;
+  for (const bound of ordered) {
+    if (bound) out.dateConds.push(bound);
+  }
   return true;
 }

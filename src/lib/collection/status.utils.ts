@@ -7,6 +7,15 @@ export function statusColorOf(statuses: CollectionStatusDef[], id: string): stri
   return statuses.find((s) => s.id === id)?.color ?? "#9ca3af";
 }
 
+export function sortStatuses(statuses: CollectionStatusDef[]): CollectionStatusDef[] {
+  return [...statuses].sort(
+    (a, b) =>
+      Number(b.isCore) - Number(a.isCore) ||
+      (Number.isFinite(a.order) ? a.order : Number.MAX_SAFE_INTEGER) -
+        (Number.isFinite(b.order) ? b.order : Number.MAX_SAFE_INTEGER),
+  );
+}
+
 export interface BilingualLabel {
   en: string;
   ru: string;

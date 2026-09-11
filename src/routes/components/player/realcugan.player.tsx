@@ -65,7 +65,6 @@ export function RealCUGAN() {
 
   return (
     <div className="flex flex-col gap-1">
-      <span className="text-hint text-xs">{t("player.realcugan.info")}</span>
       {status === "ok" && (
         <span className="windows95-text text-xs">{t("player.realcugan.installed")}</span>
       )}

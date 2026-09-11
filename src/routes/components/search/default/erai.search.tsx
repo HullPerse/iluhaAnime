@@ -49,9 +49,6 @@ export default function EraiLoginModal({
   return (
     <Modal header={t("search.erai.title")} onClose={close} className="w-xl">
       <div className="flex flex-col gap-2 p-1">
-        <span className="windows95-text text-hint text-xs leading-snug">
-          {t("search.erai.hint")}
-        </span>
         <Button onClick={openBrowser} disabled={loading}>
           {loading ? <SmallLoader /> : t("search.erai.open.browser")}
         </Button>

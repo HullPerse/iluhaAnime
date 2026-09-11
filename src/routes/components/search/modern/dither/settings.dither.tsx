@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { SmallLoader } from "@/components/shared/loader.component";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
+import { Checkbox } from "@/components/ui/checkbox.component";
 import ImageComponent from "@/components/ui/image.component";
 import Slider from "@/components/ui/range.component";
 import { DEFAULT_WALLPAPER_FILTERS } from "@/config/settings/defaults.config";
@@ -82,6 +83,8 @@ function DitherSettings({ onClose }: { onClose: () => void }) {
   const displayFilters = useSettingsStore((state) => state.wallpaperFilters);
   const searchShadow = useSettingsStore((state) => state.searchShadow);
   const wallpaperShadow = useSettingsStore((state) => state.wallpaperShadow);
+  const parallax = useSettingsStore((state) => state.wallpaperParallax);
+  const scanlines = useSettingsStore((state) => state.wallpaperScanlines);
   const [metas, setMetas] = useState<DitherImageMeta[]>([]);
   const [rows, setRows] = useState<Record<string, UserImage>>({});
   const [loading, setLoading] = useState<boolean>(true);
@@ -363,6 +366,22 @@ function DitherSettings({ onClose }: { onClose: () => void }) {
             onChange={(value) => patchDisplayFilters({ [row.key]: value })}
           />
         ))}
+        <div className="flex flex-row gap-2">
+          <label className="flex cursor-pointer flex-row items-center gap-1">
+            <Checkbox
+              checked={parallax}
+              onChange={(checked) => patchSettings({ wallpaperParallax: checked })}
+            />
+            <span className="windows95-text text-xs">{t("search.dither.display.parallax")}</span>
+          </label>
+          <label className="flex cursor-pointer flex-row items-center gap-1">
+            <Checkbox
+              checked={scanlines}
+              onChange={(checked) => patchSettings({ wallpaperScanlines: checked })}
+            />
+            <span className="windows95-text text-xs">{t("search.dither.display.scanlines")}</span>
+          </label>
+        </div>
         <ShadowControls
           heading={t("search.dither.display.shadow.title")}
           value={searchShadow}

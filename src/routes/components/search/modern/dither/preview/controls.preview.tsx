@@ -17,6 +17,9 @@ const SLIDER_LABELS: Record<DitherSliderField, TranslationKey> = {
   ink: "search.dither.opt.ink",
   edgeDistortion: "search.dither.opt.edgeDistortion",
   misregistration: "search.dither.opt.misregistration",
+  barrel: "search.dither.opt.barrel",
+  chromaticRadius: "search.dither.opt.chromaticRadius",
+  wave: "search.dither.opt.wave",
   paper: "search.dither.opt.paper",
   vignette: "search.dither.opt.vignette",
   paletteBias: "search.dither.opt.paletteBias",
@@ -37,7 +40,7 @@ export default function DitherControls({
 }) {
   const { t } = useI18n();
   return (
-    <div className="flex max-h-64 flex-col gap-1 overflow-y-auto p-1">
+    <div className="flex flex-col gap-1">
       {DITHER_SLIDER_DEFS.map(({ field, min, max, step }) => (
         <Slider
           key={field}

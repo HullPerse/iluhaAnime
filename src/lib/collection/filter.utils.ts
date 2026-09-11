@@ -200,7 +200,7 @@ export function filterCollectionItems(
 ): CollectionItem[] {
   const intentEnabled = isIntentEnabled();
   const intent = intentEnabled
-    ? parseIntent(searchQuery)
+    ? parseIntent(searchQuery, useSettingsStore.getState().tagTolerances)
     : ({ cleanQuery: searchQuery, rawFilters: {} } as ReturnType<typeof parseIntent>);
   let list = resolveList(items, searchResults, intent.cleanQuery);
   if (selectedStatus !== "all") list = list.filter((item) => item.status === selectedStatus);

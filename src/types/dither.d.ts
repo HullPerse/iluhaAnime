@@ -17,6 +17,9 @@ export interface DitherEffectOptions {
   ink: number;
   edgeDistortion: number;
   misregistration: number;
+  barrel: number;
+  chromaticRadius: number;
+  wave: number;
   paper: number;
   vignette: number;
   paletteBias: number;
@@ -79,7 +82,7 @@ export interface DitherPalettePreset {
   colors: DitherRGB[];
 }
 
-export type DitherPresetId = "empty" | "default" | "deep" | "soft" | "natural" | "capy";
+export type DitherPresetId = "empty" | "default" | "deep" | "soft" | "natural" | "capy" | "crt";
 
 export interface DitherPreset {
   id: DitherPresetId;

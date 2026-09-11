@@ -1,3 +1,5 @@
+import Select from "@/components/ui/select.component";
+
 import type { CustomFieldDef } from "@/types/collection";
 
 export function WizardCustomFieldInput({
@@ -13,18 +15,15 @@ export function WizardCustomFieldInput({
 
   if (def.fieldType === "select") {
     return (
-      <select
+      <Select
         value={String(value ?? "")}
-        onChange={(e) => update(e.target.value)}
-        className="windows95-border bg-white px-2 py-1"
-      >
-        <option value="">-</option>
-        {def.options?.map((opt) => (
-          <option key={opt} value={opt}>
-            {opt}
-          </option>
-        ))}
-      </select>
+        onChange={(v) => update(v)}
+        options={[
+          { value: "", label: "-" },
+          ...(def.options ?? []).map((opt) => ({ value: opt, label: opt })),
+        ]}
+        label={def.name}
+      />
     );
   }
   if (def.fieldType === "number") {

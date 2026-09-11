@@ -3,7 +3,6 @@ const search = {
   "search.details.added": "Добавлен",
   "search.details.anonymous": "Аноним",
   "search.details.category": "Категория",
-  "search.details.cleaned": "Данные очищены в Rust и не вставляются в интерфейс как внешний HTML.",
   "search.details.comments": "Комментарии",
   "search.details.completed": "Скачано",
   "search.details.copy": "Копировать",
@@ -70,39 +69,32 @@ const search = {
   "search.erai.err.webview.open": "Не удалось открыть окно Erai-Raws.",
   "search.erai.err.webview.save":
     "Не удалось прочитать сессию Erai-Raws. Убедитесь, что вы вошли в аккаунт.",
-  "search.erai.hint":
-    "Erai-Raws скрывает часть страниц за аккаунтом. Войдите во встроенном браузере и сохраните сессию.",
   "search.erai.open.browser": "Открыть Erai-Raws",
   "search.erai.save.session": "Сохранить сессию",
   "search.erai.title": "Erai-Raws: вход в аккаунт",
 
   "search.open": "Открыть",
   "search.page": "Стр. {{page}}",
-  "search.page.results":
-    "Страница {{page}}: показано {{shown}} из {{total}} результатов ({{status}})",
+  "search.page.results": "Стр. {{page}}: {{shown}}/{{total}} ({{status}})",
   "search.results.count": "{{count}} результатов",
   "search.results.count.one": "{{count}} результат",
   "search.results.count.few": "{{count}} результата",
   "search.results.count.many": "{{count}} результатов",
   "search.retry": "Повторить",
-  "search.rutracker.browser.hint":
-    'Rutracker теперь защищён Cloudflare-проверкой, которую сетевой клиент приложения пройти не может. Войдите во встроенном браузере, затем нажмите "Сохранить сессию".',
   "search.rutracker.browser.tab": "Встроенный браузер",
-  "search.rutracker.cookies.hint":
-    "Откройте rutracker в браузере с включённым VPN и войдите в аккаунт. Затем скопируйте cookies из DevTools, раздел Application, или заголовок Cookie из запроса и вставьте их сюда.",
   "search.rutracker.cookies.tab": "Вставить cookies",
   "search.rutracker.err.blocked":
-    'Rutracker блокирует приложение (анти-бот). Используйте "Вставить cookies" или включите VPN для всей системы.',
+    'Rutracker блокирует приложение (анти-бот). Вставьте cookies или включите VPN.',
   "search.rutracker.err.cookies.invalid":
     "Cookies недействительны или истекли. Войдите в браузере и скопируйте новые.",
   "search.rutracker.err.cookies.parse": "Не удалось разобрать вставленные cookies.",
   "search.rutracker.err.login.failed": "Вход не удался (неожиданный ответ сервера).",
   "search.rutracker.err.network":
-    "Не удаётся подключиться к rutracker. Убедитесь, что VPN работает для всей системы, а не только для браузера.",
+    "Нет связи с rutracker. Включите VPN для всей системы.",
   "search.rutracker.err.no.cookies":
     "Cookies не найдены. Убедитесь, что вы вошли в аккаунт во встроенном браузере.",
   "search.rutracker.err.no.session":
-    "Сессия rutracker не найдена. Сначала войдите в аккаунт во встроенном браузере, затем сохраните.",
+    "Нет сессии rutracker. Войдите в браузере, затем сохраните.",
   "search.rutracker.err.session.failed":
     "Вход прошёл, но сессия не сохранилась. Попробуйте ещё раз или вставьте cookies.",
   "search.rutracker.err.unknown":
@@ -142,6 +134,7 @@ const search = {
   "search.dither.preset.natural": "Естественный",
   "search.dither.preset.default": "По умолчанию",
   "search.dither.preset.deep": "Глубокий",
+  "search.dither.preset.crt": "ЭЛТ",
   "search.dither.preset.soft": "Мягкий",
   "search.dither.preset.capy": "Капи",
   "search.dither.palette.preset.default": "По умолчанию",
@@ -183,8 +176,13 @@ const search = {
   "search.dither.display.shadow.softness": "Мягкость",
   "search.dither.display.shadow.intensity": "Интенсивность",
   "search.dither.display.shadow.color": "Цвет",
+  "search.dither.display.parallax": "Параллакс",
+  "search.dither.display.scanlines": "Сканлайны",
   "search.dither.opt.edgeDistortion": "Искажение краёв",
   "search.dither.opt.misregistration": "Разведение каналов",
+  "search.dither.opt.barrel": "Бочкообразная дисторсия",
+  "search.dither.opt.chromaticRadius": "Радиальная аберрация",
+  "search.dither.opt.wave": "Волна",
   "search.dither.opt.paper": "Бумага",
   "search.dither.opt.vignette": "Виньетка",
   "search.dither.opt.paletteBias": "Сдвиг палитры",
@@ -200,10 +198,6 @@ const search = {
   "search.dither.bake.timeout.database": "База данных не ответила за 30 секунд.",
   "search.dither.title": "Настройки дизеринга",
 
-  "search.pageResults":
-    "Страница {{page}}: показано {{shown}} из {{total}} результатов ({{status}})",
-  "search.rutracker.browserHint":
-    'Rutracker теперь защищён Cloudflare-проверкой, которую сетевой клиент приложения пройти не может. Войдите во встроенном браузере, затем нажмите "Сохранить сессию".',
   "search.find.submit": "Найти",
   "search.title": "Поиск",
 } as const;

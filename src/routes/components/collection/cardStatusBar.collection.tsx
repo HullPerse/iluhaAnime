@@ -1,7 +1,8 @@
 import { Edit2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button.component";
-import { statusLabel } from "@/lib/collection/status.utils";
+import Select from "@/components/ui/select.component";
+import { sortStatuses, statusLabel } from "@/lib/collection/status.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import type { CollectionItem, CollectionStatus, CollectionStatusDef } from "@/types/collection";
 
@@ -20,20 +21,16 @@ export function CardStatusBar({
   return (
     <div className="windows95-border-t bg-primary flex h-7 shrink-0 items-center gap-1 px-1">
       {onSetStatus ? (
-        <select
+        <Select
           value={item.status}
-          onClick={(e) => e.stopPropagation()}
-          onChange={(e) => onSetStatus(item, e.target.value as CollectionStatus)}
-          className="windows95-border h-5 min-w-0 flex-1 bg-white px-1 text-xs leading-none"
-          aria-label={t("collection.card.status")}
-          title={statusLabel(statuses, item.status, t, locale)}
-        >
-          {statuses.map((s) => (
-            <option key={s.id} value={s.id}>
-              {statusLabel(statuses, s.id, t, locale)}
-            </option>
-          ))}
-        </select>
+          onChange={(v) => onSetStatus(item, v as CollectionStatus)}
+          options={sortStatuses(statuses).map((s) => ({
+            value: s.id,
+            label: statusLabel(statuses, s.id, t, locale),
+          }))}
+          label={t("collection.card.status")}
+          className="min-h-0 min-w-0 flex-1 text-xs"
+        />
       ) : (
         <span className="windows95-border bg-white px-1 py-0.5 text-xs leading-none">
           {statusLabel(statuses, item.status, t, locale)}

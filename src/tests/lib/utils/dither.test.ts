@@ -7,6 +7,7 @@ import {
   DITHER_DEFAULTS,
   DITHER_RED_RAMP_PALETTE,
   DITHER_RENDER_CACHE_CAPACITY,
+  resolveDitherPreset,
 } from "@/config/utils/dither.config";
 import {
   applyHalftoneDots,
@@ -42,6 +43,9 @@ const NEUTRAL_OPTIONS: DitherEffectOptions = {
   ink: 0,
   edgeDistortion: 0,
   misregistration: 0,
+  barrel: 0,
+  chromaticRadius: 0,
+  wave: 0,
   paper: 0,
   vignette: 0,
   paletteBias: 0,
@@ -620,5 +624,75 @@ describe("extractPaletteFromPixels", () => {
     const pixels: [number, number, number][] = [];
     for (let i = 0; i < 16; i++) pixels.push([i * 16, 0, 0]);
     expect(extractPaletteFromPixels(rgba(pixels), 8)).toHaveLength(8);
+  });
+});
+
+function gradientFixture(width: number, height: number): Uint8ClampedArray<ArrayBuffer> {
+  const pixels = new Uint8ClampedArray(width * height * 4);
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = (y * width + x) * 4;
+      pixels[i] = Math.round((x / (width - 1)) * 255);
+      pixels[i + 1] = Math.round((y / (height - 1)) * 255);
+      pixels[i + 2] = 128;
+      pixels[i + 3] = 255;
+    }
+  }
+  return pixels;
+}
+
+describe("warp stages", () => {
+  it("renders the fixture unchanged when barrel, wave, and radial aberration are zero", () => {
+    const input = gradientFixture(16, 16);
+    const output = renderDitherImage(input, 16, 16, NEUTRAL_OPTIONS);
+    expect(ditherBuffersEqual(output, input)).toBe(true);
+  });
+
+  it("displaces rows when wave is set without other warp options", () => {
+    const input = gradientFixture(32, 16);
+    const output = renderDitherImage(input, 32, 16, { ...NEUTRAL_OPTIONS, wave: 6 });
+    expect(output.length).toBe(input.length);
+    expect(ditherBuffersEqual(output, input)).toBe(false);
+  });
+
+  it("remaps toward the center when barrel is set", () => {
+    const input = gradientFixture(32, 32);
+    const output = renderDitherImage(input, 32, 32, { ...NEUTRAL_OPTIONS, barrel: 0.5 });
+    expect(ditherBuffersEqual(output, input)).toBe(false);
+  });
+
+  it("scales the channel shift by radius when chromaticRadius is set", () => {
+    const input = gradientFixture(32, 32);
+    const flat = renderDitherImage(input, 32, 32, { ...NEUTRAL_OPTIONS, misregistration: 1 });
+    const radial = renderDitherImage(input, 32, 32, {
+      ...NEUTRAL_OPTIONS,
+      misregistration: 1,
+      chromaticRadius: 2,
+    });
+    expect(ditherBuffersEqual(radial, flat)).toBe(false);
+  });
+
+  it("renders deterministically for the same warp options", () => {
+    const input = gradientFixture(32, 32);
+    const options = { ...NEUTRAL_OPTIONS, barrel: 0.3, wave: 4 };
+    const first = renderDitherImage(input, 32, 32, options);
+    const second = renderDitherImage(input, 32, 32, options);
+    expect(ditherBuffersEqual(first, second)).toBe(true);
+  });
+});
+
+describe("natural preset visibility", () => {
+  it("renders visibly different from the bypass", () => {
+    const input = gradientFixture(32, 32);
+    const bypass = renderDitherImage(input, 32, 32, NEUTRAL_OPTIONS);
+    const natural = renderDitherImage(input, 32, 32, resolveDitherPreset("natural"));
+    let sum = 0;
+    for (let i = 0; i < input.length; i += 4) {
+      sum +=
+        Math.abs(bypass[i] - natural[i]) +
+        Math.abs(bypass[i + 1] - natural[i + 1]) +
+        Math.abs(bypass[i + 2] - natural[i + 2]);
+    }
+    expect(sum / (input.length / 4) / 3).toBeGreaterThan(5);
   });
 });

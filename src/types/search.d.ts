@@ -141,7 +141,9 @@ export interface SourceInfo {
   nsfw: boolean;
 }
 
-export type CompareOp = "=" | ">" | ">=" | "<" | "<=" | "!=";
+export type CompareOp = "=" | "~=" | ">" | ">=" | "<" | "<=" | "!=";
+
+export type TagToleranceKey = "year" | "rating" | "episodes" | "progress";
 
 export interface NumericCond {
   op: ">" | ">=" | "<" | "<=" | "!=";

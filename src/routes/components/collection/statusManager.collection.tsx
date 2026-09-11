@@ -51,10 +51,6 @@ export function StatusManagerCollection({
       contentClassName="w-full"
     >
       <div className="flex w-full flex-col gap-1">
-        <p className="text-hint windows95-font text-xs">{t("collection.status.manager.hint")}</p>
-        <p className="text-hint windows95-font text-xs">
-          {t("collection.status.manager.bilingual")}
-        </p>
         <p className="bg-secondary windows95-text px-1 py-0.5 text-xs font-bold text-white">
           {t("collection.status.manager.core.title")}
         </p>
@@ -184,6 +180,7 @@ function StatusRow({
           variant="destructive"
           aria-label={`${t("common.delete")} ${status.label}`}
           title={t("collection.status.manager.delete.hint")}
+          className="size-6"
           onClick={(e) => {
             if (e.currentTarget.ownerDocument.activeElement instanceof HTMLInputElement) {
               e.currentTarget.ownerDocument.activeElement.blur();

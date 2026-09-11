@@ -62,7 +62,6 @@ export function RIFE() {
 
   return (
     <div className="flex flex-col gap-1">
-      <span className="text-hint text-xs">{t("player.rife.info")}</span>
       {status === "ok" && (
         <span className="windows95-text text-xs">{t("player.rife.installed")}</span>
       )}

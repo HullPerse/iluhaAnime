@@ -137,7 +137,6 @@ export default function SettingsTheme() {
                 ]}
                 className="max-w-xs"
               />
-              <span className="text-hint text-[12px]">{t("settings.theme.retro.style.hint")}</span>
             </div>
 
             <span className="windows95-text text-text text-xs font-bold">
@@ -156,7 +155,6 @@ export default function SettingsTheme() {
                 ]}
                 className="max-w-xs"
               />
-              <span className="text-hint text-[12px]">{t("settings.theme.density.hint")}</span>
             </div>
           </div>
         </div>
@@ -191,9 +189,6 @@ export default function SettingsTheme() {
                 ]}
                 className="max-w-xs"
               />
-              <span className="text-hint text-[12px]">
-                {t("settings.theme.collection.headers.hint")}
-              </span>
             </div>
           </div>
         </div>

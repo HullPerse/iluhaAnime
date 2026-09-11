@@ -24,9 +24,6 @@ export function SqliteHeader({
     <>
       <section className="ui-toolbar ui-panel">
         <strong className="windows95-text text-xs">{t("settings.sqlite.title")}</strong>
-        <span className="text-hint windows95-text text-xs">
-          {t("settings.sqlite.read.only.hint")}
-        </span>
         <div className="ml-auto flex items-center gap-1">
           <Button
             variant={mode === "browse" ? "outline" : "default"}

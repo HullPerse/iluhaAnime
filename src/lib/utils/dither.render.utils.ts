@@ -24,6 +24,7 @@ import {
   DITHER_ROSETTE_SHIFT,
   DITHER_ROSETTE_VECTORS,
   DITHER_TEXTURE_LATTICE,
+  DITHER_WAVE_FREQUENCY,
 } from "@/config/utils/dither.config";
 import type { DitherEffectOptions, DitherRenderContext, DitherRGB } from "@/types/dither";
 
@@ -265,6 +266,39 @@ function channelThresholds(
   }
 }
 
+function warpGeometry(
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  barrel: number,
+  wave: number,
+  useRadial: boolean,
+  out: [number, number, number]
+): void {
+  if (!useRadial) {
+    out[0] = x;
+    out[1] = y;
+    out[2] = 0;
+    return;
+  }
+  const nx = (x / width - 0.5) * 2;
+  const ny = (y / height - 0.5) * 2;
+  const unit = (nx * nx + ny * ny) / 2;
+  let sx = x;
+  let sy = y;
+  if (barrel !== 0) {
+    const zoom = 1 + barrel * unit;
+    sx = width / 2 + (x - width / 2) * zoom;
+    sy = height / 2 + (y - height / 2) * zoom;
+  }
+  if (wave !== 0) sy += Math.sin(x * DITHER_WAVE_FREQUENCY) * wave;
+  out[0] = sx;
+  out[1] = sy;
+  out[2] = unit;
+}
+
+
 export function createDitherRenderContext(
   source: Uint8ClampedArray<ArrayBuffer>,
   width: number,
@@ -305,7 +339,7 @@ export function createDitherRenderContext(
     localBoost: Math.min(1, options.localContrast),
     inkDensity: Math.min(1, options.inkDensity),
     shift: options.misregistration,
-    hasWarp: options.edgeDistortion !== 0 || options.misregistration !== 0,
+    hasWarp: options.edgeDistortion !== 0 || options.misregistration !== 0 || options.barrel !== 0 || options.wave !== 0,
     hasNoise: options.monochromeNoise !== 0 || options.grain !== 0 || options.texture !== 0,
     hasVignette: vignette > 0,
     vignetteX,
@@ -332,6 +366,11 @@ export function renderDitherRows(ctx: DitherRenderContext, y0: number, y1: numbe
   const vignetteY = ctx.vignetteY;
   const edgeDistortion = options.edgeDistortion;
   const vignette = options.vignette;
+  const barrel = options.barrel;
+  const wave = options.wave;
+  const chromaticRadius = options.chromaticRadius;
+  const useRadialGeometry = barrel !== 0 || wave !== 0 || chromaticRadius !== 0;
+  const geo: [number, number, number] = [0, 0, 0];
 
   for (let y = y0; y < y1; y++) {
     for (let x = 0; x < width; x++) {
@@ -341,6 +380,10 @@ export function renderDitherRows(ctx: DitherRenderContext, y0: number, y1: numbe
       let b: number;
       let a: number;
       if (hasWarp) {
+        warpGeometry(x, y, width, height, barrel, wave, useRadialGeometry, geo);
+        const sx = geo[0];
+        const sy = geo[1];
+        const radial = geo[2];
         const distortionX =
           smoothNoise(x / DITHER_EDGE_LATTICE, y / DITHER_EDGE_LATTICE) * edgeDistortion;
         const distortionY =
@@ -348,12 +391,13 @@ export function renderDitherRows(ctx: DitherRenderContext, y0: number, y1: numbe
             x / DITHER_EDGE_LATTICE + DITHER_EDGE_OFFSET,
             y / DITHER_EDGE_LATTICE + DITHER_EDGE_OFFSET
           ) * edgeDistortion;
-        const rx = shift;
-        const bx = -shift;
-        r = sampleChannel(source, width, height, x + distortionX + rx, y + distortionY, 0);
-        g = sampleChannel(source, width, height, x + distortionX, y + distortionY, 1);
-        b = sampleChannel(source, width, height, x + distortionX + bx, y + distortionY, 2);
-        a = sampleChannel(source, width, height, x + distortionX, y + distortionY, 3);
+        const shiftRadial = shift * (1 + chromaticRadius * radial);
+        const rx = shiftRadial;
+        const bx = -shiftRadial;
+        r = sampleChannel(source, width, height, sx + distortionX + rx, sy + distortionY, 0);
+        g = sampleChannel(source, width, height, sx + distortionX, sy + distortionY, 1);
+        b = sampleChannel(source, width, height, sx + distortionX + bx, sy + distortionY, 2);
+        a = sampleChannel(source, width, height, sx + distortionX, sy + distortionY, 3);
       } else {
         r = source[i];
         g = source[i + 1];

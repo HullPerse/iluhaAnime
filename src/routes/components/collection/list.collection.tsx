@@ -4,10 +4,11 @@ import { memo, useMemo, useRef } from "react";
 
 import { FavPeopleStar } from "@/components/shared/favPeopleStar.component";
 import Image from "@/components/ui/image.component";
+import Select from "@/components/ui/select.component";
 import { HEADER_ESTIMATE, ROW_ESTIMATE } from "@/config/collection/card.config";
 import { useCoverCache } from "@/hooks/collection/cache.hook";
 import { generatePlaceholder } from "@/lib/collection/placeholder.utils";
-import { statusColorOf, statusLabel } from "@/lib/collection/status.utils";
+import { sortStatuses, statusColorOf, statusLabel } from "@/lib/collection/status.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { enterOrSpace } from "@/lib/utils/keyboard.utils";
 import { useSettingsStore } from "@/store/settings.store";
@@ -193,19 +194,16 @@ function CollectionRowView({ item, statuses, selected, onOpen, onSetStatus }: Co
               </span>
             )}
             {onSetStatus ? (
-              <select
+              <Select
                 value={item.status}
-                onClick={(e) => e.stopPropagation()}
-                onChange={(e) => onSetStatus(item, e.target.value as CollectionStatus)}
-                className="windows95-border h-5 min-w-0 bg-white px-1 text-xs leading-none font-normal"
-                aria-label={t("collection.card.status")}
-              >
-                {statuses.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {statusLabel(statuses, s.id, t, locale)}
-                  </option>
-                ))}
-              </select>
+                onChange={(v) => onSetStatus(item, v as CollectionStatus)}
+                options={sortStatuses(statuses).map((s) => ({
+                  value: s.id,
+                  label: statusLabel(statuses, s.id, t, locale),
+                }))}
+                label={t("collection.card.status")}
+                className="w-auto max-w-44 min-w-0 flex-none min-h-0 text-xs font-normal"
+              />
             ) : (
               <span className="text-text text-xs">
                 {statusLabel(statuses, item.status, t, locale)}

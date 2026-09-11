@@ -146,7 +146,7 @@ describe("dither presets", () => {
     expect(empty.paletteBias).toBe(0);
     expect(empty.shadowCrush).toBe(0);
   });
-  it("exposes six complete presets", () => {
+  it("exposes seven complete presets", () => {
     expect(DITHER_PRESETS.map((preset) => preset.id)).toEqual([
       "empty",
       "default",
@@ -154,6 +154,7 @@ describe("dither presets", () => {
       "soft",
       "natural",
       "capy",
+      "crt",
     ]);
     const expected = Object.keys(DITHER_DEFAULTS)
       .filter((key) => key !== "scale")
@@ -163,16 +164,14 @@ describe("dither presets", () => {
     }
   });
 
-  it("keeps the natural preset free of color-press knobs", () => {
+  it("keeps the natural preset clean of channel tricks", () => {
     const natural = resolveDitherPreset("natural");
     expect(natural.ditherMatrix).toBe("blue64");
     expect(natural.ink).toBe(0);
-    expect(natural.blackPoint).toBe(0);
-    expect(natural.shadowCrush).toBe(0);
     expect(natural.edgeDistortion).toBe(0);
     expect(natural.misregistration).toBe(0);
     expect(natural.vignette).toBe(0);
-    expect(natural.paletteBias).toBeLessThanOrEqual(0.2);
+    expect(natural.paletteBias).toBeGreaterThan(0.2);
     expect(natural.palette).toEqual(DITHER_DEFAULT_PALETTE);
   });
   it("gives the capy preset the fine bayer look with a dark falloff", () => {
@@ -182,6 +181,13 @@ describe("dither presets", () => {
     expect(capy.halftone).toBe(0);
     expect(capy.vignette).toBeGreaterThan(0);
     expect(capy.shadowCrush).toBeGreaterThan(0);
+  });
+  it("gives the crt preset nonzero barrel, radial aberration, and channel shift", () => {
+    const crt = resolveDitherPreset("crt");
+    expect(crt.barrel).toBeGreaterThan(0);
+    expect(crt.chromaticRadius).toBeGreaterThan(0);
+    expect(crt.misregistration).toBeGreaterThan(0);
+    expect(crt.wave).toBe(0);
   });
   it("defaults the grain to gray", () => {
     expect(resolveDitherPreset("default").grayGrain).toBe(true);

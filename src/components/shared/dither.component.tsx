@@ -49,6 +49,9 @@ function DitherCanvas({
   ink,
   edgeDistortion,
   misregistration,
+  barrel,
+  chromaticRadius,
+  wave,
   paper,
   vignette,
   paletteBias,
@@ -92,6 +95,9 @@ function DitherCanvas({
         ink,
         edgeDistortion,
         misregistration,
+        barrel,
+        chromaticRadius,
+        wave,
         paper,
         vignette,
         paletteBias,
@@ -118,6 +124,9 @@ function DitherCanvas({
       ink,
       edgeDistortion,
       misregistration,
+      barrel,
+      chromaticRadius,
+      wave,
       paper,
       vignette,
       paletteBias,
@@ -179,7 +188,6 @@ function DitherCanvas({
       ctx.putImageData(new ImageData(entry.pixels, entry.width, entry.height), 0, 0);
     };
     const image = new Image();
-    // getImageData throws on a tainted canvas: every source must load CORS-clean.
     image.crossOrigin = "anonymous";
     const processSource = (
       source: CanvasImageSource,

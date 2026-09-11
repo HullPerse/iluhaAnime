@@ -111,7 +111,6 @@ function TorrentDetailsModal({
         <div className="flex min-h-48 flex-col items-center justify-center gap-2">
           <SmallLoader size={6} />
           <span className="windows95-text">{t("search.details.loading")}</span>
-          <span className="windows95-text text-hint text-xs">{t("search.details.cleaned")}</span>
         </div>
       )}
 

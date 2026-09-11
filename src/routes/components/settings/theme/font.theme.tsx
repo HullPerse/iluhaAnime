@@ -82,7 +82,6 @@ export function FontSelector() {
           {t("settings.font.title")}
         </span>
         <div className="flex flex-col gap-0.5">
-          <span className="text-hint text-[12px]">{t("settings.font.hint")}</span>
           <span className="text-hint text-[12px]">{t("common.loading")}</span>
           {error && <span className="text-destructive text-[12px]">{error}</span>}
         </div>
@@ -95,7 +94,6 @@ export function FontSelector() {
         {t("settings.font.title")}
       </span>
       <div className="flex flex-col gap-0.5">
-        <span className="text-hint text-[12px]">{t("settings.font.hint")}</span>
         <Combobox
           value={appFont ?? ""}
           onChange={(v) => patch({ appFont: v || null })}

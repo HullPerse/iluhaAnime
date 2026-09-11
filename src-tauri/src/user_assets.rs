@@ -106,6 +106,17 @@ fn drop_legacy_blob_schema(conn: &Connection) -> Result<(), String> {
         .map_err(|e| format!("assets db legacy wipe: {e}"))?;
         return Ok(());
     }
+
+    let has_table: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'dither_images'",
+            [],
+            |row| row.get(0),
+        )
+        .map_err(|e| format!("assets db schema check: {e}"))?;
+    if has_table == 0 {
+        return Ok(());
+    }
     let has_options_column: i64 = conn
         .query_row(
             "SELECT COUNT(*) FROM pragma_table_info('dither_images') WHERE name = 'dither_options'",
@@ -445,8 +456,9 @@ pub async fn fetch_remote_image(
     if data.is_empty() || data.len() as u64 > MAX_IMAGE_BYTES {
         return Err("Downloaded image is empty or exceeds 4 MiB".to_string());
     }
-    let mime_type = image_mime(&data, None)
-        .ok_or_else(|| "Downloaded data is not a supported image (PNG/JPEG/GIF/WebP)".to_string())?;
+    let mime_type = image_mime(&data, None).ok_or_else(|| {
+        "Downloaded data is not a supported image (PNG/JPEG/GIF/WebP)".to_string()
+    })?;
     let id = content_id(&data);
     write_image_file(&dir, &format!("{id}.{}", mime_ext(mime_type)), &data)?;
     conn.execute(
@@ -597,7 +609,9 @@ pub fn import_dither_image(app: tauri::AppHandle, path: String) -> Result<UserIm
     let mime_type = image_mime(&data, extension)
         .ok_or_else(|| "Unsupported image. Use PNG, JPEG, or WebP.".to_string())?;
     if mime_type == "image/gif" {
-        return Err("GIF images are not supported as wallpaper. Use PNG, JPEG, or WebP.".to_string());
+        return Err(
+            "GIF images are not supported as wallpaper. Use PNG, JPEG, or WebP.".to_string(),
+        );
     }
     let id = content_id(&data);
     let name = source
@@ -683,11 +697,13 @@ fn query_dither_images(
         .map_err(|e| format!("get dither image rows: {e}"))?;
     Ok(rows
         .filter_map(Result::ok)
-        .filter_map(|(id, name, mime_type, original_ext, dither_options, created_at)| {
-            dither_image_from_row(id, name, mime_type, original_ext, dither_options, dir)
-                .ok()
-                .map(|image| fill_created_at(image, created_at))
-        })
+        .filter_map(
+            |(id, name, mime_type, original_ext, dither_options, created_at)| {
+                dither_image_from_row(id, name, mime_type, original_ext, dither_options, dir)
+                    .ok()
+                    .map(|image| fill_created_at(image, created_at))
+            },
+        )
         .collect())
 }
 
@@ -1125,9 +1141,11 @@ mod tests {
         for (n, id) in ids.iter().enumerate() {
             let kept = n >= 2;
             let rows: i64 = db
-                .query_row("SELECT COUNT(*) FROM remote_images WHERE id = ?1", params![id], |row| {
-                    row.get(0)
-                })
+                .query_row(
+                    "SELECT COUNT(*) FROM remote_images WHERE id = ?1",
+                    params![id],
+                    |row| row.get(0),
+                )
                 .expect("count row");
             assert_eq!(rows, i64::from(kept));
             assert_eq!(dir.join(format!("{id}.png")).is_file(), kept);

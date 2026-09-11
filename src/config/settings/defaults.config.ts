@@ -1,3 +1,4 @@
+import { DEFAULT_TAG_TOLERANCES } from "@/config/search/tolerance.config";
 import type { SettingsDefaults, WallpaperDisplayFilters, WallpaperShadow } from "@/types/settings";
 
 export const DEFAULT_WALLPAPER_FILTERS: WallpaperDisplayFilters = {
@@ -90,10 +91,13 @@ export const DEFAULT_SETTINGS: SettingsDefaults = {
   playerTabEnabled: true,
   searchSymSpellEnabled: true,
   searchIntentEnabled: true,
+  tagTolerances: { ...DEFAULT_TAG_TOLERANCES },
   searchType: "default",
   selectedDitherId: null as string | null,
   appFont: null as string | null,
   wallpaperFilters: { ...DEFAULT_WALLPAPER_FILTERS },
   wallpaperShadow: { ...DEFAULT_WALLPAPER_SHADOW },
+  wallpaperParallax: true,
+  wallpaperScanlines: false,
   searchShadow: { ...DEFAULT_WALLPAPER_SHADOW },
 };

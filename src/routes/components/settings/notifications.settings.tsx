@@ -82,9 +82,6 @@ export default function SettingsNotifications() {
                 />
                 <span>{t("common.on")}</span>
               </label>
-              <span className="text-hint text-[12px]">
-                {t("settings.notifications.system.hint")}
-              </span>
             </div>
 
             <span className="windows95-text text-text text-xs font-bold">
@@ -98,9 +95,6 @@ export default function SettingsNotifications() {
                 />
                 <span>{t("common.on")}</span>
               </label>
-              <span className="text-hint text-[12px]">
-                {t("settings.anilist.release.notifications.hint")}
-              </span>
               <label className="windows95-text text-text flex cursor-pointer items-center gap-2 select-none">
                 <Checkbox
                   checked={notifyNewEpisodes}
@@ -171,11 +165,6 @@ export default function SettingsNotifications() {
                   <span className="text-xs">{name}</span>
                 </label>
               ))}
-              {knownListNames.length > 0 && (
-                <span className="text-hint text-[12px]">
-                  {t("settings.notifications.lists.hint")}
-                </span>
-              )}
             </div>
           </div>
         </div>

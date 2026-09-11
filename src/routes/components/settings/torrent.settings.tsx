@@ -97,9 +97,6 @@ export default function SettingsTorrent() {
                 onChange={(e) => patch({ resultsPerPage: Number(e.target.value) })}
                 className="w-16"
               />
-              <span className="text-hint text-[12px]">
-                {t("settings.torrent.results.per.page.hint")}
-              </span>
             </div>
           </div>
         </div>
@@ -143,9 +140,6 @@ export default function SettingsTorrent() {
           <span className="font-bold text-white">{t("settings.torrent.session")}</span>
         </div>
         <div className="flex flex-col gap-1 p-2">
-          <span className="text-hint windows95-font text-xs">
-            {t("settings.torrent.session.hint")}
-          </span>
 
           <label className="windows95-text text-text flex cursor-pointer items-center gap-2 select-none">
             <Checkbox

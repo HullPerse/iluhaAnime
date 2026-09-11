@@ -93,11 +93,11 @@ describe("SettingsChangelog", () => {
   it("renders collapsible versions with categorized entries", async () => {
     const user = userEvent.setup();
     render(<SettingsChangelog />);
-    expect(screen.getByText("3.2.0")).toBeDefined();
+    expect(screen.getByText("4.0.0")).toBeDefined();
     expect(screen.getByText(/Новое|Added/)).toBeDefined();
-    await user.click(screen.getByRole("button", { name: /3\.2\.0/ }));
+    await user.click(screen.getByRole("button", { name: /4\.0\.0/ }));
     expect(screen.queryByText(/Новое|Added/)).toBeNull();
-    await user.click(screen.getByRole("button", { name: /3\.2\.0/ }));
+    await user.click(screen.getByRole("button", { name: /4\.0\.0/ }));
     expect(screen.getByText(/Новое|Added/)).toBeDefined();
   });
   it("prefixes every entry with its area scope", () => {
@@ -107,6 +107,6 @@ describe("SettingsChangelog", () => {
     for (const row of rows) {
       expect(row.textContent).toMatch(/\[.+\]:/);
     }
-    expect(screen.getAllByText(/Апскейл|Upscale/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Поиск|Search/).length).toBeGreaterThan(0);
   });
 });

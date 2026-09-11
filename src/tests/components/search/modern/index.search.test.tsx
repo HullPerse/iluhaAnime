@@ -38,13 +38,40 @@ const SECOND: UserImageFile = {
   path: "C:/images/bbb.png",
 };
 
-function wallpaperSrc(): string | null {
-  return document.querySelector('section img[alt="placeholder"]')?.getAttribute("src") ?? null;
+class FakeImage {
+  onload: (() => void) | null = null;
+  onerror: (() => void) | null = null;
+  crossOrigin = "";
+  naturalWidth = 640;
+  naturalHeight = 480;
+  #src = "";
+  get src(): string {
+    return this.#src;
+  }
+  set src(value: string) {
+    this.#src = value;
+    queueMicrotask(() => this.onload?.());
+  }
 }
 
-afterEach(() => cleanup());
+function wallpaperSrc(): string | null {
+  const canvas = document.querySelector(
+    'section canvas[aria-label="placeholder"]'
+  ) as HTMLCanvasElement | null;
+  return canvas?.dataset.src ?? null;
+}
+
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+});
 
 beforeEach(() => {
+  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
+    drawImage: vi.fn(),
+  } as unknown as CanvasRenderingContext2D);
+  vi.stubGlobal("Image", FakeImage);
   useSettingsStore.setState({
     language: "en",
     selectedDitherId: null,

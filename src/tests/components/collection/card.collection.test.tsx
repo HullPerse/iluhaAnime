@@ -77,8 +77,8 @@ describe("CollectionCard interactions", () => {
     const user = userEvent.setup();
     const onSetStatus = vi.fn();
     render(<CollectionCard item={makeItem()} statuses={STATUSES} onSetStatus={onSetStatus} />);
-    const select = screen.getByLabelText("Change status") as HTMLSelectElement;
-    await user.selectOptions(select, "watching");
+    await user.click(screen.getByLabelText("Change status"));
+    await user.click(await screen.findByRole("option", { name: "Watching" }));
     expect(onSetStatus).toHaveBeenCalledTimes(1);
     expect(onSetStatus.mock.calls[0][1]).toBe("watching");
   });

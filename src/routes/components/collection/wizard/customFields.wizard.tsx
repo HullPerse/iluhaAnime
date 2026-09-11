@@ -2,6 +2,7 @@ import { Plus } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
+import Select from "@/components/ui/select.component";
 import { FIELD_TYPES } from "@/config/collection/defaults.config";
 import { useCollectionMutations } from "@/hooks/collection/queries.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
@@ -64,17 +65,13 @@ export function WizardCustomFields({
             placeholder={t("collection.wizard.title")}
             className="windows95-border mb-1 w-full bg-white px-2 py-1 text-xs"
           />
-          <select
+          <Select
             value={fieldType}
-            onChange={(e) => setFieldType(e.target.value as typeof fieldType)}
-            className="windows95-border mb-1 w-full bg-white px-1 py-0.5 text-xs"
-          >
-            {FIELD_TYPES.map((type) => (
-              <option key={type} value={type}>
-                {type}
-              </option>
-            ))}
-          </select>
+            onChange={(v) => setFieldType(v as typeof fieldType)}
+            options={FIELD_TYPES.map((type) => ({ value: type, label: type }))}
+            label={t("collection.wizard.custom.fields")}
+            className="mb-1 text-xs"
+          />
           {fieldType === "select" && (
             <input
               value={fieldOptions}

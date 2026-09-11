@@ -113,9 +113,6 @@ export default function SettingsSearch() {
                 disabled={defaultOpts.length === 0}
                 className="w-28"
               />
-              <span className="text-hint text-[12px]">
-                {t("settings.search.default.source.hint")}
-              </span>
             </div>
           </div>
 
@@ -143,9 +140,6 @@ export default function SettingsSearch() {
                 ))}
               </div>
             </div>
-            <span className="text-hint text-[12px]">
-              {t("settings.search.visible.sources.hint")}
-            </span>
           </div>
 
           <div className="flex flex-col gap-2">
@@ -163,9 +157,6 @@ export default function SettingsSearch() {
                   : t("settings.search.proxy.test.all")}
               </Button>
             </div>
-            <span className="text-hint text-[12px]">
-              {t("settings.search.proxy.per.source.hint")}
-            </span>
             {SOURCE_INFOS.filter((s) => visibleSources.includes(s.value)).map((info) => {
               const current = searchProxyUrls[info.value] ?? "";
               const presets = [
@@ -274,7 +265,6 @@ export default function SettingsSearch() {
                 onChange={(e) => patch({ searchHistoryMaxItems: Number(e.target.value) })}
                 className="w-16"
               />
-              <span className="text-hint text-[12px]">{t("settings.search.history.max.hint")}</span>
             </div>
           </div>
 
@@ -407,7 +397,6 @@ export default function SettingsSearch() {
                   />
                   <span>{t("settings.search.toggle.intent")}</span>
                 </label>
-                <span className="text-hint text-[12px]">{t("settings.search.toggles.hint")}</span>
               </div>
             </div>
           </div>
@@ -437,9 +426,6 @@ export default function SettingsSearch() {
                 ]}
                 className="w-40"
               />
-              <span className="text-hint text-[12px]">
-                {t("settings.search.anilist.boost.hint")}
-              </span>
             </div>
           </div>
         </div>
@@ -454,7 +440,6 @@ export default function SettingsSearch() {
           >
             {t("settings.search.purge.expired")}
           </Button>
-          <span className="text-hint text-[12px]">{t("settings.search.purge.expired.hint")}</span>
         </div>
         <div className="flex flex-wrap items-center gap-1">
           <Button onClick={() => useSearchStore.getState().clearScope("torrent")}>
@@ -493,9 +478,6 @@ export default function SettingsSearch() {
         >
           {t("settings.search.reset.anime.suggestions")}
         </Button>
-        <span className="text-hint text-[12px]">
-          {t("settings.search.reset.anime.suggestions.hint")}
-        </span>
       </div>
     </div>
   );

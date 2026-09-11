@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 
 import { seasonLabels } from "@/config/anilist/labels.config";
-import { applyIntentToFilters, searchFiltersToParams } from "@/lib/anilist/entries.utils";
+import { searchFiltersToParams } from "@/lib/anilist/entries.utils";
 import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
@@ -28,13 +28,9 @@ export function useAnilistSearch() {
     setLoadingSearch(true);
     setSearchResults([]);
     try {
-      const { filters: mergedFilters, query: intentQuery } = applyIntentToFilters(
-        searchFilters,
-        searchTerms
-      );
       const params = searchFiltersToParams(
-        mergedFilters,
-        intentQuery,
+        searchFilters,
+        query || null,
         useSettingsStore.getState().pageSize,
         useSettingsStore.getState().anilistMaxPages
       );

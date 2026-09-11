@@ -1,3 +1,4 @@
+import changelog400 from "./changelog/v4_0_0.ru";
 import changelog320 from "./changelog/v3_2_0.ru";
 import anilist from "./ru/anilist.locale";
 import collection from "./ru/collection.locale";
@@ -10,6 +11,7 @@ import updater from "./ru/updater.locale";
 
 const ru = {
   ...anilist,
+  ...changelog400,
   ...changelog320,
   ...common,
   ...collection,

@@ -162,9 +162,6 @@ function RutrackerLoginModal({
           </div>
         ) : mode === "cookies" ? (
           <div className="flex flex-col gap-2">
-            <span className="windows95-text text-hint text-xs leading-snug">
-              {t("search.rutracker.cookies.hint")}
-            </span>
             <textarea
               value={cookies}
               onChange={(e) => setCookies(e.target.value)}
@@ -175,9 +172,6 @@ function RutrackerLoginModal({
           </div>
         ) : (
           <div className="flex flex-col gap-2">
-            <span className="windows95-text text-hint text-xs leading-snug">
-              {t("search.rutracker.browser.hint")}
-            </span>
             <Button onClick={handleOpenBrowser} disabled={loading}>
               {loading ? <SmallLoader /> : t("search.rutracker.open.browser")}
             </Button>

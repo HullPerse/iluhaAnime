@@ -134,6 +134,53 @@ describe("parseIntent operators", () => {
   });
 });
 
+describe("parseIntent approximate and range", () => {
+  it("desugars ~= into a tolerance band with defaults", () => {
+    expect(parseIntent("year~=2020").yearOps).toEqual([
+      { op: ">=", value: 2018 },
+      { op: "<=", value: 2022 },
+    ]);
+    expect(parseIntent("year~=2020").cleanQuery).toBe("");
+  });
+
+  it("honors custom tolerances", () => {
+    const intent = parseIntent("rating~=8", { year: 2, rating: 0, episodes: 2, progress: 5 });
+    expect(intent.ratingOps).toEqual([
+      { op: ">=", value: 8 },
+      { op: "<=", value: 8 },
+    ]);
+  });
+
+  it("treats ~= on strings as plain text", () => {
+    expect(parseIntent("studio~=MAPPA").cleanQuery).toBe("studio~=MAPPA");
+  });
+
+  it("desugars from...to ranges with open and swapped ends", () => {
+    expect(parseIntent("year=2015...2020").yearOps).toEqual([
+      { op: ">=", value: 2015 },
+      { op: "<=", value: 2020 },
+    ]);
+    expect(parseIntent("year=2015...").yearOps).toEqual([{ op: ">=", value: 2015 }]);
+    expect(parseIntent("year=...2020").yearOps).toEqual([{ op: "<=", value: 2020 }]);
+    expect(parseIntent("year=2020...2015").yearOps).toEqual([
+      { op: ">=", value: 2015 },
+      { op: "<=", value: 2020 },
+    ]);
+  });
+
+  it("desugars date ranges", () => {
+    expect(parseIntent('date="01.01.2020...31.12.2020"').dateConds).toEqual([
+      { op: ">=", iso: "2020-01-01", yearOnly: false },
+      { op: "<=", iso: "2020-12-31", yearOnly: false },
+    ]);
+  });
+
+  it("keeps broken ranges in the text query", () => {
+    expect(parseIntent("year=abc...2020").cleanQuery).toBe("year=abc...2020");
+    expect(parseIntent("year=...").cleanQuery).toBe("year=...");
+  });
+});
+
 describe("parseIntent tag alias", () => {
   it("treats tag as genre", () => {
     expect(parseIntent('tag="sci fi"').genre).toBe("sci fi");

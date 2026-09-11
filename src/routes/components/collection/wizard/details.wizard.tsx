@@ -2,7 +2,9 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
-import { statusLabel } from "@/lib/collection/status.utils";
+import { Checkbox } from "@/components/ui/checkbox.component";
+import Select from "@/components/ui/select.component";
+import { sortStatuses, statusLabel } from "@/lib/collection/status.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import type {
   CollectionItem,
@@ -79,32 +81,32 @@ export function WizardDetailsPanel(props: {
         <span className="text-text flex items-center text-xs font-bold">
           {t("collection.wizard.status")}
         </span>
-        <select
+        <Select
           value={props.status}
-          onChange={(e) => props.setStatus(e.target.value as CollectionStatus)}
-          className="windows95-border bg-white px-1 py-0.5 text-xs"
-        >
-          {props.statuses.map((s) => (
-            <option key={s.id} value={s.id}>
-              {statusLabel(props.statuses, s.id, t, locale)}
-            </option>
-          ))}
-        </select>
+          onChange={(v) => props.setStatus(v as CollectionStatus)}
+          options={sortStatuses(props.statuses).map((s) => ({
+            value: s.id,
+            label: statusLabel(props.statuses, s.id, t, locale),
+          }))}
+          label={t("collection.wizard.status")}
+          className="text-xs"
+        />
 
         <span className="text-text flex items-center text-xs font-bold">
           {t("collection.wizard.type")}
         </span>
-        <select
+        <Select
           value={props.type}
-          onChange={(e) => props.setType(e.target.value as CollectionItem["type"])}
-          className="windows95-border bg-white px-1 py-0.5 text-xs"
-        >
-          <option value="anime">{t("collection.type.anime")}</option>
-          <option value="movie">{t("collection.type.movie")}</option>
-          <option value="series">{t("collection.type.series")}</option>
-          <option value="custom">{t("collection.type.custom")}</option>
-        </select>
-
+          onChange={(v) => props.setType(v as CollectionItem["type"])}
+          options={[
+            { value: "anime", label: t("collection.type.anime") },
+            { value: "movie", label: t("collection.type.movie") },
+            { value: "series", label: t("collection.type.series") },
+            { value: "custom", label: t("collection.type.custom") },
+          ]}
+          label={t("collection.wizard.type")}
+          className="text-xs"
+        />
         <span className="text-text flex items-center text-xs font-bold">
           {t("collection.wizard.progress")}
         </span>
@@ -125,18 +127,18 @@ export function WizardDetailsPanel(props: {
             placeholder="-"
             className="windows95-border w-16 bg-white px-1 py-0.5 text-xs"
           />
-          <select
+          <Select
             value={props.progressUnit}
-            onChange={(e) =>
-              props.setProgressUnit(e.target.value as CollectionItem["progressUnit"])
-            }
-            className="windows95-border bg-white px-1 py-0.5 text-xs"
-          >
-            <option value="episodes">{t("collection.wizard.unit.episodes")}</option>
-            <option value="seasons">{t("collection.wizard.unit.seasons")}</option>
-            <option value="minutes">{t("collection.wizard.unit.minutes")}</option>
-            <option value="pages">{t("collection.wizard.unit.pages")}</option>
-          </select>
+            onChange={(v) => props.setProgressUnit(v as CollectionItem["progressUnit"])}
+            options={[
+              { value: "episodes", label: t("collection.wizard.unit.episodes") },
+              { value: "seasons", label: t("collection.wizard.unit.seasons") },
+              { value: "minutes", label: t("collection.wizard.unit.minutes") },
+              { value: "pages", label: t("collection.wizard.unit.pages") },
+            ]}
+            label={t("collection.wizard.progress")}
+            className="text-xs"
+          />
         </div>
 
         <span className="text-text flex items-center text-xs font-bold">
@@ -155,11 +157,7 @@ export function WizardDetailsPanel(props: {
           {t("collection.wizard.favorite")}
         </span>
         <label className="text-text flex cursor-pointer items-center gap-2 select-none">
-          <input
-            type="checkbox"
-            checked={props.isFavorite}
-            onChange={(e) => props.setIsFavorite(e.target.checked)}
-          />
+          <Checkbox checked={props.isFavorite} onChange={(v) => props.setIsFavorite(v)} />
           <span className="text-xs">{t("collection.wizard.favorite")}</span>
         </label>
       </div>

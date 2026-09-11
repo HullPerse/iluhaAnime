@@ -106,6 +106,9 @@ export const DITHER_DEFAULTS: {
   ink: number;
   edgeDistortion: number;
   misregistration: number;
+  barrel: number;
+  chromaticRadius: number;
+  wave: number;
   paper: number;
   vignette: number;
   paletteBias: number;
@@ -132,6 +135,9 @@ export const DITHER_DEFAULTS: {
   ink: 1,
   edgeDistortion: 0.5,
   misregistration: 0.35,
+  barrel: 0,
+  chromaticRadius: 0,
+  wave: 0,
   paper: 5,
   vignette: 0.12,
   paletteBias: 0.65,
@@ -179,6 +185,8 @@ export const DITHER_INK_FREQUENCY = 0.8;
 
 export const DITHER_DOT_CELL = 2;
 
+export const DITHER_WAVE_FREQUENCY = 0.03;
+
 export const DITHER_CHANNEL_SHIFT: readonly (readonly [number, number])[] = [
   [0, 0],
   [37, 11],
@@ -214,6 +222,9 @@ const DITHER_NEUTRAL_OPTIONS: DitherEffectOptions = {
   ink: 0,
   edgeDistortion: 0,
   misregistration: 0,
+  barrel: 0,
+  chromaticRadius: 0,
+  wave: 0,
   paper: 0,
   vignette: 0,
   paletteBias: 0,
@@ -260,25 +271,25 @@ export const DITHER_PRESETS: readonly DitherPreset[] = [
     id: "natural",
     options: {
       ...DEFAULT_EFFECT_OPTIONS,
-      levels: 48,
-      ditherStrength: 0.35,
+      levels: 40,
+      ditherStrength: 0.4,
       ditherAmount: 1,
       ditherMatrix: "blue64",
-      grain: 2.5,
-      texture: 2,
+      grain: 4,
+      texture: 3,
       halftone: 0,
-      monochromeNoise: 1.5,
+      monochromeNoise: 3,
       ink: 0,
       edgeDistortion: 0,
       misregistration: 0,
-      paper: 2,
+      paper: 3,
       vignette: 0,
-      paletteBias: 0.18,
-      shadowCrush: 0,
-      highlightCompression: 0.25,
-      contrastCurve: 0.08,
-      blackPoint: 0,
-      localContrast: 0,
+      paletteBias: 0.35,
+      shadowCrush: 0.1,
+      highlightCompression: 0.3,
+      contrastCurve: 0.15,
+      blackPoint: 0.05,
+      localContrast: 0.3,
       inkDensity: 0,
       palette: DITHER_DEFAULT_PALETTE,
     },
@@ -317,6 +328,37 @@ export const DITHER_PRESETS: readonly DitherPreset[] = [
       inkDensity: 0,
     },
   },
+  {
+    id: "crt",
+    options: {
+      ...DEFAULT_EFFECT_OPTIONS,
+      levels: 32,
+      ditherStrength: 0.5,
+      ditherAmount: 1,
+      ditherMatrix: "bayer4",
+      grain: 3,
+      texture: 4,
+      halftone: 0,
+      halftoneSize: 0,
+      halftoneSoftness: 0,
+      monochromeNoise: 3,
+      ink: 1,
+      edgeDistortion: 0,
+      misregistration: 0.8,
+      barrel: 0.25,
+      chromaticRadius: 1.2,
+      wave: 0,
+      paper: 0,
+      vignette: 0.3,
+      paletteBias: 0.3,
+      shadowCrush: 0.3,
+      highlightCompression: 0.5,
+      contrastCurve: 0.2,
+      blackPoint: 0.2,
+      localContrast: 0.2,
+      inkDensity: 0,
+    },
+  },
 ];
 
 export function resolveDitherPreset(id: DitherPresetId): DitherEffectOptions {
@@ -344,6 +386,9 @@ export const DITHER_SLIDER_DEFS: readonly DitherSliderDef[] = [
   { field: "ink", min: 0, max: 20, step: 0.5 },
   { field: "edgeDistortion", min: 0, max: 3, step: 0.1 },
   { field: "misregistration", min: 0, max: 3, step: 0.1 },
+  { field: "barrel", min: 0, max: 0.5, step: 0.05 },
+  { field: "chromaticRadius", min: 0, max: 2, step: 0.1 },
+  { field: "wave", min: 0, max: 12, step: 0.5 },
   { field: "paper", min: 0, max: 20, step: 0.5 },
   { field: "vignette", min: 0, max: 1, step: 0.05 },
   { field: "paletteBias", min: 0, max: 1, step: 0.05 },

@@ -3,8 +3,6 @@ const search = {
   "search.details.added": "Added",
   "search.details.anonymous": "Anonymous",
   "search.details.category": "Category",
-  "search.details.cleaned":
-    "Rust cleans the page before it reaches the interface. It is never inserted as external HTML.",
   "search.details.comments": "Comments",
   "search.details.completed": "Completed",
   "search.details.copy": "Copy",
@@ -70,29 +68,22 @@ const search = {
   "search.erai.err.webview.open": "Could not open the Erai-Raws browser window.",
   "search.erai.err.webview.save":
     "Could not read the Erai-Raws session. Make sure you are signed in.",
-  "search.erai.hint":
-    "Erai-Raws hides some pages behind an account. Sign in in the built-in browser, then save the session.",
   "search.erai.open.browser": "Open Erai-Raws",
   "search.erai.save.session": "Save session",
   "search.erai.title": "Erai-Raws: sign in",
 
   "search.open": "Open",
   "search.page": "Page {{page}}",
-  "search.page.results": "Page {{page}}: showing {{shown}} of {{total}} results ({{status}})",
+  "search.page.results": "Page {{page}}: {{shown}}/{{total}} ({{status}})",
   "search.results.count": "{{count}} results",
   "search.results.count.one": "{{count}} result",
   "search.retry": "Retry",
-  "search.rutracker.browser.hint":
-    'rutracker is now behind a Cloudflare challenge that the app\'s network client cannot pass. Use the built-in browser instead: sign in there, then click "Save session".',
-  "search.rutracker.cookies.hint":
-    "Open rutracker in a browser with your VPN enabled and sign in. Then copy the cookies from DevTools, under Application, or copy the Cookie request header and paste it here.",
   "search.rutracker.cookies.tab": "Paste cookies",
   "search.rutracker.err.blocked":
-    'Rutracker blocked the app (anti-bot challenge). Use "Paste cookies" or enable a system-wide VPN.',
+    'Rutracker blocked the app (anti-bot). Use "Paste cookies" or a system-wide VPN.',
   "search.rutracker.err.cookies.parse": "Could not parse the pasted cookies.",
   "search.rutracker.err.login.failed": "Login failed (unexpected server response).",
-  "search.rutracker.err.network":
-    "Cannot connect to rutracker. Make sure your VPN covers the whole system, not just the browser.",
+  "search.rutracker.err.network": "Cannot connect to rutracker. Cover the whole system with VPN.",
   "search.rutracker.err.no.cookies":
     "No cookies were found. Make sure you are signed in in the in-app browser.",
   "search.rutracker.err.no.session":
@@ -134,6 +125,7 @@ const search = {
   "search.dither.preset.natural": "Natural",
   "search.dither.preset.default": "Default",
   "search.dither.preset.deep": "Deep",
+  "search.dither.preset.crt": "CRT",
   "search.dither.preset.soft": "Soft",
   "search.dither.preset.capy": "Capy",
   "search.dither.palette.preset.default": "Default",
@@ -175,8 +167,13 @@ const search = {
   "search.dither.display.shadow.softness": "Softness",
   "search.dither.display.shadow.intensity": "Intensity",
   "search.dither.display.shadow.color": "Color",
+  "search.dither.display.parallax": "Parallax",
+  "search.dither.display.scanlines": "Scanlines",
   "search.dither.opt.edgeDistortion": "Edge distortion",
   "search.dither.opt.misregistration": "Misregistration",
+  "search.dither.opt.barrel": "Barrel distortion",
+  "search.dither.opt.chromaticRadius": "Radial aberration",
+  "search.dither.opt.wave": "Wave",
   "search.dither.opt.paper": "Paper",
   "search.dither.opt.vignette": "Vignette",
   "search.dither.opt.paletteBias": "Palette bias",
@@ -188,7 +185,7 @@ const search = {
   "search.dither.opt.inkDensity": "Ink density",
   "search.dither.opt.scale": "Canvas scale",
   "search.dither.save.error": "Could not save the edited image.",
-  "search.dither.bake.timeout.frame": "The bake did not produce a frame within 30 seconds.",
+  "search.dither.bake.timeout.frame": "No bake frame in 30 seconds.",
   "search.dither.bake.timeout.database": "The database did not answer within 30 seconds.",
   "search.dither.title": "Dither settings",
   "search.find.submit": "Search",

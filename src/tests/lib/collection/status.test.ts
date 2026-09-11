@@ -5,6 +5,7 @@ import {
   buildCustomStatusId,
   normalizeStatusLabel,
   resolveStatusLabel,
+  sortStatuses,
   splitStatusLabel,
   statusLabel,
 } from "@/lib/collection/status.utils";
@@ -93,5 +94,32 @@ describe("buildCustomStatusId", () => {
 
   it("still returns an id for a Cyrillic-only label", () => {
     expect(buildCustomStatusId("Читаю")).toMatch(/^custom_[0-9a-z]+$/);
+  });
+});
+
+describe("sortStatuses", () => {
+  it("puts core statuses first even when a custom status has the lowest order", () => {
+    const mixed: CollectionStatusDef[] = [
+      { id: "custom_early", label: "Early", color: "#22c55e", order: 0, isCore: false },
+      { id: "dropped", label: "Dropped", color: "#ef4444", order: 5, isCore: true },
+      { id: "planned", label: "Planned", color: "#9ca3af", order: 1, isCore: true },
+      { id: "custom_late", label: "Late", color: "#3b82f6", order: 2, isCore: false },
+    ];
+    expect(sortStatuses(mixed).map((s) => s.id)).toEqual([
+      "planned",
+      "dropped",
+      "custom_early",
+      "custom_late",
+    ]);
+  });
+
+  it("pushes non-finite order last without mutating the input", () => {
+    const mixed: CollectionStatusDef[] = [
+      { id: "custom_nan", label: "Broken", color: "#22c55e", order: NaN, isCore: false },
+      { id: "custom_ok", label: "Ok", color: "#3b82f6", order: 7, isCore: false },
+    ];
+    const snapshot = [...mixed];
+    expect(sortStatuses(mixed).map((s) => s.id)).toEqual(["custom_ok", "custom_nan"]);
+    expect(mixed.map((s) => s.id)).toEqual(snapshot.map((s) => s.id));
   });
 });

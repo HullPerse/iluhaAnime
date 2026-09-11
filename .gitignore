@@ -41,3 +41,6 @@ skills-lock.json
 AGENTS.md
 coverage/
 bun.lock
+# debug outputs
+temp.txt
+typecheck.txt

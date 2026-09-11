@@ -130,7 +130,6 @@ export default function SettingsGeneral() {
               </label>
             </div>
           </div>
-          <span className="text-hint text-[12px]">{t("settings.tabs.hint")}</span>
         </div>
       </section>
 
@@ -153,7 +152,6 @@ export default function SettingsGeneral() {
                 ]}
                 className="w-32"
               />
-              <span className="text-hint text-[12px]">{t("settings.language.hint")}</span>
             </div>
 
             <span className="windows95-text text-text flex items-center text-xs font-bold">
@@ -178,7 +176,6 @@ export default function SettingsGeneral() {
                 ]}
                 className="w-52"
               />
-              <span className="text-hint text-[12px]">{t("settings.ffmpeg.source.hint")}</span>
             </div>
           </div>
         </div>
@@ -447,7 +444,6 @@ export default function SettingsGeneral() {
                 />
                 <span>{t("common.on")}</span>
               </label>
-              <span className="text-hint text-[12px]">{t("settings.parse.titles.example")}</span>
             </div>
           </div>
         </div>
@@ -460,7 +456,6 @@ export default function SettingsGeneral() {
           {t("settings.reset.data")}
         </span>
         <div className="flex flex-col gap-1">
-          <span className="text-hint text-[12px]">{t("settings.reset.description")}</span>
           <Button
             variant="destructive"
             className="w-fit"

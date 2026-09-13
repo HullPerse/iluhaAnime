@@ -3,7 +3,6 @@ import { useState } from "react";
 import { TabLoader } from "@/components/shared/loader.component";
 import Section from "@/components/shared/section.component";
 import { Button } from "@/components/ui/button.component";
-import { useFavPeopleAnimeSet } from "@/hooks/anilist/people.hook";
 import { useAnimeShowcase } from "@/hooks/showcase.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { useSearchStore } from "@/store/search.store";
@@ -58,7 +57,6 @@ export function AniListDetailView({
   const showcase = useAnimeShowcase(anime);
   const headerTrailerId = showcase?.trailerYoutubeId ?? null;
   const isFavorite = favouriteIds?.has(animeId) ?? false;
-  const hasFavouritePeople = useFavPeopleAnimeSet().has(animeId);
   const handleSearchTorrents = (query?: string) => {
     setCrossSearchQuery(query ?? anime?.title ?? "");
     onClose();
@@ -84,7 +82,6 @@ export function AniListDetailView({
         <div className="flex-1">
           <AniListMetadata
             anime={anime}
-            hasFavouritePeople={hasFavouritePeople}
             onSeason={(s, y) => {
               onSeason?.(s, y);
               onClose();

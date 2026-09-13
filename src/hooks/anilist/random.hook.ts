@@ -30,18 +30,21 @@ export function useAnilistRandom(
     if (entries.length === 0) return;
     const entry = entries[Math.floor(Math.random() * entries.length)];
     if (!entry) return;
+    const info = entryLookup.get(entry.media.id);
     showDetail(
       {
         animeId: entry.media.id,
-        listEntry: {
-          progress: entry.progress,
-          score: entry.score,
-          list_status: entry.list_status,
-        },
+        ...(info && {
+          listEntry: {
+            progress: info.progress,
+            score: info.score,
+            list_status: info.list_status,
+          },
+        }),
       },
       false
     );
-  }, [lists, currentList, showDetail]);
+  }, [entryLookup, lists, currentList, showDetail]);
   const handleFilterRandom = async (filters: AniListFilters) => {
     if (pendingRef.current) return;
     pendingRef.current = true;

@@ -1,7 +1,6 @@
 import { ChevronLeft, Edit2, X } from "lucide-react";
 import { useState } from "react";
 
-import { FavPeopleStar } from "@/components/shared/favPeopleStar.component";
 import Section from "@/components/shared/section.component";
 import { Button } from "@/components/ui/button.component";
 import { useEscapeClose } from "@/hooks/escapeClose.hook";
@@ -66,7 +65,6 @@ export function DetailCollection({
                 <ChevronLeft className="size-3" />
               </Button>
             ) : null}
-            {!mediaOpen && <FavPeopleStar animeId={item.externalIds.anilist} />}
             <span className="truncate font-bold text-white">
               {mediaOpen
                 ? mediaOpen.tab === "trailer"

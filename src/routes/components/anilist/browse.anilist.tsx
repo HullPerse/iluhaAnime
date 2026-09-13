@@ -2,7 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import { Star } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
-import { FavPeopleStar } from "@/components/shared/favPeopleStar.component";
 import { TabLoader } from "@/components/shared/loader.component";
 import Modal from "@/components/shared/modal.component";
 import Pagination from "@/components/shared/pagination.component";
@@ -102,7 +101,6 @@ export default function BrowseAnimeModal({
                 )}
                 <div className="ml-2 flex min-w-0 flex-1 flex-col">
                   <span className="windows95-text flex items-center truncate font-bold">
-                    <FavPeopleStar animeId={item.id} />
                     {entry && (
                       <span
                         className="windows95-border mt-0.5 mr-0.5 shrink-0"

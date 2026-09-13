@@ -888,7 +888,6 @@ pub fn run() {
             anilist::toggle_favourite,
             anilist::get_favourites,
             anilist::get_favourite_people,
-            anilist::get_fav_people_media,
             anilist::toggle_favourite_staff,
             anilist::toggle_favourite_character,
             anilist::get_anime_characters,

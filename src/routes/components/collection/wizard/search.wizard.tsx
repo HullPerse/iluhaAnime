@@ -2,7 +2,6 @@ import { Search } from "lucide-react";
 import { useMemo } from "react";
 
 import { InlineAutocompleteInput } from "@/components/shared/autocomplete/input.autocomplete";
-import { FavPeopleStar } from "@/components/shared/favPeopleStar.component";
 import { Button } from "@/components/ui/button.component";
 import { WIZARD_HISTORY_COUNT } from "@/config/collection/defaults.config";
 import { useI18n } from "@/lib/locale/i18n.utils";
@@ -85,7 +84,6 @@ export function WizardSourceSearch({
               onClick={() => onPickResult(r)}
             >
               {r.cover_url && <SearchResultCover url={r.cover_url} />}
-              <FavPeopleStar animeId={source === "anilist" ? r.id : null} />
               <span className="flex-1 truncate">{r.title}</span>
               {r.year && <span className="text-hint">{r.year}</span>}
             </button>

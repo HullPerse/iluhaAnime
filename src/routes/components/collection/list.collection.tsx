@@ -2,7 +2,6 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { Star } from "lucide-react";
 import { memo, useMemo, useRef } from "react";
 
-import { FavPeopleStar } from "@/components/shared/favPeopleStar.component";
 import Image from "@/components/ui/image.component";
 import Select from "@/components/ui/select.component";
 import { HEADER_ESTIMATE, ROW_ESTIMATE } from "@/config/collection/card.config";
@@ -168,7 +167,6 @@ function CollectionRowView({ item, statuses, selected, onOpen, onSetStatus }: Co
                 }}
                 title={statusLabel(statuses, item.status, t, locale)}
               />
-              <FavPeopleStar animeId={item.externalIds.anilist} />
               {item.title}
             </h2>
           </div>

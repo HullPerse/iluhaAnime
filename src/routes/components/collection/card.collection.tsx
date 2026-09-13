@@ -1,7 +1,6 @@
 import { Star } from "lucide-react";
 import { memo } from "react";
 
-import { FavPeopleStar } from "@/components/shared/favPeopleStar.component";
 import Image from "@/components/ui/image.component";
 import { CARD_POSTER_H, CARD_W, GENRE_PREVIEW_COUNT } from "@/config/collection/card.config";
 import { useCoverCache } from "@/hooks/collection/cache.hook";
@@ -87,7 +86,6 @@ function CollectionCardView({
       <div className="bg-primary flex min-h-0 flex-1 flex-col">
         <div className="flex h-10 shrink-0 flex-col justify-center gap-0 px-1 py-1">
           <div className="flex min-w-0 flex-1 items-center gap-0.5">
-            <FavPeopleStar animeId={item.externalIds.anilist} />
             <h3
               className="windows95-text min-w-0 flex-1 truncate text-xs leading-none font-bold"
               title={item.title}

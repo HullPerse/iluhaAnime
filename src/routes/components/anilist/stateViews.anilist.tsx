@@ -1,4 +1,4 @@
-import { User } from "lucide-react";
+import { Lock, User } from "lucide-react";
 
 import { TabLoader } from "@/components/shared/loader.component";
 import { Button } from "@/components/ui/button.component";
@@ -15,8 +15,17 @@ export default function AniListStateViews({
   const { t } = useI18n();
   switch (view) {
     case "loading":
-    case "globalLoading": {
+    case "globalLoading":
+    case "friendLoading": {
       return <TabLoader className="flex-1" />;
+    }
+    case "friendError": {
+      return (
+        <section className="flex flex-1 flex-col items-center justify-center gap-2">
+          <Lock className="text-hint size-8" />
+          <span className="windows95-text">{t("anilist.friends.private")}</span>
+        </section>
+      );
     }
     case "login": {
       return (

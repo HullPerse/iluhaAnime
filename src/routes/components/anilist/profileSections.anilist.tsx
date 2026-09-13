@@ -1,21 +1,21 @@
 import { useMemo } from "react";
 
-import { ALL_LISTS_ID, collectAllEntries } from "@/lib/anilist/group.utils";
 import { listStatusLabels } from "@/config/anilist/labels.config";
 import { getStatusColor } from "@/lib/anilist/entries.utils";
+import { ALL_LISTS_ID, collectAllEntries } from "@/lib/anilist/group.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
+import AniListFriendHeader from "@/routes/components/anilist/friend/header.friend";
 import AniListListsRow from "@/routes/components/anilist/lists.anilist";
-import AniListProfileHeader from "@/routes/components/anilist/header.anilist";
 import AniListSortBar from "@/routes/components/anilist/sort.anilist";
-import type { AniListCollection, AniListEntry, AniListSort, AniUser } from "@/types/anilist";
+import AniListProfileHeader from "@/routes/components/anilist/user/header.user";
+import type { AniListEntry, AniListSort, AniListSource } from "@/types/anilist";
 
 export default function AniListProfileSections({
-  user,
+  source,
   isLoading,
   isLocal,
   global,
-  lists,
   currentList,
   onSelectList,
   searchTerms,
@@ -37,12 +37,12 @@ export default function AniListProfileSections({
   onPrefetch,
   onFriends,
   onLogout,
+  onBackToSelf,
 }: {
-  user: AniUser | null;
+  source: AniListSource;
   isLoading: boolean;
   isLocal: boolean;
   global: boolean;
-  lists: AniListCollection[];
   currentList: string;
   onSelectList: (name: string) => void;
   searchTerms: string;
@@ -64,8 +64,10 @@ export default function AniListProfileSections({
   onPrefetch: () => void;
   onFriends: () => void;
   onLogout: () => void;
+  onBackToSelf: () => void;
 }) {
   const { t } = useI18n();
+  const { caps, friend, friendProfile, lists, mode, user } = source;
   const showProfile = !!user && !global && !isLocal;
   const showListBar = !!user && !global && lists.length > 0;
   const listTabs = useMemo(() => {
@@ -83,23 +85,37 @@ export default function AniListProfileSections({
         return { id: item.name, label: `${label} (${item.entries.filter(matches).length})`, color };
       });
     const allCount = collectAllEntries(lists).filter(matches).length;
-    tabs.unshift({ id: ALL_LISTS_ID, label: `${t("anilist.lists.all")} (${allCount})`, color: null });
+    tabs.unshift({
+      id: ALL_LISTS_ID,
+      label: `${t("anilist.lists.all")} (${allCount})`,
+      color: null,
+    });
     return tabs;
   }, [lists, searchTerms, global, t]);
   return (
     <>
-      {showProfile && (
-        <AniListProfileHeader
-          user={user}
-          loadingList={isLoading}
-          onStatsOpen={onStats}
-          onBrowseOpen={onBrowse}
-          onRecsOpen={onRecs}
-          onPrefetchOpen={onPrefetch}
-          onFriendsOpen={onFriends}
-          onLogout={onLogout}
-        />
-      )}
+      {showProfile &&
+        (mode === "friend" && friend ? (
+          <AniListFriendHeader
+            friend={friend}
+            profile={friendProfile}
+            loadingList={isLoading}
+            onBack={onBackToSelf}
+          />
+        ) : (
+          user && (
+            <AniListProfileHeader
+              user={user}
+              loadingList={isLoading}
+              onStatsOpen={onStats}
+              onBrowseOpen={onBrowse}
+              onRecsOpen={onRecs}
+              onPrefetchOpen={onPrefetch}
+              onFriendsOpen={onFriends}
+              onLogout={onLogout}
+            />
+          )
+        ))}
 
       {!isLoading && showListBar && !grouped && (
         <AniListListsRow tabs={listTabs} activeTab={currentList} onChange={onSelectList} />
@@ -118,6 +134,7 @@ export default function AniListProfileSections({
           onGroupChange={onGroupChange}
           displayMode={displayMode}
           onDisplayChange={onDisplayChange}
+          showActions={caps.listActions}
         />
       )}
     </>

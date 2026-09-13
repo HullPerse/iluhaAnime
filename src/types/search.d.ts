@@ -86,7 +86,6 @@ export interface SearchAnimeSuggestion {
   status: string;
   score: number | null;
   favourite: boolean;
-  hasFavPeople?: boolean;
   season?: string | null;
   seasonYear?: number | null;
 }
@@ -104,7 +103,6 @@ export interface SearchStore {
   suggestionStats: Record<string, SearchQueryStat>;
   animeIndex: SearchAnimeSuggestion[];
   animeProfileId: number | null;
-  favPeopleAnimeIds: number[];
   crossSearchQuery: string | null;
   anilistSearchQuery: string | null;
   sortBy: SortKey;
@@ -114,12 +112,7 @@ export interface SearchStore {
   addQuery: (query: string, scope?: string) => void;
   recordSuggestion: (value: string) => void;
   recordSuggestionIgnored: (value: string) => void;
-  indexAniList: (
-    lists: AniListCollection[],
-    favourites: FavouriteAnime[],
-    profileId: number,
-    favPeopleAnimeIds?: Set<number>
-  ) => void;
+  indexAniList: (lists: AniListCollection[], favourites: FavouriteAnime[], profileId: number) => void;
   clearAnimeIndex: () => void;
   resetAnimeSuggestions: () => void;
   removeQuery: (query: string) => void;
@@ -127,7 +120,6 @@ export interface SearchStore {
   clearScope: (scope: string) => Promise<void>;
   clearAllLearning: () => Promise<void>;
   setCrossSearchQuery: (query: string | null) => void;
-  setFavPeopleAnimeIds: (ids: number[]) => void;
   setAnilistSearchQuery: (query: string | null) => void;
   setSortBy: (sort: SortKey) => void;
   setSortDirection: (dir: SortDirection) => void;

@@ -18,7 +18,13 @@ import type { AniFriendsProps as Props } from "@/types/anilist";
 
 import { FriendLatestActivity } from "./activity/friendActivity.activity";
 
-export default function AniListFriendsModal({ friends, onAdd, onRemove, onClose }: Props) {
+export default function AniListFriendsModal({
+  friends,
+  onAdd,
+  onRemove,
+  onViewLists,
+  onClose,
+}: Props) {
   const { t } = useI18n();
   const [query, setQuery] = useState("");
   const [profiles, setProfiles] = useState<Record<number, AniUserProfile>>({});
@@ -98,13 +104,8 @@ export default function AniListFriendsModal({ friends, onAdd, onRemove, onClose 
                 >
                   <button
                     type="button"
-                    onClick={() => {
-                      setSelectedId(friend.id);
-                      const saved = friends.find((item) => item.id === friend.id);
-                      if (!profiles[friend.id] && !hasFreshCachedProfile(saved)) {
-                        loadProfile(friend.name);
-                      }
-                    }}
+                    onClick={() => onViewLists(friend)}
+                    title={t("anilist.friends.view.lists")}
                   >
                     <ImageComponent
                       src={friend.avatar || "/images/user_avatar.ico"}

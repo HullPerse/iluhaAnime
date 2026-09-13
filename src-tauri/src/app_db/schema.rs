@@ -567,6 +567,23 @@ pub fn initialize_schema(connection: &Connection) -> Result<(), String> {
             .map_err(|error| format!("app database embeddings removal commit: {error}"))?;
     }
 
+    if version < 18 {
+        let transaction = connection
+            .unchecked_transaction()
+            .map_err(|error| format!("app database fav people cache prune transaction: {error}"))?;
+        transaction
+            .execute_batch(
+                "
+                DELETE FROM cache_entries WHERE namespace = 'fav_people';
+                PRAGMA user_version = 18;
+                ",
+            )
+            .map_err(|error| format!("app database fav people cache prune schema: {error}"))?;
+        transaction
+            .commit()
+            .map_err(|error| format!("app database fav people cache prune commit: {error}"))?;
+    }
+
     if version > CURRENT_SCHEMA_VERSION {
         return Err(format!(
             "app database is newer than this application ({version} > {CURRENT_SCHEMA_VERSION})"
@@ -633,6 +650,41 @@ mod tests {
         assert_eq!(version, CURRENT_SCHEMA_VERSION);
     }
     #[test]
+    fn migration_v18_prunes_orphaned_fav_people_cache() {
+        let connection = Connection::open_in_memory().expect("in-memory database");
+        initialize_schema(&connection).expect("schema migration");
+        connection
+            .execute(
+                "INSERT INTO cache_entries (namespace, cache_key, payload, expires_at, updated_at)
+                 VALUES ('fav_people', 'index:5', '{}', NULL, 0),
+                        ('search', 'keep', '{}', NULL, 0)",
+                [],
+            )
+            .expect("insert cache rows");
+        connection
+            .pragma_update(None, "user_version", 17)
+            .expect("rewind user version");
+        initialize_schema(&connection).expect("rerun migrations");
+
+        let pruned: i64 = connection
+            .query_row(
+                "SELECT COUNT(*) FROM cache_entries WHERE namespace = 'fav_people'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("read fav people cache");
+        assert_eq!(pruned, 0, "orphaned fav_people rows removed");
+        let kept: i64 = connection
+            .query_row(
+                "SELECT COUNT(*) FROM cache_entries WHERE namespace = 'search'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("read search cache");
+        assert_eq!(kept, 1, "other namespaces untouched");
+    }
+
+    #[test]
     fn migration_v15_rewrites_seconds_scale_updated_at_to_milliseconds() {
         let connection = Connection::open_in_memory().expect("in-memory database");
         initialize_schema(&connection).expect("schema migration");
@@ -677,6 +729,10 @@ mod tests {
             )
             .expect("insert seconds row");
 
+        // A real v14 database predates the v16 column, so drop it to replay v15 faithfully.
+        connection
+            .execute_batch("ALTER TABLE collection_items DROP COLUMN release_date;")
+            .expect("simulate v14 schema");
         connection
             .pragma_update(None, "user_version", 14)
             .expect("rewind user version");

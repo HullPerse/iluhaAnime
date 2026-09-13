@@ -104,24 +104,6 @@ export interface FavouritePeople {
   characters: FavouritePerson[];
 }
 
-export type FavPersonKind = "staff" | "character";
-
-export interface CachedFavPerson {
-  kind: FavPersonKind;
-  animeIds: number[];
-  updatedAt: number;
-}
-
-export interface FavPeopleIndexCache {
-  version: 1;
-  people: Record<string, CachedFavPerson>;
-}
-
-export interface FavPersonMediaPage {
-  key: string;
-  anime_ids: number[];
-}
-
 export interface AniListEntry {
   media: AniMedia;
   progress: number | null;
@@ -141,6 +123,29 @@ export interface AniListCollection {
 export interface AniListGroup {
   name: string;
   entries: AniListEntry[];
+}
+
+export type AniListViewMode = "self" | "friend";
+
+export interface AniListCaps {
+  headerActions: boolean;
+  listActions: boolean;
+  modals: boolean;
+  search: boolean;
+}
+
+export interface AniListSource {
+  mode: AniListViewMode;
+  user: AniUser | null;
+  friend: AniFriend | null;
+  friendProfile: AniUserProfile | null;
+  lists: AniListCollection[];
+  favourites: FavouriteAnime[];
+  displayLookup: EntryLookup;
+  myEntryLookup: EntryLookup;
+  displayFavouriteIds: Set<number>;
+  myFavouriteIds: Set<number>;
+  caps: AniListCaps;
 }
 
 export type AniListAnime = {
@@ -401,7 +406,14 @@ export interface CollapsedGraph {
   aggregators: Map<number, { group: RelationFilter; count: number }>;
 }
 
-export type AniListViewState = "loading" | "globalLoading" | "globalEmpty" | "localEmpty" | "login";
+export type AniListViewState =
+  | "loading"
+  | "globalLoading"
+  | "globalEmpty"
+  | "localEmpty"
+  | "friendLoading"
+  | "friendError"
+  | "login";
 
 export type BrowseTab = "popular" | "trending" | "top";
 
@@ -591,6 +603,7 @@ export interface AniFriendsProps {
   friends: AniFriend[];
   onAdd: (profile: AniUserProfile) => void;
   onRemove: (id: number) => void;
+  onViewLists: (friend: AniFriend) => void;
   onClose: () => void;
 }
 
@@ -630,6 +643,7 @@ export interface AniSortProps {
   onGroupChange: (grouped: boolean) => void;
   displayMode: "scroll" | "pagination";
   onDisplayChange: (mode: "scroll" | "pagination") => void;
+  showActions?: boolean;
 }
 
 export interface AnimeShowcase {
@@ -638,11 +652,6 @@ export interface AnimeShowcase {
 }
 
 export type SpotlightKind = "day" | "week" | "month";
-
-export interface FavPersonRef {
-  kind: FavPersonKind;
-  id: number;
-}
 
 export interface FriendScore {
   id: number;

@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import AnilistRoute from "@/routes/anilist.route";
+import { useAniListFriendsStore } from "@/store/anilist.store";
 import { useDeepLinkStore } from "@/store/deeplink.store";
 import { useNotificationStore } from "@/store/notification.store";
 import { useSettingsStore } from "@/store/settings.store";
@@ -367,5 +368,106 @@ describe("AnilistRoute deep link", () => {
     useDeepLinkStore.setState({ target: { id: 21, source: "anilist" } });
     await screen.findAllByText("One Piece");
     expect(useDeepLinkStore.getState().target).toBeNull();
+  });
+});
+
+function friendInvoke(cmd: string, args: unknown): Promise<unknown> {
+  const userId = (args as { userId?: number } | undefined)?.userId;
+  switch (cmd) {
+    case "check_anilist_auth": {
+      return Promise.resolve(user);
+    }
+    case "get_anilist_lists": {
+      if (userId === 2) {
+        return Promise.resolve([
+          {
+            name: "Watching",
+            entries: [
+              {
+                media: { ...PICK_ANIME, id: 99, title: "Bleach" },
+                progress: 4,
+                score: 9,
+                list_status: "CURRENT",
+              },
+            ],
+          },
+        ]);
+      }
+      return Promise.resolve([
+        {
+          name: "Completed",
+          entries: [{ media: PICK_ANIME, progress: 1, score: 8, list_status: "COMPLETED" }],
+        },
+      ]);
+    }
+    case "get_favourites": {
+      return Promise.resolve([]);
+    }
+    case "get_favourite_people": {
+      return Promise.resolve({ staff: [], characters: [] });
+    }
+    case "get_anilist_profile": {
+      return Promise.resolve({
+        about: null,
+        anime_count: 12,
+        avatar: null,
+        banner_image: null,
+        episodes_watched: 100,
+        id: 2,
+        is_follower: false,
+        is_following: true,
+        mean_score: 8,
+        name: "Friend",
+      });
+    }
+    case "get_anime_by_id": {
+      return Promise.resolve(PICK_ANIME);
+    }
+    case "get_anime_characters": {
+      return Promise.resolve([]);
+    }
+    case "get_anime_franchise": {
+      return Promise.resolve({ edges: [], nodes: [], root_id: 21 });
+    }
+    default: {
+      return Promise.resolve(null);
+    }
+  }
+}
+
+describe("AnilistRoute friend lists", () => {
+  beforeEach(() => {
+    useAniListFriendsStore.setState({
+      friends: [{ added_at: 1, avatar: null, id: 2, name: "Friend" }],
+    });
+  });
+
+  afterEach(() => {
+    useAniListFriendsStore.setState({ friends: [] });
+  });
+
+  it("opens a friend's lists and returns to mine via the avatar", async () => {
+    mockInvoke.mockImplementation(friendInvoke);
+    const viewer = userEvent.setup();
+    const { container } = renderRoute();
+    await screen.findByText("TESTUSER");
+
+    await viewer.click(container.querySelector('button[title="AniList friends"]')!);
+    const friendLabel = await screen.findByText("Friend");
+    const row = friendLabel.closest("button");
+    expect(row).not.toBeNull();
+    await viewer.click(row as HTMLButtonElement);
+
+    await screen.findByText("FRIEND");
+    await screen.findAllByText("Bleach");
+
+    expect(mockInvoke.mock.calls.some(([cmd, args]) => cmd === "get_anilist_lists" && (args as { userId?: number })?.userId === 2)).toBe(true);
+    expect(container.querySelector('button[title="Filters"]')).toBeNull();
+    expect(container.querySelector('button[title="Activity history"]')).toBeNull();
+    expect(container.querySelector('button[title="Random from list"]')).not.toBeNull();
+
+    await viewer.click(screen.getByRole("button", { name: "Back to my lists" }));
+    await screen.findAllByText("One Piece");
+    expect(screen.queryByText("FRIEND")).toBeNull();
   });
 });

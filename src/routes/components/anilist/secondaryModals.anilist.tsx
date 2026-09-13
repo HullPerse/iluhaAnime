@@ -36,6 +36,7 @@ export default function AniListSecondaryModals({
   friends,
   onAddFriend,
   onRemoveFriend,
+  onViewFriendLists,
   onFriendsClose,
   favourites,
   onFavouritesClose,
@@ -69,6 +70,7 @@ export default function AniListSecondaryModals({
   friends: AniFriend[];
   onAddFriend: (profile: AniUserProfile) => void;
   onRemoveFriend: (id: number) => void;
+  onViewFriendLists: (friend: AniFriend) => void;
   onFriendsClose: () => void;
   favourites: FavouriteAnime[];
   onFavouritesClose: () => void;
@@ -114,6 +116,7 @@ export default function AniListSecondaryModals({
           friends={friends}
           onAdd={onAddFriend}
           onRemove={onRemoveFriend}
+          onViewLists={onViewFriendLists}
           onClose={onFriendsClose}
         />
       )}

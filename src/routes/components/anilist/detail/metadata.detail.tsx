@@ -9,11 +9,9 @@ import type { AniMedia } from "@/types/anilist";
 
 function AniListMetadata({
   anime,
-  hasFavouritePeople,
   onSeason,
 }: {
   anime: AniMedia;
-  hasFavouritePeople?: boolean;
   onSeason?: (season: string, seasonYear: number | null) => void;
 }) {
   const { t, locale } = useI18n();
@@ -33,14 +31,6 @@ function AniListMetadata({
 
       <section className="flex min-w-0 flex-1 flex-col gap-1.5">
         <div className="flex flex-wrap items-center gap-1">
-          {hasFavouritePeople && (
-            <span
-              className="windows95-text flex flex-row items-center bg-white px-1"
-              title={t("anilist.details.fav.people")}
-            >
-              <Star className="size-3 fill-yellow-400 text-yellow-600" />
-            </span>
-          )}
           {anime.score != null && (
             <span className="windows95-text bg-secondary flex flex-row items-center gap-1 px-1 font-bold text-white">
               <Star className="size-3 fill-white" /> {anime.score}

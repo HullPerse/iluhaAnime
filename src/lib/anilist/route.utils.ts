@@ -50,7 +50,10 @@ export function resolveAniListView(params: {
   hasUser: boolean;
   loadingSearch: boolean;
   hasSearchResults: boolean;
+  friendState?: "loading" | "error" | null;
 }): AniListViewState | null {
+  if (params.friendState === "loading") return "friendLoading";
+  if (params.friendState === "error") return "friendError";
   if (params.isLoading && !params.hasLists) return "loading";
   if (params.global) {
     if (params.loadingSearch) return "globalLoading";

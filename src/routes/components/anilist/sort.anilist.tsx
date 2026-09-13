@@ -30,6 +30,7 @@ export default function AniListSortBar({
   onGroupChange,
   displayMode,
   onDisplayChange,
+  showActions = true,
 }: Props) {
   const { t } = useI18n();
   const { rowRef, start, end, stepPage } = usePagedRow(
@@ -86,24 +87,28 @@ export default function AniListSortBar({
       </div>
       <span className="bg-muted ml-auto h-5 w-px" />
       <div className="flex flex-row gap-1">
-        <Button
-          size="icon"
-          className="h-6 w-6"
-          onClick={onActivityOpen}
-          aria-label={t("anilist.sort.history")}
-        >
-          <Activity className="size-3.5" />
-        </Button>
-        <Button
-          size="icon"
-          className="h-6 w-6"
-          title={t("anilist.sort.favourites")}
-          aria-label={t("anilist.sort.favourites")}
-          onClick={onFavouritesOpen}
-          disabled={!hasFavourites}
-        >
-          <Heart className="size-3.5" />
-        </Button>
+        {showActions && (
+          <Button
+            size="icon"
+            className="h-6 w-6"
+            onClick={onActivityOpen}
+            aria-label={t("anilist.sort.history")}
+          >
+            <Activity className="size-3.5" />
+          </Button>
+        )}
+        {showActions && (
+          <Button
+            size="icon"
+            className="h-6 w-6"
+            title={t("anilist.sort.favourites")}
+            aria-label={t("anilist.sort.favourites")}
+            onClick={onFavouritesOpen}
+            disabled={!hasFavourites}
+          >
+            <Heart className="size-3.5" />
+          </Button>
+        )}
         <Button
           size="icon"
           className="h-6 w-6"
@@ -113,50 +118,56 @@ export default function AniListSortBar({
         >
           <Dices className="size-3.5" />
         </Button>
-        <Button
-          size="icon"
-          className="h-6 w-6"
-          title={t("anilist.sort.spotlight")}
-          aria-label={t("anilist.sort.spotlight")}
-          onClick={onSpotlight}
-        >
-          <Sparkles className="size-3.5" />
-        </Button>
-        <span className="bg-muted h-5 w-px" aria-hidden />
-        <Button
-          size="icon"
-          className="h-6 w-6"
-          title={t("anilist.sort.group.by.status")}
-          aria-label={t("anilist.sort.group.by.status")}
-          aria-pressed={groupByStatus}
-          variant={groupByStatus ? "outline" : "default"}
-          onClick={() => onGroupChange(!groupByStatus)}
-        >
-          <Layers className="size-3.5" />
-        </Button>
-        <Button
-          size="icon"
-          className="h-6 w-6"
-          title={t(
-            displayMode === "scroll"
-              ? "anilist.sort.display.scroll"
-              : "anilist.sort.display.pagination"
-          )}
-          aria-label={t(
-            displayMode === "scroll"
-              ? "anilist.sort.display.scroll"
-              : "anilist.sort.display.pagination"
-          )}
-          aria-pressed={displayMode === "scroll"}
-          variant={displayMode === "scroll" ? "outline" : "default"}
-          onClick={() => onDisplayChange(displayMode === "scroll" ? "pagination" : "scroll")}
-        >
-          {displayMode === "scroll" ? (
-            <InfinityIcon className="size-3.5" />
-          ) : (
-            <Hash className="size-3.5" />
-          )}
-        </Button>
+        {showActions && (
+          <Button
+            size="icon"
+            className="h-6 w-6"
+            title={t("anilist.sort.spotlight")}
+            aria-label={t("anilist.sort.spotlight")}
+            onClick={onSpotlight}
+          >
+            <Sparkles className="size-3.5" />
+          </Button>
+        )}
+        {showActions && <span className="bg-muted h-5 w-px" aria-hidden />}
+        {showActions && (
+          <Button
+            size="icon"
+            className="h-6 w-6"
+            title={t("anilist.sort.group.by.status")}
+            aria-label={t("anilist.sort.group.by.status")}
+            aria-pressed={groupByStatus}
+            variant={groupByStatus ? "outline" : "default"}
+            onClick={() => onGroupChange(!groupByStatus)}
+          >
+            <Layers className="size-3.5" />
+          </Button>
+        )}
+        {showActions && (
+          <Button
+            size="icon"
+            className="h-6 w-6"
+            title={t(
+              displayMode === "scroll"
+                ? "anilist.sort.display.scroll"
+                : "anilist.sort.display.pagination"
+            )}
+            aria-label={t(
+              displayMode === "scroll"
+                ? "anilist.sort.display.scroll"
+                : "anilist.sort.display.pagination"
+            )}
+            aria-pressed={displayMode === "scroll"}
+            variant={displayMode === "scroll" ? "outline" : "default"}
+            onClick={() => onDisplayChange(displayMode === "scroll" ? "pagination" : "scroll")}
+          >
+            {displayMode === "scroll" ? (
+              <InfinityIcon className="size-3.5" />
+            ) : (
+              <Hash className="size-3.5" />
+            )}
+          </Button>
+        )}
       </div>
     </section>
   );

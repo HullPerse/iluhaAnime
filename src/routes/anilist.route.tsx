@@ -1,17 +1,16 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { NO_FAVOURITES, NO_LISTS } from "@/config/anilist/defaults.config";
 import { defaultFilters } from "@/config/anilist/filters.config";
 import { useAnilistDetail } from "@/hooks/anilist/detail.hook";
 import { useAnilistListView } from "@/hooks/anilist/listView.hook";
-import { useFavouritePeopleToggles, useSyncFavPeopleAnimeIds } from "@/hooks/anilist/people.hook";
+import { useFavouritePeopleToggles } from "@/hooks/anilist/people.hook";
 import { useAnilistRandom } from "@/hooks/anilist/random.hook";
 import { useAnilistSearch } from "@/hooks/anilist/search.hook";
 import { usePagination } from "@/hooks/pagination.hook";
-import { filterEntries, sortEntries } from "@/lib/anilist/entries.utils";
-import { activeListEntries } from "@/lib/anilist/group.utils";
 import { useSearchField } from "@/hooks/search/field.hook";
+import { filterEntries, sortEntries } from "@/lib/anilist/entries.utils";
+import { ALL_LISTS_ID, activeListEntries } from "@/lib/anilist/group.utils";
 import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import {
   pickDisplayEntries,
@@ -28,25 +27,28 @@ import { useNotificationStore } from "@/store/notification.store";
 import { useSearchStore } from "@/store/search.store";
 import { useSettingsStore } from "@/store/settings.store";
 import type {
-  AniListCollection,
+  AniFriend,
+  AniListAnime,
   AniListSort,
   AniRecommendation,
   AniUser,
   AniUserProfile,
-  FavouriteAnime,
-  FavouritePeople,
-  GlobalSort,
   AnilistRouteData,
+  FavouriteAnime,
+  GlobalSort,
 } from "@/types/anilist";
 
 import AniListDetailModalHost from "./components/anilist/detail/host.detail";
+import { useFriendAnilistData } from "./components/anilist/friend/data.friend";
 import AniListGlobalSortBar from "./components/anilist/globalSortBar.anilist";
 import AniListProfileSections from "./components/anilist/profileSections.anilist";
 import AniListResultsHost from "./components/anilist/resultsHost.anilist";
 import AniListSearchToolbar from "./components/anilist/searchToolbar.anilist";
 import AniListSecondaryModals from "./components/anilist/secondaryModals.anilist";
+import { buildAniListSource } from "./components/anilist/source.anilist";
 import SpotlightModal from "./components/anilist/spotlight/modal.spotlight";
 import AniListStateViews from "./components/anilist/stateViews.anilist";
+import { useUserAnilistData } from "./components/anilist/user/data.user";
 
 function AnilistRoute() {
   const queryClient = useQueryClient();
@@ -74,41 +76,14 @@ function AnilistRoute() {
   const [showSpotlight, setShowSpotlight] = useState(false);
   const [showFriends, setShowFriends] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [viewedFriend, setViewedFriend] = useState<AniFriend | null>(null);
 
-  const { data, isLoading } = useQuery<AnilistRouteData>({
-    queryKey: ["anilist_data"],
-    staleTime: 5 * 60 * 1000,
-    gcTime: 30 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    queryFn: async () => {
-      const user = await invokeTyped<AniUser | null>(
-        "check_anilist_auth",
-        anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl)
-      );
-      if (!user)
-        return { user: null, lists: [], favourites: [], people: { staff: [], characters: [] } };
-      const [lists, favourites, people] = await Promise.all([
-        invokeTyped<AniListCollection[]>("get_anilist_lists", {
-          userId: user.id,
-          ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
-        }),
-        invokeTyped<FavouriteAnime[]>("get_favourites", {
-          userId: user.id,
-          ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
-        }),
-        invokeTyped<FavouritePeople>("get_favourite_people", {
-          userId: user.id,
-          ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
-        }),
-      ]);
-      return { user, lists, favourites, people };
-    },
-    placeholderData: (previous) => previous,
-  });
+  const self = useUserAnilistData();
+  const friendData = useFriendAnilistData(viewedFriend);
 
-  const user = data?.user ?? null;
-  const lists = data?.lists ?? NO_LISTS;
-  const favourites = data?.favourites ?? NO_FAVOURITES;
+  const user = self.user;
+  const lists = self.lists;
+  const favourites = self.favourites;
 
   useEffect(() => {
     if (!user) return;
@@ -119,25 +94,25 @@ function AnilistRoute() {
 
   const favouriteIds = useMemo(() => new Set(favourites.map((f) => f.id)), [favourites]);
 
-  const people = routePeople(data);
+  const people = routePeople(self.data);
   const favouriteStaffIds = useMemo(() => new Set(people.staff.map((p) => p.id)), [people]);
   const favouriteCharacterIds = useMemo(
     () => new Set(people.characters.map((p) => p.id)),
     [people]
   );
-  useSyncFavPeopleAnimeIds(user, people.staff, people.characters, !!user);
-  const sharedFavPeopleIds = useSearchStore((s) => s.favPeopleAnimeIds);
-  const favPeopleAnimeIds = useMemo(() => new Set(sharedFavPeopleIds), [sharedFavPeopleIds]);
-
   useEffect(() => {
-    if (user) indexAniList(lists, favourites, user.id, favPeopleAnimeIds);
-  }, [favPeopleAnimeIds, favourites, indexAniList, lists, user]);
-  const friends = useAniListFriendsStore((state) => state.friends);
+    if (user) indexAniList(lists, favourites, user.id);
+  }, [favourites, indexAniList, lists, user]);
 
+  const friends = useAniListFriendsStore((state) => state.friends);
   const addFriend = useAniListFriendsStore((state) => state.addFriend);
   const cacheFriendProfile = useAniListFriendsStore((state) => state.cacheProfile);
   const removeFriend = useAniListFriendsStore((state) => state.removeFriend);
   const friendIds = useMemo(() => [...new Set(friends.map((friend) => friend.id))], [friends]);
+
+  useEffect(() => {
+    if (friendData.profile) cacheFriendProfile(friendData.profile);
+  }, [cacheFriendProfile, friendData.profile]);
 
   const allAnimeIds = useMemo(
     () => lists.flatMap((l) => l.entries.map((e) => e.media.id)),
@@ -224,6 +199,7 @@ function AnilistRoute() {
       people: { staff: [], characters: [] },
     });
     setCurrentList("");
+    setViewedFriend(null);
   }, [queryClient]);
 
   const {
@@ -236,8 +212,43 @@ function AnilistRoute() {
     handleRelated,
     handleDetailsClose,
   } = useAnilistDetail(lists);
+
+  const source = useMemo(
+    () =>
+      buildAniListSource({
+        entryLookup,
+        favouriteIds,
+        favourites,
+        friend: viewedFriend,
+        friendData: viewedFriend
+          ? {
+              displayFavouriteIds: friendData.displayFavouriteIds,
+              entryLookup: friendData.entryLookup,
+              favourites: friendData.favourites,
+              lists: friendData.lists,
+              profile: friendData.profile,
+            }
+          : null,
+        lists,
+        user,
+      }),
+    [
+      entryLookup,
+      favouriteIds,
+      favourites,
+      friendData.displayFavouriteIds,
+      friendData.entryLookup,
+      friendData.favourites,
+      friendData.lists,
+      friendData.profile,
+      lists,
+      user,
+      viewedFriend,
+    ]
+  );
+
   const { randomPending, handleRandomFromList, handleFilterRandom } = useAnilistRandom(
-    lists,
+    source.lists,
     currentList,
     entryLookup,
     showDetail
@@ -302,6 +313,36 @@ function AnilistRoute() {
     [addFriend, cacheFriendProfile]
   );
 
+  const openFriend = useCallback(
+    (friend: AniFriend) => {
+      setViewedFriend(friend);
+      setShowFriends(false);
+      setCurrentList(ALL_LISTS_ID);
+      setPage(1);
+      setSearchTerms("");
+      if (global) handleReset();
+    },
+    [global, handleReset, setSearchTerms]
+  );
+
+  const backToSelf = useCallback(() => {
+    setViewedFriend(null);
+    setCurrentList(ALL_LISTS_ID);
+    setPage(1);
+  }, []);
+
+  const handleSelectAnime = useCallback(
+    (anime: AniListAnime) => {
+      if (!anime) return;
+      if (source.mode === "friend") {
+        openAnimeFromLookup(anime.animeId);
+        return;
+      }
+      showDetail(anime, detailFromFilters);
+    },
+    [detailFromFilters, openAnimeFromLookup, showDetail, source.mode]
+  );
+
   const field = useSearchField({
     query: searchTerms,
     setQuery: setSearchTerms,
@@ -316,14 +357,14 @@ function AnilistRoute() {
   });
   const { deferredQuery: deferredSearchTerms } = field;
   const activeEntries = useMemo(
-    () => activeListEntries(lists, currentList),
-    [lists, currentList]
+    () => activeListEntries(source.lists, currentList),
+    [source.lists, currentList]
   );
   const filteredEntries = filterEntries(activeEntries, deferredSearchTerms, global);
   const sortedEntries = sortEntries(filteredEntries, sort.dir, sort.key);
   const displayEntries = pickDisplayEntries(global, searchResults, sortedEntries, globalSort);
   const { grouped, collapsedLists, useScrollView, effectiveDisplayMode } = useAnilistListView({
-    lists,
+    lists: source.lists,
     sort,
     searchTerms: deferredSearchTerms,
     groupByStatus,
@@ -364,9 +405,18 @@ function AnilistRoute() {
     });
   }, [setAnilistSearchQuery, setSearchTerms]);
 
+  const friendState: "loading" | "error" | null = viewedFriend
+    ? friendData.isLoading
+      ? "loading"
+      : friendData.isError
+        ? "error"
+        : null
+    : null;
+  const headerLoading = source.mode === "friend" ? friendState === "loading" : self.isLoading;
+
   return (
     <div className="flex h-full w-full flex-col gap-1">
-      {user && !isLoading && (
+      {user && !self.isLoading && source.caps.search && (
         <AniListSearchToolbar
           field={field}
           global={global}
@@ -379,11 +429,10 @@ function AnilistRoute() {
       )}
 
       <AniListProfileSections
-        user={user}
-        isLoading={isLoading}
+        source={source}
+        isLoading={headerLoading}
         isLocal={isLocal}
         global={global}
-        lists={lists}
         currentList={currentList}
         onSelectList={(name) => {
           setCurrentList(name);
@@ -408,6 +457,7 @@ function AnilistRoute() {
         onSpotlight={() => setShowSpotlight(true)}
         onFriends={() => setShowFriends(true)}
         onLogout={handleLogout}
+        onBackToSelf={backToSelf}
       />
 
       {global && searchResults.length > 0 && (
@@ -416,8 +466,9 @@ function AnilistRoute() {
 
       <AniListStateViews
         view={resolveAniListView({
-          isLoading,
-          hasLists: lists.length > 0,
+          friendState,
+          isLoading: self.isLoading,
+          hasLists: source.lists.length > 0,
           global,
           isLocal,
           hasUser: !!user,
@@ -431,9 +482,9 @@ function AnilistRoute() {
         scroll={useScrollView}
         items={displayEntries}
         pagedEntries={pagedEntries}
-        entryLookup={entryLookup}
-        favouriteIds={favouriteIds}
-        onSelect={(anime) => showDetail(anime, detailFromFilters)}
+        entryLookup={source.displayLookup}
+        favouriteIds={source.displayFavouriteIds}
+        onSelect={handleSelectAnime}
         scrollRef={scrollRef}
         showPagination={(!!user || global) && displayEntries.length > 0}
         pagination={{
@@ -478,7 +529,7 @@ function AnilistRoute() {
         onSaved={handleDetailsSaved}
       />
 
-      {showSpotlight && (
+      {showSpotlight && source.caps.modals && (
         <SpotlightModal
           hasUser={!!user}
           onDetails={openAnimeFromLookup}
@@ -487,51 +538,54 @@ function AnilistRoute() {
         />
       )}
 
-      <AniListSecondaryModals
-        entryLookup={entryLookup}
-        views={{
-          auth,
-          recs: showRecs,
-          recsLoading,
-          activity: activityHistory.open && !!user,
-          friends: showFriends && !!user,
-          favourites: showFavourites,
-          filters: showFilters,
-          stats: showStats,
-          browse: showBrowse,
-          prefetch: showPrefetch,
-        }}
-        onAuthSuccess={handleAuthSuccess}
-        onAuthClose={() => setAuth(false)}
-        recs={recs}
-        onRecsClose={() => setShowRecs(false)}
-        onRecsAnime={openAnimeFromLookup}
-        userId={user?.id ?? null}
-        friendIds={friendIds}
-        lists={lists}
-        activityTab={activityHistory.tab}
-        onActivityClose={() => setActivityHistory((s) => ({ ...s, open: false }))}
-        onActivityAnime={openAnimeFromLookup}
-        friends={friends}
-        onAddFriend={handleAddFriend}
-        onRemoveFriend={removeFriend}
-        onFriendsClose={() => setShowFriends(false)}
-        favourites={favourites}
-        onFavouritesClose={() => setShowFavourites(false)}
-        onFavouritesAnime={openAnimeFromLookup}
-        filters={searchFilters}
-        onFiltersApply={setSearchFilters}
-        onFiltersReset={() => setSearchFilters(defaultFilters)}
-        onFiltersClose={() => setShowFilters(false)}
-        onFiltersRandom={handleFilterRandom}
-        randomPending={randomPending}
-        onStatsClose={() => setShowStats(false)}
-        onStatsAnime={openAnimeFromLookup}
-        onBrowseClose={() => setShowBrowse(false)}
-        onBrowseAnime={openAnimeFromLookup}
-        animeIds={allAnimeIds}
-        onPrefetchClose={() => setShowPrefetch(false)}
-      />
+      {source.caps.modals && (
+        <AniListSecondaryModals
+          entryLookup={entryLookup}
+          views={{
+            auth,
+            recs: showRecs,
+            recsLoading,
+            activity: activityHistory.open && !!user,
+            friends: showFriends && !!user,
+            favourites: showFavourites,
+            filters: showFilters,
+            stats: showStats,
+            browse: showBrowse,
+            prefetch: showPrefetch,
+          }}
+          onAuthSuccess={handleAuthSuccess}
+          onAuthClose={() => setAuth(false)}
+          recs={recs}
+          onRecsClose={() => setShowRecs(false)}
+          onRecsAnime={openAnimeFromLookup}
+          userId={user?.id ?? null}
+          friendIds={friendIds}
+          lists={lists}
+          activityTab={activityHistory.tab}
+          onActivityClose={() => setActivityHistory((s) => ({ ...s, open: false }))}
+          onActivityAnime={openAnimeFromLookup}
+          friends={friends}
+          onAddFriend={handleAddFriend}
+          onRemoveFriend={removeFriend}
+          onViewFriendLists={openFriend}
+          onFriendsClose={() => setShowFriends(false)}
+          favourites={favourites}
+          onFavouritesClose={() => setShowFavourites(false)}
+          onFavouritesAnime={openAnimeFromLookup}
+          filters={searchFilters}
+          onFiltersApply={setSearchFilters}
+          onFiltersReset={() => setSearchFilters(defaultFilters)}
+          onFiltersClose={() => setShowFilters(false)}
+          onFiltersRandom={handleFilterRandom}
+          randomPending={randomPending}
+          onStatsClose={() => setShowStats(false)}
+          onStatsAnime={openAnimeFromLookup}
+          onBrowseClose={() => setShowBrowse(false)}
+          onBrowseAnime={openAnimeFromLookup}
+          animeIds={allAnimeIds}
+          onPrefetchClose={() => setShowPrefetch(false)}
+        />
+      )}
     </div>
   );
 }

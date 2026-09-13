@@ -3,17 +3,9 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
+import type { InputDialogProps } from "@/types/ui";
 
 import Modal from "./modal.component";
-
-interface InputDialogProps {
-  header: string;
-  label: string;
-  defaultValue?: string;
-  placeholder?: string;
-  onSubmit: (value: string) => void;
-  onClose: () => void;
-}
 
 export function InputDialog({
   header,

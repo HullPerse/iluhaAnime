@@ -159,13 +159,11 @@ describe("buildWizardItem", () => {
   });
 
   it("carries releaseDate from values and preserves it on edit", () => {
-    expect(
-      buildWizardItem(makeValues({ releaseDate: "2024-03-10" }), null, null).releaseDate
-    ).toBe("2024-03-10");
-    const initial = makeItem();
-    expect(buildWizardItem(makeValues(), null, initial).releaseDate).toBe(
-      initial.releaseDate
+    expect(buildWizardItem(makeValues({ releaseDate: "2024-03-10" }), null, null).releaseDate).toBe(
+      "2024-03-10"
     );
+    const initial = makeItem();
+    expect(buildWizardItem(makeValues(), null, initial).releaseDate).toBe(initial.releaseDate);
   });
 
   it("preserves rewatch and last-watched state from the initial item", () => {

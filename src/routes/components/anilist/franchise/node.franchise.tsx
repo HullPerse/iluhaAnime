@@ -56,7 +56,9 @@ const FranNode = memo(
           width: dims.w,
           height: dims.h,
           borderColor:
-            !isRoot && relationType ? (NODE_BORDER_COLORS[relationType] ?? "var(--color-graph-pale)") : undefined,
+            !isRoot && relationType
+              ? (NODE_BORDER_COLORS[relationType] ?? "var(--color-graph-pale)")
+              : undefined,
         }}
       >
         {isRoot && <div className="bg-secondary h-0.5 w-full shrink-0" />}
@@ -65,7 +67,9 @@ const FranNode = memo(
             className="windows95-font bg-primary flex items-center justify-center text-center text-xs break-all"
             style={{
               height: dims.imgH,
-            color: relationType ? (NODE_BORDER_COLORS[relationType] ?? "var(--color-graph-pale)") : "var(--color-graph-pale)",
+              color: relationType
+                ? (NODE_BORDER_COLORS[relationType] ?? "var(--color-graph-pale)")
+                : "var(--color-graph-pale)",
             }}
           >
             {node.title}

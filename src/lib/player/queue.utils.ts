@@ -1,5 +1,5 @@
-import type { ConvertConfig, UpscaleConfig, UpscaleQueueItem } from "@/types/upscale";
 import type { TFunc } from "@/types/i18n";
+import type { ConvertConfig, UpscaleConfig, UpscaleQueueItem } from "@/types/upscale";
 
 export interface QueueDepthStep {
   key: string;

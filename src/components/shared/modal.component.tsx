@@ -1,26 +1,14 @@
 import { Dialog } from "@base-ui/react/dialog";
 import { cn } from "cn";
 import { ChevronLeft, X } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 
 import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { useSettingsStore } from "@/store/settings.store";
+import type { ModalWindow } from "@/types/ui";
 
 import { Button } from "../ui/button.component";
-
-interface ModalWindow {
-  header: string;
-  onClose: () => void;
-  onBack?: () => void;
-  headerActions?: ReactNode;
-  className?: string;
-  contentClassName?: string;
-  hideHeader?: boolean;
-  hideBackdrop?: boolean;
-  modal?: boolean;
-  children?: ReactNode;
-}
 
 function Modal({
   header,

@@ -91,7 +91,7 @@ describe("Tabs", () => {
         ]}
         activeTab="two"
         onChange={() => {}}
-      />,
+      />
     );
     const colored = screen.getByRole("tab", { name: "One" });
     const square = colored.querySelector("span[aria-hidden='true']");

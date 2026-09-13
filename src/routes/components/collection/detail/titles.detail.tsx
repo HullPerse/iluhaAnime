@@ -2,22 +2,9 @@ import { ChevronRight } from "lucide-react";
 
 import Section from "@/components/shared/section.component";
 import { Button } from "@/components/ui/button.component";
+import { uniqueTitles } from "@/lib/collection/titles.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { useSearchStore } from "@/store/search.store";
-
-function uniqueTitles(title: string, altTitles: string[]): string[] {
-  const seen = new Set<string>();
-  const rows: string[] = [];
-  for (const raw of [title, ...altTitles]) {
-    const value = raw.trim();
-    if (!value) continue;
-    const key = value.toLowerCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    rows.push(value);
-  }
-  return rows;
-}
 
 export function TitlesCollection({
   title,

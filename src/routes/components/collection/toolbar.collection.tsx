@@ -43,7 +43,13 @@ export default function ToolbarCollection({
 
   return (
     <div className="ui-toolbar ui-panel w-full flex-row">
-      <Button onClick={handleAdd} size="icon" className="size-7" title={t("collection.add.media")} aria-label={t("collection.add.media")}>
+      <Button
+        onClick={handleAdd}
+        size="icon"
+        className="size-7"
+        title={t("collection.add.media")}
+        aria-label={t("collection.add.media")}
+      >
         <Plus className="size-5" />
       </Button>
       <Button

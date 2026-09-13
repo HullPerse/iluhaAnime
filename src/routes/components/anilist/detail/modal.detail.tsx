@@ -1,9 +1,9 @@
-import { openUrl } from "@tauri-apps/plugin-opener";
 import { useQuery } from "@tanstack/react-query";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { ExternalLink } from "lucide-react";
 import { useState } from "react";
 
-import { TrailerEmbed } from "@/components/shared/lightbox/lightbox.media";
+import { TrailerEmbed } from "@/components/shared/lightbox/trailerEmbed.media";
 import Modal from "@/components/shared/modal.component";
 import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
@@ -12,7 +12,8 @@ import { useSettingsStore } from "@/store/settings.store";
 import type { AniMedia } from "@/types/anilist";
 import type { AniDetailProps as DetailProps } from "@/types/anilist";
 
-import { CopyLinkButton, FavHeartButton } from "./actions.detail";
+import { CopyLinkButton } from "./copyLinkButton.detail";
+import { FavHeartButton } from "./favHeartButton.detail";
 import { AniListDetailView } from "./view.detail";
 
 function AniListDetailModal(props: DetailProps) {

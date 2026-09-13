@@ -8,6 +8,7 @@ import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { showError } from "@/lib/utils/notification.utils";
 import { useSettingsStore } from "@/store/settings.store";
 import type { AniListAnime, AniListCollection, AniListFilters } from "@/types/anilist";
+import { ALL_LISTS_ID, collectAllEntries } from "@/lib/anilist/group.utils";
 import type { FilterPage } from "@/types/ipc";
 
 const FILTER_RANDOM_PER_PAGE = 50;
@@ -22,10 +23,12 @@ export function useAnilistRandom(
   const [randomPending, setRandomPending] = useState(false);
   const pendingRef = useRef(false);
   const handleRandomFromList = useCallback(() => {
-    const list = lists.find((l) => l.name === currentList);
-    if (!list?.entries.length) return;
-    const idx = Math.floor(Math.random() * list.entries.length);
-    const entry = list.entries[idx];
+    const entries =
+      currentList === ALL_LISTS_ID
+        ? collectAllEntries(lists)
+        : (lists.find((l) => l.name === currentList)?.entries ?? []);
+    if (entries.length === 0) return;
+    const entry = entries[Math.floor(Math.random() * entries.length)];
     if (!entry) return;
     showDetail(
       {

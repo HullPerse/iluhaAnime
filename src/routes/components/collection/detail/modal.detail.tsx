@@ -1,4 +1,4 @@
-import { ChevronLeft, Edit2, Images, RefreshCw, X } from "lucide-react";
+import { ChevronLeft, Edit2, X } from "lucide-react";
 import { useState } from "react";
 
 import { FavPeopleStar } from "@/components/shared/favPeopleStar.component";
@@ -14,51 +14,12 @@ import { DetailActionsCollection } from "./actions.detail";
 import { DetailCoverCollection } from "./cover.detail";
 import { CreditsCollection } from "./credits.detail";
 import { DetailFactsCollection } from "./facts.detail";
+import { DetailHeaderActions } from "./headerActions.detail";
 import { SeasonsCollection } from "./seasons.detail";
 import { SimilarCollection } from "./similar.detail";
 import { SitesCollection } from "./sites.detail";
 import { TitlesCollection } from "./titles.detail";
 import { MediaViewerContent } from "./viewer.detail";
-
-function DetailHeaderActions({
-  item,
-  canOpenMedia,
-  onMedia,
-  onRefresh,
-}: {
-  item: CollectionItem;
-  canOpenMedia: boolean;
-  onMedia: () => void;
-  onRefresh: () => void;
-}) {
-  const { t } = useI18n();
-  const canRefresh = item.externalIds.anilist != null || item.externalIds.tmdb != null;
-  return (
-    <>
-      <Button
-        size="icon"
-        className="size-5"
-        onClick={onRefresh}
-        disabled={!canRefresh}
-        aria-label={t("collection.details.refresh.metadata")}
-        title={t("collection.details.refresh.metadata")}
-      >
-        <RefreshCw className="size-3" />
-      </Button>
-      {canOpenMedia ? (
-        <Button
-          size="icon"
-          className="size-5"
-          onClick={onMedia}
-          aria-label={t("collection.details.media")}
-          title={t("collection.details.media")}
-        >
-          <Images className="size-3" />
-        </Button>
-      ) : null}
-    </>
-  );
-}
 
 export function DetailCollection({
   item,

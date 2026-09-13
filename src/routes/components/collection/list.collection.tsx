@@ -7,6 +7,7 @@ import Image from "@/components/ui/image.component";
 import Select from "@/components/ui/select.component";
 import { HEADER_ESTIMATE, ROW_ESTIMATE } from "@/config/collection/card.config";
 import { useCoverCache } from "@/hooks/collection/cache.hook";
+import { rowMetaParts, sameRowVisual } from "@/lib/collection/list.utils";
 import { generatePlaceholder } from "@/lib/collection/placeholder.utils";
 import { sortStatuses, statusColorOf, statusLabel } from "@/lib/collection/status.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
@@ -42,7 +43,8 @@ export default function ListCollection({
   collapsedStatuses?: Set<string>;
   onToggleStatusCollapsed?: (statusId: string) => void;
 }) {
-  const parentRef = useRef<HTMLElement>(null);
+  const parentRef = useRef<HTMLDivElement>(null);
+  const { t, locale } = useI18n();
   const headerVariant = useSettingsStore((s) => s.collectionGroupHeaderStyle);
   const rows = useMemo<GroupedRow[] | null>(() => {
     if (!groups?.length) return null;
@@ -105,10 +107,12 @@ export default function ListCollection({
             >
               {isHeader && row ? (
                 <GroupHeaderCollection
-                  status={row.status}
+                  label={statusLabel([row.status], row.status.id, t, locale)}
+                  color={row.status.color}
                   count={groupCounts.get(row.status.id) ?? 0}
                   collapsed={Boolean(collapsedStatuses?.has(row.status.id))}
                   variant={headerVariant}
+                  toggleLabel={t("collection.group.toggle")}
                   onToggle={() => onToggleStatusCollapsed?.(row.status.id)}
                 />
               ) : item ? (
@@ -128,21 +132,7 @@ export default function ListCollection({
   );
 }
 
-function rowMetaParts(item: CollectionItem): string[] {
-  const parts: string[] = [];
-  if (item.year != null) parts.push(String(item.year));
-  if (item.studio) parts.push(item.studio);
-  const genres = item.genres.slice(0, 3).join(", ");
-  if (genres) parts.push(genres);
-  return parts;
-}
-function CollectionRowView({
-  item,
-  statuses,
-  selected,
-  onOpen,
-  onSetStatus,
-}: CollectionRowProps) {
+function CollectionRowView({ item, statuses, selected, onOpen, onSetStatus }: CollectionRowProps) {
   const { t, locale } = useI18n();
   const { cachedUrl } = useCoverCache(item.coverUrl, item.thumbBlobId ?? item.coverBlobId);
   const cover = useMemo(() => {
@@ -246,31 +236,6 @@ function CollectionRowView({
         )}
       </div>
     </div>
-  );
-}
-
-function sameRowVisual(prev: CollectionRowProps, next: CollectionRowProps): boolean {
-  const a = prev.item;
-  const b = next.item;
-  return (
-    prev.statuses === next.statuses &&
-    prev.selected === next.selected &&
-    prev.onOpen === next.onOpen &&
-    a.id === b.id &&
-    a.title === b.title &&
-    a.coverUrl === b.coverUrl &&
-    a.coverBlobId === b.coverBlobId &&
-    a.thumbBlobId === b.thumbBlobId &&
-    a.status === b.status &&
-    a.rating === b.rating &&
-    a.progressValue === b.progressValue &&
-    a.progressTotal === b.progressTotal &&
-    a.progressUnit === b.progressUnit &&
-    a.year === b.year &&
-    a.studio === b.studio &&
-    a.type === b.type &&
-    a.genres.length === b.genres.length &&
-    a.genres.every((genre, index) => genre === b.genres[index])
   );
 }
 

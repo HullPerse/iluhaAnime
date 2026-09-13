@@ -1,14 +1,6 @@
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
-import type { SearchFilters } from "@/types/search";
-
-interface QuickChip {
-  id: string;
-  label: string;
-  keywords: string;
-  active: boolean;
-  toggle: (filters: SearchFilters) => SearchFilters;
-}
+import type { SearchFilters, SearchQuickChip } from "@/types/search";
 
 export function SearchFilterChips({
   query,
@@ -20,7 +12,7 @@ export function SearchFilterChips({
   onChange: (filters: SearchFilters) => void;
 }) {
   const { t } = useI18n();
-  const chips: QuickChip[] = [
+  const chips: SearchQuickChip[] = [
     {
       id: "seeds",
       label: t("search.chips.seeds"),

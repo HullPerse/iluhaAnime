@@ -15,14 +15,13 @@ import {
 import type {
   DitherCacheEntry,
   DitherCanvasProps,
+  DitherStatus,
   DitherWorkerProgress,
   DitherWorkerRequest,
   DitherWorkerResponse,
 } from "@/types/dither";
 
 import ImageComponent from "../ui/image.component";
-
-type DitherStatus = "loading" | "ready" | "error";
 
 function DitherCanvas({
   src,

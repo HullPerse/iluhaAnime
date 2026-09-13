@@ -46,8 +46,7 @@ describe("DetailCoverCollection", () => {
     mockInvoke.mockImplementation((cmd: string) => {
       if (cmd === "download_remote_image")
         return new Promise((resolve) => (resolveDownload = resolve));
-      if (cmd === "fetch_remote_image")
-        return new Promise((resolve) => (resolveFetch = resolve));
+      if (cmd === "fetch_remote_image") return new Promise((resolve) => (resolveFetch = resolve));
       return Promise.reject(new Error(`unexpected ${cmd}`));
     });
     const { container } = render(

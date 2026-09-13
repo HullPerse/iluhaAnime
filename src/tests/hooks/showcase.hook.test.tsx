@@ -73,7 +73,10 @@ describe("useAnimeShowcase", () => {
     invokeMock.mockImplementation((cmd: string) => {
       if (cmd === "search_tmdb") return Promise.resolve([{ id: 5, media_type: "tv" }]);
       if (cmd === "get_tmdb_media")
-        return Promise.resolve({ backdrops: [{ url: "https://img/b.jpg" }], trailerYoutubeId: "tmdb1" });
+        return Promise.resolve({
+          backdrops: [{ url: "https://img/b.jpg" }],
+          trailerYoutubeId: "tmdb1",
+        });
       return Promise.resolve(null);
     });
 

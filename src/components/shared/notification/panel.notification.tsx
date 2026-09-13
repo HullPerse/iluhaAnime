@@ -3,32 +3,17 @@ import { CheckCheck, Trash2 } from "lucide-react";
 import { useMemo } from "react";
 
 import { Button } from "@/components/ui/button.component";
+import {
+  NOTIFICATION_FILTERS,
+  NOTIFICATION_FILTER_KEYS,
+} from "@/config/settings/notifications.config";
 import { useI18n } from "@/lib/locale/i18n.utils";
-import type { TranslationKey } from "@/lib/locale/i18n.utils";
 import { getVisibleNotifications } from "@/lib/utils/notification.utils";
 import type { NotificationFilter, NotificationItem } from "@/types/notification";
 import type { TorrentInfo } from "@/types/torrent";
 
 import NotificationRow from "./row.notification";
 import ActiveTorrentItem from "./torrentItem.notification";
-
-const FILTERS: readonly NotificationFilter[] = [
-  "all",
-  "info",
-  "success",
-  "warning",
-  "error",
-  "downloads",
-];
-
-const filterKeys: Record<NotificationFilter, TranslationKey> = {
-  all: "notification.filter.all",
-  downloads: "notification.filter.downloads",
-  error: "notification.filter.error",
-  info: "notification.filter.info",
-  success: "notification.filter.success",
-  warning: "notification.filter.warning",
-};
 
 export default function NotificationPanel({
   items,
@@ -51,7 +36,7 @@ export default function NotificationPanel({
   onMarkRead: (id: number) => void;
   onClear: (id: number) => void;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const visible = useMemo(() => getVisibleNotifications(items, filter), [items, filter]);
 
   return (
@@ -90,19 +75,19 @@ export default function NotificationPanel({
 
       {(items.length > 0 || activeDownloads.length > 0 || filter === "downloads") && (
         <div className="border-muted/30 bg-primary/60 flex flex-wrap gap-0.5 border-b px-1 py-0.5">
-          {FILTERS.map((f) => (
+          {NOTIFICATION_FILTERS.map((f) => (
             <button
               key={f}
               type="button"
               onClick={() => onFilterChange(f)}
-              title={t(filterKeys[f])}
+              title={t(NOTIFICATION_FILTER_KEYS[f])}
               aria-pressed={filter === f}
               className={cn(
                 "windows95-text windows95-active-border px-1 py-px text-xs select-none hover:cursor-pointer",
                 filter === f ? "bg-secondary text-white" : "bg-primary text-text hover:bg-surface"
               )}
             >
-              {t(filterKeys[f])}
+              {t(NOTIFICATION_FILTER_KEYS[f])}
             </button>
           ))}
         </div>
@@ -129,6 +114,7 @@ export default function NotificationPanel({
                 key={item.id}
                 item={item}
                 t={t}
+                locale={locale}
                 markRead={onMarkRead}
                 clear={onClear}
               />

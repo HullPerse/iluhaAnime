@@ -8,7 +8,7 @@ import { SmallLoader } from "@/components/shared/loader.component";
 import Pagination from "@/components/shared/pagination.component";
 import { Button } from "@/components/ui/button.component";
 import Select from "@/components/ui/select.component";
-import { TORRENT_PAGE_SIZE } from "@/config/torrent/common.config";
+import { NO_TORRENTS, TORRENT_PAGE_SIZE } from "@/config/torrent/common.config";
 import { useHostStats } from "@/hooks/hostStats.hook";
 import { usePagination } from "@/hooks/pagination.hook";
 import { useSearchField } from "@/hooks/search/field.hook";
@@ -34,13 +34,11 @@ import { useDeepLinkStore } from "@/store/deeplink.store";
 import { useTorrentStore } from "@/store/download.store";
 import { useNotificationStore } from "@/store/notification.store";
 import { useSettingsStore } from "@/store/settings.store";
-import type { TorrentInfo, TorrentLifecycle } from "@/types/torrent";
+import type { TorrentLifecycle } from "@/types/torrent";
 
 import TorrentItem from "./components/torrent/item.torrent";
 import AddTorrentModal from "./components/torrent/magnet.torrent";
 import SpeedLimitForm from "./components/torrent/speed.torrent";
-
-const NO_TORRENTS: TorrentInfo[] = [];
 
 function TorrentRoute() {
   const { data, isLoading: torrentsLoading } = useTorrents();
@@ -72,6 +70,7 @@ function TorrentRoute() {
   const [showMagnetModal, setShowMagnetModal] = useState(false);
   const [magnetPrefill, setMagnetPrefill] = useState<string | null>(null);
   const torrentTarget = useDeepLinkStore((state) => state.torrentTarget);
+  const magnetTarget = useDeepLinkStore((state) => state.magnetTarget);
   const [filterQuery, setFilterQuery] = useState("");
   const [sortBy, setSortBy] = useState<"name" | "size" | "progress" | "speed">("name");
   const [sortAsc, setSortAsc] = useState(true);
@@ -149,6 +148,12 @@ function TorrentRoute() {
     setShowMagnetModal(true);
     useDeepLinkStore.getState().consumeTorrent();
   }, [torrentTarget]);
+  useEffect(() => {
+    if (!magnetTarget) return;
+    setMagnetPrefill(magnetTarget);
+    setShowMagnetModal(true);
+    useDeepLinkStore.getState().consumeMagnet();
+  }, [magnetTarget]);
   const visibleIds = useMemo(() => pagedTorrents.map((t) => t.id), [pagedTorrents]);
   const { files: torrentFilesMap, errors: torrentFilesErrors } = useTorrentFilesMap(
     visibleIds,

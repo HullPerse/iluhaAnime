@@ -3,10 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import Tabs from "@/components/shared/tabs.component";
 import { Button } from "@/components/ui/button.component";
-import {
-  WIZARD_SEARCH_DEBOUNCE_MS,
-  WIZARD_TABS,
-} from "@/config/collection/defaults.config";
+import { WIZARD_SEARCH_DEBOUNCE_MS, WIZARD_TABS } from "@/config/collection/defaults.config";
 import { useDiscardGuard, useDirtySinceMount } from "@/hooks/collection/discard.hook";
 import { useWizardPick } from "@/hooks/collection/pick.hook";
 import { useCollectionData } from "@/hooks/collection/queries.hook";

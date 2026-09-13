@@ -1,4 +1,4 @@
-import { buildEntryLookup } from "@/lib/anilist/entries.utils";
+import type { EntryLookup } from "@/lib/anilist/entries.utils";
 import AniListEntryCard from "@/routes/components/anilist/card.anilist";
 import type { AniListAnime, AniMedia } from "@/types/anilist";
 
@@ -14,7 +14,7 @@ export default function AniListResults({
   pagination,
 }: {
   entries: AniMedia[];
-  entryLookup: ReturnType<typeof buildEntryLookup>;
+  entryLookup: EntryLookup;
   favouriteIds: Set<number>;
   onSelect: (anime: AniListAnime) => void;
   scrollRef: React.RefObject<HTMLElement | null>;

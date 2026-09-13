@@ -1,7 +1,16 @@
-import { describe, expect, it, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { migrateSearchState, useSearchStore } from "@/store/search.store";
 import { useSettingsStore } from "@/store/settings.store";
+import type { AniListCollection, AniListEntry, AniMedia } from "@/types/anilist";
+
+const { invokeMock } = vi.hoisted(() => ({
+  invokeMock: vi.fn<(...args: unknown[]) => Promise<unknown>>(async () => undefined),
+}));
+
+vi.mock("@tauri-apps/api/core", () => ({
+  invoke: (...args: unknown[]) => invokeMock(...args),
+}));
 
 const defaultFilters = {
   codec: "all",
@@ -134,10 +143,7 @@ describe("useSearchStore filters", () => {
 describe("migrateSearchState", () => {
   it("strips the legacy backend-owned index keys", () => {
     expect(
-      migrateSearchState(
-        { history: ["a"], animeIndex: [{ id: 1 }], animeProfileId: 7 },
-        0
-      )
+      migrateSearchState({ history: ["a"], animeIndex: [{ id: 1 }], animeProfileId: 7 }, 0)
     ).toEqual({ history: ["a"] });
   });
 
@@ -145,5 +151,69 @@ describe("migrateSearchState", () => {
     const state = { history: ["a"] };
     expect(migrateSearchState(state, 1)).toBe(state);
     expect(migrateSearchState(null, 0)).toBeNull();
+  });
+});
+
+describe("indexAniList batching", () => {
+  function makeMedia(id: number): AniMedia {
+    return {
+      cover_url: null,
+      description: null,
+      duration: 24,
+      end_date: null,
+      episodes: 12,
+      favourites: null,
+      format: "TV",
+      genres: [],
+      id,
+      next_airing_at: null,
+      next_episode: null,
+      popularity: null,
+      rankings: [],
+      relations: [],
+      score: null,
+      season: null,
+      season_year: null,
+      start_date: null,
+      status: "FINISHED",
+      studios: [],
+      tags: [],
+      title: `Anime ${id}`,
+      titles: [`Anime ${id}`, `Alt ${id}`, `Other ${id}`],
+    };
+  }
+
+  function makeEntry(id: number): AniListEntry {
+    return {
+      completed_at: null,
+      created_at: null,
+      list_status: "CURRENT",
+      media: makeMedia(id),
+      progress: null,
+      score: null,
+      started_at: null,
+      updated_at: null,
+    };
+  }
+
+  function upsertSizes(): number[] {
+    const sizes: number[] = [];
+    for (const [command, args] of invokeMock.mock.calls) {
+      if (command !== "upsert_unified_index") continue;
+      if (!args || typeof args !== "object" || !("entries" in args)) continue;
+      if (Array.isArray(args.entries)) sizes.push(args.entries.length);
+    }
+    return sizes;
+  }
+
+  it("splits a large anime index into backend-safe batches", async () => {
+    invokeMock.mockClear();
+    const lists: AniListCollection[] = [
+      { name: "Current", entries: Array.from({ length: 600 }, (_, index) => makeEntry(1000 + index)) },
+    ];
+    useSearchStore.getState().indexAniList(lists, [], 1, new Set());
+    await vi.waitFor(() => {
+      expect(upsertSizes()).toEqual([1000, 800]);
+    });
   });
 });

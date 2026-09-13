@@ -1,5 +1,4 @@
 import Select from "@/components/ui/select.component";
-
 import type { CustomFieldDef } from "@/types/collection";
 
 export function WizardCustomFieldInput({

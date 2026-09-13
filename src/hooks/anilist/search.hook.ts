@@ -1,12 +1,12 @@
 import { useCallback, useState } from "react";
 
+import { defaultFilters } from "@/config/anilist/filters.config";
 import { seasonLabels } from "@/config/anilist/labels.config";
 import { searchFiltersToParams } from "@/lib/anilist/entries.utils";
 import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
-import { defaultFilters } from "@/routes/components/anilist/filters.anilist";
 import { useSearchStore } from "@/store/search.store";
 import { useSettingsStore } from "@/store/settings.store";
 import type { AniListFilters, AniMedia, SearchMode } from "@/types/anilist";

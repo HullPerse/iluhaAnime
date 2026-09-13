@@ -1,3 +1,5 @@
+import type { ComponentProps } from "react";
+
 import type { AniListCollection, FavouriteAnime } from "./anilist";
 import type { SearchField } from "./collection";
 import type { Anime } from "./torrent";
@@ -365,4 +367,24 @@ export interface SearchQueryController {
   downloadMagnetFor: (item: Anime) => Promise<void>;
   selectedTorrent: SelectedSearchTorrent | null;
   setSelectedTorrent: (selection: SelectedSearchTorrent | null) => void;
+}
+
+export interface SearchQuickChip {
+  id: string;
+  label: string;
+  keywords: string;
+  active: boolean;
+  toggle: (filters: SearchFilters) => SearchFilters;
+}
+
+export interface AutocompleteInputProps extends ComponentProps<"input"> {
+  completion?: string | null;
+  history?: string[];
+  suggestions?: SearchSuggestion[];
+  onAcceptCompletion?: (value: string) => void;
+  onRemoveHistory?: (query: string) => void;
+  onSelectSuggestion?: (value: string) => void;
+  onDismissCompletion?: () => void;
+  highlightRanges?: readonly HighlightRange[];
+  placement?: "below" | "above";
 }

@@ -1,7 +1,12 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { enUS } from "date-fns/locale";
 
-import { translate } from "@/lib/locale/i18n.utils";
-import type { TranslationKey } from "@/lib/locale/i18n.utils";
+import { formatDistanceToNow } from "date-fns";
+
+vi.mock("date-fns", () => ({
+  formatDistanceToNow: vi.fn(() => "mocked-relative"),
+}));
+
 import {
   copyNotification,
   showError,
@@ -9,7 +14,6 @@ import {
   resolveNotificationText,
 } from "@/lib/utils/notification.utils";
 import { useNotificationStore } from "@/store/notification.store";
-import type { TranslationVariables } from "@/types/i18n";
 
 const writeTextSpy = vi.fn();
 
@@ -35,7 +39,6 @@ describe("notification helpers", () => {
   });
 });
 
-const t = (key: TranslationKey, vars?: TranslationVariables) => translate("en", key, vars);
 
 describe("copyNotification", () => {
   const item = {
@@ -80,25 +83,11 @@ describe("resolveNotificationText", () => {
 });
 
 describe("formatRelativeTime", () => {
-  const now = 1_700_000_000_000;
-
-  it("returns 'just now' for less than a minute", () => {
-    expect(formatRelativeTime(now - 5000, t, now)).toBe("just now");
-  });
-
-  it("formats minutes", () => {
-    expect(formatRelativeTime(now - 5 * 60_000, t, now)).toBe("5 min ago");
-  });
-
-  it("formats hours", () => {
-    expect(formatRelativeTime(now - 2 * 3_600_000, t, now)).toBe("2 h ago");
-  });
-
-  it("formats days", () => {
-    expect(formatRelativeTime(now - 3 * 86_400_000, t, now)).toBe("3 d ago");
-  });
-
-  it("clamps future timestamps to 'just now'", () => {
-    expect(formatRelativeTime(now + 60_000, t, now)).toBe("just now");
+  it("delegates to date-fns with the timestamp and locale", () => {
+    expect(formatRelativeTime(1_700_000_000_000, "en")).toBe("mocked-relative");
+    expect(formatDistanceToNow).toHaveBeenCalledWith(1_700_000_000_000, {
+      addSuffix: true,
+      locale: enUS,
+    });
   });
 });

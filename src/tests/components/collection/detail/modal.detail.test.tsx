@@ -86,7 +86,9 @@ describe("DetailCollection media view", () => {
       trailerYoutubeId: null,
     });
     renderModal();
-    const headerButton = await screen.findByRole("button", { name: /Кадры и трейлер|Stills and trailer/ });
+    const headerButton = await screen.findByRole("button", {
+      name: /Кадры и трейлер|Stills and trailer/,
+    });
     await user.click(headerButton);
     expect(await screen.findByText("1/1")).toBeDefined();
     expect(document.querySelector(".ui-titlebar")).not.toBeNull();

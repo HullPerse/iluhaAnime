@@ -19,9 +19,7 @@ export function PersonFavButton({
   const isFav = favouriteIds?.has(id) ?? false;
   const label = isFav ? t("anilist.details.remove.fav") : t("anilist.details.add.fav");
   const heart = (
-    <Heart
-      className={cn("size-4", isFav ? "fill-red-500 text-red-500" : "text-text")}
-    />
+    <Heart className={cn("size-4", isFav ? "fill-red-500 text-red-500" : "text-text")} />
   );
   if (labelled) {
     return (

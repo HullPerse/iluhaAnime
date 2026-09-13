@@ -1,4 +1,5 @@
-import type { ThemeDefinition } from "@/types/theme";
+import type { TranslationKey } from "@/types/i18n";
+import type { ThemeColorKey, ThemeDefinition } from "@/types/theme";
 
 export const THEMES: ThemeDefinition[] = [
   {
@@ -255,4 +256,22 @@ export const THEMES: ThemeDefinition[] = [
     label: "Terminal",
     name: "terminal",
   },
+];
+
+export const THEME_COLOR_KEYS: {
+  key: ThemeColorKey;
+  label: TranslationKey;
+}[] = [
+  { key: "background", label: "settings.theme.color.background" },
+  { key: "primary", label: "settings.theme.color.primary" },
+  { key: "secondary", label: "settings.theme.color.secondary" },
+  { key: "text", label: "settings.theme.color.text" },
+  { key: "muted", label: "settings.theme.color.muted" },
+  { key: "autocomplete", label: "settings.theme.color.autocomplete" },
+  { key: "highlight", label: "settings.theme.color.highlight" },
+  { key: "destructive", label: "settings.theme.color.destructive" },
+  { key: "success", label: "settings.theme.color.success" },
+  { key: "surface", label: "settings.theme.color.surface" },
+  { key: "winHighlight", label: "settings.theme.color.win.highlight" },
+  { key: "winShadow", label: "settings.theme.color.win.shadow" },
 ];

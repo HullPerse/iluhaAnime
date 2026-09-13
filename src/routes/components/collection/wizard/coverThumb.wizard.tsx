@@ -1,7 +1,7 @@
 import { memo, useState } from "react";
 
-import { useI18n } from "@/lib/locale/i18n.utils";
 import { useRemoteImage } from "@/hooks/remoteImage.hook";
+import { useI18n } from "@/lib/locale/i18n.utils";
 
 function CoverThumbInner({
   url,

@@ -12,7 +12,6 @@ import { readAppCache, writeAppCache } from "@/lib/store/cache.utils";
 import { reportBackgroundError } from "@/lib/utils/attempt.utils";
 import {
   DEEP_LINK_EVENT,
-  allowsPastedLink,
   ingestDeepLinks,
   isEditablePasteTarget,
   parsePastedLink,
@@ -238,6 +237,14 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
   }, [t, setActiveTabTransition]);
 
   useEffect(() => {
+    const ensureTorrentTab = (): boolean => {
+      if (!useSettingsStore.getState().torrentTabEnabled) {
+        showError(t("common.error"), t("anilist.details.link.invalid"));
+        return false;
+      }
+      if (activeTab !== "torrent") setActiveTabTransition("torrent");
+      return true;
+    };
     const handler = (event: ClipboardEvent) => {
       if (event.defaultPrevented) return;
       if (isEditablePasteTarget(event.target)) return;
@@ -251,15 +258,24 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
         }
         return;
       }
-      if (!allowsPastedLink(parsed.kind, activeTab)) return;
       event.preventDefault();
-      if (parsed.kind === "anime") useDeepLinkStore.getState().openAnime(parsed.link);
-      else useDeepLinkStore.getState().openTorrent(parsed.link);
+      if (parsed.kind === "anime") {
+        if (!useSettingsStore.getState().anilistTabEnabled) {
+          showError(t("common.error"), t("anilist.details.link.invalid"));
+          return;
+        }
+        useDeepLinkStore.getState().openAnime(parsed.link);
+      } else if (parsed.kind === "torrent") {
+        if (!ensureTorrentTab()) return;
+        useDeepLinkStore.getState().openTorrent(parsed.link);
+      } else {
+        if (!ensureTorrentTab()) return;
+        useDeepLinkStore.getState().openMagnet(parsed.magnet);
+      }
     };
     window.addEventListener("paste", handler);
     return () => window.removeEventListener("paste", handler);
-  }, [t, activeTab]);
-
+  }, [t, activeTab, setActiveTabTransition]);
   useEffect(() => {
     const switchToAnilist = () => {
       if (!useSettingsStore.getState().anilistTabEnabled) return;

@@ -1,10 +1,10 @@
-import { toLocaleKey } from "@/lib/locale/key.utils";
 import { Calendar, Star, Tv, Heart, Eye } from "lucide-react";
 
 import ImageComponent from "@/components/ui/image.component";
 import { formatLabels, seasonLabels, statusLabels } from "@/config/anilist/labels.config";
 import { useRemoteImage } from "@/hooks/remoteImage.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
+import { toLocaleKey } from "@/lib/locale/key.utils";
 import type { AniMedia } from "@/types/anilist";
 
 function AniListMetadata({
@@ -77,12 +77,11 @@ function AniListMetadata({
           </div>
         )}
 
-        {anime.start_date && (
+        {anime.end_date && (
           <div className="windows95-text flex flex-wrap gap-1 underline">
             <Calendar className="size-3" />
-            <span>
-              {anime.start_date}
-              {anime.end_date && anime.status === "FINISHED" ? ` - ${anime.end_date}` : null}
+            <span className="flex flex-row gap-1">
+              {anime.start_date} / {anime.end_date}
             </span>
           </div>
         )}

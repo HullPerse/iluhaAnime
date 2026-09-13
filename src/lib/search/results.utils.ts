@@ -1,5 +1,5 @@
-import type { Anime } from "@/types/torrent";
 import type { SearchFilters, SortDirection, SortKey } from "@/types/search";
+import type { Anime } from "@/types/torrent";
 
 import { parseSize, qualityMatch, detectLanguages } from "./format.utils";
 

@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 
-import type { TranslationKey } from "@/lib/locale/i18n.utils";
 import {
   buildCustomStatusId,
   normalizeStatusLabel,
@@ -9,6 +8,7 @@ import {
   splitStatusLabel,
   statusLabel,
 } from "@/lib/collection/status.utils";
+import type { TranslationKey } from "@/lib/locale/i18n.utils";
 import type { CollectionStatusDef } from "@/types/collection";
 
 const t = (key: TranslationKey): string => key;

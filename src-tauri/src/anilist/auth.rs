@@ -228,6 +228,72 @@ pub async fn check_anilist_auth(
         mean_score: stats["meanScore"].as_i64().map(|n| n as i32),
     }))
 }
+fn parse_list_entry(entry: &serde_json::Value) -> AniListEntry {
+    let m = &entry["media"];
+    let main_title = m["title"]["romaji"]
+        .as_str()
+        .or_else(|| m["title"]["english"].as_str())
+        .unwrap_or("Unknown");
+    AniListEntry {
+        media: AniMedia {
+            id: m["id"].as_u64().unwrap_or(0),
+            title: main_title.to_string(),
+            titles: collect_titles(m, main_title),
+            episodes: m["episodes"].as_i64().map(|n| n as i32),
+            duration: None,
+            format: None,
+            status: m["status"].as_str().unwrap_or("UNKNOWN").to_string(),
+            score: m["averageScore"].as_f64().map(|n| n.round() as i32),
+            genres: m["genres"]
+                .as_array()
+                .map(|items| {
+                    items
+                        .iter()
+                        .filter_map(serde_json::Value::as_str)
+                        .map(String::from)
+                        .collect()
+                })
+                .unwrap_or_default(),
+            tags: m["tags"]
+                .as_array()
+                .map(|items| {
+                    items
+                        .iter()
+                        .filter_map(|item| item["name"].as_str())
+                        .map(String::from)
+                        .collect()
+                })
+                .unwrap_or_default(),
+            description: None,
+            cover_url: m["coverImage"]["large"]
+                .as_str()
+                .or_else(|| m["coverImage"]["medium"].as_str())
+                .map(String::from),
+            banner_image: m["bannerImage"].as_str().map(String::from),
+            id_mal: m["idMal"].as_i64(),
+            trailer_youtube_id: None,
+            season: None,
+            season_year: None,
+            studios: vec![],
+            next_episode: m["nextAiringEpisode"]["episode"].as_i64().map(|n| n as i32),
+            next_airing_at: m["nextAiringEpisode"]["airingAt"].as_i64(),
+            start_date: parse_date(&m["startDate"]),
+            end_date: None,
+            popularity: m["popularity"].as_i64().map(|n| n as i32),
+            favourites: None,
+            rankings: vec![],
+            relations: vec![],
+        },
+        progress: entry["progress"].as_i64().map(|n| n as i32),
+        score: entry["score"].as_f64(),
+        list_status: entry["status"].as_str().unwrap_or("").to_string(),
+        created_at: entry["createdAt"].as_i64(),
+        completed_at: parse_date(&entry["completedAt"]),
+        started_at: parse_date(&entry["startedAt"]),
+        updated_at: entry["updatedAt"].as_i64(),
+    }
+}
+
 #[tauri::command]
 #[allow(non_snake_case)]
 pub async fn get_anilist_lists(
@@ -249,12 +315,14 @@ pub async fn get_anilist_lists(
                             status
                             createdAt
                             completedAt { year month day }
+                            startedAt { year month day }
                             updatedAt
                             media {
                                 id
                                 title { romaji english native }
                                 synonyms
-                                episodes, averageScore
+                                episodes, averageScore, popularity
+                                startDate { year month day }
                                 genres
                                 tags { name }
                                 coverImage { medium large }
@@ -280,76 +348,7 @@ pub async fn get_anilist_lists(
             let name = l["name"].as_str().unwrap_or("").to_string();
             let entries = l["entries"]
                 .as_array()
-                .map(|e| {
-                    e.iter()
-                        .map(|entry| {
-                            let m = &entry["media"];
-                            let main_title = m["title"]["romaji"]
-                                .as_str()
-                                .or_else(|| m["title"]["english"].as_str())
-                                .unwrap_or("Unknown");
-                            AniListEntry {
-                                media: AniMedia {
-                                    id: m["id"].as_u64().unwrap_or(0),
-                                    title: main_title.to_string(),
-                                    titles: collect_titles(m, main_title),
-                                    episodes: m["episodes"].as_i64().map(|n| n as i32),
-                                    duration: None,
-                                    format: None,
-                                    status: m["status"].as_str().unwrap_or("UNKNOWN").to_string(),
-                                    score: m["averageScore"].as_f64().map(|n| n.round() as i32),
-                                    genres: m["genres"]
-                                        .as_array()
-                                        .map(|items| {
-                                            items
-                                                .iter()
-                                                .filter_map(serde_json::Value::as_str)
-                                                .map(String::from)
-                                                .collect()
-                                        })
-                                        .unwrap_or_default(),
-                                    tags: m["tags"]
-                                        .as_array()
-                                        .map(|items| {
-                                            items
-                                                .iter()
-                                                .filter_map(|item| item["name"].as_str())
-                                                .map(String::from)
-                                                .collect()
-                                        })
-                                        .unwrap_or_default(),
-                                    description: None,
-                                    cover_url: m["coverImage"]["large"]
-                                        .as_str()
-                                        .or_else(|| m["coverImage"]["medium"].as_str())
-                                        .map(String::from),
-                                    banner_image: m["bannerImage"].as_str().map(String::from),
-                                    id_mal: m["idMal"].as_i64(),
-                                    trailer_youtube_id: None,
-                                    season: None,
-                                    season_year: None,
-                                    studios: vec![],
-                                    next_episode: m["nextAiringEpisode"]["episode"]
-                                        .as_i64()
-                                        .map(|n| n as i32),
-                                    next_airing_at: m["nextAiringEpisode"]["airingAt"].as_i64(),
-                                    start_date: None,
-                                    end_date: None,
-                                    popularity: None,
-                                    favourites: None,
-                                    rankings: vec![],
-                                    relations: vec![],
-                                },
-                                progress: entry["progress"].as_i64().map(|n| n as i32),
-                                score: entry["score"].as_f64(),
-                                list_status: entry["status"].as_str().unwrap_or("").to_string(),
-                                created_at: entry["createdAt"].as_i64(),
-                                completed_at: parse_date(&entry["completedAt"]),
-                                updated_at: entry["updatedAt"].as_i64(),
-                            }
-                        })
-                        .collect()
-                })
+                .map(|e| e.iter().map(parse_list_entry).collect())
                 .unwrap_or_default();
             AniListCollection { name, entries }
         })
@@ -404,4 +403,62 @@ pub async fn save_anilist_entry(
         return Err(format!("{:?}", json["errors"]));
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn list_entry_fixture() -> serde_json::Value {
+        serde_json::json!({
+            "progress": 12,
+            "score": 8.0,
+            "status": "CURRENT",
+            "createdAt": 1700000000,
+            "completedAt": { "year": 2024, "month": 3, "day": 9 },
+            "startedAt": { "year": 2023, "month": 5, "day": 2 },
+            "updatedAt": 1700000001,
+            "media": {
+                "id": 21,
+                "title": { "romaji": "One Piece", "english": "One Piece" },
+                "synonyms": [],
+                "episodes": 1000,
+                "averageScore": 87.4,
+                "popularity": 500000,
+                "startDate": { "year": 1999, "month": 10, "day": 20 },
+                "genres": ["Action"],
+                "tags": [{ "name": "Pirates" }],
+                "coverImage": { "large": "https://img/large.jpg", "medium": null },
+                "bannerImage": null,
+                "status": "RELEASING",
+                "nextAiringEpisode": { "episode": 1001, "airingAt": 1700000002 }
+            }
+        })
+    }
+
+    #[test]
+    fn parses_release_date_and_popularity_from_list_entries() {
+        let parsed = parse_list_entry(&list_entry_fixture());
+        assert_eq!(parsed.media.start_date.as_deref(), Some("1999-10-20"));
+        assert_eq!(parsed.media.popularity, Some(500000));
+        assert_eq!(parsed.media.title, "One Piece");
+        assert_eq!(parsed.completed_at.as_deref(), Some("2024-03-09"));
+        assert_eq!(parsed.started_at.as_deref(), Some("2023-05-02"));
+    }
+
+    #[test]
+    fn missing_release_date_and_popularity_stay_none() {
+        let mut entry = list_entry_fixture();
+        entry["media"]
+            .as_object_mut()
+            .expect("media object")
+            .remove("startDate");
+        entry["media"]
+            .as_object_mut()
+            .expect("media object")
+            .remove("popularity");
+        let parsed = parse_list_entry(&entry);
+        assert_eq!(parsed.media.start_date, None);
+        assert_eq!(parsed.media.popularity, None);
+    }
 }

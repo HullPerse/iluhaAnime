@@ -2,10 +2,7 @@ import type { ReactNode } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useI18n } from "@/lib/locale/i18n.utils";
-
-export function suffixText(suffix: ReactNode): string {
-  return typeof suffix === "string" ? suffix : "";
-}
+import { suffixText } from "@/lib/utils/format.utils";
 
 function Slider({
   wheel,

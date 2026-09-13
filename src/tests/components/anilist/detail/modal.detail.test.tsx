@@ -108,8 +108,6 @@ describe("AniListDetailModal trailer", () => {
     await screen.findByRole("button", { name: /Трейлер|Trailer/ });
     expect(document.querySelector(".lucide-chevron-left")).toBeNull();
     await user.click(screen.getByRole("button", { name: /Трейлер|Trailer/ }));
-    await vi.waitFor(() =>
-      expect(document.querySelector(".lucide-chevron-left")).not.toBeNull()
-    );
+    await vi.waitFor(() => expect(document.querySelector(".lucide-chevron-left")).not.toBeNull());
   });
 });

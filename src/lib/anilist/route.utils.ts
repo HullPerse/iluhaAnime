@@ -1,5 +1,17 @@
+import { NO_PEOPLE } from "@/config/anilist/defaults.config";
 import { sortAniMediaList, type sortEntries } from "@/lib/anilist/entries.utils";
-import type { AniListAnime, AniListViewState, AniMedia, GlobalSort } from "@/types/anilist";
+import type {
+  AniListAnime,
+  AniListViewState,
+  AnilistRouteData,
+  AniMedia,
+  FavouritePeople,
+  GlobalSort,
+} from "@/types/anilist";
+
+export function routePeople(data: AnilistRouteData | undefined): FavouritePeople {
+  return data?.people ?? NO_PEOPLE;
+}
 
 export function buildAnimeBackHandler(
   animeHistory: AniListAnime[],

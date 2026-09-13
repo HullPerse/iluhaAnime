@@ -59,11 +59,15 @@ function renderButton() {
 }
 
 async function quickAddButton(): Promise<HTMLButtonElement> {
-  return (await screen.findByRole("button", { name: /to collection|В коллекцию/ })) as HTMLButtonElement;
+  return (await screen.findByRole("button", {
+    name: /to collection|В коллекцию/,
+  })) as HTMLButtonElement;
 }
 
 async function addedButton(): Promise<HTMLButtonElement> {
-  return (await screen.findByRole("button", { name: /In collection|В коллекции/ })) as HTMLButtonElement;
+  return (await screen.findByRole("button", {
+    name: /In collection|В коллекции/,
+  })) as HTMLButtonElement;
 }
 
 describe("QuickAddButton", () => {

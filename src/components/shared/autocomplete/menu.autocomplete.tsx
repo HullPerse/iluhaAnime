@@ -1,10 +1,10 @@
 import { cn } from "cn";
 
+import { suggestionKindLabels } from "@/config/search/autocomplete.config";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import type { SearchSuggestion } from "@/lib/search/suggestions.utils";
 import type { SuggestionSection } from "@/types/search";
 
-import { suggestionKindLabels } from "./look.autocomplete";
 import { SuggestionItem } from "./suggestion.autocomplete";
 
 export function SuggestionMenu({

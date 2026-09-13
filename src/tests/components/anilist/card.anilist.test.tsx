@@ -2,10 +2,15 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import AniListEntryCard from "@/routes/components/anilist/card.anilist";
+import { useSettingsStore } from "@/store/settings.store";
 import type { AniMedia } from "@/types/anilist";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: vi.fn(),
+}));
+
+vi.mock("date-fns", () => ({
+  formatDistanceToNow: vi.fn(() => "2 years ago"),
 }));
 
 afterEach(() => cleanup());
@@ -40,7 +45,20 @@ function makeItem(overrides: Partial<AniMedia> = {}): AniMedia {
 }
 
 function lookup(score: number | null) {
-  return new Map([[21, { list_status: "CURRENT", progress: 5, score }]]);
+  return new Map([
+    [
+      21,
+      {
+        list_status: "CURRENT",
+        progress: 5,
+        score,
+        created_at: 1700000000,
+        updated_at: 1700000001,
+        completed_at: null,
+        started_at: null,
+      },
+    ],
+  ]);
 }
 
 describe("AniListEntryCard user score", () => {
@@ -65,7 +83,12 @@ describe("AniListEntryCard user score", () => {
 
   it("hides the user score badge without a list entry", () => {
     render(
-      <AniListEntryCard item={makeItem()} entryLookup={new Map()} isFavorite={false} onClick={() => {}} />
+      <AniListEntryCard
+        item={makeItem()}
+        entryLookup={new Map()}
+        isFavorite={false}
+        onClick={() => {}}
+      />
     );
     expect(screen.queryByTitle(/My score|Моя оценка/)).toBeNull();
   });
@@ -83,3 +106,64 @@ describe("AniListEntryCard user score", () => {
   });
 });
 
+describe("AniListEntryCard list date", () => {
+  it("shows the relative list date with the absolute date as tooltip", () => {
+    useSettingsStore.setState({ language: "en" });
+    render(
+      <AniListEntryCard
+        item={makeItem()}
+        entryLookup={
+          new Map([
+            [
+              21,
+              {
+                list_status: "COMPLETED",
+                progress: 12,
+                score: null,
+                created_at: 1700000000,
+                updated_at: 1700000001,
+                completed_at: "2024-03-09",
+                started_at: null,
+              },
+            ],
+          ])
+        }
+        isFavorite={false}
+        onClick={() => {}}
+      />
+    );
+    expect(screen.getByText("2 years ago")).not.toBeNull();
+    expect(screen.getByText("2 years ago").getAttribute("title")).toBe("3/9/2024");
+  });
+});
+
+describe("AniListEntryCard aired count", () => {
+  function renderCount(overrides: Partial<AniMedia>) {
+    render(
+      <AniListEntryCard
+        item={makeItem(overrides)}
+        entryLookup={new Map()}
+        isFavorite={false}
+        onClick={() => {}}
+      />
+    );
+  }
+
+  it("shows aired over total next to the progress", () => {
+    renderCount({ status: "RELEASING", next_episode: 6, episodes: 12 });
+    expect(screen.getByText("5/12")).not.toBeNull();
+  });
+
+  it("shows only the aired count when the total is unknown", () => {
+    renderCount({ status: "RELEASING", next_episode: 6, episodes: null });
+    expect(screen.getByText("5")).not.toBeNull();
+  });
+
+  it("hides the count for finished anime and without schedule", () => {
+    renderCount({ status: "FINISHED", next_episode: 13, episodes: 12 });
+    expect(screen.queryByText("12/12")).toBeNull();
+    cleanup();
+    renderCount({ status: "RELEASING", next_episode: null, episodes: 12 });
+    expect(screen.queryByText("5/12")).toBeNull();
+  });
+});

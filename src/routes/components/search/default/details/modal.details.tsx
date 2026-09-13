@@ -10,8 +10,8 @@ import { buildTorrentView } from "@/lib/torrent/details.utils";
 import { reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSettingsStore } from "@/store/settings.store";
-import type { Anime, TorrentDetails } from "@/types/torrent";
 import type { TorrentDetailsProps as Props } from "@/types/search";
+import type { Anime, TorrentDetails } from "@/types/torrent";
 
 import { TorrentDetailsBody } from "./body.details";
 

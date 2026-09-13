@@ -3,26 +3,21 @@ import { Check, Copy, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
-import type { TranslationKey } from "@/lib/locale/i18n.utils";
+import {
+  NOTIFICATION_TYPE_COLORS,
+  NOTIFICATION_TYPE_ICONS,
+} from "@/config/settings/notifications.config";
 import {
   COPIED_FEEDBACK_MS,
   copyNotification,
   formatRelativeTime,
 } from "@/lib/utils/notification.utils";
-import type { NotificationItem } from "@/types/notification";
+import type { NotificationRowProps } from "@/types/notification";
 
-import { typeColors, typeIcons } from "./look.notification";
-
-interface NotificationRowProps {
-  item: NotificationItem;
-  t: (key: TranslationKey, variables?: Record<string, string | number>) => string;
-  markRead: (id: number) => void;
-  clear: (id: number) => void;
-}
-
-export default function NotificationRow({ item, t, markRead, clear }: NotificationRowProps) {
+export default function NotificationRow({ item, t, locale, markRead, clear }: NotificationRowProps) {
   const [copied, setCopied] = useState(false);
   const timer = useRef<number | null>(null);
+  const TypeIcon = NOTIFICATION_TYPE_ICONS[item.type];
 
   useEffect(
     () => () => {
@@ -37,8 +32,7 @@ export default function NotificationRow({ item, t, markRead, clear }: Notificati
       setCopied(true);
       if (timer.current) window.clearTimeout(timer.current);
       timer.current = window.setTimeout(() => setCopied(false), COPIED_FEEDBACK_MS);
-    } catch {
-    }
+    } catch {}
   };
 
   return (
@@ -51,14 +45,16 @@ export default function NotificationRow({ item, t, markRead, clear }: Notificati
         markRead(item.id);
       }}
     >
-      <span className={cn("mt-0.5 shrink-0", typeColors[item.type])}>{typeIcons[item.type]}</span>
+      <span className={cn("mt-0.5 shrink-0", NOTIFICATION_TYPE_COLORS[item.type])}>
+        <TypeIcon className="size-2.5" />
+      </span>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1">
           <span className="windows95-text min-w-0 flex-1 truncate text-xs font-bold">
             {item.title}
           </span>
           <span className="text-hint shrink-0 text-xs">
-            {formatRelativeTime(item.timestamp, t)}
+            {formatRelativeTime(item.timestamp, locale)}
           </span>
         </div>
         {item.message && <div className="text-hint truncate text-xs">{item.message}</div>}

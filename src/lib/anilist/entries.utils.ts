@@ -22,47 +22,74 @@ export function filterEntries(entries: AniListEntry[], searchTerms: string, glob
   });
 }
 
+export const listSortKeys: AniListSort["key"][] = [
+  "title",
+  "score",
+  "myScore",
+  "progress",
+  "completed",
+  "release",
+  "status",
+];
+const MEDIA_STATUS_RANK: Record<string, number> = {
+  RELEASING: 0,
+  FINISHED: 1,
+  NOT_YET_RELEASED: 2,
+  HIATUS: 3,
+  CANCELLED: 4,
+};
+
+export const defaultListSortDir: Record<AniListSort["key"], AniListSort["dir"]> = {
+  title: "asc",
+  score: "desc",
+  myScore: "desc",
+  progress: "desc",
+  completed: "desc",
+  release: "desc",
+  status: "asc",
+};
+
 export function sortEntries(
   filtered: AniListEntry[],
   direction: AniListSort["dir"],
   method: AniListSort["key"]
 ): AniListEntry[] {
   const copy = [...filtered];
-
-  const sortMap = {
-    progress: () =>
-      copy.sort((a, b) => {
-        const d = (b.progress ?? -1) - (a.progress ?? -1);
-        return direction === "desc" ? d : -d;
-      }),
-    score: () =>
-      copy.sort((a, b) => {
-        const d = (b.media.score ?? -1) - (a.media.score ?? -1);
-        return direction === "desc" ? d : -d;
-      }),
-    myScore: () =>
-      copy.sort((a, b) => {
-        const d = (b.score ?? -1) - (a.score ?? -1);
-        return direction === "desc" ? d : -d;
-      }),
-    title: () =>
-      copy.sort((a, b) => {
-        const c = a.media.title.localeCompare(b.media.title);
-        return direction === "asc" ? c : -c;
-      }),
-  } as Record<AniListSort["key"], () => AniListEntry[]>;
-
-  return sortMap[method]();
+  const valueOf: Record<AniListSort["key"], (entry: AniListEntry) => number | string | null> = {
+    progress: (entry) => entry.progress,
+    score: (entry) => entry.media.score,
+    myScore: (entry) => entry.score,
+    title: (entry) => entry.media.title,
+    completed: (entry) => entry.completed_at,
+    release: (entry) => entry.media.start_date,
+    status: (entry) => MEDIA_STATUS_RANK[entry.media.status] ?? null,
+  };
+  const get = valueOf[method];
+  copy.sort((x, y) => {
+    const a = get(x);
+    const b = get(y);
+    const aMissing = a === null || a === undefined;
+    const bMissing = b === null || b === undefined;
+    if (aMissing && bMissing) return 0;
+    if (aMissing) return 1;
+    if (bMissing) return -1;
+    const compared =
+      typeof a === "string" ? a.localeCompare(b as string) : (a as number) - (b as number);
+    return direction === "desc" ? -compared : compared;
+  });
+  return copy;
 }
 
 export function getSortingLabel(sort: string): TranslationKey {
   const labelMap: Record<string, TranslationKey> = {
-    popularity: "anilist.sort.popularity",
+    completed: "anilist.sort.completed",
+    release: "anilist.sort.release",
     progress: "anilist.sort.progress",
     relevance: "anilist.sort.relevance",
     score: "anilist.sort.score",
     myScore: "anilist.sort.myScore",
     title: "anilist.sort.title",
+    status: "anilist.sort.status",
     year: "anilist.sort.year",
   };
 
@@ -82,21 +109,73 @@ export function getStatusColor(status: AniListEntry["list_status"]): HexType {
   return statusMap[status] ?? "#888";
 }
 
-export function buildEntryLookup(lists: AniListCollection[]) {
-  const map = new Map<
-    number,
-    { progress: number | null; score: number | null; list_status: string }
-  >();
+export interface EntryListInfo {
+  progress: number | null;
+  score: number | null;
+  list_status: string;
+  created_at: number | null;
+  updated_at: number | null;
+  completed_at: string | null;
+  started_at: string | null;
+}
+
+export type EntryLookup = Map<number, EntryListInfo>;
+
+export function buildEntryLookup(lists: AniListCollection[]): EntryLookup {
+  const map: EntryLookup = new Map();
   for (const list of lists) {
     for (const e of list.entries) {
       map.set(e.media.id, {
         list_status: e.list_status,
         progress: e.progress,
         score: e.score,
+        created_at: e.created_at,
+        updated_at: e.updated_at,
+        completed_at: e.completed_at,
+        started_at: e.started_at,
       });
     }
   }
   return map;
+}
+
+function toMs(stamp: number | null): number | null {
+  return stamp != null && Number.isFinite(stamp) && stamp > 0 ? stamp * 1000 : null;
+}
+
+export function fuzzyDateToTime(value: string | null): number | null {
+  if (!value) return null;
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
+  if (!match) return null;
+  return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3])).getTime();
+}
+
+export function entryListTime(entry: EntryListInfo | undefined): number | null {
+  if (!entry) return null;
+  if (entry.list_status === "COMPLETED")
+    return (
+      fuzzyDateToTime(entry.completed_at) ??
+      fuzzyDateToTime(entry.started_at) ??
+      toMs(entry.created_at) ??
+      toMs(entry.updated_at)
+    );
+  if (entry.list_status === "CURRENT")
+    return (
+      fuzzyDateToTime(entry.started_at) ??
+      toMs(entry.created_at) ??
+      toMs(entry.updated_at)
+    );
+  return toMs(entry.created_at) ?? toMs(entry.updated_at);
+}
+
+export function entryListDate(
+  entry: EntryListInfo | undefined,
+  locale: string,
+  fallback: string | null = null
+): string | null {
+  if (!entry) return fallback;
+  const time = entryListTime(entry);
+  return time == null ? fallback : new Date(time).toLocaleDateString(locale);
 }
 
 function emptyToNull<T>(value: T | null | undefined | ""): T | null {

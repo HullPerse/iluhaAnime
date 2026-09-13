@@ -2,16 +2,14 @@ import { Bell, BellDot } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
+import { NO_TORRENTS } from "@/config/torrent/common.config";
 import { useTorrents } from "@/hooks/torrent/queries.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { isCurrentDownload } from "@/lib/torrent/common.utils";
 import { useNotificationStore } from "@/store/notification.store";
 import type { NotificationFilter } from "@/types/notification";
-import type { TorrentInfo } from "@/types/torrent";
 
 import NotificationPanel from "./panel.notification";
-
-const EMPTY_TORRENTS: TorrentInfo[] = [];
 
 export default function NotificationTray() {
   const { items, unreadCount, markRead, markAllRead, clear, clearAll } = useNotificationStore();
@@ -19,7 +17,7 @@ export default function NotificationTray() {
   const [filter, setFilter] = useState<NotificationFilter>("all");
   const ref = useRef<HTMLDivElement>(null);
 
-  const { data: torrents = EMPTY_TORRENTS } = useTorrents(open);
+  const { data: torrents = NO_TORRENTS } = useTorrents(open);
   const activeDownloads = useMemo(() => torrents.filter(isCurrentDownload), [torrents]);
   const { t } = useI18n();
   const latest = items[0];

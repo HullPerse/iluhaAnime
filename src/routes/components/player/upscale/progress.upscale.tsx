@@ -60,7 +60,10 @@ export function UpscaleProgressPanel({
           )}
         </>
       )}
-      <HostStatsLine stats={activeItem.status === "processing" ? hostStats : null} className="windows95-text text-hint text-center text-xs" />
+      <HostStatsLine
+        stats={activeItem.status === "processing" ? hostStats : null}
+        className="windows95-text text-hint text-center text-xs"
+      />
 
       <div className="mt-1 flex flex-row justify-center gap-1">
         <Button variant="destructive" onClick={onCancel}>

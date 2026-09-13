@@ -1,22 +1,11 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
-import { sortStatuses, statusLabel } from "@/lib/collection/status.utils";
+import { STATUS_SHRINK_CLASS } from "@/config/collection/statuses.config";
+import { usePagedRow } from "@/hooks/pagedRow.hook";
+import { shrinkLevelFor, sortStatuses, statusLabel } from "@/lib/collection/status.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import type { CollectionStatus, CollectionStatusDef } from "@/types/collection";
-
-const TAB_W = 132;
-const SHRINK_AT = 16;
-const SHRINK_MIN_AT = 24;
-
-export function shrinkLevelFor(text: string): 0 | 1 | 2 {
-  if (text.length > SHRINK_MIN_AT) return 2;
-  if (text.length > SHRINK_AT) return 1;
-  return 0;
-}
-
-const SHRINK_CLASS = ["text-xs", "text-[10px]", "text-[9px]"] as const;
 
 export function StatusCollection({
   statuses,
@@ -30,9 +19,6 @@ export function StatusCollection({
   counts?: Record<string, number>;
 }) {
   const { t, locale } = useI18n();
-  const rowRef = useRef<HTMLDivElement | null>(null);
-  const [perPage, setPerPage] = useState(4);
-  const [page, setPage] = useState(0);
 
   const tabs = [
     { id: "all" as CollectionStatus | "all", label: t("collection.library.all"), color: null },
@@ -46,28 +32,8 @@ export function StatusCollection({
     0,
     tabs.findIndex((tab) => tab.id === selectedStatus)
   );
-  const pageCount = Math.max(1, Math.ceil(tabs.length / perPage));
-  const safePage = Math.min(page, pageCount - 1);
-  const visible = tabs.slice(safePage * perPage, safePage * perPage + perPage);
-
-  useEffect(() => {
-    const el = rowRef.current;
-    if (!el) return;
-    const update = () => setPerPage(Math.max(1, Math.floor((el.clientWidth + 4) / (TAB_W + 4))));
-    update();
-    if (typeof ResizeObserver === "undefined") return;
-    const observer = new ResizeObserver(update);
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
-  useEffect(() => {
-    setPage(Math.floor(selectedIndex / perPage));
-  }, [selectedIndex, perPage]);
-
-  const stepPage = (direction: 1 | -1) => {
-    setPage((safePage + direction + pageCount) % pageCount);
-  };
+  const { rowRef, start, end, stepPage } = usePagedRow(tabs.length, selectedIndex);
+  const visible = tabs.slice(start, end);
 
   return (
     <div
@@ -102,7 +68,9 @@ export function StatusCollection({
                   aria-hidden
                 />
               )}
-              <span className={`min-w-0 flex-1 truncate ${SHRINK_CLASS[shrinkLevelFor(text)]}`}>
+              <span
+                className={`min-w-0 flex-1 truncate ${STATUS_SHRINK_CLASS[shrinkLevelFor(text)]}`}
+              >
                 {text}
               </span>
             </Button>

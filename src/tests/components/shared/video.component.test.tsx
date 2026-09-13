@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import type { YouTubeAdapter } from "@videojs/youtube-video";
 import { forwardRef } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+
 import { VideoPlayer } from "@/components/shared/video/player.video";
 
 const testEngine = {};
@@ -56,15 +57,12 @@ vi.mock("@videojs/react/media/youtube-video", async () => {
   }
 
   return {
-    YouTubeVideo: forwardRef(
-      ({ src }: { src: string }, ref: React.Ref<HTMLDivElement>) => {
-        useMediaInstance(TestYouTubeAdapter);
-        return <div ref={ref} data-testid="youtube-player" data-src={src} />;
-      }
-    ),
+    YouTubeVideo: forwardRef(({ src }: { src: string }, ref: React.Ref<HTMLDivElement>) => {
+      useMediaInstance(TestYouTubeAdapter);
+      return <div ref={ref} data-testid="youtube-player" data-src={src} />;
+    }),
   };
 });
-
 
 afterEach(() => {
   cleanup();
@@ -82,7 +80,6 @@ describe("VideoPlayer", () => {
       "https://www.youtube-nocookie.com/embed/abc123"
     );
   });
-
 
   it("renders a Win95 play control", () => {
     render(<VideoPlayer youtubeId="abc123" title="Trailer" />);
@@ -182,8 +179,20 @@ describe("VideoPlayer", () => {
 
   it("lists native tracks and toggles one showing", async () => {
     testTracks = [
-      { kind: "subtitles", label: "English", language: "en", id: "1", mode: "disabled" } as TextTrack,
-      { kind: "subtitles", label: "Russian", language: "ru", id: "2", mode: "disabled" } as TextTrack,
+      {
+        kind: "subtitles",
+        label: "English",
+        language: "en",
+        id: "1",
+        mode: "disabled",
+      } as TextTrack,
+      {
+        kind: "subtitles",
+        label: "Russian",
+        language: "ru",
+        id: "2",
+        mode: "disabled",
+      } as TextTrack,
     ];
     const user = userEvent.setup();
     render(<VideoPlayer youtubeId="abc123" title="Trailer" />);

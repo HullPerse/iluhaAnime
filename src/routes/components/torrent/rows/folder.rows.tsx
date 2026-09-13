@@ -3,8 +3,8 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 import ImageComponent from "@/components/ui/image.component";
 import Select from "@/components/ui/select.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
-import { formatBytes } from "@/lib/utils/bytes.utils";
 import { collectFileIndices } from "@/lib/torrent/tree.utils";
+import { formatBytes } from "@/lib/utils/bytes.utils";
 import type { TorrentTreeNode } from "@/types/torrent";
 import type { TorrentFileInfo, FilePriority } from "@/types/torrent";
 

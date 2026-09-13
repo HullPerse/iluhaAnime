@@ -1,7 +1,7 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { cn } from "cn";
 import { openPath } from "@tauri-apps/plugin-opener";
 import { parse } from "anitomy";
+import { cn } from "cn";
 import { ChevronDown, ChevronRight, ListVideo, Monitor, EyeOff, Search, X } from "lucide-react";
 import { useState, useRef, useMemo, useCallback, type RefObject } from "react";
 

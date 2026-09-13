@@ -10,8 +10,8 @@ import ImageComponent from "@/components/ui/image.component";
 import { Input } from "@/components/ui/input.component";
 import { PICKER_ELAPSED_TICK_MS } from "@/config/torrent/common.config";
 import { useI18n } from "@/lib/locale/i18n.utils";
-import { formatBytes } from "@/lib/utils/bytes.utils";
 import { groupFilesByDirectory } from "@/lib/torrent/tree.utils";
+import { formatBytes } from "@/lib/utils/bytes.utils";
 import { formatElapsed } from "@/lib/utils/time.utils";
 import type { PickerTorrent } from "@/types/torrent";
 
@@ -177,7 +177,7 @@ function TorrentFilePicker({
                         <span className="windows95-text flex-1 truncate" title={item.displayName}>
                           {item.displayName}
                         </span>
-        <span className="text-hint shrink-0 text-xs">{formatBytes(item.size)}</span>
+                        <span className="text-hint shrink-0 text-xs">{formatBytes(item.size)}</span>
                         {conflict && (
                           <span className="text-destructive shrink-0 text-xs">
                             {t("picker.exists")}

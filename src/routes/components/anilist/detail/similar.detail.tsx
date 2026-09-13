@@ -3,16 +3,15 @@ import { Star } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import Section from "@/components/shared/section.component";
-import ImageComponent from "@/components/ui/image.component";
-import { useRemoteImage } from "@/hooks/remoteImage.hook";
+import { ANILIST_SIMILAR_LIMIT } from "@/config/anilist/detail.config";
 import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
-import { enterOrSpace } from "@/lib/utils/keyboard.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
+import { enterOrSpace } from "@/lib/utils/keyboard.utils";
 import { useSettingsStore } from "@/store/settings.store";
 import type { AniRecommendation, AniRelation, FranchiseGraph } from "@/types/anilist";
 
-const SIMILAR_LIMIT = 8;
+import { SimilarCover } from "./similarCover.detail";
 
 export function SimilarSection({
   animeId,
@@ -55,7 +54,7 @@ export function SimilarSection({
     return recs
       .filter((rec) => !excluded.has(rec.id))
       .sort((a, b) => b.recommendation_rating - a.recommendation_rating)
-      .slice(0, SIMILAR_LIMIT);
+      .slice(0, ANILIST_SIMILAR_LIMIT);
   }, [recsQuery.data, franchiseQuery.data, relations, animeId]);
 
   if (recsQuery.isLoading || franchiseQuery.isLoading) return null;
@@ -110,17 +109,5 @@ export function SimilarSection({
         </div>
       ))}
     </Section>
-  );
-}
-
-function SimilarCover({ url }: { url: string }) {
-  const src = useRemoteImage(url);
-  if (!src) return null;
-  return (
-    <ImageComponent
-      src={src}
-      alt="cover_url"
-      className="windows95-active-border h-18 w-13 shrink-0"
-    />
   );
 }

@@ -14,4 +14,7 @@ export interface DeepLinkStore {
   torrentTarget: TorrentDeepLink | null;
   openTorrent: (link: TorrentDeepLink) => void;
   consumeTorrent: () => void;
+  magnetTarget: string | null;
+  openMagnet: (magnet: string) => void;
+  consumeMagnet: () => void;
 }

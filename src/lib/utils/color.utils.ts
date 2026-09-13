@@ -7,6 +7,10 @@ export function rgbaToHex({ r, g, b, a }: RGBA, includeAlpha = false) {
   return `${hex}${toHex(Math.round(a * 255))}`;
 }
 
+export function rgbToHex([r, g, b]: readonly [number, number, number]): string {
+  return rgbaToHex({ a: 1, b, g, r }, false);
+}
+
 export function hexToRgba(hex: string): RGBA | null {
   const clean = hex.replace(/^#/, "").trim();
   if (!(clean.length === 6 || clean.length === 8)) return null;

@@ -63,9 +63,7 @@ export function AniListDetailView({
     setCrossSearchQuery(query ?? anime?.title ?? "");
     onClose();
   };
-  if (isLoading) {
-    return <TabLoader className="min-h-48 flex-1" />;
-  }
+  if (isLoading) return <TabLoader className="min-h-48 flex-1" />;
   if (isError) {
     const loginRequired = !isLoggedIn && /403/.test(String(error ?? ""));
     return (
@@ -79,9 +77,7 @@ export function AniListDetailView({
       </section>
     );
   }
-  if (!anime) {
-    return <TabLoader className="min-h-48 flex-1" />;
-  }
+  if (!anime) return <TabLoader className="min-h-48 flex-1" />;
   return (
     <section className="flex flex-col gap-2">
       <div className="flex items-start gap-2">

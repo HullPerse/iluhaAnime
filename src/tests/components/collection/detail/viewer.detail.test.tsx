@@ -52,7 +52,9 @@ const MEDIA = {
 };
 
 function renderContent(
-  props: Partial<Parameters<typeof MediaViewerContent>[0]> & { stored?: ReturnType<typeof buttonsProps>["stored"] } = {}
+  props: Partial<Parameters<typeof MediaViewerContent>[0]> & {
+    stored?: ReturnType<typeof buttonsProps>["stored"];
+  } = {}
 ) {
   const onTabChange = vi.fn();
   const view = renderWithClient(
@@ -107,7 +109,10 @@ describe("MediaViewerContent", () => {
   });
 
   it("hides the trailer tab without a trailer", async () => {
-    mockInvoke.mockResolvedValue({ backdrops: [{ url: "https://image.tmdb.org/t/p/w780/a.jpg" }], trailerYoutubeId: null });
+    mockInvoke.mockResolvedValue({
+      backdrops: [{ url: "https://image.tmdb.org/t/p/w780/a.jpg" }],
+      trailerYoutubeId: null,
+    });
     renderContent();
     expect(await screen.findByRole("tab", { name: /Кадры|Stills/ })).toBeDefined();
     expect(screen.queryByRole("tab", { name: /Трейлер|Trailer/ })).toBeNull();

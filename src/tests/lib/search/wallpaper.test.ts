@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { buildShadow, buildShadowGradients, buildWallpaperFilter } from "@/lib/search/wallpaper.utils";
+import {
+  buildShadow,
+  buildShadowGradients,
+  buildWallpaperFilter,
+} from "@/lib/search/wallpaper.utils";
 
 describe("buildWallpaperFilter", () => {
   it("renders the stored dim by default", () => {

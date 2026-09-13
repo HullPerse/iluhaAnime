@@ -7,7 +7,6 @@ vi.mock("@tauri-apps/api/core", () => ({
   invoke: vi.fn().mockReturnValue(Promise.resolve()),
 }));
 
-
 vi.mock("@tauri-apps/plugin-notification", () => ({
   isPermissionGranted: vi.fn(),
   requestPermission: vi.fn(),
@@ -57,5 +56,4 @@ describe("useTorrentStore", () => {
     const state = useTorrentStore.getState();
     expect(state.limits).toEqual({ download: null, upload: null });
   });
-
 });

@@ -285,3 +285,40 @@ describe("wallpaper effect settings v25 migration", () => {
     expect(result.wallpaperScanlines).toBe(true);
   });
 });
+
+describe("anilist list sort v26 migration", () => {
+  it("defaults the list sort to titles ascending", () => {
+    const migrate = useSettingsStore.persist.getOptions()?.migrate;
+    const result = migrate!({ language: "en" } as never, 25) as {
+      anilistListSort: { key: string; dir: string };
+    };
+    expect(result.anilistListSort).toEqual({ key: "title", dir: "asc" });
+  });
+
+  it("keeps a valid persisted list sort", () => {
+    const migrate = useSettingsStore.persist.getOptions()?.migrate;
+    const result = migrate!(
+      { language: "en", anilistListSort: { key: "progress", dir: "desc" } } as never,
+      25
+    ) as { anilistListSort: { key: string; dir: string } };
+    expect(result.anilistListSort).toEqual({ key: "progress", dir: "desc" });
+  });
+
+  it("coerces an unknown sort key or direction to the default", () => {
+    const migrate = useSettingsStore.persist.getOptions()?.migrate;
+    const badKey = migrate!(
+      { language: "en", anilistListSort: { key: "nope", dir: "desc" } } as never,
+      25
+    ) as {
+      anilistListSort: { key: string; dir: string };
+    };
+    expect(badKey.anilistListSort).toEqual({ key: "title", dir: "asc" });
+    const badDir = migrate!(
+      { language: "en", anilistListSort: { key: "title", dir: "sideways" } } as never,
+      25
+    ) as {
+      anilistListSort: { key: string; dir: string };
+    };
+    expect(badDir.anilistListSort).toEqual({ key: "title", dir: "asc" });
+  });
+});

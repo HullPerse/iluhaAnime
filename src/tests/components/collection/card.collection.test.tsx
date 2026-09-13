@@ -99,4 +99,3 @@ describe("CollectionCard interactions", () => {
     expect(root().includes("outline-2")).toBe(true);
   });
 });
-

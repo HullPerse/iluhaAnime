@@ -1,10 +1,10 @@
 import { useRef, useState } from "react";
 
+import { displayCell } from "@/lib/sqlite/row.utils";
 import { reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { isImageUrl } from "@/lib/utils/image.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { COPIED_FEEDBACK_MS } from "@/lib/utils/notification.utils";
-import { displayCell } from "@/routes/components/settings/sqlite/table/row.sqlite";
 import type { SqliteRowsPage, SqliteSelectedCell, SqliteTableInfo } from "@/types/sqlite";
 
 export function useSqliteCell(params: {

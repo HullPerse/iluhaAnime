@@ -105,7 +105,7 @@ export function TorrentFileRow({
         </div>
       )}
 
-          <span className="text-hint shrink-0">{formatBytes(file.size)}</span>
+      <span className="text-hint shrink-0">{formatBytes(file.size)}</span>
 
       {onPriorityChange && type === "torrent" && !file.completed && (
         <Select

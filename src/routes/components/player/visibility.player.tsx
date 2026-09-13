@@ -93,7 +93,6 @@ export default function PlayerVisibilityModal({
             </div>
           </section>
         )}
-
       </div>
     </Modal>
   );

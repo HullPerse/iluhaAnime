@@ -169,3 +169,18 @@ export function extractPaletteFromPixels(data: Uint8ClampedArray, count: number)
     .sort((a, b) => b.size - a.size)
     .map((entry) => entry.color);
 }
+
+export function palettesEqual(a: DitherRGB[], b: DitherRGB[]): boolean {
+  return (
+    a.length === b.length &&
+    a.every((color, i) => {
+      const other = b[i];
+      return (
+        other !== undefined &&
+        color[0] === other[0] &&
+        color[1] === other[1] &&
+        color[2] === other[2]
+      );
+    })
+  );
+}

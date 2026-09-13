@@ -2,7 +2,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { FilmstripViewer } from "@/components/shared/filmstrip.component";
+import { FilmstripViewer } from "@/components/shared/filmstrip/viewer.filmstrip";
 import { useSettingsStore } from "@/store/settings.store";
 
 vi.mock("@videojs/react/media/youtube-video", () => ({
@@ -17,12 +17,7 @@ const STILLS = ["https://img/s1.jpg", "https://img/s2.jpg", "https://img/s3.jpg"
 
 function renderViewer(props: Partial<Parameters<typeof FilmstripViewer>[0]> = {}) {
   return render(
-    <FilmstripViewer
-      stills={STILLS}
-      trailerYoutubeId="tr1"
-      trailerLabel="Trailer"
-      {...props}
-    />
+    <FilmstripViewer stills={STILLS} trailerYoutubeId="tr1" trailerLabel="Trailer" {...props} />
   );
 }
 
@@ -32,9 +27,9 @@ describe("FilmstripViewer", () => {
     renderViewer();
     const frame1 = await screen.findByRole("option", { name: /Frame 1|Кадр 1/ });
     expect(frame1.getAttribute("aria-selected")).toBe("true");
-    expect(screen.getByRole("option", { name: /Frame 3|Кадр 3/ }).getAttribute("aria-selected")).toBe(
-      "false"
-    );
+    expect(
+      screen.getByRole("option", { name: /Frame 3|Кадр 3/ }).getAttribute("aria-selected")
+    ).toBe("false");
     expect(screen.getByText("1/3")).toBeTruthy();
     expect(document.querySelector("img[src*='s1.jpg']")).not.toBeNull();
   });

@@ -14,17 +14,15 @@ import {
 import { useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown.component";
+import { DropdownMenuCheckboxItem } from "@/components/ui/dropdown/checkboxItem.dropdown";
+import { DropdownMenuContent } from "@/components/ui/dropdown/content.dropdown";
+import { DropdownMenuGroup } from "@/components/ui/dropdown/group.dropdown";
+import { DropdownMenuItem } from "@/components/ui/dropdown/item.dropdown";
+import { DropdownMenu } from "@/components/ui/dropdown/menu.dropdown";
+import { DropdownMenuRadioGroup } from "@/components/ui/dropdown/radioGroup.dropdown";
+import { DropdownMenuRadioItem } from "@/components/ui/dropdown/radioItem.dropdown";
+import { DropdownMenuSeparator } from "@/components/ui/dropdown/separator.dropdown";
+import { DropdownMenuTrigger } from "@/components/ui/dropdown/trigger.dropdown";
 import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { useCollectionStore } from "@/store/collection.store";

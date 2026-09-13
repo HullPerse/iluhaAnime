@@ -114,9 +114,7 @@ describe("parseIntent operators", () => {
   });
 
   it("parses date in year, RU, and ISO forms", () => {
-    expect(parseIntent("date=2024").dateConds).toEqual([
-      { op: "=", iso: "2024", yearOnly: true },
-    ]);
+    expect(parseIntent("date=2024").dateConds).toEqual([{ op: "=", iso: "2024", yearOnly: true }]);
     expect(parseIntent('date="31.01.2025"').dateConds).toEqual([
       { op: "=", iso: "2025-01-31", yearOnly: false },
     ]);

@@ -9,4 +9,7 @@ export const useDeepLinkStore = create<DeepLinkStore>((set) => ({
   consumeTorrent: () => set({ torrentTarget: null }),
   openTorrent: (link: TorrentDeepLink) => set({ torrentTarget: link }),
   torrentTarget: null,
+  consumeMagnet: () => set({ magnetTarget: null }),
+  openMagnet: (magnet: string) => set({ magnetTarget: magnet }),
+  magnetTarget: null,
 }));

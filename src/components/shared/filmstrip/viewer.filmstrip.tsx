@@ -1,20 +1,15 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
+import { VideoPlayer } from "@/components/shared/video/player.video";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { useRemoteImage } from "@/hooks/remoteImage.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { enterOrSpace } from "@/lib/utils/keyboard.utils";
-import { VideoPlayer } from "@/components/shared/video/player.video";
+import type { FilmstripTab } from "@/types/media";
 
-function FilmstripThumb({ src }: { src: string }) {
-  const resolved = useRemoteImage(src);
-  if (!resolved) return <span className="h-12 w-20 shrink-0 bg-black/20" />;
-  return <img src={resolved} alt="" className="h-12 w-20 object-cover" loading="lazy" />;
-}
-
-export type FilmstripTab = "frames" | "trailer";
+import { FilmstripThumb } from "./thumb.filmstrip";
 
 export function FilmstripViewer({
   stills,

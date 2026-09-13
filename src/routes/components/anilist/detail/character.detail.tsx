@@ -9,9 +9,9 @@ import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { enterOrSpace } from "@/lib/utils/keyboard.utils";
 import { useSettingsStore } from "@/store/settings.store";
 import type { AniCharacterMediaEdge, AniVoiceActor, AniStaffDetail } from "@/types/anilist";
+
 import { OverlayWindow } from "../overlayWindow.anilist";
 import { PersonFavButton } from "./favbutton.detail";
-
 
 function AniListCharacterDetailModal({
   characterId: initialId,

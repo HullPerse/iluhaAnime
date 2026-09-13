@@ -150,7 +150,6 @@ export function useFranchiseViewport(options: UseFranchiseViewportOptions = {}):
     [scheduleCamera, maxScale, minScale, wheelStep]
   );
 
-
   const handleMouseDown = useCallback((event: ReactMouseEvent) => {
     if (event.button !== 0 && event.button !== 1 && event.button !== 2) return;
     event.preventDefault();

@@ -1,7 +1,7 @@
 import { Star } from "lucide-react";
 
-import { useI18n } from "@/lib/locale/i18n.utils";
 import { useFavPeopleAnimeSet } from "@/hooks/anilist/people.hook";
+import { useI18n } from "@/lib/locale/i18n.utils";
 
 export function FavPeopleStar({
   animeId,

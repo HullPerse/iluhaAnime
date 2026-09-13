@@ -2,31 +2,13 @@ import { useEffect, useState } from "react";
 
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
-import { ColorPickerTrigger } from "@/components/ui/color.component";
+import { ColorPickerTrigger } from "@/components/ui/color/trigger.color";
 import { Input } from "@/components/ui/input.component";
 import Slider from "@/components/ui/range.component";
+import { THEME_COLOR_KEYS } from "@/config/settings/themes.config";
 import { useI18n } from "@/lib/locale/i18n.utils";
-import type { TranslationKey } from "@/lib/locale/i18n.utils";
 import { applyTheme, useThemeStore } from "@/store/theme.store";
 import type { ThemeColorKey, ThemeDefinition } from "@/types/theme";
-
-const COLOR_KEYS: {
-  key: ThemeColorKey;
-  label: TranslationKey;
-}[] = [
-  { key: "background", label: "settings.theme.color.background" },
-  { key: "primary", label: "settings.theme.color.primary" },
-  { key: "secondary", label: "settings.theme.color.secondary" },
-  { key: "text", label: "settings.theme.color.text" },
-  { key: "muted", label: "settings.theme.color.muted" },
-  { key: "autocomplete", label: "settings.theme.color.autocomplete" },
-  { key: "highlight", label: "settings.theme.color.highlight" },
-  { key: "destructive", label: "settings.theme.color.destructive" },
-  { key: "success", label: "settings.theme.color.success" },
-  { key: "surface", label: "settings.theme.color.surface" },
-  { key: "winHighlight", label: "settings.theme.color.win.highlight" },
-  { key: "winShadow", label: "settings.theme.color.win.shadow" },
-];
 
 export default function ThemeEditor({
   theme,
@@ -107,7 +89,7 @@ export default function ThemeEditor({
         </label>
 
         <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-          {COLOR_KEYS.map(({ key, label }) => (
+          {THEME_COLOR_KEYS.map(({ key, label }) => (
             <label key={key} className="windows95-text text-text flex items-center gap-2">
               <span className="w-28 shrink-0">{t(label)}</span>
               <ColorPickerTrigger

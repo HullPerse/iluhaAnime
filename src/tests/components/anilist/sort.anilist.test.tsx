@@ -1,6 +1,6 @@
-import { render } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import AniListSortBar from "@/routes/components/anilist/sort.anilist";
 import { useSettingsStore } from "@/store/settings.store";
@@ -14,53 +14,74 @@ function renderSort(overrides: Partial<React.ComponentProps<typeof AniListSortBa
     onRandom: vi.fn(),
     onSpotlight: vi.fn(),
     hasFavourites: true,
+    groupByStatus: false,
+    onGroupChange: vi.fn(),
+    displayMode: "pagination" as const,
+    onDisplayChange: vi.fn(),
   };
   return {
     ...render(<AniListSortBar {...defaultProps} {...overrides} />),
     props: defaultProps,
   };
 }
-
 beforeEach(() => {
   useSettingsStore.setState({ language: "en" });
 });
 
+afterEach(() => cleanup());
+
 describe("AniListSortBar", () => {
-  it("renders three sort toggle buttons", () => {
-    const { container } = renderSort();
-    const section = container.querySelector("section")!;
-    const buttons = section.querySelectorAll("button[data-slot='button']");
-    expect(buttons.length).toBeGreaterThanOrEqual(3);
+  it("marks the active sort key as current", () => {
+    renderSort();
+    expect(screen.getByRole("button", { name: "Title" }).getAttribute("aria-current")).toBe(
+      "true"
+    );
   });
 
-  it("calls onSortChange when a sort button is clicked", async () => {
+  it("pages through sort keys with the chevrons and wraps around", async () => {
     const user = userEvent.setup();
-    const onSortChange = vi.fn();
-    const { container } = renderSort({
-      sort: { key: "title", dir: "desc" },
-      onSortChange,
-    });
-    const section = container.querySelector("section")!;
-    const buttons = Array.from(section.querySelectorAll("button[data-slot='button']"));
-    const titleBtn = buttons.find((b) => b.textContent?.trim() === "Title");
-    expect(titleBtn).toBeTruthy();
-    await user.click(titleBtn!);
-    expect(onSortChange).toHaveBeenCalledOnce();
+    renderSort();
+    expect(screen.queryByText("Rating")).toBeNull();
+    await user.click(screen.getAllByRole("button", { name: "Next" })[0]!);
+    expect(screen.getByText("Rating")).not.toBeNull();
+    expect(screen.queryByText("Title")).toBeNull();
+    await user.click(screen.getAllByRole("button", { name: "Previous" })[0]!);
+    expect(screen.getByText("Title")).not.toBeNull();
+    await user.click(screen.getAllByRole("button", { name: "Previous" })[0]!);
+    expect(screen.getByText("Status")).not.toBeNull();
   });
 
-  it("renders the user score sort and switches to it on click", async () => {
+  it("applies the natural direction when the key changes", async () => {
     const user = userEvent.setup();
     const onSortChange = vi.fn();
-    const { container } = renderSort({
-      sort: { key: "title", dir: "desc" },
-      onSortChange,
-    });
-    const section = container.querySelector("section")!;
-    const buttons = Array.from(section.querySelectorAll("button[data-slot='button']"));
-    const myScoreBtn = buttons.find((b) => b.textContent?.trim() === "Score");
-    expect(myScoreBtn).toBeTruthy();
-    await user.click(myScoreBtn!);
-    expect(onSortChange).toHaveBeenCalledWith({ key: "myScore", dir: "desc" });
+    renderSort({ sort: { key: "title", dir: "asc" }, onSortChange });
+    const next = screen.getAllByRole("button", { name: "Next" })[0]!;
+    await user.click(next);
+    await user.click(next);
+    await user.click(next);
+    await user.click(screen.getByText("Progress"));
+    expect(onSortChange).toHaveBeenCalledWith({ key: "progress", dir: "desc" });
+  });
+
+  it("resets to ascending when switching back to titles", async () => {
+    const user = userEvent.setup();
+    const onSortChange = vi.fn();
+    renderSort({ sort: { key: "progress", dir: "desc" }, onSortChange });
+    expect(screen.getByText("Progress")).not.toBeNull();
+    const previous = screen.getAllByRole("button", { name: "Previous" })[0]!;
+    await user.click(previous);
+    await user.click(previous);
+    await user.click(previous);
+    await user.click(screen.getByText("Title"));
+    expect(onSortChange).toHaveBeenCalledWith({ key: "title", dir: "asc" });
+  });
+
+  it("toggles the direction when clicking the active key", async () => {
+    const user = userEvent.setup();
+    const onSortChange = vi.fn();
+    renderSort({ sort: { key: "title", dir: "desc" }, onSortChange });
+    await user.click(screen.getByRole("button", { name: "Title" }));
+    expect(onSortChange).toHaveBeenCalledWith({ key: "title", dir: "asc" });
   });
 
   it("calls onRandom when clicking the random button", async () => {
@@ -88,5 +109,28 @@ describe("AniListSortBar", () => {
     const favBtn = container.querySelector('button[aria-label*="Favourites"]');
     expect(favBtn).toBeTruthy();
     expect(favBtn!.getAttribute("disabled")).not.toBeNull();
+  });
+});
+
+describe("AniListSortBar view toggles", () => {
+  it("calls onGroupChange when the group toggle is clicked", async () => {
+    const user = userEvent.setup();
+    const { props } = renderSort();
+    await user.click(screen.getByRole("button", { name: "Group by status" }));
+    expect(props.onGroupChange).toHaveBeenCalledWith(true);
+  });
+
+  it("marks the group toggle pressed when grouped", () => {
+    renderSort({ groupByStatus: true });
+    expect(
+      screen.getByRole("button", { name: "Group by status" }).getAttribute("aria-pressed")
+    ).toBe("true");
+  });
+
+  it("cycles the display mode when the display toggle is clicked", async () => {
+    const user = userEvent.setup();
+    const { props } = renderSort();
+    await user.click(screen.getByRole("button", { name: "Pagination" }));
+    expect(props.onDisplayChange).toHaveBeenCalledWith("scroll");
   });
 });

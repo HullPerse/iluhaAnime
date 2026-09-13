@@ -35,4 +35,11 @@ describe("useDeepLinkStore", () => {
     useDeepLinkStore.getState().consumeTorrent();
     expect(useDeepLinkStore.getState().torrentTarget).toBeNull();
   });
+
+  it("opens and consumes a magnet target", () => {
+    useDeepLinkStore.getState().openMagnet("magnet:?xt=urn:btih:abc");
+    expect(useDeepLinkStore.getState().magnetTarget).toBe("magnet:?xt=urn:btih:abc");
+    useDeepLinkStore.getState().consumeMagnet();
+    expect(useDeepLinkStore.getState().magnetTarget).toBeNull();
+  });
 });

@@ -52,9 +52,9 @@ describe("QueuePanel retry failed", () => {
 
     await user.click(screen.getByTitle("Retry failed"));
 
-    expect(
-      useUpscaleQueueStore.getState().items.every((item) => item.status === "queued")
-    ).toBe(true);
+    expect(useUpscaleQueueStore.getState().items.every((item) => item.status === "queued")).toBe(
+      true
+    );
   });
 
   it("hides the retry button without failures", () => {

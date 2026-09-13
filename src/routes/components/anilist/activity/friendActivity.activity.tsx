@@ -1,19 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { SmallLoader } from "@/components/shared/loader.component";
+import { ACTIVITY_STATUS_LABELS } from "@/config/anilist/activity.config";
 import { formatActivityTime } from "@/lib/anilist/activity.utils";
-import { useI18n, type TranslationKey } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/lib/locale/i18n.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import type { AniActivity } from "@/types/anilist";
-
-const STATUS_LABELS: Record<string, TranslationKey> = {
-  CURRENT: "anilist.activity.status.CURRENT",
-  COMPLETED: "anilist.activity.status.COMPLETED",
-  DROPPED: "anilist.activity.status.DROPPED",
-  PLANNING: "anilist.activity.status.PLANNING",
-  PAUSED: "anilist.activity.status.PAUSED",
-  REPEATING: "anilist.activity.status.REPEATING",
-};
 
 export function FriendLatestActivity({ friendId }: { friendId: number }) {
   const { t, locale } = useI18n();
@@ -29,7 +21,7 @@ export function FriendLatestActivity({ friendId }: { friendId: number }) {
       <span className="windows95-text text-hint text-xs">{t("anilist.friends.no.activity")}</span>
     );
   }
-  const statusKey = STATUS_LABELS[latest.status ?? ""];
+  const statusKey = ACTIVITY_STATUS_LABELS[latest.status ?? ""];
   return (
     <div className="flex flex-col">
       <span className="windows95-text text-hint text-xs">{t("anilist.friends.latest")}</span>
@@ -38,7 +30,7 @@ export function FriendLatestActivity({ friendId }: { friendId: number }) {
         {latest.progress ? ` (${latest.progress})` : ""}
       </span>
       <span className="windows95-text text-hint text-xs">
-        {formatActivityTime(latest.created_at, t, locale)}
+        {formatActivityTime(latest.created_at, locale)}
       </span>
     </div>
   );

@@ -1,3 +1,4 @@
+import { KIND_ORDER } from "@/config/search/autocomplete.config";
 import { SEARCH_RANKING } from "@/config/search/ranking.config";
 import { ANIME_STATUS_BOOST } from "@/config/search/status.config";
 import { useSettingsStore } from "@/store/settings.store";
@@ -7,6 +8,7 @@ import type {
   SearchQueryStat,
   SearchSuggestion,
   SearchSuggestionOptions,
+  SuggestionSection,
 } from "@/types/search";
 
 import { isTagLikeQuery } from "./intent.utils";
@@ -292,4 +294,35 @@ export function getInlineCompletion(query: string, suggestions: SearchSuggestion
     return value.startsWith(normalizedQuery) && value !== normalizedQuery;
   });
   return suggestion?.value ?? null;
+}
+
+export function groupSuggestions(suggestions: SearchSuggestion[]): {
+  items: SearchSuggestion[];
+  sections: SuggestionSection[];
+} {
+  const groups = new Map<SearchSuggestion["kind"], SearchSuggestion[]>();
+  for (const suggestion of suggestions) {
+    const group = groups.get(suggestion.kind) ?? [];
+    group.push(suggestion);
+    groups.set(suggestion.kind, group);
+  }
+  if (groups.size === 0) return { items: [], sections: [] };
+  const order = [...groups.keys()].sort((left, right) => {
+    const leftBest = groups.get(left)?.[0]?.score ?? 0;
+    const rightBest = groups.get(right)?.[0]?.score ?? 0;
+    if (rightBest !== leftBest) return rightBest - leftBest;
+    return KIND_ORDER.indexOf(left) - KIND_ORDER.indexOf(right);
+  });
+  const items: SearchSuggestion[] = [];
+  const sections: SuggestionSection[] = [];
+  for (const kind of order) {
+    const group = groups.get(kind)!;
+    sections.push({
+      kind,
+      startIndex: items.length,
+      endIndex: items.length + group.length,
+    });
+    items.push(...group);
+  }
+  return { items, sections };
 }

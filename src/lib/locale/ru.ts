@@ -1,9 +1,10 @@
-import changelog404 from "./changelog/v4_0_4.ru";
-import changelog403 from "./changelog/v4_0_3.ru";
-import changelog402 from "./changelog/v4_0_2.ru";
-import changelog401 from "./changelog/v4_0_1.ru";
-import changelog400 from "./changelog/v4_0_0.ru";
 import changelog320 from "./changelog/v3_2_0.ru";
+import changelog400 from "./changelog/v4_0_0.ru";
+import changelog401 from "./changelog/v4_0_1.ru";
+import changelog402 from "./changelog/v4_0_2.ru";
+import changelog403 from "./changelog/v4_0_3.ru";
+import changelog404 from "./changelog/v4_0_4.ru";
+import changelog405 from "./changelog/v4_0_5.ru";
 import anilist from "./ru/anilist.locale";
 import collection from "./ru/collection.locale";
 import common from "./ru/common.locale";
@@ -15,6 +16,7 @@ import updater from "./ru/updater.locale";
 
 const ru = {
   ...anilist,
+  ...changelog405,
   ...changelog404,
   ...changelog403,
   ...changelog402,

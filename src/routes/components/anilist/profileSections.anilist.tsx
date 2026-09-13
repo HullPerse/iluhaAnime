@@ -1,13 +1,14 @@
-import { toLocaleKey } from "@/lib/locale/key.utils";
 import { useMemo } from "react";
 
-import Tabs from "@/components/shared/tabs.component";
+import { ALL_LISTS_ID, collectAllEntries } from "@/lib/anilist/group.utils";
 import { listStatusLabels } from "@/config/anilist/labels.config";
 import { getStatusColor } from "@/lib/anilist/entries.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
+import { toLocaleKey } from "@/lib/locale/key.utils";
+import AniListListsRow from "@/routes/components/anilist/lists.anilist";
 import AniListProfileHeader from "@/routes/components/anilist/header.anilist";
 import AniListSortBar from "@/routes/components/anilist/sort.anilist";
-import type { AniListCollection, AniListSort, AniUser } from "@/types/anilist";
+import type { AniListCollection, AniListEntry, AniListSort, AniUser } from "@/types/anilist";
 
 export default function AniListProfileSections({
   user,
@@ -21,6 +22,11 @@ export default function AniListProfileSections({
   sort,
   onSortChange,
   hasFavourites,
+  grouped,
+  groupByStatus,
+  onGroupChange,
+  displayMode,
+  onDisplayChange,
   onActivityFeed,
   onFavourites,
   onRandom,
@@ -41,8 +47,13 @@ export default function AniListProfileSections({
   onSelectList: (name: string) => void;
   searchTerms: string;
   sort: AniListSort;
-  onSortChange: React.Dispatch<React.SetStateAction<AniListSort>>;
+  onSortChange: (sort: AniListSort) => void;
   hasFavourites: boolean;
+  grouped: boolean;
+  groupByStatus: boolean;
+  onGroupChange: (grouped: boolean) => void;
+  displayMode: "scroll" | "pagination";
+  onDisplayChange: (mode: "scroll" | "pagination") => void;
   onActivityFeed: () => void;
   onFavourites: () => void;
   onRandom: () => void;
@@ -59,20 +70,21 @@ export default function AniListProfileSections({
   const showListBar = !!user && !global && lists.length > 0;
   const listTabs = useMemo(() => {
     const q = searchTerms.trim().toLowerCase();
-    return lists
+    const matches = (e: AniListEntry) =>
+      !q ||
+      global ||
+      e.media.title.toLowerCase().includes(q) ||
+      e.media.titles.some((title) => title.toLowerCase().includes(q));
+    const tabs: { id: string; label: string; color: string | null }[] = lists
       .filter((item) => item.entries.length > 0)
       .map((item) => {
-        const count = item.entries.filter((e) => {
-          if (!q || global) return true;
-          return (
-            e.media.title.toLowerCase().includes(q) ||
-            e.media.titles.some((title) => title.toLowerCase().includes(q))
-          );
-        }).length;
         const label = t(toLocaleKey(listStatusLabels[item.name.toUpperCase()] ?? item.name));
         const color = getStatusColor(item.name.toUpperCase());
-        return { id: item.name, label: `${label} (${count})`, color };
+        return { id: item.name, label: `${label} (${item.entries.filter(matches).length})`, color };
       });
+    const allCount = collectAllEntries(lists).filter(matches).length;
+    tabs.unshift({ id: ALL_LISTS_ID, label: `${t("anilist.lists.all")} (${allCount})`, color: null });
+    return tabs;
   }, [lists, searchTerms, global, t]);
   return (
     <>
@@ -89,13 +101,8 @@ export default function AniListProfileSections({
         />
       )}
 
-      {!isLoading && showListBar && (
-        <Tabs
-          ariaLabel={t("anilist.lists.title")}
-          tabs={listTabs}
-          activeTab={currentList}
-          onChange={onSelectList}
-        />
+      {!isLoading && showListBar && !grouped && (
+        <AniListListsRow tabs={listTabs} activeTab={currentList} onChange={onSelectList} />
       )}
 
       {showListBar && (
@@ -107,6 +114,10 @@ export default function AniListProfileSections({
           onRandom={onRandom}
           onSpotlight={onSpotlight}
           hasFavourites={hasFavourites}
+          groupByStatus={groupByStatus}
+          onGroupChange={onGroupChange}
+          displayMode={displayMode}
+          onDisplayChange={onDisplayChange}
         />
       )}
     </>

@@ -17,6 +17,8 @@ import type {
 } from "@/types/search";
 
 const MAX_LEARNING_ITEMS = SEARCH_RANKING.MAX_LEARNING_ITEMS;
+// Must stay below the backend batch cap (unified_index.rs rejects over 5_000 entries).
+const INDEX_BATCH_SIZE = 1000;
 const TTL_MS = SEARCH_RANKING.TTL_MS;
 
 const defaultFilters: SearchFilters = {
@@ -87,7 +89,12 @@ function syncUnifiedIndex(
   }>
 ): void {
   if (entries.length === 0) return;
-  invokeTyped("upsert_unified_index", { entries })
+  let chain = Promise.resolve();
+  for (let offset = 0; offset < entries.length; offset += INDEX_BATCH_SIZE) {
+    const batch = entries.slice(offset, offset + INDEX_BATCH_SIZE);
+    chain = chain.then(() => invokeTyped("upsert_unified_index", { entries: batch }));
+  }
+  chain
     .then(() => {
       if (entries.length > 100) {
         invokeTyped("optimize_unified_index").catch((error) =>

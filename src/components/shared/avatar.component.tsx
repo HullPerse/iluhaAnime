@@ -1,19 +1,9 @@
 import { cn } from "cn";
 import { useEffect, useState } from "react";
-import type { MouseEventHandler } from "react";
 
 import { assetUrl, userImageId } from "@/lib/utils/image.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
-import type { UserImageFile } from "@/types/image.userimage";
-
-interface UserImageIconProps {
-  icon: string;
-  alt?: string;
-  className?: string;
-  fallback?: string;
-  url?: string;
-  onClick?: MouseEventHandler<HTMLImageElement>;
-}
+import type { UserImageFile, UserImageIconProps } from "@/types/image.userimage";
 
 export default function UserImageIcon({
   icon,

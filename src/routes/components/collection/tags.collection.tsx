@@ -1,40 +1,12 @@
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
+import { TAG_NUMERIC_KEYS } from "@/config/collection/tags.config";
 import { clampTolerance, DEFAULT_TAG_TOLERANCES } from "@/config/search/tolerance.config";
+import { exampleFor, opsFor } from "@/lib/collection/tags.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { FILTER_KEYS } from "@/lib/search/intent.utils";
 import { useSettingsStore } from "@/store/settings.store";
-import type { TagToleranceKey } from "@/types/search";
-
-const NUMERIC_KEYS: TagToleranceKey[] = ["year", "rating", "episodes", "progress"];
-const NUMERIC_SET = new Set<string>(NUMERIC_KEYS);
-
-const EXAMPLE_BY_KEY: Record<string, string> = {
-  studio: "studio=mappa|ufotable",
-  genre: "genre=action|drama",
-  type: "type=anime|movie",
-  status: "status=watching|planned",
-  priority: "priority=high|normal",
-  provider: "provider=anilist|tmdb",
-  source: "source=tmdb|custom",
-  tag: "tag=fantasy|romance",
-};
-
-function exampleFor(key: string): string {
-  if (NUMERIC_SET.has(key))
-    return `${key}>=${key === "rating" ? "8" : key === "year" ? "2000" : "12"}`;
-  if (key === "sort") return "sort=rating:desc";
-  if (key === "date") return 'date="31.01.2025"';
-  return EXAMPLE_BY_KEY[key] ?? `${key}=action|drama`;
-}
-
-function opsFor(key: string): string {
-  if (NUMERIC_SET.has(key)) return "=, ~=, !=, >, <, >=, <=";
-  if (key === "sort") return "=";
-  if (key === "date") return "=, !=, >, <, >=, <=";
-  return "=, !=";
-}
 
 export function TagsReferenceModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { t } = useI18n();
@@ -59,7 +31,7 @@ export function TagsReferenceModal({ open, onClose }: { open: boolean; onClose: 
       </ul>
       <p className="windows95-text text-xs">{t("collection.tags.approx.title")}</p>
       <ul className="windows95-border flex flex-col gap-1 bg-white p-1">
-        {NUMERIC_KEYS.map((key) => (
+        {TAG_NUMERIC_KEYS.map((key) => (
           <li key={key} className="flex flex-row items-center gap-2 text-xs">
             <span className="windows95-text w-20 shrink-0 font-bold">{key}~=</span>
             <Input

@@ -10,6 +10,8 @@ import {
 } from "@/config/collection/card.config";
 import { useGridColumns } from "@/hooks/collection/columns.hook";
 import { buildRows } from "@/lib/collection/grid.utils";
+import { statusLabel } from "@/lib/collection/status.utils";
+import { useI18n } from "@/lib/locale/i18n.utils";
 import { useSettingsStore } from "@/store/settings.store";
 import type {
   CollectionGroup,
@@ -43,8 +45,9 @@ export function GridScrollView({
   onToggleStatusCollapsed?: (statusId: string) => void;
 }) {
   const parentRef = useRef<HTMLDivElement>(null);
-  const { columns, columnWidth } = useGridColumns(parentRef, CARD_W, ROW_GAP);
+  const { t, locale } = useI18n();
   const headerVariant = useSettingsStore((s) => s.collectionGroupHeaderStyle);
+  const { columns, columnWidth } = useGridColumns(parentRef, CARD_W, ROW_GAP);
   const rows = useMemo(
     () => (groups?.length ? buildRows(groups, columns, collapsedStatuses) : null),
     [groups, columns, collapsedStatuses]
@@ -105,10 +108,12 @@ export function GridScrollView({
             >
               {isHeader && row ? (
                 <GroupHeaderCollection
-                  status={row.status}
+                  label={statusLabel([row.status], row.status.id, t, locale)}
+                  color={row.status.color}
                   count={groupCounts.get(row.status.id) ?? 0}
                   collapsed={Boolean(collapsedStatuses?.has(row.status.id))}
                   variant={headerVariant}
+                  toggleLabel={t("collection.group.toggle")}
                   onToggle={() => onToggleStatusCollapsed?.(row.status.id)}
                 />
               ) : (

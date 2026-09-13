@@ -11,17 +11,11 @@ import { reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useNotificationStore } from "@/store/notification.store";
 import { useSettingsStore } from "@/store/settings.store";
-import type { PrefetchProgressPayload, PrefetchSummary } from "@/types/anilist";
+import type { PrefetchProgressPayload, PrefetchSnapshot, PrefetchSummary } from "@/types/anilist";
 import type { AniPrefetchProps as Props } from "@/types/anilist";
 
 import { CacheSummary } from "./cache.prefetch";
 import { RunningSummary } from "./running.prefetch";
-
-interface PrefetchSnapshot {
-  ids: number[];
-  done: number;
-  total: number;
-}
 
 export default function PrefetchRelationsModal({ animeIds, onClose }: Props) {
   const { t } = useI18n();

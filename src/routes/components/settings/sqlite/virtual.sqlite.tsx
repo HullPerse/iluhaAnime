@@ -1,10 +1,11 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useEffect, type RefObject } from "react";
 
+import { makeRowId } from "@/lib/sqlite/row.utils";
 import type { RowsTableProps } from "@/types/sqlite";
 
 import { RowsTableHead } from "./table/head.sqlite";
-import { DataRow, makeRowId } from "./table/row.sqlite";
+import { DataRow } from "./table/row.sqlite";
 
 export function VirtualRowsTable({
   columns,

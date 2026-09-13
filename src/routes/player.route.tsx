@@ -9,11 +9,13 @@ import { InlineAutocompleteInput } from "@/components/shared/autocomplete/input.
 import { ConfirmDialog } from "@/components/shared/confirm.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
+import { NO_TORRENTS } from "@/config/torrent/common.config";
 import { useDebounce } from "@/hooks/debounce.hook";
 import { usePlayerDrag } from "@/hooks/player/drag.hook";
 import { useSearchField } from "@/hooks/search/field.hook";
 import { useTorrentFilesMap, useTorrents } from "@/hooks/torrent/queries.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
+import { fingerprint } from "@/lib/player/scan.utils";
 import { buildTree, filterTreeByPaths } from "@/lib/player/tree.utils";
 import { filterTreeByHiddenPaths } from "@/lib/player/visibility.utils";
 import { reportBackgroundError } from "@/lib/utils/attempt.utils";
@@ -24,7 +26,7 @@ import { useSettingsStore } from "@/store/settings.store";
 import type { VideoFileEntry } from "@/types/fs";
 import type { ScanType, FileSearchResult } from "@/types/player";
 import type { FFMPEGStatus } from "@/types/settings";
-import type { FolderNode, TorrentInfo } from "@/types/torrent";
+import type { FolderNode } from "@/types/torrent";
 
 import CategoryView from "./components/player/category.player";
 import { DraggableFolder } from "./components/player/draggable/folder.draggable";
@@ -36,11 +38,6 @@ import { QueueStrip } from "./components/player/strip.player";
 import PlayerVisibilityModal from "./components/player/visibility.player";
 
 let scannedFingerprint: string | null = null;
-const NO_TORRENTS: TorrentInfo[] = [];
-
-function fingerprint(paths: string[], extensions: string[]): string {
-  return `${extensions.join(",")}\n${paths.join("\n")}`;
-}
 
 function PlayerRoute() {
   const { t } = useI18n();

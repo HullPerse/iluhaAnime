@@ -2,21 +2,9 @@ import { useRef, useState } from "react";
 
 import { Input } from "@/components/ui/input.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
+import type { SelectDialogProps } from "@/types/ui";
 
 import Modal from "./modal.component";
-
-interface SelectDialogOption {
-  value: string;
-  label: string;
-}
-
-interface SelectDialogProps {
-  header: string;
-  label: string;
-  options: SelectDialogOption[];
-  onSubmit: (value: string) => void;
-  onClose: () => void;
-}
 
 export function SelectDialog({ header, label, options, onSubmit, onClose }: SelectDialogProps) {
   const { t } = useI18n();

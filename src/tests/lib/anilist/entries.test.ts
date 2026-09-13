@@ -2,9 +2,14 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildEntryLookup,
+  defaultListSortDir,
+  entryListDate,
+  entryListTime,
   filterEntries,
+  fuzzyDateToTime,
   getSortingLabel,
   getStatusColor,
+  listSortKeys,
   searchFiltersToParams,
   sortAniMediaList,
   sortEntries,
@@ -43,6 +48,7 @@ function makeMedia(overrides: Partial<AniMedia> = {}): AniMedia {
 function makeEntry(overrides: Partial<AniListEntry> = {}): AniListEntry {
   return {
     completed_at: null,
+    started_at: null,
     created_at: 0,
     list_status: "CURRENT",
     media: makeMedia(),
@@ -132,19 +138,39 @@ describe("sortEntries", () => {
     expect(sortEntries(entries, "desc", "score").map((e) => e.media.score)).toEqual([9, 8, 7]);
     expect(sortEntries(entries, "asc", "score").map((e) => e.media.score)).toEqual([7, 8, 9]);
   });
-
-  it("sorts by user score with unscored entries last", () => {
+  it("sorts by user score with unscored entries last in both directions", () => {
     const scored = [
       makeEntry({ score: 5, media: makeMedia({ id: 1 }) }),
       makeEntry({ score: 9, media: makeMedia({ id: 2 }) }),
       makeEntry({ score: null, media: makeMedia({ id: 3 }) }),
     ];
     expect(sortEntries(scored, "desc", "myScore").map((e) => e.score)).toEqual([9, 5, null]);
-    expect(sortEntries(scored, "asc", "myScore").map((e) => e.score)).toEqual([null, 5, 9]);
+    expect(sortEntries(scored, "asc", "myScore").map((e) => e.score)).toEqual([5, 9, null]);
   });
 
   it("sorts by progress descending", () => {
     expect(sortEntries(entries, "desc", "progress").map((e) => e.progress)).toEqual([10, 5, 1]);
+  });
+
+
+  it("sorts by completion date with missing values last in both directions", () => {
+    const done = [
+      makeEntry({ completed_at: "2024-01-02", media: makeMedia({ id: 1 }) }),
+      makeEntry({ completed_at: null, media: makeMedia({ id: 2 }) }),
+      makeEntry({ completed_at: "2023-12-31", media: makeMedia({ id: 3 }) }),
+    ];
+    expect(sortEntries(done, "desc", "completed").map((e) => e.media.id)).toEqual([1, 3, 2]);
+    expect(sortEntries(done, "asc", "completed").map((e) => e.media.id)).toEqual([3, 1, 2]);
+  });
+
+  it("sorts by release date with missing values last", () => {
+    const media = [
+      makeEntry({ media: makeMedia({ id: 1, start_date: "2002-10-03", popularity: 1000 }) }),
+      makeEntry({ media: makeMedia({ id: 2, start_date: null, popularity: null }) }),
+      makeEntry({ media: makeMedia({ id: 3, start_date: "1999-10-20", popularity: 500000 }) }),
+    ];
+    expect(sortEntries(media, "desc", "release").map((e) => e.media.id)).toEqual([1, 3, 2]);
+    expect(sortEntries(media, "asc", "release").map((e) => e.media.id)).toEqual([3, 1, 2]);
   });
 });
 
@@ -154,10 +180,29 @@ describe("getSortingLabel", () => {
     expect(getSortingLabel("score")).toBe("anilist.sort.score");
     expect(getSortingLabel("myScore")).toBe("anilist.sort.myScore");
     expect(getSortingLabel("progress")).toBe("anilist.sort.progress");
+    expect(getSortingLabel("completed")).toBe("anilist.sort.completed");
+    expect(getSortingLabel("release")).toBe("anilist.sort.release");
+    expect(getSortingLabel("status")).toBe("anilist.sort.status");
   });
 
   it("falls back to the raw sort key", () => {
     expect(getSortingLabel("unknown")).toBe("unknown");
+  });
+});
+
+describe("defaultListSortDir", () => {
+  it("uses ascending only for titles", () => {
+    expect(defaultListSortDir.title).toBe("asc");
+    expect(defaultListSortDir.score).toBe("desc");
+    expect(defaultListSortDir.myScore).toBe("desc");
+    expect(defaultListSortDir.progress).toBe("desc");
+    expect(defaultListSortDir.completed).toBe("desc");
+    expect(defaultListSortDir.release).toBe("desc");
+    expect(defaultListSortDir.status).toBe("asc");
+  });
+
+  it("covers every list sort key", () => {
+    expect(Object.keys(defaultListSortDir).sort()).toEqual([...listSortKeys].sort());
   });
 });
 
@@ -193,6 +238,10 @@ describe("buildEntryLookup", () => {
       list_status: "CURRENT",
       progress: 3,
       score: 9,
+      created_at: 0,
+      updated_at: 0,
+      completed_at: null,
+      started_at: null,
     });
     expect(map.has(1)).toBe(false);
   });
@@ -278,6 +327,173 @@ describe("sortAniMediaList", () => {
   it("sorts by year ascending", () => {
     expect(sortAniMediaList(results, "year", "asc").map((m) => m.season_year)).toEqual([
       2002, 2004, 2013,
+    ]);
+  });
+});
+
+describe("entryListDate", () => {
+  const base = {
+    progress: null,
+    score: null,
+    created_at: 1700000000,
+    updated_at: 1700000001,
+    completed_at: null,
+    started_at: null,
+  };
+
+  it("returns null without an entry", () => {
+    expect(entryListDate(undefined, "en")).toBeNull();
+  });
+
+  it("uses the completion date for completed entries", () => {
+    expect(
+      entryListDate({ ...base, list_status: "COMPLETED", completed_at: "2024-03-09" }, "en")
+    ).toBe("3/9/2024");
+  });
+
+  it("uses the start date for watching entries", () => {
+    expect(
+      entryListDate({ ...base, list_status: "CURRENT", started_at: "2023-05-02" }, "en")
+    ).toBe("5/2/2023");
+  });
+
+  it("uses the add date for planning entries", () => {
+    expect(typeof entryListDate({ ...base, list_status: "PLANNING" }, "en")).toBe("string");
+  });
+
+  it("walks the full fallback chain before the update time", () => {
+    expect(entryListDate({ ...base, list_status: "COMPLETED" }, "en")).toBe(
+      entryListDate({ ...base, list_status: "PLANNING", updated_at: null }, "en")
+    );
+  });
+
+  it("returns null when nothing usable exists", () => {
+    expect(
+      entryListDate(
+        {
+          progress: null,
+          score: null,
+          list_status: "PLANNING",
+          created_at: null,
+          updated_at: null,
+          completed_at: null,
+          started_at: null,
+        },
+        "en"
+      )
+    ).toBeNull();
+  });
+});
+
+describe("entryListDate fallback", () => {
+  it("uses the fallback when the entry is missing", () => {
+    expect(entryListDate(undefined, "en", "1999-10-20")).toBe("1999-10-20");
+  });
+
+  it("uses the fallback when no status date exists", () => {
+    expect(
+      entryListDate(
+        {
+          progress: null,
+          score: null,
+          list_status: "COMPLETED",
+          created_at: null,
+          updated_at: null,
+          completed_at: null,
+          started_at: null,
+        },
+        "en",
+        "1999-10-20"
+      )
+    ).toBe("1999-10-20");
+  });
+});
+
+describe("entryListTime", () => {
+  const base = {
+    progress: null,
+    score: null,
+    created_at: 1700000000,
+    updated_at: 1700000001,
+    completed_at: null,
+    started_at: null,
+  };
+
+  it("returns null without an entry", () => {
+    expect(entryListTime(undefined)).toBeNull();
+  });
+
+  it("uses the completion date for completed entries", () => {
+    expect(
+      entryListTime({ ...base, list_status: "COMPLETED", completed_at: "2024-03-09" })
+    ).toBe(new Date(2024, 2, 9).getTime());
+  });
+
+  it("uses the start date for watching entries", () => {
+    expect(entryListTime({ ...base, list_status: "CURRENT", started_at: "2023-05-02" })).toBe(
+      new Date(2023, 4, 2).getTime()
+    );
+  });
+
+  it("uses unix timestamps in milliseconds otherwise", () => {
+    expect(entryListTime({ ...base, list_status: "PLANNING" })).toBe(1700000000000);
+    expect(entryListTime({ ...base, list_status: "COMPLETED" })).toBe(1700000000000);
+  });
+
+  it("prefers start and add dates over the update time", () => {
+    expect(
+      entryListTime({ ...base, list_status: "COMPLETED", started_at: "2023-05-02" })
+    ).toBe(new Date(2023, 4, 2).getTime());
+    expect(entryListTime({ ...base, list_status: "CURRENT", updated_at: null })).toBe(
+      1700000000000
+    );
+  });
+
+  it("returns null when nothing usable exists", () => {
+    expect(
+      entryListTime({
+        progress: null,
+        score: null,
+        list_status: "PLANNING",
+        created_at: null,
+        updated_at: null,
+        completed_at: null,
+        started_at: null,
+      })
+    ).toBeNull();
+  });
+});
+
+describe("fuzzyDateToTime", () => {
+  it("parses full dates as local midnight", () => {
+    expect(fuzzyDateToTime("2024-03-09")).toBe(new Date(2024, 2, 9).getTime());
+  });
+
+  it("rejects empty and malformed values", () => {
+    expect(fuzzyDateToTime(null)).toBeNull();
+    expect(fuzzyDateToTime("")).toBeNull();
+    expect(fuzzyDateToTime("March 2024")).toBeNull();
+  });
+});
+
+describe("sortEntries by media status", () => {
+  const byStatus = (status: string, id: number) =>
+    makeEntry({ media: makeMedia({ id, status }) });
+  const entries = [
+    byStatus("CANCELLED", 1),
+    byStatus("NOT_YET_RELEASED", 2),
+    byStatus("RELEASING", 3),
+    byStatus("FINISHED", 4),
+    byStatus("HIATUS", 5),
+  ];
+
+  it("orders releasing first and cancelled last ascending", () => {
+    expect(sortEntries(entries, "asc", "status").map((e) => e.media.id)).toEqual([3, 4, 2, 5, 1]);
+  });
+
+  it("reverses the order descending", () => {
+    expect(sortEntries(entries, "desc", "status").map((e) => e.media.id)).toEqual([
+      1, 5, 2, 4, 3,
     ]);
   });
 });

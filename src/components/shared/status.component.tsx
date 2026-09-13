@@ -1,13 +1,11 @@
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useEffect, useState } from "react";
 
+import { AUTHOR_GITHUB_URL, PROJECT_GITHUB_URL } from "@/config/settings/links.config";
 import { useTorrents } from "@/hooks/torrent/queries.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { isCurrentDownload } from "@/lib/torrent/common.utils";
 import { useNotificationStore } from "@/store/notification.store";
-
-const PROJECT_GITHUB_URL = "https://github.com/HullPerse/iluhaAnime";
-const AUTHOR_GITHUB_URL = "https://github.com/HullPerse";
 
 export default function StatusBar({ tabLabel }: { tabLabel: string }) {
   const { t } = useI18n();

@@ -7,11 +7,13 @@ import {
   DEFAULT_WALLPAPER_FILTERS,
   DEFAULT_WALLPAPER_SHADOW,
 } from "@/config/settings/defaults.config";
+import { listSortKeys } from "@/lib/anilist/entries.utils";
 import { detectSystemLocale } from "@/lib/locale/system.utils";
 import { normalizePlayerPath } from "@/lib/player/visibility.utils";
 import { reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { applyFontFamily, DEFAULT_FONT_FAMILY } from "@/lib/utils/font.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
+import type { AniListSort } from "@/types/anilist";
 import type { SettingsStore } from "@/types/settings";
 
 function cleanupLegacyFlags(
@@ -325,6 +327,30 @@ function applySettingsV25(
   return migrated;
 }
 
+function applySettingsV26(
+  migrated: Partial<SettingsStore>,
+  version: number
+): Partial<SettingsStore> {
+  if (version >= 26) return migrated;
+  const sort = migrated.anilistListSort as AniListSort | undefined;
+  if (!sort || !listSortKeys.includes(sort.key) || (sort.dir !== "asc" && sort.dir !== "desc")) {
+    migrated.anilistListSort = { ...DEFAULT_SETTINGS.anilistListSort };
+  }
+  return migrated;
+}
+
+function applySettingsV27(
+  migrated: Partial<SettingsStore>,
+  version: number
+): Partial<SettingsStore> {
+  if (version >= 27) return migrated;
+  if (migrated.anilistGroupByStatus === undefined) migrated.anilistGroupByStatus = false;
+  if (!Array.isArray(migrated.anilistCollapsedLists)) migrated.anilistCollapsedLists = [];
+  if (migrated.anilistDisplayMode !== "scroll" && migrated.anilistDisplayMode !== "pagination")
+    migrated.anilistDisplayMode = "pagination";
+  return migrated;
+}
+
 function drainTmdbPendingKey(state: SettingsStore): void {
   const pending = state.tmdbPendingKey;
   if (!pending) return;
@@ -451,6 +477,8 @@ export const useSettingsStore = create<SettingsStore>()(
         migrated = applySettingsV23(migrated, version);
         migrated = applySettingsV24(migrated, version);
         migrated = applySettingsV25(migrated, version);
+        migrated = applySettingsV26(migrated, version);
+        migrated = applySettingsV27(migrated, version);
         return migrated;
       },
       onRehydrateStorage: () => (state) => {
@@ -460,7 +488,7 @@ export const useSettingsStore = create<SettingsStore>()(
           drainTmdbPendingKey(state);
         }
       },
-      version: 25,
+      version: 27,
     }
   )
 );

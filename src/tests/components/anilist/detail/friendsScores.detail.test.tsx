@@ -40,6 +40,7 @@ function listsWithScore(animeId: number, score: number | null) {
           list_status: "CURRENT",
           created_at: null,
           completed_at: null,
+          started_at: null,
           updated_at: null,
         },
       ],
@@ -54,7 +55,7 @@ function renderSection(animeId = 21) {
   return render(
     <QueryClientProvider client={queryClient}>
       <FriendsScoresSection animeId={animeId} />
-    </QueryClientProvider>,
+    </QueryClientProvider>
   );
 }
 
@@ -74,7 +75,10 @@ describe("FriendsScoresSection", () => {
     mockInvoke.mockImplementation((...call: unknown[]) => {
       const args = call[1];
       const userId =
-        typeof args === "object" && args !== null && "userId" in args && typeof args.userId === "number"
+        typeof args === "object" &&
+        args !== null &&
+        "userId" in args &&
+        typeof args.userId === "number"
           ? args.userId
           : 0;
       if (userId === 7) return Promise.resolve(listsWithScore(21, 9));
@@ -101,7 +105,10 @@ describe("FriendsScoresSection", () => {
     mockInvoke.mockImplementation((...call: unknown[]) => {
       const args = call[1];
       const userId =
-        typeof args === "object" && args !== null && "userId" in args && typeof args.userId === "number"
+        typeof args === "object" &&
+        args !== null &&
+        "userId" in args &&
+        typeof args.userId === "number"
           ? args.userId
           : 0;
       if (userId === 7) return Promise.resolve(listsWithScore(21, 8));

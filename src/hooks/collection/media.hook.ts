@@ -6,7 +6,6 @@ import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSettingsStore } from "@/store/settings.store";
 import type { ViewerMedia } from "@/types/collection";
 
-
 export function useCollectionMedia(
   tmdbId: number | null,
   anilistId: number | null,

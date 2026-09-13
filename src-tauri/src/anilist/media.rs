@@ -76,6 +76,7 @@ pub struct AniListEntry {
     pub list_status: String,
     pub created_at: Option<i64>,
     pub completed_at: Option<String>,
+    pub started_at: Option<String>,
     pub updated_at: Option<i64>,
 }
 

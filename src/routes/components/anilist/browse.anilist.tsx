@@ -1,4 +1,3 @@
-import { toLocaleKey } from "@/lib/locale/key.utils";
 import { useQuery } from "@tanstack/react-query";
 import { Star } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -9,6 +8,7 @@ import Modal from "@/components/shared/modal.component";
 import Pagination from "@/components/shared/pagination.component";
 import Tabs from "@/components/shared/tabs.component";
 import ImageComponent from "@/components/ui/image.component";
+import { BROWSE_SORT_MAP, BROWSE_TABS } from "@/config/anilist/browse.config";
 import { BROWSE_GENRE_COUNT } from "@/config/anilist/filters.config";
 import { listStatusLabels, seasonLabels, statusLabels } from "@/config/anilist/labels.config";
 import { BROWSE_PAGE_SIZE } from "@/config/anilist/pagination.config";
@@ -16,23 +16,11 @@ import { usePagination } from "@/hooks/pagination.hook";
 import { getStatusColor } from "@/lib/anilist/entries.utils";
 import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
-import type { TranslationKey } from "@/lib/locale/i18n.utils";
+import { toLocaleKey } from "@/lib/locale/key.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { paginate } from "@/lib/utils/pagination.utils";
 import { useSettingsStore } from "@/store/settings.store";
 import type { AniMedia, BrowseTab } from "@/types/anilist";
-
-const tabs: { id: BrowseTab; key: TranslationKey }[] = [
-  { id: "popular", key: "anilist.browse.popular" },
-  { id: "trending", key: "anilist.browse.trending" },
-  { id: "top", key: "anilist.browse.top" },
-];
-
-const SORT_MAP: Record<BrowseTab, string[]> = {
-  popular: ["POPULARITY_DESC"],
-  trending: ["TRENDING_DESC"],
-  top: ["SCORE_DESC"],
-};
 
 export default function BrowseAnimeModal({
   onClose,
@@ -60,7 +48,7 @@ export default function BrowseAnimeModal({
     queryFn: () =>
       invokeTyped<AniMedia[]>("search_anilist", {
         query: null,
-        sort: SORT_MAP[activeTab],
+        sort: BROWSE_SORT_MAP[activeTab],
         adult: false,
         ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
       }),
@@ -76,13 +64,13 @@ export default function BrowseAnimeModal({
 
   return (
     <Modal
-      header={t(tabs.find((tab) => tab.id === activeTab)?.key ?? tabs[0].key)}
+      header={t(BROWSE_TABS.find((tab) => tab.id === activeTab)?.key ?? BROWSE_TABS[0].key)}
       onClose={onClose}
       className="w-3xl"
     >
       <Tabs
         ariaLabel={t("common.sections")}
-        tabs={tabs.map((tab) => ({ id: tab.id, label: t(tab.key) }))}
+        tabs={BROWSE_TABS.map((tab) => ({ id: tab.id, label: t(tab.key) }))}
         activeTab={activeTab}
         onChange={(id) => setActiveTab(id)}
       />
@@ -124,7 +112,9 @@ export default function BrowseAnimeModal({
                           height: 10,
                           backgroundColor: getStatusColor(entry.list_status),
                         }}
-                        title={t(toLocaleKey(listStatusLabels[entry.list_status] ?? entry.list_status))}
+                        title={t(
+                          toLocaleKey(listStatusLabels[entry.list_status] ?? entry.list_status)
+                        )}
                       />
                     )}
 
@@ -149,7 +139,8 @@ export default function BrowseAnimeModal({
                     </span>
                     {item.season && item.season_year && (
                       <span>
-                        {t(toLocaleKey(seasonLabels[item.season] ?? item.season))} {item.season_year}
+                        {t(toLocaleKey(seasonLabels[item.season] ?? item.season))}{" "}
+                        {item.season_year}
                       </span>
                     )}
                   </div>

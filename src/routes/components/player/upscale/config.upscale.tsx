@@ -1,4 +1,3 @@
-import { toLocaleKey } from "@/lib/locale/key.utils";
 import { useQuery } from "@tanstack/react-query";
 
 import { Checkbox } from "@/components/ui/checkbox.component";
@@ -13,6 +12,7 @@ import {
 } from "@/config/player/options.config";
 import { ANIME4K_PRESETS } from "@/config/player/presets.config";
 import { useI18n } from "@/lib/locale/i18n.utils";
+import { toLocaleKey } from "@/lib/locale/key.utils";
 import { withFallback } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { formatETA } from "@/lib/utils/time.utils";

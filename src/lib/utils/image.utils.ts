@@ -46,6 +46,15 @@ export function isDirectImageSrc(value: string): boolean {
 const IMAGE_URL_RE =
   /^(https?:\/\/\S+\.(?:png|jpe?g|gif|webp|avif|bmp|svg)(?:\?\S*)?|\/\/\S+\.(?:png|jpe?g|gif|webp|avif|bmp|svg)(?:\?\S*)?|data:image\/[a-zA-Z.+-]+;base64,[A-Za-z0-9+/=]+)$/i;
 
+export function isExternalUrl(url: string): boolean {
+  return (
+    url.startsWith("http") ||
+    url.startsWith("ftp") ||
+    url.startsWith("data:") ||
+    url.startsWith("blob:")
+  );
+}
+
 export function isImageUrl(value: unknown): value is string {
   return typeof value === "string" && IMAGE_URL_RE.test(value);
 }

@@ -70,8 +70,7 @@ describe("formatETA", () => {
     expect(formatETA(-5, ru)).toBe("");
     expect(formatETA(-5, ru, "minute")).toBe("< 1 мин");
   });
-  });
-
+});
 
 describe("formatElapsed", () => {
   it("formats seconds only", () => {

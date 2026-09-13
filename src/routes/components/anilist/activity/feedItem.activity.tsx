@@ -1,28 +1,9 @@
-import { Play, Check, X, Bookmark, Pause, RotateCcw } from "lucide-react";
-
 import ImageComponent from "@/components/ui/image.component";
+import { ACTIVITY_STATUS_ICONS, ACTIVITY_STATUS_LABELS } from "@/config/anilist/activity.config";
 import { formatActivityTime } from "@/lib/anilist/activity.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
 import type { AniActivity } from "@/types/anilist";
-
-const STATUS_ICONS: Record<string, typeof Play> = {
-  CURRENT: Play,
-  COMPLETED: Check,
-  DROPPED: X,
-  PLANNING: Bookmark,
-  PAUSED: Pause,
-  REPEATING: RotateCcw,
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  CURRENT: "anilist.activity.status.CURRENT",
-  COMPLETED: "anilist.activity.status.COMPLETED",
-  DROPPED: "anilist.activity.status.DROPPED",
-  PLANNING: "anilist.activity.status.PLANNING",
-  PAUSED: "anilist.activity.status.PAUSED",
-  REPEATING: "anilist.activity.status.REPEATING",
-};
 
 export function FeedItem({
   a,
@@ -32,7 +13,7 @@ export function FeedItem({
   onAnimeClick: (id: number) => void;
 }) {
   const { t, locale } = useI18n();
-  const Icon = STATUS_ICONS[a.status ?? ""];
+  const Icon = ACTIVITY_STATUS_ICONS[a.status ?? ""];
 
   if (a.activity_type !== "list" || !a.media_id) {
     return (
@@ -53,7 +34,7 @@ export function FeedItem({
             <span className="font-bold">{a.user_name}</span>{" "}
             <span className="text-hint">{t("anilist.activity.note")}</span> {a.text}
           </span>
-          <span className="text-hint text-xs">{formatActivityTime(a.created_at, t, locale)}</span>
+          <span className="text-hint text-xs">{formatActivityTime(a.created_at, locale)}</span>
         </div>
       </div>
     );
@@ -77,7 +58,7 @@ export function FeedItem({
             </>
           )}
           {Icon && <Icon className="inline size-2.5" />}{" "}
-          {t((STATUS_LABELS[a.status ?? ""] ?? a.status ?? "") as TranslationKey)}{" "}
+          {t((ACTIVITY_STATUS_LABELS[a.status ?? ""] ?? a.status ?? "") as TranslationKey)}{" "}
         </span>
         <span
           className="windows95-text line-clamp-2 text-xs font-bold underline decoration-dotted hover:cursor-pointer"
@@ -88,7 +69,7 @@ export function FeedItem({
         <span className="text-hint windows95-font text-xs">
           {a.progress ? `${a.progress}` : ""}
           {a.progress ? " - " : ""}
-          {formatActivityTime(a.created_at, t, locale)}
+          {formatActivityTime(a.created_at, locale)}
         </span>
       </div>
     </div>

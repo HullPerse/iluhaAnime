@@ -7,12 +7,11 @@ import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
-
-type Status = "checking" | "ok" | "missing" | "downloading";
+import type { UpscaleToolStatus } from "@/types/player";
 
 export function RealCUGAN() {
   const { t } = useI18n();
-  const [status, setStatus] = useState<Status>("checking");
+  const [status, setStatus] = useState<UpscaleToolStatus>("checking");
   const [percent, setPercent] = useState<number | null>(null);
   const [dlError, setDlError] = useState<string | null>(null);
 

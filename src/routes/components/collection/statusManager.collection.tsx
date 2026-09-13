@@ -1,19 +1,18 @@
-import { Plus, Trash2 } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useState } from "react";
 
 import { ConfirmDialog } from "@/components/shared/confirm.component";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
-import { ColorPickerTrigger } from "@/components/ui/color.component";
+import { ColorPickerTrigger } from "@/components/ui/color/trigger.color";
 import { Input } from "@/components/ui/input.component";
 import { DEFAULT_NEW_COLOR } from "@/config/collection/statuses.config";
-import {
-  buildCustomStatusId,
-  normalizeStatusLabel,
-  splitStatusLabel,
-} from "@/lib/collection/status.utils";
+import { buildCustomStatusId, normalizeStatusLabel } from "@/lib/collection/status.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import type { CollectionStatusDef } from "@/types/collection";
+
+import { BilingualPreview } from "./bilingualPreview.collection";
+import { StatusRow } from "./statusRow.collection";
 
 export function StatusManagerCollection({
   statuses,
@@ -127,88 +126,5 @@ export function StatusManagerCollection({
         />
       )}
     </Modal>
-  );
-}
-
-function StatusRow({
-  status,
-  onUpsert,
-  onDelete,
-}: {
-  status: CollectionStatusDef;
-  onUpsert: (status: CollectionStatusDef) => void;
-  onDelete: (id: string) => void;
-}) {
-  const { t } = useI18n();
-  const [draft, setDraft] = useState(status.label);
-
-  return (
-    <li className="border-b-muted flex flex-wrap items-center gap-1 border-b px-1 py-1 last:border-b-0">
-      <ColorPickerTrigger
-        value={status.color}
-        onChange={(color) => onUpsert({ ...status, color })}
-      />
-      <Input
-        defaultValue={status.label}
-        disabled={status.isCore}
-        className="h-5 flex-1 text-xs"
-        spellCheck={false}
-        aria-label={t("collection.status.manager.label")}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={(e) => {
-          const label = normalizeStatusLabel(e.target.value);
-          if (label && label !== status.label) {
-            e.target.value = label;
-            setDraft(label);
-            onUpsert({ ...status, label });
-          } else {
-            e.target.value = status.label;
-            setDraft(status.label);
-          }
-        }}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") e.currentTarget.blur();
-        }}
-      />
-      {status.isCore ? (
-        <span className="text-hint windows95-font px-1 text-xs uppercase">
-          {t("collection.status.manager.core")}
-        </span>
-      ) : (
-        <Button
-          size="icon"
-          variant="destructive"
-          aria-label={`${t("common.delete")} ${status.label}`}
-          title={t("collection.status.manager.delete.hint")}
-          className="size-6"
-          onClick={(e) => {
-            if (e.currentTarget.ownerDocument.activeElement instanceof HTMLInputElement) {
-              e.currentTarget.ownerDocument.activeElement.blur();
-            }
-            onDelete(status.id);
-          }}
-        >
-          <Trash2 className="size-3" />
-        </Button>
-      )}
-      <BilingualPreview value={draft} />
-    </li>
-  );
-}
-
-function BilingualPreview({ value }: { value: string }) {
-  const { t } = useI18n();
-  if (!value.includes(",")) return null;
-  const parts = splitStatusLabel(value);
-  if (!parts.en && !parts.ru) return null;
-  return (
-    <span className="flex w-full flex-wrap items-center gap-1 pt-0.5 text-xs" aria-live="polite">
-      <span className="windows95-border bg-surface px-1">
-        {t("collection.status.manager.preview.en", { value: parts.en || "-" })}
-      </span>
-      <span className="windows95-border bg-white px-1">
-        {t("collection.status.manager.preview.ru", { value: parts.ru || "-" })}
-      </span>
-    </span>
   );
 }

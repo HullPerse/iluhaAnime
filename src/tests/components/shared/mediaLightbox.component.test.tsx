@@ -2,7 +2,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { MediaLightbox } from "@/components/shared/lightbox/lightbox.media";
+import { MediaLightbox } from "@/components/shared/lightbox/mediaLightbox.media";
 
 vi.mock("@videojs/react/media/youtube-video", () => ({
   YouTubeVideo: ({ src }: { src: string }) => <div data-testid="youtube-player" data-src={src} />,

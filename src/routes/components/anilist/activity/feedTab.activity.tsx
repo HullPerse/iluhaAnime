@@ -6,23 +6,13 @@ import { useMemo, useState } from "react";
 import { TabLoader } from "@/components/shared/loader.component";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
+import { ACTIVITY_STATUS_FILTERS } from "@/config/anilist/activity.config";
 import { groupLabel } from "@/lib/anilist/activity.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
-import type { TranslationKey } from "@/lib/locale/i18n.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import type { AniActivity, AniListCollection } from "@/types/anilist";
 
 import { FeedItem } from "./feedItem.activity";
-
-const STATUS_FILTERS: { value: string; key: TranslationKey }[] = [
-  { value: "", key: "anilist.activity.filter.all" },
-  { value: "CURRENT", key: "anilist.activity.filter.current" },
-  { value: "COMPLETED", key: "anilist.activity.filter.completed" },
-  { value: "DROPPED", key: "anilist.activity.filter.dropped" },
-  { value: "PAUSED", key: "anilist.activity.filter.paused" },
-  { value: "PLANNING", key: "anilist.activity.filter.planning" },
-  { value: "REPEATING", key: "anilist.activity.filter.repeating" },
-];
 
 export function FeedTab({
   userId,
@@ -125,7 +115,7 @@ export function FeedTab({
   return (
     <div className="flex flex-col gap-1">
       <div className="flex shrink-0 flex-wrap items-center gap-1">
-        {STATUS_FILTERS.map((f) => (
+        {ACTIVITY_STATUS_FILTERS.map((f) => (
           <Button
             key={f.value}
             className={cn(

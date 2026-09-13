@@ -14,10 +14,28 @@ function entry(key: TranslationKey, scope: ChangelogScope): ChangelogEntry {
 
 export const CHANGELOG: ChangelogVersion[] = [
   {
+    version: "4.0.5",
+    added: [
+      entry("changelog.4_0_5.added.list_sort_keys", "anilist"),
+      entry("changelog.4_0_5.added.paste_anywhere", "app"),
+      entry("changelog.4_0_5.added.paste_magnet", "torrents"),
+      entry("changelog.4_0_5.added.paste_anilist_url", "anilist"),
+    ],
+    changed: [entry("changelog.4_0_5.changed.sort_select", "anilist")],
+    fixed: [],
+  },
+  {
     version: "4.0.4",
     added: [entry("changelog.4_0_4.added.friend_scores", "anilist")],
-    changed: [entry("changelog.4_0_4.changed.friends_modal", "anilist"), entry("changelog.4_0_4.changed.friend_scores_swatch", "anilist"), entry("changelog.4_0_4.changed.parallax_removed", "search")],
-    fixed: [entry("changelog.4_0_4.fixed.youtube_build", "anilist"), entry("changelog.4_0_4.fixed.character_duplicate_key", "anilist")],
+    changed: [
+      entry("changelog.4_0_4.changed.friends_modal", "anilist"),
+      entry("changelog.4_0_4.changed.friend_scores_swatch", "anilist"),
+      entry("changelog.4_0_4.changed.parallax_removed", "search"),
+    ],
+    fixed: [
+      entry("changelog.4_0_4.fixed.youtube_build", "anilist"),
+      entry("changelog.4_0_4.fixed.character_duplicate_key", "anilist"),
+    ],
   },
   {
     version: "4.0.3",

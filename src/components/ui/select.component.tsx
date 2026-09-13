@@ -4,6 +4,7 @@ import { ChevronDown } from "lucide-react";
 import { useState, useMemo, useRef } from "react";
 
 import { useI18n } from "@/lib/locale/i18n.utils";
+import type { SelectProps } from "@/types/ui";
 
 import { Input } from "./input.component";
 
@@ -18,22 +19,7 @@ function Select({
   searchable,
   indexed = false,
   label,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  options: readonly {
-    value: string;
-    label: string;
-    style?: React.CSSProperties;
-  }[];
-  className?: string;
-  placeholder?: string;
-  arrow?: boolean;
-  disabled?: boolean;
-  searchable?: boolean;
-  indexed?: boolean;
-  label?: string;
-}) {
+}: SelectProps) {
   const { t } = useI18n();
   const [search, setSearch] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);

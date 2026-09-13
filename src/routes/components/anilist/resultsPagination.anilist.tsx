@@ -1,5 +1,6 @@
 import Pagination from "@/components/shared/pagination.component";
 import { listStatusLabels } from "@/config/anilist/labels.config";
+import { ALL_LISTS_ID } from "@/lib/anilist/group.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import type { SearchMode } from "@/types/anilist";
@@ -40,7 +41,10 @@ export default function AniListResultsPagination({
   scrollRef: React.RefObject<HTMLElement | null>;
 }) {
   const { t } = useI18n();
-  const listLabel = t(toLocaleKey(listStatusLabels[currentList.toUpperCase()] ?? currentList));
+  const listLabel =
+    currentList === ALL_LISTS_ID
+      ? t("anilist.lists.all")
+      : t(toLocaleKey(listStatusLabels[currentList.toUpperCase()] ?? currentList));
   const statusText = global
     ? `${t("anilist.route.search.results", { count: searchResultsCount })}${searchTag ? ` · ${searchMode === "studio" ? t("anilist.route.studio") : searchMode === "season" ? t("anilist.route.season") : t("anilist.route.tag")}: ${searchTag}` : ""}`
     : isLocal

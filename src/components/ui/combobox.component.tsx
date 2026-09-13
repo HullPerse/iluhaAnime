@@ -1,19 +1,6 @@
-import Select from "./select.component";
+import type { ComboboxProps } from "@/types/ui";
 
-interface ComboboxProps {
-  value: string;
-  onChange: (value: string) => void;
-  options: readonly {
-    value: string;
-    label: string;
-    style?: React.CSSProperties;
-  }[];
-  className?: string;
-  placeholder?: string;
-  arrow?: boolean;
-  disabled?: boolean;
-  indexed?: boolean;
-}
+import Select from "./select.component";
 
 export default function Combobox(props: ComboboxProps) {
   return <Select {...props} searchable />;

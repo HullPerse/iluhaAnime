@@ -1,5 +1,4 @@
 import { cn } from "cn";
-import * as React from "react";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 
 import { Input } from "@/components/ui/input.component";
@@ -9,61 +8,17 @@ import {
   getAriaAutocomplete,
   splitHighlightRanges,
 } from "@/lib/search/highlight.utils";
+import { groupSuggestions } from "@/lib/search/suggestions.utils";
 import type { SearchSuggestion } from "@/lib/search/suggestions.utils";
 import { createListNavigationHandler } from "@/lib/utils/keyboard.utils";
 import { useSettingsStore } from "@/store/settings.store";
-import type { HighlightRange, SuggestionSection } from "@/types/search";
+import type { AutocompleteInputProps, HighlightRange } from "@/types/search";
 
 import { BackdropLayer } from "./backdrop.autocomplete";
 import { SuggestionMenu } from "./menu.autocomplete";
 
-interface Props extends React.ComponentProps<typeof Input> {
-  completion?: string | null;
-  history?: string[];
-  suggestions?: SearchSuggestion[];
-  onAcceptCompletion?: (value: string) => void;
-  onRemoveHistory?: (query: string) => void;
-  onSelectSuggestion?: (value: string) => void;
-  onDismissCompletion?: () => void;
-  highlightRanges?: readonly HighlightRange[];
-  placement?: "below" | "above";
-}
-
-const KIND_ORDER: SearchSuggestion["kind"][] = ["anime", "history", "local", "torrent"];
-
 const EMPTY_SUGGESTIONS: SearchSuggestion[] = [];
 const EMPTY_RANGES: readonly HighlightRange[] = [];
-
-function groupSuggestions(suggestions: SearchSuggestion[]): {
-  items: SearchSuggestion[];
-  sections: SuggestionSection[];
-} {
-  const groups = new Map<SearchSuggestion["kind"], SearchSuggestion[]>();
-  for (const suggestion of suggestions) {
-    const group = groups.get(suggestion.kind) ?? [];
-    group.push(suggestion);
-    groups.set(suggestion.kind, group);
-  }
-  if (groups.size === 0) return { items: [], sections: [] };
-  const order = [...groups.keys()].sort((left, right) => {
-    const leftBest = groups.get(left)?.[0]?.score ?? 0;
-    const rightBest = groups.get(right)?.[0]?.score ?? 0;
-    if (rightBest !== leftBest) return rightBest - leftBest;
-    return KIND_ORDER.indexOf(left) - KIND_ORDER.indexOf(right);
-  });
-  const items: SearchSuggestion[] = [];
-  const sections: SuggestionSection[] = [];
-  for (const kind of order) {
-    const group = groups.get(kind)!;
-    sections.push({
-      kind,
-      startIndex: items.length,
-      endIndex: items.length + group.length,
-    });
-    items.push(...group);
-  }
-  return { items, sections };
-}
 
 export function InlineAutocompleteInput({
   className,
@@ -82,7 +37,7 @@ export function InlineAutocompleteInput({
   highlightRanges = EMPTY_RANGES,
   value,
   ...props
-}: Props) {
+}: AutocompleteInputProps) {
   const [dismissed, setDismissed] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [focused, setFocused] = useState(false);

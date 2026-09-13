@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useEffect, type Ref } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -244,18 +244,22 @@ describe("DitherPreviewModal", () => {
     const user = userEvent.setup();
     render(<DitherPreviewModal image={IMAGE} onBack={vi.fn()} onSaved={vi.fn()} />);
     await waitFor(() => expect(lastCanvasSrc).toBeTruthy());
-    const strip = screen.getByTitle("From image").closest("div")!;
-    const pick = (name: string) => user.click(within(strip).getByRole("button", { name }));
+    const pick = (name: string) => user.click(screen.getByRole("button", { name }));
+    const pickPaletteDefault = async () => {
+      const candidates = screen.getAllByRole("button", { name: "Default" });
+      const stripButton = candidates.find((button) => button.className.includes("w-26"));
+      expect(stripButton).toBeTruthy();
+      await user.click(stripButton!);
+    };
     await pick("PICO-8");
     expect(screen.getAllByTitle(/#[0-9A-F]{6}/)).toHaveLength(16);
     await pick("Gray ramp");
     expect(screen.getAllByTitle(/#[0-9A-F]{6}/)).toHaveLength(8);
     await pick("Red ramp");
     expect(screen.getAllByTitle(/#[0-9A-F]{6}/)).toHaveLength(12);
-    await pick("Default");
+    await pickPaletteDefault();
     expect(screen.getAllByTitle(/#[0-9A-F]{6}/)).toHaveLength(12);
   });
-
   it("re-applies a preset over an extracted palette", async () => {
     const user = userEvent.setup();
     const red = new Uint8ClampedArray([

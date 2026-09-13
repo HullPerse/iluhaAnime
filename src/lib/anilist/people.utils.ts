@@ -1,4 +1,9 @@
-import type { CachedFavPerson, FavPersonKind, FavPersonRef, FavouritePerson } from "@/types/anilist";
+import type {
+  CachedFavPerson,
+  FavPersonKind,
+  FavPersonRef,
+  FavouritePerson,
+} from "@/types/anilist";
 
 const FAV_PEOPLE_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const FAV_PEOPLE_PAGE_SIZE = 50;

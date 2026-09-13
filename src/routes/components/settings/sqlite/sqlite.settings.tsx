@@ -6,6 +6,7 @@ import { PAGE_SIZE, QUERY_HISTORY_MAX } from "@/config/settings/sqlite.config";
 import { usePagination } from "@/hooks/pagination.hook";
 import { useSqliteCell } from "@/hooks/sqlite/cell.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
+import { displayCell } from "@/lib/sqlite/row.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSettingsStore } from "@/store/settings.store";
 import type {
@@ -30,7 +31,6 @@ import { SqliteQueryResult } from "./queryresult.sqlite";
 import { SchemaSection } from "./schema.sqlite";
 import { SqliteSelectorGrid } from "./selector.sqlite";
 import { RowsTable } from "./table.sqlite";
-import { displayCell } from "./table/row.sqlite";
 import { TableActions } from "./tableactions.sqlite";
 import { SqliteFilterTags } from "./tags.sqlite";
 import { ViewFlags } from "./viewflags.sqlite";

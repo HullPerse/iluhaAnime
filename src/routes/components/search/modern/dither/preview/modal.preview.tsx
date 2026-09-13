@@ -1,5 +1,4 @@
-import { cn } from "cn";
-import { Pipette, X } from "lucide-react";
+import { Pipette } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import DitherCanvas from "@/components/shared/dither.component";
@@ -7,19 +6,18 @@ import { SmallLoader } from "@/components/shared/loader.component";
 import Modal from "@/components/shared/modal.component";
 import ProgressBar from "@/components/shared/progress.component";
 import { Button } from "@/components/ui/button.component";
-import { ColorPickerTrigger } from "@/components/ui/color.component";
 import Slider from "@/components/ui/range.component";
 import {
-  DITHER_DEFAULTS,
   DITHER_BAKE_MAX_SIDE,
-  DITHER_PALETTE_PRESETS,
+  DITHER_BAKE_TIMEOUT_MS,
+  DITHER_DEFAULTS,
   DITHER_PRESETS,
+  DITHER_PRESET_LABELS,
   resolveDitherPreset,
 } from "@/config/utils/dither.config";
 import { useDebounce } from "@/hooks/debounce.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
-import { hexToRgba } from "@/lib/utils/color.utils";
 import {
   EXTRACT_PALETTE_MAX_COLORS,
   EXTRACT_PALETTE_MIN_COLORS,
@@ -28,185 +26,12 @@ import {
 import { toUserImage } from "@/lib/utils/image.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { showError } from "@/lib/utils/notification.utils";
-import type {
-  DitherEffectOptions,
-  DitherPalettePresetId,
-  DitherPresetId,
-  DitherRGB,
-} from "@/types/dither";
+import type { DitherEffectOptions, DitherPresetId } from "@/types/dither";
 import type { UserImage, UserImageFile } from "@/types/image.userimage";
 
 import DitherControls from "./controls.preview";
-
-function rgbToHex([r, g, b]: DitherRGB): string {
-  const toHex = (n: number) => n.toString(16).padStart(2, "0");
-  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
-}
-
-function PaletteSwatchStrip({
-  palette,
-  onChange,
-}: {
-  palette: DitherRGB[];
-  onChange: (palette: DitherRGB[]) => void;
-}) {
-  const [editIndex, setEditIndex] = useState<number | null>(null);
-
-  const patch = (index: number, hex: string) => {
-    const rgba = hexToRgba(hex);
-    if (!rgba) return;
-    const next = [...palette];
-    next[index] = [rgba.r, rgba.g, rgba.b];
-    onChange(next);
-  };
-
-  return (
-    <div className="flex flex-col gap-1">
-      <div className="border-secondary flex h-6 w-full flex-row border">
-        {palette.map((color, index) => (
-          <button
-            type="button"
-            key={`${index}-${rgbToHex(color)}`}
-            className={cn(
-              "h-full flex-1 cursor-pointer",
-              editIndex === index && "outline-2 outline-offset-1"
-            )}
-            style={{ background: rgbToHex(color) }}
-            title={`#${rgbToHex(color).replace("#", "").toUpperCase()}`}
-            aria-label={`#${rgbToHex(color)}`}
-            onClick={() => setEditIndex(index === editIndex ? null : index)}
-          />
-        ))}
-      </div>
-      {editIndex !== null && palette[editIndex] !== undefined && (
-        <div className="flex items-center gap-1">
-          <ColorPickerTrigger
-            value={rgbToHex(palette[editIndex])}
-            onChange={(hex) => patch(editIndex, hex)}
-          />
-          <span className="windows95-text flex-1 truncate text-xs">
-            #{rgbToHex(palette[editIndex]).replace("#", "").toUpperCase()}
-          </span>
-          <Button
-            size="icon"
-            className="h-4 w-4"
-            title="x"
-            disabled={palette.length <= 2}
-            onClick={() => {
-              onChange(palette.filter((_, i) => i !== editIndex));
-              setEditIndex(null);
-            }}
-          >
-            <X className="size-2.5" />
-          </Button>
-          <Button
-            className="h-4 px-1 text-xs"
-            title="+"
-            onClick={() => {
-              const copy = [...palette];
-              copy.splice(editIndex + 1, 0, palette[editIndex]);
-              onChange(copy);
-              setEditIndex(editIndex + 1);
-            }}
-          >
-            +
-          </Button>
-        </div>
-      )}
-    </div>
-  );
-}
-
-const PRESET_LABELS: Record<
-  DitherPresetId,
-  | "search.dither.preset.empty"
-  | "search.dither.preset.default"
-  | "search.dither.preset.deep"
-  | "search.dither.preset.soft"
-  | "search.dither.preset.natural"
-  | "search.dither.preset.capy"
-  | "search.dither.preset.crt"
-> = {
-  empty: "search.dither.preset.empty",
-  default: "search.dither.preset.default",
-  deep: "search.dither.preset.deep",
-  soft: "search.dither.preset.soft",
-  natural: "search.dither.preset.natural",
-  capy: "search.dither.preset.capy",
-  crt: "search.dither.preset.crt",
-};
-
-const PALETTE_PRESET_LABELS: Record<
-  DitherPalettePresetId,
-  | "search.dither.palette.preset.default"
-  | "search.dither.palette.preset.red"
-  | "search.dither.palette.preset.gameboy"
-  | "search.dither.palette.preset.pico8"
-  | "search.dither.palette.preset.gray"
-> = {
-  default: "search.dither.palette.preset.default",
-  red: "search.dither.palette.preset.red",
-  gameboy: "search.dither.palette.preset.gameboy",
-  pico8: "search.dither.palette.preset.pico8",
-  gray: "search.dither.palette.preset.gray",
-};
-
-function palettesEqual(a: DitherRGB[], b: DitherRGB[]): boolean {
-  return (
-    a.length === b.length &&
-    a.every((color, i) => {
-      const other = b[i];
-      return (
-        other !== undefined &&
-        color[0] === other[0] &&
-        color[1] === other[1] &&
-        color[2] === other[2]
-      );
-    })
-  );
-}
-
-function PalettePresetStrip({
-  active,
-  onPick,
-}: {
-  active: DitherRGB[];
-  onPick: (palette: DitherRGB[]) => void;
-}) {
-  const { t } = useI18n();
-  return (
-    <div className="flex flex-row gap-1">
-      {DITHER_PALETTE_PRESETS.map((preset) => (
-        <Button
-          type="button"
-          key={preset.id}
-          title={t(PALETTE_PRESET_LABELS[preset.id])}
-          onClick={() => onPick([...preset.colors])}
-          className={cn(
-            "flex w-26 flex-col p-0.5",
-            palettesEqual(active, preset.colors) ? "windows95-active-border" : "windows95-border"
-          )}
-          disabled={palettesEqual(active, preset.colors)}
-        >
-          <span className="flex h-4 w-full flex-row">
-            {preset.colors.map((color, i) => (
-              <span
-                key={`${i}-${rgbToHex(color)}`}
-                className="h-full flex-1"
-                style={{ backgroundColor: rgbToHex(color) }}
-              />
-            ))}
-          </span>
-          <span className="windows95-text block truncate text-xs">
-            {t(PALETTE_PRESET_LABELS[preset.id])}
-          </span>
-        </Button>
-      ))}
-    </div>
-  );
-}
-
-const BAKE_TIMEOUT_MS = 30000;
+import { PalettePresetStrip } from "./palettePreset.preview";
+import { PaletteSwatchStrip } from "./paletteSwatch.preview";
 
 export default function DitherPreviewModal({
   image,
@@ -310,7 +135,7 @@ export default function DitherPreviewModal({
             : "search.dither.bake.timeout.database"
         )
       );
-    }, BAKE_TIMEOUT_MS);
+    }, DITHER_BAKE_TIMEOUT_MS);
   };
 
   const bakeFullFrame = async () => {
@@ -396,11 +221,11 @@ export default function DitherPreviewModal({
             <Button
               key={preset.id}
               className="h-5 flex-1 px-1 text-xs"
-              title={t(PRESET_LABELS[preset.id])}
+              title={t(DITHER_PRESET_LABELS[preset.id])}
               onClick={() => applyPreset(preset.id)}
               disabled={presetId === preset.id}
             >
-              {t(PRESET_LABELS[preset.id])}
+              {t(DITHER_PRESET_LABELS[preset.id])}
             </Button>
           ))}
         </div>
@@ -464,9 +289,9 @@ export default function DitherPreviewModal({
           }}
         />
         <DitherControls options={options} onPatch={patchOptions} />
-        <section className="mt-auto flex w-full flex-row gap-2">
+        <section className="mt-auto flex w-full flex-row items-center justify-center gap-2">
           <Button
-            className="flex-1"
+            className="w-[90%]"
             variant="success"
             onClick={() => save()}
             disabled={!canSave || saving || renderStale}

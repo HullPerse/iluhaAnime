@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { applyCollectionFilters, filterCollectionItems, pickRandomItem } from "@/lib/collection/filter.utils";
+import {
+  applyCollectionFilters,
+  filterCollectionItems,
+  pickRandomItem,
+} from "@/lib/collection/filter.utils";
 import type { CollectionItem, CollectionType } from "@/types/collection";
 
 function makeItem(overrides: Partial<CollectionItem> = {}): CollectionItem {
@@ -390,11 +394,7 @@ describe("filterCollectionItems intent operators", () => {
 });
 
 describe("pickRandomItem", () => {
-  const items = [
-    makeItem({ id: "a" }),
-    makeItem({ id: "b" }),
-    makeItem({ id: "c" }),
-  ];
+  const items = [makeItem({ id: "a" }), makeItem({ id: "b" }), makeItem({ id: "c" })];
 
   it("returns undefined for an empty list", () => {
     expect(pickRandomItem([])).toBeUndefined();

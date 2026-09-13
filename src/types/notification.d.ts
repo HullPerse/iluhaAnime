@@ -1,4 +1,5 @@
-import type { TranslationVariables } from "./i18n";
+import type { Locale } from "./i18n";
+import type { TranslationKey, TranslationVariables } from "./i18n";
 
 export type NotificationType = "info" | "success" | "warning" | "error";
 
@@ -47,3 +48,11 @@ export interface ShowNotificationPayload {
 }
 
 export type NotificationFilter = NotificationType | "all" | "downloads";
+
+export interface NotificationRowProps {
+  item: NotificationItem;
+  t: (key: TranslationKey, variables?: Record<string, string | number>) => string;
+  locale: Locale;
+  markRead: (id: number) => void;
+  clear: (id: number) => void;
+}

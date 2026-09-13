@@ -1,3 +1,4 @@
+import type { AniListSort } from "./anilist";
 import type { Locale, TranslationKey } from "./i18n";
 import type { AutocompleteMode, SearchType, TagToleranceKey } from "./search";
 import type { SpeedLimits } from "./torrent";
@@ -64,6 +65,10 @@ export interface SettingsStore {
   notifyStatusChanges: boolean;
   anilistPollIntervalMin: number;
   anilistNotifyLists: string[] | null;
+  anilistListSort: AniListSort;
+  anilistGroupByStatus: boolean;
+  anilistCollapsedLists: string[];
+  anilistDisplayMode: "scroll" | "pagination";
   sqliteBrowserEnabled: boolean;
   sqliteShowImages: boolean;
   collectionTabEnabled: boolean;
@@ -87,6 +92,13 @@ export interface SettingsStore {
   wallpaperScanlines: boolean;
   searchShadow: WallpaperShadow;
   patch: (partial: Partial<SettingsStore>) => void;
+}
+
+export interface WallpaperCanvasProps {
+  src: string;
+  alt: string;
+  className?: string;
+  filter?: string;
 }
 
 export interface WallpaperDisplayFilters {

@@ -2,7 +2,7 @@ import { render, screen, cleanup } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 
-import { ColorPickerTrigger } from "@/components/ui/color.component";
+import { ColorPickerTrigger } from "@/components/ui/color/trigger.color";
 import { useSettingsStore } from "@/store/settings.store";
 
 beforeEach(() => {

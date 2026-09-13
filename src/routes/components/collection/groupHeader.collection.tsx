@@ -1,26 +1,25 @@
 import { cn } from "cn";
 import { ChevronRight } from "lucide-react";
 
-import { statusLabel } from "@/lib/collection/status.utils";
-import { useI18n } from "@/lib/locale/i18n.utils";
 import { enterOrSpace } from "@/lib/utils/keyboard.utils";
-import type { CollectionStatusDef } from "@/types/collection";
 
 export function GroupHeaderCollection({
-  status,
+  label,
+  color,
   count,
   collapsed,
   variant,
+  toggleLabel,
   onToggle,
 }: {
-  status: CollectionStatusDef;
+  label: string;
+  color: string;
   count: number;
   collapsed: boolean;
   variant: "torrent" | "folder";
+  toggleLabel: string;
   onToggle: () => void;
 }) {
-  const { t, locale } = useI18n();
-  const label = statusLabel([status], status.id, t, locale);
   const isTorrent = variant === "torrent";
 
   return (
@@ -28,7 +27,7 @@ export function GroupHeaderCollection({
       role="button"
       tabIndex={0}
       aria-expanded={!collapsed}
-      title={t("collection.group.toggle")}
+      title={toggleLabel}
       onClick={onToggle}
       onKeyDown={enterOrSpace(onToggle)}
       className={cn(
@@ -44,7 +43,7 @@ export function GroupHeaderCollection({
       />
       <span
         className="windows95-border size-2.5 shrink-0"
-        style={{ backgroundColor: status.color }}
+        style={{ backgroundColor: color }}
         aria-hidden
       />
       <span

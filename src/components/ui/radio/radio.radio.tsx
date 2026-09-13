@@ -1,34 +1,7 @@
 import { Radio as BaseRadio } from "@base-ui/react/radio";
-import { RadioGroup as BaseRadioGroup } from "@base-ui/react/radio-group";
 import { cn } from "cn";
-import type { ReactNode } from "react";
 
-function RadioGroup<T extends string>({
-  value,
-  onChange,
-  disabled,
-  className,
-  children,
-}: {
-  value: T;
-  onChange: (v: T) => void;
-  disabled?: boolean;
-  className?: string;
-  children: ReactNode;
-}) {
-  return (
-    <BaseRadioGroup
-      value={value}
-      onValueChange={onChange}
-      disabled={disabled}
-      className={className}
-    >
-      {children}
-    </BaseRadioGroup>
-  );
-}
-
-function Radio({
+export function Radio({
   value,
   disabled,
   className,
@@ -59,5 +32,3 @@ function Radio({
     </BaseRadio.Root>
   );
 }
-
-export { Radio, RadioGroup };

@@ -4,13 +4,10 @@ import { useCallback, useMemo, useRef } from "react";
 
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
-import {
-  FOLDER_MAX_VIEWPORT_MARGIN,
-  FOLDER_MIN_HEIGHT,
-  FOLDER_RESIZE_STEP,
-} from "@/config/player/folders.config";
+import { FOLDER_MIN_HEIGHT, FOLDER_RESIZE_STEP } from "@/config/player/folders.config";
 import { useBottomResize } from "@/hooks/folderResize.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
+import { maxFolderHeight } from "@/lib/player/folder.utils";
 import { summarizeTree } from "@/lib/player/tree.utils";
 import { normalizePlayerPath } from "@/lib/player/visibility.utils";
 import { formatBytes } from "@/lib/utils/bytes.utils";
@@ -18,10 +15,6 @@ import { useSettingsStore } from "@/store/settings.store";
 import type { FolderNode } from "@/types/torrent";
 
 import FolderView from "../folder.player";
-
-function maxFolderHeight(): number {
-  return Math.max(FOLDER_MIN_HEIGHT, window.innerHeight - FOLDER_MAX_VIEWPORT_MARGIN);
-}
 
 export function DraggableFolder({
   tree,

@@ -1,21 +1,23 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { NO_FAVOURITES, NO_LISTS } from "@/config/anilist/defaults.config";
+import { defaultFilters } from "@/config/anilist/filters.config";
 import { useAnilistDetail } from "@/hooks/anilist/detail.hook";
+import { useAnilistListView } from "@/hooks/anilist/listView.hook";
 import { useFavouritePeopleToggles, useSyncFavPeopleAnimeIds } from "@/hooks/anilist/people.hook";
 import { useAnilistRandom } from "@/hooks/anilist/random.hook";
 import { useAnilistSearch } from "@/hooks/anilist/search.hook";
 import { usePagination } from "@/hooks/pagination.hook";
+import { filterEntries, sortEntries } from "@/lib/anilist/entries.utils";
+import { activeListEntries } from "@/lib/anilist/group.utils";
 import { useSearchField } from "@/hooks/search/field.hook";
-import {
-  filterEntries,
-  sortEntries,
-} from "@/lib/anilist/entries.utils";
 import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import {
   pickDisplayEntries,
   isLocalSearch,
   resolveAniListView,
+  routePeople,
 } from "@/lib/anilist/route.utils";
 import { translate } from "@/lib/locale/i18n.utils";
 import { reportBackgroundError } from "@/lib/utils/attempt.utils";
@@ -37,23 +39,14 @@ import type {
   AnilistRouteData,
 } from "@/types/anilist";
 
-const NO_PEOPLE: FavouritePeople = { staff: [], characters: [] };
-const NO_LISTS: AniListCollection[] = [];
-const NO_FAVOURITES: FavouriteAnime[] = [];
-
 import AniListDetailModalHost from "./components/anilist/detail/host.detail";
-import { defaultFilters } from "./components/anilist/filters.anilist";
 import AniListGlobalSortBar from "./components/anilist/globalSortBar.anilist";
 import AniListProfileSections from "./components/anilist/profileSections.anilist";
-import AniListResults from "./components/anilist/results.anilist";
+import AniListResultsHost from "./components/anilist/resultsHost.anilist";
 import AniListSearchToolbar from "./components/anilist/searchToolbar.anilist";
 import AniListSecondaryModals from "./components/anilist/secondaryModals.anilist";
 import SpotlightModal from "./components/anilist/spotlight/modal.spotlight";
 import AniListStateViews from "./components/anilist/stateViews.anilist";
-
-function routePeople(data: AnilistRouteData | undefined): FavouritePeople {
-  return data?.people ?? NO_PEOPLE;
-}
 
 function AnilistRoute() {
   const queryClient = useQueryClient();
@@ -163,7 +156,26 @@ function AnilistRoute() {
       .finally(() => setRecsLoading(false));
   }, [showRecs, user]);
 
-  const [sort, setSort] = useState<AniListSort>({ key: "title", dir: "asc" });
+  const sort = useSettingsStore((s) => s.anilistListSort);
+  const setSort = useCallback((next: AniListSort) => {
+    useSettingsStore.getState().patch({ anilistListSort: next });
+  }, []);
+  const groupByStatus = useSettingsStore((s) => s.anilistGroupByStatus);
+  const displayMode = useSettingsStore((s) => s.anilistDisplayMode);
+  const collapsedNames = useSettingsStore((s) => s.anilistCollapsedLists);
+  const setGroupByStatus = useCallback((grouped: boolean) => {
+    useSettingsStore.getState().patch({ anilistGroupByStatus: grouped });
+  }, []);
+  const setDisplayMode = useCallback((mode: "scroll" | "pagination") => {
+    useSettingsStore.getState().patch({ anilistDisplayMode: mode });
+  }, []);
+  const toggleListCollapsed = useCallback((name: string) => {
+    const current = useSettingsStore.getState().anilistCollapsedLists;
+    const next = current.includes(name)
+      ? current.filter((item) => item !== name)
+      : [...current, name];
+    useSettingsStore.getState().patch({ anilistCollapsedLists: next });
+  }, []);
   const [globalSort, setGlobalSort] = useState<GlobalSort>({
     key: "relevance",
     dir: "desc",
@@ -244,11 +256,13 @@ function AnilistRoute() {
           old ? { ...(old as AnilistRouteData), favourites: updated } : old
         );
       } catch (error) {
-        useNotificationStore.getState().add(
-          translate(useSettingsStore.getState().language, "anilist.fav.toggle.failed"),
-          "error",
-          error instanceof Error ? error.message : String(error)
-        );
+        useNotificationStore
+          .getState()
+          .add(
+            translate(useSettingsStore.getState().language, "anilist.fav.toggle.failed"),
+            "error",
+            error instanceof Error ? error.message : String(error)
+          );
       } finally {
         favPendingRef.current = false;
       }
@@ -301,11 +315,23 @@ function AnilistRoute() {
     anilistBoost: anilistSuggestionBoost,
   });
   const { deferredQuery: deferredSearchTerms } = field;
-
-  const activeEntries = lists.find((c) => c.name === currentList)?.entries ?? [];
+  const activeEntries = useMemo(
+    () => activeListEntries(lists, currentList),
+    [lists, currentList]
+  );
   const filteredEntries = filterEntries(activeEntries, deferredSearchTerms, global);
   const sortedEntries = sortEntries(filteredEntries, sort.dir, sort.key);
   const displayEntries = pickDisplayEntries(global, searchResults, sortedEntries, globalSort);
+  const { grouped, collapsedLists, useScrollView, effectiveDisplayMode } = useAnilistListView({
+    lists,
+    sort,
+    searchTerms: deferredSearchTerms,
+    groupByStatus,
+    displayMode,
+    collapsedNames,
+    user,
+    global,
+  });
   const isLocal = isLocalSearch(searchTerms, global);
 
   const { total, from, to, lastPage } = usePagination(
@@ -367,6 +393,11 @@ function AnilistRoute() {
         sort={sort}
         onSortChange={setSort}
         hasFavourites={favourites.length > 0}
+        grouped={grouped !== null}
+        groupByStatus={groupByStatus}
+        onGroupChange={setGroupByStatus}
+        displayMode={effectiveDisplayMode}
+        onDisplayChange={setDisplayMode}
         onActivityFeed={() => setActivityHistory({ open: true, tab: "feed" })}
         onFavourites={() => setShowFavourites(true)}
         onRandom={handleRandomFromList}
@@ -396,8 +427,10 @@ function AnilistRoute() {
         onLogin={() => setAuth(true)}
       />
 
-      <AniListResults
-        entries={pagedEntries}
+      <AniListResultsHost
+        scroll={useScrollView}
+        items={displayEntries}
+        pagedEntries={pagedEntries}
         entryLookup={entryLookup}
         favouriteIds={favouriteIds}
         onSelect={(anime) => showDetail(anime, detailFromFilters)}
@@ -421,6 +454,9 @@ function AnilistRoute() {
           onPageChange: setPage,
           scrollRef,
         }}
+        groups={grouped}
+        collapsedLists={collapsedLists}
+        onToggleListCollapsed={toggleListCollapsed}
       />
 
       <AniListDetailModalHost

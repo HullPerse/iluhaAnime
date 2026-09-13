@@ -69,5 +69,4 @@ describe("ContinueCollection", () => {
 
     expect(onOpen).toHaveBeenCalledWith(item);
   });
-
 });

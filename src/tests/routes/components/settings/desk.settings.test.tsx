@@ -108,17 +108,16 @@ describe("SettingsSummary", () => {
     expect(useSettingsStore.getState().sqliteBrowserEnabled).toBe(true);
     expect(onJump).toHaveBeenCalledWith("sqlite");
   });
-
 });
 describe("SettingsChangelog", () => {
   it("renders collapsible versions with categorized entries", async () => {
     const user = userEvent.setup();
     render(<SettingsChangelog />);
-    expect(screen.getByText("4.0.4")).toBeDefined();
+    expect(screen.getByText("4.0.5")).toBeDefined();
     expect(screen.getByText(/Добавлено|Added/)).toBeDefined();
-    await user.click(screen.getByRole("button", { name: /4\.0\.4/ }));
+    await user.click(screen.getByRole("button", { name: /4\.0\.5/ }));
     expect(screen.queryByText(/Добавлено|Added/)).toBeNull();
-    await user.click(screen.getByRole("button", { name: /4\.0\.4/ }));
+    await user.click(screen.getByRole("button", { name: /4\.0\.5/ }));
   });
   it("prefixes every entry with its area scope", () => {
     render(<SettingsChangelog />);

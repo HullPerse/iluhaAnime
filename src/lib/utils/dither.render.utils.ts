@@ -298,7 +298,6 @@ function warpGeometry(
   out[2] = unit;
 }
 
-
 export function createDitherRenderContext(
   source: Uint8ClampedArray<ArrayBuffer>,
   width: number,
@@ -339,7 +338,11 @@ export function createDitherRenderContext(
     localBoost: Math.min(1, options.localContrast),
     inkDensity: Math.min(1, options.inkDensity),
     shift: options.misregistration,
-    hasWarp: options.edgeDistortion !== 0 || options.misregistration !== 0 || options.barrel !== 0 || options.wave !== 0,
+    hasWarp:
+      options.edgeDistortion !== 0 ||
+      options.misregistration !== 0 ||
+      options.barrel !== 0 ||
+      options.wave !== 0,
     hasNoise: options.monochromeNoise !== 0 || options.grain !== 0 || options.texture !== 0,
     hasVignette: vignette > 0,
     vignetteX,
@@ -550,4 +553,3 @@ export function renderDitherImage(
   }
   return finishDitherImage(ctx);
 }
-

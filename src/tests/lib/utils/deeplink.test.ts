@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  allowsPastedLink,
   buildAnimeLink,
   buildTorrentLink,
   ingestDeepLinks,
   isEditablePasteTarget,
+  parseAnilistPageUrl,
   parseAnimeLink,
   parsePastedLink,
   parseTorrentLink,
@@ -197,6 +197,23 @@ describe("parsePastedLink", () => {
   it("ignores non-link text silently", () => {
     expect(parsePastedLink("just some text")).toBeNull();
     expect(parsePastedLink("")).toBeNull();
+    expect(parsePastedLink("https://evil.example/anime/21")).toBeNull();
+  });
+
+  it("routes magnets to the magnet kind", () => {
+    expect(parsePastedLink("magnet:?xt=urn:btih:ABCDEF0123456789ABCDEF0123456789ABCDEF01")).toEqual(
+      {
+        kind: "magnet",
+        magnet: "magnet:?xt=urn:btih:ABCDEF0123456789ABCDEF0123456789ABCDEF01",
+      }
+    );
+  });
+
+  it("routes anilist page urls to the anime kind", () => {
+    expect(parsePastedLink("https://anilist.co/anime/21/One-Piece")).toEqual({
+      kind: "anime",
+      link: { source: "anilist", id: 21 },
+    });
   });
 
   it("flags scheme garbage as invalid", () => {
@@ -204,13 +221,34 @@ describe("parsePastedLink", () => {
   });
 });
 
-describe("allowsPastedLink", () => {
-  it("matches links to their tabs only", () => {
-    expect(allowsPastedLink("anime", "anilist")).toBe(true);
-    expect(allowsPastedLink("torrent", "torrent")).toBe(true);
-    expect(allowsPastedLink("anime", "torrent")).toBe(false);
-    expect(allowsPastedLink("torrent", "anilist")).toBe(false);
-    expect(allowsPastedLink("anime", "search")).toBe(false);
+describe("parseAnilistPageUrl", () => {
+  it("parses a bare anime page url", () => {
+    expect(parseAnilistPageUrl("https://anilist.co/anime/21")).toEqual({
+      source: "anilist",
+      id: 21,
+    });
+  });
+
+  it("accepts a slug and a trailing slash", () => {
+    expect(parseAnilistPageUrl("https://anilist.co/anime/21/One-Piece")?.id).toBe(21);
+    expect(parseAnilistPageUrl("https://anilist.co/anime/21/")?.id).toBe(21);
+  });
+
+  it("accepts an uppercase scheme and host", () => {
+    expect(parseAnilistPageUrl("HTTPS://ANILIST.CO/anime/21")?.id).toBe(21);
+  });
+
+  it("rejects manga paths, bad ids, and query strings", () => {
+    expect(parseAnilistPageUrl("https://anilist.co/manga/21")).toBeNull();
+    expect(parseAnilistPageUrl("https://anilist.co/anime/0")).toBeNull();
+    expect(parseAnilistPageUrl("https://anilist.co/anime/")).toBeNull();
+    expect(parseAnilistPageUrl("https://anilist.co/anime/21?ref=home")).toBeNull();
+    expect(parseAnilistPageUrl("https://anilist.co/anime/21#frag")).toBeNull();
+    expect(parseAnilistPageUrl("http://anilist.co/anime/21")).toBeNull();
+    expect(parseAnilistPageUrl("https://www.anilist.co/anime/21")).toBeNull();
+    expect(parseAnilistPageUrl("https://evil.example/anime/21")).toBeNull();
+    expect(parseAnilistPageUrl("watch https://anilist.co/anime/21")).toBeNull();
+    expect(parseAnilistPageUrl("")).toBeNull();
   });
 });
 

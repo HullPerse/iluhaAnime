@@ -132,10 +132,7 @@ describe("SimilarSection", () => {
     mockResponses([], [1]);
     const { container } = renderSection();
     await vi.waitFor(() =>
-      expect(mockInvoke).toHaveBeenCalledWith(
-        "get_anime_recommendations",
-        expect.anything()
-      )
+      expect(mockInvoke).toHaveBeenCalledWith("get_anime_recommendations", expect.anything())
     );
     await vi.waitFor(() => expect(sectionEl(container)).toBeNull());
   });
@@ -148,18 +145,14 @@ describe("SimilarSection", () => {
     });
     const { container } = renderSection();
     await vi.waitFor(() =>
-      expect(mockInvoke).toHaveBeenCalledWith(
-        "get_anime_recommendations",
-        expect.anything()
-      )
+      expect(mockInvoke).toHaveBeenCalledWith("get_anime_recommendations", expect.anything())
     );
     await vi.waitFor(() => expect(sectionEl(container)).toBeNull());
   });
 
   it("falls back to relations-only exclusion when franchise fails", async () => {
     mockInvoke.mockImplementation((cmd: string) => {
-      if (cmd === "get_anime_recommendations")
-        return Promise.resolve([2, 3, 4, 5].map(rec));
+      if (cmd === "get_anime_recommendations") return Promise.resolve([2, 3, 4, 5].map(rec));
       if (cmd === "get_anime_franchise") return Promise.reject(new Error("offline"));
       return Promise.resolve(null);
     });

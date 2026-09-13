@@ -62,3 +62,5 @@ export interface FileSearchResult {
   name: string;
   size: number;
 }
+
+export type UpscaleToolStatus = "checking" | "ok" | "missing" | "downloading";

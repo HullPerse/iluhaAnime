@@ -31,8 +31,8 @@ export function TorrentProgress({ item }: { item: TorrentInfo }) {
           <span className="windows95-text text-hint">{displayStateLabel(display, t)}</span>
           <span className="windows95-font text-xs">
             {item.total_bytes > 0
-          ? `${formatBytes(item.progress_bytes)} / ${formatBytes(item.total_bytes)} (${progress.toFixed(1)}%)`
-          : formatBytes(item.progress_bytes)}
+              ? `${formatBytes(item.progress_bytes)} / ${formatBytes(item.total_bytes)} (${progress.toFixed(1)}%)`
+              : formatBytes(item.progress_bytes)}
           </span>
           <span className="windows95-font text-hint text-xs">
             {fmtSpeed(item.download_speed)}
@@ -54,10 +54,12 @@ export function TorrentProgress({ item }: { item: TorrentInfo }) {
                 )}
                 {item.uploaded_bytes > 0 && (
                   <span className="text-hint windows95-font text-xs">
-          <ArrowUp className="inline size-2.5" /> {formatBytes(item.uploaded_bytes)}
+                    <ArrowUp className="inline size-2.5" /> {formatBytes(item.uploaded_bytes)}
                   </span>
                 )}
-                <span className="text-hint windows95-font text-xs">{t("torrent.peers", { count: item.peers_connected })}</span>
+                <span className="text-hint windows95-font text-xs">
+                  {t("torrent.peers", { count: item.peers_connected })}
+                </span>
               </div>
             )}
           </span>

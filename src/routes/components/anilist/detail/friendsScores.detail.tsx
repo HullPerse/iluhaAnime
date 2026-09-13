@@ -6,45 +6,10 @@ import Section from "@/components/shared/section.component";
 import ImageComponent from "@/components/ui/image.component";
 import { listStatusLabels } from "@/config/anilist/labels.config";
 import { getStatusColor } from "@/lib/anilist/entries.utils";
-import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
+import { loadFriendScores } from "@/lib/anilist/friends.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useAniListFriendsStore } from "@/store/anilist.store";
-import { useSettingsStore } from "@/store/settings.store";
-import type { AniListCollection } from "@/types/anilist";
-
-interface FriendScore {
-  id: number;
-  name: string;
-  avatar: string | null;
-  score: number | null;
-  status: string;
-}
-
-async function loadFriendScores(animeId: number, friends: FriendScore[]): Promise<FriendScore[]> {
-  const settled = await Promise.allSettled(
-    friends.map((friend) =>
-      invokeTyped<AniListCollection[]>("get_anilist_lists", {
-        userId: friend.id,
-        ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
-      }).then((lists) => {
-        const entry = lists
-          .flatMap((list) => list.entries)
-          .find((item) => item.media.id === animeId);
-        return entry ? { ...friend, score: entry.score, status: entry.list_status } : null;
-      })
-    )
-  );
-  const rows = settled.flatMap((result) =>
-    result.status === "fulfilled" && result.value ? [result.value] : []
-  );
-  if (rows.length === 0) {
-    const failure = settled.find((result) => result.status === "rejected");
-    if (failure) throw failure.reason;
-  }
-  return rows;
-}
 
 export function FriendsScoresSection({ animeId }: { animeId: number }) {
   const { t } = useI18n();

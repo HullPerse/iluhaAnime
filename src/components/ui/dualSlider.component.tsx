@@ -2,8 +2,7 @@ import type { ReactNode } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useI18n } from "@/lib/locale/i18n.utils";
-
-import { suffixText } from "./range.component";
+import { suffixText } from "@/lib/utils/format.utils";
 
 export function DualSlider({
   wheel,

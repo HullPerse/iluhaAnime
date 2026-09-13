@@ -2,8 +2,8 @@ import { sendNotification as tauriNotify } from "@tauri-apps/plugin-notification
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
-import { useSettingsStore } from "@/store/settings.store";
 import { reportBackgroundError } from "@/lib/utils/attempt.utils";
+import { useSettingsStore } from "@/store/settings.store";
 import type {
   DismissedEntry,
   NotificationItem,

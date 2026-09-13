@@ -7,7 +7,13 @@ import { buildOutputPath } from "@/lib/player/tree.utils";
 import { reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSettingsStore } from "@/store/settings.store";
-import type { ConvertConfig, UpscaleConfig, UpscaleQueueItem, UpscaleProgressPayload, UpscaleQueueStore } from "@/types/upscale";
+import type {
+  ConvertConfig,
+  UpscaleConfig,
+  UpscaleQueueItem,
+  UpscaleProgressPayload,
+  UpscaleQueueStore,
+} from "@/types/upscale";
 
 let processingLock = false;
 

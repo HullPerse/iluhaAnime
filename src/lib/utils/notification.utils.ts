@@ -1,8 +1,11 @@
+import { formatDistanceToNow } from "date-fns";
+
+import { dateFnsLocale } from "@/lib/utils/date.utils";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 
 import { translate } from "@/lib/locale/i18n.utils";
 import { useNotificationStore } from "@/store/notification.store";
-import type { Locale, TFunc, TranslationKey } from "@/types/i18n";
+import type { Locale, TranslationKey } from "@/types/i18n";
 import type {
   NotificationFilter,
   NotificationItem,
@@ -25,14 +28,8 @@ export function copyNotification(item: NotificationItem): Promise<void> {
   return writeText(lines.join("\n"));
 }
 
-export function formatRelativeTime(timestamp: number, t: TFunc, now: number = Date.now()): string {
-  const diff = Math.max(0, now - timestamp);
-  const minutes = Math.floor(diff / 60_000);
-  if (minutes < 1) return t("notification.just.now");
-  if (minutes < 60) return t("notification.minutes.ago", { count: minutes });
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return t("notification.hours.ago", { count: hours });
-  return t("notification.days.ago", { count: Math.floor(hours / 24) });
+export function formatRelativeTime(timestamp: number, locale: string): string {
+  return formatDistanceToNow(timestamp, { addSuffix: true, locale: dateFnsLocale(locale) });
 }
 
 export function resolveNotificationText(

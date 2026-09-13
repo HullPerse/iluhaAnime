@@ -1,16 +1,10 @@
 import { Checkbox } from "@/components/ui/checkbox.component";
-import { ColorPickerTrigger } from "@/components/ui/color.component";
+import { ColorPickerTrigger } from "@/components/ui/color/trigger.color";
 import Slider from "@/components/ui/range.component";
+import { WALLPAPER_SHADOW_SIDE_KEYS } from "@/config/settings/wallpaper.config";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import type { TranslationKey } from "@/types/i18n";
-import type { WallpaperShadow, WallpaperShadowSides } from "@/types/settings";
-
-const SHADOW_SIDE_KEYS: readonly (keyof WallpaperShadowSides)[] = [
-  "top",
-  "right",
-  "bottom",
-  "left",
-];
+import type { WallpaperShadow } from "@/types/settings";
 
 export function ShadowControls({
   heading,
@@ -28,7 +22,7 @@ export function ShadowControls({
     <>
       <h3 className="windows95-text text-xs font-bold">{heading}</h3>
       <div className="flex flex-row gap-2">
-        {SHADOW_SIDE_KEYS.map((side) => (
+        {WALLPAPER_SHADOW_SIDE_KEYS.map((side) => (
           <label key={side} className="flex cursor-pointer flex-row items-center gap-1">
             <Checkbox
               checked={value.sides[side]}

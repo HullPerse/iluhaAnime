@@ -1,4 +1,6 @@
-import type { Locale } from "@/types/i18n";
+import { formatDistanceToNow } from "date-fns";
+
+import { dateFnsLocale } from "@/lib/utils/date.utils";
 import type {
   ActivityTranslate,
   AniListCollection,
@@ -6,6 +8,7 @@ import type {
   DayActivityItem,
   YearGridCell,
 } from "@/types/anilist";
+import type { Locale } from "@/types/i18n";
 
 export function monthLabel(
   month: number,
@@ -17,19 +20,8 @@ export function monthLabel(
   });
 }
 
-export function formatActivityTime(unix: number, t: ActivityTranslate, locale: Locale): string {
-  const now = Date.now() / 1000;
-  const diff = now - unix;
-  if (diff < 60) return t("anilist.activity.just.now");
-  if (diff < 3600)
-    return t("anilist.activity.minutes.ago", {
-      count: Math.floor(diff / 60),
-    });
-  if (diff < 86_400)
-    return t("anilist.activity.hours.ago", {
-      count: Math.floor(diff / 3600),
-    });
-  return new Date(unix * 1000).toLocaleDateString(locale);
+export function formatActivityTime(unix: number, locale: Locale): string {
+  return formatDistanceToNow(unix * 1000, { addSuffix: true, locale: dateFnsLocale(locale) });
 }
 
 export function groupLabel(unix: number, t: ActivityTranslate, locale: Locale): string {

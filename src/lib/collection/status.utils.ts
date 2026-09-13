@@ -1,7 +1,8 @@
 import { CORE_DEFAULT_LABELS } from "@/config/collection/defaults.config";
+import { STATUS_SHRINK_AT, STATUS_SHRINK_MIN_AT } from "@/config/collection/statuses.config";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
-import type { Locale } from "@/types/i18n";
 import type { CollectionStatusDef } from "@/types/collection";
+import type { Locale } from "@/types/i18n";
 
 export function statusColorOf(statuses: CollectionStatusDef[], id: string): string {
   return statuses.find((s) => s.id === id)?.color ?? "#9ca3af";
@@ -12,7 +13,7 @@ export function sortStatuses(statuses: CollectionStatusDef[]): CollectionStatusD
     (a, b) =>
       Number(b.isCore) - Number(a.isCore) ||
       (Number.isFinite(a.order) ? a.order : Number.MAX_SAFE_INTEGER) -
-        (Number.isFinite(b.order) ? b.order : Number.MAX_SAFE_INTEGER),
+        (Number.isFinite(b.order) ? b.order : Number.MAX_SAFE_INTEGER)
   );
 }
 
@@ -63,6 +64,12 @@ export function statusLabel(
 export function formatDate(ts: number | null): string {
   if (!ts) return "-";
   return new Date(ts).toLocaleDateString();
+}
+
+export function shrinkLevelFor(text: string): 0 | 1 | 2 {
+  if (text.length > STATUS_SHRINK_MIN_AT) return 2;
+  if (text.length > STATUS_SHRINK_AT) return 1;
+  return 0;
 }
 
 export function buildCustomStatusId(label: string): string {

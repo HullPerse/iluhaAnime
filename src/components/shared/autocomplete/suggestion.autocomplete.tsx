@@ -1,41 +1,11 @@
 import { cn } from "cn";
 import { X } from "lucide-react";
 
+import { suggestionIcons, suggestionKindLabels } from "@/config/search/autocomplete.config";
 import { useI18n } from "@/lib/locale/i18n.utils";
-import { splitHighlighted } from "@/lib/search/highlight.utils";
 import type { SearchSuggestion } from "@/lib/search/suggestions.utils";
 
-import { suggestionIcons, suggestionKindLabels } from "./look.autocomplete";
-
-function HighlightedText({
-  candidate,
-  query,
-  active,
-}: {
-  candidate: string;
-  query: string;
-  active: boolean;
-}) {
-  return (
-    <>
-      {splitHighlighted(candidate, query).map((segment, index) =>
-        segment.matched ? (
-          <span
-            key={index}
-            className={cn(
-              "text-highlight font-bold",
-              active ? "text-white underline" : "group-hover:text-white group-hover:underline"
-            )}
-          >
-            {segment.text}
-          </span>
-        ) : (
-          <span key={index}>{segment.text}</span>
-        )
-      )}
-    </>
-  );
-}
+import { HighlightedText } from "./highlightedText.autocomplete";
 
 export function SuggestionItem({
   suggestion,

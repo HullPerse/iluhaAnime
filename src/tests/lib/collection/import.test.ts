@@ -42,6 +42,7 @@ function makeEntry(overrides: Partial<AniListEntry> = {}): AniListEntry {
     list_status: "CURRENT",
     created_at: null,
     completed_at: null,
+    started_at: null,
     updated_at: null,
     ...overrides,
   };

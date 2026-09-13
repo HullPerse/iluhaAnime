@@ -1,10 +1,10 @@
+import { MAGNET_RX } from "@/config/torrent/common.config";
 import type { AnimeDeepLink, TorrentDeepLink } from "@/types/deeplink";
 
 export type { AnimeDeepLink, TorrentDeepLink };
 
 const DEEP_LINK_SCHEME = "iluhaanime";
 export const DEEP_LINK_EVENT = "deep-link-opened";
-
 export function buildAnimeLink(anilistId: number): string {
   return `${DEEP_LINK_SCHEME}://anime/anilist/${anilistId}`;
 }
@@ -63,21 +63,30 @@ export function ingestDeepLinks(
 
 export type PastedLink =
   | { kind: "anime"; link: AnimeDeepLink }
-  | { kind: "torrent"; link: TorrentDeepLink };
+  | { kind: "torrent"; link: TorrentDeepLink }
+  | { kind: "magnet"; magnet: string };
+
+export function parseAnilistPageUrl(raw: string): AnimeDeepLink | null {
+  const match = /^https:\/\/anilist\.co\/anime\/(\d{1,10})(?:\/[^\s?#]*)?\/?$/i.exec(raw.trim());
+  if (!match) return null;
+  const id = Number(match[1]);
+  if (!Number.isSafeInteger(id) || id < 1) return null;
+  return { source: "anilist", id };
+}
 
 export function parsePastedLink(text: string): PastedLink | "invalid" | null {
   const trimmed = text.trim();
-  if (trimmed.toLowerCase().indexOf(`${DEEP_LINK_SCHEME}://`) !== 0) return null;
-  const anime = parseAnimeLink(trimmed);
-  if (anime) return { kind: "anime", link: anime };
-  const torrent = parseTorrentLink(trimmed);
-  if (torrent) return { kind: "torrent", link: torrent };
-  return "invalid";
-}
-
-export function allowsPastedLink(kind: PastedLink["kind"], activeTab: string): boolean {
-  if (kind === "anime") return activeTab === "anilist";
-  return activeTab === "torrent";
+  if (trimmed.toLowerCase().indexOf(`${DEEP_LINK_SCHEME}://`) === 0) {
+    const anime = parseAnimeLink(trimmed);
+    if (anime) return { kind: "anime", link: anime };
+    const torrent = parseTorrentLink(trimmed);
+    if (torrent) return { kind: "torrent", link: torrent };
+    return "invalid";
+  }
+  if (MAGNET_RX.test(trimmed)) return { kind: "magnet", magnet: trimmed };
+  const page = parseAnilistPageUrl(trimmed);
+  if (page) return { kind: "anime", link: page };
+  return null;
 }
 
 export function isEditablePasteTarget(target: EventTarget | null): boolean {

@@ -81,7 +81,7 @@ describe("SpotlightModal", () => {
     invokeMock.mockImplementation((command: string) => {
       if (command === "get_app_cache") return Promise.resolve(null);
       if (command === "get_spotlight_page")
-        return Promise.resolve({ media: [media(21, "One Piece"), media(5114, "FMA")], total: 100 });
+        return Promise.resolve({ media: [media(21, "One Piece")], total: 1 });
       return Promise.resolve(true);
     });
     render(

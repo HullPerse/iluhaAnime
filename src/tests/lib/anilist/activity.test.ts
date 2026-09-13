@@ -1,4 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { enUS } from "date-fns/locale";
+
+import { formatDistanceToNow } from "date-fns";
+
+vi.mock("date-fns", () => ({
+  formatDistanceToNow: vi.fn(() => "2 hours ago"),
+}));
 
 import {
   buildActivityMap,
@@ -17,9 +24,7 @@ import type {
 } from "@/types/anilist";
 
 function makeT(): ActivityTranslate {
-  return (key, variables) => {
-    if (key === "anilist.activity.minutes.ago") return `${variables?.count ?? 0} min`;
-    if (key === "anilist.activity.hours.ago") return `${variables?.count ?? 0} h`;
+  return (key) => {
     if (key === "anilist.activity.event.added") return "Added";
     if (key === "anilist.activity.event.progress") return "Progress";
     if (key === "anilist.activity.event.completed") return "Completed";
@@ -59,6 +64,7 @@ function makeMedia(overrides: Partial<AniMedia> = {}): AniMedia {
 function makeEntry(overrides: Partial<AniListEntry> = {}): AniListEntry {
   return {
     completed_at: null,
+    started_at: null,
     created_at: 0,
     list_status: "CURRENT",
     media: makeMedia(),
@@ -96,20 +102,12 @@ describe("monthLabel", () => {
 });
 
 describe("formatActivityTime", () => {
-  const now = Date.now() / 1000;
-  const t = makeT();
-  it("returns justNow within a minute", () => {
-    expect(formatActivityTime(now - 30, t, "en")).toBe("anilist.activity.just.now");
-  });
-  it("returns minutesAgo within an hour", () => {
-    expect(formatActivityTime(now - 120, t, "en")).toBe("2 min");
-  });
-  it("returns hoursAgo within a day", () => {
-    expect(formatActivityTime(now - 7200, t, "en")).toBe("2 h");
-  });
-  it("returns absolute date otherwise", () => {
-    const result = formatActivityTime(now - 100_000, t, "en");
-    expect(result).toMatch(/^\d{1,2}\/\d{1,2}\/\d{4}$/);
+  it("delegates to date-fns with milliseconds and locale", () => {
+    expect(formatActivityTime(1700000000, "en")).toBe("2 hours ago");
+    expect(formatDistanceToNow).toHaveBeenCalledWith(1700000000000, {
+      addSuffix: true,
+      locale: enUS,
+    });
   });
 });
 

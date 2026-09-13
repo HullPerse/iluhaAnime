@@ -1,5 +1,10 @@
+import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
+import { readAppCache } from "@/lib/store/cache.utils";
+import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { hashStringToUint32, mulberry32 } from "@/lib/utils/random.utils";
-import type { SpotlightKind } from "@/types/anilist";
+import { useSettingsStore } from "@/store/settings.store";
+import type { AniMedia, SpotlightKind } from "@/types/anilist";
+import type { SpotlightPage } from "@/types/ipc";
 
 export const SPOTLIGHT_SCORE_FLOOR = 65;
 
@@ -51,4 +56,28 @@ export function spotlightPageIndex(
     page: 1 + Math.floor(rng() * lastPage),
     index: Math.floor(rng() * Math.max(1, perPage)),
   };
+}
+
+export async function fetchSpotlightPage(page: number): Promise<SpotlightPage> {
+  const proxy = useSettingsStore.getState().anilistProxyUrl;
+  return invokeTyped<SpotlightPage>("get_spotlight_page", {
+    page,
+    perPage: SPOTLIGHT_PER_PAGE,
+    scoreFrom: SPOTLIGHT_SCORE_FLOOR,
+    ...anilistProxyArgs(proxy),
+  });
+}
+
+export async function resolveSpotlightPick(
+  kind: SpotlightKind,
+  periodKey: string
+): Promise<AniMedia> {
+  const totalRecord = await readAppCache<number>("spotlight", `total:${periodKey}`);
+  const first = totalRecord ? null : await fetchSpotlightPage(1);
+  const total = totalRecord?.payload ?? first?.total ?? 0;
+  const { page, index } = spotlightPageIndex(kind, periodKey, total, SPOTLIGHT_PER_PAGE);
+  const pageData = first && page === 1 ? first : await fetchSpotlightPage(page);
+  const pick = pageData.media[index % Math.max(1, pageData.media.length)];
+  if (!pick) throw new Error("empty spotlight pool");
+  return pick;
 }

@@ -29,3 +29,8 @@ export const DEFAULT_COLLECTION_STATUSES: CollectionStatusDef[] = [
 ];
 
 export const DEFAULT_NEW_COLOR = "#0ea5e9";
+
+export const STATUS_TAB_WIDTH = 132;
+export const STATUS_SHRINK_AT = 16;
+export const STATUS_SHRINK_MIN_AT = 24;
+export const STATUS_SHRINK_CLASS = ["text-xs", "text-[10px]", "text-[9px]"] as const;

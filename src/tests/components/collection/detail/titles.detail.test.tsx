@@ -77,9 +77,7 @@ describe("TitlesCollection", () => {
     const user = userEvent.setup();
     const onClose = vi.fn();
     render(<TitlesCollection title="Sousou no Frieren" altTitles={["Sousou"]} onClose={onClose} />);
-    const names = screen
-      .getAllByRole("button")
-      .map((button) => button.textContent?.trim() ?? "");
+    const names = screen.getAllByRole("button").map((button) => button.textContent?.trim() ?? "");
     expect(names).toEqual(["Sousou no Frieren", "Sousou"]);
     await user.click(screen.getByRole("button", { name: "Sousou no Frieren" }));
     expect(useSearchStore.getState().crossSearchQuery).toBe("Sousou no Frieren");
@@ -94,16 +92,12 @@ describe("TitlesCollection", () => {
         onClose={() => {}}
       />
     );
-    const names = screen
-      .getAllByRole("button")
-      .map((button) => button.textContent?.trim() ?? "");
+    const names = screen.getAllByRole("button").map((button) => button.textContent?.trim() ?? "");
     expect(names).toEqual(["Frieren", "Sousou no Frieren"]);
   });
 
   it("renders nothing without any title", () => {
-    const { container } = render(
-      <TitlesCollection title="  " altTitles={[]} onClose={() => {}} />
-    );
+    const { container } = render(<TitlesCollection title="  " altTitles={[]} onClose={() => {}} />);
     expect(container.firstChild).toBeNull();
   });
 

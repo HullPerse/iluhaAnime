@@ -1,9 +1,8 @@
 import type { CSSProperties, MouseEvent as ReactMouseEvent } from "react";
 
 import { RELATION_FILTERS } from "@/config/anilist/graph.config";
+import type { EntryLookup } from "@/lib/anilist/entries.utils";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
-
-import type { TranslationVariables } from "./i18n";
 
 export interface AniRanking {
   rank: number;
@@ -130,10 +129,16 @@ export interface AniListEntry {
   list_status: string;
   created_at: number | null;
   completed_at: string | null;
+  started_at: string | null;
   updated_at: number | null;
 }
 
 export interface AniListCollection {
+  name: string;
+  entries: AniListEntry[];
+}
+
+export interface AniListGroup {
   name: string;
   entries: AniListEntry[];
 }
@@ -226,7 +231,7 @@ export interface AniActivity {
 }
 
 export interface AniListSort {
-  key: "title" | "score" | "myScore" | "progress";
+  key: "title" | "score" | "myScore" | "progress" | "completed" | "release" | "status";
   dir: "asc" | "desc";
 }
 
@@ -481,7 +486,7 @@ export interface FranchiseViewport {
 
 export interface AniCardProps {
   item: AniMedia;
-  entryLookup: Map<number, { progress: number | null; score: number | null; list_status: string }>;
+  entryLookup: EntryLookup;
   isFavorite: boolean;
   onClick: (anime: AniListAnime) => void;
 }
@@ -621,6 +626,10 @@ export interface AniSortProps {
   onRandom: () => void;
   onSpotlight: () => void;
   hasFavourites: boolean;
+  groupByStatus: boolean;
+  onGroupChange: (grouped: boolean) => void;
+  displayMode: "scroll" | "pagination";
+  onDisplayChange: (mode: "scroll" | "pagination") => void;
 }
 
 export interface AnimeShowcase {
@@ -634,3 +643,24 @@ export interface FavPersonRef {
   kind: FavPersonKind;
   id: number;
 }
+
+export interface FriendScore {
+  id: number;
+  name: string;
+  avatar: string | null;
+  score: number | null;
+  status: string;
+}
+
+export interface PrefetchSnapshot {
+  ids: number[];
+  done: number;
+  total: number;
+}
+
+export type AniListScrollRow = { kind: "header"; name: string } | { kind: "item"; media: AniMedia };
+
+export type SpotlightRowState =
+  | { status: "loading" }
+  | { status: "ready"; media: AniMedia }
+  | { status: "error" };

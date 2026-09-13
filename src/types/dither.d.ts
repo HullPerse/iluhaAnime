@@ -118,3 +118,5 @@ export interface DitherRenderContext {
   vignetteX: Float32Array | null;
   vignetteY: Float32Array | null;
 }
+
+export type DitherStatus = "loading" | "ready" | "error";

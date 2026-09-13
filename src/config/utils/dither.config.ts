@@ -1,11 +1,13 @@
 import type {
   DitherEffectOptions,
   DitherPalettePreset,
+  DitherPalettePresetId,
   DitherPreset,
   DitherPresetId,
   DitherRGB,
   DitherSliderField,
 } from "@/types/dither";
+import type { TranslationKey } from "@/types/i18n";
 
 export const DITHER_BAYER_4: readonly number[] = [
   0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5,
@@ -399,3 +401,50 @@ export const DITHER_SLIDER_DEFS: readonly DitherSliderDef[] = [
   { field: "localContrast", min: 0, max: 1, step: 0.05 },
   { field: "inkDensity", min: 0, max: 1, step: 0.05 },
 ];
+
+export const DITHER_PRESET_LABELS: Record<DitherPresetId, TranslationKey> = {
+  empty: "search.dither.preset.empty",
+  default: "search.dither.preset.default",
+  deep: "search.dither.preset.deep",
+  soft: "search.dither.preset.soft",
+  natural: "search.dither.preset.natural",
+  capy: "search.dither.preset.capy",
+  crt: "search.dither.preset.crt",
+};
+
+export const DITHER_PALETTE_PRESET_LABELS: Record<DitherPalettePresetId, TranslationKey> = {
+  default: "search.dither.palette.preset.default",
+  red: "search.dither.palette.preset.red",
+  gameboy: "search.dither.palette.preset.gameboy",
+  pico8: "search.dither.palette.preset.pico8",
+  gray: "search.dither.palette.preset.gray",
+};
+
+export const DITHER_SLIDER_LABELS: Record<DitherSliderField, TranslationKey> = {
+  levels: "search.dither.opt.levels",
+  ditherStrength: "search.dither.opt.ditherStrength",
+  ditherAmount: "search.dither.opt.ditherAmount",
+  grain: "search.dither.opt.grain",
+  texture: "search.dither.opt.texture",
+  halftone: "search.dither.opt.halftone",
+  halftoneSize: "search.dither.opt.halftoneSize",
+  halftoneSoftness: "search.dither.opt.halftoneSoftness",
+  monochromeNoise: "search.dither.opt.monochromeNoise",
+  ink: "search.dither.opt.ink",
+  edgeDistortion: "search.dither.opt.edgeDistortion",
+  misregistration: "search.dither.opt.misregistration",
+  barrel: "search.dither.opt.barrel",
+  chromaticRadius: "search.dither.opt.chromaticRadius",
+  wave: "search.dither.opt.wave",
+  paper: "search.dither.opt.paper",
+  vignette: "search.dither.opt.vignette",
+  paletteBias: "search.dither.opt.paletteBias",
+  shadowCrush: "search.dither.opt.shadowCrush",
+  highlightCompression: "search.dither.opt.highlightCompression",
+  contrastCurve: "search.dither.opt.contrastCurve",
+  blackPoint: "search.dither.opt.blackPoint",
+  localContrast: "search.dither.opt.localContrast",
+  inkDensity: "search.dither.opt.inkDensity",
+};
+
+export const DITHER_BAKE_TIMEOUT_MS = 30_000;

@@ -2,7 +2,8 @@ import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import FiltersModal, { defaultFilters } from "@/routes/components/anilist/filters.anilist";
+import { defaultFilters } from "@/config/anilist/filters.config";
+import FiltersModal from "@/routes/components/anilist/filters.anilist";
 import { useSettingsStore } from "@/store/settings.store";
 import type { AniListFiltersModalProps } from "@/types/anilist";
 

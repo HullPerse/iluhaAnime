@@ -272,7 +272,7 @@ describe("getDisplayState", () => {
       stalled: "bg-torrent-idle",
       paused: "bg-torrent-idle",
     });
-});
+  });
 });
 
 describe("findNewErrors", () => {

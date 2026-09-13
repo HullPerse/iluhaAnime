@@ -2,11 +2,9 @@ import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import {
-  CopyLinkButton,
-  DetailHeaderActions,
-  FavHeartButton,
-} from "@/routes/components/anilist/detail/actions.detail";
+import { DetailHeaderActions } from "@/routes/components/anilist/detail/actions.detail";
+import { CopyLinkButton } from "@/routes/components/anilist/detail/copyLinkButton.detail";
+import { FavHeartButton } from "@/routes/components/anilist/detail/favHeartButton.detail";
 import type { QuickAddMedia } from "@/types/collection";
 
 const writeTextSpy = vi.fn();

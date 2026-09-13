@@ -1,24 +1,17 @@
-import { toLocaleKey } from "@/lib/locale/key.utils";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "cn";
 import { ChevronDown, ChevronUp, Clock } from "lucide-react";
 import { useState, useCallback, useMemo } from "react";
 
 import { Checkbox } from "@/components/ui/checkbox.component";
-import { CATEGORY_ORDER } from "@/config/player/shaders.config";
+import { CATEGORY_ORDER, SHADER_CATEGORY_LABELS } from "@/config/player/shaders.config";
 import { useI18n } from "@/lib/locale/i18n.utils";
-import type { TranslationKey } from "@/lib/locale/i18n.utils";
+import { toLocaleKey } from "@/lib/locale/key.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { formatETA } from "@/lib/utils/time.utils";
 import type { ShaderPlayerProps as Props } from "@/types/player";
 import type { ShaderInfo } from "@/types/upscale";
 
-const CATEGORY_LABELS: Record<string, TranslationKey> = {
-  preprocess: "player.shader.preprocess",
-  restore: "player.shader.restore",
-  upscale: "player.shader.upscale",
-  postprocess: "player.shader.postprocess",
-};
 export default function ShaderPicker({ value, onChange, gpuBackend, durationSecs }: Props) {
   const { t } = useI18n();
   const [openCategories, setOpenCategories] = useState<Set<string>>(
@@ -133,7 +126,7 @@ export default function ShaderPicker({ value, onChange, gpuBackend, durationSecs
               onClick={() => toggleCategory(cat)}
             >
               {isOpen ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
-              {t(CATEGORY_LABELS[cat] ?? toLocaleKey(cat))}
+              {t(SHADER_CATEGORY_LABELS[cat] ?? toLocaleKey(cat))}
             </button>
 
             {isOpen && (

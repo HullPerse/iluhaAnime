@@ -48,9 +48,7 @@ export function buildShadowGradients(shadow?: Partial<WallpaperShadow> | null): 
       `linear-gradient(to left, ${paint} 0px, ${paint} ${solid}px, transparent ${end}px)`
     );
   if (merged.sides.bottom)
-    layers.push(
-      `linear-gradient(to top, ${paint} 0px, ${paint} ${solid}px, transparent ${end}px)`
-    );
+    layers.push(`linear-gradient(to top, ${paint} 0px, ${paint} ${solid}px, transparent ${end}px)`);
   if (merged.sides.left)
     layers.push(
       `linear-gradient(to right, ${paint} 0px, ${paint} ${solid}px, transparent ${end}px)`

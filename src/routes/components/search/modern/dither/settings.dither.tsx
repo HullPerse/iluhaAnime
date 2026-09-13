@@ -10,7 +10,10 @@ import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import ImageComponent from "@/components/ui/image.component";
 import Slider from "@/components/ui/range.component";
-import { DEFAULT_WALLPAPER_FILTERS } from "@/config/settings/defaults.config";
+import {
+  WALLPAPER_DISPLAY_PRESETS,
+  WALLPAPER_DISPLAY_SLIDERS,
+} from "@/config/settings/wallpaper.config";
 import {
   DITHER_PER_PAGE,
   DITHER_PLACEHOLDER_ID,
@@ -27,50 +30,8 @@ import { DitherUploadPlaceholder } from "@/routes/components/search/modern/dithe
 import DitherPreviewModal from "@/routes/components/search/modern/dither/preview/modal.preview";
 import { ShadowControls } from "@/routes/components/search/modern/dither/shadow.dither";
 import { useSettingsStore } from "@/store/settings.store";
-import type { TranslationKey } from "@/types/i18n";
 import type { DitherImageMeta, UserImage, UserImageFile } from "@/types/image.userimage";
 import type { WallpaperDisplayFilters } from "@/types/settings";
-
-const DISPLAY_PRESETS: readonly {
-  id: string;
-  label: TranslationKey;
-  filters: WallpaperDisplayFilters;
-}[] = [
-  {
-    id: "normal",
-    label: "search.dither.display.preset.normal",
-    filters: { ...DEFAULT_WALLPAPER_FILTERS },
-  },
-  {
-    id: "dark",
-    label: "search.dither.display.preset.dark",
-    filters: { brightness: 55, contrast: 100, saturate: 90, blur: 0, opacity: 100 },
-  },
-  {
-    id: "bright",
-    label: "search.dither.display.preset.bright",
-    filters: { brightness: 95, contrast: 110, saturate: 120, blur: 0, opacity: 100 },
-  },
-  {
-    id: "focus",
-    label: "search.dither.display.preset.focus",
-    filters: { brightness: 75, contrast: 100, saturate: 100, blur: 6, opacity: 100 },
-  },
-];
-
-const DISPLAY_SLIDERS: readonly {
-  key: keyof WallpaperDisplayFilters;
-  label: TranslationKey;
-  min: number;
-  max: number;
-  step: number;
-}[] = [
-  { key: "brightness", label: "search.dither.display.brightness", min: 0, max: 200, step: 5 },
-  { key: "contrast", label: "search.dither.display.contrast", min: 0, max: 200, step: 5 },
-  { key: "saturate", label: "search.dither.display.saturate", min: 0, max: 200, step: 5 },
-  { key: "blur", label: "search.dither.display.blur", min: 0, max: 20, step: 1 },
-  { key: "opacity", label: "search.dither.display.opacity", min: 0, max: 100, step: 5 },
-];
 
 function DitherSettings({ onClose }: { onClose: () => void }) {
   const { t } = useI18n();
@@ -349,7 +310,7 @@ function DitherSettings({ onClose }: { onClose: () => void }) {
       <section className="flex w-full flex-col gap-1">
         <h3 className="windows95-text text-xs font-bold">{t("search.dither.display.title")}</h3>
         <div className="flex flex-row gap-1">
-          {DISPLAY_PRESETS.map((preset) => (
+          {WALLPAPER_DISPLAY_PRESETS.map((preset) => (
             <Button
               key={preset.id}
               className="h-5 flex-1 px-1 text-xs"
@@ -360,7 +321,7 @@ function DitherSettings({ onClose }: { onClose: () => void }) {
             </Button>
           ))}
         </div>
-        {DISPLAY_SLIDERS.map((row) => (
+        {WALLPAPER_DISPLAY_SLIDERS.map((row) => (
           <Slider
             key={row.key}
             label={t(row.label)}

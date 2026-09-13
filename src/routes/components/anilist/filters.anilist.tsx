@@ -8,21 +8,21 @@ import { Checkbox } from "@/components/ui/checkbox.component";
 import Combobox from "@/components/ui/combobox.component";
 import { DualSlider } from "@/components/ui/dualSlider.component";
 import { Input } from "@/components/ui/input.component";
-import { Radio, RadioGroup } from "@/components/ui/radio.component";
+import { RadioGroup } from "@/components/ui/radio/group.radio";
+import { Radio } from "@/components/ui/radio/radio.radio";
 import {
   ANILIST_GENRES,
   ANILIST_NSFW_TAGS,
   ANILIST_TAGS,
   defaultFilters,
   FORMATS,
+  NSFW_TAG_SET,
   SEASONS,
   STATUSES,
 } from "@/config/anilist/filters.config";
 import { statusLabels, seasonLabels, formatLabels } from "@/config/anilist/labels.config";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import type { AniListFiltersModalProps, AniListFilters } from "@/types/anilist";
-
-const NSFW_TAG_SET = new Set(ANILIST_NSFW_TAGS);
 
 function FiltersModal({
   open,
@@ -366,4 +366,3 @@ function FiltersModal({
 }
 
 export default FiltersModal;
-export { defaultFilters };

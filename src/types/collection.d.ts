@@ -369,3 +369,17 @@ export interface QuickAddListEntry {
   score: number | null;
   list_status: string;
 }
+
+export interface MediaViewerParts {
+  tmdbId: number | null;
+  anilistId: number | null;
+  mediaType: "movie" | "tv";
+  stored: StoredMedia;
+}
+
+export interface AddedMedia {
+  backdrops: { url: string }[];
+  trailerYoutubeId: string | null;
+}
+
+export type ImportMode = "summary" | "import" | "sync" | "backfill";

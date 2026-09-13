@@ -1,11 +1,7 @@
 import type { Event } from "@tauri-apps/api/event";
 
 import type { TFunc, TranslationKey } from "@/types/i18n";
-import type {
-  TorrentDisplayState,
-  TorrentLifecycle,
-  TorrentInfo,
-} from "@/types/torrent";
+import type { TorrentDisplayState, TorrentLifecycle, TorrentInfo } from "@/types/torrent";
 
 export const STALL_AFTER_MS = 30_000;
 

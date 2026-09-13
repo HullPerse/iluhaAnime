@@ -1,8 +1,6 @@
 import { useI18n } from "@/lib/locale/i18n.utils";
 import type { CollectionItem } from "@/types/collection";
 
-const CONTINUE_MAX = 5;
-
 export default function ContinueCollection({
   items,
   onOpen,
@@ -37,5 +35,3 @@ export default function ContinueCollection({
     </section>
   );
 }
-
-export { CONTINUE_MAX };

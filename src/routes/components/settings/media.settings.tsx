@@ -1,47 +1,13 @@
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
-import { Input } from "@/components/ui/input.component";
 import Select from "@/components/ui/select.component";
 import { DEFAULT_SETTINGS } from "@/config/settings/defaults.config";
 import { useI18n } from "@/lib/locale/i18n.utils";
+import { parseExtensions } from "@/lib/settings/media.utils";
 import { useSettingsStore } from "@/store/settings.store";
 
-function parseExtensions(raw: string): string[] | null {
-  const list = [
-    ...new Set(
-      raw
-        .split(/[\s,;]+/)
-        .map((part) => part.trim().toLowerCase().replace(/^\.+/, ""))
-        .filter(Boolean)
-    ),
-  ];
-  return list.length > 0 ? list : null;
-}
-
-function ExtensionRow({
-  label,
-  value,
-  onChange,
-  onCommit,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  onCommit: () => void;
-}) {
-  return (
-    <label className="windows95-text text-text flex items-center gap-2 text-xs select-none">
-      <span className="w-36 shrink-0 font-bold">{label}</span>
-      <Input
-        className="h-6 flex-1"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onBlur={onCommit}
-      />
-    </label>
-  );
-}
+import { ExtensionRow } from "./extensionRow.settings";
 
 export default function SettingsMedia() {
   const { videoExtensions, audioExtensions, subtitleExtensions, showTrackFiles, patch } =

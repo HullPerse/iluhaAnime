@@ -34,9 +34,7 @@ function renderPanel(coverUrl = "https://img/cover.jpg") {
 describe("WizardCoverPanel preview", () => {
   it("renders the raw url without a proxy", () => {
     renderPanel();
-    expect(screen.getByAltText("selected").getAttribute("src")).toBe(
-      "https://img/cover.jpg"
-    );
+    expect(screen.getByAltText("selected").getAttribute("src")).toBe("https://img/cover.jpg");
     expect(invokeMock).not.toHaveBeenCalled();
   });
 

@@ -2,7 +2,8 @@ import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { shrinkLevelFor, StatusCollection } from "@/routes/components/collection/status.collection";
+import { shrinkLevelFor } from "@/lib/collection/status.utils";
+import { StatusCollection } from "@/routes/components/collection/status.collection";
 import { useSettingsStore } from "@/store/settings.store";
 import type { CollectionStatus, CollectionStatusDef } from "@/types/collection";
 

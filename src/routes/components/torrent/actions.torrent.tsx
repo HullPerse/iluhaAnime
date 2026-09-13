@@ -1,6 +1,5 @@
-import { ListVideo, Monitor, Play } from "lucide-react";
+import { Monitor, Play } from "lucide-react";
 
-import { SmallLoader } from "@/components/shared/loader.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
@@ -10,6 +9,8 @@ import { joinMediaPath, openFileInPlayer } from "@/lib/utils/media.utils";
 import { showError } from "@/lib/utils/notification.utils";
 import UpscalePlayer from "@/routes/components/player/upscale/modal.upscale";
 import type { TorrentTreeFile } from "@/types/torrent";
+
+import { QueueStatusIcon } from "./queueStatusIcon.torrent";
 
 export function PlayerFileActions({
   file,
@@ -130,10 +131,4 @@ export function PlayerFileActions({
       )}
     </div>
   );
-}
-
-function QueueStatusIcon({ status }: { status: string | undefined }) {
-  if (status === "queued") return <ListVideo className="text-hint size-3" />;
-  if (status === "processing") return <SmallLoader size={3} className="text-highlight" />;
-  return null;
 }

@@ -1,40 +1,29 @@
-import { toLocaleKey } from "@/lib/locale/key.utils";
-import type { TranslationVariables } from "@/types/i18n";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
+import { EMPTY_ANIME_META } from "@/config/collection/import.config";
 import { COLLECTION_QUERY_KEY, useCollectionData } from "@/hooks/collection/queries.hook";
 import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { entryDiffers, entrySyncState, runImportBatch } from "@/lib/collection/import.utils";
 import { resolveStatusLabel } from "@/lib/collection/status.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
+import { toLocaleKey } from "@/lib/locale/key.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useNotificationStore } from "@/store/notification.store";
 import { useSettingsStore } from "@/store/settings.store";
 import type { AniListCollection, AniListEntry, AniUser } from "@/types/anilist";
-import type { CollectionItem, ImportBatchGroup } from "@/types/collection";
+import type { CollectionItem, ImportBatchGroup, ImportMode } from "@/types/collection";
+import type { TranslationVariables } from "@/types/i18n";
 
 import { EntryRow } from "./import/entryRow.import";
 import { ImportFooter } from "./import/footer.import";
 import { OperationStatus } from "./import/operationStatus.import";
 import { ImportStatusSection } from "./import/status.import";
 import { SyncRow } from "./import/syncRow.import";
-
-type ImportMode = "summary" | "import" | "sync" | "backfill";
-
-const ANIME_META = {
-  title: "",
-  duration: null as number | null,
-  episodes: null as number | null,
-  genres: [] as string[],
-  studios: [] as { name: string }[],
-  cover_url: null as string | null,
-  season_year: null as number | null,
-};
 
 export default function ImportAnilistCollection({
   open,
@@ -187,11 +176,7 @@ export default function ImportAnilistCollection({
     });
   };
 
-  const notify = (
-    type: "success" | "error" | "info",
-    key: string,
-    vars?: TranslationVariables
-  ) => {
+  const notify = (type: "success" | "error" | "info", key: string, vars?: TranslationVariables) => {
     useNotificationStore.getState().add(t("app.collection"), type, t(toLocaleKey(key), vars));
   };
 
@@ -336,7 +321,7 @@ export default function ImportAnilistCollection({
       if (abortRef.current) break;
       setOpCurrent(item.title);
       const [m, err] = await attempt(
-        invokeTyped<typeof ANIME_META>("get_anime_by_id", {
+        invokeTyped<typeof EMPTY_ANIME_META>("get_anime_by_id", {
           id: item.externalIds.anilist,
           ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
         })

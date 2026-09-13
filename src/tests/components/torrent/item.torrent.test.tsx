@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 
-import { areTorrentItemsEqual } from "@/routes/components/torrent/item.torrent";
+import { areTorrentItemsEqual } from "@/lib/torrent/item.utils";
 import type { TorrentInfo, TorrentItemProps } from "@/types/torrent";
 
 function info(overrides: Partial<TorrentInfo> = {}): TorrentInfo {

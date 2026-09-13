@@ -10,6 +10,9 @@ import { toLocaleKey } from "@/lib/locale/key.utils";
 import { enterOrSpace } from "@/lib/utils/keyboard.utils";
 import type { AniCardProps as Props } from "@/types/anilist";
 
+import CardListDate from "./date.anilist";
+import CardAiredCount from "./episode.anilist";
+
 function AniListEntryCard({ item, entryLookup, isFavorite, onClick }: Props) {
   const { t } = useI18n();
   const entry = entryLookup.get(item.id);
@@ -28,7 +31,7 @@ function AniListEntryCard({ item, entryLookup, isFavorite, onClick }: Props) {
 
   return (
     <div
-      className="windows95-active-border bg-primary hover:bg-surface flex max-h-36 min-h-28 flex-row p-2 hover:cursor-pointer"
+      className="windows95-active-border bg-primary hover:bg-surface relative flex max-h-36 min-h-28 flex-row p-2 hover:cursor-pointer"
       onClick={openAnime}
       role="button"
       tabIndex={0}
@@ -66,6 +69,13 @@ function AniListEntryCard({ item, entryLookup, isFavorite, onClick }: Props) {
                 <Star className="size-3 fill-white" /> {item.score}
               </span>
             )}
+
+            <CardAiredCount
+              status={item.status}
+              nextEpisode={item.next_episode}
+              total={item.episodes}
+            />
+
             {entry?.score != null && entry.score !== 0 && (
               <span
                 className="bg-secondary text-primary flex flex-row items-center gap-0.5 px-1 text-xs"
@@ -104,11 +114,14 @@ function AniListEntryCard({ item, entryLookup, isFavorite, onClick }: Props) {
             {entry?.progress != null && entry?.progress > 0 && !item.episodes && (
               <span className="bg-secondary px-1 text-xs text-white">{entry.progress}</span>
             )}
+
             {!entry && item.episodes && (
               <span className="text-text text-xs">
                 {item.episodes} {t("anilist.details.eps.short")}
               </span>
             )}
+
+            <CardListDate entry={entry} fallback={item.end_date} />
           </div>
         </section>
 
@@ -128,6 +141,7 @@ export default memo(AniListEntryCard, (prev, next) => {
   if (prev.item.id !== next.item.id) return false;
   if (prev.item.score !== next.item.score) return false;
   if (prev.item.episodes !== next.item.episodes) return false;
+  if (prev.item.next_episode !== next.item.next_episode) return false;
   if (prev.item.title !== next.item.title) return false;
   if (prev.item.status !== next.item.status) return false;
   if (prev.item.cover_url !== next.item.cover_url) return false;

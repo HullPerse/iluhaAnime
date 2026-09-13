@@ -19,6 +19,8 @@ export const WIZARD_TABS = [
   { id: "local", labelKey: "collection.wizard.local" },
 ] as const;
 
+export const CONTINUE_MAX = 5;
+
 export const IMPORT_CHUNK_SIZE = 100;
 export const FIELD_TYPES = ["text", "number", "select", "date"] as const;
 export const SIMILAR_COUNT = 4;

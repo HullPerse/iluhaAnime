@@ -77,4 +77,3 @@ describe("usePagination", () => {
     expect(holder.current!.setPage).toBeTypeOf("function");
   });
 });
-

@@ -1,19 +1,8 @@
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
+import type { ConfirmDialogProps } from "@/types/ui";
 
 import Modal from "./modal.component";
-
-interface ConfirmDialogProps {
-  open: boolean;
-  title: string;
-  message: string;
-  confirmLabel?: string;
-  cancelLabel?: string;
-  variant?: "default" | "destructive";
-  onConfirm: () => void;
-  onCancel: () => void;
-  onClose?: () => void;
-}
 
 function ConfirmDialog({
   open,

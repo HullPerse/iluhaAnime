@@ -111,7 +111,6 @@ const collection = {
   "collection.share.preview.cap":
     "{{count}} titles do not fit - a public status holds up to {{max}}",
   "collection.share.preview.done": "Imported {{count}}",
-  "collection.share.preview.new": "New",
   "collection.share.preview.import": "Import {{count}}",
   "collection.type.anime": "Anime",
   "collection.type.movie": "Movie",

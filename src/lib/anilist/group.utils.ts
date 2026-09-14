@@ -10,9 +10,13 @@ export function groupEntriesByList(
       if (!owner.has(entry.media.id)) owner.set(entry.media.id, list.name);
     }
   }
+  const seen = new Set<number>();
   const buckets = new Map<string, AniListEntry[]>();
   for (const entry of entries) {
-    const name = owner.get(entry.media.id);
+    const id = entry.media.id;
+    if (seen.has(id)) continue;
+    seen.add(id);
+    const name = owner.get(id);
     if (!name) continue;
     let bucket = buckets.get(name);
     if (!bucket) {

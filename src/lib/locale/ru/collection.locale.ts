@@ -111,14 +111,13 @@ const collection = {
   "collection.share.preview.name.placeholder": "Подборка друга",
   "collection.share.preview.name.required": "Дай коллекции имя, чтобы сохранить её как статус",
   "collection.share.preview.target.new":
-    "Сохранится в новый статус «{{label}}» (до {{max}} тайтлов)",
+    "Сохранится в новый статус '{{label}}' (до {{max}} тайтлов)",
   "collection.share.preview.target.existing":
-    "Добавится в существующий статус «{{label}}» (до {{max}} тайтлов)",
+    "Добавится в существующий статус '{{label}}' (до {{max}} тайтлов)",
   "collection.share.preview.selected": "Выбрано {{selected}}/{{total}}",
   "collection.share.preview.cap":
     "{{count}} тайтлов не поместятся - в публичный статус влезает до {{max}}",
   "collection.share.preview.done": "Импортировано {{count}}",
-  "collection.share.preview.new": "Новое",
   "collection.share.preview.import": "Импортировать {{count}}",
   "collection.type.anime": "Аниме",
   "collection.type.movie": "Фильм",
@@ -222,7 +221,7 @@ const collection = {
   "collection.status.manager.kind.private": "Приватный",
   "collection.status.manager.kind.public": "Публичный",
   "collection.status.manager.kind.public.hint":
-    "В публичный статус влезает до {{max}} тайтлов, и он не попадает в «Все».",
+    "В публичный статус влезает до {{max}} тайтлов, и он не попадает в 'Все'.",
   "collection.status.favorites": "Избранное",
   "collection.status.planned": "Запланировано",
   "collection.status.watching": "Смотрю",

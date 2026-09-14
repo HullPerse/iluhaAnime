@@ -1,6 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { SmallLoader } from "@/components/shared/loader.component";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
@@ -604,7 +605,9 @@ export default function ImportAnilistCollection({
     >
       <div className="flex flex-col gap-3 p-2">
         {!authChecked ? (
-          <span className="windows95-text text-xs">{t("common.loading")}</span>
+          <div className="flex items-center justify-center py-4">
+            <SmallLoader />
+          </div>
         ) : !user ? (
           <div className="flex flex-col gap-2">
             <span className="windows95-text text-xs">
@@ -613,7 +616,9 @@ export default function ImportAnilistCollection({
             <span className="text-hint text-xs">{t("collection.import.anilist.login.hint")}</span>
           </div>
         ) : loading ? (
-          <span className="windows95-text text-xs">{t("common.loading")}</span>
+          <div className="flex items-center justify-center py-4">
+            <SmallLoader />
+          </div>
         ) : error ? (
           <span className="text-destructive windows95-text text-xs">{error}</span>
         ) : lists.length === 0 ? (

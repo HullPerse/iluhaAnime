@@ -25,6 +25,7 @@ const changelog405 = {
   "changelog.4_0_5.fixed.unified_index": "Large libraries no longer fail search indexing",
   "changelog.4_0_5.fixed.dither_stale":
     "Saved dither art refreshes thumbnails and wallpaper at once",
+  "changelog.4_0_5.fixed.import_loader": "AniList import dialog shows a spinner while loading",
 } as const;
 
 export default changelog405;

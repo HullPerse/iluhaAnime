@@ -23,6 +23,7 @@ const changelog405 = {
   "changelog.4_0_5.changed.relative_times": "Время в ленте и уведомлениях - живыми фразами",
   "changelog.4_0_5.fixed.unified_index": "Большие библиотеки больше не ломают индексацию поиска",
   "changelog.4_0_5.fixed.dither_stale": "Сохраненный dither-арт сразу обновляет миниатюры и обои",
+  "changelog.4_0_5.fixed.import_loader": "Диалог импорта из AniList показывает спиннер при загрузке",
 } as const;
 
 export default changelog405;

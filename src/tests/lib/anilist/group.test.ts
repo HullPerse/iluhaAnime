@@ -93,6 +93,16 @@ describe("groupEntriesByList", () => {
   it("returns no groups for empty input", () => {
     expect(groupEntriesByList([], [makeList("Current", [1])])).toEqual([]);
   });
+
+  it("renders an entry shared by two lists once in the owning group", () => {
+    const lists = [makeList("Current", [1, 2]), makeList("Custom", [2, 3])];
+    const flat = lists.flatMap((list) => list.entries);
+    const groups = groupEntriesByList(flat, lists);
+    expect(groups.map((g) => g.entries.map((e) => e.media.id))).toEqual([
+      [1, 2],
+      [3],
+    ]);
+  });
 });
 
 describe("collectAllEntries", () => {

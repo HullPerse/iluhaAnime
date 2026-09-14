@@ -36,6 +36,7 @@ export const CHANGELOG: ChangelogVersion[] = [
     fixed: [
       entry("changelog.4_0_5.fixed.unified_index", "search"),
       entry("changelog.4_0_5.fixed.dither_stale", "search"),
+      entry("changelog.4_0_5.fixed.import_loader", "collection"),
     ],
   },
   {

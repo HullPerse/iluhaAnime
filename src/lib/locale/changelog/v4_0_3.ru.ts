@@ -5,7 +5,7 @@ const changelog403 = {
     "Вставка ссылки iluhaanime:// открывает ее на подходящей вкладке",
   "changelog.4_0_3.added.friend_lists":
     "У друзей вкладка списков только для чтения, клик открывает аниме",
-  "changelog.4_0_3.added.continue_row": "Ряд «Продолжить просмотр» с пятью последними тайтлами",
+  "changelog.4_0_3.added.continue_row": "Ряд 'Продолжить просмотр' с пятью последними тайтлами",
   "changelog.4_0_3.added.credits_seasons": "Секции Credits и Seasons в деталях коллекции",
   "changelog.4_0_3.added.diagnostics":
     "Детали соединения торрента: живые пиры, трекеры, копирование магнета и info-хэша",
@@ -13,7 +13,7 @@ const changelog403 = {
     "Массовые действия по текущему фильтру: пауза, старт и повтор ошибок",
   "changelog.4_0_3.added.torrent_network": "Сетевые настройки торрентов: порт, UPnP, таймауты",
   "changelog.4_0_3.added.media_panel": "Настройки медиафайлов: расширения видео, аудио и субтитров",
-  "changelog.4_0_3.added.did_you_mean": "Подсказка «Did you mean» с перепоиском в один клик",
+  "changelog.4_0_3.added.did_you_mean": "Подсказка 'Did you mean' с перепоиском в один клик",
   "changelog.4_0_3.added.queue_retry": "Кнопка повтора ошибок в очереди апскейла с деталями",
   "changelog.4_0_3.changed.torrent_notify":
     "Уведомления о финише и ошибках локализованы, без дублей",

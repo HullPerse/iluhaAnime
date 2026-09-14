@@ -108,6 +108,9 @@ pub struct CollectionStatusRow {
     pub color: String,
     pub order_index: i64,
     pub is_core: bool,
+    /// `private` for ordinary buckets, `public` for imported shared collections.
+    /// Public statuses are hidden from the All tab and own their items on delete.
+    pub kind: String,
 }
 
 fn validate_collection_color(value: &str) -> Result<(), String> {
@@ -133,7 +136,7 @@ pub fn list_collection_statuses(app: tauri::AppHandle) -> Result<Vec<CollectionS
     let connection = open_database(&app)?;
     let mut statement = connection
         .prepare(
-            "SELECT id, label, color, order_index, is_core
+            "SELECT id, label, color, order_index, is_core, kind
              FROM collection_statuses ORDER BY order_index, label",
         )
         .map_err(|e| format!("list collection statuses: {e}"))?;
@@ -145,6 +148,7 @@ pub fn list_collection_statuses(app: tauri::AppHandle) -> Result<Vec<CollectionS
                 color: row.get(2)?,
                 order_index: row.get(3)?,
                 is_core: row.get::<_, i64>(4)? != 0,
+                kind: row.get(5)?,
             })
         })
         .map_err(|e| format!("list collection statuses query: {e}"))?;
@@ -168,20 +172,30 @@ pub fn upsert_collection_status(
         return Err("Collection status id must be alphanumeric, '_' or '-'".into());
     }
     let is_core = CORE_COLLECTION_STATUS_IDS.contains(&status.id.as_str());
+    // Core buckets are always private: only custom statuses can be public collections.
+    let kind = if is_core {
+        "private"
+    } else {
+        status.kind.as_str()
+    };
+    if kind != "private" && kind != "public" {
+        return Err("Collection status kind must be 'private' or 'public'".into());
+    }
     let connection = open_database(&app)?;
     connection
         .execute(
-            "INSERT INTO collection_statuses (id, label, color, order_index, is_core)
-             VALUES (?1, ?2, ?3, ?4, ?5)
+            "INSERT INTO collection_statuses (id, label, color, order_index, is_core, kind)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)
              ON CONFLICT(id) DO UPDATE SET
                 label = excluded.label, color = excluded.color,
-                order_index = excluded.order_index",
+                order_index = excluded.order_index, kind = excluded.kind",
             params![
                 status.id,
                 status.label,
                 status.color,
                 status.order_index,
-                i64::from(is_core)
+                i64::from(is_core),
+                kind
             ],
         )
         .map_err(|e| format!("upsert collection status: {e}"))?;
@@ -194,12 +208,29 @@ pub fn delete_collection_status(app: tauri::AppHandle, id: String) -> Result<(),
         return Err("Core statuses cannot be deleted".into());
     }
     let connection = open_database(&app)?;
-    connection
-        .execute(
-            "UPDATE collection_items SET status = 'planned' WHERE status = ?1",
+    let kind: Option<String> = connection
+        .query_row(
+            "SELECT kind FROM collection_statuses WHERE id = ?1",
             params![id],
+            |row| row.get(0),
         )
-        .map_err(|e| format!("reassign collection items on status delete: {e}"))?;
+        .ok();
+    if kind.as_deref() == Some("public") {
+        // A public status owns what was imported into it, so it takes its items along.
+        connection
+            .execute(
+                "DELETE FROM collection_items WHERE status = ?1",
+                params![id],
+            )
+            .map_err(|e| format!("delete shared collection items: {e}"))?;
+    } else {
+        connection
+            .execute(
+                "UPDATE collection_items SET status = 'planned' WHERE status = ?1",
+                params![id],
+            )
+            .map_err(|e| format!("reassign collection items on status delete: {e}"))?;
+    }
     connection
         .execute(
             "DELETE FROM collection_statuses WHERE id = ?1 AND is_core = 0",

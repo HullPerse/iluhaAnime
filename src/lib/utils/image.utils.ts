@@ -1,6 +1,6 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
 
-import type { UserImage, UserImageFile } from "@/types/image.userimage";
+import type { UserImage, UserImageFile } from "@/types/userimage";
 
 export const USER_IMAGE_PREFIX = "user-image:";
 
@@ -18,8 +18,15 @@ export function userImageId(value: string): string | null {
   return id || null;
 }
 
-export function assetUrl(path: string): string {
-  return convertFileSrc(path);
+/**
+ * Asset URL for a path stored on disk. `version` is appended as a query token so
+ * a rewritten file gets a new URL: the asset protocol serves the file by path and
+ * ignores the query, but the webview caches by full URL.
+ */
+export function assetUrl(path: string, version?: string | null): string {
+  const url = convertFileSrc(path);
+  if (version === undefined || version === null || version === "") return url;
+  return `${url}${url.includes("?") ? "&" : "?"}v=${encodeURIComponent(version)}`;
 }
 
 export function toUserImage(raw: UserImageFile): UserImage {
@@ -27,9 +34,9 @@ export function toUserImage(raw: UserImageFile): UserImage {
     id: raw.id,
     name: raw.name,
     mimeType: raw.mimeType,
-    url: assetUrl(raw.path),
+    url: assetUrl(raw.path, raw.version),
     originalUrl: raw.originalPath === null ? null : assetUrl(raw.originalPath),
-    ditherOptions: raw.ditherOptions ?? null,
+    version: raw.version,
     createdAt: raw.createdAt,
   };
 }

@@ -14,6 +14,7 @@ import {
   DEEP_LINK_EVENT,
   ingestDeepLinks,
   isEditablePasteTarget,
+  parseCollectionShareLink,
   parsePastedLink,
 } from "@/lib/utils/deeplink.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
@@ -214,6 +215,18 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
           }
           useDeepLinkStore.getState().openTorrent(link);
           setActiveTabTransition("torrent");
+        },
+        (rawUrl) => {
+          if (!useSettingsStore.getState().collectionTabEnabled) {
+            showError(t("common.error"), t("anilist.details.link.invalid"));
+            return;
+          }
+          parseCollectionShareLink(rawUrl)
+            .then((link) => {
+              if (link) useDeepLinkStore.getState().openShare(link);
+              else showError(t("common.error"), t("collection.share.invalid"));
+            })
+            .catch((error) => reportBackgroundError("deeplink.share-pending", error));
         }
       );
     };
@@ -268,9 +281,20 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
       } else if (parsed.kind === "torrent") {
         if (!ensureTorrentTab()) return;
         useDeepLinkStore.getState().openTorrent(parsed.link);
-      } else {
+      } else if (parsed.kind === "magnet") {
         if (!ensureTorrentTab()) return;
         useDeepLinkStore.getState().openMagnet(parsed.magnet);
+      } else {
+        if (!useSettingsStore.getState().collectionTabEnabled) {
+          showError(t("common.error"), t("anilist.details.link.invalid"));
+          return;
+        }
+        parseCollectionShareLink(text)
+          .then((link) => {
+            if (link) useDeepLinkStore.getState().openShare(link);
+            else showError(t("common.error"), t("collection.share.invalid"));
+          })
+          .catch((error) => reportBackgroundError("deeplink.share-paste", error));
       }
     };
     window.addEventListener("paste", handler);
@@ -284,6 +308,17 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
     if (useDeepLinkStore.getState().target) switchToAnilist();
     return useDeepLinkStore.subscribe((state, prev) => {
       if (state.target && state.target !== prev.target) switchToAnilist();
+    });
+  }, [setActiveTab]);
+
+  useEffect(() => {
+    const switchToCollection = () => {
+      if (!useSettingsStore.getState().collectionTabEnabled) return;
+      startTransition(() => setActiveTab("collection"));
+    };
+    if (useDeepLinkStore.getState().shareTarget) switchToCollection();
+    return useDeepLinkStore.subscribe((state, prev) => {
+      if (state.shareTarget && state.shareTarget !== prev.shareTarget) switchToCollection();
     });
   }, [setActiveTab]);
 

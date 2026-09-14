@@ -14,6 +14,7 @@ export default function GridCollection({
   groups,
   collapsedStatuses,
   onToggleStatusCollapsed,
+  onAddToStatus,
 }: GridCollectionProps) {
   if (groups?.length || display === "scroll")
     return (
@@ -27,6 +28,7 @@ export default function GridCollection({
         groups={groups}
         collapsedStatuses={collapsedStatuses}
         onToggleStatusCollapsed={onToggleStatusCollapsed}
+        onAddToStatus={onAddToStatus}
       />
     );
   return (

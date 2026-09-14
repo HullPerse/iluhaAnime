@@ -36,13 +36,18 @@ function normalizeItem(raw: RawCollectionItem): CollectionItem {
   };
 }
 
-type StatusRow = Omit<CollectionStatusDef, "order"> & { order?: number; orderIndex?: number };
+type StatusRow = Omit<CollectionStatusDef, "order" | "kind"> & {
+  order?: number;
+  orderIndex?: number;
+  kind?: CollectionStatusDef["kind"];
+};
 
 function normalizeStatus(row: StatusRow, fallback: number): CollectionStatusDef {
   return {
     color: row.color,
     id: row.id,
     isCore: row.isCore,
+    kind: row.kind ?? "private",
     label: row.label,
     order: row.orderIndex ?? row.order ?? fallback,
   };

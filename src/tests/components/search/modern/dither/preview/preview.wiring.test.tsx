@@ -9,7 +9,7 @@ import { toUserImage } from "@/lib/utils/image.utils";
 import DitherPreviewModal from "@/routes/components/search/modern/dither/preview/modal.preview";
 import { useNotificationStore } from "@/store/notification.store";
 import { useSettingsStore } from "@/store/settings.store";
-import type { UserImage, UserImageFile } from "@/types/image.userimage";
+import type { UserImage, UserImageFile } from "@/types/userimage";
 
 const mockInvoke = vi.fn();
 vi.mock("@tauri-apps/api/core", () => ({
@@ -23,14 +23,15 @@ const IMAGE: UserImage = {
   mimeType: "image/png",
   url: "data:image/png;base64,AAAA",
   originalUrl: "data:image/png;base64,OOOO",
-  ditherOptions: null,
+  version: "1",
   createdAt: 10,
 };
 
 const UPDATED_FILE: UserImageFile = {
   ...IMAGE,
-  path: "C:/images/aaa.baked.png",
+  path: "C:/images/aaa.png",
   originalPath: "C:/images/aaa.original.png",
+  version: "2",
 };
 
 function installCanvasHarness(source: Uint8ClampedArray) {

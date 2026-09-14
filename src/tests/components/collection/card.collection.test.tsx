@@ -12,8 +12,8 @@ vi.mock("@tauri-apps/api/core", () => ({
 }));
 
 const STATUSES: CollectionStatusDef[] = [
-  { id: "planned", label: "Planned", color: "#9ca3af", order: 0, isCore: true },
-  { id: "watching", label: "Watching", color: "#3b82f6", order: 1, isCore: true },
+  { id: "planned", label: "Planned", color: "#9ca3af", order: 0, isCore: true, kind: "private" },
+  { id: "watching", label: "Watching", color: "#3b82f6", order: 1, isCore: true, kind: "private" },
 ];
 
 function makeItem(): CollectionItem {

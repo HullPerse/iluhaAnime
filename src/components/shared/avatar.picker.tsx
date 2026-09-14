@@ -11,7 +11,7 @@ import { attempt } from "@/lib/utils/attempt.utils";
 import { toUserImage, userImageIcon } from "@/lib/utils/image.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { showError } from "@/lib/utils/notification.utils";
-import type { UserImage, UserImageFile, UserImagePickerProps } from "@/types/image.userimage";
+import type { UserImage, UserImageFile, UserImagePickerProps } from "@/types/userimage";
 
 export default function UserImagePicker({ selected, onSelect }: UserImagePickerProps) {
   const { t } = useI18n();

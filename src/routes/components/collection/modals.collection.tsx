@@ -24,6 +24,7 @@ export default function CollectionModals({
   items,
   pendingDelete,
   statusManager,
+  statusCounts,
   showImportStrategy,
   onWizardClose,
   onWizardSave,
@@ -52,6 +53,7 @@ export default function CollectionModals({
   items: CollectionItem[];
   pendingDelete: string | null;
   statusManager: boolean;
+  statusCounts: Record<string, number>;
   showImportStrategy: boolean;
   onWizardClose: () => void;
   onWizardSave: (item: Omit<CollectionItem, "id" | "addedAt" | "updatedAt">) => void;
@@ -133,6 +135,7 @@ export default function CollectionModals({
       {statusManager && (
         <StatusManagerCollection
           statuses={statuses}
+          counts={statusCounts}
           onUpsert={onUpsertStatus}
           onDelete={onDeleteStatus}
           onClose={onStatusManagerClose}

@@ -39,7 +39,14 @@ describe("collection status order mapping", () => {
       if (cmd === "list_custom_field_defs") return Promise.resolve([]);
       if (cmd === "list_collection_statuses")
         return Promise.resolve([
-          { id: "watching", label: "Watching", color: "#3b82f6", orderIndex: 7, isCore: true },
+          {
+            id: "watching",
+            label: "Watching",
+            color: "#3b82f6",
+            orderIndex: 7,
+            isCore: true,
+            kind: "private",
+          },
         ]);
       return Promise.resolve(undefined);
     });
@@ -47,7 +54,14 @@ describe("collection status order mapping", () => {
     const { result, unmount } = renderHook(() => useCollectionData(), { wrapper: Wrapper });
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.statuses).toEqual([
-      { id: "watching", label: "Watching", color: "#3b82f6", order: 7, isCore: true },
+      {
+        id: "watching",
+        label: "Watching",
+        color: "#3b82f6",
+        order: 7,
+        isCore: true,
+        kind: "private",
+      },
     ]);
     unmount();
   });
@@ -63,9 +77,17 @@ describe("collection status order mapping", () => {
       color: "#ffffff",
       order: 9,
       isCore: false,
+      kind: "private",
     });
     expect(invokeMock).toHaveBeenCalledWith("upsert_collection_status", {
-      status: { id: "custom", label: "Custom", color: "#ffffff", isCore: false, orderIndex: 9 },
+      status: {
+        id: "custom",
+        label: "Custom",
+        color: "#ffffff",
+        isCore: false,
+        kind: "private",
+        orderIndex: 9,
+      },
     });
     unmount();
   });

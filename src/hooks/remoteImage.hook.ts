@@ -4,7 +4,7 @@ import { assetUrl } from "@/lib/utils/image.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { createLruCache, inflightFetch } from "@/lib/utils/lruCache.utils";
 import { useSettingsStore } from "@/store/settings.store";
-import type { UserImageFile } from "@/types/image.userimage";
+import type { UserImageFile } from "@/types/userimage";
 
 const resolvedUrls = createLruCache<string, string>(200);
 const inflight = new Map<string, Promise<string | null>>();

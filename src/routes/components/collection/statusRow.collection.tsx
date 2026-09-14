@@ -4,23 +4,29 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button.component";
 import { ColorPickerTrigger } from "@/components/ui/color/trigger.color";
 import { Input } from "@/components/ui/input.component";
+import Select from "@/components/ui/select.component";
+import { PUBLIC_STATUS_MAX_ITEMS } from "@/config/collection/statuses.config";
 import { normalizeStatusLabel } from "@/lib/collection/status.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
-import type { CollectionStatusDef } from "@/types/collection";
+import type { CollectionStatusDef, CollectionStatusKind } from "@/types/collection";
 
 import { BilingualPreview } from "./bilingualPreview.collection";
 
 export function StatusRow({
   status,
+  count,
   onUpsert,
   onDelete,
 }: {
   status: CollectionStatusDef;
+  count?: number;
   onUpsert: (status: CollectionStatusDef) => void;
   onDelete: (id: string) => void;
 }) {
   const { t } = useI18n();
   const [draft, setDraft] = useState(status.label);
+  const isPublic = status.kind === "public";
+  const overCap = (count ?? 0) > PUBLIC_STATUS_MAX_ITEMS;
 
   return (
     <li className="border-b-muted flex flex-wrap items-center gap-1 border-b px-1 py-1 last:border-b-0">
@@ -55,21 +61,43 @@ export function StatusRow({
           {t("collection.status.manager.core")}
         </span>
       ) : (
-        <Button
-          size="icon"
-          variant="destructive"
-          aria-label={`${t("common.delete")} ${status.label}`}
-          title={t("collection.status.manager.delete.hint")}
-          className="size-6"
-          onClick={(e) => {
-            if (e.currentTarget.ownerDocument.activeElement instanceof HTMLInputElement) {
-              e.currentTarget.ownerDocument.activeElement.blur();
-            }
-            onDelete(status.id);
-          }}
-        >
-          <Trash2 className="size-3" />
-        </Button>
+        <>
+          <Select
+            className="w-24"
+            value={status.kind}
+            label={t("collection.status.manager.kind")}
+            onChange={(value) => onUpsert({ ...status, kind: value as CollectionStatusKind })}
+            options={[
+              { value: "private", label: t("collection.status.manager.kind.private") },
+              { value: "public", label: t("collection.status.manager.kind.public") },
+            ]}
+          />
+          {isPublic && (
+            <span
+              className={`windows95-font shrink-0 text-xs ${overCap ? "text-destructive" : "text-hint"}`}
+              title={t("collection.status.manager.kind.public.hint", {
+                max: String(PUBLIC_STATUS_MAX_ITEMS),
+              })}
+            >
+              {count ?? 0}/{PUBLIC_STATUS_MAX_ITEMS}
+            </span>
+          )}
+          <Button
+            size="icon"
+            variant="destructive"
+            aria-label={`${t("common.delete")} ${status.label}`}
+            title={t("collection.status.manager.delete.hint")}
+            className="size-6"
+            onClick={(e) => {
+              if (e.currentTarget.ownerDocument.activeElement instanceof HTMLInputElement) {
+                e.currentTarget.ownerDocument.activeElement.blur();
+              }
+              onDelete(status.id);
+            }}
+          >
+            <Trash2 className="size-3" />
+          </Button>
+        </>
       )}
       <BilingualPreview value={draft} />
     </li>

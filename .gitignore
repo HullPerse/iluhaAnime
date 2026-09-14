@@ -24,7 +24,6 @@ dist-ssr
 *.sw?
 .opencode
 .env
-resources
 
 plans
 glucose

@@ -2,7 +2,7 @@ import Image from "@/components/ui/image.component";
 import { displayCell, previewCell } from "@/lib/sqlite/row.utils";
 import { isImageUrl } from "@/lib/utils/image.utils";
 
-import { BlobImageCell } from "./blobImageCell.sqlite";
+import { AssetImageCell } from "./assetImageCell.sqlite";
 
 export function RowCell({
   value,
@@ -11,7 +11,7 @@ export function RowCell({
   row,
   rowKeys,
   showImages,
-  blobColumns,
+  imageColumns,
   selectedDatabase,
   selectedTable,
   openCell,
@@ -22,7 +22,7 @@ export function RowCell({
   row: unknown[];
   rowKeys: string[] | null;
   showImages: boolean;
-  blobColumns: Set<string>;
+  imageColumns: Set<string>;
   selectedDatabase: string;
   selectedTable: string;
   openCell: (row: unknown[], column: string) => void;
@@ -30,7 +30,7 @@ export function RowCell({
   const rendered = displayCell(value, column);
   const preview = previewCell(value, column);
   if (!interactive) return <>{preview}</>;
-  const showBlobImage = showImages && blobColumns.has(column);
+  const showAssetImage = showImages && imageColumns.has(column);
   const showUrlImage = showImages && isImageUrl(value);
   return (
     <button
@@ -39,8 +39,8 @@ export function RowCell({
       title={rendered}
       onClick={() => openCell(row, column)}
     >
-      {showBlobImage && rowKeys ? (
-        <BlobImageCell
+      {showAssetImage && rowKeys ? (
+        <AssetImageCell
           database={selectedDatabase}
           table={selectedTable}
           column={column}

@@ -20,7 +20,7 @@ import type {
   CollectionStatusDef,
 } from "@/types/collection";
 
-import { GroupHeaderCollection } from "../groupHeader.collection";
+import { GroupHeaderCollection, publicHeaderProps } from "../groupHeader.collection";
 import { GridRow } from "./row.grid";
 
 export function GridScrollView({
@@ -33,6 +33,7 @@ export function GridScrollView({
   groups,
   collapsedStatuses,
   onToggleStatusCollapsed,
+  onAddToStatus,
 }: {
   items: CollectionItem[];
   statuses: CollectionStatusDef[];
@@ -43,6 +44,7 @@ export function GridScrollView({
   groups?: CollectionGroup[];
   collapsedStatuses?: Set<string>;
   onToggleStatusCollapsed?: (statusId: string) => void;
+  onAddToStatus?: (status: CollectionStatusDef) => void;
 }) {
   const parentRef = useRef<HTMLDivElement>(null);
   const { t, locale } = useI18n();
@@ -115,6 +117,12 @@ export function GridScrollView({
                   variant={headerVariant}
                   toggleLabel={t("collection.group.toggle")}
                   onToggle={() => onToggleStatusCollapsed?.(row.status.id)}
+                  {...publicHeaderProps({
+                    status: row.status,
+                    count: groupCounts.get(row.status.id) ?? 0,
+                    addLabel: t("collection.add.media"),
+                    onAddToStatus,
+                  })}
                 />
               ) : (
                 <GridRow

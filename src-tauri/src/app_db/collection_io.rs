@@ -48,7 +48,7 @@ pub fn import_collection_data(
         overwritten: 0,
         created: 0,
     };
-    for item in &data.items {
+    for (index, item) in data.items.iter().enumerate() {
         let external_ids = serde_json::from_str::<serde_json::Value>(
             &serde_json::to_string(&item.external_ids)
                 .unwrap_or_default()
@@ -81,15 +81,15 @@ pub fn import_collection_data(
                 })
                 .ok()
         };
-        match (existing, &strategy) {
+        match (existing.as_deref(), &strategy) {
             (Some(_), ImportStrategy::Skip) => {
                 summary.skipped += 1;
             }
-            (Some(_), ImportStrategy::Overwrite) => {
+            (Some(existing_id), ImportStrategy::Overwrite) => {
                 upsert_collection_item(
                     app.clone(),
                     CollectionItemInput {
-                        id: item.id.clone(),
+                        id: existing_id.to_string(),
                         title: item.title.clone(),
                         alt_titles: item.alt_titles.clone(),
                         r#type: item.r#type.clone(),
@@ -130,7 +130,7 @@ pub fn import_collection_data(
                 summary.imported += 1;
             }
             (Some(_), ImportStrategy::CreateNew) | (None, _) => {
-                let new_id = format!("imp_{}_{}", item.id, now_seconds());
+                let new_id = unique_import_id(&item.id, index);
                 upsert_collection_item(
                     app.clone(),
                     CollectionItemInput {
@@ -180,6 +180,22 @@ pub fn import_collection_data(
         upsert_custom_field_def(app.clone(), def.clone())?;
     }
     Ok(summary)
+}
+
+/// Builds the id for an imported row instead of reusing the exported one. The
+/// nanosecond stamp separates import runs and the row index separates rows inside a
+/// run, so a payload whose ids are blank or repeated cannot collapse into one row.
+/// Truncated to the 128-character limit enforced by `insert_collection_item_connection`.
+fn unique_import_id(source: &str, index: usize) -> String {
+    let stamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_nanos();
+    let suffix = format!("_{stamp:x}_{index}");
+    let budget = 128usize.saturating_sub(suffix.chars().count());
+    let head = format!("imp_{source}");
+    let trimmed: String = head.chars().take(budget).collect();
+    format!("{trimmed}{suffix}")
 }
 
 #[derive(Clone)]
@@ -289,4 +305,24 @@ pub fn remove_database(app: &tauri::AppHandle) -> Result<bool, String> {
         }
     }
     Ok(removed)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::unique_import_id;
+
+    #[test]
+    fn import_ids_stay_unique_for_rows_without_a_source_id() {
+        // Share payloads ship blank ids, so every row of one batch must still get its own.
+        let first = unique_import_id("", 0);
+        let second = unique_import_id("", 1);
+        assert_ne!(first, second);
+        assert!(first.starts_with("imp_"));
+    }
+
+    #[test]
+    fn import_ids_respect_the_id_length_limit() {
+        let long_source = "x".repeat(128);
+        assert!(unique_import_id(&long_source, 7).chars().count() <= 128);
+    }
 }

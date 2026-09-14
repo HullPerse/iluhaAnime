@@ -22,6 +22,7 @@ export default function ToolbarCollection({
   onSortChange,
   onRandom,
   randomDisabled,
+  addDisabled,
 }: {
   field: SearchField;
   sortBy: CollectionStore["sortBy"];
@@ -33,6 +34,8 @@ export default function ToolbarCollection({
   onSortChange: (by: CollectionStore["sortBy"], dir: CollectionStore["sortDir"]) => void;
   onRandom: () => void;
   randomDisabled: boolean;
+  /** Set when the selected public tab is at its item cap: the plus opens nowhere. */
+  addDisabled?: boolean;
 }) {
   const { t } = useI18n();
   const dataActions = useCollectionDataActions();
@@ -49,6 +52,7 @@ export default function ToolbarCollection({
         className="size-7"
         title={t("collection.add.media")}
         aria-label={t("collection.add.media")}
+        disabled={addDisabled}
       >
         <Plus className="size-5" />
       </Button>

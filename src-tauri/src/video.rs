@@ -435,15 +435,13 @@ fn build_anime4k_filter(
     } else {
         0.0
     };
-    let cascade = ratio > 2.05
-        && chain
-            .iter()
-            .any(|f| crate::shaders::is_upscale_file(f) && f.contains("_x2"));
+    let upscale_pos = chain
+        .iter()
+        .position(|f| crate::shaders::is_upscale_file(f));
+    let cascade =
+        upscale_pos.is_some_and(|pos| crate::shaders::needs_upscale_cascade(&chain[pos], ratio));
     if cascade {
-        if let Some(pos) = chain
-            .iter()
-            .position(|f| crate::shaders::is_upscale_file(f))
-        {
+        if let Some(pos) = upscale_pos {
             let dup = chain[pos].clone();
             chain.insert(pos + 1, dup);
         }
@@ -546,13 +544,7 @@ pub async fn preview_upscale_frames(
     }
     let selected = selected_shaders.unwrap_or_else(crate::shaders::default_selection);
     let shader_chain = crate::shaders::build_shader_chain(&selected)?;
-    let shader_dir = crate::shaders::shader_dir(&app_handle)
-        .ok_or_else(|| "Anime4K шейдеры не найдены. Переустановите приложение.".to_string())?;
-    for filename in &shader_chain {
-        if !shader_dir.join(filename).exists() {
-            return Err(format!("Anime4K шейдер не найден: {filename}"));
-        }
-    }
+    let shader_dir = crate::shaders::resolve_shader_dir(&app_handle, &shader_chain)?;
     let temporal_denoise = temporal_denoise.unwrap_or(false);
     let chain_vf = build_anime4k_filter(
         &shader_chain,
@@ -829,19 +821,18 @@ fn estimate_seconds(
         0.0
     };
     let mut penalty = 1.0;
-    let mut upscale_factor = 1.0;
     for id in selected {
-        let factor = crate::shaders::speed_factor(id).unwrap_or(1.0);
-        if crate::shaders::is_2x_upscale_id(id) {
-            upscale_factor = factor;
-        }
-        penalty *= factor;
+        penalty *= crate::shaders::speed_factor(id).unwrap_or(1.0);
     }
     if temporal_denoise {
         penalty *= 0.97;
     }
-    if ratio > 2.05 && upscale_factor < 1.0 {
-        penalty *= upscale_factor;
+    // The automatic cascade repeats the upscale shader, so its pass is paid twice.
+    if let Some(extra) = selected
+        .iter()
+        .find_map(|id| crate::shaders::cascade_penalty(id, ratio))
+    {
+        penalty *= extra;
     }
     let interp_seconds = if interpolate && rife_ready {
         duration * out_fps / RIFE_INTERP_FPS + duration / EXTRACT_RT_MULT
@@ -1407,14 +1398,7 @@ pub async fn upscale_video(
         let selected = selected_shaders.unwrap_or_else(crate::shaders::default_selection);
         let shader_chain = crate::shaders::build_shader_chain(&selected)?;
 
-        let shader_dir = crate::shaders::shader_dir(&app_handle)
-            .ok_or_else(|| "Anime4K шейдеры не найдены. Переустановите приложение.".to_string())?;
-
-        for filename in &shader_chain {
-            if !shader_dir.join(filename).exists() {
-                return Err(format!("Anime4K шейдер не найден: {filename}"));
-            }
-        }
+        let shader_dir = crate::shaders::resolve_shader_dir(&app_handle, &shader_chain)?;
 
         let use_rife =
             interpolate && target_fps == Some(60) && crate::rife::rife_ready(&app_handle);
@@ -1998,6 +1982,23 @@ mod tests {
     }
 
     #[test]
+    fn anime4k_cascade_follows_native_scale() {
+        let x3 = vec!["Anime4K_Upscale_GAN_x3_L.glsl".to_string()];
+        let single = build_anime4k_filter(&x3, 3840, 2160, 1920, 1080, false);
+        assert_eq!(single.matches("Anime4K_Upscale_GAN_x3_L.glsl").count(), 1);
+        let cascaded = build_anime4k_filter(&x3, 7680, 4320, 1920, 1080, false);
+        assert_eq!(cascaded.matches("Anime4K_Upscale_GAN_x3_L.glsl").count(), 2);
+        assert!(cascaded.contains("w=7680:h=4320"));
+
+        // A 2x shader keeps its old threshold: it only doubles above ratio 2.05.
+        let x2 = vec!["Anime4K_Upscale_CNN_x2_S.glsl".to_string()];
+        let exact = build_anime4k_filter(&x2, 3840, 2160, 1920, 1080, false);
+        assert_eq!(exact.matches("Anime4K_Upscale_CNN_x2_S.glsl").count(), 1);
+        let doubled = build_anime4k_filter(&x2, 5760, 3240, 1920, 1080, false);
+        assert_eq!(doubled.matches("Anime4K_Upscale_CNN_x2_S.glsl").count(), 2);
+    }
+
+    #[test]
     fn suggest_preset_for_routes_by_size_and_noise() {
         assert_eq!(
             suggest_preset_for(1920, 1080, false),
@@ -2029,6 +2030,31 @@ mod tests {
             quality,
             codec,
             upscaler,
+            false,
+            false,
+        )
+    }
+
+    fn est_for(
+        selected: &[&str],
+        target_w: u32,
+        target_h: u32,
+        input_w: u32,
+        input_h: u32,
+    ) -> UpscaleEstimate {
+        estimate_seconds(
+            122.0,
+            24.0,
+            target_w,
+            target_h,
+            input_w,
+            input_h,
+            &selected.iter().map(ToString::to_string).collect::<Vec<_>>(),
+            false,
+            "nvenc",
+            "fast",
+            "h264",
+            Some("anime4k"),
             false,
             false,
         )
@@ -2068,6 +2094,24 @@ mod tests {
             Some("anime4k"),
         );
         assert!((80.0..200.0).contains(&est.seconds), "got {}", est.seconds);
+    }
+
+    #[test]
+    fn estimate_charges_cascaded_x3_extra_pass() {
+        // 1080p -> 4K still fits into a single 3x pass.
+        let single = est_for(&["upscale_gan_x3_l"], 3840, 2160, 1920, 1080);
+        assert!(
+            (40.0..100.0).contains(&single.seconds),
+            "got {}",
+            single.seconds
+        );
+        // 1080p -> 8K exceeds it: the repeated pass must cost extra, not only the extra pixels.
+        let cascaded = est_for(&["upscale_gan_x3_l"], 7680, 4320, 1920, 1080);
+        assert!(
+            (600.0..1100.0).contains(&cascaded.seconds),
+            "got {}",
+            cascaded.seconds
+        );
     }
 
     #[test]

@@ -17,12 +17,26 @@ export const CHANGELOG: ChangelogVersion[] = [
     version: "4.0.5",
     added: [
       entry("changelog.4_0_5.added.list_sort_keys", "anilist"),
+      entry("changelog.4_0_5.added.grouped_lists", "anilist"),
+      entry("changelog.4_0_5.added.all_tab", "anilist"),
+      entry("changelog.4_0_5.added.aired_badge", "anilist"),
+      entry("changelog.4_0_5.added.friend_view", "anilist"),
+      entry("changelog.4_0_5.added.card_dates", "anilist"),
+      entry("changelog.4_0_5.added.share_links", "collection"),
       entry("changelog.4_0_5.added.paste_anywhere", "app"),
       entry("changelog.4_0_5.added.paste_magnet", "torrents"),
       entry("changelog.4_0_5.added.paste_anilist_url", "anilist"),
     ],
-    changed: [entry("changelog.4_0_5.changed.sort_select", "anilist")],
-    fixed: [],
+    changed: [
+      entry("changelog.4_0_5.changed.sort_select", "anilist"),
+      entry("changelog.4_0_5.changed.continue_removed", "collection"),
+      entry("changelog.4_0_5.changed.public_add", "collection"),
+      entry("changelog.4_0_5.changed.relative_times", "app"),
+    ],
+    fixed: [
+      entry("changelog.4_0_5.fixed.unified_index", "search"),
+      entry("changelog.4_0_5.fixed.dither_stale", "search"),
+    ],
   },
   {
     version: "4.0.4",

@@ -139,6 +139,7 @@ const settings = {
   "settings.sqliteFilterPlaceholder": "Фильтр: поле = значение",
   "settings.sqlite.filter.tag": "Вставить шаблон: {{template}}",
   "settings.sqlite.hide.id": "Скрыть ID",
+  "settings.sqlite.image.missing": "Файл не найден",
   "settings.sqlite.mode.browse": "Обзор",
   "settings.sqlite.mode.query": "SQL-консоль",
   "settings.sqlite.page": "Страница {{page}} / {{total}}",
@@ -156,7 +157,8 @@ const settings = {
   "settings.sqlite.rows.summary.one": "Строка: {{count}}",
   "settings.sqlite.rows.summary.few": "Строки: {{count}}",
   "settings.sqlite.rows.summary.many": "Строк: {{count}}",
-  "settings.sqlite.safety.hint": "Только известные таблицы. BLOBы грузятся в предпросмотре.",
+  "settings.sqlite.safety.hint":
+    "Только известные таблицы. Изображения подгружаются в предпросмотре.",
   "settings.sqlite.schema": "Схема",
   "settings.sqlite.show.images": "Показывать изображения",
   "settings.sqlite.sort.asc": "Сортировать по возрастанию",

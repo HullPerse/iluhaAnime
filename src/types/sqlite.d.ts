@@ -12,6 +12,7 @@ export interface SqliteColumnInfo {
   dataType: string;
   notNull: boolean;
   primaryKey: boolean;
+  isImage: boolean;
 }
 
 export interface SqliteTableInfo {
@@ -51,7 +52,7 @@ export type RowsTableProps = {
   primaryKeys: string[];
   selectedRows: Record<string, string[]>;
   sort: SortState;
-  blobColumns: Set<string>;
+  imageColumns: Set<string>;
   showImages: boolean;
   deleting: boolean;
   selectedDatabase: string;

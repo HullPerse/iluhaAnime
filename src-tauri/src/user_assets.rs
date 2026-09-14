@@ -9,6 +9,11 @@ use tauri::Manager;
 
 const MAX_IMAGE_BYTES: u64 = 4 * 1024 * 1024;
 
+/// Baked dither frames are re-encoded as PNG at up to 1920px, so an
+/// incompressible RGBA frame can legitimately be larger than a file the user is
+/// allowed to upload. Keep the upload cap and give the bake room to land.
+const MAX_DITHER_BAKE_BYTES: u64 = 24 * 1024 * 1024;
+
 const USER_IMAGES_TABLE: &str = "user_images";
 const DITHER_IMAGES_TABLE: &str = "dither_images";
 const REMOTE_IMAGES_TABLE: &str = "remote_images";
@@ -21,8 +26,11 @@ pub struct UserImage {
     pub name: String,
     pub mime_type: String,
     pub path: String,
+    /// Changes whenever the file behind `path` is rewritten. Dither images keep
+    /// a stable id while their bytes are replaced, so consumers need this to
+    /// tell a fresh render apart from a cached one.
+    pub version: Option<String>,
     pub original_path: Option<String>,
-    pub dither_options: Option<String>,
     pub created_at: i64,
 }
 
@@ -50,6 +58,42 @@ fn images_dir(app: &tauri::AppHandle, table: &str) -> Result<PathBuf, String> {
     Ok(assets_root(app)?.join("images").join(table))
 }
 
+/// Asset ids are content hashes (`t336_` + 20 hex chars). Anything else is
+/// rejected so a hand-edited database cell cannot escape the assets directory.
+pub fn is_safe_asset_id(id: &str) -> bool {
+    !id.is_empty()
+        && id.len() <= 128
+        && id.chars().all(|character| {
+            character.is_ascii_alphanumeric() || character == '_' || character == '-'
+        })
+}
+
+fn resolve_asset_file_in(dir: &Path, id: &str) -> Option<PathBuf> {
+    if !is_safe_asset_id(id) {
+        return None;
+    }
+    let thumb = dir.join(format!("{}.jpg", thumb_id(id)));
+    if thumb.is_file() {
+        return Some(thumb);
+    }
+    data_file_names(id)
+        .into_iter()
+        .map(|name| dir.join(name))
+        .find(|path| path.is_file())
+}
+
+/// On-disk image for an asset id stored in `table`, preferring the 336px thumb.
+/// Filesystem-only on purpose: the SQLite browser holds the database read-only
+/// and must not trigger thumb generation while browsing.
+pub fn resolve_asset_file(
+    app: &tauri::AppHandle,
+    table: &str,
+    id: &str,
+) -> Result<Option<PathBuf>, String> {
+    let dir = images_dir(app, table)?;
+    Ok(resolve_asset_file_in(&dir, id))
+}
+
 fn open_database_at(path: &Path) -> Result<Connection, String> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).map_err(|e| format!("create assets dir: {e}"))?;
@@ -72,7 +116,6 @@ fn open_database_at(path: &Path) -> Result<Connection, String> {
             name TEXT NOT NULL,
             mime_type NOT NULL,
             original_ext TEXT,
-            dither_options TEXT,
             created_at INTEGER NOT NULL
         );
         CREATE TABLE IF NOT EXISTS remote_images (
@@ -124,9 +167,9 @@ fn drop_legacy_blob_schema(conn: &Connection) -> Result<(), String> {
             |row| row.get(0),
         )
         .map_err(|e| format!("assets db schema check: {e}"))?;
-    if has_options_column == 0 {
-        conn.execute_batch("ALTER TABLE dither_images ADD COLUMN dither_options TEXT")
-            .map_err(|e| format!("assets db options migration: {e}"))?;
+    if has_options_column > 0 {
+        conn.execute_batch("ALTER TABLE dither_images DROP COLUMN dither_options")
+            .map_err(|e| format!("assets db options cleanup: {e}"))?;
     }
     Ok(())
 }
@@ -240,6 +283,21 @@ fn write_image_file(dir: &Path, file_name: &str, bytes: &[u8]) -> Result<PathBuf
     Ok(path)
 }
 
+/// Modification time of an asset file, as a cache-busting token. `None` when the
+/// file is absent, so a broken row never silently keeps a stale URL.
+fn file_version(path: &Path) -> Option<String> {
+    let metadata = fs::metadata(path).ok()?;
+    let age = metadata.modified().ok()?.duration_since(UNIX_EPOCH).ok()?;
+    Some(format!("{}-{}", age.as_nanos(), metadata.len()))
+}
+
+fn existing_file(dir: &Path, names: &[String]) -> Option<PathBuf> {
+    names
+        .iter()
+        .map(|name| dir.join(name))
+        .find(|path| path.is_file())
+}
+
 fn remove_image_files(dir: &Path, base_names: &[String]) {
     for name in base_names {
         let _ = fs::remove_file(dir.join(name));
@@ -301,10 +359,10 @@ fn user_image_from_row(
         id,
         name,
         path: path.to_string_lossy().into_owned(),
+        version: None,
         original_path: None,
         mime_type,
         created_at: 0,
-        dither_options: None,
     })
 }
 
@@ -313,7 +371,6 @@ fn dither_image_from_row(
     name: String,
     mime_type: String,
     original_ext: Option<String>,
-    dither_options: Option<String>,
     dir: &Path,
 ) -> Result<UserImage, String> {
     let path = dir.join(format!("{id}.{}", mime_ext(&mime_type)));
@@ -326,13 +383,12 @@ fn dither_image_from_row(
             .is_file()
             .then(|| candidate.to_string_lossy().into_owned())
     });
-    #[allow(clippy::missing_const_for_fn)]
     Ok(UserImage {
         id,
         name,
         path: path.to_string_lossy().into_owned(),
+        version: file_version(&path),
         original_path,
-        dither_options,
         mime_type,
         created_at: 0,
     })
@@ -541,10 +597,10 @@ pub async fn fetch_remote_image(
             id: id.clone(),
             name: "remote-image".to_string(),
             path: thumb_path.to_string_lossy().into_owned(),
+            version: None,
             original_path: None,
             mime_type: "image/jpeg".to_string(),
             created_at: 0,
-            dither_options: None,
         });
     }
     user_image_from_row(id, "remote-image".into(), mime_type.to_string(), &dir)
@@ -707,6 +763,32 @@ fn dither_original_file(id: &str, original_ext: &str) -> String {
     format!("{id}.original.{original_ext}")
 }
 
+/// Stores a dither original under its content id. Only files that are missing
+/// get written: the id is the hash of the original, so re-importing the same
+/// source must not overwrite a picture the user has already baked.
+fn import_dither_bytes(
+    dir: &Path,
+    conn: &Connection,
+    data: &[u8],
+    name: String,
+    mime_type: &str,
+) -> Result<String, String> {
+    let id = content_id(data);
+    let ext = mime_ext(mime_type);
+    if existing_file(dir, &data_file_names(&id)).is_none() {
+        write_image_file(dir, &dither_data_file(&id, mime_type), data)?;
+    }
+    if existing_file(dir, &dither_original_file_names(&id)).is_none() {
+        write_image_file(dir, &dither_original_file(&id, ext), data)?;
+    }
+    conn.execute(
+        "INSERT OR IGNORE INTO dither_images (id, name, mime_type, original_ext, created_at) VALUES (?1, ?2, ?3, ?4, ?5)",
+        params![id, name, mime_type, ext, now_seconds()],
+    )
+    .map_err(|e| format!("save image: {e}"))?;
+    Ok(id)
+}
+
 #[tauri::command]
 pub fn import_dither_image(app: tauri::AppHandle, path: String) -> Result<UserImage, String> {
     let source = Path::new(&path);
@@ -723,7 +805,6 @@ pub fn import_dither_image(app: tauri::AppHandle, path: String) -> Result<UserIm
             "GIF images are not supported as wallpaper. Use PNG, JPEG, or WebP.".to_string(),
         );
     }
-    let id = content_id(&data);
     let name = source
         .file_name()
         .and_then(|value| value.to_str())
@@ -733,18 +814,7 @@ pub fn import_dither_image(app: tauri::AppHandle, path: String) -> Result<UserIm
         .collect::<String>();
     let dir = images_dir(&app, DITHER_IMAGES_TABLE)?;
     let conn = open_database(&app)?;
-    import_image_bytes(&dir, &conn, DITHER_IMAGES_TABLE, &data, name)?;
-    let original = data.clone();
-    write_image_file(
-        &dir,
-        &dither_original_file(&id, mime_ext(mime_type)),
-        &original,
-    )?;
-    conn.execute(
-        "UPDATE dither_images SET original_ext = ?2 WHERE id = ?1",
-        params![id, mime_ext(mime_type)],
-    )
-    .map_err(|e| format!("save dither original: {e}"))?;
+    let id = import_dither_bytes(&dir, &conn, &data, name, mime_type)?;
     get_dither_image(app, id)
 }
 
@@ -788,7 +858,7 @@ fn query_dither_images(
     }
     let placeholders = ids.iter().map(|_| "?").collect::<Vec<_>>().join(",");
     let query = format!(
-        "SELECT id, name, mime_type, original_ext, dither_options, created_at FROM dither_images WHERE id IN ({placeholders})"
+        "SELECT id, name, mime_type, original_ext, created_at FROM dither_images WHERE id IN ({placeholders})"
     );
     let mut statement = conn
         .prepare(&query)
@@ -800,20 +870,17 @@ fn query_dither_images(
                 row.get::<_, String>(1)?,
                 row.get::<_, String>(2)?,
                 row.get::<_, Option<String>>(3)?,
-                row.get::<_, Option<String>>(4)?,
-                row.get::<_, i64>(5)?,
+                row.get::<_, i64>(4)?,
             ))
         })
         .map_err(|e| format!("get dither image rows: {e}"))?;
     Ok(rows
         .filter_map(Result::ok)
-        .filter_map(
-            |(id, name, mime_type, original_ext, dither_options, created_at)| {
-                dither_image_from_row(id, name, mime_type, original_ext, dither_options, dir)
-                    .ok()
-                    .map(|image| fill_created_at(image, created_at))
-            },
-        )
+        .filter_map(|(id, name, mime_type, original_ext, created_at)| {
+            dither_image_from_row(id, name, mime_type, original_ext, dir)
+                .ok()
+                .map(|image| fill_created_at(image, created_at))
+        })
         .collect())
 }
 
@@ -850,7 +917,7 @@ pub fn delete_dither_image(app: tauri::AppHandle, id: String) -> Result<(), Stri
     Ok(())
 }
 
-fn parse_data_url_image(data_url: &str) -> Result<(String, Vec<u8>), String> {
+fn parse_data_url_image(data_url: &str, max_bytes: u64) -> Result<(String, Vec<u8>), String> {
     let (meta, payload) = data_url
         .split_once(',')
         .ok_or_else(|| "image must be a data URL".to_string())?;
@@ -860,8 +927,14 @@ fn parse_data_url_image(data_url: &str) -> Result<(String, Vec<u8>), String> {
     let bytes = STANDARD
         .decode(payload)
         .map_err(|e| format!("decode image: {e}"))?;
-    if bytes.is_empty() || bytes.len() as u64 > MAX_IMAGE_BYTES {
-        return Err("Image must be a non-empty file smaller than 4 MiB".to_string());
+    if bytes.is_empty() {
+        return Err("Image must not be empty".to_string());
+    }
+    if bytes.len() as u64 > max_bytes {
+        return Err(format!(
+            "Image must be smaller than {} MiB",
+            max_bytes / (1024 * 1024)
+        ));
     }
     let mime_type = image_mime(&bytes, None)
         .ok_or_else(|| "Unsupported image. Use PNG, JPEG, GIF, or WebP.".to_string())?;
@@ -873,7 +946,7 @@ pub fn get_dither_image(app: tauri::AppHandle, id: String) -> Result<UserImage, 
     let dir = images_dir(&app, DITHER_IMAGES_TABLE)?;
     let conn = open_database(&app)?;
     conn.query_row(
-        "SELECT id, name, mime_type, original_ext, dither_options, created_at FROM dither_images WHERE id = ?1",
+        "SELECT id, name, mime_type, original_ext, created_at FROM dither_images WHERE id = ?1",
         params![id],
         |row| {
             Ok((
@@ -881,43 +954,15 @@ pub fn get_dither_image(app: tauri::AppHandle, id: String) -> Result<UserImage, 
                 row.get::<_, String>(1)?,
                 row.get::<_, String>(2)?,
                 row.get::<_, Option<String>>(3)?,
-                row.get::<_, Option<String>>(4)?,
-                row.get::<_, i64>(5)?,
+                row.get::<_, i64>(4)?,
             ))
         },
     )
     .map_err(|_| format!("dither image not found: {id}"))
-    .and_then(
-        |(id, name, mime_type, original_ext, dither_options, created_at)| {
-            dither_image_from_row(id, name, mime_type, original_ext, dither_options, &dir)
-                .map(|image| fill_created_at(image, created_at))
-        },
-    )
-}
-
-#[tauri::command]
-pub fn set_dither_image_options(
-    app: tauri::AppHandle,
-    id: String,
-    options_json: String,
-) -> Result<UserImage, String> {
-    if serde_json::from_str::<serde_json::Value>(&options_json).is_err() {
-        return Err("dither options must be valid JSON".to_string());
-    }
-    if options_json.len() > 8192 {
-        return Err("dither options payload too large".to_string());
-    }
-    let conn = open_database(&app)?;
-    let changed = conn
-        .execute(
-            "UPDATE dither_images SET dither_options = ?2 WHERE id = ?1",
-            params![id, options_json],
-        )
-        .map_err(|e| format!("save dither options: {e}"))?;
-    if changed == 0 {
-        return Err("dither image not found".to_string());
-    }
-    get_dither_image(app, id)
+    .and_then(|(id, name, mime_type, original_ext, created_at)| {
+        dither_image_from_row(id, name, mime_type, original_ext, &dir)
+            .map(|image| fill_created_at(image, created_at))
+    })
 }
 
 #[allow(non_snake_case)]
@@ -932,7 +977,7 @@ pub fn update_dither_image_data(
     if payload.trim().is_empty() {
         return Err("image must be a base64 data URL".to_string());
     }
-    let (mime_type, data) = parse_data_url_image(payload)?;
+    let (mime_type, data) = parse_data_url_image(payload, MAX_DITHER_BAKE_BYTES)?;
     let dir = images_dir(&app, DITHER_IMAGES_TABLE)?;
     let conn = open_database(&app)?;
     let changed = conn
@@ -944,8 +989,13 @@ pub fn update_dither_image_data(
     if changed == 0 {
         return Err("dither image not found".to_string());
     }
-    remove_image_files(&dir, &data_file_names(&id));
-    write_image_file(&dir, &dither_data_file(&id, &mime_type), &data)?;
+    let target = dither_data_file(&id, &mime_type);
+    write_image_file(&dir, &target, &data)?;
+    let stale: Vec<String> = data_file_names(&id)
+        .into_iter()
+        .filter(|name| *name != target)
+        .collect();
+    remove_image_files(&dir, &stale);
     get_dither_image(app, id)
 }
 
@@ -1025,6 +1075,36 @@ mod tests {
         assert_eq!(mime_ext("image/gif"), "gif");
         assert_eq!(mime_ext("image/webp"), "webp");
         assert_eq!(mime_ext("image/other"), "img");
+    }
+
+    #[test]
+    fn asset_ids_reject_path_traversal() {
+        assert!(is_safe_asset_id("t336_0123456789abcdef0123"));
+        assert!(is_safe_asset_id("cover-1_thumb"));
+        assert!(!is_safe_asset_id(""));
+        assert!(!is_safe_asset_id("../secret"));
+        assert!(!is_safe_asset_id("a/b"));
+        assert!(!is_safe_asset_id("a\\b"));
+        assert!(!is_safe_asset_id("a.b"));
+        assert!(!is_safe_asset_id(&"a".repeat(129)));
+    }
+
+    #[test]
+    fn resolve_asset_file_prefers_thumb_then_original() {
+        let root = temp_root("resolve_asset");
+        fs::write(root.join("abc123.png"), b"x").expect("write original");
+        assert_eq!(
+            resolve_asset_file_in(&root, "abc123"),
+            Some(root.join("abc123.png"))
+        );
+        fs::write(root.join("t336_abc123.jpg"), b"x").expect("write thumb");
+        assert_eq!(
+            resolve_asset_file_in(&root, "abc123"),
+            Some(root.join("t336_abc123.jpg"))
+        );
+        assert_eq!(resolve_asset_file_in(&root, "missing"), None);
+        assert_eq!(resolve_asset_file_in(&root, "../abc123"), None);
+        std::fs::remove_dir_all(&root).expect("cleanup");
     }
 
     #[test]
@@ -1146,6 +1226,70 @@ mod tests {
     }
 
     #[test]
+    fn rewriting_dither_data_bumps_the_file_version() {
+        let root = temp_root("dither_version");
+        let db = open_database_at(&root.join("user_assets.sqlite3")).expect("db");
+        let dir = root.join("images").join(DITHER_IMAGES_TABLE);
+        let bytes = png_bytes();
+        let id = content_id(&bytes);
+        import_dither_bytes(&dir, &db, &bytes, "art.png".into(), "image/png").expect("import");
+
+        let before = dither_image_from_row(
+            id.clone(),
+            "art.png".into(),
+            "image/png".into(),
+            Some("png".into()),
+            &dir,
+        )
+        .expect("before");
+        std::thread::sleep(std::time::Duration::from_millis(2));
+        write_image_file(&dir, &dither_data_file(&id, "image/jpeg"), &jpeg_bytes()).expect("bake");
+        remove_image_files(&dir, &[dither_data_file(&id, "image/png")]);
+        let after = dither_image_from_row(
+            id,
+            "art.png".into(),
+            "image/jpeg".into(),
+            Some("png".into()),
+            &dir,
+        )
+        .expect("after");
+
+        assert!(before.version.is_some());
+        assert!(after.version.is_some());
+        assert_ne!(before.version, after.version);
+        drop(db);
+        std::fs::remove_dir_all(&root).expect("cleanup");
+    }
+
+    #[test]
+    fn reimporting_the_same_source_keeps_the_baked_data() {
+        let root = temp_root("dither_reimport");
+        let db = open_database_at(&root.join("user_assets.sqlite3")).expect("db");
+        let dir = root.join("images").join(DITHER_IMAGES_TABLE);
+        let original = png_bytes();
+        let id = import_dither_bytes(&dir, &db, &original, "art.png".into(), "image/png")
+            .expect("import");
+        let baked = jpeg_bytes();
+        write_image_file(&dir, &dither_data_file(&id, "image/png"), &baked).expect("bake");
+
+        let again = import_dither_bytes(&dir, &db, &original, "art.png".into(), "image/png")
+            .expect("reimport");
+
+        assert_eq!(again, id);
+        assert_eq!(
+            fs::read(dir.join(dither_data_file(&id, "image/png"))).expect("read"),
+            baked
+        );
+        assert!(dir.join(dither_original_file(&id, "png")).is_file());
+        let count: i64 = db
+            .query_row("SELECT COUNT(*) FROM dither_images", [], |row| row.get(0))
+            .expect("count");
+        assert_eq!(count, 1);
+        drop(db);
+        std::fs::remove_dir_all(&root).expect("cleanup");
+    }
+
+    #[test]
     fn legacy_blob_schema_is_wiped_and_recreated() {
         let root = temp_root("legacy_wipe");
         let db_path = root.join("user_assets.sqlite3");
@@ -1185,21 +1329,77 @@ mod tests {
     }
 
     #[test]
+    fn legacy_dither_options_column_is_dropped() {
+        let root = temp_root("dither_options_drop");
+        let db_path = root.join("user_assets.sqlite3");
+        {
+            let conn = Connection::open(&db_path).expect("legacy db");
+            conn.execute_batch(
+                "CREATE TABLE dither_images (
+                    id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    mime_type NOT NULL,
+                    original_ext TEXT,
+                    dither_options TEXT,
+                    created_at INTEGER NOT NULL
+                );
+                INSERT INTO dither_images VALUES ('old', 'old.png', 'image/png', 'png', '{}', 1);",
+            )
+            .expect("legacy schema");
+        }
+        let conn = open_database_at(&db_path).expect("reopened");
+        let columns: Vec<String> = {
+            let mut statement = conn
+                .prepare("SELECT name FROM pragma_table_info('dither_images')")
+                .expect("pragma");
+            let rows = statement
+                .query_map([], |row| row.get::<_, String>(0))
+                .expect("map");
+            rows.filter_map(Result::ok).collect()
+        };
+        assert!(!columns.iter().any(|column| column == "dither_options"));
+        let count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM dither_images", [], |row| row.get(0))
+            .expect("count");
+        assert_eq!(count, 1);
+        drop(conn);
+        std::fs::remove_dir_all(&root).expect("cleanup");
+    }
+
+    #[test]
     fn accepts_png_data_urls() {
         let url = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
-        let (mime, bytes) = parse_data_url_image(url).expect("valid png data URL");
+        let (mime, bytes) = parse_data_url_image(url, MAX_IMAGE_BYTES).expect("valid png data URL");
         assert_eq!(mime, "image/png");
         assert!(bytes.starts_with(b"\x89PNG\r\n\x1a\n"));
     }
 
     #[test]
     fn rejects_non_image_data_urls() {
-        assert!(parse_data_url_image("data:text/plain;base64,abcd").is_err());
-        assert!(parse_data_url_image("data:image/png,abcd").is_err());
-        assert!(parse_data_url_image("not-a-data-url").is_err());
-        assert!(parse_data_url_image("data:image/png;base64,!!!").is_err());
-        assert!(parse_data_url_image("data:image/png;base64,").is_err());
-        assert!(parse_data_url_image("data:image/png;base64,aGVsbG8=").is_err());
+        assert!(parse_data_url_image("data:text/plain;base64,abcd", MAX_IMAGE_BYTES).is_err());
+        assert!(parse_data_url_image("data:image/png,abcd", MAX_IMAGE_BYTES).is_err());
+        assert!(parse_data_url_image("not-a-data-url", MAX_IMAGE_BYTES).is_err());
+        assert!(parse_data_url_image("data:image/png;base64,!!!", MAX_IMAGE_BYTES).is_err());
+        assert!(parse_data_url_image("data:image/png;base64,", MAX_IMAGE_BYTES).is_err());
+        assert!(parse_data_url_image("data:image/png;base64,aGVsbG8=", MAX_IMAGE_BYTES).is_err());
+    }
+
+    #[test]
+    fn baked_frames_allow_more_than_the_upload_limit() {
+        use base64::Engine as _;
+        // One byte over the upload cap: rejected for uploads, accepted for a bake.
+        let mut bytes = b"\x89PNG\r\n\x1a\n".to_vec();
+        bytes.resize(MAX_IMAGE_BYTES as usize + 1, 0);
+        let url = format!("data:image/png;base64,{}", STANDARD.encode(&bytes));
+
+        assert!(parse_data_url_image(&url, MAX_IMAGE_BYTES).is_err());
+        let (mime, decoded) =
+            parse_data_url_image(&url, MAX_DITHER_BAKE_BYTES).expect("bake accepted");
+        assert_eq!(mime, "image/png");
+        assert_eq!(decoded.len(), bytes.len());
+        let exact = bytes.len() as u64;
+        assert!(parse_data_url_image(&url, exact).is_ok());
+        assert!(parse_data_url_image(&url, exact - 1).is_err());
     }
 
     fn insert_remote_row(db: &Connection, dir: &Path, n: u8, created_at: i64) -> String {

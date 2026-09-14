@@ -5,7 +5,7 @@ import { assetUrl, isDirectImageSrc } from "@/lib/utils/image.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { createLruCache, inflightFetch } from "@/lib/utils/lruCache.utils";
 import { useSettingsStore } from "@/store/settings.store";
-import type { UserImageFile } from "@/types/image.userimage";
+import type { UserImageFile } from "@/types/userimage";
 
 export const COVER_CACHE_CAPACITY = 200;
 

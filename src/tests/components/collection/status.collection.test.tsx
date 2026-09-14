@@ -8,9 +8,16 @@ import { useSettingsStore } from "@/store/settings.store";
 import type { CollectionStatus, CollectionStatusDef } from "@/types/collection";
 
 const STATUSES: CollectionStatusDef[] = [
-  { id: "planned", label: "Planned", color: "#9ca3af", order: 0, isCore: false },
-  { id: "watching", label: "Watching", color: "#3b82f6", order: 1, isCore: false },
-  { id: "completed", label: "Completed", color: "#22c55e", order: 2, isCore: false },
+  { id: "planned", label: "Planned", color: "#9ca3af", order: 0, isCore: false, kind: "private" },
+  { id: "watching", label: "Watching", color: "#3b82f6", order: 1, isCore: false, kind: "private" },
+  {
+    id: "completed",
+    label: "Completed",
+    color: "#22c55e",
+    order: 2,
+    isCore: false,
+    kind: "private",
+  },
 ];
 
 function mockWidth(width: number) {
@@ -101,14 +108,113 @@ describe("StatusCollection pages", () => {
     render(
       <StatusCollection
         statuses={[
-          { id: "custom", label: "Custom", color: "#fff", order: 9, isCore: false },
-          { id: "watching", label: "Watching", color: "#3b82f6", order: 2, isCore: true },
-          { id: "planned", label: "Planned", color: "#9ca3af", order: 1, isCore: true },
+          {
+            id: "custom",
+            label: "Custom",
+            color: "#fff",
+            order: 9,
+            isCore: false,
+            kind: "private",
+          },
+          {
+            id: "watching",
+            label: "Watching",
+            color: "#3b82f6",
+            order: 2,
+            isCore: true,
+            kind: "private",
+          },
+          {
+            id: "planned",
+            label: "Planned",
+            color: "#9ca3af",
+            order: 1,
+            isCore: true,
+            kind: "private",
+          },
         ]}
         selectedStatus="all"
         onSelect={vi.fn()}
       />
     );
     expect(tabLabels()).toEqual(["All", "Planned", "Watching", "Custom"]);
+  });
+
+  it("shows the counter as count/max on a public status tab", () => {
+    mockWidth(1200);
+    render(
+      <StatusCollection
+        statuses={[
+          {
+            id: "share_1",
+            label: "Friends",
+            color: "#0ea5e9",
+            order: 0,
+            isCore: false,
+            kind: "public",
+          },
+        ]}
+        selectedStatus="all"
+        onSelect={vi.fn()}
+        counts={{ all: 3, share_1: 2 }}
+      />
+    );
+    expect(screen.getByText("Friends (2/20)")).toBeTruthy();
+    expect(screen.getByText("All (3)")).toBeTruthy();
+  });
+
+  it("renders the share button only for a selected public status", async () => {
+    mockWidth(1200);
+    const user = userEvent.setup();
+    const onShare = vi.fn();
+    const mixed: CollectionStatusDef[] = [
+      {
+        id: "planned",
+        label: "Planned",
+        color: "#9ca3af",
+        order: 0,
+        isCore: false,
+        kind: "private",
+      },
+      {
+        id: "friends",
+        label: "Friends",
+        color: "#0ea5e9",
+        order: 1,
+        isCore: false,
+        kind: "public",
+      },
+    ];
+    const { rerender } = render(
+      <StatusCollection
+        statuses={mixed}
+        selectedStatus="friends"
+        onSelect={vi.fn()}
+        onShare={onShare}
+      />
+    );
+    const share = screen.getByRole("button", { name: "Copy share link for this status" });
+    await user.click(share);
+    expect(onShare).toHaveBeenCalledTimes(1);
+    rerender(
+      <StatusCollection
+        statuses={mixed}
+        selectedStatus="planned"
+        onSelect={vi.fn()}
+        onShare={onShare}
+      />
+    );
+    expect(screen.queryByRole("button", { name: "Copy share link for this status" })).toBeNull();
+    rerender(
+      <StatusCollection
+        statuses={mixed}
+        selectedStatus="all"
+        onSelect={vi.fn()}
+        onShare={onShare}
+      />
+    );
+    expect(screen.queryByRole("button", { name: "Copy share link for this status" })).toBeNull();
+    rerender(<StatusCollection statuses={mixed} selectedStatus="friends" onSelect={vi.fn()} />);
+    expect(screen.queryByRole("button", { name: "Copy share link for this status" })).toBeNull();
   });
 });

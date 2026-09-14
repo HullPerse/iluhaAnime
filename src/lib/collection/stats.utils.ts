@@ -1,3 +1,4 @@
+import { publicStatusIds } from "@/lib/collection/status.utils";
 import type { CollectionItem, CollectionStatusDef } from "@/types/collection";
 
 function initStatusCounts(statuses: CollectionStatusDef[]): Record<string, number> {
@@ -26,20 +27,28 @@ export function calculateCollectionStats(items: CollectionItem[], statuses: Coll
   const ratingDist: Record<number, number> = {};
   const perYearHours: Record<number, number> = {};
   const ratingAcc = { sum: 0, count: 0, dist: ratingDist };
+  // Imported public collections are a reference list, not the user's own record, so
+  // they keep a tab count of their own but stay out of the library totals.
+  const excluded = publicStatusIds(statuses);
+  let total = 0;
+  let favorites = 0;
   let totalHours = 0;
   for (const item of items) {
     byStatus[item.status] = (byStatus[item.status] ?? 0) + 1;
+    if (excluded.has(item.status)) continue;
+    total += 1;
+    if (item.isFavorite) favorites += 1;
     accumulateRating(item, ratingAcc);
     const hours = itemHours(item);
     totalHours += hours;
     if (item.year && hours > 0) perYearHours[item.year] = (perYearHours[item.year] ?? 0) + hours;
   }
   return {
-    total: items.length,
+    total,
     byStatus,
     avgRating: ratingAcc.count ? Number((ratingAcc.sum / ratingAcc.count).toFixed(1)) : null,
     hours: Math.round(totalHours),
-    favoriteCount: items.filter((item) => item.isFavorite).length,
+    favoriteCount: favorites,
     ratingDistribution: ratingDist,
     perYearHours,
   };

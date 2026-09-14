@@ -3,8 +3,6 @@ use rusqlite::{
     Connection, OptionalExtension,
 };
 
-use base64::Engine as _;
-
 use std::collections::HashSet;
 use tauri::Manager;
 
@@ -105,6 +103,7 @@ pub struct SqliteColumnInfo {
     data_type: String,
     not_null: bool,
     primary_key: bool,
+    is_image: bool,
 }
 
 #[derive(serde::Serialize)]
@@ -193,12 +192,55 @@ fn allowed_sqlite_table(database: &str, table: &str) -> bool {
     matches!(
         (database, table),
         ("franchise", "franchise_nodes")
-            | ("user_assets", "user_images" | "dither_images")
+            | (
+                "user_assets",
+                "user_images" | "dither_images" | "remote_images"
+            )
             | (
                 "app_data",
                 "cache_entries" | "unified_index" | "collection_items"
             )
     )
+}
+
+/// Columns that hold an asset id whose image lives in `images/<table>/`.
+/// The schema itself has no image columns anymore: the bytes are files on disk.
+fn sqlite_asset_table(table: &str) -> Option<&'static str> {
+    match table {
+        "user_images" => Some("user_images"),
+        "dither_images" => Some("dither_images"),
+        "remote_images" => Some("remote_images"),
+        _ => None,
+    }
+}
+
+fn sqlite_image_asset_table(table: &str, column: &str) -> Option<&'static str> {
+    if column == "id" {
+        return sqlite_asset_table(table);
+    }
+    (table == "collection_items" && matches!(column, "cover_blob_id" | "thumb_blob_id"))
+        .then_some("user_images")
+}
+
+/// Primary key names plus a `WHERE` clause that isolates a single row.
+fn sqlite_row_where(columns: &[SqliteColumnInfo], keys: &[String]) -> Result<String, String> {
+    let primary_keys = columns
+        .iter()
+        .filter(|candidate| candidate.primary_key)
+        .map(|candidate| candidate.name.as_str())
+        .collect::<Vec<_>>();
+    if primary_keys.len() != keys.len() {
+        return Err("Primary key value count does not match".to_string());
+    }
+    Ok(primary_keys
+        .iter()
+        .enumerate()
+        .map(|(index, primary_key)| {
+            let quoted = quote_sqlite_identifier(primary_key)?;
+            Ok(format!("{quoted} = ?{}", index + 1))
+        })
+        .collect::<Result<Vec<_>, String>>()?
+        .join(" AND "))
 }
 
 fn sqlite_columns(connection: &Connection, table: &str) -> Result<Vec<SqliteColumnInfo>, String> {
@@ -208,11 +250,13 @@ fn sqlite_columns(connection: &Connection, table: &str) -> Result<Vec<SqliteColu
         .map_err(|error| format!("table info: {error}"))?;
     let rows = statement
         .query_map([], |row| {
+            let name: String = row.get(1)?;
             Ok(SqliteColumnInfo {
-                name: row.get(1)?,
                 data_type: row.get::<_, String>(2).unwrap_or_default(),
                 not_null: row.get::<_, i64>(3)? != 0,
                 primary_key: row.get::<_, i64>(5)? != 0,
+                is_image: sqlite_image_asset_table(table, &name).is_some(),
+                name,
             })
         })
         .map_err(|error| format!("table info query: {error}"))?;
@@ -1291,25 +1335,9 @@ pub async fn get_sqlite_cell(
         if column_info.data_type.eq_ignore_ascii_case("BLOB") {
             return Err("BLOB cells cannot be viewed in the browser".to_string());
         }
-        let primary_keys = columns
-            .iter()
-            .filter(|candidate| candidate.primary_key)
-            .map(|candidate| candidate.name.as_str())
-            .collect::<Vec<_>>();
-        if primary_keys.len() != keys.len() {
-            return Err("Primary key value count does not match".to_string());
-        }
+        let where_clause = sqlite_row_where(&columns, &keys)?;
         let quoted_table = quote_sqlite_identifier(&table)?;
         let quoted_column = quote_sqlite_identifier(&column)?;
-        let where_clause = primary_keys
-            .iter()
-            .enumerate()
-            .map(|(index, primary_key)| {
-                let quoted = quote_sqlite_identifier(primary_key)?;
-                Ok(format!("{quoted} = ?{}", index + 1))
-            })
-            .collect::<Result<Vec<_>, String>>()?
-            .join(" AND ");
         let sql = format!("SELECT {quoted_column} FROM {quoted_table} WHERE {where_clause}");
         let params = keys
             .iter()
@@ -1330,7 +1358,7 @@ pub async fn get_sqlite_cell(
 }
 
 #[tauri::command]
-pub async fn get_sqlite_cell_blob(
+pub async fn get_sqlite_cell_image(
     app_handle: tauri::AppHandle,
     database: String,
     table: String,
@@ -1341,64 +1369,35 @@ pub async fn get_sqlite_cell_blob(
         if !allowed_sqlite_table(&database, &table) {
             return Err("This SQLite table is not available in the browser".to_string());
         }
-        if !column
-            .chars()
-            .all(|character| character.is_ascii_alphanumeric() || character == '_')
-            || column.is_empty()
-        {
-            return Err("Invalid SQLite column".to_string());
-        }
+        let Some(asset_table) = sqlite_image_asset_table(&table, &column) else {
+            return Ok(None);
+        };
         let connection = open_sqlite_browser_database_read_only(&app_handle, &database)?;
         let columns = sqlite_columns(&connection, &table)?;
-        let column_info = columns
-            .iter()
-            .find(|candidate| candidate.name == column)
-            .ok_or_else(|| "This column does not exist in the table".to_string())?;
-        if !column_info.data_type.eq_ignore_ascii_case("BLOB") {
-            return Ok(None);
-        }
-        let primary_keys = columns
-            .iter()
-            .filter(|candidate| candidate.primary_key)
-            .map(|candidate| candidate.name.as_str())
-            .collect::<Vec<_>>();
-        if primary_keys.len() != keys.len() {
-            return Err("Primary key value count does not match".to_string());
-        }
+        let where_clause = sqlite_row_where(&columns, &keys)?;
         let quoted_table = quote_sqlite_identifier(&table)?;
         let quoted_column = quote_sqlite_identifier(&column)?;
-        let where_clause = primary_keys
-            .iter()
-            .enumerate()
-            .map(|(index, primary_key)| {
-                let quoted = quote_sqlite_identifier(primary_key)?;
-                Ok(format!("{quoted} = ?{}", index + 1))
-            })
-            .collect::<Result<Vec<_>, String>>()?
-            .join(" AND ");
         let sql = format!("SELECT {quoted_column} FROM {quoted_table} WHERE {where_clause}");
         let params = keys
             .iter()
             .map(std::string::String::as_str)
             .collect::<Vec<_>>();
-        let blob = connection
+        let id = connection
             .query_row(&sql, rusqlite::params_from_iter(params), |row| {
-                row.get::<_, Vec<u8>>(0)
+                row.get::<_, Option<String>>(0)
             })
             .optional()
-            .map_err(|error| format!("read cell blob: {error}"))?
-            .ok_or_else(|| "No matching row was found".to_string())?;
-        let mime = user_assets::image_mime(&blob, None)
-            .ok_or_else(|| "Cell is not a recognized image".to_string())?;
-        let data_url = format!(
-            "data:{mime};base64,{}",
-            base64::engine::general_purpose::STANDARD.encode(blob)
-        );
-        Ok(Some(data_url))
+            .map_err(|error| format!("read cell image: {error}"))?
+            .flatten();
+        let Some(id) = id else {
+            return Ok(None);
+        };
+        let path = user_assets::resolve_asset_file(&app_handle, asset_table, &id)?;
+        Ok(path.map(|path| path.to_string_lossy().into_owned()))
     })
     .await
-    .map_err(|error| format!("SQLite cell blob task failed: {error}"))?
-    .map_err(|error| format!("SQLite cell blob: {error}"))
+    .map_err(|error| format!("SQLite cell image task failed: {error}"))?
+    .map_err(|error| format!("SQLite cell image: {error}"))
 }
 
 #[cfg(test)]
@@ -1414,11 +1413,76 @@ mod sqlite_browser_tests {
         assert!(allowed_sqlite_table("franchise", "franchise_nodes"));
         assert!(allowed_sqlite_table("user_assets", "user_images"));
         assert!(allowed_sqlite_table("user_assets", "dither_images"));
+        assert!(allowed_sqlite_table("user_assets", "remote_images"));
         assert!(allowed_sqlite_table("app_data", "cache_entries"));
         assert!(allowed_sqlite_table("app_data", "collection_items"));
         assert!(!allowed_sqlite_table("franchise", "sqlite_master"));
         assert!(!allowed_sqlite_table("user_assets", "franchise_nodes"));
         assert!(!allowed_sqlite_table("app_data", "sqlite_master"));
+    }
+
+    #[test]
+    fn image_columns_map_to_asset_tables() {
+        assert_eq!(
+            sqlite_image_asset_table("user_images", "id"),
+            Some("user_images")
+        );
+        assert_eq!(
+            sqlite_image_asset_table("dither_images", "id"),
+            Some("dither_images")
+        );
+        assert_eq!(
+            sqlite_image_asset_table("collection_items", "cover_blob_id"),
+            Some("user_images")
+        );
+        assert_eq!(
+            sqlite_image_asset_table("collection_items", "thumb_blob_id"),
+            Some("user_images")
+        );
+        assert_eq!(
+            sqlite_image_asset_table("remote_images", "id"),
+            Some("remote_images")
+        );
+        assert_eq!(sqlite_image_asset_table("user_images", "name"), None);
+        assert_eq!(
+            sqlite_image_asset_table("dither_images", "original_ext"),
+            None
+        );
+        assert_eq!(sqlite_image_asset_table("cache_entries", "payload"), None);
+    }
+
+    #[test]
+    fn table_columns_report_image_flags() {
+        let connection = Connection::open_in_memory().expect("open memory db");
+        connection
+            .execute_batch("CREATE TABLE user_images (id TEXT PRIMARY KEY, name TEXT NOT NULL)")
+            .expect("seed");
+        let columns = sqlite_columns(&connection, "user_images").expect("columns");
+        let id = columns.iter().find(|column| column.name == "id");
+        let name = columns.iter().find(|column| column.name == "name");
+        assert!(id.expect("id column").is_image);
+        assert!(!name.expect("name column").is_image);
+    }
+
+    #[test]
+    fn row_where_requires_a_matching_key_count() {
+        let connection = Connection::open_in_memory().expect("open memory db");
+        connection
+            .execute_batch(
+                "CREATE TABLE cache_entries (
+                    namespace TEXT NOT NULL,
+                    cache_key TEXT NOT NULL,
+                    payload TEXT NOT NULL,
+                    PRIMARY KEY (namespace, cache_key)
+                );",
+            )
+            .expect("seed");
+        let columns = sqlite_columns(&connection, "cache_entries").expect("columns");
+        assert_eq!(
+            sqlite_row_where(&columns, &["ns".to_string(), "a".to_string()]).expect("where"),
+            "\"namespace\" = ?1 AND \"cache_key\" = ?2"
+        );
+        assert!(sqlite_row_where(&columns, &["ns".to_string()]).is_err());
     }
 
     #[test]
@@ -1596,12 +1660,14 @@ mod sqlite_browser_tests {
                 data_type: "TEXT".to_string(),
                 not_null: false,
                 primary_key: false,
+                is_image: false,
             },
             SqliteColumnInfo {
                 name: "rating".to_string(),
                 data_type: "REAL".to_string(),
                 not_null: false,
                 primary_key: false,
+                is_image: false,
             },
         ];
         let groups =

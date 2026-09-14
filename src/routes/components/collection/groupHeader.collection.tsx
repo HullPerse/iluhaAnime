@@ -1,24 +1,60 @@
 import { cn } from "cn";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Plus } from "lucide-react";
 
+import { PUBLIC_STATUS_MAX_ITEMS } from "@/config/collection/statuses.config";
 import { enterOrSpace } from "@/lib/utils/keyboard.utils";
+import type { CollectionStatusDef } from "@/types/collection";
+
+/**
+ * Header extras for a public status: its own `count/max` counter and an add button that
+ * switches off once the status is full. Private statuses get neither.
+ */
+export function publicHeaderProps({
+  status,
+  count,
+  addLabel,
+  onAddToStatus,
+}: {
+  status: CollectionStatusDef;
+  count: number;
+  addLabel: string;
+  onAddToStatus?: (status: CollectionStatusDef) => void;
+}): { maxCount?: number; onAdd?: () => void; addDisabled?: boolean; addLabel?: string } {
+  if (status.kind !== "public") return {};
+  return {
+    maxCount: PUBLIC_STATUS_MAX_ITEMS,
+    onAdd: onAddToStatus ? () => onAddToStatus(status) : undefined,
+    addDisabled: count >= PUBLIC_STATUS_MAX_ITEMS,
+    addLabel,
+  };
+}
 
 export function GroupHeaderCollection({
   label,
   color,
   count,
+  maxCount,
   collapsed,
   variant,
   toggleLabel,
   onToggle,
+  onAdd,
+  addDisabled,
+  addLabel,
 }: {
   label: string;
   color: string;
   count: number;
+  /** Set for public statuses so the header reads `count/max` instead of a bare count. */
+  maxCount?: number;
   collapsed: boolean;
   variant: "torrent" | "folder";
   toggleLabel: string;
   onToggle: () => void;
+  /** Present only for public statuses, which accept items straight from their header. */
+  onAdd?: () => void;
+  addDisabled?: boolean;
+  addLabel?: string;
 }) {
   const isTorrent = variant === "torrent";
 
@@ -57,8 +93,23 @@ export function GroupHeaderCollection({
       <span
         className={cn("ml-auto shrink-0 text-xs whitespace-nowrap", isTorrent ? "" : "text-hint")}
       >
-        {count}
+        {maxCount != null ? `${count}/${maxCount}` : count}
       </span>
+      {onAdd && (
+        <button
+          type="button"
+          disabled={addDisabled}
+          title={addLabel}
+          aria-label={addLabel}
+          onClick={(e) => {
+            e.stopPropagation();
+            onAdd();
+          }}
+          className="windows95-active-border bg-primary text-text windows95-text flex size-4 shrink-0 cursor-pointer items-center justify-center hover:brightness-110 active:translate-x-px active:translate-y-px disabled:cursor-default disabled:opacity-40"
+        >
+          <Plus className="size-3" aria-hidden />
+        </button>
+      )}
     </div>
   );
 }

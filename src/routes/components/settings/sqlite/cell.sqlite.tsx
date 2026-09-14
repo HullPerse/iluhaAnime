@@ -14,9 +14,8 @@ export function CellModal({
   cellEdit,
   cellSaving,
   cellCopied,
-  cellIsImage,
+  cellImageSrc,
   canEditCell,
-  cellIsBlob,
   onClose,
   onCopy,
   onEdit,
@@ -31,9 +30,8 @@ export function CellModal({
   cellEdit: string;
   cellSaving: boolean;
   cellCopied: boolean;
-  cellIsImage: boolean;
+  cellImageSrc: string | null;
   canEditCell: boolean;
-  cellIsBlob: boolean;
   onClose: () => void;
   onCopy: () => void;
   onEdit: () => void;
@@ -58,12 +56,7 @@ export function CellModal({
               {cellCopied ? <Check className="size-3" /> : <Copy className="size-3" />}
               {cellCopied ? t("settings.sqlite.cell.copied") : t("settings.sqlite.cell.copy")}
             </Button>
-            <Button
-              className="h-5"
-              onClick={onEdit}
-              disabled={!canEditCell}
-              title={cellIsBlob ? t("settings.sqlite.unknown.type") : undefined}
-            >
+            <Button className="h-5" onClick={onEdit} disabled={!canEditCell}>
               <Pencil className="size-3" />
               {t("settings.sqlite.cell.edit")}
             </Button>
@@ -95,10 +88,10 @@ export function CellModal({
           </>
         ) : (
           <>
-            {cellIsImage && (
+            {cellImageSrc && (
               <div className="windows95-border bg-primary flex h-64 items-center justify-center p-1">
                 <Image
-                  src={cellValue}
+                  src={cellImageSrc}
                   alt={selectedCell.column}
                   type="contain"
                   className="h-full w-full bg-white"

@@ -14,7 +14,7 @@ export function VirtualRowsTable({
   primaryKeys,
   selectedRows,
   sort,
-  blobColumns,
+  imageColumns,
   showImages,
   deleting,
   selectedDatabase,
@@ -92,7 +92,7 @@ export function VirtualRowsTable({
               primaryKeyValues={primaryKeyValues}
               toggleRowSelection={toggleRowSelection}
               showImages={showImages}
-              blobColumns={blobColumns}
+              imageColumns={imageColumns}
               selectedDatabase={selectedDatabase}
               selectedTable={selectedTable}
               openCell={openCell}

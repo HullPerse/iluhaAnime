@@ -6,7 +6,7 @@ export interface UserImage {
   mimeType: string;
   url: string;
   originalUrl: string | null;
-  ditherOptions: string | null;
+  version: string | null;
   createdAt: number;
 }
 
@@ -16,7 +16,7 @@ export interface UserImageFile {
   mimeType: string;
   path: string;
   originalPath: string | null;
-  ditherOptions: string | null;
+  version: string | null;
   createdAt: number;
 }
 

@@ -27,7 +27,7 @@ import { toUserImage } from "@/lib/utils/image.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { showError } from "@/lib/utils/notification.utils";
 import type { DitherEffectOptions, DitherPresetId } from "@/types/dither";
-import type { UserImage, UserImageFile } from "@/types/image.userimage";
+import type { UserImage, UserImageFile } from "@/types/userimage";
 
 import DitherControls from "./controls.preview";
 import { PalettePresetStrip } from "./palettePreset.preview";

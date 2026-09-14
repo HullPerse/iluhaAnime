@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import DitherSettings from "@/routes/components/search/modern/dither/settings.dither";
 import { useNotificationStore } from "@/store/notification.store";
 import { useSettingsStore } from "@/store/settings.store";
-import type { UserImageFile } from "@/types/image.userimage";
+import type { UserImageFile } from "@/types/userimage";
 
 const mockInvoke = vi.fn();
 vi.mock("@tauri-apps/api/core", () => ({
@@ -42,7 +42,7 @@ const FIRST: UserImageFile = {
   mimeType: "image/png",
   path: "C:/images/aaa.png",
   originalPath: "C:/images/aaa.original.png",
-  ditherOptions: null,
+  version: "1",
   createdAt: 10,
 };
 
@@ -52,7 +52,7 @@ const SECOND: UserImageFile = {
   mimeType: "image/jpeg",
   path: "C:/images/bbb.jpg",
   originalPath: null,
-  ditherOptions: null,
+  version: null,
   createdAt: 5,
 };
 
@@ -62,7 +62,7 @@ const THIRD: UserImageFile = {
   mimeType: "image/gif",
   path: "C:/images/ccc.gif",
   originalPath: null,
-  ditherOptions: null,
+  version: null,
   createdAt: 3,
 };
 
@@ -72,7 +72,7 @@ const FOURTH: UserImageFile = {
   mimeType: "image/webp",
   path: "C:/images/ddd.webp",
   originalPath: null,
-  ditherOptions: null,
+  version: null,
   createdAt: 1,
 };
 
@@ -331,7 +331,7 @@ describe("DitherSettings database images", () => {
 
   it("opens the editor from the cached page row without a single fetch", async () => {
     const user = userEvent.setup();
-    const baked: UserImageFile = { ...FIRST, path: "C:/images/aaa.baked.png" };
+    const baked: UserImageFile = { ...FIRST, version: "2" };
     const serve = serveLibrary([FIRST]);
     mockInvoke.mockImplementation(async (cmd: string, args?: { ids?: string[] }) => {
       if (cmd === "update_dither_image_data") return baked;
@@ -350,6 +350,10 @@ describe("DitherSettings database images", () => {
       id: "aaa",
       dataUrl: "data:image/png;base64,BAKED",
     });
+    // Same file path, new version: the list must re-load the thumbnail.
+    expect(screen.getByAltText("first.png").getAttribute("src")).toBe(
+      "http://asset.localhost/C%3A%2Fimages%2Faaa.png?v=2"
+    );
   });
 
   it("resolves an off-page selection through a single fetch", async () => {
@@ -385,7 +389,7 @@ describe("DitherSettings database images", () => {
 
   it("bakes through a hidden full-frame canvas while saving", async () => {
     const user = userEvent.setup();
-    const baked: UserImageFile = { ...FIRST, path: "C:/images/aaa.baked.png" };
+    const baked: UserImageFile = { ...FIRST, version: "2" };
     const serve = serveLibrary([FIRST]);
     let resolveUpdate!: (value: UserImageFile) => void;
     mockInvoke.mockImplementation(async (cmd: string, args?: { ids?: string[] }) => {

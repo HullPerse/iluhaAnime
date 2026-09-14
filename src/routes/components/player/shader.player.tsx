@@ -39,6 +39,7 @@ export default function ShaderPicker({ value, onChange, gpuBackend, durationSecs
 
   const isDisabled = useCallback(
     (shader: ShaderInfo) => {
+      if (!shader.available) return true;
       if (!shader.exclusive_group) return false;
       return shaders.some(
         (s) =>
@@ -48,6 +49,14 @@ export default function ShaderPicker({ value, onChange, gpuBackend, durationSecs
       );
     },
     [shaders, selectedSet]
+  );
+
+  const shaderTitle = useCallback(
+    (shader: ShaderInfo) =>
+      shader.available
+        ? shader.description
+        : `${shader.description} — ${t("player.shader.unavailable")}`,
+    [t]
   );
 
   const handleToggle = useCallback(
@@ -143,14 +152,14 @@ export default function ShaderPicker({ value, onChange, gpuBackend, durationSecs
                             "windows95-text flex cursor-pointer items-center gap-1 text-xs select-none",
                             disabled && "cursor-default opacity-50"
                           )}
-                          title={shader.description}
+                          title={shaderTitle(shader)}
                         >
                           <Checkbox
                             checked={checked}
                             onChange={() => handleToggle(shader)}
                             disabled={disabled}
                           />
-                          <span>
+                          <span className={cn(!shader.available && "line-through")}>
                             {shader.id
                               .replace(/^(restore_|upscale_)/, "")
                               .replaceAll(/_/g, " ")
@@ -163,14 +172,22 @@ export default function ShaderPicker({ value, onChange, gpuBackend, durationSecs
                 ) : (
                   items.map((shader) => {
                     const checked = selectedSet.has(shader.id);
+                    const disabled = !shader.available;
                     return (
                       <label
                         key={shader.id}
-                        className="windows95-text flex cursor-pointer items-center gap-1 text-xs select-none"
-                        title={shader.description}
+                        className={cn(
+                          "windows95-text flex cursor-pointer items-center gap-1 text-xs select-none",
+                          disabled && "cursor-default opacity-50"
+                        )}
+                        title={shaderTitle(shader)}
                       >
-                        <Checkbox checked={checked} onChange={() => handleToggle(shader)} />
-                        <span>
+                        <Checkbox
+                          checked={checked}
+                          onChange={() => handleToggle(shader)}
+                          disabled={disabled}
+                        />
+                        <span className={cn(disabled && "line-through")}>
                           {shader.id
                             .replaceAll(/_/g, " ")
                             .replace(/^./u, (c: string) => c.toUpperCase())}

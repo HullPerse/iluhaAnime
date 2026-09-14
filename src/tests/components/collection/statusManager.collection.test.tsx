@@ -19,7 +19,7 @@ describe("StatusManagerCollection add", () => {
     const user = userEvent.setup();
     const onUpsert = vi.fn();
     const stale = [
-      { id: "planned", label: "Planned", color: "#9ca3af", isCore: true },
+      { id: "planned", label: "Planned", color: "#9ca3af", isCore: true, kind: "private" },
     ] as unknown as CollectionStatusDef[];
     render(
       <StatusManagerCollection
@@ -39,10 +39,31 @@ describe("StatusManagerCollection add", () => {
 
 describe("StatusManagerCollection sections", () => {
   const mixed: CollectionStatusDef[] = [
-    { id: "custom-b", label: "B custom", color: "#ffffff", order: 9, isCore: false },
-    { id: "planned", label: "Planned", color: "#9ca3af", order: 1, isCore: true },
-    { id: "custom-a", label: "A custom", color: "#000000", order: 8, isCore: false },
-    { id: "watching", label: "Watching", color: "#3b82f6", order: 2, isCore: true },
+    {
+      id: "custom-b",
+      label: "B custom",
+      color: "#ffffff",
+      order: 9,
+      isCore: false,
+      kind: "private",
+    },
+    { id: "planned", label: "Planned", color: "#9ca3af", order: 1, isCore: true, kind: "private" },
+    {
+      id: "custom-a",
+      label: "A custom",
+      color: "#000000",
+      order: 8,
+      isCore: false,
+      kind: "private",
+    },
+    {
+      id: "watching",
+      label: "Watching",
+      color: "#3b82f6",
+      order: 2,
+      isCore: true,
+      kind: "private",
+    },
   ];
 
   function renderSections() {
@@ -71,12 +92,13 @@ describe("StatusManagerCollection sections", () => {
       />
     );
     const lists = document.querySelectorAll("ul");
-    const coreLabels = Array.from(lists[0]?.querySelectorAll("input") ?? []).map(
-      (input) => (input as HTMLInputElement).value
-    );
-    const customLabels = Array.from(lists[1]?.querySelectorAll("input") ?? []).map(
-      (input) => (input as HTMLInputElement).value
-    );
+    // The kind picker renders its own hidden input, so select by the label field.
+    const labelInputs = (list: Element | undefined) =>
+      Array.from(list?.querySelectorAll('input[aria-label="Status label"]') ?? []).map(
+        (input) => (input as HTMLInputElement).value
+      );
+    const coreLabels = labelInputs(lists[0]);
+    const customLabels = labelInputs(lists[1]);
     expect(coreLabels).toEqual(["Planned", "Watching"]);
     expect(customLabels).toEqual(["B custom", "A custom"]);
   });

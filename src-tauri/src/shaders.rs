@@ -16,6 +16,7 @@ pub struct ShaderInfo {
     pub speed_factor: f64,
     pub is_default: bool,
     pub exclusive_group: Option<String>,
+    pub available: bool,
 }
 
 #[derive(Clone)]
@@ -472,7 +473,7 @@ pub fn default_selection() -> Vec<String> {
         .collect()
 }
 
-pub fn list_shaders() -> Vec<ShaderInfo> {
+pub fn list_shaders(dir: Option<&std::path::Path>) -> Vec<ShaderInfo> {
     CATALOG
         .iter()
         .map(|s| ShaderInfo {
@@ -483,6 +484,7 @@ pub fn list_shaders() -> Vec<ShaderInfo> {
             speed_factor: s.speed_factor,
             is_default: s.is_default,
             exclusive_group: s.exclusive_group.map(std::string::ToString::to_string),
+            available: s.filename.is_empty() || dir.is_some_and(|d| d.join(s.filename).exists()),
         })
         .collect()
 }
@@ -500,8 +502,26 @@ pub fn speed_factor(id: &str) -> Option<f64> {
     find_meta(id).map(|s| s.speed_factor)
 }
 
-pub fn is_2x_upscale_id(id: &str) -> bool {
-    find_meta(id).is_some_and(|s| s.category == "upscale" && s.filename.contains("_x2"))
+const CASCADE_RATIO_EPSILON: f64 = 0.05;
+
+/// Native scale factor encoded in an upscale shader filename (`..._x3_L.glsl` -> 3.0).
+pub fn native_scale_factor(filename: &str) -> Option<f64> {
+    filename.split('_').find_map(|token| {
+        let value = token.strip_prefix('x')?.parse::<f64>().ok()?;
+        (value > 1.0).then_some(value)
+    })
+}
+
+/// A single pass of this shader cannot cover `ratio`, so the chain repeats it once.
+pub fn needs_upscale_cascade(filename: &str, ratio: f64) -> bool {
+    native_scale_factor(filename).is_some_and(|native| ratio > native + CASCADE_RATIO_EPSILON)
+}
+
+/// Throughput penalty of the repeated pass; `None` when no cascade is needed.
+pub fn cascade_penalty(id: &str, ratio: f64) -> Option<f64> {
+    let meta = find_meta(id)?;
+    (meta.category == "upscale" && needs_upscale_cascade(meta.filename, ratio))
+        .then_some(meta.speed_factor)
 }
 
 pub fn build_shader_chain(selected: &[String]) -> Result<Vec<String>, String> {
@@ -553,9 +573,25 @@ pub fn build_shader_chain(selected: &[String]) -> Result<Vec<String>, String> {
     Ok(chain)
 }
 
+pub fn resolve_shader_dir(
+    app_handle: &tauri::AppHandle,
+    chain: &[String],
+) -> Result<PathBuf, String> {
+    let dir = shader_dir(app_handle)
+        .ok_or_else(|| "Anime4K шейдеры не найдены. Переустановите приложение.".to_string())?;
+    for filename in chain {
+        if !dir.join(filename).exists() {
+            return Err(format!(
+                "Anime4K шейдер не найден: {filename}. Установка повреждена — переустановите приложение."
+            ));
+        }
+    }
+    Ok(dir)
+}
+
 #[tauri::command]
-pub fn list_anime4k_shaders() -> Vec<ShaderInfo> {
-    list_shaders()
+pub fn list_anime4k_shaders(app_handle: tauri::AppHandle) -> Vec<ShaderInfo> {
+    list_shaders(shader_dir(&app_handle).as_deref())
 }
 
 #[tauri::command]
@@ -574,5 +610,62 @@ mod tests {
         assert!(!is_upscale_file("Anime4K_Restore_CNN_S.glsl"));
         assert!(!is_upscale_file(""));
         assert!(!is_upscale_file("nope.glsl"));
+    }
+
+    #[test]
+    fn every_catalog_shader_exists_on_disk() {
+        let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("resources")
+            .join("shaders");
+        let missing: Vec<&str> = CATALOG
+            .iter()
+            .filter(|s| !s.filename.is_empty() && !dir.join(s.filename).exists())
+            .map(|s| s.filename)
+            .collect();
+        assert!(
+            missing.is_empty(),
+            "шейдеры отсутствуют в resources/shaders: {missing:?}"
+        );
+    }
+
+    #[test]
+    fn cascade_depends_on_native_scale() {
+        assert!(needs_upscale_cascade("Anime4K_Upscale_CNN_x2_S.glsl", 2.5));
+        assert!(!needs_upscale_cascade("Anime4K_Upscale_CNN_x2_S.glsl", 2.0));
+        assert!(!needs_upscale_cascade("Anime4K_Upscale_GAN_x3_L.glsl", 2.5));
+        assert!(needs_upscale_cascade("Anime4K_Upscale_GAN_x3_L.glsl", 4.5));
+        assert!(!needs_upscale_cascade(
+            "Anime4K_Upscale_GAN_x4_UL.glsl",
+            3.5
+        ));
+        assert!(needs_upscale_cascade("Anime4K_Upscale_GAN_x4_UL.glsl", 4.5));
+        assert!(!needs_upscale_cascade("Anime4K_Restore_CNN_S.glsl", 4.5));
+        assert!(!needs_upscale_cascade("", 4.5));
+    }
+
+    #[test]
+    fn native_scale_factor_reads_the_filename() {
+        assert_eq!(
+            native_scale_factor("Anime4K_Upscale_CNN_x2_VL.glsl"),
+            Some(2.0)
+        );
+        assert_eq!(
+            native_scale_factor("Anime4K_Upscale_GAN_x4_UUL.glsl"),
+            Some(4.0)
+        );
+        assert_eq!(
+            native_scale_factor("Anime4K_Restore_CNN_Soft_UL.glsl"),
+            None
+        );
+    }
+
+    #[test]
+    fn cascade_penalty_only_covers_upscale_shaders() {
+        assert_eq!(cascade_penalty("upscale_cnn_x2_s", 4.5), Some(1.0));
+        assert_eq!(cascade_penalty("upscale_gan_x3_l", 2.5), None);
+        assert_eq!(cascade_penalty("upscale_gan_x3_l", 4.5), Some(0.33));
+        assert_eq!(cascade_penalty("upscale_gan_x4_uul", 4.5), Some(0.07));
+        assert_eq!(cascade_penalty("restore_cnn_s", 4.5), None);
+        assert_eq!(cascade_penalty("missing", 4.5), None);
     }
 }

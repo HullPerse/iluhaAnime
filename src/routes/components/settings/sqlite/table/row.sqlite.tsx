@@ -15,7 +15,7 @@ export function DataRow({
   primaryKeyValues,
   toggleRowSelection,
   showImages,
-  blobColumns,
+  imageColumns,
   selectedDatabase,
   selectedTable,
   openCell,
@@ -34,7 +34,7 @@ export function DataRow({
   primaryKeyValues: (row: unknown[]) => string[] | null;
   toggleRowSelection: (keys: string[] | null) => void;
   showImages: boolean;
-  blobColumns: Set<string>;
+  imageColumns: Set<string>;
   selectedDatabase: string;
   selectedTable: string;
   openCell: (row: unknown[], column: string) => void;
@@ -90,7 +90,7 @@ export function DataRow({
               row={row}
               rowKeys={rowKeys}
               showImages={showImages}
-              blobColumns={blobColumns}
+              imageColumns={imageColumns}
               selectedDatabase={selectedDatabase}
               selectedTable={selectedTable}
               openCell={openCell}

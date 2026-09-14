@@ -6,7 +6,7 @@ import { assetUrl } from "@/lib/utils/image.utils";
 import SearchModern from "@/routes/components/search/modern/index.search";
 import { useNotificationStore } from "@/store/notification.store";
 import { useSettingsStore } from "@/store/settings.store";
-import type { UserImageFile } from "@/types/image.userimage";
+import type { UserImageFile } from "@/types/userimage";
 
 const mockInvoke = vi.fn();
 vi.mock("@tauri-apps/api/core", () => ({
@@ -28,7 +28,7 @@ const FIRST: UserImageFile = {
   mimeType: "image/png",
   path: "C:/images/aaa.png",
   originalPath: "C:/images/aaa.original.png",
-  ditherOptions: null,
+  version: null,
   createdAt: 10,
 };
 const SECOND: UserImageFile = {

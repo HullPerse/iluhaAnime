@@ -1,10 +1,12 @@
 import { DEFAULT_FILTERS } from "@/config/collection/filters.config";
+import { publicStatusIds } from "@/lib/collection/status.utils";
 import { parseIntent } from "@/lib/search/intent.utils";
 import { useSettingsStore } from "@/store/settings.store";
 import type {
   CollectionFilters,
   CollectionItem,
   CollectionStatus,
+  CollectionStatusDef,
   FilterParams,
 } from "@/types/collection";
 import type { DateCond, NumericCond, ParsedIntent } from "@/types/search";
@@ -196,14 +198,21 @@ export function filterCollectionItems(
   searchQuery: string,
   filters: FilterParams,
   sortBy: "date" | "name" | "rating" | "year",
-  sortDir: "asc" | "desc"
+  sortDir: "asc" | "desc",
+  statuses: readonly CollectionStatusDef[] = []
 ): CollectionItem[] {
   const intentEnabled = isIntentEnabled();
   const intent = intentEnabled
     ? parseIntent(searchQuery, useSettingsStore.getState().tagTolerances)
     : ({ cleanQuery: searchQuery, rawFilters: {} } as ReturnType<typeof parseIntent>);
   let list = resolveList(items, searchResults, intent.cleanQuery);
-  if (selectedStatus !== "all") list = list.filter((item) => item.status === selectedStatus);
+  if (selectedStatus !== "all") {
+    list = list.filter((item) => item.status === selectedStatus);
+  } else {
+    // Imported public collections get their own tab and stay out of All.
+    const excluded = publicStatusIds(statuses);
+    if (excluded.size > 0) list = list.filter((item) => !excluded.has(item.status));
+  }
   if (intentEnabled) list = applyIntentFilters(list, intent);
   list = applyShortQueryFilter(list, intent.cleanQuery);
   list = applyCollectionFilters(list, filters);

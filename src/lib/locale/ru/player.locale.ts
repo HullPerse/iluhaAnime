@@ -99,6 +99,7 @@ const player = {
   "player.shader.preprocess": "Предобработка",
   "player.shader.restore": "Восстановление",
   "player.shader.title": "Шейдеры Anime4K",
+  "player.shader.unavailable": "Недоступен",
   "player.shader.upscale": "Апскейл",
   "player.tab.convert": "Конвертация",
   "player.tab.upscale": "Апскейл",

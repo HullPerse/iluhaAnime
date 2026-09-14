@@ -1,11 +1,55 @@
 import { CORE_DEFAULT_LABELS } from "@/config/collection/defaults.config";
-import { STATUS_SHRINK_AT, STATUS_SHRINK_MIN_AT } from "@/config/collection/statuses.config";
+import {
+  PUBLIC_STATUS_MAX_ITEMS,
+  STATUS_SHRINK_AT,
+  STATUS_SHRINK_MIN_AT,
+} from "@/config/collection/statuses.config";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
-import type { CollectionStatusDef } from "@/types/collection";
+import type { CollectionStatus, CollectionStatusDef, WizardPrefill } from "@/types/collection";
 import type { Locale } from "@/types/i18n";
 
 export function statusColorOf(statuses: CollectionStatusDef[], id: string): string {
   return statuses.find((s) => s.id === id)?.color ?? "#9ca3af";
+}
+
+/** Public statuses hold imported shared collections rather than the user's own record. */
+export function isPublicStatus(status: CollectionStatusDef): boolean {
+  return status.kind === "public";
+}
+
+/** Ids of every public status, so the All tab can leave imported collections out. */
+export function publicStatusIds(statuses: readonly CollectionStatusDef[]): Set<string> {
+  const ids = new Set<string>();
+  for (const status of statuses) if (isPublicStatus(status)) ids.add(status.id);
+  return ids;
+}
+
+/**
+ * Toolbar-plus prefill for a selected public tab: the new item lands only in that
+ * public status instead of the default planned bucket. Every other tab keeps the
+ * default flow and returns null.
+ */
+export function publicStatusPrefill(
+  statuses: readonly CollectionStatusDef[],
+  selectedStatus: CollectionStatus | "all"
+): WizardPrefill | null {
+  const selected = statuses.find((status) => status.id === selectedStatus);
+  if (!selected || !isPublicStatus(selected)) return null;
+  return { title: "", coverUrl: null, status: selected.id };
+}
+
+/**
+ * Toolbar-plus kill switch for a full public tab: the header add button already
+ * disables itself at the cap, the toolbar one needs the same guard or the wizard
+ * would open for a status that cannot take more titles.
+ */
+export function isPublicStatusFull(
+  statuses: readonly CollectionStatusDef[],
+  selectedStatus: CollectionStatus | "all",
+  count: number
+): boolean {
+  const selected = statuses.find((status) => status.id === selectedStatus);
+  return Boolean(selected && isPublicStatus(selected) && count >= PUBLIC_STATUS_MAX_ITEMS);
 }
 
 export function sortStatuses(statuses: CollectionStatusDef[]): CollectionStatusDef[] {

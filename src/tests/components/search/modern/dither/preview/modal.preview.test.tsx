@@ -7,7 +7,7 @@ import { toUserImage } from "@/lib/utils/image.utils";
 import DitherPreviewModal from "@/routes/components/search/modern/dither/preview/modal.preview";
 import { useNotificationStore } from "@/store/notification.store";
 import { useSettingsStore } from "@/store/settings.store";
-import type { UserImage, UserImageFile } from "@/types/image.userimage";
+import type { UserImage, UserImageFile } from "@/types/userimage";
 
 const mockInvoke = vi.fn();
 vi.mock("@tauri-apps/api/core", () => ({
@@ -48,14 +48,17 @@ const IMAGE: UserImage = {
   mimeType: "image/png",
   url: "data:image/png;base64,AAAA",
   originalUrl: "data:image/png;base64,OOOO",
-  ditherOptions: null,
+  version: "1",
   createdAt: 10,
 };
 
 const UPDATED_FILE: UserImageFile = {
   ...IMAGE,
-  path: "C:/images/aaa.baked.png",
+  // Same path as before, only the version moves: a saved edit must be visible
+  // without renaming the file.
+  path: "C:/images/aaa.png",
   originalPath: "C:/images/aaa.original.png",
+  version: "2",
 };
 
 class FakeImage {
@@ -129,6 +132,9 @@ describe("DitherPreviewModal", () => {
       })
     );
     expect(onSaved).toHaveBeenCalledWith(updated);
+    expect(onSaved.mock.calls[0][0].url).toBe(
+      "http://asset.localhost/C%3A%2Fimages%2Faaa.png?v=2"
+    );
     expect(onBack).toHaveBeenCalledTimes(1);
   });
 

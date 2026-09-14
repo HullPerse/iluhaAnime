@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 
 import { displayCell } from "@/lib/sqlite/row.utils";
 import { reportBackgroundError } from "@/lib/utils/attempt.utils";
-import { isImageUrl } from "@/lib/utils/image.utils";
+import { assetUrl, isImageUrl } from "@/lib/utils/image.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { COPIED_FEEDBACK_MS } from "@/lib/utils/notification.utils";
 import type { SqliteRowsPage, SqliteSelectedCell, SqliteTableInfo } from "@/types/sqlite";
@@ -34,25 +34,20 @@ export function useSqliteCell(params: {
   const [cellSaving, setCellSaving] = useState(false);
   const [cellCopied, setCellCopied] = useState(false);
   const copiedTimerRef = useRef<number | null>(null);
-  const [cellIsImage, setCellIsImage] = useState(false);
+  const [cellImageSrc, setCellImageSrc] = useState<string | null>(null);
 
-  function isBlobColumn(column: string): boolean {
-    return (selectedTableInfo?.columns ?? []).some(
-      (c) => c.dataType.toUpperCase() === "BLOB" && c.name === column
-    );
+  function isImageColumn(column: string): boolean {
+    return (selectedTableInfo?.columns ?? []).some((c) => c.isImage && c.name === column);
   }
 
-  async function loadBlobCell(column: string, keys: string[]): Promise<void> {
-    const blob = await invokeTyped<string | null>("get_sqlite_cell_blob", {
+  async function loadImageCell(column: string, keys: string[]): Promise<void> {
+    const path = await invokeTyped<string | null>("get_sqlite_cell_image", {
       database: selectedDatabase!,
       table: selectedTable!,
       column,
       keys,
     });
-    if (!blob) return;
-    setCellValue(blob);
-    setCellEdit(blob);
-    setCellIsImage(true);
+    if (path) setCellImageSrc(assetUrl(path));
   }
 
   async function loadTextCell(column: string, keys: string[]): Promise<void> {
@@ -65,7 +60,7 @@ export function useSqliteCell(params: {
     const resolved = value ?? "NULL";
     setCellValue(resolved);
     setCellEdit(resolved);
-    if (isImageUrl(resolved)) setCellIsImage(true);
+    if (isImageUrl(resolved)) setCellImageSrc(resolved);
   }
 
   const openCell = async (row: unknown[], column: string) => {
@@ -76,12 +71,12 @@ export function useSqliteCell(params: {
     setCellEdit(display);
     setCellEditing(false);
     setCellCopied(false);
-    setCellIsImage(false);
+    setCellImageSrc(null);
     if (copiedTimerRef.current !== null) window.clearTimeout(copiedTimerRef.current);
     if (!keys || !selectedDatabase || !selectedTable) return;
     setCellLoading(true);
     try {
-      if (isBlobColumn(column)) await loadBlobCell(column, keys);
+      if (isImageColumn(column)) await loadImageCell(column, keys);
       else await loadTextCell(column, keys);
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : String(error));
@@ -124,11 +119,7 @@ export function useSqliteCell(params: {
     }
   };
 
-  const cellColumnInfo = selectedTableInfo?.columns.find(
-    (column) => column.name === selectedCell?.column
-  );
-  const cellIsBlob = cellColumnInfo?.dataType.toUpperCase() === "BLOB";
-  const canEditCell = !!selectedCell?.keys && !cellIsBlob && !cellLoading && !cellSaving;
+  const canEditCell = !!selectedCell?.keys && !cellLoading && !cellSaving;
 
   return {
     selectedCell,
@@ -138,8 +129,7 @@ export function useSqliteCell(params: {
     cellEdit,
     cellSaving,
     cellCopied,
-    cellIsImage,
-    cellIsBlob,
+    cellImageSrc,
     canEditCell,
     openCell,
     copyCell,

@@ -70,4 +70,5 @@ export interface ShaderInfo {
   speed_factor: number;
   is_default: boolean;
   exclusive_group: string | null;
+  available: boolean;
 }

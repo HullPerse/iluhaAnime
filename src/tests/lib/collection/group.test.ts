@@ -1,12 +1,20 @@
 import { describe, expect, it } from "vitest";
 
-import { groupItemsByStatus } from "@/lib/collection/group.utils";
+import { groupItemsByStatus, shouldGroupByStatus } from "@/lib/collection/group.utils";
 import type { CollectionItem, CollectionStatusDef } from "@/types/collection";
 
 const STATUSES: CollectionStatusDef[] = [
-  { id: "planned", label: "Planned", color: "#9ca3af", order: 0, isCore: true },
-  { id: "watching", label: "Watching", color: "#3b82f6", order: 1, isCore: true },
-  { id: "completed", label: "Completed", color: "#22c55e", order: 2, isCore: true },
+  { id: "planned", label: "Planned", color: "#9ca3af", order: 0, isCore: true, kind: "private" },
+  { id: "watching", label: "Watching", color: "#3b82f6", order: 1, isCore: true, kind: "private" },
+  {
+    id: "completed",
+    label: "Completed",
+    color: "#22c55e",
+    order: 2,
+    isCore: true,
+    kind: "private",
+  },
+  { id: "share_1", label: "Friends", color: "#0ea5e9", order: 3, isCore: false, kind: "public" },
 ];
 
 function makeItem(overrides: Partial<CollectionItem> = {}): CollectionItem {
@@ -109,5 +117,21 @@ describe("groupItemsByStatus", () => {
     expect(last.status.label).toBe("custom_gone");
     expect(last.status.isCore).toBe(false);
     expect(last.items.map((i) => i.id)).toEqual(["b", "c"]);
+  });
+});
+
+describe("shouldGroupByStatus", () => {
+  it("follows the grouping setting when it is on", () => {
+    expect(shouldGroupByStatus(true, "all", STATUSES)).toBe(true);
+    expect(shouldGroupByStatus(true, "watching", STATUSES)).toBe(true);
+  });
+
+  it("groups a public status tab even with the setting off", () => {
+    expect(shouldGroupByStatus(false, "share_1", STATUSES)).toBe(true);
+  });
+
+  it("stays flat for private tabs and All with the setting off", () => {
+    expect(shouldGroupByStatus(false, "all", STATUSES)).toBe(false);
+    expect(shouldGroupByStatus(false, "watching", STATUSES)).toBe(false);
   });
 });

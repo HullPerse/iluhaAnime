@@ -4,13 +4,14 @@ import { calculateCollectionStats } from "@/lib/collection/stats.utils";
 import type { CollectionItem, CollectionStatusDef } from "@/types/collection";
 
 const STATUSES: CollectionStatusDef[] = [
-  { id: "planned", label: "Planned", color: "#9ca3af", order: 0, isCore: true },
+  { id: "planned", label: "Planned", color: "#9ca3af", order: 0, isCore: true, kind: "private" },
   {
     id: "watching",
     label: "Watching",
     color: "#3b82f6",
     order: 1,
     isCore: true,
+    kind: "private",
   },
   {
     id: "completed",
@@ -18,6 +19,7 @@ const STATUSES: CollectionStatusDef[] = [
     color: "#22c55e",
     order: 2,
     isCore: true,
+    kind: "private",
   },
 ];
 
@@ -92,6 +94,30 @@ describe("calculateCollectionStats", () => {
       completed: 0,
       custom_x: 1,
     });
+  });
+
+  it("counts a public status on its own tab but keeps it out of the library totals", () => {
+    const statuses: CollectionStatusDef[] = [
+      ...STATUSES,
+      {
+        id: "share_1",
+        label: "Friends",
+        color: "#0ea5e9",
+        order: 3,
+        isCore: false,
+        kind: "public",
+      },
+    ];
+    const stats = calculateCollectionStats(
+      [
+        makeItem({ id: "own", status: "watching" }),
+        makeItem({ id: "shared", status: "share_1", isFavorite: true }),
+      ],
+      statuses
+    );
+    expect(stats.byStatus).toMatchObject({ watching: 1, share_1: 1 });
+    expect(stats.total).toBe(1);
+    expect(stats.favoriteCount).toBe(0);
   });
 
   it("computes the average rating rounded to one decimal", () => {

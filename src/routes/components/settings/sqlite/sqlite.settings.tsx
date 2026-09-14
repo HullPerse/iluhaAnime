@@ -410,9 +410,9 @@ export default function SqliteSettings() {
     }
   };
 
-  const blobColumns = new Set(
+  const imageColumns = new Set(
     (selectedTableInfo?.columns ?? [])
-      .filter((column) => column.dataType.toUpperCase() === "BLOB")
+      .filter((column) => column.isImage)
       .map((column) => column.name)
   );
 
@@ -430,7 +430,7 @@ export default function SqliteSettings() {
       primaryKeys={primaryKeys}
       selectedRows={selectedRows}
       sort={sort}
-      blobColumns={blobColumns}
+      imageColumns={imageColumns}
       showImages={showImages}
       deleting={deleting}
       selectedDatabase={selectedDatabase}
@@ -460,7 +460,7 @@ export default function SqliteSettings() {
       primaryKeys={primaryKeys}
       selectedRows={selectedRows}
       sort={sort}
-      blobColumns={blobColumns}
+      imageColumns={imageColumns}
       showImages={showImages}
       deleting={deleting}
       selectedDatabase={selectedDatabase}
@@ -658,9 +658,8 @@ export default function SqliteSettings() {
           cellEdit={cell.cellEdit}
           cellSaving={cell.cellSaving}
           cellCopied={cell.cellCopied}
-          cellIsImage={cell.cellIsImage}
+          cellImageSrc={cell.cellImageSrc}
           canEditCell={!!cell.canEditCell}
-          cellIsBlob={!!cell.cellIsBlob}
           onClose={() => cell.closeCell()}
           onCopy={() => cell.copyCell()}
           onEdit={() => cell.setCellEditing(true)}

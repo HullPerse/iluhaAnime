@@ -8,8 +8,15 @@ import { useSettingsStore } from "@/store/settings.store";
 import type { CollectionItem, CollectionStatusDef } from "@/types/collection";
 
 const STATUSES: CollectionStatusDef[] = [
-  { id: "watching", label: "Watching", color: "#3b82f6", order: 0, isCore: true },
-  { id: "completed", label: "Completed", color: "#22c55e", order: 1, isCore: true },
+  { id: "watching", label: "Watching", color: "#3b82f6", order: 0, isCore: true, kind: "private" },
+  {
+    id: "completed",
+    label: "Completed",
+    color: "#22c55e",
+    order: 1,
+    isCore: true,
+    kind: "private",
+  },
 ];
 
 function makeItem(overrides: Partial<CollectionItem> = {}): CollectionItem {

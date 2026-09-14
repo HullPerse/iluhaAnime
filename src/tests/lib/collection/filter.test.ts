@@ -5,7 +5,7 @@ import {
   filterCollectionItems,
   pickRandomItem,
 } from "@/lib/collection/filter.utils";
-import type { CollectionItem, CollectionType } from "@/types/collection";
+import type { CollectionItem, CollectionStatusDef, CollectionType } from "@/types/collection";
 
 function makeItem(overrides: Partial<CollectionItem> = {}): CollectionItem {
   return {
@@ -126,6 +126,53 @@ describe("filterCollectionItems", () => {
       "desc"
     );
     expect(result.map((i) => i.id)).toEqual(["w"]);
+  });
+
+  it("keeps a public status out of All while its own tab still opens", () => {
+    const own = makeItem({ id: "own", status: "watching" });
+    const shared = makeItem({ id: "shared", status: "share_1" });
+    const statuses: CollectionStatusDef[] = [
+      {
+        id: "watching",
+        label: "Watching",
+        color: "#3b82f6",
+        order: 0,
+        isCore: true,
+        kind: "private",
+      },
+      {
+        id: "share_1",
+        label: "Friends",
+        color: "#0ea5e9",
+        order: 1,
+        isCore: false,
+        kind: "public",
+      },
+    ];
+
+    const all = filterCollectionItems(
+      [own, shared],
+      [],
+      "all",
+      "",
+      DEFAULT_FILTERS,
+      "date",
+      "desc",
+      statuses
+    );
+    expect(all.map((i) => i.id)).toEqual(["own"]);
+
+    const opened = filterCollectionItems(
+      [own, shared],
+      [],
+      "share_1",
+      "",
+      DEFAULT_FILTERS,
+      "date",
+      "desc",
+      statuses
+    );
+    expect(opened.map((i) => i.id)).toEqual(["shared"]);
   });
 
   it("sorts by date descending (newest first) by default", () => {

@@ -24,6 +24,8 @@ export function WizardDetailsPanel(props: {
   status: CollectionStatus;
   setStatus: (value: CollectionStatus) => void;
   statuses: CollectionStatusDef[];
+  /** Set when a public prefill owns the new item: it lands only in that status. */
+  statusDisabled?: boolean;
   progressValue: string;
   setProgressValue: (value: string) => void;
   progressTotal: string;
@@ -90,6 +92,7 @@ export function WizardDetailsPanel(props: {
           }))}
           label={t("collection.wizard.status")}
           className="text-xs"
+          disabled={props.statusDisabled}
         />
 
         <span className="text-text flex items-center text-xs font-bold">

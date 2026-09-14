@@ -30,7 +30,7 @@ import { DitherUploadPlaceholder } from "@/routes/components/search/modern/dithe
 import DitherPreviewModal from "@/routes/components/search/modern/dither/preview/modal.preview";
 import { ShadowControls } from "@/routes/components/search/modern/dither/shadow.dither";
 import { useSettingsStore } from "@/store/settings.store";
-import type { DitherImageMeta, UserImage, UserImageFile } from "@/types/image.userimage";
+import type { DitherImageMeta, UserImage, UserImageFile } from "@/types/userimage";
 import type { WallpaperDisplayFilters } from "@/types/settings";
 
 function DitherSettings({ onClose }: { onClose: () => void }) {
@@ -60,7 +60,7 @@ function DitherSettings({ onClose }: { onClose: () => void }) {
       mimeType: "image/jpeg",
       url: DITHER_PLACEHOLDER_SRC,
       originalUrl: null,
-      ditherOptions: null,
+      version: null,
       createdAt: 0,
     }),
     [t]

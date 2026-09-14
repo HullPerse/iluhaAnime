@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { assetUrl } from "@/lib/utils/image.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSettingsStore } from "@/store/settings.store";
-import type { UserImage, UserImageFile } from "@/types/image.userimage";
+import type { UserImage, UserImageFile } from "@/types/userimage";
 
 export function useWallpaperImage() {
   const selectedId = useSettingsStore((state) => state.selectedDitherId);
@@ -15,9 +15,9 @@ export function useWallpaperImage() {
         id: image.id,
         name: image.name,
         mimeType: image.mimeType,
-        url: assetUrl(image.path),
+        url: assetUrl(image.path, image.version),
         originalUrl: image.originalPath === null ? null : assetUrl(image.originalPath),
-        ditherOptions: image.ditherOptions ?? null,
+        version: image.version,
         createdAt: image.createdAt,
       };
       return result;

@@ -11,7 +11,7 @@ export function RowsTable({
   primaryKeys,
   selectedRows,
   sort,
-  blobColumns,
+  imageColumns,
   showImages,
   deleting,
   selectedDatabase,
@@ -52,7 +52,7 @@ export function RowsTable({
             primaryKeyValues={primaryKeyValues}
             toggleRowSelection={toggleRowSelection}
             showImages={showImages}
-            blobColumns={blobColumns}
+            imageColumns={imageColumns}
             selectedDatabase={selectedDatabase}
             selectedTable={selectedTable}
             openCell={openCell}

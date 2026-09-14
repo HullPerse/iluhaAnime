@@ -1,8 +1,13 @@
 import { describe, expect, it } from "vitest";
 
+import { PUBLIC_STATUS_MAX_ITEMS } from "@/config/collection/statuses.config";
 import {
   buildCustomStatusId,
+  isPublicStatus,
+  isPublicStatusFull,
   normalizeStatusLabel,
+  publicStatusIds,
+  publicStatusPrefill,
   resolveStatusLabel,
   sortStatuses,
   splitStatusLabel,
@@ -14,9 +19,16 @@ import type { CollectionStatusDef } from "@/types/collection";
 const t = (key: TranslationKey): string => key;
 
 const STATUSES: CollectionStatusDef[] = [
-  { id: "planned", label: "Planned", color: "#9ca3af", order: 0, isCore: true },
-  { id: "custom_bi", label: "Reading,Читаю", color: "#3b82f6", order: 7, isCore: false },
-  { id: "custom_solo", label: "Solo", color: "#22c55e", order: 8, isCore: false },
+  { id: "planned", label: "Planned", color: "#9ca3af", order: 0, isCore: true, kind: "private" },
+  {
+    id: "custom_bi",
+    label: "Reading,Читаю",
+    color: "#3b82f6",
+    order: 7,
+    isCore: false,
+    kind: "private",
+  },
+  { id: "custom_solo", label: "Solo", color: "#22c55e", order: 8, isCore: false, kind: "private" },
 ];
 
 describe("splitStatusLabel", () => {
@@ -100,10 +112,38 @@ describe("buildCustomStatusId", () => {
 describe("sortStatuses", () => {
   it("puts core statuses first even when a custom status has the lowest order", () => {
     const mixed: CollectionStatusDef[] = [
-      { id: "custom_early", label: "Early", color: "#22c55e", order: 0, isCore: false },
-      { id: "dropped", label: "Dropped", color: "#ef4444", order: 5, isCore: true },
-      { id: "planned", label: "Planned", color: "#9ca3af", order: 1, isCore: true },
-      { id: "custom_late", label: "Late", color: "#3b82f6", order: 2, isCore: false },
+      {
+        id: "custom_early",
+        label: "Early",
+        color: "#22c55e",
+        order: 0,
+        isCore: false,
+        kind: "private",
+      },
+      {
+        id: "dropped",
+        label: "Dropped",
+        color: "#ef4444",
+        order: 5,
+        isCore: true,
+        kind: "private",
+      },
+      {
+        id: "planned",
+        label: "Planned",
+        color: "#9ca3af",
+        order: 1,
+        isCore: true,
+        kind: "private",
+      },
+      {
+        id: "custom_late",
+        label: "Late",
+        color: "#3b82f6",
+        order: 2,
+        isCore: false,
+        kind: "private",
+      },
     ];
     expect(sortStatuses(mixed).map((s) => s.id)).toEqual([
       "planned",
@@ -115,11 +155,78 @@ describe("sortStatuses", () => {
 
   it("pushes non-finite order last without mutating the input", () => {
     const mixed: CollectionStatusDef[] = [
-      { id: "custom_nan", label: "Broken", color: "#22c55e", order: NaN, isCore: false },
-      { id: "custom_ok", label: "Ok", color: "#3b82f6", order: 7, isCore: false },
+      {
+        id: "custom_nan",
+        label: "Broken",
+        color: "#22c55e",
+        order: NaN,
+        isCore: false,
+        kind: "private",
+      },
+      { id: "custom_ok", label: "Ok", color: "#3b82f6", order: 7, isCore: false, kind: "private" },
     ];
     const snapshot = [...mixed];
     expect(sortStatuses(mixed).map((s) => s.id)).toEqual(["custom_ok", "custom_nan"]);
     expect(mixed.map((s) => s.id)).toEqual(snapshot.map((s) => s.id));
+  });
+});
+
+describe("public statuses", () => {
+  const mixed: CollectionStatusDef[] = [
+    ...STATUSES,
+    { id: "share_1", label: "Friends", color: "#0ea5e9", order: 9, isCore: false, kind: "public" },
+    { id: "share_2", label: "Ideas", color: "#0ea5e9", order: 10, isCore: false, kind: "public" },
+  ];
+
+  it("flags only public statuses", () => {
+    expect(mixed.filter(isPublicStatus).map((s) => s.id)).toEqual(["share_1", "share_2"]);
+  });
+
+  it("collects the ids to keep out of All", () => {
+    expect([...publicStatusIds(mixed)]).toEqual(["share_1", "share_2"]);
+    expect([...publicStatusIds(STATUSES)]).toEqual([]);
+  });
+});
+
+describe("publicStatusPrefill", () => {
+  const mixed: CollectionStatusDef[] = [
+    ...STATUSES,
+    { id: "share_1", label: "Friends", color: "#0ea5e9", order: 9, isCore: false, kind: "public" },
+  ];
+
+  it("prefills a blank wizard draft for the selected public tab", () => {
+    expect(publicStatusPrefill(mixed, "share_1")).toEqual({
+      title: "",
+      coverUrl: null,
+      status: "share_1",
+    });
+  });
+
+  it("returns null for All, private tabs, and unknown ids", () => {
+    expect(publicStatusPrefill(mixed, "all")).toBeNull();
+    expect(publicStatusPrefill(mixed, "planned")).toBeNull();
+    expect(publicStatusPrefill(mixed, "missing")).toBeNull();
+  });
+});
+
+describe("isPublicStatusFull", () => {
+  const mixed: CollectionStatusDef[] = [
+    ...STATUSES,
+    { id: "share_1", label: "Friends", color: "#0ea5e9", order: 9, isCore: false, kind: "public" },
+  ];
+
+  it("kills the toolbar plus at and above the cap on a public tab", () => {
+    expect(isPublicStatusFull(mixed, "share_1", PUBLIC_STATUS_MAX_ITEMS)).toBe(true);
+    expect(isPublicStatusFull(mixed, "share_1", PUBLIC_STATUS_MAX_ITEMS + 5)).toBe(true);
+  });
+
+  it("keeps the plus alive below the cap", () => {
+    expect(isPublicStatusFull(mixed, "share_1", PUBLIC_STATUS_MAX_ITEMS - 1)).toBe(false);
+  });
+
+  it("ignores the cap on private tabs, All, and unknown ids", () => {
+    expect(isPublicStatusFull(mixed, "planned", 10000)).toBe(false);
+    expect(isPublicStatusFull(mixed, "all", 10000)).toBe(false);
+    expect(isPublicStatusFull(mixed, "missing", 10000)).toBe(false);
   });
 });

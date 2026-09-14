@@ -1,6 +1,11 @@
 import { create } from "zustand";
 
-import type { AnimeDeepLink, DeepLinkStore, TorrentDeepLink } from "@/types/deeplink";
+import type {
+  AnimeDeepLink,
+  CollectionShareDeepLink,
+  DeepLinkStore,
+  TorrentDeepLink,
+} from "@/types/deeplink";
 
 export const useDeepLinkStore = create<DeepLinkStore>((set) => ({
   consume: () => set({ target: null }),
@@ -12,4 +17,7 @@ export const useDeepLinkStore = create<DeepLinkStore>((set) => ({
   consumeMagnet: () => set({ magnetTarget: null }),
   openMagnet: (magnet: string) => set({ magnetTarget: magnet }),
   magnetTarget: null,
+  consumeShare: () => set({ shareTarget: null }),
+  openShare: (link: CollectionShareDeepLink) => set({ shareTarget: link }),
+  shareTarget: null,
 }));

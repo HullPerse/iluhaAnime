@@ -11,7 +11,7 @@ import { useI18n } from "@/lib/locale/i18n.utils";
 import { assetUrl } from "@/lib/utils/image.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { showError } from "@/lib/utils/notification.utils";
-import type { UserImageFile } from "@/types/image.userimage";
+import type { UserImageFile } from "@/types/userimage";
 
 import { MemoCoverThumb } from "./coverThumb.wizard";
 

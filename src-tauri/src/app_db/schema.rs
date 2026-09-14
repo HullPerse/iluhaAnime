@@ -584,6 +584,40 @@ pub fn initialize_schema(connection: &Connection) -> Result<(), String> {
             .map_err(|error| format!("app database fav people cache prune commit: {error}"))?;
     }
 
+    if version < 19 {
+        let transaction = connection
+            .unchecked_transaction()
+            .map_err(|error| format!("app database status kind transaction: {error}"))?;
+        transaction
+            .execute_batch(
+                "
+                ALTER TABLE collection_statuses ADD COLUMN kind TEXT NOT NULL DEFAULT 'private';
+                PRAGMA user_version = 19;
+                ",
+            )
+            .map_err(|error| format!("app database status kind schema: {error}"))?;
+        transaction
+            .commit()
+            .map_err(|error| format!("app database status kind commit: {error}"))?;
+    }
+    if version < 20 {
+        let transaction = connection
+            .unchecked_transaction()
+            .map_err(|error| format!("app database status kind rename transaction: {error}"))?;
+        transaction
+            .execute_batch(
+                "
+                UPDATE collection_statuses SET kind = 'public' WHERE kind = 'share';
+                UPDATE collection_statuses SET kind = 'private' WHERE kind = 'normal';
+                PRAGMA user_version = 20;
+                ",
+            )
+            .map_err(|error| format!("app database status kind rename schema: {error}"))?;
+        transaction
+            .commit()
+            .map_err(|error| format!("app database status kind rename commit: {error}"))?;
+    }
+
     if version > CURRENT_SCHEMA_VERSION {
         return Err(format!(
             "app database is newer than this application ({version} > {CURRENT_SCHEMA_VERSION})"
@@ -661,6 +695,10 @@ mod tests {
                 [],
             )
             .expect("insert cache rows");
+        // A real v17 database predates the v19 column, so drop it to replay v18 faithfully.
+        connection
+            .execute_batch("ALTER TABLE collection_statuses DROP COLUMN kind;")
+            .expect("simulate v17 schema");
         connection
             .pragma_update(None, "user_version", 17)
             .expect("rewind user version");
@@ -729,9 +767,13 @@ mod tests {
             )
             .expect("insert seconds row");
 
-        // A real v14 database predates the v16 column, so drop it to replay v15 faithfully.
+        // A real v14 database predates the v16 and v19 columns, so drop them to replay v15
+        // faithfully.
         connection
-            .execute_batch("ALTER TABLE collection_items DROP COLUMN release_date;")
+            .execute_batch(
+                "ALTER TABLE collection_items DROP COLUMN release_date;
+                 ALTER TABLE collection_statuses DROP COLUMN kind;",
+            )
             .expect("simulate v14 schema");
         connection
             .pragma_update(None, "user_version", 14)
@@ -757,5 +799,42 @@ mod tests {
             seconds, 1_750_000_000_000,
             "seconds-scale row rewritten to ms"
         );
+    }
+    #[test]
+    fn migration_v20_renames_status_kinds_to_private_and_public() {
+        let connection = Connection::open_in_memory().expect("in-memory database");
+        initialize_schema(&connection).expect("schema migration");
+        connection
+            .execute(
+                "INSERT INTO collection_statuses (id, label, color, order_index, is_core, kind)
+                 VALUES ('legacy_share', 'Shared', '#0ea5e9', 9, 0, 'share'),
+                        ('legacy_normal', 'Ordinary', '#9ca3af', 10, 0, 'normal')",
+                [],
+            )
+            .expect("insert legacy statuses");
+        connection
+            .pragma_update(None, "user_version", 19)
+            .expect("rewind user version");
+        initialize_schema(&connection).expect("rerun migrations");
+        let public: String = connection
+            .query_row(
+                "SELECT kind FROM collection_statuses WHERE id = 'legacy_share'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("read renamed share kind");
+        assert_eq!(public, "public");
+        let private: String = connection
+            .query_row(
+                "SELECT kind FROM collection_statuses WHERE id = 'legacy_normal'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("read renamed normal kind");
+        assert_eq!(private, "private");
+        let version: i64 = connection
+            .pragma_query_value(None, "user_version", |row| row.get(0))
+            .expect("read user version");
+        assert_eq!(version, CURRENT_SCHEMA_VERSION);
     }
 }

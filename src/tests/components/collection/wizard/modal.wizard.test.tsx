@@ -27,8 +27,8 @@ vi.mock("@/lib/collection/placeholder.utils", async (importOriginal) => {
 });
 
 const STATUSES: CollectionStatusDef[] = [
-  { id: "planned", label: "Planned", color: "#9ca3af", order: 0, isCore: true },
-  { id: "watching", label: "Watching", color: "#3b82f6", order: 1, isCore: true },
+  { id: "planned", label: "Planned", color: "#9ca3af", order: 0, isCore: true, kind: "private" },
+  { id: "watching", label: "Watching", color: "#3b82f6", order: 1, isCore: true, kind: "private" },
 ];
 
 function renderWizard(props: Partial<React.ComponentProps<typeof WizardModal>> = {}) {
@@ -297,5 +297,80 @@ describe("WizardModal AniList tags", () => {
     await waitFor(() =>
       expect(screen.getByDisplayValue("Adventure, Male Protagonist")).toBeTruthy()
     );
+  });
+});
+
+describe("WizardModal public prefill lock", () => {
+  const LOCK_STATUSES: CollectionStatusDef[] = [
+    ...STATUSES,
+    { id: "share_1", label: "Friends", color: "#0ea5e9", order: 9, isCore: false, kind: "public" },
+  ];
+
+  it("locks the status selector on a public prefill", async () => {
+    const user = userEvent.setup();
+    renderWizard({
+      statuses: LOCK_STATUSES,
+      prefill: { title: "", coverUrl: null, status: "share_1" },
+    });
+    await user.click(screen.getByRole("tab", { name: "Details" }));
+    expect(
+      (screen.getByRole("combobox", { name: "Status" }) as HTMLButtonElement).disabled
+    ).toBe(true);
+  });
+
+  it("leaves the selector free on a private prefill", async () => {
+    const user = userEvent.setup();
+    renderWizard({
+      statuses: LOCK_STATUSES,
+      prefill: { title: "", coverUrl: null, status: "planned" },
+    });
+    await user.click(screen.getByRole("tab", { name: "Details" }));
+    expect(
+      (screen.getByRole("combobox", { name: "Status" }) as HTMLButtonElement).disabled
+    ).toBe(false);
+  });
+
+  it("leaves the selector free when editing a public item", () => {
+    const initial: CollectionItem = {
+      id: "item_9",
+      title: "Shared title",
+      altTitles: [],
+      type: "anime",
+      status: "share_1",
+      progressValue: 0,
+      progressTotal: 12,
+      progressUnit: "episodes",
+      durationMinutes: 23,
+      rating: null,
+      priority: "normal",
+      isFavorite: false,
+      year: 2024,
+      releaseDate: null,
+      genres: [],
+      studio: null,
+      description: null,
+      notes: null,
+      coverUrl: "data:image/png;base64,AAAA",
+      coverBlobId: null,
+      thumbBlobId: null,
+      externalIds: {},
+      customFields: {},
+      localPath: null,
+      localKind: null,
+      startedAt: null,
+      finishedAt: null,
+      lastWatchedAt: null,
+      rewatchCount: 0,
+      addedAt: 0,
+      updatedAt: 0,
+      sitesToView: [],
+      tvCurrentSeason: null,
+      tvCurrentEpisode: null,
+      detailsJson: null,
+    };
+    renderWizard({ statuses: LOCK_STATUSES, initial });
+    expect(
+      (screen.getByRole("combobox", { name: "Status" }) as HTMLButtonElement).disabled
+    ).toBe(false);
   });
 });

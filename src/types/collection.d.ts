@@ -5,12 +5,16 @@ export type CollectionType = "anime" | "movie" | "series" | "custom";
 export type ProgressUnit = "episodes" | "seasons" | "minutes" | "pages";
 export type Priority = "low" | "normal" | "high";
 
+export type CollectionStatusKind = "private" | "public";
+
 export interface CollectionStatusDef {
   id: CollectionStatus;
   label: string;
   color: string;
   order: number;
   isCore: boolean;
+  /** `public` statuses hold imported shared collections: capped, hidden from All. */
+  kind: CollectionStatusKind;
 }
 
 export interface CollectionGroup {
@@ -311,6 +315,7 @@ export interface GridCollectionProps {
   groups?: CollectionGroup[];
   collapsedStatuses?: Set<string>;
   onToggleStatusCollapsed?: (statusId: string) => void;
+  onAddToStatus?: (status: CollectionStatusDef) => void;
 }
 
 export interface CollectionRowProps {

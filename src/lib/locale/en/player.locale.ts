@@ -93,6 +93,7 @@ const player = {
   "player.shader.preprocess": "Preprocessing",
   "player.shader.restore": "Restoration",
   "player.shader.title": "Anime4K shaders",
+  "player.shader.unavailable": "Unavailable",
   "player.shader.upscale": "Upscale",
   "player.tab.convert": "Convert",
   "player.tab.upscale": "Upscale",

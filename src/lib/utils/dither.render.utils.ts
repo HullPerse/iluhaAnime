@@ -1,5 +1,19 @@
 import { BLUE_NOISE_64, BLUE_NOISE_RANGE, BLUE_NOISE_SIZE } from "@/config/utils/blueNoise.config";
 import {
+  DITHER_ASCII_ALPHA_BASE,
+  DITHER_ASCII_ALPHA_RANGE,
+  DITHER_ASCII_GLYPH_HEIGHT,
+  DITHER_ASCII_GLYPH_WIDTH,
+  DITHER_ASCII_LATTICE_X,
+  DITHER_ASCII_LATTICE_Y,
+  DITHER_ASCII_NOISE_BASE,
+  DITHER_ASCII_NOISE_RANGE,
+  DITHER_ASCII_PAD,
+  DITHER_ASCII_RAMP,
+  DITHER_ASCII_SWIRL,
+  DITHER_ASCII_SWIRL_RATE,
+  DITHER_ASCII_TILT,
+  DITHER_ASCII_TILT_RATE,
   DITHER_BAND_ROWS,
   DITHER_BAYER_4,
   DITHER_BAYER_RANGE,
@@ -123,6 +137,120 @@ export function applyHalftoneDots(
             const coverage = halftoneCoverage(dx * dx + dy * dy, dotRadius, soft);
             output[o + channel] = lerp(paper[channel], dot[channel], coverage);
           }
+        }
+      }
+    }
+  }
+  return output;
+}
+
+/**
+ * Bitmap masks behind the ramp, 5 wide by 7 tall. Ramp steps that are blank on purpose have
+ * no mask, so the ascii stage draws nothing there and the pixel underneath stays.
+ */
+const ASCII_GLYPHS: Record<string, readonly string[]> = {
+  ".": ["00000", "00000", "00000", "00000", "00000", "00100", "00000"],
+  ":": ["00000", "00100", "00000", "00000", "00100", "00000", "00000"],
+  ">": ["10000", "01000", "00100", "00010", "00100", "01000", "10000"],
+  "~": ["00000", "00000", "00000", "00110", "11001", "00000", "00000"],
+  "×": ["10001", "01010", "00100", "01010", "10001", "00000", "00000"],
+  "*": ["00100", "10101", "01110", "10101", "00100", "00000", "00000"],
+  "#": ["01010", "11111", "01010", "01010", "11111", "01010", "00000"],
+};
+
+/**
+ * Slow warping density field sampled per cell. The drift term of the original field is dropped:
+ * the wallpaper is a baked still frame, so there is no clock to advance.
+ */
+export function asciiField(x: number, y: number): number {
+  const a = x * DITHER_ASCII_LATTICE_X;
+  const b = y * DITHER_ASCII_LATTICE_Y;
+  const v =
+    Math.sin(a + DITHER_ASCII_SWIRL * Math.sin(b * DITHER_ASCII_SWIRL_RATE)) *
+    Math.cos(b - DITHER_ASCII_TILT * Math.sin(a * DITHER_ASCII_TILT_RATE));
+  return 0.5 + 0.5 * v;
+}
+
+/**
+ * Replaces cell averages with ramp glyphs: bright cells earn dense characters, dark cells stay
+ * empty, and the glyph layer is blended over the dithered frame in the lightest palette color.
+ */
+export function applyAsciiCells(
+  image: Uint8ClampedArray<ArrayBuffer>,
+  width: number,
+  height: number,
+  options: DitherEffectOptions
+): Uint8ClampedArray<ArrayBuffer> {
+  const output = new Uint8ClampedArray(image);
+  const strength = Math.max(0, Math.min(1, options.ascii));
+  if (strength === 0 || width <= 0 || height <= 0) return output;
+  const cell = Math.max(2, Math.floor(options.asciiSize));
+  const pad = Math.min(DITHER_ASCII_PAD, cell >> 1);
+  const inner = Math.max(1, cell - pad * 2);
+  const ink = lightestPaletteColor(options.palette);
+  const cols = Math.ceil(width / cell);
+  const rows = Math.ceil(height / cell);
+  const fringe = Math.max(0, Math.min(1, options.asciiFringe));
+  const edgeX = new Float32Array(cols);
+  for (let x = 0; x < cols; x++) {
+    edgeX[x] = 1 - Math.min(x, cols - 1 - x) / Math.max(1, (cols - 1) / 2);
+  }
+  const edgeY = new Float32Array(rows);
+  for (let y = 0; y < rows; y++) {
+    edgeY[y] = 1 - Math.min(y, rows - 1 - y) / Math.max(1, (rows - 1) / 2);
+  }
+  for (let cy = 0; cy < rows; cy++) {
+    const startY = cy * cell;
+    const endY = Math.min(height, startY + cell);
+    for (let cx = 0; cx < cols; cx++) {
+      const startX = cx * cell;
+      const endX = Math.min(width, startX + cell);
+      let sum = 0;
+      let count = 0;
+      for (let py = startY; py < endY; py++) {
+        for (let px = startX; px < endX; px++) {
+          const i = (py * width + px) * 4;
+          sum += luminance(image[i], image[i + 1], image[i + 2]);
+          count += 1;
+        }
+      }
+      if (count === 0) continue;
+      const edge = Math.max(edgeY[cy], edgeX[cx]);
+      const density =
+        (sum / count / 255) *
+        (DITHER_ASCII_NOISE_BASE + DITHER_ASCII_NOISE_RANGE * asciiField(cx, cy)) *
+        (1 - fringe + fringe * edge);
+      const index = Math.max(
+        0,
+        Math.min(DITHER_ASCII_RAMP.length - 1, Math.trunc(density * DITHER_ASCII_RAMP.length))
+      );
+      const mask = ASCII_GLYPHS[DITHER_ASCII_RAMP[index] ?? ""];
+      if (mask === undefined) continue;
+      const drawnRows = Math.min(inner, endY - startY - pad);
+      const drawnCols = Math.min(inner, endX - startX - pad);
+      if (drawnRows <= 0 || drawnCols <= 0) continue;
+      const alpha = Math.min(
+        1,
+        strength * (DITHER_ASCII_ALPHA_BASE + DITHER_ASCII_ALPHA_RANGE * density)
+      );
+      for (let gy = 0; gy < drawnRows; gy++) {
+        const rowIndex = Math.min(
+          DITHER_ASCII_GLYPH_HEIGHT - 1,
+          Math.trunc((gy * DITHER_ASCII_GLYPH_HEIGHT) / drawnRows)
+        );
+        const row = mask[rowIndex];
+        if (row === undefined) continue;
+        const oy = startY + pad + gy;
+        for (let gx = 0; gx < drawnCols; gx++) {
+          const maskX = Math.min(
+            DITHER_ASCII_GLYPH_WIDTH - 1,
+            Math.trunc((gx * DITHER_ASCII_GLYPH_WIDTH) / drawnCols)
+          );
+          if (row[maskX] !== "1") continue;
+          const o = (oy * width + startX + pad + gx) * 4;
+          output[o] = lerp(output[o], ink[0], alpha);
+          output[o + 1] = lerp(output[o + 1], ink[1], alpha);
+          output[o + 2] = lerp(output[o + 2], ink[2], alpha);
         }
       }
     }
@@ -523,19 +651,25 @@ export function renderDitherRows(ctx: DitherRenderContext, y0: number, y1: numbe
 }
 
 export function finishDitherImage(ctx: DitherRenderContext): Uint8ClampedArray<ArrayBuffer> {
-  if (ctx.options.halftoneSize <= 0) return ctx.output;
-  const paper =
-    ctx.options.palette.length > 0
-      ? lightestPaletteColor(ctx.options.palette)
-      : ([255, 255, 255] as DitherRGB);
-  return applyHalftoneDots(
-    ctx.output,
-    ctx.width,
-    ctx.height,
-    ctx.options.halftoneSize,
-    ctx.options.halftoneSoftness,
-    paper
-  );
+  let output = ctx.output;
+  if (ctx.options.halftoneSize > 0) {
+    const paper =
+      ctx.options.palette.length > 0
+        ? lightestPaletteColor(ctx.options.palette)
+        : ([255, 255, 255] as DitherRGB);
+    output = applyHalftoneDots(
+      output,
+      ctx.width,
+      ctx.height,
+      ctx.options.halftoneSize,
+      ctx.options.halftoneSoftness,
+      paper
+    );
+  }
+  if (ctx.options.ascii > 0) {
+    output = applyAsciiCells(output, ctx.width, ctx.height, ctx.options);
+  }
+  return output;
 }
 
 export function renderDitherImage(

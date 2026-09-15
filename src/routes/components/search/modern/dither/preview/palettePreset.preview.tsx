@@ -16,7 +16,7 @@ export function PalettePresetStrip({
 }) {
   const { t } = useI18n();
   return (
-    <div className="flex flex-row gap-1">
+    <div className="flex flex-row flex-wrap gap-1">
       {DITHER_PALETTE_PRESETS.map((preset) => (
         <Button
           type="button"
@@ -24,7 +24,7 @@ export function PalettePresetStrip({
           title={t(DITHER_PALETTE_PRESET_LABELS[preset.id])}
           onClick={() => onPick([...preset.colors])}
           className={cn(
-            "flex w-26 flex-col p-0.5",
+            "flex w-26 max-w-full flex-col p-0.5",
             palettesEqual(active, preset.colors) ? "windows95-active-border" : "windows95-border"
           )}
           disabled={palettesEqual(active, preset.colors)}

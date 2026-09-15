@@ -18,7 +18,7 @@ export interface SelectProps {
   label?: string;
 }
 
-export type ComboboxProps = Omit<SelectProps, "searchable" | "label">;
+export type ComboboxProps = Omit<SelectProps, "searchable">;
 
 export interface PasswordInputProps extends Omit<ComponentProps<"input">, "type"> {
   wrapperClassName?: string;

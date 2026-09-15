@@ -2,8 +2,10 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
 import Combobox from "@/components/ui/combobox.component";
+import Slider from "@/components/ui/range.component";
 import { THEMES } from "@/config/settings/themes.config";
 import { useI18n } from "@/lib/locale/i18n.utils";
+import { windowTintAlpha } from "@/lib/theme/palette.utils";
 import { useSettingsStore } from "@/store/settings.store";
 import { useThemeStore, themeToJson, parseRetroismTheme } from "@/store/theme.store";
 import type { ThemeDefinition } from "@/types/theme";
@@ -14,12 +16,17 @@ import ThemeEditor from "./theme/editor.theme";
 import { EffectsCheckbox } from "./theme/effects.theme";
 import { FontSelector } from "./theme/font.theme";
 
+/** Below this the glass is unreadable on every theme, so the slider stops there. */
+const TINT_SLIDER_MIN = 0.5;
+
 export default function SettingsTheme() {
   const { t } = useI18n();
   const currentTheme = useThemeStore((s) => s.currentTheme);
   const retroStyle = useSettingsStore((s) => s.retroStyle);
   const searchType = useSettingsStore((s) => s.searchType);
   const uiDensity = useSettingsStore((s) => s.uiDensity);
+  const windowEffect = useSettingsStore((s) => s.windowEffect);
+  const windowTintOpacity = useSettingsStore((s) => s.windowTintOpacity);
   const collectionGroupHeaderStyle = useSettingsStore((s) => s.collectionGroupHeaderStyle);
   const patchSettings = useSettingsStore((s) => s.patch);
   const customThemes = useThemeStore((s) => s.customThemes);
@@ -31,6 +38,14 @@ export default function SettingsTheme() {
 
   const builtins = THEMES;
   const currentDef = [...builtins, ...customThemes].find((t) => t.name === currentTheme);
+
+  // Until the user moves the slider the theme's own readable value is what the window uses, so the
+  // knob sits there and the warning below only appears once a thinner tint is chosen on purpose.
+  const tintFloor = currentDef
+    ? windowTintAlpha(currentDef.colors.primary, currentDef.colors.text)
+    : TINT_SLIDER_MIN;
+  const tintValue = windowTintOpacity ?? tintFloor;
+  const tintTooThin = tintValue < tintFloor;
 
   const handleExport = () => {
     if (!currentDef) return;
@@ -71,7 +86,7 @@ export default function SettingsTheme() {
     <div className="flex flex-col gap-3">
       <section className="ui-panel">
         <div className="ui-titlebar">
-          <span className="font-bold text-title-text">{t("settings.theme")}</span>
+          <span className="text-title-text font-bold">{t("settings.theme")}</span>
         </div>
         <div className="flex flex-col gap-1 p-2">
           <div className="flex flex-wrap gap-2">
@@ -116,7 +131,7 @@ export default function SettingsTheme() {
 
       <section className="ui-panel">
         <div className="ui-titlebar">
-          <span className="font-bold text-title-text">{t("settings.theme.retro.style")}</span>
+          <span className="text-title-text font-bold">{t("settings.theme.retro.style")}</span>
         </div>
         <div className="flex flex-col gap-1 p-2">
           <div className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
@@ -162,7 +177,9 @@ export default function SettingsTheme() {
 
       <section className="ui-panel">
         <div className="ui-titlebar">
-          <span className="font-bold text-title-text">{t("settings.theme.collection.headers")}</span>
+          <span className="text-title-text font-bold">
+            {t("settings.theme.collection.headers")}
+          </span>
         </div>
         <div className="flex flex-col gap-1 p-2">
           <div className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
@@ -196,7 +213,7 @@ export default function SettingsTheme() {
 
       <section className="ui-panel">
         <div className="ui-titlebar">
-          <span className="font-bold text-title-text">{t("settings.font.title")}</span>
+          <span className="text-title-text font-bold">{t("settings.font.title")}</span>
         </div>
         <div className="flex flex-col gap-1 p-2">
           <FontSelector />
@@ -205,7 +222,7 @@ export default function SettingsTheme() {
 
       <section className="ui-panel">
         <div className="ui-titlebar">
-          <span className="font-bold text-title-text">{t("settings.theme.effects")}</span>
+          <span className="text-title-text font-bold">{t("settings.theme.effects")}</span>
         </div>
         <div className="flex flex-col gap-1 p-2">
           <EffectsCheckbox label={t("settings.theme.modal.animation")} field="modalAnimation" />
@@ -221,7 +238,7 @@ export default function SettingsTheme() {
 
       <section className="ui-panel">
         <div className="ui-titlebar">
-          <span className="font-bold text-title-text">{t("settings.theme.experimental")}</span>
+          <span className="text-title-text font-bold">{t("settings.theme.experimental")}</span>
         </div>
 
         <div className="flex flex-col gap-1 p-2">
@@ -262,6 +279,61 @@ export default function SettingsTheme() {
               field="yorhaScanlinesEnabled"
             />
           )}
+          <div className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-0.5">
+            <span className="windows95-text text-text flex items-center text-xs font-bold">
+              {t("settings.theme.experimental.effect")}
+            </span>
+            <div className="flex flex-col gap-0.5">
+              <Combobox
+                value={windowEffect}
+                onChange={(value) => patchSettings({ windowEffect: value as typeof windowEffect })}
+                label={t("settings.theme.experimental.effect")}
+                options={[
+                  { value: "none", label: t("settings.theme.experimental.effect.none") },
+                  {
+                    value: "acrylic",
+                    label: t("settings.theme.experimental.effect.acrylic"),
+                  },
+                  { value: "mica", label: t("settings.theme.experimental.effect.mica") },
+                  { value: "tabbed", label: t("settings.theme.experimental.effect.tabbed") },
+                ]}
+                className="max-w-xs"
+              />
+              <span className="text-hint text-[12px]">
+                {t("settings.theme.experimental.effect.hint")}
+              </span>
+            </div>
+
+            <span className="windows95-text text-text flex items-center text-xs font-bold">
+              {t("settings.theme.experimental.effect.opacity")}
+            </span>
+            <div className="flex flex-col gap-0.5">
+              <div className="flex items-center gap-2">
+                <div className="min-w-0 flex-1">
+                  <Slider
+                    min={TINT_SLIDER_MIN}
+                    max={1}
+                    step={0.05}
+                    value={tintValue}
+                    onChange={(value) => patchSettings({ windowTintOpacity: value })}
+                    suffix="%"
+                  />
+                </div>
+                <Button
+                  variant="link"
+                  disabled={windowTintOpacity === null}
+                  onClick={() => patchSettings({ windowTintOpacity: null })}
+                >
+                  {t("settings.theme.experimental.effect.opacity.reset")}
+                </Button>
+              </div>
+              {tintTooThin && (
+                <span className="text-destructive text-[12px]">
+                  {t("settings.theme.experimental.effect.opacity.warn")}
+                </span>
+              )}
+            </div>
+          </div>
         </div>
       </section>
 

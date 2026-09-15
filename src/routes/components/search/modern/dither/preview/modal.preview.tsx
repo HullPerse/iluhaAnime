@@ -189,6 +189,7 @@ export default function DitherPreviewModal({
         </button>
       }
       className="w-2xl"
+      contentClassName="overflow-x-hidden"
     >
       <DitherCanvas
         src={src}
@@ -215,12 +216,12 @@ export default function DitherPreviewModal({
           }}
         />
       )}
-      <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
-        <div className="grid grid-cols-3 gap-1">
+      <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-x-hidden overflow-y-auto">
+        <div className="flex flex-row flex-wrap gap-1">
           {DITHER_PRESETS.map((preset) => (
             <Button
               key={preset.id}
-              className="h-5 flex-1 px-1 text-xs"
+              className="h-5 max-w-full px-1 text-xs"
               title={t(DITHER_PRESET_LABELS[preset.id])}
               onClick={() => applyPreset(preset.id)}
               disabled={presetId === preset.id}

@@ -84,12 +84,24 @@ const DITHER_PICO8_PALETTE: DitherRGB[] = [
   [255, 204, 170],
 ];
 
+export const DITHER_VIOLET_RAMP_PALETTE: DitherRGB[] = [
+  [6, 4, 10],
+  [18, 12, 32],
+  [36, 22, 62],
+  [59, 38, 102],
+  [91, 52, 184],
+  [120, 74, 220],
+  [139, 92, 246],
+  [183, 157, 249],
+];
+
 export const DITHER_PALETTE_PRESETS: DitherPalettePreset[] = [
   { id: "default", colors: DITHER_DEFAULT_PALETTE },
   { id: "red", colors: DITHER_RED_RAMP_PALETTE },
   { id: "gameboy", colors: DITHER_GAMEBOY_PALETTE },
   { id: "pico8", colors: DITHER_PICO8_PALETTE },
   { id: "gray", colors: DITHER_GRAY_RAMP_PALETTE },
+  { id: "violet", colors: DITHER_VIOLET_RAMP_PALETTE },
 ];
 
 export const DITHER_DEFAULTS: {
@@ -103,6 +115,9 @@ export const DITHER_DEFAULTS: {
   halftone: number;
   halftoneSize: number;
   halftoneSoftness: number;
+  ascii: number;
+  asciiSize: number;
+  asciiFringe: number;
   grayGrain: boolean;
   monochromeNoise: number;
   ink: number;
@@ -132,6 +147,9 @@ export const DITHER_DEFAULTS: {
   halftone: 0.1,
   halftoneSize: 0,
   halftoneSoftness: 0.25,
+  ascii: 0,
+  asciiSize: 12,
+  asciiFringe: 0.7,
   grayGrain: true,
   monochromeNoise: 8,
   ink: 1,
@@ -203,6 +221,37 @@ export const DITHER_ROSETTE_VECTORS: readonly (readonly [number, number])[] = [
   [ROSETTE_X, 0.5],
 ];
 
+/**
+ * Glyph ramp for the ascii stage. The three leading empty steps keep glyphs clustered
+ * instead of turning the frame into a solid screen of characters.
+ */
+export const DITHER_ASCII_RAMP: readonly string[] = [
+  " ",
+  " ",
+  " ",
+  ".",
+  ":",
+  ">",
+  "~",
+  "×",
+  "*",
+  "#",
+];
+
+export const DITHER_ASCII_GLYPH_WIDTH = 5;
+export const DITHER_ASCII_GLYPH_HEIGHT = 7;
+export const DITHER_ASCII_PAD = 2;
+export const DITHER_ASCII_LATTICE_X = 0.55;
+export const DITHER_ASCII_LATTICE_Y = 0.35;
+export const DITHER_ASCII_SWIRL = 2.1;
+export const DITHER_ASCII_SWIRL_RATE = 0.9;
+export const DITHER_ASCII_TILT = 1.7;
+export const DITHER_ASCII_TILT_RATE = 0.6;
+export const DITHER_ASCII_NOISE_BASE = 0.72;
+export const DITHER_ASCII_NOISE_RANGE = 0.58;
+export const DITHER_ASCII_ALPHA_BASE = 0.16;
+export const DITHER_ASCII_ALPHA_RANGE = 0.5;
+
 export const DITHER_MONO_FINE_SHARE = 0.65;
 
 export const DITHER_PLACEHOLDER_ID = "placeholder";
@@ -219,6 +268,9 @@ const DITHER_NEUTRAL_OPTIONS: DitherEffectOptions = {
   halftone: 0,
   halftoneSize: 0,
   halftoneSoftness: 0,
+  ascii: 0,
+  asciiSize: 12,
+  asciiFringe: 0.7,
   grayGrain: true,
   monochromeNoise: 0,
   ink: 0,
@@ -331,6 +383,41 @@ export const DITHER_PRESETS: readonly DitherPreset[] = [
     },
   },
   {
+    id: "ascii",
+    options: {
+      ...DEFAULT_EFFECT_OPTIONS,
+      levels: 8,
+      ditherStrength: 0.35,
+      ditherAmount: 1,
+      ditherMatrix: "blue64",
+      grain: 0,
+      texture: 0,
+      halftone: 0,
+      halftoneSize: 0,
+      halftoneSoftness: 0,
+      ascii: 0.75,
+      asciiSize: 12,
+      asciiFringe: 0.7,
+      monochromeNoise: 6,
+      ink: 0,
+      edgeDistortion: 0,
+      misregistration: 0,
+      barrel: 0,
+      chromaticRadius: 0,
+      wave: 0,
+      paper: 0,
+      vignette: 0.35,
+      paletteBias: 0.7,
+      shadowCrush: 0.5,
+      highlightCompression: 0.6,
+      contrastCurve: 0.4,
+      blackPoint: 0.45,
+      localContrast: 0,
+      inkDensity: 0.35,
+      palette: DITHER_VIOLET_RAMP_PALETTE,
+    },
+  },
+  {
     id: "crt",
     options: {
       ...DEFAULT_EFFECT_OPTIONS,
@@ -384,6 +471,9 @@ export const DITHER_SLIDER_DEFS: readonly DitherSliderDef[] = [
   { field: "halftone", min: 0, max: 1, step: 0.05 },
   { field: "halftoneSize", min: 0, max: 6, step: 0.5 },
   { field: "halftoneSoftness", min: 0, max: 1, step: 0.05 },
+  { field: "ascii", min: 0, max: 1, step: 0.05 },
+  { field: "asciiSize", min: 4, max: 24, step: 1 },
+  { field: "asciiFringe", min: 0, max: 1, step: 0.05 },
   { field: "monochromeNoise", min: 0, max: 20, step: 0.5 },
   { field: "ink", min: 0, max: 20, step: 0.5 },
   { field: "edgeDistortion", min: 0, max: 3, step: 0.1 },
@@ -410,6 +500,7 @@ export const DITHER_PRESET_LABELS: Record<DitherPresetId, TranslationKey> = {
   natural: "search.dither.preset.natural",
   capy: "search.dither.preset.capy",
   crt: "search.dither.preset.crt",
+  ascii: "search.dither.preset.ascii",
 };
 
 export const DITHER_PALETTE_PRESET_LABELS: Record<DitherPalettePresetId, TranslationKey> = {
@@ -418,6 +509,7 @@ export const DITHER_PALETTE_PRESET_LABELS: Record<DitherPalettePresetId, Transla
   gameboy: "search.dither.palette.preset.gameboy",
   pico8: "search.dither.palette.preset.pico8",
   gray: "search.dither.palette.preset.gray",
+  violet: "search.dither.palette.preset.violet",
 };
 
 export const DITHER_SLIDER_LABELS: Record<DitherSliderField, TranslationKey> = {
@@ -429,6 +521,9 @@ export const DITHER_SLIDER_LABELS: Record<DitherSliderField, TranslationKey> = {
   halftone: "search.dither.opt.halftone",
   halftoneSize: "search.dither.opt.halftoneSize",
   halftoneSoftness: "search.dither.opt.halftoneSoftness",
+  ascii: "search.dither.opt.ascii",
+  asciiSize: "search.dither.opt.asciiSize",
+  asciiFringe: "search.dither.opt.asciiFringe",
   monochromeNoise: "search.dither.opt.monochromeNoise",
   ink: "search.dither.opt.ink",
   edgeDistortion: "search.dither.opt.edgeDistortion",

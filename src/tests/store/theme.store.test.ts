@@ -233,6 +233,23 @@ describe("applyTheme field token", () => {
   });
 });
 
+describe("applyTheme window tint", () => {
+  it("publishes the tint alpha the window effect uses", () => {
+    applyTheme("win95", []);
+    expect(setProperty).toHaveBeenCalledWith("--ui-window-alpha", "72%", "important");
+
+    setProperty.mockClear();
+    applyTheme("one-dark", []);
+    expect(setProperty).toHaveBeenCalledWith("--ui-window-alpha", "88%", "important");
+  });
+
+  it("persists the alpha, so the pre-React init script can paint the first frame", () => {
+    applyTheme("win95", []);
+    const payload = localStorageMock.setItem.mock.calls.at(-1)?.[1] as string;
+    expect(JSON.parse(payload).windowAlpha).toBe("72%");
+  });
+});
+
 describe("applyTheme shape metadata", () => {
   it("publishes the radius and bevel preset declared by the theme", () => {
     applyTheme("win11", []);

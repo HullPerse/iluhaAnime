@@ -10,7 +10,9 @@ import {
   resolveDitherPreset,
 } from "@/config/utils/dither.config";
 import {
+  applyAsciiCells,
   applyHalftoneDots,
+  asciiField,
   clampChannel,
   darkestPaletteColor,
   hashNoise,
@@ -246,6 +248,122 @@ describe("applyHalftoneDots", () => {
     expect(ditherBuffersEqual(plain, dotted)).toBe(false);
   });
 });
+describe("asciiField", () => {
+  it("is deterministic and stays within zero to one", () => {
+    for (let x = 0; x < 8; x++) {
+      for (let y = 0; y < 8; y++) {
+        const value = asciiField(x, y);
+        expect(value).toBe(asciiField(x, y));
+        expect(value).toBeGreaterThanOrEqual(0);
+        expect(value).toBeLessThanOrEqual(1);
+      }
+    }
+  });
+});
+
+describe("applyAsciiCells", () => {
+  function solidFrame(
+    value: number,
+    width: number,
+    height: number
+  ): Uint8ClampedArray<ArrayBuffer> {
+    const pixels = new Uint8ClampedArray(width * height * 4);
+    for (let i = 0; i < pixels.length; i += 4) {
+      pixels[i] = value;
+      pixels[i + 1] = value;
+      pixels[i + 2] = value;
+      pixels[i + 3] = 255;
+    }
+    return pixels;
+  }
+
+  function asciiOptions(overrides: Partial<DitherEffectOptions>): DitherEffectOptions {
+    return {
+      ...NEUTRAL_OPTIONS,
+      ascii: 1,
+      asciiSize: 8,
+      asciiFringe: 0,
+      palette: [
+        [0, 0, 0],
+        [255, 255, 255],
+      ],
+      ...overrides,
+    };
+  }
+
+  it("copies the frame without mutating the input when the stage is off", () => {
+    const source = solidFrame(128, 8, 8);
+    const before = Array.from(source);
+    const output = applyAsciiCells(source, 8, 8, asciiOptions({ ascii: 0 }));
+    expect(Array.from(source)).toEqual(before);
+    expect(ditherBuffersEqual(output, source)).toBe(true);
+  });
+
+  it("leaves dark cells empty", () => {
+    const source = solidFrame(0, 16, 16);
+    const output = applyAsciiCells(source, 16, 16, asciiOptions({}));
+    expect(ditherBuffersEqual(output, source)).toBe(true);
+  });
+
+  it("moves drawn cells toward the lightest palette color", () => {
+    const source = solidFrame(128, 32, 32);
+    const output = applyAsciiCells(source, 32, 32, asciiOptions({}));
+    let changed = 0;
+    for (let i = 0; i < source.length; i += 4) {
+      if (output[i] === source[i]) continue;
+      changed += 1;
+      expect(output[i]).toBeGreaterThan(source[i]);
+      expect(output[i]).toBeLessThan(255);
+    }
+    expect(changed).toBeGreaterThan(8);
+  });
+
+  it("keeps the middle of the frame emptier than its edge at full fringe", () => {
+    const size = 64;
+    const band = 8;
+    const source = solidFrame(128, size, size);
+    const output = applyAsciiCells(
+      source,
+      size,
+      size,
+      asciiOptions({ asciiSize: 4, asciiFringe: 1 })
+    );
+    let edge = 0;
+    let middle = 0;
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        const i = (y * size + x) * 4;
+        if (output[i] === source[i]) continue;
+        const onEdge = x < band || x >= size - band || y < band || y >= size - band;
+        const inMiddle =
+          x >= size / 2 - band &&
+          x < size / 2 + band &&
+          y >= size / 2 - band &&
+          y < size / 2 + band;
+        if (onEdge) edge += 1;
+        else if (inMiddle) middle += 1;
+      }
+    }
+    expect(edge).toBeGreaterThan(0);
+    expect(edge).toBeGreaterThan(middle);
+  });
+
+  it("scales the drawn glyph with the cell size", () => {
+    const source = solidFrame(200, 32, 32);
+    const small = applyAsciiCells(source, 32, 32, asciiOptions({ asciiSize: 4 }));
+    const large = applyAsciiCells(source, 32, 32, asciiOptions({ asciiSize: 16 }));
+    let smallCells = 0;
+    let largeCells = 0;
+    for (let i = 0; i < source.length; i += 4) {
+      if (small[i] !== source[i]) smallCells += 1;
+      if (large[i] !== source[i]) largeCells += 1;
+    }
+    expect(smallCells).toBeGreaterThan(0);
+    expect(largeCells).toBeGreaterThan(0);
+    expect(largeCells).not.toBe(smallCells);
+  });
+});
+
 describe("gray grain", () => {
   it("keeps gray pixels gray with a shared threshold", () => {
     const source = new Uint8ClampedArray([
@@ -677,6 +795,29 @@ describe("warp stages", () => {
     const options = { ...NEUTRAL_OPTIONS, barrel: 0.3, wave: 4 };
     const first = renderDitherImage(input, 32, 32, options);
     const second = renderDitherImage(input, 32, 32, options);
+    expect(ditherBuffersEqual(first, second)).toBe(true);
+  });
+});
+
+describe("ascii stage in the pipeline", () => {
+  it("stays inert when the stage is disabled", () => {
+    const source = gradientFixture(16, 16);
+    const output = renderDitherImage(source, 16, 16, {
+      ...NEUTRAL_OPTIONS,
+      ascii: 0,
+      asciiSize: 6,
+      asciiFringe: 1,
+    });
+    expect(ditherBuffersEqual(output, source)).toBe(true);
+  });
+
+  it("changes the frame once enabled and renders the same bytes twice", () => {
+    const source = gradientFixture(32, 32);
+    const options = { ...NEUTRAL_OPTIONS, ascii: 1, asciiSize: 8, asciiFringe: 0 };
+    const plain = renderDitherImage(source, 32, 32, NEUTRAL_OPTIONS);
+    const first = renderDitherImage(source, 32, 32, options);
+    const second = renderDitherImage(source, 32, 32, options);
+    expect(ditherBuffersEqual(plain, first)).toBe(false);
     expect(ditherBuffersEqual(first, second)).toBe(true);
   });
 });

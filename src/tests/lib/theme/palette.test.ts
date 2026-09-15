@@ -11,13 +11,71 @@ import {
   rgbToHex,
   saturation,
   shade,
+  WINDOW_TINT_MAX,
+  WINDOW_TINT_MIN,
+  windowTintAlpha,
 } from "@/lib/theme/palette.utils";
+
+/** Blends a face over a desktop colour the way the compositor would. */
+function blendOver(face: string, desktop: string, alpha: number): string {
+  const base = hexToRgb(face)!;
+  const under = hexToRgb(desktop)!;
+  return rgbToHex({
+    b: under.b + (base.b - under.b) * alpha,
+    g: under.g + (base.g - under.g) * alpha,
+    r: under.r + (base.r - under.r) * alpha,
+  });
+}
 
 function pixels(colors: Array<[number, number, number, number]>): Uint8ClampedArray {
   return new Uint8ClampedArray(colors.flat());
 }
 
 afterEach(() => vi.restoreAllMocks());
+
+describe("window tint alpha", () => {
+  it("keeps body text at AA against both a black and a white wallpaper", () => {
+    const cases: Array<[string, string]> = [
+      ["#c0c0c0", "#000000"],
+      ["#1e1e1e", "#d4d4d4"],
+      ["#f4c9ef", "#000000"],
+    ];
+    for (const [face, text] of cases) {
+      const alpha = windowTintAlpha(face, text);
+      for (const desktop of ["#000000", "#ffffff"]) {
+        expect(
+          contrastRatio(blendOver(face, desktop, alpha), text),
+          `${face} over ${desktop} at ${alpha}`
+        ).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+  });
+
+  it("never drops below the floor that keeps the glass visible", () => {
+    // A silver face only needs ~0.6 for AA, but 0.6 makes the effect pointless.
+    expect(windowTintAlpha("#c0c0c0", "#000000")).toBe(WINDOW_TINT_MIN);
+  });
+
+  it("returns the cap for a pair that can never reach AA, whatever the wallpaper", () => {
+    // White text on a white face: no alpha fixes that, so the cap is the answer by default.
+    expect(windowTintAlpha("#f3f3f3", "#ffffff")).toBe(WINDOW_TINT_MAX);
+  });
+
+  it("never returns a value that misses AA for a face it can fix", () => {
+    const alpha = windowTintAlpha("#282c34", "#d4d4d4");
+    expect(alpha).toBeGreaterThan(WINDOW_TINT_MIN);
+    expect(alpha).toBeLessThan(WINDOW_TINT_MAX);
+    for (const desktop of ["#000000", "#ffffff"]) {
+      expect(contrastRatio(blendOver("#282c34", desktop, alpha), "#d4d4d4")).toBeGreaterThanOrEqual(
+        4.5
+      );
+    }
+  });
+
+  it("falls back to the cap for an unparseable face", () => {
+    expect(windowTintAlpha("not-a-colour", "#000000")).toBe(WINDOW_TINT_MAX);
+  });
+});
 
 describe("colour conversions", () => {
   it("round-trips hex and rgb", () => {

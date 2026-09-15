@@ -21,6 +21,22 @@
     return data;
   }
 
+  // A window effect paints the desktop behind the webview: without this the first frames are
+  // opaque and the glass only appears once the settings store rehydrates.
+  function applyStoredWindowStyle() {
+    const raw = stored("settings");
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    const state = (parsed && parsed.state) || parsed;
+    if (!state) return;
+    const effect = state.windowEffect;
+    if (typeof effect === "string" && root.dataset) root.dataset.windowEffect = effect;
+    const tint = state.windowTintOpacity;
+    if (typeof tint === "number" && Number.isFinite(tint)) {
+      setVar("--ui-window-opacity", `${Math.round(Math.max(0, Math.min(1, tint)) * 100)}%`);
+    }
+  }
+
   try {
     const rawFont = stored("appFont");
     const appFont = typeof rawFont === "string" ? rawFont.trim() : "";
@@ -51,8 +67,11 @@
       setVar("--autocomplete-opacity", String(Math.max(0, Math.min(1, v.autocompleteOpacity))));
     }
     if (appFont.length === 0) setVar("--font-family", v.fontFamily);
+    if (typeof v.windowAlpha === "string") setVar("--ui-window-alpha", v.windowAlpha);
     if (typeof v.themeName === "string" && v.themeName.length > 0 && root.dataset) {
       root.dataset.theme = v.themeName;
     }
+
+    applyStoredWindowStyle();
   } catch {}
 })();

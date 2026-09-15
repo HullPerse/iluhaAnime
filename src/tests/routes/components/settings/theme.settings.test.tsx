@@ -1,4 +1,4 @@
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -18,7 +18,13 @@ function experimentalToggle(label: string): HTMLElement {
   return within(row).getByRole("checkbox");
 }
 
-type ChromeArgs = { decorations: boolean; roundedCorners: boolean };
+function tintSlider(): HTMLElement {
+  const row = screen.getByText("Tint opacity").parentElement;
+  if (!row) throw new Error("tint row not found");
+  return within(row).getByRole("slider");
+}
+
+type ChromeArgs = { decorations: boolean; effect: string; roundedCorners: boolean };
 
 function chromeCalls(): unknown[][] {
   return (mockInvoke.mock.calls as unknown[][]).filter((call) => call[0] === "set_window_chrome");
@@ -41,6 +47,8 @@ beforeEach(() => {
     statusBarEnabled: true,
     customTitleBarEnabled: true,
     roundedWindowCorners: false,
+    windowEffect: "none",
+    windowTintOpacity: null,
   });
 });
 
@@ -85,7 +93,11 @@ describe("SettingsTheme experimental section", () => {
     await user.click(experimentalToggle("Custom title bar"));
 
     expect(useSettingsStore.getState().customTitleBarEnabled).toBe(false);
-    expect(lastChromeArgs()).toEqual({ decorations: true, roundedCorners: false });
+    expect(lastChromeArgs()).toEqual({
+      decorations: true,
+      effect: "none",
+      roundedCorners: false,
+    });
   });
 
   it("applies rounded corners through the window command", async () => {
@@ -95,7 +107,87 @@ describe("SettingsTheme experimental section", () => {
     await user.click(experimentalToggle("Rounded window corners"));
 
     expect(useSettingsStore.getState().roundedWindowCorners).toBe(true);
-    expect(lastChromeArgs()).toEqual({ decorations: false, roundedCorners: true });
+    expect(lastChromeArgs()).toEqual({
+      decorations: false,
+      effect: "none",
+      roundedCorners: true,
+    });
+  });
+});
+
+describe("SettingsTheme window effect", () => {
+  it("offers every supported effect plus the off state", async () => {
+    const user = userEvent.setup();
+    render(<SettingsTheme />);
+
+    expect(screen.getByText("Window effect")).toBeTruthy();
+    expect(await screen.findByText("None")).toBeTruthy();
+
+    await user.click(screen.getByRole("combobox", { name: "Window effect" }));
+    expect(await screen.findByText("Acrylic (Windows 10/11)")).toBeTruthy();
+    expect(screen.getByText("Mica (Windows 11)")).toBeTruthy();
+    expect(screen.getByText("Tabbed (Windows 11 22H2+)")).toBeTruthy();
+  });
+
+  it("sends the chosen material through the window command", async () => {
+    const user = userEvent.setup();
+    render(<SettingsTheme />);
+
+    await user.click(screen.getByRole("combobox", { name: "Window effect" }));
+    await user.click(await screen.findByText("Mica (Windows 11)"));
+
+    expect(useSettingsStore.getState().windowEffect).toBe("mica");
+    expect(lastChromeArgs()).toEqual({
+      decorations: false,
+      effect: "mica",
+      roundedCorners: false,
+    });
+  });
+
+  it("starts the tint slider on the theme's own readable value", () => {
+    render(<SettingsTheme />);
+    // win95: silver face, black text - the safe value only needs to be visible enough.
+    expect(tintSlider().getAttribute("aria-valuenow")).toBe("0.72");
+    expect(useSettingsStore.getState().windowTintOpacity).toBeNull();
+    expect(screen.queryByText(/Thinner than this theme/)).toBeNull();
+  });
+
+  it("stores a thinner tint and warns that this theme cannot afford it", () => {
+    render(<SettingsTheme />);
+
+    fireEvent.keyDown(tintSlider(), { key: "ArrowLeft" });
+
+    expect(useSettingsStore.getState().windowTintOpacity).toBeCloseTo(0.67, 5);
+    expect(
+      screen.getByText("Thinner than this theme can afford - text may become hard to read.")
+    ).toBeTruthy();
+  });
+
+  it("stores a more solid tint without warning", () => {
+    render(<SettingsTheme />);
+
+    fireEvent.keyDown(tintSlider(), { key: "ArrowRight" });
+
+    expect(useSettingsStore.getState().windowTintOpacity).toBeCloseTo(0.77, 5);
+    expect(screen.queryByText(/Thinner than this theme/)).toBeNull();
+  });
+
+  it("hands the tint back to the theme when the reset is clicked", async () => {
+    const user = userEvent.setup();
+    render(<SettingsTheme />);
+
+    const reset = screen.getByRole("button", { name: "Reset to theme" });
+    // Nothing to reset while the slider still carries the theme's own value.
+    expect(reset.hasAttribute("disabled")).toBe(true);
+
+    fireEvent.keyDown(tintSlider(), { key: "ArrowLeft" });
+    expect(useSettingsStore.getState().windowTintOpacity).toBeCloseTo(0.67, 5);
+
+    await user.click(reset);
+
+    expect(useSettingsStore.getState().windowTintOpacity).toBeNull();
+    expect(tintSlider().getAttribute("aria-valuenow")).toBe("0.72");
+    expect(screen.queryByText(/Thinner than this theme/)).toBeNull();
   });
 });
 

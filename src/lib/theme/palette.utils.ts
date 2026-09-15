@@ -48,6 +48,51 @@ export function contrastRatio(a: string, b: string): number {
   return (lighter + 0.05) / (darker + 0.05);
 }
 
+/** WCAG AA for normal text. */
+const AA_CONTRAST = 4.5;
+
+/** The extremes a wallpaper can be: a translucent face has to survive both. */
+const DESKTOP_EXTREMES = ["#000000", "#ffffff"];
+
+/** Below this nothing of the desktop shows through, so the window effect is pointless. */
+export const WINDOW_TINT_MIN = 0.72;
+
+/** Above this the face is opaque and the effect is invisible. */
+export const WINDOW_TINT_MAX = 0.95;
+
+/**
+ * Alpha for the window face when a window effect paints the desktop behind it.
+ *
+ * A translucent window has no fixed backdrop, so the only honest target is the worst case: pick
+ * the lowest alpha that keeps body text at AA against *both* a black and a white wallpaper, then
+ * clamp it into the band where the glass is neither invisible nor unreadable. That is why the
+ * dark themes end up near `WINDOW_TINT_MAX` and the light ones near `WINDOW_TINT_MIN`.
+ */
+export function windowTintAlpha(face: string, text: string): number {
+  const base = hexToRgb(face);
+  if (base === null) return WINDOW_TINT_MAX;
+  let required = 0;
+  for (const desktop of DESKTOP_EXTREMES) {
+    const under = hexToRgb(desktop);
+    if (under === null) continue;
+    // Starts at 1 so a backdrop this face can never satisfy counts as "needs everything".
+    let satisfied = 1;
+    for (let alpha = 0; alpha <= 1.0001; alpha += 0.01) {
+      const blended = rgbToHex({
+        b: under.b + (base.b - under.b) * alpha,
+        g: under.g + (base.g - under.g) * alpha,
+        r: under.r + (base.r - under.r) * alpha,
+      });
+      if (contrastRatio(blended, text) >= AA_CONTRAST) {
+        satisfied = alpha;
+        break;
+      }
+    }
+    required = Math.max(required, satisfied);
+  }
+  return Math.min(WINDOW_TINT_MAX, Math.max(WINDOW_TINT_MIN, Number(required.toFixed(2))));
+}
+
 export function saturation({ r, g, b }: RGB): number {
   const max = Math.max(r, g, b);
   const min = Math.min(r, g, b);

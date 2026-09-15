@@ -638,10 +638,23 @@ async fn set_notification_settings(
 const WINDOW_CHROME_NAMESPACE: &str = "window";
 const WINDOW_CHROME_KEY: &str = "chrome";
 
+/// Material the OS paints behind the webview. Window-level rather than per theme: the theme only
+/// supplies the tint alpha, so the effect can be switched on its own.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+enum WindowEffect {
+    #[default]
+    None,
+    Acrylic,
+    Mica,
+    Tabbed,
+}
+
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 #[serde(default, rename_all = "camelCase")]
 struct WindowChrome {
     decorations: bool,
+    effect: WindowEffect,
     rounded_corners: bool,
 }
 
@@ -649,6 +662,7 @@ impl Default for WindowChrome {
     fn default() -> Self {
         Self {
             decorations: true,
+            effect: WindowEffect::None,
             rounded_corners: false,
         }
     }
@@ -682,11 +696,28 @@ fn apply_window_corner_preference(window: &tauri::WebviewWindow, rounded: bool) 
 #[cfg(not(windows))]
 fn apply_window_corner_preference(_window: &tauri::WebviewWindow, _rounded: bool) {}
 
+/// Applies the OS-drawn material. Note that `set_effects` swallows the platform error, so an
+/// unsupported Windows build reports success and simply paints nothing.
+fn apply_window_effect(window: &tauri::WebviewWindow, effect: WindowEffect) -> Result<(), String> {
+    use tauri::window::{Effect, EffectsBuilder};
+
+    let config = match effect {
+        WindowEffect::None => None,
+        WindowEffect::Acrylic => Some(EffectsBuilder::new().effect(Effect::Acrylic).build()),
+        WindowEffect::Mica => Some(EffectsBuilder::new().effect(Effect::Mica).build()),
+        WindowEffect::Tabbed => Some(EffectsBuilder::new().effect(Effect::Tabbed).build()),
+    };
+    window
+        .set_effects(config)
+        .map_err(|error| format!("set window effect: {error}"))
+}
+
 fn apply_window_chrome(window: &tauri::WebviewWindow, chrome: &WindowChrome) -> Result<(), String> {
     window
         .set_decorations(chrome.decorations)
         .map_err(|error| format!("set window decorations: {error}"))?;
     apply_window_corner_preference(window, chrome.rounded_corners);
+    apply_window_effect(window, chrome.effect)?;
     Ok(())
 }
 
@@ -694,10 +725,12 @@ fn apply_window_chrome(window: &tauri::WebviewWindow, chrome: &WindowChrome) -> 
 fn set_window_chrome(
     window: tauri::WebviewWindow,
     decorations: bool,
+    effect: WindowEffect,
     rounded_corners: bool,
 ) -> Result<(), String> {
     let chrome = WindowChrome {
         decorations,
+        effect,
         rounded_corners,
     };
     apply_window_chrome(&window, &chrome)?;

@@ -1,7 +1,15 @@
 import { describe, expect, it } from "vitest";
 
 import { THEMES, THEME_ACCENT_EXEMPT } from "@/config/settings/themes.config";
-import { colorDistance, contrastRatio } from "@/lib/theme/palette.utils";
+import {
+  colorDistance,
+  contrastRatio,
+  hexToRgb,
+  rgbToHex,
+  windowTintAlpha,
+  WINDOW_TINT_MAX,
+  WINDOW_TINT_MIN,
+} from "@/lib/theme/palette.utils";
 import { getTitleText } from "@/store/theme.store";
 
 /**
@@ -32,6 +40,17 @@ function statusColors(theme: (typeof THEMES)[number]): Record<string, string> {
   };
 }
 
+/** Blends a theme face over a desktop colour the way the compositor would. */
+function blendOver(face: string, desktop: string, alpha: number): string {
+  const base = hexToRgb(face)!;
+  const under = hexToRgb(desktop)!;
+  return rgbToHex({
+    b: under.b + (base.b - under.b) * alpha,
+    g: under.g + (base.g - under.g) * alpha,
+    r: under.r + (base.r - under.r) * alpha,
+  });
+}
+
 function pairs<K extends string>(keys: readonly K[]): Array<[K, K]> {
   return keys.flatMap((a, index) => keys.slice(index + 1).map((b) => [a, b] as [K, K]));
 }
@@ -59,6 +78,17 @@ describe("built-in themes", () => {
     }
   });
 
+  it("keeps the link-hover text readable on every surface it can sit on", () => {
+    for (const theme of THEMES) {
+      for (const surface of ["primary", "surface", "field"] as const) {
+        expect(
+          contrastRatio(theme.colors.linkHover, theme.colors[surface]),
+          `${theme.name} on ${surface}`
+        ).toBeGreaterThanOrEqual(MIN_CONTRAST);
+      }
+    }
+  });
+
   it("separates the accent roles that also drive graph and status colours", () => {
     for (const theme of THEMES) {
       if (THEME_ACCENT_EXEMPT.includes(theme.name)) continue;
@@ -67,6 +97,20 @@ describe("built-in themes", () => {
           colorDistance(theme.colors[a], theme.colors[b]),
           `${theme.name}: ${a} vs ${b}`
         ).toBeGreaterThanOrEqual(MIN_COLOR_DISTANCE);
+      }
+    }
+  });
+
+  it("stays readable when a window effect makes the face translucent", () => {
+    for (const theme of THEMES) {
+      const alpha = windowTintAlpha(theme.colors.primary, theme.colors.text);
+      expect(alpha, theme.name).toBeGreaterThanOrEqual(WINDOW_TINT_MIN);
+      expect(alpha, theme.name).toBeLessThanOrEqual(WINDOW_TINT_MAX);
+      for (const desktop of ["#000000", "#ffffff"]) {
+        expect(
+          contrastRatio(blendOver(theme.colors.primary, desktop, alpha), theme.colors.text),
+          `${theme.name} over ${desktop}`
+        ).toBeGreaterThanOrEqual(MIN_CONTRAST);
       }
     }
   });
@@ -93,6 +137,17 @@ describe("built-in themes", () => {
     ]);
   });
 
+  it("keeps the other platform identities right after the windows group", () => {
+    const platforms = THEMES.slice(5, 7).map((theme) => theme.name);
+    expect(platforms).toEqual(["google", "apple"]);
+    for (const name of platforms) {
+      const theme = THEMES.find((item) => item.name === name)!;
+      expect(theme.radius, name).toBe("all");
+      expect(theme.bevel, name).toBe("flat");
+      expect(theme.titlebarGradient, name).toBeUndefined();
+    }
+  });
+
   it("only exempts themes whose palette cannot supply four accents", () => {
     for (const name of THEME_ACCENT_EXEMPT) {
       const theme = THEMES.find((item) => item.name === name);
@@ -113,14 +168,15 @@ describe("built-in themes", () => {
 describe("theme shape metadata", () => {
   it("gives the rounded themes a radius preset and leaves the rest square", () => {
     const rounded = THEMES.filter((theme) => theme.radius !== undefined).map((theme) => theme.name);
-    expect(rounded).toEqual(["xp", "win7", "win11"]);
+    expect(rounded).toEqual(["xp", "win7", "win11", "google", "apple"]);
     expect(THEMES.find((theme) => theme.name === "win11")?.radius).toBe("all");
+    expect(THEMES.find((theme) => theme.name === "google")?.radius).toBe("all");
     expect(THEMES.find((theme) => theme.name === "win95")?.radius).toBeUndefined();
   });
 
   it("gives the aero and fluent themes a flat bevel", () => {
     const flat = THEMES.filter((theme) => theme.bevel === "flat").map((theme) => theme.name);
-    expect(flat).toEqual(["win7", "win11"]);
+    expect(flat).toEqual(["win7", "win11", "google", "apple"]);
     expect(THEMES.find((theme) => theme.name === "xp")?.bevel).toBe("raised");
   });
 

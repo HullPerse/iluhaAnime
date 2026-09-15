@@ -22,14 +22,15 @@ import {
 } from "@/config/player/options.config";
 import { ANIME4K_PRESETS } from "@/config/player/presets.config";
 import { tabForAltDigit } from "@/config/settings/tabs.config";
+import { THEMES } from "@/config/settings/themes.config";
 import {
   DITHER_DEFAULT_PALETTE,
   DITHER_DEFAULTS,
   DITHER_PALETTE_PRESETS,
   DITHER_PRESETS,
+  DITHER_VIOLET_RAMP_PALETTE,
   resolveDitherPreset,
 } from "@/config/utils/dither.config";
-import { THEMES } from "@/config/settings/themes.config";
 
 const ALL_TABS = {
   collectionTabEnabled: true,
@@ -147,7 +148,7 @@ describe("dither presets", () => {
     expect(empty.paletteBias).toBe(0);
     expect(empty.shadowCrush).toBe(0);
   });
-  it("exposes seven complete presets", () => {
+  it("exposes eight complete presets", () => {
     expect(DITHER_PRESETS.map((preset) => preset.id)).toEqual([
       "empty",
       "default",
@@ -155,6 +156,7 @@ describe("dither presets", () => {
       "soft",
       "natural",
       "capy",
+      "ascii",
       "crt",
     ]);
     const expected = Object.keys(DITHER_DEFAULTS)
@@ -190,19 +192,28 @@ describe("dither presets", () => {
     expect(crt.misregistration).toBeGreaterThan(0);
     expect(crt.wave).toBe(0);
   });
+  it("gives the ascii preset the violet ramp and the glyph stage", () => {
+    const ascii = resolveDitherPreset("ascii");
+    expect(ascii.ascii).toBeGreaterThan(0.5);
+    expect(ascii.asciiSize).toBe(12);
+    expect(ascii.asciiFringe).toBeGreaterThan(0);
+    expect(ascii.halftoneSize).toBe(0);
+    expect(ascii.palette).toEqual(DITHER_VIOLET_RAMP_PALETTE);
+  });
   it("defaults the grain to gray", () => {
     expect(resolveDitherPreset("default").grayGrain).toBe(true);
   });
 });
 
 describe("dither palette presets", () => {
-  it("exposes the five documented presets", () => {
+  it("exposes the six documented presets", () => {
     expect(DITHER_PALETTE_PRESETS.map((preset) => preset.id)).toEqual([
       "default",
       "red",
       "gameboy",
       "pico8",
       "gray",
+      "violet",
     ]);
   });
 
@@ -225,6 +236,17 @@ describe("dither palette presets", () => {
     expect(byId["gameboy"]).toBe(4);
     expect(byId["pico8"]).toBe(16);
     expect(byId["gray"]).toBe(8);
+    expect(byId["violet"]).toBe(8);
+  });
+
+  it("keeps the violet ramp dark at the bottom and violet at the top", () => {
+    expect(DITHER_VIOLET_RAMP_PALETTE[0]).toEqual([6, 4, 10]);
+    expect(DITHER_VIOLET_RAMP_PALETTE.at(-1)).toEqual([183, 157, 249]);
+    for (let level = 1; level < DITHER_VIOLET_RAMP_PALETTE.length; level++) {
+      expect(DITHER_VIOLET_RAMP_PALETTE[level][2]).toBeGreaterThanOrEqual(
+        DITHER_VIOLET_RAMP_PALETTE[level - 1][2]
+      );
+    }
   });
 });
 
@@ -241,4 +263,58 @@ describe("yorha theme", () => {
     const yorha = THEMES.find((theme) => theme.name === "yorha");
     expect(yorha?.fontFamily).toContain("IBM Plex Sans");
   });
+});
+
+describe("google theme", () => {
+  it("ships the bundled Roboto stack", () => {
+    const google = THEMES.find((theme) => theme.name === "google");
+    expect(google?.fontFamily).toBe("Roboto");
+  });
+});
+
+/**
+ * Every family a theme is allowed to name: bundled in `public/fonts` with an `@font-face` in
+ * `src/index.css`, shipped by Windows, or a CSS generic keyword. Anything else would silently fall
+ * back to the app font on a machine that does not happen to have it installed.
+ */
+const ALLOWED_FAMILIES = new Set([
+  "Perfect DOS VGA 437",
+  "IBM Plex Sans",
+  "Roboto",
+  "Inter",
+  "MS Sans Serif",
+  "Microsoft Sans Serif",
+  "Segoe UI",
+  "Segoe UI Variable",
+  "Tahoma",
+  "system-ui",
+  "sans-serif",
+  "serif",
+  "monospace",
+  "cursive",
+  "fantasy",
+  "ui-sans-serif",
+  "ui-monospace",
+]);
+
+function familiesOf(fontFamily: string): string[] {
+  return fontFamily
+    .split(",")
+    .map((part) => part.trim().replace(/^"|"$/g, ""))
+    .filter((part) => part.length > 0);
+}
+
+it("only names fonts that are bundled or shipped by the OS", () => {
+  for (const theme of THEMES) {
+    if (!theme.fontFamily) continue;
+    for (const family of familiesOf(theme.fontFamily)) {
+      expect(ALLOWED_FAMILIES.has(family), `${theme.name} names ${family}`).toBe(true);
+    }
+  }
+});
+
+it("uses Inter for the Apple theme instead of San Francisco", () => {
+  // San Francisco is not redistributable, so the theme ships Inter, the closest open equivalent.
+  const apple = THEMES.find((theme) => theme.name === "apple");
+  expect(apple?.fontFamily).toBe("Inter");
 });

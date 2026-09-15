@@ -36,6 +36,72 @@
   unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
 }
 
+@font-face {
+  font-family: "Roboto";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("/fonts/roboto-latin.woff2") format("woff2");
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "Roboto";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("/fonts/roboto-latin-ext.woff2") format("woff2");
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+    U+A720-A7FF;
+}
+
+@font-face {
+  font-family: "Roboto";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("/fonts/roboto-cyrillic.woff2") format("woff2");
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+
+/* Inter stands in for San Francisco on the Apple theme: closest open equivalent, and it covers the
+   same latin/latin-ext/cyrillic range we bundle for the other families. */
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("/fonts/inter-latin.woff2") format("woff2");
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("/fonts/inter-latin-ext.woff2") format("woff2");
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+    U+A720-A7FF;
+}
+
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("/fonts/inter-cyrillic.woff2") format("woff2");
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+
 :root {
   --font-family: "MS Sans Serif", "Microsoft Sans Serif", "Segoe UI", system-ui;
   --color-background: #222222;
@@ -80,6 +146,10 @@
   --ui-radius-control: 0px;
   --titlebar-from: var(--color-secondary);
   --titlebar-to: var(--color-secondary);
+  /* Window face opacity while an OS window effect is active; themes publish their own value. */
+  --ui-window-alpha: 100%;
+  /* The user's tint override; without one the theme's readable value stands. */
+  --ui-window-opacity: var(--ui-window-alpha);
   --ui-control-height: 26px;
   --ui-panel-gap: 0.375rem;
   --ui-font-size: 12px;
@@ -401,8 +471,29 @@
   outline-offset: 1px;
 }
 
-/* ---- Flat bevel (Aero, Fluent) -------------------------------------------- */
+/*
+ * Window effects (acrylic / mica / tabbed) are painted by the OS *behind* the webview, so the
+ * window face has to let them through. The alpha is per theme - `--ui-window-alpha` is the lowest
+ * value that still keeps body text at AA against any wallpaper - which is why dark themes stay
+ * nearly opaque while the light ones turn into real glass.
+ */
+[data-window-effect]:not([data-window-effect="none"]) .ui-panel {
+  background: color-mix(in srgb, var(--color-primary) var(--ui-window-opacity), transparent);
+}
 
+[data-window-effect]:not([data-window-effect="none"]) .ui-titlebar {
+  background-image: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--titlebar-from) var(--ui-window-opacity), transparent),
+    color-mix(in srgb, var(--titlebar-to) var(--ui-window-opacity), transparent)
+  );
+}
+
+[data-window-effect]:not([data-window-effect="none"]) .ui-statusbar {
+  background: color-mix(in srgb, var(--color-primary) var(--ui-window-opacity), transparent);
+}
+
+/* ---- Flat bevel (Aero, Fluent) -------------------------------------------- */
 [data-bevel="flat"] :is(.windows95-border, .windows95-active-border, .windows95-small-border) {
   border-width: 1px;
   border-color: var(--color-win-shadow);

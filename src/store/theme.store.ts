@@ -2,7 +2,13 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 import { THEMES, THEME_OVERRIDE_VARS } from "@/config/settings/themes.config";
-import { contrastRatio, hexToRgb, relativeLuminance, shade } from "@/lib/theme/palette.utils";
+import {
+  contrastRatio,
+  hexToRgb,
+  relativeLuminance,
+  shade,
+  windowTintAlpha,
+} from "@/lib/theme/palette.utils";
 import { attemptSync, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { DEFAULT_FONT_FAMILY, getStoredAppFont, toCssFontFamily } from "@/lib/utils/font.utils";
 import type { ThemeDefinition, ThemeOverrideKey, ThemeStore } from "@/types/theme";
@@ -97,6 +103,9 @@ export function applyTheme(name: string, customThemes: ThemeDefinition[] = []) {
     "important"
   );
   root.style.setProperty("--titlebar-to", theme.titlebarGradient?.to ?? c.secondary, "important");
+  // Published as a percentage so `color-mix` can consume it directly when a window effect is on.
+  const windowAlpha = `${Math.round(windowTintAlpha(c.primary, c.text) * 100)}%`;
+  root.style.setProperty("--ui-window-alpha", windowAlpha, "important");
   // Overridden tokens are written explicitly and reset to the stylesheet derivation otherwise, so
   // switching away from a theme that overrides e.g. `torrentSeeding` really drops its colour.
   for (const key of Object.keys(THEME_OVERRIDE_VARS) as ThemeOverrideKey[]) {
@@ -138,6 +147,7 @@ export function applyTheme(name: string, customThemes: ThemeDefinition[] = []) {
         titleText,
         winHighlight: c.winHighlight,
         winShadow: c.winShadow,
+        windowAlpha,
       })
     )
   );

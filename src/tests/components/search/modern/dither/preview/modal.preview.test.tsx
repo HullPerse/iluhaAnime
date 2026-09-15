@@ -100,7 +100,7 @@ describe("DitherPreviewModal", () => {
     render(<DitherPreviewModal image={IMAGE} onBack={vi.fn()} onSaved={vi.fn()} />);
     await waitFor(() => expect(lastCanvasSrc).toBe("data:image/png;base64,OOOO"));
     expect(screen.getByRole("button", { name: "Empty" })).toBeTruthy();
-    expect(screen.getAllByRole("slider")).toHaveLength(25);
+    expect(screen.getAllByRole("slider")).toHaveLength(28);
     expect((screen.getByRole("button", { name: "Empty" }) as HTMLButtonElement).disabled).toBe(
       true
     );

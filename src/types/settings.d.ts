@@ -14,6 +14,12 @@ export type SettingsTab =
 
 export type FFMPEGStatus = "checking" | "ok" | "missing" | "downloading";
 
+/**
+ * Material the OS paints behind the webview. Window-level, not per theme: the theme only supplies
+ * the tint alpha, so the effect can be toggled on its own.
+ */
+export type WindowEffect = "none" | "acrylic" | "mica" | "tabbed";
+
 export interface SettingsStore {
   language: Locale;
   limits: SpeedLimits;
@@ -42,6 +48,9 @@ export interface SettingsStore {
   customTitleBarEnabled: boolean;
   statusBarEnabled: boolean;
   roundedWindowCorners: boolean;
+  windowEffect: WindowEffect;
+  /** How much of the theme face covers the window effect. `null` keeps the readable auto value. */
+  windowTintOpacity: number | null;
   yorhaScanlinesEnabled: boolean;
   retroStyle: "classic" | "soft" | "high-contrast";
   uiDensity: "comfortable" | "compact";

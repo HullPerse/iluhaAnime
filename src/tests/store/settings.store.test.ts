@@ -372,6 +372,42 @@ describe("experimental toggles v28 migration", () => {
   });
 });
 
+type WindowEffectMigration = { windowEffect: string };
+
+type WindowTintMigration = { windowTintOpacity: number | null };
+
+describe("window effect v30 migration", () => {
+  it("defaults to no window effect, matching the Rust chrome default", () => {
+    const migrate = useSettingsStore.persist.getOptions()?.migrate;
+    const result = migrate!({ language: "en" } as never, 29) as WindowEffectMigration;
+    expect(result.windowEffect).toBe("none");
+  });
+
+  it("keeps a persisted window effect", () => {
+    const migrate = useSettingsStore.persist.getOptions()?.migrate;
+    const result = migrate!({ language: "en", windowEffect: "mica" } as never, 29) as
+      | WindowEffectMigration
+      | undefined;
+    expect(result?.windowEffect).toBe("mica");
+  });
+});
+
+describe("window tint v31 migration", () => {
+  it("starts on the theme's own readable value", () => {
+    const migrate = useSettingsStore.persist.getOptions()?.migrate;
+    const result = migrate!({ language: "en" } as never, 30) as WindowTintMigration;
+    expect(result.windowTintOpacity).toBeNull();
+  });
+
+  it("keeps a persisted override", () => {
+    const migrate = useSettingsStore.persist.getOptions()?.migrate;
+    const result = migrate!({ language: "en", windowTintOpacity: 0.6 } as never, 30) as
+      | WindowTintMigration
+      | undefined;
+    expect(result?.windowTintOpacity).toBe(0.6);
+  });
+});
+
 describe("window chrome side effect", () => {
   it("pushes native decorations when the custom title bar is turned off", () => {
     mockInvoke.mockReset();
@@ -382,6 +418,7 @@ describe("window chrome side effect", () => {
 
     expect(mockInvoke).toHaveBeenCalledWith("set_window_chrome", {
       decorations: true,
+      effect: "none",
       roundedCorners: false,
     });
   });
@@ -395,6 +432,7 @@ describe("window chrome side effect", () => {
 
     expect(mockInvoke).toHaveBeenCalledWith("set_window_chrome", {
       decorations: true,
+      effect: "none",
       roundedCorners: true,
     });
   });
@@ -408,8 +446,70 @@ describe("window chrome side effect", () => {
 
     expect(mockInvoke).toHaveBeenCalledWith("set_window_chrome", {
       decorations: false,
+      effect: "none",
       roundedCorners: true,
     });
+  });
+
+  it("pushes the window effect on its own and paints it on the document", () => {
+    mockInvoke.mockReset();
+    mockInvoke.mockResolvedValue(undefined);
+    useSettingsStore.setState({
+      customTitleBarEnabled: true,
+      roundedWindowCorners: true,
+      windowEffect: "none",
+    });
+
+    useSettingsStore.getState().patch({ windowEffect: "acrylic" });
+
+    expect(mockInvoke).toHaveBeenCalledWith("set_window_chrome", {
+      decorations: false,
+      effect: "acrylic",
+      roundedCorners: true,
+    });
+    expect(document.documentElement.dataset.windowEffect).toBe("acrylic");
+  });
+
+  it("clears the material and the document flag when the effect is turned off", () => {
+    mockInvoke.mockReset();
+    mockInvoke.mockResolvedValue(undefined);
+    useSettingsStore.setState({
+      customTitleBarEnabled: true,
+      roundedWindowCorners: false,
+      windowEffect: "mica",
+    });
+
+    useSettingsStore.getState().patch({ windowEffect: "none" });
+
+    expect(mockInvoke).toHaveBeenCalledWith("set_window_chrome", {
+      decorations: false,
+      effect: "none",
+      roundedCorners: false,
+    });
+    expect(document.documentElement.dataset.windowEffect).toBe("none");
+  });
+
+  it("publishes the tint override and hands control back on reset", () => {
+    mockInvoke.mockReset();
+    mockInvoke.mockResolvedValue(undefined);
+    useSettingsStore.setState({ windowTintOpacity: null });
+
+    useSettingsStore.getState().patch({ windowTintOpacity: 0.6 });
+    expect(document.documentElement.style.getPropertyValue("--ui-window-opacity")).toBe("60%");
+
+    useSettingsStore.getState().patch({ windowTintOpacity: null });
+    expect(document.documentElement.style.getPropertyValue("--ui-window-opacity")).toBe("");
+  });
+
+  it("clamps a tint override to a usable range", () => {
+    mockInvoke.mockReset();
+    mockInvoke.mockResolvedValue(undefined);
+
+    useSettingsStore.getState().patch({ windowTintOpacity: 4 });
+    expect(document.documentElement.style.getPropertyValue("--ui-window-opacity")).toBe("100%");
+
+    useSettingsStore.getState().patch({ windowTintOpacity: -1 });
+    expect(document.documentElement.style.getPropertyValue("--ui-window-opacity")).toBe("0%");
   });
 
   it("does not call the command for unrelated settings", () => {

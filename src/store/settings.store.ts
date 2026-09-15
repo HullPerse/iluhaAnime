@@ -375,6 +375,25 @@ function applySettingsV29(
   return migrated;
 }
 
+function applySettingsV30(
+  migrated: Partial<SettingsStore>,
+  version: number
+): Partial<SettingsStore> {
+  if (version >= 30) return migrated;
+  if (migrated.windowEffect === undefined) migrated.windowEffect = DEFAULT_SETTINGS.windowEffect;
+  return migrated;
+}
+
+function applySettingsV31(
+  migrated: Partial<SettingsStore>,
+  version: number
+): Partial<SettingsStore> {
+  if (version >= 31) return migrated;
+  if (migrated.windowTintOpacity === undefined)
+    migrated.windowTintOpacity = DEFAULT_SETTINGS.windowTintOpacity;
+  return migrated;
+}
+
 function drainTmdbPendingKey(state: SettingsStore): void {
   const pending = state.tmdbPendingKey;
   if (!pending) return;
@@ -394,6 +413,26 @@ function applyUiPreferences(
   if (typeof document === "undefined") return;
   document.documentElement.dataset.retroStyle = retroStyle;
   document.documentElement.dataset.uiDensity = uiDensity;
+}
+
+function applyWindowEffect(effect: SettingsStore["windowEffect"]): void {
+  if (typeof document === "undefined" || !document.documentElement) return;
+  document.documentElement.dataset.windowEffect = effect;
+}
+
+/**
+ * The theme publishes the tint alpha that keeps its text readable; an explicit user value replaces
+ * it, and clearing the property is what returns to the theme's own value on a theme switch.
+ */
+function applyWindowTint(opacity: number | null): void {
+  if (typeof document === "undefined" || !document.documentElement) return;
+  const root = document.documentElement;
+  if (opacity === null) {
+    root.style.removeProperty("--ui-window-opacity");
+    return;
+  }
+  const clamped = Math.max(0, Math.min(1, opacity));
+  root.style.setProperty("--ui-window-opacity", `${Math.round(clamped * 100)}%`, "important");
 }
 
 function applyYorhaScanlines(enabled: boolean): void {
@@ -431,10 +470,21 @@ export const useSettingsStore = create<SettingsStore>()(
           if ("yorhaScanlinesEnabled" in partial) {
             applyYorhaScanlines(partial.yorhaScanlinesEnabled ?? state.yorhaScanlinesEnabled);
           }
-          if ("customTitleBarEnabled" in partial || "roundedWindowCorners" in partial) {
+          if ("windowEffect" in partial) {
+            applyWindowEffect(partial.windowEffect ?? state.windowEffect);
+          }
+          if ("windowTintOpacity" in partial) {
+            applyWindowTint(partial.windowTintOpacity ?? null);
+          }
+          if (
+            "customTitleBarEnabled" in partial ||
+            "roundedWindowCorners" in partial ||
+            "windowEffect" in partial
+          ) {
             applyWindowChrome({
               customTitleBarEnabled: partial.customTitleBarEnabled ?? state.customTitleBarEnabled,
               roundedWindowCorners: partial.roundedWindowCorners ?? state.roundedWindowCorners,
+              windowEffect: partial.windowEffect ?? state.windowEffect,
             });
           }
           if ("appFont" in partial) {
@@ -517,22 +567,28 @@ export const useSettingsStore = create<SettingsStore>()(
         migrated = applySettingsV27(migrated, version);
         migrated = applySettingsV28(migrated, version);
         migrated = applySettingsV29(migrated, version);
+        migrated = applySettingsV30(migrated, version);
+        migrated = applySettingsV31(migrated, version);
         return migrated;
       },
       onRehydrateStorage: () => (state) => {
         if (state) {
           applyUiPreferences(state.retroStyle, state.uiDensity);
+          applyWindowEffect(state.windowEffect);
+          applyWindowTint(state.windowTintOpacity);
           applyYorhaScanlines(state.yorhaScanlinesEnabled);
           if (state.appFont) applyFontFamily(state.appFont);
           drainTmdbPendingKey(state);
         }
       },
-      version: 29,
+      version: 31,
     }
   )
 );
 
 applyUiPreferences(useSettingsStore.getState().retroStyle, useSettingsStore.getState().uiDensity);
+applyWindowEffect(useSettingsStore.getState().windowEffect);
+applyWindowTint(useSettingsStore.getState().windowTintOpacity);
 applyYorhaScanlines(useSettingsStore.getState().yorhaScanlinesEnabled);
 {
   const { appFont } = useSettingsStore.getState();

@@ -58,6 +58,8 @@ export const DEFAULT_SETTINGS: SettingsDefaults = {
   resultsPerPage: 20,
   retroStyle: "classic",
   roundedWindowCorners: false,
+  windowEffect: "none",
+  windowTintOpacity: null,
   savedFolderPaths: [],
   playerFolderHeights: {} as Record<string, number>,
   searchHistoryMaxItems: 100,

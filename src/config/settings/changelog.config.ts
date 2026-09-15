@@ -14,6 +14,27 @@ function entry(key: TranslationKey, scope: ChangelogScope): ChangelogEntry {
 
 export const CHANGELOG: ChangelogVersion[] = [
   {
+    version: "4.0.6",
+    added: [
+      entry("changelog.4_0_6.added.custom_titlebar", "app"),
+      entry("changelog.4_0_6.added.statusbar_toggle", "app"),
+      entry("changelog.4_0_6.added.rounded_corners", "app"),
+      entry("changelog.4_0_6.added.window_effects", "app"),
+      entry("changelog.4_0_6.added.new_themes", "settings"),
+      entry("changelog.4_0_6.added.platform_themes", "settings"),
+      entry("changelog.4_0_6.added.yorha_grid", "settings"),
+      entry("changelog.4_0_6.added.theme_editor_palette", "settings"),
+      entry("changelog.4_0_6.added.observer_mascot", "search"),
+      entry("changelog.4_0_6.added.dither_ascii", "search"),
+      entry("changelog.4_0_6.added.dither_violet", "search"),
+    ],
+    changed: [entry("changelog.4_0_6.changed.theme_tokens", "settings")],
+    fixed: [
+      entry("changelog.4_0_6.fixed.grouped_dedupe", "anilist"),
+      entry("changelog.4_0_6.fixed.theme_contrast", "settings"),
+    ],
+  },
+  {
     version: "4.0.5",
     added: [
       entry("changelog.4_0_5.added.list_sort_keys", "anilist"),

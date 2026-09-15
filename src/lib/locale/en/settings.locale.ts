@@ -208,6 +208,17 @@ const settings = {
   "settings.theme.experimental": "Additional features",
   "settings.theme.experimental.corners": "Rounded window corners",
   "settings.theme.experimental.corners.hint": "Windows only",
+  "settings.theme.experimental.effect": "Window effect",
+  "settings.theme.experimental.effect.acrylic": "Acrylic (Windows 10/11)",
+  "settings.theme.experimental.effect.hint":
+    "Windows only, and best with the custom title bar on. Makes the window translucent - the desktop shows through the frame.",
+  "settings.theme.experimental.effect.mica": "Mica (Windows 11)",
+  "settings.theme.experimental.effect.opacity": "Tint opacity",
+  "settings.theme.experimental.effect.opacity.reset": "Reset to theme",
+  "settings.theme.experimental.effect.opacity.warn":
+    "Thinner than this theme can afford - text may become hard to read.",
+  "settings.theme.experimental.effect.none": "None",
+  "settings.theme.experimental.effect.tabbed": "Tabbed (Windows 11 22H2+)",
   "settings.theme.experimental.mascot": "Observer",
   "settings.theme.experimental.scanlines": "YoRHa grid",
   "settings.theme.experimental.statusbar": "Status bar",

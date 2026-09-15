@@ -13,6 +13,9 @@ export interface DitherEffectOptions {
   grayGrain: boolean;
   halftoneSize: number;
   halftoneSoftness: number;
+  ascii: number;
+  asciiSize: number;
+  asciiFringe: number;
   monochromeNoise: number;
   ink: number;
   edgeDistortion: number;
@@ -75,14 +78,22 @@ export interface DitherWorkerProgress {
   total: number;
 }
 
-export type DitherPalettePresetId = "default" | "red" | "gameboy" | "pico8" | "gray";
+export type DitherPalettePresetId = "default" | "red" | "gameboy" | "pico8" | "gray" | "violet";
 
 export interface DitherPalettePreset {
   id: DitherPalettePresetId;
   colors: DitherRGB[];
 }
 
-export type DitherPresetId = "empty" | "default" | "deep" | "soft" | "natural" | "capy" | "crt";
+export type DitherPresetId =
+  | "empty"
+  | "default"
+  | "deep"
+  | "soft"
+  | "natural"
+  | "capy"
+  | "ascii"
+  | "crt";
 
 export interface DitherPreset {
   id: DitherPresetId;

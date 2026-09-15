@@ -21,6 +21,8 @@ const changelog406 = {
     "Общие тайтлы больше не дублируются в сгруппированном виде AniList",
   "changelog.4_0_6.fixed.theme_contrast":
     "Текст заголовка и ссылки при наведении подобраны по контрасту во всех темах",
+  "changelog.4_0_6.fixed.theme_palette_build":
+    "Загрузка картинки в редакторе тем работает в собранной версии",
 } as const;
 
 export default changelog406;

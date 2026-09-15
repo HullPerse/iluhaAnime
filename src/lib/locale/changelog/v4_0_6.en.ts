@@ -22,6 +22,8 @@ const changelog406 = {
     "Shared entries no longer repeat in the grouped AniList view",
   "changelog.4_0_6.fixed.theme_contrast":
     "Titlebar text and hovered links picked for contrast on every theme",
+  "changelog.4_0_6.fixed.theme_palette_build":
+    "Theme editor image loading works in installed builds",
 } as const;
 
 export default changelog406;

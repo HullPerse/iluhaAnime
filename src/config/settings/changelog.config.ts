@@ -41,6 +41,7 @@ export const CHANGELOG: ChangelogVersion[] = [
     fixed: [
       entry("changelog.4_0_6.fixed.grouped_dedupe", "anilist"),
       entry("changelog.4_0_6.fixed.theme_contrast", "settings"),
+      entry("changelog.4_0_6.fixed.theme_palette_build", "settings"),
     ],
   },
   {

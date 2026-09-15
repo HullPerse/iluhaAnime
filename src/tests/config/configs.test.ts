@@ -340,3 +340,16 @@ describe("release versions", () => {
     expect(packageJson.version).toMatch(/^\d+\.\d+\.\d+$/);
   });
 });
+
+function cspImgSrc(): string {
+  const csp = tauriConf.app.security.csp;
+  const match = /(?:^|;)\s*img-src\s+([^;]*)/.exec(csp);
+  if (!match) throw new Error("iluhaAnime CSP has no img-src directive");
+  return match[1] ?? "";
+}
+
+describe("tauri content security", () => {
+  it("allows blob: images so locally picked files decode in the production build", () => {
+    expect(cspImgSrc().split(/\s+/)).toContain("blob:");
+  });
+});

@@ -37,7 +37,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; img-src 'self' asset: http://asset.localhost https://s4.anilist.co data:; media-src 'self' asset: http://asset.localhost blob: data: file:; frame-src 'self' https://www.youtube-nocookie.com https://www.youtube.com; script-src 'self' https://www.youtube.com https://s.ytimg.com",
+      "csp": "default-src 'self'; img-src 'self' asset: http://asset.localhost https://s4.anilist.co data: blob:; media-src 'self' asset: http://asset.localhost blob: data: file:; frame-src 'self' https://www.youtube-nocookie.com https://www.youtube.com; script-src 'self' https://www.youtube.com https://s.ytimg.com",
       "assetProtocol": {
         "enable": true,
         "scope": [

@@ -13,7 +13,7 @@ export function SchemaSection({ tableInfo }: { tableInfo: SqliteTableInfo }) {
         {tableInfo.columns.map((column) => (
           <span
             key={column.name}
-            className="windows95-border bg-white px-1 py-0.5 text-xs"
+            className="windows95-border bg-field px-1 py-0.5 text-xs"
             title={column.dataType || t("settings.sqlite.unknown.type")}
           >
             {column.name}

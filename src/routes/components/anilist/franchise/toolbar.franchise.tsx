@@ -30,7 +30,7 @@ function FranchiseToolbar({
             variant="default"
             className={cn(
               "h-auto px-1.5 py-0.5 text-xs",
-              activeFilters.has(group) && "bg-secondary text-white"
+              activeFilters.has(group) && "bg-secondary text-title-text"
             )}
           >
             {t(FILTER_LABELS[group])}
@@ -49,7 +49,7 @@ function FranchiseToolbar({
           <span
             className={cn(
               "windows95-font px-1 py-0.5 text-xs leading-none",
-              cacheSource === "fresh" ? "bg-secondary text-white" : "bg-surface text-hint"
+              cacheSource === "fresh" ? "bg-secondary text-title-text" : "bg-surface text-hint"
             )}
             title={
               cacheSource === "fresh"

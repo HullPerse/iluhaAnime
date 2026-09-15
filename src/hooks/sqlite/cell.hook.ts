@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 
 import { displayCell } from "@/lib/sqlite/row.utils";
-import { reportBackgroundError } from "@/lib/utils/attempt.utils";
+import { attemptAll, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { assetUrl, isImageUrl } from "@/lib/utils/image.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { COPIED_FEEDBACK_MS } from "@/lib/utils/notification.utils";
@@ -75,26 +75,24 @@ export function useSqliteCell(params: {
     if (copiedTimerRef.current !== null) window.clearTimeout(copiedTimerRef.current);
     if (!keys || !selectedDatabase || !selectedTable) return;
     setCellLoading(true);
-    try {
-      if (isImageColumn(column)) await loadImageCell(column, keys);
-      else await loadTextCell(column, keys);
-    } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : String(error));
-    } finally {
-      setCellLoading(false);
-    }
+    const failure = await attemptAll(
+      [() => (isImageColumn(column) ? loadImageCell(column, keys) : loadTextCell(column, keys))],
+      { onFinally: () => setCellLoading(false) }
+    );
+    if (failure !== null) setError(failure.message);
   };
 
   const copyCell = async () => {
     if (!cellValue) return;
-    try {
-      await navigator.clipboard.writeText(cellValue);
-      setCellCopied(true);
-      if (copiedTimerRef.current !== null) window.clearTimeout(copiedTimerRef.current);
-      copiedTimerRef.current = window.setTimeout(() => setCellCopied(false), COPIED_FEEDBACK_MS);
-    } catch (error) {
-      reportBackgroundError("sqlite.copy-cell", error);
-    }
+    const failure = await attemptAll([
+      () => navigator.clipboard.writeText(cellValue),
+      () => setCellCopied(true),
+      () => {
+        if (copiedTimerRef.current !== null) window.clearTimeout(copiedTimerRef.current);
+        copiedTimerRef.current = window.setTimeout(() => setCellCopied(false), COPIED_FEEDBACK_MS);
+      },
+    ]);
+    if (failure !== null) reportBackgroundError("sqlite.copy-cell", failure);
   };
 
   const saveCell = async () => {
@@ -102,21 +100,22 @@ export function useSqliteCell(params: {
       return;
     setCellSaving(true);
     setError(null);
-    try {
-      await invokeTyped("update_sqlite_cell", {
-        database: selectedDatabase,
-        table: selectedTable,
-        column: selectedCell.column,
-        keys: selectedCell.keys,
-        value: cellEdit,
-      });
-      setSelectedCell(null);
-      await loadRows();
-    } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : String(error));
-    } finally {
-      setCellSaving(false);
-    }
+    const failure = await attemptAll(
+      [
+        () =>
+          invokeTyped("update_sqlite_cell", {
+            database: selectedDatabase,
+            table: selectedTable,
+            column: selectedCell.column,
+            keys: selectedCell.keys,
+            value: cellEdit,
+          }),
+        () => setSelectedCell(null),
+        () => loadRows(),
+      ],
+      { onFinally: () => setCellSaving(false) }
+    );
+    if (failure !== null) setError(failure.message);
   };
 
   const canEditCell = !!selectedCell?.keys && !cellLoading && !cellSaving;

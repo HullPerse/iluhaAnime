@@ -125,7 +125,7 @@ export default function BrowseAnimeModal({
                       </span>
                     )}
                     {item.format && (
-                      <span className="windows95-border bg-white px-1">{item.format}</span>
+                      <span className="windows95-border bg-field px-1">{item.format}</span>
                     )}
                     {item.episodes && (
                       <span>
@@ -145,7 +145,7 @@ export default function BrowseAnimeModal({
                   {item.genres.length > 0 && (
                     <div className="mt-1 flex flex-wrap gap-1">
                       {item.genres.slice(0, BROWSE_GENRE_COUNT).map((g) => (
-                        <span key={g} className="windows95-border bg-white px-1 text-xs">
+                        <span key={g} className="windows95-border bg-field px-1 text-xs">
                           {g}
                         </span>
                       ))}

@@ -21,7 +21,7 @@ function AniListMetadata({
 
   return (
     <div className="flex flex-row gap-3">
-      <section className="windows95-border shrink-0 self-start bg-white">
+      <section className="windows95-border shrink-0 self-start bg-field">
         <ImageComponent
           src={coverSrc ?? "/images/unknown_source.png"}
           alt={anime.title}
@@ -32,7 +32,7 @@ function AniListMetadata({
       <section className="flex min-w-0 flex-1 flex-col gap-1.5">
         <div className="flex flex-wrap items-center gap-1">
           {anime.score != null && (
-            <span className="windows95-text bg-secondary flex flex-row items-center gap-1 px-1 font-bold text-white">
+            <span className="windows95-text bg-secondary flex flex-row items-center gap-1 px-1 font-bold text-title-text">
               <Star className="size-3 fill-white" /> {anime.score}
             </span>
           )}
@@ -40,7 +40,7 @@ function AniListMetadata({
             {t(toLocaleKey(statusLabels[anime.status] ?? anime.status))}
           </span>
           {anime.format && (
-            <span className="windows95-font windows95-border text-text bg-white px-1 text-xs">
+            <span className="windows95-font windows95-border text-text bg-field px-1 text-xs">
               {t(toLocaleKey(formatLabels[anime.format] ?? anime.format))}
             </span>
           )}
@@ -85,7 +85,7 @@ function AniListMetadata({
 
         <div className="mt-1 flex flex-wrap items-center gap-2">
           {bestRank && (
-            <span className="windows95-text windows95-border bg-white px-1 text-xs">
+            <span className="windows95-text windows95-border bg-field px-1 text-xs">
               #{bestRank.rank} {bestRank.context}
             </span>
           )}

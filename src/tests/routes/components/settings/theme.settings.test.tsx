@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import SettingsTheme from "@/routes/components/settings/theme.settings";
 import { useSettingsStore } from "@/store/settings.store";
+import { useThemeStore } from "@/store/theme.store";
 
 const mockInvoke = vi.fn();
 
@@ -95,5 +96,26 @@ describe("SettingsTheme experimental section", () => {
 
     expect(useSettingsStore.getState().roundedWindowCorners).toBe(true);
     expect(lastChromeArgs()).toEqual({ decorations: false, roundedCorners: true });
+  });
+});
+
+describe("SettingsTheme yorha grid toggle", () => {
+  it("shows the grid toggle only for the yorha theme", () => {
+    useThemeStore.setState({ currentTheme: "win95" });
+    const first = render(<SettingsTheme />);
+    expect(screen.queryByText("YoRHa grid")).toBeNull();
+    first.unmount();
+    useThemeStore.setState({ currentTheme: "yorha" });
+    render(<SettingsTheme />);
+    expect(screen.getByText("YoRHa grid")).toBeTruthy();
+  });
+
+  it("flips the stored grid flag from the yorha toggle", async () => {
+    const user = userEvent.setup();
+    useThemeStore.setState({ currentTheme: "yorha" });
+    useSettingsStore.setState({ yorhaScanlinesEnabled: true });
+    render(<SettingsTheme />);
+    await user.click(experimentalToggle("YoRHa grid"));
+    expect(useSettingsStore.getState().yorhaScanlinesEnabled).toBe(false);
   });
 });

@@ -45,7 +45,7 @@ export function WizardCustomFields({
   };
 
   return (
-    <div className="windows95-border bg-white p-2">
+    <div className="windows95-border bg-field p-2">
       <div className="flex items-center justify-between">
         <strong className="text-xs">{t("collection.wizard.custom.fields")}</strong>
         <Button
@@ -63,7 +63,7 @@ export function WizardCustomFields({
             value={fieldName}
             onChange={(e) => setFieldName(e.target.value)}
             placeholder={t("collection.wizard.title")}
-            className="windows95-border mb-1 w-full bg-white px-2 py-1 text-xs"
+            className="windows95-border mb-1 w-full bg-field px-2 py-1 text-xs"
           />
           <Select
             value={fieldType}
@@ -77,7 +77,7 @@ export function WizardCustomFields({
               value={fieldOptions}
               onChange={(e) => setFieldOptions(e.target.value)}
               placeholder="opt1, opt2, opt3"
-              className="windows95-border mb-1 w-full bg-white px-2 py-1 text-xs"
+              className="windows95-border mb-1 w-full bg-field px-2 py-1 text-xs"
             />
           )}
           <Button size="icon" className="size-5" disabled={!fieldName.trim()} onClick={addField}>

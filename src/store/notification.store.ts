@@ -2,7 +2,7 @@ import { sendNotification as tauriNotify } from "@tauri-apps/plugin-notification
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
-import { reportBackgroundError } from "@/lib/utils/attempt.utils";
+import { attemptSync, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { useSettingsStore } from "@/store/settings.store";
 import type {
   DismissedEntry,
@@ -89,11 +89,8 @@ export const useNotificationStore = create<NotificationStore>()(
         }));
 
         if ((options?.system ?? true) && useSettingsStore.getState().notificationsEnabled) {
-          try {
-            tauriNotify({ title, body: message ?? "" });
-          } catch (error) {
-            console.warn("notification: system toast failed", error);
-          }
+          const [, error] = attemptSync(() => tauriNotify({ title, body: message ?? "" }));
+          if (error !== null) console.warn("notification: system toast failed", error);
         }
       },
       clear: (id: number) => {
@@ -158,12 +155,12 @@ export const useNotificationStore = create<NotificationStore>()(
     }),
     {
       merge: (persisted, current) => {
-        let storageStillExists = false;
-        try {
-          storageStillExists = notificationStorage?.getItem(NOTIFICATION_STORAGE_KEY) != null;
-        } catch (error) {
-          reportBackgroundError("notification.storage.check", error);
-        }
+        const [stored, storageError] = attemptSync(
+          () => notificationStorage?.getItem(NOTIFICATION_STORAGE_KEY) != null
+        );
+        if (storageError !== null)
+          reportBackgroundError("notification.storage.check", storageError);
+        const storageStillExists = stored === true;
         const persistedState = persisted as
           | { items?: NotificationItem[]; dismissed?: DismissedEntry[] }
           | undefined;

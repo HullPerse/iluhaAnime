@@ -141,7 +141,7 @@ function AniListCharacterDetailModal({
                         className="windows95-active-border h-16 w-12 object-cover"
                       />
                     ) : (
-                      <div className="windows95-active-border flex h-16 w-12 items-center justify-center bg-white text-xs font-bold">
+                      <div className="windows95-active-border flex h-16 w-12 items-center justify-center bg-field text-xs font-bold">
                         ?
                       </div>
                     )}
@@ -180,7 +180,7 @@ function AniListCharacterDetailModal({
                         className="windows95-active-border h-16 w-12 object-cover"
                       />
                     ) : (
-                      <div className="windows95-active-border flex h-16 w-12 items-center justify-center bg-white text-xs font-bold">
+                      <div className="windows95-active-border flex h-16 w-12 items-center justify-center bg-field text-xs font-bold">
                         ?
                       </div>
                     )}
@@ -234,7 +234,7 @@ function AniListCharacterDetailModal({
                             className="windows95-active-border h-18 w-13 shrink-0 object-cover"
                           />
                         ) : (
-                          <div className="windows95-active-border flex h-8 w-8 items-center justify-center bg-white text-xs font-bold">
+                          <div className="windows95-active-border flex h-8 w-8 items-center justify-center bg-field text-xs font-bold">
                             ?
                           </div>
                         )}
@@ -278,7 +278,7 @@ function AniListCharacterDetailModal({
                             className="windows95-active-border h-16 w-12 object-cover"
                           />
                         ) : (
-                          <div className="windows95-active-border flex h-16 w-12 items-center justify-center bg-white text-xs font-bold">
+                          <div className="windows95-active-border flex h-16 w-12 items-center justify-center bg-field text-xs font-bold">
                             ?
                           </div>
                         )}

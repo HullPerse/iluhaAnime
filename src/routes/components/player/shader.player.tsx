@@ -55,7 +55,7 @@ export default function ShaderPicker({ value, onChange, gpuBackend, durationSecs
     (shader: ShaderInfo) =>
       shader.available
         ? shader.description
-        : `${shader.description} — ${t("player.shader.unavailable")}`,
+        : `${shader.description} - ${t("player.shader.unavailable")}`,
     [t]
   );
 
@@ -110,7 +110,7 @@ export default function ShaderPicker({ value, onChange, gpuBackend, durationSecs
   }
 
   return (
-    <div className="windows95-border flex flex-col gap-1 border bg-white p-1">
+    <div className="windows95-border bg-field flex flex-col gap-1 border p-1">
       <div className="windows95-text flex items-center justify-between text-xs font-bold">
         <span>{t("player.shader.title")}</span>
         {eta && (

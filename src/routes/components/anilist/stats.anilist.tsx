@@ -111,7 +111,7 @@ function StatsModal({
             </Button>
           </div>
 
-          <div className="windows95-border bg-white">
+          <div className="windows95-border bg-field">
             <div className="grid grid-cols-7">
               {[0, 1, 2, 3, 4, 5, 6].map((i) => (
                 <div
@@ -147,14 +147,14 @@ function StatsModal({
                     key={day}
                     className={cn(
                       "border-t-muted border-l-muted relative flex h-26 flex-col overflow-hidden border-r border-b",
-                      isToday ? "bg-secondary/10" : isWeekend ? "bg-surface/20" : "bg-white"
+                      isToday ? "bg-secondary/10" : isWeekend ? "bg-surface/20" : "bg-field"
                     )}
                   >
                     <span
                       className={cn(
                         "px-1 text-xs leading-tight",
                         isToday
-                          ? "bg-secondary font-bold text-white"
+                          ? "bg-secondary font-bold text-title-text"
                           : isWeekend
                             ? "text-destructive font-bold"
                             : "text-text font-bold"
@@ -194,7 +194,7 @@ function StatsModal({
                               count: cell.entries.length,
                               date: `${day} ${monthLabel(month, locale, "long")} ${year}`,
                             })}
-                            className="bg-secondary windows95-font hover:bg-secondary/80 absolute top-0.5 right-0.5 flex size-5 flex-row items-center justify-center border-black text-xs text-white hover:cursor-pointer"
+                            className="bg-secondary windows95-font hover:bg-secondary/80 absolute top-0.5 right-0.5 flex size-5 flex-row items-center justify-center border-black text-xs text-title-text hover:cursor-pointer"
                             onClick={(e) => {
                               e.stopPropagation();
                               setSelectedDay(day);
@@ -225,11 +225,11 @@ function StatsModal({
               {selectedDay} {monthLabel(month, locale, "long")} {year}
             </span>
           </section>
-          <section className="windows95-border min-h-80 overflow-y-auto bg-white">
+          <section className="windows95-border min-h-80 overflow-y-auto bg-field">
             {dayEntries.map((entry) => (
               <div
                 key={entry.id}
-                className="hover:bg-surface border-t-muted border-l-muted flex cursor-pointer items-center gap-2 border-b border-r-white border-b-white px-2 py-1"
+                className="hover:bg-surface border-t-muted border-l-muted flex cursor-pointer items-center gap-2 border-b border-r-win-highlight border-b-win-highlight px-2 py-1"
                 onClick={() => onAnimeClick(entry.id)}
               >
                 {entry.coverUrl && (

@@ -42,7 +42,7 @@ export default function TorrentFilesPlayerSection({
   return (
     <section className="windows95-active-border bg-primary flex flex-col gap-1">
       {!hideHeader && (
-        <div className="bg-secondary flex items-center gap-1 px-1 text-white">
+        <div className="bg-secondary flex items-center gap-1 px-1 text-title-text">
           <span className="windows95-text line-clamp-1 flex-1 py-0.5 font-bold">{item.name}</span>
         </div>
       )}

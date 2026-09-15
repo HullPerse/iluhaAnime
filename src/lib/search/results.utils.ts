@@ -83,8 +83,8 @@ export function filterAnimeResults(
 export function getLanguageColors(): Record<string, string> {
   return {
     dual: "bg-dual text-white",
-    en: "bg-secondary text-white",
+    en: "bg-secondary text-title-text",
     multi: "bg-multi text-white",
-    ru: "bg-secondary text-white",
+    ru: "bg-secondary text-title-text",
   };
 }

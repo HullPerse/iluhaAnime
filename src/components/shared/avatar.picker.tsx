@@ -94,7 +94,7 @@ export default function UserImagePicker({ selected, onSelect }: UserImagePickerP
                   aria-label={image.name}
                   onClick={() => onSelect(icon, image)}
                   className={cn(
-                    "windows95-border hover:bg-surface flex size-10 items-center justify-center bg-white p-0.5",
+                    "windows95-border hover:bg-surface flex size-10 items-center justify-center bg-field p-0.5",
                     selected === icon && "bg-secondary"
                   )}
                 >

@@ -31,7 +31,7 @@ export function QueryPanel({
         <span className="text-hint">{t("settings.sqlite.query.history")}</span>
       </div>
       <div
-        className="windows95-border overflow-hidden bg-white"
+        className="windows95-border overflow-hidden bg-field"
         onKeyDown={(e) => {
           if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
             e.preventDefault();

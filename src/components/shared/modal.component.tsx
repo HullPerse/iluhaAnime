@@ -86,7 +86,7 @@ function Modal({
                   </Button>
                 )}
                 <ImageComponent src="/images/w2k_computer.ico" alt="" className="size-4 shrink-0" />
-                <Dialog.Title className="windows95-text line-clamp-1 font-bold text-white">
+                <Dialog.Title className="windows95-text line-clamp-1 font-bold text-title-text">
                   {header}
                 </Dialog.Title>
               </div>

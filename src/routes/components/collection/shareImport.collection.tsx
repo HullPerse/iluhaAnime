@@ -255,7 +255,7 @@ export function ShareImportCollection({
               <li key={`${row.snapshot.title}-${index}`}>
                 <label
                   className={`windows95-border flex items-center gap-2 p-1 select-none ${
-                    checked ? "bg-white" : "bg-primary"
+                    checked ? "bg-field" : "bg-primary"
                   } ${importing ? "opacity-60" : "cursor-pointer"}`}
                 >
                   <Checkbox

@@ -96,7 +96,7 @@ function AniListEntryCard({ item, entryLookup, isFavorite, onClick }: Props) {
             </span>
             {entry?.progress != null && item.episodes && (
               <div className="flex items-center gap-1">
-                <div className="windows95-border relative h-3.5 w-20 overflow-hidden bg-white">
+                <div className="windows95-border relative h-3.5 w-20 overflow-hidden bg-field">
                   <div
                     className="bg-secondary h-full"
                     style={{
@@ -110,7 +110,7 @@ function AniListEntryCard({ item, entryLookup, isFavorite, onClick }: Props) {
               </div>
             )}
             {entry?.progress != null && entry?.progress > 0 && !item.episodes && (
-              <span className="bg-secondary px-1 text-xs text-white">{entry.progress}</span>
+              <span className="bg-secondary px-1 text-xs text-title-text">{entry.progress}</span>
             )}
 
             {!entry && item.episodes && (

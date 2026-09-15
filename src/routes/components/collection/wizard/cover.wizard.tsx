@@ -88,7 +88,7 @@ export function WizardCoverPanel({
                 }}
               />
             ) : (
-              <div className="windows95-border flex h-full w-full items-center justify-center bg-white">
+              <div className="windows95-border flex h-full w-full items-center justify-center bg-field">
                 <span className="text-hint text-xs">-</span>
               </div>
             )}

@@ -42,6 +42,7 @@ export interface SettingsStore {
   customTitleBarEnabled: boolean;
   statusBarEnabled: boolean;
   roundedWindowCorners: boolean;
+  yorhaScanlinesEnabled: boolean;
   retroStyle: "classic" | "soft" | "high-contrast";
   uiDensity: "comfortable" | "compact";
   collectionGroupHeaderStyle: "torrent" | "folder";

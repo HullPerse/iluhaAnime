@@ -115,7 +115,7 @@ export function BackupPanel({
         <label className="windows95-text flex items-center gap-1 text-xs">
           {t("settings.sqlite.database")}
           <select
-            className="windows95-small-border bg-white px-1 py-0.5"
+            className="windows95-small-border bg-field px-1 py-0.5"
             value={database}
             onChange={(event) => onSelectDatabase(event.target.value)}
             disabled={working}
@@ -158,7 +158,7 @@ export function BackupPanel({
         <span className="windows95-text text-xs">{t("common.loading")}</span>
       ) : (
         backups.length > 0 && (
-          <ul className="windows95-border flex max-h-56 flex-col gap-1 overflow-auto bg-white p-1">
+          <ul className="windows95-border flex max-h-56 flex-col gap-1 overflow-auto bg-field p-1">
             {backups.map((backup) => (
               <li key={backup.name}>
                 <label className="grid cursor-pointer grid-cols-[auto_1fr_80px] items-center gap-2 px-1 py-0.5 select-none">

@@ -1,14 +1,36 @@
-import { useEffect, useState } from "react";
+import { cn } from "cn";
+import { ImageUp, Wand2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { ColorPickerTrigger } from "@/components/ui/color/trigger.color";
+import Combobox from "@/components/ui/combobox.component";
 import { Input } from "@/components/ui/input.component";
 import Slider from "@/components/ui/range.component";
 import { THEME_COLOR_KEYS } from "@/config/settings/themes.config";
 import { useI18n } from "@/lib/locale/i18n.utils";
-import { applyTheme, useThemeStore } from "@/store/theme.store";
+import { buildThemeColors, readImagePalette } from "@/lib/theme/palette.utils";
+import { applyTheme, getTitleText, useThemeStore } from "@/store/theme.store";
 import type { ThemeColorKey, ThemeDefinition } from "@/types/theme";
+
+const DEFAULT_COLORS: ThemeDefinition["colors"] = {
+  autocomplete: "#808080",
+  autocompleteOpacity: 0.6,
+  background: "#222222",
+  destructive: "#800000",
+  field: "#ffffff",
+  highlight: "#0000ff",
+  linkHover: "#ff0000",
+  muted: "#808080",
+  primary: "#c0c0c0",
+  secondary: "#000080",
+  success: "#008000",
+  surface: "#d0d0d0",
+  text: "#000000",
+  winHighlight: "#ffffff",
+  winShadow: "#808080",
+};
 
 export default function ThemeEditor({
   theme,
@@ -22,54 +44,58 @@ export default function ThemeEditor({
   const customThemes = useThemeStore((s) => s.customThemes);
   const { t } = useI18n();
   const isEdit = !!theme;
-  const defaults: ThemeDefinition["colors"] = {
-    background: "#222222",
-    primary: "#c0c0c0",
-    secondary: "#000080",
-    text: "#000000",
-    muted: "#808080",
-    autocomplete: "#808080",
-    autocompleteOpacity: 0.6,
-    highlight: "#0000ff",
-    destructive: "#800000",
-    success: "#008000",
-    linkHover: "#ff0000",
-    surface: "#d0d0d0",
-    winHighlight: "#ffffff",
-    winShadow: "#808080",
-  };
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const [name, setName] = useState(theme?.label ?? "");
+  const [radius, setRadius] = useState<NonNullable<ThemeDefinition["radius"]>>(
+    theme?.radius ?? "none"
+  );
+  const [bevel, setBevel] = useState<NonNullable<ThemeDefinition["bevel"]>>(
+    theme?.bevel ?? "raised"
+  );
+  const [selected, setSelected] = useState<ThemeColorKey>("primary");
+  const [palette, setPalette] = useState<string[]>([]);
+  const [paletteFailed, setPaletteFailed] = useState(false);
   const [colors, setColors] = useState<ThemeDefinition["colors"]>(() => ({
-    ...defaults,
+    ...DEFAULT_COLORS,
     ...theme?.colors,
-    autocomplete: theme?.colors.autocomplete ?? theme?.colors.muted ?? defaults.autocomplete,
-    autocompleteOpacity: theme?.colors.autocompleteOpacity ?? defaults.autocompleteOpacity,
+    autocomplete: theme?.colors.autocomplete ?? theme?.colors.muted ?? DEFAULT_COLORS.autocomplete,
+    autocompleteOpacity: theme?.colors.autocompleteOpacity ?? DEFAULT_COLORS.autocompleteOpacity,
   }));
 
   useEffect(() => {
     if (!theme || currentTheme !== theme.name) return;
     applyTheme(theme.name, [
-      { ...theme, colors },
+      { ...theme, bevel, colors, radius },
       ...customThemes.filter((item) => item.name !== theme.name),
     ]);
-  }, [colors, currentTheme, customThemes, theme]);
+  }, [bevel, colors, currentTheme, customThemes, radius, theme]);
 
   const patchColor = (key: ThemeColorKey, value: string) =>
     setColors((prev) => ({ ...prev, [key]: value }));
 
+  const handleFile = (file: File) => {
+    const url = URL.createObjectURL(file);
+    const image = new window.Image();
+    image.onload = () => {
+      URL.revokeObjectURL(url);
+      const found = readImagePalette(image);
+      setPalette(found);
+      setPaletteFailed(found.length === 0);
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(url);
+      setPalette([]);
+      setPaletteFailed(true);
+    };
+    image.src = url;
+  };
+
   const handleSave = () => {
     if (!name.trim()) return;
     const safeName = theme?.name ?? `custom-${name.trim().toLowerCase().replaceAll(/\s+/g, "-")}`;
-    const nextTheme = {
-      name: safeName,
-      label: name.trim(),
-      colors: { ...colors },
-    };
-    addCustomTheme(nextTheme);
-    if (currentTheme === safeName) {
-      useThemeStore.getState().setTheme(safeName);
-    }
+    addCustomTheme({ bevel, colors: { ...colors }, label: name.trim(), name: safeName, radius });
+    if (currentTheme === safeName) useThemeStore.getState().setTheme(safeName);
     onClose();
   };
 
@@ -88,17 +114,126 @@ export default function ThemeEditor({
           />
         </label>
 
-        <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-          {THEME_COLOR_KEYS.map(({ key, label }) => (
-            <label key={key} className="windows95-text text-text flex items-center gap-2">
-              <span className="w-28 shrink-0">{t(label)}</span>
-              <ColorPickerTrigger
-                value={colors[key] ?? colors.muted}
-                onChange={(v) => patchColor(key, v)}
-              />
-              <span className="text-hint font-mono text-xs">{colors[key] ?? colors.muted}</span>
-            </label>
-          ))}
+        <section className="windows95-border flex flex-col gap-1 p-1">
+          <div className="flex items-center gap-1">
+            <span className="windows95-text flex-1 text-xs font-bold">
+              {t("settings.theme.palette")}
+            </span>
+            <Button className="h-5 px-1 text-xs" onClick={() => fileRef.current?.click()}>
+              <ImageUp className="size-3" />
+              {t("settings.theme.palette.load")}
+            </Button>
+            <Button
+              className="h-5 px-1 text-xs"
+              disabled={palette.length === 0}
+              onClick={() => setColors((prev) => ({ ...prev, ...buildThemeColors(palette) }))}
+            >
+              <Wand2 className="size-3" />
+              {t("settings.theme.palette.apply")}
+            </Button>
+          </div>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              e.target.value = "";
+              if (file) handleFile(file);
+            }}
+          />
+          {palette.length === 0 ? (
+            <span className="windows95-text text-hint text-xs">
+              {paletteFailed
+                ? t("settings.theme.palette.error")
+                : t("settings.theme.palette.empty")}
+            </span>
+          ) : (
+            <div className="flex flex-wrap items-center gap-1">
+              {palette.map((color) => (
+                <button
+                  key={color}
+                  type="button"
+                  title={color}
+                  aria-label={color}
+                  className="windows95-border size-6 cursor-pointer"
+                  style={{ background: color }}
+                  onClick={() => patchColor(selected, color)}
+                />
+              ))}
+              <span className="windows95-text text-hint text-xs">
+                {t("settings.theme.palette.hint")}
+              </span>
+            </div>
+          )}
+        </section>
+
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+          {THEME_COLOR_KEYS.map(({ key, label }) => {
+            const value = colors[key] ?? colors.muted;
+            return (
+              <div
+                key={key}
+                className={cn(
+                  "flex items-center gap-2 px-1",
+                  selected === key && "bg-secondary/30"
+                )}
+              >
+                <button
+                  type="button"
+                  aria-label={t(label)}
+                  aria-pressed={selected === key}
+                  className={cn(
+                    "size-3 shrink-0 cursor-pointer",
+                    selected === key ? "bg-highlight" : "bg-muted"
+                  )}
+                  onClick={() => setSelected(key)}
+                />
+                <span className="windows95-text text-text w-24 shrink-0 truncate">{t(label)}</span>
+                <ColorPickerTrigger
+                  value={value}
+                  onChange={(v) => {
+                    patchColor(key, v);
+                    setSelected(key);
+                  }}
+                />
+                <span className="text-hint font-mono text-xs">{value}</span>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+          <div className="flex items-center gap-2 px-1">
+            <span className="windows95-text text-text w-24 shrink-0 truncate">
+              {t("settings.theme.shape.radius")}
+            </span>
+            <Combobox
+              value={radius}
+              onChange={(value) => setRadius(value as typeof radius)}
+              options={[
+                { value: "none", label: t("settings.theme.shape.radius.none") },
+                { value: "frame", label: t("settings.theme.shape.radius.frame") },
+                { value: "all", label: t("settings.theme.shape.radius.all") },
+              ]}
+              className="max-w-xs"
+            />
+          </div>
+          <div className="flex items-center gap-2 px-1">
+            <span className="windows95-text text-text w-24 shrink-0 truncate">
+              {t("settings.theme.shape.bevel")}
+            </span>
+            <Combobox
+              value={bevel}
+              onChange={(value) => setBevel(value as typeof bevel)}
+              options={[
+                { value: "raised", label: t("settings.theme.shape.bevel.raised") },
+                { value: "flat", label: t("settings.theme.shape.bevel.flat") },
+              ]}
+              className="max-w-xs"
+            />
+          </div>
         </div>
 
         <Slider
@@ -112,27 +247,55 @@ export default function ThemeEditor({
         />
 
         <div
-          className="windows95-border flex items-center justify-center self-center"
-          style={{ width: 300, height: 60, background: colors.primary }}
+          className={cn(
+            "windows95-border flex w-[340px] flex-col self-center",
+            radius === "all" && "rounded-[5px]"
+          )}
         >
-          <span
-            className="windows95-text px-1 py-0.5 font-bold"
+          <div
+            className={cn(
+              "windows95-text px-1 text-xs font-bold",
+              radius !== "none" && "rounded-t-[6px]"
+            )}
             style={{
-              background: colors.secondary,
-              color: colors.text,
+              background: `linear-gradient(to bottom, ${theme?.titlebarGradient?.from ?? colors.secondary}, ${theme?.titlebarGradient?.to ?? colors.secondary})`,
+              color: getTitleText(colors.secondary),
             }}
           >
             {name.trim() || t("settings.theme.preview")}
-          </span>
-          <span
-            className="windows95-text ml-2"
-            style={{
-              color: colors.autocomplete,
-              opacity: colors.autocompleteOpacity,
-            }}
+          </div>
+          <div
+            className="flex flex-col gap-1 p-2"
+            style={{ background: colors.primary, color: colors.text }}
           >
-            {t("settings.theme.autocomplete.preview")}
-          </span>
+            <span className="windows95-text text-xs">{t("settings.theme.preview")}</span>
+            <span
+              className="windows95-text text-xs"
+              style={{ color: colors.autocomplete, opacity: colors.autocompleteOpacity }}
+            >
+              {t("settings.theme.autocomplete.preview")}
+            </span>
+            <div className="flex flex-wrap items-center gap-1">
+              <span
+                className="windows95-border windows95-text px-1 text-xs"
+                style={{ background: colors.surface, color: colors.text }}
+              >
+                {t("settings.theme.color.surface")}
+              </span>
+              <span
+                className="windows95-text px-1 text-xs"
+                style={{ background: colors.highlight, color: getTitleText(colors.highlight) }}
+              >
+                {t("settings.theme.color.highlight")}
+              </span>
+              <span className="windows95-text text-xs" style={{ color: colors.destructive }}>
+                {t("settings.theme.color.destructive")}
+              </span>
+              <span className="windows95-text text-xs" style={{ color: colors.success }}>
+                {t("settings.theme.color.success")}
+              </span>
+            </div>
+          </div>
         </div>
 
         <div className="mt-1 flex justify-end gap-1">

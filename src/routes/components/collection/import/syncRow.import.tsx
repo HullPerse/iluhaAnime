@@ -15,7 +15,7 @@ export function SyncRow({
   const title = entry.media.title;
   return (
     <label
-      className={`windows95-border flex cursor-pointer items-center gap-2 p-1 select-none ${checked ? "bg-white" : "bg-primary"}`}
+      className={`windows95-border flex cursor-pointer items-center gap-2 p-1 select-none ${checked ? "bg-field" : "bg-primary"}`}
     >
       <Checkbox checked={checked} onChange={() => onToggle(entry.media.id)} />
       <div className="flex min-w-0 flex-col">

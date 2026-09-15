@@ -15,7 +15,7 @@ export function StudiosSection({
 }) {
   const { t } = useI18n();
   return (
-    <Section header={t("anilist.details.studios")} className="flex flex-wrap gap-1 bg-white">
+    <Section header={t("anilist.details.studios")} className="flex flex-wrap gap-1 bg-field">
       {studios.map((s) => (
         <Button
           key={s.id}

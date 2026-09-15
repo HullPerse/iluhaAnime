@@ -1,7 +1,11 @@
 import { describe, expect, it, vi, beforeAll, beforeEach } from "vitest";
 
+import { THEMES, THEME_OVERRIDE_VARS } from "@/config/settings/themes.config";
+
 const setProperty = vi.fn();
-const style = { setProperty };
+const removeProperty = vi.fn();
+const style = { removeProperty, setProperty };
+const dataset: Record<string, string> = {};
 const localStorageMock = {
   getItem: vi.fn(),
   removeItem: vi.fn(),
@@ -15,7 +19,7 @@ let applyTheme: (typeof import("@/store/theme.store"))["applyTheme"];
 
 beforeAll(async () => {
   vi.stubGlobal("document", {
-    documentElement: { style },
+    documentElement: { dataset, style },
   });
   vi.stubGlobal("localStorage", localStorageMock);
   const mod = await import("@/store/theme.store");
@@ -27,6 +31,10 @@ beforeAll(async () => {
 
 beforeEach(() => {
   setProperty.mockClear();
+  removeProperty.mockClear();
+  delete dataset.radius;
+  delete dataset.bevel;
+  delete dataset.theme;
   useThemeStore.setState({ currentTheme: "win95", customThemes: [] });
 });
 
@@ -170,5 +178,113 @@ describe("useThemeStore", () => {
     const s = useThemeStore.getState();
     expect(s.customThemes).toEqual([]);
     expect(s.currentTheme).toBe("win95");
+  });
+});
+
+describe("applyTheme title text", () => {
+  it("sets the title text token from the titlebar colour", () => {
+    applyTheme("win95", []);
+    expect(setProperty).toHaveBeenCalledWith("--color-title-text", "#ffffff", "important");
+
+    setProperty.mockClear();
+    applyTheme("custom-light", [
+      {
+        colors: { ...THEMES[0].colors, secondary: "#f0f0f0" },
+        label: "Custom Light",
+        name: "custom-light",
+      },
+    ]);
+    expect(setProperty).toHaveBeenCalledWith("--color-title-text", "#000000", "important");
+  });
+});
+
+describe("applyTheme field token", () => {
+  it("publishes the field colour declared by the theme", () => {
+    applyTheme("dracula", []);
+    expect(setProperty).toHaveBeenCalledWith("--color-field", "#313341", "important");
+
+    setProperty.mockClear();
+    applyTheme("win95", []);
+    expect(setProperty).toHaveBeenCalledWith("--color-field", "#ffffff", "important");
+  });
+
+  it("derives a field colour for themes stored before the token existed", () => {
+    const colors = { ...THEMES[0].colors } as Partial<(typeof THEMES)[number]["colors"]>;
+    delete colors.field;
+
+    applyTheme("legacy", [
+      {
+        colors: { ...colors, primary: "#c0c0c0" } as (typeof THEMES)[number]["colors"],
+        label: "Legacy Light",
+        name: "legacy",
+      },
+    ]);
+    expect(setProperty).toHaveBeenCalledWith("--color-field", "#ffffff", "important");
+
+    setProperty.mockClear();
+    applyTheme("legacy-dark", [
+      {
+        colors: { ...colors, primary: "#282c34" } as (typeof THEMES)[number]["colors"],
+        label: "Legacy Dark",
+        name: "legacy-dark",
+      },
+    ]);
+    expect(setProperty).toHaveBeenCalledWith("--color-field", "#1c1f24", "important");
+  });
+});
+
+describe("applyTheme shape metadata", () => {
+  it("publishes the radius and bevel preset declared by the theme", () => {
+    applyTheme("win11", []);
+    expect(dataset.radius).toBe("all");
+    expect(dataset.bevel).toBe("flat");
+
+    applyTheme("win95", []);
+    expect(dataset.radius).toBe("none");
+    expect(dataset.bevel).toBe("raised");
+  });
+
+  it("falls back to square frames for themes without shape metadata", () => {
+    const theme = THEMES.find((item) => item.name === "dracula")!;
+    expect(theme.radius).toBeUndefined();
+    expect(theme.bevel).toBeUndefined();
+
+    applyTheme("dracula", []);
+    expect(dataset.radius).toBe("none");
+    expect(dataset.bevel).toBe("raised");
+  });
+});
+
+describe("applyTheme titlebar gradient", () => {
+  it("paints the wash declared by the theme", () => {
+    const gradient = THEMES.find((item) => item.name === "win7")!.titlebarGradient!;
+    applyTheme("win7", []);
+    expect(setProperty).toHaveBeenCalledWith("--titlebar-from", gradient.from, "important");
+    expect(setProperty).toHaveBeenCalledWith("--titlebar-to", gradient.to, "important");
+  });
+
+  it("collapses both wash stops onto the accent when the theme has none", () => {
+    const secondary = THEMES.find((item) => item.name === "win95")!.colors.secondary;
+    applyTheme("win95", []);
+    expect(setProperty).toHaveBeenCalledWith("--titlebar-from", secondary, "important");
+    expect(setProperty).toHaveBeenCalledWith("--titlebar-to", secondary, "important");
+  });
+});
+
+describe("applyTheme token overrides", () => {
+  it("writes the tokens a limited-palette theme overrides", () => {
+    applyTheme("mono", []);
+    expect(setProperty).toHaveBeenCalledWith("--color-fav-gold", "#8a8a8a", "important");
+    expect(setProperty).toHaveBeenCalledWith("--color-torrent-seeding", "#1e1e1e", "important");
+  });
+
+  it("clears every override when switching to a theme that has none", () => {
+    applyTheme("mono", []);
+    removeProperty.mockClear();
+
+    applyTheme("win95", []);
+    for (const variable of Object.values(THEME_OVERRIDE_VARS)) {
+      expect(removeProperty).toHaveBeenCalledWith(variable);
+    }
   });
 });

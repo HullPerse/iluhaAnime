@@ -19,27 +19,24 @@ async function ensureMagnet(
   if (magnets[key]) return magnets[key];
 
   setLoadingMagnet((prev) => ({ ...prev, [key]: true }));
-  try {
-    const rutrackerProxy = useSettingsStore.getState().searchProxyUrls["rutracker"];
-    const magnet = await invokeTyped<string>("rutracker_get_magnet", {
+  const rutrackerProxy = useSettingsStore.getState().searchProxyUrls["rutracker"];
+  const [magnet, error] = await attempt(
+    invokeTyped<string>("rutracker_get_magnet", {
       topicId: item.category,
       proxyUrl: rutrackerProxy || undefined,
       proxy_url: rutrackerProxy || undefined,
-    });
-    setMagnets((prev) => ({ ...prev, [key]: magnet }));
-    return magnet;
-  } catch {
+    })
+  );
+  setLoadingMagnet((prev) => ({ ...prev, [key]: false }));
+  if (error !== null) {
+    const language = useSettingsStore.getState().language;
     useNotificationStore
       .getState()
-      .add(
-        translate(useSettingsStore.getState().language, "common.error"),
-        "error",
-        translate(useSettingsStore.getState().language, "magnet.error")
-      );
+      .add(translate(language, "common.error"), "error", translate(language, "magnet.error"));
     return null;
-  } finally {
-    setLoadingMagnet((prev) => ({ ...prev, [key]: false }));
   }
+  setMagnets((prev) => ({ ...prev, [key]: magnet }));
+  return magnet;
 }
 
 export async function copyMagnet(
@@ -80,29 +77,25 @@ async function fetchTorrentBytes(
 ): Promise<number[] | null> {
   const key = item.link;
   setLoadingMagnet((prev) => ({ ...prev, [key]: true }));
-  try {
-    const proxies = useSettingsStore.getState().searchProxyUrls;
-    let proxy: string | undefined = proxies["rutracker"];
-    if (item.torrent.startsWith("http")) {
-      proxy = source ? proxies[source] : undefined;
-    }
-    const bytes = item.torrent.startsWith("http")
-      ? await invokeTyped<number[]>("fetch_torrent_bytes", {
+  const proxies = useSettingsStore.getState().searchProxyUrls;
+  const remote = item.torrent.startsWith("http");
+  const proxy = remote ? (source ? proxies[source] : undefined) : proxies["rutracker"];
+  const [bytes, error] = await attempt(
+    remote
+      ? invokeTyped<number[]>("fetch_torrent_bytes", {
           url: item.torrent,
           proxyUrl: proxy || undefined,
           proxy_url: proxy || undefined,
         })
-      : await invokeTyped<number[]>("rutracker_get_torrent_bytes", {
+      : invokeTyped<number[]>("rutracker_get_torrent_bytes", {
           topicId: item.category,
           proxyUrl: proxy || undefined,
           proxy_url: proxy || undefined,
-        });
-    return bytes && bytes.length > 0 ? bytes : null;
-  } catch {
-    return null;
-  } finally {
-    setLoadingMagnet((prev) => ({ ...prev, [key]: false }));
-  }
+        })
+  );
+  setLoadingMagnet((prev) => ({ ...prev, [key]: false }));
+  if (error !== null || bytes === null || bytes.length === 0) return null;
+  return bytes;
 }
 
 export async function downloadMagnet(

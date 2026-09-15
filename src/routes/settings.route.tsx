@@ -54,7 +54,7 @@ export default function SettingsRoute() {
     <div className="flex h-full flex-row gap-1">
       <nav
         aria-label={t("common.sections")}
-        className="windows95-border flex w-34 shrink-0 flex-col gap-0.5 overflow-y-auto bg-white p-1"
+        className="windows95-border flex w-34 shrink-0 flex-col gap-0.5 overflow-y-auto bg-field p-1"
       >
         {navKeys.map((tab) => (
           <Button

@@ -19,7 +19,7 @@ function ProgressBar({
 
   return (
     <div
-      className={cn("windows95-border relative h-6 overflow-hidden bg-white", className)}
+      className={cn("windows95-border relative h-6 overflow-hidden bg-field", className)}
       role="progressbar"
       aria-label={ariaLabel}
       aria-valuemin={0}

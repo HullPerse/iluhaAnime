@@ -41,7 +41,7 @@ export default function AniListFavouritesModal({ open, favourites, onClose, onAn
                   className="windows95-active-border h-18 w-13 shrink-0"
                 />
               ) : (
-                <div className="windows95-active-border flex h-14 w-10 shrink-0 items-center justify-center bg-white text-xs">
+                <div className="windows95-active-border flex h-14 w-10 shrink-0 items-center justify-center bg-field text-xs">
                   ?
                 </div>
               )}
@@ -59,7 +59,7 @@ export default function AniListFavouritesModal({ open, favourites, onClose, onAn
                     </span>
                   )}
                   {fav.format && (
-                    <span className="windows95-font windows95-border text-text bg-white px-1 text-xs">
+                    <span className="windows95-font windows95-border text-text bg-field px-1 text-xs">
                       {fav.format}
                     </span>
                   )}

@@ -69,7 +69,7 @@ export default function TitleBar({ title, children }: { title: string; children?
         toggleMaximize();
       }}
     >
-      <span className="windows95-text min-w-0 flex-1 truncate font-bold text-white">{title}</span>
+      <span className="windows95-text min-w-0 flex-1 truncate font-bold text-title-text">{title}</span>
       <div className="flex shrink-0 flex-row items-center gap-0.5" data-no-drag>
         {children}
         <Button

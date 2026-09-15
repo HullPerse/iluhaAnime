@@ -24,7 +24,7 @@ export function BackdropLayer({
         {hasHighlight ? (
           highlightSegments.map((segment, index) =>
             segment.highlighted ? (
-              <span key={index} className="bg-highlight text-white">
+              <span key={index} className="bg-highlight text-title-text">
                 {segment.text}
               </span>
             ) : (

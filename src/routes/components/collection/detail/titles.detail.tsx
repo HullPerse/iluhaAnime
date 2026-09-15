@@ -24,7 +24,7 @@ export function TitlesCollection({
     onClose();
   };
   return (
-    <Section header={t("anilist.details.all.titles")} className="flex flex-wrap gap-1 bg-white">
+    <Section header={t("anilist.details.all.titles")} className="flex flex-wrap gap-1 bg-field">
       {rows.map((row) => (
         <Button
           key={row}

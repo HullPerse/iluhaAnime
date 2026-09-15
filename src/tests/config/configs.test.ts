@@ -29,6 +29,7 @@ import {
   DITHER_PRESETS,
   resolveDitherPreset,
 } from "@/config/utils/dither.config";
+import { THEMES } from "@/config/settings/themes.config";
 
 const ALL_TABS = {
   collectionTabEnabled: true,
@@ -224,5 +225,20 @@ describe("dither palette presets", () => {
     expect(byId["gameboy"]).toBe(4);
     expect(byId["pico8"]).toBe(16);
     expect(byId["gray"]).toBe(8);
+  });
+});
+
+describe("yorha theme", () => {
+  it("keeps the Discord palette mapping", () => {
+    const yorha = THEMES.find((theme) => theme.name === "yorha");
+    expect(yorha?.colors.primary).toBe("#dad4bb");
+    expect(yorha?.colors.secondary).toBe("#57544a");
+    expect(yorha?.colors.muted).toBe("#979381");
+    expect(yorha?.colors.destructive).toBe("#cd664d");
+  });
+
+  it("ships the bundled IBM Plex Sans stack", () => {
+    const yorha = THEMES.find((theme) => theme.name === "yorha");
+    expect(yorha?.fontFamily).toContain("IBM Plex Sans");
   });
 });

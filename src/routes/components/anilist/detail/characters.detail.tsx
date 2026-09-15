@@ -52,7 +52,7 @@ function AniListCharactersPanel({
   return (
     <Section
       header={t("anilist.characters.title")}
-      className="flex flex-wrap gap-1 bg-white"
+      className="flex flex-wrap gap-1 bg-field"
       expanded={showCharacters}
       onExpand={() => setShowCharacters((prev) => !prev)}
       files={data.length}
@@ -86,7 +86,7 @@ function AniListCharactersPanel({
           ) : (
             <div
               className={cn(
-                "flex h-12 w-10 items-center justify-center bg-white text-xs font-bold",
+                "flex h-12 w-10 items-center justify-center bg-field text-xs font-bold",
                 favCharacterIds.has(edge.character.id)
                   ? "windows95-fav-border"
                   : "windows95-active-border"

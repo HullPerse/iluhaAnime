@@ -20,7 +20,7 @@ export function GenresTagsSection({
 }) {
   const { t } = useI18n();
   return (
-    <Section header={t("anilist.details.genres.tags")} className="flex flex-wrap gap-1 bg-white">
+    <Section header={t("anilist.details.genres.tags")} className="flex flex-wrap gap-1 bg-field">
       {genres.map((g) => (
         <Button
           key={g}
@@ -28,7 +28,7 @@ export function GenresTagsSection({
             onGenre?.(g);
             onClose?.();
           }}
-          className="windows95-text bg-secondary hover:bg-secondary/60 windows95-active-border flex flex-row gap-1 px-1 font-bold text-white"
+          className="windows95-text bg-secondary hover:bg-secondary/60 windows95-active-border flex flex-row gap-1 px-1 font-bold text-title-text"
           variant="ghost"
           title={t("anilist.details.genre.search")}
         >

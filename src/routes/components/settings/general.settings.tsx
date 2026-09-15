@@ -102,7 +102,7 @@ export default function SettingsGeneral() {
     <div className="flex flex-col gap-3">
       <section className="ui-panel">
         <div className="ui-titlebar">
-          <span className="font-bold text-white">{t("settings.tabs")}</span>
+          <span className="font-bold text-title-text">{t("settings.tabs")}</span>
         </div>
         <div className="flex flex-col gap-1 p-2">
           <div className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-1">
@@ -139,7 +139,7 @@ export default function SettingsGeneral() {
 
       <section className="ui-panel">
         <div className="ui-titlebar">
-          <span className="font-bold text-white">{t("settings.language")}</span>
+          <span className="font-bold text-title-text">{t("settings.language")}</span>
         </div>
         <div className="flex flex-col gap-1 p-2">
           <div className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
@@ -187,7 +187,7 @@ export default function SettingsGeneral() {
 
       <section className="ui-panel">
         <div className="ui-titlebar">
-          <span className="font-bold text-white">{t("settings.tmdb.api.key")}</span>
+          <span className="font-bold text-title-text">{t("settings.tmdb.api.key")}</span>
         </div>
         <div className="flex flex-col gap-1 p-2">
           <div className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
@@ -327,7 +327,7 @@ export default function SettingsGeneral() {
 
       <section className="ui-panel">
         <div className="ui-titlebar">
-          <span className="font-bold text-white">{t("settings.anilist.proxy.title")}</span>
+          <span className="font-bold text-title-text">{t("settings.anilist.proxy.title")}</span>
         </div>
         <div className="flex flex-col gap-1 p-2">
           <div className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
@@ -431,7 +431,7 @@ export default function SettingsGeneral() {
 
       <section className="ui-panel">
         <div className="ui-titlebar">
-          <span className="font-bold text-white">{t("settings.parse.titles")}</span>
+          <span className="font-bold text-title-text">{t("settings.parse.titles")}</span>
         </div>
         <div className="flex flex-col gap-1 p-2">
           <div className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">

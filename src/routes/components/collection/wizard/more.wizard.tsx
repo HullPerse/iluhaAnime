@@ -36,7 +36,7 @@ export function WizardMoreFields(props: {
         <input
           value={props.altTitles}
           onChange={(e) => props.setAltTitles(e.target.value)}
-          className="windows95-border bg-white px-2 py-1 text-xs"
+          className="windows95-border bg-field px-2 py-1 text-xs"
         />
 
         <span className="text-text flex items-center text-xs font-bold">
@@ -45,7 +45,7 @@ export function WizardMoreFields(props: {
         <input
           value={props.year}
           onChange={(e) => props.setYear(e.target.value)}
-          className="windows95-border bg-white px-2 py-1 text-xs"
+          className="windows95-border bg-field px-2 py-1 text-xs"
         />
 
         <span className="text-text flex items-center text-xs font-bold">
@@ -54,7 +54,7 @@ export function WizardMoreFields(props: {
         <input
           value={props.durationMinutes}
           onChange={(e) => props.setDurationMinutes(e.target.value)}
-          className="windows95-border bg-white px-2 py-1 text-xs"
+          className="windows95-border bg-field px-2 py-1 text-xs"
         />
 
         <span className="text-text flex items-center text-xs font-bold">
@@ -63,7 +63,7 @@ export function WizardMoreFields(props: {
         <input
           value={props.studio}
           onChange={(e) => props.setStudio(e.target.value)}
-          className="windows95-border bg-white px-2 py-1 text-xs"
+          className="windows95-border bg-field px-2 py-1 text-xs"
         />
 
         <span className="text-text flex items-center text-xs font-bold">
@@ -72,7 +72,7 @@ export function WizardMoreFields(props: {
         <input
           value={props.genres}
           onChange={(e) => props.setGenres(e.target.value)}
-          className="windows95-border bg-white px-2 py-1 text-xs"
+          className="windows95-border bg-field px-2 py-1 text-xs"
         />
 
         <span className="text-text flex items-center text-xs font-bold">
@@ -81,7 +81,7 @@ export function WizardMoreFields(props: {
         <input
           value={props.startedAt}
           onChange={(e) => props.setStartedAt(e.target.value)}
-          className="windows95-border bg-white px-2 py-1 text-xs"
+          className="windows95-border bg-field px-2 py-1 text-xs"
         />
 
         <span className="text-text flex items-center text-xs font-bold">
@@ -90,7 +90,7 @@ export function WizardMoreFields(props: {
         <input
           value={props.finishedAt}
           onChange={(e) => props.setFinishedAt(e.target.value)}
-          className="windows95-border bg-white px-2 py-1 text-xs"
+          className="windows95-border bg-field px-2 py-1 text-xs"
         />
       </div>
 
@@ -104,7 +104,7 @@ export function WizardMoreFields(props: {
           value={props.description}
           onChange={(e) => props.setDescription(e.target.value)}
           rows={3}
-          className="windows95-border bg-white px-2 py-1 text-xs"
+          className="windows95-border bg-field px-2 py-1 text-xs"
         />
       </div>
 

@@ -18,6 +18,32 @@ export function attemptSync<T>(fn: () => T): [T, null] | [null, Error] {
   }
 }
 
+export interface AttemptAllOptions {
+  onFinally?: () => unknown;
+}
+
+export async function attemptAll(
+  steps: ReadonlyArray<() => unknown>,
+  options: AttemptAllOptions = {}
+): Promise<Error | null> {
+  let failure: Error | null = null;
+  try {
+    for (const step of steps) {
+      await step();
+    }
+  } catch (error) {
+    failure = toError(error);
+  }
+  if (options.onFinally !== undefined) {
+    try {
+      await options.onFinally();
+    } catch (error) {
+      if (failure === null) failure = toError(error);
+    }
+  }
+  return failure;
+}
+
 export async function withFallback<T>(promise: Promise<T>, fallback: T): Promise<T> {
   const [data, error] = await attempt(promise);
   return error ? fallback : data;

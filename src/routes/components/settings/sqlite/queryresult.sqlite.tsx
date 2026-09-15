@@ -25,7 +25,7 @@ export function SqliteQueryResult({
 }) {
   const { t } = useI18n();
   return (
-    <section className="ui-panel min-h-40 overflow-auto bg-white p-0">
+    <section className="ui-panel min-h-40 overflow-auto bg-field p-0">
       {queryLoading ? (
         <div className="flex min-h-40 items-center justify-center">
           <SmallLoader />

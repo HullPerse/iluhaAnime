@@ -582,7 +582,7 @@ pub fn resolve_shader_dir(
     for filename in chain {
         if !dir.join(filename).exists() {
             return Err(format!(
-                "Anime4K шейдер не найден: {filename}. Установка повреждена — переустановите приложение."
+                "Anime4K шейдер не найден: {filename}. Установка повреждена - переустановите приложение."
             ));
         }
     }

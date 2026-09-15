@@ -17,7 +17,7 @@ export default function FolderScanProgress({ scanProgress }: Props) {
       </span>
       {scanProgress.total > 0 && (
         <div className="flex flex-row items-center gap-1">
-          <div className="windows95-border h-4 flex-1 bg-white">
+          <div className="windows95-border h-4 flex-1 bg-field">
             <div
               className="bg-secondary h-full"
               style={{

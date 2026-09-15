@@ -34,10 +34,10 @@ function CollectionCardView({
 
   return (
     <div
-      className={`windows95-active-border flex w-full flex-col overflow-hidden bg-white select-none [contain-intrinsic-size:auto] [content-visibility:auto] ${selected ? "outline-secondary outline-2" : ""}`}
+      className={`windows95-active-border flex w-full flex-col overflow-hidden bg-field select-none [contain-intrinsic-size:auto] [content-visibility:auto] ${selected ? "outline-secondary outline-2" : ""}`}
     >
       <div
-        className={`relative w-full shrink-0 overflow-hidden bg-white ${onOpen ? "hover:cursor-pointer hover:brightness-110 focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-dotted active:brightness-90" : ""}`}
+        className={`relative w-full shrink-0 overflow-hidden bg-field ${onOpen ? "hover:cursor-pointer hover:brightness-110 focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-dotted active:brightness-90" : ""}`}
         style={{ aspectRatio: `${CARD_W} / ${CARD_POSTER_H}` }}
         role={onOpen ? "button" : undefined}
         tabIndex={onOpen ? 0 : undefined}
@@ -49,12 +49,12 @@ function CollectionCardView({
           <Image
             src={cover}
             alt={item.title}
-            className="h-full w-full bg-white"
+            className="h-full w-full bg-field"
             type="cover"
             loading="eager"
           />
         ) : (
-          <div className="text-hint flex h-full w-full items-center justify-center bg-white text-xs">
+          <div className="text-hint flex h-full w-full items-center justify-center bg-field text-xs">
             {t("image.fallback")}
           </div>
         )}
@@ -73,7 +73,7 @@ function CollectionCardView({
           </span>
         )}
         {item.rating != null && item.rating > 0 && (
-          <span className="bg-secondary absolute bottom-1 left-1 px-1 py-0.5 text-xs leading-none font-bold text-white">
+          <span className="bg-secondary absolute bottom-1 left-1 px-1 py-0.5 text-xs leading-none font-bold text-title-text">
             {item.rating}/10
           </span>
         )}

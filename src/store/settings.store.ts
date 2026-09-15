@@ -11,7 +11,7 @@ import { listSortKeys } from "@/lib/anilist/entries.utils";
 import { detectSystemLocale } from "@/lib/locale/system.utils";
 import { normalizePlayerPath } from "@/lib/player/visibility.utils";
 import { applyWindowChrome } from "@/lib/settings/window.utils";
-import { reportBackgroundError } from "@/lib/utils/attempt.utils";
+import { attemptSync, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { applyFontFamily, DEFAULT_FONT_FAMILY } from "@/lib/utils/font.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import type { AniListSort } from "@/types/anilist";
@@ -101,11 +101,8 @@ function applySettingsV10(
   if (version >= 10) return migrated;
   delete (migrated as Record<string, unknown>).defaultTab;
   delete (migrated as Record<string, unknown>).lastActiveTab;
-  try {
-    localStorage.removeItem("lastActiveTab");
-  } catch (error) {
-    reportBackgroundError("settings.migrate.cleanup", error);
-  }
+  const [, error] = attemptSync(() => localStorage.removeItem("lastActiveTab"));
+  if (error !== null) reportBackgroundError("settings.migrate.cleanup", error);
   return migrated;
 }
 
@@ -368,6 +365,16 @@ function applySettingsV28(
   return migrated;
 }
 
+function applySettingsV29(
+  migrated: Partial<SettingsStore>,
+  version: number
+): Partial<SettingsStore> {
+  if (version >= 29) return migrated;
+  if (migrated.yorhaScanlinesEnabled === undefined)
+    migrated.yorhaScanlinesEnabled = DEFAULT_SETTINGS.yorhaScanlinesEnabled;
+  return migrated;
+}
+
 function drainTmdbPendingKey(state: SettingsStore): void {
   const pending = state.tmdbPendingKey;
   if (!pending) return;
@@ -387,6 +394,11 @@ function applyUiPreferences(
   if (typeof document === "undefined") return;
   document.documentElement.dataset.retroStyle = retroStyle;
   document.documentElement.dataset.uiDensity = uiDensity;
+}
+
+function applyYorhaScanlines(enabled: boolean): void {
+  if (typeof document === "undefined" || !document.documentElement) return;
+  document.documentElement.dataset.yorhaScanlines = enabled ? "on" : "off";
 }
 
 export const useSettingsStore = create<SettingsStore>()(
@@ -416,6 +428,9 @@ export const useSettingsStore = create<SettingsStore>()(
           const retroStyle = partial.retroStyle ?? state.retroStyle;
           const uiDensity = partial.uiDensity ?? state.uiDensity;
           applyUiPreferences(retroStyle, uiDensity);
+          if ("yorhaScanlinesEnabled" in partial) {
+            applyYorhaScanlines(partial.yorhaScanlinesEnabled ?? state.yorhaScanlinesEnabled);
+          }
           if ("customTitleBarEnabled" in partial || "roundedWindowCorners" in partial) {
             applyWindowChrome({
               customTitleBarEnabled: partial.customTitleBarEnabled ?? state.customTitleBarEnabled,
@@ -426,17 +441,15 @@ export const useSettingsStore = create<SettingsStore>()(
             const next = partial.appFont ?? null;
             if (next) applyFontFamily(next);
             else {
-              try {
+              const [, error] = attemptSync(() => {
                 const raw = localStorage.getItem("themeVars");
                 const parsed = raw ? (JSON.parse(raw) as { fontFamily?: string | null }) : null;
-                const themeFont = parsed?.fontFamily ?? null;
-                const css = themeFont ? themeFont : DEFAULT_FONT_FAMILY;
+                const css = parsed?.fontFamily ?? DEFAULT_FONT_FAMILY;
                 if (typeof document !== "undefined" && document.documentElement)
                   document.documentElement.style.setProperty("--font-family", css, "important");
                 localStorage.removeItem("appFont");
-              } catch {
-                applyFontFamily(null);
-              }
+              });
+              if (error !== null) applyFontFamily(null);
             }
           }
           return partial;
@@ -503,21 +516,24 @@ export const useSettingsStore = create<SettingsStore>()(
         migrated = applySettingsV26(migrated, version);
         migrated = applySettingsV27(migrated, version);
         migrated = applySettingsV28(migrated, version);
+        migrated = applySettingsV29(migrated, version);
         return migrated;
       },
       onRehydrateStorage: () => (state) => {
         if (state) {
           applyUiPreferences(state.retroStyle, state.uiDensity);
+          applyYorhaScanlines(state.yorhaScanlinesEnabled);
           if (state.appFont) applyFontFamily(state.appFont);
           drainTmdbPendingKey(state);
         }
       },
-      version: 28,
+      version: 29,
     }
   )
 );
 
 applyUiPreferences(useSettingsStore.getState().retroStyle, useSettingsStore.getState().uiDensity);
+applyYorhaScanlines(useSettingsStore.getState().yorhaScanlinesEnabled);
 {
   const { appFont } = useSettingsStore.getState();
   if (appFont) applyFontFamily(appFont);

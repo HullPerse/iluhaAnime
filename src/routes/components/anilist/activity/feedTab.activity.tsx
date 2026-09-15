@@ -121,8 +121,8 @@ export function FeedTab({
             className={cn(
               "windows95-text px-1.5 py-0.5 text-xs",
               statusFilter === f.value
-                ? "windows95-active-border bg-secondary text-white"
-                : "windows95-border bg-white"
+                ? "windows95-active-border bg-secondary text-title-text"
+                : "windows95-border bg-field"
             )}
             variant="ghost"
             onClick={() => setStatusFilter(f.value)}

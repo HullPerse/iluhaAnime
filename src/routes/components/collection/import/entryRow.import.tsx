@@ -19,7 +19,7 @@ export function EntryRow({
   const title = entry.media.title;
   return (
     <label
-      className={`windows95-border flex cursor-pointer items-center gap-2 p-1 select-none ${checked ? "bg-white" : "bg-primary"} ${isDup ? "opacity-60" : ""}`}
+      className={`windows95-border flex cursor-pointer items-center gap-2 p-1 select-none ${checked ? "bg-field" : "bg-primary"} ${isDup ? "opacity-60" : ""}`}
       title={isDup ? t("collection.import.anilist.already.exists") : ""}
     >
       <Checkbox checked={checked} onChange={() => onToggle(entry.media.id)} />

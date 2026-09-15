@@ -32,7 +32,7 @@ export function CardStatusBar({
           className="min-h-0 min-w-0 flex-1 text-xs"
         />
       ) : (
-        <span className="windows95-border bg-white px-1 py-0.5 text-xs leading-none">
+        <span className="windows95-border bg-field px-1 py-0.5 text-xs leading-none">
           {statusLabel(statuses, item.status, t, locale)}
         </span>
       )}

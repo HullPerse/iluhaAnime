@@ -98,7 +98,7 @@ const FranNode = memo(
         <div
           className={cn(
             "windows95-font flex items-center justify-between overflow-hidden px-1 leading-none",
-            isRoot ? "bg-secondary text-white" : "bg-surface text-text"
+            isRoot ? "bg-secondary text-title-text" : "bg-surface text-text"
           )}
           style={{ height: dims.h - dims.imgH }}
         >

@@ -20,7 +20,7 @@ function FranchiseList({
   return (
     <div className="h-full w-full overflow-y-auto">
       {root && (
-        <div className="sticky top-0 z-10 bg-white/95">
+        <div className="sticky top-0 z-10 bg-field/95">
           <div className="windows95-text flex items-center gap-1 px-2 py-0.5 text-xs tracking-wide uppercase">
             {t("anilist.franchise.current")}
           </div>

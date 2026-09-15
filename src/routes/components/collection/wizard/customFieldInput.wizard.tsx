@@ -31,7 +31,7 @@ export function WizardCustomFieldInput({
         type="number"
         value={String(value ?? "")}
         onChange={(e) => update(e.target.value)}
-        className="windows95-border bg-white px-2 py-1"
+        className="windows95-border bg-field px-2 py-1"
       />
     );
   }
@@ -39,7 +39,7 @@ export function WizardCustomFieldInput({
     <input
       value={String(value ?? "")}
       onChange={(e) => update(e.target.value)}
-      className="windows95-border bg-white px-2 py-1"
+      className="windows95-border bg-field px-2 py-1"
     />
   );
 }

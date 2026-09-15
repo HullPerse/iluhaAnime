@@ -80,7 +80,7 @@ export function GridScrollView({
   return (
     <section
       ref={parentRef}
-      className="windows95-border min-h-0 w-full flex-1 [scrollbar-gutter:stable] overflow-y-auto border bg-white p-1"
+      className="windows95-border min-h-0 w-full flex-1 [scrollbar-gutter:stable] overflow-y-auto border bg-field p-1"
     >
       <div className="relative w-full" style={{ height: rowVirtualizer.getTotalSize() }}>
         {rowVirtualizer.getVirtualItems().map((virtualRow) => {

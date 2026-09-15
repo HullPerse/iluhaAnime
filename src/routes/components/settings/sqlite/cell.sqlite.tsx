@@ -74,7 +74,7 @@ export function CellModal({
               placeholder={t("settings.sqlite.cell.placeholder")}
               disabled={cellSaving}
               spellCheck={false}
-              className="windows95-border text-text windows95-text placeholder:text-hint disabled:bg-primary disabled:text-hint min-h-24 w-full resize-y bg-white p-1 font-mono text-xs outline-none"
+              className="windows95-border text-text windows95-text placeholder:text-hint disabled:bg-primary disabled:text-hint min-h-24 w-full resize-y bg-field p-1 font-mono text-xs outline-none"
             />
             <div className="flex justify-end gap-1">
               <Button className="h-5" onClick={onCancelEdit} disabled={cellSaving}>
@@ -94,11 +94,11 @@ export function CellModal({
                   src={cellImageSrc}
                   alt={selectedCell.column}
                   type="contain"
-                  className="h-full w-full bg-white"
+                  className="h-full w-full bg-field"
                 />
               </div>
             )}
-            <pre className="windows95-border text-text windows95-text max-h-64 min-h-20 w-full overflow-auto bg-white p-1 text-xs wrap-break-word whitespace-pre-wrap">
+            <pre className="windows95-border text-text windows95-text max-h-64 min-h-20 w-full overflow-auto bg-field p-1 text-xs wrap-break-word whitespace-pre-wrap">
               {cellValue}
             </pre>
           </>

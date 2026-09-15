@@ -83,7 +83,7 @@ export default function ListCollection({
   return (
     <section
       ref={parentRef}
-      className="windows95-border flex min-h-0 w-full flex-1 scrollbar-gutter-stable flex-col gap-1 overflow-y-auto border bg-white p-1"
+      className="windows95-border flex min-h-0 w-full flex-1 scrollbar-gutter-stable flex-col gap-1 overflow-y-auto border bg-field p-1"
     >
       <div className="relative w-full" style={{ height: rowVirtualizer.getTotalSize() }}>
         {rowVirtualizer.getVirtualItems().map((virtualRow) => {
@@ -208,7 +208,7 @@ function CollectionRowView({ item, statuses, selected, onOpen, onSetStatus }: Co
             )}
             {item.progressTotal != null && item.progressTotal > 0 ? (
               <div className="flex items-center gap-1">
-                <div className="windows95-border relative h-3.5 w-20 overflow-hidden bg-white">
+                <div className="windows95-border relative h-3.5 w-20 overflow-hidden bg-field">
                   <div
                     className="bg-secondary h-full"
                     style={{
@@ -222,7 +222,7 @@ function CollectionRowView({ item, statuses, selected, onOpen, onSetStatus }: Co
               </div>
             ) : (
               item.progressValue > 0 && (
-                <span className="bg-secondary px-1 text-xs text-white">
+                <span className="bg-secondary px-1 text-xs text-title-text">
                   {item.progressValue} {item.progressUnit}
                 </span>
               )

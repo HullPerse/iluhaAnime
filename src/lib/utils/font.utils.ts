@@ -1,3 +1,5 @@
+import { attemptSync } from "@/lib/utils/attempt.utils";
+
 export const DEFAULT_FONT_FAMILY = '"MS Sans Serif", "Microsoft Sans Serif", "Segoe UI", system-ui';
 
 function quoteFont(name: string): string {
@@ -14,14 +16,14 @@ export function applyFontFamily(font: string | null): void {
   if (typeof document === "undefined" || !document.documentElement) return;
   const css = toCssFontFamily(font);
   document.documentElement.style.setProperty("--font-family", css, "important");
-  try {
+  attemptSync(() => {
     if (font) localStorage.setItem("appFont", font);
     else localStorage.removeItem("appFont");
-  } catch {}
+  });
 }
 
 export function getStoredAppFont(): string | null {
-  try {
+  const [font, error] = attemptSync((): string | null => {
     const direct = localStorage.getItem("appFont");
     if (direct && direct.trim().length > 0) return direct;
     const raw = localStorage.getItem("settings");
@@ -30,10 +32,11 @@ export function getStoredAppFont(): string | null {
       if (parsed && typeof parsed === "object") {
         const obj = parsed as Record<string, unknown>;
         const state = (obj.state as Record<string, unknown> | undefined) ?? obj;
-        const v = state.appFont;
-        if (typeof v === "string" && v.trim().length > 0) return v;
+        const stored = state.appFont;
+        if (typeof stored === "string" && stored.trim().length > 0) return stored;
       }
     }
-  } catch {}
-  return null;
+    return null;
+  });
+  return error === null ? font : null;
 }

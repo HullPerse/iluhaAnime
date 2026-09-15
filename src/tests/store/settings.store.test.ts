@@ -421,3 +421,28 @@ describe("window chrome side effect", () => {
     expect(mockInvoke).not.toHaveBeenCalled();
   });
 });
+
+describe("yorha grid v29 migration", () => {
+  it("defaults the grid to on", () => {
+    const migrate = useSettingsStore.persist.getOptions()?.migrate;
+    const result = migrate!({ language: "en" } as never, 28) as {
+      yorhaScanlinesEnabled: boolean;
+    };
+    expect(result.yorhaScanlinesEnabled).toBe(true);
+  });
+
+  it("keeps a persisted opt-out", () => {
+    const migrate = useSettingsStore.persist.getOptions()?.migrate;
+    const result = migrate!({ language: "en", yorhaScanlinesEnabled: false } as never, 28) as {
+      yorhaScanlinesEnabled: boolean;
+    };
+    expect(result.yorhaScanlinesEnabled).toBe(false);
+  });
+
+  it("mirrors the grid flag to the document", () => {
+    useSettingsStore.getState().patch({ yorhaScanlinesEnabled: false });
+    expect(document.documentElement.dataset.yorhaScanlines).toBe("off");
+    useSettingsStore.getState().patch({ yorhaScanlinesEnabled: true });
+    expect(document.documentElement.dataset.yorhaScanlines).toBe("on");
+  });
+});

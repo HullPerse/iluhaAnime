@@ -67,7 +67,7 @@ export default function SettingsNotifications() {
     <div className="flex flex-col gap-3">
       <section className="ui-panel">
         <div className="ui-titlebar">
-          <span className="font-bold text-white">{t("settings.notifications")}</span>
+          <span className="font-bold text-title-text">{t("settings.notifications")}</span>
         </div>
         <div className="p-2">
           <div className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">

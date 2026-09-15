@@ -13,7 +13,7 @@ export function TitlesSection({
 }) {
   const { t } = useI18n();
   return (
-    <Section header={t("anilist.details.all.titles")} className="flex flex-wrap gap-1 bg-white">
+    <Section header={t("anilist.details.all.titles")} className="flex flex-wrap gap-1 bg-field">
       <Button
         onClick={() => onSearchTorrents(anime.title ?? undefined)}
         className="windows95-text bg-primary hover:bg-surface -mx-0.5 flex flex-row gap-1 truncate px-1 text-left underline decoration-dotted"

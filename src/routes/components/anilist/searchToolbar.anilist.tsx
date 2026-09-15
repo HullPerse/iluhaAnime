@@ -61,7 +61,7 @@ export default function AniListSearchToolbar({
       >
         <Filter className="size-4" />
         {activeFilterCount > 0 && (
-          <span className="bg-secondary absolute -top-1 -right-1 flex size-3 items-center justify-center text-xs text-white">
+          <span className="bg-secondary absolute -top-1 -right-1 flex size-3 items-center justify-center text-xs text-title-text">
             {activeFilterCount}
           </span>
         )}

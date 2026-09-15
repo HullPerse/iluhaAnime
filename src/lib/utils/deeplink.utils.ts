@@ -1,4 +1,5 @@
 import { MAGNET_RX } from "@/config/torrent/common.config";
+import { attemptAll, attemptSync } from "@/lib/utils/attempt.utils";
 import type { CollectionExternalIds, CollectionItem, CollectionType } from "@/types/collection";
 import type {
   AnimeDeepLink,
@@ -157,13 +158,10 @@ function normalizeCoverUrl(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
   if (trimmed.length === 0 || trimmed.length > SHARE_MAX_COVER_URL) return null;
-  try {
-    const parsed = new URL(trimmed);
-    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return null;
-    return parsed.toString();
-  } catch {
-    return null;
-  }
+  const [parsed, error] = attemptSync(() => new URL(trimmed));
+  if (error !== null) return null;
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return null;
+  return parsed.toString();
 }
 
 function normalizeExternalIds(value: unknown): CollectionExternalIds {
@@ -263,12 +261,8 @@ async function runByteTransform(
 ): Promise<Uint8Array | null> {
   const writer = transform.writable.getWriter();
   const collected = collectBytes(transform.readable, maxBytes);
-  try {
-    await writer.write(input);
-    await writer.close();
-  } catch {
-    // The reader side may abort first (size cap or a malformed gzip stream).
-  }
+  // A failure here is expected: the reader side may abort first (size cap or a malformed gzip stream).
+  await attemptAll([() => writer.write(input), () => writer.close()]);
   return collected;
 }
 

@@ -279,7 +279,7 @@ function FolderView({
                 <div
                   key={index}
                   className={cn(
-                    "windows95-border hover:bg-surface absolute top-0 left-0 flex h-5 w-full items-center gap-1 bg-white px-1 hover:cursor-pointer",
+                    "windows95-border hover:bg-surface absolute top-0 left-0 flex h-5 w-full items-center gap-1 bg-field px-1 hover:cursor-pointer",
                     busy && "opacity-50"
                   )}
                   style={{

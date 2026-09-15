@@ -11,7 +11,7 @@ export function ChangelogCategory({
   const { t } = useI18n();
   if (entries.length === 0) return null;
   return (
-    <div className="windows95-border flex flex-col bg-white p-1">
+    <div className="windows95-border flex flex-col bg-field p-1">
       <span className="windows95-text px-1 text-xs font-bold">{t(titleKey)}</span>
       <ul className="flex flex-col">
         {entries.map((entry) => (

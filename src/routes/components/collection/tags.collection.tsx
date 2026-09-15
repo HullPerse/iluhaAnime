@@ -16,7 +16,7 @@ export function TagsReferenceModal({ open, onClose }: { open: boolean; onClose: 
   return (
     <Modal header={t("collection.tags.title")} onClose={onClose} className="min-w-md">
       <p className="windows95-text text-xs">{t("collection.tags.hint")}</p>
-      <ul className="windows95-border flex max-h-80 flex-col gap-0.5 overflow-y-auto bg-white p-1">
+      <ul className="windows95-border flex max-h-80 flex-col gap-0.5 overflow-y-auto bg-field p-1">
         {Object.keys(FILTER_KEYS).map((key) => (
           <li key={key} className="windows95-text flex flex-row items-baseline gap-2 text-xs">
             <span className="w-20 shrink-0 font-bold">{key}</span>
@@ -30,7 +30,7 @@ export function TagsReferenceModal({ open, onClose }: { open: boolean; onClose: 
         <li className="windows95-text text-hint text-xs">{t("collection.tags.range")}</li>
       </ul>
       <p className="windows95-text text-xs">{t("collection.tags.approx.title")}</p>
-      <ul className="windows95-border flex flex-col gap-1 bg-white p-1">
+      <ul className="windows95-border flex flex-col gap-1 bg-field p-1">
         {TAG_NUMERIC_KEYS.map((key) => (
           <li key={key} className="flex flex-row items-center gap-2 text-xs">
             <span className="windows95-text w-20 shrink-0 font-bold">{key}~=</span>

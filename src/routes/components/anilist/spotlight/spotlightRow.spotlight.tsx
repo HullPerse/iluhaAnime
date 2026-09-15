@@ -21,7 +21,7 @@ export function SpotlightRow({
     .filter((part) => part !== null && part !== undefined && part !== "")
     .join(" · ");
   return (
-    <section className="windows95-border flex flex-row gap-2 bg-white p-1">
+    <section className="windows95-border flex flex-row gap-2 bg-field p-1">
       {cover ? (
         <img src={cover} alt={media.title} className="h-20 w-14 shrink-0 object-cover" />
       ) : (

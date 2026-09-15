@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { attempt, attemptSync, toError, withFallback } from "@/lib/utils/attempt.utils";
+import { attempt, attemptAll, attemptSync, toError, withFallback } from "@/lib/utils/attempt.utils";
 
 describe("toError", () => {
   it("passes Error instances through untouched", () => {
@@ -57,6 +57,98 @@ describe("attemptSync", () => {
         throw literal;
       })
     ).toEqual([null, new Error("string throw")]);
+  });
+});
+
+describe("attemptAll", () => {
+  it("runs every step in order and resolves null", async () => {
+    const order: string[] = [];
+    await expect(
+      attemptAll([
+        () => order.push("a"),
+        async () => {
+          order.push("b");
+        },
+        () => order.push("c"),
+      ])
+    ).resolves.toBeNull();
+    expect(order).toEqual(["a", "b", "c"]);
+  });
+
+  it("awaits a step before starting the next one", async () => {
+    const order: string[] = [];
+    await attemptAll([
+      async () => {
+        await Promise.resolve();
+        order.push("first");
+      },
+      () => order.push("second"),
+    ]);
+    expect(order).toEqual(["first", "second"]);
+  });
+
+  it("stops at the first failure and resolves that error", async () => {
+    const failure = new Error("step down");
+    const order: string[] = [];
+    const error = await attemptAll([
+      () => order.push("a"),
+      () => {
+        throw failure;
+      },
+      () => order.push("c"),
+    ]);
+    expect(error).toBe(failure);
+    expect(order).toEqual(["a"]);
+  });
+
+  it("normalizes a non-Error rejection", async () => {
+    const plain = "nope" as unknown as Error;
+    await expect(attemptAll([() => Promise.reject(plain)])).resolves.toEqual(new Error("nope"));
+  });
+
+  it("resolves null for an empty step list", async () => {
+    await expect(attemptAll([])).resolves.toBeNull();
+  });
+
+  it("always runs onFinally, after success and after failure", async () => {
+    const order: string[] = [];
+    await attemptAll([() => order.push("step")], { onFinally: () => order.push("finally") });
+    expect(order).toEqual(["step", "finally"]);
+
+    order.length = 0;
+    await attemptAll(
+      [
+        () => {
+          throw new Error("boom");
+        },
+      ],
+      { onFinally: () => order.push("finally") }
+    );
+    expect(order).toEqual(["finally"]);
+  });
+
+  it("keeps the step error when the cleanup also fails", async () => {
+    const failure = new Error("step");
+    const error = await attemptAll(
+      [
+        () => {
+          throw failure;
+        },
+      ],
+      {
+        onFinally: () => {
+          throw new Error("cleanup");
+        },
+      }
+    );
+    expect(error).toBe(failure);
+  });
+
+  it("surfaces a cleanup failure when the steps succeeded", async () => {
+    const cleanup = "cleanup" as unknown as Error;
+    await expect(
+      attemptAll([() => undefined], { onFinally: () => Promise.reject(cleanup) })
+    ).resolves.toEqual(new Error("cleanup"));
   });
 });
 

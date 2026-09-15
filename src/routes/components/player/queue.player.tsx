@@ -116,7 +116,7 @@ export default function QueuePanel({ scan }: { scan: ScanType }) {
             {items.map((item) => (
               <div
                 key={item.id}
-                className="windows95-text flex flex-col bg-white px-1 py-0.5 text-xs"
+                className="windows95-text flex flex-col bg-field px-1 py-0.5 text-xs"
               >
                 <div className="flex items-center gap-1">
                   <button
@@ -162,7 +162,7 @@ export default function QueuePanel({ scan }: { scan: ScanType }) {
                   )}
                   {item.status === "processing" && item.current !== undefined && (
                     <div className="flex min-w-0 items-center gap-1">
-                      <div className="windows95-border h-4 w-20 bg-white">
+                      <div className="windows95-border h-4 w-20 bg-field">
                         <div
                           className="bg-secondary h-full transition-none"
                           style={{ width: `${item.progress}%` }}

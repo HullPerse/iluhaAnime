@@ -1,4 +1,5 @@
 import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
+import { attempt } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useAniListNotificationsStore } from "@/store/anilist.store";
 import { useNotificationStore } from "@/store/notification.store";
@@ -141,37 +142,42 @@ export async function pollAniListReleases(
   isDisposed: () => boolean,
   options?: { system?: boolean }
 ): Promise<boolean> {
-  try {
-    const user = await invokeTyped<{ id: number } | null>(
-      "check_anilist_auth",
-      anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl)
+  const [polled, error] = await attempt(pollAniListReleasesOnce(t, isDisposed, options));
+  return error === null && polled;
+}
+
+async function pollAniListReleasesOnce(
+  t: TFunc,
+  isDisposed: () => boolean,
+  options?: { system?: boolean }
+): Promise<boolean> {
+  const user = await invokeTyped<{ id: number } | null>(
+    "check_anilist_auth",
+    anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl)
+  );
+  if (!user || isDisposed()) return false;
+  const lists = await invokeTyped<{ name: string; entries: AniNotificationEntry[] }[]>(
+    "get_anilist_lists",
+    {
+      userId: user.id,
+      ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
+    }
+  );
+  if (isDisposed()) return false;
+  const system = options?.system ?? true;
+  const scope = useSettingsStore.getState().anilistNotifyLists;
+  const stats = lists
+    .flatMap((list) =>
+      !scope?.length || scope.includes(list.name)
+        ? list.entries.map((entry) => ({ ...entry, listName: list.name }))
+        : []
+    )
+    .map((entry) => processEntry(entry, Math.floor(Date.now() / 1000), t, system));
+  const store = useAniListNotificationsStore.getState();
+  if (!store.initialized) store.setInitialized(true);
+  if (import.meta.env.DEV)
+    console.warn(
+      `[anilist:release-poll] airing=${stats.filter((item) => item.airing).length} withPrevious=${stats.filter((item) => item.hadPrevious).length} notified=${stats.reduce((sum, item) => sum + item.notified, 0)} initialized=${store.initialized}`
     );
-    if (!user || isDisposed()) return false;
-    const lists = await invokeTyped<{ name: string; entries: AniNotificationEntry[] }[]>(
-      "get_anilist_lists",
-      {
-        userId: user.id,
-        ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
-      }
-    );
-    if (isDisposed()) return false;
-    const system = options?.system ?? true;
-    const scope = useSettingsStore.getState().anilistNotifyLists;
-    const stats = lists
-      .flatMap((list) =>
-        !scope?.length || scope.includes(list.name)
-          ? list.entries.map((entry) => ({ ...entry, listName: list.name }))
-          : []
-      )
-      .map((entry) => processEntry(entry, Math.floor(Date.now() / 1000), t, system));
-    const store = useAniListNotificationsStore.getState();
-    if (!store.initialized) store.setInitialized(true);
-    if (import.meta.env.DEV)
-      console.warn(
-        `[anilist:release-poll] airing=${stats.filter((item) => item.airing).length} withPrevious=${stats.filter((item) => item.hadPrevious).length} notified=${stats.reduce((sum, item) => sum + item.notified, 0)} initialized=${store.initialized}`
-      );
-    return true;
-  } catch {
-    return false;
-  }
+  return true;
 }

@@ -1,5 +1,6 @@
 import type { PersistStorage, StorageValue } from "zustand/middleware";
 
+import { attemptSync } from "@/lib/utils/attempt.utils";
 import type { PendingWrite } from "@/types/storage";
 
 export function createDebouncedStorage<S>(
@@ -14,14 +15,15 @@ export function createDebouncedStorage<S>(
     return storage;
   };
 
+  const persist = (name: string, value: StorageValue<S>, scope: string) => {
+    const [, error] = attemptSync(() => resolveStorage().setItem(name, JSON.stringify(value)));
+    if (error !== null) console.warn(`debouncedStorage: ${scope} of "${name}" failed`, error);
+  };
+
   const flush = () => {
     for (const [name, entry] of pending) {
       window.clearTimeout(entry.timer);
-      try {
-        resolveStorage().setItem(name, JSON.stringify(entry.value));
-      } catch (error) {
-        console.warn(`debouncedStorage: flush of "${name}" failed`, error);
-      }
+      persist(name, entry.value, "flush");
     }
     pending.clear();
   };
@@ -37,11 +39,8 @@ export function createDebouncedStorage<S>(
     getItem: (name) => {
       const item = resolveStorage().getItem(name);
       if (item === null) return null;
-      try {
-        return JSON.parse(item) as StorageValue<S>;
-      } catch {
-        return null;
-      }
+      const [value, error] = attemptSync(() => JSON.parse(item) as StorageValue<S>);
+      return error === null ? value : null;
     },
     setItem: (name, value) => {
       const existing = pending.get(name);
@@ -49,11 +48,7 @@ export function createDebouncedStorage<S>(
       pending.set(name, {
         timer: window.setTimeout(() => {
           pending.delete(name);
-          try {
-            resolveStorage().setItem(name, JSON.stringify(value));
-          } catch (error) {
-            console.warn(`debouncedStorage: write of "${name}" failed`, error);
-          }
+          persist(name, value, "write");
         }, delay),
         value,
       });

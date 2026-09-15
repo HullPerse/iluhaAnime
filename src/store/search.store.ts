@@ -4,7 +4,7 @@ import { persist } from "zustand/middleware";
 import { SEARCH_RANKING } from "@/config/search/ranking.config";
 import { normalizeSearchText } from "@/lib/search/suggestions.utils";
 import { createDebouncedStorage } from "@/lib/store/storage.utils";
-import { reportBackgroundError } from "@/lib/utils/attempt.utils";
+import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSettingsStore } from "@/store/settings.store";
 import type { AniListCollection, FavouriteAnime } from "@/types/anilist";
@@ -147,6 +147,19 @@ function buildAnimeIndex(
   return [...entries.values()].slice(0, MAX_LEARNING_ITEMS);
 }
 
+/** Clears a unified index scope, falling back to pruning the entries when the backend cannot drop it. */
+async function dropUnifiedScope(scope: string, label: string): Promise<void> {
+  const [, error] = await attempt(invokeTyped("clear_unified_index_scope", { scope }));
+  if (error === null) return;
+  const [, pruneError] = await attempt(
+    invokeTyped("prune_unified_index_scope", {
+      scope,
+      keepIds: [],
+    })
+  );
+  if (pruneError !== null) reportBackgroundError(label, pruneError);
+}
+
 export function migrateSearchState(persisted: unknown, version: number): SearchPersistedState {
   if (!persisted || typeof persisted !== "object" || version >= 1)
     return persisted as SearchPersistedState;
@@ -253,29 +266,11 @@ export const useSearchStore = create<SearchStore>()(
           queryStats: purgeExpired(state.queryStats ?? {}),
           suggestionStats: purgeExpired(state.suggestionStats ?? {}),
         })),
-      clearScope: async (scope) => {
-        try {
-          await invokeTyped("clear_unified_index_scope", { scope });
-        } catch {
-          await invokeTyped("prune_unified_index_scope", {
-            scope,
-            keepIds: [],
-          }).catch((error) => reportBackgroundError("scope.prune", error));
-        }
-      },
+      clearScope: (scope) => dropUnifiedScope(scope, "scope.prune"),
       clearAllLearning: async () => {
         set({ history: [], queryStats: {}, suggestionStats: {} });
         const scopes = ["global", "anilist", "torrent", "player", "filter"];
-        for (const scope of scopes) {
-          try {
-            await invokeTyped("clear_unified_index_scope", { scope });
-          } catch {
-            await invokeTyped("prune_unified_index_scope", {
-              scope,
-              keepIds: [],
-            }).catch((error) => console.warn("clear learning: prune fallback failed", error));
-          }
-        }
+        for (const scope of scopes) await dropUnifiedScope(scope, "learning.prune");
       },
       resetFilters: () => set({ filters: { ...defaultFilters } }),
       setAnilistSearchQuery: (query) => set({ anilistSearchQuery: query }),

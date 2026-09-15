@@ -39,7 +39,7 @@ export default function AniListSortBar({
   );
 
   return (
-    <section className="windows95-border flex flex-row items-center gap-2 bg-white px-1 py-0.5">
+    <section className="windows95-border flex flex-row items-center gap-2 bg-field px-1 py-0.5">
       <div className="flex min-w-0 flex-1 items-center gap-1" aria-label={t("anilist.sort.sorting")}>
         <Button
           size="icon"

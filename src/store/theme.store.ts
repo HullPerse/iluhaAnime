@@ -1,19 +1,49 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-import { THEMES } from "@/config/settings/themes.config";
-import { reportBackgroundError } from "@/lib/utils/attempt.utils";
+import { THEMES, THEME_OVERRIDE_VARS } from "@/config/settings/themes.config";
+import { contrastRatio, hexToRgb, relativeLuminance, shade } from "@/lib/theme/palette.utils";
+import { attemptSync, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { DEFAULT_FONT_FAMILY, getStoredAppFont, toCssFontFamily } from "@/lib/utils/font.utils";
-import type { ThemeDefinition, ThemeStore } from "@/types/theme";
+import type { ThemeDefinition, ThemeOverrideKey, ThemeStore } from "@/types/theme";
 
-function getTitleText(color: string): string {
-  const match = color.trim().match(/^#([\da-f]{6})$/i);
-  if (!match) return "#ffffff";
-  const value = Number.parseInt(match[1], 16);
-  const red = (value >> 16) & 0xff;
-  const green = (value >> 8) & 0xff;
-  const blue = value & 0xff;
-  return 0.299 * red + 0.587 * green + 0.114 * blue > 160 ? "#000000" : "#ffffff";
+/**
+ * Picks whichever of black or white reads better on the given colour. The previous
+ * brightness cutoff of 160 left seven themes with a title label under 4:1 - Terminal
+ * at 1.37 - because a saturated mid accent lands right around the threshold.
+ */
+export function getTitleText(color: string): string {
+  if (hexToRgb(color) === null) return "#ffffff";
+  const dark = contrastRatio(color, "#000000");
+  const light = contrastRatio(color, "#ffffff");
+  return dark >= light ? "#000000" : "#ffffff";
+}
+
+function parseRadius(value: unknown): ThemeDefinition["radius"] {
+  return value === "frame" || value === "all" || value === "none" ? value : undefined;
+}
+
+function parseBevel(value: unknown): ThemeDefinition["bevel"] {
+  return value === "flat" || value === "raised" ? value : undefined;
+}
+
+function parseTitlebarGradient(value: unknown): ThemeDefinition["titlebarGradient"] {
+  if (typeof value !== "object" || value === null) return undefined;
+  const record = value as Record<string, unknown>;
+  if (!/^#[\da-f]{6}$/i.test(String(record.from)) || !/^#[\da-f]{6}$/i.test(String(record.to)))
+    return undefined;
+  return { from: String(record.from), to: String(record.to) };
+}
+
+function parseOverrides(value: unknown): ThemeDefinition["overrides"] {
+  if (typeof value !== "object" || value === null) return undefined;
+  const record = value as Record<string, unknown>;
+  const overrides: Partial<Record<ThemeOverrideKey, string>> = {};
+  for (const key of Object.keys(THEME_OVERRIDE_VARS) as ThemeOverrideKey[]) {
+    const color = record[key];
+    if (typeof color === "string" && /^#[\da-f]{6}$/i.test(color)) overrides[key] = color;
+  }
+  return Object.keys(overrides).length > 0 ? overrides : undefined;
 }
 
 function parseAutocompleteOpacity(value: unknown): number {
@@ -23,6 +53,13 @@ function parseAutocompleteOpacity(value: unknown): number {
 
 function parseHexColor(value: unknown, fallback: string): string {
   return typeof value === "string" && /^#[\da-f]{6}$/i.test(value) ? value : fallback;
+}
+
+/** Content background (fields, lists, previews). Themes written before the token existed derive it from `primary`. */
+function resolveField(field: unknown, primary: string): string {
+  const rgb = hexToRgb(primary);
+  const derived = rgb === null || relativeLuminance(rgb) >= 0.5 ? "#ffffff" : shade(primary, -0.3);
+  return parseHexColor(field, derived);
 }
 
 function findTheme(name: string, custom: ThemeDefinition[]): ThemeDefinition | undefined {
@@ -37,6 +74,7 @@ export function applyTheme(name: string, customThemes: ThemeDefinition[] = []) {
   const c = theme.colors;
   const autocomplete = parseHexColor(c.autocomplete, c.muted);
   const autocompleteOpacity = parseAutocompleteOpacity(c.autocompleteOpacity);
+  const titleText = getTitleText(c.secondary);
   root.style.setProperty("--color-background", c.background, "important");
   root.style.setProperty("--color-primary", c.primary, "important");
   root.style.setProperty("--color-secondary", c.secondary, "important");
@@ -49,16 +87,36 @@ export function applyTheme(name: string, customThemes: ThemeDefinition[] = []) {
   root.style.setProperty("--color-success", c.success, "important");
   root.style.setProperty("--color-link-hover", c.linkHover, "important");
   root.style.setProperty("--color-surface", c.surface, "important");
+  root.style.setProperty("--color-field", resolveField(c.field, c.primary), "important");
   root.style.setProperty("--color-win-highlight", c.winHighlight, "important");
   root.style.setProperty("--color-win-shadow", c.winShadow, "important");
-  if (root.dataset) root.dataset.theme = theme.name;
+  root.style.setProperty("--color-title-text", titleText, "important");
+  root.style.setProperty(
+    "--titlebar-from",
+    theme.titlebarGradient?.from ?? c.secondary,
+    "important"
+  );
+  root.style.setProperty("--titlebar-to", theme.titlebarGradient?.to ?? c.secondary, "important");
+  // Overridden tokens are written explicitly and reset to the stylesheet derivation otherwise, so
+  // switching away from a theme that overrides e.g. `torrentSeeding` really drops its colour.
+  for (const key of Object.keys(THEME_OVERRIDE_VARS) as ThemeOverrideKey[]) {
+    const variable = THEME_OVERRIDE_VARS[key];
+    const override = theme.overrides?.[key];
+    if (override === undefined) root.style.removeProperty(variable);
+    else root.style.setProperty(variable, override, "important");
+  }
+  if (root.dataset) {
+    root.dataset.theme = theme.name;
+    root.dataset.radius = theme.radius ?? "none";
+    root.dataset.bevel = theme.bevel ?? "raised";
+  }
   const storedAppFont = getStoredAppFont();
   const fontCss = storedAppFont
     ? toCssFontFamily(storedAppFont)
     : (theme.fontFamily ?? DEFAULT_FONT_FAMILY);
   root.style.setProperty("--font-family", fontCss, "important");
 
-  try {
+  const [, serializeError] = attemptSync(() =>
     localStorage.setItem(
       "themeVars",
       JSON.stringify({
@@ -66,6 +124,7 @@ export function applyTheme(name: string, customThemes: ThemeDefinition[] = []) {
         autocompleteOpacity,
         background: c.background,
         destructive: c.destructive,
+        field: c.field,
         fontFamily: theme.fontFamily ?? null,
         highlight: c.highlight,
         linkHover: c.linkHover,
@@ -76,14 +135,13 @@ export function applyTheme(name: string, customThemes: ThemeDefinition[] = []) {
         surface: c.surface,
         text: c.text,
         themeName: theme.name,
-        titleText: getTitleText(c.secondary),
+        titleText,
         winHighlight: c.winHighlight,
         winShadow: c.winShadow,
       })
-    );
-  } catch (error) {
-    reportBackgroundError("theme.serialize", error);
-  }
+    )
+  );
+  if (serializeError !== null) reportBackgroundError("theme.serialize", serializeError);
 }
 
 export function themeToJson(theme: ThemeDefinition): string {
@@ -109,6 +167,7 @@ function parseRetroismColors(c: Record<string, unknown>): ThemeDefinition["color
   return {
     background: pickString(c, ["background", "base"], "#222222"),
     destructive: pickString(c, ["destructive", "urgent"], "#800000"),
+    field: pickString(c, ["field", "input", "base"], "#ffffff"),
     highlight: pickString(c, ["highlight"], "#0000ff"),
     linkHover: pickString(c, ["link_hover", "linkHover"], "#ff0000"),
     muted,
@@ -123,22 +182,22 @@ function parseRetroismColors(c: Record<string, unknown>): ThemeDefinition["color
     winShadow: pickString(c, ["win_shadow", "winShadow", "shadow"], muted),
   };
 }
-
 export function parseRetroismTheme(json: string): ThemeDefinition | null {
-  try {
-    const raw = JSON.parse(json) as Record<string, unknown>;
-    const c = (raw.colors ?? raw) as Record<string, unknown>;
-    const colors = parseRetroismColors(c);
-    if (!colors) return null;
-    return {
-      colors,
-      fontFamily: (raw.fontFamily ?? c.font_family) as string | undefined,
-      label: (raw.label ?? raw.name ?? "Imported") as string,
-      name: (raw.name ?? `custom-${Date.now()}`) as string,
-    };
-  } catch {
-    return null;
-  }
+  const [raw, error] = attemptSync(() => JSON.parse(json) as Record<string, unknown>);
+  if (error !== null) return null;
+  const c = (raw.colors ?? raw) as Record<string, unknown>;
+  const colors = parseRetroismColors(c);
+  if (!colors) return null;
+  return {
+    bevel: parseBevel(raw.bevel),
+    colors,
+    fontFamily: (raw.fontFamily ?? c.font_family) as string | undefined,
+    label: (raw.label ?? raw.name ?? "Imported") as string,
+    name: (raw.name ?? `custom-${Date.now()}`) as string,
+    overrides: parseOverrides(raw.overrides),
+    radius: parseRadius(raw.radius),
+    titlebarGradient: parseTitlebarGradient(raw.titlebarGradient),
+  };
 }
 
 export const useThemeStore = create<ThemeStore>()(

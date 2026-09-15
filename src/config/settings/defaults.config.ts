@@ -107,4 +107,5 @@ export const DEFAULT_SETTINGS: SettingsDefaults = {
   wallpaperShadow: { ...DEFAULT_WALLPAPER_SHADOW },
   wallpaperScanlines: false,
   searchShadow: { ...DEFAULT_WALLPAPER_SHADOW },
+  yorhaScanlinesEnabled: true,
 };

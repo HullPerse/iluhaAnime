@@ -55,10 +55,10 @@ export function StatusManagerCollection({
       contentClassName="w-full"
     >
       <div className="flex w-full flex-col gap-1">
-        <p className="bg-secondary windows95-text px-1 py-0.5 text-xs font-bold text-white">
+        <p className="bg-secondary windows95-text px-1 py-0.5 text-xs font-bold text-title-text">
           {t("collection.status.manager.core.title")}
         </p>
-        <ul className="windows95-border flex max-h-64 flex-col overflow-y-auto bg-white">
+        <ul className="windows95-border flex max-h-64 flex-col overflow-y-auto bg-field">
           {statuses
             .filter((status) => status.isCore)
             .map((status) => (
@@ -71,7 +71,7 @@ export function StatusManagerCollection({
               />
             ))}
         </ul>
-        <p className="bg-secondary windows95-text flex items-center gap-1 px-1 py-0.5 text-xs font-bold text-white">
+        <p className="bg-secondary windows95-text flex items-center gap-1 px-1 py-0.5 text-xs font-bold text-title-text">
           <span className="flex-1">{t("collection.status.manager.custom.title")}</span>
           <span aria-hidden>({statuses.filter((status) => !status.isCore).length})</span>
         </p>

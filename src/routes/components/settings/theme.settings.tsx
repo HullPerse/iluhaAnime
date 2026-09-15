@@ -71,7 +71,7 @@ export default function SettingsTheme() {
     <div className="flex flex-col gap-3">
       <section className="ui-panel">
         <div className="ui-titlebar">
-          <span className="font-bold text-white">{t("settings.theme")}</span>
+          <span className="font-bold text-title-text">{t("settings.theme")}</span>
         </div>
         <div className="flex flex-col gap-1 p-2">
           <div className="flex flex-wrap gap-2">
@@ -116,7 +116,7 @@ export default function SettingsTheme() {
 
       <section className="ui-panel">
         <div className="ui-titlebar">
-          <span className="font-bold text-white">{t("settings.theme.retro.style")}</span>
+          <span className="font-bold text-title-text">{t("settings.theme.retro.style")}</span>
         </div>
         <div className="flex flex-col gap-1 p-2">
           <div className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
@@ -162,7 +162,7 @@ export default function SettingsTheme() {
 
       <section className="ui-panel">
         <div className="ui-titlebar">
-          <span className="font-bold text-white">{t("settings.theme.collection.headers")}</span>
+          <span className="font-bold text-title-text">{t("settings.theme.collection.headers")}</span>
         </div>
         <div className="flex flex-col gap-1 p-2">
           <div className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
@@ -196,7 +196,7 @@ export default function SettingsTheme() {
 
       <section className="ui-panel">
         <div className="ui-titlebar">
-          <span className="font-bold text-white">{t("settings.font.title")}</span>
+          <span className="font-bold text-title-text">{t("settings.font.title")}</span>
         </div>
         <div className="flex flex-col gap-1 p-2">
           <FontSelector />
@@ -205,7 +205,7 @@ export default function SettingsTheme() {
 
       <section className="ui-panel">
         <div className="ui-titlebar">
-          <span className="font-bold text-white">{t("settings.theme.effects")}</span>
+          <span className="font-bold text-title-text">{t("settings.theme.effects")}</span>
         </div>
         <div className="flex flex-col gap-1 p-2">
           <EffectsCheckbox label={t("settings.theme.modal.animation")} field="modalAnimation" />
@@ -221,7 +221,7 @@ export default function SettingsTheme() {
 
       <section className="ui-panel">
         <div className="ui-titlebar">
-          <span className="font-bold text-white">{t("settings.theme.experimental")}</span>
+          <span className="font-bold text-title-text">{t("settings.theme.experimental")}</span>
         </div>
 
         <div className="flex flex-col gap-1 p-2">
@@ -256,6 +256,12 @@ export default function SettingsTheme() {
             field="roundedWindowCorners"
             hint={t("settings.theme.experimental.corners.hint")}
           />
+          {currentTheme === "yorha" && (
+            <EffectsCheckbox
+              label={t("settings.theme.experimental.scanlines")}
+              field="yorhaScanlinesEnabled"
+            />
+          )}
         </div>
       </section>
 

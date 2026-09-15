@@ -91,7 +91,7 @@ export function DualSlider({
       {label && <span className="w-24 shrink-0 text-xs">{label}</span>}
       <div
         ref={ref}
-        className="windows95-border relative h-4 flex-1 cursor-pointer bg-white"
+        className="windows95-border relative h-4 flex-1 cursor-pointer bg-field"
         onMouseDown={(e) => {
           e.preventDefault();
           const rect = ref.current?.getBoundingClientRect();

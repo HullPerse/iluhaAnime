@@ -1,3 +1,4 @@
+import { attemptAll } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import type { AppCacheRecord, RawAppCacheRecord } from "@/types/cache";
 
@@ -7,19 +8,14 @@ export async function readAppCache<T>(
   namespace: string,
   key: string
 ): Promise<AppCacheRecord<T> | null> {
-  try {
-    const record = await invokeTyped<RawAppCacheRecord | null>("get_app_cache", {
-      key,
-      namespace,
-    });
-    if (!record) return null;
-    return {
-      ...record,
-      payload: JSON.parse(record.payload) as T,
-    };
-  } catch {
-    return null;
-  }
+  let record: AppCacheRecord<T> | null = null;
+  const error = await attemptAll([
+    async () => {
+      const raw = await invokeTyped<RawAppCacheRecord | null>("get_app_cache", { key, namespace });
+      record = raw === null ? null : { ...raw, payload: JSON.parse(raw.payload) as T };
+    },
+  ]);
+  return error === null ? record : null;
 }
 
 export async function writeAppCache<T>(
@@ -28,24 +24,19 @@ export async function writeAppCache<T>(
   payload: T,
   ttlSeconds?: number
 ): Promise<boolean> {
-  try {
-    await invokeTyped("put_app_cache", {
-      key,
-      namespace,
-      payload: JSON.stringify(payload),
-      ttlSeconds: ttlSeconds ?? null,
-    });
-    return true;
-  } catch {
-    return false;
-  }
+  const error = await attemptAll([
+    () =>
+      invokeTyped("put_app_cache", {
+        key,
+        namespace,
+        payload: JSON.stringify(payload),
+        ttlSeconds: ttlSeconds ?? null,
+      }),
+  ]);
+  return error === null;
 }
 
 export async function deleteAppCache(namespace: string, key: string): Promise<boolean> {
-  try {
-    await invokeTyped("delete_app_cache", { key, namespace });
-    return true;
-  } catch {
-    return false;
-  }
+  const error = await attemptAll([() => invokeTyped("delete_app_cache", { key, namespace })]);
+  return error === null;
 }

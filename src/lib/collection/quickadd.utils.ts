@@ -13,53 +13,53 @@ export async function downloadCover(url: string): Promise<string | null> {
     })
   );
 
-  if (error) return null;
-  else return data.id;
+  return error !== null ? null : data.id;
 }
 
 export async function fetchAddedMedia(media: QuickAddMedia): Promise<AddedMedia | null> {
   const { tmdbKeySet, tmdbProxyUrl } = useSettingsStore.getState();
-  let media_type: "movie" | "tv" | null = null;
+  let mediaType: "movie" | "tv" | null = null;
   let tmdbId: number | null = null;
   if (tmdbKeySet) {
-    try {
-      const results = await invokeTyped<{ id: number; media_type: string }[]>("search_tmdb", {
+    const [results] = await attempt(
+      invokeTyped<{ id: number; media_type: string }[]>("search_tmdb", {
         apiKey: "",
         query: media.title,
         language: "ru-RU",
         includeAdult: false,
         proxyUrl: tmdbProxyUrl || undefined,
-      });
-      const first = results.find((r) => r.media_type === "movie" || r.media_type === "tv");
-      if (first) {
-        tmdbId = first.id;
-        media_type = first.media_type as "movie" | "tv";
-      }
-    } catch {}
+      })
+    );
+    const first = results?.find((r) => r.media_type === "movie" || r.media_type === "tv");
+    if (first) {
+      tmdbId = first.id;
+      mediaType = first.media_type as "movie" | "tv";
+    }
   }
-  if (tmdbId != null && media_type != null) {
-    try {
-      const tmdb = await invokeTyped<AddedMedia>("get_tmdb_media", {
+  if (tmdbId !== null && mediaType !== null) {
+    const [tmdb] = await attempt(
+      invokeTyped<AddedMedia>("get_tmdb_media", {
         apiKey: "",
         tmdbId,
-        mediaType: media_type,
+        mediaType,
         proxyUrl: tmdbProxyUrl || undefined,
-      });
+      })
+    );
+    if (tmdb !== null)
       return {
         backdrops: tmdb.backdrops,
         trailerYoutubeId: tmdb.trailerYoutubeId ?? media.trailer_youtube_id ?? null,
       };
-    } catch {}
   }
   if (media.id_mal != null) {
-    try {
-      const pics = await invokeTyped<{ url: string }[]>("get_anime_stills", {
+    const [pics] = await attempt(
+      invokeTyped<{ url: string }[]>("get_anime_stills", {
         malId: media.id_mal,
-      });
-      return { backdrops: pics, trailerYoutubeId: media.trailer_youtube_id ?? null };
-    } catch {
-      return null;
-    }
+      })
+    );
+    return pics === null
+      ? null
+      : { backdrops: pics, trailerYoutubeId: media.trailer_youtube_id ?? null };
   }
   return null;
 }

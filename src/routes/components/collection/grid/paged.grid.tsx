@@ -41,7 +41,7 @@ export function GridPagedView({
     <div className="flex min-h-0 w-full flex-1 flex-col gap-1 overflow-hidden">
       <section
         ref={scrollRef}
-        className="windows95-border min-h-0 w-full flex-1 [scrollbar-gutter:stable] overflow-y-auto border bg-white p-1"
+        className="windows95-border min-h-0 w-full flex-1 [scrollbar-gutter:stable] overflow-y-auto border bg-field p-1"
       >
         <div
           className="grid content-start gap-2"

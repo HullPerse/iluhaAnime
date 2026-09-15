@@ -33,7 +33,7 @@ export function DetailFactsCollection({
         <div className="flex flex-wrap items-center gap-1">
           <span>{t("collection.details.genres")}:</span>
           {item.genres.map((genre) => (
-            <span key={genre} className="windows95-border bg-white px-1">
+            <span key={genre} className="windows95-border bg-field px-1">
               {genre}
             </span>
           ))}

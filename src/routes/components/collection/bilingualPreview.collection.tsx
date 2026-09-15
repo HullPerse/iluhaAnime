@@ -11,7 +11,7 @@ export function BilingualPreview({ value }: { value: string }) {
       <span className="windows95-border bg-surface px-1">
         {t("collection.status.manager.preview.en", { value: parts.en || "-" })}
       </span>
-      <span className="windows95-border bg-white px-1">
+      <span className="windows95-border bg-field px-1">
         {t("collection.status.manager.preview.ru", { value: parts.ru || "-" })}
       </span>
     </span>

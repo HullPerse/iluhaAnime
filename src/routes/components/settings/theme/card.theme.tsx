@@ -2,6 +2,7 @@ import { cn } from "cn";
 
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
+import { getTitleText } from "@/store/theme.store";
 import type { ThemeDefinition } from "@/types/theme";
 
 export function ThemeCard({
@@ -33,32 +34,55 @@ export function ThemeCard({
         title={theme.label}
         aria-pressed={isActive}
       >
-        <div className="flex gap-0.5">
+        <div
+          className="windows95-border flex w-28 flex-col"
+          style={{
+            background: c.primary,
+            borderColor: `${c.muted} ${c.winHighlight} ${c.winHighlight} ${c.muted}`,
+          }}
+          aria-hidden="true"
+        >
           <div
-            className="border-muted size-5 border"
-            style={{ background: c.primary }}
-            title={t("settings.theme.color.primary")}
-          />
-          <div
-            className="border-muted size-5 border"
-            style={{ background: c.secondary }}
-            title={t("settings.theme.color.secondary")}
-          />
-          <div
-            className="border-muted size-5 border"
-            style={{ background: c.text }}
-            title={t("settings.theme.color.text")}
-          />
-          <div
-            className="border-muted size-5 border"
-            style={{ background: c.winHighlight }}
-            title={t("settings.theme.color.win.highlight")}
-          />
-          <div
-            className="border-muted size-5 border"
-            style={{ background: c.winShadow }}
-            title={t("settings.theme.color.win.shadow")}
-          />
+            className="windows95-text truncate px-1 text-[9px] font-bold"
+            style={{ background: c.secondary, color: getTitleText(c.secondary) }}
+          >
+            {theme.label}
+          </div>
+          <div className="flex flex-col gap-1 p-1">
+            <div className="flex gap-0.5">
+              <span
+                className="size-3"
+                style={{ background: c.surface }}
+                title={t("settings.theme.color.surface")}
+              />
+              <span
+                className="size-3"
+                style={{ background: c.highlight }}
+                title={t("settings.theme.color.highlight")}
+              />
+              <span
+                className="size-3"
+                style={{ background: c.success }}
+                title={t("settings.theme.color.success")}
+              />
+              <span
+                className="size-3"
+                style={{ background: c.destructive }}
+                title={t("settings.theme.color.destructive")}
+              />
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <span className="h-1 w-16" style={{ background: c.text }} />
+              <span className="h-1 w-12" style={{ background: c.muted }} />
+              <span
+                className="h-1 w-20"
+                style={{
+                  background: c.autocomplete ?? c.muted,
+                  opacity: c.autocompleteOpacity ?? 0.6,
+                }}
+              />
+            </div>
+          </div>
         </div>
         <span className="windows95-text text-text text-xs">
           {theme.label}

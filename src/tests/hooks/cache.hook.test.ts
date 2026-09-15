@@ -56,14 +56,15 @@ describe("useCoverCache", () => {
     second.unmount();
   });
 
-  it("falls back to the remote url when the download fails", async () => {
+  it("resolves to null when the download fails", async () => {
     invokeMock.mockRejectedValue(new Error("offline"));
     const { result, unmount } = renderHook(() =>
       useCoverCache("https://example.com/offline.jpg", null)
     );
     await waitFor(() => {
-      expect(result.current.cachedUrl).toBe("https://example.com/offline.jpg");
+      expect(invokeMock).toHaveBeenCalledTimes(1);
     });
+    expect(result.current.cachedUrl).toBeNull();
     unmount();
   });
 

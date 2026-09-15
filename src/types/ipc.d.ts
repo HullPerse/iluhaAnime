@@ -92,7 +92,6 @@ export type CommandName =
   | "list_user_images"
   | "nekobt_logout"
   | "nekobt_set_api_key"
-  | "open_path"
   | "optimize_unified_index"
   | "patch_collection_item"
   | "pause_torrent"

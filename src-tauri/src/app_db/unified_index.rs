@@ -149,11 +149,15 @@ pub fn upsert_unified_index(
     Ok(entries.len())
 }
 
+#[allow(non_snake_case)]
+#[tauri::command]
 pub fn prune_unified_index_scope(
     app: tauri::AppHandle,
     scope: String,
-    keep_ids: Vec<String>,
+    keep_ids: Option<Vec<String>>,
+    keepIds: Option<Vec<String>>,
 ) -> Result<usize, String> {
+    let keep_ids = keep_ids.or(keepIds).unwrap_or_default();
     if scope.is_empty() || scope.len() > 64 || keep_ids.len() > 50_000 {
         return Err("Unified index scope or keep list is invalid".into());
     }

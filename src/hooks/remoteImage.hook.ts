@@ -14,7 +14,7 @@ export function resetRemoteImageCache(): void {
   inflight.clear();
 }
 
-function fetchCachedImage(remoteUrl: string, proxyUrl: string): Promise<string | null> {
+function fetchCachedImage(remoteUrl: string, proxyUrl: string | null): Promise<string | null> {
   const cached = resolvedUrls.get(remoteUrl);
   if (cached) return Promise.resolve(cached);
   return inflightFetch(inflight, remoteUrl, () =>
@@ -38,12 +38,14 @@ export function useRemoteImageStatus(remoteUrl: string | null | undefined): {
 } {
   const tmdbProxyUrl = useSettingsStore((s) => s.tmdbProxyUrl);
   const [state, setState] = useState<{ src: string | null; failed: boolean }>(() => {
-    if (!remoteUrl || !tmdbProxyUrl) return { src: remoteUrl ?? null, failed: false };
+    if (!remoteUrl) return { src: null, failed: false };
     return { src: resolvedUrls.get(remoteUrl) ?? null, failed: false };
   });
   useEffect(() => {
-    if (!remoteUrl || !tmdbProxyUrl) {
-      setState({ src: remoteUrl ?? null, failed: false });
+    // Raw remote URLs never render: the production CSP allowlists no remote image
+    // host, so every remote image resolves through the backend cache instead.
+    if (!remoteUrl) {
+      setState({ src: null, failed: false });
       return;
     }
     let cancelled = false;

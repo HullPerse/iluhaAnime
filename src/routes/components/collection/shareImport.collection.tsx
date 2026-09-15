@@ -9,6 +9,7 @@ import Image from "@/components/ui/image.component";
 import { Input } from "@/components/ui/input.component";
 import { DEFAULT_NEW_COLOR, PUBLIC_STATUS_MAX_ITEMS } from "@/config/collection/statuses.config";
 import { COLLECTION_QUERY_KEY } from "@/hooks/collection/queries.hook";
+import { useRemoteImage } from "@/hooks/remoteImage.hook";
 import {
   buildCustomStatusId,
   normalizeStatusLabel,
@@ -249,42 +250,17 @@ export function ShareImportCollection({
         </div>
 
         <ul className="windows95-border bg-surface flex max-h-[45vh] flex-col gap-1 overflow-y-auto p-1">
-          {plan.rows.map((row, index) => {
-            const checked = selected.has(index);
-            return (
-              <li key={`${row.snapshot.title}-${index}`}>
-                <label
-                  className={`windows95-border flex items-center gap-2 p-1 select-none ${
-                    checked ? "bg-field" : "bg-primary"
-                  } ${importing ? "opacity-60" : "cursor-pointer"}`}
-                >
-                  <Checkbox
-                    checked={checked}
-                    disabled={importing || (!checked && atCap)}
-                    onChange={() => toggleRow(index)}
-                  />
-                  {row.snapshot.coverUrl ? (
-                    <Image
-                      src={row.snapshot.coverUrl}
-                      alt=""
-                      className="windows95-border h-10 w-8 shrink-0"
-                      type="cover"
-                    />
-                  ) : (
-                    <div className="bg-surface windows95-border h-10 w-8 shrink-0" aria-hidden />
-                  )}
-                  <div className="flex min-w-0 flex-1 flex-col">
-                    <span className="windows95-text truncate text-xs font-bold">
-                      {row.snapshot.title}
-                    </span>
-                    <span className="text-hint windows95-font truncate text-xs">
-                      {row.snapshot.year ?? ""}
-                    </span>
-                  </div>
-                </label>
-              </li>
-            );
-          })}
+          {plan.rows.map((row, index) => (
+            <ShareImportRow
+              key={`${row.snapshot.title}-${index}`}
+              row={row}
+              index={index}
+              checked={selected.has(index)}
+              importing={importing}
+              atCap={atCap}
+              onToggle={toggleRow}
+            />
+          ))}
         </ul>
 
         {overflow > 0 && (
@@ -336,5 +312,56 @@ export function ShareImportCollection({
         </div>
       </div>
     </Modal>
+  );
+}
+
+function ShareImportRow({
+  row,
+  index,
+  checked,
+  importing,
+  atCap,
+  onToggle,
+}: {
+  row: ShareImportPlan["rows"][number];
+  index: number;
+  checked: boolean;
+  importing: boolean;
+  atCap: boolean;
+  onToggle: (index: number) => void;
+}) {
+  const coverSrc = useRemoteImage(row.snapshot.coverUrl ?? null);
+  return (
+    <li>
+      <label
+        className={`windows95-border flex items-center gap-2 p-1 select-none ${
+          checked ? "bg-field" : "bg-primary"
+        } ${importing ? "opacity-60" : "cursor-pointer"}`}
+      >
+        <Checkbox
+          checked={checked}
+          disabled={importing || (!checked && atCap)}
+          onChange={() => onToggle(index)}
+        />
+        {coverSrc ? (
+          <Image
+            src={coverSrc}
+            alt=""
+            className="windows95-border h-10 w-8 shrink-0"
+            type="cover"
+          />
+        ) : (
+          <div className="bg-surface windows95-border h-10 w-8 shrink-0" aria-hidden />
+        )}
+        <div className="flex min-w-0 flex-1 flex-col">
+          <span className="windows95-text truncate text-xs font-bold">
+            {row.snapshot.title}
+          </span>
+          <span className="text-hint windows95-font truncate text-xs">
+            {row.snapshot.year ?? ""}
+          </span>
+        </div>
+      </label>
+    </li>
   );
 }

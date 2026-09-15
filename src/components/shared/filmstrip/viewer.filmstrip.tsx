@@ -117,7 +117,7 @@ export function FilmstripViewer({
         >
           <ImageComponent
             key={current}
-            src={resolvedCurrent ?? current}
+            src={resolvedCurrent ?? ""}
             alt=""
             type="contain"
             className="aspect-video w-full bg-black"

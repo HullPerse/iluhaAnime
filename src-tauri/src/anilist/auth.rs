@@ -364,7 +364,7 @@ pub async fn anilist_logout(app_handle: tauri::AppHandle) -> Result<(), String> 
     delete_secret(ANILIST_CREDENTIAL);
     let path = token_path(&app_handle)?;
     let _ = fs::remove_file(&path);
-    let _ = app_db::prune_unified_index_scope(app_handle, "anilist".into(), Vec::new());
+    let _ = app_db::prune_unified_index_scope(app_handle, "anilist".into(), Some(Vec::new()), None);
     Ok(())
 }
 #[allow(clippy::cast_possible_wrap)]

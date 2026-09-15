@@ -21,7 +21,6 @@ beforeEach(() => {
   useCacheStore.setState({
     episodeTracker: {},
     folderTrees: [],
-    initialScanDone: false,
     lastSaveDir: "",
     seedPreferences: {},
   });
@@ -50,10 +49,6 @@ describe("useCacheStore", () => {
     expect(s.episodeTracker[7]).toBe(12);
   });
 
-  it("tracks the initial scan flag", () => {
-    useCacheStore.getState().setInitialScanDone(true);
-    expect(useCacheStore.getState().initialScanDone).toBe(true);
-  });
 
   describe("migration", () => {
     it("passes persisted state through for any version", () => {

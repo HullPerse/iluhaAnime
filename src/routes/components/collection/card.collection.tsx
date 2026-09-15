@@ -9,7 +9,6 @@ import { resolveCardCover, sameCardVisual, uncachedCoverSource } from "@/lib/col
 import { statusColorOf } from "@/lib/collection/status.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { enterOrSpace } from "@/lib/utils/keyboard.utils";
-import { useSettingsStore } from "@/store/settings.store";
 import type { CollectionCardProps } from "@/types/collection";
 
 import { CardStatusBar } from "./cardStatusBar.collection";
@@ -24,9 +23,8 @@ function CollectionCardView({
 }: CollectionCardProps) {
   const { t } = useI18n();
   const { cachedUrl } = useCoverCache(item.coverUrl, item.thumbBlobId ?? item.coverBlobId);
-  const tmdbProxyUrl = useSettingsStore((s) => s.tmdbProxyUrl);
   const remoteSrc = useRemoteImage(uncachedCoverSource(item));
-  const cover = resolveCardCover(item, cachedUrl, remoteSrc, !tmdbProxyUrl);
+  const cover = resolveCardCover(item, cachedUrl, remoteSrc);
   const progressPercent =
     item.progressTotal != null && item.progressTotal > 0
       ? Math.min(100, (item.progressValue / item.progressTotal) * 100)

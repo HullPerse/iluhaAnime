@@ -14,6 +14,15 @@ function entry(key: TranslationKey, scope: ChangelogScope): ChangelogEntry {
 
 export const CHANGELOG: ChangelogVersion[] = [
   {
+    version: "4.0.8",
+    added: [],
+    changed: [],
+    fixed: [
+      entry("changelog.4_0_8.fixed.covers_build", "collection"),
+      entry("changelog.4_0_8.fixed.open_local", "collection"),
+    ],
+  },
+  {
     version: "4.0.7",
     added: [],
     changed: [],

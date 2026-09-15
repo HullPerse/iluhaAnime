@@ -1,24 +1,18 @@
-import { openUrl } from "@tauri-apps/plugin-opener";
+import { openPath, openUrl } from "@tauri-apps/plugin-opener";
 import { Play } from "lucide-react";
 
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
+import { attempt } from "@/lib/utils/attempt.utils";
+import { showError } from "@/lib/utils/notification.utils";
 import type { CollectionItem } from "@/types/collection";
 
 export function DetailActionsCollection({ item }: { item: CollectionItem }) {
   const { t } = useI18n();
   const openLocal = async () => {
     if (!item.localPath) return;
-    try {
-      await invokeTyped("open_path", { path: item.localPath });
-    } catch {
-      try {
-        await openUrl(item.localPath);
-      } catch (error) {
-        console.warn("open_path and openUrl both failed", error);
-      }
-    }
+    const [, error] = await attempt(openPath(item.localPath));
+    if (error !== null) showError(t("common.error"), String(error));
   };
 
   return (

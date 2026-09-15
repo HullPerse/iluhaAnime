@@ -5,12 +5,10 @@ import type { CollectionCardProps } from "@/types/collection";
 export function resolveCardCover(
   item: Pick<CollectionCardProps["item"], "coverUrl" | "title">,
   cachedUrl: string | null,
-  remoteSrc: string | null,
-  allowDirect: boolean
+  remoteSrc: string | null
 ): string {
   if (cachedUrl) return cachedUrl;
   if (remoteSrc) return remoteSrc;
-  if (allowDirect && item.coverUrl) return item.coverUrl;
   if (item.title) return generatePlaceholder(item.title);
   return "";
 }

@@ -9,7 +9,6 @@ export const useCacheStore = create<CacheStore>()(
     (set) => ({
       episodeTracker: {},
       folderTrees: [],
-      initialScanDone: false,
       lastSaveDir: "",
       seedPreferences: {},
       setEpisodeTracker: (tracker) => {
@@ -20,7 +19,6 @@ export const useCacheStore = create<CacheStore>()(
         writeAppCache("player", "folderTrees", trees);
         set({ folderTrees: trees });
       },
-      setInitialScanDone: (v) => set({ initialScanDone: v }),
       setLastSaveDir: (dir) => {
         writeAppCache("torrent", "lastSaveDir", dir);
         set({ lastSaveDir: dir });

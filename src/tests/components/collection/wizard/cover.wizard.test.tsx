@@ -32,10 +32,14 @@ function renderPanel(coverUrl = "https://img/cover.jpg") {
 }
 
 describe("WizardCoverPanel preview", () => {
-  it("renders the raw url without a proxy", () => {
+  it("resolves the preview through the backend cache without a proxy", async () => {
+    invokeMock.mockResolvedValue({ id: "c1", path: "C:/images/c1.jpg" });
     renderPanel();
-    expect(screen.getByAltText("selected").getAttribute("src")).toBe("https://img/cover.jpg");
-    expect(invokeMock).not.toHaveBeenCalled();
+    expect(await screen.findByAltText("selected")).toBeTruthy();
+    expect(invokeMock).toHaveBeenCalledWith("fetch_remote_image", {
+      url: "https://img/cover.jpg",
+      proxyUrl: null,
+    });
   });
 
   it("keeps a fixed-size slot while the cached preview resolves", async () => {

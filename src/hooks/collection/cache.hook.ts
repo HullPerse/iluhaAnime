@@ -46,7 +46,7 @@ function downloadCover(remoteUrl: string, proxyUrl: string | null): Promise<stri
         coverCache.set(remoteUrl, { url, blobId: img.id });
         return url;
       },
-      () => remoteUrl
+      () => null
     )
   );
 }

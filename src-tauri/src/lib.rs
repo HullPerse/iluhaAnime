@@ -588,7 +588,7 @@ async fn persist_file_index(
     for batch in unified_entries.chunks(5_000) {
         app_db::upsert_unified_index(app_handle.clone(), batch.to_vec())?;
     }
-    app_db::prune_unified_index_scope(app_handle.clone(), "player".into(), keep_ids)?;
+    app_db::prune_unified_index_scope(app_handle.clone(), "player".into(), Some(keep_ids), None)?;
     Ok(())
 }
 
@@ -1054,6 +1054,7 @@ pub fn run() {
             app_db::delete_app_cache,
             app_db::upsert_unified_index,
             app_db::clear_unified_index_scope,
+            app_db::prune_unified_index_scope,
             app_db::optimize_unified_index,
             app_db::record_unified_index_action,
             app_db::search_unified_index,

@@ -62,29 +62,27 @@ describe("DetailCoverCollection", () => {
     });
   });
 
-  it("shows the direct cover url without a proxy while the download is pending", () => {
+  it("renders no remote image while the backend cover resolves without a proxy", () => {
     mockInvoke.mockImplementation((cmd: string) => {
       if (cmd === "download_remote_image") return new Promise(() => {});
+      if (cmd === "fetch_remote_image") return new Promise(() => {});
       return Promise.reject(new Error(`unexpected ${cmd}`));
     });
     const { container } = render(
-      <DetailCoverCollection item={coverItem("https://image.tmdb.org/t/p/w500/direct.jpg")} />
+      <DetailCoverCollection item={coverItem("https://image.tmdb.org/t/p/w500/pending.jpg")} />
     );
-    expect(container.querySelector("img")?.getAttribute("src")).toBe(
-      "https://image.tmdb.org/t/p/w500/direct.jpg"
-    );
+    expect(container.querySelector('img[src*="image.tmdb.org"]')).toBeNull();
   });
 
-  it("falls back to the direct url when the backend cache fails", async () => {
+  it("renders no remote image when the backend cache fails", async () => {
     useSettingsStore.setState({ tmdbProxyUrl: "http://127.0.0.1:10809" });
     mockInvoke.mockRejectedValue(new Error("offline"));
     const { container } = render(
       <DetailCoverCollection item={coverItem("https://image.tmdb.org/t/p/w500/offline.jpg")} />
     );
     await vi.waitFor(() => {
-      expect(container.querySelector("img")?.getAttribute("src")).toBe(
-        "https://image.tmdb.org/t/p/w500/offline.jpg"
-      );
+      expect(container.querySelector('[role="img"]')).not.toBeNull();
     });
+    expect(container.querySelector('img[src*="image.tmdb.org"]')).toBeNull();
   });
 });

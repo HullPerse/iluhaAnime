@@ -1,7 +1,7 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { useRemoteImage, useRemoteImageStatus } from "@/hooks/remoteImage.hook";
+import { resetRemoteImageCache, useRemoteImage, useRemoteImageStatus } from "@/hooks/remoteImage.hook";
 import { useSettingsStore } from "@/store/settings.store";
 
 const invokeMock = vi.fn();
@@ -12,16 +12,24 @@ vi.mock("@tauri-apps/api/core", () => ({
 
 beforeEach(() => {
   invokeMock.mockReset();
+  resetRemoteImageCache();
   useSettingsStore.setState({ tmdbProxyUrl: null });
 });
 
 describe("useRemoteImage", () => {
-  it("returns the remote url without invoking when no proxy is set", () => {
+  it("resolves through the backend cache even when no proxy is set", async () => {
+    invokeMock.mockResolvedValue({ id: "cached-1", path: "C:/images/cached-1.jpg" });
     const { result, unmount } = renderHook(() =>
       useRemoteImage("https://image.tmdb.org/t/p/w500/a.jpg")
     );
-    expect(result.current).toBe("https://image.tmdb.org/t/p/w500/a.jpg");
-    expect(invokeMock).not.toHaveBeenCalled();
+    expect(result.current).toBeNull();
+    await waitFor(() => {
+      expect(result.current).toContain("http://asset.localhost/");
+    });
+    expect(invokeMock).toHaveBeenCalledWith("fetch_remote_image", {
+      url: "https://image.tmdb.org/t/p/w500/a.jpg",
+      proxyUrl: null,
+    });
     unmount();
   });
 

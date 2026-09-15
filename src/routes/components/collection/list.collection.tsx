@@ -144,10 +144,9 @@ function CollectionRowView({ item, statuses, selected, onOpen, onSetStatus }: Co
   const { cachedUrl } = useCoverCache(item.coverUrl, item.thumbBlobId ?? item.coverBlobId);
   const cover = useMemo(() => {
     if (cachedUrl) return cachedUrl;
-    if (item.coverUrl) return item.coverUrl;
     if (item.title) return generatePlaceholder(item.title);
     return "";
-  }, [cachedUrl, item.coverUrl, item.title]);
+  }, [cachedUrl, item.title]);
   const meta = rowMetaParts(item);
   return (
     <div

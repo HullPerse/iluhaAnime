@@ -22,7 +22,7 @@ function renderViewer(props: Partial<Parameters<typeof FilmstripViewer>[0]> = {}
 }
 
 describe("FilmstripViewer", () => {
-  it("renders the big scene, thumbnail strip, and highlights the active frame", async () => {
+  it("highlights the active frame without rendering raw remote stills", async () => {
     useSettingsStore.setState({ language: "en" });
     renderViewer();
     const frame1 = await screen.findByRole("option", { name: /Frame 1|Кадр 1/ });
@@ -31,7 +31,7 @@ describe("FilmstripViewer", () => {
       screen.getByRole("option", { name: /Frame 3|Кадр 3/ }).getAttribute("aria-selected")
     ).toBe("false");
     expect(screen.getByText("1/3")).toBeTruthy();
-    expect(document.querySelector("img[src*='s1.jpg']")).not.toBeNull();
+    expect(document.querySelector("img[src*='s1.jpg']")).toBeNull();
   });
 
   it("flips frames with the next/previous arrows and wraps around", async () => {

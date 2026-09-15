@@ -3,6 +3,7 @@ import {
   Dices,
   Download,
   EllipsisVertical,
+  Globe,
   Grid3x3,
   Hash,
   Infinity as InfinityIcon,
@@ -23,7 +24,6 @@ import { DropdownMenuRadioGroup } from "@/components/ui/dropdown/radioGroup.drop
 import { DropdownMenuRadioItem } from "@/components/ui/dropdown/radioItem.dropdown";
 import { DropdownMenuSeparator } from "@/components/ui/dropdown/separator.dropdown";
 import { DropdownMenuTrigger } from "@/components/ui/dropdown/trigger.dropdown";
-import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { useCollectionStore } from "@/store/collection.store";
 
@@ -124,11 +124,7 @@ export default function DataCollection({
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
             <DropdownMenuItem onClick={onHandleAnilist}>
-              <ImageComponent
-                src="https://anilist.co/favicon.ico"
-                alt="A"
-                className="size-4 opacity-50"
-              />
+              <Globe className="size-4 opacity-50" />
               {t("collection.import.anilist.title")}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={onHandleJson}>

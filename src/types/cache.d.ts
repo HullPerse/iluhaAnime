@@ -21,14 +21,12 @@ export interface CacheStore {
   lastSaveDir: string;
   seedPreferences: Record<number, boolean>;
   episodeTracker: Record<number, number>;
-  initialScanDone: boolean;
 
   setFolderTrees: (trees: { path: string; tree: FolderNode }[]) => void;
   setLastSaveDir: (dir: string) => void;
   setSeedPreference: (id: number, enabled: boolean) => void;
   removeSeedPreference: (id: number) => void;
   setEpisodeTracker: (tracker: Record<number, number>) => void;
-  setInitialScanDone: (v: boolean) => void;
 }
 
 export interface LruCacheStats {

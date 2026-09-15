@@ -209,6 +209,12 @@ describe("parsePastedLink", () => {
     );
   });
 
+  it("routes collection share links to the share kind", () => {
+    expect(parsePastedLink("iluhaanime://collection/share/abcDEF123-_")).toEqual({
+      kind: "collectionShare",
+    });
+  });
+
   it("routes anilist page urls to the anime kind", () => {
     expect(parsePastedLink("https://anilist.co/anime/21/One-Piece")).toEqual({
       kind: "anime",

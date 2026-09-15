@@ -10,6 +10,7 @@ import {
 import { listSortKeys } from "@/lib/anilist/entries.utils";
 import { detectSystemLocale } from "@/lib/locale/system.utils";
 import { normalizePlayerPath } from "@/lib/player/visibility.utils";
+import { applyWindowChrome } from "@/lib/settings/window.utils";
 import { reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { applyFontFamily, DEFAULT_FONT_FAMILY } from "@/lib/utils/font.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
@@ -351,6 +352,22 @@ function applySettingsV27(
   return migrated;
 }
 
+function applySettingsV28(
+  migrated: Partial<SettingsStore>,
+  version: number
+): Partial<SettingsStore> {
+  if (version >= 28) return migrated;
+  if (migrated.customTitleBarEnabled === undefined)
+    migrated.customTitleBarEnabled = DEFAULT_SETTINGS.customTitleBarEnabled;
+  if (migrated.statusBarEnabled === undefined)
+    migrated.statusBarEnabled = DEFAULT_SETTINGS.statusBarEnabled;
+  if (migrated.roundedWindowCorners === undefined)
+    migrated.roundedWindowCorners = DEFAULT_SETTINGS.roundedWindowCorners;
+  if (migrated.searchMascotEnabled === undefined)
+    migrated.searchMascotEnabled = DEFAULT_SETTINGS.searchMascotEnabled;
+  return migrated;
+}
+
 function drainTmdbPendingKey(state: SettingsStore): void {
   const pending = state.tmdbPendingKey;
   if (!pending) return;
@@ -399,6 +416,12 @@ export const useSettingsStore = create<SettingsStore>()(
           const retroStyle = partial.retroStyle ?? state.retroStyle;
           const uiDensity = partial.uiDensity ?? state.uiDensity;
           applyUiPreferences(retroStyle, uiDensity);
+          if ("customTitleBarEnabled" in partial || "roundedWindowCorners" in partial) {
+            applyWindowChrome({
+              customTitleBarEnabled: partial.customTitleBarEnabled ?? state.customTitleBarEnabled,
+              roundedWindowCorners: partial.roundedWindowCorners ?? state.roundedWindowCorners,
+            });
+          }
           if ("appFont" in partial) {
             const next = partial.appFont ?? null;
             if (next) applyFontFamily(next);
@@ -479,6 +502,7 @@ export const useSettingsStore = create<SettingsStore>()(
         migrated = applySettingsV25(migrated, version);
         migrated = applySettingsV26(migrated, version);
         migrated = applySettingsV27(migrated, version);
+        migrated = applySettingsV28(migrated, version);
         return migrated;
       },
       onRehydrateStorage: () => (state) => {
@@ -488,7 +512,7 @@ export const useSettingsStore = create<SettingsStore>()(
           drainTmdbPendingKey(state);
         }
       },
-      version: 27,
+      version: 28,
     }
   )
 );

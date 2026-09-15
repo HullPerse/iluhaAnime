@@ -42,6 +42,9 @@ const common = {
   "common.deselect.all": "Deselect all",
   "common.show.password": "Show password",
   "common.slider": "Slider",
+  "window.minimize": "Minimize",
+  "window.maximize": "Maximize",
+  "window.restore": "Restore",
   "download.confirm.overwrite":
     "Some files already exist in the destination folder. Overwrite them?",
   "download.error.cancel": "Error canceling torrent:",

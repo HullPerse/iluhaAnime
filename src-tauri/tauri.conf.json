@@ -28,6 +28,7 @@
       {
         "title": "iluhaAnime",
         "visible": false,
+        "decorations": true,
         "transparent": false,
         "minWidth": 860,
         "width": 860,

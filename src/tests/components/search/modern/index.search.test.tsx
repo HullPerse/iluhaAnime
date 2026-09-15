@@ -1,11 +1,13 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, cleanup, render, waitFor } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { assetUrl } from "@/lib/utils/image.utils";
 import SearchModern from "@/routes/components/search/modern/index.search";
 import { useNotificationStore } from "@/store/notification.store";
 import { useSettingsStore } from "@/store/settings.store";
+import type { Anime } from "@/types/torrent";
 import type { UserImageFile } from "@/types/userimage";
 
 const mockInvoke = vi.fn();
@@ -190,5 +192,174 @@ describe("SearchModern wallpaper", () => {
     renderModern();
     await waitFor(() => expect(wallpaperSrc()).toBe("/wallpaper_placeholder.jpg"));
     expect(document.querySelector('div[style*="linear-gradient"]')).toBeNull();
+  });
+});
+
+describe("SearchModern observer mascot", () => {
+  function mascot(): HTMLImageElement | null {
+    return document.querySelector<HTMLImageElement>('img[src="/avatar.png"]');
+  }
+
+  function panel(): HTMLElement | null {
+    return document.querySelector("section.absolute");
+  }
+
+  function overlapRect(left: number, top: number, right: number, bottom: number): DOMRect {
+    return {
+      left,
+      top,
+      right,
+      bottom,
+      x: left,
+      y: top,
+      width: right - left,
+      height: bottom - top,
+      toJSON: () => {},
+    } as DOMRect;
+  }
+
+  const ROW: Anime = {
+    title: "Mock Frieren 1080p",
+    magnet: "",
+    torrent: "",
+    size: "1 GiB",
+    seeders: 10,
+    leechers: 1,
+    category: "Anime",
+    link: "https://example.com/mock",
+  };
+
+  function searchInvoke(command: string) {
+    if (command === "search_erairaws") return Promise.resolve([ROW]);
+    if (command.startsWith("check_")) return Promise.resolve(false);
+    return Promise.resolve([]);
+  }
+
+  async function submitQuery(query: string) {
+    const user = userEvent.setup();
+    const input = screen.getByPlaceholderText("Search anime...");
+    await user.type(input, query);
+    const bar = input.closest("section");
+    if (!bar?.parentElement) throw new Error("Input row not found");
+    await user.click(within(bar.parentElement).getAllByRole("button").at(-1)!);
+  }
+
+  it("is hidden while the setting is off", async () => {
+    useSettingsStore.setState({ searchMascotEnabled: false });
+    mockInvoke.mockResolvedValue([]);
+    renderModern();
+    await waitFor(() => expect(wallpaperSrc()).toBe("/wallpaper_placeholder.jpg"));
+    expect(mascot()).toBeNull();
+  });
+
+  it("renders a click-through image when the setting is on", async () => {
+    useSettingsStore.setState({ searchMascotEnabled: true });
+    mockInvoke.mockResolvedValue([]);
+    renderModern();
+    await waitFor(() => expect(mascot()).toBeTruthy());
+    const wrapper = screen.getByTestId("search-mascot");
+    expect(wrapper.className).toContain("pointer-events-none");
+    expect(wrapper?.className).toContain("size-54");
+    expect(wrapper?.className).toContain("opacity-100");
+  });
+
+  it("reacts to the toggle without a reload", async () => {
+    useSettingsStore.setState({ searchMascotEnabled: false });
+    mockInvoke.mockResolvedValue([]);
+    renderModern();
+    await waitFor(() => expect(wallpaperSrc()).toBe("/wallpaper_placeholder.jpg"));
+    expect(mascot()).toBeNull();
+
+    await act(async () => {
+      useSettingsStore.setState({ searchMascotEnabled: true });
+    });
+    expect(mascot()).toBeTruthy();
+  });
+
+  it("hides the mascot while results are docked", async () => {
+    useSettingsStore.setState({ searchMascotEnabled: true });
+    mockInvoke.mockImplementation(searchInvoke);
+    renderModern();
+    await waitFor(() => expect(mascot()).toBeTruthy());
+    await submitQuery("frieren");
+    await waitFor(() => expect(panel()?.classList.contains("top-2")).toBe(true));
+    expect(await screen.findByText("Mock Frieren 1080p")).not.toBeNull();
+    expect(mascot()).toBeNull();
+  });
+
+  it("shows the mascot again after hiding results", async () => {
+    useSettingsStore.setState({ searchMascotEnabled: true });
+    mockInvoke.mockImplementation(searchInvoke);
+    const user = userEvent.setup();
+    renderModern();
+    await waitFor(() => expect(mascot()).toBeTruthy());
+    await submitQuery("frieren");
+    await waitFor(() => expect(panel()?.classList.contains("top-2")).toBe(true));
+    expect(mascot()).toBeNull();
+    await user.click(screen.getByTitle("Hide results"));
+    await waitFor(() => expect(panel()?.classList.contains("top-1/2")).toBe(true));
+    expect(mascot()).toBeTruthy();
+  });
+  it("dims the mascot while the panel sits on it", async () => {
+    useSettingsStore.setState({ searchMascotEnabled: true });
+    mockInvoke.mockImplementation(searchInvoke);
+    vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function elementRect(
+      this: Element
+    ) {
+      if (this.querySelector?.('img[src="/avatar.png"]')) return overlapRect(0, 400, 216, 616);
+      return overlapRect(0, 300, 600, 500);
+    });
+    renderModern();
+    await waitFor(() => expect(mascot()).toBeTruthy());
+    await waitFor(() =>
+      expect(screen.getByTestId("search-mascot").className).toContain("opacity-50")
+    );
+  });
+
+  it("stays opaque while the panel only grazes the mascot", async () => {
+    useSettingsStore.setState({ searchMascotEnabled: true });
+    mockInvoke.mockImplementation(searchInvoke);
+    vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function elementRect(
+      this: Element
+    ) {
+      if (this.querySelector?.('img[src="/avatar.png"]')) return overlapRect(0, 400, 216, 616);
+      return overlapRect(200, 556, 776, 800);
+    });
+    renderModern();
+    await waitFor(() => expect(mascot()).toBeTruthy());
+    expect(screen.getByTestId("search-mascot").className).toContain("opacity-100");
+  });
+  it("dims the mascot that mounts after the wallpaper loader", async () => {
+    useSettingsStore.setState({ searchMascotEnabled: true, selectedDitherId: "aaa" });
+    mockInvoke.mockImplementation((command: string) =>
+      command === "get_dither_image" ? Promise.resolve(FIRST) : searchInvoke(command)
+    );
+    vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function elementRect(
+      this: Element
+    ) {
+      if (this.querySelector?.('img[src="/avatar.png"]')) return overlapRect(0, 400, 216, 616);
+      return overlapRect(0, 300, 600, 500);
+    });
+    renderModern();
+    await waitFor(() => expect(mascot()).toBeTruthy());
+    await waitFor(() =>
+      expect(screen.getByTestId("search-mascot").className).toContain("opacity-50")
+    );
+  });
+
+  it("keeps the mascot fully opaque away from the panel", async () => {
+    useSettingsStore.setState({ searchMascotEnabled: true });
+    mockInvoke.mockImplementation(searchInvoke);
+    vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function elementRect(
+      this: Element
+    ) {
+      if (this.querySelector?.('img[src="/avatar.png"]')) return overlapRect(0, 400, 216, 616);
+      return overlapRect(900, 300, 1476, 460);
+    });
+    renderModern();
+    await waitFor(() => expect(mascot()).toBeTruthy());
+    await waitFor(() =>
+      expect(screen.getByTestId("search-mascot").className).toContain("opacity-100")
+    );
   });
 });

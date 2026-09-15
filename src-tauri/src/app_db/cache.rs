@@ -27,13 +27,12 @@ fn validate_cache_input(namespace: &str, key: &str, payload: &str) -> Result<(),
     Ok(())
 }
 
-#[tauri::command]
-pub fn get_app_cache(
-    app: tauri::AppHandle,
-    namespace: String,
-    key: String,
+fn fetch_cached_record(
+    app: &tauri::AppHandle,
+    namespace: &str,
+    key: &str,
 ) -> Result<Option<AppCacheRecord>, String> {
-    let connection = open_database(&app)?;
+    let connection = open_database(app)?;
     let record = connection
         .query_row(
             "SELECT namespace, cache_key, payload, expires_at, updated_at
@@ -52,23 +51,41 @@ pub fn get_app_cache(
         .optional()
         .map_err(|error| format!("read app cache: {error}"))?;
 
-    if let Some(record) = record {
-        if record
-            .expires_at
-            .is_some_and(|expires_at| expires_at <= now_seconds())
-        {
-            connection
-                .execute(
-                    "DELETE FROM cache_entries WHERE namespace = ?1 AND cache_key = ?2",
-                    params![record.namespace, record.key],
-                )
-                .map_err(|error| format!("remove expired cache: {error}"))?;
-            return Ok(None);
-        }
-        return Ok(Some(record));
+    let Some(record) = record else {
+        return Ok(None);
+    };
+
+    if record
+        .expires_at
+        .is_some_and(|expires_at| expires_at <= now_seconds())
+    {
+        connection
+            .execute(
+                "DELETE FROM cache_entries WHERE namespace = ?1 AND cache_key = ?2",
+                params![record.namespace, record.key],
+            )
+            .map_err(|error| format!("remove expired cache: {error}"))?;
+        return Ok(None);
     }
 
-    Ok(None)
+    Ok(Some(record))
+}
+
+pub fn read_cached_payload(
+    app: &tauri::AppHandle,
+    namespace: &str,
+    key: &str,
+) -> Result<Option<String>, String> {
+    Ok(fetch_cached_record(app, namespace, key)?.map(|record| record.payload))
+}
+
+#[tauri::command]
+pub fn get_app_cache(
+    app: tauri::AppHandle,
+    namespace: String,
+    key: String,
+) -> Result<Option<AppCacheRecord>, String> {
+    fetch_cached_record(&app, &namespace, &key)
 }
 
 #[tauri::command]

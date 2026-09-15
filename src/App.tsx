@@ -8,12 +8,13 @@ import { useI18n } from "@/lib/locale/i18n.utils";
 import TorrentFilePicker from "@/routes/components/search/default/picker.search";
 import { useCacheStore } from "@/store/cache.store";
 import { useTorrentStore } from "@/store/download.store";
+import { useSettingsStore } from "@/store/settings.store";
 import type { TabId } from "@/types/settings";
 
 import { SmallLoader, TabLoader } from "./components/shared/loader.component";
-import NotificationTray from "./components/shared/notification/tray.notification";
 import StatusBar from "./components/shared/status.component";
 import Tabs from "./components/shared/tabs.component";
+import TitleBar from "./components/shared/titlebar.component";
 import Updater from "./components/shared/updater.component";
 
 const SearchRoute = lazy(() => import("@/routes/search.route"));
@@ -42,6 +43,8 @@ export default function App() {
   const pendingTorrent = useTorrentStore((s) => s.pendingTorrent);
   const preparingTorrent = useTorrentStore((s) => s.preparingTorrent);
   const lastSaveDir = useCacheStore((s) => s.lastSaveDir);
+  const customTitleBarEnabled = useSettingsStore((s) => s.customTitleBarEnabled);
+  const statusBarEnabled = useSettingsStore((s) => s.statusBarEnabled);
   const confirmDownload = useTorrentStore((s) => s.confirmDownload);
   const cancelDownload = useTorrentStore((s) => s.cancelDownload);
   const prefetchedTabs = useRef<Set<TabId>>(new Set());
@@ -101,12 +104,8 @@ export default function App() {
       )}
       <section className="relative z-10 flex h-full flex-col">
         <div className="ui-panel flex h-full flex-col">
-          <div className="ui-titlebar justify-between select-none">
-            <span className="windows95-text font-bold text-white">iluhaAnime</span>
-            <NotificationTray />
-          </div>
+          {customTitleBarEnabled && <TitleBar title="iluhaAnime" />}
           <div className="shrink-0">
-            {" "}
             <Tabs
               ariaLabel={t("common.sections")}
               tabs={visibleTabs}
@@ -123,9 +122,11 @@ export default function App() {
               </div>
             )}
           </div>
-          <div className="relative">
-            <StatusBar tabLabel={visibleTabs.find((tab) => tab.id === activeTab)?.label ?? ""} />
-          </div>
+          {statusBarEnabled && (
+            <div className="relative">
+              <StatusBar tabLabel={visibleTabs.find((tab) => tab.id === activeTab)?.label ?? ""} />
+            </div>
+          )}
         </div>
       </section>
     </main>

@@ -7,8 +7,10 @@ import { Checkbox } from "@/components/ui/checkbox.component";
 import { Input } from "@/components/ui/input.component";
 import { PasswordInput } from "@/components/ui/password.component";
 import Select from "@/components/ui/select.component";
+import { DEFAULT_SETTINGS } from "@/config/settings/defaults.config";
 import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
+import { applyWindowChrome } from "@/lib/settings/window.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSettingsStore } from "@/store/settings.store";
 import type { Locale } from "@/types/i18n";
@@ -497,6 +499,7 @@ export default function SettingsGeneral() {
               ]) {
                 localStorage.removeItem(key);
               }
+              applyWindowChrome(DEFAULT_SETTINGS);
               window.location.reload();
             } catch (error: unknown) {
               setResetError(error instanceof Error ? error.message : String(error));

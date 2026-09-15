@@ -3,8 +3,6 @@ import { resolve, join } from "node:path";
 
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
-import { imagetools } from "vite-imagetools";
-import viteCompression from "vite-plugin-compression";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
@@ -21,16 +19,6 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
-    imagetools({
-      cache: {
-        enabled: true,
-        dir: "node_modules/.cache/vite-imagetools",
-      },
-    }),
-    viteCompression({
-      algorithm: "brotliCompress",
-      ext: ".br",
-    }),
     {
       name: "icon-sprite",
       apply: "build",

@@ -142,6 +142,7 @@ export type CommandName =
   | "set_notification_settings"
   | "set_sequential_download"
   | "set_torrent_limits"
+  | "set_window_chrome"
   | "start_torrent_download"
   | "start_torrent_download_from_file"
   | "start_watching_folders"

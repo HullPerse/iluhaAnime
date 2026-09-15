@@ -635,6 +635,83 @@ async fn set_notification_settings(
     Ok(())
 }
 
+const WINDOW_CHROME_NAMESPACE: &str = "window";
+const WINDOW_CHROME_KEY: &str = "chrome";
+
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
+#[serde(default, rename_all = "camelCase")]
+struct WindowChrome {
+    decorations: bool,
+    rounded_corners: bool,
+}
+
+impl Default for WindowChrome {
+    fn default() -> Self {
+        Self {
+            decorations: true,
+            rounded_corners: false,
+        }
+    }
+}
+
+#[cfg(windows)]
+fn apply_window_corner_preference(window: &tauri::WebviewWindow, rounded: bool) {
+    use windows::Win32::Graphics::Dwm::{
+        DwmSetWindowAttribute, DWMWA_WINDOW_CORNER_PREFERENCE, DWM_WINDOW_CORNER_PREFERENCE,
+        DWMWCP_DEFAULT, DWMWCP_DONOTROUND,
+    };
+
+    let Ok(hwnd) = window.hwnd() else {
+        return;
+    };
+    let preference = if rounded {
+        DWMWCP_DEFAULT
+    } else {
+        DWMWCP_DONOTROUND
+    };
+    unsafe {
+        let _ = DwmSetWindowAttribute(
+            hwnd,
+            DWMWA_WINDOW_CORNER_PREFERENCE,
+            std::ptr::from_ref(&preference).cast(),
+            std::mem::size_of::<DWM_WINDOW_CORNER_PREFERENCE>() as u32,
+        );
+    }
+}
+
+#[cfg(not(windows))]
+fn apply_window_corner_preference(_window: &tauri::WebviewWindow, _rounded: bool) {}
+
+fn apply_window_chrome(window: &tauri::WebviewWindow, chrome: &WindowChrome) -> Result<(), String> {
+    window
+        .set_decorations(chrome.decorations)
+        .map_err(|error| format!("set window decorations: {error}"))?;
+    apply_window_corner_preference(window, chrome.rounded_corners);
+    Ok(())
+}
+
+#[tauri::command]
+fn set_window_chrome(
+    window: tauri::WebviewWindow,
+    decorations: bool,
+    rounded_corners: bool,
+) -> Result<(), String> {
+    let chrome = WindowChrome {
+        decorations,
+        rounded_corners,
+    };
+    apply_window_chrome(&window, &chrome)?;
+    let payload =
+        serde_json::to_string(&chrome).map_err(|error| format!("encode window chrome: {error}"))?;
+    app_db::put_app_cache(
+        window.app_handle().clone(),
+        WINDOW_CHROME_NAMESPACE.to_string(),
+        WINDOW_CHROME_KEY.to_string(),
+        payload,
+        None,
+    )
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let filter = tracing_subscriber::EnvFilter::try_from_default_env()
@@ -660,7 +737,15 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_clipboard_manager::init())
-        .plugin(tauri_plugin_window_state::Builder::default().build())
+        .plugin(
+            tauri_plugin_window_state::Builder::default()
+                .with_state_flags(
+                    tauri_plugin_window_state::StateFlags::all()
+                        & !tauri_plugin_window_state::StateFlags::DECORATIONS
+                        & !tauri_plugin_window_state::StateFlags::VISIBLE,
+                )
+                .build(),
+        )
         .setup(|app| {
             let _ = std::fs::read_dir(std::env::temp_dir()).map(|entries| {
                 for entry in entries.flatten() {
@@ -684,6 +769,24 @@ pub fn run() {
             if let Err(error) = app_db::open_database(app.handle()) {
                 tracing::error!("unable to initialize shared app database: {error}");
             }
+
+            let chrome = app_db::read_cached_payload(
+                app.handle(),
+                WINDOW_CHROME_NAMESPACE,
+                WINDOW_CHROME_KEY,
+            )
+            .ok()
+            .flatten()
+            .and_then(|payload| serde_json::from_str::<WindowChrome>(&payload).ok())
+            .unwrap_or_default();
+            if let Some(window) = app.get_webview_window("main") {
+                if let Err(error) = apply_window_chrome(&window, &chrome) {
+                    tracing::warn!("unable to apply window chrome: {error}");
+                }
+                let _ = window.show();
+                let _ = window.set_focus();
+            }
+
             let handle = app.handle().clone();
             handle.manage(std::sync::Mutex::new(NotificationConfig::default()));
             handle.manage(CancelFlag::new());
@@ -989,6 +1092,7 @@ pub fn run() {
             rebuild_file_index,
             refresh_file_index,
             set_notification_settings,
+            set_window_chrome,
             search_file_index,
             deeplink::take_pending_deep_links,
         ])

@@ -39,6 +39,9 @@ export interface SettingsStore {
   enableAnimations: boolean;
   modalBackdropOpacity: number;
   customScrollbar: boolean;
+  customTitleBarEnabled: boolean;
+  statusBarEnabled: boolean;
+  roundedWindowCorners: boolean;
   retroStyle: "classic" | "soft" | "high-contrast";
   uiDensity: "comfortable" | "compact";
   collectionGroupHeaderStyle: "torrent" | "folder";
@@ -83,6 +86,7 @@ export interface SettingsStore {
   ffmpegSource: "essentials" | "github" | "github-mirror";
   searchSymSpellEnabled: boolean;
   searchIntentEnabled: boolean;
+  searchMascotEnabled: boolean;
   tagTolerances: Record<TagToleranceKey, number>;
   searchType: SearchType;
   selectedDitherId: string | null;

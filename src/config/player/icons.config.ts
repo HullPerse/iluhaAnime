@@ -77,4 +77,5 @@ export const playerIcons = [
   "unknown_source.png",
   "update_icon.ico",
   "user_avatar.ico",
+  "icon.ico"
 ];

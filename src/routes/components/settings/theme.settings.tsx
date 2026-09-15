@@ -229,19 +229,33 @@ export default function SettingsTheme() {
             <span className="windows95-text text-text text-xs font-bold">
               {t("settings.theme.search")}
             </span>
-            <div className="flex flex-col gap-1 p-2">
-              <Combobox
-                value={searchType}
-                onChange={(value) => patchSettings({ searchType: value as typeof searchType })}
-                options={[
-                  { value: "default", label: t("settings.theme.search.default") },
-                  { value: "modern", label: t("settings.theme.search.modern") },
-                ]}
-                className="max-w-xs"
-              />
-              <span className="text-hint text-[12px]">{t("settings.theme.search.hint")}</span>
-            </div>
+            <Combobox
+              value={searchType}
+              onChange={(value) => patchSettings({ searchType: value as typeof searchType })}
+              options={[
+                { value: "default", label: t("settings.theme.search.default") },
+                { value: "modern", label: t("settings.theme.search.modern") },
+              ]}
+              className="max-w-xs"
+            />
           </div>
+          <EffectsCheckbox
+            label={t("settings.theme.experimental.mascot")}
+            field="searchMascotEnabled"
+          />
+          <EffectsCheckbox
+            label={t("settings.theme.experimental.statusbar")}
+            field="statusBarEnabled"
+          />
+          <EffectsCheckbox
+            label={t("settings.theme.experimental.titlebar")}
+            field="customTitleBarEnabled"
+          />
+          <EffectsCheckbox
+            label={t("settings.theme.experimental.corners")}
+            field="roundedWindowCorners"
+            hint={t("settings.theme.experimental.corners.hint")}
+          />
         </div>
       </section>
 

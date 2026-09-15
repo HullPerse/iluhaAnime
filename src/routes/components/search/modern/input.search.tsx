@@ -1,5 +1,6 @@
 import { cn } from "cn";
 import { Filter, Search, X } from "lucide-react";
+import { useEffect, type Ref } from "react";
 
 import { InlineAutocompleteInput } from "@/components/shared/autocomplete/input.autocomplete";
 import { SmallLoader } from "@/components/shared/loader.component";
@@ -18,7 +19,13 @@ import type { SearchFilters } from "@/types/search";
 
 import ModernResults from "./results.modern";
 
-function InputSearch() {
+function InputSearch({
+  onDockedChange,
+  panelRef,
+}: {
+  onDockedChange?: (docked: boolean) => void;
+  panelRef?: Ref<HTMLElement>;
+}) {
   const { t } = useI18n();
   const controller = useSearchQuery();
   const searchShadow = useSettingsStore((state) => state.searchShadow);
@@ -69,8 +76,13 @@ function InputSearch() {
 
   const docked = data !== undefined || isError;
 
+  useEffect(() => {
+    onDockedChange?.(docked);
+  }, [docked, onDockedChange]);
+
   return (
     <section
+      ref={panelRef}
       className={cn(
         "bg-primary windows95-active-border search-dock-motion absolute left-1/2 z-10 flex w-xl -translate-x-1/2 flex-col transition-[top,translate] duration-200 ease-out",
         docked ? "top-2 bottom-2 translate-y-0" : "top-1/2 translate-y-1/2"

@@ -2,6 +2,12 @@ import { describe, expect, it, vi, beforeAll } from "vitest";
 
 const storage = new Map<string, string>();
 
+const mockInvoke = vi.fn();
+
+vi.mock("@tauri-apps/api/core", () => ({
+  invoke: (...args: unknown[]) => mockInvoke(...args),
+}));
+
 let useSettingsStore: (typeof import("@/store/settings.store"))["useSettingsStore"];
 
 beforeAll(async () => {
@@ -320,5 +326,98 @@ describe("anilist list sort v26 migration", () => {
       anilistListSort: { key: string; dir: string };
     };
     expect(badDir.anilistListSort).toEqual({ key: "title", dir: "asc" });
+  });
+});
+
+type WindowToggleMigration = {
+  customTitleBarEnabled: boolean;
+  statusBarEnabled: boolean;
+  roundedWindowCorners: boolean;
+  searchMascotEnabled: boolean;
+};
+
+describe("experimental toggles v28 migration", () => {
+  it("defaults all four toggles", () => {
+    const migrate = useSettingsStore.persist.getOptions()?.migrate;
+    const result = migrate!({ language: "en" } as never, 27) as WindowToggleMigration;
+    expect(result.customTitleBarEnabled).toBe(false);
+    expect(result.statusBarEnabled).toBe(true);
+    expect(result.roundedWindowCorners).toBe(false);
+    expect(result.searchMascotEnabled).toBe(false);
+  });
+
+  it("keeps persisted toggle values", () => {
+    const migrate = useSettingsStore.persist.getOptions()?.migrate;
+    const result = migrate!(
+      {
+        language: "en",
+        customTitleBarEnabled: false,
+        statusBarEnabled: false,
+        roundedWindowCorners: true,
+        searchMascotEnabled: true,
+      } as never,
+      27
+    ) as WindowToggleMigration;
+    expect(result.customTitleBarEnabled).toBe(false);
+    expect(result.statusBarEnabled).toBe(false);
+    expect(result.roundedWindowCorners).toBe(true);
+    expect(result.searchMascotEnabled).toBe(true);
+  });
+
+  it("matches the Rust chrome default: native frame, square corners", () => {
+    const migrate = useSettingsStore.persist.getOptions()?.migrate;
+    const result = migrate!({ language: "en" } as never, 27) as WindowToggleMigration;
+    expect(result.customTitleBarEnabled).toBe(false);
+    expect(result.roundedWindowCorners).toBe(false);
+  });
+});
+
+describe("window chrome side effect", () => {
+  it("pushes native decorations when the custom title bar is turned off", () => {
+    mockInvoke.mockReset();
+    mockInvoke.mockResolvedValue(undefined);
+    useSettingsStore.setState({ customTitleBarEnabled: true, roundedWindowCorners: false });
+
+    useSettingsStore.getState().patch({ customTitleBarEnabled: false });
+
+    expect(mockInvoke).toHaveBeenCalledWith("set_window_chrome", {
+      decorations: true,
+      roundedCorners: false,
+    });
+  });
+
+  it("carries the current corner preference alongside the title bar change", () => {
+    mockInvoke.mockReset();
+    mockInvoke.mockResolvedValue(undefined);
+    useSettingsStore.setState({ customTitleBarEnabled: true, roundedWindowCorners: true });
+
+    useSettingsStore.getState().patch({ customTitleBarEnabled: false });
+
+    expect(mockInvoke).toHaveBeenCalledWith("set_window_chrome", {
+      decorations: true,
+      roundedCorners: true,
+    });
+  });
+
+  it("pushes rounded corners on their own", () => {
+    mockInvoke.mockReset();
+    mockInvoke.mockResolvedValue(undefined);
+    useSettingsStore.setState({ customTitleBarEnabled: true, roundedWindowCorners: false });
+
+    useSettingsStore.getState().patch({ roundedWindowCorners: true });
+
+    expect(mockInvoke).toHaveBeenCalledWith("set_window_chrome", {
+      decorations: false,
+      roundedCorners: true,
+    });
+  });
+
+  it("does not call the command for unrelated settings", () => {
+    mockInvoke.mockReset();
+    mockInvoke.mockResolvedValue(undefined);
+
+    useSettingsStore.getState().patch({ pageSize: 42 });
+
+    expect(mockInvoke).not.toHaveBeenCalled();
   });
 });

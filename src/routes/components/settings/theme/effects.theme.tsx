@@ -3,7 +3,15 @@ import { useI18n } from "@/lib/locale/i18n.utils";
 import { useSettingsStore } from "@/store/settings.store";
 import type { SettingsStore } from "@/types/settings";
 
-export function EffectsCheckbox({ label, field }: { label: string; field: keyof SettingsStore }) {
+export function EffectsCheckbox({
+  label,
+  field,
+  hint,
+}: {
+  label: string;
+  field: keyof SettingsStore;
+  hint?: string;
+}) {
   const value = useSettingsStore((s) => s[field] as boolean);
   const patch = useSettingsStore((s) => s.patch);
   const { t } = useI18n();
@@ -14,6 +22,7 @@ export function EffectsCheckbox({ label, field }: { label: string; field: keyof 
         <Checkbox checked={value} onChange={(v) => patch({ [field]: v })} />
         <span className="text-xs">{value ? t("common.on") : t("common.off")}</span>
       </label>
+      {hint && <span className="text-hint col-start-2 text-[12px]">{hint}</span>}
     </div>
   );
 }

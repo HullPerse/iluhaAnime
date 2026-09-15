@@ -219,12 +219,12 @@ const settings = {
   "settings.theme.experimental.effect": "Эффект окна",
   "settings.theme.experimental.effect.acrylic": "Акрил (Windows 10/11)",
   "settings.theme.experimental.effect.hint":
-    "Только Windows, лучше всего со включённым своим заголовком окна. Делает окно полупрозрачным — рабочий стол виден сквозь рамку.",
+    "Только Windows, лучше всего со включённым своим заголовком окна. Делает окно полупрозрачным - рабочий стол виден сквозь рамку.",
   "settings.theme.experimental.effect.mica": "Мика (Windows 11)",
   "settings.theme.experimental.effect.opacity": "Плотность тоника",
   "settings.theme.experimental.effect.opacity.reset": "Как в теме",
   "settings.theme.experimental.effect.opacity.warn":
-    "Тоньше, чем эта тема позволяет — текст может стать нечитаемым.",
+    "Тоньше, чем эта тема позволяет - текст может стать нечитаемым.",
   "settings.theme.experimental.effect.none": "Нет",
   "settings.theme.experimental.effect.tabbed": "Вкладки (Windows 11 22H2+)",
   "settings.theme.experimental.mascot": "Наблюдатель",

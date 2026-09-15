@@ -96,7 +96,7 @@ function InputSearch({
             alt=""
             className="size-4 shrink-0"
           />
-          <span className="windows95-text line-clamp-1 font-bold text-title-text">
+          <span className="windows95-text text-title-text line-clamp-1 font-bold">
             {t("search.title")}
           </span>
         </div>
@@ -154,7 +154,7 @@ function InputSearch({
             >
               <Filter className="pointer-events-none" />
               {activeFilterCount > 0 && (
-                <span className="bg-secondary absolute -top-1 -right-1 flex min-h-4 min-w-4 items-center justify-center px-0.5 text-xs leading-none text-title-text">
+                <span className="bg-secondary text-title-text absolute -top-1 -right-1 flex min-h-4 min-w-4 items-center justify-center px-0.5 text-xs leading-none">
                   {activeFilterCount}
                 </span>
               )}

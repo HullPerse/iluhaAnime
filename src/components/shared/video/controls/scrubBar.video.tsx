@@ -55,7 +55,7 @@ export function ScrubBar() {
   return (
     <div
       ref={barRef}
-      className="windows95-border relative h-4 min-w-0 flex-1 cursor-pointer bg-field"
+      className="windows95-border bg-field relative h-4 min-w-0 flex-1 cursor-pointer"
       role="slider"
       tabIndex={0}
       aria-label="Seek"

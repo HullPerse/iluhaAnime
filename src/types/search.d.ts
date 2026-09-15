@@ -112,7 +112,11 @@ export interface SearchStore {
   addQuery: (query: string, scope?: string) => void;
   recordSuggestion: (value: string) => void;
   recordSuggestionIgnored: (value: string) => void;
-  indexAniList: (lists: AniListCollection[], favourites: FavouriteAnime[], profileId: number) => void;
+  indexAniList: (
+    lists: AniListCollection[],
+    favourites: FavouriteAnime[],
+    profileId: number
+  ) => void;
   clearAnimeIndex: () => void;
   resetAnimeSuggestions: () => void;
   removeQuery: (query: string) => void;

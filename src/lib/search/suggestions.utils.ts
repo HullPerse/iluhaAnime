@@ -58,10 +58,7 @@ function animeSubtitle(anime: SearchAnimeSuggestion): string {
 function animeBoost(anime: SearchAnimeSuggestion, boost: AnilistSuggestionBoost): number {
   if (boost === "off") return 0;
   const scoreBoost = anime.score && anime.score > 0 ? anime.score * 2 : 0;
-  const base =
-    (anime.favourite ? 55 : 0) +
-    (ANIME_STATUS_BOOST[anime.status] ?? 0) +
-    scoreBoost;
+  const base = (anime.favourite ? 55 : 0) + (ANIME_STATUS_BOOST[anime.status] ?? 0) + scoreBoost;
   return boost === "strong" ? base * 1.5 : base;
 }
 

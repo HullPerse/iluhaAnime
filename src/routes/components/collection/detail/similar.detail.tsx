@@ -19,7 +19,7 @@ export function SimilarCollection({
     .slice(0, SIMILAR_COUNT);
   if (similar.length === 0) return null;
   return (
-    <div className="windows95-border mt-2 bg-field p-1">
+    <div className="windows95-border bg-field mt-2 p-1">
       <strong className="text-xs">{t("collection.details.similar")}</strong>
       <p className="text-hint text-xs">{t("collection.details.similar.hint")}</p>
       <div className="mt-1 flex gap-1 overflow-x-auto">

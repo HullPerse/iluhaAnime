@@ -152,7 +152,6 @@ describe("sortEntries", () => {
     expect(sortEntries(entries, "desc", "progress").map((e) => e.progress)).toEqual([10, 5, 1]);
   });
 
-
   it("sorts by completion date with missing values last in both directions", () => {
     const done = [
       makeEntry({ completed_at: "2024-01-02", media: makeMedia({ id: 1 }) }),
@@ -352,9 +351,9 @@ describe("entryListDate", () => {
   });
 
   it("uses the start date for watching entries", () => {
-    expect(
-      entryListDate({ ...base, list_status: "CURRENT", started_at: "2023-05-02" }, "en")
-    ).toBe("5/2/2023");
+    expect(entryListDate({ ...base, list_status: "CURRENT", started_at: "2023-05-02" }, "en")).toBe(
+      "5/2/2023"
+    );
   });
 
   it("uses the add date for planning entries", () => {
@@ -424,9 +423,9 @@ describe("entryListTime", () => {
   });
 
   it("uses the completion date for completed entries", () => {
-    expect(
-      entryListTime({ ...base, list_status: "COMPLETED", completed_at: "2024-03-09" })
-    ).toBe(new Date(2024, 2, 9).getTime());
+    expect(entryListTime({ ...base, list_status: "COMPLETED", completed_at: "2024-03-09" })).toBe(
+      new Date(2024, 2, 9).getTime()
+    );
   });
 
   it("uses the start date for watching entries", () => {
@@ -441,9 +440,9 @@ describe("entryListTime", () => {
   });
 
   it("prefers start and add dates over the update time", () => {
-    expect(
-      entryListTime({ ...base, list_status: "COMPLETED", started_at: "2023-05-02" })
-    ).toBe(new Date(2023, 4, 2).getTime());
+    expect(entryListTime({ ...base, list_status: "COMPLETED", started_at: "2023-05-02" })).toBe(
+      new Date(2023, 4, 2).getTime()
+    );
     expect(entryListTime({ ...base, list_status: "CURRENT", updated_at: null })).toBe(
       1700000000000
     );
@@ -477,8 +476,7 @@ describe("fuzzyDateToTime", () => {
 });
 
 describe("sortEntries by media status", () => {
-  const byStatus = (status: string, id: number) =>
-    makeEntry({ media: makeMedia({ id, status }) });
+  const byStatus = (status: string, id: number) => makeEntry({ media: makeMedia({ id, status }) });
   const entries = [
     byStatus("CANCELLED", 1),
     byStatus("NOT_YET_RELEASED", 2),
@@ -492,8 +490,6 @@ describe("sortEntries by media status", () => {
   });
 
   it("reverses the order descending", () => {
-    expect(sortEntries(entries, "desc", "status").map((e) => e.media.id)).toEqual([
-      1, 5, 2, 4, 3,
-    ]);
+    expect(sortEntries(entries, "desc", "status").map((e) => e.media.id)).toEqual([1, 5, 2, 4, 3]);
   });
 });

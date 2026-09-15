@@ -6,15 +6,7 @@ import type { ImageProps } from "@/types/ui";
 
 const RETRY_DELAYS = [500, 1500];
 
-const Image = ({
-  src,
-  alt,
-  className,
-  width,
-  height,
-  type = "cover",
-  ...props
-}: ImageProps) => {
+const Image = ({ src, alt, className, width, height, type = "cover", ...props }: ImageProps) => {
   const { t } = useI18n();
   const [isLoaded, setIsLoaded] = useState(false);
   const [finalSrc, setFinalSrc] = useState(src);
@@ -65,7 +57,7 @@ const Image = ({
         <>
           {!isLoaded && (
             <div
-              className="absolute inset-0 animate-pulse bg-surface motion-reduce:animate-none"
+              className="bg-surface absolute inset-0 animate-pulse motion-reduce:animate-none"
               aria-hidden
             />
           )}

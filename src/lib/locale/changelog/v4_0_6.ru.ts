@@ -12,8 +12,7 @@ const changelog406 = {
   "changelog.4_0_6.added.yorha_grid": "Сетку YoRHa можно переключить на теме YoRHa",
   "changelog.4_0_6.added.theme_editor_palette":
     "Редактор тем тянет палитру из картинки, меняет фаски и углы",
-  "changelog.4_0_6.added.observer_mascot":
-    "Наблюдатель в современном поиске, бледнеет под панелью",
+  "changelog.4_0_6.added.observer_mascot": "Наблюдатель в современном поиске, бледнеет под панелью",
   "changelog.4_0_6.added.dither_ascii": "В дизеринге ASCII-слой из глифов и пресет Глифы",
   "changelog.4_0_6.added.dither_violet": "Фиолетовая палитра для дизеринга",
   "changelog.4_0_6.changed.theme_tokens":

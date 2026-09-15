@@ -63,7 +63,7 @@ function AniListActionControls({
 
   return (
     <div className="windows95-border">
-      <div className="bg-secondary windows95-font flex flex-row px-1 py-0.5 text-xs font-bold text-title-text">
+      <div className="bg-secondary windows95-font text-title-text flex flex-row px-1 py-0.5 text-xs font-bold">
         {listEntry ? t("anilist.controls.edit.list") : t("anilist.controls.add.to.list")}
       </div>
       <div className="flex flex-col gap-2 p-1.5">

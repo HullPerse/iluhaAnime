@@ -20,7 +20,7 @@ export default function AniListProfileHeader({
   return (
     <div className="windows95-active-border bg-primary flex w-full flex-col p-1">
       <section className="flex flex-row items-center gap-2">
-        <div className="relative h-10 w-10 bg-field">
+        <div className="bg-field relative h-10 w-10">
           <ImageComponent
             src={user.avatar ? user.avatar : "/images/user_avatar.ico"}
             alt="user avatar"

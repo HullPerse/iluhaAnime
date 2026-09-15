@@ -23,7 +23,7 @@ export function BigError({
         <section className="bg-secondary flex w-full items-center justify-between p-1">
           <div className="flex min-w-0 items-center gap-1">
             <ImageComponent src="/images/w2k_computer.ico" alt="" className="size-4 shrink-0" />
-            <span className="windows95-text font-bold text-title-text">{t("common.error")}</span>
+            <span className="windows95-text text-title-text font-bold">{t("common.error")}</span>
           </div>
           {onRetry && (
             <button

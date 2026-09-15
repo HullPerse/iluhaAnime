@@ -1,7 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
-import { enUS } from "date-fns/locale";
-
 import { formatDistanceToNow } from "date-fns";
+import { enUS } from "date-fns/locale";
+import { describe, expect, it, vi } from "vitest";
 
 vi.mock("date-fns", () => ({
   formatDistanceToNow: vi.fn(() => "2 hours ago"),

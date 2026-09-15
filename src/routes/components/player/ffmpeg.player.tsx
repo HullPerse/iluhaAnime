@@ -94,7 +94,7 @@ function FFMPEG({
             : t("player.ffmpeg.downloading")}
         </span>
         <div className="flex flex-1 flex-row items-center gap-1">
-          <div className="windows95-border h-4 flex-1 bg-field">
+          <div className="windows95-border bg-field h-4 flex-1">
             <div
               className="bg-secondary h-full"
               style={{

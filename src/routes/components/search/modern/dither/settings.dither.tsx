@@ -30,8 +30,8 @@ import { DitherUploadPlaceholder } from "@/routes/components/search/modern/dithe
 import DitherPreviewModal from "@/routes/components/search/modern/dither/preview/modal.preview";
 import { ShadowControls } from "@/routes/components/search/modern/dither/shadow.dither";
 import { useSettingsStore } from "@/store/settings.store";
-import type { DitherImageMeta, UserImage, UserImageFile } from "@/types/userimage";
 import type { WallpaperDisplayFilters } from "@/types/settings";
+import type { DitherImageMeta, UserImage, UserImageFile } from "@/types/userimage";
 
 function DitherSettings({ onClose }: { onClose: () => void }) {
   const { t } = useI18n();

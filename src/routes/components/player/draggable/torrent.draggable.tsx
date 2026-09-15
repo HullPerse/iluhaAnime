@@ -47,7 +47,7 @@ export function DraggableTorrent({
       <div
         {...listeners}
         {...attributes}
-        className="bg-secondary flex cursor-grab items-center gap-1 px-1 text-title-text select-none active:cursor-grabbing"
+        className="bg-secondary text-title-text flex cursor-grab items-center gap-1 px-1 select-none active:cursor-grabbing"
       >
         <span className="windows95-text line-clamp-1 flex-1 py-0.5 font-bold">{item.name}</span>
         {onHide && (

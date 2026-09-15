@@ -7,7 +7,7 @@ export function SimilarCard({ item, onClick }: { item: CollectionItem; onClick: 
     <button
       type="button"
       onClick={onClick}
-      className="windows95-border hover:bg-surface shrink-0 overflow-hidden bg-field"
+      className="windows95-border hover:bg-surface bg-field shrink-0 overflow-hidden"
     >
       {item.coverUrl && (
         <img src={cachedUrl ?? item.coverUrl} alt="" className="h-20 w-14 object-cover" />

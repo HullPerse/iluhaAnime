@@ -46,10 +46,7 @@ export function collectAllEntries(lists: AniListCollection[]): AniListEntry[] {
   return out;
 }
 
-export function activeListEntries(
-  lists: AniListCollection[],
-  currentList: string
-): AniListEntry[] {
+export function activeListEntries(lists: AniListCollection[], currentList: string): AniListEntry[] {
   if (currentList === ALL_LISTS_ID) return collectAllEntries(lists);
   return lists.find((list) => list.name === currentList)?.entries ?? [];
 }

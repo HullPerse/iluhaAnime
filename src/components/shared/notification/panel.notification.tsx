@@ -41,11 +41,11 @@ export default function NotificationPanel({
 
   return (
     <div
-      className="windows95-border absolute top-full right-0 z-50 mt-1 w-100 max-w-[90vw] bg-field"
+      className="windows95-border bg-field absolute top-full right-0 z-50 mt-1 w-100 max-w-[90vw]"
       role="region"
       aria-label={t("notification.title")}
     >
-      <div className="bg-secondary border-muted flex items-center justify-between border-b px-1 py-0.5 text-title-text">
+      <div className="bg-secondary border-muted text-title-text flex items-center justify-between border-b px-1 py-0.5">
         <span className="windows95-text text-xs font-bold">
           {t("notification.count", { count: items.length })}
         </span>
@@ -84,7 +84,9 @@ export default function NotificationPanel({
               aria-pressed={filter === f}
               className={cn(
                 "windows95-text windows95-active-border px-1 py-px text-xs select-none hover:cursor-pointer",
-                filter === f ? "bg-secondary text-title-text" : "bg-primary text-text hover:bg-surface"
+                filter === f
+                  ? "bg-secondary text-title-text"
+                  : "bg-primary text-text hover:bg-surface"
               )}
             >
               {t(NOTIFICATION_FILTER_KEYS[f])}

@@ -30,9 +30,7 @@ describe("user image icon helpers", () => {
 
 describe("asset urls", () => {
   it("leaves a plain path untouched without a version", () => {
-    expect(assetUrl("C:/images/aaa.png")).toBe(
-      "http://asset.localhost/C%3A%2Fimages%2Faaa.png"
-    );
+    expect(assetUrl("C:/images/aaa.png")).toBe("http://asset.localhost/C%3A%2Fimages%2Faaa.png");
     expect(assetUrl("C:/images/aaa.png", null)).toBe(assetUrl("C:/images/aaa.png"));
     expect(assetUrl("C:/images/aaa.png", "")).toBe(assetUrl("C:/images/aaa.png"));
   });

@@ -15,7 +15,7 @@ export function Radio({
       value={value}
       disabled={disabled}
       className={cn(
-        "text-text inline-flex size-(--ui-check-size) shrink-0 items-center justify-center bg-field",
+        "text-text bg-field inline-flex size-(--ui-check-size) shrink-0 items-center justify-center",
         disabled ? "opacity-50" : "cursor-pointer",
         className
       )}

@@ -1,9 +1,8 @@
+import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { formatDistanceToNow } from "date-fns";
 
-import { dateFnsLocale } from "@/lib/utils/date.utils";
-import { writeText } from "@tauri-apps/plugin-clipboard-manager";
-
 import { translate } from "@/lib/locale/i18n.utils";
+import { dateFnsLocale } from "@/lib/utils/date.utils";
 import { useNotificationStore } from "@/store/notification.store";
 import type { Locale, TranslationKey } from "@/types/i18n";
 import type {

@@ -125,7 +125,7 @@ export function InlineAutocompleteInput({
     <div className="relative min-w-0 flex-1">
       <div className={cn("relative", className)}>
         {enabled && (
-          <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0 bg-field" />
+          <div aria-hidden="true" className="bg-field pointer-events-none absolute inset-0 z-0" />
         )}
         <BackdropLayer
           currentValue={currentValue}

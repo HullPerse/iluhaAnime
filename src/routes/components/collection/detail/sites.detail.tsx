@@ -9,7 +9,7 @@ export function SitesCollection({ item }: { item: CollectionItem }) {
   const hasTv = item.tvCurrentSeason != null || item.tvCurrentEpisode != null;
   if (!hasSites && !hasTv) return null;
   return (
-    <div className="windows95-border mt-2 bg-field p-1">
+    <div className="windows95-border bg-field mt-2 p-1">
       {hasSites && (
         <>
           <strong className="text-xs">{t("collection.details.sites.to.view")}</strong>

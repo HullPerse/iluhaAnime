@@ -58,7 +58,7 @@ export function CalendarTab({
       </section>
 
       <div className="flex h-80 flex-col items-stretch gap-2 md:flex-row">
-        <section className="windows95-border flex h-full min-w-0 flex-1 flex-col overflow-x-auto bg-field">
+        <section className="windows95-border bg-field flex h-full min-w-0 flex-1 flex-col overflow-x-auto">
           <div className="flex min-h-0 flex-1 flex-col p-2">
             <div className="relative mb-0.5 h-4">
               {grid.columns.map((col, ci) => {
@@ -124,7 +124,7 @@ export function CalendarTab({
           </div>
         </section>
 
-        <section className="windows95-border flex h-full shrink-0 flex-col overflow-hidden bg-field md:w-64">
+        <section className="windows95-border bg-field flex h-full shrink-0 flex-col overflow-hidden md:w-64">
           {activeActivity ? (
             <div className="flex min-h-0 flex-col">
               <div className="border-muted/40 flex items-center justify-between border-b px-2 py-1">

@@ -144,7 +144,7 @@ function TorrentFilesSection({
   return (
     <div
       ref={scrollRef}
-      className="windows95-border h-fit max-h-40 overflow-y-auto bg-field py-0.5"
+      className="windows95-border bg-field h-fit max-h-40 overflow-y-auto py-0.5"
     >
       <div className="relative" style={{ height: virtualizer.getTotalSize() }}>
         {virtualizer.getVirtualItems().map((vItem) => {

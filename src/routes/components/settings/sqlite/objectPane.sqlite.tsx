@@ -13,14 +13,14 @@ export function SqliteObjectPane({
     { id: "backup", label: t("settings.sqlite.objects.backup") },
   ] as const;
   return (
-    <ul className="windows95-border flex flex-col gap-1 bg-field">
+    <ul className="windows95-border bg-field flex flex-col gap-1">
       {items.map((item) => (
         <li key={item.id}>
           <button
             type="button"
             onClick={() => onSelect(item.id)}
             aria-pressed={object === item.id}
-            className={`windows95-text w-full cursor-pointer px-1 py-0.5 text-left text-xs ${object === item.id ? "windows95-small-border bg-secondary font-bold text-title-text" : ""}`}
+            className={`windows95-text w-full cursor-pointer px-1 py-0.5 text-left text-xs ${object === item.id ? "windows95-small-border bg-secondary text-title-text font-bold" : ""}`}
           >
             {item.label}
           </button>

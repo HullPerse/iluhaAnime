@@ -121,7 +121,7 @@ export function AniListDetailView({
       {anime.description && (
         <Section
           header={t("anilist.details.description")}
-          className="windows95-text overflow-y-auto bg-field leading-relaxed whitespace-pre-line"
+          className="windows95-text bg-field overflow-y-auto leading-relaxed whitespace-pre-line"
           expanded={showDesc}
           onExpand={() => setShowDesc((prev) => !prev)}
         >

@@ -32,7 +32,7 @@ export default function SettingsMedia() {
   return (
     <section className="ui-panel">
       <div className="ui-titlebar">
-        <span className="font-bold text-title-text">{t("settings.media.title")}</span>
+        <span className="text-title-text font-bold">{t("settings.media.title")}</span>
       </div>
       <div className="flex flex-col gap-1 p-2">
         <ExtensionRow

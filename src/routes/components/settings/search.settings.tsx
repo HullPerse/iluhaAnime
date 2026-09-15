@@ -94,7 +94,7 @@ export default function SettingsSearch() {
     <div className="flex flex-col gap-3">
       <section className="ui-panel">
         <div className="ui-titlebar">
-          <span className="font-bold text-title-text">{t("settings.search.sources")}</span>
+          <span className="text-title-text font-bold">{t("settings.search.sources")}</span>
         </div>
         <div className="flex flex-col gap-1 p-2">
           <div className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
@@ -249,7 +249,7 @@ export default function SettingsSearch() {
 
       <section className="ui-panel">
         <div className="ui-titlebar">
-          <span className="font-bold text-title-text">{t("settings.search.results")}</span>
+          <span className="text-title-text font-bold">{t("settings.search.results")}</span>
         </div>
         <div className="flex flex-col gap-1 p-2">
           <div className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
@@ -303,7 +303,7 @@ export default function SettingsSearch() {
               ) : autocompleteMode === "inline" || autocompleteMode === "both" ? (
                 <div className="flex flex-col gap-0.5">
                   <span className="text-hint text-[12px]">{t("settings.search.preview")}</span>
-                  <div className="windows95-border windows95-text flex min-h-7 items-center overflow-hidden bg-field px-1.5 whitespace-pre">
+                  <div className="windows95-border windows95-text bg-field flex min-h-7 items-center overflow-hidden px-1.5 whitespace-pre">
                     <span className="relative z-10">{t("settings.search.preview.typed")}</span>
                     <span
                       className="ml-0.5"

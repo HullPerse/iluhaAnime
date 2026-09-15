@@ -154,7 +154,7 @@ function StatsModal({
                       className={cn(
                         "px-1 text-xs leading-tight",
                         isToday
-                          ? "bg-secondary font-bold text-title-text"
+                          ? "bg-secondary text-title-text font-bold"
                           : isWeekend
                             ? "text-destructive font-bold"
                             : "text-text font-bold"
@@ -194,7 +194,7 @@ function StatsModal({
                               count: cell.entries.length,
                               date: `${day} ${monthLabel(month, locale, "long")} ${year}`,
                             })}
-                            className="bg-secondary windows95-font hover:bg-secondary/80 absolute top-0.5 right-0.5 flex size-5 flex-row items-center justify-center border-black text-xs text-title-text hover:cursor-pointer"
+                            className="bg-secondary windows95-font hover:bg-secondary/80 text-title-text absolute top-0.5 right-0.5 flex size-5 flex-row items-center justify-center border-black text-xs hover:cursor-pointer"
                             onClick={(e) => {
                               e.stopPropagation();
                               setSelectedDay(day);
@@ -225,11 +225,11 @@ function StatsModal({
               {selectedDay} {monthLabel(month, locale, "long")} {year}
             </span>
           </section>
-          <section className="windows95-border min-h-80 overflow-y-auto bg-field">
+          <section className="windows95-border bg-field min-h-80 overflow-y-auto">
             {dayEntries.map((entry) => (
               <div
                 key={entry.id}
-                className="hover:bg-surface border-t-muted border-l-muted flex cursor-pointer items-center gap-2 border-b border-r-win-highlight border-b-win-highlight px-2 py-1"
+                className="hover:bg-surface border-t-muted border-l-muted border-r-win-highlight border-b-win-highlight flex cursor-pointer items-center gap-2 border-b px-2 py-1"
                 onClick={() => onAnimeClick(entry.id)}
               >
                 {entry.coverUrl && (

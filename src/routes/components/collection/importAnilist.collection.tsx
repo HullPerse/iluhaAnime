@@ -373,7 +373,7 @@ export default function ImportAnilistCollection({
 
   const renderSummary = () => (
     <div className="flex flex-col gap-2">
-      <div className="windows95-border flex flex-col gap-1 bg-field p-2">
+      <div className="windows95-border bg-field flex flex-col gap-1 p-2">
         <span className="windows95-text text-xs font-bold">
           {t("collection.import.anilist.summary.new", { count: newEntries.length })}
         </span>
@@ -417,7 +417,7 @@ export default function ImportAnilistCollection({
         </Button>
       </div>
 
-      <div className="windows95-border flex max-h-[50vh] flex-col gap-2 overflow-auto bg-field p-1">
+      <div className="windows95-border bg-field flex max-h-[50vh] flex-col gap-2 overflow-auto p-1">
         {lists.map((list) => {
           const ids = list.entries
             .filter((e) => newEntries.some((n) => n.media.id === e.media.id))
@@ -496,7 +496,7 @@ export default function ImportAnilistCollection({
         <span className="text-hint text-xs">{t("collection.import.anilist.sync.hint")}</span>
       </div>
 
-      <div className="windows95-border flex max-h-[50vh] flex-col gap-1 overflow-auto bg-field p-1">
+      <div className="windows95-border bg-field flex max-h-[50vh] flex-col gap-1 overflow-auto p-1">
         {changedEntries.map((entry) => {
           const item = itemByAnilistId.get(entry.media.id)!;
           return (

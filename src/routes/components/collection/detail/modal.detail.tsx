@@ -65,7 +65,7 @@ export function DetailCollection({
                 <ChevronLeft className="size-3" />
               </Button>
             ) : null}
-            <span className="truncate font-bold text-title-text">
+            <span className="text-title-text truncate font-bold">
               {mediaOpen
                 ? mediaOpen.tab === "trailer"
                   ? t("collection.details.trailer")
@@ -117,7 +117,7 @@ export function DetailCollection({
               {item.description && (
                 <Section
                   header={t("anilist.details.description")}
-                  className="windows95-text overflow-y-auto bg-field leading-relaxed whitespace-pre-line"
+                  className="windows95-text bg-field overflow-y-auto leading-relaxed whitespace-pre-line"
                   expanded={showDesc}
                   onExpand={() => setShowDesc((prev) => !prev)}
                 >
@@ -130,7 +130,7 @@ export function DetailCollection({
               )}
 
               {item.notes && (
-                <div className="windows95-border mt-2 bg-field p-1">
+                <div className="windows95-border bg-field mt-2 p-1">
                   <strong className="text-xs">{t("collection.details.notes")}</strong>
                   <p className="text-xs">{item.notes}</p>
                 </div>

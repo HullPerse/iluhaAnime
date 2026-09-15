@@ -26,7 +26,7 @@ export default function PlayerVisibilityModal({
 
         {folders.length > 0 && (
           <section className="windows95-border bg-primary">
-            <header className="bg-secondary flex items-center gap-1 px-1 py-0.5 text-title-text">
+            <header className="bg-secondary text-title-text flex items-center gap-1 px-1 py-0.5">
               <FolderOpen className="size-3" />
               <span className="windows95-font text-xs font-bold">
                 {t("player.visibility.folders")}
@@ -61,7 +61,7 @@ export default function PlayerVisibilityModal({
 
         {torrents.length > 0 && (
           <section className="windows95-border bg-primary">
-            <header className="bg-secondary flex items-center gap-1 px-1 py-0.5 text-title-text">
+            <header className="bg-secondary text-title-text flex items-center gap-1 px-1 py-0.5">
               <HardDrive className="size-3" />
               <span className="windows95-font text-xs font-bold">
                 {t("player.visibility.torrents")}

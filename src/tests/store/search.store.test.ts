@@ -209,7 +209,10 @@ describe("indexAniList batching", () => {
   it("splits a large anime index into backend-safe batches", async () => {
     invokeMock.mockClear();
     const lists: AniListCollection[] = [
-      { name: "Current", entries: Array.from({ length: 600 }, (_, index) => makeEntry(1000 + index)) },
+      {
+        name: "Current",
+        entries: Array.from({ length: 600 }, (_, index) => makeEntry(1000 + index)),
+      },
     ];
     useSearchStore.getState().indexAniList(lists, [], 1);
     await vi.waitFor(() => {

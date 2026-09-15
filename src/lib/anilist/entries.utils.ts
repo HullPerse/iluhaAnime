@@ -160,11 +160,7 @@ export function entryListTime(entry: EntryListInfo | undefined): number | null {
       toMs(entry.updated_at)
     );
   if (entry.list_status === "CURRENT")
-    return (
-      fuzzyDateToTime(entry.started_at) ??
-      toMs(entry.created_at) ??
-      toMs(entry.updated_at)
-    );
+    return fuzzyDateToTime(entry.started_at) ?? toMs(entry.created_at) ?? toMs(entry.updated_at);
   return toMs(entry.created_at) ?? toMs(entry.updated_at);
 }
 

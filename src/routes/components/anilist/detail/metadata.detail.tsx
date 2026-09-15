@@ -21,7 +21,7 @@ function AniListMetadata({
 
   return (
     <div className="flex flex-row gap-3">
-      <section className="windows95-border shrink-0 self-start bg-field">
+      <section className="windows95-border bg-field shrink-0 self-start">
         <ImageComponent
           src={coverSrc ?? "/images/unknown_source.png"}
           alt={anime.title}
@@ -32,7 +32,7 @@ function AniListMetadata({
       <section className="flex min-w-0 flex-1 flex-col gap-1.5">
         <div className="flex flex-wrap items-center gap-1">
           {anime.score != null && (
-            <span className="windows95-text bg-secondary flex flex-row items-center gap-1 px-1 font-bold text-title-text">
+            <span className="windows95-text bg-secondary text-title-text flex flex-row items-center gap-1 px-1 font-bold">
               <Star className="size-3 fill-white" /> {anime.score}
             </span>
           )}

@@ -63,8 +63,8 @@ export function OverlayWindow({
                 <ChevronLeft className="size-2.5" />
               </Button>
             )}
-            <Monitor className="size-3 shrink-0 text-title-text" />
-            <span className="windows95-text line-clamp-1 font-bold text-title-text">{header}</span>
+            <Monitor className="text-title-text size-3 shrink-0" />
+            <span className="windows95-text text-title-text line-clamp-1 font-bold">{header}</span>
           </div>
           <div className="flex shrink-0 flex-row items-center gap-0.5">
             <button

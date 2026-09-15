@@ -43,7 +43,7 @@ export function SuggestionMenu({
       ref={listRef}
       role="listbox"
       className={cn(
-        "windows95-border absolute left-0 z-40 flex max-h-48 min-w-64 flex-col bg-field shadow-none",
+        "windows95-border bg-field absolute left-0 z-40 flex max-h-48 min-w-64 flex-col shadow-none",
         placement === "above" ? "bottom-full mb-0" : "top-full mt-0"
       )}
       style={{ width: menuWidth }}

@@ -141,7 +141,11 @@ export default function CollectionRoute() {
     const stats = calculateCollectionStats(items, statuses);
     return { ...stats.byStatus, all: stats.total } as Record<string, number>;
   }, [items, statuses]);
-  const addDisabled = isPublicStatusFull(statuses, selectedStatus, statusCounts[selectedStatus] ?? 0);
+  const addDisabled = isPublicStatusFull(
+    statuses,
+    selectedStatus,
+    statusCounts[selectedStatus] ?? 0
+  );
   const selectedIsPublic =
     selectedStatus !== "all" &&
     statuses.some((status) => status.id === selectedStatus && isPublicStatus(status));

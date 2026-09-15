@@ -13,7 +13,7 @@ export function DetailCoverCollection({ item }: { item: CollectionItem }) {
   const direct = tmdbProxyUrl ? null : (item.coverUrl ?? null);
   const cover = cachedUrl ?? remoteSrc ?? direct ?? generatePlaceholder(item.title);
   return (
-    <section className="windows95-border shrink-0 self-start bg-field">
+    <section className="windows95-border bg-field shrink-0 self-start">
       <Image src={cover} alt={item.title} width={144} height={216} className="block h-54 w-36" />
     </section>
   );

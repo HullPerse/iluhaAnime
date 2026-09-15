@@ -167,7 +167,7 @@ function RutrackerLoginModal({
               onChange={(e) => setCookies(e.target.value)}
               placeholder="bb_session=...; bb_data=...; uid=..."
               spellCheck={false}
-              className="windows95-border windows95-text placeholder:text-hint focus-visible:outline-text h-28 w-full resize-y bg-field p-1 outline-none focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-dotted"
+              className="windows95-border windows95-text placeholder:text-hint focus-visible:outline-text bg-field h-28 w-full resize-y p-1 outline-none focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-dotted"
             />
           </div>
         ) : (

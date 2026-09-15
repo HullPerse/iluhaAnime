@@ -63,7 +63,7 @@ export function SimilarSection({
   return (
     <Section
       header={t("anilist.details.similar")}
-      className="flex flex-wrap gap-1 bg-field"
+      className="bg-field flex flex-wrap gap-1"
       expanded={expanded}
       onExpand={() => setExpanded((prev) => !prev)}
       files={items.length}

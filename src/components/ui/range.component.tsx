@@ -82,7 +82,7 @@ function Slider({
         aria-valuemax={max}
         aria-valuenow={clamped}
         aria-valuetext={`${clamped}${suffixText(suffix)}`}
-        className="windows95-border relative h-4 flex-1 cursor-pointer bg-field"
+        className="windows95-border bg-field relative h-4 flex-1 cursor-pointer"
         onKeyDown={(e) => {
           const amount = e.shiftKey ? step * 10 : step;
 

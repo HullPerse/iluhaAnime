@@ -24,9 +24,10 @@ const buttonVariants = cva(
         destructive: "text-destructive active:bg-destructive active:text-white",
         error: "bg-primary text-destructive active:bg-destructive active:text-white",
         ghost:
-          "hover:bg-primary hover:border-b-muted hover:border-r-muted border-transparent bg-transparent hover:border-t-win-highlight hover:border-l-win-highlight",
+          "hover:bg-primary hover:border-b-muted hover:border-r-muted hover:border-t-win-highlight hover:border-l-win-highlight border-transparent bg-transparent",
         link: "text-highlight hover:text-link-hover border-0 border-transparent bg-transparent p-0 underline hover:underline active:translate-x-0 active:translate-y-0",
-        outline: "border-t-muted border-l-muted border-r-win-highlight border-b-win-highlight bg-field",
+        outline:
+          "border-t-muted border-l-muted border-r-win-highlight border-b-win-highlight bg-field",
         secondary: "bg-surface",
         success: "bg-primary text-success active:bg-success active:text-white",
       },

@@ -48,8 +48,8 @@ describe("AniListListsRow", () => {
     await user.click(screen.getByRole("button", { name: "Planning (1)" }));
     expect(onChange).toHaveBeenCalledWith("Planning");
     rerender(<AniListListsRow tabs={TABS} activeTab="Planning" onChange={onChange} />);
-    expect(
-      screen.getByRole("button", { name: "Planning (1)" }).getAttribute("aria-current")
-    ).toBe("true");
+    expect(screen.getByRole("button", { name: "Planning (1)" }).getAttribute("aria-current")).toBe(
+      "true"
+    );
   });
 });

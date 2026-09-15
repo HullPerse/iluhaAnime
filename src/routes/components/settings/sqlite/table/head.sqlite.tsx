@@ -29,7 +29,7 @@ export function RowsTableHead({
   const { t } = useI18n();
   const idHidden = hideId && columns.includes("id");
   return (
-    <thead className="bg-secondary sticky top-0 z-10 text-title-text">
+    <thead className="bg-secondary text-title-text sticky top-0 z-10">
       <tr>
         {interactive && primaryKeys.length > 0 && (
           <th className="w-8 border-r border-white/30 px-1 py-1 font-normal">

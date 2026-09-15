@@ -22,7 +22,7 @@ export function DropdownMenuContent({
         <MenuPrimitive.Popup
           data-slot="dropdown-menu-content"
           className={cn(
-            "windows95-active-border flex max-h-[min(16rem,var(--available-height))] max-w-(--available-width) min-w-32 origin-(--transform-origin) flex-col overflow-hidden bg-field outline-none",
+            "windows95-active-border bg-field flex max-h-[min(16rem,var(--available-height))] max-w-(--available-width) min-w-32 origin-(--transform-origin) flex-col overflow-hidden outline-none",
             className
           )}
           {...props}

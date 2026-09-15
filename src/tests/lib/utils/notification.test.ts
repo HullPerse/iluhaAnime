@@ -1,7 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { enUS } from "date-fns/locale";
-
 import { formatDistanceToNow } from "date-fns";
+import { enUS } from "date-fns/locale";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("date-fns", () => ({
   formatDistanceToNow: vi.fn(() => "mocked-relative"),
@@ -38,7 +37,6 @@ describe("notification helpers", () => {
     expect(items[0].message).toBe("Details");
   });
 });
-
 
 describe("copyNotification", () => {
   const item = {

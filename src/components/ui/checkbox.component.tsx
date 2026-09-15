@@ -19,7 +19,7 @@ function Checkbox({
       onCheckedChange={(v) => onChange(v)}
       disabled={disabled}
       className={cn(
-        "windows95-border text-text windows95-text inline-flex size-[var(--ui-check-size)] shrink-0 items-center justify-center bg-field leading-none font-bold",
+        "windows95-border text-text windows95-text bg-field inline-flex size-[var(--ui-check-size)] shrink-0 items-center justify-center leading-none font-bold",
         disabled ? "cursor-default opacity-50" : "cursor-pointer",
         className
       )}

@@ -34,7 +34,7 @@ export function VolumeBar() {
   return (
     <div
       ref={barRef}
-      className="windows95-border relative h-4 w-20 shrink-0 cursor-pointer bg-field"
+      className="windows95-border bg-field relative h-4 w-20 shrink-0 cursor-pointer"
       role="slider"
       tabIndex={0}
       aria-label="Volume"

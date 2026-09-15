@@ -132,9 +132,7 @@ describe("DitherPreviewModal", () => {
       })
     );
     expect(onSaved).toHaveBeenCalledWith(updated);
-    expect(onSaved.mock.calls[0][0].url).toBe(
-      "http://asset.localhost/C%3A%2Fimages%2Faaa.png?v=2"
-    );
+    expect(onSaved.mock.calls[0][0].url).toBe("http://asset.localhost/C%3A%2Fimages%2Faaa.png?v=2");
     expect(onBack).toHaveBeenCalledTimes(1);
   });
 

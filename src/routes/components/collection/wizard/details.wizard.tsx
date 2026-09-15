@@ -119,7 +119,7 @@ export function WizardDetailsPanel(props: {
             min="0"
             value={props.progressValue}
             onChange={(e) => props.setProgressValue(e.target.value)}
-            className="windows95-border w-16 bg-field px-1 py-0.5 text-xs"
+            className="windows95-border bg-field w-16 px-1 py-0.5 text-xs"
           />
           <span className="text-hint text-xs">/</span>
           <input
@@ -128,7 +128,7 @@ export function WizardDetailsPanel(props: {
             value={props.progressTotal}
             onChange={(e) => props.setProgressTotal(e.target.value)}
             placeholder="-"
-            className="windows95-border w-16 bg-field px-1 py-0.5 text-xs"
+            className="windows95-border bg-field w-16 px-1 py-0.5 text-xs"
           />
           <Select
             value={props.progressUnit}
@@ -153,7 +153,7 @@ export function WizardDetailsPanel(props: {
           max="10"
           value={props.rating}
           onChange={(e) => props.setRating(e.target.value)}
-          className="windows95-border w-16 bg-field px-1 py-0.5 text-xs"
+          className="windows95-border bg-field w-16 px-1 py-0.5 text-xs"
         />
 
         <span className="text-text flex items-center text-xs font-bold">

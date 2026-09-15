@@ -313,9 +313,9 @@ describe("WizardModal public prefill lock", () => {
       prefill: { title: "", coverUrl: null, status: "share_1" },
     });
     await user.click(screen.getByRole("tab", { name: "Details" }));
-    expect(
-      (screen.getByRole("combobox", { name: "Status" }) as HTMLButtonElement).disabled
-    ).toBe(true);
+    expect((screen.getByRole("combobox", { name: "Status" }) as HTMLButtonElement).disabled).toBe(
+      true
+    );
   });
 
   it("leaves the selector free on a private prefill", async () => {
@@ -325,9 +325,9 @@ describe("WizardModal public prefill lock", () => {
       prefill: { title: "", coverUrl: null, status: "planned" },
     });
     await user.click(screen.getByRole("tab", { name: "Details" }));
-    expect(
-      (screen.getByRole("combobox", { name: "Status" }) as HTMLButtonElement).disabled
-    ).toBe(false);
+    expect((screen.getByRole("combobox", { name: "Status" }) as HTMLButtonElement).disabled).toBe(
+      false
+    );
   });
 
   it("leaves the selector free when editing a public item", () => {
@@ -369,8 +369,8 @@ describe("WizardModal public prefill lock", () => {
       detailsJson: null,
     };
     renderWizard({ statuses: LOCK_STATUSES, initial });
-    expect(
-      (screen.getByRole("combobox", { name: "Status" }) as HTMLButtonElement).disabled
-    ).toBe(false);
+    expect((screen.getByRole("combobox", { name: "Status" }) as HTMLButtonElement).disabled).toBe(
+      false
+    );
   });
 });

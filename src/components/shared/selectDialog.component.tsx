@@ -33,7 +33,7 @@ export function SelectDialog({ header, label, options, onSubmit, onClose }: Sele
       )}
       <div
         ref={listRef}
-        className="windows95-border max-h-60 overflow-y-auto bg-field"
+        className="windows95-border bg-field max-h-60 overflow-y-auto"
         onKeyDown={(e) => {
           if (e.key === "ArrowDown") {
             e.preventDefault();

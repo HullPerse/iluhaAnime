@@ -37,7 +37,7 @@ export function WizardLocalPanel({
           value={localPath}
           readOnly
           placeholder={t("collection.wizard.no.file.linked")}
-          className="windows95-border min-w-0 flex-1 bg-field px-1 py-0.5 text-xs"
+          className="windows95-border bg-field min-w-0 flex-1 px-1 py-0.5 text-xs"
         />
         <Button className="h-6 px-2 text-xs" onClick={pickFile}>
           <FolderOpen className="size-3" /> {t("collection.wizard.file")}

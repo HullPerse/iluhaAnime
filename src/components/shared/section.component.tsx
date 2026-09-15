@@ -25,7 +25,7 @@ function Section({
 
   return (
     <section className="windows95-border" aria-label={header}>
-      <header className="bg-secondary windows95-text flex w-full flex-row items-center justify-between px-1 py-0.5 font-bold text-title-text">
+      <header className="bg-secondary windows95-text text-title-text flex w-full flex-row items-center justify-between px-1 py-0.5 font-bold">
         <span>
           {header} {onExpand && files ? `[${files}]` : null}
         </span>
@@ -36,7 +36,7 @@ function Section({
             aria-expanded={expanded}
             aria-controls={contentId}
             aria-label={expanded ? t("common.collapse") : t("common.expand")}
-            className="windows95-text bg-secondary hover:bg-muted flex size-5 cursor-pointer items-center justify-center gap-1 px-0.5 py-0.5 text-center text-title-text select-none"
+            className="windows95-text bg-secondary hover:bg-muted text-title-text flex size-5 cursor-pointer items-center justify-center gap-1 px-0.5 py-0.5 text-center select-none"
             onClick={onExpand}
           >
             {expanded ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}

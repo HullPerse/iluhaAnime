@@ -18,7 +18,7 @@ function CoverThumbInner({
   if (failed || !src) {
     return (
       <div
-        className="windows95-border flex h-16 w-12 shrink-0 items-center justify-center bg-field text-center text-xs"
+        className="windows95-border bg-field flex h-16 w-12 shrink-0 items-center justify-center text-center text-xs"
         title={t("image.unavailable")}
       >
         <span className="text-hint">-</span>

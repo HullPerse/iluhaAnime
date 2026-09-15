@@ -14,7 +14,13 @@ import {
 } from "@/lib/utils/notification.utils";
 import type { NotificationRowProps } from "@/types/notification";
 
-export default function NotificationRow({ item, t, locale, markRead, clear }: NotificationRowProps) {
+export default function NotificationRow({
+  item,
+  t,
+  locale,
+  markRead,
+  clear,
+}: NotificationRowProps) {
   const [copied, setCopied] = useState(false);
   const timer = useRef<number | null>(null);
   const TypeIcon = NOTIFICATION_TYPE_ICONS[item.type];

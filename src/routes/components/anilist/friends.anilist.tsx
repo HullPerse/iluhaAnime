@@ -84,7 +84,7 @@ export default function AniListFriendsModal({
     <Modal header={t("anilist.friends.title")} onClose={onClose} className="w-4xl max-w-[92vw]">
       <div className="grid min-h-80 grid-cols-1 gap-2 md:grid-cols-[minmax(13rem,0.8fr)_minmax(0,1.4fr)]">
         <section className="windows95-border bg-field p-1">
-          <div className="bg-secondary mb-1 flex items-center gap-1 px-1 py-0.5 text-title-text">
+          <div className="bg-secondary text-title-text mb-1 flex items-center gap-1 px-1 py-0.5">
             <Users className="size-3" />
             <span className="windows95-font text-xs">{t("anilist.friends.list")}</span>
           </div>
@@ -142,13 +142,13 @@ export default function AniListFriendsModal({
             </Button>
           </div>
           {error && (
-            <div className="windows95-border text-destructive flex items-start gap-1 bg-field p-1 text-xs">
+            <div className="windows95-border text-destructive bg-field flex items-start gap-1 p-1 text-xs">
               <X className="mt-0.5 size-3 shrink-0" />
               <span className="windows95-text">{error}</span>
             </div>
           )}
           {selected ? (
-            <div className="windows95-border min-h-0 flex-1 overflow-y-auto bg-field">
+            <div className="windows95-border bg-field min-h-0 flex-1 overflow-y-auto">
               {selected.banner_image && (
                 <div className="bg-secondary h-20 overflow-hidden">
                   <ImageComponent

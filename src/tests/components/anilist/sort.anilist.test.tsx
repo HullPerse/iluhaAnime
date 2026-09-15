@@ -33,9 +33,7 @@ afterEach(() => cleanup());
 describe("AniListSortBar", () => {
   it("marks the active sort key as current", () => {
     renderSort();
-    expect(screen.getByRole("button", { name: "Title" }).getAttribute("aria-current")).toBe(
-      "true"
-    );
+    expect(screen.getByRole("button", { name: "Title" }).getAttribute("aria-current")).toBe("true");
   });
 
   it("pages through sort keys with the chevrons and wraps around", async () => {

@@ -34,8 +34,7 @@ export default defineConfig({
             total += s.size;
           }
           this.info?.(`icon-sprite: ${files.length} icons, ${(total / 1024).toFixed(1)}KB`);
-        } catch {
-        }
+        } catch {}
       },
     },
   ],

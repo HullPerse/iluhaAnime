@@ -25,7 +25,7 @@ export function FeedItem({
             className="windows95-active-border h-7 w-7 shrink-0"
           />
         ) : (
-          <div className="windows95-active-border flex h-7 w-7 shrink-0 items-center justify-center bg-field text-xs font-bold">
+          <div className="windows95-active-border bg-field flex h-7 w-7 shrink-0 items-center justify-center text-xs font-bold">
             {a.user_name[0] ?? "?"}
           </div>
         )}

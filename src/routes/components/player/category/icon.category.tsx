@@ -33,7 +33,7 @@ function CategoryIconModal({ id, handleClose }: { id: string; handleClose: () =>
 
   return (
     <Modal header={t("player.category.change.icon")} onClose={handleClose} className="w-xl">
-      <section className="windows95-border grid h-64 grid-cols-8 gap-2 overflow-x-hidden overflow-y-scroll bg-field p-1">
+      <section className="windows95-border bg-field grid h-64 grid-cols-8 gap-2 overflow-x-hidden overflow-y-scroll p-1">
         {playerIcons.map((icon) => (
           <div
             key={icon}
@@ -58,7 +58,7 @@ function CategoryIconModal({ id, handleClose }: { id: string; handleClose: () =>
       {selected.startsWith("user-image:") && (
         <div className="windows95-text mt-1 flex items-center gap-1 text-xs">
           <span>{t("player.category.selected")}</span>
-          <UserImageIcon icon={selected} className="windows95-border size-6 bg-field" />
+          <UserImageIcon icon={selected} className="windows95-border bg-field size-6" />
         </div>
       )}
 

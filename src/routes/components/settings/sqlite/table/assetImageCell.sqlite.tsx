@@ -50,11 +50,9 @@ export function AssetImageCell({
 
   if (state === "loading") return <span className="text-hint block text-xs">...</span>;
   if (state === "missing" || !src)
-    return (
-      <span className="text-hint block text-xs">{t("settings.sqlite.image.missing")}</span>
-    );
+    return <span className="text-hint block text-xs">{t("settings.sqlite.image.missing")}</span>;
   return (
-    <div className="windows95-border mx-auto size-16 shrink-0 overflow-hidden bg-field">
+    <div className="windows95-border bg-field mx-auto size-16 shrink-0 overflow-hidden">
       <Image src={src} alt={alt} type="contain" className="h-full w-full" />
     </div>
   );

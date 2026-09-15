@@ -181,7 +181,7 @@ export default function PrefetchRelationsModal({ animeIds, onClose }: Props) {
             )}
             <div
               ref={logRef}
-              className="windows95-border windows95-text h-40 overflow-y-auto bg-field p-1 text-xs leading-tight wrap-break-word whitespace-pre-wrap"
+              className="windows95-border windows95-text bg-field h-40 overflow-y-auto p-1 text-xs leading-tight wrap-break-word whitespace-pre-wrap"
             >
               {log.map((line, index) => (
                 <div key={`${line}-${index}`}>{line}</div>

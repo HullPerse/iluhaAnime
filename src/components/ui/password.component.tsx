@@ -14,7 +14,7 @@ function PasswordInput({ className, wrapperClassName, ...props }: PasswordInputP
   return (
     <div
       className={cn(
-        "windows95-border has-[input:focus-visible]:outline-text relative flex min-h-(--ui-control-height) w-full items-center bg-field has-[input:focus-visible]:outline-1 has-[input:focus-visible]:outline-offset-[-3px] has-[input:focus-visible]:outline-dotted",
+        "windows95-border has-[input:focus-visible]:outline-text bg-field relative flex min-h-(--ui-control-height) w-full items-center has-[input:focus-visible]:outline-1 has-[input:focus-visible]:outline-offset-[-3px] has-[input:focus-visible]:outline-dotted",
         wrapperClassName
       )}
     >

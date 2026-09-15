@@ -9,7 +9,7 @@ export function SettingsChangelog() {
   const { t } = useI18n();
   const [latest] = CHANGELOG;
   const [open, setOpen] = useState<Record<string, boolean>>(() =>
-    latest ? { [latest.version]: true } : {},
+    latest ? { [latest.version]: true } : {}
   );
   return (
     <div className="flex flex-col gap-1">

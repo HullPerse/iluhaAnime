@@ -327,7 +327,7 @@ function FranchiseGraphSection({
 
       <section
         ref={containerRef}
-        className="windows95-border relative overflow-hidden bg-field"
+        className="windows95-border bg-field relative overflow-hidden"
         style={{ height: displayH }}
       >
         {listView

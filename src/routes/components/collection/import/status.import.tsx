@@ -59,7 +59,7 @@ export function ImportStatusSection({
           <span className="windows95-text text-destructive text-xs font-bold">
             {t("collection.import.anilist.failed", { count: failures.length })}
           </span>
-          <ul className="windows95-border flex max-h-32 flex-col gap-1 overflow-auto bg-field p-1">
+          <ul className="windows95-border bg-field flex max-h-32 flex-col gap-1 overflow-auto p-1">
             {failures.map((f) => (
               <li key={f.id} className="windows95-text truncate text-xs" title={f.title}>
                 {f.title}

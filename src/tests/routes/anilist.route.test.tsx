@@ -461,7 +461,11 @@ describe("AnilistRoute friend lists", () => {
     await screen.findByText("FRIEND");
     await screen.findAllByText("Bleach");
 
-    expect(mockInvoke.mock.calls.some(([cmd, args]) => cmd === "get_anilist_lists" && (args as { userId?: number })?.userId === 2)).toBe(true);
+    expect(
+      mockInvoke.mock.calls.some(
+        ([cmd, args]) => cmd === "get_anilist_lists" && (args as { userId?: number })?.userId === 2
+      )
+    ).toBe(true);
     expect(container.querySelector('button[title="Filters"]')).toBeNull();
     expect(container.querySelector('button[title="Activity history"]')).toBeNull();
     expect(container.querySelector('button[title="Random from list"]')).not.toBeNull();

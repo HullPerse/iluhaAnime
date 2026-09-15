@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 
 import { searchFiltersToParams } from "@/lib/anilist/entries.utils";
+import { ALL_LISTS_ID, collectAllEntries } from "@/lib/anilist/group.utils";
 import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
@@ -8,7 +9,6 @@ import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { showError } from "@/lib/utils/notification.utils";
 import { useSettingsStore } from "@/store/settings.store";
 import type { AniListAnime, AniListCollection, AniListFilters } from "@/types/anilist";
-import { ALL_LISTS_ID, collectAllEntries } from "@/lib/anilist/group.utils";
 import type { FilterPage } from "@/types/ipc";
 
 const FILTER_RANDOM_PER_PAGE = 50;

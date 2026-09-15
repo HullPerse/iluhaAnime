@@ -75,12 +75,12 @@ export function WizardSourceSearch({
         <p className="text-hint text-xs">{t("collection.wizard.tmdbKeyMissing")}</p>
       )}
       {showResults && (
-        <div className="windows95-border flex flex-col gap-1 bg-field p-1">
+        <div className="windows95-border bg-field flex flex-col gap-1 p-1">
           {searchResults.map((r) => (
             <button
               key={r.id}
               type="button"
-              className="windows95-border flex cursor-pointer items-center gap-1 bg-field p-1 text-left text-xs hover:bg-[var(--color-highlight)] hover:text-white"
+              className="windows95-border bg-field flex cursor-pointer items-center gap-1 p-1 text-left text-xs hover:bg-[var(--color-highlight)] hover:text-white"
               onClick={() => onPickResult(r)}
             >
               {r.cover_url && <SearchResultCover url={r.cover_url} />}

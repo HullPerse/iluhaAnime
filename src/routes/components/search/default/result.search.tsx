@@ -38,7 +38,7 @@ export default function SearchResultItem({
             {item.title}
           </h3>
           <div className="mt-1 flex flex-wrap gap-1">
-            <span className="windows95-font bg-secondary px-1 text-xs text-title-text">
+            <span className="windows95-font bg-secondary text-title-text px-1 text-xs">
               {sourceLabel}
             </span>
             {detectLanguages(item.title).map((l) => (
@@ -66,7 +66,7 @@ export default function SearchResultItem({
           <Button
             onClick={() => onOpenDetails(item)}
             size="icon"
-            className="windows95-active-border bg-secondary windows95-text inline-flex size-6 cursor-pointer items-center gap-0.5 text-title-text no-underline"
+            className="windows95-active-border bg-secondary windows95-text text-title-text inline-flex size-6 cursor-pointer items-center gap-0.5 no-underline"
             title={t("search.more")}
           >
             <Eye className="size-3" />

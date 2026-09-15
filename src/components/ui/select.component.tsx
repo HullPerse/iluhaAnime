@@ -54,7 +54,7 @@ function Select({
       <BaseSelect.Trigger
         aria-label={label}
         className={cn(
-          "windows95-border text-text windows95-text flex min-h-(--ui-control-height) w-full flex-row items-center bg-field px-1",
+          "windows95-border text-text windows95-text bg-field flex min-h-(--ui-control-height) w-full flex-row items-center px-1",
           disabled ? "cursor-default opacity-50" : "cursor-pointer",
           className
         )}
@@ -78,7 +78,7 @@ function Select({
           sideOffset={4}
           onPointerDown={(e) => e.stopPropagation()}
         >
-          <BaseSelect.Popup className="windows95-active-border flex max-h-[min(12rem,var(--available-height))] w-(--anchor-width) max-w-(--available-width) origin-(--transform-origin) flex-col overflow-hidden bg-field">
+          <BaseSelect.Popup className="windows95-active-border bg-field flex max-h-[min(12rem,var(--available-height))] w-(--anchor-width) max-w-(--available-width) origin-(--transform-origin) flex-col overflow-hidden">
             {showSearch && (
               <Input
                 ref={searchInputRef}

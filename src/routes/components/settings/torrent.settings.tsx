@@ -77,7 +77,7 @@ export default function SettingsTorrent() {
     <div className="flex flex-col gap-3">
       <section className="ui-panel">
         <div className="ui-titlebar">
-          <span className="font-bold text-title-text">{t("settings.torrent.speed.limits")}</span>
+          <span className="text-title-text font-bold">{t("settings.torrent.speed.limits")}</span>
         </div>
         <div className="flex flex-col gap-1 p-2">
           <label className="windows95-text text-text flex items-center gap-2">
@@ -116,7 +116,7 @@ export default function SettingsTorrent() {
 
       <section className="ui-panel">
         <div className="ui-titlebar">
-          <span className="font-bold text-title-text">{t("settings.torrent.search")}</span>
+          <span className="text-title-text font-bold">{t("settings.torrent.search")}</span>
         </div>
         <div className="flex flex-col gap-1 p-2">
           <div className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
@@ -139,7 +139,7 @@ export default function SettingsTorrent() {
 
       <section className="ui-panel">
         <div className="ui-titlebar">
-          <span className="font-bold text-title-text">{t("settings.torrent.notifications")}</span>
+          <span className="text-title-text font-bold">{t("settings.torrent.notifications")}</span>
         </div>
         <div className="flex flex-col gap-1 p-2">
           <label className="windows95-text text-text flex cursor-pointer items-center gap-2 select-none">
@@ -172,7 +172,7 @@ export default function SettingsTorrent() {
 
       <section className="ui-panel">
         <div className="ui-titlebar">
-          <span className="font-bold text-title-text">{t("settings.torrent.session")}</span>
+          <span className="text-title-text font-bold">{t("settings.torrent.session")}</span>
         </div>
         <div className="flex flex-col gap-1 p-2">
           <span className="text-hint text-xs">{t("settings.torrent.session.restart.note")}</span>
@@ -202,7 +202,7 @@ export default function SettingsTorrent() {
 
       <section className="ui-panel">
         <div className="ui-titlebar">
-          <span className="font-bold text-title-text">{t("settings.torrent.network")}</span>
+          <span className="text-title-text font-bold">{t("settings.torrent.network")}</span>
         </div>
         <div className="flex flex-col gap-1 p-2">
           <span className="text-hint text-xs">{t("settings.torrent.session.restart.note")}</span>

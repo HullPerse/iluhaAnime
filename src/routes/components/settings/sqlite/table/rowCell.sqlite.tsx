@@ -52,7 +52,7 @@ export function RowCell({
           src={value as string}
           alt={column}
           type="contain"
-          className="h-12 w-12 bg-field object-contain"
+          className="bg-field h-12 w-12 object-contain"
         />
       ) : (
         preview

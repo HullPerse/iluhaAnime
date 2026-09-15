@@ -158,7 +158,7 @@ export function BackupPanel({
         <span className="windows95-text text-xs">{t("common.loading")}</span>
       ) : (
         backups.length > 0 && (
-          <ul className="windows95-border flex max-h-56 flex-col gap-1 overflow-auto bg-field p-1">
+          <ul className="windows95-border bg-field flex max-h-56 flex-col gap-1 overflow-auto p-1">
             {backups.map((backup) => (
               <li key={backup.name}>
                 <label className="grid cursor-pointer grid-cols-[auto_1fr_80px] items-center gap-2 px-1 py-0.5 select-none">

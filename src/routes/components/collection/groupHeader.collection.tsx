@@ -69,7 +69,7 @@ export function GroupHeaderCollection({
       className={cn(
         "flex w-full cursor-pointer items-center gap-1 select-none",
         isTorrent
-          ? "bg-secondary px-1 text-title-text"
+          ? "bg-secondary text-title-text px-1"
           : "windows95-active-border bg-primary hover:bg-surface px-0.5 py-0.5 text-left"
       )}
     >

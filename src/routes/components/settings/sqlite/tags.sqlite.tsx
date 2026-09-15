@@ -19,7 +19,7 @@ export function SqliteFilterTags({
         <button
           key={column.name}
           type="button"
-          className="windows95-border hover:bg-surface active:bg-secondary windows95-text bg-field px-1 py-0.5 text-xs active:text-title-text"
+          className="windows95-border hover:bg-surface active:bg-secondary windows95-text bg-field active:text-title-text px-1 py-0.5 text-xs"
           title={t("settings.sqlite.filter.tag", {
             template: `${column.name} ${isTextColumn(column.name) ? "~" : "="} `,
           })}

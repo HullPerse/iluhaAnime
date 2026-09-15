@@ -1,3 +1,7 @@
+import cargoToml from "../../../src-tauri/Cargo.toml?raw";
+import tauriConf from "../../../src-tauri/tauri.conf.json";
+import packageJson from "../../../package.json";
+
 import { describe, expect, it } from "vitest";
 
 import {
@@ -317,4 +321,22 @@ it("uses Inter for the Apple theme instead of San Francisco", () => {
   // San Francisco is not redistributable, so the theme ships Inter, the closest open equivalent.
   const apple = THEMES.find((theme) => theme.name === "apple");
   expect(apple?.fontFamily).toBe("Inter");
+});
+
+function crateVersion(toml: string): string {
+  const section = toml.split(/^\[package\]/m)[1] ?? "";
+  const match = /^version = "([^"]+)"$/m.exec(section.split(/^\[/m)[0] ?? "");
+  if (!match) throw new Error("iluhaAnime crate version not found");
+  return match[1];
+}
+
+describe("release versions", () => {
+  it("keeps package.json, tauri.conf.json, and Cargo.toml on the same version", () => {
+    expect(tauriConf.version).toBe(packageJson.version);
+    expect(crateVersion(cargoToml)).toBe(packageJson.version);
+  });
+
+  it("uses a plain semver release version", () => {
+    expect(packageJson.version).toMatch(/^\d+\.\d+\.\d+$/);
+  });
 });

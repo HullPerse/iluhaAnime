@@ -7,7 +7,10 @@ import { ChangelogCategory } from "./changelogCategory.settings";
 
 export function SettingsChangelog() {
   const { t } = useI18n();
-  const [open, setOpen] = useState<Record<string, boolean>>({ "4.0.5": true });
+  const [latest] = CHANGELOG;
+  const [open, setOpen] = useState<Record<string, boolean>>(() =>
+    latest ? { [latest.version]: true } : {},
+  );
   return (
     <div className="flex flex-col gap-1">
       {CHANGELOG.map((entry) => {

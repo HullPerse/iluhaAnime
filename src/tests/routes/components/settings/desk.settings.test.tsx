@@ -3,6 +3,7 @@ import { cleanup, render, screen, waitFor, within } from "@testing-library/react
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { CHANGELOG } from "@/config/settings/changelog.config";
 import { SettingsChangelog } from "@/routes/components/settings/changelog.settings";
 import { SettingsSummary } from "@/routes/components/settings/summary.settings";
 import { useSettingsStore } from "@/store/settings.store";
@@ -114,12 +115,14 @@ describe("SettingsSummary", () => {
 describe("SettingsChangelog", () => {
   it("renders collapsible versions with categorized entries", async () => {
     const user = userEvent.setup();
+    const latestVersion = CHANGELOG[0]?.version ?? "";
+    const versionPattern = new RegExp(latestVersion.replaceAll(".", "\\."));
     render(<SettingsChangelog />);
-    expect(screen.getByText("4.0.5")).toBeDefined();
+    expect(screen.getByText(latestVersion)).toBeDefined();
     expect(screen.getByText(/Добавлено|Added/)).toBeDefined();
-    await user.click(screen.getByRole("button", { name: /4\.0\.5/ }));
+    await user.click(screen.getByRole("button", { name: versionPattern }));
     expect(screen.queryByText(/Добавлено|Added/)).toBeNull();
-    await user.click(screen.getByRole("button", { name: /4\.0\.5/ }));
+    await user.click(screen.getByRole("button", { name: versionPattern }));
   });
   it("prefixes every entry with its area scope", () => {
     render(<SettingsChangelog />);

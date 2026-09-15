@@ -520,6 +520,52 @@ describe("window chrome side effect", () => {
 
     expect(mockInvoke).not.toHaveBeenCalled();
   });
+
+  it("pushes the rehydrated custom title bar to the backend on startup", () => {
+    mockInvoke.mockReset();
+    mockInvoke.mockResolvedValue(undefined);
+    const onRehydrate = useSettingsStore.persist.getOptions()?.onRehydrateStorage;
+    const finish = onRehydrate?.(useSettingsStore.getState());
+
+    finish?.(
+      {
+        ...useSettingsStore.getState(),
+        customTitleBarEnabled: true,
+        roundedWindowCorners: true,
+        windowEffect: "mica",
+      },
+      undefined
+    );
+
+    expect(mockInvoke).toHaveBeenCalledWith("set_window_chrome", {
+      decorations: false,
+      effect: "mica",
+      roundedCorners: true,
+    });
+  });
+
+  it("pushes native decorations when rehydrating without the custom title bar", () => {
+    mockInvoke.mockReset();
+    mockInvoke.mockResolvedValue(undefined);
+    const onRehydrate = useSettingsStore.persist.getOptions()?.onRehydrateStorage;
+    const finish = onRehydrate?.(useSettingsStore.getState());
+
+    finish?.(
+      {
+        ...useSettingsStore.getState(),
+        customTitleBarEnabled: false,
+        roundedWindowCorners: false,
+        windowEffect: "none",
+      },
+      undefined
+    );
+
+    expect(mockInvoke).toHaveBeenCalledWith("set_window_chrome", {
+      decorations: true,
+      effect: "none",
+      roundedCorners: false,
+    });
+  });
 });
 
 describe("yorha grid v29 migration", () => {

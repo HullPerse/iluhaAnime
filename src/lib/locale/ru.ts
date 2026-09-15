@@ -4,6 +4,7 @@ import changelog401 from "./changelog/v4_0_1.ru";
 import changelog402 from "./changelog/v4_0_2.ru";
 import changelog403 from "./changelog/v4_0_3.ru";
 import changelog404 from "./changelog/v4_0_4.ru";
+import changelog407 from "./changelog/v4_0_7.ru";
 import changelog406 from "./changelog/v4_0_6.ru";
 import changelog405 from "./changelog/v4_0_5.ru";
 import anilist from "./ru/anilist.locale";
@@ -17,6 +18,7 @@ import updater from "./ru/updater.locale";
 
 const ru = {
   ...anilist,
+  ...changelog407,
   ...changelog406,
   ...changelog405,
   ...changelog404,

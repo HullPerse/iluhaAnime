@@ -7,10 +7,14 @@ export type WindowChrome = Pick<
   "customTitleBarEnabled" | "roundedWindowCorners" | "windowEffect"
 >;
 
-export function applyWindowChrome(chrome: WindowChrome): void {
-  invokeTyped("set_window_chrome", {
-    decorations: !chrome.customTitleBarEnabled,
-    effect: chrome.windowEffect,
-    roundedCorners: chrome.roundedWindowCorners,
-  }).catch((error) => reportBackgroundError("settings.window.chrome", error));
+export async function applyWindowChrome(chrome: WindowChrome): Promise<void> {
+  try {
+    await invokeTyped("set_window_chrome", {
+      decorations: !chrome.customTitleBarEnabled,
+      effect: chrome.windowEffect,
+      roundedCorners: chrome.roundedWindowCorners,
+    });
+  } catch (error: unknown) {
+    reportBackgroundError("settings.window.chrome", error);
+  }
 }

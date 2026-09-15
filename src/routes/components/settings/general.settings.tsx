@@ -499,7 +499,7 @@ export default function SettingsGeneral() {
               ]) {
                 localStorage.removeItem(key);
               }
-              applyWindowChrome(DEFAULT_SETTINGS);
+              await applyWindowChrome(DEFAULT_SETTINGS);
               window.location.reload();
             } catch (error: unknown) {
               setResetError(error instanceof Error ? error.message : String(error));

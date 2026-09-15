@@ -575,6 +575,11 @@ export const useSettingsStore = create<SettingsStore>()(
         if (state) {
           applyUiPreferences(state.retroStyle, state.uiDensity);
           applyWindowEffect(state.windowEffect);
+          applyWindowChrome({
+            customTitleBarEnabled: state.customTitleBarEnabled,
+            roundedWindowCorners: state.roundedWindowCorners,
+            windowEffect: state.windowEffect,
+          });
           applyWindowTint(state.windowTintOpacity);
           applyYorhaScanlines(state.yorhaScanlinesEnabled);
           if (state.appFont) applyFontFamily(state.appFont);

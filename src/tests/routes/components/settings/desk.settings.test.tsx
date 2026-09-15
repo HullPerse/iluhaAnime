@@ -119,18 +119,24 @@ describe("SettingsChangelog", () => {
     const versionPattern = new RegExp(latestVersion.replaceAll(".", "\\."));
     render(<SettingsChangelog />);
     expect(screen.getByText(latestVersion)).toBeDefined();
-    expect(screen.getByText(/Добавлено|Added/)).toBeDefined();
+    expect(screen.getAllByRole("listitem").length).toBeGreaterThan(0);
     await user.click(screen.getByRole("button", { name: versionPattern }));
-    expect(screen.queryByText(/Добавлено|Added/)).toBeNull();
+    expect(screen.queryByRole("listitem")).toBeNull();
     await user.click(screen.getByRole("button", { name: versionPattern }));
+    expect(screen.getAllByRole("listitem").length).toBeGreaterThan(0);
   });
-  it("prefixes every entry with its area scope", () => {
+  it("prefixes every entry with its area scope", async () => {
+    const user = userEvent.setup();
     render(<SettingsChangelog />);
+    for (const entry of CHANGELOG) {
+      const pattern = new RegExp(entry.version.replaceAll(".", "\\."));
+      const button = screen.getByRole("button", { name: pattern });
+      if (button.getAttribute("aria-expanded") === "false") await user.click(button);
+    }
     const rows = screen.getAllByRole("listitem");
     expect(rows.length).toBeGreaterThan(0);
     for (const row of rows) {
       expect(row.textContent).toMatch(/\[.+\]:/);
     }
-    expect(screen.getAllByText(/AniList/).length).toBeGreaterThan(0);
   });
 });

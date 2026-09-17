@@ -1,11 +1,13 @@
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useEffect, useState } from "react";
 
-import { AUTHOR_GITHUB_URL, PROJECT_GITHUB_URL } from "@/config/settings/links.config";
+import { PROJECT_GITHUB_URL } from "@/config/settings/links.config";
 import { useTorrents } from "@/hooks/torrent/queries.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { isCurrentDownload } from "@/lib/torrent/common.utils";
 import { useNotificationStore } from "@/store/notification.store";
+
+import ImageComponent from "../ui/image.component";
 
 export default function StatusBar({ tabLabel }: { tabLabel: string }) {
   const { t } = useI18n();
@@ -30,7 +32,7 @@ export default function StatusBar({ tabLabel }: { tabLabel: string }) {
   const unreadCount = useNotificationStore((s) => s.unreadCount);
 
   return (
-    <div className="ui-statusbar shrink-0">
+    <section className="ui-statusbar shrink-0">
       <div className="ui-statusbar-cell flex-1 truncate">
         <span className="truncate">{tabLabel}</span>
       </div>
@@ -38,29 +40,14 @@ export default function StatusBar({ tabLabel }: { tabLabel: string }) {
       <div className="ui-statusbar-cell">{t("status.unread", { count: unreadCount })}</div>
       <div className="ui-statusbar-cell">{online ? t("status.online") : t("status.offline")}</div>
       <div className="ui-statusbar-cell">
-        <button
-          type="button"
-          className="cursor-pointer truncate text-blue-800 underline"
-          title={PROJECT_GITHUB_URL}
-          onClick={() =>
-            openUrl(PROJECT_GITHUB_URL).catch((error) => console.warn("openUrl failed", error))
-          }
-        >
-          github
-        </button>
+        <ImageComponent
+          title={t("status.github")}
+          src="https://github.com/favicon.ico"
+          alt="github link"
+          className="h-4 w-4 opacity-70 hover:cursor-pointer hover:opacity-100"
+          onClick={() => openUrl(PROJECT_GITHUB_URL)}
+        />
       </div>
-      <div className="ui-statusbar-cell">
-        <button
-          type="button"
-          className="cursor-pointer truncate text-blue-800 underline"
-          title={AUTHOR_GITHUB_URL}
-          onClick={() =>
-            openUrl(AUTHOR_GITHUB_URL).catch((error) => console.warn("openUrl failed", error))
-          }
-        >
-          Author
-        </button>
-      </div>
-    </div>
+    </section>
   );
 }

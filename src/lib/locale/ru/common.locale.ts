@@ -36,6 +36,7 @@ const common = {
   "status.unread": "Непрочитано: {{count}}",
   "status.online": "Онлайн",
   "status.offline": "Оффлайн",
+  "status.github": "Репозиторий",
   "common.on": "Вкл.",
   "common.previous": "Назад",
   "common.search": "Поиск...",

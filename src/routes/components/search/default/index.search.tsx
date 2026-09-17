@@ -19,6 +19,7 @@ import DidYouMeanRow from "@/routes/components/search/didyoumean.search";
 import SearchFiltersModal from "@/routes/components/search/filters.modal";
 import SearchSessionModals from "@/routes/components/search/sessions.search";
 import type { SearchFilters } from "@/types/search";
+import { attempt } from "@/lib/utils/attempt.utils";
 
 function SearchDefault() {
   const { t } = useI18n();
@@ -169,11 +170,8 @@ function SearchDefault() {
               onOpenMagnet={(i) => openMagnetFor(i)}
               onDownload={(i) => downloadMagnetFor(i)}
               onOpenLink={async (i) => {
-                try {
-                  await openUrl(i.link);
-                } catch (error) {
-                  console.warn("openUrl failed", error);
-                }
+                const [, error] = await attempt(openUrl(i.link))
+                if (error) return console.warn("openUrl failed", error)
               }}
               onOpenDetails={(i) => setSelectedTorrent({ item: i, source })}
             />

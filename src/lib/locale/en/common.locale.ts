@@ -34,6 +34,7 @@ const common = {
   "status.unread": "Unread: {{count}}",
   "status.online": "Online",
   "status.offline": "Offline",
+  "status.github": "Repository",
   "common.on": "On",
   "common.previous": "Previous",
   "common.search": "Search...",

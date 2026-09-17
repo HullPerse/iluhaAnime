@@ -7,6 +7,7 @@ import SearchResultItem from "@/routes/components/search/default/result.search";
 import SearchResultsSummary from "@/routes/components/search/default/summary.search";
 import DidYouMeanRow from "@/routes/components/search/didyoumean.search";
 import type { SearchQueryController } from "@/types/search";
+import { attempt } from "@/lib/utils/attempt.utils";
 
 export default function ModernResults({ controller }: { controller: SearchQueryController }) {
   const {
@@ -64,11 +65,8 @@ export default function ModernResults({ controller }: { controller: SearchQueryC
               onOpenMagnet={(i) => openMagnetFor(i)}
               onDownload={(i) => downloadMagnetFor(i)}
               onOpenLink={async (i) => {
-                try {
-                  await openUrl(i.link);
-                } catch (openError) {
-                  console.warn("openUrl failed", openError);
-                }
+                const [, error] = await attempt(openUrl(i.link))
+                if (error) return console.warn("openUrl failed", error)
               }}
               onOpenDetails={(i) => setSelectedTorrent({ item: i, source })}
             />

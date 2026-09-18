@@ -1,5 +1,5 @@
 import { MAGNET_RX } from "@/config/torrent/common.config";
-import { attemptAll, attemptSync } from "@/lib/utils/attempt.utils";
+import { attempt, attemptAll, attemptSync } from "@/lib/utils/attempt.utils";
 import type { CollectionExternalIds, CollectionItem, CollectionType } from "@/types/collection";
 import type {
   AnimeDeepLink,
@@ -229,22 +229,22 @@ async function collectBytes(
   const reader = stream.getReader();
   const chunks: Uint8Array[] = [];
   let total = 0;
-  try {
-    for (;;) {
-      const result = await reader.read();
-      if (result.done) break;
-      total += result.value.byteLength;
-      if (total > maxBytes) {
-        await reader.cancel();
-        return null;
+  const [overflowed, readError] = await attempt(
+    (async (): Promise<boolean> => {
+      for (;;) {
+        const result = await reader.read();
+        if (result.done) return false;
+        total += result.value.byteLength;
+        if (total > maxBytes) {
+          await reader.cancel();
+          return true;
+        }
+        chunks.push(result.value);
       }
-      chunks.push(result.value);
-    }
-  } catch {
-    return null;
-  } finally {
-    reader.releaseLock();
-  }
+    })()
+  );
+  reader.releaseLock();
+  if (readError || overflowed) return null;
   const bytes = new Uint8Array(total);
   let offset = 0;
   for (const chunk of chunks) {
@@ -281,16 +281,16 @@ function base64UrlToBytes(value: string): Uint8Array | null {
   const remainder = base64.length % 4;
   if (remainder === 1) return null;
   const padded = remainder === 0 ? base64 : base64 + "=".repeat(4 - remainder);
-  try {
+  const [bytes, error] = attemptSync(() => {
     const binary = atob(padded);
-    const bytes = new Uint8Array(binary.length);
+    const out = new Uint8Array(binary.length);
     for (let index = 0; index < binary.length; index += 1) {
-      bytes[index] = binary.codePointAt(index) ?? 0;
+      out[index] = binary.codePointAt(index) ?? 0;
     }
-    return bytes;
-  } catch {
-    return null;
-  }
+    return out;
+  });
+  if (error) return null;
+  return bytes;
 }
 
 /**
@@ -348,12 +348,10 @@ export async function parseCollectionShareLink(
     SHARE_MAX_BYTES
   );
   if (!decompressed) return null;
-  let decoded: unknown;
-  try {
-    decoded = JSON.parse(new TextDecoder().decode(decompressed));
-  } catch {
-    return null;
-  }
+  const [decoded, decodeError] = attemptSync(
+    () => JSON.parse(new TextDecoder().decode(decompressed)) as unknown
+  );
+  if (decodeError) return null;
   return readSharePayload(decoded);
 }
 

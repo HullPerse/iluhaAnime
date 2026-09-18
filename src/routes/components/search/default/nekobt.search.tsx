@@ -5,6 +5,7 @@ import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
+import { attempt } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { enterSubmit } from "@/lib/utils/keyboard.utils";
 import { useSettingsStore } from "@/store/settings.store";
@@ -35,18 +36,16 @@ function NekoBtApiModal({
     if (!apiKey.trim()) return;
     setLoading(true);
     setError("");
-    try {
-      await invokeTyped("nekobt_set_api_key", {
+    const [, error] = await attempt(
+      invokeTyped("nekobt_set_api_key", {
         apiKey: apiKey.trim(),
         proxyUrl: nekobtProxy || undefined,
         proxy_url: nekobtProxy || undefined,
-      });
-      handleSuccess();
-    } catch (error) {
-      setError(String(error));
-    } finally {
-      setLoading(false);
-    }
+      })
+    );
+    if (error) setError(String(error));
+    else handleSuccess();
+    setLoading(false);
   };
 
   return (

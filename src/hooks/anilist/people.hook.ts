@@ -3,6 +3,7 @@ import { useMemo, useRef } from "react";
 
 import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { translate } from "@/lib/locale/i18n.utils";
+import { attempt } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useNotificationStore } from "@/store/notification.store";
 import { useSettingsStore } from "@/store/settings.store";
@@ -14,11 +15,21 @@ export function useFavouritePeopleToggles() {
   const toggleStaff = async (staffId: number) => {
     if (staffPendingRef.current) return;
     staffPendingRef.current = true;
-    try {
-      const updated = await invokeTyped<FavouritePerson[]>("toggle_favourite_staff", {
+    const [updated, error] = await attempt(
+      invokeTyped<FavouritePerson[]>("toggle_favourite_staff", {
         staffId,
         ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
-      });
+      })
+    );
+    if (error) {
+      useNotificationStore
+        .getState()
+        .add(
+          translate(useSettingsStore.getState().language, "anilist.fav.toggle.failed"),
+          "error",
+          error.message
+        );
+    } else {
       queryClient.setQueryData(["anilist_data"], (old: unknown) =>
         old
           ? {
@@ -27,27 +38,28 @@ export function useFavouritePeopleToggles() {
             }
           : old
       );
-    } catch (error) {
-      useNotificationStore
-        .getState()
-        .add(
-          translate(useSettingsStore.getState().language, "anilist.fav.toggle.failed"),
-          "error",
-          error instanceof Error ? error.message : String(error)
-        );
-    } finally {
-      staffPendingRef.current = false;
     }
+    staffPendingRef.current = false;
   };
   const characterPendingRef = useRef(false);
   const toggleCharacter = async (characterId: number) => {
     if (characterPendingRef.current) return;
     characterPendingRef.current = true;
-    try {
-      const updated = await invokeTyped<FavouritePerson[]>("toggle_favourite_character", {
+    const [updated, error] = await attempt(
+      invokeTyped<FavouritePerson[]>("toggle_favourite_character", {
         characterId,
         ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
-      });
+      })
+    );
+    if (error) {
+      useNotificationStore
+        .getState()
+        .add(
+          translate(useSettingsStore.getState().language, "anilist.fav.toggle.failed"),
+          "error",
+          error.message
+        );
+    } else {
       queryClient.setQueryData(["anilist_data"], (old: unknown) =>
         old
           ? {
@@ -56,17 +68,8 @@ export function useFavouritePeopleToggles() {
             }
           : old
       );
-    } catch (error) {
-      useNotificationStore
-        .getState()
-        .add(
-          translate(useSettingsStore.getState().language, "anilist.fav.toggle.failed"),
-          "error",
-          error instanceof Error ? error.message : String(error)
-        );
-    } finally {
-      characterPendingRef.current = false;
     }
+    characterPendingRef.current = false;
   };
   return { toggleStaff, toggleCharacter };
 }

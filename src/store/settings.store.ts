@@ -11,7 +11,7 @@ import { listSortKeys } from "@/lib/anilist/entries.utils";
 import { detectSystemLocale } from "@/lib/locale/system.utils";
 import { normalizePlayerPath } from "@/lib/player/visibility.utils";
 import { applyWindowChrome } from "@/lib/settings/window.utils";
-import { attemptSync, reportBackgroundError } from "@/lib/utils/attempt.utils";
+import { attempt, attemptSync, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { applyFontFamily, DEFAULT_FONT_FAMILY } from "@/lib/utils/font.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import type { AniListSort } from "@/types/anilist";
@@ -397,13 +397,11 @@ function applySettingsV31(
 function drainTmdbPendingKey(state: SettingsStore): void {
   const pending = state.tmdbPendingKey;
   if (!pending) return;
-  invokeTyped("tmdb_set_api_key", { api_key: pending })
-    .then(() => {
-      useSettingsStore.getState().patch({ tmdbPendingKey: null, tmdbKeySet: true });
-    })
-    .catch(() => {
-      useSettingsStore.getState().patch({ tmdbKeySet: false });
-    });
+  (async () => {
+    const [, error] = await attempt(invokeTyped("tmdb_set_api_key", { api_key: pending }));
+    if (error) useSettingsStore.getState().patch({ tmdbKeySet: false });
+    else useSettingsStore.getState().patch({ tmdbPendingKey: null, tmdbKeySet: true });
+  })();
 }
 
 function applyUiPreferences(

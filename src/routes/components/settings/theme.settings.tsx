@@ -6,6 +6,7 @@ import Slider from "@/components/ui/range.component";
 import { THEMES } from "@/config/settings/themes.config";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { windowTintAlpha } from "@/lib/theme/palette.utils";
+import { attempt } from "@/lib/utils/attempt.utils";
 import { useSettingsStore } from "@/store/settings.store";
 import { useThemeStore, themeToJson, parseRetroismTheme } from "@/store/theme.store";
 import type { ThemeDefinition } from "@/types/theme";
@@ -66,18 +67,18 @@ export default function SettingsTheme() {
     input.onchange = async () => {
       const file = input.files?.[0];
       if (!file) return;
-      try {
-        const text = await file.text();
-        const theme = parseRetroismTheme(text);
-        if (!theme) {
-          setImportError(t("settings.theme.import.error"));
-          return;
-        }
-        useThemeStore.getState().addCustomTheme(theme);
-        setImportError("");
-      } catch {
+      const [text, textError] = await attempt(file.text());
+      if (textError) {
         setImportError(t("settings.theme.read.error"));
+        return;
       }
+      const theme = parseRetroismTheme(text);
+      if (!theme) {
+        setImportError(t("settings.theme.import.error"));
+        return;
+      }
+      useThemeStore.getState().addCustomTheme(theme);
+      setImportError("");
     };
     input.click();
   };

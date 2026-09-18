@@ -14,6 +14,7 @@ import { useEscapeClose } from "@/hooks/escapeClose.hook";
 import { isPublicStatus } from "@/lib/collection/status.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { normalizeSearchText } from "@/lib/search/suggestions.utils";
+import { attempt } from "@/lib/utils/attempt.utils";
 import { useSearchStore } from "@/store/search.store";
 import { useSettingsStore } from "@/store/settings.store";
 import type {
@@ -190,7 +191,7 @@ export function WizardModal({
     if (source === "custom") return;
     if (!search.trim() || search.trim().length < 2) return;
     const id = window.setTimeout(() => {
-      runSearch().catch(() => undefined);
+      attempt(runSearch());
     }, WIZARD_SEARCH_DEBOUNCE_MS);
     return () => window.clearTimeout(id);
   }, [search, source, editing, runSearch]);
@@ -338,7 +339,7 @@ export function WizardModal({
           onClose={onClose}
           requestClose={requestClose}
           canSave={Boolean(title.trim() && coverUrl && !coverBroken)}
-          onSave={() => handleSave().catch(() => undefined)}
+          onSave={() => attempt(handleSave())}
           confirmDiscard={confirmDiscard}
           cancelDiscard={cancelDiscard}
           resultsLabel={`${searchResults.length ? `${searchResults.length} results` : ""}`}

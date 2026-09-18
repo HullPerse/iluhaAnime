@@ -5,6 +5,7 @@ import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { mapError } from "@/lib/search/erai.utils";
+import { attempt } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 
 export default function EraiLoginModal({
@@ -23,27 +24,21 @@ export default function EraiLoginModal({
   const openBrowser = async () => {
     setLoading(true);
     setError("");
-    try {
-      await invokeTyped("erai_webview_login");
-    } catch (reason) {
-      setError(mapError(String(reason), t));
-    } finally {
-      setLoading(false);
-    }
+    const [, error] = await attempt(invokeTyped("erai_webview_login"));
+    if (error) setError(mapError(String(error), t));
+    setLoading(false);
   };
 
   const saveSession = async () => {
     setLoading(true);
     setError("");
-    try {
-      await invokeTyped("erai_finish_webview_login");
+    const [, error] = await attempt(invokeTyped("erai_finish_webview_login"));
+    if (error) setError(mapError(String(error), t));
+    else {
       setEraiAuth(true);
       close();
-    } catch (reason) {
-      setError(mapError(String(reason), t));
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   };
 
   return (

@@ -7,6 +7,7 @@ import { listStatusOptions } from "@/config/anilist/labels.config";
 import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { buildAnilistPrefill } from "@/lib/collection/import.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
+import { attempt } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useCollectionStore } from "@/store/collection.store";
 import { useSettingsStore } from "@/store/settings.store";
@@ -45,20 +46,22 @@ function AniListActionControls({
   const handleSave = async () => {
     setSaving(true);
     setSaveError("");
-    try {
-      await invokeTyped("save_anilist_entry", {
+    const [, error] = await attempt(
+      invokeTyped("save_anilist_entry", {
         mediaId: anime.id,
         status: editStatus,
         progress: editProgress ? Number.parseInt(editProgress, 10) : null,
         score: editScore ? Number.parseFloat(editScore) : null,
         ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
-      });
-      onSaved?.();
-      onClose?.();
-    } catch {
+      })
+    );
+    if (error) {
       setSaveError(t("anilist.controls.save.error"));
       setSaving(false);
+      return;
     }
+    onSaved?.();
+    onClose?.();
   };
 
   return (

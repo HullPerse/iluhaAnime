@@ -2,6 +2,7 @@ import { cn } from "cn";
 import { useEffect, useState } from "react";
 
 import { assetUrl, userImageId } from "@/lib/utils/image.utils";
+import { attempt } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import type { UserImageFile, UserImageIconProps } from "@/types/userimage";
 
@@ -31,13 +32,12 @@ export default function UserImageIcon({
         active = false;
       };
     }
-    invokeTyped<UserImageFile>("get_user_image", { id })
-      .then((image) => {
-        if (active) setSrc(assetUrl(image.path));
-      })
-      .catch(() => {
-        if (active) setSrc("");
-      });
+    (async () => {
+      const [image, error] = await attempt(invokeTyped<UserImageFile>("get_user_image", { id }));
+      if (!active) return;
+      if (error) setSrc("");
+      else setSrc(assetUrl(image.path));
+    })();
     return () => {
       active = false;
     };

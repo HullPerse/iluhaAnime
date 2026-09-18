@@ -3,6 +3,7 @@ import { useCallback, useState } from "react";
 import { SEARCH_RANKING } from "@/config/search/ranking.config";
 import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { fuzzyMatchScore, normalizeSearchText } from "@/lib/search/suggestions.utils";
+import { attempt } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSettingsStore } from "@/store/settings.store";
 import type { WizardSearchResult } from "@/types/collection";
@@ -136,17 +137,19 @@ export function useWizardSearch(
     }
     setLoading(true);
     setSearchError(null);
-    try {
-      if (source === "anilist") await searchAnilist();
-      else if (source === "tmdb") await searchTmdb();
-      else setSearchResults([]);
-    } catch (error) {
+    const [, error] = await attempt(
+      (async () => {
+        if (source === "anilist") await searchAnilist();
+        else if (source === "tmdb") await searchTmdb();
+        else setSearchResults([]);
+      })()
+    );
+    if (error) {
       setSearchResults([]);
-      const message = error instanceof Error ? error.message : String(error ?? "");
-      setSearchError(message || "Search failed");
-    } finally {
-      setLoading(false);
+      const message = error.message || "Search failed";
+      setSearchError(message);
     }
+    setLoading(false);
   }, [search, source, searchAnilist, searchTmdb]);
 
   return { searchResults, coverOptions, setCoverOptions, loading, searchError, runSearch };

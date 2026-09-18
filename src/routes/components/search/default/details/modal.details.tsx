@@ -7,7 +7,7 @@ import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { buildTorrentView } from "@/lib/torrent/details.utils";
-import { reportBackgroundError } from "@/lib/utils/attempt.utils";
+import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSettingsStore } from "@/store/settings.store";
 import type { TorrentDetailsProps as Props } from "@/types/search";
@@ -40,24 +40,20 @@ function TorrentDetailsModal({
     setLoading(true);
     setError(null);
     setDetails(null);
-
-    invokeTyped<TorrentDetails>("get_torrent_details", {
-      source,
-      url: detailUrl,
-      proxyUrl: sourceProxy || undefined,
-      proxy_url: sourceProxy || undefined,
-    })
-      .then((result) => {
-        if (!cancelled) setDetails(result);
-      })
-      .catch((error: unknown) => {
-        if (!cancelled) {
-          setError(error instanceof Error ? error.message : String(error));
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+    (async () => {
+      const [result, error] = await attempt(
+        invokeTyped<TorrentDetails>("get_torrent_details", {
+          source,
+          url: detailUrl,
+          proxyUrl: sourceProxy || undefined,
+          proxy_url: sourceProxy || undefined,
+        })
+      );
+      if (cancelled) return;
+      if (error) setError(error.message);
+      else setDetails(result);
+      setLoading(false);
+    })();
 
     return () => {
       cancelled = true;
@@ -85,19 +81,15 @@ function TorrentDetailsModal({
 
   const openOriginal = async () => {
     const originalUrl = (source === "erai-raws" && item.website) || view?.url || detailUrl;
-    try {
-      if (source === "erai-raws" && item.website) {
-        try {
-          await invokeTyped("erai_open_page", { pageUrl: item.website });
-          return;
-        } catch (error) {
-          reportBackgroundError("erai.open-page", error);
-        }
-      }
-      await openUrl(originalUrl);
-    } catch (error) {
-      console.warn("openUrl failed", error);
+    if (source === "erai-raws" && item.website) {
+      const [, pageError] = await attempt(
+        invokeTyped("erai_open_page", { pageUrl: item.website })
+      );
+      if (pageError) reportBackgroundError("erai.open-page", pageError);
+      else return;
     }
+    const [, openError] = await attempt(openUrl(originalUrl));
+    if (openError) reportBackgroundError("details.open-original", openError);
   };
 
   return (

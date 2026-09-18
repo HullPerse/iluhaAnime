@@ -4,7 +4,7 @@ import { create } from "zustand";
 
 import { translate } from "@/lib/locale/i18n.utils";
 import { buildOutputPath } from "@/lib/player/tree.utils";
-import { reportBackgroundError } from "@/lib/utils/attempt.utils";
+import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSettingsStore } from "@/store/settings.store";
 import type {
@@ -101,67 +101,73 @@ export const useUpscaleQueueStore = create<UpscaleQueueStore>()((set, get) => ({
     }));
 
     let unlisten: UnlistenFn | undefined;
-    try {
-      unlisten = await listen<UpscaleProgressPayload>("upscale-progress", (e) => {
-        const p = e.payload;
+    const [, error] = await attempt(
+      (async () => {
+        unlisten = await listen<UpscaleProgressPayload>("upscale-progress", (e) => {
+          const p = e.payload;
+          set((s) => ({
+            items: s.items.map((i) =>
+              i.id === next.id
+                ? {
+                    ...i,
+                    progress: p.total > 0 ? Math.round((p.current / p.total) * 100) : 0,
+                    current: p.current,
+                    total: p.total,
+                    speed: p.speed,
+                    stage: p.stage,
+                    status: p.stage === "done" ? ("done" as const) : ("processing" as const),
+                  }
+                : i
+            ),
+          }));
+        });
+
+        if (next.jobType === "upscale") {
+          const cfg = next.config as UpscaleConfig;
+          await invokeTyped("upscale_video", {
+            inputPath: next.filePath,
+            outputPath: next.outputPath,
+            width: cfg.width,
+            height: cfg.height,
+            targetFps: cfg.targetFps,
+            interpolate: cfg.interpolate,
+            quality: cfg.quality,
+            gpuBackend: cfg.gpuBackend,
+            videoCodec: cfg.videoCodec,
+            aiUpscaler: cfg.aiUpscaler,
+            selectedShaders: cfg.selectedShaders,
+            temporalDenoise: cfg.temporalDenoise,
+          });
+        } else {
+          const cfg = next.config as ConvertConfig;
+          await invokeTyped("convert_video", {
+            inputPath: next.filePath,
+            outputPath: next.outputPath,
+            targetFormat: cfg.targetFormat,
+            copyStreams: cfg.copyStreams,
+          });
+        }
+
         set((s) => ({
           items: s.items.map((i) =>
-            i.id === next.id
-              ? {
-                  ...i,
-                  progress: p.total > 0 ? Math.round((p.current / p.total) * 100) : 0,
-                  current: p.current,
-                  total: p.total,
-                  speed: p.speed,
-                  stage: p.stage,
-                  status: p.stage === "done" ? ("done" as const) : ("processing" as const),
-                }
-              : i
+            i.id === next.id ? { ...i, status: "done", progress: 100 } : i
           ),
         }));
-      });
-
-      if (next.jobType === "upscale") {
-        const cfg = next.config as UpscaleConfig;
-        await invokeTyped("upscale_video", {
-          inputPath: next.filePath,
-          outputPath: next.outputPath,
-          width: cfg.width,
-          height: cfg.height,
-          targetFps: cfg.targetFps,
-          interpolate: cfg.interpolate,
-          quality: cfg.quality,
-          gpuBackend: cfg.gpuBackend,
-          videoCodec: cfg.videoCodec,
-          aiUpscaler: cfg.aiUpscaler,
-          selectedShaders: cfg.selectedShaders,
-          temporalDenoise: cfg.temporalDenoise,
-        });
-      } else {
-        const cfg = next.config as ConvertConfig;
-        await invokeTyped("convert_video", {
-          inputPath: next.filePath,
-          outputPath: next.outputPath,
-          targetFormat: cfg.targetFormat,
-          copyStreams: cfg.copyStreams,
-        });
-      }
-
-      set((s) => ({
-        items: s.items.map((i) => (i.id === next.id ? { ...i, status: "done", progress: 100 } : i)),
-      }));
-    } catch (e: unknown) {
+      })()
+    );
+    if (error) {
       const msg =
-        typeof e === "string" ? e : translate(useSettingsStore.getState().language, "common.error");
+        typeof error.message === "string" && error.message
+          ? error.message
+          : translate(useSettingsStore.getState().language, "common.error");
       set((s) => ({
         items: s.items.map((i) => (i.id === next.id ? { ...i, status: "error", error: msg } : i)),
       }));
-    } finally {
-      unlisten?.();
-      set({ processing: false });
-      processingLock = false;
-      get().processNext();
     }
+    unlisten?.();
+    set({ processing: false });
+    processingLock = false;
+    get().processNext();
   },
   processing: false,
   removeItem: (id) => {

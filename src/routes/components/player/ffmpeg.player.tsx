@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button.component";
 import { FFMPEG_SOURCE_SIZES } from "@/config/player/sources.config";
 import { useI18n } from "@/lib/locale/i18n.utils";
+import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSettingsStore } from "@/store/settings.store";
 import type { FFMPEGStatus } from "@/types/settings";
@@ -22,24 +23,21 @@ function FFMPEG({
   const handleDownload = useCallback(async () => {
     setStatus("downloading");
     setDlError(null);
-    try {
-      await invokeTyped<string>("download_ffmpeg", {
+    const [, error] = await attempt(
+      invokeTyped<string>("download_ffmpeg", {
         source: useSettingsStore.getState().ffmpegSource,
-      });
-      setStatus("ok");
-    } catch (error) {
-      setDlError(error instanceof Error ? error.message : String(error));
+      })
+    );
+    if (error) {
+      setDlError(error.message);
       setStatus("missing");
-    }
+    } else setStatus("ok");
   }, [setStatus]);
 
   const handleRemove = useCallback(async () => {
-    try {
-      await invokeTyped("remove_ffmpeg");
-      setStatus("missing");
-    } catch (error) {
-      console.warn("remove_ffmpeg failed", error);
-    }
+    const [, error] = await attempt(invokeTyped("remove_ffmpeg"));
+    if (error) reportBackgroundError("ffmpeg.remove", error);
+    else setStatus("missing");
   }, [setStatus]);
 
   const [dlProgress, setDlProgress] = useState<{

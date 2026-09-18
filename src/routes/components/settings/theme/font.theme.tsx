@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import Combobox from "@/components/ui/combobox.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
-import { reportBackgroundError } from "@/lib/utils/attempt.utils";
+import { attempt, attemptSync, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSettingsStore } from "@/store/settings.store";
 
@@ -11,21 +11,20 @@ export function FontSelector() {
   const patch = useSettingsStore((s) => s.patch);
   const { t } = useI18n();
   const [fonts, setFonts] = useState<string[]>(() => {
-    try {
+    const [parsed, error] = attemptSync(() => {
       const raw = localStorage.getItem("systemFontsCache");
-      if (raw) {
-        const parsed = JSON.parse(raw) as { fonts: string[]; ts: number };
-        if (
-          Array.isArray(parsed.fonts) &&
-          typeof parsed.ts === "number" &&
-          Date.now() - parsed.ts < 7 * 24 * 60 * 60 * 1000
-        )
-          return parsed.fonts;
-      }
-    } catch (error) {
-      reportBackgroundError("fonts.cache.parse", error);
-    }
-    return [];
+      if (!raw) return null;
+      const value = JSON.parse(raw) as { fonts: string[]; ts: number };
+      if (
+        Array.isArray(value.fonts) &&
+        typeof value.ts === "number" &&
+        Date.now() - value.ts < 7 * 24 * 60 * 60 * 1000
+      )
+        return value.fonts;
+      return null;
+    });
+    if (error) reportBackgroundError("fonts.cache.parse", error);
+    return parsed ?? [];
   });
   const [loading, setLoading] = useState(fonts.length === 0);
   const [error, setError] = useState<string | null>(null);
@@ -33,23 +32,21 @@ export function FontSelector() {
     if (fonts.length > 0) return;
     let cancelled = false;
     setLoading(true);
-    invokeTyped<string[]>("list_system_fonts")
-      .then((list) => {
-        if (cancelled) return;
-        setFonts(list);
+    (async () => {
+      const [list, listError] = await attempt(invokeTyped<string[]>("list_system_fonts"));
+      if (cancelled) return;
+      if (listError) {
+        setError(t("settings.font.load.error"));
         setLoading(false);
-        try {
-          localStorage.setItem("systemFontsCache", JSON.stringify({ fonts: list, ts: Date.now() }));
-        } catch (error) {
-          reportBackgroundError("fonts.cache.write", error);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setError(t("settings.font.load.error"));
-          setLoading(false);
-        }
-      });
+        return;
+      }
+      setFonts(list);
+      setLoading(false);
+      const [, cacheError] = attemptSync(() =>
+        localStorage.setItem("systemFontsCache", JSON.stringify({ fonts: list, ts: Date.now() }))
+      );
+      if (cacheError) reportBackgroundError("fonts.cache.write", cacheError);
+    })();
     return () => {
       cancelled = true;
     };

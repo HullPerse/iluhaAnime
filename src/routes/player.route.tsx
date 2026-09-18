@@ -18,7 +18,7 @@ import { useI18n } from "@/lib/locale/i18n.utils";
 import { fingerprint } from "@/lib/player/scan.utils";
 import { buildTree, filterTreeByPaths } from "@/lib/player/tree.utils";
 import { filterTreeByHiddenPaths } from "@/lib/player/visibility.utils";
-import { reportBackgroundError } from "@/lib/utils/attempt.utils";
+import { attempt, reportBackgroundError, withFallback } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useCacheStore } from "@/store/cache.store";
 import { useCategoryStore } from "@/store/category.store";
@@ -81,20 +81,19 @@ function PlayerRoute() {
 
     setSearching(true);
     setSearchResults([]);
-    invokeTyped<FileSearchResult[]>("search_file_index", {
-      query: debouncedSearch,
-      extensions: videoExtensions,
-      limit: 100,
-    })
-      .then((results) => {
-        if (requestId === searchRequestRef.current) setSearchResults(results);
-      })
-      .catch(() => {
-        if (requestId === searchRequestRef.current) setSearchResults([]);
-      })
-      .finally(() => {
-        if (requestId === searchRequestRef.current) setSearching(false);
-      });
+    (async () => {
+      const [results, error] = await attempt(
+        invokeTyped<FileSearchResult[]>("search_file_index", {
+          query: debouncedSearch,
+          extensions: videoExtensions,
+          limit: 100,
+        })
+      );
+      if (requestId !== searchRequestRef.current) return;
+      if (error) setSearchResults([]);
+      else setSearchResults(results);
+      setSearching(false);
+    })();
   }, [debouncedSearch, videoExtensions]);
 
   const allCategoryEntries = useCategoryStore((s) => s.entries);
@@ -179,9 +178,10 @@ function PlayerRoute() {
   );
 
   useEffect(() => {
-    invokeTyped<boolean>("check_ffprobe")
-      .then((ok) => setFfmpegStatus(ok ? "ok" : "missing"))
-      .catch(() => setFfmpegStatus("missing"));
+    (async () => {
+      const ok = await withFallback(invokeTyped<boolean>("check_ffprobe"), false);
+      setFfmpegStatus(ok ? "ok" : "missing");
+    })();
   }, []);
 
   const allTorrentIds = useMemo(() => torrents.map((t) => t.id), [torrents]);
@@ -199,14 +199,13 @@ function PlayerRoute() {
 
   const rebuildIndex = useCallback(
     async (paths: string[]) => {
-      try {
-        await invokeTyped("rebuild_file_index", {
+      const [, error] = await attempt(
+        invokeTyped("rebuild_file_index", {
           paths,
           extensions: videoExtensions,
-        });
-      } catch (error) {
-        console.warn("rebuild_file_index failed", error);
-      }
+        })
+      );
+      if (error) reportBackgroundError("folders.rebuild", error);
     },
     [videoExtensions]
   );
@@ -234,17 +233,14 @@ function PlayerRoute() {
         if (cancelled) return;
         const path = savedFolderPaths[i];
         setScanProgress({ current: i, total: savedFolderPaths.length });
-        try {
-          const entries = await invokeTyped<VideoFileEntry[]>("scan_video_folder", {
+        const [entries, error] = await attempt(
+          invokeTyped<VideoFileEntry[]>("scan_video_folder", {
             path,
             extensions: videoExtensions,
-          });
-          if (!cancelled) {
-            if (entries?.length) trees.push(buildTree(entries, path));
-          }
-        } catch (error) {
-          reportBackgroundError("folders.scan", error);
-        }
+          })
+        );
+        if (error) reportBackgroundError("folders.scan", error);
+        else if (!cancelled && entries?.length) trees.push(buildTree(entries, path));
       }
       if (cancelled) return;
       setFolderTrees(trees);
@@ -279,30 +275,38 @@ function PlayerRoute() {
     listen<string[]>("folder-content-changed", (event) => {
       const changed = event.payload;
       queryClient.invalidateQueries({ queryKey: ["extra_files"] });
+      const rescanPath = async (path: string) => {
+        const [entries, scanError] = await attempt(
+          invokeTyped<VideoFileEntry[]>("scan_video_folder", {
+            path,
+            extensions: videoExtensions,
+          })
+        );
+        if (scanError || disposed) {
+          if (scanError) reportBackgroundError("folders.rescan", scanError);
+          return;
+        }
+        const [, refreshError] = await attempt(
+          invokeTyped("refresh_file_index", {
+            paths: [path],
+            extensions: videoExtensions,
+          })
+        );
+        if (refreshError || disposed) {
+          if (refreshError) reportBackgroundError("folders.rescan", refreshError);
+          return;
+        }
+        setFolderTrees((prev) => {
+          const next = prev.filter((tree) => tree.path !== path);
+          if (entries?.length) next.push(buildTree(entries, path));
+          useCacheStore.getState().setFolderTrees(next.map((tree) => ({ path: tree.path, tree })));
+          return next;
+        });
+      };
       (async () => {
         for (const path of changed) {
-          try {
-            const entries = await invokeTyped<VideoFileEntry[]>("scan_video_folder", {
-              path,
-              extensions: videoExtensions,
-            });
-            if (!disposed) {
-              await invokeTyped("refresh_file_index", {
-                paths: [path],
-                extensions: videoExtensions,
-              });
-              setFolderTrees((prev) => {
-                const next = prev.filter((tree) => tree.path !== path);
-                if (entries?.length) next.push(buildTree(entries, path));
-                useCacheStore
-                  .getState()
-                  .setFolderTrees(next.map((tree) => ({ path: tree.path, tree })));
-                return next;
-              });
-            }
-          } catch (error) {
-            reportBackgroundError("folders.rescan", error);
-          }
+          if (disposed) return;
+          await rescanPath(path);
         }
       })();
     })
@@ -334,28 +338,27 @@ function PlayerRoute() {
       setScanProgress({ current: e.payload.current, total: e.payload.total });
     });
 
-    try {
-      const entries = await invokeTyped<VideoFileEntry[]>("scan_video_folder", {
+    const [entries, scanError] = await attempt(
+      invokeTyped<VideoFileEntry[]>("scan_video_folder", {
         path: folder,
         extensions: videoExtensions,
-      });
-      if (!entries || entries.length === 0) return;
+      })
+    );
+    if (scanError) reportBackgroundError("folders.scan", scanError);
+    else if (entries && entries.length > 0) {
       const tree = buildTree(entries, folder);
       const next = [...folderTrees, tree];
       setFolderTrees(next);
       patch({ savedFolderPaths: next.map((t) => t.path) });
       rebuildIndex(next.map((t) => t.path));
       useCacheStore.getState().setFolderTrees(next.map((t) => ({ path: t.path, tree: t })));
-    } catch (error) {
-      console.warn("scan_video_folder failed", error);
-    } finally {
-      const unlisten = await unlistenPromise.catch((error) =>
-        reportBackgroundError("folderscan.unlisten", error)
-      );
-      unlisten?.();
-      setLoading(false);
-      setScanProgress(null);
     }
+    const unlisten = await unlistenPromise.catch((error) =>
+      reportBackgroundError("folderscan.unlisten", error)
+    );
+    unlisten?.();
+    setLoading(false);
+    setScanProgress(null);
   }, [folderTrees, videoExtensions, patch, rebuildIndex]);
 
   const handleRemoveFolder = useCallback(

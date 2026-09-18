@@ -11,6 +11,7 @@ import { DEFAULT_SETTINGS } from "@/config/settings/defaults.config";
 import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { applyWindowChrome } from "@/lib/settings/window.utils";
+import { attempt, attemptSync } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSettingsStore } from "@/store/settings.store";
 import type { Locale } from "@/types/i18n";
@@ -46,56 +47,42 @@ export default function SettingsGeneral() {
     const key = tmdbInput.trim();
     if (!key || tmdbSaving) return;
     setTmdbSaving(true);
-    try {
-      await invokeTyped<string>("tmdb_set_api_key", { api_key: key });
+    const [, error] = await attempt(invokeTyped<string>("tmdb_set_api_key", { api_key: key }));
+    if (error) setTmdbTest({ ok: false, msg: error.message });
+    else {
       setTmdbInput("");
       patch({ tmdbKeySet: true, tmdbPendingKey: null });
-    } catch (e) {
-      setTmdbTest({ ok: false, msg: e instanceof Error ? e.message : String(e) });
-    } finally {
-      setTmdbSaving(false);
     }
+    setTmdbSaving(false);
   };
   const handleTmdbRemove = async () => {
-    try {
-      await invokeTyped<string>("tmdb_logout");
-      patch({ tmdbKeySet: false });
-    } catch (e) {
-      setTmdbTest({ ok: false, msg: e instanceof Error ? e.message : String(e) });
-    }
+    const [, error] = await attempt(invokeTyped<string>("tmdb_logout"));
+    if (error) setTmdbTest({ ok: false, msg: error.message });
+    else patch({ tmdbKeySet: false });
   };
 
   const handleTmdbTest = async () => {
     setTmdbTesting(true);
     setTmdbTest(null);
-    try {
-      const res = await invokeTyped<string>("test_tmdb_connection", {
+    const [res, error] = await attempt(
+      invokeTyped<string>("test_tmdb_connection", {
         proxyUrl: tmdbProxyUrl,
         proxy_url: tmdbProxyUrl,
-      });
-      setTmdbTest({ ok: true, msg: res });
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      setTmdbTest({ ok: false, msg });
-    } finally {
-      setTmdbTesting(false);
-    }
+      })
+    );
+    if (error) setTmdbTest({ ok: false, msg: error.message });
+    else setTmdbTest({ ok: true, msg: res });
+    setTmdbTesting(false);
   };
   const handleAnilistTest = async () => {
     setAnilistTesting(true);
     setAnilistTest(null);
-    try {
-      const res = await invokeTyped<string>(
-        "test_anilist_connection",
-        anilistProxyArgs(anilistProxyUrl)
-      );
-      setAnilistTest({ ok: true, msg: res });
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      setAnilistTest({ ok: false, msg });
-    } finally {
-      setAnilistTesting(false);
-    }
+    const [res, error] = await attempt(
+      invokeTyped<string>("test_anilist_connection", anilistProxyArgs(anilistProxyUrl))
+    );
+    if (error) setAnilistTest({ ok: false, msg: error.message });
+    else setAnilistTest({ ok: true, msg: res });
+    setAnilistTesting(false);
   };
 
   return (
@@ -483,8 +470,12 @@ export default function SettingsGeneral() {
           confirmLabel={t("common.delete")}
           variant="destructive"
           onConfirm={async () => {
-            try {
-              await invokeTyped("reset_sqlite_data");
+            const [, error] = await attempt(invokeTyped("reset_sqlite_data"));
+            if (error) {
+              setResetError(error.message);
+              return;
+            }
+            attemptSync(() => {
               for (const key of [
                 "settings",
                 "searchState",
@@ -499,11 +490,9 @@ export default function SettingsGeneral() {
               ]) {
                 localStorage.removeItem(key);
               }
-              await applyWindowChrome(DEFAULT_SETTINGS);
-              window.location.reload();
-            } catch (error: unknown) {
-              setResetError(error instanceof Error ? error.message : String(error));
-            }
+            });
+            await applyWindowChrome(DEFAULT_SETTINGS);
+            window.location.reload();
           }}
           onCancel={() => setPendingClear(false)}
           onClose={() => setPendingClear(false)}

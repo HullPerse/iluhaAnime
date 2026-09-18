@@ -20,6 +20,7 @@ import {
   publicStatusPrefill,
 } from "@/lib/collection/status.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
+import { attempt } from "@/lib/utils/attempt.utils";
 import { buildCollectionShareLink } from "@/lib/utils/deeplink.utils";
 import { useCollectionStore } from "@/store/collection.store";
 import { useDeepLinkStore } from "@/store/deeplink.store";
@@ -194,14 +195,15 @@ export default function CollectionRoute() {
   const handleShareStatus = useCallback(async () => {
     const scopedItems = items.filter((item) => item.status === selectedStatus);
     const label = statuses.find((status) => status.id === selectedStatus)?.label ?? null;
-    try {
-      // The tick on the button is the whole confirmation, so only failures notify.
-      await writeText(await buildCollectionShareLink(scopedItems, label));
-    } catch (error) {
-      useNotificationStore
-        .getState()
-        .add(t("app.collection"), "error", error instanceof Error ? error.message : String(error));
+    // The tick on the button is the whole confirmation, so only failures notify.
+    const [link, linkError] = await attempt(buildCollectionShareLink(scopedItems, label));
+    if (linkError) {
+      useNotificationStore.getState().add(t("app.collection"), "error", linkError.message);
+      return;
     }
+    const [, copyError] = await attempt(writeText(link));
+    if (copyError)
+      useNotificationStore.getState().add(t("app.collection"), "error", copyError.message);
   }, [items, selectedStatus, statuses, t]);
 
   useEffect(() => {

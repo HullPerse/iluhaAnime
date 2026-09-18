@@ -19,7 +19,7 @@ import {
   routePeople,
 } from "@/lib/anilist/route.utils";
 import { translate } from "@/lib/locale/i18n.utils";
-import { reportBackgroundError } from "@/lib/utils/attempt.utils";
+import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { paginate } from "@/lib/utils/pagination.utils";
 import { useAniListFriendsStore } from "@/store/anilist.store";
@@ -122,13 +122,17 @@ function AnilistRoute() {
   useEffect(() => {
     if (!showRecs || !user) return;
     setRecsLoading(true);
-    invokeTyped<AniRecommendation[]>("get_profile_recommendations", {
-      userId: user.id,
-      ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
-    })
-      .then(setRecs)
-      .catch(() => setRecs([]))
-      .finally(() => setRecsLoading(false));
+    (async () => {
+      const [recs, error] = await attempt(
+        invokeTyped<AniRecommendation[]>("get_profile_recommendations", {
+          userId: user.id,
+          ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
+        })
+      );
+      if (error) setRecs([]);
+      else setRecs(recs);
+      setRecsLoading(false);
+    })();
   }, [showRecs, user]);
 
   const sort = useSettingsStore((s) => s.anilistListSort);
@@ -258,25 +262,26 @@ function AnilistRoute() {
     async (animeId: number) => {
       if (favPendingRef.current) return;
       favPendingRef.current = true;
-      try {
-        const updated = await invokeTyped<FavouriteAnime[]>("toggle_favourite", {
+      const [updated, error] = await attempt(
+        invokeTyped<FavouriteAnime[]>("toggle_favourite", {
           animeId,
           ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
-        });
-        queryClient.setQueryData(["anilist_data"], (old: unknown) =>
-          old ? { ...(old as AnilistRouteData), favourites: updated } : old
-        );
-      } catch (error) {
+        })
+      );
+      if (error) {
         useNotificationStore
           .getState()
           .add(
             translate(useSettingsStore.getState().language, "anilist.fav.toggle.failed"),
             "error",
-            error instanceof Error ? error.message : String(error)
+            error.message
           );
-      } finally {
-        favPendingRef.current = false;
+      } else {
+        queryClient.setQueryData(["anilist_data"], (old: unknown) =>
+          old ? { ...(old as AnilistRouteData), favourites: updated } : old
+        );
       }
+      favPendingRef.current = false;
     },
     [queryClient]
   );

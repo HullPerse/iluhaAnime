@@ -7,6 +7,7 @@ import {
   NOTIFICATION_TYPE_COLORS,
   NOTIFICATION_TYPE_ICONS,
 } from "@/config/settings/notifications.config";
+import { attempt } from "@/lib/utils/attempt.utils";
 import {
   COPIED_FEEDBACK_MS,
   copyNotification,
@@ -33,12 +34,11 @@ export default function NotificationRow({
   );
 
   const handleCopy = async () => {
-    try {
-      await copyNotification(item);
-      setCopied(true);
-      if (timer.current) window.clearTimeout(timer.current);
-      timer.current = window.setTimeout(() => setCopied(false), COPIED_FEEDBACK_MS);
-    } catch {}
+    const [, error] = await attempt(copyNotification(item));
+    if (error) return;
+    setCopied(true);
+    if (timer.current) window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => setCopied(false), COPIED_FEEDBACK_MS);
   };
 
   return (

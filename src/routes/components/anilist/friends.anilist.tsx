@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input.component";
 import { hasFreshCachedProfile } from "@/lib/anilist/friends.utils";
 import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
+import { attempt } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { enterSubmit } from "@/lib/utils/keyboard.utils";
 import { useSettingsStore } from "@/store/settings.store";
@@ -61,21 +62,21 @@ export default function AniListFriendsModal({
 
     setLoading(true);
     setError(null);
-    try {
-      const profile = await invokeTyped<AniUserProfile>("get_anilist_profile", {
+    const [profile, error] = await attempt(
+      invokeTyped<AniUserProfile>("get_anilist_profile", {
         userId: id,
         userName: id === undefined ? input : undefined,
         ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
-      });
+      })
+    );
+    if (error) setError(error.message);
+    else {
       setProfiles((current) => ({ ...current, [profile.id]: profile }));
       setSelectedId(profile.id);
       onAdd(profile);
       setQuery("");
-    } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : String(error));
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   };
 
   const selected = selectedId == null ? null : profiles[selectedId];

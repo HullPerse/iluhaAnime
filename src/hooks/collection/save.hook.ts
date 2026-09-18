@@ -1,7 +1,7 @@
 import type { useWizardForm } from "@/hooks/collection/wizard.hook";
 import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { withStoredMedia } from "@/lib/collection/media.utils";
-import { attempt } from "@/lib/utils/attempt.utils";
+import { attempt, withFallback } from "@/lib/utils/attempt.utils";
 import { isDirectImageSrc } from "@/lib/utils/image.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSettingsStore } from "@/store/settings.store";
@@ -60,15 +60,21 @@ export function useWizardSave({
     }
     const proxyArgs = anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl);
     const [characters, staff] = await Promise.all([
-      invokeTyped<AniCharacterEdge[]>("get_anime_characters", {
-        id: anilistId,
-        page: 1,
-        ...proxyArgs,
-      }).catch(() => [] as AniCharacterEdge[]),
-      invokeTyped<AniAnimeStaffEdge[]>("get_anime_staff", {
-        id: anilistId,
-        ...proxyArgs,
-      }).catch(() => [] as AniAnimeStaffEdge[]),
+      withFallback(
+        invokeTyped<AniCharacterEdge[]>("get_anime_characters", {
+          id: anilistId,
+          page: 1,
+          ...proxyArgs,
+        }),
+        [] as AniCharacterEdge[]
+      ),
+      withFallback(
+        invokeTyped<AniAnimeStaffEdge[]>("get_anime_staff", {
+          id: anilistId,
+          ...proxyArgs,
+        }),
+        [] as AniAnimeStaffEdge[]
+      ),
     ]);
     onSave({
       ...base,

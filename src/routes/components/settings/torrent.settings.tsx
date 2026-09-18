@@ -5,6 +5,7 @@ import { Checkbox } from "@/components/ui/checkbox.component";
 import { Input } from "@/components/ui/input.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { toSessionConfig } from "@/lib/settings/session.utils";
+import { attempt } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { showError } from "@/lib/utils/notification.utils";
 import { useTorrentStore } from "@/store/download.store";
@@ -34,14 +35,14 @@ export default function SettingsTorrent() {
 
   const saveSessionConfig = useCallback(
     (partial: Partial<SessionConfigPayload>) => {
-      invokeTyped("save_session_config", {
-        config: { ...toSessionConfig(), ...partial },
-      }).catch((error) =>
-        showError(
-          t("settings.torrent.session.save.failed"),
-          error instanceof Error ? error.message : String(error)
-        )
-      );
+      (async () => {
+        const [, error] = await attempt(
+          invokeTyped("save_session_config", {
+            config: { ...toSessionConfig(), ...partial },
+          })
+        );
+        if (error) showError(t("settings.torrent.session.save.failed"), error.message);
+      })();
     },
     [t]
   );

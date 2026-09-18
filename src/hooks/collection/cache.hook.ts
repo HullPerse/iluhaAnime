@@ -107,19 +107,18 @@ export function useCoverCache(
     }
     const cached = coverCache.get(remoteUrl);
     if (cached) return cached.blobId;
-    try {
-      const img = await invokeTyped<UserImageFile>("download_remote_image", {
+    const [img, error] = await attempt(
+      invokeTyped<UserImageFile>("download_remote_image", {
         url: remoteUrl,
         nameHint: "collection-cover",
         proxyUrl: tmdbProxyUrl,
-      });
-      const url = assetUrl(img.path);
-      coverCache.set(remoteUrl, { url, blobId: img.id });
-      setCoverUrl(url);
-      return img.id;
-    } catch {
-      return null;
-    }
+      })
+    );
+    if (error) return null;
+    const url = assetUrl(img.path);
+    coverCache.set(remoteUrl, { url, blobId: img.id });
+    setCoverUrl(url);
+    return img.id;
   }, [remoteUrl, tmdbProxyUrl]);
 
   return { cachedUrl: coverUrl, cache };

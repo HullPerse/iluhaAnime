@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import Image from "@/components/ui/image.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
+import { attempt } from "@/lib/utils/attempt.utils";
 import { assetUrl } from "@/lib/utils/image.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 
@@ -27,22 +28,22 @@ export function AssetImageCell({
     let cancelled = false;
     setState("loading");
     setSrc(null);
-    invokeTyped<string | null>("get_sqlite_cell_image", {
-      database,
-      table,
-      column,
-      keys: JSON.parse(keysJson),
-    })
-      .then((path) => {
-        if (cancelled) return;
-        if (path) {
-          setSrc(assetUrl(path));
-          setState("image");
-        } else setState("missing");
-      })
-      .catch(() => {
-        if (!cancelled) setState("missing");
-      });
+    (async () => {
+      const [path, error] = await attempt(
+        invokeTyped<string | null>("get_sqlite_cell_image", {
+          database,
+          table,
+          column,
+          keys: JSON.parse(keysJson),
+        })
+      );
+      if (cancelled) return;
+      if (error || !path) setState("missing");
+      else {
+        setSrc(assetUrl(path));
+        setState("image");
+      }
+    })();
     return () => {
       cancelled = true;
     };

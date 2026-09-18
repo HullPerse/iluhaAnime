@@ -8,6 +8,7 @@ import { WIZARD_COVER_MAX } from "@/config/collection/defaults.config";
 import { useRemoteImage } from "@/hooks/remoteImage.hook";
 import { generatePlaceholder } from "@/lib/collection/placeholder.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
+import { attempt } from "@/lib/utils/attempt.utils";
 import { assetUrl } from "@/lib/utils/image.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { showError } from "@/lib/utils/notification.utils";
@@ -52,14 +53,12 @@ export function WizardCoverPanel({
       return;
     }
     setUploading(true);
-    try {
-      const image = await invokeTyped<UserImageFile>("import_user_image", { path: selectedPath });
-      onUploadLocal(image.id, assetUrl(image.path));
-    } catch {
-      showError(t("common.error"), t("collection.wizard.upload.error"));
-    } finally {
-      setUploading(false);
-    }
+    const [image, error] = await attempt(
+      invokeTyped<UserImageFile>("import_user_image", { path: selectedPath })
+    );
+    if (error) showError(t("common.error"), t("collection.wizard.upload.error"));
+    else onUploadLocal(image.id, assetUrl(image.path));
+    setUploading(false);
   };
 
   const usePlaceholder = () => {

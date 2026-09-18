@@ -125,27 +125,32 @@ export default function ImportAnilistCollection({
     setOpFailures([]);
     setOpDone(null);
     abortRef.current = false;
-    invokeTyped<AniUser | null>(
-      "check_anilist_auth",
-      anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl)
-    )
-      .then((u) => {
-        setUser(u);
+    (async () => {
+      const [user, authError] = await attempt(
+        invokeTyped<AniUser | null>(
+          "check_anilist_auth",
+          anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl)
+        )
+      );
+      if (authError) {
+        setError(authError.message);
         setAuthChecked(true);
-        if (!u) return;
-        setLoading(true);
-        return invokeTyped<AniListCollection[]>("get_anilist_lists", {
-          userId: u.id,
+        return;
+      }
+      setUser(user);
+      setAuthChecked(true);
+      if (!user) return;
+      setLoading(true);
+      const [lists, listsError] = await attempt(
+        invokeTyped<AniListCollection[]>("get_anilist_lists", {
+          userId: user.id,
           ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
         })
-          .then((ls) => setLists(ls))
-          .catch((e) => setError(String(e)))
-          .finally(() => setLoading(false));
-      })
-      .catch((e) => {
-        setError(String(e));
-        setAuthChecked(true);
-      });
+      );
+      if (listsError) setError(listsError.message);
+      else setLists(lists);
+      setLoading(false);
+    })();
   }, [open]);
 
   const switchMode = (next: ImportMode) => {
@@ -308,7 +313,7 @@ export default function ImportAnilistCollection({
         return item !== undefined && failedIds.has(item.id);
       })
       .map((e) => ({ entry: e, item: itemByAnilistId.get(e.media.id)! }));
-    runSync(targets).catch(() => undefined);
+    attempt(runSync(targets));
   };
 
   const runBackfill = async (targets: CollectionItem[]) => {
@@ -361,7 +366,7 @@ export default function ImportAnilistCollection({
 
   const retryBackfill = () => {
     const failedIds = new Set(opFailures.map((f) => f.id));
-    runBackfill(backfillTargets.filter((item) => failedIds.has(item.id))).catch(() => undefined);
+    attempt(runBackfill(backfillTargets.filter((item) => failedIds.has(item.id))));
   };
 
   const selectedCount = selected.size;
@@ -472,10 +477,10 @@ export default function ImportAnilistCollection({
           else onClose();
         }}
         onRetry={() => {
-          retryImport().catch(() => undefined);
+          attempt(retryImport());
         }}
         onImport={() => {
-          handleImport().catch(() => undefined);
+          attempt(handleImport());
         }}
       />
     </>
@@ -544,7 +549,7 @@ export default function ImportAnilistCollection({
         }}
         onRetry={retrySync}
         onImport={() => {
-          runSync(syncTargets).catch(() => undefined);
+          attempt(runSync(syncTargets));
         }}
       />
     </>
@@ -590,7 +595,7 @@ export default function ImportAnilistCollection({
         }}
         onRetry={retryBackfill}
         onImport={() => {
-          runBackfill(backfillTargets).catch(() => undefined);
+          attempt(runBackfill(backfillTargets));
         }}
       />
     </>

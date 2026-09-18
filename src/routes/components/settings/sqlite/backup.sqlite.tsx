@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { formatBackupDate } from "@/lib/settings/backup.utils";
 import { formatBytes } from "@/lib/utils/bytes.utils";
+import { attempt } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import type { SqliteBackupInfo } from "@/types/sqlite";
 
@@ -35,18 +36,19 @@ export function BackupPanel({
     }
     setLoading(true);
     setError(null);
-    try {
-      const result = await invokeTyped<SqliteBackupInfo[]>("list_sqlite_backups", { database });
+    const [result, error] = await attempt(
+      invokeTyped<SqliteBackupInfo[]>("list_sqlite_backups", { database })
+    );
+    if (error) {
+      setBackups([]);
+      setError(error.message);
+    } else {
       setBackups(result);
       setSelected((current) =>
         result.some((item) => item.name === current) ? current : (result[0]?.name ?? "")
       );
-    } catch (cause: unknown) {
-      setBackups([]);
-      setError(cause instanceof Error ? cause.message : String(cause));
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   }, [database]);
 
   useEffect(() => {
@@ -58,19 +60,19 @@ export function BackupPanel({
     setWorking(true);
     setError(null);
     setNotice(null);
-    try {
-      const created = await invokeTyped<SqliteBackupInfo>("backup_sqlite_database", {
+    const [created, error] = await attempt(
+      invokeTyped<SqliteBackupInfo>("backup_sqlite_database", {
         database,
         keep: 5,
-      });
+      })
+    );
+    if (error) setError(error.message);
+    else {
       setNotice(t("settings.sqlite.backup.done", { name: created.name }));
       await refresh();
       onChanged();
-    } catch (cause: unknown) {
-      setError(cause instanceof Error ? cause.message : String(cause));
-    } finally {
-      setWorking(false);
     }
+    setWorking(false);
   };
 
   const runVacuum = async () => {
@@ -79,16 +81,16 @@ export function BackupPanel({
     setError(null);
     setNotice(null);
 
-    try {
-      const safety = await invokeTyped<SqliteBackupInfo>("vacuum_sqlite_database", { database });
+    const [safety, error] = await attempt(
+      invokeTyped<SqliteBackupInfo>("vacuum_sqlite_database", { database })
+    );
+    if (error) setError(error.message);
+    else {
       setNotice(t("settings.sqlite.backup.vacuum.done", { name: safety.name }));
       await refresh();
       onChanged();
-    } catch (cause: unknown) {
-      setError(cause instanceof Error ? cause.message : String(cause));
-    } finally {
-      setWorking(false);
     }
+    setWorking(false);
   };
 
   const runRestore = async () => {
@@ -97,16 +99,16 @@ export function BackupPanel({
     setWorking(true);
     setError(null);
     setNotice(null);
-    try {
-      await invokeTyped("restore_sqlite_backup", { database, name: selected });
+    const [, error] = await attempt(
+      invokeTyped("restore_sqlite_backup", { database, name: selected })
+    );
+    if (error) setError(error.message);
+    else {
       setNotice(t("settings.sqlite.backup.restored"));
       await refresh();
       onChanged();
-    } catch (cause: unknown) {
-      setError(cause instanceof Error ? cause.message : String(cause));
-    } finally {
-      setWorking(false);
     }
+    setWorking(false);
   };
 
   return (

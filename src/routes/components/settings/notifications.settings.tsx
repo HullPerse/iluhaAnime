@@ -7,6 +7,7 @@ import Select from "@/components/ui/select.component";
 import { POLL_INTERVALS_MIN } from "@/config/settings/notifications.config";
 import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
+import { attempt } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useAniListNotificationsStore } from "@/store/anilist.store";
 import { useSettingsStore } from "@/store/settings.store";
@@ -30,25 +31,28 @@ export default function SettingsNotifications() {
   const fetchLists = useCallback(async () => {
     setListsLoading(true);
     setListsFailed(false);
-    try {
-      const user = await invokeTyped<{ id: number } | null>(
+    const [user, authError] = await attempt(
+      invokeTyped<{ id: number } | null>(
         "check_anilist_auth",
         anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl)
-      );
-      if (!user) {
-        setListsFailed(true);
-        return;
-      }
-      const lists = await invokeTyped<AniListCollection[]>("get_anilist_lists", {
-        userId: user.id,
-        ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
-      });
-      useAniListNotificationsStore.getState().setKnownListNames(lists.map((list) => list.name));
-    } catch {
+      )
+    );
+    if (authError || !user) {
       setListsFailed(true);
-    } finally {
       setListsLoading(false);
+      return;
     }
+    const [, listsError] = await attempt(
+      (async () => {
+        const lists = await invokeTyped<AniListCollection[]>("get_anilist_lists", {
+          userId: user.id,
+          ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
+        });
+        useAniListNotificationsStore.getState().setKnownListNames(lists.map((list) => list.name));
+      })()
+    );
+    if (listsError) setListsFailed(true);
+    setListsLoading(false);
   }, []);
 
   useEffect(() => {

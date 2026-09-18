@@ -6,6 +6,7 @@ import { PUBLIC_STATUS_MAX_ITEMS, STATUS_SHRINK_CLASS } from "@/config/collectio
 import { usePagedRow } from "@/hooks/pagedRow.hook";
 import { shrinkLevelFor, sortStatuses, statusLabel } from "@/lib/collection/status.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
+import { attempt } from "@/lib/utils/attempt.utils";
 import type { CollectionStatus, CollectionStatusDef } from "@/types/collection";
 
 /**
@@ -32,13 +33,13 @@ function ShareStatusButton({ onShare }: { onShare: () => Promise<void> | void })
       onClick={() => {
         const result = onShare();
         if (result === undefined) return;
-        result
-          .then(() => {
-            setCopied(true);
-            if (timer.current !== null) window.clearTimeout(timer.current);
-            timer.current = window.setTimeout(() => setCopied(false), 1500);
-          })
-          .catch(() => undefined);
+        (async () => {
+          const [, error] = await attempt(result);
+          if (error) return;
+          setCopied(true);
+          if (timer.current !== null) window.clearTimeout(timer.current);
+          timer.current = window.setTimeout(() => setCopied(false), 1500);
+        })();
       }}
     >
       {copied ? <Check className="size-3.5" /> : <Share2 className="size-3.5" />}

@@ -7,6 +7,7 @@ import { usePagination } from "@/hooks/pagination.hook";
 import { useSqliteCell } from "@/hooks/sqlite/cell.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { displayCell } from "@/lib/sqlite/row.utils";
+import { attempt, attemptSync } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSettingsStore } from "@/store/settings.store";
 import type {
@@ -74,17 +75,17 @@ export default function SqliteSettings() {
   const refreshDatabases = useCallback(async () => {
     setLoading(true);
     setError(null);
-    try {
-      const result = await invokeTyped<SqliteDatabaseInfo[]>("list_sqlite_databases");
+    const [result, error] = await attempt(
+      invokeTyped<SqliteDatabaseInfo[]>("list_sqlite_databases")
+    );
+    if (error) setError(error.message);
+    else {
       setDatabases(result);
       setSelectedDatabase(
         (current) => current || result.find((item) => item.available)?.id || result[0]?.id || ""
       );
-    } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : String(error));
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -100,22 +101,22 @@ export default function SqliteSettings() {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    invokeTyped<SqliteTableInfo[]>("get_sqlite_tables", { database: selectedDatabase })
-      .then((result) => {
-        if (cancelled) return;
+    (async () => {
+      const [result, error] = await attempt(
+        invokeTyped<SqliteTableInfo[]>("get_sqlite_tables", { database: selectedDatabase })
+      );
+      if (cancelled) return;
+      if (error) setError(error.message);
+      else {
         setTables(result);
         setSelectedTable((current) =>
           result.some((table) => table.name === current) ? current : result[0]?.name || ""
         );
         setPage(1);
         setSort(null);
-      })
-      .catch((error: unknown) => {
-        if (!cancelled) setError(error instanceof Error ? error.message : String(error));
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+      }
+      setLoading(false);
+    })();
     return () => {
       cancelled = true;
     };
@@ -128,8 +129,8 @@ export default function SqliteSettings() {
     }
     setLoadingRows(true);
     setError(null);
-    try {
-      const result = await invokeTyped<SqliteRowsPage>("get_sqlite_rows", {
+    const [result, error] = await attempt(
+      invokeTyped<SqliteRowsPage>("get_sqlite_rows", {
         database: selectedDatabase,
         table: selectedTable,
         page,
@@ -137,7 +138,12 @@ export default function SqliteSettings() {
         filter: filter || null,
         orderColumn: sort?.column ?? null,
         orderDirection: sort?.direction ?? null,
-      });
+      })
+    );
+    if (error) {
+      setRows(null);
+      setError(error.message);
+    } else {
       setRows(result);
       if (display === "scroll") {
         if (page === 1) {
@@ -149,12 +155,8 @@ export default function SqliteSettings() {
       }
       const nextTotalPages = Math.max(1, Math.ceil(result.total / PAGE_SIZE));
       if (page > nextTotalPages) setPage(nextTotalPages);
-    } catch (error: unknown) {
-      setRows(null);
-      setError(error instanceof Error ? error.message : String(error));
-    } finally {
-      setLoadingRows(false);
     }
+    setLoadingRows(false);
   }, [page, filter, selectedDatabase, selectedTable, sort, display]);
 
   const handleLoadMore = useCallback(() => {
@@ -266,18 +268,17 @@ export default function SqliteSettings() {
     queryHistoryIndexRef.current = -1;
     setQueryLoading(true);
     setError(null);
-    try {
-      const result = await invokeTyped<SqliteRowsPage>("run_sqlite_query", {
+    const [result, error] = await attempt(
+      invokeTyped<SqliteRowsPage>("run_sqlite_query", {
         database: selectedDatabase,
         sql: querySql,
-      });
-      setQueryResult(result);
-    } catch (error: unknown) {
+      })
+    );
+    if (error) {
       setQueryResult(null);
-      setError(error instanceof Error ? error.message : String(error));
-    } finally {
-      setQueryLoading(false);
-    }
+      setError(error.message);
+    } else setQueryResult(result);
+    setQueryLoading(false);
   };
 
   const navigateQueryHistory = (direction: "up" | "down") => {
@@ -304,20 +305,29 @@ export default function SqliteSettings() {
   };
 
   const exportRows = async (columns: string[], rowsArray: Array<unknown>[], name: string) => {
-    try {
-      const path = await save({
+    const [path, dialogError] = await attempt(
+      save({
         defaultPath: `${name}.json`,
         filters: [{ name: "JSON", extensions: ["json"] }],
-      });
-      if (!path) return;
-      await invokeTyped("write_sqlite_export", {
-        path,
-        content: JSON.stringify({ columns, rows: rowsArray }, null, 2),
-      });
-      setError(null);
-    } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : String(error));
+      })
+    );
+    if (dialogError) {
+      setError(dialogError.message);
+      return;
     }
+    if (!path) return;
+    const [content, stringifyError] = attemptSync(() =>
+      JSON.stringify({ columns, rows: rowsArray }, null, 2)
+    );
+    if (stringifyError) {
+      setError(stringifyError.message);
+      return;
+    }
+    const [, writeError] = await attempt(
+      invokeTyped("write_sqlite_export", { path, content })
+    );
+    if (writeError) setError(writeError.message);
+    else setError(null);
   };
 
   const toggleRowSelection = (keys: string[] | null) => {
@@ -355,25 +365,25 @@ export default function SqliteSettings() {
     deletingRef.current = true;
     setDeleting(true);
     setPendingBatchDelete(false);
-    try {
-      await invokeTyped("delete_sqlite_rows", {
-        database: selectedDatabase,
-        table: selectedTable,
-        keys: rowsToDelete,
-      });
-      setSelectedRows({});
-      await loadRows();
-      await refreshDatabases();
-      const refreshedTables = await invokeTyped<SqliteTableInfo[]>("get_sqlite_tables", {
-        database: selectedDatabase,
-      });
-      setTables(refreshedTables);
-    } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : String(error));
-    } finally {
-      deletingRef.current = false;
-      setDeleting(false);
-    }
+    const [, error] = await attempt(
+      (async () => {
+        await invokeTyped("delete_sqlite_rows", {
+          database: selectedDatabase,
+          table: selectedTable,
+          keys: rowsToDelete,
+        });
+        setSelectedRows({});
+        await loadRows();
+        await refreshDatabases();
+        const refreshedTables = await invokeTyped<SqliteTableInfo[]>("get_sqlite_tables", {
+          database: selectedDatabase,
+        });
+        setTables(refreshedTables);
+      })()
+    );
+    if (error) setError(error.message);
+    deletingRef.current = false;
+    setDeleting(false);
   };
 
   const deleteRow = async () => {
@@ -389,25 +399,25 @@ export default function SqliteSettings() {
     deletingRef.current = true;
     setDeleting(true);
     setPendingDelete(null);
-    try {
-      await invokeTyped("delete_sqlite_row", {
-        database: selectedDatabase,
-        table: selectedTable,
-        keys: keyToDelete,
-      });
-      setPendingDelete(null);
-      await loadRows();
-      await refreshDatabases();
-      const refreshedTables = await invokeTyped<SqliteTableInfo[]>("get_sqlite_tables", {
-        database: selectedDatabase,
-      });
-      setTables(refreshedTables);
-    } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : String(error));
-    } finally {
-      deletingRef.current = false;
-      setDeleting(false);
-    }
+    const [, error] = await attempt(
+      (async () => {
+        await invokeTyped("delete_sqlite_row", {
+          database: selectedDatabase,
+          table: selectedTable,
+          keys: keyToDelete,
+        });
+        setPendingDelete(null);
+        await loadRows();
+        await refreshDatabases();
+        const refreshedTables = await invokeTyped<SqliteTableInfo[]>("get_sqlite_tables", {
+          database: selectedDatabase,
+        });
+        setTables(refreshedTables);
+      })()
+    );
+    if (error) setError(error.message);
+    deletingRef.current = false;
+    setDeleting(false);
   };
 
   const imageColumns = new Set(

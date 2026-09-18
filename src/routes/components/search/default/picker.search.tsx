@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input.component";
 import { PICKER_ELAPSED_TICK_MS } from "@/config/torrent/common.config";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { groupFilesByDirectory } from "@/lib/torrent/tree.utils";
+import { attempt } from "@/lib/utils/attempt.utils";
 import { formatBytes } from "@/lib/utils/bytes.utils";
 import { showError } from "@/lib/utils/notification.utils";
 import { formatElapsed } from "@/lib/utils/time.utils";
@@ -101,13 +102,9 @@ function TorrentFilePicker({
     if (!torrent) return;
     setIsLoading(true);
     const subFolder = torrent.hasCommonFolder ? undefined : torrent.name;
-    try {
-      await onConfirm([...selected], saveDir, subFolder, sequential);
-    } catch (error) {
-      showError(t("common.error"), error instanceof Error ? error.message : String(error));
-    } finally {
-      setIsLoading(false);
-    }
+    const [, error] = await attempt(onConfirm([...selected], saveDir, subFolder, sequential));
+    if (error) showError(t("common.error"), error.message);
+    setIsLoading(false);
   }, [torrent, selected, saveDir, sequential, onConfirm, t]);
 
   const allSelected = torrent ? selected.size === torrent.files.length : false;

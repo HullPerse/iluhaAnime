@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input.component";
 import { PasswordInput } from "@/components/ui/password.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { mapError } from "@/lib/search/rutracker.utils";
+import { attempt } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { enterSubmit } from "@/lib/utils/keyboard.utils";
 import { useSettingsStore } from "@/store/settings.store";
@@ -42,64 +43,53 @@ function RutrackerLoginModal({
     if (!username.trim() || !password.trim()) return;
     setLoading(true);
     setError("");
-    try {
-      await invokeTyped("rutracker_login", {
+    const [, error] = await attempt(
+      invokeTyped("rutracker_login", {
         username: username.trim(),
         password,
         proxyUrl: rutrackerProxy || undefined,
         proxy_url: rutrackerProxy || undefined,
-      });
-      handleSuccess();
-    } catch (error) {
+      })
+    );
+    if (error) {
       const raw = String(error);
       setError(mapError(raw, t));
       if (raw.trim().startsWith("blocked:")) setMode("browser");
-    } finally {
-      setLoading(false);
-    }
+    } else handleSuccess();
+    setLoading(false);
   };
 
   const handleSaveCookies = async () => {
     if (!cookies.trim()) return;
     setLoading(true);
     setError("");
-    try {
-      await invokeTyped("rutracker_set_cookies", {
+    const [, error] = await attempt(
+      invokeTyped("rutracker_set_cookies", {
         cookies: cookies.trim(),
         proxyUrl: rutrackerProxy || undefined,
         proxy_url: rutrackerProxy || undefined,
-      });
-      handleSuccess();
-    } catch (error) {
-      setError(mapError(String(error), t));
-    } finally {
-      setLoading(false);
-    }
+      })
+    );
+    if (error) setError(mapError(String(error), t));
+    else handleSuccess();
+    setLoading(false);
   };
 
   const handleOpenBrowser = async () => {
     setLoading(true);
     setError("");
-    try {
-      await invokeTyped("rutracker_webview_login");
-    } catch (error) {
-      setError(mapError(String(error), t));
-    } finally {
-      setLoading(false);
-    }
+    const [, error] = await attempt(invokeTyped("rutracker_webview_login"));
+    if (error) setError(mapError(String(error), t));
+    setLoading(false);
   };
 
   const handleSaveBrowserSession = async () => {
     setLoading(true);
     setError("");
-    try {
-      await invokeTyped("rutracker_finish_webview_login");
-      handleSuccess();
-    } catch (error) {
-      setError(mapError(String(error), t));
-    } finally {
-      setLoading(false);
-    }
+    const [, error] = await attempt(invokeTyped("rutracker_finish_webview_login"));
+    if (error) setError(mapError(String(error), t));
+    else handleSuccess();
+    setLoading(false);
   };
 
   return (

@@ -5,6 +5,7 @@ import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useApp } from "@/hooks/app.hook";
 import { TORRENTS_QUERY_KEY } from "@/hooks/torrent/queries.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
+import { attempt } from "@/lib/utils/attempt.utils";
 import TorrentFilePicker from "@/routes/components/search/default/picker.search";
 import { useCacheStore } from "@/store/cache.store";
 import { useTorrentStore } from "@/store/download.store";
@@ -62,9 +63,10 @@ export default function App() {
   const prefetchTab = (id: TabId) => {
     if (prefetchedTabs.current.has(id)) return;
     prefetchedTabs.current.add(id);
-    TAB_PREFETCH[id]().catch(() => {
-      prefetchedTabs.current.delete(id);
-    });
+    (async () => {
+      const [, error] = await attempt(TAB_PREFETCH[id]());
+      if (error) prefetchedTabs.current.delete(id);
+    })();
   };
 
   const visibleTabs = tabs;

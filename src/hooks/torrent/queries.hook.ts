@@ -54,17 +54,17 @@ function ensureTorrentSubscription(queryClient: QueryClient): () => void {
   let cancelled = false;
   if (!sharedUnlisten && !listenPending) {
     listenPending = true;
-    listen<TorrentInfo[]>("torrents-update", (event) => {
-      if (!cancelled && subscriptionOwners > 0) applyTorrentEvent(queryClient, event);
-    })
-      .then((unlisten) => {
-        listenPending = false;
-        if (cancelled || subscriptionOwners <= 0) unlisten();
-        else sharedUnlisten = unlisten;
-      })
-      .catch(() => {
-        listenPending = false;
-      });
+    (async () => {
+      const [unlisten, error] = await attempt(
+        listen<TorrentInfo[]>("torrents-update", (event) => {
+          if (!cancelled && subscriptionOwners > 0) applyTorrentEvent(queryClient, event);
+        })
+      );
+      listenPending = false;
+      if (error || !unlisten) return;
+      if (cancelled || subscriptionOwners <= 0) unlisten();
+      else sharedUnlisten = unlisten;
+    })();
   }
   return () => {
     cancelled = true;

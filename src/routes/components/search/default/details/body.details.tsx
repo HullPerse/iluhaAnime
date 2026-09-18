@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { formatSize } from "@/lib/search/format.utils";
+import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import type { Source } from "@/types/search";
 import type { Anime, TorrentView } from "@/types/torrent";
 
@@ -159,7 +160,12 @@ export function TorrentDetailsBody({
                 type="button"
                 key={`${url}-${index}`}
                 className="windows95-border aspect-video min-h-28 cursor-pointer bg-black/20 transition-[filter] hover:brightness-110"
-                onClick={() => openUrl(url).catch((error) => console.warn("openUrl failed", error))}
+                onClick={() => {
+                  (async () => {
+                    const [, error] = await attempt(openUrl(url));
+                    if (error) reportBackgroundError("details.open-image", error);
+                  })();
+                }}
                 title={t("search.details.open.image")}
               >
                 <ImageComponent

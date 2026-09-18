@@ -8,7 +8,7 @@ import Select from "@/components/ui/select.component";
 import { SOURCE_INFOS } from "@/config/search/sources.config";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { deleteAppCache } from "@/lib/store/cache.utils";
-import { reportBackgroundError } from "@/lib/utils/attempt.utils";
+import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSearchStore } from "@/store/search.store";
 import { useSettingsStore } from "@/store/settings.store";
@@ -44,19 +44,23 @@ export default function SettingsSearch() {
     await Promise.all(
       sources.map(async (info) => {
         const proxy = searchProxyUrls[info.value] ?? "";
-        try {
-          const res = await invokeTyped<string>("test_source_connection", {
+        const [res, error] = await attempt(
+          invokeTyped<string>("test_source_connection", {
             source: info.value,
             proxyUrl: proxy || null,
             proxy_url: proxy || null,
-          });
+          })
+        );
+        if (error) {
+          setProxyTests((prev) => ({
+            ...prev,
+            [info.value]: { loading: false, ok: false, msg: error.message },
+          }));
+        } else {
           setProxyTests((prev) => ({
             ...prev,
             [info.value]: { loading: false, ok: true, msg: res },
           }));
-        } catch (e) {
-          const msg = e instanceof Error ? e.message : String(e);
-          setProxyTests((prev) => ({ ...prev, [info.value]: { loading: false, ok: false, msg } }));
         }
       })
     );

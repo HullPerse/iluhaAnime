@@ -15,6 +15,7 @@ import {
 } from "@/lib/anilist/spotlight.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { readAppCache, writeAppCache } from "@/lib/store/cache.utils";
+import { attempt } from "@/lib/utils/attempt.utils";
 import { formatETA } from "@/lib/utils/time.utils";
 import type { AniMedia, SpotlightKind, SpotlightRowState } from "@/types/anilist";
 
@@ -59,16 +60,17 @@ export default function SpotlightModal({
         setRows((prev) => ({ ...prev, [kind]: { status: "ready", media: cached.payload } }));
         return;
       }
-      try {
-        const media = await resolveSpotlightPick(kind, periodKey);
-        if (cancelled.current) return;
-        await writeAppCache("spotlight", `pick:${kind}:${periodKey}`, media);
-        if (cancelled.current) return;
-        setRows((prev) => ({ ...prev, [kind]: { status: "ready", media } }));
-      } catch {
-        if (cancelled.current) return;
+      const [, error] = await attempt(
+        (async () => {
+          const media = await resolveSpotlightPick(kind, periodKey);
+          if (cancelled.current) return;
+          await writeAppCache("spotlight", `pick:${kind}:${periodKey}`, media);
+          if (cancelled.current) return;
+          setRows((prev) => ({ ...prev, [kind]: { status: "ready", media } }));
+        })()
+      );
+      if (error && !cancelled.current)
         setRows((prev) => ({ ...prev, [kind]: { status: "error" } }));
-      }
     };
     for (const kind of SPOTLIGHT_KINDS) {
       setRows((prev) => ({ ...prev, [kind]: { status: "loading" } }));
@@ -79,17 +81,20 @@ export default function SpotlightModal({
   const retry = (kind: SpotlightKind) => {
     setRows((prev) => ({ ...prev, [kind]: { status: "loading" } }));
     const periodKey = spotlightPeriodKey(kind, new Date());
-    resolveSpotlightPick(kind, periodKey)
-      .then(async (media) => {
-        if (cancelled.current) return;
-        await writeAppCache("spotlight", `pick:${kind}:${periodKey}`, media);
-        if (cancelled.current) return;
-        setRows((prev) => ({ ...prev, [kind]: { status: "ready", media } }));
-      })
-      .catch(() => {
-        if (cancelled.current) return;
+    (async () => {
+      const [media, error] = await attempt(resolveSpotlightPick(kind, periodKey));
+      if (cancelled.current) return;
+      if (error || !media) {
         setRows((prev) => ({ ...prev, [kind]: { status: "error" } }));
-      });
+        return;
+      }
+      const [, cacheError] = await attempt(
+        writeAppCache("spotlight", `pick:${kind}:${periodKey}`, media)
+      );
+      if (cancelled.current) return;
+      if (cacheError) setRows((prev) => ({ ...prev, [kind]: { status: "error" } }));
+      else setRows((prev) => ({ ...prev, [kind]: { status: "ready", media } }));
+    })();
   };
 
   return (

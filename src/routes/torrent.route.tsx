@@ -27,7 +27,7 @@ import {
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { applyBulkAction } from "@/lib/torrent/bulk.utils";
 import { fmtSpeed, getLifecycleLabel, getTorrentLifecycle } from "@/lib/torrent/common.utils";
-import { reportBackgroundError } from "@/lib/utils/attempt.utils";
+import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { paginate } from "@/lib/utils/pagination.utils";
 import { useCacheStore } from "@/store/cache.store";
 import { useDeepLinkStore } from "@/store/deeplink.store";
@@ -119,28 +119,29 @@ function TorrentRoute() {
       kind === "retry" ? filteredTorrents.filter((torrent) => torrent.error) : filteredTorrents;
     if (targets.length === 0 || bulkBusy) return;
     setBulkBusy(true);
-    try {
-      const { done, failed } = await applyBulkAction(targets, (torrent) => {
-        if (kind === "pause")
-          return pauseMutation.mutateAsync({ id: torrent.id, infoHash: torrent.info_hash });
-        if (kind === "resume")
-          return resumeMutation.mutateAsync({ id: torrent.id, infoHash: torrent.info_hash });
-        return removeMutation
-          .mutateAsync({ id: torrent.id, deleteFiles: false, infoHash: torrent.info_hash })
-          .then((removed) => {
-            if (removed) prepareTorrentDownload(`magnet:?xt=urn:btih:${torrent.info_hash}`);
-          });
-      });
-      useNotificationStore
-        .getState()
-        .add(
-          t("torrent.bulk.title"),
-          failed > 0 ? "error" : "success",
-          t("torrent.bulk.done", { done, failed })
-        );
-    } finally {
-      setBulkBusy(false);
-    }
+    await attempt(
+      (async () => {
+        const { done, failed } = await applyBulkAction(targets, (torrent) => {
+          if (kind === "pause")
+            return pauseMutation.mutateAsync({ id: torrent.id, infoHash: torrent.info_hash });
+          if (kind === "resume")
+            return resumeMutation.mutateAsync({ id: torrent.id, infoHash: torrent.info_hash });
+          return removeMutation
+            .mutateAsync({ id: torrent.id, deleteFiles: false, infoHash: torrent.info_hash })
+            .then((removed) => {
+              if (removed) prepareTorrentDownload(`magnet:?xt=urn:btih:${torrent.info_hash}`);
+            });
+        });
+        useNotificationStore
+          .getState()
+          .add(
+            t("torrent.bulk.title"),
+            failed > 0 ? "error" : "success",
+            t("torrent.bulk.done", { done, failed })
+          );
+      })()
+    );
+    setBulkBusy(false);
   };
   useEffect(() => {
     if (!torrentTarget) return;

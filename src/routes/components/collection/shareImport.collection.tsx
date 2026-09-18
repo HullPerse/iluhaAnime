@@ -140,47 +140,46 @@ export function ShareImportCollection({
     setRunTotal(indices.length);
     setImported(null);
     abortRef.current = false;
-    try {
-      const statusId = await resolveStatusId();
-      let ok = 0;
-      const failed: Array<{ id: string; title: string }> = [];
-      const failedIds: number[] = [];
-      for (const index of indices) {
-        if (abortRef.current) break;
-        const row = plan.rows[index];
-        if (!row) continue;
-        setCurrent(row.snapshot.title);
-        const [, error] = await attempt(
-          invokeTyped("import_collection_data", {
-            data: {
-              version: 1,
-              exportedAt: Math.floor(Date.now() / 1000),
-              items: [shareRowToExportRow(row, statusId)],
-              customFieldDefs: [],
-            },
-            strategy: "create_new",
-          })
-        );
-        if (error) {
-          failed.push({ id: String(index), title: row.snapshot.title });
-          failedIds.push(index);
-        } else {
-          ok += 1;
+    const [, error] = await attempt(
+      (async () => {
+        const statusId = await resolveStatusId();
+        let ok = 0;
+        const failed: Array<{ id: string; title: string }> = [];
+        const failedIds: number[] = [];
+        for (const index of indices) {
+          if (abortRef.current) break;
+          const row = plan.rows[index];
+          if (!row) continue;
+          setCurrent(row.snapshot.title);
+          const [, importError] = await attempt(
+            invokeTyped("import_collection_data", {
+              data: {
+                version: 1,
+                exportedAt: Math.floor(Date.now() / 1000),
+                items: [shareRowToExportRow(row, statusId)],
+                customFieldDefs: [],
+              },
+              strategy: "create_new",
+            })
+          );
+          if (importError) {
+            failed.push({ id: String(index), title: row.snapshot.title });
+            failedIds.push(index);
+          } else {
+            ok += 1;
+          }
+          setProcessed((done) => done + 1);
         }
-        setProcessed((done) => done + 1);
-      }
-      setFailures(failed);
-      setFailedIndices(failedIds);
-      setImported(ok);
-      setCurrent(null);
-      await queryClient.invalidateQueries({ queryKey: [COLLECTION_QUERY_KEY] });
-    } catch (error) {
-      useNotificationStore
-        .getState()
-        .add(t("app.collection"), "error", error instanceof Error ? error.message : String(error));
-    } finally {
-      setImporting(false);
-    }
+        setFailures(failed);
+        setFailedIndices(failedIds);
+        setImported(ok);
+        setCurrent(null);
+        await queryClient.invalidateQueries({ queryKey: [COLLECTION_QUERY_KEY] });
+      })()
+    );
+    if (error)
+      useNotificationStore.getState().add(t("app.collection"), "error", error.message);
+    setImporting(false);
   };
 
   return (
@@ -294,7 +293,7 @@ export function ShareImportCollection({
             {imported === null ? t("common.cancel") : t("common.close")}
           </Button>
           {!importing && failedIndices.length > 0 && (
-            <Button onClick={() => runImport(failedIndices).catch(() => undefined)}>
+            <Button onClick={() => attempt(runImport(failedIndices))}>
               {t("collection.import.anilist.retry.failed")}
             </Button>
           )}
@@ -302,7 +301,7 @@ export function ShareImportCollection({
             <Button
               variant="success"
               disabled={!canImport}
-              onClick={() => runImport([...selected]).catch(() => undefined)}
+              onClick={() => attempt(runImport([...selected]))}
             >
               {importing
                 ? t("common.loading")

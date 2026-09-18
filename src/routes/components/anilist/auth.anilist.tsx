@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
 import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
+import { attempt } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { enterSubmit } from "@/lib/utils/keyboard.utils";
 import { useSettingsStore } from "@/store/settings.store";
@@ -28,17 +29,15 @@ function AniListAuthModal({
     if (!token.trim()) return;
     setLoading(true);
     setError("");
-    try {
-      const user = await invokeTyped<AniUser>("anilist_login", {
+    const [user, error] = await attempt(
+      invokeTyped<AniUser>("anilist_login", {
         token: token.trim(),
         ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
-      });
-      onAuth(user);
-    } catch (error) {
-      setError(String(error));
-    } finally {
-      setLoading(false);
-    }
+      })
+    );
+    if (error) setError(String(error));
+    else onAuth(user);
+    setLoading(false);
   };
 
   return (

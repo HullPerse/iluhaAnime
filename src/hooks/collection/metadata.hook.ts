@@ -4,6 +4,7 @@ import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { readStoredMedia, withStoredMedia } from "@/lib/collection/media.utils";
 import { mergeGenreTags } from "@/lib/collection/wizard.utils";
 import { useI18n, type TranslationKey } from "@/lib/locale/i18n.utils";
+import { attempt, withFallback } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useNotificationStore } from "@/store/notification.store";
 import { useSettingsStore } from "@/store/settings.store";
@@ -48,15 +49,21 @@ export function useCollectionMetadata(
         nextCoverUrl !== item.coverUrl && (item.coverBlobId != null || item.thumbBlobId != null);
       const [characters, staff] = anilistId
         ? await Promise.all([
-            invokeTyped<AniCharacterEdge[]>("get_anime_characters", {
-              id: anilistId,
-              page: 1,
-              ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
-            }).catch(() => [] as AniCharacterEdge[]),
-            invokeTyped<AniAnimeStaffEdge[]>("get_anime_staff", {
-              id: anilistId,
-              ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
-            }).catch(() => [] as AniAnimeStaffEdge[]),
+            withFallback(
+              invokeTyped<AniCharacterEdge[]>("get_anime_characters", {
+                id: anilistId,
+                page: 1,
+                ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
+              }),
+              [] as AniCharacterEdge[]
+            ),
+            withFallback(
+              invokeTyped<AniAnimeStaffEdge[]>("get_anime_staff", {
+                id: anilistId,
+                ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
+              }),
+              [] as AniAnimeStaffEdge[]
+            ),
           ])
         : [[], []];
       updateItem(
@@ -161,17 +168,18 @@ export function useCollectionMetadata(
 
   const refreshMetadata = useCallback(
     async (item: CollectionItem) => {
-      try {
-        if (item.externalIds.anilist != null) await refreshAnilist(item);
-        else if (item.externalIds.tmdb != null) await refreshTmdb(item);
-        else {
-          notify("info", "collection.details.no.external.id");
-          return;
-        }
-        notify("success", "collection.details.metadata.refreshed");
-      } catch {
-        notify("error", "collection.details.metadata.refresh.error");
-      }
+      const [, error] = await attempt(
+        (async () => {
+          if (item.externalIds.anilist != null) await refreshAnilist(item);
+          else if (item.externalIds.tmdb != null) await refreshTmdb(item);
+          else {
+            notify("info", "collection.details.no.external.id");
+            return;
+          }
+          notify("success", "collection.details.metadata.refreshed");
+        })()
+      );
+      if (error) notify("error", "collection.details.metadata.refresh.error");
     },
     [notify, refreshAnilist, refreshTmdb]
   );

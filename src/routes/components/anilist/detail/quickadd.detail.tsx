@@ -7,6 +7,7 @@ import { withStoredMedia } from "@/lib/collection/media.utils";
 import { downloadCover, fetchAddedMedia } from "@/lib/collection/quickadd.utils";
 import { buildWizardItem } from "@/lib/collection/wizard.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
+import { attempt } from "@/lib/utils/attempt.utils";
 import { useNotificationStore } from "@/store/notification.store";
 import type { QuickAddListEntry, QuickAddMedia } from "@/types/collection";
 
@@ -30,37 +31,38 @@ export default function QuickAddButton({
   const handleAdd = async () => {
     if (exists || adding) return;
     setAdding(true);
-    try {
-      const values = mediaToWizardValues(anime, listEntry, isFavorite);
-      const coverBlobId = await downloadCover(values.coverUrl);
-      const built = buildWizardItem(values, coverBlobId, null);
-      const added = await fetchAddedMedia(anime);
-      await addItem(
-        added
-          ? {
-              ...built,
-              detailsJson: withStoredMedia(
-                built.detailsJson,
-                added.backdrops
-                  .map((b) => b.url)
-                  .filter(Boolean)
-                  .slice(0, 8),
-                added.trailerYoutubeId
-              ),
-            }
-          : built
-      );
-      setAdded(true);
-      useNotificationStore
-        .getState()
-        .add(t("app.collection"), "success", t("collection.quick.add.success"));
-    } catch {
+    const [, error] = await attempt(
+      (async () => {
+        const values = mediaToWizardValues(anime, listEntry, isFavorite);
+        const coverBlobId = await downloadCover(values.coverUrl);
+        const built = buildWizardItem(values, coverBlobId, null);
+        const added = await fetchAddedMedia(anime);
+        await addItem(
+          added
+            ? {
+                ...built,
+                detailsJson: withStoredMedia(
+                  built.detailsJson,
+                  added.backdrops
+                    .map((b) => b.url)
+                    .filter(Boolean)
+                    .slice(0, 8),
+                  added.trailerYoutubeId
+                ),
+              }
+            : built
+        );
+        setAdded(true);
+        useNotificationStore
+          .getState()
+          .add(t("app.collection"), "success", t("collection.quick.add.success"));
+      })()
+    );
+    if (error)
       useNotificationStore
         .getState()
         .add(t("app.collection"), "error", t("collection.quick.add.error"));
-    } finally {
-      setAdding(false);
-    }
+    setAdding(false);
   };
 
   return (

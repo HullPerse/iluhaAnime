@@ -7,7 +7,7 @@ import { formatProgressLog } from "@/lib/anilist/prefetch.utils";
 import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { deleteAppCache, readAppCache, writeAppCache } from "@/lib/store/cache.utils";
-import { reportBackgroundError } from "@/lib/utils/attempt.utils";
+import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useNotificationStore } from "@/store/notification.store";
 import { useSettingsStore } from "@/store/settings.store";
@@ -89,12 +89,22 @@ export default function PrefetchRelationsModal({ animeIds, onClose }: Props) {
       else unlisten();
     });
     let keepListening = false;
-    try {
-      const result = await invokeTyped<PrefetchSummary>("prefetch_anime_relations", {
+    const [result, prefetchError] = await attempt(
+      invokeTyped<PrefetchSummary>("prefetch_anime_relations", {
         animeIds: seeds,
         ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
-      });
-      if (!mountedRef.current) return;
+      })
+    );
+    if (prefetchError) {
+      if (mountedRef.current) {
+        if (prefetchError.message.includes("already running")) {
+          keepListening = true;
+          setBackgrounded(true);
+        } else {
+          setError(prefetchError.message);
+        }
+      }
+    } else if (mountedRef.current) {
       setFinished(result);
       setStored(null);
       deleteAppCache("anilist", "prefetch").catch((error) =>
@@ -103,36 +113,20 @@ export default function PrefetchRelationsModal({ animeIds, onClose }: Props) {
       invokeTyped("sync_franchise_to_index").catch((error) =>
         reportBackgroundError("franchise.sync", error)
       );
-    } catch (cause) {
-      const message = typeof cause === "string" ? cause : String(cause);
-      if (!mountedRef.current) return;
-      if (message.includes("already running")) {
-        keepListening = true;
-        setBackgrounded(true);
-      } else {
-        setError(message);
-      }
-    } finally {
-      if (!keepListening) {
-        const unlisten = await unlistenPromise;
-        unlisten();
-      }
-      if (mountedRef.current && !keepListening) setRunning(false);
     }
+    if (!keepListening) {
+      const [unlisten] = await attempt(unlistenPromise);
+      unlisten?.();
+    }
+    if (mountedRef.current && !keepListening) setRunning(false);
   };
 
   const cancel = async () => {
-    try {
-      await invokeTyped("cancel_anime_prefetch");
-    } catch (error) {
+    const [, error] = await attempt(invokeTyped("cancel_anime_prefetch"));
+    if (error)
       useNotificationStore
         .getState()
-        .add(
-          t("anilist.prefetch.cancel.failed"),
-          "error",
-          error instanceof Error ? error.message : String(error)
-        );
-    }
+        .add(t("anilist.prefetch.cancel.failed"), "error", error.message);
   };
   return (
     <Modal header={t("anilist.prefetch.title")} onClose={onClose}>

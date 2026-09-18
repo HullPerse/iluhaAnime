@@ -2,7 +2,7 @@ import { save } from "@tauri-apps/plugin-dialog";
 import { useCallback, useState } from "react";
 
 import { useI18n, type TranslationKey } from "@/lib/locale/i18n.utils";
-import { attempt } from "@/lib/utils/attempt.utils";
+import { attempt, attemptSync } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useNotificationStore } from "@/store/notification.store";
 
@@ -19,20 +19,24 @@ export function useCollectionDataActions() {
   );
 
   const handleExportJson = useCallback(async () => {
-    try {
-      const data = await invokeTyped<unknown>("export_collection_data");
-      const json = JSON.stringify(data, null, 2);
-      const blob = new Blob([json], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `iluhaAnime-collection-${new Date().toISOString().slice(0, 10)}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-      notify("success", "collection.export.done");
-    } catch {
+    const [data, dataError] = await attempt(invokeTyped<unknown>("export_collection_data"));
+    if (dataError) {
       notify("error", "collection.export.error");
+      return;
     }
+    const [json, jsonError] = attemptSync(() => JSON.stringify(data, null, 2));
+    if (jsonError) {
+      notify("error", "collection.export.error");
+      return;
+    }
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `iluhaAnime-collection-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    notify("success", "collection.export.done");
   }, [notify]);
 
   const handleExportZip = useCallback(async () => {
@@ -48,29 +52,43 @@ export function useCollectionDataActions() {
 
   const runImport = useCallback(
     async (strategy: string, file: File) => {
-      try {
-        const text = await file.text();
-        const data = JSON.parse(text) as unknown;
-        const summary = await invokeTyped<{
+      const [text, textError] = await attempt(file.text());
+      if (textError) {
+        useNotificationStore
+          .getState()
+          .add(t("app.collection"), "error", textError.message);
+        return;
+      }
+      const [data, parseError] = attemptSync(() => JSON.parse(text) as unknown);
+      if (parseError) {
+        useNotificationStore
+          .getState()
+          .add(t("app.collection"), "error", parseError.message);
+        return;
+      }
+      const [summary, importError] = await attempt(
+        invokeTyped<{
           imported: number;
           skipped: number;
           overwritten: number;
           created: number;
-        }>("import_collection_data", { data, strategy });
-        useNotificationStore.getState().add(
-          t("app.collection"),
-          "success",
-          t("collection.import.done", {
-            imported: String(summary.imported),
-            skipped: String(summary.skipped),
-            created: String(summary.created),
-          })
-        );
-      } catch (err) {
+        }>("import_collection_data", { data, strategy })
+      );
+      if (importError) {
         useNotificationStore
           .getState()
-          .add(t("app.collection"), "error", err instanceof Error ? err.message : String(err));
+          .add(t("app.collection"), "error", importError.message);
+        return;
       }
+      useNotificationStore.getState().add(
+        t("app.collection"),
+        "success",
+        t("collection.import.done", {
+          imported: String(summary.imported),
+          skipped: String(summary.skipped),
+          created: String(summary.created),
+        })
+      );
     },
     [t]
   );

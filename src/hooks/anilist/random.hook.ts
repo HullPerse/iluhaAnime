@@ -49,44 +49,45 @@ export function useAnilistRandom(
     if (pendingRef.current) return;
     pendingRef.current = true;
     setRandomPending(true);
-    try {
-      const baseArgs = {
-        ...searchFiltersToParams(filters, null, FILTER_RANDOM_PER_PAGE, 1),
-        ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
-      };
-      const [first, firstError] = await attempt(
-        invokeTyped<FilterPage>("get_anilist_filter_page", { ...baseArgs, page: 1 })
-      );
-      if (firstError || !first) {
-        showError(t("anilist.filters.random"), t("anilist.filters.random.error"));
-        return;
-      }
-      if (first.total === 0) {
-        showError(t("anilist.filters.random"), t("anilist.filters.random.empty"));
-        return;
-      }
-      const pages = Math.max(1, Math.ceil(first.total / FILTER_RANDOM_PER_PAGE));
-      const page = 1 + Math.floor(Math.random() * pages);
-      const [pageData, pageError]: [FilterPage | null, Error | null] =
-        page === 1
-          ? [first, null]
-          : await attempt(
-              invokeTyped<FilterPage>("get_anilist_filter_page", { ...baseArgs, page })
-            );
-      const pool = pageData?.media ?? [];
-      const pick = pool.length > 0 ? pool[Math.floor(Math.random() * pool.length)] : undefined;
-      if (pageError || !pick) {
-        showError(
-          t("anilist.filters.random"),
-          t(pageError ? "anilist.filters.random.error" : "anilist.filters.random.empty")
+    await attempt(
+      (async () => {
+        const baseArgs = {
+          ...searchFiltersToParams(filters, null, FILTER_RANDOM_PER_PAGE, 1),
+          ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
+        };
+        const [first, firstError] = await attempt(
+          invokeTyped<FilterPage>("get_anilist_filter_page", { ...baseArgs, page: 1 })
         );
-        return;
-      }
-      showDetail({ animeId: pick.id, listEntry: entryLookup.get(pick.id) }, true);
-    } finally {
-      pendingRef.current = false;
-      setRandomPending(false);
-    }
+        if (firstError || !first) {
+          showError(t("anilist.filters.random"), t("anilist.filters.random.error"));
+          return;
+        }
+        if (first.total === 0) {
+          showError(t("anilist.filters.random"), t("anilist.filters.random.empty"));
+          return;
+        }
+        const pages = Math.max(1, Math.ceil(first.total / FILTER_RANDOM_PER_PAGE));
+        const page = 1 + Math.floor(Math.random() * pages);
+        const [pageData, pageError]: [FilterPage | null, Error | null] =
+          page === 1
+            ? [first, null]
+            : await attempt(
+                invokeTyped<FilterPage>("get_anilist_filter_page", { ...baseArgs, page })
+              );
+        const pool = pageData?.media ?? [];
+        const pick = pool.length > 0 ? pool[Math.floor(Math.random() * pool.length)] : undefined;
+        if (pageError || !pick) {
+          showError(
+            t("anilist.filters.random"),
+            t(pageError ? "anilist.filters.random.error" : "anilist.filters.random.empty")
+          );
+          return;
+        }
+        showDetail({ animeId: pick.id, listEntry: entryLookup.get(pick.id) }, true);
+      })()
+    );
+    pendingRef.current = false;
+    setRandomPending(false);
   };
   return { handleFilterRandom, handleRandomFromList, randomPending };
 }

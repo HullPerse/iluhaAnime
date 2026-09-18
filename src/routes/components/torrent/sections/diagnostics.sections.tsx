@@ -4,6 +4,7 @@ import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { SmallLoader } from "@/components/shared/loader.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { formatBytes } from "@/lib/utils/bytes.utils";
+import { attempt } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { showError } from "@/lib/utils/notification.utils";
 import type { TorrentDiagnostics } from "@/types/torrent";
@@ -19,9 +20,10 @@ export function TorrentDiagnosticsSection({
 }) {
   const { t } = useI18n();
   const copyText = (label: string, value: string) => {
-    writeText(value).catch((error: unknown) =>
-      showError(label, error instanceof Error ? error.message : String(error))
-    );
+    (async () => {
+      const [, error] = await attempt(writeText(value));
+      if (error) showError(label, error.message);
+    })();
   };
   const query = useQuery({
     queryKey: ["torrent_diagnostics", id],

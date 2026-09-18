@@ -2,6 +2,7 @@ import { cn } from "cn";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { DITHER_DEFAULTS } from "@/config/utils/dither.config";
+import { attempt, attemptSync } from "@/lib/utils/attempt.utils";
 import { renderDitherImage } from "@/lib/utils/dither.render.utils";
 import {
   ditherCacheKey,
@@ -205,7 +206,7 @@ function DitherCanvas({
       key: string
     ) => {
       if (cancelled) return;
-      try {
+      const [, processError] = attemptSync(() => {
         const width = Math.max(1, Math.round(sourceWidth * renderScale));
         const height = Math.max(1, Math.round(sourceHeight * renderScale));
         const work = document.createElement("canvas");
@@ -263,9 +264,9 @@ function DitherCanvas({
           paintEntry(fresh);
           markReady();
         }
-      } catch (error) {
-        reportError(`DitherCanvas: failed to process image ${src} (${String(error)})`);
-      }
+      });
+      if (processError)
+        reportError(`DitherCanvas: failed to process image ${src} (${processError.message})`);
     };
     const compute = (key: string | null) => {
       if (cancelled) return;
@@ -292,16 +293,19 @@ function DitherCanvas({
       image.onload = () => {
         if (cancelled) return;
         if (typeof createImageBitmap === "function") {
-          createImageBitmap(image)
-            .then((bitmap) => {
+          (async () => {
+            const [bitmap, error] = await attempt(createImageBitmap(image));
+            if (!error && bitmap) {
               if (cancelled) {
                 bitmap.close();
                 return;
               }
               ditherDecodeCache.set(src, bitmap);
               renderCached(bitmap, bitmap.width, bitmap.height);
-            })
-            .catch(() => renderCached(image, image.naturalWidth, image.naturalHeight));
+              return;
+            }
+            renderCached(image, image.naturalWidth, image.naturalHeight);
+          })();
         } else {
           renderCached(image, image.naturalWidth, image.naturalHeight);
         }

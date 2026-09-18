@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 
+import { attempt } from "@/lib/utils/attempt.utils";
 import type { PollingOptions } from "@/types/polling";
 
 export type { PollingOptions };
@@ -43,21 +44,16 @@ export function usePolling<K>(options: PollingOptions<K>): void {
 
         inFlightRef.current.add(key);
         onStart?.(key);
-        Promise.resolve()
-          .then(() => fetch(key))
-          .then((ok) => {
-            if (ok) {
-              attemptsRef.current.delete(key);
-              retryAtRef.current.delete(key);
-              return;
-            }
-            scheduleBackoff(key);
-          })
-          .catch(() => scheduleBackoff(key))
-          .finally(() => {
-            inFlightRef.current.delete(key);
-            onSettle?.(key);
-          });
+        (async () => {
+          const [ok, error] = await attempt((async () => fetch(key))());
+          if (error || !ok) scheduleBackoff(key);
+          else {
+            attemptsRef.current.delete(key);
+            retryAtRef.current.delete(key);
+          }
+          inFlightRef.current.delete(key);
+          onSettle?.(key);
+        })();
       }
     };
 

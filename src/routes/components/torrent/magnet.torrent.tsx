@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
 import { MAGNET_RX } from "@/config/torrent/common.config";
 import { useI18n } from "@/lib/locale/i18n.utils";
-import { reportBackgroundError } from "@/lib/utils/attempt.utils";
+import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { enterSubmit } from "@/lib/utils/keyboard.utils";
 import type { MagnetTorrentProps as Props } from "@/types/torrent";
 
@@ -28,13 +28,13 @@ export default function AddTorrentModal({
       return;
     }
     (async () => {
-      try {
-        const text = await readText();
-        if (text && MAGNET_RX.test(text.trim())) {
-          setMagnetInput(text.trim());
-        }
-      } catch (error) {
+      const [text, error] = await attempt(readText());
+      if (error) {
         reportBackgroundError("magnet.clipboard", error);
+        return;
+      }
+      if (text && MAGNET_RX.test(text.trim())) {
+        setMagnetInput(text.trim());
       }
     })();
   }, [open, initialMagnet]);

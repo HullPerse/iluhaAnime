@@ -17,7 +17,7 @@ import {
 } from "@/config/utils/dither.config";
 import { useDebounce } from "@/hooks/debounce.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
-import { attempt } from "@/lib/utils/attempt.utils";
+import { attempt, attemptSync } from "@/lib/utils/attempt.utils";
 import {
   EXTRACT_PALETTE_MAX_COLORS,
   EXTRACT_PALETTE_MIN_COLORS,
@@ -76,7 +76,7 @@ export default function DitherPreviewModal({
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.onload = () => {
-      try {
+      const [, error] = attemptSync(() => {
         const ratio = Math.min(1, 64 / Math.max(1, img.naturalWidth, img.naturalHeight));
         const canvas = document.createElement("canvas");
         canvas.width = Math.max(1, Math.round(img.naturalWidth * ratio));
@@ -94,11 +94,9 @@ export default function DitherPreviewModal({
         );
         if (palette.length === 0) throw new Error("no colors extracted");
         patchOptions({ palette });
-      } catch {
-        showError(t("common.error"), t("search.dither.palette.extract.error"));
-      } finally {
-        setExtracting(false);
-      }
+      });
+      if (error) showError(t("common.error"), t("search.dither.palette.extract.error"));
+      setExtracting(false);
     };
     img.onerror = () => {
       setExtracting(false);
@@ -147,10 +145,8 @@ export default function DitherPreviewModal({
       stopBaking();
       return;
     }
-    let dataUrl: string;
-    try {
-      dataUrl = canvas.toDataURL("image/png");
-    } catch {
+    const [dataUrl, toDataError] = attemptSync(() => canvas.toDataURL("image/png"));
+    if (toDataError) {
       stopBaking();
       showError(t("common.error"), t("search.dither.save.error"));
       return;

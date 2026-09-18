@@ -1,6 +1,7 @@
 import { openUrl } from "@tauri-apps/plugin-opener";
 
 import { useI18n } from "@/lib/locale/i18n.utils";
+import { attempt } from "@/lib/utils/attempt.utils";
 import type { CollectionItem } from "@/types/collection";
 
 export function SitesCollection({ item }: { item: CollectionItem }) {
@@ -18,7 +19,7 @@ export function SitesCollection({ item }: { item: CollectionItem }) {
               <button
                 key={site.url}
                 type="button"
-                onClick={() => openUrl(site.url).catch(() => undefined)}
+                onClick={() => attempt(openUrl(site.url))}
                 className="hover:bg-surface truncate px-1 text-left text-xs text-blue-800 underline"
                 title={site.url}
               >

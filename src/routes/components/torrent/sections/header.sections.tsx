@@ -1,5 +1,5 @@
 import { openPath } from "@tauri-apps/plugin-opener";
-import { Gauge, Pause, Play, Check, Search } from "lucide-react";
+import { ChevronDown, ChevronUp, Pause, Play, Check, Search, Users } from "lucide-react";
 
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
@@ -12,23 +12,24 @@ export function TorrentHeader({
   isLive,
   isPaused,
   busy,
+  queue,
   onPause,
   onResume,
   onSeedChange,
   onSetSequential,
   onRecheck,
+  onPeers,
   onDelete,
-  onToggleExpand,
 }: Pick<
   TorrentItemProps,
-  | "item"
-  | "onPause"
-  | "onResume"
-  | "onSeedChange"
-  | "onSetSequential"
-  | "onRecheck"
-  | "onToggleExpand"
-> & { isLive: boolean; isPaused: boolean; busy: boolean; onDelete: () => void }) {
+  "item" | "queue" | "onPause" | "onResume" | "onSeedChange" | "onSetSequential" | "onRecheck"
+> & {
+  isLive: boolean;
+  isPaused: boolean;
+  busy: boolean;
+  onPeers: () => void;
+  onDelete: () => void;
+}) {
   const { t } = useI18n();
   return (
     <section className="flex flex-row items-center justify-between">
@@ -36,6 +37,30 @@ export function TorrentHeader({
         {item.name}
       </h3>
       <div className="flex flex-row items-center gap-1">
+        {queue && (
+          <>
+            <Button
+              title={t("torrent.queue.up")}
+              aria-label={t("torrent.queue.up")}
+              size="icon"
+              className="size-6"
+              disabled={busy || queue.index <= 0}
+              onClick={() => queue.onMove(-1)}
+            >
+              <ChevronUp className="size-4" />
+            </Button>
+            <Button
+              title={t("torrent.queue.down")}
+              aria-label={t("torrent.queue.down")}
+              size="icon"
+              className="size-6"
+              disabled={busy || queue.index >= queue.total - 1}
+              onClick={() => queue.onMove(1)}
+            >
+              <ChevronDown className="size-4" />
+            </Button>
+          </>
+        )}{" "}
         {item.finished ? (
           <label className="flex cursor-pointer items-center gap-0.5 select-none">
             <Checkbox checked={isLive} onChange={onSeedChange} className="size-3" />
@@ -99,18 +124,6 @@ export function TorrentHeader({
           {item.sequential_download && <Check className="size-4" />}
         </Button>
         <Button
-          title={t("torrent.limits")}
-          aria-label={t("torrent.limits")}
-          size="icon"
-          className="size-6"
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleExpand();
-          }}
-        >
-          <Gauge className="size-4" />
-        </Button>
-        <Button
           title={t("torrent.recheck")}
           aria-label={t("torrent.recheck")}
           size="icon"
@@ -121,6 +134,18 @@ export function TorrentHeader({
           }}
         >
           <Search className="size-4" />
+        </Button>
+        <Button
+          title={t("torrent.peers.open")}
+          aria-label={t("torrent.peers.open")}
+          size="icon"
+          className="size-6"
+          onClick={(e) => {
+            e.stopPropagation();
+            onPeers();
+          }}
+        >
+          <Users className="size-4" />
         </Button>
         <Button
           variant="error"

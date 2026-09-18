@@ -23,6 +23,7 @@ function fetchCachedImage(remoteUrl: string, proxyUrl: string | null): Promise<s
       proxyUrl,
     }).then(
       (image) => {
+        if (!image) return null;
         const url = assetUrl(image.path);
         resolvedUrls.set(remoteUrl, url);
         return url;

@@ -1,7 +1,11 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { resetRemoteImageCache, useRemoteImage, useRemoteImageStatus } from "@/hooks/remoteImage.hook";
+import {
+  resetRemoteImageCache,
+  useRemoteImage,
+  useRemoteImageStatus,
+} from "@/hooks/remoteImage.hook";
 import { useSettingsStore } from "@/store/settings.store";
 
 const invokeMock = vi.fn();

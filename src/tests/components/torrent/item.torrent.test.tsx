@@ -43,6 +43,7 @@ function props(overrides: Partial<TorrentItemProps> = {}): TorrentItemProps {
     onSetSequential: () => {},
     onToggleExpand: () => {},
     onUpdateFiles: () => {},
+    queue: null,
     ...overrides,
   };
 }
@@ -65,5 +66,16 @@ describe("areTorrentItemsEqual", () => {
     expect(areTorrentItemsEqual(props({ filesError: "gone" }), props({ filesError: "gone" }))).toBe(
       true
     );
+  });
+
+  it("repaints on queue moves and ignores callback identity", () => {
+    const move = () => {};
+    const queued = props({ queue: { index: 0, total: 2, onMove: move } });
+    expect(
+      areTorrentItemsEqual(queued, props({ queue: { index: 1, total: 2, onMove: () => {} } }))
+    ).toBe(false);
+    expect(
+      areTorrentItemsEqual(queued, props({ queue: { index: 0, total: 2, onMove: () => {} } }))
+    ).toBe(true);
   });
 });

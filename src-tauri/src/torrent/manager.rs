@@ -22,9 +22,11 @@ use librqbit::{
 use serde::{Deserialize, Serialize};
 use std::net::{Ipv4Addr, Ipv6Addr};
 
+use super::geoip::country_code_for_addr;
 use super::helpers::{
-    ensure_minimum_free_space, is_safe_relative_path, share_ratio, to_rqbit_limits,
-    with_fallback_trackers, with_fallback_trackers_bytes,
+    build_magnet, canonical_or_raw_tracker, ensure_minimum_free_space, is_safe_relative_path,
+    share_ratio, to_rqbit_limits, validate_tracker_url, with_fallback_trackers,
+    with_fallback_trackers_bytes,
 };
 use super::types::{
     FilePriority, SessionConfig, TorrentCheckResult, TorrentDiagPeer, TorrentDiagnostics,
@@ -226,6 +228,21 @@ impl TorrentManager {
             .unwrap_or_default()
     }
 
+    /// Whether the session holds this torrent paused right now. A rewrite removes and
+    /// re-adds the torrent, which would otherwise silently resume it.
+    fn torrent_is_paused(&self, id: usize) -> bool {
+        self.session
+            .with_torrents(|iter| {
+                for (torrent_id, handle) in iter {
+                    if torrent_id == id {
+                        return Some(handle.is_paused());
+                    }
+                }
+                None
+            })
+            .unwrap_or(false)
+    }
+
     pub async fn set_torrent_limits(
         self: &Arc<Self>,
         id: usize,
@@ -261,17 +278,7 @@ impl TorrentManager {
                     .collect::<Vec<_>>()
             })
             .filter(|files: &Vec<usize>| !files.is_empty());
-        let was_paused = self
-            .session
-            .with_torrents(|iter| {
-                for (torrent_id, handle) in iter {
-                    if torrent_id == id {
-                        return Some(handle.is_paused());
-                    }
-                }
-                None
-            })
-            .unwrap_or(false);
+        let was_paused = self.torrent_is_paused(id);
 
         if limits == TorrentLimits::default() {
             self.torrent_limits.remove(&id);
@@ -301,6 +308,8 @@ impl TorrentManager {
                 Some(id),
                 Some(magnet.clone()),
                 to_rqbit_limits(limits),
+                true,
+                was_paused,
             )
             .await
             .map_err(|error| format!("unable to reconfigure torrent: {error:#}"));
@@ -321,6 +330,8 @@ impl TorrentManager {
                     Some(id),
                     None,
                     to_rqbit_limits(previous_limits),
+                    true,
+                    was_paused,
                 )
                 .await
             {
@@ -330,11 +341,6 @@ impl TorrentManager {
             }
         }
 
-        if result.is_ok() && was_paused {
-            self.pause_torrent(id, info_hash.clone())
-                .await
-                .map_err(|error| format!("torrent restored but could not pause it: {error:#}"))?;
-        }
         if result.is_ok() {
             if self.sequential_torrents.contains(&id) {
                 self.advance_sequential(id).await?;
@@ -441,6 +447,8 @@ impl TorrentManager {
             None,
             Some(magnet),
             LimitsConfig::default(),
+            true,
+            false,
         )
         .await
     }
@@ -461,6 +469,8 @@ impl TorrentManager {
             None,
             None,
             LimitsConfig::default(),
+            true,
+            false,
         )
         .await
     }
@@ -474,11 +484,13 @@ impl TorrentManager {
         preferred_id: Option<usize>,
         magnet: Option<String>,
         ratelimits: LimitsConfig,
+        inject_fallback: bool,
+        paused: bool,
     ) -> Result<usize> {
         ensure_minimum_free_space(Path::new(&save_dir))?;
 
         if let AddTorrent::Url(url) = &add_torrent {
-            if url.starts_with("magnet:") {
+            if url.starts_with("magnet:") && inject_fallback {
                 add_torrent = AddTorrent::Url(with_fallback_trackers(url).into());
             }
         }
@@ -501,6 +513,7 @@ impl TorrentManager {
             only_files: only_files.clone(),
             preferred_id,
             ratelimits,
+            paused,
             ..Default::default()
         };
         let response = match &add_torrent {
@@ -574,36 +587,15 @@ impl TorrentManager {
             })?
     }
 
-    pub async fn replace_torrent(
-        self: &Arc<Self>,
+    /// Re-applies the per-torrent state that a remove/re-add cycle drops, so the
+    /// rewrite stays invisible to the user.
+    fn save_torrent_state(
+        &self,
         id: usize,
-        magnet: String,
-        only_files: Option<Vec<usize>>,
-        expected_hash: Option<&str>,
-    ) -> Result<usize, String> {
-        self.verify_torrent(id, expected_hash)?;
-        let save_dir = self
-            .save_dirs
-            .get(&id)
-            .map(|r| r.clone())
-            .unwrap_or_default();
-        let limits = self.get_torrent_limits(id);
-        let sequential = self.sequential_torrents.contains(&id);
-        let priorities = self.file_priorities.get(&id).map(|r| r.clone());
-        self.remove_torrent(id, false, None)
-            .await
-            .map_err(|e| format!("{e:#}"))?;
-        let added = self
-            .add_torrent_inner(
-                AddTorrent::from_url(magnet.clone()),
-                save_dir,
-                only_files,
-                None,
-                Some(id),
-                Some(magnet),
-                to_rqbit_limits(limits),
-            )
-            .await;
+        limits: TorrentLimits,
+        sequential: bool,
+        priorities: Option<Vec<FilePriority>>,
+    ) {
         if limits != TorrentLimits::default() {
             self.torrent_limits.insert(id, limits);
         }
@@ -615,7 +607,92 @@ impl TorrentManager {
         }
         self.save_torrent_limits();
         self.save_preferences();
-        added.map_err(|e| format!("{e:#}"))
+    }
+
+    /// Removes and re-adds a torrent with new options. librqbit 9.0.1 exposes no live
+    /// API for trackers or per-torrent limits, so a rewrite is the only way to change
+    /// them.
+    ///
+    /// The torrent comes back paused when it was paused, and a failed add falls back
+    /// to the magnet it was originally added with: without that fallback, a failed
+    /// metadata resolve (last tracker removed, dead swarm) dropped the torrent from
+    /// the session for good.
+    pub async fn replace_torrent(
+        self: &Arc<Self>,
+        id: usize,
+        magnet: String,
+        only_files: Option<Vec<usize>>,
+        expected_hash: Option<&str>,
+        inject_fallback: bool,
+    ) -> Result<usize, String> {
+        self.verify_torrent(id, expected_hash)?;
+        let save_dir = self
+            .save_dirs
+            .get(&id)
+            .map(|r| r.clone())
+            .unwrap_or_default();
+        let limits = self.get_torrent_limits(id);
+        let sequential = self.sequential_torrents.contains(&id);
+        let priorities = self.file_priorities.get(&id).map(|r| r.clone());
+        let was_paused = self.torrent_is_paused(id);
+        let rollback_magnet = self
+            .magnet_links
+            .get(&id)
+            .map(|r| r.clone())
+            .unwrap_or_else(|| magnet.clone());
+        self.remove_torrent(id, false, None)
+            .await
+            .map_err(|e| format!("{e:#}"))?;
+        let added = self
+            .add_torrent_inner(
+                AddTorrent::from_url(magnet.clone()),
+                save_dir.clone(),
+                only_files.clone(),
+                None,
+                Some(id),
+                Some(magnet),
+                to_rqbit_limits(limits),
+                inject_fallback,
+                was_paused,
+            )
+            .await;
+        match added {
+            Ok(new_id) => {
+                // State follows the id the add actually landed on, not the requested one.
+                self.save_torrent_state(new_id, limits, sequential, priorities);
+                Ok(new_id)
+            }
+            Err(error) => {
+                let message = format!("{error:#}");
+                let rollback = self
+                    .add_torrent_inner(
+                        AddTorrent::from_url(rollback_magnet.clone()),
+                        save_dir,
+                        only_files,
+                        None,
+                        Some(id),
+                        Some(rollback_magnet),
+                        to_rqbit_limits(limits),
+                        true,
+                        was_paused,
+                    )
+                    .await;
+                self.save_torrent_state(
+                    rollback.as_ref().ok().copied().unwrap_or(id),
+                    limits,
+                    sequential,
+                    priorities,
+                );
+                match rollback {
+                    Ok(_) => Err(format!(
+                        "unable to rewrite the torrent, restored it as it was: {message}"
+                    )),
+                    Err(rollback_error) => Err(format!(
+                        "unable to rewrite the torrent ({message}) and restoring it failed too: {rollback_error:#}"
+                    )),
+                }
+            }
+        }
     }
 
     pub async fn redownload_file(
@@ -639,7 +716,13 @@ impl TorrentManager {
             .map(|r| r.clone())
             .unwrap_or_else(|| format!("magnet:?xt=urn:btih:{info_hash}"));
         let new_id = self
-            .replace_torrent(id, magnet, Some(vec![file_index]), Some(info_hash.as_str()))
+            .replace_torrent(
+                id,
+                magnet,
+                Some(vec![file_index]),
+                Some(info_hash.as_str()),
+                true,
+            )
             .await?;
         {
             let set: HashSet<usize> = selected_indices.into_iter().collect();
@@ -662,6 +745,94 @@ impl TorrentManager {
         }
 
         Ok(new_id)
+    }
+
+    /// The trackers the session is announcing to right now, normalized the same way
+    /// [`validate_tracker_url`] normalizes user input. Without that normalization the
+    /// two sides disagree on default ports and a tracker that is plainly visible in
+    /// the UI cannot be removed by its own string.
+    fn live_trackers(&self, id: usize) -> Result<Vec<String>, String> {
+        let found = self.session.with_torrents(|iter| {
+            for (tid, handle) in iter {
+                if tid != id {
+                    continue;
+                }
+                let mut trackers: Vec<String> = handle
+                    .shared()
+                    .trackers
+                    .iter()
+                    .map(|tracker| canonical_or_raw_tracker(tracker.as_ref()))
+                    .collect();
+                trackers.sort();
+                trackers.dedup();
+                return Some(trackers);
+            }
+            None
+        });
+        found.ok_or_else(|| "Torrent not found".to_string())
+    }
+
+    async fn apply_tracker_set(
+        self: &Arc<Self>,
+        id: usize,
+        info_hash: &str,
+        trackers: &[String],
+    ) -> Result<(), String> {
+        self.verify_torrent(id, Some(info_hash))?;
+        let name = self
+            .collect_torrents()
+            .into_iter()
+            .find(|torrent| torrent.id == id)
+            .map(|torrent| torrent.name);
+        let magnet = build_magnet(info_hash, trackers, name.as_deref())?;
+        let selected: Vec<usize> = self
+            .get_running_torrent_files(id)?
+            .iter()
+            .filter(|file| file.selected)
+            .map(|file| file.index)
+            .collect();
+        self.replace_torrent(id, magnet, Some(selected), Some(info_hash), false)
+            .await?;
+        // `only_files` seeds a pending selection that the next files fetch would
+        // rebuild the priorities from; `replace_torrent` already restored the real
+        // ones, so drop the leftover.
+        self.pending_selections.remove(&id);
+        Ok(())
+    }
+
+    pub async fn add_torrent_tracker(
+        self: &Arc<Self>,
+        id: usize,
+        tracker: String,
+        info_hash: String,
+    ) -> Result<(), String> {
+        self.verify_torrent(id, Some(info_hash.as_str()))?;
+        let canonical = validate_tracker_url(&tracker)?;
+        // `live_trackers` normalizes through the same parser, so these compare equal.
+        let mut trackers = self.live_trackers(id)?;
+        if trackers.iter().any(|existing| existing == &canonical) {
+            return Ok(());
+        }
+        trackers.push(canonical);
+        trackers.sort();
+        self.apply_tracker_set(id, &info_hash, &trackers).await
+    }
+
+    pub async fn remove_torrent_tracker(
+        self: &Arc<Self>,
+        id: usize,
+        tracker: String,
+        info_hash: String,
+    ) -> Result<(), String> {
+        self.verify_torrent(id, Some(info_hash.as_str()))?;
+        let canonical = validate_tracker_url(&tracker)?;
+        let mut trackers = self.live_trackers(id)?;
+        let before = trackers.len();
+        trackers.retain(|existing| existing != &canonical);
+        if trackers.len() == before {
+            return Err("Tracker not found on this torrent".to_string());
+        }
+        self.apply_tracker_set(id, &info_hash, &trackers).await
     }
 
     pub async fn get_torrent_info(
@@ -1416,9 +1587,11 @@ impl TorrentManager {
                             .peers
                             .into_iter()
                             .map(|(addr, stats)| TorrentDiagPeer {
+                                country: country_code_for_addr(&addr).map(ToString::to_string),
                                 addr,
                                 state: stats.state.to_string(),
                                 client_name: stats.client_name,
+                                conn_kind: stats.conn_kind.map(|kind| kind.to_string()),
                                 down_bytes: stats.counters.fetched_bytes,
                                 up_bytes: stats.counters.uploaded_bytes,
                                 errors: stats.counters.errors,

@@ -23,6 +23,7 @@ beforeEach(() => {
     folderTrees: [],
     lastSaveDir: "",
     seedPreferences: {},
+    torrentOrder: [],
   });
 });
 
@@ -49,6 +50,21 @@ describe("useCacheStore", () => {
     expect(s.episodeTracker[7]).toBe(12);
   });
 
+  describe("torrentOrder", () => {
+    it("appends unknown ids and drops missing ones", () => {
+      useCacheStore.setState({ torrentOrder: [5, 3, 9] });
+      useCacheStore.getState().syncTorrentOrder([3, 5, 7]);
+      expect(useCacheStore.getState().torrentOrder).toEqual([5, 3, 7]);
+    });
+
+    it("swaps an item with its neighbor", () => {
+      useCacheStore.setState({ torrentOrder: [1, 2, 3] });
+      useCacheStore.getState().moveTorrentOrder(2, 1);
+      expect(useCacheStore.getState().torrentOrder).toEqual([2, 1, 3]);
+      useCacheStore.getState().moveTorrentOrder(2, 9);
+      expect(useCacheStore.getState().torrentOrder).toEqual([2, 1, 3]);
+    });
+  });
 
   describe("migration", () => {
     it("passes persisted state through for any version", () => {

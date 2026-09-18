@@ -5,7 +5,7 @@ import { useI18n } from "@/lib/locale/i18n.utils";
 import { areTorrentItemsEqual } from "@/lib/torrent/item.utils";
 import type { TorrentItemProps as Props } from "@/types/torrent";
 
-import { TorrentDiagnosticsSection } from "./sections/diagnostics.sections";
+import { TorrentPeersModal } from "./peers.torrent";
 import { TorrentError } from "./sections/error.sections";
 import { TorrentFiles } from "./sections/files.sections";
 import { TorrentHeader } from "./sections/header.sections";
@@ -17,6 +17,7 @@ function TorrentItem({
   filesError,
   isExpanded,
   busy,
+  queue,
   onToggleExpand,
   onPause,
   onResume,
@@ -30,6 +31,7 @@ function TorrentItem({
   onRecheck,
 }: Props) {
   const [pendingDelete, setPendingDelete] = useState(false);
+  const [showPeers, setShowPeers] = useState(false);
   const isPaused = item.state === "paused";
   const isLive = item.state === "live";
   const { t } = useI18n();
@@ -40,12 +42,13 @@ function TorrentItem({
         isLive={isLive}
         isPaused={isPaused}
         busy={busy}
+        queue={queue}
         onPause={onPause}
         onResume={onResume}
         onSeedChange={onSeedChange}
         onSetSequential={onSetSequential}
         onRecheck={onRecheck}
-        onToggleExpand={onToggleExpand}
+        onPeers={() => setShowPeers(true)}
         onDelete={() => setPendingDelete(true)}
       />
       <TorrentProgress item={item} />
@@ -65,8 +68,13 @@ function TorrentItem({
         </span>
       )}
       {item.error && <TorrentError error={item.error} onRetry={onRetry} />}
-      {isExpanded && (item.error || isLive) && (
-        <TorrentDiagnosticsSection id={item.id} infoHash={item.info_hash} enabled={isExpanded} />
+      {showPeers && (
+        <TorrentPeersModal
+          id={item.id}
+          infoHash={item.info_hash}
+          open
+          onClose={() => setShowPeers(false)}
+        />
       )}
       {pendingDelete && (
         <ConfirmDialog

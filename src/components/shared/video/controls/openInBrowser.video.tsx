@@ -11,9 +11,7 @@ export function OpenInBrowserButton({ youtubeId }: { youtubeId: string }) {
   const { t } = useI18n();
   const onClick = () => {
     (async () => {
-      const [, error] = await attempt(
-        openUrl(`https://www.youtube.com/watch?v=${youtubeId}`)
-      );
+      const [, error] = await attempt(openUrl(`https://www.youtube.com/watch?v=${youtubeId}`));
       if (error) showError(t("common.error"), error.message);
     })();
   };

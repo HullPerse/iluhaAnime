@@ -63,7 +63,6 @@ const player = {
   "player.preset.retro": "Ретро (DVD)",
   "player.queue.clear.all": "Очистить очередь",
   "player.queue.clear.done": "Удалить завершённые",
-  "player.queue.convert.short": "конв:{{count}}",
   "player.queue.pause": "Пауза",
   "player.queue.paused": "Пауза",
   "player.queue.resume": "Продолжить",

@@ -109,8 +109,10 @@ export interface TorrentCheckResult {
 
 export interface TorrentDiagPeer {
   addr: string;
+  country: string | null;
   state: string;
   client_name: string | null;
+  conn_kind: string | null;
   down_bytes: number;
   up_bytes: number;
   errors: number;
@@ -245,6 +247,7 @@ export interface TorrentItemProps {
   filesError?: string;
   isExpanded: boolean;
   busy: boolean;
+  queue: { index: number; total: number; onMove: (delta: -1 | 1) => void } | null;
   onToggleExpand: () => void;
   onPause: () => void;
   onResume: () => void;

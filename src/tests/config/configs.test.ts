@@ -1,7 +1,3 @@
-import cargoToml from "../../../src-tauri/Cargo.toml?raw";
-import tauriConf from "../../../src-tauri/tauri.conf.json";
-import packageJson from "../../../package.json";
-
 import { describe, expect, it } from "vitest";
 
 import {
@@ -35,6 +31,10 @@ import {
   DITHER_VIOLET_RAMP_PALETTE,
   resolveDitherPreset,
 } from "@/config/utils/dither.config";
+
+import packageJson from "../../../package.json";
+import cargoToml from "../../../src-tauri/Cargo.toml?raw";
+import tauriConf from "../../../src-tauri/tauri.conf.json";
 
 const ALL_TABS = {
   collectionTabEnabled: true,

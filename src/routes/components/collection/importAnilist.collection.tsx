@@ -263,8 +263,8 @@ export default function ImportAnilistCollection({
     if (s.rating !== item.rating)
       parts.push(
         t("collection.import.anilist.change.rating", {
-          from: item.rating ?? "—",
-          to: s.rating ?? "—",
+          from: item.rating ?? "-",
+          to: s.rating ?? "-",
         })
       );
     return parts.join(" · ");

@@ -9,6 +9,7 @@ import type { UpscaleQueueItem } from "@/types/upscale";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: vi.fn(),
+  convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
 }));
 
 function failedItem(): UpscaleQueueItem {

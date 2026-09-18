@@ -79,9 +79,12 @@ const search = {
   "search.results.count": "{{count}} results",
   "search.results.count.one": "{{count}} result",
   "search.retry": "Retry",
+  "search.rutracker.browser.tab": "Built-in browser",
   "search.rutracker.cookies.tab": "Paste cookies",
   "search.rutracker.err.blocked":
     'Rutracker blocked the app (anti-bot). Use "Paste cookies" or a system-wide VPN.',
+  "search.rutracker.err.cookies.invalid":
+    "Cookies are invalid or expired. Sign in in the browser and copy the new ones.",
   "search.rutracker.err.cookies.parse": "Could not parse the pasted cookies.",
   "search.rutracker.err.login.failed": "Login failed (unexpected server response).",
   "search.rutracker.err.network": "Cannot connect to rutracker. Cover the whole system with VPN.",

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -22,6 +22,7 @@ const listenMock = vi.fn();
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (...args: unknown[]) => invokeMock(...args),
+  convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
 }));
 
 vi.mock("@tauri-apps/api/event", () => ({
@@ -99,6 +100,55 @@ describe("useTorrents", () => {
     expect(errors.length).toBe(1);
     first.unmount();
     second.unmount();
+  });
+
+  it("keeps delivering events after the first subscriber unmounts", async () => {
+    invokeMock.mockImplementation((cmd: string) => {
+      if (cmd === "list_torrents") return Promise.resolve([torrent(1)]);
+      return Promise.resolve(undefined);
+    });
+    const { Wrapper, client } = wrapper();
+    const first = renderHook(() => useTorrents(), { wrapper: Wrapper });
+    await waitFor(() => expect(first.result.current.isSuccess).toBe(true));
+    const second = renderHook(() => useTorrents(), { wrapper: Wrapper });
+    await waitFor(() => expect(second.result.current.isSuccess).toBe(true));
+    first.unmount();
+    const handler = listenMock.mock.calls[0]?.[1] as (event: { payload: TorrentInfo[] }) => void;
+    handler({ payload: [torrent(1), torrent(2)] });
+    expect(client.getQueryData<TorrentInfo[]>(TORRENTS_QUERY_KEY)?.map((t) => t.id)).toEqual([
+      1, 2,
+    ]);
+    second.unmount();
+  });
+
+  it("refetches when push events go silent", async () => {
+    vi.useFakeTimers();
+    try {
+      vi.spyOn(document, "hidden", "get").mockReturnValue(false);
+      let listCalls = 0;
+      invokeMock.mockImplementation((cmd: string) => {
+        if (cmd === "list_torrents") {
+          listCalls++;
+          return Promise.resolve([torrent(1)]);
+        }
+        return Promise.resolve(undefined);
+      });
+      const { Wrapper } = wrapper();
+      const { unmount } = renderHook(() => useTorrents(), { wrapper: Wrapper });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0);
+      });
+      expect(listCalls).toBe(1);
+      const handler = listenMock.mock.calls[0]?.[1] as (event: { payload: TorrentInfo[] }) => void;
+      await act(async () => {
+        handler({ payload: [torrent(1)] });
+        await vi.advanceTimersByTimeAsync(36_000);
+      });
+      expect(listCalls).toBe(2);
+      unmount();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

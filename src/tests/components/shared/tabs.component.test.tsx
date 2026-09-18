@@ -11,6 +11,7 @@ const mockInvoke = vi.fn((..._args: unknown[]) => Promise.resolve([] as unknown[
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (...args: unknown[]) => mockInvoke(...args),
+  convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
 }));
 
 const TABS = [

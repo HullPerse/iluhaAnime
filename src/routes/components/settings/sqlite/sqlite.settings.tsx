@@ -323,9 +323,7 @@ export default function SqliteSettings() {
       setError(stringifyError.message);
       return;
     }
-    const [, writeError] = await attempt(
-      invokeTyped("write_sqlite_export", { path, content })
-    );
+    const [, writeError] = await attempt(invokeTyped("write_sqlite_export", { path, content }));
     if (writeError) setError(writeError.message);
     else setError(null);
   };

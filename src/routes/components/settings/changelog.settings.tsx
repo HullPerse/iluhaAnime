@@ -1,3 +1,4 @@
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { useState } from "react";
 
 import { CHANGELOG } from "@/config/settings/changelog.config";
@@ -11,6 +12,7 @@ export function SettingsChangelog() {
   const [open, setOpen] = useState<Record<string, boolean>>(() =>
     latest ? { [latest.version]: true } : {}
   );
+
   return (
     <div className="flex flex-col gap-1">
       {CHANGELOG.map((entry) => {
@@ -23,7 +25,8 @@ export function SettingsChangelog() {
               onClick={() => setOpen((state) => ({ ...state, [entry.version]: !expanded }))}
               className="windows95-text flex cursor-pointer items-center gap-1 border-0 bg-transparent p-0 px-1 text-left text-xs font-bold"
             >
-              {expanded ? "▼" : "▶"} <span>{entry.version}</span>
+              {expanded ? <ChevronDown className="size-4" /> : <ChevronUp className="size-4" />}
+              <span>{entry.version}</span>
             </button>
             {expanded ? (
               <div className="flex flex-col gap-1 pt-1">

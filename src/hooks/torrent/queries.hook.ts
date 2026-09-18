@@ -6,8 +6,10 @@ import { useEffect, useMemo } from "react";
 
 import {
   TorrentListen,
+  TORRENT_WATCHDOG_MS,
   findJustFinished,
   findNewErrors,
+  shouldHealTorrentChannel,
   torrentErrorText,
 } from "@/lib/torrent/common.utils";
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
@@ -30,8 +32,12 @@ let primedSeedPause = false;
 let subscriptionOwners = 0;
 let sharedUnlisten: (() => void) | undefined;
 let listenPending = false;
+let lastTorrentEventAt = 0;
+let lastTorrentHealAt = 0;
+let torrentWatchStartedAt = 0;
 
 function applyTorrentEvent(queryClient: QueryClient, event: Event<TorrentInfo[]>): void {
+  lastTorrentEventAt = Date.now();
   const store = useTorrentStore.getState();
   const prev = queryClient.getQueryData<TorrentInfo[]>(TORRENTS_QUERY_KEY) ?? [];
   const patch = TorrentListen({ torrents: prev, lastActiveAt: store.lastActiveAt }, event);
@@ -49,25 +55,27 @@ function applyTorrentEvent(queryClient: QueryClient, event: Event<TorrentInfo[]>
   }
 }
 
+function startTorrentSubscription(queryClient: QueryClient): void {
+  if (sharedUnlisten || listenPending) return;
+  listenPending = true;
+  (async () => {
+    const [unlisten, error] = await attempt(
+      listen<TorrentInfo[]>("torrents-update", (event) => {
+        if (subscriptionOwners > 0) applyTorrentEvent(queryClient, event);
+      })
+    );
+    listenPending = false;
+    if (error || !unlisten) return;
+    if (subscriptionOwners <= 0) unlisten();
+    else sharedUnlisten = unlisten;
+  })();
+}
+
 function ensureTorrentSubscription(queryClient: QueryClient): () => void {
   subscriptionOwners += 1;
-  let cancelled = false;
-  if (!sharedUnlisten && !listenPending) {
-    listenPending = true;
-    (async () => {
-      const [unlisten, error] = await attempt(
-        listen<TorrentInfo[]>("torrents-update", (event) => {
-          if (!cancelled && subscriptionOwners > 0) applyTorrentEvent(queryClient, event);
-        })
-      );
-      listenPending = false;
-      if (error || !unlisten) return;
-      if (cancelled || subscriptionOwners <= 0) unlisten();
-      else sharedUnlisten = unlisten;
-    })();
-  }
+  if (torrentWatchStartedAt === 0) torrentWatchStartedAt = Date.now();
+  startTorrentSubscription(queryClient);
   return () => {
-    cancelled = true;
     subscriptionOwners -= 1;
     if (subscriptionOwners <= 0) {
       subscriptionOwners = 0;
@@ -107,6 +115,29 @@ export function useTorrents(enabled = true) {
   useEffect(() => {
     if (!enabled) return;
     return ensureTorrentSubscription(queryClient);
+  }, [enabled, queryClient]);
+  useEffect(() => {
+    if (!enabled) return;
+    const timer = window.setInterval(() => {
+      // A listener can die silently (system sleep, a wedged event loop), and a failed
+      // registration is never retried otherwise: re-arm it even while hidden, which
+      // costs nothing.
+      if (subscriptionOwners > 0) startTorrentSubscription(queryClient);
+      if (document.hidden) return;
+      const now = Date.now();
+      const heal = shouldHealTorrentChannel(
+        {
+          lastEventAt: lastTorrentEventAt,
+          watchStartedAt: torrentWatchStartedAt,
+          lastHealAt: lastTorrentHealAt,
+        },
+        now
+      );
+      if (!heal) return;
+      lastTorrentHealAt = now;
+      queryClient.invalidateQueries({ queryKey: TORRENTS_QUERY_KEY });
+    }, TORRENT_WATCHDOG_MS);
+    return () => window.clearInterval(timer);
   }, [enabled, queryClient]);
   return query;
 }
@@ -375,6 +406,50 @@ export function useRecheckTorrent() {
       }
       queryClient.invalidateQueries({ queryKey: torrentFilesKey(vars.id) });
       return result;
+    },
+  });
+}
+
+export function useAddTorrentTracker() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (vars: { id: number; tracker: string; infoHash: string }) => {
+      const [, error] = await attempt(
+        invokeTyped("add_torrent_tracker", {
+          id: vars.id,
+          tracker: vars.tracker,
+          info_hash: vars.infoHash,
+        })
+      );
+      if (error) {
+        showError(tr("download.error.tracker.add"), torrentErrorText(error.message, tr));
+        return false;
+      }
+      queryClient.invalidateQueries({ queryKey: ["torrent_diagnostics", vars.id] });
+      queryClient.invalidateQueries({ queryKey: TORRENTS_QUERY_KEY });
+      return true;
+    },
+  });
+}
+
+export function useRemoveTorrentTracker() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (vars: { id: number; tracker: string; infoHash: string }) => {
+      const [, error] = await attempt(
+        invokeTyped("remove_torrent_tracker", {
+          id: vars.id,
+          tracker: vars.tracker,
+          info_hash: vars.infoHash,
+        })
+      );
+      if (error) {
+        showError(tr("download.error.tracker.remove"), torrentErrorText(error.message, tr));
+        return false;
+      }
+      queryClient.invalidateQueries({ queryKey: ["torrent_diagnostics", vars.id] });
+      queryClient.invalidateQueries({ queryKey: TORRENTS_QUERY_KEY });
+      return true;
     },
   });
 }

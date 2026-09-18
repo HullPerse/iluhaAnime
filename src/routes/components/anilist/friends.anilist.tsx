@@ -79,7 +79,7 @@ export default function AniListFriendsModal({
     setLoading(false);
   };
 
-  const selected = selectedId == null ? null : profiles[selectedId];
+  const selected = selectedId && profiles[selectedId];
 
   return (
     <Modal header={t("anilist.friends.title")} onClose={onClose} className="w-4xl max-w-[92vw]">

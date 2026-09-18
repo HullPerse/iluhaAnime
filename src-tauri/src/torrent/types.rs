@@ -28,6 +28,9 @@ pub struct TorrentDiagPeer {
     pub addr: String,
     pub state: String,
     pub client_name: Option<String>,
+    pub conn_kind: Option<String>,
+    /// ISO 3166-1 alpha-2, `None` for private and unknown addresses.
+    pub country: Option<String>,
     pub down_bytes: u64,
     pub up_bytes: u64,
     pub errors: u32,

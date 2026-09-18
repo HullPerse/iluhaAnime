@@ -8,6 +8,7 @@ import changelog405 from "./changelog/v4_0_5.en";
 import changelog406 from "./changelog/v4_0_6.en";
 import changelog407 from "./changelog/v4_0_7.en";
 import changelog408 from "./changelog/v4_0_8.en";
+import changelog409 from "./changelog/v4_0_9.en";
 import anilist from "./en/anilist.locale";
 import collection from "./en/collection.locale";
 import common from "./en/common.locale";
@@ -19,6 +20,7 @@ import updater from "./en/updater.locale";
 
 const en = {
   ...anilist,
+  ...changelog409,
   ...changelog408,
   ...changelog407,
   ...changelog406,

@@ -16,6 +16,7 @@ vi.mock("@tauri-apps/api/core", async (importOriginal) => {
   return {
     ...actual,
     invoke: (...args: unknown[]) => mockInvoke(...args),
+    convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
   };
 });
 

@@ -7,6 +7,7 @@ import type { AniMedia } from "@/types/anilist";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: vi.fn(),
+  convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
 }));
 
 vi.mock("date-fns", () => ({

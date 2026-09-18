@@ -4,6 +4,29 @@ import type { TFunc, TranslationKey } from "@/types/i18n";
 import type { TorrentDisplayState, TorrentLifecycle, TorrentInfo } from "@/types/torrent";
 
 export const STALL_AFTER_MS = 30_000;
+export const TORRENT_EVENT_STALE_MS = 35_000;
+export const TORRENT_WATCHDOG_MS = 5_000;
+
+/** Raw staleness predicate: has nothing been delivered for a full stale window? */
+export function shouldHealTorrentPoll(lastEventAtMs: number, nowMs: number): boolean {
+  if (lastEventAtMs <= 0) return false;
+  return nowMs - lastEventAtMs >= TORRENT_EVENT_STALE_MS;
+}
+
+/**
+ * Whether the push channel looks dead and the list should be refetched. `lastEventAt`
+ * stays `0` until the very first push arrives, so the caller passes when it started
+ * watching and when it last healed as extra references: a subscription that never
+ * delivers anything still has to heal.
+ */
+export function shouldHealTorrentChannel(
+  state: { lastEventAt: number; watchStartedAt: number; lastHealAt: number },
+  nowMs: number
+): boolean {
+  const lastContact = Math.max(state.lastEventAt, state.watchStartedAt, state.lastHealAt);
+  if (lastContact <= 0) return false;
+  return shouldHealTorrentPoll(lastContact, nowMs);
+}
 
 export function getDisplayState(
   item: TorrentInfo,

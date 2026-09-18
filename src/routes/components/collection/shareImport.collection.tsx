@@ -177,8 +177,7 @@ export function ShareImportCollection({
         await queryClient.invalidateQueries({ queryKey: [COLLECTION_QUERY_KEY] });
       })()
     );
-    if (error)
-      useNotificationStore.getState().add(t("app.collection"), "error", error.message);
+    if (error) useNotificationStore.getState().add(t("app.collection"), "error", error.message);
     setImporting(false);
   };
 
@@ -353,9 +352,7 @@ function ShareImportRow({
           <div className="bg-surface windows95-border h-10 w-8 shrink-0" aria-hidden />
         )}
         <div className="flex min-w-0 flex-1 flex-col">
-          <span className="windows95-text truncate text-xs font-bold">
-            {row.snapshot.title}
-          </span>
+          <span className="windows95-text truncate text-xs font-bold">{row.snapshot.title}</span>
           <span className="text-hint windows95-font truncate text-xs">
             {row.snapshot.year ?? ""}
           </span>

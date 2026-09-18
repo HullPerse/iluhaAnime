@@ -290,7 +290,8 @@ pub async fn list_sqlite_databases(
     tokio::task::spawn_blocking(move || {
         let mut result = Vec::new();
         for id in ["franchise", "user_assets", "app_data"] {
-            let (label, file_name) = sqlite_database_spec(id).expect("known database");
+            let (label, file_name) =
+                sqlite_database_spec(id).ok_or_else(|| "Unknown SQLite database".to_string())?;
             let path = sqlite_database_path(&app_handle, id)?;
             let metadata = std::fs::metadata(&path).ok();
             let tables = if metadata.is_some() {

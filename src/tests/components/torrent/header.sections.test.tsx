@@ -34,28 +34,114 @@ beforeEach(() => {
   useSettingsStore.setState({ language: "en" });
 });
 
-describe("TorrentHeader throttle toggle", () => {
-  it("expands the card to the limits editor", async () => {
-    const user = userEvent.setup();
-    const onToggleExpand = vi.fn();
-    render(
+describe("TorrentHeader actions", () => {
+  function header() {
+    return (
       <TorrentHeader
         item={info()}
         isLive
         isPaused={false}
         busy={false}
+        queue={null}
         onPause={() => {}}
         onResume={() => {}}
         onSeedChange={() => {}}
         onSetSequential={() => {}}
         onRecheck={() => {}}
         onDelete={() => {}}
-        onToggleExpand={onToggleExpand}
+        onPeers={() => {}}
       />
     );
+  }
 
-    await user.click(screen.getByTitle("Limits KB/s:"));
+  it("has no expand control; expansion lives in the files row", () => {
+    render(header());
+    expect(screen.queryByTitle("Limits KB/s:")).toBeNull();
+    expect(screen.getByTitle("Pause download")).toBeTruthy();
+  });
 
-    expect(onToggleExpand).toHaveBeenCalledTimes(1);
+  it("asks for delete confirmation through onDelete", async () => {
+    const user = userEvent.setup();
+    const onDelete = vi.fn();
+    render(
+      <TorrentHeader
+        item={info()}
+        isLive
+        isPaused={false}
+        busy={false}
+        queue={null}
+        onPause={() => {}}
+        onResume={() => {}}
+        onSeedChange={() => {}}
+        onSetSequential={() => {}}
+        onRecheck={() => {}}
+        onPeers={() => {}}
+        onDelete={onDelete}
+      />
+    );
+    await user.click(screen.getByTitle("Delete torrent"));
+    expect(onDelete).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("TorrentHeader queue controls", () => {
+  function header(queue: { index: number; total: number }, onMove: (delta: -1 | 1) => void) {
+    return (
+      <TorrentHeader
+        item={info()}
+        isLive
+        isPaused={false}
+        busy={false}
+        queue={{ ...queue, onMove }}
+        onPause={() => {}}
+        onResume={() => {}}
+        onSeedChange={() => {}}
+        onSetSequential={() => {}}
+        onRecheck={() => {}}
+        onDelete={() => {}}
+        onPeers={() => {}}
+      />
+    );
+  }
+
+  it("moves up and down through the queue", async () => {
+    const user = userEvent.setup();
+    const onMove = vi.fn();
+    render(header({ index: 1, total: 3 }, onMove));
+
+    await user.click(screen.getByTitle("Move up"));
+    await user.click(screen.getByTitle("Move down"));
+
+    expect(onMove).toHaveBeenNthCalledWith(1, -1);
+    expect(onMove).toHaveBeenNthCalledWith(2, 1);
+  });
+
+  it("disables the edges", () => {
+    const { unmount } = render(header({ index: 0, total: 2 }, () => {}));
+    expect((screen.getByTitle("Move up") as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByTitle("Move down") as HTMLButtonElement).disabled).toBe(false);
+    unmount();
+    render(header({ index: 1, total: 2 }, () => {}));
+    expect((screen.getByTitle("Move down") as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("hides queue buttons without a queue", () => {
+    render(
+      <TorrentHeader
+        item={info()}
+        isLive
+        isPaused={false}
+        busy={false}
+        queue={null}
+        onPause={() => {}}
+        onResume={() => {}}
+        onSeedChange={() => {}}
+        onSetSequential={() => {}}
+        onRecheck={() => {}}
+        onDelete={() => {}}
+        onPeers={() => {}}
+      />
+    );
+    expect(screen.queryByTitle("Move up")).toBeNull();
   });
 });

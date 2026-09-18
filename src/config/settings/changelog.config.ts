@@ -14,6 +14,29 @@ function entry(key: TranslationKey, scope: ChangelogScope): ChangelogEntry {
 
 export const CHANGELOG: ChangelogVersion[] = [
   {
+    version: "4.0.9",
+    added: [
+      entry("changelog.4_0_9.added.peers_modal", "torrents"),
+      entry("changelog.4_0_9.added.peer_table", "torrents"),
+      entry("changelog.4_0_9.added.peer_flags", "torrents"),
+      entry("changelog.4_0_9.added.trackers_edit", "torrents"),
+      entry("changelog.4_0_9.added.copy_app_link", "torrents"),
+      entry("changelog.4_0_9.added.queue_order", "torrents"),
+    ],
+    changed: [
+      entry("changelog.4_0_9.changed.engine", "torrents"),
+      entry("changelog.4_0_9.changed.limits_button", "torrents"),
+      entry("changelog.4_0_9.changed.parse_cache", "player"),
+    ],
+    fixed: [
+      entry("changelog.4_0_9.fixed.tracker_rewrite", "torrents"),
+      entry("changelog.4_0_9.fixed.list_refresh", "torrents"),
+      entry("changelog.4_0_9.fixed.sequential_toggle", "torrents"),
+      entry("changelog.4_0_9.fixed.queue_move", "torrents"),
+      entry("changelog.4_0_9.fixed.cover_fallback", "collection"),
+    ],
+  },
+  {
     version: "4.0.8",
     added: [],
     changed: [],

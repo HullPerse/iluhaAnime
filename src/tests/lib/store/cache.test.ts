@@ -6,6 +6,7 @@ const { invokeMock } = vi.hoisted(() => ({
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: invokeMock,
+  convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
 }));
 
 import { deleteAppCache, readAppCache, writeAppCache } from "@/lib/store/cache.utils";

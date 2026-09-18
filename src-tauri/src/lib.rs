@@ -7,6 +7,7 @@
     clippy::large_stack_frames
 )]
 
+use futures::FutureExt;
 use std::collections::{HashMap, HashSet};
 use std::num::NonZeroU32;
 use std::sync::Arc;
@@ -59,6 +60,154 @@ impl Default for NotificationConfig {
             on_complete: true,
             on_error: true,
         }
+    }
+}
+
+/// Everything the torrent list renders directly. Pushes are throttled to "changed or
+/// heartbeat", so a new user-visible field must be added here as well, otherwise the
+/// UI keeps showing a stale value for up to `TORRENT_HEARTBEAT_TICKS` seconds.
+#[derive(PartialEq)]
+struct TorrentUpdateSignature {
+    id: usize,
+    state: String,
+    progress_bytes: u64,
+    download_speed_bits: u64,
+    upload_speed_bits: u64,
+    peers_connected: usize,
+    finished: bool,
+    error: Option<String>,
+    total_bytes: u64,
+    uploaded_bytes: u64,
+    sequential_download: bool,
+}
+
+const TORRENT_HEARTBEAT_TICKS: u32 = 30;
+
+#[derive(Default)]
+struct TorrentTickState {
+    prev_states: HashMap<usize, (bool, Option<String>)>,
+    notified_errors: HashMap<usize, String>,
+    cleanup_counter: u32,
+    ticks_since_emit: u32,
+    first_run: bool,
+    last_emitted: Vec<TorrentUpdateSignature>,
+}
+
+async fn run_torrent_update_tick(
+    app: &tauri::AppHandle,
+    manager: &Arc<TorrentManager>,
+    state: &mut TorrentTickState,
+) {
+    let torrents = manager.collect_torrents();
+    let signature: Vec<TorrentUpdateSignature> = torrents
+        .iter()
+        .map(|t| TorrentUpdateSignature {
+            id: t.id,
+            state: t.state.clone(),
+            progress_bytes: t.progress_bytes,
+            download_speed_bits: t.download_speed.to_bits(),
+            upload_speed_bits: t.upload_speed.to_bits(),
+            peers_connected: t.peers_connected,
+            finished: t.finished,
+            error: t.error.clone(),
+            total_bytes: t.total_bytes,
+            uploaded_bytes: t.uploaded_bytes,
+            sequential_download: t.sequential_download,
+        })
+        .collect();
+    if state.first_run
+        || state.ticks_since_emit >= TORRENT_HEARTBEAT_TICKS
+        || signature != state.last_emitted
+    {
+        let _ = app.emit("torrents-update", &torrents);
+        state.last_emitted = signature;
+        state.ticks_since_emit = 0;
+    } else {
+        state.ticks_since_emit += 1;
+    }
+
+    if state.first_run {
+        for t in &torrents {
+            state
+                .prev_states
+                .insert(t.id, (t.finished, t.error.clone()));
+        }
+        state.first_run = false;
+    } else {
+        let cfg_state = app.state::<std::sync::Mutex<NotificationConfig>>();
+        let cfg = cfg_state
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+
+        for t in &torrents {
+            let prev = state.prev_states.get(&t.id);
+            let prev_finished = prev.is_some_and(|(f, _)| *f);
+
+            if cfg.enabled {
+                if cfg.on_complete && t.finished && !prev_finished && t.total_bytes > 0 {
+                    let _ = app.emit(
+                        "show-notification",
+                        serde_json::json!({
+                            "titleKey": "torrent.notify.complete.title",
+                            "body": &t.name,
+                            "type": "success",
+                            "eventKey": format!(
+                                "torrent-complete:{}:{}",
+                                t.id, t.info_hash
+                            ),
+                        }),
+                    );
+                }
+
+                if cfg.on_error {
+                    if let Some(error) = t.error.as_deref() {
+                        let already_notified = state
+                            .notified_errors
+                            .get(&t.id)
+                            .is_some_and(|last| last == error);
+                        if !already_notified {
+                            let msg = format!("{}: {}", t.name, error);
+                            let _ = app.emit(
+                                "show-notification",
+                                serde_json::json!({
+                                    "titleKey": "torrent.notify.error.title",
+                                    "body": &msg,
+                                    "type": "error",
+                                }),
+                            );
+                            state.notified_errors.insert(t.id, error.to_string());
+                        }
+                    }
+                }
+            }
+
+            state
+                .prev_states
+                .insert(t.id, (t.finished, t.error.clone()));
+        }
+    }
+
+    let current_ids: HashSet<usize> = torrents.iter().map(|t| t.id).collect();
+    state.prev_states.retain(|id, _| current_ids.contains(id));
+    state
+        .notified_errors
+        .retain(|id, _| current_ids.contains(id));
+
+    {
+        let ids: Vec<usize> = manager
+            .sequential_torrents
+            .iter()
+            .map(|r| *r.key())
+            .collect();
+        for &sid in &ids {
+            let _ = manager.advance_sequential(sid).await;
+        }
+    }
+
+    state.cleanup_counter += 1;
+    if state.cleanup_counter >= 30 {
+        state.cleanup_counter = 0;
+        manager.cleanup_unselected_files();
     }
 }
 
@@ -558,6 +707,32 @@ async fn set_torrent_limits(
 }
 
 #[tauri::command]
+async fn add_torrent_tracker(
+    id: usize,
+    tracker: String,
+    info_hash: String,
+    manager: tauri::State<'_, TorrentBackend>,
+) -> Result<(), String> {
+    backend_manager(&manager)
+        .await?
+        .add_torrent_tracker(id, tracker, info_hash)
+        .await
+}
+
+#[tauri::command]
+async fn remove_torrent_tracker(
+    id: usize,
+    tracker: String,
+    info_hash: String,
+    manager: tauri::State<'_, TorrentBackend>,
+) -> Result<(), String> {
+    backend_manager(&manager)
+        .await?
+        .remove_torrent_tracker(id, tracker, info_hash)
+        .await
+}
+
+#[tauri::command]
 async fn get_torrent_limits(
     id: usize,
     manager: tauri::State<'_, TorrentBackend>,
@@ -671,8 +846,8 @@ impl Default for WindowChrome {
 #[cfg(windows)]
 fn apply_window_corner_preference(window: &tauri::WebviewWindow, rounded: bool) {
     use windows::Win32::Graphics::Dwm::{
-        DwmSetWindowAttribute, DWMWA_WINDOW_CORNER_PREFERENCE, DWM_WINDOW_CORNER_PREFERENCE,
-        DWMWCP_DEFAULT, DWMWCP_DONOTROUND,
+        DwmSetWindowAttribute, DWMWA_WINDOW_CORNER_PREFERENCE, DWMWCP_DEFAULT, DWMWCP_DONOTROUND,
+        DWM_WINDOW_CORNER_PREFERENCE,
     };
 
     let Ok(hwnd) = window.hwnd() else {
@@ -866,95 +1041,19 @@ pub fn run() {
                 handle.state::<TorrentBackend>().cell.set(Ok(manager)).ok();
                 handle.state::<TorrentBackend>().notify.notify_one();
                 tokio::spawn(async move {
-                    let mut prev_states: HashMap<usize, (bool, Option<String>)> = HashMap::new();
-                    let mut notified_errors: HashMap<usize, String> = HashMap::new();
-                    let mut cleanup_counter: u32 = 0;
-                    let mut first_run = true;
+                    let mut tick_state = TorrentTickState {
+                        first_run: true,
+                        ..Default::default()
+                    };
                     loop {
                         tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
-                        let torrents = mgr_clone.collect_torrents();
-                        let _ = app_clone.emit("torrents-update", &torrents);
-
-                        if first_run {
-                            for t in &torrents {
-                                prev_states.insert(t.id, (t.finished, t.error.clone()));
-                            }
-                            first_run = false;
-                        } else {
-                            let cfg_state =
-                                app_clone.state::<std::sync::Mutex<NotificationConfig>>();
-                            let cfg = cfg_state
-                                .lock()
-                                .unwrap_or_else(std::sync::PoisonError::into_inner);
-
-                            for t in &torrents {
-                                let prev = prev_states.get(&t.id);
-                                let prev_finished = prev.is_some_and(|(f, _)| *f);
-
-                                if cfg.enabled {
-                                    if cfg.on_complete
-                                        && t.finished
-                                        && !prev_finished
-                                        && t.total_bytes > 0
-                                    {
-                                        let _ = app_clone.emit(
-                                            "show-notification",
-                                            serde_json::json!({
-                                                "titleKey": "torrent.notify.complete.title",
-                                                "body": &t.name,
-                                                "type": "success",
-                                                "eventKey": format!(
-                                                    "torrent-complete:{}:{}",
-                                                    t.id, t.info_hash
-                                                ),
-                                            }),
-                                        );
-                                    }
-
-                                    if cfg.on_error {
-                                        if let Some(error) = t.error.as_deref() {
-                                            let already_notified = notified_errors
-                                                .get(&t.id)
-                                                .is_some_and(|last| last == error);
-                                            if !already_notified {
-                                                let msg = format!("{}: {}", t.name, error);
-                                                let _ = app_clone.emit(
-                                                    "show-notification",
-                                                    serde_json::json!({
-                                                        "titleKey": "torrent.notify.error.title",
-                                                        "body": &msg,
-                                                        "type": "error",
-                                                    }),
-                                                );
-                                                notified_errors.insert(t.id, error.to_string());
-                                            }
-                                        }
-                                    }
-                                }
-
-                                prev_states.insert(t.id, (t.finished, t.error.clone()));
-                            }
-                        }
-
-                        let current_ids: HashSet<usize> = torrents.iter().map(|t| t.id).collect();
-                        prev_states.retain(|id, _| current_ids.contains(id));
-                        notified_errors.retain(|id, _| current_ids.contains(id));
-
-                        {
-                            let ids: Vec<usize> = mgr_clone
-                                .sequential_torrents
-                                .iter()
-                                .map(|r| *r.key())
-                                .collect();
-                            for &sid in &ids {
-                                let _ = mgr_clone.advance_sequential(sid).await;
-                            }
-                        }
-
-                        cleanup_counter += 1;
-                        if cleanup_counter >= 30 {
-                            cleanup_counter = 0;
-                            mgr_clone.cleanup_unselected_files();
+                        let tick = std::panic::AssertUnwindSafe(run_torrent_update_tick(
+                            &app_clone,
+                            &mgr_clone,
+                            &mut tick_state,
+                        ));
+                        if tick.catch_unwind().await.is_err() {
+                            tracing::error!("torrents-update tick panicked, continuing push loop");
                         }
                     }
                 });
@@ -1120,6 +1219,8 @@ pub fn run() {
             get_torrent_diagnostics,
             set_torrent_limits,
             get_torrent_limits,
+            add_torrent_tracker,
+            remove_torrent_tracker,
             get_torrent_info_from_file,
             start_torrent_download_from_file,
             read_file_bytes,

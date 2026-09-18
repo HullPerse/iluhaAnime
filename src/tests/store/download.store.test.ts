@@ -5,6 +5,7 @@ import { useTorrentStore } from "@/store/download.store";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: vi.fn().mockReturnValue(Promise.resolve()),
+  convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
 }));
 
 vi.mock("@tauri-apps/plugin-notification", () => ({

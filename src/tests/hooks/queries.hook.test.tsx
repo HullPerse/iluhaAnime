@@ -8,6 +8,7 @@ import CollectionRoute from "@/routes/collection.route";
 const invokeMock = vi.fn();
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (...args: unknown[]) => invokeMock(...args),
+  convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
 }));
 import {
   COLLECTION_QUERY_KEY,

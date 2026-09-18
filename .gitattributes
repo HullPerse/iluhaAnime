@@ -1,0 +1,29 @@
+# Line endings: LF in the repository and in every working tree.
+#
+# `eol=lf` overrides core.autocrlf, so a Windows clone with autocrlf=true still gets LF
+# files and the formatter (which runs with endOfLine: "lf") agrees with the working tree.
+# Without this, `bun run check` fails on every file of a fresh Windows checkout while the
+# committed blobs are already LF - a local-only false alarm that hides real format problems.
+* text=auto eol=lf
+
+# Binaries: never convert, never diff.
+*.ico binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.avif binary
+*.bmp binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.gz binary
+*.zip binary
+*.bin binary
+*.exe binary
+*.dll binary
+*.dylib binary
+*.so binary
+*.node binary

@@ -54,16 +54,12 @@ export function useCollectionDataActions() {
     async (strategy: string, file: File) => {
       const [text, textError] = await attempt(file.text());
       if (textError) {
-        useNotificationStore
-          .getState()
-          .add(t("app.collection"), "error", textError.message);
+        useNotificationStore.getState().add(t("app.collection"), "error", textError.message);
         return;
       }
       const [data, parseError] = attemptSync(() => JSON.parse(text) as unknown);
       if (parseError) {
-        useNotificationStore
-          .getState()
-          .add(t("app.collection"), "error", parseError.message);
+        useNotificationStore.getState().add(t("app.collection"), "error", parseError.message);
         return;
       }
       const [summary, importError] = await attempt(
@@ -75,9 +71,7 @@ export function useCollectionDataActions() {
         }>("import_collection_data", { data, strategy })
       );
       if (importError) {
-        useNotificationStore
-          .getState()
-          .add(t("app.collection"), "error", importError.message);
+        useNotificationStore.getState().add(t("app.collection"), "error", importError.message);
         return;
       }
       useNotificationStore.getState().add(

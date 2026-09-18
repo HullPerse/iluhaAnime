@@ -60,7 +60,8 @@ const common = {
   "download.error.remove": "Error removing torrent:",
   "download.error.resume": "Error resuming torrent:",
   "download.error.sequential": "Error enabling sequential mode:",
-  "download.error.refresh": "Error refreshing torrents:",
+  "download.error.tracker.add": "Error adding tracker:",
+  "download.error.tracker.remove": "Error removing tracker:",
   "download.error.set.limits": "Error setting limits:",
   "download.error.start": "Error starting torrent:",
   "download.error.update": "Error updating torrent:",
@@ -108,8 +109,6 @@ const common = {
   "picker.select.all": "Select all",
   "picker.select.folder": "Choose a folder to save to",
   "picker.sequential": "Sequential",
-  "download.confirmOverwrite":
-    "Some files already exist in the destination folder. Overwrite them?",
 } as const;
 
 export default common;

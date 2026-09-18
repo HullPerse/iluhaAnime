@@ -9,6 +9,7 @@ import type { CollectionItem, CollectionStatusDef } from "@/types/collection";
 const mockInvoke = vi.fn();
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (...args: unknown[]) => mockInvoke(...args),
+  convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
 }));
 
 const STATUSES: CollectionStatusDef[] = [

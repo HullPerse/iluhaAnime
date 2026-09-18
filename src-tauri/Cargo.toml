@@ -1,6 +1,6 @@
 [package]
 name = "iluhaAnime"
-version = "4.0.8"
+version = "4.0.9"
 description = "Anime Tracker and Player"
 authors = ["HullPerse"]
 edition = "2021"
@@ -38,8 +38,8 @@ scraper = "0.27"
 regex-lite = "0.1"
 sha1 = "0.10"
 hex = "0.4"
-librqbit = { version = "9.0.0-rc.0", default-features = false, features = ["default-tls", "http-api", "watch", "tracing-subscriber-utils"] }
-librqbit-bencode = "9.0.0-rc.0"
+librqbit = { version = "9.0.1", default-features = false, features = ["default-tls", "http-api", "watch", "tracing-subscriber-utils"] }
+librqbit-bencode = "9.0.1"
 librqbit-dualstack-sockets = "0.7"
 tracing = "0.1"
 anyhow = "1"

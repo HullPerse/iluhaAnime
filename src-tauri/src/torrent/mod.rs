@@ -1,3 +1,4 @@
+pub mod geoip;
 pub mod helpers;
 pub mod manager;
 pub mod types;

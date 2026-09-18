@@ -11,6 +11,7 @@ let resolveTorrents: ((value: TorrentInfo[]) => void) | null = null;
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (...args: unknown[]) => mockInvoke(...args),
+  convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
 }));
 
 vi.mock("@tauri-apps/api/event", () => ({

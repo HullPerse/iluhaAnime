@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button.component";
 import Select from "@/components/ui/select.component";
 import { useSearchQuery } from "@/hooks/search/query.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
+import { attempt } from "@/lib/utils/attempt.utils";
 import SearchAuthButtons from "@/routes/components/search/auth.search";
 import TorrentDetailsModal from "@/routes/components/search/default/details/modal.details";
 import SearchErrorBar from "@/routes/components/search/default/error.search";
@@ -19,7 +20,6 @@ import DidYouMeanRow from "@/routes/components/search/didyoumean.search";
 import SearchFiltersModal from "@/routes/components/search/filters.modal";
 import SearchSessionModals from "@/routes/components/search/sessions.search";
 import type { SearchFilters } from "@/types/search";
-import { attempt } from "@/lib/utils/attempt.utils";
 
 function SearchDefault() {
   const { t } = useI18n();
@@ -170,8 +170,8 @@ function SearchDefault() {
               onOpenMagnet={(i) => openMagnetFor(i)}
               onDownload={(i) => downloadMagnetFor(i)}
               onOpenLink={async (i) => {
-                const [, error] = await attempt(openUrl(i.link))
-                if (error) return console.warn("openUrl failed", error)
+                const [, error] = await attempt(openUrl(i.link));
+                if (error) return console.warn("openUrl failed", error);
               }}
               onOpenDetails={(i) => setSelectedTorrent({ item: i, source })}
             />

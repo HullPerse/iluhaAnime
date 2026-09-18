@@ -1,6 +1,7 @@
 import type { AniMedia } from "@/types/anilist";
 
 export type CommandName =
+  | "add_torrent_tracker"
   | "anilist_login"
   | "anilist_logout"
   | "backup_sqlite_database"
@@ -109,6 +110,7 @@ export type CommandName =
   | "remove_realcugan"
   | "remove_rife"
   | "remove_torrent"
+  | "remove_torrent_tracker"
   | "reset_sqlite_data"
   | "restore_sqlite_backup"
   | "resume_torrent"

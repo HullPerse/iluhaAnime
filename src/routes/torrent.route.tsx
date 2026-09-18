@@ -8,7 +8,7 @@ import { SmallLoader } from "@/components/shared/loader.component";
 import Pagination from "@/components/shared/pagination.component";
 import { Button } from "@/components/ui/button.component";
 import Select from "@/components/ui/select.component";
-import { NO_TORRENTS, TORRENT_PAGE_SIZE } from "@/config/torrent/common.config";
+import { NO_TORRENT_FILES, NO_TORRENTS, TORRENT_PAGE_SIZE } from "@/config/torrent/common.config";
 import { useHostStats } from "@/hooks/hostStats.hook";
 import { usePagination } from "@/hooks/pagination.hook";
 import { useSearchField } from "@/hooks/search/field.hook";
@@ -56,6 +56,9 @@ function TorrentRoute() {
   const setFilePriorityMutation = useSetFilePriority();
   const setSequentialMutation = useSetSequentialDownload();
   const setSeedPreference = useCacheStore((state) => state.setSeedPreference);
+  const torrentOrder = useCacheStore((state) => state.torrentOrder);
+  const syncTorrentOrder = useCacheStore((state) => state.syncTorrentOrder);
+  const moveTorrentOrder = useCacheStore((state) => state.moveTorrentOrder);
   const redownloadMutation = useRedownloadFile();
   const recheckMutation = useRecheckTorrent();
   const opInFlight = useTorrentStore((state) => state.opInFlight);
@@ -72,13 +75,16 @@ function TorrentRoute() {
   const torrentTarget = useDeepLinkStore((state) => state.torrentTarget);
   const magnetTarget = useDeepLinkStore((state) => state.magnetTarget);
   const [filterQuery, setFilterQuery] = useState("");
-  const [sortBy, setSortBy] = useState<"name" | "size" | "progress" | "speed">("name");
+  const [sortBy, setSortBy] = useState<"name" | "size" | "progress" | "speed" | "custom">("name");
   const [sortAsc, setSortAsc] = useState(true);
   const [page, setPage] = useState(1);
   const listRef = useRef<HTMLElement>(null);
   const { t } = useI18n();
   const hostStats = useHostStats(true);
   const [lifecycleFilter, setLifecycleFilter] = useState<TorrentLifecycle | "all">("all");
+  useEffect(() => {
+    syncTorrentOrder(torrents.map((t) => t.id));
+  }, [torrents, syncTorrentOrder]);
 
   const lifecycleTorrents = useMemo(() => {
     if (lifecycleFilter === "all") return torrents;
@@ -89,6 +95,14 @@ function TorrentRoute() {
     const list = filterQuery.trim()
       ? lifecycleTorrents.filter((t) => t.name.toLowerCase().includes(filterQuery.toLowerCase()))
       : lifecycleTorrents;
+    if (sortBy === "custom") {
+      const rank = new Map(torrentOrder.map((id, index) => [id, index]));
+      return [...list].sort((a, b) => {
+        const ra = rank.get(a.id) ?? Number.MAX_SAFE_INTEGER;
+        const rb = rank.get(b.id) ?? Number.MAX_SAFE_INTEGER;
+        return ra === rb ? a.id - b.id : ra - rb;
+      });
+    }
     return [...list].sort((a, b) => {
       let cmp = 0;
       if (sortBy === "name") cmp = a.name.localeCompare(b.name);
@@ -97,13 +111,17 @@ function TorrentRoute() {
       else if (sortBy === "speed") cmp = a.download_speed - b.download_speed;
       return sortAsc ? cmp : -cmp;
     });
-  }, [lifecycleTorrents, filterQuery, sortBy, sortAsc]);
+  }, [lifecycleTorrents, filterQuery, sortBy, sortAsc, torrentOrder]);
 
   const { total, from, to, lastPage } = usePagination(
     filteredTorrents.length,
     TORRENT_PAGE_SIZE,
     page,
     setPage
+  );
+  const queueRank = useMemo(
+    () => new Map(filteredTorrents.map((t, index) => [t.id, index])),
+    [filteredTorrents]
   );
   const pagedTorrents = useMemo(
     () => paginate(filteredTorrents, page, TORRENT_PAGE_SIZE),
@@ -155,6 +173,23 @@ function TorrentRoute() {
     setShowMagnetModal(true);
     useDeepLinkStore.getState().consumeMagnet();
   }, [magnetTarget]);
+  // Rows are memoized by `areTorrentItemsEqual`, which intentionally ignores handler
+  // identity, so this reads the list through a ref: a memoized row then keeps a correct
+  // `onMove` instead of one pinned to the render that created it.
+  const filteredTorrentsRef = useRef(filteredTorrents);
+  useEffect(() => {
+    filteredTorrentsRef.current = filteredTorrents;
+  }, [filteredTorrents]);
+  const moveQueueItem = useCallback(
+    (id: number, delta: -1 | 1) => {
+      const list = filteredTorrentsRef.current;
+      const index = list.findIndex((t) => t.id === id);
+      const neighbor = index === -1 ? undefined : list[index + delta];
+      if (!neighbor) return;
+      moveTorrentOrder(id, neighbor.id);
+    },
+    [moveTorrentOrder]
+  );
   const visibleIds = useMemo(() => pagedTorrents.map((t) => t.id), [pagedTorrents]);
   const { files: torrentFilesMap, errors: torrentFilesErrors } = useTorrentFilesMap(
     visibleIds,
@@ -322,12 +357,14 @@ function TorrentRoute() {
             { value: "size", label: t("torrent.sort.size") },
             { value: "progress", label: t("torrent.sort.progress") },
             { value: "speed", label: t("torrent.sort.speed") },
+            { value: "custom", label: t("torrent.sort.custom") },
           ]}
         />
         <Button
           size="icon"
           className="size-5"
           onClick={() => setSortAsc((v) => !v)}
+          disabled={sortBy === "custom"}
           title={sortAsc ? t("torrent.sort.asc") : t("torrent.sort.desc")}
         >
           {sortAsc ? <SortAsc className="size-3" /> : <SortDesc className="size-3" />}
@@ -377,7 +414,8 @@ function TorrentRoute() {
         >
           {pagedTorrents.map((item) => {
             const isExpanded = expanded.has(item.id);
-            const files = torrentFilesMap[item.id] ?? [];
+            const files = torrentFilesMap[item.id] ?? NO_TORRENT_FILES;
+            const queueIndex = queueRank.get(item.id) ?? 0;
 
             return (
               <TorrentItem
@@ -387,6 +425,15 @@ function TorrentRoute() {
                 filesError={torrentFilesErrors[item.id]}
                 isExpanded={isExpanded}
                 busy={opInFlight[item.id] !== undefined}
+                queue={
+                  sortBy === "custom"
+                    ? {
+                        index: queueIndex,
+                        total: filteredTorrents.length,
+                        onMove: (delta) => moveQueueItem(item.id, delta),
+                      }
+                    : null
+                }
                 onToggleExpand={() => toggleExpanded(item.id)}
                 onPause={() => pauseMutation.mutate({ id: item.id, infoHash: item.info_hash })}
                 onResume={() => resumeMutation.mutate({ id: item.id, infoHash: item.info_hash })}

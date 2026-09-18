@@ -2,6 +2,25 @@ import { parse } from "anitomy";
 
 import type { TranslationKey, TranslationVariables } from "@/lib/locale/i18n.utils";
 
+const MAX_PARSE_CACHE = 500;
+const parseCache = new Map<string, ReturnType<typeof parse>>();
+
+function parseFilename(filename: string): ReturnType<typeof parse> {
+  const cached = parseCache.get(filename);
+  if (cached !== undefined) return cached;
+  const parsed = parse(filename);
+  if (parseCache.size >= MAX_PARSE_CACHE) {
+    const oldest = parseCache.keys().next().value;
+    if (oldest !== undefined) parseCache.delete(oldest);
+  }
+  parseCache.set(filename, parsed);
+  return parsed;
+}
+
+export function clearParseCache(): void {
+  parseCache.clear();
+}
+
 const seasonPatterns = (season: string) => [
   new RegExp(`\\s+S${season.padStart(2, "0")}\\s*$`, "i"),
   new RegExp(`\\s+S${season}\\s*$`, "i"),
@@ -24,7 +43,7 @@ export function formatParsedTitle(
   filename: string,
   t: (key: TranslationKey, variables?: TranslationVariables) => string
 ): string {
-  const parsed = parse(filename);
+  const parsed = parseFilename(filename);
   if (!parsed) return filename;
 
   const title = cleanTitle(parsed.title, parsed.season);

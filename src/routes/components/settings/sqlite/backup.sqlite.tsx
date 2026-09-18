@@ -4,8 +4,8 @@ import { ConfirmDialog } from "@/components/shared/confirm.component";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { formatBackupDate } from "@/lib/settings/backup.utils";
-import { formatBytes } from "@/lib/utils/bytes.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
+import { formatBytes } from "@/lib/utils/bytes.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import type { SqliteBackupInfo } from "@/types/sqlite";
 

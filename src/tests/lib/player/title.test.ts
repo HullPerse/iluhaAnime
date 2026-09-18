@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { translate } from "@/lib/locale/i18n.utils";
-import { fileNameFromPath, formatParsedTitle } from "@/lib/player/title.utils";
+import { fileNameFromPath, clearParseCache, formatParsedTitle } from "@/lib/player/title.utils";
 
 const ru = (key: Parameters<typeof translate>[1], vars?: Parameters<typeof translate>[2]) =>
   translate("ru", key, vars);
@@ -19,6 +19,21 @@ describe("formatParsedTitle", () => {
 
   it("handles zero-padded episode numbers", () => {
     expect(formatParsedTitle("One Piece 001.mkv", ru)).toBe("One Piece, Серия 1");
+  });
+
+  it("returns the same result on repeated calls", () => {
+    clearParseCache();
+    const first = formatParsedTitle("[Erai-raws] Naruto - 01 [1080p].mkv", ru);
+    const second = formatParsedTitle("[Erai-raws] Naruto - 01 [1080p].mkv", ru);
+    expect(second).toBe(first);
+  });
+
+  it("stays correct after cache eviction pressure", () => {
+    clearParseCache();
+    for (let i = 0; i < 600; i++) {
+      formatParsedTitle(`[Group] Some Anime ${i} - 01 [1080p].mkv`, ru);
+    }
+    expect(formatParsedTitle("[Erai-raws] Naruto - 01 [1080p].mkv", ru)).toBe("Naruto, Серия 1");
   });
 });
 

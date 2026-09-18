@@ -73,6 +73,7 @@ const settings = {
   "settings.search.anilist.boost.off": "Off",
   "settings.search.anilist.boost.strong": "Strong",
   "settings.search.anilist.boost.subtle": "Subtle",
+  "settings.search.anilist.max.pages.hint": "Maximum pages to load from AniList.",
   "settings.search.autocomplete.mode": "Suggestion style",
   "settings.search.autocomplete.mode.both": "Inline + dropdown",
   "settings.search.autocomplete.mode.dropdown": "Dropdown only",
@@ -87,6 +88,7 @@ const settings = {
   "settings.search.learning.queries": "Searches recorded",
   "settings.search.learning.selected": "Suggestions selected",
   "settings.search.purge.expired": "Purge expired (90 days)",
+  "settings.search.page.size.hint": "Results per page for AniList search.",
   "settings.search.clear.torrent": "Clear torrent scope",
   "settings.search.clear.anilist": "Clear AniList scope",
   "settings.search.clear.player": "Clear player scope",
@@ -122,6 +124,7 @@ const settings = {
   "settings.sqlite.cell.column": "Column",
   "settings.sqlite.cell.copy": "Copy",
   "settings.sqlite.cell.copied": "Copied",
+  "settings.sqlite.cell.edit": "Edit",
 
   "settings.sqlite.cell.placeholder": "New value (NULL for empty)",
   "settings.sqlite.cell.save": "Save",

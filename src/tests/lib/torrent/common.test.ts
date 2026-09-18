@@ -12,7 +12,10 @@ import {
   getDisplayState,
   getLifecycleLabel,
   getTorrentLifecycle,
+  shouldHealTorrentChannel,
+  shouldHealTorrentPoll,
   stateLabel,
+  TORRENT_EVENT_STALE_MS,
   TorrentListen,
   torrentErrorText,
   type TorrentListState,
@@ -283,5 +286,44 @@ describe("findNewErrors", () => {
   });
   it("ignores cleared errors", () => {
     expect(findNewErrors([makeInfo(1, { error: "x" })], [makeInfo(1)])).toEqual([]);
+  });
+});
+
+describe("shouldHealTorrentPoll", () => {
+  it("stays quiet before the first event and inside the window", () => {
+    expect(shouldHealTorrentPoll(0, 60_000)).toBe(false);
+    expect(shouldHealTorrentPoll(1_000, 1_000 + TORRENT_EVENT_STALE_MS - 1)).toBe(false);
+  });
+  it("heals after a stale silence", () => {
+    expect(shouldHealTorrentPoll(1_000, 1_000 + TORRENT_EVENT_STALE_MS)).toBe(true);
+  });
+});
+
+describe("shouldHealTorrentChannel", () => {
+  it("stays quiet while nothing is known to be wrong", () => {
+    expect(
+      shouldHealTorrentChannel({ lastEventAt: 0, lastHealAt: 0, watchStartedAt: 0 }, 60_000)
+    ).toBe(false);
+  });
+
+  it("heals from the watch start when no push ever arrived", () => {
+    const state = { lastEventAt: 0, lastHealAt: 0, watchStartedAt: 1_000 };
+    expect(shouldHealTorrentChannel(state, 1_000 + TORRENT_EVENT_STALE_MS - 1)).toBe(false);
+    expect(shouldHealTorrentChannel(state, 1_000 + TORRENT_EVENT_STALE_MS)).toBe(true);
+  });
+
+  it("restarts the window after a heal", () => {
+    const state = { lastEventAt: 0, lastHealAt: 40_000, watchStartedAt: 1_000 };
+    expect(shouldHealTorrentChannel(state, 40_000 + TORRENT_EVENT_STALE_MS - 1)).toBe(false);
+    expect(shouldHealTorrentChannel(state, 40_000 + TORRENT_EVENT_STALE_MS)).toBe(true);
+  });
+
+  it("prefers the newest push over an older heal", () => {
+    expect(
+      shouldHealTorrentChannel(
+        { lastEventAt: 50_000, lastHealAt: 40_000, watchStartedAt: 1_000 },
+        50_001
+      )
+    ).toBe(false);
   });
 });

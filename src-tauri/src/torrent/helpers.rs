@@ -170,3 +170,132 @@ pub fn with_fallback_trackers_bytes(bytes: &[u8]) -> Vec<u8> {
     }
     out
 }
+
+const MAX_TRACKER_URL_LEN: usize = 2048;
+
+pub fn validate_tracker_url(raw: &str) -> Result<String, String> {
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        return Err("Tracker URL is empty".to_string());
+    }
+    if trimmed.len() > MAX_TRACKER_URL_LEN {
+        return Err("Tracker URL is too long".to_string());
+    }
+    let parsed = url::Url::parse(trimmed).map_err(|_| "Tracker URL is invalid".to_string())?;
+    if !matches!(parsed.scheme(), "udp" | "http" | "https") {
+        return Err("Tracker URL must use udp, http, or https".to_string());
+    }
+    if parsed.host_str().is_none_or(str::is_empty) {
+        return Err("Tracker URL must have a host".to_string());
+    }
+    Ok(parsed.to_string())
+}
+
+/// Normalizes a tracker to the exact string librqbit echoes back from
+/// ``handle.shared().trackers``, so user input and live trackers compare equal.
+/// Returns `None` for anything that does not parse, so callers can keep such an
+/// entry instead of dropping a tracker from the set.
+pub fn canonical_tracker_url(raw: &str) -> Option<String> {
+    validate_tracker_url(raw).ok()
+}
+
+pub fn canonical_or_raw_tracker(raw: &str) -> String {
+    canonical_tracker_url(raw).unwrap_or_else(|| raw.trim().to_string())
+}
+
+pub fn build_magnet(
+    info_hash: &str,
+    trackers: &[String],
+    name: Option<&str>,
+) -> Result<String, String> {
+    let hash = info_hash.trim().to_lowercase();
+    if hash.len() != 40 || !hash.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+        return Err("Invalid info hash".to_string());
+    }
+    let mut out = format!("magnet:?xt=urn:btih:{hash}");
+    if let Some(name) = name.map(str::trim).filter(|name| !name.is_empty()) {
+        out.push_str("&dn=");
+        out.push_str(&url_encode(name));
+    }
+    for tracker in trackers {
+        out.push_str("&tr=");
+        out.push_str(&url_encode(tracker));
+    }
+    Ok(out)
+}
+
+#[cfg(test)]
+mod tracker_tests {
+    use super::{
+        build_magnet, canonical_or_raw_tracker, canonical_tracker_url, validate_tracker_url,
+    };
+
+    #[test]
+    fn accepts_udp_and_http_trackers() {
+        assert_eq!(
+            validate_tracker_url("udp://explodie.org:6969/announce"),
+            Ok("udp://explodie.org:6969/announce".to_string())
+        );
+        assert_eq!(
+            validate_tracker_url("  https://tracker.tamersunion.org:443/announce  "),
+            Ok("https://tracker.tamersunion.org/announce".to_string())
+        );
+    }
+
+    #[test]
+    fn rejects_bad_tracker_urls() {
+        assert!(validate_tracker_url("").is_err());
+        assert!(validate_tracker_url("ftp://example.com/announce").is_err());
+        assert!(validate_tracker_url("not a url").is_err());
+        assert!(validate_tracker_url("udp://:6969/announce").is_err());
+        assert!(validate_tracker_url(&"u".repeat(3000)).is_err());
+    }
+
+    #[test]
+    fn builds_magnet_with_encoded_trackers() {
+        let magnet = build_magnet(
+            "ABCDEF1234567890ABCDEF1234567890ABCDEF12",
+            &["udp://explodie.org:6969/announce".to_string()],
+            None,
+        )
+        .expect("magnet");
+        assert!(magnet.starts_with("magnet:?xt=urn:btih:abcdef1234567890abcdef1234567890abcdef12"));
+        assert!(magnet.contains("&tr=udp%3A%2F%2Fexplodie.org%3A6969%2Fannounce"));
+        assert!(!magnet.contains("&dn="));
+    }
+
+    #[test]
+    fn builds_magnet_with_display_name() {
+        let magnet = build_magnet(
+            "ABCDEF1234567890ABCDEF1234567890ABCDEF12",
+            &[],
+            Some("Show 01"),
+        )
+        .expect("magnet");
+        assert!(magnet.contains("&dn=Show%2001"));
+        let blank = build_magnet("ABCDEF1234567890ABCDEF1234567890ABCDEF12", &[], Some("   "))
+            .expect("magnet");
+        assert!(!blank.contains("&dn="));
+    }
+
+    #[test]
+    fn canonicalizes_trackers_the_way_the_session_reports_them() {
+        assert_eq!(
+            canonical_tracker_url("  HTTPS://tracker.tamersunion.org:443/announce  "),
+            Some("https://tracker.tamersunion.org/announce".to_string())
+        );
+        assert_eq!(canonical_tracker_url("ftp://example.com/announce"), None);
+        assert_eq!(
+            canonical_or_raw_tracker("magnet:"),
+            "magnet:".to_string(),
+            "unparseable live trackers must survive a rewrite"
+        );
+    }
+
+    #[test]
+    fn rejects_bad_info_hashes() {
+        assert!(build_magnet("abc", &[], None).is_err());
+        assert!(build_magnet("zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz", &[], None).is_err());
+        assert!(build_magnet("", &[], None).is_err());
+    }
+}

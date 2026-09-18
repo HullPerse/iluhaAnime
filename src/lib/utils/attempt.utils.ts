@@ -2,9 +2,7 @@ export function toError(value: unknown): Error {
   return value instanceof Error ? value : new Error(String(value));
 }
 
-export async function attempt<T>(
-  promise: Promise<T>,
-): Promise<[T, null] | [null, Error]> {
+export async function attempt<T>(promise: Promise<T>): Promise<[T, null] | [null, Error]> {
   try {
     return [await promise, null];
   } catch (error) {
@@ -26,7 +24,7 @@ export interface AttemptAllOptions {
 
 export async function attemptAll(
   steps: ReadonlyArray<() => unknown>,
-  options: AttemptAllOptions = {},
+  options: AttemptAllOptions = {}
 ): Promise<Error | null> {
   let failure: Error | null = null;
   try {
@@ -46,10 +44,7 @@ export async function attemptAll(
   return failure;
 }
 
-export async function withFallback<T>(
-  promise: Promise<T>,
-  fallback: T,
-): Promise<T> {
+export async function withFallback<T>(promise: Promise<T>, fallback: T): Promise<T> {
   const [data, error] = await attempt(promise);
   return error ? fallback : data;
 }

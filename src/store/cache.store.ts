@@ -11,10 +11,37 @@ export const useCacheStore = create<CacheStore>()(
       folderTrees: [],
       lastSaveDir: "",
       seedPreferences: {},
+      torrentOrder: [],
       setEpisodeTracker: (tracker) => {
         writeAppCache("player", "episodeTracker", tracker);
         set({ episodeTracker: tracker });
       },
+      syncTorrentOrder: (ids) =>
+        set((s) => {
+          const known = new Set(ids);
+          const kept = s.torrentOrder.filter((id) => known.has(id));
+          const missing = [...ids]
+            .filter((id) => !s.torrentOrder.includes(id))
+            .sort((a, b) => a - b);
+          const torrentOrder = [...kept, ...missing];
+          if (
+            torrentOrder.length === s.torrentOrder.length &&
+            torrentOrder.every((id, index) => id === s.torrentOrder[index])
+          )
+            return s;
+          writeAppCache("torrent", "torrentOrder", torrentOrder);
+          return { torrentOrder };
+        }),
+      moveTorrentOrder: (id, neighborId) =>
+        set((s) => {
+          const from = s.torrentOrder.indexOf(id);
+          const to = s.torrentOrder.indexOf(neighborId);
+          if (from === -1 || to === -1 || from === to) return s;
+          const torrentOrder = [...s.torrentOrder];
+          [torrentOrder[from], torrentOrder[to]] = [torrentOrder[to], torrentOrder[from]];
+          writeAppCache("torrent", "torrentOrder", torrentOrder);
+          return { torrentOrder };
+        }),
       setFolderTrees: (trees) => {
         writeAppCache("player", "folderTrees", trees);
         set({ folderTrees: trees });

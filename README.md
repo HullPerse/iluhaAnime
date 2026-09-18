@@ -24,6 +24,13 @@
 
 ---
 
+## Bundled data
+
+Regenerate with `bun run data:geoip` and `bun run data:flags`.
+
+- Peer-country lookups use the [DB-IP Lite](https://db-ip.com) country database, licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Packed into `src-tauri/data/geoip-v1.bin.gz` by `scripts/build-geoip.ts`.
+- Country flag tiles are [flag-icons](https://github.com/lipis/flag-icons) art (MIT), fetched as 16x12 PNGs from [flagcdn.com](https://flagcdn.com) and packed into one `public/images/flags.sprite.png` spritesheet by `scripts/build-flags.ts`.
+
 ## License
 
 [MIT](LICENSE) © HullPerse

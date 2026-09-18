@@ -82,9 +82,7 @@ function TorrentDetailsModal({
   const openOriginal = async () => {
     const originalUrl = (source === "erai-raws" && item.website) || view?.url || detailUrl;
     if (source === "erai-raws" && item.website) {
-      const [, pageError] = await attempt(
-        invokeTyped("erai_open_page", { pageUrl: item.website })
-      );
+      const [, pageError] = await attempt(invokeTyped("erai_open_page", { pageUrl: item.website }));
       if (pageError) reportBackgroundError("erai.open-page", pageError);
       else return;
     }

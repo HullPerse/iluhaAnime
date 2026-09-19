@@ -1,5 +1,5 @@
 import { Check, Trash2, X, RefreshCw, ListVideo, FileVideo, Pause, Play } from "lucide-react";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 
 import { SmallLoader } from "@/components/shared/loader.component";
 import { Button } from "@/components/ui/button.component";
@@ -24,22 +24,13 @@ export default function QueuePanel({ scan }: { scan: ScanType }) {
 
   if (items.length === 0 && !scan) return null;
 
-  const statusIcon = (status: string) => {
-    switch (status) {
-      case "queued": {
-        return <ListVideo className="text-hint size-3" />;
-      }
-      case "processing": {
-        return <SmallLoader size={3} className="text-highlight" />;
-      }
-      case "done": {
-        return <Check className="text-success size-3" />;
-      }
-      case "error": {
-        return <X className="text-destructive size-3" />;
-      }
-    }
+  const STATUS_ICONS: Record<string, ReactNode> = {
+    queued: <ListVideo className="text-hint size-3" />,
+    processing: <SmallLoader size={3} className="text-highlight" />,
+    done: <Check className="text-success size-3" />,
+    error: <X className="text-destructive size-3" />,
   };
+  const statusIcon = (status: string) => STATUS_ICONS[status];
 
   const activeCount = items.filter((i) => i.status !== "done").length;
   const hasProcessing = items.some((i) => i.status === "processing");

@@ -258,6 +258,8 @@ const settings = {
   "settings.theme.search.default": "Стандартный",
   "settings.theme.search.modern": "Современный",
   "settings.theme.spinners": "Анимация загрузки (спиннеры)",
+  "settings.theme.animated.counters": "Анимированные счётчики",
+  "settings.theme.animated.counters.hint": "Скорости торрентов плавно подтягиваются к значению",
   "settings.font.title": "Шрифт приложения",
   "settings.font.default": "Системный по умолчанию",
   "settings.torrent": "Торренты",

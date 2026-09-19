@@ -60,8 +60,8 @@ export function useWizardSearch(
       }[]
     >("search_anilist", {
       query: search,
-      per_page: 8,
-      max_pages: 1,
+      perPage: 8,
+      maxPages: 1,
       ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
     });
     const mapped = res.map((r) => ({

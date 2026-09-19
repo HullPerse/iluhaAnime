@@ -394,6 +394,16 @@ function applySettingsV31(
   return migrated;
 }
 
+function applySettingsV32(
+  migrated: Partial<SettingsStore>,
+  version: number
+): Partial<SettingsStore> {
+  if (version >= 32) return migrated;
+  if (migrated.animateCounters === undefined)
+    migrated.animateCounters = DEFAULT_SETTINGS.animateCounters;
+  return migrated;
+}
+
 function drainTmdbPendingKey(state: SettingsStore): void {
   const pending = state.tmdbPendingKey;
   if (!pending) return;
@@ -567,6 +577,7 @@ export const useSettingsStore = create<SettingsStore>()(
         migrated = applySettingsV29(migrated, version);
         migrated = applySettingsV30(migrated, version);
         migrated = applySettingsV31(migrated, version);
+        migrated = applySettingsV32(migrated, version);
         return migrated;
       },
       onRehydrateStorage: () => (state) => {
@@ -584,7 +595,7 @@ export const useSettingsStore = create<SettingsStore>()(
           drainTmdbPendingKey(state);
         }
       },
-      version: 31,
+      version: 32,
     }
   )
 );

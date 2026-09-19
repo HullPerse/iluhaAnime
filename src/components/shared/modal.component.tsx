@@ -4,6 +4,7 @@ import { ChevronLeft, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import ImageComponent from "@/components/ui/image.component";
+import { useOverlayDialog } from "@/hooks/overlay.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { useSettingsStore } from "@/store/settings.store";
 import type { ModalWindow } from "@/types/ui";
@@ -14,7 +15,6 @@ function Modal({
   header,
   onClose,
   onBack,
-  trail,
   headerActions,
   className,
   contentClassName,
@@ -28,7 +28,7 @@ function Modal({
   const enable3dBorders = useSettingsStore((s) => s.enable3dBorders);
   const backdropOpacity = useSettingsStore((s) => s.modalBackdropOpacity);
   const [visible, setVisible] = useState(false);
-  const visibleTrail = trail && trail.length > 2 ? ["...", ...trail.slice(-2)] : trail;
+  useOverlayDialog();
 
   useEffect(() => {
     if (!modalAnimation) {
@@ -104,35 +104,6 @@ function Modal({
                 </Dialog.Close>
               </div>
             </section>
-          )}
-          {visibleTrail && visibleTrail.length >= 2 && (
-            <nav
-              aria-label={t("common.breadcrumb")}
-              title={trail?.join(" → ")}
-              className="bg-primary w-full px-3 pt-2"
-            >
-              <ol className="windows95-text text-hint flex min-w-0 flex-row items-center gap-1">
-                {visibleTrail.map((segment, index) =>
-                  index === visibleTrail.length - 1 ? (
-                    <li
-                      key={`${segment}-${index}`}
-                      aria-current="page"
-                      className="text-text max-w-40 min-w-0 truncate"
-                    >
-                      {segment}
-                    </li>
-                  ) : (
-                    <li
-                      key={`${segment}-${index}`}
-                      className="flex min-w-0 flex-row items-center gap-1"
-                    >
-                      <span className="max-w-40 truncate">{segment}</span>
-                      <span aria-hidden="true">→</span>
-                    </li>
-                  )
-                )}
-              </ol>
-            </nav>
           )}
           <section
             className={cn(

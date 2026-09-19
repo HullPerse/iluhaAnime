@@ -44,6 +44,7 @@ export interface SettingsStore {
   buttonPressEffect: boolean;
   enableAnimations: boolean;
   modalBackdropOpacity: number;
+  animateCounters: boolean;
   customScrollbar: boolean;
   customTitleBarEnabled: boolean;
   statusBarEnabled: boolean;

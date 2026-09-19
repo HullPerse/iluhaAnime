@@ -230,6 +230,11 @@ export default function SettingsTheme() {
           <EffectsCheckbox label={t("settings.theme.3d.borders")} field="enable3dBorders" />
           <EffectsCheckbox label={t("settings.theme.button.press")} field="buttonPressEffect" />
           <EffectsCheckbox label={t("settings.theme.spinners")} field="enableAnimations" />
+          <EffectsCheckbox
+            label={t("settings.theme.animated.counters")}
+            field="animateCounters"
+            hint={t("settings.theme.animated.counters.hint")}
+          />
           <EffectsCheckbox label={t("settings.theme.scrollbar")} field="customScrollbar" />
           <BackdropSlider />
 

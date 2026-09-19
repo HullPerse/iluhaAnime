@@ -37,7 +37,6 @@ export interface ModalWindow {
   header: string;
   onClose: () => void;
   onBack?: () => void;
-  trail?: string[];
   headerActions?: ReactNode;
   className?: string;
   contentClassName?: string;

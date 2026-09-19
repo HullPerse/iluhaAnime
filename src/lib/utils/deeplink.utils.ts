@@ -1,5 +1,6 @@
 import { MAGNET_RX } from "@/config/torrent/common.config";
-import { attempt, attemptAll, attemptSync } from "@/lib/utils/attempt.utils";
+import { attemptAll, attemptSync } from "@/lib/utils/attempt.utils";
+import { attemptResult, attemptResultSync, unwrapOr } from "@/lib/utils/result.utils";
 import type { CollectionExternalIds, CollectionItem, CollectionType } from "@/types/collection";
 import type {
   AnimeDeepLink,
@@ -229,7 +230,7 @@ async function collectBytes(
   const reader = stream.getReader();
   const chunks: Uint8Array[] = [];
   let total = 0;
-  const [overflowed, readError] = await attempt(
+  const read = await attemptResult(
     (async (): Promise<boolean> => {
       for (;;) {
         const result = await reader.read();
@@ -244,7 +245,7 @@ async function collectBytes(
     })()
   );
   reader.releaseLock();
-  if (readError || overflowed) return null;
+  if (!read.ok || read.value) return null;
   const bytes = new Uint8Array(total);
   let offset = 0;
   for (const chunk of chunks) {
@@ -281,7 +282,7 @@ function base64UrlToBytes(value: string): Uint8Array | null {
   const remainder = base64.length % 4;
   if (remainder === 1) return null;
   const padded = remainder === 0 ? base64 : base64 + "=".repeat(4 - remainder);
-  const [bytes, error] = attemptSync(() => {
+  const bytes = attemptResultSync(() => {
     const binary = atob(padded);
     const out = new Uint8Array(binary.length);
     for (let index = 0; index < binary.length; index += 1) {
@@ -289,8 +290,7 @@ function base64UrlToBytes(value: string): Uint8Array | null {
     }
     return out;
   });
-  if (error) return null;
-  return bytes;
+  return unwrapOr(bytes, null);
 }
 
 /**
@@ -348,11 +348,10 @@ export async function parseCollectionShareLink(
     SHARE_MAX_BYTES
   );
   if (!decompressed) return null;
-  const [decoded, decodeError] = attemptSync(
+  const decoded = attemptResultSync(
     () => JSON.parse(new TextDecoder().decode(decompressed)) as unknown
   );
-  if (decodeError) return null;
-  return readSharePayload(decoded);
+  return decoded.ok ? readSharePayload(decoded.value) : null;
 }
 
 /** Cheap prefix check so paste/OS-link handlers can decide to await the full parse. */

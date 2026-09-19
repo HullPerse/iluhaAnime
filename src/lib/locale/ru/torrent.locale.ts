@@ -94,6 +94,11 @@ const torrent = {
   "torrent.eta.label": "ETA {{time}}",
   "torrent.host.stats": "CPU {{cpu}}% - RAM {{used}} / {{total}}",
   "torrent.host.stats.net": " - Сеть {{rx}} / {{tx}}",
+  "torrent.host.bar.cpu": "CPU",
+  "torrent.host.bar.ram": "RAM",
+  "torrent.host.bar.net": "Сеть",
+  "torrent.summary.download.label": "Загрузка:",
+  "torrent.summary.upload.label": "Отдача:",
   "torrent.peers": "П: {{count}}",
 } as const;
 

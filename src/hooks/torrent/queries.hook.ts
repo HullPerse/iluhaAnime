@@ -418,7 +418,7 @@ export function useAddTorrentTracker() {
         invokeTyped("add_torrent_tracker", {
           id: vars.id,
           tracker: vars.tracker,
-          info_hash: vars.infoHash,
+          infoHash: vars.infoHash,
         })
       );
       if (error) {
@@ -440,7 +440,7 @@ export function useRemoveTorrentTracker() {
         invokeTyped("remove_torrent_tracker", {
           id: vars.id,
           tracker: vars.tracker,
-          info_hash: vars.infoHash,
+          infoHash: vars.infoHash,
         })
       );
       if (error) {

@@ -257,6 +257,8 @@ const settings = {
   "settings.theme.search.default": "Default",
   "settings.theme.search.modern": "Modern",
   "settings.theme.spinners": "Loading animation (spinners)",
+  "settings.theme.animated.counters": "Animated counters",
+  "settings.theme.animated.counters.hint": "Torrent speeds ease towards their value",
   "settings.font.title": "Application font",
   "settings.font.default": "System default",
   "settings.torrent": "Torrents",

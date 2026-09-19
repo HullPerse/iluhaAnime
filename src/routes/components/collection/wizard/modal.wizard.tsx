@@ -10,7 +10,7 @@ import { useCollectionData } from "@/hooks/collection/queries.hook";
 import { useWizardSave } from "@/hooks/collection/save.hook";
 import { useWizardSearch } from "@/hooks/collection/search.hook";
 import { useWizardForm } from "@/hooks/collection/wizard.hook";
-import { useEscapeClose } from "@/hooks/escapeClose.hook";
+import { useOverlay } from "@/hooks/overlay.hook";
 import { isPublicStatus } from "@/lib/collection/status.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { normalizeSearchText } from "@/lib/search/suggestions.utils";
@@ -218,7 +218,7 @@ export function WizardModal({
   ]);
   const dirty = useDirtySinceMount(draftSignature);
   const { confirmDiscard, requestClose, cancelDiscard } = useDiscardGuard(dirty, onClose);
-  useEscapeClose(requestClose, open);
+  useOverlay(requestClose, open);
   if (!open) return null;
   const visibleTabs = editing ? WIZARD_TABS.filter((tab) => tab.id !== "source") : WIZARD_TABS;
   const activeTab: WizardTab = editing && tab === "source" ? "details" : tab;

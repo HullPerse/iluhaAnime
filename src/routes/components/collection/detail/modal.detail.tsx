@@ -3,7 +3,7 @@ import { useState } from "react";
 
 import Section from "@/components/shared/section.component";
 import { Button } from "@/components/ui/button.component";
-import { useEscapeClose } from "@/hooks/escapeClose.hook";
+import { useOverlay } from "@/hooks/overlay.hook";
 import { readStoredMedia } from "@/lib/collection/media.utils";
 import { statusLabel } from "@/lib/collection/status.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
@@ -45,7 +45,7 @@ export function DetailCollection({
   );
   const [showDesc, setShowDesc] = useState<boolean>(true);
   const mediaOpen = mediaView && mediaView.itemId === item.id ? mediaView : null;
-  useEscapeClose(mediaOpen ? () => setMediaView(null) : onClose);
+  useOverlay(mediaOpen ? () => setMediaView(null) : onClose);
   const stored = readStoredMedia(item.detailsJson);
   const canOpenMedia =
     item.externalIds.tmdb != null || item.externalIds.anilist != null || stored.stills.length > 0;

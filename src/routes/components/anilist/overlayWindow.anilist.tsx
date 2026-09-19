@@ -3,6 +3,7 @@ import { ChevronLeft, Monitor, X } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button.component";
+import { useOverlay } from "@/hooks/overlay.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { useSettingsStore } from "@/store/settings.store";
 
@@ -22,6 +23,7 @@ export function OverlayWindow({
   const enable3dBorders = useSettingsStore((s) => s.enable3dBorders);
   const backdropOpacity = useSettingsStore((s) => s.modalBackdropOpacity);
   const [visible, setVisible] = useState(false);
+  useOverlay(onClose);
 
   useEffect(() => {
     if (!modalAnimation) {

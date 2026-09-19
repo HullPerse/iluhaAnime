@@ -2,8 +2,9 @@ import { listen } from "@tauri-apps/api/event";
 import { Plus, SortAsc, SortDesc } from "lucide-react";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 
+import { AnimatedNumber } from "@/components/shared/animatedNumber.component";
 import { InlineAutocompleteInput } from "@/components/shared/autocomplete/input.autocomplete";
-import { HostStatsLine } from "@/components/shared/hostStats.component";
+import { HostStatsBars } from "@/components/shared/hostStats.component";
 import { SmallLoader } from "@/components/shared/loader.component";
 import Pagination from "@/components/shared/pagination.component";
 import { Button } from "@/components/ui/button.component";
@@ -26,7 +27,12 @@ import {
 } from "@/hooks/torrent/queries.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { applyBulkAction } from "@/lib/torrent/bulk.utils";
-import { fmtSpeed, getLifecycleLabel, getTorrentLifecycle } from "@/lib/torrent/common.utils";
+import {
+  formatSpeed,
+  fmtSpeed,
+  getLifecycleLabel,
+  getTorrentLifecycle,
+} from "@/lib/torrent/common.utils";
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { paginate } from "@/lib/utils/pagination.utils";
 import { useCacheStore } from "@/store/cache.store";
@@ -317,16 +323,14 @@ function TorrentRoute() {
           {t("torrent.summary.seeding", { count: summary.seeding })}
         </span>
         <span className="windows95-text ml-auto text-xs">
-          {t("torrent.summary.download", {
-            speed: fmtSpeed(summary.download) || "0 B/s",
-          })}
+          {t("torrent.summary.download.label")}{" "}
+          <AnimatedNumber value={summary.download} format={formatSpeed} />
         </span>
         <span className="windows95-text text-xs">
-          {t("torrent.summary.upload", {
-            speed: fmtSpeed(summary.upload) || "0 B/s",
-          })}
+          {t("torrent.summary.upload.label")}{" "}
+          <AnimatedNumber value={summary.upload} format={formatSpeed} />
         </span>
-        <HostStatsLine stats={hostStats} showNet />
+        <HostStatsBars stats={hostStats} />
       </section>
       <section className="windows95-active-border bg-primary flex flex-wrap items-center gap-1 p-0.5">
         {(["all", "staging", "live", "paused", "seeding", "completed"] as const).map((lc) => (

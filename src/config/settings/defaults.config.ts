@@ -33,6 +33,7 @@ export const DEFAULT_SETTINGS: SettingsDefaults = {
   anilistDisplayMode: "pagination",
   audioExtensions: ["mp3", "flac", "aac", "ogg", "wav", "opus", "m4a", "wma"],
   buttonPressEffect: true,
+  animateCounters: false,
   customScrollbar: true,
   customTitleBarEnabled: false,
   defaultSearchSource: "erai-raws",

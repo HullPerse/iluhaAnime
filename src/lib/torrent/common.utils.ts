@@ -88,6 +88,11 @@ export function fmtSpeed(bps: number): string {
   return `${(bps / (1024 * 1024)).toFixed(1)} MB/s`;
 }
 
+/** Speed for display: `fmtSpeed` leaves idle values blank, which reads as a broken field. */
+export function formatSpeed(bps: number): string {
+  return fmtSpeed(bps) || "0 B/s";
+}
+
 export function isCurrentDownload(torrent: TorrentInfo): boolean {
   return !torrent.finished && torrent.state !== "paused" && torrent.state !== "error";
 }

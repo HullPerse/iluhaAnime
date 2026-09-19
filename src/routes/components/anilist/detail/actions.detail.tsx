@@ -18,12 +18,13 @@ export function DetailHeaderActions({
   listEntry?: QuickAddListEntry;
 }) {
   const { t } = useI18n();
-  if (trailerId === null) return null;
   return (
     <div className="flex flex-row gap-2">
-      <Button className="h-5 shrink-0 px-1 text-xs" onClick={() => onTrailer?.(trailerId)}>
-        {t("anilist.details.trailer")}
-      </Button>
+      {trailerId !== null ? (
+        <Button className="h-5 shrink-0 px-1 text-xs" onClick={() => onTrailer?.(trailerId)}>
+          {t("anilist.details.trailer")}
+        </Button>
+      ) : null}
       <QuickAddButton anime={anime} listEntry={listEntry} isFavorite={isFavorite} />
     </div>
   );

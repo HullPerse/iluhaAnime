@@ -8,6 +8,7 @@ const common = {
   "common.close": "Закрыть",
   "common.cancel": "Отмена",
   "common.back": "Назад",
+  "common.breadcrumb": "Хлебные крошки",
   "common.collapse": "Свернуть раздел",
   "common.continue": "Продолжить",
   "common.delete": "Удалить",

@@ -8,6 +8,7 @@ const common = {
   "common.close": "Close",
   "common.cancel": "Cancel",
   "common.back": "Back",
+  "common.breadcrumb": "Breadcrumb",
   "common.collapse": "Collapse section",
   "common.continue": "Continue",
   "common.delete": "Delete",

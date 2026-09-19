@@ -76,6 +76,8 @@ export interface TorrentInfo {
   error: string | null;
   save_dir: string;
   sequential_download: boolean;
+  /** The last filesystem check could not find this torrent's files on disk. */
+  missing_files: boolean;
 }
 
 export interface TorrentFileInfo {
@@ -171,7 +173,8 @@ export type TorrentDisplayState =
   | "done"
   | "error"
   | "stalled"
-  | "paused";
+  | "paused"
+  | "missing";
 
 export type TorrentLifecycle = "staging" | "live" | "paused" | "seeding" | "completed";
 
@@ -256,7 +259,8 @@ export interface TorrentItemProps {
   onUpdateFiles: (indices: number[]) => void;
   onFilePriorityChange: (indices: number[], priority: FilePriority) => void;
   onSetSequential: (enabled: boolean) => void;
-  onRetry: () => void;
+  /** Removes the torrent and adds it back by magnet. Lossy, so it always goes through a confirm. */
+  onRecreate: () => void;
   onRedownload: (fileIndex: number) => void;
   onRecheck: () => void;
 }

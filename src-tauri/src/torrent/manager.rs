@@ -53,6 +53,10 @@ pub struct TorrentManager {
     pub preferences_path: PathBuf,
     pub limit_locks: DashMap<usize, Arc<tokio::sync::Mutex<()>>>,
     pub peer_counts: DashMap<usize, (Instant, usize)>,
+    /// Last filesystem verdict per torrent: present means "checked this session", and the
+    /// value is whether anything was missing. Torrents are checked once so a big library
+    /// trickles instead of stat-ing every file on every tick.
+    pub missing_files: DashMap<usize, bool>,
     pub metadata_slots: Arc<tokio::sync::Semaphore>,
 }
 impl TorrentManager {
@@ -164,6 +168,7 @@ impl TorrentManager {
             preferences_path,
             limit_locks: DashMap::new(),
             peer_counts: DashMap::new(),
+            missing_files: DashMap::new(),
             metadata_slots: Arc::new(tokio::sync::Semaphore::new(3)),
         };
         manager.cleanup_unselected_files();
@@ -425,6 +430,10 @@ impl TorrentManager {
                     finished: stats.finished,
                     error: stats.error,
                     sequential_download,
+                    missing_files: self
+                        .missing_files
+                        .get(&id)
+                        .is_some_and(|entry| *entry.value()),
                 });
             }
             result.sort_by_key(|torrent| torrent.id);
@@ -528,6 +537,9 @@ impl TorrentManager {
             AddTorrentResponse::Added(id, _) => {
                 self.save_dirs.insert(id, output_folder);
                 self.save_save_dirs();
+                // A freshly added torrent has none of our files yet; the flag is a verdict of
+                // the last check, so the old one must not stick to the reused id.
+                self.missing_files.remove(&id);
                 if let Some(m) = magnet {
                     self.magnet_links.insert(id, m);
                     self.save_magnet_links();
@@ -1111,6 +1123,7 @@ impl TorrentManager {
         self.pending_selections.remove(&id);
         self.limit_locks.remove(&id);
         self.peer_counts.remove(&id);
+        self.missing_files.remove(&id);
         self.save_save_dirs();
         self.save_magnet_links();
         self.save_torrent_limits();
@@ -1566,7 +1579,40 @@ impl TorrentManager {
             }
             None
         });
-        result.ok_or_else(|| "torrent not found or no metadata".to_string())
+        let check = result.ok_or_else(|| "torrent not found or no metadata".to_string())?;
+        // Remembered for the list: this is what turns the check into the "files lost" state
+        // without the user having to look at the result.
+        self.missing_files.insert(id, !check.missing.is_empty());
+        Ok(check)
+    }
+
+    /// Verifies up to `limit` torrents that have not been checked this session and are not
+    /// still downloading, so files deleted behind the app's back surface on their own instead
+    /// of waiting for a manual Recheck. Incomplete torrents are skipped on purpose: every file
+    /// that has not been fetched yet would otherwise count as missing. The limit keeps a large
+    /// library trickling in instead of blocking one tick with thousands of `stat` calls.
+    pub fn verify_pending_missing(&self, torrents: &mut [TorrentInfo], limit: usize) {
+        let mut checked = 0;
+        for candidate in torrents
+            .iter_mut()
+            .filter(|torrent| torrent.finished || torrent.error.is_some())
+        {
+            if checked >= limit {
+                break;
+            }
+            if self.missing_files.contains_key(&candidate.id) {
+                continue;
+            }
+            checked += 1;
+            let verdict = self
+                .recheck_torrent(candidate.id, Some(candidate.info_hash.clone()))
+                .map(|result| !result.missing.is_empty());
+            // A torrent whose metadata never arrived is not a missing-files case, and `false`
+            // keeps it from being retried on every tick.
+            let missing = verdict.unwrap_or(false);
+            self.missing_files.insert(candidate.id, missing);
+            candidate.missing_files = missing;
+        }
     }
 
     pub fn torrent_diagnostics(
@@ -1846,6 +1892,67 @@ mod tests {
         let error = format!("{error:#}");
         assert!(error.contains("Timed out"), "unexpected error: {error}");
 
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    fn test_info(id: usize, finished: bool, error: Option<&str>) -> TorrentInfo {
+        TorrentInfo {
+            id,
+            name: format!("Torrent {id}"),
+            info_hash: format!("hash-{id}"),
+            total_bytes: 1000,
+            progress_bytes: 0,
+            uploaded_bytes: 0,
+            share_ratio: 0.0,
+            download_speed: 0.0,
+            upload_speed: 0.0,
+            peers_connected: 0,
+            progress: 0.0,
+            state: "live".to_string(),
+            eta_secs: None,
+            finished,
+            error: error.map(str::to_string),
+            save_dir: "/dl".to_string(),
+            sequential_download: false,
+            missing_files: false,
+        }
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn verify_pending_missing_skips_downloading_torrents_and_respects_the_limit() {
+        let dir = std::env::temp_dir().join(format!("iluha-verify-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("create temp dir");
+        let manager = Arc::new(
+            TorrentManager::new_test(dir.clone())
+                .await
+                .expect("session starts"),
+        );
+
+        let mut torrents = vec![
+            test_info(1, false, None),
+            test_info(2, true, None),
+            test_info(3, true, None),
+        ];
+        manager.verify_pending_missing(&mut torrents, 1);
+
+        assert!(
+            !manager.missing_files.contains_key(&1),
+            "an unfinished torrent is never checked: everything it still has to fetch would read as missing"
+        );
+        // The limit admits one candidate per call, and finished torrents are taken in list order.
+        assert!(manager.missing_files.contains_key(&2));
+        assert!(!manager.missing_files.contains_key(&3));
+        // This session has no such torrent, so the check failed; a failed check is not a verdict
+        // of "files are gone" and must not raise the state.
+        assert!(!torrents[1].missing_files);
+        assert!(!torrents[2].missing_files);
+
+        manager.verify_pending_missing(&mut torrents, 5);
+        assert!(
+            manager.missing_files.contains_key(&3),
+            "the next call picks up the rest"
+        );
         let _ = std::fs::remove_dir_all(&dir);
     }
 

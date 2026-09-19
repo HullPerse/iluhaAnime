@@ -11,6 +11,7 @@ function info(overrides: Partial<TorrentInfo> = {}): TorrentInfo {
     finished: false,
     id: 1,
     info_hash: "hash-1",
+    missing_files: false,
     name: "Test",
     peers_connected: 0,
     progress: 0,
@@ -36,9 +37,9 @@ function props(overrides: Partial<TorrentItemProps> = {}): TorrentItemProps {
     onPause: () => {},
     onRecheck: () => {},
     onRedownload: () => {},
+    onRecreate: () => {},
     onRemove: () => {},
     onResume: () => {},
-    onRetry: () => {},
     onSeedChange: () => {},
     onSetSequential: () => {},
     onToggleExpand: () => {},
@@ -58,6 +59,11 @@ describe("areTorrentItemsEqual", () => {
     expect(areTorrentItemsEqual(base, props({ item: info({ name: "Renamed" }) }))).toBe(false);
     expect(areTorrentItemsEqual(base, props({ item: info({ save_dir: "/other" }) }))).toBe(false);
     expect(areTorrentItemsEqual(base, props({ busy: true }))).toBe(false);
+  });
+
+  it("repaints when a check reports the files gone", () => {
+    const base = props();
+    expect(areTorrentItemsEqual(base, props({ item: info({ missing_files: true }) }))).toBe(false);
   });
 
   it("repaints when the files error appears", () => {

@@ -14,6 +14,7 @@ function info(): TorrentInfo {
     finished: false,
     id: 1,
     info_hash: "hash-1",
+    missing_files: false,
     name: "Test",
     peers_connected: 0,
     progress: 0,

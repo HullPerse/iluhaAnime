@@ -531,6 +531,7 @@ export const THEME_OVERRIDE_VARS: Record<ThemeOverrideKey, string> = {
   torrentDone: "--color-torrent-done",
   torrentError: "--color-torrent-error",
   torrentIdle: "--color-torrent-idle",
+  torrentMissing: "--color-torrent-missing",
   torrentSeeding: "--color-torrent-seeding",
 };
 

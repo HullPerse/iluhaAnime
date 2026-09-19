@@ -33,6 +33,9 @@ export function getDisplayState(
   lastActiveAt: Record<number, number>,
   now: number
 ): TorrentDisplayState {
+  // Checked first on purpose: files on disk outweigh whatever the engine reports, and a
+  // torrent whose files are gone is very often also flagged with a generic error.
+  if (item.missing_files) return "missing";
   if (item.error) return "error";
   if (item.finished) return item.state === "live" ? "seeding" : "done";
   if (item.state === "paused") return "paused";
@@ -48,6 +51,7 @@ export const DISPLAY_BAR_CLASS: Record<TorrentDisplayState, string> = {
   error: "bg-torrent-error",
   stalled: "bg-torrent-idle",
   paused: "bg-torrent-idle",
+  missing: "bg-torrent-missing",
 };
 
 const DISPLAY_LABEL_KEY: Record<TorrentDisplayState, TranslationKey> = {
@@ -57,6 +61,7 @@ const DISPLAY_LABEL_KEY: Record<TorrentDisplayState, TranslationKey> = {
   error: "torrent.state.error",
   stalled: "torrent.state.stalled",
   paused: "torrent.state.paused",
+  missing: "torrent.state.missing",
 };
 
 export function displayStateLabel(state: TorrentDisplayState, t: TFunc): string {
@@ -176,6 +181,7 @@ export function TorrentListen(
         p.peers_connected !== t.peers_connected ||
         p.finished !== t.finished ||
         p.error !== t.error ||
+        p.missing_files !== t.missing_files ||
         p.uploaded_bytes !== t.uploaded_bytes ||
         p.share_ratio !== t.share_ratio ||
         p.total_bytes !== t.total_bytes ||

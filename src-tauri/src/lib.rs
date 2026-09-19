@@ -79,9 +79,13 @@ struct TorrentUpdateSignature {
     total_bytes: u64,
     uploaded_bytes: u64,
     sequential_download: bool,
+    missing_files: bool,
 }
 
 const TORRENT_HEARTBEAT_TICKS: u32 = 30;
+/// Torrents verified per tick. Small on purpose: one pass costs a `stat` per file, so a library
+/// of finished torrents fills in over a few seconds instead of stalling a single tick.
+const TORRENT_VERIFY_PER_TICK: usize = 2;
 
 #[derive(Default)]
 struct TorrentTickState {
@@ -98,7 +102,10 @@ async fn run_torrent_update_tick(
     manager: &Arc<TorrentManager>,
     state: &mut TorrentTickState,
 ) {
-    let torrents = manager.collect_torrents();
+    let mut torrents = manager.collect_torrents();
+    // Fills `missing_files` for torrents nothing has checked yet, before the signature is built
+    // below: the flag is user-visible, so a verdict arriving after the emit would be a tick late.
+    manager.verify_pending_missing(&mut torrents, TORRENT_VERIFY_PER_TICK);
     let signature: Vec<TorrentUpdateSignature> = torrents
         .iter()
         .map(|t| TorrentUpdateSignature {
@@ -113,6 +120,7 @@ async fn run_torrent_update_tick(
             total_bytes: t.total_bytes,
             uploaded_bytes: t.uploaded_bytes,
             sequential_download: t.sequential_download,
+            missing_files: t.missing_files,
         })
         .collect();
     if state.first_run

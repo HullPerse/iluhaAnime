@@ -16,6 +16,7 @@ function sameTorrentInfo(prev: TorrentInfo, next: TorrentInfo): boolean {
     prev.total_bytes === next.total_bytes &&
     prev.progress_bytes === next.progress_bytes &&
     prev.error === next.error &&
+    prev.missing_files === next.missing_files &&
     prev.peers_connected === next.peers_connected &&
     prev.sequential_download === next.sequential_download &&
     prev.name === next.name &&

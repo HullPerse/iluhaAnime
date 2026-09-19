@@ -134,6 +134,8 @@
   --color-torrent-done: var(--color-success);
   --color-torrent-error: var(--color-destructive);
   --color-torrent-idle: var(--color-muted);
+  /* Files gone: neither an error nor idle, so it gets its own amber. */
+  --color-torrent-missing: #b8860b;
   --color-graph-default: var(--color-muted);
   --color-graph-light: var(--color-hint);
   --color-graph-pale: var(--color-surface);
@@ -187,6 +189,7 @@
   --color-torrent-done: var(--color-torrent-done);
   --color-torrent-error: var(--color-torrent-error);
   --color-torrent-idle: var(--color-torrent-idle);
+  --color-torrent-missing: var(--color-torrent-missing);
   --color-graph-default: var(--color-graph-default);
   --color-graph-light: var(--color-graph-light);
   --color-graph-pale: var(--color-graph-pale);

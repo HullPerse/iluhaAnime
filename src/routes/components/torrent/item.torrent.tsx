@@ -6,7 +6,7 @@ import { areTorrentItemsEqual } from "@/lib/torrent/item.utils";
 import type { TorrentItemProps as Props } from "@/types/torrent";
 
 import { TorrentPeersModal } from "./peers.torrent";
-import { TorrentError } from "./sections/error.sections";
+import { TorrentProblem } from "./sections/error.sections";
 import { TorrentFiles } from "./sections/files.sections";
 import { TorrentHeader } from "./sections/header.sections";
 import { TorrentProgress } from "./sections/progress.sections";
@@ -26,7 +26,7 @@ function TorrentItem({
   onUpdateFiles,
   onFilePriorityChange,
   onSetSequential,
-  onRetry,
+  onRecreate,
   onRedownload,
   onRecheck,
 }: Props) {
@@ -67,7 +67,14 @@ function TorrentItem({
           {t("torrent.files.error")}: {filesError}
         </span>
       )}
-      {item.error && <TorrentError error={item.error} onRetry={onRetry} />}
+      {(item.error || item.missing_files) && (
+        <TorrentProblem
+          error={item.error}
+          missing={item.missing_files}
+          onRecheck={onRecheck}
+          onRecreate={onRecreate}
+        />
+      )}
       {showPeers && (
         <TorrentPeersModal
           id={item.id}

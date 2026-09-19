@@ -83,6 +83,10 @@ pub struct TorrentInfo {
     pub error: Option<String>,
     pub save_dir: String,
     pub sequential_download: bool,
+    /// Files the last filesystem check could not find on disk. Refreshed by `recheck_torrent`
+    /// and by the background verification pass, so the UI can tell "files are gone" apart
+    /// from "the tracker died".
+    pub missing_files: bool,
 }
 
 #[derive(Serialize, Deserialize, Clone)]

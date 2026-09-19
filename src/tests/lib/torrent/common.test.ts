@@ -33,6 +33,7 @@ function makeInfo(id: number, overrides: Partial<TorrentInfo> = {}): TorrentInfo
     finished: false,
     id,
     info_hash: `hash-${id}`,
+    missing_files: false,
     name: `Torrent ${id}`,
     peers_connected: 0,
     progress: 0,
@@ -226,6 +227,18 @@ describe("getDisplayState", () => {
       "error"
     );
   });
+  it("reports missing files above every other state", () => {
+    expect(
+      getDisplayState(makeInfo(1, { missing_files: true, finished: true }), live({}), NOW)
+    ).toBe("missing");
+    expect(
+      getDisplayState(
+        makeInfo(1, { error: "tracker down", missing_files: true, state: "paused" }),
+        live({}),
+        NOW
+      )
+    ).toBe("missing");
+  });
   it("reports seeding for live finished torrents", () => {
     expect(getDisplayState(makeInfo(1, { finished: true, state: "live" }), live({}), NOW)).toBe(
       "seeding"
@@ -253,9 +266,9 @@ describe("getDisplayState", () => {
     expect(getDisplayState(makeInfo(1), live({ 1: stamp }), NOW)).toBe("downloading");
   });
   it("labels every display state without falling back to raw keys", () => {
-    const labels = (["downloading", "seeding", "done", "error", "stalled", "paused"] as const).map(
-      (s) => displayStateLabel(s, ru)
-    );
+    const labels = (
+      ["downloading", "seeding", "done", "error", "stalled", "paused", "missing"] as const
+    ).map((s) => displayStateLabel(s, ru));
     expect(labels).toEqual([
       "Загружается",
       "Раздаётся",
@@ -263,9 +276,10 @@ describe("getDisplayState", () => {
       "Ошибка",
       "Простаивает",
       "Пауза",
+      "Файлов нет",
     ]);
     expect(Object.keys(DISPLAY_BAR_CLASS).sort()).toEqual(
-      ["done", "downloading", "error", "paused", "seeding", "stalled"].sort()
+      ["done", "downloading", "error", "missing", "paused", "seeding", "stalled"].sort()
     );
     expect(DISPLAY_BAR_CLASS).toEqual({
       downloading: "bg-torrent-downloading",
@@ -274,6 +288,7 @@ describe("getDisplayState", () => {
       error: "bg-torrent-error",
       stalled: "bg-torrent-idle",
       paused: "bg-torrent-idle",
+      missing: "bg-torrent-missing",
     });
   });
 });
@@ -325,5 +340,21 @@ describe("shouldHealTorrentChannel", () => {
         50_001
       )
     ).toBe(false);
+  });
+});
+
+describe("TorrentListen", () => {
+  const event = (payload: TorrentInfo[]) => ({ payload }) as Event<TorrentInfo[]>;
+  const state = (torrents: TorrentInfo[]): TorrentListState => ({ lastActiveAt: {}, torrents });
+
+  it("repaints when a check reports the files gone", () => {
+    const prev = state([makeInfo(1, { finished: true })]);
+    const next = [makeInfo(1, { finished: true, missing_files: true })];
+    expect(TorrentListen(prev, event(next), 60_000).torrents).toEqual(next);
+  });
+
+  it("drops the repaint when the verdict is unchanged", () => {
+    const torrents = [makeInfo(1, { finished: true, missing_files: true })];
+    expect(TorrentListen(state(torrents), event(torrents), 60_000).torrents).toBeUndefined();
   });
 });

@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 
 import { AnimatedNumber } from "@/components/shared/animatedNumber.component";
 import { InlineAutocompleteInput } from "@/components/shared/autocomplete/input.autocomplete";
+import { ConfirmDialog } from "@/components/shared/confirm.component";
 import { HostStatsBars } from "@/components/shared/hostStats.component";
 import { SmallLoader } from "@/components/shared/loader.component";
 import Pagination from "@/components/shared/pagination.component";
@@ -26,7 +27,7 @@ import {
   useUpdateOnlyFiles,
 } from "@/hooks/torrent/queries.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
-import { applyBulkAction } from "@/lib/torrent/bulk.utils";
+import { applyBulkAction, splitRecheckOutcome } from "@/lib/torrent/bulk.utils";
 import {
   formatSpeed,
   fmtSpeed,
@@ -40,7 +41,7 @@ import { useDeepLinkStore } from "@/store/deeplink.store";
 import { useTorrentStore } from "@/store/download.store";
 import { useNotificationStore } from "@/store/notification.store";
 import { useSettingsStore } from "@/store/settings.store";
-import type { TorrentLifecycle } from "@/types/torrent";
+import type { TorrentInfo, TorrentLifecycle } from "@/types/torrent";
 
 import TorrentItem from "./components/torrent/item.torrent";
 import AddTorrentModal from "./components/torrent/magnet.torrent";
@@ -134,28 +135,51 @@ function TorrentRoute() {
     [filteredTorrents, page]
   );
   const [bulkBusy, setBulkBusy] = useState(false);
-  const erroredTorrents = useMemo(
-    () => filteredTorrents.filter((torrent) => torrent.error),
+  /** Torrents the last bulk recheck proved are still missing files, waiting on the confirm. */
+  const [recreateTargets, setRecreateTargets] = useState<TorrentInfo[]>([]);
+  const problemTorrents = useMemo(
+    () => filteredTorrents.filter((torrent) => torrent.error || torrent.missing_files),
     [filteredTorrents]
   );
-  const runBulk = async (kind: "pause" | "resume" | "retry") => {
-    const targets =
-      kind === "retry" ? filteredTorrents.filter((torrent) => torrent.error) : filteredTorrents;
+  const recreateTorrents = (targets: TorrentInfo[]) =>
+    applyBulkAction(targets, (torrent) =>
+      removeMutation
+        .mutateAsync({ id: torrent.id, deleteFiles: false, infoHash: torrent.info_hash })
+        .then((removed) => {
+          if (removed) prepareTorrentDownload(`magnet:?xt=urn:btih:${torrent.info_hash}`);
+        })
+    );
+  const runBulk = async (kind: "pause" | "resume" | "recheck") => {
+    const targets = kind === "recheck" ? problemTorrents : filteredTorrents;
     if (targets.length === 0 || bulkBusy) return;
     setBulkBusy(true);
     await attempt(
       (async () => {
-        const { done, failed } = await applyBulkAction(targets, (torrent) => {
-          if (kind === "pause")
-            return pauseMutation.mutateAsync({ id: torrent.id, infoHash: torrent.info_hash });
-          if (kind === "resume")
-            return resumeMutation.mutateAsync({ id: torrent.id, infoHash: torrent.info_hash });
-          return removeMutation
-            .mutateAsync({ id: torrent.id, deleteFiles: false, infoHash: torrent.info_hash })
-            .then((removed) => {
-              if (removed) prepareTorrentDownload(`magnet:?xt=urn:btih:${torrent.info_hash}`);
-            });
-        });
+        if (kind === "recheck") {
+          // Recheck first: it repairs most errored torrents and costs nothing but a filesystem
+          // pass, unlike recreating, which resets manual trackers, file selection and order.
+          const results = await Promise.all(
+            targets.map((torrent) =>
+              recheckMutation.mutateAsync({ id: torrent.id, infoHash: torrent.info_hash })
+            )
+          );
+          const { lost, failed } = splitRecheckOutcome(targets, results);
+          useNotificationStore.getState().add(
+            t("torrent.bulk.title"),
+            failed > 0 ? "error" : "success",
+            t("torrent.bulk.recheck.done", {
+              done: targets.length - failed,
+              failed,
+            })
+          );
+          if (lost.length > 0) setRecreateTargets(lost);
+          return;
+        }
+        const { done, failed } = await applyBulkAction(targets, (torrent) =>
+          kind === "pause"
+            ? pauseMutation.mutateAsync({ id: torrent.id, infoHash: torrent.info_hash })
+            : resumeMutation.mutateAsync({ id: torrent.id, infoHash: torrent.info_hash })
+        );
         useNotificationStore
           .getState()
           .add(
@@ -396,10 +420,10 @@ function TorrentRoute() {
         </Button>
         <Button
           className="windows95-text flex items-center"
-          disabled={bulkBusy || erroredTorrents.length === 0}
-          onClick={() => runBulk("retry")}
+          disabled={bulkBusy || problemTorrents.length === 0}
+          onClick={() => runBulk("recheck")}
         >
-          {t("torrent.bulk.retry.errors")}
+          {t("torrent.bulk.recheck.errors")}
         </Button>
       </section>
 
@@ -463,7 +487,7 @@ function TorrentRoute() {
                 onSetSequential={(enabled) =>
                   setSequentialMutation.mutate({ id: item.id, enabled, infoHash: item.info_hash })
                 }
-                onRetry={async () => {
+                onRecreate={async () => {
                   const removed = await removeMutation.mutateAsync({
                     id: item.id,
                     deleteFiles: false,
@@ -530,6 +554,24 @@ function TorrentRoute() {
           to={to}
           onPageChange={setPage}
           statusText={t("torrent.summary.total", { count: total })}
+        />
+      )}
+      {recreateTargets.length > 0 && (
+        <ConfirmDialog
+          open
+          title={t("torrent.recreate.title")}
+          message={t("torrent.bulk.recreate.message", { count: recreateTargets.length })}
+          confirmLabel={t("torrent.recreate.confirm")}
+          variant="destructive"
+          onConfirm={() => {
+            const targets = recreateTargets;
+            setRecreateTargets([]);
+            recreateTorrents(targets).catch((error) =>
+              reportBackgroundError("torrent.recreate", error)
+            );
+          }}
+          onCancel={() => setRecreateTargets([])}
+          onClose={() => setRecreateTargets([])}
         />
       )}
       {showMagnetModal && (

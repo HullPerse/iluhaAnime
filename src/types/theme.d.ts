@@ -45,7 +45,8 @@ export type ThemeOverrideKey =
   | "torrentSeeding"
   | "torrentDone"
   | "torrentError"
-  | "torrentIdle";
+  | "torrentIdle"
+  | "torrentMissing";
 
 export type ThemeOverrides = Partial<Record<ThemeOverrideKey, string>>;
 

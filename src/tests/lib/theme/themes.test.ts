@@ -25,7 +25,7 @@ const MIN_CONTRAST = 4.5;
 /** Status and graph colours are derived from these four accents. */
 const ACCENT_KEYS = ["highlight", "linkHover", "success", "destructive"] as const;
 
-const STATUS_KEYS = ["downloading", "seeding", "done", "error", "idle"] as const;
+const STATUS_KEYS = ["downloading", "seeding", "done", "error", "idle", "missing"] as const;
 
 /** Mirrors the derivation in `index.css` plus the theme's own overrides. */
 function statusColors(theme: (typeof THEMES)[number]): Record<string, string> {
@@ -37,6 +37,7 @@ function statusColors(theme: (typeof THEMES)[number]): Record<string, string> {
     error: overrides.torrentError ?? c.destructive,
     idle: overrides.torrentIdle ?? c.muted,
     seeding: overrides.torrentSeeding ?? "#f97316",
+    missing: overrides.torrentMissing ?? "#b8860b",
   };
 }
 

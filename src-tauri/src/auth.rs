@@ -106,10 +106,7 @@ pub fn load_rutracker_cookies(app_handle: &tauri::AppHandle) -> HashMap<String, 
 const MAX_AUTH_RESPONSE_BYTES: usize = 2 * 1024 * 1024;
 
 fn decode_page(bytes: &[u8]) -> String {
-    match std::str::from_utf8(bytes) {
-        Ok(text) => text.to_string(),
-        Err(_) => decode_windows_1251(bytes),
-    }
+    std::str::from_utf8(bytes).map_or_else(|_| decode_windows_1251(bytes), ToString::to_string)
 }
 
 fn detect_challenge(text: &str) -> Option<&'static str> {
@@ -141,7 +138,9 @@ fn session_is_logged_in(text: &str) -> bool {
 
 async fn read_body_limited(resp: reqwest::Response) -> Result<Vec<u8>, String> {
     use futures::StreamExt;
-    let mut body = Vec::new();
+    // Small initial capacity: login pages are a few KB, the 2MB cap
+    // bounds the worst case. Avoids the first reallocs per chunk.
+    let mut body = Vec::with_capacity(8 * 1024);
     let mut stream = resp.bytes_stream();
     while let Some(chunk) = stream.next().await {
         let chunk = chunk.map_err(|e| format!("Read error: {e}"))?;

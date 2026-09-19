@@ -416,7 +416,7 @@ pub async fn search_tmdb(
     let results = json["results"]
         .as_array()
         .ok_or("Unexpected TMDB response")?;
-    let mut out = Vec::new();
+    let mut out = Vec::with_capacity(results.len());
     for item in results {
         let media_type = item["media_type"].as_str().unwrap_or("");
         if !matches!(media_type, "movie" | "tv") {

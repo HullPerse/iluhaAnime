@@ -122,9 +122,9 @@ fn load_franchise_cache(app_handle: &AppHandle) {
         eprintln!("unable to iterate AniList franchise cache");
         return;
     };
-    let mut guard = FRANCHISE_CACHE
-        .lock()
-        .expect("franchise cache mutex poisoned");
+    // Collect off-lock: parsing every row under the global cache
+    // lock serialized all concurrent readers for no reason.
+    let mut nodes = std::collections::HashMap::new();
     for row in rows.flatten() {
         let (
             id,
@@ -141,7 +141,7 @@ fn load_franchise_cache(app_handle: &AppHandle) {
         let targets =
             serde_json::from_str::<Vec<(u64, String, Option<String>, Option<i32>)>>(&targets_json)
                 .unwrap_or_default();
-        guard.insert(
+        nodes.insert(
             id,
             CachedFranchiseNode {
                 node: FranchiseNode {
@@ -159,6 +159,10 @@ fn load_franchise_cache(app_handle: &AppHandle) {
             },
         );
     }
+    FRANCHISE_CACHE
+        .lock()
+        .expect("franchise cache mutex poisoned")
+        .extend(nodes);
     FRANCHISE_CACHE_LOADED.store(true, Ordering::Relaxed);
 }
 
@@ -279,11 +283,7 @@ const MAX_FRANCHISE_DEPTH: usize = 15;
 const FRANCHISE_BATCH_SIZE: usize = 8;
 
 fn is_anime_media(media_type: Option<&str>) -> bool {
-    match media_type {
-        None => true,
-        Some("ANIME" | "MOVIE" | "OVA" | "ONA") => true,
-        _ => false,
-    }
+    matches!(media_type, None | Some("ANIME" | "MOVIE" | "OVA" | "ONA"))
 }
 
 fn franchise_relation_rank(rel_type: &str) -> u8 {
@@ -615,8 +615,7 @@ pub async fn get_anime_franchise(
                             relation_type: rel_type,
                         });
                     }
-                    if !visited.contains(&target_id) {
-                        visited.insert(target_id);
+                    if visited.insert(target_id) {
                         frontier.push(Reverse(FrontierEntry {
                             rank,
                             depth: depth + 1,
@@ -639,10 +638,10 @@ pub async fn get_anime_franchise(
     })
 }
 fn relation_line(rel_type: &str, title: &str, year: Option<i32>) -> String {
-    match year {
-        Some(y) => format!("{rel_type} - {title} ({y})"),
-        None => format!("{rel_type} - {title}"),
-    }
+    year.map_or_else(
+        || format!("{rel_type} - {title}"),
+        |y| format!("{rel_type} - {title} ({y})"),
+    )
 }
 
 const PREFETCH_BATCH_SIZE: usize = 8;
@@ -740,11 +739,9 @@ pub async fn prefetch_anime_relations(
         let batch_start = std::time::Instant::now();
         let proxy = resolve_proxy(proxy_url.clone(), proxyUrl.clone());
         let token = optional_token(&app_handle);
-        let results = if let Ok(r) =
+        let Ok(results) =
             fetch_franchise_batch_once(&to_fetch, token.as_deref(), proxy.as_deref()).await
-        {
-            r
-        } else {
+        else {
             for id in to_fetch {
                 let n = attempts.entry(id).or_insert(0);
                 *n += 1;

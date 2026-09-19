@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::fmt::Write as _;
 use std::num::NonZeroU32;
 use std::path::Path;
 
@@ -110,14 +111,15 @@ pub fn url_encode(value: &str) -> String {
         if byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'.' | b'_' | b'~') {
             out.push(byte as char);
         } else {
-            out.push_str(&format!("%{byte:02X}"));
+            let _ = write!(out, "%{byte:02X}");
         }
     }
     out
 }
 
 pub fn with_fallback_trackers(magnet: &str) -> String {
-    let mut result = magnet.to_string();
+    let mut result = String::with_capacity(magnet.len() + 512);
+    result.push_str(magnet);
     for tracker in FALLBACK_TRACKERS {
         result.push(if result.contains('?') { '&' } else { '?' });
         result.push_str("tr=");
@@ -213,6 +215,7 @@ pub fn build_magnet(
         return Err("Invalid info hash".to_string());
     }
     let mut out = format!("magnet:?xt=urn:btih:{hash}");
+    out.reserve(name.map_or(0, str::len) + trackers.len() * 64);
     if let Some(name) = name.map(str::trim).filter(|name| !name.is_empty()) {
         out.push_str("&dn=");
         out.push_str(&url_encode(name));

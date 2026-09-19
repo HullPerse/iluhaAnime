@@ -296,9 +296,9 @@ pub fn list_collection_items(app: tauri::AppHandle) -> Result<Vec<CollectionItem
                 cover_blob_id: row.get(18)?,
                 thumb_blob_id: row.get(19)?,
                 external_ids: serde_json::from_str(&external_ids)
-                    .unwrap_or(serde_json::Value::Object(Default::default())),
+                    .unwrap_or_else(|_| serde_json::Value::Object(serde_json::Map::default())),
                 custom_fields: serde_json::from_str(&custom_fields)
-                    .unwrap_or(serde_json::Value::Object(Default::default())),
+                    .unwrap_or_else(|_| serde_json::Value::Object(serde_json::Map::default())),
                 local_path: row.get(22)?,
                 local_kind: row.get(23)?,
                 started_at: row.get(24)?,
@@ -630,7 +630,7 @@ fn patch_collection_item_connection(
     }
     if let Some(Some(v)) = patch.progress_total {
         set!("progress_total = ?", v);
-    } else if let Some(None) = patch.progress_total {
+    } else if patch.progress_total == Some(None) {
         sets.push("progress_total = NULL");
     }
     if let Some(v) = &patch.progress_unit {
@@ -638,12 +638,12 @@ fn patch_collection_item_connection(
     }
     if let Some(Some(v)) = patch.duration_minutes {
         set!("duration_minutes = ?", v);
-    } else if let Some(None) = patch.duration_minutes {
+    } else if patch.duration_minutes == Some(None) {
         sets.push("duration_minutes = NULL");
     }
     if let Some(Some(v)) = patch.rating {
         set!("rating = ?", v);
-    } else if let Some(None) = patch.rating {
+    } else if patch.rating == Some(None) {
         sets.push("rating = NULL");
     }
     if let Some(v) = &patch.priority {
@@ -654,12 +654,12 @@ fn patch_collection_item_connection(
     }
     if let Some(Some(v)) = patch.year {
         set!("year = ?", v);
-    } else if let Some(None) = patch.year {
+    } else if patch.year == Some(None) {
         sets.push("year = NULL");
     }
     if let Some(Some(v)) = &patch.release_date {
         set!("release_date = ?", v);
-    } else if let Some(None) = &patch.release_date {
+    } else if matches!(&patch.release_date, Some(None)) {
         sets.push("release_date = NULL");
     }
     if let Some(v) = &patch.genres {
@@ -668,32 +668,32 @@ fn patch_collection_item_connection(
     }
     if let Some(Some(v)) = &patch.studio {
         set!("studio = ?", v);
-    } else if let Some(None) = &patch.studio {
+    } else if matches!(&patch.studio, Some(None)) {
         sets.push("studio = NULL");
     }
     if let Some(Some(v)) = &patch.description {
         set!("description = ?", v);
-    } else if let Some(None) = &patch.description {
+    } else if matches!(&patch.description, Some(None)) {
         sets.push("description = NULL");
     }
     if let Some(Some(v)) = &patch.notes {
         set!("notes = ?", v);
-    } else if let Some(None) = &patch.notes {
+    } else if matches!(&patch.notes, Some(None)) {
         sets.push("notes = NULL");
     }
     if let Some(Some(v)) = &patch.cover_url {
         set!("cover_url = ?", v);
-    } else if let Some(None) = &patch.cover_url {
+    } else if matches!(&patch.cover_url, Some(None)) {
         sets.push("cover_url = NULL");
     }
     if let Some(Some(v)) = &patch.cover_blob_id {
         set!("cover_blob_id = ?", v);
-    } else if let Some(None) = &patch.cover_blob_id {
+    } else if matches!(&patch.cover_blob_id, Some(None)) {
         sets.push("cover_blob_id = NULL");
     }
     if let Some(Some(v)) = &patch.thumb_blob_id {
         set!("thumb_blob_id = ?", v);
-    } else if let Some(None) = &patch.thumb_blob_id {
+    } else if matches!(&patch.thumb_blob_id, Some(None)) {
         sets.push("thumb_blob_id = NULL");
     }
     if let Some(v) = &patch.external_ids {
@@ -708,27 +708,27 @@ fn patch_collection_item_connection(
     }
     if let Some(Some(v)) = &patch.local_path {
         set!("local_path = ?", v);
-    } else if let Some(None) = &patch.local_path {
+    } else if matches!(&patch.local_path, Some(None)) {
         sets.push("local_path = NULL");
     }
     if let Some(Some(v)) = &patch.local_kind {
         set!("local_kind = ?", v);
-    } else if let Some(None) = &patch.local_kind {
+    } else if matches!(&patch.local_kind, Some(None)) {
         sets.push("local_kind = NULL");
     }
     if let Some(Some(v)) = patch.started_at {
         set!("started_at = ?", v);
-    } else if let Some(None) = patch.started_at {
+    } else if patch.started_at == Some(None) {
         sets.push("started_at = NULL");
     }
     if let Some(Some(v)) = patch.finished_at {
         set!("finished_at = ?", v);
-    } else if let Some(None) = patch.finished_at {
+    } else if patch.finished_at == Some(None) {
         sets.push("finished_at = NULL");
     }
     if let Some(Some(v)) = patch.last_watched_at {
         set!("last_watched_at = ?", v);
-    } else if let Some(None) = patch.last_watched_at {
+    } else if patch.last_watched_at == Some(None) {
         sets.push("last_watched_at = NULL");
     }
     if let Some(v) = patch.rewatch_count {
@@ -736,24 +736,24 @@ fn patch_collection_item_connection(
     }
     if let Some(Some(serialized)) = &sites_to_view {
         set!("sites_to_view = ?", serialized);
-    } else if let Some(None) = &sites_to_view {
+    } else if matches!(&sites_to_view, Some(None)) {
         sets.push("sites_to_view = NULL");
     }
     if let Some(Some(v)) = patch.tv_current_season {
         set!("tv_current_season = ?", v);
-    } else if let Some(None) = patch.tv_current_season {
+    } else if patch.tv_current_season == Some(None) {
         sets.push("tv_current_season = NULL");
     }
     if let Some(Some(v)) = patch.tv_current_episode {
         set!("tv_current_episode = ?", v);
-    } else if let Some(None) = patch.tv_current_episode {
+    } else if patch.tv_current_episode == Some(None) {
         sets.push("tv_current_episode = NULL");
     }
     if let Some(Some(v)) = &patch.details_json {
         let serialized =
             serde_json::to_string(v).map_err(|e| format!("serialize details_json: {e}"))?;
         set!("details_json = ?", serialized);
-    } else if let Some(None) = &patch.details_json {
+    } else if matches!(&patch.details_json, Some(None)) {
         sets.push("details_json = NULL");
     }
 

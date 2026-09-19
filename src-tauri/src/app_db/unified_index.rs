@@ -59,21 +59,29 @@ pub fn normalize_index_text(value: &str) -> String {
     trimmed.chars().take(256).collect()
 }
 pub fn build_fts_match_query(normalized: &str) -> String {
-    normalized
+    // Fold directly into the output: avoids the intermediate Vec of
+    // per-token Strings on a query path that runs per keystroke.
+    let mut out = String::with_capacity(normalized.len() + 16);
+    for token in normalized
         .split_whitespace()
         .filter(|token| token.chars().count() >= 3)
-        .map(|token| format!("\"{}\"", token.replace('"', "\"\"")))
-        .collect::<Vec<_>>()
-        .join(" AND ")
+    {
+        if !out.is_empty() {
+            out.push_str(" AND ");
+        }
+        out.push('"');
+        out.push_str(&token.replace('"', "\"\""));
+        out.push('"');
+    }
+    out
 }
 pub fn feedback_score_sql(column_prefix: &str) -> String {
     format!(
-        "({p}selected_count * 20 + {p}use_count * 4 - {p}ignored_count * 8) * \
-         CASE WHEN {p}last_used_at > strftime('%s', 'now') - 86400 THEN 1.0 \
-         WHEN {p}last_used_at > strftime('%s', 'now') - 604800 THEN 0.5 \
-         WHEN {p}last_used_at > strftime('%s', 'now') - 2592000 THEN 0.25 \
-         ELSE 0.1 END",
-        p = column_prefix
+        "({column_prefix}selected_count * 20 + {column_prefix}use_count * 4 - {column_prefix}ignored_count * 8) * \
+         CASE WHEN {column_prefix}last_used_at > strftime('%s', 'now') - 86400 THEN 1.0 \
+         WHEN {column_prefix}last_used_at > strftime('%s', 'now') - 604800 THEN 0.5 \
+         WHEN {column_prefix}last_used_at > strftime('%s', 'now') - 2592000 THEN 0.25 \
+         ELSE 0.1 END"
     )
 }
 fn validate_unified_index_entry(entry: &UnifiedIndexEntryInput) -> Result<String, String> {
@@ -113,12 +121,13 @@ pub fn upsert_unified_index(
     let transaction = connection
         .unchecked_transaction()
         .map_err(|error| format!("unified index transaction: {error}"))?;
+    // Prepared once for the whole batch: bulk upserts carry up to 5000
+    // entries and re-preparing per row dominated the loop. Scoped so
+    // the statement drops before the transaction commits.
     let now = now_seconds();
-    for entry in &entries {
-        let metadata = validate_unified_index_entry(entry)?;
-        let normalized = normalize_index_text(&entry.value);
-        transaction
-            .execute(
+    {
+        let mut statement = transaction
+            .prepare(
                 "INSERT INTO unified_index
                     (id, kind, scope, value, normalized_value, subtitle, metadata_json, updated_at)
                  VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
@@ -130,7 +139,13 @@ pub fn upsert_unified_index(
                     subtitle = excluded.subtitle,
                     metadata_json = excluded.metadata_json,
                     updated_at = excluded.updated_at",
-                params![
+            )
+            .map_err(|error| format!("prepare unified index upsert: {error}"))?;
+        for entry in &entries {
+            let metadata = validate_unified_index_entry(entry)?;
+            let normalized = normalize_index_text(&entry.value);
+            statement
+                .execute(params![
                     entry.id,
                     entry.kind,
                     entry.scope,
@@ -139,9 +154,9 @@ pub fn upsert_unified_index(
                     entry.subtitle,
                     metadata,
                     now
-                ],
-            )
-            .map_err(|error| format!("upsert unified index: {error}"))?;
+                ])
+                .map_err(|error| format!("upsert unified index: {error}"))?;
+        }
     }
     transaction
         .commit()
@@ -178,16 +193,20 @@ pub fn prune_unified_index_scope(
         rows
     };
     let mut removed = 0usize;
-    for id in stale_ids {
-        if keep_ids.contains(id.as_str()) {
-            continue;
+    // Prepared once: the old code re-prepared the DELETE per stale row.
+    // Scoped so the statement drops before the transaction commits.
+    {
+        let mut delete = transaction
+            .prepare("DELETE FROM unified_index WHERE scope = ?1 AND id = ?2")
+            .map_err(|error| format!("prepare stale unified index delete: {error}"))?;
+        for id in stale_ids {
+            if keep_ids.contains(id.as_str()) {
+                continue;
+            }
+            removed += delete
+                .execute(params![scope, id])
+                .map_err(|error| format!("delete stale unified index entry: {error}"))?;
         }
-        removed += transaction
-            .execute(
-                "DELETE FROM unified_index WHERE scope = ?1 AND id = ?2",
-                params![scope, id],
-            )
-            .map_err(|error| format!("delete stale unified index entry: {error}"))?;
     }
     transaction
         .commit()

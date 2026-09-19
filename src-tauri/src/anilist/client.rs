@@ -43,6 +43,7 @@ async fn acquire_request_slot() {
             }
             if log.len() < rate_limit_per_min() {
                 log.push_back(now);
+                drop(log);
                 return;
             }
         }

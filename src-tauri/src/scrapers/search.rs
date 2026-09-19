@@ -200,7 +200,9 @@ async fn search_nyaa_impl(
             continue;
         }
 
-        let html = String::from_utf8_lossy(&bytes).to_string();
+        // Borrowed when the page is valid UTF-8: avoids copying
+        // a multi-hundred-KB page just to parse it.
+        let html = String::from_utf8_lossy(&bytes);
         if is_cloudflare_challenge(&html) {
             let host = if base_url.contains("sukebei") {
                 "sukebei.nyaa.si"

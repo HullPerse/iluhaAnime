@@ -358,7 +358,7 @@ pub async fn get_sqlite_tables(
                 Ok(SqliteTableInfo {
                     columns: sqlite_columns(&connection, &name)?,
                     name,
-                    row_count: row_count.max(0) as u64,
+                    row_count: row_count.max(0).cast_unsigned(),
                 })
             })
             .collect()
@@ -747,7 +747,7 @@ pub async fn get_sqlite_rows(
                 columns
                     .iter()
                     .find(|column| column.primary_key)
-                    .map_or(column_names.first().map_or("rowid", String::as_str), |column| column.name.as_str()),
+                    .map_or_else(|| column_names.first().map_or("rowid", String::as_str), |column| column.name.as_str()),
             )?,
         };
         let order_direction = match order_direction.as_deref() {
@@ -780,7 +780,7 @@ pub async fn get_sqlite_rows(
             table,
             columns: column_names,
             rows: values,
-            total: total.max(0) as u64,
+            total: total.max(0).cast_unsigned(),
             page,
             page_size,
         })
@@ -1212,10 +1212,7 @@ pub async fn update_sqlite_cell(
             .collect::<Result<Vec<_>, String>>()?
             .join(" AND ");
         let mut bindings = Vec::with_capacity(keys.len() + 1);
-        bindings.push(match value.as_deref() {
-            Some(raw) => sqlite_text_to_value(raw),
-            None => Value::Null,
-        });
+        bindings.push(value.as_deref().map_or(Value::Null, sqlite_text_to_value));
         bindings.extend(keys.iter().cloned().map(Value::Text));
         let updated = connection
             .execute(

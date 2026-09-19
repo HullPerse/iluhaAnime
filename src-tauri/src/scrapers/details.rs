@@ -314,8 +314,8 @@ fn parse_detail_fields(doc: &Html) -> Vec<TorrentDetailField> {
         }
     }
 
-    let mut bootstrap_fields = parse_bootstrap_detail_fields(doc);
-    for field in bootstrap_fields.drain(..) {
+    let bootstrap_fields = parse_bootstrap_detail_fields(doc);
+    for field in bootstrap_fields {
         let duplicate = fields
             .iter()
             .any(|existing: &TorrentDetailField| existing.label == field.label);
@@ -1259,10 +1259,13 @@ pub async fn get_torrent_details(
     if body.len() > MAX_DETAIL_RESPONSE_BYTES {
         return Err("Torrent page is too large to display safely".to_string());
     }
+    // Borrowed when the page is valid UTF-8: avoids copying
+    // a multi-MB page just to parse it. The rutracker branch
+    // needs an owned String for the windows-1251 fallback.
     let html = if source == "rutracker" {
-        decode_rutracker_page(&body)
+        std::borrow::Cow::Owned(decode_rutracker_page(&body))
     } else {
-        String::from_utf8_lossy(&body).to_string()
+        String::from_utf8_lossy(&body)
     };
     if source == "rutracker" && is_rutracker_challenge(&html) {
         return Err(rutracker_challenge_error());

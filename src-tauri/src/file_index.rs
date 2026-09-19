@@ -82,6 +82,7 @@ impl FileIndexer {
 
         let mut current = index.write().await;
         *current = entries;
+        drop(current);
         Ok(())
     }
 
@@ -112,6 +113,7 @@ impl FileIndexer {
                 .any(|root| Path::new(&entry.path).starts_with(root))
         });
         current.extend(entries);
+        drop(current);
         Ok(())
     }
 
@@ -120,7 +122,7 @@ impl FileIndexer {
     }
 
     pub async fn search(&self, query: &str, extensions: &[String], limit: usize) -> Vec<FileEntry> {
-        let index = self.index.read().await;
+        // Lock-free preamble: nothing below touches the index.
         let query = query.trim().to_lowercase();
         let ext_set: HashSet<String> = extensions
             .iter()
@@ -129,6 +131,7 @@ impl FileIndexer {
             .collect();
         let limit = limit.min(500);
 
+        let index = self.index.read().await;
         let mut results: Vec<(i32, &FileEntry)> = index
             .iter()
             .filter(|entry| {
@@ -147,10 +150,12 @@ impl FileIndexer {
 
         results.sort_by_key(|(score, _)| std::cmp::Reverse(*score));
         results.truncate(limit);
-        results
+        let owned: Vec<FileEntry> = results
             .into_iter()
             .map(|(_, entry)| entry.clone())
-            .collect()
+            .collect();
+        drop(index);
+        owned
     }
 }
 

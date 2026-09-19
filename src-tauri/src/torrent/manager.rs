@@ -1599,13 +1599,13 @@ impl TorrentManager {
                             .collect()
                     })
                     .unwrap_or_default();
-                peers.sort_by(|a, b| b.down_bytes.cmp(&a.down_bytes));
+                peers.sort_by_key(|peer| std::cmp::Reverse(peer.down_bytes));
                 peers.truncate(100);
                 let mut trackers: Vec<String> = handle
                     .shared()
                     .trackers
                     .iter()
-                    .map(|url| url.to_string())
+                    .map(ToString::to_string)
                     .collect();
                 trackers.sort();
                 return Some(TorrentDiagnostics {

@@ -9,6 +9,8 @@ import type { TorrentItemProps } from "@/types/torrent";
 
 export function TorrentHeader({
   item,
+  selected,
+  onSelectChange,
   isLive,
   isPaused,
   busy,
@@ -22,7 +24,15 @@ export function TorrentHeader({
   onDelete,
 }: Pick<
   TorrentItemProps,
-  "item" | "queue" | "onPause" | "onResume" | "onSeedChange" | "onSetSequential" | "onRecheck"
+  | "item"
+  | "selected"
+  | "onSelectChange"
+  | "queue"
+  | "onPause"
+  | "onResume"
+  | "onSeedChange"
+  | "onSetSequential"
+  | "onRecheck"
 > & {
   isLive: boolean;
   isPaused: boolean;
@@ -33,9 +43,20 @@ export function TorrentHeader({
   const { t } = useI18n();
   return (
     <section className="flex flex-row items-center justify-between">
-      <h3 className="windows95-font line-clamp-1 text-xs leading-tight font-bold" title={item.name}>
-        {item.name}
-      </h3>
+      <div className="flex min-w-0 flex-1 items-center gap-1">
+        <Checkbox
+          checked={selected}
+          onChange={onSelectChange}
+          aria-label={t("torrent.select")}
+          className="size-3.5"
+        />
+        <h3
+          className="windows95-font line-clamp-1 text-xs leading-tight font-bold"
+          title={item.name}
+        >
+          {item.name}
+        </h3>
+      </div>
       <div className="flex flex-row items-center gap-1">
         {queue && (
           <>

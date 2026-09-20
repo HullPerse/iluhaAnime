@@ -7,17 +7,20 @@ function Checkbox({
   onChange,
   disabled,
   className,
+  "aria-label": ariaLabel,
 }: {
   checked: boolean;
   onChange: (v: boolean) => void;
   disabled?: boolean;
   className?: string;
+  "aria-label"?: string;
 }) {
   return (
     <CheckboxPrimitive.Root
       checked={checked}
       onCheckedChange={(v) => onChange(v)}
       disabled={disabled}
+      aria-label={ariaLabel}
       className={cn(
         "windows95-border text-text windows95-text bg-field inline-flex size-[var(--ui-check-size)] shrink-0 items-center justify-center leading-none font-bold",
         disabled ? "cursor-default opacity-50" : "cursor-pointer",

@@ -9,6 +9,7 @@ import changelog406 from "./changelog/v4_0_6.ru";
 import changelog407 from "./changelog/v4_0_7.ru";
 import changelog408 from "./changelog/v4_0_8.ru";
 import changelog409 from "./changelog/v4_0_9.ru";
+import changelog410 from "./changelog/v4_1_0.ru";
 import anilist from "./ru/anilist.locale";
 import collection from "./ru/collection.locale";
 import common from "./ru/common.locale";
@@ -20,6 +21,7 @@ import updater from "./ru/updater.locale";
 
 const ru = {
   ...anilist,
+  ...changelog410,
   ...changelog409,
   ...changelog408,
   ...changelog407,

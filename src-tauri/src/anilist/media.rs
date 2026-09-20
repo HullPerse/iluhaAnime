@@ -86,6 +86,9 @@ pub struct AniCharacterNode {
     pub name: String,
     pub native_name: Option<String>,
     pub image: Option<String>,
+    /// How many users have this character in their favourites; `None` when the query did not ask.
+    pub favourites: Option<i64>,
+    pub site_url: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -109,6 +112,17 @@ pub struct AniCharacterMediaEdge {
     pub id: u64,
     pub title: String,
     pub cover_url: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct AniCharacterDetail {
+    pub id: u64,
+    pub name: String,
+    pub native_name: Option<String>,
+    pub image: Option<String>,
+    pub favourites: Option<i64>,
+    pub site_url: Option<String>,
+    pub media: Vec<AniCharacterMediaEdge>,
 }
 
 #[derive(Debug, Serialize)]
@@ -136,7 +150,15 @@ pub struct AniAnimeStaffEdge {
 pub struct AniStaffDetail {
     pub id: u64,
     pub name: String,
+    pub native_name: Option<String>,
     pub image: Option<String>,
+    /// `AniList` returns this as HTML; the frontend flattens it before showing it.
+    pub about: Option<String>,
+    pub favourites: Option<i64>,
+    pub site_url: Option<String>,
+    /// Totals across all pages, so the sections can say how much is not loaded yet.
+    pub character_count: usize,
+    pub media_count: usize,
     pub characters: Vec<AniStaffCharacterEdge>,
     pub media: Vec<AniStaffMediaEdge>,
 }

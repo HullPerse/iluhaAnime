@@ -15,9 +15,11 @@ use anyhow::{Context, Result};
 use dashmap::{DashMap, DashSet};
 use librqbit::http_api_types::PeerStatsFilter;
 use librqbit::limits::LimitsConfig;
+use librqbit::spawn_utils::BlockingSpawner;
 use librqbit::{
-    AddTorrent, AddTorrentOptions, AddTorrentResponse, ConnectionOptions, ListenerOptions, Magnet,
-    PeerConnectionOptions, Session, SessionOptions, SessionPersistenceConfig,
+    create_torrent, AddTorrent, AddTorrentOptions, AddTorrentResponse, ConnectionOptions,
+    CreateTorrentOptions, ListenerOptions, Magnet, PeerConnectionOptions, Session, SessionOptions,
+    SessionPersistenceConfig,
 };
 use serde::{Deserialize, Serialize};
 use std::net::{Ipv4Addr, Ipv6Addr};
@@ -26,11 +28,11 @@ use super::geoip::country_code_for_addr;
 use super::helpers::{
     build_magnet, canonical_or_raw_tracker, ensure_minimum_free_space, is_safe_relative_path,
     share_ratio, to_rqbit_limits, validate_tracker_url, with_fallback_trackers,
-    with_fallback_trackers_bytes,
+    with_fallback_trackers_bytes, FALLBACK_TRACKERS,
 };
 use super::types::{
-    FilePriority, SessionConfig, TorrentCheckResult, TorrentDiagPeer, TorrentDiagnostics,
-    TorrentFileInfo, TorrentInfo, TorrentInfoResult, TorrentLimits,
+    CreatedTorrent, FilePriority, SessionConfig, TorrentCheckResult, TorrentDiagPeer,
+    TorrentDiagnostics, TorrentFileInfo, TorrentInfo, TorrentInfoResult, TorrentLimits,
 };
 #[derive(Serialize, Deserialize, Default)]
 struct TorrentPreferences {
@@ -51,6 +53,9 @@ pub struct TorrentManager {
     pub pending_selections: DashMap<usize, Vec<usize>>,
     pub session_config_path: PathBuf,
     pub preferences_path: PathBuf,
+    /// Metainfo of every torrent built locally, kept so "Save .torrent" can copy it later
+    /// without re-hashing the folder.
+    pub created_dir: PathBuf,
     pub limit_locks: DashMap<usize, Arc<tokio::sync::Mutex<()>>>,
     pub peer_counts: DashMap<usize, (Instant, usize)>,
     /// Last filesystem verdict per torrent: present means "checked this session", and the
@@ -75,6 +80,9 @@ impl TorrentManager {
 
         let session_dir = app_data_dir.join("session");
         tokio::fs::create_dir_all(&session_dir).await.ok();
+
+        let created_dir = app_data_dir.join("created_torrents");
+        tokio::fs::create_dir_all(&created_dir).await.ok();
 
         let save_dirs_path = app_data_dir.join("save_dirs.json");
         let save_dirs: HashMap<usize, String> = std::fs::read_to_string(&save_dirs_path)
@@ -166,6 +174,7 @@ impl TorrentManager {
             pending_selections: DashMap::new(),
             session_config_path,
             preferences_path,
+            created_dir,
             limit_locks: DashMap::new(),
             peer_counts: DashMap::new(),
             missing_files: DashMap::new(),
@@ -482,6 +491,85 @@ impl TorrentManager {
             false,
         )
         .await
+    }
+
+    /// Builds a `.torrent` from a folder and puts it straight into the session as a seed.
+    ///
+    /// The folder itself becomes the torrent root, so the session is pointed at its parent:
+    /// `<parent>/<folder>/...` is exactly the layout the metainfo describes, which means the
+    /// files already on disk are the payload. Nothing is copied and nothing is re-downloaded -
+    /// the created torrent starts out complete and seeding.
+    ///
+    /// A copy of the metainfo is kept in the app data dir, so "Save .torrent" later does not
+    /// have to read the whole folder again.
+    pub async fn create_torrent_from_folder(
+        self: &Arc<Self>,
+        source_dir: String,
+    ) -> Result<CreatedTorrent> {
+        let source = PathBuf::from(&source_dir);
+        if !source.is_dir() {
+            anyhow::bail!("select the folder that holds the files to share");
+        }
+        let name = source
+            .file_name()
+            .with_context(|| format!("the selected folder has no name: {}", source.display()))?
+            .to_string_lossy()
+            .to_string();
+        let save_dir = source
+            .parent()
+            .with_context(|| format!("the selected folder has no parent: {}", source.display()))?
+            .to_string_lossy()
+            .to_string();
+
+        // `create_torrent` happily produces a torrent with zero files; that one can never be
+        // seeded and only shows up as an empty row, so refuse while we still know why.
+        let mut file_count: usize = 0;
+        for entry in walkdir::WalkDir::new(&source) {
+            let Ok(entry) = entry else { continue };
+            if entry.file_type().is_file() {
+                file_count += 1;
+            }
+        }
+        if file_count == 0 {
+            anyhow::bail!("the folder has no files to share");
+        }
+
+        let options = CreateTorrentOptions {
+            trackers: FALLBACK_TRACKERS
+                .iter()
+                .map(|tracker| (*tracker).to_string())
+                .collect(),
+            ..Default::default()
+        };
+        let created = create_torrent(&source, options, &BlockingSpawner::new(1)).await?;
+        let bytes = created.as_bytes()?.to_vec();
+        let info_hash = created.info_hash().as_string();
+
+        // librqbit joins the torrent's files straight onto the output folder and never appends the
+        // torrent name itself, so the name has to come in as `sub_folder`: with `<save_dir>` plus
+        // `<name>` the output folder is the very folder the user picked, which is where the files
+        // already are. Without it the session would look one level up and seed nothing.
+        let id = self
+            .add_torrent_from_bytes(bytes.clone(), save_dir, None, Some(name.clone()))
+            .await?;
+
+        let torrent_path = self.created_dir.join(format!("{info_hash}.torrent"));
+        tokio::fs::write(&torrent_path, &bytes)
+            .await
+            .with_context(|| {
+                format!(
+                    "could not store the created torrent at {}",
+                    torrent_path.display()
+                )
+            })?;
+
+        Ok(CreatedTorrent {
+            id,
+            name,
+            info_hash,
+            torrent_path: torrent_path.to_string_lossy().to_string(),
+            file_count,
+        })
     }
 
     async fn add_torrent_inner(
@@ -1984,6 +2072,106 @@ mod tests {
         })
         .expect("create torrent");
         (result.as_bytes().expect("serialize torrent").to_vec(), dir)
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn create_torrent_from_folder_refuses_a_file_or_an_empty_folder() {
+        let dir = std::env::temp_dir().join(format!("iluha-create-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("create temp dir");
+        let manager = Arc::new(
+            TorrentManager::new_test(dir.clone())
+                .await
+                .expect("session starts"),
+        );
+
+        let file = dir.join("movie.mkv");
+        std::fs::write(&file, b"not a folder").expect("write file");
+        let error = manager
+            .create_torrent_from_folder(file.to_string_lossy().to_string())
+            .await
+            .expect_err("a single file is not a shareable folder");
+        assert!(error.to_string().contains("folder"), "got: {error}");
+
+        let empty = dir.join("Empty");
+        std::fs::create_dir_all(&empty).expect("create empty dir");
+        let error = manager
+            .create_torrent_from_folder(empty.to_string_lossy().to_string())
+            .await
+            .expect_err("a folder with no files can never be seeded");
+        assert!(error.to_string().contains("no files"), "got: {error}");
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn create_torrent_from_folder_seeds_the_folder_in_place() {
+        let dir = std::env::temp_dir().join(format!("iluha-seed-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let source = dir.join("Show");
+        std::fs::create_dir_all(source.join("nested")).expect("create source dir");
+        std::fs::write(source.join("one.bin"), b"first").expect("write file");
+        std::fs::write(source.join("nested").join("two.bin"), b"second")
+            .expect("write nested file");
+
+        let manager = Arc::new(
+            TorrentManager::new_test(dir.clone())
+                .await
+                .expect("session starts"),
+        );
+        let created = manager
+            .create_torrent_from_folder(source.to_string_lossy().to_string())
+            .await
+            .expect("the folder becomes a seeded torrent");
+
+        assert_eq!(created.name, "Show");
+        assert_eq!(created.file_count, 2);
+        assert_eq!(
+            created.info_hash.len(),
+            40,
+            "an info hash is 20 bytes of hex"
+        );
+
+        let stored = std::fs::read(&created.torrent_path).expect("the metainfo copy is on disk");
+        let parsed = torrent_from_bytes(&stored).expect("the stored copy parses");
+        assert_eq!(parsed.info_hash.as_string(), created.info_hash);
+
+        // `save_dirs` holds the resolved output folder: parent + torrent name, i.e. the folder the
+        // user picked. That is what makes the torrent seed from the files already on disk.
+        let seeded_from = manager
+            .save_dirs
+            .get(&created.id)
+            .map(|saved| saved.value().clone())
+            .expect("the created torrent is in the session");
+        assert_eq!(
+            seeded_from,
+            source.to_string_lossy().to_string(),
+            "seeding has to read the folder itself, not its parent"
+        );
+
+        // Completing with no peers at all is the proof of the layout: nothing can be downloaded
+        // from an empty swarm, so a finished torrent can only be one seeded from local files.
+        let deadline = tokio::time::Instant::now() + std::time::Duration::from_secs(20);
+        let mut info = None;
+        while tokio::time::Instant::now() < deadline {
+            info = manager
+                .collect_torrents()
+                .into_iter()
+                .find(|torrent| torrent.id == created.id);
+            if info.as_ref().is_some_and(|torrent| torrent.finished) {
+                break;
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(250)).await;
+        }
+        let info = info.expect("the created torrent shows up in the list");
+        assert_eq!(info.name, "Show");
+        assert_eq!(info.info_hash, created.info_hash);
+        assert!(
+            info.finished,
+            "the files on disk have to be the payload, not something to download"
+        );
+
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[tokio::test(flavor = "multi_thread")]

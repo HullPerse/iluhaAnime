@@ -21,6 +21,55 @@ import { SimilarSection } from "./similar.detail";
 import { StudiosSection } from "./studios.detail";
 import { TitlesSection } from "./titles.detail";
 
+/** What the character window opens on: a character, optionally with a voice actor pushed over it. */
+type CharacterTarget = {
+  id: number;
+  name: string;
+  voiceActors: AniVoiceActor[];
+  staff?: AniVoiceActor;
+};
+
+/**
+ * The character window. It seeds its screen stack once, so a different character or voice actor
+ * needs a fresh instance (the `key`) rather than new props on the old one.
+ */
+function CharacterWindow({
+  target,
+  isLoggedIn,
+  favouriteCharacterIds,
+  favouriteStaffIds,
+  onCharacterFavouriteToggle,
+  onStaffFavouriteToggle,
+  onRelated,
+  onClose,
+}: {
+  target: CharacterTarget;
+  isLoggedIn: boolean;
+  favouriteCharacterIds?: Set<number>;
+  favouriteStaffIds?: Set<number>;
+  onCharacterFavouriteToggle?: (id: number) => void;
+  onStaffFavouriteToggle?: (id: number) => void;
+  onRelated: (id: number) => void;
+  onClose: () => void;
+}) {
+  return (
+    <AniListCharacterDetailModal
+      key={`${target.id}:${target.staff?.id ?? ""}`}
+      characterId={target.id}
+      characterName={target.name}
+      voiceActors={target.voiceActors}
+      initialStaff={target.staff}
+      isLoggedIn={isLoggedIn}
+      favouriteCharacterIds={favouriteCharacterIds}
+      favouriteStaffIds={favouriteStaffIds}
+      onCharacterFavouriteToggle={onCharacterFavouriteToggle}
+      onStaffFavouriteToggle={onStaffFavouriteToggle}
+      onRelated={onRelated}
+      onClose={onClose}
+    />
+  );
+}
+
 export function AniListDetailView({
   animeId,
   listEntry,
@@ -49,11 +98,7 @@ export function AniListDetailView({
 
   const [showFranchise, setShowFranchise] = useState<boolean>(false);
   const [showDesc, setShowDesc] = useState<boolean>(false);
-  const [selectedCharacter, setSelectedCharacter] = useState<{
-    id: number;
-    name: string;
-    voiceActors: AniVoiceActor[];
-  } | null>(null);
+  const [selectedCharacter, setSelectedCharacter] = useState<CharacterTarget | null>(null);
   const showcase = useAnimeShowcase(anime);
   const headerTrailerId = showcase?.trailerYoutubeId ?? null;
   const isFavorite = favouriteIds?.has(animeId) ?? false;
@@ -107,6 +152,9 @@ export function AniListDetailView({
         onCharacterClick={(id, name, voiceActors) =>
           setSelectedCharacter({ id, name, voiceActors })
         }
+        onVoiceActorClick={(character, voiceActor) =>
+          setSelectedCharacter({ ...character, staff: voiceActor })
+        }
       />
 
       <Section
@@ -159,15 +207,15 @@ export function AniListDetailView({
       />
 
       {selectedCharacter && (
-        <AniListCharacterDetailModal
-          characterId={selectedCharacter.id}
-          characterName={selectedCharacter.name}
-          voiceActors={selectedCharacter.voiceActors}
+        <CharacterWindow
+          target={selectedCharacter}
           isLoggedIn={isLoggedIn}
           favouriteCharacterIds={favouriteCharacterIds}
           favouriteStaffIds={favouriteStaffIds}
           onCharacterFavouriteToggle={onCharacterFavouriteToggle}
           onStaffFavouriteToggle={onStaffFavouriteToggle}
+          // The caller's `onRelated` opens the anime in the modal behind this window, so this one
+          // has to close first.
           onRelated={(id) => {
             setSelectedCharacter(null);
             onRelated?.(id);

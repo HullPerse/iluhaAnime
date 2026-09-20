@@ -40,6 +40,8 @@ describe("TorrentHeader actions", () => {
     return (
       <TorrentHeader
         item={info()}
+        selected={false}
+        onSelectChange={() => {}}
         isLive
         isPaused={false}
         busy={false}
@@ -61,12 +63,39 @@ describe("TorrentHeader actions", () => {
     expect(screen.getByTitle("Pause download")).toBeTruthy();
   });
 
+  it("toggles selection without touching the row actions", async () => {
+    const user = userEvent.setup();
+    const onSelectChange = vi.fn();
+    render(
+      <TorrentHeader
+        item={info()}
+        selected={false}
+        onSelectChange={onSelectChange}
+        isLive
+        isPaused={false}
+        busy={false}
+        queue={null}
+        onPause={() => {}}
+        onResume={() => {}}
+        onSeedChange={() => {}}
+        onSetSequential={() => {}}
+        onRecheck={() => {}}
+        onPeers={() => {}}
+        onDelete={() => {}}
+      />
+    );
+    await user.click(screen.getByRole("checkbox", { name: "Select torrent" }));
+    expect(onSelectChange).toHaveBeenCalledWith(true);
+  });
+
   it("asks for delete confirmation through onDelete", async () => {
     const user = userEvent.setup();
     const onDelete = vi.fn();
     render(
       <TorrentHeader
         item={info()}
+        selected={false}
+        onSelectChange={() => {}}
         isLive
         isPaused={false}
         busy={false}
@@ -90,6 +119,8 @@ describe("TorrentHeader queue controls", () => {
     return (
       <TorrentHeader
         item={info()}
+        selected={false}
+        onSelectChange={() => {}}
         isLive
         isPaused={false}
         busy={false}
@@ -130,6 +161,8 @@ describe("TorrentHeader queue controls", () => {
     render(
       <TorrentHeader
         item={info()}
+        selected={false}
+        onSelectChange={() => {}}
         isLive
         isPaused={false}
         busy={false}

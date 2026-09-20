@@ -12,4 +12,28 @@ export interface RGBA {
   a: number;
 }
 
+export interface RGB {
+  r: number;
+  g: number;
+  b: number;
+}
+
+export interface HSV {
+  h: number;
+  s: number;
+  v: number;
+}
+
+export interface HSL {
+  h: number;
+  s: number;
+  l: number;
+}
+
+/** What the picker's field shows: a hex string, RGB channels or HSL channels. */
+export type ColorFormat = "hex" | "rgb" | "hsl";
+
+/** The two formats that are edited as three separate numbers. */
+export type ChannelFormat = "rgb" | "hsl";
+
 export type HexType = `#${string}`;

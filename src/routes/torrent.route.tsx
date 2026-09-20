@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { listen } from "@tauri-apps/api/event";
 import { Plus, SortAsc, SortDesc } from "lucide-react";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
@@ -15,6 +16,7 @@ import { useHostStats } from "@/hooks/hostStats.hook";
 import { usePagination } from "@/hooks/pagination.hook";
 import { useSearchField } from "@/hooks/search/field.hook";
 import {
+  TORRENTS_QUERY_KEY,
   usePauseTorrent,
   useRecheckTorrent,
   useRedownloadFile,
@@ -27,7 +29,7 @@ import {
   useUpdateOnlyFiles,
 } from "@/hooks/torrent/queries.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
-import { applyBulkAction, splitRecheckOutcome } from "@/lib/torrent/bulk.utils";
+import { applyBulkAction, pruneSelection, splitRecheckOutcome } from "@/lib/torrent/bulk.utils";
 import {
   formatSpeed,
   fmtSpeed,
@@ -43,11 +45,14 @@ import { useNotificationStore } from "@/store/notification.store";
 import { useSettingsStore } from "@/store/settings.store";
 import type { TorrentInfo, TorrentLifecycle } from "@/types/torrent";
 
+import CreateTorrentModal from "./components/torrent/create.torrent";
 import TorrentItem from "./components/torrent/item.torrent";
 import AddTorrentModal from "./components/torrent/magnet.torrent";
+import { TorrentSelectionBar } from "./components/torrent/sections/selection.sections";
 import SpeedLimitForm from "./components/torrent/speed.torrent";
 
 function TorrentRoute() {
+  const queryClient = useQueryClient();
   const { data, isLoading: torrentsLoading } = useTorrents();
   const torrents = data ?? NO_TORRENTS;
   const limits = useTorrentStore((state) => state.limits);
@@ -77,6 +82,8 @@ function TorrentRoute() {
     limits.upload === null ? "" : String(limits.upload)
   );
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
+  const [selected, setSelected] = useState<ReadonlySet<number>>(new Set());
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [showMagnetModal, setShowMagnetModal] = useState(false);
   const [magnetPrefill, setMagnetPrefill] = useState<string | null>(null);
   const torrentTarget = useDeepLinkStore((state) => state.torrentTarget);
@@ -141,6 +148,16 @@ function TorrentRoute() {
     () => filteredTorrents.filter((torrent) => torrent.error || torrent.missing_files),
     [filteredTorrents]
   );
+  const selectedTorrents = useMemo(
+    () => filteredTorrents.filter((torrent) => selected.has(torrent.id)),
+    [filteredTorrents, selected]
+  );
+  // A selection can only act on rows the list still shows: narrowing the filter drops what it
+  // hides, while paging or re-sorting keeps everything. `pruneSelection` returns the same set
+  // when nothing changed, so this effect stays free on every unrelated render.
+  useEffect(() => {
+    setSelected((prev) => pruneSelection(prev, filteredTorrents));
+  }, [filteredTorrents]);
   const recreateTorrents = (targets: TorrentInfo[]) =>
     applyBulkAction(targets, (torrent) =>
       removeMutation
@@ -149,8 +166,7 @@ function TorrentRoute() {
           if (removed) prepareTorrentDownload(`magnet:?xt=urn:btih:${torrent.info_hash}`);
         })
     );
-  const runBulk = async (kind: "pause" | "resume" | "recheck") => {
-    const targets = kind === "recheck" ? problemTorrents : filteredTorrents;
+  const runBulk = async (kind: "pause" | "resume" | "recheck", targets: TorrentInfo[]) => {
     if (targets.length === 0 || bulkBusy) return;
     setBulkBusy(true);
     await attempt(
@@ -313,6 +329,15 @@ function TorrentRoute() {
     setSpeedLimits({ download, upload });
   }, [downloadInput, uploadInput, setSpeedLimits]);
 
+  const toggleSelected = useCallback((id: number, value: boolean) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (value) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }, []);
+
   const toggleExpanded = useCallback((id: number) => {
     setExpanded((prev) => {
       const next = new Set(prev);
@@ -406,22 +431,14 @@ function TorrentRoute() {
         </Button>
         <Button
           className="windows95-text flex items-center"
-          disabled={bulkBusy || filteredTorrents.length === 0}
-          onClick={() => runBulk("pause")}
+          onClick={() => setShowCreateModal(true)}
         >
-          {t("torrent.bulk.pause.all")}
-        </Button>
-        <Button
-          className="windows95-text flex items-center"
-          disabled={bulkBusy || filteredTorrents.length === 0}
-          onClick={() => runBulk("resume")}
-        >
-          {t("torrent.bulk.resume.all")}
+          {t("torrent.create.confirm")}
         </Button>
         <Button
           className="windows95-text flex items-center"
           disabled={bulkBusy || problemTorrents.length === 0}
-          onClick={() => runBulk("recheck")}
+          onClick={() => runBulk("recheck", problemTorrents)}
         >
           {t("torrent.bulk.recheck.errors")}
         </Button>
@@ -452,6 +469,7 @@ function TorrentRoute() {
                 files={files}
                 filesError={torrentFilesErrors[item.id]}
                 isExpanded={isExpanded}
+                selected={selected.has(item.id)}
                 busy={opInFlight[item.id] !== undefined}
                 queue={
                   sortBy === "custom"
@@ -463,6 +481,7 @@ function TorrentRoute() {
                     : null
                 }
                 onToggleExpand={() => toggleExpanded(item.id)}
+                onSelectChange={(value) => toggleSelected(item.id, value)}
                 onPause={() => pauseMutation.mutate({ id: item.id, infoHash: item.info_hash })}
                 onResume={() => resumeMutation.mutate({ id: item.id, infoHash: item.info_hash })}
                 onSeedChange={(enabled) => {
@@ -545,6 +564,17 @@ function TorrentRoute() {
           })}
         </section>
       )}
+      {selected.size > 0 && (
+        <TorrentSelectionBar
+          count={selected.size}
+          busy={bulkBusy}
+          onPause={() => runBulk("pause", selectedTorrents)}
+          onResume={() => runBulk("resume", selectedTorrents)}
+          onRecheck={() => runBulk("recheck", selectedTorrents)}
+          onSelectAll={() => setSelected(new Set(filteredTorrents.map((torrent) => torrent.id)))}
+          onClear={() => setSelected(new Set())}
+        />
+      )}
       {total > 0 && (
         <Pagination
           total={total}
@@ -572,6 +602,21 @@ function TorrentRoute() {
           }}
           onCancel={() => setRecreateTargets([])}
           onClose={() => setRecreateTargets([])}
+        />
+      )}
+      {showCreateModal && (
+        <CreateTorrentModal
+          open={showCreateModal}
+          onClose={() => setShowCreateModal(false)}
+          onCreated={(created) => {
+            // A torrent built from local files is complete the moment it is added, and the app
+            // pauses finished torrents unless the user asked to seed them. Record that intent
+            // here, or the link we just handed out would point at a paused torrent.
+            setSeedPreference(created.id, true);
+            // The push channel will pick the new torrent up on its own; this only makes it
+            // appear right away instead of on the next tick.
+            queryClient.invalidateQueries({ queryKey: TORRENTS_QUERY_KEY });
+          }}
         />
       )}
       {showMagnetModal && (

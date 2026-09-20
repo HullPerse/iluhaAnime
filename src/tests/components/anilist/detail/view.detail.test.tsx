@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -8,10 +8,10 @@ import { useSettingsStore } from "@/store/settings.store";
 import type { AniDetailViewProps } from "@/types/anilist";
 import type { AniMedia } from "@/types/anilist";
 
-const mockInvoke = vi.fn();
+const { mockInvoke } = vi.hoisted(() => ({ mockInvoke: vi.fn() }));
 
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: (...args: unknown[]) => mockInvoke(...args),
+  invoke: mockInvoke,
   convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
 }));
 
@@ -114,6 +114,69 @@ describe("AniListDetailView auth-gated error", () => {
       })
     );
     expect(document.body.textContent).toContain("AniList HTTP 403");
+  });
+});
+
+describe("AniListDetailView character window", () => {
+  it("opens a voice actor's screen from the card under their character", async () => {
+    useSettingsStore.setState({ language: "en" });
+    const voiceActor = {
+      id: 7,
+      name: "Yuki Kaji",
+      native_name: "梶裕貴",
+      image: null,
+      language: "Japanese",
+    };
+    mockInvoke.mockImplementation((command: string) => {
+      if (command === "get_anime_characters") {
+        return Promise.resolve([
+          {
+            role: "MAIN",
+            character: { id: 40, name: "Eren Yeager", image: null },
+            voice_actors: [voiceActor],
+          },
+        ]);
+      }
+      if (command === "get_character_detail") {
+        return Promise.resolve({
+          id: 40,
+          name: "Eren Yeager",
+          native_name: null,
+          image: null,
+          favourites: 1,
+          site_url: null,
+          media: [],
+        });
+      }
+      if (command === "get_staff_characters") {
+        return Promise.resolve({
+          id: 7,
+          name: "Yuki Kaji",
+          native_name: "梶裕貴",
+          image: null,
+          about: null,
+          favourites: 1,
+          site_url: null,
+          character_count: 0,
+          media_count: 0,
+          characters: [],
+          media: [],
+        });
+      }
+      return Promise.resolve(null);
+    });
+    const user = userEvent.setup();
+    renderView(props({ anime: TRAILER_ANIME, isLoading: false, isLoggedIn: true }));
+
+    const characters = await screen.findByRole("region", { name: "Characters" });
+    await user.click(within(characters).getByRole("button", { name: "Expand section" }));
+    await user.hover(await within(characters).findByRole("button", { name: "Eren Yeager" }));
+    await user.click(await screen.findByRole("button", { name: "Yuki Kaji" }, { timeout: 3000 }));
+
+    // The window opens on the voice actor, with the character one back arrow away.
+    expect(await screen.findByRole("heading", { name: "Yuki Kaji" })).toBeDefined();
+    await user.click(screen.getByRole("button", { name: "Previous" }));
+    expect(await screen.findByRole("heading", { name: "Eren Yeager" })).toBeDefined();
   });
 });
 

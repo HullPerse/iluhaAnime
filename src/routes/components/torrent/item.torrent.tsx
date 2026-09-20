@@ -16,9 +16,11 @@ function TorrentItem({
   files,
   filesError,
   isExpanded,
+  selected,
   busy,
   queue,
   onToggleExpand,
+  onSelectChange,
   onPause,
   onResume,
   onSeedChange,
@@ -39,6 +41,8 @@ function TorrentItem({
     <div className="windows95-active-border bg-primary hover:bg-surface flex flex-col gap-2 p-2">
       <TorrentHeader
         item={item}
+        selected={selected}
+        onSelectChange={onSelectChange}
         isLive={isLive}
         isPaused={isPaused}
         busy={busy}

@@ -1,8 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
+import { cn } from "cn";
 import { useState } from "react";
 
 import { SmallLoader } from "@/components/shared/loader.component";
 import Section from "@/components/shared/section.component";
+import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { listStatusLabels } from "@/config/anilist/labels.config";
 import { getStatusColor } from "@/lib/anilist/entries.utils";
@@ -48,39 +50,47 @@ export function FriendsScoresSection({ animeId }: { animeId: number }) {
           <SmallLoader />
         </div>
       ) : query.isError ? (
-        <div className="windows95-text text-destructive p-2 text-xs">
-          {query.error instanceof Error ? query.error.message : String(query.error)} -{" "}
-          <button type="button" className="underline" onClick={() => query.refetch()}>
+        <div className="flex flex-row items-center gap-1 p-1">
+          <span className="windows95-text text-destructive min-w-0 flex-1 text-xs">
+            {query.error instanceof Error ? query.error.message : String(query.error)}
+          </span>
+          <Button variant="link" onClick={() => query.refetch()}>
             {t("anilist.details.retry")}
-          </button>
+          </Button>
         </div>
       ) : (
         <div className="flex flex-col gap-0.5">
           {rows.map((row) => {
+            const scored = row.score != null && row.score !== 0;
             const label = t(toLocaleKey(listStatusLabels[row.status] ?? row.status));
-            const hint =
-              row.score != null && row.score !== 0 ? `${label} - ${row.score}/10` : label;
+            // The status used to be a 10x10 colour square, which said nothing unless you had
+            // memorised the palette. Colour stays, but now it carries the status name.
+            const hint = scored ? `${label} - ${row.score}/10` : label;
             return (
-              <div key={row.id} className="flex min-w-0 items-center gap-1 p-0.5">
+              <div
+                key={row.id}
+                className="bg-surface windows95-border flex min-w-0 items-center gap-1 p-0.5"
+              >
                 <ImageComponent
                   src={row.avatar || "/images/user_avatar.ico"}
                   alt={row.name}
-                  className="windows95-active-border size-7 shrink-0"
+                  className="windows95-active-border size-6 shrink-0"
                 />
                 <span className="windows95-text min-w-0 flex-1 truncate text-xs">{row.name}</span>
                 <span
-                  className="windows95-border shrink-0"
-                  style={{
-                    display: "inline-block",
-                    width: 10,
-                    height: 10,
-                    backgroundColor: getStatusColor(row.status),
-                  }}
+                  className="windows95-text shrink-0 px-1 text-xs leading-tight text-white"
+                  style={{ backgroundColor: getStatusColor(row.status) }}
                   title={hint}
-                  aria-label={hint}
-                />
-                <span className="text-hint shrink-0 text-xs">
-                  {row.score != null && row.score !== 0 ? `${row.score}/10` : "-"}
+                >
+                  {label}
+                </span>
+                <span
+                  className={cn(
+                    "shrink-0 text-xs tabular-nums",
+                    scored ? "windows95-text font-bold" : "text-hint"
+                  )}
+                >
+                  {scored ? `${row.score}/10` : "-"}
                 </span>
               </div>
             );

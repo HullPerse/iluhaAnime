@@ -14,6 +14,38 @@ function entry(key: TranslationKey, scope: ChangelogScope): ChangelogEntry {
 
 export const CHANGELOG: ChangelogVersion[] = [
   {
+    version: "4.1.0",
+    added: [
+      entry("changelog.4_1_0.added.torrent_create", "torrents"),
+      entry("changelog.4_1_0.added.torrent_create_link", "torrents"),
+      entry("changelog.4_1_0.added.torrent_select", "torrents"),
+      entry("changelog.4_1_0.added.torrent_missing", "torrents"),
+      entry("changelog.4_1_0.added.overlay_escape", "app"),
+      entry("changelog.4_1_0.added.host_bars", "app"),
+      entry("changelog.4_1_0.added.color_picker", "settings"),
+      entry("changelog.4_1_0.added.animated_counters", "settings"),
+      entry("changelog.4_1_0.added.characters_window", "anilist"),
+      entry("changelog.4_1_0.added.character_cards", "anilist"),
+      entry("changelog.4_1_0.added.character_tiles", "anilist"),
+      entry("changelog.4_1_0.added.voice_actor_preview", "anilist"),
+      entry("changelog.4_1_0.added.friends_preview", "anilist"),
+      entry("changelog.4_1_0.added.detail_posters", "anilist"),
+    ],
+    changed: [
+      entry("changelog.4_1_0.changed.bulk_buttons", "torrents"),
+      entry("changelog.4_1_0.changed.errors_recheck", "torrents"),
+      entry("changelog.4_1_0.changed.recreate_confirm", "torrents"),
+    ],
+    fixed: [
+      entry("changelog.4_1_0.fixed.tracker_ipc", "torrents"),
+      entry("changelog.4_1_0.fixed.anilist_pages", "anilist"),
+      entry("changelog.4_1_0.fixed.staff_flash", "anilist"),
+      entry("changelog.4_1_0.fixed.detail_paging", "anilist"),
+      entry("changelog.4_1_0.fixed.staff_profile", "anilist"),
+      entry("changelog.4_1_0.fixed.staff_paging", "anilist"),
+    ],
+  },
+  {
     version: "4.0.9",
     added: [
       entry("changelog.4_0_9.added.peers_modal", "torrents"),

@@ -1,22 +1,17 @@
-import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
-import { SmallLoader } from "@/components/shared/loader.component";
-import ImageComponent from "@/components/ui/image.component";
-import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
-import { useI18n } from "@/lib/locale/i18n.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
-import { enterOrSpace } from "@/lib/utils/keyboard.utils";
-import { useSettingsStore } from "@/store/settings.store";
-import type { AniCharacterMediaEdge, AniVoiceActor, AniStaffDetail } from "@/types/anilist";
+import type { AniListOverlayContext, AniListOverlayScreen, AniVoiceActor } from "@/types/anilist";
 
 import { OverlayWindow } from "../overlayWindow.anilist";
-import { PersonFavButton } from "./favbutton.detail";
+import { AnimeScreen } from "./animeScreen.detail";
+import { CharacterScreen } from "./characterScreen.detail";
+import { StaffScreen } from "./staffScreen.detail";
 
 function AniListCharacterDetailModal({
-  characterId: initialId,
-  characterName: initialName,
-  voiceActors: initialVAs,
+  characterId,
+  characterName,
+  voiceActors,
+  initialStaff,
   isLoggedIn,
   favouriteCharacterIds,
   favouriteStaffIds,
@@ -28,6 +23,8 @@ function AniListCharacterDetailModal({
   characterId: number;
   characterName: string;
   voiceActors: AniVoiceActor[];
+  /** Opens with this person's screen already pushed, so a voice actor can be the entry point. */
+  initialStaff?: { id: number; name: string };
   isLoggedIn: boolean;
   favouriteCharacterIds?: Set<number>;
   favouriteStaffIds?: Set<number>;
@@ -36,263 +33,46 @@ function AniListCharacterDetailModal({
   onRelated?: (id: number) => void;
   onClose: () => void;
 }) {
-  const { t } = useI18n();
-  const [currentId, setCurrentId] = useState(initialId);
-  const [currentName, setCurrentName] = useState(initialName);
-  const [currentVAs, setCurrentVAs] = useState(initialVAs);
-  const [view, setView] = useState<"character" | "voiceActor">("character");
-  const [selectedVa, setSelectedVa] = useState<AniVoiceActor | null>(null);
-
-  const { data: media, isLoading: mediaLoading } = useQuery({
-    queryKey: ["character_media", currentId],
-    queryFn: () =>
-      invokeTyped<AniCharacterMediaEdge[]>("get_character_media", {
-        id: currentId,
-        page: 1,
-        ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
-      }),
+  const [stack, setStack] = useState<AniListOverlayScreen[]>(() => {
+    const root: AniListOverlayScreen = {
+      kind: "character",
+      id: characterId,
+      name: characterName,
+      voiceActors,
+    };
+    // The character stays underneath: a voice actor is reached from their character, and the
+    // back arrow should land on it rather than close the window.
+    return initialStaff ? [root, { kind: "staff", ...initialStaff }] : [root];
   });
+  const current = stack.at(-1)!;
+  const push = useCallback((screen: AniListOverlayScreen) => {
+    setStack((prev) => [...prev, screen]);
+  }, []);
+  const pop = useCallback(() => setStack((prev) => prev.slice(0, -1)), []);
 
-  const { data: staffDetail } = useQuery({
-    queryKey: ["staff_characters", selectedVa?.id],
-    queryFn: () => {
-      if (selectedVa == null) return Promise.reject(new Error("no voice actor selected"));
-      return invokeTyped<AniStaffDetail>("get_staff_characters", {
-        id: selectedVa.id,
-        page: 1,
-        ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
-      });
-    },
-    enabled: view === "voiceActor" && !!selectedVa,
-  });
-
-  const handleVaClick = (va: AniVoiceActor) => {
-    setSelectedVa(va);
-    setView("voiceActor");
+  const context: AniListOverlayContext = {
+    isLoggedIn,
+    favouriteCharacterIds,
+    favouriteStaffIds,
+    onCharacterFavouriteToggle,
+    onStaffFavouriteToggle,
+    // The caller's `onRelated` closes this overlay and opens the anime in the modal behind it.
+    onOpenAnime: (id) => onRelated?.(id),
+    onPush: push,
   };
-
-  const handleBackToCharacter = () => {
-    setView("character");
-    setSelectedVa(null);
-  };
-
-  const handleCharacterClick = (id: number, name: string) => {
-    setCurrentId(id);
-    setCurrentName(name);
-    setCurrentVAs([]);
-    setView("character");
-    setSelectedVa(null);
-  };
-  const header = view === "voiceActor" && selectedVa ? selectedVa.name : currentName;
 
   return (
     <OverlayWindow
-      header={header}
+      header={current.name}
+      onBack={stack.length > 1 ? pop : undefined}
       onClose={onClose}
-      onBack={view === "voiceActor" ? handleBackToCharacter : undefined}
     >
-      {view === "voiceActor" && staffDetail ? (
-        <div className="flex flex-col gap-3 p-1">
-          <div className="flex flex-row items-start gap-3">
-            {staffDetail.image && (
-              <ImageComponent
-                src={staffDetail.image}
-                alt=""
-                className="windows95-active-border h-28 w-20 shrink-0 object-cover"
-              />
-            )}
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-1">
-                <span className="windows95-text font-bold">{staffDetail.name}</span>
-                {isLoggedIn && selectedVa && (
-                  <PersonFavButton
-                    id={selectedVa.id}
-                    favouriteIds={favouriteStaffIds}
-                    onToggle={onStaffFavouriteToggle}
-                  />
-                )}
-              </div>
-            </div>
-          </div>
-
-          {staffDetail.characters.length > 0 && (
-            <div>
-              <span className="windows95-text text-xs font-bold">
-                {t("anilist.characters.characters.of", {
-                  count: staffDetail.characters.length,
-                })}
-              </span>
-              <div className="mt-1 flex flex-wrap gap-1">
-                {staffDetail.characters.map((c) => (
-                  <div
-                    key={c.id}
-                    role="button"
-                    tabIndex={0}
-                    aria-label={c.name}
-                    onClick={() => handleCharacterClick(c.id, c.name)}
-                    onKeyDown={enterOrSpace(() => handleCharacterClick(c.id, c.name))}
-                    className="hover:bg-surface flex w-14 cursor-pointer flex-col items-center gap-0.5 p-0.5"
-                    title={c.name}
-                  >
-                    {c.image ? (
-                      <ImageComponent
-                        src={c.image}
-                        alt=""
-                        className="windows95-active-border h-16 w-12 object-cover"
-                      />
-                    ) : (
-                      <div className="windows95-active-border bg-field flex h-16 w-12 items-center justify-center text-xs font-bold">
-                        ?
-                      </div>
-                    )}
-                    <span className="windows95-text w-full truncate text-center text-xs leading-tight">
-                      {c.name}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {staffDetail.media.length > 0 && (
-            <div>
-              <span className="windows95-text text-xs font-bold">
-                {t("anilist.characters.anime.of", {
-                  count: staffDetail.media.length,
-                })}
-              </span>
-              <div className="mt-1 flex flex-wrap gap-1">
-                {staffDetail.media.map((m) => (
-                  <div
-                    key={m.id}
-                    role="button"
-                    tabIndex={0}
-                    aria-label={m.title}
-                    onClick={() => onRelated?.(m.id)}
-                    onKeyDown={enterOrSpace(() => onRelated?.(m.id))}
-                    className="hover:bg-surface flex w-14 cursor-pointer flex-col items-center gap-0.5 p-0.5"
-                    title={m.title}
-                  >
-                    {m.cover_url ? (
-                      <ImageComponent
-                        src={m.cover_url}
-                        alt=""
-                        className="windows95-active-border h-16 w-12 object-cover"
-                      />
-                    ) : (
-                      <div className="windows95-active-border bg-field flex h-16 w-12 items-center justify-center text-xs font-bold">
-                        ?
-                      </div>
-                    )}
-                    <span className="windows95-text w-full truncate text-center text-xs leading-tight">
-                      {m.title}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+      {current.kind === "character" ? (
+        <CharacterScreen screen={current} context={context} />
+      ) : current.kind === "staff" ? (
+        <StaffScreen screen={current} context={context} />
       ) : (
-        <div className="flex flex-col gap-3 p-1">
-          {mediaLoading ? (
-            <div className="flex items-center justify-center py-4">
-              <SmallLoader size={5} className="windows95-text" />
-            </div>
-          ) : (
-            <>
-              {isLoggedIn && (
-                <div>
-                  <PersonFavButton
-                    id={currentId}
-                    favouriteIds={favouriteCharacterIds}
-                    labelled
-                    onToggle={onCharacterFavouriteToggle}
-                  />
-                </div>
-              )}
-              {currentVAs.length > 0 && (
-                <div>
-                  <span className="windows95-text text-xs font-bold">
-                    {t("anilist.characters.voice.actors")}
-                  </span>
-                  <div className="mt-1 flex flex-wrap gap-2">
-                    {currentVAs.map((va) => (
-                      <div
-                        key={va.id}
-                        role="button"
-                        tabIndex={0}
-                        aria-label={va.name}
-                        onClick={() => handleVaClick(va)}
-                        onKeyDown={enterOrSpace(() => handleVaClick(va))}
-                        className="windows95-active-border bg-primary hover:bg-surface flex w-42 cursor-pointer flex-row items-center gap-2 p-1"
-                      >
-                        {va.image ? (
-                          <ImageComponent
-                            src={va.image}
-                            alt=""
-                            className="windows95-active-border h-18 w-13 shrink-0 object-cover"
-                          />
-                        ) : (
-                          <div className="windows95-active-border bg-field flex h-8 w-8 items-center justify-center text-xs font-bold">
-                            ?
-                          </div>
-                        )}
-                        <div className="flex flex-col">
-                          <span className="windows95-text text-xs leading-tight font-bold">
-                            {va.name}
-                          </span>
-                          {va.native_name && (
-                            <span className="windows95-text text-hint text-xs">
-                              {va.native_name}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {media && media.length > 0 && (
-                <div>
-                  <span className="windows95-text text-xs font-bold">
-                    {t("anilist.characters.appears.in", { count: media.length })}
-                  </span>
-                  <div className="mt-1 flex flex-wrap gap-1">
-                    {media.map((m) => (
-                      <div
-                        key={m.id}
-                        role="button"
-                        tabIndex={0}
-                        aria-label={m.title}
-                        onClick={() => onRelated?.(m.id)}
-                        onKeyDown={enterOrSpace(() => onRelated?.(m.id))}
-                        className="hover:bg-surface flex w-14 cursor-pointer flex-col items-center gap-0.5 p-0.5"
-                        title={m.title}
-                      >
-                        {m.cover_url ? (
-                          <ImageComponent
-                            src={m.cover_url}
-                            alt=""
-                            className="windows95-active-border h-16 w-12 object-cover"
-                          />
-                        ) : (
-                          <div className="windows95-active-border bg-field flex h-16 w-12 items-center justify-center text-xs font-bold">
-                            ?
-                          </div>
-                        )}
-                        <span className="windows95-text w-full truncate text-center text-xs leading-tight">
-                          {m.title}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-        </div>
+        <AnimeScreen screen={current} context={context} />
       )}
     </OverlayWindow>
   );

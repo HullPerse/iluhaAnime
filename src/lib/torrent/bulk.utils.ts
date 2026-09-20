@@ -22,6 +22,27 @@ export function splitRecheckOutcome<T>(
   return { lost, failed };
 }
 
+/**
+ * Keeps a selection inside the rows it can still act on. `allowed` is the filtered list rather
+ * than the visible page, so paging and re-sorting keep the selection while narrowing the
+ * filter drops what it hides. Returns the very same set when nothing changed, so a caller can
+ * use identity to skip a pointless state update.
+ */
+export function pruneSelection<T extends { id: number }>(
+  selected: ReadonlySet<number>,
+  allowed: readonly T[]
+): ReadonlySet<number> {
+  if (selected.size === 0) return selected;
+  const allowedIds = new Set(allowed.map((row) => row.id));
+  const keep = new Set<number>();
+  let dropped = false;
+  for (const id of selected) {
+    if (allowedIds.has(id)) keep.add(id);
+    else dropped = true;
+  }
+  return dropped ? keep : selected;
+}
+
 export async function applyBulkAction<T>(
   targets: readonly T[],
   act: (target: T) => Promise<unknown>

@@ -1,17 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
-import { Star } from "lucide-react";
 import { useMemo, useState } from "react";
 
+import { PosterTile } from "@/components/shared/posterTile.component";
 import Section from "@/components/shared/section.component";
 import { ANILIST_SIMILAR_LIMIT } from "@/config/anilist/detail.config";
 import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
-import { enterOrSpace } from "@/lib/utils/keyboard.utils";
 import { useSettingsStore } from "@/store/settings.store";
 import type { AniRecommendation, AniRelation, FranchiseGraph } from "@/types/anilist";
-
-import { SimilarCover } from "./similarCover.detail";
 
 export function SimilarSection({
   animeId,
@@ -68,46 +65,26 @@ export function SimilarSection({
       onExpand={() => setExpanded((prev) => !prev)}
       files={items.length}
     >
-      {items.map((item) => (
-        <div
-          role="button"
-          tabIndex={0}
-          aria-label={item.title}
-          key={item.id}
-          title={item.title}
-          onClick={() => onRelated?.(item.id)}
-          onKeyDown={enterOrSpace(() => onRelated?.(item.id))}
-          className="windows95-active-border windows95-text hover:bg-surface bg-primary flex h-20 w-50 cursor-pointer flex-row items-center gap-2 px-1 py-0.5 text-left"
-        >
-          {item.cover_url && <SimilarCover url={item.cover_url} />}
-          <section className="flex flex-col gap-1 leading-tight">
-            <span className="windows95-text line-clamp-1 font-bold">{item.title}</span>
-            <div className="flex flex-col text-xs">
-              <span>
-                - {t("anilist.details.format")}: {item.format && <>{item.format}</>}
-              </span>
-              <span className="flex flex-row gap-1">
-                - {t("anilist.details.rating")}:{" "}
-                {item.score && (
-                  <>
-                    {" "}
-                    <Star className="inline size-2" /> {item.score}
-                  </>
-                )}
-              </span>
-              <span className="flex flex-row gap-1">
-                - {t("anilist.details.episodes")}:
-                {item.episodes && (
-                  <>
-                    {" "}
-                    {item.episodes} {t("anilist.details.eps.short")}
-                  </>
-                )}
-              </span>
-            </div>
-          </section>
-        </div>
-      ))}
+      {items.map((item) => {
+        const details = [
+          item.format,
+          item.score ? `★ ${item.score}` : null,
+          item.episodes ? `${item.episodes}${t("anilist.details.eps.short")}` : null,
+        ].filter((part): part is string => Boolean(part));
+        return (
+          <PosterTile
+            key={item.id}
+            src={item.cover_url}
+            label={item.title}
+            alt={item.title}
+            sublabel={details.join(" · ")}
+            badge={`${Math.round(item.recommendation_rating)}%`}
+            size="md"
+            title={details.length > 0 ? `${item.title} — ${details.join(", ")}` : item.title}
+            onSelect={() => onRelated?.(item.id)}
+          />
+        );
+      })}
     </Section>
   );
 }

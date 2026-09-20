@@ -1,11 +1,24 @@
-import { useCallback, useMemo, useState } from "react";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
-import { PALETTE } from "@/config/utils/colors.config";
+import { COLOR_FORMATS, PALETTE } from "@/config/utils/colors.config";
 import { useI18n } from "@/lib/locale/i18n.utils";
-import { hexToRgba, rgbaToHex } from "@/lib/utils/color.utils";
+import { formatColor, hexToHsv, hsvToHex, parseColor } from "@/lib/utils/color.utils";
+import type { ColorFormat, HSV } from "@/types/color";
 
+import { SaturationValueArea } from "./area.color";
+import { ChannelInputs } from "./channels.color";
+import { HueSlider } from "./hue.color";
+
+/** Where a value that cannot be read at all lands: the shrunken HSV of the fixed palette grey. */
+const FALLBACK_HSV: HSV = { h: 0, s: 0, v: 50 };
+
+/**
+ * Hybrid picker: the app's own palette on top, then an HSV plane and hue track for anything the
+ * palette does not cover, then the value as HEX, RGB or HSL. The caller's value only moves on OK,
+ * so Cancel costs nothing.
+ */
 export function ColorPicker({
   value,
   onConfirm,
@@ -15,128 +28,108 @@ export function ColorPicker({
   onConfirm: (hex: string) => void;
   onCancel: () => void;
 }) {
-  const [r, setR] = useState(() => {
-    const rgba = hexToRgba(value);
-    return rgba?.r ?? 0;
-  });
-  const [g, setG] = useState(() => {
-    const rgba = hexToRgba(value);
-    return rgba?.g ?? 0;
-  });
-  const [b, setB] = useState(() => {
-    const rgba = hexToRgba(value);
-    return rgba?.b ?? 0;
-  });
-  const [hexInput, setHexInput] = useState(value);
   const { t } = useI18n();
+  const [hsv, setHsv] = useState<HSV>(() => hexToHsv(value) ?? FALLBACK_HSV);
+  const [format, setFormat] = useState<ColorFormat>("hex");
+  const [inputText, setInputText] = useState(value);
+  const [editing, setEditing] = useState(false);
+  const [prevValue, setPrevValue] = useState(value);
 
-  const hex = useMemo(() => rgbaToHex({ a: 1, b, g, r }, false), [r, g, b]);
+  // The panel outlives a value changed from outside while it is open.
+  if (value !== prevValue) {
+    setPrevValue(value);
+    const next = hexToHsv(value);
+    if (next) setHsv(next);
+  }
 
-  const pickColor = useCallback((h: string) => {
-    const rgba = hexToRgba(h);
-    if (rgba) {
-      setR(rgba.r);
-      setG(rgba.g);
-      setB(rgba.b);
-      setHexInput(h);
-    }
-  }, []);
+  const hex = hsvToHex(hsv);
+  const isChannelFormat = format === "rgb" || format === "hsl";
+  const displayText = editing ? inputText : formatColor(hsv, format);
+  const invalid = editing && parseColor(inputText, format) === null;
 
-  const onHexChange = useCallback((input: string) => {
-    setHexInput(input);
-    const rgba = hexToRgba(input);
-    if (rgba) {
-      setR(rgba.r);
-      setG(rgba.g);
-      setB(rgba.b);
-    }
-  }, []);
+  const handleTextChange = (text: string) => {
+    setEditing(true);
+    setInputText(text);
+    const parsed = parseColor(text, format);
+    if (parsed) setHsv(parsed);
+  };
 
   return (
-    <div className="windows95-active-border bg-primary flex flex-col gap-2 p-2">
+    <div className="windows95-active-border bg-primary flex w-60 flex-col gap-1.5 p-2">
       <div className="grid grid-cols-8 gap-0.5">
-        {PALETTE.map((c) => (
+        {PALETTE.map((swatch) => (
           <button
+            key={swatch}
             type="button"
-            key={c}
-            aria-label={c}
-            className="focus-visible:outline-text size-5 cursor-pointer border focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-dotted"
+            aria-label={swatch}
+            title={swatch}
+            className="focus-visible:outline-text size-6 cursor-pointer border focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-dotted"
             style={{
-              background: c,
-              borderColor: hex === c ? "var(--color-win-highlight)" : "var(--color-win-shadow)",
-              outline: hex === c ? "2px solid var(--color-secondary)" : undefined,
-              outlineOffset: hex === c ? "-2px" : undefined,
+              background: swatch,
+              borderColor:
+                hex === swatch ? "var(--color-win-highlight)" : "var(--color-win-shadow)",
+              outline: hex === swatch ? "2px solid var(--color-secondary)" : undefined,
+              outlineOffset: hex === swatch ? "-2px" : undefined,
             }}
-            onClick={() => pickColor(c)}
-            title={c}
+            onClick={() => setHsv(hexToHsv(swatch) ?? FALLBACK_HSV)}
           />
         ))}
       </div>
 
-      <div className="mt-1 flex items-center gap-2">
-        <div
-          className="windows95-border size-8 shrink-0"
-          style={{
-            background: hex,
-            width: "var(--ui-icon-size)",
-            height: "var(--ui-icon-size)",
-          }}
-        />
-        <div className="flex flex-1 flex-col gap-1">
-          <label className="windows95-text text-text flex items-center gap-1">
-            <span className="w-3">R</span>
-            <Input
-              type="number"
-              min={0}
-              max={255}
-              value={r}
-              onChange={(e) => {
-                const v = Math.min(255, Math.max(0, Number(e.target.value) || 0));
-                setR(v);
-                setHexInput(rgbaToHex({ a: 1, b, g, r: v }, false));
-              }}
-              className="h-5 w-14 text-xs"
-            />
-            <span className="ml-1 w-3">G</span>
-            <Input
-              type="number"
-              min={0}
-              max={255}
-              value={g}
-              onChange={(e) => {
-                const v = Math.min(255, Math.max(0, Number(e.target.value) || 0));
-                setG(v);
-                setHexInput(rgbaToHex({ a: 1, b, g: v, r }, false));
-              }}
-              className="h-5 w-14 text-xs"
-            />
-            <span className="ml-1 w-3">B</span>
-            <Input
-              type="number"
-              min={0}
-              max={255}
-              value={b}
-              onChange={(e) => {
-                const v = Math.min(255, Math.max(0, Number(e.target.value) || 0));
-                setB(v);
-                setHexInput(rgbaToHex({ a: 1, b: v, g, r }, false));
-              }}
-              className="h-5 w-14 text-xs"
-            />
-          </label>
-          <label className="windows95-text text-text flex items-center gap-1">
-            <span className="w-3">#</span>
-            <Input
-              value={hexInput.replace("#", "")}
-              onChange={(e) => onHexChange(`#${e.target.value}`)}
-              className="h-5 w-24 text-xs uppercase"
-              placeholder="000000"
-            />
-          </label>
-        </div>
+      <SaturationValueArea
+        hsv={hsv}
+        onChange={({ s, v }) => setHsv((current) => ({ ...current, s, v }))}
+      />
+
+      <div className="flex flex-row items-center gap-2">
+        <div aria-hidden className="windows95-border size-5 shrink-0" style={{ background: hex }} />
+        <HueSlider hue={hsv.h} onChange={(h) => setHsv((current) => ({ ...current, h }))} />
       </div>
 
-      <div className="mt-1 flex justify-end gap-1">
+      <div className="flex flex-row items-stretch gap-1">
+        <div className="windows95-active-border flex shrink-0 flex-row">
+          {COLOR_FORMATS.map((option) => (
+            <button
+              key={option}
+              type="button"
+              aria-pressed={format === option}
+              className={
+                format === option
+                  ? "windows95-text bg-secondary text-title-text focus-visible:outline-text px-1 text-xs font-bold focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-dotted"
+                  : "windows95-text bg-field text-text hover:bg-muted focus-visible:outline-text px-1 text-xs focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-dotted"
+              }
+              onClick={() => {
+                setFormat(option);
+                setEditing(false);
+              }}
+            >
+              {option.toUpperCase()}
+            </button>
+          ))}
+        </div>
+
+        {isChannelFormat ? (
+          // Keyed by format so a half-typed RGB draft cannot reappear as HSL channels.
+          <ChannelInputs key={format} format={format} hsv={hsv} onChange={setHsv} />
+        ) : (
+          <Input
+            aria-label={t("color.value")}
+            aria-invalid={invalid}
+            value={displayText.replace("#", "")}
+            placeholder="000000"
+            spellCheck={false}
+            className="h-5 min-h-0 min-w-0 flex-1 px-1 text-xs uppercase"
+            onChange={(event) => handleTextChange(`#${event.target.value}`)}
+            onFocus={() => {
+              setEditing(true);
+              setInputText(formatColor(hsv, format));
+            }}
+            onBlur={() => setEditing(false)}
+          />
+        )}
+      </div>
+
+      <div className="flex flex-row justify-end gap-1">
         <Button onClick={onCancel}>{t("common.cancel")}</Button>
         <Button onClick={() => onConfirm(hex)}>{t("common.ok")}</Button>
       </div>

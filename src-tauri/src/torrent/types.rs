@@ -65,6 +65,18 @@ pub struct TorrentInfoResult {
 }
 
 #[derive(Serialize, Clone, Debug)]
+pub struct CreatedTorrent {
+    pub id: usize,
+    pub name: String,
+    pub info_hash: String,
+    /// Path of the metainfo copy kept in the app data dir, ready to be copied wherever the
+    /// user wants when they press "Save .torrent".
+    pub torrent_path: String,
+    /// How many files went into the torrent, so the UI can say what was shared.
+    pub file_count: usize,
+}
+
+#[derive(Serialize, Clone, Debug)]
 pub struct TorrentInfo {
     pub id: usize,
     pub name: String,

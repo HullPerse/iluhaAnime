@@ -125,7 +125,19 @@ pub async fn graphql_request(
         );
 
         if !resp.status().is_success() {
-            last_err = format!("AniList HTTP {}", resp.status());
+            let status = resp.status();
+            let snippet: String = resp
+                .text()
+                .await
+                .unwrap_or_default()
+                .chars()
+                .take(300)
+                .collect();
+            last_err = if snippet.is_empty() {
+                format!("AniList HTTP {status}")
+            } else {
+                format!("AniList HTTP {status}: {snippet}")
+            };
             tokio::time::sleep(Duration::from_secs(1 << attempt)).await;
             continue;
         }

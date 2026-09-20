@@ -85,7 +85,7 @@ export default function App() {
 
   return (
     <main
-      className="relative h-screen w-screen overflow-hidden"
+      className="relative h-screen w-screen overflow-hidden "
       onContextMenu={(e) => e.preventDefault()}
     >
       {data && updateAvailable && (

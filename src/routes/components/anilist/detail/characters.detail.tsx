@@ -1,119 +1,168 @@
-import { useQuery } from "@tanstack/react-query";
-import { cn } from "cn";
-import { useState } from "react";
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
 
-import Pagination from "@/components/shared/pagination.component";
+import { PosterTile } from "@/components/shared/posterTile.component";
 import Section from "@/components/shared/section.component";
-import ImageComponent from "@/components/ui/image.component";
+import { Button } from "@/components/ui/button.component";
+import { characterRoleLabels } from "@/config/anilist/labels.config";
 import { CHAR_PAGE_SIZE } from "@/config/anilist/pagination.config";
 import { useFavPeopleCharacterSet } from "@/hooks/anilist/people.hook";
-import { usePagination } from "@/hooks/pagination.hook";
 import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
+import { uniqueById } from "@/lib/utils/array.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
-import { enterOrSpace } from "@/lib/utils/keyboard.utils";
-import { paginate } from "@/lib/utils/pagination.utils";
 import { useSettingsStore } from "@/store/settings.store";
 import type { AniCharacterEdge, AniVoiceActor } from "@/types/anilist";
+
+import { VoiceActorsPreview } from "./voiceActors.detail";
+
+type RoleFilter = "all" | "MAIN" | "SUPPORTING";
 
 function AniListCharactersPanel({
   animeId,
   onCharacterClick,
+  onVoiceActorClick,
 }: {
   animeId: number;
   onCharacterClick?: (characterId: number, name: string, voiceActors: AniVoiceActor[]) => void;
+  /** Fired from a voice actor row inside the hover card, together with their character. */
+  onVoiceActorClick?: (
+    character: { id: number; name: string; voiceActors: AniVoiceActor[] },
+    voiceActor: AniVoiceActor
+  ) => void;
 }) {
   const { t } = useI18n();
   const [showCharacters, setShowCharacters] = useState<boolean>(false);
-  const [charPage, setCharPage] = useState(1);
+  const [role, setRole] = useState<RoleFilter>("all");
   const favCharacterIds = useFavPeopleCharacterSet();
 
-  const { data, isLoading } = useQuery({
+  const query = useInfiniteQuery({
     queryKey: ["anime_characters", animeId],
-    queryFn: () =>
+    initialPageParam: 1,
+    queryFn: ({ pageParam }) =>
       invokeTyped<AniCharacterEdge[]>("get_anime_characters", {
         id: animeId,
-        page: 1,
+        page: pageParam,
         ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
       }),
+    // The query returns a bare list, so a short page is the only end-of-list signal available.
+    // A command that resolves to nothing (mock, empty response) must not blow up the observer.
+    getNextPageParam: (lastPage, pages) =>
+      (Array.isArray(lastPage) ? lastPage.length : 0) < CHAR_PAGE_SIZE
+        ? undefined
+        : pages.length + 1,
   });
 
-  const { total, from, to, lastPage } = usePagination(
-    data?.length ?? 0,
-    CHAR_PAGE_SIZE,
-    charPage,
-    setCharPage
+  // Anything that is not an edge (an empty page, a command that resolved to nothing) is dropped
+  // rather than dereferenced: one bad page used to take the whole detail view down with it.
+  // Pages can overlap when the listing shifts between requests, so ids are deduped across pages
+  // to keep React keys unique.
+  const edges = useMemo(
+    () =>
+      uniqueById(
+        (query.data?.pages ?? [])
+          .flat()
+          .filter((edge): edge is AniCharacterEdge => Boolean(edge?.character?.id)),
+        (edge) => edge.character.id
+      ),
+    [query.data]
   );
-  const paged = paginate(data ?? [], charPage, CHAR_PAGE_SIZE);
+  const visible = useMemo(
+    () => (role === "all" ? edges : edges.filter((edge) => edge.role === role)),
+    [edges, role]
+  );
+  const hasBothRoles = useMemo(
+    () =>
+      edges.some((edge) => edge.role === "MAIN") &&
+      edges.some((edge) => edge.role === "SUPPORTING"),
+    [edges]
+  );
 
-  if (isLoading) return null;
-  if (!data?.length) return null;
+  /**
+   * The hover card is the only place a voice actor is named before their own screen exists, so its
+   * rows navigate. The card dismisses itself first: it renders above the screen the click opens.
+   * A character nothing has voiced has no card to show and the tile stays a plain button.
+   */
+  const voiceActorPreview = (edge: AniCharacterEdge) => {
+    if (edge.voice_actors.length === 0) return undefined;
+    return (close: () => void) => (
+      <VoiceActorsPreview
+        voiceActors={edge.voice_actors}
+        onSelect={
+          onVoiceActorClick
+            ? (voiceActor) => {
+                close();
+                onVoiceActorClick(
+                  {
+                    id: edge.character.id,
+                    name: edge.character.name,
+                    voiceActors: edge.voice_actors,
+                  },
+                  voiceActor
+                );
+              }
+            : undefined
+        }
+      />
+    );
+  };
+
+  if (query.isLoading) return null;
+  if (edges.length === 0) return null;
 
   return (
     <Section
       header={t("anilist.characters.title")}
-      className="bg-field flex flex-wrap gap-1"
+      className="bg-field flex flex-col gap-1"
       expanded={showCharacters}
       onExpand={() => setShowCharacters((prev) => !prev)}
-      files={data.length}
+      files={edges.length}
     >
-      {paged.map((edge) => (
+      {hasBothRoles && (
         <div
-          key={edge.character.id}
-          role="button"
-          tabIndex={0}
-          aria-label={edge.character.name}
-          onClick={() =>
-            onCharacterClick?.(edge.character.id, edge.character.name, edge.voice_actors)
-          }
-          onKeyDown={enterOrSpace(() =>
-            onCharacterClick?.(edge.character.id, edge.character.name, edge.voice_actors)
-          )}
-          className="hover:bg-surface flex cursor-pointer flex-col items-center gap-0.5 p-0.5"
-          title={edge.character.name}
+          className="flex flex-wrap gap-1"
+          role="group"
+          aria-label={t("anilist.characters.role.filter")}
         >
-          {edge.character.image ? (
-            <ImageComponent
-              src={edge.character.image}
-              alt="character.image"
-              className={cn(
-                "h-20 w-14 object-cover",
-                favCharacterIds.has(edge.character.id)
-                  ? "windows95-fav-border"
-                  : "windows95-active-border"
-              )}
-            />
-          ) : (
-            <div
-              className={cn(
-                "bg-field flex h-12 w-10 items-center justify-center text-xs font-bold",
-                favCharacterIds.has(edge.character.id)
-                  ? "windows95-fav-border"
-                  : "windows95-active-border"
-              )}
+          {(["all", "MAIN", "SUPPORTING"] as const).map((value) => (
+            <Button
+              key={value}
+              variant={role === value ? "outline" : "default"}
+              className="windows95-text px-1 py-0.5 text-xs"
+              aria-pressed={role === value}
+              onClick={() => setRole(value)}
             >
-              ?
-            </div>
-          )}
-          <span
-            className="windows95-text w-10 truncate text-center text-xs leading-tight"
-            title={edge.character.name}
-          >
-            {edge.character.name}
-          </span>
+              {value === "all" ? t("anilist.characters.role.all") : t(characterRoleLabels[value])}
+            </Button>
+          ))}
         </div>
-      ))}
-      {total > CHAR_PAGE_SIZE && (
-        <div className="w-full">
-          <Pagination
-            total={total}
-            page={charPage}
-            lastPage={lastPage}
-            from={from}
-            to={to}
-            onPageChange={setCharPage}
+      )}
+
+      <div className="flex flex-wrap gap-1.5">
+        {visible.map((edge) => (
+          <PosterTile
+            key={edge.character.id}
+            size="lg"
+            src={edge.character.image}
+            label={edge.character.name}
+            alt={edge.character.name}
+            favourite={favCharacterIds.has(edge.character.id)}
+            preview={voiceActorPreview(edge)}
+            onSelect={() =>
+              onCharacterClick?.(edge.character.id, edge.character.name, edge.voice_actors)
+            }
           />
-        </div>
+        ))}
+      </div>
+
+      {query.hasNextPage && (
+        <Button
+          className="windows95-text self-start px-1 py-0.5 text-xs"
+          disabled={query.isFetchingNextPage}
+          onClick={() => query.fetchNextPage()}
+        >
+          {t("anilist.characters.show.more")}
+        </Button>
       )}
     </Section>
   );

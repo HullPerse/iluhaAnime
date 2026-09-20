@@ -7,10 +7,10 @@ import AniListDetailModal from "@/routes/components/anilist/detail/modal.detail"
 import { useSettingsStore } from "@/store/settings.store";
 import type { AniMedia } from "@/types/anilist";
 
-const mockInvoke = vi.fn();
+const { mockInvoke } = vi.hoisted(() => ({ mockInvoke: vi.fn() }));
 
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: (...args: unknown[]) => mockInvoke(...args),
+  invoke: mockInvoke,
   convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
 }));
 

@@ -45,6 +45,7 @@ export function areTorrentItemsEqual(prev: TorrentItemProps, next: TorrentItemPr
     sameFilesState(prev, next) &&
     sameQueueState(prev, next) &&
     prev.isExpanded === next.isExpanded &&
+    prev.selected === next.selected &&
     prev.busy === next.busy
   );
 }

@@ -41,8 +41,8 @@ mod user_assets;
 mod video;
 use file_index::FileEntry;
 use torrent::{
-    FilePriority, TorrentCheckResult, TorrentDiagnostics, TorrentFileInfo, TorrentInfo,
-    TorrentInfoResult, TorrentLimits, TorrentManager,
+    CreatedTorrent, FilePriority, TorrentCheckResult, TorrentDiagnostics, TorrentFileInfo,
+    TorrentInfo, TorrentInfoResult, TorrentLimits, TorrentManager,
 };
 use video::{ActiveChildren, CancelFlag};
 
@@ -298,6 +298,44 @@ async fn list_torrents(
     manager: tauri::State<'_, TorrentBackend>,
 ) -> Result<Vec<TorrentInfo>, String> {
     Ok(backend_manager(&manager).await?.collect_torrents())
+}
+
+/// Builds a `.torrent` out of a folder and seeds it in place. Hashing reads every file once,
+/// so a big folder can take a while: the command is expected to be awaited behind a loader.
+#[tauri::command]
+async fn create_torrent_from_folder(
+    source_dir: String,
+    manager: tauri::State<'_, TorrentBackend>,
+) -> Result<CreatedTorrent, String> {
+    backend_manager(&manager)
+        .await?
+        .create_torrent_from_folder(source_dir)
+        .await
+        .map_err(|e| format!("{e:#}"))
+}
+
+/// Copies a previously created metainfo to a path the user picked in a save dialog.
+///
+/// The source is restricted to the created-torrents cache: without that check this command
+/// would be a generic "copy any file anywhere" primitive reachable from the webview.
+#[tauri::command]
+fn save_created_torrent(from: String, to: String, app: tauri::AppHandle) -> Result<(), String> {
+    let app_data = app
+        .path()
+        .app_data_dir()
+        .map_err(|error| format!("could not resolve the app data dir: {error}"))?;
+    let cache = app_data
+        .join("created_torrents")
+        .canonicalize()
+        .map_err(|error| format!("there is nothing to save: {error}"))?;
+    let source = std::path::Path::new(&from)
+        .canonicalize()
+        .map_err(|error| format!("the torrent file is gone: {error}"))?;
+    if !source.starts_with(&cache) {
+        return Err("refusing to copy a file outside the created-torrents cache".to_string());
+    }
+    std::fs::copy(&source, &to).map_err(|error| format!("could not save the torrent: {error}"))?;
+    Ok(())
 }
 
 #[tauri::command]
@@ -1136,7 +1174,7 @@ pub fn run() {
             anilist::get_anime_characters,
             anilist::get_anime_staff,
             anilist::get_staff_characters,
-            anilist::get_character_media,
+            anilist::get_character_detail,
             anilist::get_anilist_activity,
             anilist::get_anime_franchise,
             anilist::prefetch_anime_relations,
@@ -1231,6 +1269,8 @@ pub fn run() {
             remove_torrent_tracker,
             get_torrent_info_from_file,
             start_torrent_download_from_file,
+            create_torrent_from_folder,
+            save_created_torrent,
             read_file_bytes,
             rebuild_file_index,
             refresh_file_index,

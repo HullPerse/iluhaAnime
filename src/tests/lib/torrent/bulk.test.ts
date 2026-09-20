@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { applyBulkAction, splitRecheckOutcome } from "@/lib/torrent/bulk.utils";
+import { applyBulkAction, pruneSelection, splitRecheckOutcome } from "@/lib/torrent/bulk.utils";
 import type { TorrentCheckResult } from "@/types/torrent";
 
 function check(missing: number): TorrentCheckResult {
@@ -33,6 +33,23 @@ describe("applyBulkAction", () => {
     const act = vi.fn();
     expect(await applyBulkAction([], act)).toEqual({ done: 0, failed: 0 });
     expect(act).not.toHaveBeenCalled();
+  });
+});
+
+describe("pruneSelection", () => {
+  it("keeps the selection and its identity when nothing was hidden", () => {
+    const selected = new Set([1, 2]);
+    expect(pruneSelection(selected, [{ id: 1 }, { id: 2 }, { id: 3 }])).toBe(selected);
+  });
+
+  it("drops what the current filter hides", () => {
+    const pruned = pruneSelection(new Set([1, 2, 3]), [{ id: 2 }, { id: 3 }]);
+    expect([...pruned]).toEqual([2, 3]);
+  });
+
+  it("leaves an empty selection alone", () => {
+    const selected = new Set<number>();
+    expect(pruneSelection(selected, [])).toBe(selected);
   });
 });
 

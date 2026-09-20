@@ -9,8 +9,8 @@ use serde::Serialize;
 use super::auth::{load_token, optional_token};
 use super::client::{graphql_request, resolve_proxy};
 use super::media::{
-    AniAnimeStaffEdge, AniCharacterEdge, AniCharacterMediaEdge, AniCharacterNode,
-    AniStaffCharacterEdge, AniStaffDetail, AniStaffMediaEdge, AniVoiceActor,
+    AniAnimeStaffEdge, AniCharacterDetail, AniCharacterEdge, AniCharacterMediaEdge,
+    AniCharacterNode, AniStaffCharacterEdge, AniStaffDetail, AniStaffMediaEdge, AniVoiceActor,
 };
 
 #[derive(Debug, Serialize)]
@@ -603,6 +603,8 @@ pub async fn get_anime_characters(
                                 id
                                 name { full native }
                                 image { medium }
+                                favourites
+                                siteUrl
                             }
                             voiceActors(language: JAPANESE, sort: [ID]) {
                                 id
@@ -629,19 +631,27 @@ pub async fn get_anime_characters(
     Ok(parse_character_edges(edges))
 }
 
+/// Profile plus one page of the anime the character appears in. One command because the modal
+/// always needs both, and because a character reached from a staff credit has no context to
+/// take a name or a favourite count from.
 #[tauri::command]
 #[allow(non_snake_case)]
-pub async fn get_character_media(
+pub async fn get_character_detail(
     app_handle: tauri::AppHandle,
     id: u64,
     page: u64,
     proxy_url: Option<String>,
     proxyUrl: Option<String>,
-) -> Result<Vec<AniCharacterMediaEdge>, String> {
+) -> Result<AniCharacterDetail, String> {
     let body = serde_json::json!({
         "query": r"
             query ($id: Int, $page: Int) {
                 Character(id: $id) {
+                    id
+                    name { full native }
+                    image { medium }
+                    favourites
+                    siteUrl
                     media(page: $page, perPage: 50, type: ANIME) {
                         edges {
                             node {
@@ -659,30 +669,7 @@ pub async fn get_character_media(
     let proxy = resolve_proxy(proxy_url, proxyUrl);
     let token = optional_token(&app_handle);
     let json = graphql_request(body, token.as_deref(), proxy.as_deref()).await?;
-    let edges = json["data"]["Character"]["media"]["edges"]
-        .as_array()
-        .ok_or_else(|| "No media found".to_string())?;
-    let mut seen = std::collections::HashSet::new();
-    Ok(edges
-        .iter()
-        .filter_map(|e| {
-            let n = &e["node"];
-            let mid = n["id"].as_u64().unwrap_or(0);
-            if mid == 0 || !seen.insert(mid) {
-                return None;
-            }
-            let title = n["title"]["romaji"]
-                .as_str()
-                .or_else(|| n["title"]["english"].as_str())
-                .unwrap_or("Unknown")
-                .to_string();
-            Some(AniCharacterMediaEdge {
-                id: mid,
-                title,
-                cover_url: n["coverImage"]["medium"].as_str().map(String::from),
-            })
-        })
-        .collect())
+    Ok(parse_character_detail(&json["data"]["Character"], id))
 }
 
 #[tauri::command]
@@ -691,17 +678,22 @@ pub async fn get_staff_characters(
     app_handle: tauri::AppHandle,
     id: u64,
     page: u64,
+    char_page: Option<u64>,
     proxy_url: Option<String>,
     proxyUrl: Option<String>,
 ) -> Result<AniStaffDetail, String> {
     let body = serde_json::json!({
         "query": r"
-            query ($id: Int, $page: Int) {
+            query ($id: Int, $page: Int, $charPage: Int) {
                 Staff(id: $id) {
                     id
                     name { full native }
                     image { medium }
-                    characters(page: 1, perPage: 50) {
+                    description(asHtml: true)
+                    favourites
+                    siteUrl
+                    characters(page: $charPage, perPage: 25) {
+                        pageInfo { total }
                         edges {
                             node {
                                 id
@@ -710,7 +702,8 @@ pub async fn get_staff_characters(
                             }
                         }
                     }
-                    staffMedia(page: $page, perPage: 50, type: ANIME) {
+                    staffMedia(page: $page, perPage: 25, type: ANIME) {
+                        pageInfo { total }
                         edges {
                             node {
                                 id
@@ -722,12 +715,55 @@ pub async fn get_staff_characters(
                 }
             }
         ",
-        "variables": { "id": id, "page": page }
+        "variables": { "id": id, "page": page, "charPage": char_page.unwrap_or(1) }
     });
     let proxy = resolve_proxy(proxy_url, proxyUrl);
     let token = optional_token(&app_handle);
     let json = graphql_request(body, token.as_deref(), proxy.as_deref()).await?;
-    let s = &json["data"]["Staff"];
+    Ok(parse_staff_detail(&json["data"]["Staff"]))
+}
+
+/// A character with one page of the anime it appears in. A missing or empty `media` list is not
+/// an error: the modal has an empty state for it.
+fn parse_character_detail(c: &serde_json::Value, fallback_id: u64) -> AniCharacterDetail {
+    let mut seen = std::collections::HashSet::new();
+    let media = c["media"]["edges"]
+        .as_array()
+        .map(|edges| {
+            edges
+                .iter()
+                .filter_map(|e| {
+                    let n = &e["node"];
+                    let mid = n["id"].as_u64().unwrap_or(0);
+                    if mid == 0 || !seen.insert(mid) {
+                        return None;
+                    }
+                    let title = n["title"]["romaji"]
+                        .as_str()
+                        .or_else(|| n["title"]["english"].as_str())
+                        .unwrap_or("Unknown")
+                        .to_string();
+                    Some(AniCharacterMediaEdge {
+                        id: mid,
+                        title,
+                        cover_url: n["coverImage"]["medium"].as_str().map(String::from),
+                    })
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    AniCharacterDetail {
+        id: c["id"].as_u64().unwrap_or(fallback_id),
+        name: c["name"]["full"].as_str().unwrap_or("Unknown").to_string(),
+        native_name: c["name"]["native"].as_str().map(String::from),
+        image: c["image"]["medium"].as_str().map(String::from),
+        favourites: c["favourites"].as_i64(),
+        site_url: c["siteUrl"].as_str().map(String::from),
+        media,
+    }
+}
+
+fn parse_staff_detail(s: &serde_json::Value) -> AniStaffDetail {
     let name = s["name"]["full"]
         .as_str()
         .or_else(|| s["name"]["native"].as_str())
@@ -783,13 +819,23 @@ pub async fn get_staff_characters(
         })
         .unwrap_or_default();
 
-    Ok(AniStaffDetail {
+    AniStaffDetail {
         id: s["id"].as_u64().unwrap_or(0),
         name,
+        native_name: s["name"]["native"].as_str().map(String::from),
         image: s["image"]["medium"].as_str().map(String::from),
+        about: s["description"].as_str().map(String::from),
+        favourites: s["favourites"].as_i64(),
+        site_url: s["siteUrl"].as_str().map(String::from),
+        character_count: s["characters"]["pageInfo"]["total"]
+            .as_u64()
+            .unwrap_or_default() as usize,
+        media_count: s["staffMedia"]["pageInfo"]["total"]
+            .as_u64()
+            .unwrap_or_default() as usize,
         characters,
         media,
-    })
+    }
 }
 
 #[tauri::command]
@@ -858,6 +904,8 @@ fn parse_character_edges(edges: &[serde_json::Value]) -> Vec<AniCharacterEdge> {
                     name: n["name"]["full"].as_str().unwrap_or("").to_string(),
                     native_name: n["name"]["native"].as_str().map(String::from),
                     image: n["image"]["medium"].as_str().map(String::from),
+                    favourites: n["favourites"].as_i64(),
+                    site_url: n["siteUrl"].as_str().map(String::from),
                 },
                 voice_actors: e["voiceActors"]
                     .as_array()
@@ -909,5 +957,71 @@ mod tests {
         assert_eq!(edges[0].role, "MAIN");
         assert_eq!(edges[1].character.id, 96);
         assert_eq!(edges[1].voice_actors.len(), 1);
+    }
+
+    #[test]
+    fn character_detail_carries_the_profile_and_drops_duplicate_media() {
+        let payload = serde_json::json!({
+            "id": 40,
+            "name": {"full": "Eren Yeager", "native": "エレン"},
+            "image": {"medium": "cover.jpg"},
+            "favourites": 1234,
+            "siteUrl": "https://anilist.co/character/40",
+            "media": {"edges": [
+                {"node": {"id": 21, "title": {"romaji": "Shingeki"}, "coverImage": {"medium": null}}},
+                {"node": {"id": 21, "title": {"romaji": "Shingeki"}, "coverImage": {"medium": null}}},
+            ]},
+        });
+        let detail = parse_character_detail(&payload, 0);
+        assert_eq!(detail.id, 40);
+        assert_eq!(detail.name, "Eren Yeager");
+        assert_eq!(detail.native_name.as_deref(), Some("エレン"));
+        assert_eq!(detail.favourites, Some(1234));
+        assert_eq!(detail.media.len(), 1);
+        assert_eq!(detail.media[0].title, "Shingeki");
+    }
+
+    #[test]
+    fn character_detail_survives_a_payload_without_lists() {
+        let detail = parse_character_detail(&serde_json::json!({}), 77);
+        assert_eq!(detail.id, 77);
+        assert_eq!(detail.name, "Unknown");
+        assert!(detail.media.is_empty());
+        assert_eq!(detail.favourites, None);
+        assert_eq!(detail.site_url, None);
+    }
+
+    #[test]
+    fn staff_detail_reports_totals_not_loaded_list_lengths() {
+        let payload = serde_json::json!({
+            "id": 7,
+            "name": {"full": "Yuki Kaji", "native": null},
+            "image": {"medium": null},
+            "description": "<i>Bio</i>",
+            "favourites": 999,
+            "siteUrl": "https://anilist.co/staff/7",
+            "characters": {
+                "pageInfo": {"total": 120},
+                "edges": [{"node": {"id": 40, "name": {"full": "Eren"}, "image": {"medium": null}}}],
+            },
+            "staffMedia": {"pageInfo": {"total": 88}, "edges": []},
+        });
+        let detail = parse_staff_detail(&payload);
+        assert_eq!(detail.name, "Yuki Kaji");
+        assert_eq!(detail.about.as_deref(), Some("<i>Bio</i>"));
+        assert_eq!(detail.favourites, Some(999));
+        assert_eq!(detail.character_count, 120);
+        assert_eq!(detail.media_count, 88);
+        assert_eq!(detail.characters.len(), 1);
+        assert!(detail.media.is_empty());
+    }
+
+    #[test]
+    fn staff_detail_falls_back_to_the_native_name_and_zero_totals() {
+        let payload = serde_json::json!({"name": {"full": null, "native": "梶裕貴"}});
+        let detail = parse_staff_detail(&payload);
+        assert_eq!(detail.name, "梶裕貴");
+        assert_eq!(detail.character_count, 0);
+        assert_eq!(detail.media_count, 0);
     }
 }

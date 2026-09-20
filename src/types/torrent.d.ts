@@ -252,6 +252,8 @@ export interface TorrentItemProps {
   busy: boolean;
   queue: { index: number; total: number; onMove: (delta: -1 | 1) => void } | null;
   onToggleExpand: () => void;
+  selected: boolean;
+  onSelectChange: (selected: boolean) => void;
   onPause: () => void;
   onResume: () => void;
   onSeedChange: (enabled: boolean) => void;
@@ -271,6 +273,32 @@ export interface MagnetTorrentProps {
   onClose: () => void;
   onAddMagnet: (magnet: string) => void;
   onAddFile: (filePath: string) => void;
+}
+
+export interface CreatedTorrent {
+  id: number;
+  name: string;
+  info_hash: string;
+  /** Metainfo copy kept in the app data dir; "Save .torrent" copies it to a chosen path. */
+  torrent_path: string;
+  file_count: number;
+}
+
+export interface CreateTorrentProps {
+  open: boolean;
+  onClose: () => void;
+  /** Fired once the torrent exists and is seeding, so the list can be refetched. */
+  onCreated: (created: CreatedTorrent) => void;
+}
+
+export interface TorrentSelectionBarProps {
+  count: number;
+  busy: boolean;
+  onPause: () => void;
+  onResume: () => void;
+  onRecheck: () => void;
+  onSelectAll: () => void;
+  onClear: () => void;
 }
 
 export interface SpeedTorrentProps {

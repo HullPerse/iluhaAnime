@@ -41,10 +41,12 @@ function props(overrides: Partial<TorrentItemProps> = {}): TorrentItemProps {
     onRemove: () => {},
     onResume: () => {},
     onSeedChange: () => {},
+    onSelectChange: () => {},
     onSetSequential: () => {},
     onToggleExpand: () => {},
     onUpdateFiles: () => {},
     queue: null,
+    selected: false,
     ...overrides,
   };
 }
@@ -59,6 +61,12 @@ describe("areTorrentItemsEqual", () => {
     expect(areTorrentItemsEqual(base, props({ item: info({ name: "Renamed" }) }))).toBe(false);
     expect(areTorrentItemsEqual(base, props({ item: info({ save_dir: "/other" }) }))).toBe(false);
     expect(areTorrentItemsEqual(base, props({ busy: true }))).toBe(false);
+  });
+
+  it("repaints when the row is selected or deselected", () => {
+    const base = props();
+    expect(areTorrentItemsEqual(base, props({ selected: true }))).toBe(false);
+    expect(areTorrentItemsEqual(props({ selected: true }), props({ selected: true }))).toBe(true);
   });
 
   it("repaints when a check reports the files gone", () => {

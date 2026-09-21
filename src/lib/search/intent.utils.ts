@@ -39,7 +39,7 @@ function parseYear(value: string): number | undefined {
   return n;
 }
 
-export function parseDateValue(value: string): { iso: string; yearOnly: boolean } | undefined {
+function parseDateValue(value: string): { iso: string; yearOnly: boolean } | undefined {
   const yearOnly = /^(\d{4})$/.exec(value);
   if (yearOnly) {
     const text = yearOnly[1];

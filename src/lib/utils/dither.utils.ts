@@ -86,16 +86,6 @@ export function withDitherDefaults(overrides: Partial<DitherEffectOptions>): Dit
   return merged;
 }
 
-export function parseDitherOptions(raw: string | null | undefined): DitherEffectOptions {
-  if (raw) {
-    const [parsed, error] = attemptSync(() => JSON.parse(raw) as Partial<DitherEffectOptions>);
-    if (!error && parsed && typeof parsed === "object") {
-      return withDitherDefaults(parsed);
-    }
-  }
-  return withDitherDefaults({});
-}
-
 export const EXTRACT_PALETTE_MIN_COLORS = 2;
 
 export const EXTRACT_PALETTE_MAX_COLORS = 8;

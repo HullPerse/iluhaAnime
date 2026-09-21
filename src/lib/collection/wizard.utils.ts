@@ -98,7 +98,7 @@ export function resolveFinishedAt(status: CollectionStatus, finishedAt: string):
   return new Date(finishedAt).getTime();
 }
 
-export function resolveStartedAt(status: CollectionStatus, startedAt: string): number | null {
+function resolveStartedAt(status: CollectionStatus, startedAt: string): number | null {
   if (!startedAt) return status === "watching" ? Date.now() : null;
   return parseTimestamp(startedAt);
 }

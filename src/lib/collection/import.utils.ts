@@ -45,7 +45,7 @@ export function anilistStatusToCollection(status: string): string {
   return "planned";
 }
 
-export function anilistFormatToCollection(format: string | null): "anime" | "movie" {
+function anilistFormatToCollection(format: string | null): "anime" | "movie" {
   return format === "MOVIE" ? "movie" : "anime";
 }
 export function buildAnilistPrefill(

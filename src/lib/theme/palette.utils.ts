@@ -7,8 +7,8 @@ export interface RGB {
   b: number;
 }
 
-export const PALETTE_LIMIT = 8;
-export const PALETTE_SAMPLE_SIZE = 64;
+const PALETTE_LIMIT = 8;
+const PALETTE_SAMPLE_SIZE = 64;
 
 const BUCKET_SHIFT = 4;
 const MIN_ALPHA = 24;

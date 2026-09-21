@@ -6,9 +6,9 @@ import { useSettingsStore } from "@/store/settings.store";
 import type { AniMedia, SpotlightKind } from "@/types/anilist";
 import type { SpotlightPage } from "@/types/ipc";
 
-export const SPOTLIGHT_SCORE_FLOOR = 65;
+const SPOTLIGHT_SCORE_FLOOR = 65;
 
-export const SPOTLIGHT_PER_PAGE = 50;
+const SPOTLIGHT_PER_PAGE = 50;
 
 function pad2(value: number): string {
   return String(value).padStart(2, "0");
@@ -58,7 +58,7 @@ export function spotlightPageIndex(
   };
 }
 
-export async function fetchSpotlightPage(page: number): Promise<SpotlightPage> {
+async function fetchSpotlightPage(page: number): Promise<SpotlightPage> {
   const proxy = useSettingsStore.getState().anilistProxyUrl;
   return invokeTyped<SpotlightPage>("get_spotlight_page", {
     page,

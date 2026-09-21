@@ -139,7 +139,7 @@ export function hexToHsv(hex: string): HSV | null {
   return rgb ? rgbToHsv(rgb) : null;
 }
 
-export function rgbToHexString(rgb: RGB): string {
+function rgbToHexString(rgb: RGB): string {
   return rgbaToHex({ a: 1, b: rgb.b, g: rgb.g, r: rgb.r }, false);
 }
 

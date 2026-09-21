@@ -9,7 +9,7 @@ import type {
   TorrentDeepLink,
 } from "@/types/deeplink";
 
-export type { AnimeDeepLink, CollectionShareDeepLink, CollectionShareItem, TorrentDeepLink };
+export type { AnimeDeepLink, CollectionShareDeepLink, TorrentDeepLink };
 
 const DEEP_LINK_SCHEME = "iluhaanime";
 export const DEEP_LINK_EVENT = "deep-link-opened";
@@ -355,6 +355,6 @@ export async function parseCollectionShareLink(
 }
 
 /** Cheap prefix check so paste/OS-link handlers can decide to await the full parse. */
-export function looksLikeCollectionShareLink(raw: string): boolean {
+function looksLikeCollectionShareLink(raw: string): boolean {
   return raw.trim().toLowerCase().startsWith(COLLECTION_SHARE_PREFIX);
 }

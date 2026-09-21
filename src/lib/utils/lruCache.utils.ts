@@ -1,6 +1,6 @@
 import type { LruCache, LruCacheStats } from "@/types/cache";
 
-export type { LruCache, LruCacheStats };
+export type { LruCache };
 
 export function createLruCache<K, V>(capacity: number): LruCache<K, V> {
   const maxSize = Math.max(1, Math.floor(capacity));

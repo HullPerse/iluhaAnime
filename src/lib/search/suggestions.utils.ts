@@ -112,16 +112,16 @@ function addAnimeSuggestions(
   for (let index = 0; index < normalizedTitles.length; index++) {
     const anime = options.animeIndex?.[index];
     if (!anime) continue;
-    const match = Math.max(
-      ...normalizedTitles[index]!.map(
-        (title) => fuzzyMatchScorePreNormalized(normalizedQuery, title) ?? -Infinity
-      )
-    );
-    if (!Number.isFinite(match)) continue;
+    let best = -Infinity;
+    for (const title of normalizedTitles[index] ?? []) {
+      const match = fuzzyMatchScorePreNormalized(normalizedQuery, title);
+      if (match != null && match > best) best = match;
+    }
+    if (!Number.isFinite(best)) continue;
     put({
       kind: "anime",
       score:
-        match +
+        best +
         animeBoost(anime, options.anilistBoost ?? "subtle") +
         statBoost(anime.title, options.suggestionStats),
       subtitle: animeSubtitle(anime),

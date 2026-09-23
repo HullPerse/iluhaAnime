@@ -276,11 +276,6 @@ describe("google theme", () => {
   });
 });
 
-/**
- * Every family a theme is allowed to name: bundled in `public/fonts` with an `@font-face` in
- * `src/index.css`, shipped by Windows, or a CSS generic keyword. Anything else would silently fall
- * back to the app font on a machine that does not happen to have it installed.
- */
 const ALLOWED_FAMILIES = new Set([
   "Perfect DOS VGA 437",
   "IBM Plex Sans",
@@ -318,7 +313,6 @@ it("only names fonts that are bundled or shipped by the OS", () => {
 });
 
 it("uses Inter for the Apple theme instead of San Francisco", () => {
-  // San Francisco is not redistributable, so the theme ships Inter, the closest open equivalent.
   const apple = THEMES.find((theme) => theme.name === "apple");
   expect(apple?.fontFamily).toBe("Inter");
 });

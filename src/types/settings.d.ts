@@ -1,7 +1,8 @@
 import type { AniListSort } from "./anilist";
 import type { Locale, TranslationKey } from "./i18n";
+import type { ScreenshotFormat } from "./screenshot";
 import type { AutocompleteMode, SearchType, TagToleranceKey } from "./search";
-import type { SpeedLimits } from "./torrent";
+import type { FileOrder, SpeedLimits } from "./torrent";
 
 export type SettingsTab =
   | "general"
@@ -14,10 +15,6 @@ export type SettingsTab =
 
 export type FFMPEGStatus = "checking" | "ok" | "missing" | "downloading";
 
-/**
- * Material the OS paints behind the webview. Window-level, not per theme: the theme only supplies
- * the tint alpha, so the effect can be toggled on its own.
- */
 export type WindowEffect = "none" | "acrylic" | "mica" | "tabbed";
 
 export interface SettingsStore {
@@ -48,9 +45,9 @@ export interface SettingsStore {
   customScrollbar: boolean;
   customTitleBarEnabled: boolean;
   statusBarEnabled: boolean;
+  minimizeToTray: boolean;
   roundedWindowCorners: boolean;
   windowEffect: WindowEffect;
-  /** How much of the theme face covers the window effect. `null` keeps the readable auto value. */
   windowTintOpacity: number | null;
   yorhaScanlinesEnabled: boolean;
   retroStyle: "classic" | "soft" | "high-contrast";
@@ -71,6 +68,8 @@ export interface SettingsStore {
   peerReadWriteTimeout: number;
   listenPort: number;
   enableUpnp: boolean;
+  torrentProxyUrl: string | null;
+  fileOrder: FileOrder;
   fastresumeEnabled: boolean;
   disablePersistence: boolean;
   parseTitles: boolean;
@@ -106,6 +105,9 @@ export interface SettingsStore {
   wallpaperShadow: WallpaperShadow;
   wallpaperScanlines: boolean;
   searchShadow: WallpaperShadow;
+  screenshotDir: string | null;
+  screenshotFormat: ScreenshotFormat;
+  screenshotOpenFolder: boolean;
   patch: (partial: Partial<SettingsStore>) => void;
 }
 
@@ -147,6 +149,8 @@ export interface SessionConfigPayload {
   listenPort: number;
   enableUpnp: boolean;
   disablePersistence: boolean;
+  proxyUrl: string | null;
+  fileOrder: FileOrder;
 }
 
 export type TabId = "search" | "torrent" | "player" | "anilist" | "collection" | "settings";

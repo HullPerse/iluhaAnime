@@ -4,11 +4,6 @@ import { useI18n } from "@/lib/locale/i18n.utils";
 import { clamp, hsvToHex } from "@/lib/utils/color.utils";
 import type { HSV } from "@/types/color";
 
-/**
- * The saturation (left to right) and value (bottom to top) plane, driven the way the app's other
- * sliders are: a focusable element that the mouse drags and the arrow keys step. `aria-valuenow`
- * carries brightness because a slider has one number; `aria-valuetext` spells out both axes.
- */
 export function SaturationValueArea({
   hsv,
   onChange,
@@ -26,7 +21,6 @@ export function SaturationValueArea({
   const setFromCoordinates = useCallback(
     (clientX: number, clientY: number) => {
       const rect = areaRef.current?.getBoundingClientRect();
-      // Nothing can be mapped without a box to map into (hidden ancestor, or a test environment).
       if (!rect || rect.width === 0 || rect.height === 0) return;
       const x = clamp(clientX - rect.left, 0, rect.width);
       const y = clamp(clientY - rect.top, 0, rect.height);

@@ -17,7 +17,6 @@ import ThemeEditor from "./theme/editor.theme";
 import { EffectsCheckbox } from "./theme/effects.theme";
 import { FontSelector } from "./theme/font.theme";
 
-/** Below this the glass is unreadable on every theme, so the slider stops there. */
 const TINT_SLIDER_MIN = 0.5;
 
 export default function SettingsTheme() {
@@ -40,8 +39,6 @@ export default function SettingsTheme() {
   const builtins = THEMES;
   const currentDef = [...builtins, ...customThemes].find((t) => t.name === currentTheme);
 
-  // Until the user moves the slider the theme's own readable value is what the window uses, so the
-  // knob sits there and the warning below only appears once a thinner tint is chosen on purpose.
   const tintFloor = currentDef
     ? windowTintAlpha(currentDef.colors.primary, currentDef.colors.text)
     : TINT_SLIDER_MIN;

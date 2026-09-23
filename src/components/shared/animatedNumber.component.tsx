@@ -30,7 +30,6 @@ function useTweenedValue(target: number, durationMs: number): number {
   return shown;
 }
 
-/** Formats a value that eases towards its target when the animated counters setting is on. */
 export function AnimatedNumber({
   value,
   format,

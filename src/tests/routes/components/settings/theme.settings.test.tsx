@@ -147,7 +147,6 @@ describe("SettingsTheme window effect", () => {
 
   it("starts the tint slider on the theme's own readable value", () => {
     render(<SettingsTheme />);
-    // win95: silver face, black text - the safe value only needs to be visible enough.
     expect(tintSlider().getAttribute("aria-valuenow")).toBe("0.72");
     expect(useSettingsStore.getState().windowTintOpacity).toBeNull();
     expect(screen.queryByText(/Thinner than this theme/)).toBeNull();
@@ -178,7 +177,6 @@ describe("SettingsTheme window effect", () => {
     render(<SettingsTheme />);
 
     const reset = screen.getByRole("button", { name: "Reset to theme" });
-    // Nothing to reset while the slider still carries the theme's own value.
     expect(reset.hasAttribute("disabled")).toBe(true);
 
     fireEvent.keyDown(tintSlider(), { key: "ArrowLeft" });

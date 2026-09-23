@@ -3,6 +3,8 @@ import { AlertTriangle, CheckCircle2, Info, XCircle, type LucideIcon } from "luc
 import type { TranslationKey } from "@/types/i18n";
 import type { NotificationFilter, NotificationType } from "@/types/notification";
 
+export const TOAST_ACTIVATED_EVENT = "notification-activated";
+
 export const POLL_INTERVALS_MIN = [5, 15, 30, 60, 120];
 
 export const NOTIFICATION_FILTERS: readonly NotificationFilter[] = [

@@ -64,10 +64,6 @@ function StatBar({
   );
 }
 
-/**
- * CPU, memory and network as thin bars. Memory and CPU read against their real ceiling, while
- * throughput has none, so its bar is scaled to the session peak and the number stays absolute.
- */
 function useSessionPeak(value: number): number {
   const [peak, setPeak] = useState(0);
   useEffect(() => {

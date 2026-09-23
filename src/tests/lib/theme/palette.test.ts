@@ -16,7 +16,6 @@ import {
   windowTintAlpha,
 } from "@/lib/theme/palette.utils";
 
-/** Blends a face over a desktop colour the way the compositor would. */
 function blendOver(face: string, desktop: string, alpha: number): string {
   const base = hexToRgb(face)!;
   const under = hexToRgb(desktop)!;
@@ -52,12 +51,10 @@ describe("window tint alpha", () => {
   });
 
   it("never drops below the floor that keeps the glass visible", () => {
-    // A silver face only needs ~0.6 for AA, but 0.6 makes the effect pointless.
     expect(windowTintAlpha("#c0c0c0", "#000000")).toBe(WINDOW_TINT_MIN);
   });
 
   it("returns the cap for a pair that can never reach AA, whatever the wallpaper", () => {
-    // White text on a white face: no alpha fixes that, so the cap is the answer by default.
     expect(windowTintAlpha("#f3f3f3", "#ffffff")).toBe(WINDOW_TINT_MAX);
   });
 

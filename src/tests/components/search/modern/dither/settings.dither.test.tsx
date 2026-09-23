@@ -350,7 +350,6 @@ describe("DitherSettings database images", () => {
       id: "aaa",
       dataUrl: "data:image/png;base64,BAKED",
     });
-    // Same file path, new version: the list must re-load the thumbnail.
     expect(screen.getByAltText("first.png").getAttribute("src")).toBe(
       "http://asset.localhost/C%3A%2Fimages%2Faaa.png?v=2"
     );

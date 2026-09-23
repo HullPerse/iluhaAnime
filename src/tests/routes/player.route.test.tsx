@@ -41,6 +41,7 @@ function torrent(id: number): TorrentInfo {
     progress_bytes: 0,
     save_dir: "/dl",
     sequential_download: false,
+    sequential_file: null,
     share_ratio: 0,
     state: "live",
     total_bytes: 1000,

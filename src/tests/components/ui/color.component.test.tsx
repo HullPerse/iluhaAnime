@@ -11,7 +11,6 @@ beforeEach(() => {
 
 afterEach(cleanup);
 
-/** The plane and the hue track map clicks through their own box, which jsdom reports as empty. */
 function mockRect(element: Element, width: number, height: number) {
   element.getBoundingClientRect = () =>
     ({
@@ -108,7 +107,6 @@ describe("ColorPicker fields", () => {
     fireEvent.mouseMove(window, { clientX: 100, clientY: 50 });
     expect(plane().getAttribute("aria-valuetext")).toBe("Saturation 50%, brightness 50%");
 
-    // Released: later pointer movement must not keep repainting the colour.
     fireEvent.mouseUp(window);
     fireEvent.mouseMove(window, { clientX: 0, clientY: 0 });
     expect(plane().getAttribute("aria-valuetext")).toBe("Saturation 50%, brightness 50%");
@@ -187,7 +185,6 @@ describe("ColorPicker fields", () => {
 
     await user.click(screen.getByRole("button", { name: "HSL" }));
 
-    // The colour did move to #0c0000, and the fields show that colour: 12 is not lightness.
     expect(screen.getByLabelText("h channel (HSL)")).toHaveProperty("value", "0");
     expect(screen.getByLabelText("s channel (HSL)")).toHaveProperty("value", "100");
     expect(screen.getByLabelText("l channel (HSL)")).toHaveProperty("value", "2");

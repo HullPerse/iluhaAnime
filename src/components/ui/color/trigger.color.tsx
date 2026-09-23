@@ -6,15 +6,19 @@ import { ColorPicker } from "./picker.color";
 export function ColorPickerTrigger({
   value,
   onChange,
+  label,
 }: {
   value: string;
   onChange: (hex: string) => void;
+  label?: string;
 }) {
   const [open, setOpen] = useState(false);
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
       <Popover.Trigger
         type="button"
+        aria-label={label}
+        title={label}
         className="windows95-border h-6 min-h-(--ui-control-height) w-10 cursor-pointer"
         style={{ background: value }}
       />

@@ -30,10 +30,8 @@ export interface HSL {
   l: number;
 }
 
-/** What the picker's field shows: a hex string, RGB channels or HSL channels. */
 export type ColorFormat = "hex" | "rgb" | "hsl";
 
-/** The two formats that are edited as three separate numbers. */
 export type ChannelFormat = "rgb" | "hsl";
 
 export type HexType = `#${string}`;

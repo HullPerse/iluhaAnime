@@ -1,23 +1,26 @@
 import { Checkbox as CheckboxPrimitive } from "@base-ui/react/checkbox";
 import { cn } from "cn";
-import { Check } from "lucide-react";
+import { Check, Minus } from "lucide-react";
 
 function Checkbox({
   checked,
   onChange,
   disabled,
+  indeterminate,
   className,
   "aria-label": ariaLabel,
 }: {
   checked: boolean;
   onChange: (v: boolean) => void;
   disabled?: boolean;
+  indeterminate?: boolean;
   className?: string;
   "aria-label"?: string;
 }) {
   return (
     <CheckboxPrimitive.Root
       checked={checked}
+      indeterminate={indeterminate}
       onCheckedChange={(v) => onChange(v)}
       disabled={disabled}
       aria-label={ariaLabel}
@@ -28,7 +31,11 @@ function Checkbox({
       )}
     >
       <CheckboxPrimitive.Indicator>
-        <Check className="size-3" aria-hidden />
+        {indeterminate ? (
+          <Minus className="size-3" aria-hidden />
+        ) : (
+          <Check className="size-3" aria-hidden />
+        )}
       </CheckboxPrimitive.Indicator>
     </CheckboxPrimitive.Root>
   );

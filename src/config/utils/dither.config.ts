@@ -221,10 +221,6 @@ export const DITHER_ROSETTE_VECTORS: readonly (readonly [number, number])[] = [
   [ROSETTE_X, 0.5],
 ];
 
-/**
- * Glyph ramp for the ascii stage. The three leading empty steps keep glyphs clustered
- * instead of turning the frame into a solid screen of characters.
- */
 export const DITHER_ASCII_RAMP: readonly string[] = [
   " ",
   " ",

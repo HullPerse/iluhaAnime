@@ -16,11 +16,6 @@ function toChannels(format: ChannelFormat, values: readonly string[]): HSV | nul
   return hslToHsv({ h: clamp(first, 0, 360), l: clamp(third, 0, 100), s: clamp(second, 0, 100) });
 }
 
-/**
- * The RGB or HSL fields. While a field is being edited it keeps the raw text (so a half-typed
- * "25" is not immediately clamped to something else), and the colour follows as soon as all
- * three fields hold a number.
- */
 export function ChannelInputs({
   format,
   hsv,

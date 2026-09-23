@@ -50,7 +50,6 @@ describe("PosterTile", () => {
     render(<PosterTile src={null} label="Eren" preview={<span>Yuki Kaji</span>} />);
 
     expect(screen.queryByText("Yuki Kaji")).toBeNull();
-    // The card replaces the browser tooltip rather than stacking on top of it.
     expect(screen.getByRole("button", { name: "Eren" }).getAttribute("title")).toBeNull();
     await user.hover(screen.getByRole("button", { name: "Eren" }));
     expect(await screen.findByText("Yuki Kaji", {}, { timeout: 3000 })).toBeDefined();
@@ -85,7 +84,6 @@ describe("PosterTile", () => {
     await user.hover(screen.getByRole("button", { name: "Eren" }));
     await user.click(await screen.findByText("Yuki Kaji", {}, { timeout: 3000 }));
 
-    // The card floats above whatever the click opened, so it cannot wait for the pointer to leave.
     await waitFor(() => expect(screen.queryByText("Yuki Kaji")).toBeNull());
   });
 

@@ -9,10 +9,6 @@ import {
   FLAG_SPRITE_PATH,
 } from "@/lib/torrent/flags.generated";
 
-/**
- * Country flag cut out of the bundled sprite sheet, one HTTP request for all countries.
- * Addresses without a country (private, reserved, unknown) get an empty tile so rows stay aligned.
- */
 export function FlagIcon({ code, className }: { code?: string | null; className?: string }) {
   const cell = code ? FLAG_CELLS[code.toLowerCase()] : undefined;
   if (!cell) {

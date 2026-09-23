@@ -54,8 +54,6 @@ const IMAGE: UserImage = {
 
 const UPDATED_FILE: UserImageFile = {
   ...IMAGE,
-  // Same path as before, only the version moves: a saved edit must be visible
-  // without renaming the file.
   path: "C:/images/aaa.png",
   originalPath: "C:/images/aaa.original.png",
   version: "2",

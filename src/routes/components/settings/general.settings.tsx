@@ -26,6 +26,7 @@ export default function SettingsGeneral() {
     sqliteBrowserEnabled,
     collectionTabEnabled,
     anilistTabEnabled,
+    minimizeToTray,
     tmdbKeySet,
     tmdbProxyUrl,
     anilistProxyUrl,
@@ -119,6 +120,28 @@ export default function SettingsGeneral() {
                 />
                 <span className="text-xs">{t("settings.sqlite")}</span>
               </label>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="ui-panel">
+        <div className="ui-titlebar">
+          <span className="text-title-text font-bold">{t("settings.window")}</span>
+        </div>
+        <div className="flex flex-col gap-1 p-2">
+          <div className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-1">
+            <span className="windows95-text text-text flex items-center text-xs font-bold">
+              {t("settings.window")}
+            </span>
+            <div className="flex flex-col gap-0.5">
+              <label className="windows95-text text-text flex cursor-pointer items-center gap-1.5 select-none">
+                <Checkbox checked={minimizeToTray} onChange={(v) => patch({ minimizeToTray: v })} />
+                <span className="text-xs">{t("settings.tray.minimize")}</span>
+              </label>
+              <span className="text-hint text-[12px]">
+                {t("settings.tray.minimize.description")}
+              </span>
             </div>
           </div>
         </div>

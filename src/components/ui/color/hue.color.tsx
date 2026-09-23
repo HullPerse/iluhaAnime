@@ -4,7 +4,6 @@ import { HUE_GRADIENT } from "@/config/utils/colors.config";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { clamp, normalizeHue } from "@/lib/utils/color.utils";
 
-/** Hue from 0 to 360 over the spectrum, in the shape of the app's other sliders. */
 export function HueSlider({ hue, onChange }: { hue: number; onChange: (hue: number) => void }) {
   const { t } = useI18n();
   const trackRef = useRef<HTMLDivElement>(null);

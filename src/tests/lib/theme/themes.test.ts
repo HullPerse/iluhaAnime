@@ -12,22 +12,14 @@ import {
 } from "@/lib/theme/palette.utils";
 import { getTitleText } from "@/store/theme.store";
 
-/**
- * Smallest RGB distance two tokens may have and still be told apart side by side.
- * The same idea as `quantizePalette`'s dedup distance, tuned for tokens that are
- * often rendered as two dots or two words next to each other.
- */
 const MIN_COLOR_DISTANCE = 32;
 
-/** WCAG AA for normal text. */
 const MIN_CONTRAST = 4.5;
 
-/** Status and graph colours are derived from these four accents. */
 const ACCENT_KEYS = ["highlight", "linkHover", "success", "destructive"] as const;
 
 const STATUS_KEYS = ["downloading", "seeding", "done", "error", "idle", "missing"] as const;
 
-/** Mirrors the derivation in `index.css` plus the theme's own overrides. */
 function statusColors(theme: (typeof THEMES)[number]): Record<string, string> {
   const c = theme.colors;
   const overrides = theme.overrides ?? {};
@@ -41,7 +33,6 @@ function statusColors(theme: (typeof THEMES)[number]): Record<string, string> {
   };
 }
 
-/** Blends a theme face over a desktop colour the way the compositor would. */
 function blendOver(face: string, desktop: string, alpha: number): string {
   const base = hexToRgb(face)!;
   const under = hexToRgb(desktop)!;

@@ -1,11 +1,6 @@
 import type { TranslationKey } from "@/types/i18n";
 import type { ThemeColorKey, ThemeDefinition, ThemeOverrideKey } from "@/types/theme";
 
-/**
- * Platform identities first, in the order a user would expect to browse them: Windows oldest to
- * newest, then Google and Apple. The settings grid renders `THEMES` in array order, and `win95`
- * stays first because it is the default theme.
- */
 export const THEMES: ThemeDefinition[] = [
   {
     colors: {
@@ -130,7 +125,6 @@ export const THEMES: ThemeDefinition[] = [
       muted: "#5f6368",
       primary: "#f8f9fa",
       secondary: "#1967d2",
-      // Green 700, not the brand 600: the brighter green only reaches 4.21 on a white face.
       success: "#188038",
       surface: "#e8eaed",
       text: "#202124",
@@ -150,8 +144,6 @@ export const THEMES: ThemeDefinition[] = [
       destructive: "#d70015",
       field: "#ffffff",
       highlight: "#0071e3",
-      // A darker blue rather than the system red: a hovered link still has to be readable, and
-      // #ff3b30 only reaches 3.55 on this face.
       linkHover: "#004499",
       muted: "#6e6e73",
       primary: "#f5f5f7",
@@ -162,8 +154,6 @@ export const THEMES: ThemeDefinition[] = [
       winHighlight: "#ffffff",
       winShadow: "#c7c7cc",
     },
-    // San Francisco is not redistributable, so the theme ships Inter - the closest open equivalent -
-    // instead of naming a family we cannot bundle.
     fontFamily: "Inter",
     label: "Apple",
     name: "apple",
@@ -517,7 +507,6 @@ export const THEMES: ThemeDefinition[] = [
   },
 ];
 
-/** CSS variable written for each `ThemeDefinition.overrides` key. */
 export const THEME_OVERRIDE_VARS: Record<ThemeOverrideKey, string> = {
   favGold: "--color-fav-gold",
   graphDefault: "--color-graph-default",
@@ -535,11 +524,6 @@ export const THEME_OVERRIDE_VARS: Record<ThemeOverrideKey, string> = {
   torrentSeeding: "--color-torrent-seeding",
 };
 
-/**
- * Themes built from a four-shade palette cannot spread four accents apart without
- * leaving the palette, so the accent-distinctness check steps aside for them.
- * The status-colour check still applies: Game Boy separates `done` with an override.
- */
 export const THEME_ACCENT_EXEMPT = ["game-boy"];
 
 export const THEME_COLOR_KEYS: {

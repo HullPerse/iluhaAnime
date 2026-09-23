@@ -206,7 +206,10 @@ describe("DitherPreviewModal save wiring under StrictMode", () => {
       await act(async () => {
         resolveUpdate(UPDATED_FILE);
       });
-      expect(mockInvoke).toHaveBeenCalledTimes(1);
+      const updateCalls = mockInvoke.mock.calls.filter(
+        ([command]) => command === "update_dither_image_data"
+      );
+      expect(updateCalls).toHaveLength(1);
     } finally {
       vi.useRealTimers();
     }

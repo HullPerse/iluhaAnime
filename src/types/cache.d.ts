@@ -30,6 +30,7 @@ export interface CacheStore {
   setEpisodeTracker: (tracker: Record<number, number>) => void;
   syncTorrentOrder: (ids: number[]) => void;
   moveTorrentOrder: (id: number, neighborId: number) => void;
+  moveTorrentOrderTo: (id: number, targetId: number) => void;
 }
 
 export interface LruCacheStats {

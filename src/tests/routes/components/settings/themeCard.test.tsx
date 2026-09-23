@@ -12,7 +12,6 @@ function card(title: string): HTMLElement {
   return screen.getByTitle(title);
 }
 
-/** The preview strip that shows the theme label over the accent colour. */
 function accentStrip(element: HTMLElement): HTMLElement {
   const strip = element.querySelector<HTMLElement>('[aria-hidden="true"] > div');
   if (!strip) throw new Error("accent strip not found");

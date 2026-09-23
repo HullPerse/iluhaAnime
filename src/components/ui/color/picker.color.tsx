@@ -11,14 +11,8 @@ import { SaturationValueArea } from "./area.color";
 import { ChannelInputs } from "./channels.color";
 import { HueSlider } from "./hue.color";
 
-/** Where a value that cannot be read at all lands: the shrunken HSV of the fixed palette grey. */
 const FALLBACK_HSV: HSV = { h: 0, s: 0, v: 50 };
 
-/**
- * Hybrid picker: the app's own palette on top, then an HSV plane and hue track for anything the
- * palette does not cover, then the value as HEX, RGB or HSL. The caller's value only moves on OK,
- * so Cancel costs nothing.
- */
 export function ColorPicker({
   value,
   onConfirm,
@@ -35,7 +29,6 @@ export function ColorPicker({
   const [editing, setEditing] = useState(false);
   const [prevValue, setPrevValue] = useState(value);
 
-  // The panel outlives a value changed from outside while it is open.
   if (value !== prevValue) {
     setPrevValue(value);
     const next = hexToHsv(value);
@@ -109,7 +102,6 @@ export function ColorPicker({
         </div>
 
         {isChannelFormat ? (
-          // Keyed by format so a half-typed RGB draft cannot reappear as HSL channels.
           <ChannelInputs key={format} format={format} hsv={hsv} onChange={setHsv} />
         ) : (
           <Input

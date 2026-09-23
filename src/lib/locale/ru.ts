@@ -10,10 +10,12 @@ import changelog407 from "./changelog/v4_0_7.ru";
 import changelog408 from "./changelog/v4_0_8.ru";
 import changelog409 from "./changelog/v4_0_9.ru";
 import changelog410 from "./changelog/v4_1_0.ru";
+import changelog411 from "./changelog/v4_1_1.ru";
 import anilist from "./ru/anilist.locale";
 import collection from "./ru/collection.locale";
 import common from "./ru/common.locale";
 import player from "./ru/player.locale";
+import screenshot from "./ru/screenshot.locale";
 import search from "./ru/search.locale";
 import settings from "./ru/settings.locale";
 import torrent from "./ru/torrent.locale";
@@ -21,6 +23,7 @@ import updater from "./ru/updater.locale";
 
 const ru = {
   ...anilist,
+  ...changelog411,
   ...changelog410,
   ...changelog409,
   ...changelog408,
@@ -36,6 +39,7 @@ const ru = {
   ...common,
   ...collection,
   ...player,
+  ...screenshot,
   ...search,
   ...settings,
   ...torrent,

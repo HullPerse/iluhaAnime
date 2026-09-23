@@ -32,7 +32,8 @@ async function startDownloadForPending(
   pending: { magnet?: string; fileBytes?: number[] },
   saveDir: string,
   onlyFiles: number[] | null,
-  subFolder: string | undefined
+  subFolder: string | undefined,
+  sequential: boolean
 ): Promise<number | undefined> {
   if (pending.magnet) {
     const [id, error] = await attempt(
@@ -41,6 +42,7 @@ async function startDownloadForPending(
         saveDir,
         onlyFiles,
         subFolder: subFolder || null,
+        sequential,
       })
     );
     if (error) {
@@ -56,6 +58,7 @@ async function startDownloadForPending(
         saveDir,
         onlyFiles,
         subFolder: subFolder || null,
+        sequential,
       })
     );
     if (error) {
@@ -103,12 +106,16 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
     useCacheStore.getState().setLastSaveDir(saveDir);
     await clearPreviousTorrentIfNeeded(pending.id);
     const onlyFiles = resolveOnlyFiles(pending.files, selectedIndices);
-    const id = await startDownloadForPending(pending, saveDir, onlyFiles, subFolder);
+
+    const id = await startDownloadForPending(
+      pending,
+      saveDir,
+      onlyFiles,
+      subFolder,
+      sequential ?? false
+    );
     if (id === undefined) return;
     set({ pendingTorrent: null });
-    if (!sequential) return;
-    const [, error] = await attempt(invokeTyped("set_sequential_download", { id, enabled: true }));
-    if (error) showError(tr("download.error.sequential"), error.message);
   },
   limits: { download: null, upload: null },
   getTorrentLimits: async (id: number) => {

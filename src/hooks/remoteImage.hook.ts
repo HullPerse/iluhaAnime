@@ -43,8 +43,6 @@ export function useRemoteImageStatus(remoteUrl: string | null | undefined): {
     return { src: resolvedUrls.get(remoteUrl) ?? null, failed: false };
   });
   useEffect(() => {
-    // Raw remote URLs never render: the production CSP allowlists no remote image
-    // host, so every remote image resolves through the backend cache instead.
     if (!remoteUrl) {
       setState({ src: null, failed: false });
       return;

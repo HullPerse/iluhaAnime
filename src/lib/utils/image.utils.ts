@@ -18,11 +18,6 @@ export function userImageId(value: string): string | null {
   return id || null;
 }
 
-/**
- * Asset URL for a path stored on disk. `version` is appended as a query token so
- * a rewritten file gets a new URL: the asset protocol serves the file by path and
- * ignores the query, but the webview caches by full URL.
- */
 export function assetUrl(path: string, version?: string | null): string {
   const url = convertFileSrc(path);
   if (version === undefined || version === null || version === "") return url;

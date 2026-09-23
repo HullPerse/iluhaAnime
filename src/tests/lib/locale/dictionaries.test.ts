@@ -6,13 +6,6 @@ import { translate } from "@/lib/locale/i18n.utils";
 import ru from "@/lib/locale/ru";
 import type { TranslationKey } from "@/types/i18n";
 
-/**
- * Plural forms live under `${key}.${Intl.PluralRules category}`, and the category sets differ per
- * language: Russian needs `one`/`few`/`many`, English needs `one` plus the bare key for `other`,
- * and `resolvePluralKey` falls back to the Russian suffix when English has none. A plural form is
- * therefore the only key allowed to exist in a single language, and only while its base key is
- * defined in both.
- */
 const PLURAL_SUFFIX = /\.(zero|one|two|few|many|other|past|future)$/;
 
 function pluralBase(key: string): string | null {
@@ -27,7 +20,6 @@ const ruKeys = new Set(Object.keys(ruDictionary));
 
 describe("locale dictionaries", () => {
   it("exposes every English key through the Russian dictionary", () => {
-    // `TranslationKey` is `keyof typeof ru`, so an English-only key can never be requested.
     expect([...enKeys].filter((key) => !ruKeys.has(key))).toEqual([]);
   });
 
@@ -84,7 +76,6 @@ describe("changelog entries", () => {
   });
 
   it("names the scope of every entry", () => {
-    // The scope label is built at runtime as `settings.changelog.scope.${scope}`.
     const scopes = new Set(entries.map(({ scope }) => `settings.changelog.scope.${scope}`));
     expect([...scopes].filter((key) => !enKeys.has(key) || !ruKeys.has(key))).toEqual([]);
   });

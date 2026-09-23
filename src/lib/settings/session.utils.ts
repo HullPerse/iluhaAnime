@@ -11,5 +11,7 @@ export function toSessionConfig(): SessionConfigPayload {
     listenPort: s.listenPort,
     enableUpnp: s.enableUpnp,
     disablePersistence: s.disablePersistence,
+    proxyUrl: s.torrentProxyUrl,
+    fileOrder: s.fileOrder,
   };
 }

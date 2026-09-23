@@ -267,6 +267,12 @@ const settings = {
   "settings.torrent.dl.limit": "Лимит загрузки (КБ/с)",
   "settings.torrent.enable.notifications": "Включить уведомления",
   "settings.torrent.fastresume": "Fastresume (быстрое восстановление)",
+  "settings.torrent.files": "Файлы",
+  "settings.torrent.file.order": "Порядок файлов",
+  "settings.torrent.file.order.list": "Как в списке",
+  "settings.torrent.file.order.torrent": "Как в торренте",
+  "settings.torrent.file.order.description":
+    "Какой файл список показывает первым и с какого начинается последовательная загрузка.",
   "settings.torrent.no.limit": "Нет лимита",
   "settings.torrent.notifications": "Уведомления",
   "settings.torrent.on.complete": "При завершении загрузки",
@@ -279,6 +285,15 @@ const settings = {
   "settings.torrent.ipv4.only": "Только IPv4",
   "settings.torrent.peer.connect.timeout": "Таймаут подключения (с)",
   "settings.torrent.peer.readwrite.timeout": "Таймаут чтения/записи (с)",
+  "settings.torrent.proxy.url": "Прокси SOCKS5",
+  "settings.torrent.proxy.url.description":
+    "Для соединений с пирами и HTTP-трекеров. DHT и UDP-трекеры идут напрямую.",
+  "settings.torrent.proxy.test": "Проверить",
+  "settings.torrent.proxy.testing": "Проверка...",
+  "settings.torrent.proxy.test.ok": "Прокси работает",
+  "settings.torrent.proxy.test.fail": "Ошибка",
+  "settings.torrent.listen.port.active": "Сессия заняла порт {{port}}",
+  "settings.torrent.listen.port.idle": "Сессия не запущена",
   "settings.torrent.session.restart.note": "Применится после перезапуска",
   "settings.torrent.session.invalid": "Введите корректные числа",
   "settings.torrent.session.apply": "Применить",
@@ -326,6 +341,10 @@ const settings = {
   "settings.tmdb.api.key.remove": "Удалить ключ",
   "settings.tmdb.api.key.stored": "Ключ хранится в системном хранилище",
   "settings.tmdb.api.key.empty": "Ключ не сохранен",
+  "settings.window": "Окно",
+  "settings.tray.minimize": "Сворачивать в трей при закрытии",
+  "settings.tray.minimize.description": "Крестик скрывает окно, приложение продолжает работать.",
+  "settings.tray.quit": "Выйти",
 } as const;
 
 export default settings;

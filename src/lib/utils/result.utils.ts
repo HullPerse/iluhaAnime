@@ -1,9 +1,5 @@
 import { toError } from "@/lib/utils/attempt.utils";
 
-/**
- * Outcome of an operation that may fail. Failures stay values, so a chain of
- * fallible steps reads top to bottom instead of nesting `if (error) return`.
- */
 export type Result<T> = { ok: true; value: T } | { ok: false; error: Error };
 
 export function ok<T>(value: T): Result<T> {
@@ -34,7 +30,6 @@ export function map<T, U>(result: Result<T>, fn: (value: T) => U): Result<U> {
   return result.ok ? ok(fn(result.value)) : result;
 }
 
-/** Runs the next fallible step only when the previous one succeeded. */
 export async function andThen<T, U>(
   result: Result<T>,
   fn: (value: T) => Result<U> | Promise<Result<U>>

@@ -13,16 +13,26 @@ describe("toSessionConfig", () => {
       listenPort: 51413,
       peerConnectTimeout: 45,
       peerReadWriteTimeout: 20,
+      torrentProxyUrl: "socks5://127.0.0.1:10808",
+      fileOrder: "torrent",
     });
 
     expect(toSessionConfig()).toEqual({
       disablePersistence: true,
       enableUpnp: true,
       fastresume: false,
+      fileOrder: "torrent",
       ipv4Only: true,
       listenPort: 51413,
       peerConnectTimeout: 45,
       peerReadWriteTimeout: 20,
+      proxyUrl: "socks5://127.0.0.1:10808",
     });
+  });
+
+  it("sends a null proxy when the setting is unset", () => {
+    useSettingsStore.setState({ torrentProxyUrl: null });
+
+    expect(toSessionConfig().proxyUrl).toBe(null);
   });
 });

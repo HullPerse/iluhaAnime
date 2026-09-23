@@ -8,12 +8,6 @@ vi.mock("@tauri-apps/api/core", () => ({
   convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
 }));
 
-vi.mock("@tauri-apps/plugin-notification", () => ({
-  isPermissionGranted: vi.fn(),
-  requestPermission: vi.fn(),
-  sendNotification: vi.fn(),
-}));
-
 describe("useTorrentStore", () => {
   const invokeMock = vi.mocked(invoke);
 

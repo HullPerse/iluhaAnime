@@ -17,7 +17,6 @@ import type {
 } from "@/types/search";
 
 const MAX_LEARNING_ITEMS = SEARCH_RANKING.MAX_LEARNING_ITEMS;
-// Must stay below the backend batch cap (unified_index.rs rejects over 5_000 entries).
 const INDEX_BATCH_SIZE = 1000;
 const TTL_MS = SEARCH_RANKING.TTL_MS;
 
@@ -147,7 +146,6 @@ function buildAnimeIndex(
   return [...entries.values()].slice(0, MAX_LEARNING_ITEMS);
 }
 
-/** Clears a unified index scope, falling back to pruning the entries when the backend cannot drop it. */
 async function dropUnifiedScope(scope: string, label: string): Promise<void> {
   const [, error] = await attempt(invokeTyped("clear_unified_index_scope", { scope }));
   if (error === null) return;

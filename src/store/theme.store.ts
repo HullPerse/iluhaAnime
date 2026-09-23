@@ -13,11 +13,6 @@ import { attemptSync, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { DEFAULT_FONT_FAMILY, getStoredAppFont, toCssFontFamily } from "@/lib/utils/font.utils";
 import type { ThemeDefinition, ThemeOverrideKey, ThemeStore } from "@/types/theme";
 
-/**
- * Picks whichever of black or white reads better on the given colour. The previous
- * brightness cutoff of 160 left seven themes with a title label under 4:1 - Terminal
- * at 1.37 - because a saturated mid accent lands right around the threshold.
- */
 export function getTitleText(color: string): string {
   if (hexToRgb(color) === null) return "#ffffff";
   const dark = contrastRatio(color, "#000000");
@@ -36,8 +31,9 @@ function parseBevel(value: unknown): ThemeDefinition["bevel"] {
 function parseTitlebarGradient(value: unknown): ThemeDefinition["titlebarGradient"] {
   if (typeof value !== "object" || value === null) return undefined;
   const record = value as Record<string, unknown>;
-  if (!/^#[\da-f]{6}$/i.test(String(record.from)) || !/^#[\da-f]{6}$/i.test(String(record.to)))
+  if (!/^#[\da-f]{6}$/i.test(String(record.from)) || !/^#[\da-f]{6}$/i.test(String(record.to))) {
     return undefined;
+  }
   return { from: String(record.from), to: String(record.to) };
 }
 
@@ -61,7 +57,6 @@ function parseHexColor(value: unknown, fallback: string): string {
   return typeof value === "string" && /^#[\da-f]{6}$/i.test(value) ? value : fallback;
 }
 
-/** Content background (fields, lists, previews). Themes written before the token existed derive it from `primary`. */
 function resolveField(field: unknown, primary: string): string {
   const rgb = hexToRgb(primary);
   const derived = rgb === null || relativeLuminance(rgb) >= 0.5 ? "#ffffff" : shade(primary, -0.3);
@@ -103,11 +98,9 @@ export function applyTheme(name: string, customThemes: ThemeDefinition[] = []) {
     "important"
   );
   root.style.setProperty("--titlebar-to", theme.titlebarGradient?.to ?? c.secondary, "important");
-  // Published as a percentage so `color-mix` can consume it directly when a window effect is on.
   const windowAlpha = `${Math.round(windowTintAlpha(c.primary, c.text) * 100)}%`;
   root.style.setProperty("--ui-window-alpha", windowAlpha, "important");
-  // Overridden tokens are written explicitly and reset to the stylesheet derivation otherwise, so
-  // switching away from a theme that overrides e.g. `torrentSeeding` really drops its colour.
+
   for (const key of Object.keys(THEME_OVERRIDE_VARS) as ThemeOverrideKey[]) {
     const variable = THEME_OVERRIDE_VARS[key];
     const override = theme.overrides?.[key];

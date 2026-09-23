@@ -266,6 +266,12 @@ const settings = {
   "settings.torrent.dl.limit": "Download limit (KB/s)",
   "settings.torrent.enable.notifications": "Enable notifications",
   "settings.torrent.fastresume": "Fastresume (quick recovery)",
+  "settings.torrent.files": "Files",
+  "settings.torrent.file.order": "File order",
+  "settings.torrent.file.order.list": "As shown in the list",
+  "settings.torrent.file.order.torrent": "As stored in the torrent",
+  "settings.torrent.file.order.description":
+    "Which file the list shows first, and which one sequential download starts with.",
   "settings.torrent.no.limit": "No limit",
   "settings.torrent.notifications": "Notifications",
   "settings.torrent.on.complete": "On download complete",
@@ -278,6 +284,15 @@ const settings = {
   "settings.torrent.ipv4.only": "IPv4 only",
   "settings.torrent.peer.connect.timeout": "Peer connect timeout (s)",
   "settings.torrent.peer.readwrite.timeout": "Peer read/write timeout (s)",
+  "settings.torrent.proxy.url": "SOCKS5 proxy",
+  "settings.torrent.proxy.url.description":
+    "For peer connections and HTTP trackers. DHT and UDP trackers stay direct.",
+  "settings.torrent.proxy.test": "Test connection",
+  "settings.torrent.proxy.testing": "Testing...",
+  "settings.torrent.proxy.test.ok": "Proxy works",
+  "settings.torrent.proxy.test.fail": "Failed",
+  "settings.torrent.listen.port.active": "Session bound port {{port}}",
+  "settings.torrent.listen.port.idle": "Session is not running",
   "settings.torrent.session.restart.note": "Applies after app restart",
   "settings.torrent.session.invalid": "Enter valid numbers",
   "settings.torrent.session.apply": "Apply",
@@ -323,6 +338,10 @@ const settings = {
   "settings.tmdb.api.key.remove": "Remove key",
   "settings.tmdb.api.key.stored": "Key stored in OS keyring",
   "settings.tmdb.api.key.empty": "No key saved",
+  "settings.window": "Window",
+  "settings.tray.minimize": "Minimize to tray on close",
+  "settings.tray.minimize.description": "The close button hides the window, the app keeps running.",
+  "settings.tray.quit": "Quit",
 } as const;
 
 export default settings;

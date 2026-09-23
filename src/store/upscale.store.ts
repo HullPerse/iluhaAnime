@@ -194,14 +194,10 @@ export const useUpscaleQueueStore = create<UpscaleQueueStore>()((set, get) => ({
       ),
     }));
     const { processing, paused } = get();
-    if (!processing && !paused) {
-      get().processNext();
-    }
+    if (!processing && !paused) get().processNext();
   },
   setPaused: (paused) => {
     set({ paused });
-    if (!paused && !get().processing) {
-      get().processNext();
-    }
+    if (!paused && !get().processing) get().processNext();
   },
 }));

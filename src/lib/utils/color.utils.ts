@@ -30,7 +30,6 @@ export function normalizeHue(hue: number): number {
   return ((hue % 360) + 360) % 360;
 }
 
-/** The six hue segments as channel order into `[chroma, second, 0]`. */
 const HUE_SEGMENTS: readonly (readonly [number, number, number])[] = [
   [0, 1, 2],
   [1, 0, 2],
@@ -58,10 +57,6 @@ function chromaToRgb(c: number, second: number, m: number, hue: number): RGB {
   };
 }
 
-/**
- * Hue and saturation stay unrounded on purpose: the picker keeps its state in HSV, and a hex put
- * through HSV and back has to return the same colour.
- */
 export function rgbToHsv({ r, g, b }: RGB): HSV {
   const rn = r / 255;
   const gn = g / 255;
@@ -84,7 +79,6 @@ export function hsvToRgb({ h, s, v }: HSV): RGB {
   return chromaToRgb(c, second, value - c, h);
 }
 
-/** Rounded to whole degrees and percents: this feeds number fields, not the colour maths. */
 export function rgbToHsl({ r, g, b }: RGB): HSL {
   const rn = r / 255;
   const gn = g / 255;
@@ -119,11 +113,6 @@ export function hslToHsv({ h, s, l }: HSL): HSV {
   };
 }
 
-/**
- * Accepts what someone would actually type: six digits or the three-digit shorthand, with or
- * without the hash. The four- and eight-digit forms carry alpha the picker cannot edit, so they
- * are rejected instead of being silently stripped.
- */
 export function hexToRgb(hex: string): RGB | null {
   const clean = hex.trim().replace(/^#/u, "").trim();
   if (!(clean.length === 3 || clean.length === 6)) return null;
@@ -147,7 +136,6 @@ export function hsvToHex(hsv: HSV): string {
   return rgbToHexString(hsvToRgb(hsv));
 }
 
-/** The three channel fields shown for `format`, as strings ready for an input. */
 export function hsvToChannelStrings(hsv: HSV, format: ChannelFormat): [string, string, string] {
   const rgb = hsvToRgb(hsv);
   if (format === "rgb") return [String(rgb.r), String(rgb.g), String(rgb.b)];
@@ -176,7 +164,6 @@ function parseChannels(input: string): number[] {
     .map(Number);
 }
 
-/** Reads back what `formatColor` writes, so a value can be typed or pasted in any format. */
 export function parseColor(input: string, format: ColorFormat): HSV | null {
   if (format === "hex") return hexToHsv(input);
   const numbers = parseChannels(input);

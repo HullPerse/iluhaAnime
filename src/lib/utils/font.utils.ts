@@ -12,6 +12,12 @@ export function toCssFontFamily(font: string | null): string {
   return `${quoteFont(font)}, ${DEFAULT_FONT_FAMILY}`;
 }
 
+export function resolveFontFamily(): string {
+  if (typeof window === "undefined" || !document.documentElement) return DEFAULT_FONT_FAMILY;
+  const css = getComputedStyle(document.documentElement).getPropertyValue("--font-family").trim();
+  return css.length > 0 ? css : DEFAULT_FONT_FAMILY;
+}
+
 export function applyFontFamily(font: string | null): void {
   if (typeof document === "undefined" || !document.documentElement) return;
   const css = toCssFontFamily(font);

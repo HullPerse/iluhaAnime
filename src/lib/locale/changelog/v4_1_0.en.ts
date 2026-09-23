@@ -26,6 +26,12 @@ const changelog410 = {
     "Clicking a friend shows a preview with their last five activities on the right, and the List button opens their full lists",
   "changelog.4_1_0.added.detail_posters":
     "Friend scores and similar anime use the same poster tiles as the rest of the app, without empty label rows",
+  "changelog.4_1_0.added.torrent_queue":
+    "Download queue: arrange the files you picked by dragging them, and sequential mode fetches them in exactly that order",
+  "changelog.4_1_0.added.torrent_queue_drag":
+    "In the manual order the torrents can be rearranged by dragging a row by its handle, not only with the arrows",
+  "changelog.4_1_0.changed.file_selection":
+    "A file is checked and unchecked in one place again: the checkbox sets its priority, folders have one of their own, and the separate Normal/Skip dropdown is gone",
   "changelog.4_1_0.changed.bulk_buttons":
     'The global "Pause all" and "Resume all" buttons are gone: tick the rows and use the action bar instead',
   "changelog.4_1_0.changed.errors_recheck":

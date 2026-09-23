@@ -404,6 +404,38 @@ function applySettingsV32(
   return migrated;
 }
 
+function applySettingsV33(
+  migrated: Partial<SettingsStore>,
+  version: number
+): Partial<SettingsStore> {
+  if (version >= 33) return migrated;
+  if (migrated.torrentProxyUrl === undefined) migrated.torrentProxyUrl = null;
+  return migrated;
+}
+
+function applySettingsV34(
+  migrated: Partial<SettingsStore>,
+  version: number
+): Partial<SettingsStore> {
+  if (version >= 34) return migrated;
+  if (migrated.minimizeToTray === undefined)
+    migrated.minimizeToTray = DEFAULT_SETTINGS.minimizeToTray;
+  return migrated;
+}
+
+function applySettingsV35(
+  migrated: Partial<SettingsStore>,
+  version: number
+): Partial<SettingsStore> {
+  if (version >= 35) return migrated;
+  if (migrated.screenshotDir === undefined) migrated.screenshotDir = null;
+  if (migrated.screenshotFormat !== "png" && migrated.screenshotFormat !== "jpeg")
+    migrated.screenshotFormat = DEFAULT_SETTINGS.screenshotFormat;
+  if (migrated.screenshotOpenFolder === undefined)
+    migrated.screenshotOpenFolder = DEFAULT_SETTINGS.screenshotOpenFolder;
+  return migrated;
+}
+
 function drainTmdbPendingKey(state: SettingsStore): void {
   const pending = state.tmdbPendingKey;
   if (!pending) return;
@@ -428,10 +460,6 @@ function applyWindowEffect(effect: SettingsStore["windowEffect"]): void {
   document.documentElement.dataset.windowEffect = effect;
 }
 
-/**
- * The theme publishes the tint alpha that keeps its text readable; an explicit user value replaces
- * it, and clearing the property is what returns to the theme's own value on a theme switch.
- */
 function applyWindowTint(opacity: number | null): void {
   if (typeof document === "undefined" || !document.documentElement) return;
   const root = document.documentElement;
@@ -578,6 +606,9 @@ export const useSettingsStore = create<SettingsStore>()(
         migrated = applySettingsV30(migrated, version);
         migrated = applySettingsV31(migrated, version);
         migrated = applySettingsV32(migrated, version);
+        migrated = applySettingsV33(migrated, version);
+        migrated = applySettingsV34(migrated, version);
+        migrated = applySettingsV35(migrated, version);
         return migrated;
       },
       onRehydrateStorage: () => (state) => {
@@ -595,7 +626,7 @@ export const useSettingsStore = create<SettingsStore>()(
           drainTmdbPendingKey(state);
         }
       },
-      version: 32,
+      version: 35,
     }
   )
 );

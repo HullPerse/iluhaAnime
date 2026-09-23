@@ -198,6 +198,38 @@ describe("useSettingsStore migration", () => {
       left: true,
     });
   });
+
+  it("defaults the screenshot settings on v35", () => {
+    const migrate = useSettingsStore.persist.getOptions()?.migrate;
+    const result = migrate!({ language: "en" } as never, 34) as {
+      screenshotDir: string | null;
+      screenshotFormat: string;
+      screenshotOpenFolder: boolean;
+    };
+    expect(result.screenshotDir).toBeNull();
+    expect(result.screenshotFormat).toBe("png");
+    expect(result.screenshotOpenFolder).toBe(true);
+  });
+
+  it("keeps a stored screenshot folder and repairs an unknown format", () => {
+    const migrate = useSettingsStore.persist.getOptions()?.migrate;
+    const kept = migrate!(
+      {
+        language: "en",
+        screenshotDir: "D:\\Shots",
+        screenshotFormat: "jpeg",
+        screenshotOpenFolder: false,
+      } as never,
+      34
+    ) as { screenshotDir: string | null; screenshotFormat: string; screenshotOpenFolder: boolean };
+    expect(kept.screenshotDir).toBe("D:\\Shots");
+    expect(kept.screenshotFormat).toBe("jpeg");
+    expect(kept.screenshotOpenFolder).toBe(false);
+    const repaired = migrate!({ language: "en", screenshotFormat: "webp" } as never, 34) as {
+      screenshotFormat: string;
+    };
+    expect(repaired.screenshotFormat).toBe("png");
+  });
 });
 
 describe("useSettingsStore hidden player items", () => {
@@ -566,6 +598,24 @@ describe("window chrome side effect", () => {
       effect: "none",
       roundedCorners: false,
     });
+  });
+});
+
+describe("minimize to tray v34 migration", () => {
+  it("defaults to closing the app instead of hiding to the tray", () => {
+    const migrate = useSettingsStore.persist.getOptions()?.migrate;
+    const result = migrate!({ language: "en" } as never, 33) as {
+      minimizeToTray: boolean;
+    };
+    expect(result.minimizeToTray).toBe(false);
+  });
+
+  it("keeps a persisted opt-in", () => {
+    const migrate = useSettingsStore.persist.getOptions()?.migrate;
+    const result = migrate!({ language: "en", minimizeToTray: true } as never, 33) as {
+      minimizeToTray: boolean;
+    };
+    expect(result.minimizeToTray).toBe(true);
   });
 });
 

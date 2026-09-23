@@ -64,6 +64,27 @@ describe("useCacheStore", () => {
       useCacheStore.getState().moveTorrentOrder(2, 9);
       expect(useCacheStore.getState().torrentOrder).toEqual([2, 1, 3]);
     });
+
+    it("drops one item onto another, shifting the rows between them", () => {
+      useCacheStore.setState({ torrentOrder: [1, 2, 3, 4] });
+
+      useCacheStore.getState().moveTorrentOrderTo(1, 3);
+      expect(useCacheStore.getState().torrentOrder).toEqual([2, 3, 1, 4]);
+
+      useCacheStore.getState().moveTorrentOrderTo(4, 2);
+      expect(useCacheStore.getState().torrentOrder).toEqual([4, 2, 3, 1]);
+    });
+
+    it("ignores a drop that names an unknown row", () => {
+      useCacheStore.setState({ torrentOrder: [1, 2, 3] });
+
+      useCacheStore.getState().moveTorrentOrderTo(1, 99);
+      useCacheStore.getState().moveTorrentOrderTo(99, 1);
+      expect(useCacheStore.getState().torrentOrder).toEqual([1, 2, 3]);
+
+      useCacheStore.getState().moveTorrentOrderTo(2, 2);
+      expect(useCacheStore.getState().torrentOrder).toEqual([1, 2, 3]);
+    });
   });
 
   describe("migration", () => {

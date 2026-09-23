@@ -144,10 +144,6 @@ export function applyHalftoneDots(
   return output;
 }
 
-/**
- * Bitmap masks behind the ramp, 5 wide by 7 tall. Ramp steps that are blank on purpose have
- * no mask, so the ascii stage draws nothing there and the pixel underneath stays.
- */
 const ASCII_GLYPHS: Record<string, readonly string[]> = {
   ".": ["00000", "00000", "00000", "00000", "00000", "00100", "00000"],
   ":": ["00000", "00100", "00000", "00000", "00100", "00000", "00000"],
@@ -158,10 +154,6 @@ const ASCII_GLYPHS: Record<string, readonly string[]> = {
   "#": ["01010", "11111", "01010", "01010", "11111", "01010", "00000"],
 };
 
-/**
- * Slow warping density field sampled per cell. The drift term of the original field is dropped:
- * the wallpaper is a baked still frame, so there is no clock to advance.
- */
 export function asciiField(x: number, y: number): number {
   const a = x * DITHER_ASCII_LATTICE_X;
   const b = y * DITHER_ASCII_LATTICE_Y;
@@ -171,10 +163,6 @@ export function asciiField(x: number, y: number): number {
   return 0.5 + 0.5 * v;
 }
 
-/**
- * Replaces cell averages with ramp glyphs: bright cells earn dense characters, dark cells stay
- * empty, and the glyph layer is blended over the dithered frame in the lightest palette color.
- */
 export function applyAsciiCells(
   image: Uint8ClampedArray<ArrayBuffer>,
   width: number,

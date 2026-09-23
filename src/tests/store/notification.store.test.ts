@@ -1,18 +1,19 @@
+import { invoke } from "@tauri-apps/api/core";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { useNotificationStore } from "@/store/notification.store";
 import { useSettingsStore } from "@/store/settings.store";
 
-const tauriNotifySpy = vi.fn();
-
-vi.mock("@tauri-apps/plugin-notification", () => ({
-  sendNotification: (...args: unknown[]) => tauriNotifySpy(...args),
+vi.mock("@tauri-apps/api/core", () => ({
+  invoke: vi.fn(() => Promise.resolve()),
 }));
+
+const showToastSpy = vi.mocked(invoke);
 
 beforeEach(() => {
   useNotificationStore.setState({ dismissed: [], items: [], unreadCount: 0 });
   useSettingsStore.setState({ notificationsEnabled: true });
-  tauriNotifySpy.mockClear();
+  showToastSpy.mockClear();
 });
 
 function getState() {
@@ -63,17 +64,29 @@ describe("useNotificationStore", () => {
       expect(getState().items[99].title).toBe("Item 2");
     });
 
-    it("calls tauri sendNotification", () => {
+    it("shows a native toast through the backend", () => {
       getState().add("Test", "success", "Details");
-      expect(tauriNotifySpy).toHaveBeenCalledWith({
+      expect(showToastSpy).toHaveBeenCalledWith("show_toast", {
+        action: null,
         body: "Details",
         title: "Test",
       });
     });
 
+    it("passes the target to the native toast so its click can navigate", () => {
+      getState().add("New episode", "info", "Ep 3", "42:3", {
+        target: { source: "anilist", id: 42 },
+      });
+      expect(showToastSpy).toHaveBeenCalledWith("show_toast", {
+        action: { source: "anilist", id: 42 },
+        body: "Ep 3",
+        title: "New episode",
+      });
+    });
+
     it("records in the tray without the native popup when system is false", () => {
       getState().add("Backlog", "info", "Found at startup", "backlog-key", { system: false });
-      expect(tauriNotifySpy).not.toHaveBeenCalled();
+      expect(showToastSpy).not.toHaveBeenCalled();
       expect(getState().items).toHaveLength(1);
       expect(getState().unreadCount).toBe(1);
     });
@@ -81,9 +94,52 @@ describe("useNotificationStore", () => {
     it("skips the native toast when notifications are disabled in settings", () => {
       useSettingsStore.setState({ notificationsEnabled: false });
       getState().add("Quiet", "info", "Still recorded in the tray");
-      expect(tauriNotifySpy).not.toHaveBeenCalled();
+      expect(showToastSpy).not.toHaveBeenCalled();
       expect(getState().items).toHaveLength(1);
       expect(getState().unreadCount).toBe(1);
+    });
+  });
+
+  describe("navigation target", () => {
+    it("stores the deep link target on the item", () => {
+      getState().add("New episode", "info", "Anime A, episode 3", "42:3", {
+        system: false,
+        target: { source: "anilist", id: 42 },
+      });
+      expect(getState().items[0].target).toEqual({ source: "anilist", id: 42 });
+    });
+
+    it("omits the target when none is given", () => {
+      getState().add("Plain");
+      expect(getState().items[0].target).toBeUndefined();
+    });
+
+    it("does not dedup identical content pointing at different anime", () => {
+      getState().add("New episode", "info", "Ep 3", undefined, {
+        target: { source: "anilist", id: 1 },
+      });
+      getState().add("New episode", "info", "Ep 3", undefined, {
+        target: { source: "anilist", id: 2 },
+      });
+      expect(getState().items).toHaveLength(2);
+    });
+
+    it("suppresses a dismissed event for the same anime only", () => {
+      getState().add("New episode", "info", "Ep 3", undefined, {
+        target: { source: "anilist", id: 1 },
+      });
+      getState().clear(getState().items[0].id);
+
+      getState().add("New episode", "info", "Ep 3", undefined, {
+        target: { source: "anilist", id: 1 },
+      });
+      expect(getState().items).toHaveLength(0);
+
+      getState().add("New episode", "info", "Ep 3", undefined, {
+        target: { source: "anilist", id: 2 },
+      });
+      expect(getState().items).toHaveLength(1);
+      expect(getState().items[0].target).toEqual({ source: "anilist", id: 2 });
     });
   });
 
@@ -93,7 +149,7 @@ describe("useNotificationStore", () => {
       getState().add("Error", "error", "Same message");
       expect(getState().items).toHaveLength(1);
       expect(getState().unreadCount).toBe(1);
-      expect(tauriNotifySpy).toHaveBeenCalledTimes(1);
+      expect(showToastSpy).toHaveBeenCalledTimes(1);
     });
 
     it("keeps notifications with different messages separate", () => {
@@ -101,7 +157,7 @@ describe("useNotificationStore", () => {
       getState().add("Error", "error", "Second");
       expect(getState().items).toHaveLength(2);
       expect(getState().unreadCount).toBe(2);
-      expect(tauriNotifySpy).toHaveBeenCalledTimes(2);
+      expect(showToastSpy).toHaveBeenCalledTimes(2);
     });
 
     it("does not dedup different types", () => {
@@ -120,7 +176,7 @@ describe("useNotificationStore", () => {
       expect(getState().items).toHaveLength(1);
       expect(getState().items[0].read).toBe(false);
       expect(getState().unreadCount).toBe(1);
-      expect(tauriNotifySpy).toHaveBeenCalledTimes(1);
+      expect(showToastSpy).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -193,7 +249,7 @@ describe("useNotificationStore", () => {
       getState().add("Ошибка загрузки", "error", "Torrent A: disk full");
       expect(getState().items).toHaveLength(0);
       expect(getState().unreadCount).toBe(0);
-      expect(tauriNotifySpy).toHaveBeenCalledTimes(1);
+      expect(showToastSpy).toHaveBeenCalledTimes(1);
     });
 
     it("still adds a notification with different content after a dismissal", () => {

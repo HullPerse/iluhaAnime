@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeAll } from "vitest";
 
+vi.mock("@tauri-apps/api/core", () => ({
+  invoke: () => Promise.resolve(),
+}));
+
 const storage = new Map<string, string>();
 
 let useNotificationStore: (typeof import("@/store/notification.store"))["useNotificationStore"];

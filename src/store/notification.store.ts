@@ -1,13 +1,15 @@
-import { sendNotification as tauriNotify } from "@tauri-apps/plugin-notification";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
 import { attemptSync, reportBackgroundError } from "@/lib/utils/attempt.utils";
+import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSettingsStore } from "@/store/settings.store";
 import type {
   DismissedEntry,
+  NotificationAddOptions,
   NotificationItem,
   NotificationStore,
+  NotificationTarget,
   NotificationType,
 } from "@/types/notification";
 
@@ -20,8 +22,18 @@ const notificationStorage = createJSONStorage(() => window.localStorage);
 
 let nextId = 1;
 
-function notificationSignature(type: NotificationType, title: string, message?: string): string {
-  return `${type}\u0000${title}\u0000${message ?? ""}`;
+function targetKey(target?: NotificationTarget): string {
+  if (!target) return "";
+  return target.source === "folder" ? `folder:${target.path}` : `anilist:${target.id}`;
+}
+
+function notificationSignature(
+  type: NotificationType,
+  title: string,
+  message?: string,
+  target?: NotificationTarget
+): string {
+  return `${type}\u0000${title}\u0000${message ?? ""}\u0000${targetKey(target)}`;
 }
 
 function pruneDismissed(dismissed: DismissedEntry[], now: number): DismissedEntry[] {
@@ -36,11 +48,12 @@ export const useNotificationStore = create<NotificationStore>()(
         type: NotificationType = "info",
         message?: string,
         eventKey?: string,
-        options?: { system?: boolean }
+        options?: NotificationAddOptions
       ) => {
         const now = Date.now();
+        const target = options?.target;
 
-        const signature = notificationSignature(type, title, message);
+        const signature = notificationSignature(type, title, message, target);
         const dismissed = pruneDismissed(get().dismissed, now);
         if (
           dismissed.some(
@@ -56,6 +69,7 @@ export const useNotificationStore = create<NotificationStore>()(
             (item.title === title &&
               item.message === message &&
               item.type === type &&
+              targetKey(item.target) === targetKey(target) &&
               (Boolean(eventKey) || now - item.timestamp < DEDUP_MS))
         );
         if (existing) {
@@ -79,6 +93,7 @@ export const useNotificationStore = create<NotificationStore>()(
           title,
           message,
           ...(eventKey ? { eventKey } : {}),
+          ...(target ? { target } : {}),
           timestamp: now,
           read: false,
         };
@@ -89,8 +104,11 @@ export const useNotificationStore = create<NotificationStore>()(
         }));
 
         if ((options?.system ?? true) && useSettingsStore.getState().notificationsEnabled) {
-          const [, error] = attemptSync(() => tauriNotify({ title, body: message ?? "" }));
-          if (error !== null) console.warn("notification: system toast failed", error);
+          invokeTyped("show_toast", {
+            action: target ?? null,
+            body: message ?? null,
+            title,
+          }).catch((error) => reportBackgroundError("notification.system-toast", error));
         }
       },
       clear: (id: number) => {
@@ -101,7 +119,12 @@ export const useNotificationStore = create<NotificationStore>()(
             ? pruneDismissed(
                 [
                   {
-                    signature: notificationSignature(removed.type, removed.title, removed.message),
+                    signature: notificationSignature(
+                      removed.type,
+                      removed.title,
+                      removed.message,
+                      removed.target
+                    ),
                     ...(removed.eventKey ? { eventKey: removed.eventKey } : {}),
                     at: Date.now(),
                   },
@@ -124,7 +147,12 @@ export const useNotificationStore = create<NotificationStore>()(
             s.items.reduce<DismissedEntry[]>(
               (entries, item) => [
                 {
-                  signature: notificationSignature(item.type, item.title, item.message),
+                  signature: notificationSignature(
+                    item.type,
+                    item.title,
+                    item.message,
+                    item.target
+                  ),
                   ...(item.eventKey ? { eventKey: item.eventKey } : {}),
                   at: now,
                 },

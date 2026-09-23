@@ -3,7 +3,9 @@ import type { ReactElement } from "react";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 
 import { useApp } from "@/hooks/app.hook";
+import { useScreenshot } from "@/hooks/screenshot.hook";
 import { TORRENTS_QUERY_KEY } from "@/hooks/torrent/queries.hook";
+import { useTray } from "@/hooks/tray.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import TorrentFilePicker from "@/routes/components/search/default/picker.search";
@@ -13,6 +15,7 @@ import { useSettingsStore } from "@/store/settings.store";
 import type { TabId } from "@/types/settings";
 
 import { SmallLoader, TabLoader } from "./components/shared/loader.component";
+import ScreenshotModal from "./components/shared/screenshot/modal.screenshot";
 import StatusBar from "./components/shared/status.component";
 import Tabs from "./components/shared/tabs.component";
 import TitleBar from "./components/shared/titlebar.component";
@@ -52,10 +55,8 @@ export default function App() {
   const [showPending, setShowPending] = useState(false);
 
   useEffect(() => {
-    if (!isPending) {
-      setShowPending(false);
-      return;
-    }
+    if (!isPending) return setShowPending(false);
+
     const timer = window.setTimeout(() => setShowPending(true), 150);
     return () => window.clearTimeout(timer);
   }, [isPending]);
@@ -70,22 +71,24 @@ export default function App() {
   };
 
   const visibleTabs = tabs;
+  useTray(visibleTabs, setActiveTabTransition);
+  const { capture: screenshot, close: closeScreenshot } = useScreenshot();
 
   const getComponent = () => {
-    const tabMap = {
+    const tabMap: Record<TabId, ReactElement> = {
       anilist: <AniListRoute />,
       player: <PlayerRoute />,
       search: <SearchRoute />,
       settings: <SettingsRoute />,
       torrent: <TorrentRoute />,
       collection: <CollectionRoute />,
-    } as Record<TabId, ReactElement>;
+    };
     return tabMap[activeTab];
   };
 
   return (
     <main
-      className="relative h-screen w-screen overflow-hidden "
+      className="relative h-screen w-screen overflow-hidden"
       onContextMenu={(e) => e.preventDefault()}
     >
       {data && updateAvailable && (
@@ -104,6 +107,7 @@ export default function App() {
           onCancel={cancelDownload}
         />
       )}
+      {screenshot && <ScreenshotModal capture={screenshot} onClose={closeScreenshot} />}
       <section className="relative z-10 flex h-full flex-col">
         <div className="ui-panel flex h-full flex-col">
           {customTitleBarEnabled && <TitleBar title="iluhaAnime" />}

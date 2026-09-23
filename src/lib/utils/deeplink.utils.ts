@@ -262,7 +262,6 @@ async function runByteTransform(
 ): Promise<Uint8Array | null> {
   const writer = transform.writable.getWriter();
   const collected = collectBytes(transform.readable, maxBytes);
-  // A failure here is expected: the reader side may abort first (size cap or a malformed gzip stream).
   await attemptAll([() => writer.write(input), () => writer.close()]);
   return collected;
 }
@@ -293,14 +292,6 @@ function base64UrlToBytes(value: string): Uint8Array | null {
   return unwrapOr(bytes, null);
 }
 
-/**
- * Builds a self-contained, gzip-compressed `iluhaanime://collection/share/...` link
- * carrying a slim, allowlisted snapshot of the given items. No images or notes are
- * embedded, so covers stay remote CDN URLs that load without an API call.
- *
- * Throws when the selection is empty or larger than the parser accepts, so callers
- * can fall back to the JSON/ZIP export instead of handing out a link nobody can read.
- */
 export async function buildCollectionShareLink(
   items: readonly CollectionItem[],
   label?: string | null
@@ -326,12 +317,6 @@ export async function buildCollectionShareLink(
   return `${COLLECTION_SHARE_PREFIX}${bytesToBase64Url(compressed)}`;
 }
 
-/**
- * Parses a collection share link back into its snapshot, or returns `null` for
- * anything that is not a well-formed link. Every field passes through the same
- * allowlist and length caps as the builder, and the gzip stream is size-capped so
- * a small payload cannot expand into an unbounded balloon.
- */
 export async function parseCollectionShareLink(
   raw: string
 ): Promise<CollectionShareDeepLink | null> {
@@ -354,7 +339,6 @@ export async function parseCollectionShareLink(
   return decoded.ok ? readSharePayload(decoded.value) : null;
 }
 
-/** Cheap prefix check so paste/OS-link handlers can decide to await the full parse. */
 function looksLikeCollectionShareLink(raw: string): boolean {
   return raw.trim().toLowerCase().startsWith(COLLECTION_SHARE_PREFIX);
 }

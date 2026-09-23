@@ -20,7 +20,6 @@ export interface CollectionShareDeepLink {
   readonly items: CollectionShareItem[];
 }
 
-/** One incoming snapshot item; every row is added as new, never matched. */
 export interface ShareImportPlanRow {
   readonly snapshot: CollectionShareItem;
 }

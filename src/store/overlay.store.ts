@@ -12,7 +12,7 @@ function handleEscape(event: KeyboardEvent): void {
   if (event.key !== "Escape" || event.defaultPrevented) return;
   const top = topOverlay(useOverlayStore.getState().entries);
   if (!top?.dismiss) return;
-  // Capture phase plus stopping propagation keeps base-ui dialogs from closing in the same press.
+
   event.preventDefault();
   event.stopPropagation();
   top.dismiss();

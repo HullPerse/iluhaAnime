@@ -32,6 +32,7 @@ pub fn extract_deep_link_urls(args: impl Iterator<Item = String>) -> Vec<String>
 
 fn focus_main(app: &tauri::AppHandle) {
     if let Some(window) = app.get_webview_window("main") {
+        let _ = window.show();
         let _ = window.unminimize();
         let _ = window.set_focus();
     }

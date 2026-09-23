@@ -25,6 +25,7 @@ export default function NotificationPanel({
   onClearAll,
   onMarkRead,
   onClear,
+  onOpen,
 }: {
   items: NotificationItem[];
   activeDownloads: TorrentInfo[];
@@ -35,6 +36,7 @@ export default function NotificationPanel({
   onClearAll: () => void;
   onMarkRead: (id: number) => void;
   onClear: (id: number) => void;
+  onOpen: (item: NotificationItem) => void;
 }) {
   const { t, locale } = useI18n();
   const visible = useMemo(() => getVisibleNotifications(items, filter), [items, filter]);
@@ -119,6 +121,7 @@ export default function NotificationPanel({
                 locale={locale}
                 markRead={onMarkRead}
                 clear={onClear}
+                onOpen={onOpen}
               />
             ))}
           </>

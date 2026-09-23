@@ -11,6 +11,7 @@ use futures::FutureExt;
 use std::collections::{HashMap, HashSet};
 use std::num::NonZeroU32;
 use std::sync::Arc;
+use tauri::tray::{MouseButton, TrayIconBuilder, TrayIconEvent};
 use tauri::{Emitter, Manager};
 
 mod anilist;
@@ -33,16 +34,18 @@ mod progress;
 mod realcugan;
 mod rife;
 mod scrapers;
+mod screenshot;
 mod shaders;
 mod sqlite_browser;
 mod tmdb;
+mod toast;
 mod torrent;
 mod user_assets;
 mod video;
 use file_index::FileEntry;
 use torrent::{
     CreatedTorrent, FilePriority, TorrentCheckResult, TorrentDiagnostics, TorrentFileInfo,
-    TorrentInfo, TorrentInfoResult, TorrentLimits, TorrentManager,
+    TorrentInfo, TorrentInfoResult, TorrentLimits, TorrentManager, TorrentResumeResult,
 };
 use video::{ActiveChildren, CancelFlag};
 
@@ -79,7 +82,11 @@ struct TorrentUpdateSignature {
     total_bytes: u64,
     uploaded_bytes: u64,
     sequential_download: bool,
+    sequential_file: Option<usize>,
+    download_order: Vec<usize>,
     missing_files: bool,
+    paused_external_changes: bool,
+    paused_changed_files: Vec<String>,
 }
 
 const TORRENT_HEARTBEAT_TICKS: u32 = 30;
@@ -102,10 +109,24 @@ async fn run_torrent_update_tick(
     manager: &Arc<TorrentManager>,
     state: &mut TorrentTickState,
 ) {
-    let mut torrents = manager.collect_torrents();
+    // A rewrite (limits or trackers) takes a torrent out of the session for a moment. Skipping
+    // the tick means the UI is never told a torrent disappeared, and it is told its file list
+    // from before the window instead; the next tick reports as usual once the torrent is back.
+    if manager.is_rewriting() {
+        return;
+    }
     // Fills `missing_files` for torrents nothing has checked yet, before the signature is built
     // below: the flag is user-visible, so a verdict arriving after the emit would be a tick late.
-    manager.verify_pending_missing(&mut torrents, TORRENT_VERIFY_PER_TICK);
+    // One pass costs a `stat` per file, so the whole read stays off the async worker.
+    let verifier = Arc::clone(manager);
+    let torrents = tokio::task::spawn_blocking(move || {
+        let mut torrents = verifier.collect_torrents();
+        verifier.verify_pending_missing(&mut torrents, TORRENT_VERIFY_PER_TICK);
+        verifier.watch_paused_files(&mut torrents);
+        torrents
+    })
+    .await
+    .expect("torrent verification task panicked");
     let signature: Vec<TorrentUpdateSignature> = torrents
         .iter()
         .map(|t| TorrentUpdateSignature {
@@ -120,7 +141,11 @@ async fn run_torrent_update_tick(
             total_bytes: t.total_bytes,
             uploaded_bytes: t.uploaded_bytes,
             sequential_download: t.sequential_download,
+            sequential_file: t.sequential_file,
+            download_order: t.download_order.clone(),
             missing_files: t.missing_files,
+            paused_external_changes: t.paused_external_changes,
+            paused_changed_files: t.paused_changed_files.clone(),
         })
         .collect();
     if state.first_run
@@ -163,6 +188,10 @@ async fn run_torrent_update_tick(
                                 "torrent-complete:{}:{}",
                                 t.id, t.info_hash
                             ),
+                            "action": {
+                                "source": "folder",
+                                "path": &t.save_dir,
+                            },
                         }),
                     );
                 }
@@ -181,6 +210,10 @@ async fn run_torrent_update_tick(
                                     "titleKey": "torrent.notify.error.title",
                                     "body": &msg,
                                     "type": "error",
+                                    "action": {
+                                        "source": "folder",
+                                        "path": &t.save_dir,
+                                    },
                                 }),
                             );
                             state.notified_errors.insert(t.id, error.to_string());
@@ -201,21 +234,19 @@ async fn run_torrent_update_tick(
         .notified_errors
         .retain(|id, _| current_ids.contains(id));
 
-    {
-        let ids: Vec<usize> = manager
-            .sequential_torrents
-            .iter()
-            .map(|r| *r.key())
-            .collect();
-        for &sid in &ids {
-            let _ = manager.advance_sequential(sid).await;
-        }
-    }
+    manager.advance_sequential_torrents().await;
 
     state.cleanup_counter += 1;
     if state.cleanup_counter >= 30 {
         state.cleanup_counter = 0;
-        manager.cleanup_unselected_files();
+        let cleaner = Arc::clone(manager);
+        // Touches every unselected file, so it runs off the async worker. Best effort: a failed
+        // scan must not stop the push loop that feeds the torrent list.
+        if let Err(error) =
+            tokio::task::spawn_blocking(move || cleaner.cleanup_unselected_files()).await
+        {
+            tracing::warn!("unselected file cleanup task failed: {error}");
+        }
     }
 }
 
@@ -239,17 +270,26 @@ async fn backend_manager(
     .map_err(|_| "torrent engine is still starting".to_string())?
 }
 
+/// Starts a download. `sequential` is part of the add on purpose: the priority window on the
+/// first file is opened as the torrent goes in, instead of a second later by the tick.
 #[tauri::command]
 async fn start_torrent_download(
     magnet: String,
     save_dir: String,
     only_files: Option<Vec<usize>>,
     sub_folder: Option<String>,
+    sequential: Option<bool>,
     manager: tauri::State<'_, TorrentBackend>,
 ) -> Result<usize, String> {
     backend_manager(&manager)
         .await?
-        .add_torrent(magnet, save_dir, only_files, sub_folder)
+        .add_torrent(
+            magnet,
+            save_dir,
+            only_files,
+            sub_folder,
+            sequential.unwrap_or(false),
+        )
         .await
         .map_err(|e| format!("{e:#}"))
 }
@@ -272,11 +312,18 @@ async fn start_torrent_download_from_file(
     save_dir: String,
     only_files: Option<Vec<usize>>,
     sub_folder: Option<String>,
+    sequential: Option<bool>,
     manager: tauri::State<'_, TorrentBackend>,
 ) -> Result<usize, String> {
     backend_manager(&manager)
         .await?
-        .add_torrent_from_bytes(file_bytes, save_dir, only_files, sub_folder)
+        .add_torrent_from_bytes(
+            file_bytes,
+            save_dir,
+            only_files,
+            sub_folder,
+            sequential.unwrap_or(false),
+        )
         .await
         .map_err(|e| format!("{e:#}"))
 }
@@ -297,7 +344,12 @@ async fn get_torrent_info_from_file(
 async fn list_torrents(
     manager: tauri::State<'_, TorrentBackend>,
 ) -> Result<Vec<TorrentInfo>, String> {
-    Ok(backend_manager(&manager).await?.collect_torrents())
+    let backend = backend_manager(&manager).await?;
+    let mut torrents = backend.collect_torrents();
+    // The list has to open with the same paused-edits verdict the tick pushes, otherwise a
+    // paused torrent would show no badge until its next tick.
+    backend.watch_paused_files(&mut torrents);
+    Ok(torrents)
 }
 
 /// Builds a `.torrent` out of a folder and seeds it in place. Hashing reads every file once,
@@ -356,7 +408,7 @@ async fn resume_torrent(
     id: usize,
     info_hash: Option<String>,
     manager: tauri::State<'_, TorrentBackend>,
-) -> Result<(), String> {
+) -> Result<TorrentResumeResult, String> {
     backend_manager(&manager)
         .await?
         .resume_torrent(id, info_hash)
@@ -636,8 +688,29 @@ async fn save_session_config(
     config: torrent::SessionConfig,
     manager: tauri::State<'_, TorrentBackend>,
 ) -> Result<(), String> {
-    backend_manager(&manager).await?.save_session_config(config);
-    Ok(())
+    backend_manager(&manager).await?.save_session_config(config)
+}
+
+/// The port the torrent session bound, so Settings can show what to forward when the configured
+/// port is `0` (auto).
+#[tauri::command]
+async fn torrent_listen_port(
+    manager: tauri::State<'_, TorrentBackend>,
+) -> Result<Option<u16>, String> {
+    Ok(backend_manager(&manager).await?.listen_port())
+}
+
+#[tauri::command]
+async fn set_torrent_download_order(
+    id: usize,
+    file_indices: Vec<usize>,
+    info_hash: Option<String>,
+    manager: tauri::State<'_, TorrentBackend>,
+) -> Result<(), String> {
+    backend_manager(&manager)
+        .await?
+        .set_torrent_download_order(id, file_indices, info_hash)
+        .await
 }
 
 #[tauri::command]
@@ -727,6 +800,21 @@ async fn recheck_torrent(
     backend_manager(&manager)
         .await?
         .recheck_torrent(id, info_hash)
+}
+
+/// Re-verifies a paused torrent from disk while keeping it paused - the "Recheck now" action of
+/// the external-changes badge.
+#[tauri::command]
+async fn recheck_paused_torrent(
+    id: usize,
+    info_hash: Option<String>,
+    manager: tauri::State<'_, TorrentBackend>,
+) -> Result<TorrentResumeResult, String> {
+    backend_manager(&manager)
+        .await?
+        .recheck_paused_torrent(id, info_hash)
+        .await
+        .map_err(|e| format!("{e:#}"))
 }
 #[tauri::command]
 async fn get_torrent_diagnostics(
@@ -989,7 +1077,6 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(
             tauri_plugin_window_state::Builder::default()
@@ -1041,6 +1128,49 @@ pub fn run() {
                 let _ = window.set_focus();
             }
 
+            // The frontend attaches its menu to this icon by id and hides the window
+            // on close, so the icon must exist with real pixels before any of that
+            // runs: a tray entry without an icon is invisible on Windows and the app
+            // cannot be restored. The window icon comes first, the bundled PNG is the
+            // fallback when the window has no icon (e.g. `defaultWindowIcon()` is null).
+            let tray_icon = app.default_window_icon().cloned().or_else(|| {
+                tauri::image::Image::from_bytes(include_bytes!("../icons/32x32.png")).ok()
+            });
+            match tray_icon {
+                Some(icon) => {
+                    if let Err(error) = TrayIconBuilder::with_id("iluhaanime-tray")
+                        .icon(icon)
+                        .tooltip("iluhaAnime")
+                        .on_tray_icon_event(|tray, event| {
+                            let restore = matches!(
+                                event,
+                                TrayIconEvent::Click {
+                                    button: MouseButton::Left,
+                                    ..
+                                } | TrayIconEvent::DoubleClick {
+                                    button: MouseButton::Left,
+                                    ..
+                                }
+                            );
+                            if !restore {
+                                return;
+                            }
+                            if let Some(window) = tray.app_handle().get_webview_window("main") {
+                                let _ = window.unminimize();
+                                let _ = window.show();
+                                let _ = window.set_focus();
+                            }
+                        })
+                        .build(app)
+                    {
+                        tracing::warn!("unable to create the tray icon: {error}");
+                    }
+                }
+                None => {
+                    tracing::warn!("tray icon unavailable: no window icon and bundled icon failed");
+                }
+            }
+
             let handle = app.handle().clone();
             handle.manage(std::sync::Mutex::new(NotificationConfig::default()));
             handle.manage(CancelFlag::new());
@@ -1086,6 +1216,13 @@ pub fn run() {
                 let mgr_clone = manager.clone();
                 handle.state::<TorrentBackend>().cell.set(Ok(manager)).ok();
                 handle.state::<TorrentBackend>().notify.notify_one();
+                // Per-torrent limits are not part of the session's own persistence, so a torrent
+                // restored from disk starts unlimited even though its dialog shows a limit. The
+                // work is a remove/re-add per limited torrent, hence off the startup path.
+                let limits_manager = Arc::clone(&mgr_clone);
+                tokio::spawn(async move {
+                    limits_manager.reapply_stored_limits().await;
+                });
                 tokio::spawn(async move {
                     let mut tick_state = TorrentTickState {
                         first_run: true,
@@ -1257,11 +1394,14 @@ pub fn run() {
             set_global_speed_limits,
             get_running_torrent_files,
             save_session_config,
+            torrent_listen_port,
             update_torrent_only_files,
+            set_torrent_download_order,
             set_file_priority,
             redownload_file,
             set_sequential_download,
             recheck_torrent,
+            recheck_paused_torrent,
             get_torrent_diagnostics,
             set_torrent_limits,
             get_torrent_limits,
@@ -1275,7 +1415,12 @@ pub fn run() {
             rebuild_file_index,
             refresh_file_index,
             set_notification_settings,
+            toast::show_toast,
             set_window_chrome,
+            screenshot::capture_screenshot,
+            screenshot::save_screenshot,
+            screenshot::copy_screenshot,
+            screenshot::discard_screenshot,
             search_file_index,
             deeplink::take_pending_deep_links,
         ])

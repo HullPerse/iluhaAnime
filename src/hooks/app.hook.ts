@@ -1,15 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
 import { listen } from "@tauri-apps/api/event";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import type { Update } from "@tauri-apps/plugin-updater";
 import { saveWindowState } from "@tauri-apps/plugin-window-state";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 
+import { TOAST_ACTIVATED_EVENT } from "@/config/settings/notifications.config";
 import { tabForAltDigit, visibleTabs } from "@/config/settings/tabs.config";
 import { usePolling } from "@/hooks/polling.hook";
 import { pollAniListReleases } from "@/lib/anilist/notifications.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { readAppCache, writeAppCache } from "@/lib/store/cache.utils";
-import { reportBackgroundError } from "@/lib/utils/attempt.utils";
+import { attemptAll, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import {
   DEEP_LINK_EVENT,
   ingestDeepLinks,
@@ -18,7 +20,11 @@ import {
   parsePastedLink,
 } from "@/lib/utils/deeplink.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
-import { resolveNotificationText, showError } from "@/lib/utils/notification.utils";
+import {
+  openNotificationTarget,
+  resolveNotificationText,
+  showError,
+} from "@/lib/utils/notification.utils";
 import { checkForUpdates } from "@/lib/utils/update.utils";
 import { useCacheStore } from "@/store/cache.store";
 import { useCollectionStore } from "@/store/collection.store";
@@ -27,7 +33,11 @@ import { useNotificationStore } from "@/store/notification.store";
 import { useSearchStore } from "@/store/search.store";
 import { useSettingsStore } from "@/store/settings.store";
 import { applyTheme, useThemeStore } from "@/store/theme.store";
-import type { NotificationType, ShowNotificationPayload } from "@/types/notification";
+import type {
+  NotificationTarget,
+  NotificationType,
+  ShowNotificationPayload,
+} from "@/types/notification";
 import type { SearchLearningSnapshot } from "@/types/search";
 import type { TabId } from "@/types/settings";
 import type { FolderNode } from "@/types/torrent";
@@ -187,7 +197,9 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
         event.payload,
         useSettingsStore.getState().language
       );
-      useNotificationStore.getState().add(title, type, body, event.payload.eventKey);
+      useNotificationStore
+        .getState()
+        .add(title, type, body, event.payload.eventKey, { target: event.payload.action });
     })
       .then((cleanup) => {
         if (disposed) cleanup();
@@ -199,6 +211,38 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
       unlisten?.();
     };
   }, []);
+
+  useEffect(() => {
+    let disposed = false;
+    let unlisten: (() => void) | undefined;
+    const openTarget = async (target: NotificationTarget) => {
+      const result = await openNotificationTarget(target);
+      if (result === "tab-disabled") {
+        showError(t("common.error"), t("anilist.details.link.invalid"));
+        return;
+      }
+      if (result !== "opened") return;
+      const appWindow = getCurrentWindow();
+      const error = await attemptAll([
+        () => appWindow.show(),
+        () => appWindow.unminimize(),
+        () => appWindow.setFocus(),
+      ]);
+      if (error) reportBackgroundError("notification.activation.focus", error);
+    };
+    listen<NotificationTarget>(TOAST_ACTIVATED_EVENT, async (event) => {
+      if (!disposed) await openTarget(event.payload);
+    })
+      .then((cleanup) => {
+        if (disposed) cleanup();
+        else unlisten = cleanup;
+      })
+      .catch((error) => reportBackgroundError("notification.activation.listen", error));
+    return () => {
+      disposed = true;
+      unlisten?.();
+    };
+  }, [t]);
 
   useEffect(() => {
     let disposed = false;
@@ -322,7 +366,7 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
     });
   }, [setActiveTab]);
 
-  const releaseSignature = `${anilistReleaseNotifications}:${anilistPollIntervalMin}`;
+  const releaseSignature = `${anilistReleaseNotifications}:${anilistPollIntervalMin}:${anilistTabEnabled}`;
   const prevReleaseSignatureRef = useRef(releaseSignature);
   const firstReleasePollRef = useRef(true);
   const releaseCancelledRef = useRef(false);
@@ -334,7 +378,7 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
   );
   usePolling({
     intervalMs: Math.max(1, anilistPollIntervalMin) * 60 * 1000,
-    enabled: anilistReleaseNotifications,
+    enabled: anilistReleaseNotifications && anilistTabEnabled,
     collectKeys: () => ["anilist-releases"],
     shouldFetch: () => true,
     fetch: async () => {

@@ -8,6 +8,7 @@ import {
   NOTIFICATION_TYPE_ICONS,
 } from "@/config/settings/notifications.config";
 import { attempt } from "@/lib/utils/attempt.utils";
+import { enterOrSpace } from "@/lib/utils/keyboard.utils";
 import {
   COPIED_FEEDBACK_MS,
   copyNotification,
@@ -21,10 +22,12 @@ export default function NotificationRow({
   locale,
   markRead,
   clear,
+  onOpen,
 }: NotificationRowProps) {
   const [copied, setCopied] = useState(false);
   const timer = useRef<number | null>(null);
   const TypeIcon = NOTIFICATION_TYPE_ICONS[item.type];
+  const openable = Boolean(item.target);
 
   useEffect(
     () => () => {
@@ -32,6 +35,11 @@ export default function NotificationRow({
     },
     []
   );
+
+  const handleOpen = () => {
+    markRead(item.id);
+    if (item.target) onOpen(item);
+  };
 
   const handleCopy = async () => {
     const [, error] = await attempt(copyNotification(item));
@@ -47,9 +55,11 @@ export default function NotificationRow({
         "border-muted/30 hover:bg-surface/50 flex cursor-pointer items-start gap-1 border-b px-1 py-0.5",
         item.read && "opacity-60"
       )}
-      onClick={() => {
-        markRead(item.id);
-      }}
+      onClick={handleOpen}
+      role={openable ? "button" : undefined}
+      tabIndex={openable ? 0 : undefined}
+      title={openable ? t("notification.open") : undefined}
+      onKeyDown={openable ? enterOrSpace(handleOpen) : undefined}
     >
       <span className={cn("mt-0.5 shrink-0", NOTIFICATION_TYPE_COLORS[item.type])}>
         <TypeIcon className="size-2.5" />

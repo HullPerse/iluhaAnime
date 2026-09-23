@@ -1,13 +1,14 @@
 import { Bell, BellDot } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
 import { NO_TORRENTS } from "@/config/torrent/common.config";
 import { useTorrents } from "@/hooks/torrent/queries.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { isCurrentDownload } from "@/lib/torrent/common.utils";
+import { openNotificationTarget, showError } from "@/lib/utils/notification.utils";
 import { useNotificationStore } from "@/store/notification.store";
-import type { NotificationFilter } from "@/types/notification";
+import type { NotificationFilter, NotificationItem } from "@/types/notification";
 
 import NotificationPanel from "./panel.notification";
 
@@ -21,6 +22,19 @@ export default function NotificationTray() {
   const activeDownloads = useMemo(() => torrents.filter(isCurrentDownload), [torrents]);
   const { t } = useI18n();
   const latest = items[0];
+
+  const handleOpen = useCallback(
+    async (item: NotificationItem) => {
+      if (!item.target) return;
+      const result = await openNotificationTarget(item.target);
+      if (result === "tab-disabled") {
+        showError(t("common.error"), t("anilist.details.link.invalid"));
+        return;
+      }
+      if (result === "opened") setOpen(false);
+    },
+    [t]
+  );
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -72,6 +86,7 @@ export default function NotificationTray() {
           onClearAll={clearAll}
           onMarkRead={markRead}
           onClear={clear}
+          onOpen={handleOpen}
         />
       )}
     </div>

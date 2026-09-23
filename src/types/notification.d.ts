@@ -1,7 +1,12 @@
+import type { AnimeDeepLink } from "./deeplink";
 import type { Locale } from "./i18n";
 import type { TranslationKey, TranslationVariables } from "./i18n";
 
 export type NotificationType = "info" | "success" | "warning" | "error";
+
+export type NotificationTarget =
+  | AnimeDeepLink
+  | { readonly source: "folder"; readonly path: string };
 
 export interface NotificationItem {
   id: number;
@@ -9,8 +14,14 @@ export interface NotificationItem {
   title: string;
   message?: string;
   eventKey?: string;
+  target?: NotificationTarget;
   timestamp: number;
   read: boolean;
+}
+
+export interface NotificationAddOptions {
+  system?: boolean;
+  target?: NotificationTarget;
 }
 
 export interface DismissedEntry {
@@ -28,7 +39,7 @@ export interface NotificationStore {
     type?: NotificationType,
     message?: string,
     eventKey?: string,
-    options?: { system?: boolean }
+    options?: NotificationAddOptions
   ) => void;
   markRead: (id: number) => void;
   markAllRead: () => void;
@@ -45,6 +56,7 @@ export interface ShowNotificationPayload {
   titleVars?: TranslationVariables;
   bodyKey?: string;
   bodyVars?: TranslationVariables;
+  action?: NotificationTarget;
 }
 
 export type NotificationFilter = NotificationType | "all" | "downloads";
@@ -55,4 +67,5 @@ export interface NotificationRowProps {
   locale: Locale;
   markRead: (id: number) => void;
   clear: (id: number) => void;
+  onOpen: (item: NotificationItem) => void;
 }

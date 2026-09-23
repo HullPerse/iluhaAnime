@@ -8,16 +8,28 @@ vi.mock("date-fns", () => ({
 
 import {
   copyNotification,
+  openNotificationTarget,
   showError,
   formatRelativeTime,
   resolveNotificationText,
 } from "@/lib/utils/notification.utils";
+import { useDeepLinkStore } from "@/store/deeplink.store";
 import { useNotificationStore } from "@/store/notification.store";
+import { useSettingsStore } from "@/store/settings.store";
 
 const writeTextSpy = vi.fn();
+const openPathSpy = vi.fn((..._args: unknown[]) => Promise.resolve());
+
+vi.mock("@tauri-apps/api/core", () => ({
+  invoke: () => Promise.resolve(),
+}));
 
 vi.mock("@tauri-apps/plugin-clipboard-manager", () => ({
   writeText: (...args: unknown[]) => writeTextSpy(...args),
+}));
+
+vi.mock("@tauri-apps/plugin-opener", () => ({
+  openPath: (...args: unknown[]) => openPathSpy(...args),
 }));
 
 const addSpy = vi.spyOn(useNotificationStore.getState(), "add");
@@ -64,6 +76,44 @@ describe("copyNotification", () => {
     expect(writeTextSpy).toHaveBeenCalledWith(
       `[error] Oops\n${new Date(item.timestamp).toLocaleString()}`
     );
+  });
+});
+
+describe("openNotificationTarget", () => {
+  beforeEach(() => {
+    openPathSpy.mockReset();
+    openPathSpy.mockResolvedValue(undefined);
+    useDeepLinkStore.setState({ target: null });
+    useSettingsStore.setState({ anilistTabEnabled: true });
+  });
+
+  it("routes an anime target through the deep-link store", async () => {
+    await expect(openNotificationTarget({ source: "anilist", id: 21 })).resolves.toBe("opened");
+    expect(useDeepLinkStore.getState().target).toEqual({ source: "anilist", id: 21 });
+    expect(openPathSpy).not.toHaveBeenCalled();
+  });
+
+  it("refuses an anime target when the anime tab is disabled", async () => {
+    useSettingsStore.setState({ anilistTabEnabled: false });
+    await expect(openNotificationTarget({ source: "anilist", id: 21 })).resolves.toBe(
+      "tab-disabled"
+    );
+    expect(useDeepLinkStore.getState().target).toBeNull();
+  });
+
+  it("reveals the download folder for a folder target", async () => {
+    await expect(
+      openNotificationTarget({ source: "folder", path: "D:\\Anime\\Show" })
+    ).resolves.toBe("opened");
+    expect(openPathSpy).toHaveBeenCalledWith("D:\\Anime\\Show");
+    expect(useDeepLinkStore.getState().target).toBeNull();
+  });
+
+  it("reports a failure when the folder cannot be opened", async () => {
+    openPathSpy.mockRejectedValueOnce(new Error("no opener"));
+    await expect(
+      openNotificationTarget({ source: "folder", path: "D:\\Anime\\Show" })
+    ).resolves.toBe("failed");
   });
 });
 

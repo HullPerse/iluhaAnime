@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from "vitest";
 
 import { useOverlayStore } from "@/store/overlay.store";
 
-// Dispatched from an element so the event really travels through capture and bubble.
 function pressEscape(): KeyboardEvent {
   const event = new KeyboardEvent("keydown", { key: "Escape", cancelable: true, bubbles: true });
   document.body.dispatchEvent(event);

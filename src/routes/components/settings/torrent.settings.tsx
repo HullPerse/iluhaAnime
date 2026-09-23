@@ -2,6 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "cn";
 import { useCallback, useState } from "react";
 
+import { torrentApi } from "@/api/torrent.api";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import { Input } from "@/components/ui/input.component";
@@ -10,7 +11,6 @@ import { TORRENT_LISTEN_PORT_KEY, useTorrentListenPort } from "@/hooks/torrent/q
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { toSessionConfig } from "@/lib/settings/session.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { showError } from "@/lib/utils/notification.utils";
 import { useTorrentStore } from "@/store/download.store";
 import { useSettingsStore } from "@/store/settings.store";
@@ -46,9 +46,7 @@ export default function SettingsTorrent() {
     (partial: Partial<SessionConfigPayload>) => {
       (async () => {
         const [, error] = await attempt(
-          invokeTyped("save_session_config", {
-            config: { ...toSessionConfig(), ...partial },
-          })
+          torrentApi.saveSessionConfig({ ...toSessionConfig(), ...partial })
         );
         if (error) showError(t("settings.torrent.session.save.failed"), error.message);
       })();
@@ -67,13 +65,7 @@ export default function SettingsTorrent() {
     setProxyTesting(true);
     setProxyTest(null);
     const proxy = proxyInput.trim();
-    const [res, error] = await attempt(
-      invokeTyped<string>("test_source_connection", {
-        source: "nyaa",
-        proxyUrl: proxy || null,
-        proxy_url: proxy || null,
-      })
-    );
+    const [res, error] = await attempt(torrentApi.testSourceConnection("nyaa", proxy));
     if (error) setProxyTest({ ok: false, msg: error.message });
     else setProxyTest({ ok: true, msg: res });
     setProxyTesting(false);

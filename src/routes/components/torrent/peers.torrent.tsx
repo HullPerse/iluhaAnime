@@ -3,6 +3,7 @@ import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { Copy, Link } from "lucide-react";
 import { useState } from "react";
 
+import { torrentApi } from "@/api/torrent.api";
 import { FlagIcon } from "@/components/shared/flag.component";
 import { SmallLoader } from "@/components/shared/loader.component";
 import Modal from "@/components/shared/modal.component";
@@ -12,9 +13,7 @@ import { useI18n } from "@/lib/locale/i18n.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { formatBytes } from "@/lib/utils/bytes.utils";
 import { buildTorrentLink } from "@/lib/utils/deeplink.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { showError } from "@/lib/utils/notification.utils";
-import type { TorrentDiagnostics } from "@/types/torrent";
 
 import { TorrentTrackersBlock } from "./sections/trackers.sections";
 
@@ -43,8 +42,7 @@ export function TorrentPeersModal({
   const [tab, setTab] = useState<"peers" | "trackers">("peers");
   const query = useQuery({
     queryKey: ["torrent_diagnostics", id],
-    queryFn: () =>
-      invokeTyped<TorrentDiagnostics>("get_torrent_diagnostics", { id, info_hash: infoHash }),
+    queryFn: () => torrentApi.getTorrentDiagnostics(id, infoHash),
     enabled: open,
     refetchInterval: 5000,
     staleTime: 4000,

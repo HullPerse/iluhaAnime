@@ -4,6 +4,7 @@ import { listen } from "@tauri-apps/api/event";
 import type { Event } from "@tauri-apps/api/event";
 import { useEffect, useMemo } from "react";
 
+import { torrentApi } from "@/api/torrent.api";
 import {
   TorrentListen,
   TORRENT_WATCHDOG_MS,
@@ -13,7 +14,6 @@ import {
   torrentErrorText,
 } from "@/lib/torrent/common.utils";
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { showError, showInfo, showWarning } from "@/lib/utils/notification.utils";
 import { useCacheStore } from "@/store/cache.store";
 import { tr, useTorrentStore } from "@/store/download.store";
@@ -22,7 +22,6 @@ import type {
   TorrentCheckResult,
   TorrentFileInfo,
   TorrentInfo,
-  TorrentResumeResult,
 } from "@/types/torrent";
 
 export const TORRENTS_QUERY_KEY = ["torrents"] as const;
@@ -51,9 +50,9 @@ function applyTorrentEvent(queryClient: QueryClient, event: Event<TorrentInfo[]>
   }
   const prefs = useCacheStore.getState().seedPreferences;
   for (const t of findJustFinished(prev, event.payload, prefs)) {
-    invokeTyped("pause_torrent", { id: t.id }).catch((error) =>
-      reportBackgroundError("torrent.autopause.push", error)
-    );
+    torrentApi
+      .pauseTorrent(t.id)
+      .catch((error) => reportBackgroundError("torrent.autopause.push", error));
   }
 }
 
@@ -91,7 +90,7 @@ export function useTorrents(enabled = true) {
   const queryClient = useQueryClient();
   const query = useQuery({
     queryKey: TORRENTS_QUERY_KEY,
-    queryFn: () => invokeTyped<TorrentInfo[]>("list_torrents").then((list) => list ?? []),
+    queryFn: () => torrentApi.listTorrents().then((list) => list ?? []),
     enabled,
     staleTime: Infinity,
     refetchOnWindowFocus: false,
@@ -109,9 +108,9 @@ export function useTorrents(enabled = true) {
     primedSeedPause = true;
     const prefs = useCacheStore.getState().seedPreferences;
     for (const t of findJustFinished([], query.data, prefs)) {
-      invokeTyped("pause_torrent", { id: t.id }).catch((error) =>
-        reportBackgroundError("torrent.autopause.prime", error)
-      );
+      torrentApi
+        .pauseTorrent(t.id)
+        .catch((error) => reportBackgroundError("torrent.autopause.prime", error));
     }
   }, [enabled, query.data]);
   useEffect(() => {
@@ -155,7 +154,7 @@ function sameFileInfo(prev: TorrentFileInfo, next: TorrentFileInfo): boolean {
 export function useTorrentListenPort(enabled = true) {
   return useQuery({
     queryKey: TORRENT_LISTEN_PORT_KEY,
-    queryFn: () => invokeTyped<number | null>("torrent_listen_port"),
+    queryFn: () => torrentApi.listenPort(),
     enabled,
     staleTime: 5000,
     retry: false,
@@ -163,9 +162,7 @@ export function useTorrentListenPort(enabled = true) {
 }
 
 async function fetchTorrentFiles(queryClient: QueryClient, id: number): Promise<TorrentFileInfo[]> {
-  const [files, error] = await attempt(
-    invokeTyped<TorrentFileInfo[]>("get_running_torrent_files", { id })
-  );
+  const [files, error] = await attempt(torrentApi.runningTorrentFiles(id));
   if (error) throw error;
   const next = files ?? [];
   const prev = queryClient.getQueryData<TorrentFileInfo[]>(torrentFilesKey(id));
@@ -253,9 +250,7 @@ export function usePauseTorrent() {
         (old ?? []).map((t) => (t.id === id ? { ...t, state: "paused" } : t))
       );
       setOpInFlight(id, "pause");
-      const [, error] = await attempt(
-        invokeTyped("pause_torrent", { id, infoHash: vars.infoHash })
-      );
+      const [, error] = await attempt(torrentApi.pauseTorrent(id, vars.infoHash));
       setOpInFlight(id, null);
       if (error) {
         showError(tr("download.error.pause"), torrentErrorText(error.message, tr));
@@ -278,9 +273,7 @@ export function useResumeTorrent() {
         (old ?? []).map((t) => (t.id === id ? { ...t, state: "live" } : t))
       );
       setOpInFlight(id, "resume");
-      const [result, error] = await attempt(
-        invokeTyped<TorrentResumeResult>("resume_torrent", { id, infoHash: vars.infoHash })
-      );
+      const [result, error] = await attempt(torrentApi.resumeTorrent(id, vars.infoHash));
       setOpInFlight(id, null);
       if (error) {
         showError(tr("download.error.resume"), torrentErrorText(error.message, tr));
@@ -324,11 +317,7 @@ export function useRemoveTorrent() {
       if (!Number.isInteger(id)) return false;
       setOpInFlight(id, "remove");
       const [, error] = await attempt(
-        invokeTyped("remove_torrent", {
-          id,
-          deleteFiles: vars.deleteFiles,
-          infoHash: vars.infoHash,
-        })
+        torrentApi.removeTorrent(id, vars.deleteFiles, vars.infoHash)
       );
       setOpInFlight(id, null);
       if (error) {
@@ -355,11 +344,7 @@ export function useUpdateOnlyFiles() {
   return useMutation({
     mutationFn: async (vars: { id: number; indices: number[]; infoHash?: string }) => {
       const [, error] = await attempt(
-        invokeTyped("update_torrent_only_files", {
-          id: vars.id,
-          onlyFiles: vars.indices,
-          infoHash: vars.infoHash,
-        })
+        torrentApi.updateOnlyFiles(vars.id, vars.indices, vars.infoHash)
       );
       if (error) {
         showError(tr("download.error.update"), torrentErrorText(error.message, tr));
@@ -380,12 +365,7 @@ export function useSetFilePriority() {
       infoHash?: string;
     }) => {
       const [, error] = await attempt(
-        invokeTyped("set_file_priority", {
-          id: vars.id,
-          fileIndices: vars.fileIndices,
-          priority: vars.priority,
-          infoHash: vars.infoHash,
-        })
+        torrentApi.setFilePriority(vars.id, vars.fileIndices, vars.priority, vars.infoHash)
       );
       if (error) {
         showError(tr("download.error.priority"), torrentErrorText(error.message, tr));
@@ -400,11 +380,7 @@ export function useSetSequentialDownload() {
   return useMutation({
     mutationFn: async (vars: { id: number; enabled: boolean; infoHash?: string }) => {
       const [, error] = await attempt(
-        invokeTyped("set_sequential_download", {
-          id: vars.id,
-          enabled: vars.enabled,
-          infoHash: vars.infoHash,
-        })
+        torrentApi.setSequentialDownload(vars.id, vars.enabled, vars.infoHash)
       );
       if (error) showError(tr("download.error.sequential"), torrentErrorText(error.message, tr));
     },
@@ -416,11 +392,7 @@ export function useSetDownloadOrder() {
   return useMutation({
     mutationFn: async (vars: { id: number; indices: number[]; infoHash?: string }) => {
       const [, error] = await attempt(
-        invokeTyped("set_torrent_download_order", {
-          id: vars.id,
-          fileIndices: vars.indices,
-          infoHash: vars.infoHash,
-        })
+        torrentApi.setTorrentDownloadOrder(vars.id, vars.indices, vars.infoHash)
       );
       if (error) {
         showError(tr("download.error.order"), torrentErrorText(error.message, tr));
@@ -435,7 +407,9 @@ export function useRedownloadFile() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (vars: { id: number; fileIndex: number; infoHash: string }) => {
-      const [newId, error] = await attempt(invokeTyped<number>("redownload_file", vars));
+      const [newId, error] = await attempt(
+        torrentApi.redownloadFile(vars.id, vars.fileIndex, vars.infoHash)
+      );
       if (error) {
         showError(tr("download.error.redownload"), torrentErrorText(error.message, tr));
         return null;
@@ -450,9 +424,7 @@ export function useRecheckTorrent() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (vars: { id: number; infoHash?: string }) => {
-      const [result, error] = await attempt(
-        invokeTyped<TorrentCheckResult>("recheck_torrent", vars)
-      );
+      const [result, error] = await attempt(torrentApi.recheckTorrent(vars.id, vars.infoHash));
       if (error) {
         showError(tr("download.error.recheck"), torrentErrorText(error.message, tr));
         return null;
@@ -468,7 +440,7 @@ export function useRecheckPausedTorrent() {
   return useMutation({
     mutationFn: async (vars: { id: number; infoHash?: string }) => {
       const [result, error] = await attempt(
-        invokeTyped<TorrentResumeResult>("recheck_paused_torrent", vars)
+        torrentApi.recheckPausedTorrent(vars.id, vars.infoHash)
       );
       if (error) {
         showError(tr("download.error.recheck"), torrentErrorText(error.message, tr));
@@ -486,11 +458,7 @@ export function useAddTorrentTracker() {
   return useMutation({
     mutationFn: async (vars: { id: number; tracker: string; infoHash: string }) => {
       const [, error] = await attempt(
-        invokeTyped("add_torrent_tracker", {
-          id: vars.id,
-          tracker: vars.tracker,
-          infoHash: vars.infoHash,
-        })
+        torrentApi.addTorrentTracker(vars.id, vars.tracker, vars.infoHash)
       );
       if (error) {
         showError(tr("download.error.tracker.add"), torrentErrorText(error.message, tr));
@@ -508,11 +476,7 @@ export function useRemoveTorrentTracker() {
   return useMutation({
     mutationFn: async (vars: { id: number; tracker: string; infoHash: string }) => {
       const [, error] = await attempt(
-        invokeTyped("remove_torrent_tracker", {
-          id: vars.id,
-          tracker: vars.tracker,
-          infoHash: vars.infoHash,
-        })
+        torrentApi.removeTorrentTracker(vars.id, vars.tracker, vars.infoHash)
       );
       if (error) {
         showError(tr("download.error.tracker.remove"), torrentErrorText(error.message, tr));

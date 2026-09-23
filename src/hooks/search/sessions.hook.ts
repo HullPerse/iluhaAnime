@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 
+import { torrentApi } from "@/api/torrent.api";
 import { withFallback } from "@/lib/utils/attempt.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSettingsStore } from "@/store/settings.store";
 
 export function useSearchSessions() {
@@ -12,27 +12,9 @@ export function useSearchSessions() {
     queryKey: ["search_sessions", rutrackerProxy, nekobtProxy, eraiProxy],
     queryFn: async () => {
       const [rutracker, nekobt, erai] = await Promise.all([
-        withFallback(
-          invokeTyped<boolean>("check_rutracker_session", {
-            proxyUrl: rutrackerProxy || undefined,
-            proxy_url: rutrackerProxy || undefined,
-          }),
-          false
-        ),
-        withFallback(
-          invokeTyped<boolean>("check_nekobt_session", {
-            proxyUrl: nekobtProxy || undefined,
-            proxy_url: nekobtProxy || undefined,
-          }),
-          false
-        ),
-        withFallback(
-          invokeTyped<boolean>("check_erai_session", {
-            proxyUrl: eraiProxy || undefined,
-            proxy_url: eraiProxy || undefined,
-          }),
-          false
-        ),
+        withFallback(torrentApi.checkRutrackerSession(), false),
+        withFallback(torrentApi.checkNekobtSession(), false),
+        withFallback(torrentApi.checkEraiSession(), false),
       ]);
       return { rutracker, nekobt, erai };
     },

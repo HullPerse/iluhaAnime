@@ -1,14 +1,13 @@
 import { useState } from "react";
 
+import { torrentApi } from "@/api/torrent.api";
 import { SmallLoader } from "@/components/shared/loader.component";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { enterSubmit } from "@/lib/utils/keyboard.utils";
-import { useSettingsStore } from "@/store/settings.store";
 
 function NekoBtApiModal({
   setNekoBtAuth,
@@ -19,7 +18,6 @@ function NekoBtApiModal({
 }) {
   const { t } = useI18n();
   const [apiKey, setApiKey] = useState("");
-  const nekobtProxy = useSettingsStore((s) => s.searchProxyUrls["nekobt"] ?? "");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -36,13 +34,7 @@ function NekoBtApiModal({
     if (!apiKey.trim()) return;
     setLoading(true);
     setError("");
-    const [, error] = await attempt(
-      invokeTyped("nekobt_set_api_key", {
-        apiKey: apiKey.trim(),
-        proxyUrl: nekobtProxy || undefined,
-        proxy_url: nekobtProxy || undefined,
-      })
-    );
+    const [, error] = await attempt(torrentApi.nekobtSetApiKey(apiKey));
     if (error) setError(String(error));
     else handleSuccess();
     setLoading(false);

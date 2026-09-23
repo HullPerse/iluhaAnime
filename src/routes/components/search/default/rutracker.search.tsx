@@ -1,5 +1,6 @@
 import { useState } from "react";
 
+import { torrentApi } from "@/api/torrent.api";
 import { SmallLoader } from "@/components/shared/loader.component";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
@@ -8,7 +9,6 @@ import { PasswordInput } from "@/components/ui/password.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { mapError } from "@/lib/search/rutracker.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { enterSubmit } from "@/lib/utils/keyboard.utils";
 import { useSettingsStore } from "@/store/settings.store";
 
@@ -43,14 +43,7 @@ function RutrackerLoginModal({
     if (!username.trim() || !password.trim()) return;
     setLoading(true);
     setError("");
-    const [, error] = await attempt(
-      invokeTyped("rutracker_login", {
-        username: username.trim(),
-        password,
-        proxyUrl: rutrackerProxy || undefined,
-        proxy_url: rutrackerProxy || undefined,
-      })
-    );
+    const [, error] = await attempt(torrentApi.rutrackerLogin(username, password));
     if (error) {
       const raw = String(error);
       setError(mapError(raw, t));
@@ -63,13 +56,7 @@ function RutrackerLoginModal({
     if (!cookies.trim()) return;
     setLoading(true);
     setError("");
-    const [, error] = await attempt(
-      invokeTyped("rutracker_set_cookies", {
-        cookies: cookies.trim(),
-        proxyUrl: rutrackerProxy || undefined,
-        proxy_url: rutrackerProxy || undefined,
-      })
-    );
+    const [, error] = await attempt(torrentApi.rutrackerSetCookies(cookies));
     if (error) setError(mapError(String(error), t));
     else handleSuccess();
     setLoading(false);
@@ -78,7 +65,7 @@ function RutrackerLoginModal({
   const handleOpenBrowser = async () => {
     setLoading(true);
     setError("");
-    const [, error] = await attempt(invokeTyped("rutracker_webview_login"));
+    const [, error] = await attempt(torrentApi.rutrackerWebviewLogin());
     if (error) setError(mapError(String(error), t));
     setLoading(false);
   };
@@ -86,7 +73,7 @@ function RutrackerLoginModal({
   const handleSaveBrowserSession = async () => {
     setLoading(true);
     setError("");
-    const [, error] = await attempt(invokeTyped("rutracker_finish_webview_login"));
+    const [, error] = await attempt(torrentApi.rutrackerFinishWebviewLogin());
     if (error) setError(mapError(String(error), t));
     else handleSuccess();
     setLoading(false);

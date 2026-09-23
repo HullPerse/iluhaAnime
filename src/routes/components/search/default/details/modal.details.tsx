@@ -2,13 +2,13 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { AlertCircle, ExternalLink, RefreshCw } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
+import { torrentApi } from "@/api/torrent.api";
 import { SmallLoader } from "@/components/shared/loader.component";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { buildTorrentView } from "@/lib/torrent/details.utils";
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSettingsStore } from "@/store/settings.store";
 import type { TorrentDetailsProps as Props } from "@/types/search";
 import type { Anime, TorrentDetails } from "@/types/torrent";
@@ -42,12 +42,7 @@ function TorrentDetailsModal({
     setDetails(null);
     (async () => {
       const [result, error] = await attempt(
-        invokeTyped<TorrentDetails>("get_torrent_details", {
-          source,
-          url: detailUrl,
-          proxyUrl: sourceProxy || undefined,
-          proxy_url: sourceProxy || undefined,
-        })
+        torrentApi.getTorrentDetails(source, detailUrl, sourceProxy || undefined)
       );
       if (cancelled) return;
       if (error) setError(error.message);
@@ -82,7 +77,7 @@ function TorrentDetailsModal({
   const openOriginal = async () => {
     const originalUrl = (source === "erai-raws" && item.website) || view?.url || detailUrl;
     if (source === "erai-raws" && item.website) {
-      const [, pageError] = await attempt(invokeTyped("erai_open_page", { pageUrl: item.website }));
+      const [, pageError] = await attempt(torrentApi.eraiOpenPage(item.website));
       if (pageError) reportBackgroundError("erai.open-page", pageError);
       else return;
     }

@@ -1,8 +1,8 @@
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { openUrl } from "@tauri-apps/plugin-opener";
 
+import { torrentApi } from "@/api/torrent.api";
 import { translate } from "@/lib/locale/i18n.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { attemptResult, err, ok, type Result } from "@/lib/utils/result.utils";
 import { useTorrentStore } from "@/store/download.store";
 import { useNotificationStore } from "@/store/notification.store";
@@ -21,14 +21,7 @@ async function resolveMagnet(
   if (cached) return ok(cached);
 
   setLoadingMagnet((prev) => ({ ...prev, [key]: true }));
-  const rutrackerProxy = useSettingsStore.getState().searchProxyUrls["rutracker"];
-  const fetched = await attemptResult(
-    invokeTyped<string>("rutracker_get_magnet", {
-      topicId: item.category,
-      proxyUrl: rutrackerProxy || undefined,
-      proxy_url: rutrackerProxy || undefined,
-    })
-  );
+  const fetched = await attemptResult(torrentApi.rutrackerGetMagnet(item.category));
   setLoadingMagnet((prev) => ({ ...prev, [key]: false }));
   if (!fetched.ok) {
     const language = useSettingsStore.getState().language;
@@ -78,21 +71,11 @@ async function fetchTorrentBytes(
 ): Promise<Result<number[]>> {
   const key = item.link;
   setLoadingMagnet((prev) => ({ ...prev, [key]: true }));
-  const proxies = useSettingsStore.getState().searchProxyUrls;
   const remote = item.torrent.startsWith("http");
-  const proxy = remote ? (source ? proxies[source] : undefined) : proxies["rutracker"];
   const fetched = await attemptResult(
     remote
-      ? invokeTyped<number[]>("fetch_torrent_bytes", {
-          url: item.torrent,
-          proxyUrl: proxy || undefined,
-          proxy_url: proxy || undefined,
-        })
-      : invokeTyped<number[]>("rutracker_get_torrent_bytes", {
-          topicId: item.category,
-          proxyUrl: proxy || undefined,
-          proxy_url: proxy || undefined,
-        })
+      ? torrentApi.fetchTorrentBytes(item.torrent, source)
+      : torrentApi.rutrackerGetTorrentBytes(item.category)
   );
   setLoadingMagnet((prev) => ({ ...prev, [key]: false }));
   if (!fetched.ok) return fetched;

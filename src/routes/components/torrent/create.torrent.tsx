@@ -3,6 +3,7 @@ import { open as openDialog, save as saveDialog } from "@tauri-apps/plugin-dialo
 import { Check, Link, Save } from "lucide-react";
 import { useState } from "react";
 
+import { torrentApi } from "@/api/torrent.api";
 import { SmallLoader } from "@/components/shared/loader.component";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
@@ -10,7 +11,6 @@ import { Input } from "@/components/ui/input.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { buildTorrentLink } from "@/lib/utils/deeplink.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { showError } from "@/lib/utils/notification.utils";
 import { useNotificationStore } from "@/store/notification.store";
 import type { CreateTorrentProps, CreatedTorrent } from "@/types/torrent";
@@ -42,9 +42,7 @@ export default function CreateTorrentModal({ open, onClose, onCreated }: CreateT
   const create = async () => {
     if (!folder || creating) return;
     setCreating(true);
-    const [result, error] = await attempt(
-      invokeTyped<CreatedTorrent>("create_torrent_from_folder", { sourceDir: folder })
-    );
+    const [result, error] = await attempt(torrentApi.createTorrentFromFolder(folder));
     setCreating(false);
     if (error || !result) {
       showError(t("torrent.create.failed"), error?.message ?? "");
@@ -64,9 +62,7 @@ export default function CreateTorrentModal({ open, onClose, onCreated }: CreateT
       filters: [{ name: "Torrent", extensions: ["torrent"] }],
     });
     if (!target) return;
-    const [, error] = await attempt(
-      invokeTyped("save_created_torrent", { from: created.torrent_path, to: target })
-    );
+    const [, error] = await attempt(torrentApi.saveCreatedTorrent(created.torrent_path, target));
     if (error) showError(t("torrent.create.failed"), error.message);
   };
 

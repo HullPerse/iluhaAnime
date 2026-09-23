@@ -1,6 +1,7 @@
 import { cn } from "cn";
 import { useRef, useState } from "react";
 
+import { torrentApi } from "@/api/torrent.api";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import { Input } from "@/components/ui/input.component";
@@ -9,7 +10,6 @@ import { SOURCE_INFOS } from "@/config/search/sources.config";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { deleteAppCache } from "@/lib/store/cache.utils";
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSearchStore } from "@/store/search.store";
 import { useSettingsStore } from "@/store/settings.store";
 
@@ -44,13 +44,7 @@ export default function SettingsSearch() {
     await Promise.all(
       sources.map(async (info) => {
         const proxy = searchProxyUrls[info.value] ?? "";
-        const [res, error] = await attempt(
-          invokeTyped<string>("test_source_connection", {
-            source: info.value,
-            proxyUrl: proxy || null,
-            proxy_url: proxy || null,
-          })
-        );
+        const [res, error] = await attempt(torrentApi.testSourceConnection(info.value, proxy));
         if (error) {
           setProxyTests((prev) => ({
             ...prev,

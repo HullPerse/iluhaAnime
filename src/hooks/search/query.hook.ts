@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 
+import { torrentApi } from "@/api/torrent.api";
 import { SOURCE_INFOS } from "@/config/search/sources.config";
 import { useSearchField } from "@/hooks/search/field.hook";
 import { useSearchSessions } from "@/hooks/search/sessions.hook";
@@ -18,7 +19,6 @@ import {
 import { suggestSpelling } from "@/lib/search/suggestions.utils";
 import { copyMagnet, downloadMagnet, openMagnet } from "@/lib/torrent/magnet.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSearchStore } from "@/store/search.store";
 import { useSettingsStore } from "@/store/settings.store";
 import type { Source, SearchQueryController, SelectedSearchTorrent } from "@/types/search";
@@ -87,17 +87,13 @@ export function useSearchQuery(): SearchQueryController {
     [source, submittedQuery, searchRequest, nyaaPage, sortBy, sortDirection, searchProxyUrls]
   );
 
-  const fetchBySource = async (): Promise<Anime[]> => {
-    const proxyUrl = searchProxyUrls[source] || undefined;
-    const base = { query: submittedQuery, proxyUrl } as Record<string, unknown>;
-    const paged = { ...base, page: nyaaPage, sort: sortBy, order: sortDirection };
-    if (source === "rutracker") return invokeTyped<Anime[]>("search_rutracker", base);
-    if (source === "nyaa") return invokeTyped<Anime[]>("search_nyaa", paged);
-    if (source === "sukebei") return invokeTyped<Anime[]>("search_sukebei", paged);
-    if (source === "nekobt")
-      return invokeTyped<Anime[]>("search_nekobt", { ...base, page: nyaaPage });
-    return invokeTyped<Anime[]>("search_erairaws", base);
-  };
+  const fetchBySource = (): Promise<Anime[]> =>
+    torrentApi.searchBySource(source, {
+      query: submittedQuery,
+      page: nyaaPage,
+      sort: sortBy,
+      order: sortDirection,
+    });
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey,
@@ -148,19 +144,19 @@ export function useSearchQuery(): SearchQueryController {
   const activeFilterCount = useMemo(() => countActiveFilters(filters), [filters]);
 
   const handleLogout = async () => {
-    const [, error] = await attempt(invokeTyped("rutracker_logout"));
+    const [, error] = await attempt(torrentApi.rutrackerLogout());
     if (error) console.warn("rutracker_logout failed", error);
     else queryClient.invalidateQueries({ queryKey: ["search_sessions"] });
   };
 
   const handleNekoBtLogout = async () => {
-    const [, error] = await attempt(invokeTyped("nekobt_logout"));
+    const [, error] = await attempt(torrentApi.nekobtLogout());
     if (error) console.warn("nekobt_logout failed", error);
     else queryClient.invalidateQueries({ queryKey: ["search_sessions"] });
   };
 
   const handleEraiLogout = async () => {
-    const [, error] = await attempt(invokeTyped("erai_logout"));
+    const [, error] = await attempt(torrentApi.eraiLogout());
     if (error) console.warn("erai_logout failed", error);
     else queryClient.invalidateQueries({ queryKey: ["search_sessions"] });
   };

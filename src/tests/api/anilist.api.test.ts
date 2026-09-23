@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { AnilistApi, anilistApi } from "@/api/anilist.api";
-import type { ApiTransport } from "@/api/anilist.api";
+import type { ApiTransport } from "@/api/transport.api";
 import { useSettingsStore } from "@/store/settings.store";
 
 function fakeTransport(resolve: (command: string, args?: Record<string, unknown>) => unknown) {

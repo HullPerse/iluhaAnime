@@ -1,6 +1,7 @@
 import { open, confirm } from "@tauri-apps/plugin-dialog";
 import { create } from "zustand";
 
+import { torrentApi } from "@/api/torrent.api";
 import { translate } from "@/lib/locale/i18n.utils";
 import { torrentErrorText } from "@/lib/torrent/common.utils";
 import { attempt, withFallback } from "@/lib/utils/attempt.utils";
@@ -8,7 +9,7 @@ import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { showError } from "@/lib/utils/notification.utils";
 import { useCacheStore } from "@/store/cache.store";
 import { useSettingsStore } from "@/store/settings.store";
-import type { SpeedLimits, TorrentFileInfo, TorrentLimits, TorrentStore } from "@/types/torrent";
+import type { SpeedLimits, TorrentStore } from "@/types/torrent";
 
 export function tr(key: Parameters<typeof translate>[1], vars?: Parameters<typeof translate>[2]) {
   return translate(useSettingsStore.getState().language, key, vars);
@@ -35,25 +36,10 @@ async function startDownloadForPending(
   subFolder: string | undefined,
   sequential: boolean
 ): Promise<number | undefined> {
-  if (pending.magnet) {
+  if (pending.magnet || pending.fileBytes) {
     const [id, error] = await attempt(
-      invokeTyped<number>("start_torrent_download", {
+      torrentApi.startTorrentDownload({
         magnet: pending.magnet,
-        saveDir,
-        onlyFiles,
-        subFolder: subFolder || null,
-        sequential,
-      })
-    );
-    if (error) {
-      showError(tr("download.error.start"), error.message);
-      return undefined;
-    }
-    return id;
-  }
-  if (pending.fileBytes) {
-    const [id, error] = await attempt(
-      invokeTyped<number>("start_torrent_download_from_file", {
         fileBytes: pending.fileBytes,
         saveDir,
         onlyFiles,
@@ -72,7 +58,7 @@ async function startDownloadForPending(
 
 async function clearPreviousTorrentIfNeeded(id: number | undefined): Promise<void> {
   if (!id) return;
-  const [, error] = await attempt(invokeTyped("remove_torrent", { id, deleteFiles: false }));
+  const [, error] = await attempt(torrentApi.removeTorrent(id, false));
   if (error) showError(tr("download.error.clear"), error.message);
 }
 
@@ -84,9 +70,7 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
       return;
     }
     if (pending.id) {
-      const [, error] = await attempt(
-        invokeTyped("remove_torrent", { id: pending.id, deleteFiles: false })
-      );
+      const [, error] = await attempt(torrentApi.removeTorrent(pending.id, false));
       if (error) showError(tr("download.error.cancel"), error.message);
     }
     set({ preparingTorrent: false, pendingTorrent: null });
@@ -119,7 +103,7 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
   },
   limits: { download: null, upload: null },
   getTorrentLimits: async (id: number) => {
-    return withFallback(invokeTyped<TorrentLimits>("get_torrent_limits", { id }), {
+    return withFallback(torrentApi.getTorrentLimits(id), {
       downloadBps: null,
       uploadBps: null,
     });
@@ -157,15 +141,7 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
       return;
     }
 
-    const [result, error] = await attempt(
-      invokeTyped<{
-        id: number;
-        name: string;
-        files: TorrentFileInfo[];
-        conflicting_files: string[];
-        has_common_folder: boolean;
-      }>("get_torrent_info", { magnet, saveDir })
-    );
+    const [result, error] = await attempt(torrentApi.getTorrentInfo(magnet, saveDir));
     if (error) showError(tr("download.error.get.info"), error.message);
 
     if (!result) {
@@ -238,13 +214,7 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
     }
 
     const [result, infoError] = await attempt(
-      invokeTyped<{
-        id: number;
-        name: string;
-        files: TorrentFileInfo[];
-        conflicting_files: string[];
-        has_common_folder: boolean;
-      }>("get_torrent_info_from_file", { fileBytes, saveDir })
+      torrentApi.getTorrentInfoFromFile(fileBytes, saveDir)
     );
     if (infoError) showError(tr("download.error.get.info"), infoError.message);
 
@@ -291,15 +261,7 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
 
     set({ preparingTorrent: true });
 
-    const [result, error] = await attempt(
-      invokeTyped<{
-        id: number;
-        name: string;
-        files: TorrentFileInfo[];
-        conflicting_files: string[];
-        has_common_folder: boolean;
-      }>("get_torrent_info_from_file", { fileBytes, saveDir })
-    );
+    const [result, error] = await attempt(torrentApi.getTorrentInfoFromFile(fileBytes, saveDir));
     if (error) showError(tr("download.error.get.info"), error.message);
 
     if (!result) {
@@ -324,9 +286,7 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
     set({ limits });
     const downloadBps = limits.download !== null ? limits.download * 1024 : null;
     const uploadBps = limits.upload !== null ? limits.upload * 1024 : null;
-    const [, error] = await attempt(
-      invokeTyped("set_global_speed_limits", { downloadBps, uploadBps })
-    );
+    const [, error] = await attempt(torrentApi.setGlobalSpeedLimits(downloadBps, uploadBps));
     if (error) showError(tr("download.error.limit"), error.message);
   },
   setTorrentLimits: async (id: number, limits: SpeedLimits, infoHash?: string) => {
@@ -336,7 +296,7 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
     const uploadBps =
       limits.upload !== null && limits.upload > 0 ? Math.round(limits.upload * 1024) : null;
     const [, error] = await attempt(
-      invokeTyped("set_torrent_limits", { id, limits: { downloadBps, uploadBps }, infoHash })
+      torrentApi.setTorrentLimits(id, { downloadBps, uploadBps }, infoHash)
     );
     if (error) showError(tr("download.error.set.limits"), torrentErrorText(error.message, tr));
   },

@@ -1,12 +1,12 @@
 import { useState } from "react";
 
+import { torrentApi } from "@/api/torrent.api";
 import { SmallLoader } from "@/components/shared/loader.component";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { mapError } from "@/lib/search/erai.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 
 export default function EraiLoginModal({
   setEraiAuth,
@@ -24,7 +24,7 @@ export default function EraiLoginModal({
   const openBrowser = async () => {
     setLoading(true);
     setError("");
-    const [, error] = await attempt(invokeTyped("erai_webview_login"));
+    const [, error] = await attempt(torrentApi.eraiWebviewLogin());
     if (error) setError(mapError(String(error), t));
     setLoading(false);
   };
@@ -32,7 +32,7 @@ export default function EraiLoginModal({
   const saveSession = async () => {
     setLoading(true);
     setError("");
-    const [, error] = await attempt(invokeTyped("erai_finish_webview_login"));
+    const [, error] = await attempt(torrentApi.eraiFinishWebviewLogin());
     if (error) setError(mapError(String(error), t));
     else {
       setEraiAuth(true);

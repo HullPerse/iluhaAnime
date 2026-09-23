@@ -1,6 +1,5 @@
 import { searchFiltersToParams } from "@/lib/anilist/entries.utils";
 import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSettingsStore } from "@/store/settings.store";
 import type {
   AniActivity,
@@ -20,16 +19,9 @@ import type {
   PrefetchSummary,
 } from "@/types/anilist";
 import type { FilterPage, SpotlightPage } from "@/types/ipc";
-import type { CommandName } from "@/types/ipc";
 
-export interface ApiTransport {
-  call: <T>(command: string, args?: Record<string, unknown>) => Promise<T>;
-}
-
-const tauriTransport: ApiTransport = {
-  call: <T>(command: string, args?: Record<string, unknown>) =>
-    invokeTyped<T>(command as CommandName, args),
-};
+import { tauriTransport } from "./transport.api";
+import type { ApiTransport } from "./transport.api";
 
 export interface AnilistApiConfig {
   transport?: ApiTransport;

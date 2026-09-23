@@ -1,5 +1,5 @@
+import { systemApi } from "@/api/system.api";
 import { attemptAll } from "@/lib/utils/attempt.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import type { AppCacheRecord, RawAppCacheRecord } from "@/types/cache";
 
 export type { AppCacheRecord } from "@/types/cache";
@@ -11,7 +11,7 @@ export async function readAppCache<T>(
   let record: AppCacheRecord<T> | null = null;
   const error = await attemptAll([
     async () => {
-      const raw = await invokeTyped<RawAppCacheRecord | null>("get_app_cache", { key, namespace });
+      const raw = await systemApi.getAppCache<RawAppCacheRecord | null>(namespace, key);
       record = raw === null ? null : { ...raw, payload: JSON.parse(raw.payload) as T };
     },
   ]);
@@ -25,18 +25,12 @@ export async function writeAppCache<T>(
   ttlSeconds?: number
 ): Promise<boolean> {
   const error = await attemptAll([
-    () =>
-      invokeTyped("put_app_cache", {
-        key,
-        namespace,
-        payload: JSON.stringify(payload),
-        ttlSeconds: ttlSeconds ?? null,
-      }),
+    () => systemApi.putAppCache(namespace, key, JSON.stringify(payload), ttlSeconds ?? null),
   ]);
   return error === null;
 }
 
 export async function deleteAppCache(namespace: string, key: string): Promise<boolean> {
-  const error = await attemptAll([() => invokeTyped("delete_app_cache", { key, namespace })]);
+  const error = await attemptAll([() => systemApi.deleteAppCache(namespace, key)]);
   return error === null;
 }

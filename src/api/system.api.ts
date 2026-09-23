@@ -142,6 +142,23 @@ export class SystemApi {
   readFileBytes(path: string): Promise<number[]> {
     return this.call("read_file_bytes", { path });
   }
+
+  getAppCache<T>(namespace: string, key: string): Promise<T | null> {
+    return this.call("get_app_cache", { key, namespace });
+  }
+
+  putAppCache(
+    namespace: string,
+    key: string,
+    payload: string,
+    ttlSeconds: number | null
+  ): Promise<void> {
+    return this.call("put_app_cache", { key, namespace, payload, ttlSeconds });
+  }
+
+  deleteAppCache(namespace: string, key: string): Promise<void> {
+    return this.call("delete_app_cache", { key, namespace });
+  }
 }
 
 export const systemApi = new SystemApi();

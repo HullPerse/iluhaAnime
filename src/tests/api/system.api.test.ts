@@ -59,6 +59,20 @@ describe("SystemApi", () => {
     expect(calls[0]?.args).toMatchObject({ sourcePath: "/tmp/a.png", name: "shot" });
   });
 
+  it("sends app cache writes with null ttl default", async () => {
+    const { calls, transport } = fakeTransport();
+    const api = new SystemApi({ transport });
+
+    await api.putAppCache("ns", "key", "{\"a\":1}", null);
+
+    expect(calls).toEqual([
+      {
+        command: "put_app_cache",
+        args: { key: "key", namespace: "ns", payload: "{\"a\":1}", ttlSeconds: null },
+      },
+    ]);
+  });
+
   it("exposes the shared singleton", () => {
     expect(systemApi).toBeInstanceOf(SystemApi);
   });

@@ -2,6 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
+import { collectionApi } from "@/api/collection.api";
 import { SmallLoader } from "@/components/shared/loader.component";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
@@ -13,7 +14,6 @@ import { resolveStatusLabel } from "@/lib/collection/status.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useNotificationStore } from "@/store/notification.store";
 import type { AniListCollection, AniListEntry, AniUser } from "@/types/anilist";
 import type { CollectionItem, ImportBatchGroup, ImportMode } from "@/types/collection";
@@ -275,9 +275,10 @@ export default function ImportAnilistCollection({
       setOpCurrent(entry.media.title);
       const s = entrySyncState(entry);
       const [, err] = await attempt(
-        invokeTyped("patch_collection_item", {
-          id: item.id,
-          patch: { status: s.status, progressValue: s.progressValue, rating: s.rating },
+        collectionApi.patchItem(item.id, {
+          status: s.status,
+          progressValue: s.progressValue,
+          rating: s.rating,
         })
       );
       if (err) failed.push({ id: item.id, title: entry.media.title });
@@ -322,17 +323,14 @@ export default function ImportAnilistCollection({
         failed.push({ id: item.id, title: item.title });
       } else {
         const [, patchErr] = await attempt(
-          invokeTyped("patch_collection_item", {
-            id: item.id,
-            patch: {
-              title: m.title || item.title,
-              durationMinutes: m.duration ?? item.durationMinutes,
-              progressTotal: m.episodes ?? item.progressTotal,
-              genres: m.genres.length ? m.genres : item.genres,
-              studio: m.studios[0]?.name ?? item.studio,
-              coverUrl: m.cover_url ?? item.coverUrl,
-              year: m.season_year ?? item.year,
-            },
+          collectionApi.patchItem(item.id, {
+            title: m.title || item.title,
+            durationMinutes: m.duration ?? item.durationMinutes,
+            progressTotal: m.episodes ?? item.progressTotal,
+            genres: m.genres.length ? m.genres : item.genres,
+            studio: m.studios[0]?.name ?? item.studio,
+            coverUrl: m.cover_url ?? item.coverUrl,
+            year: m.season_year ?? item.year,
           })
         );
         if (patchErr) failed.push({ id: item.id, title: item.title });

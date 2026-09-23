@@ -1,10 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { anilistApi } from "@/api/anilist.api";
+import { tmdbApi } from "@/api/tmdb.api";
 import { withFallback } from "@/lib/utils/attempt.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSettingsStore } from "@/store/settings.store";
-import type { ViewerMedia } from "@/types/collection";
 
 export function useCollectionMedia(
   tmdbId: number | null,
@@ -18,16 +17,7 @@ export function useCollectionMedia(
   const anilistProxyUrl = useSettingsStore((s) => s.anilistProxyUrl);
   const media = useQuery({
     queryKey: ["tmdb_media", tmdbId, mediaType, tmdbKeySet ? 1 : 0, tmdbProxyUrl ?? "", "v2"],
-    queryFn: () =>
-      withFallback(
-        invokeTyped<ViewerMedia>("get_tmdb_media", {
-          apiKey: "",
-          tmdbId,
-          mediaType,
-          proxyUrl: tmdbProxyUrl || undefined,
-        }),
-        null
-      ),
+    queryFn: () => withFallback(tmdbApi.getMedia(tmdbId as number, mediaType), null),
     enabled: fetchMedia && tmdbKeySet && tmdbId !== null,
     staleTime: Infinity,
   });

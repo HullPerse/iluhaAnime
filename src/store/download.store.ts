@@ -1,11 +1,11 @@
 import { open, confirm } from "@tauri-apps/plugin-dialog";
 import { create } from "zustand";
 
+import { systemApi } from "@/api/system.api";
 import { torrentApi } from "@/api/torrent.api";
 import { translate } from "@/lib/locale/i18n.utils";
 import { torrentErrorText } from "@/lib/torrent/common.utils";
 import { attempt, withFallback } from "@/lib/utils/attempt.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { showError } from "@/lib/utils/notification.utils";
 import { useCacheStore } from "@/store/cache.store";
 import { useSettingsStore } from "@/store/settings.store";
@@ -187,9 +187,7 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
 
     set({ preparingTorrent: true });
 
-    const [fileBytes, error] = await attempt(
-      invokeTyped<number[]>("read_file_bytes", { path: filePath })
-    );
+    const [fileBytes, error] = await attempt(systemApi.readFileBytes(filePath));
     if (error) showError(tr("download.error.read.file"), error.message);
 
     if (!fileBytes) {

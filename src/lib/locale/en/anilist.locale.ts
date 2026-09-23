@@ -78,6 +78,7 @@ const anilist = {
   "anilist.controls.edit.list": "Manage list",
   "anilist.controls.open.site": "Open on the site",
   "anilist.controls.progress": "Progress:",
+  "anilist.controls.notes": "Comment:",
   "anilist.controls.save": "Save",
   "anilist.controls.save.error": "Failed to save",
   "anilist.controls.saving": "Saving...",

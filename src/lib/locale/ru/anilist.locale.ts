@@ -84,6 +84,7 @@ const anilist = {
   "anilist.controls.edit.list": "Управление списком",
   "anilist.controls.open.site": "Открыть на сайте",
   "anilist.controls.progress": "Прогресс:",
+  "anilist.controls.notes": "Комментарий:",
   "anilist.controls.save": "Сохранить",
   "anilist.controls.save.error": "Не удалось сохранить",
   "anilist.controls.saving": "Сохранение...",

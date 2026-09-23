@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 
 import { searchFiltersToParams } from "@/lib/anilist/entries.utils";
+import type { EntryLookup } from "@/lib/anilist/entries.utils";
 import { ALL_LISTS_ID, collectAllEntries } from "@/lib/anilist/group.utils";
 import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
@@ -16,7 +17,7 @@ const FILTER_RANDOM_PER_PAGE = 50;
 export function useAnilistRandom(
   lists: AniListCollection[],
   currentList: string,
-  entryLookup: Map<number, { progress: number | null; score: number | null; list_status: string }>,
+  entryLookup: EntryLookup,
   showDetail: (anime: AniListAnime, fromFilters: boolean) => void
 ) {
   const { t } = useI18n();
@@ -39,6 +40,7 @@ export function useAnilistRandom(
             progress: info.progress,
             score: info.score,
             list_status: info.list_status,
+            notes: info.notes,
           },
         }),
       },

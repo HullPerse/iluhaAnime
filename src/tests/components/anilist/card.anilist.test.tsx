@@ -57,6 +57,7 @@ function lookup(score: number | null) {
         updated_at: 1700000001,
         completed_at: null,
         started_at: null,
+        notes: null,
       },
     ],
   ]);
@@ -125,6 +126,7 @@ describe("AniListEntryCard list date", () => {
                 updated_at: 1700000001,
                 completed_at: "2024-03-09",
                 started_at: null,
+                notes: null,
               },
             ],
           ])

@@ -380,14 +380,15 @@ pub async fn save_anilist_entry(
     status: String,
     progress: Option<i32>,
     score: Option<f64>,
+    notes: Option<String>,
     proxy_url: Option<String>,
     proxyUrl: Option<String>,
 ) -> Result<(), String> {
     let token = load_token(&app_handle)?;
     let body = serde_json::json!({
         "query": r"
-            mutation ($mediaId: Int, $status: MediaListStatus, $progress: Int, $score: Float) {
-                SaveMediaListEntry(mediaId: $mediaId, status: $status, progress: $progress, score: $score) {
+            mutation ($mediaId: Int, $status: MediaListStatus, $progress: Int, $score: Float, $notes: String) {
+                SaveMediaListEntry(mediaId: $mediaId, status: $status, progress: $progress, score: $score, notes: $notes) {
                     id
                     status
                     progress
@@ -398,7 +399,8 @@ pub async fn save_anilist_entry(
             "mediaId": media_id as i64,
             "status": status,
             "progress": progress,
-            "score": score
+            "score": score,
+            "notes": notes
         }
     });
     let proxy = resolve_proxy(proxy_url, proxyUrl);

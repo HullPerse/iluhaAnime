@@ -24,6 +24,7 @@ function AniListActionControls({
     progress: number | null;
     score: number | null;
     list_status: string;
+    notes: string | null;
   };
   onSaved?: () => void;
   onClose?: () => void;
@@ -32,6 +33,7 @@ function AniListActionControls({
   const [editStatus, setEditStatus] = useState(listEntry?.list_status ?? "PLANNING");
   const [editProgress, setEditProgress] = useState(listEntry?.progress?.toString() ?? "");
   const [editScore, setEditScore] = useState(listEntry?.score?.toString() ?? "");
+  const [editNotes, setEditNotes] = useState(listEntry?.notes ?? "");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
 
@@ -40,18 +42,21 @@ function AniListActionControls({
       setEditStatus(listEntry.list_status ?? "PLANNING");
       setEditProgress(listEntry.progress?.toString() ?? "");
       setEditScore(listEntry.score?.toString() ?? "");
+      setEditNotes(listEntry.notes ?? "");
     }
   }, [listEntry]);
 
   const handleSave = async () => {
     setSaving(true);
     setSaveError("");
+    const trimmed = editNotes.trim();
     const [, error] = await attempt(
       invokeTyped("save_anilist_entry", {
         mediaId: anime.id,
         status: editStatus,
         progress: editProgress ? Number.parseInt(editProgress, 10) : null,
         score: editScore ? Number.parseFloat(editScore) : null,
+        notes: trimmed ? trimmed : null,
         ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
       })
     );
@@ -112,6 +117,15 @@ function AniListActionControls({
             ]}
           />
           <span className="windows95-text text-xs">/ 10</span>
+        </div>
+        <div className="windows95-text flex flex-row items-center gap-2">
+          <span className="w-20 shrink-0">{t("anilist.controls.notes")}</span>
+          <Input
+            value={editNotes}
+            onChange={(e) => setEditNotes(e.target.value)}
+            aria-label={t("anilist.controls.notes")}
+            className="h-7 min-w-0 flex-1 text-xs"
+          />
         </div>
         {saveError && <span className="text-destructive text-xs font-bold">{saveError}</span>}
         <div className="mt-0.5 flex flex-row justify-end gap-2">

@@ -156,6 +156,7 @@ export type AniListAnime = {
     progress: number | null;
     score: number | null;
     list_status: string;
+    notes: string | null;
   };
 } | null;
 
@@ -548,6 +549,7 @@ export interface AniDetailProps {
     progress: number | null;
     score: number | null;
     list_status: string;
+    notes: string | null;
   };
   isLoggedIn: boolean;
   favouriteIds?: Set<number>;

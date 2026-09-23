@@ -229,6 +229,7 @@ describe("buildEntryLookup", () => {
             progress: 3,
             score: 9,
             list_status: "CURRENT",
+            notes: "my note",
           }),
         ],
         name: "Watching",
@@ -243,6 +244,7 @@ describe("buildEntryLookup", () => {
       updated_at: 0,
       completed_at: null,
       started_at: null,
+      notes: "my note",
     });
     expect(map.has(1)).toBe(false);
   });
@@ -340,6 +342,7 @@ describe("entryListDate", () => {
     updated_at: 1700000001,
     completed_at: null,
     started_at: null,
+    notes: null,
   };
 
   it("returns null without an entry", () => {
@@ -379,6 +382,7 @@ describe("entryListDate", () => {
           updated_at: null,
           completed_at: null,
           started_at: null,
+          notes: null,
         },
         "en"
       )
@@ -402,6 +406,7 @@ describe("entryListDate fallback", () => {
           updated_at: null,
           completed_at: null,
           started_at: null,
+          notes: null,
         },
         "en",
         "1999-10-20"
@@ -418,6 +423,7 @@ describe("entryListTime", () => {
     updated_at: 1700000001,
     completed_at: null,
     started_at: null,
+    notes: null,
   };
 
   it("returns null without an entry", () => {
@@ -460,6 +466,7 @@ describe("entryListTime", () => {
         updated_at: null,
         completed_at: null,
         started_at: null,
+        notes: null,
       })
     ).toBeNull();
   });

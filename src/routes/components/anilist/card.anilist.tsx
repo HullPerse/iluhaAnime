@@ -24,6 +24,7 @@ function AniListEntryCard({ item, entryLookup, isFavorite, onClick }: Props) {
           progress: entry.progress,
           score: entry.score,
           list_status: entry.list_status,
+          notes: entry.notes,
         },
       }),
     });

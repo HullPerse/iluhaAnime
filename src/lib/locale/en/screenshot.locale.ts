@@ -25,7 +25,6 @@ const screenshot = {
   "screenshot.tool.eraser": "Eraser",
   "screenshot.tool.text": "Text",
   "screenshot.tool.blur": "Blur",
-  "screenshot.color": "Colour",
   "screenshot.color.custom": "Custom colour",
   "screenshot.brush": "Brush size",
   "screenshot.text.size": "Text size",

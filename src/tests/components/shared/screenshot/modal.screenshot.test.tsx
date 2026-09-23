@@ -699,11 +699,11 @@ describe("ScreenshotModal annotations", () => {
   it("offers only the controls the active tool can use", async () => {
     const user = userEvent.setup();
     renderModal();
-    expect(screen.queryByRole("group", { name: "Colour" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Custom colour" })).toBeNull();
     expect(screen.queryByRole("group", { name: "Brush size" })).toBeNull();
 
     await user.click(tool("Pencil"));
-    expect(screen.getByRole("group", { name: "Colour" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Custom colour" })).toBeTruthy();
     expect(screen.getByRole("group", { name: "Brush size" })).toBeTruthy();
     expect(tool("Pencil").getAttribute("aria-pressed")).toBe("true");
     expect(tool("6 px").getAttribute("aria-pressed")).toBe("true");
@@ -711,10 +711,12 @@ describe("ScreenshotModal annotations", () => {
     await user.click(tool("Text"));
     expect(screen.queryByRole("group", { name: "Brush size" })).toBeNull();
     expect(screen.getByRole("group", { name: "Text size" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Custom colour" })).toBeTruthy();
     expect(tool("28 px").getAttribute("aria-pressed")).toBe("true");
     expect(screen.getByText(/Click where the text goes/)).toBeTruthy();
 
     await user.click(tool("Select an area"));
+    expect(screen.queryByRole("button", { name: "Custom colour" })).toBeNull();
     expect(
       screen.getByText("Drag across the image to select an area, hold Shift for a square")
     ).toBeTruthy();
@@ -841,7 +843,11 @@ describe("ScreenshotModal annotations", () => {
     const user = userEvent.setup();
     renderModal();
     await user.click(tool("Text"));
-    await user.click(tool("#2e9e4f"));
+    await user.click(tool("Custom colour"));
+    const hexInput = screen.getByPlaceholderText("000000");
+    await user.clear(hexInput);
+    await user.type(hexInput, "2e9e4f");
+    await user.click(screen.getByRole("button", { name: "OK" }));
     await user.click(tool("42 px"));
     fireEvent.pointerDown(overlay(), { clientX: 60, clientY: 40 });
     const editor = screen.getByTestId("screenshot-text-editor") as HTMLInputElement;

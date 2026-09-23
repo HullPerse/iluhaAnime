@@ -2,7 +2,7 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
-import { COLOR_FORMATS, PALETTE } from "@/config/utils/colors.config";
+import { COLOR_FORMATS } from "@/config/utils/colors.config";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { formatColor, hexToHsv, hsvToHex, parseColor } from "@/lib/utils/color.utils";
 import type { ColorFormat, HSV } from "@/types/color";
@@ -49,26 +49,6 @@ export function ColorPicker({
 
   return (
     <div className="windows95-active-border bg-primary flex w-60 flex-col gap-1.5 p-2">
-      <div className="grid grid-cols-8 gap-0.5">
-        {PALETTE.map((swatch) => (
-          <button
-            key={swatch}
-            type="button"
-            aria-label={swatch}
-            title={swatch}
-            className="focus-visible:outline-text size-6 cursor-pointer border focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-dotted"
-            style={{
-              background: swatch,
-              borderColor:
-                hex === swatch ? "var(--color-win-highlight)" : "var(--color-win-shadow)",
-              outline: hex === swatch ? "2px solid var(--color-secondary)" : undefined,
-              outlineOffset: hex === swatch ? "-2px" : undefined,
-            }}
-            onClick={() => setHsv(hexToHsv(swatch) ?? FALLBACK_HSV)}
-          />
-        ))}
-      </div>
-
       <SaturationValueArea
         hsv={hsv}
         onChange={({ s, v }) => setHsv((current) => ({ ...current, s, v }))}

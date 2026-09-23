@@ -40,16 +40,9 @@ describe("ColorPickerTrigger", () => {
   it("opens the picker on click", async () => {
     const user = userEvent.setup();
     render(<ColorPickerTrigger value="#000000" onChange={vi.fn()} />);
-    expect(screen.queryByTitle("#ff0000")).toBeNull();
+    expect(screen.queryByRole("slider", { name: "Saturation and brightness" })).toBeNull();
     await user.click(screen.getByRole("button"));
-    expect(screen.getByTitle("#ff0000")).toBeTruthy();
-  });
-
-  it("confirms a palette color selection", async () => {
-    const { onChange, user } = await open();
-    await user.click(screen.getByTitle("#ff0000"));
-    await user.click(screen.getByRole("button", { name: "OK" }));
-    expect(onChange).toHaveBeenCalledWith("#ff0000");
+    expect(screen.getByRole("slider", { name: "Saturation and brightness" })).toBeTruthy();
   });
 
   it("confirms a color typed as hex", async () => {
@@ -63,17 +56,19 @@ describe("ColorPickerTrigger", () => {
 
   it("closes without confirming on Cancel", async () => {
     const { onChange, user } = await open();
-    await user.click(screen.getByTitle("#0000ff"));
+    const hexInput = screen.getByPlaceholderText("000000");
+    await user.clear(hexInput);
+    await user.type(hexInput, "0000ff");
     await user.click(screen.getByRole("button", { name: "Cancel" }));
     expect(onChange).not.toHaveBeenCalled();
-    expect(screen.queryByTitle("#ff0000")).toBeNull();
+    expect(screen.queryByRole("slider", { name: "Saturation and brightness" })).toBeNull();
   });
 
   it("closes on Escape", async () => {
     const { user } = await open();
-    expect(screen.getByTitle("#ff0000")).toBeTruthy();
+    expect(screen.getByRole("slider", { name: "Saturation and brightness" })).toBeTruthy();
     await user.keyboard("{Escape}");
-    expect(screen.queryByTitle("#ff0000")).toBeNull();
+    expect(screen.queryByRole("slider", { name: "Saturation and brightness" })).toBeNull();
   });
 });
 

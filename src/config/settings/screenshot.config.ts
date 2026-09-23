@@ -16,18 +16,7 @@ export const CROP_SNAP_DISPLAY_PX = 6;
 
 export const CROP_DIM_OPACITY = 0.6;
 
-export const ANNOTATION_COLORS: readonly string[] = [
-  "#e5342f",
-  "#fb8c00",
-  "#fdd835",
-  "#2e9e4f",
-  "#1f7ae0",
-  "#8e24aa",
-  "#000000",
-  "#ffffff",
-];
-
-export const ANNOTATION_DEFAULT_COLOR = ANNOTATION_COLORS[0] as string;
+export const ANNOTATION_DEFAULT_COLOR = "#e5342f";
 
 export const ANNOTATION_BRUSH_SIZES: readonly number[] = [3, 6, 12];
 

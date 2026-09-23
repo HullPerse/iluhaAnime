@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 
-import { PALETTE } from "@/config/utils/colors.config";
 import {
   formatColor,
   hexToHsv,
@@ -98,16 +97,18 @@ describe("hsvToRgb", () => {
 });
 
 describe("hex to hsv round trip", () => {
-  it("returns every palette colour untouched", () => {
-    const changed = PALETTE.filter((swatch) => {
-      const hsv = hexToHsv(swatch);
-      return hsv === null || hsvToHex(hsv) !== swatch;
-    });
-    expect(changed).toEqual([]);
-  });
-
-  it("returns a random sample of values untouched", () => {
-    const samples = ["#ff8800", "#123456", "#abcdef", "#010203", "#808080", "#00ffaa"];
+  it("returns a sample of values untouched", () => {
+    const samples = [
+      "#ff8800",
+      "#123456",
+      "#abcdef",
+      "#010203",
+      "#808080",
+      "#00ffaa",
+      "#000000",
+      "#ffffff",
+      "#ff0000",
+    ];
     const changed = samples.filter((sample) => {
       const hsv = hexToHsv(sample);
       return hsv === null || hsvToHex(hsv) !== sample;

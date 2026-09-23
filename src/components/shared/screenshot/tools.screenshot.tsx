@@ -3,11 +3,7 @@ import type { LucideIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button.component";
 import { ColorPickerTrigger } from "@/components/ui/color/trigger.color";
-import {
-  ANNOTATION_BRUSH_SIZES,
-  ANNOTATION_COLORS,
-  ANNOTATION_TEXT_SIZES,
-} from "@/config/settings/screenshot.config";
+import { ANNOTATION_BRUSH_SIZES, ANNOTATION_TEXT_SIZES } from "@/config/settings/screenshot.config";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
 import type { ScreenshotTool } from "@/types/screenshot";
@@ -104,35 +100,11 @@ export default function ScreenshotToolbar({
         })}
       </div>
       {paintsWithColor(tool) && (
-        <div role="group" aria-label={t("screenshot.color")} className="flex flex-row gap-1">
-          <div className={`${GROUP} items-center gap-0.5`}>
-            {ANNOTATION_COLORS.map((swatch) => {
-              const active = color.toLowerCase() === swatch.toLowerCase();
-              return (
-                <button
-                  key={swatch}
-                  type="button"
-                  aria-label={swatch}
-                  title={swatch}
-                  aria-pressed={active}
-                  className="focus-visible:outline-text size-4 shrink-0 cursor-pointer border focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-dotted"
-                  style={{
-                    background: swatch,
-                    borderColor: active ? "var(--color-win-highlight)" : "var(--color-win-shadow)",
-                    outline: active ? "2px solid var(--color-secondary)" : undefined,
-                    outlineOffset: active ? "-2px" : undefined,
-                  }}
-                  onClick={() => onColorChange(swatch)}
-                />
-              );
-            })}
-          </div>
-          <ColorPickerTrigger
-            value={color}
-            onChange={onColorChange}
-            label={t("screenshot.color.custom")}
-          />
-        </div>
+        <ColorPickerTrigger
+          value={color}
+          onChange={onColorChange}
+          label={t("screenshot.color.custom")}
+        />
       )}
       {tool !== "select" && (
         <div

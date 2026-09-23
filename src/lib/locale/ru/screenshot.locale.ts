@@ -25,7 +25,6 @@ const screenshot = {
   "screenshot.tool.eraser": "Ластик",
   "screenshot.tool.text": "Текст",
   "screenshot.tool.blur": "Блюр",
-  "screenshot.color": "Цвет",
   "screenshot.color.custom": "Свой цвет",
   "screenshot.brush": "Размер кисти",
   "screenshot.text.size": "Размер текста",

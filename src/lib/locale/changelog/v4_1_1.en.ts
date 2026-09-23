@@ -1,0 +1,47 @@
+const changelog411 = {
+  "changelog.4_1_1.added.smart_resume":
+    "Resuming a paused torrent notices when another client wrote to the same files and re-verifies them from disk instead of trusting a stale bitmap",
+  "changelog.4_1_1.added.paused_watch":
+    "A paused torrent shows a live badge when its files change outside the app, so the re-verification is visible before you resume",
+  "changelog.4_1_1.added.paused_changed_names":
+    "The external-changes badge names the exact files another client rewrote",
+  "changelog.4_1_1.added.paused_recheck":
+    "The badge has a Recheck now button that re-verifies the files from disk while the torrent stays paused",
+  "changelog.4_1_1.added.tray":
+    "A tray icon with a menu of the open tabs plus Quit, and an option to minimize to tray on close so downloads keep running",
+  "changelog.4_1_1.added.native_toasts":
+    "Native Windows toasts report their click back: an anime notification opens its card, a torrent one opens the download folder",
+  "changelog.4_1_1.added.notification_targets":
+    "Notification rows open what they are about, with the keyboard working too, and the panel dedupes repeats instead of stacking them",
+  "changelog.4_1_1.added.file_order_setting":
+    "A File order setting decides what the list shows first and what sequential download starts with: as listed, or as stored in the torrent",
+  "changelog.4_1_1.added.torrent_queue":
+    "Download queue: arrange the files you picked by dragging them, and sequential mode fetches them in exactly that order",
+  "changelog.4_1_1.added.torrent_queue_drag":
+    "In the manual order the torrents themselves can be rearranged by dragging a row by its handle, not only with the arrows",
+  "changelog.4_1_1.added.torrent_proxy":
+    "A SOCKS5 proxy setting for peer connections and HTTP trackers, with a connection test and the port the session actually bound; DNS resolves through the proxy as well, and the rutracker file list loads through it instead of the direct path",
+  "changelog.4_1_1.added.screenshots":
+    "CTRL+SHIFT+P captures the page you have open into a screenshot window: mark the area you need right on the preview (hold Shift for a square) and zoom or move the shot with the wheel and the right button, then pick the folder, the file name and the PNG or JPEG format, copy the shot to the clipboard without saving it, and let the folder open right after saving",
+  "changelog.4_1_1.added.screenshot_draw":
+    "The screenshot window can mark up what it captured before saving: a pencil with a colour palette or a colour of your own, an eraser, text that you can drag, retype or resize, and a blur brush that hides what should not leave the app, with undo and redo on Ctrl+Z and Ctrl+Y",
+  "changelog.4_1_1.added.app_site": "App website: https://iluhasite.onrender.com/",
+  "changelog.4_1_1.changed.resume_notice":
+    "A resume that had to re-verify the files reports what it found in a notification instead of finishing silently",
+  "changelog.4_1_1.changed.rewrite_ghost":
+    "Re-checking a torrent or changing its limits no longer makes its row blink out of the list: the old row stands in until the torrent is back, and the old and the new one are never shown together",
+  "changelog.4_1_1.changed.file_selection":
+    "A file is checked and unchecked in one place again: the checkbox sets its priority, folders have one of their own, and the separate Normal/Skip dropdown is gone",
+  "changelog.4_1_1.changed.bulk_buttons":
+    'The global "Pause all" and "Resume all" buttons are gone: tick the rows and use the action bar instead',
+  "changelog.4_1_1.changed.errors_recheck":
+    '"Retry errors" became "Recheck errors": it checks the files first, and recreating is offered only after a check proves they are still missing',
+  "changelog.4_1_1.changed.recreate_confirm":
+    "Recreating a torrent now says outright that manual trackers, the file selection and priorities are lost",
+  "changelog.4_1_1.changed.torrent_speed":
+    "Torrent traffic can now be routed through a SOCKS5 proxy, so an ISP throttle on unencrypted BitTorrent stops hitting at full strength",
+  "changelog.4_1_1.fixed.tray_restore":
+    "The tray icon always shows up now and a left click brings the window back: earlier the icon could be blank and the restore was blocked by missing window permissions",
+} as const;
+
+export default changelog411;

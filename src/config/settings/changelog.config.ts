@@ -14,6 +14,35 @@ function entry(key: TranslationKey, scope: ChangelogScope): ChangelogEntry {
 
 export const CHANGELOG: ChangelogVersion[] = [
   {
+    version: "4.1.1",
+    added: [
+      entry("changelog.4_1_1.added.smart_resume", "torrents"),
+      entry("changelog.4_1_1.added.paused_watch", "torrents"),
+      entry("changelog.4_1_1.added.paused_changed_names", "torrents"),
+      entry("changelog.4_1_1.added.paused_recheck", "torrents"),
+      entry("changelog.4_1_1.added.tray", "app"),
+      entry("changelog.4_1_1.added.native_toasts", "app"),
+      entry("changelog.4_1_1.added.notification_targets", "app"),
+      entry("changelog.4_1_1.added.file_order_setting", "torrents"),
+      entry("changelog.4_1_1.added.torrent_queue", "torrents"),
+      entry("changelog.4_1_1.added.torrent_queue_drag", "torrents"),
+      entry("changelog.4_1_1.added.torrent_proxy", "torrents"),
+      entry("changelog.4_1_1.added.screenshots", "app"),
+      entry("changelog.4_1_1.added.screenshot_draw", "app"),
+      entry("changelog.4_1_1.added.app_site", "app"),
+    ],
+    changed: [
+      entry("changelog.4_1_1.changed.resume_notice", "torrents"),
+      entry("changelog.4_1_1.changed.rewrite_ghost", "torrents"),
+      entry("changelog.4_1_1.changed.file_selection", "torrents"),
+      entry("changelog.4_1_1.changed.bulk_buttons", "torrents"),
+      entry("changelog.4_1_1.changed.errors_recheck", "torrents"),
+      entry("changelog.4_1_1.changed.recreate_confirm", "torrents"),
+      entry("changelog.4_1_1.changed.torrent_speed", "torrents"),
+    ],
+    fixed: [entry("changelog.4_1_1.fixed.tray_restore", "app")],
+  },
+  {
     version: "4.1.0",
     added: [
       entry("changelog.4_1_0.added.torrent_create", "torrents"),
@@ -30,8 +59,11 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.4_1_0.added.voice_actor_preview", "anilist"),
       entry("changelog.4_1_0.added.friends_preview", "anilist"),
       entry("changelog.4_1_0.added.detail_posters", "anilist"),
+      entry("changelog.4_1_0.added.torrent_queue", "torrents"),
+      entry("changelog.4_1_0.added.torrent_queue_drag", "torrents"),
     ],
     changed: [
+      entry("changelog.4_1_0.changed.file_selection", "torrents"),
       entry("changelog.4_1_0.changed.bulk_buttons", "torrents"),
       entry("changelog.4_1_0.changed.errors_recheck", "torrents"),
       entry("changelog.4_1_0.changed.recreate_confirm", "torrents"),

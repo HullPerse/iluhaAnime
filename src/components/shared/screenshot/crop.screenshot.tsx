@@ -40,10 +40,19 @@ interface CropFrameProps {
   view: CropView;
   guides: CropGuide[];
   label: string;
+  moveCursor?: string;
   onChange: (rect: CropRect) => void;
 }
 
-export default function CropFrame({ bounds, crop, view, guides, label, onChange }: CropFrameProps) {
+export default function CropFrame({
+  bounds,
+  crop,
+  view,
+  guides,
+  label,
+  moveCursor = "cursor-move",
+  onChange,
+}: CropFrameProps) {
   const [focused, setFocused] = useState(false);
   const frame = toFrame(crop, view.scale);
   const box = {
@@ -133,7 +142,7 @@ export default function CropFrame({ bounds, crop, view, guides, label, onChange 
         type="button"
         aria-label={label}
         data-handle="move"
-        className="focus-visible:outline-text absolute cursor-move border border-black p-0 shadow-[0_0_0_1px_white] focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-dotted"
+        className={`focus-visible:outline-text absolute border border-black p-0 shadow-[0_0_0_1px_white] focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-dotted ${moveCursor}`}
         style={{
           left: box.left,
           top: box.top,

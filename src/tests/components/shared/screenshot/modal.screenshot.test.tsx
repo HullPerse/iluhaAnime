@@ -895,6 +895,26 @@ describe("ScreenshotModal annotations", () => {
     expect(editor.style.top).toBe("190px");
   });
 
+  it("shows a text cursor over wording inside the selected area", async () => {
+    const user = userEvent.setup();
+    renderModal();
+    await user.click(tool("Text"));
+    fireEvent.pointerDown(overlay(), { clientX: 120, clientY: 90 });
+    await user.type(screen.getByTestId("screenshot-text-editor"), "hi{Enter}");
+
+    await user.click(tool("Select an area"));
+    dragSelection(50, 50, 400, 300);
+    expect(selection()?.className).toContain("cursor-move");
+
+    // Hovering the wording flips the frame cursor, so the user sees that the drag
+    // will carry the text and not the frame under it.
+    fireEvent.pointerMove(overlay(), { clientX: 125, clientY: 95 });
+    expect(selection()?.className).toContain("cursor-text");
+
+    fireEvent.pointerMove(overlay(), { clientX: 300, clientY: 250 });
+    expect(selection()?.className).toContain("cursor-move");
+  });
+
   it("leaves the wording to the editor while it is being edited", async () => {
     const user = userEvent.setup();
     renderModal();

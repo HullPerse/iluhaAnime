@@ -128,6 +128,7 @@ export default function ScreenshotStage({
   const [draft, setDraft] = useState<AnnotationItem | null>(null);
   const [editor, setEditor] = useState<TextEditor | null>(null);
   const [maskUrl, setMaskUrl] = useState<string | null>(null);
+  const [hoverText, setHoverText] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const surfaceRef = useRef<HTMLDivElement>(null);
   const inkRef = useRef<HTMLCanvasElement>(null);
@@ -418,7 +419,18 @@ export default function ScreenshotStage({
 
   const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
     const drag = dragRef.current;
-    if (!drag) return;
+    if (!drag) {
+      if (tool === "select") {
+        const point = toSource(event.clientX, event.clientY);
+        const hit =
+          isInsidePicture(point, bounds) &&
+          hitTestText(items, point, TEXT_HIT_PADDING) !== null;
+        setHoverText((previous) => (previous === hit ? previous : hit));
+      } else if (hoverText) {
+        setHoverText(false);
+      }
+      return;
+    }
     if (drag.mode === "pan") {
       panBy(drag, event);
       return;
@@ -440,6 +452,7 @@ export default function ScreenshotStage({
     if (!drag) return;
     dragRef.current = null;
     setGuides([]);
+    setHoverText(false);
     surfaceRef.current?.releasePointerCapture?.(event.pointerId);
     const finished = draftRef.current;
     if (drag.mode === "draw" && finished) {
@@ -536,7 +549,7 @@ export default function ScreenshotStage({
         */}
         <div
           data-testid="screenshot-space"
-          className="pointer-events-none absolute"
+          className="pointer-events-none absolute z-10"
           style={{
             height: bounds.height,
             left: view.left,
@@ -587,6 +600,7 @@ export default function ScreenshotStage({
             view={view}
             guides={guides}
             label={label}
+            moveCursor={tool === "select" && hoverText ? "cursor-text" : "cursor-move"}
             onChange={onCropChange}
           />
         )}

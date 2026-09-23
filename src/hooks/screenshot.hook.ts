@@ -5,7 +5,6 @@ import { matchesScreenshotHotkey } from "@/lib/settings/screenshot.utils";
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { showError } from "@/lib/utils/notification.utils";
-import { useOverlayStore } from "@/store/overlay.store";
 import type { ScreenshotCapture } from "@/types/screenshot";
 
 export interface ScreenshotSession {
@@ -26,7 +25,6 @@ export function useScreenshot(): ScreenshotSession {
 
   const request = useCallback(async () => {
     if (inFlightRef.current || captureRef.current !== null) return;
-    if (useOverlayStore.getState().entries.length > 0) return;
     inFlightRef.current = true;
     const [data, error] = await attempt(invokeTyped<ScreenshotCapture>("capture_screenshot"));
     inFlightRef.current = false;

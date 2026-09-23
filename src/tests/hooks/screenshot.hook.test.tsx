@@ -76,7 +76,7 @@ describe("useScreenshot", () => {
     expect(result.current.capture).toBeNull();
   });
 
-  it("ignores the hotkey while another overlay is open", async () => {
+  it("captures the page even while another overlay is open", async () => {
     serveCapture();
     const unregister = useOverlayStore.getState().register(null);
     const { result } = renderHook(() => useScreenshot());
@@ -85,14 +85,12 @@ describe("useScreenshot", () => {
       press();
     });
 
-    expect(mockInvoke).not.toHaveBeenCalled();
-    expect(result.current.capture).toBeNull();
+    await waitFor(() => expect(result.current.capture).toEqual(CAPTURE));
+    expect(mockInvoke).toHaveBeenCalledWith("capture_screenshot", undefined);
 
     await act(async () => {
       unregister();
-      press();
     });
-    await waitFor(() => expect(result.current.capture).toEqual(CAPTURE));
   });
 
   it("captures once while the previous shot is still open", async () => {

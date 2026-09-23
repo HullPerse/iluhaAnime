@@ -1,4 +1,4 @@
-export const ANILIST_CLIENT_ID = "";
+export const ANILIST_CLIENT_ID = "44319";
 
 export const ANILIST_REDIRECT_URI = "iluhaanime://auth/anilist";
 

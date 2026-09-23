@@ -44,20 +44,14 @@ function AniListAuthModal({
   return (
     <Modal header={t("anilist.auth.title")} onClose={onClose}>
       <div className="flex flex-col gap-2 p-1">
-        {ANILIST_CLIENT_ID !== "" && (
-          <>
-            <Button
-              onClick={() => openUrl(buildAnilistAuthorizeUrl(ANILIST_CLIENT_ID))}
-              className="w-full"
-            >
-              {t("anilist.auth.browser")}
-            </Button>
-            <span className="windows95-text text-hint text-xs">
-              {t("anilist.auth.browser.hint")}
-            </span>
-            <span className="windows95-text text-xs font-bold">{t("anilist.auth.manual")}</span>
-          </>
-        )}
+        <Button
+          onClick={() => openUrl(buildAnilistAuthorizeUrl(ANILIST_CLIENT_ID))}
+          className="w-full"
+        >
+          {t("anilist.auth.browser")}
+        </Button>
+        <span className="windows95-text text-hint text-xs">{t("anilist.auth.browser.hint")}</span>
+        <span className="windows95-text text-xs font-bold">{t("anilist.auth.manual")}</span>
         <span className="windows95-text">{t("anilist.auth.intro")}</span>
         <ul className="windows95-text list-disc pl-4 text-xs">
           <li className="flex flex-row gap-1">

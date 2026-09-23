@@ -17,7 +17,7 @@ describe("anilist auth config", () => {
     );
   });
 
-  it("keeps the shared client id empty until the app is registered", () => {
-    expect(ANILIST_CLIENT_ID).toBe("");
+  it("carries the shared registered client id", () => {
+    expect(ANILIST_CLIENT_ID).toBe("44319");
   });
 });

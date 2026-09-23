@@ -37,6 +37,8 @@ const changelog411 = {
     "Screenshots fire with a modal open: the capture includes it and the screenshot window lands on top",
   "changelog.4_1_1.added.search_operators":
     "Search understands fzf-style operators: ^prefix, suffix$, 'exact, !exclusion, with space-separated terms all required",
+  "changelog.4_1_1.added.collection_operators":
+    "Collection search understands the same operators, with syntax hints appearing once a marker is typed",
   "changelog.4_1_1.added.app_site": "App website: https://iluhasite.onrender.com/",
   "changelog.4_1_1.changed.resume_notice":
     "A resume that had to re-verify the files reports what it found in a notification instead of finishing silently",
@@ -56,6 +58,10 @@ const changelog411 = {
     "The tray icon always shows up now and a left click brings the window back: earlier the icon could be blank and the restore was blocked by missing window permissions",
   "changelog.4_1_1.fixed.text_cursor":
     "Hovering a placed text inside the selected screenshot area flips the frame cursor, so the drag visibly carries the text",
+  "changelog.4_1_1.changed.color_presets":
+    "Color presets are gone from the screenshot toolbar and the color picker: pick any color directly",
+  "changelog.4_1_1.changed.suggestion_perf":
+    "Suggestion scan skips per-item allocations and equal scores prefer shorter titles: short queries run ~20-30% faster",
 } as const;
 
 export default changelog411;

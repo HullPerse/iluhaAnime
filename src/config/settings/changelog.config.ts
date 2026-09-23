@@ -35,6 +35,7 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.4_1_1.added.friend_rewatch", "anilist"),
       entry("changelog.4_1_1.added.list_comment", "anilist"),
       entry("changelog.4_1_1.added.search_operators", "search"),
+      entry("changelog.4_1_1.added.collection_operators", "collection"),
       entry("changelog.4_1_1.added.app_site", "app"),
     ],
     changed: [
@@ -45,6 +46,8 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.4_1_1.changed.errors_recheck", "torrents"),
       entry("changelog.4_1_1.changed.recreate_confirm", "torrents"),
       entry("changelog.4_1_1.changed.torrent_speed", "torrents"),
+      entry("changelog.4_1_1.changed.color_presets", "settings"),
+      entry("changelog.4_1_1.changed.suggestion_perf", "search"),
     ],
     fixed: [
       entry("changelog.4_1_1.fixed.tray_restore", "app"),

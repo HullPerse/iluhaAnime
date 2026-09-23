@@ -132,10 +132,97 @@ function normalizedMatchScore(q: string, target: string): number | null {
 }
 
 export function fuzzyMatchScore(query: string, candidate: string): number | null {
-  const q = normalizeSearchText(query);
   const target = normalizeSearchText(candidate);
-  if (!q || !target) return null;
+  if (!target) return null;
+  const terms = parseOperatorTerms(query);
+  if (terms) return matchOperatorTerms(terms, target);
+  const q = normalizeSearchText(query);
+  if (!q) return null;
   return normalizedMatchScore(q, target);
+}
+
+export type OperatorMode = "fuzzy" | "exact" | "prefix" | "suffix" | "full";
+
+export interface OperatorTerm {
+  negate: boolean;
+  mode: OperatorMode;
+  text: string;
+}
+
+function parseOperatorToken(token: string): OperatorTerm | null {
+  let rest = token;
+  let negate = false;
+  if (rest.startsWith("!")) {
+    negate = true;
+    rest = rest.slice(1);
+  }
+  let mode: OperatorMode = "fuzzy";
+  if (rest.startsWith("^")) {
+    mode = "prefix";
+    rest = rest.slice(1);
+  } else if (rest.startsWith("'")) {
+    mode = "exact";
+    rest = rest.slice(1);
+  }
+  if (rest.endsWith("$") && rest.length > 1) {
+    if (mode === "prefix") mode = "full";
+    else if (mode !== "fuzzy") return null;
+    else mode = "suffix";
+    rest = rest.slice(0, -1);
+  }
+  const text = normalizeSearchText(rest);
+  if (!text) return null;
+  return { negate, mode, text };
+}
+
+export function parseOperatorTerms(query: string): OperatorTerm[] | null {
+  const tokens = query.split(/\s+/).filter((token) => token.length > 0);
+  if (tokens.length === 0) return null;
+  const terms: OperatorTerm[] = [];
+  for (const token of tokens) {
+    if (!/^!?\^?'?[^!^'$]*\$?$/.test(token)) return null;
+    const term = parseOperatorToken(token);
+    if (!term) return null;
+    terms.push(term);
+  }
+  if (terms.every((term) => !term.negate && term.mode === "fuzzy")) return null;
+  return terms;
+}
+
+function matchOperatorTerm(term: OperatorTerm, target: string): number | null {
+  if (term.mode === "full") return target === term.text ? 1000 : null;
+  if (term.mode === "exact") {
+    const index = target.indexOf(term.text);
+    return index === -1 ? null : 650 - Math.min(100, index);
+  }
+  if (term.mode === "prefix") {
+    return target.startsWith(term.text)
+      ? 900 - Math.min(120, target.length - term.text.length)
+      : null;
+  }
+  if (term.mode === "suffix") {
+    return target.endsWith(term.text)
+      ? 900 - Math.min(120, target.length - term.text.length)
+      : null;
+  }
+  return normalizedMatchScore(term.text, target);
+}
+
+export function matchOperatorTerms(terms: OperatorTerm[], target: string): number | null {
+  let total = 0;
+  let positives = 0;
+  for (const term of terms) {
+    const score = matchOperatorTerm(term, target);
+    if (term.negate) {
+      if (score != null) return null;
+      continue;
+    }
+    if (score == null) return null;
+    positives++;
+    total += score;
+  }
+  if (positives === 0) return 350;
+  return 350 + total / positives;
 }
 
 export function fuzzyMatchScorePreNormalized(

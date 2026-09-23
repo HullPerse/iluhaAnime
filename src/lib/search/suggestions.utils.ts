@@ -14,7 +14,13 @@ import type {
 import { isTagLikeQuery } from "./intent.utils";
 import { normalizeSearchText } from "./normalize.utils";
 import { recencyBoost } from "./ranking.utils";
-import { fuzzyMatchScore, fuzzyMatchScorePreNormalized } from "./score.utils";
+import {
+  fuzzyMatchScore,
+  fuzzyMatchScorePreNormalized,
+  matchOperatorTerms,
+  parseOperatorTerms,
+} from "./score.utils";
+import type { OperatorTerm } from "./score.utils";
 import { buildSymSpellFromTitles, type SymSpell } from "./symspell.utils";
 
 export { fuzzyMatchScore };
@@ -102,8 +108,19 @@ function addHistorySuggestions(
   }
 }
 
+function matchNormalizedTitle(
+  terms: OperatorTerm[] | null,
+  normalizedQuery: string,
+  title: string
+): number | null {
+  return terms
+    ? matchOperatorTerms(terms, title)
+    : fuzzyMatchScorePreNormalized(normalizedQuery, title);
+}
+
 function addAnimeSuggestions(
   normalizedQuery: string,
+  terms: OperatorTerm[] | null,
   options: SearchSuggestionOptions,
   put: (s: SearchSuggestion) => void
 ): void {
@@ -114,7 +131,7 @@ function addAnimeSuggestions(
     if (!anime) continue;
     let best = -Infinity;
     for (const title of normalizedTitles[index] ?? []) {
-      const match = fuzzyMatchScorePreNormalized(normalizedQuery, title);
+      const match = matchNormalizedTitle(terms, normalizedQuery, title);
       if (match != null && match > best) best = match;
     }
     if (!Number.isFinite(best)) continue;
@@ -169,6 +186,7 @@ function getNormalizedCollectionTitles(
 
 function addCollectionSuggestions(
   normalizedQuery: string,
+  terms: OperatorTerm[] | null,
   options: SearchSuggestionOptions,
   put: (s: SearchSuggestion) => void
 ): void {
@@ -182,7 +200,7 @@ function addCollectionSuggestions(
     const titles = normalizedTitles[index] ?? [];
     let best: number | null = null;
     for (const t of titles) {
-      const m = fuzzyMatchScorePreNormalized(normalizedQuery, t);
+      const m = matchNormalizedTitle(terms, normalizedQuery, t);
       if (m != null && (best == null || m > best)) best = m;
     }
     if (best == null) continue;
@@ -200,6 +218,7 @@ function addCollectionSuggestions(
 function addSuggestionSources(
   query: string,
   normalizedQuery: string,
+  terms: OperatorTerm[] | null,
   options: SearchSuggestionOptions,
   put: (suggestion: SearchSuggestion) => void
 ): void {
@@ -207,9 +226,9 @@ function addSuggestionSources(
     if (!options.animeEnabled && suggestion.kind === "anime") continue;
     put(suggestion);
   }
-  addCollectionSuggestions(normalizedQuery, options, put);
+  addCollectionSuggestions(normalizedQuery, terms, options, put);
   addHistorySuggestions(query, options, put);
-  addAnimeSuggestions(normalizedQuery, options, put);
+  addAnimeSuggestions(normalizedQuery, terms, options, put);
   addExtraSuggestions(query, options, put);
 }
 
@@ -267,6 +286,7 @@ export function getSearchSuggestions(
 ): SearchSuggestion[] {
   const normalizedQuery = normalizeSearchText(query);
   if (!normalizedQuery) return [];
+  const terms = parseOperatorTerms(query);
   const limit = Math.max(1, options.limit ?? 8);
   const candidates = new Map<string, SearchSuggestion>();
   const put = (suggestion: SearchSuggestion) => {
@@ -275,10 +295,13 @@ export function getSearchSuggestions(
     const current = candidates.get(key);
     if (!current || suggestion.score > current.score) candidates.set(key, suggestion);
   };
-  addSuggestionSources(query, normalizedQuery, options, put);
+  addSuggestionSources(query, normalizedQuery, terms, options, put);
   applySymSpellFallback(query, normalizedQuery, options, limit, candidates, put);
   return [...candidates.values()]
-    .sort((a, b) => b.score - a.score || a.value.localeCompare(b.value))
+    .sort(
+      (a, b) =>
+        b.score - a.score || a.value.length - b.value.length || a.value.localeCompare(b.value)
+    )
     .slice(0, limit);
 }
 

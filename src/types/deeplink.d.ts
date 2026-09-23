@@ -34,6 +34,10 @@ export interface TorrentDeepLink {
   readonly infoHash: string;
 }
 
+export interface AnilistAuthDeepLink {
+  readonly accessToken: string;
+}
+
 export interface DeepLinkStore {
   target: AnimeDeepLink | null;
   openAnime: (link: AnimeDeepLink) => void;
@@ -47,4 +51,7 @@ export interface DeepLinkStore {
   shareTarget: CollectionShareDeepLink | null;
   openShare: (link: CollectionShareDeepLink) => void;
   consumeShare: () => void;
+  authTarget: AnilistAuthDeepLink | null;
+  openAuth: (link: AnilistAuthDeepLink) => void;
+  consumeAuth: () => void;
 }

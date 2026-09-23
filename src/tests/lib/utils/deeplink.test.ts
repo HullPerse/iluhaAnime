@@ -7,6 +7,7 @@ import {
   isEditablePasteTarget,
   parseAnilistPageUrl,
   parseAnimeLink,
+  parseAnilistAuthCallback,
   parsePastedLink,
   parseTorrentLink,
 } from "@/lib/utils/deeplink.utils";
@@ -119,6 +120,73 @@ describe("ingestDeepLinks", () => {
     s.run(["junk", 7]);
     expect(s.opened).toEqual([]);
     expect(s.invalidCalls()).toBe(1);
+  });
+});
+
+describe("parseAnilistAuthCallback", () => {
+  it("reads the token from the fragment", () => {
+    expect(
+      parseAnilistAuthCallback("iluhaanime://auth/anilist#access_token=abc123&token_type=bearer")
+    ).toEqual({ accessToken: "abc123" });
+  });
+
+  it("falls back to the query string", () => {
+    expect(parseAnilistAuthCallback("iluhaanime://auth/anilist?access_token=abc123")).toEqual({
+      accessToken: "abc123",
+    });
+  });
+
+  it("accepts an uppercase scheme and surrounding whitespace", () => {
+    expect(parseAnilistAuthCallback("  ILUHAANIME://auth/anilist#access_token=abc123  ")).toEqual({
+      accessToken: "abc123",
+    });
+  });
+
+  it("rejects foreign schemes, wrong paths and extra segments", () => {
+    expect(parseAnilistAuthCallback("https://anilist.co")).toBeNull();
+    expect(parseAnilistAuthCallback("iluhaanime://anime/anilist/21")).toBeNull();
+    expect(parseAnilistAuthCallback("iluhaanime://auth/anilist/extra#access_token=x")).toBeNull();
+    expect(parseAnilistAuthCallback("iluhaanime://auth/other#access_token=x")).toBeNull();
+  });
+
+  it("rejects missing, blank and overlong tokens", () => {
+    expect(parseAnilistAuthCallback("iluhaanime://auth/anilist")).toBeNull();
+    expect(parseAnilistAuthCallback("iluhaanime://auth/anilist#token_type=bearer")).toBeNull();
+    expect(parseAnilistAuthCallback("iluhaanime://auth/anilist#access_token=%20%20")).toBeNull();
+    expect(
+      parseAnilistAuthCallback(`iluhaanime://auth/anilist#access_token=${"a".repeat(4097)}`)
+    ).toBeNull();
+  });
+
+  it("routes the callback through ingest without flagging", () => {
+    const authed: string[] = [];
+    let invalid = 0;
+    ingestDeepLinks(
+      ["iluhaanime://auth/anilist#access_token=abc123"],
+      () => {},
+      () => {
+        invalid += 1;
+      },
+      undefined,
+      undefined,
+      (link) => {
+        authed.push(link.accessToken);
+      }
+    );
+    expect(authed).toEqual(["abc123"]);
+    expect(invalid).toBe(0);
+  });
+
+  it("flags the callback when no auth handler is wired", () => {
+    let invalid = 0;
+    ingestDeepLinks(
+      ["iluhaanime://auth/anilist#access_token=abc123"],
+      () => {},
+      () => {
+        invalid += 1;
+      }
+    );
+    expect(invalid).toBe(1);
   });
 });
 

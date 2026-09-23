@@ -229,7 +229,6 @@ export function resizeCrop(
   return snapRect(next, handle, bounds, options.snapThreshold ?? 0);
 }
 
-
 export function startCrop(
   anchor: CropPoint,
   pointer: CropPoint,

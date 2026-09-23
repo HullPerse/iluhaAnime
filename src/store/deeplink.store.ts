@@ -2,6 +2,7 @@ import { create } from "zustand";
 
 import type {
   AnimeDeepLink,
+  AnilistAuthDeepLink,
   CollectionShareDeepLink,
   DeepLinkStore,
   TorrentDeepLink,
@@ -20,4 +21,7 @@ export const useDeepLinkStore = create<DeepLinkStore>((set) => ({
   consumeShare: () => set({ shareTarget: null }),
   openShare: (link: CollectionShareDeepLink) => set({ shareTarget: link }),
   shareTarget: null,
+  consumeAuth: () => set({ authTarget: null }),
+  openAuth: (link: AnilistAuthDeepLink) => set({ authTarget: link }),
+  authTarget: null,
 }));

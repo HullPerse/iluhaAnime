@@ -423,8 +423,7 @@ export default function ScreenshotStage({
       if (tool === "select") {
         const point = toSource(event.clientX, event.clientY);
         const hit =
-          isInsidePicture(point, bounds) &&
-          hitTestText(items, point, TEXT_HIT_PADDING) !== null;
+          isInsidePicture(point, bounds) && hitTestText(items, point, TEXT_HIT_PADDING) !== null;
         setHoverText((previous) => (previous === hit ? previous : hit));
       } else if (hoverText) {
         setHoverText(false);

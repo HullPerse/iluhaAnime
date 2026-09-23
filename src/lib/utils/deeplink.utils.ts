@@ -4,12 +4,13 @@ import { attemptResult, attemptResultSync, unwrapOr } from "@/lib/utils/result.u
 import type { CollectionExternalIds, CollectionItem, CollectionType } from "@/types/collection";
 import type {
   AnimeDeepLink,
+  AnilistAuthDeepLink,
   CollectionShareDeepLink,
   CollectionShareItem,
   TorrentDeepLink,
 } from "@/types/deeplink";
 
-export type { AnimeDeepLink, CollectionShareDeepLink, TorrentDeepLink };
+export type { AnimeDeepLink, AnilistAuthDeepLink, CollectionShareDeepLink, TorrentDeepLink };
 
 const DEEP_LINK_SCHEME = "iluhaanime";
 export const DEEP_LINK_EVENT = "deep-link-opened";
@@ -44,12 +45,29 @@ export function parseAnimeLink(raw: string): AnimeDeepLink | null {
   return { source: "anilist", id };
 }
 
+const AUTH_PREFIX = `${DEEP_LINK_SCHEME}://auth/anilist`;
+
+export function parseAnilistAuthCallback(raw: string): AnilistAuthDeepLink | null {
+  const trimmed = raw.trim();
+  if (trimmed.toLowerCase().indexOf(AUTH_PREFIX) !== 0) return null;
+  const rest = trimmed.slice(AUTH_PREFIX.length);
+  if (rest !== "" && !rest.startsWith("?") && !rest.startsWith("#")) return null;
+  const hashIndex = rest.indexOf("#");
+  const queryPart = (hashIndex !== -1 ? rest.slice(0, hashIndex) : rest).replace(/^\?/, "");
+  const fragmentPart = hashIndex !== -1 ? rest.slice(hashIndex + 1) : "";
+  const params = new URLSearchParams(fragmentPart || queryPart);
+  const token = (params.get("access_token") ?? "").trim();
+  if (token.length === 0 || token.length > 4096 || /\s/.test(token)) return null;
+  return { accessToken: token };
+}
+
 export function ingestDeepLinks(
   urls: unknown,
   openAnime: (link: AnimeDeepLink) => void,
   onInvalid: () => void,
   openTorrent?: (link: TorrentDeepLink) => void,
-  openShare?: (rawUrl: string) => void
+  openShare?: (rawUrl: string) => void,
+  openAuth?: (link: AnilistAuthDeepLink) => void
 ): void {
   if (!Array.isArray(urls)) return;
   let bad = false;
@@ -57,6 +75,13 @@ export function ingestDeepLinks(
     if (typeof raw !== "string") {
       bad = true;
       continue;
+    }
+    if (openAuth) {
+      const auth = parseAnilistAuthCallback(raw);
+      if (auth) {
+        openAuth(auth);
+        continue;
+      }
     }
     if (openShare && looksLikeCollectionShareLink(raw)) {
       openShare(raw);

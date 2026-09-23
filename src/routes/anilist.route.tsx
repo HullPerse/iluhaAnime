@@ -24,6 +24,7 @@ import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { paginate } from "@/lib/utils/pagination.utils";
 import { useAniListFriendsStore } from "@/store/anilist.store";
+import { useDeepLinkStore } from "@/store/deeplink.store";
 import { useNotificationStore } from "@/store/notification.store";
 import { useSearchStore } from "@/store/search.store";
 import { useSettingsStore } from "@/store/settings.store";
@@ -295,6 +296,32 @@ function AnilistRoute() {
     },
     [queryClient, handleCloseModal]
   );
+
+  const authTarget = useDeepLinkStore((state) => state.authTarget);
+  const consumeAuth = useDeepLinkStore((state) => state.consumeAuth);
+  useEffect(() => {
+    if (!authTarget) return;
+    consumeAuth();
+    (async () => {
+      const [authUser, error] = await attempt(
+        invokeTyped<AniUser>("anilist_login", {
+          token: authTarget.accessToken,
+          ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
+        })
+      );
+      if (error) {
+        useNotificationStore
+          .getState()
+          .add(
+            translate(useSettingsStore.getState().language, "anilist.auth.failed"),
+            "error",
+            error.message
+          );
+        return;
+      }
+      handleAuthSuccess(authUser);
+    })();
+  }, [authTarget, consumeAuth, handleAuthSuccess]);
 
   const handleAddFriend = useCallback(
     (profile: AniUserProfile) => {

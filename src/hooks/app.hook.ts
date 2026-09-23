@@ -271,6 +271,9 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
               else showError(t("common.error"), t("collection.share.invalid"));
             })
             .catch((error) => reportBackgroundError("deeplink.share-pending", error));
+        },
+        (link) => {
+          useDeepLinkStore.getState().openAuth(link);
         }
       );
     };
@@ -363,6 +366,17 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
     if (useDeepLinkStore.getState().shareTarget) switchToCollection();
     return useDeepLinkStore.subscribe((state, prev) => {
       if (state.shareTarget && state.shareTarget !== prev.shareTarget) switchToCollection();
+    });
+  }, [setActiveTab]);
+
+  useEffect(() => {
+    const switchToAnilist = () => {
+      if (!useSettingsStore.getState().anilistTabEnabled) return;
+      startTransition(() => setActiveTab("anilist"));
+    };
+    if (useDeepLinkStore.getState().authTarget) switchToAnilist();
+    return useDeepLinkStore.subscribe((state, prev) => {
+      if (state.authTarget && state.authTarget !== prev.authTarget) switchToAnilist();
     });
   }, [setActiveTab]);
 

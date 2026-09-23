@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 
-import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
+import { anilistApi } from "@/api/anilist.api";
 import { withFallback } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSettingsStore } from "@/store/settings.store";
@@ -33,14 +33,7 @@ export function useCollectionMedia(
   });
   const trailer = useQuery({
     queryKey: ["anilist_trailer", anilistId, anilistProxyUrl ?? "", "v2"],
-    queryFn: () =>
-      withFallback(
-        invokeTyped<{ trailer_youtube_id: string | null }>("get_anime_by_id", {
-          id: anilistId,
-          ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
-        }),
-        null
-      ),
+    queryFn: () => withFallback(anilistApi.getAnimeById(anilistId as number), null),
     enabled: fetchTrailer && anilistId !== null,
     staleTime: Infinity,
   });

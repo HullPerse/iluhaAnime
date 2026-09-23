@@ -1,18 +1,12 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 
+import { anilistApi } from "@/api/anilist.api";
 import { characterRoleLabels } from "@/config/anilist/labels.config";
 import { MEDIA_PAGE_SIZE } from "@/config/anilist/pagination.config";
-import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { uniqueById } from "@/lib/utils/array.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
-import { useSettingsStore } from "@/store/settings.store";
-import type {
-  AniCharacterDetail,
-  AniListOverlayContext,
-  AniListOverlayScreen,
-} from "@/types/anilist";
+import type { AniListOverlayContext, AniListOverlayScreen } from "@/types/anilist";
 
 import { CreditSection } from "./creditSection.detail";
 import { PersonFavButton } from "./favbutton.detail";
@@ -30,12 +24,7 @@ export function CharacterScreen({
   const query = useInfiniteQuery({
     queryKey: ["character_detail", screen.id],
     initialPageParam: 1,
-    queryFn: ({ pageParam }) =>
-      invokeTyped<AniCharacterDetail>("get_character_detail", {
-        id: screen.id,
-        page: pageParam,
-        ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
-      }),
+    queryFn: ({ pageParam }) => anilistApi.getCharacterDetail(screen.id, pageParam),
     getNextPageParam: (lastPage, pages) =>
       (Array.isArray(lastPage?.media) ? lastPage.media.length : 0) < MEDIA_PAGE_SIZE
         ? undefined

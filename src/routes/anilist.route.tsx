@@ -1,6 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { anilistApi } from "@/api/anilist.api";
 import { defaultFilters } from "@/config/anilist/filters.config";
 import { useAnilistDetail } from "@/hooks/anilist/detail.hook";
 import { useAnilistListView } from "@/hooks/anilist/listView.hook";
@@ -12,7 +13,6 @@ import { usePagination } from "@/hooks/pagination.hook";
 import { useSearchField } from "@/hooks/search/field.hook";
 import { filterEntries, sortEntries } from "@/lib/anilist/entries.utils";
 import { ALL_LISTS_ID, activeListEntries } from "@/lib/anilist/group.utils";
-import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import {
   pickDisplayEntries,
   isLocalSearch,
@@ -21,7 +21,6 @@ import {
 } from "@/lib/anilist/route.utils";
 import { translate } from "@/lib/locale/i18n.utils";
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { paginate } from "@/lib/utils/pagination.utils";
 import { useAniListFriendsStore } from "@/store/anilist.store";
 import { useDeepLinkStore } from "@/store/deeplink.store";
@@ -36,7 +35,6 @@ import type {
   AniUser,
   AniUserProfile,
   AnilistRouteData,
-  FavouriteAnime,
   GlobalSort,
 } from "@/types/anilist";
 
@@ -78,9 +76,9 @@ function AnilistRoute() {
 
   useEffect(() => {
     if (!user) return;
-    invokeTyped("sync_franchise_to_index").catch((error) =>
-      reportBackgroundError("franchise.sync", error)
-    );
+    anilistApi
+      .syncFranchiseToIndex()
+      .catch((error) => reportBackgroundError("franchise.sync", error));
   }, [user]);
 
   const favouriteIds = useMemo(() => new Set(favourites.map((f) => f.id)), [favourites]);
@@ -114,12 +112,7 @@ function AnilistRoute() {
     if (!views.recs || !user) return;
     setRecsLoading(true);
     (async () => {
-      const [recs, error] = await attempt(
-        invokeTyped<AniRecommendation[]>("get_profile_recommendations", {
-          userId: user.id,
-          ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
-        })
-      );
+      const [recs, error] = await attempt(anilistApi.getProfileRecommendations(user.id));
       if (error) setRecs([]);
       else setRecs(recs);
       setRecsLoading(false);
@@ -186,7 +179,7 @@ function AnilistRoute() {
   } = useAnilistSearch();
 
   const handleLogout = useCallback(async () => {
-    await invokeTyped("anilist_logout");
+    await anilistApi.logout();
     queryClient.setQueryData(["anilist_data"], {
       user: null,
       lists: [],
@@ -253,12 +246,7 @@ function AnilistRoute() {
     async (animeId: number) => {
       if (favPendingRef.current) return;
       favPendingRef.current = true;
-      const [updated, error] = await attempt(
-        invokeTyped<FavouriteAnime[]>("toggle_favourite", {
-          animeId,
-          ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
-        })
-      );
+      const [updated, error] = await attempt(anilistApi.toggleFavourite(animeId));
       if (error) {
         useNotificationStore
           .getState()
@@ -303,12 +291,7 @@ function AnilistRoute() {
     if (!authTarget) return;
     consumeAuth();
     (async () => {
-      const [authUser, error] = await attempt(
-        invokeTyped<AniUser>("anilist_login", {
-          token: authTarget.accessToken,
-          ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
-        })
-      );
+      const [authUser, error] = await attempt(anilistApi.login(authTarget.accessToken));
       if (error) {
         useNotificationStore
           .getState()

@@ -1,8 +1,6 @@
+import { anilistApi } from "@/api/anilist.api";
 import { PROFILE_CACHE_TTL_MS } from "@/config/anilist/friends.config";
-import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
-import { useSettingsStore } from "@/store/settings.store";
-import type { AniFriend, AniListCollection, FriendScore } from "@/types/anilist";
+import type { AniFriend, FriendScore } from "@/types/anilist";
 
 export async function loadFriendScores(
   animeId: number,
@@ -10,10 +8,7 @@ export async function loadFriendScores(
 ): Promise<FriendScore[]> {
   const settled = await Promise.allSettled(
     friends.map((friend) =>
-      invokeTyped<AniListCollection[]>("get_anilist_lists", {
-        userId: friend.id,
-        ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
-      }).then((lists) => {
+      anilistApi.getLists(friend.id).then((lists) => {
         const entry = lists
           .flatMap((list) => list.entries)
           .find((item) => item.media.id === animeId);

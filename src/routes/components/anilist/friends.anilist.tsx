@@ -2,19 +2,17 @@ import { cn } from "cn";
 import { List, RefreshCw, Trash2, UserPlus, Users, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { anilistApi } from "@/api/anilist.api";
 import { SmallLoader } from "@/components/shared/loader.component";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { Input } from "@/components/ui/input.component";
 import { hasFreshCachedProfile } from "@/lib/anilist/friends.utils";
-import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { enterSubmit } from "@/lib/utils/keyboard.utils";
 import { useAniListFriendsStore } from "@/store/anilist.store";
-import { useSettingsStore } from "@/store/settings.store";
 import type { AniFriend, AniUserProfile } from "@/types/anilist";
 import type { AniFriendsProps as Props } from "@/types/anilist";
 
@@ -162,12 +160,7 @@ export default function AniListFriendsModal({
   const fetchProfile = async (friend: AniFriend, force = false): Promise<void> => {
     setRefreshing(true);
     setProfileError(null);
-    const [profile, fetchError] = await attempt(
-      invokeTyped<AniUserProfile>("get_anilist_profile", {
-        userId: friend.id,
-        ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
-      })
-    );
+    const [profile, fetchError] = await attempt(anilistApi.getProfile(friend.id));
     setRefreshing(false);
     if (fetchError) {
       if (force || !friend.profile) setProfileError(fetchError.message);
@@ -205,11 +198,7 @@ export default function AniListFriendsModal({
     setLoading(true);
     setError(null);
     const [profile, fetchError] = await attempt(
-      invokeTyped<AniUserProfile>("get_anilist_profile", {
-        userId: id,
-        userName: id === undefined ? input : undefined,
-        ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
-      })
+      anilistApi.getProfile(id, id === undefined ? input : undefined)
     );
     if (fetchError) setError(fetchError.message);
     else {

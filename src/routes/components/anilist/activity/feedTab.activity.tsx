@@ -3,13 +3,13 @@ import { cn } from "cn";
 import { CalendarDays, List } from "lucide-react";
 import { useMemo, useState } from "react";
 
+import { anilistApi } from "@/api/anilist.api";
 import { TabLoader } from "@/components/shared/loader.component";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import { ACTIVITY_STATUS_FILTERS } from "@/config/anilist/activity.config";
 import { groupLabel } from "@/lib/anilist/activity.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import type { AniActivity, AniListCollection } from "@/types/anilist";
 
 import { FeedItem } from "./feedItem.activity";
@@ -35,10 +35,7 @@ export function FeedTab({
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["anilist_activity", activityUserIds],
-    queryFn: () =>
-      invokeTyped<AniActivity[]>("get_anilist_activity", {
-        userIds: activityUserIds,
-      }),
+    queryFn: () => anilistApi.getActivity(activityUserIds),
     enabled: userId > 0,
     staleTime: 60_000,
   });

@@ -1,12 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 
+import { anilistApi } from "@/api/anilist.api";
 import { Button } from "@/components/ui/button.component";
-import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { flattenMarkup } from "@/lib/anilist/text.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
-import { useSettingsStore } from "@/store/settings.store";
-import type { AniListOverlayContext, AniListOverlayScreen, AniMedia } from "@/types/anilist";
+import type { AniListOverlayContext, AniListOverlayScreen } from "@/types/anilist";
 
 import AniListMetadata from "./metadata.detail";
 import { DetailError, DetailLoading } from "./screenState.detail";
@@ -21,11 +19,7 @@ export function AnimeScreen({
   const { t } = useI18n();
   const query = useQuery({
     queryKey: ["anime_detail", screen.id],
-    queryFn: () =>
-      invokeTyped<AniMedia>("get_anime_by_id", {
-        id: screen.id,
-        ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
-      }),
+    queryFn: () => anilistApi.getAnimeById(screen.id),
   });
 
   if (query.isLoading) {

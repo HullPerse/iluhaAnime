@@ -1,11 +1,10 @@
 import { useCallback, useState } from "react";
 
+import { anilistApi } from "@/api/anilist.api";
 import { SEARCH_RANKING } from "@/config/search/ranking.config";
-import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { fuzzyMatchScore, normalizeSearchText } from "@/lib/search/suggestions.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
-import { useSettingsStore } from "@/store/settings.store";
 import type { WizardSearchResult } from "@/types/collection";
 
 function rankWizardResults(
@@ -44,25 +43,22 @@ export function useWizardSearch(
   const [searchError, setSearchError] = useState<string | null>(null);
 
   const searchAnilist = useCallback(async () => {
-    const res = await invokeTyped<
-      {
-        id: number;
-        title: string;
-        titles: string[];
-        cover_url: string | null;
-        season_year: number | null;
-        duration: number | null;
-        episodes: number | null;
-        genres: string[];
-        tags: string[];
-        studios: { id: number; name: string }[];
-        description: string | null;
-      }[]
-    >("search_anilist", {
+    const res = await anilistApi.search<{
+      id: number;
+      title: string;
+      titles: string[];
+      cover_url: string | null;
+      season_year: number | null;
+      duration: number | null;
+      episodes: number | null;
+      genres: string[];
+      tags: string[];
+      studios: { id: number; name: string }[];
+      description: string | null;
+    }>({
       query: search,
       perPage: 8,
       maxPages: 1,
-      ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
     });
     const mapped = res.map((r) => ({
       id: r.id,

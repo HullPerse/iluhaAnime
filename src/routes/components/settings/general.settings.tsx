@@ -1,6 +1,7 @@
 import { cn } from "cn";
 import { useRef, useState } from "react";
 
+import { anilistApi } from "@/api/anilist.api";
 import { ConfirmDialog } from "@/components/shared/confirm.component";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
@@ -8,7 +9,6 @@ import { Input } from "@/components/ui/input.component";
 import { PasswordInput } from "@/components/ui/password.component";
 import Select from "@/components/ui/select.component";
 import { DEFAULT_SETTINGS } from "@/config/settings/defaults.config";
-import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { applyWindowChrome } from "@/lib/settings/window.utils";
 import { attempt, attemptSync } from "@/lib/utils/attempt.utils";
@@ -78,9 +78,7 @@ export default function SettingsGeneral() {
   const handleAnilistTest = async () => {
     setAnilistTesting(true);
     setAnilistTest(null);
-    const [res, error] = await attempt(
-      invokeTyped<string>("test_anilist_connection", anilistProxyArgs(anilistProxyUrl))
-    );
+    const [res, error] = await attempt(anilistApi.testConnection());
     if (error) setAnilistTest({ ok: false, msg: error.message });
     else setAnilistTest({ ok: true, msg: res });
     setAnilistTesting(false);

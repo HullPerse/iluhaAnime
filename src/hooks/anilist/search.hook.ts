@@ -1,13 +1,12 @@
 import { useCallback, useState } from "react";
 
+import { anilistApi } from "@/api/anilist.api";
 import { defaultFilters } from "@/config/anilist/filters.config";
 import { seasonLabels } from "@/config/anilist/labels.config";
 import { searchFiltersToParams } from "@/lib/anilist/entries.utils";
-import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSearchStore } from "@/store/search.store";
 import { useSettingsStore } from "@/store/settings.store";
 import type { AniListFilters, AniMedia, SearchMode } from "@/types/anilist";
@@ -36,10 +35,7 @@ export function useAnilistSearch() {
           useSettingsStore.getState().pageSize,
           useSettingsStore.getState().anilistMaxPages
         );
-        const res = await invokeTyped<AniMedia[]>("search_anilist", {
-          ...params,
-          ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
-        });
+        const res = await anilistApi.search(params);
         setSearchResults(res);
       })()
     );
@@ -60,7 +56,7 @@ export function useAnilistSearch() {
       setSearchMode("season");
       await attempt(
         (async () => {
-          const res = await invokeTyped<AniMedia[]>("search_anilist", {
+          const res = await anilistApi.search({
             query: null,
             tags: null,
             genres: null,
@@ -80,7 +76,6 @@ export function useAnilistSearch() {
             scoreTo: null,
             maxPages: useSettingsStore.getState().anilistMaxPages,
             perPage: useSettingsStore.getState().pageSize,
-            ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
           });
           setSearchResults(res);
         })()
@@ -96,10 +91,7 @@ export function useAnilistSearch() {
       setSearchMode("studio");
       await attempt(
         (async () => {
-          const res = await invokeTyped<AniMedia[]>("search_anilist_by_studio", {
-            studioId: id,
-            ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
-          });
+          const res = await anilistApi.searchByStudio(id);
           setSearchResults(res);
         })()
       );
@@ -114,10 +106,7 @@ export function useAnilistSearch() {
       setSearchMode("tag");
       await attempt(
         (async () => {
-          const res = await invokeTyped<AniMedia[]>("search_anilist_by_tag", {
-            tag,
-            ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
-          });
+          const res = await anilistApi.searchByTag(tag);
           setSearchResults(res);
         })()
       );
@@ -132,10 +121,7 @@ export function useAnilistSearch() {
       setSearchMode("tag");
       await attempt(
         (async () => {
-          const res = await invokeTyped<AniMedia[]>("search_anilist_by_genre", {
-            genre,
-            ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
-          });
+          const res = await anilistApi.searchByGenre(genre);
           setSearchResults(res);
         })()
       );

@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Star } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
+import { anilistApi } from "@/api/anilist.api";
 import { TabLoader } from "@/components/shared/loader.component";
 import Modal from "@/components/shared/modal.component";
 import Pagination from "@/components/shared/pagination.component";
@@ -13,13 +14,10 @@ import { listStatusLabels, seasonLabels, statusLabels } from "@/config/anilist/l
 import { BROWSE_PAGE_SIZE } from "@/config/anilist/pagination.config";
 import { usePagination } from "@/hooks/pagination.hook";
 import { getStatusColor } from "@/lib/anilist/entries.utils";
-import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { paginate } from "@/lib/utils/pagination.utils";
-import { useSettingsStore } from "@/store/settings.store";
-import type { AniMedia, BrowseTab } from "@/types/anilist";
+import type { BrowseTab } from "@/types/anilist";
 
 export default function BrowseAnimeModal({
   onClose,
@@ -45,11 +43,10 @@ export default function BrowseAnimeModal({
   const { data = [], isLoading } = useQuery({
     queryKey: ["anilist_browse", activeTab],
     queryFn: () =>
-      invokeTyped<AniMedia[]>("search_anilist", {
+      anilistApi.search({
         query: null,
         sort: BROWSE_SORT_MAP[activeTab],
         adult: false,
-        ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
       }),
     placeholderData: (previous) => previous,
   });

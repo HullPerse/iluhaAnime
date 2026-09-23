@@ -1,6 +1,5 @@
-import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
+import { anilistApi } from "@/api/anilist.api";
 import { attempt } from "@/lib/utils/attempt.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useAniListNotificationsStore } from "@/store/anilist.store";
 import { useNotificationStore } from "@/store/notification.store";
 import { useSettingsStore } from "@/store/settings.store";
@@ -158,18 +157,9 @@ async function pollAniListReleasesOnce(
   isDisposed: () => boolean,
   options?: { system?: boolean }
 ): Promise<boolean> {
-  const user = await invokeTyped<{ id: number } | null>(
-    "check_anilist_auth",
-    anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl)
-  );
+  const user = await anilistApi.checkAuth();
   if (!user || isDisposed()) return false;
-  const lists = await invokeTyped<{ name: string; entries: AniNotificationEntry[] }[]>(
-    "get_anilist_lists",
-    {
-      userId: user.id,
-      ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
-    }
-  );
+  const lists = await anilistApi.getLists(user.id);
   if (isDisposed()) return false;
   const system = options?.system ?? true;
   const scope = useSettingsStore.getState().anilistNotifyLists;

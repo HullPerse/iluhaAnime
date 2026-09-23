@@ -1,16 +1,14 @@
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useRef, useState } from "react";
 
+import { anilistApi } from "@/api/anilist.api";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { formatProgressLog } from "@/lib/anilist/prefetch.utils";
-import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { deleteAppCache, readAppCache, writeAppCache } from "@/lib/store/cache.utils";
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useNotificationStore } from "@/store/notification.store";
-import { useSettingsStore } from "@/store/settings.store";
 import type { PrefetchProgressPayload, PrefetchSnapshot, PrefetchSummary } from "@/types/anilist";
 import type { AniPrefetchProps as Props } from "@/types/anilist";
 
@@ -89,12 +87,7 @@ export default function PrefetchRelationsModal({ animeIds, onClose }: Props) {
       else unlisten();
     });
     let keepListening = false;
-    const [result, prefetchError] = await attempt(
-      invokeTyped<PrefetchSummary>("prefetch_anime_relations", {
-        animeIds: seeds,
-        ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
-      })
-    );
+    const [result, prefetchError] = await attempt(anilistApi.prefetchRelations(seeds));
     if (prefetchError) {
       if (mountedRef.current) {
         if (prefetchError.message.includes("already running")) {
@@ -110,9 +103,9 @@ export default function PrefetchRelationsModal({ animeIds, onClose }: Props) {
       deleteAppCache("anilist", "prefetch").catch((error) =>
         reportBackgroundError("prefetch.cleanup", error)
       );
-      invokeTyped("sync_franchise_to_index").catch((error) =>
-        reportBackgroundError("franchise.sync", error)
-      );
+      anilistApi
+        .syncFranchiseToIndex()
+        .catch((error) => reportBackgroundError("franchise.sync", error));
     }
     if (!keepListening) {
       const [unlisten] = await attempt(unlistenPromise);
@@ -122,7 +115,7 @@ export default function PrefetchRelationsModal({ animeIds, onClose }: Props) {
   };
 
   const cancel = async () => {
-    const [, error] = await attempt(invokeTyped("cancel_anime_prefetch"));
+    const [, error] = await attempt(anilistApi.cancelPrefetch());
     if (error)
       useNotificationStore
         .getState()

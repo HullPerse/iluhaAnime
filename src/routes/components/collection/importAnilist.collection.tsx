@@ -1,13 +1,13 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { anilistApi } from "@/api/anilist.api";
 import { SmallLoader } from "@/components/shared/loader.component";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import { EMPTY_ANIME_META } from "@/config/collection/import.config";
 import { COLLECTION_QUERY_KEY, useCollectionData } from "@/hooks/collection/queries.hook";
-import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { entryDiffers, entrySyncState, runImportBatch } from "@/lib/collection/import.utils";
 import { resolveStatusLabel } from "@/lib/collection/status.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
@@ -15,7 +15,6 @@ import { toLocaleKey } from "@/lib/locale/key.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useNotificationStore } from "@/store/notification.store";
-import { useSettingsStore } from "@/store/settings.store";
 import type { AniListCollection, AniListEntry, AniUser } from "@/types/anilist";
 import type { CollectionItem, ImportBatchGroup, ImportMode } from "@/types/collection";
 import type { TranslationVariables } from "@/types/i18n";
@@ -126,12 +125,7 @@ export default function ImportAnilistCollection({
     setOpDone(null);
     abortRef.current = false;
     (async () => {
-      const [user, authError] = await attempt(
-        invokeTyped<AniUser | null>(
-          "check_anilist_auth",
-          anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl)
-        )
-      );
+      const [user, authError] = await attempt(anilistApi.checkAuth());
       if (authError) {
         setError(authError.message);
         setAuthChecked(true);
@@ -141,12 +135,7 @@ export default function ImportAnilistCollection({
       setAuthChecked(true);
       if (!user) return;
       setLoading(true);
-      const [lists, listsError] = await attempt(
-        invokeTyped<AniListCollection[]>("get_anilist_lists", {
-          userId: user.id,
-          ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
-        })
-      );
+      const [lists, listsError] = await attempt(anilistApi.getLists(user.id));
       if (listsError) setError(listsError.message);
       else setLists(lists);
       setLoading(false);
@@ -327,10 +316,7 @@ export default function ImportAnilistCollection({
       if (abortRef.current) break;
       setOpCurrent(item.title);
       const [m, err] = await attempt(
-        invokeTyped<typeof EMPTY_ANIME_META>("get_anime_by_id", {
-          id: item.externalIds.anilist,
-          ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
-        })
+        anilistApi.getAnimeById<typeof EMPTY_ANIME_META>(item.externalIds.anilist as number)
       );
       if (err || !m) {
         failed.push({ id: item.id, title: item.title });

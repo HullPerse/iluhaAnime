@@ -1,17 +1,15 @@
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useState } from "react";
 
+import { anilistApi } from "@/api/anilist.api";
 import { SmallLoader } from "@/components/shared/loader.component";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
 import { ANILIST_CLIENT_ID, buildAnilistAuthorizeUrl } from "@/config/anilist/auth.config";
-import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { enterSubmit } from "@/lib/utils/keyboard.utils";
-import { useSettingsStore } from "@/store/settings.store";
 import type { AniUser } from "@/types/anilist";
 
 function AniListAuthModal({
@@ -30,12 +28,7 @@ function AniListAuthModal({
     if (!token.trim()) return;
     setLoading(true);
     setError("");
-    const [user, error] = await attempt(
-      invokeTyped<AniUser>("anilist_login", {
-        token: token.trim(),
-        ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
-      })
-    );
+    const [user, error] = await attempt(anilistApi.login(token));
     if (error) setError(String(error));
     else onAuth(user);
     setLoading(false);

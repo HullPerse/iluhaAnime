@@ -1,15 +1,13 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 
+import { anilistApi } from "@/api/anilist.api";
 import Section from "@/components/shared/section.component";
 import { STAFF_CREDITS_PAGE_SIZE } from "@/config/anilist/pagination.config";
-import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { flattenMarkup } from "@/lib/anilist/text.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { uniqueById } from "@/lib/utils/array.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
-import { useSettingsStore } from "@/store/settings.store";
-import type { AniListOverlayContext, AniListOverlayScreen, AniStaffDetail } from "@/types/anilist";
+import type { AniListOverlayContext, AniListOverlayScreen } from "@/types/anilist";
 
 import { CreditSection } from "./creditSection.detail";
 import { PersonFavButton } from "./favbutton.detail";
@@ -27,12 +25,11 @@ function useStaffPage(
     queryKey: ["staff_detail", id, key],
     initialPageParam: 1,
     queryFn: ({ pageParam }) =>
-      invokeTyped<AniStaffDetail>("get_staff_characters", {
+      anilistApi.getStaffCharacters(
         id,
-        page: pageParamName === "page" ? pageParam : 1,
-        charPage: pageParamName === "charPage" ? pageParam : 1,
-        ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
-      }),
+        pageParamName === "page" ? pageParam : 1,
+        pageParamName === "charPage" ? pageParam : 1
+      ),
     getNextPageParam: (lastPage, pages) =>
       (Array.isArray(lastPage?.[list]) ? lastPage[list].length : 0) < pageSize
         ? undefined

@@ -1,14 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 
+import { anilistApi } from "@/api/anilist.api";
 import { PosterTile } from "@/components/shared/posterTile.component";
 import Section from "@/components/shared/section.component";
 import { ANILIST_SIMILAR_LIMIT } from "@/config/anilist/detail.config";
-import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
-import { useSettingsStore } from "@/store/settings.store";
-import type { AniRecommendation, AniRelation, FranchiseGraph } from "@/types/anilist";
+import type { AniRelation } from "@/types/anilist";
 
 export function SimilarSection({
   animeId,
@@ -23,22 +21,13 @@ export function SimilarSection({
   const [expanded, setExpanded] = useState(false);
   const recsQuery = useQuery({
     queryKey: ["anime_recommendations", animeId],
-    queryFn: () =>
-      invokeTyped<AniRecommendation[]>("get_anime_recommendations", {
-        id: animeId,
-        ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
-      }),
+    queryFn: () => anilistApi.getAnimeRecommendations(animeId),
     staleTime: Infinity,
     retry: 1,
   });
   const franchiseQuery = useQuery({
     queryKey: ["anime_franchise_ids", animeId],
-    queryFn: () =>
-      invokeTyped<FranchiseGraph>("get_anime_franchise", {
-        id: animeId,
-        scope: "all",
-        ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
-      }),
+    queryFn: () => anilistApi.getAnimeFranchise(animeId, "all"),
     staleTime: Infinity,
     retry: 1,
   });

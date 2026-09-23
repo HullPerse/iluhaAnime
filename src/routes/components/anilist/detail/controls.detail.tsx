@@ -1,16 +1,14 @@
 import { useState, useEffect } from "react";
 
+import { anilistApi } from "@/api/anilist.api";
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
 import Select from "@/components/ui/select.component";
 import { listStatusOptions } from "@/config/anilist/labels.config";
-import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { buildAnilistPrefill } from "@/lib/collection/import.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useCollectionStore } from "@/store/collection.store";
-import { useSettingsStore } from "@/store/settings.store";
 import type { AniMedia } from "@/types/anilist";
 
 function AniListActionControls({
@@ -51,13 +49,12 @@ function AniListActionControls({
     setSaveError("");
     const trimmed = editNotes.trim();
     const [, error] = await attempt(
-      invokeTyped("save_anilist_entry", {
+      anilistApi.saveEntry({
         mediaId: anime.id,
         status: editStatus,
         progress: editProgress ? Number.parseInt(editProgress, 10) : null,
         score: editScore ? Number.parseFloat(editScore) : null,
         notes: trimmed ? trimmed : null,
-        ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
       })
     );
     if (error) {

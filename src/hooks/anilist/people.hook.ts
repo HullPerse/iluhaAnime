@@ -1,13 +1,12 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useMemo, useRef } from "react";
 
-import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
+import { anilistApi } from "@/api/anilist.api";
 import { translate } from "@/lib/locale/i18n.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useNotificationStore } from "@/store/notification.store";
 import { useSettingsStore } from "@/store/settings.store";
-import type { AnilistRouteData, FavouritePerson } from "@/types/anilist";
+import type { AnilistRouteData } from "@/types/anilist";
 
 export function useFavouritePeopleToggles() {
   const queryClient = useQueryClient();
@@ -15,12 +14,7 @@ export function useFavouritePeopleToggles() {
   const toggleStaff = async (staffId: number) => {
     if (staffPendingRef.current) return;
     staffPendingRef.current = true;
-    const [updated, error] = await attempt(
-      invokeTyped<FavouritePerson[]>("toggle_favourite_staff", {
-        staffId,
-        ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
-      })
-    );
+    const [updated, error] = await attempt(anilistApi.toggleFavouriteStaff(staffId));
     if (error) {
       useNotificationStore
         .getState()
@@ -45,12 +39,7 @@ export function useFavouritePeopleToggles() {
   const toggleCharacter = async (characterId: number) => {
     if (characterPendingRef.current) return;
     characterPendingRef.current = true;
-    const [updated, error] = await attempt(
-      invokeTyped<FavouritePerson[]>("toggle_favourite_character", {
-        characterId,
-        ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
-      })
-    );
+    const [updated, error] = await attempt(anilistApi.toggleFavouriteCharacter(characterId));
     if (error) {
       useNotificationStore
         .getState()

@@ -1,17 +1,15 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 
+import { anilistApi } from "@/api/anilist.api";
 import { PosterTile } from "@/components/shared/posterTile.component";
 import Section from "@/components/shared/section.component";
 import { Button } from "@/components/ui/button.component";
 import { characterRoleLabels } from "@/config/anilist/labels.config";
 import { CHAR_PAGE_SIZE } from "@/config/anilist/pagination.config";
 import { useFavPeopleCharacterSet } from "@/hooks/anilist/people.hook";
-import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { uniqueById } from "@/lib/utils/array.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
-import { useSettingsStore } from "@/store/settings.store";
 import type { AniCharacterEdge, AniVoiceActor } from "@/types/anilist";
 
 import { VoiceActorsPreview } from "./voiceActors.detail";
@@ -38,12 +36,7 @@ function AniListCharactersPanel({
   const query = useInfiniteQuery({
     queryKey: ["anime_characters", animeId],
     initialPageParam: 1,
-    queryFn: ({ pageParam }) =>
-      invokeTyped<AniCharacterEdge[]>("get_anime_characters", {
-        id: animeId,
-        page: pageParam,
-        ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
-      }),
+    queryFn: ({ pageParam }) => anilistApi.getAnimeCharacters(animeId, pageParam),
     getNextPageParam: (lastPage, pages) =>
       (Array.isArray(lastPage) ? lastPage.length : 0) < CHAR_PAGE_SIZE
         ? undefined

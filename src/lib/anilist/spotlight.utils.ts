@@ -1,8 +1,6 @@
-import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
+import { anilistApi } from "@/api/anilist.api";
 import { readAppCache } from "@/lib/store/cache.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { hashStringToUint32, mulberry32 } from "@/lib/utils/random.utils";
-import { useSettingsStore } from "@/store/settings.store";
 import type { AniMedia, SpotlightKind } from "@/types/anilist";
 import type { SpotlightPage } from "@/types/ipc";
 
@@ -59,13 +57,7 @@ export function spotlightPageIndex(
 }
 
 async function fetchSpotlightPage(page: number): Promise<SpotlightPage> {
-  const proxy = useSettingsStore.getState().anilistProxyUrl;
-  return invokeTyped<SpotlightPage>("get_spotlight_page", {
-    page,
-    perPage: SPOTLIGHT_PER_PAGE,
-    scoreFrom: SPOTLIGHT_SCORE_FLOOR,
-    ...anilistProxyArgs(proxy),
-  });
+  return anilistApi.getSpotlightPage(page, SPOTLIGHT_PER_PAGE, SPOTLIGHT_SCORE_FLOOR);
 }
 
 export async function resolveSpotlightPick(

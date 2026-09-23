@@ -3,13 +3,11 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { ExternalLink } from "lucide-react";
 import { useState } from "react";
 
+import { anilistApi } from "@/api/anilist.api";
 import { TrailerEmbed } from "@/components/shared/lightbox/trailerEmbed.media";
 import Modal from "@/components/shared/modal.component";
-import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSettingsStore } from "@/store/settings.store";
-import type { AniMedia } from "@/types/anilist";
 import type { AniDetailProps as DetailProps } from "@/types/anilist";
 
 import { CopyLinkButton } from "./copyLinkButton.detail";
@@ -32,11 +30,7 @@ function AniListDetailModal(props: DetailProps) {
   const anilistProxyUrl = useSettingsStore((s) => s.anilistProxyUrl);
   const query = useQuery({
     queryKey: ["anime_detail", props.animeId, anilistProxyUrl ?? "", props.isLoggedIn ? 1 : 0],
-    queryFn: () =>
-      invokeTyped<AniMedia>("get_anime_by_id", {
-        id: props.animeId,
-        ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
-      }),
+    queryFn: () => anilistApi.getAnimeById(props.animeId),
     staleTime: 1000 * 60 * 60,
     retry: 1,
   });

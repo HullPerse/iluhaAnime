@@ -1,17 +1,15 @@
 import { RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
+import { anilistApi } from "@/api/anilist.api";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import Select from "@/components/ui/select.component";
 import { POLL_INTERVALS_MIN } from "@/config/settings/notifications.config";
-import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useAniListNotificationsStore } from "@/store/anilist.store";
 import { useSettingsStore } from "@/store/settings.store";
-import type { AniListCollection } from "@/types/anilist";
 
 export default function SettingsNotifications() {
   const { t } = useI18n();
@@ -31,12 +29,7 @@ export default function SettingsNotifications() {
   const fetchLists = useCallback(async () => {
     setListsLoading(true);
     setListsFailed(false);
-    const [user, authError] = await attempt(
-      invokeTyped<{ id: number } | null>(
-        "check_anilist_auth",
-        anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl)
-      )
-    );
+    const [user, authError] = await attempt(anilistApi.checkAuth());
     if (authError || !user) {
       setListsFailed(true);
       setListsLoading(false);
@@ -44,10 +37,7 @@ export default function SettingsNotifications() {
     }
     const [, listsError] = await attempt(
       (async () => {
-        const lists = await invokeTyped<AniListCollection[]>("get_anilist_lists", {
-          userId: user.id,
-          ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
-        });
+        const lists = await anilistApi.getLists(user.id);
         useAniListNotificationsStore.getState().setKnownListNames(lists.map((list) => list.name));
       })()
     );

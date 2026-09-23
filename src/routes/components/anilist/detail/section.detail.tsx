@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { Simulation } from "d3-force";
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 
+import { anilistApi } from "@/api/anilist.api";
 import { SmallLoader } from "@/components/shared/loader.component";
 import { Button } from "@/components/ui/button.component";
 import { useFranchiseViewport } from "@/hooks/anilist/franchise.hook";
@@ -12,7 +13,6 @@ import {
   computeNodeRelationMap,
   computeMainlineIds,
 } from "@/lib/anilist/graph.utils";
-import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import {
   computeNodeDimensions,
   computeGraphMetrics,
@@ -20,10 +20,7 @@ import {
   runFranchiseSimulation,
 } from "@/lib/anilist/sim.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
-import { useSettingsStore } from "@/store/settings.store";
 import type {
-  FranchiseGraph,
   FranchiseNodePosition,
   DragState,
   RelationFilter,
@@ -72,11 +69,7 @@ function FranchiseGraphSection({
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["franchise", animeId, refreshKey],
     queryFn: async () => {
-      const fresh = await invokeTyped<FranchiseGraph>("get_anime_franchise", {
-        id: animeId,
-        scope: refreshKey ? "fresh" : "all",
-        ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
-      });
+      const fresh = await anilistApi.getAnimeFranchise(animeId, refreshKey ? "fresh" : "all");
       setCacheSource("fresh");
       if (prevNodeCountRef.current != null) {
         const prev = prevNodeCountRef.current;

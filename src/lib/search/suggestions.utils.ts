@@ -156,13 +156,18 @@ function addExtraSuggestions(
     options.scope === "filter" && isTagLikeQuery(query, normalizeSearchText(query))
       ? SEARCH_RANKING.TAG_BOOST
       : 0;
+  const showOperators = /[!^'$]/.test(query);
   for (const extra of options.extraValues ?? []) {
-    const match = fuzzyMatchScore(query, extra.value);
+    if (extra.operator && !showOperators) continue;
+    const match = extra.operator
+      ? SEARCH_RANKING.OPERATOR_HINT_SCORE
+      : fuzzyMatchScore(query, extra.value);
     if (match == null) continue;
     put({
       kind: extra.kind ?? "local",
       score: match + tagBoost + statBoost(extra.value, options.suggestionStats),
       value: extra.value,
+      subtitle: extra.subtitle,
     });
   }
 }

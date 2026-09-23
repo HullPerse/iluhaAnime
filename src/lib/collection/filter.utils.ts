@@ -1,6 +1,13 @@
 import { DEFAULT_FILTERS } from "@/config/collection/filters.config";
 import { publicStatusIds } from "@/lib/collection/status.utils";
 import { parseIntent } from "@/lib/search/intent.utils";
+import { normalizeSearchText } from "@/lib/search/normalize.utils";
+import {
+  matchOperatorTerm,
+  matchOperatorTerms,
+  operatorTextLength,
+  parseOperatorTerms,
+} from "@/lib/search/score.utils";
 import { useSettingsStore } from "@/store/settings.store";
 import type {
   CollectionFilters,
@@ -20,7 +27,7 @@ function resolveList(
   searchResults: CollectionItem[],
   cleanQuery: string
 ): CollectionItem[] {
-  return cleanQuery.trim().length >= 3 ? searchResults : items;
+  return operatorTextLength(cleanQuery) >= 3 ? searchResults : items;
 }
 
 function compareNumber(value: number, op: NumericCond["op"], target: number): boolean {
@@ -168,10 +175,23 @@ function matchesShortQuery(item: CollectionItem, query: string): boolean {
   );
 }
 
+function matchesOperatorShortQuery(item: CollectionItem, query: string): boolean {
+  const terms = parseOperatorTerms(query);
+  if (!terms) return matchesShortQuery(item, query.toLowerCase());
+  const fields = [item.title, ...item.altTitles, ...item.genres, item.studio ?? ""]
+    .map(normalizeSearchText)
+    .filter((field) => field.length > 0);
+  if (terms.every((term) => term.negate)) {
+    return !fields.some((field) =>
+      terms.some((term) => matchOperatorTerm({ ...term, negate: false }, field) != null)
+    );
+  }
+  return fields.some((field) => matchOperatorTerms(terms, field) != null);
+}
+
 function applyShortQueryFilter(list: CollectionItem[], cleanQuery: string): CollectionItem[] {
-  if (!cleanQuery.trim() || cleanQuery.trim().length >= 3) return list;
-  const query = cleanQuery.toLowerCase();
-  return list.filter((item) => matchesShortQuery(item, query));
+  if (!cleanQuery.trim() || operatorTextLength(cleanQuery) >= 3) return list;
+  return list.filter((item) => matchesOperatorShortQuery(item, cleanQuery));
 }
 
 function sortCollectionItems(

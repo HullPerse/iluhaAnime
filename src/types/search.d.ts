@@ -54,7 +54,12 @@ export interface CollectionSuggestionItem {
 
 export interface SearchSuggestionOptions {
   animeIndex?: SearchAnimeSuggestion[];
-  extraValues?: Array<{ kind?: SearchSuggestionKind; value: string }>;
+  extraValues?: Array<{
+    kind?: SearchSuggestionKind;
+    value: string;
+    subtitle?: string;
+    operator?: boolean;
+  }>;
   history?: string[];
   limit?: number;
   queryStats?: Record<string, SearchQueryStat>;

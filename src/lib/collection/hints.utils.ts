@@ -1,11 +1,13 @@
+import type { TranslationKey } from "@/lib/locale/i18n.utils";
 import { FILTER_KEYS } from "@/lib/search/intent.utils";
 import type { CollectionItem, CollectionStatusDef } from "@/types/collection";
 
 export function buildCollectionQueryHints(
   items: CollectionItem[],
-  statuses: CollectionStatusDef[]
-): Array<{ kind: "local"; value: string }> {
-  const hints: Array<{ kind: "local"; value: string }> = [];
+  statuses: CollectionStatusDef[],
+  t: (key: TranslationKey) => string
+): Array<{ kind: "local"; value: string; subtitle?: string; operator?: boolean }> {
+  const hints: Array<{ kind: "local"; value: string; subtitle?: string; operator?: boolean }> = [];
   const push = (value: string) => hints.push({ kind: "local", value });
   const quote = (value: string) => (/\s/.test(value) ? `"${value}"` : value);
   push("source=anilist");
@@ -34,5 +36,11 @@ export function buildCollectionQueryHints(
   for (const v of genres) push(`genre=${quote(v)}`);
   for (const v of years) push(`year=${v}`);
   for (const v of ratings) push(`rating=${v}`);
+  hints.push(
+    { kind: "local", value: "^title", subtitle: t("search.operator.prefix"), operator: true },
+    { kind: "local", value: "title$", subtitle: t("search.operator.suffix"), operator: true },
+    { kind: "local", value: "'exact", subtitle: t("search.operator.exact"), operator: true },
+    { kind: "local", value: "!skip", subtitle: t("search.operator.exclude"), operator: true }
+  );
   return hints;
 }

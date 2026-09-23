@@ -89,4 +89,20 @@ describe("operator queries in suggestions", () => {
     expect(values).toContain("Frieren: Beyond Journey's End");
     expect(values).not.toContain("Fruits Basket");
   });
+
+  it("shows operator examples only once a marker is typed", () => {
+    const extras = [
+      { value: "^title", subtitle: "starts with", operator: true },
+      { value: "titanic" },
+    ];
+    const plain = getSearchSuggestions("tit", { extraValues: extras, limit: 8 }).map(
+      (item) => item.value
+    );
+    expect(plain).toContain("titanic");
+    expect(plain).not.toContain("^title");
+    const marked = getSearchSuggestions("^tit", { extraValues: extras, limit: 8 }).map(
+      (item) => item.value
+    );
+    expect(marked).toContain("^title");
+  });
 });

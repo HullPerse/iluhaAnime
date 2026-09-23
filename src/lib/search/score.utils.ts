@@ -189,7 +189,7 @@ export function parseOperatorTerms(query: string): OperatorTerm[] | null {
   return terms;
 }
 
-function matchOperatorTerm(term: OperatorTerm, target: string): number | null {
+export function matchOperatorTerm(term: OperatorTerm, target: string): number | null {
   if (term.mode === "full") return target === term.text ? 1000 : null;
   if (term.mode === "exact") {
     const index = target.indexOf(term.text);
@@ -223,6 +223,15 @@ export function matchOperatorTerms(terms: OperatorTerm[], target: string): numbe
   }
   if (positives === 0) return 350;
   return 350 + total / positives;
+}
+
+export function operatorTextLength(query: string): number {
+  const terms = parseOperatorTerms(query);
+  if (!terms) return query.trim().length;
+  return terms
+    .map((term) => term.text)
+    .join(" ")
+    .trim().length;
 }
 
 export function fuzzyMatchScorePreNormalized(

@@ -157,7 +157,12 @@ export type SearchFieldParams = {
   animeIndex?: SearchAnimeSuggestion[];
   animeProfileId?: number | null;
   anilistBoost?: AnilistSuggestionBoost;
-  extraValues?: Array<{ kind?: SearchSuggestionKind; value: string }>;
+  extraValues?: Array<{
+    kind?: SearchSuggestionKind;
+    value: string;
+    subtitle?: string;
+    operator?: boolean;
+  }>;
   collectionItems?: CollectionSuggestionItem[];
   collectionBoost?: number;
   limit?: number;

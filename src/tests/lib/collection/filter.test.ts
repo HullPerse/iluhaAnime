@@ -113,6 +113,40 @@ describe("filterCollectionItems", () => {
     expect(result.map((i) => i.id)).toEqual(["a"]);
   });
 
+  it("applies operators on short queries", () => {
+    const byTitle = makeItem({ id: "title", title: "Naruto" });
+    const byAlt = makeItem({ id: "alt", title: "One Piece", altTitles: ["Naruto (JP)"] });
+    const byGenre = makeItem({ id: "genre", title: "Frieren", genres: ["Adventure"] });
+    const other = makeItem({ id: "other", title: "Cowboy Bebop" });
+    const items = [byTitle, byAlt, byGenre, other];
+
+    expect(
+      filterCollectionItems(items, [], "all", "^na", DEFAULT_FILTERS, "date", "desc").map(
+        (i) => i.id
+      )
+    ).toEqual(["title", "alt"]);
+    expect(
+      filterCollectionItems(items, [], "all", "!na", DEFAULT_FILTERS, "date", "desc").map(
+        (i) => i.id
+      )
+    ).toEqual(["genre", "other"]);
+  });
+
+  it("counts the effective length without markers for routing", () => {
+    const a = makeItem({ id: "a", title: "Naruto" });
+    const b = makeItem({ id: "b", title: "Bleach" });
+    const result = filterCollectionItems(
+      [a, b],
+      [b],
+      "all",
+      "^ab",
+      DEFAULT_FILTERS,
+      "date",
+      "desc"
+    );
+    expect(result.map((i) => i.id)).toEqual([]);
+  });
+
   it("filters by selected status", () => {
     const watching = makeItem({ id: "w", status: "watching" });
     const planned = makeItem({ id: "p", status: "planned" });

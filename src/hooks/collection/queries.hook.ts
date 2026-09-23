@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { DEFAULT_COLLECTION_STATUSES } from "@/config/collection/statuses.config";
 import { buildCollectionSearchIndex, searchCollectionIndex } from "@/lib/collection/search.utils";
 import { parseIntent } from "@/lib/search/intent.utils";
+import { operatorTextLength } from "@/lib/search/score.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import type {
   CollectionDataResult,
@@ -71,7 +72,7 @@ export function useCollectionSearch(query: string, allItems: CollectionItem[]): 
   const intent = parseIntent(query);
   const trimmed = intent.cleanQuery.trim();
   const index = useMemo(() => buildCollectionSearchIndex(allItems), [allItems]);
-  return trimmed.length < 3 ? allItems : searchCollectionIndex(index, trimmed);
+  return operatorTextLength(trimmed) < 3 ? allItems : searchCollectionIndex(index, trimmed);
 }
 
 export function useCollectionData(): CollectionDataResult {

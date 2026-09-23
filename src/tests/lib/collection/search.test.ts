@@ -46,3 +46,29 @@ describe("collection people search", () => {
     expect(searchCollectionIndex(index, "ishihama")).toEqual([]);
   });
 });
+
+describe("collection search operators", () => {
+  const items = [
+    item("a", "Frieren", { altTitles: ["Sousou no Frieren"] }),
+    item("b", "Bleach", { genres: ["Action"] }),
+    item("c", "Naruto", { studio: "Pierrot" }),
+  ];
+  const index = buildCollectionSearchIndex(items);
+
+  it("anchors prefixes and suffixes", () => {
+    expect(searchCollectionIndex(index, "^frie").map((x) => x.id)).toEqual(["a"]);
+    expect(searchCollectionIndex(index, "^ousou").map((x) => x.id)).toEqual([]);
+    expect(searchCollectionIndex(index, "uto$").map((x) => x.id)).toEqual(["c"]);
+  });
+
+  it("matches exact substrings and excludes negations", () => {
+    expect(searchCollectionIndex(index, "'frieren").map((x) => x.id)).toEqual(["a"]);
+    expect(searchCollectionIndex(index, "frieren !sousou").map((x) => x.id)).toEqual(["a"]);
+    expect(searchCollectionIndex(index, "!bleach").map((x) => x.id)).toEqual(["a", "c"]);
+  });
+
+  it("requires every positive term in one field", () => {
+    expect(searchCollectionIndex(index, "^bleach bleach").map((x) => x.id)).toEqual(["b"]);
+    expect(searchCollectionIndex(index, "^bleach pierrot").map((x) => x.id)).toEqual([]);
+  });
+});

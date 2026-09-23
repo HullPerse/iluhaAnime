@@ -108,8 +108,8 @@ export default function CollectionRoute() {
   );
 
   const collectionExtraValues = useMemo(
-    () => buildCollectionQueryHints(items, statuses),
-    [items, statuses]
+    () => buildCollectionQueryHints(items, statuses, t),
+    [items, statuses, t]
   );
 
   const field = useSearchField({

@@ -1,11 +1,12 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+import { collectionApi } from "@/api/collection.api";
+import type { UnifiedIndexEntryInput } from "@/api/collection.api";
 import { SEARCH_RANKING } from "@/config/search/ranking.config";
 import { normalizeSearchText } from "@/lib/search/suggestions.utils";
 import { createDebouncedStorage } from "@/lib/store/storage.utils";
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSettingsStore } from "@/store/settings.store";
 import type { AniListCollection, FavouriteAnime } from "@/types/anilist";
 import type {
@@ -77,28 +78,19 @@ function updateStat(
   return next;
 }
 
-function syncUnifiedIndex(
-  entries: Array<{
-    id: string;
-    kind: string;
-    scope: string;
-    value: string;
-    subtitle?: string;
-    metadata?: unknown;
-  }>
-): void {
+function syncUnifiedIndex(entries: UnifiedIndexEntryInput[]): void {
   if (entries.length === 0) return;
   let chain = Promise.resolve();
   for (let offset = 0; offset < entries.length; offset += INDEX_BATCH_SIZE) {
     const batch = entries.slice(offset, offset + INDEX_BATCH_SIZE);
-    chain = chain.then(() => invokeTyped("upsert_unified_index", { entries: batch }));
+    chain = chain.then(() => collectionApi.upsertUnifiedIndex(batch));
   }
   chain
     .then(() => {
       if (entries.length > 100) {
-        invokeTyped("optimize_unified_index").catch((error) =>
-          reportBackgroundError("index.optimize", error)
-        );
+        collectionApi
+          .optimizeUnifiedIndex()
+          .catch((error) => reportBackgroundError("index.optimize", error));
       }
     })
     .catch((error) => reportBackgroundError("index.upsert", error));
@@ -147,14 +139,9 @@ function buildAnimeIndex(
 }
 
 async function dropUnifiedScope(scope: string, label: string): Promise<void> {
-  const [, error] = await attempt(invokeTyped("clear_unified_index_scope", { scope }));
+  const [, error] = await attempt(collectionApi.clearUnifiedIndexScope(scope));
   if (error === null) return;
-  const [, pruneError] = await attempt(
-    invokeTyped("prune_unified_index_scope", {
-      scope,
-      keepIds: [],
-    })
-  );
+  const [, pruneError] = await attempt(collectionApi.pruneUnifiedIndexScope(scope, []));
   if (pruneError !== null) reportBackgroundError(label, pruneError);
 }
 
@@ -240,20 +227,18 @@ export const useSearchStore = create<SearchStore>()(
         set((state) => ({
           suggestionStats: updateStat(state.suggestionStats ?? {}, value, true),
         }));
-        invokeTyped("record_unified_index_action", {
-          action: "select",
-          id: `history:global:${normalize(value)}`,
-        }).catch((error) => reportBackgroundError("learning.select", error));
+        collectionApi
+          .recordUnifiedIndexAction("select", `history:global:${normalize(value)}`)
+          .catch((error) => reportBackgroundError("learning.select", error));
       },
       recordSuggestionIgnored: (value) => {
         if (useSettingsStore.getState().autocompleteMode === "off") return;
         set((state) => ({
           suggestionStats: updateStat(state.suggestionStats ?? {}, value, false, true),
         }));
-        invokeTyped("record_unified_index_action", {
-          action: "ignore",
-          id: `history:global:${normalize(value)}`,
-        }).catch((error) => reportBackgroundError("learning.ignore", error));
+        collectionApi
+          .recordUnifiedIndexAction("ignore", `history:global:${normalize(value)}`)
+          .catch((error) => reportBackgroundError("learning.ignore", error));
       },
       removeQuery: (query) =>
         set((state) => ({

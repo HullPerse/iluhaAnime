@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 
+import { collectionApi } from "@/api/collection.api";
 import { SEARCH_RANKING } from "@/config/search/ranking.config";
 import { fuzzyMatchScore } from "@/lib/search/suggestions.utils";
 import type { SearchSuggestion, SearchSuggestionKind } from "@/lib/search/suggestions.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
-import type { SearchSuggestionScope, UnifiedIndexRow } from "@/types/search";
+import type { SearchSuggestionScope } from "@/types/search";
 
 function suggestionKind(kind: string): SearchSuggestionKind {
   if (kind === "anime" || kind === "anime_alias") return "anime";
@@ -33,11 +33,7 @@ export function useSuggestions(
     const timer = window.setTimeout(() => {
       (async () => {
         const [rows, error] = await attempt(
-          invokeTyped<UnifiedIndexRow[]>("search_unified_index", {
-            query: normalized,
-            scope,
-            limit,
-          })
+          collectionApi.searchUnifiedIndex(normalized, scope, limit)
         );
         if (requestRef.current !== requestId) return;
         if (error) {

@@ -2,6 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle } from "lucide-react";
 import { useRef, useState } from "react";
 
+import { collectionApi } from "@/api/collection.api";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
@@ -17,7 +18,6 @@ import {
 } from "@/lib/collection/status.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useNotificationStore } from "@/store/notification.store";
 import type { ShareImportPlan } from "@/types/deeplink";
 
@@ -113,15 +113,13 @@ export function ShareImportCollection({
     }
     const order = plan.statuses.reduce((max, status) => Math.max(max, status.order), 0) + 1;
     const id = buildCustomStatusId(label);
-    await invokeTyped("upsert_collection_status", {
-      status: {
-        id,
-        label,
-        color: DEFAULT_NEW_COLOR,
-        orderIndex: order,
-        isCore: false,
-        kind: "public",
-      },
+    await collectionApi.upsertStatusRow({
+      id,
+      label,
+      color: DEFAULT_NEW_COLOR,
+      orderIndex: order,
+      isCore: false,
+      kind: "public",
     });
     statusIdRef.current = id;
     return id;
@@ -146,15 +144,15 @@ export function ShareImportCollection({
           if (!row) continue;
           setCurrent(row.snapshot.title);
           const [, importError] = await attempt(
-            invokeTyped("import_collection_data", {
-              data: {
+            collectionApi.importData(
+              {
                 version: 1,
                 exportedAt: Math.floor(Date.now() / 1000),
                 items: [shareRowToExportRow(row, statusId)],
                 customFieldDefs: [],
               },
-              strategy: "create_new",
-            })
+              "create_new"
+            )
           );
           if (importError) {
             failed.push({ id: String(index), title: row.snapshot.title });

@@ -1,9 +1,9 @@
 import { save } from "@tauri-apps/plugin-dialog";
 import { useCallback, useState } from "react";
 
+import { collectionApi } from "@/api/collection.api";
 import { useI18n, type TranslationKey } from "@/lib/locale/i18n.utils";
 import { attempt, attemptSync } from "@/lib/utils/attempt.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useNotificationStore } from "@/store/notification.store";
 
 export function useCollectionDataActions() {
@@ -19,7 +19,7 @@ export function useCollectionDataActions() {
   );
 
   const handleExportJson = useCallback(async () => {
-    const [data, dataError] = await attempt(invokeTyped<unknown>("export_collection_data"));
+    const [data, dataError] = await attempt(collectionApi.exportData());
     if (dataError) {
       notify("error", "collection.export.error");
       return;
@@ -45,7 +45,7 @@ export function useCollectionDataActions() {
       filters: [{ name: "ZIP", extensions: ["zip"] }],
     });
     if (!path) return;
-    const [, error] = await attempt(invokeTyped("export_collection_zip", { outPath: path }));
+    const [, error] = await attempt(collectionApi.exportZip(path));
     if (error) notify("error", "collection.export.error");
     else notify("success", "collection.export.zip.done");
   }, [notify]);
@@ -62,14 +62,7 @@ export function useCollectionDataActions() {
         useNotificationStore.getState().add(t("app.collection"), "error", parseError.message);
         return;
       }
-      const [summary, importError] = await attempt(
-        invokeTyped<{
-          imported: number;
-          skipped: number;
-          overwritten: number;
-          created: number;
-        }>("import_collection_data", { data, strategy })
-      );
+      const [summary, importError] = await attempt(collectionApi.importData(data, strategy));
       if (importError) {
         useNotificationStore.getState().add(t("app.collection"), "error", importError.message);
         return;

@@ -1,11 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 
+import { collectionApi } from "@/api/collection.api";
+import type { CollectionStatusRow } from "@/api/collection.api";
 import { DEFAULT_COLLECTION_STATUSES } from "@/config/collection/statuses.config";
 import { buildCollectionSearchIndex, searchCollectionIndex } from "@/lib/collection/search.utils";
 import { parseIntent } from "@/lib/search/intent.utils";
 import { operatorTextLength } from "@/lib/search/score.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import type {
   CollectionDataResult,
   CollectionDataState,
@@ -37,13 +38,7 @@ function normalizeItem(raw: RawCollectionItem): CollectionItem {
   };
 }
 
-type StatusRow = Omit<CollectionStatusDef, "order" | "kind"> & {
-  order?: number;
-  orderIndex?: number;
-  kind?: CollectionStatusDef["kind"];
-};
-
-function normalizeStatus(row: StatusRow, fallback: number): CollectionStatusDef {
+function normalizeStatus(row: CollectionStatusRow, fallback: number): CollectionStatusDef {
   return {
     color: row.color,
     id: row.id,
@@ -56,9 +51,9 @@ function normalizeStatus(row: StatusRow, fallback: number): CollectionStatusDef 
 
 async function fetchCollectionData(): Promise<CollectionDataState> {
   const [items, customFieldDefs, statusRows] = await Promise.all([
-    invokeTyped<RawCollectionItem[]>("list_collection_items"),
-    invokeTyped<CustomFieldDef[]>("list_custom_field_defs"),
-    invokeTyped<StatusRow[]>("list_collection_statuses"),
+    collectionApi.listItems(),
+    collectionApi.listCustomFieldDefs(),
+    collectionApi.listStatuses(),
   ]);
   const statuses = statusRows.map((row, index) => normalizeStatus(row, index));
   return {
@@ -101,7 +96,7 @@ export function useCollectionMutations() {
       const id = genId("item");
       const at = Date.now();
       const full: CollectionItem = { ...item, id, addedAt: at, updatedAt: at };
-      await invokeTyped("upsert_collection_item", { item: full });
+      await collectionApi.upsertItem(full);
       return id;
     },
     onSuccess: invalidate,
@@ -117,7 +112,7 @@ export function useCollectionMutations() {
       patch: Partial<CollectionItem>;
       touch?: boolean;
     }) => {
-      await invokeTyped("patch_collection_item", { id, patch, touch_updated: touch });
+      await collectionApi.patchItem(id, patch, touch);
     },
     onMutate: async ({ id, patch }) => {
       await queryClient.cancelQueries({ queryKey: [COLLECTION_QUERY_KEY] });
@@ -142,7 +137,7 @@ export function useCollectionMutations() {
 
   const removeItem = useMutation({
     mutationFn: async (id: string) => {
-      await invokeTyped("delete_collection_item", { id });
+      await collectionApi.deleteItem(id);
     },
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: [COLLECTION_QUERY_KEY] });
@@ -162,7 +157,7 @@ export function useCollectionMutations() {
     mutationFn: async (def: Omit<CustomFieldDef, "id">) => {
       const id = genId("cf");
       const full: CustomFieldDef = { ...def, id };
-      await invokeTyped("upsert_custom_field_def", { def: full });
+      await collectionApi.upsertCustomFieldDef(full);
       return id;
     },
     onSuccess: invalidate,
@@ -170,22 +165,21 @@ export function useCollectionMutations() {
 
   const upsertStatus = useMutation({
     mutationFn: async (status: CollectionStatusDef) => {
-      const { order, ...rest } = status;
-      await invokeTyped("upsert_collection_status", { status: { ...rest, orderIndex: order } });
+      await collectionApi.upsertStatus(status);
     },
     onSuccess: invalidate,
   });
 
   const deleteStatus = useMutation({
     mutationFn: async (id: string) => {
-      await invokeTyped("delete_collection_status", { id });
+      await collectionApi.deleteStatus(id);
     },
     onSuccess: invalidate,
   });
 
   const removeCustomFieldDef = useMutation({
     mutationFn: async (id: string) => {
-      await invokeTyped("delete_custom_field_def", { id });
+      await collectionApi.deleteCustomFieldDef(id);
     },
     onSuccess: invalidate,
   });

@@ -1,6 +1,6 @@
+import { collectionApi } from "@/api/collection.api";
 import { IMPORT_CHUNK_SIZE } from "@/config/collection/defaults.config";
 import { withFallback } from "@/lib/utils/attempt.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import type { AniListEntry, AniMedia } from "@/types/anilist";
 import type {
   CollectionItem,
@@ -198,16 +198,10 @@ export async function runImportBatch(
     const chunk = entries.slice(start, start + IMPORT_CHUNK_SIZE);
     const now = Date.now();
     const items = chunk.map((entry) => buildImportItem(entry, now));
-    const outcome = await withFallback(
-      invokeTyped<{
-        imported: number;
-        failed: Array<{ index: number; error: string }>;
-      }>("import_collection_items_batch", { items }),
-      {
-        imported: 0,
-        failed: chunk.map((_, index) => ({ index, error: "batch failed" })),
-      }
-    );
+    const outcome = await withFallback(collectionApi.importItemsBatch(items), {
+      imported: 0,
+      failed: chunk.map((_, index) => ({ index, error: "batch failed" })),
+    });
     imported += outcome.imported;
     const chunkFailed = new Set(outcome.failed.map((f) => f.index));
     for (let offset = 0; offset < chunk.length; offset++) {

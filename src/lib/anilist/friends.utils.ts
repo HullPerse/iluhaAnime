@@ -17,7 +17,15 @@ export async function loadFriendScores(
         const entry = lists
           .flatMap((list) => list.entries)
           .find((item) => item.media.id === animeId);
-        return entry ? { ...friend, score: entry.score, status: entry.list_status } : null;
+        if (!entry) return null;
+        const trimmed = entry.notes?.trim();
+        return {
+          ...friend,
+          score: entry.score,
+          status: entry.list_status,
+          comment: trimmed ? trimmed : null,
+          repeat: entry.repeat,
+        };
       })
     )
   );

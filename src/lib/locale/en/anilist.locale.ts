@@ -93,6 +93,7 @@ const anilist = {
   "anilist.details.format": "Format",
   "anilist.details.franchise": "Franchise",
   "anilist.details.friends.scores": "Friends' scores",
+  "anilist.details.friends.comment": "Friend comment",
   "anilist.details.genre.search": "Search anime by tag",
   "anilist.details.genres.tags": "Genres and tags",
   "anilist.details.load.error": "Failed to load data",

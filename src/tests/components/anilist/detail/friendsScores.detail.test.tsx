@@ -43,6 +43,33 @@ function listsWithScore(animeId: number, score: number | null) {
           completed_at: null,
           started_at: null,
           updated_at: null,
+          notes: null,
+          repeat: null,
+        },
+      ],
+    },
+  ] satisfies AniListCollection[];
+}
+
+function listsWithExtras(
+  animeId: number,
+  extras: { notes?: string | null; repeat?: number | null }
+) {
+  return [
+    {
+      name: "Watching",
+      entries: [
+        {
+          media: { id: animeId, title: "Target Anime" } as unknown as AniMedia,
+          progress: 10,
+          score: 9,
+          list_status: "COMPLETED",
+          created_at: null,
+          completed_at: null,
+          started_at: null,
+          updated_at: null,
+          notes: extras.notes ?? null,
+          repeat: extras.repeat ?? null,
         },
       ],
     },
@@ -119,5 +146,49 @@ describe("FriendsScoresSection", () => {
     expect(await screen.findByText("Sakura")).toBeDefined();
     expect(screen.getByText("8/10")).toBeDefined();
     expect(screen.getByTitle(/8\/10/)).toBeDefined();
+  });
+
+  it("opens the friend comment in a popover", async () => {
+    seedFriends();
+    mockInvoke.mockImplementation((...call: unknown[]) => {
+      const args = call[1];
+      const userId =
+        typeof args === "object" &&
+        args !== null &&
+        "userId" in args &&
+        typeof args.userId === "number"
+          ? args.userId
+          : 0;
+      if (userId === 7)
+        return Promise.resolve(listsWithExtras(21, { notes: "peak fiction", repeat: 2 }));
+      return Promise.resolve([]);
+    });
+    renderSection();
+    await expand();
+    expect(await screen.findByText("Sakura")).toBeDefined();
+
+    await userEvent.setup().click(screen.getByRole("button", { name: /comment|комментарий/i }));
+    expect(await screen.findByText("peak fiction")).toBeDefined();
+    expect(screen.getByTitle("2")).toBeDefined();
+  });
+
+  it("hides the comment bubble and the rewatch mark without data", async () => {
+    seedFriends();
+    mockInvoke.mockImplementation((...call: unknown[]) => {
+      const args = call[1];
+      const userId =
+        typeof args === "object" &&
+        args !== null &&
+        "userId" in args &&
+        typeof args.userId === "number"
+          ? args.userId
+          : 0;
+      if (userId === 7) return Promise.resolve(listsWithExtras(21, { notes: "   ", repeat: 0 }));
+      return Promise.resolve([]);
+    });
+    renderSection();
+    await expand();
+    expect(await screen.findByText("Sakura")).toBeDefined();
+    expect(screen.queryByRole("button", { name: /comment|комментарий/i })).toBeNull();
   });
 });

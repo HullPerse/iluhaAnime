@@ -194,6 +194,8 @@ describe("indexAniList batching", () => {
       score: null,
       started_at: null,
       updated_at: null,
+      notes: null,
+      repeat: null,
     };
   }
 

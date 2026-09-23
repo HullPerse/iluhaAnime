@@ -1,5 +1,7 @@
+import { Popover } from "@base-ui/react/popover";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "cn";
+import { MessageCircle, RotateCw } from "lucide-react";
 import { useState } from "react";
 
 import { SmallLoader } from "@/components/shared/loader.component";
@@ -23,6 +25,8 @@ export function FriendsScoresSection({ animeId }: { animeId: number }) {
     avatar: friend.avatar,
     score: null,
     status: "",
+    comment: null,
+    repeat: null,
   }));
   const key = base
     .map((friend) => friend.id)
@@ -90,6 +94,37 @@ export function FriendsScoresSection({ animeId }: { animeId: number }) {
                 >
                   {scored ? `${row.score}/10` : "-"}
                 </span>
+                {row.repeat != null && row.repeat > 0 && (
+                  <span title={String(row.repeat)} className="text-hint flex shrink-0">
+                    <RotateCw className="size-3" />
+                  </span>
+                )}
+                {row.comment && (
+                  <Popover.Root>
+                    <Popover.Trigger
+                      type="button"
+                      aria-label={t("anilist.details.friends.comment")}
+                      className="text-text flex shrink-0 cursor-pointer"
+                    >
+                      <MessageCircle className="size-3" />
+                    </Popover.Trigger>
+                    <Popover.Portal>
+                      <Popover.Positioner
+                        className="z-50 outline-none"
+                        side="bottom"
+                        align="end"
+                        sideOffset={4}
+                        collisionPadding={12}
+                      >
+                        <Popover.Popup className="outline-none">
+                          <div className="windows95-active-border bg-primary windows95-text max-w-64 p-1 text-xs whitespace-pre-wrap">
+                            {row.comment}
+                          </div>
+                        </Popover.Popup>
+                      </Popover.Positioner>
+                    </Popover.Portal>
+                  </Popover.Root>
+                )}
               </div>
             );
           })}

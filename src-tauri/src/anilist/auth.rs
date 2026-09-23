@@ -291,6 +291,8 @@ fn parse_list_entry(entry: &serde_json::Value) -> AniListEntry {
         completed_at: parse_date(&entry["completedAt"]),
         started_at: parse_date(&entry["startedAt"]),
         updated_at: entry["updatedAt"].as_i64(),
+        notes: entry["notes"].as_str().map(String::from),
+        repeat: entry["repeat"].as_i64().map(|n| n as i32),
     }
 }
 
@@ -313,6 +315,8 @@ pub async fn get_anilist_lists(
                             progress
                             score
                             status
+                            notes
+                            repeat
                             createdAt
                             completedAt { year month day }
                             startedAt { year month day }
@@ -460,5 +464,22 @@ mod tests {
         let parsed = parse_list_entry(&entry);
         assert_eq!(parsed.media.start_date, None);
         assert_eq!(parsed.media.popularity, None);
+    }
+
+    #[test]
+    fn parses_notes_and_repeat_from_list_entries() {
+        let mut entry = list_entry_fixture();
+        entry["notes"] = serde_json::json!("rewatched with friends");
+        entry["repeat"] = serde_json::json!(2);
+        let parsed = parse_list_entry(&entry);
+        assert_eq!(parsed.notes.as_deref(), Some("rewatched with friends"));
+        assert_eq!(parsed.repeat, Some(2));
+    }
+
+    #[test]
+    fn missing_notes_and_repeat_stay_none() {
+        let parsed = parse_list_entry(&list_entry_fixture());
+        assert_eq!(parsed.notes, None);
+        assert_eq!(parsed.repeat, None);
     }
 }

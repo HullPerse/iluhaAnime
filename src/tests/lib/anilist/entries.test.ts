@@ -55,6 +55,8 @@ function makeEntry(overrides: Partial<AniListEntry> = {}): AniListEntry {
     progress: 1,
     score: 8,
     updated_at: 0,
+    notes: null,
+    repeat: null,
     ...overrides,
   };
 }

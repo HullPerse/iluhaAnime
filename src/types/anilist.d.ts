@@ -113,6 +113,8 @@ export interface AniListEntry {
   completed_at: string | null;
   started_at: string | null;
   updated_at: number | null;
+  notes: string | null;
+  repeat: number | null;
 }
 
 export interface AniListCollection {
@@ -692,6 +694,8 @@ export interface FriendScore {
   avatar: string | null;
   score: number | null;
   status: string;
+  comment: string | null;
+  repeat: number | null;
 }
 
 export interface PrefetchSnapshot {

@@ -99,6 +99,7 @@ const anilist = {
   "anilist.details.format": "Формат",
   "anilist.details.franchise": "Франшиза",
   "anilist.details.friends.scores": "Оценки друзей",
+  "anilist.details.friends.comment": "Комментарий друга",
   "anilist.details.genre.search": "Искать аниме по тегу",
   "anilist.details.genres.tags": "Жанры и теги",
   "anilist.details.load.error": "Не удалось загрузить данные",

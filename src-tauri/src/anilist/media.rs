@@ -78,6 +78,8 @@ pub struct AniListEntry {
     pub completed_at: Option<String>,
     pub started_at: Option<String>,
     pub updated_at: Option<i64>,
+    pub notes: Option<String>,
+    pub repeat: Option<i32>,
 }
 
 #[derive(Debug, Serialize)]

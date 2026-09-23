@@ -47,6 +47,8 @@ function makeEntry(mediaId: number, title: string): AniListEntry {
     progress: null,
     score: null,
     updated_at: 0,
+    notes: null,
+    repeat: null,
   };
 }
 

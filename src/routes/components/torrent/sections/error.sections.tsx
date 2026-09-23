@@ -5,11 +5,6 @@ import { ConfirmDialog } from "@/components/shared/confirm.component";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
 
-/**
- * The row under a torrent that has a problem. Recheck is the plain button because it fixes
- * most cases without losing anything; recreating removes the torrent and adds it back by
- * magnet, which drops manual trackers, the file selection and the priorities, so it asks first.
- */
 export function TorrentProblem({
   error,
   missing,

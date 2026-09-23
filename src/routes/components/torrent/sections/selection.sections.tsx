@@ -2,10 +2,6 @@ import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import type { TorrentSelectionBarProps } from "@/types/torrent";
 
-/**
- * Actions for the current selection. It sits below the list, not above it: the buttons stay next
- * to the rows they act on and the filter/sort controls keep their place while it is open.
- */
 export function TorrentSelectionBar({
   count,
   busy,

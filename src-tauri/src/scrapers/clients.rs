@@ -62,6 +62,25 @@ pub fn resolve_proxy(proxy: Option<String>, proxy_camel: Option<String>) -> Opti
         .or(proxy_camel)
         .map(|s| s.trim().to_string())
         .filter(|s| !s.is_empty())
+        .map(proxy_with_remote_dns)
+}
+
+/// Switches the SOCKS schemes that resolve hostnames locally to their remote-resolution
+/// variants. reqwest decides DNS by scheme: `socks5`/`socks4` resolve the host through the
+/// system resolver and then hand the proxy a literal address, so a blocked or poisoned
+/// domain makes a working proxy look broken. `socks5h`/`socks4a` send the hostname instead,
+/// which is the point of configuring a proxy for a blocked site. HTTP proxies already
+/// receive the hostname through CONNECT and pass through unchanged.
+pub fn proxy_with_remote_dns(proxy: String) -> String {
+    let Some((scheme, rest)) = proxy.split_once("://") else {
+        return proxy;
+    };
+    let remote_scheme = match scheme.to_ascii_lowercase().as_str() {
+        "socks5" => "socks5h",
+        "socks4" => "socks4a",
+        _ => return proxy,
+    };
+    format!("{remote_scheme}://{rest}")
 }
 
 pub fn build_client_inner(
@@ -424,19 +443,15 @@ mod tests {
     fn resolve_proxy_prefers_snake_case_and_drops_blanks() {
         assert_eq!(resolve_proxy(None, None), None);
         assert_eq!(
-            resolve_proxy(Some("socks5://127.0.0.1:10808".to_string()), None),
-            Some("socks5://127.0.0.1:10808".to_string())
-        );
-        assert_eq!(
             resolve_proxy(None, Some("http://127.0.0.1:7890".to_string())),
             Some("http://127.0.0.1:7890".to_string())
         );
         assert_eq!(
             resolve_proxy(
-                Some("socks5://127.0.0.1:10808".to_string()),
+                Some("socks5h://127.0.0.1:10808".to_string()),
                 Some("http://127.0.0.1:7890".to_string())
             ),
-            Some("socks5://127.0.0.1:10808".to_string())
+            Some("socks5h://127.0.0.1:10808".to_string())
         );
         assert_eq!(
             resolve_proxy(Some("   ".to_string()), Some("".to_string())),
@@ -445,6 +460,42 @@ mod tests {
         assert_eq!(
             resolve_proxy(Some("  http://127.0.0.1:7890  ".to_string()), None),
             Some("http://127.0.0.1:7890".to_string())
+        );
+    }
+
+    #[test]
+    fn resolve_proxy_moves_socks_dns_resolution_to_the_proxy() {
+        assert_eq!(
+            resolve_proxy(Some("socks5://127.0.0.1:10808".to_string()), None),
+            Some("socks5h://127.0.0.1:10808".to_string())
+        );
+        assert_eq!(
+            resolve_proxy(Some("socks4://127.0.0.1:1080".to_string()), None),
+            Some("socks4a://127.0.0.1:1080".to_string())
+        );
+    }
+
+    #[test]
+    fn proxy_with_remote_dns_leaves_remote_and_non_socks_schemes_alone() {
+        assert_eq!(
+            proxy_with_remote_dns("socks5h://user:pass@10.0.0.1:1080".to_string()),
+            "socks5h://user:pass@10.0.0.1:1080"
+        );
+        assert_eq!(
+            proxy_with_remote_dns("http://127.0.0.1:7890".to_string()),
+            "http://127.0.0.1:7890"
+        );
+        assert_eq!(
+            proxy_with_remote_dns("127.0.0.1:1080".to_string()),
+            "127.0.0.1:1080"
+        );
+    }
+
+    #[test]
+    fn proxy_with_remote_dns_keeps_credentials_and_ignores_scheme_case() {
+        assert_eq!(
+            proxy_with_remote_dns("SOCKS5://user:pass@127.0.0.1:10808".to_string()),
+            "socks5h://user:pass@127.0.0.1:10808"
         );
     }
 

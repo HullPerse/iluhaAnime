@@ -5,7 +5,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import CreateTorrentModal from "@/routes/components/torrent/create.torrent";
 import { useSettingsStore } from "@/store/settings.store";
 
-// Hoisted: the mocked modules are pulled in while the settings store hydrates at import time.
 const { mockInvoke, openSpy, saveSpy, writeTextSpy } = vi.hoisted(() => ({
   mockInvoke: vi.fn(),
   openSpy: vi.fn(),
@@ -27,10 +26,6 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
   save: (...args: unknown[]) => saveSpy(...args),
 }));
 
-// Creating a torrent reports it through the notification store, which would otherwise reach for a
-// system toast that jsdom cannot construct.
-vi.mock("@tauri-apps/plugin-notification", () => ({ sendNotification: () => {} }));
-
 const CREATED = {
   file_count: 12,
   id: 3,
@@ -45,7 +40,6 @@ function renderModal(overrides: { onCreated?: (created: unknown) => void } = {})
   );
 }
 
-/** Picks a folder and runs the whole create step, leaving the modal on its result view. */
 async function createTorrent(user: ReturnType<typeof userEvent.setup>, folder = "D:/Anime/Show") {
   openSpy.mockResolvedValue(folder);
   await user.click(screen.getByRole("button", { name: "Browse" }));
@@ -84,7 +78,6 @@ describe("CreateTorrentModal", () => {
     expect(screen.getByDisplayValue("iluhaanime://torrent/abc123")).toBeTruthy();
     expect(screen.getByText("Files in the torrent: 12")).toBeTruthy();
     expect(onCreated).toHaveBeenCalledTimes(1);
-    // The route needs the id to mark the torrent as one the user wants to keep seeding.
     expect(onCreated).toHaveBeenCalledWith(CREATED);
   });
 
@@ -147,7 +140,10 @@ describe("CreateTorrentModal", () => {
 
     await user.click(screen.getByTitle("Save .torrent"));
 
-    expect(mockInvoke).toHaveBeenCalledTimes(1);
+    const saveCalls = mockInvoke.mock.calls.filter(
+      ([command]) => command === "save_created_torrent"
+    );
+    expect(saveCalls).toHaveLength(0);
   });
 
   it("renders nothing when closed", () => {

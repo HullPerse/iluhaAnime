@@ -1,5 +1,6 @@
 import { openPath } from "@tauri-apps/plugin-opener";
 import { ChevronDown, ChevronUp, Pause, Play, Check, Search, Users } from "lucide-react";
+import type { ReactNode } from "react";
 
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
@@ -22,6 +23,7 @@ export function TorrentHeader({
   onRecheck,
   onPeers,
   onDelete,
+  dragHandle,
 }: Pick<
   TorrentItemProps,
   | "item"
@@ -39,6 +41,7 @@ export function TorrentHeader({
   busy: boolean;
   onPeers: () => void;
   onDelete: () => void;
+  dragHandle?: ReactNode;
 }) {
   const { t } = useI18n();
   return (
@@ -58,6 +61,7 @@ export function TorrentHeader({
         </h3>
       </div>
       <div className="flex flex-row items-center gap-1">
+        {dragHandle}
         {queue && (
           <>
             <Button

@@ -15,11 +15,6 @@ import { showError } from "@/lib/utils/notification.utils";
 import { useNotificationStore } from "@/store/notification.store";
 import type { CreateTorrentProps, CreatedTorrent } from "@/types/torrent";
 
-/**
- * Turns a folder into a `.torrent` and seeds it from where the files already are. Hashing reads
- * every file once, so the window has to stay open until it finishes: there is no partial result
- * to show before the metainfo exists.
- */
 export default function CreateTorrentModal({ open, onClose, onCreated }: CreateTorrentProps) {
   const { t } = useI18n();
   const [folder, setFolder] = useState("");

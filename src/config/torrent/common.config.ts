@@ -7,5 +7,4 @@ export const PICKER_ELAPSED_TICK_MS = 1000;
 
 export const NO_TORRENTS: TorrentInfo[] = [];
 
-/** Shared empty array: a fresh `[]` per render defeats the `TorrentItem` memo. */
 export const NO_TORRENT_FILES: TorrentFileInfo[] = [];

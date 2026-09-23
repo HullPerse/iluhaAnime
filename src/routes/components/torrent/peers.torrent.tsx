@@ -19,7 +19,6 @@ import type { TorrentDiagnostics } from "@/types/torrent";
 import { TorrentTrackersBlock } from "./sections/trackers.sections";
 
 function splitAddr(addr: string): { host: string; port: string } {
-  // SocketAddr renders IPv6 as `[::1]:6881`, so the last colon is not the separator.
   const closingBracket = addr.lastIndexOf("]");
   if (addr.startsWith("[") && closingBracket > 0) {
     return { host: addr.slice(0, closingBracket + 1), port: addr.slice(closingBracket + 2) };
@@ -66,7 +65,6 @@ export function TorrentPeersModal({
       value: `magnet:?xt=urn:btih:${infoHash}`,
     },
     { icon: Copy, label: t("torrent.copy.infohash"), value: infoHash },
-    // The app link only carries the hash; trackers are discovered on the receiving side.
     { icon: Link, label: t("torrent.copy.link"), value: buildTorrentLink(infoHash) },
   ];
   return (

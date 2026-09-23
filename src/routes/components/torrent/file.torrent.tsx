@@ -1,7 +1,11 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useRef, useState, useCallback, useMemo } from "react";
 
-import { buildTorrentTree, flattenTorrentTree } from "@/lib/torrent/tree.utils";
+import {
+  applyFolderSelection,
+  buildTorrentTree,
+  flattenTorrentTree,
+} from "@/lib/torrent/tree.utils";
 import { TorrentFileRow } from "@/routes/components/torrent/rows/file.rows";
 import { FolderRow } from "@/routes/components/torrent/rows/folder.rows";
 import { useSettingsStore } from "@/store/settings.store";
@@ -26,11 +30,13 @@ function TorrentFilesSection({
   onDeleteExtraFile,
   onRedownload,
   onPlay,
+  sequentialFile,
 }: {
   id: number;
   files: TorrentFileInfo[];
   type: "torrent" | "player";
   path?: string;
+  sequentialFile?: number | null;
   onToggle?: (id: number, indices: number[]) => void;
   onFilePriorityChange?: (id: number, fileIndices: number[], priority: FilePriority) => void;
   onResume?: () => void;
@@ -41,6 +47,7 @@ function TorrentFilesSection({
   onPlay?: (path: string, name: string) => void;
 }) {
   const showTrackFiles = useSettingsStore((s) => s.showTrackFiles);
+  const fileOrder = useSettingsStore((s) => s.fileOrder);
   const audioExtensions = useSettingsStore((s) => s.audioExtensions);
   const subtitleExtensions = useSettingsStore((s) => s.subtitleExtensions);
 
@@ -54,14 +61,13 @@ function TorrentFilesSection({
     return m;
   }, [items]);
 
-  const [selected, setSelected] = useState<Set<number>>(
-    () => new Set(files.filter((f) => f.selected || f.completed).map((f) => f.index))
-  );
-
   const [open, setOpen] = useState<Set<string>>(new Set());
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const { nodes: trees, rootFiles } = useMemo(() => buildTorrentTree(files), [files]);
+  const { nodes: trees, rootFiles } = useMemo(
+    () => buildTorrentTree(files, fileOrder),
+    [files, fileOrder]
+  );
 
   const toggle = useCallback((key: string) => {
     setOpen((prev) => {
@@ -120,26 +126,16 @@ function TorrentFilesSection({
     overscan: 20,
   });
 
-  const handleToggleFile = (index: number, completed: boolean) => {
+  const handleToggleFile = (index: number, completed: boolean, selected: boolean) => {
     if (completed) return;
-    const wasSelected = selected.has(index);
-    const next = new Set(selected);
-    if (next.has(index)) next.delete(index);
-    else next.add(index);
-    setSelected(next);
-    onToggle?.(id, [...next]);
-    if (!wasSelected) {
-      if (handlePriorityChange) {
-        handlePriorityChange([index], "normal");
-      }
-      onResume?.();
-    }
+    onFilePriorityChange?.(id, [index], selected ? "do_not_download" : "normal");
+    if (!selected) onResume?.();
   };
 
-  const handlePriorityChange = onFilePriorityChange
-    ? (fileIndices: number[], priority: FilePriority) =>
-        onFilePriorityChange(id, fileIndices, priority)
-    : undefined;
+  const handleToggleFolder = (indices: number[], target: boolean) => {
+    onToggle?.(id, applyFolderSelection(files, indices, target));
+    if (target) onResume?.();
+  };
 
   return (
     <div
@@ -161,7 +157,7 @@ function TorrentFilesSection({
                 isOpen={open.has(item.node.name + item.depth)}
                 type={type}
                 onToggleFolder={() => toggle(item.node.name + item.depth)}
-                onPriorityChange={handlePriorityChange}
+                onToggleSelection={handleToggleFolder}
               />
             );
           }
@@ -173,11 +169,12 @@ function TorrentFilesSection({
               depth={item.depth}
               virtualStart={vItem.start}
               type={type}
-              checked={selected.has(file.index)}
+              checked={file.selected || file.completed}
               onToggleFile={
-                onToggle ? () => handleToggleFile(file.index, file.completed) : undefined
+                onFilePriorityChange
+                  ? () => handleToggleFile(file.index, file.completed, file.selected)
+                  : undefined
               }
-              onPriorityChange={handlePriorityChange}
               queueMap={queueMap}
               extraFiles={extraFiles}
               path={path}
@@ -185,6 +182,7 @@ function TorrentFilesSection({
               onUpscaleDone={onUpscaleDone}
               onPlay={onPlay}
               onRedownload={onRedownload}
+              sequential={sequentialFile === file.index}
             />
           );
         })}

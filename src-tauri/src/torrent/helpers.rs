@@ -8,7 +8,7 @@ use librqbit::limits::LimitsConfig;
 use librqbit::{torrent_from_bytes, ByteBufOwned, CloneToOwned};
 use librqbit_bencode::bencode_serialize_to_writer;
 
-use super::types::TorrentLimits;
+use super::types::{FileOrder, FilePriority, SessionConfig, TorrentLimits};
 
 pub fn share_ratio(uploaded_bytes: u64, downloaded_bytes: u64) -> f64 {
     if downloaded_bytes == 0 {
@@ -32,6 +32,109 @@ pub fn is_safe_relative_path(name: &str) -> bool {
         && path
             .components()
             .all(|component| matches!(component, std::path::Component::Normal(_)))
+}
+
+/// The order a torrent's files are shown in, as indices into `names`.
+///
+/// The list is a tree: at every directory level the files come first, sorted by name, then the
+/// sub-folders, sorted by name. Names compare case-insensitively, the way the UI's
+/// `localeCompare` sorts them. Sequential mode walks this order, so "the first file" means the
+/// first row the user sees and not the first entry of the metainfo, whose order is arbitrary.
+pub fn display_order(names: &[String]) -> Vec<usize> {
+    /// One path component: `0` for the file itself and `1` for a directory, plus the lowercase
+    /// name. Files sort before directories on the same level, which is what the tree view does.
+    type Key = (u8, String);
+
+    fn key(name: &str) -> Vec<Key> {
+        let parts: Vec<&str> = name
+            .split(['/', '\\'])
+            .filter(|part| !part.is_empty())
+            .collect();
+        let last = parts.len().saturating_sub(1);
+        parts
+            .iter()
+            .enumerate()
+            .map(|(position, part)| (u8::from(position != last), part.to_lowercase()))
+            .collect()
+    }
+
+    let mut keyed: Vec<(Vec<Key>, &str, usize)> = names
+        .iter()
+        .enumerate()
+        .map(|(index, name)| (key(name), name.as_str(), index))
+        .collect();
+    keyed.sort_by(|left, right| left.0.cmp(&right.0).then_with(|| left.1.cmp(right.1)));
+    keyed.into_iter().map(|(_, _, index)| index).collect()
+}
+
+/// The order files are downloaded in, as indices into `names`.
+///
+/// `queue` is the arrangement the user made for this torrent, and comes first: whatever is in it
+/// is fetched in that order, and only then does the rest follow the global order. Entries that do
+/// not name a file - or name one twice - are dropped rather than trusted, because the queue is
+/// stored per info hash and outlives any single metainfo.
+pub fn download_order(names: &[String], order: FileOrder, queue: &[usize]) -> Vec<usize> {
+    let base: Vec<usize> = match order {
+        FileOrder::List => display_order(names),
+        FileOrder::Torrent => (0..names.len()).collect(),
+    };
+    if queue.is_empty() {
+        return base;
+    }
+    let mut result: Vec<usize> = Vec::with_capacity(names.len());
+    for index in queue.iter().copied() {
+        if index < names.len() && !result.contains(&index) {
+            result.push(index);
+        }
+    }
+    let rest: Vec<usize> = base
+        .into_iter()
+        .filter(|index| !result.contains(index))
+        .collect();
+    result.extend(rest);
+    result
+}
+
+/// What sequential mode should do for one torrent right now.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SequentialPlan {
+    /// Every file the mode may download, in the order the list shows them.
+    pub allowed: Vec<usize>,
+    /// The file to fetch next: the first incomplete entry of `allowed`. `None` once everything
+    /// the user selected is on disk.
+    pub target: Option<usize>,
+}
+
+/// Plans the next step of sequential mode from one torrent's state.
+///
+/// `priorities` is the app's per-file selection and wins when it matches the file count;
+/// `only_files` is a selection that has not been turned into priorities yet. The session's own
+/// `only_files` is deliberately not accepted here: sequential mode narrows it to a single file,
+/// so planning from it would see only that file and never move on. `queue` is the order the user
+/// arranged in the queue window, empty when they have not touched it.
+pub fn plan_sequential(
+    names: &[String],
+    lengths: &[u64],
+    progress: &[u64],
+    priorities: Option<&[FilePriority]>,
+    only_files: Option<&[usize]>,
+    order: FileOrder,
+    queue: &[usize],
+) -> SequentialPlan {
+    let priorities = priorities.filter(|priorities| priorities.len() == names.len());
+    let allowed: Vec<usize> = download_order(names, order, queue)
+        .into_iter()
+        .filter(|index| match (priorities, only_files) {
+            (Some(priorities), _) => priorities[*index] != FilePriority::DoNotDownload,
+            (None, Some(only_files)) => only_files.contains(index),
+            (None, None) => true,
+        })
+        .collect();
+    let target = allowed.iter().copied().find(|index| {
+        let length = lengths.get(*index).copied().unwrap_or(0);
+        progress.get(*index).copied().unwrap_or(0) < length
+    });
+    SequentialPlan { allowed, target }
 }
 
 pub const MIN_TORRENT_FREE_SPACE_BYTES: u64 = 128 * 1024 * 1024;
@@ -173,6 +276,31 @@ pub fn with_fallback_trackers_bytes(bytes: &[u8]) -> Vec<u8> {
     out
 }
 
+/// Rewrites the metainfo so its announce list is exactly `trackers`, keeping the info dict (and
+/// with it the info hash, the piece layout and every file entry) untouched.
+///
+/// This is what makes a tracker change an in-memory re-add: the bytes are already in the session,
+/// so putting the torrent back needs no peers, cannot fail because the swarm is unreachable and
+/// cannot lose the torrent the way a magnet that has to resolve its metadata again can.
+/// An empty list is allowed and produces a trackerless torrent, which is what removing the last
+/// tracker means.
+pub fn with_trackers_bytes(bytes: &[u8], trackers: &[String]) -> Result<Vec<u8>, String> {
+    let torrent = torrent_from_bytes(bytes)
+        .map_err(|error| format!("Invalid torrent metainfo: {error:#}"))?;
+    let mut owned = torrent.clone_to_owned(None);
+    owned.announce = trackers
+        .first()
+        .map(|tracker| ByteBufOwned::from(tracker.as_bytes().to_vec()));
+    owned.announce_list = trackers
+        .iter()
+        .map(|tracker| vec![ByteBufOwned::from(tracker.as_bytes().to_vec())])
+        .collect();
+    let mut out = Vec::new();
+    bencode_serialize_to_writer(owned, &mut out)
+        .map_err(|error| format!("Failed to write torrent metainfo: {error:#}"))?;
+    Ok(out)
+}
+
 const MAX_TRACKER_URL_LEN: usize = 2048;
 
 pub fn validate_tracker_url(raw: &str) -> Result<String, String> {
@@ -205,13 +333,59 @@ pub fn canonical_or_raw_tracker(raw: &str) -> String {
     canonical_tracker_url(raw).unwrap_or_else(|| raw.trim().to_string())
 }
 
+const MAX_PROXY_URL_LEN: usize = 512;
+
+/// Prepares a user-entered proxy for the torrent session, or `None` when none is set.
+///
+/// librqbit parses this value with `SocksProxyConfig::parse`, which accepts the `socks5` scheme
+/// only and aborts session creation for anything else, so the `socks5h` form the search clients
+/// prefer is normalized here. Peer addresses reach this path as literal IPs, so remote DNS
+/// resolution buys nothing for peers and would cost the whole session when rejected.
+pub fn torrent_proxy_url(raw: &str) -> Result<Option<String>, String> {
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        return Ok(None);
+    }
+    if trimmed.len() > MAX_PROXY_URL_LEN {
+        return Err("Proxy URL is too long".to_string());
+    }
+    let parsed = url::Url::parse(trimmed).map_err(|_| "Proxy URL is invalid".to_string())?;
+    if !matches!(parsed.scheme(), "socks5" | "socks5h") {
+        return Err("Proxy URL must use the socks5 or socks5h scheme".to_string());
+    }
+    if parsed.host_str().is_none_or(str::is_empty) {
+        return Err("Proxy URL must have a host".to_string());
+    }
+    if parsed.port().is_none() {
+        return Err("Proxy URL must have a port".to_string());
+    }
+    let rest = trimmed.split_once("://").map_or(trimmed, |(_, rest)| rest);
+    Ok(Some(format!("socks5://{rest}")))
+}
+
+/// Rejects a session config that would break session startup, instead of persisting it and
+/// discovering the problem on the next launch when `Session::new_with_opts` fails outright.
+pub fn validate_session_config(mut config: SessionConfig) -> Result<SessionConfig, String> {
+    config.proxy_url = match config.proxy_url.as_deref() {
+        Some(raw) => torrent_proxy_url(raw)?,
+        None => None,
+    };
+    Ok(config)
+}
+
+/// Whether a string is a 20-byte info hash in hex, the shape every per-torrent setting is keyed
+/// by.
+pub fn is_info_hash(value: &str) -> bool {
+    value.len() == 40 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
+}
+
 pub fn build_magnet(
     info_hash: &str,
     trackers: &[String],
     name: Option<&str>,
 ) -> Result<String, String> {
     let hash = info_hash.trim().to_lowercase();
-    if hash.len() != 40 || !hash.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+    if !is_info_hash(&hash) {
         return Err("Invalid info hash".to_string());
     }
     let mut out = format!("magnet:?xt=urn:btih:{hash}");
@@ -230,8 +404,220 @@ pub fn build_magnet(
 #[cfg(test)]
 mod tracker_tests {
     use super::{
-        build_magnet, canonical_or_raw_tracker, canonical_tracker_url, validate_tracker_url,
+        build_magnet, canonical_or_raw_tracker, canonical_tracker_url, display_order,
+        download_order, plan_sequential, torrent_proxy_url, validate_session_config,
+        validate_tracker_url, SequentialPlan,
     };
+    use crate::torrent::{FileOrder, FilePriority, SessionConfig};
+
+    fn names(entries: &[&str]) -> Vec<String> {
+        entries.iter().map(|entry| (*entry).to_string()).collect()
+    }
+
+    #[test]
+    fn display_order_walks_the_tree_the_way_the_file_list_does() {
+        let order = display_order(&names(&[
+            "Show/Episode 02.mkv",
+            "Show/Episode 01.mkv",
+            "Show/Extras/Interview.mkv",
+            "cover.jpg",
+        ]));
+        // Root files first, then the folder's own files by name, then its sub-folders.
+        assert_eq!(order, vec![3, 1, 0, 2]);
+    }
+
+    #[test]
+    fn display_order_folds_case_and_ignores_the_metainfo_order() {
+        assert_eq!(
+            display_order(&names(&["Ep 10.mkv", "ep 2.mkv", "EP 1.mkv"])),
+            vec![2, 0, 1]
+        );
+        assert_eq!(display_order(&names(&["b.mkv", "A.mkv"])), vec![1, 0]);
+    }
+
+    #[test]
+    fn plan_sequential_picks_the_first_file_by_name_not_by_index() {
+        // Metainfo order is scrambled: the sixth episode sits at index 0.
+        let names = names(&["Show - 06.mkv", "Show - 01.mkv", "Show - 02.mkv"]);
+        let lengths = vec![10, 10, 10];
+        let progress = vec![0, 0, 0];
+        let plan = plan_sequential(
+            &names,
+            &lengths,
+            &progress,
+            None,
+            None,
+            FileOrder::List,
+            &[],
+        );
+        assert_eq!(plan.allowed, vec![1, 2, 0]);
+        assert_eq!(
+            plan.target,
+            Some(1),
+            "the first episode, not the first index"
+        );
+    }
+
+    #[test]
+    fn plan_sequential_honours_the_chosen_file_order() {
+        let names = names(&["Show - 06.mkv", "Show - 01.mkv", "Show - 02.mkv"]);
+        let lengths = vec![10, 10, 10];
+        let progress = vec![0, 0, 0];
+        // Torrent order is what the other clients call sequential: the torrent's own file order.
+        let plan = plan_sequential(
+            &names,
+            &lengths,
+            &progress,
+            None,
+            None,
+            FileOrder::Torrent,
+            &[],
+        );
+        assert_eq!(plan.allowed, vec![0, 1, 2]);
+        assert_eq!(plan.target, Some(0));
+    }
+
+    #[test]
+    fn plan_sequential_respects_the_file_selection() {
+        let names = names(&["Show - 06.mkv", "Show - 01.mkv", "Show - 02.mkv"]);
+        let lengths = vec![10, 10, 10];
+        let progress = vec![0, 0, 0];
+
+        let priorities = vec![
+            FilePriority::DoNotDownload,
+            FilePriority::Normal,
+            FilePriority::Normal,
+        ];
+        let plan = plan_sequential(
+            &names,
+            &lengths,
+            &progress,
+            Some(&priorities),
+            None,
+            FileOrder::List,
+            &[],
+        );
+        assert_eq!(plan.allowed, vec![1, 2]);
+        assert_eq!(plan.target, Some(1));
+
+        // A selection that has not been turned into priorities yet must work just as well, and
+        // must never pick a file the user left out.
+        let pending = vec![2usize];
+        let plan = plan_sequential(
+            &names,
+            &lengths,
+            &progress,
+            None,
+            Some(&pending),
+            FileOrder::List,
+            &[],
+        );
+        assert_eq!(plan.allowed, vec![2]);
+        assert_eq!(plan.target, Some(2));
+
+        // Priorities from a different file count are stale and must not filter anything out.
+        let stale = vec![FilePriority::DoNotDownload];
+        let plan = plan_sequential(
+            &names,
+            &lengths,
+            &progress,
+            Some(&stale),
+            None,
+            FileOrder::List,
+            &[],
+        );
+        assert_eq!(plan.allowed, vec![1, 2, 0]);
+        assert_eq!(plan.target, Some(1));
+    }
+
+    #[test]
+    fn plan_sequential_moves_on_as_files_complete() {
+        let names = names(&["Show - 01.mkv", "Show - 02.mkv"]);
+        let lengths = vec![10, 10];
+
+        let plan = plan_sequential(&names, &lengths, &[10, 0], None, None, FileOrder::List, &[]);
+        assert_eq!(plan.target, Some(1));
+
+        let plan = plan_sequential(
+            &names,
+            &lengths,
+            &[10, 10],
+            None,
+            None,
+            FileOrder::List,
+            &[],
+        );
+        assert_eq!(
+            plan,
+            SequentialPlan {
+                allowed: vec![0, 1],
+                target: None
+            }
+        );
+    }
+
+    #[test]
+    fn plan_sequential_follows_the_queue_the_user_arranged() {
+        // Names sort to 1, 2, 0, which is what the torrent would use on its own.
+        let names = names(&["Show - 06.mkv", "Show - 01.mkv", "Show - 02.mkv"]);
+        let lengths = vec![10, 10, 10];
+        let progress = vec![0, 0, 0];
+
+        let plan = plan_sequential(
+            &names,
+            &lengths,
+            &progress,
+            None,
+            None,
+            FileOrder::List,
+            &[0, 2],
+        );
+        assert_eq!(
+            plan.allowed,
+            vec![0, 2, 1],
+            "queued files first, the rest after"
+        );
+        assert_eq!(plan.target, Some(0));
+
+        // A file that is not in the queue still follows it instead of being dropped.
+        let plan = plan_sequential(
+            &names,
+            &lengths,
+            &progress,
+            None,
+            None,
+            FileOrder::List,
+            &[2],
+        );
+        assert_eq!(plan.allowed, vec![2, 1, 0]);
+    }
+
+    #[test]
+    fn plan_sequential_ignores_a_queue_entry_that_names_no_file() {
+        let names = names(&["Show - 01.mkv", "Show - 02.mkv"]);
+        let lengths = vec![10, 10];
+        let progress = vec![0, 0];
+        // Stale indices from a metainfo that changed, and a repeat.
+        let plan = plan_sequential(
+            &names,
+            &lengths,
+            &progress,
+            None,
+            None,
+            FileOrder::List,
+            &[7, 1, 1],
+        );
+        assert_eq!(plan.allowed, vec![1, 0]);
+    }
+
+    #[test]
+    fn an_empty_queue_leaves_the_global_order_alone() {
+        let names = names(&["Show - 06.mkv", "Show - 01.mkv"]);
+        assert_eq!(download_order(&names, FileOrder::List, &[]), vec![1, 0]);
+        assert_eq!(download_order(&names, FileOrder::Torrent, &[]), vec![0, 1]);
+        // Same list, now with an arrangement: it wins outright.
+        assert_eq!(download_order(&names, FileOrder::List, &[0]), vec![0, 1]);
+    }
 
     #[test]
     fn accepts_udp_and_http_trackers() {
@@ -300,5 +686,57 @@ mod tracker_tests {
         assert!(build_magnet("abc", &[], None).is_err());
         assert!(build_magnet("zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz", &[], None).is_err());
         assert!(build_magnet("", &[], None).is_err());
+    }
+
+    #[test]
+    fn torrent_proxy_url_normalizes_to_the_scheme_librqbit_accepts() {
+        assert_eq!(
+            torrent_proxy_url("socks5://127.0.0.1:10808").unwrap(),
+            Some("socks5://127.0.0.1:10808".to_string())
+        );
+        assert_eq!(
+            torrent_proxy_url("  socks5h://user:pass@127.0.0.1:10808  ").unwrap(),
+            Some("socks5://user:pass@127.0.0.1:10808".to_string())
+        );
+        assert_eq!(torrent_proxy_url("   ").unwrap(), None);
+    }
+
+    #[test]
+    fn torrent_proxy_url_rejects_what_librqbit_would_abort_on() {
+        assert!(torrent_proxy_url("http://127.0.0.1:7890").is_err());
+        assert!(torrent_proxy_url("127.0.0.1:10808").is_err());
+        assert!(torrent_proxy_url("socks5://127.0.0.1").is_err());
+        assert!(torrent_proxy_url("socks5://").is_err());
+    }
+
+    #[test]
+    fn validate_session_config_stores_the_normalized_proxy_only() {
+        let config = SessionConfig {
+            proxy_url: Some("socks5h://127.0.0.1:10808".to_string()),
+            ..SessionConfig::default()
+        };
+        assert_eq!(
+            validate_session_config(config).unwrap().proxy_url,
+            Some("socks5://127.0.0.1:10808".to_string())
+        );
+
+        let broken = SessionConfig {
+            proxy_url: Some("http://127.0.0.1:7890".to_string()),
+            ..SessionConfig::default()
+        };
+        assert!(validate_session_config(broken).is_err());
+    }
+
+    #[test]
+    fn session_config_without_a_proxy_field_still_loads() {
+        let legacy = r#"{"fastresume":true,"ipv4Only":false,"peerConnectTimeout":30,"peerReadWriteTimeout":30,"listenPort":0,"enableUpnp":false,"disablePersistence":false}"#;
+        let parsed: SessionConfig = serde_json::from_str(legacy).unwrap();
+        assert_eq!(parsed.proxy_url, None);
+        assert_eq!(parsed.peer_connect_timeout_secs, 30);
+        assert_eq!(
+            parsed.file_order,
+            FileOrder::List,
+            "a config without the field keeps the list order"
+        );
     }
 }

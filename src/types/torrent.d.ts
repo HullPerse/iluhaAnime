@@ -51,6 +51,8 @@ export interface TorrentDetails {
 
 export type FilePriority = "do_not_download" | "normal";
 
+export type FileOrder = "list" | "torrent";
+
 export interface FolderNode {
   name: string;
   path: string;
@@ -76,8 +78,11 @@ export interface TorrentInfo {
   error: string | null;
   save_dir: string;
   sequential_download: boolean;
-  /** The last filesystem check could not find this torrent's files on disk. */
+  sequential_file: number | null;
+  download_order: number[];
   missing_files: boolean;
+  paused_external_changes: boolean;
+  paused_changed_files: string[];
 }
 
 export interface TorrentFileInfo {
@@ -107,6 +112,12 @@ export interface TorrentCheckResult {
   size_mismatch: string[];
   ok: number;
   total: number;
+}
+
+export interface TorrentResumeResult {
+  id: number;
+  rechecked: boolean;
+  check: TorrentCheckResult | null;
 }
 
 export interface TorrentDiagPeer {
@@ -260,11 +271,12 @@ export interface TorrentItemProps {
   onRemove: (deleteFiles: boolean) => void;
   onUpdateFiles: (indices: number[]) => void;
   onFilePriorityChange: (indices: number[], priority: FilePriority) => void;
+  onSetDownloadOrder: (indices: number[]) => void;
   onSetSequential: (enabled: boolean) => void;
-  /** Removes the torrent and adds it back by magnet. Lossy, so it always goes through a confirm. */
   onRecreate: () => void;
   onRedownload: (fileIndex: number) => void;
   onRecheck: () => void;
+  onRecheckPaused: () => void;
 }
 
 export interface MagnetTorrentProps {
@@ -279,7 +291,6 @@ export interface CreatedTorrent {
   id: number;
   name: string;
   info_hash: string;
-  /** Metainfo copy kept in the app data dir; "Save .torrent" copies it to a chosen path. */
   torrent_path: string;
   file_count: number;
 }
@@ -287,7 +298,6 @@ export interface CreatedTorrent {
 export interface CreateTorrentProps {
   open: boolean;
   onClose: () => void;
-  /** Fired once the torrent exists and is seeding, so the list can be refetched. */
   onCreated: (created: CreatedTorrent) => void;
 }
 

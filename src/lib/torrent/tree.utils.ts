@@ -1,12 +1,24 @@
 import type {
   CollectableNode,
   FileGroup,
+  FileOrder,
   FilePriority,
   Item,
   TorrentFileInfo,
   TorrentTreeFile,
   TorrentTreeNode,
 } from "@/types/torrent";
+
+export function applyFolderSelection(
+  files: { index: number; completed: boolean; selected: boolean }[],
+  folderIndices: number[],
+  target: boolean
+): number[] {
+  const folder = new Set(folderIndices);
+  return files
+    .filter((file) => file.completed || (folder.has(file.index) ? target : file.selected))
+    .map((file) => file.index);
+}
 
 export function collectFileIndices(node: CollectableNode): number[] {
   const indices = node.files.map((f) => f.index);
@@ -16,10 +28,35 @@ export function collectFileIndices(node: CollectableNode): number[] {
   return indices;
 }
 
-export function buildTorrentTree(files: TorrentFileInfo[]): {
+function toTreeFile(file: TorrentFileInfo, displayName: string): TorrentTreeFile {
+  return {
+    completed: file.completed,
+    displayName,
+    exists: file.exists,
+    index: file.index,
+    name: file.name,
+    priority: file.priority,
+    progress_bytes: file.progress_bytes,
+    selected: file.selected,
+    size: file.size,
+  };
+}
+
+function byTorrentOrder(files: TorrentFileInfo[]): TorrentTreeFile[] {
+  return [...files].sort((a, b) => a.index - b.index).map((file) => toTreeFile(file, file.name));
+}
+
+export function buildTorrentTree(
+  files: TorrentFileInfo[],
+  order: FileOrder = "list"
+): {
   nodes: TorrentTreeNode[];
   rootFiles: TorrentTreeFile[];
 } {
+  if (order === "torrent") {
+    return { nodes: [], rootFiles: byTorrentOrder(files) };
+  }
+
   const root: TorrentTreeNode = { children: [], files: [], name: "" };
 
   for (const file of files) {
@@ -38,17 +75,7 @@ export function buildTorrentTree(files: TorrentFileInfo[]): {
       node = child;
     }
 
-    node.files.push({
-      completed: file.completed,
-      displayName: fileName,
-      exists: file.exists,
-      index: file.index,
-      name: file.name,
-      priority: file.priority,
-      progress_bytes: file.progress_bytes,
-      selected: file.selected,
-      size: file.size,
-    });
+    node.files.push(toTreeFile(file, fileName));
   }
 
   function sortTree(node: TorrentTreeNode) {
@@ -73,8 +100,16 @@ export function groupFilesByDirectory(
     selected?: boolean;
     priority?: FilePriority;
     exists?: boolean;
-  }[]
+  }[],
+  order: FileOrder = "list"
 ): FileGroup[] {
+  if (order === "torrent") {
+    const sorted = [...files].sort((a, b) => a.index - b.index);
+    return sorted.length === 0
+      ? []
+      : [{ dir: "", files: sorted.map((file) => ({ ...file, displayName: file.name })) }];
+  }
+
   const groups = new Map<string, FileGroup>();
 
   for (const file of files) {

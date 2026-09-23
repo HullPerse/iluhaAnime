@@ -126,7 +126,6 @@ describe("TorrentPeersModal", () => {
     expect(mockInvoke).toHaveBeenCalledWith("add_torrent_tracker", {
       id: 7,
       tracker: "udp://new.tracker:1337/announce",
-      // Same camelCase rule as `remove_torrent`'s `deleteFiles`: the Rust param is `info_hash`.
       infoHash: "abc",
     });
   });
@@ -148,7 +147,6 @@ describe("TorrentPeersModal", () => {
     expect(mockInvoke).toHaveBeenCalledWith("remove_torrent_tracker", {
       id: 7,
       tracker: "udp://old.tracker:1337/announce",
-      // Tauri v2 looks the argument up as the camelCase of the Rust parameter (`info_hash`).
       infoHash: "abc",
     });
   });

@@ -12,6 +12,7 @@ import {
   getDisplayState,
   getLifecycleLabel,
   getTorrentLifecycle,
+  sameDownloadOrder,
   shouldHealTorrentChannel,
   shouldHealTorrentPoll,
   stateLabel,
@@ -27,6 +28,7 @@ const ru = (key: Parameters<typeof translate>[1], vars?: Parameters<typeof trans
 
 function makeInfo(id: number, overrides: Partial<TorrentInfo> = {}): TorrentInfo {
   return {
+    download_order: [],
     download_speed: 0,
     error: null,
     eta_secs: null,
@@ -34,12 +36,15 @@ function makeInfo(id: number, overrides: Partial<TorrentInfo> = {}): TorrentInfo
     id,
     info_hash: `hash-${id}`,
     missing_files: false,
+    paused_external_changes: false,
+    paused_changed_files: [],
     name: `Torrent ${id}`,
     peers_connected: 0,
     progress: 0,
     progress_bytes: 0,
     save_dir: "/dl",
     sequential_download: false,
+    sequential_file: null,
     share_ratio: 0,
     state: "live",
     total_bytes: 1000,
@@ -56,6 +61,21 @@ function makeEvent(payload: TorrentInfo[]): Event<TorrentInfo[]> {
 function makeState(torrents: TorrentInfo[]): TorrentListState {
   return { torrents, lastActiveAt: {} };
 }
+
+describe("sameDownloadOrder", () => {
+  it("compares the queue by value, not by the array it arrived in", () => {
+    expect(sameDownloadOrder([2, 0], [2, 0])).toBe(true);
+    expect(sameDownloadOrder([2, 0], [0, 2])).toBe(false);
+    expect(sameDownloadOrder([], [])).toBe(true);
+    expect(sameDownloadOrder([1], [])).toBe(false);
+  });
+
+  it("treats a payload without the queue as a change instead of crashing", () => {
+    expect(sameDownloadOrder(undefined, undefined)).toBe(true);
+    expect(sameDownloadOrder(undefined, [0])).toBe(false);
+    expect(sameDownloadOrder([0], undefined)).toBe(false);
+  });
+});
 
 describe("fmtSpeed", () => {
   it("returns empty for zero or negative", () => {

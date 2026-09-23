@@ -840,14 +840,22 @@ fn parse_rutracker_file_tree(response: &str) -> Vec<TorrentDetailFile> {
     files
 }
 
+/// The webview fetches through the system network stack and ignores the configured proxy, so a
+/// configured proxy must send this request through the reqwest client like every other rutracker
+/// request. Without that, the file list is the one call that still depends on the DPI path.
 async fn fetch_rutracker_file_tree(
     app_handle: &tauri::AppHandle,
     client: &reqwest::Client,
     cookies: &HashMap<String, String>,
     topic_id: &str,
+    allow_browser: bool,
 ) -> Result<String, String> {
     let file_tree_url = format!("https://rutracker.org/forum/viewtorrent.php?t={topic_id}");
-    let browser_response = rutracker_browser_fetch(app_handle, &file_tree_url).await?;
+    let browser_response = if allow_browser {
+        rutracker_browser_fetch(app_handle, &file_tree_url).await?
+    } else {
+        None
+    };
     let (status, bytes) = if let Some(response) = browser_response {
         (response.status, response.body)
     } else {
@@ -1275,8 +1283,14 @@ pub async fn get_torrent_details(
     if source == "rutracker" {
         let cookies = load_rutracker_cookies(&app_handle);
         if let Some(topic_id) = rutracker_topic_id(&url) {
-            if let Ok(file_tree) =
-                fetch_rutracker_file_tree(&app_handle, &client, &cookies, &topic_id).await
+            if let Ok(file_tree) = fetch_rutracker_file_tree(
+                &app_handle,
+                &client,
+                &cookies,
+                &topic_id,
+                proxy.is_none(),
+            )
+            .await
             {
                 details.files = parse_rutracker_file_tree(&file_tree);
             }

@@ -8,6 +8,7 @@ import type { TorrentInfo } from "@/types/torrent";
 
 function info(): TorrentInfo {
   return {
+    download_order: [],
     download_speed: 0,
     error: null,
     eta_secs: null,
@@ -15,12 +16,15 @@ function info(): TorrentInfo {
     id: 1,
     info_hash: "hash-1",
     missing_files: false,
+    paused_external_changes: false,
+    paused_changed_files: [],
     name: "Test",
     peers_connected: 0,
     progress: 0,
     progress_bytes: 0,
     save_dir: "/dl",
     sequential_download: false,
+    sequential_file: null,
     share_ratio: 0,
     state: "live",
     total_bytes: 1000,

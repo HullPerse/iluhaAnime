@@ -3,22 +3,30 @@ import type { Event } from "@tauri-apps/api/event";
 import type { TFunc, TranslationKey } from "@/types/i18n";
 import type { TorrentDisplayState, TorrentLifecycle, TorrentInfo } from "@/types/torrent";
 
+export function sameDownloadOrder(prev: number[] | undefined, next: number[] | undefined): boolean {
+  if (prev === next) return true;
+  if (!prev || !next) return false;
+  return prev.length === next.length && prev.every((index, i) => index === next[i]);
+}
+
+export function samePausedChangedFiles(
+  prev: string[] | undefined,
+  next: string[] | undefined
+): boolean {
+  if (prev === next) return true;
+  if (!prev || !next) return false;
+  return prev.length === next.length && prev.every((name, i) => name === next[i]);
+}
+
 export const STALL_AFTER_MS = 30_000;
 export const TORRENT_EVENT_STALE_MS = 35_000;
 export const TORRENT_WATCHDOG_MS = 5_000;
 
-/** Raw staleness predicate: has nothing been delivered for a full stale window? */
 export function shouldHealTorrentPoll(lastEventAtMs: number, nowMs: number): boolean {
   if (lastEventAtMs <= 0) return false;
   return nowMs - lastEventAtMs >= TORRENT_EVENT_STALE_MS;
 }
 
-/**
- * Whether the push channel looks dead and the list should be refetched. `lastEventAt`
- * stays `0` until the very first push arrives, so the caller passes when it started
- * watching and when it last healed as extra references: a subscription that never
- * delivers anything still has to heal.
- */
 export function shouldHealTorrentChannel(
   state: { lastEventAt: number; watchStartedAt: number; lastHealAt: number },
   nowMs: number
@@ -33,8 +41,6 @@ export function getDisplayState(
   lastActiveAt: Record<number, number>,
   now: number
 ): TorrentDisplayState {
-  // Checked first on purpose: files on disk outweigh whatever the engine reports, and a
-  // torrent whose files are gone is very often also flagged with a generic error.
   if (item.missing_files) return "missing";
   if (item.error) return "error";
   if (item.finished) return item.state === "live" ? "seeding" : "done";
@@ -93,7 +99,6 @@ export function fmtSpeed(bps: number): string {
   return `${(bps / (1024 * 1024)).toFixed(1)} MB/s`;
 }
 
-/** Speed for display: `fmtSpeed` leaves idle values blank, which reads as a broken field. */
 export function formatSpeed(bps: number): string {
   return fmtSpeed(bps) || "0 B/s";
 }
@@ -182,10 +187,14 @@ export function TorrentListen(
         p.finished !== t.finished ||
         p.error !== t.error ||
         p.missing_files !== t.missing_files ||
+        p.paused_external_changes !== t.paused_external_changes ||
+        !samePausedChangedFiles(p.paused_changed_files, t.paused_changed_files) ||
         p.uploaded_bytes !== t.uploaded_bytes ||
         p.share_ratio !== t.share_ratio ||
         p.total_bytes !== t.total_bytes ||
         p.sequential_download !== t.sequential_download ||
+        p.sequential_file !== t.sequential_file ||
+        !sameDownloadOrder(p.download_order, t.download_order) ||
         p.eta_secs !== t.eta_secs ||
         p.name !== t.name ||
         p.save_dir !== t.save_dir

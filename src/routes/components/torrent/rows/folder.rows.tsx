@@ -1,12 +1,11 @@
 import { ChevronDown, ChevronRight } from "lucide-react";
 
+import { Checkbox } from "@/components/ui/checkbox.component";
 import ImageComponent from "@/components/ui/image.component";
-import Select from "@/components/ui/select.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { collectFileIndices } from "@/lib/torrent/tree.utils";
 import { formatBytes } from "@/lib/utils/bytes.utils";
-import type { TorrentTreeNode } from "@/types/torrent";
-import type { TorrentFileInfo, FilePriority } from "@/types/torrent";
+import type { TorrentFileInfo, TorrentTreeNode } from "@/types/torrent";
 
 export function FolderRow({
   node,
@@ -16,7 +15,7 @@ export function FolderRow({
   isOpen,
   type,
   onToggleFolder,
-  onPriorityChange,
+  onToggleSelection,
 }: {
   node: TorrentTreeNode;
   depth: number;
@@ -25,17 +24,16 @@ export function FolderRow({
   isOpen: boolean;
   type: "torrent" | "player";
   onToggleFolder: () => void;
-  onPriorityChange?: (indices: number[], priority: FilePriority) => void;
+  onToggleSelection?: (indices: number[], target: boolean) => void;
 }) {
   const { t } = useI18n();
   const folderIndices = collectFileIndices(node);
   const folderFiles = folderIndices
     .map((i) => files.find((f) => f.index === i))
     .filter((f): f is TorrentFileInfo => f !== undefined);
-  const folderPriority =
-    folderFiles.length > 0 && folderFiles.every((f) => f.priority === folderFiles[0].priority)
-      ? folderFiles[0].priority
-      : "normal";
+  const selectable = folderFiles.filter((f) => !f.completed);
+  const allSelected = selectable.length > 0 && selectable.every((f) => f.selected);
+  const someSelected = selectable.some((f) => f.selected);
 
   return (
     <div
@@ -46,6 +44,16 @@ export function FolderRow({
         paddingLeft: `${depth * 12 + 2}px`,
       }}
     >
+      {onToggleSelection && type === "torrent" && (
+        <Checkbox
+          checked={allSelected}
+          indeterminate={someSelected && !allSelected}
+          disabled={selectable.length === 0}
+          onChange={() => onToggleSelection(folderIndices, !allSelected)}
+          aria-label={t("torrent.select.folder", { name: node.name })}
+          className="size-3"
+        />
+      )}
       <div className="flex min-w-0 flex-1 items-center gap-1" onClick={onToggleFolder}>
         {isOpen ? (
           <ChevronDown className="size-3 shrink-0" />
@@ -69,21 +77,6 @@ export function FolderRow({
           )}
         </span>
       </div>
-      {onPriorityChange && type === "torrent" && (
-        <Select
-          className="w-28"
-          value={folderPriority}
-          onChange={(v) => onPriorityChange(folderIndices, v as FilePriority)}
-          options={[
-            { value: "normal", label: t("torrent.priority.normal") },
-            {
-              value: "do_not_download",
-              label: t("torrent.priority.skip"),
-            },
-          ]}
-          arrow={false}
-        />
-      )}
     </div>
   );
 }

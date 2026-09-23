@@ -14,7 +14,7 @@ import {
 } from "@/lib/torrent/common.utils";
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
-import { showError } from "@/lib/utils/notification.utils";
+import { showError, showInfo, showWarning } from "@/lib/utils/notification.utils";
 import { useCacheStore } from "@/store/cache.store";
 import { tr, useTorrentStore } from "@/store/download.store";
 import type {
@@ -22,10 +22,12 @@ import type {
   TorrentCheckResult,
   TorrentFileInfo,
   TorrentInfo,
+  TorrentResumeResult,
 } from "@/types/torrent";
 
 export const TORRENTS_QUERY_KEY = ["torrents"] as const;
 export const torrentFilesKey = (id: number) => ["torrent-files", id] as const;
+export const TORRENT_LISTEN_PORT_KEY = ["torrent-listen-port"] as const;
 
 let initialErrorNotified = false;
 let primedSeedPause = false;
@@ -119,9 +121,6 @@ export function useTorrents(enabled = true) {
   useEffect(() => {
     if (!enabled) return;
     const timer = window.setInterval(() => {
-      // A listener can die silently (system sleep, a wedged event loop), and a failed
-      // registration is never retried otherwise: re-arm it even while hidden, which
-      // costs nothing.
       if (subscriptionOwners > 0) startTorrentSubscription(queryClient);
       if (document.hidden) return;
       const now = Date.now();
@@ -151,6 +150,16 @@ function sameFileInfo(prev: TorrentFileInfo, next: TorrentFileInfo): boolean {
     prev.progress_bytes === next.progress_bytes &&
     prev.priority === next.priority
   );
+}
+
+export function useTorrentListenPort(enabled = true) {
+  return useQuery({
+    queryKey: TORRENT_LISTEN_PORT_KEY,
+    queryFn: () => invokeTyped<number | null>("torrent_listen_port"),
+    enabled,
+    staleTime: 5000,
+    retry: false,
+  });
 }
 
 async function fetchTorrentFiles(queryClient: QueryClient, id: number): Promise<TorrentFileInfo[]> {
@@ -269,18 +278,42 @@ export function useResumeTorrent() {
         (old ?? []).map((t) => (t.id === id ? { ...t, state: "live" } : t))
       );
       setOpInFlight(id, "resume");
-      const [, error] = await attempt(
-        invokeTyped("resume_torrent", { id, infoHash: vars.infoHash })
+      const [result, error] = await attempt(
+        invokeTyped<TorrentResumeResult>("resume_torrent", { id, infoHash: vars.infoHash })
       );
       setOpInFlight(id, null);
       if (error) {
         showError(tr("download.error.resume"), torrentErrorText(error.message, tr));
         if (prev !== undefined) queryClient.setQueryData(TORRENTS_QUERY_KEY, prev);
-      } else {
-        queryClient.invalidateQueries({ queryKey: TORRENTS_QUERY_KEY });
+        return;
       }
+      queryClient.invalidateQueries({ queryKey: TORRENTS_QUERY_KEY });
+      if (!result) return;
+      queryClient.invalidateQueries({ queryKey: torrentFilesKey(result.id) });
+      if (result.rechecked) notifyResumeReverified(result.check);
     },
   });
+}
+
+function notifyResumeReverified(check: TorrentCheckResult | null): void {
+  const title = tr("torrent.resume.external.title");
+  if (!check) {
+    showInfo(title);
+    return;
+  }
+  const parts = [tr("torrent.resume.external.body", { ok: check.ok, total: check.total })];
+  if (check.missing.length > 0) {
+    parts.push(tr("torrent.recheck.missing", { count: check.missing.length }));
+  }
+  if (check.size_mismatch.length > 0) {
+    parts.push(tr("torrent.recheck.size", { count: check.size_mismatch.length }));
+  }
+  const body = parts.join(" · ");
+  if (check.missing.length > 0 || check.size_mismatch.length > 0) {
+    showWarning(title, body);
+  } else {
+    showInfo(title, body);
+  }
 }
 
 export function useRemoveTorrent() {
@@ -378,6 +411,26 @@ export function useSetSequentialDownload() {
   });
 }
 
+export function useSetDownloadOrder() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (vars: { id: number; indices: number[]; infoHash?: string }) => {
+      const [, error] = await attempt(
+        invokeTyped("set_torrent_download_order", {
+          id: vars.id,
+          fileIndices: vars.indices,
+          infoHash: vars.infoHash,
+        })
+      );
+      if (error) {
+        showError(tr("download.error.order"), torrentErrorText(error.message, tr));
+        return;
+      }
+      queryClient.invalidateQueries({ queryKey: torrentFilesKey(vars.id) });
+    },
+  });
+}
+
 export function useRedownloadFile() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -405,6 +458,24 @@ export function useRecheckTorrent() {
         return null;
       }
       queryClient.invalidateQueries({ queryKey: torrentFilesKey(vars.id) });
+      return result;
+    },
+  });
+}
+
+export function useRecheckPausedTorrent() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (vars: { id: number; infoHash?: string }) => {
+      const [result, error] = await attempt(
+        invokeTyped<TorrentResumeResult>("recheck_paused_torrent", vars)
+      );
+      if (error) {
+        showError(tr("download.error.recheck"), torrentErrorText(error.message, tr));
+        return null;
+      }
+      queryClient.invalidateQueries({ queryKey: TORRENTS_QUERY_KEY });
+      if (result) queryClient.invalidateQueries({ queryKey: torrentFilesKey(result.id) });
       return result;
     },
   });

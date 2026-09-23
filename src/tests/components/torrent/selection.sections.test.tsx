@@ -19,7 +19,6 @@ function props(overrides: Partial<TorrentSelectionBarProps> = {}): TorrentSelect
   };
 }
 
-/** Buttons are looked up by their handler: labels differ per language, wiring must not. */
 function buttonFor(name: string): HTMLButtonElement {
   const found = screen.getByRole("button", { name });
   expect(found).toBeTruthy();
@@ -72,7 +71,6 @@ describe("TorrentSelectionBar", () => {
     expect(buttonFor("Pause").disabled).toBe(true);
     expect(buttonFor("Resume").disabled).toBe(true);
     expect(buttonFor("Recheck").disabled).toBe(true);
-    // Selecting and clearing stay available: they never touch the torrents themselves.
     expect(buttonFor("Select all").disabled).toBe(false);
     expect(buttonFor("Clear selection").disabled).toBe(false);
   });

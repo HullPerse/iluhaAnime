@@ -1,6 +1,10 @@
+import { useDraggable, useDroppable } from "@dnd-kit/core";
+import { cn } from "cn";
+import { AlertTriangle, GripVertical } from "lucide-react";
 import { memo, useState } from "react";
 
 import { ConfirmDialog } from "@/components/shared/confirm.component";
+import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { areTorrentItemsEqual } from "@/lib/torrent/item.utils";
 import type { TorrentItemProps as Props } from "@/types/torrent";
@@ -27,18 +31,52 @@ function TorrentItem({
   onRemove,
   onUpdateFiles,
   onFilePriorityChange,
+  onSetDownloadOrder,
   onSetSequential,
   onRecreate,
   onRedownload,
   onRecheck,
+  onRecheckPaused,
 }: Props) {
   const [pendingDelete, setPendingDelete] = useState(false);
   const [showPeers, setShowPeers] = useState(false);
   const isPaused = item.state === "paused";
   const isLive = item.state === "live";
   const { t } = useI18n();
+  const changedNames = item.paused_changed_files.join(", ");
+  const externalChangedTitle = [t("torrent.paused.external.hint"), changedNames]
+    .filter(Boolean)
+    .join("\n");
+  const draggable = queue !== null;
+  const {
+    attributes,
+    listeners,
+    setNodeRef: setDragRef,
+    setActivatorNodeRef,
+    transform,
+    isDragging,
+  } = useDraggable({ id: item.id, disabled: !draggable });
+  const { setNodeRef: setDropRef, isOver } = useDroppable({ id: item.id, disabled: !draggable });
   return (
-    <div className="windows95-active-border bg-primary hover:bg-surface flex flex-col gap-2 p-2">
+    <div
+      ref={(node) => {
+        setDragRef(node);
+        setDropRef(node);
+      }}
+      data-testid="torrent-item"
+      className={cn(
+        "windows95-active-border bg-primary hover:bg-surface flex flex-col gap-2 p-2",
+        isOver && !isDragging && "windows95-border"
+      )}
+      style={{
+        transform: transform
+          ? `translate3d(${Math.round(transform.x)}px, ${Math.round(transform.y)}px, 0)`
+          : undefined,
+        position: isDragging ? "relative" : undefined,
+        zIndex: isDragging ? 20 : undefined,
+        opacity: isDragging ? 0.85 : undefined,
+      }}
+    >
       <TorrentHeader
         item={item}
         selected={selected}
@@ -54,8 +92,42 @@ function TorrentItem({
         onRecheck={onRecheck}
         onPeers={() => setShowPeers(true)}
         onDelete={() => setPendingDelete(true)}
+        dragHandle={
+          queue && (
+            <span
+              ref={setActivatorNodeRef}
+              data-testid="torrent-drag-handle"
+              className="text-hint shrink-0 cursor-grab active:cursor-grabbing"
+              title={t("torrent.queue.drag")}
+              aria-label={t("torrent.queue.drag")}
+              {...listeners}
+              {...attributes}
+            >
+              <GripVertical className="size-4" />
+            </span>
+          )
+        }
       />
       <TorrentProgress item={item} />
+      {item.paused_external_changes && (
+        <div className="flex items-center gap-1">
+          <span
+            role="status"
+            data-testid="torrent-external-badge"
+            className="text-torrent-missing windows95-font flex min-w-0 items-center gap-1 text-xs"
+            title={externalChangedTitle}
+          >
+            <AlertTriangle className="size-3 shrink-0" />
+            <span className="truncate">
+              {t("torrent.paused.external")}
+              {changedNames && `: ${changedNames}`}
+            </span>
+          </span>
+          <Button className="windows95-text text-xs" disabled={busy} onClick={onRecheckPaused}>
+            {t("torrent.paused.recheck")}
+          </Button>
+        </div>
+      )}
       <TorrentFiles
         item={item}
         files={files ?? []}
@@ -64,6 +136,7 @@ function TorrentItem({
         onResume={onResume}
         onUpdateFiles={onUpdateFiles}
         onFilePriorityChange={onFilePriorityChange}
+        onSetDownloadOrder={onSetDownloadOrder}
         onRedownload={onRedownload}
       />
       {filesError && (files ?? []).length === 0 && (

@@ -1,18 +1,17 @@
 import { openPath } from "@tauri-apps/plugin-opener";
 import { parse } from "anitomy";
 import { cn } from "cn";
-import { RefreshCw } from "lucide-react";
+import { ArrowDownNarrowWide, RefreshCw } from "lucide-react";
 
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import ImageComponent from "@/components/ui/image.component";
-import Select from "@/components/ui/select.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { formatParsedTitle } from "@/lib/player/title.utils";
 import { formatBytes } from "@/lib/utils/bytes.utils";
 import { useSearchStore } from "@/store/search.store";
 import { useSettingsStore } from "@/store/settings.store";
-import type { FilePriority, TorrentTreeFile, TorrentTreeFileWithPath } from "@/types/torrent";
+import type { TorrentTreeFile, TorrentTreeFileWithPath } from "@/types/torrent";
 
 import { PlayerFileActions } from "../actions.torrent";
 
@@ -23,7 +22,6 @@ export function TorrentFileRow({
   type,
   checked,
   onToggleFile,
-  onPriorityChange,
   queueMap,
   extraFiles,
   path,
@@ -31,14 +29,15 @@ export function TorrentFileRow({
   onUpscaleDone,
   onPlay,
   onRedownload,
+  sequential,
 }: {
   file: TorrentTreeFile;
   depth: number;
   virtualStart: number;
   type: "torrent" | "player";
   checked: boolean;
+  sequential?: boolean;
   onToggleFile?: () => void;
-  onPriorityChange?: (indices: number[], priority: FilePriority) => void;
   queueMap: Map<string, string>;
   extraFiles?: { name: string; size: number; fullPath: string }[];
   path?: string;
@@ -94,6 +93,16 @@ export function TorrentFileRow({
           : file.displayName}
       </span>
 
+      {sequential && (
+        <span
+          className="text-secondary shrink-0"
+          title={t("torrent.sequential.current")}
+          data-testid="torrent-file-sequential"
+        >
+          <ArrowDownNarrowWide className="size-3" />
+        </span>
+      )}
+
       {file.selected && !file.completed && file.size > 0 && (
         <div className="bg-surface windows95-border ml-1 h-2 w-10 shrink-0">
           <div
@@ -106,22 +115,6 @@ export function TorrentFileRow({
       )}
 
       <span className="text-hint shrink-0">{formatBytes(file.size)}</span>
-
-      {onPriorityChange && type === "torrent" && !file.completed && (
-        <Select
-          className="w-28"
-          value={file.priority || "normal"}
-          onChange={(v) => onPriorityChange([file.index], v as FilePriority)}
-          options={[
-            { value: "normal", label: t("torrent.priority.normal") },
-            {
-              value: "do_not_download",
-              label: t("torrent.priority.skip"),
-            },
-          ]}
-          arrow={false}
-        />
-      )}
 
       {type === "torrent" && file.completed && !file.exists && onRedownload && (
         <Button

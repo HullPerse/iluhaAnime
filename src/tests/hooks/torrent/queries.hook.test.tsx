@@ -9,6 +9,7 @@ import {
   usePauseTorrent,
   useRedownloadFile,
   useRemoveTorrent,
+  useResumeTorrent,
   useTorrentFiles,
   useTorrentFilesMap,
   useTorrents,
@@ -268,6 +269,46 @@ describe("usePauseTorrent double invoke", () => {
     resolvePause("ok");
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(useTorrentStore.getState().opInFlight[1]).toBeUndefined();
+    unmount();
+  });
+});
+
+describe("useResumeTorrent", () => {
+  it("unpauses without a notification when nothing changed on disk", async () => {
+    invokeMock.mockImplementation((cmd: string) => {
+      if (cmd === "resume_torrent")
+        return Promise.resolve({ id: 1, rechecked: false, check: null });
+      return Promise.resolve(undefined);
+    });
+    const { Wrapper, client } = wrapper();
+    client.setQueryData(TORRENTS_QUERY_KEY, [torrent(1)]);
+    const { result, unmount } = renderHook(() => useResumeTorrent(), { wrapper: Wrapper });
+    await result.current.mutateAsync({ id: 1 });
+    expect(invokeMock).toHaveBeenCalledWith("resume_torrent", { id: 1, infoHash: undefined });
+    expect(useNotificationStore.getState().items).toHaveLength(0);
+    unmount();
+  });
+
+  it("warns when the files changed and the torrent was re-verified", async () => {
+    invokeMock.mockImplementation((cmd: string) => {
+      if (cmd === "resume_torrent")
+        return Promise.resolve({
+          id: 4,
+          rechecked: true,
+          check: { id: 4, missing: [], size_mismatch: ["two.bin"], ok: 1, total: 2 },
+        });
+      return Promise.resolve(undefined);
+    });
+    const { Wrapper, client } = wrapper();
+    client.setQueryData(TORRENTS_QUERY_KEY, [torrent(1)]);
+    const { result, unmount } = renderHook(() => useResumeTorrent(), { wrapper: Wrapper });
+    await result.current.mutateAsync({ id: 1 });
+    const items = useNotificationStore.getState().items;
+    expect(items).toHaveLength(1);
+    expect(items[0]?.type).toBe("warning");
+    expect(items[0]?.title).toBe("Files changed on disk");
+    expect(items[0]?.message).toContain("1/2 in place");
+    expect(items[0]?.message).toContain("size mismatch: 1");
     unmount();
   });
 });

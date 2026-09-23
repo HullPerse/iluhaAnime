@@ -1,3 +1,5 @@
+import { DndContext, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
+import type { DragEndEvent } from "@dnd-kit/core";
 import { useQueryClient } from "@tanstack/react-query";
 import { listen } from "@tauri-apps/api/event";
 import { Plus, SortAsc, SortDesc } from "lucide-react";
@@ -19,14 +21,10 @@ import {
   TORRENTS_QUERY_KEY,
   usePauseTorrent,
   useRecheckTorrent,
-  useRedownloadFile,
   useRemoveTorrent,
   useResumeTorrent,
-  useSetFilePriority,
-  useSetSequentialDownload,
   useTorrentFilesMap,
   useTorrents,
-  useUpdateOnlyFiles,
 } from "@/hooks/torrent/queries.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { applyBulkAction, pruneSelection, splitRecheckOutcome } from "@/lib/torrent/bulk.utils";
@@ -46,8 +44,8 @@ import { useSettingsStore } from "@/store/settings.store";
 import type { TorrentInfo, TorrentLifecycle } from "@/types/torrent";
 
 import CreateTorrentModal from "./components/torrent/create.torrent";
-import TorrentItem from "./components/torrent/item.torrent";
 import AddTorrentModal from "./components/torrent/magnet.torrent";
+import { TorrentRow } from "./components/torrent/row.torrent";
 import { TorrentSelectionBar } from "./components/torrent/sections/selection.sections";
 import SpeedLimitForm from "./components/torrent/speed.torrent";
 
@@ -59,19 +57,16 @@ function TorrentRoute() {
   const pauseMutation = usePauseTorrent();
   const resumeMutation = useResumeTorrent();
   const removeMutation = useRemoveTorrent();
-  const updateOnlyFilesMutation = useUpdateOnlyFiles();
   const setSpeedLimits = useTorrentStore((state) => state.setSpeedLimits);
   const prepareTorrentDownload = useTorrentStore((state) => state.prepareTorrentDownload);
   const prepareTorrentDownloadFromFile = useTorrentStore(
     (state) => state.prepareTorrentDownloadFromFile
   );
-  const setFilePriorityMutation = useSetFilePriority();
-  const setSequentialMutation = useSetSequentialDownload();
   const setSeedPreference = useCacheStore((state) => state.setSeedPreference);
   const torrentOrder = useCacheStore((state) => state.torrentOrder);
   const syncTorrentOrder = useCacheStore((state) => state.syncTorrentOrder);
   const moveTorrentOrder = useCacheStore((state) => state.moveTorrentOrder);
-  const redownloadMutation = useRedownloadFile();
+  const moveTorrentOrderTo = useCacheStore((state) => state.moveTorrentOrderTo);
   const recheckMutation = useRecheckTorrent();
   const opInFlight = useTorrentStore((state) => state.opInFlight);
 
@@ -96,6 +91,9 @@ function TorrentRoute() {
   const { t } = useI18n();
   const hostStats = useHostStats(true);
   const [lifecycleFilter, setLifecycleFilter] = useState<TorrentLifecycle | "all">("all");
+  const queueSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+  );
   useEffect(() => {
     syncTorrentOrder(torrents.map((t) => t.id));
   }, [torrents, syncTorrentOrder]);
@@ -142,7 +140,6 @@ function TorrentRoute() {
     [filteredTorrents, page]
   );
   const [bulkBusy, setBulkBusy] = useState(false);
-  /** Torrents the last bulk recheck proved are still missing files, waiting on the confirm. */
   const [recreateTargets, setRecreateTargets] = useState<TorrentInfo[]>([]);
   const problemTorrents = useMemo(
     () => filteredTorrents.filter((torrent) => torrent.error || torrent.missing_files),
@@ -152,9 +149,6 @@ function TorrentRoute() {
     () => filteredTorrents.filter((torrent) => selected.has(torrent.id)),
     [filteredTorrents, selected]
   );
-  // A selection can only act on rows the list still shows: narrowing the filter drops what it
-  // hides, while paging or re-sorting keeps everything. `pruneSelection` returns the same set
-  // when nothing changed, so this effect stays free on every unrelated render.
   useEffect(() => {
     setSelected((prev) => pruneSelection(prev, filteredTorrents));
   }, [filteredTorrents]);
@@ -172,8 +166,6 @@ function TorrentRoute() {
     await attempt(
       (async () => {
         if (kind === "recheck") {
-          // Recheck first: it repairs most errored torrents and costs nothing but a filesystem
-          // pass, unlike recreating, which resets manual trackers, file selection and order.
           const results = await Promise.all(
             targets.map((torrent) =>
               recheckMutation.mutateAsync({ id: torrent.id, infoHash: torrent.info_hash })
@@ -219,9 +211,6 @@ function TorrentRoute() {
     setShowMagnetModal(true);
     useDeepLinkStore.getState().consumeMagnet();
   }, [magnetTarget]);
-  // Rows are memoized by `areTorrentItemsEqual`, which intentionally ignores handler
-  // identity, so this reads the list through a ref: a memoized row then keeps a correct
-  // `onMove` instead of one pinned to the render that created it.
   const filteredTorrentsRef = useRef(filteredTorrents);
   useEffect(() => {
     filteredTorrentsRef.current = filteredTorrents;
@@ -235,6 +224,14 @@ function TorrentRoute() {
       moveTorrentOrder(id, neighbor.id);
     },
     [moveTorrentOrder]
+  );
+  const handleQueueDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+      if (!over || active.id === over.id) return;
+      moveTorrentOrderTo(Number(active.id), Number(over.id));
+    },
+    [moveTorrentOrderTo]
   );
   const visibleIds = useMemo(() => pagedTorrents.map((t) => t.id), [pagedTorrents]);
   const { files: torrentFilesMap, errors: torrentFilesErrors } = useTorrentFilesMap(
@@ -453,116 +450,30 @@ function TorrentRoute() {
         </section>
       )}
       {total > 0 && (
-        <section
-          ref={listRef}
-          className="windows95-border bg-primary flex min-h-0 w-full flex-1 flex-col gap-1 overflow-y-auto p-1"
-        >
-          {pagedTorrents.map((item) => {
-            const isExpanded = expanded.has(item.id);
-            const files = torrentFilesMap[item.id] ?? NO_TORRENT_FILES;
-            const queueIndex = queueRank.get(item.id) ?? 0;
-
-            return (
-              <TorrentItem
+        <DndContext sensors={queueSensors} onDragEnd={handleQueueDragEnd}>
+          <section
+            ref={listRef}
+            className="windows95-border bg-primary flex min-h-0 w-full flex-1 flex-col gap-1 overflow-y-auto p-1"
+          >
+            {pagedTorrents.map((item) => (
+              <TorrentRow
                 key={item.id}
                 item={item}
-                files={files}
+                files={torrentFilesMap[item.id] ?? NO_TORRENT_FILES}
                 filesError={torrentFilesErrors[item.id]}
-                isExpanded={isExpanded}
+                isExpanded={expanded.has(item.id)}
                 selected={selected.has(item.id)}
                 busy={opInFlight[item.id] !== undefined}
-                queue={
-                  sortBy === "custom"
-                    ? {
-                        index: queueIndex,
-                        total: filteredTorrents.length,
-                        onMove: (delta) => moveQueueItem(item.id, delta),
-                      }
-                    : null
-                }
+                queueIndex={queueRank.get(item.id) ?? 0}
+                queueTotal={filteredTorrents.length}
+                queueEnabled={sortBy === "custom"}
+                onMoveQueue={moveQueueItem}
                 onToggleExpand={() => toggleExpanded(item.id)}
                 onSelectChange={(value) => toggleSelected(item.id, value)}
-                onPause={() => pauseMutation.mutate({ id: item.id, infoHash: item.info_hash })}
-                onResume={() => resumeMutation.mutate({ id: item.id, infoHash: item.info_hash })}
-                onSeedChange={(enabled) => {
-                  setSeedPreference(item.id, enabled);
-                  if (enabled) resumeMutation.mutate({ id: item.id, infoHash: item.info_hash });
-                  else pauseMutation.mutate({ id: item.id, infoHash: item.info_hash });
-                }}
-                onRemove={(deleteFiles) =>
-                  removeMutation.mutate({ id: item.id, deleteFiles, infoHash: item.info_hash })
-                }
-                onUpdateFiles={(indices) =>
-                  updateOnlyFilesMutation.mutate({ id: item.id, indices, infoHash: item.info_hash })
-                }
-                onFilePriorityChange={(indices, priority) =>
-                  setFilePriorityMutation.mutate({
-                    id: item.id,
-                    fileIndices: indices,
-                    priority,
-                    infoHash: item.info_hash,
-                  })
-                }
-                onSetSequential={(enabled) =>
-                  setSequentialMutation.mutate({ id: item.id, enabled, infoHash: item.info_hash })
-                }
-                onRecreate={async () => {
-                  const removed = await removeMutation.mutateAsync({
-                    id: item.id,
-                    deleteFiles: false,
-                    infoHash: item.info_hash,
-                  });
-                  if (!removed) return;
-                  const magnet = `magnet:?xt=urn:btih:${item.info_hash}`;
-                  prepareTorrentDownload(magnet);
-                }}
-                onRedownload={(fileIndex) =>
-                  redownloadMutation.mutate({ id: item.id, fileIndex, infoHash: item.info_hash })
-                }
-                onRecheck={async () => {
-                  const result = await recheckMutation.mutateAsync({
-                    id: item.id,
-                    infoHash: item.info_hash,
-                  });
-                  if (!result) return;
-                  const { add } = useNotificationStore.getState();
-                  if (result.missing.length === 0 && result.size_mismatch.length === 0) {
-                    add(
-                      t("torrent.recheck.title"),
-                      "success",
-                      t("torrent.recheck.ok", {
-                        ok: result.ok,
-                        total: result.total,
-                      })
-                    );
-                  } else {
-                    const parts: string[] = [];
-                    if (result.missing.length)
-                      parts.push(
-                        t("torrent.recheck.missing", {
-                          count: result.missing.length,
-                        })
-                      );
-                    if (result.size_mismatch.length)
-                      parts.push(
-                        t("torrent.recheck.size", {
-                          count: result.size_mismatch.length,
-                        })
-                      );
-                    add(
-                      t("torrent.recheck.title"),
-                      "error",
-                      `${parts.join("; ")} ${t("torrent.recheck.summary", {
-                        ok: result.ok,
-                        total: result.total,
-                      })}`
-                    );
-                  }
-                }}
               />
-            );
-          })}
-        </section>
+            ))}
+          </section>
+        </DndContext>
       )}
       {selected.size > 0 && (
         <TorrentSelectionBar
@@ -609,12 +520,7 @@ function TorrentRoute() {
           open={showCreateModal}
           onClose={() => setShowCreateModal(false)}
           onCreated={(created) => {
-            // A torrent built from local files is complete the moment it is added, and the app
-            // pauses finished torrents unless the user asked to seed them. Record that intent
-            // here, or the link we just handed out would point at a paused torrent.
             setSeedPreference(created.id, true);
-            // The push channel will pick the new torrent up on its own; this only makes it
-            // appear right away instead of on the next tick.
             queryClient.invalidateQueries({ queryKey: TORRENTS_QUERY_KEY });
           }}
         />

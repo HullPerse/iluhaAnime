@@ -9,11 +9,6 @@ const ENTITIES: Record<string, string> = {
   "&nbsp;": " ",
 };
 
-/**
- * AniList hands out bios and descriptions as HTML (`<br>`, `<i>`, links, `&amp;`). The app
- * renders plain text, so tags are dropped - block tags first, as a line break, so a list of
- * films does not run together.
- */
 export function flattenMarkup(html: string | null | undefined): string {
   if (html == null) return "";
   const withBreaks = html.replace(BLOCK_RX, "\n");

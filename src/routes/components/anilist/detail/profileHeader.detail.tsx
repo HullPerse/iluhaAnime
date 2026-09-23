@@ -6,11 +6,6 @@ import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
 
-/**
- * Head of the character and staff screens: poster, both names, the chips that describe the
- * entry (role, favourites) and the actions. The old modal showed a name and nothing else,
- * even though role and favourite counts were already on the wire.
- */
 export function DetailProfileHeader({
   image,
   name,

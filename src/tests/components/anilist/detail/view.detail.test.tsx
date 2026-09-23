@@ -173,7 +173,6 @@ describe("AniListDetailView character window", () => {
     await user.hover(await within(characters).findByRole("button", { name: "Eren Yeager" }));
     await user.click(await screen.findByRole("button", { name: "Yuki Kaji" }, { timeout: 3000 }));
 
-    // The window opens on the voice actor, with the character one back arrow away.
     expect(await screen.findByRole("heading", { name: "Yuki Kaji" })).toBeDefined();
     await user.click(screen.getByRole("button", { name: "Previous" }));
     expect(await screen.findByRole("heading", { name: "Eren Yeager" })).toBeDefined();

@@ -7,7 +7,6 @@ import AniListCharacterDetailModal from "@/routes/components/anilist/detail/char
 import { useSettingsStore } from "@/store/settings.store";
 import type { AniCharacterDetail, AniMedia, AniStaffDetail, AniVoiceActor } from "@/types/anilist";
 
-/** The metadata block reads a good deal of the media object, so the fixture is complete. */
 function ANIME(title: string): AniMedia {
   return {
     cover_url: null,

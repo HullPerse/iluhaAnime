@@ -23,7 +23,6 @@ function AniListCharacterDetailModal({
   characterId: number;
   characterName: string;
   voiceActors: AniVoiceActor[];
-  /** Opens with this person's screen already pushed, so a voice actor can be the entry point. */
   initialStaff?: { id: number; name: string };
   isLoggedIn: boolean;
   favouriteCharacterIds?: Set<number>;
@@ -40,8 +39,6 @@ function AniListCharacterDetailModal({
       name: characterName,
       voiceActors,
     };
-    // The character stays underneath: a voice actor is reached from their character, and the
-    // back arrow should land on it rather than close the window.
     return initialStaff ? [root, { kind: "staff", ...initialStaff }] : [root];
   });
   const current = stack.at(-1)!;
@@ -56,7 +53,6 @@ function AniListCharacterDetailModal({
     favouriteStaffIds,
     onCharacterFavouriteToggle,
     onStaffFavouriteToggle,
-    // The caller's `onRelated` closes this overlay and opens the anime in the modal behind it.
     onOpenAnime: (id) => onRelated?.(id),
     onPush: push,
   };

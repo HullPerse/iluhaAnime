@@ -21,7 +21,6 @@ import { SimilarSection } from "./similar.detail";
 import { StudiosSection } from "./studios.detail";
 import { TitlesSection } from "./titles.detail";
 
-/** What the character window opens on: a character, optionally with a voice actor pushed over it. */
 type CharacterTarget = {
   id: number;
   name: string;
@@ -29,10 +28,6 @@ type CharacterTarget = {
   staff?: AniVoiceActor;
 };
 
-/**
- * The character window. It seeds its screen stack once, so a different character or voice actor
- * needs a fresh instance (the `key`) rather than new props on the old one.
- */
 function CharacterWindow({
   target,
   isLoggedIn,
@@ -214,8 +209,6 @@ export function AniListDetailView({
           favouriteStaffIds={favouriteStaffIds}
           onCharacterFavouriteToggle={onCharacterFavouriteToggle}
           onStaffFavouriteToggle={onStaffFavouriteToggle}
-          // The caller's `onRelated` opens the anime in the modal behind this window, so this one
-          // has to close first.
           onRelated={(id) => {
             setSelectedCharacter(null);
             onRelated?.(id);

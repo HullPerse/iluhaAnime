@@ -16,11 +16,6 @@ import { PersonFavButton } from "./favbutton.detail";
 import { DetailProfileHeader } from "./profileHeader.detail";
 import { DetailError, DetailLoading } from "./screenState.detail";
 
-/**
- * The profile itself is page-independent, so both lists fetch the same command with the other
- * list pinned to page one. That costs one extra request on open and keeps paging independent
- * for the two lists, which a single paged query could not do.
- */
 function useStaffPage(
   key: string,
   id: number,
@@ -38,7 +33,6 @@ function useStaffPage(
         charPage: pageParamName === "charPage" ? pageParam : 1,
         ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
       }),
-    // A command that resolved to nothing (mock, empty response) must not blow up the observer.
     getNextPageParam: (lastPage, pages) =>
       (Array.isArray(lastPage?.[list]) ? lastPage[list].length : 0) < pageSize
         ? undefined
@@ -85,7 +79,6 @@ function StaffCharactersSection({
   );
 }
 
-/** Collapsed to the first line until the reader asks for the rest. */
 function StaffAboutSection({ about }: { about: string }) {
   const { t } = useI18n();
   const [expanded, setExpanded] = useState(false);

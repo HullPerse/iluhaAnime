@@ -11,11 +11,6 @@ import type { AniListOverlayContext, AniListOverlayScreen, AniMedia } from "@/ty
 import AniListMetadata from "./metadata.detail";
 import { DetailError, DetailLoading } from "./screenState.detail";
 
-/**
- * An anime reached from a character or staff credit opens here instead of replacing the anime
- * behind the overlay, so "back" returns to the character you came from. The full modal stays
- * one click away through `onOpenAnime`.
- */
 export function AnimeScreen({
   screen,
   context,

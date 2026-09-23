@@ -15,6 +15,7 @@ import { attempt } from "@/lib/utils/attempt.utils";
 import { formatBytes } from "@/lib/utils/bytes.utils";
 import { showError } from "@/lib/utils/notification.utils";
 import { formatElapsed } from "@/lib/utils/time.utils";
+import { useSettingsStore } from "@/store/settings.store";
 import type { PickerTorrent } from "@/types/torrent";
 
 function TorrentFilePicker({
@@ -36,6 +37,7 @@ function TorrentFilePicker({
   loading?: boolean;
 }) {
   const { t } = useI18n();
+  const fileOrder = useSettingsStore((s) => s.fileOrder);
   const [saveDir, setSaveDir] = useState(defaultSaveDir);
   const [browsing, setBrowsing] = useState(false);
   const [sequential, setSequential] = useState(false);
@@ -140,7 +142,7 @@ function TorrentFilePicker({
           </div>
           <div className="flex h-42 w-full flex-col overflow-y-auto pr-2">
             {torrent &&
-              groupFilesByDirectory(torrent.files).map((group) => (
+              groupFilesByDirectory(torrent.files, fileOrder).map((group) => (
                 <div key={group.dir || "__root__"}>
                   {group.dir && (
                     <div className="windows95-font flex items-center gap-1 px-1 py-0.5 text-xs select-none">

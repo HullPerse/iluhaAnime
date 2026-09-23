@@ -28,7 +28,6 @@ export default function AniListSearchToolbar({
   const { t } = useI18n();
   const activeFilterCount = countActiveAnilistFilters(filters);
 
-  // Custom submit on purpose: handleGlobal owns history recording, field.handleSubmit would record twice.
   const submitSearch = () => {
     if (
       field.inlineCompletion &&

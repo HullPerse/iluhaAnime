@@ -172,7 +172,6 @@ export interface AniCharacterNode {
   name: string;
   native_name: string | null;
   image: string | null;
-  /** How many users favourited the character; `null` when the query did not ask for it. */
   favourites: number | null;
   site_url: string | null;
 }
@@ -197,7 +196,6 @@ export interface AniCharacterMediaEdge {
   cover_url: string | null;
 }
 
-/** Character profile plus one page of the anime it appears in. */
 export interface AniCharacterDetail {
   id: number;
   name: string;
@@ -231,11 +229,9 @@ export interface AniStaffDetail {
   name: string;
   native_name: string | null;
   image: string | null;
-  /** AniList hands this out as HTML; flatten it before showing it. */
   about: string | null;
   favourites: number | null;
   site_url: string | null;
-  /** Totals across pages, not the length of the arrays below. */
   character_count: number;
   media_count: number;
   characters: AniStaffCharacterEdge[];
@@ -577,20 +573,17 @@ export type AniDetailViewProps = AniDetailProps & {
   onTrailer: (youtubeId: string) => void;
 };
 
-/** One entry of the character overlay's navigation stack. */
 export type AniListOverlayScreen =
   | { kind: "character"; id: number; name: string; role?: string; voiceActors: AniVoiceActor[] }
   | { kind: "staff"; id: number; name: string }
   | { kind: "anime"; id: number; name: string };
 
-/** Everything the overlay's screens need that only the detail modal knows. */
 export interface AniListOverlayContext {
   isLoggedIn: boolean;
   favouriteCharacterIds?: Set<number>;
   favouriteStaffIds?: Set<number>;
   onCharacterFavouriteToggle?: (id: number) => void;
   onStaffFavouriteToggle?: (id: number) => void;
-  /** Leaves the overlay for the full anime modal. */
   onOpenAnime: (id: number) => void;
   onPush: (screen: AniListOverlayScreen) => void;
 }

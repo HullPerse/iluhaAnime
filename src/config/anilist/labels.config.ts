@@ -25,7 +25,6 @@ export const seasonLabels: Record<string, TranslationKey> = {
   WINTER: "anilist.season.WINTER",
 };
 
-/** `role` on a character edge: whether the character carries the title or supports it. */
 export const characterRoleLabels: Record<string, TranslationKey> = {
   MAIN: "anilist.characters.role.main",
   SUPPORTING: "anilist.characters.role.supporting",

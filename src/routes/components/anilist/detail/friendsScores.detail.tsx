@@ -63,8 +63,6 @@ export function FriendsScoresSection({ animeId }: { animeId: number }) {
           {rows.map((row) => {
             const scored = row.score != null && row.score !== 0;
             const label = t(toLocaleKey(listStatusLabels[row.status] ?? row.status));
-            // The status used to be a 10x10 colour square, which said nothing unless you had
-            // memorised the palette. Colour stays, but now it carries the status name.
             const hint = scored ? `${label} - ${row.score}/10` : label;
             return (
               <div

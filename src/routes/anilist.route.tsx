@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { defaultFilters } from "@/config/anilist/filters.config";
 import { useAnilistDetail } from "@/hooks/anilist/detail.hook";
 import { useAnilistListView } from "@/hooks/anilist/listView.hook";
+import { useAnilistModals } from "@/hooks/anilist/modals.hook";
 import { useFavouritePeopleToggles } from "@/hooks/anilist/people.hook";
 import { useAnilistRandom } from "@/hooks/anilist/random.hook";
 import { useAnilistSearch } from "@/hooks/anilist/search.hook";
@@ -61,21 +62,10 @@ function AnilistRoute() {
   const suggestionStats = useSearchStore((state) => state.suggestionStats);
 
   const [currentList, setCurrentList] = useState<string>("");
-  const [auth, setAuth] = useState<boolean>(false);
-  const [showRecs, setShowRecs] = useState(false);
+  const { views, handleOpenModal, handleCloseModal, handleOpenActivity, handleCloseActivity } =
+    useAnilistModals();
   const [recs, setRecs] = useState<AniRecommendation[]>([]);
   const [recsLoading, setRecsLoading] = useState(false);
-  const [showFavourites, setShowFavourites] = useState(false);
-  const [activityHistory, setActivityHistory] = useState<{
-    open: boolean;
-    tab: "feed" | "calendar";
-  }>({ open: false, tab: "feed" });
-  const [showBrowse, setShowBrowse] = useState(false);
-  const [showStats, setShowStats] = useState(false);
-  const [showPrefetch, setShowPrefetch] = useState(false);
-  const [showSpotlight, setShowSpotlight] = useState(false);
-  const [showFriends, setShowFriends] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
   const [viewedFriend, setViewedFriend] = useState<AniFriend | null>(null);
 
   const self = useUserAnilistData();
@@ -120,7 +110,7 @@ function AnilistRoute() {
   );
 
   useEffect(() => {
-    if (!showRecs || !user) return;
+    if (!views.recs || !user) return;
     setRecsLoading(true);
     (async () => {
       const [recs, error] = await attempt(
@@ -133,7 +123,7 @@ function AnilistRoute() {
       else setRecs(recs);
       setRecsLoading(false);
     })();
-  }, [showRecs, user]);
+  }, [views.recs, user]);
 
   const sort = useSettingsStore((s) => s.anilistListSort);
   const setSort = useCallback((next: AniListSort) => {
@@ -294,7 +284,7 @@ function AnilistRoute() {
 
   const handleAuthSuccess = useCallback(
     (authUser: AniUser) => {
-      setAuth(false);
+      handleCloseModal("auth");
       queryClient.setQueryData(["anilist_data"], {
         user: authUser,
         lists: [],
@@ -303,7 +293,7 @@ function AnilistRoute() {
       });
       queryClient.invalidateQueries({ queryKey: ["anilist_data"] });
     },
-    [queryClient]
+    [queryClient, handleCloseModal]
   );
 
   const handleAddFriend = useCallback(
@@ -321,13 +311,13 @@ function AnilistRoute() {
   const openFriend = useCallback(
     (friend: AniFriend) => {
       setViewedFriend(friend);
-      setShowFriends(false);
+      handleCloseModal("friends");
       setCurrentList(ALL_LISTS_ID);
       setPage(1);
       setSearchTerms("");
       if (global) handleReset();
     },
-    [global, handleReset, setSearchTerms]
+    [global, handleReset, setSearchTerms, handleCloseModal]
   );
 
   const backToSelf = useCallback(() => {
@@ -428,7 +418,7 @@ function AnilistRoute() {
           onGlobal={handleGlobal}
           onReset={handleReset}
           filters={searchFilters}
-          onFiltersOpen={() => setShowFilters(true)}
+          onFiltersOpen={() => handleOpenModal("filters")}
           loadingSearch={loadingSearch}
         />
       )}
@@ -452,15 +442,15 @@ function AnilistRoute() {
         onGroupChange={setGroupByStatus}
         displayMode={effectiveDisplayMode}
         onDisplayChange={setDisplayMode}
-        onActivityFeed={() => setActivityHistory({ open: true, tab: "feed" })}
-        onFavourites={() => setShowFavourites(true)}
+        onActivityFeed={() => handleOpenActivity("feed")}
+        onFavourites={() => handleOpenModal("favourites")}
         onRandom={handleRandomFromList}
-        onStats={() => setShowStats(true)}
-        onBrowse={() => setShowBrowse(true)}
-        onRecs={() => setShowRecs(true)}
-        onPrefetch={() => setShowPrefetch(true)}
-        onSpotlight={() => setShowSpotlight(true)}
-        onFriends={() => setShowFriends(true)}
+        onStats={() => handleOpenModal("stats")}
+        onBrowse={() => handleOpenModal("browse")}
+        onRecs={() => handleOpenModal("recs")}
+        onPrefetch={() => handleOpenModal("prefetch")}
+        onSpotlight={() => handleOpenModal("spotlight")}
+        onFriends={() => handleOpenModal("friends")}
         onLogout={handleLogout}
         onBackToSelf={backToSelf}
       />
@@ -480,7 +470,7 @@ function AnilistRoute() {
           loadingSearch,
           hasSearchResults: searchResults.length > 0,
         })}
-        onLogin={() => setAuth(true)}
+        onLogin={() => handleOpenModal("auth")}
       />
 
       <AniListResultsHost
@@ -534,12 +524,12 @@ function AnilistRoute() {
         onSaved={handleDetailsSaved}
       />
 
-      {showSpotlight && source.caps.modals && (
+      {views.spotlight && source.caps.modals && (
         <SpotlightModal
           hasUser={!!user}
           onDetails={openAnimeFromLookup}
           isFavorite={(id) => favouriteIds.has(id)}
-          onClose={() => setShowSpotlight(false)}
+          onClose={() => handleCloseModal("spotlight")}
         />
       )}
 
@@ -547,48 +537,48 @@ function AnilistRoute() {
         <AniListSecondaryModals
           entryLookup={entryLookup}
           views={{
-            auth,
-            recs: showRecs,
+            auth: views.auth,
+            recs: views.recs,
             recsLoading,
-            activity: activityHistory.open && !!user,
-            friends: showFriends && !!user,
-            favourites: showFavourites,
-            filters: showFilters,
-            stats: showStats,
-            browse: showBrowse,
-            prefetch: showPrefetch,
+            activity: views.activity.open && !!user,
+            friends: views.friends && !!user,
+            favourites: views.favourites,
+            filters: views.filters,
+            stats: views.stats,
+            browse: views.browse,
+            prefetch: views.prefetch,
           }}
           onAuthSuccess={handleAuthSuccess}
-          onAuthClose={() => setAuth(false)}
+          onAuthClose={() => handleCloseModal("auth")}
           recs={recs}
-          onRecsClose={() => setShowRecs(false)}
+          onRecsClose={() => handleCloseModal("recs")}
           onRecsAnime={openAnimeFromLookup}
           userId={user?.id ?? null}
           friendIds={friendIds}
           lists={lists}
-          activityTab={activityHistory.tab}
-          onActivityClose={() => setActivityHistory((s) => ({ ...s, open: false }))}
+          activityTab={views.activity.tab}
+          onActivityClose={handleCloseActivity}
           onActivityAnime={openAnimeFromLookup}
           friends={friends}
           onAddFriend={handleAddFriend}
           onRemoveFriend={removeFriend}
           onViewFriendLists={openFriend}
-          onFriendsClose={() => setShowFriends(false)}
+          onFriendsClose={() => handleCloseModal("friends")}
           favourites={favourites}
-          onFavouritesClose={() => setShowFavourites(false)}
+          onFavouritesClose={() => handleCloseModal("favourites")}
           onFavouritesAnime={openAnimeFromLookup}
           filters={searchFilters}
           onFiltersApply={setSearchFilters}
           onFiltersReset={() => setSearchFilters(defaultFilters)}
-          onFiltersClose={() => setShowFilters(false)}
+          onFiltersClose={() => handleCloseModal("filters")}
           onFiltersRandom={handleFilterRandom}
           randomPending={randomPending}
-          onStatsClose={() => setShowStats(false)}
+          onStatsClose={() => handleCloseModal("stats")}
           onStatsAnime={openAnimeFromLookup}
-          onBrowseClose={() => setShowBrowse(false)}
+          onBrowseClose={() => handleCloseModal("browse")}
           onBrowseAnime={openAnimeFromLookup}
           animeIds={allAnimeIds}
-          onPrefetchClose={() => setShowPrefetch(false)}
+          onPrefetchClose={() => handleCloseModal("prefetch")}
         />
       )}
     </div>

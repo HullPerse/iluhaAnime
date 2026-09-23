@@ -36,7 +36,6 @@ export function CharacterScreen({
         page: pageParam,
         ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
       }),
-    // A command that resolved to nothing (mock, empty response) must not blow up the observer.
     getNextPageParam: (lastPage, pages) =>
       (Array.isArray(lastPage?.media) ? lastPage.media.length : 0) < MEDIA_PAGE_SIZE
         ? undefined

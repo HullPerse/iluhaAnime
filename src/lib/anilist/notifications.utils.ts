@@ -8,6 +8,7 @@ import type { AniNotificationEntry } from "@/types/anilist";
 import type { TFunc } from "@/types/i18n";
 
 function notifyEpisode(
+  animeId: number,
   title: string,
   episode: number | string,
   key: string,
@@ -23,7 +24,7 @@ function notifyEpisode(
       "info",
       t("notification.anilist.new.episode.body", { episode, title }),
       key,
-      { system }
+      { system, target: { source: "anilist", id: animeId } }
     );
   return true;
 }
@@ -34,17 +35,22 @@ function notifyStatus(
   t: TFunc,
   system: boolean
 ) {
+  const target = { source: "anilist", id: entry.media.id } as const;
   if (!useSettingsStore.getState().notifyStatusChanges) return;
   if (entry.list_status === "COMPLETED" && previous.status !== "COMPLETED")
     useNotificationStore
       .getState()
       .add(t("notification.anilist.completed"), "success", entry.media.title, undefined, {
         system,
+        target,
       });
   if (entry.list_status === "PLANNING" && previous.status !== "PLANNING")
     useNotificationStore
       .getState()
-      .add(t("notification.anilist.planned"), "info", entry.media.title, undefined, { system });
+      .add(t("notification.anilist.planned"), "info", entry.media.title, undefined, {
+        system,
+        target,
+      });
 }
 
 function buildSignature(entry: AniNotificationEntry): string {
@@ -78,7 +84,7 @@ function notifyMissedEpisodes(
   const to = media.next_episode;
   if (from == null || to == null) return count;
   for (let episode = from; episode < to; episode++) {
-    if (notifyEpisode(media.title, episode, `${key}:${episode}`, t, system)) count++;
+    if (notifyEpisode(media.id, media.title, episode, `${key}:${episode}`, t, system)) count++;
   }
   return count;
 }
@@ -111,6 +117,7 @@ function processEntry(entry: AniNotificationEntry, now: number, t: TFunc, system
     if (hasAiringNow(media, previous, signature, now)) {
       if (
         notifyEpisode(
+          media.id,
           media.title,
           media.next_episode ?? "?",
           `${key}:${media.next_episode}`,

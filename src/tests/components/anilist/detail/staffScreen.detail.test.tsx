@@ -55,7 +55,6 @@ const MEDIA_PAGE = page({
   media: [{ id: 21, title: "Attack on Titan", cover_url: null }],
 });
 
-/** Page one is whatever asks first (characters, then media); later pages are told apart by args. */
 function dispatch(
   charactersPage: AniStaffDetail = CHARACTERS_PAGE,
   charactersNext: AniStaffDetail = page({})
@@ -113,7 +112,6 @@ describe("StaffScreen", () => {
     expect(screen.getByText("Anime (88)")).toBeDefined();
     expect(screen.getByRole("button", { name: "Attack on Titan" })).toBeDefined();
 
-    // Collapsed, the bio keeps only its first line; expanding reveals the rest.
     expect(screen.getByText("Born in Tokyo")).toBeDefined();
     expect(screen.queryByText("Voiced many leads")).toBeNull();
     await userEvent.setup().click(screen.getByRole("button", { name: "Expand section" }));

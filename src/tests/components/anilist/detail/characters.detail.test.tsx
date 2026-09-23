@@ -57,7 +57,6 @@ function renderPanel(
   );
 }
 
-/** The panel starts collapsed, so the tiles are only reachable once it is opened. */
 async function expand() {
   await userEvent.setup().click(await screen.findByRole("button", { name: "Expand section" }));
 }
@@ -115,10 +114,8 @@ describe("AniListCharactersPanel", () => {
     await user.hover(screen.getByRole("button", { name: "Eren" }));
     expect(await screen.findByText("Yuki Kaji", {}, { timeout: 3000 })).toBeDefined();
     expect(screen.getByText("梶裕貴")).toBeDefined();
-    // Without a navigation handler the row is informational: nothing to click through to.
     expect(screen.queryByRole("button", { name: "Yuki Kaji" })).toBeNull();
 
-    // A character the endpoint returned without voice actors has nothing to preview.
     await user.unhover(screen.getByRole("button", { name: "Eren" }));
     await waitFor(() => expect(screen.queryByText("Yuki Kaji")).toBeNull());
     await user.hover(screen.getByRole("button", { name: "Armin" }));

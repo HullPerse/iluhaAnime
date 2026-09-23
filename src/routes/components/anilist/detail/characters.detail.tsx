@@ -25,7 +25,6 @@ function AniListCharactersPanel({
 }: {
   animeId: number;
   onCharacterClick?: (characterId: number, name: string, voiceActors: AniVoiceActor[]) => void;
-  /** Fired from a voice actor row inside the hover card, together with their character. */
   onVoiceActorClick?: (
     character: { id: number; name: string; voiceActors: AniVoiceActor[] },
     voiceActor: AniVoiceActor
@@ -45,18 +44,12 @@ function AniListCharactersPanel({
         page: pageParam,
         ...anilistProxyArgs(useSettingsStore.getState().anilistProxyUrl),
       }),
-    // The query returns a bare list, so a short page is the only end-of-list signal available.
-    // A command that resolves to nothing (mock, empty response) must not blow up the observer.
     getNextPageParam: (lastPage, pages) =>
       (Array.isArray(lastPage) ? lastPage.length : 0) < CHAR_PAGE_SIZE
         ? undefined
         : pages.length + 1,
   });
 
-  // Anything that is not an edge (an empty page, a command that resolved to nothing) is dropped
-  // rather than dereferenced: one bad page used to take the whole detail view down with it.
-  // Pages can overlap when the listing shifts between requests, so ids are deduped across pages
-  // to keep React keys unique.
   const edges = useMemo(
     () =>
       uniqueById(
@@ -78,11 +71,6 @@ function AniListCharactersPanel({
     [edges]
   );
 
-  /**
-   * The hover card is the only place a voice actor is named before their own screen exists, so its
-   * rows navigate. The card dismisses itself first: it renders above the screen the click opens.
-   * A character nothing has voiced has no card to show and the tile stays a plain button.
-   */
   const voiceActorPreview = (edge: AniCharacterEdge) => {
     if (edge.voice_actors.length === 0) return undefined;
     return (close: () => void) => (

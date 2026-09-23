@@ -455,9 +455,7 @@ describe("AnilistRoute friend lists", () => {
 
     await viewer.click(container.querySelector('button[title="AniList friends"]')!);
     await screen.findByText("Friend");
-    // Row click opens the preview pane; the dedicated button opens the friend's lists.
     await viewer.click(screen.getByTitle("Friend"));
-    // The preview's refresh button renders only once the profile pane has loaded.
     await screen.findByTitle("Refresh profile");
     await viewer.click(screen.getAllByTitle("View lists")[0]!);
 

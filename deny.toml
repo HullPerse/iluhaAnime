@@ -13,6 +13,7 @@ ignore = [
   { id = "RUSTSEC-2025-0080", reason = "unic-common unmaintained, upstream-only via tauri/wry" },
   { id = "RUSTSEC-2025-0100", reason = "unic-ucd-ident unmaintained, upstream-only via tauri/wry" },
   { id = "RUSTSEC-2025-0098", reason = "unic-ucd-version unmaintained, upstream-only via tauri/wry" },
+  { id = "RUSTSEC-2026-0293", reason = "ringbuf double free needs a buffered element whose Drop panics mid-skip; librqbit-utp stores u8 (SharedRb<Heap<u8>>), so drop_in_place cannot panic and the read index is always advanced. No upstream fix: librqbit-utp 0.7.0 is the newest release and still requires ringbuf ^0.4.7, while the fix shipped in 0.5.2" },
 ]
 
 [licenses]

@@ -144,8 +144,6 @@ export function WizardModal({
   const { searchResults, coverOptions, setCoverOptions, loading, searchError, runSearch } =
     useWizardSearch(source, search, tmdbKeySet, tmdbProxyUrl, existingTitles, favIds);
   const editing = Boolean(initial);
-  // A public prefill owns the new item: it lands only in that status, so the
-  // selector stays shut. Editing keeps it free, otherwise items could never move out.
   const statusLocked =
     !editing &&
     prefill != null &&

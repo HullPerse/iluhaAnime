@@ -27,8 +27,6 @@ export function calculateCollectionStats(items: CollectionItem[], statuses: Coll
   const ratingDist: Record<number, number> = {};
   const perYearHours: Record<number, number> = {};
   const ratingAcc = { sum: 0, count: 0, dist: ratingDist };
-  // Imported public collections are a reference list, not the user's own record, so
-  // they keep a tab count of their own but stay out of the library totals.
   const excluded = publicStatusIds(statuses);
   let total = 0;
   let favorites = 0;

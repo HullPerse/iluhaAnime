@@ -12,23 +12,16 @@ export function statusColorOf(statuses: CollectionStatusDef[], id: string): stri
   return statuses.find((s) => s.id === id)?.color ?? "#9ca3af";
 }
 
-/** Public statuses hold imported shared collections rather than the user's own record. */
 export function isPublicStatus(status: CollectionStatusDef): boolean {
   return status.kind === "public";
 }
 
-/** Ids of every public status, so the All tab can leave imported collections out. */
 export function publicStatusIds(statuses: readonly CollectionStatusDef[]): Set<string> {
   const ids = new Set<string>();
   for (const status of statuses) if (isPublicStatus(status)) ids.add(status.id);
   return ids;
 }
 
-/**
- * Toolbar-plus prefill for a selected public tab: the new item lands only in that
- * public status instead of the default planned bucket. Every other tab keeps the
- * default flow and returns null.
- */
 export function publicStatusPrefill(
   statuses: readonly CollectionStatusDef[],
   selectedStatus: CollectionStatus | "all"
@@ -38,11 +31,6 @@ export function publicStatusPrefill(
   return { title: "", coverUrl: null, status: selected.id };
 }
 
-/**
- * Toolbar-plus kill switch for a full public tab: the header add button already
- * disables itself at the cap, the toolbar one needs the same guard or the wizard
- * would open for a status that cannot take more titles.
- */
 export function isPublicStatusFull(
   statuses: readonly CollectionStatusDef[],
   selectedStatus: CollectionStatus | "all",

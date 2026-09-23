@@ -8,12 +8,6 @@ import type {
 
 const UNKNOWN_STATUS_COLOR = "#9ca3af";
 
-/**
- * Grouped rows carry the per-status header, which is the only place a public status
- * shows its counter and add button. The user's grouping setting is one way to get
- * there; opening a public status tab is the other, so its header is always reachable
- * without toggling grouping on.
- */
 export function shouldGroupByStatus(
   groupByStatus: boolean,
   selectedStatus: CollectionStatus | "all",

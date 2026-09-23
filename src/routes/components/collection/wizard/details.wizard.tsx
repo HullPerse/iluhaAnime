@@ -24,7 +24,6 @@ export function WizardDetailsPanel(props: {
   status: CollectionStatus;
   setStatus: (value: CollectionStatus) => void;
   statuses: CollectionStatusDef[];
-  /** Set when a public prefill owns the new item: it lands only in that status. */
   statusDisabled?: boolean;
   progressValue: string;
   setProgressValue: (value: string) => void;

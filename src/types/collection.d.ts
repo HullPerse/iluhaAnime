@@ -13,7 +13,6 @@ export interface CollectionStatusDef {
   color: string;
   order: number;
   isCore: boolean;
-  /** `public` statuses hold imported shared collections: capped, hidden from All. */
   kind: CollectionStatusKind;
 }
 

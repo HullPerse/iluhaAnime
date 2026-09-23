@@ -9,10 +9,6 @@ import { useI18n } from "@/lib/locale/i18n.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import type { CollectionStatus, CollectionStatusDef } from "@/types/collection";
 
-/**
- * Mirrors the AniList copy-link button: the tick is the whole confirmation, with no
- * notification to dismiss.
- */
 function ShareStatusButton({ onShare }: { onShare: () => Promise<void> | void }) {
   const { t } = useI18n();
   const [copied, setCopied] = useState(false);

@@ -209,7 +209,6 @@ export function filterCollectionItems(
   if (selectedStatus !== "all") {
     list = list.filter((item) => item.status === selectedStatus);
   } else {
-    // Imported public collections get their own tab and stay out of All.
     const excluded = publicStatusIds(statuses);
     if (excluded.size > 0) list = list.filter((item) => !excluded.has(item.status));
   }

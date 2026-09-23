@@ -92,7 +92,6 @@ describe("StatusManagerCollection sections", () => {
       />
     );
     const lists = document.querySelectorAll("ul");
-    // The kind picker renders its own hidden input, so select by the label field.
     const labelInputs = (list: Element | undefined) =>
       Array.from(list?.querySelectorAll('input[aria-label="Status label"]') ?? []).map(
         (input) => (input as HTMLInputElement).value

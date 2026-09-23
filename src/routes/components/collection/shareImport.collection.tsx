@@ -24,10 +24,6 @@ import type { ShareImportPlan } from "@/types/deeplink";
 import { BilingualPreview } from "./bilingualPreview.collection";
 import { OperationStatus } from "./import/operationStatus.import";
 
-/**
- * Every imported item is written into the public status instead of the status it had on
- * the sender's side, so the whole collection arrives as one removable bucket.
- */
 function shareRowToExportRow(row: ShareImportPlan["rows"][number], status: string) {
   return {
     id: "",
@@ -77,7 +73,6 @@ export function ShareImportCollection({
 }) {
   const { t, locale } = useI18n();
   const queryClient = useQueryClient();
-  // The status label is capped at 64 chars server side, so a longer shared label is trimmed.
   const [name, setName] = useState((plan.link.label ?? "").slice(0, 64));
   const [selected, setSelected] = useState<Set<number>>(
     () => new Set(plan.rows.map((_, index) => index).slice(0, PUBLIC_STATUS_MAX_ITEMS))
@@ -110,7 +105,6 @@ export function ShareImportCollection({
     });
   };
 
-  /** Creates the public status once, then reuses it for retries. */
   const resolveStatusId = async () => {
     if (statusIdRef.current !== null) return statusIdRef.current;
     if (existingTarget) {

@@ -34,7 +34,6 @@ export default function ToolbarCollection({
   onSortChange: (by: CollectionStore["sortBy"], dir: CollectionStore["sortDir"]) => void;
   onRandom: () => void;
   randomDisabled: boolean;
-  /** Set when the selected public tab is at its item cap: the plus opens nowhere. */
   addDisabled?: boolean;
 }) {
   const { t } = useI18n();

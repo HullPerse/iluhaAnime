@@ -152,9 +152,6 @@ export default function CollectionRoute() {
     statuses.some((status) => status.id === selectedStatus && isPublicStatus(status));
   const canShareStatus = selectedIsPublic && (statusCounts[selectedStatus] ?? 0) > 0;
 
-  // A public status always shows its own header, so its counter and add button are
-  // reachable from its tab without turning the grouping setting on. The All tab never
-  // contains public statuses, so it stays governed by that setting.
   const grouped = useMemo(
     () =>
       shouldGroupByStatus(groupByStatus, selectedStatus, statuses)
@@ -195,7 +192,6 @@ export default function CollectionRoute() {
   const handleShareStatus = useCallback(async () => {
     const scopedItems = items.filter((item) => item.status === selectedStatus);
     const label = statuses.find((status) => status.id === selectedStatus)?.label ?? null;
-    // The tick on the button is the whole confirmation, so only failures notify.
     const [link, linkError] = await attempt(buildCollectionShareLink(scopedItems, label));
     if (linkError) {
       useNotificationStore.getState().add(t("app.collection"), "error", linkError.message);
@@ -209,8 +205,6 @@ export default function CollectionRoute() {
   useEffect(() => {
     if (!shareTarget) return;
     setIncomingShare(buildShareImportPlan(shareTarget, statuses));
-    // The plan is a snapshot, so drop the target now: keeping it would rebuild and
-    // reopen the modal as soon as the import invalidates the collection query.
     useDeepLinkStore.getState().consumeShare();
   }, [shareTarget, statuses]);
 

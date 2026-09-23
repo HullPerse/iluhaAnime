@@ -40,10 +40,6 @@ export const DEFAULT_COLLECTION_STATUSES: CollectionStatusDef[] = [
 
 export const DEFAULT_NEW_COLOR = "#0ea5e9";
 
-/**
- * Public statuses carry a single share link, so their size is capped: the cap keeps the
- * encoded link short enough to stay clickable and keeps the tab counter readable.
- */
 export const PUBLIC_STATUS_MAX_ITEMS = 20;
 
 export const STATUS_TAB_WIDTH = 132;

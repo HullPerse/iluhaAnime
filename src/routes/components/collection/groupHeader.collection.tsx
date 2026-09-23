@@ -5,10 +5,6 @@ import { PUBLIC_STATUS_MAX_ITEMS } from "@/config/collection/statuses.config";
 import { enterOrSpace } from "@/lib/utils/keyboard.utils";
 import type { CollectionStatusDef } from "@/types/collection";
 
-/**
- * Header extras for a public status: its own `count/max` counter and an add button that
- * switches off once the status is full. Private statuses get neither.
- */
 export function publicHeaderProps({
   status,
   count,
@@ -45,13 +41,11 @@ export function GroupHeaderCollection({
   label: string;
   color: string;
   count: number;
-  /** Set for public statuses so the header reads `count/max` instead of a bare count. */
   maxCount?: number;
   collapsed: boolean;
   variant: "torrent" | "folder";
   toggleLabel: string;
   onToggle: () => void;
-  /** Present only for public statuses, which accept items straight from their header. */
   onAdd?: () => void;
   addDisabled?: boolean;
   addLabel?: string;

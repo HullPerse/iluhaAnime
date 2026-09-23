@@ -29,6 +29,11 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.4_1_1.added.torrent_proxy", "torrents"),
       entry("changelog.4_1_1.added.screenshots", "app"),
       entry("changelog.4_1_1.added.screenshot_draw", "app"),
+      entry("changelog.4_1_1.added.screenshot_modal", "app"),
+      entry("changelog.4_1_1.added.browser_login", "anilist"),
+      entry("changelog.4_1_1.added.friend_comments", "anilist"),
+      entry("changelog.4_1_1.added.friend_rewatch", "anilist"),
+      entry("changelog.4_1_1.added.list_comment", "anilist"),
       entry("changelog.4_1_1.added.app_site", "app"),
     ],
     changed: [
@@ -40,7 +45,10 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.4_1_1.changed.recreate_confirm", "torrents"),
       entry("changelog.4_1_1.changed.torrent_speed", "torrents"),
     ],
-    fixed: [entry("changelog.4_1_1.fixed.tray_restore", "app")],
+    fixed: [
+      entry("changelog.4_1_1.fixed.tray_restore", "app"),
+      entry("changelog.4_1_1.fixed.text_cursor", "app"),
+    ],
   },
   {
     version: "4.1.0",

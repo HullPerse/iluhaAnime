@@ -25,6 +25,16 @@ const changelog411 = {
     "CTRL+SHIFT+P captures the page you have open into a screenshot window: mark the area you need right on the preview (hold Shift for a square) and zoom or move the shot with the wheel and the right button, then pick the folder, the file name and the PNG or JPEG format, copy the shot to the clipboard without saving it, and let the folder open right after saving",
   "changelog.4_1_1.added.screenshot_draw":
     "The screenshot window can mark up what it captured before saving: a pencil with a colour palette or a colour of your own, an eraser, text that you can drag, retype or resize, and a blur brush that hides what should not leave the app, with undo and redo on Ctrl+Z and Ctrl+Y",
+  "changelog.4_1_1.added.browser_login":
+    "AniList login from the browser: confirm once on the site and the app picks up the token itself, with manual paste kept as a fallback",
+  "changelog.4_1_1.added.friend_comments":
+    "Friend scores show the friend's list comment behind a bubble button; rows without a comment show nothing",
+  "changelog.4_1_1.added.friend_rewatch":
+    "Friend scores mark repeated watches with a rewind icon carrying the repeat count",
+  "changelog.4_1_1.added.list_comment":
+    "List management edits your own list comment: view it, change it, or clear it with an empty field",
+  "changelog.4_1_1.added.screenshot_modal":
+    "Screenshots fire with a modal open: the capture includes it and the screenshot window lands on top",
   "changelog.4_1_1.added.app_site": "App website: https://iluhasite.onrender.com/",
   "changelog.4_1_1.changed.resume_notice":
     "A resume that had to re-verify the files reports what it found in a notification instead of finishing silently",
@@ -42,6 +52,8 @@ const changelog411 = {
     "Torrent traffic can now be routed through a SOCKS5 proxy, so an ISP throttle on unencrypted BitTorrent stops hitting at full strength",
   "changelog.4_1_1.fixed.tray_restore":
     "The tray icon always shows up now and a left click brings the window back: earlier the icon could be blank and the restore was blocked by missing window permissions",
+  "changelog.4_1_1.fixed.text_cursor":
+    "Hovering a placed text inside the selected screenshot area flips the frame cursor, so the drag visibly carries the text",
 } as const;
 
 export default changelog411;

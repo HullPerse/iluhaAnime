@@ -34,6 +34,7 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.4_1_1.added.friend_comments", "anilist"),
       entry("changelog.4_1_1.added.friend_rewatch", "anilist"),
       entry("changelog.4_1_1.added.list_comment", "anilist"),
+      entry("changelog.4_1_1.added.search_operators", "search"),
       entry("changelog.4_1_1.added.app_site", "app"),
     ],
     changed: [

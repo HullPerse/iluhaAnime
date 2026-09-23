@@ -35,6 +35,8 @@ const changelog411 = {
     "List management edits your own list comment: view it, change it, or clear it with an empty field",
   "changelog.4_1_1.added.screenshot_modal":
     "Screenshots fire with a modal open: the capture includes it and the screenshot window lands on top",
+  "changelog.4_1_1.added.search_operators":
+    "Search understands fzf-style operators: ^prefix, suffix$, 'exact, !exclusion, with space-separated terms all required",
   "changelog.4_1_1.added.app_site": "App website: https://iluhasite.onrender.com/",
   "changelog.4_1_1.changed.resume_notice":
     "A resume that had to re-verify the files reports what it found in a notification instead of finishing silently",

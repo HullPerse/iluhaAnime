@@ -2,6 +2,7 @@ import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { ImagePlus } from "lucide-react";
 import { useState } from "react";
 
+import { systemApi } from "@/api/system.api";
 import { InputDialog } from "@/components/shared/prompt.component";
 import { Button } from "@/components/ui/button.component";
 import { WIZARD_COVER_MAX } from "@/config/collection/defaults.config";
@@ -10,9 +11,7 @@ import { generatePlaceholder } from "@/lib/collection/placeholder.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { assetUrl } from "@/lib/utils/image.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { showError } from "@/lib/utils/notification.utils";
-import type { UserImageFile } from "@/types/userimage";
 
 import { MemoCoverThumb } from "./coverThumb.wizard";
 
@@ -53,9 +52,7 @@ export function WizardCoverPanel({
       return;
     }
     setUploading(true);
-    const [image, error] = await attempt(
-      invokeTyped<UserImageFile>("import_user_image", { path: selectedPath })
-    );
+    const [image, error] = await attempt(systemApi.importUserImage(selectedPath));
     if (error) showError(t("common.error"), t("collection.wizard.upload.error"));
     else onUploadLocal(image.id, assetUrl(image.path));
     setUploading(false);

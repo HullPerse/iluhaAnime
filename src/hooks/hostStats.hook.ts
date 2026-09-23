@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 
+import { systemApi } from "@/api/system.api";
 import { usePolling } from "@/hooks/polling.hook";
 import { attempt } from "@/lib/utils/attempt.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import type { HostStats } from "@/types/ipc";
 
 const HOST_STATS_INTERVAL_MS = 2000;
@@ -15,7 +15,7 @@ export function useHostStats(enabled: boolean): HostStats | null {
     collectKeys: () => ["host"],
     shouldFetch: () => true,
     fetch: async () => {
-      const [stats, error] = await attempt(invokeTyped<HostStats>("get_host_stats"));
+      const [stats, error] = await attempt(systemApi.getHostStats());
       if (error) {
         setStats(null);
         return false;

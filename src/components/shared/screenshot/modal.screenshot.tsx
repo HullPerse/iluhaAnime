@@ -4,6 +4,7 @@ import { openPath } from "@tauri-apps/plugin-opener";
 import { Check, ClipboardCopy } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { systemApi } from "@/api/system.api";
 import { SmallLoader } from "@/components/shared/loader.component";
 import Modal from "@/components/shared/modal.component";
 import ScreenshotStage from "@/components/shared/screenshot/stage.screenshot";
@@ -36,7 +37,6 @@ import { canSaveScreenshot, defaultScreenshotName } from "@/lib/settings/screens
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { resolveFontFamily } from "@/lib/utils/font.utils";
 import { assetUrl } from "@/lib/utils/image.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { COPIED_FEEDBACK_MS, showError, showInfo } from "@/lib/utils/notification.utils";
 import { useSettingsStore } from "@/store/settings.store";
 import type {
@@ -44,7 +44,6 @@ import type {
   AnnotationItem,
   CropBounds,
   CropRect,
-  SavedScreenshot,
   ScreenshotCapture,
   ScreenshotFormat,
   ScreenshotScale,
@@ -143,11 +142,7 @@ export default function ScreenshotModal({
     window.clearTimeout(copyTimer.current);
     copyTimer.current = window.setTimeout(() => setCopied(false), COPIED_FEEDBACK_MS);
     const [path, prepareError] = await attempt(
-      invokeTyped<string>("copy_screenshot", {
-        sourcePath: capture.path,
-        crop: selection,
-        layers: stageRef.current?.layers() ?? undefined,
-      })
+      systemApi.copyScreenshot(capture.path, selection, stageRef.current?.layers() ?? undefined)
     );
     if (prepareError) {
       setCopied(false);
@@ -156,7 +151,7 @@ export default function ScreenshotModal({
     }
     const [, writeError] = await attempt(writeImage(path));
     if (path !== capture.path) {
-      attempt(invokeTyped("discard_screenshot", { sourcePath: path })).then(([, error]) => {
+      attempt(systemApi.discardScreenshot(path)).then(([, error]) => {
         if (error) reportBackgroundError("screenshot.discard-copy", error);
       });
     }
@@ -170,7 +165,7 @@ export default function ScreenshotModal({
     if (!canSave) return;
     setSaving(true);
     const [saved, error] = await attempt(
-      invokeTyped<SavedScreenshot>("save_screenshot", {
+      systemApi.saveScreenshot({
         sourcePath: capture.path,
         dir,
         name: name.trim(),

@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { systemApi } from "@/api/system.api";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { matchesScreenshotHotkey } from "@/lib/settings/screenshot.utils";
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { showError } from "@/lib/utils/notification.utils";
 import type { ScreenshotCapture } from "@/types/screenshot";
 
@@ -26,7 +26,7 @@ export function useScreenshot(): ScreenshotSession {
   const request = useCallback(async () => {
     if (inFlightRef.current || captureRef.current !== null) return;
     inFlightRef.current = true;
-    const [data, error] = await attempt(invokeTyped<ScreenshotCapture>("capture_screenshot"));
+    const [data, error] = await attempt(systemApi.captureScreenshot());
     inFlightRef.current = false;
     if (error) {
       showError(t("common.error"), t("screenshot.capture.error"));
@@ -49,7 +49,7 @@ export function useScreenshot(): ScreenshotSession {
     const pending = captureRef.current;
     setCapture(null);
     if (!pending) return;
-    attempt(invokeTyped("discard_screenshot", { sourcePath: pending.path })).then(([, error]) => {
+    attempt(systemApi.discardScreenshot(pending.path)).then(([, error]) => {
       if (error) reportBackgroundError("screenshot.discard", error);
     });
   }, [setCapture]);

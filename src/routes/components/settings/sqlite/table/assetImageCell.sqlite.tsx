@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 
+import { sqliteApi } from "@/api/sqlite.api";
 import Image from "@/components/ui/image.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { assetUrl } from "@/lib/utils/image.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 
 export function AssetImageCell({
   database,
@@ -30,12 +30,7 @@ export function AssetImageCell({
     setSrc(null);
     (async () => {
       const [path, error] = await attempt(
-        invokeTyped<string | null>("get_sqlite_cell_image", {
-          database,
-          table,
-          column,
-          keys: JSON.parse(keysJson),
-        })
+        sqliteApi.getCellImage(database, table, column, JSON.parse(keysJson))
       );
       if (cancelled) return;
       if (error || !path) setState("missing");

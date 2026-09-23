@@ -112,7 +112,6 @@ export function WizardModal({
   }, [initial, prefill, setTitle, setCoverUrl, setStatus]);
   const [coverBroken, setCoverBroken] = useState(false);
   const tmdbKeySet = useSettingsStore((s) => s.tmdbKeySet);
-  const tmdbProxyUrl = useSettingsStore((s) => s.tmdbProxyUrl);
   const { t } = useI18n();
   const { items: collectionItems } = useCollectionData();
   const animeIndex = useSearchStore((s) => s.animeIndex);
@@ -142,7 +141,7 @@ export function WizardModal({
     [animeIndex]
   );
   const { searchResults, coverOptions, setCoverOptions, loading, searchError, runSearch } =
-    useWizardSearch(source, search, tmdbKeySet, tmdbProxyUrl, existingTitles, favIds);
+    useWizardSearch(source, search, existingTitles, favIds);
   const editing = Boolean(initial);
   const statusLocked =
     !editing &&
@@ -176,8 +175,6 @@ export function WizardModal({
   const { handlePickResult, mediaRef } = useWizardPick({
     form,
     source,
-    tmdbKeySet,
-    tmdbProxyUrl,
     coverBlobIdRef,
     setCoverBroken,
     setCoverOptions,

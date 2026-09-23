@@ -1,11 +1,11 @@
 import { useRef } from "react";
 
+import { tmdbApi } from "@/api/tmdb.api";
 import { WIZARD_COVER_MAX } from "@/config/collection/defaults.config";
 import type { useWizardSearch } from "@/hooks/collection/search.hook";
 import type { useWizardForm } from "@/hooks/collection/wizard.hook";
 import { mergeGenreTags } from "@/lib/collection/wizard.utils";
 import { reportBackgroundError } from "@/lib/utils/attempt.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import type { WizardPickedMedia, WizardSearchResult } from "@/types/collection";
 
 type WizardForm = ReturnType<typeof useWizardForm>;
@@ -14,16 +14,12 @@ type WizardSearchState = ReturnType<typeof useWizardSearch>;
 export function useWizardPick({
   form,
   source,
-  tmdbKeySet,
-  tmdbProxyUrl,
   coverBlobIdRef,
   setCoverBroken,
   setCoverOptions,
 }: {
   form: WizardForm;
   source: "anilist" | "tmdb" | "custom";
-  tmdbKeySet: boolean;
-  tmdbProxyUrl?: string | null;
   coverBlobIdRef: { current: string | null };
   setCoverBroken: (broken: boolean) => void;
   setCoverOptions: WizardSearchState["setCoverOptions"];
@@ -73,24 +69,24 @@ export function useWizardPick({
     if (r.studio) setStudio(r.studio);
     if (r.description) setDescription(r.description);
     applyExternalId(r.id);
-    if (source === "tmdb" && tmdbKeySet && (r.mediaType === "movie" || r.mediaType === "tv")) {
+    if (
+      source === "tmdb" &&
+      tmdbApi.isConfigured() &&
+      (r.mediaType === "movie" || r.mediaType === "tv")
+    ) {
       tmdbPickRef.current += 1;
       const pickId = tmdbPickRef.current;
       const mediaType = r.mediaType;
-      invokeTyped<{
-        title: string;
-        overview: string | null;
-        year: number | null;
-        release_date: string | null;
-        runtimeMinutes: number | null;
-        genres: string[];
-        posters: { url: string }[];
-      }>("get_tmdb_details", {
-        apiKey: "",
-        tmdbId: r.id,
-        mediaType,
-        proxyUrl: tmdbProxyUrl || undefined,
-      })
+      tmdbApi
+        .getDetails<{
+          title: string;
+          overview: string | null;
+          year: number | null;
+          release_date: string | null;
+          runtimeMinutes: number | null;
+          genres: string[];
+          posters: { url: string }[];
+        }>(r.id, mediaType)
         .then((d) => {
           if (tmdbPickRef.current !== pickId) return;
           if (d.overview) setDescription(d.overview);
@@ -104,15 +100,11 @@ export function useWizardPick({
             setCoverOptions((prev) =>
               [...new Set([...posters, ...prev])].slice(0, WIZARD_COVER_MAX)
             );
-          invokeTyped<{
-            backdrops: { url: string }[];
-            trailerYoutubeId: string | null;
-          }>("get_tmdb_media", {
-            apiKey: "",
-            tmdbId: r.id,
-            mediaType,
-            proxyUrl: tmdbProxyUrl || undefined,
-          })
+          tmdbApi
+            .getMedia<{
+              backdrops: { url: string }[];
+              trailerYoutubeId: string | null;
+            }>(r.id, mediaType)
             .then((m) => {
               if (tmdbPickRef.current !== pickId) return;
               mediaRef.current = {

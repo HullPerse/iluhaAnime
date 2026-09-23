@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 
+import { sqliteApi } from "@/api/sqlite.api";
 import { ConfirmDialog } from "@/components/shared/confirm.component";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { formatBackupDate } from "@/lib/settings/backup.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { formatBytes } from "@/lib/utils/bytes.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import type { SqliteBackupInfo } from "@/types/sqlite";
 
 export function BackupPanel({
@@ -36,9 +36,7 @@ export function BackupPanel({
     }
     setLoading(true);
     setError(null);
-    const [result, error] = await attempt(
-      invokeTyped<SqliteBackupInfo[]>("list_sqlite_backups", { database })
-    );
+    const [result, error] = await attempt(sqliteApi.listBackups(database));
     if (error) {
       setBackups([]);
       setError(error.message);
@@ -60,12 +58,7 @@ export function BackupPanel({
     setWorking(true);
     setError(null);
     setNotice(null);
-    const [created, error] = await attempt(
-      invokeTyped<SqliteBackupInfo>("backup_sqlite_database", {
-        database,
-        keep: 5,
-      })
-    );
+    const [created, error] = await attempt(sqliteApi.backupDatabase(database));
     if (error) setError(error.message);
     else {
       setNotice(t("settings.sqlite.backup.done", { name: created.name }));
@@ -81,9 +74,7 @@ export function BackupPanel({
     setError(null);
     setNotice(null);
 
-    const [safety, error] = await attempt(
-      invokeTyped<SqliteBackupInfo>("vacuum_sqlite_database", { database })
-    );
+    const [safety, error] = await attempt(sqliteApi.vacuumDatabase(database));
     if (error) setError(error.message);
     else {
       setNotice(t("settings.sqlite.backup.vacuum.done", { name: safety.name }));
@@ -99,9 +90,7 @@ export function BackupPanel({
     setWorking(true);
     setError(null);
     setNotice(null);
-    const [, error] = await attempt(
-      invokeTyped("restore_sqlite_backup", { database, name: selected })
-    );
+    const [, error] = await attempt(sqliteApi.restoreBackup(database, selected));
     if (error) setError(error.message);
     else {
       setNotice(t("settings.sqlite.backup.restored"));

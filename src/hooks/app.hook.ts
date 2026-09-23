@@ -5,6 +5,7 @@ import type { Update } from "@tauri-apps/plugin-updater";
 import { saveWindowState } from "@tauri-apps/plugin-window-state";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 
+import { systemApi } from "@/api/system.api";
 import { TOAST_ACTIVATED_EVENT } from "@/config/settings/notifications.config";
 import { tabForAltDigit, visibleTabs } from "@/config/settings/tabs.config";
 import { usePolling } from "@/hooks/polling.hook";
@@ -19,7 +20,6 @@ import {
   parseCollectionShareLink,
   parsePastedLink,
 } from "@/lib/utils/deeplink.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import {
   openNotificationTarget,
   resolveNotificationText,
@@ -277,7 +277,8 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
         }
       );
     };
-    invokeTyped<string[]>("take_pending_deep_links")
+    systemApi
+      .takePendingDeepLinks()
       .then((urls) => {
         if (!disposed) ingest(urls);
       })
@@ -411,13 +412,9 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
   useEffect(() => {
     const sync = () => {
       const s = useSettingsStore.getState();
-      invokeTyped("set_notification_settings", {
-        config: {
-          enabled: s.notificationsEnabled,
-          on_complete: s.notifyOnComplete,
-          on_error: s.notifyOnError,
-        },
-      }).catch((error) => reportBackgroundError("notification-settings.sync", error));
+      systemApi
+        .setNotificationSettings(s.notificationsEnabled, s.notifyOnComplete, s.notifyOnError)
+        .catch((error) => reportBackgroundError("notification-settings.sync", error));
     };
     sync();
     return useSettingsStore.subscribe((state, previous) => {

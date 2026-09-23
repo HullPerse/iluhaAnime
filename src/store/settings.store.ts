@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+import { tauriTransport } from "@/api/transport.api";
 import { DEFAULT_TAG_TOLERANCES } from "@/config/search/tolerance.config";
 import {
   DEFAULT_SETTINGS,
@@ -13,7 +14,6 @@ import { normalizePlayerPath } from "@/lib/player/visibility.utils";
 import { applyWindowChrome } from "@/lib/settings/window.utils";
 import { attempt, attemptSync, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { applyFontFamily, DEFAULT_FONT_FAMILY } from "@/lib/utils/font.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import type { AniListSort } from "@/types/anilist";
 import type { SettingsStore } from "@/types/settings";
 
@@ -440,7 +440,7 @@ function drainTmdbPendingKey(state: SettingsStore): void {
   const pending = state.tmdbPendingKey;
   if (!pending) return;
   (async () => {
-    const [, error] = await attempt(invokeTyped("tmdb_set_api_key", { api_key: pending }));
+    const [, error] = await attempt(tauriTransport.call("tmdb_set_api_key", { api_key: pending }));
     if (error) useSettingsStore.getState().patch({ tmdbKeySet: false });
     else useSettingsStore.getState().patch({ tmdbPendingKey: null, tmdbKeySet: true });
   })();

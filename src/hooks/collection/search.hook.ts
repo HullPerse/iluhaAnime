@@ -1,10 +1,10 @@
 import { useCallback, useState } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
+import { tmdbApi } from "@/api/tmdb.api";
 import { SEARCH_RANKING } from "@/config/search/ranking.config";
 import { fuzzyMatchScore, normalizeSearchText } from "@/lib/search/suggestions.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import type { WizardSearchResult } from "@/types/collection";
 
 function rankWizardResults(
@@ -32,8 +32,6 @@ function rankWizardResults(
 export function useWizardSearch(
   source: "anilist" | "tmdb" | "custom",
   search: string,
-  tmdbKeySet: boolean,
-  tmdbProxyUrl?: string | null,
   existingTitles?: Set<string>,
   favouriteIds?: Set<number>
 ) {
@@ -84,27 +82,25 @@ export function useWizardSearch(
   }, [search, existingTitles, favouriteIds]);
 
   const searchTmdb = useCallback(async () => {
-    if (!tmdbKeySet) {
+    if (!tmdbApi.isConfigured()) {
       setSearchResults([]);
       setSearchError(null);
       return;
     }
-    const res = await invokeTyped<
-      {
-        id: number;
-        title: string;
-        cover_url: string | null;
-        year?: number | null;
-        mediaType: string;
-        overview: string | null;
-        altTitles?: string[];
-      }[]
-    >("search_tmdb", {
-      apiKey: "",
+    const res = await tmdbApi.search<{
+      id: number;
+      title: string;
+      cover_url: string | null;
+      year?: number | null;
+      mediaType: string;
+      overview: string | null;
+      altTitles?: string[];
+    }>({
       query: search,
       language: "ru-RU",
       includeAdult: false,
-      proxyUrl: tmdbProxyUrl || undefined,
+      perPage: 8,
+      maxPages: 1,
     });
     const mapped = res.map((r) => ({
       id: r.id,
@@ -123,7 +119,7 @@ export function useWizardSearch(
     const covers = res.map((r) => r.cover_url).filter(Boolean) as string[];
     if (covers.length) setCoverOptions((prev) => [...new Set([...covers, ...prev])].slice(0, 8));
     setSearchError(null);
-  }, [search, tmdbKeySet, tmdbProxyUrl, existingTitles, favouriteIds]);
+  }, [search, existingTitles, favouriteIds]);
 
   const runSearch = useCallback(async () => {
     if (!search.trim()) {

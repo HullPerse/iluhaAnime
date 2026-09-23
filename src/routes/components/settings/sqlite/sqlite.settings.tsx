@@ -2,13 +2,13 @@ import { save } from "@tauri-apps/plugin-dialog";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 
+import { sqliteApi } from "@/api/sqlite.api";
 import { PAGE_SIZE, QUERY_HISTORY_MAX } from "@/config/settings/sqlite.config";
 import { usePagination } from "@/hooks/pagination.hook";
 import { useSqliteCell } from "@/hooks/sqlite/cell.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { displayCell } from "@/lib/sqlite/row.utils";
 import { attempt, attemptSync } from "@/lib/utils/attempt.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSettingsStore } from "@/store/settings.store";
 import type {
   SqliteDatabaseInfo,
@@ -75,9 +75,7 @@ export default function SqliteSettings() {
   const refreshDatabases = useCallback(async () => {
     setLoading(true);
     setError(null);
-    const [result, error] = await attempt(
-      invokeTyped<SqliteDatabaseInfo[]>("list_sqlite_databases")
-    );
+    const [result, error] = await attempt(sqliteApi.listDatabases());
     if (error) setError(error.message);
     else {
       setDatabases(result);
@@ -102,9 +100,7 @@ export default function SqliteSettings() {
     setLoading(true);
     setError(null);
     (async () => {
-      const [result, error] = await attempt(
-        invokeTyped<SqliteTableInfo[]>("get_sqlite_tables", { database: selectedDatabase })
-      );
+      const [result, error] = await attempt(sqliteApi.listTables(selectedDatabase));
       if (cancelled) return;
       if (error) setError(error.message);
       else {
@@ -130,9 +126,7 @@ export default function SqliteSettings() {
     setLoadingRows(true);
     setError(null);
     const [result, error] = await attempt(
-      invokeTyped<SqliteRowsPage>("get_sqlite_rows", {
-        database: selectedDatabase,
-        table: selectedTable,
+      sqliteApi.getRows(selectedDatabase, selectedTable, {
         page,
         pageSize: PAGE_SIZE,
         filter: filter || null,
@@ -268,12 +262,7 @@ export default function SqliteSettings() {
     queryHistoryIndexRef.current = -1;
     setQueryLoading(true);
     setError(null);
-    const [result, error] = await attempt(
-      invokeTyped<SqliteRowsPage>("run_sqlite_query", {
-        database: selectedDatabase,
-        sql: querySql,
-      })
-    );
+    const [result, error] = await attempt(sqliteApi.runQuery(selectedDatabase, querySql));
     if (error) {
       setQueryResult(null);
       setError(error.message);
@@ -323,7 +312,7 @@ export default function SqliteSettings() {
       setError(stringifyError.message);
       return;
     }
-    const [, writeError] = await attempt(invokeTyped("write_sqlite_export", { path, content }));
+    const [, writeError] = await attempt(sqliteApi.writeExport(path, content));
     if (writeError) setError(writeError.message);
     else setError(null);
   };
@@ -365,17 +354,11 @@ export default function SqliteSettings() {
     setPendingBatchDelete(false);
     const [, error] = await attempt(
       (async () => {
-        await invokeTyped("delete_sqlite_rows", {
-          database: selectedDatabase,
-          table: selectedTable,
-          keys: rowsToDelete,
-        });
+        await sqliteApi.deleteRows(selectedDatabase, selectedTable, rowsToDelete);
         setSelectedRows({});
         await loadRows();
         await refreshDatabases();
-        const refreshedTables = await invokeTyped<SqliteTableInfo[]>("get_sqlite_tables", {
-          database: selectedDatabase,
-        });
+        const refreshedTables = await sqliteApi.listTables(selectedDatabase);
         setTables(refreshedTables);
       })()
     );
@@ -399,17 +382,11 @@ export default function SqliteSettings() {
     setPendingDelete(null);
     const [, error] = await attempt(
       (async () => {
-        await invokeTyped("delete_sqlite_row", {
-          database: selectedDatabase,
-          table: selectedTable,
-          keys: keyToDelete,
-        });
+        await sqliteApi.deleteRow(selectedDatabase, selectedTable, keyToDelete);
         setPendingDelete(null);
         await loadRows();
         await refreshDatabases();
-        const refreshedTables = await invokeTyped<SqliteTableInfo[]>("get_sqlite_tables", {
-          database: selectedDatabase,
-        });
+        const refreshedTables = await sqliteApi.listTables(selectedDatabase);
         setTables(refreshedTables);
       })()
     );

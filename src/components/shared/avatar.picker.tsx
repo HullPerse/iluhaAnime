@@ -3,15 +3,15 @@ import { cn } from "cn";
 import { ImagePlus, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
+import { systemApi } from "@/api/system.api";
 import UserImageIcon from "@/components/shared/avatar.component";
 import { SmallLoader } from "@/components/shared/loader.component";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { toUserImage, userImageIcon } from "@/lib/utils/image.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { showError } from "@/lib/utils/notification.utils";
-import type { UserImage, UserImageFile, UserImagePickerProps } from "@/types/userimage";
+import type { UserImage, UserImagePickerProps } from "@/types/userimage";
 
 export default function UserImagePicker({ selected, onSelect }: UserImagePickerProps) {
   const { t } = useI18n();
@@ -21,7 +21,7 @@ export default function UserImagePicker({ selected, onSelect }: UserImagePickerP
 
   const refresh = useCallback(async () => {
     setLoading(true);
-    const [data, error] = await attempt(invokeTyped<UserImageFile[]>("list_user_images"));
+    const [data, error] = await attempt(systemApi.listUserImages());
     if (error) {
       setImages([]);
       showError(t("common.error"), t("player.category.load.images.error"));
@@ -44,20 +44,19 @@ export default function UserImagePicker({ selected, onSelect }: UserImagePickerP
     });
     if (!selectedPath || Array.isArray(selectedPath)) return;
     setUploading(true);
-    const [image, error] = await attempt(
-      invokeTyped<UserImage>("import_user_image", { path: selectedPath })
-    );
+    const [image, error] = await attempt(systemApi.importUserImage(selectedPath));
     if (error) {
       showError(t("common.error"), t("player.category.upload.error"));
     } else {
-      setImages((items) => [image, ...items.filter((item) => item.id !== image.id)]);
-      onSelect(userImageIcon(image.id), image);
+      const mapped = toUserImage(image);
+      setImages((items) => [mapped, ...items.filter((item) => item.id !== mapped.id)]);
+      onSelect(userImageIcon(mapped.id), mapped);
     }
     setUploading(false);
   };
 
   const remove = async (image: UserImage) => {
-    const [, error] = await attempt(invokeTyped("delete_user_image", { id: image.id }));
+    const [, error] = await attempt(systemApi.deleteUserImage(image.id));
     if (error) {
       showError(t("common.error"), error.message);
       return;

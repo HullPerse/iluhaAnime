@@ -3,6 +3,8 @@ import { getVersion } from "@tauri-apps/api/app";
 import { confirm } from "@tauri-apps/plugin-dialog";
 import { Check, RefreshCw, X } from "lucide-react";
 
+import { sqliteApi } from "@/api/sqlite.api";
+import { systemApi } from "@/api/system.api";
 import { Button } from "@/components/ui/button.component";
 import { THEMES } from "@/config/settings/themes.config";
 import { resetCoverCache } from "@/hooks/collection/cache.hook";
@@ -16,7 +18,6 @@ import {
   withFallback,
 } from "@/lib/utils/attempt.utils";
 import { formatBytes } from "@/lib/utils/bytes.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSearchStore } from "@/store/search.store";
 import { useSettingsStore } from "@/store/settings.store";
 import { useThemeStore } from "@/store/theme.store";
@@ -60,7 +61,7 @@ export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void
 
   const ffmpeg = useQuery({
     queryKey: ["summary_ffprobe"],
-    queryFn: () => withFallback(invokeTyped<boolean>("check_ffprobe"), false),
+    queryFn: () => withFallback(systemApi.checkFfprobe(), false),
     staleTime: Infinity,
   });
   const version = useQuery({
@@ -71,18 +72,13 @@ export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void
   const storage = useQuery({
     queryKey: STORAGE_QUERY_KEY,
     queryFn: async (): Promise<SummaryStorage> => {
-      const [databases, error] = await attempt(
-        invokeTyped<SqliteDatabaseInfo[]>("list_sqlite_databases")
-      );
+      const [databases, error] = await attempt(sqliteApi.listDatabases());
       const database = error === null ? pickDatabase(databases ?? []) : null;
       const backups =
         database === null
           ? []
-          : ((await withFallback(
-              invokeTyped<SqliteBackupInfo[]>("list_sqlite_backups", { database: database.id }),
-              []
-            )) ?? []);
-      const images = (await withFallback(invokeTyped<RemoteImageStats>("get_remote_images_stats"), {
+          : ((await withFallback(sqliteApi.listBackups(database.id), [])) ?? []);
+      const images = (await withFallback(systemApi.getRemoteImagesStats(), {
         bytes: 0,
         count: 0,
       })) ?? { bytes: 0, count: 0 };
@@ -111,7 +107,7 @@ export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void
     const ok = await confirm(t("settings.summary.images.confirm"));
     if (!ok) return;
     const error = await attemptAll([
-      () => invokeTyped<number>("clear_remote_image_cache"),
+      () => systemApi.clearRemoteImageCache(),
       () => {
         resetCoverCache();
         resetRemoteImageCache();

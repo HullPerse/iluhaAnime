@@ -1,8 +1,8 @@
 import { useState } from "react";
 
+import { tmdbApi } from "@/api/tmdb.api";
 import { usePolling } from "@/hooks/polling.hook";
 import { attempt } from "@/lib/utils/attempt.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import type { TmdbRateLimit } from "@/types/collection";
 
 export function useTmdbRateLimit(pollMs = 10000) {
@@ -18,7 +18,7 @@ export function useTmdbRateLimit(pollMs = 10000) {
     collectKeys: () => ["tmdb-rate"],
     shouldFetch: () => true,
     fetch: async () => {
-      const [rate, error] = await attempt(invokeTyped<TmdbRateLimit>("get_tmdb_rate_limit"));
+      const [rate, error] = await attempt(tmdbApi.rateLimit());
       if (error) return false;
       setRate(rate);
       return true;

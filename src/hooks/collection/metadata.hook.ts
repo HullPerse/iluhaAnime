@@ -1,13 +1,12 @@
 import { useCallback } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
+import { tmdbApi } from "@/api/tmdb.api";
 import { readStoredMedia, withStoredMedia } from "@/lib/collection/media.utils";
 import { mergeGenreTags } from "@/lib/collection/wizard.utils";
 import { useI18n, type TranslationKey } from "@/lib/locale/i18n.utils";
 import { attempt, withFallback } from "@/lib/utils/attempt.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useNotificationStore } from "@/store/notification.store";
-import { useSettingsStore } from "@/store/settings.store";
 import type { AniAnimeStaffEdge, AniCharacterEdge } from "@/types/anilist";
 import type { CollectionItem } from "@/types/collection";
 
@@ -85,13 +84,13 @@ export function useCollectionMetadata(
 
   const refreshTmdb = useCallback(
     async (item: CollectionItem) => {
-      const tmdbKeySet = useSettingsStore.getState().tmdbKeySet;
-      const tmdbProxyUrl = useSettingsStore.getState().tmdbProxyUrl;
-      if (!tmdbKeySet) {
+      if (!tmdbApi.isConfigured()) {
         notify("error", "collection.wizard.tmdb.key.missing");
         return;
       }
-      const d = await invokeTyped<{
+      const tmdbId = item.externalIds.tmdb;
+      if (tmdbId == null) throw new Error("missing tmdb id");
+      const d = await tmdbApi.getDetails<{
         title: string;
         overview: string | null;
         year: number | null;
@@ -99,12 +98,7 @@ export function useCollectionMetadata(
         runtimeMinutes: number | null;
         genres: string[];
         posters: { url: string }[];
-      }>("get_tmdb_details", {
-        apiKey: "",
-        tmdbId: item.externalIds.tmdb,
-        mediaType: item.type === "movie" ? "movie" : "tv",
-        proxyUrl: tmdbProxyUrl || undefined,
-      });
+      }>(tmdbId, item.type === "movie" ? "movie" : "tv");
       const nextCoverUrl = d.posters[0]?.url ?? item.coverUrl;
       const coverChanged =
         nextCoverUrl !== item.coverUrl && (item.coverBlobId != null || item.thumbBlobId != null);
@@ -123,15 +117,7 @@ export function useCollectionMetadata(
         { touch: false }
       );
       const mediaType = item.type === "movie" ? "movie" : "tv";
-      const media = await invokeTyped<{
-        backdrops: { url: string }[];
-        trailerYoutubeId: string | null;
-      }>("get_tmdb_media", {
-        apiKey: "",
-        tmdbId: item.externalIds.tmdb,
-        mediaType,
-        proxyUrl: tmdbProxyUrl || undefined,
-      });
+      const media = await tmdbApi.getMedia(tmdbId, mediaType);
       updateItem(
         item.id,
         {

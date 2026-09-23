@@ -47,7 +47,7 @@ export class CollectionApi {
     this.transport = config.transport ?? tauriTransport;
   }
 
-  private call<T>(command: string, args: Record<string, unknown> = {}): Promise<T> {
+  private call<T>(command: string, args?: Record<string, unknown>): Promise<T> {
     return this.transport.call<T>(command, args);
   }
 

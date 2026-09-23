@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
+import { systemApi } from "@/api/system.api";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { assetUrl, isDirectImageSrc } from "@/lib/utils/image.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
@@ -15,9 +16,7 @@ const imageDataCache = createLruCache<string, string>(COVER_CACHE_CAPACITY);
 async function resolveCachedImage(blobId: string): Promise<string | null> {
   const cached = imageDataCache.get(blobId);
   if (cached) return cached;
-  const [image, error] = await attempt(
-    invokeTyped<UserImageFile>("get_user_image", { id: blobId })
-  );
+  const [image, error] = await attempt(systemApi.getUserImage(blobId));
   if (error) return null;
   const url = assetUrl(image.path);
   imageDataCache.set(blobId, url);

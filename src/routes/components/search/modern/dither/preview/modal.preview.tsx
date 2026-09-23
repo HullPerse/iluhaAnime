@@ -1,6 +1,7 @@
 import { Pipette } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
+import { systemApi } from "@/api/system.api";
 import DitherCanvas from "@/components/shared/dither.component";
 import { SmallLoader } from "@/components/shared/loader.component";
 import Modal from "@/components/shared/modal.component";
@@ -24,10 +25,9 @@ import {
   extractPaletteFromPixels,
 } from "@/lib/utils/dither.utils";
 import { toUserImage } from "@/lib/utils/image.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { showError } from "@/lib/utils/notification.utils";
 import type { DitherEffectOptions, DitherPresetId } from "@/types/dither";
-import type { UserImage, UserImageFile } from "@/types/userimage";
+import type { UserImage } from "@/types/userimage";
 
 import DitherControls from "./controls.preview";
 import { PalettePresetStrip } from "./palettePreset.preview";
@@ -151,12 +151,7 @@ export default function DitherPreviewModal({
       showError(t("common.error"), t("search.dither.save.error"));
       return;
     }
-    const [updated, error] = await attempt(
-      invokeTyped<UserImageFile>("update_dither_image_data", {
-        id: image.id,
-        dataUrl,
-      })
-    );
+    const [updated, error] = await attempt(systemApi.updateDitherImageData(image.id, dataUrl));
     window.clearTimeout(bakeTimerRef.current);
     bakeStartedRef.current = false;
     setSaving(false);

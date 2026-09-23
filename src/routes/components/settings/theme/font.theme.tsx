@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 
+import { systemApi } from "@/api/system.api";
 import Combobox from "@/components/ui/combobox.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { attempt, attemptSync, reportBackgroundError } from "@/lib/utils/attempt.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSettingsStore } from "@/store/settings.store";
 
 export function FontSelector() {
@@ -33,7 +33,7 @@ export function FontSelector() {
     let cancelled = false;
     setLoading(true);
     (async () => {
-      const [list, listError] = await attempt(invokeTyped<string[]>("list_system_fonts"));
+      const [list, listError] = await attempt(systemApi.listSystemFonts());
       if (cancelled) return;
       if (listError) {
         setError(t("settings.font.load.error"));

@@ -1,16 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
 
+import { systemApi } from "@/api/system.api";
 import { assetUrl } from "@/lib/utils/image.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSettingsStore } from "@/store/settings.store";
-import type { UserImage, UserImageFile } from "@/types/userimage";
+import type { UserImage } from "@/types/userimage";
 
 export function useWallpaperImage() {
   const selectedId = useSettingsStore((state) => state.selectedDitherId);
   const query = useQuery({
     queryKey: ["dither-wallpaper", selectedId],
     queryFn: async () => {
-      const image = await invokeTyped<UserImageFile>("get_dither_image", { id: selectedId ?? "" });
+      const image = await systemApi.getDitherImage(selectedId ?? "");
       const result: UserImage = {
         id: image.id,
         name: image.name,

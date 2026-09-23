@@ -1,41 +1,26 @@
 import { useQuery } from "@tanstack/react-query";
 
+import { tmdbApi } from "@/api/tmdb.api";
 import { withFallback } from "@/lib/utils/attempt.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSettingsStore } from "@/store/settings.store";
 import type { AniMedia, AnimeShowcase } from "@/types/anilist";
 
 const SHOWCASE_CACHE_TAG = "v3";
 
-async function loadShowcase(
-  anime: AniMedia,
-  tmdbKeySet: boolean,
-  tmdbProxyUrl: string | null
-): Promise<AnimeShowcase> {
+async function loadShowcase(anime: AniMedia): Promise<AnimeShowcase> {
   let trailerYoutubeId = anime.trailer_youtube_id ?? null;
-  if (!trailerYoutubeId && tmdbKeySet) {
+  if (!trailerYoutubeId && tmdbApi.isConfigured()) {
     const results = await withFallback(
-      invokeTyped<{ id: number; media_type: string }[]>("search_tmdb", {
+      tmdbApi.search<{ id: number; media_type: string }>({
         query: anime.title,
         language: "ru-RU",
         includeAdult: false,
-        proxyUrl: tmdbProxyUrl || undefined,
       }),
       []
     );
     const first = results.find((r) => r.media_type === "movie" || r.media_type === "tv");
     if (first) {
-      const media = await withFallback(
-        invokeTyped<{ backdrops: { url: string }[]; trailerYoutubeId: string | null }>(
-          "get_tmdb_media",
-          {
-            tmdbId: first.id,
-            mediaType: first.media_type,
-            proxyUrl: tmdbProxyUrl || undefined,
-          }
-        ),
-        null
-      );
+      const media = await withFallback(tmdbApi.getMedia(first.id, first.media_type), null);
       trailerYoutubeId = media?.trailerYoutubeId ?? null;
     }
   }
@@ -53,8 +38,7 @@ export function useAnimeShowcase(anime: AniMedia | undefined): AnimeShowcase | u
       tmdbProxyUrl ?? "",
       SHOWCASE_CACHE_TAG,
     ],
-    queryFn: () =>
-      anime ? loadShowcase(anime, tmdbKeySet, tmdbProxyUrl) : Promise.resolve(undefined),
+    queryFn: () => (anime ? loadShowcase(anime) : Promise.resolve(undefined)),
     enabled: anime !== undefined,
     staleTime: Infinity,
   });

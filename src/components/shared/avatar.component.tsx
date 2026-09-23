@@ -1,10 +1,10 @@
 import { cn } from "cn";
 import { useEffect, useState } from "react";
 
+import { systemApi } from "@/api/system.api";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { assetUrl, userImageId } from "@/lib/utils/image.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
-import type { UserImageFile, UserImageIconProps } from "@/types/userimage";
+import type { UserImageIconProps } from "@/types/userimage";
 
 export default function UserImageIcon({
   icon,
@@ -33,7 +33,7 @@ export default function UserImageIcon({
       };
     }
     (async () => {
-      const [image, error] = await attempt(invokeTyped<UserImageFile>("get_user_image", { id }));
+      const [image, error] = await attempt(systemApi.getUserImage(id));
       if (!active) return;
       if (error) setSrc("");
       else setSrc(assetUrl(image.path));

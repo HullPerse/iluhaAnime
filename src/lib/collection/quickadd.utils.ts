@@ -1,6 +1,6 @@
+import { tmdbApi } from "@/api/tmdb.api";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { attemptResult, err, map, ok, unwrapOr, type Result } from "@/lib/utils/result.utils";
-import { useSettingsStore } from "@/store/settings.store";
 import type { AddedMedia, QuickAddMedia } from "@/types/collection";
 
 export async function downloadCover(url: string): Promise<string | null> {
@@ -20,27 +20,19 @@ export async function downloadCover(url: string): Promise<string | null> {
 }
 
 async function fetchFromTmdb(media: QuickAddMedia): Promise<Result<AddedMedia>> {
-  const { tmdbKeySet, tmdbProxyUrl } = useSettingsStore.getState();
-  if (!tmdbKeySet) return err("tmdb api key is not set");
+  if (!tmdbApi.isConfigured()) return err("tmdb api key is not set");
   const search = await attemptResult(
-    invokeTyped<{ id: number; media_type: string }[]>("search_tmdb", {
-      apiKey: "",
+    tmdbApi.search<{ id: number; media_type: string }>({
       query: media.title,
       language: "ru-RU",
       includeAdult: false,
-      proxyUrl: tmdbProxyUrl || undefined,
     })
   );
   if (!search.ok) return search;
   const match = search.value.find((r) => r.media_type === "movie" || r.media_type === "tv");
   if (!match) return err("tmdb returned no movie or tv match");
   const details = await attemptResult(
-    invokeTyped<AddedMedia>("get_tmdb_media", {
-      apiKey: "",
-      tmdbId: match.id,
-      mediaType: match.media_type as "movie" | "tv",
-      proxyUrl: tmdbProxyUrl || undefined,
-    })
+    tmdbApi.getMedia(match.id, match.media_type as "movie" | "tv")
   );
   if (!details.ok) return details;
   return ok({

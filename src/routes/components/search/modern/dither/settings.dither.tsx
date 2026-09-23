@@ -4,6 +4,7 @@ import { cn } from "cn";
 import { ChevronLeft, ChevronRight, Pencil, Plus, Trash } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { systemApi } from "@/api/system.api";
 import { SmallLoader } from "@/components/shared/loader.component";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
@@ -23,7 +24,6 @@ import { usePagination } from "@/hooks/pagination.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { toUserImage } from "@/lib/utils/image.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { showError } from "@/lib/utils/notification.utils";
 import { paginate } from "@/lib/utils/pagination.utils";
 import { DitherUploadPlaceholder } from "@/routes/components/search/modern/dither/placeholder.dither";
@@ -31,7 +31,7 @@ import DitherPreviewModal from "@/routes/components/search/modern/dither/preview
 import { ShadowControls } from "@/routes/components/search/modern/dither/shadow.dither";
 import { useSettingsStore } from "@/store/settings.store";
 import type { WallpaperDisplayFilters } from "@/types/settings";
-import type { DitherImageMeta, UserImage, UserImageFile } from "@/types/userimage";
+import type { DitherImageMeta, UserImage } from "@/types/userimage";
 
 function DitherSettings({ onClose }: { onClose: () => void }) {
   const { t } = useI18n();
@@ -70,7 +70,7 @@ function DitherSettings({ onClose }: { onClose: () => void }) {
   const refresh = useCallback(async () => {
     setLoading(true);
 
-    const [data, error] = await attempt(invokeTyped<DitherImageMeta[]>("list_dither_image_meta"));
+    const [data, error] = await attempt(systemApi.listDitherImageMeta());
     if (error) showError(t("common.error"), t("search.dither.load.error"));
     else setMetas(data);
 
@@ -94,9 +94,7 @@ function DitherSettings({ onClose }: { onClose: () => void }) {
       return;
     }
     setUploadName(picked.split(/[/\\]/).pop() ?? picked);
-    const [image, error] = await attempt(
-      invokeTyped<UserImageFile>("import_dither_image", { path: picked })
-    );
+    const [image, error] = await attempt(systemApi.importDitherImage(picked));
     if (error) showError(t("common.error"), t("search.dither.upload.error"));
     else {
       setMetas((items) => [
@@ -118,7 +116,7 @@ function DitherSettings({ onClose }: { onClose: () => void }) {
   };
   const remove = async () => {
     if (!selected || isPlaceholderSelected) return;
-    const [, error] = await attempt(invokeTyped("delete_dither_image", { id: selected }));
+    const [, error] = await attempt(systemApi.deleteDitherImage(selected));
     if (error) return showError(t("common.error"), error.message);
     const removedId = selected;
     setMetas((items) => items.filter((item) => item.id !== removedId));
@@ -135,9 +133,7 @@ function DitherSettings({ onClose }: { onClose: () => void }) {
       return;
     }
     setPreviewBusy(true);
-    const [image, error] = await attempt(
-      invokeTyped<UserImageFile>("get_dither_image", { id: selected })
-    );
+    const [image, error] = await attempt(systemApi.getDitherImage(selected));
     setPreviewBusy(false);
     if (error) {
       showError(t("common.error"), t("search.dither.load.error"));
@@ -174,19 +170,17 @@ function DitherSettings({ onClose }: { onClose: () => void }) {
     if (missing.length === 0) return;
     let cancelled = false;
     setPageLoading(true);
-    attempt(invokeTyped<UserImageFile[]>("get_dither_images", { ids: missing })).then(
-      ([data, error]) => {
-        if (cancelled) return;
-        if (error) showError(t("common.error"), t("search.dither.load.error"));
-        else
-          setRows((prev) => {
-            const next = { ...prev };
-            for (const image of data.map(toUserImage)) next[image.id] = image;
-            return next;
-          });
-        setPageLoading(false);
-      }
-    );
+    attempt(systemApi.getDitherImages(missing)).then(([data, error]) => {
+      if (cancelled) return;
+      if (error) showError(t("common.error"), t("search.dither.load.error"));
+      else
+        setRows((prev) => {
+          const next = { ...prev };
+          for (const image of data.map(toUserImage)) next[image.id] = image;
+          return next;
+        });
+      setPageLoading(false);
+    });
     return () => {
       cancelled = true;
     };

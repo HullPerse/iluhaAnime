@@ -1,8 +1,8 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
+import { systemApi } from "@/api/system.api";
 import { attemptSync, reportBackgroundError } from "@/lib/utils/attempt.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSettingsStore } from "@/store/settings.store";
 import type {
   DismissedEntry,
@@ -104,11 +104,9 @@ export const useNotificationStore = create<NotificationStore>()(
         }));
 
         if ((options?.system ?? true) && useSettingsStore.getState().notificationsEnabled) {
-          invokeTyped("show_toast", {
-            action: target ?? null,
-            body: message ?? null,
-            title,
-          }).catch((error) => reportBackgroundError("notification.system-toast", error));
+          systemApi
+            .showToast(title, message ?? null, target ?? null)
+            .catch((error) => reportBackgroundError("notification.system-toast", error));
         }
       },
       clear: (id: number) => {

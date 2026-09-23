@@ -2,6 +2,8 @@ import { cn } from "cn";
 import { useRef, useState } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
+import { sqliteApi } from "@/api/sqlite.api";
+import { tmdbApi } from "@/api/tmdb.api";
 import { ConfirmDialog } from "@/components/shared/confirm.component";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
@@ -12,7 +14,6 @@ import { DEFAULT_SETTINGS } from "@/config/settings/defaults.config";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { applyWindowChrome } from "@/lib/settings/window.utils";
 import { attempt, attemptSync } from "@/lib/utils/attempt.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSettingsStore } from "@/store/settings.store";
 import type { Locale } from "@/types/i18n";
 import type { SettingsStore } from "@/types/settings";
@@ -48,7 +49,7 @@ export default function SettingsGeneral() {
     const key = tmdbInput.trim();
     if (!key || tmdbSaving) return;
     setTmdbSaving(true);
-    const [, error] = await attempt(invokeTyped<string>("tmdb_set_api_key", { api_key: key }));
+    const [, error] = await attempt(tmdbApi.setApiKey(key));
     if (error) setTmdbTest({ ok: false, msg: error.message });
     else {
       setTmdbInput("");
@@ -57,7 +58,7 @@ export default function SettingsGeneral() {
     setTmdbSaving(false);
   };
   const handleTmdbRemove = async () => {
-    const [, error] = await attempt(invokeTyped<string>("tmdb_logout"));
+    const [, error] = await attempt(tmdbApi.logout());
     if (error) setTmdbTest({ ok: false, msg: error.message });
     else patch({ tmdbKeySet: false });
   };
@@ -65,12 +66,7 @@ export default function SettingsGeneral() {
   const handleTmdbTest = async () => {
     setTmdbTesting(true);
     setTmdbTest(null);
-    const [res, error] = await attempt(
-      invokeTyped<string>("test_tmdb_connection", {
-        proxyUrl: tmdbProxyUrl,
-        proxy_url: tmdbProxyUrl,
-      })
-    );
+    const [res, error] = await attempt(tmdbApi.testConnection());
     if (error) setTmdbTest({ ok: false, msg: error.message });
     else setTmdbTest({ ok: true, msg: res });
     setTmdbTesting(false);
@@ -491,7 +487,7 @@ export default function SettingsGeneral() {
           confirmLabel={t("common.delete")}
           variant="destructive"
           onConfirm={async () => {
-            const [, error] = await attempt(invokeTyped("reset_sqlite_data"));
+            const [, error] = await attempt(sqliteApi.resetData());
             if (error) {
               setResetError(error.message);
               return;

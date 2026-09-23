@@ -71,7 +71,7 @@ export class TorrentApi {
     return { proxyUrl: proxy, proxy_url: proxy };
   }
 
-  private call<T>(command: string, args: Record<string, unknown> = {}): Promise<T> {
+  private call<T>(command: string, args?: Record<string, unknown>): Promise<T> {
     return this.transport.call<T>(command, args);
   }
 

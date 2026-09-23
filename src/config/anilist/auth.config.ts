@@ -1,5 +1,6 @@
 export const ANILIST_CLIENT_ID = "44319";
 
+// Registered redirect in the AniList app settings: iluhaanime://auth/anilist
 export const ANILIST_REDIRECT_URI = "iluhaanime://auth/anilist";
 
 export function buildAnilistAuthorizeUrl(clientId: string): string {

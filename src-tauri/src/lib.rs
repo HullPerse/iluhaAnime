@@ -1301,6 +1301,7 @@ pub fn run() {
             anilist::anilist_login,
             anilist::check_anilist_auth,
             anilist::get_anilist_lists,
+            anilist::get_anilist_friend_scores,
             anilist::anilist_logout,
             anilist::save_anilist_entry,
             anilist::toggle_favourite,

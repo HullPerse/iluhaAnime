@@ -102,6 +102,8 @@ export interface WizardPrefill {
   title: string;
   coverUrl: string | null;
   status: CollectionStatus;
+  rating?: number | null;
+  scoreOrigin?: string | null;
 }
 
 export interface CollectionStore {

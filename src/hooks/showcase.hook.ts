@@ -11,16 +11,16 @@ async function loadShowcase(anime: AniMedia): Promise<AnimeShowcase> {
   let trailerYoutubeId = anime.trailer_youtube_id ?? null;
   if (!trailerYoutubeId && tmdbApi.isConfigured()) {
     const results = await withFallback(
-      tmdbApi.search<{ id: number; media_type: string }>({
+      tmdbApi.search<{ id: number; mediaType: string }>({
         query: anime.title,
         language: "ru-RU",
         includeAdult: false,
       }),
       []
     );
-    const first = results.find((r) => r.media_type === "movie" || r.media_type === "tv");
+    const first = results.find((r) => r.mediaType === "movie" || r.mediaType === "tv");
     if (first) {
-      const media = await withFallback(tmdbApi.getMedia(first.id, first.media_type), null);
+      const media = await withFallback(tmdbApi.getMedia(first.id, first.mediaType), null);
       trailerYoutubeId = media?.trailerYoutubeId ?? null;
     }
   }

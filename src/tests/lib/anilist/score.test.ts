@@ -11,6 +11,7 @@ import {
   scoreOptions,
   smileyForScore,
   validateScoreInput,
+  formatMeanScore,
 } from "@/lib/anilist/score.utils";
 
 describe("anilist/score format", () => {
@@ -123,20 +124,30 @@ describe("anilist/score format", () => {
   });
 
   it.each([
-    ["abc", "POINT_10"],
-    ["101", "POINT_100"],
-    ["-1", "POINT_10"],
-    ["5.5", "POINT_10"],
-    ["5.5", "POINT_100"],
-    ["8.55", "POINT_10_DECIMAL"],
-    ["11", "POINT_10_DECIMAL"],
-    ["6", "POINT_5"],
-    ["2.5", "POINT_5"],
-    ["4", "POINT_3"],
-    ["1.5", "POINT_3"],
-  ])("rejects %s for %s", (raw, format) => {
+    ["abc", "POINT_10", "anilist.controls.score.need.number"],
+    ["101", "POINT_100", "anilist.controls.score.need.int.100"],
+    ["-1", "POINT_10", "anilist.controls.score.need.int.10"],
+    ["5.5", "POINT_10", "anilist.controls.score.need.int.10"],
+    ["5.5", "POINT_100", "anilist.controls.score.need.int.100"],
+    ["8.55", "POINT_10_DECIMAL", "anilist.controls.score.need.decimal.10"],
+    ["11", "POINT_10_DECIMAL", "anilist.controls.score.need.decimal.10"],
+    ["6", "POINT_5", "anilist.controls.score.need.int.5"],
+    ["2.5", "POINT_5", "anilist.controls.score.need.int.5"],
+    ["4", "POINT_3", "anilist.controls.score.need.int.3"],
+    ["1.5", "POINT_3", "anilist.controls.score.need.int.3"],
+  ])("rejects %s for %s with a format specific message", (raw, format, expected) => {
     const result = validateScoreInput(raw, format as "POINT_10");
     expect(result.value).toBeNull();
-    expect(result.error).toBe("anilist.controls.score.invalid");
+    expect(result.error).toBe(expected);
+  });
+
+  it("formats the mean score in the user's own format", () => {
+    expect(formatMeanScore(85, "POINT_100")).toBe("85/100");
+    expect(formatMeanScore(8.53, "POINT_10")).toBe("8.5/10");
+    expect(formatMeanScore(85, "POINT_10")).toBe("8.5/10");
+    expect(formatMeanScore(40, "POINT_5")).toBe("2/5");
+    expect(formatMeanScore(2.33, "POINT_3")).toBe("2.3/3");
+    expect(formatMeanScore(null, "POINT_10")).toBeNull();
+    expect(formatMeanScore(0, "POINT_10")).toBeNull();
   });
 });

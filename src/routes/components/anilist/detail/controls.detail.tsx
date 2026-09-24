@@ -19,6 +19,11 @@ import { useI18n } from "@/lib/locale/i18n.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { useCollectionStore } from "@/store/collection.store";
 import type { AniMedia } from "@/types/anilist";
+import type { TranslationKey } from "@/types/i18n";
+
+function scoreErrorKey(error: TranslationKey | null): TranslationKey {
+  return error ?? "anilist.controls.score.invalid";
+}
 
 function AniListActionControls({
   anime,
@@ -58,10 +63,11 @@ function AniListActionControls({
 
   const scoreCheck = validateScoreInput(editScore, format);
   const scoreInvalid = scoreCheck.error !== null;
+  const scoreErrorMessage = t(scoreErrorKey(scoreCheck.error));
 
   const handleSave = async () => {
     if (scoreInvalid) {
-      setSaveError(t("anilist.controls.score.invalid"));
+      setSaveError(scoreErrorMessage);
       return;
     }
     setSaving(true);
@@ -142,9 +148,7 @@ function AniListActionControls({
           <span className="windows95-text text-xs">{scoreFormatSuffix(format)}</span>
         </div>
         {scoreInvalid && (
-          <span className="text-destructive text-xs font-bold">
-            {t("anilist.controls.score.invalid")}
-          </span>
+          <span className="text-destructive text-xs font-bold">{scoreErrorMessage}</span>
         )}
         <div className="windows95-text flex flex-row items-center gap-2">
           <span className="w-20 shrink-0">{t("anilist.controls.notes")}</span>
@@ -164,7 +168,14 @@ function AniListActionControls({
             onClick={() =>
               useCollectionStore
                 .getState()
-                .requestWizardPrefill(buildAnilistPrefill(anime, listEntry?.list_status ?? null))
+                .requestWizardPrefill(
+                  buildAnilistPrefill(
+                    anime,
+                    listEntry?.list_status ?? null,
+                    listEntry?.score,
+                    format
+                  )
+                )
             }
           >
             {t("collection.add.media")}

@@ -33,6 +33,7 @@ export function WizardDetailsPanel(props: {
   setProgressUnit: (value: CollectionItem["progressUnit"]) => void;
   rating: string;
   setRating: (value: string) => void;
+  ratingOrigin?: string | null;
   isFavorite: boolean;
   setIsFavorite: (value: boolean) => void;
   altTitles: string;
@@ -146,14 +147,24 @@ export function WizardDetailsPanel(props: {
         <span className="text-text flex items-center text-xs font-bold">
           {t("collection.wizard.rating")}
         </span>
-        <input
-          type="number"
-          min="0"
-          max="10"
-          value={props.rating}
-          onChange={(e) => props.setRating(e.target.value)}
-          className="windows95-border bg-field w-16 px-1 py-0.5 text-xs"
-        />
+        <div className="flex items-center gap-1">
+          <input
+            type="number"
+            min="0"
+            max="10"
+            value={props.rating}
+            onChange={(e) => props.setRating(e.target.value)}
+            className="windows95-border bg-field w-16 px-1 py-0.5 text-xs"
+          />
+          {props.ratingOrigin && props.rating && (
+            <span className="text-hint text-xs">
+              {t("collection.wizard.rating.origin", {
+                origin: props.ratingOrigin,
+                rating: props.rating,
+              })}
+            </span>
+          )}
+        </div>
 
         <span className="text-text flex items-center text-xs font-bold">
           {t("collection.wizard.favorite")}

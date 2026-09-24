@@ -58,10 +58,7 @@ describe("prefetchRemoteImages", () => {
 
   it("dedupes the same url prefetched twice", async () => {
     invokeMock.mockResolvedValue({ id: "blob-dedupe", path: "C:/images/dedupe.jpg" });
-    prefetchRemoteImages([
-      "https://example.com/dedupe.jpg",
-      "https://example.com/dedupe.jpg",
-    ]);
+    prefetchRemoteImages(["https://example.com/dedupe.jpg", "https://example.com/dedupe.jpg"]);
     await waitFor(() => {
       expect(invokeMock).toHaveBeenCalledTimes(1);
     });

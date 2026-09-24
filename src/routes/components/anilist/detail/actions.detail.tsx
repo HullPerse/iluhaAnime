@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button.component";
+import type { AnilistScoreFormat } from "@/lib/anilist/score.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import type { QuickAddListEntry, QuickAddMedia } from "@/types/collection";
 
@@ -10,12 +11,14 @@ export function DetailHeaderActions({
   onTrailer,
   anime,
   listEntry,
+  scoreFormat,
 }: {
   isFavorite: boolean;
   trailerId: string | null;
   onTrailer?: (id: string) => void;
   anime: QuickAddMedia;
   listEntry?: QuickAddListEntry;
+  scoreFormat?: AnilistScoreFormat | null;
 }) {
   const { t } = useI18n();
   return (
@@ -25,7 +28,12 @@ export function DetailHeaderActions({
           {t("anilist.details.trailer")}
         </Button>
       ) : null}
-      <QuickAddButton anime={anime} listEntry={listEntry} isFavorite={isFavorite} />
+      <QuickAddButton
+        anime={anime}
+        listEntry={listEntry}
+        isFavorite={isFavorite}
+        scoreFormat={scoreFormat}
+      />
     </div>
   );
 }

@@ -21,7 +21,7 @@ export interface TmdbDetails {
   title: string;
   overview: string | null;
   year: number | null;
-  release_date: string | null;
+  releaseDate: string | null;
   runtimeMinutes: number | null;
   genres: string[];
   posters: { url: string }[];

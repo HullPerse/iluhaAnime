@@ -843,6 +843,24 @@ describe("collection/import", () => {
         title: "Frieren",
         coverUrl: "https://example.com/f.jpg",
         status: "watching",
+        rating: null,
+        scoreOrigin: null,
+      });
+    });
+    it("carries the score over with the original it came from", () => {
+      expect(buildAnilistPrefill(media, "CURRENT", 85, "POINT_100")).toEqual({
+        title: "Frieren",
+        coverUrl: "https://example.com/f.jpg",
+        status: "watching",
+        rating: 8.5,
+        scoreOrigin: "85/100",
+      });
+      expect(buildAnilistPrefill(media, "CURRENT", 3, "POINT_3")).toEqual({
+        title: "Frieren",
+        coverUrl: "https://example.com/f.jpg",
+        status: "watching",
+        rating: 10,
+        scoreOrigin: ":)",
       });
     });
     it("defaults missing profile to planned", () => {

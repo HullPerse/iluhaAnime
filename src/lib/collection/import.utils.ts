@@ -1,6 +1,11 @@
 import { collectionApi } from "@/api/collection.api";
 import { IMPORT_CHUNK_SIZE } from "@/config/collection/defaults.config";
-import { normalizeToTen, type AnilistScoreFormat } from "@/lib/anilist/score.utils";
+import {
+  formatScore,
+  normalizeToTen,
+  parseScoreFormat,
+  type AnilistScoreFormat,
+} from "@/lib/anilist/score.utils";
 import { withFallback } from "@/lib/utils/attempt.utils";
 import type { AniListEntry, AniMedia } from "@/types/anilist";
 import type {
@@ -58,12 +63,18 @@ function anilistFormatToCollection(format: string | null): "anime" | "movie" {
 }
 export function buildAnilistPrefill(
   media: Pick<AniMedia, "title" | "cover_url">,
-  listStatus: string | null
+  listStatus: string | null,
+  score?: number | null,
+  scoreFormat?: AnilistScoreFormat | null
 ): WizardPrefill {
+  const format = parseScoreFormat(scoreFormat);
+  const rating = entryScoreToRating(score, format, null);
   return {
     title: media.title,
     coverUrl: media.cover_url,
     status: anilistStatusToCollection(listStatus ?? "PLANNING"),
+    rating: rating ? Number(rating) : null,
+    scoreOrigin: score ? formatScore(score, format) : null,
   };
 }
 

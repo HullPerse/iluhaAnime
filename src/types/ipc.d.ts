@@ -48,6 +48,7 @@ export type CommandName =
   | "fetch_torrent_bytes"
   | "get_anilist_activity"
   | "get_anilist_filter_page"
+  | "get_anilist_friend_scores"
   | "get_anilist_lists"
   | "get_anilist_profile"
   | "get_anime_by_id"

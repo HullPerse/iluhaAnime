@@ -39,6 +39,18 @@ describe("AnilistApi", () => {
     ]);
   });
 
+  it("asks for every friend score in one call", async () => {
+    const { calls, transport } = fakeTransport(() => []);
+    const api = new AnilistApi({ transport });
+
+    await api.getFriendScores(501, [7, 9]);
+
+    expect(calls[0]).toMatchObject({
+      command: "get_anilist_friend_scores",
+      args: { mediaId: 501, userIds: [7, 9] },
+    });
+  });
+
   it("trims the login token", async () => {
     const { calls, transport } = fakeTransport(() => ({ id: 1, name: "u" }));
     const api = new AnilistApi({ transport });

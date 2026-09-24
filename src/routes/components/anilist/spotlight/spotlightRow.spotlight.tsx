@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button.component";
 import { useRemoteImage } from "@/hooks/remoteImage.hook";
+import type { AnilistScoreFormat } from "@/lib/anilist/score.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import QuickAddButton from "@/routes/components/anilist/detail/quickadd.detail";
 import type { AniMedia } from "@/types/anilist";
@@ -9,11 +10,13 @@ export function SpotlightRow({
   countdown,
   onDetails,
   isFavorite,
+  scoreFormat,
 }: {
   media: AniMedia;
   countdown: string;
   onDetails: (id: number) => void;
   isFavorite: (id: number) => boolean;
+  scoreFormat?: AnilistScoreFormat | null;
 }) {
   const { t } = useI18n();
   const cover = useRemoteImage(media.cover_url);
@@ -35,7 +38,11 @@ export function SpotlightRow({
           <Button className="h-5 px-1 text-xs" onClick={() => onDetails(media.id)}>
             {t("anilist.spotlight.details")}
           </Button>
-          <QuickAddButton anime={media} isFavorite={isFavorite(media.id)} />
+          <QuickAddButton
+            anime={media}
+            isFavorite={isFavorite(media.id)}
+            scoreFormat={scoreFormat}
+          />
         </div>
       </div>
     </section>

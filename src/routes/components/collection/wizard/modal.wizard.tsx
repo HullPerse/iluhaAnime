@@ -33,6 +33,18 @@ import { WizardLocalPanel } from "./local.wizard";
 import { WizardPreview } from "./preview.wizard";
 import { WizardSourcePanel } from "./source.wizard";
 
+function prefillRatingValue(prefill: WizardPrefill | null | undefined): string {
+  return prefill?.rating == null ? "" : String(prefill.rating);
+}
+
+function prefillRatingOrigin(
+  initial: CollectionItem | null | undefined,
+  prefill: WizardPrefill | null | undefined
+): string | null {
+  if (initial) return null;
+  return prefill?.scoreOrigin ?? null;
+}
+
 export function WizardModal({
   open,
   onClose,
@@ -103,13 +115,15 @@ export function WizardModal({
     previewItem,
   } = form;
   const prefillApplied = useRef(false);
+  const ratingOrigin = prefillRatingOrigin(initial, prefill);
   useEffect(() => {
     if (initial || !prefill || prefillApplied.current) return;
     prefillApplied.current = true;
     setTitle(prefill.title);
     setCoverUrl(prefill.coverUrl ?? "");
     setStatus(prefill.status);
-  }, [initial, prefill, setTitle, setCoverUrl, setStatus]);
+    setRating(prefillRatingValue(prefill));
+  }, [initial, prefill, setTitle, setCoverUrl, setStatus, setRating]);
   const [coverBroken, setCoverBroken] = useState(false);
   const tmdbKeySet = useSettingsStore((s) => s.tmdbKeySet);
   const { t } = useI18n();
@@ -293,6 +307,7 @@ export function WizardModal({
                   setProgressUnit={setProgressUnit}
                   rating={rating}
                   setRating={setRating}
+                  ratingOrigin={ratingOrigin}
                   isFavorite={isFavorite}
                   setIsFavorite={setIsFavorite}
                   altTitles={altTitles}

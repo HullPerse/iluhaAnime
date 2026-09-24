@@ -712,6 +712,17 @@ export interface FriendScore {
   episodes: number | null;
 }
 
+export interface AniFriendScore {
+  userId: number;
+  score: number | null;
+  scoreFormat: string | null;
+  status: string | null;
+  progress: number | null;
+  repeat: number | null;
+  notes: string | null;
+  episodes: number | null;
+}
+
 export interface PrefetchSnapshot {
   ids: number[];
   done: number;

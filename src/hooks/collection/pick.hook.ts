@@ -82,7 +82,7 @@ export function useWizardPick({
           title: string;
           overview: string | null;
           year: number | null;
-          release_date: string | null;
+          releaseDate: string | null;
           runtimeMinutes: number | null;
           genres: string[];
           posters: { url: string }[];
@@ -92,7 +92,7 @@ export function useWizardPick({
           if (d.overview) setDescription(d.overview);
           if (d.genres.length) setGenres(d.genres.join(", "));
           if (d.year) setYear(String(d.year));
-          if (d.release_date) setReleaseDate(d.release_date);
+          if (d.releaseDate) setReleaseDate(d.releaseDate);
           if (d.runtimeMinutes) setDurationMinutes(String(d.runtimeMinutes));
           setType(mediaType === "movie" ? "movie" : "series");
           const posters = d.posters.map((p) => p.url).filter(Boolean);

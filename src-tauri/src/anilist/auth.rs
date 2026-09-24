@@ -378,6 +378,86 @@ pub struct AniListCollection {
     pub name: String,
     pub entries: Vec<AniListEntry>,
 }
+
+/// One request holds this many aliased `MediaList` lookups, so a single failing
+/// friend cannot take the whole friends section down with it.
+const FRIEND_SCORE_CHUNK: usize = 25;
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AniFriendScore {
+    pub user_id: u64,
+    pub score: Option<f64>,
+    pub score_format: Option<String>,
+    pub status: Option<String>,
+    pub progress: Option<i32>,
+    pub repeat: Option<i32>,
+    pub notes: Option<String>,
+    pub episodes: Option<i32>,
+}
+
+fn friend_score_query(user_ids: &[u64]) -> String {
+    use std::fmt::Write;
+
+    let mut query = String::from("query ($mediaId: Int) {\n");
+    for (index, id) in user_ids.iter().enumerate() {
+        let _ = writeln!(
+            query,
+            "f{index}: MediaList(mediaId: $mediaId, userId: {id}) {{ score status progress repeat notes media {{ episodes }} user {{ mediaListOptions {{ scoreFormat }} }} }}"
+        );
+    }
+    query.push('}');
+    query
+}
+
+fn parse_friend_score(node: &serde_json::Value, user_id: u64) -> Option<AniFriendScore> {
+    if node.is_null() {
+        return None;
+    }
+    Some(AniFriendScore {
+        user_id,
+        score: node["score"].as_f64(),
+        score_format: node["user"]["mediaListOptions"]["scoreFormat"]
+            .as_str()
+            .map(String::from),
+        status: node["status"].as_str().map(String::from),
+        progress: node["progress"].as_i64().map(|n| n as i32),
+        repeat: node["repeat"].as_i64().map(|n| n as i32),
+        notes: node["notes"].as_str().map(String::from),
+        episodes: node["media"]["episodes"].as_i64().map(|n| n as i32),
+    })
+}
+
+#[tauri::command]
+#[allow(non_snake_case)]
+pub async fn get_anilist_friend_scores(
+    app_handle: tauri::AppHandle,
+    media_id: u64,
+    user_ids: Vec<u64>,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
+) -> Result<Vec<AniFriendScore>, String> {
+    if user_ids.is_empty() {
+        return Ok(Vec::new());
+    }
+    let token = load_token(&app_handle)?;
+    let proxy = resolve_proxy(proxy_url, proxyUrl);
+    let mut out = Vec::new();
+    for chunk in user_ids.chunks(FRIEND_SCORE_CHUNK) {
+        let body = serde_json::json!({
+            "query": friend_score_query(chunk),
+            "variables": { "mediaId": media_id as i64 }
+        });
+        let json = graphql_request(body, Some(&token), proxy.as_deref()).await?;
+        for (index, user_id) in chunk.iter().enumerate() {
+            let alias = format!("f{index}");
+            if let Some(row) = parse_friend_score(&json["data"][alias.as_str()], *user_id) {
+                out.push(row);
+            }
+        }
+    }
+    Ok(out)
+}
 #[tauri::command]
 pub async fn anilist_logout(app_handle: tauri::AppHandle) -> Result<(), String> {
     delete_secret(ANILIST_CREDENTIAL);
@@ -506,5 +586,40 @@ mod tests {
         assert_eq!(parse_score_format(&viewer).as_deref(), Some("POINT_100"));
         let missing = serde_json::json!({});
         assert_eq!(parse_score_format(&missing), None);
+    }
+
+    #[test]
+    fn friend_score_query_aliases_every_user() {
+        let query = friend_score_query(&[7, 9]);
+        assert!(query.contains("f0: MediaList(mediaId: $mediaId, userId: 7)"));
+        assert!(query.contains("f1: MediaList(mediaId: $mediaId, userId: 9)"));
+        assert!(query.contains("scoreFormat"));
+    }
+
+    #[test]
+    fn parses_friend_score_rows() {
+        let row = serde_json::json!({
+            "score": 85,
+            "status": "COMPLETED",
+            "progress": 12,
+            "repeat": 1,
+            "notes": "  great  ",
+            "media": { "episodes": 24 },
+            "user": { "mediaListOptions": { "scoreFormat": "POINT_100" } }
+        });
+        let parsed = parse_friend_score(&row, 7).expect("row should parse");
+        assert_eq!(parsed.user_id, 7);
+        assert_eq!(parsed.score, Some(85.0));
+        assert_eq!(parsed.score_format.as_deref(), Some("POINT_100"));
+        assert_eq!(parsed.status.as_deref(), Some("COMPLETED"));
+        assert_eq!(parsed.progress, Some(12));
+        assert_eq!(parsed.repeat, Some(1));
+        assert_eq!(parsed.notes.as_deref(), Some("  great  "));
+        assert_eq!(parsed.episodes, Some(24));
+    }
+
+    #[test]
+    fn friends_without_an_entry_are_skipped() {
+        assert!(parse_friend_score(&serde_json::Value::Null, 7).is_none());
     }
 }

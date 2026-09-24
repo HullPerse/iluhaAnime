@@ -22,17 +22,17 @@ export async function downloadCover(url: string): Promise<string | null> {
 async function fetchFromTmdb(media: QuickAddMedia): Promise<Result<AddedMedia>> {
   if (!tmdbApi.isConfigured()) return err("tmdb api key is not set");
   const search = await attemptResult(
-    tmdbApi.search<{ id: number; media_type: string }>({
+    tmdbApi.search<{ id: number; mediaType: string }>({
       query: media.title,
       language: "ru-RU",
       includeAdult: false,
     })
   );
   if (!search.ok) return search;
-  const match = search.value.find((r) => r.media_type === "movie" || r.media_type === "tv");
+  const match = search.value.find((r) => r.mediaType === "movie" || r.mediaType === "tv");
   if (!match) return err("tmdb returned no movie or tv match");
   const details = await attemptResult(
-    tmdbApi.getMedia(match.id, match.media_type as "movie" | "tv")
+    tmdbApi.getMedia(match.id, match.mediaType as "movie" | "tv")
   );
   if (!details.ok) return details;
   return ok({

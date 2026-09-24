@@ -80,6 +80,22 @@ const changelog411 = {
     "The cookie-paste tab is gone from the rutracker login: the site window is the way in",
   "changelog.4_1_1.fixed.tmdb_key_save":
     "The TMDB key saves again: the app and the backend disagreed on the field name",
+  "changelog.4_1_1.fixed.tmdb_covers":
+    "TMDB search results show their posters again: the app read a field name the backend never sent, so every row fell back to the first letter of the title",
+  "changelog.4_1_1.fixed.wizard_cover_lookup":
+    "A search result that comes back without a poster now has its cover requested by title behind the scenes, so the row and the preview show a real cover instead of a letter, and it is kept in the image cache",
+  "changelog.4_1_1.fixed.tmdb_metadata":
+    "Picking a TMDB result fills in the release date again, and the stills and trailer lookup finds the movie instead of quietly falling through to MAL - the same field-name mismatch",
+  "changelog.4_1_1.added.score_origin_hint":
+    "Adding an AniList title to the collection carries your score over as the collection rating and shows where it came from: 85/100 becomes 8.5 with the original next to the field",
+  "changelog.4_1_1.changed.score_hint":
+    "A score that does not fit your AniList format now says what is expected instead of telling you it does not fit: whole numbers from 0 to 100, 0 to 10 with one decimal, 0 to 5, 0 to 3",
+  "changelog.4_1_1.changed.friends_scores_batch":
+    "Friends' scores load in one request instead of two for every friend, so the section opens faster and presses less on the AniList rate limit",
+  "changelog.4_1_1.fixed.mean_score_format":
+    "The average score in your header and in friend previews is shown on your own scale (8.5/10, 85/100) instead of as a bare number",
+  "changelog.4_1_1.fixed.quickadd_score_format":
+    "Quick add converts the score with the format you are actually using: it used to read the format out of the cache at click time and could carry over the wrong rating",
 } as const;
 
 export default changelog411;

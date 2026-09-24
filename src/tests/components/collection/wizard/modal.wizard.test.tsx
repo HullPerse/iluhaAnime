@@ -130,7 +130,7 @@ describe("WizardModal TMDB metadata", () => {
           {
             id: 1,
             title: "Dune",
-            cover_url: null,
+            coverUrl: null,
             year: 2021,
             mediaType: "movie",
             altTitles: [],
@@ -169,7 +169,7 @@ describe("WizardModal TMDB metadata", () => {
           {
             id: 2,
             title: "Frieren",
-            cover_url: "https://img/cover.jpg",
+            coverUrl: "https://img/cover.jpg",
             year: 2023,
             mediaType: "tv",
             altTitles: [],
@@ -276,6 +276,31 @@ describe("WizardModal public prefill lock", () => {
   });
 });
 
+describe("WizardModal AniList prefill", () => {
+  it("fills the rating and shows the score it was converted from", async () => {
+    const user = userEvent.setup();
+    renderWizard({
+      prefill: {
+        title: "Frieren",
+        coverUrl: null,
+        status: "planned",
+        rating: 8.5,
+        scoreOrigin: "85/100",
+      },
+    });
+    await user.click(screen.getByRole("tab", { name: "Details" }));
+    expect(screen.getByDisplayValue("8.5")).toBeTruthy();
+    expect(screen.getByText("from AniList 85/100 → 8.5")).toBeTruthy();
+  });
+
+  it("shows no origin hint on a prefill without a score", async () => {
+    const user = userEvent.setup();
+    renderWizard({ prefill: { title: "Frieren", coverUrl: null, status: "planned" } });
+    await user.click(screen.getByRole("tab", { name: "Details" }));
+    expect(screen.queryByText(/from AniList/u)).toBeNull();
+  });
+});
+
 describe("WizardModal source dropdown", () => {
   it("caps TMDB results at 6 with a count header", async () => {
     useSettingsStore.setState({ tmdbKeySet: true });
@@ -285,7 +310,7 @@ describe("WizardModal source dropdown", () => {
           Array.from({ length: 8 }, (_, i) => ({
             id: 100 + i,
             title: `Dune Part ${i + 1}`,
-            cover_url: null,
+            coverUrl: null,
             year: 2021,
             mediaType: "movie",
             altTitles: [],
@@ -306,11 +331,11 @@ describe("WizardModal source dropdown", () => {
     mockInvoke.mockImplementation((cmd: unknown) => {
       if (cmd === "search_tmdb")
         return Promise.resolve([
-          { id: 11, title: "Dune", cover_url: null, year: 2021, mediaType: "movie", altTitles: [] },
+          { id: 11, title: "Dune", coverUrl: null, year: 2021, mediaType: "movie", altTitles: [] },
           {
             id: 12,
             title: "Dune Messiah",
-            cover_url: null,
+            coverUrl: null,
             year: 2025,
             mediaType: "movie",
             altTitles: [],
@@ -356,7 +381,7 @@ describe("WizardModal source dropdown", () => {
           {
             id: 21,
             title: "Dune",
-            cover_url: null,
+            coverUrl: null,
             year: 2021,
             mediaType: "movie",
             altTitles: ["Dune: Part One"],
@@ -383,7 +408,7 @@ describe("WizardModal source dropdown", () => {
           {
             id: 31,
             title: "Dune",
-            cover_url: "https://image.tmdb.org/t/p/w500/dune.jpg",
+            coverUrl: "https://image.tmdb.org/t/p/w500/dune.jpg",
             year: 2021,
             mediaType: "movie",
             altTitles: [],
@@ -415,7 +440,7 @@ describe("WizardModal source dropdown", () => {
           {
             id: 32,
             title: "Dune",
-            cover_url: "https://image.tmdb.org/t/p/w500/dune.jpg",
+            coverUrl: "https://image.tmdb.org/t/p/w500/dune.jpg",
             year: 2021,
             mediaType: "movie",
             altTitles: [],
@@ -432,5 +457,51 @@ describe("WizardModal source dropdown", () => {
     const option = screen.getByRole("option", { name: /Dune/ });
     expect(option.querySelector("img")).toBeNull();
     expect(option.textContent).toContain("D");
+  });
+
+  it("looks the cover up by title when a result comes back without a poster", async () => {
+    useSettingsStore.setState({ tmdbKeySet: true });
+    mockInvoke.mockImplementation((cmd: unknown) => {
+      if (cmd === "search_tmdb")
+        return Promise.resolve([
+          {
+            id: 41,
+            title: "Dune",
+            coverUrl: null,
+            year: 2021,
+            mediaType: "movie",
+            altTitles: [],
+          },
+        ]);
+      if (cmd === "get_tmdb_details")
+        return Promise.resolve({
+          title: "Dune",
+          overview: null,
+          year: 2021,
+          runtimeMinutes: null,
+          genres: [],
+          posters: [{ url: "https://image.tmdb.org/t/p/w500/looked-up.jpg" }],
+        });
+      if (cmd === "fetch_remote_image")
+        return Promise.resolve({ id: "cached_2", path: "C:/images/cached_2.jpg" });
+      return Promise.resolve([]);
+    });
+    const user = userEvent.setup();
+    renderWizard();
+    await user.click(screen.getByRole("button", { name: "TMDB" }));
+    await user.type(screen.getByRole("combobox"), "dune");
+    await waitFor(() =>
+      expect(mockInvoke).toHaveBeenCalledWith(
+        "get_tmdb_details",
+        expect.objectContaining({ tmdbId: 41, mediaType: "movie" })
+      )
+    );
+    await waitFor(() =>
+      expect(screen.getByRole("option", { name: /Dune/ }).querySelector("img")).not.toBeNull()
+    );
+    expect(mockInvoke).toHaveBeenCalledWith(
+      "fetch_remote_image",
+      expect.objectContaining({ url: "https://image.tmdb.org/t/p/w92/looked-up.jpg" })
+    );
   });
 });

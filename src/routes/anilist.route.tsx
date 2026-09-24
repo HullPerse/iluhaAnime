@@ -553,6 +553,7 @@ function AnilistRoute() {
           hasUser={!!user}
           onDetails={openAnimeFromLookup}
           isFavorite={(id) => favouriteIds.has(id)}
+          scoreFormat={viewerScoreFormat}
           onClose={() => handleCloseModal("spotlight")}
         />
       )}

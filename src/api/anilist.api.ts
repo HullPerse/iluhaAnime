@@ -6,6 +6,7 @@ import type {
   AniAnimeStaffEdge,
   AniCharacterDetail,
   AniCharacterEdge,
+  AniFriendScore,
   AniListCollection,
   AniMedia,
   AniRecommendation,
@@ -76,6 +77,10 @@ export class AnilistApi {
 
   getLists(userId: number): Promise<AniListCollection[]> {
     return this.call("get_anilist_lists", { userId });
+  }
+
+  getFriendScores(mediaId: number, userIds: number[]): Promise<AniFriendScore[]> {
+    return this.call("get_anilist_friend_scores", { mediaId, userIds });
   }
 
   search<T = AniMedia>(params: AnilistSearchParams): Promise<T[]> {

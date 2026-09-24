@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
 import { tmdbApi } from "@/api/tmdb.api";
@@ -6,7 +6,7 @@ import { WIZARD_RESULTS_MAX } from "@/config/collection/defaults.config";
 import { SEARCH_RANKING } from "@/config/search/ranking.config";
 import { prefetchRemoteImages } from "@/hooks/remoteImage.hook";
 import { fuzzyMatchScore, normalizeSearchText } from "@/lib/search/suggestions.utils";
-import { attempt } from "@/lib/utils/attempt.utils";
+import { attempt, withFallback } from "@/lib/utils/attempt.utils";
 import type { WizardSearchResult } from "@/types/collection";
 
 function rankWizardResults(
@@ -31,6 +31,20 @@ function rankWizardResults(
     .map((x) => x.r);
 }
 
+async function lookupTmdbCover(id: number, mediaType?: string): Promise<string | null> {
+  if (mediaType !== "movie" && mediaType !== "tv") return null;
+  const details = await withFallback(
+    tmdbApi.getDetails<{ posters: { url: string }[] }>(id, mediaType),
+    null
+  );
+  return details?.posters?.find((poster) => poster.url)?.url ?? null;
+}
+
+async function lookupAnilistCover(id: number): Promise<string | null> {
+  const media = await withFallback(anilistApi.getAnimeById<{ cover_url: string | null }>(id), null);
+  return media?.cover_url ?? null;
+}
+
 export function useWizardSearch(
   source: "anilist" | "tmdb" | "custom",
   search: string,
@@ -42,6 +56,28 @@ export function useWizardSearch(
   const [loading, setLoading] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [searched, setSearched] = useState(false);
+  const coverLookupRef = useRef(0);
+
+  const fillMissingCovers = useCallback((rows: WizardSearchResult[], from: "anilist" | "tmdb") => {
+    const missing = rows.filter((row) => !row.cover_url);
+    if (!missing.length) return;
+    coverLookupRef.current += 1;
+    const lookupId = coverLookupRef.current;
+    const applyCover = async (row: WizardSearchResult) => {
+      const cover =
+        from === "tmdb"
+          ? await lookupTmdbCover(row.id, row.mediaType)
+          : await lookupAnilistCover(row.id);
+      if (!cover || lookupId !== coverLookupRef.current) return;
+      prefetchRemoteImages([cover]);
+      setSearchResults((prev) =>
+        prev.map((r) => (r.id === row.id && !r.cover_url ? { ...r, cover_url: cover } : r))
+      );
+    };
+    for (const row of missing) {
+      attempt(applyCover(row));
+    }
+  }, []);
 
   const searchAnilist = useCallback(async () => {
     const res = await anilistApi.search<{
@@ -81,10 +117,11 @@ export function useWizardSearch(
     const page = ranked.slice(0, WIZARD_RESULTS_MAX);
     setSearchResults(page);
     prefetchRemoteImages(page.map((r) => r.cover_url));
+    fillMissingCovers(page, "anilist");
     const covers = res.map((r) => r.cover_url).filter(Boolean) as string[];
     if (covers.length) setCoverOptions((prev) => [...new Set([...covers, ...prev])].slice(0, 8));
     setSearchError(null);
-  }, [search, existingTitles, favouriteIds]);
+  }, [search, existingTitles, favouriteIds, fillMissingCovers]);
 
   const searchTmdb = useCallback(async () => {
     if (!tmdbApi.isConfigured()) {
@@ -95,7 +132,7 @@ export function useWizardSearch(
     const res = await tmdbApi.search<{
       id: number;
       title: string;
-      cover_url: string | null;
+      coverUrl: string | null;
       year?: number | null;
       mediaType: string;
       overview: string | null;
@@ -110,7 +147,7 @@ export function useWizardSearch(
     const mapped = res.map((r) => ({
       id: r.id,
       title: r.title,
-      cover_url: r.cover_url,
+      cover_url: r.coverUrl ?? null,
       year: r.year ?? undefined,
       mediaType: r.mediaType,
       description: r.overview ?? undefined,
@@ -123,10 +160,11 @@ export function useWizardSearch(
     const page = ranked.slice(0, WIZARD_RESULTS_MAX);
     setSearchResults(page);
     prefetchRemoteImages(page.map((r) => r.cover_url));
-    const covers = res.map((r) => r.cover_url).filter(Boolean) as string[];
+    fillMissingCovers(page, "tmdb");
+    const covers = res.map((r) => r.coverUrl).filter(Boolean) as string[];
     if (covers.length) setCoverOptions((prev) => [...new Set([...covers, ...prev])].slice(0, 8));
     setSearchError(null);
-  }, [search, existingTitles, favouriteIds]);
+  }, [search, existingTitles, favouriteIds, fillMissingCovers]);
 
   const runSearch = useCallback(async () => {
     if (!search.trim()) {

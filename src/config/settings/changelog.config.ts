@@ -43,6 +43,7 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.4_1_1.added.wizard_dropdown", "collection"),
       entry("changelog.4_1_1.added.wizard_save_loader", "collection"),
       entry("changelog.4_1_1.added.rutracker_proxy_login", "torrents"),
+      entry("changelog.4_1_1.added.score_origin_hint", "collection"),
     ],
     changed: [
       entry("changelog.4_1_1.changed.resume_notice", "torrents"),
@@ -56,11 +57,18 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.4_1_1.changed.suggestion_perf", "search"),
       entry("changelog.4_1_1.changed.friend_status_square", "anilist"),
       entry("changelog.4_1_1.changed.rutracker_cookies", "torrents"),
+      entry("changelog.4_1_1.changed.score_hint", "anilist"),
+      entry("changelog.4_1_1.changed.friends_scores_batch", "anilist"),
     ],
     fixed: [
       entry("changelog.4_1_1.fixed.tray_restore", "app"),
       entry("changelog.4_1_1.fixed.text_cursor", "app"),
       entry("changelog.4_1_1.fixed.tmdb_key_save", "settings"),
+      entry("changelog.4_1_1.fixed.tmdb_covers", "collection"),
+      entry("changelog.4_1_1.fixed.wizard_cover_lookup", "collection"),
+      entry("changelog.4_1_1.fixed.tmdb_metadata", "collection"),
+      entry("changelog.4_1_1.fixed.mean_score_format", "anilist"),
+      entry("changelog.4_1_1.fixed.quickadd_score_format", "anilist"),
     ],
   },
   {

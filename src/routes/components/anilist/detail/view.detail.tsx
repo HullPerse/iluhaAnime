@@ -137,6 +137,7 @@ export function AniListDetailView({
             onTrailer={onTrailer}
             anime={anime}
             listEntry={listEntry}
+            scoreFormat={scoreFormat}
           />
         </div>
       </div>

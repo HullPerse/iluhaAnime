@@ -1,3 +1,5 @@
+import type { TranslationKey } from "@/types/i18n";
+
 export type AnilistScoreFormat =
   | "POINT_100"
   | "POINT_10_DECIMAL"
@@ -145,24 +147,48 @@ export function normalizeToTen(
   return score;
 }
 
+const SCORE_FORMAT_ERROR: Record<AnilistScoreFormat, TranslationKey> = {
+  POINT_100: "anilist.controls.score.need.int.100",
+  POINT_10_DECIMAL: "anilist.controls.score.need.decimal.10",
+  POINT_10: "anilist.controls.score.need.int.10",
+  POINT_5: "anilist.controls.score.need.int.5",
+  POINT_3: "anilist.controls.score.need.int.3",
+};
+
 export interface ValidatedScore {
   value: number | null;
-  error: string | null;
+  error: TranslationKey | null;
 }
 
 export function validateScoreInput(raw: string, format: AnilistScoreFormat): ValidatedScore {
   const trimmed = raw.trim();
   if (trimmed === "") return { value: null, error: null };
   const value = Number(trimmed);
-  if (!Number.isFinite(value)) return { value: null, error: "anilist.controls.score.invalid" };
+  if (!Number.isFinite(value)) return { value: null, error: "anilist.controls.score.need.number" };
   const max = scoreFormatMax(format);
-  if (value < 0 || value > max) return { value: null, error: "anilist.controls.score.invalid" };
+  const formatError = SCORE_FORMAT_ERROR[format];
+  if (value < 0 || value > max) return { value: null, error: formatError };
   if (format === "POINT_10_DECIMAL") {
     const rounded = Math.round(value * 10) / 10;
-    if (Math.abs(rounded - value) > 1e-9)
-      return { value: null, error: "anilist.controls.score.invalid" };
+    if (Math.abs(rounded - value) > 1e-9) return { value: null, error: formatError };
     return { value, error: null };
   }
-  if (!Number.isInteger(value)) return { value: null, error: "anilist.controls.score.invalid" };
+  if (!Number.isInteger(value)) return { value: null, error: formatError };
   return { value, error: null };
+}
+
+/**
+ * AniList does not document the scale of `UserStatistics.meanScore`, so a value above the
+ * maximum of the user's own score format can only have come back on the canonical 0-100
+ * scale and is converted; anything else is taken at face value.
+ */
+export function formatMeanScore(
+  meanScore: number | null | undefined,
+  format: AnilistScoreFormat
+): string | null {
+  if (meanScore == null || meanScore === 0) return null;
+  const max = scoreFormatMax(format);
+  const score = meanScore > max ? (meanScore * max) / 100 : meanScore;
+  const rounded = Math.round(score * 10) / 10;
+  return `${rounded}${scoreFormatSuffix(format) || `/${max}`}`;
 }

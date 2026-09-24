@@ -94,7 +94,7 @@ export function useCollectionMetadata(
         title: string;
         overview: string | null;
         year: number | null;
-        release_date: string | null;
+        releaseDate: string | null;
         runtimeMinutes: number | null;
         genres: string[];
         posters: { url: string }[];
@@ -108,7 +108,7 @@ export function useCollectionMetadata(
           title: d.title || item.title,
           description: d.overview ?? item.description,
           year: d.year ?? item.year,
-          releaseDate: d.release_date ?? item.releaseDate,
+          releaseDate: d.releaseDate ?? item.releaseDate,
           durationMinutes: d.runtimeMinutes ?? item.durationMinutes,
           genres: d.genres.length ? d.genres : item.genres,
           coverUrl: nextCoverUrl,

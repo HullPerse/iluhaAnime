@@ -134,6 +134,7 @@ const collection = {
   "collection.wizard.status": "Статус",
   "collection.wizard.progress": "Прогресс",
   "collection.wizard.rating": "Оценка 1-10",
+  "collection.wizard.rating.origin": "из AniList {{origin}} → {{rating}}",
   "collection.wizard.year": "Год",
   "collection.wizard.duration": "Длительность (мин)",
   "collection.wizard.studio": "Студия",

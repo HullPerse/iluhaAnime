@@ -8,6 +8,7 @@ import {
   SPOTLIGHT_LABELS,
   SPOTLIGHT_REFRESH_TICK_MS,
 } from "@/config/anilist/spotlight.config";
+import type { AnilistScoreFormat } from "@/lib/anilist/score.utils";
 import {
   resolveSpotlightPick,
   spotlightBoundaryMs,
@@ -25,11 +26,13 @@ export default function SpotlightModal({
   hasUser,
   onDetails,
   isFavorite,
+  scoreFormat,
   onClose,
 }: {
   hasUser: boolean;
   onDetails: (id: number) => void;
   isFavorite: (id: number) => boolean;
+  scoreFormat?: AnilistScoreFormat | null;
   onClose: () => void;
 }) {
   const { t } = useI18n();
@@ -130,6 +133,7 @@ export default function SpotlightModal({
                     countdown={countdown}
                     onDetails={onDetails}
                     isFavorite={isFavorite}
+                    scoreFormat={scoreFormat}
                   />
                 )}
               </div>

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { Input } from "@/components/ui/input.component";
 import { hasFreshCachedProfile } from "@/lib/anilist/friends.utils";
+import { formatMeanScore, parseScoreFormat } from "@/lib/anilist/score.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { enterSubmit } from "@/lib/utils/keyboard.utils";
@@ -38,6 +39,7 @@ function FriendPreview({
   onRefresh,
 }: FriendPreviewProps) {
   const { t } = useI18n();
+  const meanScore = formatMeanScore(profile?.mean_score, parseScoreFormat(profile?.score_format));
   if (!hasSelection || profile === undefined) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-2 p-6">
@@ -86,8 +88,7 @@ function FriendPreview({
           <p className="windows95-text text-xs">
             {profile.anime_count} {t("anilist.friends.anime")} - {profile.episodes_watched}{" "}
             {t("anilist.friends.episodes")}
-            {profile.mean_score != null &&
-              ` - ${t("anilist.friends.score")}: ${profile.mean_score}`}
+            {meanScore != null && ` - ${t("anilist.friends.score")}: ${meanScore}`}
           </p>
           <p className="windows95-text text-hint mt-1 text-xs">
             {profile.is_following == null

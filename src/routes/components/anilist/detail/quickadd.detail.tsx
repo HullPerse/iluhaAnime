@@ -1,9 +1,8 @@
-import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
 import { useCollectionData, useCollectionMutations } from "@/hooks/collection/queries.hook";
-import { parseScoreFormat } from "@/lib/anilist/score.utils";
+import { parseScoreFormat, type AnilistScoreFormat } from "@/lib/anilist/score.utils";
 import { mediaToWizardValues } from "@/lib/collection/import.utils";
 import { withStoredMedia } from "@/lib/collection/media.utils";
 import { downloadCover, fetchAddedMedia } from "@/lib/collection/quickadd.utils";
@@ -11,20 +10,20 @@ import { buildWizardItem } from "@/lib/collection/wizard.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { useNotificationStore } from "@/store/notification.store";
-import type { AniUser } from "@/types/anilist";
 import type { QuickAddListEntry, QuickAddMedia } from "@/types/collection";
 
 export default function QuickAddButton({
   anime,
   listEntry,
   isFavorite,
+  scoreFormat,
 }: {
   anime: QuickAddMedia;
   listEntry?: QuickAddListEntry;
   isFavorite: boolean;
+  scoreFormat?: AnilistScoreFormat | null;
 }) {
   const { t } = useI18n();
-  const queryClient = useQueryClient();
   const { items } = useCollectionData();
   const { addItem } = useCollectionMutations();
   const [adding, setAdding] = useState(false);
@@ -37,12 +36,11 @@ export default function QuickAddButton({
     setAdding(true);
     const [, error] = await attempt(
       (async () => {
-        const cached = queryClient.getQueryData<{ user: AniUser | null }>(["anilist_data"]);
         const values = mediaToWizardValues(
           anime,
           listEntry,
           isFavorite,
-          parseScoreFormat(cached?.user?.score_format)
+          parseScoreFormat(scoreFormat)
         );
         const coverBlobId = await downloadCover(values.coverUrl);
         const built = buildWizardItem(values, coverBlobId, null);

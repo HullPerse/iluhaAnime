@@ -2,6 +2,7 @@ import { Calendar, Flame, UserStar, LogOut, GitBranch, Users } from "lucide-reac
 
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
+import { formatMeanScore, parseScoreFormat } from "@/lib/anilist/score.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import type { AniHeaderProps as Props } from "@/types/anilist";
 
@@ -16,6 +17,7 @@ export default function AniListProfileHeader({
   onLogout,
 }: Props) {
   const { t } = useI18n();
+  const meanScore = formatMeanScore(user.mean_score, parseScoreFormat(user.score_format));
 
   return (
     <div className="windows95-active-border bg-primary flex w-full flex-col p-1">
@@ -48,8 +50,8 @@ export default function AniListProfileHeader({
                   count: user.anime_count,
                   episodes: user.episodes_watched,
                 })}
-                {user.mean_score != null && (
-                  <> - {t("anilist.header.mean.score", { score: user.mean_score })}</>
+                {meanScore != null && (
+                  <> - {t("anilist.header.mean.score", { score: meanScore })}</>
                 )}
               </>
             )}

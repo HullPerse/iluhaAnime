@@ -2,6 +2,7 @@ import { StepBack } from "lucide-react";
 
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
+import { formatMeanScore, parseScoreFormat } from "@/lib/anilist/score.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import type { AniFriend, AniUserProfile } from "@/types/anilist";
 
@@ -19,6 +20,7 @@ export default function AniListFriendHeader({
   const { t } = useI18n();
   const name = profile?.name ?? friend.name;
   const avatar = profile?.avatar ?? friend.avatar;
+  const meanScore = formatMeanScore(profile?.mean_score, parseScoreFormat(profile?.score_format));
 
   return (
     <div className="windows95-active-border bg-primary flex w-full flex-col p-1">
@@ -51,8 +53,8 @@ export default function AniListFriendHeader({
                   count: profile?.anime_count ?? 0,
                   episodes: profile?.episodes_watched ?? 0,
                 })}
-                {profile?.mean_score != null && (
-                  <> - {t("anilist.header.mean.score", { score: profile.mean_score })}</>
+                {meanScore != null && (
+                  <> - {t("anilist.header.mean.score", { score: meanScore })}</>
                 )}
               </>
             )}

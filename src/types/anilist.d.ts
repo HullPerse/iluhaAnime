@@ -2,6 +2,7 @@ import type { CSSProperties, MouseEvent as ReactMouseEvent } from "react";
 
 import { RELATION_FILTERS } from "@/config/anilist/graph.config";
 import type { EntryLookup } from "@/lib/anilist/entries.utils";
+import type { AnilistScoreFormat } from "@/lib/anilist/score.utils";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
 
 export interface AniRanking {
@@ -66,6 +67,7 @@ export interface AniUser {
   anime_count: number;
   episodes_watched: number;
   mean_score: number | null;
+  score_format: AnilistScoreFormat | null;
   favourites?: FavouriteAnime[];
 }
 
@@ -349,6 +351,7 @@ export interface ContextMenuState {
 
 export interface FranchiseGraphSectionProps {
   animeId: number;
+  entryLookup?: EntryLookup;
   onRelated?: (id: number) => void;
   expanded?: boolean;
 }
@@ -521,11 +524,14 @@ export interface AniCardProps {
   item: AniMedia;
   entryLookup: EntryLookup;
   isFavorite: boolean;
+  scoreFormat?: AnilistScoreFormat | null;
   onClick: (anime: AniListAnime) => void;
 }
 
 export interface AniListDetailModalHostProps {
   selectedAnime: AniListAnime;
+  entryLookup?: EntryLookup;
+  scoreFormat?: AnilistScoreFormat | null;
   favouriteIds: Set<number>;
   favouriteStaffIds?: Set<number>;
   favouriteCharacterIds?: Set<number>;
@@ -545,6 +551,8 @@ export interface AniListDetailModalHostProps {
 
 export interface AniDetailProps {
   animeId: number;
+  entryLookup?: EntryLookup;
+  scoreFormat?: AnilistScoreFormat | null;
   listEntry?: {
     progress: number | null;
     score: number | null;
@@ -616,6 +624,7 @@ export interface FranchiseGraphProps {
 export interface FranchiseListProps {
   nodes: FranchiseNode[];
   animeId: number;
+  entryLookup?: EntryLookup;
   relationMap: Map<number, string>;
   searchMatchIds: Set<number> | null;
   onNodeClick: (nodeId: number) => void;
@@ -695,9 +704,12 @@ export interface FriendScore {
   name: string;
   avatar: string | null;
   score: number | null;
+  scoreFormat: AnilistScoreFormat | null;
   status: string;
   comment: string | null;
   repeat: number | null;
+  progress: number | null;
+  episodes: number | null;
 }
 
 export interface PrefetchSnapshot {

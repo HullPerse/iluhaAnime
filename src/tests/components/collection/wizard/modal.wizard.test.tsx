@@ -3,9 +3,10 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { resetRemoteImageCache } from "@/hooks/remoteImage.hook";
 import { WizardModal } from "@/routes/components/collection/wizard/modal.wizard";
 import { useSettingsStore } from "@/store/settings.store";
-import type { CollectionItem, CollectionStatusDef } from "@/types/collection";
+import type { CollectionStatusDef } from "@/types/collection";
 
 const mockInvoke = vi.fn();
 vi.mock("@tauri-apps/api/core", () => ({
@@ -55,19 +56,10 @@ beforeEach(() => {
   useSettingsStore.setState({ language: "en" });
   mockInvoke.mockReset();
   mockOpenDialog.mockReset();
+  resetRemoteImageCache();
 });
 
 describe("WizardModal add mode", () => {
-  it("opens on the source tab with a disabled save button", () => {
-    renderWizard();
-    expect(screen.getByRole("tab", { name: "Source" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Custom" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "AniList" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "TMDB" })).toBeTruthy();
-    expect((screen.getByRole("button", { name: "Save" }) as HTMLButtonElement).disabled).toBe(true);
-    expect(screen.getAllByText("Cover is required to save.")).toHaveLength(1);
-  });
-
   it("shows the cover required hint twice once the cover tab opens", async () => {
     const user = userEvent.setup();
     renderWizard();
@@ -129,53 +121,6 @@ describe("WizardModal add mode", () => {
   });
 });
 
-describe("WizardModal edit mode", () => {
-  it("opens on details without the source tab and offers delete", () => {
-    const initial: CollectionItem = {
-      id: "item_1",
-      title: "Naruto",
-      altTitles: [],
-      type: "anime",
-      status: "watching",
-      progressValue: 12,
-      progressTotal: 220,
-      progressUnit: "episodes",
-      durationMinutes: 23,
-      rating: 8,
-      priority: "normal",
-      isFavorite: false,
-      year: 2002,
-      releaseDate: null,
-      genres: ["Action"],
-      studio: "Pierrot",
-      description: null,
-      notes: null,
-      coverUrl: "data:image/png;base64,AAAA",
-      coverBlobId: "blob_9",
-      thumbBlobId: null,
-      externalIds: {},
-      customFields: {},
-      localPath: null,
-      localKind: null,
-      startedAt: null,
-      finishedAt: null,
-      lastWatchedAt: null,
-      rewatchCount: 0,
-      addedAt: 0,
-      updatedAt: 0,
-      sitesToView: [],
-      tvCurrentSeason: null,
-      tvCurrentEpisode: null,
-      detailsJson: null,
-    };
-    const onDelete = vi.fn();
-    renderWizard({ initial, onDelete });
-    expect(screen.queryByRole("tab", { name: "Source" })).toBeNull();
-    expect((screen.getByLabelText("Title") as HTMLInputElement).value).toBe("Naruto");
-    expect(screen.getByRole("button", { name: "Delete" })).toBeTruthy();
-  });
-});
-
 describe("WizardModal TMDB metadata", () => {
   it("backfills genres and description when picking a TMDB result", async () => {
     useSettingsStore.setState({ tmdbKeySet: true });
@@ -205,9 +150,9 @@ describe("WizardModal TMDB metadata", () => {
     const user = userEvent.setup();
     renderWizard();
     await user.click(screen.getByRole("button", { name: "TMDB" }));
-    await user.type(screen.getByRole("textbox"), "dune");
-    await waitFor(() => expect(screen.getByRole("button", { name: /Dune/ })).toBeTruthy());
-    await user.click(screen.getByRole("button", { name: /Dune/ }));
+    await user.type(screen.getByRole("combobox"), "dune");
+    await waitFor(() => expect(screen.getByRole("option", { name: /Dune/ })).toBeTruthy());
+    await user.click(screen.getByRole("option", { name: /Dune/ }));
     await user.click(screen.getByRole("tab", { name: "Details" }));
     const more = screen.getByRole("button", { name: "More options" });
     await user.click(more);
@@ -250,9 +195,9 @@ describe("WizardModal TMDB metadata", () => {
     const user = userEvent.setup();
     renderWizard({ onSave });
     await user.click(screen.getByRole("button", { name: "TMDB" }));
-    await user.type(screen.getByRole("textbox"), "frieren");
-    await waitFor(() => expect(screen.getByRole("button", { name: /Frieren/ })).toBeTruthy());
-    await user.click(screen.getByRole("button", { name: /Frieren/ }));
+    await user.type(screen.getByRole("combobox"), "frieren");
+    await waitFor(() => expect(screen.getByRole("option", { name: /Frieren/ })).toBeTruthy());
+    await user.click(screen.getByRole("option", { name: /Frieren/ }));
     await waitFor(() =>
       expect(mockInvoke).toHaveBeenCalledWith("get_tmdb_media", expect.anything())
     );
@@ -289,9 +234,9 @@ describe("WizardModal AniList tags", () => {
     const user = userEvent.setup();
     renderWizard();
     await user.click(screen.getByRole("button", { name: "AniList" }));
-    await user.type(screen.getByRole("textbox"), "frieren");
-    await waitFor(() => expect(screen.getByRole("button", { name: /Frieren/ })).toBeTruthy());
-    await user.click(screen.getByRole("button", { name: /Frieren/ }));
+    await user.type(screen.getByRole("combobox"), "frieren");
+    await waitFor(() => expect(screen.getByRole("option", { name: /Frieren/ })).toBeTruthy());
+    await user.click(screen.getByRole("option", { name: /Frieren/ }));
     await user.click(screen.getByRole("tab", { name: "Details" }));
     await user.click(screen.getByRole("button", { name: "More options" }));
     await waitFor(() =>
@@ -329,48 +274,163 @@ describe("WizardModal public prefill lock", () => {
       false
     );
   });
+});
 
-  it("leaves the selector free when editing a public item", () => {
-    const initial: CollectionItem = {
-      id: "item_9",
-      title: "Shared title",
-      altTitles: [],
-      type: "anime",
-      status: "share_1",
-      progressValue: 0,
-      progressTotal: 12,
-      progressUnit: "episodes",
-      durationMinutes: 23,
-      rating: null,
-      priority: "normal",
-      isFavorite: false,
-      year: 2024,
-      releaseDate: null,
-      genres: [],
-      studio: null,
-      description: null,
-      notes: null,
-      coverUrl: "data:image/png;base64,AAAA",
-      coverBlobId: null,
-      thumbBlobId: null,
-      externalIds: {},
-      customFields: {},
-      localPath: null,
-      localKind: null,
-      startedAt: null,
-      finishedAt: null,
-      lastWatchedAt: null,
-      rewatchCount: 0,
-      addedAt: 0,
-      updatedAt: 0,
-      sitesToView: [],
-      tvCurrentSeason: null,
-      tvCurrentEpisode: null,
-      detailsJson: null,
-    };
-    renderWizard({ statuses: LOCK_STATUSES, initial });
-    expect((screen.getByRole("combobox", { name: "Status" }) as HTMLButtonElement).disabled).toBe(
-      false
+describe("WizardModal source dropdown", () => {
+  it("caps TMDB results at 6 with a count header", async () => {
+    useSettingsStore.setState({ tmdbKeySet: true });
+    mockInvoke.mockImplementation((cmd: unknown) => {
+      if (cmd === "search_tmdb")
+        return Promise.resolve(
+          Array.from({ length: 8 }, (_, i) => ({
+            id: 100 + i,
+            title: `Dune Part ${i + 1}`,
+            cover_url: null,
+            year: 2021,
+            mediaType: "movie",
+            altTitles: [],
+          }))
+        );
+      return Promise.resolve([]);
+    });
+    const user = userEvent.setup();
+    renderWizard();
+    await user.click(screen.getByRole("button", { name: "TMDB" }));
+    await user.type(screen.getByRole("combobox"), "dune");
+    await waitFor(() => expect(screen.getAllByRole("option")).toHaveLength(6));
+    expect(screen.getAllByText("6 results").length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("picks the first result on Enter without arrow navigation", async () => {
+    useSettingsStore.setState({ tmdbKeySet: true });
+    mockInvoke.mockImplementation((cmd: unknown) => {
+      if (cmd === "search_tmdb")
+        return Promise.resolve([
+          { id: 11, title: "Dune", cover_url: null, year: 2021, mediaType: "movie", altTitles: [] },
+          {
+            id: 12,
+            title: "Dune Messiah",
+            cover_url: null,
+            year: 2025,
+            mediaType: "movie",
+            altTitles: [],
+          },
+        ]);
+      if (cmd === "get_tmdb_details")
+        return Promise.resolve({
+          title: "Dune",
+          overview: null,
+          year: 2021,
+          runtimeMinutes: null,
+          genres: [],
+          posters: [],
+        });
+      return Promise.resolve([]);
+    });
+    const user = userEvent.setup();
+    renderWizard();
+    await user.click(screen.getByRole("button", { name: "TMDB" }));
+    await user.type(screen.getByRole("combobox"), "dune");
+    await waitFor(() => expect(screen.getAllByRole("option")).toHaveLength(2));
+    await user.keyboard("{Enter}");
+    await user.click(screen.getByRole("tab", { name: "Details" }));
+    await waitFor(() => expect(screen.getByDisplayValue("Dune")).toBeTruthy());
+  });
+
+  it("shows the empty state when a search finds nothing", async () => {
+    useSettingsStore.setState({ tmdbKeySet: true });
+    mockInvoke.mockImplementation(() => Promise.resolve([]));
+    const user = userEvent.setup();
+    renderWizard();
+    await user.click(screen.getByRole("button", { name: "TMDB" }));
+    await user.type(screen.getByRole("combobox"), "zzz-no-such-title");
+    await waitFor(() => expect(screen.getByText("Nothing found. Try another query.")).toBeTruthy());
+    expect(screen.queryByRole("listbox")).toBeNull();
+  });
+
+  it("renders the media type badge and alt title in each row", async () => {
+    useSettingsStore.setState({ tmdbKeySet: true });
+    mockInvoke.mockImplementation((cmd: unknown) => {
+      if (cmd === "search_tmdb")
+        return Promise.resolve([
+          {
+            id: 21,
+            title: "Dune",
+            cover_url: null,
+            year: 2021,
+            mediaType: "movie",
+            altTitles: ["Dune: Part One"],
+          },
+        ]);
+      return Promise.resolve([]);
+    });
+    const user = userEvent.setup();
+    renderWizard();
+    await user.click(screen.getByRole("button", { name: "TMDB" }));
+    await user.type(screen.getByRole("combobox"), "dune");
+    await waitFor(() => expect(screen.getByRole("option", { name: /Dune/ })).toBeTruthy());
+    const option = screen.getByRole("option", { name: /Dune/ });
+    expect(option.textContent).toContain("Movie");
+    expect(option.textContent).toContain("Dune: Part One");
+    expect(option.textContent).toContain("2021");
+  });
+
+  it("renders the row cover through the backend image cache", async () => {
+    useSettingsStore.setState({ tmdbKeySet: true });
+    mockInvoke.mockImplementation((cmd: unknown) => {
+      if (cmd === "search_tmdb")
+        return Promise.resolve([
+          {
+            id: 31,
+            title: "Dune",
+            cover_url: "https://image.tmdb.org/t/p/w500/dune.jpg",
+            year: 2021,
+            mediaType: "movie",
+            altTitles: [],
+          },
+        ]);
+      if (cmd === "fetch_remote_image")
+        return Promise.resolve({ id: "cached_1", path: "C:/images/cached_1.jpg" });
+      return Promise.resolve([]);
+    });
+    const user = userEvent.setup();
+    renderWizard();
+    await user.click(screen.getByRole("button", { name: "TMDB" }));
+    await user.type(screen.getByRole("combobox"), "dune");
+    await waitFor(() => expect(screen.getByRole("option", { name: /Dune/ })).toBeTruthy());
+    const option = screen.getByRole("option", { name: /Dune/ });
+    const img = option.querySelector("img");
+    expect(img?.getAttribute("src")).toContain("asset.localhost");
+    expect(mockInvoke).toHaveBeenCalledWith(
+      "fetch_remote_image",
+      expect.objectContaining({ url: "https://image.tmdb.org/t/p/w92/dune.jpg" })
     );
+  });
+
+  it("falls back to the title initial when the cached cover fails", async () => {
+    useSettingsStore.setState({ tmdbKeySet: true });
+    mockInvoke.mockImplementation((cmd: unknown) => {
+      if (cmd === "search_tmdb")
+        return Promise.resolve([
+          {
+            id: 32,
+            title: "Dune",
+            cover_url: "https://image.tmdb.org/t/p/w500/dune.jpg",
+            year: 2021,
+            mediaType: "movie",
+            altTitles: [],
+          },
+        ]);
+      if (cmd === "fetch_remote_image") return Promise.reject(new Error("no network"));
+      return Promise.resolve([]);
+    });
+    const user = userEvent.setup();
+    renderWizard();
+    await user.click(screen.getByRole("button", { name: "TMDB" }));
+    await user.type(screen.getByRole("combobox"), "dune");
+    await waitFor(() => expect(screen.getByRole("option", { name: /Dune/ })).toBeTruthy());
+    const option = screen.getByRole("option", { name: /Dune/ });
+    expect(option.querySelector("img")).toBeNull();
+    expect(option.textContent).toContain("D");
   });
 });

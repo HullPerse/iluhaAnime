@@ -84,9 +84,8 @@ const search = {
   "search.results.count.one": "{{count}} result",
   "search.retry": "Retry",
   "search.rutracker.browser.tab": "Built-in browser",
-  "search.rutracker.cookies.tab": "Paste cookies",
   "search.rutracker.err.blocked":
-    'Rutracker blocked the app (anti-bot). Use "Paste cookies" or a system-wide VPN.',
+    "Rutracker blocked the app (anti-bot). Use the built-in browser tab or a system-wide VPN.",
   "search.rutracker.err.cookies.invalid":
     "Cookies are invalid or expired. Sign in in the browser and copy the new ones.",
   "search.rutracker.err.cookies.parse": "Could not parse the pasted cookies.",
@@ -96,9 +95,11 @@ const search = {
     "No cookies were found. Make sure you are signed in in the in-app browser.",
   "search.rutracker.err.no.session":
     "No rutracker session was found. Sign in in the in-app browser first, then save.",
+  "search.rutracker.err.proxy.invalid":
+    "The rutracker proxy URL is invalid. Use http://host:port or socks5://host:port.",
   "search.rutracker.err.session.failed":
     "Login succeeded but the session wasn't saved. Try again or paste cookies.",
-  "search.rutracker.err.unknown": "Login failed. Try again or paste cookies from the browser.",
+  "search.rutracker.err.unknown": "Login failed. Try again in the built-in browser.",
   "search.rutracker.err.webview.not.found": "The in-app browser window is not open. Open it first.",
   "search.rutracker.err.webview.open": "Could not open the in-app browser.",
   "search.rutracker.err.webview.save":
@@ -109,7 +110,6 @@ const search = {
   "search.rutracker.open.browser": "Open in-app browser",
   "search.rutracker.password": "Password",
   "search.rutracker.save.browser.session": "Save session",
-  "search.rutracker.save.cookies": "Save cookies",
   "search.rutracker.title": "Rutracker: sign in",
   "search.rutracker.username": "Username",
   "search.sort.leechers": "Leechers",

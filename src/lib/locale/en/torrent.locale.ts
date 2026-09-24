@@ -93,7 +93,7 @@ const torrent = {
   "torrent.recreate": "Recreate torrent",
   "torrent.recreate.confirm": "Recreate",
   "torrent.recreate.message":
-    "Recreating removes the torrent and adds it back by magnet, which drops manual trackers, the file selection and priority order. Recheck first - it fixes most cases.",
+    "Recreating removes the torrent and adds it back by magnet - manual trackers, file selection and priority order are lost.",
   "torrent.recreate.title": "Recreate torrent",
   "torrent.redownload": "Download again",
   "torrent.resume": "Resume download",
@@ -115,7 +115,7 @@ const torrent = {
   "torrent.queue.title": "Download queue",
   "torrent.queue.button": "Queue",
   "torrent.queue.hint":
-    "Drag the files, or move them with the arrows, to set the order sequential mode fetches them in. Everything checked keeps downloading - this only decides what comes first.",
+    "Drag the files, or move them with the arrows, to set the sequential download order.",
   "torrent.queue.empty": "No files selected. Check the files to download in the list first.",
   "torrent.queue.reset": "Reset order",
   "torrent.queue.save": "Save order",

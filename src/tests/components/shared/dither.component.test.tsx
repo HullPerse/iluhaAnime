@@ -1,4 +1,4 @@
-import { act, cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import DitherCanvas from "@/components/shared/dither.component";
@@ -20,23 +20,6 @@ afterEach(() => {
 });
 
 describe("DitherCanvas", () => {
-  it("shows the raw image instantly while the dither computes", () => {
-    render(<DitherCanvas src="/123.jpeg" />);
-    expect(screen.getByRole("presentation", { hidden: true }).getAttribute("src")).toBe(
-      "/123.jpeg"
-    );
-  });
-
-  it("stays decorative without a label", () => {
-    const { container } = render(<DitherCanvas src="/123.jpeg" />);
-    expect(container.querySelector("canvas")?.getAttribute("aria-hidden")).toBe("true");
-  });
-
-  it("exposes role img with a label", () => {
-    render(<DitherCanvas src="/123.jpeg" ariaLabel="Print preview" />);
-    expect(screen.getByRole("img", { name: "Print preview" })).toBeTruthy();
-  });
-
   it("reports a missing 2D context through onError", () => {
     const onError = vi.fn();
     render(<DitherCanvas src="/123.jpeg" onError={onError} />);

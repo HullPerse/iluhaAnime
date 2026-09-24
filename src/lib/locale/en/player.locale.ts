@@ -127,7 +127,7 @@ const player = {
   "player.upscale.suggest.medium": "HD source",
   "player.upscale.suggest.noisy": "noisy source",
   "player.upscale.suggest.unknown": "unknown source",
-  "player.upscale.suggested": "Suggested: {preset} ({reason})",
+  "player.upscale.suggested": "Suggested: {{preset}} ({{reason}})",
   "player.upscale.target.format": "Target format",
   "player.upscale.temporal.denoise": "Temporal denoise (inter-frame)",
   "player.upscale.title": "Improve quality (upscale)",

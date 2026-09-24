@@ -1,4 +1,5 @@
 import type { EntryLookup } from "@/lib/anilist/entries.utils";
+import type { AnilistScoreFormat } from "@/lib/anilist/score.utils";
 import AniListEntryCard from "@/routes/components/anilist/card.anilist";
 import type { AniListAnime, AniMedia } from "@/types/anilist";
 
@@ -8,6 +9,7 @@ export default function AniListResults({
   entries,
   entryLookup,
   favouriteIds,
+  scoreFormat,
   onSelect,
   scrollRef,
   showPagination,
@@ -16,6 +18,7 @@ export default function AniListResults({
   entries: AniMedia[];
   entryLookup: EntryLookup;
   favouriteIds: Set<number>;
+  scoreFormat?: AnilistScoreFormat | null;
   onSelect: (anime: AniListAnime) => void;
   scrollRef: React.RefObject<HTMLElement | null>;
   showPagination: boolean;
@@ -34,6 +37,7 @@ export default function AniListResults({
               item={item}
               entryLookup={entryLookup}
               isFavorite={favouriteIds.has(item.id)}
+              scoreFormat={scoreFormat}
               onClick={onSelect}
             />
           ))}

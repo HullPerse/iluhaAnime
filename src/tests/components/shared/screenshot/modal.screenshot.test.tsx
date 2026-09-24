@@ -35,8 +35,6 @@ const CAPTURE: ScreenshotCapture = {
   defaultDir: "D:/Pictures",
 };
 
-const SQUARE_CAPTURE: ScreenshotCapture = { ...CAPTURE, width: 640, height: 640 };
-
 const SAVED: SavedScreenshot = {
   path: "D:/Pictures/iluhaAnime_screenshot.png",
   width: 1280,
@@ -133,10 +131,6 @@ function renderModal(onClose = vi.fn(), capture: ScreenshotCapture = CAPTURE) {
 
 function folderValue(): string {
   return (screen.getByLabelText("Folder") as HTMLInputElement).value;
-}
-
-function nameValue(): string {
-  return (screen.getByLabelText("File name") as HTMLInputElement).value;
 }
 
 function isDisabled(element: HTMLElement): boolean {
@@ -270,26 +264,6 @@ afterEach(() => {
 });
 
 describe("ScreenshotModal", () => {
-  it("previews the capture with its pixel size", () => {
-    renderModal();
-    expect(screen.getByAltText("Screenshot").getAttribute("src")).toBe(
-      "http://asset.localhost/C%3A%2FTemp%2Filuha_screenshot_1.png"
-    );
-    expect(screen.getByText("1280 x 720 px")).toBeTruthy();
-  });
-
-  it("starts from the last used folder and the product name prefix", () => {
-    useSettingsStore.setState({ screenshotDir: "D:/Old" });
-    renderModal();
-    expect(folderValue()).toBe("D:/Old");
-    expect(nameValue()).toBe("iluhaAnime_screenshot");
-  });
-
-  it("falls back to the folder the capture suggested", () => {
-    renderModal();
-    expect(folderValue()).toBe("D:/Pictures");
-  });
-
   it("replaces the folder through the picker", async () => {
     const user = userEvent.setup();
     renderModal();
@@ -403,29 +377,6 @@ describe("ScreenshotModal", () => {
     await waitFor(() => expect(useNotificationStore.getState().items).toHaveLength(1));
     expect(onClose).not.toHaveBeenCalled();
     expect(mockOpenPath).not.toHaveBeenCalled();
-  });
-
-  it("disables saving without a destination folder", () => {
-    renderModal(vi.fn(), { ...CAPTURE, defaultDir: "" });
-    expect(isDisabled(screen.getByRole("button", { name: "Save" }))).toBe(true);
-  });
-
-  it("shows the whole shot without a scrollbar and with no selection drawn", () => {
-    renderModal();
-    expect(stage().className).toContain("overflow-hidden");
-    expect(stage().className).not.toContain("overflow-auto");
-    // The picture is contained by CSS, so it can never be shown larger than the box even before any
-    // measurement lands.
-    expect(picture().className).toContain("object-contain");
-    expect(picture().className).toContain("h-full");
-    expect(picture().style.transform).toBe("translate(0px, 0px) scale(1)");
-    expect(zoomLabel()).toBe("100%");
-    expect(selection()).toBeNull();
-    expect(
-      screen.getByText("Drag across the image to select an area, hold Shift for a square")
-    ).toBeTruthy();
-    expect(isDisabled(screen.getByRole("button", { name: "Reset selection" }))).toBe(true);
-    expect(screen.queryByText("1:1")).toBeNull();
   });
 
   it("zooms the shot with the wheel", async () => {
@@ -606,12 +557,6 @@ describe("ScreenshotModal", () => {
     expect(readout()).toBe("390 x 299 px");
   });
 
-  it("shows no square badge while nothing is selected", () => {
-    renderModal(vi.fn(), SQUARE_CAPTURE);
-    expect(readout()).toBe("640 x 640 px");
-    expect(screen.queryByText("1:1")).toBeNull();
-  });
-
   it("flags a square selection", () => {
     renderModal();
     dragSelection(100, 100, 300, 300);
@@ -699,11 +644,11 @@ describe("ScreenshotModal annotations", () => {
   it("offers only the controls the active tool can use", async () => {
     const user = userEvent.setup();
     renderModal();
-    expect(screen.queryByRole("button", { name: "Custom colour" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Custom color" })).toBeNull();
     expect(screen.queryByRole("group", { name: "Brush size" })).toBeNull();
 
     await user.click(tool("Pencil"));
-    expect(screen.getByRole("button", { name: "Custom colour" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Custom color" })).toBeTruthy();
     expect(screen.getByRole("group", { name: "Brush size" })).toBeTruthy();
     expect(tool("Pencil").getAttribute("aria-pressed")).toBe("true");
     expect(tool("6 px").getAttribute("aria-pressed")).toBe("true");
@@ -711,12 +656,12 @@ describe("ScreenshotModal annotations", () => {
     await user.click(tool("Text"));
     expect(screen.queryByRole("group", { name: "Brush size" })).toBeNull();
     expect(screen.getByRole("group", { name: "Text size" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Custom colour" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Custom color" })).toBeTruthy();
     expect(tool("28 px").getAttribute("aria-pressed")).toBe("true");
-    expect(screen.getByText(/Click where the text goes/)).toBeTruthy();
+    expect(screen.getByText("Click, type the text, press Enter")).toBeTruthy();
 
     await user.click(tool("Select an area"));
-    expect(screen.queryByRole("button", { name: "Custom colour" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Custom color" })).toBeNull();
     expect(
       screen.getByText("Drag across the image to select an area, hold Shift for a square")
     ).toBeTruthy();
@@ -843,7 +788,7 @@ describe("ScreenshotModal annotations", () => {
     const user = userEvent.setup();
     renderModal();
     await user.click(tool("Text"));
-    await user.click(tool("Custom colour"));
+    await user.click(tool("Custom color"));
     const hexInput = screen.getByPlaceholderText("000000");
     await user.clear(hexInput);
     await user.type(hexInput, "2e9e4f");

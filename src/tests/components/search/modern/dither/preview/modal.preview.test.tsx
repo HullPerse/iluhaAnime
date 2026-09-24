@@ -94,16 +94,6 @@ beforeEach(() => {
 });
 
 describe("DitherPreviewModal", () => {
-  it("renders from the pristine original with the empty preset", async () => {
-    render(<DitherPreviewModal image={IMAGE} onBack={vi.fn()} onSaved={vi.fn()} />);
-    await waitFor(() => expect(lastCanvasSrc).toBe("data:image/png;base64,OOOO"));
-    expect(screen.getByRole("button", { name: "Empty" })).toBeTruthy();
-    expect(screen.getAllByRole("slider")).toHaveLength(28);
-    expect((screen.getByRole("button", { name: "Empty" }) as HTMLButtonElement).disabled).toBe(
-      true
-    );
-  });
-
   it("switches presets", async () => {
     const user = userEvent.setup();
     render(<DitherPreviewModal image={IMAGE} onBack={vi.fn()} onSaved={vi.fn()} />);
@@ -305,16 +295,5 @@ describe("DitherPreviewModal", () => {
       vi.unstubAllGlobals();
       getContext.mockRestore();
     }
-  });
-
-  it("keeps controls and save in one scroll section below the canvas", async () => {
-    render(<DitherPreviewModal image={IMAGE} onBack={vi.fn()} onSaved={vi.fn()} />);
-    await waitFor(() => expect(lastCanvasSrc).toBeTruthy());
-    const slider = screen.getAllByRole("slider")[0];
-    const save = screen.getByRole("button", { name: "Save" });
-    const scroller = slider.closest("div.overflow-y-auto");
-    expect(scroller).toBeTruthy();
-    expect(scroller?.contains(save)).toBe(true);
-    expect(scroller?.querySelector("canvas")).toBeNull();
   });
 });

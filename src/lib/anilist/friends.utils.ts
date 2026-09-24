@@ -1,5 +1,6 @@
 import { anilistApi } from "@/api/anilist.api";
 import { PROFILE_CACHE_TTL_MS } from "@/config/anilist/friends.config";
+import { parseScoreFormat } from "@/lib/anilist/score.utils";
 import type { AniFriend, FriendScore } from "@/types/anilist";
 
 export async function loadFriendScores(
@@ -8,7 +9,10 @@ export async function loadFriendScores(
 ): Promise<FriendScore[]> {
   const settled = await Promise.allSettled(
     friends.map((friend) =>
-      anilistApi.getLists(friend.id).then((lists) => {
+      Promise.all([
+        anilistApi.getLists(friend.id),
+        anilistApi.getProfile(friend.id).catch(() => null),
+      ]).then(([lists, profile]) => {
         const entry = lists
           .flatMap((list) => list.entries)
           .find((item) => item.media.id === animeId);
@@ -17,9 +21,12 @@ export async function loadFriendScores(
         return {
           ...friend,
           score: entry.score,
+          scoreFormat: parseScoreFormat(profile?.score_format),
           status: entry.list_status,
           comment: trimmed ? trimmed : null,
           repeat: entry.repeat,
+          progress: entry.progress,
+          episodes: entry.media.episodes,
         };
       })
     )

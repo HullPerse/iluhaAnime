@@ -68,6 +68,7 @@ function CharacterWindow({
 export function AniListDetailView({
   animeId,
   listEntry,
+  scoreFormat,
   isLoggedIn,
   favouriteIds,
   favouriteStaffIds,
@@ -79,6 +80,7 @@ export function AniListDetailView({
   onSeason,
   onStudio,
   onRelated,
+  entryLookup,
   onClose,
   onSaved,
   onTrailer,
@@ -158,7 +160,12 @@ export function AniListDetailView({
         expanded={showFranchise}
         onExpand={() => setShowFranchise((prev) => !prev)}
       >
-        <FranchiseGraphSection animeId={anime.id} onRelated={onRelated} expanded={showFranchise} />
+        <FranchiseGraphSection
+          animeId={anime.id}
+          entryLookup={entryLookup}
+          onRelated={onRelated}
+          expanded={showFranchise}
+        />
       </Section>
 
       {anime.description && (
@@ -197,6 +204,7 @@ export function AniListDetailView({
       <AniListActionControls
         anime={anime}
         listEntry={listEntry}
+        scoreFormat={scoreFormat}
         onSaved={onSaved}
         onClose={onClose}
       />

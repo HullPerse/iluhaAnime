@@ -26,6 +26,12 @@ const ERAI_WEBVIEW_LABEL: &str = "erai-raws-login";
 #[cfg(target_os = "windows")]
 static RUTRACKER_BROWSER_REQUEST_ID: AtomicU64 = AtomicU64::new(1);
 
+#[cfg(target_os = "windows")]
+static RUTRACKER_WEBVIEW_PROXY: Mutex<Option<String>> = Mutex::new(None);
+
+#[cfg(target_os = "windows")]
+static RUTRACKER_PROXY_AUTH_TOKEN: Mutex<Option<i64>> = Mutex::new(None);
+
 #[derive(Debug)]
 pub struct RutrackerBrowserResponse {
     pub status: u16,
@@ -463,35 +469,218 @@ pub async fn rutracker_set_cookies(
 }
 
 #[cfg(target_os = "windows")]
+struct RutrackerWebviewProxy {
+    builder_url: url::Url,
+    username: Option<String>,
+    password: Option<String>,
+    marker: String,
+}
+
+#[cfg(target_os = "windows")]
+fn rutracker_webview_proxy(proxy: Option<String>) -> Result<Option<RutrackerWebviewProxy>, String> {
+    let Some(raw) = proxy else {
+        return Ok(None);
+    };
+    let raw = raw.trim();
+    if raw.is_empty() {
+        return Ok(None);
+    }
+    let without_remote_dns = if raw.len() > "socks5h://".len()
+        && raw[.."socks5h://".len()].eq_ignore_ascii_case("socks5h://")
+    {
+        format!("socks5://{}", &raw["socks5h://".len()..])
+    } else {
+        raw.to_string()
+    };
+    let mut parsed =
+        url::Url::parse(&without_remote_dns).map_err(|e| format!("proxy_invalid: {e}"))?;
+    let scheme = parsed.scheme().to_string();
+    if scheme != "http" && scheme != "socks5" {
+        return Err("proxy_invalid: the rutracker proxy must be http:// or socks5://".to_string());
+    }
+    let host = parsed.host_str().unwrap_or_default().to_string();
+    if host.is_empty() {
+        return Err("proxy_invalid: the rutracker proxy needs a host".to_string());
+    }
+    let port = parsed
+        .port()
+        .unwrap_or(if scheme == "http" { 80 } else { 1080 });
+    let username = {
+        let user = parsed.username();
+        if user.is_empty() {
+            None
+        } else {
+            Some(user.to_string())
+        }
+    };
+    let password = parsed.password().map(str::to_string);
+    let _ = parsed.set_username("");
+    let _ = parsed.set_password(None);
+    let _ = parsed.set_port(Some(port));
+    let marker = format!("{scheme}://{host}:{port}");
+    Ok(Some(RutrackerWebviewProxy {
+        builder_url: parsed,
+        username,
+        password,
+        marker,
+    }))
+}
+
+#[cfg(target_os = "windows")]
+fn remove_rutracker_proxy_auth(window: &tauri::WebviewWindow) {
+    let token = RUTRACKER_PROXY_AUTH_TOKEN
+        .lock()
+        .ok()
+        .and_then(|mut stored| stored.take());
+    let Some(token) = token else {
+        return;
+    };
+    let _ = window.as_ref().with_webview(move |platform| {
+        use webview2_com::Microsoft::Web::WebView2::Win32::ICoreWebView2_10;
+        use windows_core::Interface;
+
+        let controller = platform.controller();
+        let Ok(core) = (unsafe { controller.CoreWebView2() }) else {
+            return;
+        };
+        let Ok(core) = core.cast::<ICoreWebView2_10>() else {
+            return;
+        };
+        unsafe {
+            let _ = core.remove_BasicAuthenticationRequested(token);
+        }
+    });
+}
+
+#[cfg(target_os = "windows")]
+async fn register_rutracker_proxy_auth(
+    window: &tauri::WebviewWindow,
+    username: String,
+    password: String,
+) -> Result<(), String> {
+    use webview2_com::Microsoft::Web::WebView2::Win32::ICoreWebView2_10;
+    use windows_core::Interface;
+
+    remove_rutracker_proxy_auth(window);
+
+    let (setup_tx, setup_rx) = tokio::sync::oneshot::channel::<Result<i64, String>>();
+    window
+        .as_ref()
+        .with_webview(move |platform| {
+            let result = (|| -> Result<i64, String> {
+                let controller = platform.controller();
+                let core = unsafe { controller.CoreWebView2() }
+                    .map_err(|e| format!("CoreWebView2: {e}"))?;
+                let core: ICoreWebView2_10 = core.cast().map_err(|e| format!("cast: {e}"))?;
+                let handler = webview2_com::BasicAuthenticationRequestedEventHandler::create(
+                    Box::new(move |_sender, args| {
+                        let Some(args) = args else {
+                            return Ok(());
+                        };
+                        let Ok(response) = (unsafe { args.Response() }) else {
+                            return Ok(());
+                        };
+                        let user_wide: Vec<u16> =
+                            username.encode_utf16().chain(std::iter::once(0)).collect();
+                        let pass_wide: Vec<u16> =
+                            password.encode_utf16().chain(std::iter::once(0)).collect();
+                        unsafe {
+                            let _ = response
+                                .SetUserName(windows_core::PCWSTR::from_raw(user_wide.as_ptr()));
+                            let _ = response
+                                .SetPassword(windows_core::PCWSTR::from_raw(pass_wide.as_ptr()));
+                        }
+                        Ok(())
+                    }),
+                );
+                let mut token: i64 = 0;
+                unsafe { core.add_BasicAuthenticationRequested(&handler, &raw mut token) }
+                    .map_err(|e| format!("proxy auth: {e}"))?;
+                std::mem::forget(handler);
+                Ok(token)
+            })();
+            let _ = setup_tx.send(result);
+        })
+        .map_err(|e| format!("with_webview: {e}"))?;
+
+    let token = setup_rx
+        .await
+        .map_err(|e| format!("proxy auth setup: {e}"))??;
+    RUTRACKER_PROXY_AUTH_TOKEN
+        .lock()
+        .map(|mut stored| *stored = Some(token))
+        .map_err(|e| format!("proxy auth setup: {e}"))?;
+    Ok(())
+}
+
+#[cfg(target_os = "windows")]
 #[tauri::command]
-pub async fn rutracker_webview_login(app_handle: tauri::AppHandle) -> Result<String, String> {
+#[allow(non_snake_case)]
+pub async fn rutracker_webview_login(
+    app_handle: tauri::AppHandle,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
+) -> Result<String, String> {
     use tauri::Manager;
 
+    let webview_proxy = rutracker_webview_proxy(resolve_proxy(proxy_url, proxyUrl))?;
+    let wanted = webview_proxy.as_ref().map(|proxy| proxy.marker.clone());
+
     if let Some(window) = app_handle.get_webview_window(RUTRACKER_WEBVIEW_LABEL) {
-        let _ = window.show();
-        let _ = window.set_focus();
-        return Ok("ok".to_string());
+        let current: Option<String> = RUTRACKER_WEBVIEW_PROXY
+            .lock()
+            .ok()
+            .and_then(|stored| stored.clone());
+        if current == wanted {
+            let _ = window.show();
+            let _ = window.set_focus();
+            return Ok("ok".to_string());
+        }
+        let _ = window.close();
     }
 
     let url: url::Url = "https://rutracker.org/forum/index.php"
         .parse()
         .map_err(|e| format!("url: {e}"))?;
-    tauri::WebviewWindowBuilder::new(
+    let mut builder = tauri::WebviewWindowBuilder::new(
         &app_handle,
         RUTRACKER_WEBVIEW_LABEL,
         tauri::WebviewUrl::External(url),
     )
     .title("RuTracker.org - sign in")
     .inner_size(480.0, 760.0)
-    .min_inner_size(360.0, 560.0)
-    .build()
-    .map_err(|e| format!("webview_open: {e}"))?;
+    .min_inner_size(360.0, 560.0);
+    if let Some(proxy) = webview_proxy.as_ref() {
+        builder = builder.proxy_url(proxy.builder_url.clone());
+    }
+    let window = builder.build().map_err(|e| format!("webview_open: {e}"))?;
+
+    if let Some(proxy) = webview_proxy {
+        if proxy.username.is_some() {
+            register_rutracker_proxy_auth(
+                &window,
+                proxy.username.clone().unwrap_or_default(),
+                proxy.password.clone().unwrap_or_default(),
+            )
+            .await?;
+        }
+        if let Ok(mut stored) = RUTRACKER_WEBVIEW_PROXY.lock() {
+            *stored = Some(proxy.marker);
+        }
+    } else if let Ok(mut stored) = RUTRACKER_WEBVIEW_PROXY.lock() {
+        *stored = None;
+    }
     Ok("ok".to_string())
 }
 
 #[cfg(not(target_os = "windows"))]
 #[tauri::command]
-pub async fn rutracker_webview_login(_app_handle: tauri::AppHandle) -> Result<String, String> {
+#[allow(non_snake_case)]
+pub async fn rutracker_webview_login(
+    _app_handle: tauri::AppHandle,
+    _proxy_url: Option<String>,
+    _proxyUrl: Option<String>,
+) -> Result<String, String> {
     Err("In-app browser login is only available on Windows".to_string())
 }
 
@@ -771,6 +960,17 @@ pub async fn rutracker_logout(app_handle: tauri::AppHandle) -> Result<(), String
     delete_secret(RUTRACKER_USER_AGENT);
     let path = rutracker_cookie_path(&app_handle);
     let _ = fs::remove_file(&path);
+    #[cfg(target_os = "windows")]
+    {
+        use tauri::Manager;
+        if let Some(window) = app_handle.get_webview_window(RUTRACKER_WEBVIEW_LABEL) {
+            remove_rutracker_proxy_auth(&window);
+            let _ = window.close();
+        }
+        if let Ok(mut stored) = RUTRACKER_WEBVIEW_PROXY.lock() {
+            *stored = None;
+        }
+    }
     Ok(())
 }
 

@@ -1,4 +1,5 @@
 import type { EntryLookup } from "@/lib/anilist/entries.utils";
+import type { AnilistScoreFormat } from "@/lib/anilist/score.utils";
 import AniListScrollView from "@/routes/components/anilist/scroll.anilist";
 import type { AniListAnime, AniListGroup, AniMedia } from "@/types/anilist";
 
@@ -11,6 +12,7 @@ export default function AniListResultsHost({
   pagedEntries,
   entryLookup,
   favouriteIds,
+  scoreFormat,
   onSelect,
   scrollRef,
   showPagination,
@@ -24,6 +26,7 @@ export default function AniListResultsHost({
   pagedEntries: AniMedia[];
   entryLookup: EntryLookup;
   favouriteIds: Set<number>;
+  scoreFormat?: AnilistScoreFormat | null;
   onSelect: (anime: AniListAnime) => void;
   scrollRef: React.RefObject<HTMLElement | null>;
   showPagination: boolean;
@@ -38,6 +41,7 @@ export default function AniListResultsHost({
         items={items}
         entryLookup={entryLookup}
         favouriteIds={favouriteIds}
+        scoreFormat={scoreFormat}
         onSelect={onSelect}
         groups={groups ?? undefined}
         collapsedLists={collapsedLists}
@@ -49,6 +53,7 @@ export default function AniListResultsHost({
       entries={pagedEntries}
       entryLookup={entryLookup}
       favouriteIds={favouriteIds}
+      scoreFormat={scoreFormat}
       onSelect={onSelect}
       scrollRef={scrollRef}
       showPagination={showPagination}

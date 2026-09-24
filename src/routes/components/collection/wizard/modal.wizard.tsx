@@ -140,8 +140,15 @@ export function WizardModal({
     () => new Set(animeIndex.filter((a) => a.favourite).map((a) => a.id)),
     [animeIndex]
   );
-  const { searchResults, coverOptions, setCoverOptions, loading, searchError, runSearch } =
-    useWizardSearch(source, search, existingTitles, favIds);
+  const {
+    searchResults,
+    coverOptions,
+    setCoverOptions,
+    loading,
+    searchError,
+    searched,
+    runSearch,
+  } = useWizardSearch(source, search, existingTitles, favIds);
   const editing = Boolean(initial);
   const statusLocked =
     !editing &&
@@ -180,6 +187,19 @@ export function WizardModal({
     setCoverOptions,
   });
   const { handleSave } = useWizardSave({ form, coverBlobIdRef, mediaRef, onSave, onClose });
+  const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
+  const handleSaveClick = async () => {
+    if (savingRef.current) return;
+    savingRef.current = true;
+    setSaving(true);
+    try {
+      await handleSave();
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
+    }
+  };
 
   useEffect(() => {
     if (editing) return;
@@ -247,6 +267,7 @@ export function WizardModal({
                   loading={loading}
                   hasTmdbKey={tmdbKeySet}
                   searchError={searchError}
+                  searched={searched}
                   searchResults={searchResults}
                   onPickResult={handlePickResult}
                 />
@@ -334,7 +355,8 @@ export function WizardModal({
           onClose={onClose}
           requestClose={requestClose}
           canSave={Boolean(title.trim() && coverUrl && !coverBroken)}
-          onSave={() => attempt(handleSave())}
+          saving={saving}
+          onSave={() => attempt(handleSaveClick())}
           confirmDiscard={confirmDiscard}
           cancelDiscard={cancelDiscard}
           resultsLabel={`${searchResults.length ? `${searchResults.length} results` : ""}`}

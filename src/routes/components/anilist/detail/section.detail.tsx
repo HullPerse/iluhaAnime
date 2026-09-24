@@ -34,6 +34,7 @@ import { FranchiseToolbar } from "../franchise/toolbar.franchise";
 
 function FranchiseGraphSection({
   animeId,
+  entryLookup,
   onRelated,
   expanded = false,
 }: FranchiseGraphSectionProps) {
@@ -328,6 +329,7 @@ function FranchiseGraphSection({
               <FranchiseList
                 nodes={[...collapsed.graph.nodeMap.values()]}
                 animeId={animeId}
+                entryLookup={entryLookup}
                 relationMap={relationMap}
                 searchMatchIds={searchMatchIds}
                 onNodeClick={handleNodeClick}

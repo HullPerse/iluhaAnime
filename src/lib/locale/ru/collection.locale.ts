@@ -124,6 +124,8 @@ const collection = {
   "collection.wizard.manual.hint": "Ручной ввод - данные на следующем шаге.",
   "collection.wizard.search.anilist": "Искать в AniList...",
   "collection.wizard.search.tmdb": "Искать в TMDB...",
+  "collection.wizard.search.results": "Найдено: {{count}}",
+  "collection.wizard.search.empty": "Ничего не найдено. Попробуйте другой запрос.",
   "collection.wizard.tmdb.key.missing": "Укажите API-ключ TMDB в Настройках для поиска.",
   "collection.wizard.tmdbKeyMissing": "Укажите API-ключ TMDB в Настройках для поиска.",
   "collection.wizard.title": "Название",

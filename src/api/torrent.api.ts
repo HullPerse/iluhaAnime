@@ -126,7 +126,7 @@ export class TorrentApi {
   }
 
   rutrackerWebviewLogin(): Promise<string> {
-    return this.call("rutracker_webview_login");
+    return this.call("rutracker_webview_login", { ...this.proxyArgs("rutracker") });
   }
 
   rutrackerFinishWebviewLogin(): Promise<string> {

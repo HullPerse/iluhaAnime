@@ -11,7 +11,7 @@ const changelog410 = {
     "One Escape closes only the top-most window, even when a confirm sits on top of a modal",
   "changelog.4_1_0.added.host_bars": "CPU, RAM and network mini-bars in the torrent summary",
   "changelog.4_1_0.added.color_picker":
-    "New colour picker: a saturation/brightness area, a hue strip, HEX/RGB/HSL fields and the app palette",
+    "New color picker: a saturation/brightness area, a hue strip, HEX/RGB/HSL fields and the app palette",
   "changelog.4_1_0.added.animated_counters":
     "Animated download and upload counters in the torrent summary, switchable in Effects",
   "changelog.4_1_0.added.characters_window":

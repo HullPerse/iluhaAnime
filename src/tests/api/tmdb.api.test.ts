@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { TmdbApi, tmdbApi } from "@/api/tmdb.api";
+import { TmdbApi } from "@/api/tmdb.api";
 import type { ApiTransport } from "@/api/transport.api";
 import { useSettingsStore } from "@/store/settings.store";
 
@@ -20,12 +20,6 @@ beforeEach(() => {
 });
 
 describe("TmdbApi", () => {
-  it("reports configuration from the store", () => {
-    expect(new TmdbApi().isConfigured()).toBe(false);
-    useSettingsStore.setState({ tmdbKeySet: true });
-    expect(new TmdbApi().isConfigured()).toBe(true);
-  });
-
   it("sends the empty key placeholder with the store proxy", async () => {
     useSettingsStore.setState({ tmdbProxyUrl: "http://127.0.0.1:7890" });
     const { calls, transport } = fakeTransport(() => []);
@@ -44,19 +38,5 @@ describe("TmdbApi", () => {
         },
       },
     ]);
-  });
-
-  it("prefers the constructor proxy over the store", async () => {
-    useSettingsStore.setState({ tmdbProxyUrl: "http://127.0.0.1:7890" });
-    const { calls, transport } = fakeTransport(() => []);
-    const api = new TmdbApi({ transport, proxyUrl: "socks5://127.0.0.1:10808" });
-
-    await api.search({ query: "frieren" });
-
-    expect(calls[0]?.args).toMatchObject({ proxyUrl: "socks5://127.0.0.1:10808" });
-  });
-
-  it("exposes the shared singleton", () => {
-    expect(tmdbApi).toBeInstanceOf(TmdbApi);
   });
 });

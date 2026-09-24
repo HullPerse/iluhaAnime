@@ -1,9 +1,15 @@
-import { Heart, Star } from "lucide-react";
+import { Frown, Heart, Meh, Smile, Star } from "lucide-react";
 import { memo } from "react";
 
 import Image from "@/components/ui/image.component";
 import { listStatusLabels, statusLabels } from "@/config/anilist/labels.config";
 import { getStatusColor } from "@/lib/anilist/entries.utils";
+import {
+  formatEntryScore,
+  parseScoreFormat,
+  scoreIconFor,
+  type AnilistScoreFormat,
+} from "@/lib/anilist/score.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import { enterOrSpace } from "@/lib/utils/keyboard.utils";
@@ -12,9 +18,56 @@ import type { AniCardProps as Props } from "@/types/anilist";
 import CardListDate from "./date.anilist";
 import CardAiredCount from "./episode.anilist";
 
-function AniListEntryCard({ item, entryLookup, isFavorite, onClick }: Props) {
+function ScoreIcon({
+  format,
+  score,
+}: {
+  format: ReturnType<typeof parseScoreFormat>;
+  score: number;
+}) {
+  const icon = scoreIconFor(format, score);
+  if (icon === "frown") return <Frown className="size-3.5" />;
+  if (icon === "meh") return <Meh className="size-3.5" />;
+  if (icon === "smile") return <Smile className="size-3.5" />;
+  return <Star className="size-3 fill-yellow-400 text-yellow-600" />;
+}
+
+function MyScoreBadge({
+  score,
+  format,
+  title,
+}: {
+  score: number | null | undefined;
+  format: AnilistScoreFormat;
+  title: string;
+}) {
+  const display = formatEntryScore(score, format);
+  if (!display) return null;
+  if (format === "POINT_3") {
+    return (
+      <span
+        className="bg-secondary text-primary flex shrink-0 flex-row items-center gap-0.5 px-1 text-xs whitespace-nowrap"
+        title={title}
+        aria-label={title}
+      >
+        <ScoreIcon format={format} score={score ?? 0} />
+      </span>
+    );
+  }
+  return (
+    <span
+      className="bg-secondary text-primary flex shrink-0 flex-row items-center gap-0.5 px-1 text-xs whitespace-nowrap"
+      title={title}
+    >
+      <ScoreIcon format={format} score={score ?? 0} /> {display}
+    </span>
+  );
+}
+
+function AniListEntryCard({ item, entryLookup, isFavorite, scoreFormat, onClick }: Props) {
   const { t } = useI18n();
   const entry = entryLookup.get(item.id);
+  const format = parseScoreFormat(scoreFormat);
 
   const openAnime = () =>
     onClick({
@@ -75,14 +128,13 @@ function AniListEntryCard({ item, entryLookup, isFavorite, onClick }: Props) {
               total={item.episodes}
             />
 
-            {entry?.score != null && entry.score !== 0 && (
-              <span
-                className="bg-secondary text-primary flex flex-row items-center gap-0.5 px-1 text-xs"
-                title={t("anilist.card.my.score", { score: entry.score })}
-              >
-                <Star className="size-3 fill-yellow-400 text-yellow-600" /> {entry.score} / 10
-              </span>
-            )}
+            <MyScoreBadge
+              score={entry?.score}
+              format={format}
+              title={t("anilist.card.my.score", {
+                score: formatEntryScore(entry?.score, format) ?? "",
+              })}
+            />
             {isFavorite && (
               <span
                 className="bg-secondary text-primary flex h-4 w-4 flex-row items-center justify-center"
@@ -146,5 +198,6 @@ export default memo(AniListEntryCard, (prev, next) => {
   if (prev.item.cover_url !== next.item.cover_url) return false;
   if (prev.entryLookup !== next.entryLookup) return false;
   if (prev.isFavorite !== next.isFavorite) return false;
+  if (prev.scoreFormat !== next.scoreFormat) return false;
   return true;
 });

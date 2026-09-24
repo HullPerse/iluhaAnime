@@ -42,7 +42,7 @@ const changelog400 = {
   "changelog.4_0_0.changed.list_rows":
     "Строки списка коллекции открывают детали и показывают студию/год/жанры",
   "changelog.4_0_0.changed.autopause": "Автопауза срабатывает один раз по завершении загрузки",
-  "changelog.4_0_0.changed.hints": "Более короткие подсказки в настройках и модалках",
+  "changelog.4_0_0.changed.hints": "Более короткие подсказки в настройках и модальных окнах",
   "changelog.4_0_0.changed.plurals_time": "Правильные русские plural-формы и единый формат времени",
   "changelog.4_0_0.fixed.crash": "Плеер больше не падает при загрузке состояний файлов торрента",
   "changelog.4_0_0.fixed.fresh_images":

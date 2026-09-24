@@ -28,6 +28,7 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.4_1_1.added.torrent_queue_drag", "torrents"),
       entry("changelog.4_1_1.added.torrent_proxy", "torrents"),
       entry("changelog.4_1_1.added.screenshots", "app"),
+      entry("changelog.4_1_1.added.screenshots_save", "app"),
       entry("changelog.4_1_1.added.screenshot_draw", "app"),
       entry("changelog.4_1_1.added.screenshot_modal", "app"),
       entry("changelog.4_1_1.added.browser_login", "anilist"),
@@ -37,6 +38,11 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.4_1_1.added.search_operators", "search"),
       entry("changelog.4_1_1.added.collection_operators", "collection"),
       entry("changelog.4_1_1.added.app_site", "app"),
+      entry("changelog.4_1_1.added.score_formats", "anilist"),
+      entry("changelog.4_1_1.added.franchise_status", "anilist"),
+      entry("changelog.4_1_1.added.wizard_dropdown", "collection"),
+      entry("changelog.4_1_1.added.wizard_save_loader", "collection"),
+      entry("changelog.4_1_1.added.rutracker_proxy_login", "torrents"),
     ],
     changed: [
       entry("changelog.4_1_1.changed.resume_notice", "torrents"),
@@ -48,10 +54,13 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.4_1_1.changed.torrent_speed", "torrents"),
       entry("changelog.4_1_1.changed.color_presets", "settings"),
       entry("changelog.4_1_1.changed.suggestion_perf", "search"),
+      entry("changelog.4_1_1.changed.friend_status_square", "anilist"),
+      entry("changelog.4_1_1.changed.rutracker_cookies", "torrents"),
     ],
     fixed: [
       entry("changelog.4_1_1.fixed.tray_restore", "app"),
       entry("changelog.4_1_1.fixed.text_cursor", "app"),
+      entry("changelog.4_1_1.fixed.tmdb_key_save", "settings"),
     ],
   },
   {

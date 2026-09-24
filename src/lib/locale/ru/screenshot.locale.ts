@@ -14,7 +14,7 @@ const screenshot = {
   "screenshot.capture.error": "Не удалось сделать снимок страницы",
   "screenshot.copy.error": "Не удалось скопировать скриншот",
   "screenshot.crop.aria": "Выделение {{width}} x {{height}} px в {{x}}, {{y}}",
-  "screenshot.crop.empty": "Обведи мышью нужную область, Shift — ровный квадрат",
+  "screenshot.crop.empty": "Обведите мышью нужную область, Shift - ровный квадрат",
   "screenshot.crop.reset": "Сбросить выделение",
   "screenshot.crop.zoom":
     "Колесо меняет масштаб (можно немного дальше вписанного), ПКМ двигает снимок, клик возвращает в размер. Выделять и рисовать можно только по самому снимку",
@@ -32,13 +32,11 @@ const screenshot = {
   "screenshot.undo": "Отменить (Ctrl+Z)",
   "screenshot.redo": "Повторить (Ctrl+Y)",
   "screenshot.clear": "Стереть рисунки",
-  "screenshot.hint.select":
-    "Рамку тяни, чтобы перенести, ручку — чтобы растянуть, стрелки сдвигают, Shift держит пропорции, Ctrl отключает прилипание",
-  "screenshot.hint.pencil": "Тяни мышью, чтобы рисовать, колесо меняет масштаб, ПКМ двигает снимок",
-  "screenshot.hint.eraser": "Проведи по рисунку или блюру, чтобы его стереть",
-  "screenshot.hint.text":
-    "Кликни там, где нужен текст, напиши и нажми Enter; двойной клик — переписать, тянуть — перенести",
-  "screenshot.hint.blur": "Проведи по тому, что нужно спрятать",
+  "screenshot.hint.select": "Тяните рамку, чтобы перенести",
+  "screenshot.hint.pencil": "Рисуйте мышью",
+  "screenshot.hint.eraser": "Проведите по рисунку или блюру, чтобы его стереть",
+  "screenshot.hint.text": "Кликните и напишите текст, затем Enter",
+  "screenshot.hint.blur": "Проведите по тому, что нужно спрятать",
 } as const;
 
 export default screenshot;

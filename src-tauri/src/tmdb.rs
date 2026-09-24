@@ -36,8 +36,9 @@ fn stored_api_key(explicit: String) -> String {
 }
 
 #[tauri::command]
-pub async fn tmdb_set_api_key(api_key: String) -> Result<String, String> {
-    let key = api_key.trim().to_string();
+#[allow(non_snake_case)]
+pub async fn tmdb_set_api_key(apiKey: String) -> Result<String, String> {
+    let key = apiKey.trim().to_string();
     if key.is_empty() {
         return Err("API key cannot be empty".to_string());
     }

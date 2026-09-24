@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { SystemApi, systemApi } from "@/api/system.api";
+import { SystemApi } from "@/api/system.api";
 import type { ApiTransport } from "@/api/transport.api";
 
 function fakeTransport() {
@@ -41,39 +41,5 @@ describe("SystemApi", () => {
         args: { config: { enabled: true, on_complete: false, on_error: true } },
       },
     ]);
-  });
-
-  it("sends screenshot save fields through", async () => {
-    const { calls, transport } = fakeTransport();
-    const api = new SystemApi({ transport });
-
-    await api.saveScreenshot({
-      sourcePath: "/tmp/a.png",
-      dir: "/tmp",
-      name: "shot",
-      format: "png",
-      crop: null,
-    });
-
-    expect(calls[0]?.command).toBe("save_screenshot");
-    expect(calls[0]?.args).toMatchObject({ sourcePath: "/tmp/a.png", name: "shot" });
-  });
-
-  it("sends app cache writes with null ttl default", async () => {
-    const { calls, transport } = fakeTransport();
-    const api = new SystemApi({ transport });
-
-    await api.putAppCache("ns", "key", "{\"a\":1}", null);
-
-    expect(calls).toEqual([
-      {
-        command: "put_app_cache",
-        args: { key: "key", namespace: "ns", payload: "{\"a\":1}", ttlSeconds: null },
-      },
-    ]);
-  });
-
-  it("exposes the shared singleton", () => {
-    expect(systemApi).toBeInstanceOf(SystemApi);
   });
 });

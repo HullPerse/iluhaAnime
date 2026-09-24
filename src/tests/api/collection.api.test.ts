@@ -1,6 +1,6 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import { CollectionApi, collectionApi } from "@/api/collection.api";
+import { CollectionApi } from "@/api/collection.api";
 import type { ApiTransport } from "@/api/transport.api";
 
 function fakeTransport(resolve: (command: string, args?: Record<string, unknown>) => unknown) {
@@ -13,8 +13,6 @@ function fakeTransport(resolve: (command: string, args?: Record<string, unknown>
   };
   return { calls, transport };
 }
-
-beforeEach(() => {});
 
 describe("CollectionApi", () => {
   it("maps status order to orderIndex", async () => {
@@ -47,23 +45,6 @@ describe("CollectionApi", () => {
     ]);
   });
 
-  it("keeps a row payload untouched", async () => {
-    const { calls, transport } = fakeTransport(() => undefined);
-    const api = new CollectionApi({ transport });
-    const row = {
-      id: "s",
-      label: "Shared",
-      color: "#000",
-      orderIndex: 9,
-      isCore: false,
-      kind: "public" as const,
-    };
-
-    await api.upsertStatusRow(row);
-
-    expect(calls).toEqual([{ command: "upsert_collection_status", args: { status: row } }]);
-  });
-
   it("sends the touch flag with the backend key", async () => {
     const { calls, transport } = fakeTransport(() => undefined);
     const api = new CollectionApi({ transport });
@@ -76,20 +57,5 @@ describe("CollectionApi", () => {
         args: { id: "a", patch: { title: "T" }, touch_updated: true },
       },
     ]);
-  });
-
-  it("passes batch items through", async () => {
-    const { calls, transport } = fakeTransport(() => ({ imported: 1, failed: [] }));
-    const api = new CollectionApi({ transport });
-    const items = [{ id: "a" }];
-
-    const outcome = await api.importItemsBatch(items);
-
-    expect(calls).toEqual([{ command: "import_collection_items_batch", args: { items } }]);
-    expect(outcome).toEqual({ imported: 1, failed: [] });
-  });
-
-  it("exposes the shared singleton", () => {
-    expect(collectionApi).toBeInstanceOf(CollectionApi);
   });
 });

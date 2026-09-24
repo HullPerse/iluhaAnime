@@ -19,6 +19,7 @@ import {
   resolveAniListView,
   routePeople,
 } from "@/lib/anilist/route.utils";
+import { parseScoreFormat, resolveDisplayScoreFormat } from "@/lib/anilist/score.utils";
 import { translate } from "@/lib/locale/i18n.utils";
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { paginate } from "@/lib/utils/pagination.utils";
@@ -361,6 +362,16 @@ function AnilistRoute() {
     anilistBoost: anilistSuggestionBoost,
   });
   const { deferredQuery: deferredSearchTerms } = field;
+  const displayScoreFormat = useMemo(
+    () =>
+      resolveDisplayScoreFormat(
+        source.mode,
+        source.friendProfile?.score_format,
+        source.user?.score_format
+      ),
+    [source.friendProfile, source.mode, source.user]
+  );
+  const viewerScoreFormat = useMemo(() => parseScoreFormat(user?.score_format), [user]);
   const activeEntries = useMemo(
     () => activeListEntries(source.lists, currentList),
     [source.lists, currentList]
@@ -489,6 +500,7 @@ function AnilistRoute() {
         pagedEntries={pagedEntries}
         entryLookup={source.displayLookup}
         favouriteIds={source.displayFavouriteIds}
+        scoreFormat={displayScoreFormat}
         onSelect={handleSelectAnime}
         scrollRef={scrollRef}
         showPagination={(!!user || global) && displayEntries.length > 0}
@@ -517,6 +529,8 @@ function AnilistRoute() {
 
       <AniListDetailModalHost
         selectedAnime={selectedAnime}
+        entryLookup={entryLookup}
+        scoreFormat={viewerScoreFormat}
         favouriteIds={favouriteIds}
         favouriteStaffIds={favouriteStaffIds}
         favouriteCharacterIds={favouriteCharacterIds}

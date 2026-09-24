@@ -14,6 +14,7 @@ export function WizardSourcePanel({
   loading,
   hasTmdbKey,
   searchError,
+  searched,
   searchResults,
   onPickResult,
 }: {
@@ -25,6 +26,7 @@ export function WizardSourcePanel({
   loading: boolean;
   hasTmdbKey: boolean;
   searchError: string | null;
+  searched: boolean;
   searchResults: WizardSearchResult[];
   onPickResult: (result: WizardSearchResult) => void;
 }) {
@@ -58,6 +60,8 @@ export function WizardSourcePanel({
           onSearch={onSearch}
           loading={loading}
           hasTmdbKey={hasTmdbKey}
+          searchError={searchError}
+          searched={searched}
           searchResults={searchResults}
           onPickResult={onPickResult}
         />

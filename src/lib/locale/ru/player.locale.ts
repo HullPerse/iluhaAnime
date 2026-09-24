@@ -133,7 +133,7 @@ const player = {
   "player.upscale.suggest.medium": "HD источник",
   "player.upscale.suggest.noisy": "шумный источник",
   "player.upscale.suggest.unknown": "неизвестный источник",
-  "player.upscale.suggested": "Предлагается: {preset} ({reason})",
+  "player.upscale.suggested": "Предлагается: {{preset}} ({{reason}})",
   "player.upscale.target.format": "Целевой формат",
   "player.upscale.temporal.denoise": "Межкадровый шумодав",
   "player.upscale.title": "Улучшить качество (апскейл)",

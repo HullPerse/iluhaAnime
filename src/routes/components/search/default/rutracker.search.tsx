@@ -21,12 +21,11 @@ function RutrackerLoginModal({
 }) {
   const { t } = useI18n();
   const rutrackerProxy = useSettingsStore((s) => s.searchProxyUrls["rutracker"] ?? "");
-  const [mode, setMode] = useState<"login" | "cookies" | "browser">(
-    rutrackerProxy.trim() ? "cookies" : "login"
+  const [mode, setMode] = useState<"login" | "browser">(
+    rutrackerProxy.trim() ? "browser" : "login"
   );
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [cookies, setCookies] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -49,16 +48,6 @@ function RutrackerLoginModal({
       setError(mapError(raw, t));
       if (raw.trim().startsWith("blocked:")) setMode("browser");
     } else handleSuccess();
-    setLoading(false);
-  };
-
-  const handleSaveCookies = async () => {
-    if (!cookies.trim()) return;
-    setLoading(true);
-    setError("");
-    const [, error] = await attempt(torrentApi.rutrackerSetCookies(cookies));
-    if (error) setError(mapError(String(error), t));
-    else handleSuccess();
     setLoading(false);
   };
 
@@ -95,17 +84,6 @@ function RutrackerLoginModal({
             {t("search.rutracker.login.tab")}
           </Button>
           <Button
-            variant={mode === "cookies" ? "default" : "ghost"}
-            size="default"
-            onClick={() => {
-              setMode("cookies");
-              setError("");
-            }}
-            disabled={mode === "cookies"}
-          >
-            {t("search.rutracker.cookies.tab")}
-          </Button>
-          <Button
             variant={mode === "browser" ? "default" : "ghost"}
             size="default"
             onClick={() => {
@@ -137,16 +115,6 @@ function RutrackerLoginModal({
               })}
             />
           </div>
-        ) : mode === "cookies" ? (
-          <div className="flex flex-col gap-2">
-            <textarea
-              value={cookies}
-              onChange={(e) => setCookies(e.target.value)}
-              placeholder="bb_session=...; bb_data=...; uid=..."
-              spellCheck={false}
-              className="windows95-border windows95-text placeholder:text-hint focus-visible:outline-text bg-field h-28 w-full resize-y p-1 outline-none focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-dotted"
-            />
-          </div>
         ) : (
           <div className="flex flex-col gap-2">
             <Button onClick={handleOpenBrowser} disabled={loading}>
@@ -164,10 +132,6 @@ function RutrackerLoginModal({
               disabled={loading || !username.trim() || !password.trim()}
             >
               {loading ? <SmallLoader /> : t("search.rutracker.login")}
-            </Button>
-          ) : mode === "cookies" ? (
-            <Button onClick={handleSaveCookies} disabled={loading || !cookies.trim()}>
-              {loading ? <SmallLoader /> : t("search.rutracker.save.cookies")}
             </Button>
           ) : (
             <Button onClick={handleSaveBrowserSession} disabled={loading}>

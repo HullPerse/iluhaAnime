@@ -25,20 +25,18 @@ const screenshot = {
   "screenshot.tool.eraser": "Eraser",
   "screenshot.tool.text": "Text",
   "screenshot.tool.blur": "Blur",
-  "screenshot.color.custom": "Custom colour",
+  "screenshot.color.custom": "Custom color",
   "screenshot.brush": "Brush size",
   "screenshot.text.size": "Text size",
   "screenshot.size.option": "{{size}} px",
   "screenshot.undo": "Undo (Ctrl+Z)",
   "screenshot.redo": "Redo (Ctrl+Y)",
   "screenshot.clear": "Clear the drawings",
-  "screenshot.hint.select":
-    "Drag a frame to move it, a handle to resize, arrows to nudge, Shift keeps the ratio, Ctrl turns the snapping off",
-  "screenshot.hint.pencil": "Drag to draw, the wheel zooms, the right button moves the shot",
-  "screenshot.hint.eraser": "Drag over a drawing or a blur patch to wipe it out",
-  "screenshot.hint.text":
-    "Click where the text goes, type it and press Enter; double click it to edit, drag it to move",
-  "screenshot.hint.blur": "Drag over anything that has to be hidden",
+  "screenshot.hint.select": "Drag the frame to move it",
+  "screenshot.hint.pencil": "Drag to draw",
+  "screenshot.hint.eraser": "Drag over a drawing to erase it",
+  "screenshot.hint.text": "Click, type the text, press Enter",
+  "screenshot.hint.blur": "Drag over anything to hide",
 } as const;
 
 export default screenshot;

@@ -84,7 +84,7 @@ export class TmdbApi {
   }
 
   setApiKey(apiKey: string): Promise<string> {
-    return this.call("tmdb_set_api_key", { api_key: apiKey });
+    return this.call("tmdb_set_api_key", { apiKey });
   }
 
   logout(): Promise<string> {

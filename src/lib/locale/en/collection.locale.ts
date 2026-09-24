@@ -119,6 +119,8 @@ const collection = {
   "collection.wizard.manual.hint": "Manual entry - fill details in next step.",
   "collection.wizard.search.anilist": "Search AniList...",
   "collection.wizard.search.tmdb": "Search TMDB...",
+  "collection.wizard.search.results": "{{count}} results",
+  "collection.wizard.search.empty": "Nothing found. Try another query.",
   "collection.wizard.tmdb.key.missing": "Set TMDB API key in Settings to use TMDB search.",
   "collection.wizard.tmdbKeyMissing": "Set TMDB API key in Settings to use TMDB search.",
   "collection.wizard.title": "Title",

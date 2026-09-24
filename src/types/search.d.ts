@@ -231,6 +231,7 @@ export type RutrackerErrorCode =
   | "session_failed"
   | "cookies_invalid"
   | "cookies_parse"
+  | "proxy_invalid"
   | "webview_open"
   | "webview_save"
   | "webview_not_found"

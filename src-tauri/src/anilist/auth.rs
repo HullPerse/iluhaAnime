@@ -54,6 +54,7 @@ pub struct AniUser {
     pub anime_count: i32,
     pub episodes_watched: i32,
     pub mean_score: Option<i32>,
+    pub score_format: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -66,8 +67,15 @@ pub struct AniUserProfile {
     pub anime_count: i32,
     pub episodes_watched: i32,
     pub mean_score: Option<i32>,
+    pub score_format: Option<String>,
     pub is_following: Option<bool>,
     pub is_follower: Option<bool>,
+}
+
+fn parse_score_format(user: &serde_json::Value) -> Option<String> {
+    user["mediaListOptions"]["scoreFormat"]
+        .as_str()
+        .map(String::from)
 }
 #[tauri::command]
 #[allow(non_snake_case)]
@@ -94,6 +102,7 @@ pub async fn get_anilist_profile(
                     avatar { large medium }
                     isFollowing
                     isFollower
+                    mediaListOptions { scoreFormat }
                     statistics {
                         anime { count episodesWatched meanScore }
                     }
@@ -109,6 +118,7 @@ pub async fn get_anilist_profile(
                     about
                     bannerImage
                     avatar { large medium }
+                    mediaListOptions { scoreFormat }
                     statistics {
                         anime { count episodesWatched meanScore }
                     }
@@ -146,6 +156,7 @@ pub async fn get_anilist_profile(
         anime_count: stats["count"].as_i64().unwrap_or(0) as i32,
         episodes_watched: stats["episodesWatched"].as_i64().unwrap_or(0) as i32,
         mean_score: stats["meanScore"].as_i64().map(|score| score as i32),
+        score_format: parse_score_format(user),
         is_following: user["isFollowing"].as_bool(),
         is_follower: user["isFollower"].as_bool(),
     })
@@ -163,6 +174,7 @@ pub async fn anilist_login(
             query {
                 Viewer {
                     id, name, avatar { medium }
+                    mediaListOptions { scoreFormat }
                     statistics {
                         anime { count episodesWatched meanScore }
                     }
@@ -184,6 +196,7 @@ pub async fn anilist_login(
         anime_count: stats["count"].as_i64().unwrap_or(0) as i32,
         episodes_watched: stats["episodesWatched"].as_i64().unwrap_or(0) as i32,
         mean_score: stats["meanScore"].as_i64().map(|n| n as i32),
+        score_format: parse_score_format(v),
     };
     save_token(&app_handle, &token)?;
     Ok(user)
@@ -203,6 +216,7 @@ pub async fn check_anilist_auth(
             query {
                 Viewer {
                     id, name, avatar { medium }
+                    mediaListOptions { scoreFormat }
                     statistics {
                         anime { count episodesWatched meanScore }
                     }
@@ -226,6 +240,7 @@ pub async fn check_anilist_auth(
         anime_count: stats["count"].as_i64().unwrap_or(0) as i32,
         episodes_watched: stats["episodesWatched"].as_i64().unwrap_or(0) as i32,
         mean_score: stats["meanScore"].as_i64().map(|n| n as i32),
+        score_format: parse_score_format(v),
     }))
 }
 fn parse_list_entry(entry: &serde_json::Value) -> AniListEntry {
@@ -483,5 +498,13 @@ mod tests {
         let parsed = parse_list_entry(&list_entry_fixture());
         assert_eq!(parsed.notes, None);
         assert_eq!(parsed.repeat, None);
+    }
+
+    #[test]
+    fn parses_score_format_from_viewer_options() {
+        let viewer = serde_json::json!({ "mediaListOptions": { "scoreFormat": "POINT_100" } });
+        assert_eq!(parse_score_format(&viewer).as_deref(), Some("POINT_100"));
+        let missing = serde_json::json!({});
+        assert_eq!(parse_score_format(&missing), None);
     }
 }

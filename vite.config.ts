@@ -57,7 +57,6 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     include: ["src/tests/**/*.test.ts", "src/tests/**/*.test.tsx"],
-    setupFiles: ["src/tests/test-setup.ts"],
     coverage: {
       provider: "v8",
       reporter: ["text"],

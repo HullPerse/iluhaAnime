@@ -7,6 +7,7 @@ import {
   ANILIST_SCROLL_ROW_ESTIMATE,
 } from "@/config/anilist/list.config";
 import { getStatusColor, type EntryLookup } from "@/lib/anilist/entries.utils";
+import type { AnilistScoreFormat } from "@/lib/anilist/score.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import AniListEntryCard from "@/routes/components/anilist/card.anilist";
@@ -18,6 +19,7 @@ export default function AniListScrollView({
   items,
   entryLookup,
   favouriteIds,
+  scoreFormat,
   onSelect,
   groups,
   collapsedLists,
@@ -26,6 +28,7 @@ export default function AniListScrollView({
   items: AniMedia[];
   entryLookup: EntryLookup;
   favouriteIds: Set<number>;
+  scoreFormat?: AnilistScoreFormat | null;
   onSelect: (anime: AniListAnime) => void;
   groups?: AniListGroup[];
   collapsedLists?: Set<string>;
@@ -108,6 +111,7 @@ export default function AniListScrollView({
                   item={media}
                   entryLookup={entryLookup}
                   isFavorite={favouriteIds.has(media.id)}
+                  scoreFormat={scoreFormat}
                   onClick={onSelect}
                 />
               ) : null}

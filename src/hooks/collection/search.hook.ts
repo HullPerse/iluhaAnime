@@ -2,7 +2,9 @@ import { useCallback, useState } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
 import { tmdbApi } from "@/api/tmdb.api";
+import { WIZARD_RESULTS_MAX } from "@/config/collection/defaults.config";
 import { SEARCH_RANKING } from "@/config/search/ranking.config";
+import { prefetchRemoteImages } from "@/hooks/remoteImage.hook";
 import { fuzzyMatchScore, normalizeSearchText } from "@/lib/search/suggestions.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import type { WizardSearchResult } from "@/types/collection";
@@ -39,6 +41,7 @@ export function useWizardSearch(
   const [coverOptions, setCoverOptions] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
+  const [searched, setSearched] = useState(false);
 
   const searchAnilist = useCallback(async () => {
     const res = await anilistApi.search<{
@@ -55,7 +58,7 @@ export function useWizardSearch(
       description: string | null;
     }>({
       query: search,
-      perPage: 8,
+      perPage: WIZARD_RESULTS_MAX,
       maxPages: 1,
     });
     const mapped = res.map((r) => ({
@@ -75,7 +78,9 @@ export function useWizardSearch(
       existingTitles || favouriteIds
         ? rankWizardResults(mapped, search, existingTitles ?? new Set(), favouriteIds ?? new Set())
         : mapped;
-    setSearchResults(ranked);
+    const page = ranked.slice(0, WIZARD_RESULTS_MAX);
+    setSearchResults(page);
+    prefetchRemoteImages(page.map((r) => r.cover_url));
     const covers = res.map((r) => r.cover_url).filter(Boolean) as string[];
     if (covers.length) setCoverOptions((prev) => [...new Set([...covers, ...prev])].slice(0, 8));
     setSearchError(null);
@@ -99,7 +104,7 @@ export function useWizardSearch(
       query: search,
       language: "ru-RU",
       includeAdult: false,
-      perPage: 8,
+      perPage: WIZARD_RESULTS_MAX,
       maxPages: 1,
     });
     const mapped = res.map((r) => ({
@@ -115,7 +120,9 @@ export function useWizardSearch(
       existingTitles || favouriteIds
         ? rankWizardResults(mapped, search, existingTitles ?? new Set(), favouriteIds ?? new Set())
         : mapped;
-    setSearchResults(ranked);
+    const page = ranked.slice(0, WIZARD_RESULTS_MAX);
+    setSearchResults(page);
+    prefetchRemoteImages(page.map((r) => r.cover_url));
     const covers = res.map((r) => r.cover_url).filter(Boolean) as string[];
     if (covers.length) setCoverOptions((prev) => [...new Set([...covers, ...prev])].slice(0, 8));
     setSearchError(null);
@@ -125,6 +132,7 @@ export function useWizardSearch(
     if (!search.trim()) {
       setSearchResults([]);
       setSearchError(null);
+      setSearched(false);
       return;
     }
     setLoading(true);
@@ -141,8 +149,17 @@ export function useWizardSearch(
       const message = error.message || "Search failed";
       setSearchError(message);
     }
+    setSearched(true);
     setLoading(false);
   }, [search, source, searchAnilist, searchTmdb]);
 
-  return { searchResults, coverOptions, setCoverOptions, loading, searchError, runSearch };
+  return {
+    searchResults,
+    coverOptions,
+    setCoverOptions,
+    loading,
+    searchError,
+    searched,
+    runSearch,
+  };
 }

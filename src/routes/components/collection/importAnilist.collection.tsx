@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import { EMPTY_ANIME_META } from "@/config/collection/import.config";
 import { COLLECTION_QUERY_KEY, useCollectionData } from "@/hooks/collection/queries.hook";
+import { parseScoreFormat } from "@/lib/anilist/score.utils";
 import { entryDiffers, entrySyncState, runImportBatch } from "@/lib/collection/import.utils";
 import { resolveStatusLabel } from "@/lib/collection/status.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
@@ -98,9 +99,9 @@ export default function ImportAnilistCollection({
     () =>
       allEntries.filter((e) => {
         const item = itemByAnilistId.get(e.media.id);
-        return item !== undefined && entryDiffers(e, item);
+        return item !== undefined && entryDiffers(e, item, parseScoreFormat(user?.score_format));
       }),
-    [allEntries, itemByAnilistId]
+    [allEntries, itemByAnilistId, user]
   );
   const existingCount = allEntries.length - newEntries.length;
   const backfillTargets = useMemo(
@@ -184,7 +185,8 @@ export default function ImportAnilistCollection({
       (done, title) => {
         setProcessed(done);
         setCurrent(title === "" ? null : title);
-      }
+      },
+      parseScoreFormat(user?.score_format)
     );
     setImporting(false);
     return outcome;
@@ -233,7 +235,7 @@ export default function ImportAnilistCollection({
   };
 
   const changeTextFor = (entry: AniListEntry, item: CollectionItem): string => {
-    const s = entrySyncState(entry);
+    const s = entrySyncState(entry, parseScoreFormat(user?.score_format));
     const parts: string[] = [];
     if (s.status !== item.status)
       parts.push(
@@ -273,7 +275,7 @@ export default function ImportAnilistCollection({
     for (const { entry, item } of targets) {
       if (abortRef.current) break;
       setOpCurrent(entry.media.title);
-      const s = entrySyncState(entry);
+      const s = entrySyncState(entry, parseScoreFormat(user?.score_format));
       const [, err] = await attempt(
         collectionApi.patchItem(item.id, {
           status: s.status,
@@ -432,6 +434,7 @@ export default function ImportAnilistCollection({
                       entry={entry}
                       checked={selected.has(entry.media.id)}
                       isDup={false}
+                      scoreFormat={parseScoreFormat(user?.score_format)}
                       onToggle={toggleOne}
                     />
                   ))}

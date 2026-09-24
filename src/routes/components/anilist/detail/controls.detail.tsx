@@ -5,6 +5,15 @@ import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
 import Select from "@/components/ui/select.component";
 import { listStatusOptions } from "@/config/anilist/labels.config";
+import {
+  numericInputStep,
+  parseScoreFormat,
+  scoreFormatSuffix,
+  scoreOptions,
+  usesNumericInput,
+  validateScoreInput,
+  type AnilistScoreFormat,
+} from "@/lib/anilist/score.utils";
 import { buildAnilistPrefill } from "@/lib/collection/import.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
@@ -14,6 +23,7 @@ import type { AniMedia } from "@/types/anilist";
 function AniListActionControls({
   anime,
   listEntry,
+  scoreFormat,
   onSaved,
   onClose,
 }: {
@@ -24,10 +34,12 @@ function AniListActionControls({
     list_status: string;
     notes: string | null;
   };
+  scoreFormat?: AnilistScoreFormat | null;
   onSaved?: () => void;
   onClose?: () => void;
 }) {
   const { t } = useI18n();
+  const format = parseScoreFormat(scoreFormat);
   const [editStatus, setEditStatus] = useState(listEntry?.list_status ?? "PLANNING");
   const [editProgress, setEditProgress] = useState(listEntry?.progress?.toString() ?? "");
   const [editScore, setEditScore] = useState(listEntry?.score?.toString() ?? "");
@@ -44,7 +56,14 @@ function AniListActionControls({
     }
   }, [listEntry]);
 
+  const scoreCheck = validateScoreInput(editScore, format);
+  const scoreInvalid = scoreCheck.error !== null;
+
   const handleSave = async () => {
+    if (scoreInvalid) {
+      setSaveError(t("anilist.controls.score.invalid"));
+      return;
+    }
     setSaving(true);
     setSaveError("");
     const trimmed = editNotes.trim();
@@ -53,7 +72,7 @@ function AniListActionControls({
         mediaId: anime.id,
         status: editStatus,
         progress: editProgress ? Number.parseInt(editProgress, 10) : null,
-        score: editScore ? Number.parseFloat(editScore) : null,
+        score: scoreCheck.value,
         notes: trimmed ? trimmed : null,
       })
     );
@@ -102,19 +121,31 @@ function AniListActionControls({
         </div>
         <div className="windows95-text flex flex-row items-center gap-2">
           <span className="w-20 shrink-0">{t("anilist.controls.score")}</span>
-          <Select
-            value={editScore}
-            onChange={(v) => setEditScore(v)}
-            options={[
-              { value: "", label: "-" },
-              ...[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => ({
-                value: String(n),
-                label: String(n),
-              })),
-            ]}
-          />
-          <span className="windows95-text text-xs">/ 10</span>
+          {usesNumericInput(format) ? (
+            <Input
+              type="number"
+              min={0}
+              max={format === "POINT_100" ? 100 : 10}
+              step={numericInputStep(format)}
+              value={editScore}
+              onChange={(e) => setEditScore(e.target.value)}
+              aria-label={t("anilist.controls.score")}
+              className="h-7 w-20 text-xs"
+            />
+          ) : (
+            <Select
+              value={editScore}
+              onChange={(v) => setEditScore(v)}
+              options={scoreOptions(format)}
+            />
+          )}
+          <span className="windows95-text text-xs">{scoreFormatSuffix(format)}</span>
         </div>
+        {scoreInvalid && (
+          <span className="text-destructive text-xs font-bold">
+            {t("anilist.controls.score.invalid")}
+          </span>
+        )}
         <div className="windows95-text flex flex-row items-center gap-2">
           <span className="w-20 shrink-0">{t("anilist.controls.notes")}</span>
           <Input
@@ -124,7 +155,9 @@ function AniListActionControls({
             className="h-7 min-w-0 flex-1 text-xs"
           />
         </div>
-        {saveError && <span className="text-destructive text-xs font-bold">{saveError}</span>}
+        {saveError && !scoreInvalid && (
+          <span className="text-destructive text-xs font-bold">{saveError}</span>
+        )}
         <div className="mt-0.5 flex flex-row justify-end gap-2">
           <Button
             variant="outline"

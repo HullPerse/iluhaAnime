@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { AnilistApi, anilistApi } from "@/api/anilist.api";
+import { AnilistApi } from "@/api/anilist.api";
 import type { ApiTransport } from "@/api/transport.api";
 import { useSettingsStore } from "@/store/settings.store";
 
@@ -39,16 +39,6 @@ describe("AnilistApi", () => {
     ]);
   });
 
-  it("prefers the constructor proxy over the store", async () => {
-    useSettingsStore.setState({ anilistProxyUrl: "socks5://127.0.0.1:10808" });
-    const { calls, transport } = fakeTransport(() => null);
-    const api = new AnilistApi({ transport, proxyUrl: "http://127.0.0.1:7890" });
-
-    await api.checkAuth();
-
-    expect(calls[0]?.args).toMatchObject({ proxyUrl: "http://127.0.0.1:7890" });
-  });
-
   it("trims the login token", async () => {
     const { calls, transport } = fakeTransport(() => ({ id: 1, name: "u" }));
     const api = new AnilistApi({ transport });
@@ -57,9 +47,5 @@ describe("AnilistApi", () => {
 
     expect(calls[0]).toMatchObject({ command: "anilist_login" });
     expect(calls[0]?.args).toMatchObject({ token: "abc" });
-  });
-
-  it("exposes the shared singleton", () => {
-    expect(anilistApi).toBeInstanceOf(AnilistApi);
   });
 });

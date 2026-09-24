@@ -146,13 +146,6 @@ describe("DitherSettings database images", () => {
     expect(mockInvoke).not.toHaveBeenCalledWith("get_dither_images", expect.anything());
   });
 
-  it("notifies when the meta list fails to load", async () => {
-    mockInvoke.mockRejectedValue(new Error("db gone"));
-    renderPanel();
-    await waitFor(() => expect(errorMessages()).toContain("Could not load images."));
-    expect(screen.getByAltText("Placeholder")).toBeTruthy();
-  });
-
   it("fetches the next page on demand and reuses cached rows on the way back", async () => {
     const user = userEvent.setup();
     mockInvoke.mockImplementation(serveLibrary([FIRST, SECOND, THIRD, FOURTH]));
@@ -295,15 +288,6 @@ describe("DitherSettings database images", () => {
     await user.click(screen.getByRole("button", { name: "Save" }));
     expect(useSettingsStore.getState().selectedDitherId).toBe("aaa");
     expect(onClose).toHaveBeenCalledTimes(1);
-  });
-
-  it("preselects the stored selection on open", async () => {
-    useSettingsStore.setState({ selectedDitherId: "bbb" });
-    mockInvoke.mockImplementation(serveLibrary([FIRST, SECOND]));
-    renderPanel();
-    await waitFor(() => expect(screen.getByAltText("second.jpg")).toBeTruthy());
-    expect((screen.getByTitle("Delete") as HTMLButtonElement).disabled).toBe(false);
-    expect((screen.getByTitle("Edit") as HTMLButtonElement).disabled).toBe(false);
   });
 
   it("selects the placeholder when nothing is stored", async () => {

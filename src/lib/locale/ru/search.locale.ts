@@ -87,9 +87,8 @@ const search = {
   "search.results.count.many": "{{count}} результатов",
   "search.retry": "Повторить",
   "search.rutracker.browser.tab": "Встроенный браузер",
-  "search.rutracker.cookies.tab": "Вставить cookies",
   "search.rutracker.err.blocked":
-    "Rutracker блокирует приложение (анти-бот). Вставьте cookies или включите VPN.",
+    "Rutracker блокирует приложение (анти-бот). Используйте встроенный браузер или включите VPN.",
   "search.rutracker.err.cookies.invalid":
     "Cookies недействительны или истекли. Войдите в браузере и скопируйте новые.",
   "search.rutracker.err.cookies.parse": "Не удалось разобрать вставленные cookies.",
@@ -98,10 +97,11 @@ const search = {
   "search.rutracker.err.no.cookies":
     "Cookies не найдены. Убедитесь, что вы вошли в аккаунт во встроенном браузере.",
   "search.rutracker.err.no.session": "Нет сессии rutracker. Войдите в браузере, затем сохраните.",
+  "search.rutracker.err.proxy.invalid":
+    "Некорректный прокси для rutracker. Формат: http://host:port или socks5://host:port.",
   "search.rutracker.err.session.failed":
     "Вход прошёл, но сессия не сохранилась. Попробуйте ещё раз или вставьте cookies.",
-  "search.rutracker.err.unknown":
-    "Вход не удался. Попробуйте ещё раз или вставьте cookies из браузера.",
+  "search.rutracker.err.unknown": "Вход не удался. Попробуйте ещё раз во встроенном браузере.",
   "search.rutracker.err.webview.not.found":
     "Окно встроенного браузера не открыто. Сначала откройте его.",
   "search.rutracker.err.webview.open": "Не удалось открыть встроенный браузер.",
@@ -113,7 +113,6 @@ const search = {
   "search.rutracker.open.browser": "Открыть встроенный браузер",
   "search.rutracker.password": "Пароль",
   "search.rutracker.save.browser.session": "Сохранить сессию",
-  "search.rutracker.save.cookies": "Сохранить cookies",
   "search.rutracker.title": "Rutracker: вход в аккаунт",
   "search.rutracker.username": "Имя пользователя",
   "search.sort.leechers": "Личи",

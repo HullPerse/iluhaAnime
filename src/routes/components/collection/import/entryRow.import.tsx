@@ -1,5 +1,6 @@
 import { Checkbox } from "@/components/ui/checkbox.component";
 import { GENRE_PREVIEW_COUNT } from "@/config/collection/card.config";
+import { formatScore, parseScoreFormat, type AnilistScoreFormat } from "@/lib/anilist/score.utils";
 import { anilistStatusToCollection } from "@/lib/collection/import.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import type { AniListEntry } from "@/types/anilist";
@@ -8,15 +9,20 @@ export function EntryRow({
   entry,
   checked,
   isDup,
+  scoreFormat,
   onToggle,
 }: {
   entry: AniListEntry;
   checked: boolean;
   isDup: boolean;
+  scoreFormat?: AnilistScoreFormat | null;
   onToggle: (id: number) => void;
 }) {
   const { t } = useI18n();
   const title = entry.media.title;
+  const format = parseScoreFormat(scoreFormat);
+  const scoreText =
+    entry.score != null && entry.score !== 0 ? formatScore(entry.score, format) : null;
   return (
     <label
       className={`windows95-border flex cursor-pointer items-center gap-2 p-1 select-none ${checked ? "bg-field" : "bg-primary"} ${isDup ? "opacity-60" : ""}`}
@@ -48,6 +54,7 @@ export function EntryRow({
           <span className="text-hint text-xs">
             → {anilistStatusToCollection(entry.list_status)} | {entry.progress ?? 0}/
             {entry.media.episodes ?? "?"}
+            {scoreText ? ` | ${scoreText}` : ""}
           </span>
         )}
       </div>

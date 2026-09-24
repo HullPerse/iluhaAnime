@@ -2,445 +2,142 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 import { tauriTransport } from "@/api/transport.api";
-import { DEFAULT_TAG_TOLERANCES } from "@/config/search/tolerance.config";
-import {
-  DEFAULT_SETTINGS,
-  DEFAULT_WALLPAPER_FILTERS,
-  DEFAULT_WALLPAPER_SHADOW,
-} from "@/config/settings/defaults.config";
+import { DEFAULT_SETTINGS, DEFAULT_WALLPAPER_SHADOW } from "@/config/settings/defaults.config";
 import { listSortKeys } from "@/lib/anilist/entries.utils";
 import { detectSystemLocale } from "@/lib/locale/system.utils";
 import { normalizePlayerPath } from "@/lib/player/visibility.utils";
 import { applyWindowChrome } from "@/lib/settings/window.utils";
+import type { MigrationState, MigrationTransform } from "@/lib/store/migrate.utils";
+import { resolveWithDefaults, runTransforms } from "@/lib/store/migrate.utils";
 import { attempt, attemptSync, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { applyFontFamily, DEFAULT_FONT_FAMILY } from "@/lib/utils/font.utils";
-import type { AniListSort } from "@/types/anilist";
 import type { SettingsStore } from "@/types/settings";
 
-function cleanupLegacyFlags(
-  migrated: Partial<SettingsStore>,
-  state: Partial<SettingsStore> & { inlineAutocompleteEnabled?: boolean; vaultTabEnabled?: boolean }
-): Partial<SettingsStore> {
-  delete (migrated as Record<string, unknown>).inlineAutocompleteEnabled;
-  delete (migrated as Record<string, unknown>).vaultTabEnabled;
-  if (state.inlineAutocompleteEnabled === false) migrated.autocompleteMode = "off";
-  return migrated;
-}
-
-function applySettingsV3(
-  migrated: Partial<SettingsStore>,
-  version: number
-): Partial<SettingsStore> {
-  if (version >= 3) return migrated;
-  if (migrated.anilistTabEnabled === undefined) migrated.anilistTabEnabled = true;
-  if (migrated.collectionTabEnabled === undefined) migrated.collectionTabEnabled = true;
-  return migrated;
-}
-
-function applySettingsV4(
-  migrated: Partial<SettingsStore>,
-  version: number
-): Partial<SettingsStore> {
-  if (version >= 4) return migrated;
-  if (migrated.searchSymSpellEnabled === undefined) migrated.searchSymSpellEnabled = true;
-  if (migrated.searchIntentEnabled === undefined) migrated.searchIntentEnabled = true;
-  return migrated;
-}
-
-function applySettingsV5(
-  migrated: Partial<SettingsStore>,
-  version: number
-): Partial<SettingsStore> {
-  if (version >= 5) return migrated;
-  return migrated;
-}
-
-function applySettingsV6(
-  migrated: Partial<SettingsStore>,
-  version: number
-): Partial<SettingsStore> {
-  if (version >= 6) return migrated;
-  return migrated;
-}
-
-function applySettingsV7(
-  migrated: Partial<SettingsStore>,
-  version: number
-): Partial<SettingsStore> {
-  if (version >= 7) return migrated;
-  if (migrated.appFont === undefined) migrated.appFont = null;
-  return migrated;
-}
-
-function applySettingsV8(
-  migrated: Partial<SettingsStore>,
-  version: number
-): Partial<SettingsStore> {
-  if (version >= 8) return migrated;
-  if (migrated.searchProxyUrls === undefined) migrated.searchProxyUrls = {};
-  if (typeof migrated.searchProxyUrls !== "object" || migrated.searchProxyUrls === null)
-    migrated.searchProxyUrls = {};
-  return migrated;
-}
-
-function applySettingsV9(
-  migrated: Partial<SettingsStore>,
-  version: number
-): Partial<SettingsStore> {
-  if (version >= 9) return migrated;
-  if (migrated.searchTabEnabled === undefined) migrated.searchTabEnabled = true;
-  if (migrated.torrentTabEnabled === undefined) migrated.torrentTabEnabled = true;
-  if (migrated.playerTabEnabled === undefined) migrated.playerTabEnabled = true;
-  return migrated;
-}
-
-function applySettingsV10(
-  migrated: Partial<SettingsStore>,
-  version: number
-): Partial<SettingsStore> {
-  if (version >= 10) return migrated;
-  delete (migrated as Record<string, unknown>).defaultTab;
-  delete (migrated as Record<string, unknown>).lastActiveTab;
-  const [, error] = attemptSync(() => localStorage.removeItem("lastActiveTab"));
-  if (error !== null) reportBackgroundError("settings.migrate.cleanup", error);
-  return migrated;
-}
-
-function applySettingsV11(
-  migrated: Partial<SettingsStore>,
-  version: number
-): Partial<SettingsStore> {
-  if (version >= 11) return migrated;
-  if (migrated.notifyNewEpisodes === undefined) migrated.notifyNewEpisodes = true;
-  if (migrated.notifyStatusChanges === undefined) migrated.notifyStatusChanges = true;
-  if (migrated.anilistPollIntervalMin === undefined) migrated.anilistPollIntervalMin = 30;
-  if (migrated.anilistNotifyLists === undefined) migrated.anilistNotifyLists = null;
-  delete (migrated as Record<string, unknown>).toastDuration;
-  return migrated;
-}
-
-function applySettingsV12(
-  migrated: Partial<SettingsStore>,
-  version: number
-): Partial<SettingsStore> {
-  if (version >= 12) return migrated;
-  delete (migrated as Record<string, unknown>).searchDedupEnabled;
-  return migrated;
-}
-
-function applySettingsV13(
-  migrated: Partial<SettingsStore>,
-  version: number
-): Partial<SettingsStore> {
-  if (version >= 13) return migrated;
-  const legacy = (migrated as Partial<SettingsStore> & { anilistPageSize?: unknown })
-    .anilistPageSize;
-  if (migrated.pageSize === undefined) {
-    migrated.pageSize = typeof legacy === "number" ? legacy : DEFAULT_SETTINGS.pageSize;
-  }
-  delete (migrated as Record<string, unknown>).anilistPageSize;
-  return migrated;
-}
-
-function applySettingsV14(
-  migrated: Partial<SettingsStore>,
-  version: number
-): Partial<SettingsStore> {
-  if (version >= 14) return migrated;
-  if (migrated.collectionGroupHeaderStyle === undefined)
-    migrated.collectionGroupHeaderStyle = DEFAULT_SETTINGS.collectionGroupHeaderStyle;
-  return migrated;
-}
-
-function applySettingsV15(
-  migrated: Partial<SettingsStore>,
-  version: number
-): Partial<SettingsStore> {
-  if (version >= 15) return migrated;
-  const legacy = migrated as Partial<SettingsStore> & {
-    dlLimit?: number | null;
-    ulLimit?: number | null;
-  };
-  if (migrated.limits === undefined) {
-    migrated.limits = {
-      download: legacy.dlLimit ?? null,
-      upload: legacy.ulLimit ?? null,
-    };
-  }
-  delete (migrated as Record<string, unknown>).dlLimit;
-  delete (migrated as Record<string, unknown>).ulLimit;
-  return migrated;
-}
-
-function applySettingsV16(
-  migrated: Partial<SettingsStore>,
-  version: number
-): Partial<SettingsStore> {
-  if (version >= 16) return migrated;
-  if (migrated.playerFolderHeights === undefined || migrated.playerFolderHeights === null) {
-    migrated.playerFolderHeights = {};
-  }
-  if (typeof migrated.playerFolderHeights !== "object") {
-    migrated.playerFolderHeights = {};
-  }
-  return migrated;
-}
-
-function applySettingsV17(
-  migrated: Partial<SettingsStore>,
-  version: number
-): Partial<SettingsStore> {
-  if (version >= 17) return migrated;
-  if (migrated.searchType !== "default" && migrated.searchType !== "modern") {
-    migrated.searchType = DEFAULT_SETTINGS.searchType;
-  }
-  return migrated;
-}
-
-function applySettingsV18(
-  migrated: Partial<SettingsStore>,
-  version: number
-): Partial<SettingsStore> {
-  if (version >= 18) return migrated;
-  if (migrated.selectedDitherId === undefined) migrated.selectedDitherId = null;
-  return migrated;
-}
-
-function applySettingsV19(
-  migrated: Partial<SettingsStore>,
-  version: number
-): Partial<SettingsStore> {
-  if (version >= 19) return migrated;
-  if (migrated.wallpaperFilters === undefined) {
-    migrated.wallpaperFilters = { ...DEFAULT_WALLPAPER_FILTERS };
-  }
-  if (migrated.wallpaperShadow === undefined) {
-    migrated.wallpaperShadow = { ...DEFAULT_WALLPAPER_SHADOW };
-  }
-  return migrated;
-}
-
-function applySettingsV20(
-  migrated: Partial<SettingsStore>,
-  version: number
-): Partial<SettingsStore> {
-  if (version >= 20) return migrated;
-  const legacy = (migrated as Record<string, unknown>).wallpaperShadow as
-    | { side?: unknown; intensity?: unknown; color?: unknown }
-    | undefined;
-  const sides = { top: false, right: false, bottom: false, left: false };
-  if (legacy && typeof legacy === "object") {
-    if (legacy.side === "around") {
-      sides.top = true;
-      sides.right = true;
-      sides.bottom = true;
-      sides.left = true;
-    } else {
-      const side = legacy.side;
-      if (side === "top" || side === "right" || side === "bottom" || side === "left") {
-        sides[side] = true;
+const SETTINGS_TRANSFORMS: MigrationTransform[] = [
+  {
+    migrate: (state) => {
+      const inlineOff = state.inlineAutocompleteEnabled === false;
+      delete state.inlineAutocompleteEnabled;
+      delete state.vaultTabEnabled;
+      if (inlineOff) state.autocompleteMode = "off";
+    },
+  },
+  {
+    from: 10,
+    migrate: (state) => {
+      delete state.defaultTab;
+      delete state.lastActiveTab;
+      const [, error] = attemptSync(() => localStorage.removeItem("lastActiveTab"));
+      if (error !== null) reportBackgroundError("settings.migrate.cleanup", error);
+    },
+  },
+  {
+    from: 11,
+    migrate: (state) => {
+      delete state.toastDuration;
+    },
+  },
+  {
+    from: 12,
+    migrate: (state) => {
+      delete state.searchDedupEnabled;
+    },
+  },
+  {
+    from: 13,
+    migrate: (state) => {
+      const legacy = state.anilistPageSize;
+      if (state.pageSize === undefined) {
+        state.pageSize = typeof legacy === "number" ? legacy : DEFAULT_SETTINGS.pageSize;
       }
-    }
-  }
-  if (migrated.searchShadow === undefined) {
-    migrated.searchShadow = {
-      sides,
-      intensity: typeof legacy?.intensity === "number" ? legacy.intensity : 50,
-      color: typeof legacy?.color === "string" ? legacy.color : "#000000",
-      length: DEFAULT_WALLPAPER_SHADOW.length,
-      softness: DEFAULT_WALLPAPER_SHADOW.softness,
-    };
-  }
-  delete (migrated as Record<string, unknown>).wallpaperShadow;
-  if (migrated.wallpaperShadow === undefined) {
-    migrated.wallpaperShadow = {
-      sides: { top: false, right: false, bottom: false, left: false },
-      intensity: 50,
-      color: "#000000",
-      length: DEFAULT_WALLPAPER_SHADOW.length,
-      softness: DEFAULT_WALLPAPER_SHADOW.softness,
-    };
-  }
-  return migrated;
-}
+      delete state.anilistPageSize;
+    },
+  },
+  {
+    from: 15,
+    migrate: (state) => {
+      if (state.limits === undefined) {
+        const download = state.dlLimit;
+        const upload = state.ulLimit;
+        state.limits = {
+          download: typeof download === "number" ? download : null,
+          upload: typeof upload === "number" ? upload : null,
+        };
+      }
+      delete state.dlLimit;
+      delete state.ulLimit;
+    },
+  },
+  {
+    from: 20,
+    migrate: (state) => {
+      const legacy = state.wallpaperShadow as
+        | { side?: unknown; intensity?: unknown; color?: unknown }
+        | undefined;
+      const sides = { top: false, right: false, bottom: false, left: false };
+      if (legacy && typeof legacy === "object") {
+        if (legacy.side === "around") {
+          sides.top = true;
+          sides.right = true;
+          sides.bottom = true;
+          sides.left = true;
+        } else {
+          const side = legacy.side;
+          if (side === "top" || side === "right" || side === "bottom" || side === "left") {
+            sides[side] = true;
+          }
+        }
+      }
+      if (state.searchShadow === undefined) {
+        state.searchShadow = {
+          sides,
+          intensity: typeof legacy?.intensity === "number" ? legacy.intensity : 50,
+          color: typeof legacy?.color === "string" ? legacy.color : "#000000",
+          length: DEFAULT_WALLPAPER_SHADOW.length,
+          softness: DEFAULT_WALLPAPER_SHADOW.softness,
+        };
+      }
+      delete state.wallpaperShadow;
+    },
+  },
+  {
+    from: 23,
+    migrate: (state) => {
+      const legacy = state.tmdbApiKey;
+      delete state.tmdbApiKey;
+      if (typeof legacy === "string" && legacy.trim()) {
+        state.tmdbPendingKey = legacy.trim();
+      }
+    },
+  },
+  {
+    from: 25,
+    migrate: (state) => {
+      delete state.wallpaperParallax;
+    },
+  },
+];
 
-function applySettingsV21(
-  migrated: Partial<SettingsStore>,
-  version: number
-): Partial<SettingsStore> {
-  if (version >= 21) return migrated;
-  if (migrated.anilistProxyUrl === undefined) migrated.anilistProxyUrl = null;
-  return migrated;
-}
-
-function applySettingsV22(
-  migrated: Partial<SettingsStore>,
-  version: number
-): Partial<SettingsStore> {
-  if (version >= 22) return migrated;
-  for (const key of ["searchShadow", "wallpaperShadow"] as const) {
-    const shadow = migrated[key];
-    if (shadow && typeof shadow === "object") {
-      if (typeof shadow.length !== "number") shadow.length = DEFAULT_WALLPAPER_SHADOW.length;
-      if (typeof shadow.softness !== "number") shadow.softness = DEFAULT_WALLPAPER_SHADOW.softness;
-    }
-  }
-  return migrated;
-}
-function applySettingsV23(
-  migrated: Partial<SettingsStore>,
-  version: number
-): Partial<SettingsStore> {
-  if (version >= 23) return migrated;
-  const legacy = (migrated as Record<string, unknown>).tmdbApiKey;
-  delete (migrated as Record<string, unknown>).tmdbApiKey;
-  if (typeof legacy === "string" && legacy.trim()) {
-    migrated.tmdbPendingKey = legacy.trim();
-  } else if (migrated.tmdbPendingKey === undefined) {
-    migrated.tmdbPendingKey = null;
-  }
-  if (migrated.tmdbKeySet === undefined) migrated.tmdbKeySet = false;
-  return migrated;
-}
-
-function applySettingsV24(
-  migrated: Partial<SettingsStore>,
-  version: number
-): Partial<SettingsStore> {
-  if (version >= 24) return migrated;
-  migrated.tagTolerances = {
-    ...DEFAULT_TAG_TOLERANCES,
-    ...migrated.tagTolerances,
-  };
-  return migrated;
-}
-
-function applySettingsV25(
-  migrated: Partial<SettingsStore>,
-  version: number
-): Partial<SettingsStore> {
-  if (version >= 25) return migrated;
-  delete (migrated as Record<string, unknown>).wallpaperParallax;
-  if (migrated.wallpaperScanlines === undefined) migrated.wallpaperScanlines = false;
-  return migrated;
-}
-
-function applySettingsV26(
-  migrated: Partial<SettingsStore>,
-  version: number
-): Partial<SettingsStore> {
-  if (version >= 26) return migrated;
-  const sort = migrated.anilistListSort as AniListSort | undefined;
-  if (!sort || !listSortKeys.includes(sort.key) || (sort.dir !== "asc" && sort.dir !== "desc")) {
-    migrated.anilistListSort = { ...DEFAULT_SETTINGS.anilistListSort };
-  }
-  return migrated;
-}
-
-function applySettingsV27(
-  migrated: Partial<SettingsStore>,
-  version: number
-): Partial<SettingsStore> {
-  if (version >= 27) return migrated;
-  if (migrated.anilistGroupByStatus === undefined) migrated.anilistGroupByStatus = false;
-  if (!Array.isArray(migrated.anilistCollapsedLists)) migrated.anilistCollapsedLists = [];
-  if (migrated.anilistDisplayMode !== "scroll" && migrated.anilistDisplayMode !== "pagination")
-    migrated.anilistDisplayMode = "pagination";
-  return migrated;
-}
-
-function applySettingsV28(
-  migrated: Partial<SettingsStore>,
-  version: number
-): Partial<SettingsStore> {
-  if (version >= 28) return migrated;
-  if (migrated.customTitleBarEnabled === undefined)
-    migrated.customTitleBarEnabled = DEFAULT_SETTINGS.customTitleBarEnabled;
-  if (migrated.statusBarEnabled === undefined)
-    migrated.statusBarEnabled = DEFAULT_SETTINGS.statusBarEnabled;
-  if (migrated.roundedWindowCorners === undefined)
-    migrated.roundedWindowCorners = DEFAULT_SETTINGS.roundedWindowCorners;
-  if (migrated.searchMascotEnabled === undefined)
-    migrated.searchMascotEnabled = DEFAULT_SETTINGS.searchMascotEnabled;
-  return migrated;
-}
-
-function applySettingsV29(
-  migrated: Partial<SettingsStore>,
-  version: number
-): Partial<SettingsStore> {
-  if (version >= 29) return migrated;
-  if (migrated.yorhaScanlinesEnabled === undefined)
-    migrated.yorhaScanlinesEnabled = DEFAULT_SETTINGS.yorhaScanlinesEnabled;
-  return migrated;
-}
-
-function applySettingsV30(
-  migrated: Partial<SettingsStore>,
-  version: number
-): Partial<SettingsStore> {
-  if (version >= 30) return migrated;
-  if (migrated.windowEffect === undefined) migrated.windowEffect = DEFAULT_SETTINGS.windowEffect;
-  return migrated;
-}
-
-function applySettingsV31(
-  migrated: Partial<SettingsStore>,
-  version: number
-): Partial<SettingsStore> {
-  if (version >= 31) return migrated;
-  if (migrated.windowTintOpacity === undefined)
-    migrated.windowTintOpacity = DEFAULT_SETTINGS.windowTintOpacity;
-  return migrated;
-}
-
-function applySettingsV32(
-  migrated: Partial<SettingsStore>,
-  version: number
-): Partial<SettingsStore> {
-  if (version >= 32) return migrated;
-  if (migrated.animateCounters === undefined)
-    migrated.animateCounters = DEFAULT_SETTINGS.animateCounters;
-  return migrated;
-}
-
-function applySettingsV33(
-  migrated: Partial<SettingsStore>,
-  version: number
-): Partial<SettingsStore> {
-  if (version >= 33) return migrated;
-  if (migrated.torrentProxyUrl === undefined) migrated.torrentProxyUrl = null;
-  return migrated;
-}
-
-function applySettingsV34(
-  migrated: Partial<SettingsStore>,
-  version: number
-): Partial<SettingsStore> {
-  if (version >= 34) return migrated;
-  if (migrated.minimizeToTray === undefined)
-    migrated.minimizeToTray = DEFAULT_SETTINGS.minimizeToTray;
-  return migrated;
-}
-
-function applySettingsV35(
-  migrated: Partial<SettingsStore>,
-  version: number
-): Partial<SettingsStore> {
-  if (version >= 35) return migrated;
-  if (migrated.screenshotDir === undefined) migrated.screenshotDir = null;
-  if (migrated.screenshotFormat !== "png" && migrated.screenshotFormat !== "jpeg")
-    migrated.screenshotFormat = DEFAULT_SETTINGS.screenshotFormat;
-  if (migrated.screenshotOpenFolder === undefined)
-    migrated.screenshotOpenFolder = DEFAULT_SETTINGS.screenshotOpenFolder;
-  return migrated;
-}
+const SETTINGS_VALIDATORS: Record<string, (value: unknown) => boolean> = {
+  searchType: (value) => value === "default" || value === "modern",
+  screenshotFormat: (value) => value === "png" || value === "jpeg",
+  anilistDisplayMode: (value) => value === "scroll" || value === "pagination",
+  anilistListSort: (value) => {
+    if (typeof value !== "object" || value === null) return false;
+    const sort = value as { key?: unknown; dir?: unknown };
+    return (
+      typeof sort.key === "string" &&
+      (listSortKeys as string[]).includes(sort.key) &&
+      (sort.dir === "asc" || sort.dir === "desc")
+    );
+  },
+};
 
 function drainTmdbPendingKey(state: SettingsStore): void {
   const pending = state.tmdbPendingKey;
   if (!pending) return;
   (async () => {
-    const [, error] = await attempt(tauriTransport.call("tmdb_set_api_key", { api_key: pending }));
+    const [, error] = await attempt(tauriTransport.call("tmdb_set_api_key", { apiKey: pending }));
     if (error) useSettingsStore.getState().patch({ tmdbKeySet: false });
     else useSettingsStore.getState().patch({ tmdbPendingKey: null, tmdbKeySet: true });
   })();
@@ -567,49 +264,17 @@ export const useSettingsStore = create<SettingsStore>()(
       name: "settings",
       migrate: (persistedState: unknown, version: number) => {
         if (!persistedState || typeof persistedState !== "object") return {};
-        const state = persistedState as Partial<SettingsStore> & {
-          inlineAutocompleteEnabled?: boolean;
-          vaultTabEnabled?: boolean;
+        const state = persistedState as MigrationState & { language?: unknown };
+        const { language, ...rest } = state;
+        const transformed = runTransforms(rest, version, SETTINGS_TRANSFORMS);
+        return {
+          ...resolveWithDefaults(
+            transformed,
+            DEFAULT_SETTINGS as unknown as MigrationState,
+            SETTINGS_VALIDATORS
+          ),
+          language: language === "en" ? "en" : "ru",
         };
-        let migrated: Partial<SettingsStore> = {
-          ...state,
-          language: state.language === "en" ? "en" : "ru",
-        };
-        migrated = cleanupLegacyFlags(migrated, state);
-        migrated = applySettingsV3(migrated, version);
-        migrated = applySettingsV4(migrated, version);
-        migrated = applySettingsV5(migrated, version);
-        migrated = applySettingsV6(migrated, version);
-        migrated = applySettingsV7(migrated, version);
-        migrated = applySettingsV8(migrated, version);
-        migrated = applySettingsV9(migrated, version);
-        migrated = applySettingsV10(migrated, version);
-        migrated = applySettingsV11(migrated, version);
-        migrated = applySettingsV12(migrated, version);
-        migrated = applySettingsV13(migrated, version);
-        migrated = applySettingsV14(migrated, version);
-        migrated = applySettingsV15(migrated, version);
-        migrated = applySettingsV16(migrated, version);
-        migrated = applySettingsV17(migrated, version);
-        migrated = applySettingsV18(migrated, version);
-        migrated = applySettingsV19(migrated, version);
-        migrated = applySettingsV20(migrated, version);
-        migrated = applySettingsV21(migrated, version);
-        migrated = applySettingsV22(migrated, version);
-        migrated = applySettingsV23(migrated, version);
-        migrated = applySettingsV24(migrated, version);
-        migrated = applySettingsV25(migrated, version);
-        migrated = applySettingsV26(migrated, version);
-        migrated = applySettingsV27(migrated, version);
-        migrated = applySettingsV28(migrated, version);
-        migrated = applySettingsV29(migrated, version);
-        migrated = applySettingsV30(migrated, version);
-        migrated = applySettingsV31(migrated, version);
-        migrated = applySettingsV32(migrated, version);
-        migrated = applySettingsV33(migrated, version);
-        migrated = applySettingsV34(migrated, version);
-        migrated = applySettingsV35(migrated, version);
-        return migrated;
       },
       onRehydrateStorage: () => (state) => {
         if (state) {
@@ -626,7 +291,7 @@ export const useSettingsStore = create<SettingsStore>()(
           drainTmdbPendingKey(state);
         }
       },
-      version: 35,
+      version: 36,
     }
   )
 );

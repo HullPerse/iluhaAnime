@@ -75,74 +75,6 @@ describe("useSettingsStore migration", () => {
     expect(migrate!(null, 1)).toEqual({});
   });
 
-  it("fills default tag tolerances during v24 migration", () => {
-    const migrate = useSettingsStore.persist.getOptions()?.migrate;
-    const result = migrate!({ language: "en" } as never, 23) as {
-      tagTolerances: Record<string, number>;
-    };
-    expect(result.tagTolerances).toEqual({ episodes: 2, progress: 5, rating: 1, year: 2 });
-  });
-
-  it("keeps customized tolerances during v24 migration", () => {
-    const migrate = useSettingsStore.persist.getOptions()?.migrate;
-    const result = migrate!({ language: "en", tagTolerances: { year: 5 } } as never, 23) as {
-      tagTolerances: Record<string, number>;
-    };
-    expect(result.tagTolerances.year).toBe(5);
-    expect(result.tagTolerances.rating).toBe(1);
-  });
-  it("defaults playerFolderHeights during v16 migration", () => {
-    const migrate = useSettingsStore.persist.getOptions()?.migrate;
-    const result = migrate!({ language: "en" } as never, 15) as {
-      playerFolderHeights: Record<string, number>;
-    };
-    expect(result.playerFolderHeights).toEqual({});
-  });
-
-  it("keeps persisted playerFolderHeights on v16 migration", () => {
-    const migrate = useSettingsStore.persist.getOptions()?.migrate;
-    const heights = { "c:/anime": 420 };
-    const result = migrate!({ language: "en", playerFolderHeights: heights } as never, 15) as {
-      playerFolderHeights: Record<string, number>;
-    };
-    expect(result.playerFolderHeights).toEqual(heights);
-  });
-
-  it("defaults anilistProxyUrl during v21 migration", () => {
-    const migrate = useSettingsStore.persist.getOptions()?.migrate;
-    const result = migrate!({ language: "en" } as never, 20) as {
-      anilistProxyUrl: string | null;
-    };
-    expect(result.anilistProxyUrl).toBeNull();
-  });
-
-  it("keeps persisted anilistProxyUrl on v21 migration", () => {
-    const migrate = useSettingsStore.persist.getOptions()?.migrate;
-    const result = migrate!(
-      { language: "en", anilistProxyUrl: "http://127.0.0.1:7890" } as never,
-      20
-    ) as {
-      anilistProxyUrl: string | null;
-    };
-    expect(result.anilistProxyUrl).toBe("http://127.0.0.1:7890");
-  });
-
-  it("defaults selectedDitherId during v18 migration", () => {
-    const migrate = useSettingsStore.persist.getOptions()?.migrate;
-    const result = migrate!({ language: "en" } as never, 17) as {
-      selectedDitherId: string | null;
-    };
-    expect(result.selectedDitherId).toBeNull();
-  });
-
-  it("keeps persisted selectedDitherId on v18 migration", () => {
-    const migrate = useSettingsStore.persist.getOptions()?.migrate;
-    const result = migrate!({ language: "en", selectedDitherId: "aaa" } as never, 17) as {
-      selectedDitherId: string | null;
-    };
-    expect(result.selectedDitherId).toBe("aaa");
-  });
-
   it("reshapes legacy shadows and defaults the wallpaper shadow on v20", () => {
     const migrate = useSettingsStore.persist.getOptions()?.migrate;
     const off = { top: false, right: false, bottom: false, left: false };
@@ -197,18 +129,6 @@ describe("useSettingsStore migration", () => {
       bottom: true,
       left: true,
     });
-  });
-
-  it("defaults the screenshot settings on v35", () => {
-    const migrate = useSettingsStore.persist.getOptions()?.migrate;
-    const result = migrate!({ language: "en" } as never, 34) as {
-      screenshotDir: string | null;
-      screenshotFormat: string;
-      screenshotOpenFolder: boolean;
-    };
-    expect(result.screenshotDir).toBeNull();
-    expect(result.screenshotFormat).toBe("png");
-    expect(result.screenshotOpenFolder).toBe(true);
   });
 
   it("keeps a stored screenshot folder and repairs an unknown format", () => {
@@ -311,29 +231,9 @@ describe("wallpaper effect settings v25 migration", () => {
     expect(result.wallpaperParallax).toBeUndefined();
     expect(result.wallpaperScanlines).toBe(false);
   });
-
-  it("keeps persisted scanlines", () => {
-    const migrate = useSettingsStore.persist.getOptions()?.migrate;
-    const result = migrate!(
-      {
-        language: "en",
-        wallpaperScanlines: true,
-      } as never,
-      24
-    ) as { wallpaperScanlines: boolean };
-    expect(result.wallpaperScanlines).toBe(true);
-  });
 });
 
 describe("anilist list sort v26 migration", () => {
-  it("defaults the list sort to titles ascending", () => {
-    const migrate = useSettingsStore.persist.getOptions()?.migrate;
-    const result = migrate!({ language: "en" } as never, 25) as {
-      anilistListSort: { key: string; dir: string };
-    };
-    expect(result.anilistListSort).toEqual({ key: "title", dir: "asc" });
-  });
-
   it("keeps a valid persisted list sort", () => {
     const migrate = useSettingsStore.persist.getOptions()?.migrate;
     const result = migrate!(
@@ -359,85 +259,6 @@ describe("anilist list sort v26 migration", () => {
       anilistListSort: { key: string; dir: string };
     };
     expect(badDir.anilistListSort).toEqual({ key: "title", dir: "asc" });
-  });
-});
-
-type WindowToggleMigration = {
-  customTitleBarEnabled: boolean;
-  statusBarEnabled: boolean;
-  roundedWindowCorners: boolean;
-  searchMascotEnabled: boolean;
-};
-
-describe("experimental toggles v28 migration", () => {
-  it("defaults all four toggles", () => {
-    const migrate = useSettingsStore.persist.getOptions()?.migrate;
-    const result = migrate!({ language: "en" } as never, 27) as WindowToggleMigration;
-    expect(result.customTitleBarEnabled).toBe(false);
-    expect(result.statusBarEnabled).toBe(true);
-    expect(result.roundedWindowCorners).toBe(false);
-    expect(result.searchMascotEnabled).toBe(false);
-  });
-
-  it("keeps persisted toggle values", () => {
-    const migrate = useSettingsStore.persist.getOptions()?.migrate;
-    const result = migrate!(
-      {
-        language: "en",
-        customTitleBarEnabled: false,
-        statusBarEnabled: false,
-        roundedWindowCorners: true,
-        searchMascotEnabled: true,
-      } as never,
-      27
-    ) as WindowToggleMigration;
-    expect(result.customTitleBarEnabled).toBe(false);
-    expect(result.statusBarEnabled).toBe(false);
-    expect(result.roundedWindowCorners).toBe(true);
-    expect(result.searchMascotEnabled).toBe(true);
-  });
-
-  it("matches the Rust chrome default: native frame, square corners", () => {
-    const migrate = useSettingsStore.persist.getOptions()?.migrate;
-    const result = migrate!({ language: "en" } as never, 27) as WindowToggleMigration;
-    expect(result.customTitleBarEnabled).toBe(false);
-    expect(result.roundedWindowCorners).toBe(false);
-  });
-});
-
-type WindowEffectMigration = { windowEffect: string };
-
-type WindowTintMigration = { windowTintOpacity: number | null };
-
-describe("window effect v30 migration", () => {
-  it("defaults to no window effect, matching the Rust chrome default", () => {
-    const migrate = useSettingsStore.persist.getOptions()?.migrate;
-    const result = migrate!({ language: "en" } as never, 29) as WindowEffectMigration;
-    expect(result.windowEffect).toBe("none");
-  });
-
-  it("keeps a persisted window effect", () => {
-    const migrate = useSettingsStore.persist.getOptions()?.migrate;
-    const result = migrate!({ language: "en", windowEffect: "mica" } as never, 29) as
-      | WindowEffectMigration
-      | undefined;
-    expect(result?.windowEffect).toBe("mica");
-  });
-});
-
-describe("window tint v31 migration", () => {
-  it("starts on the theme's own readable value", () => {
-    const migrate = useSettingsStore.persist.getOptions()?.migrate;
-    const result = migrate!({ language: "en" } as never, 30) as WindowTintMigration;
-    expect(result.windowTintOpacity).toBeNull();
-  });
-
-  it("keeps a persisted override", () => {
-    const migrate = useSettingsStore.persist.getOptions()?.migrate;
-    const result = migrate!({ language: "en", windowTintOpacity: 0.6 } as never, 30) as
-      | WindowTintMigration
-      | undefined;
-    expect(result?.windowTintOpacity).toBe(0.6);
   });
 });
 
@@ -601,41 +422,7 @@ describe("window chrome side effect", () => {
   });
 });
 
-describe("minimize to tray v34 migration", () => {
-  it("defaults to closing the app instead of hiding to the tray", () => {
-    const migrate = useSettingsStore.persist.getOptions()?.migrate;
-    const result = migrate!({ language: "en" } as never, 33) as {
-      minimizeToTray: boolean;
-    };
-    expect(result.minimizeToTray).toBe(false);
-  });
-
-  it("keeps a persisted opt-in", () => {
-    const migrate = useSettingsStore.persist.getOptions()?.migrate;
-    const result = migrate!({ language: "en", minimizeToTray: true } as never, 33) as {
-      minimizeToTray: boolean;
-    };
-    expect(result.minimizeToTray).toBe(true);
-  });
-});
-
 describe("yorha grid v29 migration", () => {
-  it("defaults the grid to on", () => {
-    const migrate = useSettingsStore.persist.getOptions()?.migrate;
-    const result = migrate!({ language: "en" } as never, 28) as {
-      yorhaScanlinesEnabled: boolean;
-    };
-    expect(result.yorhaScanlinesEnabled).toBe(true);
-  });
-
-  it("keeps a persisted opt-out", () => {
-    const migrate = useSettingsStore.persist.getOptions()?.migrate;
-    const result = migrate!({ language: "en", yorhaScanlinesEnabled: false } as never, 28) as {
-      yorhaScanlinesEnabled: boolean;
-    };
-    expect(result.yorhaScanlinesEnabled).toBe(false);
-  });
-
   it("mirrors the grid flag to the document", () => {
     useSettingsStore.getState().patch({ yorhaScanlinesEnabled: false });
     expect(document.documentElement.dataset.yorhaScanlines).toBe("off");

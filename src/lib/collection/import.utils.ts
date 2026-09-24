@@ -1,5 +1,6 @@
 import { collectionApi } from "@/api/collection.api";
 import { IMPORT_CHUNK_SIZE } from "@/config/collection/defaults.config";
+import { normalizeToTen, type AnilistScoreFormat } from "@/lib/anilist/score.utils";
 import { withFallback } from "@/lib/utils/attempt.utils";
 import type { AniListEntry, AniMedia } from "@/types/anilist";
 import type {
@@ -18,8 +19,11 @@ export interface AniListSyncState {
   rating: number | null;
 }
 
-export function entrySyncState(entry: AniListEntry): AniListSyncState {
-  const v = entryToWizardValues(entry);
+export function entrySyncState(
+  entry: AniListEntry,
+  scoreFormat: AnilistScoreFormat = "POINT_10"
+): AniListSyncState {
+  const v = entryToWizardValues(entry, scoreFormat);
   return {
     status: v.status,
     progressValue: parseNonNegative(v.progressValue),
@@ -27,8 +31,12 @@ export function entrySyncState(entry: AniListEntry): AniListSyncState {
   };
 }
 
-export function entryDiffers(entry: AniListEntry, item: CollectionItem): boolean {
-  const s = entrySyncState(entry);
+export function entryDiffers(
+  entry: AniListEntry,
+  item: CollectionItem,
+  scoreFormat: AnilistScoreFormat = "POINT_10"
+): boolean {
+  const s = entrySyncState(entry, scoreFormat);
   return (
     s.status !== item.status || s.progressValue !== item.progressValue || s.rating !== item.rating
   );
@@ -59,7 +67,22 @@ export function buildAnilistPrefill(
   };
 }
 
-export function entryToWizardValues(entry: AniListEntry): WizardSaveValues {
+function entryScoreToRating(
+  score: number | null | undefined,
+  scoreFormat: AnilistScoreFormat,
+  mediaScore: number | null | undefined
+): string {
+  if (score != null) {
+    const ten = normalizeToTen(score, scoreFormat);
+    if (ten != null) return String(Math.round(ten * 10) / 10);
+  }
+  return mediaScore ? String(Math.round(mediaScore / 10)) : "";
+}
+
+export function entryToWizardValues(
+  entry: AniListEntry,
+  scoreFormat: AnilistScoreFormat = "POINT_10"
+): WizardSaveValues {
   const m = entry.media;
   const year = m.season_year ? String(m.season_year) : "";
   const genres = mergeGenreTags(m.genres ?? [], m.tags ?? []).join(", ");
@@ -76,12 +99,7 @@ export function entryToWizardValues(entry: AniListEntry): WizardSaveValues {
     progressTotal,
     progressUnit: "episodes",
     durationMinutes: m.duration ? String(m.duration) : "",
-    rating:
-      entry.score != null
-        ? String(Math.round(entry.score))
-        : m.score
-          ? String(Math.round(m.score / 10))
-          : "",
+    rating: entryScoreToRating(entry.score, scoreFormat, m.score),
     priority: "normal",
     isFavorite: false,
     year,
@@ -103,7 +121,8 @@ export function entryToWizardValues(entry: AniListEntry): WizardSaveValues {
 export function mediaToWizardValues(
   media: QuickAddMedia,
   entry: QuickAddListEntry | undefined,
-  isFavorite: boolean
+  isFavorite: boolean,
+  scoreFormat: AnilistScoreFormat = "POINT_10"
 ): WizardSaveValues {
   const year = media.season_year ? String(media.season_year) : "";
   const genres = mergeGenreTags(media.genres ?? [], media.tags ?? []).join(", ");
@@ -120,12 +139,7 @@ export function mediaToWizardValues(
     progressTotal,
     progressUnit: "episodes",
     durationMinutes: media.duration ? String(media.duration) : "",
-    rating:
-      entry?.score != null
-        ? String(Math.round(entry.score))
-        : media.score
-          ? String(Math.round(media.score / 10))
-          : "",
+    rating: entryScoreToRating(entry?.score, scoreFormat, media.score),
     priority: "normal",
     isFavorite,
     year,
@@ -144,8 +158,12 @@ export function mediaToWizardValues(
   };
 }
 
-function buildImportItem(entry: AniListEntry, now: number) {
-  const values = entryToWizardValues(entry);
+function buildImportItem(
+  entry: AniListEntry,
+  now: number,
+  scoreFormat: AnilistScoreFormat = "POINT_10"
+) {
+  const values = entryToWizardValues(entry, scoreFormat);
   const item = buildWizardItem(values, null, null);
   return {
     id: crypto.randomUUID(),
@@ -188,7 +206,8 @@ function buildImportItem(entry: AniListEntry, now: number) {
 export async function runImportBatch(
   entries: AniListEntry[],
   shouldAbort: () => boolean,
-  onProgress: (processed: number, current: string) => void
+  onProgress: (processed: number, current: string) => void,
+  scoreFormat: AnilistScoreFormat = "POINT_10"
 ): Promise<{ imported: number; failed: Array<{ id: number; title: string }> }> {
   let imported = 0;
   const failed: Array<{ id: number; title: string }> = [];
@@ -197,7 +216,7 @@ export async function runImportBatch(
   for (let start = 0; start < entries.length && !shouldAbort(); start += IMPORT_CHUNK_SIZE) {
     const chunk = entries.slice(start, start + IMPORT_CHUNK_SIZE);
     const now = Date.now();
-    const items = chunk.map((entry) => buildImportItem(entry, now));
+    const items = chunk.map((entry) => buildImportItem(entry, now, scoreFormat));
     const outcome = await withFallback(collectionApi.importItemsBatch(items), {
       imported: 0,
       failed: chunk.map((_, index) => ({ index, error: "batch failed" })),

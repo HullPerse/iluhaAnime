@@ -1,4 +1,5 @@
 import { ConfirmDialog } from "@/components/shared/confirm.component";
+import { SmallLoader } from "@/components/shared/loader.component";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import type { CollectionItem } from "@/types/collection";
@@ -10,6 +11,7 @@ export function WizardFooter({
   onClose,
   requestClose,
   canSave,
+  saving,
   onSave,
   confirmDiscard,
   cancelDiscard,
@@ -21,6 +23,7 @@ export function WizardFooter({
   onClose: () => void;
   requestClose: () => void;
   canSave: boolean;
+  saving: boolean;
   onSave: () => void;
   confirmDiscard: boolean;
   cancelDiscard: () => void;
@@ -46,7 +49,8 @@ export function WizardFooter({
         )}
         <div className="ml-auto flex gap-1">
           <Button onClick={requestClose}>{t("common.cancel")}</Button>
-          <Button variant="outline" disabled={!canSave} onClick={onSave}>
+          <Button variant="outline" disabled={!canSave || saving} onClick={onSave}>
+            {saving && <SmallLoader size={3} />}
             {t("collection.wizard.save")}
           </Button>
         </div>

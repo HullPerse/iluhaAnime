@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { TorrentApi, torrentApi } from "@/api/torrent.api";
+import { TorrentApi } from "@/api/torrent.api";
 import type { ApiTransport } from "@/api/transport.api";
 import { useSettingsStore } from "@/store/settings.store";
 
@@ -66,9 +66,5 @@ describe("TorrentApi", () => {
 
     expect(calls[0]?.args).toMatchObject({ username: "user", password: "pass" });
     expect(calls[1]?.args).toMatchObject({ apiKey: "key" });
-  });
-
-  it("exposes the shared singleton", () => {
-    expect(torrentApi).toBeInstanceOf(TorrentApi);
   });
 });

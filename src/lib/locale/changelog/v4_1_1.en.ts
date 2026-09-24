@@ -23,8 +23,6 @@ const changelog411 = {
     "A SOCKS5 proxy setting for peer connections and HTTP trackers, with a connection test and the port the session actually bound; DNS resolves through the proxy as well, and the rutracker file list loads through it instead of the direct path",
   "changelog.4_1_1.added.screenshots":
     "CTRL+SHIFT+P captures the open page into a screenshot window: mark the area right on the preview (Shift - square), zoom and move the shot with the wheel and the right button",
-  "changelog.4_1_1.added.screenshots_save":
-    "Then pick the folder, file name and PNG or JPEG format, copy the shot without saving, and open the folder right after saving",
   "changelog.4_1_1.added.screenshot_draw":
     "The screenshot window can mark up what it captured before saving: a pencil with a color palette or a color of your own, an eraser, text that you can drag, retype or resize, and a blur brush that hides what should not leave the app, with undo and redo on Ctrl+Z and Ctrl+Y",
   "changelog.4_1_1.added.browser_login":
@@ -39,8 +37,6 @@ const changelog411 = {
     "Screenshots fire with a modal open: the capture includes it and the screenshot window lands on top",
   "changelog.4_1_1.added.search_operators":
     "Search understands fzf-style operators: ^prefix, suffix$, 'exact, !exclusion, with space-separated terms all required",
-  "changelog.4_1_1.added.collection_operators":
-    "Collection search understands the same operators, with syntax hints appearing once a marker is typed",
   "changelog.4_1_1.added.app_site": "App website: https://iluhasite.onrender.com/",
   "changelog.4_1_1.changed.resume_notice":
     "A resume that had to re-verify the files reports what it found in a notification instead of finishing silently",
@@ -60,42 +56,6 @@ const changelog411 = {
     "The tray icon always shows up now and a left click brings the window back: earlier the icon could be blank and the restore was blocked by missing window permissions",
   "changelog.4_1_1.fixed.text_cursor":
     "Hovering a placed text inside the selected screenshot area flips the frame cursor, so the drag visibly carries the text",
-  "changelog.4_1_1.changed.color_presets":
-    "Color presets are gone from the screenshot toolbar and the color picker: pick any color directly",
-  "changelog.4_1_1.changed.suggestion_perf":
-    "Suggestion scan skips per-item allocations and equal scores prefer shorter titles: short queries run ~20-30% faster",
-  "changelog.4_1_1.added.score_formats":
-    "Scores follow your AniList system: 100 points, 10 with decimals, plain 10, 5 stars, or 3 smileys - shown with your denominator everywhere, converted on import into the collection",
-  "changelog.4_1_1.added.franchise_status":
-    "Franchise lists show your status square and episode progress on every row, including the current anime",
-  "changelog.4_1_1.added.wizard_dropdown":
-    "Collection search is one dropdown with up to 6 results: covers, type and year badges, full keyboard control, and covers loading through the image cache",
-  "changelog.4_1_1.added.wizard_save_loader":
-    "The Save button spins while the cover and the credits finish loading, so a slow network no longer looks stuck",
-  "changelog.4_1_1.added.rutracker_proxy_login":
-    "Rutracker sign-in opens the site window through your proxy, with the proxy password filled in by itself",
-  "changelog.4_1_1.changed.friend_status_square":
-    "Friend score rows show the list status as a color square with a tooltip instead of a text strip",
-  "changelog.4_1_1.changed.rutracker_cookies":
-    "The cookie-paste tab is gone from the rutracker login: the site window is the way in",
-  "changelog.4_1_1.fixed.tmdb_key_save":
-    "The TMDB key saves again: the app and the backend disagreed on the field name",
-  "changelog.4_1_1.fixed.tmdb_covers":
-    "TMDB search results show their posters again: the app read a field name the backend never sent, so every row fell back to the first letter of the title",
-  "changelog.4_1_1.fixed.wizard_cover_lookup":
-    "A search result that comes back without a poster now has its cover requested by title behind the scenes, so the row and the preview show a real cover instead of a letter, and it is kept in the image cache",
-  "changelog.4_1_1.fixed.tmdb_metadata":
-    "Picking a TMDB result fills in the release date again, and the stills and trailer lookup finds the movie instead of quietly falling through to MAL - the same field-name mismatch",
-  "changelog.4_1_1.added.score_origin_hint":
-    "Adding an AniList title to the collection carries your score over as the collection rating and shows where it came from: 85/100 becomes 8.5 with the original next to the field",
-  "changelog.4_1_1.changed.score_hint":
-    "A score that does not fit your AniList format now says what is expected instead of telling you it does not fit: whole numbers from 0 to 100, 0 to 10 with one decimal, 0 to 5, 0 to 3",
-  "changelog.4_1_1.changed.friends_scores_batch":
-    "Friends' scores load in one request instead of two for every friend, so the section opens faster and presses less on the AniList rate limit",
-  "changelog.4_1_1.fixed.mean_score_format":
-    "The average score in your header and in friend previews is shown on your own scale (8.5/10, 85/100) instead of as a bare number",
-  "changelog.4_1_1.fixed.quickadd_score_format":
-    "Quick add converts the score with the format you are actually using: it used to read the format out of the cache at click time and could carry over the wrong rating",
 } as const;
 
 export default changelog411;

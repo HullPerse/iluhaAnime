@@ -11,6 +11,7 @@ import changelog408 from "./changelog/v4_0_8.en";
 import changelog409 from "./changelog/v4_0_9.en";
 import changelog410 from "./changelog/v4_1_0.en";
 import changelog411 from "./changelog/v4_1_1.en";
+import changelog412 from "./changelog/v4_1_2.en";
 import anilist from "./en/anilist.locale";
 import collection from "./en/collection.locale";
 import common from "./en/common.locale";
@@ -23,6 +24,7 @@ import updater from "./en/updater.locale";
 
 const en = {
   ...anilist,
+  ...changelog412,
   ...changelog411,
   ...changelog410,
   ...changelog409,

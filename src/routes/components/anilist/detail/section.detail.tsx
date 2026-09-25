@@ -61,11 +61,18 @@ function FranchiseGraphSection({
   const dragMovedRef = useRef(false);
   const dragRafRef = useRef<number | null>(null);
   const dragPointRef = useRef<{ x: number; y: number } | null>(null);
-  const zoomedOnceRef = useRef(false);
+  const zoomedAnimeIdRef = useRef<number | null>(null);
+  const focusAfterLayoutRef = useRef(false);
   const positionsRef = useRef(positions);
   useEffect(() => {
     positionsRef.current = positions;
   }, [positions]);
+
+  const focusCurrent = useCallback(() => {
+    requestAnimationFrame(() => {
+      zoomToElement(`franchise-node-${animeId}`, 1.5, 300);
+    });
+  }, [animeId, zoomToElement]);
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["franchise", animeId, refreshKey],
@@ -91,7 +98,7 @@ function FranchiseGraphSection({
     setRefreshKey(0);
     setResetKey((key) => key + 1);
     setExpandedGroups(new Set());
-    zoomedOnceRef.current = false;
+    zoomedAnimeIdRef.current = null;
   }, []);
 
   useEffect(() => {
@@ -137,8 +144,14 @@ function FranchiseGraphSection({
   }, []);
 
   const resetSimulation = useCallback(() => {
+    focusAfterLayoutRef.current = true;
     setResetKey((k) => k + 1);
   }, []);
+
+  const handleToggleView = useCallback(() => {
+    if (listView) focusAfterLayoutRef.current = true;
+    setListView((value) => !value);
+  }, [listView]);
 
   const totalNodes = collapsed?.graph.nodeMap.size ?? 0;
   const dims = useMemo(() => computeNodeDimensions(totalNodes), [totalNodes]);
@@ -212,12 +225,20 @@ function FranchiseGraphSection({
   }, [dragging, getScale]);
 
   useEffect(() => {
-    if (!expanded || positions.size === 0 || zoomedOnceRef.current) return;
-    zoomedOnceRef.current = true;
-    requestAnimationFrame(() => {
-      zoomToElement(`franchise-node-${animeId}`, 1.5, 300);
-    });
-  }, [expanded, positions, animeId, zoomToElement]);
+    if (!expanded || listView || positions.size === 0) return;
+    if (!collapsed?.graph.nodeMap.has(animeId)) return;
+    if (zoomedAnimeIdRef.current === animeId) return;
+    zoomedAnimeIdRef.current = animeId;
+    focusCurrent();
+  }, [expanded, listView, positions, collapsed, animeId, focusCurrent]);
+
+  useEffect(() => {
+    if (listView || positions.size === 0) return;
+    if (!collapsed?.graph.nodeMap.has(animeId)) return;
+    if (!focusAfterLayoutRef.current) return;
+    focusAfterLayoutRef.current = false;
+    focusCurrent();
+  }, [listView, positions, collapsed, animeId, focusCurrent]);
 
   const handleNodeClick = useCallback(
     (nodeId: number) => {
@@ -311,7 +332,8 @@ function FranchiseGraphSection({
         listView={listView}
         onToggleFilter={toggleFilter}
         onSearchChange={setSearchQuery}
-        onToggleView={() => setListView((value) => !value)}
+        onToggleView={handleToggleView}
+        onFocusCurrent={focusCurrent}
         onResetLayout={resetSimulation}
         onRefresh={() => {
           setCountDiff(null);

@@ -15,6 +15,7 @@ function FranchiseToolbar({
   onToggleFilter,
   onSearchChange,
   onToggleView,
+  onFocusCurrent,
   onResetLayout,
   onRefresh,
 }: FranchiseToolbarProps) {
@@ -76,6 +77,16 @@ function FranchiseToolbar({
         >
           {listView ? t("anilist.franchise.graph") : t("anilist.franchise.list")}
         </Button>
+        {!listView && (
+          <Button
+            onClick={onFocusCurrent}
+            className="h-auto px-1.5 py-0.5 text-xs"
+            variant="default"
+            title={t("anilist.franchise.focus.current.title")}
+          >
+            {t("anilist.franchise.focus.current")}
+          </Button>
+        )}
         <Button
           onClick={onResetLayout}
           className="h-auto px-1.5 py-0.5 text-xs"

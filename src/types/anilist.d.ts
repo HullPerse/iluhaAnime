@@ -320,8 +320,8 @@ export interface SimNode {
   y: number;
   vx: number;
   vy: number;
+  fy?: number;
   clusterX: number;
-  clusterY: number;
 }
 
 export interface FranchiseNodePosition {

@@ -7,6 +7,18 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   build: {
+    rolldownOptions: {
+      onLog(level, log, defaultHandler) {
+        // react-compiler-runtime ships "use no memo" via @videojs deps. No compiler pass runs over the bundle, so the drop is safe.
+        const id = log.id ?? "";
+        const isCompilerRuntime =
+          id.includes("react-compiler-runtime") || log.message.includes("react-compiler-runtime");
+        if (log.code === "MODULE_LEVEL_DIRECTIVE" && isCompilerRuntime) {
+          return;
+        }
+        defaultHandler(level, log);
+      },
+    },
     sourcemap: false,
   },
 

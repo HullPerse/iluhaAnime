@@ -120,7 +120,6 @@ export type CommandName =
   | "reset_sqlite_data"
   | "restore_sqlite_backup"
   | "resume_torrent"
-  | "run_sqlite_query"
   | "rutracker_finish_webview_login"
   | "rutracker_get_magnet"
   | "rutracker_get_torrent_bytes"

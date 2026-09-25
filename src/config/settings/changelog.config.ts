@@ -30,6 +30,7 @@ export const CHANGELOG: ChangelogVersion[] = [
     ],
     changed: [
       entry("changelog.4_1_2.changed.color_presets", "settings"),
+      entry("changelog.4_1_2.changed.sqlite_console_removed", "settings"),
       entry("changelog.4_1_2.changed.suggestion_perf", "search"),
       entry("changelog.4_1_2.changed.friend_status_square", "anilist"),
       entry("changelog.4_1_2.changed.rutracker_cookies", "torrents"),

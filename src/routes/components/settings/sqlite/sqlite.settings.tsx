@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 
 import { sqliteApi } from "@/api/sqlite.api";
-import { PAGE_SIZE, QUERY_HISTORY_MAX } from "@/config/settings/sqlite.config";
+import { PAGE_SIZE } from "@/config/settings/sqlite.config";
 import { usePagination } from "@/hooks/pagination.hook";
 import { useSqliteCell } from "@/hooks/sqlite/cell.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
@@ -27,8 +27,6 @@ import { FilterBar } from "./filterbar.sqlite";
 import { SqliteHeader } from "./header.sqlite";
 import { SqliteObjectGrid } from "./objectGrid.sqlite";
 import { SqliteObjectPane } from "./objectPane.sqlite";
-import { QueryPanel } from "./query.sqlite";
-import { SqliteQueryResult } from "./queryresult.sqlite";
 import { SchemaSection } from "./schema.sqlite";
 import { SqliteSelectorGrid } from "./selector.sqlite";
 import { RowsTable } from "./table.sqlite";
@@ -41,7 +39,6 @@ export default function SqliteSettings() {
   const { t } = useI18n();
   const showImages = useSettingsStore((s) => s.sqliteShowImages);
   const patchSettings = useSettingsStore((s) => s.patch);
-  const [mode, setMode] = useState<"browse" | "query">("browse");
   const [object, setObject] = useState<"tables" | "backup">("tables");
   const [databases, setDatabases] = useState<SqliteDatabaseInfo[]>([]);
   const [tables, setTables] = useState<SqliteTableInfo[]>([]);
@@ -65,12 +62,6 @@ export default function SqliteSettings() {
   const [pendingBatchDelete, setPendingBatchDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const deletingRef = useRef(false);
-
-  const [querySql, setQuerySql] = useState("");
-  const [queryResult, setQueryResult] = useState<SqliteRowsPage | null>(null);
-  const [queryLoading, setQueryLoading] = useState(false);
-  const queryHistoryRef = useRef<string[]>([]);
-  const queryHistoryIndexRef = useRef(-1);
 
   const refreshDatabases = useCallback(async () => {
     setLoading(true);
@@ -249,48 +240,6 @@ export default function SqliteSettings() {
       return null;
     });
     setPage(1);
-  };
-
-  const runQuery = async () => {
-    if (!selectedDatabase || !querySql.trim()) return;
-    const trimmed = querySql.trim();
-    const history = queryHistoryRef.current;
-    if (history.at(-1) !== trimmed) {
-      history.push(trimmed);
-      if (history.length > QUERY_HISTORY_MAX) history.shift();
-    }
-    queryHistoryIndexRef.current = -1;
-    setQueryLoading(true);
-    setError(null);
-    const [result, error] = await attempt(sqliteApi.runQuery(selectedDatabase, querySql));
-    if (error) {
-      setQueryResult(null);
-      setError(error.message);
-    } else setQueryResult(result);
-    setQueryLoading(false);
-  };
-
-  const navigateQueryHistory = (direction: "up" | "down") => {
-    const history = queryHistoryRef.current;
-    if (history.length === 0) return;
-    if (direction === "up") {
-      const index =
-        queryHistoryIndexRef.current === -1
-          ? history.length - 1
-          : Math.max(0, queryHistoryIndexRef.current - 1);
-      queryHistoryIndexRef.current = index;
-      setQuerySql(history.at(index) ?? "");
-    } else {
-      if (queryHistoryIndexRef.current === -1) return;
-      const next = queryHistoryIndexRef.current + 1;
-      if (next >= history.length) {
-        queryHistoryIndexRef.current = -1;
-        setQuerySql("");
-      } else {
-        queryHistoryIndexRef.current = next;
-        setQuerySql(history.at(next) ?? "");
-      }
-    }
   };
 
   const exportRows = async (columns: string[], rowsArray: Array<unknown>[], name: string) => {
@@ -475,33 +424,9 @@ export default function SqliteSettings() {
     exportRows(rows.columns, display === "scroll" ? accRows : rows.rows, selectedTable);
   };
 
-  const querySection = (
-    <section className="flex flex-col gap-2">
-      <QueryPanel
-        querySql={querySql}
-        setQuerySql={setQuerySql}
-        runQuery={runQuery}
-        navigateHistory={navigateQueryHistory}
-        queryLoading={queryLoading}
-        canRun={!!selectedDatabase}
-        getHistoryCount={() => queryHistoryRef.current.length}
-      />
-      <SqliteQueryResult
-        queryResult={queryResult}
-        queryLoading={queryLoading}
-        onExport={() => {
-          if (queryResult) exportRows(queryResult.columns, queryResult.rows, "query-result");
-        }}
-        renderRowsTable={renderRowsTable}
-      />
-    </section>
-  );
-
   return (
     <div className="flex h-full w-full flex-col gap-1 overflow-y-auto p-1">
       <SqliteHeader
-        mode={mode}
-        setMode={setMode}
         onRefresh={() => refreshDatabases()}
         loading={loading}
         deleting={deleting}
@@ -520,7 +445,6 @@ export default function SqliteSettings() {
               setTables([]);
               setSelectedTable("");
               setRows(null);
-              setQueryResult(null);
               setPage(1);
             }}
             onChanged={() => refreshDatabases()}
@@ -529,14 +453,12 @@ export default function SqliteSettings() {
         tables={
           <>
             <SqliteSelectorGrid
-              mode={mode}
               selectedDatabase={selectedDatabase}
               onSelectDatabase={(value) => {
                 setSelectedDatabase(value);
                 setTables([]);
                 setSelectedTable("");
                 setRows(null);
-                setQueryResult(null);
                 setPage(1);
               }}
               databaseOptions={databaseOptions}
@@ -552,73 +474,67 @@ export default function SqliteSettings() {
               tableCount={tables.length}
             />
 
-            {mode === "query" ? (
-              querySection
-            ) : (
-              <>
-                {selectedTableInfo && <SchemaSection tableInfo={selectedTableInfo} />}
-                <div className="ui-toolbar ui-panel h-14 gap-1 p-1">
-                  <FilterBar
-                    filterInput={filterInput}
-                    setFilterInput={setFilterInput}
-                    filterInputRef={filterInputRef}
-                    applyFilter={applyFilter}
-                    rowsTotal={rows?.total}
-                    deleting={deleting}
-                  />
-                  <TableActions
-                    selectedCount={Object.keys(selectedRows).length}
-                    hasPrimaryKeys={primaryKeys.length > 0}
-                    deleting={deleting}
-                    onBatchDelete={() => setPendingBatchDelete(true)}
-                    canExport={exportable}
-                    onExport={handleExport}
-                  />
-                  <ViewFlags
-                    showImages={showImages}
-                    setShowImages={(v) => patchSettings({ sqliteShowImages: v })}
-                    hideId={hideId}
-                    onHideIdChange={setHideId}
-                  />
-                  <DisplayToggle
-                    display={display}
-                    onDisplayChange={handleDisplayChange}
-                    deleting={deleting}
-                  />
-                </div>
-                <SqliteFilterBuilder
-                  columns={filterableColumns}
-                  isTextColumn={isTextColumn}
-                  filterInput={filterInput}
-                  setFilterInput={setFilterInput}
-                  filterInputRef={filterInputRef}
-                  applyFilter={applyFilter}
-                />
-                <SqliteFilterTags
-                  columns={filterableColumns}
-                  isTextColumn={isTextColumn}
-                  onTagClick={insertFilterTemplate}
-                />
-                <span className="text-hint windows95-text text-xs">
-                  {t("settings.sqlite.filter.hint")}
-                </span>
-                <SqliteBrowseResult
-                  loadingRows={loadingRows}
-                  rows={rows}
-                  display={display}
-                  accRows={accRows}
-                  hideId={hideId}
-                  total={total}
-                  page={page}
-                  lastPage={lastPage}
-                  from={from}
-                  to={to}
-                  onPageChange={setPaged}
-                  renderRowsTable={renderRowsTable}
-                  renderVirtualRowsTable={renderVirtualRowsTable}
-                />
-              </>
-            )}
+            {selectedTableInfo && <SchemaSection tableInfo={selectedTableInfo} />}
+            <div className="ui-toolbar ui-panel h-14 gap-1 p-1">
+              <FilterBar
+                filterInput={filterInput}
+                setFilterInput={setFilterInput}
+                filterInputRef={filterInputRef}
+                applyFilter={applyFilter}
+                rowsTotal={rows?.total}
+                deleting={deleting}
+              />
+              <TableActions
+                selectedCount={Object.keys(selectedRows).length}
+                hasPrimaryKeys={primaryKeys.length > 0}
+                deleting={deleting}
+                onBatchDelete={() => setPendingBatchDelete(true)}
+                canExport={exportable}
+                onExport={handleExport}
+              />
+              <ViewFlags
+                showImages={showImages}
+                setShowImages={(v) => patchSettings({ sqliteShowImages: v })}
+                hideId={hideId}
+                onHideIdChange={setHideId}
+              />
+              <DisplayToggle
+                display={display}
+                onDisplayChange={handleDisplayChange}
+                deleting={deleting}
+              />
+            </div>
+            <SqliteFilterBuilder
+              columns={filterableColumns}
+              isTextColumn={isTextColumn}
+              filterInput={filterInput}
+              setFilterInput={setFilterInput}
+              filterInputRef={filterInputRef}
+              applyFilter={applyFilter}
+            />
+            <SqliteFilterTags
+              columns={filterableColumns}
+              isTextColumn={isTextColumn}
+              onTagClick={insertFilterTemplate}
+            />
+            <span className="text-hint windows95-text text-xs">
+              {t("settings.sqlite.filter.hint")}
+            </span>
+            <SqliteBrowseResult
+              loadingRows={loadingRows}
+              rows={rows}
+              display={display}
+              accRows={accRows}
+              hideId={hideId}
+              total={total}
+              page={page}
+              lastPage={lastPage}
+              from={from}
+              to={to}
+              onPageChange={setPaged}
+              renderRowsTable={renderRowsTable}
+              renderVirtualRowsTable={renderVirtualRowsTable}
+            />
           </>
         }
       />

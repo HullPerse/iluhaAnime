@@ -43,10 +43,6 @@ export class SqliteApi {
     return this.call("get_sqlite_rows", { database, table, ...query });
   }
 
-  runQuery(database: string, sql: string): Promise<SqliteRowsPage> {
-    return this.call("run_sqlite_query", { database, sql });
-  }
-
   writeExport(path: string, content: string): Promise<void> {
     return this.call("write_sqlite_export", { path, content });
   }

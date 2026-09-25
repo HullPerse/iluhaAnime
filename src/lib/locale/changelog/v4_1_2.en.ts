@@ -23,6 +23,8 @@ const changelog412 = {
     "List entries too old for AniList dates show More than 5 years ago instead of an empty slot",
   "changelog.4_1_2.changed.color_presets":
     "Color presets are gone from the screenshot toolbar and the color picker: pick any color directly",
+  "changelog.4_1_2.changed.sqlite_console_removed":
+    "The SQL console is gone from the SQLite browser: it saw no real use, and the browse view with filters covers everyday inspection",
   "changelog.4_1_2.changed.suggestion_perf":
     "Suggestion scan skips per-item allocations and equal scores prefer shorter titles: short queries run ~20-30% faster",
   "changelog.4_1_2.changed.friend_status_square":

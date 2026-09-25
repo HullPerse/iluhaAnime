@@ -2,7 +2,6 @@ import Select from "@/components/ui/select.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
 
 export function SqliteSelectorGrid({
-  mode,
   selectedDatabase,
   onSelectDatabase,
   databaseOptions,
@@ -13,7 +12,6 @@ export function SqliteSelectorGrid({
   deleting,
   tableCount,
 }: {
-  mode: "browse" | "query";
   selectedDatabase: string;
   onSelectDatabase: (value: string) => void;
   databaseOptions: { value: string; label: string }[];
@@ -36,17 +34,15 @@ export function SqliteSelectorGrid({
           disabled={loading || deleting}
         />
       </label>
-      {mode === "browse" && (
-        <label className="windows95-text flex flex-col gap-1 text-xs">
-          {t("settings.sqlite.table")}
-          <Select
-            value={selectedTable}
-            onChange={onSelectTable}
-            options={tableOptions}
-            disabled={loading || deleting || tableCount === 0}
-          />
-        </label>
-      )}
+      <label className="windows95-text flex flex-col gap-1 text-xs">
+        {t("settings.sqlite.table")}
+        <Select
+          value={selectedTable}
+          onChange={onSelectTable}
+          options={tableOptions}
+          disabled={loading || deleting || tableCount === 0}
+        />
+      </label>
     </section>
   );
 }

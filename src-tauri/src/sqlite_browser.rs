@@ -10,7 +10,6 @@ use crate::{anilist, app_db, auth, user_assets};
 
 const MAX_SQLITE_CELL_TEXT_BYTES: usize = 16 * 1024;
 const MAX_SQLITE_SEARCH_CHARS: usize = 200;
-const MAX_SQLITE_QUERY_ROWS: usize = 1_000;
 
 #[tauri::command]
 pub async fn reset_sqlite_data(app_handle: tauri::AppHandle) -> Result<Vec<String>, String> {
@@ -1231,68 +1230,6 @@ pub async fn update_sqlite_cell(
     .await
     .map_err(|error| format!("SQLite update task failed: {error}"))?
     .map_err(|error| format!("SQLite update: {error}"))
-}
-
-#[tauri::command]
-pub async fn run_sqlite_query(
-    app_handle: tauri::AppHandle,
-    database: String,
-    sql: String,
-) -> Result<SqliteRowsPage, String> {
-    tokio::task::spawn_blocking(move || {
-        let trimmed = sql.trim();
-        if trimmed.is_empty() {
-            return Err("SQL query is empty".to_string());
-        }
-        let first_keyword = trimmed
-            .split(|character: char| !character.is_ascii_alphabetic())
-            .find(|token| !token.is_empty())
-            .map(str::to_ascii_uppercase);
-        if !matches!(first_keyword.as_deref(), Some("SELECT" | "EXPLAIN")) {
-            return Err("Only SELECT and EXPLAIN queries are allowed".to_string());
-        }
-        let connection = open_sqlite_browser_database_read_only(&app_handle, &database)?;
-        let mut statement = connection
-            .prepare(trimmed)
-            .map_err(|error| format!("query prepare: {error}"))?;
-        let column_names = statement
-            .column_names()
-            .iter()
-            .map(std::string::ToString::to_string)
-            .collect::<Vec<_>>();
-        let mut query_rows = statement
-            .query([])
-            .map_err(|error| format!("query execute: {error}"))?;
-        let mut values = Vec::new();
-        while let Some(row) = query_rows
-            .next()
-            .map_err(|error| format!("query row: {error}"))?
-        {
-            if values.len() >= MAX_SQLITE_QUERY_ROWS {
-                break;
-            }
-            let mut value_row = Vec::with_capacity(column_names.len());
-            for index in 0..column_names.len() {
-                value_row.push(sqlite_value_to_json(
-                    row.get_ref(index)
-                        .map_err(|error| format!("query cell: {error}"))?,
-                ));
-            }
-            values.push(value_row);
-        }
-        Ok(SqliteRowsPage {
-            database,
-            table: String::new(),
-            columns: column_names,
-            rows: values,
-            total: 0,
-            page: 1,
-            page_size: MAX_SQLITE_QUERY_ROWS as u32,
-        })
-    })
-    .await
-    .map_err(|error| format!("SQLite query task failed: {error}"))?
-    .map_err(|error| format!("SQLite query: {error}"))
 }
 
 fn sqlite_value_ref_to_string(value: ValueRef<'_>) -> Option<String> {

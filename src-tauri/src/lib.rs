@@ -1374,7 +1374,6 @@ pub fn run() {
             sqlite_browser::update_sqlite_cell,
             sqlite_browser::get_sqlite_cell,
             sqlite_browser::get_sqlite_cell_image,
-            sqlite_browser::run_sqlite_query,
             sqlite_browser::backup_sqlite_database,
             sqlite_browser::list_sqlite_backups,
             sqlite_browser::restore_sqlite_backup,

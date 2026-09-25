@@ -3,6 +3,8 @@ const changelog412 = {
     "Friends modal compares your lists with a friend: iluha affinity score, shared and unique titles with score gaps, top shared genres and shared favourites",
   "changelog.4_1_2.added.franchise_focus":
     "Switching the franchise section to graph centers on the current anime, with a To current button to jump back to it",
+  "changelog.4_1_2.added.anilist_loader_timer":
+    "The AniList loader shows elapsed seconds, and after 10 seconds suggests a proxy (Settings > General > AniList proxy)",
   "changelog.4_1_2.added.collection_operators":
     "Collection search understands the same operators, with syntax hints appearing once a marker is typed",
   "changelog.4_1_2.added.screenshots_save":
@@ -39,6 +41,10 @@ const changelog412 = {
     "A score that does not fit your AniList format now says what is expected instead of telling you it does not fit: whole numbers from 0 to 100, 0 to 10 with one decimal, 0 to 5, 0 to 3",
   "changelog.4_1_2.changed.friends_scores_batch":
     "Friends' scores load in one request instead of two for every friend, so the section opens faster and presses less on the AniList rate limit",
+  "changelog.4_1_2.changed.sequential_off_empty":
+    "The sequential download button is an empty box again when off, with a check mark when on",
+  "changelog.4_1_2.changed.indicator_heights":
+    "Progress bars and status dots are thicker across torrents, collection, friends and player, so they no longer get lost next to the buttons",
   "changelog.4_1_2.fixed.tmdb_key_save":
     "The TMDB key saves again: the app and the backend disagreed on the field name",
   "changelog.4_1_2.fixed.tmdb_covers":

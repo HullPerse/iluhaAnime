@@ -29,6 +29,7 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.4_1_2.added.old_entry_date", "anilist"),
       entry("changelog.4_1_2.added.friend_compare", "anilist"),
       entry("changelog.4_1_2.added.franchise_focus", "anilist"),
+      entry("changelog.4_1_2.added.anilist_loader_timer", "anilist"),
     ],
     changed: [
       entry("changelog.4_1_2.changed.color_presets", "settings"),
@@ -38,6 +39,8 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.4_1_2.changed.rutracker_cookies", "torrents"),
       entry("changelog.4_1_2.changed.score_hint", "anilist"),
       entry("changelog.4_1_2.changed.friends_scores_batch", "anilist"),
+      entry("changelog.4_1_2.changed.sequential_off_empty", "torrents"),
+      entry("changelog.4_1_2.changed.indicator_heights", "app"),
     ],
     fixed: [
       entry("changelog.4_1_2.fixed.tmdb_key_save", "settings"),

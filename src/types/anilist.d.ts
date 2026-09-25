@@ -1,6 +1,7 @@
 import type { CSSProperties, MouseEvent as ReactMouseEvent } from "react";
 
 import { RELATION_FILTERS } from "@/config/anilist/graph.config";
+import type { RandomDiscovery } from "@/hooks/anilist/discovery.hook";
 import type { EntryLookup } from "@/lib/anilist/entries.utils";
 import type { AnilistScoreFormat } from "@/lib/anilist/score.utils";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
@@ -322,6 +323,9 @@ export interface AniListFiltersModalProps {
   onClose: () => void;
   onRandom: (filters: AniListFilters) => void;
   randomPending: boolean;
+  discovery: RandomDiscovery;
+  entryLookup: EntryLookup;
+  onDiscoveryDetails: (id: number) => void;
 }
 
 export type RelationFilter = (typeof RELATION_FILTERS)[number];

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { anilistApi } from "@/api/anilist.api";
 import { defaultFilters } from "@/config/anilist/filters.config";
 import { useAnilistDetail } from "@/hooks/anilist/detail.hook";
+import { useRandomDiscovery } from "@/hooks/anilist/discovery.hook";
 import { useAnilistListView } from "@/hooks/anilist/listView.hook";
 import { useAnilistModals } from "@/hooks/anilist/modals.hook";
 import { useFavouritePeopleToggles } from "@/hooks/anilist/people.hook";
@@ -12,6 +13,7 @@ import { useAnilistSearch } from "@/hooks/anilist/search.hook";
 import { usePagination } from "@/hooks/pagination.hook";
 import { useSearchField } from "@/hooks/search/field.hook";
 import { filterEntries, sortEntries } from "@/lib/anilist/entries.utils";
+import type { EntryLookup } from "@/lib/anilist/entries.utils";
 import { ALL_LISTS_ID, activeListEntries } from "@/lib/anilist/group.utils";
 import {
   pickDisplayEntries,
@@ -52,6 +54,21 @@ import { buildAniListSource } from "./components/anilist/source.anilist";
 import SpotlightModal from "./components/anilist/spotlight/modal.spotlight";
 import AniListStateViews from "./components/anilist/stateViews.anilist";
 import { useUserAnilistData } from "./components/anilist/user/data.user";
+
+function discoveryDetailAnime(entryLookup: EntryLookup, animeId: number): AniListAnime {
+  const info = entryLookup.get(animeId);
+  return {
+    animeId,
+    ...(info && {
+      listEntry: {
+        progress: info.progress,
+        score: info.score,
+        list_status: info.list_status,
+        notes: info.notes,
+      },
+    }),
+  };
+}
 
 function AnilistRoute() {
   const queryClient = useQueryClient();
@@ -238,12 +255,26 @@ function AnilistRoute() {
     ]
   );
 
-  const { randomPending, handleRandomFromList, handleFilterRandom } = useAnilistRandom(
+  const { handleRandomFromList } = useAnilistRandom(
     source.lists,
     currentList,
     entryLookup,
     showDetail
   );
+  const discovery = useRandomDiscovery();
+  const { start: handleDiscoveryStart } = discovery;
+
+  const handleDiscoveryDetails = useCallback(
+    (animeId: number) => {
+      showDetail(discoveryDetailAnime(entryLookup, animeId), true);
+    },
+    [entryLookup, showDetail]
+  );
+  const handleFiltersClose = useCallback(() => {
+    discovery.close();
+    handleDetailsClose();
+    handleCloseModal("filters");
+  }, [discovery, handleDetailsClose, handleCloseModal]);
   const favPendingRef = useRef(false);
   const toggleFavourite = useCallback(
     async (animeId: number) => {
@@ -610,9 +641,11 @@ function AnilistRoute() {
           filters={searchFilters}
           onFiltersApply={setSearchFilters}
           onFiltersReset={() => setSearchFilters(defaultFilters)}
-          onFiltersClose={() => handleCloseModal("filters")}
-          onFiltersRandom={handleFilterRandom}
-          randomPending={randomPending}
+          onFiltersClose={handleFiltersClose}
+          onFiltersRandom={handleDiscoveryStart}
+          randomPending={discovery.pending}
+          discovery={discovery}
+          onDiscoveryDetails={handleDiscoveryDetails}
           onStatsClose={() => handleCloseModal("stats")}
           onStatsAnime={openAnimeFromLookup}
           onBrowseClose={() => handleCloseModal("browse")}

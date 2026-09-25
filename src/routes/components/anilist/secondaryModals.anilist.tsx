@@ -1,3 +1,4 @@
+import type { RandomDiscovery } from "@/hooks/anilist/discovery.hook";
 import { buildEntryLookup } from "@/lib/anilist/entries.utils";
 import ActivityHistoryModal from "@/routes/components/anilist/activity.anilist";
 import Auth from "@/routes/components/anilist/auth.anilist";
@@ -57,6 +58,8 @@ export default function AniListSecondaryModals({
   onFiltersClose,
   onFiltersRandom,
   randomPending,
+  discovery,
+  onDiscoveryDetails,
   onStatsClose,
   onStatsAnime,
   onBrowseClose,
@@ -99,6 +102,8 @@ export default function AniListSecondaryModals({
   onFiltersClose: () => void;
   onFiltersRandom: (filters: AniListFilters) => void;
   randomPending: boolean;
+  discovery: RandomDiscovery;
+  onDiscoveryDetails: (id: number) => void;
   onStatsClose: () => void;
   onStatsAnime: (id: number) => void;
   onBrowseClose: () => void;
@@ -164,6 +169,9 @@ export default function AniListSecondaryModals({
         onClose={onFiltersClose}
         onRandom={onFiltersRandom}
         randomPending={randomPending}
+        discovery={discovery}
+        entryLookup={entryLookup}
+        onDiscoveryDetails={onDiscoveryDetails}
       />
 
       {views.stats && (

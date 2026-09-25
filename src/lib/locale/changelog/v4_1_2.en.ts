@@ -1,4 +1,6 @@
 const changelog412 = {
+  "changelog.4_1_2.added.random_discovery":
+    "The Random button in filters opens a compact discovery card with prev/next arrows, roll history, your list status and progress, and full details one click away",
   "changelog.4_1_2.added.friend_compare":
     "Friends modal compares your lists with a friend: iluha affinity score, shared and unique titles with score gaps, top shared genres and shared favourites",
   "changelog.4_1_2.added.franchise_focus":

@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input.component";
 import { PasswordInput } from "@/components/ui/password.component";
 import Select from "@/components/ui/select.component";
 import { DEFAULT_SETTINGS } from "@/config/settings/defaults.config";
+import { useOnlineStatus } from "@/hooks/network.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { applyWindowChrome } from "@/lib/settings/window.utils";
 import { attempt, attemptSync } from "@/lib/utils/attempt.utils";
@@ -35,6 +36,7 @@ export default function SettingsGeneral() {
     patch,
   } = useSettingsStore();
   const { t } = useI18n();
+  const isOnline = useOnlineStatus();
   const [pendingClear, setPendingClear] = useState(false);
   const [resetError, setResetError] = useState<string | null>(null);
   const [tmdbTesting, setTmdbTesting] = useState(false);
@@ -307,7 +309,8 @@ export default function SettingsGeneral() {
                 <Button
                   className="h-6 px-2 text-xs"
                   onClick={handleTmdbTest}
-                  disabled={tmdbTesting}
+                  disabled={tmdbTesting || !isOnline}
+                  title={isOnline ? undefined : t("tabs.offlineUnavailable")}
                 >
                   {tmdbTesting ? t("settings.tmdb.proxy.testing") : t("settings.tmdb.proxy.test")}
                 </Button>
@@ -409,7 +412,8 @@ export default function SettingsGeneral() {
                 <Button
                   className="h-6 px-2 text-xs"
                   onClick={handleAnilistTest}
-                  disabled={anilistTesting}
+                  disabled={anilistTesting || !isOnline}
+                  title={isOnline ? undefined : t("tabs.offlineUnavailable")}
                 >
                   {anilistTesting
                     ? t("settings.anilist.proxy.testing")

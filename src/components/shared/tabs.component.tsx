@@ -1,9 +1,30 @@
 import { cn } from "cn";
+import { WifiOff } from "lucide-react";
 
 import { Button } from "@/components/ui/button.component";
 import { createListNavigationHandler } from "@/lib/utils/keyboard.utils";
 
 import NotificationTray from "./notification/tray.notification";
+
+export interface TabEntry<T extends string> {
+  id: T;
+  label: string;
+  color?: string | null;
+  disabled?: boolean;
+  disabledReason?: string;
+}
+
+function resolveEnabledIndex<T extends string>(
+  tabs: readonly TabEntry<T>[],
+  index: number
+): number {
+  if (!tabs[index]?.disabled) return index;
+  for (let step = 1; step < tabs.length; step += 1) {
+    const forward = (index + step) % tabs.length;
+    if (!tabs[forward]?.disabled) return forward;
+  }
+  return index;
+}
 
 function Tabs<T extends string>({
   tabs,
@@ -12,7 +33,7 @@ function Tabs<T extends string>({
   ariaLabel,
   onPrefetch,
 }: {
-  tabs: readonly { id: T; label: string; color?: string | null }[];
+  tabs: readonly TabEntry<T>[];
   activeTab: T;
   onChange: (id: T) => void;
   ariaLabel?: string;
@@ -24,9 +45,11 @@ function Tabs<T extends string>({
     count: tabs.length,
     setActiveIndex: () => {},
     onFocus: (index, event) => {
-      onChange(tabs[index].id);
+      const target = resolveEnabledIndex(tabs, index);
+      if (tabs[target]?.disabled) return;
+      onChange(tabs[target].id);
       const buttons = event.currentTarget.querySelectorAll<HTMLButtonElement>("[role=tab]");
-      buttons?.[index]?.focus();
+      buttons?.[target]?.focus();
     },
   });
 
@@ -41,6 +64,7 @@ function Tabs<T extends string>({
       >
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
+          const tabDisabled = tab.disabled ?? false;
           return (
             <Button
               key={tab.id}
@@ -53,15 +77,21 @@ function Tabs<T extends string>({
               style={{
                 zIndex: isActive ? 20 : 10,
               }}
+              title={tabDisabled ? (tab.disabledReason ?? tab.label) : tab.label}
               onClick={() => {
-                if (!isActive) onChange(tab.id);
+                if (!isActive && !tabDisabled) onChange(tab.id);
               }}
-              onMouseEnter={() => onPrefetch?.(tab.id)}
-              onFocus={() => onPrefetch?.(tab.id)}
+              onMouseEnter={() => {
+                if (!tabDisabled) onPrefetch?.(tab.id);
+              }}
+              onFocus={() => {
+                if (!tabDisabled) onPrefetch?.(tab.id);
+              }}
               role="tab"
               aria-selected={isActive}
+              aria-disabled={tabDisabled}
               tabIndex={isActive ? 0 : -1}
-              disabled={isActive}
+              disabled={isActive || tabDisabled}
             >
               {tab.color && (
                 <span
@@ -70,6 +100,7 @@ function Tabs<T extends string>({
                   aria-hidden
                 />
               )}
+              {tabDisabled && <WifiOff className="size-3 shrink-0" aria-hidden />}
               {tab.label}
             </Button>
           );

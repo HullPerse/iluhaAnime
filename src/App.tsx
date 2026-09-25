@@ -63,6 +63,7 @@ export default function App() {
 
   const prefetchTab = (id: TabId) => {
     if (prefetchedTabs.current.has(id)) return;
+    if (tabs.some((tab) => tab.id === id && tab.disabled)) return;
     prefetchedTabs.current.add(id);
     (async () => {
       const [, error] = await attempt(TAB_PREFETCH[id]());
@@ -70,8 +71,7 @@ export default function App() {
     })();
   };
 
-  const visibleTabs = tabs;
-  useTray(visibleTabs, setActiveTabTransition);
+  useTray(tabs, setActiveTabTransition);
   const { capture: screenshot, close: closeScreenshot } = useScreenshot();
 
   const getComponent = () => {
@@ -114,10 +114,10 @@ export default function App() {
           <div className="shrink-0">
             <Tabs
               ariaLabel={t("common.sections")}
-              tabs={visibleTabs}
+              tabs={tabs}
               activeTab={activeTab}
-              onChange={(id) => setActiveTabTransition(id as TabId)}
-              onPrefetch={(id) => prefetchTab(id as TabId)}
+              onChange={(id) => setActiveTabTransition(id)}
+              onPrefetch={(id) => prefetchTab(id)}
             />
           </div>
           <div className="windows95-border bg-surface relative mx-1 mb-1 min-h-0 flex-1 overflow-hidden">
@@ -130,7 +130,7 @@ export default function App() {
           </div>
           {statusBarEnabled && (
             <div className="relative">
-              <StatusBar tabLabel={visibleTabs.find((tab) => tab.id === activeTab)?.label ?? ""} />
+              <StatusBar tabLabel={tabs.find((tab) => tab.id === activeTab)?.label ?? ""} />
             </div>
           )}
         </div>

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import { Input } from "@/components/ui/input.component";
 import Select from "@/components/ui/select.component";
+import { useOnlineStatus } from "@/hooks/network.hook";
 import { TORRENT_LISTEN_PORT_KEY, useTorrentListenPort } from "@/hooks/torrent/queries.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { toSessionConfig } from "@/lib/settings/session.utils";
@@ -41,6 +42,7 @@ export default function SettingsTorrent() {
   const queryClient = useQueryClient();
   const listenPortQuery = useTorrentListenPort();
   const { t } = useI18n();
+  const isOnline = useOnlineStatus();
 
   const saveSessionConfig = useCallback(
     (partial: Partial<SessionConfigPayload>) => {
@@ -309,7 +311,12 @@ export default function SettingsTorrent() {
             {t("settings.torrent.proxy.url.description")}
           </span>
           <div className="flex items-center gap-2 pl-2">
-            <Button onClick={testProxy} disabled={proxyTesting} className="text-xs">
+            <Button
+              onClick={testProxy}
+              disabled={proxyTesting || !isOnline}
+              title={isOnline ? undefined : t("tabs.offlineUnavailable")}
+              className="text-xs"
+            >
               {proxyTesting
                 ? t("settings.torrent.proxy.testing")
                 : t("settings.torrent.proxy.test")}

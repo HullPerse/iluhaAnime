@@ -68,6 +68,14 @@ export async function openNotificationTarget(
     reportBackgroundError("notification.open.folder", error);
     return "failed";
   }
+  if (typeof navigator !== "undefined" && !navigator.onLine) {
+    const language = useSettingsStore.getState().language;
+    showWarning(
+      translate(language, "network.offline.title"),
+      translate(language, "network.action.unavailable")
+    );
+    return "failed";
+  }
   if (!useSettingsStore.getState().anilistTabEnabled) return "tab-disabled";
   useDeepLinkStore.getState().openAnime(target);
   return "opened";

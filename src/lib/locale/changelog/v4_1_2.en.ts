@@ -15,6 +15,8 @@ const changelog412 = {
     "Rutracker sign-in opens the site window through your proxy, with the proxy password filled in by itself",
   "changelog.4_1_2.added.score_origin_hint":
     "Adding an AniList title to the collection carries your score over as the collection rating and shows where it came from: 85/100 becomes 8.5 with the original next to the field",
+  "changelog.4_1_2.added.offline_mode":
+    "Without a network, Search and AniList tabs disable with an icon, background checks pause, and a notice arrives when the connection drops or comes back",
   "changelog.4_1_2.changed.color_presets":
     "Color presets are gone from the screenshot toolbar and the color picker: pick any color directly",
   "changelog.4_1_2.changed.suggestion_perf":

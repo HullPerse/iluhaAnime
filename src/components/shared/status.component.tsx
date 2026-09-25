@@ -1,28 +1,16 @@
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { useEffect, useState } from "react";
+import { ExternalLink } from "lucide-react";
 
 import { PROJECT_GITHUB_URL } from "@/config/settings/links.config";
+import { useOnlineStatus } from "@/hooks/network.hook";
 import { useTorrents } from "@/hooks/torrent/queries.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { isCurrentDownload } from "@/lib/torrent/common.utils";
 import { useNotificationStore } from "@/store/notification.store";
 
-import ImageComponent from "../ui/image.component";
-
 export default function StatusBar({ tabLabel }: { tabLabel: string }) {
   const { t } = useI18n();
-  const [online, setOnline] = useState(navigator.onLine);
-
-  useEffect(() => {
-    const goOnline = () => setOnline(true);
-    const goOffline = () => setOnline(false);
-    window.addEventListener("online", goOnline);
-    window.addEventListener("offline", goOffline);
-    return () => {
-      window.removeEventListener("online", goOnline);
-      window.removeEventListener("offline", goOffline);
-    };
-  }, []);
+  const online = useOnlineStatus();
 
   const { data: torrents = [] } = useTorrents();
   const activeDownloads = torrents.reduce(
@@ -40,13 +28,16 @@ export default function StatusBar({ tabLabel }: { tabLabel: string }) {
       <div className="ui-statusbar-cell">{t("status.unread", { count: unreadCount })}</div>
       <div className="ui-statusbar-cell">{online ? t("status.online") : t("status.offline")}</div>
       <div className="ui-statusbar-cell">
-        <ImageComponent
+        <span
           title={t("status.github")}
-          src="https://github.com/favicon.ico"
-          alt="github link"
-          className="h-4 w-4 opacity-70 hover:cursor-pointer hover:opacity-100"
+          className="flex items-center hover:cursor-pointer"
           onClick={() => openUrl(PROJECT_GITHUB_URL)}
-        />
+        >
+          <ExternalLink
+            aria-label={t("status.github")}
+            className="h-4 w-4 opacity-70 hover:opacity-100"
+          />
+        </span>
       </div>
     </section>
   );

@@ -144,4 +144,81 @@ describe("Tabs", () => {
     expect(bell.getAttribute("aria-expanded")).toBe("true");
     expect(await screen.findByRole("region", { name: NOTIFICATION_NAME })).toBeTruthy();
   });
+
+  it("renders the offline icon and reason on disabled tabs", () => {
+    render(
+      withClient(
+        <Tabs
+          tabs={[
+            { id: "one", label: "One" },
+            { id: "two", label: "Two", disabled: true, disabledReason: "Requires internet" },
+          ]}
+          activeTab="one"
+          onChange={() => {}}
+        />
+      )
+    );
+    const offline = screen.getByRole("tab", { name: "Two" });
+    expect(offline.getAttribute("aria-disabled")).toBe("true");
+    expect(offline.getAttribute("title")).toBe("Requires internet");
+    expect(offline.querySelector("svg")).not.toBeNull();
+    expect(screen.getByRole("tab", { name: "One" }).querySelector("svg")).toBeNull();
+  });
+
+  it("does not call onChange when a disabled tab is clicked", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(
+      withClient(
+        <Tabs
+          tabs={[
+            { id: "one", label: "One" },
+            { id: "two", label: "Two", disabled: true, disabledReason: "Requires internet" },
+          ]}
+          activeTab="one"
+          onChange={onChange}
+        />
+      )
+    );
+    await user.click(screen.getByRole("tab", { name: "Two" }));
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("skips disabled tabs on ArrowRight", () => {
+    const onChange = vi.fn();
+    render(
+      withClient(
+        <Tabs
+          tabs={[
+            { id: "one", label: "One" },
+            { id: "two", label: "Two", disabled: true },
+            { id: "three", label: "Three" },
+          ]}
+          activeTab="one"
+          onChange={onChange}
+        />
+      )
+    );
+    fireEvent.keyDown(screen.getByRole("tablist"), { key: "ArrowRight" });
+    expect(onChange).toHaveBeenLastCalledWith("three");
+  });
+
+  it("lands Home on the first enabled tab when the first tab is disabled", () => {
+    const onChange = vi.fn();
+    render(
+      withClient(
+        <Tabs
+          tabs={[
+            { id: "one", label: "One", disabled: true },
+            { id: "two", label: "Two" },
+            { id: "three", label: "Three" },
+          ]}
+          activeTab="three"
+          onChange={onChange}
+        />
+      )
+    );
+    fireEvent.keyDown(screen.getByRole("tab", { name: "Three" }), { key: "Home" });
+    expect(onChange).toHaveBeenLastCalledWith("two");
+  });
 });

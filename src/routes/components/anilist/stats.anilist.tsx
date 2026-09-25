@@ -6,6 +6,7 @@ import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { dayLabel, monthLabel } from "@/lib/anilist/activity.utils";
+import { formatAiringTime } from "@/lib/anilist/airing.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import type { AniListCollection } from "@/types/anilist";
 
@@ -240,6 +241,9 @@ function StatsModal({
                   />
                 )}
                 <span className="windows95-font flex-1 truncate text-xs">{entry.title}</span>
+                <span className="text-hint windows95-font shrink-0 text-xs">
+                  {formatAiringTime(entry.airingAt, locale)}
+                </span>
                 {entry.episode != null && (
                   <span className="text-hint windows95-font shrink-0 text-xs">
                     {t("anilist.activity.episode", { n: entry.episode })}

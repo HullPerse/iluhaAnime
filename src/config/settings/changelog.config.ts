@@ -25,6 +25,8 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.4_1_2.added.rutracker_proxy_login", "torrents"),
       entry("changelog.4_1_2.added.score_origin_hint", "collection"),
       entry("changelog.4_1_2.added.offline_mode", "app"),
+      entry("changelog.4_1_2.added.airing_countdown", "anilist"),
+      entry("changelog.4_1_2.added.old_entry_date", "anilist"),
     ],
     changed: [
       entry("changelog.4_1_2.changed.color_presets", "settings"),

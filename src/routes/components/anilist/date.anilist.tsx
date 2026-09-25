@@ -12,9 +12,17 @@ function CardListDate({
   entry: EntryListInfo | undefined;
   fallback: string | null;
 }) {
-  const { locale } = useI18n();
+  const { t, locale } = useI18n();
   const time = entryListTime(entry) ?? fuzzyDateToTime(fallback);
-  if (!time) return null;
+  if (!time) {
+    if (!entry) return null;
+    const old = t("anilist.card.old.entry");
+    return (
+      <span className="text-muted ml-auto" title={old}>
+        {old}
+      </span>
+    );
+  }
   const absolute = new Date(time).toLocaleDateString(locale);
   return (
     <span className="text-muted ml-auto" title={absolute}>

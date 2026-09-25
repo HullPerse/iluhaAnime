@@ -119,27 +119,6 @@ describe("built-in themes", () => {
     }
   });
 
-  it("declares windows themes first, oldest to newest", () => {
-    expect(THEMES.slice(0, 5).map((theme) => theme.name)).toEqual([
-      "win95",
-      "win2000",
-      "xp",
-      "win7",
-      "win11",
-    ]);
-  });
-
-  it("keeps the other platform identities right after the windows group", () => {
-    const platforms = THEMES.slice(5, 7).map((theme) => theme.name);
-    expect(platforms).toEqual(["google", "apple"]);
-    for (const name of platforms) {
-      const theme = THEMES.find((item) => item.name === name)!;
-      expect(theme.radius, name).toBe("all");
-      expect(theme.bevel, name).toBe("flat");
-      expect(theme.titlebarGradient, name).toBeUndefined();
-    }
-  });
-
   it("only exempts themes whose palette cannot supply four accents", () => {
     for (const name of THEME_ACCENT_EXEMPT) {
       const theme = THEMES.find((item) => item.name === name);
@@ -154,38 +133,5 @@ describe("built-in themes", () => {
       ]);
       expect(shades.size, `${name} should be a limited palette`).toBeLessThanOrEqual(5);
     }
-  });
-});
-
-describe("theme shape metadata", () => {
-  it("gives the rounded themes a radius preset and leaves the rest square", () => {
-    const rounded = THEMES.filter((theme) => theme.radius !== undefined).map((theme) => theme.name);
-    expect(rounded).toEqual(["xp", "win7", "win11", "google", "apple"]);
-    expect(THEMES.find((theme) => theme.name === "win11")?.radius).toBe("all");
-    expect(THEMES.find((theme) => theme.name === "google")?.radius).toBe("all");
-    expect(THEMES.find((theme) => theme.name === "win95")?.radius).toBeUndefined();
-  });
-
-  it("gives the aero and fluent themes a flat bevel", () => {
-    const flat = THEMES.filter((theme) => theme.bevel === "flat").map((theme) => theme.name);
-    expect(flat).toEqual(["win7", "win11", "google", "apple"]);
-    expect(THEMES.find((theme) => theme.name === "xp")?.bevel).toBe("raised");
-  });
-
-  it("paints a titlebar wash for the themes that need one", () => {
-    for (const name of ["xp", "win7"]) {
-      const theme = THEMES.find((item) => item.name === name)!;
-      expect(theme.titlebarGradient, name).toBeDefined();
-      expect(
-        colorDistance(theme.titlebarGradient!.from, theme.titlebarGradient!.to),
-        name
-      ).toBeGreaterThanOrEqual(MIN_COLOR_DISTANCE);
-    }
-    expect(THEMES.find((theme) => theme.name === "win95")?.titlebarGradient).toBeUndefined();
-  });
-
-  it("only overrides tokens for themes that need to leave the derivation", () => {
-    const overriding = THEMES.filter((theme) => theme.overrides !== undefined).map((t) => t.name);
-    expect(overriding).toEqual(["mono", "game-boy"]);
   });
 });

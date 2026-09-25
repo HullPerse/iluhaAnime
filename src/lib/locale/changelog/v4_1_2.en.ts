@@ -17,6 +17,10 @@ const changelog412 = {
     "Adding an AniList title to the collection carries your score over as the collection rating and shows where it came from: 85/100 becomes 8.5 with the original next to the field",
   "changelog.4_1_2.added.offline_mode":
     "Without a network, Search and AniList tabs disable with an icon, background checks pause, and a notice arrives when the connection drops or comes back",
+  "changelog.4_1_2.added.airing_countdown":
+    "The next episode line shows the local date and time with a live countdown, and the release calendar shows the local time of every release",
+  "changelog.4_1_2.added.old_entry_date":
+    "List entries too old for AniList dates show More than 5 years ago instead of an empty slot",
   "changelog.4_1_2.changed.color_presets":
     "Color presets are gone from the screenshot toolbar and the color picker: pick any color directly",
   "changelog.4_1_2.changed.suggestion_perf":

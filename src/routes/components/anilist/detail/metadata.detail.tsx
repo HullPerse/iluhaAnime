@@ -1,8 +1,15 @@
 import { Calendar, Star, Tv, Heart, Eye } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import ImageComponent from "@/components/ui/image.component";
 import { formatLabels, seasonLabels, statusLabels } from "@/config/anilist/labels.config";
 import { useRemoteImage } from "@/hooks/remoteImage.hook";
+import {
+  AIRING_TICK_MS,
+  airingCountdownSecs,
+  formatAiringCountdown,
+  formatAiringLocal,
+} from "@/lib/anilist/airing.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import type { AniMedia } from "@/types/anilist";
@@ -15,9 +22,18 @@ function AniListMetadata({
   onSeason?: (season: string, seasonYear: number | null) => void;
 }) {
   const { t, locale } = useI18n();
+  const [now, setNow] = useState(() => Date.now());
   const bestRank =
     anime.rankings.length > 0 ? anime.rankings.reduce((a, b) => (a.rank < b.rank ? a : b)) : null;
   const coverSrc = useRemoteImage(anime.cover_url);
+  const airingAt = anime.next_airing_at;
+  const airingLocal = formatAiringLocal(airingAt, locale);
+  const airingCountdown = formatAiringCountdown(airingCountdownSecs(airingAt, now), t);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), AIRING_TICK_MS);
+    return () => window.clearInterval(timer);
+  }, []);
 
   return (
     <div className="flex flex-row gap-3">
@@ -76,10 +92,13 @@ function AniListMetadata({
           </div>
         )}
 
-        {anime.next_episode != null && anime.next_airing_at != null && (
-          <span className="windows95-text text-success font-bold">
-            {t("anilist.metadata.next.episode", { n: anime.next_episode })} -{" "}
-            {new Date(anime.next_airing_at * 1000).toLocaleDateString(locale)}
+        {anime.next_episode != null && airingAt != null && airingLocal != null && (
+          <span
+            className="windows95-text text-success font-bold"
+            title={new Date(airingAt * 1000).toLocaleString(locale)}
+          >
+            {t("anilist.metadata.next.episode", { n: anime.next_episode })} - {airingLocal}
+            {airingCountdown ? ` (${t("anilist.airing.in", { time: airingCountdown })})` : ""}
           </span>
         )}
 

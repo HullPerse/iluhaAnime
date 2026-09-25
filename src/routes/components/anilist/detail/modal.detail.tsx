@@ -1,4 +1,3 @@
-import { useQuery } from "@tanstack/react-query";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { ExternalLink } from "lucide-react";
 import { useState } from "react";
@@ -6,7 +5,9 @@ import { useState } from "react";
 import { anilistApi } from "@/api/anilist.api";
 import { TrailerEmbed } from "@/components/shared/lightbox/trailerEmbed.media";
 import Modal from "@/components/shared/modal.component";
+import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
+import { queryKeys } from "@/lib/query/keys.utils";
 import { useSettingsStore } from "@/store/settings.store";
 import type { AniDetailProps as DetailProps } from "@/types/anilist";
 
@@ -28,10 +29,9 @@ function AniListDetailModal(props: DetailProps) {
     setFavoriteLoading(false);
   };
   const anilistProxyUrl = useSettingsStore((s) => s.anilistProxyUrl);
-  const query = useQuery({
-    queryKey: ["anime_detail", props.animeId, anilistProxyUrl ?? "", props.isLoggedIn ? 1 : 0],
+  const query = useAppQuery("static", {
+    queryKey: queryKeys.animeDetail(props.animeId, anilistProxyUrl ?? "", props.isLoggedIn),
     queryFn: () => anilistApi.getAnimeById(props.animeId),
-    staleTime: 1000 * 60 * 60,
     retry: 1,
   });
   return (

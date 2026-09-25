@@ -1,4 +1,3 @@
-import { useInfiniteQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
@@ -8,7 +7,9 @@ import { Button } from "@/components/ui/button.component";
 import { characterRoleLabels } from "@/config/anilist/labels.config";
 import { CHAR_PAGE_SIZE } from "@/config/anilist/pagination.config";
 import { useFavPeopleCharacterSet } from "@/hooks/anilist/people.hook";
+import { useAppInfiniteQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
+import { queryKeys } from "@/lib/query/keys.utils";
 import { uniqueById } from "@/lib/utils/array.utils";
 import type { AniCharacterEdge, AniVoiceActor } from "@/types/anilist";
 
@@ -33,8 +34,8 @@ function AniListCharactersPanel({
   const [role, setRole] = useState<RoleFilter>("all");
   const favCharacterIds = useFavPeopleCharacterSet();
 
-  const query = useInfiniteQuery({
-    queryKey: ["anime_characters", animeId],
+  const query = useAppInfiniteQuery("slow", {
+    queryKey: queryKeys.animeCharacters(animeId),
     initialPageParam: 1,
     queryFn: ({ pageParam }) => anilistApi.getAnimeCharacters(animeId, pageParam),
     getNextPageParam: (lastPage, pages) =>

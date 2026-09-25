@@ -1,5 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
-
+import { useAppQuery } from "@/hooks/appQuery.hook";
+import { queryKeys } from "@/lib/query/keys.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import type { TorrentInfo, TorrentFileInfo } from "@/types/torrent";
 
@@ -12,8 +12,8 @@ export function TorrentCategoryEntry({
   tor: TorrentInfo;
   torrentFilesMap: Record<number, TorrentFileInfo[] | undefined>;
 }) {
-  const { data = [], refetch } = useQuery({
-    queryKey: ["extra_files", tor.save_dir],
+  const { data = [], refetch } = useAppQuery("slow", {
+    queryKey: queryKeys.extraFiles(tor.save_dir),
     queryFn: () =>
       invokeTyped<{ path: string; name: string; size: number }[]>("scan_extra_files", {
         path: tor.save_dir!,

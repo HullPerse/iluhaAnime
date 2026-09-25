@@ -236,7 +236,7 @@ function TorrentRoute() {
   const visibleIds = useMemo(() => pagedTorrents.map((t) => t.id), [pagedTorrents]);
   const { files: torrentFilesMap, errors: torrentFilesErrors } = useTorrentFilesMap(
     visibleIds,
-    2000
+    5000
   );
   const extraValues = useMemo(() => {
     const names = torrents.map((torrent) => torrent.name);

@@ -51,6 +51,8 @@ const changelog412 = {
     "Progress bars and status dots are thicker across torrents, collection, friends and player, so they no longer get lost next to the buttons",
   "changelog.4_1_2.changed.tabs_tray":
     "The notification bell lives only in the main tab bar instead of every modal, and the favourites and friends tabs share one look",
+  "changelog.4_1_2.changed.query_system":
+    "Torrent file lists, peer stats, and activity feeds refresh on one schedule and pause when the window is hidden, so background traffic is lower",
   "changelog.4_1_2.fixed.tmdb_key_save":
     "The TMDB key saves again: the app and the backend disagreed on the field name",
   "changelog.4_1_2.fixed.tmdb_covers":

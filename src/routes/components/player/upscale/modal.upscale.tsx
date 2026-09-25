@@ -1,4 +1,3 @@
-import { useQuery } from "@tanstack/react-query";
 import { Wand2 } from "lucide-react";
 import { useState, useEffect, useCallback, useRef } from "react";
 
@@ -7,8 +6,10 @@ import Tabs from "@/components/shared/tabs.component";
 import { Button } from "@/components/ui/button.component";
 import { GPU_LABELS, TABS } from "@/config/player/options.config";
 import { ANIME4K_PRESETS } from "@/config/player/presets.config";
+import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { fileNameFromPath } from "@/lib/player/title.utils";
+import { queryKeys } from "@/lib/query/keys.utils";
 import { withFallback } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useUpscaleQueueStore } from "@/store/upscale.store";
@@ -59,8 +60,8 @@ export default function UpscalePlayer({
     )
   );
 
-  const { data: upscaleConfig } = useQuery({
-    queryKey: ["upscale_config"],
+  const { data: upscaleConfig } = useAppQuery("static", {
+    queryKey: queryKeys.upscaleConfig(),
     queryFn: async () => {
       const [ffmpegOk, gpuEncoders, defaultShaders] = await Promise.all([
         withFallback(invokeTyped<boolean>("check_ffprobe"), false),
@@ -70,10 +71,9 @@ export default function UpscalePlayer({
       return { ffmpegOk, gpuEncoders, defaultShaders };
     },
     enabled: open,
-    staleTime: Infinity,
   });
-  const { data: suggestion } = useQuery({
-    queryKey: ["upscale_suggest", filePath],
+  const { data: suggestion } = useAppQuery("static", {
+    queryKey: queryKeys.upscaleSuggest(filePath),
     queryFn: () =>
       withFallback(
         invokeTyped<{ preset: string; reason: string }>("suggest_upscale_preset", {
@@ -82,7 +82,6 @@ export default function UpscalePlayer({
         null
       ),
     enabled: open,
-    staleTime: Infinity,
   });
 
   const touchedPreset = useRef(false);

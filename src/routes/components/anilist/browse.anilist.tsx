@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { Star } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
@@ -12,10 +12,12 @@ import { BROWSE_SORT_MAP, BROWSE_TABS } from "@/config/anilist/browse.config";
 import { BROWSE_GENRE_COUNT } from "@/config/anilist/filters.config";
 import { listStatusLabels, seasonLabels, statusLabels } from "@/config/anilist/labels.config";
 import { BROWSE_PAGE_SIZE } from "@/config/anilist/pagination.config";
+import { useAppQuery } from "@/hooks/appQuery.hook";
 import { usePagination } from "@/hooks/pagination.hook";
 import { getStatusColor } from "@/lib/anilist/entries.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
+import { queryKeys } from "@/lib/query/keys.utils";
 import { paginate } from "@/lib/utils/pagination.utils";
 import type { BrowseTab } from "@/types/anilist";
 
@@ -39,9 +41,10 @@ export default function BrowseAnimeModal({
   const [activeTab, setActiveTab] = useState<BrowseTab>("popular");
   const scrollRef = useRef<HTMLDivElement>(null);
   const [page, setPage] = useState(1);
+  const queryClient = useQueryClient();
 
-  const { data = [], isLoading } = useQuery({
-    queryKey: ["anilist_browse", activeTab],
+  const { data = [], isLoading } = useAppQuery("slow", {
+    queryKey: queryKeys.anilistBrowse(activeTab),
     queryFn: () =>
       anilistApi.search({
         query: null,
@@ -50,6 +53,27 @@ export default function BrowseAnimeModal({
       }),
     placeholderData: (previous) => previous,
   });
+
+  useEffect(() => {
+    const idle = window.requestIdleCallback ?? ((run: () => void) => window.setTimeout(run, 1500));
+    const cancel = window.cancelIdleCallback ?? window.clearTimeout;
+    const handle = idle(() => {
+      for (const tab of BROWSE_TABS) {
+        if (tab.id === activeTab) continue;
+        queryClient.prefetchQuery({
+          queryKey: queryKeys.anilistBrowse(tab.id),
+          queryFn: () =>
+            anilistApi.search({
+              query: null,
+              sort: BROWSE_SORT_MAP[tab.id],
+              adult: false,
+            }),
+          staleTime: 5 * 60 * 1000,
+        });
+      }
+    });
+    return () => cancel(handle);
+  }, [activeTab, queryClient]);
 
   const { total, from, to, lastPage } = usePagination(data.length, BROWSE_PAGE_SIZE, page, setPage);
 

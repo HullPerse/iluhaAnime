@@ -1,10 +1,12 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 
 import { collectionApi } from "@/api/collection.api";
 import type { CollectionStatusRow } from "@/api/collection.api";
 import { DEFAULT_COLLECTION_STATUSES } from "@/config/collection/statuses.config";
+import { useAppQuery } from "@/hooks/appQuery.hook";
 import { buildCollectionSearchIndex, searchCollectionIndex } from "@/lib/collection/search.utils";
+import { queryKeys } from "@/lib/query/keys.utils";
 import { parseIntent } from "@/lib/search/intent.utils";
 import { operatorTextLength } from "@/lib/search/score.utils";
 import type {
@@ -16,7 +18,7 @@ import type {
   RawCollectionItem,
 } from "@/types/collection";
 
-export const COLLECTION_QUERY_KEY = "collection-data" as const;
+export const COLLECTION_QUERY_KEY = queryKeys.collectionData();
 
 const EMPTY: CollectionDataState = {
   items: [],
@@ -71,10 +73,9 @@ export function useCollectionSearch(query: string, allItems: CollectionItem[]): 
 }
 
 export function useCollectionData(): CollectionDataResult {
-  const { data, isLoading, isError, isFetching, error, refetch } = useQuery({
-    queryKey: [COLLECTION_QUERY_KEY],
+  const { data, isLoading, isError, isFetching, error, refetch } = useAppQuery("slow", {
+    queryKey: queryKeys.collectionData(),
     queryFn: fetchCollectionData,
-    staleTime: 60_000,
     gcTime: Infinity,
   });
   return { ...(data ?? EMPTY), isLoading, isError, isFetching, error, refetch };
@@ -82,7 +83,7 @@ export function useCollectionData(): CollectionDataResult {
 
 export function useCollectionMutations() {
   const queryClient = useQueryClient();
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: [COLLECTION_QUERY_KEY] });
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: queryKeys.collectionData() });
 
   const genId = (prefix: string) =>
     `${prefix}_${Math.random().toString(36).slice(2, 10)}_${Date.now()}`;
@@ -115,9 +116,9 @@ export function useCollectionMutations() {
       await collectionApi.patchItem(id, patch, touch);
     },
     onMutate: async ({ id, patch }) => {
-      await queryClient.cancelQueries({ queryKey: [COLLECTION_QUERY_KEY] });
-      const prev = queryClient.getQueryData<CollectionDataState>([COLLECTION_QUERY_KEY]);
-      queryClient.setQueryData<CollectionDataState>([COLLECTION_QUERY_KEY], (old) =>
+      await queryClient.cancelQueries({ queryKey: queryKeys.collectionData() });
+      const prev = queryClient.getQueryData<CollectionDataState>(queryKeys.collectionData());
+      queryClient.setQueryData<CollectionDataState>(queryKeys.collectionData(), (old) =>
         old
           ? {
               ...old,
@@ -130,9 +131,8 @@ export function useCollectionMutations() {
       return { prev };
     },
     onError: (_error, _variables, context) => {
-      if (context?.prev) queryClient.setQueryData([COLLECTION_QUERY_KEY], context.prev);
+      if (context?.prev) queryClient.setQueryData(queryKeys.collectionData(), context.prev);
     },
-    onSuccess: invalidate,
   });
 
   const removeItem = useMutation({
@@ -140,17 +140,16 @@ export function useCollectionMutations() {
       await collectionApi.deleteItem(id);
     },
     onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: [COLLECTION_QUERY_KEY] });
-      const prev = queryClient.getQueryData<CollectionDataState>([COLLECTION_QUERY_KEY]);
-      queryClient.setQueryData<CollectionDataState>([COLLECTION_QUERY_KEY], (old) =>
+      await queryClient.cancelQueries({ queryKey: queryKeys.collectionData() });
+      const prev = queryClient.getQueryData<CollectionDataState>(queryKeys.collectionData());
+      queryClient.setQueryData<CollectionDataState>(queryKeys.collectionData(), (old) =>
         old ? { ...old, items: old.items.filter((item) => item.id !== id) } : old
       );
       return { prev };
     },
     onError: (_error, _variables, context) => {
-      if (context?.prev) queryClient.setQueryData([COLLECTION_QUERY_KEY], context.prev);
+      if (context?.prev) queryClient.setQueryData(queryKeys.collectionData(), context.prev);
     },
-    onSuccess: invalidate,
   });
 
   const addCustomFieldDef = useMutation({

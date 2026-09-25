@@ -1,26 +1,28 @@
 import { useState } from "react";
 
 import { tmdbApi } from "@/api/tmdb.api";
-import { usePolling } from "@/hooks/polling.hook";
+import { useLiveResource } from "@/hooks/liveResource.hook";
 import { attempt } from "@/lib/utils/attempt.utils";
+import { useSettingsStore } from "@/store/settings.store";
 import type { TmdbRateLimit } from "@/types/collection";
 
-export function useTmdbRateLimit(pollMs = 10000) {
+export function useTmdbRateLimit(pollMs = 10000, enabled = true) {
   const [rate, setRate] = useState<TmdbRateLimit>({
     remaining: null,
     resetAt: null,
     retryAfterSecs: null,
   });
+  const tmdbKeySet = useSettingsStore((s) => s.tmdbKeySet);
 
-  usePolling({
+  useLiveResource({
     intervalMs: pollMs,
-    enabled: true,
+    enabled: enabled && tmdbKeySet,
     collectKeys: () => ["tmdb-rate"],
     shouldFetch: () => true,
     fetch: async () => {
-      const [rate, error] = await attempt(tmdbApi.rateLimit());
+      const [next, error] = await attempt(tmdbApi.rateLimit());
       if (error) return false;
-      setRate(rate);
+      setRate(next);
       return true;
     },
   });

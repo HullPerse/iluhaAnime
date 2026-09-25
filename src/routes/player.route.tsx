@@ -187,7 +187,7 @@ function PlayerRoute() {
   const allTorrentIds = useMemo(() => torrents.map((t) => t.id), [torrents]);
   const { files: torrentFilesMap, pendingIds: torrentPendingIds } = useTorrentFilesMap(
     allTorrentIds,
-    5000
+    10000
   );
   useEffect(() => {
     setTorrentLoading((prev) => {

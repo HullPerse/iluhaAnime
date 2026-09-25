@@ -1,7 +1,8 @@
-import { useQuery } from "@tanstack/react-query";
 import { useCallback } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
+import { useAppQuery } from "@/hooks/appQuery.hook";
+import { queryKeys } from "@/lib/query/keys.utils";
 import type { AniListCollection, FavouriteAnime } from "@/types/anilist";
 
 function messageOf(error: unknown): string | null {
@@ -10,21 +11,15 @@ function messageOf(error: unknown): string | null {
 }
 
 export function useFriendCompare(friendId: number | null, enabled: boolean) {
-  const listsQuery = useQuery<AniListCollection[]>({
-    queryKey: ["anilist_friend_lists", friendId],
+  const listsQuery = useAppQuery<AniListCollection[]>("slow", {
+    queryKey: queryKeys.friendLists(friendId),
     enabled: enabled && friendId != null,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 30 * 60 * 1000,
-    refetchOnWindowFocus: false,
     retry: 1,
     queryFn: () => anilistApi.getLists(friendId as number),
   });
-  const favouritesQuery = useQuery<FavouriteAnime[]>({
-    queryKey: ["anilist_friend_favourites", friendId],
+  const favouritesQuery = useAppQuery<FavouriteAnime[]>("slow", {
+    queryKey: queryKeys.friendFavourites(friendId),
     enabled: enabled && friendId != null,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 30 * 60 * 1000,
-    refetchOnWindowFocus: false,
     retry: 1,
     queryFn: () => anilistApi.getFavourites(friendId as number),
   });

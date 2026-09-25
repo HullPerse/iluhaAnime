@@ -1,4 +1,3 @@
-import { useQuery } from "@tanstack/react-query";
 import type { Simulation } from "d3-force";
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 
@@ -6,6 +5,7 @@ import { anilistApi } from "@/api/anilist.api";
 import { SmallLoader } from "@/components/shared/loader.component";
 import { Button } from "@/components/ui/button.component";
 import { useFranchiseViewport } from "@/hooks/anilist/franchise.hook";
+import { useAppQuery } from "@/hooks/appQuery.hook";
 import { collapseGraph } from "@/lib/anilist/collapse.utils";
 import {
   filterGraph,
@@ -20,6 +20,7 @@ import {
   runFranchiseSimulation,
 } from "@/lib/anilist/sim.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
+import { queryKeys } from "@/lib/query/keys.utils";
 import type {
   FranchiseNodePosition,
   DragState,
@@ -74,8 +75,8 @@ function FranchiseGraphSection({
     });
   }, [animeId, zoomToElement]);
 
-  const { data, isLoading, isError, error, refetch } = useQuery({
-    queryKey: ["franchise", animeId, refreshKey],
+  const { data, isLoading, isError, error, refetch } = useAppQuery("static", {
+    queryKey: [...queryKeys.animeFranchise(animeId), refreshKey] as const,
     queryFn: async () => {
       const fresh = await anilistApi.getAnimeFranchise(animeId, refreshKey ? "fresh" : "all");
       setCacheSource("fresh");

@@ -1,6 +1,6 @@
-import { useInfiniteQuery } from "@tanstack/react-query";
-
 import { anilistApi } from "@/api/anilist.api";
+import { useAppInfiniteQuery } from "@/hooks/appQuery.hook";
+import { queryKeys } from "@/lib/query/keys.utils";
 import type { AniFriendMinimal } from "@/types/anilist";
 
 const FOLLOWING_PER_PAGE = 25;
@@ -11,12 +11,9 @@ function messageOf(error: unknown): string | null {
 }
 
 export function useAnilistFollowing(userId: number | null, enabled: boolean) {
-  const query = useInfiniteQuery({
-    queryKey: ["anilist_following", userId],
+  const query = useAppInfiniteQuery("slow", {
+    queryKey: queryKeys.anilistFollowing(userId),
     enabled: enabled && userId != null,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 30 * 60 * 1000,
-    refetchOnWindowFocus: false,
     retry: 1,
     initialPageParam: 1,
     queryFn: ({ pageParam }) =>

@@ -1,15 +1,12 @@
-import { useQuery } from "@tanstack/react-query";
-
 import { anilistApi } from "@/api/anilist.api";
 import { NO_FAVOURITES, NO_LISTS, NO_PEOPLE } from "@/config/anilist/defaults.config";
+import { useAppQuery } from "@/hooks/appQuery.hook";
+import { queryKeys } from "@/lib/query/keys.utils";
 import type { AnilistRouteData } from "@/types/anilist";
 
 export function useUserAnilistData() {
-  const query = useQuery<AnilistRouteData>({
-    queryKey: ["anilist_data"],
-    staleTime: 5 * 60 * 1000,
-    gcTime: 30 * 60 * 1000,
-    refetchOnWindowFocus: false,
+  const query = useAppQuery<AnilistRouteData>("slow", {
+    queryKey: queryKeys.anilistData(),
     queryFn: async () => {
       const user = await anilistApi.checkAuth();
       if (!user) return { user: null, lists: [], favourites: [], people: NO_PEOPLE };

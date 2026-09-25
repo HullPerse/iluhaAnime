@@ -1,4 +1,3 @@
-import { useQuery } from "@tanstack/react-query";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import type { Update } from "@tauri-apps/plugin-updater";
@@ -8,10 +7,12 @@ import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { systemApi } from "@/api/system.api";
 import { TOAST_ACTIVATED_EVENT } from "@/config/settings/notifications.config";
 import { tabForAltDigit, visibleTabs } from "@/config/settings/tabs.config";
+import { useAppQuery } from "@/hooks/appQuery.hook";
+import { useLiveResource } from "@/hooks/liveResource.hook";
 import { isOfflineDisabledTab, markOfflineTabs, useOnlineStatus } from "@/hooks/network.hook";
-import { usePolling } from "@/hooks/polling.hook";
 import { pollAniListReleases } from "@/lib/anilist/notifications.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
+import { queryKeys } from "@/lib/query/keys.utils";
 import { readAppCache, writeAppCache } from "@/lib/store/cache.utils";
 import { attemptAll, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import {
@@ -83,9 +84,9 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
   );
 
   const [updateAvailable, setUpdateAvailable] = useState(false);
-  const { data } = useQuery({
+  const { data } = useAppQuery("static", {
     queryFn: async (): Promise<Update | null> => checkForUpdates(),
-    queryKey: ["connection"],
+    queryKey: queryKeys.appUpdates(),
     enabled: isOnline,
   });
 
@@ -441,7 +442,7 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
     },
     []
   );
-  usePolling({
+  useLiveResource({
     intervalMs: Math.max(1, anilistPollIntervalMin) * 60 * 1000,
     enabled: anilistReleaseNotifications && anilistTabEnabled && isOnline,
     collectKeys: () => ["anilist-releases"],

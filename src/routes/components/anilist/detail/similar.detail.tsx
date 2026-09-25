@@ -1,11 +1,12 @@
-import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
 import { PosterTile } from "@/components/shared/posterTile.component";
 import Section from "@/components/shared/section.component";
 import { ANILIST_SIMILAR_LIMIT } from "@/config/anilist/detail.config";
+import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
+import { queryKeys } from "@/lib/query/keys.utils";
 import type { AniRelation } from "@/types/anilist";
 
 export function SimilarSection({
@@ -19,16 +20,14 @@ export function SimilarSection({
 }) {
   const { t } = useI18n();
   const [expanded, setExpanded] = useState(false);
-  const recsQuery = useQuery({
-    queryKey: ["anime_recommendations", animeId],
+  const recsQuery = useAppQuery("static", {
+    queryKey: queryKeys.animeRecommendations(animeId),
     queryFn: () => anilistApi.getAnimeRecommendations(animeId),
-    staleTime: Infinity,
     retry: 1,
   });
-  const franchiseQuery = useQuery({
-    queryKey: ["anime_franchise_ids", animeId],
+  const franchiseQuery = useAppQuery("static", {
+    queryKey: [...queryKeys.animeFranchise(animeId), 0] as const,
     queryFn: () => anilistApi.getAnimeFranchise(animeId, "all"),
-    staleTime: Infinity,
     retry: 1,
   });
   const items = useMemo(() => {

@@ -1,10 +1,12 @@
-import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueries, useQueryClient } from "@tanstack/react-query";
 import type { QueryClient } from "@tanstack/react-query";
 import { listen } from "@tauri-apps/api/event";
 import type { Event } from "@tauri-apps/api/event";
 import { useEffect, useMemo } from "react";
 
 import { torrentApi } from "@/api/torrent.api";
+import { useAppQuery } from "@/hooks/appQuery.hook";
+import { queryKeys } from "@/lib/query/keys.utils";
 import {
   TorrentListen,
   TORRENT_WATCHDOG_MS,
@@ -24,9 +26,9 @@ import type {
   TorrentInfo,
 } from "@/types/torrent";
 
-export const TORRENTS_QUERY_KEY = ["torrents"] as const;
-export const torrentFilesKey = (id: number) => ["torrent-files", id] as const;
-export const TORRENT_LISTEN_PORT_KEY = ["torrent-listen-port"] as const;
+export const TORRENTS_QUERY_KEY = queryKeys.torrents();
+export const torrentFilesKey = (id: number) => queryKeys.torrentFiles(id);
+export const TORRENT_LISTEN_PORT_KEY = queryKeys.torrentListenPort();
 
 let initialErrorNotified = false;
 let primedSeedPause = false;
@@ -88,12 +90,10 @@ function ensureTorrentSubscription(queryClient: QueryClient): () => void {
 
 export function useTorrents(enabled = true) {
   const queryClient = useQueryClient();
-  const query = useQuery({
-    queryKey: TORRENTS_QUERY_KEY,
+  const query = useAppQuery("realtime", {
+    queryKey: queryKeys.torrents(),
     queryFn: () => torrentApi.listTorrents().then((list) => list ?? []),
     enabled,
-    staleTime: Infinity,
-    refetchOnWindowFocus: false,
     retry: false,
   });
   useEffect(() => {
@@ -152,11 +152,10 @@ function sameFileInfo(prev: TorrentFileInfo, next: TorrentFileInfo): boolean {
 }
 
 export function useTorrentListenPort(enabled = true) {
-  return useQuery({
-    queryKey: TORRENT_LISTEN_PORT_KEY,
+  return useAppQuery("live", {
+    queryKey: queryKeys.torrentListenPort(),
     queryFn: () => torrentApi.listenPort(),
     enabled,
-    staleTime: 5000,
     retry: false,
   });
 }
@@ -181,12 +180,12 @@ export function useTorrentFiles(
 ) {
   const queryClient = useQueryClient();
   const enabled = (options?.enabled ?? true) && id !== null;
-  return useQuery({
-    queryKey: torrentFilesKey(id ?? 0),
+  return useAppQuery("live", {
+    queryKey: queryKeys.torrentFiles(id ?? 0),
     queryFn: () => fetchTorrentFiles(queryClient, id ?? 0),
     enabled,
-    staleTime: 2000,
     refetchInterval: options?.refetchMs ?? false,
+    refetchIntervalInBackground: false,
     retry: false,
   });
 }
@@ -203,10 +202,11 @@ export function useTorrentFilesMap(
   const queriesInput = useMemo(
     () =>
       ids.map((id) => ({
-        queryKey: torrentFilesKey(id),
+        queryKey: queryKeys.torrentFiles(id),
         queryFn: () => fetchTorrentFiles(queryClient, id),
-        staleTime: 2000,
+        staleTime: 5000,
         refetchInterval: refetchMs,
+        refetchIntervalInBackground: false,
         retry: false,
       })),
     [ids, queryClient, refetchMs]
@@ -464,7 +464,7 @@ export function useAddTorrentTracker() {
         showError(tr("download.error.tracker.add"), torrentErrorText(error.message, tr));
         return false;
       }
-      queryClient.invalidateQueries({ queryKey: ["torrent_diagnostics", vars.id] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.torrentDiagnostics(vars.id) });
       queryClient.invalidateQueries({ queryKey: TORRENTS_QUERY_KEY });
       return true;
     },
@@ -482,7 +482,7 @@ export function useRemoveTorrentTracker() {
         showError(tr("download.error.tracker.remove"), torrentErrorText(error.message, tr));
         return false;
       }
-      queryClient.invalidateQueries({ queryKey: ["torrent_diagnostics", vars.id] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.torrentDiagnostics(vars.id) });
       queryClient.invalidateQueries({ queryKey: TORRENTS_QUERY_KEY });
       return true;
     },

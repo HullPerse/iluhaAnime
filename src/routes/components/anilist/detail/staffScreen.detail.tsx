@@ -1,11 +1,12 @@
-import { useInfiniteQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
 import Section from "@/components/shared/section.component";
 import { STAFF_CREDITS_PAGE_SIZE } from "@/config/anilist/pagination.config";
+import { useAppInfiniteQuery } from "@/hooks/appQuery.hook";
 import { flattenMarkup } from "@/lib/anilist/text.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
+import { queryKeys } from "@/lib/query/keys.utils";
 import { uniqueById } from "@/lib/utils/array.utils";
 import type { AniListOverlayContext, AniListOverlayScreen } from "@/types/anilist";
 
@@ -21,8 +22,8 @@ function useStaffPage(
   pageParamName: "page" | "charPage",
   pageSize: number
 ) {
-  return useInfiniteQuery({
-    queryKey: ["staff_detail", id, key],
+  return useAppInfiniteQuery("slow", {
+    queryKey: queryKeys.staffDetail(id, key),
     initialPageParam: 1,
     queryFn: ({ pageParam }) =>
       anilistApi.getStaffCharacters(

@@ -1,12 +1,13 @@
-import { useQuery } from "@tanstack/react-query";
 import { cn } from "cn";
 import { ChevronDown, ChevronUp, Clock } from "lucide-react";
 import { useState, useCallback, useMemo } from "react";
 
 import { Checkbox } from "@/components/ui/checkbox.component";
 import { CATEGORY_ORDER, SHADER_CATEGORY_LABELS } from "@/config/player/shaders.config";
+import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
+import { queryKeys } from "@/lib/query/keys.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { formatETA } from "@/lib/utils/time.utils";
 import type { ShaderPlayerProps as Props } from "@/types/player";
@@ -18,10 +19,9 @@ export default function ShaderPicker({ value, onChange, gpuBackend, durationSecs
     new Set(["upscale", "restore"])
   );
 
-  const { data: shaders = [] } = useQuery({
-    queryKey: ["anime4k_shaders"],
+  const { data: shaders = [] } = useAppQuery("static", {
+    queryKey: queryKeys.shaders(),
     queryFn: () => invokeTyped<ShaderInfo[]>("list_anime4k_shaders"),
-    staleTime: Infinity,
   });
 
   const grouped = useMemo(() => {

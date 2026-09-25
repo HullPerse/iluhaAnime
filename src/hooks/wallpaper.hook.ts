@@ -1,14 +1,14 @@
-import { useQuery } from "@tanstack/react-query";
-
 import { systemApi } from "@/api/system.api";
+import { useAppQuery } from "@/hooks/appQuery.hook";
+import { queryKeys } from "@/lib/query/keys.utils";
 import { assetUrl } from "@/lib/utils/image.utils";
 import { useSettingsStore } from "@/store/settings.store";
 import type { UserImage } from "@/types/userimage";
 
 export function useWallpaperImage() {
   const selectedId = useSettingsStore((state) => state.selectedDitherId);
-  const query = useQuery({
-    queryKey: ["dither-wallpaper", selectedId],
+  const query = useAppQuery("slow", {
+    queryKey: queryKeys.wallpaper(selectedId),
     queryFn: async () => {
       const image = await systemApi.getDitherImage(selectedId ?? "");
       const result: UserImage = {
@@ -23,9 +23,7 @@ export function useWallpaperImage() {
       return result;
     },
     enabled: selectedId !== null,
-    staleTime: 60_000,
     retry: false,
-    refetchOnWindowFocus: false,
     placeholderData: (previous) => previous,
   });
   return query;

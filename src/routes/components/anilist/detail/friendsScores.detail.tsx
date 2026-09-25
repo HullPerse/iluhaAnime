@@ -1,5 +1,4 @@
 import { Tooltip } from "@base-ui/react/tooltip";
-import { useQuery } from "@tanstack/react-query";
 import { Frown, Meh, MessageCircle, RotateCw, Smile, Star } from "lucide-react";
 import { useState } from "react";
 
@@ -8,11 +7,13 @@ import Section from "@/components/shared/section.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { listStatusLabels } from "@/config/anilist/labels.config";
+import { useAppQuery } from "@/hooks/appQuery.hook";
 import { getStatusColor } from "@/lib/anilist/entries.utils";
 import { loadFriendScores } from "@/lib/anilist/friends.utils";
 import { formatScore, parseScoreFormat, scoreIconFor } from "@/lib/anilist/score.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
+import { queryKeys } from "@/lib/query/keys.utils";
 import { useAniListFriendsStore } from "@/store/anilist.store";
 
 function FriendScoreIcon({ score }: { score: number | null }) {
@@ -43,11 +44,10 @@ export function FriendsScoresSection({ animeId }: { animeId: number }) {
     .map((friend) => friend.id)
     .sort((a, b) => a - b)
     .join(",");
-  const query = useQuery({
-    queryKey: ["friends_scores", animeId, key],
+  const query = useAppQuery("slow", {
+    queryKey: queryKeys.friendScores(animeId, key),
     queryFn: () => loadFriendScores(animeId, base),
     enabled: expanded && base.length > 0,
-    staleTime: 5 * 60 * 1000,
     retry: false,
   });
   if (friends.length === 0) return null;

@@ -1,5 +1,3 @@
-import { useQuery } from "@tanstack/react-query";
-
 import { Checkbox } from "@/components/ui/checkbox.component";
 import Select from "@/components/ui/select.component";
 import {
@@ -11,8 +9,10 @@ import {
   VIDEO_CODEC_OPTIONS,
 } from "@/config/player/options.config";
 import { ANIME4K_PRESETS } from "@/config/player/presets.config";
+import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
+import { queryKeys } from "@/lib/query/keys.utils";
 import { withFallback } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { formatETA } from "@/lib/utils/time.utils";
@@ -86,10 +86,8 @@ export function UpscaleConfigPanel({
   const [w, h] = resolution === "original" ? [0, 0] : resolution.split("x").map(Number);
   const targetFps =
     fpsValue === "60" || fpsValue === "60i" ? 60 : fpsValue ? Number(fpsValue) : null;
-  const { data: estimate } = useQuery({
-    queryKey: [
-      "upscale_estimate",
-      filePath,
+  const { data: estimate } = useAppQuery("static", {
+    queryKey: queryKeys.upscaleEstimate(filePath, [
       resolution,
       fpsValue,
       quality,
@@ -98,8 +96,8 @@ export function UpscaleConfigPanel({
       upscaler,
       anime4kPreset,
       selectedShaders.join(","),
-      temporalDenoise,
-    ],
+      String(temporalDenoise),
+    ]),
     queryFn: () =>
       withFallback(
         invokeTyped<{ seconds: number }>("estimate_upscale_time", {
@@ -117,7 +115,6 @@ export function UpscaleConfigPanel({
         }),
         null
       ),
-    staleTime: Infinity,
   });
   if (activeTab === "convert") {
     return (

@@ -1,4 +1,3 @@
-import { useQuery } from "@tanstack/react-query";
 import { cn } from "cn";
 import { CalendarDays, List } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -8,8 +7,10 @@ import { TabLoader } from "@/components/shared/loader.component";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import { ACTIVITY_STATUS_FILTERS } from "@/config/anilist/activity.config";
+import { useAppQuery } from "@/hooks/appQuery.hook";
 import { groupLabel } from "@/lib/anilist/activity.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
+import { queryKeys } from "@/lib/query/keys.utils";
 import type { AniActivity, AniListCollection } from "@/types/anilist";
 
 import { FeedItem } from "./feedItem.activity";
@@ -33,11 +34,11 @@ export function FeedTab({
     return [...new Set(ids.filter((id) => Number.isInteger(id) && id > 0))].sort((a, b) => a - b);
   }, [friendIds, includeFriends, userId]);
 
-  const { data, isLoading, isError, error, refetch } = useQuery({
-    queryKey: ["anilist_activity", activityUserIds],
+  const { data, isLoading, isError, error, refetch } = useAppQuery("slow", {
+    queryKey: queryKeys.activity(activityUserIds),
     queryFn: () => anilistApi.getActivity(activityUserIds),
     enabled: userId > 0,
-    staleTime: 60_000,
+    placeholderData: (previous) => previous,
   });
 
   const listItems = useMemo(() => {

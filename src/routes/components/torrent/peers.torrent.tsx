@@ -1,4 +1,3 @@
-import { useQuery } from "@tanstack/react-query";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { Copy, Link } from "lucide-react";
 import { useState } from "react";
@@ -9,7 +8,9 @@ import { SmallLoader } from "@/components/shared/loader.component";
 import Modal from "@/components/shared/modal.component";
 import Tabs from "@/components/shared/tabs.component";
 import { Button } from "@/components/ui/button.component";
+import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
+import { queryKeys } from "@/lib/query/keys.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { formatBytes } from "@/lib/utils/bytes.utils";
 import { buildTorrentLink } from "@/lib/utils/deeplink.utils";
@@ -40,12 +41,12 @@ export function TorrentPeersModal({
 }) {
   const { t } = useI18n();
   const [tab, setTab] = useState<"peers" | "trackers">("peers");
-  const query = useQuery({
-    queryKey: ["torrent_diagnostics", id],
+  const query = useAppQuery("live", {
+    queryKey: queryKeys.torrentDiagnostics(id),
     queryFn: () => torrentApi.getTorrentDiagnostics(id, infoHash),
     enabled: open,
-    refetchInterval: 5000,
-    staleTime: 4000,
+    refetchInterval: 10000,
+    refetchIntervalInBackground: false,
   });
   if (!open) return null;
   const copyText = (label: string, value: string) => {

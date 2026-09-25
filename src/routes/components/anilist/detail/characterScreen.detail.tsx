@@ -1,10 +1,11 @@
-import { useInfiniteQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
 import { characterRoleLabels } from "@/config/anilist/labels.config";
 import { MEDIA_PAGE_SIZE } from "@/config/anilist/pagination.config";
+import { useAppInfiniteQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
+import { queryKeys } from "@/lib/query/keys.utils";
 import { uniqueById } from "@/lib/utils/array.utils";
 import type { AniListOverlayContext, AniListOverlayScreen } from "@/types/anilist";
 
@@ -21,8 +22,8 @@ export function CharacterScreen({
   context: AniListOverlayContext;
 }) {
   const { t } = useI18n();
-  const query = useInfiniteQuery({
-    queryKey: ["character_detail", screen.id],
+  const query = useAppInfiniteQuery("slow", {
+    queryKey: queryKeys.characterDetail(screen.id),
     initialPageParam: 1,
     queryFn: ({ pageParam }) => anilistApi.getCharacterDetail(screen.id, pageParam),
     getNextPageParam: (lastPage, pages) =>

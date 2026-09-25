@@ -1,22 +1,23 @@
-import { useQuery } from "@tanstack/react-query";
 import { MessageSquare } from "lucide-react";
 
 import { anilistApi } from "@/api/anilist.api";
 import { SmallLoader } from "@/components/shared/loader.component";
 import ImageComponent from "@/components/ui/image.component";
 import { ACTIVITY_STATUS_ICONS, ACTIVITY_STATUS_LABELS } from "@/config/anilist/activity.config";
+import { useAppQuery } from "@/hooks/appQuery.hook";
 import { formatActivityTime } from "@/lib/anilist/activity.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
+import { queryKeys } from "@/lib/query/keys.utils";
 import type { AniActivity } from "@/types/anilist";
 
 const FRIEND_ACTIVITY_LIMIT = 5;
 
 export function FriendActivityFeed({ friendId }: { friendId: number }) {
   const { t } = useI18n();
-  const { data, isLoading } = useQuery({
-    queryKey: ["anilist_activity", [friendId]],
+  const { data, isLoading } = useAppQuery("slow", {
+    queryKey: queryKeys.activity([friendId]),
     queryFn: () => anilistApi.getActivity([friendId]),
-    staleTime: 60_000,
+    placeholderData: (previous) => previous,
   });
   if (isLoading) return <SmallLoader size={3} />;
   const activities = (data ?? []).slice(0, FRIEND_ACTIVITY_LIMIT);

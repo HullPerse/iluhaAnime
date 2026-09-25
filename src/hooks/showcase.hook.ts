@@ -1,11 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
-
 import { tmdbApi } from "@/api/tmdb.api";
+import { useAppQuery } from "@/hooks/appQuery.hook";
+import { queryKeys } from "@/lib/query/keys.utils";
 import { withFallback } from "@/lib/utils/attempt.utils";
 import { useSettingsStore } from "@/store/settings.store";
 import type { AniMedia, AnimeShowcase } from "@/types/anilist";
-
-const SHOWCASE_CACHE_TAG = "v3";
 
 async function loadShowcase(anime: AniMedia): Promise<AnimeShowcase> {
   let trailerYoutubeId = anime.trailer_youtube_id ?? null;
@@ -30,17 +28,10 @@ async function loadShowcase(anime: AniMedia): Promise<AnimeShowcase> {
 export function useAnimeShowcase(anime: AniMedia | undefined): AnimeShowcase | undefined {
   const tmdbKeySet = useSettingsStore((s) => s.tmdbKeySet);
   const tmdbProxyUrl = useSettingsStore((s) => s.tmdbProxyUrl);
-  const query = useQuery({
-    queryKey: [
-      "anilist_showcase",
-      anime?.id,
-      tmdbKeySet ? 1 : 0,
-      tmdbProxyUrl ?? "",
-      SHOWCASE_CACHE_TAG,
-    ],
+  const query = useAppQuery("static", {
+    queryKey: queryKeys.animeShowcase(anime?.id ?? 0, tmdbKeySet ? 1 : 0, tmdbProxyUrl ?? ""),
     queryFn: () => (anime ? loadShowcase(anime) : Promise.resolve(undefined)),
     enabled: anime !== undefined,
-    staleTime: Infinity,
   });
   return query.data;
 }

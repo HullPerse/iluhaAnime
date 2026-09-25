@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { getVersion } from "@tauri-apps/api/app";
 import { confirm } from "@tauri-apps/plugin-dialog";
 import { Check, RefreshCw, X } from "lucide-react";
@@ -7,9 +7,11 @@ import { sqliteApi } from "@/api/sqlite.api";
 import { systemApi } from "@/api/system.api";
 import { Button } from "@/components/ui/button.component";
 import { THEMES } from "@/config/settings/themes.config";
+import { useAppQuery } from "@/hooks/appQuery.hook";
 import { resetCoverCache } from "@/hooks/collection/cache.hook";
 import { resetRemoteImageCache } from "@/hooks/remoteImage.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
+import { queryKeys } from "@/lib/query/keys.utils";
 import { formatBackupDate } from "@/lib/settings/backup.utils";
 import {
   attempt,
@@ -26,7 +28,7 @@ import type { SqliteBackupInfo, SqliteDatabaseInfo } from "@/types/sqlite";
 
 import { SummaryRow, SummarySection } from "./summaryRow.settings";
 
-const STORAGE_QUERY_KEY = ["settings_summary_storage"];
+const STORAGE_QUERY_KEY = queryKeys.summaryStorage();
 
 interface RemoteImageStats {
   count: number;
@@ -59,18 +61,16 @@ export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void
   const currentTheme = useThemeStore((s) => s.currentTheme);
   const customThemes = useThemeStore((s) => s.customThemes);
 
-  const ffmpeg = useQuery({
-    queryKey: ["summary_ffprobe"],
+  const ffmpeg = useAppQuery("static", {
+    queryKey: queryKeys.summaryFfprobe(),
     queryFn: () => withFallback(systemApi.checkFfprobe(), false),
-    staleTime: Infinity,
   });
-  const version = useQuery({
-    queryKey: ["summary_version"],
+  const version = useAppQuery("static", {
+    queryKey: queryKeys.summaryVersion(),
     queryFn: () => withFallback(getVersion(), "?"),
-    staleTime: Infinity,
   });
-  const storage = useQuery({
-    queryKey: STORAGE_QUERY_KEY,
+  const storage = useAppQuery("slow", {
+    queryKey: queryKeys.summaryStorage(),
     queryFn: async (): Promise<SummaryStorage> => {
       const [databases, error] = await attempt(sqliteApi.listDatabases());
       const database = error === null ? pickDatabase(databases ?? []) : null;
@@ -86,7 +86,6 @@ export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void
     },
     staleTime: 30_000,
   });
-
   const themeLabel =
     [...THEMES, ...customThemes].find((theme) => theme.name === currentTheme)?.label ??
     currentTheme;

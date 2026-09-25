@@ -193,7 +193,7 @@ export default function ImportAnilistCollection({
   };
 
   const finishImport = async (imported: number, failedCount: number) => {
-    await queryClient.invalidateQueries({ queryKey: [COLLECTION_QUERY_KEY] });
+    await queryClient.invalidateQueries({ queryKey: COLLECTION_QUERY_KEY });
     setResult({ imported, skipped: 0 });
     notify(failedCount > 0 ? "error" : "success", "collection.import.anilist.done", {
       imported,
@@ -230,7 +230,7 @@ export default function ImportAnilistCollection({
       imported: (prev?.imported ?? 0) + imported,
       skipped: 0,
     }));
-    await queryClient.invalidateQueries({ queryKey: [COLLECTION_QUERY_KEY] });
+    await queryClient.invalidateQueries({ queryKey: COLLECTION_QUERY_KEY });
     onImported();
   };
 
@@ -290,7 +290,7 @@ export default function ImportAnilistCollection({
     setRunning(false);
     setOpFailures(failed);
     setOpDone({ ok });
-    await queryClient.invalidateQueries({ queryKey: [COLLECTION_QUERY_KEY] });
+    await queryClient.invalidateQueries({ queryKey: COLLECTION_QUERY_KEY });
     notify(failed.length > 0 ? "error" : "success", "collection.import.anilist.sync.done", {
       count: ok,
     });
@@ -343,7 +343,7 @@ export default function ImportAnilistCollection({
     setRunning(false);
     setOpFailures(failed);
     setOpDone({ ok });
-    await queryClient.invalidateQueries({ queryKey: [COLLECTION_QUERY_KEY] });
+    await queryClient.invalidateQueries({ queryKey: COLLECTION_QUERY_KEY });
     notify(failed.length > 0 ? "error" : "success", "collection.import.anilist.metadata.done", {
       count: ok,
     });

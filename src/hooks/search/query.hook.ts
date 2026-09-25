@@ -1,10 +1,12 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 
 import { torrentApi } from "@/api/torrent.api";
 import { SOURCE_INFOS } from "@/config/search/sources.config";
+import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useSearchField } from "@/hooks/search/field.hook";
 import { useSearchSessions } from "@/hooks/search/sessions.hook";
+import { queryKeys } from "@/lib/query/keys.utils";
 import { countActiveFilters } from "@/lib/search/filters.utils";
 import {
   filterAnimeResults,
@@ -72,19 +74,28 @@ export function useSearchQuery(): SearchQueryController {
   }, [visibleSources, source]);
 
   const isPagedSource = isPagedSearchSource(source);
+  const serverSideSort = serverSideSortSource(source);
   const queryKey = useMemo(
     () =>
-      [
-        "animeScraper",
+      queryKeys.torrentSearch(
         source,
         submittedQuery,
         searchRequest,
         nyaaPage,
-        sortBy,
-        sortDirection,
-        searchProxyUrls[source],
-      ] as const,
-    [source, submittedQuery, searchRequest, nyaaPage, sortBy, sortDirection, searchProxyUrls]
+        serverSideSort ? sortBy : null,
+        serverSideSort ? sortDirection : null,
+        searchProxyUrls[source]
+      ),
+    [
+      source,
+      submittedQuery,
+      searchRequest,
+      nyaaPage,
+      sortBy,
+      sortDirection,
+      searchProxyUrls,
+      serverSideSort,
+    ]
   );
 
   const fetchBySource = (): Promise<Anime[]> =>
@@ -95,7 +106,7 @@ export function useSearchQuery(): SearchQueryController {
       order: sortDirection,
     });
 
-  const { data, isLoading, isError, error, refetch } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useAppQuery("slow", {
     queryKey,
     queryFn: fetchBySource,
     enabled: Boolean(submittedQuery),
@@ -126,8 +137,6 @@ export function useSearchQuery(): SearchQueryController {
       setCrossSearchQuery(null);
     }
   }, [crossSearchQuery, setCrossSearchQuery]);
-
-  const serverSideSort = serverSideSortSource(source);
 
   const filtered = useMemo(() => filterAnimeResults(data, filters), [data, filters]);
 

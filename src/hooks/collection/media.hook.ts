@@ -1,7 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
-
 import { anilistApi } from "@/api/anilist.api";
 import { tmdbApi } from "@/api/tmdb.api";
+import { useAppQuery } from "@/hooks/appQuery.hook";
+import { queryKeys } from "@/lib/query/keys.utils";
 import { withFallback } from "@/lib/utils/attempt.utils";
 import { useSettingsStore } from "@/store/settings.store";
 
@@ -15,17 +15,15 @@ export function useCollectionMedia(
   const tmdbKeySet = useSettingsStore((s) => s.tmdbKeySet);
   const tmdbProxyUrl = useSettingsStore((s) => s.tmdbProxyUrl);
   const anilistProxyUrl = useSettingsStore((s) => s.anilistProxyUrl);
-  const media = useQuery({
-    queryKey: ["tmdb_media", tmdbId, mediaType, tmdbKeySet ? 1 : 0, tmdbProxyUrl ?? "", "v2"],
+  const media = useAppQuery("static", {
+    queryKey: queryKeys.tmdbMedia(tmdbId, mediaType, tmdbKeySet, tmdbProxyUrl ?? ""),
     queryFn: () => withFallback(tmdbApi.getMedia(tmdbId as number, mediaType), null),
     enabled: fetchMedia && tmdbKeySet && tmdbId !== null,
-    staleTime: Infinity,
   });
-  const trailer = useQuery({
-    queryKey: ["anilist_trailer", anilistId, anilistProxyUrl ?? "", "v2"],
+  const trailer = useAppQuery("static", {
+    queryKey: queryKeys.anilistTrailer(anilistId, anilistProxyUrl ?? ""),
     queryFn: () => withFallback(anilistApi.getAnimeById(anilistId as number), null),
     enabled: fetchTrailer && anilistId !== null,
-    staleTime: Infinity,
   });
   return { media, trailer };
 }

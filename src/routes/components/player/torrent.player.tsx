@@ -1,4 +1,3 @@
-import { useQuery } from "@tanstack/react-query";
 import { openPath } from "@tauri-apps/plugin-opener";
 import { ChevronDown, ChevronRight, RefreshCw } from "lucide-react";
 import { useCallback } from "react";
@@ -6,7 +5,9 @@ import { useCallback } from "react";
 import { SmallLoader } from "@/components/shared/loader.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
+import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
+import { queryKeys } from "@/lib/query/keys.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import type { TorrentPlayerProps as Props } from "@/types/player";
 
@@ -20,8 +21,8 @@ export default function TorrentFilesPlayerSection({
   onToggleExpand,
   hideHeader,
 }: Props) {
-  const { data = [], refetch } = useQuery({
-    queryKey: ["extra_files", item.save_dir],
+  const { data = [], refetch } = useAppQuery("slow", {
+    queryKey: queryKeys.extraFiles(item.save_dir),
     queryFn: () =>
       invokeTyped<{ path: string; name: string; size: number }[]>("scan_extra_files", {
         path: item.save_dir!,

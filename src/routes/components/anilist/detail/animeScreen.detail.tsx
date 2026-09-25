@@ -1,9 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
-
 import { anilistApi } from "@/api/anilist.api";
 import { Button } from "@/components/ui/button.component";
+import { useAppQuery } from "@/hooks/appQuery.hook";
 import { flattenMarkup } from "@/lib/anilist/text.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
+import { queryKeys } from "@/lib/query/keys.utils";
 import type { AniListOverlayContext, AniListOverlayScreen } from "@/types/anilist";
 
 import AniListMetadata from "./metadata.detail";
@@ -17,8 +17,8 @@ export function AnimeScreen({
   context: AniListOverlayContext;
 }) {
   const { t } = useI18n();
-  const query = useQuery({
-    queryKey: ["anime_detail", screen.id],
+  const query = useAppQuery("slow", {
+    queryKey: queryKeys.animeScreen(screen.id),
     queryFn: () => anilistApi.getAnimeById(screen.id),
   });
 

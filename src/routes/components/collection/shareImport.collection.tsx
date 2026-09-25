@@ -166,7 +166,7 @@ export function ShareImportCollection({
         setFailedIndices(failedIds);
         setImported(ok);
         setCurrent(null);
-        await queryClient.invalidateQueries({ queryKey: [COLLECTION_QUERY_KEY] });
+        await queryClient.invalidateQueries({ queryKey: COLLECTION_QUERY_KEY });
       })()
     );
     if (error) useNotificationStore.getState().add(t("app.collection"), "error", error.message);

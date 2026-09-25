@@ -99,12 +99,12 @@ export function TorrentFileRow({
           title={t("torrent.sequential.current")}
           data-testid="torrent-file-sequential"
         >
-          <ArrowDownNarrowWide className="size-3" />
+          <ArrowDownNarrowWide className="size-3.5" />
         </span>
       )}
 
       {file.selected && !file.completed && file.size > 0 && (
-        <div className="bg-surface windows95-border ml-1 h-2 w-10 shrink-0">
+        <div className="bg-surface windows95-border ml-1 h-3 w-10 shrink-0">
           <div
             className="bg-secondary h-full transition-[width] duration-500"
             style={{

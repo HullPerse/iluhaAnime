@@ -91,7 +91,7 @@ export function FriendsScoresSection({ animeId }: { animeId: number }) {
               >
                 <span
                   title={label}
-                  className="windows95-border size-2.5 shrink-0"
+                  className="windows95-small-border size-3.5 shrink-0"
                   style={{ backgroundColor: getStatusColor(row.status) }}
                 />
                 <ImageComponent
@@ -105,7 +105,7 @@ export function FriendsScoresSection({ animeId }: { animeId: number }) {
                     title={t("anilist.details.friends.progress", { done, total })}
                     className="flex w-28 shrink-0 items-center gap-1"
                   >
-                    <span className="bg-field windows95-border h-2 min-w-0 flex-1">
+                    <span className="bg-field windows95-border h-3 min-w-0 flex-1">
                       <span
                         className="bg-accent block h-full"
                         style={{ width: `${Math.min(100, (done / total) * 100)}%` }}

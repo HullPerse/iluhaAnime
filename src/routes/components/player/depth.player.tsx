@@ -15,7 +15,7 @@ export function QueueItemDepth({ item }: { item: UpscaleQueueItem }) {
             {step.label}
           </span>
           <ProgressBar
-            className="h-2 flex-1"
+            className="h-3 flex-1"
             value={step.percent}
             max={100}
             barClassName={failed && step.active ? "bg-red-700" : undefined}

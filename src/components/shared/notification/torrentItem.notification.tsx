@@ -29,7 +29,7 @@ export default function ActiveTorrentItem({ item }: { item: TorrentInfo }) {
       <ProgressBar
         value={percentage}
         max={100}
-        className="mt-1 h-2"
+        className="mt-1 h-3"
         ariaLabel={`${item.name} ${percentage}%`}
       />
       <div className="text-hint windows95-text mt-0.5 flex flex-wrap gap-x-2 text-xs">

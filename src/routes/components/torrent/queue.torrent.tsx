@@ -86,7 +86,7 @@ function QueueRow({
           {t("torrent.queue.current")}
         </span>
       )}
-      <span className="bg-surface windows95-border h-2 w-10 shrink-0">
+      <span className="bg-surface windows95-border h-3 w-10 shrink-0">
         <span
           className="bg-secondary block h-full transition-[width] duration-500"
           style={{ width: `${percent}%` }}

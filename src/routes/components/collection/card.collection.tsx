@@ -57,7 +57,7 @@ function CollectionCardView({
           </div>
         )}
         <span
-          className="windows95-border absolute top-1 left-1 inline-block size-3"
+          className="windows95-small-border absolute top-1 left-1 inline-block size-3.5"
           style={{ backgroundColor: statusColorOf(statuses, item.status) }}
           aria-hidden
         />
@@ -76,7 +76,7 @@ function CollectionCardView({
           </span>
         )}
         {progressPercent != null && (
-          <div aria-hidden className="absolute inset-x-0 bottom-0 h-1 bg-black/20">
+          <div aria-hidden className="absolute inset-x-0 bottom-0 h-2 bg-black/20">
             <div className="bg-secondary h-full" style={{ width: `${progressPercent}%` }} />
           </div>
         )}

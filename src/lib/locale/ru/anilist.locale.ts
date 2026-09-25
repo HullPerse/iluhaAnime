@@ -130,7 +130,13 @@ const anilist = {
   "anilist.details.studios": "Студии",
   "anilist.details.torrent.search": "Искать торренты по этому названию",
   "anilist.fav.toggle.failed": "Не удалось обновить избранное",
+  "anilist.favourites.anime": "Аниме",
+  "anilist.favourites.characters": "Персонажи",
   "anilist.favourites.empty": "Нет избранного",
+  "anilist.favourites.empty.anime": "Нет избранного аниме",
+  "anilist.favourites.empty.characters": "Нет избранных персонажей",
+  "anilist.favourites.empty.staff": "Нет избранного персонала",
+  "anilist.favourites.staff": "Люди",
   "anilist.favourites.title": "Избранное",
   "anilist.filter.OTHER": "Другое",
   "anilist.filter.PREQUEL": "Приквелы",
@@ -348,7 +354,8 @@ const anilist = {
   "anilist.list.status.PLANNING": "Запланировано",
   "anilist.list.status.REPEATING": "Пересматриваю",
   "anilist.list.status.WATCHING": "В процессе",
-  "anilist.loading.slow": "Загрузка затянулась - может помочь прокси (Настройки > Общие > Прокси AniList)",
+  "anilist.loading.slow":
+    "Загрузка затянулась - может помочь прокси (Настройки > Общие > Прокси AniList)",
 } as const;
 
 export default anilist;

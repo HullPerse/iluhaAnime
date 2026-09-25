@@ -27,6 +27,8 @@ const changelog412 = {
     "The next episode line shows the local date and time with a live countdown, and the release calendar shows the local time of every release",
   "changelog.4_1_2.added.old_entry_date":
     "List entries too old for AniList dates show More than 5 years ago instead of an empty slot",
+  "changelog.4_1_2.added.favourites_tabs":
+    "The favourites window shows anime, characters and staff on separate tabs, and a person opens their profile on top of the list",
   "changelog.4_1_2.changed.color_presets":
     "Color presets are gone from the screenshot toolbar and the color picker: pick any color directly",
   "changelog.4_1_2.changed.sqlite_console_removed":

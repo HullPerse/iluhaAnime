@@ -600,9 +600,17 @@ export interface AniListOverlayContext {
   onPush: (screen: AniListOverlayScreen) => void;
 }
 
+export type FavouritesTab = "anime" | "characters" | "staff";
+
 export interface AniFavouritesProps {
   open: boolean;
   favourites: FavouriteAnime[];
+  people: FavouritePeople;
+  isLoggedIn: boolean;
+  favouriteCharacterIds?: Set<number>;
+  favouriteStaffIds?: Set<number>;
+  onCharacterFavouriteToggle?: (id: number) => void;
+  onStaffFavouriteToggle?: (id: number) => void;
   onClose: () => void;
   onAnimeClick: (id: number) => void;
 }

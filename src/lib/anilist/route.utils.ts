@@ -5,12 +5,17 @@ import type {
   AniListViewState,
   AnilistRouteData,
   AniMedia,
+  FavouriteAnime,
   FavouritePeople,
   GlobalSort,
 } from "@/types/anilist";
 
 export function routePeople(data: AnilistRouteData | undefined): FavouritePeople {
   return data?.people ?? NO_PEOPLE;
+}
+
+export function hasAnyFavourites(favourites: FavouriteAnime[], people: FavouritePeople): boolean {
+  return favourites.length > 0 || people.staff.length > 0 || people.characters.length > 0;
 }
 
 export function buildAnimeBackHandler(

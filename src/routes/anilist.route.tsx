@@ -15,6 +15,7 @@ import { filterEntries, sortEntries } from "@/lib/anilist/entries.utils";
 import { ALL_LISTS_ID, activeListEntries } from "@/lib/anilist/group.utils";
 import {
   pickDisplayEntries,
+  hasAnyFavourites,
   isLocalSearch,
   resolveAniListView,
   routePeople,
@@ -457,7 +458,7 @@ function AnilistRoute() {
         searchTerms={searchTerms}
         sort={sort}
         onSortChange={setSort}
-        hasFavourites={favourites.length > 0}
+        hasFavourites={hasAnyFavourites(favourites, people)}
         grouped={grouped !== null}
         groupByStatus={groupByStatus}
         onGroupChange={setGroupByStatus}
@@ -593,6 +594,12 @@ function AnilistRoute() {
           favourites={favourites}
           onFavouritesClose={() => handleCloseModal("favourites")}
           onFavouritesAnime={openAnimeFromLookup}
+          people={people}
+          isLoggedIn={!!user}
+          favouriteStaffIds={favouriteStaffIds}
+          favouriteCharacterIds={favouriteCharacterIds}
+          onStaffFavouriteToggle={toggleFavouriteStaff}
+          onCharacterFavouriteToggle={toggleFavouriteCharacter}
           filters={searchFilters}
           onFiltersApply={setSearchFilters}
           onFiltersReset={() => setSearchFilters(defaultFilters)}

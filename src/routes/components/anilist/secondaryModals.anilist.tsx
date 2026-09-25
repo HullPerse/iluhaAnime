@@ -17,6 +17,7 @@ import type {
   AniUser,
   AniUserProfile,
   FavouriteAnime,
+  FavouritePeople,
 } from "@/types/anilist";
 
 export default function AniListSecondaryModals({
@@ -42,6 +43,12 @@ export default function AniListSecondaryModals({
   favourites,
   onFavouritesClose,
   onFavouritesAnime,
+  people,
+  isLoggedIn,
+  favouriteStaffIds,
+  favouriteCharacterIds,
+  onStaffFavouriteToggle,
+  onCharacterFavouriteToggle,
   filters,
   onFiltersApply,
   onFiltersReset,
@@ -77,6 +84,12 @@ export default function AniListSecondaryModals({
   favourites: FavouriteAnime[];
   onFavouritesClose: () => void;
   onFavouritesAnime: (id: number) => void;
+  people: FavouritePeople;
+  isLoggedIn: boolean;
+  favouriteStaffIds: Set<number>;
+  favouriteCharacterIds: Set<number>;
+  onStaffFavouriteToggle: (id: number) => void;
+  onCharacterFavouriteToggle: (id: number) => void;
   filters: AniListFilters;
   onFiltersApply: (filters: AniListFilters) => void;
   onFiltersReset: () => void;
@@ -129,6 +142,12 @@ export default function AniListSecondaryModals({
       <AniListFavouritesModal
         open={views.favourites}
         favourites={favourites}
+        people={people}
+        isLoggedIn={isLoggedIn}
+        favouriteStaffIds={favouriteStaffIds}
+        favouriteCharacterIds={favouriteCharacterIds}
+        onStaffFavouriteToggle={onStaffFavouriteToggle}
+        onCharacterFavouriteToggle={onCharacterFavouriteToggle}
         onClose={onFavouritesClose}
         onAnimeClick={onFavouritesAnime}
       />

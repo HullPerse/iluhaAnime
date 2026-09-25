@@ -30,6 +30,7 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.4_1_2.added.friend_compare", "anilist"),
       entry("changelog.4_1_2.added.franchise_focus", "anilist"),
       entry("changelog.4_1_2.added.anilist_loader_timer", "anilist"),
+      entry("changelog.4_1_2.added.favourites_tabs", "anilist"),
     ],
     changed: [
       entry("changelog.4_1_2.changed.color_presets", "settings"),

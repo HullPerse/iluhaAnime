@@ -1,5 +1,5 @@
 import { openPath } from "@tauri-apps/plugin-opener";
-import { ChevronDown, ChevronUp, Pause, Play, ArrowDownNarrowWide, Search, Users } from "lucide-react";
+import { ChevronDown, ChevronUp, Pause, Play, Check, Search, Users } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { Button } from "@/components/ui/button.component";
@@ -142,12 +142,11 @@ export function TorrentHeader({
         <Button
           title={t("torrent.sequential")}
           aria-label={t("torrent.sequential")}
-          aria-pressed={item.sequential_download}
           className="windows95-font flex size-6 items-center justify-center text-xs"
           variant={item.sequential_download ? "default" : "outline"}
           onClick={() => onSetSequential(!item.sequential_download)}
         >
-          <ArrowDownNarrowWide className="size-4" />
+          {item.sequential_download && <Check className="size-4" />}
         </Button>
         <Button
           title={t("torrent.recheck")}

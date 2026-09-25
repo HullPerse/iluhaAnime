@@ -76,18 +76,16 @@ beforeEach(() => {
 });
 
 describe("TorrentHeader sequential toggle", () => {
-  it("shows the sequential icon in both states with pressed state", () => {
+  it("shows no icon when off and a check when on", () => {
     const off = renderHeader(info({ sequential_download: false }));
     const offButton = screen.getByRole("button", { name: SEQUENTIAL_NAME });
-    expect(offButton.querySelector("svg")).not.toBeNull();
-    expect(offButton.getAttribute("aria-pressed")).toBe("false");
+    expect(offButton.querySelector("svg")).toBeNull();
     off.view.unmount();
     cleanup();
 
     renderHeader(info({ sequential_download: true }));
     const onButton = screen.getByRole("button", { name: SEQUENTIAL_NAME });
     expect(onButton.querySelector("svg")).not.toBeNull();
-    expect(onButton.getAttribute("aria-pressed")).toBe("true");
   });
 
   it("calls onSetSequential with the negated value", async () => {

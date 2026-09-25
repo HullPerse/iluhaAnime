@@ -348,6 +348,7 @@ const anilist = {
   "anilist.list.status.PLANNING": "Запланировано",
   "anilist.list.status.REPEATING": "Пересматриваю",
   "anilist.list.status.WATCHING": "В процессе",
+  "anilist.loading.slow": "Загрузка затянулась - может помочь прокси (Настройки > Общие > Прокси AniList)",
 } as const;
 
 export default anilist;

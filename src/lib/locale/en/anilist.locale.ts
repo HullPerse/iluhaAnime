@@ -337,6 +337,7 @@ const anilist = {
   "anilist.list.status.PLANNING": "Planning",
   "anilist.list.status.REPEATING": "Repeating",
   "anilist.list.status.WATCHING": "In progress",
+  "anilist.loading.slow": "Slow load - a proxy may help (Settings > General > AniList proxy)",
 } as const;
 
 export default anilist;

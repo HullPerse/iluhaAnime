@@ -1,5 +1,6 @@
 import { cn } from "cn";
 import { Box } from "lucide-react";
+import type { ReactNode } from "react";
 
 import { useI18n } from "@/lib/locale/i18n.utils";
 
@@ -11,7 +12,7 @@ export function BigLoader() {
   );
 }
 
-export function TabLoader({ className }: { className?: string }) {
+export function TabLoader({ className, children }: { className?: string; children?: ReactNode }) {
   return (
     <div
       className={cn(
@@ -21,6 +22,7 @@ export function TabLoader({ className }: { className?: string }) {
       aria-busy="true"
     >
       <SmallLoader size={6} />
+      {children}
     </div>
   );
 }

@@ -30,6 +30,8 @@ const anilist = {
   "anilist.activity.next.year": "Следующий год",
   "anilist.activity.notes": "Заметки",
   "anilist.activity.prev.year": "Предыдущий год",
+  "anilist.activity.legend.less": "Меньше",
+  "anilist.activity.legend.more": "Больше",
   "anilist.activity.retry": "Повторить",
   "anilist.activity.status.COMPLETED": "посмотрел(а)",
   "anilist.activity.status.CURRENT": "начал(а) смотреть",

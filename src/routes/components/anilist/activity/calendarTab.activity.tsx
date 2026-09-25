@@ -1,10 +1,16 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { CELL_GAP, CELL_LEVELS, CELL_SIZE } from "@/config/anilist/activity.config";
-import { buildActivityMap, buildYearGrid, dayKey, monthLabel } from "@/lib/anilist/activity.utils";
+import {
+  buildActivityMap,
+  buildYearGrid,
+  dayKey,
+  monthLabel,
+  selectInitialDayKey,
+} from "@/lib/anilist/activity.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import type { AniListCollection } from "@/types/anilist";
 
@@ -18,19 +24,30 @@ export function CalendarTab({
   const { t, locale } = useI18n();
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
-  const [hoverKey, setHoverKey] = useState<string | null>(null);
-  const [selectedKey, setSelectedKey] = useState<string | null>(null);
 
   const activity = useMemo(() => buildActivityMap(lists, t), [lists, t]);
   const grid = useMemo(() => buildYearGrid(year, activity), [year, activity]);
 
+  const [selectedKey, setSelectedKey] = useState<string | null>(() =>
+    selectInitialDayKey(activity, year)
+  );
+
+  useEffect(() => {
+    setSelectedKey((prev) => prev ?? selectInitialDayKey(activity, year));
+  }, [activity, year]);
+
   const pitch = CELL_SIZE + CELL_GAP;
 
-  const activeKey = selectedKey ?? hoverKey;
+  const activeKey = selectedKey;
   const activeActivity = activeKey ? activity.get(activeKey) : undefined;
 
-  const goPrevYear = () => setYear((y) => y - 1);
-  const goNextYear = () => setYear((y) => Math.min(y + 1, now.getFullYear()));
+  const goYear = (next: number) => {
+    const clamped = Math.min(next, now.getFullYear());
+    setYear(clamped);
+    setSelectedKey(selectInitialDayKey(activity, clamped));
+  };
+  const goPrevYear = () => goYear(year - 1);
+  const goNextYear = () => goYear(year + 1);
 
   return (
     <div className="flex w-full flex-col gap-2">
@@ -63,13 +80,16 @@ export function CalendarTab({
             <div className="relative mb-0.5 h-4">
               {grid.columns.map((col, ci) => {
                 if (col.month === grid.columns[ci - 1]?.month) return null;
+                let run = 1;
+                while (grid.columns[ci + run]?.month === col.month) run += 1;
+                if (run < 4) return null;
                 return (
                   <span
                     key={`m${ci}`}
                     className="windows95-font text-text absolute top-0 truncate text-xs leading-4"
                     style={{
                       left: ci * pitch,
-                      maxWidth: pitch * 2,
+                      maxWidth: run * pitch - 6,
                     }}
                   >
                     {monthLabel(col.month, locale)}
@@ -84,32 +104,28 @@ export function CalendarTab({
                     const isToday =
                       year === now.getFullYear() && cell.date.toDateString() === now.toDateString();
                     const key = dayKey(cell.date);
-                    const isActive = key === activeKey;
+                    const isActive = cell.count > 0;
+                    const isSelected = key === activeKey;
                     return (
                       <button
                         type="button"
                         key={r}
+                        disabled={!isActive}
+                        aria-pressed={isSelected}
                         aria-label={t("anilist.activity.day.summary", {
                           date: cell.date.toLocaleDateString(locale),
                           count: cell.count,
                         })}
-                        className="shrink-0 cursor-pointer border border-black/20"
+                        className="focus-visible:outline-text shrink-0 border border-black/20 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-dotted disabled:cursor-default"
                         style={{
                           width: CELL_SIZE,
                           height: CELL_SIZE,
                           backgroundColor: CELL_LEVELS[cell.level] || undefined,
-                          outline: isActive ? "1px solid var(--color-highlight)" : undefined,
+                          outline: isSelected ? "1px solid var(--color-highlight)" : undefined,
                           outlineOffset: 1,
                           boxShadow: isToday ? "0 0 0 1px var(--color-secondary) inset" : undefined,
                         }}
-                        onMouseEnter={() => cell.count > 0 && setHoverKey(dayKey(cell.date))}
-                        onMouseLeave={() => setHoverKey(null)}
-                        onClick={() => {
-                          if (cell.count === 0) return;
-                          setSelectedKey((prev) =>
-                            prev === dayKey(cell.date) ? null : dayKey(cell.date)
-                          );
-                        }}
+                        onClick={() => setSelectedKey(key)}
                         title={
                           cell.count > 0
                             ? `${cell.date.toLocaleDateString(locale)}: ${cell.count}`
@@ -138,7 +154,7 @@ export function CalendarTab({
                     : ""}
                 </span>
                 <Button
-                  onClick={() => setSelectedKey(null)}
+                  onClick={() => setSelectedKey(selectInitialDayKey(activity, year))}
                   className="windows95-text px-1 py-0 text-xs"
                   variant="ghost"
                 >
@@ -192,6 +208,19 @@ export function CalendarTab({
             </div>
           )}
         </section>
+      </div>
+
+      <div className="windows95-text text-hint flex items-center justify-end gap-1 px-1 text-xs">
+        <span>{t("anilist.activity.legend.less")}</span>
+        {CELL_LEVELS.map((color) => (
+          <span
+            key={color}
+            aria-hidden="true"
+            className="inline-block shrink-0 border border-black/20"
+            style={{ width: 11, height: 11, backgroundColor: color }}
+          />
+        ))}
+        <span>{t("anilist.activity.legend.more")}</span>
       </div>
     </div>
   );

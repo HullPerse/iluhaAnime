@@ -45,6 +45,7 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.4_1_2.changed.indicator_heights", "app"),
       entry("changelog.4_1_2.changed.tabs_tray", "app"),
       entry("changelog.4_1_2.changed.query_system", "app"),
+      entry("changelog.4_1_2.changed.activity_calendar", "anilist"),
     ],
     fixed: [
       entry("changelog.4_1_2.fixed.tmdb_key_save", "settings"),

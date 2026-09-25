@@ -13,6 +13,7 @@ import {
   formatActivityTime,
   groupLabel,
   monthLabel,
+  selectInitialDayKey,
 } from "@/lib/anilist/activity.utils";
 import {
   cameraCenteredOn,
@@ -258,6 +259,40 @@ describe("anilist/activity", () => {
       const cells = columns.flatMap((c) => c.cells);
       const cell = cells.find((c) => c.count === 4);
       expect(cell?.level).toBe(4);
+    });
+  });
+
+  describe("selectInitialDayKey", () => {
+    function activeMap(keys: string[]): Map<string, DayActivity> {
+      const map = new Map<string, DayActivity>();
+      for (const key of keys) map.set(key, makeDay(1));
+      return map;
+    }
+
+    it("returns null for empty activity", () => {
+      expect(selectInitialDayKey(new Map(), 2024, new Date(2024, 5, 1))).toBeNull();
+    });
+
+    it("returns the latest active day of the year", () => {
+      const map = activeMap(["2024-03-01", "2024-05-10", "2024-01-20"]);
+      expect(selectInitialDayKey(map, 2024, new Date(2024, 11, 31))).toBe("2024-05-10");
+    });
+
+    it("ignores other years", () => {
+      const map = activeMap(["2023-12-31", "2025-01-01", "2024-02-02"]);
+      expect(selectInitialDayKey(map, 2024, new Date(2024, 11, 31))).toBe("2024-02-02");
+    });
+
+    it("ignores future days in the current year", () => {
+      const map = activeMap(["2024-06-10", "2024-09-30"]);
+      expect(selectInitialDayKey(map, 2024, new Date(2024, 5, 15))).toBe("2024-06-10");
+      expect(selectInitialDayKey(map, 2024, new Date(2024, 5, 1))).toBeNull();
+    });
+
+    it("ignores zero-count days", () => {
+      const map = activeMap(["2024-04-01"]);
+      map.set("2024-07-07", makeDay(0));
+      expect(selectInitialDayKey(map, 2024, new Date(2024, 11, 31))).toBe("2024-04-01");
     });
   });
 });

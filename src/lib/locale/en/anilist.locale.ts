@@ -26,6 +26,8 @@ const anilist = {
   "anilist.activity.next.year": "Next year",
   "anilist.activity.notes": "Notes",
   "anilist.activity.prev.year": "Previous year",
+  "anilist.activity.legend.less": "Less",
+  "anilist.activity.legend.more": "More",
   "anilist.activity.retry": "Retry",
   "anilist.activity.status.COMPLETED": "completed",
   "anilist.activity.status.CURRENT": "started watching",

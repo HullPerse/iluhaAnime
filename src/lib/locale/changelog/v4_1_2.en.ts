@@ -53,6 +53,8 @@ const changelog412 = {
     "The notification bell lives only in the main tab bar instead of every modal, and the favourites and friends tabs share one look",
   "changelog.4_1_2.changed.query_system":
     "Torrent file lists, peer stats, and activity feeds refresh on one schedule and pause when the window is hidden, so background traffic is lower",
+  "changelog.4_1_2.changed.activity_calendar":
+    "The activity calendar opens on your latest active day instead of an empty panel, month names no longer overlap, and a legend explains the colors",
   "changelog.4_1_2.fixed.tmdb_key_save":
     "The TMDB key saves again: the app and the backend disagreed on the field name",
   "changelog.4_1_2.fixed.tmdb_covers":

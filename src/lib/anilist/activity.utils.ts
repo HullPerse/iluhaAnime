@@ -158,3 +158,18 @@ export function dayLabel(day: number, locale: Locale): string {
     weekday: "short",
   });
 }
+
+export function selectInitialDayKey(
+  activity: Map<string, DayActivity>,
+  year: number,
+  today: Date = new Date()
+): string | null {
+  const prefix = `${year}-`;
+  const limit = today.getFullYear() === year ? dayKey(today) : `${year}-12-31`;
+  let best: string | null = null;
+  for (const [key, day] of activity) {
+    if (day.count <= 0 || !key.startsWith(prefix) || key > limit) continue;
+    if (best === null || key > best) best = key;
+  }
+  return best;
+}

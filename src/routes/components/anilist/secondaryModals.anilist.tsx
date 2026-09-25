@@ -30,6 +30,7 @@ export default function AniListSecondaryModals({
   userId,
   friendIds,
   lists,
+  selfUser,
   activityTab,
   onActivityClose,
   onActivityAnime,
@@ -64,6 +65,7 @@ export default function AniListSecondaryModals({
   userId: number | null;
   friendIds: number[];
   lists: AniListCollection[];
+  selfUser: AniUser | null;
   activityTab: "feed" | "calendar";
   onActivityClose: () => void;
   onActivityAnime: (id: number) => void;
@@ -114,6 +116,9 @@ export default function AniListSecondaryModals({
       {views.friends && (
         <AniListFriendsModal
           friends={friends}
+          selfUser={selfUser}
+          selfLists={lists}
+          selfFavourites={favourites}
           onAdd={onAddFriend}
           onRemove={onRemoveFriend}
           onViewLists={onViewFriendLists}

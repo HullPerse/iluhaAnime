@@ -320,8 +320,8 @@ export interface SimNode {
   y: number;
   vx: number;
   vy: number;
-  fy?: number;
   clusterX: number;
+  clusterY: number;
 }
 
 export interface FranchiseNodePosition {
@@ -641,12 +641,16 @@ export interface FranchiseToolbarProps {
   onToggleFilter: (filter: RelationFilter) => void;
   onSearchChange: (query: string) => void;
   onToggleView: () => void;
+  onFocusCurrent: () => void;
   onResetLayout: () => void;
   onRefresh: () => void;
 }
 
 export interface AniFriendsProps {
   friends: AniFriend[];
+  selfUser: AniUser | null;
+  selfLists: AniListCollection[];
+  selfFavourites: FavouriteAnime[];
   onAdd: (profile: AniUserProfile) => void;
   onRemove: (id: number) => void;
   onViewLists: (friend: AniFriend) => void;

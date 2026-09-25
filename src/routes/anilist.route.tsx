@@ -581,6 +581,7 @@ function AnilistRoute() {
           userId={user?.id ?? null}
           friendIds={friendIds}
           lists={lists}
+          selfUser={user}
           activityTab={views.activity.tab}
           onActivityClose={handleCloseActivity}
           onActivityAnime={openAnimeFromLookup}

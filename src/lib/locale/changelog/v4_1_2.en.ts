@@ -1,4 +1,6 @@
 const changelog412 = {
+  "changelog.4_1_2.added.friend_compare":
+    "Friends modal compares your lists with a friend: iluha affinity score, shared and unique titles with score gaps, top shared genres and shared favourites",
   "changelog.4_1_2.added.collection_operators":
     "Collection search understands the same operators, with syntax hints appearing once a marker is typed",
   "changelog.4_1_2.added.screenshots_save":

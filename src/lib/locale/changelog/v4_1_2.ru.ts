@@ -1,4 +1,6 @@
 const changelog412 = {
+  "changelog.4_1_2.added.friend_compare":
+    "Модалка друзей сравнивает ваши списки со списками друга: iluha affinity, общие и уникальные тайтлы с разницей оценок, общие жанры и общее избранное",
   "changelog.4_1_2.added.collection_operators":
     "Поиск по коллекции понимает те же операторы, а подсказки синтаксиса появляются, как только введен маркер",
   "changelog.4_1_2.added.screenshots_save":

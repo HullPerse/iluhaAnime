@@ -1,5 +1,5 @@
 import { cn } from "cn";
-import { List, RefreshCw, Trash2, UserPlus, Users, X } from "lucide-react";
+import { ArrowLeftRight, List, RefreshCw, Trash2, UserPlus, Users, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
@@ -8,16 +8,81 @@ import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { Input } from "@/components/ui/input.component";
+import { useFriendCompare } from "@/hooks/friendCompare.hook";
 import { hasFreshCachedProfile } from "@/lib/anilist/friends.utils";
 import { formatMeanScore, parseScoreFormat } from "@/lib/anilist/score.utils";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { enterSubmit } from "@/lib/utils/keyboard.utils";
 import { useAniListFriendsStore } from "@/store/anilist.store";
-import type { AniFriend, AniUserProfile } from "@/types/anilist";
+import type {
+  AniFriend,
+  AniListCollection,
+  AniUser,
+  AniUserProfile,
+  FavouriteAnime,
+} from "@/types/anilist";
 import type { AniFriendsProps as Props } from "@/types/anilist";
 
 import { FriendActivityFeed } from "./activity/friendActivity.activity";
+import CompareAnilist from "./compare.anilist";
+
+const VIEW_LABELS = {
+  profile: "anilist.compare.profile",
+  compare: "anilist.compare.compare",
+} as const;
+
+type FriendView = keyof typeof VIEW_LABELS;
+
+function ViewTabs({ view, onChange }: { view: FriendView; onChange: (next: FriendView) => void }) {
+  const { t } = useI18n();
+  return (
+    <div className="flex gap-1">
+      {(Object.keys(VIEW_LABELS) as FriendView[]).map((value) => (
+        <Button
+          key={value}
+          variant={view === value ? "secondary" : "outline"}
+          className={cn("flex-1", view === value && "font-bold")}
+          onClick={() => onChange(value)}
+        >
+          <span className="windows95-text text-xs">{t(VIEW_LABELS[value])}</span>
+        </Button>
+      ))}
+    </div>
+  );
+}
+
+function ComparePanel({
+  friend,
+  profile,
+  selfUser,
+  selfLists,
+  selfFavourites,
+}: {
+  friend: AniFriend;
+  profile: AniUserProfile | undefined;
+  selfUser: AniUser | null;
+  selfLists: AniListCollection[];
+  selfFavourites: FavouriteAnime[];
+}) {
+  const { friendLists, friendFavourites, listsLoading, listsError, retry } = useFriendCompare(
+    friend.id,
+    true
+  );
+  return (
+    <CompareAnilist
+      selfUser={selfUser}
+      selfLists={selfLists}
+      selfFavourites={selfFavourites}
+      friendProfile={profile ?? friend.profile ?? null}
+      friendLists={friendLists}
+      friendFavourites={friendFavourites}
+      listsLoading={listsLoading}
+      listsError={listsError}
+      onRetry={retry}
+    />
+  );
+}
 
 interface FriendPreviewProps {
   friend: AniFriend | undefined;
@@ -133,6 +198,9 @@ function FriendPreview({
 
 export default function AniListFriendsModal({
   friends,
+  selfUser,
+  selfLists,
+  selfFavourites,
   onAdd,
   onRemove,
   onViewLists,
@@ -147,6 +215,7 @@ export default function AniListFriendsModal({
   const [error, setError] = useState<string | null>(null);
   const [profileError, setProfileError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [view, setView] = useState<FriendView>("profile");
 
   useEffect(() => {
     setProfiles((current) => {
@@ -215,6 +284,13 @@ export default function AniListFriendsModal({
   const selectedFriend =
     selectedId != null ? friends.find((friend) => friend.id === selectedId) : undefined;
 
+  const compareTarget = view === "compare" ? (selectedFriend ?? null) : null;
+
+  const compareFriend = (friend: AniFriend) => {
+    selectFriend(friend);
+    setView("compare");
+  };
+
   return (
     <Modal header={t("anilist.friends.title")} onClose={onClose} className="w-4xl max-w-[92vw]">
       <div className="grid min-h-80 grid-cols-1 gap-2 md:grid-cols-[minmax(13rem,0.8fr)_minmax(0,1.4fr)]">
@@ -260,6 +336,15 @@ export default function AniListFriendsModal({
                   <Button
                     size="icon"
                     className="size-5"
+                    title={t("anilist.compare.open")}
+                    aria-label={t("anilist.compare.open")}
+                    onClick={() => compareFriend(friend)}
+                  >
+                    <ArrowLeftRight className="size-3" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    className="size-5"
                     title={t("anilist.friends.view.lists")}
                     onClick={() => onViewLists(friend)}
                   >
@@ -298,17 +383,28 @@ export default function AniListFriendsModal({
               <span className="windows95-text">{error}</span>
             </div>
           )}
-          <FriendPreview
-            friend={selectedFriend}
-            profile={selectedProfile}
-            profileError={profileError}
-            refreshing={refreshing}
-            hasSelection={selectedId !== null}
-            onViewLists={onViewLists}
-            onRefresh={(force) => {
-              if (selectedFriend) fetchProfile(selectedFriend, force).catch(() => {});
-            }}
-          />
+          {selectedId !== null && <ViewTabs view={view} onChange={setView} />}
+          {compareTarget ? (
+            <ComparePanel
+              friend={compareTarget}
+              profile={selectedProfile}
+              selfUser={selfUser}
+              selfLists={selfLists}
+              selfFavourites={selfFavourites}
+            />
+          ) : (
+            <FriendPreview
+              friend={selectedFriend}
+              profile={selectedProfile}
+              profileError={profileError}
+              refreshing={refreshing}
+              hasSelection={selectedId !== null}
+              onViewLists={onViewLists}
+              onRefresh={(force) => {
+                if (selectedFriend) fetchProfile(selectedFriend, force).catch(() => {});
+              }}
+            />
+          )}
         </section>
       </div>
     </Modal>

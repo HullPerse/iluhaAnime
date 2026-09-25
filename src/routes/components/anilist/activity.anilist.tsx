@@ -28,15 +28,17 @@ function ActivityHistoryModal({
 
   return (
     <Modal header={t("anilist.activity.title")} onClose={onClose} className="w-5xl">
-      <Tabs
-        ariaLabel={t("anilist.activity.title")}
-        tabs={[
-          { id: "feed", label: t("anilist.activity.feed") },
-          { id: "calendar", label: t("anilist.activity.calendar") },
-        ]}
-        activeTab={tab}
-        onChange={setTab}
-      />
+      <div className="shrink-0">
+        <Tabs
+          ariaLabel={t("anilist.activity.title")}
+          tabs={[
+            { id: "feed", label: t("anilist.activity.feed") },
+            { id: "calendar", label: t("anilist.activity.calendar") },
+          ]}
+          activeTab={tab}
+          onChange={setTab}
+        />
+      </div>
       <div className="bg-primary min-h-0 w-full flex-1 overflow-y-auto">
         {tab === "feed" ? (
           <FeedTab

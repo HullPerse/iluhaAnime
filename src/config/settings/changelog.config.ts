@@ -42,6 +42,7 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.4_1_2.changed.friends_scores_batch", "anilist"),
       entry("changelog.4_1_2.changed.sequential_off_empty", "torrents"),
       entry("changelog.4_1_2.changed.indicator_heights", "app"),
+      entry("changelog.4_1_2.changed.tabs_tray", "app"),
     ],
     fixed: [
       entry("changelog.4_1_2.fixed.tmdb_key_save", "settings"),

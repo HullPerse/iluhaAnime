@@ -64,12 +64,14 @@ export default function BrowseAnimeModal({
       onClose={onClose}
       className="w-3xl"
     >
-      <Tabs
-        ariaLabel={t("common.sections")}
-        tabs={BROWSE_TABS.map((tab) => ({ id: tab.id, label: t(tab.key) }))}
-        activeTab={activeTab}
-        onChange={(id) => setActiveTab(id)}
-      />
+      <div className="shrink-0">
+        <Tabs
+          ariaLabel={t("common.sections")}
+          tabs={BROWSE_TABS.map((tab) => ({ id: tab.id, label: t(tab.key) }))}
+          activeTab={activeTab}
+          onChange={(id) => setActiveTab(id)}
+        />
+      </div>
 
       <div ref={scrollRef} className="flex flex-1 flex-col gap-1 overflow-y-auto p-1">
         {isLoading ? (

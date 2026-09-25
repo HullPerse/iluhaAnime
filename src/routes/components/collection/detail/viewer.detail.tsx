@@ -26,12 +26,14 @@ export function MediaViewerContent({
   ];
   return (
     <div className="flex flex-col gap-1">
-      <Tabs<FilmstripTab>
-        tabs={tabs}
-        activeTab={activeTab}
-        onChange={onTabChange}
-        ariaLabel={t("collection.details.media")}
-      />
+      <div className="shrink-0">
+        <Tabs<FilmstripTab>
+          tabs={tabs}
+          activeTab={activeTab}
+          onChange={onTabChange}
+          ariaLabel={t("collection.details.media")}
+        />
+      </div>
       <MediaLightboxContent
         stills={stills}
         trailerYoutubeId={trailer}

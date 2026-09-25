@@ -286,15 +286,19 @@ export default function UpscalePlayer({
         >
           {showConfig && (
             <div className="flex flex-col">
-              <Tabs
-                ariaLabel={t(activeTab === "upscale" ? "player.tab.upscale" : "player.tab.convert")}
-                tabs={TABS.map((tab) => ({
-                  ...tab,
-                  label: t(tab.label),
-                }))}
-                activeTab={activeTab}
-                onChange={setActiveTab}
-              />
+              <div className="shrink-0">
+                <Tabs
+                  ariaLabel={t(
+                    activeTab === "upscale" ? "player.tab.upscale" : "player.tab.convert"
+                  )}
+                  tabs={TABS.map((tab) => ({
+                    ...tab,
+                    label: t(tab.label),
+                  }))}
+                  activeTab={activeTab}
+                  onChange={setActiveTab}
+                />
+              </div>
 
               <section className="windows95-border flex-1 overflow-hidden p-1">
                 <UpscaleConfigPanel

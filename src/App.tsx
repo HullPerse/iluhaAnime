@@ -15,6 +15,7 @@ import { useSettingsStore } from "@/store/settings.store";
 import type { TabId } from "@/types/settings";
 
 import { SmallLoader, TabLoader } from "./components/shared/loader.component";
+import NotificationTray from "./components/shared/notification/tray.notification";
 import ScreenshotModal from "./components/shared/screenshot/modal.screenshot";
 import StatusBar from "./components/shared/status.component";
 import Tabs from "./components/shared/tabs.component";
@@ -112,13 +113,16 @@ export default function App() {
         <div className="ui-panel flex h-full flex-col">
           {customTitleBarEnabled && <TitleBar title="iluhaAnime" />}
           <div className="shrink-0">
-            <Tabs
-              ariaLabel={t("common.sections")}
-              tabs={tabs}
-              activeTab={activeTab}
-              onChange={(id) => setActiveTabTransition(id)}
-              onPrefetch={(id) => prefetchTab(id)}
-            />
+            <div className="flex max-w-full shrink-0 items-center gap-1 pt-1 pr-2 pl-2">
+              <Tabs
+                ariaLabel={t("common.sections")}
+                tabs={tabs}
+                activeTab={activeTab}
+                onChange={(id) => setActiveTabTransition(id)}
+                onPrefetch={(id) => prefetchTab(id)}
+              />
+              <NotificationTray />
+            </div>
           </div>
           <div className="windows95-border bg-surface relative mx-1 mb-1 min-h-0 flex-1 overflow-hidden">
             <Suspense fallback={<TabLoader />}>{getComponent()}</Suspense>

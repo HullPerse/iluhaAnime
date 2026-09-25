@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { anilistApi } from "@/api/anilist.api";
 import { SmallLoader } from "@/components/shared/loader.component";
 import Modal from "@/components/shared/modal.component";
+import Tabs from "@/components/shared/tabs.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { Input } from "@/components/ui/input.component";
@@ -37,17 +38,16 @@ type FriendView = keyof typeof VIEW_LABELS;
 function ViewTabs({ view, onChange }: { view: FriendView; onChange: (next: FriendView) => void }) {
   const { t } = useI18n();
   return (
-    <div className="flex gap-1">
-      {(Object.keys(VIEW_LABELS) as FriendView[]).map((value) => (
-        <Button
-          key={value}
-          variant={view === value ? "secondary" : "outline"}
-          className={cn("flex-1", view === value && "font-bold")}
-          onClick={() => onChange(value)}
-        >
-          <span className="windows95-text text-xs">{t(VIEW_LABELS[value])}</span>
-        </Button>
-      ))}
+    <div className="shrink-0">
+      <Tabs
+        ariaLabel={t("anilist.friends.title")}
+        tabs={(Object.keys(VIEW_LABELS) as FriendView[]).map((value) => ({
+          id: value,
+          label: t(VIEW_LABELS[value]),
+        }))}
+        activeTab={view}
+        onChange={onChange}
+      />
     </div>
   );
 }

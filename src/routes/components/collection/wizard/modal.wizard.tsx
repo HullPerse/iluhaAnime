@@ -262,12 +262,14 @@ export function WizardModal({
             <X className="size-3" />
           </Button>
         </div>
-        <Tabs
-          ariaLabel={editing ? t("collection.edit.media") : t("collection.addMedia")}
-          tabs={visibleTabs.map((tab) => ({ id: tab.id, label: t(tab.labelKey) }))}
-          activeTab={activeTab}
-          onChange={setTab}
-        />
+        <div className="shrink-0">
+          <Tabs
+            ariaLabel={editing ? t("collection.edit.media") : t("collection.addMedia")}
+            tabs={visibleTabs.map((tab) => ({ id: tab.id, label: t(tab.labelKey) }))}
+            activeTab={activeTab}
+            onChange={setTab}
+          />
+        </div>
         <div className="flex min-h-0 flex-1 flex-col gap-2 p-2 md:flex-row">
           <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-1">
             {activeTab === "source" && !editing && (

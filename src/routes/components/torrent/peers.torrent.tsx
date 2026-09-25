@@ -81,14 +81,19 @@ export function TorrentPeersModal({
             </Button>
           ))}
         </div>
-        <Tabs
-          tabs={[
-            { id: "peers", label: `${t("torrent.peers.title")} (${peers.length})` },
-            { id: "trackers", label: `${t("torrent.diagnostics.trackers")} (${trackers.length})` },
-          ]}
-          activeTab={tab}
-          onChange={setTab}
-        />
+        <div className="shrink-0">
+          <Tabs
+            tabs={[
+              { id: "peers", label: `${t("torrent.peers.title")} (${peers.length})` },
+              {
+                id: "trackers",
+                label: `${t("torrent.diagnostics.trackers")} (${trackers.length})`,
+              },
+            ]}
+            activeTab={tab}
+            onChange={setTab}
+          />
+        </div>
         {query.isLoading && (
           <div className="flex items-center gap-1 px-0.5 py-0.5">
             <SmallLoader size={3} />

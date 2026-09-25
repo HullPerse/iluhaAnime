@@ -1,12 +1,11 @@
-import { cn } from "cn";
 import { Star } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import Modal from "@/components/shared/modal.component";
-import { Button } from "@/components/ui/button.component";
+import Tabs from "@/components/shared/tabs.component";
 import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/lib/locale/i18n.utils";
-import { createListNavigationHandler, enterOrSpace } from "@/lib/utils/keyboard.utils";
+import { enterOrSpace } from "@/lib/utils/keyboard.utils";
 import type {
   AniFavouritesProps as Props,
   FavouritesTab,
@@ -138,54 +137,19 @@ export default function AniListFavouritesModal({
     characters: people.characters.length,
     staff: people.staff.length,
   };
-  const labels: Record<FavouritesTab, string> = {
-    anime: t("anilist.favourites.anime"),
-    characters: t("anilist.favourites.characters"),
-    staff: t("anilist.favourites.staff"),
-  };
-  const activeIndex = TABS.indexOf(tab);
-  const handleTabKeys = createListNavigationHandler<HTMLDivElement>({
-    activeIndex,
-    axis: "horizontal",
-    count: TABS.length,
-    setActiveIndex: () => {},
-    onFocus: (index) => {
-      const next = TABS[index];
-      if (next) setTab(next);
-    },
-  });
 
   return (
     <Modal header={t("anilist.favourites.title")} onClose={onClose} className="w-2xl">
-      <div
-        className="flex shrink-0 flex-row gap-1"
-        role="tablist"
-        aria-label={t("anilist.favourites.title")}
-        tabIndex={0}
-        onKeyDown={handleTabKeys}
-      >
-        {TABS.map((id) => {
-          const isActive = tab === id;
-          return (
-            <Button
-              key={id}
-              className={cn(
-                "windows95-text relative cursor-pointer px-3 py-0.5",
-                isActive
-                  ? "windows95-active-border border-b-transparent"
-                  : "windows95-small-border bg-surface"
-              )}
-              role="tab"
-              aria-selected={isActive}
-              tabIndex={isActive ? 0 : -1}
-              onClick={() => {
-                if (!isActive) setTab(id);
-              }}
-            >
-              {labels[id]} ({counts[id]})
-            </Button>
-          );
-        })}
+      <div className="shrink-0">
+        <Tabs
+          ariaLabel={t("anilist.favourites.title")}
+          tabs={TABS.map((id) => ({
+            id,
+            label: `${t(`anilist.favourites.${id}`)} (${counts[id]})`,
+          }))}
+          activeTab={tab}
+          onChange={setTab}
+        />
       </div>
       {counts[tab] === 0 ? (
         <div className="flex flex-1 items-center justify-center">

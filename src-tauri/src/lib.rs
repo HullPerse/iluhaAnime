@@ -1298,6 +1298,7 @@ pub fn run() {
             anilist::client::test_anilist_connection,
             jikan::get_anime_stills,
             anilist::get_anilist_profile,
+            anilist::get_anilist_following,
             anilist::anilist_login,
             anilist::check_anilist_auth,
             anilist::get_anilist_lists,

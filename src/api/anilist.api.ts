@@ -16,6 +16,7 @@ import type {
   FavouriteAnime,
   FavouritePeople,
   FavouritePerson,
+  FollowingPage,
   FranchiseGraph,
   PrefetchSummary,
 } from "@/types/anilist";
@@ -81,6 +82,10 @@ export class AnilistApi {
 
   getFriendScores(mediaId: number, userIds: number[]): Promise<AniFriendScore[]> {
     return this.call("get_anilist_friend_scores", { mediaId, userIds });
+  }
+
+  getFollowing(userId: number, page = 1, perPage = 25): Promise<FollowingPage> {
+    return this.call("get_anilist_following", { userId, page, perPage });
   }
 
   search<T = AniMedia>(params: AnilistSearchParams): Promise<T[]> {

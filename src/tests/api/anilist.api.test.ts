@@ -51,6 +51,21 @@ describe("AnilistApi", () => {
     });
   });
 
+  it("asks for a following page with user and pagination", async () => {
+    const { calls, transport } = fakeTransport(() => ({
+      users: [],
+      has_next_page: false,
+    }));
+    const api = new AnilistApi({ transport });
+
+    await api.getFollowing(7, 2, 25);
+
+    expect(calls[0]).toMatchObject({
+      command: "get_anilist_following",
+      args: { userId: 7, page: 2, perPage: 25 },
+    });
+  });
+
   it("trims the login token", async () => {
     const { calls, transport } = fakeTransport(() => ({ id: 1, name: "u" }));
     const api = new AnilistApi({ transport });

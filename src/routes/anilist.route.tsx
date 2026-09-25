@@ -31,6 +31,7 @@ import { useSearchStore } from "@/store/search.store";
 import { useSettingsStore } from "@/store/settings.store";
 import type {
   AniFriend,
+  AniFriendMinimal,
   AniListAnime,
   AniListSort,
   AniRecommendation,
@@ -320,6 +321,11 @@ function AnilistRoute() {
     [addFriend, cacheFriendProfile]
   );
 
+  const handleAddManyFriends = useCallback((minimal: AniFriendMinimal[]) => {
+    const add = useAniListFriendsStore.getState().addFriend;
+    for (const friend of minimal) add(friend);
+  }, []);
+
   const openFriend = useCallback(
     (friend: AniFriend) => {
       setViewedFriend(friend);
@@ -588,6 +594,7 @@ function AnilistRoute() {
           onActivityAnime={openAnimeFromLookup}
           friends={friends}
           onAddFriend={handleAddFriend}
+          onAddManyFriends={handleAddManyFriends}
           onRemoveFriend={removeFriend}
           onViewFriendLists={openFriend}
           onFriendsClose={() => handleCloseModal("friends")}

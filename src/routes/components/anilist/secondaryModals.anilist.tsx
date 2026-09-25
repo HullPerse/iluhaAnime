@@ -10,6 +10,7 @@ import AniListRecsModal from "@/routes/components/anilist/rec.anilist";
 import StatsModal from "@/routes/components/anilist/stats.anilist";
 import type {
   AniFriend,
+  AniFriendMinimal,
   AniListCollection,
   AniListFilters,
   AniListModalViews,
@@ -37,6 +38,7 @@ export default function AniListSecondaryModals({
   onActivityAnime,
   friends,
   onAddFriend,
+  onAddManyFriends,
   onRemoveFriend,
   onViewFriendLists,
   onFriendsClose,
@@ -78,6 +80,7 @@ export default function AniListSecondaryModals({
   onActivityAnime: (id: number) => void;
   friends: AniFriend[];
   onAddFriend: (profile: AniUserProfile) => void;
+  onAddManyFriends: (friends: AniFriendMinimal[]) => void;
   onRemoveFriend: (id: number) => void;
   onViewFriendLists: (friend: AniFriend) => void;
   onFriendsClose: () => void;
@@ -133,6 +136,7 @@ export default function AniListSecondaryModals({
           selfLists={lists}
           selfFavourites={favourites}
           onAdd={onAddFriend}
+          onAddMany={onAddManyFriends}
           onRemove={onRemoveFriend}
           onViewLists={onViewFriendLists}
           onClose={onFriendsClose}

@@ -87,6 +87,18 @@ export interface AniFriend {
   profile_fetched_at?: number;
 }
 
+export interface AniFriendMinimal {
+  id: number;
+  name: string;
+  avatar: string | null;
+}
+
+export interface FollowingPage {
+  users: AniFriendMinimal[];
+  has_next_page: boolean;
+  total?: number | null;
+}
+
 export interface FavouriteAnime {
   id: number;
   title: { romaji: string; english: string | null };
@@ -660,6 +672,7 @@ export interface AniFriendsProps {
   selfLists: AniListCollection[];
   selfFavourites: FavouriteAnime[];
   onAdd: (profile: AniUserProfile) => void;
+  onAddMany: (friends: AniFriendMinimal[]) => void;
   onRemove: (id: number) => void;
   onViewLists: (friend: AniFriend) => void;
   onClose: () => void;

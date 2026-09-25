@@ -161,6 +161,102 @@ pub async fn get_anilist_profile(
         is_follower: user["isFollower"].as_bool(),
     })
 }
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AniFollowingUser {
+    pub id: u64,
+    pub name: String,
+    pub avatar: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FollowingPage {
+    pub users: Vec<AniFollowingUser>,
+    pub has_next_page: bool,
+    pub total: Option<i32>,
+}
+
+fn validate_following_params(
+    user_id: u64,
+    page: Option<u32>,
+    per_page: Option<u32>,
+) -> Result<(i64, u32, u32), String> {
+    if user_id == 0 {
+        return Err("A user id is required".to_string());
+    }
+    let page = page.unwrap_or(1);
+    let per_page = per_page.unwrap_or(25);
+    if page == 0 {
+        return Err("page must be at least 1".to_string());
+    }
+    if !(1..=50).contains(&per_page) {
+        return Err("per_page must be between 1 and 50".to_string());
+    }
+    Ok((user_id as i64, page, per_page))
+}
+
+fn parse_following_user(node: &serde_json::Value) -> Option<AniFollowingUser> {
+    let id = node["id"].as_u64()?;
+    if id == 0 {
+        return None;
+    }
+    Some(AniFollowingUser {
+        id,
+        name: node["name"].as_str().unwrap_or("User").to_string(),
+        avatar: node["avatar"]["large"]
+            .as_str()
+            .or_else(|| node["avatar"]["medium"].as_str())
+            .map(String::from),
+    })
+}
+
+fn parse_following_page(json: &serde_json::Value) -> FollowingPage {
+    let page = &json["data"]["Page"];
+    let users = page["following"]
+        .as_array()
+        .map(|items| items.iter().filter_map(parse_following_user).collect())
+        .unwrap_or_default();
+    FollowingPage {
+        users,
+        has_next_page: page["pageInfo"]["hasNextPage"].as_bool().unwrap_or(false),
+        total: page["pageInfo"]["total"].as_i64().map(|n| n as i32),
+    }
+}
+
+#[tauri::command]
+#[allow(non_snake_case)]
+pub async fn get_anilist_following(
+    app_handle: tauri::AppHandle,
+    user_id: u64,
+    page: Option<u32>,
+    perPage: Option<u32>,
+    per_page: Option<u32>,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
+) -> Result<FollowingPage, String> {
+    let per_page = perPage.or(per_page);
+    let (user_id, page, per_page) = validate_following_params(user_id, page, per_page)?;
+    let token = load_token(&app_handle).ok();
+    let body = serde_json::json!({
+        "query": r"
+            query ($userId: Int!, $page: Int, $perPage: Int) {
+                Page(page: $page, perPage: $perPage) {
+                    pageInfo { hasNextPage total }
+                    following(userId: $userId) {
+                        id
+                        name
+                        avatar { large medium }
+                    }
+                }
+            }
+        ",
+        "variables": { "userId": user_id, "page": page, "perPage": per_page }
+    });
+    let proxy = resolve_proxy(proxy_url, proxyUrl);
+    let json = graphql_request(body, token.as_deref(), proxy.as_deref()).await?;
+    Ok(parse_following_page(&json))
+}
 #[tauri::command]
 #[allow(non_snake_case)]
 pub async fn anilist_login(
@@ -621,5 +717,48 @@ mod tests {
     #[test]
     fn friends_without_an_entry_are_skipped() {
         assert!(parse_friend_score(&serde_json::Value::Null, 7).is_none());
+    }
+
+    #[test]
+    fn following_params_reject_bad_input() {
+        assert!(validate_following_params(0, None, None).is_err());
+        assert!(validate_following_params(7, Some(0), None).is_err());
+        assert!(validate_following_params(7, None, Some(0)).is_err());
+        assert!(validate_following_params(7, None, Some(51)).is_err());
+        let (user_id, page, per_page) =
+            validate_following_params(7, None, None).expect("defaults should pass");
+        assert_eq!((user_id, page, per_page), (7, 1, 25));
+    }
+
+    #[test]
+    fn parses_following_page_with_pagination() {
+        let json = serde_json::json!({
+            "data": { "Page": {
+                "pageInfo": { "hasNextPage": true, "total": 3 },
+                "following": [
+                    { "id": 7, "name": "A", "avatar": { "large": "https://img/a.jpg", "medium": null } },
+                    { "id": 9, "name": "B", "avatar": { "large": null, "medium": "https://img/b.jpg" } },
+                    { "id": 0, "name": "Ghost", "avatar": { "large": null, "medium": null } },
+                    { "id": 11, "name": "C", "avatar": { "large": null, "medium": null } },
+                ],
+            } },
+        });
+        let parsed = parse_following_page(&json);
+        assert!(parsed.has_next_page);
+        assert_eq!(parsed.total, Some(3));
+        assert_eq!(parsed.users.len(), 3);
+        assert_eq!(parsed.users[0].name, "A");
+        assert_eq!(parsed.users[0].avatar.as_deref(), Some("https://img/a.jpg"));
+        assert_eq!(parsed.users[1].avatar.as_deref(), Some("https://img/b.jpg"));
+        assert_eq!(parsed.users[2].avatar, None);
+    }
+
+    #[test]
+    fn parses_following_page_without_page_info() {
+        let json = serde_json::json!({ "data": { "Page": { "following": [] } } });
+        let parsed = parse_following_page(&json);
+        assert!(!parsed.has_next_page);
+        assert_eq!(parsed.total, None);
+        assert!(parsed.users.is_empty());
     }
 }

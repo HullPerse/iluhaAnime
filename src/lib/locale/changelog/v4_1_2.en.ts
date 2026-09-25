@@ -29,6 +29,8 @@ const changelog412 = {
     "List entries too old for AniList dates show More than 5 years ago instead of an empty slot",
   "changelog.4_1_2.added.favourites_tabs":
     "The favourites window shows anime, characters and staff on separate tabs, and a person opens their profile on top of the list",
+  "changelog.4_1_2.added.friends_import":
+    "Bulk add friends from your AniList following: tick profiles with checkboxes, already added ones show as disabled",
   "changelog.4_1_2.changed.color_presets":
     "Color presets are gone from the screenshot toolbar and the color picker: pick any color directly",
   "changelog.4_1_2.changed.sqlite_console_removed":

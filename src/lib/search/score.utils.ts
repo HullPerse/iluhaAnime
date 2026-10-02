@@ -141,7 +141,7 @@ export function fuzzyMatchScore(query: string, candidate: string): number | null
   return normalizedMatchScore(q, target);
 }
 
-export type OperatorMode = "fuzzy" | "exact" | "prefix" | "suffix" | "full";
+type OperatorMode = "fuzzy" | "exact" | "prefix" | "suffix" | "full";
 
 export interface OperatorTerm {
   negate: boolean;

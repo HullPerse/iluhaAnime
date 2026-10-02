@@ -8,11 +8,11 @@ import type {
 import type { ApiTransport } from "./transport.api";
 import { tauriTransport } from "./transport.api";
 
-export interface SqliteApiConfig {
+interface SqliteApiConfig {
   transport?: ApiTransport;
 }
 
-export interface SqliteRowsQuery {
+interface SqliteRowsQuery {
   page: number;
   pageSize: number;
   filter: string | null;
@@ -20,7 +20,7 @@ export interface SqliteRowsQuery {
   orderDirection: string | null;
 }
 
-export class SqliteApi {
+class SqliteApi {
   private readonly transport: ApiTransport;
 
   constructor(config: SqliteApiConfig = {}) {

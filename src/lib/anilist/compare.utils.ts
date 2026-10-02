@@ -5,7 +5,7 @@ export type CompareMetric = "iluha" | "mal" | "delta";
 
 export const COMPARE_METRICS: readonly CompareMetric[] = ["iluha", "mal", "delta"];
 
-export const MIN_SHARED_FOR_CONFIDENCE = 5;
+const MIN_SHARED_FOR_CONFIDENCE = 5;
 const ILUHA_DELTA_WEIGHT = 0.7;
 const ILUHA_PEARSON_WEIGHT = 0.3;
 

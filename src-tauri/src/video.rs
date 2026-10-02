@@ -8,6 +8,7 @@
 
 use base64::Engine as _;
 use serde::Serialize;
+use sha1::{Digest, Sha1};
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
@@ -523,6 +524,57 @@ async fn extract_preview_frame(
         return Err(format!("preview failed: {tail}"));
     }
     Ok(())
+}
+
+fn thumbnail_cache_dir(app_handle: &tauri::AppHandle) -> std::path::PathBuf {
+    app_handle
+        .path()
+        .app_cache_dir()
+        .unwrap_or_else(|_| std::env::temp_dir())
+        .join("player-thumbs")
+}
+
+#[derive(serde::Serialize)]
+pub struct VideoCard {
+    pub path: String,
+    pub duration: f64,
+    pub size: u64,
+}
+
+#[tauri::command]
+pub async fn get_video_card(
+    app_handle: tauri::AppHandle,
+    path: String,
+) -> Result<VideoCard, String> {
+    if path.trim().is_empty() {
+        return Err("card needs a file path".to_string());
+    }
+    let size = std::fs::metadata(&path).map(|meta| meta.len()).unwrap_or(0);
+    let duration = get_video_duration(&app_handle, &path).await.unwrap_or_default();
+    let dir = thumbnail_cache_dir(&app_handle);
+    std::fs::create_dir_all(&dir).map_err(|e| format!("thumbnail cache: {e}"))?;
+    let key = hex::encode(Sha1::digest(path.as_bytes()));
+    let out = dir.join(format!("{key}.jpg"));
+    if !out.is_file() {
+        let position = if duration > 0.0 { duration * 0.1 } else { 0.0 };
+        let _permit = FFMPEG_SEM
+            .acquire()
+            .await
+            .map_err(|_| "semaphore closed".to_string())?;
+        extract_preview_frame(
+            &app_handle,
+            &path,
+            position,
+            "scale=320:-2",
+            std::path::Path::new(&out),
+        )
+        .await?;
+    }
+    Ok(VideoCard {
+        path: out.to_string_lossy().to_string(),
+        duration,
+        size,
+    })
 }
 
 #[tauri::command]

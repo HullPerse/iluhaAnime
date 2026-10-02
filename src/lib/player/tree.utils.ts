@@ -37,6 +37,24 @@ export function buildTree(entries: VideoFileEntry[], rootPath: string): FolderNo
   return root;
 }
 
+export function findFolderContainingFile(
+  root: FolderNode,
+  filePath: string
+): FolderNode | null {
+  if (root.files.some((file) => file.path === filePath)) return root;
+  for (const child of root.children) {
+    const found = findFolderContainingFile(child, filePath);
+    if (found) return found;
+  }
+  return null;
+}
+
+export function folderFilePaths(folder: FolderNode): string[] {
+  return folder.files
+    .map((file) => file.path)
+    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" }));
+}
+
 export function filterTreeByPaths(tree: FolderNode, matchingPaths: Set<string>): FolderNode | null {
   const filteredFiles = tree.files.filter((f) => matchingPaths.has(f.path));
   const filteredChildren = tree.children

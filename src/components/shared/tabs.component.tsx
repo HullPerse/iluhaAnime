@@ -4,7 +4,7 @@ import { WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button.component";
 import { createListNavigationHandler } from "@/lib/utils/keyboard.utils";
 
-export interface TabEntry<T extends string> {
+interface TabEntry<T extends string> {
   id: T;
   label: string;
   color?: string | null;

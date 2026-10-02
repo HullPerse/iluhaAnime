@@ -18,7 +18,7 @@ import {
   buildShadow,
   buildShadowGradients,
   buildWallpaperFilter,
-} from "@/lib/search/wallpaper.utils";
+} from "@/lib/wallpaper/wallpaper.utils";
 import { useSettingsStore } from "@/store/settings.store";
 import type { SearchAnimeSuggestion, SearchQueryStat } from "@/types/search";
 import type { SearchFilters } from "@/types/search";

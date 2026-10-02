@@ -1,6 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { translate } from "@/lib/locale/i18n.utils";
+import { audioOptions, colorOptions, hdrOptions, profileOptions, selectTrack } from "@/lib/player/playback.utils";
 import { queueDepthSteps } from "@/lib/player/queue.utils";
 import { fileNameFromPath, clearParseCache, formatParsedTitle } from "@/lib/player/title.utils";
 import {
@@ -17,6 +18,10 @@ import {
 } from "@/lib/player/visibility.utils";
 import type { FolderNode } from "@/types/torrent";
 import type { UpscaleQueueItem } from "@/types/upscale";
+import type { PlayerSettings } from "@/types/videoPlayer";
+import { DEFAULT_PLAYER_SETTINGS } from "@/store/player.store";
+
+vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn() }));
 
 describe("player/queue", () => {
   const ru = (key: Parameters<typeof translate>[1]) => translate("ru", key);
@@ -333,6 +338,74 @@ describe("player/title", () => {
 
     it("returns the input when there is no separator", () => {
       expect(fileNameFromPath("ep1.mkv")).toBe("ep1.mkv");
+    });
+  });
+});
+
+describe("player/playback options", () => {
+  function settings(overrides: Partial<PlayerSettings>): PlayerSettings {
+    return { ...DEFAULT_PLAYER_SETTINGS, ...overrides };
+  }
+
+  it("maps profiles onto demuxer readahead presets", () => {
+    expect(profileOptions("basic")).toEqual({ "demuxer-readahead-secs": 1 });
+    expect(profileOptions("speed")).toEqual({ "demuxer-readahead-secs": 0.5 });
+    expect(profileOptions("quality")).toEqual({ "demuxer-readahead-secs": 10 });
+  });
+
+  it("restores mpv auto HDR defaults and clamps manual peaks", () => {
+    expect(hdrOptions(settings({ toneMap: "auto" }))).toEqual({
+      "tone-mapping": "auto",
+      "target-peak": "auto",
+      "hdr-compute-peak": "auto",
+    });
+    expect(
+      hdrOptions(
+        settings({ toneMap: "manual", targetPeak: 1000, hdrComputePeak: true })
+      )
+    ).toEqual({
+      "tone-mapping": "clip",
+      "target-peak": "1000",
+      "hdr-compute-peak": "yes",
+    });
+    expect(
+      hdrOptions(settings({ toneMap: "manual", targetPeak: 50 }))["target-peak"]
+    ).toBe("100");
+    expect(
+      hdrOptions(settings({ toneMap: "manual", targetPeak: 20_000 }))["target-peak"]
+    ).toBe("10000");
+    expect(
+      hdrOptions(settings({ toneMap: "manual", hdrComputePeak: false }))[
+        "hdr-compute-peak"
+      ]
+    ).toBe("no");
+  });
+
+  it("maps colorspace selects onto string options", () => {
+    expect(
+      colorOptions(settings({ targetPrim: "bt.709", targetTrc: "srgb" }))
+    ).toEqual({ "target-prim": "bt.709", "target-trc": "srgb" });
+  });
+
+  it("toggles the loudnorm audio filter and clears it when off", () => {
+    expect(audioOptions(settings({ loudnorm: true }))).toEqual({
+      af: "loudnorm",
+    });
+    expect(audioOptions(settings({ loudnorm: false }))).toEqual({ af: "" });
+  });
+
+  it("sends track ids as strings the wrapper accepts", async () => {
+    const { invoke } = await import("@tauri-apps/api/core");
+    vi.mocked(invoke).mockClear();
+    await selectTrack("audio", 2);
+    expect(vi.mocked(invoke)).toHaveBeenCalledWith("player_set_property", {
+      name: "aid",
+      value: "2",
+    });
+    await selectTrack("sub", "no");
+    expect(vi.mocked(invoke)).toHaveBeenCalledWith("player_set_property", {
+      name: "sid",
+      value: "no",
     });
   });
 });

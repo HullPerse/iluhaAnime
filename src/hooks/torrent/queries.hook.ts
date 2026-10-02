@@ -174,22 +174,6 @@ async function fetchTorrentFiles(queryClient: QueryClient, id: number): Promise<
   return next;
 }
 
-export function useTorrentFiles(
-  id: number | null,
-  options?: { enabled?: boolean; refetchMs?: number | false }
-) {
-  const queryClient = useQueryClient();
-  const enabled = (options?.enabled ?? true) && id !== null;
-  return useAppQuery("live", {
-    queryKey: queryKeys.torrentFiles(id ?? 0),
-    queryFn: () => fetchTorrentFiles(queryClient, id ?? 0),
-    enabled,
-    refetchInterval: options?.refetchMs ?? false,
-    refetchIntervalInBackground: false,
-    retry: false,
-  });
-}
-
 export function useTorrentFilesMap(
   ids: number[],
   refetchMs: number | false = false

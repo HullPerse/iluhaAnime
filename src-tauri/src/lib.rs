@@ -30,6 +30,7 @@ mod file_index;
 mod fswatcher;
 mod host_stats;
 mod jikan;
+mod player;
 mod progress;
 mod realcugan;
 mod rife;
@@ -1087,6 +1088,7 @@ pub fn run() {
                 )
                 .build(),
         )
+        .plugin(tauri_plugin_libmpv::init())
         .setup(|app| {
             let _ = std::fs::read_dir(std::env::temp_dir()).map(|entries| {
                 for entry in entries.flatten() {
@@ -1178,6 +1180,36 @@ pub fn run() {
             handle.manage(progress::StreamRegistry::new());
             handle.manage(std::sync::Mutex::new(fswatcher::FolderWatcher::new()));
             handle.manage(file_index::FileIndexer::new());
+            handle.manage(player::PlayerHost::default());
+            player::state::attach(app.handle());
+            #[cfg(debug_assertions)]
+            match std::env::var("ILUHA_OPEN_FILE") {
+                Ok(path) => {
+                    tracing::info!("dev player trigger armed for {path}");
+                    let bench =
+                        player::bench::BenchConfig::from_env().map(|mut config| {
+                            if config.files.is_empty() {
+                                config.files = vec![path.clone()];
+                            }
+                            config
+                        });
+                    let trigger_handle = handle.clone();
+                    tauri::async_runtime::spawn(async move {
+                        let trigger_start = std::time::Instant::now();
+                        tokio::time::sleep(std::time::Duration::from_millis(1500)).await;
+                        if let Err(error) =
+                            player::player_open(trigger_handle.clone(), vec![path], None).await
+                        {
+                            tracing::warn!("dev player trigger failed: {error}");
+                            return;
+                        }
+                        if let Some(config) = bench {
+                            player::bench::run(trigger_handle, config, trigger_start).await;
+                        }
+                    });
+                }
+                Err(error) => tracing::debug!("dev player trigger not armed: {error}"),
+            }
             #[cfg(not(debug_assertions))]
             {
                 use tauri_plugin_deep_link::DeepLinkExt;
@@ -1270,6 +1302,7 @@ pub fn run() {
             auth::nekobt_logout,
             video::upscale_video,
             video::preview_upscale_frames,
+            video::get_video_card,
             video::suggest_upscale_preset,
             video::estimate_upscale_time,
             realcugan::check_realcugan,
@@ -1333,6 +1366,20 @@ pub fn run() {
             user_assets::update_dither_image_data,
             user_assets::delete_dither_image,
             user_assets::delete_user_image,
+            player::player_open,
+            player::player_take_pending_open,
+            player::player_init,
+            player::player_destroy,
+            player::player_close_window,
+            player::player_load,
+            player::player_command,
+            player::player_set_property,
+            player::player_get_property,
+            player::player_playlist_entries,
+            player::player_set_video_margin_ratio,
+            player::player_eof_mode,
+            player::player_save_watch,
+            player::player_load_watch,
             app_db::get_app_cache,
             app_db::put_app_cache,
             app_db::delete_app_cache,

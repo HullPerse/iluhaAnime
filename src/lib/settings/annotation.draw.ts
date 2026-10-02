@@ -2,12 +2,12 @@ import { ANNOTATION_TEXT_LINE_HEIGHT } from "@/config/settings/screenshot.config
 import { blurSigmaFor, isBlurItem } from "@/lib/settings/annotation.utils";
 import type { AnnotationItem, CropPoint, StrokeItem, TextItem } from "@/types/screenshot";
 
-export const INK_CANVAS_COLOR = "#000000";
-export const BLUR_MASK_COLOR = "#ffffff";
+const INK_CANVAS_COLOR = "#000000";
+const BLUR_MASK_COLOR = "#ffffff";
 const BLUR_DRAFT_COLOR = "rgba(120,120,120,0.45)";
 const TEXT_WIDTH_FACTOR = 0.6;
 
-export function fontFor(family: string, size: number): string {
+function fontFor(family: string, size: number): string {
   return `${size}px ${family}`;
 }
 

@@ -145,7 +145,7 @@ async function dropUnifiedScope(scope: string, label: string): Promise<void> {
   if (pruneError !== null) reportBackgroundError(label, pruneError);
 }
 
-export function migrateSearchState(persisted: unknown, version: number): SearchPersistedState {
+function migrateSearchState(persisted: unknown, version: number): SearchPersistedState {
   if (!persisted || typeof persisted !== "object" || version >= 1)
     return persisted as SearchPersistedState;
   const rest = { ...(persisted as Record<string, unknown>) };

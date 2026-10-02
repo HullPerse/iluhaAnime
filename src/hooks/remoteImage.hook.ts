@@ -9,7 +9,7 @@ import type { UserImageFile } from "@/types/userimage";
 const resolvedUrls = createLruCache<string, string>(200);
 const inflight = new Map<string, Promise<string | null>>();
 
-export const REMOTE_IMAGE_CONCURRENCY = 2;
+const REMOTE_IMAGE_CONCURRENCY = 2;
 
 let activeRemoteFetches = 0;
 const remoteFetchQueue: Array<() => void> = [];

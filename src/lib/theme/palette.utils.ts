@@ -80,13 +80,13 @@ export function windowTintAlpha(face: string, text: string): number {
   return Math.min(WINDOW_TINT_MAX, Math.max(WINDOW_TINT_MIN, Number(required.toFixed(2))));
 }
 
-export function saturation({ r, g, b }: RGB): number {
+function saturation({ r, g, b }: RGB): number {
   const max = Math.max(r, g, b);
   const min = Math.min(r, g, b);
   return max === 0 ? 0 : (max - min) / max;
 }
 
-export function mixHex(a: string, b: string, amount: number): string {
+function mixHex(a: string, b: string, amount: number): string {
   const first = hexToRgb(a);
   const second = hexToRgb(b);
   if (first === null) return b;
@@ -114,7 +114,7 @@ export function colorDistance(a: string, b: string): number {
   return distance(first, second);
 }
 
-export function quantizePalette(
+function quantizePalette(
   pixels: Uint8ClampedArray | Uint8Array,
   limit = PALETTE_LIMIT
 ): string[] {

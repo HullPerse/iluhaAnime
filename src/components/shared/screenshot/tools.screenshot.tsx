@@ -8,7 +8,7 @@ import { useI18n } from "@/lib/locale/i18n.utils";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
 import type { ScreenshotTool } from "@/types/screenshot";
 
-export const SCREENSHOT_TOOLS: readonly ScreenshotTool[] = [
+const SCREENSHOT_TOOLS: readonly ScreenshotTool[] = [
   "select",
   "pencil",
   "eraser",
@@ -32,7 +32,7 @@ const TOOL_KEYS: Record<ScreenshotTool, TranslationKey> = {
   blur: "screenshot.tool.blur",
 };
 
-export function paintsWithColor(tool: ScreenshotTool): boolean {
+function paintsWithColor(tool: ScreenshotTool): boolean {
   return tool === "pencil" || tool === "text";
 }
 

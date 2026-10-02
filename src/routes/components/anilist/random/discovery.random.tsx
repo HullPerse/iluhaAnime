@@ -10,12 +10,12 @@ import { useI18n } from "@/lib/locale/i18n.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import type { AniMedia } from "@/types/anilist";
 
-export interface DiscoveryItem {
+interface DiscoveryItem {
   media: AniMedia;
   entry?: EntryListInfo;
 }
 
-export interface DiscoveryNav {
+interface DiscoveryNav {
   index: number;
   total: number;
   canPrev: boolean;

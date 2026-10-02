@@ -1,0 +1,83 @@
+import { cn } from "cn";
+import { Monitor, X } from "lucide-react";
+import { useEffect, useRef, type ReactNode } from "react";
+
+import { useI18n } from "@/lib/locale/i18n.utils";
+
+function PlayerModal({
+  header,
+  onClose,
+  className,
+  children,
+}: {
+  header: string;
+  onClose: () => void;
+  className?: string;
+  children: ReactNode;
+}) {
+  const { t } = useI18n();
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    const handleClose = () => onCloseRef.current();
+    dialog.addEventListener("close", handleClose);
+    if (!dialog.open) dialog.showModal();
+    return () => {
+      dialog.removeEventListener("close", handleClose);
+    };
+  }, []);
+
+  return (
+    <>
+      <style>{`dialog.player-modal::backdrop{background:transparent;}`}</style>
+      <dialog
+        ref={dialogRef}
+        aria-label={header}
+        className="player-modal fixed inset-0 z-40 m-0 flex h-full max-h-none w-full max-w-none items-center justify-center bg-black/50 p-0"
+        onClick={(event) => {
+          if (event.target === event.currentTarget) onClose();
+        }}
+        data-hotkeys-disabled
+        data-no-wheel
+      >
+        <section
+          className={cn(
+            "windows95-active-border flex max-h-[80%] flex-col bg-primary",
+            className,
+          )}
+        >
+          <section className="flex w-full flex-row items-center justify-between bg-secondary p-1">
+            <div className="flex min-w-0 flex-row items-center gap-1">
+              <Monitor className="size-3 shrink-0 text-white" />
+              <span className="windows95-text line-clamp-1 font-bold text-white">
+                {header}
+              </span>
+            </div>
+            <div className="flex shrink-0 flex-row items-center gap-0.5">
+              <button
+                type="button"
+                className="windows95-active-border windows95-text flex size-4 cursor-pointer items-center justify-center bg-primary text-text hover:brightness-110 active:translate-x-px active:translate-y-px"
+                aria-label={t("player.media.panel.close")}
+                onClick={onClose}
+              >
+                <X className="size-2.5" />
+              </button>
+            </div>
+          </section>
+          <section className="flex w-full flex-1 flex-col gap-1 overflow-y-auto bg-primary p-2">
+            {children}
+          </section>
+        </section>
+      </dialog>
+    </>
+  );
+}
+
+export default PlayerModal;

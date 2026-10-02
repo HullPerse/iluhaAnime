@@ -2,7 +2,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { openPath } from "@tauri-apps/plugin-opener";
 import { parse } from "anitomy";
 import { cn } from "cn";
-import { ChevronDown, ChevronRight, ListVideo, Monitor, EyeOff, Search, X } from "lucide-react";
+import { ChevronDown, ChevronRight, ListVideo, Monitor, EyeOff, Play, Search, X } from "lucide-react";
 import { useState, useRef, useMemo, useCallback, type RefObject } from "react";
 
 import { SmallLoader } from "@/components/shared/loader.component";
@@ -10,9 +10,11 @@ import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { FOLDER_LIST_MAX_HEIGHT, FOLDER_VIRTUALIZE_AFTER } from "@/config/player/folders.config";
 import { useI18n } from "@/lib/locale/i18n.utils";
+import { loadWatch, openPlayer, rotateQueue } from "@/lib/player/playback.utils";
 import { formatParsedTitle } from "@/lib/player/title.utils";
-import { flattenTree } from "@/lib/player/tree.utils";
+import { findFolderContainingFile, flattenTree, folderFilePaths } from "@/lib/player/tree.utils";
 import { formatBytes } from "@/lib/utils/bytes.utils";
+import { showError } from "@/lib/utils/notification.utils";
 import { openFileInPlayer } from "@/lib/utils/media.utils";
 import { useSearchStore } from "@/store/search.store";
 import { useSettingsStore } from "@/store/settings.store";
@@ -89,6 +91,23 @@ function FolderView({
       return next;
     });
   }, []);
+
+  const openInAppPlayer = useCallback(
+    async (path: string) => {
+      const stored = await loadWatch(path).catch(() => null);
+      const folder = findFolderContainingFile(node, path);
+      const paths = folder ? folderFilePaths(folder) : [];
+      const index = paths.indexOf(path);
+      const queue = index > 0 ? rotateQueue(paths, index) : paths;
+      const resume = stored && stored.position > 0 ? stored.position : undefined;
+      await openPlayer(queue.length > 0 ? queue : [path], resume).catch(
+        (error: unknown) => {
+          showError(t("player.folder.open.failed.player"), String(error));
+        },
+      );
+    },
+    [node, t],
+  );
 
   const flatItems = useMemo(
     () => flattenTree(node, open, searchQuery, disabledExtensions, depth, trackExts),
@@ -310,6 +329,19 @@ function FolderView({
                   )}
 
                   {!disabled && file.path && <UpscalePlayer filePath={file.path} />}
+                  <Button
+                    size="icon"
+                    className="h-4 w-4"
+                    disabled={disabled || busy}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (file.path) openInAppPlayer(file.path);
+                    }}
+                    title={t("player.folder.open.iluha.player")}
+                    aria-label={t("player.folder.open.iluha.player")}
+                  >
+                    <Play className="size-3" />
+                  </Button>
                   <Button
                     size="icon"
                     className="h-4 w-4"

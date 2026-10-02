@@ -9,7 +9,7 @@ import { DITHER_PLACEHOLDER_SRC } from "@/config/utils/dither.config";
 import { useWallpaperImage } from "@/hooks/wallpaper.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
 import { shouldDimMascot } from "@/lib/search/mascot.utils";
-import { buildShadowGradients, buildWallpaperFilter } from "@/lib/search/wallpaper.utils";
+import { buildShadowGradients, buildWallpaperFilter } from "@/lib/wallpaper/wallpaper.utils";
 import { showError } from "@/lib/utils/notification.utils";
 import { useSettingsStore } from "@/store/settings.store";
 

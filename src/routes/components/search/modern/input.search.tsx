@@ -9,7 +9,7 @@ import ImageComponent from "@/components/ui/image.component";
 import Select from "@/components/ui/select.component";
 import { useSearchQuery } from "@/hooks/search/query.hook";
 import { useI18n } from "@/lib/locale/i18n.utils";
-import { buildShadow } from "@/lib/search/wallpaper.utils";
+import { buildShadow } from "@/lib/wallpaper/wallpaper.utils";
 import SearchAuthButtons from "@/routes/components/search/auth.search";
 import TorrentDetailsModal from "@/routes/components/search/default/details/modal.details";
 import SearchFiltersModal from "@/routes/components/search/filters.modal";

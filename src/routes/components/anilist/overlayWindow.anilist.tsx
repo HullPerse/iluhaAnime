@@ -4,7 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button.component";
 import { useOverlay } from "@/hooks/overlay.hook";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { useSettingsStore } from "@/store/settings.store";
 
 export function OverlayWindow({

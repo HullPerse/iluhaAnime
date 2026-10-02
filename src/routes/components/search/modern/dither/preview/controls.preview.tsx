@@ -1,6 +1,6 @@
 import Slider from "@/components/ui/range.component";
 import { DITHER_SLIDER_DEFS, DITHER_SLIDER_LABELS } from "@/config/utils/dither.config";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import type { DitherEffectOptions } from "@/types/dither";
 
 export default function DitherControls({

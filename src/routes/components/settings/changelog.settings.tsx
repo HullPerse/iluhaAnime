@@ -2,7 +2,7 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import { useState } from "react";
 
 import { CHANGELOG } from "@/config/settings/changelog.config";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 
 import { ChangelogCategory } from "./changelogCategory.settings";
 

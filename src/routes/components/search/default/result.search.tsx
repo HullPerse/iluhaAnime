@@ -5,7 +5,7 @@ import { SmallLoader } from "@/components/shared/loader.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { SOURCE_INFOS } from "@/config/search/sources.config";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { detectLanguages, formatSize } from "@/lib/search/format.utils";
 import { getLanguageColors } from "@/lib/search/results.utils";
 import type { ResultSearchProps as Props } from "@/types/search";

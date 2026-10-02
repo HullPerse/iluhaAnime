@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button.component";
 import { WIZARD_COVER_MAX } from "@/config/collection/defaults.config";
 import { useRemoteImage } from "@/hooks/remoteImage.hook";
 import { generatePlaceholder } from "@/lib/collection/placeholder.utils";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { assetUrl } from "@/lib/utils/image.utils";
 import { showError } from "@/lib/utils/notification.utils";

@@ -8,7 +8,7 @@ import { characterRoleLabels } from "@/config/anilist/labels.config";
 import { CHAR_PAGE_SIZE } from "@/config/anilist/pagination.config";
 import { useFavPeopleCharacterSet } from "@/hooks/anilist/people.hook";
 import { useAppInfiniteQuery } from "@/hooks/appQuery.hook";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { queryKeys } from "@/lib/query/keys.utils";
 import { uniqueById } from "@/lib/utils/array.utils";
 import type { AniCharacterEdge, AniVoiceActor } from "@/types/anilist";

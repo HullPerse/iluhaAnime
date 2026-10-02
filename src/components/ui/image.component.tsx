@@ -1,7 +1,7 @@
 import { cn } from "cn";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import type { ImageProps } from "@/types/ui";
 
 const RETRY_DELAYS = [500, 1500];

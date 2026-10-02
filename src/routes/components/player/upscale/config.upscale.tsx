@@ -10,7 +10,7 @@ import {
 } from "@/config/player/options.config";
 import { ANIME4K_PRESETS } from "@/config/player/presets.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import { queryKeys } from "@/lib/query/keys.utils";
 import { withFallback } from "@/lib/utils/attempt.utils";

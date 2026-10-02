@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input.component";
 import { TAG_NUMERIC_KEYS } from "@/config/collection/tags.config";
 import { clampTolerance, DEFAULT_TAG_TOLERANCES } from "@/config/search/tolerance.config";
 import { exampleFor, opsFor } from "@/lib/collection/tags.utils";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { FILTER_KEYS } from "@/lib/search/intent.utils";
 import { useSettingsStore } from "@/store/settings.store";
 

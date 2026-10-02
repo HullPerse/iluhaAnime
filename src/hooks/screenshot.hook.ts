@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { systemApi } from "@/api/system.api";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { matchesScreenshotHotkey } from "@/lib/settings/screenshot.utils";
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { showError } from "@/lib/utils/notification.utils";

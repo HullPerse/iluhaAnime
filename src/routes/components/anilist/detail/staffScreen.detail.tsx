@@ -5,7 +5,7 @@ import Section from "@/components/shared/section.component";
 import { STAFF_CREDITS_PAGE_SIZE } from "@/config/anilist/pagination.config";
 import { useAppInfiniteQuery } from "@/hooks/appQuery.hook";
 import { flattenMarkup } from "@/lib/anilist/text.utils";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { queryKeys } from "@/lib/query/keys.utils";
 import { uniqueById } from "@/lib/utils/array.utils";
 import type { AniListOverlayContext, AniListOverlayScreen } from "@/types/anilist";

@@ -6,7 +6,7 @@ import { anilistApi } from "@/api/anilist.api";
 import { TrailerEmbed } from "@/components/shared/lightbox/trailerEmbed.media";
 import Modal from "@/components/shared/modal.component";
 import { useAppQuery } from "@/hooks/appQuery.hook";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { queryKeys } from "@/lib/query/keys.utils";
 import { useSettingsStore } from "@/store/settings.store";
 import type { AniDetailProps as DetailProps } from "@/types/anilist";

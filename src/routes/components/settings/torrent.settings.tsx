@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input.component";
 import Select from "@/components/ui/select.component";
 import { useOnlineStatus } from "@/hooks/network.hook";
 import { TORRENT_LISTEN_PORT_KEY, useTorrentListenPort } from "@/hooks/torrent/queries.hook";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { toSessionConfig } from "@/lib/settings/session.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { showError } from "@/lib/utils/notification.utils";

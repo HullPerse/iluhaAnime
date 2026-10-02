@@ -20,8 +20,8 @@ export function hasAnyFavourites(favourites: FavouriteAnime[], people: Favourite
 
 export function buildAnimeBackHandler(
   animeHistory: AniListAnime[],
-  setAnimeHistory: React.Dispatch<React.SetStateAction<AniListAnime[]>>,
-  setSelectedAnime: React.Dispatch<React.SetStateAction<AniListAnime>>
+  setAnimeHistory: (updater: (history: AniListAnime[]) => AniListAnime[]) => void,
+  setSelectedAnime: (anime: AniListAnime) => void
 ): (() => void) | undefined {
   if (animeHistory.length === 0) return undefined;
   return () => {

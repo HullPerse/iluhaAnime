@@ -1,4 +1,5 @@
-import { useI18n, type TranslationKey } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
+import type { TranslationKey } from "@/lib/locale/i18n.utils";
 import type { ChangelogEntry } from "@/types/settings";
 
 export function ChangelogCategory({

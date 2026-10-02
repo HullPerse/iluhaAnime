@@ -1,7 +1,7 @@
 import { AlertCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button.component";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 
 export default function SearchErrorBar({
   error,

@@ -1,5 +1,5 @@
 import { ConfirmDialog } from "@/components/shared/confirm.component";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 
 export function SqliteDialogs({
   pendingDelete,

@@ -22,7 +22,7 @@ beforeEach(() => {
 describe("TorrentApi", () => {
   it("resolves the proxy per source", () => {
     useSettingsStore.setState({ searchProxyUrls: { rutracker: "socks5://127.0.0.1:10808" } });
-    const api = new TorrentApi();
+    const api = new TorrentApi({ proxies: () => useSettingsStore.getState().searchProxyUrls });
     expect(api.proxyFor("rutracker")).toBe("socks5://127.0.0.1:10808");
     expect(api.proxyFor("nyaa")).toBeUndefined();
   });
@@ -35,7 +35,10 @@ describe("TorrentApi", () => {
   it("routes source searches with the source proxy", async () => {
     useSettingsStore.setState({ searchProxyUrls: { nyaa: "http://127.0.0.1:7890" } });
     const { calls, transport } = fakeTransport(() => []);
-    const api = new TorrentApi({ transport });
+    const api = new TorrentApi({
+      transport,
+      proxies: () => useSettingsStore.getState().searchProxyUrls,
+    });
 
     await api.searchBySource("nyaa", { query: "frieren", page: 2, sort: "seeders", order: "desc" });
     await api.searchBySource("rutracker", { query: "frieren" });

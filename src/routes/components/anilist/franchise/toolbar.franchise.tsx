@@ -3,7 +3,7 @@ import { cn } from "cn";
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
 import { FILTER_LABELS, RELATION_FILTERS } from "@/config/anilist/graph.config";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import type { FranchiseToolbarProps } from "@/types/anilist";
 
 function FranchiseToolbar({

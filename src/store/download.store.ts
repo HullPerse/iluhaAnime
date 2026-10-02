@@ -3,17 +3,14 @@ import { create } from "zustand";
 
 import { systemApi } from "@/api/system.api";
 import { torrentApi } from "@/api/torrent.api";
-import { translate } from "@/lib/locale/i18n.utils";
+import { tr } from "@/lib/locale/i18n.utils";
 import { torrentErrorText } from "@/lib/torrent/common.utils";
 import { attempt, withFallback } from "@/lib/utils/attempt.utils";
 import { showError } from "@/lib/utils/notification.utils";
 import { useCacheStore } from "@/store/cache.store";
-import { useSettingsStore } from "@/store/settings.store";
 import type { SpeedLimits, TorrentStore } from "@/types/torrent";
 
-export function tr(key: Parameters<typeof translate>[1], vars?: Parameters<typeof translate>[2]) {
-  return translate(useSettingsStore.getState().language, key, vars);
-}
+export { tr };
 
 function hasConflictingSelection(
   pending: { files: { index: number; name: string }[]; conflictingFiles: string[] },

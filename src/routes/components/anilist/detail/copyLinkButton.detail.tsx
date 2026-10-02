@@ -2,7 +2,7 @@ import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { Check, Link2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { buildAnimeLink } from "@/lib/utils/deeplink.utils";
 
 export function CopyLinkButton({ animeId }: { animeId: number }) {

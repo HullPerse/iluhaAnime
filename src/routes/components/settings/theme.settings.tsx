@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button.component";
 import Combobox from "@/components/ui/combobox.component";
 import Slider from "@/components/ui/range.component";
 import { THEMES } from "@/config/settings/themes.config";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { windowTintAlpha } from "@/lib/theme/palette.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { useSettingsStore } from "@/store/settings.store";

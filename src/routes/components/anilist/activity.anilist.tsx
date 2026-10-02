@@ -2,7 +2,7 @@ import { useState } from "react";
 
 import Modal from "@/components/shared/modal.component";
 import Tabs from "@/components/shared/tabs.component";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import type { AniListCollection } from "@/types/anilist";
 
 import { CalendarTab } from "./activity/calendarTab.activity";

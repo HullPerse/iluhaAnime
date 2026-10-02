@@ -2,11 +2,10 @@ import { listen } from "@tauri-apps/api/event";
 import type { UnlistenFn } from "@tauri-apps/api/event";
 import { create } from "zustand";
 
-import { translate } from "@/lib/locale/i18n.utils";
+import { tr } from "@/lib/locale/i18n.utils";
 import { buildOutputPath } from "@/lib/player/tree.utils";
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
-import { useSettingsStore } from "@/store/settings.store";
 import type {
   ConvertConfig,
   UpscaleConfig,
@@ -159,7 +158,7 @@ export const useUpscaleQueueStore = create<UpscaleQueueStore>()((set, get) => ({
       const msg =
         typeof error.message === "string" && error.message
           ? error.message
-          : translate(useSettingsStore.getState().language, "common.error");
+          : tr("common.error");
       set((s) => ({
         items: s.items.map((i) => (i.id === next.id ? { ...i, status: "error", error: msg } : i)),
       }));

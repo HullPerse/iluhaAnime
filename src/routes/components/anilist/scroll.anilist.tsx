@@ -8,7 +8,7 @@ import {
 } from "@/config/anilist/list.config";
 import { getStatusColor, type EntryLookup } from "@/lib/anilist/entries.utils";
 import type { AnilistScoreFormat } from "@/lib/anilist/score.utils";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import AniListEntryCard from "@/routes/components/anilist/card.anilist";
 import { GroupHeaderCollection } from "@/routes/components/collection/groupHeader.collection";

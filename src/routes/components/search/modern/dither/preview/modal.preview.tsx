@@ -17,7 +17,7 @@ import {
   resolveDitherPreset,
 } from "@/config/utils/dither.config";
 import { useDebounce } from "@/hooks/debounce.hook";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { attempt, attemptSync } from "@/lib/utils/attempt.utils";
 import {
   EXTRACT_PALETTE_MAX_COLORS,

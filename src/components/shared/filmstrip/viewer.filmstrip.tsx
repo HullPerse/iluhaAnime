@@ -5,7 +5,7 @@ import { VideoPlayer } from "@/components/shared/video/player.video";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { useRemoteImage } from "@/hooks/remoteImage.hook";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { enterOrSpace } from "@/lib/utils/keyboard.utils";
 import type { FilmstripTab } from "@/types/media";
 

@@ -1,6 +1,6 @@
 import { ConfirmDialog } from "@/components/shared/confirm.component";
 import { SelectDialog } from "@/components/shared/selectDialog.component";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import type {
   CollectionItem,
   CollectionStatusDef,

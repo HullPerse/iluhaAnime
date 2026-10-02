@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Modal from "@/components/shared/modal.component";
 import Tabs from "@/components/shared/tabs.component";
 import ImageComponent from "@/components/ui/image.component";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { enterOrSpace } from "@/lib/utils/keyboard.utils";
 import type {
   AniFavouritesProps as Props,

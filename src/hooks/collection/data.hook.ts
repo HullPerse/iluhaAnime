@@ -2,7 +2,8 @@ import { save } from "@tauri-apps/plugin-dialog";
 import { useCallback, useState } from "react";
 
 import { collectionApi } from "@/api/collection.api";
-import { useI18n, type TranslationKey } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
+import type { TranslationKey } from "@/lib/locale/i18n.utils";
 import { attempt, attemptSync } from "@/lib/utils/attempt.utils";
 import { useNotificationStore } from "@/store/notification.store";
 

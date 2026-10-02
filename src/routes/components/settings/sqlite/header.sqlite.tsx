@@ -2,7 +2,7 @@ import { AlertTriangle, RefreshCw } from "lucide-react";
 
 import { SmallLoader } from "@/components/shared/loader.component";
 import { Button } from "@/components/ui/button.component";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 
 export function SqliteHeader({
   onRefresh,

@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 
 import { Input } from "@/components/ui/input.component";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import type { SelectDialogProps } from "@/types/ui";
 
 import Modal from "./modal.component";

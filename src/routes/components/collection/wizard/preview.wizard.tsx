@@ -1,4 +1,4 @@
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import type { CollectionItem, CollectionStatusDef } from "@/types/collection";
 
 import { CollectionCard } from "../card.collection";

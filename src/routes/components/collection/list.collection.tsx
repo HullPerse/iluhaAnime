@@ -9,7 +9,7 @@ import { useCoverCache } from "@/hooks/collection/cache.hook";
 import { rowMetaParts, sameRowVisual } from "@/lib/collection/list.utils";
 import { generatePlaceholder } from "@/lib/collection/placeholder.utils";
 import { sortStatuses, statusColorOf, statusLabel } from "@/lib/collection/status.utils";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { enterOrSpace } from "@/lib/utils/keyboard.utils";
 import { useSettingsStore } from "@/store/settings.store";
 import type {

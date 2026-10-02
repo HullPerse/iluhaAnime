@@ -23,7 +23,7 @@ import {
   routePeople,
 } from "@/lib/anilist/route.utils";
 import { parseScoreFormat, resolveDisplayScoreFormat } from "@/lib/anilist/score.utils";
-import { translate } from "@/lib/locale/i18n.utils";
+import { tr } from "@/lib/locale/i18n.utils";
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { paginate } from "@/lib/utils/pagination.utils";
 import { useAniListFriendsStore } from "@/store/anilist.store";
@@ -285,7 +285,7 @@ function AnilistRoute() {
         useNotificationStore
           .getState()
           .add(
-            translate(useSettingsStore.getState().language, "anilist.fav.toggle.failed"),
+            tr("anilist.fav.toggle.failed"),
             "error",
             error.message
           );
@@ -330,7 +330,7 @@ function AnilistRoute() {
         useNotificationStore
           .getState()
           .add(
-            translate(useSettingsStore.getState().language, "anilist.auth.failed"),
+            tr("anilist.auth.failed"),
             "error",
             error.message
           );

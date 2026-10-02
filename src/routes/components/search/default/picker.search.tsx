@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox.component";
 import ImageComponent from "@/components/ui/image.component";
 import { Input } from "@/components/ui/input.component";
 import { PICKER_ELAPSED_TICK_MS } from "@/config/torrent/common.config";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { groupFilesByDirectory } from "@/lib/torrent/tree.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { formatBytes } from "@/lib/utils/bytes.utils";

@@ -31,6 +31,7 @@ export function useSearchQuery(): SearchQueryController {
   const visibleSources = useSettingsStore((s) => s.visibleSources);
   const resultsPerPage = useSettingsStore((s) => s.resultsPerPage);
   const searchProxyUrls = useSettingsStore((s) => s.searchProxyUrls);
+  const searchSymSpellEnabled = useSettingsStore((s) => s.searchSymSpellEnabled);
 
   const sourceOptions = useMemo(
     () => getVisibleSources(visibleSources, SOURCE_INFOS),
@@ -204,8 +205,12 @@ export function useSearchQuery(): SearchQueryController {
   const searchHistory = useSearchStore((s) => s.history);
   const didYouMean = useMemo(() => {
     if (!submittedQuery || isLoading || (data?.length ?? 0) > 0) return null;
-    return suggestSpelling(submittedQuery, { history: searchHistory, animeIndex });
-  }, [submittedQuery, isLoading, data, searchHistory, animeIndex]);
+    return suggestSpelling(submittedQuery, {
+      history: searchHistory,
+      animeIndex,
+      symSpell: searchSymSpellEnabled,
+    });
+  }, [submittedQuery, isLoading, data, searchHistory, animeIndex, searchSymSpellEnabled]);
   const applyDidYouMean = () => {
     if (!didYouMean) return;
     setSearchParams(didYouMean);

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { dayLabel, monthLabel } from "@/lib/anilist/activity.utils";
 import { formatAiringTime } from "@/lib/anilist/airing.utils";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import type { AniListCollection } from "@/types/anilist";
 
 function StatsModal({

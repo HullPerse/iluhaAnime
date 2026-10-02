@@ -12,7 +12,7 @@ import { useMemo, useState } from "react";
 
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { groupFilesByDirectory } from "@/lib/torrent/tree.utils";
 import { moveItem } from "@/lib/utils/array.utils";
 import { formatBytes } from "@/lib/utils/bytes.utils";

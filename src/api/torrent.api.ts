@@ -19,7 +19,7 @@ import { tauriTransport } from "./transport.api";
 
 export interface TorrentApiConfig {
   transport?: ApiTransport;
-  proxies?: Record<string, string>;
+  proxies?: Record<string, string> | null | (() => Record<string, string> | null);
 }
 
 export interface TorrentSearchArgs {
@@ -54,7 +54,10 @@ export interface ScannedExtraFile {
 
 export class TorrentApi {
   private readonly transport: ApiTransport;
-  private readonly proxies: Record<string, string> | null;
+  private readonly proxies:
+    | Record<string, string>
+    | null
+    | (() => Record<string, string> | null);
 
   constructor(config: TorrentApiConfig = {}) {
     this.transport = config.transport ?? tauriTransport;
@@ -62,7 +65,8 @@ export class TorrentApi {
   }
 
   proxyFor(source: string): string | undefined {
-    const proxies = this.proxies ?? useSettingsStore.getState().searchProxyUrls;
+    const proxies =
+      typeof this.proxies === "function" ? this.proxies() ?? {} : this.proxies ?? {};
     return proxies[source] || undefined;
   }
 
@@ -298,4 +302,6 @@ export class TorrentApi {
   }
 }
 
-export const torrentApi = new TorrentApi();
+export const torrentApi = new TorrentApi({
+  proxies: () => useSettingsStore.getState().searchProxyUrls,
+});

@@ -2,7 +2,7 @@ import { cn } from "cn";
 import { Eye, EyeOff } from "lucide-react";
 import * as React from "react";
 
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import type { PasswordInputProps } from "@/types/ui";
 
 import { Input } from "./input.component";

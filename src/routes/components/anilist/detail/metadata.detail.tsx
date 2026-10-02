@@ -10,7 +10,7 @@ import {
   formatAiringCountdown,
   formatAiringLocal,
 } from "@/lib/anilist/airing.utils";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import type { AniMedia } from "@/types/anilist";
 

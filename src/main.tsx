@@ -7,12 +7,11 @@ import { StrictMode } from "react";
 
 import { ErrorBoundary } from "@/components/shared/errorBoundary.component";
 import { QUERY_CONFIG } from "@/config/store/query.config";
-import { translate } from "@/lib/locale/i18n.utils";
+import { tr } from "@/lib/locale/i18n.utils";
 import { router } from "@/routes/__root";
 import { useNotificationStore } from "@/store/notification.store";
-import { useSettingsStore } from "@/store/settings.store";
 
-const appError = () => translate(useSettingsStore.getState().language, "common.error");
+const appError = () => tr("common.error");
 
 window.addEventListener("error", (event) => {
   event.preventDefault();

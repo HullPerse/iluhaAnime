@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { sqliteApi } from "@/api/sqlite.api";
 import Image from "@/components/ui/image.component";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { assetUrl } from "@/lib/utils/image.utils";
 

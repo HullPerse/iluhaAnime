@@ -4,7 +4,7 @@ import { TrayIcon } from "@tauri-apps/api/tray";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useEffect, useMemo, useRef } from "react";
 
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { buildTrayMenuEntries, shouldHideOnClose, TRAY_ICON_ID } from "@/lib/settings/tray.utils";
 import { attempt, attemptAll, attemptSync, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { useSettingsStore } from "@/store/settings.store";

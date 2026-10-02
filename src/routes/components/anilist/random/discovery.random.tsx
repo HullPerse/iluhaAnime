@@ -6,7 +6,7 @@ import ImageComponent from "@/components/ui/image.component";
 import { formatLabels, listStatusLabels, statusLabels } from "@/config/anilist/labels.config";
 import { useRemoteImage } from "@/hooks/remoteImage.hook";
 import { getStatusColor, type EntryListInfo } from "@/lib/anilist/entries.utils";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import type { AniMedia } from "@/types/anilist";
 

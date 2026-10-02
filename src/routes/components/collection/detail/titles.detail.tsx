@@ -3,7 +3,7 @@ import { ChevronRight } from "lucide-react";
 import Section from "@/components/shared/section.component";
 import { Button } from "@/components/ui/button.component";
 import { uniqueTitles } from "@/lib/collection/titles.utils";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { useSearchStore } from "@/store/search.store";
 
 export function TitlesCollection({

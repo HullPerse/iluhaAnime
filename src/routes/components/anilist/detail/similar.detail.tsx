@@ -5,7 +5,7 @@ import { PosterTile } from "@/components/shared/posterTile.component";
 import Section from "@/components/shared/section.component";
 import { ANILIST_SIMILAR_LIMIT } from "@/config/anilist/detail.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { queryKeys } from "@/lib/query/keys.utils";
 import type { AniRelation } from "@/types/anilist";
 

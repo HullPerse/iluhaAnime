@@ -3,7 +3,7 @@ import { ArrowDown, ArrowUp, ListVideo, Play, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import {
   readPlaylistEntries,
   readVideoCard,

@@ -26,7 +26,7 @@ import {
   useTorrentFilesMap,
   useTorrents,
 } from "@/hooks/torrent/queries.hook";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { applyBulkAction, pruneSelection, splitRecheckOutcome } from "@/lib/torrent/bulk.utils";
 import {
   formatSpeed,

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { useMediaStore } from "@/store/media.store";
 import { usePlaybackStore, usePlayerStore } from "@/store/player.store";
 

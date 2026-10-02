@@ -21,7 +21,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
 import { SEEK_STEP } from "@/config/player/keybinds.config";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { usePlaybackStore } from "@/store/player.store";
 import type { TranslationKey } from "@/types/i18n";
 import type { EndOfFileMode, MpvChapter, MpvTrack } from "@/types/videoPlayer";

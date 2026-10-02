@@ -27,7 +27,7 @@ import type { ApiTransport } from "./transport.api";
 
 export interface AnilistApiConfig {
   transport?: ApiTransport;
-  proxyUrl?: string | null;
+  proxyUrl?: string | null | (() => string | null);
 }
 
 export interface SaveAnilistEntryInput {
@@ -44,7 +44,7 @@ export type AnilistFilterPageParams = AnilistSearchParams & { page: number };
 
 export class AnilistApi {
   private readonly transport: ApiTransport;
-  private readonly proxyUrl: string | null;
+  private readonly proxyUrl: string | null | (() => string | null);
 
   constructor(config: AnilistApiConfig = {}) {
     this.transport = config.transport ?? tauriTransport;
@@ -52,8 +52,8 @@ export class AnilistApi {
   }
 
   private proxy(): Record<string, string> {
-    const fromStore = useSettingsStore.getState().anilistProxyUrl;
-    return anilistProxyArgs(this.proxyUrl ?? fromStore);
+    const resolved = typeof this.proxyUrl === "function" ? this.proxyUrl() : this.proxyUrl;
+    return anilistProxyArgs(resolved);
   }
 
   private call<T>(command: string, args: Record<string, unknown> = {}): Promise<T> {
@@ -189,4 +189,6 @@ export class AnilistApi {
   }
 }
 
-export const anilistApi = new AnilistApi();
+export const anilistApi = new AnilistApi({
+  proxyUrl: () => useSettingsStore.getState().anilistProxyUrl,
+});

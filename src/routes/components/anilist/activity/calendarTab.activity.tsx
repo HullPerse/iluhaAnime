@@ -11,7 +11,7 @@ import {
   monthLabel,
   selectInitialDayKey,
 } from "@/lib/anilist/activity.utils";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import type { AniListCollection } from "@/types/anilist";
 
 export function CalendarTab({

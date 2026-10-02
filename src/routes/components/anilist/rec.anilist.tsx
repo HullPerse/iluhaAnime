@@ -3,7 +3,7 @@ import { Star } from "lucide-react";
 import { TabLoader } from "@/components/shared/loader.component";
 import Modal from "@/components/shared/modal.component";
 import ImageComponent from "@/components/ui/image.component";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { enterOrSpace } from "@/lib/utils/keyboard.utils";
 import type { AniRecProps as Props } from "@/types/anilist";
 

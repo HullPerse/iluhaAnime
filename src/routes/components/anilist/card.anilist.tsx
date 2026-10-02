@@ -10,7 +10,7 @@ import {
   scoreIconFor,
   type AnilistScoreFormat,
 } from "@/lib/anilist/score.utils";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import { enterOrSpace } from "@/lib/utils/keyboard.utils";
 import type { AniCardProps as Props } from "@/types/anilist";

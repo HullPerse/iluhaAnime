@@ -5,7 +5,7 @@ import { useState, useCallback, useMemo } from "react";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import { CATEGORY_ORDER, SHADER_CATEGORY_LABELS } from "@/config/player/shaders.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import { queryKeys } from "@/lib/query/keys.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";

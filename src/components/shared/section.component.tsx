@@ -3,7 +3,7 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 import type { ReactNode } from "react";
 import { useId } from "react";
 
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 
 function Section({
   header,

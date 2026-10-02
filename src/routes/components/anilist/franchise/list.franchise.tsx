@@ -4,7 +4,7 @@ import { FILTER_LABELS } from "@/config/anilist/graph.config";
 import { listStatusLabels } from "@/config/anilist/labels.config";
 import { getStatusColor, type EntryListInfo } from "@/lib/anilist/entries.utils";
 import { groupFranchiseNodes } from "@/lib/anilist/graph.utils";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import type { FranchiseListProps, FranchiseNode } from "@/types/anilist";
 

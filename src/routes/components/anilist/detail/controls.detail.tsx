@@ -15,7 +15,7 @@ import {
   type AnilistScoreFormat,
 } from "@/lib/anilist/score.utils";
 import { buildAnilistPrefill } from "@/lib/collection/import.utils";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { useCollectionStore } from "@/store/collection.store";
 import type { AniMedia } from "@/types/anilist";

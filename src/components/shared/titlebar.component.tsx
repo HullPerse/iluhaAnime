@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { reportBackgroundError } from "@/lib/utils/attempt.utils";
 
 const CONTROL_CLASS = "relative h-5 w-5";

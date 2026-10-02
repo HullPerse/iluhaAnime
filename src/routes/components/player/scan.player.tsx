@@ -1,4 +1,5 @@
-import { useI18n } from "@/lib/locale/i18n.utils";
+import ProgressBar from "@/components/shared/progress.component";
+import { useI18n } from "@/hooks/i18n.hook";
 import type { ScanPlayerProps as Props } from "@/types/player";
 
 export default function FolderScanProgress({ scanProgress }: Props) {
@@ -17,15 +18,11 @@ export default function FolderScanProgress({ scanProgress }: Props) {
       </span>
       {scanProgress.total > 0 && (
         <div className="flex flex-row items-center gap-1">
-          <div className="windows95-border bg-field h-4 flex-1">
-            <div
-              className="bg-secondary h-full"
-              style={{
-                width: `${(scanProgress.current / scanProgress.total) * 100}%`,
-                transition: "none",
-              }}
-            />
-          </div>
+          <ProgressBar
+            value={scanProgress.current}
+            max={scanProgress.total}
+            className="h-4 flex-1"
+          />
           <span className="shrink-0 text-xs">
             {Math.round((scanProgress.current / scanProgress.total) * 100)}%
           </span>

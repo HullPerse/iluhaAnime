@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import Select from "@/components/ui/select.component";
 import { POLL_INTERVALS_MIN } from "@/config/settings/notifications.config";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { useAniListNotificationsStore } from "@/store/anilist.store";
 import { useSettingsStore } from "@/store/settings.store";

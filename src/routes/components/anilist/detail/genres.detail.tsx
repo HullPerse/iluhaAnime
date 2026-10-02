@@ -3,7 +3,7 @@ import { CircleSmall, Tag } from "lucide-react";
 import Section from "@/components/shared/section.component";
 import { Button } from "@/components/ui/button.component";
 import { DETAIL_TAG_COUNT } from "@/config/anilist/filters.config";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 
 export function GenresTagsSection({
   genres,

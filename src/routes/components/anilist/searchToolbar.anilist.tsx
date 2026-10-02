@@ -3,7 +3,7 @@ import { Filter, Search, User } from "lucide-react";
 import { InlineAutocompleteInput } from "@/components/shared/autocomplete/input.autocomplete";
 import { Button } from "@/components/ui/button.component";
 import { countActiveAnilistFilters } from "@/lib/anilist/filters.utils";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { enterSubmit } from "@/lib/utils/keyboard.utils";
 import type { AniListFilters } from "@/types/anilist";
 import type { SearchField } from "@/types/collection";

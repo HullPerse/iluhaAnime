@@ -9,7 +9,7 @@ import Combobox from "@/components/ui/combobox.component";
 import { Input } from "@/components/ui/input.component";
 import Slider from "@/components/ui/range.component";
 import { THEME_COLOR_KEYS } from "@/config/settings/themes.config";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { buildThemeColors, readImagePalette } from "@/lib/theme/palette.utils";
 import { applyTheme, getTitleText, useThemeStore } from "@/store/theme.store";
 import type { ThemeColorKey, ThemeDefinition } from "@/types/theme";

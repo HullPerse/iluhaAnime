@@ -5,7 +5,7 @@ import { memo, useState } from "react";
 
 import { ConfirmDialog } from "@/components/shared/confirm.component";
 import { Button } from "@/components/ui/button.component";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { areTorrentItemsEqual } from "@/lib/torrent/item.utils";
 import type { TorrentItemProps as Props } from "@/types/torrent";
 

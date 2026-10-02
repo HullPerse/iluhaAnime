@@ -2,11 +2,10 @@ import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { openUrl } from "@tauri-apps/plugin-opener";
 
 import { torrentApi } from "@/api/torrent.api";
-import { translate } from "@/lib/locale/i18n.utils";
+import { tr } from "@/lib/locale/i18n.utils";
 import { attemptResult, err, ok, type Result } from "@/lib/utils/result.utils";
 import { useTorrentStore } from "@/store/download.store";
 import { useNotificationStore } from "@/store/notification.store";
-import { useSettingsStore } from "@/store/settings.store";
 import type { Anime } from "@/types/torrent";
 
 async function resolveMagnet(
@@ -24,10 +23,9 @@ async function resolveMagnet(
   const fetched = await attemptResult(torrentApi.rutrackerGetMagnet(item.category));
   setLoadingMagnet((prev) => ({ ...prev, [key]: false }));
   if (!fetched.ok) {
-    const language = useSettingsStore.getState().language;
     useNotificationStore
       .getState()
-      .add(translate(language, "common.error"), "error", translate(language, "magnet.error"));
+      .add(tr("common.error"), "error", tr("magnet.error"));
     return fetched;
   }
   setMagnets((prev) => ({ ...prev, [key]: fetched.value }));
@@ -57,9 +55,9 @@ export async function openMagnet(
     useNotificationStore
       .getState()
       .add(
-        translate(useSettingsStore.getState().language, "common.error"),
+        tr("common.error"),
         "error",
-        translate(useSettingsStore.getState().language, "magnet.open.error")
+        tr("magnet.open.error")
       );
   }
 }

@@ -1,4 +1,5 @@
 import { DEFAULT_FILTERS } from "@/config/collection/filters.config";
+import { DEFAULT_TAG_TOLERANCES } from "@/config/search/tolerance.config";
 import { publicStatusIds } from "@/lib/collection/status.utils";
 import { parseIntent } from "@/lib/search/intent.utils";
 import { normalizeSearchText } from "@/lib/search/normalize.utils";
@@ -8,7 +9,6 @@ import {
   operatorTextLength,
   parseOperatorTerms,
 } from "@/lib/search/score.utils";
-import { useSettingsStore } from "@/store/settings.store";
 import type {
   CollectionFilters,
   CollectionItem,
@@ -16,10 +16,11 @@ import type {
   CollectionStatusDef,
   FilterParams,
 } from "@/types/collection";
-import type { DateCond, NumericCond, ParsedIntent } from "@/types/search";
+import type { DateCond, NumericCond, ParsedIntent, TagToleranceKey } from "@/types/search";
 
-function isIntentEnabled(): boolean {
-  return useSettingsStore.getState().searchIntentEnabled;
+export interface CollectionFilterOptions {
+  intentEnabled?: boolean;
+  tagTolerances?: Record<TagToleranceKey, number>;
 }
 
 function resolveList(
@@ -219,11 +220,13 @@ export function filterCollectionItems(
   filters: FilterParams,
   sortBy: "date" | "name" | "rating" | "year",
   sortDir: "asc" | "desc",
-  statuses: readonly CollectionStatusDef[] = []
+  statuses: readonly CollectionStatusDef[] = [],
+  options: CollectionFilterOptions = {}
 ): CollectionItem[] {
-  const intentEnabled = isIntentEnabled();
+  const intentEnabled = options.intentEnabled ?? true;
+  const tolerances = options.tagTolerances ?? DEFAULT_TAG_TOLERANCES;
   const intent = intentEnabled
-    ? parseIntent(searchQuery, useSettingsStore.getState().tagTolerances)
+    ? parseIntent(searchQuery, tolerances)
     : ({ cleanQuery: searchQuery, rawFilters: {} } as ReturnType<typeof parseIntent>);
   let list = resolveList(items, searchResults, intent.cleanQuery);
   if (selectedStatus !== "all") {

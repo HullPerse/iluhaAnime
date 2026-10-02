@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { systemApi } from "@/api/system.api";
 import Combobox from "@/components/ui/combobox.component";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { attempt, attemptSync, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { useSettingsStore } from "@/store/settings.store";
 

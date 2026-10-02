@@ -6,7 +6,7 @@ import { torrentApi } from "@/api/torrent.api";
 import { SmallLoader } from "@/components/shared/loader.component";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { buildTorrentView } from "@/lib/torrent/details.utils";
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { useSettingsStore } from "@/store/settings.store";

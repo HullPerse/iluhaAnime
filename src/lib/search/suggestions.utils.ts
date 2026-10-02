@@ -1,7 +1,6 @@
 import { KIND_ORDER } from "@/config/search/autocomplete.config";
 import { SEARCH_RANKING } from "@/config/search/ranking.config";
 import { ANIME_STATUS_BOOST } from "@/config/search/status.config";
-import { useSettingsStore } from "@/store/settings.store";
 import type {
   AnilistSuggestionBoost,
   SearchAnimeSuggestion,
@@ -246,7 +245,7 @@ function applySymSpellFallback(
   put: (s: SearchSuggestion) => void
 ): void {
   if (candidates.size >= limit) return;
-  if (!useSettingsStore.getState().searchSymSpellEnabled) return;
+  if (options.symSpell === false) return;
   if (normalizedQuery.length < 3) return;
   const history = options.history ?? [];
   const extra = options.extraValues?.map((e) => e.value) ?? [];
@@ -269,10 +268,10 @@ function applySymSpellFallback(
 }
 export function suggestSpelling(
   query: string,
-  options: Pick<SearchSuggestionOptions, "history" | "animeIndex" | "extraValues"> = {}
+  options: Pick<SearchSuggestionOptions, "history" | "animeIndex" | "extraValues" | "symSpell"> = {}
 ): string | null {
   const normalizedQuery = normalizeSearchText(query);
-  if (!useSettingsStore.getState().searchSymSpellEnabled) return null;
+  if (options.symSpell === false) return null;
   if (normalizedQuery.length < 3) return null;
   const history = options.history ?? [];
   const extra = options.extraValues?.map((entry) => entry.value) ?? [];

@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 import Section from "@/components/shared/section.component";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import type { CollectionItem } from "@/types/collection";
 
 export function CreditsCollection({ item }: { item: CollectionItem }) {

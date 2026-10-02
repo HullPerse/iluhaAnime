@@ -11,7 +11,7 @@ import { useAppQuery } from "@/hooks/appQuery.hook";
 import { getStatusColor } from "@/lib/anilist/entries.utils";
 import { loadFriendScores } from "@/lib/anilist/friends.utils";
 import { formatScore, parseScoreFormat, scoreIconFor } from "@/lib/anilist/score.utils";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import { queryKeys } from "@/lib/query/keys.utils";
 import { useAniListFriendsStore } from "@/store/anilist.store";

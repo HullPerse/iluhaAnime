@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button.component";
 import Select from "@/components/ui/select.component";
 import { DEFAULT_SETTINGS } from "@/config/settings/defaults.config";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { parseExtensions } from "@/lib/settings/media.utils";
 import { useSettingsStore } from "@/store/settings.store";
 

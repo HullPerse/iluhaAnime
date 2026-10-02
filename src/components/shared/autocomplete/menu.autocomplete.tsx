@@ -1,7 +1,7 @@
 import { cn } from "cn";
 
 import { suggestionKindLabels } from "@/config/search/autocomplete.config";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import type { SearchSuggestion } from "@/lib/search/suggestions.utils";
 import type { SuggestionSection } from "@/types/search";
 

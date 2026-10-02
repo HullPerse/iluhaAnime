@@ -2,6 +2,7 @@ import { useDeferredValue, useMemo } from "react";
 
 import { useSuggestions } from "@/hooks/search/suggestion.hook";
 import { getInlineCompletion, getSearchSuggestions } from "@/lib/search/suggestions.utils";
+import { useSettingsStore } from "@/store/settings.store";
 import type { AutocompleteParams } from "@/types/search";
 
 export function useAutocomplete(params: AutocompleteParams) {
@@ -21,6 +22,7 @@ export function useAutocomplete(params: AutocompleteParams) {
   } = params;
   const deferredQuery = useDeferredValue(query);
   const backendSuggestions = useSuggestions(deferredQuery, scope, limit);
+  const searchSymSpellEnabled = useSettingsStore((state) => state.searchSymSpellEnabled);
 
   const suggestions = useMemo(
     () =>
@@ -37,6 +39,7 @@ export function useAutocomplete(params: AutocompleteParams) {
         scope,
         suggestionStats,
         limit,
+        symSpell: searchSymSpellEnabled,
       }),
     [
       deferredQuery,
@@ -52,6 +55,7 @@ export function useAutocomplete(params: AutocompleteParams) {
       scope,
       suggestionStats,
       limit,
+      searchSymSpellEnabled,
     ]
   );
 

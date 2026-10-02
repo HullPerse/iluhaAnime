@@ -4,7 +4,7 @@ import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button.component";
 import { ColorPickerTrigger } from "@/components/ui/color/trigger.color";
 import { ANNOTATION_BRUSH_SIZES, ANNOTATION_TEXT_SIZES } from "@/config/settings/screenshot.config";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
 import type { ScreenshotTool } from "@/types/screenshot";
 

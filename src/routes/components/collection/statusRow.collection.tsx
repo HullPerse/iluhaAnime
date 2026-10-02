@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input.component";
 import Select from "@/components/ui/select.component";
 import { PUBLIC_STATUS_MAX_ITEMS } from "@/config/collection/statuses.config";
 import { normalizeStatusLabel } from "@/lib/collection/status.utils";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import type { CollectionStatusDef, CollectionStatusKind } from "@/types/collection";
 
 import { BilingualPreview } from "./bilingualPreview.collection";

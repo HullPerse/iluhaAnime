@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react";
 
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { clamp, hsvToHex } from "@/lib/utils/color.utils";
 import type { HSV } from "@/types/color";
 

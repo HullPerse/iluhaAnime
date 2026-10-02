@@ -19,12 +19,13 @@ import {
   isPublicStatusFull,
   publicStatusPrefill,
 } from "@/lib/collection/status.utils";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { buildCollectionShareLink } from "@/lib/utils/deeplink.utils";
 import { useCollectionStore } from "@/store/collection.store";
 import { useDeepLinkStore } from "@/store/deeplink.store";
 import { useNotificationStore } from "@/store/notification.store";
+import { useSettingsStore } from "@/store/settings.store";
 import type {
   CollectionItem,
   CollectionStatus,
@@ -43,6 +44,8 @@ import ToolbarCollection from "./components/collection/toolbar.collection";
 
 export default function CollectionRoute() {
   const { t } = useI18n();
+  const searchIntentEnabled = useSettingsStore((s) => s.searchIntentEnabled);
+  const tagTolerances = useSettingsStore((s) => s.tagTolerances);
   const { items, statuses, customFieldDefs, isLoading, isError, isFetching, error, refetch } =
     useCollectionData();
   const mutations = useCollectionMutations();
@@ -133,9 +136,21 @@ export default function CollectionRoute() {
         filters,
         sortBy,
         sortDir,
-        statuses
+        statuses,
+        { intentEnabled: searchIntentEnabled, tagTolerances }
       ),
-    [items, searchResults, searchQuery, selectedStatus, filters, sortBy, sortDir, statuses]
+    [
+      items,
+      searchResults,
+      searchQuery,
+      selectedStatus,
+      filters,
+      sortBy,
+      sortDir,
+      statuses,
+      searchIntentEnabled,
+      tagTolerances,
+    ]
   );
 
   const statusCounts = useMemo(() => {

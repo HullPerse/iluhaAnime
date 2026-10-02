@@ -2,10 +2,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useMemo, useRef } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
-import { translate } from "@/lib/locale/i18n.utils";
+import { tr } from "@/lib/locale/i18n.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { useNotificationStore } from "@/store/notification.store";
-import { useSettingsStore } from "@/store/settings.store";
 import type { AnilistRouteData } from "@/types/anilist";
 
 export function useFavouritePeopleToggles() {
@@ -19,7 +18,7 @@ export function useFavouritePeopleToggles() {
       useNotificationStore
         .getState()
         .add(
-          translate(useSettingsStore.getState().language, "anilist.fav.toggle.failed"),
+          tr("anilist.fav.toggle.failed"),
           "error",
           error.message
         );
@@ -44,7 +43,7 @@ export function useFavouritePeopleToggles() {
       useNotificationStore
         .getState()
         .add(
-          translate(useSettingsStore.getState().language, "anilist.fav.toggle.failed"),
+          tr("anilist.fav.toggle.failed"),
           "error",
           error.message
         );

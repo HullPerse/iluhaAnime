@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { Input } from "@/components/ui/input.component";
 import { torrentFilesKey } from "@/hooks/torrent/queries.hook";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { normalizePlayerPath } from "@/lib/player/visibility.utils";
 import { formatBytes } from "@/lib/utils/bytes.utils";
 import { isUserImageIcon } from "@/lib/utils/image.utils";

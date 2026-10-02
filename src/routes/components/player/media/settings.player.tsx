@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import Select from "@/components/ui/select.component";
 import { PLAYER_PROFILE_IDS } from "@/config/player/profiles.config";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { DEFAULT_PLAYER_SETTINGS } from "@/store/player.store";
 import type {
   EndOfFileMode,

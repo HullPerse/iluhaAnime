@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
 import { searchFiltersToParams } from "@/lib/anilist/entries.utils";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { showError } from "@/lib/utils/notification.utils";
 import type { AniListFilters, AniMedia } from "@/types/anilist";

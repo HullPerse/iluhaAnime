@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react";
 
 import { HUE_GRADIENT } from "@/config/utils/colors.config";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { clamp, normalizeHue } from "@/lib/utils/color.utils";
 
 export function HueSlider({ hue, onChange }: { hue: number; onChange: (hue: number) => void }) {

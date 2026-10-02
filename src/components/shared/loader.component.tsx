@@ -2,7 +2,7 @@ import { cn } from "cn";
 import { Box } from "lucide-react";
 import type { ReactNode } from "react";
 
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 
 export function BigLoader() {
   return (

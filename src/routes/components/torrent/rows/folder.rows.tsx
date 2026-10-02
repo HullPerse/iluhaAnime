@@ -2,7 +2,7 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 
 import { Checkbox } from "@/components/ui/checkbox.component";
 import ImageComponent from "@/components/ui/image.component";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { collectFileIndices } from "@/lib/torrent/tree.utils";
 import { formatBytes } from "@/lib/utils/bytes.utils";
 import type { TorrentFileInfo, TorrentTreeNode } from "@/types/torrent";

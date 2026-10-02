@@ -4,7 +4,7 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { TabLoader } from "@/components/shared/loader.component";
 import { Button } from "@/components/ui/button.component";
 import { SETTINGS_TAB_KEYS } from "@/config/settings/tabs.config";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
 import { readSettingsTab } from "@/lib/settings/tab.utils";
 import { attemptSync } from "@/lib/utils/attempt.utils";

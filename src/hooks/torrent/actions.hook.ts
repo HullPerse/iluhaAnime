@@ -12,7 +12,7 @@ import {
   useSetSequentialDownload,
   useUpdateOnlyFiles,
 } from "@/hooks/torrent/queries.hook";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { describeRecheckOutcome } from "@/lib/torrent/recheck.utils";
 import { useCacheStore } from "@/store/cache.store";
 import { useTorrentStore } from "@/store/download.store";

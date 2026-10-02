@@ -1,5 +1,5 @@
 import ProgressBar from "@/components/shared/progress.component";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { queueDepthSteps } from "@/lib/player/queue.utils";
 import type { UpscaleQueueItem } from "@/types/upscale";
 

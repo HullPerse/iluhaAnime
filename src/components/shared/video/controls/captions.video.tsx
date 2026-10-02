@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Select from "@/components/ui/select.component";
 import { CAPTIONS_OFF } from "@/config/player/video.config";
 import { useCaptionTracks } from "@/hooks/videoCaptions.hook";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 
 export function CaptionsSelect() {
   const { t } = useI18n();

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 import ProgressBar from "@/components/shared/progress.component";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { formatSpeed, fmtSpeed } from "@/lib/torrent/common.utils";
 import { formatBytes } from "@/lib/utils/bytes.utils";
 import type { HostStats } from "@/types/ipc";

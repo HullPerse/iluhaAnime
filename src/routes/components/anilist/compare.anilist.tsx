@@ -20,7 +20,7 @@ import {
   parseScoreFormat,
   type AnilistScoreFormat,
 } from "@/lib/anilist/score.utils";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
 import type { AniListCollection, AniUser, AniUserProfile, FavouriteAnime } from "@/types/anilist";
 

@@ -4,7 +4,7 @@ import { TabLoader } from "@/components/shared/loader.component";
 import Section from "@/components/shared/section.component";
 import { Button } from "@/components/ui/button.component";
 import { useAnimeShowcase } from "@/hooks/showcase.hook";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { useSearchStore } from "@/store/search.store";
 import type { AniVoiceActor } from "@/types/anilist";
 import type { AniDetailViewProps as ViewProps } from "@/types/anilist";

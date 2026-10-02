@@ -3,7 +3,7 @@ import { cn } from "cn";
 import { ChevronDown } from "lucide-react";
 import { useState, useMemo, useRef } from "react";
 
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import type { SelectProps } from "@/types/ui";
 
 import { Input } from "./input.component";

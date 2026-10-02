@@ -2,7 +2,7 @@ import { cn } from "cn";
 import { Heart } from "lucide-react";
 
 import { SmallLoader } from "@/components/shared/loader.component";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 
 export function FavHeartButton({
   isFavorite,

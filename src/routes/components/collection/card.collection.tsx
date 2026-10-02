@@ -7,7 +7,7 @@ import { useCoverCache } from "@/hooks/collection/cache.hook";
 import { useRemoteImage } from "@/hooks/remoteImage.hook";
 import { resolveCardCover, sameCardVisual, uncachedCoverSource } from "@/lib/collection/card.utils";
 import { statusColorOf } from "@/lib/collection/status.utils";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { enterOrSpace } from "@/lib/utils/keyboard.utils";
 import type { CollectionCardProps } from "@/types/collection";
 

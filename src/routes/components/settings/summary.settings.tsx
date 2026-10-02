@@ -10,7 +10,7 @@ import { THEMES } from "@/config/settings/themes.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { resetCoverCache } from "@/hooks/collection/cache.hook";
 import { resetRemoteImageCache } from "@/hooks/remoteImage.hook";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { queryKeys } from "@/lib/query/keys.utils";
 import { formatBackupDate } from "@/lib/settings/backup.utils";
 import {

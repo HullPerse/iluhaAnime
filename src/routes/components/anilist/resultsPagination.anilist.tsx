@@ -1,7 +1,7 @@
 import Pagination from "@/components/shared/pagination.component";
 import { listStatusLabels } from "@/config/anilist/labels.config";
 import { ALL_LISTS_ID } from "@/lib/anilist/group.utils";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import type { SearchMode } from "@/types/anilist";
 

@@ -7,7 +7,7 @@ import { systemApi } from "@/api/system.api";
 import UserImageIcon from "@/components/shared/avatar.component";
 import { SmallLoader } from "@/components/shared/loader.component";
 import { Button } from "@/components/ui/button.component";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { toUserImage, userImageIcon } from "@/lib/utils/image.utils";
 import { showError } from "@/lib/utils/notification.utils";

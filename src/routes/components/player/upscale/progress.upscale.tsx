@@ -5,7 +5,7 @@ import { SmallLoader } from "@/components/shared/loader.component";
 import ProgressBar from "@/components/shared/progress.component";
 import { Button } from "@/components/ui/button.component";
 import { useHostStats } from "@/hooks/hostStats.hook";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { formatETA } from "@/lib/utils/time.utils";
 import type { UpscaleQueueItem } from "@/types/upscale";
 

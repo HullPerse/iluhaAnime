@@ -1,5 +1,5 @@
 import { SIMILAR_COUNT } from "@/config/collection/defaults.config";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import type { CollectionItem } from "@/types/collection";
 
 import { SimilarCard } from "./similarCard.detail";

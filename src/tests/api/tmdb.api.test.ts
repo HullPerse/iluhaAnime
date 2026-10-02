@@ -23,7 +23,10 @@ describe("TmdbApi", () => {
   it("sends the empty key placeholder with the store proxy", async () => {
     useSettingsStore.setState({ tmdbProxyUrl: "http://127.0.0.1:7890" });
     const { calls, transport } = fakeTransport(() => []);
-    const api = new TmdbApi({ transport });
+    const api = new TmdbApi({
+      transport,
+      proxyUrl: () => useSettingsStore.getState().tmdbProxyUrl,
+    });
 
     await api.getDetails(1, "movie");
 

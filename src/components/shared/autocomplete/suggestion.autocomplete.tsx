@@ -2,7 +2,7 @@ import { cn } from "cn";
 import { X } from "lucide-react";
 
 import { suggestionIcons, suggestionKindLabels } from "@/config/search/autocomplete.config";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import type { SearchSuggestion } from "@/lib/search/suggestions.utils";
 
 import { HighlightedText } from "./highlightedText.autocomplete";

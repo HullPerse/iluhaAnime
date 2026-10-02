@@ -13,7 +13,8 @@ import {
 } from "@/config/player/keybinds.config";
 import { VOLUME_STEP } from "@/config/player/video.config";
 import { usePlayerEvents } from "@/hooks/player/events.hook";
-import { translate, useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
+import { translate } from "@/lib/locale/i18n.utils";
 import { fileNameFromPath } from "@/lib/player/title.utils";
 import { reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { ignore } from "@/lib/utils/promise.utils";

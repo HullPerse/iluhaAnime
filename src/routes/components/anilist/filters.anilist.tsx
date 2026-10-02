@@ -21,7 +21,7 @@ import {
   STATUSES,
 } from "@/config/anilist/filters.config";
 import { statusLabels, seasonLabels, formatLabels } from "@/config/anilist/labels.config";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import type { AniListFiltersModalProps, AniListFilters } from "@/types/anilist";
 
 import { DiscoveryCard } from "./random/discovery.random";

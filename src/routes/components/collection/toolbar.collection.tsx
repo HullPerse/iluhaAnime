@@ -5,7 +5,7 @@ import { InlineAutocompleteInput } from "@/components/shared/autocomplete/input.
 import { Button } from "@/components/ui/button.component";
 import Select from "@/components/ui/select.component";
 import { useCollectionDataActions } from "@/hooks/collection/data.hook";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { tokenizeIntent } from "@/lib/search/intent.utils";
 import type { CollectionStore, SearchField } from "@/types/collection";
 

@@ -3,10 +3,11 @@ import { parse } from "anitomy";
 import { cn } from "cn";
 import { ArrowDownNarrowWide, RefreshCw } from "lucide-react";
 
+import ProgressBar from "@/components/shared/progress.component";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import ImageComponent from "@/components/ui/image.component";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { formatParsedTitle } from "@/lib/player/title.utils";
 import { formatBytes } from "@/lib/utils/bytes.utils";
 import { useSearchStore } from "@/store/search.store";
@@ -104,14 +105,12 @@ export function TorrentFileRow({
       )}
 
       {file.selected && !file.completed && file.size > 0 && (
-        <div className="bg-surface windows95-border ml-1 h-3 w-10 shrink-0">
-          <div
-            className="bg-secondary h-full transition-[width] duration-500"
-            style={{
-              width: `${Math.min(100, (file.progress_bytes / file.size) * 100)}%`,
-            }}
-          />
-        </div>
+        <ProgressBar
+          className="ml-1 h-3 w-10 shrink-0"
+          value={file.progress_bytes}
+          max={file.size}
+          ariaLabel={file.displayName}
+        />
       )}
 
       <span className="text-hint shrink-0">{formatBytes(file.size)}</span>

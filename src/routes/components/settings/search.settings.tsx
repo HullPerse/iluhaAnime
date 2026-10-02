@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox.component";
 import { Input } from "@/components/ui/input.component";
 import Select from "@/components/ui/select.component";
 import { SOURCE_INFOS } from "@/config/search/sources.config";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { deleteAppCache } from "@/lib/store/cache.utils";
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { useSearchStore } from "@/store/search.store";

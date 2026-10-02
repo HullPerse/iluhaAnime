@@ -11,7 +11,7 @@ import {
 import { useGridColumns } from "@/hooks/collection/columns.hook";
 import { buildRows } from "@/lib/collection/grid.utils";
 import { statusLabel } from "@/lib/collection/status.utils";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { useSettingsStore } from "@/store/settings.store";
 import type {
   CollectionGroup,

@@ -22,7 +22,7 @@ import {
   SCREENSHOT_FORMAT_LABELS,
   SCREENSHOT_FORMATS,
 } from "@/config/settings/screenshot.config";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
 import {
   canRedo,

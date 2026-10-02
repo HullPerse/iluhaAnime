@@ -7,7 +7,7 @@ import { mediaToWizardValues } from "@/lib/collection/import.utils";
 import { withStoredMedia } from "@/lib/collection/media.utils";
 import { downloadCover, fetchAddedMedia } from "@/lib/collection/quickadd.utils";
 import { buildWizardItem } from "@/lib/collection/wizard.utils";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { useNotificationStore } from "@/store/notification.store";
 import type { QuickAddListEntry, QuickAddMedia } from "@/types/collection";

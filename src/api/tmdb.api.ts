@@ -6,7 +6,8 @@ import { tauriTransport } from "./transport.api";
 
 export interface TmdbApiConfig {
   transport?: ApiTransport;
-  proxyUrl?: string | null;
+  proxyUrl?: string | null | (() => string | null);
+  isConfigured?: () => boolean;
 }
 
 export interface TmdbSearchParams {
@@ -34,19 +35,22 @@ export interface TmdbMediaParts {
 
 export class TmdbApi {
   private readonly transport: ApiTransport;
-  private readonly proxyUrl: string | null;
+  private readonly proxyUrl: string | null | (() => string | null);
+  private readonly configured: (() => boolean) | null;
 
   constructor(config: TmdbApiConfig = {}) {
     this.transport = config.transport ?? tauriTransport;
     this.proxyUrl = config.proxyUrl ?? null;
+    this.configured = config.isConfigured ?? null;
   }
 
   isConfigured(): boolean {
-    return useSettingsStore.getState().tmdbKeySet;
+    return this.configured?.() ?? false;
   }
 
   private proxy(): string | undefined {
-    return this.proxyUrl ?? useSettingsStore.getState().tmdbProxyUrl ?? undefined;
+    const resolved = typeof this.proxyUrl === "function" ? this.proxyUrl() : this.proxyUrl;
+    return resolved ?? undefined;
   }
 
   private call<T>(command: string, args?: Record<string, unknown>): Promise<T> {
@@ -97,4 +101,7 @@ export class TmdbApi {
   }
 }
 
-export const tmdbApi = new TmdbApi();
+export const tmdbApi = new TmdbApi({
+  proxyUrl: () => useSettingsStore.getState().tmdbProxyUrl,
+  isConfigured: () => useSettingsStore.getState().tmdbKeySet,
+});

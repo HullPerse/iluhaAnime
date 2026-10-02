@@ -12,7 +12,7 @@ import { useWizardSearch } from "@/hooks/collection/search.hook";
 import { useWizardForm } from "@/hooks/collection/wizard.hook";
 import { useOverlay } from "@/hooks/overlay.hook";
 import { isPublicStatus } from "@/lib/collection/status.utils";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { normalizeSearchText } from "@/lib/search/suggestions.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { useSearchStore } from "@/store/search.store";

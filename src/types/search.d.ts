@@ -70,6 +70,7 @@ export interface SearchSuggestionOptions {
   animeEnabled?: boolean;
   collectionItems?: CollectionSuggestionItem[];
   collectionBoost?: number;
+  symSpell?: boolean;
 }
 
 export interface UnifiedIndexRow {

@@ -6,7 +6,7 @@ import { useApp } from "@/hooks/app.hook";
 import { useScreenshot } from "@/hooks/screenshot.hook";
 import { TORRENTS_QUERY_KEY } from "@/hooks/torrent/queries.hook";
 import { useTray } from "@/hooks/tray.hook";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { attempt } from "@/lib/utils/attempt.utils";
 import TorrentFilePicker from "@/routes/components/search/default/picker.search";
 import { useCacheStore } from "@/store/cache.store";

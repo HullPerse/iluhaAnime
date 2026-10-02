@@ -23,7 +23,10 @@ describe("AnilistApi", () => {
   it("injects the configured proxy into every call", async () => {
     useSettingsStore.setState({ anilistProxyUrl: "socks5://127.0.0.1:10808" });
     const { calls, transport } = fakeTransport(() => []);
-    const api = new AnilistApi({ transport });
+    const api = new AnilistApi({
+      transport,
+      proxyUrl: () => useSettingsStore.getState().anilistProxyUrl,
+    });
 
     await api.getLists(7);
 

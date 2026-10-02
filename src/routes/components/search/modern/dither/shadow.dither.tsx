@@ -2,7 +2,7 @@ import { Checkbox } from "@/components/ui/checkbox.component";
 import { ColorPickerTrigger } from "@/components/ui/color/trigger.color";
 import Slider from "@/components/ui/range.component";
 import { WALLPAPER_SHADOW_SIDE_KEYS } from "@/config/settings/wallpaper.config";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import type { TranslationKey } from "@/types/i18n";
 import type { WallpaperShadow } from "@/types/settings";
 

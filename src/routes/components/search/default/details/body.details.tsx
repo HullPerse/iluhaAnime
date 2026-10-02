@@ -3,7 +3,7 @@ import { FileText, Image as ImageIcon, Info, MessageSquare, Rss } from "lucide-r
 
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { formatSize } from "@/lib/search/format.utils";
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import type { Source } from "@/types/search";

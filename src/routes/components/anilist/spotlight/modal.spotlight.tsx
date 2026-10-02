@@ -14,7 +14,7 @@ import {
   spotlightBoundaryMs,
   spotlightPeriodKey,
 } from "@/lib/anilist/spotlight.utils";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { readAppCache, writeAppCache } from "@/lib/store/cache.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { formatETA } from "@/lib/utils/time.utils";

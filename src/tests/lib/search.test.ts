@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { detectLanguages, formatSize, parseSize, qualityMatch } from "@/lib/search/format.utils";
 import { isTagLikeQuery, parseIntent, tokenizeIntent } from "@/lib/search/intent.utils";
@@ -19,7 +19,6 @@ import {
   buildShadowGradients,
   buildWallpaperFilter,
 } from "@/lib/wallpaper/wallpaper.utils";
-import { useSettingsStore } from "@/store/settings.store";
 import type { SearchAnimeSuggestion, SearchQueryStat } from "@/types/search";
 import type { SearchFilters } from "@/types/search";
 import type { Anime } from "@/types/torrent";
@@ -1028,26 +1027,21 @@ describe("search/suggestions", () => {
   });
 
   describe("suggestSpelling", () => {
-    beforeEach(() => {
-      useSettingsStore.setState({ searchSymSpellEnabled: true });
-    });
-
     it("corrects a typo from anime titles", () => {
-      expect(suggestSpelling("friren", { animeIndex })).toBe("frieren");
+      expect(suggestSpelling("friren", { animeIndex, symSpell: true })).toBe("frieren");
     });
 
     it("stays silent on exact matches", () => {
-      expect(suggestSpelling("frieren", { animeIndex })).toBeNull();
+      expect(suggestSpelling("frieren", { animeIndex, symSpell: true })).toBeNull();
     });
 
     it("stays silent on short queries and empty titles", () => {
-      expect(suggestSpelling("fr", { animeIndex })).toBeNull();
-      expect(suggestSpelling("friren", {})).toBeNull();
+      expect(suggestSpelling("fr", { animeIndex, symSpell: true })).toBeNull();
+      expect(suggestSpelling("friren", { symSpell: true })).toBeNull();
     });
 
     it("stays silent when symspell is disabled", () => {
-      useSettingsStore.setState({ searchSymSpellEnabled: false });
-      expect(suggestSpelling("friren", { animeIndex })).toBeNull();
+      expect(suggestSpelling("friren", { animeIndex, symSpell: false })).toBeNull();
     });
   });
 });

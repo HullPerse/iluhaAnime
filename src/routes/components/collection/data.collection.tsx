@@ -24,7 +24,7 @@ import { DropdownMenuRadioGroup } from "@/components/ui/dropdown/radioGroup.drop
 import { DropdownMenuRadioItem } from "@/components/ui/dropdown/radioItem.dropdown";
 import { DropdownMenuSeparator } from "@/components/ui/dropdown/separator.dropdown";
 import { DropdownMenuTrigger } from "@/components/ui/dropdown/trigger.dropdown";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { useCollectionStore } from "@/store/collection.store";
 
 import { TagsReferenceModal } from "./tags.collection";

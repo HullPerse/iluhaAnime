@@ -1,5 +1,3 @@
-import { useMemo } from "react";
-
 import en from "@/lib/locale/en";
 import ru from "@/lib/locale/ru";
 import { useSettingsStore } from "@/store/settings.store";
@@ -58,14 +56,6 @@ export function translate(
     : template;
 }
 
-export function useI18n() {
-  const locale = useSettingsStore((state) => state.language);
-  return useMemo(
-    () => ({
-      locale,
-      t: (key: TranslationKey, variables?: TranslationVariables) =>
-        translate(locale, key, variables),
-    }),
-    [locale]
-  );
+export function tr(key: TranslationKey, vars?: TranslationVariables): string {
+  return translate(useSettingsStore.getState().language, key, vars);
 }

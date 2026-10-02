@@ -1,5 +1,5 @@
 import { Checkbox } from "@/components/ui/checkbox.component";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 
 export function ViewFlags({
   showImages,

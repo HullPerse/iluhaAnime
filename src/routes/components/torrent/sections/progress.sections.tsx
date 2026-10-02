@@ -1,7 +1,7 @@
 import { ArrowUp } from "lucide-react";
 
 import ProgressBar from "@/components/shared/progress.component";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import {
   DISPLAY_BAR_CLASS,
   displayStateLabel,

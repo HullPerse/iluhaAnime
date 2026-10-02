@@ -2,7 +2,7 @@ import { MediaLightboxContent } from "@/components/shared/lightbox/mediaLightbox
 import { SmallLoader } from "@/components/shared/loader.component";
 import Tabs from "@/components/shared/tabs.component";
 import { useViewerMedia } from "@/hooks/collection/viewer.hook";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import type { MediaViewerParts } from "@/types/collection";
 import type { FilmstripTab } from "@/types/media";
 

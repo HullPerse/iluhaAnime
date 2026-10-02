@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 
 import { TabLoader } from "@/components/shared/loader.component";
 import { ANILIST_LOADER_TICK_MS, ANILIST_SLOW_SEC } from "@/config/anilist/loading.config";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { formatElapsed } from "@/lib/utils/time.utils";
 
 export default function AniListLoader({ className }: { className?: string }) {

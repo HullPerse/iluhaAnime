@@ -1,4 +1,4 @@
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { usePlaybackStore } from "@/store/player.store";
 
 function formatFps(value: number | undefined): string {

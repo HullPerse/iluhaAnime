@@ -16,7 +16,7 @@ import {
   normalizeStatusLabel,
   resolveStatusLabel,
 } from "@/lib/collection/status.utils";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { useNotificationStore } from "@/store/notification.store";
 import type { ShareImportPlan } from "@/types/deeplink";

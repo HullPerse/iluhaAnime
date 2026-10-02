@@ -14,7 +14,7 @@ import { useAnilistFollowing } from "@/hooks/anilist/following.hook";
 import { useFriendCompare } from "@/hooks/friendCompare.hook";
 import { hasFreshCachedProfile } from "@/lib/anilist/friends.utils";
 import { formatMeanScore, parseScoreFormat } from "@/lib/anilist/score.utils";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { enterSubmit } from "@/lib/utils/keyboard.utils";
 import { useAniListFriendsStore } from "@/store/anilist.store";

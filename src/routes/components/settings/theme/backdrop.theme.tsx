@@ -1,5 +1,5 @@
 import Slider from "@/components/ui/range.component";
-import { useI18n } from "@/lib/locale/i18n.utils";
+import { useI18n } from "@/hooks/i18n.hook";
 import { useSettingsStore } from "@/store/settings.store";
 
 export function BackdropSlider() {

@@ -8,16 +8,18 @@ import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import { EMPTY_ANIME_META } from "@/config/collection/import.config";
+import { useAppQuery } from "@/hooks/appQuery.hook";
 import { COLLECTION_QUERY_KEY, useCollectionData } from "@/hooks/collection/queries.hook";
 import { parseScoreFormat } from "@/lib/anilist/score.utils";
 import { entryDiffers, entrySyncState, runImportBatch } from "@/lib/collection/import.utils";
 import { resolveStatusLabel } from "@/lib/collection/status.utils";
 import { useI18n } from "@/hooks/i18n.hook";
 import { toLocaleKey } from "@/lib/locale/key.utils";
+import { queryKeys } from "@/lib/query/keys.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { useNotificationStore } from "@/store/notification.store";
 import type { AniListCollection, AniListEntry, AniUser } from "@/types/anilist";
-import type { CollectionItem, ImportBatchGroup, ImportMode } from "@/types/collection";
+import type { CollectionItem, ImportMode } from "@/types/collection";
 import type { TranslationVariables } from "@/types/i18n";
 
 import { EntryRow } from "./import/entryRow.import";
@@ -38,16 +40,32 @@ export default function ImportAnilistCollection({
   const { t, locale } = useI18n();
   const queryClient = useQueryClient();
   const { items, statuses } = useCollectionData();
-  const [user, setUser] = useState<AniUser | null>(null);
-  const [authChecked, setAuthChecked] = useState(false);
-  const [lists, setLists] = useState<AniListCollection[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const authQuery = useAppQuery<AniUser | null>("live", {
+    queryKey: queryKeys.anilistCheckAuth(),
+    queryFn: () => anilistApi.checkAuth(),
+    enabled: open,
+    staleTime: 0,
+  });
+  const authUser = authQuery.data ?? null;
+  const listsQuery = useAppQuery<AniListCollection[]>("live", {
+    queryKey: queryKeys.anilistImportLists(authUser?.id ?? null),
+    queryFn: () => anilistApi.getLists(authUser!.id),
+    enabled: open && authUser !== null,
+    staleTime: 0,
+  });
+  const lists = useMemo(() => listsQuery.data ?? [], [listsQuery.data]);
+  const authBusy = authQuery.isPending || authQuery.isFetching;
+  const listsBusy = authUser !== null && (listsQuery.isPending || listsQuery.isFetching);
+  const listsErrorText =
+    listsQuery.error instanceof Error
+      ? listsQuery.error.message
+      : listsQuery.error
+        ? String(listsQuery.error)
+        : null;
   const [mode, setMode] = useState<ImportMode>("summary");
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [importing, setImporting] = useState(false);
   const [processed, setProcessed] = useState(0);
-  const [batch, setBatch] = useState<ImportBatchGroup[]>([]);
   const [current, setCurrent] = useState<string | null>(null);
   const [importFailures, setImportFailures] = useState<Array<{ id: number; title: string }>>([]);
   const [result, setResult] = useState<{ imported: number; skipped: number } | null>(null);
@@ -99,9 +117,9 @@ export default function ImportAnilistCollection({
     () =>
       allEntries.filter((e) => {
         const item = itemByAnilistId.get(e.media.id);
-        return item !== undefined && entryDiffers(e, item, parseScoreFormat(user?.score_format));
+        return item !== undefined && entryDiffers(e, item, parseScoreFormat(authUser?.score_format));
       }),
-    [allEntries, itemByAnilistId, user]
+    [allEntries, itemByAnilistId, authUser]
   );
   const existingCount = allEntries.length - newEntries.length;
   const backfillTargets = useMemo(
@@ -111,13 +129,9 @@ export default function ImportAnilistCollection({
 
   useEffect(() => {
     if (!open) return;
-    setAuthChecked(false);
-    setError(null);
-    setLists([]);
     setSelected(new Set());
     setMode("summary");
     setProcessed(0);
-    setBatch([]);
     setCurrent(null);
     setImportFailures([]);
     setResult(null);
@@ -125,22 +139,6 @@ export default function ImportAnilistCollection({
     setOpFailures([]);
     setOpDone(null);
     abortRef.current = false;
-    (async () => {
-      const [user, authError] = await attempt(anilistApi.checkAuth());
-      if (authError) {
-        setError(authError.message);
-        setAuthChecked(true);
-        return;
-      }
-      setUser(user);
-      setAuthChecked(true);
-      if (!user) return;
-      setLoading(true);
-      const [lists, listsError] = await attempt(anilistApi.getLists(user.id));
-      if (listsError) setError(listsError.message);
-      else setLists(lists);
-      setLoading(false);
-    })();
   }, [open]);
 
   const switchMode = (next: ImportMode) => {
@@ -178,7 +176,6 @@ export default function ImportAnilistCollection({
 
   const importEntries = async (entries: AniListEntry[]) => {
     setImporting(true);
-    setBatch([]);
     const outcome = await runImportBatch(
       entries,
       () => abortRef.current,
@@ -186,7 +183,7 @@ export default function ImportAnilistCollection({
         setProcessed(done);
         setCurrent(title === "" ? null : title);
       },
-      parseScoreFormat(user?.score_format)
+      parseScoreFormat(authUser?.score_format)
     );
     setImporting(false);
     return outcome;
@@ -235,7 +232,7 @@ export default function ImportAnilistCollection({
   };
 
   const changeTextFor = (entry: AniListEntry, item: CollectionItem): string => {
-    const s = entrySyncState(entry, parseScoreFormat(user?.score_format));
+    const s = entrySyncState(entry, parseScoreFormat(authUser?.score_format));
     const parts: string[] = [];
     if (s.status !== item.status)
       parts.push(
@@ -275,7 +272,7 @@ export default function ImportAnilistCollection({
     for (const { entry, item } of targets) {
       if (abortRef.current) break;
       setOpCurrent(entry.media.title);
-      const s = entrySyncState(entry, parseScoreFormat(user?.score_format));
+      const s = entrySyncState(entry, parseScoreFormat(authUser?.score_format));
       const [, err] = await attempt(
         collectionApi.patchItem(item.id, {
           status: s.status,
@@ -434,7 +431,7 @@ export default function ImportAnilistCollection({
                       entry={entry}
                       checked={selected.has(entry.media.id)}
                       isDup={false}
-                      scoreFormat={parseScoreFormat(user?.score_format)}
+                      scoreFormat={parseScoreFormat(authUser?.score_format)}
                       onToggle={toggleOne}
                     />
                   ))}
@@ -449,7 +446,7 @@ export default function ImportAnilistCollection({
         processed={processed}
         result={result}
         failures={importFailures}
-        groups={batch}
+        groups={[]}
         profileTotal={newEntries.length}
         current={current}
       />
@@ -596,23 +593,23 @@ export default function ImportAnilistCollection({
       }}
     >
       <div className="flex flex-col gap-3 p-2">
-        {!authChecked ? (
+        {authBusy ? (
           <div className="flex items-center justify-center py-4">
             <SmallLoader />
           </div>
-        ) : !user ? (
+        ) : !authUser ? (
           <div className="flex flex-col gap-2">
             <span className="windows95-text text-xs">
               {t("collection.import.anilist.login.required")}
             </span>
             <span className="text-hint text-xs">{t("collection.import.anilist.login.hint")}</span>
           </div>
-        ) : loading ? (
+        ) : listsBusy ? (
           <div className="flex items-center justify-center py-4">
             <SmallLoader />
           </div>
-        ) : error ? (
-          <span className="text-destructive windows95-text text-xs">{error}</span>
+        ) : listsErrorText ? (
+          <span className="text-destructive windows95-text text-xs">{listsErrorText}</span>
         ) : lists.length === 0 ? (
           <span className="windows95-text text-xs">{t("collection.import.anilist.empty")}</span>
         ) : mode === "summary" ? (

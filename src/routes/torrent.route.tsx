@@ -1,7 +1,6 @@
 import { DndContext, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import type { DragEndEvent } from "@dnd-kit/core";
 import { useQueryClient } from "@tanstack/react-query";
-import { listen } from "@tauri-apps/api/event";
 import { Plus, SortAsc, SortDesc } from "lucide-react";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 
@@ -27,6 +26,7 @@ import {
   useTorrents,
 } from "@/hooks/torrent/queries.hook";
 import { useI18n } from "@/hooks/i18n.hook";
+import { useTauriEvent } from "@/hooks/tauriEvent.hook";
 import { applyBulkAction, pruneSelection, splitRecheckOutcome } from "@/lib/torrent/bulk.utils";
 import {
   formatSpeed,
@@ -278,27 +278,18 @@ function TorrentRoute() {
     };
   }, [torrents]);
 
-  useEffect(() => {
-    let disposed = false;
-    let unlisten: (() => void) | undefined;
-    listen<{ paths: string[] }>("tauri://drag-drop", (event) => {
+  useTauriEvent<{ paths: string[] }>(
+    "tauri://drag-drop",
+    (event) => {
       for (const path of event.payload.paths) {
         if (path.toLowerCase().endsWith(".torrent")) {
           prepareTorrentDownloadFromFile(path);
           break;
         }
       }
-    })
-      .then((cleanup) => {
-        if (disposed) cleanup();
-        else unlisten = cleanup;
-      })
-      .catch((error) => reportBackgroundError("drag-drop.listen", error));
-    return () => {
-      disposed = true;
-      unlisten?.();
-    };
-  }, [prepareTorrentDownloadFromFile]);
+    },
+    { errorTag: "drag-drop" }
+  );
 
   useEffect(() => {
     const { limits: prefs } = useSettingsStore.getState();

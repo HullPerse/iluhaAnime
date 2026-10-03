@@ -15,6 +15,7 @@ import { usePlayerDrag } from "@/hooks/player/drag.hook";
 import { useSearchField } from "@/hooks/search/field.hook";
 import { useTorrentFilesMap, useTorrents } from "@/hooks/torrent/queries.hook";
 import { useI18n } from "@/hooks/i18n.hook";
+import { useTauriEvent } from "@/hooks/tauriEvent.hook";
 import { fingerprint } from "@/lib/player/scan.utils";
 import { buildTree, filterTreeByPaths } from "@/lib/player/tree.utils";
 import { filterTreeByHiddenPaths } from "@/lib/player/visibility.utils";
@@ -269,10 +270,22 @@ function PlayerRoute() {
     };
   }, []);
 
+  // StrictMode-safe unmount guard: setup resets the flag so StrictMode's
+  // simulated dev unmount cannot poison it (an unmount-only cleanup would
+  // leave it `true` forever in dev). `useTauriEvent` never resubscribes on
+  // state changes (the handler ref always dispatches the latest closure), so
+  // in-flight rescan loops only abort after a real unmount.
+  const folderScanDisposedRef = useRef(false);
   useEffect(() => {
-    let unlisten: (() => void) | undefined;
-    let disposed = false;
-    listen<string[]>("folder-content-changed", (event) => {
+    folderScanDisposedRef.current = false;
+    return () => {
+      folderScanDisposedRef.current = true;
+    };
+  }, []);
+
+  useTauriEvent<string[]>(
+    "folder-content-changed",
+    (event) => {
       const changed = event.payload;
       queryClient.invalidateQueries({ queryKey: ["extra_files"] });
       const rescanPath = async (path: string) => {
@@ -282,7 +295,7 @@ function PlayerRoute() {
             extensions: videoExtensions,
           })
         );
-        if (scanError || disposed) {
+        if (scanError || folderScanDisposedRef.current) {
           if (scanError) reportBackgroundError("folders.rescan", scanError);
           return;
         }
@@ -292,7 +305,7 @@ function PlayerRoute() {
             extensions: videoExtensions,
           })
         );
-        if (refreshError || disposed) {
+        if (refreshError || folderScanDisposedRef.current) {
           if (refreshError) reportBackgroundError("folders.rescan", refreshError);
           return;
         }
@@ -305,21 +318,13 @@ function PlayerRoute() {
       };
       (async () => {
         for (const path of changed) {
-          if (disposed) return;
+          if (folderScanDisposedRef.current) return;
           await rescanPath(path);
         }
       })();
-    })
-      .then((fn) => {
-        if (disposed) fn();
-        else unlisten = fn;
-      })
-      .catch((error) => reportBackgroundError("folderscan.listen", error));
-    return () => {
-      disposed = true;
-      unlisten?.();
-    };
-  }, [videoExtensions, queryClient]);
+    },
+    { errorTag: "folderscan" }
+  );
 
   const handleOpenFolder = useCallback(async () => {
     const folder = await open({ multiple: false, directory: true });

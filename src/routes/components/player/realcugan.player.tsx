@@ -1,10 +1,9 @@
-import { listen } from "@tauri-apps/api/event";
-import type { UnlistenFn } from "@tauri-apps/api/event";
 import { Download } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
+import { useTauriEvent } from "@/hooks/tauriEvent.hook";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import type { UpscaleToolStatus } from "@/types/player";
@@ -28,25 +27,20 @@ export function RealCUGAN() {
   useEffect(() => {
     if (status !== "downloading") {
       setPercent(null);
-      return;
     }
-    let unlisten: UnlistenFn | undefined;
-    listen<{ downloaded: number; total: number; stage: string }>(
-      "realcugan-download-progress",
-      (e) => {
-        if (e.payload.stage === "done") {
-          setPercent(null);
-        } else if (e.payload.total > 0) {
-          setPercent(Math.round((e.payload.downloaded / e.payload.total) * 100));
-        }
-      }
-    ).then((fn: UnlistenFn) => {
-      unlisten = fn;
-    });
-    return () => {
-      unlisten?.();
-    };
   }, [status]);
+
+  useTauriEvent<{ downloaded: number; total: number; stage: string }>(
+    "realcugan-download-progress",
+    (e) => {
+      if (e.payload.stage === "done") {
+        setPercent(null);
+      } else if (e.payload.total > 0) {
+        setPercent(Math.round((e.payload.downloaded / e.payload.total) * 100));
+      }
+    },
+    { enabled: status === "downloading", errorTag: "realcugan.download" }
+  );
 
   const handleDownload = useCallback(async () => {
     setStatus("downloading");

@@ -1,5 +1,4 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { listen } from "@tauri-apps/api/event";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { cn } from "cn";
 import { useCallback, useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
@@ -14,9 +13,9 @@ import {
 import { VOLUME_STEP } from "@/config/player/video.config";
 import { usePlayerEvents } from "@/hooks/player/events.hook";
 import { useI18n } from "@/hooks/i18n.hook";
+import { useTauriEvent } from "@/hooks/tauriEvent.hook";
 import { translate } from "@/lib/locale/i18n.utils";
 import { fileNameFromPath } from "@/lib/player/title.utils";
-import { reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { ignore } from "@/lib/utils/promise.utils";
 import {
   addExternalAudio,
@@ -323,10 +322,9 @@ function PlayerComponent() {
     };
   }, []);
 
-  useEffect(() => {
-    let disposed = false;
-    let unlisten: (() => void) | undefined;
-    listen<{ paths: string[] }>("tauri://drag-drop", (event) => {
+  useTauriEvent<{ paths: string[] }>(
+    "tauri://drag-drop",
+    (event) => {
       const extensions = useSettingsStore.getState().videoExtensions;
       const files = event.payload.paths.filter((path) =>
         extensions.some((extension) =>
@@ -334,17 +332,9 @@ function PlayerComponent() {
         ),
       );
       if (files.length > 0) ignore(appendFiles(files));
-    })
-      .then((cleanup) => {
-        if (disposed) cleanup();
-        else unlisten = cleanup;
-      })
-      .catch((error) => reportBackgroundError("drag-drop.listen", error));
-    return () => {
-      disposed = true;
-      unlisten?.();
-    };
-  }, []);
+    },
+    { errorTag: "drag-drop" }
+  );
 
   const syncMargins = useCallback(() => {
     if (immersive) {

@@ -1,11 +1,10 @@
-import { listen } from "@tauri-apps/api/event";
-import type { UnlistenFn } from "@tauri-apps/api/event";
 import { Download, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
 import { FFMPEG_SOURCE_SIZES } from "@/config/player/sources.config";
 import { useI18n } from "@/hooks/i18n.hook";
+import { useTauriEvent } from "@/hooks/tauriEvent.hook";
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useSettingsStore } from "@/store/settings.store";
@@ -52,30 +51,25 @@ function FFMPEG({
     if (status !== "downloading") {
       setDlProgress(null);
       setDlStage("");
-      return;
     }
-    let unlisten: UnlistenFn;
-    listen<{ downloaded: number; total: number; stage: string }>(
-      "ffmpeg-download-progress",
-      (e: { payload: { downloaded: number; total: number; stage: string } }) => {
-        if (e.payload.stage === "done") {
-          setDlProgress(null);
-          setDlStage("done");
-        } else {
-          setDlProgress({
-            downloaded: e.payload.downloaded,
-            total: e.payload.total,
-          });
-          setDlStage(e.payload.stage);
-        }
-      }
-    ).then((fn: UnlistenFn) => {
-      unlisten = fn;
-    });
-    return () => {
-      unlisten?.();
-    };
   }, [status]);
+
+  useTauriEvent<{ downloaded: number; total: number; stage: string }>(
+    "ffmpeg-download-progress",
+    (e) => {
+      if (e.payload.stage === "done") {
+        setDlProgress(null);
+        setDlStage("done");
+      } else {
+        setDlProgress({
+          downloaded: e.payload.downloaded,
+          total: e.payload.total,
+        });
+        setDlStage(e.payload.stage);
+      }
+    },
+    { enabled: status === "downloading", errorTag: "ffmpeg.download" }
+  );
 
   if (status === "checking")
     return (

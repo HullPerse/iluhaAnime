@@ -1,4 +1,3 @@
-import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import type { Update } from "@tauri-apps/plugin-updater";
 import { saveWindowState } from "@tauri-apps/plugin-window-state";
@@ -12,6 +11,7 @@ import { useLiveResource } from "@/hooks/liveResource.hook";
 import { isOfflineDisabledTab, markOfflineTabs, useOnlineStatus } from "@/hooks/network.hook";
 import { pollAniListReleases } from "@/lib/anilist/notifications.utils";
 import { useI18n } from "@/hooks/i18n.hook";
+import { useTauriEvent } from "@/hooks/tauriEvent.hook";
 import { queryKeys } from "@/lib/query/keys.utils";
 import { readAppCache, writeAppCache } from "@/lib/store/cache.utils";
 import { attemptAll, reportBackgroundError } from "@/lib/utils/attempt.utils";
@@ -44,6 +44,8 @@ import type {
 import type { SearchLearningSnapshot } from "@/types/search";
 import type { TabId } from "@/types/settings";
 import type { FolderNode } from "@/types/torrent";
+
+const NOTIFICATION_TYPES = new Set<NotificationType>(["info", "success", "warning", "error"]);
 
 export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
   const { t } = useI18n();
@@ -224,12 +226,10 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
     });
   }, [setActiveTab]);
 
-  useEffect(() => {
-    const notificationTypes = new Set<NotificationType>(["info", "success", "warning", "error"]);
-    let disposed = false;
-    let unlisten: (() => void) | undefined;
-    listen<ShowNotificationPayload>("show-notification", (event) => {
-      const type = notificationTypes.has(event.payload.type as NotificationType)
+  useTauriEvent<ShowNotificationPayload>(
+    "show-notification",
+    (event) => {
+      const type = NOTIFICATION_TYPES.has(event.payload.type as NotificationType)
         ? (event.payload.type as NotificationType)
         : "info";
       const { title, body } = resolveNotificationText(
@@ -239,54 +239,36 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
       useNotificationStore
         .getState()
         .add(title, type, body, event.payload.eventKey, { target: event.payload.action });
-    })
-      .then((cleanup) => {
-        if (disposed) cleanup();
-        else unlisten = cleanup;
-      })
-      .catch((error) => reportBackgroundError("notifications.listen", error));
-    return () => {
-      disposed = true;
-      unlisten?.();
-    };
-  }, []);
+    },
+    { errorTag: "notifications" }
+  );
 
-  useEffect(() => {
-    let disposed = false;
-    let unlisten: (() => void) | undefined;
-    const openTarget = async (target: NotificationTarget) => {
-      const result = await openNotificationTarget(target);
-      if (result === "tab-disabled") {
-        showError(t("common.error"), t("anilist.details.link.invalid"));
-        return;
-      }
-      if (result !== "opened") return;
-      const appWindow = getCurrentWindow();
-      const error = await attemptAll([
-        () => appWindow.show(),
-        () => appWindow.unminimize(),
-        () => appWindow.setFocus(),
-      ]);
-      if (error) reportBackgroundError("notification.activation.focus", error);
-    };
-    listen<NotificationTarget>(TOAST_ACTIVATED_EVENT, async (event) => {
-      if (!disposed) await openTarget(event.payload);
-    })
-      .then((cleanup) => {
-        if (disposed) cleanup();
-        else unlisten = cleanup;
-      })
-      .catch((error) => reportBackgroundError("notification.activation.listen", error));
-    return () => {
-      disposed = true;
-      unlisten?.();
-    };
-  }, [t]);
+  const openTarget = async (target: NotificationTarget) => {
+    const result = await openNotificationTarget(target);
+    if (result === "tab-disabled") {
+      showError(t("common.error"), t("anilist.details.link.invalid"));
+      return;
+    }
+    if (result !== "opened") return;
+    const appWindow = getCurrentWindow();
+    const error = await attemptAll([
+      () => appWindow.show(),
+      () => appWindow.unminimize(),
+      () => appWindow.setFocus(),
+    ]);
+    if (error) reportBackgroundError("notification.activation.focus", error);
+  };
 
-  useEffect(() => {
-    let disposed = false;
-    let unlisten: (() => void) | undefined;
-    const ingest = (urls: unknown) => {
+  useTauriEvent<NotificationTarget>(
+    TOAST_ACTIVATED_EVENT,
+    (event) => {
+      openTarget(event.payload);
+    },
+    { errorTag: "notification.activation" }
+  );
+
+  const ingest = useCallback(
+    (urls: unknown) => {
       ingestDeepLinks(
         urls,
         (link) => {
@@ -321,26 +303,30 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
           useDeepLinkStore.getState().openAuth(link);
         }
       );
-    };
+    },
+    [isOnline, t, setActiveTabTransition]
+  );
+
+  useEffect(() => {
+    let disposed = false;
     systemApi
       .takePendingDeepLinks()
       .then((urls) => {
         if (!disposed) ingest(urls);
       })
       .catch((error) => reportBackgroundError("deeplink.take-pending", error));
-    listen<string[]>(DEEP_LINK_EVENT, (event) => {
-      if (!disposed) ingest(event.payload);
-    })
-      .then((cleanup) => {
-        if (disposed) cleanup();
-        else unlisten = cleanup;
-      })
-      .catch((error) => reportBackgroundError("deeplink.listen", error));
     return () => {
       disposed = true;
-      unlisten?.();
     };
-  }, [isOnline, t, setActiveTabTransition]);
+  }, [ingest]);
+
+  useTauriEvent<string[]>(
+    DEEP_LINK_EVENT,
+    (event) => {
+      ingest(event.payload);
+    },
+    { errorTag: "deeplink" }
+  );
 
   useEffect(() => {
     const ensureTorrentTab = (): boolean => {

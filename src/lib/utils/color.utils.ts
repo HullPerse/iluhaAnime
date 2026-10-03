@@ -1,3 +1,4 @@
+import { clamp } from "@/lib/utils/math.utils";
 import type { ChannelFormat, ColorFormat, HSL, HSV, RGBA, RGB } from "@/types/color";
 
 export function rgbaToHex({ r, g, b, a }: RGBA, includeAlpha = false) {
@@ -20,10 +21,6 @@ export function hexToRgba(hex: string): RGBA | null {
   const a = clean.length === 8 ? Number.parseInt(clean.slice(6, 8), 16) / 255 : 1;
   if ([r, g, b].some(Number.isNaN)) return null;
   return { a, b, g, r };
-}
-
-export function clamp(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
 }
 
 export function normalizeHue(hue: number): number {

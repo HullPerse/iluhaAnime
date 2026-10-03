@@ -1,3 +1,4 @@
+import { clamp } from "@/lib/utils/math.utils";
 import {
   CROP_MIN_SIZE,
   CROP_SNAP_DISPLAY_PX,
@@ -34,10 +35,6 @@ export interface CropResizeOptions {
 export interface CropStartOptions {
   snapThreshold?: number;
   square?: boolean;
-}
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(Math.max(value, min), max);
 }
 
 function movingWest(handle: CropHandle): boolean {

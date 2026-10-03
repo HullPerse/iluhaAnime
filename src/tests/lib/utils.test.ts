@@ -82,6 +82,7 @@ import {
   moveIndex,
 } from "@/lib/utils/keyboard.utils";
 import { createLruCache, inflightFetch } from "@/lib/utils/lruCache.utils";
+import { clamp } from "@/lib/utils/math.utils";
 import { paginate } from "@/lib/utils/pagination.utils";
 import { hashStringToUint32, mulberry32 } from "@/lib/utils/random.utils";
 import {
@@ -2205,6 +2206,29 @@ describe("utils/keyboard", () => {
       const onSubmit = vi.fn();
       enterSubmit(onSubmit)(keyEvent({ key: "Escape" }));
       expect(onSubmit).not.toHaveBeenCalled();
+    });
+  });
+});
+
+describe("utils/math", () => {
+  describe("clamp", () => {
+    it("pins values below the lower bound to min", () => {
+      expect(clamp(-1, 0, 10)).toBe(0);
+    });
+
+    it("pins values above the upper bound to max", () => {
+      expect(clamp(99, 0, 10)).toBe(10);
+    });
+
+    it("keeps values inside the range and on the boundaries untouched", () => {
+      expect(clamp(5, 0, 10)).toBe(5);
+      expect(clamp(0, 0, 10)).toBe(0);
+      expect(clamp(10, 0, 10)).toBe(10);
+    });
+
+    it("works with fractional and negative bounds", () => {
+      expect(clamp(0.5, 0, 1)).toBe(0.5);
+      expect(clamp(-0.5, -1, 1)).toBe(-0.5);
     });
   });
 });

@@ -1,5 +1,6 @@
 import { attempt } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
+import { clamp } from "@/lib/utils/math.utils";
 import { PLAYER_PROFILES } from "@/config/player/profiles.config";
 import type {
   EndOfFileMode,
@@ -27,10 +28,6 @@ export function parseTimecode(value: string): number | null {
   let seconds = 0;
   for (const part of numbers) seconds = seconds * 60 + part;
   return seconds;
-}
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
 }
 
 const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;

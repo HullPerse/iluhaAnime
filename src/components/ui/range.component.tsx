@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useI18n } from "@/hooks/i18n.hook";
 import { suffixText } from "@/lib/utils/format.utils";
+import { clamp } from "@/lib/utils/math.utils";
 
 function Slider({
   wheel,
@@ -26,7 +27,7 @@ function Slider({
   const { t } = useI18n();
   const ref = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
-  const clamped = Math.max(min, Math.min(max, value));
+  const clamped = clamp(value, min, max);
   const pct = (clamped - min) / (max - min);
 
   const setFromClientX = useCallback(
@@ -34,9 +35,9 @@ function Slider({
       if (!ref.current) return;
       const rect = ref.current.getBoundingClientRect();
       const raw = (clientX - rect.left) / rect.width;
-      const clamped = Math.max(0, Math.min(1, raw));
+      const clamped = clamp(raw, 0, 1);
       const stepped = Math.round((min + clamped * (max - min)) / step) * step;
-      onChange(Math.max(min, Math.min(max, stepped)));
+      onChange(clamp(stepped, min, max));
     },
     [min, max, step, onChange]
   );
@@ -45,7 +46,7 @@ function Slider({
     (e: WheelEvent) => {
       e.preventDefault();
       const amount = (e.shiftKey ? step * 10 : step) * (e.deltaY > 0 ? -1 : 1);
-      onChange(Math.max(min, Math.min(max, clamped + amount)));
+      onChange(clamp(clamped + amount, min, max));
     },
     [min, max, step, clamped, onChange]
   );

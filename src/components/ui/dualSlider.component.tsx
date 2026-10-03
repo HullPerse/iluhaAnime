@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useI18n } from "@/hooks/i18n.hook";
 import { suffixText } from "@/lib/utils/format.utils";
+import { clamp } from "@/lib/utils/math.utils";
 
 export function DualSlider({
   wheel,
@@ -35,9 +36,9 @@ export function DualSlider({
       if (!ref.current) return;
       const rect = ref.current.getBoundingClientRect();
       const raw = (clientX - rect.left) / rect.width;
-      const clamped = Math.max(0, Math.min(1, raw));
+      const clamped = clamp(raw, 0, 1);
       const stepped = Math.round((min + clamped * (max - min)) / step) * step;
-      const nv = Math.max(min, Math.min(max, stepped));
+      const nv = clamp(stepped, min, max);
       if (target === "min") {
         onChange([Math.min(nv, value[1]), value[1]]);
       } else {
@@ -57,10 +58,10 @@ export function DualSlider({
       const mid = (low + high) / 200;
       if (raw < mid) {
         const amount = base * (e.deltaY > 0 ? 1 : -1);
-        onChange([Math.max(min, Math.min(value[1], value[0] + amount)), value[1]]);
+        onChange([clamp(value[0] + amount, min, value[1]), value[1]]);
       } else {
         const amount = base * (e.deltaY > 0 ? -1 : 1);
-        onChange([value[0], Math.max(value[0], Math.min(max, value[1] + amount))]);
+        onChange([value[0], clamp(value[1] + amount, value[0], max)]);
       }
     },
     [min, max, step, value, low, high, onChange]

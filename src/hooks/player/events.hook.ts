@@ -2,6 +2,7 @@ import { listen } from "@tauri-apps/api/event";
 import type { UnlistenFn } from "@tauri-apps/api/event";
 import { useEffect, useRef } from "react";
 
+import { reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { usePlaybackStore } from "@/store/player.store";
 import type {
   DroppedFramesData,
@@ -116,7 +117,7 @@ export function usePlayerEvents(handlers: PlayerEventHandlers): void {
       for (const subscription of subscriptions) {
         subscription
           .then((unlisten) => unlisten())
-          .catch(() => undefined);
+          .catch((error) => reportBackgroundError("player-events.listen", error));
       }
     };
   }, []);

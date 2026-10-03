@@ -10,6 +10,7 @@ import { ConfirmDialog } from "@/components/shared/confirm.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { NO_TORRENTS } from "@/config/torrent/common.config";
+import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useDebounce } from "@/hooks/debounce.hook";
 import { usePlayerDrag } from "@/hooks/player/drag.hook";
 import { useSearchField } from "@/hooks/search/field.hook";
@@ -19,6 +20,7 @@ import { useTauriEvent } from "@/hooks/tauriEvent.hook";
 import { fingerprint } from "@/lib/player/scan.utils";
 import { buildTree, filterTreeByPaths } from "@/lib/player/tree.utils";
 import { filterTreeByHiddenPaths } from "@/lib/player/visibility.utils";
+import { queryKeys } from "@/lib/query/keys.utils";
 import { attempt, reportBackgroundError, withFallback } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useCacheStore } from "@/store/cache.store";
@@ -50,7 +52,6 @@ function PlayerRoute() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [scanProgress, setScanProgress] = useState<ScanType>(null);
-  const [ffmpegStatus, setFfmpegStatus] = useState<FFMPEGStatus>("checking");
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const videoExtensions = useSettingsStore((s) => s.videoExtensions);
   const savedFolderPaths = useSettingsStore((s) => s.savedFolderPaths);
@@ -67,35 +68,25 @@ function PlayerRoute() {
   const [pendingDeleteCategory, setPendingDeleteCategory] = useState<string | null>(null);
   const drag = usePlayerDrag();
   const [showHiddenItems, setShowHiddenItems] = useState(false);
-  const [searchResults, setSearchResults] = useState<FileSearchResult[]>([]);
-  const [, setSearching] = useState(false);
   const debouncedSearch = useDebounce(search.trim(), 300);
-  const searchRequestRef = useRef(0);
-
-  useEffect(() => {
-    const requestId = ++searchRequestRef.current;
-    if (!debouncedSearch) {
-      setSearchResults([]);
-      setSearching(false);
-      return;
-    }
-
-    setSearching(true);
-    setSearchResults([]);
-    (async () => {
-      const [results, error] = await attempt(
+  const { data: fileSearchData } = useAppQuery("live", {
+    queryKey: queryKeys.playerFileSearch(debouncedSearch, videoExtensions),
+    queryFn: async () => {
+      const [results] = await attempt(
         invokeTyped<FileSearchResult[]>("search_file_index", {
           query: debouncedSearch,
           extensions: videoExtensions,
           limit: 100,
         })
       );
-      if (requestId !== searchRequestRef.current) return;
-      if (error) setSearchResults([]);
-      else setSearchResults(results);
-      setSearching(false);
-    })();
-  }, [debouncedSearch, videoExtensions]);
+      return results ?? [];
+    },
+    enabled: !!debouncedSearch,
+    // Refetch on every (re)enable so results converge with a rebuilt index;
+    // the cached entry only serves as an instant placeholder.
+    staleTime: 0,
+  });
+  const searchResults = useMemo(() => fileSearchData ?? [], [fileSearchData]);
 
   const allCategoryEntries = useCategoryStore((s) => s.entries);
   const categorizedPaths = useMemo(() => {
@@ -178,12 +169,16 @@ function PlayerRoute() {
     [hiddenPlayerTorrents, torrents]
   );
 
-  useEffect(() => {
-    (async () => {
-      const ok = await withFallback(invokeTyped<boolean>("check_ffprobe"), false);
-      setFfmpegStatus(ok ? "ok" : "missing");
-    })();
-  }, []);
+  const [ffmpegOverride, setFfmpegOverride] = useState<FFMPEGStatus | null>(null);
+  const { data: ffprobeOk } = useAppQuery("live", {
+    queryKey: queryKeys.checkFfprobe(),
+    queryFn: () => withFallback(invokeTyped<boolean>("check_ffprobe"), false),
+    // Recheck on every mount, as the previous effect did; the FFMPEG
+    // download/delete flow overrides the result via ffmpegOverride.
+    staleTime: 0,
+  });
+  const ffmpegStatus: FFMPEGStatus =
+    ffmpegOverride ?? (ffprobeOk === undefined ? "checking" : ffprobeOk ? "ok" : "missing");
 
   const allTorrentIds = useMemo(() => torrents.map((t) => t.id), [torrents]);
   const { files: torrentFilesMap, pendingIds: torrentPendingIds } = useTorrentFilesMap(
@@ -429,7 +424,7 @@ function PlayerRoute() {
         </section>
 
         <section className="ui-toolbar ui-panel w-full">
-          <FFMPEG status={ffmpegStatus} setStatus={setFfmpegStatus} />
+          <FFMPEG status={ffmpegStatus} setStatus={setFfmpegOverride} />
           <span className="text-hint ml-auto text-xs">v9.0</span>
         </section>
 

@@ -52,4 +52,7 @@ export const queryKeys = {
   summaryFfprobe: () => ["summary_ffprobe"] as const,
   summaryVersion: () => ["summary_version"] as const,
   summaryStorage: () => ["settings_summary_storage"] as const,
+  playerFileSearch: (query: string, extensions: readonly string[]) =>
+    ["player-file-search", query, extensions] as const,
+  checkFfprobe: () => ["check-ffprobe"] as const,
 } as const;

@@ -6,19 +6,15 @@ import { SearchType } from "@/types/search";
 import SearchDefault from "./components/search/default/index.search";
 import SearchModern from "./components/search/modern/index.search";
 
+const searchMap: Record<SearchType, () => ReactElement> = {
+  default: () => <SearchDefault />,
+  modern: () => <SearchModern />,
+};
+
 function SearchRoute() {
   const searchType = useSettingsStore((state) => state.searchType);
 
-  const getComponent = () => {
-    const searchMap: Record<SearchType, ReactElement> = {
-      default: <SearchDefault />,
-      modern: <SearchModern />,
-    };
-
-    return searchMap[searchType];
-  };
-
-  return getComponent();
+  return searchMap[searchType]();
 }
 
 export default SearchRoute;

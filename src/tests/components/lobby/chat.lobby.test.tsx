@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { resetTransportInflight } from "@/api/transport.api";
 import ChatLobby from "@/routes/components/lobby/chat.lobby";
 import { useSettingsStore } from "@/store/settings.store";
-import type { ChatMessage } from "@/types/session";
+import type { ChatMessage, PinnedMessage } from "@/types/session";
 
 const invokeMock = vi.hoisted(() => vi.fn());
 
@@ -33,6 +33,7 @@ let client: QueryClient;
 function chatElement(props: {
   attachPending?: boolean;
   canAttach?: boolean;
+  canPin?: boolean;
   draft?: string;
   failedAttachment?: string | null;
   fetchingAttachment?: string | null;
@@ -41,10 +42,13 @@ function chatElement(props: {
   onAttach?: () => void;
   onDownloadAttachment?: (messageId: string) => void;
   onDraftChange?: (value: string) => void;
+  onPin?: (messageId: string | null) => void;
   onReplyChange?: (id: string | null) => void;
   onSend?: () => void;
   onTorrentLink?: (token: string) => void;
   pending?: boolean;
+  pinned?: PinnedMessage | null;
+  pinnedByName?: string;
   replyTo?: string | null;
   typingNames?: string[];
 }) {
@@ -53,6 +57,7 @@ function chatElement(props: {
       <ChatLobby
         attachPending={props.attachPending ?? false}
         canAttach={props.canAttach ?? false}
+        canPin={props.canPin ?? false}
         draft={props.draft ?? ""}
         failedAttachment={props.failedAttachment ?? null}
         fetchingAttachment={props.fetchingAttachment ?? null}
@@ -61,10 +66,13 @@ function chatElement(props: {
         onAttach={props.onAttach ?? (() => undefined)}
         onDownloadAttachment={props.onDownloadAttachment ?? (() => undefined)}
         onDraftChange={props.onDraftChange ?? (() => undefined)}
+        onPin={props.onPin}
         onReplyChange={props.onReplyChange}
         onSend={props.onSend ?? (() => undefined)}
         onTorrentLink={props.onTorrentLink ?? (() => undefined)}
         pending={props.pending ?? false}
+        pinned={props.pinned ?? null}
+        pinnedByName={props.pinnedByName ?? ""}
         replyTo={props.replyTo ?? null}
         typingNames={props.typingNames ?? []}
       />
@@ -607,6 +615,73 @@ describe("ChatLobby", () => {
 
       fireEvent.keyDown(document, { key: "Escape" });
       expect(screen.queryByPlaceholderText("Search emoji")).toBeNull();
+    });
+  });
+
+  describe("pin banner", () => {
+    it("renders the pinned strip and jumps to the anchor", () => {
+      renderChat({
+        messages: [message({ id: "m1", text: "hello there" })],
+        pinned: { messageId: "m1", pinnedBy: "p9" },
+        pinnedByName: "Alice",
+      });
+
+      const banner = screen.getByRole("button", {
+        name: "Jump to the pinned message",
+      });
+      expect(banner.textContent).toContain("Pinned by Alice");
+      expect(banner.textContent).toContain("hello there");
+
+      const target = messageLine("hello there");
+      const scrollIntoView = vi.fn();
+      target.scrollIntoView = scrollIntoView;
+      fireEvent.click(banner);
+      expect(scrollIntoView).toHaveBeenCalledWith({ block: "center" });
+    });
+
+    it("notes when the pinned anchor has left the history", () => {
+      renderChat({
+        messages: [message({ id: "m2", text: "later" })],
+        pinned: { messageId: "gone", pinnedBy: "p9" },
+        pinnedByName: "Alice",
+      });
+
+      const banner = screen.getByRole("button", {
+        name: "Jump to the pinned message",
+      });
+      expect(banner.textContent).toContain("Pinned message unavailable");
+    });
+
+    it("falls back to the raw peer id without a roster name", () => {
+      renderChat({
+        messages: [message({ id: "m1" })],
+        pinned: { messageId: "m1", pinnedBy: "p9" },
+      });
+
+      expect(screen.getByText("Pinned by p9")).toBeTruthy();
+    });
+
+    it("unpins through the banner when the room may pin", () => {
+      const onPin = vi.fn();
+      renderChat({
+        canPin: true,
+        messages: [message()],
+        onPin,
+        pinned: { messageId: "m1", pinnedBy: "p2" },
+      });
+
+      fireEvent.click(screen.getByRole("button", { name: "Unpin" }));
+      expect(onPin).toHaveBeenCalledWith(null);
+    });
+
+    it("hides the unpin button without pin rights", () => {
+      renderChat({
+        canPin: false,
+        messages: [message()],
+        pinned: { messageId: "m1", pinnedBy: "p2" },
+      });
+
+      expect(screen.queryByRole("button", { name: "Unpin" })).toBeNull();
     });
   });
 });

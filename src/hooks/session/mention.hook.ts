@@ -6,7 +6,7 @@ const MENTION_QUERY_RX = /(?:^|\s)@([^@\n]*)$/;
 /** At most this many roster names are offered in the autocomplete menu. */
 const MENTION_MAX = 8;
 
-interface MentionAutocomplete {
+export interface MentionAutocomplete {
   /** The suggestion menu should be rendered. */
   open: boolean;
   /** Roster names matching the trailing `@query`. */

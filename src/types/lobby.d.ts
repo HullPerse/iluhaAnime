@@ -48,3 +48,27 @@ export interface RoomLobbyProps {
 export interface ConnectLobbyProps {
   loading: boolean;
 }
+
+/** One address-book entry: a room this instance joined or the host saved. */
+export interface SavedConnection {
+  /** Stable key and dial target: the host endpoint id from the ticket. */
+  endpointId: string;
+  /** The room id, carried so the entry can be re-joined. */
+  sessionId: string;
+  /** The room secret; with `endpointId` this rebuilds the full ticket. */
+  token: string;
+  /** Entry title: the host's display name by default, renameable by the user. */
+  name: string;
+  /** The host's display name as seen at save time; shown under the title. */
+  nick: string;
+  /** Last known direct `ip:port` paths used to reach the room (deduped). */
+  addrs: string[];
+  /** Wall-clock ms of the last save; orders the list newest first. */
+  savedAt: number;
+}
+
+/** The address-book panel shown beside the join/create form. */
+export interface SavedLobbyProps {
+  /** Puts this entry's room code into the join form. */
+  onUse: (connection: SavedConnection) => void;
+}

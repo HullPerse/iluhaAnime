@@ -1,5 +1,7 @@
 export const queryKeys = {
   sessionStatus: () => ["session-status"] as const,
+  savedProbes: (endpointIds: readonly string[]) =>
+    ["lobby-saved-probes", ...endpointIds] as const,
   customEmoji: () => ["custom-emoji"] as const,
   torrents: () => ["torrents"] as const,
   torrentFiles: (id: number) => ["torrent-files", id] as const,

@@ -3,9 +3,71 @@ import { MAGNET_RX } from "@/config/torrent/common.config";
 import { buildHostMagnet } from "@/lib/session/source.utils";
 import { parsePastedLink, parseTorrentLink } from "@/lib/utils/deeplink.utils";
 
+export type ChatMark = "bold" | "italic" | "strike" | "spoiler";
+
 export interface ChatSegment {
   kind: "text" | "link" | "emoji" | "mention";
   value: string;
+  /** Inline formatting marks; omitted when the segment is plain. */
+  marks?: ChatMark[];
+}
+
+/** A slice of chat text with the formatting marks active over it. */
+interface MarkPiece {
+  text: string;
+  marks: ChatMark[];
+}
+
+/**
+ * Delimiter table for inline formatting. Order matters: at a given position the
+ * longest token is tried first, so `**bold**` opens bold instead of italic.
+ */
+const FORMAT_DELIMS: ReadonlyArray<readonly [string, ChatMark]> = [
+  ["**", "bold"],
+  ["~~", "strike"],
+  ["||", "spoiler"],
+  ["*", "italic"],
+];
+
+function matchOpen(text: string, at: number): readonly [string, ChatMark] | null {
+  for (const entry of FORMAT_DELIMS) {
+    if (text.startsWith(entry[0], at)) return entry;
+  }
+  return null;
+}
+
+/**
+ * Split text into pieces delimited by closed `**bold**`, `*italic*`,
+ * `~~strike~~` and `||spoiler||` spans. Different marks nest; a delimiter
+ * without a closing partner stays literal text. Matching is heuristic
+ * (first closer wins), which is the usual chat-markdown tradeoff.
+ */
+function parseMarks(text: string, marks: ChatMark[]): MarkPiece[] {
+  const pieces: MarkPiece[] = [];
+  let plain = "";
+  let index = 0;
+  while (index < text.length) {
+    const open = matchOpen(text, index);
+    if (open) {
+      const [token, mark] = open;
+      const closeAt = text.indexOf(token, index + token.length);
+      if (closeAt !== -1) {
+        if (plain.length > 0) {
+          pieces.push({ text: plain, marks: [...marks] });
+          plain = "";
+        }
+        pieces.push(
+          ...parseMarks(text.slice(index + token.length, closeAt), [...marks, mark])
+        );
+        index = closeAt + token.length;
+        continue;
+      }
+    }
+    plain += text[index];
+    index += 1;
+  }
+  if (plain.length > 0) pieces.push({ text: plain, marks: [...marks] });
+  return pieces;
 }
 
 const WEB_URL_RX = /^https?:\/\//i;
@@ -92,14 +154,34 @@ function mentionRanges(text: string, names: readonly string[]): [number, number]
  * shortcodes, and `@Name` mentions while keeping the original text and
  * whitespace intact. Trailing punctuation after a link stays as separate text
  * so nothing is lost. `mentionNames` is the roster used to recognize a mention;
- * without it, `@text` stays plain.
+ * without it, `@text` stays plain. Inline formatting (`**bold**`, `*italic*`,
+ * `~~strike~~`, `||spoiler||`) is parsed first and stamped onto the leaf
+ * segments as `marks`.
  */
 export function chatSegments(
   text: string,
   mentionNames: readonly string[] = []
 ): ChatSegment[] {
-  const ranges = mentionRanges(text, mentionNames);
   const segments: ChatSegment[] = [];
+  for (const piece of parseMarks(text, [])) {
+    const from = segments.length;
+    splitMentions(piece.text, mentionNames, segments);
+    if (piece.marks.length > 0) {
+      for (let i = from; i < segments.length; i += 1) {
+        segments[i] = { ...segments[i], marks: piece.marks };
+      }
+    }
+  }
+  return segments;
+}
+
+/** Mention-range split of one already-format-stripped piece of text. */
+function splitMentions(
+  text: string,
+  mentionNames: readonly string[],
+  segments: ChatSegment[]
+): void {
+  const ranges = mentionRanges(text, mentionNames);
   let cursor = 0;
   for (const [start, end] of ranges) {
     if (start > cursor) tokenizePlain(text.slice(cursor, start), segments);
@@ -107,7 +189,6 @@ export function chatSegments(
     cursor = end;
   }
   if (cursor < text.length) tokenizePlain(text.slice(cursor), segments);
-  return segments;
 }
 
 /** The non-mention core of `chatSegments`: links, emoji shortcodes, plain text. */

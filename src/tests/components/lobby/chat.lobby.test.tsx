@@ -37,6 +37,7 @@ function chatElement(props: {
   failedAttachment?: string | null;
   fetchingAttachment?: string | null;
   messages?: ChatMessage[];
+  mentionNames?: string[];
   onAttach?: () => void;
   onDownloadAttachment?: (messageId: string) => void;
   onDraftChange?: (value: string) => void;
@@ -56,6 +57,7 @@ function chatElement(props: {
         failedAttachment={props.failedAttachment ?? null}
         fetchingAttachment={props.fetchingAttachment ?? null}
         messages={props.messages ?? []}
+        mentionNames={props.mentionNames ?? []}
         onAttach={props.onAttach ?? (() => undefined)}
         onDownloadAttachment={props.onDownloadAttachment ?? (() => undefined)}
         onDraftChange={props.onDraftChange ?? (() => undefined)}
@@ -354,6 +356,105 @@ describe("ChatLobby", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Cancel reply" }));
     expect(onReplyChange).toHaveBeenCalledWith(null);
+  });
+
+  it("offers roster names while the draft ends with @partial", () => {
+    renderChat({ draft: "@ali", mentionNames: ["Alice", "Bob"] });
+
+    const menu = screen.getByRole("menu", { name: "Mention suggestions" });
+    expect(menu.textContent).toContain("Alice");
+    expect(menu.textContent).not.toContain("Bob");
+  });
+
+  it("inserts @Name into the draft from the menu", () => {
+    const onDraftChange = vi.fn();
+    renderChat({
+      draft: "hi @al",
+      mentionNames: ["Alice Smith"],
+      onDraftChange,
+    });
+
+    // mousedown: the menu keeps the composer focused while it inserts.
+    fireEvent.mouseDown(screen.getByRole("menuitem", { name: "Alice Smith" }));
+    expect(onDraftChange).toHaveBeenCalledWith("hi @Alice Smith ");
+  });
+
+  it("picks the highlighted name with Enter and hides the menu on Escape", () => {
+    const onDraftChange = vi.fn();
+    const onSend = vi.fn();
+    const { rerender } = renderChat({
+      draft: "@a",
+      mentionNames: ["Alice", "Alan"],
+      onDraftChange,
+      onSend,
+    });
+
+    const input = screen.getByRole("textbox");
+    fireEvent.keyDown(input, { key: "Enter" });
+    // Enter completes the mention instead of sending the draft.
+    expect(onDraftChange).toHaveBeenCalledWith("@Alice ");
+    expect(onSend).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(input, { key: "Escape" });
+    rerender(
+      chatElement({
+        draft: "@a",
+        mentionNames: ["Alice", "Alan"],
+        onDraftChange,
+        onSend,
+      })
+    );
+    expect(screen.queryByRole("menu", { name: "Mention suggestions" })).toBeNull();
+  });
+
+  it("highlights @name in a rendered message when the roster is known", () => {
+    renderChat({
+      messages: [message({ text: "ping @Alice now" })],
+      mentionNames: ["Alice"],
+    });
+
+    const mention = screen.getByText("@Alice");
+    expect(mention.className).toContain("font-bold");
+    // Without a roster the same text stays a plain token (no highlight).
+    cleanup();
+    renderChat({ messages: [message({ text: "ping @Alice now" })] });
+    expect(screen.getByText("@Alice").className).not.toContain("font-bold");
+  });
+
+  it("wraps bold, italic and strike spans in their formatting classes", () => {
+    renderChat({
+      messages: [
+        message({ text: "**loud** *soft* ~~gone~~" }),
+      ],
+    });
+
+    const loud = screen.getByText("loud");
+    expect(loud.parentElement?.className).toContain("font-bold");
+    const soft = screen.getByText("soft");
+    expect(soft.parentElement?.className).toContain("italic");
+    const gone = screen.getByText("gone");
+    expect(gone.parentElement?.className).toContain("line-through");
+  });
+
+  it("hides a spoiler behind a reveal bar and shows it on click", async () => {
+    const user = userEvent.setup();
+    renderChat({ messages: [message({ text: "psst ||secret|| ok" })] });
+
+    // The spoiler text is laid out (for width) but covered by the bar.
+    const reveal = screen.getByRole("button", { name: "Show spoiler" });
+    expect(screen.getByText("secret").closest("span")).toBeTruthy();
+
+    await user.click(reveal);
+    expect(screen.queryByRole("button", { name: "Show spoiler" })).toBeNull();
+    // Revealed: the text now sits in a plain span with no cover button.
+    expect(screen.getByText("secret")).toBeTruthy();
+  });
+
+  it("keeps an unclosed spoiler as plain visible text", () => {
+    renderChat({ messages: [message({ text: "||open end" })] });
+
+    expect(screen.queryByRole("button", { name: "Show spoiler" })).toBeNull();
+    expect(messageLine("||open end")).toBeTruthy();
   });
 
   it("hides the attach button for viewers", () => {

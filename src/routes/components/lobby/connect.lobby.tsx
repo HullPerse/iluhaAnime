@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
+import SavedLobby from "@/routes/components/lobby/saved.lobby";
 import {
   LOBBY_MAX_DISPLAY_NAME_CHARS,
   LOBBY_TICKET_INPUT_MAX_CHARS,
@@ -9,9 +10,9 @@ import {
 import { useI18n } from "@/hooks/i18n.hook";
 import { useSessionActions } from "@/hooks/session/actions.hook";
 import { useSessionRestore } from "@/hooks/session/restore.hook";
-import { parseTicket } from "@/lib/session/ticket.utils";
+import { parseTicket, formatTicketShare } from "@/lib/session/ticket.utils";
 import { useSessionStore } from "@/store/session.store";
-import type { ConnectLobbyProps } from "@/types/lobby";
+import type { ConnectLobbyProps, SavedConnection } from "@/types/lobby";
 
 export default function ConnectLobby({ loading }: ConnectLobbyProps) {
   const { t } = useI18n();
@@ -21,24 +22,57 @@ export default function ConnectLobby({ loading }: ConnectLobbyProps) {
   const setJoinInput = useSessionStore((s) => s.setJoinInput);
   const setIdentity = useSessionStore((s) => s.setIdentity);
   const { create, join } = useSessionActions();
-  const restore = useSessionRestore();
+  const { decision: restore, settled } = useSessionRestore();
   const [ticketInvalid, setTicketInvalid] = useState(false);
+  const [portDraft, setPortDraft] = useState("");
+  const [portInvalid, setPortInvalid] = useState(false);
 
   // One reconnect attempt per mount, and only once the status query settled:
-  // while it is pending the role reads as null and would fake a reconnect.
+  // while it fetches, the stale role reads as null and would fake a reconnect
+  // (both on cold start and right after a manual join).
   const [reconnectTried, setReconnectTried] = useState(false);
   const reconnecting = restore.kind === "reconnect" && join.isPending && reconnectTried;
   useEffect(() => {
-    if (loading || reconnectTried || restore.kind !== "reconnect") return;
+    if (join.isPending || !settled || reconnectTried || restore.kind !== "reconnect") {
+      return;
+    }
     setReconnectTried(true);
     join.mutate({
       name: restore.displayName,
       peerId: restore.peerId,
       ticket: restore.ticket,
     });
-  }, [loading, reconnectTried, restore, join]);
+  }, [join, settled, reconnectTried, restore]);
 
   const busy = create.isPending || join.isPending;
+
+  /** Blank or `0` = OS-assigned port; `1..65535` pins the host's UDP port. */
+  const handleCreate = () => {
+    const draft = portDraft.trim();
+    let port: number | null = null;
+    if (draft.length > 0) {
+      const value = Number(draft);
+      if (!Number.isInteger(value) || value < 0 || value > 65535) {
+        setPortInvalid(true);
+        return;
+      }
+      port = value === 0 ? null : value;
+    }
+    setPortInvalid(false);
+    create.mutate({ name: displayName, port });
+  };
+
+  /** Fill the join field with a saved room's code. */
+  const handleUseSaved = (connection: SavedConnection) => {
+    setJoinInput(
+      formatTicketShare({
+        sessionId: connection.sessionId,
+        token: connection.token,
+        endpointId: connection.endpointId,
+      })
+    );
+    setTicketInvalid(false);
+  };
 
   const handleJoin = () => {
     const ticket = parseTicket(joinInput);
@@ -76,7 +110,7 @@ export default function ConnectLobby({ loading }: ConnectLobbyProps) {
   }
 
   return (
-    <div className="flex h-full items-center justify-center overflow-auto p-4">
+    <div className="flex h-full items-center justify-center gap-4 overflow-auto p-4">
       <div className="flex w-full max-w-md flex-col gap-3">
         {reconnecting && (
           <p className="windows95-text text-hint text-center text-xs">
@@ -104,10 +138,30 @@ export default function ConnectLobby({ loading }: ConnectLobbyProps) {
                 onChange={(event) => setDisplayName(event.target.value)}
               />
             </label>
+            <label className="flex flex-col gap-1">
+              <span className="windows95-text text-text text-xs font-bold">
+                {t("lobby.port.label")}
+              </span>
+              <Input
+                aria-invalid={portInvalid}
+                inputMode="numeric"
+                placeholder={t("lobby.port.placeholder")}
+                value={portDraft}
+                onChange={(event) => {
+                  setPortDraft(event.target.value);
+                  if (portInvalid) setPortInvalid(false);
+                }}
+              />
+            </label>
+            {portInvalid && (
+              <p className="windows95-text text-destructive text-xs">
+                {t("lobby.port.invalid")}
+              </p>
+            )}
             <Button
               className="self-start"
               disabled={busy || loading}
-              onClick={() => create.mutate(displayName)}
+              onClick={handleCreate}
             >
               {t("lobby.create")}
             </Button>
@@ -160,6 +214,7 @@ export default function ConnectLobby({ loading }: ConnectLobbyProps) {
           </p>
         )}
       </div>
+      <SavedLobby onUse={handleUseSaved} />
     </div>
   );
 }

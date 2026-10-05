@@ -27,6 +27,18 @@ export const LOBBY_MAX_RENDERED_CHAT = 200;
 /** Display name length cap. */
 export const LOBBY_MAX_DISPLAY_NAME_CHARS = 48;
 
+/** Cadence (ms) for re-probing saved rooms while the address book is open. */
+export const LOBBY_PROBE_INTERVAL_MS = 30_000;
+
+/** How many ping bars the signal-bars widget draws. */
+export const LOBBY_PING_BAR_COUNT = 5;
+
+/**
+ * RTT thresholds (ms) below which a probe fills 5, 4, 3, or 2 of the bars;
+ * anything slower keeps a single bar. Ascending order.
+ */
+export const LOBBY_PING_BAR_THRESHOLDS_MS = [30, 60, 120, 250] as const;
+
 /**
  * Tolerance (seconds) for a "compatible" duration match when hashes differ.
  */
@@ -63,6 +75,12 @@ export const SESSION_MIGRATE_EVENT = "session-migrate";
 
 /** A peer started or stopped typing (payload `{ peerId, active }`). */
 export const SESSION_TYPING_EVENT = "session-typing";
+
+/** The room's single pinned message changed (payload `{ messageId, pinnedBy }`). */
+export const SESSION_PIN_EVENT = "session-pin";
+
+/** A reaction was added or removed (payload `{ messageId, emoji, peerId, add }`). */
+export const SESSION_REACT_EVENT = "session-react";
 
 /** Keep-alive cadence (ms) for `typing(true)` while the draft keeps growing. */
 export const TYPING_KEEPALIVE_MS = 2000;

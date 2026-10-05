@@ -7,6 +7,9 @@ import { useSettingsStore } from "@/store/settings.store";
 import type { SessionStatus, SyncSample } from "@/types/session";
 
 const GUEST_STATUS: SessionStatus = {
+  addrs: [],
+  pinned: null,
+  reactions: [],
   chat: [],
   hostOnline: true,
   lobbyRole: "viewer",

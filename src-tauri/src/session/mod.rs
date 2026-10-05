@@ -15,11 +15,15 @@ pub mod transport;
 pub use commands::{
     media_identity, session_accept_handover, session_add_source, session_chat,
     session_chat_attachment, session_control, session_create, session_elect_host,
-    session_force_resync, session_join, session_leave, session_publish_state,
-    session_remove_source, session_report, session_request_control, session_set_offset,
-    session_set_playlist, session_set_ready, session_set_role, session_start_item, session_state,
-    session_status, session_sync_restart, session_sync_sample, session_sync_tracks,
-    session_transfer_host, session_typing, DEFAULT_MEDIA_HASH_CAP_BYTES,
+    session_force_resync, session_join, session_leave, session_pin, session_probe,
+    session_publish_state, session_react, session_remove_source, session_report,
+    session_request_control, session_set_offset, session_set_playlist, session_set_ready,
+    session_set_role, session_start_item, session_state, session_status, session_sync_restart,
+    session_sync_sample, session_sync_tracks, session_transfer_host, session_typing,
+    DEFAULT_MEDIA_HASH_CAP_BYTES,
 };
 #[allow(unused_imports)]
-pub use state::{SessionHost, SessionSnapshot, SessionStatus, SessionTicket, TrackState};
+pub use state::{
+    PinnedMessage, ReactionEntry, SessionHost, SessionSnapshot, SessionStatus, SessionTicket,
+    TrackState,
+};

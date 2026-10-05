@@ -42,6 +42,9 @@ const PLAN_ITEM = {
 };
 
 const EMPTY_STATUS: SessionStatus = {
+  addrs: [],
+  pinned: null,
+  reactions: [],
   chat: [],
   hostOnline: false,
   lobbyRole: "viewer",
@@ -73,6 +76,9 @@ const HOST_PEER = {
 };
 
 const HOST_STATUS: SessionStatus = {
+  addrs: [],
+  pinned: null,
+  reactions: [],
   chat: [
     {
       id: "m1",
@@ -133,6 +139,9 @@ const HOST_WITH_PEERS_STATUS: SessionStatus = {
 };
 
 const GUEST_STATUS: SessionStatus = {
+  addrs: [],
+  pinned: null,
+  reactions: [],
   chat: [],
   hostOnline: true,
   lobbyRole: "viewer",
@@ -269,7 +278,7 @@ describe("lobby route", () => {
         invokeMock.mock.calls.some(
           ([command, args]) =>
             command === "session_create" &&
-            JSON.stringify(args) === JSON.stringify({ displayName: "Alice" })
+            JSON.stringify(args) === JSON.stringify({ displayName: "Alice", port: null })
         )
       ).toBe(true);
     });
@@ -280,13 +289,13 @@ describe("lobby route", () => {
     renderWithClient(<LobbyRoute />);
 
     await user.type(
-      await screen.findByPlaceholderText("Paste the ticket you received"),
+      await screen.findByPlaceholderText("Paste the code you received"),
       "definitely-not-a-ticket"
     );
     await user.click(screen.getByRole("button", { name: "Join room" }));
 
     expect(
-      await screen.findByText("That does not look like a valid ticket.")
+      await screen.findByText("That does not look like a valid code.")
     ).toBeTruthy();
     expect(invokeMock.mock.calls.some(([command]) => command === "session_join")).toBe(
       false
@@ -302,7 +311,7 @@ describe("lobby route", () => {
     ).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")}`;
 
     await user.type(
-      await screen.findByPlaceholderText("Paste the ticket you received"),
+      await screen.findByPlaceholderText("Paste the code you received"),
       share
     );
     await user.click(screen.getByRole("button", { name: "Join room" }));
@@ -325,15 +334,15 @@ describe("lobby route", () => {
     const user = userEvent.setup();
     renderWithClient(<LobbyRoute />);
 
-    const input = await screen.findByPlaceholderText("Paste the ticket you received");
+    const input = await screen.findByPlaceholderText("Paste the code you received");
     await user.type(input, "nope");
     await user.click(screen.getByRole("button", { name: "Join room" }));
     expect(
-      await screen.findByText("That does not look like a valid ticket.")
+      await screen.findByText("That does not look like a valid code.")
     ).toBeTruthy();
 
     await user.type(input, "x");
-    expect(screen.queryByText("That does not look like a valid ticket.")).toBeNull();
+    expect(screen.queryByText("That does not look like a valid code.")).toBeNull();
   });
 
   it("reconnects a saved guest identity with the same peer id and name", async () => {
@@ -431,6 +440,20 @@ describe("lobby room", () => {
     expect(screen.getByText("hello")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Resync" })).toBeTruthy();
     expect(screen.getByText("Room A1B2 C3D4")).toBeTruthy();
+  });
+
+  it("shows the host listen addresses when bound and hides the label otherwise", () => {
+    const { unmount } = renderWithClient(
+      <RoomLobby status={{ ...HOST_STATUS, addrs: ["0.0.0.0:54321"] }} />
+    );
+
+    expect(screen.getByText("Room listens on")).toBeTruthy();
+    expect(screen.getByText("0.0.0.0:54321")).toBeTruthy();
+    unmount();
+
+    renderWithClient(<RoomLobby status={HOST_STATUS} />);
+
+    expect(screen.queryByText("Room listens on")).toBeNull();
   });
 
   it("copies the share string to the clipboard", async () => {

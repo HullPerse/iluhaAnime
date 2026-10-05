@@ -45,6 +45,9 @@ import { useSettingsStore } from "@/store/settings.store";
 import type { SessionStatus, SyncSample } from "@/types/session";
 
 const HOST_STATUS: SessionStatus = {
+  addrs: [],
+  pinned: null,
+  reactions: [],
   chat: [],
   hostOnline: true,
   lobbyRole: "host",

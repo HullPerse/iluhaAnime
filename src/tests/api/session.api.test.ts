@@ -89,7 +89,7 @@ describe("SessionApi", () => {
       "session_accept_handover",
     ]);
 
-    expect(calls[2].args).toEqual({ displayName: "Alice" });
+    expect(calls[2].args).toEqual({ displayName: "Alice", port: null });
     expect(calls[3].args).toEqual({
       anilistUserId: null,
       displayName: "Bob",
@@ -141,6 +141,28 @@ describe("SessionApi", () => {
     expect(calls[23].args).toEqual({ paths: { i1: "D:/anime/mine.mkv" } });
   });
 
+  it("maps probe to session_probe with the endpoint id and direct paths", async () => {
+    const { calls, transport } = fakeTransport(() => ({ online: true, rttMs: 12 }));
+    const api = new SessionApi({ transport });
+
+    const probe = await api.probe("ep-1", ["10.0.0.1:443", "10.0.0.2:443"]);
+
+    expect(calls[0]).toEqual({
+      command: "session_probe",
+      args: { addrs: ["10.0.0.1:443", "10.0.0.2:443"], endpointId: "ep-1" },
+    });
+    expect(probe).toEqual({ online: true, rttMs: 12 });
+  });
+
+  it("probes without direct paths by default", async () => {
+    const { calls, transport } = fakeTransport(() => ({ online: false, rttMs: null }));
+    const api = new SessionApi({ transport });
+
+    await api.probe("ep-1");
+
+    expect(calls[0].args).toEqual({ addrs: [], endpointId: "ep-1" });
+  });
+
   it("defaults the anilist user id to null and passes an explicit id", async () => {
     const { calls, transport } = fakeTransport(() => ({}));
     const api = new SessionApi({ transport });
@@ -153,6 +175,29 @@ describe("SessionApi", () => {
       peerId: null,
       ticket: TICKET,
     });
+  });
+
+  it("maps pin and react to the room pin/reaction commands", async () => {
+    const { calls, transport } = fakeTransport(() => ({}));
+    const api = new SessionApi({ transport });
+
+    await api.pin("m1");
+    await api.pin(null);
+    await api.react({ add: true, emoji: "👍", messageId: "m1" });
+    await api.react({ add: false, emoji: "👍", messageId: "m1" });
+
+    expect(calls).toEqual([
+      { args: { messageId: "m1" }, command: "session_pin" },
+      { args: { messageId: null }, command: "session_pin" },
+      {
+        args: { add: true, emoji: "👍", messageId: "m1" },
+        command: "session_react",
+      },
+      {
+        args: { add: false, emoji: "👍", messageId: "m1" },
+        command: "session_react",
+      },
+    ]);
   });
 
   it("sends a .torrent attachment with the chat line and fetches it back", async () => {

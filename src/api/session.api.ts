@@ -41,8 +41,19 @@ export class SessionApi {
     return this.call("session_state");
   }
 
-  create(displayName: string): Promise<SessionTicket> {
-    return this.call("session_create", { displayName });
+  create(displayName: string, port: number | null = null): Promise<SessionTicket> {
+    return this.call("session_create", { displayName, port });
+  }
+
+  /**
+   * Reachability probe for a saved room: one handshake attempt, no frames.
+   * Resolves `online` plus the measured `rttMs` (null while offline).
+   */
+  probe(
+    endpointId: string,
+    addrs: string[] = []
+  ): Promise<{ online: boolean; rttMs: number | null }> {
+    return this.call("session_probe", { endpointId, addrs });
   }
 
   join(
@@ -86,6 +97,19 @@ export class SessionApi {
   /** Tell the room this user started (or stopped) typing. */
   typing(active: boolean): Promise<void> {
     return this.call("session_typing", { active });
+  }
+
+  /**
+   * Host + moderators: set (or clear with `null`) the room's single pinned
+   * message. One anchor at a time; the host validates and broadcasts it.
+   */
+  pin(messageId: string | null): Promise<void> {
+    return this.call("session_pin", { messageId });
+  }
+
+  /** Add (`add: true`) or remove a reaction on one chat message. */
+  react(input: { messageId: string; emoji: string; add: boolean }): Promise<void> {
+    return this.call("session_react", input);
   }
 
   setPlaylist(

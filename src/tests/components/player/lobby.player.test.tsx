@@ -38,6 +38,9 @@ const GUEST_PEER: PeerInfo = {
 
 function status(role: SessionRole): SessionStatus {
   return {
+    addrs: [],
+    pinned: null,
+    reactions: [],
     chat: [],
     hostOnline: true,
     lobbyRole: role === "host" ? "host" : "viewer",

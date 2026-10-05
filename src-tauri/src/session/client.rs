@@ -11,7 +11,7 @@ use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use iroh::{Endpoint, EndpointAddr, EndpointId};
+use iroh::{Endpoint, EndpointAddr, EndpointId, TransportAddr};
 use tokio::sync::{broadcast, mpsc, Notify};
 use tokio::task::JoinHandle;
 use tokio::time::MissedTickBehavior;
@@ -78,6 +78,10 @@ struct ClientInner {
     /// First-handshake outcome: `Some(Ok(()))` once `Welcome` arrives, or the
     /// rejection (`ErrorCode`, message) that ended the join attempt.
     handshake: Mutex<Option<Result<(), (ErrorCode, String)>>>,
+    /// UDP address of the current connection to the host (the relay server's
+    /// when relayed), refreshed on every reconnect. `None` before the first
+    /// successful connect.
+    remote_addr: Mutex<Option<String>>,
 }
 
 /// A running guest session.
@@ -90,7 +94,7 @@ pub struct ClientSession {
 impl ClientSession {
     /// Bind the public n0 endpoint and join `config.host_addr`.
     pub async fn join(config: ClientConfig) -> Result<Self, String> {
-        let endpoint = transport::bind_endpoint().await?;
+        let endpoint = transport::bind_endpoint(None).await?;
         Ok(Self::connect_with(config, endpoint))
     }
 
@@ -117,6 +121,7 @@ impl ClientSession {
             detached: AtomicBool::new(false),
             shutdown_notify: Notify::new(),
             handshake: Mutex::new(None),
+            remote_addr: Mutex::new(None),
         });
         let task = Arc::new(tokio::spawn(run(inner.clone())));
         Self { inner, task }
@@ -223,6 +228,16 @@ impl ClientSession {
     pub fn host_gone(&self) -> bool {
         now_ms().saturating_sub(self.inner.host_last_seen.load(Ordering::Relaxed))
             > crate::session::transport::LIVENESS_GRACE_MS
+    }
+
+    /// The UDP address the current connection to the host travels over
+    /// (the relay's when relayed), refreshed on every reconnect.
+    pub fn remote_addr(&self) -> Option<String> {
+        self.inner
+            .remote_addr
+            .lock()
+            .expect("client remote addr poisoned")
+            .clone()
     }
 
     /// Retarget the dial at a new host on the same room identity. Refuses our
@@ -585,6 +600,23 @@ async fn connect_once(inner: &Arc<ClientInner>) -> bool {
         Ok(connection) => connection,
         Err(_) => return true,
     };
+    // Capture the direct IP path actually used (the address book hint);
+    // relayed-only connections record nothing.
+    {
+        let paths = connection.paths();
+        let direct = paths
+            .iter()
+            .find(|path| path.is_ip() && path.is_selected())
+            .or_else(|| paths.iter().find(|path| path.is_ip()))
+            .map(|path| match path.remote_addr() {
+                TransportAddr::Ip(addr) => addr.to_string(),
+                other => other.to_string(),
+            });
+        *inner
+            .remote_addr
+            .lock()
+            .expect("client remote addr poisoned") = direct;
+    }
     let (send, recv) = match connection.open_bi().await {
         Ok(pair) => pair,
         Err(_) => {

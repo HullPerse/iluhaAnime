@@ -13,6 +13,7 @@
 use iroh::endpoint::{presets, RecvStream, SendStream};
 use iroh::{Endpoint, EndpointAddr, RelayMode, TransportAddr};
 use serde::Serialize;
+use std::net::{Ipv4Addr, SocketAddr};
 use thiserror::Error;
 
 use crate::session::protocol::{
@@ -119,8 +120,19 @@ pub fn channel(send: SendStream, recv: RecvStream) -> (FrameSender, FrameReader)
 
 /// Bind a production endpoint: public n0 relay servers + DNS discovery, with
 /// [`ALPN`] accepted.
-pub async fn bind_endpoint() -> Result<Endpoint, String> {
-    Endpoint::builder(presets::N0)
+///
+/// `port` pins the local UDP port (`None` = OS-assigned, both address
+/// families). A pinned port binds IPv4 only (`0.0.0.0`); a busy port fails
+/// the bind so the caller can report it instead of silently moving.
+pub async fn bind_endpoint(port: Option<u16>) -> Result<Endpoint, String> {
+    let mut builder = Endpoint::builder(presets::N0);
+    if let Some(port) = port {
+        builder = builder
+            .clear_ip_transports()
+            .bind_addr(SocketAddr::from((Ipv4Addr::UNSPECIFIED, port)))
+            .map_err(|error| error.to_string())?;
+    }
+    builder
         .alpns(vec![ALPN.to_vec()])
         .bind()
         .await
@@ -332,5 +344,37 @@ mod tests {
         assert_eq!(LIVENESS_TIMEOUT_MS, 6_000);
         assert_eq!(LIVENESS_GRACE_MS, 30_000);
         assert_eq!(ALPN, b"iluhaanime/watchparty/1");
+    }
+
+    #[tokio::test]
+    async fn pinned_port_binds_one_ipv4_socket() {
+        let endpoint = bind_endpoint(Some(0)).await.expect("bind pinned");
+        let sockets = endpoint.bound_sockets();
+        assert_eq!(sockets.len(), 1, "a pinned port binds one socket");
+        assert!(
+            sockets[0].is_ipv4(),
+            "a pinned port is IPv4 only, got {}",
+            sockets[0]
+        );
+        endpoint.close().await;
+    }
+
+    #[tokio::test]
+    async fn unpinned_bind_keeps_both_families() {
+        let endpoint = bind_endpoint(None).await.expect("bind auto");
+        assert!(
+            !endpoint.bound_sockets().is_empty(),
+            "an auto bind always has a socket"
+        );
+        endpoint.close().await;
+    }
+
+    #[tokio::test]
+    async fn pinned_busy_port_fails_the_bind() {
+        let held = std::net::UdpSocket::bind("0.0.0.0:0").expect("hold port");
+        let port = held.local_addr().expect("local addr").port();
+        bind_endpoint(Some(port))
+            .await
+            .expect_err("a busy pinned port must fail");
     }
 }

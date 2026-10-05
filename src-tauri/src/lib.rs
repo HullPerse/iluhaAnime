@@ -1504,6 +1504,7 @@ pub fn run() {
             session::commands::session_set_ready,
             session::commands::session_create,
             session::commands::session_join,
+            session::commands::session_probe,
             session::commands::session_leave,
             session::commands::session_transfer_host,
             session::commands::session_accept_handover,
@@ -1522,6 +1523,8 @@ pub fn run() {
             session::commands::session_set_offset,
             session::commands::session_sync_tracks,
             session::commands::session_typing,
+            session::commands::session_pin,
+            session::commands::session_react,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

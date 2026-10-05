@@ -7,6 +7,7 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { useSessionActions } from "@/hooks/session/actions.hook";
 import { useChatTorrentDownload } from "@/hooks/session/chat.torrent.hook";
 import { useSessionHandoverBridge } from "@/hooks/session/handover.hook";
+import { useChatPinReactions } from "@/hooks/session/pin-react.hook";
 import { useSessionStartBridge } from "@/hooks/session/start.hook";
 import { useChatTyping, useTypingSender } from "@/hooks/session/typing.hook";
 import { newChatId } from "@/lib/session/chat.utils";
@@ -15,6 +16,7 @@ import { formatTicketShare, ticketRoomLabel } from "@/lib/session/ticket.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { showError } from "@/lib/utils/notification.utils";
 import TorrentFilePicker from "@/routes/components/search/default/picker.search";
+import { useConnectionsStore } from "@/store/connections.store";
 import { useSessionStore } from "@/store/session.store";
 import type { RoomLobbyProps } from "@/types/lobby";
 
@@ -27,7 +29,8 @@ const COPIED_FEEDBACK_MS = 1500;
 
 export default function RoomLobby({ status }: RoomLobbyProps) {
   const { t } = useI18n();
-  const { chat, leave, resync, setRole, transferHost } = useSessionActions();
+  const { chat, leave, pin, react, resync, setRole, transferHost } =
+    useSessionActions();
   const draft = useSessionStore((s) => s.chatDraft);
   const setChatDraft = useSessionStore((s) => s.setChatDraft);
   const chatReply = useSessionStore((s) => s.chatReply);
@@ -47,6 +50,8 @@ export default function RoomLobby({ status }: RoomLobbyProps) {
   // Typing indicators: names of peers typing now + the local keep-alive sender.
   const typingNames = useChatTyping(status.peers);
   const typing = useTypingSender();
+  // Instant pin/reaction frames keep the status cache current between polls.
+  useChatPinReactions();
   const share = status.ticket ? formatTicketShare(status.ticket) : null;
   const roomCode = status.ticket
     ? ticketRoomLabel(status.ticket)
@@ -67,6 +72,15 @@ export default function RoomLobby({ status }: RoomLobbyProps) {
     if (own.length > 0) names.push(own);
     return [...new Set(names.filter((name) => name.length > 0))];
   }, [status.peers, displayName]);
+
+  // Who pinned the current anchor, resolved to a display name.
+  const pinnedByName = useMemo(() => {
+    if (status.pinned === null) return "";
+    const pinner = status.pinned.pinnedBy;
+    return (
+      status.peers.find((peer) => peer.peerId === pinner)?.displayName ?? pinner
+    );
+  }, [status.pinned, status.peers]);
 
   const missingByPeer = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -99,6 +113,19 @@ export default function RoomLobby({ status }: RoomLobbyProps) {
       COPIED_FEEDBACK_MS
     );
   }, [share, t]);
+
+  const handleSaveConnection = () => {
+    if (!status.ticket) return;
+    useConnectionsStore.getState().save({
+      endpointId: status.ticket.endpointId,
+      sessionId: status.sessionId ?? status.ticket.sessionId,
+      token: status.ticket.token,
+      name: displayName,
+      nick: displayName,
+      addrs: status.addrs,
+      savedAt: Date.now(),
+    });
+  };
 
   const handleSend = () => {
     const text = draft.trim();
@@ -246,6 +273,23 @@ export default function RoomLobby({ status }: RoomLobbyProps) {
                 {copied ? t("lobby.ticket.copied") : t("lobby.ticket.copy")}
               </Button>
             </div>
+            <div className="flex items-center gap-1">
+              <Button onClick={handleSaveConnection}>
+                {t("lobby.saved.save")}
+              </Button>
+            </div>
+            {status.addrs.length > 0 && (
+              <div className="flex flex-col gap-0.5">
+                <p className="windows95-text text-hint text-xs">
+                  {t("lobby.ticket.addrs")}
+                </p>
+                {status.addrs.map((addr) => (
+                  <span key={addr} className="windows95-text text-text text-xs">
+                    {addr}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </section>
       )}
@@ -262,18 +306,25 @@ export default function RoomLobby({ status }: RoomLobbyProps) {
         <ChatLobby
           attachPending={chatTorrent.attachPending}
           canAttach={canAttach}
+          canPin={canAttach}
           draft={draft}
           failedAttachment={chatTorrent.failed}
           fetchingAttachment={chatTorrent.fetching}
           messages={messages}
+          myPeerId={status.yourPeerId}
           onAttach={handleAttach}
           onDownloadAttachment={handleDownloadAttachment}
           onDraftChange={handleDraftChange}
+          onPin={(messageId) => pin.mutate(messageId)}
+          onReact={(input) => react.mutate(input)}
           onReplyChange={setChatReply}
           onSend={handleSend}
           onTorrentLink={handleTorrentLink}
           pending={chat.isPending}
           mentionNames={mentionNames}
+          pinned={status.pinned}
+          pinnedByName={pinnedByName}
+          reactions={status.reactions}
           replyTo={chatReply}
           typingNames={typingNames}
         />

@@ -167,6 +167,20 @@ export interface SessionSnapshot {
   plan: MediaPlanItem[];
 }
 
+/** The room's single pinned chat message (the anchor one). */
+export interface PinnedMessage {
+  messageId: string;
+  pinnedBy: string;
+}
+
+/** One emoji's reaction set on one chat message. */
+export interface ReactionEntry {
+  messageId: string;
+  emoji: string;
+  /** The peers that reacted with this emoji, sorted for stable output. */
+  peers: string[];
+}
+
 export interface SessionStatus {
   role: SessionRole | null;
   sessionId: string | null;
@@ -187,6 +201,16 @@ export interface SessionStatus {
   lobbyRole: LobbyRole;
   /** For each plan item, the peer ids that have not reported it present. */
   missing: Record<string, string[]>;
+  /** The current pinned anchor (message id + who pinned it); `null` = unpinned. */
+  pinned: PinnedMessage | null;
+  /** One emoji's reaction set per chat message (a flat list). */
+  reactions: ReactionEntry[];
+  /**
+   * Where this instance listens (host: local `0.0.0.0:port` sockets) or is
+   * connected (guest: the direct `ip:port` path currently in use). Empty
+   * without an active session or while relayed.
+   */
+  addrs: string[];
 }
 
 export interface PeerReport {
@@ -257,6 +281,23 @@ export interface SessionStartItem {
 export interface SessionTyping {
   peerId: string;
   active: boolean;
+}
+
+/**
+ * Payload of the `session-pin` event: the room's single pinned message.
+ * `messageId` is `null` when the anchor was cleared (unpin).
+ */
+export interface SessionPin {
+  messageId: string | null;
+  pinnedBy: string;
+}
+
+/** Payload of the `session-react` event: one reaction added or removed. */
+export interface SessionReaction {
+  messageId: string;
+  emoji: string;
+  peerId: string;
+  add: boolean;
 }
 
 /**

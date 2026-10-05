@@ -3,7 +3,7 @@
 //! P1 stored the identity and plan behind a mutex. P2 adds the running session
 //! (host or guest), a bounded chat log, the latest roster, and per-peer reports.
 
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, VecDeque};
 use std::sync::{Arc, Mutex};
 
 use serde::{Deserialize, Serialize};
@@ -104,6 +104,24 @@ pub struct SessionSnapshot {
     pub plan: Vec<MediaPlanItem>,
 }
 
+/// The room's single pinned chat message (as observed by this instance).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PinnedMessage {
+    pub message_id: String,
+    pub pinned_by: String,
+}
+
+/// One emoji's reaction set on one chat message.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReactionEntry {
+    pub message_id: String,
+    pub emoji: String,
+    /// The peers that reacted with this emoji, sorted for stable output.
+    pub peers: Vec<String>,
+}
+
 /// Combined session view for the UI.
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -134,6 +152,13 @@ pub struct SessionStatus {
     pub lobby_role: Role,
     /// For each plan item, the peer ids that have not reported it present.
     pub missing: HashMap<String, Vec<String>>,
+    /// The current pin anchor (message id + who pinned it), `None` = unpinned.
+    pub pinned: Option<PinnedMessage>,
+    /// Reaction entries, flat list for easy serialization: each entry is one
+    /// emoji's reaction set on one chat message.
+    pub reactions: Vec<ReactionEntry>,
+    /// Last known direct `ip:port` paths used to reach the room (deduped).
+    pub addrs: Vec<String>,
 }
 
 #[derive(Default)]
@@ -153,6 +178,10 @@ pub struct SessionHost {
     peers: Arc<Mutex<Vec<PeerInfo>>>,
     reports: Arc<Mutex<HashMap<String, PeerReport>>>,
     runtime: Arc<Mutex<Option<SessionRuntime>>>,
+    /// The current pin anchor (message id + who pinned it), `None` = unpinned.
+    pinned: Arc<Mutex<Option<PinnedMessage>>>,
+    /// Reactions: message id → emoji → set of peers that reacted with it.
+    reactions: Arc<Mutex<HashMap<String, BTreeMap<String, BTreeSet<String>>>>>,
 }
 
 impl SessionHost {
@@ -298,6 +327,65 @@ impl SessionHost {
         self.chat.lock().expect("session chat poisoned").clone()
     }
 
+    /// Replace the room's pinned message (`None` = no pin). Applied both from
+    /// host events and guest frames, so it must stay idempotent.
+    pub fn set_pinned(&self, message_id: Option<String>, pinned_by: String) {
+        let pinned = message_id.map(|message_id| PinnedMessage {
+            message_id,
+            pinned_by,
+        });
+        *self.pinned.lock().expect("session pinned poisoned") = pinned;
+    }
+
+    /// The current pin anchor (message id + who pinned it).
+    pub fn pinned(&self) -> Option<PinnedMessage> {
+        self.pinned.lock().expect("session pinned poisoned").clone()
+    }
+
+    /// Fold one reaction event into the local map. Add inserts the peer into
+    /// the emoji's set, remove drops it; empty sets are pruned so the status
+    /// output stays clean. Replays of an already-applied frame are no-ops.
+    pub fn apply_reaction(&self, message_id: &str, emoji: &str, peer_id: &str, add: bool) {
+        let mut reactions = self.reactions.lock().expect("session reactions poisoned");
+        if add {
+            reactions
+                .entry(message_id.to_string())
+                .or_default()
+                .entry(emoji.to_string())
+                .or_default()
+                .insert(peer_id.to_string());
+            return;
+        }
+        let Some(kinds) = reactions.get_mut(message_id) else {
+            return;
+        };
+        if let Some(peers) = kinds.get_mut(emoji) {
+            peers.remove(peer_id);
+            if peers.is_empty() {
+                kinds.remove(emoji);
+            }
+        }
+        if kinds.is_empty() {
+            reactions.remove(message_id);
+        }
+    }
+
+    /// The flattened reaction snapshot for the status payload.
+    pub fn reactions(&self) -> Vec<ReactionEntry> {
+        let reactions = self.reactions.lock().expect("session reactions poisoned");
+        let mut entries = Vec::new();
+        for (message_id, kinds) in reactions.iter() {
+            for (emoji, peers) in kinds.iter() {
+                entries.push(ReactionEntry {
+                    message_id: message_id.clone(),
+                    emoji: emoji.clone(),
+                    peers: peers.iter().cloned().collect(),
+                });
+            }
+        }
+        entries
+    }
+
     /// Remember an attachment's bytes for a later download, evicting the
     /// oldest past the cap.
     pub fn remember_attachment(&self, message_id: String, name: String, bytes: Vec<u8>) {
@@ -369,6 +457,7 @@ impl SessionHost {
             paths,
             lobby_role,
             missing,
+            addrs,
         ) = {
             let guard = self.runtime.lock().expect("session runtime poisoned");
             match guard.as_ref() {
@@ -384,6 +473,7 @@ impl SessionHost {
                     self.plan_paths(),
                     Role::Host,
                     host.missing(),
+                    host.bound_sockets(),
                 ),
                 Some(SessionRuntime::Guest(client)) => (
                     Some(SessionRole::Guest),
@@ -397,6 +487,7 @@ impl SessionHost {
                     HashMap::new(),
                     client.local_role(),
                     client.missing(),
+                    client.remote_addr().into_iter().collect(),
                 ),
                 None => (
                     None,
@@ -410,6 +501,7 @@ impl SessionHost {
                     self.plan_paths(),
                     Role::Viewer,
                     HashMap::new(),
+                    Vec::new(),
                 ),
             }
         };
@@ -428,6 +520,9 @@ impl SessionHost {
             paths,
             lobby_role,
             missing,
+            addrs,
+            pinned: self.pinned(),
+            reactions: self.reactions(),
         }
     }
 

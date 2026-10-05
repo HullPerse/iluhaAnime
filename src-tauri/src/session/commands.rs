@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::time::Duration;
 
-use iroh::{EndpointAddr, EndpointId};
+use iroh::{EndpointAddr, EndpointId, TransportAddr};
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, State};
 
@@ -25,6 +25,7 @@ use crate::session::state::{
     SessionStatus, SessionTicket, TrackState,
 };
 use crate::session::sync::SyncSample;
+use crate::session::transport;
 use base64::{engine::general_purpose::STANDARD, Engine as _};
 
 /// Default cap for hashing media files (4 GiB).
@@ -35,6 +36,9 @@ const HANDOVER_TIMEOUT: Duration = Duration::from_secs(10);
 
 /// How long `session_join` waits for the host to accept or reject the hello.
 const JOIN_HANDSHAKE_TIMEOUT: Duration = Duration::from_secs(15);
+/// How long `session_probe` waits for the handshake before calling a room
+/// offline.
+const PROBE_TIMEOUT: Duration = Duration::from_secs(4);
 /// Grace for the successor's `HandoverReady` frame to reach the wire before
 /// the runtime swap tears its guest connection down.
 const HANDOVER_FLUSH_MS: u64 = 150;
@@ -62,6 +66,11 @@ pub const EVENT_SESSION_MIGRATE: &str = "session-migrate";
 pub const EVENT_SESSION_HOST_HANDOVER: &str = "session-host-handover";
 /// Tauri event: a peer started or stopped typing (payload [`TypingPayload`]).
 pub const EVENT_SESSION_TYPING: &str = "session-typing";
+/// Tauri event: the room's single pinned message changed (payload
+/// [`PinPayload`]).
+pub const EVENT_SESSION_PIN: &str = "session-pin";
+/// Tauri event: a reaction was added or removed (payload [`ReactPayload`]).
+pub const EVENT_SESSION_REACT: &str = "session-react";
 
 /// Payload for [`EVENT_SESSION_TYPING`]: which peer and in which state.
 #[derive(Debug, Clone, Serialize)]
@@ -69,6 +78,24 @@ pub const EVENT_SESSION_TYPING: &str = "session-typing";
 struct TypingPayload {
     peer_id: String,
     active: bool,
+}
+
+/// Payload for [`EVENT_SESSION_PIN`]: the room's single pinned message.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct PinPayload {
+    message_id: Option<String>,
+    pinned_by: String,
+}
+
+/// Payload for [`EVENT_SESSION_REACT`]: one reaction added or removed.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ReactPayload {
+    message_id: String,
+    emoji: String,
+    peer_id: String,
+    add: bool,
 }
 
 /// Payload for [`EVENT_SESSION_COMMAND`].
@@ -239,21 +266,82 @@ fn sync_host_plan(host: &SessionHost) {
 }
 
 /// Start hosting a watch party and return the join ticket.
+///
+/// `port` pins the local UDP port (`null`/absent = OS-assigned); a busy
+/// pinned port fails the command so the UI can show it.
 #[tauri::command]
 pub async fn session_create(
     app: AppHandle,
     host: State<'_, SessionHost>,
     display_name: String,
+    port: Option<u16>,
 ) -> Result<SessionTicket, String> {
     if host.has_runtime() {
         return Err("a session is already active".to_string());
     }
-    let session = HostSession::start(HostConfig::generate(display_name)).await?;
+    let session = HostSession::start(HostConfig::generate(display_name), port).await?;
     let ticket = session.ticket();
     session.set_plan(host.snapshot().plan, host.plan_paths());
     spawn_host_pump(app, host.inner().clone(), session.clone());
     host.set_runtime(SessionRuntime::Host(session));
     Ok(ticket)
+}
+
+/// Reachability of a saved room: one handshake attempt, no frames sent.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProbeResult {
+    /// Whether the handshake completed within [`PROBE_TIMEOUT`].
+    pub online: bool,
+    /// Smoothed RTT from the handshake in milliseconds; `None` when offline
+    /// or when the sample has not landed yet.
+    pub rtt_ms: Option<f64>,
+}
+
+/// Dial a room's endpoint without joining it and report liveness.
+///
+/// Runs on a throwaway endpoint, so it works while a session is active and
+/// never speaks the room protocol: the connection is closed right after the
+/// handshake. `addrs` are direct `ip:port` hints from a previous successful
+/// connection; unparseable entries are dropped and iroh falls back to
+/// discovery and relay.
+#[tauri::command]
+pub async fn session_probe(endpoint_id: String, addrs: Vec<String>) -> Result<ProbeResult, String> {
+    let endpoint_id = endpoint_id
+        .parse::<EndpointId>()
+        .map_err(|error| format!("invalid endpoint id: {error}"))?;
+    let ip_addrs = addrs
+        .iter()
+        .filter_map(|addr| addr.parse::<std::net::SocketAddr>().ok())
+        .map(TransportAddr::Ip);
+    let target = EndpointAddr::from_parts(endpoint_id, ip_addrs);
+
+    let endpoint = transport::bind_endpoint(None).await?;
+    let started = std::time::Instant::now();
+    let outcome =
+        tokio::time::timeout(PROBE_TIMEOUT, endpoint.connect(target, transport::ALPN)).await;
+    let result = match outcome {
+        Ok(Ok(connection)) => {
+            let handshake = started.elapsed().as_secs_f64() * 1000.0;
+            let paths = connection.paths();
+            let smoothed = paths
+                .iter()
+                .find(|path| path.is_selected())
+                .map(|path| path.rtt().as_secs_f64() * 1000.0)
+                .unwrap_or(0.0);
+            connection.close(0u32.into(), b"probe");
+            ProbeResult {
+                online: true,
+                rtt_ms: Some(if smoothed > 0.0 { smoothed } else { handshake }),
+            }
+        }
+        _ => ProbeResult {
+            online: false,
+            rtt_ms: None,
+        },
+    };
+    endpoint.close().await;
+    Ok(result)
 }
 
 /// Join a watch party from a ticket.
@@ -388,7 +476,8 @@ pub async fn session_accept_handover(
         display_name,
         max_peers: DEFAULT_MAX_PEERS,
     };
-    let session = HostSession::start(config).await?;
+    // The successor was never the port-choosing host: bind an OS-assigned port.
+    let session = HostSession::start(config, None).await?;
     let endpoint_id = session.endpoint().id().to_string();
     // Carry the room state across: plan + roster roles/ready + held start +
     // playback. Chat lives in the local buffer this instance already shares.
@@ -489,6 +578,41 @@ pub fn session_typing(host: State<'_, SessionHost>, active: bool) -> Result<(), 
     }
     if let Some(client) = host.client_session() {
         return client.send(ClientMessage::Typing { active });
+    }
+    Err("no active session".to_string())
+}
+
+/// Pin (`Some`) or unpin (`None`) a chat message: the host applies the
+/// request, a guest hands it to the host for validation (host/moderator only).
+#[tauri::command]
+pub fn session_pin(host: State<'_, SessionHost>, message_id: Option<String>) -> Result<(), String> {
+    if let Some(session) = host.host_session() {
+        return session.set_pin(message_id);
+    }
+    if let Some(client) = host.client_session() {
+        return client.send(ClientMessage::Pin { message_id });
+    }
+    Err("no active session".to_string())
+}
+
+/// Add (`add: true`) or remove a reaction on one chat message: the host
+/// applies and relays it, a guest hands the request to the host.
+#[tauri::command]
+pub fn session_react(
+    host: State<'_, SessionHost>,
+    message_id: String,
+    emoji: String,
+    add: bool,
+) -> Result<(), String> {
+    if let Some(session) = host.host_session() {
+        return session.react(message_id, emoji, add);
+    }
+    if let Some(client) = host.client_session() {
+        return client.send(ClientMessage::React {
+            message_id,
+            emoji,
+            add,
+        });
     }
     Err("no active session".to_string())
 }
@@ -686,6 +810,36 @@ fn spawn_host_pump(app: AppHandle, state: SessionHost, session: HostSession) {
                 Ok(HostEvent::Typing { peer_id, active }) => {
                     let _ = app.emit(EVENT_SESSION_TYPING, TypingPayload { peer_id, active });
                 }
+                Ok(HostEvent::Pin {
+                    message_id,
+                    pinned_by,
+                }) => {
+                    state.set_pinned(message_id.clone(), pinned_by.clone());
+                    let _ = app.emit(
+                        EVENT_SESSION_PIN,
+                        PinPayload {
+                            message_id,
+                            pinned_by,
+                        },
+                    );
+                }
+                Ok(HostEvent::React {
+                    message_id,
+                    emoji,
+                    peer_id,
+                    add,
+                }) => {
+                    state.apply_reaction(&message_id, &emoji, &peer_id, add);
+                    let _ = app.emit(
+                        EVENT_SESSION_REACT,
+                        ReactPayload {
+                            message_id,
+                            emoji,
+                            peer_id,
+                            add,
+                        },
+                    );
+                }
                 Ok(_) | Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => {}
                 Err(tokio::sync::broadcast::error::RecvError::Closed) => break,
             }
@@ -740,6 +894,36 @@ fn spawn_guest_pump(app: AppHandle, state: SessionHost, client: ClientSession) {
                         Ok(ServerMessage::Typing { peer_id, active }) => {
                             let _ =
                                 app.emit(EVENT_SESSION_TYPING, TypingPayload { peer_id, active });
+                        }
+                        Ok(ServerMessage::Pin {
+                            message_id,
+                            pinned_by,
+                        }) => {
+                            state.set_pinned(message_id.clone(), pinned_by.clone());
+                            let _ = app.emit(
+                                EVENT_SESSION_PIN,
+                                PinPayload {
+                                    message_id,
+                                    pinned_by,
+                                },
+                            );
+                        }
+                        Ok(ServerMessage::React {
+                            message_id,
+                            emoji,
+                            peer_id,
+                            add,
+                        }) => {
+                            state.apply_reaction(&message_id, &emoji, &peer_id, add);
+                            let _ = app.emit(
+                                EVENT_SESSION_REACT,
+                                ReactPayload {
+                                    message_id,
+                                    emoji,
+                                    peer_id,
+                                    add,
+                                },
+                            );
                         }
                         Ok(ServerMessage::WaitingFor { item_id, peer_ids }) => {
                             let _ =

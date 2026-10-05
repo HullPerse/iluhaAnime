@@ -47,6 +47,14 @@ pub const CHAT_RATE_WINDOW_SEC: f64 = 5.0;
 /// frames from one peer; stop frames (`active: false`) are never throttled.
 pub const TYPING_MIN_INTERVAL_SEC: f64 = 0.25;
 
+/// Distinct emoji kinds one chat message may carry; adding past the cap is
+/// dropped silently (removals always pass so a reaction can be undone).
+pub const REACTION_MAX_KINDS: usize = 5;
+
+/// Cap on one reaction emoji token, in chars (a short unicode emoji or a
+/// `:shortcode:`; anything longer is dropped).
+pub const REACTION_EMOJI_MAX_CHARS: usize = 32;
+
 /// Validate a `.torrent` attachment: a `.torrent` file name and raw bytes
 /// that fit the frame. Returns the cleaned file name.
 pub fn sanitize_chat_upload(name: &str, raw_len: usize) -> Option<String> {
@@ -69,15 +77,20 @@ pub fn sanitize_chat_upload(name: &str, raw_len: usize) -> Option<String> {
     Some(trimmed.to_string())
 }
 
-/// Validate a client-supplied chat message id. An empty or malformed id is
-/// replaced with a generated one so a broken peer cannot break anchors.
-pub fn chat_id_or_generate(id: &str) -> String {
-    let ok = !id.is_empty()
+/// Whether a client-supplied chat message id is well-formed: non-empty, fits
+/// [`CHAT_ID_MAX_CHARS`], and stays within the anchor alphabet.
+pub fn valid_chat_id(id: &str) -> bool {
+    !id.is_empty()
         && id.len() <= CHAT_ID_MAX_CHARS
         && id
             .chars()
-            .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_');
-    if ok {
+            .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+}
+
+/// Validate a client-supplied chat message id. An empty or malformed id is
+/// replaced with a generated one so a broken peer cannot break anchors.
+pub fn chat_id_or_generate(id: &str) -> String {
+    if valid_chat_id(id) {
         id.to_string()
     } else {
         crate::session::state::random_hex(8)

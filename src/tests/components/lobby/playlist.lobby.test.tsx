@@ -71,6 +71,9 @@ const HOST_PEER = {
 
 function hostStatus(overrides: Partial<SessionStatus> = {}): SessionStatus {
   return {
+    addrs: [],
+    pinned: null,
+    reactions: [],
     chat: [],
     hostOnline: true,
     lobbyRole: "host",
@@ -90,6 +93,9 @@ function hostStatus(overrides: Partial<SessionStatus> = {}): SessionStatus {
 
 function guestStatus(overrides: Partial<SessionStatus> = {}): SessionStatus {
   return {
+    addrs: [],
+    pinned: null,
+    reactions: [],
     chat: [],
     hostOnline: true,
     lobbyRole: "viewer",

@@ -12,6 +12,9 @@ vi.mock("@/routes/components/player/media/playlist.player", () => ({
 }));
 
 const STATUS: SessionStatus = {
+  addrs: [],
+  pinned: null,
+  reactions: [],
   chat: [],
   hostOnline: true,
   lobbyRole: "viewer",

@@ -2,8 +2,10 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { sessionApi } from "@/api/session.api";
 import { useI18n } from "@/hooks/i18n.hook";
+import { ticketRoomLabel } from "@/lib/session/ticket.utils";
 import { toError } from "@/lib/utils/attempt.utils";
 import { showError } from "@/lib/utils/notification.utils";
+import { useConnectionsStore } from "@/store/connections.store";
 import { useSessionStore } from "@/store/session.store";
 import type {
   ControlAction,
@@ -32,16 +34,17 @@ export function useSessionActions() {
   const nameOrDefault = (value: string) => (value.trim().length > 0 ? value.trim() : displayName);
 
   const create = useMutation({
-    mutationFn: (value: string) => sessionApi.create(nameOrDefault(value)),
+    mutationFn: (input: { name: string; port: number | null }) =>
+      sessionApi.create(nameOrDefault(input.name), input.port),
     onError,
     onSettled,
     // A host room is not restored after a restart; the stored identity only
     // lets a later mount report the room as closed.
-    onSuccess: (ticket: SessionTicket, value: string) => {
+    onSuccess: (ticket: SessionTicket, input: { name: string; port: number | null }) => {
       useSessionStore.getState().setIdentity({
         sessionId: ticket.sessionId,
         ticket,
-        displayName: nameOrDefault(value),
+        displayName: nameOrDefault(input.name),
         peerId: null,
         role: "host",
       });
@@ -58,6 +61,19 @@ export function useSessionActions() {
         displayName: nameOrDefault(input.name),
         peerId: status.yourPeerId,
         role: "guest",
+      });
+      // Keep the room in the address book: the entry is titled with the
+      // host's name as seen in the roster (the room code as a fallback) and
+      // carries the direct paths this connection actually used.
+      const hostName = status.peers.find((peer) => peer.role === "host")?.displayName;
+      useConnectionsStore.getState().save({
+        endpointId: input.ticket.endpointId,
+        sessionId: status.sessionId ?? input.ticket.sessionId,
+        token: input.ticket.token,
+        name: hostName?.trim() || ticketRoomLabel(input.ticket),
+        nick: hostName?.trim() || ticketRoomLabel(input.ticket),
+        addrs: status.addrs,
+        savedAt: Date.now(),
       });
     },
     // The host rejects a foreign build with `app version mismatch: ...`
@@ -176,6 +192,21 @@ export function useSessionActions() {
     onSettled,
   });
 
+  /** Host + moderators: pin or unpin the room's single chat anchor. */
+  const pin = useMutation({
+    mutationFn: (messageId: string | null) => sessionApi.pin(messageId),
+    onError,
+    onSettled,
+  });
+
+  /** Add or remove a reaction on one chat message. */
+  const react = useMutation({
+    mutationFn: (input: { messageId: string; emoji: string; add: boolean }) =>
+      sessionApi.react(input),
+    onError,
+    onSettled,
+  });
+
   return {
     addSource,
     chat,
@@ -185,6 +216,8 @@ export function useSessionActions() {
     leave,
     matchFolder,
     mediaIdentity,
+    pin,
+    react,
     removeSource,
     resync,
     setPlaylist,

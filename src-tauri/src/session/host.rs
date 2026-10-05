@@ -5,7 +5,8 @@
 //! tracks peer liveness (6 s stale / 30 s drop), and fans out `ServerMessage`s
 //! to every connected peer over reliable bi-streams.
 
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, VecDeque};
+use std::net::SocketAddr;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -20,11 +21,11 @@ use tokio::task::JoinHandle;
 use crate::session::playlist::ReadySummary;
 use crate::session::playlist::{peer_is_ready, PeerReport};
 use crate::session::protocol::{
-    chat_id_or_generate, sanitize_chat_text, sanitize_chat_upload, ChatAttachment, ChatMessage,
-    ChatUpload, ClientMessage, ConnectionState, ControlAction, ErrorCode, ItemReport,
+    chat_id_or_generate, sanitize_chat_text, sanitize_chat_upload, valid_chat_id, ChatAttachment,
+    ChatMessage, ChatUpload, ClientMessage, ConnectionState, ControlAction, ErrorCode, ItemReport,
     MediaPlanItem, PeerInfo, PlaybackState, ProtocolError, Role, ServerMessage, WaitingFor,
     CHAT_ID_MAX_CHARS, CHAT_RATE_MAX, CHAT_RATE_WINDOW_SEC, PROTOCOL_VERSION,
-    TYPING_MIN_INTERVAL_SEC,
+    REACTION_EMOJI_MAX_CHARS, REACTION_MAX_KINDS, TYPING_MIN_INTERVAL_SEC,
 };
 use crate::session::state::{random_hex, SessionTicket, TrackState};
 use crate::session::transport::{
@@ -99,6 +100,18 @@ pub enum HostEvent {
         item_id: String,
         peer_ids: Vec<String>,
     },
+    /// The room's single pinned message changed (`None` = no pin).
+    Pin {
+        message_id: Option<String>,
+        pinned_by: String,
+    },
+    /// A reaction was added or removed by `peer_id`.
+    React {
+        message_id: String,
+        emoji: String,
+        peer_id: String,
+        add: bool,
+    },
     /// A guest (or the host itself) started or stopped typing.
     Typing {
         peer_id: String,
@@ -151,8 +164,20 @@ struct HostInner {
     /// Last accepted typing frame per peer (seconds); keeps a flood of
     /// `Typing` frames from spamming every room UI.
     typing_stamps: Mutex<HashMap<String, f64>>,
+    /// The room's single pinned message (id + who pinned it), `None` = no pin.
+    pinned: Mutex<Option<PinEntry>>,
+    /// Reactions: message id → emoji → the peers that reacted with it. BTree
+    /// ordering keeps the join replay and tests deterministic.
+    reactions: Mutex<HashMap<String, BTreeMap<String, BTreeSet<String>>>>,
     shutdown: AtomicBool,
     shutdown_notify: Notify,
+}
+
+/// The room's pinned message: its id and the peer that pinned it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct PinEntry {
+    message_id: String,
+    pinned_by: String,
 }
 
 /// The in-flight host handover awaiting its successor's confirmation.
@@ -353,6 +378,119 @@ impl HostInner {
         }
         stamps.insert(peer_id.to_string(), now);
         true
+    }
+
+    /// Whether a peer may pin/unpin the room's message (host or moderator).
+    fn can_pin(&self, peer_id: &str) -> bool {
+        matches!(self.role_of(peer_id), Some(Role::Host | Role::Moderator))
+    }
+
+    /// Pin (`Some`) or unpin (`None`) a message; host/moderator only and the
+    /// id must be a well-formed chat anchor. Returns `(message_id,
+    /// pinned_by)` for the room frame, or `None` when the request is refused.
+    fn set_pin(
+        &self,
+        peer_id: &str,
+        message_id: Option<String>,
+    ) -> Option<(Option<String>, String)> {
+        if !self.can_pin(peer_id) {
+            return None;
+        }
+        let entry = match message_id {
+            Some(id) if valid_chat_id(&id) => Some(PinEntry {
+                message_id: id,
+                pinned_by: peer_id.to_string(),
+            }),
+            Some(_) => return None,
+            None => None,
+        };
+        let out = (
+            entry.as_ref().map(|entry| entry.message_id.clone()),
+            peer_id.to_string(),
+        );
+        *self.pinned.lock().expect("session pinned poisoned") = entry;
+        Some(out)
+    }
+
+    /// Add (`add`) or remove (`!add`) one peer's reaction on one message.
+    /// Well-formed anchors and short emoji pass; adding a *new* emoji past
+    /// [`REACTION_MAX_KINDS`] kinds on a message is dropped silently while
+    /// removals always pass. Returns `(message_id, emoji)` for the room frame,
+    /// or `None` when the request is refused or changes nothing.
+    fn react(
+        &self,
+        peer_id: &str,
+        message_id: String,
+        emoji: String,
+        add: bool,
+    ) -> Option<(String, String)> {
+        if !valid_chat_id(&message_id)
+            || emoji.is_empty()
+            || emoji.chars().count() > REACTION_EMOJI_MAX_CHARS
+            || emoji.chars().any(char::is_control)
+        {
+            return None;
+        }
+        let mut reactions = self.reactions.lock().expect("session reactions poisoned");
+        let kinds = reactions.entry(message_id.clone()).or_default();
+        let changed = if add {
+            // A brand-new emoji only passes while the message carries fewer
+            // than REACTION_MAX_KINDS distinct kinds; re-adding a kind the
+            // peer already reacted with is always allowed.
+            let is_new = !kinds.contains_key(&emoji);
+            if is_new && kinds.len() >= REACTION_MAX_KINDS {
+                return None;
+            }
+            let peers = kinds.entry(emoji.clone()).or_default();
+            peers.insert(peer_id.to_string())
+        } else {
+            kinds
+                .get_mut(&emoji)
+                .is_some_and(|peers| peers.remove(peer_id))
+        };
+        if !changed {
+            return None;
+        }
+        if !add && kinds.get(&emoji).is_some_and(BTreeSet::is_empty) {
+            kinds.remove(&emoji);
+        }
+        if kinds.is_empty() {
+            reactions.remove(&message_id);
+        }
+        Some((message_id, emoji))
+    }
+
+    /// Snapshot of the current pin for a joining peer (`None` = nothing to
+    /// replay).
+    fn pin_snapshot(&self) -> Option<ServerMessage> {
+        self.pinned
+            .lock()
+            .expect("session pinned poisoned")
+            .as_ref()
+            .map(|entry| ServerMessage::Pin {
+                message_id: Some(entry.message_id.clone()),
+                pinned_by: entry.pinned_by.clone(),
+            })
+    }
+
+    /// The reaction frames for a joining peer, in deterministic order. Only
+    /// messages that actually carry reactions are replayed.
+    fn reaction_snapshots(&self) -> Vec<ServerMessage> {
+        let reactions = self.reactions.lock().expect("session reactions poisoned");
+        let mut frames = Vec::new();
+        for (message_id, kinds) in reactions.iter() {
+            for (emoji, peers) in kinds.iter() {
+                for peer in peers.iter() {
+                    frames.push(ServerMessage::React {
+                        message_id: message_id.clone(),
+                        emoji: emoji.clone(),
+                        peer_id: peer.clone(),
+                        add: true,
+                    });
+                }
+            }
+        }
+        frames
     }
 
     fn remove_peer(&self, peer_id: &str) {
@@ -924,8 +1062,10 @@ pub struct HostSession {
 
 impl HostSession {
     /// Bind the public n0 endpoint and start hosting.
-    pub async fn start(config: HostConfig) -> Result<Self, String> {
-        let endpoint = transport::bind_endpoint().await?;
+    ///
+    /// `port` pins the local UDP port; `None` lets the OS assign one.
+    pub async fn start(config: HostConfig, port: Option<u16>) -> Result<Self, String> {
+        let endpoint = transport::bind_endpoint(port).await?;
         Ok(Self::bind(config, endpoint))
     }
 
@@ -948,6 +1088,8 @@ impl HostSession {
             carried: Mutex::new(Vec::new()),
             chat_stamps: Mutex::new(HashMap::new()),
             typing_stamps: Mutex::new(HashMap::new()),
+            pinned: Mutex::new(None),
+            reactions: Mutex::new(HashMap::new()),
             shutdown: AtomicBool::new(false),
             shutdown_notify: Notify::new(),
         });
@@ -974,6 +1116,16 @@ impl HostSession {
         &self.inner.endpoint
     }
 
+    /// Local sockets the room listens on (`0.0.0.0:port` when OS-assigned).
+    pub fn bound_sockets(&self) -> Vec<String> {
+        self.inner
+            .endpoint
+            .bound_sockets()
+            .iter()
+            .map(SocketAddr::to_string)
+            .collect()
+    }
+
     /// The room id.
     pub fn session_id(&self) -> &str {
         &self.inner.config.session_id
@@ -996,6 +1148,48 @@ impl HostSession {
             peer_id: self.inner.config.host_peer_id.clone(),
             active,
         });
+    }
+
+    /// Host-local pin (`Some`) or unpin (`None`). Broadcasts to every guest
+    /// and emits the host-side event; a malformed anchor is an error for the
+    /// local caller instead of a silent wire drop.
+    pub fn set_pin(&self, message_id: Option<String>) -> Result<(), String> {
+        let host_id = self.inner.config.host_peer_id.clone();
+        let Some((message_id, pinned_by)) = self.inner.set_pin(&host_id, message_id) else {
+            return Err("cannot pin that message".to_string());
+        };
+        self.inner.broadcast(ServerMessage::Pin {
+            message_id: message_id.clone(),
+            pinned_by: pinned_by.clone(),
+        });
+        let _ = self.inner.events.send(HostEvent::Pin {
+            message_id,
+            pinned_by,
+        });
+        Ok(())
+    }
+
+    /// Host-local reaction add/remove. Broadcasts to every guest and emits
+    /// the host-side event; a refused reaction (bad anchor/emoji, or a new
+    /// kind past the per-message cap) errors for the local caller.
+    pub fn react(&self, message_id: String, emoji: String, add: bool) -> Result<(), String> {
+        let host_id = self.inner.config.host_peer_id.clone();
+        let Some((message_id, emoji)) = self.inner.react(&host_id, message_id, emoji, add) else {
+            return Err("reaction refused".to_string());
+        };
+        self.inner.broadcast(ServerMessage::React {
+            message_id: message_id.clone(),
+            emoji: emoji.clone(),
+            peer_id: host_id.clone(),
+            add,
+        });
+        let _ = self.inner.events.send(HostEvent::React {
+            message_id,
+            emoji,
+            peer_id: host_id,
+            add,
+        });
+        Ok(())
     }
 
     /// Number of connected guests.
@@ -1390,6 +1584,16 @@ async fn handle_connection(inner: Arc<HostInner>, incoming: Incoming) {
         );
     }
 
+    // Replay the room's pin and reactions so a (re)joining peer renders the
+    // same chat state as everyone else. Both ride the existing frames, so no
+    // protocol version bump is needed.
+    if let Some(pin) = inner.pin_snapshot() {
+        inner.send_to(&peer_id, pin);
+    }
+    for frame in inner.reaction_snapshots() {
+        inner.send_to(&peer_id, frame);
+    }
+
     let writer = tokio::spawn(async move {
         while let Some(message) = out_rx.recv().await {
             if sender.send(&message).await.is_err() {
@@ -1454,6 +1658,46 @@ async fn handle_connection(inner: Arc<HostInner>, incoming: Incoming) {
             Ok(ClientMessage::RequestStart { item_id }) => {
                 if inner.can_start(&peer_id) {
                     let _ = inner.start_item(&item_id);
+                }
+                None
+            }
+            Ok(ClientMessage::Pin { message_id }) => {
+                // Host/moderator only: a refused pin changes nothing. Every
+                // peer hears the frame (the sender confirms its own request)
+                // while the host's own UI catches up through the event pump.
+                if let Some((message_id, pinned_by)) = inner.set_pin(&peer_id, message_id) {
+                    inner.broadcast(ServerMessage::Pin {
+                        message_id: message_id.clone(),
+                        pinned_by: pinned_by.clone(),
+                    });
+                    let _ = inner.events.send(HostEvent::Pin {
+                        message_id,
+                        pinned_by,
+                    });
+                }
+                None
+            }
+            Ok(ClientMessage::React {
+                message_id,
+                emoji,
+                add,
+            }) => {
+                // Bad anchors/emoji and reactions past the per-message cap
+                // are dropped silently; accepted ones reach everyone,
+                // including the peer that reacted.
+                if let Some((message_id, emoji)) = inner.react(&peer_id, message_id, emoji, add) {
+                    inner.broadcast(ServerMessage::React {
+                        message_id: message_id.clone(),
+                        emoji: emoji.clone(),
+                        peer_id: peer_id.clone(),
+                        add,
+                    });
+                    let _ = inner.events.send(HostEvent::React {
+                        message_id,
+                        emoji,
+                        peer_id: peer_id.clone(),
+                        add,
+                    });
                 }
                 None
             }
@@ -1978,5 +2222,204 @@ mod tests {
         let roster = session.roster();
         assert_eq!(roster.len(), 1);
         assert_eq!(roster[0].peer_id, session.host_peer_id());
+    }
+
+    #[tokio::test]
+    async fn pin_gates_on_role_and_anchor_shape() {
+        let endpoint = transport::bind_offline_endpoint().await.expect("endpoint");
+        let session = HostSession::bind(HostConfig::generate("Host".into()), endpoint);
+        let inner = session.inner.clone();
+        let host_id = session.host_peer_id().to_string();
+        inner.insert_test_peer("guest-1", Role::Viewer);
+
+        // Viewers and unknown peers cannot pin anything.
+        assert!(!inner.can_pin("guest-1"));
+        assert!(!inner.can_pin("stranger"));
+        // Promotion opens pinning, with the same gate as start/attach.
+        session
+            .set_role("guest-1", Role::Moderator)
+            .expect("promote");
+        assert!(inner.can_pin("guest-1"));
+
+        // Malformed anchors are refused even for the host.
+        assert!(inner.set_pin(&host_id, Some("bad id".into())).is_none());
+        assert!(inner.set_pin(&host_id, Some("x".repeat(65))).is_none());
+
+        // A valid anchor passes, and the room keeps a single pin.
+        assert_eq!(
+            inner.set_pin("guest-1", Some("m1".into())),
+            Some((Some("m1".into()), "guest-1".into()))
+        );
+        assert_eq!(
+            inner.set_pin(&host_id, Some("m2".into())),
+            Some((Some("m2".into()), host_id.clone()))
+        );
+        assert_eq!(
+            inner.pin_snapshot(),
+            Some(ServerMessage::Pin {
+                message_id: Some("m2".into()),
+                pinned_by: host_id.clone(),
+            })
+        );
+        // Unpinning is gated the same way and clears the snapshot.
+        assert_eq!(inner.set_pin(&host_id, None), Some((None, host_id.clone())));
+        assert!(inner.pin_snapshot().is_none());
+        // Demotion back to viewer revokes the right.
+        session.set_role("guest-1", Role::Viewer).expect("demote");
+        assert!(inner.set_pin("guest-1", Some("m1".into())).is_none());
+        assert!(inner.pin_snapshot().is_none());
+
+        session.stop().await;
+    }
+
+    #[tokio::test]
+    async fn reaction_caps_kinds_and_validates() {
+        let endpoint = transport::bind_offline_endpoint().await.expect("endpoint");
+        let session = HostSession::bind(HostConfig::generate("Host".into()), endpoint);
+        let inner = session.inner.clone();
+
+        // Bad anchor, empty, control char, and overlong emoji are refused.
+        assert!(inner
+            .react("guest", "bad id".into(), "👍".into(), true)
+            .is_none());
+        assert!(inner
+            .react("guest", "m1".into(), String::new(), true)
+            .is_none());
+        assert!(inner
+            .react("guest", "m1".into(), "\u{7f}".into(), true)
+            .is_none());
+        let too_long = "e".repeat(REACTION_EMOJI_MAX_CHARS + 1);
+        assert!(inner.react("guest", "m1".into(), too_long, true).is_none());
+
+        // The first REACTION_MAX_KINDS kinds pass; a new sixth kind is dropped.
+        for emoji in ["👍", "❤️", "😂", "😮", "🎉"] {
+            assert_eq!(
+                inner.react("guest-1", "m1".into(), emoji.to_string(), true),
+                Some(("m1".into(), emoji.to_string())),
+                "kind {emoji} passes"
+            );
+        }
+        assert!(inner
+            .react("guest-1", "m1".into(), "😢".into(), true)
+            .is_none());
+        // At the cap peers can still join an existing kind.
+        assert_eq!(
+            inner.react("guest-2", "m1".into(), "👍".into(), true),
+            Some(("m1".into(), "👍".into()))
+        );
+        // Re-adding a kind the peer already holds changes nothing.
+        assert!(inner
+            .react("guest-1", "m1".into(), "👍".into(), true)
+            .is_none());
+
+        // Removal passes when it changes something, else is a no-op.
+        assert_eq!(
+            inner.react("guest-2", "m1".into(), "👍".into(), false),
+            Some(("m1".into(), "👍".into()))
+        );
+        assert!(inner
+            .react("nobody", "m1".into(), "👍".into(), false)
+            .is_none());
+        // Removal on a message with no reactions creates nothing.
+        assert!(inner
+            .react("guest", "unknown".into(), "🙂".into(), false)
+            .is_none());
+
+        session.stop().await;
+    }
+
+    #[tokio::test]
+    async fn reaction_removal_prunes_empty_buckets() {
+        let endpoint = transport::bind_offline_endpoint().await.expect("endpoint");
+        let session = HostSession::bind(HostConfig::generate("Host".into()), endpoint);
+        let inner = session.inner.clone();
+
+        assert_eq!(
+            inner.react("guest-1", "m1".into(), "👍".into(), true),
+            Some(("m1".into(), "👍".into()))
+        );
+        assert_eq!(
+            inner.react("guest-1", "m1".into(), "❤️".into(), true),
+            Some(("m1".into(), "❤️".into()))
+        );
+        // Removing the only peer of a kind prunes that kind.
+        assert_eq!(
+            inner.react("guest-1", "m1".into(), "❤️".into(), false),
+            Some(("m1".into(), "❤️".into()))
+        );
+        let frames: Vec<String> = inner
+            .reaction_snapshots()
+            .into_iter()
+            .filter_map(|frame| match frame {
+                ServerMessage::React { emoji, .. } => Some(emoji),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(frames, vec!["👍".to_string()]);
+        // Removing the last kind prunes the whole message bucket.
+        assert_eq!(
+            inner.react("guest-1", "m1".into(), "👍".into(), false),
+            Some(("m1".into(), "👍".into()))
+        );
+        assert!(inner.reaction_snapshots().is_empty());
+
+        session.stop().await;
+    }
+
+    #[tokio::test]
+    async fn pin_and_reaction_snapshots_replay_in_deterministic_order() {
+        let endpoint = transport::bind_offline_endpoint().await.expect("endpoint");
+        let session = HostSession::bind(HostConfig::generate("Host".into()), endpoint);
+        let inner = session.inner.clone();
+        let host_id = session.host_peer_id().to_string();
+
+        inner.set_pin(&host_id, Some("m1".into())).expect("pin");
+        inner.react("guest-b", "m1".into(), "🙂".into(), true);
+        inner.react("guest-a", "m1".into(), "😀".into(), true);
+        inner.react("guest-a", "m2".into(), "👍".into(), true);
+
+        // Pin replays as a single frame. Reaction kinds and peers inside one
+        // message replay in BTree order (not insert order: "😀" sorts before
+        // "🙂" byte-wise); across messages the outer map is a HashMap, so the
+        // test sorts by message first and checks kind order per message.
+        assert_eq!(
+            inner.pin_snapshot(),
+            Some(ServerMessage::Pin {
+                message_id: Some("m1".into()),
+                pinned_by: host_id.clone(),
+            })
+        );
+        let mut frames: Vec<(String, String, String)> = inner
+            .reaction_snapshots()
+            .into_iter()
+            .map(|frame| match frame {
+                ServerMessage::React {
+                    message_id,
+                    emoji,
+                    peer_id,
+                    ..
+                } => (message_id, emoji, peer_id),
+                _ => panic!("reaction replay carries only React frames"),
+            })
+            .collect();
+        // Within one message the emission order is BTree-deterministic (one
+        // HashMap bucket replays contiguously): "😀" comes before "🙂".
+        let m1_kinds: Vec<&str> = frames
+            .iter()
+            .filter(|frame| frame.0 == "m1")
+            .map(|frame| frame.1.as_str())
+            .collect();
+        assert_eq!(m1_kinds, vec!["😀", "🙂"]);
+        frames.sort();
+        assert_eq!(
+            frames,
+            vec![
+                ("m1".to_string(), "😀".to_string(), "guest-a".to_string()),
+                ("m1".to_string(), "🙂".to_string(), "guest-b".to_string()),
+                ("m2".to_string(), "👍".to_string(), "guest-a".to_string()),
+            ]
+        );
+
+        session.stop().await;
     }
 }

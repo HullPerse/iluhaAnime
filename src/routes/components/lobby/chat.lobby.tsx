@@ -13,6 +13,8 @@ import {
   Image as ImageIcon,
   Loader2,
   Paperclip,
+  Pin,
+  PinOff,
   Reply,
   Smile,
   X,
@@ -29,11 +31,16 @@ import {
   countGraphemes,
   formatChatClock,
   imagePreviewLinks,
-  isTorrentLink,
 } from "@/lib/session/chat.utils";
 import { formatBytes } from "@/lib/utils/bytes.utils";
+import { ChatMessageText } from "./chat-message-text.lobby";
+import ReactionRow from "./reaction-row.lobby";
 import { useSettingsStore } from "@/store/settings.store";
-import type { ChatMessage } from "@/types/session";
+import type {
+  ChatMessage,
+  PinnedMessage,
+  ReactionEntry,
+} from "@/types/session";
 
 /** How close to the bottom (px) still counts as "following" the chat. */
 const NEAR_BOTTOM_PX = 32;
@@ -75,6 +82,20 @@ interface ChatLobbyProps {
   typingNames?: string[];
   /** Roster display names used to detect and complete `@mentions`. */
   mentionNames?: string[];
+  /** The room's single pinned anchor (`null` = nothing pinned). */
+  pinned?: PinnedMessage | null;
+  /** The pinner's display name (resolved by the parent; the raw peer id is the fallback). */
+  pinnedByName?: string;
+  /** Flat reaction entries for every chat message. */
+  reactions?: ReactionEntry[];
+  /** This instance's own peer id (highlights "you reacted"). */
+  myPeerId?: string | null;
+  /** Host + moderators may pin/unpin (the same set as `canAttach`). */
+  canPin?: boolean;
+  /** Pin (`id`) or unpin (`null`) the room's single message. */
+  onPin?: (messageId: string | null) => void;
+  /** Add or remove a reaction on one message. */
+  onReact?: (input: { messageId: string; emoji: string; add: boolean }) => void;
 }
 
 export default function ChatLobby({
@@ -94,6 +115,13 @@ export default function ChatLobby({
   onDownloadAttachment,
   typingNames = [],
   mentionNames = [],
+  pinned = null,
+  pinnedByName = "",
+  reactions = [],
+  myPeerId = null,
+  canPin = false,
+  onPin,
+  onReact,
 }: ChatLobbyProps) {
   const { t } = useI18n();
   const customEmoji = useCustomEmoji();
@@ -115,6 +143,21 @@ export default function ChatLobby({
     () => new Map(messages.map((message) => [message.id, message])),
     [messages],
   );
+
+  // Reactions grouped by message id: each line looks up its pills in O(1).
+  const reactionsByMessage = useMemo(() => {
+    const byMessage = new Map<string, ReactionEntry[]>();
+    for (const entry of reactions) {
+      const list = byMessage.get(entry.messageId) ?? [];
+      list.push(entry);
+      byMessage.set(entry.messageId, list);
+    }
+    return byMessage;
+  }, [reactions]);
+
+  // The pinned line when its anchor is still in the rendered history.
+  const pinnedMessage =
+    pinned !== null ? (messagesById.get(pinned.messageId) ?? null) : null;
 
   // @mention autocomplete lives in its own hook: query detection, menu state,
   // keyboard navigation and draft rewriting (lobby.md §14 chat).
@@ -208,6 +251,39 @@ export default function ChatLobby({
           <ImageIcon />
         </Button>
       </div>
+      {pinned !== null && (
+        <div className="bg-field windows95-3d-border mx-1 mt-1 flex items-center gap-1.5 px-2 py-1">
+          <Pin className="text-highlight size-3.5 shrink-0" />
+          <button
+            className="windows95-text text-text min-w-0 flex-1 text-left text-xs"
+            onClick={() => scrollToMessage(pinned.messageId)}
+            title={t("lobby.chat.pin.jump")}
+            type="button"
+          >
+            <span className="text-hint">
+              {t("lobby.chat.pin.by", {
+                name: pinnedByName || pinned.pinnedBy,
+              })}{" "}
+            </span>
+            <span>
+              {pinnedMessage !== null
+                ? replySnippet(pinnedMessage.text)
+                : t("lobby.chat.pin.unavailable")}
+            </span>
+          </button>
+          {canPin && (
+            <Button
+              aria-label={t("lobby.chat.pin.unpin")}
+              onClick={() => onPin?.(null)}
+              size="icon"
+              title={t("lobby.chat.pin.unpin")}
+              type="button"
+            >
+              <PinOff />
+            </Button>
+          )}
+        </div>
+      )}
       <div
         ref={scrollRef}
         className="relative min-h-0 flex-1 overflow-auto p-2"
@@ -261,51 +337,11 @@ export default function ChatLobby({
                   {message.from}:{" "}
                 </span>
                 <span className="text-text">
-                  {chatSegments(message.text, mentionNames).map((segment, segmentIndex) =>
-                    segment.kind === "link" ? (
-                      isTorrentLink(segment.value) ? (
-                        <button
-                          className="text-highlight underline"
-                          key={segmentIndex}
-                          onClick={() => onTorrentLink(segment.value)}
-                          type="button"
-                        >
-                          {segment.value}
-                        </button>
-                      ) : (
-                        <a
-                          className="text-highlight underline"
-                          href={segment.value}
-                          key={segmentIndex}
-                          rel="noreferrer"
-                          target="_blank"
-                        >
-                          {segment.value}
-                        </a>
-                      )
-                    ) : segment.kind === "emoji" ? (
-                      customEmoji.has(segment.value) ? (
-                        <img
-                          alt={`:${segment.value}:`}
-                          className="inline-block size-4 align-[-0.25em]"
-                          key={segmentIndex}
-                          src={customEmoji.get(segment.value)}
-                          title={`:${segment.value}:`}
-                        />
-                      ) : (
-                        <span key={segmentIndex}>{`:${segment.value}:`}</span>
-                      )
-                    ) : segment.kind === "mention" ? (
-                      <span
-                        className="windows95-active text-text px-0.5 font-bold"
-                        key={segmentIndex}
-                      >
-                        {segment.value}
-                      </span>
-                    ) : (
-                      <span key={segmentIndex}>{segment.value}</span>
-                    )
-                  )}
+                  <ChatMessageText
+                    customEmoji={customEmoji}
+                    onTorrentLink={onTorrentLink}
+                    segments={chatSegments(message.text, mentionNames)}
+                  />
                 </span>
                 <button
                   aria-label={t("lobby.chat.reply")}
@@ -316,6 +352,17 @@ export default function ChatLobby({
                 >
                   <Reply className="size-3.5" />
                 </button>
+                {canPin && (
+                  <button
+                    aria-label={t("lobby.chat.pin")}
+                    className="group-focus-within:opacity-100 group-hover:opacity-100 ml-1 inline-flex size-3.5 align-middle opacity-0"
+                    onClick={() => onPin?.(message.id)}
+                    title={t("lobby.chat.pin")}
+                    type="button"
+                  >
+                    <Pin className="size-3.5" />
+                  </button>
+                )}
                 {message.attachment !== null && message.attachment !== undefined && (
                   <div className="bg-field windows95-3d-border mt-1 flex w-fit max-w-full items-center gap-2 px-2 py-1">
                     <Paperclip className="text-highlight size-4 shrink-0" />
@@ -366,6 +413,12 @@ export default function ChatLobby({
                       />
                     </a>
                   ))}
+                <ReactionRow
+                  entries={reactionsByMessage.get(message.id) ?? []}
+                  messageId={message.id}
+                  myPeerId={myPeerId}
+                  onReact={onReact ?? (() => undefined)}
+                />
               </li>
               );
             })}

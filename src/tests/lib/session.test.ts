@@ -196,6 +196,58 @@ describe("session/chat", () => {
     expect(chatSegments("@Alice")).toEqual([{ kind: "text", value: "@Alice" }]);
   });
 
+  it("stamps bold, italic and strike marks onto the enclosed segments", () => {
+    expect(chatSegments("**go** now")).toEqual([
+      { kind: "text", value: "go", marks: ["bold"] },
+      { kind: "text", value: " " },
+      { kind: "text", value: "now" },
+    ]);
+    expect(chatSegments("*hm* ~~/no~~")).toEqual([
+      { kind: "text", value: "hm", marks: ["italic"] },
+      { kind: "text", value: " " },
+      { kind: "text", value: "/no", marks: ["strike"] },
+    ]);
+  });
+
+  it("keeps an unclosed delimiter literal", () => {
+    expect(chatSegments("**open end")).toEqual([
+      { kind: "text", value: "**open" },
+      { kind: "text", value: " " },
+      { kind: "text", value: "end" },
+    ]);
+    expect(chatSegments("a * b")).toEqual([
+      { kind: "text", value: "a" },
+      { kind: "text", value: " " },
+      { kind: "text", value: "*" },
+      { kind: "text", value: " " },
+      { kind: "text", value: "b" },
+    ]);
+  });
+
+  it("supports nested marks and tokens inside a formatted span", () => {
+    expect(chatSegments("||**secret**||")).toEqual([
+      { kind: "text", value: "secret", marks: ["spoiler", "bold"] },
+    ]);
+    const segments = chatSegments("**see https://example.com/x**", ["x"]);
+    expect(segments).toEqual([
+      { kind: "text", value: "see", marks: ["bold"] },
+      { kind: "text", value: " ", marks: ["bold"] },
+      { kind: "link", value: "https://example.com/x", marks: ["bold"] },
+    ]);
+    // A mention inside a spoiler keeps both properties.
+    expect(chatSegments("||@Alice||", ["Alice"])).toEqual([
+      { kind: "mention", value: "@Alice", marks: ["spoiler"] },
+    ]);
+  });
+
+  it("prefers the longest delimiter so **bold** does not open italics", () => {
+    expect(chatSegments("**a** *b*")).toEqual([
+      { kind: "text", value: "a", marks: ["bold"] },
+      { kind: "text", value: " " },
+      { kind: "text", value: "b", marks: ["italic"] },
+    ]);
+  });
+
   it("collects https image links for embeds, skipping http and non-images", () => {
     const text =
       "look https://cdn.example.com/a.png?w=100 http://plain.example.com/c.png " +

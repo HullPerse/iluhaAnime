@@ -2,6 +2,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { Star } from "lucide-react";
 import { memo, useMemo, useRef } from "react";
 
+import ProgressBar from "@/components/shared/progress.component";
 import Image from "@/components/ui/image.component";
 import Select from "@/components/ui/select.component";
 import { HEADER_ESTIMATE, ROW_ESTIMATE } from "@/config/collection/card.config";
@@ -207,14 +208,7 @@ function CollectionRowView({ item, statuses, selected, onOpen, onSetStatus }: Co
             )}
             {item.progressTotal != null && item.progressTotal > 0 ? (
               <div className="flex items-center gap-1">
-                <div className="windows95-border bg-field relative h-3.5 w-20 overflow-hidden">
-                  <div
-                    className="bg-secondary h-full"
-                    style={{
-                      width: `${Math.min(100, Math.round((item.progressValue / item.progressTotal) * 100))}%`,
-                    }}
-                  />
-                </div>
+                <ProgressBar value={item.progressValue} max={item.progressTotal} className="h-3.5 w-20" slots />
                 <span className="windows95-text text-xs">
                   {item.progressValue}/{item.progressTotal}
                 </span>

@@ -3,6 +3,7 @@ import { Frown, Meh, MessageCircle, RotateCw, Smile, Star } from "lucide-react";
 import { useState } from "react";
 
 import { SmallLoader } from "@/components/shared/loader.component";
+import ProgressBar from "@/components/shared/progress.component";
 import Section from "@/components/shared/section.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
@@ -105,12 +106,13 @@ export function FriendsScoresSection({ animeId }: { animeId: number }) {
                     title={t("anilist.details.friends.progress", { done, total })}
                     className="flex w-28 shrink-0 items-center gap-1"
                   >
-                    <span className="bg-field windows95-border h-3 min-w-0 flex-1">
-                      <span
-                        className="bg-accent block h-full"
-                        style={{ width: `${Math.min(100, (done / total) * 100)}%` }}
-                      />
-                    </span>
+                    <ProgressBar
+                      value={done}
+                      max={total}
+                      className="h-3 min-w-0 flex-1"
+                      barClassName="bg-accent"
+                      slots
+                    />
                     <span className="text-hint shrink-0 text-xs tabular-nums">{`${done}/${total}`}</span>
                   </span>
                 ) : (

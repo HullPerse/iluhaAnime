@@ -226,7 +226,10 @@ fn handle_mpv_event(app: &AppHandle, event: Value) {
         "end-file" => {
             host.mark_dirty();
             save_current_watch(app);
-            let reason = event.get("reason").and_then(Value::as_str).map(str::to_string);
+            let reason = event
+                .get("reason")
+                .and_then(Value::as_str)
+                .map(str::to_string);
             emit_typed(app, "end-file", reason, None);
         }
         "video-reconfig" | "audio-reconfig" => {
@@ -310,9 +313,7 @@ const DROP_KEYS: &[&str] = &[
 ];
 
 fn read_metrics(app: &AppHandle) -> Metrics {
-    let drop_count = DROP_KEYS
-        .iter()
-        .find_map(|key| int_property(app, key));
+    let drop_count = DROP_KEYS.iter().find_map(|key| int_property(app, key));
     Metrics {
         fps_render: number_property(app, "estimated-vf-fps").filter(|value| *value > 0.0),
         fps_video: number_property(app, "fps").filter(|value| *value > 0.0),
@@ -330,10 +331,7 @@ fn watchdog_tick(app: &AppHandle) {
     let Some(current) = metrics.drop_count else {
         return;
     };
-    let fps = metrics
-        .fps_video
-        .or(metrics.fps_render)
-        .unwrap_or_default();
+    let fps = metrics.fps_video.or(metrics.fps_render).unwrap_or_default();
     let mut state = host.watchdog.lock().unwrap_or_else(|e| e.into_inner());
     let previous = state.previous_drops.replace(current);
     let Some(previous) = previous else {

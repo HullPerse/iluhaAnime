@@ -1,4 +1,6 @@
 export const queryKeys = {
+  sessionStatus: () => ["session-status"] as const,
+  customEmoji: () => ["custom-emoji"] as const,
   torrents: () => ["torrents"] as const,
   torrentFiles: (id: number) => ["torrent-files", id] as const,
   torrentDiagnostics: (id: number) => ["torrent_diagnostics", id] as const,

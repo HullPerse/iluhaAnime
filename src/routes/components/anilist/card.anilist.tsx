@@ -1,6 +1,7 @@
 import { Frown, Heart, Meh, Smile, Star } from "lucide-react";
 import { memo } from "react";
 
+import ProgressBar from "@/components/shared/progress.component";
 import Image from "@/components/ui/image.component";
 import { listStatusLabels, statusLabels } from "@/config/anilist/labels.config";
 import { getStatusColor } from "@/lib/anilist/entries.utils";
@@ -149,14 +150,7 @@ function AniListEntryCard({ item, entryLookup, isFavorite, scoreFormat, onClick 
             </span>
             {entry?.progress != null && item.episodes && (
               <div className="flex items-center gap-1">
-                <div className="windows95-border bg-field relative h-3.5 w-20 overflow-hidden">
-                  <div
-                    className="bg-secondary h-full"
-                    style={{
-                      width: `${Math.min(100, Math.round((entry.progress / item.episodes) * 100))}%`,
-                    }}
-                  />
-                </div>
+                <ProgressBar value={entry.progress} max={item.episodes} className="h-3.5 w-20" slots />
                 <span className="windows95-text text-xs">
                   {entry.progress}/{item.episodes}
                 </span>

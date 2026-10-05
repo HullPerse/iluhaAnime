@@ -42,6 +42,7 @@ const player = {
   "player.folder.open.failed.player": "Не удалось открыть в плеере iluhaAnime",
   "player.folder.open.media.player": "Открыть в медиа плеере",
   "player.folder.open.iluha.player": "Открыть в плеере iluhaAnime",
+  "player.room.manualBlocked": "Покиньте комнату, чтобы открыть другой файл",
   "player.folder.search.anilist": "Искать в AniList",
   "player.folder.resize": "Изменить высоту папки",
   "player.folder.track.disabled": "Аудио/субтитры нельзя открыть",
@@ -163,6 +164,7 @@ const player = {
   "player.media.finished.next": "Следующий файл",
 
   "player.media.panel.settings": "Настройки",
+  "player.media.panel.tabs": "Панель плеера",
   "player.media.panel.tracks": "Дорожки",
   "player.media.panel.subtitles": "Субтитры",
   "player.media.panel.cheatsheet": "Горячие клавиши",

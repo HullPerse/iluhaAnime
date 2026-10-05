@@ -1,6 +1,7 @@
 import { ChevronLeft, ChevronRight, Dices, Star } from "lucide-react";
 
 import { SmallLoader } from "@/components/shared/loader.component";
+import ProgressBar from "@/components/shared/progress.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { formatLabels, listStatusLabels, statusLabels } from "@/config/anilist/labels.config";
@@ -106,14 +107,7 @@ export function DiscoveryCard({ item, nav }: DiscoveryCardProps) {
             </span>
             {entry.progress != null && media.episodes != null && (
               <>
-                <div className="windows95-border bg-field relative h-3.5 w-20 overflow-hidden">
-                  <div
-                    className="bg-secondary h-full"
-                    style={{
-                      width: `${Math.min(100, Math.round((entry.progress / media.episodes) * 100))}%`,
-                    }}
-                  />
-                </div>
+                <ProgressBar value={entry.progress} max={media.episodes} className="h-3.5 w-20" slots />
                 <span className="windows95-text text-xs">
                   {entry.progress}/{media.episodes}
                 </span>

@@ -1,5 +1,6 @@
 import { cn } from "cn";
 
+import ProgressBar from "@/components/shared/progress.component";
 import { FILTER_LABELS } from "@/config/anilist/graph.config";
 import { listStatusLabels } from "@/config/anilist/labels.config";
 import { getStatusColor, type EntryListInfo } from "@/lib/anilist/entries.utils";
@@ -52,12 +53,7 @@ function FranchiseRowBody({
       </span>
       {barPercent != null && (
         <span className="flex items-center gap-1">
-          <span
-            aria-hidden="true"
-            className="windows95-border bg-field relative inline-block h-3.5 w-20 overflow-hidden"
-          >
-            <span className="bg-secondary block h-full" style={{ width: `${barPercent}%` }} />
-          </span>
+          <ProgressBar value={progress ?? 0} max={total ?? 0} className="inline-block h-3.5 w-20" slots />
           <span className="text-hint">
             {progress}/{total}
           </span>

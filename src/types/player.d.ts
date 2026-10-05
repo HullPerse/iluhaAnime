@@ -1,4 +1,5 @@
 import type { TorrentFileInfo, TorrentInfo } from "./torrent";
+import type { SessionRole, SessionStatus, SyncSample } from "./session";
 
 export type ScanType = { current: number; total: number } | null;
 
@@ -64,3 +65,41 @@ export interface FileSearchResult {
 }
 
 export type UpscaleToolStatus = "checking" | "ok" | "missing" | "downloading";
+
+/** Right-hand panel tabs: the local mpv queue and, in a session, the room. */
+export type PlayerPanelTab = "playlist" | "lobby";
+
+export interface PlaylistBodyProps {
+  onPlay: (index: number) => Promise<void>;
+  onRemove: (index: number) => Promise<void>;
+  onMove: (from: number, to: number) => Promise<void>;
+  /** In a room the queue is room-owned: play/remove-current switch to disabled. */
+  locked?: boolean;
+}
+
+export interface SessionStripProps {
+  role: SessionRole;
+  sample: SyncSample | null;
+  status: SessionStatus | undefined;
+  /** Guest: the host has gone silent and local playback is paused. */
+  hostLost: boolean;
+  onResumeAlone: () => void;
+}
+
+export interface LobbyPanelProps {
+  role: SessionRole;
+  sample: SyncSample | null;
+  status: SessionStatus | undefined;
+  onOffset: (offsetMs: number) => void;
+  onResync: () => void;
+}
+
+export interface PlayerSidePanelProps extends PlaylistBodyProps {
+  activeTab: PlayerPanelTab;
+  role: SessionRole | null;
+  sample: SyncSample | null;
+  status: SessionStatus | undefined;
+  onTabChange: (tab: PlayerPanelTab) => void;
+  onOffset: (offsetMs: number) => void;
+  onResync: () => void;
+}

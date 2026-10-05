@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { FOLDER_LIST_MAX_HEIGHT, FOLDER_VIRTUALIZE_AFTER } from "@/config/player/folders.config";
 import { useI18n } from "@/hooks/i18n.hook";
+import { useSessionStatus } from "@/hooks/session/queries.hook";
 import { loadWatch, openPlayer, rotateQueue } from "@/lib/player/playback.utils";
 import { formatParsedTitle } from "@/lib/player/title.utils";
 import { findFolderContainingFile, flattenTree, folderFilePaths } from "@/lib/player/tree.utils";
@@ -58,6 +59,8 @@ function FolderView({
   const setAnilistSearchQuery = useSearchStore((state) => state.setAnilistSearchQuery);
   const parseTitles = useSettingsStore((state) => state.parseTitles);
   const { t } = useI18n();
+  const { data: sessionStatus } = useSessionStatus();
+  const roomLocked = sessionStatus?.role != null;
 
   const items = useUpscaleQueueStore((s) => s.items);
 
@@ -332,13 +335,21 @@ function FolderView({
                   <Button
                     size="icon"
                     className="h-4 w-4"
-                    disabled={disabled || busy}
+                    disabled={disabled || busy || roomLocked}
                     onClick={(e) => {
                       e.stopPropagation();
                       if (file.path) openInAppPlayer(file.path);
                     }}
-                    title={t("player.folder.open.iluha.player")}
-                    aria-label={t("player.folder.open.iluha.player")}
+                    title={
+                      roomLocked
+                        ? t("player.room.manualBlocked")
+                        : t("player.folder.open.iluha.player")
+                    }
+                    aria-label={
+                      roomLocked
+                        ? t("player.room.manualBlocked")
+                        : t("player.folder.open.iluha.player")
+                    }
                   >
                     <Play className="size-3" />
                   </Button>

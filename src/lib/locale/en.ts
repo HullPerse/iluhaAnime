@@ -16,6 +16,7 @@ import changelog413 from "./changelog/v4_1_3.en";
 import anilist from "./en/anilist.locale";
 import collection from "./en/collection.locale";
 import common from "./en/common.locale";
+import lobby from "./en/lobby.locale";
 import player from "./en/player.locale";
 import screenshot from "./en/screenshot.locale";
 import search from "./en/search.locale";
@@ -42,6 +43,7 @@ const en = {
   ...changelog320,
   ...common,
   ...collection,
+  ...lobby,
   ...player,
   ...screenshot,
   ...search,

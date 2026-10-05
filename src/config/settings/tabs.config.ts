@@ -7,6 +7,7 @@ const TAB_KEYS: readonly { id: TabId; key: TranslationKey }[] = [
   { id: "player", key: "app.player" },
   { id: "anilist", key: "app.anilist" },
   { id: "collection", key: "app.collection" },
+  { id: "lobby", key: "app.lobby" },
   { id: "settings", key: "app.settings" },
 ] as const;
 
@@ -16,6 +17,7 @@ function isEnabled(id: TabId, s: TabSettings): boolean {
   if (id === "search") return s.searchTabEnabled;
   if (id === "torrent") return s.torrentTabEnabled;
   if (id === "player") return s.playerTabEnabled;
+  if (id === "lobby") return s.lobbyTabEnabled;
   return true;
 }
 

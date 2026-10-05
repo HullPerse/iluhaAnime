@@ -395,9 +395,21 @@ describe("torrent/common", () => {
       const stamp = Math.floor((NOW - 10_000) / 1000);
       expect(getDisplayState(makeInfo(1), live({ 1: stamp }), NOW)).toBe("downloading");
     });
+    it("reports initializing while metadata is unresolved", () => {
+      expect(getDisplayState(makeInfo(1, { total_bytes: 0 }), live({}), NOW)).toBe("initializing");
+    });
     it("labels every display state without falling back to raw keys", () => {
       const labels = (
-        ["downloading", "seeding", "done", "error", "stalled", "paused", "missing"] as const
+        [
+          "downloading",
+          "seeding",
+          "done",
+          "error",
+          "stalled",
+          "paused",
+          "initializing",
+          "missing",
+        ] as const
       ).map((s) => displayStateLabel(s, ru));
       expect(labels).toEqual([
         "Загружается",
@@ -406,10 +418,11 @@ describe("torrent/common", () => {
         "Ошибка",
         "Простаивает",
         "Пауза",
+        "Инициализация",
         "Файлов нет",
       ]);
       expect(Object.keys(DISPLAY_BAR_CLASS).sort()).toEqual(
-        ["done", "downloading", "error", "missing", "paused", "seeding", "stalled"].sort()
+        ["done", "downloading", "error", "initializing", "missing", "paused", "seeding", "stalled"].sort()
       );
       expect(DISPLAY_BAR_CLASS).toEqual({
         downloading: "bg-torrent-downloading",
@@ -418,6 +431,7 @@ describe("torrent/common", () => {
         error: "bg-torrent-error",
         stalled: "bg-torrent-idle",
         paused: "bg-torrent-idle",
+        initializing: "bg-torrent-initializing",
         missing: "bg-torrent-missing",
       });
     });

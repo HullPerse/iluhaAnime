@@ -9,13 +9,10 @@ export default defineConfig({
   build: {
     rolldownOptions: {
       onLog(level, log, defaultHandler) {
-        // react-compiler-runtime ships "use no memo" via @videojs deps. No compiler pass runs over the bundle, so the drop is safe.
         const id = log.id ?? "";
         const isCompilerRuntime =
           id.includes("react-compiler-runtime") || log.message.includes("react-compiler-runtime");
-        if (log.code === "MODULE_LEVEL_DIRECTIVE" && isCompilerRuntime) {
-          return;
-        }
+        if (log.code === "MODULE_LEVEL_DIRECTIVE" && isCompilerRuntime) return;
         defaultHandler(level, log);
       },
     },
@@ -35,18 +32,20 @@ export default defineConfig({
       name: "icon-sprite",
       apply: "build",
       async buildStart() {
-        try {
-          const dir = resolve(import.meta.dirname, "./src/assets/icons");
-          const files = await readdir(dir);
+        const [, error] = await readdir(resolve(import.meta.dirname, "./src/assets/icons"));
+        if (error) return;
 
-          let total = 0;
+        const files = await readdir(resolve(import.meta.dirname, "./src/assets/icons"));
 
-          for (const f of files) {
-            const s = await stat(join(dir, f));
-            total += s.size;
-          }
-          this.info?.(`icon-sprite: ${files.length} icons, ${(total / 1024).toFixed(1)}KB`);
-        } catch {}
+        let total = 0;
+
+        const dir = resolve(import.meta.dirname, "./src/assets/icons");
+
+        for (const f of files) {
+          const s = await stat(join(dir, f));
+          total += s.size;
+        }
+        this.info?.(`icon-sprite: ${files.length} icons, ${(total / 1024).toFixed(1)}KB`);
       },
     },
   ],

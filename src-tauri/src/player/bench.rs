@@ -203,7 +203,9 @@ async fn wait_for_path(app: &AppHandle, expected: &str, timeout: Duration) -> bo
         }
         tokio::time::sleep(POLL).await;
     }
-    tracing::warn!("bench: wait_for_path timed out, expected {expected}, observed {last_observed:?}");
+    tracing::warn!(
+        "bench: wait_for_path timed out, expected {expected}, observed {last_observed:?}"
+    );
     diagnose(app, "wait_for_path");
     false
 }
@@ -376,19 +378,17 @@ async fn run_one(
         tracing::warn!("bench: loadfile command failed: {error}");
     }
     tracing::debug!("bench: run_one loadfile ok={}", load_result.is_ok());
-    let loaded = wait_for_path(
-        app,
-        file,
-        env_timeout("ILUHA_BENCH_LOAD_SECS", 180),
-    )
-    .await;
+    let loaded = wait_for_path(app, file, env_timeout("ILUHA_BENCH_LOAD_SECS", 180)).await;
     if !loaded {
         tracing::warn!("bench: file never became ready after loadfile");
     }
     let open_ms = loaded.then(|| round1(load_start.elapsed().as_secs_f64() * 1000.0));
     let _ = core(app).set_property("pause", &json!(false), PLAYER_WINDOW_LABEL);
 
-    tracing::debug!("bench: run_one decode window start secs={}", config.decode_secs);
+    tracing::debug!(
+        "bench: run_one decode window start secs={}",
+        config.decode_secs
+    );
     let mut render_fps: Vec<f64> = Vec::new();
     let mut cache_min = f64::MAX;
     let ticks = config.decode_secs * 4;

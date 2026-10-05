@@ -38,6 +38,7 @@ export type ThemeOverrideKey =
   | "torrentSeeding"
   | "torrentDone"
   | "torrentError"
+  | "torrentInitializing"
   | "torrentIdle"
   | "torrentMissing";
 

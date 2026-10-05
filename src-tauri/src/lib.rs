@@ -20,10 +20,15 @@ mod app_db;
 #[doc(hidden)]
 pub mod benchmark_api {
     pub use crate::anilist::{franchise_query_body, franchise_query_metrics};
+    pub use crate::session::protocol::PlaybackState;
+    pub use crate::session::sync::{
+        LagStatus, SyncController, SyncInstruction, SyncRuntime, EVAL_INTERVAL_MS,
+    };
 }
 mod auth;
 mod bencode;
 mod deeplink;
+mod emoji;
 mod errors;
 mod ffmpeg;
 mod file_index;
@@ -36,6 +41,7 @@ mod realcugan;
 mod rife;
 mod scrapers;
 mod screenshot;
+mod session;
 mod shaders;
 mod sqlite_browser;
 mod tmdb;
@@ -1181,24 +1187,30 @@ pub fn run() {
             handle.manage(std::sync::Mutex::new(fswatcher::FolderWatcher::new()));
             handle.manage(file_index::FileIndexer::new());
             handle.manage(player::PlayerHost::default());
+            handle.manage(session::SessionHost::default());
             player::state::attach(app.handle());
             #[cfg(debug_assertions)]
             match std::env::var("ILUHA_OPEN_FILE") {
                 Ok(path) => {
                     tracing::info!("dev player trigger armed for {path}");
-                    let bench =
-                        player::bench::BenchConfig::from_env().map(|mut config| {
-                            if config.files.is_empty() {
-                                config.files = vec![path.clone()];
-                            }
-                            config
-                        });
+                    let bench = player::bench::BenchConfig::from_env().map(|mut config| {
+                        if config.files.is_empty() {
+                            config.files = vec![path.clone()];
+                        }
+                        config
+                    });
                     let trigger_handle = handle.clone();
                     tauri::async_runtime::spawn(async move {
                         let trigger_start = std::time::Instant::now();
                         tokio::time::sleep(std::time::Duration::from_millis(1500)).await;
-                        if let Err(error) =
-                            player::player_open(trigger_handle.clone(), vec![path], None).await
+                        if let Err(error) = player::player_open(
+                            trigger_handle.clone(),
+                            trigger_handle.state::<session::SessionHost>(),
+                            vec![path],
+                            None,
+                            None,
+                        )
+                        .await
                         {
                             tracing::warn!("dev player trigger failed: {error}");
                             return;
@@ -1209,6 +1221,15 @@ pub fn run() {
                     });
                 }
                 Err(error) => tracing::debug!("dev player trigger not armed: {error}"),
+            }
+            #[cfg(debug_assertions)]
+            if let Some(config) = player::harness::SyncBenchConfig::from_env() {
+                tracing::info!("dev sync-bench trigger armed for {}", config.file);
+                let bench_handle = handle.clone();
+                tauri::async_runtime::spawn(async move {
+                    tokio::time::sleep(std::time::Duration::from_millis(1500)).await;
+                    player::harness::run(bench_handle, config).await;
+                });
             }
             #[cfg(not(debug_assertions))]
             {
@@ -1336,6 +1357,7 @@ pub fn run() {
             anilist::check_anilist_auth,
             anilist::get_anilist_lists,
             anilist::get_anilist_friend_scores,
+            anilist::anilist_avatar,
             anilist::anilist_logout,
             anilist::save_anilist_entry,
             anilist::toggle_favourite,
@@ -1412,6 +1434,7 @@ pub fn run() {
             tmdb::check_tmdb_session,
             tmdb::tmdb_logout,
             scrapers::test_source_connection,
+            emoji::emoji_list,
             sqlite_browser::reset_sqlite_data,
             sqlite_browser::list_sqlite_databases,
             sqlite_browser::get_sqlite_tables,
@@ -1471,6 +1494,34 @@ pub fn run() {
             screenshot::discard_screenshot,
             search_file_index,
             deeplink::take_pending_deep_links,
+            session::commands::media_identity,
+            session::commands::session_state,
+            session::commands::session_set_playlist,
+            session::commands::session_start_item,
+            session::commands::session_set_role,
+            session::commands::session_add_source,
+            session::commands::session_remove_source,
+            session::commands::session_set_ready,
+            session::commands::session_create,
+            session::commands::session_join,
+            session::commands::session_leave,
+            session::commands::session_transfer_host,
+            session::commands::session_accept_handover,
+            session::commands::session_match_folder,
+            session::commands::session_chat,
+            session::commands::session_chat_attachment,
+            session::commands::session_elect_host,
+            session::commands::session_status,
+            session::commands::session_report,
+            session::commands::session_control,
+            session::commands::session_request_control,
+            session::commands::session_force_resync,
+            session::commands::session_publish_state,
+            session::commands::session_sync_sample,
+            session::commands::session_sync_restart,
+            session::commands::session_set_offset,
+            session::commands::session_sync_tracks,
+            session::commands::session_typing,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

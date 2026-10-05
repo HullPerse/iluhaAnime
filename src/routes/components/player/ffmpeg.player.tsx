@@ -1,6 +1,7 @@
 import { Download, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
+import ProgressBar from "@/components/shared/progress.component";
 import { Button } from "@/components/ui/button.component";
 import { FFMPEG_SOURCE_SIZES } from "@/config/player/sources.config";
 import { useI18n } from "@/hooks/i18n.hook";
@@ -86,18 +87,11 @@ function FFMPEG({
             : t("player.ffmpeg.downloading")}
         </span>
         <div className="flex flex-1 flex-row items-center gap-1">
-          <div className="windows95-border bg-field h-4 flex-1">
-            <div
-              className="bg-secondary h-full"
-              style={{
-                width:
-                  dlProgress && dlProgress.total > 0
-                    ? `${(dlProgress.downloaded / dlProgress.total) * 100}%`
-                    : "0%",
-                transition: "none",
-              }}
-            />
-          </div>
+          <ProgressBar
+            value={dlProgress?.downloaded ?? 0}
+            max={dlProgress?.total ?? 0}
+            className="h-4 flex-1"
+          />
           <span className="w-10 shrink-0 text-right text-xs">
             {dlProgress && dlProgress.total > 0
               ? `${Math.round((dlProgress.downloaded / dlProgress.total) * 100)}%`

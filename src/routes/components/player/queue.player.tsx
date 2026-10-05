@@ -2,6 +2,7 @@ import { Check, Trash2, X, RefreshCw, ListVideo, FileVideo, Pause, Play } from "
 import { useState, type ReactNode } from "react";
 
 import { SmallLoader } from "@/components/shared/loader.component";
+import ProgressBar from "@/components/shared/progress.component";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useUpscaleQueueStore } from "@/store/upscale.store";
@@ -153,12 +154,7 @@ export default function QueuePanel({ scan }: { scan: ScanType }) {
                   )}
                   {item.status === "processing" && item.current !== undefined && (
                     <div className="flex min-w-0 items-center gap-1">
-                      <div className="windows95-border bg-field h-4 w-20">
-                        <div
-                          className="bg-secondary h-full transition-none"
-                          style={{ width: `${item.progress}%` }}
-                        />
-                      </div>
+                      <ProgressBar value={item.progress} max={100} className="h-4 w-20" />
                       <span className="w-8 shrink-0 text-right text-xs">{item.progress}%</span>
                     </div>
                   )}

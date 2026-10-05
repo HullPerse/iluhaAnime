@@ -43,9 +43,10 @@ describe("useOnlineStatus", () => {
 });
 
 describe("isOfflineDisabledTab", () => {
-  it("flags anilist and search only", () => {
+  it("flags anilist, search, and lobby only", () => {
     expect(isOfflineDisabledTab("anilist")).toBe(true);
     expect(isOfflineDisabledTab("search")).toBe(true);
+    expect(isOfflineDisabledTab("lobby")).toBe(true);
     expect(isOfflineDisabledTab("torrent")).toBe(false);
     expect(isOfflineDisabledTab("player")).toBe(false);
     expect(isOfflineDisabledTab("collection")).toBe(false);
@@ -58,18 +59,25 @@ describe("markOfflineTabs", () => {
     { id: "search", label: "Search" },
     { id: "torrent", label: "Torrent" },
     { id: "anilist", label: "AniList" },
+    { id: "lobby", label: "Lobby" },
   ] as const;
 
   it("keeps every tab enabled while online", () => {
     const marked = markOfflineTabs(tabs, true);
     expect(marked.every((tab) => tab.disabled === false)).toBe(true);
-    expect(marked.map((tab) => tab.id as TabId)).toEqual(["search", "torrent", "anilist"]);
+    expect(marked.map((tab) => tab.id as TabId)).toEqual([
+      "search",
+      "torrent",
+      "anilist",
+      "lobby",
+    ]);
   });
 
-  it("disables only anilist and search while offline", () => {
+  it("disables only anilist, search, and lobby while offline", () => {
     const marked = markOfflineTabs(tabs, false);
     expect(marked.find((tab) => tab.id === "search")?.disabled).toBe(true);
     expect(marked.find((tab) => tab.id === "anilist")?.disabled).toBe(true);
+    expect(marked.find((tab) => tab.id === "lobby")?.disabled).toBe(true);
     expect(marked.find((tab) => tab.id === "torrent")?.disabled).toBe(false);
   });
 });

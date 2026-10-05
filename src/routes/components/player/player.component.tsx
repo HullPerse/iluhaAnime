@@ -13,6 +13,7 @@ import {
 import { VOLUME_STEP } from "@/config/player/video.config";
 import { usePlayerEvents } from "@/hooks/player/events.hook";
 import { useI18n } from "@/hooks/i18n.hook";
+import { useSessionPlayer } from "@/hooks/session/player.hook";
 import { useTauriEvent } from "@/hooks/tauriEvent.hook";
 import { translate } from "@/lib/locale/i18n.utils";
 import { fileNameFromPath } from "@/lib/player/title.utils";
@@ -52,6 +53,8 @@ import { useMediaStore } from "@/store/media.store";
 import { useNotificationStore } from "@/store/notification.store";
 import { usePlaybackStore, usePlayerStore } from "@/store/player.store";
 import { useSettingsStore } from "@/store/settings.store";
+import { useSessionStore } from "@/store/session.store";
+import type { PlayerPanelTab } from "@/types/player";
 import type {
   DroppedFramesData,
   EndOfFileMode,
@@ -71,11 +74,12 @@ import JumpToTime from "./media/jump.player";
 import Keyboard from "./media/keyboard.player";
 import PlayerModal from "./media/modal.player";
 import OsdOverlay from "./media/offset.player";
-import PlaylistPanel from "./media/playlist.player";
 import SettingsPanel from "./media/settings.player";
 import SkipButton from "./media/skip.player";
 import PlayerStatus from "./media/status.player";
 import Timeline from "./media/timeline.player";
+import { SessionStrip } from "./session.strip.player";
+import PlayerSidePanel from "./side.player";
 
 const AUTO_HIDE_DELAY = 3000;
 const WATCH_INTERVAL = 5000;
@@ -128,6 +132,22 @@ function PlayerComponent() {
   const profile = usePlayerStore((state) => state.profile);
   const settings = usePlayerStore((state) => state.settings);
 
+  const {
+    hostLost: sessionHostLost,
+    onLocalControl,
+    onLocalTrack,
+    resync: sessionResync,
+    resumeAlone: sessionResumeAlone,
+    role: sessionRole,
+    sample: sessionSample,
+    setOffsetMs,
+    status: sessionStatus,
+  } = useSessionPlayer();
+
+  // While in a room (even before the broadcast starts) only the room may
+  // replace the player source; manual opens are silently ignored.
+  const roomLocked = sessionRole !== null;
+
   const [cinema, setCinema] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const [barsVisible, setBarsVisible] = useState(true);
@@ -135,7 +155,7 @@ function PlayerComponent() {
   const [jumpOpen, setJumpOpen] = useState(false);
   const [cheatsheetOpen, setCheatsheetOpen] = useState(false);
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
-  const [playlistOpen, setPlaylistOpen] = useState(false);
+  const [panelTab, setPanelTab] = useState<PlayerPanelTab | null>(null);
   const [dropAlert, setDropAlert] = useState<DroppedFramesData | null>(null);
   const [finished, setFinished] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -150,6 +170,15 @@ function PlayerComponent() {
   const hasPrev = playlistIndex > 0;
   const barsHidden = immersive && autoHide && !barsVisible;
   const title = path ? fileNameFromPath(path) : t("player.media.title");
+
+  // Reveal the lobby tab the moment a session starts, and drop it again when
+  // the session ends. An explicitly opened playlist is left untouched.
+  useEffect(() => {
+    setPanelTab((previous) => {
+      if (sessionRole) return previous === "playlist" ? previous : "lobby";
+      return previous === "lobby" ? null : previous;
+    });
+  }, [sessionRole]);
 
   useEffect(() => {
     if (destroyTimerRef.current !== null) {
@@ -325,6 +354,7 @@ function PlayerComponent() {
   useTauriEvent<{ paths: string[] }>(
     "tauri://drag-drop",
     (event) => {
+      if (roomLocked) return;
       const extensions = useSettingsStore.getState().videoExtensions;
       const files = event.payload.paths.filter((path) =>
         extensions.some((extension) =>
@@ -412,8 +442,8 @@ function PlayerComponent() {
       setDiagnosticsOpen(false);
       return;
     }
-    if (playlistOpen) {
-      setPlaylistOpen(false);
+    if (panelTab !== null) {
+      setPanelTab(null);
       return;
     }
     if (settingsOpen) {
@@ -441,7 +471,7 @@ function PlayerComponent() {
         }
       })
       .catch(() => undefined);
-  }, [cheatsheetOpen, cinema, diagnosticsOpen, jumpOpen, playlistOpen, settingsOpen]);
+  }, [cheatsheetOpen, cinema, diagnosticsOpen, jumpOpen, panelTab, settingsOpen]);
 
   const onPlay = useCallback(() => {
     const state = usePlaybackStore.getState();
@@ -449,14 +479,18 @@ function PlayerComponent() {
     if (state.eofReached) {
       setFinished(false);
       ignore(seekTo(0, "exact").then(() => setPaused(false)));
+      onLocalControl({ a: "seek", position: 0 });
+      onLocalControl({ a: "play" });
       return;
     }
     ignore(setPaused(false));
-  }, []);
+    onLocalControl({ a: "play" });
+  }, [onLocalControl]);
 
   const onPause = useCallback(() => {
     ignore(setPaused(true));
-  }, []);
+    onLocalControl({ a: "pause" });
+  }, [onLocalControl]);
 
   const onPlayPause = useCallback(() => {
     const state = usePlaybackStore.getState();
@@ -487,43 +521,62 @@ function PlayerComponent() {
     ignore(seekTo(time, "keyframes"));
   }, []);
 
-  const onCommitSeek = useCallback((time: number) => {
-    usePlaybackStore.getState().setSeekTarget(time);
-    ignore(seekTo(time, "exact"));
-  }, []);
+  const onCommitSeek = useCallback(
+    (time: number) => {
+      usePlaybackStore.getState().setSeekTarget(time);
+      ignore(seekTo(time, "exact"));
+      onLocalControl({ a: "seek", position: time });
+    },
+    [onLocalControl]
+  );
 
-  const onSeekTo = useCallback((time: number) => {
-    usePlaybackStore.getState().setSeekTarget(time);
-    const mode = usePlayerStore.getState().seekMode;
-    ignore(seekTo(time, mode));
-  }, []);
+  const onSeekTo = useCallback(
+    (time: number) => {
+      usePlaybackStore.getState().setSeekTarget(time);
+      const mode = usePlayerStore.getState().seekMode;
+      ignore(seekTo(time, mode));
+      onLocalControl({ a: "seek", position: time });
+    },
+    [onLocalControl]
+  );
 
-  const onSeekBy = useCallback((seconds: number) => {
-    const state = usePlaybackStore.getState();
-    const mode = usePlayerStore.getState().seekMode;
-    const target = Math.max(
-      0,
-      Math.min(state.duration || Number.MAX_SAFE_INTEGER, state.timePos + seconds),
-    );
-    usePlaybackStore.getState().setSeekTarget(target);
-    ignore(seekTo(target, mode));
-  }, []);
+  const onSeekBy = useCallback(
+    (seconds: number) => {
+      const state = usePlaybackStore.getState();
+      const mode = usePlayerStore.getState().seekMode;
+      const target = Math.max(
+        0,
+        Math.min(state.duration || Number.MAX_SAFE_INTEGER, state.timePos + seconds),
+      );
+      usePlaybackStore.getState().setSeekTarget(target);
+      ignore(seekTo(target, mode));
+      onLocalControl({ a: "seek", position: target });
+    },
+    [onLocalControl]
+  );
 
-  const onSkipChapter = useCallback((time: number) => {
-    usePlaybackStore.getState().setSeekTarget(time);
-    const mode = usePlayerStore.getState().seekMode;
-    ignore(seekTo(time, mode).then(() => setPaused(false)));
-  }, []);
+  const onSkipChapter = useCallback(
+    (time: number) => {
+      usePlaybackStore.getState().setSeekTarget(time);
+      const mode = usePlayerStore.getState().seekMode;
+      ignore(seekTo(time, mode).then(() => setPaused(false)));
+      onLocalControl({ a: "seek", position: time });
+      onLocalControl({ a: "play" });
+    },
+    [onLocalControl]
+  );
 
   const onFileNext = useCallback(() => {
+    if (sessionRole) return;
     setFinished(false);
     ignore(nextFile());
-  }, []);
+  }, [sessionRole]);
 
   const onFilePrev = useCallback(() => {
+    if (sessionRole) return;
     setFinished(false);
     ignore(previousFile());
-  }, []);
+  }, [sessionRole]);
 
   const onVolume = useCallback((value: number) => {
     const clamped = Math.min(1, Math.max(0, value));
@@ -538,9 +591,13 @@ function PlayerComponent() {
     ignore(setMpvProperty("mute", !usePlaybackStore.getState().muted));
   }, []);
 
-  const onSpeed = useCallback((value: number) => {
-    ignore(setSpeed(value));
-  }, []);
+  const onSpeed = useCallback(
+    (value: number) => {
+      ignore(setSpeed(value));
+      onLocalControl({ a: "setRate", rate: value });
+    },
+    [onLocalControl]
+  );
 
   const handlePatchSettings = useCallback((patch: Partial<PlayerSettings>) => {
     usePlayerStore.getState().patchSettings(patch);
@@ -571,6 +628,36 @@ function PlayerComponent() {
     if (current) useMediaStore.getState().setTrack(current, kind, track.id);
   }, []);
 
+  const pushTrackState = useCallback(
+    (override?: { kind: "audio" | "sub"; id: number | "no" }) => {
+      const state = usePlaybackStore.getState();
+      const current = state.path;
+      if (!current) return;
+      // Wire identity is the plan item id; without one there is no shared
+      // media, and the local path must not travel.
+      const mediaId = useSessionStore.getState().playingItemId;
+      if (!mediaId) return;
+      const entry = useMediaStore.getState().getEntry(current);
+      const value = (kind: "audio" | "sub"): string | null => {
+        if (override && override.kind === kind) {
+          return override.id === "no" ? "no" : String(override.id);
+        }
+        const picked = state.tracks.find(
+          (track) => track.type === kind && track.selected,
+        );
+        return picked ? String(picked.id) : null;
+      };
+      onLocalTrack({
+        audio: value("audio"),
+        audioDelay: entry?.audioOffset ?? 0,
+        mediaId,
+        sub: value("sub"),
+        subDelay: entry?.subOffset ?? 0,
+      });
+    },
+    [onLocalTrack],
+  );
+
   const onSelectTrack = useCallback(
     (kind: "audio" | "sub") => (id: number | "no") => {
       ignore(selectTrack(kind, id));
@@ -578,8 +665,9 @@ function PlayerComponent() {
         const track = usePlaybackStore.getState().tracks.find((entry) => entry.id === id);
         if (track) persistTrack(track, kind);
       }
+      pushTrackState({ id, kind });
     },
-    [persistTrack],
+    [persistTrack, pushTrackState],
   );
 
   const pickFiles = useCallback(
@@ -625,8 +713,9 @@ function PlayerComponent() {
           kind === "audio" ? next : (entry?.audioOffset ?? 0),
         ),
       );
+      pushTrackState();
     },
-    [],
+    [pushTrackState],
   );
 
   const onKeyboardAction = useCallback(
@@ -714,6 +803,15 @@ function PlayerComponent() {
         <div className="flex h-full min-h-0 flex-row gap-1">
           <div ref={videoRef} className="relative min-h-0 flex-1 overflow-hidden" onClick={onVideoClick}>
             <OsdOverlay />
+            {sessionRole ? (
+              <SessionStrip
+                hostLost={sessionHostLost}
+                onResumeAlone={sessionResumeAlone}
+                role={sessionRole}
+                sample={sessionSample}
+                status={sessionStatus}
+              />
+            ) : null}
             {diagnosticsOpen ? <DiagnosticsOverlay /> : null}
 
             {dropAlert ? (
@@ -751,18 +849,29 @@ function PlayerComponent() {
               finished={finished}
               eofPaused={eofPaused}
               failed={failed}
-              hasNext={hasNext}
+              hasNext={hasNext && !roomLocked}
               onRestart={restart}
               onNext={onFileNext}
               onClose={close}
             />
           </div>
 
-          {playlistOpen ? (
-            <PlaylistPanel
-              onPlay={(index) => playPlaylistIndex(index)}
-              onRemove={(index) => removePlaylistIndex(index)}
+          {panelTab ? (
+            <PlayerSidePanel
+              activeTab={panelTab}
+              locked={roomLocked}
               onMove={(from, to) => movePlaylistIndex(from, to)}
+              onOffset={setOffsetMs}
+              onPlay={(index) => {
+                if (sessionRole) return Promise.resolve();
+                return playPlaylistIndex(index);
+              }}
+              onRemove={(index) => removePlaylistIndex(index)}
+              onResync={sessionResync}
+              onTabChange={setPanelTab}
+              role={sessionRole}
+              sample={sessionSample}
+              status={sessionStatus}
             />
           ) : null}
         </div>
@@ -783,13 +892,14 @@ function PlayerComponent() {
           tracks={tracks}
           hasPrev={hasPrev}
           hasNext={hasNext}
+          navLocked={roomLocked}
           immersive={immersive}
           autoHide={autoHide}
           speed={speed}
           volume={volume}
           muted={muted}
           eofMode={eofMode}
-          playlistOpen={playlistOpen}
+          playlistOpen={panelTab === "playlist"}
           onPlay={onPlay}
           onPause={onPause}
           onSeekTo={onSeekTo}
@@ -799,7 +909,11 @@ function PlayerComponent() {
           onVolume={onVolume}
           onMute={onMute}
           onToggleAutoHide={() => handleSetAutoHide(!autoHide)}
-          onTogglePlaylist={() => setPlaylistOpen((value) => !value)}
+          onTogglePlaylist={() =>
+            setPanelTab((previous) =>
+              previous === "playlist" ? null : "playlist"
+            )
+          }
           onEofMode={handleEofMode}
           onSelectAudio={onSelectTrack("audio")}
           onSelectSub={onSelectTrack("sub")}

@@ -56,6 +56,7 @@ function Controls({
   tracks,
   hasPrev,
   hasNext,
+  navLocked,
   immersive,
   autoHide,
   speed,
@@ -85,6 +86,8 @@ function Controls({
   tracks: MpvTrack[];
   hasPrev: boolean;
   hasNext: boolean;
+  /** In a room the file queue is room-owned: prev/next switch to disabled. */
+  navLocked: boolean;
   immersive: boolean;
   autoHide: boolean;
   speed: number;
@@ -270,8 +273,11 @@ function Controls({
         <Button
           size="icon"
           className="size-6"
-          title={t("player.media.controls.previous.file")}
+          title={
+            navLocked ? t("player.room.manualBlocked") : t("player.media.controls.previous.file")
+          }
           aria-label={t("player.media.controls.previous.file")}
+          disabled={navLocked}
           onClick={() => {
             if (!hasPrev) showBoundaryMsg(t("player.media.boundary.first"));
             else onFilePrev();
@@ -282,8 +288,9 @@ function Controls({
         <Button
           size="icon"
           className="size-6"
-          title={t("player.media.controls.next.file")}
+          title={navLocked ? t("player.room.manualBlocked") : t("player.media.controls.next.file")}
           aria-label={t("player.media.controls.next.file")}
+          disabled={navLocked}
           onClick={() => {
             if (!hasNext) showBoundaryMsg(t("player.media.boundary.last"));
             else onFileNext();

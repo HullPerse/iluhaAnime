@@ -45,6 +45,7 @@ export function getDisplayState(
   if (item.error) return "error";
   if (item.finished) return item.state === "live" ? "seeding" : "done";
   if (item.state === "paused") return "paused";
+  if (item.total_bytes === 0) return "initializing";
   if (item.download_speed > 0) return "downloading";
   const last = (lastActiveAt[item.id] ?? 0) * 1000;
   return now - last >= STALL_AFTER_MS ? "stalled" : "downloading";
@@ -57,6 +58,7 @@ export const DISPLAY_BAR_CLASS: Record<TorrentDisplayState, string> = {
   error: "bg-torrent-error",
   stalled: "bg-torrent-idle",
   paused: "bg-torrent-idle",
+  initializing: "bg-torrent-initializing",
   missing: "bg-torrent-missing",
 };
 
@@ -67,6 +69,7 @@ const DISPLAY_LABEL_KEY: Record<TorrentDisplayState, TranslationKey> = {
   error: "torrent.state.error",
   stalled: "torrent.state.stalled",
   paused: "torrent.state.paused",
+  initializing: "torrent.state.initializing",
   missing: "torrent.state.missing",
 };
 

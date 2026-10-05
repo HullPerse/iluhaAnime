@@ -1,7 +1,8 @@
 use serde::Serialize;
 use serde_json::{json, Value};
 use tauri::{
-    AppHandle, Emitter, Manager, State, WebviewUrl, WebviewWindowBuilder, WindowEvent,
+    AppHandle, Emitter, Manager, State, WebviewUrl, WebviewWindow, WebviewWindowBuilder,
+    WindowEvent,
 };
 use tauri_plugin_libmpv::{MpvConfig, VideoMarginRatio};
 
@@ -9,6 +10,7 @@ use super::core::{LibmpvCore, PlayerCore};
 use super::state::{save_current_watch, PlayerHost, PlayerOpenRequest};
 use super::watch::{self, WatchState};
 use super::{PLAYER_ROUTE, PLAYER_WINDOW_LABEL};
+use crate::session::state::SessionHost;
 
 fn observed_properties() -> Value {
     json!({
@@ -85,12 +87,16 @@ fn core(app: &AppHandle) -> LibmpvCore {
     LibmpvCore::new(app.clone())
 }
 
-fn load_queue(app: &AppHandle, files: &[String], resume: Option<f64>) -> Result<(), String> {
+fn load_queue(
+    app: &AppHandle,
+    window: &str,
+    files: &[String],
+    resume: Option<f64>,
+) -> Result<(), String> {
     let Some(first) = files.first() else {
         return Err("no file to play".to_string());
     };
     let backend = core(app);
-    let window = PLAYER_WINDOW_LABEL;
     backend.set_property("speed", &json!(1.0), window)?;
     let mut args: Vec<Value> = vec![json!(first), json!("replace")];
     if let Some(position) = resume {
@@ -115,21 +121,35 @@ fn load_queue(app: &AppHandle, files: &[String], resume: Option<f64>) -> Result<
             return Err(error);
         }
     }
-    let host = app.state::<PlayerHost>();
-    host.set_current_path(first.clone());
-    host.clear_pending_open();
-    host.mark_dirty();
+    if window == PLAYER_WINDOW_LABEL {
+        let host = app.state::<PlayerHost>();
+        host.set_current_path(first.clone());
+        host.clear_pending_open();
+        host.mark_dirty();
+    }
     Ok(())
+}
+
+/// Manual opens are banned while a Watch Party session runs; only
+/// room-driven plan starts may replace the player source, even when the
+/// room has not started broadcasting yet.
+const fn manual_open_blocked(session_active: bool, room_driven: bool) -> bool {
+    session_active && !room_driven
 }
 
 #[tauri::command]
 pub async fn player_open(
     app: AppHandle,
+    session: State<'_, SessionHost>,
     files: Vec<String>,
     resume: Option<f64>,
+    room_driven: Option<bool>,
 ) -> Result<(), String> {
     if files.iter().any(|file| file.is_empty()) {
         return Err("player_open received an empty file path".to_string());
+    }
+    if manual_open_blocked(session.has_runtime(), room_driven.unwrap_or(false)) {
+        return Err("player_open is disabled while a watch party session is active".to_string());
     }
     let request = PlayerOpenRequest { files, resume };
 
@@ -145,8 +165,7 @@ pub async fn player_open(
         return Ok(());
     }
 
-    app.state::<PlayerHost>()
-        .set_pending_open(Some(request));
+    app.state::<PlayerHost>().set_pending_open(Some(request));
 
     let window = WebviewWindowBuilder::new(
         &app,
@@ -166,9 +185,8 @@ pub async fn player_open(
             let backend = LibmpvCore::new(destroyed_app.clone());
             let host = destroyed_app.state::<PlayerHost>();
             host.set_active(false);
-            let _ = tauri::async_runtime::spawn_blocking(move || {
-                backend.destroy(PLAYER_WINDOW_LABEL)
-            });
+            let _ =
+                tauri::async_runtime::spawn_blocking(move || backend.destroy(PLAYER_WINDOW_LABEL));
         }
     });
     let _ = window.set_focus();
@@ -186,7 +204,12 @@ pub fn player_take_pending_open(host: State<'_, PlayerHost>) -> Option<PlayerOpe
 }
 
 #[tauri::command]
-pub async fn player_init(app: AppHandle, initial_options: Value) -> Result<String, String> {
+pub async fn player_init(
+    app: AppHandle,
+    window: WebviewWindow,
+    initial_options: Value,
+) -> Result<String, String> {
+    let label = window.label().to_string();
     let config: MpvConfig = serde_json::from_value(json!({
         "initialOptions": with_structural_options(sanitize_initial_options(initial_options)),
         "observedProperties": observed_properties(),
@@ -194,31 +217,34 @@ pub async fn player_init(app: AppHandle, initial_options: Value) -> Result<Strin
     .map_err(|error| format!("invalid player options: {error}"))?;
 
     let backend = core(&app);
-    tracing::debug!("player_init: creating mpv instance");
-    let joined = tauri::async_runtime::spawn_blocking(move || {
-        backend.init(config, PLAYER_WINDOW_LABEL)
-    })
-    .await;
-    let label = match joined {
-        Ok(Ok(label)) => label,
+    tracing::debug!("player_init: creating mpv instance for {label}");
+    let init_label = label.clone();
+    let joined =
+        tauri::async_runtime::spawn_blocking(move || backend.init(config, &init_label)).await;
+    match joined {
+        Ok(Ok(ready)) => tracing::debug!("player_init: instance ready label={ready}"),
         Ok(Err(error)) => {
             tracing::warn!("player_init: mpv init failed: {error}");
             return Err(error);
         }
         Err(error) => return Err(format!("player init task failed: {error}")),
     };
-    tracing::debug!("player_init: instance ready label={label}");
 
-    app.state::<PlayerHost>().set_active(true);
+    if label == PLAYER_WINDOW_LABEL {
+        app.state::<PlayerHost>().set_active(true);
+    }
     Ok(label)
 }
 
 #[tauri::command]
-pub async fn player_destroy(app: AppHandle) -> Result<(), String> {
-    tracing::debug!("player_destroy: tearing down mpv instance");
-    save_current_watch(&app);
-    app.state::<PlayerHost>().set_active(false);
-    let result = destroy_instance(app).await;
+pub async fn player_destroy(app: AppHandle, window: WebviewWindow) -> Result<(), String> {
+    let label = window.label().to_string();
+    tracing::debug!("player_destroy: tearing down mpv instance for {label}");
+    if label == PLAYER_WINDOW_LABEL {
+        save_current_watch(&app);
+        app.state::<PlayerHost>().set_active(false);
+    }
+    let result = destroy_instance(app, label).await;
     match &result {
         Ok(()) => tracing::debug!("player_destroy: instance torn down"),
         Err(error) => tracing::warn!("player_destroy: instance teardown failed: {error}"),
@@ -226,20 +252,23 @@ pub async fn player_destroy(app: AppHandle) -> Result<(), String> {
     result
 }
 
-async fn destroy_instance(app: AppHandle) -> Result<(), String> {
+async fn destroy_instance(app: AppHandle, label: String) -> Result<(), String> {
     let backend = core(&app);
-    tauri::async_runtime::spawn_blocking(move || backend.destroy(PLAYER_WINDOW_LABEL))
+    tauri::async_runtime::spawn_blocking(move || backend.destroy(&label))
         .await
         .map_err(|error| format!("player destroy task failed: {error}"))?
 }
 
 #[tauri::command]
-pub async fn player_close_window(app: AppHandle) -> Result<(), String> {
-    save_current_watch(&app);
-    app.state::<PlayerHost>().set_active(false);
-    let window = app.get_webview_window(PLAYER_WINDOW_LABEL);
-    destroy_instance(app).await?;
-    if let Some(window) = window {
+pub async fn player_close_window(app: AppHandle, window: WebviewWindow) -> Result<(), String> {
+    let label = window.label().to_string();
+    if label == PLAYER_WINDOW_LABEL {
+        save_current_watch(&app);
+        app.state::<PlayerHost>().set_active(false);
+    }
+    let handle = app.get_webview_window(&label);
+    destroy_instance(app, label).await?;
+    if let Some(window) = handle {
         return window.close().map_err(|error| error.to_string());
     }
     Ok(())
@@ -248,33 +277,49 @@ pub async fn player_close_window(app: AppHandle) -> Result<(), String> {
 #[tauri::command]
 pub async fn player_load(
     app: AppHandle,
+    window: WebviewWindow,
     files: Vec<String>,
     resume: Option<f64>,
 ) -> Result<(), String> {
+    let label = window.label().to_string();
     tracing::debug!("player_load: {} file(s) resume={resume:?}", files.len());
-    load_queue(&app, &files, resume)
+    load_queue(&app, &label, &files, resume)
 }
 
 #[tauri::command]
-pub async fn player_command(app: AppHandle, name: String, args: Vec<Value>) -> Result<(), String> {
-    core(&app).command(&name, &args, PLAYER_WINDOW_LABEL)
+pub async fn player_command(
+    app: AppHandle,
+    window: WebviewWindow,
+    name: String,
+    args: Vec<Value>,
+) -> Result<(), String> {
+    let label = window.label().to_string();
+    core(&app).command(&name, &args, &label)
 }
 
 #[tauri::command]
-pub async fn player_set_property(app: AppHandle, name: String, value: Value) -> Result<(), String> {
-    core(&app).set_property(&name, &value, PLAYER_WINDOW_LABEL)
+pub async fn player_set_property(
+    app: AppHandle,
+    window: WebviewWindow,
+    name: String,
+    value: Value,
+) -> Result<(), String> {
+    let label = window.label().to_string();
+    core(&app).set_property(&name, &value, &label)
 }
 
 #[tauri::command]
 pub async fn player_get_property(
     app: AppHandle,
+    window: WebviewWindow,
     name: String,
     format: String,
 ) -> Result<Value, String> {
     if format == "node" {
         return Err("node property format is disabled: it crashes the bundled wrapper".to_string());
     }
-    core(&app).get_property(&name, &format, PLAYER_WINDOW_LABEL)
+    let label = window.label().to_string();
+    core(&app).get_property(&name, &format, &label)
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -285,31 +330,36 @@ pub struct PlaylistEntry {
     pub title: String,
 }
 
-fn scalar_int(app: &AppHandle, name: &str) -> Option<i64> {
+fn scalar_int(app: &AppHandle, label: &str, name: &str) -> Option<i64> {
     core(app)
-        .get_property(name, "int64", PLAYER_WINDOW_LABEL)
+        .get_property(name, "int64", label)
         .ok()
         .and_then(|value| value.as_i64())
 }
 
-fn scalar_string(app: &AppHandle, name: &str) -> Option<String> {
+fn scalar_string(app: &AppHandle, label: &str, name: &str) -> Option<String> {
     core(app)
-        .get_property(name, "string", PLAYER_WINDOW_LABEL)
+        .get_property(name, "string", label)
         .ok()
         .and_then(|value| value.as_str().map(str::to_string))
 }
 
 #[tauri::command]
-pub async fn player_playlist_entries(app: AppHandle) -> Result<Vec<PlaylistEntry>, String> {
-    let count = scalar_int(&app, "playlist-count").unwrap_or(0);
+pub async fn player_playlist_entries(
+    app: AppHandle,
+    window: WebviewWindow,
+) -> Result<Vec<PlaylistEntry>, String> {
+    let label = window.label().to_string();
+    let count = scalar_int(&app, &label, "playlist-count").unwrap_or(0);
     if count <= 0 {
         return Ok(Vec::new());
     }
     let mut entries = Vec::with_capacity(count as usize);
     for index in 0..count {
         let filename =
-            scalar_string(&app, &format!("playlist/{index}/filename")).unwrap_or_default();
-        let title = scalar_string(&app, &format!("playlist/{index}/title")).unwrap_or_default();
+            scalar_string(&app, &label, &format!("playlist/{index}/filename")).unwrap_or_default();
+        let title =
+            scalar_string(&app, &label, &format!("playlist/{index}/title")).unwrap_or_default();
         entries.push(PlaylistEntry {
             index,
             filename,
@@ -322,11 +372,13 @@ pub async fn player_playlist_entries(app: AppHandle) -> Result<Vec<PlaylistEntry
 #[tauri::command]
 pub async fn player_set_video_margin_ratio(
     app: AppHandle,
+    window: WebviewWindow,
     left: Option<f64>,
     right: Option<f64>,
     top: Option<f64>,
     bottom: Option<f64>,
 ) -> Result<(), String> {
+    let label = window.label().to_string();
     core(&app).set_video_margin_ratio(
         VideoMarginRatio {
             left,
@@ -334,14 +386,18 @@ pub async fn player_set_video_margin_ratio(
             top,
             bottom,
         },
-        PLAYER_WINDOW_LABEL,
+        &label,
     )
 }
 
 #[tauri::command]
-pub async fn player_eof_mode(app: AppHandle, mode: String) -> Result<(), String> {
+pub async fn player_eof_mode(
+    app: AppHandle,
+    window: WebviewWindow,
+    mode: String,
+) -> Result<(), String> {
     let backend = core(&app);
-    let window = PLAYER_WINDOW_LABEL;
+    let label = window.label().to_string();
     let (keep_open, loop_file, loop_playlist) = match mode.as_str() {
         "none" => ("no", "no", "no"),
         "pause" => ("yes", "no", "no"),
@@ -350,9 +406,9 @@ pub async fn player_eof_mode(app: AppHandle, mode: String) -> Result<(), String>
         other => return Err(format!("unknown end-of-file mode: {other}")),
     };
     tracing::debug!("player_eof_mode: {mode}");
-    backend.set_property("keep-open", &json!(keep_open), window)?;
-    backend.set_property("loop-file", &json!(loop_file), window)?;
-    backend.set_property("loop-playlist", &json!(loop_playlist), window)?;
+    backend.set_property("keep-open", &json!(keep_open), &label)?;
+    backend.set_property("loop-file", &json!(loop_file), &label)?;
+    backend.set_property("loop-playlist", &json!(loop_playlist), &label)?;
     Ok(())
 }
 
@@ -364,4 +420,17 @@ pub fn player_save_watch(app: AppHandle, path: String, state: WatchState) -> Res
 #[tauri::command]
 pub fn player_load_watch(app: AppHandle, path: String) -> Option<WatchState> {
     watch::load(&app, &path)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn manual_open_blocked_only_for_non_room_opens_in_a_session() {
+        assert!(!manual_open_blocked(false, false));
+        assert!(!manual_open_blocked(false, true));
+        assert!(!manual_open_blocked(true, true));
+        assert!(manual_open_blocked(true, false));
+    }
 }

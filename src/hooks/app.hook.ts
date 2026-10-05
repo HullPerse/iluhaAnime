@@ -56,6 +56,7 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
   const searchTabEnabled = useSettingsStore((s) => s.searchTabEnabled);
   const torrentTabEnabled = useSettingsStore((s) => s.torrentTabEnabled);
   const playerTabEnabled = useSettingsStore((s) => s.playerTabEnabled);
+  const lobbyTabEnabled = useSettingsStore((s) => s.lobbyTabEnabled);
   const enableAnimations = useSettingsStore((s) => s.enableAnimations);
   const retroStyle = useSettingsStore((s) => s.retroStyle);
   const uiDensity = useSettingsStore((s) => s.uiDensity);
@@ -70,6 +71,7 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
       searchTabEnabled,
       torrentTabEnabled,
       playerTabEnabled,
+      lobbyTabEnabled,
     }).map((tab) => ({
       ...tab,
       label: t(tab.key),

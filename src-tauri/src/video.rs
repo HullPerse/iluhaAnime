@@ -550,7 +550,9 @@ pub async fn get_video_card(
         return Err("card needs a file path".to_string());
     }
     let size = std::fs::metadata(&path).map(|meta| meta.len()).unwrap_or(0);
-    let duration = get_video_duration(&app_handle, &path).await.unwrap_or_default();
+    let duration = get_video_duration(&app_handle, &path)
+        .await
+        .unwrap_or_default();
     let dir = thumbnail_cache_dir(&app_handle);
     std::fs::create_dir_all(&dir).map_err(|e| format!("thumbnail cache: {e}"))?;
     let key = hex::encode(Sha1::digest(path.as_bytes()));

@@ -6,6 +6,9 @@ pub mod watch;
 #[cfg(debug_assertions)]
 pub mod bench;
 
+#[cfg(debug_assertions)]
+pub mod harness;
+
 pub use commands::*;
 pub use state::PlayerHost;
 

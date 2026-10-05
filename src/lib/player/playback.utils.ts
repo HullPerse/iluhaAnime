@@ -1,3 +1,4 @@
+import { sessionApi } from "@/api/session.api";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { clamp } from "@/lib/utils/math.utils";
@@ -181,11 +182,35 @@ export async function applyAudioOptions(settings: PlayerSettings): Promise<void>
   }
 }
 
+export interface OpenPlayerOptions {
+  /**
+   * Room-driven plan starts bypass the manual-open ban that applies while a
+   * session is active. Every other caller opens manually and is blocked.
+   */
+  roomDriven?: boolean;
+}
+
+/**
+ * Fresh session check for the manual-open ban. Reads `session_status`
+ * directly instead of the polled cache so a just-joined room is already
+ * covered. Fail-open: when the backend is unreachable, local playback wins.
+ */
+async function sessionBlocksManualOpen(): Promise<boolean> {
+  const [status] = await attempt(sessionApi.status());
+  return status?.role != null;
+}
+
 export async function openPlayer(
   files: string[],
   resume?: number,
+  options: OpenPlayerOptions = {}
 ): Promise<void> {
-  await invokeTyped("player_open", { files, resume });
+  if (!options.roomDriven && (await sessionBlocksManualOpen())) return;
+  await invokeTyped("player_open", {
+    files,
+    resume,
+    ...(options.roomDriven ? { roomDriven: true } : {}),
+  });
 }
 
 export async function takePendingOpen(): Promise<PlayerOpenRequest | null> {

@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { ArrowUp } from "lucide-react";
 
 import ProgressBar from "@/components/shared/progress.component";
@@ -9,7 +10,7 @@ import {
   getDisplayState,
 } from "@/lib/torrent/common.utils";
 import { formatBytes } from "@/lib/utils/bytes.utils";
-import { formatETA } from "@/lib/utils/time.utils";
+import { formatElapsed, formatETA } from "@/lib/utils/time.utils";
 import { useTorrentStore } from "@/store/download.store";
 import type { TorrentInfo } from "@/types/torrent";
 
@@ -18,6 +19,20 @@ export function TorrentProgress({ item }: { item: TorrentInfo }) {
   const lastActiveAt = useTorrentStore((s) => s.lastActiveAt);
   const display = getDisplayState(item, lastActiveAt, Date.now());
   const progress = item.progress * 100;
+  const initializing = display === "initializing";
+  const sinceSecs = lastActiveAt[item.id];
+  // Torrent events are sparse while metadata is resolving, so tick locally
+  // to keep the initializing timer moving.
+  const [, setNowTick] = useState(0);
+  useEffect(() => {
+    if (!initializing) return;
+    const id = setInterval(() => setNowTick((x) => x + 1), 1000);
+    return () => clearInterval(id);
+  }, [initializing]);
+  const initElapsedSecs =
+    initializing && sinceSecs !== undefined && sinceSecs > 0
+      ? Math.max(0, Math.floor(Date.now() / 1000) - sinceSecs)
+      : null;
   return (
     <section className="flex w-full flex-row items-start justify-between gap-1">
       <div className="flex w-full flex-col">
@@ -26,9 +41,13 @@ export function TorrentProgress({ item }: { item: TorrentInfo }) {
           max={item.total_bytes}
           className="h-3"
           barClassName={DISPLAY_BAR_CLASS[display]}
+          indeterminate={initializing}
         />
         <div className="flex items-center gap-1">
-          <span className="windows95-text text-hint">{displayStateLabel(display, t)}</span>
+          <span className="windows95-text text-hint">
+            {displayStateLabel(display, t)}
+            {initElapsedSecs !== null && ` - ${formatElapsed(initElapsedSecs, t)}`}
+          </span>
           <span className="windows95-font text-xs">
             {item.total_bytes > 0
               ? `${formatBytes(item.progress_bytes)} / ${formatBytes(item.total_bytes)} (${progress.toFixed(1)}%)`

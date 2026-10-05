@@ -199,13 +199,15 @@ pub fn ensure_minimum_free_space(path: &Path) -> Result<()> {
     Ok(())
 }
 
+// Probe-verified reachable from this machine on 2026-10-03; `tracker.openbittorrent.com` and
+// `tracker.tamersunion.org` are dead (connect-timeout / 000) and were dropped.
 pub const FALLBACK_TRACKERS: &[&str] = &[
+    "http://bt2.t-ru.org/ann",
     "udp://tracker.opentrackr.org:1337/announce",
     "udp://open.demonii.com:1337/announce",
-    "udp://tracker.openbittorrent.com:6969/announce",
     "udp://exodus.desync.com:6969/announce",
     "udp://explodie.org:6969/announce",
-    "https://tracker.tamersunion.org:443/announce",
+    "https://tracker.ducks.party:443/announce",
 ];
 
 pub fn url_encode(value: &str) -> String {

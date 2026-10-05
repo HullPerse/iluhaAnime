@@ -17,6 +17,7 @@ import { ignore } from "@/lib/utils/promise.utils";
 import { usePlaybackStore } from "@/store/player.store";
 import { useSettingsStore } from "@/store/settings.store";
 import type { TFunc } from "@/types/i18n";
+import type { PlaylistBodyProps } from "@/types/player";
 
 type CardArt = { url: string; duration: number; size: number };
 
@@ -128,15 +129,7 @@ function entryLabel(entry: PlaylistEntry, parseTitles: boolean, t: TFunc): strin
   return parseTitles ? formatParsedTitle(name, t) : name;
 }
 
-function PlaylistPanel({
-  onPlay,
-  onRemove,
-  onMove,
-}: {
-  onPlay: (index: number) => Promise<void>;
-  onRemove: (index: number) => Promise<void>;
-  onMove: (from: number, to: number) => Promise<void>;
-}) {
+function PlaylistBody({ locked, onPlay, onRemove, onMove }: PlaylistBodyProps) {
   const { t } = useI18n();
 
   const path = usePlaybackStore((state) => state.path);
@@ -173,37 +166,33 @@ function PlaylistPanel({
   const activeIndex = matchedIndex >= 0 ? entries[matchedIndex].index : (entries[0]?.index ?? -1);
 
   return (
-    <aside className="windows95-border flex w-80 shrink-0 flex-col bg-primary">
-      <div className="windows95-text border-b-2 border-muted px-2 py-1 text-xs font-bold">
-        {t("player.media.playlist.title")}
-      </div>
-      <div data-playlist-scroll className="min-h-0 flex-1 overflow-y-auto p-1">
-        {entries.length === 0 ? (
-          <div className="windows95-font px-1 py-2 text-xs">
-            {t("player.media.playlist.empty")}
-          </div>
-        ) : (
-          entries.map((entry) => {
-            const current = entry.index === activeIndex;
-            return (
-              <PlaylistCard
-                key={entry.index}
-                entry={entry}
-                current={current}
-                label={entryLabel(entry, parseTitles, t)}
-                upDisabled={entry.index === 0}
-                downDisabled={entry.index === entries.length - 1}
-                onPlay={onPlay}
-                onRemove={onRemove}
-                onMove={onMove}
-                mutate={mutate}
-                t={t}
-              />
-            );
-          })
-        )}
-      </div>
-    </aside>
+    <div data-playlist-scroll className="min-h-0 flex-1 overflow-y-auto p-1">
+      {entries.length === 0 ? (
+        <div className="windows95-font px-1 py-2 text-xs">
+          {t("player.media.playlist.empty")}
+        </div>
+      ) : (
+        entries.map((entry) => {
+          const current = entry.index === activeIndex;
+          return (
+            <PlaylistCard
+              key={entry.index}
+              entry={entry}
+              locked={locked}
+              current={current}
+              label={entryLabel(entry, parseTitles, t)}
+              upDisabled={entry.index === 0}
+              downDisabled={entry.index === entries.length - 1}
+              onPlay={onPlay}
+              onRemove={onRemove}
+              onMove={onMove}
+              mutate={mutate}
+              t={t}
+            />
+          );
+        })
+      )}
+    </div>
   );
 }
 
@@ -211,6 +200,7 @@ function PlaylistCard({
   entry,
   current,
   label,
+  locked,
   upDisabled,
   downDisabled,
   onPlay,
@@ -222,6 +212,7 @@ function PlaylistCard({
   entry: PlaylistEntry;
   current: boolean;
   label: string;
+  locked?: boolean;
   upDisabled: boolean;
   downDisabled: boolean;
   onPlay: (index: number) => Promise<void>;
@@ -247,7 +238,8 @@ function PlaylistCard({
         <button
           type="button"
           className="flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 text-left"
-          title={t("player.media.playlist.play")}
+          title={locked ? t("player.room.manualBlocked") : t("player.media.playlist.play")}
+          disabled={locked}
           onClick={() => ignore(onPlay(entry.index))}
         >
           <CardThumbnail
@@ -294,8 +286,11 @@ function PlaylistCard({
         <Button
           size="icon"
           className="size-4 shrink-0"
-          title={t("player.media.playlist.remove")}
+          title={
+            locked && current ? t("player.room.manualBlocked") : t("player.media.playlist.remove")
+          }
           aria-label={t("player.media.playlist.remove")}
+          disabled={locked && current}
           onClick={() => ignore(mutate(onRemove(entry.index)))}
         >
           <X className="size-2.5" />
@@ -306,4 +301,4 @@ function PlaylistCard({
   );
 }
 
-export default PlaylistPanel;
+export default PlaylistBody;

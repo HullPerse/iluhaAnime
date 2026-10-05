@@ -1317,10 +1317,24 @@ impl TorrentManager {
             .into_iter()
             .find(|torrent| torrent.id == id)
             .map(|torrent| torrent.name);
-        let magnet = build_magnet(info_hash, trackers, name.as_deref())?;
-        // The metainfo with its announce list replaced goes back in without the fallback
-        // trackers: those are exactly what a tracker edit is removing.
-        let source = self.tracker_source(id, info_hash, name.as_deref(), trackers);
+        // Re-merge the global fallback layer so a tracker edit cannot strip the safety net
+        // that `with_fallback_trackers` injected at add time. An empty set stays empty:
+        // removing the last tracker is how a user asks for a trackerless (DHT-only) torrent.
+        let mut merged: Vec<String> = trackers.to_vec();
+        if !merged.is_empty() {
+            let mut known: std::collections::HashSet<String> = merged
+                .iter()
+                .map(|tracker| canonical_or_raw_tracker(tracker))
+                .collect();
+            for fallback in FALLBACK_TRACKERS {
+                let canonical = canonical_or_raw_tracker(fallback);
+                if known.insert(canonical.clone()) {
+                    merged.push(canonical);
+                }
+            }
+        }
+        let magnet = build_magnet(info_hash, &merged, name.as_deref())?;
+        let source = self.tracker_source(id, info_hash, name.as_deref(), &merged);
         let rollback = self
             .torrent_source(id)
             .unwrap_or_else(|| TorrentSource::Magnet(magnet.clone()));
@@ -1400,7 +1414,9 @@ impl TorrentManager {
             .await
     }
 
-    const METADATA_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
+    // Four minutes: DHT bootstrap on a small swarm can take well over 30 s, and a timeout
+    // here drops the add (librqbit cancels the metadata fetch when the future is dropped).
+    const METADATA_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(120);
 
     async fn get_torrent_info_inner(
         self: &Arc<Self>,

@@ -89,6 +89,9 @@ export interface SettingsStore {
   searchTabEnabled: boolean;
   torrentTabEnabled: boolean;
   playerTabEnabled: boolean;
+  lobbyTabEnabled: boolean;
+  /** Embed https image links from lobby chat messages as previews. */
+  chatImagePreviews: boolean;
   tmdbKeySet: boolean;
   tmdbPendingKey: string | null;
   tmdbProxyUrl: string | null;
@@ -153,7 +156,14 @@ export interface SessionConfigPayload {
   fileOrder: FileOrder;
 }
 
-export type TabId = "search" | "torrent" | "player" | "anilist" | "collection" | "settings";
+export type TabId =
+  | "search"
+  | "torrent"
+  | "player"
+  | "anilist"
+  | "collection"
+  | "lobby"
+  | "settings";
 
 export type SettingsDefaults = Omit<
   SettingsStore,
@@ -173,6 +183,7 @@ export type TabSettings = Pick<
   | "searchTabEnabled"
   | "torrentTabEnabled"
   | "playerTabEnabled"
+  | "lobbyTabEnabled"
 >;
 
 export type ChangelogScope =

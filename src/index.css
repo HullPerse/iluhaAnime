@@ -1,4 +1,7 @@
 @import "tailwindcss";
+/* Tailwind v4 does not scan node_modules by default; the emoji picker
+   (@ferrucc-io/emoji-picker) ships Tailwind classes that must be generated. */
+@source "../node_modules/@ferrucc-io/emoji-picker";
 
 @font-face {
   font-family: "Perfect DOS VGA 437";
@@ -134,6 +137,8 @@
   --color-torrent-done: var(--color-success);
   --color-torrent-error: var(--color-destructive);
   --color-torrent-idle: var(--color-muted);
+  /* Awaiting metadata: busy teal, distinct from the downloading blue. */
+  --color-torrent-initializing: #0891b2;
   /* Files gone: neither an error nor idle, so it gets its own amber. */
   --color-torrent-missing: #b8860b;
   --color-graph-default: var(--color-muted);
@@ -189,6 +194,7 @@
   --color-torrent-done: var(--color-torrent-done);
   --color-torrent-error: var(--color-torrent-error);
   --color-torrent-idle: var(--color-torrent-idle);
+  --color-torrent-initializing: var(--color-torrent-initializing);
   --color-torrent-missing: var(--color-torrent-missing);
   --color-graph-default: var(--color-graph-default);
   --color-graph-light: var(--color-graph-light);
@@ -273,6 +279,36 @@
     inset 1px 1px 0 var(--color-win-highlight),
     inset -1px -1px 0 var(--color-win-shadow),
     1px 1px 0 var(--color-win-shadow);
+}
+
+/*
+ * Windows 95 progress fill: a repeating block mask over the fill. Fixed 8px blocks plus a 2px
+ * gap keep the brick size constant no matter how wide the bar is; a partially filled block at
+ * the progress edge shows up, as in the original control. Cut, not recolored: the fill's own
+ * background class supplies the colour.
+ */
+.progress-blocks {
+  -webkit-mask-image: repeating-linear-gradient(90deg, #000000 0px 8px, transparent 8px 10px);
+  mask-image: repeating-linear-gradient(90deg, #000000 0px 8px, transparent 8px 10px);
+}
+
+/*
+ * Indeterminate sweep for bars without a measurable value yet (a magnet awaiting metadata):
+ * a fixed-width block chunk marches across the track. translateX percentages are relative to
+ * the chunk's own width, so -100% to 250% carries a 40%-wide chunk exactly from just left of
+ * the track to just past its right edge.
+ */
+@keyframes progress-indeterminate {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(250%);
+  }
+}
+
+.animate-indeterminate {
+  animation: progress-indeterminate 1.4s linear infinite;
 }
 
 .windows95-text {

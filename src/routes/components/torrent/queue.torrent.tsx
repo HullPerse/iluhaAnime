@@ -11,6 +11,7 @@ import { ChevronDown, ChevronUp, GripVertical } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import Modal from "@/components/shared/modal.component";
+import ProgressBar from "@/components/shared/progress.component";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { groupFilesByDirectory } from "@/lib/torrent/tree.utils";
@@ -86,12 +87,7 @@ function QueueRow({
           {t("torrent.queue.current")}
         </span>
       )}
-      <span className="bg-surface windows95-border h-3 w-10 shrink-0">
-        <span
-          className="bg-secondary block h-full transition-[width] duration-500"
-          style={{ width: `${percent}%` }}
-        />
-      </span>
+      <ProgressBar value={percent} max={100} className="h-3 w-10 shrink-0" />
       <span className="text-hint shrink-0 whitespace-nowrap">{formatBytes(file.size)}</span>
       <Button
         size="icon"

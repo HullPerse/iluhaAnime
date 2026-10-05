@@ -103,6 +103,8 @@ export const DEFAULT_SETTINGS: SettingsDefaults = {
   searchTabEnabled: true,
   torrentTabEnabled: true,
   playerTabEnabled: true,
+  lobbyTabEnabled: true,
+  chatImagePreviews: true,
   searchSymSpellEnabled: true,
   searchIntentEnabled: true,
   tagTolerances: { ...DEFAULT_TAG_TOLERANCES },

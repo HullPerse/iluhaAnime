@@ -185,6 +185,7 @@ export type TorrentDisplayState =
   | "error"
   | "stalled"
   | "paused"
+  | "initializing"
   | "missing";
 
 export type TorrentLifecycle = "staging" | "live" | "paused" | "seeding" | "completed";

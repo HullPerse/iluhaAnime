@@ -56,6 +56,7 @@ const lobby = {
   "lobby.roster.promote": "Make moderator",
   "lobby.roster.demote": "Make viewer",
   "lobby.roster.left": "left",
+  "lobby.roster.anilistProfile": "Open AniList profile",
   "lobby.roster.missingFiles": "Missing {{count}}",
   "lobby.roster.stats": "{{rtt}} ms ping, {{drift}} ms drift",
   "lobby.chat.title": "Chat",

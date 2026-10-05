@@ -56,6 +56,7 @@ const lobby = {
   "lobby.roster.promote": "Сделать модератором",
   "lobby.roster.demote": "Сделать зрителем",
   "lobby.roster.left": "ушёл",
+  "lobby.roster.anilistProfile": "Открыть профиль AniList",
   "lobby.roster.missingFiles": "Нет {{count}}",
   "lobby.roster.stats": "{{rtt}} мс пинг, {{drift}} мс дрейф",
   "lobby.chat.title": "Чат",

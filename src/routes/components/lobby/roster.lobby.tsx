@@ -1,3 +1,4 @@
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { cn } from "cn";
 
 import { Button } from "@/components/ui/button.component";
@@ -20,6 +21,16 @@ interface RosterLobbyProps {
 function avatarLetter(name: string): string {
   const trimmed = name.trim();
   return trimmed.length > 0 ? trimmed.charAt(0).toUpperCase() : "?";
+}
+
+function anilistProfileUrl(userId: number): string {
+  return `https://anilist.co/user/${userId}`;
+}
+
+function openAniListProfile(userId: number): void {
+  openUrl(anilistProfileUrl(userId)).catch((error: unknown) => {
+    console.warn("[lobby] open AniList profile failed", error);
+  });
 }
 
 function roleKey(role: LobbyRole): TranslationKey {
@@ -55,20 +66,34 @@ export default function RosterLobby({
           </p>
         ) : (
           <ul className="flex flex-col gap-1">
-            {peers.map((peer) => (
-              <li
-                className={cn(
-                  "flex items-center gap-2 p-1",
-                  peer.left && "opacity-60"
-                )}
-                key={peer.peerId}
-              >
-                <span
-                  aria-hidden
-                  className="windows95-border bg-primary text-text windows95-text flex size-6 shrink-0 items-center justify-center font-bold"
+            {peers.map((peer) => {
+              const anilistUserId = peer.anilistUserId;
+              return (
+                <li
+                  className={cn(
+                    "flex items-center gap-2 p-1",
+                    peer.left && "opacity-60"
+                  )}
+                  key={peer.peerId}
                 >
-                  {avatarLetter(peer.displayName)}
-                </span>
+                {anilistUserId === null ? (
+                  <span
+                    aria-hidden
+                    className="windows95-border bg-primary text-text windows95-text flex size-6 shrink-0 items-center justify-center font-bold"
+                  >
+                    {avatarLetter(peer.displayName)}
+                  </span>
+                ) : (
+                  <button
+                    aria-label={t("lobby.roster.anilistProfile")}
+                    className="windows95-border bg-primary text-text windows95-text flex size-6 shrink-0 cursor-pointer items-center justify-center font-bold"
+                    title={t("lobby.roster.anilistProfile")}
+                    type="button"
+                    onClick={() => openAniListProfile(anilistUserId)}
+                  >
+                    {avatarLetter(peer.displayName)}
+                  </button>
+                )}
                 <span className="flex min-w-0 flex-1 flex-col">
                   <span className="windows95-text text-text truncate text-xs font-bold">
                     {peer.displayName}
@@ -120,8 +145,9 @@ export default function RosterLobby({
                     {peer.role === "moderator" ? "−" : "+"}
                   </Button>
                 )}
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>

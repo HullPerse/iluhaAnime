@@ -6,6 +6,12 @@ import RosterLobby from "@/routes/components/lobby/roster.lobby";
 import { useSettingsStore } from "@/store/settings.store";
 import type { PeerInfo } from "@/types/session";
 
+const openUrlMock = vi.hoisted(() => vi.fn());
+
+vi.mock("@tauri-apps/plugin-opener", () => ({
+  openUrl: openUrlMock,
+}));
+
 function peer(overrides: Partial<PeerInfo> = {}): PeerInfo {
   return {
     anilistUserId: null,
@@ -25,6 +31,7 @@ function peer(overrides: Partial<PeerInfo> = {}): PeerInfo {
 }
 
 beforeEach(() => {
+  openUrlMock.mockReset();
   useSettingsStore.setState({ language: "en" });
 });
 
@@ -164,5 +171,30 @@ describe("RosterLobby", () => {
     expect(screen.getByText("Alice")).toBeTruthy();
     expect(screen.getByText("Bob")).toBeTruthy();
     expect(screen.getByText("Cara")).toBeTruthy();
+  });
+
+  it("opens the AniList profile when the avatar is clicked", async () => {
+    const user = userEvent.setup();
+    openUrlMock.mockResolvedValue(undefined);
+    render(
+      <RosterLobby
+        peers={[peer({ anilistUserId: 7, displayName: "Alice" })]}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: "Open AniList profile" }));
+
+    expect(openUrlMock).toHaveBeenCalledTimes(1);
+    expect(openUrlMock).toHaveBeenCalledWith("https://anilist.co/user/7");
+  });
+
+  it("renders a plain avatar with no profile link when the id is missing", () => {
+    render(<RosterLobby peers={[peer({ anilistUserId: null })]} />);
+
+    expect(screen.getByText("A")).toBeTruthy();
+    expect(
+      screen.queryByRole("button", { name: "Open AniList profile" })
+    ).toBeNull();
+    expect(openUrlMock).not.toHaveBeenCalled();
   });
 });

@@ -20,7 +20,7 @@ describe("resolveAnimeTitle", () => {
       resolveAnimeTitle({ romaji: "R", english: null, native: "N" }, "english")
     ).toBe("R");
     expect(
-      resolveAnimeTitle({ romaji: null, english: null, native: "N" }, "romaji")
+      resolveAnimeTitle({ romaji: "", english: null, native: "N" }, "romaji")
     ).toBe("N");
   });
 

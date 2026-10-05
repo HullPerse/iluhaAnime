@@ -32,6 +32,7 @@ export default function SettingsGeneral() {
     tmdbKeySet,
     tmdbProxyUrl,
     anilistProxyUrl,
+    anilistTitleLanguage,
     ffmpegSource,
     patch,
   } = useSettingsStore();
@@ -432,6 +433,24 @@ export default function SettingsGeneral() {
                   </span>
                 )}
               </div>
+            </div>
+            <span className="windows95-text text-text flex items-center text-xs font-bold">
+              {t("settings.anilist.title.language")}
+            </span>
+            <div className="flex flex-col gap-0.5">
+              <Select
+                value={anilistTitleLanguage}
+                onChange={(value) =>
+                  patch({ anilistTitleLanguage: value as SettingsStore["anilistTitleLanguage"] })
+                }
+                options={[
+                  { value: "account", label: t("settings.anilist.title.account") },
+                  { value: "romaji", label: t("settings.anilist.title.romaji") },
+                  { value: "english", label: t("settings.anilist.title.english") },
+                  { value: "native", label: t("settings.anilist.title.native") },
+                ]}
+                className="w-52"
+              />
             </div>
           </div>
         </div>

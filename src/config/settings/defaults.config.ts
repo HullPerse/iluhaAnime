@@ -97,6 +97,7 @@ export const DEFAULT_SETTINGS: SettingsDefaults = {
   tmdbPendingKey: null as string | null,
   tmdbProxyUrl: null as string | null,
   anilistProxyUrl: null as string | null,
+  anilistTitleLanguage: "account",
   torrentProxyUrl: null as string | null,
   collectionTabEnabled: true,
   anilistTabEnabled: true,

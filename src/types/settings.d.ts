@@ -1,4 +1,4 @@
-import type { AniListSort } from "./anilist";
+import type { AniListSort, AniTitlePreference } from "./anilist";
 import type { Locale, TranslationKey } from "./i18n";
 import type { ScreenshotFormat } from "./screenshot";
 import type { AutocompleteMode, SearchType, TagToleranceKey } from "./search";
@@ -96,6 +96,7 @@ export interface SettingsStore {
   tmdbPendingKey: string | null;
   tmdbProxyUrl: string | null;
   anilistProxyUrl: string | null;
+  anilistTitleLanguage: AniTitlePreference;
   ffmpegSource: "essentials" | "github" | "github-mirror";
   searchSymSpellEnabled: boolean;
   searchIntentEnabled: boolean;

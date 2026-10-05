@@ -430,3 +430,20 @@ describe("yorha grid v29 migration", () => {
     expect(document.documentElement.dataset.yorhaScanlines).toBe("on");
   });
 });
+
+describe("anilist title language preference", () => {
+  it("defaults to the AniList account value", async () => {
+    const { DEFAULT_SETTINGS } = await import("@/config/settings/defaults.config");
+
+    expect(DEFAULT_SETTINGS.anilistTitleLanguage).toBe("account");
+  });
+
+  it("round-trips through the settings store", () => {
+    useSettingsStore.setState({ anilistTitleLanguage: "account" });
+    useSettingsStore.getState().patch({ anilistTitleLanguage: "native" });
+
+    expect(useSettingsStore.getState().anilistTitleLanguage).toBe("native");
+
+    useSettingsStore.getState().patch({ anilistTitleLanguage: "account" });
+  });
+});

@@ -9,6 +9,8 @@ export const queryKeys = {
   torrentListenPort: () => ["torrent-listen-port"] as const,
   animeDetail: (id: number, proxy: string, loggedIn: boolean) =>
     ["anime_detail", id, proxy, loggedIn ? 1 : 0] as const,
+  animeInlineSearch: (query: string) => ["anime_inline_search", query] as const,
+  animeBrief: (id: number) => ["anime_brief", id] as const,
   animeFranchise: (id: number) => ["franchise", id] as const,
   animeRecommendations: (id: number) => ["anime_recommendations", id] as const,
   animeShowcase: (id: number, tmdb: number, proxy: string) =>

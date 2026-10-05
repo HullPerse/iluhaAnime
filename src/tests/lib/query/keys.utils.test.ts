@@ -18,6 +18,18 @@ describe("queryKeys", () => {
     expect(queryKeys.animeDetail(1, "a", true)).not.toEqual(queryKeys.animeDetail(1, "b", true));
   });
 
+  it("keys inline anime search by the debounced query", () => {
+    expect(queryKeys.animeInlineSearch("frie")).toEqual(["anime_inline_search", "frie"]);
+    expect(queryKeys.animeInlineSearch("frie")).not.toEqual(
+      queryKeys.animeInlineSearch("frier")
+    );
+  });
+
+  it("keys anime briefs by id", () => {
+    expect(queryKeys.animeBrief(21)).toEqual(["anime_brief", 21]);
+    expect(queryKeys.animeBrief(21)).not.toEqual(queryKeys.animeBrief(22));
+  });
+
   it("keeps collection data on a single shared key", () => {
     expect(queryKeys.collectionData()).toEqual(["collection-data"]);
   });

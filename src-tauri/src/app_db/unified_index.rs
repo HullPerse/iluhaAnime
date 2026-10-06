@@ -59,8 +59,7 @@ pub fn normalize_index_text(value: &str) -> String {
     trimmed.chars().take(256).collect()
 }
 pub fn build_fts_match_query(normalized: &str) -> String {
-    // Fold directly into the output: avoids the intermediate Vec of
-    // per-token Strings on a query path that runs per keystroke.
+    // Fold into output; per-keystroke query path avoids intermediate Vec.
     let mut out = String::with_capacity(normalized.len() + 16);
     for token in normalized
         .split_whitespace()
@@ -121,9 +120,7 @@ pub fn upsert_unified_index(
     let transaction = connection
         .unchecked_transaction()
         .map_err(|error| format!("unified index transaction: {error}"))?;
-    // Prepared once for the whole batch: bulk upserts carry up to 5000
-    // entries and re-preparing per row dominated the loop. Scoped so
-    // the statement drops before the transaction commits.
+    // Prepare once per batch (up to 5000 rows); scoped to drop before commit.
     let now = now_seconds();
     {
         let mut statement = transaction
@@ -193,8 +190,7 @@ pub fn prune_unified_index_scope(
         rows
     };
     let mut removed = 0usize;
-    // Prepared once: the old code re-prepared the DELETE per stale row.
-    // Scoped so the statement drops before the transaction commits.
+    // Prepare DELETE once; scoped to drop before commit.
     {
         let mut delete = transaction
             .prepare("DELETE FROM unified_index WHERE scope = ?1 AND id = ?2")

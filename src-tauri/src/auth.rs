@@ -144,8 +144,7 @@ fn session_is_logged_in(text: &str) -> bool {
 
 async fn read_body_limited(resp: reqwest::Response) -> Result<Vec<u8>, String> {
     use futures::StreamExt;
-    // Small initial capacity: login pages are a few KB, the 2MB cap
-    // bounds the worst case. Avoids the first reallocs per chunk.
+    // 8 KiB initial; 2 MiB cap bounds worst case.
     let mut body = Vec::with_capacity(8 * 1024);
     let mut stream = resp.bytes_stream();
     while let Some(chunk) = stream.next().await {

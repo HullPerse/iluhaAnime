@@ -34,15 +34,9 @@ pub fn is_safe_relative_path(name: &str) -> bool {
             .all(|component| matches!(component, std::path::Component::Normal(_)))
 }
 
-/// The order a torrent's files are shown in, as indices into `names`.
-///
-/// The list is a tree: at every directory level the files come first, sorted by name, then the
-/// sub-folders, sorted by name. Names compare case-insensitively, the way the UI's
-/// `localeCompare` sorts them. Sequential mode walks this order, so "the first file" means the
-/// first row the user sees and not the first entry of the metainfo, whose order is arbitrary.
+/// Files-first tree order matching UI localeCompare; sequential mode walks this order.
 pub fn display_order(names: &[String]) -> Vec<usize> {
-    /// One path component: `0` for the file itself and `1` for a directory, plus the lowercase
-    /// name. Files sort before directories on the same level, which is what the tree view does.
+    /// (0=file,1=dir,lowercase name): files sort before dirs like tree view.
     type Key = (u8, String);
 
     fn key(name: &str) -> Vec<Key> {
@@ -67,12 +61,7 @@ pub fn display_order(names: &[String]) -> Vec<usize> {
     keyed.into_iter().map(|(_, _, index)| index).collect()
 }
 
-/// The order files are downloaded in, as indices into `names`.
-///
-/// `queue` is the arrangement the user made for this torrent, and comes first: whatever is in it
-/// is fetched in that order, and only then does the rest follow the global order. Entries that do
-/// not name a file - or name one twice - are dropped rather than trusted, because the queue is
-/// stored per info hash and outlives any single metainfo.
+/// User queue first, then global order; drops unknown/duplicate indices (queue outlives metainfo).
 pub fn download_order(names: &[String], order: FileOrder, queue: &[usize]) -> Vec<usize> {
     let base: Vec<usize> = match order {
         FileOrder::List => display_order(names),
@@ -95,23 +84,15 @@ pub fn download_order(names: &[String], order: FileOrder, queue: &[usize]) -> Ve
     result
 }
 
-/// What sequential mode should do for one torrent right now.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SequentialPlan {
     /// Every file the mode may download, in the order the list shows them.
     pub allowed: Vec<usize>,
-    /// The file to fetch next: the first incomplete entry of `allowed`. `None` once everything
-    /// the user selected is on disk.
+    /// First incomplete entry of allowed; None when selection complete.
     pub target: Option<usize>,
 }
 
-/// Plans the next step of sequential mode from one torrent's state.
-///
-/// `priorities` is the app's per-file selection and wins when it matches the file count;
-/// `only_files` is a selection that has not been turned into priorities yet. The session's own
-/// `only_files` is deliberately not accepted here: sequential mode narrows it to a single file,
-/// so planning from it would see only that file and never move on. `queue` is the order the user
-/// arranged in the queue window, empty when they have not touched it.
+/// Prefers priorities (when count matches), else `only_files`; never session `only_files` (narrowed to single file).
 pub fn plan_sequential(
     names: &[String],
     lengths: &[u64],
@@ -199,8 +180,7 @@ pub fn ensure_minimum_free_space(path: &Path) -> Result<()> {
     Ok(())
 }
 
-// Probe-verified reachable from this machine on 2026-10-03; `tracker.openbittorrent.com` and
-// `tracker.tamersunion.org` are dead (connect-timeout / 000) and were dropped.
+// Probe-verified 2026-10-03; openbittorrent/tamersunion dead, dropped.
 pub const FALLBACK_TRACKERS: &[&str] = &[
     "http://bt2.t-ru.org/ann",
     "udp://tracker.opentrackr.org:1337/announce",
@@ -278,14 +258,7 @@ pub fn with_fallback_trackers_bytes(bytes: &[u8]) -> Vec<u8> {
     out
 }
 
-/// Rewrites the metainfo so its announce list is exactly `trackers`, keeping the info dict (and
-/// with it the info hash, the piece layout and every file entry) untouched.
-///
-/// This is what makes a tracker change an in-memory re-add: the bytes are already in the session,
-/// so putting the torrent back needs no peers, cannot fail because the swarm is unreachable and
-/// cannot lose the torrent the way a magnet that has to resolve its metadata again can.
-/// An empty list is allowed and produces a trackerless torrent, which is what removing the last
-/// tracker means.
+/// Rewrites announce list only (info hash untouched); empty list yields trackerless torrent.
 pub fn with_trackers_bytes(bytes: &[u8], trackers: &[String]) -> Result<Vec<u8>, String> {
     let torrent = torrent_from_bytes(bytes)
         .map_err(|error| format!("Invalid torrent metainfo: {error:#}"))?;
@@ -323,10 +296,7 @@ pub fn validate_tracker_url(raw: &str) -> Result<String, String> {
     Ok(parsed.to_string())
 }
 
-/// Normalizes a tracker to the exact string librqbit echoes back from
-/// ``handle.shared().trackers``, so user input and live trackers compare equal.
-/// Returns `None` for anything that does not parse, so callers can keep such an
-/// entry instead of dropping a tracker from the set.
+/// Normalizes to librqbit tracker string for comparison; None keeps unparseable entries.
 pub fn canonical_tracker_url(raw: &str) -> Option<String> {
     validate_tracker_url(raw).ok()
 }
@@ -337,12 +307,7 @@ pub fn canonical_or_raw_tracker(raw: &str) -> String {
 
 const MAX_PROXY_URL_LEN: usize = 512;
 
-/// Prepares a user-entered proxy for the torrent session, or `None` when none is set.
-///
-/// librqbit parses this value with `SocksProxyConfig::parse`, which accepts the `socks5` scheme
-/// only and aborts session creation for anything else, so the `socks5h` form the search clients
-/// prefer is normalized here. Peer addresses reach this path as literal IPs, so remote DNS
-/// resolution buys nothing for peers and would cost the whole session when rejected.
+/// Normalizes to socks5 (librqbit rejects others); peer IPs need no remote DNS.
 pub fn torrent_proxy_url(raw: &str) -> Result<Option<String>, String> {
     let trimmed = raw.trim();
     if trimmed.is_empty() {
@@ -365,8 +330,7 @@ pub fn torrent_proxy_url(raw: &str) -> Result<Option<String>, String> {
     Ok(Some(format!("socks5://{rest}")))
 }
 
-/// Rejects a session config that would break session startup, instead of persisting it and
-/// discovering the problem on the next launch when `Session::new_with_opts` fails outright.
+/// Rejects configs that would fail `Session::new_with_opts` on next launch.
 pub fn validate_session_config(mut config: SessionConfig) -> Result<SessionConfig, String> {
     config.proxy_url = match config.proxy_url.as_deref() {
         Some(raw) => torrent_proxy_url(raw)?,
@@ -375,8 +339,7 @@ pub fn validate_session_config(mut config: SessionConfig) -> Result<SessionConfi
     Ok(config)
 }
 
-/// Whether a string is a 20-byte info hash in hex, the shape every per-torrent setting is keyed
-/// by.
+/// 40 hex chars; per-torrent settings key shape.
 pub fn is_info_hash(value: &str) -> bool {
     value.len() == 40 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
@@ -424,7 +387,6 @@ mod tracker_tests {
             "Show/Extras/Interview.mkv",
             "cover.jpg",
         ]));
-        // Root files first, then the folder's own files by name, then its sub-folders.
         assert_eq!(order, vec![3, 1, 0, 2]);
     }
 
@@ -439,7 +401,6 @@ mod tracker_tests {
 
     #[test]
     fn plan_sequential_picks_the_first_file_by_name_not_by_index() {
-        // Metainfo order is scrambled: the sixth episode sits at index 0.
         let names = names(&["Show - 06.mkv", "Show - 01.mkv", "Show - 02.mkv"]);
         let lengths = vec![10, 10, 10];
         let progress = vec![0, 0, 0];
@@ -465,7 +426,6 @@ mod tracker_tests {
         let names = names(&["Show - 06.mkv", "Show - 01.mkv", "Show - 02.mkv"]);
         let lengths = vec![10, 10, 10];
         let progress = vec![0, 0, 0];
-        // Torrent order is what the other clients call sequential: the torrent's own file order.
         let plan = plan_sequential(
             &names,
             &lengths,
@@ -502,8 +462,6 @@ mod tracker_tests {
         assert_eq!(plan.allowed, vec![1, 2]);
         assert_eq!(plan.target, Some(1));
 
-        // A selection that has not been turned into priorities yet must work just as well, and
-        // must never pick a file the user left out.
         let pending = vec![2usize];
         let plan = plan_sequential(
             &names,
@@ -517,7 +475,6 @@ mod tracker_tests {
         assert_eq!(plan.allowed, vec![2]);
         assert_eq!(plan.target, Some(2));
 
-        // Priorities from a different file count are stale and must not filter anything out.
         let stale = vec![FilePriority::DoNotDownload];
         let plan = plan_sequential(
             &names,
@@ -560,7 +517,6 @@ mod tracker_tests {
 
     #[test]
     fn plan_sequential_follows_the_queue_the_user_arranged() {
-        // Names sort to 1, 2, 0, which is what the torrent would use on its own.
         let names = names(&["Show - 06.mkv", "Show - 01.mkv", "Show - 02.mkv"]);
         let lengths = vec![10, 10, 10];
         let progress = vec![0, 0, 0];
@@ -581,7 +537,6 @@ mod tracker_tests {
         );
         assert_eq!(plan.target, Some(0));
 
-        // A file that is not in the queue still follows it instead of being dropped.
         let plan = plan_sequential(
             &names,
             &lengths,
@@ -599,7 +554,6 @@ mod tracker_tests {
         let names = names(&["Show - 01.mkv", "Show - 02.mkv"]);
         let lengths = vec![10, 10];
         let progress = vec![0, 0];
-        // Stale indices from a metainfo that changed, and a repeat.
         let plan = plan_sequential(
             &names,
             &lengths,
@@ -617,7 +571,6 @@ mod tracker_tests {
         let names = names(&["Show - 06.mkv", "Show - 01.mkv"]);
         assert_eq!(download_order(&names, FileOrder::List, &[]), vec![1, 0]);
         assert_eq!(download_order(&names, FileOrder::Torrent, &[]), vec![0, 1]);
-        // Same list, now with an arrangement: it wins outright.
         assert_eq!(download_order(&names, FileOrder::List, &[0]), vec![0, 1]);
     }
 

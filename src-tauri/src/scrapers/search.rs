@@ -200,8 +200,7 @@ async fn search_nyaa_impl(
             continue;
         }
 
-        // Borrowed when the page is valid UTF-8: avoids copying
-        // a multi-hundred-KB page just to parse it.
+        // Borrow UTF-8 pages to avoid copying.
         let html = String::from_utf8_lossy(&bytes);
         if is_cloudflare_challenge(&html) {
             let host = if base_url.contains("sukebei") {

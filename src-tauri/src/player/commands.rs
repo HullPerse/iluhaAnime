@@ -130,9 +130,7 @@ fn load_queue(
     Ok(())
 }
 
-/// Manual opens are banned while a Watch Party session runs; only
-/// room-driven plan starts may replace the player source, even when the
-/// room has not started broadcasting yet.
+/// Manual opens blocked in session; only room-driven starts may replace source.
 const fn manual_open_blocked(session_active: bool, room_driven: bool) -> bool {
     session_active && !room_driven
 }

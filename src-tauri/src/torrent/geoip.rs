@@ -1,17 +1,4 @@
-//! Country lookup for peer addresses, backed by a compact range table.
-//!
-//! The data is the DB-IP Lite country database (CC-BY-4.0, <https://db-ip.com>), packed
-//! by `scripts/build-geoip.ts` and embedded in the binary. Lookups stay local on purpose:
-//! asking a third-party API about a peer's address would leak the swarm, and the app has
-//! to keep working offline.
-//!
-//! Format (see the generator for the writer side): a 15 byte header, the country table,
-//! then range starts as varint deltas with a parallel country index per range. Ranges are
-//! contiguous by construction, so a lookup is "the last range that starts at or before
-//! the address" - no end bound is stored.
-//!
-//! The table is decoded on first use (a few milliseconds, a few megabytes) and then kept
-//! for the process lifetime. Regenerating it is `bun scripts/build-geoip.ts`.
+//! Local DB-IP Lite country table (scripts/build-geoip.ts); last-start-wins lookup, decoded once.
 use std::io::Read;
 use std::net::{IpAddr, SocketAddr};
 use std::sync::OnceLock;
@@ -19,7 +6,7 @@ use std::sync::OnceLock;
 const MAGIC: &[u8; 4] = b"ILG1";
 const VERSION: u8 = 1;
 const HEADER_LEN: usize = 15;
-/// Country the generator writes for addresses outside every known range.
+/// Generator's out-of-range marker.
 const UNKNOWN: &str = "XX";
 
 const PACKED: &[u8] = include_bytes!("../../data/geoip-v1.bin.gz");
@@ -62,8 +49,7 @@ fn take<'a>(bytes: &'a [u8], cursor: &mut usize, count: usize) -> Result<&'a [u8
     Ok(slice)
 }
 
-/// Range starts are stored as deltas from the previous start, the first from zero. A zero
-/// delta past the first entry would mean two ranges at the same address.
+/// Delta-encoded starts; zero delta past first means duplicate range.
 fn decode_starts(bytes: &[u8], cursor: &mut usize, count: usize) -> Result<Vec<u128>, String> {
     let mut starts = Vec::with_capacity(count);
     let mut previous: u128 = 0;
@@ -94,8 +80,7 @@ impl Table {
         let country_count = usize::from(u16::from_le_bytes([bytes[5], bytes[6]]));
         let v4_count = u32::from_le_bytes([bytes[7], bytes[8], bytes[9], bytes[10]]) as usize;
         let v6_count = u32::from_le_bytes([bytes[11], bytes[12], bytes[13], bytes[14]]) as usize;
-        // Every range costs at least one varint byte and one country byte, so a count
-        // larger than the payload can only be a corrupt file - and must not be allocated.
+        // Counts exceeding payload are corrupt; never allocate.
         if v4_count.saturating_mul(2) > bytes.len() || v6_count.saturating_mul(2) > bytes.len() {
             return Err("country table counts exceed the payload".to_string());
         }
@@ -180,8 +165,7 @@ fn table() -> Option<&'static Table> {
         .as_ref()
 }
 
-/// ISO 3166-1 alpha-2 code for the address, or `None` when the address has no country
-/// (private, reserved, or simply absent from the database).
+/// ISO 3166-1 alpha-2, or None (private/reserved/absent).
 pub fn country_code(ip: IpAddr) -> Option<&'static str> {
     // The table outlives the process, so the reborrow below is already `'static`.
     let table = table()?;
@@ -191,8 +175,7 @@ pub fn country_code(ip: IpAddr) -> Option<&'static str> {
     }
 }
 
-/// Country for the address strings the session reports, such as `1.2.3.4:6881` or
-/// `[2001:db8::1]:6881`.
+/// Country for session socket-address strings.
 pub fn country_code_for_addr(addr: &str) -> Option<&'static str> {
     let ip = addr.parse::<SocketAddr>().ok()?.ip();
     country_code(ip)
@@ -274,8 +257,7 @@ mod tests {
 
     #[test]
     fn resolves_the_embedded_database() {
-        // IPv4 answers are stable; IPv6 in this dataset is registration based and coarser,
-        // so it is only checked for "resolves at all".
+        // IPv6 is coarse here; only checked for resolution.
         assert_eq!(country_code("8.8.8.8".parse().unwrap()), Some("US"));
         assert_eq!(country_code("77.88.55.88".parse().unwrap()), Some("RU"));
         assert_eq!(

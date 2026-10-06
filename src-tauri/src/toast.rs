@@ -1,16 +1,11 @@
-//! Native toasts that report their click back to the webview.
-//!
-//! `tauri-plugin-notification` cannot: its `onAction` API is mobile-only and desktop
-//! `sendNotification` never surfaces a click. Toasts therefore go through
-//! `tauri-winrt-notification`, which keeps the activation handler on the notification object and
-//! lets us emit `notification-activated` with the action the caller attached.
+//! Native toasts via winrt (plugin cannot report desktop clicks).
 
 use serde::{Deserialize, Serialize};
 use tauri::Emitter;
 
 pub const ACTIVATED_EVENT: &str = "notification-activated";
 
-/// What a toast click should lead to. Mirrors `NotificationTarget` on the TypeScript side.
+/// Mirrors frontend `NotificationTarget`.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(tag = "source", rename_all = "lowercase")]
 pub enum ToastAction {
@@ -43,9 +38,7 @@ pub fn show_toast(
     toast.show().map_err(|error| error.to_string())
 }
 
-/// The `AppUserModelID` the toast is attributed to. Dev builds run from `target/<profile>`, where
-/// the notification plugin also skips its identifier, so the toast falls back to the id the crate
-/// offers for unpackaged apps.
+/// Dev builds run from target/; falls back to unpackaged-app id.
 #[cfg(windows)]
 fn toast_app_id(app: &tauri::AppHandle) -> String {
     use tauri_winrt_notification::Toast;

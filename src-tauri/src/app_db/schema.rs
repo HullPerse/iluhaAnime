@@ -767,8 +767,7 @@ mod tests {
             )
             .expect("insert seconds row");
 
-        // A real v14 database predates the v16 and v19 columns, so drop them to replay v15
-        // faithfully.
+        // Simulate v14 schema (drop v16/v19 columns) to replay v15.
         connection
             .execute_batch(
                 "ALTER TABLE collection_items DROP COLUMN release_date;

@@ -6,9 +6,7 @@ pub enum FilePriority {
     Normal,
 }
 
-/// The order files are listed in, which is also the order sequential mode downloads them in:
-/// the two have to be read off the same setting, otherwise the mode starts on a file the user
-/// does not see first.
+/// List order = sequential download order (single setting, or mode starts on unseen file).
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, Default, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum FileOrder {
@@ -36,16 +34,12 @@ pub struct TorrentCheckResult {
     pub total: usize,
 }
 
-/// What a resume turned out to be. The files are snapshotted when a torrent is paused, so a
-/// resume can tell "nothing happened" from "another client wrote to these files meanwhile": the
-/// first unpauses straight away, the second re-verifies the torrent from disk first.
+/// Resume outcome; snapshot at pause distinguishes unpause from re-verify.
 #[derive(Serialize, Clone, Debug)]
 pub struct TorrentResumeResult {
-    /// The torrent's id after the resume. Re-verifying removes and re-adds the torrent, which
-    /// normally hands back the same id, but the field carries the real one either way.
+    /// Torrent id after resume (re-verify may re-add).
     pub id: usize,
-    /// True when the files changed while the torrent was paused and it was therefore re-verified
-    /// from disk instead of just unpaused.
+    /// True when paused files changed, so torrent was re-verified.
     pub rechecked: bool,
     /// Present when `rechecked` is true: what the filesystem pass found on disk.
     pub check: Option<TorrentCheckResult>,
@@ -97,10 +91,9 @@ pub struct CreatedTorrent {
     pub id: usize,
     pub name: String,
     pub info_hash: String,
-    /// Path of the metainfo copy kept in the app data dir, ready to be copied wherever the
-    /// user wants when they press "Save .torrent".
+    /// Cached metainfo copy for "Save .torrent".
     pub torrent_path: String,
-    /// How many files went into the torrent, so the UI can say what was shared.
+    /// File count for UI share message.
     pub file_count: usize,
 }
 
@@ -123,23 +116,15 @@ pub struct TorrentInfo {
     pub error: Option<String>,
     pub save_dir: String,
     pub sequential_download: bool,
-    /// The file sequential mode is pushing to the front right now, if any. The mode keeps every
-    /// selected file in the download and only makes this one jump the picker's queue, so the UI
-    /// shows it as the current step instead of as the only file left selected.
+    /// Current sequential file (queue jump, not sole selection).
     pub sequential_file: Option<usize>,
-    /// The order the user arranged the selected files in, if they arranged any. Sequential mode
-    /// fetches these before the rest, so the queue window can show the list as it will run.
+    /// User-arranged fetch order for queue window.
     pub download_order: Vec<usize>,
-    /// Files the last filesystem check could not find on disk. Refreshed by `recheck_torrent`
-    /// and by the background verification pass, so the UI can tell "files are gone" apart
-    /// from "the tracker died".
+    /// Missing on disk (recheck/background pass; UI distinguishes from tracker failure).
     pub missing_files: bool,
-    /// True while a paused torrent's files no longer match the snapshot taken at pause, i.e.
-    /// another client wrote to them. Refreshed by the paused watcher on each tick, so the UI can
-    /// warn before the user resumes and a re-verification is triggered.
+    /// Paused files changed externally (watcher verdict for resume warning).
     pub paused_external_changes: bool,
-    /// The files behind [`TorrentInfo::paused_external_changes`], named by the same watcher pass.
-    /// Empty when the flag is false.
+    /// Files behind `paused_external_changes`; empty when flag is false.
     pub paused_changed_files: Vec<String>,
 }
 
@@ -158,12 +143,9 @@ pub struct SessionConfig {
     pub enable_upnp: bool,
     #[serde(rename = "disablePersistence")]
     pub disable_persistence: bool,
-    /// SOCKS5 proxy for peer connections and HTTP(S) tracker requests. `default` keeps session
-    /// files written before this field existed loadable; without it serde rejects the whole
-    /// config and every other session setting silently resets to its default.
+    /// SOCKS5 proxy; default keeps pre-field session files loadable.
     #[serde(default, rename = "proxyUrl")]
     pub proxy_url: Option<String>,
-    /// Which order files are listed and downloaded in.
     #[serde(default, rename = "fileOrder")]
     pub file_order: FileOrder,
 }

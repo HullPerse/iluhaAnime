@@ -202,8 +202,7 @@ fn allowed_sqlite_table(database: &str, table: &str) -> bool {
     )
 }
 
-/// Columns that hold an asset id whose image lives in `images/<table>/`.
-/// The schema itself has no image columns anymore: the bytes are files on disk.
+/// Asset-id columns; images are files in images/<table>/.
 fn sqlite_asset_table(table: &str) -> Option<&'static str> {
     match table {
         "user_images" => Some("user_images"),
@@ -221,7 +220,6 @@ fn sqlite_image_asset_table(table: &str, column: &str) -> Option<&'static str> {
         .then_some("user_images")
 }
 
-/// Primary key names plus a `WHERE` clause that isolates a single row.
 fn sqlite_row_where(columns: &[SqliteColumnInfo], keys: &[String]) -> Result<String, String> {
     let primary_keys = columns
         .iter()

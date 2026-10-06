@@ -182,10 +182,7 @@ pub fn import_collection_data(
     Ok(summary)
 }
 
-/// Builds the id for an imported row instead of reusing the exported one. The
-/// nanosecond stamp separates import runs and the row index separates rows inside a
-/// run, so a payload whose ids are blank or repeated cannot collapse into one row.
-/// Truncated to the 128-character limit enforced by `insert_collection_item_connection`.
+/// Unique import id (nanos + index); truncated to 128 chars so blank/repeated ids cannot collapse.
 fn unique_import_id(source: &str, index: usize) -> String {
     let stamp = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -313,7 +310,6 @@ mod tests {
 
     #[test]
     fn import_ids_stay_unique_for_rows_without_a_source_id() {
-        // Share payloads ship blank ids, so every row of one batch must still get its own.
         let first = unique_import_id("", 0);
         let second = unique_import_id("", 1);
         assert_ne!(first, second);

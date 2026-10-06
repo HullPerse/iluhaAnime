@@ -5,8 +5,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use base64::{engine::general_purpose::STANDARD, Engine as _};
 use tauri::Manager;
 
-/// Every pending capture lives in the OS temp dir under this prefix, so the startup sweep in
-/// `lib.rs` (which deletes `iluha_*` from temp) also clears the ones a crash left behind.
+/// Pending captures in temp dir; lib.rs startup sweep clears crash leftovers.
 const TEMP_PREFIX: &str = "iluha_screenshot_";
 const MAX_CAPTURE_BYTES: u64 = 96 * 1024 * 1024;
 const READ_CHUNK: usize = 1024 * 1024;
@@ -17,8 +16,7 @@ const MIN_BLUR_SIGMA: f32 = 0.5;
 const MAX_BLUR_SIGMA: f32 = 64.0;
 const DEFAULT_BLUR_SIGMA: f32 = 8.0;
 
-/// Two copies inside the same millisecond would otherwise share one temp file and one of them would
-/// read the other's pixels back.
+/// Millisecond collisions share temp files; sequence separates copies.
 static COPY_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
 #[derive(serde::Serialize)]
@@ -46,8 +44,7 @@ pub struct CropRegion {
     pub height: u32,
 }
 
-/// The blurred region: `mask` is an image the size of the capture whose alpha marks the pixels to
-/// hide, `sigma` is the blur strength in source pixels.
+/// Blur region: mask alpha marks hidden pixels; sigma in source pixels.
 #[derive(Clone, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BlurPatch {
@@ -56,8 +53,7 @@ pub struct BlurPatch {
     pub sigma: f32,
 }
 
-/// Everything the frontend drew on top of the shot. Both images are base64 PNGs the size of the
-/// capture, so the two sides agree on the pixels without the frontend ever touching the capture.
+/// Frontend overlays as capture-sized base64 PNGs.
 #[derive(Clone, Default, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ScreenshotLayers {
@@ -101,7 +97,6 @@ fn timestamp_millis() -> u128 {
         .unwrap_or_default()
 }
 
-/// Resolves the folder the save dialog starts from: the user's pictures, then home, then temp.
 fn default_dir(window: &tauri::WebviewWindow) -> String {
     let resolver = window.app_handle().path();
     resolver
@@ -119,9 +114,7 @@ fn image_size(bytes: &[u8]) -> Result<(u32, u32), String> {
         .map_err(|error| format!("read the capture size: {error}"))
 }
 
-/// Strips anything that could move the write out of the chosen folder: only the last path
-/// component survives, and Windows-illegal characters, control characters and trailing dots
-/// or spaces are removed.
+/// Keeps last path component; strips illegal/control/trailing-dot chars.
 fn sanitize_name(raw: &str) -> Result<String, String> {
     let trimmed = raw.trim();
     if trimmed.is_empty() {
@@ -139,7 +132,6 @@ fn sanitize_name(raw: &str) -> Result<String, String> {
     Ok(cleaned.to_string())
 }
 
-/// Picks `name.ext`, then `name_1.ext`, `name_2.ext` and so on while those names are taken.
 fn resolve_target(dir: &Path, name: &str, extension: &str) -> PathBuf {
     let first = dir.join(format!("{name}.{extension}"));
     if !first.exists() {
@@ -177,8 +169,7 @@ fn same_directory(left: &Path, right: &Path) -> bool {
     }
 }
 
-/// Only a pending capture in the temp dir may be read or deleted through these commands,
-/// otherwise they would be a generic read-or-delete primitive over any path the webview names.
+/// Only temp-dir captures; else generic read/delete primitive for webview.
 fn guard_source(source_path: &str) -> Result<PathBuf, String> {
     let path = Path::new(source_path);
     let name = path
@@ -200,8 +191,7 @@ fn guard_source(source_path: &str) -> Result<PathBuf, String> {
     Ok(path.to_path_buf())
 }
 
-/// Clamps the requested region to the image, so a stale rect from the UI can never produce an
-/// empty or out-of-range crop.
+/// Clamps stale UI rects to image bounds.
 fn crop_image(
     image: &image::DynamicImage,
     region: &CropRegion,
@@ -216,7 +206,7 @@ fn crop_image(
     Ok(image.crop_imm(x, y, width, height))
 }
 
-/// The frontend sends what it drew as a base64 PNG, either bare or as a `data:` URL.
+/// Base64 PNG layer, bare or data: URL.
 fn decode_layer(data: &str, label: &str) -> Result<Vec<u8>, String> {
     let payload = data.rsplit_once(',').map_or(data, |(_, payload)| payload);
     let bytes = STANDARD
@@ -231,8 +221,7 @@ fn decode_layer(data: &str, label: &str) -> Result<Vec<u8>, String> {
     Ok(bytes)
 }
 
-/// A layer has to line up with the capture pixel for pixel, so a mismatch is an error rather than a
-/// silent rescale that would move the whole drawing.
+/// Layer must match capture size; mismatch errors instead of rescaling.
 fn decode_layer_image(
     data: &str,
     bounds: (u32, u32),
@@ -248,8 +237,6 @@ fn decode_layer_image(
     Ok(decoded)
 }
 
-/// Blurs a copy of the whole image and puts back only the pixels the mask marks, so the region the
-/// user hid is unreadable while everything around it stays untouched.
 fn blur_masked(
     image: &mut image::DynamicImage,
     patch: &BlurPatch,
@@ -283,8 +270,7 @@ fn paint_layer(
     Ok(())
 }
 
-/// Order matters: the blur hides content, the drawing and the text go on top of it. Both happen on
-/// the full capture, before any crop, so a mark outside the selection simply falls away with it.
+/// Blur first, then drawing; both before crop.
 fn bake_layers(
     image: &mut image::DynamicImage,
     layers: Option<&ScreenshotLayers>,
@@ -356,8 +342,7 @@ fn save_capture(
     })
 }
 
-/// Writes the region that goes to the clipboard as its own PNG. Without a region the pending
-/// capture is returned as is, so the common "copy the whole shot" case never re-encodes.
+/// Copies region as PNG; whole-shot copy reuses capture without re-encode.
 fn prepare_copy(
     source_path: &str,
     crop: Option<&CropRegion>,
@@ -415,9 +400,7 @@ fn read_stream(stream: &windows::Win32::System::Com::IStream) -> Result<Vec<u8>,
     Ok(bytes)
 }
 
-/// Captures the visible part of the webview through the `WebView2` COM interface. The callback is
-/// delivered over the window message queue, so `wait_with_pump` keeps dispatching messages while
-/// it waits; that is why the whole call has to run on the UI thread, inside `with_webview`.
+/// `WebView2` capture; must run on UI thread (message-queue callback).
 #[cfg(windows)]
 fn capture_webview_png(webview: &tauri::webview::PlatformWebview) -> Result<Vec<u8>, String> {
     use webview2_com::Microsoft::Web::WebView2::Win32::{

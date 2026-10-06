@@ -108,8 +108,7 @@ pub struct CollectionStatusRow {
     pub color: String,
     pub order_index: i64,
     pub is_core: bool,
-    /// `private` for ordinary buckets, `public` for imported shared collections.
-    /// Public statuses are hidden from the All tab and own their items on delete.
+    /// private buckets vs public imports (hidden from All tab; own items on delete).
     pub kind: String,
 }
 

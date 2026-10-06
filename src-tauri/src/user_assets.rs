@@ -9,9 +9,7 @@ use tauri::Manager;
 
 const MAX_IMAGE_BYTES: u64 = 4 * 1024 * 1024;
 
-/// Baked dither frames are re-encoded as PNG at up to 1920px, so an
-/// incompressible RGBA frame can legitimately be larger than a file the user is
-/// allowed to upload. Keep the upload cap and give the bake room to land.
+/// Dither bakes (up to 1920px PNG) may exceed 4 MiB upload cap; allow 24 MiB.
 const MAX_DITHER_BAKE_BYTES: u64 = 24 * 1024 * 1024;
 
 const USER_IMAGES_TABLE: &str = "user_images";
@@ -26,9 +24,7 @@ pub struct UserImage {
     pub name: String,
     pub mime_type: String,
     pub path: String,
-    /// Changes whenever the file behind `path` is rewritten. Dither images keep
-    /// a stable id while their bytes are replaced, so consumers need this to
-    /// tell a fresh render apart from a cached one.
+    /// Mtime-size token; dither ids stay stable across rewrites.
     pub version: Option<String>,
     pub original_path: Option<String>,
     pub created_at: i64,
@@ -58,8 +54,7 @@ fn images_dir(app: &tauri::AppHandle, table: &str) -> Result<PathBuf, String> {
     Ok(assets_root(app)?.join("images").join(table))
 }
 
-/// Asset ids are content hashes (`t336_` + 20 hex chars). Anything else is
-/// rejected so a hand-edited database cell cannot escape the assets directory.
+/// Content-hash ids only; rejects traversal from edited DB cells.
 pub fn is_safe_asset_id(id: &str) -> bool {
     !id.is_empty()
         && id.len() <= 128
@@ -82,9 +77,7 @@ fn resolve_asset_file_in(dir: &Path, id: &str) -> Option<PathBuf> {
         .find(|path| path.is_file())
 }
 
-/// On-disk image for an asset id stored in `table`, preferring the 336px thumb.
-/// Filesystem-only on purpose: the SQLite browser holds the database read-only
-/// and must not trigger thumb generation while browsing.
+/// Prefers 336px thumb; filesystem-only so browser never generates thumbs.
 pub fn resolve_asset_file(
     app: &tauri::AppHandle,
     table: &str,
@@ -283,8 +276,7 @@ fn write_image_file(dir: &Path, file_name: &str, bytes: &[u8]) -> Result<PathBuf
     Ok(path)
 }
 
-/// Modification time of an asset file, as a cache-busting token. `None` when the
-/// file is absent, so a broken row never silently keeps a stale URL.
+/// Mtime-size cache token; None when file absent.
 fn file_version(path: &Path) -> Option<String> {
     let metadata = fs::metadata(path).ok()?;
     let age = metadata.modified().ok()?.duration_since(UNIX_EPOCH).ok()?;
@@ -763,9 +755,7 @@ fn dither_original_file(id: &str, original_ext: &str) -> String {
     format!("{id}.original.{original_ext}")
 }
 
-/// Stores a dither original under its content id. Only files that are missing
-/// get written: the id is the hash of the original, so re-importing the same
-/// source must not overwrite a picture the user has already baked.
+/// Missing originals only; re-import must not overwrite baked picture.
 fn import_dither_bytes(
     dir: &Path,
     conn: &Connection,
@@ -1387,7 +1377,6 @@ mod tests {
     #[test]
     fn baked_frames_allow_more_than_the_upload_limit() {
         use base64::Engine as _;
-        // One byte over the upload cap: rejected for uploads, accepted for a bake.
         let mut bytes = b"\x89PNG\r\n\x1a\n".to_vec();
         bytes.resize(MAX_IMAGE_BYTES as usize + 1, 0);
         let url = format!("data:image/png;base64,{}", STANDARD.encode(&bytes));

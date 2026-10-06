@@ -1,24 +1,4 @@
-//! Debug-only dual-player sync harness.
-//!
-//! Two real mpv instances live in one app process: the canonical `player`
-//! window is the watch-party host and a second `player-2` window is the guest.
-//! A real in-process iroh session (loopback, no network) carries the host's
-//! `PlaybackState` and the time pings between them, and the guest applies
-//! whatever the real `SyncRuntime` decides. The harness then reports how far
-//! the two players drifted and whether the engine pulled them back together.
-//!
-//! `tauri_plugin_single_instance` blocks a second OS process, so this is the
-//! only way to drive two real mpv instances against the sync engine without a
-//! second machine. Each mpv instance is created by its window's own frontend
-//! (`player_init` now resolves the label from the calling window), so a live
-//! GUI is required.
-//!
-//! Enabled with `ILUHA_SYNC_BENCH=1`. Optional overrides:
-//!
-//! - `ILUHA_SYNC_BENCH_FILES` / `ILUHA_BENCH_FILES` / `ILUHA_OPEN_FILE`: media
-//! - `ILUHA_SYNC_BENCH_SECS`: measurement window (default 30)
-//! - `ILUHA_SYNC_BENCH_LEAD_MS`: forced guest lead (default 3000)
-//! - `ILUHA_SYNC_BENCH_REPORT` / `ILUHA_SYNC_BENCH_MARKER`: output paths
+//! Debug-only dual-mpv harness (`ILUHA_SYNC_BENCH=1`): player hosts, player-2 guests over loopback iroh.
 
 use std::io::Write;
 use std::path::PathBuf;
@@ -35,7 +15,6 @@ use crate::session::host::{HostConfig, HostSession};
 use crate::session::sync::{SyncInstructionDto, DRIFT_DEADBAND_MS};
 use crate::session::transport;
 
-/// Guest window label used by the harness.
 pub const GUEST_WINDOW_LABEL: &str = "player-2";
 
 const POLL: Duration = Duration::from_millis(20);
@@ -193,10 +172,7 @@ fn ensure_window(app: &AppHandle, label: &str) -> Result<(), String> {
     Ok(())
 }
 
-/// Run the harness; failures are logged and stamped into the marker file.
-///
-/// With `ILUHA_SYNC_BENCH_EXIT` set, the app exits once the report is written
-/// so an unattended run terminates on its own (and `tauri dev` follows).
+/// Failures stamp marker file; `ILUHA_SYNC_BENCH_EXIT` exits after report.
 pub async fn run(app: AppHandle, config: SyncBenchConfig) {
     match execute(&app, &config).await {
         Ok(()) => {
@@ -208,9 +184,7 @@ pub async fn run(app: AppHandle, config: SyncBenchConfig) {
             write_marker(&format!("failed: {error}"));
         }
     }
-    // The guest window is owned by the harness; close it so a run does not leave
-    // a stale, state-less `player-2` window behind (its overlay never receives
-    // `player-state`, which is emitted to the canonical `player` window only).
+    // Close guest window; its overlay never receives player-state.
     if let Some(window) = app.get_webview_window(GUEST_WINDOW_LABEL) {
         let _ = window.close();
     }
@@ -311,13 +285,11 @@ async fn measure(
     while Instant::now() < deadline {
         tokio::time::sleep(TICK).await;
 
-        // The host keeps a fresh anchor stamped with the host clock.
         let host_pos = num(app, PLAYER_WINDOW_LABEL, "time-pos").unwrap_or(0.0);
         let host_paused = flag(app, PLAYER_WINDOW_LABEL, "pause").unwrap_or(false);
         let host_rate = num(app, PLAYER_WINDOW_LABEL, "speed").unwrap_or(1.0);
         host.publish_position(config.file.clone(), host_pos, !host_paused, host_rate);
 
-        // The guest evaluates against its own position and applies the verdict.
         let guest_pos = num(app, GUEST_WINDOW_LABEL, "time-pos").unwrap_or(0.0);
         let sample = client.sample_sync(guest_pos, Some(config.file.clone()));
         if let Some(instruction) = sample.instruction {
@@ -332,8 +304,7 @@ async fn measure(
                         &[json!(position), json!("absolute+exact")],
                         GUEST_WINDOW_LABEL,
                     );
-                    // Confirm the restart so the engine leaves the latched
-                    // `awaiting_restart` state (the P9 fix).
+                    // Confirm restart to leave latched awaiting_restart (P9 fix).
                     client.mark_restarted();
                     seek_commands += 1;
                     first_seek_ms.get_or_insert_with(|| elapsed_ms(start));
@@ -377,8 +348,7 @@ fn elapsed_ms(start: Instant) -> f64 {
     round1(start.elapsed().as_secs_f64() * 1000.0)
 }
 
-/// `(max, mean)` of the absolute drift over the second half of the run, which
-/// is where a converged engine should be sitting inside the deadband.
+/// (max, mean) absolute drift over steady-state tail.
 fn summarize_drift(drifts: &[f64]) -> (f64, f64) {
     let tail = &drifts[drifts.len() / 2..];
     if tail.is_empty() {
@@ -401,7 +371,6 @@ mod tests {
     fn summarize_uses_only_the_steady_state_tail() {
         let drifts = vec![3000.0, 2500.0, 100.0, -50.0, 20.0, -30.0];
         let (max, mean) = summarize_drift(&drifts);
-        // Tail = [-50, 20, -30]; the two cold-start outliers are excluded.
         assert!((max - 50.0).abs() < 1e-9, "got {max}");
         assert!((mean - 100.0 / 3.0).abs() < 1e-9, "got {mean}");
     }

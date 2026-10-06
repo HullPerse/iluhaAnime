@@ -3,9 +3,7 @@ use std::fs;
 use std::path::Path;
 use tauri::Manager;
 
-/// Custom lobby emoji: `iluha_*.{png,jpg,jpeg,webp,gif,ico}` dropped into
-/// `<app data>/emoji`. `name` is the lowercased file stem — the shortcode is
-/// `:<name>:`; `path` is absolute so the frontend can run `convertFileSrc`.
+/// Custom lobby emoji iluha_* in <app data>/emoji; path absolute for convertFileSrc.
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EmojiFile {
@@ -16,8 +14,6 @@ pub struct EmojiFile {
 const EMOJI_PREFIX: &str = "iluha_";
 const EMOJI_EXTENSIONS: [&str; 6] = ["png", "jpg", "jpeg", "webp", "gif", "ico"];
 
-/// Pure filename filter: `Some(lowercased stem)` for a custom emoji file,
-/// `None` for anything else. Case-insensitive prefix and extension.
 fn emoji_name(path: &Path) -> Option<String> {
     let ext = path.extension()?.to_str()?;
     if !EMOJI_EXTENSIONS.contains(&ext.to_ascii_lowercase().as_str()) {
@@ -27,10 +23,7 @@ fn emoji_name(path: &Path) -> Option<String> {
     name.starts_with(EMOJI_PREFIX).then_some(name)
 }
 
-/// List custom emoji files. A missing directory means "no custom emoji" (the
-/// picker hides the section) — never an error: the pipeline must work before
-/// any asset exists. No user input reaches the filesystem, so this cannot
-/// escape the emoji directory.
+/// Missing dir means no custom emoji, never an error.
 #[tauri::command]
 pub fn emoji_list(app: tauri::AppHandle) -> Result<Vec<EmojiFile>, String> {
     let dir = app

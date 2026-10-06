@@ -65,12 +65,7 @@ pub fn resolve_proxy(proxy: Option<String>, proxy_camel: Option<String>) -> Opti
         .map(proxy_with_remote_dns)
 }
 
-/// Switches the SOCKS schemes that resolve hostnames locally to their remote-resolution
-/// variants. reqwest decides DNS by scheme: `socks5`/`socks4` resolve the host through the
-/// system resolver and then hand the proxy a literal address, so a blocked or poisoned
-/// domain makes a working proxy look broken. `socks5h`/`socks4a` send the hostname instead,
-/// which is the point of configuring a proxy for a blocked site. HTTP proxies already
-/// receive the hostname through CONNECT and pass through unchanged.
+/// SOCKS5/4 resolve locally; use socks5h/socks4a so the proxy resolves hostnames.
 pub fn proxy_with_remote_dns(proxy: String) -> String {
     let Some((scheme, rest)) = proxy.split_once("://") else {
         return proxy;

@@ -9,8 +9,9 @@ use serde::Serialize;
 use super::auth::{load_token, optional_token};
 use super::client::{graphql_request, resolve_proxy};
 use super::media::{
-    AniAnimeStaffEdge, AniCharacterDetail, AniCharacterEdge, AniCharacterMediaEdge,
-    AniCharacterNode, AniStaffCharacterEdge, AniStaffDetail, AniStaffMediaEdge, AniVoiceActor,
+    media_detail_selection, parse_animedia, AniAnimeStaffEdge, AniCharacterDetail,
+    AniCharacterEdge, AniCharacterMediaEdge, AniCharacterNode, AniMedia, AniStaffCharacterEdge,
+    AniStaffDetail, AniStaffMediaEdge, AniVoiceActor,
 };
 
 #[derive(Debug, Serialize)]
@@ -92,46 +93,73 @@ fn parse_favourite_people(nodes: &[serde_json::Value]) -> Vec<FavouritePerson> {
 
 const FAVOURITE_PERSON_NODES: &str = "id name { full native } image { medium }";
 
-#[tauri::command]
-#[allow(non_snake_case)]
-pub async fn get_favourite_people(
-    app_handle: tauri::AppHandle,
-    user_id: i64,
-    proxy_url: Option<String>,
-    proxyUrl: Option<String>,
-) -> Result<FavouritePeople, String> {
-    let token = load_token(&app_handle)?;
-    let body = serde_json::json!({
-        "query": format!(
-            r"
+const FAVOURITE_ANIME_NODES: &str = r"
+                                id
+                                title { romaji english }
+                                coverImage { medium }
+                                meanScore
+                                format
+";
+
+#[derive(Debug, Serialize)]
+pub struct FavouriteOverview {
+    pub anime: Vec<FavouriteAnime>,
+    pub people: FavouritePeople,
+}
+
+fn favourite_overview_query() -> String {
+    format!(
+        r"
             query ($userId: Int) {{
                 User(id: $userId) {{
                     favourites {{
+                        anime {{
+                            nodes {{
+                                {anime}
+                            }}
+                        }}
                         staff {{ nodes {{ {nodes} }} }}
                         characters {{ nodes {{ {nodes} }} }}
                     }}
                 }}
             }}
         ",
-            nodes = FAVOURITE_PERSON_NODES
-        ),
+        anime = FAVOURITE_ANIME_NODES,
+        nodes = FAVOURITE_PERSON_NODES
+    )
+}
+
+#[tauri::command]
+#[allow(non_snake_case)]
+pub async fn get_favourite_overview(
+    app_handle: tauri::AppHandle,
+    user_id: i64,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
+) -> Result<FavouriteOverview, String> {
+    let token = load_token(&app_handle)?;
+    let body = serde_json::json!({
+        "query": favourite_overview_query(),
         "variables": { "userId": user_id }
     });
     let proxy = resolve_proxy(proxy_url, proxyUrl);
     let json = graphql_request(body, Some(&token), proxy.as_deref()).await?;
-    if json.get("errors").is_some() {
-        return Err(format!("{:?}", json["errors"]));
-    }
     let favs = &json["data"]["User"]["favourites"];
+    let anime = favs["anime"]["nodes"]
+        .as_array()
+        .ok_or_else(|| "Unexpected response".to_string())?;
     let staff = favs["staff"]["nodes"]
         .as_array()
         .ok_or_else(|| "Unexpected response".to_string())?;
     let characters = favs["characters"]["nodes"]
         .as_array()
         .ok_or_else(|| "Unexpected response".to_string())?;
-    Ok(FavouritePeople {
-        staff: parse_favourite_people(staff),
-        characters: parse_favourite_people(characters),
+    Ok(FavouriteOverview {
+        anime: parse_favourite_nodes(anime),
+        people: FavouritePeople {
+            staff: parse_favourite_people(staff),
+            characters: parse_favourite_people(characters),
+        },
     })
 }
 
@@ -159,9 +187,6 @@ pub async fn toggle_favourite_staff(
     });
     let proxy = resolve_proxy(proxy_url, proxyUrl);
     let json = graphql_request(body, Some(&token), proxy.as_deref()).await?;
-    if json.get("errors").is_some() {
-        return Err(format!("{:?}", json["errors"]));
-    }
     let nodes = json["data"]["ToggleFavourite"]["staff"]["nodes"]
         .as_array()
         .ok_or_else(|| "Unexpected response".to_string())?;
@@ -192,9 +217,6 @@ pub async fn toggle_favourite_character(
     });
     let proxy = resolve_proxy(proxy_url, proxyUrl);
     let json = graphql_request(body, Some(&token), proxy.as_deref()).await?;
-    if json.get("errors").is_some() {
-        return Err(format!("{:?}", json["errors"]));
-    }
     let nodes = json["data"]["ToggleFavourite"]["characters"]["nodes"]
         .as_array()
         .ok_or_else(|| "Unexpected response".to_string())?;
@@ -230,9 +252,6 @@ pub async fn toggle_favourite(
     });
     let proxy = resolve_proxy(proxy_url, proxyUrl);
     let json = graphql_request(body, Some(&token), proxy.as_deref()).await?;
-    if json.get("errors").is_some() {
-        return Err(format!("{:?}", json["errors"]));
-    }
     let nodes = json["data"]["ToggleFavourite"]["anime"]["nodes"]
         .as_array()
         .ok_or_else(|| "Unexpected response".to_string())?;
@@ -249,35 +268,45 @@ pub async fn get_favourites(
 ) -> Result<Vec<FavouriteAnime>, String> {
     let token = load_token(&app_handle)?;
     let body = serde_json::json!({
-        "query": r"
-            query ($userId: Int) {
-                User(id: $userId) {
-                    favourites {
-                        anime {
-                            nodes {
-                                id
-                                title { romaji english }
-                                coverImage { medium }
-                                meanScore
-                                format
-                            }
-                        }
-                    }
-                }
-            }
+        "query": format!(
+            r"
+            query ($userId: Int) {{
+                User(id: $userId) {{
+                    favourites {{
+                        anime {{
+                            nodes {{
+                                {anime}
+                            }}
+                        }}
+                    }}
+                }}
+            }}
         ",
+            anime = FAVOURITE_ANIME_NODES
+        ),
         "variables": { "userId": user_id }
     });
     let proxy = resolve_proxy(proxy_url, proxyUrl);
     let json = graphql_request(body, Some(&token), proxy.as_deref()).await?;
-    if json.get("errors").is_some() {
-        return Err(format!("{:?}", json["errors"]));
-    }
     let nodes = json["data"]["User"]["favourites"]["anime"]["nodes"]
         .as_array()
         .ok_or_else(|| "Unexpected response".to_string())?;
     Ok(parse_favourite_nodes(nodes))
 }
+
+const RECOMMENDATION_SEED_QUERY: &str = r"
+            query ($userId: Int) {
+                MediaListCollection(userId: $userId, type: ANIME, status: COMPLETED, sort: SCORE_DESC, chunk: 1, perChunk: 10) {
+                    lists {
+                        name
+                        entries {
+                            score
+                            media { id }
+                        }
+                    }
+                }
+            }
+        ";
 
 #[tauri::command]
 #[allow(non_snake_case)]
@@ -290,19 +319,7 @@ pub async fn get_profile_recommendations(
     let token = load_token(&app_handle)?;
 
     let list_body = serde_json::json!({
-        "query": r"
-            query ($userId: Int) {
-                MediaListCollection(userId: $userId, type: ANIME) {
-                    lists {
-                        name
-                        entries {
-                            score
-                            media { id }
-                        }
-                    }
-                }
-            }
-        ",
+        "query": RECOMMENDATION_SEED_QUERY,
         "variables": { "userId": user_id }
     });
     let proxy = resolve_proxy(proxy_url, proxyUrl);
@@ -427,9 +444,6 @@ pub async fn get_anime_recommendations(
     let proxy = resolve_proxy(proxy_url, proxyUrl);
     let token = optional_token(&app_handle);
     let json = graphql_request(body, token.as_deref(), proxy.as_deref()).await?;
-    if json.get("errors").is_some() {
-        return Err(format!("{:?}", json["errors"]));
-    }
     let nodes = json["data"]["Media"]["recommendations"]["nodes"]
         .as_array()
         .ok_or_else(|| "Failed to parse recommendations".to_string())?;
@@ -543,9 +557,6 @@ pub async fn get_anilist_activity(
     let proxy = resolve_proxy(proxy_url, proxyUrl);
     let token = optional_token(&app_handle);
     let json = graphql_request(body, token.as_deref(), proxy.as_deref()).await?;
-    if json.get("errors").is_some() {
-        return Err(format!("{:?}", json["errors"]));
-    }
     let activities = json["data"]["Page"]["activities"]
         .as_array()
         .ok_or_else(|| "Failed to parse activities".to_string())?;
@@ -622,18 +633,13 @@ pub async fn get_anime_characters(
     let proxy = resolve_proxy(proxy_url, proxyUrl);
     let token = optional_token(&app_handle);
     let json = graphql_request(body, token.as_deref(), proxy.as_deref()).await?;
-    if json.get("errors").is_some() {
-        return Err(format!("{:?}", json["errors"]));
-    }
     let edges = json["data"]["Media"]["characters"]["edges"]
         .as_array()
         .ok_or_else(|| "Failed to parse characters".to_string())?;
     Ok(parse_character_edges(edges))
 }
 
-/// Profile plus one page of the anime the character appears in. One command because the modal
-/// always needs both, and because a character reached from a staff credit has no context to
-/// take a name or a favourite count from.
+/// Character profile plus one anime page for the modal.
 #[tauri::command]
 #[allow(non_snake_case)]
 pub async fn get_character_detail(
@@ -723,8 +729,7 @@ pub async fn get_staff_characters(
     Ok(parse_staff_detail(&json["data"]["Staff"]))
 }
 
-/// A character with one page of the anime it appears in. A missing or empty `media` list is not
-/// an error: the modal has an empty state for it.
+/// Character plus one anime page; missing media is empty state, not error.
 fn parse_character_detail(c: &serde_json::Value, fallback_id: u64) -> AniCharacterDetail {
     let mut seen = std::collections::HashSet::new();
     let media = c["media"]["edges"]
@@ -867,13 +872,14 @@ pub async fn get_anime_staff(
     let proxy = resolve_proxy(proxy_url, proxyUrl);
     let token = optional_token(&app_handle);
     let json = graphql_request(body, token.as_deref(), proxy.as_deref()).await?;
-    if json.get("errors").is_some() {
-        return Err(format!("{:?}", json["errors"]));
-    }
     let edges = json["data"]["Media"]["staff"]["edges"]
         .as_array()
         .ok_or_else(|| "Failed to parse staff".to_string())?;
-    Ok(edges
+    Ok(parse_anime_staff_edges(edges))
+}
+
+fn parse_anime_staff_edges(edges: &[serde_json::Value]) -> Vec<AniAnimeStaffEdge> {
+    edges
         .iter()
         .map(|e| AniAnimeStaffEdge {
             role: e["role"].as_str().unwrap_or("").to_string(),
@@ -884,7 +890,85 @@ pub async fn get_anime_staff(
                 .unwrap_or("")
                 .to_string(),
         })
-        .collect())
+        .collect()
+}
+
+const ANIME_FULL_QUERY_TEMPLATE: &str = r"
+            query ($id: Int) {
+                Media(id: $id, type: ANIME) {
+                    {SELECTION}
+                    characters(page: 1, perPage: 25) {
+                        edges {
+                            role
+                            node {
+                                id
+                                name { full native }
+                                image { medium }
+                                favourites
+                                siteUrl
+                            }
+                            voiceActors(language: JAPANESE, sort: [ID]) {
+                                id
+                                name { full native }
+                                image { medium }
+                                language
+                            }
+                        }
+                    }
+                    staff {
+                        edges {
+                            role
+                            node {
+                                id
+                                name { full native }
+                            }
+                        }
+                    }
+                }
+            }
+        ";
+
+fn anime_full_query() -> String {
+    ANIME_FULL_QUERY_TEMPLATE.replace("{SELECTION}", &media_detail_selection())
+}
+
+#[derive(Debug, Serialize)]
+pub struct AniAnimeFull {
+    pub media: AniMedia,
+    pub characters: Vec<AniCharacterEdge>,
+    pub staff: Vec<AniAnimeStaffEdge>,
+}
+
+#[tauri::command]
+#[allow(non_snake_case)]
+pub async fn get_anime_full(
+    app_handle: tauri::AppHandle,
+    id: u64,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
+) -> Result<AniAnimeFull, String> {
+    let body = serde_json::json!({
+        "query": anime_full_query(),
+        "variables": { "id": id }
+    });
+    let proxy = resolve_proxy(proxy_url, proxyUrl);
+    let token = optional_token(&app_handle);
+    let json = graphql_request(body, token.as_deref(), proxy.as_deref()).await?;
+    let m = &json["data"]["Media"];
+    if m.is_null() {
+        return Err(format!("Anime with id {id} not found"));
+    }
+    Ok(AniAnimeFull {
+        media: parse_animedia(m),
+        characters: m["characters"]["edges"]
+            .as_array()
+            .map(|edges| parse_character_edges(edges))
+            .unwrap_or_default(),
+        staff: m["staff"]["edges"]
+            .as_array()
+            .map(|edges| parse_anime_staff_edges(edges))
+            .unwrap_or_default(),
+    })
 }
 
 fn parse_character_edges(edges: &[serde_json::Value]) -> Vec<AniCharacterEdge> {
@@ -929,6 +1013,32 @@ fn parse_character_edges(edges: &[serde_json::Value]) -> Vec<AniCharacterEdge> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn recommendation_seed_query_filters_completed_top_on_server() {
+        assert!(RECOMMENDATION_SEED_QUERY.contains("status: COMPLETED"));
+        assert!(RECOMMENDATION_SEED_QUERY.contains("sort: SCORE_DESC"));
+        assert!(RECOMMENDATION_SEED_QUERY.contains("chunk: 1"));
+        assert!(RECOMMENDATION_SEED_QUERY.contains("perChunk: 10"));
+    }
+
+    #[test]
+    fn anime_full_query_fetches_media_characters_and_staff_at_once() {
+        let query = anime_full_query();
+        assert!(query.contains("Media(id: $id"));
+        assert!(query.contains("characters(page: 1"));
+        assert!(query.contains("staff {"));
+        assert!(query.contains("trailer { id site }"));
+    }
+
+    #[test]
+    fn favourite_overview_query_covers_anime_staff_and_characters_once() {
+        let query = favourite_overview_query();
+        assert_eq!(query.matches("User(id: $userId)").count(), 1);
+        assert!(query.contains("anime {"));
+        assert!(query.contains("staff { nodes"));
+        assert!(query.contains("characters { nodes"));
+    }
 
     #[test]
     fn character_edges_deduplicate_same_character() {

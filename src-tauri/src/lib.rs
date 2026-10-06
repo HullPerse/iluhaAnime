@@ -73,9 +73,7 @@ impl Default for NotificationConfig {
     }
 }
 
-/// Everything the torrent list renders directly. Pushes are throttled to "changed or
-/// heartbeat", so a new user-visible field must be added here as well, otherwise the
-/// UI keeps showing a stale value for up to `TORRENT_HEARTBEAT_TICKS` seconds.
+/// Torrent list fields; new user-visible field must be added here (changed-or-heartbeat pushes).
 #[derive(PartialEq)]
 struct TorrentUpdateSignature {
     id: usize,
@@ -97,8 +95,7 @@ struct TorrentUpdateSignature {
 }
 
 const TORRENT_HEARTBEAT_TICKS: u32 = 30;
-/// Torrents verified per tick. Small on purpose: one pass costs a `stat` per file, so a library
-/// of finished torrents fills in over a few seconds instead of stalling a single tick.
+/// 2 torrents/tick; one pass costs a stat per file.
 const TORRENT_VERIFY_PER_TICK: usize = 2;
 
 #[derive(Default)]
@@ -116,15 +113,11 @@ async fn run_torrent_update_tick(
     manager: &Arc<TorrentManager>,
     state: &mut TorrentTickState,
 ) {
-    // A rewrite (limits or trackers) takes a torrent out of the session for a moment. Skipping
-    // the tick means the UI is never told a torrent disappeared, and it is told its file list
-    // from before the window instead; the next tick reports as usual once the torrent is back.
+    // Skip ticks during rewrite; UI keeps pre-window file list until torrent returns.
     if manager.is_rewriting() {
         return;
     }
-    // Fills `missing_files` for torrents nothing has checked yet, before the signature is built
-    // below: the flag is user-visible, so a verdict arriving after the emit would be a tick late.
-    // One pass costs a `stat` per file, so the whole read stays off the async worker.
+    // Verify pending missing before signature (user-visible); stat passes stay off async worker.
     let verifier = Arc::clone(manager);
     let torrents = tokio::task::spawn_blocking(move || {
         let mut torrents = verifier.collect_torrents();
@@ -247,8 +240,7 @@ async fn run_torrent_update_tick(
     if state.cleanup_counter >= 30 {
         state.cleanup_counter = 0;
         let cleaner = Arc::clone(manager);
-        // Touches every unselected file, so it runs off the async worker. Best effort: a failed
-        // scan must not stop the push loop that feeds the torrent list.
+        // Unselected-file scan runs off worker; failures must not stop push loop.
         if let Err(error) =
             tokio::task::spawn_blocking(move || cleaner.cleanup_unselected_files()).await
         {
@@ -277,8 +269,7 @@ async fn backend_manager(
     .map_err(|_| "torrent engine is still starting".to_string())?
 }
 
-/// Starts a download. `sequential` is part of the add on purpose: the priority window on the
-/// first file is opened as the torrent goes in, instead of a second later by the tick.
+/// sequential is part of add so first-file priority opens immediately.
 #[tauri::command]
 async fn start_torrent_download(
     magnet: String,
@@ -353,14 +344,12 @@ async fn list_torrents(
 ) -> Result<Vec<TorrentInfo>, String> {
     let backend = backend_manager(&manager).await?;
     let mut torrents = backend.collect_torrents();
-    // The list has to open with the same paused-edits verdict the tick pushes, otherwise a
-    // paused torrent would show no badge until its next tick.
+    // Include paused-edits verdict on open or badge lags a tick.
     backend.watch_paused_files(&mut torrents);
     Ok(torrents)
 }
 
-/// Builds a `.torrent` out of a folder and seeds it in place. Hashing reads every file once,
-/// so a big folder can take a while: the command is expected to be awaited behind a loader.
+/// Hashes every file once; await behind a loader.
 #[tauri::command]
 async fn create_torrent_from_folder(
     source_dir: String,
@@ -373,10 +362,7 @@ async fn create_torrent_from_folder(
         .map_err(|e| format!("{e:#}"))
 }
 
-/// Copies a previously created metainfo to a path the user picked in a save dialog.
-///
-/// The source is restricted to the created-torrents cache: without that check this command
-/// would be a generic "copy any file anywhere" primitive reachable from the webview.
+/// Source restricted to created-torrents cache (not a generic copy primitive).
 #[tauri::command]
 fn save_created_torrent(from: String, to: String, app: tauri::AppHandle) -> Result<(), String> {
     let app_data = app
@@ -698,8 +684,7 @@ async fn save_session_config(
     backend_manager(&manager).await?.save_session_config(config)
 }
 
-/// The port the torrent session bound, so Settings can show what to forward when the configured
-/// port is `0` (auto).
+/// Bound port for Settings when configured port is 0 (auto).
 #[tauri::command]
 async fn torrent_listen_port(
     manager: tauri::State<'_, TorrentBackend>,
@@ -809,8 +794,7 @@ async fn recheck_torrent(
         .recheck_torrent(id, info_hash)
 }
 
-/// Re-verifies a paused torrent from disk while keeping it paused - the "Recheck now" action of
-/// the external-changes badge.
+/// Paused re-verify for external-changes badge "Recheck now".
 #[tauri::command]
 async fn recheck_paused_torrent(
     id: usize,
@@ -954,8 +938,7 @@ async fn set_notification_settings(
 const WINDOW_CHROME_NAMESPACE: &str = "window";
 const WINDOW_CHROME_KEY: &str = "chrome";
 
-/// Material the OS paints behind the webview. Window-level rather than per theme: the theme only
-/// supplies the tint alpha, so the effect can be switched on its own.
+/// OS backdrop material; window-level, theme supplies tint alpha only.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 enum WindowEffect {
@@ -1012,8 +995,7 @@ fn apply_window_corner_preference(window: &tauri::WebviewWindow, rounded: bool) 
 #[cfg(not(windows))]
 fn apply_window_corner_preference(_window: &tauri::WebviewWindow, _rounded: bool) {}
 
-/// Applies the OS-drawn material. Note that `set_effects` swallows the platform error, so an
-/// unsupported Windows build reports success and simply paints nothing.
+/// `set_effects` swallows platform errors; unsupported builds paint nothing.
 fn apply_window_effect(window: &tauri::WebviewWindow, effect: WindowEffect) -> Result<(), String> {
     use tauri::window::{Effect, EffectsBuilder};
 
@@ -1136,11 +1118,7 @@ pub fn run() {
                 let _ = window.set_focus();
             }
 
-            // The frontend attaches its menu to this icon by id and hides the window
-            // on close, so the icon must exist with real pixels before any of that
-            // runs: a tray entry without an icon is invisible on Windows and the app
-            // cannot be restored. The window icon comes first, the bundled PNG is the
-            // fallback when the window has no icon (e.g. `defaultWindowIcon()` is null).
+            // Tray icon must exist with pixels or app cannot be restored; bundled PNG is fallback.
             let tray_icon = app.default_window_icon().cloned().or_else(|| {
                 tauri::image::Image::from_bytes(include_bytes!("../icons/32x32.png")).ok()
             });
@@ -1269,9 +1247,7 @@ pub fn run() {
                 let mgr_clone = manager.clone();
                 handle.state::<TorrentBackend>().cell.set(Ok(manager)).ok();
                 handle.state::<TorrentBackend>().notify.notify_one();
-                // Per-torrent limits are not part of the session's own persistence, so a torrent
-                // restored from disk starts unlimited even though its dialog shows a limit. The
-                // work is a remove/re-add per limited torrent, hence off the startup path.
+                // Restored torrents start unlimited; reapply stored limits off startup path.
                 let limits_manager = Arc::clone(&mgr_clone);
                 tokio::spawn(async move {
                     limits_manager.reapply_stored_limits().await;
@@ -1349,6 +1325,7 @@ pub fn run() {
             anilist::search_anilist_by_tag,
             anilist::search_anilist_by_genre,
             anilist::get_anime_by_id,
+            anilist::get_anime_by_ids,
             anilist::client::test_anilist_connection,
             jikan::get_anime_stills,
             anilist::get_anilist_profile,
@@ -1360,12 +1337,14 @@ pub fn run() {
             anilist::anilist_avatar,
             anilist::anilist_logout,
             anilist::save_anilist_entry,
+            anilist::update_anilist_entries_bulk,
             anilist::toggle_favourite,
             anilist::get_favourites,
-            anilist::get_favourite_people,
+            anilist::get_favourite_overview,
             anilist::toggle_favourite_staff,
             anilist::toggle_favourite_character,
             anilist::get_anime_characters,
+            anilist::get_anime_full,
             anilist::get_anime_staff,
             anilist::get_staff_characters,
             anilist::get_character_detail,

@@ -159,7 +159,7 @@ async function pollAniListReleasesOnce(
 ): Promise<boolean> {
   const user = await anilistApi.checkAuth();
   if (!user || isDisposed()) return false;
-  const lists = await anilistApi.getLists(user.id);
+  const lists = await anilistApi.getLists(user.id, true);
   if (isDisposed()) return false;
   const system = options?.system ?? true;
   const scope = useSettingsStore.getState().anilistNotifyLists;

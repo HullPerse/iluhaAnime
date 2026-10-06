@@ -13,15 +13,27 @@ describe("queryKeys", () => {
   });
 
   it("encodes proxy and login state into the detail key", () => {
-    expect(queryKeys.animeDetail(1, "p", true)).toEqual(["anime_detail", 1, "p", 1]);
-    expect(queryKeys.animeDetail(1, "p", false)).toEqual(["anime_detail", 1, "p", 0]);
-    expect(queryKeys.animeDetail(1, "a", true)).not.toEqual(queryKeys.animeDetail(1, "b", true));
+    expect(queryKeys.animeFull(1, "p", true)).toEqual(["anime_full", 1, "p", 1]);
+    expect(queryKeys.animeFull(1, "p", false)).toEqual(["anime_full", 1, "p", 0]);
+    expect(queryKeys.animeFull(1, "a", true)).not.toEqual(queryKeys.animeFull(1, "b", true));
   });
 
-  it("keys inline anime search by the debounced query", () => {
-    expect(queryKeys.animeInlineSearch("frie")).toEqual(["anime_inline_search", "frie"]);
-    expect(queryKeys.animeInlineSearch("frie")).not.toEqual(
-      queryKeys.animeInlineSearch("frier")
+  it("keys inline anime search by the debounced query and adult flag", () => {
+    expect(queryKeys.animeInlineSearch("frie", false)).toEqual([
+      "anime_inline_search",
+      "frie",
+      0,
+    ]);
+    expect(queryKeys.animeInlineSearch("frie", true)).toEqual([
+      "anime_inline_search",
+      "frie",
+      1,
+    ]);
+    expect(queryKeys.animeInlineSearch("frie", false)).not.toEqual(
+      queryKeys.animeInlineSearch("frier", false)
+    );
+    expect(queryKeys.animeInlineSearch("frie", false)).not.toEqual(
+      queryKeys.animeInlineSearch("frie", true)
     );
   });
 

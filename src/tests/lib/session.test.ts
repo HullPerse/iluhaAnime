@@ -1,11 +1,15 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  animeIdsFromLinks,
+  animeIdsFromText,
+  animeMentionTrigger,
   chatSegments,
   formatChatClock,
   imagePreviewLinks,
   isChatLink,
   isTorrentLink,
+  replaceAnimeMention,
   torrentLinkMagnet,
 } from "@/lib/session/chat.utils";
 import { analyzeCompatibility, itemReports } from "@/lib/session/match.utils";
@@ -268,6 +272,52 @@ describe("session/chat", () => {
     expect(formatChatClock(0)).toBe("--:--");
     expect(formatChatClock(Number.NaN)).toBe("--:--");
     expect(formatChatClock(1_700_000_000)).toMatch(/^\d{2}:\d{2}$/);
+  });
+});
+
+describe("session/anime mention", () => {
+  it("detects a trailing @anime: trigger with a spaced query", () => {
+    expect(animeMentionTrigger("look @anime:one piece")).toEqual({
+      end: 21,
+      query: "one piece",
+      start: 5,
+    });
+    expect(animeMentionTrigger("@anime:")).toEqual({ end: 7, query: "", start: 0 });
+  });
+
+  it("leaves plain roster mentions alone", () => {
+    expect(animeMentionTrigger("hi @alice")).toBeNull();
+    expect(animeMentionTrigger("anime:bleach")).toBeNull();
+  });
+
+  it("uses the last @ as the trigger, so a spaced query wins over an earlier mention", () => {
+    expect(animeMentionTrigger("@alice @anime:bleach extra")).toEqual({
+      end: 26,
+      query: "bleach extra",
+      start: 7,
+    });
+  });
+
+  it("replaces only the trigger span with the picked title", () => {
+    const trigger = animeMentionTrigger("see @anime:one piece");
+    expect(trigger).not.toBeNull();
+    expect(replaceAnimeMention("see @anime:one piece", trigger!, "One Piece")).toBe(
+      "see One Piece "
+    );
+  });
+
+  it("extracts anime ids from link anchors and pasted text", () => {
+    expect(
+      animeIdsFromLinks([
+        "https://anilist.co/anime/21",
+        "https://evil.example/anime/9",
+        "https://anilist.co/anime/21",
+      ])
+    ).toEqual([21]);
+    expect(
+      animeIdsFromText("watch https://anilist.co/anime/21/ and 7")
+    ).toEqual([21]);
+    expect(animeIdsFromText("no links here")).toEqual([]);
   });
 });
 

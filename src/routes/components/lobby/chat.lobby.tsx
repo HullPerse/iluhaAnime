@@ -26,66 +26,60 @@ import { Input } from "@/components/ui/input.component";
 import { LOBBY_CHAT_MAX_GRAPHEMES } from "@/config/lobby/common.config";
 import { useCustomEmoji } from "@/hooks/emoji.hook";
 import { useI18n } from "@/hooks/i18n.hook";
+import { useAnimeMentionComposer } from "@/hooks/session/animeMention.hook";
+import type { AnimeMentionComposer } from "@/hooks/session/animeMention.hook";
 import { useMentionAutocomplete } from "@/hooks/session/mention.hook";
 import type { MentionAutocomplete } from "@/hooks/session/mention.hook";
+import { animeTitleFields, resolveAnimeTitle } from "@/lib/anilist/title.utils";
 import {
+  animeIdsFromLinks,
+  animeIdsFromText,
   chatSegments,
   countGraphemes,
   formatChatClock,
   imagePreviewLinks,
 } from "@/lib/session/chat.utils";
 import { formatBytes } from "@/lib/utils/bytes.utils";
+import AnimeCard from "./anime-card.lobby";
+import AnimeOptionRow from "./anime-option.lobby";
 import { ChatMessageText } from "./chat-message-text.lobby";
 import ReactionRow from "./reaction-row.lobby";
 import { useSettingsStore } from "@/store/settings.store";
+import type { AniMedia, AniTitleLanguage } from "@/types/anilist";
 import type {
   ChatMessage,
   PinnedMessage,
   ReactionEntry,
 } from "@/types/session";
 
-/** How close to the bottom (px) still counts as "following" the chat. */
 const NEAR_BOTTOM_PX = 32;
 
-/**
- * Stable empty defaults: a fresh `[]` on every render would rerender the memo
- * consumers that list the prop in their dependency array.
- */
+const ANIME_CARD_MAX = 4;
+
+// Stable refs avoid memo rerenders.
 const NO_NAMES: string[] = [];
 const NO_REACTIONS: ReactionEntry[] = [];
 
-/** One line, bounded — the quote shown above a reply and in the composer bar. */
 function replySnippet(text: string): string {
   const flat = text.replace(/\s+/g, " ").trim();
   return flat.length > 60 ? `${flat.slice(0, 57)}…` : flat;
 }
 
-/** Lazy: the emoji data bundle loads only on the first picker open. */
 const EmojiPanel = lazy(() => import("./emoji.lobby"));
 
-/** Add or remove a reaction on one message. */
 type OnReact = (input: { messageId: string; emoji: string; add: boolean }) => void;
 
-/** A stable no-op for rooms that don't provide a reaction handler. */
 const NOOP_ON_REACT: OnReact = () => undefined;
 
 interface PinBannerProps {
   pinned: PinnedMessage;
-  /** The pinned line, if its anchor is still in the rendered history. */
   pinnedMessage: ChatMessage | null;
-  /** The pinner's display name (the raw peer id is the fallback). */
   pinnedByName: string;
   canPin: boolean;
-  /** Pin (`id`) or unpin (`null`) the room's single message. */
   onPin?: (messageId: string | null) => void;
-  /** Centers the pinned line in the history. */
   onJump: (messageId: string) => void;
 }
 
-/**
- * The room's single pinned message, shown as a fixed strip between the
- * titlebar and the scroll area. Clicking the snippet jumps to the anchor.
- */
 function PinBanner({
   pinned,
   pinnedMessage,
@@ -133,17 +127,13 @@ function PinBanner({
 
 interface ChatLineProps {
   message: ChatMessage;
-  /** The line the reply quote points at, when its target is still in history. */
   quoted: ChatMessage | null;
-  /** The `.torrent` attachment fetch is in flight / failed for this line. */
   attachBusy: boolean;
   attachFailed: boolean;
   imagePreviews: boolean;
   customEmoji: ReadonlyMap<string, string>;
-  /** Roster display names used to detect and highlight `@mentions`. */
   mentionNames: string[];
   canPin: boolean;
-  /** This line's reaction entries, pre-grouped by the parent. */
   reactions: ReactionEntry[];
   myPeerId: string | null;
   onTorrentLink: (token: string) => void;
@@ -151,15 +141,10 @@ interface ChatLineProps {
   onReplyChange?: (id: string | null) => void;
   onPin?: (messageId: string | null) => void;
   onReact: OnReact;
-  /** Centers a line by id (the reply quote jump). */
   onJump: (messageId: string) => void;
 }
 
-/**
- * A single chat line: reply quote, timestamped body, hover actions, optional
- * `.torrent` card, image previews and the reaction row. The line carries the
- * `group` class the hover-only reveals depend on.
- */
+// Requires `group` class for hover reveals.
 function ChatLine({
   message,
   quoted,
@@ -185,6 +170,12 @@ function ChatLine({
       ? t("lobby.chat.attachment.retry")
       : t("lobby.chat.attachment.download");
   const replyId = message.replyTo ?? null;
+  const animeIds = useMemo(() => {
+    const ids = [...animeIdsFromLinks(message.links), ...animeIdsFromText(message.text)];
+    return ids
+      .filter((id, index) => ids.indexOf(id) === index)
+      .slice(0, ANIME_CARD_MAX);
+  }, [message.links, message.text]);
   return (
     <li
       className="group windows95-text text-xs whitespace-pre-wrap"
@@ -239,6 +230,9 @@ function ChatLine({
           <Pin className="size-3.5" />
         </button>
       )}
+      {animeIds.map((animeId) => (
+        <AnimeCard animeId={animeId} key={animeId} />
+      ))}
       {message.attachment !== null && message.attachment !== undefined && (
         <div className="bg-field windows95-3d-border mt-1 flex w-fit max-w-full items-center gap-2 px-2 py-1">
           <Paperclip className="text-highlight size-4 shrink-0" />
@@ -300,13 +294,11 @@ function ChatLine({
 }
 
 interface ReplyBarProps {
-  /** The composer's reply target when it is still in the rendered history. */
   target: ChatMessage | null;
   onJump: (messageId: string) => void;
   onReplyChange?: (id: string | null) => void;
 }
 
-/** The "replying to" preview bar above the composer, with its cancel button. */
 function ReplyBar({ target, onJump, onReplyChange }: ReplyBarProps) {
   const { t } = useI18n();
   return (
@@ -339,11 +331,9 @@ function ReplyBar({ target, onJump, onReplyChange }: ReplyBarProps) {
 }
 
 interface TypingLineProps {
-  /** Peers currently typing, as display names. */
   names: string[];
 }
 
-/** The italic "N are typing" line above the composer. */
 function TypingLine({ names }: TypingLineProps) {
   const { t } = useI18n();
   return (
@@ -357,11 +347,9 @@ function TypingLine({ names }: TypingLineProps) {
 
 interface UnreadPillProps {
   count: number;
-  /** Follows the chat to the newest lines and clears the counter. */
   onJump: () => void;
 }
 
-/** The sticky "N new" pill, shown while the reader is not at the bottom. */
 function UnreadPill({ count, onJump }: UnreadPillProps) {
   const { t } = useI18n();
   return (
@@ -375,11 +363,7 @@ function UnreadPill({ count, onJump }: UnreadPillProps) {
   );
 }
 
-/**
- * Follows the chat while the reader is at the bottom; otherwise counts
- * arrivals for the "N new" pill. Shrinks (history trim, optimistic-echo
- * reconciliation) never count as arrivals.
- */
+// Shrinks never count as arrivals.
 function useChatScrollFollow(
   scrollRef: RefObject<HTMLDivElement | null>,
   bottomRef: RefObject<HTMLDivElement | null>,
@@ -424,10 +408,6 @@ function useChatScrollFollow(
   return { handleScroll, jumpToLatest, unread };
 }
 
-/**
- * Lazy emoji picker state: open flag, anchor ref, and close-on-outside-click
- * / Escape behavior.
- */
 function useChatEmojiPicker() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -459,7 +439,6 @@ interface MentionMenuProps {
   mention: MentionAutocomplete;
 }
 
-/** The `@` autocomplete dropdown above the composer input. */
 function MentionMenu({ mention }: MentionMenuProps) {
   const { t } = useI18n();
   if (!mention.open) return null;
@@ -477,8 +456,7 @@ function MentionMenu({ mention }: MentionMenuProps) {
           }`}
           key={name}
           onMouseDown={(event) => {
-            // mousedown: the input keeps focus, a plain click would
-            // blur the popup before the mention lands in the draft.
+            // Keeps focus so the mention lands before blur.
             event.preventDefault();
             mention.apply(name);
           }}
@@ -492,12 +470,83 @@ function MentionMenu({ mention }: MentionMenuProps) {
   );
 }
 
+interface AnimeMenuProps {
+  options: AniMedia[];
+  activeIndex: number;
+  preference: AniTitleLanguage | null;
+  onPick: (brief: AniMedia) => void;
+}
+
+function AnimeMenu({ options, activeIndex, preference, onPick }: AnimeMenuProps) {
+  const { t } = useI18n();
+  if (options.length === 0) return null;
+  return (
+    <div
+      aria-label={t("lobby.chat.anime.option.menu")}
+      className="ui-panel absolute bottom-full left-1 z-20 mb-1 w-64 p-1"
+      role="listbox"
+    >
+      {options.map((brief, index) => (
+        <AnimeOptionRow
+          brief={brief}
+          highlighted={index === activeIndex}
+          key={brief.id}
+          onPick={() => onPick(brief)}
+          title={
+            resolveAnimeTitle(animeTitleFields(brief), preference) || brief.title
+          }
+        />
+      ))}
+    </div>
+  );
+}
+
+interface AnimePreviewBarProps {
+  brief: AniMedia;
+  title: string;
+  onClear: () => void;
+}
+
+function AnimePreviewBar({ brief, title, onClear }: AnimePreviewBarProps) {
+  const { t } = useI18n();
+  return (
+    <div className="bg-field windows95-3d-border mx-1 mb-1 flex items-center gap-1 px-2 py-1">
+      <span className="windows95-text text-hint shrink-0 text-xs">
+        {t("lobby.chat.anime.selected")}
+      </span>
+      {brief.cover_url !== null && brief.cover_url !== "" && (
+        <img
+          alt=""
+          className="h-6 w-4 shrink-0 border border-muted object-cover"
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          src={brief.cover_url}
+          onError={(event) => {
+            event.currentTarget.style.display = "none";
+          }}
+        />
+      )}
+      <span className="windows95-text text-text min-w-0 flex-1 truncate text-xs">
+        {title}
+      </span>
+      <Button
+        aria-label={t("lobby.chat.anime.clear")}
+        onClick={onClear}
+        size="icon"
+        title={t("lobby.chat.anime.clear")}
+        type="button"
+      >
+        <X />
+      </Button>
+    </div>
+  );
+}
+
 interface EmojiPopoverProps {
   open: boolean;
   onPick: (emoji: string) => void;
 }
 
-/** The floating, lazy-loaded emoji panel. */
 function EmojiPopover({ open, onPick }: EmojiPopoverProps) {
   const { t } = useI18n();
   if (!open) return null;
@@ -518,47 +567,145 @@ function EmojiPopover({ open, onPick }: EmojiPopoverProps) {
   );
 }
 
+interface ChatComposerProps {
+  draft: string;
+  pending: boolean;
+  canAttach: boolean;
+  attachPending: boolean;
+  emojiOpen: boolean;
+  emojiRef: RefObject<HTMLDivElement | null>;
+  mention: MentionAutocomplete;
+  anime: AnimeMentionComposer;
+  onDraftChange: (value: string) => void;
+  onSend: (animeId: number | null) => void;
+  onAttach: () => void;
+  onToggleEmoji: () => void;
+  onEmojiPick: (emoji: string) => void;
+}
+
+function ChatComposer({
+  draft,
+  pending,
+  canAttach,
+  attachPending,
+  emojiOpen,
+  emojiRef,
+  mention,
+  anime,
+  onDraftChange,
+  onSend,
+  onAttach,
+  onToggleEmoji,
+  onEmojiPick,
+}: ChatComposerProps) {
+  const { t } = useI18n();
+  return (
+    <>
+      {anime.error && (
+        <p className="windows95-text text-hint px-1 text-xs italic">
+          {t("lobby.chat.anime.searchError")}
+        </p>
+      )}
+      {anime.picked !== null && (
+        <AnimePreviewBar
+          brief={anime.picked}
+          onClear={anime.handleClear}
+          title={
+            resolveAnimeTitle(animeTitleFields(anime.picked), anime.preference) ||
+            anime.picked.title
+          }
+        />
+      )}
+      <div ref={emojiRef} className="relative">
+        <EmojiPopover open={emojiOpen} onPick={onEmojiPick} />
+        {anime.open ? (
+          <AnimeMenu
+            activeIndex={anime.activeIndex}
+            onPick={anime.handlePick}
+            options={anime.options}
+            preference={anime.preference}
+          />
+        ) : (
+          <MentionMenu mention={mention} />
+        )}
+        <form
+          className="border-t-muted flex items-center gap-1 border-t p-1"
+          onSubmit={(event) => {
+            event.preventDefault();
+            onSend(anime.picked?.id ?? null);
+          }}
+        >
+          <Input
+            placeholder={t("lobby.chat.placeholder")}
+            value={draft}
+            onChange={(event) => {
+              mention.reset();
+              // Edit clears pick.
+              anime.resetHighlight();
+              anime.handleClear();
+              onDraftChange(event.target.value);
+            }}
+            onKeyDown={anime.handleKeyDown}
+          />
+          <Button
+            aria-expanded={emojiOpen}
+            aria-label={t("lobby.chat.emoji")}
+            onClick={onToggleEmoji}
+            size="icon"
+            title={t("lobby.chat.emoji")}
+            type="button"
+          >
+            <Smile />
+          </Button>
+          {canAttach && (
+            <Button
+              disabled={attachPending}
+              onClick={onAttach}
+              title={t("lobby.chat.attach")}
+              type="button"
+            >
+              {t("lobby.chat.attach")}
+            </Button>
+          )}
+          <Button
+            disabled={
+              pending ||
+              draft.trim().length === 0 ||
+              countGraphemes(draft) > LOBBY_CHAT_MAX_GRAPHEMES
+            }
+            type="submit"
+          >
+            {t("lobby.chat.send")}
+          </Button>
+        </form>
+      </div>
+    </>
+  );
+}
+
 interface ChatLobbyProps {
   messages: ChatMessage[];
   draft: string;
   pending: boolean;
-  /** Host + moderators may attach a `.torrent` (lobby.md §14.4). */
   canAttach: boolean;
-  /** An attach send is in flight. */
   attachPending?: boolean;
-  /** A `.torrent` attachment fetch is in flight (message id). */
   fetchingAttachment?: string | null;
-  /** The `.torrent` attachment fetch that failed (message id, retry shown). */
   failedAttachment?: string | null;
   onDraftChange: (value: string) => void;
-  onSend: () => void;
-  /** Message id the composer is replying to (local UI state, `null` = none). */
+  onSend: (animeId: number | null) => void;
   replyTo?: string | null;
-  /** Sets / clears the reply target (null cancels the reply). */
   onReplyChange?: (id: string | null) => void;
-  /** A magnet / `iluhaanime://torrent/<hex>` link was clicked. */
   onTorrentLink: (token: string) => void;
-  /** The attach button was clicked (opens the file dialog upstream). */
   onAttach: () => void;
-  /** The attachment row was clicked (downloads it). */
   onDownloadAttachment: (messageId: string) => void;
-  /** Peers currently typing, as display names (shown above the input). */
   typingNames?: string[];
-  /** Roster display names used to detect and complete `@mentions`. */
   mentionNames?: string[];
-  /** The room's single pinned anchor (`null` = nothing pinned). */
   pinned?: PinnedMessage | null;
-  /** The pinner's display name (resolved by the parent; the raw peer id is the fallback). */
   pinnedByName?: string;
-  /** Flat reaction entries for every chat message. */
   reactions?: ReactionEntry[];
-  /** This instance's own peer id (highlights "you reacted"). */
   myPeerId?: string | null;
-  /** Host + moderators may pin/unpin (the same set as `canAttach`). */
   canPin?: boolean;
-  /** Pin (`id`) or unpin (`null`) the room's single message. */
   onPin?: (messageId: string | null) => void;
-  /** Add or remove a reaction on one message. */
   onReact?: (input: { messageId: string; emoji: string; add: boolean }) => void;
 }
 
@@ -594,10 +741,8 @@ export default function ChatLobby({
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const count = messages.length;
-  const { open: emojiOpen, ref: emojiRef, toggle: toggleEmoji } =
+  const { open: emojiOpen, ref: emojiRef, toggle: handleEmojiToggle } =
     useChatEmojiPicker();
-  // Reply: resolve the composer target for its preview bar and index messages
-  // so each quote line can look up what it points at (O(1), not a find-in-map).
   const replyTarget = useMemo(
     () =>
       replyTo !== null ? (messages.find((m) => m.id === replyTo) ?? null) : null,
@@ -608,7 +753,6 @@ export default function ChatLobby({
     [messages],
   );
 
-  // Reactions grouped by message id: each line looks up its pills in O(1).
   const reactionsByMessage = useMemo(() => {
     const byMessage = new Map<string, ReactionEntry[]>();
     for (const entry of reactions) {
@@ -619,17 +763,14 @@ export default function ChatLobby({
     return byMessage;
   }, [reactions]);
 
-  // The pinned line when its anchor is still in the rendered history.
   const pinnedMessage = useMemo(
     () =>
       pinned !== null ? (messagesById.get(pinned.messageId) ?? null) : null,
     [pinned, messagesById],
   );
 
-  // @mention autocomplete lives in its own hook: query detection, menu state,
-  // keyboard navigation and draft rewriting (lobby.md §14 chat).
   const mention = useMentionAutocomplete(draft, mentionNames, onDraftChange);
-  const handleMentionKeyDown = mention.onKeyDown;
+  const anime = useAnimeMentionComposer(draft, onDraftChange, mention.onKeyDown);
 
   const { unread, handleScroll, jumpToLatest } = useChatScrollFollow(
     scrollRef,
@@ -637,8 +778,6 @@ export default function ChatLobby({
     count,
   );
 
-  // Reply navigation: center the row a quote points at (ids are ascii
-  // alnum/-/_ only, so the selector is always safe).
   const scrollToMessage = (id: string) => {
     const element = scrollRef.current?.querySelector(
       `[data-message-id="${id}"]`
@@ -726,57 +865,21 @@ export default function ChatLobby({
       {replyTo !== null && (
         <ReplyBar onJump={scrollToMessage} onReplyChange={onReplyChange} target={replyTarget} />
       )}
-      <div ref={emojiRef} className="relative">
-        <EmojiPopover open={emojiOpen} onPick={handleEmojiPick} />
-        <MentionMenu mention={mention} />
-        <form
-          className="border-t-muted flex items-center gap-1 border-t p-1"
-          onSubmit={(event) => {
-            event.preventDefault();
-            onSend();
-          }}
-        >
-          <Input
-            placeholder={t("lobby.chat.placeholder")}
-            value={draft}
-            onChange={(event) => {
-              mention.reset();
-              onDraftChange(event.target.value);
-            }}
-            onKeyDown={handleMentionKeyDown}
-          />
-          <Button
-            aria-expanded={emojiOpen}
-            aria-label={t("lobby.chat.emoji")}
-            onClick={toggleEmoji}
-            size="icon"
-            title={t("lobby.chat.emoji")}
-            type="button"
-          >
-            <Smile />
-          </Button>
-          {canAttach && (
-            <Button
-              disabled={attachPending}
-              onClick={onAttach}
-              title={t("lobby.chat.attach")}
-              type="button"
-            >
-              {t("lobby.chat.attach")}
-            </Button>
-          )}
-          <Button
-            disabled={
-              pending ||
-              draft.trim().length === 0 ||
-              countGraphemes(draft) > LOBBY_CHAT_MAX_GRAPHEMES
-            }
-            type="submit"
-          >
-            {t("lobby.chat.send")}
-          </Button>
-        </form>
-      </div>
+      <ChatComposer
+        anime={anime}
+        attachPending={attachPending}
+        canAttach={canAttach}
+        draft={draft}
+        emojiOpen={emojiOpen}
+        emojiRef={emojiRef}
+        mention={mention}
+        onAttach={onAttach}
+        onDraftChange={onDraftChange}
+        onEmojiPick={handleEmojiPick}
+        onSend={onSend}
+        onToggleEmoji={handleEmojiToggle}
+        pending={pending}
+      />
     </section>
   );
 }

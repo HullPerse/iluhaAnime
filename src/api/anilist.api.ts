@@ -3,6 +3,7 @@ import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { useSettingsStore } from "@/store/settings.store";
 import type {
   AniActivity,
+  AniAnimeFull,
   AniAnimeStaffEdge,
   AniCharacterDetail,
   AniCharacterEdge,
@@ -14,7 +15,7 @@ import type {
   AniUser,
   AniUserProfile,
   FavouriteAnime,
-  FavouritePeople,
+  FavouriteOverview,
   FavouritePerson,
   FollowingPage,
   FranchiseGraph,
@@ -30,12 +31,23 @@ export interface AnilistApiConfig {
   proxyUrl?: string | null | (() => string | null);
 }
 
+export interface FuzzyDateInput {
+  year: number | null;
+  month: number | null;
+  day: number | null;
+}
+
 export interface SaveAnilistEntryInput {
   mediaId: number;
   status: string;
   progress: number | null;
   score: number | null;
   notes: string | null;
+  repeat?: number | null;
+  private?: boolean | null;
+  startedAt?: FuzzyDateInput | null;
+  completedAt?: FuzzyDateInput | null;
+  customLists?: string[] | null;
 }
 
 export type AnilistSearchParams = Partial<ReturnType<typeof searchFiltersToParams>>;
@@ -76,8 +88,8 @@ export class AnilistApi {
     return this.call("get_anilist_profile", { userId, userName });
   }
 
-  getLists(userId: number): Promise<AniListCollection[]> {
-    return this.call("get_anilist_lists", { userId });
+  getLists(userId: number, minimal = false): Promise<AniListCollection[]> {
+    return this.call("get_anilist_lists", { userId, minimal });
   }
 
   getFriendScores(mediaId: number, userIds: number[]): Promise<AniFriendScore[]> {
@@ -112,6 +124,18 @@ export class AnilistApi {
     return this.call("get_anime_by_id", { id });
   }
 
+  fetchAnimeBrief(id: number): Promise<AniMedia> {
+    return this.call("get_anime_by_id", { id });
+  }
+
+  getAnimeFull(id: number): Promise<AniAnimeFull> {
+    return this.call("get_anime_full", { id });
+  }
+
+  getAnimeByIds(ids: number[]): Promise<AniMedia[]> {
+    return this.call("get_anime_by_ids", { ids });
+  }
+
   getAnimeCharacters(id: number, page: number): Promise<AniCharacterEdge[]> {
     return this.call("get_anime_characters", { id, page });
   }
@@ -132,8 +156,8 @@ export class AnilistApi {
     return this.call("get_favourites", { userId });
   }
 
-  getFavouritePeople(userId: number): Promise<FavouritePeople> {
-    return this.call("get_favourite_people", { userId });
+  getFavouriteOverview(userId: number): Promise<FavouriteOverview> {
+    return this.call("get_favourite_overview", { userId });
   }
 
   toggleFavourite(animeId: number): Promise<FavouriteAnime[]> {

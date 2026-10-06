@@ -1,9 +1,10 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
+import { anilistApi } from "@/api/anilist.api";
 import { sessionApi } from "@/api/session.api";
 import { useI18n } from "@/hooks/i18n.hook";
 import { ticketRoomLabel } from "@/lib/session/ticket.utils";
-import { toError } from "@/lib/utils/attempt.utils";
+import { attempt, toError } from "@/lib/utils/attempt.utils";
 import { showError } from "@/lib/utils/notification.utils";
 import { useConnectionsStore } from "@/store/connections.store";
 import { useSessionStore } from "@/store/session.store";
@@ -18,10 +19,6 @@ import type {
 
 import { SESSION_STATUS_QUERY_KEY } from "./queries.hook";
 
-/**
- * Session lifecycle actions. Each mutation invalidates the status query so the
- * polled view reflects the new role/roster immediately.
- */
 export function useSessionActions() {
   const queryClient = useQueryClient();
   const { t } = useI18n();
@@ -38,8 +35,6 @@ export function useSessionActions() {
       sessionApi.create(nameOrDefault(input.name), input.port),
     onError,
     onSettled,
-    // A host room is not restored after a restart; the stored identity only
-    // lets a later mount report the room as closed.
     onSuccess: (ticket: SessionTicket, input: { name: string; port: number | null }) => {
       useSessionStore.getState().setIdentity({
         sessionId: ticket.sessionId,
@@ -52,8 +47,11 @@ export function useSessionActions() {
   });
 
   const join = useMutation({
-    mutationFn: (input: { ticket: SessionTicket; name: string; peerId?: string | null }) =>
-      sessionApi.join(input.ticket, nameOrDefault(input.name), null, input.peerId ?? null),
+    mutationFn: async (input: { ticket: SessionTicket; name: string; peerId?: string | null }) => {
+      const [me] = await attempt(anilistApi.checkAuth());
+      const anilistUserId = me !== null && Number.isInteger(me.id) && me.id > 0 ? me.id : null;
+      return sessionApi.join(input.ticket, nameOrDefault(input.name), anilistUserId, input.peerId ?? null);
+    },
     onSuccess: (status, input) => {
       useSessionStore.getState().setIdentity({
         sessionId: status.sessionId ?? input.ticket.sessionId,
@@ -62,9 +60,6 @@ export function useSessionActions() {
         peerId: status.yourPeerId,
         role: "guest",
       });
-      // Keep the room in the address book: the entry is titled with the
-      // host's name as seen in the roster (the room code as a fallback) and
-      // carries the direct paths this connection actually used.
       const hostName = status.peers.find((peer) => peer.role === "host")?.displayName;
       useConnectionsStore.getState().save({
         endpointId: input.ticket.endpointId,
@@ -76,8 +71,6 @@ export function useSessionActions() {
         savedAt: Date.now(),
       });
     },
-    // The host rejects a foreign build with `app version mismatch: ...`
-    // (host.rs); swap it for a localized sentence instead of raw English.
     onError: (error: unknown) => {
       const message = toError(error).message;
       showError(
@@ -107,7 +100,8 @@ export function useSessionActions() {
       id: string;
       replyTo?: string | null;
       file?: { name: string; bytes: number[] } | null;
-    }) => sessionApi.chat(input.text, input.id, input.replyTo, input.file),
+      links?: string[];
+    }) => sessionApi.chat(input.text, input.id, input.replyTo, input.file, input.links),
     onError,
     onSettled,
   });
@@ -127,14 +121,12 @@ export function useSessionActions() {
     onSettled,
   });
 
-  /** Host/moderator: start a plan item (or hold until every peer has it). */
   const startItem = useMutation({
     mutationFn: (itemId: string) => sessionApi.startItem(itemId),
     onError,
     onSettled,
   });
 
-  /** Host: promote or demote a guest. */
   const setRole = useMutation({
     mutationFn: (input: { peerId: string; role: LobbyRole }) =>
       sessionApi.setRole(input.peerId, input.role),
@@ -142,7 +134,6 @@ export function useSessionActions() {
     onSettled,
   });
 
-  /** Host: hand the room to a chosen peer and rejoin it as a viewer. */
   const transferHost = useMutation({
     mutationFn: (peerId: string) =>
       sessionApi.transferHost({ peerId, displayName: nameOrDefault("") }),
@@ -164,7 +155,6 @@ export function useSessionActions() {
     onSettled,
   });
 
-  /** Guest: search a folder for a byte-exact copy of a plan item. */
   const matchFolder = useMutation({
     mutationFn: (input: { itemId: string; folder: string }) =>
       sessionApi.matchFolder(input.itemId, input.folder),
@@ -185,21 +175,18 @@ export function useSessionActions() {
     onSettled,
   });
 
-  /** Compute a media identity for a local path before attaching it. */
   const mediaIdentity = useMutation({
     mutationFn: (path: string) => sessionApi.mediaIdentity(path),
     onError,
     onSettled,
   });
 
-  /** Host + moderators: pin or unpin the room's single chat anchor. */
   const pin = useMutation({
     mutationFn: (messageId: string | null) => sessionApi.pin(messageId),
     onError,
     onSettled,
   });
 
-  /** Add or remove a reaction on one chat message. */
   const react = useMutation({
     mutationFn: (input: { messageId: string; emoji: string; add: boolean }) =>
       sessionApi.react(input),

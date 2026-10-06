@@ -725,6 +725,11 @@ describe("anilist/entries", () => {
       expect(params.maxPages).toBe(3);
     });
 
+    it("maps the adult flag to an exclude/include switch", () => {
+      expect(searchFiltersToParams(makeFilters({ adult: false }), null, 20, 2).adult).toBe(false);
+      expect(searchFiltersToParams(makeFilters({ adult: true }), null, 20, 2).adult).toBeNull();
+    });
+
     it("nullifies empty filters", () => {
       const params = searchFiltersToParams(makeFilters(), null, 20, 2);
       expect(params.query).toBeNull();

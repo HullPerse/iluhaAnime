@@ -19,6 +19,7 @@ use crate::app_db;
 
 use super::auth::optional_token;
 use super::client::{graphql_request, resolve_proxy};
+use super::media::{MEDIA_CORE_SELECTION, MEDIA_RELATIONS_SELECTION};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CachedFranchiseNode {
     pub node: FranchiseNode,
@@ -122,8 +123,7 @@ fn load_franchise_cache(app_handle: &AppHandle) {
         eprintln!("unable to iterate AniList franchise cache");
         return;
     };
-    // Collect off-lock: parsing every row under the global cache
-    // lock serialized all concurrent readers for no reason.
+    // Parse off-lock; holding cache lock serializes readers.
     let mut nodes = std::collections::HashMap::new();
     for row in rows.flatten() {
         let (
@@ -372,37 +372,23 @@ fn parse_franchise_targets(
         .unwrap_or_default()
 }
 
-const FRANCHISE_BATCH_QUERY: &str = r"
+const FRANCHISE_BATCH_QUERY_TEMPLATE: &str = r"
     query ($ids: [Int], $page: Int, $perPage: Int) {
         Page(page: $page, perPage: $perPage) {
             media(id_in: $ids, type: ANIME) {
-                id
-                title { romaji english }
-                coverImage { medium }
-                episodes
-                averageScore
-                format
-                type
-                startDate { year }
-                relations {
-                    edges {
-                        relationType
-                        node {
-                            id
-                            title { romaji english }
-                            coverImage { medium }
-                            episodes
-                            averageScore
-                            format
-                            type
-                            startDate { year }
-                        }
-                    }
-                }
+                {SELECTION}
             }
         }
     }
 ";
+
+fn franchise_media_selection() -> String {
+    format!("{MEDIA_CORE_SELECTION}{MEDIA_RELATIONS_SELECTION}")
+}
+
+fn franchise_batch_query_text() -> String {
+    FRANCHISE_BATCH_QUERY_TEMPLATE.replace("{SELECTION}", &franchise_media_selection())
+}
 
 #[derive(Debug, Clone, Serialize)]
 pub struct FranchiseQueryMetrics {
@@ -415,7 +401,7 @@ pub struct FranchiseQueryMetrics {
 pub fn franchise_query_body(ids: &[u64]) -> serde_json::Value {
     let ids: Vec<i64> = ids.iter().take(50).map(|id| *id as i64).collect();
     serde_json::json!({
-        "query": FRANCHISE_BATCH_QUERY,
+        "query": franchise_batch_query_text(),
         "variables": {
             "ids": ids,
             "page": 1,
@@ -427,7 +413,7 @@ pub fn franchise_query_body(ids: &[u64]) -> serde_json::Value {
 #[must_use]
 pub fn franchise_query_metrics(ids: &[u64]) -> FranchiseQueryMetrics {
     let body = franchise_query_body(ids);
-    let query_bytes = FRANCHISE_BATCH_QUERY.len();
+    let query_bytes = franchise_batch_query_text().len();
     let body_bytes = serde_json::to_vec(&body).map_or(0, |bytes| bytes.len());
     FranchiseQueryMetrics {
         id_count: ids.len(),

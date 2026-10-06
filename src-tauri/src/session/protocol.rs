@@ -90,41 +90,60 @@ pub fn sanitize_chat_text(text: &str) -> Option<String> {
     Some(trimmed.to_string())
 }
 
-/// Frame encode/decode errors.
+pub const CHAT_LINKS_MAX: usize = 4;
+
+pub const CHAT_LINK_MAX_CHARS: usize = 64;
+
+/// Exactly https://anilist.co/anime/<digits>, the only share anchor.
+fn is_anilist_anime_url(link: &str) -> bool {
+    let Some(rest) = link.strip_prefix("https://anilist.co/anime/") else {
+        return false;
+    };
+    !rest.is_empty() && rest.len() <= 10 && rest.bytes().all(|b| b.is_ascii_digit())
+}
+
+/// Keep only `AniList` anime anchors (capped, deduped); drop the rest so peers cannot smuggle URLs.
+#[must_use]
+pub fn sanitize_chat_links(links: &[String]) -> Vec<String> {
+    let mut out = Vec::new();
+    for link in links {
+        if out.len() >= CHAT_LINKS_MAX {
+            break;
+        }
+        let trimmed = link.trim();
+        if trimmed.len() > CHAT_LINK_MAX_CHARS || !is_anilist_anime_url(trimmed) {
+            continue;
+        }
+        let owned = trimmed.to_string();
+        if !out.contains(&owned) {
+            out.push(owned);
+        }
+    }
+    out
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
 pub enum ProtocolError {
-    /// The frame carries a different protocol version.
     #[error("frame version mismatch: expected {expected}, got {actual}")]
     BadVersion { expected: u8, actual: u8 },
-    /// The declared frame length exceeds [`MAX_FRAME_BYTES`].
     #[error("frame exceeds the 262144-byte cap")]
     FrameTooLarge,
-    /// The frame JSON is malformed or the payload does not match its tag.
     #[error("invalid frame JSON: {0}")]
     BadJson(String),
 }
 
-/// Error codes carried by `Error` frames.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum ErrorCode {
-    /// The peer speaks a different protocol version.
     BadVersion,
-    /// The room token was wrong.
     BadToken,
-    /// The room is at capacity.
     RoomFull,
-    /// Not every peer is ready.
     NotReady,
-    /// The peer was kicked.
     Kicked,
-    /// The peer exceeded a rate limit.
     RateLimited,
-    /// An unexpected internal error.
     Internal,
 }
 
-/// Lobby role.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Role {
@@ -357,26 +376,25 @@ pub enum ClientMessage {
     },
     #[serde(rename_all = "camelCase")]
     Chat {
-        /// Client-generated message id; the host echoes it back untouched.
+        /// The host echoes it back untouched.
         id: String,
         text: String,
+        /// `AniList` anime URLs; host re-validates and caps.
+        #[serde(default)]
+        links: Vec<String>,
         reply_to: Option<String>,
-        /// Attached `.torrent` (host/moderator only); missing on lines from
-        /// older peers. The host validates and strips viewers' uploads.
+        /// Host/moderator only; host strips viewers' uploads.
         #[serde(default)]
         attachment: Option<ChatUpload>,
     },
-    /// The peer started/stopped typing (throttled client-side).
     #[serde(rename_all = "camelCase")]
     Typing {
         active: bool,
     },
-    /// Pin (`Some`) or unpin (`None`) a message; host/moderator only.
     #[serde(rename_all = "camelCase")]
     Pin {
         message_id: Option<String>,
     },
-    /// Add (`add: true`) or remove (`add: false`) a reaction on a message.
     #[serde(rename_all = "camelCase")]
     React {
         message_id: String,
@@ -460,27 +478,24 @@ pub enum ServerMessage {
         from: String,
         text: String,
         at: f64,
+        /// `AniList` anime URLs; receivers re-validate before rendering.
+        #[serde(default)]
         links: Vec<String>,
         reply_to: Option<String>,
-        /// Attached `.torrent` bytes (base64); missing on text-only lines and
-        /// on frames from older hosts. Receivers keep the bytes in a bounded
-        /// side map; the polled log carries metadata only.
+        /// Base64 bytes in a bounded side map; the log carries metadata only.
         #[serde(default)]
         attachment: Option<ChatUpload>,
     },
-    /// Broadcast typing state for one peer.
     #[serde(rename_all = "camelCase")]
     Typing {
         peer_id: String,
         active: bool,
     },
-    /// The room's single pinned message changed (`None` = no pin).
     #[serde(rename_all = "camelCase")]
     Pin {
         message_id: Option<String>,
         pinned_by: String,
     },
-    /// A reaction was added or removed by `peer_id`.
     #[serde(rename_all = "camelCase")]
     React {
         message_id: String,
@@ -655,6 +670,7 @@ mod tests {
             ClientMessage::Chat {
                 id: "m1".into(),
                 text: "hi".into(),
+                links: vec!["https://anilist.co/anime/21".into()],
                 reply_to: Some("m0".into()),
                 attachment: None,
             },
@@ -947,6 +963,94 @@ mod tests {
     }
 
     #[test]
+    fn chat_links_keep_only_anilist_anime_urls() {
+        let links = vec![
+            "https://anilist.co/anime/21".to_string(),
+            " https://anilist.co/anime/999 ".to_string(),
+            "https://evil.example/anime/21".to_string(),
+            "http://anilist.co/anime/21".to_string(),
+            "https://anilist.co/anime/21/episode/1".to_string(),
+            "https://anilist.co/anime/notanid".to_string(),
+            "https://anilist.co/anime/21".to_string(),
+        ];
+        assert_eq!(
+            sanitize_chat_links(&links),
+            vec![
+                "https://anilist.co/anime/21".to_string(),
+                "https://anilist.co/anime/999".to_string()
+            ]
+        );
+        assert!(sanitize_chat_links(&[]).is_empty());
+    }
+
+    #[test]
+    fn chat_links_cap_the_list_and_each_item() {
+        let many: Vec<String> = (1..=10)
+            .map(|id| format!("https://anilist.co/anime/{id}"))
+            .collect();
+        let capped = sanitize_chat_links(&many);
+        assert_eq!(capped.len(), CHAT_LINKS_MAX);
+        assert_eq!(capped[0], "https://anilist.co/anime/1");
+
+        let long = format!(
+            "https://anilist.co/anime/{}",
+            "1".repeat(CHAT_LINK_MAX_CHARS)
+        );
+        assert!(sanitize_chat_links(&[long]).is_empty());
+        assert!(sanitize_chat_links(&["https://anilist.co/anime/".to_string()]).is_empty());
+    }
+
+    #[test]
+    fn chat_frame_without_links_decodes_with_empty_links() {
+        // Older peers never send the field; the frame must still parse.
+        let mut value = serde_json::json!({
+            "t": "chat",
+            "id": "m1",
+            "text": "hi",
+            "replyTo": null,
+            "attachment": null,
+        });
+        value["v"] = serde_json::Value::from(PROTOCOL_VERSION);
+        let payload = serde_json::to_vec(&value).expect("payload must serialize");
+        let mut bytes = u32::try_from(payload.len())
+            .expect("small")
+            .to_le_bytes()
+            .to_vec();
+        bytes.extend_from_slice(&payload);
+        let frames = decode_all(&bytes).expect("frame must decode");
+        match frames[0].client().expect("chat") {
+            ClientMessage::Chat { links, .. } => assert!(links.is_empty()),
+            other => panic!("unexpected: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn server_chat_frame_without_links_decodes_with_empty_links() {
+        // Older hosts never send the field; the guest must still parse the line.
+        let mut value = serde_json::json!({
+            "t": "chat",
+            "id": "m1",
+            "from": "peer",
+            "text": "hi",
+            "at": 1.0,
+            "replyTo": null,
+            "attachment": null,
+        });
+        value["v"] = serde_json::Value::from(PROTOCOL_VERSION);
+        let payload = serde_json::to_vec(&value).expect("payload must serialize");
+        let mut bytes = u32::try_from(payload.len())
+            .expect("small")
+            .to_le_bytes()
+            .to_vec();
+        bytes.extend_from_slice(&payload);
+        let frames = decode_all(&bytes).expect("frame must decode");
+        match frames[0].server().expect("chat") {
+            ServerMessage::Chat { links, .. } => assert!(links.is_empty()),
+            other => panic!("unexpected: {other:?}"),
+        }
+    }
+
+    #[test]
     fn chat_ids_are_validated_or_replaced() {
         assert_eq!(chat_id_or_generate("aBc-123_x"), "aBc-123_x");
         assert_eq!(
@@ -1003,6 +1107,7 @@ mod tests {
         let message = ClientMessage::Chat {
             id: "i".repeat(CHAT_ID_MAX_CHARS),
             text,
+            links: Vec::new(),
             reply_to: None,
             attachment: Some(ChatUpload {
                 name: format!("{}.torrent", "n".repeat(120)),

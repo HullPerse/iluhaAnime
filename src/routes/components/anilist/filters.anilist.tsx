@@ -14,7 +14,6 @@ import {
   ANILIST_GENRES,
   ANILIST_NSFW_TAGS,
   ANILIST_TAGS,
-  defaultFilters,
   FORMATS,
   NSFW_TAG_SET,
   SEASONS,
@@ -22,6 +21,8 @@ import {
 } from "@/config/anilist/filters.config";
 import { statusLabels, seasonLabels, formatLabels } from "@/config/anilist/labels.config";
 import { useI18n } from "@/hooks/i18n.hook";
+import { defaultAniListFilters } from "@/lib/anilist/filters.utils";
+import { useSettingsStore } from "@/store/settings.store";
 import type { AniListFiltersModalProps, AniListFilters } from "@/types/anilist";
 
 import { DiscoveryCard } from "./random/discovery.random";
@@ -76,7 +77,7 @@ function FiltersModal({
   };
 
   const handleReset = () => {
-    setLocal(defaultFilters);
+    setLocal(defaultAniListFilters(useSettingsStore.getState().anilistAdultContent));
     onReset();
     onClose();
   };
@@ -363,7 +364,7 @@ function FiltersModal({
 
           <label className="windows95-text mt-1 flex cursor-pointer items-center gap-2 select-none">
             <Checkbox checked={local.adult} onChange={toggleAdult} />
-            {t("anilist.filters.adult")}
+            <span className="text-destructive">{t("anilist.filters.adult")}</span>
           </label>
 
           <div className="mt-3 flex justify-end gap-1">

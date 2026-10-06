@@ -36,6 +36,10 @@ export interface AniMedia {
   id: number;
   title: string;
   titles: string[];
+  // Absent on older backends.
+  title_romaji?: string | null;
+  title_english?: string | null;
+  title_native?: string | null;
   episodes: number | null;
   duration: number | null;
   format: string | null;
@@ -61,6 +65,10 @@ export interface AniMedia {
   relations: AniRelation[];
 }
 
+export type AniTitleLanguage = "romaji" | "english" | "native";
+
+export type AniTitlePreference = "account" | AniTitleLanguage;
+
 export interface AniUser {
   id: number;
   name: string;
@@ -69,6 +77,8 @@ export interface AniUser {
   episodes_watched: number;
   mean_score: number | null;
   score_format: AnilistScoreFormat | null;
+  // Absent on older backends.
+  title_language?: AniTitleLanguage | null;
   favourites?: FavouriteAnime[];
 }
 
@@ -117,6 +127,11 @@ export interface FavouritePerson {
 export interface FavouritePeople {
   staff: FavouritePerson[];
   characters: FavouritePerson[];
+}
+
+export interface FavouriteOverview {
+  anime: FavouriteAnime[];
+  people: FavouritePeople;
 }
 
 export interface AniListEntry {
@@ -240,6 +255,12 @@ export interface AniAnimeStaffEdge {
   role: string;
   id: number;
   name: string;
+}
+
+export interface AniAnimeFull {
+  media: AniMedia;
+  characters: AniCharacterEdge[];
+  staff: AniAnimeStaffEdge[];
 }
 
 export interface AniStaffDetail {
@@ -594,6 +615,7 @@ export interface AniDetailProps {
 
 export type AniDetailViewProps = AniDetailProps & {
   anime?: AniMedia;
+  initialCharacters?: AniCharacterEdge[];
   isLoading: boolean;
   isError: boolean;
   error: unknown;

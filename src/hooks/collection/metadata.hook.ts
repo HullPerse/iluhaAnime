@@ -6,9 +6,8 @@ import { readStoredMedia, withStoredMedia } from "@/lib/collection/media.utils";
 import { mergeGenreTags } from "@/lib/collection/wizard.utils";
 import { useI18n } from "@/hooks/i18n.hook";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
-import { attempt, withFallback } from "@/lib/utils/attempt.utils";
+import { attempt } from "@/lib/utils/attempt.utils";
 import { useNotificationStore } from "@/store/notification.store";
-import type { AniAnimeStaffEdge, AniCharacterEdge } from "@/types/anilist";
 import type { CollectionItem } from "@/types/collection";
 
 export function useCollectionMetadata(
@@ -25,31 +24,15 @@ export function useCollectionMetadata(
 
   const refreshAnilist = useCallback(
     async (item: CollectionItem) => {
-      const m = await anilistApi.getAnimeById<{
-        title: string;
-        duration: number | null;
-        episodes: number | null;
-        tags: string[];
-        genres: string[];
-        studios: { name: string }[];
-        cover_url: string | null;
-        season_year: number | null;
-        start_date: string | null;
-        trailer_youtube_id: string | null;
-        description: string | null;
-      }>(item.externalIds.anilist as number);
+      const full = await anilistApi.getAnimeFull(item.externalIds.anilist as number);
+      const m = full.media;
+      const characters = full.characters;
+      const staff = full.staff;
       const mergedGenres = mergeGenreTags(m.genres ?? [], m.tags ?? []);
       const nextDescription = m.description || item.description || null;
-      const anilistId = item.externalIds.anilist;
       const nextCoverUrl = m.cover_url ?? item.coverUrl;
       const coverChanged =
         nextCoverUrl !== item.coverUrl && (item.coverBlobId != null || item.thumbBlobId != null);
-      const [characters, staff] = anilistId
-        ? await Promise.all([
-            withFallback(anilistApi.getAnimeCharacters(anilistId, 1), [] as AniCharacterEdge[]),
-            withFallback(anilistApi.getAnimeStaff(anilistId), [] as AniAnimeStaffEdge[]),
-          ])
-        : [[], []];
       updateItem(
         item.id,
         {

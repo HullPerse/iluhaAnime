@@ -37,7 +37,7 @@ export default function SettingsNotifications() {
     }
     const [, listsError] = await attempt(
       (async () => {
-        const lists = await anilistApi.getLists(user.id);
+        const lists = await anilistApi.getLists(user.id, true);
         useAniListNotificationsStore.getState().setKnownListNames(lists.map((list) => list.name));
       })()
     );

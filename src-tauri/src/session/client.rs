@@ -1,10 +1,4 @@
-//! Watch Party guest runtime (P2): connect, handshake, heartbeat, and
-//! reconnect with exponential backoff.
-//!
-//! The guest opens one bi-stream to the host, reports itself with `Hello`,
-//! waits for `Welcome`, then runs two tasks: a 1 s heartbeat sender and a
-//! reader that fans host messages out to subscribers. A dropped connection is
-//! retried with exponential backoff until the session is left or rejected.
+//! Guest runtime: Hello/Welcome handshake, heartbeat, backoff reconnect.
 
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -25,17 +19,13 @@ use crate::session::state::TrackState;
 use crate::session::sync::{SyncRuntime, SyncSample, PING_INTERVAL_MS};
 use crate::session::transport::{self, now_ms, TransportError, ALPN, LIVENESS_TIMEOUT_MS};
 
-/// Initial reconnect backoff.
 pub const RECONNECT_BASE_MS: u64 = 500;
-/// Maximum reconnect backoff.
 pub const RECONNECT_MAX_MS: u64 = 10_000;
 
-/// Double a backoff value, clamped to [`RECONNECT_MAX_MS`].
 pub fn next_backoff(current: u64) -> u64 {
     current.saturating_mul(2).min(RECONNECT_MAX_MS)
 }
 
-/// Everything the guest needs to join.
 #[derive(Debug, Clone)]
 pub struct ClientConfig {
     pub host_addr: EndpointAddr,
@@ -43,14 +33,12 @@ pub struct ClientConfig {
     pub peer_id: String,
     pub display_name: String,
     pub anilist_user_id: Option<u64>,
-    /// This build's version; the host refuses a peer whose version differs.
+    /// The host refuses peers on version mismatch.
     pub app_version: String,
 }
 
 struct ClientInner {
     endpoint: Endpoint,
-    /// The dial target and identity; `host_addr`/`token` are rewritten when the
-    /// room migrates to a new host.
     config: Mutex<ClientConfig>,
     events: broadcast::Sender<ServerMessage>,
     out_tx: Mutex<Option<mpsc::UnboundedSender<ClientMessage>>>,
@@ -60,31 +48,20 @@ struct ClientInner {
     session_id: Mutex<Option<String>>,
     your_peer_id: Mutex<Option<String>>,
     item_reports: Mutex<HashMap<String, Vec<ItemReport>>>,
-    /// A `HostHandover` from the outgoing host, awaiting acceptance by
-    /// `session_accept_handover` (room id, token, and playback to take over).
     handover: Mutex<Option<(String, String, Option<PlaybackState>)>>,
     sync: Mutex<SyncRuntime>,
     command_revision: AtomicU64,
     host_last_seen: AtomicU64,
-    /// Set once the room announced a new host: the guest re-dials `host_addr`
-    /// instead of treating the broken connection as a session end.
+    /// Re-dial instead of ending.
     migrated: AtomicBool,
     shutdown: AtomicBool,
-    /// Set when this guest is elected to take the room over after the host
-    /// died: the endpoint is handed to the new host session and must not be
-    /// closed by the guest teardown.
+    /// Guest teardown must not close it.
     detached: AtomicBool,
     shutdown_notify: Notify,
-    /// First-handshake outcome: `Some(Ok(()))` once `Welcome` arrives, or the
-    /// rejection (`ErrorCode`, message) that ended the join attempt.
     handshake: Mutex<Option<Result<(), (ErrorCode, String)>>>,
-    /// UDP address of the current connection to the host (the relay server's
-    /// when relayed), refreshed on every reconnect. `None` before the first
-    /// successful connect.
     remote_addr: Mutex<Option<String>>,
 }
 
-/// A running guest session.
 #[derive(Clone)]
 pub struct ClientSession {
     inner: Arc<ClientInner>,
@@ -92,13 +69,11 @@ pub struct ClientSession {
 }
 
 impl ClientSession {
-    /// Bind the public n0 endpoint and join `config.host_addr`.
     pub async fn join(config: ClientConfig) -> Result<Self, String> {
         let endpoint = transport::bind_endpoint(None).await?;
         Ok(Self::connect_with(config, endpoint))
     }
 
-    /// Join using an already-bound endpoint (tests/harness).
     pub fn connect_with(config: ClientConfig, endpoint: Endpoint) -> Self {
         let (events, _) = broadcast::channel(128);
         let inner = Arc::new(ClientInner {
@@ -127,12 +102,10 @@ impl ClientSession {
         Self { inner, task }
     }
 
-    /// Subscribe to host messages.
     pub fn subscribe(&self) -> broadcast::Receiver<ServerMessage> {
         self.inner.events.subscribe()
     }
 
-    /// The latest roster received from the host.
     pub fn roster(&self) -> Vec<PeerInfo> {
         self.inner
             .roster
@@ -141,7 +114,6 @@ impl ClientSession {
             .clone()
     }
 
-    /// The host session id, once `Welcome` has arrived.
     pub fn session_id(&self) -> Option<String> {
         self.inner
             .session_id
@@ -150,7 +122,6 @@ impl ClientSession {
             .clone()
     }
 
-    /// This guest's own peer id, once `Welcome` has arrived.
     pub fn your_peer_id(&self) -> Option<String> {
         self.inner
             .your_peer_id
@@ -159,7 +130,6 @@ impl ClientSession {
             .clone()
     }
 
-    /// The latest media plan received from the host.
     pub fn plan(&self) -> Vec<MediaPlanItem> {
         self.inner
             .plan
@@ -168,8 +138,6 @@ impl ClientSession {
             .clone()
     }
 
-    /// The start the room is currently holding, if any (empty `peer_ids` means
-    /// the wait is over but the host has not started yet).
     pub fn waiting(&self) -> Option<WaitingFor> {
         self.inner
             .waiting
@@ -178,15 +146,13 @@ impl ClientSession {
             .clone()
     }
 
-    /// Ask the host to start a plan item (host/moderator only server-side).
+    /// Server-side gate: host/moderator only.
     pub fn request_start(&self, item_id: &str) -> Result<(), String> {
         self.send(ClientMessage::RequestStart {
             item_id: item_id.to_string(),
         })
     }
 
-    /// The pending `HostHandover` awaiting acceptance: room id, token, and the
-    /// playback snapshot the outgoing host leaves behind.
     pub fn take_handover(&self) -> Option<(String, String, Option<PlaybackState>)> {
         self.inner
             .handover
@@ -195,14 +161,12 @@ impl ClientSession {
             .take()
     }
 
-    /// This guest's stable identity, reused by the host session it takes over.
     pub fn handover_identity(&self) -> (String, String) {
         let config = self.inner.config.lock().expect("client config poisoned");
         (config.peer_id.clone(), config.display_name.clone())
     }
 
-    /// The room secret this guest joined with; a crash successor reuses it so
-    /// the same room code/token keep working.
+    /// A crash successor reuses it so the same room code keeps working.
     pub fn token(&self) -> String {
         self.inner
             .config
@@ -212,8 +176,7 @@ impl ClientSession {
             .clone()
     }
 
-    /// The newest authoritative snapshot seen from the host, if any. A crash
-    /// successor seeds its own playback from it (lobby.md §14.7).
+    /// A crash successor seeds its playback from it (lobby.md §14.7).
     pub fn last_playback(&self) -> Option<PlaybackState> {
         self.inner
             .sync
@@ -223,15 +186,13 @@ impl ClientSession {
             .cloned()
     }
 
-    /// Whether the host has been silent past the 30 s grace window: the point
-    /// at which the room is treated as hostless and an election runs.
+    /// Past it the room counts as hostless and an election runs.
     pub fn host_gone(&self) -> bool {
         now_ms().saturating_sub(self.inner.host_last_seen.load(Ordering::Relaxed))
             > crate::session::transport::LIVENESS_GRACE_MS
     }
 
-    /// The UDP address the current connection to the host travels over
-    /// (the relay's when relayed), refreshed on every reconnect.
+    /// The relay's when relayed; refreshed on every reconnect.
     pub fn remote_addr(&self) -> Option<String> {
         self.inner
             .remote_addr
@@ -240,8 +201,7 @@ impl ClientSession {
             .clone()
     }
 
-    /// Retarget the dial at a new host on the same room identity. Refuses our
-    /// own endpoint (a guest never dials itself). Returns whether it changed.
+    /// Refuses our own endpoint; returns whether it changed.
     pub fn retarget_to(&self, endpoint_id: &str) -> bool {
         let Ok(endpoint_id) = endpoint_id.parse::<EndpointId>() else {
             return false;
@@ -256,11 +216,7 @@ impl ClientSession {
         true
     }
 
-    /// Hand this guest's endpoint to a new host session without closing it.
-    ///
-    /// The endpoint id is already in every peer's roster, so the successor must
-    /// keep listening on it: rebinding would give it an id nobody could learn
-    /// without a channel to the dead host. Stops the guest run loop.
+    /// The successor keeps listening on it (its id is already in every roster); stops the guest loop.
     pub fn detach_endpoint(&self) -> Endpoint {
         self.inner.detached.store(true, Ordering::SeqCst);
         self.inner.shutdown.store(true, Ordering::SeqCst);
@@ -269,15 +225,7 @@ impl ClientSession {
         self.inner.endpoint.clone()
     }
 
-    /// Take the room over on this guest's own endpoint after the host died.
-    ///
-    /// Stops the guest runtime but keeps the endpoint (its id is already in
-    /// every roster, so nobody must learn a new one), then returns a host
-    /// session carrying the room identity and the last replicated state. The
-    /// room starts paused: a resume is an explicit command, never automatic
-    /// (lobby.md §14.7). `paths` is this instance's local item id → file path
-    /// map, which the successor now owns as host. Returns `None` when the room
-    /// has not been welcomed yet (no session id to carry).
+    /// Keeps the endpoint, returns a host session with room identity + last state. Starts paused, never auto-resumes (lobby.md §14.7). None before the first Welcome.
     pub fn take_over(&self, paths: HashMap<String, String>) -> Option<HostSession> {
         let session_id = self.session_id()?;
         let (peer_id, display_name) = self.handover_identity();
@@ -302,9 +250,7 @@ impl ClientSession {
         Some(session)
     }
 
-    /// Test-only: retarget the dial at a full address. Production carries only
-    /// the endpoint id (resolved through discovery); loopback endpoints have
-    /// discovery disabled, so the test points at the bound sockets directly.
+    /// Test-only: loopback endpoints skip discovery, so point at bound sockets directly.
     #[cfg(test)]
     pub fn retarget_addr(&self, addr: EndpointAddr) -> bool {
         let mut config = self.inner.config.lock().expect("client config poisoned");
@@ -314,24 +260,21 @@ impl ClientSession {
         true
     }
 
-    /// Test-only: pretend the host has been silent past the grace window so a
-    /// crash promotion can be exercised without waiting 30 s.
+    /// Test-only: fake the grace window without waiting 30 s.
     #[cfg(test)]
     pub fn mark_host_gone(&self) {
         let gone = now_ms().saturating_sub(crate::session::transport::LIVENESS_GRACE_MS + 1);
         self.inner.host_last_seen.store(gone, Ordering::Relaxed);
     }
 
-    /// Tell the outgoing host where the room now listens. Must run before this
-    /// guest's connection is torn down.
+    /// Must run before this guest's connection tears down.
     pub fn handover_ready(&self, endpoint_id: &str) -> Result<(), String> {
         self.send(ClientMessage::HandoverReady {
             endpoint_id: endpoint_id.to_string(),
         })
     }
 
-    /// This guest's lobby role, read from its own roster entry (defaults to
-    /// viewer until `Welcome` or the first roster arrives).
+    /// Defaults to viewer until Welcome or first roster.
     pub fn local_role(&self) -> Role {
         let your_id = self
             .inner
@@ -349,8 +292,7 @@ impl ClientSession {
             .unwrap_or(Role::Viewer)
     }
 
-    /// For each plan item, the peer ids (non-host) that have not reported it
-    /// present, from the `ReadyState` broadcasts the host fans out.
+    /// From the host's `ReadyState` broadcasts.
     pub fn missing(&self) -> HashMap<String, Vec<String>> {
         let peer_ids: Vec<String> = self
             .roster()
@@ -367,13 +309,11 @@ impl ClientSession {
         crate::session::playlist::missing_by_item(&self.plan(), &peer_ids, &reports)
     }
 
-    /// Whether the host has been silent past the liveness timeout.
     pub fn host_stale(&self) -> bool {
         now_ms().saturating_sub(self.inner.host_last_seen.load(Ordering::Relaxed))
             > LIVENESS_TIMEOUT_MS
     }
 
-    /// Send a message to the host, if connected.
     pub fn send(&self, message: ClientMessage) -> Result<(), String> {
         let guard = self.inner.out_tx.lock().expect("client outbox poisoned");
         match guard.as_ref() {
@@ -384,18 +324,15 @@ impl ClientSession {
         }
     }
 
-    /// Request a control action from the host.
     pub fn request_control(&self, action: ControlAction) -> Result<(), String> {
         self.send(ClientMessage::RequestControl { action })
     }
 
-    /// Ask the host for its current track selection.
     #[cfg(test)]
     pub fn request_track_sync(&self) -> Result<(), String> {
         self.send(ClientMessage::RequestTrackSync)
     }
 
-    /// Publish a track pick to the host.
     pub fn pick_track(&self, track: TrackState) -> Result<(), String> {
         self.send(ClientMessage::TrackPick {
             audio: track.audio,
@@ -405,7 +342,7 @@ impl ClientSession {
         })
     }
 
-    /// Report readiness and per-item presence to the host (ready gate, D4).
+    /// Ready gate (D4).
     pub fn set_ready(&self, ready: bool, items: Vec<ItemReport>) -> Result<(), String> {
         self.send(ClientMessage::StateReport {
             media_time: 0.0,
@@ -418,10 +355,7 @@ impl ClientSession {
         })
     }
 
-    /// Evaluate one sync tick against the guest's local position (seconds).
-    ///
-    /// `local_media_id` is the plan item the local player shows (`None` when
-    /// it is not on a room item): a snapshot for any other media is refused.
+    /// Refuses snapshots for other media: None `local_media_id` = not on a room item.
     pub fn sample_sync(&self, local_position: f64, local_media_id: Option<String>) -> SyncSample {
         self.inner
             .sync
@@ -434,19 +368,13 @@ impl ClientSession {
             )
     }
 
-    /// Set the guest release offset (ms) applied to the expected position.
     pub fn set_sync_offset(&self, offset_ms: f64) -> f64 {
         let mut sync = self.inner.sync.lock().expect("client sync poisoned");
         sync.set_offset_ms(offset_ms);
         sync.offset_ms()
     }
 
-    /// Clear the seek-resync latch once the local player restarted.
-    ///
-    /// [`Self::sample_sync`] latches `awaiting_restart` when it hands out a
-    /// `Hard` seek and then refuses to evaluate again until the player confirms
-    /// it restarted. Without this call the guest stops correcting after the
-    /// first hard resync.
+    /// Without this the guest stops correcting after the first hard resync.
     pub fn mark_restarted(&self) {
         self.inner
             .sync
@@ -455,7 +383,6 @@ impl ClientSession {
             .on_playback_restart();
     }
 
-    /// Leave the session and close the endpoint.
     pub async fn leave(&self) {
         self.inner.shutdown.store(true, Ordering::SeqCst);
         let _ = self.send(ClientMessage::Bye);
@@ -468,10 +395,7 @@ impl ClientSession {
         self.task.abort();
     }
 
-    /// Await the first-handshake outcome: `Ok(())` once `Welcome` arrives,
-    /// the host's rejection `(code, message)` otherwise. A silent or
-    /// unreachable host times out with `ErrorCode::Internal` instead of
-    /// hanging the join forever.
+    /// Ok on Welcome, rejection otherwise; silent hosts time out with Internal.
     pub async fn wait_handshake(&self, timeout: Duration) -> Result<(), (ErrorCode, String)> {
         let deadline = tokio::time::Instant::now() + timeout;
         loop {
@@ -505,8 +429,7 @@ async fn run(inner: Arc<ClientInner>) {
         if inner.shutdown.load(Ordering::SeqCst) || !retry {
             break;
         }
-        // A migrated room has a fresh successor, not a flapping host: retry at
-        // once instead of climbing the backoff ladder.
+        // Fresh successor: retry at once, skip backoff.
         if inner.take_migrated() {
             backoff = RECONNECT_BASE_MS;
         }
@@ -519,15 +442,13 @@ async fn run(inner: Arc<ClientInner>) {
             *slot = Some(Err((ErrorCode::Internal, "connection closed".to_string())));
         }
     }
-    // A detached endpoint has been handed to a successor host session (crash
-    // promotion); closing it here would tear that session down.
+    // Handed to a successor host; closing would tear it down.
     if !inner.detached.load(Ordering::SeqCst) {
         inner.endpoint.close().await;
     }
 }
 
-/// Freeze a snapshot at the moment of a host change: extrapolate the position
-/// to now and clear `is_playing` (lobby.md §14.7 forbids auto-resume).
+/// Extrapolate to now, clear `is_playing`: no auto-resume (lobby.md §14.7).
 fn paused_snapshot(state: PlaybackState) -> PlaybackState {
     if !state.is_playing {
         return state;
@@ -540,11 +461,8 @@ fn paused_snapshot(state: PlaybackState) -> PlaybackState {
     }
 }
 
-/// Run one connection. Returns `true` when the caller should retry.
 impl ClientInner {
-    /// Re-target the dial at the room's new host. Refuses a move onto our own
-    /// endpoint (the successor never receives one; a stray frame must not make
-    /// us dial ourselves).
+    /// Refuses moves onto our own endpoint.
     fn apply_migration(&self, token: String, endpoint_id: String) {
         let Ok(endpoint_id) = endpoint_id.parse::<EndpointId>() else {
             return;
@@ -559,17 +477,12 @@ impl ClientInner {
         self.migrated.store(true, Ordering::SeqCst);
     }
 
-    /// Reset the reconnect backoff after a migration: the successor is fresh,
-    /// not a flapping host, so retry immediately.
+    /// True once after a migration.
     pub fn take_migrated(&self) -> bool {
         self.migrated.swap(false, Ordering::SeqCst)
     }
 
-    /// Apply a `Welcome`: overwrite the session identity, roster, and plan.
-    ///
-    /// Runs on every `Welcome` (the first handshake and any resync after the
-    /// host came back), always replacing the previous state rather than
-    /// merging it, and resolves the first-handshake outcome once.
+    /// Every Welcome replaces, never merges; resolves the first-handshake outcome once.
     fn apply_welcome(
         &self,
         session_id: &str,
@@ -600,8 +513,7 @@ async fn connect_once(inner: &Arc<ClientInner>) -> bool {
         Ok(connection) => connection,
         Err(_) => return true,
     };
-    // Capture the direct IP path actually used (the address book hint);
-    // relayed-only connections record nothing.
+    // Relayed-only connections record nothing.
     {
         let paths = connection.paths();
         let direct = paths
@@ -807,8 +719,7 @@ async fn connect_once(inner: &Arc<ClientInner>) -> bool {
                             }
                         }
                     }
-                    // A migrated room drops the old connection on purpose: the
-                    // guest must re-dial the successor instead of giving up.
+                    // Intentional drop on migration: re-dial the successor instead of giving up.
                     Err(TransportError::Closed) => {
                         break inner.migrated.load(Ordering::Relaxed)
                     }
@@ -901,8 +812,6 @@ mod tests {
         wait_for(&mut rx, |m| matches!(m, ServerMessage::Welcome { .. })).await;
         wait_until(|| host.peer_count() == 1).await;
 
-        // The host asks the guest to take the room over; the offer carries the
-        // room identity and the playback snapshot position/pause.
         let waiter = host.begin_handover("guest-1").expect("begin handover");
         let offer = wait_for(&mut rx, |m| matches!(m, ServerMessage::HostHandover { .. })).await;
         let ServerMessage::HostHandover {
@@ -919,10 +828,9 @@ mod tests {
         let stored = guest.take_handover().expect("pending handover");
         assert_eq!(stored.0, session_id);
         assert_eq!(stored.2, playback);
-        // A second handover cannot start while one is pending.
+        // No second handover while one is pending.
         assert!(host.begin_handover("guest-1").is_err());
 
-        // The successor binds its own endpoint on the same room identity...
         let endpoint = transport::bind_offline_endpoint().await.expect("endpoint");
         let new_host = HostSession::bind(
             HostConfig {
@@ -944,7 +852,6 @@ mod tests {
         assert_eq!(handover.host_id, "guest-1");
         assert_eq!(handover.endpoint_id, new_endpoint_id);
 
-        // Every guest learns where the room moved; the old host then stops.
         host.finish_handover(&handover).await;
         let migrate = wait_for(&mut rx, |m| matches!(m, ServerMessage::Migrate { .. })).await;
         match migrate {
@@ -961,7 +868,6 @@ mod tests {
             }
             _ => unreachable!("filtered above"),
         }
-        // The old host stopped hosting: no connected peers remain.
         assert_eq!(host.peer_count(), 0);
 
         guest.leave().await;
@@ -1018,23 +924,44 @@ mod tests {
 
             wait_until(|| host.peer_count() == 1).await;
 
-            // Guest -> host chat is re-broadcast to everyone.
+            // Host keeps only trusted AniList anchors.
             guest
                 .send(ClientMessage::Chat {
                     id: "m1".into(),
                     text: "hi".into(),
+                    links: vec![
+                        "https://anilist.co/anime/21".into(),
+                        "https://evil.example/anime/21".into(),
+                    ],
                     reply_to: None,
                     attachment: None,
                 })
                 .expect("guest send");
             let echoed = wait_for(&mut rx, |m| matches!(m, ServerMessage::Chat { .. })).await;
-            assert!(matches!(echoed, ServerMessage::Chat { text, .. } if text == "hi"));
+            let ServerMessage::Chat { text, links, .. } = &echoed else {
+                unreachable!("echoed a chat");
+            };
+            assert_eq!(text, "hi");
+            assert_eq!(links, &vec!["https://anilist.co/anime/21".to_string()]);
             let host_chat =
                 wait_for(&mut host_events, |m| matches!(m, HostEvent::Chat { .. })).await;
-            assert!(matches!(host_chat, HostEvent::Chat { message, .. } if message.text == "hi"));
+            let HostEvent::Chat { message, .. } = &host_chat else {
+                unreachable!("host stored a chat");
+            };
+            assert_eq!(message.text, "hi");
+            assert_eq!(
+                message.links,
+                vec!["https://anilist.co/anime/21".to_string()]
+            );
 
-            // Host -> guest chat.
-            host.add_chat("m1".into(), "Host".into(), "hello".into(), None, None);
+            host.add_chat(
+                "m1".into(),
+                "Host".into(),
+                "hello".into(),
+                Vec::new(),
+                None,
+                None,
+            );
             let hosted = wait_for(&mut rx, |m| matches!(m, ServerMessage::Chat { .. })).await;
             assert!(matches!(hosted, ServerMessage::Chat { text, .. } if text == "hello"));
 
@@ -1061,7 +988,6 @@ mod tests {
             wait_for(&mut rx, |m| matches!(m, ServerMessage::Welcome { .. })).await;
             wait_until(|| host.peer_count() == 1).await;
 
-            // Host publishes a snapshot; every guest receives it.
             host.publish_playback(PlaybackState {
                 revision: 1,
                 media_id: "ep1".into(),
@@ -1083,7 +1009,6 @@ mod tests {
                 } if (position - 12.0).abs() < 1e-9
             ));
 
-            // Guest requests control; the host relays it and sees its own event.
             guest
                 .request_control(ControlAction::Pause)
                 .expect("request control");
@@ -1105,7 +1030,6 @@ mod tests {
                 }
             ));
 
-            // Host relays another control; the revision increments.
             host.relay_control(ControlAction::Play);
             let command = wait_for(&mut rx, |m| matches!(m, ServerMessage::Command { .. })).await;
             assert!(matches!(
@@ -1116,7 +1040,6 @@ mod tests {
                 }
             ));
 
-            // Guest picks a track; the host stores and re-broadcasts it.
             guest
                 .pick_track(TrackState {
                     media_id: "ep1".into(),
@@ -1137,7 +1060,6 @@ mod tests {
                 Some("jpn".into())
             );
 
-            // Guest asks for the current tracks; the host replies unicast.
             guest.request_track_sync().expect("request tracks");
             let track = wait_for(&mut rx, |m| matches!(m, ServerMessage::TrackSync { .. })).await;
             assert!(matches!(
@@ -1185,7 +1107,6 @@ mod tests {
             wait_until(|| host.peer_count() == 1).await;
             assert!(guest.plan().is_empty());
 
-            // The host sets a plan; the guest caches the broadcast.
             host.set_plan(
                 vec![plan_item("a"), plan_item("b")],
                 std::collections::HashMap::new(),
@@ -1194,10 +1115,8 @@ mod tests {
             assert!(matches!(plan, ServerMessage::MediaPlan { items } if items.len() == 2));
             wait_until(|| guest.plan().len() == 2).await;
 
-            // A guest that has not reported keeps the gate closed.
             assert!(!host.ready_summary().all_ready);
 
-            // Full readiness opens the gate and marks the roster entry ready.
             guest
                 .set_ready(true, vec![report("a", true, true), report("b", true, true)])
                 .expect("report ready");
@@ -1214,7 +1133,6 @@ mod tests {
             })
             .await;
 
-            // A partial report closes it again (every item must be verified).
             guest
                 .set_ready(true, vec![report("a", true, true)])
                 .expect("partial report");
@@ -1241,11 +1159,9 @@ mod tests {
             host.set_plan(vec![plan_item("a")], paths);
             wait_until(|| guest.plan().len() == 1).await;
 
-            // A viewer's start request is ignored; the room stays idle.
             guest.request_start("a").expect("request start");
             assert!(guest.waiting().is_none());
 
-            // Promotion opens start rights for the moderator.
             host.set_role("guest-1", crate::session::protocol::Role::Moderator)
                 .expect("promote");
             wait_until(|| {
@@ -1256,7 +1172,6 @@ mod tests {
             })
             .await;
 
-            // The moderator lacks the file, so the start is held.
             guest.request_start("a").expect("request start");
             let waiting =
                 wait_for(&mut rx, |m| matches!(m, ServerMessage::WaitingFor { .. })).await;
@@ -1267,7 +1182,6 @@ mod tests {
             ));
             wait_until(|| guest.waiting().is_some()).await;
 
-            // Reporting the file clears the wait but does not auto-start.
             guest
                 .set_ready(true, vec![report("a", true, true)])
                 .expect("report");
@@ -1277,7 +1191,6 @@ mod tests {
             )
             .await;
             wait_until(|| guest.waiting().is_none()).await;
-            // The held start published a paused hold, not a playing item.
             assert_ne!(
                 host.last_playback().map(|state| state.is_playing),
                 Some(true)
@@ -1376,7 +1289,6 @@ mod tests {
                 .send(ClientMessage::Typing { active: true })
                 .expect("typing frame");
 
-            // The other guest sees the frame under the sender's peer id...
             let relayed = wait_for(&mut rx_b, |m| matches!(m, ServerMessage::Typing { .. })).await;
             let ServerMessage::Typing { peer_id, active } = relayed else {
                 unreachable!("filtered above");
@@ -1384,7 +1296,7 @@ mod tests {
             assert_eq!(peer_id, "guest-1");
             assert!(active);
 
-            // ...and the host's own UI hears it for its typing line.
+            // The host's own UI hears it too.
             let event = wait_for(&mut host_rx, |e| matches!(e, HostEvent::Typing { .. })).await;
             let HostEvent::Typing { peer_id, active } = event else {
                 unreachable!("filtered above");
@@ -1409,17 +1321,15 @@ mod tests {
             wait_for(&mut rx, |m| matches!(m, ServerMessage::Welcome { .. })).await;
             wait_until(|| host.peer_count() == 1).await;
 
-            // Before any host snapshot the guest cannot position itself.
             let cold = guest.sample_sync(0.0, None);
             assert!(!cold.have_snapshot);
             assert!(!cold.awaiting_restart);
 
-            // The manual release offset is stored; non-finite values keep it.
+            // Non-finite values keep the old offset.
             assert!((guest.set_sync_offset(750.0) - 750.0).abs() < 1e-9);
             assert!((guest.set_sync_offset(f64::NAN) - 750.0).abs() < 1e-9);
             assert!((guest.sample_sync(0.0, None).offset_ms - 750.0).abs() < 1e-9);
 
-            // The host publishes an authoritative snapshot.
             host.publish_playback(PlaybackState {
                 revision: 1,
                 media_id: "ep1".into(),
@@ -1433,17 +1343,14 @@ mod tests {
             })
             .await;
 
-            // Once the clock estimate lands the engine starts evaluating drift.
             wait_until(|| guest.sample_sync(0.0, Some("ep1".into())).drift_ms < -1000.0).await;
 
-            // A huge standing drift latches a seek resync.
             wait_until(|| {
                 (0..6).any(|_| guest.sample_sync(0.0, Some("ep1".into())).awaiting_restart)
             })
             .await;
             assert!(guest.sample_sync(0.0, Some("ep1".into())).awaiting_restart);
 
-            // ...until the player confirms it restarted after the seek (P9 fix).
             guest.mark_restarted();
             assert!(!guest.sample_sync(0.0, Some("ep1".into())).awaiting_restart);
 
@@ -1504,7 +1411,6 @@ mod tests {
             },
             sources: Vec::new(),
         };
-        // A resync Welcome replaces the previous state instead of merging.
         client
             .inner
             .apply_welcome("s2", "guest-1", &[], std::slice::from_ref(&item));
@@ -1515,9 +1421,7 @@ mod tests {
         client.leave().await;
     }
 
-    /// End to end crash recovery: the host dies, both guests run the same
-    /// election on the same replicated roster, the winner takes the room over
-    /// on its own endpoint (paused), and the follower rejoins it — no new lobby.
+    /// Host dies, guests elect from the replicated roster, winner takes over paused, follower rejoins: no new lobby.
     #[tokio::test]
     async fn crash_promotion_hands_the_room_over_and_keeps_it_paused() {
         let result = tokio::time::timeout(TEST_TIMEOUT, async {
@@ -1544,7 +1448,6 @@ mod tests {
             wait_for(&mut rx_b, |m| matches!(m, ServerMessage::Welcome { .. })).await;
             wait_until(|| host.peer_count() == 2).await;
 
-            // The host published a playing snapshot: the room has a position.
             host.publish_playback(PlaybackState {
                 revision: 7,
                 media_id: "ep1".into(),
@@ -1559,12 +1462,11 @@ mod tests {
             .await;
             wait_until(|| guest_a.last_playback().is_some()).await;
 
-            // The host dies; both guests see it once the grace window passes.
             host.stop().await;
             guest_a.mark_host_gone();
             guest_b.mark_host_gone();
 
-            // Both name the same successor from the same replicated roster.
+            // Both name the same successor.
             let winner_endpoint = guest_a
                 .roster()
                 .into_iter()
@@ -1584,14 +1486,12 @@ mod tests {
                 }
             );
 
-            // The elected peer takes over on its own endpoint...
             let session = guest_a
                 .take_over(std::collections::HashMap::new())
                 .expect("take over");
             assert_eq!(session.session_id(), host.session_id());
             assert_eq!(session.host_peer_id(), "guest-1");
             assert_eq!(session.endpoint().id().to_string(), winner_endpoint);
-            // ...paused, at the extrapolated position (never auto-resumed).
             let playback = session.last_playback().expect("carried playback");
             assert!(!playback.is_playing);
             assert!(
@@ -1599,12 +1499,9 @@ mod tests {
                 "{} ",
                 playback.position
             );
-            // The revision is seeded above the carried one so guests accept it.
             let next = session.publish_position("ep1".into(), playback.position, false, 1.0);
             assert!(next.revision > 7, "revision must not roll back");
 
-            // The follower retargets and rejoins the successor's room, which
-            // carries the same session id (no new lobby).
             assert!(guest_b.retarget_addr(transport::loopback_addr(session.endpoint())));
             let welcome = wait_for(&mut rx_b, |m| matches!(m, ServerMessage::Welcome { .. })).await;
             assert!(matches!(

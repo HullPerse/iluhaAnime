@@ -7,6 +7,7 @@
 use serde::Serialize;
 
 use super::auth::optional_token;
+use super::batch::{dedup_ids, split_id_chunks, BATCH_CONCURRENCY};
 use super::client::{graphql_request, resolve_proxy};
 
 #[derive(Debug, Serialize)]
@@ -44,6 +45,10 @@ pub struct AniMedia {
     pub id: u64,
     pub title: String,
     pub titles: Vec<String>,
+    /// Structured titles for client title-language chain.
+    pub title_romaji: Option<String>,
+    pub title_english: Option<String>,
+    pub title_native: Option<String>,
     pub episodes: Option<i32>,
     pub duration: Option<i32>,
     pub format: Option<String>,
@@ -154,11 +159,11 @@ pub struct AniStaffDetail {
     pub name: String,
     pub native_name: Option<String>,
     pub image: Option<String>,
-    /// `AniList` returns this as HTML; the frontend flattens it before showing it.
+    /// `AniList` HTML; frontend flattens before display.
     pub about: Option<String>,
     pub favourites: Option<i64>,
     pub site_url: Option<String>,
-    /// Totals across all pages, so the sections can say how much is not loaded yet.
+    /// Cross-page totals for unloaded-sections display.
     pub character_count: usize,
     pub media_count: usize,
     pub characters: Vec<AniStaffCharacterEdge>,
@@ -218,6 +223,9 @@ pub fn parse_animedia(m: &serde_json::Value) -> AniMedia {
         id: m["id"].as_u64().unwrap_or(0),
         title: main_title.to_string(),
         titles: collect_titles(m, main_title),
+        title_romaji: m["title"]["romaji"].as_str().map(String::from),
+        title_english: m["title"]["english"].as_str().map(String::from),
+        title_native: m["title"]["native"].as_str().map(String::from),
         episodes: m["episodes"].as_i64().map(|n| n as i32),
         duration: m["duration"].as_i64().map(|n| n as i32),
         format: m["format"].as_str().map(String::from),
@@ -346,11 +354,11 @@ async fn fetch_paginated_with<F, Fut>(
     variables: serde_json::Value,
     max_pages: u32,
     per_page: u32,
-    mut request_page: F,
+    request_page: F,
 ) -> Result<Vec<AniMedia>, String>
 where
-    F: FnMut(serde_json::Value, u32) -> Fut,
-    Fut: std::future::Future<Output = Result<(Vec<AniMedia>, u32), String>>,
+    F: Fn(serde_json::Value, u32) -> Fut + Send + Sync + 'static,
+    Fut: std::future::Future<Output = Result<(Vec<AniMedia>, u32), String>> + Send,
 {
     let mut vars = variables.clone();
     vars["perPage"] = serde_json::json!(per_page);
@@ -358,24 +366,59 @@ where
     let (mut all, total) = request_page(
         serde_json::json!({
             "query": base_query,
-            "variables": vars,
+            "variables": vars.clone(),
         }),
         per_page,
     )
     .await?;
 
     let pages = total.div_ceil(per_page).min(max_pages);
+    if pages <= 1 {
+        return Ok(all);
+    }
 
+    let request_page = std::sync::Arc::new(request_page);
+    let mut set = tokio::task::JoinSet::new();
     for page in 2..=pages {
-        vars["page"] = serde_json::json!(page);
-        let (media, _) = request_page(
-            serde_json::json!({
-                "query": base_query,
-                "variables": vars,
-            }),
-            per_page,
-        )
-        .await?;
+        let mut page_vars = vars.clone();
+        page_vars["page"] = serde_json::json!(page);
+        let body = serde_json::json!({
+            "query": base_query,
+            "variables": page_vars,
+        });
+        let request_page = std::sync::Arc::clone(&request_page);
+        set.spawn(async move {
+            let permit = BATCH_CONCURRENCY
+                .acquire()
+                .await
+                .map_err(|_| "batch semaphore closed".to_string())?;
+            let page_media = request_page(body, per_page).await?;
+            drop(permit);
+            Ok::<_, String>((page, page_media.0))
+        });
+    }
+    let mut ordered: Vec<(u32, Vec<AniMedia>)> = Vec::new();
+    let mut first_err: Option<String> = None;
+    while let Some(joined) = set.join_next().await {
+        match joined {
+            Ok(Ok(row)) => ordered.push(row),
+            Ok(Err(err)) => {
+                if first_err.is_none() {
+                    first_err = Some(err);
+                }
+            }
+            Err(err) => {
+                if first_err.is_none() {
+                    first_err = Some(format!("batch task failed: {err}"));
+                }
+            }
+        }
+    }
+    if let Some(err) = first_err {
+        return Err(err);
+    }
+    ordered.sort_by_key(|(page, _)| *page);
+    for (_, media) in ordered {
         all.extend(media);
     }
 
@@ -405,7 +448,75 @@ async fn fetch_paginated(
     )
     .await
 }
-const SEARCH_MEDIA_GQL: &str = r"
+pub(crate) const MEDIA_CORE_SELECTION: &str = r"
+                id
+                title { romaji english native }
+                coverImage { medium }
+                episodes
+                averageScore
+                format
+                type
+                startDate { year month day }
+";
+
+pub(crate) const MEDIA_LIST_EXTRA_SELECTION: &str = r"
+                synonyms
+                duration
+                status
+                genres
+                tags { name }
+                description(asHtml: false)
+                coverImage { large }
+                season
+                seasonYear
+                studios { nodes { id name } }
+                nextAiringEpisode { episode airingAt }
+";
+
+pub(crate) const MEDIA_DETAIL_EXTRA_SELECTION: &str = r"
+                bannerImage
+                idMal
+                endDate { year month day }
+                rankings { rank type context }
+";
+
+pub(crate) const MEDIA_TRAILER_SELECTION: &str = "trailer { id site }";
+
+pub(crate) const MEDIA_RELATIONS_SELECTION: &str = r"
+                relations {
+                    edges {
+                        relationType
+                        node {
+                            id
+                            title { romaji english }
+                            coverImage { medium }
+                            episodes
+                            averageScore
+                            format
+                            type
+                            startDate { year }
+                        }
+                    }
+                }
+";
+
+#[must_use]
+pub(crate) fn media_list_selection() -> String {
+    format!("{MEDIA_CORE_SELECTION}{MEDIA_LIST_EXTRA_SELECTION}")
+}
+
+#[must_use]
+pub(crate) fn media_detail_selection() -> String {
+    format!(
+        "{MEDIA_CORE_SELECTION}{MEDIA_LIST_EXTRA_SELECTION}{MEDIA_DETAIL_EXTRA_SELECTION}{MEDIA_TRAILER_SELECTION}{MEDIA_RELATIONS_SELECTION}"
+    )
+}
+
+fn with_selection(template: &str, selection: &str) -> String {
+    template.replace("{SELECTION}", selection)
+}
+
+const SEARCH_MEDIA_QUERY_TEMPLATE: &str = r"
     query (
         $page: Int,
         $perPage: Int,
@@ -449,25 +560,88 @@ const SEARCH_MEDIA_GQL: &str = r"
                 averageScore_greater: $averageScore_greater
                 averageScore_lesser: $averageScore_lesser
             ) {
-                id
-                title { romaji english native }
-                synonyms
-                episodes
-                duration
-                status
-                averageScore
-                genres
-                tags { name }
-                description(asHtml: false)
-                coverImage { medium large }
-                season
-                seasonYear
-                studios { nodes { id name } }
-                nextAiringEpisode { episode airingAt }
+                {SELECTION}
             }
         }
     }
 ";
+
+#[must_use]
+pub(crate) fn search_media_query() -> String {
+    with_selection(SEARCH_MEDIA_QUERY_TEMPLATE, &media_list_selection())
+}
+
+const SPOTLIGHT_QUERY_TEMPLATE: &str = r"
+        query (
+            $page: Int,
+            $perPage: Int,
+            $averageScore_greater: Int,
+            $isAdult: Boolean
+        ) {
+            Page(page: $page, perPage: $perPage) {
+                pageInfo { total }
+                media(
+                    type: ANIME
+                    averageScore_greater: $averageScore_greater
+                    isAdult: $isAdult
+                ) {
+                    {SELECTION}
+                }
+            }
+        }
+    ";
+
+const TAG_QUERY_TEMPLATE: &str = r"
+            query ($tag: String, $page: Int) {
+                Page(page: $page, perPage: 20) {
+                    pageInfo { total }
+                    media(type: ANIME, tag_in: [$tag]) {
+                        {SELECTION}
+                    }
+                }
+            }
+        ";
+
+const GENRE_QUERY_TEMPLATE: &str = r"
+            query ($genre: String, $page: Int) {
+                Page(page: $page, perPage: 20) {
+                    pageInfo { total }
+                    media(type: ANIME, genre_in: [$genre]) {
+                        {SELECTION}
+                    }
+                }
+            }
+        ";
+
+const STUDIO_QUERY_TEMPLATE: &str = r"
+            query ($id: Int) {
+                Studio(id: $id) {
+                    media(page: 1, perPage: 50) {
+                        nodes {
+                            {SELECTION}
+                        }
+                    }
+                }
+            }
+        ";
+
+const ANIME_BY_ID_QUERY_TEMPLATE: &str = r"
+            query ($id: Int) {
+                Media(id: $id, type: ANIME) {
+                    {SELECTION}
+                }
+            }
+        ";
+
+const ANIME_BY_IDS_QUERY_TEMPLATE: &str = r"
+                    query ($ids: [Int]) {
+                        Page(page: 1, perPage: 50) {
+                            media(id_in: $ids, type: ANIME) {
+                                {SELECTION}
+                            }
+                        }
+                    }
+                ";
 
 fn clamp_filter_paging(page: u32, per_page: Option<u32>) -> (u32, u32) {
     (page.clamp(1, 10_000), per_page.unwrap_or(50).clamp(1, 50))
@@ -618,11 +792,11 @@ pub async fn search_anilist(
 
     variables["perPage"] = serde_json::json!(pp);
 
-    let gql = SEARCH_MEDIA_GQL;
+    let gql = search_media_query();
 
     let proxy = resolve_proxy(proxy_url, proxyUrl);
     let token = optional_token(&app_handle);
-    fetch_paginated(gql, variables, mp, pp, token.as_deref(), proxy.as_deref()).await
+    fetch_paginated(&gql, variables, mp, pp, token.as_deref(), proxy.as_deref()).await
 }
 
 #[derive(Debug, Serialize)]
@@ -651,39 +825,7 @@ pub async fn get_spotlight_page(
         "averageScore_greater": score,
         "isAdult": false,
     });
-    let gql = r"
-        query (
-            $page: Int,
-            $perPage: Int,
-            $averageScore_greater: Int,
-            $isAdult: Boolean
-        ) {
-            Page(page: $page, perPage: $perPage) {
-                pageInfo { total }
-                media(
-                    type: ANIME
-                    averageScore_greater: $averageScore_greater
-                    isAdult: $isAdult
-                ) {
-                    id
-                    title { romaji english native }
-                    synonyms
-                    episodes
-                    duration
-                    status
-                    averageScore
-                    genres
-                    tags { name }
-                    description(asHtml: false)
-                    coverImage { medium large }
-                    season
-                    seasonYear
-                    studios { nodes { id name } }
-                    nextAiringEpisode { episode airingAt }
-                }
-            }
-        }
-    ";
+    let gql = with_selection(SPOTLIGHT_QUERY_TEMPLATE, &media_list_selection());
     let proxy = resolve_proxy(proxy_url, proxyUrl);
     let token = optional_token(&app_handle);
     let (media, total) = fetch_page(
@@ -755,7 +897,7 @@ pub async fn get_anilist_filter_page(
     let proxy = resolve_proxy(proxy_url, proxyUrl);
     let token = optional_token(&app_handle);
     let (media, total) = fetch_page(
-        serde_json::json!({ "query": SEARCH_MEDIA_GQL, "variables": variables }),
+        serde_json::json!({ "query": search_media_query(), "variables": variables }),
         pp,
         token.as_deref(),
         proxy.as_deref(),
@@ -775,25 +917,7 @@ pub async fn search_anilist_by_tag(
     let token = optional_token(&app_handle);
     let proxy = resolve_proxy(proxy_url, proxyUrl);
     fetch_paginated(
-        r"
-            query ($tag: String, $page: Int) {
-                Page(page: $page, perPage: 20) {
-                    pageInfo { total }
-                    media(type: ANIME, tag_in: [$tag]) {
-                        id
-                        title { romaji english native }
-                        synonyms
-                        episodes, duration, status, averageScore
-                        genres, tags { name }
-                        description(asHtml: false)
-                        coverImage { medium large }
-                        season, seasonYear
-                        studios { nodes { id name } }
-                        nextAiringEpisode { episode airingAt }
-                    }
-                }
-            }
-        ",
+        &with_selection(TAG_QUERY_TEMPLATE, &media_list_selection()),
         serde_json::json!({ "tag": tag, "page": 1, "perPage": 20 }),
         MAX_PAGES,
         20,
@@ -814,25 +938,7 @@ pub async fn search_anilist_by_genre(
     let token = optional_token(&app_handle);
     let proxy = resolve_proxy(proxy_url, proxyUrl);
     fetch_paginated(
-        r"
-            query ($genre: String, $page: Int) {
-                Page(page: $page, perPage: 20) {
-                    pageInfo { total }
-                    media(type: ANIME, genre_in: [$genre]) {
-                        id
-                        title { romaji english native }
-                        synonyms
-                        episodes, duration, status, averageScore
-                        genres, tags { name }
-                        description(asHtml: false)
-                        coverImage { medium large }
-                        season, seasonYear
-                        studios { nodes { id name } }
-                        nextAiringEpisode { episode airingAt }
-                    }
-                }
-            }
-        ",
+        &with_selection(GENRE_QUERY_TEMPLATE, &media_list_selection()),
         serde_json::json!({ "genre": genre, "page": 1, "perPage": 20 }),
         MAX_PAGES,
         20,
@@ -851,34 +957,12 @@ pub async fn search_anilist_by_studio(
     proxyUrl: Option<String>,
 ) -> Result<Vec<AniMedia>, String> {
     let body = serde_json::json!({
-        "query": r"
-            query ($id: Int) {
-                Studio(id: $id) {
-                    media(page: 1, perPage: 50) {
-                        nodes {
-                            id
-                            title { romaji english native }
-                            synonyms
-                            episodes, duration, status, averageScore
-                            genres, tags { name }
-                            description (asHtml: false)
-                            coverImage { medium large }
-                            season, seasonYear
-                            studios { nodes { id name } }
-                            nextAiringEpisode { episode airingAt }
-                        }
-                    }
-                }
-            }
-        ",
+        "query": with_selection(STUDIO_QUERY_TEMPLATE, &media_list_selection()),
         "variables": { "id": studio_id }
     });
     let proxy = resolve_proxy(proxy_url, proxyUrl);
     let token = optional_token(&app_handle);
     let json = graphql_request(body, token.as_deref(), proxy.as_deref()).await?;
-    if json.get("errors").is_some() {
-        return Err(format!("{:?}", json["errors"]));
-    }
     let studio = &json["data"]["Studio"];
     if studio.is_null() {
         return Err("Studio not found".to_string());
@@ -897,29 +981,7 @@ pub async fn get_anime_by_id(
     proxyUrl: Option<String>,
 ) -> Result<AniMedia, String> {
     let body = serde_json::json!({
-        "query": r"
-            query ($id: Int) {
-                Media(id: $id, type: ANIME) {
-                    id
-                    title { romaji english native }
-                    synonyms
-                    episodes, duration, status, averageScore, format, type
-                    genres, tags { name }
-                    description (asHtml: false)
-                    coverImage { medium large }
-                    bannerImage
-                    idMal
-                    trailer { id site }
-                    seasonYear
-                    startDate { year month day }
-                    endDate { year month day }
-                    studios { nodes { id name } }
-                    rankings { rank type context }
-                    relations { edges { relationType node { id title { romaji english } coverImage { medium } episodes averageScore format type } } }
-                    nextAiringEpisode { episode airingAt }
-                }
-            }
-        ",
+        "query": with_selection(ANIME_BY_ID_QUERY_TEMPLATE, &media_detail_selection()),
         "variables": { "id": id }
     });
     let proxy = resolve_proxy(proxy_url, proxyUrl);
@@ -932,19 +994,128 @@ pub async fn get_anime_by_id(
     Ok(parse_animedia(m))
 }
 
+fn order_media_by_ids(media: Vec<AniMedia>, ids: &[u64]) -> Vec<AniMedia> {
+    let mut by_id: std::collections::HashMap<u64, AniMedia> =
+        media.into_iter().map(|m| (m.id, m)).collect();
+    dedup_ids(ids)
+        .iter()
+        .filter_map(|id| by_id.remove(id))
+        .collect()
+}
+
+#[tauri::command]
+#[allow(non_snake_case)]
+pub async fn get_anime_by_ids(
+    app_handle: tauri::AppHandle,
+    ids: Vec<u64>,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
+) -> Result<Vec<AniMedia>, String> {
+    let chunks = split_id_chunks(&ids);
+    if chunks.is_empty() {
+        return Ok(Vec::new());
+    }
+    let proxy = resolve_proxy(proxy_url, proxyUrl);
+    let token = optional_token(&app_handle);
+    let mut set = tokio::task::JoinSet::new();
+    for chunk in chunks {
+        let chunk_ids: Vec<i64> = chunk.iter().map(|id| *id as i64).collect();
+        let proxy = proxy.clone();
+        let token = token.clone();
+        set.spawn(async move {
+            let body = serde_json::json!({
+                "query": with_selection(ANIME_BY_IDS_QUERY_TEMPLATE, &media_detail_selection()),
+                "variables": { "ids": chunk_ids }
+            });
+            let permit = BATCH_CONCURRENCY
+                .acquire()
+                .await
+                .map_err(|_| "batch semaphore closed".to_string())?;
+            let json = graphql_request(body, token.as_deref(), proxy.as_deref()).await?;
+            drop(permit);
+            let media = json["data"]["Page"]["media"]
+                .as_array()
+                .ok_or_else(|| "Unexpected response".to_string())?;
+            Ok::<_, String>(media.iter().map(parse_animedia).collect::<Vec<_>>())
+        });
+    }
+    let mut all: Vec<AniMedia> = Vec::new();
+    let mut first_err: Option<String> = None;
+    while let Some(joined) = set.join_next().await {
+        match joined {
+            Ok(Ok(media)) => all.extend(media),
+            Ok(Err(err)) => {
+                if first_err.is_none() {
+                    first_err = Some(err);
+                }
+            }
+            Err(err) => {
+                if first_err.is_none() {
+                    first_err = Some(format!("batch task failed: {err}"));
+                }
+            }
+        }
+    }
+    if let Some(err) = first_err {
+        return Err(err);
+    }
+    Ok(order_media_by_ids(all, &ids))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn unified_selections_share_one_base_set() {
+        let list = media_list_selection();
+        let detail = media_detail_selection();
+        assert!(!search_media_query().contains("{SELECTION}"));
+        for field in [
+            "title { romaji english native }",
+            "coverImage { medium }",
+            "studios { nodes { id name } }",
+            "nextAiringEpisode { episode airingAt }",
+        ] {
+            assert!(list.contains(field), "list selection misses {field}");
+            assert!(detail.contains(field), "detail selection misses {field}");
+        }
+        for field in [
+            "bannerImage",
+            "idMal",
+            "trailer { id site }",
+            "relations {",
+            "rankings { rank type context }",
+        ] {
+            assert!(!list.contains(field), "list selection leaks {field}");
+            assert!(detail.contains(field), "detail selection misses {field}");
+        }
+    }
+
+    #[test]
+    fn anime_by_ids_merge_restores_input_order_and_skips_missing() {
+        let media = vec![
+            parse_animedia(&serde_json::json!({ "id": 2, "title": { "romaji": "B" } })),
+            parse_animedia(&serde_json::json!({ "id": 1, "title": { "romaji": "A" } })),
+        ];
+        let merged = order_media_by_ids(media, &[3, 1, 2, 1]);
+        let ids: Vec<u64> = merged.iter().map(|m| m.id).collect();
+        assert_eq!(ids, vec![1, 2]);
+    }
+
     #[tokio::test]
     async fn paginated_request_count_is_one_for_empty_results() {
-        let mut pages = Vec::new();
+        let pages = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let pages_in = std::sync::Arc::clone(&pages);
         let result = fetch_paginated_with(
             "query { Page { media { id } } }",
             serde_json::json!({ "page": 1 }),
             3,
             20,
-            |body, _| {
-                pages.push(body["variables"]["page"].as_u64().unwrap());
+            move |body, _| {
+                pages_in
+                    .lock()
+                    .expect("pages log mutex poisoned")
+                    .push(body["variables"]["page"].as_u64().unwrap());
                 async { Ok((Vec::new(), 0)) }
             },
         )
@@ -952,19 +1123,23 @@ mod tests {
         .unwrap();
 
         assert!(result.is_empty());
-        assert_eq!(pages, vec![1]);
+        assert_eq!(*pages.lock().expect("pages log mutex poisoned"), vec![1]);
     }
 
     #[tokio::test]
     async fn paginated_request_count_is_capped_by_max_pages() {
-        let mut pages = Vec::new();
+        let pages = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let pages_in = std::sync::Arc::clone(&pages);
         let result = fetch_paginated_with(
             "query { Page { media { id } } }",
             serde_json::json!({ "page": 1 }),
             3,
             20,
-            |body, _| {
-                pages.push(body["variables"]["page"].as_u64().unwrap());
+            move |body, _| {
+                pages_in
+                    .lock()
+                    .expect("pages log mutex poisoned")
+                    .push(body["variables"]["page"].as_u64().unwrap());
                 async { Ok((Vec::new(), 100)) }
             },
         )
@@ -972,32 +1147,64 @@ mod tests {
         .unwrap();
 
         assert!(result.is_empty());
-        assert_eq!(pages, vec![1, 2, 3]);
+        let mut requested = pages.lock().expect("pages log mutex poisoned").clone();
+        requested.sort_unstable();
+        assert_eq!(requested, vec![1, 2, 3]);
     }
 
     #[tokio::test]
     async fn paginated_request_count_stops_after_a_failed_page() {
-        let mut request_count = 0;
+        let request_count = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let request_count_in = std::sync::Arc::clone(&request_count);
         let error = fetch_paginated_with(
             "query { Page { media { id } } }",
             serde_json::json!({ "page": 1 }),
             3,
             20,
-            |_, _| {
-                request_count += 1;
-                let result = if request_count == 2 {
-                    Err("fixture failure".to_string())
-                } else {
-                    Ok((Vec::new(), 60))
-                };
-                async move { result }
+            move |_, _| {
+                let seen = request_count_in.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
+                async move {
+                    if seen == 2 {
+                        Err("fixture failure".to_string())
+                    } else {
+                        Ok((Vec::new(), 60))
+                    }
+                }
             },
         )
         .await
         .unwrap_err();
 
-        assert_eq!(request_count, 2);
         assert_eq!(error, "fixture failure");
+        assert_eq!(request_count.load(std::sync::atomic::Ordering::Relaxed), 3);
+    }
+
+    #[tokio::test]
+    async fn paginated_results_merge_in_page_order() {
+        let result = fetch_paginated_with(
+            "query { Page { media { id } } }",
+            serde_json::json!({ "page": 1 }),
+            5,
+            20,
+            |body, _| {
+                let page = body["variables"]["page"].as_u64().unwrap_or(1);
+                async move {
+                    if page > 1 {
+                        tokio::task::yield_now().await;
+                        tokio::task::yield_now().await;
+                    }
+                    let item = parse_animedia(
+                        &serde_json::json!({ "id": page, "title": { "romaji": "T" } }),
+                    );
+                    Ok((vec![item], 60))
+                }
+            },
+        )
+        .await
+        .unwrap();
+
+        let ids: Vec<u64> = result.iter().map(|media| media.id).collect();
+        assert_eq!(ids, vec![1, 2, 3]);
     }
 
     #[test]
@@ -1014,6 +1221,26 @@ mod tests {
         let media = parse_animedia(&m);
         assert_eq!(media.id_mal, Some(21));
         assert_eq!(media.trailer_youtube_id.as_deref(), Some("abc123"));
+    }
+
+    #[test]
+    fn exposes_structured_title_variants() {
+        let m = serde_json::json!({
+            "id": 21,
+            "title": {
+                "romaji": "One Piece",
+                "english": "One Piece",
+                "native": "ワンピース"
+            },
+        });
+        let media = parse_animedia(&m);
+        assert_eq!(media.title_romaji.as_deref(), Some("One Piece"));
+        assert_eq!(media.title_english.as_deref(), Some("One Piece"));
+        assert_eq!(media.title_native.as_deref(), Some("ワンピース"));
+
+        let bare = parse_animedia(&serde_json::json!({ "id": 1, "title": { "romaji": "X" } }));
+        assert_eq!(bare.title_english, None);
+        assert_eq!(bare.title_native, None);
     }
 
     #[test]

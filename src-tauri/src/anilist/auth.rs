@@ -5,6 +5,7 @@ use tauri::Manager;
 use crate::app_db;
 use crate::auth::{delete_secret, load_secret, save_secret};
 
+use super::batch::{execute_alias_batches, MAX_ALIASES_PER_CHUNK};
 use super::client::{graphql_request, resolve_proxy};
 use super::media::{collect_titles, parse_date, AniListEntry, AniMedia};
 
@@ -55,6 +56,18 @@ pub struct AniUser {
     pub episodes_watched: i32,
     pub mean_score: Option<i32>,
     pub score_format: Option<String>,
+    /// Preferred title language; unknown stays None for UI fallback chain.
+    pub title_language: Option<String>,
+}
+
+/// Narrows `UserTitleLanguage` to romaji/english/native; others map to None.
+fn parse_title_language(user: &serde_json::Value) -> Option<String> {
+    match user["options"]["titleLanguage"].as_str()? {
+        "ROMAJI" => Some("romaji".to_string()),
+        "ENGLISH" => Some("english".to_string()),
+        "NATIVE" => Some("native".to_string()),
+        _ => None,
+    }
 }
 
 #[derive(Debug, Serialize)]
@@ -271,6 +284,7 @@ pub async fn anilist_login(
                 Viewer {
                     id, name, avatar { medium }
                     mediaListOptions { scoreFormat }
+                    options { titleLanguage }
                     statistics {
                         anime { count episodesWatched meanScore }
                     }
@@ -293,6 +307,7 @@ pub async fn anilist_login(
         episodes_watched: stats["episodesWatched"].as_i64().unwrap_or(0) as i32,
         mean_score: stats["meanScore"].as_i64().map(|n| n as i32),
         score_format: parse_score_format(v),
+        title_language: parse_title_language(v),
     };
     save_token(&app_handle, &token)?;
     Ok(user)
@@ -313,6 +328,7 @@ pub async fn check_anilist_auth(
                 Viewer {
                     id, name, avatar { medium }
                     mediaListOptions { scoreFormat }
+                    options { titleLanguage }
                     statistics {
                         anime { count episodesWatched meanScore }
                     }
@@ -337,6 +353,7 @@ pub async fn check_anilist_auth(
         episodes_watched: stats["episodesWatched"].as_i64().unwrap_or(0) as i32,
         mean_score: stats["meanScore"].as_i64().map(|n| n as i32),
         score_format: parse_score_format(v),
+        title_language: parse_title_language(v),
     }))
 }
 fn parse_list_entry(entry: &serde_json::Value) -> AniListEntry {
@@ -350,6 +367,9 @@ fn parse_list_entry(entry: &serde_json::Value) -> AniListEntry {
             id: m["id"].as_u64().unwrap_or(0),
             title: main_title.to_string(),
             titles: collect_titles(m, main_title),
+            title_romaji: m["title"]["romaji"].as_str().map(String::from),
+            title_english: m["title"]["english"].as_str().map(String::from),
+            title_native: m["title"]["native"].as_str().map(String::from),
             episodes: m["episodes"].as_i64().map(|n| n as i32),
             duration: None,
             format: None,
@@ -407,19 +427,13 @@ fn parse_list_entry(entry: &serde_json::Value) -> AniListEntry {
     }
 }
 
-#[tauri::command]
-#[allow(non_snake_case)]
-pub async fn get_anilist_lists(
-    app_handle: tauri::AppHandle,
-    user_id: u64,
-    proxy_url: Option<String>,
-    proxyUrl: Option<String>,
-) -> Result<Vec<AniListCollection>, String> {
-    let token = load_token(&app_handle)?;
-    let body = serde_json::json!({
-        "query": r"
-            query ($userId: Int) {
-                MediaListCollection(userId: $userId, type: ANIME) {
+const LIST_CHUNK_SIZE: u32 = 500;
+const LIST_MAX_CHUNKS: u32 = 25;
+
+const COLLECTION_QUERY: &str = r"
+            query ($userId: Int, $chunk: Int, $perChunk: Int) {
+                MediaListCollection(userId: $userId, type: ANIME, chunk: $chunk, perChunk: $perChunk) {
+                    hasNextChunk
                     lists {
                         name
                         entries {
@@ -449,35 +463,97 @@ pub async fn get_anilist_lists(
                     }
                 }
             }
-        ",
-        "variables": { "userId": user_id }
-    });
-    let proxy = resolve_proxy(proxy_url, proxyUrl);
-    let json = graphql_request(body, Some(&token), proxy.as_deref()).await?;
-    let lists = json["data"]["MediaListCollection"]["lists"]
+        ";
+
+const MINIMAL_COLLECTION_QUERY: &str = r"
+            query ($userId: Int, $chunk: Int, $perChunk: Int) {
+                MediaListCollection(userId: $userId, type: ANIME, chunk: $chunk, perChunk: $perChunk) {
+                    hasNextChunk
+                    lists {
+                        name
+                        entries {
+                            status
+                            media {
+                                id
+                                title { romaji english native }
+                                status
+                                nextAiringEpisode { episode airingAt }
+                            }
+                        }
+                    }
+                }
+            }
+        ";
+
+fn collection_body(user_id: u64, chunk: u32, minimal: bool) -> serde_json::Value {
+    serde_json::json!({
+        "query": if minimal { MINIMAL_COLLECTION_QUERY } else { COLLECTION_QUERY },
+        "variables": { "userId": user_id, "chunk": chunk, "perChunk": LIST_CHUNK_SIZE }
+    })
+}
+
+fn parse_collection_lists(lists: &serde_json::Value) -> Vec<AniListCollection> {
+    lists
         .as_array()
-        .ok_or_else(|| "Unexpected response".to_string())?;
-    Ok(lists
-        .iter()
-        .map(|l| {
-            let name = l["name"].as_str().unwrap_or("").to_string();
-            let entries = l["entries"]
-                .as_array()
-                .map(|e| e.iter().map(parse_list_entry).collect())
-                .unwrap_or_default();
-            AniListCollection { name, entries }
+        .map(|items| {
+            items
+                .iter()
+                .map(|l| {
+                    let name = l["name"].as_str().unwrap_or("").to_string();
+                    let entries = l["entries"]
+                        .as_array()
+                        .map(|e| e.iter().map(parse_list_entry).collect())
+                        .unwrap_or_default();
+                    AniListCollection { name, entries }
+                })
+                .collect()
         })
-        .collect())
+        .unwrap_or_default()
+}
+
+fn merge_list_chunk(into: &mut Vec<AniListCollection>, chunk: Vec<AniListCollection>) {
+    for group in chunk {
+        if let Some(existing) = into.iter_mut().find(|known| known.name == group.name) {
+            existing.entries.extend(group.entries);
+        } else {
+            into.push(group);
+        }
+    }
+}
+
+#[tauri::command]
+#[allow(non_snake_case)]
+pub async fn get_anilist_lists(
+    app_handle: tauri::AppHandle,
+    user_id: u64,
+    minimal: Option<bool>,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
+) -> Result<Vec<AniListCollection>, String> {
+    let token = load_token(&app_handle)?;
+    let proxy = resolve_proxy(proxy_url, proxyUrl);
+    let minimal = minimal.unwrap_or(false);
+    let mut merged: Vec<AniListCollection> = Vec::new();
+    for chunk in 1..=LIST_MAX_CHUNKS {
+        let json = graphql_request(
+            collection_body(user_id, chunk, minimal),
+            Some(&token),
+            proxy.as_deref(),
+        )
+        .await?;
+        let collection = &json["data"]["MediaListCollection"];
+        merge_list_chunk(&mut merged, parse_collection_lists(&collection["lists"]));
+        if !collection["hasNextChunk"].as_bool().unwrap_or(false) {
+            break;
+        }
+    }
+    Ok(merged)
 }
 #[derive(Debug, Serialize)]
 pub struct AniListCollection {
     pub name: String,
     pub entries: Vec<AniListEntry>,
 }
-
-/// One request holds this many aliased `MediaList` lookups, so a single failing
-/// friend cannot take the whole friends section down with it.
-const FRIEND_SCORE_CHUNK: usize = 25;
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -538,21 +614,31 @@ pub async fn get_anilist_friend_scores(
     }
     let token = load_token(&app_handle)?;
     let proxy = resolve_proxy(proxy_url, proxyUrl);
-    let mut out = Vec::new();
-    for chunk in user_ids.chunks(FRIEND_SCORE_CHUNK) {
-        let body = serde_json::json!({
-            "query": friend_score_query(chunk),
-            "variables": { "mediaId": media_id as i64 }
-        });
-        let json = graphql_request(body, Some(&token), proxy.as_deref()).await?;
-        for (index, user_id) in chunk.iter().enumerate() {
-            let alias = format!("f{index}");
-            if let Some(row) = parse_friend_score(&json["data"][alias.as_str()], *user_id) {
-                out.push(row);
+    let outcome = execute_alias_batches(
+        &user_ids,
+        MAX_ALIASES_PER_CHUNK,
+        |chunk| {
+            serde_json::json!({
+                "query": friend_score_query(chunk),
+                "variables": { "mediaId": media_id as i64 }
+            })
+        },
+        {
+            let token = token.clone();
+            let proxy = proxy.clone();
+            move |body| {
+                let token = token.clone();
+                let proxy = proxy.clone();
+                async move { graphql_request(body, Some(&token), proxy.as_deref()).await }
             }
-        }
-    }
-    Ok(out)
+        },
+        |index, user_id, json| {
+            let alias = format!("f{index}");
+            parse_friend_score(&json["data"][alias.as_str()], user_id)
+        },
+    )
+    .await?;
+    Ok(outcome.values)
 }
 #[tauri::command]
 pub async fn anilist_logout(app_handle: tauri::AppHandle) -> Result<(), String> {
@@ -572,27 +658,37 @@ pub async fn save_anilist_entry(
     progress: Option<i32>,
     score: Option<f64>,
     notes: Option<String>,
+    repeat: Option<i32>,
+    r#private: Option<bool>,
+    startedAt: Option<FuzzyDateInput>,
+    completedAt: Option<FuzzyDateInput>,
+    customLists: Option<Vec<String>>,
     proxy_url: Option<String>,
     proxyUrl: Option<String>,
 ) -> Result<(), String> {
     let token = load_token(&app_handle)?;
     let body = serde_json::json!({
         "query": r"
-            mutation ($mediaId: Int, $status: MediaListStatus, $progress: Int, $score: Float, $notes: String) {
-                SaveMediaListEntry(mediaId: $mediaId, status: $status, progress: $progress, score: $score, notes: $notes) {
+            mutation ($mediaId: Int, $status: MediaListStatus, $progress: Int, $score: Float, $notes: String, $repeat: Int, $private: Boolean, $startedAt: FuzzyDateInput, $completedAt: FuzzyDateInput, $customLists: [String]) {
+                SaveMediaListEntry(mediaId: $mediaId, status: $status, progress: $progress, score: $score, notes: $notes, repeat: $repeat, private: $private, startedAt: $startedAt, completedAt: $completedAt, customLists: $customLists) {
                     id
                     status
                     progress
                 }
             }
         ",
-        "variables": {
-            "mediaId": media_id as i64,
-            "status": status,
-            "progress": progress,
-            "score": score,
-            "notes": notes
-        }
+        "variables": save_entry_variables(
+            media_id,
+            &status,
+            progress,
+            score,
+            notes.as_deref(),
+            repeat,
+            r#private,
+            startedAt.as_ref(),
+            completedAt.as_ref(),
+            customLists.as_deref()
+        )
     });
     let proxy = resolve_proxy(proxy_url, proxyUrl);
     let json = graphql_request(body, Some(&token), proxy.as_deref()).await?;
@@ -600,6 +696,117 @@ pub async fn save_anilist_entry(
         return Err(format!("{:?}", json["errors"]));
     }
     Ok(())
+}
+
+/// Bulk update; every id gets identical values.
+#[tauri::command]
+#[allow(non_snake_case)]
+pub async fn update_anilist_entries_bulk(
+    app_handle: tauri::AppHandle,
+    ids: Vec<u64>,
+    status: Option<String>,
+    score: Option<f64>,
+    progress: Option<i32>,
+    repeat: Option<i32>,
+    private: Option<bool>,
+    notes: Option<String>,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
+) -> Result<Vec<u64>, String> {
+    if ids.is_empty() {
+        return Ok(Vec::new());
+    }
+    let token = load_token(&app_handle)?;
+    let body = serde_json::json!({
+        "query": r"
+            mutation ($ids: [Int], $status: MediaListStatus, $score: Float, $progress: Int, $repeat: Int, $private: Boolean, $notes: String) {
+                UpdateMediaListEntries(ids: $ids, status: $status, score: $score, progress: $progress, repeat: $repeat, private: $private, notes: $notes) {
+                    id
+                }
+            }
+        ",
+        "variables": bulk_update_variables(
+            &ids,
+            status.as_deref(),
+            score,
+            progress,
+            repeat,
+            private,
+            notes.as_deref()
+        )
+    });
+    let proxy = resolve_proxy(proxy_url, proxyUrl);
+    let json = graphql_request(body, Some(&token), proxy.as_deref()).await?;
+    Ok(parse_bulk_update_ids(
+        &json["data"]["UpdateMediaListEntries"],
+    ))
+}
+
+#[allow(clippy::cast_possible_wrap)]
+fn bulk_update_variables(
+    ids: &[u64],
+    status: Option<&str>,
+    score: Option<f64>,
+    progress: Option<i32>,
+    repeat: Option<i32>,
+    private: Option<bool>,
+    notes: Option<&str>,
+) -> serde_json::Value {
+    serde_json::json!({
+        "ids": ids.iter().map(|id| *id as i64).collect::<Vec<_>>(),
+        "status": status,
+        "score": score,
+        "progress": progress,
+        "repeat": repeat,
+        "private": private,
+        "notes": notes
+    })
+}
+
+fn parse_bulk_update_ids(entries: &serde_json::Value) -> Vec<u64> {
+    entries
+        .as_array()
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(|entry| entry["id"].as_u64())
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct FuzzyDateInput {
+    pub year: Option<i32>,
+    pub month: Option<i32>,
+    pub day: Option<i32>,
+}
+
+#[allow(clippy::cast_possible_wrap)]
+fn save_entry_variables(
+    media_id: u64,
+    status: &str,
+    progress: Option<i32>,
+    score: Option<f64>,
+    notes: Option<&str>,
+    repeat: Option<i32>,
+    private: Option<bool>,
+    started_at: Option<&FuzzyDateInput>,
+    completed_at: Option<&FuzzyDateInput>,
+    custom_lists: Option<&[String]>,
+) -> serde_json::Value {
+    serde_json::json!({
+        "mediaId": media_id as i64,
+        "status": status,
+        "progress": progress,
+        "score": score,
+        "notes": notes,
+        "repeat": repeat,
+        "private": private,
+        "startedAt": started_at,
+        "completedAt": completed_at,
+        "customLists": custom_lists
+    })
 }
 
 #[cfg(test)]
@@ -685,11 +892,147 @@ mod tests {
     }
 
     #[test]
+    fn narrows_known_title_language_values() {
+        for (raw, expected) in [
+            ("ROMAJI", "romaji"),
+            ("ENGLISH", "english"),
+            ("NATIVE", "native"),
+        ] {
+            let viewer = serde_json::json!({ "options": { "titleLanguage": raw } });
+            assert_eq!(parse_title_language(&viewer).as_deref(), Some(expected));
+        }
+    }
+
+    #[test]
+    fn unknown_title_language_falls_back_to_none() {
+        for raw in ["ROMAJI_STYLISED", "KLINGON", ""] {
+            let viewer = serde_json::json!({ "options": { "titleLanguage": raw } });
+            assert_eq!(parse_title_language(&viewer), None);
+        }
+        assert_eq!(parse_title_language(&serde_json::json!({})), None);
+        assert_eq!(
+            parse_title_language(&serde_json::json!({ "options": { "titleLanguage": 7 } })),
+            None
+        );
+    }
+
+    #[test]
     fn friend_score_query_aliases_every_user() {
         let query = friend_score_query(&[7, 9]);
         assert!(query.contains("f0: MediaList(mediaId: $mediaId, userId: 7)"));
         assert!(query.contains("f1: MediaList(mediaId: $mediaId, userId: 9)"));
         assert!(query.contains("scoreFormat"));
+    }
+
+    #[test]
+    fn save_entry_variables_carry_optional_fields() {
+        let full = save_entry_variables(
+            21,
+            "COMPLETED",
+            Some(12),
+            Some(8.5),
+            Some("great"),
+            Some(1),
+            Some(true),
+            Some(&FuzzyDateInput {
+                year: Some(2023),
+                month: Some(5),
+                day: Some(2),
+            }),
+            Some(&FuzzyDateInput {
+                year: Some(2024),
+                month: None,
+                day: None,
+            }),
+            Some(&["favorites".to_string()]),
+        );
+        assert_eq!(full["mediaId"], 21);
+        assert_eq!(full["repeat"], 1);
+        assert_eq!(full["private"], true);
+        assert_eq!(full["startedAt"]["month"], 5);
+        assert_eq!(full["completedAt"]["year"], 2024);
+        assert!(full["completedAt"]["month"].is_null());
+        assert_eq!(full["customLists"][0], "favorites");
+
+        let minimal = save_entry_variables(
+            21, "PLANNING", None, None, None, None, None, None, None, None,
+        );
+        assert!(minimal["repeat"].is_null());
+        assert!(minimal["private"].is_null());
+        assert!(minimal["startedAt"].is_null());
+        assert!(minimal["customLists"].is_null());
+    }
+
+    #[test]
+    fn bulk_update_variables_carry_ids_once() {
+        let vars = bulk_update_variables(&[7, 9], Some("CURRENT"), None, Some(3), None, None, None);
+        assert_eq!(vars["ids"].as_array().unwrap().len(), 2);
+        assert_eq!(vars["ids"][0], 7);
+        assert_eq!(vars["status"], "CURRENT");
+        assert_eq!(vars["progress"], 3);
+        assert!(vars["score"].is_null());
+
+        let payload = serde_json::json!([
+            { "id": 101 },
+            { "id": null },
+            {},
+            { "id": 102 }
+        ]);
+        assert_eq!(parse_bulk_update_ids(&payload), vec![101, 102]);
+        assert!(parse_bulk_update_ids(&serde_json::Value::Null).is_empty());
+    }
+
+    #[test]
+    fn merges_two_collection_chunks_by_group_name() {
+        let first = serde_json::json!([
+            { "name": "Completed", "entries": [{ "progress": 1 }, { "progress": 2 }] },
+            { "name": "Watching", "entries": [{ "progress": 3 }] }
+        ]);
+        let second = serde_json::json!([
+            { "name": "Completed", "entries": [{ "progress": 4 }] },
+            { "name": "Planning", "entries": [{ "progress": 5 }] }
+        ]);
+        let mut merged = parse_collection_lists(&first);
+        merge_list_chunk(&mut merged, parse_collection_lists(&second));
+        let names: Vec<&str> = merged.iter().map(|g| g.name.as_str()).collect();
+        assert_eq!(names, vec!["Completed", "Watching", "Planning"]);
+        assert_eq!(merged[0].entries.len(), 3);
+        assert_eq!(merged[1].entries.len(), 1);
+        assert_eq!(merged[2].entries.len(), 1);
+    }
+
+    #[test]
+    fn minimal_collection_body_is_smaller_than_full() {
+        let full =
+            serde_json::to_vec(&collection_body(7, 1, false)).expect("full body should serialize");
+        let minimal = serde_json::to_vec(&collection_body(7, 1, true))
+            .expect("minimal body should serialize");
+        assert!(minimal.len() < full.len());
+        let minimal_body = collection_body(7, 1, true);
+        let minimal_query = minimal_body["query"].as_str().unwrap_or_default();
+        for heavy in [
+            "synonyms",
+            "coverImage",
+            "bannerImage",
+            "genres",
+            "tags { name }",
+            "description",
+        ] {
+            assert!(
+                !minimal_query.contains(heavy),
+                "minimal query leaks {heavy}"
+            );
+        }
+        for needed in [
+            "nextAiringEpisode { episode airingAt }",
+            "hasNextChunk",
+            "title { romaji english native }",
+        ] {
+            assert!(
+                minimal_query.contains(needed),
+                "minimal query misses {needed}"
+            );
+        }
     }
 
     #[test]

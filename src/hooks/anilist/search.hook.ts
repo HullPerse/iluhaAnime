@@ -1,9 +1,10 @@
 import { useCallback, useState } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
-import { defaultFilters } from "@/config/anilist/filters.config";
+
 import { seasonLabels } from "@/config/anilist/labels.config";
 import { searchFiltersToParams } from "@/lib/anilist/entries.utils";
+import { defaultAniListFilters } from "@/lib/anilist/filters.utils";
 import { useI18n } from "@/hooks/i18n.hook";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
@@ -20,7 +21,9 @@ export function useAnilistSearch() {
   const [searchTag, setSearchTag] = useState<string | null>(null);
   const [searchMode, setSearchMode] = useState<SearchMode>(null);
   const [loadingSearch, setLoadingSearch] = useState(false);
-  const [searchFilters, setSearchFilters] = useState<AniListFilters>(defaultFilters);
+  const [searchFilters, setSearchFilters] = useState<AniListFilters>(() =>
+    defaultAniListFilters(useSettingsStore.getState().anilistAdultContent)
+  );
   const handleGlobal = async () => {
     const query = searchTerms.trim();
     if (query) addQuery(query, "anilist");
@@ -64,7 +67,7 @@ export function useAnilistSearch() {
             status: null,
             season: season || null,
             seasonYear,
-            adult: null,
+            adult: useSettingsStore.getState().anilistAdultContent ? null : false,
             sort: null,
             source: null,
             country: null,
@@ -135,7 +138,7 @@ export function useAnilistSearch() {
     setSearchResults([]);
     setSearchTag(null);
     setSearchMode(null);
-    setSearchFilters(defaultFilters);
+    setSearchFilters(defaultAniListFilters(useSettingsStore.getState().anilistAdultContent));
   }, []);
   return {
     global,

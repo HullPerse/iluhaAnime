@@ -33,6 +33,7 @@ export default function SettingsGeneral() {
     tmdbProxyUrl,
     anilistProxyUrl,
     anilistTitleLanguage,
+    anilistAdultContent,
     ffmpegSource,
     patch,
   } = useSettingsStore();
@@ -451,6 +452,20 @@ export default function SettingsGeneral() {
                 ]}
                 className="w-52"
               />
+            </div>
+            <span className="windows95-text text-destructive flex items-center text-xs font-bold">
+              {t("settings.anilist.adult")}
+            </span>
+            <div className="flex flex-col gap-0.5">
+              <label className="windows95-text text-text flex cursor-pointer items-center gap-2 select-none">
+                <Checkbox
+                  checked={anilistAdultContent}
+                  onChange={(v) => {
+                    patch({ anilistAdultContent: v });
+                  }}
+                />
+                <span>{t("settings.anilist.adult.description")}</span>
+              </label>
             </div>
           </div>
         </div>

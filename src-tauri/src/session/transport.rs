@@ -1,14 +1,4 @@
-//! Watch Party transport (P2): length-prefixed JSON frames over iroh QUIC
-//! bi-streams.
-//!
-//! Each peer connection uses a single bidirectional stream. The initiator
-//! (guest) opens a bi-stream and writes `ClientMessage` frames on the send half;
-//! the host accepts the bi-stream and writes `ServerMessage` frames on its send
-//! half. Because both directions are independent QUIC streams, framing never
-//! interleaves.
-//!
-//! Message delivery is reliable: every frame (heartbeats included) travels over
-//! the reliability-guaranteed bi-stream, never a datagram.
+//! Length-prefixed JSON frames over one reliable QUIC bi-stream per peer.
 
 use iroh::endpoint::{presets, RecvStream, SendStream};
 use iroh::{Endpoint, EndpointAddr, RelayMode, TransportAddr};
@@ -20,45 +10,32 @@ use crate::session::protocol::{
     encode_frame, DecodedFrame, FrameDecoder, ProtocolError, MAX_FRAME_BYTES, PROTOCOL_VERSION,
 };
 
-/// ALPN advertised by every Watch Party endpoint.
 pub const ALPN: &[u8] = b"iluhaanime/watchparty/1";
-/// A peer is marked `Stale` after this long without a frame.
 pub const LIVENESS_TIMEOUT_MS: u64 = 6_000;
-/// A peer is dropped after this long without a frame.
 pub const LIVENESS_GRACE_MS: u64 = 30_000;
-/// Upper bound requested from a single `read_chunk` call.
 pub const MAX_READ_CHUNK: usize = 64 * 1024;
 
-/// Transport-level failures.
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
 pub enum TransportError {
-    /// The peer finished or reset the stream.
     #[error("stream closed by peer")]
     Closed,
-    /// The frame failed protocol validation (bad version, oversize, bad JSON).
     #[error(transparent)]
     Protocol(#[from] ProtocolError),
-    /// The underlying QUIC stream reported an error.
     #[error("transport failure: {0}")]
     Failure(String),
 }
 
-/// Write half of a peer connection: serializes messages into framed bytes.
 pub struct FrameSender {
     send: SendStream,
     next_seq: u64,
 }
 
 impl FrameSender {
-    /// Wrap a QUIC send stream.
     pub fn new(send: SendStream) -> Self {
         Self { send, next_seq: 0 }
     }
 
-    /// Serialize and send one message, returning the frame sequence number.
-    ///
-    /// Frames whose JSON payload exceeds [`MAX_FRAME_BYTES`] are rejected before
-    /// any bytes reach the wire.
+    /// Rejected before the wire.
     pub async fn send<T: Serialize>(&mut self, message: &T) -> Result<u64, TransportError> {
         let seq = self.next_seq;
         let frame = encode_frame(message, seq);
@@ -73,20 +50,17 @@ impl FrameSender {
         Ok(seq)
     }
 
-    /// Gracefully finish the send half.
     pub fn finish(&mut self) {
         let _ = self.send.finish();
     }
 }
 
-/// Read half of a peer connection: feeds bytes into the incremental decoder.
 pub struct FrameReader {
     recv: RecvStream,
     decoder: FrameDecoder,
 }
 
 impl FrameReader {
-    /// Wrap a QUIC receive stream.
     pub fn new(recv: RecvStream) -> Self {
         Self {
             recv,
@@ -94,7 +68,6 @@ impl FrameReader {
         }
     }
 
-    /// Read the next complete frame, waiting for more bytes as needed.
     pub async fn recv(&mut self) -> Result<DecodedFrame, TransportError> {
         loop {
             if let Some(frame) = self.decoder.next(PROTOCOL_VERSION)? {
@@ -113,17 +86,11 @@ impl FrameReader {
     }
 }
 
-/// Split a QUIC bi-stream into a framed sender and reader.
 pub fn channel(send: SendStream, recv: RecvStream) -> (FrameSender, FrameReader) {
     (FrameSender::new(send), FrameReader::new(recv))
 }
 
-/// Bind a production endpoint: public n0 relay servers + DNS discovery, with
-/// [`ALPN`] accepted.
-///
-/// `port` pins the local UDP port (`None` = OS-assigned, both address
-/// families). A pinned port binds IPv4 only (`0.0.0.0`); a busy port fails
-/// the bind so the caller can report it instead of silently moving.
+/// Pinned port binds IPv4-only; busy ports fail.
 pub async fn bind_endpoint(port: Option<u16>) -> Result<Endpoint, String> {
     let mut builder = Endpoint::builder(presets::N0);
     if let Some(port) = port {
@@ -139,10 +106,7 @@ pub async fn bind_endpoint(port: Option<u16>) -> Result<Endpoint, String> {
         .map_err(|error| error.to_string())
 }
 
-/// Bind a loopback-only endpoint with relay and discovery disabled.
-///
-/// Used by tests and the debug loopback harness so no external service is
-/// required.
+/// No relay/discovery.
 pub async fn bind_offline_endpoint() -> Result<Endpoint, String> {
     Endpoint::builder(presets::Minimal)
         .relay_mode(RelayMode::Disabled)
@@ -155,7 +119,6 @@ pub async fn bind_offline_endpoint() -> Result<Endpoint, String> {
         .map_err(|error| error.to_string())
 }
 
-/// A dialable address for a loopback-only endpoint (direct sockets only).
 pub fn loopback_addr(endpoint: &Endpoint) -> EndpointAddr {
     EndpointAddr::from_parts(
         endpoint.id(),
@@ -163,7 +126,6 @@ pub fn loopback_addr(endpoint: &Endpoint) -> EndpointAddr {
     )
 }
 
-/// Current wall-clock time in milliseconds since the Unix epoch.
 pub fn now_ms() -> u64 {
     use std::time::{SystemTime, UNIX_EPOCH};
     SystemTime::now()
@@ -279,6 +241,7 @@ mod tests {
                     .send(&ClientMessage::Chat {
                         id: "m1".into(),
                         text: text.into(),
+                        links: vec![],
                         reply_to: None,
                         attachment: None,
                     })
@@ -306,8 +269,7 @@ mod tests {
                 let connection = incoming.await.expect("connection");
                 let (send, recv) = connection.accept_bi().await.expect("accept_bi");
                 let (_sender, mut reader) = channel(send, recv);
-                // The oversize frame is rejected on the sender, so the reader
-                // only observes the stream ending cleanly.
+                // Reader sees a clean end.
                 assert!(matches!(reader.recv().await, Err(TransportError::Closed)));
                 drop(host);
             });
@@ -320,6 +282,7 @@ mod tests {
                 .send(&ClientMessage::Chat {
                     id: "huge".into(),
                     text: huge,
+                    links: vec![],
                     reply_to: None,
                     attachment: None,
                 })

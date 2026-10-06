@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -7,9 +7,14 @@ import { useSettingsStore } from "@/store/settings.store";
 import type { PeerInfo } from "@/types/session";
 
 const openUrlMock = vi.hoisted(() => vi.fn());
+const peerAvatarMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@tauri-apps/plugin-opener", () => ({
   openUrl: openUrlMock,
+}));
+
+vi.mock("@/hooks/session/avatar.hook", () => ({
+  usePeerAvatarUrl: peerAvatarMock,
 }));
 
 function peer(overrides: Partial<PeerInfo> = {}): PeerInfo {
@@ -32,6 +37,8 @@ function peer(overrides: Partial<PeerInfo> = {}): PeerInfo {
 
 beforeEach(() => {
   openUrlMock.mockReset();
+  peerAvatarMock.mockReset();
+  peerAvatarMock.mockReturnValue(null);
   useSettingsStore.setState({ language: "en" });
 });
 
@@ -196,5 +203,33 @@ describe("RosterLobby", () => {
       screen.queryByRole("button", { name: "Open AniList profile" })
     ).toBeNull();
     expect(openUrlMock).not.toHaveBeenCalled();
+    expect(peerAvatarMock).toHaveBeenCalledWith(null);
+  });
+
+  it("renders the AniList image for a linked peer", () => {
+    peerAvatarMock.mockReturnValue("https://cdn.anilist.co/img.png");
+    render(
+      <RosterLobby
+        peers={[peer({ anilistUserId: 7, displayName: "Cara" })]}
+      />
+    );
+
+    const image = screen.getByAltText("Avatar of Cara");
+    expect(image.getAttribute("src")).toBe("https://cdn.anilist.co/img.png");
+    expect(peerAvatarMock).toHaveBeenCalledWith(7);
+  });
+
+  it("falls back to the letter tile when the image fails to load", () => {
+    peerAvatarMock.mockReturnValue("https://cdn.anilist.co/broken.png");
+    render(
+      <RosterLobby
+        peers={[peer({ anilistUserId: 7, displayName: "Cara" })]}
+      />
+    );
+
+    fireEvent.error(screen.getByAltText("Avatar of Cara"));
+
+    expect(screen.getByText("C")).toBeTruthy();
+    expect(screen.queryByAltText("Avatar of Cara")).toBeNull();
   });
 });

@@ -85,6 +85,7 @@ export function AniListDetailView({
   onSaved,
   onTrailer,
   anime,
+  initialCharacters,
   isLoading,
   isError,
   error,
@@ -147,6 +148,7 @@ export function AniListDetailView({
       )}
       <AniListCharactersPanel
         animeId={anime.id}
+        initialEdges={initialCharacters}
         onCharacterClick={(id, name, voiceActors) =>
           setSelectedCharacter({ id, name, voiceActors })
         }

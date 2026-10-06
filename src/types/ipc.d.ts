@@ -64,7 +64,7 @@ export type CommandName =
   | "get_character_detail"
   | "get_dither_image"
   | "get_dither_images"
-  | "get_favourite_people"
+  | "get_favourite_overview"
   | "get_favourites"
   | "get_host_stats"
   | "get_remote_images_stats"

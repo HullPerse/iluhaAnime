@@ -99,6 +99,7 @@ describe("SessionApi", () => {
     expect(calls[5].args).toEqual({
       fileBytes: null,
       fileName: null,
+      links: [],
       text: "hi",
     });
     expect(calls[6].args).toEqual({ action: { a: "seek", position: 12 } });
@@ -212,6 +213,7 @@ describe("SessionApi", () => {
       fileBytes: [1, 2],
       fileName: "x.torrent",
       id: "c1",
+      links: [],
       replyTo: null,
       text: "cap",
     });

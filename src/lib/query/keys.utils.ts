@@ -2,14 +2,16 @@ export const queryKeys = {
   sessionStatus: () => ["session-status"] as const,
   savedProbes: (endpointIds: readonly string[]) =>
     ["lobby-saved-probes", ...endpointIds] as const,
+  peerAvatar: (id: number | null) => ["lobby-peer-avatar", id] as const,
   customEmoji: () => ["custom-emoji"] as const,
   torrents: () => ["torrents"] as const,
   torrentFiles: (id: number) => ["torrent-files", id] as const,
   torrentDiagnostics: (id: number) => ["torrent_diagnostics", id] as const,
   torrentListenPort: () => ["torrent-listen-port"] as const,
-  animeDetail: (id: number, proxy: string, loggedIn: boolean) =>
-    ["anime_detail", id, proxy, loggedIn ? 1 : 0] as const,
-  animeInlineSearch: (query: string) => ["anime_inline_search", query] as const,
+  animeFull: (id: number, proxy: string, loggedIn: boolean) =>
+    ["anime_full", id, proxy, loggedIn ? 1 : 0] as const,
+  animeInlineSearch: (query: string, adult: boolean) =>
+    ["anime_inline_search", query, adult ? 1 : 0] as const,
   animeBrief: (id: number) => ["anime_brief", id] as const,
   animeFranchise: (id: number) => ["franchise", id] as const,
   animeRecommendations: (id: number) => ["anime_recommendations", id] as const,

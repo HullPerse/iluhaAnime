@@ -139,7 +139,7 @@ const anilist = {
   "anilist.filter.SEQUEL": "Sequels",
   "anilist.filter.SIDE_STORY": "Side stories",
   "anilist.filter.SPIN_OFF": "Spin-offs",
-  "anilist.filters.adult": "Include adult content (18+)",
+  "anilist.filters.adult": "NSFW",
   "anilist.filters.any": "Any",
   "anilist.filters.apply": "Apply",
   "anilist.filters.country": "Country",

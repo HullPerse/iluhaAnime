@@ -23,7 +23,8 @@ export default function SearchResultItem({
   const isLoadingMag = loadingMagnet[item.link];
   const colors = getLanguageColors();
   const { t } = useI18n();
-  const sourceLabel = SOURCE_INFOS.find((info) => info.value === source)?.label ?? source;
+  const sourceInfo = SOURCE_INFOS.find((info) => info.value === source);
+  const sourceLabel = sourceInfo?.label ?? source;
   const hasMagnet = Boolean(item.magnet) || source === "rutracker";
 
   return (
@@ -40,6 +41,7 @@ export default function SearchResultItem({
           <div className="mt-1 flex flex-wrap gap-1">
             <span className="windows95-font bg-secondary text-title-text px-1 text-xs">
               {sourceLabel}
+              {sourceInfo?.nsfw && <span className="text-destructive font-bold">[NSFW]</span>}
             </span>
             {detectLanguages(item.title).map((l) => (
               <span

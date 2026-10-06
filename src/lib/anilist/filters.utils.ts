@@ -1,4 +1,9 @@
+import { defaultFilters } from "@/config/anilist/filters.config";
 import type { AniListFilters } from "@/types/anilist";
+
+export function defaultAniListFilters(adult: boolean): AniListFilters {
+  return { ...defaultFilters, adult };
+}
 
 function isRanged(range: [number, number]): boolean {
   return range[0] !== 0 || range[1] !== 0;

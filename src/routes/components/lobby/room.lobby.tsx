@@ -45,27 +45,20 @@ export default function RoomLobby({ status }: RoomLobbyProps) {
 
   const isHost = status.role === "host";
   const canAttach = status.lobbyRole === "host" || status.lobbyRole === "moderator";
-  // Chat download QoL: magnet / deep link / attached `.torrent` → picker.
   const chatTorrent = useChatTorrentDownload();
-  // Typing indicators: names of peers typing now + the local keep-alive sender.
   const typingNames = useChatTyping(status.peers);
   const typing = useTypingSender();
-  // Instant pin/reaction frames keep the status cache current between polls.
   useChatPinReactions();
   const share = status.ticket ? formatTicketShare(status.ticket) : null;
   const roomCode = status.ticket
     ? ticketRoomLabel(status.ticket)
     : (status.sessionId ?? "").slice(0, 8).toUpperCase();
 
-  // Open the local player when the room starts a plan item (P5).
   useSessionStartBridge(status.role);
-  // Take the room over when the outgoing host picks this guest (§14).
   useSessionHandoverBridge(status.role);
-
-  // Successor pick: moderators first, then viewers, deterministic tie-break.
+  // Hierarchy pick, deterministic tie-break.
   const candidates = useMemo(() => transferCandidates(status.peers), [status.peers]);
 
-  // @mention targets: everyone on the roster plus this instance's own name.
   const mentionNames = useMemo(() => {
     const names = status.peers.map((peer) => peer.displayName.trim());
     const own = displayName.trim();
@@ -73,7 +66,6 @@ export default function RoomLobby({ status }: RoomLobbyProps) {
     return [...new Set(names.filter((name) => name.length > 0))];
   }, [status.peers, displayName]);
 
-  // Who pinned the current anchor, resolved to a display name.
   const pinnedByName = useMemo(() => {
     if (status.pinned === null) return "";
     const pinner = status.pinned.pinnedBy;
@@ -127,24 +119,25 @@ export default function RoomLobby({ status }: RoomLobbyProps) {
     });
   };
 
-  const handleSend = () => {
+  const handleSend = (animeId: number | null) => {
     const text = draft.trim();
     if (text.length === 0) return;
     typing.noteStopped();
     const id = newChatId();
-    // Optimistic echo: render immediately, reconcile with the server copy
-    // (matched by id) or drop the line when the send fails.
+    const links =
+      animeId !== null ? [`https://anilist.co/anime/${animeId}`] : [];
+    // Optimistic echo, reconciled by id.
     addPendingChat({
       id,
       from: displayName.trim() || t("lobby.chat.you"),
       text,
       at: Date.now() / 1000,
-      links: [],
+      links,
       replyTo: chatReply,
       attachment: null,
     });
     chat.mutate(
-      { text, id, replyTo: chatReply },
+      { text, id, replyTo: chatReply, links },
       {
         onSuccess: () => {
           setChatDraft("");
@@ -155,7 +148,6 @@ export default function RoomLobby({ status }: RoomLobbyProps) {
     );
   };
 
-  // Drop the optimistic copies once the server echoes the same id.
   useEffect(() => {
     if (pendingChats.length === 0) return;
     const echoed = new Set(status.chat.map((message) => message.id));
@@ -164,7 +156,6 @@ export default function RoomLobby({ status }: RoomLobbyProps) {
     }
   }, [pendingChats, removePendingChat, status.chat]);
 
-  // Server history first, then lines still waiting for their echo.
   const messages = useMemo(() => {
     const echoed = new Set(status.chat.map((message) => message.id));
     return [
@@ -173,7 +164,6 @@ export default function RoomLobby({ status }: RoomLobbyProps) {
     ];
   }, [pendingChats, status.chat]);
 
-  // Chat download QoL (lobby.md §14.4).
   const handleAttach = () => chatTorrent.attachFromFile();
   const handleDownloadAttachment = (messageId: string) =>
     chatTorrent.openAttachment(messageId);
@@ -186,7 +176,6 @@ export default function RoomLobby({ status }: RoomLobbyProps) {
   ) => chatTorrent.confirmPicker(selected, dir, subFolder, sequential);
   const handleCancelPicker = () => chatTorrent.cancelPicker();
 
-  // A non-empty draft means a typing burst; an empty one ends it.
   const handleDraftChange = (value: string) => {
     if (value.trim().length > 0) {
       typing.noteTyping();

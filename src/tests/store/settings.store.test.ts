@@ -447,3 +447,19 @@ describe("anilist title language preference", () => {
     useSettingsStore.getState().patch({ anilistTitleLanguage: "account" });
   });
 });
+
+describe("anilist adult content preference", () => {
+  it("defaults to excluding adult titles", async () => {
+    const { DEFAULT_SETTINGS } = await import("@/config/settings/defaults.config");
+
+    expect(DEFAULT_SETTINGS.anilistAdultContent).toBe(false);
+  });
+
+  it("round-trips through the settings store", () => {
+    useSettingsStore.getState().patch({ anilistAdultContent: true });
+
+    expect(useSettingsStore.getState().anilistAdultContent).toBe(true);
+
+    useSettingsStore.getState().patch({ anilistAdultContent: false });
+  });
+});

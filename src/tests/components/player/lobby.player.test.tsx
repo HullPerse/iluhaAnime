@@ -6,6 +6,12 @@ import LobbyPanel from "@/routes/components/player/lobby.player";
 import { useSettingsStore } from "@/store/settings.store";
 import type { PeerInfo, SessionRole, SessionStatus, SyncSample } from "@/types/session";
 
+const peerAvatarMock = vi.hoisted(() => vi.fn());
+
+vi.mock("@/hooks/session/avatar.hook", () => ({
+  usePeerAvatarUrl: peerAvatarMock,
+}));
+
 const HOST_PEER: PeerInfo = {
   avatarSeed: "h",
   anilistUserId: null,
@@ -93,6 +99,8 @@ function renderPanel(overrides: {
 }
 
 beforeEach(() => {
+  peerAvatarMock.mockReset();
+  peerAvatarMock.mockReturnValue(null);
   useSettingsStore.setState({ language: "en" });
 });
 

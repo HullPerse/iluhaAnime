@@ -35,6 +35,7 @@ describe("AnilistApi", () => {
         command: "get_anilist_lists",
         args: {
           userId: 7,
+          minimal: false,
           proxyUrl: "socks5://127.0.0.1:10808",
           proxy_url: "socks5://127.0.0.1:10808",
         },

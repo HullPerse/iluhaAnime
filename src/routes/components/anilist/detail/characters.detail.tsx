@@ -19,10 +19,12 @@ type RoleFilter = "all" | "MAIN" | "SUPPORTING";
 
 function AniListCharactersPanel({
   animeId,
+  initialEdges,
   onCharacterClick,
   onVoiceActorClick,
 }: {
   animeId: number;
+  initialEdges?: AniCharacterEdge[];
   onCharacterClick?: (characterId: number, name: string, voiceActors: AniVoiceActor[]) => void;
   onVoiceActorClick?: (
     character: { id: number; name: string; voiceActors: AniVoiceActor[] },
@@ -37,6 +39,10 @@ function AniListCharactersPanel({
   const query = useAppInfiniteQuery("slow", {
     queryKey: queryKeys.animeCharacters(animeId),
     initialPageParam: 1,
+    initialData:
+      initialEdges && initialEdges.length > 0
+        ? { pages: [initialEdges], pageParams: [1] }
+        : undefined,
     queryFn: ({ pageParam }) => anilistApi.getAnimeCharacters(animeId, pageParam),
     getNextPageParam: (lastPage, pages) =>
       (Array.isArray(lastPage) ? lastPage.length : 0) < CHAR_PAGE_SIZE

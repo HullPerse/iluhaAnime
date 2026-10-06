@@ -12,6 +12,7 @@ import { BROWSE_SORT_MAP, BROWSE_TABS } from "@/config/anilist/browse.config";
 import { BROWSE_GENRE_COUNT } from "@/config/anilist/filters.config";
 import { listStatusLabels, seasonLabels, statusLabels } from "@/config/anilist/labels.config";
 import { BROWSE_PAGE_SIZE } from "@/config/anilist/pagination.config";
+import { QUERY_PRESETS } from "@/config/store/query.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { usePagination } from "@/hooks/pagination.hook";
 import { getStatusColor } from "@/lib/anilist/entries.utils";
@@ -42,6 +43,7 @@ export default function BrowseAnimeModal({
   const scrollRef = useRef<HTMLDivElement>(null);
   const [page, setPage] = useState(1);
   const queryClient = useQueryClient();
+  const prefetchedRef = useRef<BrowseTab[]>([]);
 
   const { data = [], isLoading } = useAppQuery("slow", {
     queryKey: queryKeys.anilistBrowse(activeTab),
@@ -50,6 +52,8 @@ export default function BrowseAnimeModal({
         query: null,
         sort: BROWSE_SORT_MAP[activeTab],
         adult: false,
+        perPage: BROWSE_PAGE_SIZE,
+        maxPages: 1,
       }),
     placeholderData: (previous) => previous,
   });
@@ -58,8 +62,9 @@ export default function BrowseAnimeModal({
     const idle = window.requestIdleCallback ?? ((run: () => void) => window.setTimeout(run, 1500));
     const cancel = window.cancelIdleCallback ?? window.clearTimeout;
     const handle = idle(() => {
-      for (const tab of BROWSE_TABS) {
-        if (tab.id === activeTab) continue;
+      const others = BROWSE_TABS.filter((tab) => tab.id !== activeTab);
+      prefetchedRef.current = others.map((tab) => tab.id);
+      for (const tab of others) {
         queryClient.prefetchQuery({
           queryKey: queryKeys.anilistBrowse(tab.id),
           queryFn: () =>
@@ -67,12 +72,20 @@ export default function BrowseAnimeModal({
               query: null,
               sort: BROWSE_SORT_MAP[tab.id],
               adult: false,
+              perPage: BROWSE_PAGE_SIZE,
+              maxPages: 1,
             }),
-          staleTime: 5 * 60 * 1000,
+          staleTime: QUERY_PRESETS.slow.staleTime,
         });
       }
     });
-    return () => cancel(handle);
+    return () => {
+      cancel(handle);
+      for (const tabId of prefetchedRef.current) {
+        queryClient.cancelQueries({ queryKey: queryKeys.anilistBrowse(tabId) });
+      }
+      prefetchedRef.current = [];
+    };
   }, [activeTab, queryClient]);
 
   const { total, from, to, lastPage } = usePagination(data.length, BROWSE_PAGE_SIZE, page, setPage);

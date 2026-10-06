@@ -30,13 +30,13 @@ function AniListDetailModal(props: DetailProps) {
   };
   const anilistProxyUrl = useSettingsStore((s) => s.anilistProxyUrl);
   const query = useAppQuery("static", {
-    queryKey: queryKeys.animeDetail(props.animeId, anilistProxyUrl ?? "", props.isLoggedIn),
-    queryFn: () => anilistApi.getAnimeById(props.animeId),
+    queryKey: queryKeys.animeFull(props.animeId, anilistProxyUrl ?? "", props.isLoggedIn),
+    queryFn: () => anilistApi.getAnimeFull(props.animeId),
     retry: 1,
   });
   return (
     <Modal
-      header={query.data?.title ?? t("anilist.details.loading")}
+      header={query.data?.media.title ?? t("anilist.details.loading")}
       onClose={props.onClose}
       onBack={trailerId ? () => setTrailer(null) : props.onBack}
       headerActions={
@@ -53,7 +53,7 @@ function AniListDetailModal(props: DetailProps) {
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              openUrl(`https://anilist.co/anime/${query.data?.id ?? props.animeId}`);
+              openUrl(`https://anilist.co/anime/${query.data?.media.id ?? props.animeId}`);
             }}
             title={t("anilist.controls.open.site")}
             aria-label={t("anilist.controls.open.site")}
@@ -70,7 +70,8 @@ function AniListDetailModal(props: DetailProps) {
       ) : (
         <AniListDetailView
           {...props}
-          anime={query.data}
+          anime={query.data?.media}
+          initialCharacters={query.data?.characters}
           isLoading={query.isLoading}
           isError={query.isError}
           error={query.error}

@@ -10,12 +10,11 @@ export function useUserAnilistData() {
     queryFn: async () => {
       const user = await anilistApi.checkAuth();
       if (!user) return { user: null, lists: [], favourites: [], people: NO_PEOPLE };
-      const [lists, favourites, people] = await Promise.all([
+      const [lists, overview] = await Promise.all([
         anilistApi.getLists(user.id),
-        anilistApi.getFavourites(user.id),
-        anilistApi.getFavouritePeople(user.id),
+        anilistApi.getFavouriteOverview(user.id),
       ]);
-      return { user, lists, favourites, people };
+      return { user, lists, favourites: overview.anime, people: overview.people };
     },
     placeholderData: (previous) => previous,
   });

@@ -1,11 +1,12 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { resetTransportInflight } from "@/api/transport.api";
 import ImportAnilistCollection from "@/routes/components/collection/importAnilist.collection";
 import { useSettingsStore } from "@/store/settings.store";
 import type { AniListCollection, AniListEntry, AniMedia, AniUser } from "@/types/anilist";
+import type { CollectionItem } from "@/types/collection";
 
 const invokeMock = vi.fn();
 vi.mock("@tauri-apps/api/core", () => ({
@@ -17,9 +18,51 @@ vi.mock("@/hooks/collection/queries.hook", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/hooks/collection/queries.hook")>();
   return {
     ...actual,
-    useCollectionData: () => ({ items: [], statuses: [] }),
+    useCollectionData: () => ({ items: mockedItems, statuses: [] }),
   };
 });
+
+let mockedItems: CollectionItem[] = [];
+
+function collectionItem(id: string, anilistId: number, title: string): CollectionItem {
+  return {
+    id,
+    title,
+    altTitles: [],
+    type: "anime",
+    status: "watching",
+    progressValue: 20,
+    progressTotal: null,
+    progressUnit: "episodes",
+    durationMinutes: null,
+    rating: null,
+    priority: "normal",
+    isFavorite: false,
+    year: null,
+    releaseDate: null,
+    genres: [],
+    studio: null,
+    description: null,
+    notes: null,
+    coverUrl: null,
+    coverBlobId: null,
+    thumbBlobId: null,
+    externalIds: { anilist: anilistId },
+    customFields: {},
+    localPath: null,
+    localKind: null,
+    startedAt: null,
+    finishedAt: null,
+    lastWatchedAt: null,
+    rewatchCount: 0,
+    addedAt: 0,
+    updatedAt: 0,
+    sitesToView: [],
+    tvCurrentSeason: null,
+    tvCurrentEpisode: null,
+    detailsJson: null,
+  };
+}
 
 const USER: AniUser = {
   id: 42,
@@ -100,6 +143,7 @@ beforeEach(() => {
   useSettingsStore.setState({ language: "en", anilistProxyUrl: null });
   invokeMock.mockReset();
   resetTransportInflight();
+  mockedItems = [];
 });
 
 describe("ImportAnilistCollection query-driven views", () => {
@@ -163,5 +207,45 @@ describe("ImportAnilistCollection query-driven views", () => {
       name: "Update metadata from AniList",
     }) as HTMLButtonElement;
     expect(backfillButton.disabled).toBe(true);
+  });
+
+  it("backfills metadata with a single get_anime_by_ids call", async () => {
+    mockedItems = [
+      collectionItem("item-1", 101, "Frieren"),
+      collectionItem("item-2", 102, "Vinland Saga"),
+    ];
+    invokeMock.mockImplementation((command: string) => {
+      if (command === "check_anilist_auth") {
+        return Promise.resolve(USER);
+      }
+      if (command === "get_anilist_lists") {
+        return Promise.resolve(LISTS);
+      }
+      if (command === "get_anime_by_ids") {
+        return Promise.resolve([
+          { ...media(101, "Frieren"), episodes: 28, season_year: 2023 },
+          { ...media(102, "Vinland Saga"), episodes: 24, season_year: 2019 },
+        ]);
+      }
+      if (command === "patch_collection_item") {
+        return Promise.resolve();
+      }
+      return Promise.reject(new Error(`unexpected command ${command}`));
+    });
+    renderModal();
+    const backfillButton = await screen.findByRole("button", {
+      name: "Update metadata from AniList",
+    });
+    fireEvent.click(backfillButton);
+    const startButton = await screen.findByRole("button", { name: "Update 2" });
+    fireEvent.click(startButton);
+    await waitFor(() => expect(screen.getByText("Metadata updated: 2")).toBeDefined());
+    expect(invokeMock).toHaveBeenCalledWith(
+      "get_anime_by_ids",
+      expect.objectContaining({ ids: [101, 102] })
+    );
+    expect(invokeMock).not.toHaveBeenCalledWith("get_anime_by_id", expect.anything());
+    const patches = invokeMock.mock.calls.filter(([command]) => command === "patch_collection_item");
+    expect(patches).toHaveLength(2);
   });
 });

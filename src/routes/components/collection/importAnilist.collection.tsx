@@ -7,7 +7,6 @@ import { SmallLoader } from "@/components/shared/loader.component";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
-import { EMPTY_ANIME_META } from "@/config/collection/import.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { COLLECTION_QUERY_KEY, useCollectionData } from "@/hooks/collection/queries.hook";
 import { parseScoreFormat } from "@/lib/anilist/score.utils";
@@ -312,13 +311,15 @@ export default function ImportAnilistCollection({
     setOpProcessed(0);
     const failed: Array<{ id: string; title: string }> = [];
     let ok = 0;
+    const [metas, batchErr] = await attempt(
+      anilistApi.getAnimeByIds(targets.map((item) => item.externalIds.anilist as number))
+    );
+    const metaById = new Map((batchErr ? [] : (metas ?? [])).map((m) => [m.id, m]));
     for (const item of targets) {
       if (abortRef.current) break;
       setOpCurrent(item.title);
-      const [m, err] = await attempt(
-        anilistApi.getAnimeById<typeof EMPTY_ANIME_META>(item.externalIds.anilist as number)
-      );
-      if (err || !m) {
+      const m = metaById.get(item.externalIds.anilist as number);
+      if (batchErr || !m) {
         failed.push({ id: item.id, title: item.title });
       } else {
         const [, patchErr] = await attempt(

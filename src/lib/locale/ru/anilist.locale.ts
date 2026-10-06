@@ -145,7 +145,7 @@ const anilist = {
   "anilist.filter.SEQUEL": "Сиквелы",
   "anilist.filter.SIDE_STORY": "Сайд-стори",
   "anilist.filter.SPIN_OFF": "Спин-офф",
-  "anilist.filters.adult": "Включить взрослый контент (18+)",
+  "anilist.filters.adult": "NSFW",
   "anilist.filters.any": "Любой",
   "anilist.filters.apply": "Применить",
   "anilist.filters.country": "Страна",

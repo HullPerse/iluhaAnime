@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -320,6 +320,62 @@ describe("lobby route", () => {
       expect(
         invokeMock.mock.calls.some(([command]) => command === "session_join")
       ).toBe(true);
+    });
+  });
+
+  it("sends the AniList id on join when logged in", async () => {
+    const user = userEvent.setup();
+    mockInvoke((command) => {
+      if (command === "check_anilist_auth") return { id: 7, name: "Bob" };
+      if (command === "session_join") return GUEST_STATUS;
+      return EMPTY_STATUS;
+    });
+    renderWithClient(<LobbyRoute />);
+
+    const share = `iluhaanime://lobby/${btoa(
+      JSON.stringify(HOST_STATUS.ticket)
+    ).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")}`;
+
+    // fireEvent instead of keystroke typing: the ticket string is long and
+    // per-keystroke rerenders do not fit the default timeout under a full
+    // suite load; ticket parsing (not typing) is under test here.
+    fireEvent.change(
+      await screen.findByPlaceholderText("Paste the code you received"),
+      { target: { value: share } }
+    );
+    await user.click(screen.getByRole("button", { name: "Join room" }));
+
+    await waitFor(() => {
+      const call = invokeMock.mock.calls.find(([command]) => command === "session_join");
+      expect(call?.[1]).toMatchObject({ anilistUserId: 7 });
+    });
+  });
+
+  it("joins anonymously when the AniList auth check fails", async () => {
+    const user = userEvent.setup();
+    mockInvoke((command) => {
+      if (command === "check_anilist_auth") throw new Error("no token");
+      if (command === "session_join") return GUEST_STATUS;
+      return EMPTY_STATUS;
+    });
+    renderWithClient(<LobbyRoute />);
+
+    const share = `iluhaanime://lobby/${btoa(
+      JSON.stringify(HOST_STATUS.ticket)
+    ).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")}`;
+
+    // fireEvent instead of keystroke typing: the ticket string is long and
+    // per-keystroke rerenders do not fit the default timeout under a full
+    // suite load; ticket parsing (not typing) is under test here.
+    fireEvent.change(
+      await screen.findByPlaceholderText("Paste the code you received"),
+      { target: { value: share } }
+    );
+    await user.click(screen.getByRole("button", { name: "Join room" }));
+
+    await waitFor(() => {
+      const call = invokeMock.mock.calls.find(([command]) => command === "session_join");
+      expect(call?.[1]).toMatchObject({ anilistUserId: null });
     });
   });
 

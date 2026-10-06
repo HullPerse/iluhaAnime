@@ -8,20 +8,15 @@ export type ChatMark = "bold" | "italic" | "strike" | "spoiler";
 export interface ChatSegment {
   kind: "text" | "link" | "emoji" | "mention";
   value: string;
-  /** Inline formatting marks; omitted when the segment is plain. */
   marks?: ChatMark[];
 }
 
-/** A slice of chat text with the formatting marks active over it. */
 interface MarkPiece {
   text: string;
   marks: ChatMark[];
 }
 
-/**
- * Delimiter table for inline formatting. Order matters: at a given position the
- * longest token is tried first, so `**bold**` opens bold instead of italic.
- */
+/** Longest token first, so **bold** wins over italic. */
 const FORMAT_DELIMS: ReadonlyArray<readonly [string, ChatMark]> = [
   ["**", "bold"],
   ["~~", "strike"],
@@ -36,12 +31,7 @@ function matchOpen(text: string, at: number): readonly [string, ChatMark] | null
   return null;
 }
 
-/**
- * Split text into pieces delimited by closed `**bold**`, `*italic*`,
- * `~~strike~~` and `||spoiler||` spans. Different marks nest; a delimiter
- * without a closing partner stays literal text. Matching is heuristic
- * (first closer wins), which is the usual chat-markdown tradeoff.
- */
+/** Closed spans only; unclosed delimiters stay literal; first closer wins. */
 function parseMarks(text: string, marks: ChatMark[]): MarkPiece[] {
   const pieces: MarkPiece[] = [];
   let plain = "";
@@ -73,7 +63,6 @@ function parseMarks(text: string, marks: ChatMark[]): MarkPiece[] {
 const WEB_URL_RX = /^https?:\/\//i;
 const TRAILING_PUNCTUATION = /[),.;!?]+$/;
 
-/** True when a chat token is something the user can open (magnet, deep link, URL). */
 export function isChatLink(token: string): boolean {
   const trimmed = token.replace(TRAILING_PUNCTUATION, "");
   if (trimmed.length === 0) return false;
@@ -82,10 +71,7 @@ export function isChatLink(token: string): boolean {
   return parsePastedLink(trimmed) !== null;
 }
 
-/**
- * True when a chat token opens the torrent file-selection flow instead of the
- * browser: a magnet or an `iluhaanime://torrent/<hex>` link (lobby.md §14.4).
- */
+/** Magnet or iluhaanime://torrent/<hex> (lobby.md §14.4). */
 export function isTorrentLink(token: string): boolean {
   const trimmed = token.replace(TRAILING_PUNCTUATION, "");
   if (trimmed.length === 0) return false;
@@ -93,11 +79,7 @@ export function isTorrentLink(token: string): boolean {
   return parseTorrentLink(trimmed) !== null;
 }
 
-/**
- * The magnet a chat torrent link downloads from: the magnet itself, or a bare
- * info-hash magnet built from an `iluhaanime://torrent/<hex>` link. Returns
- * `null` when the token is not a torrent link.
- */
+/** The magnet itself, or an info-hash magnet built from the link; null otherwise. */
 export function torrentLinkMagnet(token: string): string | null {
   const trimmed = token.replace(TRAILING_PUNCTUATION, "");
   if (trimmed.length === 0) return null;
@@ -106,21 +88,12 @@ export function torrentLinkMagnet(token: string): string | null {
   return link ? buildHostMagnet(link.infoHash, "") : null;
 }
 
-/**
- * Token shape of a custom emoji shortcode: `:iluha_name:`. Only the syntax is
- * checked here — whether the file exists is decided at render time, so an
- * unknown shortcode falls back to its literal text.
- */
+/** Syntax only; existence is decided at render time. */
 const EMOJI_SHORTCODE_RX = /^:iluha_[a-z0-9_-]+:$/i;
 
-/** After a `@name` token only whitespace or sentence punctuation may follow. */
 const MENTION_BOUNDARY_RX = /[\s,.!?;:)\]]/;
 
-/**
- * Split off `@Name` mentions that match a known roster name. Names are matched
- * case-insensitively, longest first (so `Alice` wins over a prefix `Al`), and
- * must start at a word boundary. Returns index ranges into `text`.
- */
+/** Case-insensitive, longest-first, word-boundary; returns index ranges. */
 function mentionRanges(text: string, names: readonly string[]): [number, number][] {
   const candidates = names
     .map((name) => name.trim())
@@ -140,7 +113,6 @@ function mentionRanges(text: string, names: readonly string[]): [number, number]
       const beforeOk = at === 0 || /[\s([{]/.test(text[at - 1] ?? "");
       const afterOk =
         end >= text.length || MENTION_BOUNDARY_RX.test(text[end] ?? "");
-      // Skip overlaps already claimed by a longer name matched earlier.
       const overlaps = ranges.some(([s, e]) => at < e && end > s);
       if (beforeOk && afterOk && !overlaps) ranges.push([at, end]);
       from = at + needle.length;
@@ -149,15 +121,7 @@ function mentionRanges(text: string, names: readonly string[]): [number, number]
   return ranges.sort((a, b) => a[0] - b[0]);
 }
 
-/**
- * Split a chat line into plain text, clickable link tokens, custom emoji
- * shortcodes, and `@Name` mentions while keeping the original text and
- * whitespace intact. Trailing punctuation after a link stays as separate text
- * so nothing is lost. `mentionNames` is the roster used to recognize a mention;
- * without it, `@text` stays plain. Inline formatting (`**bold**`, `*italic*`,
- * `~~strike~~`, `||spoiler||`) is parsed first and stamped onto the leaf
- * segments as `marks`.
- */
+/** Plain text, link tokens, emoji shortcodes, @mentions; whitespace intact, formatting stamped on leaves. */
 export function chatSegments(
   text: string,
   mentionNames: readonly string[] = []
@@ -175,7 +139,6 @@ export function chatSegments(
   return segments;
 }
 
-/** Mention-range split of one already-format-stripped piece of text. */
 function splitMentions(
   text: string,
   mentionNames: readonly string[],
@@ -191,7 +154,6 @@ function splitMentions(
   if (cursor < text.length) tokenizePlain(text.slice(cursor), segments);
 }
 
-/** The non-mention core of `chatSegments`: links, emoji shortcodes, plain text. */
 function tokenizePlain(chunk: string, segments: ChatSegment[]): void {
   for (const part of chunk.split(/(\s+)/)) {
     if (part.length === 0) continue;
@@ -216,11 +178,7 @@ function tokenizePlain(chunk: string, segments: ChatSegment[]): void {
 
 const IMAGE_LINK_EXTENSIONS = [".png", ".jpg", ".jpeg", ".webp", ".gif", ".avif"] as const;
 
-/**
- * Image URLs to embed under a chat message, Discord-style: https-only,
- * image extension in the path, deduplicated, capped at `LOBBY_CHAT_IMAGE_MAX`.
- * Local or plain-http links never become previews.
- */
+/** Https-only image URLs, deduped, capped at LOBBY_CHAT_IMAGE_MAX. */
 export function imagePreviewLinks(text: string): string[] {
   const previews: string[] = [];
   for (const segment of chatSegments(text)) {
@@ -240,15 +198,11 @@ export function imagePreviewLinks(text: string): string[] {
   return previews;
 }
 
-/**
- * Client-generated chat message id (UUID without braces fits the backend's
- * `[A-Za-z0-9_-]{1,64}` rule). Used as the optimistic-echo and reply anchor.
- */
+/** UUID fitting the backend anchor rule; optimistic-echo and reply anchor. */
 export function newChatId(): string {
   return crypto.randomUUID();
 }
 
-/** `HH:MM` wall clock for a chat timestamp in seconds. */
 export function formatChatClock(atSeconds: number): string {
   if (!Number.isFinite(atSeconds) || atSeconds <= 0) return "--:--";
   const date = new Date(atSeconds * 1000);
@@ -257,18 +211,13 @@ export function formatChatClock(atSeconds: number): string {
   return `${hours}:${minutes}`;
 }
 
-/** Built once: `Intl.Segmenter` construction is the expensive part. */
+/** Module-level: construction is the expensive part. */
 const GRAPHEME_SEGMENTER =
   typeof Intl !== "undefined" && "Segmenter" in Intl
     ? new Intl.Segmenter(undefined, { granularity: "grapheme" })
     : null;
 
-/**
- * Count user-perceived characters (graphemes), matching the backend's
- * `sanitize_chat_text` cap. `Intl.Segmenter` is available in the WebView2
- * runtime; the spread fallback counts code points, which is still closer
- * than UTF-16 units (an emoji is 2+ of those).
- */
+/** Grapheme count matching the backend sanitize_chat_text cap. */
 export function countGraphemes(text: string): number {
   if (GRAPHEME_SEGMENTER) {
     let count = 0;
@@ -276,4 +225,56 @@ export function countGraphemes(text: string): number {
     return count;
   }
   return [...text].length;
+}
+
+export const ANIME_MENTION_PREFIX = "anime:";
+
+export interface AnimeMentionTrigger {
+  query: string;
+  start: number;
+  end: number;
+}
+
+/** Trailing @anime:<query> (spaces allowed); other @partial stays a roster mention. */
+export function animeMentionTrigger(draft: string): AnimeMentionTrigger | null {
+  const match = /(?:^|\s)@([^@\n]*)$/.exec(draft);
+  if (match === null) return null;
+  const body = match[1] ?? "";
+  if (!body.startsWith(ANIME_MENTION_PREFIX)) return null;
+  const start = draft.length - body.length - 1;
+  return {
+    end: draft.length,
+    query: body.slice(ANIME_MENTION_PREFIX.length).trim(),
+    start,
+  };
+}
+
+export function replaceAnimeMention(
+  draft: string,
+  trigger: AnimeMentionTrigger,
+  title: string
+): string {
+  return `${draft.slice(0, trigger.start)}${title} `;
+}
+
+export function animeIdsFromLinks(links: readonly string[]): number[] {
+  const ids: number[] = [];
+  for (const link of links) {
+    const parsed = parsePastedLink(link);
+    if (parsed === null || parsed === "invalid" || parsed.kind !== "anime") continue;
+    if (!ids.includes(parsed.link.id)) ids.push(parsed.link.id);
+  }
+  return ids;
+}
+
+/** Pasted anilist.co/anime/ URLs via the same segmenter the renderer uses. */
+export function animeIdsFromText(text: string): number[] {
+  const ids: number[] = [];
+  for (const segment of chatSegments(text)) {
+    if (segment.kind !== "link") continue;
+    const parsed = parsePastedLink(segment.value);
+    if (parsed === null || parsed === "invalid" || parsed.kind !== "anime") continue;
+    if (!ids.includes(parsed.link.id)) ids.push(parsed.link.id);
+  }
+  return ids;
 }

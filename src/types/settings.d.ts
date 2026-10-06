@@ -90,13 +90,13 @@ export interface SettingsStore {
   torrentTabEnabled: boolean;
   playerTabEnabled: boolean;
   lobbyTabEnabled: boolean;
-  /** Embed https image links from lobby chat messages as previews. */
   chatImagePreviews: boolean;
   tmdbKeySet: boolean;
   tmdbPendingKey: string | null;
   tmdbProxyUrl: string | null;
   anilistProxyUrl: string | null;
   anilistTitleLanguage: AniTitlePreference;
+  anilistAdultContent: boolean;
   ffmpegSource: "essentials" | "github" | "github-mirror";
   searchSymSpellEnabled: boolean;
   searchIntentEnabled: boolean;

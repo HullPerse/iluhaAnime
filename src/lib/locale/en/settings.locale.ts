@@ -316,6 +316,8 @@ const settings = {
   "settings.anilist.title.romaji": "Romaji",
   "settings.anilist.title.english": "English",
   "settings.anilist.title.native": "Native",
+  "settings.anilist.adult": "NSFW",
+  "settings.anilist.adult.description": "Include NSFW titles in search",
   "settings.search.proxy.test.all": "Test all",
   "settings.search.proxy.testing": "Testing...",
   "settings.search.proxy.test.ok": "OK",

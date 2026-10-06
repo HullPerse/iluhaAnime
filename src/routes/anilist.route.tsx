@@ -2,7 +2,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
-import { defaultFilters } from "@/config/anilist/filters.config";
 import { useAnilistDetail } from "@/hooks/anilist/detail.hook";
 import { useRandomDiscovery } from "@/hooks/anilist/discovery.hook";
 import { useAnilistListView } from "@/hooks/anilist/listView.hook";
@@ -13,6 +12,7 @@ import { useAnilistSearch } from "@/hooks/anilist/search.hook";
 import { usePagination } from "@/hooks/pagination.hook";
 import { useSearchField } from "@/hooks/search/field.hook";
 import { filterEntries, sortEntries } from "@/lib/anilist/entries.utils";
+import { defaultAniListFilters } from "@/lib/anilist/filters.utils";
 import type { EntryLookup } from "@/lib/anilist/entries.utils";
 import { ALL_LISTS_ID, activeListEntries } from "@/lib/anilist/group.utils";
 import {
@@ -640,7 +640,9 @@ function AnilistRoute() {
           onCharacterFavouriteToggle={toggleFavouriteCharacter}
           filters={searchFilters}
           onFiltersApply={setSearchFilters}
-          onFiltersReset={() => setSearchFilters(defaultFilters)}
+          onFiltersReset={() =>
+            setSearchFilters(defaultAniListFilters(useSettingsStore.getState().anilistAdultContent))
+          }
           onFiltersClose={handleFiltersClose}
           onFiltersRandom={handleDiscoveryStart}
           randomPending={discovery.pending}

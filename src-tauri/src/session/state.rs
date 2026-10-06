@@ -1,7 +1,4 @@
-//! Host-side session state: identity, media plan, chat, and the active runtime.
-//!
-//! P1 stored the identity and plan behind a mutex. P2 adds the running session
-//! (host or guest), a bounded chat log, the latest roster, and per-peer reports.
+//! Host-side session state: identity, plan, chat, roster, and active runtime.
 
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, VecDeque};
 use std::sync::{Arc, Mutex};
@@ -16,15 +13,12 @@ use crate::session::protocol::{
     SourceKind, WaitingFor,
 };
 
-/// Maximum chat lines kept in memory.
 pub const MAX_CHAT_HISTORY: usize = 500;
 
-/// How many chat `.torrent` attachments are kept in memory; older ones are
-/// evicted and their rows fall back to metadata.
+/// Rows fall back to metadata.
 pub const MAX_CHAT_ATTACHMENTS: usize = 8;
 
-/// A `.torrent` attached to a chat message, kept outside the bounded log so
-/// the polled status (metadata only) stays light.
+/// Status stays metadata-only.
 #[derive(Debug, Clone)]
 pub struct StoredAttachment {
     pub message_id: String,
@@ -32,10 +26,6 @@ pub struct StoredAttachment {
     pub bytes: Vec<u8>,
 }
 
-/// Everything a guest needs to dial a host session.
-///
-/// The token is the room secret; the endpoint id is resolved through the public
-/// n0 discovery service in v1.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SessionTicket {
@@ -44,7 +34,6 @@ pub struct SessionTicket {
     pub endpoint_id: String,
 }
 
-/// Generate `byte_len` random bytes from the iroh key RNG, hex-encoded.
 pub fn random_hex(byte_len: usize) -> String {
     use iroh::SecretKey;
     let mut buf = Vec::with_capacity(byte_len);
@@ -55,7 +44,6 @@ pub fn random_hex(byte_len: usize) -> String {
     hex::encode(buf)
 }
 
-/// Whether this instance hosts or joins a session.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum SessionRole {
@@ -63,13 +51,11 @@ pub enum SessionRole {
     Guest,
 }
 
-/// The active session endpoint for this app instance.
 pub enum SessionRuntime {
     Host(HostSession),
     Guest(ClientSession),
 }
 
-/// The latest self-reported guest status (P2 diagnostics; P3 drives sync).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PeerReport {
@@ -85,7 +71,6 @@ pub struct PeerReport {
     pub at_ms: u64,
 }
 
-/// Track selection and delays shared across the session (D7).
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TrackState {
@@ -96,7 +81,6 @@ pub struct TrackState {
     pub sub_delay: f64,
 }
 
-/// Serializable snapshot of the host session.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SessionSnapshot {
@@ -104,7 +88,6 @@ pub struct SessionSnapshot {
     pub plan: Vec<MediaPlanItem>,
 }
 
-/// The room's single pinned chat message (as observed by this instance).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PinnedMessage {
@@ -112,52 +95,36 @@ pub struct PinnedMessage {
     pub pinned_by: String,
 }
 
-/// One emoji's reaction set on one chat message.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ReactionEntry {
     pub message_id: String,
     pub emoji: String,
-    /// The peers that reacted with this emoji, sorted for stable output.
+    /// Sorted for stable output.
     pub peers: Vec<String>,
 }
 
-/// Combined session view for the UI.
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SessionStatus {
     pub role: Option<SessionRole>,
     pub session_id: Option<String>,
-    /// This instance's own roster peer id (stable across a guest's reconnect).
+    /// Stable across guest reconnects.
     pub your_peer_id: Option<String>,
     pub ticket: Option<SessionTicket>,
     pub peers: Vec<PeerInfo>,
     pub chat: Vec<ChatMessage>,
-    /// The ordered media plan for the room (empty until the host sets one).
     pub plan: Vec<MediaPlanItem>,
-    /// Ready gate aggregated from the roster against the current plan (D4).
     pub ready: ReadySummary,
-    /// Whether the host is reachable: always true while hosting, and
-    /// `!host_stale()` while joined. P8 pauses a guest's player when this
-    /// drops and resumes it once the host answers again.
+    /// Guest: `!host_stale` (P8 pause/resume).
     pub host_online: bool,
-    /// A start the room is holding until the listed peers obtain the item
-    /// (empty `peer_ids` means the wait is over); `None` when nothing is held.
+    /// None when nothing held.
     pub waiting: Option<WaitingFor>,
-    /// Host-local item id → file path. Present for every role as observed by
-    /// this instance: the host's own map while hosting, empty for guests (the
-    /// host never sends its paths over the wire). Never rendered verbatim.
     pub paths: HashMap<String, String>,
-    /// This instance's lobby role (host, moderator, or viewer).
     pub lobby_role: Role,
-    /// For each plan item, the peer ids that have not reported it present.
     pub missing: HashMap<String, Vec<String>>,
-    /// The current pin anchor (message id + who pinned it), `None` = unpinned.
     pub pinned: Option<PinnedMessage>,
-    /// Reaction entries, flat list for easy serialization: each entry is one
-    /// emoji's reaction set on one chat message.
     pub reactions: Vec<ReactionEntry>,
-    /// Last known direct `ip:port` paths used to reach the room (deduped).
     pub addrs: Vec<String>,
 }
 
@@ -165,11 +132,9 @@ pub struct SessionStatus {
 struct Inner {
     playback: PlaybackState,
     plan: Vec<MediaPlanItem>,
-    /// Host-local item id → file path; never serialized into `SessionStatus`.
     paths: HashMap<String, String>,
 }
 
-/// Tauri-managed session state.
 #[derive(Clone, Default)]
 pub struct SessionHost {
     inner: Arc<Mutex<Inner>>,
@@ -178,14 +143,11 @@ pub struct SessionHost {
     peers: Arc<Mutex<Vec<PeerInfo>>>,
     reports: Arc<Mutex<HashMap<String, PeerReport>>>,
     runtime: Arc<Mutex<Option<SessionRuntime>>>,
-    /// The current pin anchor (message id + who pinned it), `None` = unpinned.
     pinned: Arc<Mutex<Option<PinnedMessage>>>,
-    /// Reactions: message id → emoji → set of peers that reacted with it.
     reactions: Arc<Mutex<HashMap<String, BTreeMap<String, BTreeSet<String>>>>>,
 }
 
 impl SessionHost {
-    /// Current snapshot (playback + plan).
     pub fn snapshot(&self) -> SessionSnapshot {
         let inner = self.inner.lock().expect("session mutex poisoned");
         SessionSnapshot {
@@ -194,7 +156,6 @@ impl SessionHost {
         }
     }
 
-    /// Replace the media plan.
     pub fn set_playlist(
         &self,
         items: Vec<MediaPlanItem>,
@@ -213,7 +174,6 @@ impl SessionHost {
         Ok(())
     }
 
-    /// The host-local item id → file path map.
     pub fn plan_paths(&self) -> HashMap<String, String> {
         self.inner
             .lock()
@@ -222,7 +182,6 @@ impl SessionHost {
             .clone()
     }
 
-    /// Append a source to one plan item (host-only edit, D15).
     pub fn add_source(&self, item_id: &str, source: SourceInfo) -> Result<(), String> {
         validate_source(&source)?;
         let mut inner = self.inner.lock().expect("session mutex poisoned");
@@ -242,7 +201,6 @@ impl SessionHost {
         Ok(())
     }
 
-    /// Remove a source from one plan item (host-only edit, D15).
     pub fn remove_source(&self, item_id: &str, source_id: &str) -> Result<(), String> {
         let mut inner = self.inner.lock().expect("session mutex poisoned");
         let item = inner
@@ -258,7 +216,6 @@ impl SessionHost {
         Ok(())
     }
 
-    /// Install the running session, replacing any previous one.
     pub fn set_runtime(&self, runtime: SessionRuntime) {
         let previous = self
             .runtime
@@ -270,7 +227,6 @@ impl SessionHost {
         }
     }
 
-    /// Remove and return the running session.
     pub fn take_runtime(&self) -> Option<SessionRuntime> {
         self.runtime
             .lock()
@@ -278,7 +234,6 @@ impl SessionHost {
             .take()
     }
 
-    /// Whether a session is currently running.
     pub fn has_runtime(&self) -> bool {
         self.runtime
             .lock()
@@ -286,7 +241,6 @@ impl SessionHost {
             .is_some()
     }
 
-    /// The host handle, when hosting.
     pub fn host_session(&self) -> Option<HostSession> {
         match self
             .runtime
@@ -299,7 +253,6 @@ impl SessionHost {
         }
     }
 
-    /// The guest handle, when joining.
     pub fn client_session(&self) -> Option<ClientSession> {
         match self
             .runtime
@@ -312,7 +265,6 @@ impl SessionHost {
         }
     }
 
-    /// Append a chat line, trimming the oldest entries past the cap.
     pub fn add_chat(&self, message: ChatMessage) {
         let mut chat = self.chat.lock().expect("session chat poisoned");
         chat.push(message);
@@ -322,13 +274,11 @@ impl SessionHost {
         }
     }
 
-    /// The stored chat log.
     pub fn chat_log(&self) -> Vec<ChatMessage> {
         self.chat.lock().expect("session chat poisoned").clone()
     }
 
-    /// Replace the room's pinned message (`None` = no pin). Applied both from
-    /// host events and guest frames, so it must stay idempotent.
+    /// Idempotent across host events and guest frames.
     pub fn set_pinned(&self, message_id: Option<String>, pinned_by: String) {
         let pinned = message_id.map(|message_id| PinnedMessage {
             message_id,
@@ -337,14 +287,11 @@ impl SessionHost {
         *self.pinned.lock().expect("session pinned poisoned") = pinned;
     }
 
-    /// The current pin anchor (message id + who pinned it).
     pub fn pinned(&self) -> Option<PinnedMessage> {
         self.pinned.lock().expect("session pinned poisoned").clone()
     }
 
-    /// Fold one reaction event into the local map. Add inserts the peer into
-    /// the emoji's set, remove drops it; empty sets are pruned so the status
-    /// output stays clean. Replays of an already-applied frame are no-ops.
+    /// Empty sets pruned, replays are no-ops.
     pub fn apply_reaction(&self, message_id: &str, emoji: &str, peer_id: &str, add: bool) {
         let mut reactions = self.reactions.lock().expect("session reactions poisoned");
         if add {
@@ -370,7 +317,6 @@ impl SessionHost {
         }
     }
 
-    /// The flattened reaction snapshot for the status payload.
     pub fn reactions(&self) -> Vec<ReactionEntry> {
         let reactions = self.reactions.lock().expect("session reactions poisoned");
         let mut entries = Vec::new();
@@ -386,8 +332,6 @@ impl SessionHost {
         entries
     }
 
-    /// Remember an attachment's bytes for a later download, evicting the
-    /// oldest past the cap.
     pub fn remember_attachment(&self, message_id: String, name: String, bytes: Vec<u8>) {
         let mut attachments = self
             .attachments
@@ -404,7 +348,6 @@ impl SessionHost {
         }
     }
 
-    /// Fetch an attachment's bytes for the download picker.
     pub fn chat_attachment(&self, message_id: &str) -> Option<(String, Vec<u8>)> {
         self.attachments
             .lock()
@@ -414,17 +357,14 @@ impl SessionHost {
             .map(|stored| (stored.name.clone(), stored.bytes.clone()))
     }
 
-    /// Replace the cached roster (guest path; host uses its own).
     pub fn set_peers(&self, peers: Vec<PeerInfo>) {
         *self.peers.lock().expect("session peers poisoned") = peers;
     }
 
-    /// The cached roster (guest path).
     pub fn peers(&self) -> Vec<PeerInfo> {
         self.peers.lock().expect("session peers poisoned").clone()
     }
 
-    /// Record the latest report for a peer.
     pub fn record_report(&self, report: PeerReport) {
         self.reports
             .lock()
@@ -432,7 +372,6 @@ impl SessionHost {
             .insert(report.peer_id.clone(), report);
     }
 
-    /// The last report for a peer.
     #[cfg(test)]
     pub fn report(&self, peer_id: &str) -> Option<PeerReport> {
         self.reports
@@ -442,7 +381,6 @@ impl SessionHost {
             .cloned()
     }
 
-    /// Current session view for the UI.
     pub fn status(&self) -> SessionStatus {
         let state_plan = self.snapshot().plan;
         let (
@@ -526,15 +464,12 @@ impl SessionHost {
         }
     }
 
-    /// Host/moderator: start a plan item (or hold the start). Errors when not
-    /// hosting so the UI can surface a clear message.
     pub fn start_item(&self, item_id: &str) -> Result<crate::session::host::StartOutcome, String> {
         self.host_session()
             .ok_or_else(|| "only the host can start playback".to_string())?
             .start_item(item_id)
     }
 
-    /// Host: promote or demote a guest.
     pub fn set_role(
         &self,
         peer_id: &str,
@@ -561,12 +496,10 @@ fn drop_session(runtime: SessionRuntime) {
     }
 }
 
-/// Upper bound for a plan item id on the wire (ids are UUIDs or short
-/// fallbacks; a local path can never fit under it).
+/// Local paths never fit.
 const MAX_MEDIA_ID_BYTES: usize = 128;
 
-/// The wire identity must be a plan item id: bounded, and never path-shaped
-/// (`SECURITY.md`: the full local path never crosses the wire).
+/// Bounded, never path-shaped (SECURITY.md).
 pub(crate) fn validate_media_id(media_id: &str) -> Result<(), String> {
     if media_id.is_empty() || media_id.len() > MAX_MEDIA_ID_BYTES {
         return Err("media id must be a non-empty plan item id".to_string());
@@ -661,11 +594,10 @@ mod tests {
         assert_eq!(snapshot.playback, PlaybackState::default());
         assert!(!host.has_runtime());
         assert!(host.status().role.is_none());
-        // No runtime means no host to reach (P8 readiness signal).
         assert!(!host.status().host_online);
     }
 
-    /// The wire identity invariant: a plan item id, bounded, never path-shaped.
+    /// Bounded item id, never path-shaped.
     #[test]
     fn media_id_is_a_bounded_item_id_and_never_a_path() {
         assert!(validate_media_id("0f9c2a4e-8b1d-4c3a-9e7f-112233445566").is_ok());
@@ -688,7 +620,7 @@ mod tests {
         assert!(host
             .set_playlist(vec![item("a", "")], HashMap::new())
             .is_err());
-        // Path-shaped ids would leak onto the wire through start/publish.
+        // Path-shaped ids never reach the wire.
         let mut path_shaped = item("p", "P");
         path_shaped.item_id = r"D:\anime\ep1.mkv".into();
         assert!(host
@@ -717,13 +649,10 @@ mod tests {
         host.add_source("a", source("s1", "C:/a.mkv"))
             .expect("add source");
         assert_eq!(host.snapshot().plan[0].sources.len(), 1);
-        // Duplicate source id on the same item is rejected.
         assert!(host.add_source("a", source("s1", "C:/a.mkv")).is_err());
-        // Unknown item is rejected.
         assert!(host
             .add_source("missing", source("s2", "C:/b.mkv"))
             .is_err());
-        // File sources need a value.
         let mut blank = source("s3", "");
         blank.value = None;
         assert!(host.add_source("b", blank).is_err());
@@ -768,7 +697,6 @@ mod tests {
     #[test]
     fn ready_gate_needs_a_plan_and_every_peer() {
         let host = SessionHost::default();
-        // No plan yet: the gate stays closed even with a ready host.
         assert!(!host.status().ready.all_ready);
 
         host.set_playlist(vec![item("a", "A")], HashMap::new())
@@ -828,7 +756,7 @@ mod tests {
             .expect("newest attachment survives");
         assert_eq!(name, format!("{}.torrent", MAX_CHAT_ATTACHMENTS + 2));
         assert_eq!(bytes, vec![(MAX_CHAT_ATTACHMENTS + 2) as u8]);
-        // Re-storing the same message replaces it instead of duplicating.
+        // Re-storing replaces instead of duplicating.
         host.remember_attachment("m3".into(), "three.torrent".into(), vec![7]);
         assert_eq!(
             host.chat_attachment("m3"),
@@ -882,11 +810,9 @@ mod tests {
         assert_eq!(status.session_id.as_deref(), Some(session_id.as_str()));
         assert_eq!(status.ticket, Some(ticket));
         assert!(status.host_online);
-        // The host sees itself in the roster.
         assert_eq!(status.peers.len(), 1);
         assert_eq!(status.peers[0].peer_id, host_peer_id);
 
-        // Installing a replacement swaps the active handle.
         let replacement = offline_host_session().await;
         let replacement_id = replacement.session_id().to_string();
         state.set_runtime(SessionRuntime::Host(replacement.clone()));
@@ -895,13 +821,11 @@ mod tests {
             replacement_id
         );
 
-        // Taking the runtime leaves the state with no active role.
         let taken = state.take_runtime().expect("runtime");
         assert!(matches!(taken, SessionRuntime::Host(_)));
         assert!(!state.has_runtime());
         assert!(state.host_session().is_none());
         assert!(state.status().role.is_none());
-        // With no runtime there is no host to reach (P8 signal).
         assert!(!state.status().host_online);
 
         replacement.stop().await;
@@ -931,7 +855,6 @@ mod tests {
             let state = SessionHost::default();
             state.set_runtime(SessionRuntime::Guest(client));
 
-            // Wait for the welcome so the client learns the session id.
             for _ in 0..200 {
                 let ready = state
                     .client_session()
@@ -948,7 +871,6 @@ mod tests {
             assert_eq!(status.session_id.as_deref(), Some(expected_id.as_str()));
             assert!(status.ticket.is_none());
             assert!(status.host_online);
-            // The roster the client received includes the guest itself.
             assert!(status.peers.iter().any(|peer| peer.peer_id == "guest-1"));
 
             if let Some(SessionRuntime::Guest(client)) = state.take_runtime() {

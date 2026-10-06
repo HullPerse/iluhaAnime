@@ -1,4 +1,4 @@
-//! Ready gate (P1): per-peer readiness reports and the host-side summary.
+//! Ready gate.
 
 use std::collections::HashMap;
 
@@ -6,7 +6,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::session::protocol::{ItemReport, MediaPlanItem, PeerInfo};
 
-/// Per-peer readiness input: the guest `ready` flag plus per-item reports.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PeerReport {
@@ -15,7 +14,6 @@ pub struct PeerReport {
     pub ready: bool,
 }
 
-/// Per-peer readiness verdict.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PeerReady {
@@ -23,18 +21,13 @@ pub struct PeerReady {
     pub ready: bool,
 }
 
-/// Host-side summary of peer readiness for a media plan.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ReadySummary {
-    /// True when at least one peer reported and every peer is ready.
     pub all_ready: bool,
-    /// Per-peer verdicts.
     pub peers: Vec<PeerReady>,
 }
 
-/// A peer is ready when its `ready` flag is set and every plan item is
-/// reported as present and verified.
 pub fn peer_is_ready(report: &PeerReport, plan_items: &[MediaPlanItem]) -> bool {
     if !report.ready {
         return false;
@@ -48,14 +41,8 @@ pub fn peer_is_ready(report: &PeerReport, plan_items: &[MediaPlanItem]) -> bool 
     })
 }
 
-/// Aggregate the roster's readiness flags against the current plan (D4).
-///
-/// The host's `ready` flag is always true, so a solo host with a non-empty plan
-/// opens the gate. The gate stays closed until there is a plan to start and
-/// every roster entry is ready.
+/// Non-empty plan + every roster entry ready (D4).
 pub fn roster_ready_summary(plan_items: &[MediaPlanItem], peers: &[PeerInfo]) -> ReadySummary {
-    // A peer marked left no longer gates the room; the ready gate ignores it
-    // until it reconnects.
     let peers = peers
         .iter()
         .filter(|peer| !peer.left)
@@ -69,8 +56,6 @@ pub fn roster_ready_summary(plan_items: &[MediaPlanItem], peers: &[PeerInfo]) ->
     ReadySummary { all_ready, peers }
 }
 
-/// For each plan item, the peer ids (from `peer_ids`) that have not reported it
-/// present. Peer ids are sorted; the host is excluded by the caller.
 pub fn missing_by_item(
     plan_items: &[MediaPlanItem],
     peer_ids: &[String],
@@ -179,17 +164,12 @@ mod tests {
     #[test]
     fn roster_summary_opens_only_with_a_plan_and_every_peer() {
         let plan = plan();
-        // No plan: closed even when everyone is ready.
         assert!(!roster_ready_summary(&[], &[peer("host", true)]).all_ready);
-        // Plan but an empty roster: closed.
         assert!(!roster_ready_summary(&plan, &[]).all_ready);
-        // Plan and a single ready host: open.
         assert!(roster_ready_summary(&plan, &[peer("host", true)]).all_ready);
-        // One peer not ready: closed.
         let summary = roster_ready_summary(&plan, &[peer("host", true), peer("guest", false)]);
         assert!(!summary.all_ready);
         assert_eq!(summary.peers.len(), 2);
-        // Everyone ready: open.
         assert!(roster_ready_summary(&plan, &[peer("host", true), peer("guest", true)]).all_ready);
     }
 
@@ -198,7 +178,6 @@ mod tests {
         let plan = plan();
         let peer_ids = vec!["g1".to_string(), "g2".to_string(), "g3".to_string()];
         let mut reports = HashMap::new();
-        // g1 has both items; g2 has none; g3 has only "a" and never reported it.
         reports.insert(
             "g1".to_string(),
             report("g1", true, &[("a", true, true), ("b", true, true)]).items,

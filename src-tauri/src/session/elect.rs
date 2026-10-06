@@ -1,15 +1,8 @@
-//! Crash host election (lobby.md §14.7).
-//!
-//! When the host goes silent past [`crate::session::transport::LIVENESS_GRACE_MS`],
-//! every remaining peer runs the same deterministic choice over its last
-//! replicated roster. A pure function over replicated input is what keeps the
-//! room from splitting: two peers that see the same roster must name the same
-//! successor.
+//! Crash host election (lobby.md §14.7): deterministic successor over replicated roster.
 
 use crate::session::protocol::{PeerInfo, Role};
 
-/// Successor hierarchy: moderators are preferred over viewers. The host is
-/// never a candidate, so its rank only matters for the filter.
+/// Host rank exists only for the filter.
 const fn rank(role: Role) -> u8 {
     match role {
         Role::Moderator => 0,
@@ -18,11 +11,7 @@ const fn rank(role: Role) -> u8 {
     }
 }
 
-/// The next host for `roster`, or `None` when no candidate remains.
-///
-/// Deterministic: moderators before viewers, ties broken by lexicographic peer
-/// id (the roster carries no join order), the current host excluded. Peers the
-/// host marked left are skipped: they are gone and cannot take the room.
+/// Host and left peers excluded.
 pub fn elect_host(roster: &[PeerInfo]) -> Option<String> {
     roster
         .iter()
@@ -35,33 +24,23 @@ pub fn elect_host(roster: &[PeerInfo]) -> Option<String> {
         .map(|peer| peer.peer_id.clone())
 }
 
-/// What a guest does once the host has gone silent past the grace window.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CrashAction {
-    /// The host is still reachable, no successor is known yet, or the
-    /// successor's endpoint is unknown: do nothing and keep retrying.
     Wait,
-    /// This peer is the elected successor and must take the room over on its
-    /// own endpoint (the id is already in every roster, so it never changes).
+    /// Own endpoint; id already in rosters.
     Promote,
-    /// Dial the elected successor at its advertised endpoint.
     Follow {
         peer_id: String,
         endpoint_id: String,
     },
 }
 
-/// The crash-recovery action for `me` over the last replicated `roster`.
-///
-/// Pure over replicated input: every peer that sees the same roster names the
-/// same successor, so exactly one peer promotes and the rest follow it. A
-/// missing successor or unknown endpoint leaves everyone waiting instead of
-/// splitting the room.
+/// Deterministic per roster; missing/unknown endpoint waits.
 pub fn crash_action(host_gone: bool, roster: &[PeerInfo], me: Option<&str>) -> CrashAction {
     if !host_gone {
         return CrashAction::Wait;
     }
-    // A peer that has not completed its `Welcome` has no identity to compare.
+    // No Welcome yet = no identity to compare.
     let Some(me) = me else {
         return CrashAction::Wait;
     };
@@ -147,10 +126,8 @@ mod tests {
         ];
         let first = elect_host(&roster);
         assert_eq!(first.as_deref(), Some("m0"));
-        // Re-running on the same roster gives the same answer (A6).
         assert_eq!(elect_host(&roster), first);
 
-        // Reordering the replicated roster must not change the successor.
         let reversed: Vec<PeerInfo> = roster.iter().rev().cloned().collect();
         assert_eq!(elect_host(&reversed), first);
     }
@@ -164,9 +141,7 @@ mod tests {
     #[test]
     fn crash_action_waits_without_an_identity_or_successor() {
         let roster = vec![peer("host", Role::Host), peer("v1", Role::Viewer)];
-        // We have not completed our own `Welcome` yet.
         assert_eq!(crash_action(true, &roster, None), CrashAction::Wait);
-        // Host only: nobody can take over.
         let host_only = vec![peer("host", Role::Host)];
         assert_eq!(
             crash_action(true, &host_only, Some("v1")),
@@ -196,7 +171,6 @@ mod tests {
 
     #[test]
     fn crash_action_waits_when_the_successor_endpoint_is_unknown() {
-        // "aaa" wins the election but advertises no endpoint to dial.
         let mut winner = peer("aaa", Role::Viewer);
         winner.endpoint_id = String::new();
         let roster = vec![peer("host", Role::Host), winner, peer("zzz", Role::Viewer)];
@@ -210,7 +184,6 @@ mod tests {
             peer("m1", Role::Moderator),
             peer("m0", Role::Moderator),
         ];
-        // m0 wins the tie-break; m1 follows m0 and m0 promotes.
         assert_eq!(
             crash_action(true, &roster, Some("m0")),
             CrashAction::Promote

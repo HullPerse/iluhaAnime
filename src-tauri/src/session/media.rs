@@ -1,4 +1,4 @@
-//! Media identity helpers (P1): SHA-256 hashing and ffprobe duration.
+//! Media identity helpers.
 
 use std::io::Read;
 use std::path::Path;
@@ -11,13 +11,9 @@ use std::os::windows::process::CommandExt;
 
 use crate::session::protocol::{MediaIdentity, VideoInfo};
 
-/// Read chunk size for hashing (1 MiB).
 const HASH_CHUNK_BYTES: usize = 1024 * 1024;
 
-/// Hash a file with SHA-256, reading in 1 MiB chunks.
-///
-/// `cap` (when `Some`) rejects files whose hashed bytes exceed the cap.
-/// Returns the lowercase hex digest.
+/// Over-cap files are rejected.
 pub fn sha256_file(path: &Path, cap: Option<u64>) -> Result<String, String> {
     let mut file =
         std::fs::File::open(path).map_err(|e| format!("open {}: {e}", path.display()))?;
@@ -45,21 +41,17 @@ pub fn sha256_file(path: &Path, cap: Option<u64>) -> Result<String, String> {
     Ok(hex::encode(hasher.finalize()))
 }
 
-/// Probing result: duration plus optional video parameters.
 pub struct MediaProbe {
     pub duration: f64,
     pub video: Option<VideoInfo>,
 }
 
-/// Probe a media file via the bundled ffprobe.
 pub fn probe_media(path: &Path, app: &AppHandle) -> Result<MediaProbe, String> {
     let exe = crate::video::ffprobe_exe(app);
     probe_media_with_exe(path, &exe)
 }
 
-/// Probe a media file with an explicit ffprobe executable.
-///
-/// Testable seam: unit tests pass a stub script instead of the real binary.
+/// Test seam for the real binary.
 pub fn probe_media_with_exe(path: &Path, ffprobe: &str) -> Result<MediaProbe, String> {
     let mut cmd = std::process::Command::new(ffprobe);
     #[cfg(windows)]
@@ -84,7 +76,6 @@ pub fn probe_media_with_exe(path: &Path, ffprobe: &str) -> Result<MediaProbe, St
     parse_probe_json(&String::from_utf8_lossy(&output.stdout))
 }
 
-/// Parse ffprobe JSON output into a duration plus optional video parameters.
 pub fn parse_probe_json(text: &str) -> Result<MediaProbe, String> {
     let value: serde_json::Value =
         serde_json::from_str(text).map_err(|e| format!("ffprobe returned invalid JSON: {e}"))?;
@@ -122,7 +113,6 @@ pub fn parse_probe_json(text: &str) -> Result<MediaProbe, String> {
     Ok(MediaProbe { duration, video })
 }
 
-/// Parse an ffprobe frame rate such as `30000/1001` into frames per second.
 fn parse_fps(raw: Option<&str>) -> f64 {
     let Some(raw) = raw else { return 0.0 };
     if let Some((num, den)) = raw.split_once('/') {
@@ -133,15 +123,7 @@ fn parse_fps(raw: Option<&str>) -> f64 {
     raw.parse::<f64>().unwrap_or(0.0)
 }
 
-/// Find the exact local copy of `identity` inside `folder` (D5).
-///
-/// Walks the folder and hashes only files whose byte length equals the
-/// identity's size: an exact-hash match must have the same length, so the size
-/// prefilter avoids hashing the whole tree. Returns the first exact match.
-///
-/// A duration-only ("compatible") match is deliberately not returned — the
-/// ready gate counts only verified, hash-exact copies, so steering the guest
-/// toward the host torrent is the right move when the bytes differ.
+/// Size-prefiltered hash match; duration-only never matches.
 pub fn find_folder_match(
     identity: &MediaIdentity,
     folder: &Path,
@@ -168,9 +150,7 @@ pub fn find_folder_match(
     Ok(None)
 }
 
-/// Build a media identity: SHA-256, size, and ffprobe duration.
-///
-/// A probe failure propagates — no fake `0.0` duration is ever used.
+/// Never fakes a 0.0 duration.
 pub fn build_identity(
     path: &Path,
     cap: Option<u64>,
@@ -290,7 +270,6 @@ mod tests {
     fn find_folder_match_skips_wrong_size_and_content() {
         let dir = std::env::temp_dir().join(format!("iluha_session_nomatch_{}", unique_suffix()));
         std::fs::create_dir_all(&dir).expect("dir must be created");
-        // Same size, different bytes: the size prefilter lets it through but the hash rejects it.
         std::fs::write(dir.join("decoy.bin"), b"xyz").expect("file must be written");
         let identity = MediaIdentity {
             sha256: "0".repeat(64),

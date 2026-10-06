@@ -1,8 +1,4 @@
-//! Guest-side playback sync math (P1: pure computation; P3 wires it into mpv).
-//!
-//! All clock times are monotonic milliseconds. The guest tracks the host clock
-//! offset and RTT with an NTP-style estimator (lobby.md §5.1), derives the
-//! expected local position, and classifies smoothed drift into an action.
+//! Guest playback sync: NTP-style clock estimate plus drift actions (lobby.md §5.1).
 
 use std::collections::VecDeque;
 
@@ -10,36 +6,22 @@ use serde::Serialize;
 
 use crate::session::protocol::PlaybackState;
 
-/// Clock-sync ping period.
 pub const PING_INTERVAL_MS: u64 = 1000;
-/// Drift-check evaluation period.
 pub const EVAL_INTERVAL_MS: u64 = 250;
-/// EWMA alpha for RTT smoothing.
 pub const RTT_EWMA_ALPHA: f64 = 0.2;
-/// EWMA alpha for clock-offset smoothing.
 pub const OFFSET_EWMA_ALPHA: f64 = 0.1;
-/// EWMA alpha for drift smoothing.
 pub const DRIFT_EWMA_ALPHA: f64 = 0.3;
-/// EWMA alpha for rate-correction smoothing.
 pub const CORRECTION_EWMA_ALPHA: f64 = 0.5;
-/// Margin for the RTT outlier detector.
 pub const RTT_OUTLIER_GRACE_MS: f64 = 20.0;
-/// Drift deadband (ms): below this, no correction is needed.
 pub const DRIFT_DEADBAND_MS: f64 = 150.0;
-/// Soft drift threshold (ms): fine rate correction is enough.
 pub const DRIFT_SOFT_MS: f64 = 500.0;
-/// Hard drift threshold (ms): resync via seek is required.
 pub const DRIFT_SEEK_MS: f64 = 2000.0;
-/// Maximum soft rate correction (±5%).
 pub const MAX_RATE_ADJUST: f64 = 0.05;
-/// Drift-to-rate gain: 5% per 500 ms.
+/// 5% per 500 ms.
 pub const RATE_GAIN: f64 = 0.05 / 500.0;
-/// Stable samples needed before Soft/Medium/Hard fire.
 pub const STABLE_SAMPLES: u32 = 3;
-/// In-flight ping ids to remember.
 pub const HIST: usize = 8;
 
-/// Exponentially weighted moving average; the first sample is taken as-is.
 fn ewma(previous: Option<f64>, sample: f64, alpha: f64) -> f64 {
     match previous {
         Some(value) => value + alpha * (sample - value),
@@ -47,18 +29,13 @@ fn ewma(previous: Option<f64>, sample: f64, alpha: f64) -> f64 {
     }
 }
 
-/// Clock estimate between the guest and host clocks.
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
 pub struct ClockEstimate {
-    /// Host clock minus guest clock, in milliseconds.
     pub offset_ms: f64,
-    /// Smoothed round-trip time.
     pub rtt_ms: f64,
-    /// Smallest observed round-trip time.
     pub min_rtt_ms: f64,
 }
 
-/// NTP-style guest-side clock synchronizer.
 #[derive(Debug, Default)]
 pub struct ClockSync {
     pending: VecDeque<u64>,
@@ -68,7 +45,6 @@ pub struct ClockSync {
 }
 
 impl ClockSync {
-    /// Record an outgoing ping.
     pub fn on_ping(&mut self, id: u64) {
         self.pending.push_back(id);
         if self.pending.len() > HIST {
@@ -76,11 +52,7 @@ impl ClockSync {
         }
     }
 
-    /// Process an incoming pong.
-    ///
-    /// `t1_ms` is the guest ping timestamp, `t2_ms` the host receive timestamp,
-    /// `t3_ms` the guest receive timestamp (all monotonic ms). Returns `None`
-    /// for a stale or unknown ping id.
+    /// None for stale/unknown id.
     pub fn on_pong(
         &mut self,
         id: u64,
@@ -99,7 +71,7 @@ impl ClockSync {
         self.min_rtt_ms = Some(min_rtt);
         let smoothed_rtt = ewma(self.rtt_ms, rtt, RTT_EWMA_ALPHA);
         self.rtt_ms = Some(smoothed_rtt);
-        // Drop offset samples whose RTT is far above the observed minimum.
+        // Far-above-minimum RTT samples are dropped.
         if rtt <= min_rtt.mul_add(4.0, RTT_OUTLIER_GRACE_MS) {
             self.offset_ms = Some(ewma(self.offset_ms, offset, OFFSET_EWMA_ALPHA));
         }
@@ -110,7 +82,6 @@ impl ClockSync {
         })
     }
 
-    /// The current estimate, or `None` until a non-outlier pong lands.
     pub fn estimate(&self) -> Option<ClockEstimate> {
         Some(ClockEstimate {
             offset_ms: self.offset_ms?,
@@ -120,7 +91,6 @@ impl ClockSync {
     }
 }
 
-/// Expected local position for a host snapshot at guest time `now_ms`.
 pub fn expected_position(snapshot: &PlaybackState, estimate: &ClockEstimate, now_ms: f64) -> f64 {
     let host_now = now_ms + estimate.offset_ms - estimate.rtt_ms / 2.0;
     let elapsed_sec = (host_now - snapshot.updated_at_mono) / 1000.0;
@@ -132,20 +102,14 @@ pub fn expected_position(snapshot: &PlaybackState, estimate: &ClockEstimate, now
     position.max(0.0)
 }
 
-/// Corrective action classes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DriftAction {
-    /// Inside the deadband; nothing to do.
     None,
-    /// Fine rate correction.
     Soft,
-    /// Stronger rate correction.
     Medium,
-    /// Seek-based resync.
     Hard,
 }
 
-/// Classify a drift sample (guest minus expected, ms) into an action.
 pub fn classify_drift(drift_ms: f64) -> Option<DriftAction> {
     let magnitude = drift_ms.abs();
     if magnitude <= DRIFT_DEADBAND_MS {
@@ -160,9 +124,7 @@ pub fn classify_drift(drift_ms: f64) -> Option<DriftAction> {
     Some(DriftAction::Hard)
 }
 
-/// Rate target for an action and drift (guest minus expected, ms).
-///
-/// Positive drift (guest ahead) slows playback down (target < 1.0).
+/// Guest ahead slows playback.
 pub fn correction_target(action: Option<DriftAction>, drift_ms: f64) -> f64 {
     match action {
         None | Some(DriftAction::None | DriftAction::Hard) => 1.0,
@@ -177,11 +139,7 @@ pub fn correction_target(action: Option<DriftAction>, drift_ms: f64) -> f64 {
     }
 }
 
-/// Hysteresis controller: smooths drift, fires stable actions, tracks rate.
-///
-/// `on_sample` returns `None` while the action is stabilizing or while a seek
-/// resync is in flight; `Some(action)` means "apply now". `DriftAction::None`
-/// always fires so the guest rate relaxes back to 1.0 inside the deadband.
+/// None while stabilizing/seeking; None action relaxes rate to 1.0.
 #[derive(Debug)]
 pub struct SyncController {
     smooth_ms: Option<f64>,
@@ -204,17 +162,14 @@ impl Default for SyncController {
 }
 
 impl SyncController {
-    /// Current smoothed rate correction.
     pub fn correction(&self) -> f64 {
         self.correction
     }
 
-    /// Whether a seek resync is in flight.
     pub fn awaiting_restart(&self) -> bool {
         self.awaiting_restart
     }
 
-    /// Feed a drift sample (guest minus expected, ms).
     pub fn on_sample(&mut self, drift_ms: f64) -> Option<DriftAction> {
         if self.awaiting_restart {
             return None;
@@ -253,7 +208,6 @@ impl SyncController {
         Some(action)
     }
 
-    /// Call after the player restarts playback following a seek resync.
     pub fn on_playback_restart(&mut self) {
         self.awaiting_restart = false;
         self.smooth_ms = Some(0.0);
@@ -262,39 +216,27 @@ impl SyncController {
     }
 }
 
-/// RTT ceiling (ms) for a good link in the session strip.
 pub const LAG_GOOD_RTT_MS: f64 = 150.0;
-/// RTT ceiling (ms) for a merely fair link.
 pub const LAG_FAIR_RTT_MS: f64 = 400.0;
 
-/// Link quality shown next to a guest in the session strip.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum LagStatus {
-    /// Low RTT and inside the drift deadband.
     Good,
-    /// Usable but drifting or a slow link.
     Fair,
-    /// High RTT or a large uncorrected drift.
     Poor,
 }
 
-/// A concrete instruction for the local player, derived from the sync engine.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum SyncInstruction {
-    /// Set the playback rate (`1.0` relaxes back to normal).
     SetRate(f64),
-    /// Seek to an absolute position, in seconds.
     Seek(f64),
 }
 
-/// Wire form of [`SyncInstruction`] for the player window.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum SyncInstructionDto {
-    /// Set the playback rate (`1.0` relaxes back to normal).
     SetRate { rate: f64 },
-    /// Seek to an absolute position, in seconds.
     Seek { position: f64 },
 }
 
@@ -307,51 +249,34 @@ impl From<SyncInstruction> for SyncInstructionDto {
     }
 }
 
-/// One sync evaluation, returned to the player window.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SyncSample {
-    /// The instruction to apply, when the engine decided one is due.
     pub instruction: Option<SyncInstructionDto>,
-    /// Link quality for the badge.
     pub lag: LagStatus,
-    /// Smoothed RTT (ms).
     pub rtt_ms: f64,
-    /// Smoothed drift (guest minus expected, ms).
     pub drift_ms: f64,
-    /// Current rate correction (1.0 = nominal).
     pub correction: f64,
-    /// Whether a seek resync is still settling.
     pub awaiting_restart: bool,
-    /// Whether a host snapshot has been seen (guest positioned yet).
     pub have_snapshot: bool,
-    /// The snapshot's `media_id` equals the item the local player shows.
     pub identity_ok: bool,
-    /// Manual release offset applied by the guest (ms).
     pub offset_ms: f64,
 }
 
-/// Guest-side sync engine: clock estimate + drift controller + latest snapshot.
-///
-/// Pure with respect to the player: the caller feeds `now` and the local
-/// position and applies whatever [`SyncInstruction`] comes back.
 #[derive(Debug, Default)]
 pub struct SyncRuntime {
     clock: ClockSync,
     controller: SyncController,
     snapshot: Option<PlaybackState>,
     drift_ms: f64,
-    /// Guest-set release offset (ms) added to the expected position.
     manual_offset_ms: f64,
 }
 
 impl SyncRuntime {
-    /// Record an outgoing ping id.
     pub fn on_ping(&mut self, id: u64) {
         self.clock.on_ping(id);
     }
 
-    /// Process a pong; returns the refreshed clock estimate.
     pub fn on_pong(
         &mut self,
         id: u64,
@@ -362,12 +287,10 @@ impl SyncRuntime {
         self.clock.on_pong(id, t1_ms, t2_ms, t3_ms)
     }
 
-    /// Current clock estimate, if any.
     pub fn estimate(&self) -> Option<ClockEstimate> {
         self.clock.estimate()
     }
 
-    /// Store the newest host snapshot; older revisions are ignored.
     pub fn on_host_state(&mut self, state: PlaybackState) {
         match &self.snapshot {
             Some(current) if state.revision < current.revision => {}
@@ -375,54 +298,40 @@ impl SyncRuntime {
         }
     }
 
-    /// The host snapshot currently being tracked.
     pub fn snapshot(&self) -> Option<&PlaybackState> {
         self.snapshot.as_ref()
     }
 
-    /// Latest smoothed drift (guest minus expected, ms).
     pub fn drift_ms(&self) -> f64 {
         self.drift_ms
     }
 
-    /// The guest-set release offset (ms).
     pub fn offset_ms(&self) -> f64 {
         self.manual_offset_ms
     }
 
-    /// Set the guest release offset (ms); non-finite values are ignored.
-    ///
-    /// Some sources differ from the host copy by a constant lead-in (extra
-    /// intro, a different cut). The offset shifts the expected position so the
-    /// engine aligns the *content* instead of the container timestamps.
+    /// Aligns content, not container timestamps.
     pub fn set_offset_ms(&mut self, offset_ms: f64) {
         if offset_ms.is_finite() {
             self.manual_offset_ms = offset_ms;
         }
     }
 
-    /// Latest smoothed RTT (ms), or 0 before the first pong.
     pub fn rtt_ms(&self) -> f64 {
         self.clock
             .estimate()
             .map_or(0.0, |estimate| estimate.rtt_ms)
     }
 
-    /// Current rate correction (1.0 = nominal).
     pub fn correction(&self) -> f64 {
         self.controller.correction()
     }
 
-    /// Whether a seek resync is still settling.
     pub fn awaiting_restart(&self) -> bool {
         self.controller.awaiting_restart()
     }
 
-    /// Feed the local position; returns the instruction to apply, if any.
-    ///
-    /// `local_media_id` is the plan item the local player shows: a snapshot
-    /// for any other media is refused (no seek, no rate gain), so a guest on
-    /// the wrong file is never steered by the host.
+    /// Wrong file is never steered.
     pub fn sample(
         &mut self,
         now_ms: f64,
@@ -431,8 +340,7 @@ impl SyncRuntime {
     ) -> Option<SyncInstruction> {
         let snapshot = self.snapshot.clone()?;
         if snapshot.media_id != local_media_id {
-            // Out of scope: drop the drift and any correction picked up for
-            // the previous media so nothing stale is reported or applied.
+            // Drop stale drift/correction for the previous media.
             self.drift_ms = 0.0;
             self.controller = SyncController::default();
             return None;
@@ -449,10 +357,6 @@ impl SyncRuntime {
         }
     }
 
-    /// Evaluate one sync tick and package the result for the player window.
-    ///
-    /// `local_media_id` is the plan item the local player shows; when it does
-    /// not match the snapshot, the sample carries no instruction.
     pub fn sample_report(
         &mut self,
         now_ms: f64,
@@ -479,12 +383,10 @@ impl SyncRuntime {
         }
     }
 
-    /// Call after the player restarts following a seek resync.
     pub fn on_playback_restart(&mut self) {
         self.controller.on_playback_restart();
     }
 
-    /// Link quality for the strip.
     pub fn lag_status(&self) -> LagStatus {
         let Some(estimate) = self.clock.estimate() else {
             return LagStatus::Poor;
@@ -499,7 +401,6 @@ impl SyncRuntime {
         }
     }
 
-    /// Forget all estimates and host state (used on reconnect).
     pub fn reset(&mut self) {
         self.clock = ClockSync::default();
         self.controller = SyncController::default();
@@ -659,7 +560,7 @@ mod tests {
         let mut runtime = SyncRuntime::default();
         runtime.on_host_state(host_state(1, 100.0, true));
         runtime.on_ping(1);
-        // offset 0 (host clock == guest clock), 20 ms RTT.
+        // offset 0, 20 ms RTT.
         runtime.on_pong(1, 0.0, 10.0, 20.0).expect("known ping");
         runtime
     }
@@ -670,7 +571,6 @@ mod tests {
         assert!(runtime.sample(100.0, 100.0, "ep1").is_none());
         runtime.on_ping(1);
         runtime.on_pong(1, 0.0, 10.0, 20.0);
-        // No host state yet.
         assert!(runtime.sample(100.0, 100.0, "ep1").is_none());
         runtime.on_host_state(host_state(1, 100.0, true));
         assert!(runtime.sample(100.0, 100.0, "ep1").is_some());
@@ -710,13 +610,11 @@ mod tests {
     #[test]
     fn lag_status_reflects_rtt_and_drift() {
         let runtime = primed_runtime();
-        // 20 ms RTT, no samples yet => drift 0 => good.
         assert_eq!(runtime.lag_status(), LagStatus::Good);
         assert_eq!(SyncRuntime::default().lag_status(), LagStatus::Poor);
     }
 
-    /// Two-peer loopback in numbers: a guest that starts 350 ms ahead slows
-    /// down under soft correction and lands inside the deadband.
+    /// 350 ms lead converges into the deadband under soft correction.
     #[test]
     fn two_peer_sync_converges_into_the_deadband() {
         let mut guest = primed_runtime();
@@ -747,15 +645,13 @@ mod tests {
     #[test]
     fn manual_offset_shifts_the_expected_position() {
         let mut runtime = primed_runtime();
-        // Guest's copy leads the host by 5 s (extra intro): without an offset
-        // the engine reads roughly a 5 s lead.
         runtime.sample(20.0, 105.0, "ep1");
         assert!(
             runtime.drift_ms() > 4_900.0,
             "expected a large lead, got {}",
             runtime.drift_ms()
         );
-        // Tell the engine about the 5 s lead-in: drift collapses into the deadband.
+        // With the offset, drift collapses into the deadband.
         runtime.set_offset_ms(5_000.0);
         runtime.sample(20.0, 105.0, "ep1");
         assert!(
@@ -777,8 +673,6 @@ mod tests {
         assert_eq!(runtime.offset_ms(), -250.0);
     }
 
-    /// The identity invariant: a snapshot for another media never steers the
-    /// local player, whatever the drift says.
     #[test]
     fn sample_refuses_a_snapshot_for_another_media() {
         let mut runtime = primed_runtime();
@@ -787,8 +681,6 @@ mod tests {
         assert!(!report.identity_ok);
         assert!(report.instruction.is_none());
         assert_eq!(runtime.drift_ms(), 0.0);
-        // The same sample on the matching item syncs as usual (inside the
-        // deadband the fresh controller answers immediately).
         let report = runtime.sample_report(20.0, 100.0, "ep1");
         assert!(report.identity_ok);
         assert!(report.instruction.is_some());
@@ -804,7 +696,6 @@ mod tests {
         assert!(report.identity_ok);
         assert_eq!(report.offset_ms, 0.0);
         assert_eq!(report.lag, LagStatus::Good);
-        // Inside the deadband the controller relaxes the rate to nominal.
         assert!(matches!(
             report.instruction,
             Some(SyncInstructionDto::SetRate { rate }) if (rate - 1.0).abs() < 1e-9

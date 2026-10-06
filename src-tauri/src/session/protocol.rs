@@ -1,62 +1,38 @@
-//! Watch Party wire protocol (P1: types + frame codec; P2 adds the transport).
-//!
-//! Frame layout: u32 little-endian length, followed by a UTF-8 JSON object
-//! `{"v": 1, "seq": <u64>, "t": "<type>", ...}`. The JSON payload is hard-capped
-//! at [`MAX_FRAME_BYTES`]; a frame that exceeds the cap must fail with
-//! [`ProtocolError::FrameTooLarge`] and the connection must be dropped with a
-//! `rateLimited` error (lobby.md §3.2).
-//!
-//! Documented deviations from the lobby.md naming:
-//! - `Hello` drops its own `v` (the frame-level `v` is the version).
-//! - `TimePing`/`TimePong` use `id` instead of `seq` (seq is a frame-level field).
+//! Watch Party wire protocol: u32 LE length + UTF-8 JSON `{"v", "seq", "t", ...}`,
+//! capped at `MAX_FRAME_BYTES` (oversize drops the connection with `rateLimited`, lobby.md §3.2).
+//! Deviations: `Hello` drops its own `v`; `TimePing`/`TimePong` use `id`, not `seq`.
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use thiserror::Error;
 
-/// Protocol version carried by every frame.
-///
-/// v4 adds [`PeerInfo::endpoint_id`]: every peer's dialable endpoint, so the
-/// room can name a crash successor without a live channel to the dead host
-/// (lobby.md §14.7).
+/// v4 adds `PeerInfo::endpoint_id` so the room can name a crash successor (lobby.md §14.7).
 pub const PROTOCOL_VERSION: u8 = 4;
-/// Hard cap on the JSON payload of a frame (256 KiB).
 pub const MAX_FRAME_BYTES: u32 = 256 * 1024;
 
-/// Ids assigned to chat messages (stable anchors for reply/pin/react).
 pub const CHAT_ID_MAX_CHARS: usize = 64;
 
-/// Cap on one chat line, in graphemes (lobby.md §13).
 pub const CHAT_TEXT_MAX_GRAPHEMES: usize = 2000;
 
-/// Cap on a `.torrent` attached to a chat line, in raw bytes (lobby.md
-/// §14.4). Sized so the base64 frame stays under [`MAX_FRAME_BYTES`]: 180 KiB
-/// encodes to ~240 KiB, leaving headroom for the id/text/name JSON around it.
+/// Raw 180 KiB so base64 (~240 KiB) stays under `MAX_FRAME_BYTES`.
 pub const CHAT_ATTACHMENT_MAX_BYTES: usize = 180 * 1024;
 
-/// Cap on an attachment file name, in chars.
 pub const CHAT_ATTACHMENT_NAME_MAX_CHARS: usize = 128;
 
-/// How many chat lines one peer may send within [`CHAT_RATE_WINDOW_SEC`].
 pub const CHAT_RATE_MAX: usize = 5;
 
-/// Sliding window (seconds) for [`CHAT_RATE_MAX`].
 pub const CHAT_RATE_WINDOW_SEC: f64 = 5.0;
 
-/// Minimum spacing (seconds) between two accepted `Typing { active: true }`
-/// frames from one peer; stop frames (`active: false`) are never throttled.
+/// Stop frames (active: false) are never throttled.
 pub const TYPING_MIN_INTERVAL_SEC: f64 = 0.25;
 
-/// Distinct emoji kinds one chat message may carry; adding past the cap is
-/// dropped silently (removals always pass so a reaction can be undone).
+/// Past-cap adds are dropped silently; removals always pass.
 pub const REACTION_MAX_KINDS: usize = 5;
 
-/// Cap on one reaction emoji token, in chars (a short unicode emoji or a
-/// `:shortcode:`; anything longer is dropped).
+/// Emoji or :shortcode:; longer tokens are dropped.
 pub const REACTION_EMOJI_MAX_CHARS: usize = 32;
 
-/// Validate a `.torrent` attachment: a `.torrent` file name and raw bytes
-/// that fit the frame. Returns the cleaned file name.
+/// Accept a fitting .torrent name + byte size; return the cleaned name.
 pub fn sanitize_chat_upload(name: &str, raw_len: usize) -> Option<String> {
     if raw_len == 0 || raw_len > CHAT_ATTACHMENT_MAX_BYTES {
         return None;
@@ -77,8 +53,7 @@ pub fn sanitize_chat_upload(name: &str, raw_len: usize) -> Option<String> {
     Some(trimmed.to_string())
 }
 
-/// Whether a client-supplied chat message id is well-formed: non-empty, fits
-/// [`CHAT_ID_MAX_CHARS`], and stays within the anchor alphabet.
+/// Non-empty, within `CHAT_ID_MAX_CHARS`, anchor alphabet only.
 pub fn valid_chat_id(id: &str) -> bool {
     !id.is_empty()
         && id.len() <= CHAT_ID_MAX_CHARS
@@ -87,8 +62,7 @@ pub fn valid_chat_id(id: &str) -> bool {
             .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
 }
 
-/// Validate a client-supplied chat message id. An empty or malformed id is
-/// replaced with a generated one so a broken peer cannot break anchors.
+/// Malformed ids are replaced with a generated one so anchors never break.
 pub fn chat_id_or_generate(id: &str) -> String {
     if valid_chat_id(id) {
         id.to_string()
@@ -97,9 +71,7 @@ pub fn chat_id_or_generate(id: &str) -> String {
     }
 }
 
-/// Normalize one chat line: CRLF → LF, drop other control characters
-/// (keeping `\n`), trim, and enforce the grapheme cap. Returns `None` when
-/// the result is empty or over the cap.
+/// CRLF→LF, drop other controls, trim, enforce the grapheme cap; None when empty/over.
 pub fn sanitize_chat_text(text: &str) -> Option<String> {
     let normalized: String = text
         .replace("\r\n", "\n")
@@ -161,7 +133,6 @@ pub enum Role {
     Viewer,
 }
 
-/// Peer connection state / transport hint.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum ConnectionState {
@@ -173,7 +144,6 @@ pub enum ConnectionState {
     Disconnected,
 }
 
-/// How a plan item is sourced.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum SourceKind {
@@ -185,7 +155,6 @@ pub enum SourceKind {
     HostSeeded,
 }
 
-/// Source lifecycle state.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum SourceStatus {
@@ -197,7 +166,7 @@ pub enum SourceStatus {
     Error,
 }
 
-/// Video stream parameters used by the compatibility report (lobby.md §14.1).
+/// Used by the compatibility report (lobby.md §14.1).
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct VideoInfo {
@@ -208,32 +177,28 @@ pub struct VideoInfo {
     pub bitrate: u64,
 }
 
-/// Content identity shared between peers.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MediaIdentity {
     pub sha256: String,
     pub size: u64,
-    /// Duration in seconds.
     pub duration: f64,
-    /// Video parameters when the file has a video stream (report only).
+    /// Populated on reports only.
     #[serde(default)]
     pub video: Option<VideoInfo>,
 }
 
-/// A source for a plan item.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SourceInfo {
     pub source_id: String,
     pub kind: SourceKind,
     pub label: Option<String>,
-    /// Host-owned value (path / magnet / torrent data); filled in P5.
+    /// Host-owned value; filled in P5.
     pub value: Option<String>,
     pub status: SourceStatus,
 }
 
-/// One entry of the host-owned media plan.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MediaPlanItem {
@@ -244,7 +209,6 @@ pub struct MediaPlanItem {
     pub sources: Vec<SourceInfo>,
 }
 
-/// Per-item readiness report carried in `StateReport`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ItemReport {
@@ -253,10 +217,7 @@ pub struct ItemReport {
     pub verified: bool,
 }
 
-/// The item the room is holding a start on, plus who is missing it.
-///
-/// An empty `peer_ids` means the wait is over (everyone now has the item), but
-/// the start is still manual: the host/moderator must press start again.
+/// Empty `peer_ids` = wait over, but the start stays manual.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WaitingFor {
@@ -264,7 +225,6 @@ pub struct WaitingFor {
     pub peer_ids: Vec<String>,
 }
 
-/// Roster entry.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PeerInfo {
@@ -278,21 +238,15 @@ pub struct PeerInfo {
     pub drift_ms: f64,
     pub rtt_ms: f64,
     pub buffering: bool,
-    /// The host marked this peer as gone past the 30 s grace window. A left
-    /// peer stays in the roster (badge + resume context) and is excluded from
-    /// the ready gate and the missing-file computation until it reconnects.
+    /// Past the 30 s grace window; stays listed but leaves the ready gate and missing-file math.
     #[serde(default)]
     pub left: bool,
-    /// This peer's dialable endpoint id, read from the QUIC handshake on the
-    /// host (never trusted from the peer's own claim). Guests keep it so that
-    /// if the host dies, the elected successor can be dialed straight from the
-    /// replicated roster without a channel to the dead host.
+    /// From the QUIC handshake, never peer-claimed; lets guests dial the elected successor.
     #[serde(default)]
     pub endpoint_id: String,
 }
 
-/// A `.torrent` attached to a chat line: metadata only. The bytes travel on
-/// the wire variants and land in a bounded side map, never in the polled log.
+/// Metadata only; bytes travel the wire variants into a bounded side map.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ChatAttachment {
@@ -300,8 +254,7 @@ pub struct ChatAttachment {
     pub size: usize,
 }
 
-/// Attachment bytes on the wire, base64: a `Vec<u8>` would serialize as a
-/// JSON number array and blow the frame cap on its own.
+/// Base64: a Vec<u8> would serialize as a JSON number array and blow the cap alone.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ChatUpload {
@@ -309,27 +262,21 @@ pub struct ChatUpload {
     pub data: String,
 }
 
-/// Chat message stored in session state.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ChatMessage {
-    /// Stable message id (client-generated, host-validated): the anchor for
-    /// replies, pins, and reactions.
+    /// Client-generated, host-validated anchor for reply/pin/react.
     pub id: String,
     pub from: String,
     pub text: String,
-    /// Wall-clock seconds.
     pub at: f64,
     pub links: Vec<String>,
-    /// Id of the message this one replies to.
     pub reply_to: Option<String>,
-    /// Attached `.torrent` metadata (`None` = text only). Missing on frames
-    /// from older peers, which never send attachments.
+    /// None = text only; missing on pre-attachment peers.
     #[serde(default)]
     pub attachment: Option<ChatAttachment>,
 }
 
-/// The authoritative playback snapshot broadcast by the host.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PlaybackState {
@@ -338,11 +285,10 @@ pub struct PlaybackState {
     pub position: f64,
     pub is_playing: bool,
     pub rate: f64,
-    /// Monotonic milliseconds on the host clock.
     pub updated_at_mono: f64,
 }
 
-/// Shared shape of control actions, used by `Command` and `RequestControl`.
+/// Shared by Command and `RequestControl`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "a", rename_all = "camelCase")]
 pub enum ControlAction {
@@ -360,7 +306,6 @@ pub enum ControlAction {
     },
 }
 
-/// Guest → host messages (lobby.md §3.2).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "t", rename_all = "camelCase")]
 pub enum ClientMessage {
@@ -370,7 +315,7 @@ pub enum ClientMessage {
         display_name: String,
         token: String,
         anilist_user_id: Option<u64>,
-        /// Sender's app version; empty from peers older than this field.
+        /// Empty on peers older than this field.
         #[serde(default)]
         app_version: String,
     },
@@ -393,14 +338,12 @@ pub enum ClientMessage {
     RequestControl {
         action: ControlAction,
     },
-    /// A host or moderator asks the host to start a plan item.
     #[serde(rename_all = "camelCase")]
     RequestStart {
         item_id: String,
     },
     RequestTrackSync,
-    /// The successor of a host handover confirms its new host session is
-    /// listening; `endpoint_id` is the endpoint everyone must dial next.
+    /// `endpoint_id` is the endpoint everyone must dial next.
     #[serde(rename_all = "camelCase")]
     HandoverReady {
         endpoint_id: String,
@@ -443,7 +386,6 @@ pub enum ClientMessage {
     Bye,
 }
 
-/// Host → guest messages (lobby.md §3.2).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "t", rename_all = "camelCase")]
 pub enum ServerMessage {
@@ -506,8 +448,7 @@ pub enum ServerMessage {
         ready: bool,
         items: Vec<ItemReport>,
     },
-    /// The room is holding a start until the listed peers obtain `item_id`.
-    /// An empty `peer_ids` means the wait is over.
+    /// Empty `peer_ids` = wait over.
     #[serde(rename_all = "camelCase")]
     WaitingFor {
         item_id: String,
@@ -551,17 +492,14 @@ pub enum ServerMessage {
     Kick {
         reason: String,
     },
-    /// The host hands the room over to the recipient: it must start hosting on
-    /// the same `session_id`/`token` and answer with `HandoverReady`. Carries
-    /// the current playback so position/pause survive the move.
+    /// Same `session_id`/`token`, answer with `HandoverReady`; carries playback so position survives.
     #[serde(rename_all = "camelCase")]
     HostHandover {
         session_id: String,
         token: String,
         playback: Option<PlaybackState>,
     },
-    /// The room moved; every guest must reconnect to `endpoint_id`. Sent right
-    /// before the old host stops, carrying the successor's ticket.
+    /// Sent before the old host stops; carries the successor's ticket.
     #[serde(rename_all = "camelCase")]
     Migrate {
         session_id: String,
@@ -577,34 +515,26 @@ pub enum ServerMessage {
     Bye,
 }
 
-/// A decoded frame: header fields plus the JSON payload.
 #[derive(Debug, Clone, PartialEq)]
 pub struct DecodedFrame {
-    /// The frame-level protocol version.
     pub version: u8,
-    /// The frame-level sequence number.
     pub seq: u64,
-    /// The message tag (the `t` field).
     pub tag: String,
-    /// The full JSON payload.
     pub payload: Value,
 }
 
 impl DecodedFrame {
-    /// Deserialize the payload as a guest → host message.
     pub fn client(&self) -> Result<ClientMessage, ProtocolError> {
         serde_json::from_value(self.payload.clone())
             .map_err(|e| ProtocolError::BadJson(e.to_string()))
     }
 
-    /// Deserialize the payload as a host → guest message.
     pub fn server(&self) -> Result<ServerMessage, ProtocolError> {
         serde_json::from_value(self.payload.clone())
             .map_err(|e| ProtocolError::BadJson(e.to_string()))
     }
 }
 
-/// Serialize a message into a length-prefixed frame.
 pub fn encode_frame<T: Serialize>(msg: &T, seq: u64) -> Vec<u8> {
     let mut value = serde_json::to_value(msg).expect("session message must serialize to an object");
     if let Some(object) = value.as_object_mut() {
@@ -649,19 +579,16 @@ fn parse_payload(payload: &[u8], expected_version: u8) -> Result<DecodedFrame, P
     })
 }
 
-/// Incremental frame decoder: feed bytes in, pull complete frames out.
 #[derive(Debug, Default)]
 pub struct FrameDecoder {
     buf: Vec<u8>,
 }
 
 impl FrameDecoder {
-    /// Append newly received bytes to the internal buffer.
     pub fn feed(&mut self, bytes: &[u8]) {
         self.buf.extend_from_slice(bytes);
     }
 
-    /// Pull the next complete frame, or `Ok(None)` when more bytes are needed.
     pub fn next(&mut self, expected_version: u8) -> Result<Option<DecodedFrame>, ProtocolError> {
         if self.buf.len() < 4 {
             return Ok(None);

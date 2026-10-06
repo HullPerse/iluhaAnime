@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 
+import { useI18n } from "@/hooks/i18n.hook";
 import {
   usePauseTorrent,
   useRecheckPausedTorrent,
@@ -12,7 +13,6 @@ import {
   useSetSequentialDownload,
   useUpdateOnlyFiles,
 } from "@/hooks/torrent/queries.hook";
-import { useI18n } from "@/hooks/i18n.hook";
 import { describeRecheckOutcome } from "@/lib/torrent/recheck.utils";
 import { useCacheStore } from "@/store/cache.store";
 import { useTorrentStore } from "@/store/download.store";
@@ -67,9 +67,9 @@ export function useTorrentItemActions(item: TorrentInfo): TorrentItemActions {
   );
   const onRemove = useCallback(
     (deleteFiles: boolean) => {
-      removeMutation.mutate({ id, deleteFiles, infoHash });
+      removeMutation.mutate({ id, deleteFiles, infoHash, name: item.name });
     },
-    [removeMutation, id, infoHash]
+    [removeMutation, id, infoHash, item.name]
   );
   const onUpdateFiles = useCallback(
     (indices: number[]) => {
@@ -96,10 +96,16 @@ export function useTorrentItemActions(item: TorrentInfo): TorrentItemActions {
     [setSequentialMutation, id, infoHash]
   );
   const onRecreate = useCallback(async () => {
-    const removed = await removeMutation.mutateAsync({ id, deleteFiles: false, infoHash });
+    const removed = await removeMutation.mutateAsync({
+      id,
+      deleteFiles: false,
+      infoHash,
+      name: item.name,
+      silent: true,
+    });
     if (!removed) return;
     prepareTorrentDownload(`magnet:?xt=urn:btih:${infoHash}`);
-  }, [removeMutation, prepareTorrentDownload, id, infoHash]);
+  }, [removeMutation, prepareTorrentDownload, id, infoHash, item.name]);
   const onRedownload = useCallback(
     (fileIndex: number) => {
       redownloadMutation.mutate({ id, fileIndex, infoHash });

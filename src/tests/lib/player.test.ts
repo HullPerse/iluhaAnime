@@ -1,7 +1,16 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { translate } from "@/lib/locale/i18n.utils";
-import { audioOptions, colorOptions, hdrOptions, profileOptions, selectTrack } from "@/lib/player/playback.utils";
+import {
+  appendFiles,
+  appendFilesQuiet,
+  audioOptions,
+  colorOptions,
+  hdrOptions,
+  profileOptions,
+  selectTrack,
+  transformOptions,
+} from "@/lib/player/playback.utils";
 import { queueDepthSteps } from "@/lib/player/queue.utils";
 import { fileNameFromPath, clearParseCache, formatParsedTitle } from "@/lib/player/title.utils";
 import {
@@ -16,10 +25,10 @@ import {
   isPlayerPathHidden,
   normalizePlayerPath,
 } from "@/lib/player/visibility.utils";
+import { DEFAULT_PLAYER_SETTINGS } from "@/store/player.store";
 import type { FolderNode } from "@/types/torrent";
 import type { UpscaleQueueItem } from "@/types/upscale";
 import type { PlayerSettings } from "@/types/videoPlayer";
-import { DEFAULT_PLAYER_SETTINGS } from "@/store/player.store";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn() }));
 
@@ -360,31 +369,26 @@ describe("player/playback options", () => {
       "hdr-compute-peak": "auto",
     });
     expect(
-      hdrOptions(
-        settings({ toneMap: "manual", targetPeak: 1000, hdrComputePeak: true })
-      )
+      hdrOptions(settings({ toneMap: "manual", targetPeak: 1000, hdrComputePeak: true }))
     ).toEqual({
       "tone-mapping": "clip",
       "target-peak": "1000",
       "hdr-compute-peak": "yes",
     });
+    expect(hdrOptions(settings({ toneMap: "manual", targetPeak: 50 }))["target-peak"]).toBe("100");
+    expect(hdrOptions(settings({ toneMap: "manual", targetPeak: 20_000 }))["target-peak"]).toBe(
+      "10000"
+    );
     expect(
-      hdrOptions(settings({ toneMap: "manual", targetPeak: 50 }))["target-peak"]
-    ).toBe("100");
-    expect(
-      hdrOptions(settings({ toneMap: "manual", targetPeak: 20_000 }))["target-peak"]
-    ).toBe("10000");
-    expect(
-      hdrOptions(settings({ toneMap: "manual", hdrComputePeak: false }))[
-        "hdr-compute-peak"
-      ]
+      hdrOptions(settings({ toneMap: "manual", hdrComputePeak: false }))["hdr-compute-peak"]
     ).toBe("no");
   });
 
   it("maps colorspace selects onto string options", () => {
-    expect(
-      colorOptions(settings({ targetPrim: "bt.709", targetTrc: "srgb" }))
-    ).toEqual({ "target-prim": "bt.709", "target-trc": "srgb" });
+    expect(colorOptions(settings({ targetPrim: "bt.709", targetTrc: "srgb" }))).toEqual({
+      "target-prim": "bt.709",
+      "target-trc": "srgb",
+    });
   });
 
   it("toggles the loudnorm audio filter and clears it when off", () => {
@@ -392,6 +396,45 @@ describe("player/playback options", () => {
       af: "loudnorm",
     });
     expect(audioOptions(settings({ loudnorm: false }))).toEqual({ af: "" });
+  });
+
+  it("maps UI percents onto mpv -100..100 scales", () => {
+    const options = transformOptions(
+      settings({ brightness: 150, contrast: 50, saturation: 200, hue: -50 })
+    );
+    expect(options["brightness"]).toBe(50);
+    expect(options["contrast"]).toBe(-50);
+    expect(options["saturation"]).toBe(100);
+    expect(options["hue"]).toBe(-50);
+  });
+
+  it("clamps percents and hue to mpv ranges", () => {
+    const options = transformOptions(settings({ brightness: 300, hue: 360 }));
+    expect(options["brightness"]).toBe(100);
+    expect(options["hue"]).toBe(100);
+  });
+
+  it("maps zoom onto video-zoom and resets keepaspect", () => {
+    expect(transformOptions(settings({ zoom: 1 }))["video-zoom"]).toBe(0);
+    expect(transformOptions(settings({ zoom: 2 }))["video-zoom"]).toBe(1);
+    expect(transformOptions(settings({ zoom: 0.5 }))["video-zoom"]).toBe(-1);
+    expect(transformOptions(settings({ zoom: 1 }))).not.toHaveProperty("panscan");
+    expect(transformOptions(settings({ aspectRatio: "fill" }))["keepaspect"]).toBe(false);
+    expect(transformOptions(settings({ aspectRatio: "contain" }))["keepaspect"]).toBe(true);
+  });
+
+  it("always sends vf and subtitle options so resets clear mpv state", () => {
+    const options = transformOptions(settings({}));
+    expect(options["vf"]).toBe("");
+    expect(options["sub-font-size"]).toBe(55);
+    expect(options["sub-font"]).toBe("Arial");
+    const filtered = transformOptions(settings({ flipH: true, blur: 5 }));
+    expect(filtered["vf"]).toContain("hflip");
+    expect(filtered["vf"]).toContain("gblur");
+  });
+
+  it("does not emit gamma without a UI control", () => {
+    expect(transformOptions(settings({}))).not.toHaveProperty("gamma");
   });
 
   it("sends track ids as strings the wrapper accepts", async () => {
@@ -406,6 +449,33 @@ describe("player/playback options", () => {
     expect(vi.mocked(invoke)).toHaveBeenCalledWith("player_set_property", {
       name: "sid",
       value: "no",
+    });
+  });
+});
+
+describe("player/playlist append", () => {
+  it("queues picked files without starting playback", async () => {
+    const { invoke } = await import("@tauri-apps/api/core");
+    vi.mocked(invoke).mockClear();
+    await appendFilesQuiet(["C:\\a.mkv", "C:\\b.mkv"]);
+    expect(vi.mocked(invoke)).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(invoke)).toHaveBeenNthCalledWith(1, "player_command", {
+      name: "loadfile",
+      args: ["C:\\a.mkv", "append"],
+    });
+    expect(vi.mocked(invoke)).toHaveBeenNthCalledWith(2, "player_command", {
+      name: "loadfile",
+      args: ["C:\\b.mkv", "append"],
+    });
+  });
+
+  it("keeps autoplay for drag and drop", async () => {
+    const { invoke } = await import("@tauri-apps/api/core");
+    vi.mocked(invoke).mockClear();
+    await appendFiles(["C:\\a.mkv"]);
+    expect(vi.mocked(invoke)).toHaveBeenCalledWith("player_command", {
+      name: "loadfile",
+      args: ["C:\\a.mkv", "append-play"],
     });
   });
 });

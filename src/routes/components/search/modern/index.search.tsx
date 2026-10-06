@@ -6,11 +6,11 @@ import { TabLoader } from "@/components/shared/loader.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { DITHER_PLACEHOLDER_SRC } from "@/config/utils/dither.config";
-import { useWallpaperImage } from "@/hooks/wallpaper.hook";
 import { useI18n } from "@/hooks/i18n.hook";
+import { useWallpaperImage } from "@/hooks/wallpaper.hook";
 import { shouldDimMascot } from "@/lib/search/mascot.utils";
-import { buildShadowGradients, buildWallpaperFilter } from "@/lib/wallpaper/wallpaper.utils";
 import { showError } from "@/lib/utils/notification.utils";
+import { buildShadowGradients, buildWallpaperFilter } from "@/lib/wallpaper/wallpaper.utils";
 import { useSettingsStore } from "@/store/settings.store";
 
 import DitherSettings from "./dither/settings.dither";

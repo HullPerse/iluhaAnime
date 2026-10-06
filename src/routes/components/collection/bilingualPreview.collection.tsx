@@ -1,5 +1,5 @@
-import { splitStatusLabel } from "@/lib/collection/status.utils";
 import { useI18n } from "@/hooks/i18n.hook";
+import { splitStatusLabel } from "@/lib/collection/status.utils";
 
 export function BilingualPreview({ value }: { value: string }) {
   const { t } = useI18n();

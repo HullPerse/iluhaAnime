@@ -36,7 +36,6 @@ export interface AniMedia {
   id: number;
   title: string;
   titles: string[];
-  // Absent on older backends.
   title_romaji?: string | null;
   title_english?: string | null;
   title_native?: string | null;
@@ -77,7 +76,6 @@ export interface AniUser {
   episodes_watched: number;
   mean_score: number | null;
   score_format: AnilistScoreFormat | null;
-  // Absent on older backends.
   title_language?: AniTitleLanguage | null;
   favourites?: FavouriteAnime[];
 }

@@ -86,8 +86,7 @@ describe("useTauriEvent", () => {
 
   it("does not subscribe while disabled and re-subscribes when re-enabled", async () => {
     const { rerender } = renderHook(
-      ({ on }: { on: boolean }) =>
-        useTauriEvent("toggle-event", () => {}, { enabled: on }),
+      ({ on }: { on: boolean }) => useTauriEvent("toggle-event", () => {}, { enabled: on }),
       { initialProps: { on: false } }
     );
     expect(tauri.calls).toHaveLength(0);
@@ -106,8 +105,7 @@ describe("useTauriEvent", () => {
 
   it("re-subscribes when the error tag changes and unlistens the previous listener", async () => {
     const { rerender } = renderHook(
-      ({ tag }: { tag?: string }) =>
-        useTauriEvent("tag-change-event", () => {}, { errorTag: tag }),
+      ({ tag }: { tag?: string }) => useTauriEvent("tag-change-event", () => {}, { errorTag: tag }),
       { initialProps: { tag: "a" } }
     );
     const first = tauri.calls[0];
@@ -123,8 +121,7 @@ describe("useTauriEvent", () => {
     const firstHandler = vi.fn((event: { payload: string }) => event.payload);
     const secondHandler = vi.fn((event: { payload: string }) => event.payload);
     const { rerender } = renderHook(
-      ({ fn }: { fn: (event: { payload: string }) => void }) =>
-        useTauriEvent("latest-event", fn),
+      ({ fn }: { fn: (event: { payload: string }) => void }) => useTauriEvent("latest-event", fn),
       { initialProps: { fn: firstHandler } }
     );
     const call = tauri.last();

@@ -13,9 +13,9 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button.component";
+import { useI18n } from "@/hooks/i18n.hook";
 import { usePagedRow } from "@/hooks/pagedRow.hook";
 import { defaultListSortDir, getSortingLabel, listSortKeys } from "@/lib/anilist/entries.utils";
-import { useI18n } from "@/hooks/i18n.hook";
 import type { AniSortProps as Props } from "@/types/anilist";
 
 export default function AniListSortBar({

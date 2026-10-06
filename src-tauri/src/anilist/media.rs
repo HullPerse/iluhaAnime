@@ -45,7 +45,6 @@ pub struct AniMedia {
     pub id: u64,
     pub title: String,
     pub titles: Vec<String>,
-    /// Structured titles for client title-language chain.
     pub title_romaji: Option<String>,
     pub title_english: Option<String>,
     pub title_native: Option<String>,
@@ -93,7 +92,6 @@ pub struct AniCharacterNode {
     pub name: String,
     pub native_name: Option<String>,
     pub image: Option<String>,
-    /// How many users have this character in their favourites; `None` when the query did not ask.
     pub favourites: Option<i64>,
     pub site_url: Option<String>,
 }
@@ -159,11 +157,9 @@ pub struct AniStaffDetail {
     pub name: String,
     pub native_name: Option<String>,
     pub image: Option<String>,
-    /// `AniList` HTML; frontend flattens before display.
     pub about: Option<String>,
     pub favourites: Option<i64>,
     pub site_url: Option<String>,
-    /// Cross-page totals for unloaded-sections display.
     pub character_count: usize,
     pub media_count: usize,
     pub characters: Vec<AniStaffCharacterEdge>,

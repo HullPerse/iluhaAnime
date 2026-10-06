@@ -12,8 +12,8 @@ import { useAnilistSearch } from "@/hooks/anilist/search.hook";
 import { usePagination } from "@/hooks/pagination.hook";
 import { useSearchField } from "@/hooks/search/field.hook";
 import { filterEntries, sortEntries } from "@/lib/anilist/entries.utils";
-import { defaultAniListFilters } from "@/lib/anilist/filters.utils";
 import type { EntryLookup } from "@/lib/anilist/entries.utils";
+import { defaultAniListFilters } from "@/lib/anilist/filters.utils";
 import { ALL_LISTS_ID, activeListEntries } from "@/lib/anilist/group.utils";
 import {
   pickDisplayEntries,
@@ -284,11 +284,7 @@ function AnilistRoute() {
       if (error) {
         useNotificationStore
           .getState()
-          .add(
-            tr("anilist.fav.toggle.failed"),
-            "error",
-            error.message
-          );
+          .add(tr("anilist.fav.toggle.failed"), "error", error.message);
       } else {
         queryClient.setQueryData(["anilist_data"], (old: unknown) =>
           old ? { ...(old as AnilistRouteData), favourites: updated } : old
@@ -327,13 +323,7 @@ function AnilistRoute() {
     (async () => {
       const [authUser, error] = await attempt(anilistApi.login(authTarget.accessToken));
       if (error) {
-        useNotificationStore
-          .getState()
-          .add(
-            tr("anilist.auth.failed"),
-            "error",
-            error.message
-          );
+        useNotificationStore.getState().add(tr("anilist.auth.failed"), "error", error.message);
         return;
       }
       handleAuthSuccess(authUser);

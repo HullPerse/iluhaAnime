@@ -31,7 +31,7 @@ export interface AnilistApiConfig {
   proxyUrl?: string | null | (() => string | null);
 }
 
-export interface FuzzyDateInput {
+interface FuzzyDateInput {
   year: number | null;
   month: number | null;
   day: number | null;

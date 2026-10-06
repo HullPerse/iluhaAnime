@@ -57,7 +57,9 @@ describe("AniListCharactersPanel seeding", () => {
     });
     renderPanel(seeded);
     await waitFor(() => expect(screen.getByText("Seeded 0")).toBeDefined());
-    const characterCalls = invokeMock.mock.calls.filter(([command]) => command === "get_anime_characters");
+    const characterCalls = invokeMock.mock.calls.filter(
+      ([command]) => command === "get_anime_characters"
+    );
     expect(characterCalls).toHaveLength(0);
   });
 
@@ -76,10 +78,9 @@ describe("AniListCharactersPanel seeding", () => {
         invokeMock.mock.calls.filter(([command]) => command === "get_anime_characters")
       ).toHaveLength(1)
     );
-    const [, args] = invokeMock.mock.calls.find(([command]) => command === "get_anime_characters") as [
-      string,
-      { page: number },
-    ];
+    const [, args] = invokeMock.mock.calls.find(
+      ([command]) => command === "get_anime_characters"
+    ) as [string, { page: number }];
     expect(args.page).toBe(2);
   });
 

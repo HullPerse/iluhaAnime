@@ -695,7 +695,6 @@ mod tests {
                 [],
             )
             .expect("insert cache rows");
-        // A real v17 database predates the v19 column, so drop it to replay v18 faithfully.
         connection
             .execute_batch("ALTER TABLE collection_statuses DROP COLUMN kind;")
             .expect("simulate v17 schema");
@@ -767,7 +766,6 @@ mod tests {
             )
             .expect("insert seconds row");
 
-        // Simulate v14 schema (drop v16/v19 columns) to replay v15.
         connection
             .execute_batch(
                 "ALTER TABLE collection_items DROP COLUMN release_date;

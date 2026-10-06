@@ -10,7 +10,17 @@ use super::core::{LibmpvCore, PlayerCore};
 use super::state::{save_current_watch, PlayerHost, PlayerOpenRequest};
 use super::watch::{self, WatchState};
 use super::{PLAYER_ROUTE, PLAYER_WINDOW_LABEL};
-use crate::session::state::SessionHost;
+use crate::app_db;
+use crate::{WINDOW_CHROME_KEY, WINDOW_CHROME_NAMESPACE};
+
+fn cached_player_decorations(app: &AppHandle) -> bool {
+    app_db::read_cached_payload(app, WINDOW_CHROME_NAMESPACE, WINDOW_CHROME_KEY)
+        .ok()
+        .flatten()
+        .and_then(|payload| serde_json::from_str::<Value>(&payload).ok())
+        .and_then(|value| value.get("decorations")?.as_bool())
+        .unwrap_or(true)
+}
 
 fn observed_properties() -> Value {
     json!({
@@ -51,11 +61,11 @@ const ALLOWED_INITIAL_OPTIONS: &[&str] = &[
     "keep-open",
     "video-rotate",
     "panscan",
+    "video-zoom",
     "brightness",
     "contrast",
     "saturation",
     "hue",
-    "gamma",
     "sub-font-size",
     "sub-font",
     "sub-color",
@@ -130,24 +140,14 @@ fn load_queue(
     Ok(())
 }
 
-/// Manual opens blocked in session; only room-driven starts may replace source.
-const fn manual_open_blocked(session_active: bool, room_driven: bool) -> bool {
-    session_active && !room_driven
-}
-
 #[tauri::command]
 pub async fn player_open(
     app: AppHandle,
-    session: State<'_, SessionHost>,
     files: Vec<String>,
     resume: Option<f64>,
-    room_driven: Option<bool>,
 ) -> Result<(), String> {
     if files.iter().any(|file| file.is_empty()) {
         return Err("player_open received an empty file path".to_string());
-    }
-    if manual_open_blocked(session.has_runtime(), room_driven.unwrap_or(false)) {
-        return Err("player_open is disabled while a watch party session is active".to_string());
     }
     let request = PlayerOpenRequest { files, resume };
 
@@ -173,6 +173,7 @@ pub async fn player_open(
     .title("iluhaAnime")
     .inner_size(1280.0, 720.0)
     .min_inner_size(480.0, 300.0)
+    .decorations(cached_player_decorations(&app))
     .transparent(true)
     .center()
     .build()
@@ -388,6 +389,22 @@ pub async fn player_set_video_margin_ratio(
     )
 }
 
+/// Maps an end-of-file mode onto mpv properties.
+/// `none` stops after the current file (`keep-open=always` pauses on the last
+/// frame and never auto-advances, the Finished screen covers it).
+/// `pause` plays through the playlist and pauses on the last frame of the
+/// last file. `next` plays through and idles at the end. `repeat` loops
+/// the current file.
+fn eof_properties(mode: &str) -> Option<(&'static str, &'static str, &'static str)> {
+    match mode {
+        "none" => Some(("always", "no", "no")),
+        "pause" => Some(("yes", "no", "no")),
+        "next" => Some(("no", "no", "no")),
+        "repeat" => Some(("no", "inf", "no")),
+        _ => None,
+    }
+}
+
 #[tauri::command]
 pub async fn player_eof_mode(
     app: AppHandle,
@@ -396,12 +413,8 @@ pub async fn player_eof_mode(
 ) -> Result<(), String> {
     let backend = core(&app);
     let label = window.label().to_string();
-    let (keep_open, loop_file, loop_playlist) = match mode.as_str() {
-        "none" => ("no", "no", "no"),
-        "pause" => ("yes", "no", "no"),
-        "next" => ("no", "no", "inf"),
-        "repeat" => ("no", "inf", "no"),
-        other => return Err(format!("unknown end-of-file mode: {other}")),
+    let Some((keep_open, loop_file, loop_playlist)) = eof_properties(&mode) else {
+        return Err(format!("unknown end-of-file mode: {mode}"));
     };
     tracing::debug!("player_eof_mode: {mode}");
     backend.set_property("keep-open", &json!(keep_open), &label)?;
@@ -422,13 +435,19 @@ pub fn player_load_watch(app: AppHandle, path: String) -> Option<WatchState> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::eof_properties;
 
     #[test]
-    fn manual_open_blocked_only_for_non_room_opens_in_a_session() {
-        assert!(!manual_open_blocked(false, false));
-        assert!(!manual_open_blocked(false, true));
-        assert!(!manual_open_blocked(true, true));
-        assert!(manual_open_blocked(true, false));
+    fn eof_modes_map_to_mpv_keep_open_and_loop_properties() {
+        assert_eq!(eof_properties("none"), Some(("always", "no", "no")));
+        assert_eq!(eof_properties("pause"), Some(("yes", "no", "no")));
+        assert_eq!(eof_properties("next"), Some(("no", "no", "no")));
+        assert_eq!(eof_properties("repeat"), Some(("no", "inf", "no")));
+    }
+
+    #[test]
+    fn unknown_eof_mode_maps_to_nothing() {
+        assert_eq!(eof_properties("loop-everything"), None);
+        assert_eq!(eof_properties(""), None);
     }
 }

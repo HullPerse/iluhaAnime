@@ -3,10 +3,10 @@ import type { ReactElement } from "react";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 
 import { useApp } from "@/hooks/app.hook";
+import { useI18n } from "@/hooks/i18n.hook";
 import { useScreenshot } from "@/hooks/screenshot.hook";
 import { TORRENTS_QUERY_KEY } from "@/hooks/torrent/queries.hook";
 import { useTray } from "@/hooks/tray.hook";
-import { useI18n } from "@/hooks/i18n.hook";
 import { attempt } from "@/lib/utils/attempt.utils";
 import TorrentFilePicker from "@/routes/components/search/default/picker.search";
 import { useCacheStore } from "@/store/cache.store";
@@ -28,12 +28,10 @@ const PlayerRoute = lazy(() => import("@/routes/player.route"));
 const AniListRoute = lazy(() => import("@/routes/anilist.route"));
 const SettingsRoute = lazy(() => import("@/routes/settings.route"));
 const CollectionRoute = lazy(() => import("@/routes/collection.route"));
-const LobbyRoute = lazy(() => import("@/routes/lobby.route"));
 
 const TAB_PREFETCH: Record<TabId, () => Promise<unknown>> = {
   anilist: () => import("@/routes/anilist.route"),
   collection: () => import("@/routes/collection.route"),
-  lobby: () => import("@/routes/lobby.route"),
   player: () => import("@/routes/player.route"),
   search: () => import("@/routes/search.route"),
   settings: () => import("@/routes/settings.route"),
@@ -85,7 +83,6 @@ export default function App() {
       settings: <SettingsRoute />,
       torrent: <TorrentRoute />,
       collection: <CollectionRoute />,
-      lobby: <LobbyRoute />,
     };
     return tabMap[activeTab];
   };

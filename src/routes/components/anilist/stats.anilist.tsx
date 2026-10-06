@@ -5,9 +5,9 @@ import { useState, useMemo } from "react";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
+import { useI18n } from "@/hooks/i18n.hook";
 import { dayLabel, monthLabel } from "@/lib/anilist/activity.utils";
 import { formatAiringTime } from "@/lib/anilist/airing.utils";
-import { useI18n } from "@/hooks/i18n.hook";
 import type { AniListCollection } from "@/types/anilist";
 
 function StatsModal({

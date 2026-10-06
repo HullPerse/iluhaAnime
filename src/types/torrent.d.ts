@@ -308,6 +308,7 @@ export interface TorrentSelectionBarProps {
   onPause: () => void;
   onResume: () => void;
   onRecheck: () => void;
+  onDelete: () => void;
   onSelectAll: () => void;
   onClear: () => void;
 }

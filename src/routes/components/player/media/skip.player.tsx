@@ -1,41 +1,16 @@
 import { SkipForward } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
+import {
+  SKIP_AUTO_HIDE_MS,
+  SKIP_SEEK_BACK_THRESHOLD,
+  findActiveChapter,
+  skipLabel,
+} from "@/lib/player/skip.utils";
 import { usePlaybackStore } from "@/store/player.store";
 import type { MpvChapter } from "@/types/videoPlayer";
-
-function skipLabel(title: string): string | null {
-  const lower = title.toLowerCase();
-  if (lower.includes("opening") || lower === "op") {
-    return "OP";
-  }
-  if (lower.includes("ending") || lower === "ed" || lower.includes("credits")) {
-    return "ED";
-  }
-  if (lower.includes("intro")) {
-    return "Intro";
-  }
-  if (
-    lower.includes("preview") ||
-    lower.includes("next episode") ||
-    lower.includes("next time") ||
-    lower.includes("next week")
-  ) {
-    return "Preview";
-  }
-  if (
-    lower.includes("intermission") ||
-    lower.includes("interlude") ||
-    lower.includes("interval")
-  ) {
-    return "Intermission";
-  }
-  if (lower.includes("recap")) {
-    return "Recap";
-  }
-  return null;
-}
 
 function SkipButton({
   duration,
@@ -53,31 +28,41 @@ function SkipButton({
   const { t } = useI18n();
   const timePos = usePlaybackStore((state) => state.timePos);
 
-  let active: MpvChapter | null = null;
-  let index = -1;
-  for (let i = 0; i < chapters.length; i += 1) {
-    const start = chapters[i].time;
-    const end = chapters[i].end ?? chapters[i + 1]?.time ?? duration;
-    if (timePos >= start && timePos < end) {
-      active = chapters[i];
-      index = i;
-      break;
-    }
-  }
+  const active = findActiveChapter(chapters, timePos, duration);
+  const label = active ? skipLabel(active.chapter.title) : null;
+  const key = active && label ? `${active.index}:${active.chapter.time}` : null;
 
-  const label = active ? skipLabel(active.title) : null;
-  if (!active || !label) return null;
+  const [hidden, setHidden] = useState(false);
+  const prevTime = useRef(timePos);
 
-  const isLastChapter = index === chapters.length - 1;
+  useEffect(() => {
+    if (key !== null) setHidden(false);
+  }, [key]);
+
+  useEffect(() => {
+    if (!key || hidden) return;
+    const id = window.setTimeout(() => setHidden(true), SKIP_AUTO_HIDE_MS);
+    return () => window.clearTimeout(id);
+  }, [key, hidden]);
+
+  useEffect(() => {
+    const delta = prevTime.current - timePos;
+    prevTime.current = timePos;
+    if (delta > SKIP_SEEK_BACK_THRESHOLD && key && hidden) setHidden(false);
+  }, [timePos, key, hidden]);
+
+  if (!active || !label || hidden) return null;
+
+  const isLastChapter = active.index === chapters.length - 1;
   const isNextEpisode = isLastChapter && label === "ED" && hasNext;
-  const target = active.end ?? chapters[index + 1]?.time ?? duration;
 
   return (
-    <div className="absolute bottom-1 right-1 z-20">
+    <div className="absolute right-1 bottom-1 z-20">
       <Button
         className="flex h-auto items-center gap-1 px-3 py-1.5 text-sm"
+        title={active.chapter.title}
         onClick={() => {
-          onSkip(target);
+          onSkip(active.target);
           if (isNextEpisode) onFileNext();
         }}
       >

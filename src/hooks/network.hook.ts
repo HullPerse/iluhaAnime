@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 
 import type { TabId } from "@/types/settings";
 
-const OFFLINE_DISABLED_TABS: readonly TabId[] = ["anilist", "search", "lobby"];
+const OFFLINE_DISABLED_TABS: readonly TabId[] = ["anilist", "search"];
 
 export function isOfflineDisabledTab(id: TabId): boolean {
   return (OFFLINE_DISABLED_TABS as readonly TabId[]).includes(id);

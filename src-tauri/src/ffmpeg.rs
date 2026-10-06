@@ -81,7 +81,6 @@ pub async fn download_ffmpeg(
     let total = response.content_length().unwrap_or(0);
     let mut downloaded = 0u64;
     let mut stream = response.bytes_stream();
-    // Pre-size from header (clamped); avoids reallocs without over-allocating.
     let mut bytes: Vec<u8> = Vec::with_capacity(total.min(512 * 1024 * 1024) as usize);
 
     while let Some(chunk) = stream.next().await {

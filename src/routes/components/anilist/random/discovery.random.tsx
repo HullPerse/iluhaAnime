@@ -5,9 +5,9 @@ import ProgressBar from "@/components/shared/progress.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { formatLabels, listStatusLabels, statusLabels } from "@/config/anilist/labels.config";
+import { useI18n } from "@/hooks/i18n.hook";
 import { useRemoteImage } from "@/hooks/remoteImage.hook";
 import { getStatusColor, type EntryListInfo } from "@/lib/anilist/entries.utils";
-import { useI18n } from "@/hooks/i18n.hook";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import type { AniMedia } from "@/types/anilist";
 
@@ -107,7 +107,12 @@ export function DiscoveryCard({ item, nav }: DiscoveryCardProps) {
             </span>
             {entry.progress != null && media.episodes != null && (
               <>
-                <ProgressBar value={entry.progress} max={media.episodes} className="h-3.5 w-20" slots />
+                <ProgressBar
+                  value={entry.progress}
+                  max={media.episodes}
+                  className="h-3.5 w-20"
+                  slots
+                />
                 <span className="windows95-text text-xs">
                   {entry.progress}/{media.episodes}
                 </span>

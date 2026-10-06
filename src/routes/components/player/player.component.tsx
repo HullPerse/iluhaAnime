@@ -1,8 +1,15 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { cn } from "cn";
-import { useCallback, useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type MouseEvent as ReactMouseEvent,
+} from "react";
 
+import { SmallLoader } from "@/components/shared/loader.component";
 import {
   OFFSET_LIMIT,
   OFFSET_STEP,
@@ -11,13 +18,16 @@ import {
   type KeybindAction,
 } from "@/config/player/keybinds.config";
 import { VOLUME_STEP } from "@/config/player/video.config";
-import { usePlayerEvents } from "@/hooks/player/events.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { useSessionPlayer } from "@/hooks/session/player.hook";
+import { usePlayerEvents } from "@/hooks/player/events.hook";
 import { useTauriEvent } from "@/hooks/tauriEvent.hook";
 import { translate } from "@/lib/locale/i18n.utils";
-import { fileNameFromPath } from "@/lib/player/title.utils";
-import { ignore } from "@/lib/utils/promise.utils";
+import {
+  LOADING_TIMEOUT_MS,
+  shouldShowEmptyPlayer,
+  shouldShowLoadingSpinner,
+} from "@/lib/player/loading.utils";
+import { scheduleCardPrefetch } from "@/lib/player/cardCache.utils";
 import {
   addExternalAudio,
   addExternalSubtitle,
@@ -36,6 +46,7 @@ import {
   playPlaylistIndex,
   previousFile,
   readPath,
+  readPlaylistEntries,
   removePlaylistIndex,
   saveWatch,
   seekTo,
@@ -49,12 +60,13 @@ import {
   takePendingOpen,
   transformOptions,
 } from "@/lib/player/playback.utils";
+import { fileNameFromPath } from "@/lib/player/title.utils";
+import { reportBackgroundError } from "@/lib/utils/attempt.utils";
+import { ignore } from "@/lib/utils/promise.utils";
 import { useMediaStore } from "@/store/media.store";
 import { useNotificationStore } from "@/store/notification.store";
 import { usePlaybackStore, usePlayerStore } from "@/store/player.store";
 import { useSettingsStore } from "@/store/settings.store";
-import { useSessionStore } from "@/store/session.store";
-import type { PlayerPanelTab } from "@/types/player";
 import type {
   DroppedFramesData,
   EndOfFileMode,
@@ -78,7 +90,6 @@ import SettingsPanel from "./media/settings.player";
 import SkipButton from "./media/skip.player";
 import PlayerStatus from "./media/status.player";
 import Timeline from "./media/timeline.player";
-import { SessionStrip } from "./session.strip.player";
 import PlayerSidePanel from "./side.player";
 
 const AUTO_HIDE_DELAY = 3000;
@@ -90,22 +101,73 @@ const RESUME_END_MARGIN = 10;
 const SUBTITLE_FILTERS = ["srt", "ass", "ssa", "vtt", "sub", "idx"];
 const AUDIO_FILTERS = ["mka", "flac", "aac", "m4a", "ac3", "dts", "mp3", "wav", "ogg", "opus"];
 
-function barClass(
-  position: "top" | "bottom",
-  immersive: boolean,
-  hidden: boolean,
-): string {
+function barClass(position: "top" | "bottom", immersive: boolean, hidden: boolean): string {
   if (!immersive) return "z-20 shrink-0 bg-primary";
   return cn(
-    "z-20 shrink-0 bg-primary/90 absolute inset-x-0 transition-opacity duration-300",
+    "bg-primary/90 absolute inset-x-0 z-20 shrink-0 transition-opacity duration-300",
     position === "top" ? "top-0" : "bottom-0",
-    hidden && "pointer-events-none opacity-0",
+    hidden && "pointer-events-none opacity-0"
   );
 }
 
 function videoSectionClass(immersive: boolean): string {
   if (immersive) return "relative min-h-0 flex-1 overflow-hidden";
   return "relative m-1 min-h-0 flex-1 overflow-hidden windows95-active-border";
+}
+
+interface CursorHiddenState {
+  barsHidden: boolean;
+  settingsOpen: boolean;
+  jumpOpen: boolean;
+  cheatsheetOpen: boolean;
+  diagnosticsOpen: boolean;
+  playlistOpen: boolean;
+  dropAlert: DroppedFramesData | null;
+}
+
+function shouldHideCursor(state: CursorHiddenState): boolean {
+  return (
+    state.barsHidden &&
+    !state.settingsOpen &&
+    !state.jumpOpen &&
+    !state.cheatsheetOpen &&
+    !state.diagnosticsOpen &&
+    !state.playlistOpen &&
+    state.dropAlert === null
+  );
+}
+
+function rootClass(hasFile: boolean, failed: boolean, cursorHidden: boolean): string {
+  return cn(
+    "relative flex h-screen w-screen flex-col overflow-hidden",
+    (!hasFile || failed) && "bg-black",
+    cursorHidden && "player-cursor-hidden"
+  );
+}
+
+interface HwdecReload {
+  position: number;
+  paused: boolean;
+}
+
+function resolveLoadPosition(
+  reload: HwdecReload | null,
+  playlistIndex: number,
+  resume: number | undefined,
+  entryPosition: number | undefined
+): number {
+  if (reload) return reload.position;
+  if (playlistIndex === 0 && resume !== undefined) return resume;
+  return entryPosition ?? 0;
+}
+
+function needsExactSeek(reload: HwdecReload | null, position: number, inside: boolean): boolean {
+  if (reload) return position > 1;
+  return inside;
+}
+
+async function restoreReloadPaused(reload: HwdecReload | null): Promise<void> {
+  if (reload && !reload.paused) await setPaused(false);
 }
 
 function PlayerComponent() {
@@ -132,21 +194,6 @@ function PlayerComponent() {
   const profile = usePlayerStore((state) => state.profile);
   const settings = usePlayerStore((state) => state.settings);
 
-  const {
-    hostLost: sessionHostLost,
-    onLocalControl,
-    onLocalTrack,
-    resync: sessionResync,
-    resumeAlone: sessionResumeAlone,
-    role: sessionRole,
-    sample: sessionSample,
-    setOffsetMs,
-    status: sessionStatus,
-  } = useSessionPlayer();
-
-  // Room owns source; manual opens ignored.
-  const roomLocked = sessionRole !== null;
-
   const [cinema, setCinema] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const [barsVisible, setBarsVisible] = useState(true);
@@ -154,13 +201,16 @@ function PlayerComponent() {
   const [jumpOpen, setJumpOpen] = useState(false);
   const [cheatsheetOpen, setCheatsheetOpen] = useState(false);
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
-  const [panelTab, setPanelTab] = useState<PlayerPanelTab | null>(null);
+  const [playlistOpen, setPlaylistOpen] = useState(false);
   const [dropAlert, setDropAlert] = useState<DroppedFramesData | null>(null);
   const [finished, setFinished] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [loadingFile, setLoadingFile] = useState(false);
+  const [hasShownFrame, setHasShownFrame] = useState(false);
 
   const videoRef = useRef<HTMLDivElement>(null);
   const resumeRef = useRef<number | undefined>(undefined);
+  const hwdecReloadRef = useRef<HwdecReload | null>(null);
   const destroyTimerRef = useRef<number | null>(null);
   const dropTimerRef = useRef<number | null>(null);
 
@@ -168,14 +218,16 @@ function PlayerComponent() {
   const hasNext = playlistCount > 0 && playlistIndex < playlistCount - 1;
   const hasPrev = playlistIndex > 0;
   const barsHidden = immersive && autoHide && !barsVisible;
+  const cursorHidden = shouldHideCursor({
+    barsHidden,
+    settingsOpen,
+    jumpOpen,
+    cheatsheetOpen,
+    diagnosticsOpen,
+    playlistOpen,
+    dropAlert,
+  });
   const title = path ? fileNameFromPath(path) : t("player.media.title");
-
-  useEffect(() => {
-    setPanelTab((previous) => {
-      if (sessionRole) return previous === "playlist" ? previous : "lobby";
-      return previous === "lobby" ? null : previous;
-    });
-  }, [sessionRole]);
 
   useEffect(() => {
     if (destroyTimerRef.current !== null) {
@@ -191,12 +243,20 @@ function PlayerComponent() {
           volume: store.volume,
           hwdec: store.hwdec,
           settings: store.settings,
-        }),
+        })
       );
-      await applyPlayerProfile(store.profile).catch(() => undefined);
-      await applyHdrOptions(store.settings).catch(() => undefined);
-      await applyColorOptions(store.settings).catch(() => undefined);
-      await applyAudioOptions(store.settings).catch(() => undefined);
+      await applyPlayerProfile(store.profile).catch((error: unknown) =>
+        reportBackgroundError("player.init.profile", error)
+      );
+      await applyHdrOptions(store.settings).catch((error: unknown) =>
+        reportBackgroundError("player.init.hdr", error)
+      );
+      await applyColorOptions(store.settings).catch((error: unknown) =>
+        reportBackgroundError("player.init.color", error)
+      );
+      await applyAudioOptions(store.settings).catch((error: unknown) =>
+        reportBackgroundError("player.init.audio", error)
+      );
       await setEofModeCommand(store.eofMode);
 
       if (disposed) return;
@@ -204,6 +264,7 @@ function PlayerComponent() {
       if (disposed) return;
       if (request && request.files.length > 0) {
         resumeRef.current = request.resume;
+        setLoadingFile(true);
         await loadQueue(request.files, request.resume);
       }
     };
@@ -215,7 +276,7 @@ function PlayerComponent() {
         .add(
           translate(useSettingsStore.getState().language, "player.media.error.title"),
           "error",
-          String(error),
+          String(error)
         );
     });
 
@@ -238,22 +299,38 @@ function PlayerComponent() {
   useEffect(() => {
     return usePlayerStore.subscribe((state, previous) => {
       if (state.volume !== previous.volume) {
-        ignore(setMpvProperty("volume", Math.round(state.volume * 100)));
+        setMpvProperty("volume", Math.round(state.volume * 100)).catch((error: unknown) =>
+          reportBackgroundError("player.settings.volume", error)
+        );
       }
       if (state.hwdec !== previous.hwdec) {
-        ignore(setMpvProperty("hwdec", state.hwdec));
+        setMpvProperty("hwdec", state.hwdec).catch((error: unknown) =>
+          reportBackgroundError("player.settings.hwdec", error)
+        );
       }
       if (state.profile !== previous.profile) {
-        ignore(applyPlayerProfile(state.profile));
+        applyPlayerProfile(state.profile).catch((error: unknown) =>
+          reportBackgroundError("player.settings.profile", error)
+        );
       }
       if (state.settings !== previous.settings) {
-        ignore(applyTransform(state.settings));
-        ignore(applyHdrOptions(state.settings));
-        ignore(applyColorOptions(state.settings));
-        ignore(applyAudioOptions(state.settings));
+        applyTransform(state.settings).catch((error: unknown) =>
+          reportBackgroundError("player.settings.transform", error)
+        );
+        applyHdrOptions(state.settings).catch((error: unknown) =>
+          reportBackgroundError("player.settings.hdr", error)
+        );
+        applyColorOptions(state.settings).catch((error: unknown) =>
+          reportBackgroundError("player.settings.color", error)
+        );
+        applyAudioOptions(state.settings).catch((error: unknown) =>
+          reportBackgroundError("player.settings.audio", error)
+        );
       }
       if (state.eofMode !== previous.eofMode) {
-        ignore(setEofModeCommand(state.eofMode));
+        setEofModeCommand(state.eofMode).catch((error: unknown) =>
+          reportBackgroundError("player.settings.eof", error)
+        );
       }
     });
   }, [applyTransform]);
@@ -262,6 +339,8 @@ function PlayerComponent() {
     setFinished(false);
     const loaded = await readPath();
     if (!loaded) return;
+    const reload = hwdecReloadRef.current;
+    hwdecReloadRef.current = null;
 
     await setSpeed(1);
     const entry = await useMediaStore.getState().hydrate(loaded);
@@ -275,16 +354,20 @@ function PlayerComponent() {
       await selectTrack("sub", entry.subtitleTrack);
     }
 
-    const pendingResume =
-      usePlaybackStore.getState().playlistIndex === 0 ? resumeRef.current : undefined;
+    const position = resolveLoadPosition(
+      reload,
+      usePlaybackStore.getState().playlistIndex,
+      resumeRef.current,
+      entry?.position
+    );
     resumeRef.current = undefined;
-    const position = pendingResume ?? entry?.position ?? 0;
     const state = usePlaybackStore.getState();
     const inside =
       position > RESUME_MIN &&
       (state.duration <= 0 || position < state.duration - RESUME_END_MARGIN);
-    if (inside) await seekTo(position, "exact");
+    if (needsExactSeek(reload, position, inside)) await seekTo(position, "exact");
     await setPaused(true);
+    await restoreReloadPaused(reload);
   }, []);
 
   usePlayerEvents({
@@ -292,6 +375,7 @@ function PlayerComponent() {
       if (request.files.length === 0) return;
       resumeRef.current = request.resume;
       setFinished(false);
+      setLoadingFile(true);
       ignore(loadQueue(request.files, request.resume));
     },
     onFileLoaded: () => {
@@ -305,12 +389,15 @@ function PlayerComponent() {
     },
     onPlaybackRestart: () => {
       usePlaybackStore.getState().settleSeek();
+      setHasShownFrame(true);
+      setLoadingFile(false);
     },
     onShutdown: () => {
       usePlaybackStore.getState().reset();
     },
     onError: () => {
       setFailed(true);
+      setLoadingFile(false);
     },
     onDroppedFrames: (data) => {
       setDropAlert(data);
@@ -320,15 +407,19 @@ function PlayerComponent() {
   });
 
   useEffect(() => {
+    if (!loadingFile) return;
+    const id = window.setTimeout(() => setLoadingFile(false), LOADING_TIMEOUT_MS);
+    return () => window.clearTimeout(id);
+  }, [loadingFile]);
+
+  useEffect(() => {
     const id = window.setInterval(() => {
       const state = usePlaybackStore.getState();
       if (!state.path || state.paused || state.eofReached || state.duration <= 0) {
         return;
       }
       const entry = useMediaStore.getState().getEntry(state.path);
-      useMediaStore
-        .getState()
-        .setPosition(state.path, state.timePos, state.duration);
+      useMediaStore.getState().setPosition(state.path, state.timePos, state.duration);
       ignore(
         saveWatch(state.path, {
           position: state.timePos,
@@ -336,7 +427,7 @@ function PlayerComponent() {
           subDelay: entry?.subOffset ?? 0,
           audioDelay: entry?.audioOffset ?? 0,
           updatedAt: Math.floor(Date.now() / 1000),
-        }),
+        })
       );
     }, WATCH_INTERVAL);
     return () => window.clearInterval(id);
@@ -348,15 +439,25 @@ function PlayerComponent() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!path || playlistCount === 0) return;
+    let cancelled = false;
+    readPlaylistEntries()
+      .then((entries) => {
+        if (!cancelled) scheduleCardPrefetch(entries.map((entry) => entry.filename), path);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [path, playlistCount]);
+
   useTauriEvent<{ paths: string[] }>(
     "tauri://drag-drop",
     (event) => {
-      if (roomLocked) return;
       const extensions = useSettingsStore.getState().videoExtensions;
       const files = event.payload.paths.filter((path) =>
-        extensions.some((extension) =>
-          path.toLowerCase().endsWith(`.${extension.toLowerCase()}`),
-        ),
+        extensions.some((extension) => path.toLowerCase().endsWith(`.${extension.toLowerCase()}`))
       );
       if (files.length > 0) ignore(appendFiles(files));
     },
@@ -378,7 +479,7 @@ function PlayerComponent() {
         right: 0,
         top: top / height,
         bottom: bottom / height,
-      }),
+      })
     );
   }, [immersive]);
 
@@ -439,8 +540,8 @@ function PlayerComponent() {
       setDiagnosticsOpen(false);
       return;
     }
-    if (panelTab !== null) {
-      setPanelTab(null);
+    if (playlistOpen) {
+      setPlaylistOpen(false);
       return;
     }
     if (settingsOpen) {
@@ -468,7 +569,7 @@ function PlayerComponent() {
         }
       })
       .catch(() => undefined);
-  }, [cheatsheetOpen, cinema, diagnosticsOpen, jumpOpen, panelTab, settingsOpen]);
+  }, [cheatsheetOpen, cinema, diagnosticsOpen, jumpOpen, playlistOpen, settingsOpen]);
 
   const onPlay = useCallback(() => {
     const state = usePlaybackStore.getState();
@@ -476,18 +577,14 @@ function PlayerComponent() {
     if (state.eofReached) {
       setFinished(false);
       ignore(seekTo(0, "exact").then(() => setPaused(false)));
-      onLocalControl({ a: "seek", position: 0 });
-      onLocalControl({ a: "play" });
       return;
     }
     ignore(setPaused(false));
-    onLocalControl({ a: "play" });
-  }, [onLocalControl]);
+  }, []);
 
   const onPause = useCallback(() => {
     ignore(setPaused(true));
-    onLocalControl({ a: "pause" });
-  }, [onLocalControl]);
+  }, []);
 
   const onPlayPause = useCallback(() => {
     const state = usePlaybackStore.getState();
@@ -501,79 +598,64 @@ function PlayerComponent() {
   const onVideoClick = useCallback(
     (event: ReactMouseEvent<HTMLDivElement>) => {
       const target = event.target as HTMLElement | null;
-      if (
-        target?.closest?.(
-          "button, a, input, select, textarea, [role=button], [role=dialog]",
-        )
-      ) {
+      if (target?.closest?.("button, a, input, select, textarea, [role=button], [role=dialog]")) {
         return;
       }
       if (!usePlaybackStore.getState().hasFile) return;
+      if (loadingFile) return;
       onPlayPause();
     },
-    [onPlayPause],
+    [loadingFile, onPlayPause]
   );
 
   const onScrub = useCallback((time: number) => {
     ignore(seekTo(time, "keyframes"));
   }, []);
 
-  const onCommitSeek = useCallback(
-    (time: number) => {
-      usePlaybackStore.getState().setSeekTarget(time);
-      ignore(seekTo(time, "exact"));
-      onLocalControl({ a: "seek", position: time });
-    },
-    [onLocalControl]
-  );
+  const onCommitSeek = useCallback((time: number) => {
+    usePlaybackStore.getState().setSeekTarget(time);
+    ignore(seekTo(time, "exact"));
+  }, []);
 
-  const onSeekTo = useCallback(
-    (time: number) => {
-      usePlaybackStore.getState().setSeekTarget(time);
-      const mode = usePlayerStore.getState().seekMode;
-      ignore(seekTo(time, mode));
-      onLocalControl({ a: "seek", position: time });
-    },
-    [onLocalControl]
-  );
+  const onSeekTo = useCallback((time: number) => {
+    usePlaybackStore.getState().setSeekTarget(time);
+    const mode = usePlayerStore.getState().seekMode;
+    ignore(seekTo(time, mode));
+  }, []);
 
-  const onSeekBy = useCallback(
-    (seconds: number) => {
-      const state = usePlaybackStore.getState();
-      const mode = usePlayerStore.getState().seekMode;
-      const target = Math.max(
-        0,
-        Math.min(state.duration || Number.MAX_SAFE_INTEGER, state.timePos + seconds),
-      );
-      usePlaybackStore.getState().setSeekTarget(target);
-      ignore(seekTo(target, mode));
-      onLocalControl({ a: "seek", position: target });
-    },
-    [onLocalControl]
-  );
+  const onSeekBy = useCallback((seconds: number) => {
+    const state = usePlaybackStore.getState();
+    const mode = usePlayerStore.getState().seekMode;
+    const target = Math.max(
+      0,
+      Math.min(state.duration || Number.MAX_SAFE_INTEGER, state.timePos + seconds)
+    );
+    usePlaybackStore.getState().setSeekTarget(target);
+    ignore(seekTo(target, mode));
+  }, []);
 
-  const onSkipChapter = useCallback(
-    (time: number) => {
-      usePlaybackStore.getState().setSeekTarget(time);
-      const mode = usePlayerStore.getState().seekMode;
-      ignore(seekTo(time, mode).then(() => setPaused(false)));
-      onLocalControl({ a: "seek", position: time });
-      onLocalControl({ a: "play" });
-    },
-    [onLocalControl]
-  );
+  const onSkipChapter = useCallback((time: number) => {
+    usePlaybackStore.getState().setSeekTarget(time);
+    const mode = usePlayerStore.getState().seekMode;
+    ignore(seekTo(time, mode).then(() => setPaused(false)));
+  }, []);
 
   const onFileNext = useCallback(() => {
-    if (sessionRole) return;
     setFinished(false);
+    setLoadingFile(true);
     ignore(nextFile());
-  }, [sessionRole]);
+  }, []);
 
   const onFilePrev = useCallback(() => {
-    if (sessionRole) return;
     setFinished(false);
+    setLoadingFile(true);
     ignore(previousFile());
-  }, [sessionRole]);
+  }, []);
+
+  const onPlayIndex = useCallback((index: number) => {
+    setLoadingFile(true);
+    return playPlaylistIndex(index);
+  }, []);
 
   const onVolume = useCallback((value: number) => {
     const clamped = Math.min(1, Math.max(0, value));
@@ -588,20 +670,34 @@ function PlayerComponent() {
     ignore(setMpvProperty("mute", !usePlaybackStore.getState().muted));
   }, []);
 
-  const onSpeed = useCallback(
-    (value: number) => {
-      ignore(setSpeed(value));
-      onLocalControl({ a: "setRate", rate: value });
-    },
-    [onLocalControl]
-  );
+  const onSpeed = useCallback((value: number) => {
+    ignore(setSpeed(value));
+  }, []);
 
   const handlePatchSettings = useCallback((patch: Partial<PlayerSettings>) => {
     usePlayerStore.getState().patchSettings(patch);
   }, []);
 
   const handleHwdec = useCallback((mode: HwdecMode) => {
+    const playback = usePlaybackStore.getState();
     usePlayerStore.getState().setHwdec(mode);
+    if (!playback.hasFile || playback.playlistIndex < 0) return;
+    hwdecReloadRef.current = { position: playback.timePos, paused: playback.paused };
+    setLoadingFile(true);
+    setMpvProperty("hwdec", mode)
+      .then(() => playPlaylistIndex(playback.playlistIndex))
+      .catch((error: unknown) => {
+        hwdecReloadRef.current = null;
+        setLoadingFile(false);
+        reportBackgroundError("player.hwdec.reload", error);
+        useNotificationStore
+          .getState()
+          .add(
+            translate(useSettingsStore.getState().language, "player.media.error.title"),
+            "error",
+            String(error)
+          );
+      });
   }, []);
 
   const handleProfile = useCallback((next: PlayerProfileId) => {
@@ -625,34 +721,15 @@ function PlayerComponent() {
     if (current) useMediaStore.getState().setTrack(current, kind, track.id);
   }, []);
 
-  const pushTrackState = useCallback(
-    (override?: { kind: "audio" | "sub"; id: number | "no" }) => {
-      const state = usePlaybackStore.getState();
-      const current = state.path;
-      if (!current) return;
-      // Local path must not travel.
-      const mediaId = useSessionStore.getState().playingItemId;
-      if (!mediaId) return;
-      const entry = useMediaStore.getState().getEntry(current);
-      const value = (kind: "audio" | "sub"): string | null => {
-        if (override && override.kind === kind) {
-          return override.id === "no" ? "no" : String(override.id);
-        }
-        const picked = state.tracks.find(
-          (track) => track.type === kind && track.selected,
-        );
-        return picked ? String(picked.id) : null;
-      };
-      onLocalTrack({
-        audio: value("audio"),
-        audioDelay: entry?.audioOffset ?? 0,
-        mediaId,
-        sub: value("sub"),
-        subDelay: entry?.subOffset ?? 0,
-      });
-    },
-    [onLocalTrack],
-  );
+  const onResetDelays = useCallback(() => {
+    const current = usePlaybackStore.getState().path;
+    if (!current) return;
+    const store = useMediaStore.getState();
+    store.setSubOffset(current, 0);
+    store.setAudioOffset(current, 0);
+    ignore(setMpvProperty("sub-delay", 0));
+    ignore(setMpvProperty("audio-delay", 0));
+  }, []);
 
   const onSelectTrack = useCallback(
     (kind: "audio" | "sub") => (id: number | "no") => {
@@ -661,9 +738,8 @@ function PlayerComponent() {
         const track = usePlaybackStore.getState().tracks.find((entry) => entry.id === id);
         if (track) persistTrack(track, kind);
       }
-      pushTrackState({ id, kind });
     },
-    [persistTrack, pushTrackState],
+    [persistTrack]
   );
 
   const pickFiles = useCallback(
@@ -675,7 +751,7 @@ function PlayerComponent() {
       if (!selection) return [];
       return Array.isArray(selection) ? selection : [selection];
     },
-    [t],
+    [t]
   );
 
   const onAddExternalSubtitle = useCallback(async () => {
@@ -688,31 +764,22 @@ function PlayerComponent() {
     for (const file of files) await addExternalAudio(file);
   }, [pickFiles]);
 
-  const nudgeOffset = useCallback(
-    (kind: "sub" | "audio", direction: number, fine: boolean) => {
-      const current = usePlaybackStore.getState().path;
-      if (!current) return;
-      const store = useMediaStore.getState();
-      const entry = store.getEntry(current);
-      const base = (kind === "sub" ? entry?.subOffset : entry?.audioOffset) ?? 0;
-      const step = fine ? OFFSET_STEP_FINE : OFFSET_STEP;
-      const next = Math.max(
-        -OFFSET_LIMIT,
-        Math.min(OFFSET_LIMIT, Number((base + direction * step).toFixed(3))),
-      );
-      if (kind === "sub") store.setSubOffset(current, next);
-      else store.setAudioOffset(current, next);
-      ignore(setMpvProperty("sub-delay", kind === "sub" ? next : (entry?.subOffset ?? 0)));
-      ignore(
-        setMpvProperty(
-          "audio-delay",
-          kind === "audio" ? next : (entry?.audioOffset ?? 0),
-        ),
-      );
-      pushTrackState();
-    },
-    [pushTrackState],
-  );
+  const nudgeOffset = useCallback((kind: "sub" | "audio", direction: number, fine: boolean) => {
+    const current = usePlaybackStore.getState().path;
+    if (!current) return;
+    const store = useMediaStore.getState();
+    const entry = store.getEntry(current);
+    const base = (kind === "sub" ? entry?.subOffset : entry?.audioOffset) ?? 0;
+    const step = fine ? OFFSET_STEP_FINE : OFFSET_STEP;
+    const next = Math.max(
+      -OFFSET_LIMIT,
+      Math.min(OFFSET_LIMIT, Number((base + direction * step).toFixed(3)))
+    );
+    if (kind === "sub") store.setSubOffset(current, next);
+    else store.setAudioOffset(current, next);
+    ignore(setMpvProperty("sub-delay", kind === "sub" ? next : (entry?.subOffset ?? 0)));
+    ignore(setMpvProperty("audio-delay", kind === "audio" ? next : (entry?.audioOffset ?? 0)));
+  }, []);
 
   const onKeyboardAction = useCallback(
     (action: KeybindAction) => {
@@ -733,6 +800,7 @@ function PlayerComponent() {
         audioOffsetDown: () => nudgeOffset("audio", -1, false),
         audioOffsetUpFine: () => nudgeOffset("audio", 1, true),
         audioOffsetDownFine: () => nudgeOffset("audio", -1, true),
+        resetDelays: () => onResetDelays(),
         toggleAutoHide: () => handleSetAutoHide(!usePlayerStore.getState().autoHide),
         toggleDiagnostics: () => setDiagnosticsOpen((value) => !value),
         nextFile: () => onFileNext(),
@@ -752,10 +820,11 @@ function PlayerComponent() {
       onFilePrev,
       onMute,
       onPlayPause,
+      onResetDelays,
       onSeekBy,
       onVolume,
       toggleFullscreen,
-    ],
+    ]
   );
 
   const close = useCallback(() => {
@@ -767,15 +836,10 @@ function PlayerComponent() {
     ignore(seekTo(0, "exact").then(() => setPaused(false)));
   }, []);
 
-  const eofPaused = eofReached && eofMode === "pause";
+  const eofPaused = eofReached && (eofMode === "pause" || eofMode === "none");
 
   return (
-    <div
-      className={cn(
-        "relative flex h-screen w-screen flex-col overflow-hidden",
-        (!hasFile || failed) && "bg-black",
-      )}
-    >
+    <div className={rootClass(hasFile, failed, cursorHidden)}>
       <Keyboard
         onAction={onKeyboardAction}
         onWheel={(direction) =>
@@ -797,21 +861,16 @@ function PlayerComponent() {
 
       <div className={videoSectionClass(immersive)}>
         <div className="flex h-full min-h-0 flex-row gap-1">
-          <div ref={videoRef} className="relative min-h-0 flex-1 overflow-hidden" onClick={onVideoClick}>
+          <div
+            ref={videoRef}
+            className="relative min-h-0 flex-1 overflow-hidden"
+            onClick={onVideoClick}
+          >
             <OsdOverlay />
-            {sessionRole ? (
-              <SessionStrip
-                hostLost={sessionHostLost}
-                onResumeAlone={sessionResumeAlone}
-                role={sessionRole}
-                sample={sessionSample}
-                status={sessionStatus}
-              />
-            ) : null}
             {diagnosticsOpen ? <DiagnosticsOverlay /> : null}
 
             {dropAlert ? (
-              <div className="windows95-border windows95-font absolute top-4 left-4 z-20 bg-primary/95 p-2 text-left text-sm">
+              <div className="windows95-border windows95-font bg-primary/95 absolute top-4 left-4 z-20 p-2 text-left text-sm">
                 <span className="font-bold">
                   {t("player.media.watchdog.dropped", {
                     drops: dropAlert.drops,
@@ -821,7 +880,15 @@ function PlayerComponent() {
               </div>
             ) : null}
 
-            {!hasFile && !failed ? <EmptyPlayer /> : null}
+            {shouldShowEmptyPlayer(hasFile, loadingFile, failed, hasShownFrame) ? (
+              <EmptyPlayer />
+            ) : null}
+
+            {shouldShowLoadingSpinner(hasFile, loadingFile, failed, hasShownFrame) ? (
+              <div className="windows95-border bg-primary pointer-events-none absolute top-2 left-2 z-20 p-1">
+                <SmallLoader size={4} />
+              </div>
+            ) : null}
 
             {hasFile ? (
               <SkipButton
@@ -834,10 +901,7 @@ function PlayerComponent() {
             ) : null}
 
             {jumpOpen ? (
-              <JumpToTime
-                onCommit={onSeekTo}
-                onClose={() => setJumpOpen(false)}
-              />
+              <JumpToTime onCommit={onSeekTo} onClose={() => setJumpOpen(false)} />
             ) : null}
 
             <PlayerStatus
@@ -845,29 +909,19 @@ function PlayerComponent() {
               finished={finished}
               eofPaused={eofPaused}
               failed={failed}
-              hasNext={hasNext && !roomLocked}
+              loading={loadingFile}
+              hasNext={hasNext}
               onRestart={restart}
               onNext={onFileNext}
               onClose={close}
             />
           </div>
 
-          {panelTab ? (
+          {playlistOpen ? (
             <PlayerSidePanel
-              activeTab={panelTab}
-              locked={roomLocked}
               onMove={(from, to) => movePlaylistIndex(from, to)}
-              onOffset={setOffsetMs}
-              onPlay={(index) => {
-                if (sessionRole) return Promise.resolve();
-                return playPlaylistIndex(index);
-              }}
+              onPlay={onPlayIndex}
               onRemove={(index) => removePlaylistIndex(index)}
-              onResync={sessionResync}
-              onTabChange={setPanelTab}
-              role={sessionRole}
-              sample={sessionSample}
-              status={sessionStatus}
             />
           ) : null}
         </div>
@@ -888,14 +942,12 @@ function PlayerComponent() {
           tracks={tracks}
           hasPrev={hasPrev}
           hasNext={hasNext}
-          navLocked={roomLocked}
           immersive={immersive}
           autoHide={autoHide}
           speed={speed}
           volume={volume}
           muted={muted}
-          eofMode={eofMode}
-          playlistOpen={panelTab === "playlist"}
+          playlistOpen={playlistOpen}
           onPlay={onPlay}
           onPause={onPause}
           onSeekTo={onSeekTo}
@@ -905,12 +957,7 @@ function PlayerComponent() {
           onVolume={onVolume}
           onMute={onMute}
           onToggleAutoHide={() => handleSetAutoHide(!autoHide)}
-          onTogglePlaylist={() =>
-            setPanelTab((previous) =>
-              previous === "playlist" ? null : "playlist"
-            )
-          }
-          onEofMode={handleEofMode}
+          onTogglePlaylist={() => setPlaylistOpen((previous) => !previous)}
           onSelectAudio={onSelectTrack("audio")}
           onSelectSub={onSelectTrack("sub")}
           onAddAudio={() => ignore(onAddExternalAudio())}

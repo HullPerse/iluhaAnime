@@ -4,8 +4,8 @@ import { ChevronLeft, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import ImageComponent from "@/components/ui/image.component";
-import { useOverlayDialog } from "@/hooks/overlay.hook";
 import { useI18n } from "@/hooks/i18n.hook";
+import { useOverlayDialog } from "@/hooks/overlay.hook";
 import { useSettingsStore } from "@/store/settings.store";
 import type { ModalWindow } from "@/types/ui";
 

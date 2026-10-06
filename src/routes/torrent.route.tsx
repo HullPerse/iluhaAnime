@@ -14,8 +14,10 @@ import { Button } from "@/components/ui/button.component";
 import Select from "@/components/ui/select.component";
 import { NO_TORRENT_FILES, NO_TORRENTS, TORRENT_PAGE_SIZE } from "@/config/torrent/common.config";
 import { useHostStats } from "@/hooks/hostStats.hook";
+import { useI18n } from "@/hooks/i18n.hook";
 import { usePagination } from "@/hooks/pagination.hook";
 import { useSearchField } from "@/hooks/search/field.hook";
+import { useTauriEvent } from "@/hooks/tauriEvent.hook";
 import {
   TORRENTS_QUERY_KEY,
   usePauseTorrent,
@@ -25,8 +27,6 @@ import {
   useTorrentFilesMap,
   useTorrents,
 } from "@/hooks/torrent/queries.hook";
-import { useI18n } from "@/hooks/i18n.hook";
-import { useTauriEvent } from "@/hooks/tauriEvent.hook";
 import { applyBulkAction, pruneSelection, splitRecheckOutcome } from "@/lib/torrent/bulk.utils";
 import {
   formatSpeed,
@@ -46,6 +46,7 @@ import type { TorrentInfo, TorrentLifecycle } from "@/types/torrent";
 import CreateTorrentModal from "./components/torrent/create.torrent";
 import AddTorrentModal from "./components/torrent/magnet.torrent";
 import { TorrentRow } from "./components/torrent/row.torrent";
+import { DeleteTorrentDialog } from "./components/torrent/sections/delete.sections";
 import { TorrentSelectionBar } from "./components/torrent/sections/selection.sections";
 import SpeedLimitForm from "./components/torrent/speed.torrent";
 
@@ -151,29 +152,90 @@ function TorrentRoute() {
   );
   useEffect(() => {
     setSelected((prev) => pruneSelection(prev, filteredTorrents));
+    setExpanded((prev) => {
+      const pruned = pruneSelection(prev, filteredTorrents);
+      return pruned === prev ? prev : new Set(pruned);
+    });
   }, [filteredTorrents]);
+  const [bulkRemoveTargets, setBulkRemoveTargets] = useState<TorrentInfo[] | null>(null);
   const recreateTorrents = (targets: TorrentInfo[]) =>
     applyBulkAction(targets, (torrent) =>
       removeMutation
-        .mutateAsync({ id: torrent.id, deleteFiles: false, infoHash: torrent.info_hash })
+        .mutateAsync({
+          id: torrent.id,
+          deleteFiles: false,
+          infoHash: torrent.info_hash,
+          name: torrent.name,
+          silent: true,
+        })
         .then((removed) => {
           if (removed) prepareTorrentDownload(`magnet:?xt=urn:btih:${torrent.info_hash}`);
         })
     );
-  const runBulk = async (kind: "pause" | "resume" | "recheck", targets: TorrentInfo[]) => {
+  const runBulk = async (
+    kind: "pause" | "resume" | "recheck" | "remove",
+    targets: TorrentInfo[],
+    deleteFiles = false
+  ) => {
     if (targets.length === 0 || bulkBusy) return;
     setBulkBusy(true);
+    const notifications = useNotificationStore.getState();
+    const total = targets.length;
+    const noticeId = notifications.add(
+      t("torrent.bulk.title"),
+      "info",
+      t("torrent.bulk.progress", { count: total, done: 0 }),
+      `torrent-bulk:${kind}:${Date.now()}`,
+      { system: false }
+    );
+    if (noticeId > 0) notifications.update(noticeId, { progress: true });
+    let finished = 0;
+    const track = <T,>(work: Promise<T>): Promise<T> =>
+      work.finally(() => {
+        finished += 1;
+        if (noticeId > 0)
+          notifications.update(noticeId, {
+            message: t("torrent.bulk.progress", { count: total, done: finished }),
+          });
+      });
+    const finishBulk = (type: "success" | "error", message: string) => {
+      if (noticeId > 0)
+        notifications.update(noticeId, { message, progress: false, type }, { system: true });
+      else notifications.add(t("torrent.bulk.title"), type, message);
+    };
     await attempt(
       (async () => {
+        if (kind === "remove") {
+          const outcomes = await Promise.all(
+            targets.map((torrent) =>
+              track(
+                removeMutation
+                  .mutateAsync({
+                    id: torrent.id,
+                    deleteFiles,
+                    infoHash: torrent.info_hash,
+                    name: torrent.name,
+                    silent: true,
+                  })
+                  .catch(() => false)
+              )
+            )
+          );
+          const done = outcomes.filter(Boolean).length;
+          finishBulk(
+            done === total ? "success" : "error",
+            t("torrent.bulk.done", { done, failed: total - done })
+          );
+          return;
+        }
         if (kind === "recheck") {
           const results = await Promise.all(
             targets.map((torrent) =>
-              recheckMutation.mutateAsync({ id: torrent.id, infoHash: torrent.info_hash })
+              track(recheckMutation.mutateAsync({ id: torrent.id, infoHash: torrent.info_hash }))
             )
           );
           const { lost, failed } = splitRecheckOutcome(targets, results);
-          useNotificationStore.getState().add(
-            t("torrent.bulk.title"),
+          finishBulk(
             failed > 0 ? "error" : "success",
             t("torrent.bulk.recheck.done", {
               done: targets.length - failed,
@@ -184,17 +246,13 @@ function TorrentRoute() {
           return;
         }
         const { done, failed } = await applyBulkAction(targets, (torrent) =>
-          kind === "pause"
-            ? pauseMutation.mutateAsync({ id: torrent.id, infoHash: torrent.info_hash })
-            : resumeMutation.mutateAsync({ id: torrent.id, infoHash: torrent.info_hash })
+          track(
+            kind === "pause"
+              ? pauseMutation.mutateAsync({ id: torrent.id, infoHash: torrent.info_hash })
+              : resumeMutation.mutateAsync({ id: torrent.id, infoHash: torrent.info_hash })
+          )
         );
-        useNotificationStore
-          .getState()
-          .add(
-            t("torrent.bulk.title"),
-            failed > 0 ? "error" : "success",
-            t("torrent.bulk.done", { done, failed })
-          );
+        finishBulk(failed > 0 ? "error" : "success", t("torrent.bulk.done", { done, failed }));
       })()
     );
     setBulkBusy(false);
@@ -473,6 +531,7 @@ function TorrentRoute() {
           onPause={() => runBulk("pause", selectedTorrents)}
           onResume={() => runBulk("resume", selectedTorrents)}
           onRecheck={() => runBulk("recheck", selectedTorrents)}
+          onDelete={() => setBulkRemoveTargets(selectedTorrents)}
           onSelectAll={() => setSelected(new Set(filteredTorrents.map((torrent) => torrent.id)))}
           onClear={() => setSelected(new Set())}
         />
@@ -486,6 +545,23 @@ function TorrentRoute() {
           to={to}
           onPageChange={setPage}
           statusText={t("torrent.summary.total", { count: total })}
+        />
+      )}
+      {bulkRemoveTargets && bulkRemoveTargets.length > 0 && (
+        <DeleteTorrentDialog
+          open
+          message={t("torrent.delete.message.many")}
+          onWithFiles={() => {
+            const targets = bulkRemoveTargets;
+            setBulkRemoveTargets(null);
+            runBulk("remove", targets, true);
+          }}
+          onKeepFiles={() => {
+            const targets = bulkRemoveTargets;
+            setBulkRemoveTargets(null);
+            runBulk("remove", targets, false);
+          }}
+          onClose={() => setBulkRemoveTargets(null)}
         />
       )}
       {recreateTargets.length > 0 && (

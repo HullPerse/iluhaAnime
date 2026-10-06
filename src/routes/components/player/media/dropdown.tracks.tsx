@@ -2,7 +2,7 @@ import { cn } from "cn";
 import { Check, Plus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
-type TrackOption = { id: number; label: string };
+type TrackOption = { id: number; main: string; language: string };
 
 function TrackDropdown({
   label,
@@ -26,6 +26,11 @@ function TrackDropdown({
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const current = tracks.find((track) => track.id === selectedId);
+  const currentTitle = current
+    ? current.language
+      ? `${current.main} - ${current.language}`
+      : current.main
+    : "";
 
   useEffect(() => {
     if (!open) return;
@@ -51,17 +56,20 @@ function TrackDropdown({
     <div ref={ref} className={cn("relative flex items-center gap-0.5", className)}>
       <button
         type="button"
-        className="windows95-font windows95-border flex h-5 max-w-24 min-w-18 items-center gap-1 bg-white px-1 text-[10px] outline-none hover:cursor-pointer focus-visible:outline-1 focus-visible:outline-dotted focus-visible:outline-offset-[-3px]"
+        className="windows95-font windows95-border flex h-5 max-w-24 min-w-18 items-center gap-1 bg-white px-1 text-[10px] outline-none hover:cursor-pointer focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-dotted"
         aria-haspopup="listbox"
         aria-expanded={open}
+        title={currentTitle}
         onClick={() => setOpen((value) => !value)}
       >
-        <span className="truncate">{label}: {current?.label ?? ""}</span>
+        <span className="truncate">
+          {label}: {current?.main ?? ""}
+        </span>
       </button>
       {onAdd ? (
         <button
           type="button"
-          className="windows95-active-border flex size-4 shrink-0 cursor-pointer items-center justify-center bg-primary text-text hover:brightness-110 active:translate-x-px active:translate-y-px"
+          className="windows95-active-border bg-primary text-text flex size-4 shrink-0 cursor-pointer items-center justify-center hover:brightness-110 active:translate-x-px active:translate-y-px"
           title={addLabel}
           aria-label={addLabel}
           onClick={onAdd}
@@ -71,7 +79,7 @@ function TrackDropdown({
       ) : null}
       {open ? (
         <div
-          className="windows95-border absolute bottom-full left-0 z-50 mb-0.5 flex min-w-24 flex-col bg-primary"
+          className="windows95-border bg-primary absolute bottom-full left-0 z-50 mb-0.5 flex min-w-56 max-w-80 flex-col"
           role="listbox"
         >
           {noneLabel ? (
@@ -80,8 +88,8 @@ function TrackDropdown({
               role="option"
               aria-selected={selectedId === null}
               className={cn(
-                "text-text hover:text-primary flex w-full items-center gap-1 bg-white px-1 py-0.5 text-left text-[10px] hover:cursor-pointer hover:bg-secondary",
-                selectedId === null && "bg-secondary text-primary",
+                "text-text hover:text-primary hover:bg-secondary flex w-full items-center gap-1 bg-white px-1 py-0.5 text-left text-[10px] hover:cursor-pointer",
+                selectedId === null && "bg-secondary text-primary"
               )}
               onClick={() => {
                 onSelect("no");
@@ -101,8 +109,8 @@ function TrackDropdown({
                 role="option"
                 aria-selected={selected}
                 className={cn(
-                  "text-text hover:text-primary flex w-full items-center gap-1 bg-white px-1 py-0.5 text-left text-[10px] hover:cursor-pointer hover:bg-secondary",
-                  selected && "bg-secondary text-primary",
+                  "text-text hover:text-primary hover:bg-secondary flex w-full items-center gap-1 bg-white px-1 py-0.5 text-left text-[10px] hover:cursor-pointer",
+                  selected && "bg-secondary text-primary"
                 )}
                 onClick={() => {
                   onSelect(track.id);
@@ -114,7 +122,10 @@ function TrackDropdown({
                 ) : (
                   <span className="size-3 shrink-0" />
                 )}
-                <span className="max-w-48 truncate">{track.label}</span>
+                <span className="min-w-0 flex-1 truncate">{track.main}</span>
+                {track.language ? (
+                  <span className="shrink-0 opacity-70">{track.language}</span>
+                ) : null}
               </button>
             );
           })}

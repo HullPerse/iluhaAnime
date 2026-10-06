@@ -14,7 +14,7 @@ const App = lazy(() => import("@/App"));
 const PlayerWindow = lazy(() =>
   import("@/routes/components/player/player.component").then((module) => ({
     default: module.default,
-  })),
+  }))
 );
 
 const rootRoute = createRootRoute({

@@ -7,11 +7,10 @@ import { queryKeys } from "@/lib/query/keys.utils";
 import { useSettingsStore } from "@/store/settings.store";
 import type { AniMedia } from "@/types/anilist";
 
-export const INLINE_SEARCH_MIN_CHARS = 2;
-export const INLINE_SEARCH_DEBOUNCE_MS = 250;
+const INLINE_SEARCH_MIN_CHARS = 2;
+const INLINE_SEARCH_DEBOUNCE_MS = 250;
 const INLINE_SEARCH_PER_PAGE = 8;
 
-// Cache key includes adult flag so toggling drops stale results.
 export function useAnimeInlineSearch(query: string, enabled = true) {
   const debounced = useDebounce(query.trim(), INLINE_SEARCH_DEBOUNCE_MS);
   const adultContent = useSettingsStore((state) => state.anilistAdultContent);

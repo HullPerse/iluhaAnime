@@ -13,7 +13,6 @@ function asTitleLanguage(value: unknown): AniTitleLanguage | null {
     : null;
 }
 
-// Unknown account value resolves to null.
 export function useAnimeTitlePreference(): AniTitleLanguage | null {
   const override = useSettingsStore((state) => state.anilistTitleLanguage);
   const queryClient = useQueryClient();

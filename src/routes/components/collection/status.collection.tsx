@@ -3,9 +3,9 @@ import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
 import { PUBLIC_STATUS_MAX_ITEMS, STATUS_SHRINK_CLASS } from "@/config/collection/statuses.config";
+import { useI18n } from "@/hooks/i18n.hook";
 import { usePagedRow } from "@/hooks/pagedRow.hook";
 import { shrinkLevelFor, sortStatuses, statusLabel } from "@/lib/collection/status.utils";
-import { useI18n } from "@/hooks/i18n.hook";
 import { attempt } from "@/lib/utils/attempt.utils";
 import type { CollectionStatus, CollectionStatusDef } from "@/types/collection";
 

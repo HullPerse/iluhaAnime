@@ -1,4 +1,3 @@
-//! Local DB-IP Lite country table (scripts/build-geoip.ts); last-start-wins lookup, decoded once.
 use std::io::Read;
 use std::net::{IpAddr, SocketAddr};
 use std::sync::OnceLock;
@@ -6,7 +5,6 @@ use std::sync::OnceLock;
 const MAGIC: &[u8; 4] = b"ILG1";
 const VERSION: u8 = 1;
 const HEADER_LEN: usize = 15;
-/// Generator's out-of-range marker.
 const UNKNOWN: &str = "XX";
 
 const PACKED: &[u8] = include_bytes!("../../data/geoip-v1.bin.gz");
@@ -49,7 +47,6 @@ fn take<'a>(bytes: &'a [u8], cursor: &mut usize, count: usize) -> Result<&'a [u8
     Ok(slice)
 }
 
-/// Delta-encoded starts; zero delta past first means duplicate range.
 fn decode_starts(bytes: &[u8], cursor: &mut usize, count: usize) -> Result<Vec<u128>, String> {
     let mut starts = Vec::with_capacity(count);
     let mut previous: u128 = 0;
@@ -80,7 +77,6 @@ impl Table {
         let country_count = usize::from(u16::from_le_bytes([bytes[5], bytes[6]]));
         let v4_count = u32::from_le_bytes([bytes[7], bytes[8], bytes[9], bytes[10]]) as usize;
         let v6_count = u32::from_le_bytes([bytes[11], bytes[12], bytes[13], bytes[14]]) as usize;
-        // Counts exceeding payload are corrupt; never allocate.
         if v4_count.saturating_mul(2) > bytes.len() || v6_count.saturating_mul(2) > bytes.len() {
             return Err("country table counts exceed the payload".to_string());
         }
@@ -120,7 +116,6 @@ impl Table {
 
     fn name(&self, index: u8) -> Option<&str> {
         let code = self.countries.get(usize::from(index))?;
-        // The unknown bucket is not a country and must not be rendered as one.
         if code == UNKNOWN || code.is_empty() {
             return None;
         }
@@ -165,9 +160,7 @@ fn table() -> Option<&'static Table> {
         .as_ref()
 }
 
-/// ISO 3166-1 alpha-2, or None (private/reserved/absent).
 pub fn country_code(ip: IpAddr) -> Option<&'static str> {
-    // The table outlives the process, so the reborrow below is already `'static`.
     let table = table()?;
     match ip {
         IpAddr::V4(v4) => table.lookup4(u32::from(v4)),
@@ -175,7 +168,6 @@ pub fn country_code(ip: IpAddr) -> Option<&'static str> {
     }
 }
 
-/// Country for session socket-address strings.
 pub fn country_code_for_addr(addr: &str) -> Option<&'static str> {
     let ip = addr.parse::<SocketAddr>().ok()?.ip();
     country_code(ip)
@@ -193,7 +185,6 @@ mod tests {
         out.push(value as u8);
     }
 
-    /// Mirrors the generator so the reader is checked against the documented layout.
     fn build(countries: &[&str], v4: &[(u128, u8)], v6: &[(u128, u8)]) -> Vec<u8> {
         let mut out = Vec::new();
         out.extend_from_slice(MAGIC);
@@ -257,7 +248,6 @@ mod tests {
 
     #[test]
     fn resolves_the_embedded_database() {
-        // IPv6 is coarse here; only checked for resolution.
         assert_eq!(country_code("8.8.8.8".parse().unwrap()), Some("US"));
         assert_eq!(country_code("77.88.55.88".parse().unwrap()), Some("RU"));
         assert_eq!(

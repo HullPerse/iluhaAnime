@@ -3,8 +3,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
 import { NO_TORRENTS } from "@/config/torrent/common.config";
-import { useTorrents } from "@/hooks/torrent/queries.hook";
 import { useI18n } from "@/hooks/i18n.hook";
+import { useTorrents } from "@/hooks/torrent/queries.hook";
 import { isCurrentDownload } from "@/lib/torrent/common.utils";
 import { openNotificationTarget, showError } from "@/lib/utils/notification.utils";
 import { useNotificationStore } from "@/store/notification.store";

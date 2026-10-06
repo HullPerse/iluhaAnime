@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 
 import ImageComponent from "@/components/ui/image.component";
 import { formatLabels, seasonLabels, statusLabels } from "@/config/anilist/labels.config";
+import { useI18n } from "@/hooks/i18n.hook";
 import { useRemoteImage } from "@/hooks/remoteImage.hook";
 import {
   AIRING_TICK_MS,
@@ -10,7 +11,6 @@ import {
   formatAiringCountdown,
   formatAiringLocal,
 } from "@/lib/anilist/airing.utils";
-import { useI18n } from "@/hooks/i18n.hook";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import type { AniMedia } from "@/types/anilist";
 

@@ -37,13 +37,6 @@ function recordInvoke(command: string, args?: Record<string, unknown>): void {
   stats.set(command, entry);
 }
 
-export function logTransportStats(): void {
-  if (!import.meta.env.DEV) return;
-  const rows = getTransportStats();
-  const total = rows.reduce((sum, row) => sum + row.invokes, 0);
-  console.warn(`[transport] ${total} invokes`, rows);
-}
-
 if (import.meta.env.DEV && typeof window !== "undefined") {
   (window as unknown as Record<string, unknown>).__iluhaTransportStats = getTransportStats;
 }

@@ -202,7 +202,6 @@ fn allowed_sqlite_table(database: &str, table: &str) -> bool {
     )
 }
 
-/// Asset-id columns; images are files in images/<table>/.
 fn sqlite_asset_table(table: &str) -> Option<&'static str> {
     match table {
         "user_images" => Some("user_images"),

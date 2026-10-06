@@ -1,8 +1,8 @@
 import { formatDistanceToNow } from "date-fns";
 import { memo } from "react";
 
-import { entryListTime, fuzzyDateToTime, type EntryListInfo } from "@/lib/anilist/entries.utils";
 import { useI18n } from "@/hooks/i18n.hook";
+import { entryListTime, fuzzyDateToTime, type EntryListInfo } from "@/lib/anilist/entries.utils";
 import { dateFnsLocale } from "@/lib/utils/date.utils";
 
 function CardListDate({

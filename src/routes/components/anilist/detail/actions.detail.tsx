@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button.component";
-import type { AnilistScoreFormat } from "@/lib/anilist/score.utils";
 import { useI18n } from "@/hooks/i18n.hook";
+import type { AnilistScoreFormat } from "@/lib/anilist/score.utils";
 import type { QuickAddListEntry, QuickAddMedia } from "@/types/collection";
 
 import QuickAddButton from "./quickadd.detail";

@@ -116,6 +116,13 @@ const SETTINGS_TRANSFORMS: MigrationTransform[] = [
       delete state.wallpaperParallax;
     },
   },
+  {
+    from: 36,
+    migrate: (state) => {
+      delete state.lobbyTabEnabled;
+      delete state.chatImagePreviews;
+    },
+  },
 ];
 
 const SETTINGS_VALIDATORS: Record<string, (value: unknown) => boolean> = {
@@ -278,6 +285,12 @@ export const useSettingsStore = create<SettingsStore>()(
       },
       onRehydrateStorage: () => (state) => {
         if (state) {
+          const [, cleanupError] = attemptSync(() => {
+            localStorage.removeItem("lobbyConnections");
+            localStorage.removeItem("sessionIdentity");
+          });
+          if (cleanupError !== null)
+            reportBackgroundError("settings.migrate.cleanup-lobby", cleanupError);
           applyUiPreferences(state.retroStyle, state.uiDensity);
           applyWindowEffect(state.windowEffect);
           applyWindowChrome({
@@ -291,7 +304,7 @@ export const useSettingsStore = create<SettingsStore>()(
           drainTmdbPendingKey(state);
         }
       },
-      version: 36,
+      version: 37,
     }
   )
 );

@@ -1,7 +1,6 @@
 import { cn } from "cn";
 
-// Above cap, filled scales to ratio.
-export const PROGRESS_SLOTS_CAP = 24;
+const PROGRESS_SLOTS_CAP = 24;
 
 function ProgressBar({
   value,
@@ -19,7 +18,6 @@ function ProgressBar({
   barClassName?: string;
   ariaLabel?: string;
   indeterminate?: boolean;
-  // max<=0 falls back to percentage bar.
   slots?: boolean;
   slotsCap?: number;
 }) {
@@ -49,7 +47,10 @@ function ProgressBar({
     const filled = Math.round((safeValue / safeMax) * count);
     return (
       <div
-        className={cn("windows95-active-border bg-field flex h-6 gap-px overflow-hidden p-px", className)}
+        className={cn(
+          "windows95-active-border bg-field flex h-6 gap-px overflow-hidden p-px",
+          className
+        )}
         role="progressbar"
         aria-label={ariaLabel}
         aria-valuemin={0}

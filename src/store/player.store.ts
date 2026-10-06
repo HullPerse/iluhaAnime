@@ -60,12 +60,11 @@ const SEEK_TARGET_TOLERANCE = 0.4;
 
 function nextSeekTarget(
   state: Pick<PlaybackStore, "seekTarget" | "seekSettle" | "path">,
-  snapshot: PlaybackSnapshot,
+  snapshot: PlaybackSnapshot
 ): number | null {
   if (state.seekTarget === null) return null;
   const fileChanged = snapshot.path !== state.path;
-  const reached =
-    Math.abs(snapshot.timePos - state.seekTarget) <= SEEK_TARGET_TOLERANCE;
+  const reached = Math.abs(snapshot.timePos - state.seekTarget) <= SEEK_TARGET_TOLERANCE;
   return state.seekSettle || fileChanged || reached ? null : state.seekTarget;
 }
 
@@ -88,8 +87,7 @@ export const usePlayerStore = create<PlayerStore>()(
       setSeekMode: (mode) => set({ seekMode: mode }),
       setAutoHide: (autoHide) => set({ autoHide }),
       setProfile: (profile) => set({ profile }),
-      patchSettings: (patch) =>
-        set((state) => ({ settings: { ...state.settings, ...patch } })),
+      patchSettings: (patch) => set((state) => ({ settings: { ...state.settings, ...patch } })),
     }),
     {
       name: "playerState",
@@ -101,8 +99,8 @@ export const usePlayerStore = create<PlayerStore>()(
           settings: { ...current.settings, ...stored.settings },
         };
       },
-    },
-  ),
+    }
+  )
 );
 
 export const usePlaybackStore = create<PlaybackStore>()((set) => ({
@@ -136,8 +134,7 @@ export const usePlaybackStore = create<PlaybackStore>()((set) => ({
     }),
 
   setSeekTarget: (time: number) => set({ seekTarget: time, seekSettle: false }),
-  settleSeek: () =>
-    set((state) => (state.seekTarget === null ? {} : { seekSettle: true })),
+  settleSeek: () => set((state) => (state.seekTarget === null ? {} : { seekSettle: true })),
   setTracks: (tracks: MpvTrack[]) => set({ tracks }),
   setChapters: (chapters: MpvChapter[]) => set({ chapters }),
   reset: () => set({ ...INITIAL_PLAYBACK }),

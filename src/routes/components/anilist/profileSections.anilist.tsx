@@ -1,9 +1,9 @@
 import { useMemo } from "react";
 
 import { listStatusLabels } from "@/config/anilist/labels.config";
+import { useI18n } from "@/hooks/i18n.hook";
 import { getStatusColor } from "@/lib/anilist/entries.utils";
 import { ALL_LISTS_ID, collectAllEntries } from "@/lib/anilist/group.utils";
-import { useI18n } from "@/hooks/i18n.hook";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import AniListFriendHeader from "@/routes/components/anilist/friend/header.friend";
 import AniListListsRow from "@/routes/components/anilist/lists.anilist";

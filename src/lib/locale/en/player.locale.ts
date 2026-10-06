@@ -36,7 +36,6 @@ const player = {
   "player.folder.open.failed.player": "Failed to open in iluhaAnime player",
   "player.folder.open.media.player": "Open in media player",
   "player.folder.open.iluha.player": "Open in iluhaAnime player",
-  "player.room.manualBlocked": "Leave the room to open a different file",
   "player.folder.search.anilist": "Search in AniList",
   "player.folder.resize": "Resize folder panel",
   "player.folder.track.disabled": "Audio/subtitle tracks cannot be opened",
@@ -286,6 +285,7 @@ const player = {
   "player.media.key.audio.offset.down": "Advance audio",
   "player.media.key.audio.offset.up.fine": "Delay audio (fine)",
   "player.media.key.audio.offset.down.fine": "Advance audio (fine)",
+  "player.media.key.delays.reset": "Reset audio and subtitle delays",
   "player.media.key.autohide.toggle": "Toggle auto-hide bars",
   "player.media.key.diagnostics.toggle": "Toggle diagnostics overlay",
   "player.media.key.file.next": "Next file",
@@ -317,11 +317,17 @@ const player = {
   "player.media.watchdog.dropped": "Dropped frames: {{drops}} ({{percent}}%)",
   "player.media.playlist.toggle": "Playlist",
   "player.media.playlist.title": "Playlist",
+  "player.media.playlist.add": "Add files",
+  "player.media.playlist.filter": "Video files",
   "player.media.playlist.empty": "Queue is empty",
   "player.media.playlist.play": "Play",
   "player.media.playlist.remove": "Remove from queue",
   "player.media.playlist.move.up": "Move up",
   "player.media.playlist.move.down": "Move down",
+  "player.media.playlist.drag": "Drag to reorder",
+  "player.media.playlist.hint": "Drag the grip to reorder",
+  "player.media.playlist.count": "{{count}} files",
+  "player.media.playlist.count.one": "{{count}} file",
 } as const;
 
 export default player;

@@ -1,4 +1,3 @@
-import { clamp } from "@/lib/utils/math.utils";
 import {
   CROP_MIN_SIZE,
   CROP_SNAP_DISPLAY_PX,
@@ -7,6 +6,7 @@ import {
   CROP_ZOOM_MIN,
   CROP_ZOOM_PRECISION,
 } from "@/config/settings/screenshot.config";
+import { clamp } from "@/lib/utils/math.utils";
 import type {
   CropBounds,
   CropFrame,

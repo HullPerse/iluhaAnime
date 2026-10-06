@@ -4,9 +4,9 @@ import { flushSync } from "react-dom";
 
 import { sqliteApi } from "@/api/sqlite.api";
 import { PAGE_SIZE } from "@/config/settings/sqlite.config";
+import { useI18n } from "@/hooks/i18n.hook";
 import { usePagination } from "@/hooks/pagination.hook";
 import { useSqliteCell } from "@/hooks/sqlite/cell.hook";
-import { useI18n } from "@/hooks/i18n.hook";
 import { displayCell } from "@/lib/sqlite/row.utils";
 import { attempt, attemptSync } from "@/lib/utils/attempt.utils";
 import { useSettingsStore } from "@/store/settings.store";

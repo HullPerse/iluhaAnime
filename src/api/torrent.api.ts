@@ -54,10 +54,7 @@ export interface ScannedExtraFile {
 
 export class TorrentApi {
   private readonly transport: ApiTransport;
-  private readonly proxies:
-    | Record<string, string>
-    | null
-    | (() => Record<string, string> | null);
+  private readonly proxies: Record<string, string> | null | (() => Record<string, string> | null);
 
   constructor(config: TorrentApiConfig = {}) {
     this.transport = config.transport ?? tauriTransport;
@@ -66,7 +63,7 @@ export class TorrentApi {
 
   proxyFor(source: string): string | undefined {
     const proxies =
-      typeof this.proxies === "function" ? this.proxies() ?? {} : this.proxies ?? {};
+      typeof this.proxies === "function" ? (this.proxies() ?? {}) : (this.proxies ?? {});
     return proxies[source] || undefined;
   }
 

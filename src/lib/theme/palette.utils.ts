@@ -114,10 +114,7 @@ export function colorDistance(a: string, b: string): number {
   return distance(first, second);
 }
 
-function quantizePalette(
-  pixels: Uint8ClampedArray | Uint8Array,
-  limit = PALETTE_LIMIT
-): string[] {
+function quantizePalette(pixels: Uint8ClampedArray | Uint8Array, limit = PALETTE_LIMIT): string[] {
   const buckets = new Map<number, { count: number; r: number; g: number; b: number }>();
   for (let index = 0; index + 3 < pixels.length; index += 4) {
     if (pixels[index + 3] < MIN_ALPHA) continue;

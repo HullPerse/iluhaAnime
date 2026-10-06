@@ -1,7 +1,8 @@
+import type { QueryClient } from "@tanstack/react-query";
+
 import { anilistApi } from "@/api/anilist.api";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { queryKeys } from "@/lib/query/keys.utils";
-import type { QueryClient } from "@tanstack/react-query";
 import type { AniMedia } from "@/types/anilist";
 
 export function useAnimeBrief(id: number, initialBrief?: AniMedia | null) {

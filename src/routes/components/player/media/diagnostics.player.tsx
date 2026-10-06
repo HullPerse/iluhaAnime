@@ -49,7 +49,7 @@ function DiagnosticsOverlay() {
     videoWidth === undefined;
 
   return (
-    <div className="windows95-border windows95-font absolute bottom-4 left-4 z-20 min-w-52 bg-primary/95 p-2 text-left text-sm">
+    <div className="windows95-border windows95-font bg-primary/95 absolute bottom-4 left-4 z-20 min-w-52 p-2 text-left text-sm">
       <div className="windows95-text mb-1 text-xs font-bold">
         {t("player.media.diagnostics.title")}
       </div>

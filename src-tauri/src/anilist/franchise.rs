@@ -123,7 +123,6 @@ fn load_franchise_cache(app_handle: &AppHandle) {
         eprintln!("unable to iterate AniList franchise cache");
         return;
     };
-    // Parse off-lock; holding cache lock serializes readers.
     let mut nodes = std::collections::HashMap::new();
     for row in rows.flatten() {
         let (

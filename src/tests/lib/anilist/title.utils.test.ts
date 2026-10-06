@@ -16,12 +16,8 @@ describe("resolveAnimeTitle", () => {
   });
 
   it("falls back through english, romaji, native", () => {
-    expect(
-      resolveAnimeTitle({ romaji: "R", english: null, native: "N" }, "english")
-    ).toBe("R");
-    expect(
-      resolveAnimeTitle({ romaji: "", english: null, native: "N" }, "romaji")
-    ).toBe("N");
+    expect(resolveAnimeTitle({ romaji: "R", english: null, native: "N" }, "english")).toBe("R");
+    expect(resolveAnimeTitle({ romaji: "", english: null, native: "N" }, "romaji")).toBe("N");
   });
 
   it("starts at english without a preference", () => {
@@ -30,17 +26,13 @@ describe("resolveAnimeTitle", () => {
   });
 
   it("skips blank values", () => {
-    expect(
-      resolveAnimeTitle({ romaji: "R", english: "  ", native: "N" }, "english")
-    ).toBe("R");
+    expect(resolveAnimeTitle({ romaji: "R", english: "  ", native: "N" }, "english")).toBe("R");
   });
 
   it("returns empty without usable titles", () => {
     expect(resolveAnimeTitle(null, "romaji")).toBe("");
     expect(resolveAnimeTitle(undefined, "english")).toBe("");
-    expect(
-      resolveAnimeTitle({ romaji: "", english: " ", native: null }, "native")
-    ).toBe("");
+    expect(resolveAnimeTitle({ romaji: "", english: " ", native: null }, "native")).toBe("");
   });
 });
 

@@ -131,13 +131,7 @@ export interface PlayerSettings {
   loudnorm: boolean;
 }
 
-export type PlayerPanel =
-  | "none"
-  | "settings"
-  | "tracks"
-  | "subtitles"
-  | "cheatsheet"
-  | "jump";
+export type PlayerPanel = "none" | "settings" | "tracks" | "subtitles" | "cheatsheet" | "jump";
 
 export interface PlayerOsd {
   id: number;

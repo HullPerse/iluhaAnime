@@ -881,7 +881,6 @@ fn estimate_seconds(
     if temporal_denoise {
         penalty *= 0.97;
     }
-    // The automatic cascade repeats the upscale shader, so its pass is paid twice.
     if let Some(extra) = selected
         .iter()
         .find_map(|id| crate::shaders::cascade_penalty(id, ratio))
@@ -2044,7 +2043,6 @@ mod tests {
         assert_eq!(cascaded.matches("Anime4K_Upscale_GAN_x3_L.glsl").count(), 2);
         assert!(cascaded.contains("w=7680:h=4320"));
 
-        // A 2x shader keeps its old threshold: it only doubles above ratio 2.05.
         let x2 = vec!["Anime4K_Upscale_CNN_x2_S.glsl".to_string()];
         let exact = build_anime4k_filter(&x2, 3840, 2160, 1920, 1080, false);
         assert_eq!(exact.matches("Anime4K_Upscale_CNN_x2_S.glsl").count(), 1);
@@ -2152,14 +2150,12 @@ mod tests {
 
     #[test]
     fn estimate_charges_cascaded_x3_extra_pass() {
-        // 1080p -> 4K still fits into a single 3x pass.
         let single = est_for(&["upscale_gan_x3_l"], 3840, 2160, 1920, 1080);
         assert!(
             (40.0..100.0).contains(&single.seconds),
             "got {}",
             single.seconds
         );
-        // 1080p -> 8K exceeds it: the repeated pass must cost extra, not only the extra pixels.
         let cascaded = est_for(&["upscale_gan_x3_l"], 7680, 4320, 1920, 1080);
         assert!(
             (600.0..1100.0).contains(&cascaded.seconds),

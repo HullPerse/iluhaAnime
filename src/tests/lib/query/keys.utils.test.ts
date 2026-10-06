@@ -19,16 +19,8 @@ describe("queryKeys", () => {
   });
 
   it("keys inline anime search by the debounced query and adult flag", () => {
-    expect(queryKeys.animeInlineSearch("frie", false)).toEqual([
-      "anime_inline_search",
-      "frie",
-      0,
-    ]);
-    expect(queryKeys.animeInlineSearch("frie", true)).toEqual([
-      "anime_inline_search",
-      "frie",
-      1,
-    ]);
+    expect(queryKeys.animeInlineSearch("frie", false)).toEqual(["anime_inline_search", "frie", 0]);
+    expect(queryKeys.animeInlineSearch("frie", true)).toEqual(["anime_inline_search", "frie", 1]);
     expect(queryKeys.animeInlineSearch("frie", false)).not.toEqual(
       queryKeys.animeInlineSearch("frier", false)
     );

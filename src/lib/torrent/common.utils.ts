@@ -149,6 +149,14 @@ export interface TorrentListState {
   lastActiveAt: Record<number, number>;
 }
 
+export function withoutPendingRemoved(
+  torrents: TorrentInfo[],
+  pendingIds: ReadonlySet<number>
+): TorrentInfo[] {
+  if (pendingIds.size === 0) return torrents;
+  return torrents.filter((t) => !pendingIds.has(t.id));
+}
+
 export function TorrentListen(
   state: TorrentListState,
   event: Event<TorrentInfo[]>,

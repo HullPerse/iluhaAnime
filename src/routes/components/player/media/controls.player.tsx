@@ -2,11 +2,9 @@ import { cn } from "cn";
 import {
   ChevronsLeft,
   ChevronsRight,
-  CircleSlash,
   ListVideo,
   Pause,
   Play,
-  Repeat,
   SkipBack,
   SkipForward,
   Square,
@@ -15,7 +13,6 @@ import {
   Volume1,
   Volume2,
   VolumeX,
-  type LucideIcon,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -23,27 +20,12 @@ import { Button } from "@/components/ui/button.component";
 import { SEEK_STEP } from "@/config/player/keybinds.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { usePlaybackStore } from "@/store/player.store";
-import type { TranslationKey } from "@/types/i18n";
-import type { EndOfFileMode, MpvChapter, MpvTrack } from "@/types/videoPlayer";
+import type { MpvChapter, MpvTrack } from "@/types/videoPlayer";
 
 import Tracks from "./tracks.player";
 
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
 const BOUNDARY_TIMEOUT = 2000;
-
-const EOF_ORDER: EndOfFileMode[] = ["none", "pause", "next", "repeat"];
-const EOF_LABELS: Record<EndOfFileMode, TranslationKey> = {
-  none: "player.media.eof.none",
-  pause: "player.media.eof.pause",
-  next: "player.media.eof.next",
-  repeat: "player.media.eof.repeat",
-};
-const EOF_ICONS: Record<EndOfFileMode, LucideIcon> = {
-  none: CircleSlash,
-  pause: Pause,
-  next: SkipForward,
-  repeat: Repeat,
-};
 
 function clamp01(value: number): number {
   return Math.max(0, Math.min(1, value));
@@ -56,13 +38,11 @@ function Controls({
   tracks,
   hasPrev,
   hasNext,
-  navLocked,
   immersive,
   autoHide,
   speed,
   volume,
   muted,
-  eofMode,
   playlistOpen,
   onPlay,
   onPause,
@@ -74,7 +54,6 @@ function Controls({
   onMute,
   onToggleAutoHide,
   onTogglePlaylist,
-  onEofMode,
   onSelectAudio,
   onSelectSub,
   onAddAudio,
@@ -86,14 +65,11 @@ function Controls({
   tracks: MpvTrack[];
   hasPrev: boolean;
   hasNext: boolean;
-  /** In a room the file queue is room-owned: prev/next switch to disabled. */
-  navLocked: boolean;
   immersive: boolean;
   autoHide: boolean;
   speed: number;
   volume: number;
   muted: boolean;
-  eofMode: EndOfFileMode;
   playlistOpen: boolean;
   onPlay: () => void;
   onPause: () => void;
@@ -105,7 +81,6 @@ function Controls({
   onMute: () => void;
   onToggleAutoHide: () => void;
   onTogglePlaylist: () => void;
-  onEofMode: (mode: EndOfFileMode) => void;
   onSelectAudio: (id: number | "no") => void;
   onSelectSub: (id: number | "no") => void;
   onAddAudio: () => void;
@@ -144,7 +119,7 @@ function Controls({
       if (rect.width <= 0) return;
       onVolume(clamp01((clientX - rect.left) / rect.width));
     },
-    [onVolume],
+    [onVolume]
   );
 
   useEffect(() => {
@@ -209,21 +184,14 @@ function Controls({
 
   const displayVolume = Number(muted ? 0 : volume);
 
-  const handleEofCycle = () => {
-    const index = EOF_ORDER.indexOf(eofMode);
-    onEofMode(EOF_ORDER[(index + 1) % EOF_ORDER.length]);
-  };
-
-  const EofIcon = EOF_ICONS[eofMode];
-
   return (
     <main className="relative flex flex-row items-center gap-1 p-1">
       {boundary ? (
-        <div className="windows95-border bg-primary windows95-text absolute bottom-full right-0 z-50 mb-1 whitespace-nowrap px-1 py-0.5">
+        <div className="windows95-border bg-primary windows95-text absolute right-0 bottom-full z-50 mb-1 px-1 py-0.5 whitespace-nowrap">
           {boundary}
         </div>
       ) : null}
-      <section className="flex h-6 w-15 gap-1 border-r-2 border-muted">
+      <section className="border-muted flex h-6 w-15 gap-1 border-r-2">
         <Button
           size="icon"
           className="size-6"
@@ -246,7 +214,7 @@ function Controls({
         </Button>
       </section>
 
-      <section className="flex h-6 w-15 gap-1 border-r-2 border-muted">
+      <section className="border-muted flex h-6 w-15 gap-1 border-r-2">
         <Button
           size="icon"
           className="size-6"
@@ -269,15 +237,12 @@ function Controls({
         </Button>
       </section>
 
-      <section className="flex h-6 gap-1 border-r-2 border-muted px-1">
+      <section className="border-muted flex h-6 gap-1 border-r-2 px-1">
         <Button
           size="icon"
           className="size-6"
-          title={
-            navLocked ? t("player.room.manualBlocked") : t("player.media.controls.previous.file")
-          }
+          title={t("player.media.controls.previous.file")}
           aria-label={t("player.media.controls.previous.file")}
-          disabled={navLocked}
           onClick={() => {
             if (!hasPrev) showBoundaryMsg(t("player.media.boundary.first"));
             else onFilePrev();
@@ -288,9 +253,8 @@ function Controls({
         <Button
           size="icon"
           className="size-6"
-          title={navLocked ? t("player.room.manualBlocked") : t("player.media.controls.next.file")}
+          title={t("player.media.controls.next.file")}
           aria-label={t("player.media.controls.next.file")}
-          disabled={navLocked}
           onClick={() => {
             if (!hasNext) showBoundaryMsg(t("player.media.boundary.last"));
             else onFileNext();
@@ -300,7 +264,7 @@ function Controls({
         </Button>
       </section>
 
-      <section className="flex h-6 items-center gap-0.5 border-r-2 border-muted px-1">
+      <section className="border-muted flex h-6 items-center gap-0.5 border-r-2 px-1">
         <div ref={speedRef} className="relative flex w-full items-center">
           <Button
             className="h-5 w-10 px-1"
@@ -318,7 +282,7 @@ function Controls({
                   key={rate}
                   className={cn(
                     "flex w-full p-1 whitespace-nowrap",
-                    speed === rate && "bg-secondary text-white",
+                    speed === rate && "bg-secondary text-white"
                   )}
                   onClick={() => {
                     onSpeed(rate);
@@ -333,16 +297,7 @@ function Controls({
         </div>
       </section>
 
-      <section className="flex h-6 items-center gap-0.5 border-r-2 border-muted px-1">
-        <Button
-          size="icon"
-          className={cn("size-6", eofMode !== "none" && "bg-secondary text-white")}
-          title={`${t("player.media.controls.end.of.file")}: ${t(EOF_LABELS[eofMode])}`}
-          aria-label={`${t("player.media.controls.end.of.file")}: ${t(EOF_LABELS[eofMode])}`}
-          onClick={handleEofCycle}
-        >
-          <EofIcon className="size-4" />
-        </Button>
+      <section className="border-muted flex h-6 items-center gap-0.5 border-r-2 px-1">
         <Button
           size="icon"
           className={cn("size-6", playlistOpen && "bg-secondary text-white")}
@@ -365,7 +320,7 @@ function Controls({
       ) : null}
 
       {immersive ? (
-        <section className="flex h-6 gap-1 border-l-2 border-muted px-1">
+        <section className="border-muted flex h-6 gap-1 border-l-2 px-1">
           <Button
             size="icon"
             className="size-6"
@@ -373,14 +328,12 @@ function Controls({
             aria-label={t("player.media.key.autohide.toggle")}
             onClick={onToggleAutoHide}
           >
-            <span className="text-xs font-bold">
-              {autoHide ? <SquareX /> : <Square />}
-            </span>
+            <span className="text-xs font-bold">{autoHide ? <SquareX /> : <Square />}</span>
           </Button>
         </section>
       ) : null}
 
-      <section className="ml-auto flex h-6 w-fit flex-row gap-1 border-l-2 border-muted px-1">
+      <section className="border-muted ml-auto flex h-6 w-fit flex-row gap-1 border-l-2 px-1">
         <span className="windows95-text flex w-6 max-w-6 min-w-6 items-center text-right">
           {Math.round(displayVolume * 100)}
         </span>

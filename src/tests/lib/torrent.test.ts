@@ -21,6 +21,7 @@ import {
   TorrentListen,
   torrentErrorText,
   type TorrentListState,
+  withoutPendingRemoved,
 } from "@/lib/torrent/common.utils";
 import { copyMagnet, downloadMagnet, openMagnet } from "@/lib/torrent/magnet.utils";
 import { describeRecheckOutcome } from "@/lib/torrent/recheck.utils";
@@ -422,7 +423,16 @@ describe("torrent/common", () => {
         "Файлов нет",
       ]);
       expect(Object.keys(DISPLAY_BAR_CLASS).sort()).toEqual(
-        ["done", "downloading", "error", "initializing", "missing", "paused", "seeding", "stalled"].sort()
+        [
+          "done",
+          "downloading",
+          "error",
+          "initializing",
+          "missing",
+          "paused",
+          "seeding",
+          "stalled",
+        ].sort()
       );
       expect(DISPLAY_BAR_CLASS).toEqual({
         downloading: "bg-torrent-downloading",
@@ -939,5 +949,44 @@ describe("torrent/tree", () => {
     it("returns no groups for an empty torrent in torrent order", () => {
       expect(groupFilesByDirectory([], "torrent")).toEqual([]);
     });
+  });
+});
+
+describe("withoutPendingRemoved", () => {
+  function row(id: number): TorrentInfo {
+    return {
+      download_order: [],
+      download_speed: 0,
+      error: null,
+      eta_secs: null,
+      finished: false,
+      id,
+      info_hash: `hash-${id}`,
+      missing_files: false,
+      paused_external_changes: false,
+      paused_changed_files: [],
+      name: `Torrent ${id}`,
+      peers_connected: 0,
+      progress: 0,
+      progress_bytes: 0,
+      save_dir: "/dl",
+      sequential_download: false,
+      sequential_file: null,
+      share_ratio: 0,
+      state: "live",
+      total_bytes: 1000,
+      upload_speed: 0,
+      uploaded_bytes: 0,
+    };
+  }
+
+  it("returns the same array when nothing is pending", () => {
+    const list = [row(1), row(2)];
+    expect(withoutPendingRemoved(list, new Set())).toBe(list);
+  });
+
+  it("drops pending ids so a stale event cannot resurrect a removed row", () => {
+    const list = [row(1), row(2), row(3)];
+    expect(withoutPendingRemoved(list, new Set([2])).map((t) => t.id)).toEqual([1, 3]);
   });
 });

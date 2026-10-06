@@ -5,7 +5,6 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use base64::{engine::general_purpose::STANDARD, Engine as _};
 use tauri::Manager;
 
-/// Pending captures in temp dir; lib.rs startup sweep clears crash leftovers.
 const TEMP_PREFIX: &str = "iluha_screenshot_";
 const MAX_CAPTURE_BYTES: u64 = 96 * 1024 * 1024;
 const READ_CHUNK: usize = 1024 * 1024;
@@ -16,7 +15,6 @@ const MIN_BLUR_SIGMA: f32 = 0.5;
 const MAX_BLUR_SIGMA: f32 = 64.0;
 const DEFAULT_BLUR_SIGMA: f32 = 8.0;
 
-/// Millisecond collisions share temp files; sequence separates copies.
 static COPY_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
 #[derive(serde::Serialize)]
@@ -44,7 +42,6 @@ pub struct CropRegion {
     pub height: u32,
 }
 
-/// Blur region: mask alpha marks hidden pixels; sigma in source pixels.
 #[derive(Clone, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BlurPatch {
@@ -53,7 +50,6 @@ pub struct BlurPatch {
     pub sigma: f32,
 }
 
-/// Frontend overlays as capture-sized base64 PNGs.
 #[derive(Clone, Default, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ScreenshotLayers {
@@ -114,7 +110,6 @@ fn image_size(bytes: &[u8]) -> Result<(u32, u32), String> {
         .map_err(|error| format!("read the capture size: {error}"))
 }
 
-/// Keeps last path component; strips illegal/control/trailing-dot chars.
 fn sanitize_name(raw: &str) -> Result<String, String> {
     let trimmed = raw.trim();
     if trimmed.is_empty() {
@@ -169,7 +164,6 @@ fn same_directory(left: &Path, right: &Path) -> bool {
     }
 }
 
-/// Only temp-dir captures; else generic read/delete primitive for webview.
 fn guard_source(source_path: &str) -> Result<PathBuf, String> {
     let path = Path::new(source_path);
     let name = path
@@ -191,7 +185,6 @@ fn guard_source(source_path: &str) -> Result<PathBuf, String> {
     Ok(path.to_path_buf())
 }
 
-/// Clamps stale UI rects to image bounds.
 fn crop_image(
     image: &image::DynamicImage,
     region: &CropRegion,
@@ -206,7 +199,6 @@ fn crop_image(
     Ok(image.crop_imm(x, y, width, height))
 }
 
-/// Base64 PNG layer, bare or data: URL.
 fn decode_layer(data: &str, label: &str) -> Result<Vec<u8>, String> {
     let payload = data.rsplit_once(',').map_or(data, |(_, payload)| payload);
     let bytes = STANDARD
@@ -221,7 +213,6 @@ fn decode_layer(data: &str, label: &str) -> Result<Vec<u8>, String> {
     Ok(bytes)
 }
 
-/// Layer must match capture size; mismatch errors instead of rescaling.
 fn decode_layer_image(
     data: &str,
     bounds: (u32, u32),
@@ -270,7 +261,6 @@ fn paint_layer(
     Ok(())
 }
 
-/// Blur first, then drawing; both before crop.
 fn bake_layers(
     image: &mut image::DynamicImage,
     layers: Option<&ScreenshotLayers>,
@@ -342,7 +332,6 @@ fn save_capture(
     })
 }
 
-/// Copies region as PNG; whole-shot copy reuses capture without re-encode.
 fn prepare_copy(
     source_path: &str,
     crop: Option<&CropRegion>,
@@ -400,7 +389,6 @@ fn read_stream(stream: &windows::Win32::System::Com::IStream) -> Result<Vec<u8>,
     Ok(bytes)
 }
 
-/// `WebView2` capture; must run on UI thread (message-queue callback).
 #[cfg(windows)]
 fn capture_webview_png(webview: &tauri::webview::PlatformWebview) -> Result<Vec<u8>, String> {
     use webview2_com::Microsoft::Web::WebView2::Win32::{

@@ -104,7 +104,7 @@ export default function QueuePanel({ scan }: { scan: ScanType }) {
               <FolderScanProgress scanProgress={scan} />
             </div>
           ) : null}
-          <div className="flex max-h-40 flex-col gap-0.5 overflow-y-auto">
+          <div data-no-wheel className="flex max-h-40 flex-col gap-0.5 overflow-y-auto">
             {items.map((item) => (
               <div
                 key={item.id}

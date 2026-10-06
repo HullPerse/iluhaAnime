@@ -38,7 +38,7 @@ function PlayerSlider({
       const bounded = Math.max(min, Math.min(max, stepped));
       onChange(Number(bounded.toFixed(6)));
     },
-    [min, max, step, onChange],
+    [min, max, step, onChange]
   );
 
   useEffect(() => {
@@ -113,7 +113,7 @@ function PlayerSlider({
       <span
         className={cn(
           "inline-flex items-center justify-end text-right tabular-nums",
-          readoutClassName,
+          readoutClassName
         )}
       >
         {format(clamped)}

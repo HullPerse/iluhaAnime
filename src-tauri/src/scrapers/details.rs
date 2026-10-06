@@ -840,7 +840,6 @@ fn parse_rutracker_file_tree(response: &str) -> Vec<TorrentDetailFile> {
     files
 }
 
-/// Webview ignores proxy; proxied file lists go through reqwest.
 async fn fetch_rutracker_file_tree(
     app_handle: &tauri::AppHandle,
     client: &reqwest::Client,
@@ -1265,7 +1264,6 @@ pub async fn get_torrent_details(
     if body.len() > MAX_DETAIL_RESPONSE_BYTES {
         return Err("Torrent page is too large to display safely".to_string());
     }
-    // Borrow UTF-8 pages; rutracker needs owned String for windows-1251 fallback.
     let html = if source == "rutracker" {
         std::borrow::Cow::Owned(decode_rutracker_page(&body))
     } else {

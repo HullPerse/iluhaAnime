@@ -1,11 +1,10 @@
 import { useCallback, useState } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
-
 import { seasonLabels } from "@/config/anilist/labels.config";
+import { useI18n } from "@/hooks/i18n.hook";
 import { searchFiltersToParams } from "@/lib/anilist/entries.utils";
 import { defaultAniListFilters } from "@/lib/anilist/filters.utils";
-import { useI18n } from "@/hooks/i18n.hook";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { useSearchStore } from "@/store/search.store";

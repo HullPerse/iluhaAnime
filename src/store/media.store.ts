@@ -23,14 +23,10 @@ function touch(entries: MediaEntry[], path: string, now: number): MediaEntry[] {
   return [entry, ...rest].slice(0, MAX_ENTRIES);
 }
 
-function patchEntry(
-  entries: MediaEntry[],
-  path: string,
-  patch: Partial<MediaEntry>,
-): MediaEntry[] {
+function patchEntry(entries: MediaEntry[], path: string, patch: Partial<MediaEntry>): MediaEntry[] {
   const now = Date.now();
   return touch(entries, path, now).map((entry) =>
-    entry.path === path ? { ...entry, ...patch } : entry,
+    entry.path === path ? { ...entry, ...patch } : entry
   );
 }
 
@@ -51,8 +47,7 @@ export const useMediaStore = create<MediaStore>()(
 
       setTrack: (path, type, index) =>
         set((state) => {
-          const patch =
-            type === "audio" ? { audioTrack: index } : { subtitleTrack: index };
+          const patch = type === "audio" ? { audioTrack: index } : { subtitleTrack: index };
           return { entries: patchEntry(state.entries, path, patch) };
         }),
 
@@ -68,7 +63,7 @@ export const useMediaStore = create<MediaStore>()(
 
       hydrate: async (path) => {
         const [stored] = await attempt(
-          invokeTyped<WatchState | null>("player_load_watch", { path }),
+          invokeTyped<WatchState | null>("player_load_watch", { path })
         );
         const entry = get().getEntry(path);
         if (!stored) return entry;
@@ -88,6 +83,6 @@ export const useMediaStore = create<MediaStore>()(
 
       clearEntries: () => set({ entries: [] }),
     }),
-    { name: "mediaState" },
-  ),
+    { name: "mediaState" }
+  )
 );

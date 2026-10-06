@@ -1,7 +1,17 @@
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { Maximize, Maximize2, Minimize, Minimize2, Settings, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
+import { reportBackgroundError } from "@/lib/utils/attempt.utils";
+
+function startsOnControl(target: EventTarget | null) {
+  return target instanceof Element && target.closest("button, [data-no-drag]") !== null;
+}
+
+function run(action: Promise<unknown>, scope: string) {
+  action.catch((error) => reportBackgroundError(scope, error));
+}
 
 function PlayerHeader({
   title,
@@ -23,9 +33,19 @@ function PlayerHeader({
   const { t } = useI18n();
 
   return (
-    <main className="flex w-full flex-row items-center justify-between bg-secondary p-1">
+    <main
+      className="bg-secondary flex w-full flex-row items-center justify-between p-1 select-none"
+      onMouseDown={(event) => {
+        if (event.button !== 0 || startsOnControl(event.target)) return;
+        run(getCurrentWindow().startDragging(), "player-header.drag");
+      }}
+      onDoubleClick={(event) => {
+        if (startsOnControl(event.target)) return;
+        run(getCurrentWindow().toggleMaximize(), "player-header.toggleMaximize");
+      }}
+    >
       <span className="windows95-text line-clamp-1 font-bold text-white">{title}</span>
-      <div className="flex flex-row items-center gap-1">
+      <div className="flex flex-row items-center gap-1" data-no-drag>
         <Button
           size="icon"
           className="size-4"

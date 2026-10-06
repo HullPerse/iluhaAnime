@@ -16,18 +16,11 @@ import type {
 
 import PlayerSlider from "./slider.player";
 
-const FONT_OPTIONS = [
-  "Arial",
-  "Verdana",
-  "Tahoma",
-  "Segoe UI",
-  "Courier New",
-  "Times New Roman",
-];
+const FONT_OPTIONS = ["Arial", "Verdana", "Tahoma", "Segoe UI", "Courier New", "Times New Roman"];
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="flex flex-col gap-1 border-b-2 border-muted pb-2">
+    <section className="border-muted flex flex-col gap-1 border-b-2 pb-2">
       <span className="windows95-text text-xs font-bold">{title}</span>
       {children}
     </section>
@@ -114,18 +107,13 @@ function SettingsPanel({
     { value: "auto", label: t("player.media.settings.tonemap.auto") },
     { value: "manual", label: t("player.media.settings.tonemap.manual") },
   ];
-  const primOptions = ["auto", "bt.709", "bt.2020", "dci-p3", "display-p3"].map(
-    (value) => ({ value, label: value }),
+  const primOptions = ["auto", "bt.709", "bt.2020", "dci-p3", "display-p3"].map((value) => ({
+    value,
+    label: value,
+  }));
+  const trcOptions = ["auto", "bt.1886", "srgb", "linear", "gamma2.2", "pq", "hlg"].map(
+    (value) => ({ value, label: value })
   );
-  const trcOptions = [
-    "auto",
-    "bt.1886",
-    "srgb",
-    "linear",
-    "gamma2.2",
-    "pq",
-    "hlg",
-  ].map((value) => ({ value, label: value }));
 
   return (
     <div className="flex w-full flex-col gap-2">
@@ -208,7 +196,9 @@ function SettingsPanel({
             className="flex-1"
             value={settings.aspectRatio}
             options={aspectOptions}
-            onChange={(value) => onPatchSettings({ aspectRatio: value as PlayerSettings["aspectRatio"] })}
+            onChange={(value) =>
+              onPatchSettings({ aspectRatio: value as PlayerSettings["aspectRatio"] })
+            }
           />
         </Row>
       </Section>
@@ -242,11 +232,11 @@ function SettingsPanel({
         />
         <PlayerSlider
           label={t("player.media.settings.hue")}
-          min={0}
-          max={360}
+          min={-100}
+          max={100}
           step={1}
           value={settings.hue}
-          format={(value) => `${value}°`}
+          format={(value) => `${value}`}
           onChange={(value) => onPatchSettings({ hue: value })}
         />
         <PlayerSlider
@@ -303,9 +293,7 @@ function SettingsPanel({
             className="flex-1"
             value={settings.toneMap}
             options={tonemapOptions}
-            onChange={(value) =>
-              onPatchSettings({ toneMap: value as PlayerSettings["toneMap"] })
-            }
+            onChange={(value) => onPatchSettings({ toneMap: value as PlayerSettings["toneMap"] })}
           />
         </Row>
         {settings.toneMap === "manual" ? (

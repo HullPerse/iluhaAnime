@@ -6,6 +6,7 @@ function PlayerStatus({
   finished,
   eofPaused,
   failed,
+  loading,
   hasNext,
   onRestart,
   onNext,
@@ -15,6 +16,7 @@ function PlayerStatus({
   finished: boolean;
   eofPaused: boolean;
   failed: boolean;
+  loading: boolean;
   hasNext: boolean;
   onRestart: () => void;
   onNext: () => void;
@@ -28,9 +30,7 @@ function PlayerStatus({
         <span className="windows95-text text-sm font-bold text-white">
           {t("player.media.error.title")}
         </span>
-        <span className="windows95-text text-xs text-white">
-          {t("player.media.error.hint")}
-        </span>
+        <span className="windows95-text text-xs text-white">{t("player.media.error.hint")}</span>
         <Button className="h-auto px-2 py-1 text-xs" onClick={onClose}>
           {t("player.media.panel.close")}
         </Button>
@@ -38,10 +38,10 @@ function PlayerStatus({
     );
   }
 
-  if (!visible || !(finished || eofPaused)) return null;
+  if (!visible || loading || !(finished || eofPaused)) return null;
 
   return (
-    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 bg-black/50">
+    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 bg-black">
       <span className="windows95-text text-sm font-bold text-white">
         {t("player.media.finished.title")}
       </span>

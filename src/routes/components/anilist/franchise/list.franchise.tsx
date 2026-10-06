@@ -3,9 +3,9 @@ import { cn } from "cn";
 import ProgressBar from "@/components/shared/progress.component";
 import { FILTER_LABELS } from "@/config/anilist/graph.config";
 import { listStatusLabels } from "@/config/anilist/labels.config";
+import { useI18n } from "@/hooks/i18n.hook";
 import { getStatusColor, type EntryListInfo } from "@/lib/anilist/entries.utils";
 import { groupFranchiseNodes } from "@/lib/anilist/graph.utils";
-import { useI18n } from "@/hooks/i18n.hook";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import type { FranchiseListProps, FranchiseNode } from "@/types/anilist";
 
@@ -53,7 +53,12 @@ function FranchiseRowBody({
       </span>
       {barPercent != null && (
         <span className="flex items-center gap-1">
-          <ProgressBar value={progress ?? 0} max={total ?? 0} className="inline-block h-3.5 w-20" slots />
+          <ProgressBar
+            value={progress ?? 0}
+            max={total ?? 0}
+            className="inline-block h-3.5 w-20"
+            slots
+          />
           <span className="text-hint">
             {progress}/{total}
           </span>

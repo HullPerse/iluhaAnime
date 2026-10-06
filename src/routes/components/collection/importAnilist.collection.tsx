@@ -9,10 +9,10 @@ import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { COLLECTION_QUERY_KEY, useCollectionData } from "@/hooks/collection/queries.hook";
+import { useI18n } from "@/hooks/i18n.hook";
 import { parseScoreFormat } from "@/lib/anilist/score.utils";
 import { entryDiffers, entrySyncState, runImportBatch } from "@/lib/collection/import.utils";
 import { resolveStatusLabel } from "@/lib/collection/status.utils";
-import { useI18n } from "@/hooks/i18n.hook";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import { queryKeys } from "@/lib/query/keys.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
@@ -116,7 +116,9 @@ export default function ImportAnilistCollection({
     () =>
       allEntries.filter((e) => {
         const item = itemByAnilistId.get(e.media.id);
-        return item !== undefined && entryDiffers(e, item, parseScoreFormat(authUser?.score_format));
+        return (
+          item !== undefined && entryDiffers(e, item, parseScoreFormat(authUser?.score_format))
+        );
       }),
     [allEntries, itemByAnilistId, authUser]
   );

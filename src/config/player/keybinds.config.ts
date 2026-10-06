@@ -17,6 +17,7 @@ export type KeybindAction =
   | "audioOffsetUp"
   | "audioOffsetDownFine"
   | "audioOffsetUpFine"
+  | "resetDelays"
   | "toggleAutoHide"
   | "toggleDiagnostics"
   | "nextFile"
@@ -160,6 +161,13 @@ export const KEYBINDS: KeybindDef[] = [
     ctrl: true,
   },
   {
+    action: "resetDelays",
+    code: "F5",
+    keys: "F5",
+    description: "player.media.key.delays.reset",
+    category: "subtitles",
+  },
+  {
     action: "toggleAutoHide",
     code: "KeyH",
     keys: "Ctrl+H",
@@ -224,10 +232,8 @@ const codeMap = new Map<string, KeybindDef>();
 
 for (const keybind of KEYBINDS) {
   codeMap.set(
-    `${keybind.code}:${keybind.ctrl ?? false}:${keybind.shift ?? false}:${
-      keybind.alt ?? false
-    }`,
-    keybind,
+    `${keybind.code}:${keybind.ctrl ?? false}:${keybind.shift ?? false}:${keybind.alt ?? false}`,
+    keybind
   );
 }
 
@@ -235,7 +241,7 @@ export function getAction(
   code: string,
   ctrl: boolean,
   shift: boolean,
-  alt: boolean,
+  alt: boolean
 ): KeybindDef | undefined {
   return codeMap.get(`${code}:${ctrl}:${shift}:${alt}`);
 }

@@ -2,9 +2,9 @@ import { useCallback } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
 import { tmdbApi } from "@/api/tmdb.api";
+import { useI18n } from "@/hooks/i18n.hook";
 import { readStoredMedia, withStoredMedia } from "@/lib/collection/media.utils";
 import { mergeGenreTags } from "@/lib/collection/wizard.utils";
-import { useI18n } from "@/hooks/i18n.hook";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { useNotificationStore } from "@/store/notification.store";

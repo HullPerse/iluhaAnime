@@ -20,8 +20,8 @@ import {
   DITHER_PLACEHOLDER_ID,
   DITHER_PLACEHOLDER_SRC,
 } from "@/config/utils/dither.config";
-import { usePagination } from "@/hooks/pagination.hook";
 import { useI18n } from "@/hooks/i18n.hook";
+import { usePagination } from "@/hooks/pagination.hook";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { toUserImage } from "@/lib/utils/image.utils";
 import { showError } from "@/lib/utils/notification.utils";

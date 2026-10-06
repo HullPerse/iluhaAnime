@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { CELL_GAP, CELL_LEVELS, CELL_SIZE } from "@/config/anilist/activity.config";
+import { useI18n } from "@/hooks/i18n.hook";
 import {
   buildActivityMap,
   buildYearGrid,
@@ -11,7 +12,6 @@ import {
   monthLabel,
   selectInitialDayKey,
 } from "@/lib/anilist/activity.utils";
-import { useI18n } from "@/hooks/i18n.hook";
 import type { AniListCollection } from "@/types/anilist";
 
 export function CalendarTab({

@@ -65,8 +65,8 @@
     "oxlint-plugin-react-doctor": "^0.9.17",
     "oxlint-tsgolint": "^7.0.2003",
     "typescript": "7.0.2",
-    "ultracite": "7.12.3",
-    "vite": "8.3.2",
+    "ultracite": "7.12.4",
+    "vite": "8.3.3",
     "vitest": "^5.0.3"
   },
   "engines": {

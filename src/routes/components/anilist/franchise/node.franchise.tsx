@@ -2,8 +2,8 @@ import { cn } from "cn";
 import { memo } from "react";
 
 import { IMG_H, NODE_BORDER_COLORS, NODE_H, NODE_W } from "@/config/anilist/graph.config";
-import { formatShort } from "@/lib/anilist/graph.utils";
 import { useI18n } from "@/hooks/i18n.hook";
+import { formatShort } from "@/lib/anilist/graph.utils";
 import { enterOrSpace } from "@/lib/utils/keyboard.utils";
 import type { FranchiseNode } from "@/types/anilist";
 

@@ -7,10 +7,10 @@ import Image from "@/components/ui/image.component";
 import Select from "@/components/ui/select.component";
 import { HEADER_ESTIMATE, ROW_ESTIMATE } from "@/config/collection/card.config";
 import { useCoverCache } from "@/hooks/collection/cache.hook";
+import { useI18n } from "@/hooks/i18n.hook";
 import { rowMetaParts, sameRowVisual } from "@/lib/collection/list.utils";
 import { generatePlaceholder } from "@/lib/collection/placeholder.utils";
 import { sortStatuses, statusColorOf, statusLabel } from "@/lib/collection/status.utils";
-import { useI18n } from "@/hooks/i18n.hook";
 import { enterOrSpace } from "@/lib/utils/keyboard.utils";
 import { useSettingsStore } from "@/store/settings.store";
 import type {
@@ -208,7 +208,12 @@ function CollectionRowView({ item, statuses, selected, onOpen, onSetStatus }: Co
             )}
             {item.progressTotal != null && item.progressTotal > 0 ? (
               <div className="flex items-center gap-1">
-                <ProgressBar value={item.progressValue} max={item.progressTotal} className="h-3.5 w-20" slots />
+                <ProgressBar
+                  value={item.progressValue}
+                  max={item.progressTotal}
+                  className="h-3.5 w-20"
+                  slots
+                />
                 <span className="windows95-text text-xs">
                   {item.progressValue}/{item.progressTotal}
                 </span>

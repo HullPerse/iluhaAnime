@@ -84,7 +84,7 @@ const DITHER_PICO8_PALETTE: DitherRGB[] = [
   [255, 204, 170],
 ];
 
-export const DITHER_VIOLET_RAMP_PALETTE: DitherRGB[] = [
+const DITHER_VIOLET_RAMP_PALETTE: DitherRGB[] = [
   [6, 4, 10],
   [18, 12, 32],
   [36, 22, 62],

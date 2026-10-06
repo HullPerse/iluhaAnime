@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
 import { ArrowUp } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import ProgressBar from "@/components/shared/progress.component";
 import { useI18n } from "@/hooks/i18n.hook";
@@ -21,7 +21,6 @@ export function TorrentProgress({ item }: { item: TorrentInfo }) {
   const progress = item.progress * 100;
   const initializing = display === "initializing";
   const sinceSecs = lastActiveAt[item.id];
-  // Events sparse while resolving; tick locally.
   const [, setNowTick] = useState(0);
   useEffect(() => {
     if (!initializing) return;

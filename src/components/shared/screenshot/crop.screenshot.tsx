@@ -1,26 +1,24 @@
-import { useState } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 
 import { CROP_DIM_OPACITY } from "@/config/settings/screenshot.config";
 import { moveCrop, resizeCrop, toFrame } from "@/lib/settings/crop.utils";
 import type { CropBounds, CropGuide, CropHandle, CropRect, CropView } from "@/types/screenshot";
 
-const HANDLES: readonly Exclude<CropHandle, "move">[] = [
+const CORNERS: readonly Exclude<CropHandle, "move" | "n" | "s" | "e" | "w">[] = [
   "nw",
-  "n",
   "ne",
-  "e",
   "se",
-  "s",
   "sw",
-  "w",
 ];
 
-const HANDLE_CLASS: Record<Exclude<CropHandle, "move">, string> = {
-  n: "top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 cursor-ns-resize",
-  s: "bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 cursor-ns-resize",
-  w: "top-1/2 left-0 -translate-x-1/2 -translate-y-1/2 cursor-ew-resize",
-  e: "top-1/2 right-0 translate-x-1/2 -translate-y-1/2 cursor-ew-resize",
+const EDGE_CLASS: Record<"n" | "s" | "e" | "w", string> = {
+  n: "top-0 right-0 left-0 h-2 -translate-y-1/2 cursor-ns-resize",
+  s: "right-0 bottom-0 left-0 h-2 translate-y-1/2 cursor-ns-resize",
+  w: "top-0 bottom-0 left-0 w-2 -translate-x-1/2 cursor-ew-resize",
+  e: "top-0 right-0 bottom-0 w-2 translate-x-1/2 cursor-ew-resize",
+};
+
+const HANDLE_CLASS: Record<(typeof CORNERS)[number], string> = {
   nw: "top-0 left-0 -translate-x-1/2 -translate-y-1/2 cursor-nwse-resize",
   ne: "top-0 right-0 translate-x-1/2 -translate-y-1/2 cursor-nesw-resize",
   se: "bottom-0 right-0 translate-x-1/2 translate-y-1/2 cursor-nwse-resize",
@@ -53,7 +51,6 @@ export default function CropFrame({
   moveCursor = "cursor-move",
   onChange,
 }: CropFrameProps) {
-  const [focused, setFocused] = useState(false);
   const frame = toFrame(crop, view.scale);
   const box = {
     left: view.left + frame.left,
@@ -149,18 +146,18 @@ export default function CropFrame({
           width: box.width,
           height: box.height,
         }}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
         onKeyDown={handleKeyDown}
       >
-        {focused &&
-          HANDLES.map((handle) => (
-            <span
-              key={handle}
-              data-handle={handle}
-              className={`windows95-active-border bg-primary absolute size-2 ${HANDLE_CLASS[handle]}`}
-            />
-          ))}
+        {(["n", "s", "w", "e"] as const).map((handle) => (
+          <span key={handle} data-handle={handle} className={`absolute ${EDGE_CLASS[handle]}`} />
+        ))}
+        {CORNERS.map((handle) => (
+          <span
+            key={handle}
+            data-handle={handle}
+            className={`windows95-active-border bg-primary absolute size-2 ${HANDLE_CLASS[handle]}`}
+          />
+        ))}
       </button>
     </>
   );

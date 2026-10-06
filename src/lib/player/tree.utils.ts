@@ -37,10 +37,7 @@ export function buildTree(entries: VideoFileEntry[], rootPath: string): FolderNo
   return root;
 }
 
-export function findFolderContainingFile(
-  root: FolderNode,
-  filePath: string
-): FolderNode | null {
+export function findFolderContainingFile(root: FolderNode, filePath: string): FolderNode | null {
   if (root.files.some((file) => file.path === filePath)) return root;
   for (const child of root.children) {
     const found = findFolderContainingFile(child, filePath);

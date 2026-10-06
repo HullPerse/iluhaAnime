@@ -635,6 +635,12 @@ select,
   scroll-behavior: auto !important;
 }
 
+/* !important: descendants declare their own cursors (cursor-pointer), which would win over inheritance. */
+.player-cursor-hidden,
+.player-cursor-hidden * {
+  cursor: none !important;
+}
+
 @keyframes ui-loading-spin {
   to {
     transform: rotate(360deg);

@@ -20,10 +20,6 @@ mod app_db;
 #[doc(hidden)]
 pub mod benchmark_api {
     pub use crate::anilist::{franchise_query_body, franchise_query_metrics};
-    pub use crate::session::protocol::PlaybackState;
-    pub use crate::session::sync::{
-        LagStatus, SyncController, SyncInstruction, SyncRuntime, EVAL_INTERVAL_MS,
-    };
 }
 mod auth;
 mod bencode;
@@ -41,7 +37,6 @@ mod realcugan;
 mod rife;
 mod scrapers;
 mod screenshot;
-mod session;
 mod shaders;
 mod sqlite_browser;
 mod tmdb;
@@ -73,7 +68,6 @@ impl Default for NotificationConfig {
     }
 }
 
-/// Torrent list fields; new user-visible field must be added here (changed-or-heartbeat pushes).
 #[derive(PartialEq)]
 struct TorrentUpdateSignature {
     id: usize,
@@ -95,7 +89,6 @@ struct TorrentUpdateSignature {
 }
 
 const TORRENT_HEARTBEAT_TICKS: u32 = 30;
-/// 2 torrents/tick; one pass costs a stat per file.
 const TORRENT_VERIFY_PER_TICK: usize = 2;
 
 #[derive(Default)]
@@ -113,11 +106,9 @@ async fn run_torrent_update_tick(
     manager: &Arc<TorrentManager>,
     state: &mut TorrentTickState,
 ) {
-    // Skip ticks during rewrite; UI keeps pre-window file list until torrent returns.
     if manager.is_rewriting() {
         return;
     }
-    // Verify pending missing before signature (user-visible); stat passes stay off async worker.
     let verifier = Arc::clone(manager);
     let torrents = tokio::task::spawn_blocking(move || {
         let mut torrents = verifier.collect_torrents();
@@ -240,7 +231,6 @@ async fn run_torrent_update_tick(
     if state.cleanup_counter >= 30 {
         state.cleanup_counter = 0;
         let cleaner = Arc::clone(manager);
-        // Unselected-file scan runs off worker; failures must not stop push loop.
         if let Err(error) =
             tokio::task::spawn_blocking(move || cleaner.cleanup_unselected_files()).await
         {
@@ -269,7 +259,6 @@ async fn backend_manager(
     .map_err(|_| "torrent engine is still starting".to_string())?
 }
 
-/// sequential is part of add so first-file priority opens immediately.
 #[tauri::command]
 async fn start_torrent_download(
     magnet: String,
@@ -344,12 +333,10 @@ async fn list_torrents(
 ) -> Result<Vec<TorrentInfo>, String> {
     let backend = backend_manager(&manager).await?;
     let mut torrents = backend.collect_torrents();
-    // Include paused-edits verdict on open or badge lags a tick.
     backend.watch_paused_files(&mut torrents);
     Ok(torrents)
 }
 
-/// Hashes every file once; await behind a loader.
 #[tauri::command]
 async fn create_torrent_from_folder(
     source_dir: String,
@@ -362,7 +349,6 @@ async fn create_torrent_from_folder(
         .map_err(|e| format!("{e:#}"))
 }
 
-/// Source restricted to created-torrents cache (not a generic copy primitive).
 #[tauri::command]
 fn save_created_torrent(from: String, to: String, app: tauri::AppHandle) -> Result<(), String> {
     let app_data = app
@@ -684,7 +670,6 @@ async fn save_session_config(
     backend_manager(&manager).await?.save_session_config(config)
 }
 
-/// Bound port for Settings when configured port is 0 (auto).
 #[tauri::command]
 async fn torrent_listen_port(
     manager: tauri::State<'_, TorrentBackend>,
@@ -794,7 +779,6 @@ async fn recheck_torrent(
         .recheck_torrent(id, info_hash)
 }
 
-/// Paused re-verify for external-changes badge "Recheck now".
 #[tauri::command]
 async fn recheck_paused_torrent(
     id: usize,
@@ -935,10 +919,9 @@ async fn set_notification_settings(
     Ok(())
 }
 
-const WINDOW_CHROME_NAMESPACE: &str = "window";
-const WINDOW_CHROME_KEY: &str = "chrome";
+pub(crate) const WINDOW_CHROME_NAMESPACE: &str = "window";
+pub(crate) const WINDOW_CHROME_KEY: &str = "chrome";
 
-/// OS backdrop material; window-level, theme supplies tint alpha only.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 enum WindowEffect {
@@ -995,7 +978,6 @@ fn apply_window_corner_preference(window: &tauri::WebviewWindow, rounded: bool) 
 #[cfg(not(windows))]
 fn apply_window_corner_preference(_window: &tauri::WebviewWindow, _rounded: bool) {}
 
-/// `set_effects` swallows platform errors; unsupported builds paint nothing.
 fn apply_window_effect(window: &tauri::WebviewWindow, effect: WindowEffect) -> Result<(), String> {
     use tauri::window::{Effect, EffectsBuilder};
 
@@ -1031,7 +1013,9 @@ fn set_window_chrome(
         effect,
         rounded_corners,
     };
-    apply_window_chrome(&window, &chrome)?;
+    for window in window.app_handle().webview_windows().values() {
+        apply_window_chrome(window, &chrome)?;
+    }
     let payload =
         serde_json::to_string(&chrome).map_err(|error| format!("encode window chrome: {error}"))?;
     app_db::put_app_cache(
@@ -1118,7 +1102,6 @@ pub fn run() {
                 let _ = window.set_focus();
             }
 
-            // Tray icon must exist with pixels or app cannot be restored; bundled PNG is fallback.
             let tray_icon = app.default_window_icon().cloned().or_else(|| {
                 tauri::image::Image::from_bytes(include_bytes!("../icons/32x32.png")).ok()
             });
@@ -1165,7 +1148,6 @@ pub fn run() {
             handle.manage(std::sync::Mutex::new(fswatcher::FolderWatcher::new()));
             handle.manage(file_index::FileIndexer::new());
             handle.manage(player::PlayerHost::default());
-            handle.manage(session::SessionHost::default());
             player::state::attach(app.handle());
             #[cfg(debug_assertions)]
             match std::env::var("ILUHA_OPEN_FILE") {
@@ -1181,14 +1163,8 @@ pub fn run() {
                     tauri::async_runtime::spawn(async move {
                         let trigger_start = std::time::Instant::now();
                         tokio::time::sleep(std::time::Duration::from_millis(1500)).await;
-                        if let Err(error) = player::player_open(
-                            trigger_handle.clone(),
-                            trigger_handle.state::<session::SessionHost>(),
-                            vec![path],
-                            None,
-                            None,
-                        )
-                        .await
+                        if let Err(error) =
+                            player::player_open(trigger_handle.clone(), vec![path], None).await
                         {
                             tracing::warn!("dev player trigger failed: {error}");
                             return;
@@ -1199,15 +1175,6 @@ pub fn run() {
                     });
                 }
                 Err(error) => tracing::debug!("dev player trigger not armed: {error}"),
-            }
-            #[cfg(debug_assertions)]
-            if let Some(config) = player::harness::SyncBenchConfig::from_env() {
-                tracing::info!("dev sync-bench trigger armed for {}", config.file);
-                let bench_handle = handle.clone();
-                tauri::async_runtime::spawn(async move {
-                    tokio::time::sleep(std::time::Duration::from_millis(1500)).await;
-                    player::harness::run(bench_handle, config).await;
-                });
             }
             #[cfg(not(debug_assertions))]
             {
@@ -1247,7 +1214,6 @@ pub fn run() {
                 let mgr_clone = manager.clone();
                 handle.state::<TorrentBackend>().cell.set(Ok(manager)).ok();
                 handle.state::<TorrentBackend>().notify.notify_one();
-                // Restored torrents start unlimited; reapply stored limits off startup path.
                 let limits_manager = Arc::clone(&mgr_clone);
                 tokio::spawn(async move {
                     limits_manager.reapply_stored_limits().await;
@@ -1473,37 +1439,6 @@ pub fn run() {
             screenshot::discard_screenshot,
             search_file_index,
             deeplink::take_pending_deep_links,
-            session::commands::media_identity,
-            session::commands::session_state,
-            session::commands::session_set_playlist,
-            session::commands::session_start_item,
-            session::commands::session_set_role,
-            session::commands::session_add_source,
-            session::commands::session_remove_source,
-            session::commands::session_set_ready,
-            session::commands::session_create,
-            session::commands::session_join,
-            session::commands::session_probe,
-            session::commands::session_leave,
-            session::commands::session_transfer_host,
-            session::commands::session_accept_handover,
-            session::commands::session_match_folder,
-            session::commands::session_chat,
-            session::commands::session_chat_attachment,
-            session::commands::session_elect_host,
-            session::commands::session_status,
-            session::commands::session_report,
-            session::commands::session_control,
-            session::commands::session_request_control,
-            session::commands::session_force_resync,
-            session::commands::session_publish_state,
-            session::commands::session_sync_sample,
-            session::commands::session_sync_restart,
-            session::commands::session_set_offset,
-            session::commands::session_sync_tracks,
-            session::commands::session_typing,
-            session::commands::session_pin,
-            session::commands::session_react,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

@@ -12,11 +12,11 @@ import ImageComponent from "@/components/ui/image.component";
 import { NO_TORRENTS } from "@/config/torrent/common.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useDebounce } from "@/hooks/debounce.hook";
+import { useI18n } from "@/hooks/i18n.hook";
 import { usePlayerDrag } from "@/hooks/player/drag.hook";
 import { useSearchField } from "@/hooks/search/field.hook";
-import { useTorrentFilesMap, useTorrents } from "@/hooks/torrent/queries.hook";
-import { useI18n } from "@/hooks/i18n.hook";
 import { useTauriEvent } from "@/hooks/tauriEvent.hook";
+import { useTorrentFilesMap, useTorrents } from "@/hooks/torrent/queries.hook";
 import { fingerprint } from "@/lib/player/scan.utils";
 import { buildTree, filterTreeByPaths } from "@/lib/player/tree.utils";
 import { filterTreeByHiddenPaths } from "@/lib/player/visibility.utils";
@@ -82,7 +82,6 @@ function PlayerRoute() {
       return results ?? [];
     },
     enabled: !!debouncedSearch,
-    // Converge with rebuilt index.
     staleTime: 0,
   });
   const searchResults = useMemo(() => fileSearchData ?? [], [fileSearchData]);
@@ -172,7 +171,6 @@ function PlayerRoute() {
   const { data: ffprobeOk } = useAppQuery("live", {
     queryKey: queryKeys.checkFfprobe(),
     queryFn: () => withFallback(invokeTyped<boolean>("check_ffprobe"), false),
-    // ffmpegOverride wins.
     staleTime: 0,
   });
   const ffmpegStatus: FFMPEGStatus =

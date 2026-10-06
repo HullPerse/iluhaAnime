@@ -60,7 +60,7 @@ export const useNotificationStore = create<NotificationStore>()(
             (entry) => (eventKey && entry.eventKey === eventKey) || entry.signature === signature
           )
         ) {
-          return;
+          return -1;
         }
 
         const existing = get().items.find(
@@ -73,7 +73,7 @@ export const useNotificationStore = create<NotificationStore>()(
               (Boolean(eventKey) || now - item.timestamp < DEDUP_MS))
         );
         if (existing) {
-          if (eventKey) return;
+          if (eventKey) return existing.id;
 
           set((s) => {
             let unreadDelta = 0;
@@ -84,11 +84,12 @@ export const useNotificationStore = create<NotificationStore>()(
             });
             return { items, unreadCount: s.unreadCount + unreadDelta };
           });
-          return;
+          return existing.id;
         }
 
+        const id = nextId++;
         const item: NotificationItem = {
-          id: nextId++,
+          id,
           type,
           title,
           message,
@@ -106,6 +107,32 @@ export const useNotificationStore = create<NotificationStore>()(
         if ((options?.system ?? true) && useSettingsStore.getState().notificationsEnabled) {
           systemApi
             .showToast(title, message ?? null, target ?? null)
+            .catch((error) => reportBackgroundError("notification.system-toast", error));
+        }
+        return id;
+      },
+      update: (id, patch, options) => {
+        const found = get().items.some((item) => item.id === id);
+        if (!found) return;
+        set((s) => ({
+          items: s.items.map((item) =>
+            item.id === id
+              ? {
+                  ...item,
+                  ...(patch.title !== undefined ? { title: patch.title } : {}),
+                  ...(patch.message !== undefined ? { message: patch.message } : {}),
+                  ...(patch.type !== undefined ? { type: patch.type } : {}),
+                  ...(patch.progress !== undefined ? { progress: patch.progress } : {}),
+                  timestamp: Date.now(),
+                }
+              : item
+          ),
+        }));
+        if (options?.system === true && useSettingsStore.getState().notificationsEnabled) {
+          const current = get().items.find((item) => item.id === id);
+          if (!current) return;
+          systemApi
+            .showToast(current.title, current.message ?? null, current.target ?? null)
             .catch((error) => reportBackgroundError("notification.system-toast", error));
         }
       },
@@ -190,7 +217,9 @@ export const useNotificationStore = create<NotificationStore>()(
         const persistedState = persisted as
           | { items?: NotificationItem[]; dismissed?: DismissedEntry[] }
           | undefined;
-        const items = (storageStillExists ? persistedState?.items : undefined) ?? current.items;
+        const items = (
+          (storageStillExists ? persistedState?.items : undefined) ?? current.items
+        ).filter((item) => !item.progress);
         const dismissed = storageStillExists
           ? pruneDismissed(persistedState?.dismissed ?? [], Date.now())
           : current.dismissed;

@@ -8,13 +8,13 @@ import {
   SPOTLIGHT_LABELS,
   SPOTLIGHT_REFRESH_TICK_MS,
 } from "@/config/anilist/spotlight.config";
+import { useI18n } from "@/hooks/i18n.hook";
 import type { AnilistScoreFormat } from "@/lib/anilist/score.utils";
 import {
   resolveSpotlightPick,
   spotlightBoundaryMs,
   spotlightPeriodKey,
 } from "@/lib/anilist/spotlight.utils";
-import { useI18n } from "@/hooks/i18n.hook";
 import { readAppCache, writeAppCache } from "@/lib/store/cache.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { formatETA } from "@/lib/utils/time.utils";

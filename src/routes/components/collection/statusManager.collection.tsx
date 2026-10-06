@@ -8,8 +8,8 @@ import { ColorPickerTrigger } from "@/components/ui/color/trigger.color";
 import { Input } from "@/components/ui/input.component";
 import Select from "@/components/ui/select.component";
 import { DEFAULT_NEW_COLOR, PUBLIC_STATUS_MAX_ITEMS } from "@/config/collection/statuses.config";
-import { buildCustomStatusId, normalizeStatusLabel } from "@/lib/collection/status.utils";
 import { useI18n } from "@/hooks/i18n.hook";
+import { buildCustomStatusId, normalizeStatusLabel } from "@/lib/collection/status.utils";
 import type { CollectionStatusDef, CollectionStatusKind } from "@/types/collection";
 
 import { BilingualPreview } from "./bilingualPreview.collection";

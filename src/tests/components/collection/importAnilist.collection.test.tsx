@@ -245,7 +245,9 @@ describe("ImportAnilistCollection query-driven views", () => {
       expect.objectContaining({ ids: [101, 102] })
     );
     expect(invokeMock).not.toHaveBeenCalledWith("get_anime_by_id", expect.anything());
-    const patches = invokeMock.mock.calls.filter(([command]) => command === "patch_collection_item");
+    const patches = invokeMock.mock.calls.filter(
+      ([command]) => command === "patch_collection_item"
+    );
     expect(patches).toHaveLength(2);
   });
 });

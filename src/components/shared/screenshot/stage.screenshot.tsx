@@ -46,7 +46,7 @@ const LEFT_BUTTON = 0;
 const RIGHT_BUTTON = 2;
 const TEXT_HIT_PADDING = 3;
 
-type DragMode = CropHandle | "start" | "pan" | "draw" | "text-move";
+type DragMode = CropHandle | "start" | "draw" | "text-move";
 
 interface DragState {
   mode: DragMode;
@@ -57,6 +57,12 @@ interface DragState {
   panStart: CropPan;
   itemId: string;
   moved: boolean;
+}
+
+interface PanState {
+  panStart: CropPan;
+  pointerX: number;
+  pointerY: number;
 }
 
 interface TextEditor {
@@ -135,6 +141,7 @@ export default function ScreenshotStage({
   const maskRef = useRef<HTMLCanvasElement | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const dragRef = useRef<DragState | null>(null);
+  const panRef = useRef<PanState | null>(null);
   const draftRef = useRef<AnnotationItem | null>(null);
   const editorRef = useRef<TextEditor | null>(null);
   const view: CropView = fitView(bounds, box, scale.zoom, scale.pan);
@@ -312,10 +319,21 @@ export default function ScreenshotStage({
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     if ((event.target as HTMLElement).dataset.textEditor === "true") return;
-    if (event.button !== LEFT_BUTTON && event.button !== RIGHT_BUTTON) return;
+    const button = event.button ?? LEFT_BUTTON;
+    if (button !== LEFT_BUTTON && button !== RIGHT_BUTTON) return;
     event.preventDefault();
     event.stopPropagation();
     measure();
+    if (button === RIGHT_BUTTON) {
+      panRef.current = {
+        panStart: scale.pan,
+        pointerX: event.clientX,
+        pointerY: event.clientY,
+      };
+      grabPointer(event.pointerId);
+      return;
+    }
+
     const anchor = toSource(event.clientX, event.clientY);
     const base: DragState = {
       mode: "start",
@@ -327,12 +345,6 @@ export default function ScreenshotStage({
       itemId: "",
       moved: false,
     };
-    if (event.button === RIGHT_BUTTON) {
-      grabPointer(event.pointerId);
-      dragRef.current = { ...base, mode: "pan" };
-      return;
-    }
-
     if (!isInsidePicture(anchor, bounds)) return;
     if (tool === "text") {
       const editing = editorRef.current?.editingId ?? null;
@@ -358,33 +370,51 @@ export default function ScreenshotStage({
     setCurrentDraft({ id, kind: "stroke", tool, color, size, points: [anchor] });
   };
 
-  const panBy = (drag: DragState, event: ReactPointerEvent<HTMLDivElement>) => {
-    onScaleChange({
-      zoom: scale.zoom,
-      pan: clampPan(bounds, containerBox(), scale.zoom, {
-        x: drag.panStart.x + (event.clientX - drag.pointerX),
-        y: drag.panStart.y + (event.clientY - drag.pointerY),
-      }),
+  const nextPanFor = (pan: PanState, clientX: number, clientY: number): CropPan =>
+    clampPan(bounds, containerBox(), scale.zoom, {
+      x: pan.panStart.x + (clientX - pan.pointerX),
+      y: pan.panStart.y + (clientY - pan.pointerY),
     });
+
+  const toSourceWithPan = (clientX: number, clientY: number, pan: CropPan): CropPoint => {
+    const rect = containerRef.current?.getBoundingClientRect();
+    const current = view.scale > 0 ? view.scale : 1;
+    return {
+      x: (clientX - (rect?.left ?? 0) - view.left - (pan.x - scale.pan.x)) / current,
+      y: (clientY - (rect?.top ?? 0) - view.top - (pan.y - scale.pan.y)) / current,
+    };
   };
 
-  const extendStroke = (drag: DragState, event: ReactPointerEvent<HTMLDivElement>) => {
+  const extendStroke = (
+    drag: DragState,
+    event: ReactPointerEvent<HTMLDivElement>,
+    pan: CropPan
+  ) => {
     drag.moved = true;
     const previous = draftRef.current;
     if (!previous || previous.kind !== "stroke") return;
-    const point = toSource(event.clientX, event.clientY);
+    const point = toSourceWithPan(event.clientX, event.clientY, pan);
     setCurrentDraft({ ...previous, points: appendPoint(previous.points, point) });
   };
 
-  const dragText = (drag: DragState, event: ReactPointerEvent<HTMLDivElement>) => {
+  const dragText = (
+    drag: DragState,
+    event: ReactPointerEvent<HTMLDivElement>,
+    pan: CropPan
+  ) => {
     const target = items.find((item) => item.id === drag.itemId);
     if (!target || target.kind !== "text") return;
     drag.moved = true;
+    const scaleValue = view.scale > 0 ? view.scale : 1;
     setCurrentDraft({
       ...target,
       point: {
-        x: target.point.x + (event.clientX - drag.pointerX) / view.scale,
-        y: target.point.y + (event.clientY - drag.pointerY) / view.scale,
+        x:
+          target.point.x +
+          (event.clientX - drag.pointerX - (pan.x - drag.panStart.x)) / scaleValue,
+        y:
+          target.point.y +
+          (event.clientY - drag.pointerY - (pan.y - drag.panStart.y)) / scaleValue,
       },
     });
   };
@@ -393,21 +423,28 @@ export default function ScreenshotStage({
     drag: DragState,
     handle: CropHandle | "start",
     event: ReactPointerEvent<HTMLDivElement>,
-    snapThreshold: number
+    snapThreshold: number,
+    pan: CropPan
   ) => {
     if (handle === "start") {
-      const snap = startCrop(drag.anchor, toSource(event.clientX, event.clientY), bounds, {
-        snapThreshold,
-        square: event.shiftKey,
-      });
+      const snap = startCrop(
+        drag.anchor,
+        toSourceWithPan(event.clientX, event.clientY, pan),
+        bounds,
+        {
+          snapThreshold,
+          square: event.shiftKey,
+        }
+      );
       const usable = snap.rect.width >= CROP_MIN_SIZE && snap.rect.height >= CROP_MIN_SIZE;
       setGuides(usable ? snap.guides : []);
       onCropChange(usable ? snap.rect : null);
       return;
     }
     if (!drag.start) return;
-    const dx = (event.clientX - drag.pointerX) / view.scale;
-    const dy = (event.clientY - drag.pointerY) / view.scale;
+    const scaleValue = view.scale > 0 ? view.scale : 1;
+    const dx = (event.clientX - drag.pointerX - (pan.x - drag.panStart.x)) / scaleValue;
+    const dy = (event.clientY - drag.pointerY - (pan.y - drag.panStart.y)) / scaleValue;
     const ratio =
       event.shiftKey && handle !== "move" && drag.start.height > 0
         ? drag.start.width / drag.start.height
@@ -418,8 +455,17 @@ export default function ScreenshotStage({
   };
 
   const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const pan = panRef.current;
     const drag = dragRef.current;
+    let effectivePan = scale.pan;
+    if (pan) {
+      effectivePan = nextPanFor(pan, event.clientX, event.clientY);
+      if (effectivePan.x !== scale.pan.x || effectivePan.y !== scale.pan.y) {
+        onScaleChange({ zoom: scale.zoom, pan: effectivePan });
+      }
+    }
     if (!drag) {
+      if (pan) return;
       if (tool === "select") {
         const point = toSource(event.clientX, event.clientY);
         const hit =
@@ -430,29 +476,19 @@ export default function ScreenshotStage({
       }
       return;
     }
-    if (drag.mode === "pan") {
-      panBy(drag, event);
-      return;
-    }
     if (drag.mode === "draw") {
-      extendStroke(drag, event);
+      extendStroke(drag, event, effectivePan);
       return;
     }
     if (drag.mode === "text-move") {
-      dragText(drag, event);
+      dragText(drag, event, effectivePan);
       return;
     }
     const snapThreshold = event.ctrlKey ? 0 : snapThresholdForScale(view.scale);
-    dragCrop(drag, drag.mode, event, snapThreshold);
+    dragCrop(drag, drag.mode, event, snapThreshold, effectivePan);
   };
 
-  const handlePointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
-    const drag = dragRef.current;
-    if (!drag) return;
-    dragRef.current = null;
-    setGuides([]);
-    setHoverText(false);
-    surfaceRef.current?.releasePointerCapture?.(event.pointerId);
+  const finishDrag = (drag: DragState) => {
     const finished = draftRef.current;
     if (drag.mode === "draw" && finished) {
       onCommit([...items, finished]);
@@ -465,6 +501,39 @@ export default function ScreenshotStage({
       return;
     }
     if (finished) setCurrentDraft(null);
+  };
+
+  const handlePointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.type === "pointercancel") {
+      dragRef.current = null;
+      panRef.current = null;
+      setGuides([]);
+      setHoverText(false);
+      surfaceRef.current?.releasePointerCapture?.(event.pointerId);
+      const cancelled = draftRef.current;
+      if (cancelled) setCurrentDraft(null);
+      return;
+    }
+    const button = event.button ?? LEFT_BUTTON;
+    if (button === RIGHT_BUTTON) {
+      if (!panRef.current) return;
+      panRef.current = null;
+      if (!dragRef.current) {
+        setHoverText(false);
+        surfaceRef.current?.releasePointerCapture?.(event.pointerId);
+      }
+      return;
+    }
+    if (button !== LEFT_BUTTON) return;
+    const drag = dragRef.current;
+    if (!drag) return;
+    dragRef.current = null;
+    setGuides([]);
+    setHoverText(false);
+    if (!panRef.current) {
+      surfaceRef.current?.releasePointerCapture?.(event.pointerId);
+    }
+    finishDrag(drag);
   };
 
   const handleEditorKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
@@ -540,12 +609,6 @@ export default function ScreenshotStage({
             }}
           />
         )}
-        {/*
-          The picture space: everything inside it is counted in the pixels of the capture, and the
-          browser scales the whole thing with one transform, the way the shot itself is scaled. The
-          drawing and the editor therefore cannot come apart, which they did while each of them
-          scaled itself and the editor used the toolbar size instead of the size of the wording.
-        */}
         <div
           data-testid="screenshot-space"
           className="pointer-events-none absolute z-10"

@@ -1,11 +1,8 @@
-//! Native toasts via winrt (plugin cannot report desktop clicks).
-
 use serde::{Deserialize, Serialize};
 use tauri::Emitter;
 
 pub const ACTIVATED_EVENT: &str = "notification-activated";
 
-/// Mirrors frontend `NotificationTarget`.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(tag = "source", rename_all = "lowercase")]
 pub enum ToastAction {
@@ -38,7 +35,6 @@ pub fn show_toast(
     toast.show().map_err(|error| error.to_string())
 }
 
-/// Dev builds run from target/; falls back to unpackaged-app id.
 #[cfg(windows)]
 fn toast_app_id(app: &tauri::AppHandle) -> String {
     use tauri_winrt_notification::Toast;
@@ -59,7 +55,6 @@ fn toast_app_id(app: &tauri::AppHandle) -> String {
     }
 }
 
-/// The app ships for Windows only; this keeps the crate building elsewhere.
 #[cfg(not(windows))]
 #[tauri::command]
 pub fn show_toast(
@@ -75,7 +70,6 @@ pub fn show_toast(
 mod tests {
     use super::*;
 
-    /// The frontend, the `show-notification` payload and this enum all speak the same shape.
     #[test]
     fn action_matches_the_frontend_shape() {
         let anilist = serde_json::to_string(&ToastAction::Anilist { id: 21 }).unwrap();

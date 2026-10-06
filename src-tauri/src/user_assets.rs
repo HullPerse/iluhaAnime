@@ -9,7 +9,6 @@ use tauri::Manager;
 
 const MAX_IMAGE_BYTES: u64 = 4 * 1024 * 1024;
 
-/// Dither bakes (up to 1920px PNG) may exceed 4 MiB upload cap; allow 24 MiB.
 const MAX_DITHER_BAKE_BYTES: u64 = 24 * 1024 * 1024;
 
 const USER_IMAGES_TABLE: &str = "user_images";
@@ -24,7 +23,6 @@ pub struct UserImage {
     pub name: String,
     pub mime_type: String,
     pub path: String,
-    /// Mtime-size token; dither ids stay stable across rewrites.
     pub version: Option<String>,
     pub original_path: Option<String>,
     pub created_at: i64,
@@ -54,7 +52,6 @@ fn images_dir(app: &tauri::AppHandle, table: &str) -> Result<PathBuf, String> {
     Ok(assets_root(app)?.join("images").join(table))
 }
 
-/// Content-hash ids only; rejects traversal from edited DB cells.
 pub fn is_safe_asset_id(id: &str) -> bool {
     !id.is_empty()
         && id.len() <= 128
@@ -77,7 +74,6 @@ fn resolve_asset_file_in(dir: &Path, id: &str) -> Option<PathBuf> {
         .find(|path| path.is_file())
 }
 
-/// Prefers 336px thumb; filesystem-only so browser never generates thumbs.
 pub fn resolve_asset_file(
     app: &tauri::AppHandle,
     table: &str,
@@ -276,7 +272,6 @@ fn write_image_file(dir: &Path, file_name: &str, bytes: &[u8]) -> Result<PathBuf
     Ok(path)
 }
 
-/// Mtime-size cache token; None when file absent.
 fn file_version(path: &Path) -> Option<String> {
     let metadata = fs::metadata(path).ok()?;
     let age = metadata.modified().ok()?.duration_since(UNIX_EPOCH).ok()?;
@@ -755,7 +750,6 @@ fn dither_original_file(id: &str, original_ext: &str) -> String {
     format!("{id}.original.{original_ext}")
 }
 
-/// Missing originals only; re-import must not overwrite baked picture.
 fn import_dither_bytes(
     dir: &Path,
     conn: &Connection,

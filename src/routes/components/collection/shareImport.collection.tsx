@@ -10,13 +10,13 @@ import Image from "@/components/ui/image.component";
 import { Input } from "@/components/ui/input.component";
 import { DEFAULT_NEW_COLOR, PUBLIC_STATUS_MAX_ITEMS } from "@/config/collection/statuses.config";
 import { COLLECTION_QUERY_KEY } from "@/hooks/collection/queries.hook";
+import { useI18n } from "@/hooks/i18n.hook";
 import { useRemoteImage } from "@/hooks/remoteImage.hook";
 import {
   buildCustomStatusId,
   normalizeStatusLabel,
   resolveStatusLabel,
 } from "@/lib/collection/status.utils";
-import { useI18n } from "@/hooks/i18n.hook";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { useNotificationStore } from "@/store/notification.store";
 import type { ShareImportPlan } from "@/types/deeplink";

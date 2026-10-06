@@ -8,6 +8,7 @@ import {
   useCollectionMutations,
   useCollectionSearch,
 } from "@/hooks/collection/queries.hook";
+import { useI18n } from "@/hooks/i18n.hook";
 import { useSearchField } from "@/hooks/search/field.hook";
 import { filterCollectionItems, pickRandomItem } from "@/lib/collection/filter.utils";
 import { groupItemsByStatus, shouldGroupByStatus } from "@/lib/collection/group.utils";
@@ -19,7 +20,6 @@ import {
   isPublicStatusFull,
   publicStatusPrefill,
 } from "@/lib/collection/status.utils";
-import { useI18n } from "@/hooks/i18n.hook";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { buildCollectionShareLink } from "@/lib/utils/deeplink.utils";
 import { useCollectionStore } from "@/store/collection.store";

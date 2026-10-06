@@ -37,32 +37,24 @@ use super::types::{
     TorrentDiagnostics, TorrentFileInfo, TorrentInfo, TorrentInfoResult, TorrentLimits,
     TorrentResumeResult,
 };
-/// Max concurrent magnet metadata fetches; one slot is held per torrent until its metainfo arrives.
 pub const METADATA_SLOTS: usize = 8;
 
-/// Re-aim cadence for the sequential priority window (32 MB library window; avoids churning the blocking permit).
 const SEQUENTIAL_PRIORITY_TICK: Duration = Duration::from_secs(1);
 
-/// Each window holds a blocking-pool permit shared with storage reads; uncapped windows would starve downloads.
 const MAX_SEQUENTIAL_PRIORITY_STREAMS: usize = 4;
 
-/// Let in-flight writes land before the pause snapshot, or resume sees a phantom external edit.
 const PAUSE_SNAPSHOT_SETTLE: Duration = Duration::from_millis(250);
 
-/// Badge, not a security check: seconds of lag are fine.
 const PAUSE_WATCH_INTERVAL: Duration = Duration::from_secs(3);
 
-/// Keyed by info hash, not session id: ids are renumbered per launch and reused after removal.
 #[derive(Serialize, Deserialize, Default)]
 struct TorrentPreferences {
     sequential_torrents: HashSet<String>,
     file_priorities: HashMap<String, Vec<FilePriority>>,
-    /// Empty = no own arrangement, the global file order applies.
     #[serde(default)]
     download_order: HashMap<String, Vec<usize>>,
 }
 
-/// Metainfo bytes win: already in session, no peers needed; a magnet re-resolves from the swarm.
 #[derive(Clone)]
 enum TorrentSource {
     Bytes(Vec<u8>),
@@ -72,7 +64,6 @@ enum TorrentSource {
 impl TorrentSource {
     fn to_add_torrent(&self, inject_fallback: bool) -> AddTorrent<'static> {
         match self {
-            // A rewrite with an explicit tracker list must not restore trackers the user removed.
             Self::Bytes(bytes) if inject_fallback => {
                 AddTorrent::from_bytes(with_fallback_trackers_bytes(bytes))
             }
@@ -82,17 +73,14 @@ impl TorrentSource {
     }
 }
 
-/// On-disk state at pause; None fields = file absent. A fresh pass tells plain resume apart from outside writes.
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct FileStamp {
     name: String,
     expected_len: u64,
     on_disk_len: Option<u64>,
-    /// Unix epoch seconds: comparable and cheap to store.
     mtime_secs: Option<i64>,
 }
 
-/// Counted, not a flag, so overlapping rewrites cannot close each other's window.
 pub struct RewriteGuard<'a>(&'a std::sync::atomic::AtomicUsize);
 
 impl Drop for RewriteGuard<'_> {
@@ -110,34 +98,23 @@ pub struct TorrentManager {
     pub torrent_limits: DashMap<String, TorrentLimits>,
     pub torrent_limits_path: PathBuf,
     pub sequential_torrents: DashSet<String>,
-    /// One holder per torrent; the file is nudged to the front, never deselected, so user picks survive.
     pub sequential_streams: DashMap<usize, (usize, tokio::task::JoinHandle<()>)>,
     pub file_priorities: DashMap<String, Vec<FilePriority>>,
-    /// Per info hash; see [`TorrentManager::set_torrent_download_order`].
     pub download_order: DashMap<String, Vec<usize>>,
     pub pending_selections: DashMap<usize, Vec<usize>>,
     pub session_config_path: PathBuf,
-    /// Shared with the file list: sequential mode starts on the first visible file.
     pub file_order: std::sync::RwLock<FileOrder>,
     pub preferences_path: PathBuf,
-    /// Metainfo of locally built torrents, so "Save .torrent" skips re-hashing.
     pub created_dir: PathBuf,
     pub limit_locks: DashMap<usize, Arc<tokio::sync::Mutex<()>>>,
     pub peer_counts: DashMap<usize, (Instant, usize)>,
-    /// Checked once per session so a big library trickles instead of stat-ing every tick.
     pub missing_files: DashMap<usize, bool>,
-    /// Per-file state at pause, keyed by hash; in memory only, the library re-checks at startup on its own.
     pause_snapshots: DashMap<String, Vec<FileStamp>>,
-    /// Last external-change verdict per hash; filled while paused, dropped on resume/remove.
     pause_changes: DashMap<String, (Instant, Vec<String>)>,
-    /// Pre-rewrite row served while the torrent is briefly out of the session; never beside its replacement.
     rewrite_ghosts: DashMap<String, TorrentInfo>,
-    /// Test-only: point a download at a localhost seeder.
     #[cfg(test)]
     pub peer_hints: std::sync::Mutex<Vec<std::net::SocketAddr>>,
-    /// While open, the UI is served the pre-rewrite state, not a gap.
     pub rewrites_in_flight: std::sync::atomic::AtomicUsize,
-    /// Served only while a rewrite is open; dropped with the torrent so a reused id cannot inherit it.
     pub files_cache: DashMap<usize, Vec<TorrentFileInfo>>,
     pub metadata_slots: Arc<tokio::sync::Semaphore>,
 }
@@ -173,7 +150,6 @@ impl TorrentManager {
             .and_then(|json| serde_json::from_str(&json).ok())
             .unwrap_or_default();
 
-        // Info-hash keyed: session ids are per-launch and reused after removal.
         let torrent_limits_path = app_data_dir.join("torrent_limits.json");
         let torrent_limits: HashMap<String, TorrentLimits> =
             std::fs::read_to_string(&torrent_limits_path)
@@ -181,7 +157,6 @@ impl TorrentManager {
                 .and_then(|json| serde_json::from_str::<HashMap<String, TorrentLimits>>(&json).ok())
                 .unwrap_or_default()
                 .into_iter()
-                // Pre-hash files keyed by session id can match nothing; drop them.
                 .filter(|(key, _)| is_info_hash(key))
                 .collect();
 
@@ -196,7 +171,6 @@ impl TorrentManager {
             .ok()
             .and_then(|json| serde_json::from_str::<TorrentPreferences>(&json).ok())
             .unwrap_or_default();
-        // Id-keyed leftovers must not land on an unrelated torrent reusing the id.
         preferences
             .sequential_torrents
             .retain(|key| is_info_hash(key));
@@ -220,7 +194,6 @@ impl TorrentManager {
         } else {
             (Ipv6Addr::UNSPECIFIED, session_config.listen_port).into()
         };
-        // A rejected value means hand-edited config; ignore it instead of taking the torrent tab down.
         let proxy_url = session_config.proxy_url.as_deref().and_then(|raw| {
             torrent_proxy_url(raw).unwrap_or_else(|error| {
                 tracing::warn!("ignoring torrent session proxy: {error}");
@@ -319,7 +292,6 @@ impl TorrentManager {
             .map(|handle| handle.info_hash().as_string())
     }
 
-    /// Must not run under a session lock: it looks the torrent up again.
     fn is_sequential(&self, id: usize) -> bool {
         self.torrent_info_hash(id)
             .is_some_and(|key| self.sequential_torrents.contains(&key))
@@ -343,7 +315,6 @@ impl TorrentManager {
             .map(|entry| TorrentSource::Magnet(entry.clone()))
     }
 
-    /// Live metainfo with replaced announce list; magnet fallback while metainfo is missing.
     fn tracker_source(
         &self,
         id: usize,
@@ -366,12 +337,10 @@ impl TorrentManager {
         RewriteGuard(&self.rewrites_in_flight)
     }
 
-    /// True while our own rewrite holds a torrent out of the session.
     pub fn is_rewriting(&self) -> bool {
         self.rewrites_in_flight.load(Ordering::SeqCst) > 0
     }
 
-    /// Window must already be open; call before the delete.
     fn capture_rewrite_ghost(&self, id: usize, key: &str) {
         if let Some(ghost) = self
             .collect_torrents()
@@ -452,7 +421,6 @@ impl TorrentManager {
         self.torrent_limits.get(key).map(|entry| *entry.value())
     }
 
-    /// A rewrite re-adds the torrent, which would otherwise silently resume it.
     fn torrent_is_paused(&self, id: usize) -> bool {
         self.session
             .with_torrents(|iter| {
@@ -480,7 +448,6 @@ impl TorrentManager {
         let _guard = lock.lock().await;
         self.verify_torrent(id, info_hash.as_deref())?;
         let previous_limits = self.get_torrent_limits(id);
-        // Read before the delete takes the handle.
         let source = self
             .torrent_source(id)
             .ok_or_else(|| "torrent metainfo is unavailable, try again".to_string())?;
@@ -513,7 +480,6 @@ impl TorrentManager {
         }
         self.save_torrent_limits();
 
-        // Window first, like replace_torrent: a limits change never blinks the row out.
         let _rewriting = self.rewrite_guard();
         self.capture_rewrite_ghost(id, &key);
         if let Err(error) = self.session.delete(id.into(), false).await {
@@ -544,7 +510,6 @@ impl TorrentManager {
             )
             .await
             .map_err(|error| format!("unable to reconfigure torrent: {error:#}"));
-        // Torrent back or rolling back: the stand-in is done.
         self.clear_rewrite_ghost(&key);
 
         if result.is_err() {
@@ -593,7 +558,6 @@ impl TorrentManager {
         let previous = self.file_order();
         if previous != config.file_order {
             self.set_file_order(config.file_order);
-            // The next tick re-plans onto the first visible file.
         }
         Ok(())
     }
@@ -612,7 +576,6 @@ impl TorrentManager {
             .unwrap_or_else(std::sync::PoisonError::into_inner) = order;
     }
 
-    /// With `listen_port` 0 this is the only way to learn the bound port.
     pub fn listen_port(&self) -> Option<u16> {
         self.session.listen_addr().map(|addr| addr.port())
     }
@@ -645,7 +608,6 @@ impl TorrentManager {
                 let sequential_download = self
                     .sequential_torrents
                     .contains(&handle.info_hash().as_string());
-                // Cheaper than re-planning: read the held window the picker is actually on.
                 let sequential_file = self.sequential_streams.get(&id).map(|holder| holder.0);
                 let download_order = self
                     .download_order
@@ -701,12 +663,10 @@ impl TorrentManager {
                         .missing_files
                         .get(&id)
                         .is_some_and(|entry| *entry.value()),
-                    // The paused watcher fills this right after; it needs the session lock this holds.
                     paused_external_changes: false,
                     paused_changed_files: Vec::new(),
                 });
             }
-            // While a rewrite window is open the old row stands in, keyed by hash so old and new never show together.
             if self.is_rewriting() {
                 let hashes: Vec<String> = self
                     .rewrite_ghosts
@@ -729,7 +689,6 @@ impl TorrentManager {
         })
     }
 
-    /// With sequential the torrent is added paused and started on first file selection: the selection order decides where the download begins.
     pub async fn add_torrent(
         self: &Arc<Self>,
         magnet: String,
@@ -777,7 +736,6 @@ impl TorrentManager {
         .await
     }
 
-    /// The folder becomes the torrent root with the session pointed at its parent, so on-disk files are the payload: no copy, no re-download. Metainfo is kept in the app data dir for later "Save .torrent".
     pub async fn create_torrent_from_folder(
         self: &Arc<Self>,
         source_dir: String,
@@ -797,7 +755,6 @@ impl TorrentManager {
             .to_string_lossy()
             .to_string();
 
-        // create_torrent allows zero files; refuse while the reason is known.
         let mut file_count: usize = 0;
         for entry in walkdir::WalkDir::new(&source) {
             let Ok(entry) = entry else { continue };
@@ -820,7 +777,6 @@ impl TorrentManager {
         let bytes = created.as_bytes()?.to_vec();
         let info_hash = created.info_hash().as_string();
 
-        // librqbit joins files straight onto the output folder, so the name arrives as sub_folder; without it the session seeds nothing.
         let id = self
             .add_torrent_from_bytes(bytes.clone(), save_dir, None, Some(name.clone()), false)
             .await?;
@@ -900,7 +856,6 @@ impl TorrentManager {
             AddTorrentResponse::Added(id, _) => {
                 self.save_dirs.insert(id, output_folder);
                 self.save_save_dirs();
-                // The flag is a verdict of the last check; it must not stick to a reused id.
                 self.missing_files.remove(&id);
                 if let Some(m) = magnet {
                     self.magnet_links.insert(id, m);
@@ -919,7 +874,6 @@ impl TorrentManager {
             }
             AddTorrentResponse::ListOnly(_) => anyhow::bail!("torrent was not added"),
         };
-        // A re-add replaces the handle, so the previous stream task must go.
         self.stop_priority_stream(id);
 
         let handle = self.torrent_handle(id);
@@ -932,7 +886,6 @@ impl TorrentManager {
         self.cleanup_unselected_files();
         if let (Some(ref files), Some(handle), Some(key)) = (&only_files, &handle, &key) {
             self.pending_selections.insert(id, files.clone());
-            // Planning reads these; a session-only selection would be lost here.
             self.materialize_priorities(handle, key, files);
         }
 
@@ -941,9 +894,7 @@ impl TorrentManager {
                 self.sequential_torrents.insert(key.clone());
                 self.save_preferences();
             }
-            // Still-checking torrents are left to the tick as well.
             if let Err(error) = self.advance_sequential(id).await {
-                // A failed first step must not fail the add: the tick keeps trying.
                 tracing::warn!("sequential start for torrent {id} deferred: {error}");
             }
         }
@@ -995,7 +946,6 @@ impl TorrentManager {
             })?
     }
 
-    /// Re-applied after re-add so the rewrite stays invisible.
     fn save_torrent_state(
         &self,
         info_hash: &str,
@@ -1014,7 +964,6 @@ impl TorrentManager {
             self.file_priorities
                 .insert(info_hash.to_string(), priorities);
         }
-        // The remove drops the whole per-hash state, queue included; put it back or the queue silently reorders.
         if let Some(order) = order {
             self.download_order.insert(info_hash.to_string(), order);
         }
@@ -1022,7 +971,6 @@ impl TorrentManager {
         self.save_preferences();
     }
 
-    /// librqbit 9.0.1 has no live tracker/limit API, so rewrite is the only way. Comes back paused if paused; a failed add falls back to the original magnet or the torrent is gone for good.
     async fn replace_torrent(
         self: &Arc<Self>,
         id: usize,
@@ -1052,7 +1000,6 @@ impl TorrentManager {
             .get(&id)
             .map(|r| r.clone())
             .unwrap_or_else(|| magnet.clone());
-        // Outside the window the UI must not see the gap; the cached file list covers it.
         let cached_files = self.files_cache.get(&id).map(|r| r.clone());
         let _rewriting = self.rewrite_guard();
         self.remove_torrent(id, false, None)
@@ -1075,11 +1022,9 @@ impl TorrentManager {
                 was_paused,
             )
             .await;
-        // Back in session (still checking counts): the stand-in is done.
         self.clear_rewrite_ghost(&info_hash);
         match added {
             Ok(new_id) => {
-                // The hash survives the rewrite; only the landed id is reported back.
                 self.save_torrent_state(&info_hash, limits, sequential, priorities, order);
                 Ok(new_id)
             }
@@ -1169,7 +1114,6 @@ impl TorrentManager {
         Ok(new_id)
     }
 
-    /// Normalized like user input, or a visible tracker cannot be removed by its own string.
     fn live_trackers(&self, id: usize) -> Result<Vec<String>, String> {
         let found = self.session.with_torrents(|iter| {
             for (tid, handle) in iter {
@@ -1203,7 +1147,6 @@ impl TorrentManager {
             .into_iter()
             .find(|torrent| torrent.id == id)
             .map(|torrent| torrent.name);
-        // Re-merge fallbacks so an edit cannot strip the safety net; an emptied set means DHT-only.
         let mut merged: Vec<String> = trackers.to_vec();
         if !merged.is_empty() {
             let mut known: std::collections::HashSet<String> = merged
@@ -1238,7 +1181,6 @@ impl TorrentManager {
             false,
         )
         .await?;
-        // replace_torrent already restored the real priorities; drop the pending leftover.
         self.pending_selections.remove(&id);
         Ok(())
     }
@@ -1251,7 +1193,6 @@ impl TorrentManager {
     ) -> Result<(), String> {
         self.verify_torrent(id, Some(info_hash.as_str()))?;
         let canonical = validate_tracker_url(&tracker)?;
-        // Same normalizer, so these compare equal.
         let mut trackers = self.live_trackers(id)?;
         if trackers.iter().any(|existing| existing == &canonical) {
             return Ok(());
@@ -1296,7 +1237,6 @@ impl TorrentManager {
             .await
     }
 
-    // DHT bootstrap can take 30+ s; a timeout here drops the add.
     const METADATA_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(120);
 
     async fn get_torrent_info_inner(
@@ -1472,7 +1412,6 @@ impl TorrentManager {
         Ok(())
     }
 
-    /// Snapshot and resume read the same shape, so the two compare like for like; None when torrent/metadata missing.
     fn file_stamps(&self, id: usize) -> Option<Vec<FileStamp>> {
         let save_dir = self.save_dirs.get(&id).map(|r| r.clone())?;
         let handle = self.torrent_handle(id)?;
@@ -1507,12 +1446,10 @@ impl TorrentManager {
         };
         if let Some(stamps) = self.file_stamps(id) {
             self.pause_snapshots.insert(key.clone(), stamps);
-            // A fresh baseline restarts the watch; the old verdict belongs to the previous pause.
             self.pause_changes.remove(&key);
         }
     }
 
-    /// Same tick as `verify_pending_missing`, after `collect_torrents` releases the session lock; unpaused torrents report empty.
     pub fn watch_paused_files(&self, torrents: &mut [TorrentInfo]) {
         for torrent in torrents.iter_mut() {
             let changed = self.paused_files_changed(torrent.id);
@@ -1521,7 +1458,6 @@ impl TorrentManager {
         }
     }
 
-    /// Empty when nothing moved; throttled per hash, last verdict served until the interval passes.
     fn paused_files_changed(&self, id: usize) -> Vec<String> {
         let Some(handle) = self.torrent_handle(id) else {
             return Vec::new();
@@ -1548,10 +1484,8 @@ impl TorrentManager {
         changed
     }
 
-    /// Metainfo fixes names and order, so element-wise compare is enough; size and mtime are what outside writers change.
     fn changed_file_names(before: &[FileStamp], after: &[FileStamp]) -> Vec<String> {
         if before.len() != after.len() {
-            // A different count is a different metainfo, not an outside edit; no file is named.
             return Vec::new();
         }
         before
@@ -1584,7 +1518,6 @@ impl TorrentManager {
         }
     }
 
-    /// Re-add from own metainfo with overwrite: the delete drops the piece bitmap, so the add re-hashes disk. Takes in outside bytes, drops stale pieces, comes back paused.
     async fn reverify_from_disk(
         self: &Arc<Self>,
         id: usize,
@@ -1643,13 +1576,11 @@ impl TorrentManager {
             return Ok(());
         }
         self.session.pause(&handle).await?;
-        // Settle first so the snapshot reflects a stopped writer.
         tokio::time::sleep(PAUSE_SNAPSHOT_SETTLE).await;
         self.snapshot_torrent_files(id);
         Ok(())
     }
 
-    /// Re-verifies from disk when snapshot and files disagree, so outside bytes count and no stale piece is kept.
     pub async fn resume_torrent(
         self: &Arc<Self>,
         id: usize,
@@ -1676,7 +1607,6 @@ impl TorrentManager {
             });
         }
         let key = handle.info_hash().as_string();
-        // No baseline = no extra IO: a never-paused torrent resumes directly.
         let before = self.pause_snapshots.get(&key).map(|entry| entry.clone());
         let after = before.as_ref().and_then(|_| self.file_stamps(id));
         let changed_files = match (&before, &after) {
@@ -1694,11 +1624,9 @@ impl TorrentManager {
                 check: None,
             });
         }
-        // Outside bytes already on disk: re-verify instead of re-downloading; the library re-hashes on the way up.
         let check = after
             .as_ref()
             .map(|stamps| Self::check_from_stamps(id, stamps));
-        // replace_torrent already serializes per torrent; re-locking would deadlock.
         let new_id = self
             .reverify_from_disk(id, &key)
             .await
@@ -1719,7 +1647,6 @@ impl TorrentManager {
         })
     }
 
-    /// Badge "Recheck now": same rewrite as resume-after-edits, minus unpause, plus fresh baseline; still-missing files surface via `missing_files`.
     pub async fn recheck_paused_torrent(
         self: &Arc<Self>,
         id: usize,
@@ -1752,7 +1679,6 @@ impl TorrentManager {
         if let Some(check) = &check {
             self.missing_files.insert(new_id, !check.missing.is_empty());
         }
-        // Back paused: re-baseline so the badge clears and later resume is a plain unpause.
         self.snapshot_torrent_files(new_id);
         Ok(TorrentResumeResult {
             id: new_id,
@@ -1786,7 +1712,6 @@ impl TorrentManager {
             None => None,
         };
         let key = self.torrent_info_hash(id);
-        // Only a rewrite gets a stand-in; a plain removal must disappear.
         let rewriting = self.is_rewriting();
         if rewriting {
             if let Some(key) = &key {
@@ -1803,7 +1728,6 @@ impl TorrentManager {
             self.torrent_limits.remove(&key);
             self.pause_snapshots.remove(&key);
             self.pause_changes.remove(&key);
-            // A plain removal drops the ghost too, so a reused hash cannot inherit it.
             if !rewriting {
                 self.rewrite_ghosts.remove(&key);
             }
@@ -1814,10 +1738,13 @@ impl TorrentManager {
         self.peer_counts.remove(&id);
         self.missing_files.remove(&id);
         self.files_cache.remove(&id);
-        self.save_save_dirs();
-        self.save_magnet_links();
-        self.save_torrent_limits();
-        self.save_preferences();
+        let persisted = Arc::clone(self);
+        tokio::task::spawn_blocking(move || {
+            persisted.save_save_dirs();
+            persisted.save_magnet_links();
+            persisted.save_torrent_limits();
+            persisted.save_preferences();
+        });
         Ok(())
     }
 
@@ -1855,7 +1782,6 @@ impl TorrentManager {
                                     .only_files()
                                     .filter(|_| !self.sequential_torrents.contains(&key))
                                 {
-                                    // Sequential mode narrows only_files to one file; never derive the selection from it or the user's pick collapses to that file.
                                     let mut p = vec![FilePriority::DoNotDownload; file_count];
                                     for &idx in &only {
                                         if idx < file_count {
@@ -1928,18 +1854,15 @@ impl TorrentManager {
             None
         });
         if let Some(files) = result {
-            // A rewrite window answers with the pre-window list.
             self.files_cache.insert(id, files.clone());
             Ok(files)
         } else {
             if self.is_rewriting() {
-                // Mid-rewrite: the pre-window list beats "not found".
                 if let Some(cached) = self.files_cache.get(&id) {
                     return Ok(cached.clone());
                 }
                 return Err("torrent not found or no metadata".to_string());
             }
-            // Really gone: drop the cache so a reused id inherits nothing.
             self.files_cache.remove(&id);
             Err("torrent not found or no metadata".to_string())
         }
@@ -2043,7 +1966,6 @@ impl TorrentManager {
             .await
             .map_err(|e| format!("{e}"));
         if result.is_ok() {
-            // New selection: recorded priorities and the applied step are stale, start over.
             self.file_priorities.remove(&key);
             self.materialize_priorities(&handle, &key, &only_files);
             self.cleanup_unselected_files();
@@ -2085,8 +2007,6 @@ impl TorrentManager {
                 })
                 .ok_or_else(|| "Torrent not found".to_string())?;
 
-            // `None` means the session has every file selected, not none of them: reading it as
-            // an empty selection turned "allow this file" into "drop every other file".
             let file_count = handle.stats().file_progress.len();
             let only: Vec<usize> = handle
                 .only_files()
@@ -2137,7 +2057,6 @@ impl TorrentManager {
         } else {
             self.sequential_torrents.remove(&key);
             self.save_preferences();
-            // The mode never touched the selection: close the window, repair the narrowed carry-over.
             self.stop_priority_stream(id);
             if let Some(plan) = self.sequential_plan(id, &handle) {
                 self.sync_session_selection(
@@ -2151,7 +2070,6 @@ impl TorrentManager {
         Ok(())
     }
 
-    /// Per-hash queue of which selected file sequential mode takes first (before the global order). Empty clears it; unknown or repeated indices are dropped so the queue cannot outlive its metainfo.
     pub async fn set_torrent_download_order(
         self: &Arc<Self>,
         id: usize,
@@ -2163,7 +2081,6 @@ impl TorrentManager {
             .torrent_handle(id)
             .ok_or_else(|| "Torrent not found".to_string())?;
         let key = handle.info_hash().as_string();
-        // Without metainfo there is no file count to check; planning drops ill-fitting entries once it arrives, so store as given.
         let file_count = handle
             .with_metadata(|metadata| metadata.file_infos.len())
             .ok();
@@ -2182,14 +2099,12 @@ impl TorrentManager {
         }
         self.save_preferences();
 
-        // Follow the arrangement at once, not on the next tick: the user is watching the list.
         if self.is_sequential(id) {
             self.advance_sequential(id).await?;
         }
         Ok(())
     }
 
-    /// Plan inputs off a live torrent; None while metainfo is missing.
     fn sequential_plan(
         &self,
         id: usize,
@@ -2229,14 +2144,12 @@ impl TorrentManager {
         ))
     }
 
-    /// Repairs carry-over from the version that held the session to one file; a no-op otherwise, so the tick calls it every second.
     async fn sync_session_selection(
         &self,
         handle: &Arc<librqbit::ManagedTorrent>,
         allowed: &[usize],
         file_count: usize,
     ) -> Result<(), String> {
-        // The session answers None for "every file": compare as file sets, not Options.
         let expected: HashSet<usize> = allowed.iter().copied().collect();
         let selected: HashSet<usize> = handle.only_files().map_or_else(
             || (0..file_count).collect(),
@@ -2251,7 +2164,6 @@ impl TorrentManager {
             .map_err(|error| format!("{error:#}"))
     }
 
-    /// Target = first selected file in list order (metainfo order is arbitrary and looked random).
     pub async fn advance_sequential(self: &Arc<Self>, id: usize) -> Result<(), String> {
         let handle = self
             .torrent_handle(id)
@@ -2259,7 +2171,6 @@ impl TorrentManager {
 
         let stats = handle.stats();
         if matches!(stats.state, TorrentStatsState::Initializing { .. }) {
-            // Initial check rejects selections and has no storage: nothing to report, the tick returns in a second.
             return Ok(());
         }
 
@@ -2270,20 +2181,17 @@ impl TorrentManager {
             .await?;
 
         match plan.target {
-            // A paused torrent fetches nothing; its window would only hold a permit.
             Some(target) if !self.torrent_is_paused(id) => {
                 self.hold_priority_stream(id, target, &handle);
             }
             Some(_) => self.stop_priority_stream(id),
             None => {
-                // Everything picked is on disk: mode stays on (user's switch), nothing left to nudge.
                 self.stop_priority_stream(id);
             }
         }
         Ok(())
     }
 
-    /// 32 MB window the piece picker checks before its own queue; seeking moves it without reading. The self re-aiming holder walks it front to end while other picked files keep downloading; nothing is deselected.
     fn hold_priority_stream(
         self: &Arc<Self>,
         id: usize,
@@ -2292,7 +2200,6 @@ impl TorrentManager {
     ) {
         if let Some(current) = self.sequential_streams.get(&id) {
             if current.0 == file_id && !current.1.is_finished() {
-                // Same live target: no work needed.
                 return;
             }
         }
@@ -2324,7 +2231,6 @@ impl TorrentManager {
                     return;
                 }
                 tokio::time::sleep(SEQUENTIAL_PRIORITY_TICK).await;
-                // Mode off, torrent gone or replaced: stop, the tick decides next.
                 if !manager.is_sequential(id) || manager.torrent_handle(id).is_none() {
                     return;
                 }
@@ -2335,12 +2241,10 @@ impl TorrentManager {
 
     fn stop_priority_stream(&self, id: usize) {
         if let Some((_, (_, task))) = self.sequential_streams.remove(&id) {
-            // Aborting drops stream + task, releasing the window and the blocking permit.
             task.abort();
         }
     }
 
-    /// Library persistence keeps only trackers/folder/selection/pause flag, so restored torrents come back unlimited; re-applying costs a rewrite, so run this in the background.
     pub async fn reapply_stored_limits(self: &Arc<Self>) {
         for (id, key, limits) in self.stored_limits() {
             if let Err(error) = self.set_torrent_limits(id, limits, Some(key.clone())).await {
@@ -2364,7 +2268,6 @@ impl TorrentManager {
     }
 
     pub async fn advance_sequential_torrents(self: &Arc<Self>) {
-        // Session-driven, so absent torrents are skipped without touching their settings.
         let sequential: Vec<usize> = self
             .session
             .with_torrents(|iter| {
@@ -2375,7 +2278,6 @@ impl TorrentManager {
             .filter(|(_, key)| self.sequential_torrents.contains(key))
             .map(|(id, _)| id)
             .collect();
-        // Sorted so the cap lands on the same torrents; session ids are arbitrary and a moving window would churn streams.
         let mut sequential = sequential;
         sequential.sort_unstable();
         for id in sequential.iter().skip(MAX_SEQUENTIAL_PRIORITY_STREAMS) {
@@ -2446,13 +2348,10 @@ impl TorrentManager {
             None
         });
         let check = result.ok_or_else(|| "torrent not found or no metadata".to_string())?;
-        // This turns the check into the "files lost" state without opening the result.
         self.missing_files.insert(id, !check.missing.is_empty());
-        // A check can hand files back; the next tick re-plans and moves the window if the target changed.
         Ok(check)
     }
 
-    /// Surface back-deleted files on their own: check finished/errored torrents once per session, skipping incomplete ones (unfetched files would count as missing); the limit keeps big libraries trickling.
     pub fn verify_pending_missing(&self, torrents: &mut [TorrentInfo], limit: usize) {
         let mut checked = 0;
         for candidate in torrents
@@ -2469,8 +2368,6 @@ impl TorrentManager {
             let verdict = self
                 .recheck_torrent(candidate.id, Some(candidate.info_hash.clone()))
                 .map(|result| !result.missing.is_empty());
-            // A torrent whose metadata never arrived is not a missing-files case, and `false`
-            // keeps it from being retried on every tick.
             let missing = verdict.unwrap_or(false);
             self.missing_files.insert(candidate.id, missing);
             candidate.missing_files = missing;
@@ -2591,7 +2488,6 @@ mod tests {
 
     #[test]
     fn a_preferences_file_without_a_queue_still_loads() {
-        // Pre-queue files default the field instead of failing the parse, which would silently reset selection and flags.
         let json = r#"{"sequential_torrents":["0123456789abcdef0123456789abcdef01234567"],"file_priorities":{}}"#;
         let restored: TorrentPreferences =
             serde_json::from_str(json).expect("preferences deserialize");
@@ -2601,7 +2497,6 @@ mod tests {
 
     #[test]
     fn preferences_keyed_by_id_like_values_are_ignored() {
-        // Pre-hash id-keyed entries must not apply to anything.
         let legacy = r#"{"sequential_torrents":[0,3],"file_priorities":{"3":["normal"]}}"#;
         let parsed: Result<TorrentPreferences, _> = serde_json::from_str(legacy);
         assert!(parsed.is_err(), "an id-keyed list must not silently load");
@@ -2827,10 +2722,8 @@ mod tests {
             !manager.missing_files.contains_key(&1),
             "an unfinished torrent is never checked: everything it still has to fetch would read as missing"
         );
-        // One candidate per call, finished torrents in list order.
         assert!(manager.missing_files.contains_key(&2));
         assert!(!manager.missing_files.contains_key(&3));
-        // A failed check is not a "files are gone" verdict and must not raise the state.
         assert!(!torrents[1].missing_files);
         assert!(!torrents[2].missing_files);
 
@@ -2842,7 +2735,6 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
     }
 
-    /// `label` keeps the scratch folder unique: parallel tests share temp dirs.
     fn create_test_torrent(label: &str, files: &[(&str, Vec<u8>)]) -> (Vec<u8>, PathBuf) {
         let dir =
             std::env::temp_dir().join(format!("iluha-torrent-src-{}-{label}", std::process::id()));
@@ -2932,7 +2824,6 @@ mod tests {
         let parsed = torrent_from_bytes(&stored).expect("the stored copy parses");
         assert_eq!(parsed.info_hash.as_string(), created.info_hash);
 
-        // save_dirs holds parent + torrent name: what makes the torrent seed from on-disk files.
         let seeded_from = manager
             .save_dirs
             .get(&created.id)
@@ -2944,7 +2835,6 @@ mod tests {
             "seeding has to read the folder itself, not its parent"
         );
 
-        // Finishing with zero peers proves the layout: only locally seeded files can complete.
         let deadline = tokio::time::Instant::now() + std::time::Duration::from_secs(20);
         let mut info = None;
         while tokio::time::Instant::now() < deadline {
@@ -3079,7 +2969,6 @@ mod tests {
         let content_a: Vec<u8> = (0..40 * 1024).map(|i| (i % 251) as u8).collect();
         #[allow(clippy::cast_sign_loss)]
         let content_b: Vec<u8> = (0..40 * 1024).map(|i| (i * 13 % 251) as u8).collect();
-        // Out-of-name-order on purpose: metainfo order is the filesystem's, so index-walking implementations fail.
         let (torrent_bytes, source_dir) = create_test_torrent(
             "sequential",
             &[("Show - 02.mkv", content_a), ("Show - 01.mkv", content_b)],
@@ -3108,7 +2997,6 @@ mod tests {
             .await
             .expect("sequential add");
 
-        // A fresh torrent checks first with no storage to stream; the tick takes it from there like a real add.
         for _ in 0..200 {
             let initializing = manager.torrent_handle(id).is_some_and(|handle| {
                 matches!(handle.stats().state, TorrentStatsState::Initializing { .. })
@@ -3231,7 +3119,6 @@ mod tests {
             "without an arrangement the mode takes the first row of the list"
         );
 
-        // A repeat and an index that names no file are dropped on the way in.
         manager
             .set_torrent_download_order(id, vec![third, 999, third], Some(hash.clone()))
             .await
@@ -3257,7 +3144,6 @@ mod tests {
             "the list carries the queue so the UI can show it"
         );
 
-        // The queued file is only the first step: the rest follows in global order, nothing drops.
         assert_eq!(
             files.iter().filter(|file| file.selected).count(),
             3,
@@ -3290,7 +3176,6 @@ mod tests {
         let _ = std::fs::remove_dir_all(&source_dir);
     }
 
-    /// Initial check refuses selections and streams; wait it out.
     async fn wait_for_download_state(manager: &Arc<TorrentManager>, id: usize) {
         for _ in 0..200 {
             let initializing = manager.torrent_handle(id).is_some_and(|handle| {
@@ -3380,7 +3265,6 @@ mod tests {
             .expect("torrent adds");
         wait_for_download_state(&manager, id).await;
 
-        // Untouched selection reads as "no filter" from the session.
         manager
             .set_file_priority(id, vec![0], FilePriority::Normal, None)
             .await
@@ -3413,7 +3297,6 @@ mod tests {
         let _ = std::fs::remove_dir_all(&source_dir);
     }
 
-    /// Polls the file list and reports the first finished file; both-in-one-poll reports None.
     async fn first_file_to_finish(
         manager: &Arc<TorrentManager>,
         id: usize,
@@ -3439,15 +3322,12 @@ mod tests {
         None
     }
 
-    /// Two files where the library's name order and the app's list order disagree; distinct labels since parallel tests share temp dirs.
     fn swarm_fixture(label: &str) -> (Vec<u8>, PathBuf, String, String) {
-        // Big enough that the two completions cannot land in the same poll.
         const FILE_BYTES: usize = 4 * 1024 * 1024;
         #[allow(clippy::cast_sign_loss)]
         let content_a: Vec<u8> = (0..FILE_BYTES).map(|i| (i % 251) as u8).collect();
         #[allow(clippy::cast_sign_loss)]
         let content_b: Vec<u8> = (0..FILE_BYTES).map(|i| (i * 7 % 251) as u8).collect();
-        // Built with the platform separator, the way the file list builds it.
         let nested = Path::new("Season 02")
             .join("Show - 02.mkv")
             .to_string_lossy()
@@ -3462,7 +3342,6 @@ mod tests {
         (bytes, source_dir, "Show - 01.mkv".to_string(), nested)
     }
 
-    /// Localhost seeder for the fixture; returned to keep it alive for the caller.
     async fn start_local_seeder(
         dir: &Path,
         torrent_bytes: &[u8],
@@ -3473,7 +3352,6 @@ mod tests {
             SessionOptions {
                 dht: None,
                 listen: Some(ListenerOptions {
-                    // Port 0: the OS picks, listen_addr reports back.
                     listen_addr: (Ipv4Addr::LOCALHOST, 0).into(),
                     ..Default::default()
                 }),
@@ -3516,7 +3394,6 @@ mod tests {
         (seeder, addr)
     }
 
-    /// Adds the fixture via the local seeder only and settles; returns the session id.
     async fn download_from_local_seeder(
         manager: &Arc<TorrentManager>,
         torrent_bytes: Vec<u8>,
@@ -3536,7 +3413,6 @@ mod tests {
             .expect("torrent adds");
         wait_for_download_state(manager, id).await;
         if sequential {
-            // Drive the tick the way the app does.
             manager.advance_sequential_torrents().await;
         }
         id
@@ -3561,7 +3437,6 @@ mod tests {
         )
     }
 
-    /// Over a real swarm: the first finished file proves the priority window worked.
     #[tokio::test(flavor = "multi_thread")]
     async fn sequential_mode_finishes_the_first_row_before_the_library_order() {
         let dir = std::env::temp_dir().join(format!("iluha-swarm-{}", std::process::id()));
@@ -3595,7 +3470,6 @@ mod tests {
         let _ = std::fs::remove_dir_all(&source_dir);
     }
 
-    /// Control: mode off, the library takes the nested file first; this layout fails without the window.
     #[tokio::test(flavor = "multi_thread")]
     async fn without_the_mode_the_library_takes_the_nested_file_first() {
         let dir = std::env::temp_dir().join(format!("iluha-swarm-order-{}", std::process::id()));
@@ -3629,7 +3503,6 @@ mod tests {
         let _ = std::fs::remove_dir_all(&source_dir);
     }
 
-    /// Over a real swarm: download, pause, outside edit, badge, resume re-verifies from disk.
     #[tokio::test(flavor = "multi_thread")]
     async fn a_real_swarm_flags_external_edits_and_reverifies_on_resume() {
         let dir = std::env::temp_dir().join(format!("iluha-swarm-paused-{}", std::process::id()));
@@ -3646,7 +3519,6 @@ mod tests {
         let id =
             download_from_local_seeder(&manager, torrent_bytes, &dir, seeder_addr, false).await;
 
-        // Snapshot the complete set, or every missing file looks edited.
         let deadline = Instant::now() + Duration::from_secs(90);
         let is_finished = |manager: &Arc<TorrentManager>| {
             manager
@@ -3666,7 +3538,6 @@ mod tests {
         let save_dir = dir.join("downloads");
         let files = manager.get_running_torrent_files(id).expect("file list");
         assert_eq!(files.len(), 2);
-        // Second writer: another client rewrites the payload while paused.
         for file in &files {
             std::fs::write(
                 save_dir.join(&file.name),
@@ -3674,7 +3545,6 @@ mod tests {
             )
             .expect("external write");
         }
-        // Skip the watcher's throttle: measure now.
         let key = manager.torrent_info_hash(id).expect("info hash");
         manager.pause_changes.remove(&key);
 
@@ -3732,7 +3602,6 @@ mod tests {
 
         let handle = manager.torrent_handle(id).expect("handle");
         let hash = handle.info_hash().as_string();
-        // Left behind by the old mode: priorities say both picked, session points at one.
         manager
             .file_priorities
             .insert(hash.clone(), vec![FilePriority::Normal; 2]);
@@ -3794,7 +3663,6 @@ mod tests {
             .info_hash;
 
         let limits = download_limit(64 * 1024);
-        // File-backed torrents have no magnet; the rewrite reads metainfo from the session.
         manager
             .set_torrent_limits(id, limits, Some(hash.clone()))
             .await
@@ -3841,7 +3709,6 @@ mod tests {
                 .await
                 .expect("session starts"),
         );
-        // A gone torrent's leftover; a reused id used to look exactly like this.
         manager
             .torrent_limits
             .insert("deadbeef".to_string(), download_limit(32 * 1024));
@@ -3961,7 +3828,6 @@ mod tests {
             .expect("the list is read and cached");
 
         let window = manager.rewrite_guard();
-        // The gap a rewrite actually opens: the torrent is briefly out of the session.
         manager
             .session
             .delete(id.into(), false)
@@ -4027,7 +3893,6 @@ mod tests {
             .await
             .expect("delete");
 
-        // The gap: the torrent is out of the session, its old row stands in for it.
         let during_gap = manager.collect_torrents();
         assert_eq!(
             during_gap
@@ -4044,7 +3909,6 @@ mod tests {
         assert_eq!(ghost.id, id);
         assert_eq!(ghost.name, name, "the stand-in keeps the data the user had");
 
-        // The re-add comes back under a fresh id; the stand-in must replace it, never sit beside it.
         let new_id = manager
             .add_torrent_from_bytes(torrent_bytes, save_dir, None, None, false)
             .await
@@ -4113,7 +3977,6 @@ mod tests {
             "a file that showed up is named, and only it"
         );
 
-        // Same size, different write time: exactly the "another client rewrote it" case.
         let mut touched = base.clone();
         touched[0] = stamp("one.bin", 10, Some((10, 1500)));
         assert_eq!(
@@ -4152,8 +4015,6 @@ mod tests {
         assert_eq!(check.size_mismatch, vec!["short.bin".to_string()]);
     }
 
-    /// Adds the fixture as a download into an empty folder, then leaves it until the initial
-    /// check is over - the only state a pause is allowed from.
     async fn paused_fixture(
         dir: &Path,
         label: &str,
@@ -4223,13 +4084,11 @@ mod tests {
             "a freshly paused torrent is clean"
         );
 
-        // Second writer: another client rewrites the payload.
         let files = manager.get_running_torrent_files(id).expect("file list");
         for file in &files {
             std::fs::write(save_dir.join(&file.name), &content[..content.len() - 1024])
                 .expect("external write");
         }
-        // Skip the watcher's throttle: measure now.
         let key = manager.torrent_info_hash(id).expect("info hash");
         manager.pause_changes.remove(&key);
 
@@ -4243,7 +4102,6 @@ mod tests {
             watched.paused_external_changes,
             "an outside edit has to raise the badge while the torrent is still paused"
         );
-        // The badge names the files, so the user knows what the outside writer touched.
         assert_eq!(
             watched.paused_changed_files,
             files.iter().map(|f| f.name.clone()).collect::<Vec<_>>(),
@@ -4283,7 +4141,6 @@ mod tests {
             "rechecking from the badge must leave the torrent paused"
         );
 
-        // Re-baselined on disk state: badge clears, later resume is a plain unpause.
         let mut torrents = manager.collect_torrents();
         manager.watch_paused_files(&mut torrents);
         assert!(
@@ -4307,10 +4164,8 @@ mod tests {
         let (manager, save_dir, source_dir, id) =
             paused_fixture(&dir, "resume-external", &content).await;
 
-        // Write the payload behind the app's back; the paused torrent knows nothing.
         let files = manager.get_running_torrent_files(id).expect("file list");
         assert_eq!(files.len(), 2);
-        // Pre-allocated files: an outside writer shows as unexpected size; shorten both like a partial rewrite.
         for (position, file) in files.iter().enumerate() {
             let shortened = &content[..content.len() - (position + 1) * 1024];
             std::fs::write(save_dir.join(&file.name), shortened).expect("external write");

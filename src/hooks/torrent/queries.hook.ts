@@ -14,11 +14,13 @@ import {
   findNewErrors,
   shouldHealTorrentChannel,
   torrentErrorText,
+  withoutPendingRemoved,
 } from "@/lib/torrent/common.utils";
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { showError, showInfo, showWarning } from "@/lib/utils/notification.utils";
 import { useCacheStore } from "@/store/cache.store";
 import { tr, useTorrentStore } from "@/store/download.store";
+import { useNotificationStore } from "@/store/notification.store";
 import type {
   FilePriority,
   TorrentCheckResult,
@@ -39,19 +41,35 @@ let lastTorrentEventAt = 0;
 let lastTorrentHealAt = 0;
 let torrentWatchStartedAt = 0;
 
+function pendingRemoveIds(): Set<number> {
+  const ids = new Set<number>();
+  const { opInFlight } = useTorrentStore.getState();
+  for (const [key, op] of Object.entries(opInFlight)) {
+    if (op === "remove") ids.add(Number(key));
+  }
+  return ids;
+}
+
 function applyTorrentEvent(queryClient: QueryClient, event: Event<TorrentInfo[]>): void {
   lastTorrentEventAt = Date.now();
   const store = useTorrentStore.getState();
   const prev = queryClient.getQueryData<TorrentInfo[]>(TORRENTS_QUERY_KEY) ?? [];
-  const patch = TorrentListen({ torrents: prev, lastActiveAt: store.lastActiveAt }, event);
+  const payload = withoutPendingRemoved(event.payload, pendingRemoveIds());
+  const patch = TorrentListen(
+    { torrents: prev, lastActiveAt: store.lastActiveAt },
+    {
+      ...event,
+      payload,
+    }
+  );
   if (patch.torrents !== undefined) queryClient.setQueryData(TORRENTS_QUERY_KEY, patch.torrents);
   if (patch.lastActiveAt !== undefined)
     useTorrentStore.setState({ lastActiveAt: patch.lastActiveAt });
-  for (const t of findNewErrors(prev, event.payload)) {
+  for (const t of findNewErrors(prev, payload)) {
     showError(tr("torrent.state.error"), `${t.name}: ${t.error}`);
   }
   const prefs = useCacheStore.getState().seedPreferences;
-  for (const t of findJustFinished(prev, event.payload, prefs)) {
+  for (const t of findJustFinished(prev, payload, prefs)) {
     torrentApi
       .pauseTorrent(t.id)
       .catch((error) => reportBackgroundError("torrent.autopause.push", error));
@@ -92,7 +110,10 @@ export function useTorrents(enabled = true) {
   const queryClient = useQueryClient();
   const query = useAppQuery("realtime", {
     queryKey: queryKeys.torrents(),
-    queryFn: () => torrentApi.listTorrents().then((list) => list ?? []),
+    queryFn: () =>
+      torrentApi
+        .listTorrents()
+        .then((list) => withoutPendingRemoved(list ?? [], pendingRemoveIds())),
     enabled,
     retry: false,
   });
@@ -293,19 +314,62 @@ function notifyResumeReverified(check: TorrentCheckResult | null): void {
   }
 }
 
+export interface RemoveTorrentVars {
+  id: number;
+  deleteFiles: boolean;
+  infoHash?: string;
+  name?: string;
+  silent?: boolean;
+}
+
 export function useRemoveTorrent() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (vars: { id: number; deleteFiles: boolean; infoHash?: string }) => {
+    mutationFn: async (vars: RemoveTorrentVars) => {
       const { id } = vars;
       if (!Number.isInteger(id)) return false;
+      if (useTorrentStore.getState().opInFlight[id] !== undefined) return false;
+      const prev = queryClient.getQueryData<TorrentInfo[]>(TORRENTS_QUERY_KEY);
       setOpInFlight(id, "remove");
+      queryClient.setQueryData<TorrentInfo[]>(TORRENTS_QUERY_KEY, (old) =>
+        withoutPendingRemoved(old ?? [], new Set([id]))
+      );
+      const notifications = useNotificationStore.getState();
+      const noticeId = vars.silent
+        ? -1
+        : notifications.add(
+            tr("torrent.delete.title"),
+            "info",
+            vars.name ?? String(id),
+            `torrent-remove:${id}:${vars.infoHash ?? ""}`,
+            { system: false }
+          );
+      if (noticeId > 0) notifications.update(noticeId, { progress: true });
       const [, error] = await attempt(
         torrentApi.removeTorrent(id, vars.deleteFiles, vars.infoHash)
       );
       setOpInFlight(id, null);
+      const partial =
+        error?.message.startsWith("torrent deleted, but could not delete files:") === true;
       if (error) {
-        showError(tr("download.error.remove"), torrentErrorText(error.message, tr));
+        if (!partial && prev !== undefined) queryClient.setQueryData(TORRENTS_QUERY_KEY, prev);
+        const text = torrentErrorText(error.message, tr);
+        if (noticeId > 0) {
+          notifications.update(
+            noticeId,
+            partial
+              ? { message: text, progress: false, type: "warning" }
+              : {
+                  message: text,
+                  progress: false,
+                  title: tr("download.error.remove"),
+                  type: "error",
+                },
+            { system: true }
+          );
+        } else {
+          showError(tr("download.error.remove"), text);
+        }
         return false;
       }
       useCacheStore.getState().removeSeedPreference(id);
@@ -318,7 +382,21 @@ export function useRemoveTorrent() {
         delete lastActiveAt[id];
         return { lastActiveAt };
       });
+      if (noticeId > 0) {
+        notifications.update(
+          noticeId,
+          {
+            message: tr("torrent.delete.done", { name: vars.name ?? String(id) }),
+            progress: false,
+            type: "success",
+          },
+          { system: true }
+        );
+      }
       return true;
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: TORRENTS_QUERY_KEY });
     },
   });
 }

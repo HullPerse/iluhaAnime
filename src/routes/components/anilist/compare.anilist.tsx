@@ -5,6 +5,7 @@ import { SmallLoader } from "@/components/shared/loader.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import Select from "@/components/ui/select.component";
+import { useI18n } from "@/hooks/i18n.hook";
 import {
   buildCompareSummary,
   COMPARE_METRICS,
@@ -20,7 +21,6 @@ import {
   parseScoreFormat,
   type AnilistScoreFormat,
 } from "@/lib/anilist/score.utils";
-import { useI18n } from "@/hooks/i18n.hook";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
 import type { AniListCollection, AniUser, AniUserProfile, FavouriteAnime } from "@/types/anilist";
 

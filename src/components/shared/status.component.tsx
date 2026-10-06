@@ -2,9 +2,9 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { ExternalLink } from "lucide-react";
 
 import { PROJECT_GITHUB_URL } from "@/config/settings/links.config";
+import { useI18n } from "@/hooks/i18n.hook";
 import { useOnlineStatus } from "@/hooks/network.hook";
 import { useTorrents } from "@/hooks/torrent/queries.hook";
-import { useI18n } from "@/hooks/i18n.hook";
 import { isCurrentDownload } from "@/lib/torrent/common.utils";
 import { useNotificationStore } from "@/store/notification.store";
 

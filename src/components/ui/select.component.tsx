@@ -1,12 +1,14 @@
 import { Select as BaseSelect } from "@base-ui/react/select";
 import { cn } from "cn";
 import { ChevronDown } from "lucide-react";
-import { useState, useMemo, useRef } from "react";
+import { createContext, useContext, useState, useMemo, useRef } from "react";
 
 import { useI18n } from "@/hooks/i18n.hook";
 import type { SelectProps } from "@/types/ui";
 
 import { Input } from "./input.component";
+
+export const SelectPortalContainerContext = createContext<HTMLElement | null>(null);
 
 function Select({
   value,
@@ -23,6 +25,7 @@ function Select({
   const { t } = useI18n();
   const [search, setSearch] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const portalContainer = useContext(SelectPortalContainerContext);
 
   const showSearch = searchable ?? options.length > 8;
   const selectedOption = options.find((o) => o.value === value);
@@ -70,7 +73,7 @@ function Select({
           </BaseSelect.Icon>
         )}
       </BaseSelect.Trigger>
-      <BaseSelect.Portal>
+      <BaseSelect.Portal container={portalContainer ?? undefined}>
         <BaseSelect.Positioner
           className="z-50"
           side="bottom"

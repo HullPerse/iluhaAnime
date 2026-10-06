@@ -14,9 +14,9 @@ import { listStatusLabels, seasonLabels, statusLabels } from "@/config/anilist/l
 import { BROWSE_PAGE_SIZE } from "@/config/anilist/pagination.config";
 import { QUERY_PRESETS } from "@/config/store/query.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
+import { useI18n } from "@/hooks/i18n.hook";
 import { usePagination } from "@/hooks/pagination.hook";
 import { getStatusColor } from "@/lib/anilist/entries.utils";
-import { useI18n } from "@/hooks/i18n.hook";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import { queryKeys } from "@/lib/query/keys.utils";
 import { paginate } from "@/lib/utils/pagination.utils";

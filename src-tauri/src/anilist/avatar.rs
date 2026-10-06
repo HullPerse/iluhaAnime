@@ -1,21 +1,15 @@
-//! `AniList` avatar cache (lobby.md §14.5).
-//! Avatar cache: id-keyed `cache_entries` rows; failures write nothing, misses use boring-avatars.
-
 use rusqlite::{params, Connection, OptionalExtension};
 
 use super::client::{graphql_request, resolve_proxy};
 
 pub const AVATAR_CACHE_NAMESPACE: &str = "anilist_avatar";
-/// Avatars change rarely; one week keeps the cache small and fresh enough.
 pub const AVATAR_CACHE_TTL_SECONDS: i64 = 7 * 24 * 60 * 60;
 pub const MAX_AVATAR_URL_CHARS: usize = 1024;
 
-/// Now for cache expiry threshold.
 fn cache_now() -> i64 {
     crate::app_db::now_seconds()
 }
 
-/// Narrows untrusted Viewer response to bounded http(s) avatar URL.
 pub fn avatar_url_from_response(value: &serde_json::Value) -> Option<String> {
     let avatar = value.get("data")?.get("Viewer")?.get("avatar")?;
     let url = avatar
@@ -25,7 +19,6 @@ pub fn avatar_url_from_response(value: &serde_json::Value) -> Option<String> {
     validate_avatar_url(url)
 }
 
-/// Accept only a bounded http(s) URL.
 pub fn validate_avatar_url(url: &str) -> Option<String> {
     let trimmed = url.trim();
     if trimmed.is_empty() || trimmed.chars().count() > MAX_AVATAR_URL_CHARS {
@@ -82,7 +75,6 @@ pub fn write_avatar(connection: &Connection, anilist_id: u64, url: &str) -> Resu
     Ok(())
 }
 
-/// Writes valid fetched URL; else None without writing.
 pub fn store_fetched_avatar(
     connection: &Connection,
     anilist_id: u64,
@@ -95,7 +87,6 @@ pub fn store_fetched_avatar(
     Ok(Some(url))
 }
 
-/// Cache hit, else one Viewer query; failures return None without writing.
 #[tauri::command]
 #[allow(non_snake_case)]
 pub async fn anilist_avatar(

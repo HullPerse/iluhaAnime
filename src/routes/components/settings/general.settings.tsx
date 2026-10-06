@@ -11,8 +11,8 @@ import { Input } from "@/components/ui/input.component";
 import { PasswordInput } from "@/components/ui/password.component";
 import Select from "@/components/ui/select.component";
 import { DEFAULT_SETTINGS } from "@/config/settings/defaults.config";
-import { useOnlineStatus } from "@/hooks/network.hook";
 import { useI18n } from "@/hooks/i18n.hook";
+import { useOnlineStatus } from "@/hooks/network.hook";
 import { applyWindowChrome } from "@/lib/settings/window.utils";
 import { attempt, attemptSync } from "@/lib/utils/attempt.utils";
 import { useSettingsStore } from "@/store/settings.store";
@@ -542,6 +542,8 @@ export default function SettingsGeneral() {
                 "anilistFriends",
                 "anilistReleaseObservations",
                 "notifications",
+                "lobbyConnections",
+                "sessionIdentity",
               ]) {
                 localStorage.removeItem(key);
               }

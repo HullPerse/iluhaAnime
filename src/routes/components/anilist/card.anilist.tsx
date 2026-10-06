@@ -4,6 +4,7 @@ import { memo } from "react";
 import ProgressBar from "@/components/shared/progress.component";
 import Image from "@/components/ui/image.component";
 import { listStatusLabels, statusLabels } from "@/config/anilist/labels.config";
+import { useI18n } from "@/hooks/i18n.hook";
 import { getStatusColor } from "@/lib/anilist/entries.utils";
 import {
   formatEntryScore,
@@ -11,7 +12,6 @@ import {
   scoreIconFor,
   type AnilistScoreFormat,
 } from "@/lib/anilist/score.utils";
-import { useI18n } from "@/hooks/i18n.hook";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import { enterOrSpace } from "@/lib/utils/keyboard.utils";
 import type { AniCardProps as Props } from "@/types/anilist";
@@ -150,7 +150,12 @@ function AniListEntryCard({ item, entryLookup, isFavorite, scoreFormat, onClick 
             </span>
             {entry?.progress != null && item.episodes && (
               <div className="flex items-center gap-1">
-                <ProgressBar value={entry.progress} max={item.episodes} className="h-3.5 w-20" slots />
+                <ProgressBar
+                  value={entry.progress}
+                  max={item.episodes}
+                  className="h-3.5 w-20"
+                  slots
+                />
                 <span className="windows95-text text-xs">
                   {entry.progress}/{item.episodes}
                 </span>

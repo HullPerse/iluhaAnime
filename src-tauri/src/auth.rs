@@ -144,7 +144,6 @@ fn session_is_logged_in(text: &str) -> bool {
 
 async fn read_body_limited(resp: reqwest::Response) -> Result<Vec<u8>, String> {
     use futures::StreamExt;
-    // 8 KiB initial; 2 MiB cap bounds worst case.
     let mut body = Vec::with_capacity(8 * 1024);
     let mut stream = resp.bytes_stream();
     while let Some(chunk) = stream.next().await {

@@ -2,9 +2,9 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button.component";
 import { STATUS_SHRINK_CLASS } from "@/config/collection/statuses.config";
+import { useI18n } from "@/hooks/i18n.hook";
 import { usePagedRow } from "@/hooks/pagedRow.hook";
 import { shrinkLevelFor } from "@/lib/collection/status.utils";
-import { useI18n } from "@/hooks/i18n.hook";
 
 export default function AniListListsRow({
   tabs,

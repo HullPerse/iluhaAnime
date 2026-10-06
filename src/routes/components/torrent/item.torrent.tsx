@@ -3,13 +3,13 @@ import { cn } from "cn";
 import { AlertTriangle, GripVertical } from "lucide-react";
 import { memo, useState } from "react";
 
-import { ConfirmDialog } from "@/components/shared/confirm.component";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { areTorrentItemsEqual } from "@/lib/torrent/item.utils";
 import type { TorrentItemProps as Props } from "@/types/torrent";
 
 import { TorrentPeersModal } from "./peers.torrent";
+import { DeleteTorrentDialog } from "./sections/delete.sections";
 import { TorrentProblem } from "./sections/error.sections";
 import { TorrentFiles } from "./sections/files.sections";
 import { TorrentHeader } from "./sections/header.sections";
@@ -161,18 +161,14 @@ function TorrentItem({
         />
       )}
       {pendingDelete && (
-        <ConfirmDialog
+        <DeleteTorrentDialog
           open
-          title={t("torrent.delete.title")}
           message={t("torrent.delete.message")}
-          confirmLabel={t("torrent.delete.with.files")}
-          cancelLabel={t("torrent.keep.files")}
-          variant="destructive"
-          onConfirm={() => {
+          onWithFiles={() => {
             onRemove(true);
             setPendingDelete(false);
           }}
-          onCancel={() => {
+          onKeepFiles={() => {
             onRemove(false);
             setPendingDelete(false);
           }}

@@ -108,7 +108,6 @@ pub struct CollectionStatusRow {
     pub color: String,
     pub order_index: i64,
     pub is_core: bool,
-    /// private buckets vs public imports (hidden from All tab; own items on delete).
     pub kind: String,
 }
 
@@ -171,7 +170,6 @@ pub fn upsert_collection_status(
         return Err("Collection status id must be alphanumeric, '_' or '-'".into());
     }
     let is_core = CORE_COLLECTION_STATUS_IDS.contains(&status.id.as_str());
-    // Core buckets are always private: only custom statuses can be public collections.
     let kind = if is_core {
         "private"
     } else {
@@ -215,7 +213,6 @@ pub fn delete_collection_status(app: tauri::AppHandle, id: String) -> Result<(),
         )
         .ok();
     if kind.as_deref() == Some("public") {
-        // A public status owns what was imported into it, so it takes its items along.
         connection
             .execute(
                 "DELETE FROM collection_items WHERE status = ?1",

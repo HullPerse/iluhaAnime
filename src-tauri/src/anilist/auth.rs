@@ -56,11 +56,9 @@ pub struct AniUser {
     pub episodes_watched: i32,
     pub mean_score: Option<i32>,
     pub score_format: Option<String>,
-    /// Preferred title language; unknown stays None for UI fallback chain.
     pub title_language: Option<String>,
 }
 
-/// Narrows `UserTitleLanguage` to romaji/english/native; others map to None.
 fn parse_title_language(user: &serde_json::Value) -> Option<String> {
     match user["options"]["titleLanguage"].as_str()? {
         "ROMAJI" => Some("romaji".to_string()),
@@ -698,7 +696,6 @@ pub async fn save_anilist_entry(
     Ok(())
 }
 
-/// Bulk update; every id gets identical values.
 #[tauri::command]
 #[allow(non_snake_case)]
 pub async fn update_anilist_entries_bulk(

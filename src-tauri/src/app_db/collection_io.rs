@@ -182,7 +182,6 @@ pub fn import_collection_data(
     Ok(summary)
 }
 
-/// Unique import id (nanos + index); truncated to 128 chars so blank/repeated ids cannot collapse.
 fn unique_import_id(source: &str, index: usize) -> String {
     let stamp = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)

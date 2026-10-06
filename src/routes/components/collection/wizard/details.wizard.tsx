@@ -4,8 +4,8 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import Select from "@/components/ui/select.component";
-import { sortStatuses, statusLabel } from "@/lib/collection/status.utils";
 import { useI18n } from "@/hooks/i18n.hook";
+import { sortStatuses, statusLabel } from "@/lib/collection/status.utils";
 import type {
   CollectionItem,
   CollectionStatus,

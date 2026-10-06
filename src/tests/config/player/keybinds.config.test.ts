@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  getAction,
-  KEYBINDS,
-  shouldIgnoreHotkeys,
-} from "@/config/player/keybinds.config";
+import { getAction, KEYBINDS, shouldIgnoreHotkeys } from "@/config/player/keybinds.config";
 
 const POSITIVE_CASES: Array<[code: string, action: string, ctrl?: boolean, shift?: boolean]> = [
   ["Space", "playPause"],
@@ -23,6 +19,7 @@ const POSITIVE_CASES: Array<[code: string, action: string, ctrl?: boolean, shift
   ["F4", "audioOffsetUp"],
   ["F3", "audioOffsetDownFine", true],
   ["F4", "audioOffsetUpFine", true],
+  ["F5", "resetDelays"],
   ["KeyH", "toggleAutoHide", true],
   ["KeyI", "toggleDiagnostics"],
   ["PageDown", "nextFile"],
@@ -41,7 +38,7 @@ describe("getAction", () => {
         keybind.code,
         keybind.ctrl ?? false,
         keybind.shift ?? false,
-        keybind.alt ?? false,
+        keybind.alt ?? false
       );
       expect(match?.action).toBe(keybind.action);
     }
@@ -60,7 +57,6 @@ describe("getAction", () => {
     expect(getAction("Slash", true, false, false)).toBeUndefined();
     expect(getAction("F1", false, true, false)).toBeUndefined();
     expect(getAction("Escape", true, false, false)).toBeUndefined();
-    // The screenshot chord must not collide with the player table.
     expect(getAction("KeyP", true, true, false)).toBeUndefined();
   });
 });

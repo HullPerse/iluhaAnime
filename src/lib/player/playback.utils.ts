@@ -1,8 +1,7 @@
-import { sessionApi } from "@/api/session.api";
+import { PLAYER_PROFILES } from "@/config/player/profiles.config";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { clamp } from "@/lib/utils/math.utils";
-import { PLAYER_PROFILES } from "@/config/player/profiles.config";
 import type {
   EndOfFileMode,
   HwdecMode,
@@ -50,9 +49,7 @@ export interface MpvInitParams {
   settings: PlayerSettings;
 }
 
-export function transformOptions(
-  settings: PlayerSettings,
-): Record<string, unknown> {
+export function transformOptions(settings: PlayerSettings): Record<string, unknown> {
   const options: Record<string, unknown> = {};
 
   const rotation = ((settings.rotation % 360) + 360) % 360;
@@ -83,37 +80,26 @@ export function transformOptions(
     filters.push(`lavfi=[colorchannelmixer=${matrix}]`);
   }
   if (filters.length > 0) options.vf = filters.join(",");
+  else options.vf = "";
 
-  options.panscan = settings.zoom === 1 ? 0 : clamp(settings.zoom - 1, -1, 5);
+  options["video-zoom"] = Number(Math.log2(clamp(settings.zoom, 0.1, 3)).toFixed(4));
 
-  if (settings.aspectRatio === "fill") {
-    options.keepaspect = false;
-  }
+  options.keepaspect = settings.aspectRatio !== "fill";
 
-  options.brightness = clamp((settings.brightness - 100) / 100, -1, 1);
-  options.contrast = clamp((settings.contrast - 100) / 100, -1, 1);
-  options.saturation = clamp(settings.saturation / 100, 0, 2);
-  options.hue = clamp(settings.hue, -180, 180);
-  options.gamma = clamp(settings.gamma, 0.1, 5);
+  options.brightness = clamp(Math.round(settings.brightness - 100), -100, 100);
+  options.contrast = clamp(Math.round(settings.contrast - 100), -100, 100);
+  options.saturation = clamp(Math.round(settings.saturation - 100), -100, 100);
+  options.hue = clamp(Math.round(settings.hue), -100, 100);
 
-  if (settings.subFontSize !== 18) {
-    options["sub-font-size"] = Math.round((settings.subFontSize / 18) * 55);
-  }
-  if (settings.subFontFamily !== "Arial") {
-    options["sub-font"] = settings.subFontFamily;
-  }
+  options["sub-font-size"] = Math.round((settings.subFontSize / 18) * 55);
+  options["sub-font"] = settings.subFontFamily;
   options["sub-color"] = toMpvColor(settings.subColor);
-  options["sub-back-color"] = withAlpha(
-    toMpvColor(settings.subBgColor),
-    settings.subBgOpacity,
-  );
+  options["sub-back-color"] = withAlpha(toMpvColor(settings.subBgColor), settings.subBgOpacity);
 
   return options;
 }
 
-export function buildInitialOptions(
-  params: MpvInitParams,
-): Record<string, unknown> {
+export function buildInitialOptions(params: MpvInitParams): Record<string, unknown> {
   return {
     hwdec: params.hwdec,
     volume: Math.round(clamp(params.volume, 0, 1) * 100),
@@ -123,7 +109,7 @@ export function buildInitialOptions(
 }
 
 export function profileOptions(
-  profile: PlayerProfileId,
+  profile: PlayerProfileId
 ): Record<string, string | number | boolean> {
   return { ...PLAYER_PROFILES[profile].options };
 }
@@ -182,27 +168,10 @@ export async function applyAudioOptions(settings: PlayerSettings): Promise<void>
   }
 }
 
-export interface OpenPlayerOptions {
-  // Room-driven bypasses manual-open ban.
-  roomDriven?: boolean;
-}
-
-// Fail-open: unreachable backend means local wins.
-async function sessionBlocksManualOpen(): Promise<boolean> {
-  const [status] = await attempt(sessionApi.status());
-  return status?.role != null;
-}
-
-export async function openPlayer(
-  files: string[],
-  resume?: number,
-  options: OpenPlayerOptions = {}
-): Promise<void> {
-  if (!options.roomDriven && (await sessionBlocksManualOpen())) return;
+export async function openPlayer(files: string[], resume?: number): Promise<void> {
   await invokeTyped("player_open", {
     files,
     resume,
-    ...(options.roomDriven ? { roomDriven: true } : {}),
   });
 }
 
@@ -210,9 +179,7 @@ export async function takePendingOpen(): Promise<PlayerOpenRequest | null> {
   return invokeTyped<PlayerOpenRequest | null>("player_take_pending_open");
 }
 
-export async function initPlayer(
-  initialOptions: Record<string, unknown>,
-): Promise<string> {
+export async function initPlayer(initialOptions: Record<string, unknown>): Promise<string> {
   return invokeTyped<string>("player_init", { initialOptions });
 }
 
@@ -224,37 +191,26 @@ export async function closePlayerWindow(): Promise<void> {
   await invokeTyped("player_close_window");
 }
 
-export async function loadQueue(
-  files: string[],
-  resume?: number,
-): Promise<void> {
+export async function loadQueue(files: string[], resume?: number): Promise<void> {
   await invokeTyped("player_load", { files, resume });
 }
 
-async function runMpvCommand(
-  name: string,
-  args: unknown[] = [],
-): Promise<void> {
+async function runMpvCommand(name: string, args: unknown[] = []): Promise<void> {
   await invokeTyped("player_command", { name, args });
 }
 
-export async function setMpvProperty(
-  name: string,
-  value: unknown,
-): Promise<void> {
+export async function setMpvProperty(name: string, value: unknown): Promise<void> {
   await invokeTyped("player_set_property", { name, value });
 }
 
 async function getMpvProperty<T>(
   name: string,
-  format: "double" | "flag" | "int64" | "string",
+  format: "double" | "flag" | "int64" | "string"
 ): Promise<T | null> {
   return invokeTyped<T | null>("player_get_property", { name, format });
 }
 
-export async function setVideoMarginRatio(
-  ratio: VideoMarginRatio,
-): Promise<void> {
+export async function setVideoMarginRatio(ratio: VideoMarginRatio): Promise<void> {
   await invokeTyped("player_set_video_margin_ratio", {
     bottom: ratio.bottom,
     left: ratio.left,
@@ -267,10 +223,7 @@ export async function setEofMode(mode: EndOfFileMode): Promise<void> {
   await invokeTyped("player_eof_mode", { mode });
 }
 
-export async function saveWatch(
-  path: string,
-  state: WatchState,
-): Promise<void> {
+export async function saveWatch(path: string, state: WatchState): Promise<void> {
   await invokeTyped("player_save_watch", { path, state });
 }
 
@@ -278,10 +231,7 @@ export async function loadWatch(path: string): Promise<WatchState | null> {
   return invokeTyped<WatchState | null>("player_load_watch", { path });
 }
 
-export function seekTo(
-  seconds: number,
-  mode: SeekMode = "keyframes",
-): Promise<void> {
+export function seekTo(seconds: number, mode: SeekMode = "keyframes"): Promise<void> {
   const precision = mode === "exact" ? "exact" : "keyframes";
   return runMpvCommand("seek", [seconds, `absolute+${precision}`]);
 }
@@ -294,10 +244,7 @@ export function setSpeed(speed: number): Promise<void> {
   return setMpvProperty("speed", speed);
 }
 
-export function selectTrack(
-  kind: "audio" | "sub",
-  id: number | "no" | "auto",
-): Promise<void> {
+export function selectTrack(kind: "audio" | "sub", id: number | "no" | "auto"): Promise<void> {
   return setMpvProperty(kind === "audio" ? "aid" : "sid", String(id));
 }
 
@@ -316,6 +263,13 @@ export function movePlaylistIndex(from: number, to: number): Promise<void> {
 export async function appendFiles(files: string[]): Promise<void> {
   for (const file of files) {
     await runMpvCommand("loadfile", [file, "append-play"]);
+  }
+}
+
+// "append" queues without starting playback; "append-play" would auto-start when idle.
+export async function appendFilesQuiet(files: string[]): Promise<void> {
+  for (const file of files) {
+    await runMpvCommand("loadfile", [file, "append"]);
   }
 }
 
@@ -360,8 +314,6 @@ export function addExternalAudio(path: string): Promise<void> {
 }
 
 export async function readPath(): Promise<string> {
-  const [value] = await attempt(
-    getMpvProperty<string>("path", "string"),
-  );
+  const [value] = await attempt(getMpvProperty<string>("path", "string"));
   return typeof value === "string" ? value : "";
 }

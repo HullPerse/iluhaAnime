@@ -3,8 +3,8 @@ import { useEffect, useState } from "react";
 
 import Select from "@/components/ui/select.component";
 import { CAPTIONS_OFF } from "@/config/player/video.config";
-import { useCaptionTracks } from "@/hooks/videoCaptions.hook";
 import { useI18n } from "@/hooks/i18n.hook";
+import { useCaptionTracks } from "@/hooks/videoCaptions.hook";
 
 export function CaptionsSelect() {
   const { t } = useI18n();

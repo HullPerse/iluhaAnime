@@ -5,8 +5,8 @@ import { InlineAutocompleteInput } from "@/components/shared/autocomplete/input.
 import { SmallLoader } from "@/components/shared/loader.component";
 import { Button } from "@/components/ui/button.component";
 import Select from "@/components/ui/select.component";
-import { useSearchQuery } from "@/hooks/search/query.hook";
 import { useI18n } from "@/hooks/i18n.hook";
+import { useSearchQuery } from "@/hooks/search/query.hook";
 import { attempt } from "@/lib/utils/attempt.utils";
 import SearchAuthButtons from "@/routes/components/search/auth.search";
 import TorrentDetailsModal from "@/routes/components/search/default/details/modal.details";

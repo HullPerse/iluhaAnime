@@ -7,7 +7,6 @@ pub mod library;
 pub mod media;
 pub use auth::*;
 pub use avatar::*;
-pub use batch::*;
 pub use franchise::*;
 pub use library::*;
 pub use media::*;

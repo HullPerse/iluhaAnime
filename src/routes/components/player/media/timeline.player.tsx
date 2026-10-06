@@ -13,7 +13,11 @@ function clamp01(value: number): number {
   return Math.max(0, Math.min(1, value));
 }
 
-function chapterTitleAt(chapters: MpvChapter[], time: number, duration: number): string | undefined {
+function chapterTitleAt(
+  chapters: MpvChapter[],
+  time: number,
+  duration: number
+): string | undefined {
   for (let index = 0; index < chapters.length; index += 1) {
     const start = chapters[index].time;
     const end = chapters[index].end ?? chapters[index + 1]?.time ?? duration;
@@ -54,7 +58,7 @@ function Timeline({
       if (rect.width <= 0) return 0;
       return clamp01((clientX - rect.left) / rect.width) * duration;
     },
-    [duration],
+    [duration]
   );
 
   const describeHover = useCallback(
@@ -69,7 +73,7 @@ function Timeline({
         chapter: chapterTitleAt(chapters, time, duration),
       });
     },
-    [chapters, duration],
+    [chapters, duration]
   );
 
   useEffect(() => {
@@ -114,7 +118,7 @@ function Timeline({
 
   return (
     <main className="flex flex-row items-center gap-1 p-1">
-      <span className="windows95-text min-w-18 shrink-0 whitespace-nowrap text-right tabular-nums">
+      <span className="windows95-text min-w-18 shrink-0 text-right whitespace-nowrap tabular-nums">
         {`${formatClock(displayTime)} / ${formatClock(duration)}`}
       </span>
       <div className="relative flex-1">
@@ -123,9 +127,12 @@ function Timeline({
             className="pointer-events-none absolute bottom-full z-50 mb-1 select-text"
             style={{ left: `${hover.x}px`, transform: "translateX(-50%)" }}
           >
-            <div className="windows95-border bg-primary windows95-text flex w-32 max-w-32 min-w-32 flex-col items-center whitespace-nowrap px-1 py-0.5">
+            <div className="windows95-border bg-primary windows95-text text-text flex w-max min-w-32 max-w-56 flex-col items-center gap-px px-1.5 py-0.5">
               {hover.chapter ? (
-                <span className="text-amber-500 w-full truncate text-center text-xs">
+                <span
+                  className="w-full truncate text-center text-xs font-bold text-text whitespace-nowrap"
+                  title={hover.chapter}
+                >
                   {hover.chapter}
                 </span>
               ) : null}
@@ -140,7 +147,10 @@ function Timeline({
           onMouseMove={handleBarMove}
           onMouseLeave={() => setHover(null)}
         >
-          <div className="bg-secondary absolute inset-y-0 left-0" style={{ width: `${progress}%` }} />
+          <div
+            className="bg-secondary absolute inset-y-0 left-0"
+            style={{ width: `${progress}%` }}
+          />
           {duration > 0
             ? chapters.map((chapter, index) =>
                 index === 0 ? null : (
@@ -152,7 +162,7 @@ function Timeline({
                       transform: "translateX(-50%)",
                     }}
                   />
-                ),
+                )
               )
             : null}
           <div

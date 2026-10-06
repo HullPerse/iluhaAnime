@@ -1,15 +1,15 @@
-import { useEffect, useRef } from "react";
 import { listen, type Event, type EventName } from "@tauri-apps/api/event";
+import { useEffect, useRef } from "react";
+
 import { reportBackgroundError } from "../lib/utils/attempt.utils";
 
-// Ref always dispatches latest; resubscribing would lose events.
 export function useTauriEvent<T>(
   event: EventName,
   handler: (event: Event<T>) => void,
   options?: {
     enabled?: boolean;
     errorTag?: string;
-  },
+  }
 ): void {
   const handlerRef = useRef(handler);
 

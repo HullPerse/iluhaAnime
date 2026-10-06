@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button.component";
+import { useI18n } from "@/hooks/i18n.hook";
 import { useRemoteImage } from "@/hooks/remoteImage.hook";
 import type { AnilistScoreFormat } from "@/lib/anilist/score.utils";
-import { useI18n } from "@/hooks/i18n.hook";
 import QuickAddButton from "@/routes/components/anilist/detail/quickadd.detail";
 import type { AniMedia } from "@/types/anilist";
 

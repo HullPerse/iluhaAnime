@@ -45,8 +45,6 @@ const CROPPED_PATH = "C:/Temp/iluha_screenshot_2.png";
 
 const LAYER_DATA_URL = "data:image/png;base64,LAYER";
 
-/// jsdom has no canvas at all, so the two annotation layers and the blur mask share one recording
-/// context. What matters here is the wiring: which layer is handed to Rust and when.
 function installCanvasStub() {
   const context = {
     arc: vi.fn(),
@@ -156,8 +154,6 @@ function space(): HTMLElement {
   return screen.getByTestId("screenshot-space");
 }
 
-/// jsdom has no layout, so every element measures 0x0 and the stage would fall back to scale one.
-/// This gives the stage a real box, which is what makes fitView produce a scale other than one.
 function stubStageBox(width: number, height: number) {
   const rect = {
     bottom: height,
@@ -181,8 +177,6 @@ function zoomLabel(): string {
   return screen.getByRole("button", { name: /%$/ }).textContent ?? "";
 }
 
-/// The modal listens for the wheel natively so that `preventDefault` works, so the test has to send
-/// a real cancelable WheelEvent rather than a synthetic one.
 async function wheelStage(deltaY: number, x = 400, y = 200): Promise<WheelEvent> {
   const event = new WheelEvent("wheel", {
     deltaY,
@@ -198,8 +192,6 @@ async function wheelStage(deltaY: number, x = 400, y = 200): Promise<WheelEvent>
 }
 
 async function settle() {
-  // The dialog moves focus into the popup right after mounting, so wait for that to settle before
-  // aiming the keyboard at the selection frame.
   await act(async () => {
     await new Promise((resolve) => setTimeout(resolve, 32));
   });
@@ -218,10 +210,6 @@ function dragSelection(x1: number, y1: number, x2: number, y2: number) {
   fireEvent.pointerUp(surface, { clientX: x2, clientY: y2 });
 }
 
-/// jsdom has no pointer capture at all, so it never retargets a gesture the way a browser does: a
-/// drag that only ever lands on the surface would hide a capture taken on a box without handlers.
-/// This stub records the element that grabbed the pointer, and the tests send the rest of the
-/// gesture there, which is exactly what the browser does.
 function installPointerCapture(): { element: Element | null } {
   const captured: { element: Element | null } = { element: null };
   Object.defineProperty(Element.prototype, "setPointerCapture", {
@@ -469,6 +457,28 @@ describe("ScreenshotModal", () => {
     expect(selection()).toBeNull();
   });
 
+  it("pans with the right button while the left button keeps the selection", async () => {
+    renderModal();
+    await wheelStage(-100);
+    const surface = overlay();
+    const panned = picture().style.transform;
+    fireEvent.pointerDown(surface, { button: 0, clientX: 800, clientY: 500 });
+    fireEvent.pointerMove(surface, { clientX: 1000, clientY: 600 });
+    expect(selection()).not.toBeNull();
+    expect(readout()).toBe("167 x 83 px");
+    fireEvent.pointerDown(surface, { button: 2, clientX: 1000, clientY: 600 });
+    fireEvent.pointerMove(surface, { clientX: 1050, clientY: 650 });
+    expect(picture().style.transform).not.toBe(panned);
+    expect(selection()).not.toBeNull();
+    fireEvent.pointerUp(surface, { button: 2, clientX: 1050, clientY: 650 });
+    expect(selection()).not.toBeNull();
+    fireEvent.pointerMove(surface, { clientX: 1100, clientY: 700 });
+    fireEvent.pointerUp(surface, { button: 0, clientX: 1100, clientY: 700 });
+    expect(selection()).not.toBeNull();
+    expect(picture().style.transform).not.toBe(panned);
+    expect(readout()).toBe("208 x 133 px");
+  });
+
   it("keeps the selection on the left button and ignores the middle one", () => {
     renderModal();
     const before = picture().style.transform;
@@ -503,7 +513,6 @@ describe("ScreenshotModal", () => {
     const surface = overlay();
     fireEvent.pointerDown(surface, { clientX: 100, clientY: 100 });
     fireEvent.pointerUp(captured.element as Element, { clientX: 100, clientY: 100 });
-    // Release disarms the drag so a button-less move draws nothing.
     fireEvent.pointerMove(surface, { clientX: 500, clientY: 400 });
     expect(selection()).toBeNull();
   });
@@ -557,6 +566,51 @@ describe("ScreenshotModal", () => {
     dragSelection(100, 100, 300, 300);
     expect(readout()).toBe("200 x 200 px");
     expect(screen.getByText("1:1")).toBeTruthy();
+  });
+
+  it("resizes the selection by dragging the east edge", () => {
+    renderModal();
+    dragSelection(100, 100, 500, 400);
+    expect(readout()).toBe("400 x 300 px");
+    const handle = selection()?.querySelector('[data-handle="e"]');
+    expect(handle).not.toBeNull();
+    fireEvent.pointerDown(handle as Element, { button: 0, clientX: 500, clientY: 250 });
+    fireEvent.pointerMove(overlay(), { clientX: 550, clientY: 250 });
+    fireEvent.pointerUp(overlay(), { button: 0, clientX: 550, clientY: 250 });
+    expect(readout()).toBe("450 x 300 px");
+  });
+
+  it("resizes the selection by dragging the north edge", () => {
+    renderModal();
+    dragSelection(100, 100, 500, 400);
+    const handle = selection()?.querySelector('[data-handle="n"]');
+    expect(handle).not.toBeNull();
+    fireEvent.pointerDown(handle as Element, { button: 0, clientX: 300, clientY: 100 });
+    fireEvent.pointerMove(overlay(), { clientX: 300, clientY: 120 });
+    fireEvent.pointerUp(overlay(), { button: 0, clientX: 300, clientY: 120 });
+    expect(readout()).toBe("400 x 280 px");
+  });
+
+  it("clamps the west edge at the minimum size", () => {
+    renderModal();
+    dragSelection(100, 100, 500, 400);
+    const handle = selection()?.querySelector('[data-handle="w"]');
+    expect(handle).not.toBeNull();
+    fireEvent.pointerDown(handle as Element, { button: 0, clientX: 100, clientY: 250 });
+    fireEvent.pointerMove(overlay(), { clientX: 600, clientY: 250 });
+    fireEvent.pointerUp(overlay(), { button: 0, clientX: 600, clientY: 250 });
+    expect(readout()).toBe("8 x 300 px");
+  });
+
+  it("resizes the selection by dragging the south-east corner", () => {
+    renderModal();
+    dragSelection(100, 100, 500, 400);
+    const handle = selection()?.querySelector('[data-handle="se"]');
+    expect(handle).not.toBeNull();
+    fireEvent.pointerDown(handle as Element, { button: 0, clientX: 500, clientY: 400 });
+    fireEvent.pointerMove(overlay(), { clientX: 550, clientY: 450 });
+    fireEvent.pointerUp(overlay(), { button: 0, clientX: 550, clientY: 450 });
+    expect(readout()).toBe("450 x 350 px");
   });
 
   it("drops the selection again on reset", async () => {
@@ -761,7 +815,6 @@ describe("ScreenshotModal annotations", () => {
     expect(screen.queryByTestId("screenshot-text-editor")).toBeNull();
     expect(isDisabled(tool("Clear the drawings"))).toBe(false);
 
-    // The wording is ink on the drawing layer, not a blur mask.
     await user.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() =>
       expect(mockInvoke).toHaveBeenCalledWith("save_screenshot", expect.anything())
@@ -827,7 +880,6 @@ describe("ScreenshotModal annotations", () => {
     dragSelection(50, 50, 400, 300);
     expect(readout()).toBe("350 x 250 px");
 
-    // The text must win hit-testing over the frame covering the selected area.
     fireEvent.pointerDown(selection()!, { clientX: 125, clientY: 95 });
     fireEvent.pointerMove(overlay(), { clientX: 225, clientY: 195 });
     fireEvent.pointerUp(overlay(), { clientX: 225, clientY: 195 });
@@ -851,7 +903,6 @@ describe("ScreenshotModal annotations", () => {
     dragSelection(50, 50, 400, 300);
     expect(selection()?.className).toContain("cursor-move");
 
-    // Hovering wording flips the frame cursor to text so the drag carries the text.
     fireEvent.pointerMove(overlay(), { clientX: 125, clientY: 95 });
     expect(selection()?.className).toContain("cursor-text");
 
@@ -870,7 +921,6 @@ describe("ScreenshotModal annotations", () => {
     canvas?.fillText.mockClear();
     fireEvent.doubleClick(overlay(), { clientX: 125, clientY: 95 });
     expect(screen.getByTestId("screenshot-text-editor")).toBeTruthy();
-    // Reopening the editor omits the wording to avoid a doubled ghost copy.
     expect(canvas?.fillText).not.toHaveBeenCalled();
   });
 
@@ -901,7 +951,6 @@ describe("ScreenshotModal annotations", () => {
     fireEvent.pointerDown(overlay(), { clientX: 120, clientY: 90 });
     await user.type(screen.getByTestId("screenshot-text-editor"), "hi{Enter}");
 
-    // The reopened editor keeps the wording's own size, not the brush size.
     await user.click(tool("Select an area"));
     fireEvent.doubleClick(overlay(), { clientX: 125, clientY: 95 });
     const editor = screen.getByTestId("screenshot-text-editor") as HTMLInputElement;
@@ -910,11 +959,9 @@ describe("ScreenshotModal annotations", () => {
 
   it("writes the editor in the pixels of the capture, so one transform scales it with the drawing", async () => {
     const user = userEvent.setup();
-    // A 640x360 box fits the 1280x720 capture at half size with no offset.
     stubStageBox(640, 360);
     renderModal();
     await user.click(tool("Text"));
-    // Half the capture's pixels: this lands on the capture at 100,100.
     fireEvent.pointerDown(overlay(), { clientX: 50, clientY: 50 });
 
     const editor = screen.getByTestId("screenshot-text-editor") as HTMLInputElement;
@@ -923,7 +970,6 @@ describe("ScreenshotModal annotations", () => {
     expect(editor.style.top).toBe("100px");
     expect(editor.style.fontSize).toBe("28px");
 
-    // The editor stays in capture pixels; zoom only moves the shared transform.
     await wheelStage(-100, 50, 50);
     expect(space().style.transform).toBe("scale(0.6)");
     expect(editor.style.fontSize).toBe("28px");
@@ -942,7 +988,6 @@ describe("ScreenshotModal annotations", () => {
     fireEvent.pointerDown(surface, { clientX: 125, clientY: 95 });
     fireEvent.pointerMove(surface, { clientX: 225, clientY: 195 });
     fireEvent.pointerUp(surface, { clientX: 225, clientY: 195 });
-    // Selecting is off, so the drag must not have painted anything.
     expect(screen.queryByRole("button", { name: /^Selection/ })).toBeNull();
 
     fireEvent.doubleClick(overlay(), { clientX: 225, clientY: 195 });
@@ -974,7 +1019,6 @@ describe("ScreenshotModal annotations", () => {
     await user.click(tool("Eraser"));
     drawStroke(150, 150, 250, 180);
 
-    // Only the blur mask cuts in mask colour, pinning eraser reach to the mask.
     expect(painted).toContainEqual(["#ffffff", "destination-out"]);
   });
 });

@@ -87,9 +87,7 @@ describe("useAnimeInlineSearch", () => {
 
     await waitFor(() => expect(result.current.options).toHaveLength(1));
 
-    expect(result.current.options.map((option) => option.title)).toEqual([
-      "One Piece",
-    ]);
+    expect(result.current.options.map((option) => option.title)).toEqual(["One Piece"]);
     expect(result.current.error).toBe(false);
     expect(search).toHaveBeenCalledWith(
       expect.objectContaining({ query: "one piece", perPage: 8, maxPages: 1 })

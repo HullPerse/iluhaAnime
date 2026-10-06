@@ -8,8 +8,8 @@ import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import { ACTIVITY_STATUS_FILTERS } from "@/config/anilist/activity.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
-import { groupLabel } from "@/lib/anilist/activity.utils";
 import { useI18n } from "@/hooks/i18n.hook";
+import { groupLabel } from "@/lib/anilist/activity.utils";
 import { queryKeys } from "@/lib/query/keys.utils";
 import type { AniActivity, AniListCollection } from "@/types/anilist";
 

@@ -6,14 +6,11 @@ pub enum FilePriority {
     Normal,
 }
 
-/// List order = sequential download order (single setting, or mode starts on unseen file).
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, Default, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum FileOrder {
-    /// As the file tree shows them: by name, files before sub-folders.
     #[default]
     List,
-    /// As they sit in the torrent, which is what every other client downloads in.
     Torrent,
 }
 
@@ -34,14 +31,10 @@ pub struct TorrentCheckResult {
     pub total: usize,
 }
 
-/// Resume outcome; snapshot at pause distinguishes unpause from re-verify.
 #[derive(Serialize, Clone, Debug)]
 pub struct TorrentResumeResult {
-    /// Torrent id after resume (re-verify may re-add).
     pub id: usize,
-    /// True when paused files changed, so torrent was re-verified.
     pub rechecked: bool,
-    /// Present when `rechecked` is true: what the filesystem pass found on disk.
     pub check: Option<TorrentCheckResult>,
 }
 
@@ -51,7 +44,6 @@ pub struct TorrentDiagPeer {
     pub state: String,
     pub client_name: Option<String>,
     pub conn_kind: Option<String>,
-    /// ISO 3166-1 alpha-2, `None` for private and unknown addresses.
     pub country: Option<String>,
     pub down_bytes: u64,
     pub up_bytes: u64,
@@ -91,9 +83,7 @@ pub struct CreatedTorrent {
     pub id: usize,
     pub name: String,
     pub info_hash: String,
-    /// Cached metainfo copy for "Save .torrent".
     pub torrent_path: String,
-    /// File count for UI share message.
     pub file_count: usize,
 }
 
@@ -116,15 +106,10 @@ pub struct TorrentInfo {
     pub error: Option<String>,
     pub save_dir: String,
     pub sequential_download: bool,
-    /// Current sequential file (queue jump, not sole selection).
     pub sequential_file: Option<usize>,
-    /// User-arranged fetch order for queue window.
     pub download_order: Vec<usize>,
-    /// Missing on disk (recheck/background pass; UI distinguishes from tracker failure).
     pub missing_files: bool,
-    /// Paused files changed externally (watcher verdict for resume warning).
     pub paused_external_changes: bool,
-    /// Files behind `paused_external_changes`; empty when flag is false.
     pub paused_changed_files: Vec<String>,
 }
 
@@ -143,7 +128,6 @@ pub struct SessionConfig {
     pub enable_upnp: bool,
     #[serde(rename = "disablePersistence")]
     pub disable_persistence: bool,
-    /// SOCKS5 proxy; default keeps pre-field session files loadable.
     #[serde(default, rename = "proxyUrl")]
     pub proxy_url: Option<String>,
     #[serde(default, rename = "fileOrder")]

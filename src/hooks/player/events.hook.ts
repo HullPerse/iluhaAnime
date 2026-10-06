@@ -57,8 +57,7 @@ export function usePlayerEvents(handlers: PlayerEventHandlers): void {
   }, [handlers]);
 
   useEffect(() => {
-    const { setSnapshot, setTracks, setChapters } =
-      usePlaybackStore.getState();
+    const { setSnapshot, setTracks, setChapters } = usePlaybackStore.getState();
 
     const subscriptions: Promise<UnlistenFn>[] = [
       listen<PlaybackSnapshot>("player-state", (event) => {

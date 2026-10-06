@@ -23,9 +23,7 @@ async function resolveMagnet(
   const fetched = await attemptResult(torrentApi.rutrackerGetMagnet(item.category));
   setLoadingMagnet((prev) => ({ ...prev, [key]: false }));
   if (!fetched.ok) {
-    useNotificationStore
-      .getState()
-      .add(tr("common.error"), "error", tr("magnet.error"));
+    useNotificationStore.getState().add(tr("common.error"), "error", tr("magnet.error"));
     return fetched;
   }
   setMagnets((prev) => ({ ...prev, [key]: fetched.value }));
@@ -52,13 +50,7 @@ export async function openMagnet(
   if (!magnet.ok) return;
   const opened = await attemptResult(openUrl(magnet.value));
   if (!opened.ok) {
-    useNotificationStore
-      .getState()
-      .add(
-        tr("common.error"),
-        "error",
-        tr("magnet.open.error")
-      );
+    useNotificationStore.getState().add(tr("common.error"), "error", tr("magnet.open.error"));
   }
 }
 

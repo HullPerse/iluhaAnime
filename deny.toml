@@ -8,11 +8,6 @@ db-urls = ["https://github.com/rustsec/advisory-db"]
 ignore = [
   { id = "RUSTSEC-2025-0060", reason = "crypto-hash unmaintained, upstream-only via librqbit, no maintained swap available" },
   { id = "RUSTSEC-2024-0370", reason = "proc-macro-error unmaintained, upstream-only, maintainer unreachable" },
-  { id = "RUSTSEC-2025-0081", reason = "unic-char-property unmaintained, upstream-only via tauri/wry" },
-  { id = "RUSTSEC-2025-0075", reason = "unic-char-range unmaintained, upstream-only via tauri/wry" },
-  { id = "RUSTSEC-2025-0080", reason = "unic-common unmaintained, upstream-only via tauri/wry" },
-  { id = "RUSTSEC-2025-0100", reason = "unic-ucd-ident unmaintained, upstream-only via tauri/wry" },
-  { id = "RUSTSEC-2025-0098", reason = "unic-ucd-version unmaintained, upstream-only via tauri/wry" },
   { id = "RUSTSEC-2026-0293", reason = "ringbuf double free needs a buffered element whose Drop panics mid-skip; librqbit-utp stores u8 (SharedRb<Heap<u8>>), so drop_in_place cannot panic and the read index is always advanced. No upstream fix: librqbit-utp 0.7.0 is the newest release and still requires ringbuf ^0.4.7, while the fix shipped in 0.5.2" },
 ]
 

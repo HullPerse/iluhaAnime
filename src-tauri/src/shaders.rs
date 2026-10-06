@@ -504,7 +504,6 @@ pub fn speed_factor(id: &str) -> Option<f64> {
 
 const CASCADE_RATIO_EPSILON: f64 = 0.05;
 
-/// Native scale factor encoded in an upscale shader filename (`..._x3_L.glsl` -> 3.0).
 pub fn native_scale_factor(filename: &str) -> Option<f64> {
     filename.split('_').find_map(|token| {
         let value = token.strip_prefix('x')?.parse::<f64>().ok()?;
@@ -512,12 +511,10 @@ pub fn native_scale_factor(filename: &str) -> Option<f64> {
     })
 }
 
-/// A single pass of this shader cannot cover `ratio`, so the chain repeats it once.
 pub fn needs_upscale_cascade(filename: &str, ratio: f64) -> bool {
     native_scale_factor(filename).is_some_and(|native| ratio > native + CASCADE_RATIO_EPSILON)
 }
 
-/// Throughput penalty of the repeated pass; `None` when no cascade is needed.
 pub fn cascade_penalty(id: &str, ratio: f64) -> Option<f64> {
     let meta = find_meta(id)?;
     (meta.category == "upscale" && needs_upscale_cascade(meta.filename, ratio))

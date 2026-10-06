@@ -7,11 +7,11 @@ import { systemApi } from "@/api/system.api";
 import { TOAST_ACTIVATED_EVENT } from "@/config/settings/notifications.config";
 import { tabForAltDigit, visibleTabs } from "@/config/settings/tabs.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
+import { useI18n } from "@/hooks/i18n.hook";
 import { useLiveResource } from "@/hooks/liveResource.hook";
 import { isOfflineDisabledTab, markOfflineTabs, useOnlineStatus } from "@/hooks/network.hook";
-import { pollAniListReleases } from "@/lib/anilist/notifications.utils";
-import { useI18n } from "@/hooks/i18n.hook";
 import { useTauriEvent } from "@/hooks/tauriEvent.hook";
+import { pollAniListReleases } from "@/lib/anilist/notifications.utils";
 import { queryKeys } from "@/lib/query/keys.utils";
 import { readAppCache, writeAppCache } from "@/lib/store/cache.utils";
 import { attemptAll, reportBackgroundError } from "@/lib/utils/attempt.utils";
@@ -56,7 +56,6 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
   const searchTabEnabled = useSettingsStore((s) => s.searchTabEnabled);
   const torrentTabEnabled = useSettingsStore((s) => s.torrentTabEnabled);
   const playerTabEnabled = useSettingsStore((s) => s.playerTabEnabled);
-  const lobbyTabEnabled = useSettingsStore((s) => s.lobbyTabEnabled);
   const enableAnimations = useSettingsStore((s) => s.enableAnimations);
   const retroStyle = useSettingsStore((s) => s.retroStyle);
   const uiDensity = useSettingsStore((s) => s.uiDensity);
@@ -71,7 +70,6 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
       searchTabEnabled,
       torrentTabEnabled,
       playerTabEnabled,
-      lobbyTabEnabled,
     }).map((tab) => ({
       ...tab,
       label: t(tab.key),

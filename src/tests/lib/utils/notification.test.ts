@@ -139,3 +139,58 @@ describe("formatRelativeTime", () => {
     });
   });
 });
+
+describe("progress notifications", () => {
+  beforeEach(() => {
+    useNotificationStore.setState({ dismissed: [], items: [], unreadCount: 0 });
+    window.localStorage.removeItem("notifications");
+  });
+
+  it("add returns the item id so callers can update it later", () => {
+    const id = useNotificationStore
+      .getState()
+      .add("Deleting", "info", "Show", "evt-progress-1", { system: false });
+    expect(id).toBeGreaterThan(0);
+    expect(useNotificationStore.getState().items[0].id).toBe(id);
+  });
+
+  it("update patches one item without adding or bumping unread", () => {
+    const id = useNotificationStore
+      .getState()
+      .add("Deleting", "info", "Show", undefined, { system: false });
+    const unread = useNotificationStore.getState().unreadCount;
+    useNotificationStore
+      .getState()
+      .update(id, { message: "Gone", progress: false, type: "success" });
+    const { items, unreadCount } = useNotificationStore.getState();
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({ message: "Gone", progress: false, type: "success" });
+    expect(unreadCount).toBe(unread);
+  });
+
+  it("update ignores unknown ids", () => {
+    useNotificationStore.getState().update(999_999, { type: "error" });
+    expect(useNotificationStore.getState().items).toHaveLength(0);
+  });
+
+  it("rehydration drops in-progress items", () => {
+    const now = Date.now();
+    const progress = {
+      id: 11,
+      read: false,
+      timestamp: now,
+      title: "Deleting",
+      type: "info" as const,
+      progress: true,
+    };
+    const done = { id: 12, read: false, timestamp: now, title: "Gone", type: "success" as const };
+    window.localStorage.setItem(
+      "notifications",
+      JSON.stringify({ state: { dismissed: [], items: [progress, done] }, version: 1 })
+    );
+    const merged = useNotificationStore.persist
+      .getOptions()
+      .merge?.({ dismissed: [], items: [progress, done] }, useNotificationStore.getState());
+    expect(merged?.items.map((item) => item.id)).toEqual([12]);
+  });
+});

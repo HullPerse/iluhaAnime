@@ -3,7 +3,6 @@ use std::fs;
 use std::path::Path;
 use tauri::Manager;
 
-/// Custom lobby emoji iluha_* in <app data>/emoji; path absolute for convertFileSrc.
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EmojiFile {
@@ -23,7 +22,6 @@ fn emoji_name(path: &Path) -> Option<String> {
     name.starts_with(EMOJI_PREFIX).then_some(name)
 }
 
-/// Missing dir means no custom emoji, never an error.
 #[tauri::command]
 pub fn emoji_list(app: tauri::AppHandle) -> Result<Vec<EmojiFile>, String> {
     let dir = app

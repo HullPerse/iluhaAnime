@@ -15,13 +15,7 @@ export function useFavouritePeopleToggles() {
     staffPendingRef.current = true;
     const [updated, error] = await attempt(anilistApi.toggleFavouriteStaff(staffId));
     if (error) {
-      useNotificationStore
-        .getState()
-        .add(
-          tr("anilist.fav.toggle.failed"),
-          "error",
-          error.message
-        );
+      useNotificationStore.getState().add(tr("anilist.fav.toggle.failed"), "error", error.message);
     } else {
       queryClient.setQueryData(["anilist_data"], (old: unknown) =>
         old
@@ -40,13 +34,7 @@ export function useFavouritePeopleToggles() {
     characterPendingRef.current = true;
     const [updated, error] = await attempt(anilistApi.toggleFavouriteCharacter(characterId));
     if (error) {
-      useNotificationStore
-        .getState()
-        .add(
-          tr("anilist.fav.toggle.failed"),
-          "error",
-          error.message
-        );
+      useNotificationStore.getState().add(tr("anilist.fav.toggle.failed"), "error", error.message);
     } else {
       queryClient.setQueryData(["anilist_data"], (old: unknown) =>
         old

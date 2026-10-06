@@ -17,6 +17,18 @@ export interface NotificationItem {
   target?: NotificationTarget;
   timestamp: number;
   read: boolean;
+  progress?: boolean;
+}
+
+export interface NotificationUpdate {
+  title?: string;
+  message?: string;
+  type?: NotificationType;
+  progress?: boolean;
+}
+
+export interface NotificationUpdateOptions {
+  system?: boolean;
 }
 
 export interface NotificationAddOptions {
@@ -40,7 +52,8 @@ export interface NotificationStore {
     message?: string,
     eventKey?: string,
     options?: NotificationAddOptions
-  ) => void;
+  ) => number;
+  update: (id: number, patch: NotificationUpdate, options?: NotificationUpdateOptions) => void;
   markRead: (id: number) => void;
   markAllRead: () => void;
   clear: (id: number) => void;

@@ -156,9 +156,7 @@ export const useUpscaleQueueStore = create<UpscaleQueueStore>()((set, get) => ({
     );
     if (error) {
       const msg =
-        typeof error.message === "string" && error.message
-          ? error.message
-          : tr("common.error");
+        typeof error.message === "string" && error.message ? error.message : tr("common.error");
       set((s) => ({
         items: s.items.map((i) => (i.id === next.id ? { ...i, status: "error", error: msg } : i)),
       }));

@@ -177,7 +177,6 @@ export function validateScoreInput(raw: string, format: AnilistScoreFormat): Val
   return { value, error: null };
 }
 
-// 0-100 scale, converted.
 export function formatMeanScore(
   meanScore: number | null | undefined,
   format: AnilistScoreFormat

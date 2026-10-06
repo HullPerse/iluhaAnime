@@ -6,6 +6,7 @@ import { SmallLoader } from "@/components/shared/loader.component";
 import { Button } from "@/components/ui/button.component";
 import { useFranchiseViewport } from "@/hooks/anilist/franchise.hook";
 import { useAppQuery } from "@/hooks/appQuery.hook";
+import { useI18n } from "@/hooks/i18n.hook";
 import { collapseGraph } from "@/lib/anilist/collapse.utils";
 import {
   filterGraph,
@@ -19,7 +20,6 @@ import {
   buildSimNodes,
   runFranchiseSimulation,
 } from "@/lib/anilist/sim.utils";
-import { useI18n } from "@/hooks/i18n.hook";
 import { queryKeys } from "@/lib/query/keys.utils";
 import type {
   FranchiseNodePosition,

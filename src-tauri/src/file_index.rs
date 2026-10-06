@@ -122,7 +122,6 @@ impl FileIndexer {
     }
 
     pub async fn search(&self, query: &str, extensions: &[String], limit: usize) -> Vec<FileEntry> {
-        // Lock-free preamble: nothing below touches the index.
         let query = query.trim().to_lowercase();
         let ext_set: HashSet<String> = extensions
             .iter()

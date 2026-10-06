@@ -34,9 +34,7 @@ pub fn is_safe_relative_path(name: &str) -> bool {
             .all(|component| matches!(component, std::path::Component::Normal(_)))
 }
 
-/// Files-first tree order matching UI localeCompare; sequential mode walks this order.
 pub fn display_order(names: &[String]) -> Vec<usize> {
-    /// (0=file,1=dir,lowercase name): files sort before dirs like tree view.
     type Key = (u8, String);
 
     fn key(name: &str) -> Vec<Key> {
@@ -61,7 +59,6 @@ pub fn display_order(names: &[String]) -> Vec<usize> {
     keyed.into_iter().map(|(_, _, index)| index).collect()
 }
 
-/// User queue first, then global order; drops unknown/duplicate indices (queue outlives metainfo).
 pub fn download_order(names: &[String], order: FileOrder, queue: &[usize]) -> Vec<usize> {
     let base: Vec<usize> = match order {
         FileOrder::List => display_order(names),
@@ -86,13 +83,10 @@ pub fn download_order(names: &[String], order: FileOrder, queue: &[usize]) -> Ve
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SequentialPlan {
-    /// Every file the mode may download, in the order the list shows them.
     pub allowed: Vec<usize>,
-    /// First incomplete entry of allowed; None when selection complete.
     pub target: Option<usize>,
 }
 
-/// Prefers priorities (when count matches), else `only_files`; never session `only_files` (narrowed to single file).
 pub fn plan_sequential(
     names: &[String],
     lengths: &[u64],
@@ -180,7 +174,6 @@ pub fn ensure_minimum_free_space(path: &Path) -> Result<()> {
     Ok(())
 }
 
-// Probe-verified 2026-10-03; openbittorrent/tamersunion dead, dropped.
 pub const FALLBACK_TRACKERS: &[&str] = &[
     "http://bt2.t-ru.org/ann",
     "udp://tracker.opentrackr.org:1337/announce",
@@ -258,7 +251,6 @@ pub fn with_fallback_trackers_bytes(bytes: &[u8]) -> Vec<u8> {
     out
 }
 
-/// Rewrites announce list only (info hash untouched); empty list yields trackerless torrent.
 pub fn with_trackers_bytes(bytes: &[u8], trackers: &[String]) -> Result<Vec<u8>, String> {
     let torrent = torrent_from_bytes(bytes)
         .map_err(|error| format!("Invalid torrent metainfo: {error:#}"))?;
@@ -296,7 +288,6 @@ pub fn validate_tracker_url(raw: &str) -> Result<String, String> {
     Ok(parsed.to_string())
 }
 
-/// Normalizes to librqbit tracker string for comparison; None keeps unparseable entries.
 pub fn canonical_tracker_url(raw: &str) -> Option<String> {
     validate_tracker_url(raw).ok()
 }
@@ -307,7 +298,6 @@ pub fn canonical_or_raw_tracker(raw: &str) -> String {
 
 const MAX_PROXY_URL_LEN: usize = 512;
 
-/// Normalizes to socks5 (librqbit rejects others); peer IPs need no remote DNS.
 pub fn torrent_proxy_url(raw: &str) -> Result<Option<String>, String> {
     let trimmed = raw.trim();
     if trimmed.is_empty() {
@@ -330,7 +320,6 @@ pub fn torrent_proxy_url(raw: &str) -> Result<Option<String>, String> {
     Ok(Some(format!("socks5://{rest}")))
 }
 
-/// Rejects configs that would fail `Session::new_with_opts` on next launch.
 pub fn validate_session_config(mut config: SessionConfig) -> Result<SessionConfig, String> {
     config.proxy_url = match config.proxy_url.as_deref() {
         Some(raw) => torrent_proxy_url(raw)?,
@@ -339,7 +328,6 @@ pub fn validate_session_config(mut config: SessionConfig) -> Result<SessionConfi
     Ok(config)
 }
 
-/// 40 hex chars; per-torrent settings key shape.
 pub fn is_info_hash(value: &str) -> bool {
     value.len() == 40 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
 }

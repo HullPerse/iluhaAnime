@@ -11,8 +11,8 @@ import { RadioGroup } from "@/components/ui/radio/group.radio";
 import { Radio } from "@/components/ui/radio/radio.radio";
 import { ANILIST_GENRES } from "@/config/anilist/filters.config";
 import { RATING_MAX, RATING_MIN, YEAR_MAX, YEAR_MIN } from "@/config/collection/filters.config";
-import { freshDefaults } from "@/lib/collection/filter.utils";
 import { useI18n } from "@/hooks/i18n.hook";
+import { freshDefaults } from "@/lib/collection/filter.utils";
 import type { CollectionFilters, CollectionType } from "@/types/collection";
 
 export default function FilterCollection({

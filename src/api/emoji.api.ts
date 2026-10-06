@@ -1,8 +1,7 @@
 import type { ApiTransport } from "./transport.api";
 import { tauriTransport } from "./transport.api";
 
-export interface EmojiFile {
-  /** Chat shortcode is `:<name>`. */
+interface EmojiFile {
   name: string;
   path: string;
 }

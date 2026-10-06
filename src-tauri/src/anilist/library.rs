@@ -639,7 +639,6 @@ pub async fn get_anime_characters(
     Ok(parse_character_edges(edges))
 }
 
-/// Character profile plus one anime page for the modal.
 #[tauri::command]
 #[allow(non_snake_case)]
 pub async fn get_character_detail(
@@ -729,7 +728,6 @@ pub async fn get_staff_characters(
     Ok(parse_staff_detail(&json["data"]["Staff"]))
 }
 
-/// Character plus one anime page; missing media is empty state, not error.
 fn parse_character_detail(c: &serde_json::Value, fallback_id: u64) -> AniCharacterDetail {
     let mut seen = std::collections::HashSet::new();
     let media = c["media"]["edges"]

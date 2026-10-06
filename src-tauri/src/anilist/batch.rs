@@ -1,23 +1,6 @@
 use std::collections::HashSet;
 
 pub const MAX_ALIASES_PER_CHUNK: usize = 25;
-pub const MAX_BATCH_BODY_BYTES: usize = 32_768;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum BatchPriority {
-    Interactive,
-    Background,
-}
-
-impl BatchPriority {
-    #[must_use]
-    pub const fn rank(self) -> u8 {
-        match self {
-            Self::Interactive => 0,
-            Self::Background => 1,
-        }
-    }
-}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BatchMetrics {
@@ -51,62 +34,7 @@ pub fn split_id_chunks_with_limit(ids: &[u64], max_aliases: usize) -> Vec<Vec<u6
         .collect()
 }
 
-#[must_use]
-pub fn chunk_ids(
-    ids: &[u64],
-    max_aliases: usize,
-    max_bytes: usize,
-    overhead_bytes: usize,
-    alias_bytes: impl Fn(u64) -> usize,
-) -> Vec<Vec<u64>> {
-    let max_aliases = max_aliases.max(1);
-    let mut chunks: Vec<Vec<u64>> = Vec::new();
-    let mut current: Vec<u64> = Vec::new();
-    let mut current_bytes = overhead_bytes;
-    for id in dedup_ids(ids) {
-        let size = alias_bytes(id);
-        let over_count = current.len() >= max_aliases;
-        let over_bytes = !current.is_empty() && current_bytes.saturating_add(size) > max_bytes;
-        if over_count || over_bytes {
-            chunks.push(std::mem::take(&mut current));
-            current_bytes = overhead_bytes;
-        }
-        current.push(id);
-        current_bytes = current_bytes.saturating_add(size);
-    }
-    if !current.is_empty() {
-        chunks.push(current);
-    }
-    chunks
-}
-
-#[must_use]
-pub fn build_alias_query(header: &str, alias_lines: &[String]) -> String {
-    let mut query = String::from(header);
-    for line in alias_lines {
-        query.push_str(line);
-        query.push('\n');
-    }
-    query.push('}');
-    query
-}
-
-#[must_use]
-pub fn batch_metrics(
-    query: &str,
-    body: &serde_json::Value,
-    alias_count: usize,
-    chunk_count: usize,
-) -> BatchMetrics {
-    BatchMetrics {
-        alias_count,
-        query_bytes: query.len(),
-        body_bytes: serde_json::to_vec(body).map_or(0, |bytes| bytes.len()),
-        chunk_count,
-    }
-}
-
-pub(crate) static BATCH_CONCURRENCY: tokio::sync::Semaphore =
+pub(super) static BATCH_CONCURRENCY: tokio::sync::Semaphore =
     tokio::sync::Semaphore::const_new(super::client::MAX_CONCURRENT_REQUESTS);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -115,7 +43,6 @@ pub struct AliasBatchOutcome<T> {
     pub metrics: BatchMetrics,
 }
 
-/// Concurrent alias chunks (at most 3 in flight) merged in order; missing rows skipped, chunk failure fails batch.
 pub async fn execute_alias_batches<T, B, F, Fut, P>(
     ids: &[u64],
     max_aliases: usize,
@@ -214,11 +141,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn priority_ranks_interactive_above_background() {
-        assert!(BatchPriority::Interactive.rank() < BatchPriority::Background.rank());
-    }
-
-    #[test]
     fn dedup_keeps_first_order_and_drops_repeats() {
         assert_eq!(dedup_ids(&[3, 1, 3, 2, 1]), vec![3, 1, 2]);
         assert!(dedup_ids(&[]).is_empty());
@@ -247,52 +169,6 @@ mod tests {
         let chunks = split_id_chunks_with_limit(&ids, 0);
         assert_eq!(chunks.len(), 2);
         assert_eq!(chunks[0].len(), 25);
-    }
-
-    #[test]
-    fn chunk_ids_respects_byte_budget() {
-        let ids: Vec<u64> = (1..=4).collect();
-        let chunks = chunk_ids(&ids, 25, 100, 10, |_| 40);
-        assert_eq!(chunks.len(), 2);
-        assert_eq!(chunks[0], vec![1, 2]);
-        assert_eq!(chunks[1], vec![3, 4]);
-    }
-
-    #[test]
-    fn chunk_ids_never_drops_an_oversized_single_item() {
-        let chunks = chunk_ids(&[7], 25, 10, 10, |_| 100);
-        assert_eq!(chunks, vec![vec![7]]);
-    }
-
-    #[test]
-    fn builder_wraps_alias_lines_with_closing_brace() {
-        let query = build_alias_query(
-            "query ($mediaId: Int) {\n",
-            &[
-                "f0: MediaList(mediaId: $mediaId, userId: 7)".to_string(),
-                "f1: MediaList(mediaId: $mediaId, userId: 9)".to_string(),
-            ],
-        );
-        assert_eq!(
-            query,
-            "query ($mediaId: Int) {\nf0: MediaList(mediaId: $mediaId, userId: 7)\nf1: MediaList(mediaId: $mediaId, userId: 9)\n}"
-        );
-    }
-
-    #[test]
-    fn metrics_report_exact_byte_lengths() {
-        let query = "query { f0 }";
-        let body = serde_json::json!({ "query": query });
-        let metrics = batch_metrics(query, &body, 1, 1);
-        assert_eq!(metrics.alias_count, 1);
-        assert_eq!(metrics.query_bytes, query.len());
-        assert_eq!(
-            metrics.body_bytes,
-            serde_json::to_vec(&body)
-                .expect("fixture body should serialize")
-                .len()
-        );
-        assert_eq!(metrics.chunk_count, 1);
     }
 
     use std::sync::atomic::{AtomicUsize, Ordering};

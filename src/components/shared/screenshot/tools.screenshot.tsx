@@ -8,13 +8,7 @@ import { useI18n } from "@/hooks/i18n.hook";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
 import type { ScreenshotTool } from "@/types/screenshot";
 
-const SCREENSHOT_TOOLS: readonly ScreenshotTool[] = [
-  "select",
-  "pencil",
-  "eraser",
-  "text",
-  "blur",
-];
+const SCREENSHOT_TOOLS: readonly ScreenshotTool[] = ["select", "pencil", "eraser", "text", "blur"];
 
 const TOOL_ICONS: Record<ScreenshotTool, LucideIcon> = {
   select: MousePointer2,

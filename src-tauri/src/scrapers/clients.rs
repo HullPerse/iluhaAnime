@@ -65,7 +65,6 @@ pub fn resolve_proxy(proxy: Option<String>, proxy_camel: Option<String>) -> Opti
         .map(proxy_with_remote_dns)
 }
 
-/// SOCKS5/4 resolve locally; use socks5h/socks4a so the proxy resolves hostnames.
 pub fn proxy_with_remote_dns(proxy: String) -> String {
     let Some((scheme, rest)) = proxy.split_once("://") else {
         return proxy;

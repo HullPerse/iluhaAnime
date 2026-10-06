@@ -203,7 +203,6 @@ export function searchFiltersToParams(
   maxPages: number
 ) {
   return {
-    // AniList omits adult only when isAdult:false is sent.
     adult: filters.adult ? null : false,
     country: emptyToNull(filters.country),
     episodesFrom: rangeStartToNull(filters.episodes),

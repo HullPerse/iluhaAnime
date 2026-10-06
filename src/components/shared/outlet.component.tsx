@@ -10,7 +10,7 @@ export default function OutletComponent() {
     <div
       className={cn(
         "text-text relative h-screen w-screen overflow-hidden",
-        !isPlayerWindow && "bg-background",
+        !isPlayerWindow && "bg-background"
       )}
       aria-label="iluhaAnime"
     >

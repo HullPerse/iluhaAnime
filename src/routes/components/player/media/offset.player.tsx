@@ -17,11 +17,9 @@ function OsdOverlay() {
   const tracks = usePlaybackStore((state) => state.tracks);
   const volume = usePlayerStore((state) => state.volume);
 
-  const subOffset = useMediaStore((state) =>
-    path ? (state.getEntry(path)?.subOffset ?? 0) : 0,
-  );
+  const subOffset = useMediaStore((state) => (path ? (state.getEntry(path)?.subOffset ?? 0) : 0));
   const audioOffset = useMediaStore((state) =>
-    path ? (state.getEntry(path)?.audioOffset ?? 0) : 0,
+    path ? (state.getEntry(path)?.audioOffset ?? 0) : 0
   );
 
   const audioTrack = tracks.find((track) => track.type === "audio" && track.selected);
@@ -75,7 +73,7 @@ function OsdOverlay() {
   const signed = (value: number) => `${value > 0 ? "+" : ""}${value.toFixed(2)}s`;
 
   return (
-    <div className="absolute top-4 right-4 z-20 p-2 windows95-border min-w-48 windows95-font text-sm bg-primary/95 text-left">
+    <div className="windows95-border windows95-font bg-primary/95 absolute top-4 right-4 z-20 min-w-48 p-2 text-left text-sm">
       {audioTrack ? (
         <div className="mb-0.5">
           <span className="text-muted text-xs">{t("player.media.osd.audio")}:</span>{" "}
@@ -108,9 +106,7 @@ function OsdOverlay() {
       ) : null}
       <div>
         <span className="text-muted text-xs">{t("player.media.osd.volume")}:</span>{" "}
-        <span className="font-bold">
-          {muted ? "MUTE" : `${Math.round(volume * 100)}%`}
-        </span>
+        <span className="font-bold">{muted ? "MUTE" : `${Math.round(volume * 100)}%`}</span>
       </div>
     </div>
   );

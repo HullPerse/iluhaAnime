@@ -3,10 +3,10 @@ import { useState } from "react";
 
 import Section from "@/components/shared/section.component";
 import { Button } from "@/components/ui/button.component";
+import { useI18n } from "@/hooks/i18n.hook";
 import { useOverlay } from "@/hooks/overlay.hook";
 import { readStoredMedia } from "@/lib/collection/media.utils";
 import { statusLabel } from "@/lib/collection/status.utils";
-import { useI18n } from "@/hooks/i18n.hook";
 import type { CollectionItem, CollectionStatusDef } from "@/types/collection";
 
 import { DetailActionsCollection } from "./actions.detail";

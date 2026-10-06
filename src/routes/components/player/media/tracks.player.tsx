@@ -1,23 +1,10 @@
 import { useI18n } from "@/hooks/i18n.hook";
+import { sortTracksByLanguage, toTrackDisplay, trackLabel } from "@/lib/player/tracks.utils";
 import type { MpvTrack } from "@/types/videoPlayer";
 
 import TrackDropdown from "./dropdown.tracks";
 
-export function trackLabel(track: MpvTrack): string {
-  const parts: string[] = [];
-  if (track.title) {
-    parts.push(track.title);
-  } else if (track.lang) {
-    parts.push(track.lang);
-  }
-  if (track.codec) {
-    parts.push(track.codec.toUpperCase());
-  }
-  if (track.type === "audio" && track["demux-channels"]) {
-    parts.push(track["demux-channels"]);
-  }
-  return parts.length > 0 ? parts.join(" · ") : `#${track.id}`;
-}
+export { trackLabel };
 
 function Tracks({
   tracks,
@@ -33,8 +20,8 @@ function Tracks({
   onAddSubtitle: () => void;
 }) {
   const { t } = useI18n();
-  const audio = tracks.filter((track) => track.type === "audio");
-  const subs = tracks.filter((track) => track.type === "sub");
+  const audio = sortTracksByLanguage(tracks.filter((track) => track.type === "audio"));
+  const subs = sortTracksByLanguage(tracks.filter((track) => track.type === "sub"));
   const selectedAudio = audio.find((track) => track.selected)?.id ?? null;
   const selectedSub = subs.find((track) => track.selected)?.id ?? null;
 
@@ -42,7 +29,7 @@ function Tracks({
     <section className="flex h-6 items-center gap-1 px-1">
       <TrackDropdown
         label={t("player.media.tracks.audio")}
-        tracks={audio.map((track) => ({ id: track.id, label: trackLabel(track) }))}
+        tracks={audio.map((track) => ({ ...toTrackDisplay(track) }))}
         selectedId={selectedAudio}
         onSelect={onSelectAudio}
         onAdd={onAddAudio}
@@ -50,7 +37,7 @@ function Tracks({
       />
       <TrackDropdown
         label={t("player.media.tracks.subs.short")}
-        tracks={subs.map((track) => ({ id: track.id, label: trackLabel(track) }))}
+        tracks={subs.map((track) => ({ ...toTrackDisplay(track) }))}
         selectedId={selectedSub}
         noneLabel={t("player.media.tracks.none")}
         onSelect={onSelectSub}

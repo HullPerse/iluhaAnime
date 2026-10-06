@@ -32,20 +32,18 @@ export default defineConfig({
       name: "icon-sprite",
       apply: "build",
       async buildStart() {
-        const [, error] = await readdir(resolve(import.meta.dirname, "./src/assets/icons"));
-        if (error) return;
+        try {
+          const dir = resolve(import.meta.dirname, "./src/assets/icons");
+          const files = await readdir(dir);
 
-        const files = await readdir(resolve(import.meta.dirname, "./src/assets/icons"));
+          let total = 0;
 
-        let total = 0;
-
-        const dir = resolve(import.meta.dirname, "./src/assets/icons");
-
-        for (const f of files) {
-          const s = await stat(join(dir, f));
-          total += s.size;
-        }
-        this.info?.(`icon-sprite: ${files.length} icons, ${(total / 1024).toFixed(1)}KB`);
+          for (const f of files) {
+            const s = await stat(join(dir, f));
+            total += s.size;
+          }
+          this.info?.(`icon-sprite: ${files.length} icons, ${(total / 1024).toFixed(1)}KB`);
+        } catch {}
       },
     },
   ],

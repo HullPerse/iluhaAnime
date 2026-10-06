@@ -3,8 +3,8 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
-import { useAddTorrentTracker, useRemoveTorrentTracker } from "@/hooks/torrent/queries.hook";
 import { useI18n } from "@/hooks/i18n.hook";
+import { useAddTorrentTracker, useRemoveTorrentTracker } from "@/hooks/torrent/queries.hook";
 
 export function TorrentTrackersBlock({
   id,

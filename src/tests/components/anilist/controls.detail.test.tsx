@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -43,17 +44,21 @@ function makeAnime(): AniMedia {
 }
 
 function renderControls(scoreFormat: string, score: number | null = null) {
+  const client = new QueryClient();
   return render(
-    <AniListActionControls
-      anime={makeAnime()}
-      listEntry={{
-        progress: 5,
-        score,
-        list_status: "COMPLETED",
-        notes: null,
-      }}
-      scoreFormat={scoreFormat as "POINT_10"}
-    />
+    <QueryClientProvider client={client}>
+      <AniListActionControls
+        anime={makeAnime()}
+        listEntry={{
+          progress: 5,
+          score,
+          list_status: "COMPLETED",
+          notes: null,
+          custom_lists: [],
+        }}
+        scoreFormat={scoreFormat as "POINT_10"}
+      />
+    </QueryClientProvider>
   );
 }
 
@@ -152,6 +157,45 @@ describe("AniListActionControls score formats", () => {
       expect(mockInvoke).toHaveBeenCalledWith(
         "save_anilist_entry",
         expect.objectContaining({ mediaId: MEDIA_ID, score: 85 })
+      )
+    );
+  });
+});
+
+describe("AniListActionControls delete", () => {
+  function renderWithUser() {
+    const client = new QueryClient();
+    client.setQueryData(["anilist_data"], {
+      user: { id: 7 },
+      lists: [],
+      favourites: [],
+      people: { staff: [], characters: [] },
+    });
+    return render(
+      <QueryClientProvider client={client}>
+        <AniListActionControls
+          anime={makeAnime()}
+          listEntry={{
+            progress: 5,
+            score: null,
+            list_status: "CURRENT",
+            notes: null,
+            custom_lists: [],
+          }}
+          scoreFormat="POINT_10"
+        />
+      </QueryClientProvider>
+    );
+  }
+
+  it("deletes the entry with both id casings", async () => {
+    const user = userEvent.setup();
+    renderWithUser();
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+    await waitFor(() =>
+      expect(mockInvoke).toHaveBeenCalledWith(
+        "delete_anilist_entry",
+        expect.objectContaining({ media_id: MEDIA_ID, mediaId: MEDIA_ID, user_id: 7, userId: 7 })
       )
     );
   });

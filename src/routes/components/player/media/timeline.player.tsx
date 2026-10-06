@@ -1,11 +1,67 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { attempt } from "@/lib/utils/attempt.utils";
+import { assetUrl } from "@/lib/utils/image.utils";
+import { invokeTyped } from "@/lib/utils/invoke.utils";
+import { ignore } from "@/lib/utils/promise.utils";
 import { formatClock } from "@/lib/utils/time.utils";
 import { usePlaybackStore } from "@/store/player.store";
 import type { MpvChapter } from "@/types/videoPlayer";
 
 const TOOLTIP_WIDTH = 128;
 const LIVE_SCRUB_INTERVAL = 80;
+const HOVER_THUMB_DEBOUNCE = 200;
+const HOVER_FILL_STEP = 10;
+const HOVER_FILL_INTERVAL = 900;
+
+interface HoverThumbResponse {
+  url: string | null;
+  captured: boolean;
+}
+
+function useHoverThumb(
+  path: string,
+  duration: number,
+  paused: boolean,
+  hoverTime: number | null
+): string | null {
+  const [thumbUrl, setThumbUrl] = useState<string | null>(null);
+  const requestedRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    requestedRef.current = null;
+    setThumbUrl(null);
+    if (hoverTime === null || !path || duration <= 0) {
+      return;
+    }
+    const target = hoverTime;
+    requestedRef.current = target;
+    const timer = window.setTimeout(() => {
+      attempt(
+        invokeTyped<HoverThumbResponse>("player_hover_thumb", { path, timestamp: target })
+      ).then(([res]) => {
+        if (requestedRef.current !== target) return;
+        setThumbUrl(res?.url ? assetUrl(res.url) : null);
+      });
+    }, HOVER_THUMB_DEBOUNCE);
+    return () => window.clearTimeout(timer);
+  }, [hoverTime, path, duration]);
+
+  const fillCursor = useRef(0);
+
+  useEffect(() => {
+    fillCursor.current = 0;
+    if (!paused || !path || duration <= 0) return;
+    const timer = window.setInterval(() => {
+      const target = (fillCursor.current * HOVER_FILL_STEP) % Math.max(duration, HOVER_FILL_STEP);
+      fillCursor.current += 1;
+      ignore(invokeTyped("player_hover_thumb", { path, timestamp: target }));
+    }, HOVER_FILL_INTERVAL);
+    return () => window.clearInterval(timer);
+  }, [paused, path, duration]);
+
+  return thumbUrl;
+}
 
 type HoverInfo = { time: number; x: number; chapter?: string };
 
@@ -42,13 +98,21 @@ function Timeline({
   onCommitSeek: (time: number) => void;
 }) {
   const timePos = usePlaybackStore((state) => state.timePos);
+  const path = usePlaybackStore((state) => state.path);
+  const paused = usePlaybackStore((state) => state.paused);
   const barRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
   const [scrubTime, setScrubTime] = useState<number | null>(null);
   const [hover, setHover] = useState<HoverInfo | null>(null);
+  const [showRemaining, setShowRemaining] = useState(false);
+  const thumbUrl = useHoverThumb(path, duration, paused, hover?.time ?? null);
 
   const displayTime = dragging && scrubTime !== null ? scrubTime : (seekTarget ?? timePos);
   const progress = duration > 0 ? clamp01(displayTime / duration) * 100 : 0;
+  const timeWidth = `${formatClock(duration).length * 2 + 3}ch`;
+  const timeLabel = showRemaining
+    ? `-${formatClock(Math.max(0, duration - displayTime))} / ${formatClock(duration)}`
+    : `${formatClock(displayTime)} / ${formatClock(duration)}`;
 
   const timeFromClientX = useCallback(
     (clientX: number): number => {
@@ -118,8 +182,13 @@ function Timeline({
 
   return (
     <main className="flex flex-row items-center gap-1 p-1">
-      <span className="windows95-text min-w-18 shrink-0 text-right whitespace-nowrap tabular-nums">
-        {`${formatClock(displayTime)} / ${formatClock(duration)}`}
+      <span
+        style={{ width: timeWidth }}
+        className="windows95-text shrink-0 cursor-pointer text-right whitespace-nowrap tabular-nums"
+        title={showRemaining ? formatClock(displayTime) : undefined}
+        onClick={() => setShowRemaining((value) => !value)}
+      >
+        {timeLabel}
       </span>
       <div className="relative flex-1">
         {hover ? (
@@ -127,10 +196,13 @@ function Timeline({
             className="pointer-events-none absolute bottom-full z-50 mb-1 select-text"
             style={{ left: `${hover.x}px`, transform: "translateX(-50%)" }}
           >
-            <div className="windows95-border bg-primary windows95-text text-text flex w-max min-w-32 max-w-56 flex-col items-center gap-px px-1.5 py-0.5">
+            <div className="windows95-border bg-primary windows95-text text-text flex w-max max-w-56 min-w-32 flex-col items-center gap-px px-1.5 py-0.5">
+              {thumbUrl ? (
+                <img src={thumbUrl} alt="" className="h-auto w-32" draggable={false} />
+              ) : null}
               {hover.chapter ? (
                 <span
-                  className="w-full truncate text-center text-xs font-bold text-text whitespace-nowrap"
+                  className="text-text w-full truncate text-center text-xs font-bold whitespace-nowrap"
                   title={hover.chapter}
                 >
                   {hover.chapter}

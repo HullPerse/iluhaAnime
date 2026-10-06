@@ -18,12 +18,15 @@ export const queryKeys = {
   anilistImportLists: (userId: number | null) => ["anilist_import_lists", userId] as const,
   anilistBrowse: (tab: string) => ["anilist_browse", tab] as const,
   anilistFollowing: (userId: number | null) => ["anilist_following", userId] as const,
+  anilistSearch: (request: unknown) => ["anilist_search", request] as const,
   friendLists: (id: number | null) => ["anilist_friend_lists", id] as const,
   friendFavourites: (id: number | null) => ["anilist_friend_favourites", id] as const,
   friendProfile: (id: number | null) => ["anilist_friend_profile", id] as const,
   friendScores: (id: number, friendsKey: string) =>
     ["anime_friend_scores", id, friendsKey] as const,
   activity: (ids: readonly number[]) => ["anilist_activity", ...ids] as const,
+  siteNotifications: () => ["anilist_site_notifications"] as const,
+  customLists: () => ["anilist_custom_lists"] as const,
   collectionData: () => ["collection-data"] as const,
   tmdbMedia: (id: number | null, mediaType: string, keySet: boolean, proxy: string) =>
     ["tmdb_media", id, mediaType, keySet ? 1 : 0, proxy, "v2"] as const,

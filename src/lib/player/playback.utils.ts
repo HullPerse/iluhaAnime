@@ -19,12 +19,23 @@ export function rotateQueue(files: string[], startIndex: number): string[] {
   return [...files.slice(index), ...files.slice(0, index)];
 }
 
+const TIMECODE_INT = /^\d+$/;
+const TIMECODE_LAST = /^\d+([.,]\d+)?$/;
+
 export function parseTimecode(value: string): number | null {
   const trimmed = value.trim();
   if (!trimmed) return null;
   const parts = trimmed.split(":");
+  if (parts.length > 3) return null;
+  const last = parts.at(-1);
+  if (!last || !TIMECODE_LAST.test(last)) return null;
+  for (const part of parts.slice(0, -1)) {
+    if (!TIMECODE_INT.test(part)) return null;
+  }
   const numbers = parts.map((part) => Number(part.replace(",", ".")));
-  if (numbers.some((part) => !Number.isFinite(part) || part < 0)) return null;
+  if (numbers.some((part) => !Number.isFinite(part))) return null;
+  const ranged = parts.length > 1 ? numbers.slice(-2) : [];
+  if (ranged.some((part) => part >= 60)) return null;
   let seconds = 0;
   for (const part of numbers) seconds = seconds * 60 + part;
   return seconds;
@@ -114,11 +125,14 @@ export function profileOptions(
   return { ...PLAYER_PROFILES[profile].options };
 }
 
+export async function applyProperties(options: Record<string, unknown>): Promise<void> {
+  await Promise.allSettled(
+    Object.entries(options).map(([name, value]) => setMpvProperty(name, value))
+  );
+}
+
 export async function applyPlayerProfile(profile: PlayerProfileId): Promise<void> {
-  const options = profileOptions(profile);
-  for (const [name, value] of Object.entries(options)) {
-    await setMpvProperty(name, value);
-  }
+  await applyProperties(profileOptions(profile));
 }
 
 export function hdrOptions(settings: PlayerSettings): Record<string, unknown> {
@@ -137,10 +151,7 @@ export function hdrOptions(settings: PlayerSettings): Record<string, unknown> {
 }
 
 export async function applyHdrOptions(settings: PlayerSettings): Promise<void> {
-  const options = hdrOptions(settings);
-  for (const [name, value] of Object.entries(options)) {
-    await setMpvProperty(name, value);
-  }
+  await applyProperties(hdrOptions(settings));
 }
 
 export function colorOptions(settings: PlayerSettings): Record<string, unknown> {
@@ -151,10 +162,7 @@ export function colorOptions(settings: PlayerSettings): Record<string, unknown> 
 }
 
 export async function applyColorOptions(settings: PlayerSettings): Promise<void> {
-  const options = colorOptions(settings);
-  for (const [name, value] of Object.entries(options)) {
-    await setMpvProperty(name, value);
-  }
+  await applyProperties(colorOptions(settings));
 }
 
 export function audioOptions(settings: PlayerSettings): Record<string, unknown> {
@@ -162,10 +170,7 @@ export function audioOptions(settings: PlayerSettings): Record<string, unknown> 
 }
 
 export async function applyAudioOptions(settings: PlayerSettings): Promise<void> {
-  const options = audioOptions(settings);
-  for (const [name, value] of Object.entries(options)) {
-    await setMpvProperty(name, value);
-  }
+  await applyProperties(audioOptions(settings));
 }
 
 export async function openPlayer(files: string[], resume?: number): Promise<void> {
@@ -261,16 +266,14 @@ export function movePlaylistIndex(from: number, to: number): Promise<void> {
 }
 
 export async function appendFiles(files: string[]): Promise<void> {
-  for (const file of files) {
-    await runMpvCommand("loadfile", [file, "append-play"]);
-  }
+  if (files.length === 0) return;
+  await invokeTyped("player_append_files", { files, mode: "append-play" });
 }
 
 // "append" queues without starting playback; "append-play" would auto-start when idle.
 export async function appendFilesQuiet(files: string[]): Promise<void> {
-  for (const file of files) {
-    await runMpvCommand("loadfile", [file, "append"]);
-  }
+  if (files.length === 0) return;
+  await invokeTyped("player_append_files", { files, mode: "append" });
 }
 
 export interface PlaylistEntry {

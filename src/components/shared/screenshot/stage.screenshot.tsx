@@ -397,11 +397,7 @@ export default function ScreenshotStage({
     setCurrentDraft({ ...previous, points: appendPoint(previous.points, point) });
   };
 
-  const dragText = (
-    drag: DragState,
-    event: ReactPointerEvent<HTMLDivElement>,
-    pan: CropPan
-  ) => {
+  const dragText = (drag: DragState, event: ReactPointerEvent<HTMLDivElement>, pan: CropPan) => {
     const target = items.find((item) => item.id === drag.itemId);
     if (!target || target.kind !== "text") return;
     drag.moved = true;
@@ -410,11 +406,9 @@ export default function ScreenshotStage({
       ...target,
       point: {
         x:
-          target.point.x +
-          (event.clientX - drag.pointerX - (pan.x - drag.panStart.x)) / scaleValue,
+          target.point.x + (event.clientX - drag.pointerX - (pan.x - drag.panStart.x)) / scaleValue,
         y:
-          target.point.y +
-          (event.clientY - drag.pointerY - (pan.y - drag.panStart.y)) / scaleValue,
+          target.point.y + (event.clientY - drag.pointerY - (pan.y - drag.panStart.y)) / scaleValue,
       },
     });
   };

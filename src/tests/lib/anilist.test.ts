@@ -124,6 +124,7 @@ describe("anilist/activity", () => {
       updated_at: 0,
       notes: null,
       repeat: null,
+      custom_lists: [],
       ...overrides,
     };
   }
@@ -497,6 +498,7 @@ describe("anilist/entries", () => {
       updated_at: 0,
       notes: null,
       repeat: null,
+      custom_lists: [],
       ...overrides,
     };
   }
@@ -679,8 +681,27 @@ describe("anilist/entries", () => {
         completed_at: null,
         started_at: null,
         notes: "my note",
+        custom_lists: [],
       });
       expect(map.has(1)).toBe(false);
+    });
+
+    it("carries custom lists through the lookup", () => {
+      const lists: AniListCollection[] = [
+        {
+          entries: [
+            makeEntry({
+              media: makeMedia({ id: 9 }),
+              custom_lists: ["favorites", "rewatch"],
+            }),
+          ],
+          name: "Watching",
+        },
+      ];
+      expect(buildEntryLookup(lists).get(9)?.custom_lists).toEqual([
+        "favorites",
+        "rewatch",
+      ]);
     });
   });
 
@@ -773,6 +794,7 @@ describe("anilist/entries", () => {
       completed_at: null,
       started_at: null,
       notes: null,
+      custom_lists: [],
     };
 
     it("returns null without an entry", () => {
@@ -813,6 +835,7 @@ describe("anilist/entries", () => {
             completed_at: null,
             started_at: null,
             notes: null,
+            custom_lists: [],
           },
           "en"
         )
@@ -837,6 +860,7 @@ describe("anilist/entries", () => {
             completed_at: null,
             started_at: null,
             notes: null,
+            custom_lists: [],
           },
           "en",
           "1999-10-20"
@@ -854,6 +878,7 @@ describe("anilist/entries", () => {
       completed_at: null,
       started_at: null,
       notes: null,
+      custom_lists: [],
     };
 
     it("returns null without an entry", () => {
@@ -897,6 +922,7 @@ describe("anilist/entries", () => {
           completed_at: null,
           started_at: null,
           notes: null,
+          custom_lists: [],
         })
       ).toBeNull();
     });
@@ -1181,6 +1207,7 @@ describe("anilist/group", () => {
       updated_at: 0,
       notes: null,
       repeat: null,
+      custom_lists: [],
     };
   }
 

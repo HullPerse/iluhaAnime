@@ -8,6 +8,7 @@ export interface Anime {
   category: string;
   link: string;
   website?: string;
+  date?: string;
 }
 
 export interface TorrentDetailField {
@@ -137,6 +138,12 @@ export interface TorrentDiagnostics {
   trackers: string[];
 }
 
+export interface DhtStatus {
+  nodes_v4: number;
+  nodes_v6: number;
+  pending: number;
+}
+
 export interface PickerTorrent {
   magnet?: string;
   fileBytes?: number[];
@@ -145,6 +152,7 @@ export interface PickerTorrent {
   files: TorrentFileInfo[];
   conflictingFiles: string[];
   hasCommonFolder: boolean;
+  seeders?: number;
 }
 
 export interface CachedTorrentMeta {
@@ -155,11 +163,17 @@ export interface CachedTorrentMeta {
   savedAt: number;
 }
 
+export interface PendingTorrentSource {
+  kind: "magnet" | "file";
+  value: string;
+}
+
 export interface TorrentStore {
   lastActiveAt: Record<number, number>;
   limits: SpeedLimits;
   pendingTorrent: PickerTorrent | null;
   preparingTorrent: boolean;
+  prepareQueue: PendingTorrentSource[];
   metadataCache: Map<string, CachedTorrentMeta>;
   opInFlight: Record<number, "pause" | "resume" | "remove">;
 
@@ -170,9 +184,14 @@ export interface TorrentStore {
     sequential?: boolean
   ) => Promise<void>;
   cancelDownload: () => Promise<void>;
-  prepareTorrentDownload: (magnet: string) => Promise<void>;
-  prepareTorrentDownloadFromFile: (filePath: string) => Promise<void>;
-  prepareTorrentDownloadFromBytes: (fileBytes: number[]) => Promise<void>;
+  prepareTorrentDownload: (magnet: string, info?: { seeders?: number }) => Promise<void>;
+  prepareTorrentDownloadFromFile: (filePath: string, info?: { seeders?: number }) => Promise<void>;
+  prepareTorrentDownloadFromBytes: (
+    fileBytes: number[],
+    info?: { seeders?: number }
+  ) => Promise<void>;
+  queueTorrentFiles: (filePaths: string[]) => void;
+  prepareNextInQueue: () => void;
   setSpeedLimits: (limits: SpeedLimits) => Promise<void>;
   setTorrentLimits: (id: number, limits: SpeedLimits, infoHash?: string) => Promise<void>;
   getTorrentLimits: (id: number) => Promise<TorrentLimits>;
@@ -285,7 +304,7 @@ export interface MagnetTorrentProps {
   initialMagnet?: string | null;
   onClose: () => void;
   onAddMagnet: (magnet: string) => void;
-  onAddFile: (filePath: string) => void;
+  onAddFiles: (filePaths: string[]) => void;
 }
 
 export interface CreatedTorrent {
@@ -309,6 +328,8 @@ export interface TorrentSelectionBarProps {
   onResume: () => void;
   onRecheck: () => void;
   onDelete: () => void;
+  onTrackers: () => void;
+  onLimits: () => void;
   onSelectAll: () => void;
   onClear: () => void;
 }

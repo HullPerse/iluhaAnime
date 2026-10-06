@@ -39,6 +39,7 @@ pub struct NyaaItem {
     pub category: String,
     pub link: String,
     pub website: String,
+    pub date: String,
 }
 
 #[derive(Clone, Debug)]

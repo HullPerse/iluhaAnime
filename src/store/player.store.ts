@@ -21,7 +21,6 @@ export const DEFAULT_PLAYER_SETTINGS: PlayerSettings = {
   contrast: 100,
   saturation: 100,
   hue: 0,
-  gamma: 1,
   blur: 0,
   sepia: 0,
   grayscale: 0,
@@ -57,6 +56,19 @@ const INITIAL_PLAYBACK = {
 };
 
 const SEEK_TARGET_TOLERANCE = 0.4;
+const SEEK_TARGET_RESET_MS = 2500;
+
+let seekResetTimer: ReturnType<typeof setTimeout> | undefined;
+
+function armSeekReset(): void {
+  if (seekResetTimer !== undefined) clearTimeout(seekResetTimer);
+  seekResetTimer = setTimeout(() => {
+    seekResetTimer = undefined;
+    usePlaybackStore.setState((state) =>
+      state.seekTarget === null ? {} : { seekTarget: null, seekSettle: false }
+    );
+  }, SEEK_TARGET_RESET_MS);
+}
 
 function nextSeekTarget(
   state: Pick<PlaybackStore, "seekTarget" | "seekSettle" | "path">,
@@ -133,8 +145,20 @@ export const usePlaybackStore = create<PlaybackStore>()((set) => ({
       };
     }),
 
-  setSeekTarget: (time: number) => set({ seekTarget: time, seekSettle: false }),
+  setSeekTarget: (time: number) => {
+    armSeekReset();
+    set({ seekTarget: time, seekSettle: false });
+  },
   settleSeek: () => set((state) => (state.seekTarget === null ? {} : { seekSettle: true })),
+  setPaused: (paused: boolean) => set({ paused }),
+  setMuted: (muted: boolean) => set({ muted }),
+  setPlaybackSpeed: (speed: number) => set({ speed }),
+  markTrackSelected: (kind: "audio" | "sub", id: number | "no") =>
+    set((state) => ({
+      tracks: state.tracks.map((track) =>
+        track.type === kind ? { ...track, selected: id === "no" ? false : track.id === id } : track
+      ),
+    })),
   setTracks: (tracks: MpvTrack[]) => set({ tracks }),
   setChapters: (chapters: MpvChapter[]) => set({ chapters }),
   reset: () => set({ ...INITIAL_PLAYBACK }),

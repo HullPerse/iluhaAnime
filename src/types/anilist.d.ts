@@ -143,6 +143,7 @@ export interface AniListEntry {
   updated_at: number | null;
   notes: string | null;
   repeat: number | null;
+  custom_lists: string[];
 }
 
 export interface AniListCollection {
@@ -185,6 +186,7 @@ export type AniListAnime = {
     score: number | null;
     list_status: string;
     notes: string | null;
+    custom_lists: string[];
   };
 } | null;
 
@@ -288,6 +290,13 @@ export interface AniActivity {
   user_id: number;
   user_name: string;
   user_avatar: string | null;
+  like_count: number;
+  is_liked: boolean;
+}
+
+export interface ActivityLikeState {
+  like_count: number;
+  is_liked: boolean;
 }
 
 export interface AniListSort {
@@ -421,11 +430,41 @@ export interface AniListObservation {
   nextAiringAt: number | null;
 }
 
+export interface AniListRelease {
+  mediaId: number;
+  title: string;
+  episode: number | string;
+  airedAt: number;
+  read: boolean;
+}
+
+export interface AniSiteNotification {
+  id: number;
+  kind: string;
+  created_at: number;
+  context: string | null;
+  contexts: string[];
+  user_id: number | null;
+  user_name: string | null;
+  user_avatar: string | null;
+  anime_id: number | null;
+  anime_title: string | null;
+  anime_cover: string | null;
+  episode: number | null;
+  activity_id: number | null;
+  text: string | null;
+}
+
 export interface AniListNotificationsStore {
   observations: Record<string, AniListObservation>;
+  releases: AniListRelease[];
+  readNotificationIds: number[];
   initialized: boolean;
   knownListNames: string[];
   saveObservation: (id: string, observation: AniListObservation) => void;
+  addRelease: (release: Omit<AniListRelease, "read">) => void;
+  markReleasesRead: () => void;
+  markSiteNotificationsRead: (ids: number[]) => void;
   setInitialized: (value: boolean) => void;
   setKnownListNames: (names: string[]) => void;
 }
@@ -574,10 +613,10 @@ export interface AniListDetailModalHostProps {
   onFavouriteToggle: (animeId: number) => Promise<void>;
   onStaffFavouriteToggle?: (staffId: number) => void;
   onCharacterFavouriteToggle?: (characterId: number) => void;
-  onTag: (tag: string) => Promise<void>;
-  onGenre: (genre: string) => Promise<void>;
-  onStudio: (id: number, name: string) => Promise<void>;
-  onSeason: (season: string, seasonYear: number | null) => Promise<void>;
+  onTag: (tag: string) => void;
+  onGenre: (genre: string) => void;
+  onStudio: (id: number, name: string) => void;
+  onSeason: (season: string, seasonYear: number | null) => void;
   onRelated: (id: number) => void;
   onBack: (() => void) | undefined;
   onClose: () => void;
@@ -593,12 +632,13 @@ export interface AniDetailProps {
     score: number | null;
     list_status: string;
     notes: string | null;
+    custom_lists: string[];
   };
   isLoggedIn: boolean;
   favouriteIds?: Set<number>;
   favouriteStaffIds?: Set<number>;
   favouriteCharacterIds?: Set<number>;
-  onFavouriteToggle?: (animeId: number) => void;
+  onFavouriteToggle?: (animeId: number) => Promise<void> | void;
   onStaffFavouriteToggle?: (staffId: number) => void;
   onCharacterFavouriteToggle?: (characterId: number) => void;
   onTag: (value: string) => void;
@@ -699,6 +739,7 @@ export interface AniFriendsProps {
   onAddMany: (friends: AniFriendMinimal[]) => void;
   onRemove: (id: number) => void;
   onViewLists: (friend: AniFriend) => void;
+  onAnimeClick?: (id: number) => void;
   onClose: () => void;
 }
 

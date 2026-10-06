@@ -22,11 +22,14 @@ function AniListDetailModal(props: DetailProps) {
   const trailerId =
     trailer !== null && trailer.animeId === props.animeId ? trailer.youtubeId : null;
   const isFavorite = props.favouriteIds?.has(props.animeId) ?? false;
-  const toggleFavorite = () => {
+  const toggleFavorite = async () => {
     if (favoriteLoading) return;
     setFavoriteLoading(true);
-    props.onFavouriteToggle?.(props.animeId);
-    setFavoriteLoading(false);
+    try {
+      await props.onFavouriteToggle?.(props.animeId);
+    } finally {
+      setFavoriteLoading(false);
+    }
   };
   const anilistProxyUrl = useSettingsStore((s) => s.anilistProxyUrl);
   const query = useAppQuery("static", {

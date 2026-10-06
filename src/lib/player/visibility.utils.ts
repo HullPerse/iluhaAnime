@@ -12,16 +12,28 @@ export function isPlayerPathHidden(path: string, hiddenPaths: string[]): boolean
   });
 }
 
+function isHiddenNormalized(normalized: string, hidden: string[]): boolean {
+  return hidden.some((entry) => normalized === entry || normalized.startsWith(`${entry}/`));
+}
+
 export function filterTreeByHiddenPaths(
   tree: FolderNode,
   hiddenPaths: string[]
 ): FolderNode | null {
-  if (isPlayerPathHidden(tree.path, hiddenPaths)) return null;
+  const hidden = hiddenPaths.map(normalizePlayerPath);
+  return filterNode(tree, hidden);
+}
 
+function filterNode(tree: FolderNode, hidden: string[]): FolderNode | null {
+  if (isHiddenNormalized(normalizePlayerPath(tree.path), hidden)) return null;
+
+  const files = tree.files.filter(
+    (file) => !isHiddenNormalized(normalizePlayerPath(file.path), hidden)
+  );
   const children = tree.children
-    .map((child) => filterTreeByHiddenPaths(child, hiddenPaths))
+    .map((child) => filterNode(child, hidden))
     .filter((child): child is FolderNode => child !== null);
 
-  if (tree.files.length === 0 && children.length === 0) return null;
-  return { ...tree, children };
+  if (files.length === 0 && children.length === 0) return null;
+  return { ...tree, files, children };
 }

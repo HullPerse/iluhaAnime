@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button.component";
 import Select from "@/components/ui/select.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useSearchQuery } from "@/hooks/search/query.hook";
+import { parseTorrentTags } from "@/lib/search/torrentTags.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import SearchAuthButtons from "@/routes/components/search/auth.search";
 import TorrentDetailsModal from "@/routes/components/search/default/details/modal.details";
@@ -50,6 +51,7 @@ function SearchDefault() {
     data,
     displayItems,
     isPagedSource,
+    pageFull,
     nyaaPage,
     setNyaaPage,
     resultsPerPage,
@@ -86,7 +88,10 @@ function SearchDefault() {
             highlightRanges={
               didYouMean && searchParams === submittedQuery
                 ? [{ start: 0, end: searchParams.length }]
-                : undefined
+                : parseTorrentTags(searchParams).tags.map((tag) => ({
+                    start: tag.start,
+                    end: tag.end,
+                  }))
             }
           />
         </div>
@@ -182,7 +187,7 @@ function SearchDefault() {
       {isPagedSource && displayItems && displayItems.length > 0 && (
         <SearchPager
           page={nyaaPage}
-          pageFull={(data?.length ?? 0) >= resultsPerPage}
+          pageFull={pageFull}
           isLoading={isLoading}
           onPageChange={setNyaaPage}
         />

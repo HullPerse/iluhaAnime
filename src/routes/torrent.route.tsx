@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Plus, SortAsc, SortDesc } from "lucide-react";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 
+import { torrentApi } from "@/api/torrent.api";
 import { AnimatedNumber } from "@/components/shared/animatedNumber.component";
 import { InlineAutocompleteInput } from "@/components/shared/autocomplete/input.autocomplete";
 import { ConfirmDialog } from "@/components/shared/confirm.component";
@@ -20,11 +21,14 @@ import { useSearchField } from "@/hooks/search/field.hook";
 import { useTauriEvent } from "@/hooks/tauriEvent.hook";
 import {
   TORRENTS_QUERY_KEY,
+  useAddTorrentTracker,
   usePauseTorrent,
   useRecheckTorrent,
   useRemoveTorrent,
   useResumeTorrent,
   useTorrentFilesMap,
+  useTorrentListenPort,
+  useDhtStats,
   useTorrents,
 } from "@/hooks/torrent/queries.hook";
 import { applyBulkAction, pruneSelection, splitRecheckOutcome } from "@/lib/torrent/bulk.utils";
@@ -36,6 +40,7 @@ import {
 } from "@/lib/torrent/common.utils";
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { paginate } from "@/lib/utils/pagination.utils";
+import { ignore } from "@/lib/utils/promise.utils";
 import { useCacheStore } from "@/store/cache.store";
 import { useDeepLinkStore } from "@/store/deeplink.store";
 import { useTorrentStore } from "@/store/download.store";
@@ -43,7 +48,9 @@ import { useNotificationStore } from "@/store/notification.store";
 import { useSettingsStore } from "@/store/settings.store";
 import type { TorrentInfo, TorrentLifecycle } from "@/types/torrent";
 
+import { BulkLimitsModal, BulkTrackerModal } from "./components/torrent/bulk.torrent";
 import CreateTorrentModal from "./components/torrent/create.torrent";
+import { SpeedGraph } from "./components/torrent/graph.torrent";
 import AddTorrentModal from "./components/torrent/magnet.torrent";
 import { TorrentRow } from "./components/torrent/row.torrent";
 import { DeleteTorrentDialog } from "./components/torrent/sections/delete.sections";
@@ -60,16 +67,17 @@ function TorrentRoute() {
   const removeMutation = useRemoveTorrent();
   const setSpeedLimits = useTorrentStore((state) => state.setSpeedLimits);
   const prepareTorrentDownload = useTorrentStore((state) => state.prepareTorrentDownload);
-  const prepareTorrentDownloadFromFile = useTorrentStore(
-    (state) => state.prepareTorrentDownloadFromFile
-  );
+  const queueTorrentFiles = useTorrentStore((state) => state.queueTorrentFiles);
   const setSeedPreference = useCacheStore((state) => state.setSeedPreference);
   const torrentOrder = useCacheStore((state) => state.torrentOrder);
   const syncTorrentOrder = useCacheStore((state) => state.syncTorrentOrder);
   const moveTorrentOrder = useCacheStore((state) => state.moveTorrentOrder);
   const moveTorrentOrderTo = useCacheStore((state) => state.moveTorrentOrderTo);
   const recheckMutation = useRecheckTorrent();
+  const addTrackerMutation = useAddTorrentTracker();
   const opInFlight = useTorrentStore((state) => state.opInFlight);
+  const { data: listenPort } = useTorrentListenPort();
+  const { data: dhtStats } = useDhtStats();
 
   const [downloadInput, setDownloadInput] = useState(
     limits.download === null ? "" : String(limits.download)
@@ -158,6 +166,8 @@ function TorrentRoute() {
     });
   }, [filteredTorrents]);
   const [bulkRemoveTargets, setBulkRemoveTargets] = useState<TorrentInfo[] | null>(null);
+  const [showBulkTrackers, setShowBulkTrackers] = useState(false);
+  const [showBulkLimits, setShowBulkLimits] = useState(false);
   const recreateTorrents = (targets: TorrentInfo[]) =>
     applyBulkAction(targets, (torrent) =>
       removeMutation
@@ -173,9 +183,10 @@ function TorrentRoute() {
         })
     );
   const runBulk = async (
-    kind: "pause" | "resume" | "recheck" | "remove",
+    kind: "pause" | "resume" | "recheck" | "remove" | "trackers" | "limits",
     targets: TorrentInfo[],
-    deleteFiles = false
+    deleteFiles = false,
+    payload?: { tracker?: string; downloadBps?: number | null; uploadBps?: number | null }
   ) => {
     if (targets.length === 0 || bulkBusy) return;
     setBulkBusy(true);
@@ -245,6 +256,36 @@ function TorrentRoute() {
           if (lost.length > 0) setRecreateTargets(lost);
           return;
         }
+        if (kind === "trackers" && payload?.tracker) {
+          const tracker = payload.tracker;
+          const { done, failed } = await applyBulkAction(targets, (torrent) =>
+            track(
+              addTrackerMutation.mutateAsync({
+                id: torrent.id,
+                tracker,
+                infoHash: torrent.info_hash,
+              })
+            )
+          );
+          finishBulk(failed > 0 ? "error" : "success", t("torrent.bulk.done", { done, failed }));
+          return;
+        }
+        if (kind === "limits") {
+          const downloadBps =
+            payload?.downloadBps != null ? Math.round(payload.downloadBps * 1024) : null;
+          const uploadBps =
+            payload?.uploadBps != null ? Math.round(payload.uploadBps * 1024) : null;
+          const { done, failed } = await applyBulkAction(targets, (torrent) =>
+            track(
+              torrentApi
+                .setTorrentLimits(torrent.id, { downloadBps, uploadBps }, torrent.info_hash)
+                .then(() => true)
+                .catch(() => false)
+            )
+          );
+          finishBulk(failed > 0 ? "error" : "success", t("torrent.bulk.done", { done, failed }));
+          return;
+        }
         const { done, failed } = await applyBulkAction(targets, (torrent) =>
           track(
             kind === "pause"
@@ -292,9 +333,14 @@ function TorrentRoute() {
     [moveTorrentOrderTo]
   );
   const visibleIds = useMemo(() => pagedTorrents.map((t) => t.id), [pagedTorrents]);
+  const expandedIds = useMemo(
+    () => new Set(visibleIds.filter((id) => expanded.has(id))),
+    [visibleIds, expanded]
+  );
   const { files: torrentFilesMap, errors: torrentFilesErrors } = useTorrentFilesMap(
     visibleIds,
-    5000
+    5000,
+    expandedIds
   );
   const extraValues = useMemo(() => {
     const names = torrents.map((torrent) => torrent.name);
@@ -331,6 +377,7 @@ function TorrentRoute() {
     return {
       active,
       seeding,
+      peers: torrents.reduce((total, item) => total + item.peers_connected, 0),
       download: torrents.reduce((total, item) => total + item.download_speed, 0),
       upload: torrents.reduce((total, item) => total + item.upload_speed, 0),
     };
@@ -339,12 +386,8 @@ function TorrentRoute() {
   useTauriEvent<{ paths: string[] }>(
     "tauri://drag-drop",
     (event) => {
-      for (const path of event.payload.paths) {
-        if (path.toLowerCase().endsWith(".torrent")) {
-          prepareTorrentDownloadFromFile(path);
-          break;
-        }
-      }
+      const files = event.payload.paths.filter((path) => path.toLowerCase().endsWith(".torrent"));
+      if (files.length > 0) queueTorrentFiles(files);
     },
     { errorTag: "drag-drop" }
   );
@@ -425,8 +468,19 @@ function TorrentRoute() {
           {t("torrent.summary.upload.label")}{" "}
           <AnimatedNumber value={summary.upload} format={formatSpeed} />
         </span>
+        {typeof listenPort === "number" && listenPort > 0 && (
+          <span className="windows95-text text-hint text-xs">
+            {t("torrent.listen.port", { port: listenPort })}
+          </span>
+        )}
         <HostStatsBars stats={hostStats} />
       </section>
+      <SpeedGraph
+        download={summary.download}
+        upload={summary.upload}
+        peers={summary.peers}
+        dht={dhtStats}
+      />
       <section className="windows95-active-border bg-primary flex flex-wrap items-center gap-1 p-0.5">
         {(["all", "staging", "live", "paused", "seeding", "completed"] as const).map((lc) => (
           <Button
@@ -532,6 +586,8 @@ function TorrentRoute() {
           onResume={() => runBulk("resume", selectedTorrents)}
           onRecheck={() => runBulk("recheck", selectedTorrents)}
           onDelete={() => setBulkRemoveTargets(selectedTorrents)}
+          onTrackers={() => setShowBulkTrackers(true)}
+          onLimits={() => setShowBulkLimits(true)}
           onSelectAll={() => setSelected(new Set(filteredTorrents.map((torrent) => torrent.id)))}
           onClear={() => setSelected(new Set())}
         />
@@ -564,6 +620,29 @@ function TorrentRoute() {
           onClose={() => setBulkRemoveTargets(null)}
         />
       )}
+      <BulkTrackerModal
+        open={showBulkTrackers}
+        busy={bulkBusy}
+        onClose={() => setShowBulkTrackers(false)}
+        onApply={(tracker) => {
+          setShowBulkTrackers(false);
+          ignore(runBulk("trackers", selectedTorrents, false, { tracker }));
+        }}
+      />
+      <BulkLimitsModal
+        open={showBulkLimits}
+        busy={bulkBusy}
+        onClose={() => setShowBulkLimits(false)}
+        onApply={(limits) => {
+          setShowBulkLimits(false);
+          ignore(
+            runBulk("limits", selectedTorrents, false, {
+              downloadBps: limits.download,
+              uploadBps: limits.upload,
+            })
+          );
+        }}
+      />
       {recreateTargets.length > 0 && (
         <ConfirmDialog
           open
@@ -601,7 +680,7 @@ function TorrentRoute() {
             setMagnetPrefill(null);
           }}
           onAddMagnet={(magnet) => prepareTorrentDownload(magnet)}
-          onAddFile={(path) => prepareTorrentDownloadFromFile(path)}
+          onAddFiles={(paths) => queueTorrentFiles(paths)}
         />
       )}
     </div>

@@ -1,4 +1,4 @@
-import { SortAsc, SortDesc } from "lucide-react";
+import { SortAsc, SortDesc, X } from "lucide-react";
 import { useState } from "react";
 
 import Modal from "@/components/shared/modal.component";
@@ -8,8 +8,16 @@ import Combobox from "@/components/ui/combobox.component";
 import { Input } from "@/components/ui/input.component";
 import Select from "@/components/ui/select.component";
 import { useI18n } from "@/hooks/i18n.hook";
+import { useSearchStore } from "@/store/search.store";
 import type { SearchFilters, SortKey } from "@/types/search";
 import type { ModalFiltersProps as Props } from "@/types/search";
+
+const FILTER_PRESETS: Array<{ name: string; filters: Partial<SearchFilters> }> = [
+  { name: "1080p+", filters: { quality: "1080p", minSeeders: 10 } },
+  { name: "4K", filters: { quality: "2160p", minSeeders: 1 } },
+  { name: "HEVC", filters: { codec: "HEVC", quality: "1080p" } },
+  { name: "Light", filters: { quality: "720p", sizeMax: 2500 } },
+];
 
 export default function SearchFiltersModal({
   open,
@@ -24,6 +32,10 @@ export default function SearchFiltersModal({
 }: Props) {
   const { t } = useI18n();
   const [local, setLocal] = useState<SearchFilters>(filters);
+  const [presetName, setPresetName] = useState("");
+  const userPresets = useSearchStore((s) => s.filterPresets);
+  const saveFilterPreset = useSearchStore((s) => s.saveFilterPreset);
+  const deleteFilterPreset = useSearchStore((s) => s.deleteFilterPreset);
 
   if (!open) return null;
 
@@ -72,12 +84,81 @@ export default function SearchFiltersModal({
                   { value: "seeders", label: t("search.sort.seeders") },
                   { value: "leechers", label: t("search.sort.leechers") },
                   { value: "size", label: t("search.sort.size") },
+                  { value: "date", label: t("search.sort.date") },
                 ]}
               />
             </div>
             <hr className="border-muted my-1 w-full border-t" />
           </>
         )}
+        <p className="windows95-text text-text font-bold">{t("search.filters.presets")}</p>
+        <div className="flex flex-wrap gap-1">
+          {FILTER_PRESETS.map((preset) => (
+            <Button
+              key={preset.name}
+              variant="outline"
+              className="h-6 text-xs"
+              onClick={() => setLocal((p) => ({ ...p, ...preset.filters }))}
+            >
+              {preset.name}
+            </Button>
+          ))}
+        </div>
+        {userPresets.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {userPresets.map((preset) => (
+              <span key={preset.name} className="flex items-center">
+                <Button
+                  variant="secondary"
+                  className="h-6 rounded-r-none text-xs"
+                  title={preset.name}
+                  onClick={() => setLocal({ ...preset.filters })}
+                >
+                  <span className="max-w-32 truncate">{preset.name}</span>
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="h-6 w-5 rounded-l-none"
+                  title={t("search.filters.preset.delete")}
+                  aria-label={`${t("search.filters.preset.delete")}: ${preset.name}`}
+                  onClick={() => deleteFilterPreset(preset.name)}
+                >
+                  <X className="size-3" />
+                </Button>
+              </span>
+            ))}
+          </div>
+        )}
+        <div className="flex items-center gap-1">
+          <Input
+            placeholder={t("search.filters.preset.name")}
+            aria-label={t("search.filters.preset.name")}
+            className="h-6 max-w-48 text-xs"
+            value={presetName}
+            onChange={(e) => setPresetName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && presetName.trim()) {
+                saveFilterPreset(presetName, local);
+                setPresetName("");
+              }
+            }}
+          />
+          <Button
+            variant="outline"
+            className="h-6 text-xs"
+            disabled={!presetName.trim()}
+            onClick={() => {
+              saveFilterPreset(presetName, local);
+              setPresetName("");
+            }}
+          >
+            {t("search.filters.preset.save")}
+          </Button>
+        </div>
+
+        <hr className="border-muted my-1 w-full border-t" />
+
         <p className="windows95-text text-text font-bold">{t("search.filters.min.seeders")}</p>
         <Input
           type="number"
@@ -104,6 +185,7 @@ export default function SearchFiltersModal({
           onChange={(v) => patch({ quality: v })}
           options={[
             { value: "all", label: t("search.filters.any") },
+            { value: "2160p", label: "2160p" },
             { value: "1080p", label: "1080p" },
             { value: "720p", label: "720p" },
             { value: "480p", label: "480p" },
@@ -133,6 +215,7 @@ export default function SearchFiltersModal({
             { value: "all", label: t("search.filters.any") },
             { value: "HEVC", label: "HEVC / x265" },
             { value: "x264", label: "x264" },
+            { value: "AV1", label: "AV1" },
           ]}
         />
 

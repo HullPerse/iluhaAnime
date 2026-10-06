@@ -422,6 +422,15 @@ fn parse_list_entry(entry: &serde_json::Value) -> AniListEntry {
         updated_at: entry["updatedAt"].as_i64(),
         notes: entry["notes"].as_str().map(String::from),
         repeat: entry["repeat"].as_i64().map(|n| n as i32),
+        custom_lists: entry["customLists"]
+            .as_array()
+            .map(|items| {
+                items
+                    .iter()
+                    .filter_map(|name| name.as_str().map(String::from))
+                    .collect()
+            })
+            .unwrap_or_default(),
     }
 }
 
@@ -440,6 +449,7 @@ const COLLECTION_QUERY: &str = r"
                             status
                             notes
                             repeat
+                            customLists
                             createdAt
                             completedAt { year month day }
                             startedAt { year month day }
@@ -551,6 +561,38 @@ pub async fn get_anilist_lists(
 pub struct AniListCollection {
     pub name: String,
     pub entries: Vec<AniListEntry>,
+}
+
+#[tauri::command]
+#[allow(non_snake_case)]
+pub async fn get_anilist_custom_lists(
+    app_handle: tauri::AppHandle,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
+) -> Result<Vec<String>, String> {
+    let token = load_token(&app_handle)?;
+    let body = serde_json::json!({
+        "query": r"
+            query {
+                Viewer {
+                    mediaListOptions {
+                        animeList { customLists }
+                    }
+                }
+            }
+        ",
+    });
+    let proxy = resolve_proxy(proxy_url, proxyUrl);
+    let json = graphql_request(body, Some(&token), proxy.as_deref()).await?;
+    Ok(json["data"]["Viewer"]["mediaListOptions"]["animeList"]["customLists"]
+        .as_array()
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(|name| name.as_str().map(String::from))
+                .collect()
+        })
+        .unwrap_or_default())
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -694,6 +736,42 @@ pub async fn save_anilist_entry(
         return Err(format!("{:?}", json["errors"]));
     }
     Ok(())
+}
+
+#[tauri::command]
+#[allow(non_snake_case)]
+pub async fn delete_anilist_entry(
+    app_handle: tauri::AppHandle,
+    media_id: u64,
+    user_id: u64,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
+) -> Result<bool, String> {
+    let token = load_token(&app_handle)?;
+    let proxy = resolve_proxy(proxy_url, proxyUrl);
+    let find = serde_json::json!({
+        "query": "query ($mediaId: Int, $userId: Int) { MediaList(mediaId: $mediaId, userId: $userId) { id } }",
+        "variables": { "mediaId": media_id, "userId": user_id }
+    });
+    let found = graphql_request(find, Some(&token), proxy.as_deref()).await?;
+    if found.get("errors").is_some() {
+        return Err(format!("{:?}", found["errors"]));
+    }
+    let entry_id = found["data"]["MediaList"]["id"].as_u64().unwrap_or(0);
+    if entry_id == 0 {
+        return Ok(false);
+    }
+    let body = serde_json::json!({
+        "query": "mutation ($id: Int) { DeleteMediaListEntry(id: $id) { deleted } }",
+        "variables": { "id": entry_id }
+    });
+    let json = graphql_request(body, Some(&token), proxy.as_deref()).await?;
+    if json.get("errors").is_some() {
+        return Err(format!("{:?}", json["errors"]));
+    }
+    Ok(json["data"]["DeleteMediaListEntry"]["deleted"]
+        .as_bool()
+        .unwrap_or(true))
 }
 
 #[tauri::command]

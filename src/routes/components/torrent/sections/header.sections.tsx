@@ -1,11 +1,32 @@
+import { writeText } from "@tauri-apps/plugin-clipboard-manager";
+import { save as saveDialog } from "@tauri-apps/plugin-dialog";
 import { openPath } from "@tauri-apps/plugin-opener";
-import { ChevronDown, ChevronUp, Pause, Play, Check, Search, Users } from "lucide-react";
+import {
+  Check,
+  ChevronDown,
+  ChevronUp,
+  Copy,
+  FileDown,
+  Pause,
+  Play,
+  Pencil,
+  Search,
+  Users,
+  X,
+} from "lucide-react";
+import { useState } from "react";
 import type { ReactNode } from "react";
 
+import { torrentApi } from "@/api/torrent.api";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import ImageComponent from "@/components/ui/image.component";
+import { Input } from "@/components/ui/input.component";
 import { useI18n } from "@/hooks/i18n.hook";
+import { useSetTorrentAlias } from "@/hooks/torrent/queries.hook";
+import { attempt } from "@/lib/utils/attempt.utils";
+import { showError } from "@/lib/utils/notification.utils";
+import { ignore } from "@/lib/utils/promise.utils";
 import type { TorrentItemProps } from "@/types/torrent";
 
 export function TorrentHeader({
@@ -44,6 +65,40 @@ export function TorrentHeader({
   dragHandle?: ReactNode;
 }) {
   const { t } = useI18n();
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(item.name);
+  const aliasMutation = useSetTorrentAlias();
+
+  const commitAlias = (value: string | null) => {
+    if (!editing) return;
+    setEditing(false);
+    const trimmed = value?.trim() ?? "";
+    if (trimmed === item.name) return;
+    aliasMutation.mutate({
+      id: item.id,
+      alias: trimmed ? trimmed : null,
+      infoHash: item.info_hash,
+    });
+  };
+
+  const exportFile = async () => {
+    const target = await saveDialog({
+      defaultPath: `${item.name}.torrent`,
+      filters: [{ name: "Torrent", extensions: ["torrent"] }],
+    });
+    if (!target) return;
+    const [, error] = await attempt(torrentApi.exportTorrentFile(item.id, target, item.info_hash));
+    if (error) showError(t("torrent.export.error"), error.message);
+  };
+
+  const copyText = (label: string, value: string) => {
+    ignore(
+      attempt(writeText(value)).then(([, error]) => {
+        if (error) showError(label, error.message);
+      })
+    );
+  };
+
   return (
     <section className="flex flex-row items-center justify-between">
       <div className="flex min-w-0 flex-1 items-center gap-1">
@@ -53,12 +108,54 @@ export function TorrentHeader({
           aria-label={t("torrent.select")}
           className="size-3.5"
         />
-        <h3
-          className="windows95-font line-clamp-1 text-xs leading-tight font-bold"
-          title={item.name}
-        >
-          {item.name}
-        </h3>
+        {editing ? (
+          <Input
+            autoFocus
+            value={draft}
+            maxLength={200}
+            aria-label={t("torrent.rename")}
+            className="h-6 min-w-0 flex-1 text-xs"
+            onChange={(event) => setDraft(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") commitAlias(draft);
+              else if (event.key === "Escape") setEditing(false);
+            }}
+            onBlur={() => commitAlias(draft)}
+          />
+        ) : (
+          <h3
+            className="windows95-font line-clamp-1 text-xs leading-tight font-bold"
+            title={item.name}
+          >
+            {item.name}
+          </h3>
+        )}
+        {editing ? (
+          <Button
+            title={t("torrent.rename.clear")}
+            aria-label={t("torrent.rename.clear")}
+            size="icon"
+            className="size-6 shrink-0"
+            disabled={aliasMutation.isPending}
+            onClick={() => commitAlias(null)}
+          >
+            <X className="size-4" />
+          </Button>
+        ) : (
+          <Button
+            title={t("torrent.rename")}
+            aria-label={t("torrent.rename")}
+            size="icon"
+            className="size-6 shrink-0"
+            disabled={busy || aliasMutation.isPending}
+            onClick={() => {
+              setDraft(item.name);
+              setEditing(true);
+            }}
+          >
+            <Pencil className="size-4" />
+          </Button>
+        )}
       </div>
       <div className="flex flex-row items-center gap-1">
         {dragHandle}
@@ -159,6 +256,42 @@ export function TorrentHeader({
           }}
         >
           <Search className="size-4" />
+        </Button>
+        <Button
+          title={t("torrent.copy.magnet")}
+          aria-label={t("torrent.copy.magnet")}
+          size="icon"
+          className="size-6"
+          onClick={(e) => {
+            e.stopPropagation();
+            copyText(t("torrent.copy.magnet"), `magnet:?xt=urn:btih:${item.info_hash}`);
+          }}
+        >
+          <Copy className="size-4" />
+        </Button>
+        <Button
+          title={t("torrent.copy.infohash")}
+          aria-label={t("torrent.copy.infohash")}
+          size="icon"
+          className="size-6"
+          onClick={(e) => {
+            e.stopPropagation();
+            copyText(t("torrent.copy.infohash"), item.info_hash);
+          }}
+        >
+          <span className="windows95-font text-xs font-bold">#</span>
+        </Button>
+        <Button
+          title={t("torrent.export.file")}
+          aria-label={t("torrent.export.file")}
+          size="icon"
+          className="size-6"
+          onClick={(e) => {
+            e.stopPropagation();
+            ignore(exportFile());
+          }}
+        >
+          <FileDown className="size-4" />
         </Button>
         <Button
           title={t("torrent.peers.open")}

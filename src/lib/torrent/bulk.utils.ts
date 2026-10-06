@@ -37,6 +37,8 @@ export async function applyBulkAction<T>(
   act: (target: T) => Promise<unknown>
 ): Promise<{ done: number; failed: number }> {
   const results = await Promise.allSettled(targets.map((target) => act(target)));
-  const failed = results.filter((result) => result.status === "rejected").length;
+  const failed = results.filter(
+    (result) => result.status === "rejected" || result.value === false
+  ).length;
   return { done: results.length - failed, failed };
 }

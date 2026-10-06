@@ -136,6 +136,10 @@ export class CollectionApi {
     return this.call("prune_unified_index_scope", { scope, keepIds });
   }
 
+  deleteUnifiedIndexEntry(id: string): Promise<number> {
+    return this.call("delete_unified_index_entry", { id });
+  }
+
   recordUnifiedIndexAction(action: string, id: string): Promise<void> {
     return this.call("record_unified_index_action", { action, id });
   }

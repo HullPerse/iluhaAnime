@@ -54,6 +54,7 @@ function makeEntry(
     updated_at: null,
     notes: null,
     repeat: null,
+    custom_lists: [],
   };
 }
 

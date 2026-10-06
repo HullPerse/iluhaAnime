@@ -20,6 +20,8 @@ export type WindowEffect = "none" | "acrylic" | "mica" | "tabbed";
 export interface SettingsStore {
   language: Locale;
   limits: SpeedLimits;
+  speedSchedule: SpeedSchedule;
+  themeSchedule: ThemeSchedule;
   notificationsEnabled: boolean;
   notifyOnComplete: boolean;
   notifyOnError: boolean;
@@ -156,6 +158,24 @@ export interface SessionConfigPayload {
 }
 
 export type TabId = "search" | "torrent" | "player" | "anilist" | "collection" | "settings";
+
+export interface SpeedSchedule {
+  enabled: boolean;
+  dayStart: string;
+  nightStart: string;
+  dayDownload: number | null;
+  dayUpload: number | null;
+  nightDownload: number | null;
+  nightUpload: number | null;
+}
+
+export interface ThemeSchedule {
+  enabled: boolean;
+  dayStart: string;
+  nightStart: string;
+  dayTheme: string;
+  nightTheme: string;
+}
 
 export type SettingsDefaults = Omit<
   SettingsStore,

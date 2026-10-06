@@ -1,3 +1,4 @@
+import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { cn } from "cn";
 import { useMemo, useState } from "react";
 
@@ -22,6 +23,7 @@ import {
   type AnilistScoreFormat,
 } from "@/lib/anilist/score.utils";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
+import { ignore } from "@/lib/utils/promise.utils";
 import type { AniListCollection, AniUser, AniUserProfile, FavouriteAnime } from "@/types/anilist";
 
 type CompareTab = "shared" | "mine" | "friend";
@@ -179,16 +181,43 @@ function TitleRow({
   row,
   myFormat,
   friendFormat,
+  onAnimeClick,
 }: {
   row: ComparedTitle;
   myFormat: AnilistScoreFormat;
   friendFormat: AnilistScoreFormat;
+  onAnimeClick?: (id: number) => void;
 }) {
   const { t } = useI18n();
   const mine = row.mineRaw == null ? "-" : formatScore(row.mineRaw, myFormat);
   const friend = row.friendRaw == null ? "-" : formatScore(row.friendRaw, friendFormat);
+  if (!onAnimeClick) {
+    return (
+      <div className="hover:bg-surface flex items-center gap-1 p-1">
+        {row.coverUrl && (
+          <ImageComponent
+            src={row.coverUrl}
+            alt=""
+            className="windows95-active-border h-11 w-8 shrink-0 object-cover"
+          />
+        )}
+        <div className="min-w-0 flex-1">
+          <p className="windows95-text truncate text-xs">{row.title}</p>
+          <p className="windows95-text text-hint text-xs">
+            {mine} - {friend}
+            {row.delta != null && ` (${t("anilist.compare.diff", { value: row.delta })})`}
+          </p>
+        </div>
+      </div>
+    );
+  }
   return (
-    <div className="hover:bg-surface flex items-center gap-1 p-1">
+    <button
+      type="button"
+      onClick={() => onAnimeClick(row.id)}
+      title={row.title}
+      className="hover:bg-surface flex w-full cursor-pointer items-center gap-1 border-0 bg-transparent p-1 text-left"
+    >
       {row.coverUrl && (
         <ImageComponent
           src={row.coverUrl}
@@ -203,7 +232,7 @@ function TitleRow({
           {row.delta != null && ` (${t("anilist.compare.diff", { value: row.delta })})`}
         </p>
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -212,13 +241,16 @@ function TitleRows({
   tab,
   myFormat,
   friendFormat,
+  onAnimeClick,
 }: {
   rows: ComparedTitle[];
   tab: CompareTab;
   myFormat: AnilistScoreFormat;
   friendFormat: AnilistScoreFormat;
+  onAnimeClick?: (id: number) => void;
 }) {
   const { t } = useI18n();
+  const [showAll, setShowAll] = useState(false);
   if (rows.length === 0) {
     return (
       <div className="border-t border-black/20 p-1">
@@ -228,11 +260,29 @@ function TitleRows({
       </div>
     );
   }
+  const visible = showAll ? rows : rows.slice(0, 60);
   return (
     <div className="border-t border-black/20 p-1">
-      {rows.slice(0, 60).map((row) => (
-        <TitleRow key={row.id} row={row} myFormat={myFormat} friendFormat={friendFormat} />
+      {visible.map((row) => (
+        <TitleRow
+          key={row.id}
+          row={row}
+          myFormat={myFormat}
+          friendFormat={friendFormat}
+          onAnimeClick={onAnimeClick}
+        />
       ))}
+      {rows.length > 60 && (
+        <Button
+          variant="outline"
+          className="mt-1 h-6 text-xs"
+          onClick={() => setShowAll((value) => !value)}
+        >
+          {showAll
+            ? t("anilist.compare.show.less")
+            : t("anilist.compare.show.more", { count: rows.length - 60 })}
+        </Button>
+      )}
     </div>
   );
 }
@@ -286,6 +336,7 @@ export default function CompareAnilist({
   listsLoading,
   listsError,
   onRetry,
+  onAnimeClick,
 }: {
   selfUser: AniUser | null;
   selfLists: AniListCollection[];
@@ -296,6 +347,7 @@ export default function CompareAnilist({
   listsLoading: boolean;
   listsError: string | null;
   onRetry: () => void;
+  onAnimeClick?: (id: number) => void;
 }) {
   const { t } = useI18n();
   const [metric, setMetric] = useState<CompareMetric>("iluha");
@@ -314,6 +366,17 @@ export default function CompareAnilist({
   );
   const rows =
     tab === "shared" ? summary.shared : tab === "mine" ? summary.onlyMine : summary.onlyFriend;
+
+  const copyRows = () => {
+    const text = rows
+      .map((row) => {
+        const mine = row.mineRaw ?? "-";
+        const friend = row.friendRaw ?? "-";
+        return `${row.title} - ${mine} / ${friend}`;
+      })
+      .join("\n");
+    ignore(writeText(text));
+  };
 
   if (listsLoading && friendLists.length === 0) {
     return (
@@ -336,7 +399,18 @@ export default function CompareAnilist({
       <VersusHeader selfUser={selfUser} friendProfile={friendProfile} />
       <MetricSection summary={summary} metric={metric} onMetric={setMetric} />
       <CompareTabBar tab={tab} onTab={setTab} />
-      <TitleRows rows={rows} tab={tab} myFormat={myFormat} friendFormat={friendFormat} />
+      <div className="flex justify-end px-1">
+        <Button variant="outline" className="h-6 text-xs" onClick={copyRows}>
+          {t("anilist.compare.copy")}
+        </Button>
+      </div>
+      <TitleRows
+        rows={rows}
+        tab={tab}
+        myFormat={myFormat}
+        friendFormat={friendFormat}
+        onAnimeClick={onAnimeClick}
+      />
       <GenreSection genres={genres} />
       <FavsSection favourites={commonFavs} />
     </div>

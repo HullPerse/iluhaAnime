@@ -114,7 +114,6 @@ export interface PlayerSettings {
   contrast: number;
   saturation: number;
   hue: number;
-  gamma: number;
   blur: number;
   sepia: number;
   grayscale: number;
@@ -192,6 +191,10 @@ export interface PlaybackStore {
   setChapters: (chapters: MpvChapter[]) => void;
   setSeekTarget: (time: number) => void;
   settleSeek: () => void;
+  setPaused: (paused: boolean) => void;
+  setMuted: (muted: boolean) => void;
+  setPlaybackSpeed: (speed: number) => void;
+  markTrackSelected: (kind: "audio" | "sub", id: number | "no") => void;
   reset: () => void;
 }
 

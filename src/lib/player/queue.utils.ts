@@ -13,7 +13,7 @@ export interface QueueDepthStep {
 function stageIndex(stage: string | undefined): number {
   if (stage === "encoding") return 2;
   if (stage === "interpolating" || stage === "upscaling") return 1;
-  if (stage === "initializing" || stage === "started") return 0;
+  if (stage === "extracting" || stage === "initializing" || stage === "started") return 0;
   return -1;
 }
 
@@ -44,7 +44,7 @@ export function queueDepthSteps(item: UpscaleQueueItem, t: TFunc): QueueDepthSte
     item.status === "done"
       ? defs.length
       : item.status === "processing"
-        ? stageIndex(item.stage)
+        ? Math.max(0, stageIndex(item.stage))
         : -1;
   return defs.map((step, index) => ({
     ...step,

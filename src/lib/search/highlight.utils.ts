@@ -60,7 +60,11 @@ export function splitHighlightRanges(
     const end = Math.min(value.length, r.end);
     if (start < cursor) continue;
     if (start > cursor) segments.push({ text: value.slice(cursor, start), highlighted: false });
-    segments.push({ text: value.slice(start, end), highlighted: true });
+    segments.push({
+      text: value.slice(start, end),
+      highlighted: true,
+      spell: r.kind === "spell-warn" ? "warn" : r.kind === "spell-error" ? "error" : undefined,
+    });
     cursor = end;
   }
   if (cursor < value.length) segments.push({ text: value.slice(cursor), highlighted: false });

@@ -7,6 +7,7 @@ import type { AniListCollection } from "@/types/anilist";
 
 import { CalendarTab } from "./activity/calendarTab.activity";
 import { FeedTab } from "./activity/feedTab.activity";
+import { NotificationsTab } from "./activity/notificationsTab.activity";
 
 function ActivityHistoryModal({
   userId,
@@ -19,11 +20,11 @@ function ActivityHistoryModal({
   userId: number;
   friendIds: number[];
   lists: AniListCollection[];
-  initialTab: "feed" | "calendar";
+  initialTab: "feed" | "calendar" | "notifications";
   onClose: () => void;
   onAnimeClick: (id: number) => void;
 }) {
-  const [tab, setTab] = useState<"feed" | "calendar">(initialTab);
+  const [tab, setTab] = useState<"feed" | "calendar" | "notifications">(initialTab);
   const { t } = useI18n();
 
   return (
@@ -34,6 +35,7 @@ function ActivityHistoryModal({
           tabs={[
             { id: "feed", label: t("anilist.activity.feed") },
             { id: "calendar", label: t("anilist.activity.calendar") },
+            { id: "notifications", label: t("anilist.activity.notifications") },
           ]}
           activeTab={tab}
           onChange={setTab}
@@ -47,6 +49,8 @@ function ActivityHistoryModal({
             lists={lists}
             onAnimeClick={onAnimeClick}
           />
+        ) : tab === "notifications" ? (
+          <NotificationsTab onAnimeClick={onAnimeClick} />
         ) : (
           <CalendarTab lists={lists} onAnimeClick={onAnimeClick} />
         )}

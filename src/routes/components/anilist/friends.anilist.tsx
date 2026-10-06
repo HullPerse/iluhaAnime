@@ -61,12 +61,14 @@ function ComparePanel({
   selfUser,
   selfLists,
   selfFavourites,
+  onAnimeClick,
 }: {
   friend: AniFriend;
   profile: AniUserProfile | undefined;
   selfUser: AniUser | null;
   selfLists: AniListCollection[];
   selfFavourites: FavouriteAnime[];
+  onAnimeClick?: (id: number) => void;
 }) {
   const { friendLists, friendFavourites, listsLoading, listsError, retry } = useFriendCompare(
     friend.id,
@@ -83,6 +85,7 @@ function ComparePanel({
       listsLoading={listsLoading}
       listsError={listsError}
       onRetry={retry}
+      onAnimeClick={onAnimeClick}
     />
   );
 }
@@ -341,6 +344,7 @@ export default function AniListFriendsModal({
   onAddMany,
   onRemove,
   onViewLists,
+  onAnimeClick,
   onClose,
 }: Props) {
   const { t } = useI18n();
@@ -547,6 +551,7 @@ export default function AniListFriendsModal({
               selfUser={selfUser}
               selfLists={selfLists}
               selfFavourites={selfFavourites}
+              onAnimeClick={onAnimeClick}
             />
           ) : (
             <FriendPreview

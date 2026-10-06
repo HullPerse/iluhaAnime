@@ -35,8 +35,8 @@ impl FileIndexer {
         let mut entries = Vec::new();
 
         for root in paths {
-            for entry in walkdir::WalkDir::new(root).follow_links(false) {
-                let entry = entry.map_err(|e| format!("walkdir error: {e}"))?;
+            for entry in jwalk::WalkDir::new(root).follow_links(false) {
+                let entry = entry.map_err(|e| format!("scan error: {e}"))?;
                 if entry.file_type().is_dir() {
                     continue;
                 }
@@ -55,7 +55,7 @@ impl FileIndexer {
                     .unwrap_or_default()
                     .to_string_lossy()
                     .to_string();
-                let size = std::fs::metadata(path)
+                let size = std::fs::metadata(&path)
                     .map_err(|e| format!("metadata error: {e}"))?
                     .len();
                 entries.push(FileEntry {

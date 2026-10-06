@@ -83,7 +83,12 @@ function notifyMissedEpisodes(
   const to = media.next_episode;
   if (from == null || to == null) return count;
   for (let episode = from; episode < to; episode++) {
-    if (notifyEpisode(media.id, media.title, episode, `${key}:${episode}`, t, system)) count++;
+    if (notifyEpisode(media.id, media.title, episode, `${key}:${episode}`, t, system)) {
+      count++;
+      useAniListNotificationsStore
+        .getState()
+        .addRelease({ mediaId: media.id, title: media.title, episode, airedAt: Date.now() });
+    }
   }
   return count;
 }
@@ -123,8 +128,15 @@ function processEntry(entry: AniNotificationEntry, now: number, t: TFunc, system
           t,
           system
         )
-      )
+      ) {
         notified++;
+        useAniListNotificationsStore.getState().addRelease({
+          mediaId: media.id,
+          title: media.title,
+          episode: media.next_episode ?? "?",
+          airedAt: Date.now(),
+        });
+      }
     }
     notifyStatus(entry, previous, t, system);
   }

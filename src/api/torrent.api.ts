@@ -4,6 +4,7 @@ import type { SessionConfigPayload } from "@/types/settings";
 import type {
   Anime,
   CreatedTorrent,
+  DhtStatus,
   FilePriority,
   TorrentCheckResult,
   TorrentDetails,
@@ -192,19 +193,19 @@ export class TorrentApi {
   }
 
   pauseTorrent(id: number, infoHash?: string): Promise<void> {
-    return this.call("pause_torrent", { id, infoHash });
+    return this.call("pause_torrent", { id, info_hash: infoHash, infoHash });
   }
 
   resumeTorrent(id: number, infoHash?: string): Promise<TorrentResumeResult> {
-    return this.call("resume_torrent", { id, infoHash });
+    return this.call("resume_torrent", { id, info_hash: infoHash, infoHash });
   }
 
   removeTorrent(id: number, deleteFiles: boolean, infoHash?: string): Promise<void> {
-    return this.call("remove_torrent", { id, deleteFiles, infoHash });
+    return this.call("remove_torrent", { id, deleteFiles, info_hash: infoHash, infoHash });
   }
 
   updateOnlyFiles(id: number, onlyFiles: number[], infoHash?: string): Promise<void> {
-    return this.call("update_torrent_only_files", { id, onlyFiles, infoHash });
+    return this.call("update_torrent_only_files", { id, onlyFiles, info_hash: infoHash, infoHash });
   }
 
   setFilePriority(
@@ -213,35 +214,46 @@ export class TorrentApi {
     priority: FilePriority,
     infoHash?: string
   ): Promise<void> {
-    return this.call("set_file_priority", { id, fileIndices, priority, infoHash });
+    return this.call("set_file_priority", {
+      id,
+      fileIndices,
+      priority,
+      info_hash: infoHash,
+      infoHash,
+    });
   }
 
   setSequentialDownload(id: number, enabled: boolean, infoHash?: string): Promise<void> {
-    return this.call("set_sequential_download", { id, enabled, infoHash });
+    return this.call("set_sequential_download", { id, enabled, info_hash: infoHash, infoHash });
   }
 
   setTorrentDownloadOrder(id: number, fileIndices: number[], infoHash?: string): Promise<void> {
-    return this.call("set_torrent_download_order", { id, fileIndices, infoHash });
+    return this.call("set_torrent_download_order", {
+      id,
+      fileIndices,
+      info_hash: infoHash,
+      infoHash,
+    });
   }
 
   redownloadFile(id: number, fileIndex: number, infoHash: string): Promise<number> {
-    return this.call("redownload_file", { id, fileIndex, infoHash });
+    return this.call("redownload_file", { id, fileIndex, info_hash: infoHash, infoHash });
   }
 
   recheckTorrent(id: number, infoHash?: string): Promise<TorrentCheckResult> {
-    return this.call("recheck_torrent", { id, infoHash });
+    return this.call("recheck_torrent", { id, info_hash: infoHash, infoHash });
   }
 
   recheckPausedTorrent(id: number, infoHash?: string): Promise<TorrentResumeResult> {
-    return this.call("recheck_paused_torrent", { id, infoHash });
+    return this.call("recheck_paused_torrent", { id, info_hash: infoHash, infoHash });
   }
 
   addTorrentTracker(id: number, tracker: string, infoHash: string): Promise<void> {
-    return this.call("add_torrent_tracker", { id, tracker, infoHash });
+    return this.call("add_torrent_tracker", { id, tracker, info_hash: infoHash, infoHash });
   }
 
   removeTorrentTracker(id: number, tracker: string, infoHash: string): Promise<void> {
-    return this.call("remove_torrent_tracker", { id, tracker, infoHash });
+    return this.call("remove_torrent_tracker", { id, tracker, info_hash: infoHash, infoHash });
   }
 
   getTorrentDiagnostics(id: number, infoHash?: string): Promise<TorrentDiagnostics> {
@@ -260,12 +272,31 @@ export class TorrentApi {
     return this.call("set_torrent_limits", {
       id,
       limits,
+      info_hash: infoHash,
+      infoHash,
+    });
+  }
+
+  setTorrentAlias(id: number, alias: string | null, infoHash?: string): Promise<void> {
+    return this.call("set_torrent_alias", { id, alias, info_hash: infoHash, infoHash });
+  }
+
+  exportTorrentFile(id: number, outPath: string, infoHash?: string): Promise<string> {
+    return this.call("export_torrent_file", {
+      id,
+      out_path: outPath,
+      outPath,
+      info_hash: infoHash,
       infoHash,
     });
   }
 
   setGlobalSpeedLimits(downloadBps: number | null, uploadBps: number | null): Promise<void> {
     return this.call("set_global_speed_limits", { downloadBps, uploadBps });
+  }
+
+  getDhtStats(): Promise<DhtStatus | null> {
+    return this.call("get_dht_stats");
   }
 
   getTorrentInfo(magnet: string, saveDir: string): Promise<TorrentInfoResult> {

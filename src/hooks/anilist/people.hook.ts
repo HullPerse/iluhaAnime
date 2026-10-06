@@ -9,12 +9,29 @@ import type { AnilistRouteData } from "@/types/anilist";
 
 export function useFavouritePeopleToggles() {
   const queryClient = useQueryClient();
-  const staffPendingRef = useRef(false);
+  const staffPendingRef = useRef<Set<number>>(new Set());
   const toggleStaff = async (staffId: number) => {
-    if (staffPendingRef.current) return;
-    staffPendingRef.current = true;
+    if (staffPendingRef.current.has(staffId)) return;
+    staffPendingRef.current.add(staffId);
+    const previous = queryClient.getQueryData<AnilistRouteData>(["anilist_data"]);
+    const wasFavourite = previous?.people.staff.some((p) => p.id === staffId) ?? false;
+    if (wasFavourite) {
+      queryClient.setQueryData(["anilist_data"], (old: unknown) =>
+        old
+          ? {
+              ...(old as AnilistRouteData),
+              people: {
+                ...(old as AnilistRouteData).people,
+                staff: (old as AnilistRouteData).people.staff.filter((p) => p.id !== staffId),
+              },
+            }
+          : old
+      );
+    }
     const [updated, error] = await attempt(anilistApi.toggleFavouriteStaff(staffId));
+    staffPendingRef.current.delete(staffId);
     if (error) {
+      if (wasFavourite) queryClient.setQueryData(["anilist_data"], previous);
       useNotificationStore.getState().add(tr("anilist.fav.toggle.failed"), "error", error.message);
     } else {
       queryClient.setQueryData(["anilist_data"], (old: unknown) =>
@@ -26,14 +43,32 @@ export function useFavouritePeopleToggles() {
           : old
       );
     }
-    staffPendingRef.current = false;
   };
-  const characterPendingRef = useRef(false);
+  const characterPendingRef = useRef<Set<number>>(new Set());
   const toggleCharacter = async (characterId: number) => {
-    if (characterPendingRef.current) return;
-    characterPendingRef.current = true;
+    if (characterPendingRef.current.has(characterId)) return;
+    characterPendingRef.current.add(characterId);
+    const previous = queryClient.getQueryData<AnilistRouteData>(["anilist_data"]);
+    const wasFavourite = previous?.people.characters.some((p) => p.id === characterId) ?? false;
+    if (wasFavourite) {
+      queryClient.setQueryData(["anilist_data"], (old: unknown) =>
+        old
+          ? {
+              ...(old as AnilistRouteData),
+              people: {
+                ...(old as AnilistRouteData).people,
+                characters: (old as AnilistRouteData).people.characters.filter(
+                  (p) => p.id !== characterId
+                ),
+              },
+            }
+          : old
+      );
+    }
     const [updated, error] = await attempt(anilistApi.toggleFavouriteCharacter(characterId));
+    characterPendingRef.current.delete(characterId);
     if (error) {
+      if (wasFavourite) queryClient.setQueryData(["anilist_data"], previous);
       useNotificationStore.getState().add(tr("anilist.fav.toggle.failed"), "error", error.message);
     } else {
       queryClient.setQueryData(["anilist_data"], (old: unknown) =>
@@ -45,7 +80,6 @@ export function useFavouritePeopleToggles() {
           : old
       );
     }
-    characterPendingRef.current = false;
   };
   return { toggleStaff, toggleCharacter };
 }

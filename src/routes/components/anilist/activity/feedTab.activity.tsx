@@ -68,6 +68,8 @@ export function FeedTab({
                 user_id: userId,
                 user_name: "",
                 user_avatar: null,
+                like_count: 0,
+                is_liked: false,
               }))
           );
 

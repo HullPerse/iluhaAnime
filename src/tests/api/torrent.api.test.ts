@@ -20,6 +20,65 @@ beforeEach(() => {
 });
 
 describe("TorrentApi", () => {
+  it("sends both hash casings when renaming a torrent", async () => {
+    const { calls, transport } = fakeTransport(() => undefined);
+    const api = new TorrentApi({ transport });
+
+    await api.setTorrentAlias(3, "My Title", "abc123");
+
+    expect(calls[0]).toEqual({
+      command: "set_torrent_alias",
+      args: { id: 3, alias: "My Title", info_hash: "abc123", infoHash: "abc123" },
+    });
+  });
+
+  it("clears the alias with null", async () => {
+    const { calls, transport } = fakeTransport(() => undefined);
+    const api = new TorrentApi({ transport });
+
+    await api.setTorrentAlias(3, null);
+
+    expect(calls[0]).toMatchObject({
+      command: "set_torrent_alias",
+      args: { id: 3, alias: null },
+    });
+  });
+
+  it("sends both hash casings on mutations", async () => {
+    const { calls, transport } = fakeTransport(() => undefined);
+    const api = new TorrentApi({ transport });
+
+    await api.pauseTorrent(3, "abc123");
+    await api.addTorrentTracker(3, "udp://t", "abc123");
+
+    expect(calls[0]).toEqual({
+      command: "pause_torrent",
+      args: { id: 3, info_hash: "abc123", infoHash: "abc123" },
+    });
+    expect(calls[1]).toEqual({
+      command: "add_torrent_tracker",
+      args: { id: 3, tracker: "udp://t", info_hash: "abc123", infoHash: "abc123" },
+    });
+  });
+
+  it("exports the torrent file with both path casings", async () => {
+    const { calls, transport } = fakeTransport(() => "/tmp/x.torrent");
+    const api = new TorrentApi({ transport });
+
+    await api.exportTorrentFile(3, "/tmp/x.torrent", "abc123");
+
+    expect(calls[0]).toEqual({
+      command: "export_torrent_file",
+      args: {
+        id: 3,
+        out_path: "/tmp/x.torrent",
+        outPath: "/tmp/x.torrent",
+        info_hash: "abc123",
+        infoHash: "abc123",
+      },
+    });
+  });
+
   it("resolves the proxy per source", () => {
     useSettingsStore.setState({ searchProxyUrls: { rutracker: "socks5://127.0.0.1:10808" } });
     const api = new TorrentApi({ proxies: () => useSettingsStore.getState().searchProxyUrls });

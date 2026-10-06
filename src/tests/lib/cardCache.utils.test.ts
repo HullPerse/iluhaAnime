@@ -36,10 +36,7 @@ describe("orderCardPaths", () => {
   });
 
   it("drops empty paths and duplicates", () => {
-    expect(orderCardPaths(["a.mkv", "", "a.mkv", "b.mkv"], "a.mkv")).toEqual([
-      "a.mkv",
-      "b.mkv",
-    ]);
+    expect(orderCardPaths(["a.mkv", "", "a.mkv", "b.mkv"], "a.mkv")).toEqual(["a.mkv", "b.mkv"]);
   });
 
   it("starts from the first path when active is missing", () => {
@@ -60,10 +57,7 @@ describe("fetchVideoCard", () => {
   });
 
   it("dedups concurrent fetches of the same path", async () => {
-    const [first, second] = await Promise.all([
-      fetchVideoCard("a.mkv"),
-      fetchVideoCard("a.mkv"),
-    ]);
+    const [first, second] = await Promise.all([fetchVideoCard("a.mkv"), fetchVideoCard("a.mkv")]);
     expect(invokeMock).toHaveBeenCalledTimes(1);
     expect(first).toEqual(second);
   });

@@ -3,10 +3,13 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 
 import { torrentApi } from "@/api/torrent.api";
 import { tr } from "@/lib/locale/i18n.utils";
+import { inflightFetch } from "@/lib/utils/lruCache.utils";
 import { attemptResult, err, ok, type Result } from "@/lib/utils/result.utils";
 import { useTorrentStore } from "@/store/download.store";
 import { useNotificationStore } from "@/store/notification.store";
 import type { Anime } from "@/types/torrent";
+
+const magnetInflight = new Map<string, Promise<Result<string>>>();
 
 async function resolveMagnet(
   item: Anime,
@@ -19,15 +22,17 @@ async function resolveMagnet(
   const cached = magnets[key];
   if (cached) return ok(cached);
 
-  setLoadingMagnet((prev) => ({ ...prev, [key]: true }));
-  const fetched = await attemptResult(torrentApi.rutrackerGetMagnet(item.category));
-  setLoadingMagnet((prev) => ({ ...prev, [key]: false }));
-  if (!fetched.ok) {
-    useNotificationStore.getState().add(tr("common.error"), "error", tr("magnet.error"));
+  return inflightFetch(magnetInflight, key, async () => {
+    setLoadingMagnet((prev) => ({ ...prev, [key]: true }));
+    const fetched = await attemptResult(torrentApi.rutrackerGetMagnet(item.category));
+    setLoadingMagnet((prev) => ({ ...prev, [key]: false }));
+    if (!fetched.ok) {
+      useNotificationStore.getState().add(tr("common.error"), "error", tr("magnet.error"));
+      return fetched;
+    }
+    setMagnets((prev) => ({ ...prev, [key]: fetched.value }));
     return fetched;
-  }
-  setMagnets((prev) => ({ ...prev, [key]: fetched.value }));
-  return fetched;
+  });
 }
 
 export async function copyMagnet(
@@ -81,9 +86,14 @@ export async function downloadMagnet(
 ) {
   const bytes = await fetchTorrentBytes(item, setLoadingMagnet, source);
   if (bytes.ok) {
-    await useTorrentStore.getState().prepareTorrentDownloadFromBytes(bytes.value);
+    await useTorrentStore.getState().prepareTorrentDownloadFromBytes(bytes.value, {
+      seeders: item.seeders,
+    });
     return;
   }
   const magnet = await resolveMagnet(item, magnets, setMagnets, setLoadingMagnet);
-  if (magnet.ok) await useTorrentStore.getState().prepareTorrentDownload(magnet.value);
+  if (magnet.ok)
+    await useTorrentStore.getState().prepareTorrentDownload(magnet.value, {
+      seeders: item.seeders,
+    });
 }

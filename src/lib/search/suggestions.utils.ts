@@ -52,6 +52,23 @@ function statBoost(value: string, stats: Record<string, SearchQueryStat> | undef
   );
 }
 
+export function rankHistoryEntries(
+  history: string[],
+  stats: Record<string, SearchQueryStat> | undefined,
+  limit: number
+): string[] {
+  const seen = new Set<string>();
+  const scored: Array<{ value: string; score: number }> = [];
+  for (const entry of history) {
+    const value = entry.trim();
+    if (!value || seen.has(value)) continue;
+    seen.add(value);
+    scored.push({ value, score: statBoost(value, stats) });
+  }
+  scored.sort((a, b) => b.score - a.score);
+  return scored.slice(0, Math.max(1, limit)).map((item) => item.value);
+}
+
 function animeSubtitle(anime: SearchAnimeSuggestion): string {
   const status = anime.favourite ? "favourite" : anime.status.toLocaleLowerCase();
   const season = [anime.season, anime.seasonYear]
@@ -79,6 +96,25 @@ function getNormalizedAnimeTitles(animeIndex: SearchAnimeSuggestion[]): string[]
   return titles;
 }
 const symSpellCache = new WeakMap<object, { fingerprint: string; sym: SymSpell }>();
+const animeFingerprintCache = new WeakMap<SearchAnimeSuggestion[], string>();
+
+function animeTitlesFingerprint(animeIndex: SearchAnimeSuggestion[] | undefined): string {
+  if (!animeIndex) return "";
+  const cached = animeFingerprintCache.get(animeIndex);
+  if (cached !== undefined) return cached;
+  let hash = 0;
+  for (const anime of animeIndex) {
+    for (const title of [anime.title, ...anime.aliases]) {
+      for (const char of title) {
+        hash = Math.trunc(Math.imul(hash, 31) + (char.codePointAt(0) ?? 0));
+      }
+      hash = Math.trunc(Math.imul(hash, 31) + 1);
+    }
+  }
+  const fingerprint = `${animeIndex.length}:${hash}`;
+  animeFingerprintCache.set(animeIndex, fingerprint);
+  return fingerprint;
+}
 
 function symSpellFor(titles: string[], basis: object | undefined, fingerprint: string): SymSpell {
   if (!basis) return buildSymSpellFromTitles(titles);
@@ -256,7 +292,7 @@ function applySymSpellFallback(
   ];
   if (titlesForSymSpell.length === 0) return;
   const basis: object | undefined = options.animeIndex ?? options.history ?? options.extraValues;
-  const fingerprint = `${titlesForSymSpell.length}|${history.join("\n")}|${extra.join("\n")}`;
+  const fingerprint = `${titlesForSymSpell.length}|${animeTitlesFingerprint(options.animeIndex)}|${history.join("\n")}|${extra.join("\n")}`;
   const sym = symSpellFor(titlesForSymSpell, basis, fingerprint);
   const corrected = sym.suggest(query);
   if (!corrected) return;
@@ -278,7 +314,7 @@ export function suggestSpelling(
   const titles = [...history, ...(options.animeIndex?.map((entry) => entry.title) ?? []), ...extra];
   if (titles.length === 0) return null;
   const basis: object | undefined = options.animeIndex ?? options.history ?? options.extraValues;
-  const fingerprint = `${titles.length}|${history.join("\n")}|${extra.join("\n")}`;
+  const fingerprint = `${titles.length}|${animeTitlesFingerprint(options.animeIndex)}|${history.join("\n")}|${extra.join("\n")}`;
   const corrected = symSpellFor(titles, basis, fingerprint).suggest(query);
   if (!corrected || normalizeSearchText(corrected) === normalizedQuery) return null;
   return corrected;
@@ -295,7 +331,7 @@ export function getSearchSuggestions(
   const candidates = new Map<string, SearchSuggestion>();
   const put = (suggestion: SearchSuggestion) => {
     const key = normalizeSearchText(suggestion.value);
-    if (!key || key === normalizedQuery) return;
+    if (!key) return;
     const current = candidates.get(key);
     if (!current || suggestion.score > current.score) candidates.set(key, suggestion);
   };

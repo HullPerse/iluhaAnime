@@ -1,7 +1,7 @@
 import type { SearchFilters, SortDirection, SortKey } from "@/types/search";
 import type { Anime } from "@/types/torrent";
 
-import { parseSize, qualityMatch, detectLanguages } from "./format.utils";
+import { parseReleaseDate, parseSize, qualityMatch, detectLanguages } from "./format.utils";
 
 export function getVisibleSources(
   visibleSources: string[],
@@ -19,6 +19,7 @@ const SORT_COMPARATORS: Record<SortKey, (a: Anime, b: Anime) => number> = {
   seeders: (a, b) => a.seeders - b.seeders,
   leechers: (a, b) => a.leechers - b.leechers,
   size: (a, b) => parseSize(a.size) - parseSize(b.size),
+  date: (a, b) => parseReleaseDate(a.date) - parseReleaseDate(b.date),
 };
 
 export function sortAnimeResults(
@@ -28,6 +29,12 @@ export function sortAnimeResults(
 ): Anime[] | undefined {
   if (!data) return undefined;
   const multiplier = direction === "asc" ? 1 : -1;
+  if (sortKey === "size") {
+    return data
+      .map((item) => ({ bytes: parseSize(item.size), item }))
+      .sort((a, b) => (a.bytes - b.bytes) * multiplier)
+      .map((entry) => entry.item);
+  }
   const compare = SORT_COMPARATORS[sortKey];
   return [...data].sort((a, b) => compare(a, b) * multiplier);
 }
@@ -78,6 +85,17 @@ export function filterAnimeResults(
       passesSize(item, filters.sizeMin, filters.sizeMax) &&
       passesCodec(item, filters.codec)
   );
+}
+
+export function dedupAnimeResults(data: Anime[] | undefined): Anime[] | undefined {
+  if (!data) return undefined;
+  const best = new Map<string, Anime>();
+  for (const item of data) {
+    const key = `${item.title.toLowerCase().replace(/\s+/g, " ")}|${item.size}`;
+    const current = best.get(key);
+    if (!current || item.seeders > current.seeders) best.set(key, item);
+  }
+  return [...best.values()];
 }
 
 export function getLanguageColors(): Record<string, string> {

@@ -9,6 +9,8 @@ export function TorrentSelectionBar({
   onResume,
   onRecheck,
   onDelete,
+  onTrackers,
+  onLimits,
   onSelectAll,
   onClear,
 }: TorrentSelectionBarProps) {
@@ -36,6 +38,12 @@ export function TorrentSelectionBar({
         onClick={onDelete}
       >
         {t("torrent.bulk.remove")}
+      </Button>
+      <Button className="windows95-text flex items-center" disabled={busy} onClick={onTrackers}>
+        {t("torrent.bulk.trackers")}
+      </Button>
+      <Button className="windows95-text flex items-center" disabled={busy} onClick={onLimits}>
+        {t("torrent.bulk.limits")}
       </Button>
       <div className="ml-auto flex items-center gap-1">
         <Button className="windows95-text flex items-center" onClick={onSelectAll}>

@@ -10,5 +10,14 @@ export default function NativeVideo({ src, title }: { src: string; title?: strin
     },
     [setMedia]
   );
-  return <video src={src} title={title} ref={ref} className="h-full w-full" />;
+  return (
+    <video
+      src={src}
+      title={title}
+      ref={ref}
+      className="h-full w-full"
+      preload="metadata"
+      playsInline
+    />
+  );
 }

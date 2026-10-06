@@ -33,9 +33,9 @@ use super::helpers::{
     with_fallback_trackers_bytes, with_trackers_bytes, SequentialPlan, FALLBACK_TRACKERS,
 };
 use super::types::{
-    CreatedTorrent, FileOrder, FilePriority, SessionConfig, TorrentCheckResult, TorrentDiagPeer,
-    TorrentDiagnostics, TorrentFileInfo, TorrentInfo, TorrentInfoResult, TorrentLimits,
-    TorrentResumeResult,
+    CreatedTorrent, DhtStatus, FileOrder, FilePriority, SessionConfig, TorrentCheckResult,
+    TorrentDiagPeer, TorrentDiagnostics, TorrentFileInfo, TorrentInfo, TorrentInfoResult,
+    TorrentLimits, TorrentResumeResult,
 };
 pub const METADATA_SLOTS: usize = 8;
 
@@ -95,6 +95,8 @@ pub struct TorrentManager {
     pub save_dirs_path: PathBuf,
     pub magnet_links: DashMap<usize, String>,
     pub magnet_links_path: PathBuf,
+    pub aliases: DashMap<String, String>,
+    pub aliases_path: PathBuf,
     pub torrent_limits: DashMap<String, TorrentLimits>,
     pub torrent_limits_path: PathBuf,
     pub sequential_torrents: DashSet<String>,
@@ -149,6 +151,15 @@ impl TorrentManager {
             .ok()
             .and_then(|json| serde_json::from_str(&json).ok())
             .unwrap_or_default();
+
+        let aliases_path = app_data_dir.join("torrent_aliases.json");
+        let aliases: HashMap<String, String> = std::fs::read_to_string(&aliases_path)
+            .ok()
+            .and_then(|json| serde_json::from_str::<HashMap<String, String>>(&json).ok())
+            .unwrap_or_default()
+            .into_iter()
+            .filter(|(key, value)| is_info_hash(key) && !value.trim().is_empty())
+            .collect();
 
         let torrent_limits_path = app_data_dir.join("torrent_limits.json");
         let torrent_limits: HashMap<String, TorrentLimits> =
@@ -239,6 +250,8 @@ impl TorrentManager {
             save_dirs_path,
             magnet_links: magnet_links.into_iter().collect(),
             magnet_links_path,
+            aliases: aliases.into_iter().collect(),
+            aliases_path,
             torrent_limits: torrent_limits.into_iter().collect(),
             torrent_limits_path,
             sequential_torrents: preferences.sequential_torrents.into_iter().collect(),
@@ -374,6 +387,17 @@ impl TorrentManager {
             .collect();
         if let Ok(json) = serde_json::to_string(&map) {
             let _ = std::fs::write(&self.magnet_links_path, &json);
+        }
+    }
+
+    fn save_aliases(&self) {
+        let map: HashMap<String, String> = self
+            .aliases
+            .iter()
+            .map(|r| (r.key().clone(), r.value().clone()))
+            .collect();
+        if let Ok(json) = serde_json::to_string(&map) {
+            let _ = std::fs::write(&self.aliases_path, &json);
         }
     }
 
@@ -637,7 +661,11 @@ impl TorrentManager {
 
                 result.push(TorrentInfo {
                     id,
-                    name: handle.name().unwrap_or_default(),
+                    name: self
+                        .aliases
+                        .get(&handle.info_hash().as_string())
+                        .map(|alias| alias.clone())
+                        .unwrap_or_else(|| handle.name().unwrap_or_default()),
                     info_hash: handle.info_hash().as_string(),
                     total_bytes: stats.total_bytes,
                     progress_bytes: stats.progress_bytes,
@@ -756,7 +784,7 @@ impl TorrentManager {
             .to_string();
 
         let mut file_count: usize = 0;
-        for entry in walkdir::WalkDir::new(&source) {
+        for entry in jwalk::WalkDir::new(&source) {
             let Ok(entry) = entry else { continue };
             if entry.file_type().is_file() {
                 file_count += 1;
@@ -1726,6 +1754,7 @@ impl TorrentManager {
             self.file_priorities.remove(&key);
             self.download_order.remove(&key);
             self.torrent_limits.remove(&key);
+            self.aliases.remove(&key);
             self.pause_snapshots.remove(&key);
             self.pause_changes.remove(&key);
             if !rewriting {
@@ -1743,9 +1772,53 @@ impl TorrentManager {
             persisted.save_save_dirs();
             persisted.save_magnet_links();
             persisted.save_torrent_limits();
+            persisted.save_aliases();
             persisted.save_preferences();
         });
         Ok(())
+    }
+
+    pub fn set_torrent_alias(
+        &self,
+        id: usize,
+        info_hash: Option<&str>,
+        alias: Option<String>,
+    ) -> Result<(), String> {
+        self.verify_torrent(id, info_hash)?;
+        let key = self
+            .torrent_info_hash(id)
+            .or_else(|| info_hash.map(str::to_string))
+            .ok_or_else(|| "torrent not found".to_string())?;
+        match alias.map(|name| name.trim().chars().take(200).collect::<String>()) {
+            Some(name) if !name.is_empty() => {
+                self.aliases.insert(key, name);
+            }
+            _ => {
+                self.aliases.remove(&key);
+            }
+        }
+        self.save_aliases();
+        Ok(())
+    }
+
+    pub fn export_torrent_file(
+        &self,
+        id: usize,
+        info_hash: Option<&str>,
+        out_path: String,
+    ) -> Result<String, String> {
+        self.verify_torrent(id, info_hash)?;
+        let handle = self
+            .torrent_handle(id)
+            .ok_or_else(|| "torrent not found".to_string())?;
+        let bytes = handle
+            .with_metadata(|meta| meta.torrent_bytes.clone())
+            .map_err(|error| format!("{error:#}"))?;
+        if bytes.is_empty() {
+            return Err("no torrent file stored for magnet downloads".to_string());
+        }
+        std::fs::write(&out_path, &bytes).map_err(|error| format!("export torrent: {error}"))?;
+        Ok(out_path)
     }
 
     pub fn set_global_limits(
@@ -1755,6 +1828,15 @@ impl TorrentManager {
     ) {
         self.session.ratelimits.set_download_bps(download_bps);
         self.session.ratelimits.set_upload_bps(upload_bps);
+    }
+
+    pub fn dht_status(&self) -> Option<DhtStatus> {
+        let stats = self.session.get_dht()?.stats();
+        Some(DhtStatus {
+            nodes_v4: stats.routing_table_size,
+            nodes_v6: stats.routing_table_size_v6,
+            pending: stats.outstanding_requests,
+        })
     }
 
     pub fn get_running_torrent_files(&self, id: usize) -> Result<Vec<TorrentFileInfo>, String> {

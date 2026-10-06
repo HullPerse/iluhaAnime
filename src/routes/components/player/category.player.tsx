@@ -1,7 +1,7 @@
 import { useDroppable } from "@dnd-kit/core";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "cn";
-import { ChevronDown, ChevronRight, EyeOff, RefreshCw, X } from "lucide-react";
+import { ChevronDown, ChevronRight, ChevronUp, EyeOff, RefreshCw, X } from "lucide-react";
 import { useState, useEffect, useRef, useMemo } from "react";
 
 import UserImageIcon from "@/components/shared/avatar.component";
@@ -43,6 +43,7 @@ function CategoryView({
   const entries = useCategoryStore((s) => s.entries[categoryId]);
   const renameCategory = useCategoryStore((s) => s.renameCategory);
   const removeEntry = useCategoryStore((s) => s.removeEntry);
+  const moveEntry = useCategoryStore((s) => s.moveEntry);
   const { t } = useI18n();
 
   const { setNodeRef, isOver } = useDroppable({ id: categoryId });
@@ -57,6 +58,11 @@ function CategoryView({
   const renameRef = useRef<HTMLInputElement>(null);
   const audioExtensions = useSettingsStore((s) => s.audioExtensions);
   const audioExtensionsSet = useMemo(() => new Set(audioExtensions), [audioExtensions]);
+  const orderIndex = useMemo(() => {
+    const map = new Map<string, number>();
+    (entries ?? []).forEach((entry, index) => map.set(entry.id, index));
+    return map;
+  }, [entries]);
 
   useEffect(() => {
     if (editing) {
@@ -65,13 +71,18 @@ function CategoryView({
   }, [editing]);
 
   if (!category) return null;
-  const visibleEntries = (entries ?? []).filter((entry) =>
-    entry.type === "folder"
-      ? folderTrees.some(
-          (tree) => normalizePlayerPath(tree.path) === normalizePlayerPath(entry.folderPath ?? "")
-        )
-      : torrents.some((torrent) => torrent.info_hash === entry.infoHash)
-  );
+  const visibleEntries = (entries ?? [])
+    .filter((entry) =>
+      entry.type === "folder"
+        ? folderTrees.some(
+            (tree) => normalizePlayerPath(tree.path) === normalizePlayerPath(entry.folderPath ?? "")
+          )
+        : torrents.some((torrent) => torrent.info_hash === entry.infoHash)
+    )
+    .sort((a, b) => {
+      if (a.type !== b.type) return a.type.localeCompare(b.type);
+      return (orderIndex.get(a.id) ?? 0) - (orderIndex.get(b.id) ?? 0);
+    });
   const count = visibleEntries.length;
 
   const renderFolderEntry = (entry: (typeof entries)[0]) => {
@@ -210,7 +221,10 @@ function CategoryView({
       {open && visibleEntries.length > 0 && (
         <section className="flex flex-col gap-0.5 px-1 pb-1">
           {[...visibleEntries]
-            .sort((a, b) => a.type.localeCompare(b.type))
+            .sort((a, b) => {
+              if (a.type !== b.type) return a.type.localeCompare(b.type);
+              return (orderIndex.get(a.id) ?? 0) - (orderIndex.get(b.id) ?? 0);
+            })
             .map((entry) => {
               const entryExpanded = expandedEntries.has(entry.id);
               return (
@@ -273,6 +287,26 @@ function CategoryView({
                         <RefreshCw className="size-3" />
                       </Button>
                     )}
+                    <Button
+                      size="icon"
+                      className="size-4"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        moveEntry(category.id, entry.id, -1);
+                      }}
+                    >
+                      <ChevronUp className="size-3" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      className="size-4"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        moveEntry(category.id, entry.id, 1);
+                      }}
+                    >
+                      <ChevronDown className="size-3" />
+                    </Button>
                     <Button
                       size="icon"
                       className="size-4"

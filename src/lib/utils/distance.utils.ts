@@ -92,8 +92,7 @@ const EN_OTHER: Record<DistanceToken, string> = {
 };
 
 function formatEn(token: DistanceToken, count: number, comparison: number): string {
-  const result =
-    count === 1 ? EN_ONE[token] : EN_OTHER[token].replace("{{count}}", String(count));
+  const result = count === 1 ? EN_ONE[token] : EN_OTHER[token].replace("{{count}}", String(count));
   return comparison > 0 ? `in ${result}` : `${result} ago`;
 }
 
@@ -234,7 +233,9 @@ const RU: Record<DistanceToken, RuToken> = {
 function formatRu(token: DistanceToken, count: number, comparison: number): string {
   const entry = RU[token];
   if (comparison > 0) {
-    return entry.future ? declension(entry.future, count) : `через ${declension(entry.regular, count)}`;
+    return entry.future
+      ? declension(entry.future, count)
+      : `через ${declension(entry.regular, count)}`;
   }
   return entry.past ? declension(entry.past, count) : `${declension(entry.regular, count)} назад`;
 }

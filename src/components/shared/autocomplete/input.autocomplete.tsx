@@ -1,5 +1,6 @@
 import { cn } from "cn";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
+import type { RefObject } from "react";
 
 import { Input } from "@/components/ui/input.component";
 import { AUTOCOMPLETE_HISTORY_LIMIT } from "@/config/search/autocomplete.config";
@@ -8,17 +9,117 @@ import {
   getAriaAutocomplete,
   splitHighlightRanges,
 } from "@/lib/search/highlight.utils";
-import { groupSuggestions } from "@/lib/search/suggestions.utils";
+import { groupSuggestions, rankHistoryEntries } from "@/lib/search/suggestions.utils";
 import type { SearchSuggestion } from "@/lib/search/suggestions.utils";
 import { createListNavigationHandler } from "@/lib/utils/keyboard.utils";
 import { useSettingsStore } from "@/store/settings.store";
-import type { AutocompleteInputProps, HighlightRange } from "@/types/search";
+import type { AutocompleteInputProps, HighlightRange, SpellCheck } from "@/types/search";
 
 import { BackdropLayer } from "./backdrop.autocomplete";
 import { SuggestionMenu } from "./menu.autocomplete";
 
 const EMPTY_SUGGESTIONS: SearchSuggestion[] = [];
 const EMPTY_RANGES: readonly HighlightRange[] = [];
+const EMPTY_SPELL_RANGES: readonly HighlightRange[] = [];
+
+function spellRangeOf(check: SpellCheck | null): readonly HighlightRange[] {
+  if (!check) return EMPTY_SPELL_RANGES;
+  const kind: HighlightRange["kind"] = check.severity === "error" ? "spell-error" : "spell-warn";
+  return [{ start: check.start, end: check.end, kind }];
+}
+
+function spellRectOf(backdrop: HTMLDivElement | null): DOMRect | null {
+  const span = backdrop?.querySelector("[data-spell]");
+  if (!span) return null;
+  const rect = (span as HTMLElement).getBoundingClientRect();
+  if (rect.width <= 0) return null;
+  return rect;
+}
+
+function spellHit(rect: DOMRect | null, clientX: number, clientY: number): boolean {
+  if (!rect) return false;
+  return (
+    clientX >= rect.left &&
+    clientX <= rect.right &&
+    clientY >= rect.top - 4 &&
+    clientY <= rect.bottom + 4
+  );
+}
+
+function SpellTooltip({ x, text }: { x: number; text: string }) {
+  return (
+    <div
+      role="tooltip"
+      className="windows95-border bg-primary windows95-text pointer-events-none absolute top-full z-50 mt-0.5 max-w-64 -translate-x-1/2 truncate px-1.5 py-0.5 text-xs"
+      style={{ left: `${x}px` }}
+    >
+      {text}
+    </div>
+  );
+}
+
+function SpellHoverTip({ x, check }: { x: number | null; check: SpellCheck | null }) {
+  if (x === null || !check) return null;
+  return <SpellTooltip x={x} text={check.correction} />;
+}
+
+function useSpellInteraction(
+  backdropRef: RefObject<HTMLDivElement | null>,
+  wrapRef: RefObject<HTMLDivElement | null>,
+  spellCheck: SpellCheck | null,
+  onApplySpellCorrection?: () => void,
+  onAddWordToDictionary?: () => void
+) {
+  const [spellHoverX, setSpellHoverX] = useState<number | null>(null);
+
+  const spellSpanRect = (): DOMRect | null => spellRectOf(backdropRef.current);
+
+  const handleSpellMove = (event: { clientX: number; clientY: number }) => {
+    const rect = spellCheck ? spellSpanRect() : null;
+    const wrap = wrapRef.current?.getBoundingClientRect();
+    if (!rect || !wrap || !spellHit(rect, event.clientX, event.clientY)) {
+      setSpellHoverX(null);
+      return;
+    }
+    setSpellHoverX(rect.left - wrap.left + rect.width / 2);
+  };
+
+  const handleSpellClick = (event: {
+    clientX: number;
+    clientY: number;
+    preventDefault: () => void;
+  }) => {
+    if (!spellCheck || !spellHit(spellSpanRect(), event.clientX, event.clientY)) return false;
+    event.preventDefault();
+    onApplySpellCorrection?.();
+    setSpellHoverX(null);
+    return true;
+  };
+
+  const handleSpellContextMenu = (event: {
+    clientX: number;
+    clientY: number;
+    preventDefault: () => void;
+  }) => {
+    if (!spellCheck || !spellHit(spellSpanRect(), event.clientX, event.clientY)) return false;
+    event.preventDefault();
+    onAddWordToDictionary?.();
+    setSpellHoverX(null);
+    return true;
+  };
+
+  const clearSpellHover = () => {
+    setSpellHoverX(null);
+  };
+
+  return {
+    spellHoverX,
+    handleSpellMove,
+    handleSpellClick,
+    handleSpellContextMenu,
+    clearSpellHover,
+  };
+}
 
 export function InlineAutocompleteInput({
   className,
@@ -35,6 +136,10 @@ export function InlineAutocompleteInput({
   placement = "below",
   suggestions = EMPTY_SUGGESTIONS,
   highlightRanges = EMPTY_RANGES,
+  spellCheck = null,
+  onApplySpellCorrection,
+  onAddWordToDictionary,
+  historyStats,
   value,
   ...props
 }: AutocompleteInputProps) {
@@ -45,6 +150,20 @@ export function InlineAutocompleteInput({
   const inputRef = useRef<HTMLInputElement | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const backdropRef = useRef<HTMLDivElement | null>(null);
+  const wrapRef = useRef<HTMLDivElement | null>(null);
+  const {
+    spellHoverX,
+    handleSpellMove,
+    handleSpellClick,
+    handleSpellContextMenu,
+    clearSpellHover,
+  } = useSpellInteraction(
+    backdropRef,
+    wrapRef,
+    spellCheck,
+    onApplySpellCorrection,
+    onAddWordToDictionary
+  );
   const [menuWidth, setMenuWidth] = useState<number | undefined>(undefined);
   const listboxId = useId();
 
@@ -55,12 +174,12 @@ export function InlineAutocompleteInput({
 
   const emptyHistorySuggestions = useMemo(
     () =>
-      (history ?? [])
-        .map((entry) => entry.trim())
-        .filter((entry) => entry.length > 0)
-        .slice(0, AUTOCOMPLETE_HISTORY_LIMIT)
-        .map((entry) => ({ kind: "history" as const, score: 0, value: entry })),
-    [history]
+      rankHistoryEntries(history ?? [], historyStats, AUTOCOMPLETE_HISTORY_LIMIT).map((entry) => ({
+        kind: "history" as const,
+        score: 0,
+        value: entry,
+      })),
+    [history, historyStats]
   );
 
   const { items: groupedSuggestions, sections } = useMemo(
@@ -82,9 +201,11 @@ export function InlineAutocompleteInput({
     currentValue,
   });
   const ghostSuffix = ghostValue ? ghostValue.slice(currentValue.length) : "";
+  const spellRanges = useMemo(() => spellRangeOf(spellCheck), [spellCheck]);
   const highlightSegments = useMemo(
-    () => splitHighlightRanges(currentValue, highlightRanges ?? EMPTY_RANGES),
-    [currentValue, highlightRanges]
+    () =>
+      splitHighlightRanges(currentValue, [...(highlightRanges ?? EMPTY_RANGES), ...spellRanges]),
+    [currentValue, highlightRanges, spellRanges]
   );
   const hasHighlight = highlightSegments.some((s) => s.highlighted);
 
@@ -122,7 +243,7 @@ export function InlineAutocompleteInput({
   };
 
   return (
-    <div className="relative min-w-0 flex-1">
+    <div ref={wrapRef} className="relative min-w-0 flex-1">
       <div className={cn("relative", className)}>
         {enabled && (
           <div aria-hidden="true" className="bg-field pointer-events-none absolute inset-0 z-0" />
@@ -151,6 +272,14 @@ export function InlineAutocompleteInput({
             if (backdropRef.current)
               backdropRef.current.scrollLeft = event.currentTarget.scrollLeft;
             onScroll?.(event);
+          }}
+          onMouseMove={handleSpellMove}
+          onMouseLeave={clearSpellHover}
+          onClick={(event) => {
+            if (!handleSpellClick(event)) props.onClick?.(event);
+          }}
+          onContextMenu={(event) => {
+            if (!handleSpellContextMenu(event)) props.onContextMenu?.(event);
           }}
           onBlur={(event) => {
             setFocused(false);
@@ -187,6 +316,7 @@ export function InlineAutocompleteInput({
           })}
           value={value}
         />
+        <SpellHoverTip x={spellHoverX} check={spellCheck} />
         {showMenu && (
           <SuggestionMenu
             listboxId={listboxId}

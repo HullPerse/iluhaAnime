@@ -21,8 +21,29 @@ function genId() {
   return `job_${nextId++}`;
 }
 
+function sameJobConfig(a: unknown, b: unknown): boolean {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
+function findDuplicate(
+  items: UpscaleQueueItem[],
+  jobType: "convert" | "upscale",
+  filePath: string,
+  config: unknown
+): UpscaleQueueItem | undefined {
+  return items.find(
+    (item) =>
+      (item.status === "queued" || item.status === "processing") &&
+      item.jobType === jobType &&
+      item.filePath === filePath &&
+      sameJobConfig(item.config, config)
+  );
+}
+
 export const useUpscaleQueueStore = create<UpscaleQueueStore>()((set, get) => ({
   addConvertItem: (filePath, name, config) => {
+    const duplicate = findDuplicate(get().items, "convert", filePath, config);
+    if (duplicate) return duplicate.id;
     const id = genId();
     const item: UpscaleQueueItem = {
       id,
@@ -42,6 +63,8 @@ export const useUpscaleQueueStore = create<UpscaleQueueStore>()((set, get) => ({
     return id;
   },
   addUpscaleItem: (filePath, name, config) => {
+    const duplicate = findDuplicate(get().items, "upscale", filePath, config);
+    if (duplicate) return duplicate.id;
     const id = genId();
     const item: UpscaleQueueItem = {
       id,
@@ -68,6 +91,9 @@ export const useUpscaleQueueStore = create<UpscaleQueueStore>()((set, get) => ({
   },
   clearDone: () => {
     set((s) => ({ items: s.items.filter((i) => i.status !== "done") }));
+  },
+  clearErrors: () => {
+    set((s) => ({ items: s.items.filter((i) => i.status !== "error") }));
   },
   items: [],
   paused: false,

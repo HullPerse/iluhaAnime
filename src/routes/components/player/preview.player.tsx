@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { SmallLoader } from "@/components/shared/loader.component";
 import Modal from "@/components/shared/modal.component";
@@ -25,10 +25,20 @@ export function UpscalePreview({
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(-1);
   const [showAfter, setShowAfter] = useState(true);
+  const requestKey = `${filePath}|${resolution}|${selectedShaders.join(",")}|${temporalDenoise}`;
+  const latestKeyRef = useRef(requestKey);
+  useEffect(() => {
+    latestKeyRef.current = requestKey;
+  }, [requestKey]);
   const load = async () => {
+    const dims = resolution === "original" ? [0, 0] : resolution.split("x").map(Number);
+    if (dims.length !== 2 || dims.some((dim) => !Number.isInteger(dim) || dim < 0)) {
+      setError(t("player.upscale.preview.failed"));
+      return;
+    }
+    const [w, h] = dims;
     setLoading(true);
     setError(null);
-    const [w, h] = resolution === "original" ? [0, 0] : resolution.split("x").map(Number);
     const [data, err] = await attempt(
       invokeTyped<PreviewFrame[]>("preview_upscale_frames", {
         height: h,
@@ -39,6 +49,7 @@ export function UpscalePreview({
       })
     );
     setLoading(false);
+    if (latestKeyRef.current !== requestKey) return;
     if (err || !data) {
       setError(err ? err.message : t("player.upscale.preview.failed"));
       return;
@@ -60,7 +71,7 @@ export function UpscalePreview({
         <div className="flex flex-row gap-1 overflow-x-auto">
           {frames.map((frame, index) => (
             <button
-              key={frame.timestamp}
+              key={`${frame.timestamp}-${index}`}
               type="button"
               title={`${Math.round(frame.timestamp)}s`}
               onClick={() => {

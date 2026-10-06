@@ -2,7 +2,7 @@ import { DndContext, DragOverlay } from "@dnd-kit/core";
 import { useQueryClient } from "@tanstack/react-query";
 import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
-import { EyeOff, Search, X } from "lucide-react";
+import { Download, EyeOff, Search, Upload, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { InlineAutocompleteInput } from "@/components/shared/autocomplete/input.autocomplete";
@@ -25,6 +25,7 @@ import { attempt, reportBackgroundError, withFallback } from "@/lib/utils/attemp
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { useCacheStore } from "@/store/cache.store";
 import { useCategoryStore } from "@/store/category.store";
+import { useNotificationStore } from "@/store/notification.store";
 import { useSettingsStore } from "@/store/settings.store";
 import type { VideoFileEntry } from "@/types/fs";
 import type { ScanType, FileSearchResult } from "@/types/player";
@@ -40,13 +41,12 @@ import QueuePanel from "./components/player/queue.player";
 import { QueueStrip } from "./components/player/strip.player";
 import PlayerVisibilityModal from "./components/player/visibility.player";
 
-let scannedFingerprint: string | null = null;
-
 function PlayerRoute() {
   const { t } = useI18n();
   const queryClient = useQueryClient();
   const { data } = useTorrents();
   const torrents = data ?? NO_TORRENTS;
+  const scannedFingerprint = useRef<string | null>(null);
 
   const [folderTrees, setFolderTrees] = useState<FolderNode[]>([]);
   const [search, setSearch] = useState("");
@@ -215,29 +215,34 @@ function PlayerRoute() {
     let cancelled = false;
 
     const print = fingerprint(savedFolderPaths, videoExtensions);
-    if (print === scannedFingerprint) return;
+    if (print === scannedFingerprint.current) return;
 
     setScanProgress({ current: 0, total: 0 });
 
     (async () => {
+      const results = await Promise.all(
+        savedFolderPaths.map((path) =>
+          attempt(
+            invokeTyped<VideoFileEntry[]>("scan_video_folder", {
+              path,
+              extensions: videoExtensions,
+            })
+          ).then(([entries, error]) => ({ entries, error, path }))
+        )
+      );
+      if (cancelled) return;
       const trees: FolderNode[] = [];
-      for (let i = 0; i < savedFolderPaths.length; i++) {
-        if (cancelled) return;
-        const path = savedFolderPaths[i];
-        setScanProgress({ current: i, total: savedFolderPaths.length });
-        const [entries, error] = await attempt(
-          invokeTyped<VideoFileEntry[]>("scan_video_folder", {
-            path,
-            extensions: videoExtensions,
-          })
-        );
+      let done = 0;
+      for (const { entries, error, path } of results) {
+        done += 1;
+        setScanProgress({ current: done, total: savedFolderPaths.length });
         if (error) reportBackgroundError("folders.scan", error);
-        else if (!cancelled && entries?.length) trees.push(buildTree(entries, path));
+        else if (entries?.length) trees.push(buildTree(entries, path));
       }
       if (cancelled) return;
       setFolderTrees(trees);
       setScanProgress(null);
-      scannedFingerprint = print;
+      scannedFingerprint.current = print;
       await rebuildIndex(savedFolderPaths);
       if (cancelled) return;
       useCacheStore.getState().setFolderTrees(trees.map((t) => ({ path: t.path, tree: t })));
@@ -249,9 +254,8 @@ function PlayerRoute() {
   }, [savedFolderPaths, videoExtensions, rebuildIndex]);
 
   useEffect(() => {
-    const paths = useSettingsStore.getState().savedFolderPaths;
-    if (paths.length === 0) return;
-    invokeTyped("start_watching_folders", { folders: paths }).catch((error) =>
+    if (savedFolderPaths.length === 0) return;
+    invokeTyped("start_watching_folders", { folders: savedFolderPaths }).catch((error) =>
       reportBackgroundError("folders.watch.start", error)
     );
     return () => {
@@ -259,7 +263,7 @@ function PlayerRoute() {
         reportBackgroundError("folders.watch.stop", error)
       );
     };
-  }, []);
+  }, [savedFolderPaths]);
 
   const folderScanDisposedRef = useRef(false);
   useEffect(() => {
@@ -303,10 +307,8 @@ function PlayerRoute() {
         });
       };
       (async () => {
-        for (const path of changed) {
-          if (folderScanDisposedRef.current) return;
-          await rescanPath(path);
-        }
+        const roots = [...new Set(changed)];
+        await Promise.all(roots.map((path) => rescanPath(path)));
       })();
     },
     { errorTag: "folderscan" }
@@ -354,6 +356,8 @@ function PlayerRoute() {
 
   const handleRemoveFolder = useCallback(
     (path: string) => {
+      useCategoryStore.getState().removeEntriesByFolderPath(path);
+      useSettingsStore.getState().unhidePlayerFolder(path);
       setFolderTrees((prev) => {
         const next = prev.filter((t) => t.path !== path);
         patch({ savedFolderPaths: next.map((t) => t.path) });
@@ -386,6 +390,53 @@ function PlayerRoute() {
   const handleRemoveCategory = useCallback((id: string) => {
     setPendingDeleteCategory(id);
   }, []);
+
+  const handleExportCategories = useCallback(() => {
+    const notify = useNotificationStore.getState().add;
+    try {
+      const json = useCategoryStore.getState().exportCategories();
+      const blob = new Blob([json], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `iluhaAnime-categories-${new Date().toISOString().slice(0, 10)}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+      notify(t("player.route.create.category"), "success", t("player.category.export.done"));
+    } catch {
+      notify(t("player.route.create.category"), "error", t("player.category.export.error"));
+    }
+  }, [t]);
+
+  const handleImportCategories = useCallback(
+    async (file: File | null) => {
+      if (!file) return;
+      const notify = useNotificationStore.getState().add;
+      const read = await attempt(file.text());
+      if (read[1] || !read[0]) {
+        notify(t("player.route.create.category"), "error", t("player.category.import.error"));
+        return;
+      }
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(read[0]);
+      } catch {
+        notify(t("player.route.create.category"), "error", t("player.category.import.error"));
+        return;
+      }
+      try {
+        const count = useCategoryStore.getState().importCategories(parsed);
+        notify(
+          t("player.route.create.category"),
+          "success",
+          t("player.category.import.done", { count })
+        );
+      } catch {
+        notify(t("player.route.create.category"), "error", t("player.category.import.error"));
+      }
+    },
+    [t]
+  );
 
   return (
     <DndContext
@@ -441,6 +492,32 @@ function PlayerRoute() {
 
         {categories.length > 0 && (
           <section className="windows95-text flex w-full flex-col gap-2">
+            <div className="flex items-center gap-1">
+              <Button
+                size="icon"
+                className="size-6"
+                title={t("player.category.export")}
+                aria-label={t("player.category.export")}
+                onClick={handleExportCategories}
+              >
+                <Download className="size-3" />
+              </Button>
+              <label
+                className="flex size-6 cursor-pointer items-center justify-center border"
+                title={t("player.category.import")}
+              >
+                <Upload className="size-3" />
+                <input
+                  type="file"
+                  accept="application/json,.json"
+                  className="hidden"
+                  onChange={(event) => {
+                    handleImportCategories(event.target.files?.[0] ?? null).catch(() => undefined);
+                    event.target.value = "";
+                  }}
+                />
+              </label>
+            </div>
             {[...categories]
               .sort((a, b) => a.order - b.order)
               .map((cat) => (

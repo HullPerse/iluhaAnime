@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 
-export type AnilistActivityTab = "feed" | "calendar";
+export type AnilistActivityTab = "feed" | "calendar" | "notifications";
 
 export type AnilistModalName =
   | "auth"

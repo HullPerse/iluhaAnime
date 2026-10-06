@@ -1,14 +1,148 @@
 import { cn } from "cn";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
+import { listStatusLabels } from "@/config/anilist/labels.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { dayLabel, monthLabel } from "@/lib/anilist/activity.utils";
 import { formatAiringTime } from "@/lib/anilist/airing.utils";
+import { getStatusColor } from "@/lib/anilist/entries.utils";
+import { toLocaleKey } from "@/lib/locale/key.utils";
+import { formatDistanceToNowOwn } from "@/lib/utils/distance.utils";
+import { useAniListNotificationsStore } from "@/store/anilist.store";
 import type { AniListCollection } from "@/types/anilist";
+
+function StatsReleases({ onAnimeClick }: { onAnimeClick: (id: number) => void }) {
+  const { t, locale } = useI18n();
+  const releases = useAniListNotificationsStore((s) => s.releases);
+  const markReleasesRead = useAniListNotificationsStore((s) => s.markReleasesRead);
+  useEffect(() => {
+    markReleasesRead();
+  }, [markReleasesRead]);
+  if (releases.length === 0) {
+    return (
+      <span className="windows95-text text-hint p-3 text-center text-xs">
+        {t("anilist.stats.released.empty")}
+      </span>
+    );
+  }
+  return (
+    <div className="flex max-h-96 flex-col gap-1 overflow-y-auto p-1">
+      {releases.map((release) => (
+        <button
+          key={`${release.mediaId}:${release.episode}`}
+          type="button"
+          onClick={() => onAnimeClick(release.mediaId)}
+          className="windows95-border bg-primary hover:bg-surface flex w-full cursor-pointer items-center gap-2 px-1 py-0.5 text-left"
+        >
+          <span className="windows95-text min-w-0 flex-1 truncate text-xs">
+            <span className="font-bold">{release.title}</span>{" "}
+            <span className="text-hint">
+              {t("anilist.activity.episode", { n: release.episode })}
+            </span>
+          </span>
+          <span className="text-hint windows95-font shrink-0 text-xs">
+            {formatDistanceToNowOwn(release.airedAt, locale)}
+          </span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function topEntries(counts: Map<string, number>, limit: number): Array<[string, number]> {
+  return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, limit);
+}
+
+function StatsOverview({ lists }: { lists: AniListCollection[] }) {
+  const { t } = useI18n();
+  const summary = useMemo(() => {
+    const byStatus = new Map<string, number>();
+    const genres = new Map<string, number>();
+    const studios = new Map<string, number>();
+    let episodes = 0;
+    let scoreSum = 0;
+    let scoreCount = 0;
+    let total = 0;
+    for (const list of lists) {
+      for (const entry of list.entries) {
+        total += 1;
+        byStatus.set(entry.list_status, (byStatus.get(entry.list_status) ?? 0) + 1);
+        episodes += entry.progress ?? 0;
+        if (entry.score != null) {
+          scoreSum += entry.score;
+          scoreCount += 1;
+        }
+        for (const genre of entry.media.genres) {
+          genres.set(genre, (genres.get(genre) ?? 0) + 1);
+        }
+        for (const studio of entry.media.studios) {
+          studios.set(studio.name, (studios.get(studio.name) ?? 0) + 1);
+        }
+      }
+    }
+    return {
+      byStatus,
+      episodes,
+      mean: scoreCount > 0 ? scoreSum / scoreCount : null,
+      topGenres: topEntries(genres, 8),
+      topStudios: topEntries(studios, 8),
+      total,
+    };
+  }, [lists]);
+
+  return (
+    <div className="flex flex-col gap-2 overflow-y-auto p-1">
+      <div className="windows95-text flex flex-wrap gap-x-4 gap-y-1 text-xs font-bold">
+        <span>{t("anilist.stats.total.titles", { count: summary.total })}</span>
+        <span>{t("anilist.stats.episodes.watched", { count: summary.episodes })}</span>
+        {summary.mean != null && (
+          <span>{t("anilist.stats.mean.score", { score: summary.mean.toFixed(1) })}</span>
+        )}
+      </div>
+      <div className="flex flex-col gap-1">
+        {[...summary.byStatus.entries()].map(([status, count]) => (
+          <div key={status} className="flex items-center gap-2">
+            <span
+              className="inline-block size-3 shrink-0"
+              style={{ background: getStatusColor(status) }}
+              aria-hidden
+            />
+            <span className="windows95-text min-w-0 flex-1 truncate text-xs">
+              {t(toLocaleKey(listStatusLabels[status] ?? status))}
+            </span>
+            <span className="windows95-text text-xs tabular-nums">{count}</span>
+          </div>
+        ))}
+      </div>
+      {summary.topGenres.length > 0 && (
+        <div className="flex flex-col gap-1">
+          <span className="windows95-text text-xs font-bold">{t("anilist.stats.top.genres")}</span>
+          {summary.topGenres.map(([genre, count]) => (
+            <div key={genre} className="flex items-center gap-2">
+              <span className="windows95-text min-w-0 flex-1 truncate text-xs">{genre}</span>
+              <span className="windows95-text text-xs tabular-nums">{count}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {summary.topStudios.length > 0 && (
+        <div className="flex flex-col gap-1">
+          <span className="windows95-text text-xs font-bold">{t("anilist.stats.top.studios")}</span>
+          {summary.topStudios.map(([studio, count]) => (
+            <div key={studio} className="flex items-center gap-2">
+              <span className="windows95-text min-w-0 flex-1 truncate text-xs">{studio}</span>
+              <span className="windows95-text text-xs tabular-nums">{count}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function StatsModal({
   lists,
@@ -21,6 +155,7 @@ function StatsModal({
 }) {
   const { t, locale } = useI18n();
   const now = new Date();
+  const [tab, setTab] = useState<"overview" | "calendar" | "released">("overview");
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
   const [selectedDay, setSelectedDay] = useState<null | number>(null);
@@ -87,14 +222,40 @@ function StatsModal({
 
   return (
     <Modal header={t("anilist.stats.title")} onClose={onClose} className="w-3xl">
-      {selectedDay == null ? (
+      <div className="mb-1 flex gap-1">
+        <Button
+          variant={tab === "overview" ? "outline" : "default"}
+          className="h-6 text-xs"
+          onClick={() => setTab("overview")}
+        >
+          {t("anilist.stats.overview")}
+        </Button>
+        <Button
+          variant={tab === "calendar" ? "outline" : "default"}
+          className="h-6 text-xs"
+          onClick={() => setTab("calendar")}
+        >
+          {t("anilist.stats.calendar")}
+        </Button>
+        <Button
+          variant={tab === "released" ? "outline" : "default"}
+          className="h-6 text-xs"
+          onClick={() => setTab("released")}
+        >
+          {t("anilist.stats.released")}
+        </Button>
+      </div>
+      {tab === "overview" ? (
+        <StatsOverview lists={lists} />
+      ) : tab === "released" ? (
+        <StatsReleases onAnimeClick={onAnimeClick} />
+      ) : selectedDay == null ? (
         <div className="flex flex-col">
           <div className="mb-1 flex h-6 items-center justify-between px-1">
             <Button
               onClick={prevMonth}
               size="icon"
               className="size-6"
-              disabled={month === now.getMonth() && year === now.getFullYear()}
               aria-label={t("common.previous")}
             >
               <ChevronLeft className="size-3" />

@@ -1,10 +1,21 @@
 import { describe, expect, it } from "vitest";
 
-import { detectLanguages, formatSize, parseSize, qualityMatch } from "@/lib/search/format.utils";
+import {
+  detectLanguages,
+  formatReleaseAge,
+  formatSize,
+  parseReleaseDate,
+  parseSize,
+  qualityMatch,
+} from "@/lib/search/format.utils";
 import { isTagLikeQuery, parseIntent, tokenizeIntent } from "@/lib/search/intent.utils";
 import { MASCOT_DIM_COVERAGE, overlapCoverage, shouldDimMascot } from "@/lib/search/mascot.utils";
 import { recencyBoost } from "@/lib/search/ranking.utils";
-import { filterAnimeResults, sortAnimeResults } from "@/lib/search/results.utils";
+import {
+  dedupAnimeResults,
+  filterAnimeResults,
+  sortAnimeResults,
+} from "@/lib/search/results.utils";
 import { mapError } from "@/lib/search/rutracker.utils";
 import { matchOperatorTerms, parseOperatorTerms } from "@/lib/search/score.utils";
 import {
@@ -32,6 +43,8 @@ describe("search/format", () => {
       ["[Erai-raws] Anime [1080p][Dual-Audio]", ["dual"]],
       ["[Erai-raws] Anime [1080p][RUS][ENG]", ["en", "ru"]],
       ["[Some] Anime [1080p]", []],
+      ["[Group] Anime CODEC [1080p]", []],
+      ["[Group] Anime SUPPORT TEAM [POR-BR]", ["POR"]],
     ] as const)("detects %s", (title, codes) => {
       expect(
         detectLanguages(title)
@@ -58,6 +71,9 @@ describe("search/format", () => {
       ["1.5 GiB", 1.5 * 1_073_741_824],
       ["unknown", 0],
       ["512 B", 512],
+      ["2 TB", 2 * 1024 ** 4],
+      ["700 МБ", 700 * 1024 ** 2],
+      ["1.5 ГБ", 1.5 * 1024 ** 3],
     ] as const)("parses %s", (input, expected) => {
       expect(parseSize(input)).toBe(expected);
     });
@@ -67,9 +83,33 @@ describe("search/format", () => {
     it.each([
       ["432.6 MiB", "432.60 MiB"],
       ["1.5 GiB", "1.50 GiB"],
+      ["700 MB", "700 MB"],
       ["unknown", "unknown"],
     ] as const)("formats %s", (input, expected) => {
       expect(formatSize(input)).toBe(expected);
+    });
+  });
+
+  describe("parseReleaseDate", () => {
+    it("parses nyaa timestamps to UTC millis", () => {
+      expect(parseReleaseDate("2024-05-01 13:37")).toBe(Date.UTC(2024, 4, 1, 13, 37));
+      expect(parseReleaseDate("2024-05-01")).toBe(Date.UTC(2024, 4, 1));
+      expect(parseReleaseDate("")).toBe(0);
+      expect(parseReleaseDate(undefined)).toBe(0);
+      expect(parseReleaseDate("yesterday")).toBe(0);
+    });
+  });
+
+  describe("formatReleaseAge", () => {
+    const now = Date.UTC(2024, 5, 15, 12, 0);
+    it("renders relative age bands", () => {
+      expect(formatReleaseAge("2024-06-15 12:00", now)).toBe("today");
+      expect(formatReleaseAge("2024-06-14 12:00", now)).toBe("1d");
+      expect(formatReleaseAge("2024-06-01 12:00", now)).toBe("14d");
+      expect(formatReleaseAge("2024-04-01 12:00", now)).toBe("2mo");
+      expect(formatReleaseAge("2022-01-01 00:00", now)).toBe("2y");
+      expect(formatReleaseAge(undefined, now)).toBeNull();
+      expect(formatReleaseAge("", now)).toBeNull();
     });
   });
 });
@@ -382,9 +422,9 @@ describe("search/quality", () => {
   }
 
   describe("search quality oracle", () => {
-    it("never echoes the exact query (scorer contract)", () => {
-      expect(top("frieren: beyond journey's end")).toBeUndefined();
-      expect(top("attack on titan")).toBeUndefined();
+    it("echoes the exact query for one-click repeat", () => {
+      expect(top("frieren: beyond journey's end")).toBe("Frieren: Beyond Journey's End");
+      expect(top("attack on titan")).toBe("Attack on Titan");
     });
 
     it("resolves prefixes to the best title", () => {
@@ -445,13 +485,15 @@ describe("search/ranking", () => {
     });
   });
 
-  describe("ml phase1 - recency exp", () => {
-    it("recency decays exponentially not linear", () => {
+  describe("ml phase1 - recency steps", () => {
+    it("recency decays in day/week/month steps matching SQL", () => {
       expect(recencyBoost(0)).toBe(60);
-      expect(recencyBoost(24)).toBeCloseTo(30, 0);
-      expect(recencyBoost(48)).toBeCloseTo(15, 0);
-      expect(recencyBoost(60)).toBeGreaterThan(5);
-      expect(recencyBoost(60)).toBeLessThan(15);
+      expect(recencyBoost(24)).toBe(60);
+      expect(recencyBoost(25)).toBe(30);
+      expect(recencyBoost(24 * 7)).toBe(30);
+      expect(recencyBoost(24 * 8)).toBe(15);
+      expect(recencyBoost(24 * 30)).toBe(15);
+      expect(recencyBoost(24 * 31)).toBe(6);
     });
   });
 
@@ -597,6 +639,21 @@ describe("search/results", () => {
       const sorted = sortAnimeResults(sortItems, key, dir)!;
       expect(sorted[0].title).toBe(first);
       expect(sorted[2].title).toBe(last);
+    });
+
+    it("merges duplicate releases keeping the best seeded", () => {
+      const dupes: Anime[] = [
+        { ...sortItems[0], link: "a", seeders: 4 },
+        { ...sortItems[0], link: "b", seeders: 30 },
+        { ...sortItems[1], link: "c" },
+      ];
+      const merged = dedupAnimeResults(dupes)!;
+      expect(merged).toHaveLength(2);
+      expect(merged.find((item) => item.link === "b")?.seeders).toBe(30);
+    });
+
+    it("passes undefined through", () => {
+      expect(dedupAnimeResults(undefined)).toBeUndefined();
     });
 
     it("returns undefined for undefined input", () => {

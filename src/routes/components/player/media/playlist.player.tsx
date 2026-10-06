@@ -7,10 +7,11 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import type { DragEndEvent } from "@dnd-kit/core";
-import { cn } from "cn";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
+import { cn } from "cn";
 import { ArrowDown, ArrowUp, GripVertical, ListVideo, Play, Plus, X } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
@@ -23,8 +24,10 @@ import {
 } from "@/lib/player/playback.utils";
 import { fileNameFromPath, formatParsedTitle } from "@/lib/player/title.utils";
 import { formatBytes } from "@/lib/utils/bytes.utils";
+import { formatVerticalDragTransform } from "@/lib/utils/drag.utils";
 import { ignore } from "@/lib/utils/promise.utils";
 import { formatClock } from "@/lib/utils/time.utils";
+import { useMediaStore } from "@/store/media.store";
 import { usePlaybackStore } from "@/store/player.store";
 import { useSettingsStore } from "@/store/settings.store";
 import type { TFunc } from "@/types/i18n";
@@ -141,6 +144,8 @@ function entryLabel(entry: PlaylistEntry, parseTitles: boolean, t: TFunc): strin
   return parseTitles ? formatParsedTitle(name, t) : name;
 }
 
+const PLAYLIST_VIRTUALIZE_AFTER = 50;
+
 function PlaylistBody({ onPlay, onRemove, onMove }: PlaylistBodyProps) {
   const { t } = useI18n();
 
@@ -150,10 +155,31 @@ function PlaylistBody({ onPlay, onRemove, onMove }: PlaylistBodyProps) {
   const [entries, setEntries] = useState<PlaylistEntry[]>([]);
   const [adding, setAdding] = useState(false);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  const entriesRef = useRef<PlaylistEntry[]>([]);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const virtualizer = useVirtualizer({
+    count: entries.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 56,
+    overscan: 8,
+    enabled: entries.length > PLAYLIST_VIRTUALIZE_AFTER,
+  });
+
+  const applyEntries = useCallback((next: PlaylistEntry[]) => {
+    entriesRef.current = next;
+    setEntries(next);
+  }, []);
 
   const refresh = useCallback(async () => {
-    setEntries(await readPlaylistEntries());
-  }, []);
+    applyEntries(await readPlaylistEntries());
+  }, [applyEntries]);
+
+  const labels = useMemo(() => {
+    const map = new Map<number, string>();
+    for (const entry of entries) map.set(entry.index, entryLabel(entry, parseTitles, t));
+    return map;
+  }, [entries, parseTitles, t]);
 
   useEffect(() => {
     ignore(refresh());
@@ -163,20 +189,51 @@ function PlaylistBody({ onPlay, onRemove, onMove }: PlaylistBodyProps) {
   }, [refresh]);
 
   const mutate = useCallback(
-    async (action: Promise<unknown>) => {
-      await action.catch(() => undefined);
+    async (action: Promise<unknown>, optimistic?: PlaylistEntry[]) => {
+      const previous = entriesRef.current;
+      if (optimistic) applyEntries(optimistic);
+      try {
+        await action;
+      } catch {
+        if (optimistic) {
+          applyEntries(previous);
+          return;
+        }
+      }
       await refresh();
     },
-    [refresh]
+    [applyEntries, refresh]
+  );
+
+  const handleRemove = useCallback(
+    (index: number) => {
+      const next = entriesRef.current.filter((entry) => entry.index !== index);
+      return mutate(onRemove(index), next);
+    },
+    [mutate, onRemove]
+  );
+
+  const handleMove = useCallback(
+    (from: number, to: number) => {
+      const list = entriesRef.current;
+      const fromPos = list.findIndex((entry) => entry.index === from);
+      const toPos = list.findIndex((entry) => entry.index === to);
+      if (fromPos === -1 || toPos === -1) return mutate(onMove(from, to));
+      const next = [...list];
+      const [moved] = next.splice(fromPos, 1);
+      next.splice(toPos, 0, moved);
+      return mutate(onMove(from, to), next);
+    },
+    [mutate, onMove]
   );
 
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       const move = resolvePlaylistDragMove(event.active.id, event.over?.id);
       if (!move) return;
-      ignore(mutate(onMove(move.from, move.to)));
+      ignore(handleMove(move.from, move.to));
     },
-    [mutate, onMove]
+    [handleMove]
   );
 
   async function onAdd() {
@@ -221,42 +278,71 @@ function PlaylistBody({ onPlay, onRemove, onMove }: PlaylistBodyProps) {
           <span className="windows95-font text-hint text-xs tabular-nums">
             {t("player.media.playlist.count", { count: entries.length })}
           </span>
-          {entries.length > 1 ? (
-            <span className="text-hint truncate text-xs">
-              {t("player.media.playlist.hint")}
-            </span>
-          ) : null}
         </div>
       ) : null}
       <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-        <div data-playlist-scroll data-no-wheel className="min-h-0 flex-1 overflow-y-auto p-1">
+        <div
+          ref={scrollRef}
+          data-playlist-scroll
+          data-no-wheel
+          className="min-h-0 flex-1 overflow-y-auto p-1"
+        >
           {entries.length === 0 ? (
             <div className="flex flex-col items-center gap-1 px-1 py-4 text-center">
               <ListVideo className="text-hint size-6" aria-hidden="true" />
-              <div className="windows95-font text-xs">
-                {t("player.media.playlist.empty")}
-              </div>
+              <div className="windows95-font text-xs">{t("player.media.playlist.empty")}</div>
             </div>
-          ) : (
+          ) : entries.length <= PLAYLIST_VIRTUALIZE_AFTER ? (
             entries.map((entry, position) => {
               const current = entry.index === activeIndex;
               return (
                 <PlaylistCard
-                  key={entry.index}
+                  key={`${entry.filename}:${entry.index}`}
                   entry={entry}
                   position={position}
                   current={current}
-                  label={entryLabel(entry, parseTitles, t)}
+                  label={labels.get(entry.index) ?? `#${entry.index + 1}`}
                   upDisabled={position === 0}
                   downDisabled={position === entries.length - 1}
                   onPlay={onPlay}
-                  onRemove={onRemove}
-                  onMove={onMove}
+                  onRemove={handleRemove}
+                  onMove={handleMove}
                   mutate={mutate}
                   t={t}
                 />
               );
             })
+          ) : (
+            <div className="relative w-full" style={{ height: virtualizer.getTotalSize() }}>
+              {virtualizer.getVirtualItems().map((virtualItem) => {
+                const entry = entries[virtualItem.index];
+                if (!entry) return null;
+                const current = entry.index === activeIndex;
+                return (
+                  <div
+                    key={virtualItem.key}
+                    data-index={virtualItem.index}
+                    ref={virtualizer.measureElement}
+                    className="absolute top-0 left-0 w-full pb-1"
+                    style={{ transform: `translateY(${virtualItem.start}px)` }}
+                  >
+                    <PlaylistCard
+                      entry={entry}
+                      position={virtualItem.index}
+                      current={current}
+                      label={labels.get(entry.index) ?? `#${entry.index + 1}`}
+                      upDisabled={virtualItem.index === 0}
+                      downDisabled={virtualItem.index === entries.length - 1}
+                      onPlay={onPlay}
+                      onRemove={handleRemove}
+                      onMove={handleMove}
+                      mutate={mutate}
+                      t={t}
+                    />
+                  </div>
+                );
+              })}
+            </div>
           )}
         </div>
       </DndContext>
@@ -370,6 +456,11 @@ function PlaylistCard({
 }) {
   const [cardRef, onScreen] = useOnScreen<HTMLDivElement>();
   const art = useCardArt(entry.filename, onScreen || current);
+  const resumeRatio = useMediaStore((state) => {
+    const saved = state.entries.find((item) => item.path === entry.filename);
+    if (!saved || saved.duration <= 0 || saved.position <= 0) return 0;
+    return Math.max(0, Math.min(1, saved.position / saved.duration));
+  });
   const {
     attributes,
     listeners,
@@ -393,9 +484,7 @@ function PlaylistCard({
       data-current={current ? "true" : undefined}
       className={cardClass(current, isOver)}
       style={{
-        transform: transform
-          ? `translate3d(${Math.round(transform.x)}px, ${Math.round(transform.y)}px, 0)`
-          : undefined,
+        transform: formatVerticalDragTransform(transform),
         zIndex: isDragging ? 10 : undefined,
         opacity: isDragging ? 0.6 : undefined,
       }}
@@ -419,12 +508,7 @@ function PlaylistCard({
           aria-current={current ? "true" : undefined}
           onClick={() => ignore(onPlay(entry.index))}
         >
-          <CardThumbnail
-            url={art?.url}
-            position={position}
-            current={current}
-            duration={duration}
-          />
+          <CardThumbnail url={art?.url} position={position} current={current} duration={duration} />
           <span className="flex min-w-0 flex-1 flex-col">
             <span
               title={entry.filename || label}
@@ -446,6 +530,11 @@ function PlaylistCard({
         />
       </div>
       {current ? <CurrentProgress /> : null}
+      {!current && resumeRatio > 0 ? (
+        <div className="bg-field h-0.5 w-full overflow-hidden" title={label}>
+          <div className="bg-hint h-full" style={{ width: `${resumeRatio * 100}%` }} />
+        </div>
+      ) : null}
     </div>
   );
 }

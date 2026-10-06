@@ -107,7 +107,6 @@ fn load_queue(
         return Err("no file to play".to_string());
     };
     let backend = core(app);
-    backend.set_property("speed", &json!(1.0), window)?;
     let mut args: Vec<Value> = vec![json!(first), json!("replace")];
     if let Some(position) = resume {
         if position > 0.0 {
@@ -165,7 +164,7 @@ pub async fn player_open(
 
     app.state::<PlayerHost>().set_pending_open(Some(request));
 
-    let window = WebviewWindowBuilder::new(
+    let window = match WebviewWindowBuilder::new(
         &app,
         PLAYER_WINDOW_LABEL,
         WebviewUrl::App(PLAYER_ROUTE.into()),
@@ -177,7 +176,13 @@ pub async fn player_open(
     .transparent(true)
     .center()
     .build()
-    .map_err(|error| format!("create player window: {error}"))?;
+    {
+        Ok(window) => window,
+        Err(error) => {
+            app.state::<PlayerHost>().set_pending_open(None);
+            return Err(format!("create player window: {error}"));
+        }
+    };
     let destroyed_app = app.clone();
     let _ = window.on_window_event(move |event| {
         if matches!(event, WindowEvent::Destroyed) {
@@ -283,6 +288,206 @@ pub async fn player_load(
     let label = window.label().to_string();
     tracing::debug!("player_load: {} file(s) resume={resume:?}", files.len());
     load_queue(&app, &label, &files, resume)
+}
+
+#[tauri::command]
+pub async fn player_append_files(
+    app: AppHandle,
+    window: WebviewWindow,
+    files: Vec<String>,
+    mode: String,
+) -> Result<(), String> {
+    if mode != "append" && mode != "append-play" {
+        return Err(format!("unknown append mode: {mode}"));
+    }
+    let label = window.label().to_string();
+    let backend = core(&app);
+    for file in &files {
+        if let Err(error) = backend.command("loadfile", &[json!(file), json!(mode)], &label) {
+            return Err(error);
+        }
+    }
+    Ok(())
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HoverThumb {
+    pub url: Option<String>,
+    pub captured: bool,
+}
+
+static HOVER_LOCK: std::sync::OnceLock<tokio::sync::Mutex<()>> = std::sync::OnceLock::new();
+
+fn hover_lock() -> &'static tokio::sync::Mutex<()> {
+    HOVER_LOCK.get_or_init(|| tokio::sync::Mutex::new(()))
+}
+
+fn hover_cache_key(path: &str, mtime: u64, size: u64, rounded: u64) -> String {
+    use sha1::Digest;
+    hex::encode(sha1::Sha1::digest(
+        format!("{path}|{mtime}|{size}|{rounded}").as_bytes(),
+    ))
+}
+
+async fn wait_for_file(path: &std::path::Path, timeout: std::time::Duration) -> bool {
+    let deadline = std::time::Instant::now() + timeout;
+    while std::time::Instant::now() < deadline {
+        if path.is_file() {
+            return true;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+    }
+    path.is_file()
+}
+
+#[tauri::command]
+pub async fn player_hover_thumb(
+    app: AppHandle,
+    window: WebviewWindow,
+    path: String,
+    timestamp: f64,
+) -> Result<HoverThumb, String> {
+    if path.trim().is_empty() || !timestamp.is_finite() || timestamp < 0.0 {
+        return Err("hover thumb needs a file path and timestamp".to_string());
+    }
+    let label = window.label().to_string();
+    if label != PLAYER_WINDOW_LABEL {
+        return Err("hover thumbs only work in the player window".to_string());
+    }
+    let meta = std::fs::metadata(&path).map_err(|error| format!("hover thumb metadata: {error}"))?;
+    let mtime = meta
+        .modified()
+        .ok()
+        .and_then(|time| time.duration_since(std::time::UNIX_EPOCH).ok())
+        .map(|age| age.as_secs())
+        .unwrap_or(0);
+    let rounded = timestamp.max(0.0).round() as u64;
+    let key = hover_cache_key(&path, mtime, meta.len(), rounded);
+    let dir = crate::video::thumbnail_cache_dir(&app).join("player-hover");
+    std::fs::create_dir_all(&dir).map_err(|error| format!("hover thumb dir: {error}"))?;
+    let out = dir.join(format!("{key}.jpg"));
+    if out.is_file() {
+        return Ok(HoverThumb {
+            url: Some(out.to_string_lossy().to_string()),
+            captured: false,
+        });
+    }
+    if app.state::<PlayerHost>().current_path() != path {
+        return Ok(HoverThumb {
+            url: None,
+            captured: false,
+        });
+    }
+    let backend = core(&app);
+    let paused = backend
+        .get_property("pause", "flag", &label)
+        .ok()
+        .and_then(|value| value.as_bool())
+        .unwrap_or(false);
+    if !paused {
+        return Ok(HoverThumb {
+            url: None,
+            captured: false,
+        });
+    }
+    let _guard = hover_lock()
+        .try_lock()
+        .map_err(|_| "hover capture busy".to_string())?;
+    if out.is_file() {
+        return Ok(HoverThumb {
+            url: Some(out.to_string_lossy().to_string()),
+            captured: false,
+        });
+    }
+    let current = backend
+        .get_property("time-pos", "double", &label)
+        .ok()
+        .and_then(|value| value.as_f64())
+        .unwrap_or(0.0);
+    backend.command("seek", &[json!(timestamp), json!("absolute")], &label)?;
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+    loop {
+        let settled = backend
+            .get_property("time-pos", "double", &label)
+            .ok()
+            .and_then(|value| value.as_f64())
+            .is_some_and(|position| (position - timestamp).abs() <= 5.0);
+        if settled || std::time::Instant::now() >= deadline {
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+    }
+    let tmp = dir.join(format!("{key}.full.jpg"));
+    let shot = backend.command(
+        "screenshot-to-file",
+        &[json!(tmp.to_string_lossy())],
+        &label,
+    );
+    let mut ready =
+        shot.is_ok() && wait_for_file(&tmp, std::time::Duration::from_secs(3)).await;
+    if ready {
+        let from = tmp.clone();
+        let to = out.clone();
+        let downscaled = tokio::task::spawn_blocking(move || -> Result<(), String> {
+            let img =
+                image::open(&from).map_err(|error| format!("hover thumb decode: {error}"))?;
+            img.thumbnail(160, 160)
+                .save(&to)
+                .map_err(|error| format!("hover thumb save: {error}"))?;
+            let _ = std::fs::remove_file(&from);
+            Ok(())
+        })
+        .await
+        .map_err(|error| format!("hover thumb task: {error}"))?;
+        if downscaled.is_err() {
+            let _ = std::fs::remove_file(&tmp);
+            let _ = std::fs::remove_file(&out);
+            ready = false;
+        }
+    }
+    let _ = backend.command("seek", &[json!(current), json!("absolute")], &label);
+    let _ = backend.set_property("pause", &json!(true), &label);
+    if !ready {
+        return Err("hover capture failed".to_string());
+    }
+    Ok(HoverThumb {
+        url: Some(out.to_string_lossy().to_string()),
+        captured: true,
+    })
+}
+
+#[tauri::command]
+pub async fn player_save_frame(window: WebviewWindow) -> Result<crate::screenshot::SavedScreenshot, String> {
+    let label = window.label().to_string();
+    if label != PLAYER_WINDOW_LABEL {
+        return Err("clean frames only work in the player window".to_string());
+    }
+    let dir = std::path::PathBuf::from(crate::screenshot::default_dir(&window));
+    if !dir.is_dir() {
+        return Err("the pictures folder is missing".to_string());
+    }
+    let target = crate::screenshot::resolve_target(&dir, "iluhaAnime_screenshot", "png");
+    let app = window.app_handle();
+    core(&app).command(
+        "screenshot-to-file",
+        &[json!(target.to_string_lossy())],
+        &label,
+    )?;
+    let target_clone = target.clone();
+    let (width, height) = tokio::task::spawn_blocking(move || -> Result<(u32, u32), String> {
+        let img = image::open(&target_clone)
+            .map_err(|error| format!("read the clean frame: {error}"))?;
+        use image::GenericImageView;
+        Ok(img.dimensions())
+    })
+    .await
+    .map_err(|error| format!("frame task failed: {error}"))??;
+    Ok(crate::screenshot::SavedScreenshot {
+        path: target.to_string_lossy().to_string(),
+        width,
+        height,
+    })
 }
 
 #[tauri::command]

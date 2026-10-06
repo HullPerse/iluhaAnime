@@ -18,9 +18,48 @@ function getNextCategoryName(existing: string[], base: string): string {
   return `${base} (${i})`;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function parseImportCategory(item: unknown, order: number): Category | null {
+  if (!isRecord(item)) return null;
+  const { id, name, icon, order: rawOrder, createdAt } = item as Partial<Category>;
+  if (typeof id !== "string" || typeof name !== "string" || typeof icon !== "string") return null;
+  return {
+    id,
+    icon,
+    name,
+    order: typeof rawOrder === "number" ? rawOrder : order,
+    createdAt: typeof createdAt === "number" ? createdAt : Date.now(),
+  };
+}
+
+function parseImportEntry(item: unknown): CategoryEntry | null {
+  if (!isRecord(item)) return null;
+  const candidate = item as Partial<CategoryEntry>;
+  if (
+    typeof candidate.id !== "string" ||
+    typeof candidate.name !== "string" ||
+    (candidate.type !== "torrent" && candidate.type !== "folder")
+  ) {
+    return null;
+  }
+  return {
+    id: candidate.id,
+    type: candidate.type,
+    name: candidate.name,
+    torrentId: typeof candidate.torrentId === "number" ? candidate.torrentId : undefined,
+    infoHash: typeof candidate.infoHash === "string" ? candidate.infoHash : undefined,
+    saveDir: typeof candidate.saveDir === "string" ? candidate.saveDir : undefined,
+    totalBytes: typeof candidate.totalBytes === "number" ? candidate.totalBytes : undefined,
+    folderPath: typeof candidate.folderPath === "string" ? candidate.folderPath : undefined,
+  };
+}
+
 export const useCategoryStore = create<CategoryStore>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       addCategory: (name) => {
         const id = genId();
         set((s) => {
@@ -92,6 +131,18 @@ export const useCategoryStore = create<CategoryStore>()(
           }
           return { entries };
         }),
+      moveEntry: (categoryId, entryId, delta) =>
+        set((s) => {
+          const list = s.entries[categoryId];
+          if (!list) return s;
+          const index = list.findIndex((entry) => entry.id === entryId);
+          const target = index + delta;
+          if (index === -1 || target < 0 || target >= list.length) return s;
+          const next = [...list];
+          const [moved] = next.splice(index, 1);
+          next.splice(target, 0, moved);
+          return { entries: { ...s.entries, [categoryId]: next } };
+        }),
       removeEntry: (categoryId, entryId) =>
         set((s) => {
           const list = s.entries[categoryId];
@@ -104,9 +155,18 @@ export const useCategoryStore = create<CategoryStore>()(
           };
         }),
       renameCategory: (id, name) =>
-        set((s) => ({
-          categories: s.categories.map((c) => (c.id === id ? { ...c, name } : c)),
-        })),
+        set((s) => {
+          const trimmed = name.trim().slice(0, 80);
+          if (!trimmed) return s;
+          if (
+            s.categories.some((c) => c.id !== id && c.name.toLowerCase() === trimmed.toLowerCase())
+          ) {
+            return s;
+          }
+          return {
+            categories: s.categories.map((c) => (c.id === id ? { ...c, name: trimmed } : c)),
+          };
+        }),
       reorderCategories: (ids) =>
         set((s) => ({
           categories: ids
@@ -124,6 +184,33 @@ export const useCategoryStore = create<CategoryStore>()(
               : [...s.collapsedIds, id]
             : s.collapsedIds.filter((c) => c !== id),
         })),
+      exportCategories: () => {
+        const { categories, entries } = get();
+        return JSON.stringify({ categories, entries });
+      },
+      importCategories: (raw: unknown) => {
+        if (!isRecord(raw) || !Array.isArray(raw.categories) || !isRecord(raw.entries)) {
+          throw new Error("invalid backup");
+        }
+        const categories: Category[] = [];
+        for (const item of raw.categories) {
+          const category = parseImportCategory(item, categories.length);
+          if (category) categories.push(category);
+        }
+        const ids = new Set(categories.map((category) => category.id));
+        const entries: Record<string, CategoryEntry[]> = {};
+        for (const [categoryId, list] of Object.entries(raw.entries)) {
+          if (!ids.has(categoryId) || !Array.isArray(list)) continue;
+          const kept: CategoryEntry[] = [];
+          for (const item of list) {
+            const entry = parseImportEntry(item);
+            if (entry) kept.push(entry);
+          }
+          entries[categoryId] = kept;
+        }
+        set({ categories, entries });
+        return categories.length;
+      },
     }),
     {
       name: "categories",

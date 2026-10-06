@@ -6,6 +6,7 @@ import { memo, useState } from "react";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { areTorrentItemsEqual } from "@/lib/torrent/item.utils";
+import { formatVerticalDragTransform } from "@/lib/utils/drag.utils";
 import type { TorrentItemProps as Props } from "@/types/torrent";
 
 import { TorrentPeersModal } from "./peers.torrent";
@@ -69,9 +70,7 @@ function TorrentItem({
         isOver && !isDragging && "windows95-border"
       )}
       style={{
-        transform: transform
-          ? `translate3d(${Math.round(transform.x)}px, ${Math.round(transform.y)}px, 0)`
-          : undefined,
+        transform: formatVerticalDragTransform(transform),
         position: isDragging ? "relative" : undefined,
         zIndex: isDragging ? 20 : undefined,
         opacity: isDragging ? 0.85 : undefined,

@@ -13,6 +13,7 @@ export default function AniListSearchToolbar({
   global,
   onGlobal,
   onReset,
+  onClearSearch,
   filters,
   onFiltersOpen,
   loadingSearch,
@@ -21,6 +22,7 @@ export default function AniListSearchToolbar({
   global: boolean;
   onGlobal: () => void;
   onReset: () => void;
+  onClearSearch: () => void;
   filters: AniListFilters;
   onFiltersOpen: () => void;
   loadingSearch: boolean;
@@ -47,7 +49,7 @@ export default function AniListSearchToolbar({
         className="h-9 font-bold"
         onChange={(event) => {
           field.inputProps.onChange(event);
-          if (global && !event.target.value.trim()) onReset();
+          if (global && !event.target.value.trim()) onClearSearch();
         }}
         onKeyDown={enterSubmit(submitSearch)}
       />

@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -7,7 +8,7 @@ import { useSettingsStore } from "@/store/settings.store";
 import type { TorrentInfo } from "@/types/torrent";
 
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: () => Promise.resolve(null),
+  invoke: vi.fn(() => Promise.resolve(null)),
   convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
 }));
 
@@ -46,25 +47,28 @@ function info(overrides: Partial<TorrentInfo> = {}): TorrentInfo {
 }
 
 function renderHeader(item: TorrentInfo, onSetSequential = vi.fn()) {
+  const client = new QueryClient();
   return {
     onSetSequential,
     view: render(
-      <TorrentHeader
-        item={item}
-        selected={false}
-        onSelectChange={() => {}}
-        isLive
-        isPaused={false}
-        busy={false}
-        queue={null}
-        onPause={() => {}}
-        onResume={() => {}}
-        onSeedChange={() => {}}
-        onSetSequential={onSetSequential}
-        onRecheck={() => {}}
-        onPeers={() => {}}
-        onDelete={() => {}}
-      />
+      <QueryClientProvider client={client}>
+        <TorrentHeader
+          item={item}
+          selected={false}
+          onSelectChange={() => {}}
+          isLive
+          isPaused={false}
+          busy={false}
+          queue={null}
+          onPause={() => {}}
+          onResume={() => {}}
+          onSeedChange={() => {}}
+          onSetSequential={onSetSequential}
+          onRecheck={() => {}}
+          onPeers={() => {}}
+          onDelete={() => {}}
+        />
+      </QueryClientProvider>
     ),
   };
 }
@@ -101,5 +105,24 @@ describe("TorrentHeader sequential toggle", () => {
     renderHeader(info({ sequential_download: true }), second);
     await user.click(screen.getByRole("button", { name: SEQUENTIAL_NAME }));
     expect(second).toHaveBeenCalledWith(false);
+  });
+});
+
+describe("TorrentHeader rename", () => {
+  it("sends the trimmed alias on Enter", async () => {
+    const user = userEvent.setup();
+    const { invoke } = await import("@tauri-apps/api/core");
+    const invokeMock = vi.mocked(invoke);
+    invokeMock.mockClear();
+    renderHeader(info({ name: "Old Name" }));
+    await user.click(screen.getByRole("button", { name: "Rename" }));
+    const input = screen.getByLabelText("Rename");
+    await user.clear(input);
+    await user.type(input, "  New Name  ");
+    await user.keyboard("{Enter}");
+    expect(invokeMock).toHaveBeenCalledWith(
+      "set_torrent_alias",
+      expect.objectContaining({ id: 1, alias: "New Name" })
+    );
   });
 });

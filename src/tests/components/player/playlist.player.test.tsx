@@ -90,9 +90,9 @@ describe("PlaylistBody", () => {
       multiple: true,
       filters: [{ name: "Video files", extensions: expect.any(Array) }],
     });
-    expect(invokeMock).toHaveBeenCalledWith("player_command", {
-      name: "loadfile",
-      args: ["C:\\Anime\\ep2.mkv", "append"],
+    expect(invokeMock).toHaveBeenCalledWith("player_append_files", {
+      files: ["C:\\Anime\\ep2.mkv"],
+      mode: "append",
     });
     expect(await screen.findByText("ep2.mkv")).toBeDefined();
   });
@@ -104,8 +104,8 @@ describe("PlaylistBody", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Add files" }));
 
     expect(invokeMock).not.toHaveBeenCalledWith(
-      "player_command",
-      expect.objectContaining({ name: "loadfile" })
+      "player_append_files",
+      expect.objectContaining({ mode: "append" })
     );
   });
 

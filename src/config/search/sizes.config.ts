@@ -6,4 +6,6 @@ export const SIZE_MULTIPLIERS = {
   KiB: 1024,
   MB: 1024 ** 2,
   MiB: 1024 ** 2,
+  TB: 1024 ** 4,
+  TiB: 1024 ** 4,
 } as const;

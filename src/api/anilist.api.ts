@@ -2,7 +2,9 @@ import { searchFiltersToParams } from "@/lib/anilist/entries.utils";
 import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
 import { useSettingsStore } from "@/store/settings.store";
 import type {
+  ActivityLikeState,
   AniActivity,
+  AniSiteNotification,
   AniAnimeFull,
   AniAnimeStaffEdge,
   AniCharacterDetail,
@@ -172,8 +174,26 @@ export class AnilistApi {
     return this.call("toggle_favourite_character", { characterId });
   }
 
+  getCustomLists(): Promise<string[]> {
+    return this.call("get_anilist_custom_lists");
+  }
+
+  getSiteNotifications(): Promise<AniSiteNotification[]> {
+    return this.call("get_anilist_notifications");
+  }
+
   saveEntry(input: SaveAnilistEntryInput): Promise<void> {
-    return this.call("save_anilist_entry", { ...input });
+    const { mediaId, ...rest } = input;
+    return this.call("save_anilist_entry", { ...rest, media_id: mediaId, mediaId });
+  }
+
+  deleteEntry(mediaId: number, userId: number): Promise<boolean> {
+    return this.call("delete_anilist_entry", {
+      media_id: mediaId,
+      mediaId,
+      user_id: userId,
+      userId,
+    });
   }
 
   testConnection(): Promise<string> {
@@ -182,6 +202,10 @@ export class AnilistApi {
 
   getActivity(userIds: number[]): Promise<AniActivity[]> {
     return this.call("get_anilist_activity", { userIds });
+  }
+
+  toggleActivityLike(activityId: number): Promise<ActivityLikeState> {
+    return this.call("toggle_activity_like", { activityId });
   }
 
   getProfileRecommendations(userId: number): Promise<AniRecommendation[]> {

@@ -83,6 +83,15 @@ describe("torrent/bulk", () => {
       expect(await applyBulkAction([1, 2, 3], act)).toEqual({ done: 2, failed: 1 });
     });
 
+    it("counts a resolved false as skipped", async () => {
+      const act = vi
+        .fn()
+        .mockResolvedValueOnce(true)
+        .mockResolvedValueOnce(false)
+        .mockResolvedValueOnce(undefined);
+      expect(await applyBulkAction([1, 2, 3], act)).toEqual({ done: 2, failed: 1 });
+    });
+
     it("handles an empty selection", async () => {
       const act = vi.fn();
       expect(await applyBulkAction([], act)).toEqual({ done: 0, failed: 0 });
@@ -605,7 +614,9 @@ describe("torrent/magnet", () => {
       expect(invokeSpy).toHaveBeenCalledWith("rutracker_get_torrent_bytes", {
         topicId: "topic-123",
       });
-      expect(prepareTorrentDownloadFromBytesSpy).toHaveBeenCalledWith([1, 2, 3]);
+      expect(prepareTorrentDownloadFromBytesSpy).toHaveBeenCalledWith([1, 2, 3], {
+        seeders: 10,
+      });
       expect(prepareTorrentDownloadSpy).not.toHaveBeenCalled();
     });
 
@@ -622,7 +633,9 @@ describe("torrent/magnet", () => {
       expect(invokeSpy).toHaveBeenCalledWith("fetch_torrent_bytes", {
         url: "https://nyaa.si/download/file.torrent",
       });
-      expect(prepareTorrentDownloadFromBytesSpy).toHaveBeenCalledWith([9, 8, 7]);
+      expect(prepareTorrentDownloadFromBytesSpy).toHaveBeenCalledWith([9, 8, 7], {
+        seeders: 10,
+      });
       expect(prepareTorrentDownloadSpy).not.toHaveBeenCalled();
     });
 
@@ -637,14 +650,16 @@ describe("torrent/magnet", () => {
         m.setLoadingMagnet
       );
       expect(prepareTorrentDownloadFromBytesSpy).not.toHaveBeenCalled();
-      expect(prepareTorrentDownloadSpy).toHaveBeenCalledWith("magnet:?xt=urn:btih:fetched");
+      expect(prepareTorrentDownloadSpy).toHaveBeenCalledWith("magnet:?xt=urn:btih:fetched", {
+        seeders: 10,
+      });
     });
 
     it("starts a torrent download with an already-present magnet", async () => {
       invokeSpy.mockRejectedValueOnce(new Error("blocked"));
       const m = makeMagnets();
       await downloadMagnet(item, m.getMagnets(), m.setMagnets, m.setLoadingMagnet);
-      expect(prepareTorrentDownloadSpy).toHaveBeenCalledWith(item.magnet);
+      expect(prepareTorrentDownloadSpy).toHaveBeenCalledWith(item.magnet, { seeders: 10 });
     });
   });
   describe("proxy", () => {

@@ -55,6 +55,30 @@ describe("AnilistApi", () => {
     });
   });
 
+  it("sends both id casings when saving an entry", async () => {
+    const { calls, transport } = fakeTransport(() => undefined);
+    const api = new AnilistApi({ transport });
+
+    await api.saveEntry({ mediaId: 21, status: "CURRENT", progress: 3, score: null, notes: null });
+
+    expect(calls[0]).toMatchObject({
+      command: "save_anilist_entry",
+      args: { media_id: 21, mediaId: 21, status: "CURRENT", progress: 3 },
+    });
+  });
+
+  it("sends both id casings when deleting an entry", async () => {
+    const { calls, transport } = fakeTransport(() => true);
+    const api = new AnilistApi({ transport });
+
+    await api.deleteEntry(21, 7);
+
+    expect(calls[0]).toMatchObject({
+      command: "delete_anilist_entry",
+      args: { media_id: 21, mediaId: 21, user_id: 7, userId: 7 },
+    });
+  });
+
   it("asks for a following page with user and pagination", async () => {
     const { calls, transport } = fakeTransport(() => ({
       users: [],

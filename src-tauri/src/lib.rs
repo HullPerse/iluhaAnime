@@ -537,9 +537,17 @@ async fn scan_video_folder(
     let entries = tokio::task::spawn_blocking(move || -> Result<Vec<VideoFileEntry>, String> {
         let mut entries = Vec::new();
         let mut walked: u64 = 0;
+        let mut skipped: u64 = 0;
 
-        for entry in walkdir::WalkDir::new(&path_clone).follow_links(false) {
-            let entry = entry.map_err(|e| format!("walkdir error: {e}"))?;
+        for entry in jwalk::WalkDir::new(&path_clone).follow_links(false) {
+            let entry = match entry {
+                Ok(entry) => entry,
+                Err(error) => {
+                    skipped += 1;
+                    tracing::warn!("scan_video_folder: skipping unreadable entry: {error}");
+                    continue;
+                }
+            };
 
             if entry.file_type().is_dir() {
                 continue;
@@ -566,9 +574,17 @@ async fn scan_video_folder(
                         .unwrap_or_default()
                         .to_string_lossy()
                         .to_string();
-                    let size = std::fs::metadata(file_path)
-                        .map_err(|e| format!("metadata error: {e}"))?
-                        .len();
+                    let size = match std::fs::metadata(&file_path) {
+                        Ok(meta) => meta.len(),
+                        Err(error) => {
+                            skipped += 1;
+                            tracing::warn!(
+                                "scan_video_folder: skipping unreadable file {}: {error}",
+                                file_path.to_string_lossy()
+                            );
+                            continue;
+                        }
+                    };
                     entries.push(VideoFileEntry {
                         path: file_path.to_string_lossy().to_string(),
                         name,
@@ -576,6 +592,9 @@ async fn scan_video_folder(
                     });
                 }
             }
+        }
+        if skipped > 0 {
+            tracing::warn!("scan_video_folder: skipped {skipped} unreadable entries in {path_clone}");
         }
         Ok(entries)
     })
@@ -608,8 +627,8 @@ async fn delete_extra_file(path: String) -> Result<(), String> {
 async fn scan_extra_files(path: String) -> Result<Vec<VideoFileEntry>, String> {
     let entries = tokio::task::spawn_blocking(move || -> Result<Vec<VideoFileEntry>, String> {
         let mut entries = Vec::new();
-        for entry in walkdir::WalkDir::new(&path).follow_links(false) {
-            let entry = entry.map_err(|e| format!("walkdir error: {e}"))?;
+        for entry in jwalk::WalkDir::new(&path).follow_links(false) {
+            let entry = entry.map_err(|e| format!("scan error: {e}"))?;
             if entry.file_type().is_dir() {
                 continue;
             }
@@ -623,7 +642,7 @@ async fn scan_extra_files(path: String) -> Result<Vec<VideoFileEntry>, String> {
             if !lower.contains("_upscaled") && !lower.contains("_converted") {
                 continue;
             }
-            let size = std::fs::metadata(file_path)
+            let size = std::fs::metadata(&file_path)
                 .map_err(|e| format!("metadata error: {e}"))?
                 .len();
             entries.push(VideoFileEntry {
@@ -813,6 +832,41 @@ async fn set_torrent_limits(
         .await?
         .set_torrent_limits(id, limits, info_hash)
         .await
+}
+
+#[tauri::command]
+async fn set_torrent_alias(
+    id: usize,
+    alias: Option<String>,
+    info_hash: Option<String>,
+    manager: tauri::State<'_, TorrentBackend>,
+) -> Result<(), String> {
+    let backend = backend_manager(&manager).await?;
+    tokio::task::spawn_blocking(move || backend.set_torrent_alias(id, info_hash.as_deref(), alias))
+        .await
+        .map_err(|error| format!("alias task failed: {error}"))?
+}
+
+#[tauri::command]
+async fn export_torrent_file(
+    id: usize,
+    out_path: String,
+    info_hash: Option<String>,
+    manager: tauri::State<'_, TorrentBackend>,
+) -> Result<String, String> {
+    let backend = backend_manager(&manager).await?;
+    tokio::task::spawn_blocking(move || {
+        backend.export_torrent_file(id, info_hash.as_deref(), out_path)
+    })
+    .await
+    .map_err(|error| format!("export task failed: {error}"))?
+}
+
+#[tauri::command]
+async fn get_dht_stats(
+    manager: tauri::State<'_, TorrentBackend>,
+) -> Result<Option<torrent::DhtStatus>, String> {
+    Ok(backend_manager(&manager).await?.dht_status())
 }
 
 #[tauri::command]
@@ -1084,6 +1138,12 @@ pub fn run() {
             if let Err(error) = app_db::open_database(app.handle()) {
                 tracing::error!("unable to initialize shared app database: {error}");
             }
+            let optimize_handle = app.handle().clone();
+            tauri::async_runtime::spawn_blocking(move || {
+                if let Err(error) = app_db::optimize_unified_index(optimize_handle) {
+                    tracing::warn!("unified index optimize at startup: {error}");
+                }
+            });
 
             let chrome = app_db::read_cached_payload(
                 app.handle(),
@@ -1299,10 +1359,12 @@ pub fn run() {
             anilist::anilist_login,
             anilist::check_anilist_auth,
             anilist::get_anilist_lists,
+            anilist::get_anilist_custom_lists,
             anilist::get_anilist_friend_scores,
             anilist::anilist_avatar,
             anilist::anilist_logout,
             anilist::save_anilist_entry,
+            anilist::delete_anilist_entry,
             anilist::update_anilist_entries_bulk,
             anilist::toggle_favourite,
             anilist::get_favourites,
@@ -1315,6 +1377,8 @@ pub fn run() {
             anilist::get_staff_characters,
             anilist::get_character_detail,
             anilist::get_anilist_activity,
+            anilist::toggle_activity_like,
+            anilist::get_anilist_notifications,
             anilist::get_anime_franchise,
             anilist::prefetch_anime_relations,
             anilist::cancel_anime_prefetch,
@@ -1339,6 +1403,9 @@ pub fn run() {
             player::player_destroy,
             player::player_close_window,
             player::player_load,
+            player::player_append_files,
+            player::player_hover_thumb,
+            player::player_save_frame,
             player::player_command,
             player::player_set_property,
             player::player_get_property,
@@ -1352,6 +1419,7 @@ pub fn run() {
             app_db::delete_app_cache,
             app_db::upsert_unified_index,
             app_db::clear_unified_index_scope,
+            app_db::delete_unified_index_entry,
             app_db::prune_unified_index_scope,
             app_db::optimize_unified_index,
             app_db::record_unified_index_action,
@@ -1420,6 +1488,9 @@ pub fn run() {
             recheck_paused_torrent,
             get_torrent_diagnostics,
             set_torrent_limits,
+            set_torrent_alias,
+            export_torrent_file,
+            get_dht_stats,
             get_torrent_limits,
             add_torrent_tracker,
             remove_torrent_tracker,

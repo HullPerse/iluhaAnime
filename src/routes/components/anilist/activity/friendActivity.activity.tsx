@@ -10,6 +10,8 @@ import { formatActivityTime } from "@/lib/anilist/activity.utils";
 import { queryKeys } from "@/lib/query/keys.utils";
 import type { AniActivity } from "@/types/anilist";
 
+import { ActivityLikeButton } from "./like.activity";
+
 const FRIEND_ACTIVITY_LIMIT = 5;
 
 export function FriendActivityFeed({ friendId }: { friendId: number }) {
@@ -52,6 +54,7 @@ function FriendActivityRow({ activity }: { activity: AniActivity }) {
         >
           {activity.text}
         </span>
+        <ActivityLikeButton activity={activity} />
         <span className="text-hint windows95-font shrink-0 text-xs">{time}</span>
       </div>
     );
@@ -76,6 +79,7 @@ function FriendActivityRow({ activity }: { activity: AniActivity }) {
         </span>
         <span className="text-hint windows95-font text-xs">{time}</span>
       </div>
+      <ActivityLikeButton activity={activity} />
     </div>
   );
 }

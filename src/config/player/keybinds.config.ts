@@ -25,7 +25,8 @@ export type KeybindAction =
   | "toggleCheatsheet"
   | "toggleFullscreen"
   | "exitCinemaMode"
-  | "jumpToTime";
+  | "jumpToTime"
+  | "saveCleanFrame";
 
 export interface KeybindDef {
   action: KeybindAction;
@@ -225,6 +226,15 @@ export const KEYBINDS: KeybindDef[] = [
     description: "player.media.key.jump.to.time",
     category: "playback",
     ctrl: true,
+  },
+  {
+    action: "saveCleanFrame",
+    code: "KeyO",
+    keys: "Ctrl+Shift+O",
+    description: "player.media.key.frame.save",
+    category: "playback",
+    ctrl: true,
+    shift: true,
   },
 ];
 

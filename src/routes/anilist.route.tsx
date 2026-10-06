@@ -2,6 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
+import { Button } from "@/components/ui/button.component";
 import { useAnilistDetail } from "@/hooks/anilist/detail.hook";
 import { useRandomDiscovery } from "@/hooks/anilist/discovery.hook";
 import { useAnilistListView } from "@/hooks/anilist/listView.hook";
@@ -9,6 +10,7 @@ import { useAnilistModals } from "@/hooks/anilist/modals.hook";
 import { useFavouritePeopleToggles } from "@/hooks/anilist/people.hook";
 import { useAnilistRandom } from "@/hooks/anilist/random.hook";
 import { useAnilistSearch } from "@/hooks/anilist/search.hook";
+import { useI18n } from "@/hooks/i18n.hook";
 import { usePagination } from "@/hooks/pagination.hook";
 import { useSearchField } from "@/hooks/search/field.hook";
 import { filterEntries, sortEntries } from "@/lib/anilist/entries.utils";
@@ -65,12 +67,37 @@ function discoveryDetailAnime(entryLookup: EntryLookup, animeId: number): AniLis
         score: info.score,
         list_status: info.list_status,
         notes: info.notes,
+        custom_lists: info.custom_lists ?? [],
       },
     }),
   };
 }
 
+function GlobalSearchFooter({
+  global,
+  hasNext,
+  count,
+  loading,
+  onLoad,
+  label,
+}: {
+  global: boolean;
+  hasNext: boolean;
+  count: number;
+  loading: boolean;
+  onLoad: () => void;
+  label: string;
+}) {
+  if (!global || !hasNext || count === 0) return null;
+  return (
+    <Button onClick={onLoad} disabled={loading}>
+      {loading ? `${label}...` : label}
+    </Button>
+  );
+}
+
 function AnilistRoute() {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const setAnilistSearchQuery = useSearchStore((state) => state.setAnilistSearchQuery);
   const indexAniList = useSearchStore((state) => state.indexAniList);
@@ -181,20 +208,24 @@ function AnilistRoute() {
     });
   }, [lists]);
   const {
+    applyFilters,
+    fetchNextSearchPage,
     global,
+    handleClearSearch,
     handleGenre,
     handleGlobal,
     handleReset,
     handleSeason,
     handleStudio,
     handleTag,
+    hasNextSearchPage,
     loadingSearch,
+    loadingSearchMore,
     searchFilters,
     searchMode,
     searchResults,
     searchTag,
     searchTerms,
-    setSearchFilters,
     setSearchTerms,
   } = useAnilistSearch();
 
@@ -275,13 +306,29 @@ function AnilistRoute() {
     handleDetailsClose();
     handleCloseModal("filters");
   }, [discovery, handleDetailsClose, handleCloseModal]);
-  const favPendingRef = useRef(false);
+  const favPendingRef = useRef<Set<number>>(new Set());
   const toggleFavourite = useCallback(
     async (animeId: number) => {
-      if (favPendingRef.current) return;
-      favPendingRef.current = true;
+      if (favPendingRef.current.has(animeId)) return;
+      favPendingRef.current.add(animeId);
+      const previous = queryClient.getQueryData<AnilistRouteData>(["anilist_data"]);
+      const wasFavourite = previous?.favourites.some((f) => f.id === animeId) ?? false;
+      if (wasFavourite) {
+        queryClient.setQueryData(["anilist_data"], (old: unknown) =>
+          old
+            ? {
+                ...(old as AnilistRouteData),
+                favourites: (old as AnilistRouteData).favourites.filter((f) => f.id !== animeId),
+              }
+            : old
+        );
+      }
       const [updated, error] = await attempt(anilistApi.toggleFavourite(animeId));
+      favPendingRef.current.delete(animeId);
       if (error) {
+        if (wasFavourite) {
+          queryClient.setQueryData(["anilist_data"], previous);
+        }
         useNotificationStore
           .getState()
           .add(tr("anilist.fav.toggle.failed"), "error", error.message);
@@ -290,7 +337,6 @@ function AnilistRoute() {
           old ? { ...(old as AnilistRouteData), favourites: updated } : old
         );
       }
-      favPendingRef.current = false;
     },
     [queryClient]
   );
@@ -435,6 +481,13 @@ function AnilistRoute() {
     setPage((p) => Math.min(p, lastPage));
   }, [lastPage]);
 
+  const sourceKey = `${currentList}|${sort.key}|${sort.dir}|${searchTerms}|${global}`;
+  const [lastSourceKey, setLastSourceKey] = useState(sourceKey);
+  if (lastSourceKey !== sourceKey) {
+    setLastSourceKey(sourceKey);
+    setPage(1);
+  }
+
   useEffect(() => {
     const current = useSearchStore.getState().anilistSearchQuery;
     if (current) {
@@ -466,6 +519,7 @@ function AnilistRoute() {
           global={global}
           onGlobal={handleGlobal}
           onReset={handleReset}
+          onClearSearch={handleClearSearch}
           filters={searchFilters}
           onFiltersOpen={() => handleOpenModal("filters")}
           loadingSearch={loadingSearch}
@@ -555,6 +609,15 @@ function AnilistRoute() {
         onToggleListCollapsed={toggleListCollapsed}
       />
 
+      <GlobalSearchFooter
+        global={global}
+        hasNext={hasNextSearchPage}
+        count={searchResults.length}
+        loading={loadingSearchMore}
+        onLoad={fetchNextSearchPage}
+        label={t("anilist.route.load.more")}
+      />
+
       <AniListDetailModalHost
         selectedAnime={selectedAnime}
         entryLookup={entryLookup}
@@ -618,6 +681,7 @@ function AnilistRoute() {
           onAddManyFriends={handleAddManyFriends}
           onRemoveFriend={removeFriend}
           onViewFriendLists={openFriend}
+          onFriendsAnime={openAnimeFromLookup}
           onFriendsClose={() => handleCloseModal("friends")}
           favourites={favourites}
           onFavouritesClose={() => handleCloseModal("favourites")}
@@ -629,9 +693,9 @@ function AnilistRoute() {
           onStaffFavouriteToggle={toggleFavouriteStaff}
           onCharacterFavouriteToggle={toggleFavouriteCharacter}
           filters={searchFilters}
-          onFiltersApply={setSearchFilters}
+          onFiltersApply={applyFilters}
           onFiltersReset={() =>
-            setSearchFilters(defaultAniListFilters(useSettingsStore.getState().anilistAdultContent))
+            applyFilters(defaultAniListFilters(useSettingsStore.getState().anilistAdultContent))
           }
           onFiltersClose={handleFiltersClose}
           onFiltersRandom={handleDiscoveryStart}

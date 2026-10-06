@@ -72,6 +72,7 @@ const common = {
   "download.error.remove": "Error removing torrent:",
   "download.error.resume": "Error resuming torrent:",
   "download.error.order": "Error saving the download order:",
+  "download.error.alias": "Error renaming torrent:",
   "download.error.sequential": "Error enabling sequential mode:",
   "download.error.tracker.add": "Error adding tracker:",
   "download.error.tracker.remove": "Error removing tracker:",

@@ -122,6 +122,11 @@ function TorrentFilePicker({
       onClose={onCancel}
       className="w-3xl"
     >
+      {torrent?.seeders != null && !loading ? (
+        <div className="windows95-text flex items-center gap-1 px-1 text-xs">
+          <span className="text-success font-bold">S:{torrent.seeders}</span>
+        </div>
+      ) : null}
       {loading ? (
         <section className="flex flex-col items-center justify-center gap-2 py-4">
           <SmallLoader />

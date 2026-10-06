@@ -11,9 +11,13 @@ describe("player/skip label", () => {
   it("matches english opening and ending titles", () => {
     expect(skipLabel("Opening")).toBe("OP");
     expect(skipLabel("OP")).toBe("OP");
+    expect(skipLabel("OP 1")).toBe("OP");
+    expect(skipLabel("op_2")).toBe("OP");
     expect(skipLabel("Ending")).toBe("ED");
     expect(skipLabel("ED")).toBe("ED");
+    expect(skipLabel("ED2")).toBe("ED");
     expect(skipLabel("Credits")).toBe("ED");
+    expect(skipLabel("Operation")).toBeNull();
   });
 
   it("matches english intro, preview, intermission, and recap titles", () => {

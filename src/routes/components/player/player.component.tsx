@@ -22,12 +22,12 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { usePlayerEvents } from "@/hooks/player/events.hook";
 import { useTauriEvent } from "@/hooks/tauriEvent.hook";
 import { translate } from "@/lib/locale/i18n.utils";
+import { scheduleCardPrefetch } from "@/lib/player/cardCache.utils";
 import {
   LOADING_TIMEOUT_MS,
   shouldShowEmptyPlayer,
   shouldShowLoadingSpinner,
 } from "@/lib/player/loading.utils";
-import { scheduleCardPrefetch } from "@/lib/player/cardCache.utils";
 import {
   addExternalAudio,
   addExternalSubtitle,
@@ -36,6 +36,7 @@ import {
   applyColorOptions,
   applyHdrOptions,
   applyPlayerProfile,
+  applyProperties,
   buildInitialOptions,
   closePlayerWindow,
   destroyPlayer,
@@ -62,6 +63,7 @@ import {
 } from "@/lib/player/playback.utils";
 import { fileNameFromPath } from "@/lib/player/title.utils";
 import { reportBackgroundError } from "@/lib/utils/attempt.utils";
+import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { ignore } from "@/lib/utils/promise.utils";
 import { useMediaStore } from "@/store/media.store";
 import { useNotificationStore } from "@/store/notification.store";
@@ -290,10 +292,19 @@ function PlayerComponent() {
   }, []);
 
   const applyTransform = useCallback(async (settings: PlayerSettings) => {
-    const options = transformOptions(settings);
-    for (const [name, value] of Object.entries(options)) {
-      await setMpvProperty(name, value);
-    }
+    await applyProperties(transformOptions(settings));
+  }, []);
+
+  const settingsTimerRef = useRef<number | undefined>(undefined);
+  const pendingSettingsRef = useRef<PlayerSettings | null>(null);
+  const marginsRafRef = useRef(0);
+  const lastMarginsRef = useRef({ top: -1, bottom: -1 });
+
+  useEffect(() => {
+    return () => {
+      window.clearTimeout(settingsTimerRef.current);
+      cancelAnimationFrame(marginsRafRef.current);
+    };
   }, []);
 
   useEffect(() => {
@@ -314,18 +325,25 @@ function PlayerComponent() {
         );
       }
       if (state.settings !== previous.settings) {
-        applyTransform(state.settings).catch((error: unknown) =>
-          reportBackgroundError("player.settings.transform", error)
-        );
-        applyHdrOptions(state.settings).catch((error: unknown) =>
-          reportBackgroundError("player.settings.hdr", error)
-        );
-        applyColorOptions(state.settings).catch((error: unknown) =>
-          reportBackgroundError("player.settings.color", error)
-        );
-        applyAudioOptions(state.settings).catch((error: unknown) =>
-          reportBackgroundError("player.settings.audio", error)
-        );
+        pendingSettingsRef.current = state.settings;
+        window.clearTimeout(settingsTimerRef.current);
+        settingsTimerRef.current = window.setTimeout(() => {
+          const latest = pendingSettingsRef.current;
+          pendingSettingsRef.current = null;
+          if (!latest) return;
+          applyTransform(latest).catch((error: unknown) =>
+            reportBackgroundError("player.settings.transform", error)
+          );
+          applyHdrOptions(latest).catch((error: unknown) =>
+            reportBackgroundError("player.settings.hdr", error)
+          );
+          applyColorOptions(latest).catch((error: unknown) =>
+            reportBackgroundError("player.settings.color", error)
+          );
+          applyAudioOptions(latest).catch((error: unknown) =>
+            reportBackgroundError("player.settings.audio", error)
+          );
+        }, 120);
       }
       if (state.eofMode !== previous.eofMode) {
         setEofModeCommand(state.eofMode).catch((error: unknown) =>
@@ -342,7 +360,7 @@ function PlayerComponent() {
     const reload = hwdecReloadRef.current;
     hwdecReloadRef.current = null;
 
-    await setSpeed(1);
+    await setSpeed(usePlaybackStore.getState().speed || 1);
     const entry = await useMediaStore.getState().hydrate(loaded);
 
     await setMpvProperty("sub-delay", entry?.subOffset ?? 0);
@@ -444,7 +462,11 @@ function PlayerComponent() {
     let cancelled = false;
     readPlaylistEntries()
       .then((entries) => {
-        if (!cancelled) scheduleCardPrefetch(entries.map((entry) => entry.filename), path);
+        if (!cancelled)
+          scheduleCardPrefetch(
+            entries.map((entry) => entry.filename),
+            path
+          );
       })
       .catch(() => undefined);
     return () => {
@@ -456,32 +478,53 @@ function PlayerComponent() {
     "tauri://drag-drop",
     (event) => {
       const extensions = useSettingsStore.getState().videoExtensions;
-      const files = event.payload.paths.filter((path) =>
-        extensions.some((extension) => path.toLowerCase().endsWith(`.${extension.toLowerCase()}`))
-      );
+      const lowerEndsWith = (path: string, list: readonly string[]) => {
+        const lower = path.toLowerCase();
+        return list.some((extension) => lower.endsWith(`.${extension.toLowerCase()}`));
+      };
+      const files = event.payload.paths.filter((path) => lowerEndsWith(path, extensions));
       if (files.length > 0) ignore(appendFiles(files));
+      const subs = event.payload.paths.filter((path) => lowerEndsWith(path, SUBTITLE_FILTERS));
+      const audios = event.payload.paths.filter((path) => lowerEndsWith(path, AUDIO_FILTERS));
+      for (const sub of subs) {
+        ignore(
+          addExternalSubtitle(sub).catch((error: unknown) =>
+            reportBackgroundError("player.subtitles.drop", error)
+          )
+        );
+      }
+      for (const audio of audios) {
+        ignore(
+          addExternalAudio(audio).catch((error: unknown) =>
+            reportBackgroundError("player.audio.drop", error)
+          )
+        );
+      }
     },
     { errorTag: "drag-drop" }
   );
 
+  const sendMargins = useCallback((top: number, bottom: number) => {
+    const last = lastMarginsRef.current;
+    if (Math.abs(last.top - top) < 0.001 && Math.abs(last.bottom - bottom) < 0.001) return;
+    lastMarginsRef.current = { top, bottom };
+    ignore(setVideoMarginRatio({ left: 0, right: 0, top, bottom }));
+  }, []);
+
   const syncMargins = useCallback(() => {
-    if (immersive) {
-      ignore(setVideoMarginRatio({ left: 0, right: 0, top: 0, bottom: 0 }));
-      return;
-    }
-    const height = window.innerHeight || 1;
-    const rect = videoRef.current?.getBoundingClientRect();
-    const top = rect?.top ?? 0;
-    const bottom = rect ? Math.max(0, height - rect.bottom) : 0;
-    ignore(
-      setVideoMarginRatio({
-        left: 0,
-        right: 0,
-        top: top / height,
-        bottom: bottom / height,
-      })
-    );
-  }, [immersive]);
+    cancelAnimationFrame(marginsRafRef.current);
+    marginsRafRef.current = requestAnimationFrame(() => {
+      if (immersive) {
+        sendMargins(0, 0);
+        return;
+      }
+      const height = window.innerHeight || 1;
+      const rect = videoRef.current?.getBoundingClientRect();
+      const top = rect?.top ?? 0;
+      const bottom = rect ? Math.max(0, height - rect.bottom) : 0;
+      sendMargins(top / height, bottom / height);
+    });
+  }, [immersive, sendMargins]);
 
   useEffect(() => {
     const element = videoRef.current;
@@ -572,18 +615,27 @@ function PlayerComponent() {
   }, [cheatsheetOpen, cinema, diagnosticsOpen, jumpOpen, playlistOpen, settingsOpen]);
 
   const onPlay = useCallback(() => {
-    const state = usePlaybackStore.getState();
-    if (!state.hasFile) return;
-    if (state.eofReached) {
+    const store = usePlaybackStore.getState();
+    if (!store.hasFile) return;
+    if (store.eofReached) {
       setFinished(false);
-      ignore(seekTo(0, "exact").then(() => setPaused(false)));
+      store.setSeekTarget(0);
+      store.setPaused(false);
+      seekTo(0, "exact")
+        .then(() => setPaused(false))
+        .catch(() => {
+          store.setPaused(true);
+        });
       return;
     }
-    ignore(setPaused(false));
+    store.setPaused(false);
+    setPaused(false).catch(() => store.setPaused(true));
   }, []);
 
   const onPause = useCallback(() => {
-    ignore(setPaused(true));
+    const store = usePlaybackStore.getState();
+    store.setPaused(true);
+    setPaused(true).catch(() => store.setPaused(false));
   }, []);
 
   const onPlayPause = useCallback(() => {
@@ -609,6 +661,7 @@ function PlayerComponent() {
   );
 
   const onScrub = useCallback((time: number) => {
+    usePlaybackStore.getState().setSeekTarget(time);
     ignore(seekTo(time, "keyframes"));
   }, []);
 
@@ -661,17 +714,25 @@ function PlayerComponent() {
     const clamped = Math.min(1, Math.max(0, value));
     usePlayerStore.getState().setVolume(clamped);
     ignore(setMpvProperty("volume", Math.round(clamped * 100)));
-    if (usePlaybackStore.getState().muted) {
-      ignore(setMpvProperty("mute", false));
+    const playback = usePlaybackStore.getState();
+    if (playback.muted) {
+      playback.setMuted(false);
+      setMpvProperty("mute", false).catch(() => playback.setMuted(true));
     }
   }, []);
 
   const onMute = useCallback(() => {
-    ignore(setMpvProperty("mute", !usePlaybackStore.getState().muted));
+    const store = usePlaybackStore.getState();
+    const next = !store.muted;
+    store.setMuted(next);
+    setMpvProperty("mute", next).catch(() => store.setMuted(!next));
   }, []);
 
   const onSpeed = useCallback((value: number) => {
-    ignore(setSpeed(value));
+    const store = usePlaybackStore.getState();
+    const previous = store.speed;
+    store.setPlaybackSpeed(value);
+    setSpeed(value).catch(() => store.setPlaybackSpeed(previous));
   }, []);
 
   const handlePatchSettings = useCallback((patch: Partial<PlayerSettings>) => {
@@ -733,9 +794,12 @@ function PlayerComponent() {
 
   const onSelectTrack = useCallback(
     (kind: "audio" | "sub") => (id: number | "no") => {
-      ignore(selectTrack(kind, id));
+      const store = usePlaybackStore.getState();
+      const previous = store.tracks;
+      store.markTrackSelected(kind, id);
+      selectTrack(kind, id).catch(() => usePlaybackStore.setState({ tracks: previous }));
       if (typeof id === "number") {
-        const track = usePlaybackStore.getState().tracks.find((entry) => entry.id === id);
+        const track = store.tracks.find((entry) => entry.id === id);
         if (track) persistTrack(track, kind);
       }
     },
@@ -809,6 +873,24 @@ function PlayerComponent() {
         toggleFullscreen: () => ignore(toggleFullscreen()),
         jumpToTime: () => setJumpOpen(true),
         exitCinemaMode: () => exitCinemaMode(),
+        saveCleanFrame: () => {
+          ignore(
+            invokeTyped<{ path: string }>("player_save_frame").then(
+              (saved) => {
+                useNotificationStore
+                  .getState()
+                  .add(
+                    translate(useSettingsStore.getState().language, "player.media.frame.saved"),
+                    "success",
+                    saved.path
+                  );
+              },
+              (error: unknown) => {
+                reportBackgroundError("player.frame.save", error);
+              }
+            )
+          );
+        },
       };
       actions[action]();
     },

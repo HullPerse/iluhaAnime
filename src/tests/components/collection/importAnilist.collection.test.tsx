@@ -114,6 +114,7 @@ function entry(mediaId: number, title: string): AniListEntry {
     updated_at: null,
     notes: null,
     repeat: null,
+    custom_lists: [],
   };
 }
 

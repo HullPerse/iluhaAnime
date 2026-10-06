@@ -5,6 +5,7 @@ import type {
   AniListFriendsStore,
   AniListNotificationsStore,
   AniListObservation,
+  AniListRelease,
 } from "@/types/anilist";
 
 function isValidFriend(friend: unknown): friend is {
@@ -51,6 +52,19 @@ function normalizeFriend(friend: unknown): AniListFriendsStore["friends"] {
   } as AniListFriendsStore["friends"][number];
   return [base];
 }
+
+function normalizeRelease(release: Partial<AniListRelease>): AniListRelease | null {
+  if (typeof release.mediaId !== "number" || !(release.mediaId > 0)) return null;
+  return {
+    mediaId: release.mediaId,
+    title: typeof release.title === "string" ? release.title : "",
+    episode: typeof release.episode === "number" || typeof release.episode === "string" ? release.episode : "?",
+    airedAt: typeof release.airedAt === "number" && release.airedAt > 0 ? release.airedAt : 0,
+    read: release.read === true,
+  };
+}
+
+const RELEASE_FEED_CAP = 100;
 
 function normalizeObservation(obs: Partial<AniListObservation>): AniListObservation {
   return {
@@ -125,29 +139,89 @@ export const useAniListNotificationsStore = create<AniListNotificationsStore>()(
     (set) => ({
       initialized: false,
       observations: {},
+      releases: [],
+      readNotificationIds: [],
       knownListNames: [],
       saveObservation: (id, observation) =>
         set((state) => ({
           observations: { ...state.observations, [id]: observation },
         })),
+      addRelease: (release) =>
+        set((state) => {
+          if (
+            state.releases.some(
+              (item) => item.mediaId === release.mediaId && item.episode === release.episode
+            )
+          )
+            return state;
+          return {
+            releases: [
+              { ...release, read: false },
+              ...state.releases,
+            ].slice(0, RELEASE_FEED_CAP),
+          };
+        }),
+      markReleasesRead: () =>
+        set((state) => ({
+          releases: state.releases.map((item) => (item.read ? item : { ...item, read: true })),
+        })),
+      markSiteNotificationsRead: (ids) =>
+        set((state) => {
+          const known = new Set(state.readNotificationIds);
+          let changed = false;
+          for (const id of ids) {
+            if (!known.has(id)) {
+              known.add(id);
+              changed = true;
+            }
+          }
+          if (!changed) return state;
+          return { readNotificationIds: [...known].slice(-500) };
+        }),
       setInitialized: (initialized) => set({ initialized }),
       setKnownListNames: (knownListNames) => set({ knownListNames }),
     }),
     {
       migrate: (persistedState: unknown, version: number) => {
         if (!persistedState || typeof persistedState !== "object")
-          return { initialized: false, observations: {}, knownListNames: [] };
+          return {
+            initialized: false,
+            observations: {},
+            releases: [],
+            readNotificationIds: [],
+            knownListNames: [],
+          };
         const state = persistedState as Partial<AniListNotificationsStore> & {
           observations?: Record<string, Partial<AniListObservation> & { signature?: string }>;
+          releases?: Partial<AniListRelease>[];
+          readNotificationIds?: unknown;
         };
-        if (version < 2) return { ...migrateObservationsV2(state), knownListNames: [] };
+        if (version < 2)
+          return {
+            ...migrateObservationsV2(state),
+            releases: [],
+            readNotificationIds: [],
+            knownListNames: [],
+          };
+        const releases = Array.isArray(state.releases)
+          ? state.releases.flatMap((item) => {
+              const normalized = normalizeRelease(item);
+              return normalized ? [normalized] : [];
+            })
+          : [];
         return {
           ...(state as AniListNotificationsStore),
+          releases,
+          readNotificationIds: Array.isArray(state.readNotificationIds)
+            ? state.readNotificationIds.filter(
+                (id): id is number => typeof id === "number" && Number.isInteger(id)
+              )
+            : [],
           knownListNames: Array.isArray(state.knownListNames) ? state.knownListNames : [],
         };
       },
       name: "anilistReleaseObservations",
-      version: 3,
+      version: 5,
     }
   )
 );

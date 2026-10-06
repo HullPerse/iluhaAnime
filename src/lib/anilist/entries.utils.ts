@@ -118,6 +118,7 @@ export interface EntryListInfo {
   completed_at: string | null;
   started_at: string | null;
   notes: string | null;
+  custom_lists: string[];
 }
 
 export type EntryLookup = Map<number, EntryListInfo>;
@@ -135,6 +136,7 @@ export function buildEntryLookup(lists: AniListCollection[]): EntryLookup {
         completed_at: e.completed_at,
         started_at: e.started_at,
         notes: e.notes,
+        custom_lists: e.custom_lists ?? [],
       });
     }
   }

@@ -4,6 +4,7 @@ import { lazy, Suspense, useEffect, useRef, useState } from "react";
 
 import { useApp } from "@/hooks/app.hook";
 import { useI18n } from "@/hooks/i18n.hook";
+import { useDayNightScheduler } from "@/hooks/schedule.hook";
 import { useScreenshot } from "@/hooks/screenshot.hook";
 import { TORRENTS_QUERY_KEY } from "@/hooks/torrent/queries.hook";
 import { useTray } from "@/hooks/tray.hook";
@@ -73,6 +74,7 @@ export default function App() {
   };
 
   useTray(tabs, setActiveTabTransition);
+  useDayNightScheduler();
   const { capture: screenshot, close: closeScreenshot } = useScreenshot();
 
   const getComponent = () => {

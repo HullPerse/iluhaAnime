@@ -289,6 +289,34 @@ describe("InlineAutocompleteInput", () => {
       screen.getByRole("textbox", { name: "Search" }).classList.contains("text-transparent")
     ).toBe(false);
   });
+
+  it("underlines a warned word amber and an error word red", () => {
+    const warn = render(
+      <InlineAutocompleteInput
+        aria-label="Search warn"
+        value="friren"
+        spellCheck={{ correction: "frieren", start: 0, end: 6, severity: "warn", word: "friren" }}
+        onChange={() => {}}
+      />
+    );
+    const warnSpan = warn.container.querySelector('[data-spell="warn"]');
+    expect(warnSpan?.textContent).toBe("friren");
+    expect(warnSpan?.className).toContain("amber-500");
+    warn.unmount();
+    cleanup();
+
+    render(
+      <InlineAutocompleteInput
+        aria-label="Search error"
+        value="frien"
+        spellCheck={{ correction: "frieren", start: 0, end: 5, severity: "error", word: "frien" }}
+        onChange={() => {}}
+      />
+    );
+    const errorSpan = document.querySelector('[data-spell="error"]');
+    expect(errorSpan?.textContent).toBe("frien");
+    expect(errorSpan?.className).toContain("red-500");
+  });
 });
 
 describe("InlineAutocompleteInput placement", () => {

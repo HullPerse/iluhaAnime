@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import {
   SKIP_AUTO_HIDE_MS,
+  SKIP_MIN_SECONDS,
   SKIP_SEEK_BACK_THRESHOLD,
   findActiveChapter,
   skipLabel,
@@ -52,6 +53,9 @@ function SkipButton({
   }, [timePos, key, hidden]);
 
   if (!active || !label || hidden) return null;
+
+  const chapterLength = active.target - active.chapter.time;
+  if (chapterLength < SKIP_MIN_SECONDS) return null;
 
   const isLastChapter = active.index === chapters.length - 1;
   const isNextEpisode = isLastChapter && label === "ED" && hasNext;

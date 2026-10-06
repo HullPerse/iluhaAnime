@@ -16,6 +16,7 @@ export default function QueuePanel({ scan }: { scan: ScanType }) {
   const paused = useUpscaleQueueStore((s) => s.paused);
   const removeItem = useUpscaleQueueStore((s) => s.removeItem);
   const clearDone = useUpscaleQueueStore((s) => s.clearDone);
+  const clearErrors = useUpscaleQueueStore((s) => s.clearErrors);
   const clearAll = useUpscaleQueueStore((s) => s.clearAll);
   const restartItem = useUpscaleQueueStore((s) => s.restartItem);
   const setPaused = useUpscaleQueueStore((s) => s.setPaused);
@@ -23,7 +24,16 @@ export default function QueuePanel({ scan }: { scan: ScanType }) {
   const [open, setOpen] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  if (items.length === 0 && !scan) return null;
+  if (items.length === 0 && !scan) {
+    return (
+      <section className="windows95-active-border bg-primary p-1">
+        <div className="windows95-text flex items-center gap-1 text-xs">
+          <ListVideo className="size-3" />
+          <span>{t("player.queue.empty")}</span>
+        </div>
+      </section>
+    );
+  }
 
   const STATUS_ICONS: Record<string, ReactNode> = {
     queued: <ListVideo className="text-hint size-3" />,
@@ -82,6 +92,16 @@ export default function QueuePanel({ scan }: { scan: ScanType }) {
           >
             <Trash2 className="size-2.5" />
           </Button>
+          {failedCount > 0 && (
+            <Button
+              size="icon"
+              className="h-4 w-4"
+              onClick={clearErrors}
+              title={t("player.queue.clear.errors")}
+            >
+              <X className="size-2.5" />
+            </Button>
+          )}
           <Button
             size="icon"
             className="h-4 w-4"
@@ -156,14 +176,34 @@ export default function QueuePanel({ scan }: { scan: ScanType }) {
                     <div className="flex min-w-0 items-center gap-1">
                       <ProgressBar value={item.progress} max={100} className="h-4 w-20" />
                       <span className="w-8 shrink-0 text-right text-xs">{item.progress}%</span>
+                      {item.speed !== undefined && item.speed > 0 && (
+                        <span
+                          className="text-hint shrink-0 text-xs tabular-nums"
+                          title={
+                            item.total !== undefined ? `${item.current}/${item.total}` : undefined
+                          }
+                        >
+                          {item.speed.toFixed(1)}x
+                        </span>
+                      )}
                     </div>
                   )}
-                  {item.status === "done" && (
+                  {(item.status === "queued" || item.status === "done") && (
                     <Button
                       size="icon"
                       className="h-3 w-3"
                       onClick={() => removeItem(item.id)}
                       title={t("common.delete")}
+                    >
+                      <X className="size-2" />
+                    </Button>
+                  )}
+                  {item.status === "processing" && (
+                    <Button
+                      size="icon"
+                      className="h-3 w-3"
+                      onClick={() => removeItem(item.id)}
+                      title={t("player.queue.cancel")}
                     >
                       <X className="size-2" />
                     </Button>

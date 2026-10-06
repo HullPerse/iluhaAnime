@@ -8,6 +8,7 @@ interface TabEntry<T extends string> {
   id: T;
   label: string;
   color?: string | null;
+  badge?: number;
   disabled?: boolean;
   disabledReason?: string;
 }
@@ -99,6 +100,14 @@ function Tabs<T extends string>({
             )}
             {tabDisabled && <WifiOff className="size-3 shrink-0" aria-hidden />}
             {tab.label}
+            {tab.badge != null && tab.badge > 0 && (
+              <span
+                className="bg-destructive text-white windows95-font ml-1 inline-flex min-w-4 items-center justify-center px-0.5 text-xs"
+                aria-label={`${tab.badge}`}
+              >
+                {tab.badge > 99 ? "99+" : tab.badge}
+              </span>
+            )}
           </Button>
         );
       })}

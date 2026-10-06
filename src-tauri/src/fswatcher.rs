@@ -1,4 +1,5 @@
-use notify::{Config, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
+use notify::RecursiveMode;
+use notify_debouncer_mini::{new_debouncer, Debouncer};
 use std::collections::HashSet;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -8,7 +9,7 @@ use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
 
 pub struct FolderWatcher {
-    watcher: Option<RecommendedWatcher>,
+    debouncer: Option<Debouncer<notify::RecommendedWatcher>>,
     cancel: CancellationToken,
     dirty_tx: mpsc::UnboundedSender<PathBuf>,
 }
@@ -17,7 +18,7 @@ impl FolderWatcher {
     pub fn new() -> Self {
         let (dirty_tx, _dirty_rx) = mpsc::unbounded_channel();
         Self {
-            watcher: None,
+            debouncer: None,
             cancel: CancellationToken::new(),
             dirty_tx,
         }
@@ -37,10 +38,11 @@ impl FolderWatcher {
         let (dirty_tx, mut dirty_rx) = mpsc::unbounded_channel::<PathBuf>();
         self.dirty_tx = dirty_tx.clone();
 
-        let mut watcher = RecommendedWatcher::new(tx, Config::default())
+        let mut debouncer = new_debouncer(Duration::from_secs(1), tx)
             .map_err(|e| format!("create watcher: {e}"))?;
         for path in &paths {
-            watcher
+            debouncer
+                .watcher()
                 .watch(path, RecursiveMode::Recursive)
                 .map_err(|e| format!("watch {}: {e}", path.display()))?;
         }
@@ -49,15 +51,10 @@ impl FolderWatcher {
         tokio::task::spawn_blocking(move || {
             while !event_cancel.is_cancelled() {
                 match rx.recv() {
-                    Ok(Ok(event)) => {
-                        if matches!(
-                            event.kind,
-                            EventKind::Create(_) | EventKind::Modify(_) | EventKind::Remove(_)
-                        ) {
-                            if let Some(path) = event.paths.first() {
-                                if let Some(parent) = path.parent().map(PathBuf::from) {
-                                    let _ = dirty_tx.send(parent);
-                                }
+                    Ok(Ok(events)) => {
+                        for event in events {
+                            if let Some(parent) = event.path.parent().map(PathBuf::from) {
+                                let _ = dirty_tx.send(parent);
                             }
                         }
                     }
@@ -99,13 +96,13 @@ impl FolderWatcher {
             }
         });
 
-        self.watcher = Some(watcher);
+        self.debouncer = Some(debouncer);
         Ok(())
     }
 
     pub fn stop(&mut self) {
         self.cancel.cancel();
-        self.watcher.take();
+        self.debouncer.take();
     }
 }
 

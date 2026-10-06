@@ -57,6 +57,7 @@ export interface UpscaleQueueStore {
   addConvertItem: (filePath: string, name: string, config: ConvertConfig) => string;
   removeItem: (id: string) => void;
   clearDone: () => void;
+  clearErrors: () => void;
   clearAll: () => void;
   restartItem: (id: string) => void;
   processNext: () => Promise<void>;

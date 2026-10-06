@@ -5,6 +5,8 @@ import { formatActivityTime } from "@/lib/anilist/activity.utils";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
 import type { AniActivity } from "@/types/anilist";
 
+import { ActivityLikeButton } from "./like.activity";
+
 export function FeedItem({
   a,
   onAnimeClick,
@@ -36,6 +38,7 @@ export function FeedItem({
           </span>
           <span className="text-hint text-xs">{formatActivityTime(a.created_at, locale)}</span>
         </div>
+        {a.user_name && <ActivityLikeButton activity={a} />}
       </div>
     );
   }
@@ -72,6 +75,7 @@ export function FeedItem({
           {formatActivityTime(a.created_at, locale)}
         </span>
       </div>
+      {a.user_name && <ActivityLikeButton activity={a} />}
     </div>
   );
 }

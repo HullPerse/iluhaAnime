@@ -59,17 +59,21 @@ pub fn normalize_index_text(value: &str) -> String {
     trimmed.chars().take(256).collect()
 }
 pub fn build_fts_match_query(normalized: &str) -> String {
+    let tokens: Vec<&str> = normalized.split_whitespace().collect();
     let mut out = String::with_capacity(normalized.len() + 16);
-    for token in normalized
-        .split_whitespace()
-        .filter(|token| token.chars().count() >= 3)
-    {
+    for (index, token) in tokens.iter().enumerate() {
+        if token.chars().count() < 3 {
+            continue;
+        }
         if !out.is_empty() {
             out.push_str(" AND ");
         }
         out.push('"');
         out.push_str(&token.replace('"', "\"\""));
         out.push('"');
+        if index + 1 == tokens.len() {
+            out.push('*');
+        }
     }
     out
 }
@@ -216,6 +220,18 @@ pub fn clear_unified_index_scope(app: tauri::AppHandle, scope: String) -> Result
     let deleted = connection
         .execute("DELETE FROM unified_index WHERE scope = ?1", params![scope])
         .map_err(|error| format!("clear unified index scope: {error}"))?;
+    Ok(deleted)
+}
+
+#[tauri::command]
+pub fn delete_unified_index_entry(app: tauri::AppHandle, id: String) -> Result<usize, String> {
+    if id.is_empty() || id.len() > 512 {
+        return Err("Unified index id is invalid".into());
+    }
+    let connection = open_database(&app)?;
+    let deleted = connection
+        .execute("DELETE FROM unified_index WHERE id = ?1", params![id])
+        .map_err(|error| format!("delete unified index entry: {error}"))?;
     Ok(deleted)
 }
 
@@ -470,9 +486,15 @@ mod tests {
     fn fts_match_query_drops_sub_trigram_tokens() {
         assert_eq!(
             build_fts_match_query("tonari no totoro"),
-            "\"tonari\" AND \"totoro\""
+            "\"tonari\" AND \"totoro\"*"
         );
         assert_eq!(build_fts_match_query("no"), "");
+    }
+
+    #[test]
+    fn fts_match_query_prefixes_last_token() {
+        assert_eq!(build_fts_match_query("frie"), "\"frie\"*");
+        assert_eq!(build_fts_match_query("frieren"), "\"frieren\"*");
     }
 
     #[test]

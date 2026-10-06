@@ -93,7 +93,7 @@ fn timestamp_millis() -> u128 {
         .unwrap_or_default()
 }
 
-fn default_dir(window: &tauri::WebviewWindow) -> String {
+pub(crate) fn default_dir(window: &tauri::WebviewWindow) -> String {
     let resolver = window.app_handle().path();
     resolver
         .picture_dir()
@@ -127,18 +127,34 @@ fn sanitize_name(raw: &str) -> Result<String, String> {
     Ok(cleaned.to_string())
 }
 
-fn resolve_target(dir: &Path, name: &str, extension: &str) -> PathBuf {
+pub(crate) fn resolve_target(dir: &Path, name: &str, extension: &str) -> PathBuf {
     let first = dir.join(format!("{name}.{extension}"));
     if !first.exists() {
         return first;
     }
     for index in 1..COLLISION_LIMIT {
-        let candidate = dir.join(format!("{name}_{index}.{extension}"));
+        let candidate = dir.join(format!("{name} ({index}).{extension}"));
         if !candidate.exists() {
             return candidate;
         }
     }
     dir.join(format!("{name}_{}.{extension}", timestamp_millis()))
+}
+
+fn capture_temp_path() -> PathBuf {
+    let dir = std::env::temp_dir();
+    let stamp = timestamp_millis();
+    for _ in 0..COLLISION_LIMIT {
+        let sequence = COPY_SEQUENCE.fetch_add(1, Ordering::Relaxed);
+        let candidate = dir.join(format!("{TEMP_PREFIX}{stamp}_{sequence}.png"));
+        if !candidate.exists() {
+            return candidate;
+        }
+    }
+    dir.join(format!(
+        "{TEMP_PREFIX}{stamp}_{}.png",
+        COPY_SEQUENCE.fetch_add(1, Ordering::Relaxed)
+    ))
 }
 
 fn copy_temp_path() -> PathBuf {
@@ -447,7 +463,7 @@ pub async fn capture_screenshot(window: tauri::WebviewWindow) -> Result<Screensh
         .recv()
         .map_err(|_| "capture the page: the webview went away".to_string())??;
     let (width, height) = image_size(&bytes)?;
-    let path = std::env::temp_dir().join(format!("{TEMP_PREFIX}{}.png", timestamp_millis()));
+    let path = capture_temp_path();
     std::fs::write(&path, &bytes).map_err(|error| format!("write the capture: {error}"))?;
     Ok(ScreenshotCapture {
         path: path.to_string_lossy().to_string(),
@@ -575,13 +591,13 @@ mod tests {
         let second = resolve_target(&dir, "iluhaAnime_screenshot", "png");
         assert_eq!(
             second.file_name().and_then(|n| n.to_str()),
-            Some("iluhaAnime_screenshot_1.png")
+            Some("iluhaAnime_screenshot (1).png")
         );
         std::fs::write(&second, b"x").expect("seed second");
         let third = resolve_target(&dir, "iluhaAnime_screenshot", "png");
         assert_eq!(
             third.file_name().and_then(|n| n.to_str()),
-            Some("iluhaAnime_screenshot_2.png")
+            Some("iluhaAnime_screenshot (2).png")
         );
         let other = resolve_target(&dir, "iluhaAnime_screenshot", "jpg");
         assert_eq!(

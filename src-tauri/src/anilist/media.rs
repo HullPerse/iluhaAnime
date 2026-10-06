@@ -84,6 +84,7 @@ pub struct AniListEntry {
     pub updated_at: Option<i64>,
     pub notes: Option<String>,
     pub repeat: Option<i32>,
+    pub custom_lists: Vec<String>,
 }
 
 #[derive(Debug, Serialize)]

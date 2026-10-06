@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { systemApi } from "@/api/system.api";
 import { TOAST_ACTIVATED_EVENT } from "@/config/settings/notifications.config";
 import { tabForAltDigit, visibleTabs } from "@/config/settings/tabs.config";
+import { useAniListNotificationsStore } from "@/store/anilist.store";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useLiveResource } from "@/hooks/liveResource.hook";
@@ -63,6 +64,10 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
   const anilistReleaseNotifications = useSettingsStore((s) => s.anilistReleaseNotifications);
   const anilistPollIntervalMin = useSettingsStore((s) => s.anilistPollIntervalMin);
 
+  const unreadReleases = useAniListNotificationsStore((s) =>
+    s.releases.reduce((count, item) => count + (item.read ? 0 : 1), 0)
+  );
+
   const tabs = markOfflineTabs(
     visibleTabs({
       collectionTabEnabled,
@@ -73,6 +78,7 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
     }).map((tab) => ({
       ...tab,
       label: t(tab.key),
+      badge: tab.id === "anilist" ? unreadReleases : undefined,
     })),
     isOnline
   ).map((tab) => ({

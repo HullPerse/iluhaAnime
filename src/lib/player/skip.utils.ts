@@ -9,19 +9,17 @@ export interface ActiveChapter {
   target: number;
 }
 
+const OP_PATTERN = /\b(?:opening|op(?:[\s_-]*\d+)?)\b/;
+const ED_PATTERN = /\b(?:ending|ed(?:[\s_-]*\d+)?)\b/;
+export const SKIP_MIN_SECONDS = 20;
+
 function isOpeningTitle(lower: string): boolean {
-  return (
-    lower.includes("opening") ||
-    lower === "op" ||
-    lower.includes("опенинг") ||
-    lower.includes("заставка")
-  );
+  return OP_PATTERN.test(lower) || lower.includes("опенинг") || lower.includes("заставка");
 }
 
 function isEndingTitle(lower: string): boolean {
   return (
-    lower.includes("ending") ||
-    lower === "ed" ||
+    ED_PATTERN.test(lower) ||
     lower.includes("credits") ||
     lower.includes("эндинг") ||
     lower.includes("концовка") ||

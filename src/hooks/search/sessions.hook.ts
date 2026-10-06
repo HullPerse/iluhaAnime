@@ -4,6 +4,18 @@ import { queryKeys } from "@/lib/query/keys.utils";
 import { withFallback } from "@/lib/utils/attempt.utils";
 import { useSettingsStore } from "@/store/settings.store";
 
+const SESSION_CHECK_TIMEOUT_MS = 8000;
+
+function withSessionTimeout(promise: Promise<boolean>): Promise<boolean> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<boolean>((resolve) => {
+    timer = setTimeout(() => resolve(false), SESSION_CHECK_TIMEOUT_MS);
+  });
+  return Promise.race([promise.catch(() => false), timeout]).finally(() => {
+    if (timer !== undefined) clearTimeout(timer);
+  });
+}
+
 export function useSearchSessions() {
   const rutrackerProxy = useSettingsStore((s) => s.searchProxyUrls["rutracker"] ?? "");
   const nekobtProxy = useSettingsStore((s) => s.searchProxyUrls["nekobt"] ?? "");
@@ -12,9 +24,9 @@ export function useSearchSessions() {
     queryKey: queryKeys.searchSessions(rutrackerProxy, nekobtProxy, eraiProxy),
     queryFn: async () => {
       const [rutracker, nekobt, erai] = await Promise.all([
-        withFallback(torrentApi.checkRutrackerSession(), false),
-        withFallback(torrentApi.checkNekobtSession(), false),
-        withFallback(torrentApi.checkEraiSession(), false),
+        withFallback(withSessionTimeout(torrentApi.checkRutrackerSession()), false),
+        withFallback(withSessionTimeout(torrentApi.checkNekobtSession()), false),
+        withFallback(withSessionTimeout(torrentApi.checkEraiSession()), false),
       ]);
       return { rutracker, nekobt, erai };
     },

@@ -1,15 +1,9 @@
 {
   "compilerOptions": {
-    "types": [
-      "vite/client"
-    ],
-    "target": "ES2025",
+    "types": ["vite/client"],
+    "target": "es2024",
     "useDefineForClassFields": true,
-    "lib": [
-      "ES2025",
-      "DOM",
-      "DOM.Iterable"
-    ],
+    "lib": ["ES2024", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "skipLibCheck": true,
     /* Bundler mode */
@@ -26,14 +20,10 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": false,
     "paths": {
-      "@/*": [
-        "./src/*"
-      ]
+      "@/*": ["./src/*"]
     }
   },
-  "include": [
-    "src"
-  ],
+  "include": ["src"],
   "references": [
     {
       "path": "./tsconfig.node.json"

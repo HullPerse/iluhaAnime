@@ -30,49 +30,43 @@ export function useSuggestions(
     }
     requestRef.current += 1;
     const requestId = requestRef.current;
-    const timer = window.setTimeout(() => {
-      (async () => {
-        const [rows, error] = await attempt(
-          collectionApi.searchUnifiedIndex(normalized, scope, limit)
-        );
-        if (requestRef.current !== requestId) return;
-        if (error) {
-          setSuggestions([]);
-          return;
-        }
-        setSuggestions(
-          (Array.isArray(rows) ? rows : [])
-            .map((row) => {
-              const match = fuzzyMatchScore(normalized, row.value) ?? 0;
-              const learning =
-                Math.min(
-                  SEARCH_RANKING.LEARNING_SELECTED_CAP,
-                  row.selectedCount * SEARCH_RANKING.LEARNING_SELECTED_WEIGHT
-                ) +
-                Math.min(
-                  SEARCH_RANKING.LEARNING_USE_CAP,
-                  row.useCount * SEARCH_RANKING.LEARNING_USE_WEIGHT
-                ) -
-                Math.min(
-                  SEARCH_RANKING.LEARNING_IGNORED_CAP,
-                  row.ignoredCount * SEARCH_RANKING.LEARNING_IGNORED_WEIGHT
-                );
-              return {
-                kind: suggestionKind(row.kind),
-                score: match + learning,
-                subtitle: row.subtitle ?? undefined,
-                value: row.value,
-              };
-            })
-            .sort((left, right) => right.score - left.score)
-            .slice(0, Math.max(1, limit))
-        );
-      })();
-    }, 200);
-
-    return () => {
-      window.clearTimeout(timer);
-    };
+    (async () => {
+      const [rows, error] = await attempt(
+        collectionApi.searchUnifiedIndex(normalized, scope, limit)
+      );
+      if (requestRef.current !== requestId) return;
+      if (error) {
+        setSuggestions([]);
+        return;
+      }
+      setSuggestions(
+        (Array.isArray(rows) ? rows : [])
+          .map((row) => {
+            const match = fuzzyMatchScore(normalized, row.value) ?? 0;
+            const learning =
+              Math.min(
+                SEARCH_RANKING.LEARNING_SELECTED_CAP,
+                row.selectedCount * SEARCH_RANKING.LEARNING_SELECTED_WEIGHT
+              ) +
+              Math.min(
+                SEARCH_RANKING.LEARNING_USE_CAP,
+                row.useCount * SEARCH_RANKING.LEARNING_USE_WEIGHT
+              ) -
+              Math.min(
+                SEARCH_RANKING.LEARNING_IGNORED_CAP,
+                row.ignoredCount * SEARCH_RANKING.LEARNING_IGNORED_WEIGHT
+              );
+            return {
+              kind: suggestionKind(row.kind),
+              score: match + learning,
+              subtitle: row.subtitle ?? undefined,
+              value: row.value,
+            };
+          })
+          .sort((left, right) => right.score - left.score)
+          .slice(0, Math.max(1, limit))
+      );
+    })();
   }, [limit, query, scope]);
 
   return suggestions;

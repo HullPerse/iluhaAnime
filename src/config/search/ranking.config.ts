@@ -2,6 +2,8 @@ export const SEARCH_RANKING = {
   MAX_QUERY_LENGTH: 200,
   MAX_NORM_LENGTH: 256,
   MAX_LEARNING_ITEMS: 2000,
+  // Learning weights mirror feedback_score_sql in unified_index.rs
+  // (selected * 20 + used * 4 - ignored * 8); keep both in sync.
   LEARNING_SELECTED_WEIGHT: 20,
   LEARNING_USE_WEIGHT: 4,
   LEARNING_IGNORED_WEIGHT: 8,

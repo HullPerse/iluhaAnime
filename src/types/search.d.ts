@@ -8,7 +8,7 @@ export interface LanguageTag {
   code: string;
   label: string;
 }
-export type SortKey = "seeders" | "leechers" | "size";
+export type SortKey = "seeders" | "leechers" | "size" | "date";
 export type SortDirection = "asc" | "desc";
 export type SearchType = "default" | "modern";
 
@@ -24,6 +24,11 @@ export interface SearchFilters {
   sizeMin: number;
   sizeMax: number;
   codec: string;
+}
+
+export interface FilterPreset {
+  name: string;
+  filters: SearchFilters;
 }
 
 export interface SearchQueryStat {
@@ -107,6 +112,7 @@ export interface SearchStore {
   history: string[];
   queryStats: Record<string, SearchQueryStat>;
   suggestionStats: Record<string, SearchQueryStat>;
+  spellDictionary: string[];
   animeIndex: SearchAnimeSuggestion[];
   animeProfileId: number | null;
   crossSearchQuery: string | null;
@@ -114,10 +120,13 @@ export interface SearchStore {
   sortBy: SortKey;
   sortDirection: SortDirection;
   filters: SearchFilters;
+  filterPresets: FilterPreset[];
 
   addQuery: (query: string, scope?: string) => void;
-  recordSuggestion: (value: string) => void;
-  recordSuggestionIgnored: (value: string) => void;
+  recordSuggestion: (value: string, scope?: string) => void;
+  recordSuggestionIgnored: (value: string, scope?: string) => void;
+  addSpellWord: (word: string) => void;
+  removeSpellWord: (word: string) => void;
   indexAniList: (
     lists: AniListCollection[],
     favourites: FavouriteAnime[],
@@ -125,7 +134,7 @@ export interface SearchStore {
   ) => void;
   clearAnimeIndex: () => void;
   resetAnimeSuggestions: () => void;
-  removeQuery: (query: string) => void;
+  removeQuery: (query: string, scope?: string) => void;
   purgeExpired: () => void;
   clearScope: (scope: string) => Promise<void>;
   clearAllLearning: () => Promise<void>;
@@ -135,6 +144,8 @@ export interface SearchStore {
   setSortDirection: (dir: SortDirection) => void;
   setFilters: (filters: Partial<SearchFilters>) => void;
   resetFilters: () => void;
+  saveFilterPreset: (name: string, filters: SearchFilters) => void;
+  deleteFilterPreset: (name: string) => void;
 }
 
 export type Source = "erai-raws" | "rutracker" | "nyaa" | "nekobt" | "sukebei";
@@ -199,6 +210,17 @@ export interface IntentToken {
 export interface HighlightRange {
   start: number;
   end: number;
+  kind?: "match" | "spell-warn" | "spell-error";
+}
+
+export type SpellSeverity = "warn" | "error";
+
+export interface SpellCheck {
+  correction: string;
+  start: number;
+  end: number;
+  severity: SpellSeverity;
+  word: string;
 }
 
 export interface SuggestionSection {
@@ -215,6 +237,7 @@ export interface HighlightSegment {
 export interface HighlightToken {
   text: string;
   highlighted: boolean;
+  spell?: "warn" | "error";
 }
 
 export type EraiErrorCode =
@@ -256,7 +279,14 @@ export interface AutocompleteParams {
 
 export type SearchPersistedState = Pick<
   SearchStore,
-  "filters" | "history" | "queryStats" | "sortBy" | "sortDirection" | "suggestionStats"
+  | "filters"
+  | "filterPresets"
+  | "history"
+  | "queryStats"
+  | "sortBy"
+  | "sortDirection"
+  | "suggestionStats"
+  | "spellDictionary"
 >;
 export interface AuthSearchProps {
   source: string;
@@ -347,6 +377,7 @@ export interface SearchQueryController {
   data: Anime[] | undefined;
   displayItems: Anime[] | undefined;
   isPagedSource: boolean;
+  pageFull: boolean;
   nyaaPage: number;
   setNyaaPage: (page: number) => void;
   resultsPerPage: number;
@@ -390,4 +421,8 @@ export interface AutocompleteInputProps extends ComponentProps<"input"> {
   onDismissCompletion?: () => void;
   highlightRanges?: readonly HighlightRange[];
   placement?: "below" | "above";
+  spellCheck?: SpellCheck | null;
+  onApplySpellCorrection?: () => void;
+  onAddWordToDictionary?: () => void;
+  historyStats?: Record<string, SearchQueryStat>;
 }

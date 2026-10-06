@@ -486,6 +486,8 @@ pub struct AniActivity {
     pub user_id: u64,
     pub user_name: String,
     pub user_avatar: Option<String>,
+    pub like_count: u32,
+    pub is_liked: bool,
 }
 
 fn normalize_activity_status(raw: &str) -> String {
@@ -539,6 +541,8 @@ pub async fn get_anilist_activity(
                             createdAt
                             status
                             progress
+                            likeCount
+                            isLiked
                             media { id type title { romaji english } coverImage { medium } }
                             user { id name avatar { medium } }
                         }
@@ -546,6 +550,8 @@ pub async fn get_anilist_activity(
                             id
                             createdAt
                             text
+                            likeCount
+                            isLiked
                             user { id name avatar { medium } }
                         }
                     }
@@ -590,9 +596,155 @@ pub async fn get_anilist_activity(
                 user_id: user["id"].as_u64().unwrap_or(0),
                 user_name: user["name"].as_str().unwrap_or("").to_string(),
                 user_avatar: user["avatar"]["medium"].as_str().map(String::from),
+                like_count: a["likeCount"].as_u64().unwrap_or(0) as u32,
+                is_liked: a["isLiked"].as_bool().unwrap_or(false),
             })
         })
         .collect())
+}
+
+#[derive(Debug, Serialize)]
+pub struct ActivityLikeState {
+    pub like_count: u32,
+    pub is_liked: bool,
+}
+
+#[derive(Debug, Serialize)]
+pub struct AniSiteNotification {
+    pub id: u64,
+    pub kind: String,
+    pub created_at: i64,
+    pub context: Option<String>,
+    pub contexts: Vec<String>,
+    pub user_id: Option<u64>,
+    pub user_name: Option<String>,
+    pub user_avatar: Option<String>,
+    pub anime_id: Option<u64>,
+    pub anime_title: Option<String>,
+    pub anime_cover: Option<String>,
+    pub episode: Option<i32>,
+    pub activity_id: Option<u64>,
+    pub text: Option<String>,
+}
+
+fn parse_site_notification(kind: &str, n: &serde_json::Value) -> Option<AniSiteNotification> {
+    let user = &n["user"];
+    let media = &n["media"];
+    Some(AniSiteNotification {
+        id: n["id"].as_u64()?,
+        kind: kind.to_string(),
+        created_at: n["createdAt"].as_i64().unwrap_or(0),
+        context: n["context"].as_str().map(String::from),
+        contexts: n["contexts"]
+            .as_array()
+            .map(|items| {
+                items
+                    .iter()
+                    .filter_map(|c| c.as_str().map(String::from))
+                    .collect()
+            })
+            .unwrap_or_default(),
+        user_id: user["id"].as_u64(),
+        user_name: user["name"].as_str().map(String::from),
+        user_avatar: user["avatar"]["medium"].as_str().map(String::from),
+        anime_id: n["animeId"]
+            .as_u64()
+            .or_else(|| media["id"].as_u64()),
+        anime_title: media["title"]["romaji"]
+            .as_str()
+            .or_else(|| media["title"]["english"].as_str())
+            .map(String::from),
+        anime_cover: media["coverImage"]["medium"].as_str().map(String::from),
+        episode: n["episode"].as_i64().map(|e| e as i32),
+        activity_id: n["activityId"].as_u64(),
+        text: n["text"].as_str().map(String::from),
+    })
+}
+
+#[tauri::command]
+#[allow(non_snake_case)]
+pub async fn get_anilist_notifications(
+    app_handle: tauri::AppHandle,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
+) -> Result<Vec<AniSiteNotification>, String> {
+    let token = load_token(&app_handle)?;
+    let body = serde_json::json!({
+        "query": r"
+            query {
+                Page(page: 1, perPage: 50) {
+                    notifications {
+                        ... on AiringNotification {
+                            __typename id createdAt episode animeId contexts
+                            media { id title { romaji english } coverImage { medium } }
+                        }
+                        ... on ActivityLikeNotification {
+                            __typename id createdAt activityId context
+                            user { id name avatar { medium } }
+                        }
+                        ... on ActivityReplyNotification {
+                            __typename id createdAt activityId text context
+                            user { id name avatar { medium } }
+                        }
+                        ... on FollowingNotification {
+                            __typename id createdAt context
+                            user { id name avatar { medium } }
+                        }
+                        ... on ActivityMentionNotification {
+                            __typename id createdAt activityId context
+                            user { id name avatar { medium } }
+                        }
+                    }
+                }
+            }
+        ",
+    });
+    let proxy = resolve_proxy(proxy_url, proxyUrl);
+    let json = graphql_request(body, Some(&token), proxy.as_deref()).await?;
+    let items = json["data"]["Page"]["notifications"]
+        .as_array()
+        .ok_or_else(|| "Failed to parse notifications".to_string())?;
+    Ok(items
+        .iter()
+        .filter_map(|n| match n["__typename"].as_str() {
+            Some("AiringNotification") => parse_site_notification("airing", n),
+            Some("ActivityLikeNotification") => parse_site_notification("like", n),
+            Some("ActivityReplyNotification") => parse_site_notification("reply", n),
+            Some("FollowingNotification") => parse_site_notification("following", n),
+            Some("ActivityMentionNotification") => parse_site_notification("mention", n),
+            _ => None,
+        })
+        .collect())
+}
+
+#[tauri::command]
+#[allow(non_snake_case)]
+pub async fn toggle_activity_like(
+    app_handle: tauri::AppHandle,
+    activity_id: i64,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
+) -> Result<ActivityLikeState, String> {
+    let token = load_token(&app_handle)?;
+    let body = serde_json::json!({
+        "query": r"
+            mutation ($id: Int) {
+                ToggleLike(id: $id, type: ACTIVITY) {
+                    id
+                    likeCount
+                    isLiked
+                }
+            }
+        ",
+        "variables": { "id": activity_id }
+    });
+    let proxy = resolve_proxy(proxy_url, proxyUrl);
+    let json = graphql_request(body, Some(&token), proxy.as_deref()).await?;
+    let node = &json["data"]["ToggleLike"];
+    Ok(ActivityLikeState {
+        like_count: node["likeCount"].as_u64().unwrap_or(0) as u32,
+        is_liked: node["isLiked"].as_bool().unwrap_or(false),
+    })
 }
 #[tauri::command]
 #[allow(non_snake_case)]

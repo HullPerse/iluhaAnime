@@ -73,6 +73,7 @@ const common = {
   "download.error.remove": "Ошибка при удалении торрента:",
   "download.error.resume": "Ошибка при продолжении торрента:",
   "download.error.order": "Ошибка при сохранении порядка загрузки:",
+  "download.error.alias": "Ошибка при переименовании торрента:",
   "download.error.sequential": "Ошибка при включении последовательного режима:",
   "download.error.tracker.add": "Ошибка при добавлении трекера:",
   "download.error.tracker.remove": "Ошибка при удалении трекера:",

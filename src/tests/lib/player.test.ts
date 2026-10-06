@@ -7,6 +7,7 @@ import {
   audioOptions,
   colorOptions,
   hdrOptions,
+  parseTimecode,
   profileOptions,
   selectTrack,
   transformOptions,
@@ -95,6 +96,17 @@ describe("player/queue", () => {
       expect(steps.every((s) => !s.done && !s.active && s.percent === 0)).toBe(true);
     });
 
+    it("activates the first step for unknown processing stages", () => {
+      const steps = queueDepthSteps(upscale({ status: "processing", progress: 5 }), ru);
+      expect(steps[0]?.active).toBe(true);
+      expect(steps[0]?.percent).toBe(5);
+    });
+
+    it("maps the extracting stage onto the first step", () => {
+      const steps = queueDepthSteps(upscale({ status: "processing", stage: "extracting" }), ru);
+      expect(steps[0]?.active).toBe(true);
+    });
+
     it("renders convert jobs as a single step", () => {
       const steps = queueDepthSteps(
         {
@@ -160,6 +172,33 @@ describe("player/visibility", () => {
     it("removes the whole saved-folder root when it is hidden", () => {
       expect(filterTreeByHiddenPaths(tree, ["C:\\Anime"])).toBeNull();
     });
+
+    it("removes a hidden file inside a visible folder", () => {
+      const filtered = filterTreeByHiddenPaths(tree, ["C:/Anime/Visible/episode.mkv"]);
+      expect(filtered?.children.map((child) => child.name)).toEqual(["Hidden"]);
+      expect(filtered?.files.map((file) => file.name)).toEqual(["movie.mkv"]);
+    });
+  });
+});
+
+describe("player/timecode", () => {
+  it("parses seconds, mm:ss and hh:mm:ss", () => {
+    expect(parseTimecode("90")).toBe(90);
+    expect(parseTimecode("1:30")).toBe(90);
+    expect(parseTimecode("1:02:03")).toBe(3723);
+    expect(parseTimecode("1:02:03.5")).toBe(3723.5);
+    expect(parseTimecode("0:00:10,25")).toBe(10.25);
+  });
+
+  it("rejects malformed and out-of-range input", () => {
+    expect(parseTimecode("")).toBeNull();
+    expect(parseTimecode("::")).toBeNull();
+    expect(parseTimecode("1:2:3:4")).toBeNull();
+    expect(parseTimecode("abc")).toBeNull();
+    expect(parseTimecode("-5")).toBeNull();
+    expect(parseTimecode("1:60")).toBeNull();
+    expect(parseTimecode("1:02:75")).toBeNull();
+    expect(parseTimecode("1.5:30")).toBeNull();
   });
 });
 
@@ -189,6 +228,18 @@ describe("player/tree", () => {
       expect(tree.children).toHaveLength(1);
       expect(tree.children[0].name).toBe("One Piece");
       expect(tree.children[0].files.map((f) => f.name)).toEqual(["ep1.mkv", "ep2.mkv"]);
+    });
+
+    it("does not strip the root in the middle of a path", () => {
+      const tree = buildTree([makeEntry("D:\\X\\C:\\Anime\\ep.mkv", "ep.mkv")], "C:\\Anime");
+      expect(tree.files.map((f) => f.name)).toEqual([]);
+      expect(tree.children.length).toBeGreaterThan(0);
+    });
+
+    it("normalizes separators in node paths", () => {
+      const tree = buildTree([makeEntry("C:\\Anime\\Sub\\ep.mkv", "ep.mkv")], "C:\\Anime");
+      expect(tree.path).toBe("C:/Anime");
+      expect(tree.children[0].path).toBe("C:/Anime/Sub");
     });
   });
 
@@ -253,7 +304,7 @@ describe("player/tree", () => {
 
     it("expands open children and includes their files", () => {
       const tree = buildTree([makeEntry("C:\\Anime\\Movies\\c.mkv", "c.mkv")], "C:\\Anime");
-      const items = flattenTree(tree, new Set(["C:\\Anime/Movies"]), "", undefined, 0);
+      const items = flattenTree(tree, new Set(["C:/Anime/Movies"]), "", undefined, 0);
       expect(items.some((i) => i.kind === "file")).toBe(true);
     });
 
@@ -458,14 +509,10 @@ describe("player/playlist append", () => {
     const { invoke } = await import("@tauri-apps/api/core");
     vi.mocked(invoke).mockClear();
     await appendFilesQuiet(["C:\\a.mkv", "C:\\b.mkv"]);
-    expect(vi.mocked(invoke)).toHaveBeenCalledTimes(2);
-    expect(vi.mocked(invoke)).toHaveBeenNthCalledWith(1, "player_command", {
-      name: "loadfile",
-      args: ["C:\\a.mkv", "append"],
-    });
-    expect(vi.mocked(invoke)).toHaveBeenNthCalledWith(2, "player_command", {
-      name: "loadfile",
-      args: ["C:\\b.mkv", "append"],
+    expect(vi.mocked(invoke)).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(invoke)).toHaveBeenCalledWith("player_append_files", {
+      files: ["C:\\a.mkv", "C:\\b.mkv"],
+      mode: "append",
     });
   });
 
@@ -473,9 +520,17 @@ describe("player/playlist append", () => {
     const { invoke } = await import("@tauri-apps/api/core");
     vi.mocked(invoke).mockClear();
     await appendFiles(["C:\\a.mkv"]);
-    expect(vi.mocked(invoke)).toHaveBeenCalledWith("player_command", {
-      name: "loadfile",
-      args: ["C:\\a.mkv", "append-play"],
+    expect(vi.mocked(invoke)).toHaveBeenCalledWith("player_append_files", {
+      files: ["C:\\a.mkv"],
+      mode: "append-play",
     });
+  });
+
+  it("skips the invoke when there is nothing to append", async () => {
+    const { invoke } = await import("@tauri-apps/api/core");
+    vi.mocked(invoke).mockClear();
+    await appendFiles([]);
+    await appendFilesQuiet([]);
+    expect(vi.mocked(invoke)).not.toHaveBeenCalled();
   });
 });

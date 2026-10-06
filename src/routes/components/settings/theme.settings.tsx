@@ -1,7 +1,9 @@
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
+import { Checkbox } from "@/components/ui/checkbox.component";
 import Combobox from "@/components/ui/combobox.component";
+import { Input } from "@/components/ui/input.component";
 import Slider from "@/components/ui/range.component";
 import { THEMES } from "@/config/settings/themes.config";
 import { useI18n } from "@/hooks/i18n.hook";
@@ -28,6 +30,7 @@ export default function SettingsTheme() {
   const windowEffect = useSettingsStore((s) => s.windowEffect);
   const windowTintOpacity = useSettingsStore((s) => s.windowTintOpacity);
   const collectionGroupHeaderStyle = useSettingsStore((s) => s.collectionGroupHeaderStyle);
+  const themeSchedule = useSettingsStore((s) => s.themeSchedule);
   const patchSettings = useSettingsStore((s) => s.patch);
   const customThemes = useThemeStore((s) => s.customThemes);
   const setTheme = useThemeStore((s) => s.setTheme);
@@ -124,6 +127,69 @@ export default function SettingsTheme() {
             <Button onClick={handleImport}>{t("settings.theme.import")}</Button>
             {currentDef && <Button onClick={handleExport}>{t("settings.theme.export")}</Button>}
           </div>
+        </div>
+      </section>
+
+      <section className="ui-panel">
+        <div className="ui-titlebar">
+          <span className="text-title-text font-bold">{t("settings.theme.schedule")}</span>
+        </div>
+        <div className="flex flex-col gap-1 p-2">
+          <label className="windows95-text text-text flex cursor-pointer items-center gap-2 select-none">
+            <Checkbox
+              checked={themeSchedule.enabled}
+              onChange={(v) => patchSettings({ themeSchedule: { ...themeSchedule, enabled: v } })}
+            />
+            {t("settings.theme.schedule.enable")}
+          </label>
+          <label className="windows95-text text-text flex items-center gap-2">
+            <span className="w-48">{t("settings.theme.schedule.day")}</span>
+            <Input
+              type="time"
+              className="w-28"
+              value={themeSchedule.dayStart}
+              onChange={(e) =>
+                patchSettings({ themeSchedule: { ...themeSchedule, dayStart: e.target.value } })
+              }
+            />
+            <span className="windows95-text text-text">-</span>
+            <Input
+              type="time"
+              className="w-28"
+              value={themeSchedule.nightStart}
+              onChange={(e) =>
+                patchSettings({ themeSchedule: { ...themeSchedule, nightStart: e.target.value } })
+              }
+            />
+          </label>
+          <label className="windows95-text text-text flex items-center gap-2">
+            <span className="w-48">{t("settings.theme.schedule.day.theme")}</span>
+            <Combobox
+              className="max-w-xs"
+              value={themeSchedule.dayTheme}
+              onChange={(value) =>
+                patchSettings({ themeSchedule: { ...themeSchedule, dayTheme: value } })
+              }
+              options={[...builtins, ...customThemes].map((theme) => ({
+                value: theme.name,
+                label: theme.label,
+              }))}
+            />
+          </label>
+          <label className="windows95-text text-text flex items-center gap-2">
+            <span className="w-48">{t("settings.theme.schedule.night.theme")}</span>
+            <Combobox
+              className="max-w-xs"
+              value={themeSchedule.nightTheme}
+              onChange={(value) =>
+                patchSettings({ themeSchedule: { ...themeSchedule, nightTheme: value } })
+              }
+              options={[...builtins, ...customThemes].map((theme) => ({
+                value: theme.name,
+                label: theme.label,
+              }))}
+            />
+          </label>
         </div>
       </section>
 

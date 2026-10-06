@@ -79,7 +79,7 @@ function TrackDropdown({
       ) : null}
       {open ? (
         <div
-          className="windows95-border bg-primary absolute bottom-full left-0 z-50 mb-0.5 flex min-w-56 max-w-80 flex-col"
+          className="windows95-border bg-primary absolute bottom-full left-0 z-50 mb-0.5 flex max-w-80 min-w-56 flex-col"
           role="listbox"
         >
           {noneLabel ? (

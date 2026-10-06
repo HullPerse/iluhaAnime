@@ -17,6 +17,7 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { groupFilesByDirectory } from "@/lib/torrent/tree.utils";
 import { moveItem } from "@/lib/utils/array.utils";
 import { formatBytes } from "@/lib/utils/bytes.utils";
+import { formatVerticalDragTransform } from "@/lib/utils/drag.utils";
 import { useSettingsStore } from "@/store/settings.store";
 import type { TorrentFileInfo } from "@/types/torrent";
 
@@ -58,9 +59,7 @@ function QueueRow({
         isOver ? "windows95-border" : ""
       }`}
       style={{
-        transform: transform
-          ? `translate3d(${Math.round(transform.x)}px, ${Math.round(transform.y)}px, 0)`
-          : undefined,
+        transform: formatVerticalDragTransform(transform),
         zIndex: isDragging ? 10 : undefined,
         opacity: isDragging ? 0.8 : undefined,
       }}

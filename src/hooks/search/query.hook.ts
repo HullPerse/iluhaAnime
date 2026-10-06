@@ -1,5 +1,5 @@
-import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { keepPreviousData, useQueryClient } from "@tanstack/react-query";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { torrentApi } from "@/api/torrent.api";
 import { SOURCE_INFOS } from "@/config/search/sources.config";
@@ -12,6 +12,7 @@ import {
   filterAnimeResults,
   getVisibleSources,
   sortAnimeResults,
+  dedupAnimeResults,
 } from "@/lib/search/results.utils";
 import {
   isPagedSearchSource,
@@ -19,6 +20,7 @@ import {
   serverSideSortSource,
 } from "@/lib/search/route.utils";
 import { suggestSpelling } from "@/lib/search/suggestions.utils";
+import { parseTorrentTags, torrentTagsToFilters } from "@/lib/search/torrentTags.utils";
 import { copyMagnet, downloadMagnet, openMagnet } from "@/lib/torrent/magnet.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { useSearchStore } from "@/store/search.store";
@@ -44,6 +46,7 @@ export function useSearchQuery(): SearchQueryController {
   const [submittedQuery, setSubmittedQuery] = useState("");
   const [searchRequest, setSearchRequest] = useState(0);
   const [source, setSource] = useState<Source>(initialSource as Source);
+  const [lastDefaultSource, setLastDefaultSource] = useState(defaultSource);
   const queryClient = useQueryClient();
   const [showLogin, setShowLogin] = useState(false);
   const [showEraiLogin, setShowEraiLogin] = useState(false);
@@ -51,8 +54,16 @@ export function useSearchQuery(): SearchQueryController {
   const [magnets, setMagnets] = useState<Record<string, string>>({});
   const [loadingMagnet, setLoadingMagnet] = useState<Record<string, boolean>>({});
   const [nyaaPage, setNyaaPage] = useState(1);
+  const [maxPage, setMaxPage] = useState(Number.POSITIVE_INFINITY);
   const [showFilters, setShowFilters] = useState(false);
   const [selectedTorrent, setSelectedTorrent] = useState<SelectedSearchTorrent | null>(null);
+  if (lastDefaultSource !== defaultSource) {
+    setLastDefaultSource(defaultSource);
+    setSource(resolveInitialSource(visibleSources, defaultSource) as Source);
+    setSubmittedQuery("");
+    setNyaaPage(1);
+    setMaxPage(Number.POSITIVE_INFINITY);
+  }
 
   const sortBy = useSearchStore((s) => s.sortBy);
   const sortDirection = useSearchStore((s) => s.sortDirection);
@@ -112,6 +123,7 @@ export function useSearchQuery(): SearchQueryController {
     queryFn: fetchBySource,
     enabled: Boolean(submittedQuery),
     retry: false,
+    placeholderData: keepPreviousData,
   });
 
   useEffect(() => {
@@ -130,11 +142,19 @@ export function useSearchQuery(): SearchQueryController {
   }, []);
 
   useEffect(() => {
+    if (!submittedQuery || !data || data.length > 0 || nyaaPage <= 1) return;
+    const steppedBack = nyaaPage - 1;
+    setMaxPage((current) => Math.min(current, steppedBack));
+    setNyaaPage((page) => (page <= steppedBack ? page : steppedBack));
+  }, [data, nyaaPage, submittedQuery]);
+
+  useEffect(() => {
     if (crossSearchQuery) {
       const query = crossSearchQuery.trim();
       setSearchParams(crossSearchQuery);
       setSubmittedQuery(query);
       setSearchRequest((request) => request + 1);
+      setMaxPage(Number.POSITIVE_INFINITY);
       setCrossSearchQuery(null);
     }
   }, [crossSearchQuery, setCrossSearchQuery]);
@@ -146,10 +166,14 @@ export function useSearchQuery(): SearchQueryController {
     [filtered, sortBy, sortDirection, serverSideSort]
   );
 
+  const deduped = useMemo(() => dedupAnimeResults(sorted), [sorted]);
+
   const displayItems = useMemo(
-    () => (isPagedSource ? sorted?.slice(0, resultsPerPage) : sorted),
-    [sorted, isPagedSource, resultsPerPage]
+    () => (isPagedSource ? deduped?.slice(0, resultsPerPage) : deduped),
+    [deduped, isPagedSource, resultsPerPage]
   );
+
+  const pageFull = isPagedSource && (data?.length ?? 0) >= resultsPerPage && nyaaPage < maxPage;
 
   const activeFilterCount = useMemo(() => countActiveFilters(filters), [filters]);
 
@@ -176,11 +200,15 @@ export function useSearchQuery(): SearchQueryController {
   const changeSource = (value: string) => {
     setSource(value as Source);
     setNyaaPage(1);
+    setMaxPage(Number.POSITIVE_INFINITY);
+    setSubmittedQuery("");
+    resetFilters();
   };
   const resetSearch = () => {
     setSearchParams("");
     setSubmittedQuery("");
     setNyaaPage(1);
+    setMaxPage(Number.POSITIVE_INFINITY);
     setSelectedTorrent(null);
     queryClient.removeQueries({ queryKey: ["animeScraper"] });
   };
@@ -197,8 +225,7 @@ export function useSearchQuery(): SearchQueryController {
     query: searchParams,
     setQuery: setSearchParams,
     onSubmit: (query) => {
-      setSubmittedQuery(query);
-      setSearchRequest((request) => request + 1);
+      applySubmitQuery(query);
     },
   });
   const animeIndex = useSearchStore((s) => s.animeIndex);
@@ -211,11 +238,30 @@ export function useSearchQuery(): SearchQueryController {
       symSpell: searchSymSpellEnabled,
     });
   }, [submittedQuery, isLoading, data, searchHistory, animeIndex, searchSymSpellEnabled]);
+  const applySubmitQuery = useCallback(
+    (query: string) => {
+      const { cleanQuery, tags } = parseTorrentTags(query);
+      const text = cleanQuery || query.trim();
+      if (tags.length > 0) {
+        const mapped = torrentTagsToFilters(tags);
+        if (Object.keys(mapped.filters).length > 0) setFilters(mapped.filters);
+        setSearchParams(text);
+        if (mapped.source) {
+          setSource(mapped.source);
+          setNyaaPage(1);
+        }
+      }
+      setSubmittedQuery(text);
+      setSearchRequest((request) => request + 1);
+      setMaxPage(Number.POSITIVE_INFINITY);
+    },
+    [setFilters]
+  );
+
   const applyDidYouMean = () => {
     if (!didYouMean) return;
     setSearchParams(didYouMean);
-    setSubmittedQuery(didYouMean);
-    setSearchRequest((request) => request + 1);
+    applySubmitQuery(didYouMean);
   };
 
   return {
@@ -246,6 +292,7 @@ export function useSearchQuery(): SearchQueryController {
     data,
     displayItems,
     isPagedSource,
+    pageFull,
     nyaaPage,
     setNyaaPage,
     resultsPerPage,

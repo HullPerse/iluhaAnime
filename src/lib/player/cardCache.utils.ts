@@ -48,9 +48,7 @@ export function orderCardPaths(paths: string[], activePath: string): string[] {
     unique.push(path);
   }
   if (unique.length === 0) return unique;
-  const activeIndex = unique.findIndex(
-    (path) => path.toLowerCase() === activePath.toLowerCase()
-  );
+  const activeIndex = unique.findIndex((path) => path.toLowerCase() === activePath.toLowerCase());
   const origin = activeIndex === -1 ? 0 : activeIndex;
   const ordered: string[] = [];
   for (let distance = 0; distance < unique.length; distance += 1) {

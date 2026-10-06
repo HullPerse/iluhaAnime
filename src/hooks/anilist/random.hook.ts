@@ -28,6 +28,7 @@ export function useAnilistRandom(
             score: info.score,
             list_status: info.list_status,
             notes: info.notes,
+            custom_lists: info.custom_lists ?? [],
           },
         }),
       },

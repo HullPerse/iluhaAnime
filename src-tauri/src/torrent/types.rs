@@ -58,6 +58,13 @@ pub struct TorrentDiagnostics {
 }
 
 #[derive(Serialize, Clone, Debug)]
+pub struct DhtStatus {
+    pub nodes_v4: usize,
+    pub nodes_v6: usize,
+    pub pending: usize,
+}
+
+#[derive(Serialize, Clone, Debug)]
 pub struct TorrentFileInfo {
     pub index: usize,
     pub name: String,

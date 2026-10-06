@@ -1,18 +1,15 @@
 import { parse } from "anitomy";
 
 import type { TranslationKey, TranslationVariables } from "@/lib/locale/i18n.utils";
+import { createLruCache } from "@/lib/utils/lruCache.utils";
 
 const MAX_PARSE_CACHE = 500;
-const parseCache = new Map<string, ReturnType<typeof parse>>();
+const parseCache = createLruCache<string, ReturnType<typeof parse>>(MAX_PARSE_CACHE);
 
 function parseFilename(filename: string): ReturnType<typeof parse> {
   const cached = parseCache.get(filename);
   if (cached !== undefined) return cached;
   const parsed = parse(filename);
-  if (parseCache.size >= MAX_PARSE_CACHE) {
-    const oldest = parseCache.keys().next().value;
-    if (oldest !== undefined) parseCache.delete(oldest);
-  }
   parseCache.set(filename, parsed);
   return parsed;
 }

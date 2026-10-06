@@ -526,7 +526,7 @@ async fn extract_preview_frame(
     Ok(())
 }
 
-fn thumbnail_cache_dir(app_handle: &tauri::AppHandle) -> std::path::PathBuf {
+pub(crate) fn thumbnail_cache_dir(app_handle: &tauri::AppHandle) -> std::path::PathBuf {
     app_handle
         .path()
         .app_cache_dir()

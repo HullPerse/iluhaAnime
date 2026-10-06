@@ -146,13 +146,23 @@ async function dropUnifiedScope(scope: string, label: string): Promise<void> {
 }
 
 function migrateSearchState(persisted: unknown, version: number): SearchPersistedState {
-  if (!persisted || typeof persisted !== "object" || version >= 1)
-    return persisted as SearchPersistedState;
+  if (!persisted || typeof persisted !== "object") return persisted as SearchPersistedState;
   const rest = { ...(persisted as Record<string, unknown>) };
-  delete rest.animeIndex;
-  delete rest.animeProfileId;
+  if (version < 1) {
+    delete rest.animeIndex;
+    delete rest.animeProfileId;
+  }
+  if (version < 2 && !Array.isArray(rest.spellDictionary)) {
+    rest.spellDictionary = [];
+  }
+  if (version < 3 && !Array.isArray(rest.filterPresets)) {
+    rest.filterPresets = [];
+  }
   return rest as SearchPersistedState;
 }
+
+const FILTER_PRESET_CAP = 20;
+const FILTER_PRESET_NAME_MAX = 40;
 
 export const useSearchStore = create<SearchStore>()(
   persist(
@@ -189,6 +199,7 @@ export const useSearchStore = create<SearchStore>()(
       resetAnimeSuggestions: () => set({ animeIndex: [], animeProfileId: null }),
       crossSearchQuery: null,
       filters: { ...defaultFilters },
+      filterPresets: [],
       history: [],
       indexAniList: (lists, favourites, profileId) => {
         const animeIndex = buildAnimeIndex(lists, favourites);
@@ -222,28 +233,49 @@ export const useSearchStore = create<SearchStore>()(
         );
       },
       queryStats: {},
-      recordSuggestion: (value) => {
+      recordSuggestion: (value, scope = "global") => {
         if (useSettingsStore.getState().autocompleteMode === "off") return;
         set((state) => ({
           suggestionStats: updateStat(state.suggestionStats ?? {}, value, true),
         }));
         collectionApi
-          .recordUnifiedIndexAction("select", `history:global:${normalize(value)}`)
+          .recordUnifiedIndexAction("select", `history:${scope}:${normalize(value)}`)
           .catch((error) => reportBackgroundError("learning.select", error));
       },
-      recordSuggestionIgnored: (value) => {
+      recordSuggestionIgnored: (value, scope = "global") => {
         if (useSettingsStore.getState().autocompleteMode === "off") return;
         set((state) => ({
           suggestionStats: updateStat(state.suggestionStats ?? {}, value, false, true),
         }));
         collectionApi
-          .recordUnifiedIndexAction("ignore", `history:global:${normalize(value)}`)
+          .recordUnifiedIndexAction("ignore", `history:${scope}:${normalize(value)}`)
           .catch((error) => reportBackgroundError("learning.ignore", error));
       },
-      removeQuery: (query) =>
+      removeQuery: (query, scope = "global") => {
+        const q = normalize(query);
         set((state) => ({
-          history: state.history.filter((item) => item !== query),
-        })),
+          history: state.history.filter((item) => item !== query && normalize(item) !== q),
+        }));
+        collectionApi
+          .deleteUnifiedIndexEntry(`history:${scope}:${q}`)
+          .catch((error) => reportBackgroundError("learning.remove", error));
+      },
+      spellDictionary: [],
+      addSpellWord: (word) => {
+        const q = normalize(word);
+        if (!q) return;
+        set((state) => ({
+          spellDictionary: state.spellDictionary.includes(q)
+            ? state.spellDictionary
+            : [...state.spellDictionary, q],
+        }));
+      },
+      removeSpellWord: (word) => {
+        const q = normalize(word);
+        set((state) => ({
+          spellDictionary: state.spellDictionary.filter((item) => item !== q),
+        }));
+      },
       purgeExpired: () =>
         set((state) => ({
           queryStats: purgeExpired(state.queryStats ?? {}),
@@ -256,6 +288,20 @@ export const useSearchStore = create<SearchStore>()(
         for (const scope of scopes) await dropUnifiedScope(scope, "learning.prune");
       },
       resetFilters: () => set({ filters: { ...defaultFilters } }),
+      saveFilterPreset: (name, filters) => {
+        const trimmed = name.trim().slice(0, FILTER_PRESET_NAME_MAX);
+        if (!trimmed) return;
+        set((state) => ({
+          filterPresets: [
+            { name: trimmed, filters: { ...filters } },
+            ...state.filterPresets.filter((preset) => preset.name !== trimmed),
+          ].slice(0, FILTER_PRESET_CAP),
+        }));
+      },
+      deleteFilterPreset: (name) =>
+        set((state) => ({
+          filterPresets: state.filterPresets.filter((preset) => preset.name !== name),
+        })),
       setAnilistSearchQuery: (query) => set({ anilistSearchQuery: query }),
       setCrossSearchQuery: (query) => set({ crossSearchQuery: query }),
       setFilters: (partial) => set((state) => ({ filters: { ...state.filters, ...partial } })),
@@ -268,14 +314,16 @@ export const useSearchStore = create<SearchStore>()(
     {
       name: "searchState",
       storage: createDebouncedStorage<SearchPersistedState>(() => localStorage),
-      version: 1,
+      version: 3,
       migrate: migrateSearchState,
       partialize: (state): SearchPersistedState => ({
         filters: state.filters,
+        filterPresets: state.filterPresets,
         history: state.history,
         queryStats: state.queryStats,
         sortBy: state.sortBy,
         sortDirection: state.sortDirection,
+        spellDictionary: state.spellDictionary,
         suggestionStats: state.suggestionStats,
       }),
     }

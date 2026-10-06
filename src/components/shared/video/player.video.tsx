@@ -33,7 +33,7 @@ export function VideoPlayer({ youtubeId, webmUrl, title, className }: VideoPlaye
         <VolumeInitializer />
         <div className="aspect-video w-full overflow-hidden bg-black">
           {webmUrl ? (
-            <NativeVideo src={webmUrl} title={title} />
+            <NativeVideo key={webmUrl} src={webmUrl} title={title} />
           ) : (
             <YouTubeVideo
               ref={iframeRef}
@@ -63,12 +63,8 @@ export function VideoPlayer({ youtubeId, webmUrl, title, className }: VideoPlaye
             )}
           />
           <VolumeBar />
-          {isYoutube ? (
-            <>
-              <CaptionsSelect />
-              <OpenInBrowserButton youtubeId={youtubeId ?? ""} />
-            </>
-          ) : null}
+          <CaptionsSelect />
+          {isYoutube ? <OpenInBrowserButton youtubeId={youtubeId ?? ""} /> : null}
           <FullscreenToggle iframeRef={iframeRef} />
         </div>
       </Container>

@@ -105,6 +105,7 @@ fn nyaa_json_to_item(item: NyaaJsonItem) -> Option<NyaaItem> {
         category: String::new(),
         link: format!("https://nyaa.si{}", item.url),
         website: String::new(),
+        date: String::new(),
     })
 }
 
@@ -303,6 +304,7 @@ fn parse_entries(html: &str) -> Vec<NyaaItem> {
                 link
             },
             website,
+            date: String::new(),
         });
     }
 
@@ -381,6 +383,11 @@ fn parse_nyaa_entries(html: &str) -> Vec<NyaaItem> {
 
         let size = tds[3].text().collect::<String>().trim().to_string();
 
+        let date = tds
+            .get(4)
+            .map(|cell| cell.text().collect::<String>().trim().to_string())
+            .unwrap_or_default();
+
         let seeders = tds[5]
             .text()
             .collect::<String>()
@@ -411,6 +418,7 @@ fn parse_nyaa_entries(html: &str) -> Vec<NyaaItem> {
             category: String::new(),
             link: torrent_url,
             website: String::new(),
+            date,
         });
     }
 
@@ -507,6 +515,7 @@ fn parse_rutracker_entries(html: &str) -> Vec<NyaaItem> {
             category: topic_id,
             link,
             website: String::new(),
+            date: String::new(),
         });
     }
 
@@ -582,6 +591,16 @@ pub async fn search_erairaws(
     Err(last_err)
 }
 
+fn normalize_nyaa_sort(sort: Option<String>) -> Option<String> {
+    sort.map(|value| {
+        if value == "date" {
+            "id".to_string()
+        } else {
+            value
+        }
+    })
+}
+
 #[tauri::command]
 #[allow(non_snake_case)]
 pub async fn search_nyaa(
@@ -598,7 +617,7 @@ pub async fn search_nyaa(
         "1_0",
         query,
         page,
-        sort,
+        normalize_nyaa_sort(sort),
         order,
         nyaa_json_to_item,
         parse_nyaa_entries,
@@ -632,6 +651,7 @@ fn sukebei_json_to_item(item: NyaaJsonItem) -> Option<NyaaItem> {
         category: String::new(),
         link: format!("https://sukebei.nyaa.si{}", item.url),
         website: String::new(),
+        date: String::new(),
     })
 }
 
@@ -712,6 +732,11 @@ fn parse_sukebei_entries(html: &str) -> Vec<NyaaItem> {
 
         let size = tds[3].text().collect::<String>().trim().to_string();
 
+        let date = tds
+            .get(4)
+            .map(|cell| cell.text().collect::<String>().trim().to_string())
+            .unwrap_or_default();
+
         let seeders = tds[5]
             .text()
             .collect::<String>()
@@ -742,6 +767,7 @@ fn parse_sukebei_entries(html: &str) -> Vec<NyaaItem> {
             category: String::new(),
             link: torrent_url,
             website: String::new(),
+            date,
         });
     }
 
@@ -764,7 +790,7 @@ pub async fn search_sukebei(
         "0_0",
         query,
         page,
-        sort,
+        normalize_nyaa_sort(sort),
         order,
         sukebei_json_to_item,
         parse_sukebei_entries,
@@ -915,6 +941,7 @@ pub async fn search_nekobt(
                 category: id.clone(),
                 link: format!("https://nekobt.to/torrents/{id}"),
                 website: String::new(),
+                date: String::new(),
             }
         })
         .collect();
@@ -997,6 +1024,29 @@ pub async fn test_source_connection(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn nyaa_parser_reads_date_column() {
+        let html = r#"
+            <table class="torrent-list"><tbody>
+              <tr class="default">
+                <td><a href="/?c=1_2">Anime</a></td>
+                <td><a href="/view/1" title="[Group] Show [1080p]">[Group] Show [1080p]</a></td>
+                <td><a href="magnet:?xt=urn:btih:ABC">magnet</a> <a href="/download/1.torrent">dl</a></td>
+                <td>1.2 GiB</td>
+                <td>2024-05-01 13:37</td>
+                <td>42</td>
+                <td>7</td>
+                <td><a href="/view/1#comments">3 comments</a></td>
+              </tr>
+            </tbody></table>
+        "#;
+        let items = parse_nyaa_entries(html);
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].title, "[Group] Show [1080p]");
+        assert_eq!(items[0].date, "2024-05-01 13:37");
+        assert_eq!(items[0].seeders, 42);
+    }
+
     #[test]
     fn rutracker_search_parser_accepts_current_topic_rows() {
         let html = r#"

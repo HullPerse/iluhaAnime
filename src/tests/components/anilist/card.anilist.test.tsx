@@ -1,4 +1,5 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { EntryLookup } from "@/lib/anilist/entries.utils";
@@ -55,20 +56,24 @@ function makeLookup(score: number | null): EntryLookup {
         completed_at: null,
         started_at: null,
         notes: null,
+        custom_lists: [],
       },
     ],
   ]);
 }
 
 function renderCard(scoreFormat: string, score: number | null) {
+  const client = new QueryClient();
   return render(
-    <AniListCard
-      item={makeMedia()}
-      entryLookup={makeLookup(score)}
-      isFavorite={false}
-      scoreFormat={scoreFormat as "POINT_10"}
-      onClick={vi.fn()}
-    />
+    <QueryClientProvider client={client}>
+      <AniListCard
+        item={makeMedia()}
+        entryLookup={makeLookup(score)}
+        isFavorite={false}
+        scoreFormat={scoreFormat as "POINT_10"}
+        onClick={vi.fn()}
+      />
+    </QueryClientProvider>
   );
 }
 
@@ -104,5 +109,59 @@ describe("AniListCard score badge", () => {
   it("renders nothing without a score", () => {
     renderCard("POINT_100", null);
     expect(screen.queryByTitle(/My score/u)).toBeNull();
+  });
+});
+
+describe("ProgressStepper", () => {
+  function renderWithData() {
+    const client = new QueryClient();
+    client.setQueryData(["anilist_data"], {
+      user: { id: 7 },
+      lists: [
+        {
+          name: "Completed",
+          entries: [
+            {
+              media: makeMedia(),
+              progress: 20,
+              score: null,
+              list_status: "CURRENT",
+              created_at: null,
+              updated_at: null,
+              completed_at: null,
+              started_at: null,
+              notes: null,
+              repeat: null,
+            },
+          ],
+        },
+      ],
+      favourites: [],
+      people: { staff: [], characters: [] },
+    });
+    return render(
+      <QueryClientProvider client={client}>
+        <AniListCard
+          item={makeMedia()}
+          entryLookup={makeLookup(null)}
+          isFavorite={false}
+          scoreFormat="POINT_10"
+          onClick={vi.fn()}
+        />
+      </QueryClientProvider>
+    );
+  }
+
+  it("saves progress plus one and disables minus at zero", async () => {
+    const { invoke } = await import("@tauri-apps/api/core");
+    vi.mocked(invoke).mockClear();
+    renderWithData();
+    fireEvent.click(screen.getByRole("button", { name: "Watch one more episode" }));
+    await waitFor(() =>
+      expect(vi.mocked(invoke)).toHaveBeenCalledWith(
+        "save_anilist_entry",
+        expect.objectContaining({ mediaId: MEDIA_ID, progress: 21, status: "COMPLETED" })
+      )
+    );
   });
 });

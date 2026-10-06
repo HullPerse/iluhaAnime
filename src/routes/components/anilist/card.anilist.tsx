@@ -18,6 +18,7 @@ import type { AniCardProps as Props } from "@/types/anilist";
 
 import CardListDate from "./date.anilist";
 import CardAiredCount from "./episode.anilist";
+import { ProgressStepper } from "./stepper.anilist";
 
 function ScoreIcon({
   format,
@@ -79,13 +80,14 @@ function AniListEntryCard({ item, entryLookup, isFavorite, scoreFormat, onClick 
           score: entry.score,
           list_status: entry.list_status,
           notes: entry.notes,
+          custom_lists: entry.custom_lists ?? [],
         },
       }),
     });
 
   return (
     <div
-      className="windows95-active-border bg-primary hover:bg-surface relative flex max-h-36 min-h-28 flex-row p-2 hover:cursor-pointer"
+      className="windows95-active-border bg-primary hover:bg-surface group relative flex max-h-36 min-h-28 flex-row p-2 hover:cursor-pointer"
       onClick={openAnime}
       role="button"
       tabIndex={0}
@@ -150,6 +152,7 @@ function AniListEntryCard({ item, entryLookup, isFavorite, scoreFormat, onClick 
             </span>
             {entry?.progress != null && item.episodes && (
               <div className="flex items-center gap-1">
+                <ProgressStepper media={item} entry={entry} />
                 <ProgressBar
                   value={entry.progress}
                   max={item.episodes}

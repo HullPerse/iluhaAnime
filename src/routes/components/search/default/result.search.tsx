@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { SOURCE_INFOS } from "@/config/search/sources.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { detectLanguages, formatSize } from "@/lib/search/format.utils";
+import { detectLanguages, formatReleaseAge, formatSize } from "@/lib/search/format.utils";
 import { getLanguageColors } from "@/lib/search/results.utils";
 import type { ResultSearchProps as Props } from "@/types/search";
 
@@ -26,6 +26,7 @@ export default function SearchResultItem({
   const sourceInfo = SOURCE_INFOS.find((info) => info.value === source);
   const sourceLabel = sourceInfo?.label ?? source;
   const hasMagnet = Boolean(item.magnet) || source === "rutracker";
+  const releaseAge = formatReleaseAge(item.date);
 
   return (
     <div className="windows95-active-border bg-primary mb-0.5 px-2 py-1.5">
@@ -58,6 +59,11 @@ export default function SearchResultItem({
         </div>
         <div className="flex shrink-0 items-center gap-1">
           <span className="windows95-text">{formatSize(item.size)}</span>
+          {releaseAge ? (
+            <span className="windows95-text text-hint" title={item.date}>
+              {releaseAge}
+            </span>
+          ) : null}
           <span className="windows95-text text-success">S:{item.seeders}</span>
           <span className="windows95-text text-destructive">L:{item.leechers}</span>
         </div>

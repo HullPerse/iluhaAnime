@@ -30,8 +30,11 @@ export interface CategoryStore {
   setCategoryCollapsed: (id: string, collapsed: boolean) => void;
   addEntry: (categoryId: string, entry: Omit<CategoryEntry, "id">) => void;
   removeEntry: (categoryId: string, entryId: string) => void;
+  moveEntry: (categoryId: string, entryId: string, delta: -1 | 1) => void;
   removeEntriesByFolderPath: (path: string) => void;
   removeEntriesByTorrentId: (id: number) => void;
+  exportCategories: () => string;
+  importCategories: (raw: unknown) => number;
 }
 
 export type CategoryDragData =

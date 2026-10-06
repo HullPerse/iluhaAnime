@@ -6,27 +6,36 @@ export type PlayerTreeItem =
   | { kind: "file"; file: FolderNode["files"][number]; depth: number };
 
 export function buildTree(entries: VideoFileEntry[], rootPath: string): FolderNode {
+  const normalizedRoot = rootPath.replaceAll("\\", "/").replace(/\/$/, "");
   const root: FolderNode = {
     children: [],
     files: [],
-    name: rootPath.split(/[/\\]/).filter(Boolean).pop() || rootPath,
-    path: rootPath,
+    name: normalizedRoot.split("/").filter(Boolean).pop() || rootPath,
+    path: normalizedRoot,
   };
+  const prefix = `${normalizedRoot}/`;
+  const byPath = new Map<string, FolderNode>();
+  byPath.set(normalizedRoot, root);
 
   for (const entry of entries) {
-    const relative = entry.path.replace(rootPath, "").replace(/^[/\\]/, "");
-    const parts = relative.split(/[/\\]/);
+    const entryPath = entry.path.split("\\").join("/");
+    const relative = (
+      entryPath.startsWith(prefix) ? entryPath.slice(prefix.length) : entryPath
+    ).replace(/^\//, "");
+    const parts = relative.split("/");
     let current = root;
 
     for (let i = 0; i < parts.length - 1; i++) {
-      let child = current.children.find((c) => c.name === parts[i]);
+      const childPath = `${current.path}/${parts[i]}`;
+      let child = byPath.get(childPath);
       if (!child) {
         child = {
           children: [],
           files: [],
           name: parts[i],
-          path: `${current.path}/${parts[i]}`,
+          path: childPath,
         };
+        byPath.set(childPath, child);
         current.children.push(child);
       }
       current = child;

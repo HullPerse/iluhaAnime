@@ -32,7 +32,9 @@ describe("player/tracks labels", () => {
 
   it("does not duplicate the code already present in the title", () => {
     expect(
-      trackMainLabel(track({ id: 5, type: "sub", title: "Full [GER]", lang: "ger", codec: "subrip" }))
+      trackMainLabel(
+        track({ id: 5, type: "sub", title: "Full [GER]", lang: "ger", codec: "subrip" })
+      )
     ).toBe("Full [GER] - SUBRIP");
   });
 
@@ -58,9 +60,7 @@ describe("player/tracks labels", () => {
 
   it("drops unknown channel layouts instead of showing garbage", () => {
     expect(
-      trackMainLabel(
-        track({ id: 1, type: "audio", title: "Дубляжная", lang: "rus", codec: "aac" })
-      )
+      trackMainLabel(track({ id: 1, type: "audio", title: "Дубляжная", lang: "rus", codec: "aac" }))
     ).toBe("Дубляжная [rus] - AAC");
     expect(
       trackMainLabel(

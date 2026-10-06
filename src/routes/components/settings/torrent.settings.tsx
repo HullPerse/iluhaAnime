@@ -36,6 +36,7 @@ export default function SettingsTorrent() {
     torrentProxyUrl,
     fileOrder,
     resultsPerPage,
+    speedSchedule,
     patch,
   } = useSettingsStore();
   const setSpeedLimits = useTorrentStore((s) => s.setSpeedLimits);
@@ -141,6 +142,99 @@ export default function SettingsTorrent() {
                 setSpeedLimits({ ...limits, upload: v });
               }}
               className="w-20"
+            />
+          </label>
+        </div>
+      </section>
+
+      <section className="ui-panel">
+        <div className="ui-titlebar">
+          <span className="text-title-text font-bold">{t("settings.torrent.schedule")}</span>
+        </div>
+        <div className="flex flex-col gap-1 p-2">
+          <label className="windows95-text text-text flex cursor-pointer items-center gap-2 select-none">
+            <Checkbox
+              checked={speedSchedule.enabled}
+              onChange={(v) => patch({ speedSchedule: { ...speedSchedule, enabled: v } })}
+            />
+            {t("settings.torrent.schedule.enable")}
+          </label>
+          <label className="windows95-text text-text flex items-center gap-2">
+            <span className="w-48">{t("settings.torrent.schedule.day")}</span>
+            <Input
+              type="time"
+              className="w-28"
+              value={speedSchedule.dayStart}
+              onChange={(e) =>
+                patch({ speedSchedule: { ...speedSchedule, dayStart: e.target.value } })
+              }
+            />
+            <span className="windows95-text text-text">-</span>
+            <Input
+              type="time"
+              className="w-28"
+              value={speedSchedule.nightStart}
+              onChange={(e) =>
+                patch({ speedSchedule: { ...speedSchedule, nightStart: e.target.value } })
+              }
+            />
+          </label>
+          <label className="windows95-text text-text flex items-center gap-2">
+            <span className="w-48">{t("settings.torrent.schedule.day.limits")}</span>
+            <Input
+              type="number"
+              min={0}
+              className="w-20"
+              placeholder={t("settings.torrent.no.limit")}
+              value={speedSchedule.dayDownload ?? ""}
+              onChange={(e) => {
+                const v = e.target.value ? Number(e.target.value) : null;
+                patch({
+                  speedSchedule: { ...speedSchedule, dayDownload: v },
+                });
+              }}
+            />
+            <Input
+              type="number"
+              min={0}
+              className="w-20"
+              placeholder={t("settings.torrent.no.limit")}
+              value={speedSchedule.dayUpload ?? ""}
+              onChange={(e) => {
+                const v = e.target.value ? Number(e.target.value) : null;
+                patch({
+                  speedSchedule: { ...speedSchedule, dayUpload: v },
+                });
+              }}
+            />
+          </label>
+          <label className="windows95-text text-text flex items-center gap-2">
+            <span className="w-48">{t("settings.torrent.schedule.night.limits")}</span>
+            <Input
+              type="number"
+              min={0}
+              className="w-20"
+              placeholder={t("settings.torrent.no.limit")}
+              value={speedSchedule.nightDownload ?? ""}
+              onChange={(e) => {
+                const v = e.target.value ? Number(e.target.value) : null;
+                patch({
+                  speedSchedule: { ...speedSchedule, nightDownload: v },
+                });
+              }}
+            />
+            <Input
+              type="number"
+              min={0}
+              className="w-20"
+              placeholder={t("settings.torrent.no.limit")}
+              value={speedSchedule.nightUpload ?? ""}
+              onChange={(e) => {
+                const v = e.target.value ? Number(e.target.value) : null;
+                patch({
+                  speedSchedule: { ...speedSchedule, nightUpload: v },
+                });
+              }}
             />
           </label>
         </div>

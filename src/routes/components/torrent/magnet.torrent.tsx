@@ -16,7 +16,7 @@ export default function AddTorrentModal({
   initialMagnet,
   onClose,
   onAddMagnet,
-  onAddFile,
+  onAddFiles,
 }: Props) {
   const [magnetInput, setMagnetInput] = useState("");
   const { t } = useI18n();
@@ -66,13 +66,14 @@ export default function AddTorrentModal({
         <div className="mt-1 flex items-center gap-1">
           <Button
             onClick={async () => {
-              const file = await openDialog({
-                multiple: false,
+              const selection = await openDialog({
+                multiple: true,
                 filters: [{ name: "Torrent", extensions: ["torrent"] }],
               });
-              if (file) {
+              const files = Array.isArray(selection) ? selection : selection ? [selection] : [];
+              if (files.length > 0) {
                 handleClose();
-                onAddFile(file);
+                onAddFiles(files);
               }
             }}
           >

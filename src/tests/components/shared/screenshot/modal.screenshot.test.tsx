@@ -91,7 +91,6 @@ function tool(name: string | RegExp): HTMLElement {
   return screen.getByRole("button", { name });
 }
 
-/// Drags across the picture the way a drawing tool is used.
 function drawStroke(x1: number, y1: number, x2: number, y2: number) {
   const surface = overlay();
   fireEvent.pointerDown(surface, { clientX: x1, clientY: y1 });
@@ -212,7 +211,6 @@ async function cropOnce(user: ReturnType<typeof userEvent.setup>, keys: string) 
   await user.keyboard(keys);
 }
 
-/// Drags across the preview the way a user marks an area: press, move, release on the overlay.
 function dragSelection(x1: number, y1: number, x2: number, y2: number) {
   const surface = overlay();
   fireEvent.pointerDown(surface, { clientX: x1, clientY: y1 });
@@ -492,8 +490,6 @@ describe("ScreenshotModal", () => {
     renderModal();
     const surface = overlay();
     fireEvent.pointerDown(surface, { clientX: 100, clientY: 100 });
-    // From here on the browser sends every event of this pointer to the capturing element and
-    // nowhere else, so the selection has to be driven from there.
     expect(captured.element).toBe(surface);
     fireEvent.pointerMove(captured.element as Element, { clientX: 500, clientY: 400 });
     fireEvent.pointerUp(captured.element as Element, { clientX: 500, clientY: 400 });
@@ -507,8 +503,7 @@ describe("ScreenshotModal", () => {
     const surface = overlay();
     fireEvent.pointerDown(surface, { clientX: 100, clientY: 100 });
     fireEvent.pointerUp(captured.element as Element, { clientX: 100, clientY: 100 });
-    // Without the release the drag would stay armed and a button-less move would pull a selection
-    // out of the picture.
+    // Release disarms the drag so a button-less move draws nothing.
     fireEvent.pointerMove(surface, { clientX: 500, clientY: 400 });
     expect(selection()).toBeNull();
   });
@@ -832,8 +827,7 @@ describe("ScreenshotModal annotations", () => {
     dragSelection(50, 50, 400, 300);
     expect(readout()).toBe("350 x 250 px");
 
-    // A browser sends the press to the element under the cursor, and the frame covers the whole
-    // selected area, so the text only moves if it wins over the frame underneath it.
+    // The text must win hit-testing over the frame covering the selected area.
     fireEvent.pointerDown(selection()!, { clientX: 125, clientY: 95 });
     fireEvent.pointerMove(overlay(), { clientX: 225, clientY: 195 });
     fireEvent.pointerUp(overlay(), { clientX: 225, clientY: 195 });
@@ -857,8 +851,7 @@ describe("ScreenshotModal annotations", () => {
     dragSelection(50, 50, 400, 300);
     expect(selection()?.className).toContain("cursor-move");
 
-    // Hovering the wording flips the frame cursor, so the user sees that the drag
-    // will carry the text and not the frame under it.
+    // Hovering wording flips the frame cursor to text so the drag carries the text.
     fireEvent.pointerMove(overlay(), { clientX: 125, clientY: 95 });
     expect(selection()?.className).toContain("cursor-text");
 
@@ -877,8 +870,7 @@ describe("ScreenshotModal annotations", () => {
     canvas?.fillText.mockClear();
     fireEvent.doubleClick(overlay(), { clientX: 125, clientY: 95 });
     expect(screen.getByTestId("screenshot-text-editor")).toBeTruthy();
-    // Reopening the editor repaints the layer without the wording, because the editor draws it in
-    // the same scaled space and a second copy under it would read as a doubled, ghosted text.
+    // Reopening the editor omits the wording to avoid a doubled ghost copy.
     expect(canvas?.fillText).not.toHaveBeenCalled();
   });
 
@@ -909,8 +901,7 @@ describe("ScreenshotModal annotations", () => {
     fireEvent.pointerDown(overlay(), { clientX: 120, clientY: 90 });
     await user.type(screen.getByTestId("screenshot-text-editor"), "hi{Enter}");
 
-    // Select is the tool that drags and reopens a text, and on that tool the size in the toolbar
-    // belongs to the brush, so the editor has to take the size the wording was written at.
+    // The reopened editor keeps the wording's own size, not the brush size.
     await user.click(tool("Select an area"));
     fireEvent.doubleClick(overlay(), { clientX: 125, clientY: 95 });
     const editor = screen.getByTestId("screenshot-text-editor") as HTMLInputElement;
@@ -932,8 +923,7 @@ describe("ScreenshotModal annotations", () => {
     expect(editor.style.top).toBe("100px");
     expect(editor.style.fontSize).toBe("28px");
 
-    // Zooming only moves the transform the two share: the editor is written in capture pixels, so
-    // neither its size nor its anchor may follow the zoom on their own.
+    // The editor stays in capture pixels; zoom only moves the shared transform.
     await wheelStage(-100, 50, 50);
     expect(space().style.transform).toBe("scale(0.6)");
     expect(editor.style.fontSize).toBe("28px");
@@ -984,8 +974,7 @@ describe("ScreenshotModal annotations", () => {
     await user.click(tool("Eraser"));
     drawStroke(150, 150, 250, 180);
 
-    // The mask is the only layer that cuts in the mask colour, so this pair can only come from the
-    // eraser reaching the blur mask and not merely the drawing layer.
+    // Only the blur mask cuts in mask colour, pinning eraser reach to the mask.
     expect(painted).toContainEqual(["#ffffff", "destination-out"]);
   });
 });

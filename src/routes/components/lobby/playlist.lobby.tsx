@@ -72,7 +72,7 @@ export default function PlaylistLobby({ status }: PlaylistLobbyProps) {
     info: TorrentInfoResult;
     saveDir: string;
   } | null>(null);
-  /** Items whose finished download failed the identity check (re-download offer). */
+  /** Failed identity check (re-download offer). */
   const [failed, setFailed] = useState<Record<string, MatchLevel>>({});
   const [verifying, setVerifying] = useState<Record<string, boolean>>({});
   const lastReport = useRef("");
@@ -94,7 +94,6 @@ export default function PlaylistLobby({ status }: PlaylistLobbyProps) {
       (peerId) => namesById.get(peerId) ?? peerId
     );
 
-  // Guests report their per-item presence; the host's gate reads these reports.
   const reportReady = setReady.mutate;
   const levels = useMemo(() => {
     const map: Record<string, MatchLevel> = {};
@@ -112,7 +111,6 @@ export default function PlaylistLobby({ status }: PlaylistLobbyProps) {
     reportReady({ items, ready: true });
   }, [isHost, levels, plan, reportReady]);
 
-  // A finished host-torrent download verifies itself against the plan identity.
   const { trackDownload } = useSessionDownloadVerify({
     enabled: !isHost,
     onMismatch: (itemId, _path, report) => {
@@ -173,7 +171,6 @@ export default function PlaylistLobby({ status }: PlaylistLobbyProps) {
     });
   };
 
-  /** Host/moderator: start an item, or hold it until every peer has it. */
   const handleStartItem = (itemId: string) => {
     startItem.mutate(itemId);
   };
@@ -215,7 +212,6 @@ export default function PlaylistLobby({ status }: PlaylistLobbyProps) {
     });
   };
 
-  /** Host: attach a freshly created torrent as a shareable source (D13). */
   const handleTorrentCreated = (itemId: string, created: CreatedTorrent) => {
     addSource.mutate({
       itemId,
@@ -230,7 +226,6 @@ export default function PlaylistLobby({ status }: PlaylistLobbyProps) {
     chat.mutate({ text: buildTorrentLink(created.info_hash), id: newChatId() });
   };
 
-  /** Guest: pull the host's torrent into the normal download folder (D14). */
   const startHostDownload = async (
     item: MediaPlanItem,
     info: TorrentInfoResult,
@@ -298,11 +293,9 @@ export default function PlaylistLobby({ status }: PlaylistLobbyProps) {
       await startHostDownload(item, info, saveDir, null, null, false);
       return;
     }
-    // Multi-file torrent: the guest picks the episodes before downloading.
     setPicker({ info, item, saveDir });
   };
 
-  /** Guest: the finished download mismatched; start the flow over. */
   const handleRedownload = (item: MediaPlanItem) => {
     setFailed((prev) => {
       if (prev[item.itemId] === undefined) return prev;
@@ -313,7 +306,6 @@ export default function PlaylistLobby({ status }: PlaylistLobbyProps) {
     ignore(handleDownloadFromHost(item));
   };
 
-  /** Guest: hash-search a chosen folder for a byte-exact copy (D5). */
   const handlePickFolder = async (item: MediaPlanItem) => {
     const [dir, dirError] = await attempt(
       openDialog({

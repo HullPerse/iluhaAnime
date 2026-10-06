@@ -8,16 +8,7 @@ import type {
   SessionUiStore,
 } from "@/types/session";
 
-/**
- * Local-only lobby UI state. Server/session data lives in TanStack Query
- * (`useSessionStatus`); this store keeps drafts alive across tab switches.
- *
- * Persisted: `identity` (lets the app offer a guest reconnect after a restart)
- * and the `displayName` draft (so the name input is not blank after a restart).
- * Host-local paths and the guest's `planPaths` mappings are never written to
- * localStorage (the host's paths never cross the wire, and a stale local path
- * would mislead a later room).
- */
+// Host paths never stored; stale paths would mislead.
 export const useSessionStore = create<SessionUiStore>()(
   persist(
     (set) => ({

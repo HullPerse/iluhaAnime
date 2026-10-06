@@ -1,5 +1,3 @@
-//! Watch Party host session (P1: local state + identity; P2 adds transport).
-
 pub mod client;
 pub mod commands;
 pub mod elect;

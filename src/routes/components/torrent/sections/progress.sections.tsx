@@ -21,8 +21,7 @@ export function TorrentProgress({ item }: { item: TorrentInfo }) {
   const progress = item.progress * 100;
   const initializing = display === "initializing";
   const sinceSecs = lastActiveAt[item.id];
-  // Torrent events are sparse while metadata is resolving, so tick locally
-  // to keep the initializing timer moving.
+  // Events sparse while resolving; tick locally.
   const [, setNowTick] = useState(0);
   useEffect(() => {
     if (!initializing) return;

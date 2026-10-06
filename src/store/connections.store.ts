@@ -3,15 +3,10 @@ import { persist } from "zustand/middleware";
 
 import type { SavedConnection } from "@/types/lobby";
 
-/** Shape of the persisted address book (`localStorage`). */
 export interface ConnectionsState {
   connections: SavedConnection[];
-  /**
-   * Insert or refresh an entry keyed by `endpointId`. A name the user chose
-   * is kept; freshly observed direct `addrs` are merged and deduped.
-   */
   save: (connection: SavedConnection) => void;
-  /** Re-title an entry; empty titles are ignored. */
+  /** Empty titles are ignored. */
   rename: (endpointId: string, name: string) => void;
   remove: (endpointId: string) => void;
 }
@@ -23,11 +18,7 @@ const mergeAddrs = (current: string[], incoming: string[]): string[] => [
   ...new Set([...incoming, ...current]),
 ];
 
-/**
- * Address book of saved rooms, persisted to localStorage. Status and ping
- * are never stored here: probes run live through TanStack Query so a stale
- * entry never shows a fake online state.
- */
+/** Probes run live so stale never shows online. */
 export const useConnectionsStore = create<ConnectionsState>()(
   persist(
     (set) => ({

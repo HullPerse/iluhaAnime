@@ -16,10 +16,6 @@ const LAG_CLASS: Record<LagStatus, string> = {
   poor: "text-destructive",
 };
 
-/**
- * Lobby tab of the player side panel: sync link, resync (host) or the guest
- * release offset, the live roster, and the ready gate.
- */
 export default function LobbyPanel({
   role,
   sample,

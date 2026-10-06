@@ -12,11 +12,6 @@ import type {
 
 import { SESSION_STATUS_QUERY_KEY } from "./queries.hook";
 
-/**
- * Apply one `session-react` frame to a flat list of reaction entries: the
- * peer joins the matching entry (or one is created), leaves it, and the
- * entry drops out once its last peer is gone.
- */
 export function applyReactionToList(
   reactions: ReactionEntry[],
   frame: SessionReaction
@@ -55,15 +50,7 @@ export function applyReactionToList(
   return next;
 }
 
-/**
- * Keeps the room's pin and reaction state current in the status query cache
- * between the one-second polls.
- *
- * The polled `session_status` snapshot is the source of truth (it replays the
- * pin and reactions on every poll); the instant events only shorten the wait.
- * A frame that arrives before the cache holds a status is skipped: the next
- * poll carries the same state.
- */
+// Polled snapshot is source of truth; instant events only shorten wait.
 export function useChatPinReactions(): void {
   const queryClient = useQueryClient();
 

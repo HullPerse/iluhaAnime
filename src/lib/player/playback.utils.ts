@@ -183,18 +183,11 @@ export async function applyAudioOptions(settings: PlayerSettings): Promise<void>
 }
 
 export interface OpenPlayerOptions {
-  /**
-   * Room-driven plan starts bypass the manual-open ban that applies while a
-   * session is active. Every other caller opens manually and is blocked.
-   */
+  // Room-driven bypasses manual-open ban.
   roomDriven?: boolean;
 }
 
-/**
- * Fresh session check for the manual-open ban. Reads `session_status`
- * directly instead of the polled cache so a just-joined room is already
- * covered. Fail-open: when the backend is unreachable, local playback wins.
- */
+// Fail-open: unreachable backend means local wins.
 async function sessionBlocksManualOpen(): Promise<boolean> {
   const [status] = await attempt(sessionApi.status());
   return status?.role != null;

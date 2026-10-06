@@ -2,18 +2,11 @@ import type { AniMedia } from "@/types/anilist";
 
 interface AnimeOptionRowProps {
   brief: AniMedia;
-  /** Display title, already resolved through the title-language chain. */
   title: string;
-  /** Keyboard or hover highlight. */
   highlighted: boolean;
   onPick: (id: number) => void;
 }
 
-/**
- * One inline-search result for the `@anime:` dropdown: cover thumb, title,
- * and a format/year hint. The parent owns the title chain and the list
- * navigation; the row only reports the pick.
- */
 export default function AnimeOptionRow({
   brief,
   title,

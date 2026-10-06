@@ -17,12 +17,10 @@ import { useNotificationStore } from "@/store/notification.store";
 
 import { useSessionActions } from "./actions.hook";
 
-/** Where a chat torrent download comes from: a magnet or attached bytes. */
 export type ChatTorrentSource =
   | { kind: "magnet"; magnet: string }
   | { kind: "file"; fileBytes: number[] };
 
-/** A multi-file chat torrent waiting for the user's file selection. */
 export interface ChatTorrentPicker {
   source: ChatTorrentSource;
   info: TorrentInfoResult;
@@ -30,21 +28,13 @@ export interface ChatTorrentPicker {
 }
 
 export interface ChatTorrentDownload {
-  /** Render the file-selection modal when set; `null` = nothing pending. */
   picker: ChatTorrentPicker | null;
-  /** An attachment fetch is in flight (message id). */
   fetching: string | null;
-  /** The last attachment fetch that failed (message id, for retry UI). */
   failed: string | null;
-  /** A `.torrent` attach send is in flight. */
   attachPending: boolean;
-  /** Open the torrent flow for a chat link (magnet / `iluhaanime://torrent/<hex>`). */
   openLink: (token: string) => void;
-  /** Open the torrent flow for an attached `.torrent` (fetched by message id). */
   openAttachment: (messageId: string) => void;
-  /** Pick a local `.torrent` and post it to chat (host/moderator only). */
   attachFromFile: () => void;
-  /** Confirm the file selection in the open picker. */
   confirmPicker: (
     selectedIndices: number[],
     saveDir: string,
@@ -54,12 +44,7 @@ export interface ChatTorrentDownload {
   cancelPicker: () => void;
 }
 
-/**
- * Chat download QoL (lobby.md §14.4): magnet links, `iluhaanime://torrent/<hex>`
- * links, and attached `.torrent` files open the torrent file-selection modal
- * and start a plain download. Convenience only — nothing here binds to a plan
- * item, so no verification or ready-gate reporting happens.
- */
+// lobby.md §14.4; no verification.
 export function useChatTorrentDownload(): ChatTorrentDownload {
   const { t } = useI18n();
   const { chat } = useSessionActions();
@@ -129,7 +114,6 @@ export function useChatTorrentDownload(): ChatTorrentDownload {
       await startDownload(source, info, saveDir, null, null, false);
       return;
     }
-    // Multi-file torrent: pick the episodes before downloading.
     setPicker({ info, saveDir, source });
   };
 

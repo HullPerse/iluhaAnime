@@ -154,7 +154,6 @@ const player = {
   "player.visibility.torrents": "Скрытые торренты",
   "player.visibility.unhide": "Показать в плеере",
 
-  // --- Video player window (`/player-window`) ---
   "player.media.title": "Плеер",
   "player.media.empty": "Файл не выбран",
   "player.media.error.title": "Ошибка воспроизведения",

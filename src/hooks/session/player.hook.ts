@@ -31,39 +31,19 @@ import type {
   TrackState,
 } from "@/types/session";
 
-/** Player-side Watch Party integration surface. */
 export interface SessionPlayerApi {
-  /** `"host"` / `"guest"` while a session is active, else `null`. */
   role: SessionRole | null;
-  /** Latest polled session status, for the strip header. */
   status: SessionStatus | undefined;
-  /** Latest guest sync evaluation (guest only). */
   sample: SyncSample | null;
-  /** Guest: the host has gone silent (P8) - the local player is paused. */
   hostLost: boolean;
-  /** Report a control action the user just applied locally. */
   onLocalControl: (action: ControlAction) => void;
-  /** Report the current track selection to the room. */
   onLocalTrack: (track: TrackState) => void;
-  /** Publish the current player position (host only). */
   publish: () => void;
-  /** Host: ask every peer to re-align to the host position. */
   resync: () => void;
-  /** Guest: leave the room and keep watching locally (P8). */
   resumeAlone: () => void;
-  /** Guest: set the manual release offset (ms). */
   setOffsetMs: (offsetMs: number) => void;
 }
 
-/**
- * Bridges the local player and the session runtime (P3).
- *
- * The heavy lifting lives in Rust: the backend stamps snapshots, streams host
- * commands as Tauri events, and runs the sync math. This hook applies those
- * instructions to mpv and reports local intent back. Guests keep an optimistic
- * local apply *and* send the request, so the host stays authoritative without
- * a visible round-trip delay.
- */
 export function useSessionPlayer(): SessionPlayerApi {
   const statusQuery = useSessionStatus();
   const status = statusQuery.data;
@@ -90,8 +70,7 @@ export function useSessionPlayer(): SessionPlayerApi {
     if (roleRef.current !== "host" || publishingRef.current) return;
     const state = usePlaybackStore.getState();
     if (!state.hasFile) return;
-    // The wire identity is the plan item id; while the player is not on a room
-    // item there is nothing to anchor and the local path must not travel.
+    // Local path must not travel.
     const mediaId = useSessionStore.getState().playingItemId;
     if (!mediaId) return;
     publishingRef.current = true;
@@ -142,7 +121,6 @@ export function useSessionPlayer(): SessionPlayerApi {
     if (instruction.kind === "seek") {
       usePlaybackStore.getState().setSeekTarget(instruction.position);
       ignore(seekTo(instruction.position, "exact"));
-      // Clear the backend's seek-resync latch so the engine keeps evaluating.
       ignore(sessionApi.syncRestart());
       return;
     }
@@ -171,8 +149,6 @@ export function useSessionPlayer(): SessionPlayerApi {
         break;
       }
       case "load": {
-        // Switching media belongs to the lobby plan flow (P5/P6); the player
-        // bridge does not resolve plan items to local files yet.
         break;
       }
     }
@@ -192,7 +168,6 @@ export function useSessionPlayer(): SessionPlayerApi {
     if (!state.hasFile || samplingRef.current) return;
     samplingRef.current = true;
     sessionApi
-      // Identity check: only the item the local player shows may sync.
       .syncSample(state.timePos, useSessionStore.getState().playingItemId)
       .then((next) => {
         setSample(next);
@@ -229,8 +204,7 @@ export function useSessionPlayer(): SessionPlayerApi {
   useTauriEvent<PlaybackState>(
     SESSION_PLAYBACK_EVENT,
     () => {
-      // A fresh host anchor arrived; evaluate sync now instead of waiting for
-      // the next tick so joins and seeks settle a beat sooner.
+      // Evaluate now so joins settle sooner.
       if (roleRef.current !== "guest") return;
       sampleOnce();
     },
@@ -246,7 +220,6 @@ export function useSessionPlayer(): SessionPlayerApi {
     { enabled: role === "guest", errorTag: "session-track" }
   );
 
-  // Host: keep the room's anchor fresh while playback advances.
   useEffect(() => {
     if (role !== "host") return;
     const id = window.setInterval(() => {
@@ -257,7 +230,6 @@ export function useSessionPlayer(): SessionPlayerApi {
     return () => window.clearInterval(id);
   }, [publish, role]);
 
-  // Guest: evaluate the sync engine and apply its verdict.
   useEffect(() => {
     if (role !== "guest") {
       setSample(null);
@@ -267,7 +239,6 @@ export function useSessionPlayer(): SessionPlayerApi {
     return () => window.clearInterval(id);
   }, [role, sampleOnce]);
 
-  // Guest: pause when the host goes silent (P8) and resume once it answers.
   useEffect(() => {
     if (role !== "guest") {
       hostLostRef.current = false;

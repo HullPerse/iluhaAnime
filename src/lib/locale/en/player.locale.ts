@@ -148,7 +148,6 @@ const player = {
   "player.visibility.torrents": "Hidden torrents",
   "player.visibility.unhide": "Show in player",
 
-  // --- Video player window (`/player-window`) ---
   "player.media.title": "Player",
   "player.media.empty": "No file selected",
   "player.media.error.title": "Playback error",

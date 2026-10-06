@@ -11,11 +11,6 @@ const LAG_CLASS: Record<LagStatus, string> = {
   poor: "text-destructive",
 };
 
-/**
- * Compact session overlay for the player window: role, room, peer count, lag
- * status, and the host-lost banner. Offset and resync controls live in the
- * lobby panel so this stays a thin always-visible indicator.
- */
 export function SessionStrip({
   role,
   sample,

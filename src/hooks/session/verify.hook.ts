@@ -13,24 +13,15 @@ import { useSettingsStore } from "@/store/settings.store";
 import type { CompatibilityReport, MediaPlanItem } from "@/types/session";
 import type { TorrentInfo } from "@/types/torrent";
 
-/** A started host-torrent download tracked against one plan item. */
 export interface SessionDownloadLink {
   itemId: string;
   saveDir: string;
   subFolder: string | null;
   files: TorrentInfoResult["files"];
-  /** Download selection at start; `null` means everything. */
+  /** null means everything. */
   selected: number[] | null;
 }
 
-/**
- * Auto-verify (§14.6): when a tracked host-torrent download finishes, hash
- * the downloaded file (byte-size match first, else the largest selected
- * video) and compare it with the plan item identity. A match assigns the
- * file exactly like a manual pick, so the existing ready report flips the
- * item to verified; a mismatch warns and leaves a re-download offer in the
- * row instead of assigning the file.
- */
 export function useSessionDownloadVerify(input: {
   enabled: boolean;
   plan: MediaPlanItem[];

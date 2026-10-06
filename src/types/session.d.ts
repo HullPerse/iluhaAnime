@@ -1,8 +1,4 @@
-/**
- * Watch Party session types. Mirrors the Rust `session` module
- * (`src-tauri/src/session/protocol.rs` and `state.rs`), which serializes with
- * `serde(rename_all = "camelCase")`.
- */
+/** Mirrors the Rust session module (serde rename_all = "camelCase"). */
 
 export type SessionRole = "host" | "guest";
 
@@ -37,23 +33,19 @@ export interface VideoInfo {
 export interface MediaIdentity {
   sha256: string;
   size: number;
-  /** Duration in seconds. */
   duration: number;
-  /** Video parameters when the file has a video stream (report only). */
+  /** Populated on reports only. */
   video?: VideoInfo | null;
 }
 
-/** How well a local file matches the host identity. */
 export type MatchLevel = "exact" | "compatible" | "risky" | "incompatible";
 
-/** One field that differs between the host and the local file. */
 export interface CompatibilityDelta {
   field: string;
   host: string;
   local: string;
 }
 
-/** The compatibility report shown next to a guest's chosen file. */
 export interface CompatibilityReport {
   level: MatchLevel;
   deltas: CompatibilityDelta[];
@@ -81,10 +73,7 @@ export interface ItemReport {
   verified: boolean;
 }
 
-/**
- * A start the room is holding until the listed peers obtain `itemId`
- * (empty `peerIds` means the wait is over but nothing has started yet).
- */
+/** Held start; empty peerIds = wait over, start still manual. */
 export interface WaitingFor {
   itemId: string;
   peerIds: string[];
@@ -101,33 +90,26 @@ export interface PeerInfo {
   driftMs: number;
   rttMs: number;
   buffering: boolean;
-  /** The host marked this peer gone past the 30 s grace window. */
+  /** Gone past the 30 s grace window. */
   left: boolean;
-  /**
-   * This peer's dialable endpoint id, read from the QUIC handshake by the host.
-   * Guests keep it so that, if the host dies, the elected successor can be
-   * dialed straight from the replicated roster (lobby.md §14.7).
-   */
+  /** From the QUIC handshake, never peer-claimed; lets guests dial the elected successor (lobby.md §14.7). */
   endpointId: string;
 }
 
 export interface ChatAttachment {
   name: string;
-  /** Raw byte size of the attached `.torrent`. */
   size: number;
 }
 
 export interface ChatMessage {
-  /** Stable id: the anchor for replies, pins, and reactions. */
+  /** Anchor for replies, pins, reactions. */
   id: string;
   from: string;
   text: string;
-  /** Wall-clock seconds. */
   at: number;
   links: string[];
-  /** Id of the message this one replies to. */
   replyTo: string | null;
-  /** Attached `.torrent` metadata (`null` = text only). */
+  /** Null = text only. */
   attachment: ChatAttachment | null;
 }
 
@@ -137,7 +119,6 @@ export interface PlaybackState {
   position: number;
   isPlaying: boolean;
   rate: number;
-  /** Monotonic milliseconds on the host clock. */
   updatedAtMono: number;
 }
 
@@ -167,49 +148,39 @@ export interface SessionSnapshot {
   plan: MediaPlanItem[];
 }
 
-/** The room's single pinned chat message (the anchor one). */
 export interface PinnedMessage {
   messageId: string;
   pinnedBy: string;
 }
 
-/** One emoji's reaction set on one chat message. */
 export interface ReactionEntry {
   messageId: string;
   emoji: string;
-  /** The peers that reacted with this emoji, sorted for stable output. */
+  /** Sorted for stable output. */
   peers: string[];
 }
 
 export interface SessionStatus {
   role: SessionRole | null;
   sessionId: string | null;
-  /** This instance's own roster peer id, stable across a guest's reconnect. */
+  /** Stable across guest reconnects. */
   yourPeerId: string | null;
   ticket: SessionTicket | null;
   peers: PeerInfo[];
   chat: ChatMessage[];
   plan: MediaPlanItem[];
   ready: ReadySummary;
-  /** Whether the host is reachable (always true while hosting). */
   hostOnline: boolean;
-  /** A start the room is holding, if any (`null` = nothing held). */
+  /** Null = nothing held. */
   waiting: WaitingFor | null;
-  /** Host-local item id → file path; empty for guests. Never rendered verbatim. */
+  /** Empty for guests; never rendered verbatim. */
   paths: Record<string, string>;
-  /** This instance's lobby role (host, moderator, or viewer). */
   lobbyRole: LobbyRole;
-  /** For each plan item, the peer ids that have not reported it present. */
   missing: Record<string, string[]>;
-  /** The current pinned anchor (message id + who pinned it); `null` = unpinned. */
+  /** Null = unpinned. */
   pinned: PinnedMessage | null;
-  /** One emoji's reaction set per chat message (a flat list). */
   reactions: ReactionEntry[];
-  /**
-   * Where this instance listens (host: local `0.0.0.0:port` sockets) or is
-   * connected (guest: the direct `ip:port` path currently in use). Empty
-   * without an active session or while relayed.
-   */
+  /** Host listen addrs or the guest's active direct path; empty when relayed or idle. */
   addrs: string[];
 }
 
@@ -231,21 +202,17 @@ export interface PeerReady {
   ready: boolean;
 }
 
-/** Host-side readiness verdict for the current plan. */
 export interface ReadySummary {
   allReady: boolean;
   peers: PeerReady[];
 }
 
-/** Link quality for the sync strip badge. */
 export type LagStatus = "good" | "fair" | "poor";
 
-/** An instruction from the Rust sync engine for the local player. */
 export type SyncInstruction =
   | { kind: "setRate"; rate: number }
   | { kind: "seek"; position: number };
 
-/** One sync evaluation returned by `session_sync_sample`. */
 export interface SyncSample {
   instruction: SyncInstruction | null;
   lag: LagStatus;
@@ -254,45 +221,33 @@ export interface SyncSample {
   correction: number;
   awaitingRestart: boolean;
   haveSnapshot: boolean;
-  /**
-   * The host snapshot's `mediaId` matches the item the local player shows;
-   * when false the sample carries no instruction and the guest is not synced.
-   */
+  /** False = no instruction, guest not synced. */
   identityOk: boolean;
   offsetMs: number;
 }
 
-/** Payload of the `session-command` event. */
 export interface SessionCommand {
   revision: number;
   action: ControlAction;
 }
 
-/**
- * Payload of the `session-start-item` event. `path` is the host-local file for
- * the item, present only on the host.
- */
+/** `path` present on the host only. */
 export interface SessionStartItem {
   itemId: string;
   path: string | null;
 }
 
-/** Payload of the `session-typing` event: which peer and in which state. */
 export interface SessionTyping {
   peerId: string;
   active: boolean;
 }
 
-/**
- * Payload of the `session-pin` event: the room's single pinned message.
- * `messageId` is `null` when the anchor was cleared (unpin).
- */
+/** Null messageId = unpin. */
 export interface SessionPin {
   messageId: string | null;
   pinnedBy: string;
 }
 
-/** Payload of the `session-react` event: one reaction added or removed. */
 export interface SessionReaction {
   messageId: string;
   emoji: string;
@@ -300,50 +255,31 @@ export interface SessionReaction {
   add: boolean;
 }
 
-/**
- * Persisted guest identity: enough to offer a reconnect after an app restart.
- * Host-local paths and plan-path mappings are deliberately excluded.
- */
+/** Host-local paths deliberately excluded. */
 export interface SessionIdentity {
   sessionId: string;
   ticket: SessionTicket;
   displayName: string;
-  /** This instance's own peer id when it was known; a fresh one is minted otherwise. */
+  /** Null = a fresh one is minted. */
   peerId: string | null;
   role: SessionRole;
 }
 
-/** Local-only lobby UI state (drafts survive tab switches). */
+/** Drafts survive tab switches. */
 export interface SessionUiStore {
   displayName: string;
   joinInput: string;
-  /** Persisted guest identity (`null` = no room to restore). */
   identity: SessionIdentity | null;
   setIdentity: (identity: SessionIdentity | null) => void;
   chatDraft: string;
-  /**
-   * Id of the message the composer is replying to (local UI state, cleared on
-   * send and on reset). `null` = no reply in progress.
-   */
+  /** Null = no reply in progress. */
   chatReply: string | null;
-  /** Plan items entered locally before they are pushed to the host. */
   localItems: MediaPlanItem[];
-  /**
-   * Guest-local item id → local file path, resolved when the guest matches a
-   * copy. The host's own paths never travel over the wire; a guest resolves
-   * each item against these to open a `load` command locally.
-   */
+  /** Guest-local item id → local path; host paths never travel the wire. */
   planPaths: Record<string, string>;
-  /**
-   * Plan item id the local player is actually showing, set by the room-driven
-   * open path and cleared on reset. `null` while the player is not on a room
-   * item — the only value that may travel on the wire as `media_id`.
-   */
+  /** Null while not on a room item; the only value that may travel as media_id. */
   playingItemId: string | null;
-  /**
-   * Optimistically echoed outgoing chat lines, keyed by the client-generated
-   * id. Dropped once the server echoes the same id (or the send fails).
-   */
+  /** Dropped on server echo or send failure. */
   pendingChats: ChatMessage[];
   setDisplayName: (value: string) => void;
   setJoinInput: (value: string) => void;

@@ -36,7 +36,6 @@ import { SESSION_STATUS_QUERY_KEY } from "@/hooks/session/queries.hook";
 import { useSettingsStore } from "@/store/settings.store";
 import type { SessionPin, SessionReaction, SessionStatus } from "@/types/session";
 
-/** A minimal, complete `SessionStatus` snapshot for the cache glue tests. */
 const STATUS: SessionStatus = {
   addrs: [],
   chat: [
@@ -64,7 +63,6 @@ function wrapper({ children }: { children: ReactNode }) {
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
 }
 
-/** Emits one frame through the mocked Tauri listener. */
 async function emit(name: string, payload: SessionPin | SessionReaction) {
   const handler = tauri.calls.find((call) => call.event === name)?.handler;
   expect(handler).toBeTruthy();

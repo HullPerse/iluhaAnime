@@ -1,10 +1,6 @@
 import { cn } from "cn";
 
-/**
- * Cell cap for the `slots` render mode. Above this many units the cell count
- * stays at the cap and the filled count is scaled to the ratio, so a
- * 1000-episode show still reads as a segmented bar instead of a subpixel smudge.
- */
+// Above cap, filled scales to ratio.
 export const PROGRESS_SLOTS_CAP = 24;
 
 function ProgressBar({
@@ -23,12 +19,7 @@ function ProgressBar({
   barClassName?: string;
   ariaLabel?: string;
   indeterminate?: boolean;
-  /**
-   * Render one cell per unit of `max` (e.g. one cell per episode) instead of the
-   * block-masked percentage fill: filled cells use `barClassName`, empty ones sit
-   * on `bg-surface`. `slotsCap` caps the rendered cell count; totals above the cap
-   * scale the filled count to the cap. `max <= 0` falls back to the percentage bar.
-   */
+  // max<=0 falls back to percentage bar.
   slots?: boolean;
   slotsCap?: number;
 }) {

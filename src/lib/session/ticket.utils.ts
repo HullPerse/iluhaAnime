@@ -38,7 +38,6 @@ function isHex(value: unknown, min: number, max: number): value is string {
   );
 }
 
-/** Validate the shape `session_join` expects before we ever dial. */
 export function normalizeTicket(value: unknown): SessionTicket | null {
   if (typeof value !== "object" || value === null) return null;
   const record = value as Record<string, unknown>;
@@ -52,7 +51,6 @@ export function normalizeTicket(value: unknown): SessionTicket | null {
   };
 }
 
-/** Encode a ticket into the share string a guest pastes. */
 export function formatTicketShare(ticket: SessionTicket): string {
   const payload = JSON.stringify({
     sessionId: ticket.sessionId,
@@ -62,12 +60,6 @@ export function formatTicketShare(ticket: SessionTicket): string {
   return `${LOBBY_TICKET_PREFIX}${encodeBase64Url(payload)}`;
 }
 
-/**
- * Parse a share string, a raw JSON ticket, or an already-decoded object.
- *
- * Returns `null` for anything that is not a well-formed ticket so callers can
- * show a single "invalid ticket" message.
- */
 export function parseTicket(raw: string): SessionTicket | null {
   const trimmed = raw.trim();
   if (trimmed.length === 0) return null;
@@ -88,7 +80,6 @@ export function parseTicket(raw: string): SessionTicket | null {
   }
 }
 
-/** Short human-readable room label for the ticket (`AB12 CD34`). */
 export function ticketRoomLabel(ticket: SessionTicket): string {
   const head = ticket.sessionId.slice(0, 8).toUpperCase();
   return `${head.slice(0, 4)} ${head.slice(4)}`;

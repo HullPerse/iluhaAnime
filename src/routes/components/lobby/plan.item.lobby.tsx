@@ -25,11 +25,6 @@ const DELTA_FIELD_KEYS: Record<string, TranslationKey> = {
   size: "lobby.playlist.delta.size",
 };
 
-/**
- * One media plan entry: the identity summary, the source chips, and the
- * role-specific controls (host: sources and torrent; guest: local file match,
- * folder search, and the host download).
- */
 export default function PlanItemRow({
   item,
   index,

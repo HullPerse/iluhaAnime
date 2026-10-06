@@ -7,12 +7,6 @@ interface EmojiLobbyProps {
   onPick: (emoji: string) => void;
 }
 
-/**
- * Win95-styled, lazily loaded wrapper around @ferrucc-io/emoji-picker.
- * Lazy-loaded from chat.lobby so the emoji data bundle stays out of the
- * initial chunk and loads on the first picker open. The custom `iluha_*`
- * section only appears when such files exist in `<app data>/emoji`.
- */
 export default function EmojiLobby({ onPick }: EmojiLobbyProps) {
   const { t } = useI18n();
   const customEmoji = useCustomEmoji();

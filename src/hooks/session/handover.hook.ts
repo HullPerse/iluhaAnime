@@ -15,15 +15,7 @@ import type { SessionRole } from "@/types/session";
 
 import { SESSION_STATUS_QUERY_KEY } from "./queries.hook";
 
-/**
- * Host migration bridge (lobby.md §14).
- *
- * The outgoing host picks a successor on the backend wire; this instance is
- * told to take the room over with its own local item → path map (host paths
- * are never broadcast, so the successor owns them from the frontend store).
- * The `session-migrate` event only means the room moved: the poll refreshes
- * the roster/roles, and the backend redials the new host on its own.
- */
+// Host paths never broadcast.
 export function useSessionHandoverBridge(role: SessionRole | null): void {
   const queryClient = useQueryClient();
   const { t } = useI18n();

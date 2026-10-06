@@ -6,14 +6,7 @@ import { usePlaybackStore } from "@/store/player.store";
 import { useSessionStore } from "@/store/session.store";
 import type { SessionCommand, SessionRole, SessionStartItem } from "@/types/session";
 
-/**
- * Open the local player for a plan item the room just started, unless it is
- * already showing that file (the host and guests both receive events while the
- * lobby is mounted, and a moderator may start from either window).
- *
- * Records the item id the player now shows: it is the only identity the
- * frontend may publish to the room (never the local path).
- */
+// Only identity may publish, never path.
 function openItem(itemId: string, path: string): void {
   useSessionStore.getState().setPlayingItemId(itemId);
   const state = usePlaybackStore.getState();
@@ -21,14 +14,7 @@ function openItem(itemId: string, path: string): void {
   ignore(openPlayer([path], 0, { roomDriven: true }));
 }
 
-/**
- * Bridge the lobby to the player window for plan starts (P5).
- *
- * The host opens its own file when the backend emits `session-start-item`; a
- * guest (or moderator) resolves the item against its locally matched copies and
- * opens the `load` command the host routed to it. Host paths never cross the
- * wire, so the guest map lives client-side.
- */
+// P5; host paths never cross wire.
 export function useSessionStartBridge(role: SessionRole | null): void {
   useTauriEvent<SessionStartItem>(
     SESSION_START_EVENT,

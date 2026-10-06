@@ -502,7 +502,6 @@ describe("ChatLobby", () => {
     ).toBe(true);
   });
 
-  /** The scroll container: direct parent of the message list (or the empty note). */
   function scrollContainer(): HTMLElement {
     const list = screen.queryByRole("list") ?? screen.getByText("No messages yet.");
     return list.parentElement as HTMLElement;
@@ -528,7 +527,6 @@ describe("ChatLobby", () => {
     const { rerender } = renderChat({ messages: [first] });
 
     const scroll = scrollContainer();
-    // Content is tall and the reader sits far above the newest line.
     Object.defineProperty(scroll, "scrollHeight", { configurable: true, value: 1000 });
     Object.defineProperty(scroll, "clientHeight", { configurable: true, value: 100 });
     fireEvent.scroll(scroll);

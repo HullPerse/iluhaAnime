@@ -6,11 +6,6 @@ import type { SessionStatus } from "@/types/session";
 
 export const SESSION_STATUS_QUERY_KEY = queryKeys.sessionStatus();
 
-/**
- * Live session view. Polls while the lobby tab is mounted (the tab unmounts on
- * switch, which stops the observer). One second is enough for chat and roster
- * updates in v1; the player strip reads its own state directly.
- */
 export function useSessionStatus() {
   return useAppQuery<SessionStatus>("live", {
     queryFn: () => sessionApi.status(),

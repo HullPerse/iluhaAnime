@@ -27,9 +27,7 @@ export default function ConnectLobby({ loading }: ConnectLobbyProps) {
   const [portDraft, setPortDraft] = useState("");
   const [portInvalid, setPortInvalid] = useState(false);
 
-  // One reconnect attempt per mount, and only once the status query settled:
-  // while it fetches, the stale role reads as null and would fake a reconnect
-  // (both on cold start and right after a manual join).
+  // One reconnect per mount, only after settle; stale role reads null.
   const [reconnectTried, setReconnectTried] = useState(false);
   const reconnecting = restore.kind === "reconnect" && join.isPending && reconnectTried;
   useEffect(() => {
@@ -62,7 +60,6 @@ export default function ConnectLobby({ loading }: ConnectLobbyProps) {
     create.mutate({ name: displayName, port });
   };
 
-  /** Fill the join field with a saved room's code. */
   const handleUseSaved = (connection: SavedConnection) => {
     setJoinInput(
       formatTicketShare({

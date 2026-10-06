@@ -52,7 +52,6 @@ describe("ReactionRow", () => {
 
     expect(screen.getByTitle("1 reacted")).toBeTruthy();
     expect(screen.getByTitle("2 reacted")).toBeTruthy();
-    // The pill reflects that p3 has not reacted yet.
     expect(screen.getByTitle("1 reacted").getAttribute("aria-pressed")).toBe(
       "false",
     );

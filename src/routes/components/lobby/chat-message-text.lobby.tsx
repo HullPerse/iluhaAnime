@@ -6,13 +6,10 @@ import type { ChatMark, ChatSegment } from "@/lib/session/chat.utils";
 
 interface ChatMessageTextProps {
   segments: ChatSegment[];
-  /** Custom emoji name → asset URL; unknown shortcodes stay literal. */
   customEmoji: ReadonlyMap<string, string>;
-  /** A magnet / `iluhaanime://torrent/<hex>` link was clicked. */
   onTorrentLink: (token: string) => void;
 }
 
-/** CSS classes for a run of segments sharing the same formatting marks. */
 function marksClass(marks: readonly ChatMark[]): string {
   const classes: string[] = [];
   if (marks.includes("bold")) classes.push("font-bold");
@@ -21,10 +18,6 @@ function marksClass(marks: readonly ChatMark[]): string {
   return classes.join(" ");
 }
 
-/**
- * A `||spoiler||` run: a solid bar with the text laid out underneath so the
- * width matches; clicking reveals it for this render of the message.
- */
 function Spoiler({ children }: { children: ReactNode }) {
   const { t } = useI18n();
   const [revealed, setRevealed] = useState(false);
@@ -50,7 +43,6 @@ interface SegmentRun {
   segments: ChatSegment[];
 }
 
-/** Group consecutive segments that share one marks signature (for wrappers). */
 function groupRuns(segments: ChatSegment[]): SegmentRun[] {
   const runs: SegmentRun[] = [];
   for (const segment of segments) {
@@ -69,10 +61,6 @@ function sameMarks(a: readonly ChatMark[], b: readonly ChatMark[]): boolean {
   return a.length === b.length && a.every((mark) => b.includes(mark));
 }
 
-/**
- * Render one chat message body: formatting runs get their wrappers (spoilers
- * are interactive), leaves render as link / emoji / mention / text.
- */
 export function ChatMessageText({
   segments,
   customEmoji,
@@ -109,7 +97,6 @@ export function ChatMessageText({
   );
 }
 
-/** One leaf segment: link, custom emoji, mention, or plain text. */
 function renderLeaf(
   segment: ChatSegment,
   key: number,

@@ -8,23 +8,16 @@ import type { PeerInfo } from "@/types/session";
 
 export interface LeaveLobbyProps {
   open: boolean;
-  /** Hierarchy-sorted transfer candidates (`transferCandidates`). */
   candidates: PeerInfo[];
   leavePending: boolean;
   transferPending: boolean;
   onClose: () => void;
-  /** Close the lobby for everyone. */
   onLeave: () => void;
-  /** Hand the host rights to `peerId` and rejoin as a viewer. */
+  /** Rejoin as a viewer. */
   onTransfer: (peerId: string) => void;
 }
 
-/**
- * Host-only leave dialog: close the lobby for everyone, or hand the host
- * rights to a chosen peer — the selector defaults to the highest entry of
- * the hierarchy, the same pick a crash promotion would make. Guests leave
- * through the plain header button.
- */
+/** Host-only leave dialog; hierarchy pick like crash promotion. */
 export default function LeaveLobby({
   open,
   candidates,
@@ -40,8 +33,6 @@ export default function LeaveLobby({
 
   if (!open) return null;
 
-  // Keep the selection inside the current roster: the first candidate is the
-  // hierarchy default and takes back over when the chosen peer leaves.
   const chosen =
     selected !== null && candidates.some((peer) => peer.peerId === selected)
       ? selected

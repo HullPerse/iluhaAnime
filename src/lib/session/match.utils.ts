@@ -11,10 +11,8 @@ import type {
   VideoInfo,
 } from "@/types/session";
 
-/** Frame-rate comparison tolerance for the compatibility report. */
 const FPS_TOLERANCE = 0.01;
 
-/** True when two video streams are close enough to count as the same encode. */
 function videoMatches(host: VideoInfo, local: VideoInfo): boolean {
   return (
     host.codec === local.codec &&
@@ -51,14 +49,7 @@ function videoDeltas(host: VideoInfo, local: VideoInfo): CompatibilityDelta[] {
   return deltas;
 }
 
-/**
- * Compare a local identity against the host identity and explain the
- * difference. Hashes win; a hash miss falls back to the duration tolerance
- * plus, when both files carry video info, the encode parameters.
- *
- * Gate rule (lobby.md §14.1): only `exact` and `compatible` open the ready
- * gate; `risky` and `incompatible` keep it closed and show the delta table.
- */
+// Only exact/compatible open gate.
 export function analyzeCompatibility(
   host: MediaIdentity,
   local: MediaIdentity
@@ -96,13 +87,6 @@ export function analyzeCompatibility(
   return { level, deltas };
 }
 
-/**
- * Build the per-item readiness report a guest sends to the host.
- *
- * An item counts as verified only on an exact hash match; a merely compatible
- * duration counts as present but not verified, so it keeps the gate closed and
- * steers the guest toward the host's torrent (D4).
- */
 export function itemReports(
   plan: MediaPlanItem[],
   matches: Record<string, MatchLevel>

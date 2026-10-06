@@ -4,27 +4,17 @@ import { SmilePlus } from "lucide-react";
 import { useI18n } from "@/hooks/i18n.hook";
 import type { ReactionEntry } from "@/types/session";
 
-/**
- * A small fixed set of quick reactions; the per-message cap of 5 kinds is
- * enforced host-side, so a pick past the cap is refused with a toast.
- */
 export const REACTION_QUICK_EMOJIS = ["👍", "❤️", "😂", "😮", "🎉", "😢"] as const;
 
 interface ReactionRowProps {
   messageId: string;
-  /** The reaction entries that belong to this message. */
   entries: ReactionEntry[];
-  /** This instance's own peer id (`null` before the roster is known). */
+  /** null before the roster is known. */
   myPeerId: string | null;
-  /** Toggles a reaction on or off; the host validates and broadcasts. */
   onReact: (input: { messageId: string; emoji: string; add: boolean }) => void;
 }
 
-/**
- * Reaction row under one chat line: a pill per emoji (count of reacting
- * peers) plus a hover-only "+" that opens a quick row for a new emoji.
- * The line itself must carry the `group` class for the hover reveal.
- */
+// Requires `group` class for hover reveal.
 export default function ReactionRow({
   messageId,
   entries,

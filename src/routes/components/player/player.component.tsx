@@ -144,8 +144,7 @@ function PlayerComponent() {
     status: sessionStatus,
   } = useSessionPlayer();
 
-  // While in a room (even before the broadcast starts) only the room may
-  // replace the player source; manual opens are silently ignored.
+  // Room owns source; manual opens ignored.
   const roomLocked = sessionRole !== null;
 
   const [cinema, setCinema] = useState(false);
@@ -171,8 +170,6 @@ function PlayerComponent() {
   const barsHidden = immersive && autoHide && !barsVisible;
   const title = path ? fileNameFromPath(path) : t("player.media.title");
 
-  // Reveal the lobby tab the moment a session starts, and drop it again when
-  // the session ends. An explicitly opened playlist is left untouched.
   useEffect(() => {
     setPanelTab((previous) => {
       if (sessionRole) return previous === "playlist" ? previous : "lobby";
@@ -633,8 +630,7 @@ function PlayerComponent() {
       const state = usePlaybackStore.getState();
       const current = state.path;
       if (!current) return;
-      // Wire identity is the plan item id; without one there is no shared
-      // media, and the local path must not travel.
+      // Local path must not travel.
       const mediaId = useSessionStore.getState().playingItemId;
       if (!mediaId) return;
       const entry = useMediaStore.getState().getEntry(current);

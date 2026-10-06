@@ -5,11 +5,6 @@ import Tabs from "@/components/shared/tabs.component";
 import LobbyPanel from "./lobby.player";
 import PlaylistBody from "./media/playlist.player";
 
-/**
- * Right-hand column of the player window. Without a session it is just the mpv
- * queue; inside one it grows a tab strip so the room's sync and roster sit next
- * to the playlist instead of over the video.
- */
 export default function PlayerSidePanel({
   activeTab,
   role,

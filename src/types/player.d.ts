@@ -66,14 +66,13 @@ export interface FileSearchResult {
 
 export type UpscaleToolStatus = "checking" | "ok" | "missing" | "downloading";
 
-/** Right-hand panel tabs: the local mpv queue and, in a session, the room. */
 export type PlayerPanelTab = "playlist" | "lobby";
 
 export interface PlaylistBodyProps {
   onPlay: (index: number) => Promise<void>;
   onRemove: (index: number) => Promise<void>;
   onMove: (from: number, to: number) => Promise<void>;
-  /** In a room the queue is room-owned: play/remove-current switch to disabled. */
+  /** Room-owned queue: play/remove-current switch to disabled. */
   locked?: boolean;
 }
 
@@ -81,7 +80,6 @@ export interface SessionStripProps {
   role: SessionRole;
   sample: SyncSample | null;
   status: SessionStatus | undefined;
-  /** Guest: the host has gone silent and local playback is paused. */
   hostLost: boolean;
   onResumeAlone: () => void;
 }

@@ -1,12 +1,6 @@
 import type { TorrentFileInfo } from "@/types/torrent";
 
-/**
- * Join a torrent save dir, an optional sub-folder, and a torrent-relative
- * file name into the absolute on-disk path. librqbit joins files straight
- * onto the output folder, so `saveDir[/subFolder]/name` is where the bytes
- * land (`manager.rs` `output_folder`). Forward slashes survive the trip to
- * the Rust side on Windows.
- */
+// Mirrors manager.rs output_folder; forward slashes survive on Windows.
 export function joinSavePath(
   saveDir: string,
   subFolder: string | null | undefined,
@@ -18,7 +12,6 @@ export function joinSavePath(
   return `${root}/${relative}`;
 }
 
-/** True when the file name ends with a known video extension. */
 export function isVideoFile(name: string, videoExtensions: readonly string[]): boolean {
   const lower = name.toLowerCase();
   return videoExtensions.some((extension) => {
@@ -29,11 +22,7 @@ export function isVideoFile(name: string, videoExtensions: readonly string[]): b
   });
 }
 
-/**
- * Pick which downloaded file verifies a plan item. A byte-size match wins
- * (a plan item is a single file); otherwise the largest video in the
- * download selection; `null` when there is nothing to check.
- */
+// Byte-size match wins, else largest video.
 export function pickVerifyFile(
   files: readonly TorrentFileInfo[],
   identitySize: number,
@@ -52,7 +41,6 @@ export function pickVerifyFile(
   );
 }
 
-/** librqbit selection: everything selected means no restriction. */
 export function resolveOnlyFiles(
   all: readonly { index: number }[],
   selected: readonly number[]

@@ -5,18 +5,11 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { pingBarCount } from "@/lib/session/ping.utils";
 
 export interface SignalBarsProps {
-  /** Measured RTT in ms; `null` before the first successful probe. */
+  /** null before the first probe. */
   rttMs: number | null | undefined;
-  /** A probe is in flight: the spinner replaces the bars. */
   checking: boolean;
 }
 
-/**
- * Ping meter: five bars of growing height, filled from the left by the last
- * measured RTT. While a probe runs the bars are swapped for a spinner, so a
- * stale reading is never shown as a fresh one; the tooltip always names the
- * real millisecond value behind the bars.
- */
 export function SignalBars({ rttMs, checking }: SignalBarsProps) {
   const { t } = useI18n();
   if (checking) {

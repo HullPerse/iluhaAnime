@@ -177,11 +177,7 @@ export function validateScoreInput(raw: string, format: AnilistScoreFormat): Val
   return { value, error: null };
 }
 
-/**
- * AniList does not document the scale of `UserStatistics.meanScore`, so a value above the
- * maximum of the user's own score format can only have come back on the canonical 0-100
- * scale and is converted; anything else is taken at face value.
- */
+// 0-100 scale, converted.
 export function formatMeanScore(
   meanScore: number | null | undefined,
   format: AnilistScoreFormat

@@ -10,14 +10,7 @@ import { useTauriEvent } from "@/hooks/tauriEvent.hook";
 import { ignore } from "@/lib/utils/promise.utils";
 import type { PeerInfo, SessionTyping } from "@/types/session";
 
-/**
- * Which peers are currently typing, as display names (lobby.md §14.6).
- *
- * Each `session-typing` frame with `active: true` (re)arms a TTL timer, so a
- * peer that vanishes mid-burst fades out on its own after [`TYPING_TTL_MS`];
- * `active: false` drops it immediately. Names come from the polled roster —
- * a peer that already left renders nothing rather than a stale id.
- */
+// lobby.md §14.6; vanished peers fade after TTL.
 export function useChatTyping(peers: PeerInfo[]): string[] {
   const [typingIds, setTypingIds] = useState<ReadonlySet<string>>(
     () => new Set()
@@ -71,7 +64,6 @@ export function useChatTyping(peers: PeerInfo[]): string[] {
     { errorTag: "session-typing" }
   );
 
-  // Drop every pending expiry timer when the lobby unmounts.
   useEffect(() => {
     const timers = expiryTimers.current;
     return () => {
@@ -98,11 +90,7 @@ export function useChatTyping(peers: PeerInfo[]): string[] {
   }, [peers, typingIds]);
 }
 
-/**
- * The local "I am typing" sender: a leading-edge frame on the first keystroke
- * of a burst, a keep-alive while the burst continues (throttled server-side
- * anyway), and a single stop frame when the draft clears or the line goes out.
- */
+// Leading-edge + keep-alive; server throttles.
 export function useTypingSender(): {
   noteTyping: () => void;
   noteStopped: () => void;

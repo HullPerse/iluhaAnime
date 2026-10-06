@@ -82,8 +82,7 @@ function PlayerRoute() {
       return results ?? [];
     },
     enabled: !!debouncedSearch,
-    // Refetch on every (re)enable so results converge with a rebuilt index;
-    // the cached entry only serves as an instant placeholder.
+    // Converge with rebuilt index.
     staleTime: 0,
   });
   const searchResults = useMemo(() => fileSearchData ?? [], [fileSearchData]);
@@ -173,8 +172,7 @@ function PlayerRoute() {
   const { data: ffprobeOk } = useAppQuery("live", {
     queryKey: queryKeys.checkFfprobe(),
     queryFn: () => withFallback(invokeTyped<boolean>("check_ffprobe"), false),
-    // Recheck on every mount, as the previous effect did; the FFMPEG
-    // download/delete flow overrides the result via ffmpegOverride.
+    // ffmpegOverride wins.
     staleTime: 0,
   });
   const ffmpegStatus: FFMPEGStatus =
@@ -265,11 +263,6 @@ function PlayerRoute() {
     };
   }, []);
 
-  // StrictMode-safe unmount guard: setup resets the flag so StrictMode's
-  // simulated dev unmount cannot poison it (an unmount-only cleanup would
-  // leave it `true` forever in dev). `useTauriEvent` never resubscribes on
-  // state changes (the handler ref always dispatches the latest closure), so
-  // in-flight rescan loops only abort after a real unmount.
   const folderScanDisposedRef = useRef(false);
   useEffect(() => {
     folderScanDisposedRef.current = false;

@@ -1,10 +1,9 @@
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { openPath } from "@tauri-apps/plugin-opener";
-import { formatDistanceToNow } from "date-fns";
 
 import { translate } from "@/lib/locale/i18n.utils";
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
-import { dateFnsLocale } from "@/lib/utils/date.utils";
+import { formatDistanceToNowOwn } from "@/lib/utils/distance.utils";
 import { useDeepLinkStore } from "@/store/deeplink.store";
 import { useNotificationStore } from "@/store/notification.store";
 import { useSettingsStore } from "@/store/settings.store";
@@ -40,8 +39,8 @@ export function copyNotification(item: NotificationItem): Promise<void> {
   return writeText(lines.join("\n"));
 }
 
-export function formatRelativeTime(timestamp: number, locale: string): string {
-  return formatDistanceToNow(timestamp, { addSuffix: true, locale: dateFnsLocale(locale) });
+export function formatRelativeTime(timestamp: number, locale: Locale): string {
+  return formatDistanceToNowOwn(timestamp, locale);
 }
 
 export function resolveNotificationText(

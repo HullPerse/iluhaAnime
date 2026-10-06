@@ -1,6 +1,4 @@
-import { formatDistanceToNow } from "date-fns";
-
-import { dateFnsLocale } from "@/lib/utils/date.utils";
+import { formatDistanceToNowOwn } from "@/lib/utils/distance.utils";
 import type {
   ActivityTranslate,
   AniListCollection,
@@ -21,7 +19,7 @@ export function monthLabel(
 }
 
 export function formatActivityTime(unix: number, locale: Locale): string {
-  return formatDistanceToNow(unix * 1000, { addSuffix: true, locale: dateFnsLocale(locale) });
+  return formatDistanceToNowOwn(unix * 1000, locale);
 }
 
 export function groupLabel(unix: number, t: ActivityTranslate, locale: Locale): string {

@@ -1,10 +1,4 @@
-import { formatDistanceToNow } from "date-fns";
-import { enUS } from "date-fns/locale";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-
-vi.mock("date-fns", () => ({
-  formatDistanceToNow: vi.fn(() => "mocked-relative"),
-}));
 
 import {
   copyNotification,
@@ -131,12 +125,28 @@ describe("resolveNotificationText", () => {
 });
 
 describe("formatRelativeTime", () => {
-  it("delegates to date-fns with the timestamp and locale", () => {
-    expect(formatRelativeTime(1_700_000_000_000, "en")).toBe("mocked-relative");
-    expect(formatDistanceToNow).toHaveBeenCalledWith(1_700_000_000_000, {
-      addSuffix: true,
-      locale: enUS,
-    });
+  it("formats past timestamps with a suffix in both locales", () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date(2026, 5, 15, 12, 0, 0));
+      const twoHoursAgo = Date.now() - 2 * 3_600_000;
+      expect(formatRelativeTime(twoHoursAgo, "en")).toBe("about 2 hours ago");
+      expect(formatRelativeTime(twoHoursAgo, "ru")).toBe("около 2 часов назад");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("formats future timestamps with a forward suffix", () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date(2026, 5, 15, 12, 0, 0));
+      const inTwoHours = Date.now() + 2 * 3_600_000;
+      expect(formatRelativeTime(inTwoHours, "en")).toBe("in about 2 hours");
+      expect(formatRelativeTime(inTwoHours, "ru")).toBe("приблизительно через 2 часа");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

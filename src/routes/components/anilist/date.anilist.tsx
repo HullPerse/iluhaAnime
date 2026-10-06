@@ -1,9 +1,8 @@
-import { formatDistanceToNow } from "date-fns";
 import { memo } from "react";
 
 import { useI18n } from "@/hooks/i18n.hook";
 import { entryListTime, fuzzyDateToTime, type EntryListInfo } from "@/lib/anilist/entries.utils";
-import { dateFnsLocale } from "@/lib/utils/date.utils";
+import { formatDistanceToNowOwn } from "@/lib/utils/distance.utils";
 
 function CardListDate({
   entry,
@@ -26,7 +25,7 @@ function CardListDate({
   const absolute = new Date(time).toLocaleDateString(locale);
   return (
     <span className="text-muted ml-auto" title={absolute}>
-      {formatDistanceToNow(time, { addSuffix: true, locale: dateFnsLocale(locale) })}
+      {formatDistanceToNowOwn(time, locale)}
     </span>
   );
 }

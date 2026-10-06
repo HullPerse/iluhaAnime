@@ -1,10 +1,4 @@
-import { formatDistanceToNow } from "date-fns";
-import { enUS } from "date-fns/locale";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-
-vi.mock("date-fns", () => ({
-  formatDistanceToNow: vi.fn(() => "2 hours ago"),
-}));
 
 import {
   buildActivityMap,
@@ -161,12 +155,16 @@ describe("anilist/activity", () => {
   });
 
   describe("formatActivityTime", () => {
-    it("delegates to date-fns with milliseconds and locale", () => {
-      expect(formatActivityTime(1700000000, "en")).toBe("2 hours ago");
-      expect(formatDistanceToNow).toHaveBeenCalledWith(1700000000000, {
-        addSuffix: true,
-        locale: enUS,
-      });
+    it("formats past unix timestamps with a suffix in both locales", () => {
+      vi.useFakeTimers();
+      try {
+        vi.setSystemTime(new Date(2026, 5, 15, 12, 0, 0));
+        const twoHoursAgo = Math.floor(Date.now() / 1000) - 7200;
+        expect(formatActivityTime(twoHoursAgo, "en")).toBe("about 2 hours ago");
+        expect(formatActivityTime(twoHoursAgo, "ru")).toBe("около 2 часов назад");
+      } finally {
+        vi.useRealTimers();
+      }
     });
   });
 

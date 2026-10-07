@@ -177,6 +177,7 @@ export default defineConfig({
   rules: {
     complexity: "error",
     curly: "off",
+    "react/exhaustive-effect-dependencies": "off",
     "no-console": ["warn", { allow: ["warn", "error"] }],
     "no-else-return": "off",
     "typescript/await-thenable": "error",

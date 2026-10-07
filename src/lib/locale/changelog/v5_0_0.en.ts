@@ -109,6 +109,8 @@ const changelog500 = {
     "Torrent removal is instant: the row disappears at once while the engine catches up in the background, with a three button confirm dialog",
   "changelog.5_0_0.changed.app.hotkeys_registry":
     "Keyboard shortcuts moved to a shared registry: player keys, tab switching, screenshots, and windows share one check, so response stays instant and layout independent",
+  "changelog.5_0_0.changed.search.pacing":
+    "Search, player, and preview inputs share one timing engine for delayed and rate-limited updates",
   "changelog.5_0_0.fixed.anilist.save_casing":
     "List entry saves failed on inconsistent field name spelling, now the spelling is unified",
   "changelog.5_0_0.fixed.torrents.infohash_casing":

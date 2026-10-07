@@ -1,6 +1,6 @@
 import { anilistApi } from "@/api/anilist.api";
 import { useAppQuery } from "@/hooks/appQuery.hook";
-import { useDebounce } from "@/hooks/debounce.hook";
+import { useDebouncedValue } from "@/hooks/pacer.hook";
 import { searchFiltersToParams } from "@/lib/anilist/entries.utils";
 import { defaultAniListFilters } from "@/lib/anilist/filters.utils";
 import { queryKeys } from "@/lib/query/keys.utils";
@@ -12,7 +12,7 @@ const INLINE_SEARCH_DEBOUNCE_MS = 250;
 const INLINE_SEARCH_PER_PAGE = 8;
 
 export function useAnimeInlineSearch(query: string, enabled = true) {
-  const debounced = useDebounce(query.trim(), INLINE_SEARCH_DEBOUNCE_MS);
+  const [debounced] = useDebouncedValue(query.trim(), { wait: INLINE_SEARCH_DEBOUNCE_MS });
   const adultContent = useSettingsStore((state) => state.anilistAdultContent);
   const active = enabled && debounced.length >= INLINE_SEARCH_MIN_CHARS;
   const search = useAppQuery<AniMedia[]>("live", {

@@ -1,5 +1,6 @@
 import type { PersistStorage, StorageValue } from "zustand/middleware";
 
+import { Debouncer } from "@/lib/pacer/debounce.utils";
 import { attemptSync } from "@/lib/utils/attempt.utils";
 import type { PendingWrite } from "@/types/storage";
 
@@ -21,11 +22,12 @@ export function createDebouncedStorage<S>(
   };
 
   const flush = () => {
-    for (const [name, entry] of pending) {
-      window.clearTimeout(entry.timer);
+    const entries = [...pending];
+    pending.clear();
+    for (const [name, entry] of entries) {
+      entry.task.cancel();
       persist(name, entry.value, "flush");
     }
-    pending.clear();
   };
 
   if (typeof window !== "undefined") {
@@ -43,19 +45,16 @@ export function createDebouncedStorage<S>(
       return error === null ? value : null;
     },
     setItem: (name, value) => {
-      const existing = pending.get(name);
-      if (existing) window.clearTimeout(existing.timer);
-      pending.set(name, {
-        timer: window.setTimeout(() => {
-          pending.delete(name);
-          persist(name, value, "write");
-        }, delay),
-        value,
-      });
+      pending.get(name)?.task.cancel();
+      const task = new Debouncer<[]>(() => {
+        pending.delete(name);
+        persist(name, value, "write");
+      }, { wait: delay });
+      pending.set(name, { task, value });
+      task.maybeExecute();
     },
     removeItem: (name) => {
-      const existing = pending.get(name);
-      if (existing) window.clearTimeout(existing.timer);
+      pending.get(name)?.task.cancel();
       pending.delete(name);
       resolveStorage().removeItem(name);
     },

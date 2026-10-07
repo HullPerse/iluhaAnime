@@ -16,8 +16,8 @@ import {
   DITHER_PRESET_LABELS,
   resolveDitherPreset,
 } from "@/config/utils/dither.config";
-import { useDebounce } from "@/hooks/debounce.hook";
 import { useI18n } from "@/hooks/i18n.hook";
+import { useDebouncedValue } from "@/hooks/pacer.hook";
 import { attempt, attemptSync } from "@/lib/utils/attempt.utils";
 import {
   EXTRACT_PALETTE_MAX_COLORS,
@@ -46,8 +46,8 @@ export default function DitherPreviewModal({
   const [presetId, setPresetId] = useState<DitherPresetId>("empty");
   const [options, setOptions] = useState<DitherEffectOptions>(() => resolveDitherPreset("empty"));
   const [scale, setScale] = useState(DITHER_DEFAULTS.scale);
-  const renderScale = useDebounce(scale, 200);
-  const renderOptions = useDebounce(options, 200);
+  const [renderScale] = useDebouncedValue(scale, { wait: 200 });
+  const [renderOptions] = useDebouncedValue(options, { wait: 200 });
   const renderStale = renderOptions !== options || renderScale !== scale;
   const bakeRef = useRef<HTMLCanvasElement | null>(null);
   const bakeStartedRef = useRef(false);

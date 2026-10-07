@@ -1,4 +1,6 @@
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
+
+import { useDebouncedValue } from "@/hooks/pacer.hook";
 
 import { normalizeSearchText } from "@/lib/search/normalize.utils";
 import { suggestSpelling } from "@/lib/search/suggestions.utils";
@@ -62,34 +64,35 @@ function diffWordSpan(
 export function useSpellCheck(query: string, options: SpellCheckOptions): SpellCheck | null {
   const { history, animeIndex, extraValues, symSpell, debounceMs = 400 } = options;
   const dictionary = useSearchStore((s) => s.spellDictionary);
-  const [check, setCheck] = useState<SpellCheck | null>(null);
+  const [debouncedQuery, { isPending }] = useDebouncedValue(query, { wait: debounceMs });
 
-  useEffect(() => {
-    setCheck(null);
+  return useMemo(() => {
+    if (isPending || debouncedQuery !== query) return null;
     const trimmed = query.trim();
-    if (trimmed.length < 3) return;
-    const timer = window.setTimeout(() => {
-      const correction = suggestSpelling(trimmed, { history, animeIndex, extraValues, symSpell });
-      if (!correction) {
-        setCheck(null);
-        return;
-      }
-      const span = diffWordSpan(trimmed, correction);
-      if (!span) return setCheck(null);
-      const normalized = normalizeSearchText(span.word);
-      if (dictionary.includes(normalized)) return setCheck(null);
-      const leading = query.length - query.trimStart().length;
-      setCheck({
-        correction,
-        start: span.start + leading,
-        end: span.end + leading,
-        severity:
-          editDistance(normalized, normalizeSearchText(span.corrected)) <= 1 ? "warn" : "error",
-        word: span.word,
-      });
-    }, debounceMs);
-    return () => window.clearTimeout(timer);
-  }, [query, history, animeIndex, extraValues, symSpell, debounceMs, dictionary]);
-
-  return check;
+    if (trimmed.length < 3) return null;
+    const correction = suggestSpelling(trimmed, { history, animeIndex, extraValues, symSpell });
+    if (!correction) return null;
+    const span = diffWordSpan(trimmed, correction);
+    if (!span) return null;
+    const normalized = normalizeSearchText(span.word);
+    if (dictionary.includes(normalized)) return null;
+    const leading = query.length - query.trimStart().length;
+    return {
+      correction,
+      start: span.start + leading,
+      end: span.end + leading,
+      severity:
+        editDistance(normalized, normalizeSearchText(span.corrected)) <= 1 ? "warn" : "error",
+      word: span.word,
+    };
+  }, [
+    debouncedQuery,
+    isPending,
+    query,
+    history,
+    animeIndex,
+    extraValues,
+    symSpell,
+    dictionary,
+  ]);
 }

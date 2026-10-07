@@ -1,6 +1,8 @@
 import type { StorageValue } from "zustand/middleware";
 
+import type { Debouncer } from "@/lib/pacer/debounce.utils";
+
 export interface PendingWrite<S> {
-  timer: number;
+  task: Debouncer<[]>;
   value: StorageValue<S>;
 }

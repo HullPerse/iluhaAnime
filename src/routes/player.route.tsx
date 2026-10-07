@@ -11,8 +11,8 @@ import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { NO_TORRENTS } from "@/config/torrent/common.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
-import { useDebounce } from "@/hooks/debounce.hook";
 import { useI18n } from "@/hooks/i18n.hook";
+import { useDebouncedValue } from "@/hooks/pacer.hook";
 import { usePlayerDrag } from "@/hooks/player/drag.hook";
 import { useWatchedFolderNotifications } from "@/hooks/player/folderNotify.hook";
 import { useSearchField } from "@/hooks/search/field.hook";
@@ -70,7 +70,7 @@ function PlayerRoute() {
   const [pendingDeleteCategory, setPendingDeleteCategory] = useState<string | null>(null);
   const drag = usePlayerDrag();
   const [showHiddenItems, setShowHiddenItems] = useState(false);
-  const debouncedSearch = useDebounce(search.trim(), 300);
+  const [debouncedSearch] = useDebouncedValue(search.trim(), { wait: 300 });
   const { data: fileSearchData } = useAppQuery("live", {
     queryKey: queryKeys.playerFileSearch(debouncedSearch, videoExtensions),
     queryFn: async () => {

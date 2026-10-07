@@ -105,6 +105,8 @@ const changelog500 = {
     "Source session checks time out after 8 seconds instead of hanging the search",
   "changelog.5_0_0.changed.player.open_perf":
     "Native player window opens in under 0.5 seconds with zero dropped frames on the test set with a separate lightweight window",
+  "changelog.5_0_0.changed.player.filename_parser":
+    "Local filename parser replaces anitomy: years stay years instead of episode numbers, season tags leave titles, release groups and episode names survive, and folder names help number-prefixed files",
   "changelog.5_0_0.changed.torrents.instant_remove":
     "Torrent removal is instant: the row disappears at once while the engine catches up in the background, with a three button confirm dialog",
   "changelog.5_0_0.changed.app.hotkeys_registry":

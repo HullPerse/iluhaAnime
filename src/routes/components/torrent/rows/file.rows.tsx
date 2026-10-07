@@ -1,5 +1,4 @@
 import { openPath } from "@tauri-apps/plugin-opener";
-import { parse } from "anitomy";
 import { cn } from "cn";
 import { ArrowDownNarrowWide, RefreshCw } from "lucide-react";
 
@@ -8,6 +7,7 @@ import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
+import { parseMediaPath } from "@/lib/media/parse.utils";
 import { formatParsedTitle } from "@/lib/player/title.utils";
 import { formatBytes } from "@/lib/utils/bytes.utils";
 import { useSearchStore } from "@/store/search.store";
@@ -84,13 +84,11 @@ export function TorrentFileRow({
         }}
         onClick={() => {
           if (type === "torrent") return;
-          const parsed = parse(file.displayName);
-          if (!parsed) return;
-          setAnilistSearchQuery(String(parsed.title));
+          setAnilistSearchQuery(parseMediaPath(fullPath ?? file.displayName).searchTitle);
         }}
       >
         {type === "player" && parseTitles
-          ? formatParsedTitle(file.displayName, t)
+          ? formatParsedTitle(fullPath ?? file.displayName, t)
           : file.displayName}
       </span>
 

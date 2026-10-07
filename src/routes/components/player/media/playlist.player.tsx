@@ -142,7 +142,7 @@ function entryLabel(entry: PlaylistEntry, parseTitles: boolean, t: TFunc): strin
   if (entry.title) return entry.title;
   const name = entry.filename ? fileNameFromPath(entry.filename) : "";
   if (!name) return `#${entry.index + 1}`;
-  return parseTitles ? formatParsedTitle(name, t) : name;
+  return parseTitles && entry.filename ? formatParsedTitle(entry.filename, t) : name;
 }
 
 const PLAYLIST_VIRTUALIZE_AFTER = 50;

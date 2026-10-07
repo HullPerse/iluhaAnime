@@ -37,7 +37,6 @@
     "@videojs/media": "10.0.1",
     "@videojs/react": "10.0.1",
     "@videojs/youtube-video": "10.0.1",
-    "anitomy": "^0.0.35",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.4.0",
     "d3-force": "^3.0.0",

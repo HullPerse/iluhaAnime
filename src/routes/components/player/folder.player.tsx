@@ -1,6 +1,5 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { openPath } from "@tauri-apps/plugin-opener";
-import { parse } from "anitomy";
 import { cn } from "cn";
 import {
   ChevronDown,
@@ -19,6 +18,7 @@ import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { FOLDER_LIST_MAX_HEIGHT, FOLDER_VIRTUALIZE_AFTER } from "@/config/player/folders.config";
 import { useI18n } from "@/hooks/i18n.hook";
+import { parseMediaPath } from "@/lib/media/parse.utils";
 import { loadWatch, openPlayer, rotateQueue } from "@/lib/player/playback.utils";
 import { formatParsedTitle } from "@/lib/player/title.utils";
 import { findFolderContainingFile, flattenTree, folderFilePaths } from "@/lib/player/tree.utils";
@@ -326,7 +326,7 @@ function FolderView({
                       if (!disabled && !busy && file.path) openFileInPlayer(file.path);
                     }}
                   >
-                    {parseTitles ? formatParsedTitle(file.name, t) : file.name}
+                    {parseTitles ? formatParsedTitle(file.path || file.name, t) : file.name}
                   </span>
 
                   <span className="windows95-text text-hint">{formatBytes(file.size)}</span>
@@ -372,8 +372,7 @@ function FolderView({
                     disabled={busy}
                     onClick={(e) => {
                       e.stopPropagation();
-                      const parsed = parse(file.name);
-                      if (parsed) setAnilistSearchQuery(String(parsed.title));
+                      setAnilistSearchQuery(parseMediaPath(file.path || file.name).searchTitle);
                     }}
                     title={t("player.folder.search.anilist")}
                     aria-label={t("player.folder.search.anilist")}

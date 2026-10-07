@@ -366,12 +366,34 @@ describe("player/title", () => {
 
     it("includes season when present", () => {
       expect(formatParsedTitle("Sword Art Online - S01E02 - Title.mkv", ru)).toBe(
-        "Sword Art Online, Сезон 1, Серия 2"
+        "Sword Art Online, Сезон 1, Серия 2: Title"
       );
     });
 
     it("handles zero-padded episode numbers", () => {
       expect(formatParsedTitle("One Piece 001.mkv", ru)).toBe("One Piece, Серия 1");
+    });
+
+    it("reads years as years for movies", () => {
+      expect(formatParsedTitle("Barbie.2023.1080p.WEBRip.x264-Delia_EniaHD.mkv", ru)).toBe(
+        "Barbie"
+      );
+    });
+
+    it("strips season suffixes from the title", () => {
+      expect(
+        formatParsedTitle("[BudLightSubs] Boku no Hero Academia Illegals S2 - 01 [1080p].mkv", ru)
+      ).toBe("Boku no Hero Academia Illegals, Сезон 2, Серия 1");
+    });
+
+    it("uses the folder for number-prefixed files", () => {
+      expect(
+        formatParsedTitle(
+          "133-134. Женщина, что полюбила Сещемару.mkv",
+          ru,
+          "Anime/Inuyasha"
+        )
+      ).toBe("Inuyasha, Серии 133-134: Женщина, что полюбила Сещемару");
     });
 
     it("returns the same result on repeated calls", () => {

@@ -1,4 +1,4 @@
-import { sameDownloadOrder, samePausedChangedFiles } from "@/lib/torrent/common.utils";
+import { sameDownloadOrder, sameExternalChangedFiles } from "@/lib/torrent/common.utils";
 import type { TorrentInfo, TorrentItemProps } from "@/types/torrent";
 
 function sameFilesState(prev: TorrentItemProps, next: TorrentItemProps): boolean {
@@ -18,8 +18,8 @@ function sameTorrentInfo(prev: TorrentInfo, next: TorrentInfo): boolean {
     prev.progress_bytes === next.progress_bytes &&
     prev.error === next.error &&
     prev.missing_files === next.missing_files &&
-    prev.paused_external_changes === next.paused_external_changes &&
-    samePausedChangedFiles(prev.paused_changed_files, next.paused_changed_files) &&
+    prev.external_changes === next.external_changes &&
+    sameExternalChangedFiles(prev.external_changed_files, next.external_changed_files) &&
     prev.peers_connected === next.peers_connected &&
     prev.sequential_download === next.sequential_download &&
     prev.sequential_file === next.sequential_file &&

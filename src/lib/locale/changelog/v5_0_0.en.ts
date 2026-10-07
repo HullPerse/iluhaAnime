@@ -31,6 +31,10 @@ const changelog500 = {
     "Release age column for nyaa and sukebei results with sorting by date",
   "changelog.5_0_0.added.torrents.rename":
     "Custom torrent names with rename and clear actions, and copy buttons for the magnet link and the info hash",
+  "changelog.5_0_0.added.torrents.update_check":
+    "Release update check: torrents downloaded from search remember their source page, the check button re-reads the release and stays silent when nothing changed, opens the file picker on new files, and applies the update from fresh .torrent bytes",
+  "changelog.5_0_0.added.torrents.external_watch":
+    "External changes watch: paused and finished torrents detect files modified outside the app, with a row badge, a warning toast, and one-click recheck",
   "changelog.5_0_0.added.settings.theme_schedule":
     "Day and night theme scheduler: the theme switches automatically by local time",
   "changelog.5_0_0.added.search.query_tags":

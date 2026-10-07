@@ -49,6 +49,7 @@ export const TorrentRow = memo(
       onRedownload: handleRedownload,
       onRecheck: handleRecheck,
       onRecheckPaused: handleRecheckPaused,
+      onUpdateRequest: handleUpdateRequest,
     } = actions;
     const queue = useMemo(
       () =>
@@ -84,6 +85,7 @@ export const TorrentRow = memo(
         onRedownload={handleRedownload}
         onRecheck={handleRecheck}
         onRecheckPaused={handleRecheckPaused}
+        onUpdateRequest={handleUpdateRequest}
       />
     );
   }

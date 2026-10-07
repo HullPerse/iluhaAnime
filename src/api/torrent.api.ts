@@ -12,6 +12,7 @@ import type {
   TorrentFileInfo,
   TorrentInfo,
   TorrentLimits,
+  TorrentOrigin,
   TorrentResumeResult,
 } from "@/types/torrent";
 
@@ -279,6 +280,20 @@ export class TorrentApi {
 
   setTorrentAlias(id: number, alias: string | null, infoHash?: string): Promise<void> {
     return this.call("set_torrent_alias", { id, alias, info_hash: infoHash, infoHash });
+  }
+
+  setTorrentSource(id: number, origin: TorrentOrigin, infoHash?: string): Promise<void> {
+    return this.call("set_torrent_source", {
+      id,
+      source: origin.source,
+      url: origin.url,
+      info_hash: infoHash,
+      infoHash,
+    });
+  }
+
+  getTorrentSource(id: number, infoHash?: string): Promise<TorrentOrigin | null> {
+    return this.call("get_torrent_source", { id, info_hash: infoHash, infoHash });
   }
 
   exportTorrentFile(id: number, outPath: string, infoHash?: string): Promise<string> {

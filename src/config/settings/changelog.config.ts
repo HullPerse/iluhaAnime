@@ -32,6 +32,8 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.added.torrents.picker_seeders", "torrents"),
       entry("changelog.5_0_0.added.torrents.release_age", "torrents"),
       entry("changelog.5_0_0.added.torrents.rename", "torrents"),
+      entry("changelog.5_0_0.added.torrents.update_check", "torrents"),
+      entry("changelog.5_0_0.added.torrents.external_watch", "torrents"),
       entry("changelog.5_0_0.added.settings.theme_schedule", "settings"),
       entry("changelog.5_0_0.added.search.query_tags", "search"),
       entry("changelog.5_0_0.added.search.filter_presets", "search"),

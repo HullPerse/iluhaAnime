@@ -152,8 +152,8 @@ describe("torrent/common", () => {
       id,
       info_hash: `hash-${id}`,
       missing_files: false,
-      paused_external_changes: false,
-      paused_changed_files: [],
+      external_changes: false,
+      external_changed_files: [],
       name: `Torrent ${id}`,
       peers_connected: 0,
       progress: 0,
@@ -635,6 +635,7 @@ describe("torrent/magnet", () => {
       });
       expect(prepareTorrentDownloadFromBytesSpy).toHaveBeenCalledWith([9, 8, 7], {
         seeders: 10,
+        origin: { source: "nyaa", url: "https://example.test/show" },
       });
       expect(prepareTorrentDownloadSpy).not.toHaveBeenCalled();
     });
@@ -978,8 +979,8 @@ describe("withoutPendingRemoved", () => {
       id,
       info_hash: `hash-${id}`,
       missing_files: false,
-      paused_external_changes: false,
-      paused_changed_files: [],
+      external_changes: false,
+      external_changed_files: [],
       name: `Torrent ${id}`,
       peers_connected: 0,
       progress: 0,

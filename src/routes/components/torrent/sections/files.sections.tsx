@@ -1,5 +1,5 @@
 import { ChevronDown, ChevronRight, ListOrdered, RefreshCw } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { torrentApi } from "@/api/torrent.api";
 import { SmallLoader } from "@/components/shared/loader.component";
@@ -8,57 +8,90 @@ import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { attempt } from "@/lib/utils/attempt.utils";
-import { formatBytes } from "@/lib/utils/bytes.utils";
 import { enterOrSpace } from "@/lib/utils/keyboard.utils";
 import { ignore } from "@/lib/utils/promise.utils";
-import type { FilePriority, TorrentFileInfo, TorrentInfo } from "@/types/torrent";
+import { showError } from "@/lib/utils/notification.utils";
+import { UPDATE_SOURCES_WITH_FILES, findUpdatedFiles } from "@/lib/torrent/update.utils";
+import { useSettingsStore } from "@/store/settings.store";
+import type {
+  FilePriority,
+  TorrentDetailFile,
+  TorrentDetails,
+  TorrentFileInfo,
+  TorrentInfo,
+  TorrentOrigin,
+} from "@/types/torrent";
 
-function fileIdentity(file: Pick<TorrentFileInfo, "name" | "size">): string {
-  return `${file.name}|${file.size}`;
-}
-
-function NewFilesCheck({
+function UpdateCheck({
   item,
   files,
-  onUpdateFiles,
+  onUpdateRequest,
 }: {
   item: TorrentInfo;
   files: TorrentFileInfo[];
-  onUpdateFiles: (indices: number[]) => void;
+  onUpdateRequest: (request: { added: TorrentDetailFile[]; details: TorrentDetails }) => void;
 }) {
   const { t } = useI18n();
+  const [origin, setOrigin] = useState<TorrentOrigin | null | undefined>(undefined);
   const [checking, setChecking] = useState(false);
-  const [fresh, setFresh] = useState<TorrentFileInfo[] | null>(null);
-  const [picked, setPicked] = useState<Set<number>>(new Set());
+  const [update, setUpdate] = useState<{
+    added: TorrentDetailFile[];
+    details: TorrentDetails;
+    replaced: boolean;
+  } | null>(null);
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    let cancelled = false;
+    ignore(
+      attempt(torrentApi.getTorrentSource(item.id, item.info_hash)).then(([data]) => {
+        if (cancelled) return;
+        setOrigin(data && UPDATE_SOURCES_WITH_FILES.has(data.source) ? data : null);
+      })
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [item.id, item.info_hash]);
+
+  if (origin === null || origin === undefined) return null;
 
   const check = async () => {
     if (checking) return;
     setChecking(true);
-    const [data, error] = await attempt(torrentApi.runningTorrentFiles(item.id));
+    const proxy = useSettingsStore.getState().searchProxyUrls[origin.source] || undefined;
+    const [details, error] = await attempt(
+      torrentApi.getTorrentDetails(origin.source, origin.url, proxy)
+    );
     setChecking(false);
-    if (error || !data) return;
-    const known = new Set(files.map(fileIdentity));
-    const added = data.filter((file) => !known.has(fileIdentity(file)));
-    if (added.length === 0) return;
-    setFresh(added);
-    setPicked(new Set(added.map((file) => file.index)));
+    if (error || !details) {
+      if (error) showError(t("torrent.files.update.error"), error.message);
+      return;
+    }
+    const added = findUpdatedFiles(files, details.files);
+    const replaced =
+      Boolean(details.infoHash) &&
+      details.infoHash.toLowerCase() !== item.info_hash.toLowerCase();
+    if (added.length === 0 && !replaced) return;
+    setUpdate({ added, details, replaced });
+    setPicked(new Set(added.map((file) => file.name)));
   };
 
-  const togglePicked = (index: number) => {
+  const togglePicked = (name: string) => {
     setPicked((prev) => {
       const next = new Set(prev);
-      if (next.has(index)) next.delete(index);
-      else next.add(index);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
       return next;
     });
   };
 
   const confirm = () => {
-    if (!fresh) return;
-    const keep = new Set(files.filter((file) => file.selected).map((file) => file.index));
-    for (const index of picked) keep.add(index);
-    setFresh(null);
-    onUpdateFiles([...keep]);
+    if (!update) return;
+    const added = update.added.filter((file) => picked.has(file.name));
+    setUpdate(null);
+    if (added.length === 0) return;
+    onUpdateRequest({ added, details: update.details });
   };
 
   return (
@@ -76,29 +109,34 @@ function NewFilesCheck({
       >
         {checking ? <SmallLoader size={3} /> : <RefreshCw className="size-3" />}
       </Button>
-      {fresh && (
+      {update && (
         <Modal
-          header={t("torrent.files.new.title")}
-          onClose={() => setFresh(null)}
+          header={t("torrent.files.update.title")}
+          onClose={() => setUpdate(null)}
           className="w-xl"
         >
           <div className="flex max-h-80 flex-col gap-1 overflow-y-auto p-1">
+            {update.replaced && (
+              <span className="windows95-text text-xs font-bold">
+                {t("torrent.files.update.replaced")}
+              </span>
+            )}
             <span className="windows95-text text-xs font-bold">
-              {t("torrent.files.new.found", { count: fresh.length })}
+              {t("torrent.files.new.found", { count: update.added.length })}
             </span>
-            {fresh.map((file) => (
+            {update.added.map((file) => (
               <label
-                key={file.index}
+                key={file.name}
                 className="windows95-text hover:bg-surface flex w-full cursor-pointer items-center gap-1 px-1 py-0.5 select-none"
               >
                 <Checkbox
-                  checked={picked.has(file.index)}
-                  onChange={() => togglePicked(file.index)}
+                  checked={picked.has(file.name)}
+                  onChange={() => togglePicked(file.name)}
                 />
                 <span className="min-w-0 flex-1 truncate" title={file.name}>
                   {file.name}
                 </span>
-                <span className="text-hint shrink-0 text-xs">{formatBytes(file.size)}</span>
+                <span className="text-hint shrink-0 text-xs">{file.size || "-"}</span>
               </label>
             ))}
             <span className="windows95-text text-hint mt-1 text-xs">
@@ -109,11 +147,11 @@ function NewFilesCheck({
             </span>
           </div>
           <div className="flex justify-end gap-1 p-1">
-            <Button variant="outline" onClick={() => setFresh(null)}>
+            <Button variant="outline" onClick={() => setUpdate(null)}>
               {t("common.cancel")}
             </Button>
             <Button onClick={confirm} disabled={picked.size === 0}>
-              {t("torrent.files.new.download")}
+              {t("torrent.files.update.download")}
             </Button>
           </div>
         </Modal>
@@ -136,6 +174,7 @@ export function TorrentFiles({
   onFilePriorityChange,
   onSetDownloadOrder,
   onRedownload,
+  onUpdateRequest,
 }: {
   item: TorrentInfo;
   files: TorrentFileInfo[];
@@ -146,6 +185,7 @@ export function TorrentFiles({
   onFilePriorityChange: (indices: number[], priority: FilePriority) => void;
   onSetDownloadOrder: (indices: number[]) => void;
   onRedownload: (fileIndex: number) => void;
+  onUpdateRequest: (request: { added: TorrentDetailFile[]; details: TorrentDetails }) => void;
 }) {
   const { t } = useI18n();
   const [showQueue, setShowQueue] = useState(false);
@@ -196,7 +236,7 @@ export function TorrentFiles({
             <ListOrdered className="size-3" />
           </Button>
         )}
-        <NewFilesCheck item={item} files={files} onUpdateFiles={onUpdateFiles} />
+        <UpdateCheck item={item} files={files} onUpdateRequest={onUpdateRequest} />
       </div>
       {isExpanded && (
         <>

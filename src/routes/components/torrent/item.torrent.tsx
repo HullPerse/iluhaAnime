@@ -38,14 +38,28 @@ function TorrentItem({
   onRedownload,
   onRecheck,
   onRecheckPaused,
+  onUpdateRequest,
 }: Props) {
   const [pendingDelete, setPendingDelete] = useState(false);
   const [showPeers, setShowPeers] = useState(false);
   const isPaused = item.state === "paused";
   const isLive = item.state === "live";
   const { t } = useI18n();
-  const changedNames = item.paused_changed_files.join(", ");
-  const externalChangedTitle = [t("torrent.paused.external.hint"), changedNames]
+  const changedNames = item.external_changed_files.join(", ");
+  const externalBadge = isPaused
+    ? {
+        label: t("torrent.paused.external"),
+        hint: t("torrent.paused.external.hint"),
+        recheck: t("torrent.paused.recheck"),
+        handleRecheck: onRecheckPaused,
+      }
+    : {
+        label: t("torrent.external.changed"),
+        hint: t("torrent.external.hint"),
+        recheck: t("torrent.external.recheck"),
+        handleRecheck: onRecheck,
+      };
+  const externalChangedTitle = [externalBadge.hint, changedNames]
     .filter(Boolean)
     .join("\n");
   const draggable = queue !== null;
@@ -108,7 +122,7 @@ function TorrentItem({
         }
       />
       <TorrentProgress item={item} />
-      {item.paused_external_changes && (
+      {item.external_changes && (
         <div className="flex items-center gap-1">
           <span
             role="status"
@@ -118,12 +132,12 @@ function TorrentItem({
           >
             <AlertTriangle className="size-3 shrink-0" />
             <span className="truncate">
-              {t("torrent.paused.external")}
+              {externalBadge.label}
               {changedNames && `: ${changedNames}`}
             </span>
           </span>
-          <Button className="windows95-text text-xs" disabled={busy} onClick={onRecheckPaused}>
-            {t("torrent.paused.recheck")}
+          <Button className="windows95-text text-xs" disabled={busy} onClick={externalBadge.handleRecheck}>
+            {externalBadge.recheck}
           </Button>
         </div>
       )}
@@ -137,6 +151,7 @@ function TorrentItem({
         onFilePriorityChange={onFilePriorityChange}
         onSetDownloadOrder={onSetDownloadOrder}
         onRedownload={onRedownload}
+        onUpdateRequest={onUpdateRequest}
       />
       {filesError && (files ?? []).length === 0 && (
         <span className="text-destructive windows95-text px-0.5 py-0.5">

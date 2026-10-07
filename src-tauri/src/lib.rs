@@ -91,8 +91,8 @@ struct TorrentUpdateSignature {
     sequential_file: Option<usize>,
     download_order: Vec<usize>,
     missing_files: bool,
-    paused_external_changes: bool,
-    paused_changed_files: Vec<String>,
+    external_changes: bool,
+    external_changed_files: Vec<String>,
 }
 
 const TORRENT_HEARTBEAT_TICKS: u32 = 30;
@@ -121,7 +121,7 @@ async fn run_torrent_update_tick(
     let torrents = tokio::task::spawn_blocking(move || {
         let mut torrents = verifier.collect_torrents();
         verifier.verify_pending_missing(&mut torrents, TORRENT_VERIFY_PER_TICK);
-        verifier.watch_paused_files(&mut torrents);
+        verifier.watch_external_files(&mut torrents);
         torrents
     })
     .await
@@ -143,8 +143,8 @@ async fn run_torrent_update_tick(
             sequential_file: t.sequential_file,
             download_order: t.download_order.clone(),
             missing_files: t.missing_files,
-            paused_external_changes: t.paused_external_changes,
-            paused_changed_files: t.paused_changed_files.clone(),
+            external_changes: t.external_changes,
+            external_changed_files: t.external_changed_files.clone(),
         })
         .collect();
     if state.first_run
@@ -220,8 +220,8 @@ async fn run_torrent_update_tick(
                     }
                 }
 
-                if cfg.on_health && !t.finished {
-                    let unhealthy = t.missing_files || t.paused_external_changes;
+                if cfg.on_health {
+                    let unhealthy = t.missing_files || t.external_changes;
                     if unhealthy && !state.notified_health.contains(&t.id) {
                         let (body_key, body_vars) = if t.missing_files {
                             (
@@ -233,7 +233,7 @@ async fn run_torrent_update_tick(
                                 "torrent.notify.health.external",
                                 serde_json::json!({
                                     "name": &t.name,
-                                    "count": t.paused_changed_files.len(),
+                                    "count": t.external_changed_files.len(),
                                 }),
                             )
                         };
@@ -378,7 +378,7 @@ async fn list_torrents(
 ) -> Result<Vec<TorrentInfo>, String> {
     let backend = backend_manager(&manager).await?;
     let mut torrents = backend.collect_torrents();
-    backend.watch_paused_files(&mut torrents);
+    backend.watch_external_files(&mut torrents);
     Ok(torrents)
 }
 
@@ -879,6 +879,32 @@ async fn set_torrent_limits(
         .await?
         .set_torrent_limits(id, limits, info_hash)
         .await
+}
+
+#[tauri::command]
+async fn set_torrent_source(
+    id: usize,
+    source: String,
+    url: String,
+    info_hash: Option<String>,
+    manager: tauri::State<'_, TorrentBackend>,
+) -> Result<(), String> {
+    let backend = backend_manager(&manager).await?;
+    tokio::task::spawn_blocking(move || backend.set_torrent_source(id, info_hash.as_deref(), source, url))
+        .await
+        .map_err(|error| format!("source task failed: {error}"))?
+}
+
+#[tauri::command]
+async fn get_torrent_source(
+    id: usize,
+    info_hash: Option<String>,
+    manager: tauri::State<'_, TorrentBackend>,
+) -> Result<Option<torrent::TorrentOrigin>, String> {
+    let backend = backend_manager(&manager).await?;
+    tokio::task::spawn_blocking(move || backend.get_torrent_source(id, info_hash.as_deref()))
+        .await
+        .map_err(|error| format!("source task failed: {error}"))?
 }
 
 #[tauri::command]
@@ -1536,6 +1562,8 @@ pub fn run() {
             get_torrent_diagnostics,
             set_torrent_limits,
             set_torrent_alias,
+            set_torrent_source,
+            get_torrent_source,
             export_torrent_file,
             get_dht_stats,
             get_torrent_limits,

@@ -82,8 +82,8 @@ export interface TorrentInfo {
   sequential_file: number | null;
   download_order: number[];
   missing_files: boolean;
-  paused_external_changes: boolean;
-  paused_changed_files: string[];
+  external_changes: boolean;
+  external_changed_files: string[];
 }
 
 export interface TorrentFileInfo {
@@ -144,6 +144,11 @@ export interface DhtStatus {
   pending: number;
 }
 
+export interface TorrentOrigin {
+  source: string;
+  url: string;
+}
+
 export interface PickerTorrent {
   magnet?: string;
   fileBytes?: number[];
@@ -153,6 +158,7 @@ export interface PickerTorrent {
   conflictingFiles: string[];
   hasCommonFolder: boolean;
   seeders?: number;
+  origin?: TorrentOrigin;
 }
 
 export interface CachedTorrentMeta {
@@ -184,11 +190,17 @@ export interface TorrentStore {
     sequential?: boolean
   ) => Promise<void>;
   cancelDownload: () => Promise<void>;
-  prepareTorrentDownload: (magnet: string, info?: { seeders?: number }) => Promise<void>;
-  prepareTorrentDownloadFromFile: (filePath: string, info?: { seeders?: number }) => Promise<void>;
+  prepareTorrentDownload: (
+    magnet: string,
+    info?: { seeders?: number; origin?: TorrentOrigin }
+  ) => Promise<void>;
+  prepareTorrentDownloadFromFile: (
+    filePath: string,
+    info?: { seeders?: number; origin?: TorrentOrigin }
+  ) => Promise<void>;
   prepareTorrentDownloadFromBytes: (
     fileBytes: number[],
-    info?: { seeders?: number }
+    info?: { seeders?: number; origin?: TorrentOrigin }
   ) => Promise<void>;
   queueTorrentFiles: (filePaths: string[]) => void;
   prepareNextInQueue: () => void;
@@ -297,6 +309,7 @@ export interface TorrentItemProps {
   onRedownload: (fileIndex: number) => void;
   onRecheck: () => void;
   onRecheckPaused: () => void;
+  onUpdateRequest: (request: { added: TorrentDetailFile[]; details: TorrentDetails }) => void;
 }
 
 export interface MagnetTorrentProps {

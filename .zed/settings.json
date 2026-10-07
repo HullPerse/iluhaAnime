@@ -14,13 +14,8 @@
     "oxfmt": {
       "initialization_options": {
         "settings": {
-          "configPath": null,
-          "flags": {},
           "fmt.configPath": null,
-          "fmt.experimental": true,
-          "run": "onSave",
-          "typeAware": false,
-          "unusedDisableDirectives": false
+          "run": "onSave"
         }
       }
     },
@@ -30,7 +25,6 @@
           "disableNestedConfig": false,
           "fixKind": "safe_fix",
           "run": "onType",
-          "typeAware": true,
           "unusedDisableDirectives": "deny"
         }
       }
@@ -42,15 +36,30 @@
       "prettier": {
         "allowed": false
       },
-      "code_actions_on_format": {
-        "source.fixAll.oxc": true,
-        "source.organizeImports.oxc": true
+      "formatter": [
+        {
+          "language_server": {
+            "name": "oxfmt"
+          }
+        },
+        {
+          "code_action": "source.fixAll.oxc"
+        }
+      ]
+    },
+    "JSX": {
+      "format_on_save": "on",
+      "prettier": {
+        "allowed": false
       },
       "formatter": [
         {
           "language_server": {
             "name": "oxfmt"
           }
+        },
+        {
+          "code_action": "source.fixAll.oxc"
         }
       ]
     },
@@ -59,15 +68,14 @@
       "prettier": {
         "allowed": false
       },
-      "code_actions_on_format": {
-        "source.fixAll.oxc": true,
-        "source.organizeImports.oxc": true
-      },
       "formatter": [
         {
           "language_server": {
             "name": "oxfmt"
           }
+        },
+        {
+          "code_action": "source.fixAll.oxc"
         }
       ]
     },
@@ -76,15 +84,14 @@
       "prettier": {
         "allowed": false
       },
-      "code_actions_on_format": {
-        "source.fixAll.oxc": true,
-        "source.organizeImports.oxc": true
-      },
       "formatter": [
         {
           "language_server": {
             "name": "oxfmt"
           }
+        },
+        {
+          "code_action": "source.fixAll.oxc"
         }
       ]
     }

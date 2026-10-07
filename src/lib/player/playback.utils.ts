@@ -270,7 +270,6 @@ export async function appendFiles(files: string[]): Promise<void> {
   await invokeTyped("player_append_files", { files, mode: "append-play" });
 }
 
-// "append" queues without starting playback; "append-play" would auto-start when idle.
 export async function appendFilesQuiet(files: string[]): Promise<void> {
   if (files.length === 0) return;
   await invokeTyped("player_append_files", { files, mode: "append" });

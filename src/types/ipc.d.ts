@@ -179,6 +179,8 @@ export type CommandName =
   | "set_sequential_download"
   | "set_torrent_download_order"
   | "set_torrent_alias"
+  | "set_torrent_source"
+  | "get_torrent_source"
   | "set_torrent_limits"
   | "set_window_chrome"
   | "show_toast"

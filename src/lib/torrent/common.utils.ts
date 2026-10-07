@@ -9,7 +9,7 @@ export function sameDownloadOrder(prev: number[] | undefined, next: number[] | u
   return prev.length === next.length && prev.every((index, i) => index === next[i]);
 }
 
-export function samePausedChangedFiles(
+export function sameExternalChangedFiles(
   prev: string[] | undefined,
   next: string[] | undefined
 ): boolean {
@@ -198,8 +198,8 @@ export function TorrentListen(
         p.finished !== t.finished ||
         p.error !== t.error ||
         p.missing_files !== t.missing_files ||
-        p.paused_external_changes !== t.paused_external_changes ||
-        !samePausedChangedFiles(p.paused_changed_files, t.paused_changed_files) ||
+        p.external_changes !== t.external_changes ||
+        !sameExternalChangedFiles(p.external_changed_files, t.external_changed_files) ||
         p.uploaded_bytes !== t.uploaded_bytes ||
         p.share_ratio !== t.share_ratio ||
         p.total_bytes !== t.total_bytes ||

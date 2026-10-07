@@ -88,6 +88,7 @@ export async function downloadMagnet(
   if (bytes.ok) {
     await useTorrentStore.getState().prepareTorrentDownloadFromBytes(bytes.value, {
       seeders: item.seeders,
+      origin: source ? { source, url: item.link } : undefined,
     });
     return;
   }
@@ -95,5 +96,6 @@ export async function downloadMagnet(
   if (magnet.ok)
     await useTorrentStore.getState().prepareTorrentDownload(magnet.value, {
       seeders: item.seeders,
+      origin: source ? { source, url: item.link } : undefined,
     });
 }

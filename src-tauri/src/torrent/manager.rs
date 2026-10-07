@@ -35,7 +35,7 @@ use super::helpers::{
 use super::types::{
     CreatedTorrent, DhtStatus, FileOrder, FilePriority, SessionConfig, TorrentCheckResult,
     TorrentDiagPeer, TorrentDiagnostics, TorrentFileInfo, TorrentInfo, TorrentInfoResult,
-    TorrentLimits, TorrentResumeResult,
+    TorrentLimits, TorrentResumeResult, TorrentOrigin,
 };
 pub const METADATA_SLOTS: usize = 8;
 
@@ -97,6 +97,8 @@ pub struct TorrentManager {
     pub magnet_links_path: PathBuf,
     pub aliases: DashMap<String, String>,
     pub aliases_path: PathBuf,
+    pub torrent_sources: DashMap<String, TorrentOrigin>,
+    pub torrent_sources_path: PathBuf,
     pub torrent_limits: DashMap<String, TorrentLimits>,
     pub torrent_limits_path: PathBuf,
     pub sequential_torrents: DashSet<String>,
@@ -111,8 +113,8 @@ pub struct TorrentManager {
     pub limit_locks: DashMap<usize, Arc<tokio::sync::Mutex<()>>>,
     pub peer_counts: DashMap<usize, (Instant, usize)>,
     pub missing_files: DashMap<usize, bool>,
-    pause_snapshots: DashMap<String, Vec<FileStamp>>,
-    pause_changes: DashMap<String, (Instant, Vec<String>)>,
+    file_snapshots: DashMap<String, Vec<FileStamp>>,
+    file_watch_cache: DashMap<String, (Instant, Vec<String>)>,
     rewrite_ghosts: DashMap<String, TorrentInfo>,
     #[cfg(test)]
     pub peer_hints: std::sync::Mutex<Vec<std::net::SocketAddr>>,
@@ -169,6 +171,20 @@ impl TorrentManager {
                 .unwrap_or_default()
                 .into_iter()
                 .filter(|(key, _)| is_info_hash(key))
+                .collect();
+
+        let torrent_sources_path = app_data_dir.join("torrent_sources.json");
+        let torrent_sources: HashMap<String, TorrentOrigin> =
+            std::fs::read_to_string(&torrent_sources_path)
+                .ok()
+                .and_then(|json| serde_json::from_str::<HashMap<String, TorrentOrigin>>(&json).ok())
+                .unwrap_or_default()
+                .into_iter()
+                .filter(|(key, value)| {
+                    is_info_hash(key)
+                        && !value.source.trim().is_empty()
+                        && !value.url.trim().is_empty()
+                })
                 .collect();
 
         let session_config_path = app_data_dir.join("session_config.json");
@@ -252,6 +268,8 @@ impl TorrentManager {
             magnet_links_path,
             aliases: aliases.into_iter().collect(),
             aliases_path,
+            torrent_sources: torrent_sources.into_iter().collect(),
+            torrent_sources_path,
             torrent_limits: torrent_limits.into_iter().collect(),
             torrent_limits_path,
             sequential_torrents: preferences.sequential_torrents.into_iter().collect(),
@@ -266,8 +284,8 @@ impl TorrentManager {
             limit_locks: DashMap::new(),
             peer_counts: DashMap::new(),
             missing_files: DashMap::new(),
-            pause_snapshots: DashMap::new(),
-            pause_changes: DashMap::new(),
+            file_snapshots: DashMap::new(),
+            file_watch_cache: DashMap::new(),
             rewrite_ghosts: DashMap::new(),
             #[cfg(test)]
             peer_hints: std::sync::Mutex::new(Vec::new()),
@@ -398,6 +416,17 @@ impl TorrentManager {
             .collect();
         if let Ok(json) = serde_json::to_string(&map) {
             let _ = std::fs::write(&self.aliases_path, &json);
+        }
+    }
+
+    fn save_torrent_sources(&self) {
+        let map: HashMap<String, TorrentOrigin> = self
+            .torrent_sources
+            .iter()
+            .map(|r| (r.key().clone(), r.value().clone()))
+            .collect();
+        if let Ok(json) = serde_json::to_string(&map) {
+            let _ = std::fs::write(&self.torrent_sources_path, &json);
         }
     }
 
@@ -691,8 +720,8 @@ impl TorrentManager {
                         .missing_files
                         .get(&id)
                         .is_some_and(|entry| *entry.value()),
-                    paused_external_changes: false,
-                    paused_changed_files: Vec::new(),
+                    external_changes: false,
+                    external_changed_files: Vec::new(),
                 });
             }
             if self.is_rewriting() {
@@ -1473,31 +1502,32 @@ impl TorrentManager {
             return;
         };
         if let Some(stamps) = self.file_stamps(id) {
-            self.pause_snapshots.insert(key.clone(), stamps);
-            self.pause_changes.remove(&key);
+            self.file_snapshots.insert(key.clone(), stamps);
+            self.file_watch_cache.remove(&key);
         }
     }
 
-    pub fn watch_paused_files(&self, torrents: &mut [TorrentInfo]) {
+    pub fn watch_external_files(&self, torrents: &mut [TorrentInfo]) {
         for torrent in torrents.iter_mut() {
-            let changed = self.paused_files_changed(torrent.id);
-            torrent.paused_changed_files = changed.clone();
-            torrent.paused_external_changes = !changed.is_empty();
+            let changed = self.external_files_changed(torrent.id, torrent.finished);
+            torrent.external_changed_files = changed.clone();
+            torrent.external_changes = !changed.is_empty();
         }
     }
 
-    fn paused_files_changed(&self, id: usize) -> Vec<String> {
+    fn external_files_changed(&self, id: usize, finished: bool) -> Vec<String> {
         let Some(handle) = self.torrent_handle(id) else {
             return Vec::new();
         };
-        if !handle.is_paused() {
+        if !finished && !handle.is_paused() {
             return Vec::new();
         }
         let key = handle.info_hash().as_string();
-        let Some(snapshot) = self.pause_snapshots.get(&key).map(|entry| entry.clone()) else {
+        let Some(snapshot) = self.file_snapshots.get(&key).map(|entry| entry.clone()) else {
+            self.snapshot_torrent_files(id);
             return Vec::new();
         };
-        if let Some(entry) = self.pause_changes.get(&key) {
+        if let Some(entry) = self.file_watch_cache.get(&key) {
             let (checked_at, changed) = entry.value().clone();
             if checked_at.elapsed() < PAUSE_WATCH_INTERVAL {
                 return changed;
@@ -1507,7 +1537,7 @@ impl TorrentManager {
             .file_stamps(id)
             .map(|stamps| Self::changed_file_names(&snapshot, &stamps))
             .unwrap_or_default();
-        self.pause_changes
+        self.file_watch_cache
             .insert(key, (Instant::now(), changed.clone()));
         changed
     }
@@ -1635,7 +1665,7 @@ impl TorrentManager {
             });
         }
         let key = handle.info_hash().as_string();
-        let before = self.pause_snapshots.get(&key).map(|entry| entry.clone());
+        let before = self.file_snapshots.get(&key).map(|entry| entry.clone());
         let after = before.as_ref().and_then(|_| self.file_stamps(id));
         let changed_files = match (&before, &after) {
             (Some(before), Some(after)) => Self::changed_file_names(before, after),
@@ -1643,8 +1673,8 @@ impl TorrentManager {
         };
         let changed = !changed_files.is_empty();
         if !changed {
-            self.pause_snapshots.remove(&key);
-            self.pause_changes.remove(&key);
+            self.file_snapshots.remove(&key);
+            self.file_watch_cache.remove(&key);
             self.session.unpause(&handle).await?;
             return Ok(TorrentResumeResult {
                 id,
@@ -1662,8 +1692,8 @@ impl TorrentManager {
         if let Some(check) = &check {
             self.missing_files.insert(new_id, !check.missing.is_empty());
         }
-        self.pause_snapshots.remove(&key);
-        self.pause_changes.remove(&key);
+        self.file_snapshots.remove(&key);
+        self.file_watch_cache.remove(&key);
         let handle = self
             .torrent_handle(new_id)
             .ok_or_else(|| anyhow::anyhow!("torrent not found after re-verifying"))?;
@@ -1755,8 +1785,8 @@ impl TorrentManager {
             self.download_order.remove(&key);
             self.torrent_limits.remove(&key);
             self.aliases.remove(&key);
-            self.pause_snapshots.remove(&key);
-            self.pause_changes.remove(&key);
+            self.file_snapshots.remove(&key);
+            self.file_watch_cache.remove(&key);
             if !rewriting {
                 self.rewrite_ghosts.remove(&key);
             }
@@ -1773,9 +1803,45 @@ impl TorrentManager {
             persisted.save_magnet_links();
             persisted.save_torrent_limits();
             persisted.save_aliases();
+            persisted.save_torrent_sources();
             persisted.save_preferences();
         });
         Ok(())
+    }
+
+    pub fn set_torrent_source(
+        &self,
+        id: usize,
+        info_hash: Option<&str>,
+        source: String,
+        url: String,
+    ) -> Result<(), String> {
+        self.verify_torrent(id, info_hash)?;
+        let key = self
+            .torrent_info_hash(id)
+            .or_else(|| info_hash.map(str::to_string))
+            .ok_or_else(|| "torrent not found".to_string())?;
+        let source = source.trim().chars().take(32).collect::<String>();
+        let url = url.trim().chars().take(2048).collect::<String>();
+        if source.is_empty() || url.is_empty() {
+            return Err("torrent source is empty".to_string());
+        }
+        self.torrent_sources.insert(key, TorrentOrigin { source, url });
+        self.save_torrent_sources();
+        Ok(())
+    }
+
+    pub fn get_torrent_source(
+        &self,
+        id: usize,
+        info_hash: Option<&str>,
+    ) -> Result<Option<TorrentOrigin>, String> {
+        self.verify_torrent(id, info_hash)?;
+        let key = self
+            .torrent_info_hash(id)
+            .or_else(|| info_hash.map(str::to_string))
+            .ok_or_else(|| "torrent not found".to_string())?;
+        Ok(self.torrent_sources.get(&key).map(|r| r.value().clone()))
     }
 
     pub fn set_torrent_alias(
@@ -2777,8 +2843,8 @@ mod tests {
             sequential_file: None,
             download_order: Vec::new(),
             missing_files: false,
-            paused_external_changes: false,
-            paused_changed_files: Vec::new(),
+            external_changes: false,
+            external_changed_files: Vec::new(),
         }
     }
 
@@ -3628,16 +3694,16 @@ mod tests {
             .expect("external write");
         }
         let key = manager.torrent_info_hash(id).expect("info hash");
-        manager.pause_changes.remove(&key);
+        manager.file_watch_cache.remove(&key);
 
         let mut torrents = manager.collect_torrents();
-        manager.watch_paused_files(&mut torrents);
+        manager.watch_external_files(&mut torrents);
         assert!(
             torrents
                 .iter()
                 .find(|torrent| torrent.id == id)
                 .expect("the torrent is listed")
-                .paused_external_changes,
+                .external_changes,
             "the badge has to flag the external writer while the torrent is still paused"
         );
 
@@ -4156,13 +4222,13 @@ mod tests {
             paused_fixture(&dir, "paused-watch", &content).await;
 
         let mut torrents = manager.collect_torrents();
-        manager.watch_paused_files(&mut torrents);
+        manager.watch_external_files(&mut torrents);
         let watched = torrents
             .iter()
             .find(|t| t.id == id)
             .expect("the torrent is listed");
         assert!(
-            !watched.paused_external_changes,
+            !watched.external_changes,
             "a freshly paused torrent is clean"
         );
 
@@ -4172,20 +4238,93 @@ mod tests {
                 .expect("external write");
         }
         let key = manager.torrent_info_hash(id).expect("info hash");
-        manager.pause_changes.remove(&key);
+        manager.file_watch_cache.remove(&key);
 
         let mut torrents = manager.collect_torrents();
-        manager.watch_paused_files(&mut torrents);
+        manager.watch_external_files(&mut torrents);
         let watched = torrents
             .iter()
             .find(|t| t.id == id)
             .expect("the torrent is listed");
         assert!(
-            watched.paused_external_changes,
+            watched.external_changes,
             "an outside edit has to raise the badge while the torrent is still paused"
         );
         assert_eq!(
-            watched.paused_changed_files,
+            watched.external_changed_files,
+            files.iter().map(|f| f.name.clone()).collect::<Vec<_>>(),
+            "the badge names exactly the files that moved"
+        );
+
+        let _ = std::fs::remove_dir_all(&dir);
+        let _ = std::fs::remove_dir_all(&source_dir);
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn the_finished_watcher_flags_outside_edits() {
+        let dir = std::env::temp_dir().join(format!("iluha-finished-watch-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let (torrent_bytes, source_dir, _root, _nested) = swarm_fixture("swarm-finished");
+        let (_seeder, seeder_addr) = start_local_seeder(&dir, &torrent_bytes, &source_dir).await;
+        let manager = Arc::new(
+            TorrentManager::new_test(dir.join("leech"))
+                .await
+                .expect("session starts"),
+        );
+        let id =
+            download_from_local_seeder(&manager, torrent_bytes, &dir, seeder_addr, false).await;
+
+        let deadline = Instant::now() + Duration::from_secs(90);
+        let is_finished = |manager: &Arc<TorrentManager>| {
+            manager
+                .collect_torrents()
+                .iter()
+                .any(|torrent| torrent.id == id && torrent.finished)
+        };
+        while Instant::now() < deadline && !is_finished(&manager) {
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        }
+        assert!(
+            is_finished(&manager),
+            "the leecher has to hold every byte before the watch starts"
+        );
+        let save_dir = dir.join("downloads");
+
+        let mut torrents = manager.collect_torrents();
+        manager.watch_external_files(&mut torrents);
+        let watched = torrents
+            .iter()
+            .find(|t| t.id == id)
+            .expect("the torrent is listed");
+        assert!(
+            !watched.external_changes,
+            "a freshly finished torrent is clean"
+        );
+
+        let files = manager.get_running_torrent_files(id).expect("file list");
+        for file in &files {
+            let meta = std::fs::metadata(save_dir.join(&file.name)).expect("file on disk");
+            std::fs::write(
+                save_dir.join(&file.name),
+                &vec![0u8; meta.len() as usize / 2],
+            )
+            .expect("external write");
+        }
+        let key = manager.torrent_info_hash(id).expect("info hash");
+        manager.file_watch_cache.remove(&key);
+
+        let mut torrents = manager.collect_torrents();
+        manager.watch_external_files(&mut torrents);
+        let watched = torrents
+            .iter()
+            .find(|t| t.id == id)
+            .expect("the torrent is listed");
+        assert!(
+            watched.external_changes,
+            "an outside edit has to raise the badge on a finished torrent"
+        );
+        assert_eq!(
+            watched.external_changed_files,
             files.iter().map(|f| f.name.clone()).collect::<Vec<_>>(),
             "the badge names exactly the files that moved"
         );
@@ -4224,13 +4363,13 @@ mod tests {
         );
 
         let mut torrents = manager.collect_torrents();
-        manager.watch_paused_files(&mut torrents);
+        manager.watch_external_files(&mut torrents);
         assert!(
             !torrents
                 .iter()
                 .find(|t| t.id == result.id)
                 .expect("the torrent is listed")
-                .paused_external_changes
+                .external_changes
         );
 
         let _ = std::fs::remove_dir_all(&dir);

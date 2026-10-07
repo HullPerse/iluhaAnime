@@ -5,11 +5,11 @@ import { systemApi } from "@/api/system.api";
 import { torrentApi } from "@/api/torrent.api";
 import { tr } from "@/lib/locale/i18n.utils";
 import { torrentErrorText } from "@/lib/torrent/common.utils";
-import { attempt, withFallback } from "@/lib/utils/attempt.utils";
+import { attempt, reportBackgroundError, withFallback } from "@/lib/utils/attempt.utils";
 import { showError } from "@/lib/utils/notification.utils";
 import { ignore } from "@/lib/utils/promise.utils";
 import { useCacheStore } from "@/store/cache.store";
-import type { SpeedLimits, TorrentStore } from "@/types/torrent";
+import type { SpeedLimits, TorrentOrigin, TorrentStore } from "@/types/torrent";
 
 export { tr };
 
@@ -99,6 +99,12 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
       sequential ?? false
     );
     if (id === undefined) return;
+    if (pending.origin) {
+      const [, sourceError] = await attempt(
+        torrentApi.setTorrentSource(id, pending.origin, undefined)
+      );
+      if (sourceError) reportBackgroundError("torrent.origin.save", sourceError);
+    }
     set({ pendingTorrent: null });
     get().prepareNextInQueue();
   },
@@ -131,7 +137,7 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
     if (next.kind === "magnet") ignore(state.prepareTorrentDownload(next.value));
     else ignore(state.prepareTorrentDownloadFromFile(next.value));
   },
-  prepareTorrentDownload: async (magnet: string, info?: { seeders?: number }) => {
+  prepareTorrentDownload: async (magnet: string, info?: { seeders?: number; origin?: TorrentOrigin }) => {
     if (get().preparingTorrent) return;
     let saveDir = useCacheStore.getState().lastSaveDir;
     if (!saveDir) {
@@ -158,6 +164,7 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
           conflictingFiles: cached.conflictingFiles,
           hasCommonFolder: cached.hasCommonFolder,
           seeders: info?.seeders,
+          origin: info?.origin,
         },
       });
       return;
@@ -191,12 +198,13 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
           conflictingFiles: result.conflicting_files,
           hasCommonFolder: result.has_common_folder,
           seeders: info?.seeders,
+          origin: info?.origin,
         },
         metadataCache: cache,
       };
     });
   },
-  prepareTorrentDownloadFromFile: async (filePath: string, info?: { seeders?: number }) => {
+  prepareTorrentDownloadFromFile: async (filePath: string, info?: { seeders?: number; origin?: TorrentOrigin }) => {
     if (get().preparingTorrent) return;
     let saveDir = useCacheStore.getState().lastSaveDir;
     if (!saveDir) {
@@ -232,6 +240,7 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
           conflictingFiles: cached.conflictingFiles,
           hasCommonFolder: cached.hasCommonFolder,
           seeders: info?.seeders,
+          origin: info?.origin,
         },
       });
       return;
@@ -267,12 +276,13 @@ export const useTorrentStore = create<TorrentStore>((set, get) => ({
           conflictingFiles: result.conflicting_files,
           hasCommonFolder: result.has_common_folder,
           seeders: info?.seeders,
+          origin: info?.origin,
         },
         metadataCache: cache,
       };
     });
   },
-  prepareTorrentDownloadFromBytes: async (fileBytes: number[], info?: { seeders?: number }) => {
+  prepareTorrentDownloadFromBytes: async (fileBytes: number[], info?: { seeders?: number; origin?: TorrentOrigin }) => {
     if (get().preparingTorrent) return;
     let saveDir = useCacheStore.getState().lastSaveDir;
     if (!saveDir) {

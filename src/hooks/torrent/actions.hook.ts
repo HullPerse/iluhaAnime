@@ -14,10 +14,19 @@ import {
   useUpdateOnlyFiles,
 } from "@/hooks/torrent/queries.hook";
 import { describeRecheckOutcome } from "@/lib/torrent/recheck.utils";
+import { applyTorrentUpdate } from "@/lib/torrent/update.utils";
+import { attempt } from "@/lib/utils/attempt.utils";
+import { ignore } from "@/lib/utils/promise.utils";
 import { useCacheStore } from "@/store/cache.store";
 import { useTorrentStore } from "@/store/download.store";
 import { useNotificationStore } from "@/store/notification.store";
-import type { FilePriority, TorrentInfo } from "@/types/torrent";
+import { torrentApi } from "@/api/torrent.api";
+import type {
+  FilePriority,
+  TorrentDetailFile,
+  TorrentDetails,
+  TorrentInfo,
+} from "@/types/torrent";
 
 export interface TorrentItemActions {
   onPause: () => void;
@@ -32,6 +41,7 @@ export interface TorrentItemActions {
   onRedownload: (fileIndex: number) => void;
   onRecheck: () => void;
   onRecheckPaused: () => void;
+  onUpdateRequest: (request: { added: TorrentDetailFile[]; details: TorrentDetails }) => void;
 }
 
 export function useTorrentItemActions(item: TorrentInfo): TorrentItemActions {
@@ -121,6 +131,14 @@ export function useTorrentItemActions(item: TorrentInfo): TorrentItemActions {
     const notice = describeRecheckOutcome(result, t);
     useNotificationStore.getState().add(t("torrent.recheck.title"), notice.tone, notice.message);
   }, [recheckMutation, t, id, infoHash]);
+  const onUpdateRequest = useCallback(
+    async (request: { added: TorrentDetailFile[]; details: TorrentDetails }) => {
+      const [origin] = await attempt(torrentApi.getTorrentSource(id, infoHash));
+      if (!origin) return;
+      ignore(applyTorrentUpdate(item, origin, request.details, request.added));
+    },
+    [id, infoHash, item]
+  );
 
   return {
     onPause,
@@ -135,5 +153,6 @@ export function useTorrentItemActions(item: TorrentInfo): TorrentItemActions {
     onRedownload,
     onRecheck,
     onRecheckPaused,
+    onUpdateRequest,
   };
 }

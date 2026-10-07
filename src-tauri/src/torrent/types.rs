@@ -116,8 +116,14 @@ pub struct TorrentInfo {
     pub sequential_file: Option<usize>,
     pub download_order: Vec<usize>,
     pub missing_files: bool,
-    pub paused_external_changes: bool,
-    pub paused_changed_files: Vec<String>,
+    pub external_changes: bool,
+    pub external_changed_files: Vec<String>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct TorrentOrigin {
+    pub source: String,
+    pub url: String,
 }
 
 #[derive(Serialize, Deserialize, Clone)]

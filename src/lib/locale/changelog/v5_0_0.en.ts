@@ -125,6 +125,8 @@ const changelog500 = {
     "Site notifications failed to load on a wrong request, the request is fixed",
   "changelog.5_0_0.changed.app.state_engine":
     "Reworked internal state handling so lists, the player, and settings react faster",
+  "changelog.5_0_0.changed.search.did_you_mean_highlight":
+    "Did-you-mean suggestions now highlight what changed in the correction",
 } as const;
 
 export default changelog500;

@@ -5,13 +5,15 @@ import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 
 import { systemApi } from "@/api/system.api";
 import { TOAST_ACTIVATED_EVENT } from "@/config/settings/notifications.config";
-import { tabForAltDigit, visibleTabs } from "@/config/settings/tabs.config";
+import { visibleTabs } from "@/config/settings/tabs.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
+import { useHotkeys } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useLiveResource } from "@/hooks/liveResource.hook";
 import { isOfflineDisabledTab, markOfflineTabs, useOnlineStatus } from "@/hooks/network.hook";
 import { useTauriEvent } from "@/hooks/tauriEvent.hook";
 import { pollAniListReleases, pollSiteNotifications } from "@/lib/anilist/notifications.utils";
+import type { HotkeyDef } from "@/lib/hotkeys/chord.hotkeys";
 import { queryKeys } from "@/lib/query/keys.utils";
 import { readAppCache, writeAppCache } from "@/lib/store/cache.utils";
 import { attemptAll, reportBackgroundError } from "@/lib/utils/attempt.utils";
@@ -194,23 +196,23 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
       startTransition(() => setActiveTab("search"));
   }, [activeTab, collectionTabEnabled, anilistTabEnabled, setActiveTab]);
 
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.code === "AltLeft" || e.code === "AltRight") return;
-      if (!e.altKey || e.ctrlKey || e.shiftKey) return;
-      if (!e.code.startsWith("Digit")) return;
-      const digit = Number(e.code.slice("Digit".length));
-      const tab = tabForAltDigit(useSettingsStore.getState(), digit);
-      if (!tab) return;
+  const altDigitDefs: HotkeyDef<TabId>[] = visibleTabs({
+    collectionTabEnabled,
+    anilistTabEnabled,
+    searchTabEnabled,
+    torrentTabEnabled,
+    playerTabEnabled,
+  }).map((tab, index) => ({ id: tab.id, chord: `alt+Digit${index + 1}`, repeat: "once" }));
+
+  useHotkeys<TabId>(altDigitDefs, {
+    onAction: (tab) => {
       if (!isOnline && isOfflineDisabledTab(tab)) {
         showWarning(t("network.offline.title"), t("network.action.unavailable"));
         return;
       }
       startTransition(() => setActiveTab(tab));
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [isOnline, setActiveTab, t]);
+    },
+  });
 
   useEffect(() => {
     if (!isOnline) return;

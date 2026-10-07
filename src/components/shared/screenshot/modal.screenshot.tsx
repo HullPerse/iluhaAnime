@@ -23,6 +23,8 @@ import {
   SCREENSHOT_FORMATS,
 } from "@/config/settings/screenshot.config";
 import { useI18n } from "@/hooks/i18n.hook";
+import { useHotkeys } from "@/hooks/hotkeys.hook";
+import type { HotkeyDef } from "@/lib/hotkeys/chord.hotkeys";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
 import {
   canRedo,
@@ -59,6 +61,17 @@ const TOOL_HINTS: Record<ScreenshotTool, TranslationKey> = {
   text: "screenshot.hint.text",
   blur: "screenshot.hint.blur",
 };
+
+const HISTORY_DEFS: HotkeyDef<"undo" | "redo">[] = [
+  { id: "undo", chord: "ctrl+KeyZ", repeat: "once" },
+  { id: "undo", chord: "meta+KeyZ", repeat: "once" },
+  { id: "redo", chord: "ctrl+Shift+KeyZ", repeat: "once" },
+  { id: "redo", chord: "meta+Shift+KeyZ", repeat: "once" },
+  { id: "redo", chord: "ctrl+KeyY", repeat: "once" },
+  { id: "redo", chord: "ctrl+Shift+KeyY", repeat: "once" },
+  { id: "redo", chord: "meta+KeyY", repeat: "once" },
+  { id: "redo", chord: "meta+Shift+KeyY", repeat: "once" },
+];
 
 export default function ScreenshotModal({
   capture,
@@ -109,19 +122,11 @@ export default function ScreenshotModal({
 
   useEffect(() => () => window.clearTimeout(copyTimer.current), []);
 
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (!event.ctrlKey && !event.metaKey) return;
-      const target = event.target;
-      if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) return;
-      const key = event.key.toLowerCase();
-      if (key !== "z" && key !== "y") return;
-      event.preventDefault();
-      setHistory(event.shiftKey && key === "z" ? redo : key === "y" ? redo : undo);
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  useHotkeys(HISTORY_DEFS, {
+    ignore: (event) =>
+      event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement,
+    onAction: (id) => setHistory(id === "undo" ? undo : redo),
+  });
 
   const commitItems = useCallback((next: AnnotationItem[]) => {
     setHistory((previous) => commit(previous, next));

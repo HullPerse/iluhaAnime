@@ -107,6 +107,8 @@ const changelog500 = {
     "Native player window opens in under 0.5 seconds with zero dropped frames on the benchmark corpus",
   "changelog.5_0_0.changed.torrents.instant_remove":
     "Torrent removal is instant with a three button confirm dialog",
+  "changelog.5_0_0.changed.app.hotkeys_registry":
+    "Keyboard shortcuts moved to an in-house registry: player keys, tab switching, screenshots, and popups share one matcher with readable chord names, so shortcuts stay instant and layout independent",
   "changelog.5_0_0.fixed.anilist.save_casing":
     "List entry saves failed on field name casing of media_id against mediaId",
   "changelog.5_0_0.fixed.torrents.infohash_casing":

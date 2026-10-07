@@ -1,4 +1,5 @@
 import type { TranslationKey } from "@/types/i18n";
+import type { HotkeyDef, HotkeyRepeat } from "@/lib/hotkeys/chord.hotkeys";
 
 export type KeybindAction =
   | "playPause"
@@ -30,13 +31,11 @@ export type KeybindAction =
 
 export interface KeybindDef {
   action: KeybindAction;
-  code: string;
+  chord: string;
+  repeat: HotkeyRepeat;
   keys: string;
   description: TranslationKey;
   category: "playback" | "navigation" | "subtitles" | "ui";
-  ctrl?: boolean;
-  shift?: boolean;
-  alt?: boolean;
 }
 
 export const SEEK_STEP = 5;
@@ -47,220 +46,216 @@ export const OFFSET_LIMIT = 300;
 export const KEYBINDS: KeybindDef[] = [
   {
     action: "playPause",
-    code: "Space",
+    chord: "Space",
+    repeat: "once",
     keys: "Space",
     description: "player.media.key.play.pause",
     category: "playback",
   },
   {
     action: "seekBackward",
-    code: "ArrowLeft",
+    chord: "ArrowLeft",
+    repeat: "hold",
     keys: "←",
     description: "player.media.key.seek.backward",
     category: "playback",
   },
   {
     action: "seekForward",
-    code: "ArrowRight",
+    chord: "ArrowRight",
+    repeat: "hold",
     keys: "→",
     description: "player.media.key.seek.forward",
     category: "playback",
   },
   {
     action: "volumeUp",
-    code: "ArrowUp",
+    chord: "ArrowUp",
+    repeat: "hold",
     keys: "↑",
     description: "player.media.key.volume.up",
     category: "playback",
   },
   {
     action: "volumeDown",
-    code: "ArrowDown",
+    chord: "ArrowDown",
+    repeat: "hold",
     keys: "↓",
     description: "player.media.key.volume.down",
     category: "playback",
   },
   {
     action: "toggleMute",
-    code: "KeyM",
+    chord: "KeyM",
+    repeat: "once",
     keys: "M",
     description: "player.media.key.mute.toggle",
     category: "playback",
   },
   {
     action: "frameBackward",
-    code: "Comma",
+    chord: "Comma",
+    repeat: "hold",
     keys: ",",
     description: "player.media.key.frame.backward",
     category: "playback",
   },
   {
     action: "frameForward",
-    code: "Period",
+    chord: "Period",
+    repeat: "hold",
     keys: ".",
     description: "player.media.key.frame.forward",
     category: "playback",
   },
   {
     action: "subtitleOffsetDown",
-    code: "F1",
+    chord: "F1",
+    repeat: "hold",
     keys: "F1",
     description: "player.media.key.subtitle.offset.down",
     category: "subtitles",
   },
   {
     action: "subtitleOffsetUp",
-    code: "F2",
+    chord: "F2",
+    repeat: "hold",
     keys: "F2",
     description: "player.media.key.subtitle.offset.up",
     category: "subtitles",
   },
   {
     action: "subtitleOffsetDownFine",
-    code: "F1",
+    chord: "ctrl+F1",
+    repeat: "hold",
     keys: "Ctrl+F1",
     description: "player.media.key.subtitle.offset.down.fine",
     category: "subtitles",
-    ctrl: true,
   },
   {
     action: "subtitleOffsetUpFine",
-    code: "F2",
+    chord: "ctrl+F2",
+    repeat: "hold",
     keys: "Ctrl+F2",
     description: "player.media.key.subtitle.offset.up.fine",
     category: "subtitles",
-    ctrl: true,
   },
   {
     action: "audioOffsetDown",
-    code: "F3",
+    chord: "F3",
+    repeat: "hold",
     keys: "F3",
     description: "player.media.key.audio.offset.down",
     category: "subtitles",
   },
   {
     action: "audioOffsetUp",
-    code: "F4",
+    chord: "F4",
+    repeat: "hold",
     keys: "F4",
     description: "player.media.key.audio.offset.up",
     category: "subtitles",
   },
   {
     action: "audioOffsetDownFine",
-    code: "F3",
+    chord: "ctrl+F3",
+    repeat: "hold",
     keys: "Ctrl+F3",
     description: "player.media.key.audio.offset.down.fine",
     category: "subtitles",
-    ctrl: true,
   },
   {
     action: "audioOffsetUpFine",
-    code: "F4",
+    chord: "ctrl+F4",
+    repeat: "hold",
     keys: "Ctrl+F4",
     description: "player.media.key.audio.offset.up.fine",
     category: "subtitles",
-    ctrl: true,
   },
   {
     action: "resetDelays",
-    code: "F5",
+    chord: "F5",
+    repeat: "once",
     keys: "F5",
     description: "player.media.key.delays.reset",
     category: "subtitles",
   },
   {
     action: "toggleAutoHide",
-    code: "KeyH",
+    chord: "ctrl+KeyH",
+    repeat: "once",
     keys: "Ctrl+H",
     description: "player.media.key.autohide.toggle",
     category: "ui",
-    ctrl: true,
   },
   {
     action: "toggleDiagnostics",
-    code: "KeyI",
+    chord: "KeyI",
+    repeat: "once",
     keys: "I",
     description: "player.media.key.diagnostics.toggle",
     category: "ui",
   },
   {
     action: "nextFile",
-    code: "PageDown",
+    chord: "PageDown",
+    repeat: "hold",
     keys: "PageDown",
     description: "player.media.key.file.next",
     category: "navigation",
   },
   {
     action: "prevFile",
-    code: "PageUp",
+    chord: "PageUp",
+    repeat: "hold",
     keys: "PageUp",
     description: "player.media.key.file.prev",
     category: "navigation",
   },
   {
     action: "toggleFullscreen",
-    code: "KeyF",
+    chord: "KeyF",
+    repeat: "once",
     keys: "F",
     description: "player.media.key.fullscreen.toggle",
     category: "ui",
   },
   {
     action: "toggleCheatsheet",
-    code: "Slash",
+    chord: "Shift+Slash",
+    repeat: "once",
     keys: "?",
     description: "player.media.key.cheatsheet.toggle",
     category: "ui",
-    shift: true,
   },
   {
     action: "exitCinemaMode",
-    code: "Escape",
+    chord: "Escape",
+    repeat: "once",
     keys: "Esc",
     description: "player.media.key.exit",
     category: "ui",
   },
   {
     action: "jumpToTime",
-    code: "KeyG",
+    chord: "ctrl+KeyG",
+    repeat: "once",
     keys: "Ctrl+G",
     description: "player.media.key.jump.to.time",
     category: "playback",
-    ctrl: true,
   },
   {
     action: "saveCleanFrame",
-    code: "KeyO",
+    chord: "ctrl+Shift+KeyO",
+    repeat: "hold",
     keys: "Ctrl+Shift+O",
     description: "player.media.key.frame.save",
     category: "playback",
-    ctrl: true,
-    shift: true,
   },
 ];
 
-const codeMap = new Map<string, KeybindDef>();
-
-for (const keybind of KEYBINDS) {
-  codeMap.set(
-    `${keybind.code}:${keybind.ctrl ?? false}:${keybind.shift ?? false}:${keybind.alt ?? false}`,
-    keybind
-  );
-}
-
-export function getAction(
-  code: string,
-  ctrl: boolean,
-  shift: boolean,
-  alt: boolean
-): KeybindDef | undefined {
-  return codeMap.get(`${code}:${ctrl}:${shift}:${alt}`);
-}
-
-const HOTKEY_IGNORE_SELECTOR =
-  'input, textarea, select, button, [contenteditable="true"], [data-no-hotkeys], [data-hotkeys-disabled], [data-no-wheel]';
-
-export function shouldIgnoreHotkeys(target: EventTarget | null): boolean {
-  const element = target instanceof HTMLElement ? target : null;
-  if (!element) return false;
-  return Boolean(element.closest(HOTKEY_IGNORE_SELECTOR));
-}
+export const PLAYER_HOTKEYS: HotkeyDef<KeybindAction>[] = KEYBINDS.map((keybind) => ({
+  id: keybind.action,
+  chord: keybind.chord,
+  repeat: keybind.repeat,
+}));

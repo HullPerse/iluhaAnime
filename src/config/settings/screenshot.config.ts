@@ -39,10 +39,3 @@ export const CROP_ZOOM_MIN = 0.5;
 export const CROP_ZOOM_MAX = 8;
 export const CROP_ZOOM_STEP = 1.2;
 export const CROP_ZOOM_PRECISION = 1000;
-
-export const SCREENSHOT_HOTKEY = {
-  code: "KeyP",
-  ctrl: true,
-  shift: true,
-  alt: false,
-} as const;

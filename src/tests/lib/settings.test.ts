@@ -49,11 +49,7 @@ import {
   toFrame,
   zoomAtPoint,
 } from "@/lib/settings/crop.utils";
-import {
-  canSaveScreenshot,
-  defaultScreenshotName,
-  matchesScreenshotHotkey,
-} from "@/lib/settings/screenshot.utils";
+import { canSaveScreenshot, defaultScreenshotName } from "@/lib/settings/screenshot.utils";
 import { toSessionConfig } from "@/lib/settings/session.utils";
 import { buildTrayMenuEntries, shouldHideOnClose } from "@/lib/settings/tray.utils";
 import { useSettingsStore } from "@/store/settings.store";
@@ -914,48 +910,6 @@ describe("settings/crop", () => {
 });
 
 describe("settings/screenshot", () => {
-  function chord(partial: {
-    code?: string;
-    ctrlKey?: boolean;
-    shiftKey?: boolean;
-    altKey?: boolean;
-    metaKey?: boolean;
-  }) {
-    return {
-      code: "KeyP",
-      ctrlKey: true,
-      shiftKey: true,
-      altKey: false,
-      metaKey: false,
-      ...partial,
-    };
-  }
-
-  describe("matchesScreenshotHotkey", () => {
-    it("matches ctrl shift P exactly", () => {
-      expect(matchesScreenshotHotkey(chord({}))).toBe(true);
-    });
-
-    it("rejects a missing modifier", () => {
-      expect(matchesScreenshotHotkey(chord({ ctrlKey: false }))).toBe(false);
-      expect(matchesScreenshotHotkey(chord({ shiftKey: false }))).toBe(false);
-    });
-
-    it("rejects an extra modifier", () => {
-      expect(matchesScreenshotHotkey(chord({ altKey: true }))).toBe(false);
-      expect(matchesScreenshotHotkey(chord({ metaKey: true }))).toBe(false);
-    });
-
-    it("rejects another key", () => {
-      expect(matchesScreenshotHotkey(chord({ code: "KeyO" }))).toBe(false);
-      expect(matchesScreenshotHotkey(chord({ code: "P" }))).toBe(false);
-    });
-
-    it("ignores the physical layout value in favour of the code", () => {
-      expect(matchesScreenshotHotkey(chord({ code: "KeyP" }))).toBe(true);
-    });
-  });
-
   describe("defaultScreenshotName", () => {
     it("uses the product prefix", () => {
       expect(defaultScreenshotName()).toBe("iluhaAnime_screenshot");

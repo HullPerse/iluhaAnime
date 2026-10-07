@@ -1,22 +1,8 @@
 import { useEffect, useRef } from "react";
 
-import {
-  getAction,
-  shouldIgnoreHotkeys,
-  type KeybindAction,
-} from "@/config/player/keybinds.config";
-
-const SINGLE_SHOT: ReadonlySet<KeybindAction> = new Set([
-  "playPause",
-  "toggleMute",
-  "toggleFullscreen",
-  "toggleCheatsheet",
-  "toggleAutoHide",
-  "toggleDiagnostics",
-  "resetDelays",
-  "exitCinemaMode",
-  "jumpToTime",
-]);
+import { PLAYER_HOTKEYS, type KeybindAction } from "@/config/player/keybinds.config";
+import { useHotkeys } from "@/hooks/hotkeys.hook";
+import { shouldIgnoreHotkeys } from "@/lib/hotkeys/filter.hotkeys";
 
 function isInsideScrollable(target: EventTarget | null): boolean {
   const element = target instanceof HTMLElement ? target : null;
@@ -45,26 +31,20 @@ function Keyboard({
     wheelRef.current = onWheel;
   }, [onAction, onWheel]);
 
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (shouldIgnoreHotkeys(event.target)) return;
-      const action = getAction(event.code, event.ctrlKey, event.shiftKey, event.altKey);
-      if (!action) return;
-      if (event.repeat && SINGLE_SHOT.has(action.action)) return;
-      event.preventDefault();
-      actionRef.current(action.action);
-    };
+  useHotkeys<KeybindAction>(PLAYER_HOTKEYS, {
+    ignore: (event) => shouldIgnoreHotkeys(event.target),
+    onAction: (id) => actionRef.current(id),
+  });
 
+  useEffect(() => {
     const handleWheel = (event: WheelEvent) => {
       if (shouldIgnoreHotkeys(event.target)) return;
       if (isInsideScrollable(event.target)) return;
       wheelRef.current?.(event.deltaY > 0 ? -1 : 1);
     };
 
-    window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("wheel", handleWheel, { passive: true });
     return () => {
-      window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("wheel", handleWheel);
     };
   }, []);

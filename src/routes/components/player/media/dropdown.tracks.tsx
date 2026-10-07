@@ -2,7 +2,12 @@ import { cn } from "cn";
 import { Check, Plus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
+import { useHotkeys } from "@/hooks/hotkeys.hook";
+import type { HotkeyDef } from "@/lib/hotkeys/chord.hotkeys";
+
 type TrackOption = { id: number; main: string; language: string };
+
+const CLOSE_DEFS: HotkeyDef<"close">[] = [{ id: "close", chord: "Escape", repeat: "once" }];
 
 function TrackDropdown({
   label,
@@ -32,6 +37,11 @@ function TrackDropdown({
       : current.main
     : "";
 
+  useHotkeys(CLOSE_DEFS, {
+    enabled: open,
+    onAction: () => setOpen(false),
+  });
+
   useEffect(() => {
     if (!open) return;
     const onDown = (event: MouseEvent) => {
@@ -39,16 +49,9 @@ function TrackDropdown({
         setOpen(false);
       }
     };
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setOpen(false);
-      }
-    };
     window.addEventListener("mousedown", onDown);
-    window.addEventListener("keydown", onKey);
     return () => {
       window.removeEventListener("mousedown", onDown);
-      window.removeEventListener("keydown", onKey);
     };
   }, [open]);
 

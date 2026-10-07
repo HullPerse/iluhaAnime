@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 import { systemApi } from "@/api/system.api";
+import { useHotkeys } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { matchesScreenshotHotkey } from "@/lib/settings/screenshot.utils";
+import type { HotkeyDef } from "@/lib/hotkeys/chord.hotkeys";
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { showError } from "@/lib/utils/notification.utils";
 import type { ScreenshotCapture } from "@/types/screenshot";
@@ -11,6 +12,10 @@ export interface ScreenshotSession {
   capture: ScreenshotCapture | null;
   close: () => void;
 }
+
+const SCREENSHOT_DEFS: HotkeyDef<"capture">[] = [
+  { id: "capture", chord: "ctrl+Shift+KeyP", repeat: "once" },
+];
 
 export function useScreenshot(): ScreenshotSession {
   const { t } = useI18n();
@@ -35,15 +40,9 @@ export function useScreenshot(): ScreenshotSession {
     setCapture(data);
   }, [setCapture, t]);
 
-  useEffect(() => {
-    const handler = (event: KeyboardEvent) => {
-      if (!matchesScreenshotHotkey(event)) return;
-      event.preventDefault();
-      request();
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [request]);
+  useHotkeys(SCREENSHOT_DEFS, {
+    onAction: () => request(),
+  });
 
   const close = useCallback(() => {
     const pending = captureRef.current;

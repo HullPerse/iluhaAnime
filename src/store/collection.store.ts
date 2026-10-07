@@ -1,7 +1,8 @@
 import { DEFAULT_FILTERS } from "@/config/collection/filters.config";
-import { createPersistor, persistKey, type Persistor } from "@/lib/state/persist.utils";
-import { createSignalStore, type Cell } from "@/lib/state/signal.store";
-import { attemptSync, reportBackgroundError } from "@/lib/utils/attempt.utils";
+import { createPersistedStoreContext } from "@/lib/state/persisted.utils";
+import { attemptSync } from "@/lib/utils/attempt.utils";
+import type { Persistor } from "@/lib/state/persist.utils";
+import type { Cell } from "@/lib/state/signal.store";
 import type {
   CollectionFilters,
   CollectionStatus,
@@ -118,11 +119,6 @@ function readLegacyCollection(
   };
 }
 
-function defaultGetStorage(): Storage | undefined {
-  if (typeof localStorage === "undefined") return undefined;
-  return localStorage;
-}
-
 export interface CollectionSignalOptions {
   getStorage?: () => Storage | undefined;
   debounceMs?: number;
@@ -147,21 +143,13 @@ export interface CollectionSignalStore {
 export function createCollectionSignalStore(
   options: CollectionSignalOptions = {}
 ): CollectionSignalStore {
-  const getStorage = options.getStorage ?? defaultGetStorage;
-  const store = createSignalStore();
-  let adoptedFromLegacy = false;
-  const persistor = createPersistor({
+  const { store, persistor, finishAdopt } = createPersistedStoreContext({
     storeName: "collection-ui",
+    short: "collection",
     schemaVersion: COLLECTION_SCHEMA_VERSION,
-    getStorage,
+    getStorage: options.getStorage,
     debounceMs: options.debounceMs,
-    fallback: () => {
-      const migrated = readLegacyCollection(getStorage);
-      if (migrated) adoptedFromLegacy = true;
-      return migrated;
-    },
-    onError: (scope, error) =>
-      reportBackgroundError(`collection.signal.${scope}`, error as Error),
+    onFallback: (get) => readLegacyCollection(get),
   });
 
   const persisted = persistor.read();
@@ -185,13 +173,13 @@ export function createCollectionSignalStore(
       id: cell.id,
       get: cell.get,
       set: (next) => {
-        cell.set(next);
         writeMirror[key] = next instanceof Set ? [...next] : next;
+        cell.set(next);
       },
       update: (fn) => {
         const next = (fn as (prev: unknown) => unknown)(cell.get());
-        cell.set(next);
         writeMirror[key] = next instanceof Set ? [...next] : next;
+        cell.set(next);
       },
       subscribe: cell.subscribe,
     };
@@ -233,22 +221,7 @@ export function createCollectionSignalStore(
     consumeWizardPrefill: () => atoms.wizardPrefill.set(null),
   };
 
-  if (adoptedFromLegacy) {
-    persistor.write(persistedSnapshot());
-    persistor.flush();
-    const [storage, storageError] = attemptSync(() => getStorage());
-    if (storageError !== null) reportBackgroundError("collection.signal.adopt", storageError);
-    else {
-      const [adopted, adoptError] = attemptSync(() =>
-        storage?.getItem(persistKey("collection-ui"))
-      );
-      if (adoptError !== null) reportBackgroundError("collection.signal.adopt", adoptError);
-      else if (adopted) {
-        const [, removeError] = attemptSync(() => storage?.removeItem("collection-ui"));
-        if (removeError !== null) reportBackgroundError("collection.signal.adopt", removeError);
-      }
-    }
-  }
+  finishAdopt(() => persistedSnapshot(), { remove: "collection-ui" });
 
   return handle;
 }

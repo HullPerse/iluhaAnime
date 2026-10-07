@@ -43,3 +43,6 @@ bun.lock
 # debug outputs
 temp.txt
 typecheck.txt
+
+# labs benchmark results (bench sources are tracked, only run results are ignored)
+benches/.labs/

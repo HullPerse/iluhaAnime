@@ -1,6 +1,7 @@
 import { test } from 'vitest';
 
-import { formatParsedTitle, fileNameFromPath } from '@/lib/player/title.utils';
+import { formatParsedTitle } from '@/lib/player/title.utils';
+import { fileNameFromPath } from '@/lib/media/parse.utils';
 import { clearMediaParseCache, parseMediaPath } from '@/lib/media/parse.utils';
 import fixtureRows from '../media/fixtures.json';
 

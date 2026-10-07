@@ -33,8 +33,6 @@ export interface CategoryStore {
   moveEntry: (categoryId: string, entryId: string, delta: -1 | 1) => void;
   removeEntriesByFolderPath: (path: string) => void;
   removeEntriesByTorrentId: (id: number) => void;
-  exportCategories: () => string;
-  importCategories: (raw: unknown) => number;
 }
 
 export type CategoryDragData =

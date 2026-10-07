@@ -1,8 +1,6 @@
 import { cn } from "cn";
 import { useState } from "react";
 
-import UserImageIcon from "@/components/shared/avatar.component";
-import UserImagePicker from "@/components/shared/avatar.picker";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
@@ -18,17 +16,13 @@ function CategoryIconModal({ id, handleClose }: { id: string; handleClose: () =>
 
   const { t } = useI18n();
   const [selected, setSelected] = useState<string>(
-    category ? category.icon : "w98_directory_zipper.ico"
+    category && playerIcons.includes(category.icon) ? category.icon : "w98_directory_zipper.ico"
   );
 
   const handleChangeIcon = () => {
     if (!selected || !category) return;
     changeCategoryIcon(category.id, selected);
     handleClose();
-  };
-
-  const handleUserImage = (icon: string) => {
-    setSelected(icon);
   };
 
   return (
@@ -52,15 +46,6 @@ function CategoryIconModal({ id, handleClose }: { id: string; handleClose: () =>
           </div>
         ))}
       </section>
-
-      <UserImagePicker selected={selected} onSelect={handleUserImage} />
-
-      {selected.startsWith("user-image:") && (
-        <div className="windows95-text mt-1 flex items-center gap-1 text-xs">
-          <span>{t("player.category.selected")}</span>
-          <UserImageIcon icon={selected} className="windows95-border bg-field size-6" />
-        </div>
-      )}
 
       <section className="windows95-text mt-2 ml-auto flex flex-row gap-1">
         <Button onClick={handleClose}>{t("common.cancel").toUpperCase()}</Button>

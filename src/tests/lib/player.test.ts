@@ -6,6 +6,7 @@ import {
   appendFilesQuiet,
   audioOptions,
   colorOptions,
+  diffOptions,
   hdrOptions,
   parseTimecode,
   profileOptions,
@@ -13,7 +14,8 @@ import {
   transformOptions,
 } from "@/lib/player/playback.utils";
 import { queueDepthSteps } from "@/lib/player/queue.utils";
-import { fileNameFromPath, clearParseCache, formatParsedTitle } from "@/lib/player/title.utils";
+import { clearMediaParseCache, fileNameFromPath } from "@/lib/media/parse.utils";
+import { formatParsedTitle } from "@/lib/player/title.utils";
 import {
   buildOutputPath,
   buildTree,
@@ -397,14 +399,14 @@ describe("player/title", () => {
     });
 
     it("returns the same result on repeated calls", () => {
-      clearParseCache();
+      clearMediaParseCache();
       const first = formatParsedTitle("[Erai-raws] Naruto - 01 [1080p].mkv", ru);
       const second = formatParsedTitle("[Erai-raws] Naruto - 01 [1080p].mkv", ru);
       expect(second).toBe(first);
     });
 
     it("stays correct after cache eviction pressure", () => {
-      clearParseCache();
+      clearMediaParseCache();
       for (let i = 0; i < 600; i++) {
         formatParsedTitle(`[Group] Some Anime ${i} - 01 [1080p].mkv`, ru);
       }
@@ -508,6 +510,9 @@ describe("player/playback options", () => {
     expect(options["vf"]).toBe("");
     expect(options["sub-font-size"]).toBe(55);
     expect(options["sub-font"]).toBe("Arial");
+    // Subtitles must never use the video margins: those are the UI bars.
+    expect(options["sub-use-margins"]).toBe(false);
+    expect(options["sub-ass-force-margins"]).toBe(false);
     const filtered = transformOptions(settings({ flipH: true, blur: 5 }));
     expect(filtered["vf"]).toContain("hflip");
     expect(filtered["vf"]).toContain("gblur");
@@ -515,6 +520,18 @@ describe("player/playback options", () => {
 
   it("does not emit gamma without a UI control", () => {
     expect(transformOptions(settings({}))).not.toHaveProperty("gamma");
+  });
+
+  it("diffs option maps down to the changed entries", () => {
+    expect(diffOptions({ a: 1, b: "x" }, { a: 1, b: "x" })).toEqual({});
+    expect(diffOptions({ a: 1, b: "x" }, { a: 2, b: "x" })).toEqual({ a: 2 });
+    expect(diffOptions({ a: 1 }, { a: 1, b: "new" })).toEqual({ b: "new" });
+  });
+
+  it("isolates a single slider drag inside transformOptions", () => {
+    const prev = transformOptions(settings({}));
+    const next = transformOptions(settings({ brightness: 150 }));
+    expect(diffOptions(prev, next)).toEqual({ brightness: 50 });
   });
 
   it("sends track ids as strings the wrapper accepts", async () => {

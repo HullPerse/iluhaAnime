@@ -32,8 +32,11 @@ export type {
 
 export { normalizeSearchText } from "./normalize.utils";
 
-function statBoost(value: string, stats: Record<string, SearchQueryStat> | undefined): number {
-  const stat = stats?.[normalizeSearchText(value)];
+function statBoostNormalized(
+  normalized: string,
+  stats: Record<string, SearchQueryStat> | undefined
+): number {
+  const stat = stats?.[normalized];
   if (!stat) return 0;
   const ageHours = Math.max(0, (Date.now() - stat.lastUsedAt) / 3_600_000);
   const recency = recencyBoost(ageHours);
@@ -63,7 +66,7 @@ export function rankHistoryEntries(
     const value = entry.trim();
     if (!value || seen.has(value)) continue;
     seen.add(value);
-    scored.push({ value, score: statBoost(value, stats) });
+    scored.push({ value, score: statBoostNormalized(normalizeSearchText(value), stats) });
   }
   scored.sort((a, b) => b.score - a.score);
   return scored.slice(0, Math.max(1, limit)).map((item) => item.value);
@@ -126,24 +129,28 @@ function symSpellFor(titles: string[], basis: object | undefined, fingerprint: s
 }
 
 function addHistorySuggestions(
-  query: string,
+  normalizedQuery: string,
+  terms: OperatorTerm[] | null,
   options: SearchSuggestionOptions,
   put: (s: SearchSuggestion) => void
 ): void {
   for (const value of options.history ?? []) {
-    const match = fuzzyMatchScore(query, value);
+    const normalizedValue = normalizeSearchText(value);
+    const match = matchNormalizedTitle(terms, normalizedQuery, normalizedValue);
     if (match == null) continue;
     put({
       kind: "history",
       score:
-        match + statBoost(value, options.queryStats) + statBoost(value, options.suggestionStats),
+        match +
+        statBoostNormalized(normalizedValue, options.queryStats) +
+        statBoostNormalized(normalizedValue, options.suggestionStats),
       subtitle: "history",
       value,
     });
   }
 }
 
-function matchNormalizedTitle(
+export function matchNormalizedTitle(
   terms: OperatorTerm[] | null,
   normalizedQuery: string,
   title: string
@@ -175,7 +182,7 @@ function addAnimeSuggestions(
       score:
         best +
         animeBoost(anime, options.anilistBoost ?? "subtle") +
-        statBoost(anime.title, options.suggestionStats),
+        statBoostNormalized(normalizedTitles[index]?.[0] ?? "", options.suggestionStats),
       subtitle: animeSubtitle(anime),
       value: anime.title,
     });
@@ -184,6 +191,8 @@ function addAnimeSuggestions(
 
 function addExtraSuggestions(
   query: string,
+  normalizedQuery: string,
+  terms: OperatorTerm[] | null,
   options: SearchSuggestionOptions,
   put: (s: SearchSuggestion) => void
 ): void {
@@ -194,13 +203,14 @@ function addExtraSuggestions(
   const showOperators = /[!^'$]/.test(query);
   for (const extra of options.extraValues ?? []) {
     if (extra.operator && !showOperators) continue;
+    const normalizedExtra = normalizeSearchText(extra.value);
     const match = extra.operator
       ? SEARCH_RANKING.OPERATOR_HINT_SCORE
-      : fuzzyMatchScore(query, extra.value);
+      : matchNormalizedTitle(terms, normalizedQuery, normalizedExtra);
     if (match == null) continue;
     put({
       kind: extra.kind ?? "local",
-      score: match + tagBoost + statBoost(extra.value, options.suggestionStats),
+      score: match + tagBoost + statBoostNormalized(normalizedExtra, options.suggestionStats),
       value: extra.value,
       subtitle: extra.subtitle,
     });
@@ -245,7 +255,8 @@ function addCollectionSuggestions(
     }
     if (best == null) continue;
     const stat =
-      statBoost(item.title, options.suggestionStats) + statBoost(item.title, options.queryStats);
+      statBoostNormalized(titles[0] ?? "", options.suggestionStats) +
+      statBoostNormalized(titles[0] ?? "", options.queryStats);
     put({
       kind: "local",
       score: best + boost + stat,
@@ -267,9 +278,9 @@ function addSuggestionSources(
     put(suggestion);
   }
   addCollectionSuggestions(normalizedQuery, terms, options, put);
-  addHistorySuggestions(query, options, put);
+  addHistorySuggestions(normalizedQuery, terms, options, put);
   addAnimeSuggestions(normalizedQuery, terms, options, put);
-  addExtraSuggestions(query, options, put);
+  addExtraSuggestions(query, normalizedQuery, terms, options, put);
 }
 
 function applySymSpellFallback(
@@ -292,12 +303,12 @@ function applySymSpellFallback(
   ];
   if (titlesForSymSpell.length === 0) return;
   const basis: object | undefined = options.animeIndex ?? options.history ?? options.extraValues;
-  const fingerprint = `${titlesForSymSpell.length}|${animeTitlesFingerprint(options.animeIndex)}|${history.join("\n")}|${extra.join("\n")}`;
+  const fingerprint = `${titlesForSymSpell.length}|${animeTitlesFingerprint(options.animeIndex)}|h${history.length}|e${extra.length}`;
   const sym = symSpellFor(titlesForSymSpell, basis, fingerprint);
   const corrected = sym.suggest(query);
   if (!corrected) return;
   if (normalizeSearchText(corrected) === normalizedQuery) return;
-  const cands = getSearchSuggestions(corrected, { ...options, limit: 2 });
+  const cands = getSearchSuggestions(corrected, { ...options, limit: 2, symSpell: false });
   for (const c of cands) {
     put({ ...c, score: c.score - 50, subtitle: `${c.subtitle ?? c.kind} (did you mean)` });
   }
@@ -314,7 +325,7 @@ export function suggestSpelling(
   const titles = [...history, ...(options.animeIndex?.map((entry) => entry.title) ?? []), ...extra];
   if (titles.length === 0) return null;
   const basis: object | undefined = options.animeIndex ?? options.history ?? options.extraValues;
-  const fingerprint = `${titles.length}|${animeTitlesFingerprint(options.animeIndex)}|${history.join("\n")}|${extra.join("\n")}`;
+  const fingerprint = `${titles.length}|${animeTitlesFingerprint(options.animeIndex)}|h${history.length}|e${extra.length}`;
   const corrected = symSpellFor(titles, basis, fingerprint).suggest(query);
   if (!corrected || normalizeSearchText(corrected) === normalizedQuery) return null;
   return corrected;

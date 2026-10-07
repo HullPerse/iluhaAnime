@@ -1,3 +1,4 @@
+import type { Cell } from "@/lib/state/signal.store";
 import type { PacerEnabled, PacerMode, PacerWait } from "@/types/pacer";
 
 export const MAX_TIMEOUT_MS = 2_147_483_647;
@@ -22,6 +23,30 @@ export function resolveEnabled(enabled: PacerEnabled | undefined): boolean {
 
 export interface ScheduledTask {
   cancel: () => void;
+}
+
+let nextSimpleCellId = 1;
+
+export function createSimpleCell<T>(initial: T): Cell<T> {
+  let value = initial;
+  const subs = new Set<() => void>();
+  const cell: Cell<T> = {
+    id: nextSimpleCellId++,
+    get: () => value,
+    set: (next: T) => {
+      if (Object.is(value, next)) return;
+      value = next;
+      for (const fn of subs) fn();
+    },
+    update: (fn: (prev: T) => T) => cell.set(fn(value)),
+    subscribe: (fn: () => void) => {
+      subs.add(fn);
+      return () => {
+        subs.delete(fn);
+      };
+    },
+  };
+  return cell;
 }
 
 export function scheduleTask(mode: PacerMode, waitMs: number, run: () => void): ScheduledTask {

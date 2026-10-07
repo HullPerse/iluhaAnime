@@ -1,5 +1,7 @@
 import type { HighlightRange } from "@/types/search";
 
+import { foldDiacritics } from "@/lib/search/normalize.utils";
+
 function isAscii(value: string): boolean {
   for (let i = 0; i < value.length; i++) {
     if ((value.codePointAt(i) ?? 128) > 127) return false;
@@ -19,12 +21,7 @@ const normalizeCache = new Map<string, string>();
 export function normalizeText(value: string): string {
   const cached = normalizeCache.get(value);
   if (cached !== undefined) return cached;
-  const normalized = isAscii(value)
-    ? value.toLowerCase()
-    : value
-        .normalize("NFKD")
-        .replace(/\p{Mark}/gu, "")
-        .toLocaleLowerCase();
+  const normalized = isAscii(value) ? value.toLowerCase() : foldDiacritics(value);
   if (normalizeCache.size >= NORMALIZE_CACHE_MAX) {
     const oldest = normalizeCache.keys().next();
     if (!oldest.done) normalizeCache.delete(oldest.value);
@@ -55,10 +52,7 @@ function findAsciiRanges(value: string, queryNorm: string): HighlightRange[] {
 }
 
 function matchKey(value: string): string {
-  return value
-    .normalize("NFKD")
-    .replace(/\p{Mark}/gu, "")
-    .toLocaleLowerCase();
+  return foldDiacritics(value);
 }
 
 function findGeneralRanges(value: string, queryNorm: string): HighlightRange[] {
@@ -195,10 +189,4 @@ export function splitByRanges(
   }
   if (cursor < value.length) tokens.push({ text: value.slice(cursor), highlighted: false });
   return tokens;
-}
-
-export function fromFuseIndices(indices: ReadonlyArray<readonly [number, number]>): HighlightRange[] {
-  return indices
-    .filter(([start, end]) => Number.isInteger(start) && Number.isInteger(end) && start <= end && start >= 0)
-    .map(([start, end]) => ({ start, end: end + 1 }));
 }

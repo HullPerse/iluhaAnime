@@ -4,7 +4,6 @@ import { useCell } from "@/lib/state/signal.hook";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { assetUrl } from "@/lib/utils/image.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
-import { ignore } from "@/lib/utils/promise.utils";
 import { formatClock } from "@/lib/utils/time.utils";
 import { playbackAtoms } from "@/store/player.store";
 import type { MpvChapter } from "@/types/videoPlayer";
@@ -22,13 +21,13 @@ function useHoverThumb(
   path: string,
   duration: number,
   hoverTime: number | null
-): string | null {
-  const [thumbUrl, setThumbUrl] = useState<string | null>(null);
+): HoverThumb | null {
+  const [thumb, setThumb] = useState<HoverThumb | null>(null);
   const requestedRef = useRef<number | null>(null);
 
   useEffect(() => {
     requestedRef.current = null;
-    setThumbUrl(null);
+    setThumb(null);
     if (hoverTime === null || !path || duration <= 0) {
       return;
     }
@@ -39,13 +38,29 @@ function useHoverThumb(
         invokeTyped<HoverThumbResponse>("player_hover_thumb", { path, timestamp: target })
       ).then(([res]) => {
         if (requestedRef.current !== target) return;
-        setThumbUrl(res?.url ? assetUrl(res.url) : null);
+        setThumb(res?.url ? { url: assetUrl(res.url), time: target } : null);
       });
     }, HOVER_THUMB_DEBOUNCE);
     return () => window.clearTimeout(timer);
   }, [hoverTime, path, duration]);
 
-  return thumbUrl;
+  return thumb;
+}
+
+interface HoverThumb {
+  url: string;
+  time: number;
+}
+
+/**
+ * Render gate for hover thumbnails: a resolved capture belongs to exactly
+ * one hover position, but the cleanup that clears a stale capture runs in an
+ * effect — after paint. Without this check the stale image renders at the
+ * new tooltip position for one frame (a flash of the old frame).
+ */
+export function selectThumbUrl(thumb: HoverThumb | null, hoverTime: number | null): string | null {
+  if (!thumb || hoverTime === null) return null;
+  return thumb.time === hoverTime ? thumb.url : null;
 }
 
 type HoverInfo = { time: number; x: number; chapter?: string };
@@ -84,51 +99,22 @@ function Timeline({
 }) {
   const timePos = useCell(playbackAtoms.timePos);
   const path = useCell(playbackAtoms.path);
-  const paused = useCell(playbackAtoms.paused);
   const barRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
   const [scrubTime, setScrubTime] = useState<number | null>(null);
   const [hover, setHover] = useState<HoverInfo | null>(null);
   const [showRemaining, setShowRemaining] = useState(false);
-  const thumbUrl = useHoverThumb(path, duration, hover?.time ?? null);
+  const hoverTime = hover?.time ?? null;
+  // No captures while scrubbing: a capture seeks mpv away and back, which
+  // freezes snapshots (see the capturing guard on the backend ticker) right
+  // when the timeline needs fresh positions most. The tooltip keeps showing
+  // time + chapter; the image arrives once the drag ends.
+  const thumb = useHoverThumb(path, duration, dragging ? null : hoverTime);
+  const thumbUrl = selectThumbUrl(thumb, hoverTime);
 
   const displayTime = dragging && scrubTime !== null ? scrubTime : (seekTarget ?? timePos);
   const progress = duration > 0 ? clamp01(displayTime / duration) * 100 : 0;
   const timeWidth = `${formatClock(duration).length * 2 + 3}ch`;
-  // TEMP-DEBUG: timeline render log, revert before merge (debug_timeline_append).
-  const renderSeqRef = useRef(0);
-  const renderLogRef = useRef<string[]>([]);
-  useEffect(() => {
-    ignore(invokeTyped("debug_timeline_append", {
-      line: JSON.stringify({ event: "timeline-mount", t: Date.now() }),
-    }));
-  }, []);
-  useEffect(() => {
-    renderSeqRef.current += 1;
-    renderLogRef.current.push(
-      JSON.stringify({
-        seq: renderSeqRef.current,
-        t: Date.now(),
-        displayTime: Number(displayTime.toFixed(3)),
-        duration,
-        seekTarget,
-        progress: Number(progress.toFixed(4)),
-        timeW: timeWidth,
-        paused,
-      })
-    );
-    if (renderLogRef.current.length >= 30) {
-      const batch = renderLogRef.current.splice(0);
-      for (const line of batch) ignore(invokeTyped("debug_timeline_append", { line }));
-    }
-  });
-  useEffect(
-    () => () => {
-      const rest = renderLogRef.current.splice(0);
-      for (const line of rest) ignore(invokeTyped("debug_timeline_append", { line }));
-    },
-    []
-  );
   const timeLabel = showRemaining
     ? `-${formatClock(Math.max(0, duration - displayTime))} / ${formatClock(duration)}`
     : `${formatClock(displayTime)} / ${formatClock(duration)}`;

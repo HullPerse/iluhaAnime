@@ -59,7 +59,7 @@ function TrackDropdown({
     <div ref={ref} className={cn("relative flex items-center gap-0.5", className)}>
       <button
         type="button"
-        className="windows95-font windows95-border flex h-5 max-w-24 min-w-18 items-center gap-1 bg-white px-1 text-[10px] outline-none hover:cursor-pointer focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-dotted"
+        className="windows95-font windows95-border text-text flex h-5 max-w-24 min-w-18 items-center gap-1 bg-field px-1 text-[10px] outline-none hover:cursor-pointer focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-dotted"
         aria-haspopup="listbox"
         aria-expanded={open}
         title={currentTitle}
@@ -91,7 +91,7 @@ function TrackDropdown({
               role="option"
               aria-selected={selectedId === null}
               className={cn(
-                "text-text hover:text-primary hover:bg-secondary flex w-full items-center gap-1 bg-white px-1 py-0.5 text-left text-[10px] hover:cursor-pointer",
+                "text-text hover:text-primary hover:bg-secondary flex w-full items-center gap-1 bg-field px-1 py-0.5 text-left text-[10px] hover:cursor-pointer",
                 selectedId === null && "bg-secondary text-primary"
               )}
               onClick={() => {
@@ -112,7 +112,7 @@ function TrackDropdown({
                 role="option"
                 aria-selected={selected}
                 className={cn(
-                  "text-text hover:text-primary hover:bg-secondary flex w-full items-center gap-1 bg-white px-1 py-0.5 text-left text-[10px] hover:cursor-pointer",
+                  "text-text hover:text-primary hover:bg-secondary flex w-full items-center gap-1 bg-field px-1 py-0.5 text-left text-[10px] hover:cursor-pointer",
                   selected && "bg-secondary text-primary"
                 )}
                 onClick={() => {

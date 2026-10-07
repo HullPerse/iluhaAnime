@@ -29,14 +29,7 @@ export default function QueuePanel({ scan }: { scan: ScanType }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   if (items.length === 0 && !scan) {
-    return (
-      <section className="windows95-active-border bg-primary p-1">
-        <div className="windows95-text flex items-center gap-1 text-xs">
-          <ListVideo className="size-3" />
-          <span>{t("player.queue.empty")}</span>
-        </div>
-      </section>
-    );
+    return null;
   }
 
   const STATUS_ICONS: Record<string, ReactNode> = {

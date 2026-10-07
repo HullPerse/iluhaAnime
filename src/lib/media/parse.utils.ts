@@ -2,7 +2,7 @@ import { resolveMediaFile } from "@/lib/media/resolve.utils";
 import { createLruCache } from "@/lib/utils/lruCache.utils";
 import type { MediaFileParse } from "@/types/media";
 
-const MAX_MEDIA_PARSE_CACHE = 2000;
+const MAX_MEDIA_PARSE_CACHE = 8000;
 const parseCache = createLruCache<string, MediaFileParse>(MAX_MEDIA_PARSE_CACHE);
 
 export function parseMediaFile(dir: string | null, file: string): MediaFileParse {
@@ -14,10 +14,20 @@ export function parseMediaFile(dir: string | null, file: string): MediaFileParse
   return parsed;
 }
 
+export function fileNameFromPath(p: string): string {
+  const slash = p.lastIndexOf("/");
+  const backslash = p.lastIndexOf("\\");
+  const cut = Math.max(slash, backslash);
+  if (cut === -1) return p;
+  const name = p.slice(cut + 1);
+  return name || p;
+}
+
 export function parseMediaPath(fullPath: string): MediaFileParse {
-  const parts = fullPath.replaceAll(/\\/g, "/").split("/");
-  const file = parts.pop() ?? fullPath;
-  const dir = parts.length > 0 ? parts.join("/") : null;
+  const normalized = fullPath.replaceAll(/\\/g, "/");
+  const cut = normalized.lastIndexOf("/");
+  const file = cut === -1 ? normalized : normalized.slice(cut + 1);
+  const dir = cut === -1 ? null : normalized.slice(0, cut) || null;
   return parseMediaFile(dir, file);
 }
 

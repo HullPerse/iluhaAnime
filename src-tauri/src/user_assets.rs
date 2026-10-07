@@ -16,6 +16,10 @@ const DITHER_IMAGES_TABLE: &str = "dither_images";
 const REMOTE_IMAGES_TABLE: &str = "remote_images";
 const REMOTE_IMAGE_CACHE_CAP: i64 = 500;
 
+const SOURCE_UPLOAD: &str = "upload";
+const SOURCE_REMOTE: &str = "remote";
+const REMOTE_SOURCE_NAMES: [&str; 3] = ["collection-cover", "remote-cover", "remote-image"];
+
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UserImage {
@@ -26,6 +30,7 @@ pub struct UserImage {
     pub version: Option<String>,
     pub original_path: Option<String>,
     pub created_at: i64,
+    pub source: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -98,7 +103,8 @@ fn open_database_at(path: &Path) -> Result<Connection, String> {
             id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
             mime_type TEXT NOT NULL,
-            created_at INTEGER NOT NULL
+            created_at INTEGER NOT NULL,
+            source TEXT NOT NULL DEFAULT 'upload'
         );
         CREATE TABLE IF NOT EXISTS dither_images (
             id TEXT PRIMARY KEY,
@@ -116,11 +122,77 @@ fn open_database_at(path: &Path) -> Result<Connection, String> {
         );",
     )
     .map_err(|e| format!("assets db schema: {e}"))?;
+    ensure_user_images_source(&conn)?;
     Ok(conn)
 }
 
 fn open_database(app: &tauri::AppHandle) -> Result<Connection, String> {
     open_database_at(&database_path(app)?)
+}
+
+/// Adds the `source` column to pre-existing `user_images` tables and backfills it.
+/// Fresh tables already carry the column via `CREATE TABLE`. Remote covers written by
+/// `download_remote_image` use fixed names, so they can be told apart from real uploads.
+fn ensure_user_images_source(conn: &Connection) -> Result<(), String> {
+    let has_source: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM pragma_table_info('user_images') WHERE name = 'source'",
+            [],
+            |row| row.get(0),
+        )
+        .map_err(|e| format!("assets db schema check: {e}"))?;
+    if has_source == 0 {
+        conn.execute(
+            "ALTER TABLE user_images ADD COLUMN source TEXT NOT NULL DEFAULT 'upload'",
+            [],
+        )
+        .map_err(|e| format!("assets db source column: {e}"))?;
+    }
+    let remote_names = REMOTE_SOURCE_NAMES
+        .map(|name| format!("'{name}'"))
+        .join(",");
+    let backfill = format!(
+        "UPDATE user_images SET source = 'remote' WHERE source <> 'remote' AND name IN ({remote_names})"
+    );
+    conn.execute(&backfill, [])
+        .map_err(|e| format!("assets db source backfill: {e}"))?;
+    Ok(())
+}
+
+/// Records where a `user_images` row came from. A fresh row takes the caller source
+/// unconditionally; on a hash collision an explicit upload always wins over a cache
+/// entry (the same bytes may first arrive as a collection cover and later be
+/// uploaded by the user as an icon).
+fn record_user_image_source(
+    conn: &Connection,
+    id: &str,
+    source: &str,
+    fresh: bool,
+) -> Result<(), String> {
+    if fresh || source == SOURCE_UPLOAD {
+        conn.execute(
+            "UPDATE user_images SET source = ?1 WHERE id = ?2",
+            params![source, id],
+        )
+    } else {
+        conn.execute(
+            "UPDATE user_images SET source = ?1 WHERE id = ?2 AND source <> 'upload'",
+            params![source, id],
+        )
+    }
+    .map_err(|e| format!("save image source: {e}"))?;
+    Ok(())
+}
+
+fn user_image_row_exists(conn: &Connection, id: &str) -> Result<bool, String> {
+    let count: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM user_images WHERE id = ?1",
+            params![id],
+            |row| row.get(0),
+        )
+        .map_err(|e| format!("image row check: {e}"))?;
+    Ok(count > 0)
 }
 
 fn drop_legacy_blob_schema(conn: &Connection) -> Result<(), String> {
@@ -240,7 +312,14 @@ fn make_thumb336(bytes: &[u8]) -> Option<Vec<u8>> {
     Some(out)
 }
 
-fn ensure_thumb(conn: &Connection, dir: &Path, id: &str, name: &str, orig_bytes: &[u8]) {
+fn ensure_thumb(
+    conn: &Connection,
+    dir: &Path,
+    id: &str,
+    name: &str,
+    orig_bytes: &[u8],
+    source: &str,
+) {
     if id.starts_with(THUMB_PREFIX) {
         return;
     }
@@ -249,10 +328,12 @@ fn ensure_thumb(conn: &Connection, dir: &Path, id: &str, name: &str, orig_bytes:
     };
     let tid = thumb_id(id);
     let _ = write_image_file(dir, &format!("{tid}.jpg"), &thumb);
+    let fresh = !user_image_row_exists(conn, &tid).unwrap_or(false);
     let _ = conn.execute(
-        "INSERT OR IGNORE INTO user_images (id, name, mime_type, created_at) VALUES (?1, ?2, 'image/jpeg', ?3)",
-        params![tid, name, now_seconds()],
+        "INSERT OR IGNORE INTO user_images (id, name, mime_type, source, created_at) VALUES (?1, ?2, 'image/jpeg', ?3, ?4)",
+        params![tid, name, source, now_seconds()],
     );
+    let _ = record_user_image_source(conn, &tid, source, fresh);
 }
 fn remote_thumb_file(dir: &Path, id: &str) -> PathBuf {
     dir.join(format!("{}.jpg", thumb_id(id)))
@@ -336,6 +417,7 @@ fn user_image_from_row(
     id: String,
     name: String,
     mime_type: String,
+    source: String,
     dir: &Path,
 ) -> Result<UserImage, String> {
     let path = dir.join(format!("{id}.{}", mime_ext(&mime_type)));
@@ -350,6 +432,7 @@ fn user_image_from_row(
         original_path: None,
         mime_type,
         created_at: 0,
+        source,
     })
 }
 
@@ -378,6 +461,7 @@ fn dither_image_from_row(
         original_path,
         mime_type,
         created_at: 0,
+        source: SOURCE_UPLOAD.to_string(),
     })
 }
 
@@ -405,9 +489,12 @@ pub fn import_user_image(app: tauri::AppHandle, path: String) -> Result<UserImag
         .collect::<String>();
     let dir = images_dir(&app, USER_IMAGES_TABLE)?;
     let conn = open_database(&app)?;
+    let id = content_id(&data);
+    let fresh = !user_image_row_exists(&conn, &id)?;
     import_image_bytes(&dir, &conn, USER_IMAGES_TABLE, &data, name.clone())?;
-    ensure_thumb(&conn, &dir, &content_id(&data), &name, &data);
-    get_user_image(app, content_id(&data))
+    record_user_image_source(&conn, &id, SOURCE_UPLOAD, fresh)?;
+    ensure_thumb(&conn, &dir, &id, &name, &data, SOURCE_UPLOAD);
+    get_user_image(app, id)
 }
 
 fn resolve_proxy(proxy: Option<String>, proxy_camel: Option<String>) -> Option<String> {
@@ -483,9 +570,12 @@ pub async fn download_remote_image(
     );
     let dir = images_dir(&app, USER_IMAGES_TABLE)?;
     let conn = open_database(&app)?;
+    let id = content_id(&data);
+    let fresh = !user_image_row_exists(&conn, &id)?;
     import_image_bytes(&dir, &conn, USER_IMAGES_TABLE, &data, name.clone())?;
-    ensure_thumb(&conn, &dir, &content_id(&data), &name, &data);
-    get_user_image(app, content_id(&data))
+    record_user_image_source(&conn, &id, SOURCE_REMOTE, fresh)?;
+    ensure_thumb(&conn, &dir, &id, &name, &data, SOURCE_REMOTE);
+    get_user_image(app, id)
 }
 
 fn lookup_remote_image(dir: &Path, conn: &Connection, url: &str) -> Option<UserImage> {
@@ -496,7 +586,8 @@ fn lookup_remote_image(dir: &Path, conn: &Connection, url: &str) -> Option<UserI
             |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
         )
         .ok()?;
-    let image = user_image_from_row(id.clone(), name, mime_type, dir).ok()?;
+    let image =
+        user_image_from_row(id.clone(), name, mime_type, SOURCE_REMOTE.to_string(), dir).ok()?;
     let thumb = remote_thumb_file(dir, &id);
     if thumb.is_file() {
         return Some(UserImage {
@@ -588,9 +679,16 @@ pub async fn fetch_remote_image(
             original_path: None,
             mime_type: "image/jpeg".to_string(),
             created_at: 0,
+            source: SOURCE_REMOTE.to_string(),
         });
     }
-    user_image_from_row(id, "remote-image".into(), mime_type.to_string(), &dir)
+    user_image_from_row(
+        id,
+        "remote-image".into(),
+        mime_type.to_string(),
+        SOURCE_REMOTE.to_string(),
+        &dir,
+    )
 }
 
 #[derive(Debug, Serialize)]
@@ -655,7 +753,7 @@ pub fn list_user_images(app: tauri::AppHandle) -> Result<Vec<UserImage>, String>
     let dir = images_dir(&app, USER_IMAGES_TABLE)?;
     let conn = open_database(&app)?;
     let mut statement = conn
-        .prepare("SELECT id, name, mime_type, created_at FROM user_images ORDER BY created_at DESC")
+        .prepare("SELECT id, name, mime_type, source, created_at FROM user_images ORDER BY created_at DESC")
         .map_err(|e| format!("list images: {e}"))?;
     let rows = statement
         .query_map([], |row| {
@@ -663,14 +761,15 @@ pub fn list_user_images(app: tauri::AppHandle) -> Result<Vec<UserImage>, String>
                 row.get::<_, String>(0)?,
                 row.get::<_, String>(1)?,
                 row.get::<_, String>(2)?,
-                row.get::<_, i64>(3)?,
+                row.get::<_, String>(3)?,
+                row.get::<_, i64>(4)?,
             ))
         })
         .map_err(|e| format!("list image rows: {e}"))?;
     Ok(rows
         .filter_map(Result::ok)
-        .filter_map(|(id, name, mime_type, created_at)| {
-            user_image_from_row(id, name, mime_type, &dir)
+        .filter_map(|(id, name, mime_type, source, created_at)| {
+            user_image_from_row(id, name, mime_type, source, &dir)
                 .ok()
                 .map(|image| fill_created_at(image, created_at))
         })
@@ -678,22 +777,31 @@ pub fn list_user_images(app: tauri::AppHandle) -> Result<Vec<UserImage>, String>
 }
 
 fn load_user_image(conn: &Connection, dir: &Path, id: &str) -> Result<UserImage, String> {
-    let (row_id, name, mime_type, created_at): (String, String, String, i64) = conn
+    let (row_id, name, mime_type, source, created_at): (String, String, String, String, i64) = conn
         .query_row(
-            "SELECT id, name, mime_type, created_at FROM user_images WHERE id = ?1",
+            "SELECT id, name, mime_type, source, created_at FROM user_images WHERE id = ?1",
             params![id],
-            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+            |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                    row.get(4)?,
+                ))
+            },
         )
         .map_err(|_| format!("image not found: {id}"))?;
-    let original = user_image_from_row(row_id.clone(), name.clone(), mime_type, dir)
-        .map(|image| fill_created_at(image, created_at))?;
+    let original =
+        user_image_from_row(row_id.clone(), name.clone(), mime_type, source.clone(), dir)
+            .map(|image| fill_created_at(image, created_at))?;
     if row_id.starts_with(THUMB_PREFIX) {
         return Ok(original);
     }
     let thumb_path = dir.join(format!("{}.jpg", thumb_id(&row_id)));
     if !thumb_path.is_file() {
         if let Ok(bytes) = fs::read(&original.path) {
-            ensure_thumb(conn, dir, &row_id, &name, &bytes);
+            ensure_thumb(conn, dir, &row_id, &name, &bytes, &source);
         }
     }
     if thumb_path.is_file() {
@@ -1100,8 +1208,14 @@ mod tests {
         import_image_bytes(&dir, &db, USER_IMAGES_TABLE, &bytes, "cover.png".into())
             .expect("import");
         let id = content_id(&bytes);
-        let image = user_image_from_row(id.clone(), "cover.png".into(), "image/png".into(), &dir)
-            .expect("image");
+        let image = user_image_from_row(
+            id.clone(),
+            "cover.png".into(),
+            "image/png".into(),
+            SOURCE_UPLOAD.to_string(),
+            &dir,
+        )
+        .expect("image");
         assert!(image.path.ends_with(&format!("{id}.png")));
         assert_eq!(image.mime_type, "image/png");
         assert_eq!(image.original_path, None);
@@ -1135,8 +1249,13 @@ mod tests {
         let bytes = png_bytes();
         import_image_bytes(&dir, &db, USER_IMAGES_TABLE, &bytes, "a.png".into()).expect("import");
         std::fs::remove_file(dir.join(format!("{}.png", content_id(&bytes)))).expect("remove");
-        let result =
-            user_image_from_row(content_id(&bytes), "a.png".into(), "image/png".into(), &dir);
+        let result = user_image_from_row(
+            content_id(&bytes),
+            "a.png".into(),
+            "image/png".into(),
+            SOURCE_UPLOAD.to_string(),
+            &dir,
+        );
         assert_eq!(
             result.unwrap_err(),
             format!("image file missing: {}", content_id(&bytes))
@@ -1554,7 +1673,7 @@ mod tests {
         let id = content_id(&bytes);
         import_image_bytes(&dir, &db, USER_IMAGES_TABLE, &bytes, "wide.png".into())
             .expect("import");
-        ensure_thumb(&db, &dir, &id, "wide.png", &bytes);
+        ensure_thumb(&db, &dir, &id, "wide.png", &bytes, SOURCE_UPLOAD);
         let tid = thumb_id(&id);
         assert!(dir.join(format!("{tid}.jpg")).is_file());
         let served = load_user_image(&db, &dir, &id).expect("load");
@@ -1595,7 +1714,7 @@ mod tests {
         let bytes = real_png_bytes(400, 300);
         let id = content_id(&bytes);
         import_image_bytes(&dir, &db, USER_IMAGES_TABLE, &bytes, "art.png".into()).expect("import");
-        ensure_thumb(&db, &dir, &id, "art.png", &bytes);
+        ensure_thumb(&db, &dir, &id, "art.png", &bytes, SOURCE_UPLOAD);
         let tid = thumb_id(&id);
         assert!(dir.join(format!("{id}.png")).is_file());
         assert!(dir.join(format!("{tid}.jpg")).is_file());
@@ -1605,6 +1724,92 @@ mod tests {
             .expect("count");
         assert_eq!(count, 0);
         assert_eq!(std::fs::read_dir(&dir).expect("dir").count(), 0);
+        drop(db);
+        std::fs::remove_dir_all(&root).expect("cleanup");
+    }
+
+    fn image_source(db: &Connection, id: &str) -> String {
+        db.query_row(
+            "SELECT source FROM user_images WHERE id = ?1",
+            params![id],
+            |row| row.get(0),
+        )
+        .expect("source row")
+    }
+
+    #[test]
+    fn source_migration_backfills_uploads_and_remote_covers() {
+        let root = temp_root("source_migrate");
+        let db_path = root.join("user_assets.sqlite3");
+        {
+            let conn = Connection::open(&db_path).expect("legacy db");
+            conn.execute_batch(
+                "CREATE TABLE user_images (
+                    id TEXT PRIMARY KEY, name TEXT NOT NULL, mime_type TEXT NOT NULL,
+                    created_at INTEGER NOT NULL
+                );
+                INSERT INTO user_images VALUES ('up1', 'my-icon.png', 'image/png', 1);
+                INSERT INTO user_images VALUES ('c1', 'collection-cover', 'image/jpeg', 2);
+                INSERT INTO user_images VALUES ('r1', 'remote-cover', 'image/jpeg', 3);",
+            )
+            .expect("legacy rows");
+        }
+        let conn = open_database_at(&db_path).expect("reopened");
+        assert_eq!(image_source(&conn, "up1"), SOURCE_UPLOAD);
+        assert_eq!(image_source(&conn, "c1"), SOURCE_REMOTE);
+        assert_eq!(image_source(&conn, "r1"), SOURCE_REMOTE);
+        drop(conn);
+        std::fs::remove_dir_all(&root).expect("cleanup");
+    }
+
+    #[test]
+    fn explicit_upload_wins_over_cache_for_same_bytes() {
+        let root = temp_root("source_wins");
+        let db = open_database_at(&root.join("user_assets.sqlite3")).expect("db");
+        let dir = root.join("images").join(USER_IMAGES_TABLE);
+        let bytes = png_bytes();
+        let id = content_id(&bytes);
+        // Mirrors download_remote_image: a fresh row is marked remote unconditionally.
+        let fresh = !user_image_row_exists(&db, &id).expect("row check");
+        assert!(fresh);
+        import_image_bytes(
+            &dir,
+            &db,
+            USER_IMAGES_TABLE,
+            &bytes,
+            "collection-cover".into(),
+        )
+        .expect("cache import");
+        record_user_image_source(&db, &id, SOURCE_REMOTE, fresh).expect("mark remote");
+        assert_eq!(image_source(&db, &id), SOURCE_REMOTE);
+        // Mirrors import_user_image: an explicit upload always wins.
+        record_user_image_source(&db, &id, SOURCE_UPLOAD, false).expect("mark upload");
+        assert_eq!(image_source(&db, &id), SOURCE_UPLOAD);
+        // Mirrors download_remote_image on an existing row: no downgrade to cache.
+        record_user_image_source(&db, &id, SOURCE_REMOTE, false).expect("mark remote again");
+        assert_eq!(image_source(&db, &id), SOURCE_UPLOAD);
+        drop(db);
+        std::fs::remove_dir_all(&root).expect("cleanup");
+    }
+
+    #[test]
+    fn thumb_inherits_parent_source() {
+        let root = temp_root("thumb_source");
+        let db = open_database_at(&root.join("user_assets.sqlite3")).expect("db");
+        let dir = root.join("images").join(USER_IMAGES_TABLE);
+        let bytes = real_png_bytes(400, 300);
+        let id = content_id(&bytes);
+        import_image_bytes(
+            &dir,
+            &db,
+            USER_IMAGES_TABLE,
+            &bytes,
+            "collection-cover".into(),
+        )
+        .expect("import");
+        record_user_image_source(&db, &id, SOURCE_REMOTE, true).expect("mark remote");
+        ensure_thumb(&db, &dir, &id, "collection-cover", &bytes, SOURCE_REMOTE);
+        assert_eq!(image_source(&db, &thumb_id(&id)), SOURCE_REMOTE);
         drop(db);
         std::fs::remove_dir_all(&root).expect("cleanup");
     }

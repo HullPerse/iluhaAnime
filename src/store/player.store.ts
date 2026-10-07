@@ -1,5 +1,6 @@
 import { DEFAULT_VOLUME } from "@/config/player/video.config";
-import { createPersistor, persistKey, type Persistor } from "@/lib/state/persist.utils";
+import { createPersistedStoreContext } from "@/lib/state/persisted.utils";
+import type { Persistor } from "@/lib/state/persist.utils";
 import { createSignalStore, type Cell } from "@/lib/state/signal.store";
 import type {
   MpvChapter,
@@ -9,7 +10,7 @@ import type {
   PlayerSettings,
   PlayerStore,
 } from "@/types/videoPlayer";
-import { attemptSync, reportBackgroundError } from "@/lib/utils/attempt.utils";
+import { attemptSync } from "@/lib/utils/attempt.utils";
 
 export const PLAYER_SCHEMA_VERSION = 0;
 
@@ -93,6 +94,7 @@ const INITIAL_PLAYBACK: PlaybackData = {
 } as PlaybackData;
 
 const SEEK_TARGET_TOLERANCE = 0.4;
+const SEEK_TARGET_CONFIRMATIONS = 2;
 const SEEK_TARGET_RESET_MS = 2500;
 
 const DEFAULT_PLAYER_DATA: PlayerData = {
@@ -120,13 +122,13 @@ function buildAtoms(
       id: cell.id,
       get: cell.get,
       set: (value) => {
-        cell.set(value);
         mirror[key] = value;
+        cell.set(value);
       },
       update: (fn) => {
         const next = (fn as (prev: unknown) => unknown)(cell.get());
-        cell.set(next);
         mirror[key] = next;
+        cell.set(next);
       },
       subscribe: cell.subscribe,
     };
@@ -171,11 +173,6 @@ function readLegacyPlayer(
   };
 }
 
-function defaultGetStorage(): Storage | undefined {
-  if (typeof localStorage === "undefined") return undefined;
-  return localStorage;
-}
-
 export interface PlayerSignalStore {
   atoms: PlayerAtoms;
   persistor: Persistor;
@@ -197,20 +194,13 @@ export interface PlayerSignalOptions {
 }
 
 export function createPlayerSignalStore(options: PlayerSignalOptions = {}): PlayerSignalStore {
-  const getStorage = options.getStorage ?? defaultGetStorage;
-  const store = createSignalStore();
-  let adoptedFromLegacy = false;
-  const persistor = createPersistor({
+  const { store, persistor, finishAdopt } = createPersistedStoreContext({
     storeName: "player",
+    short: "player",
     schemaVersion: PLAYER_SCHEMA_VERSION,
-    getStorage,
+    getStorage: options.getStorage,
     debounceMs: options.debounceMs,
-    fallback: () => {
-      const migrated = readLegacyPlayer(getStorage);
-      if (migrated) adoptedFromLegacy = true;
-      return migrated;
-    },
-    onError: (scope, error) => reportBackgroundError(`player.signal.${scope}`, error as Error),
+    onFallback: (get) => readLegacyPlayer(get),
   });
 
   const persisted = persistor.read();
@@ -240,20 +230,7 @@ export function createPlayerSignalStore(options: PlayerSignalOptions = {}): Play
       atoms.settings.set({ ...atoms.settings.get(), ...patch }),
   };
 
-  if (adoptedFromLegacy) {
-    persistor.write({ ...mirror });
-    persistor.flush();
-    const [storage, storageError] = attemptSync(() => getStorage());
-    if (storageError !== null) reportBackgroundError("player.signal.adopt", storageError);
-    else {
-      const [adopted, adoptError] = attemptSync(() => storage?.getItem(persistKey("player")));
-      if (adoptError !== null) reportBackgroundError("player.signal.adopt", adoptError);
-      else if (adopted) {
-        const [, removeError] = attemptSync(() => storage?.removeItem("playerState"));
-        if (removeError !== null) reportBackgroundError("player.signal.adopt", removeError);
-      }
-    }
-  }
+  finishAdopt(() => ({ ...mirror }), { remove: "playerState" });
 
   return handle;
 }
@@ -278,10 +255,12 @@ export function createPlaybackSignalStore(): PlaybackSignalStore {
   const atoms = buildPlaybackAtoms(store, { ...INITIAL_PLAYBACK });
 
   let seekResetTimer: ReturnType<typeof setTimeout> | undefined;
+  let seekConfirm = 0;
   const armSeekReset = (): void => {
     if (seekResetTimer !== undefined) clearTimeout(seekResetTimer);
     seekResetTimer = setTimeout(() => {
       seekResetTimer = undefined;
+      seekConfirm = 0;
       if (atoms.seekTarget.get() !== null) {
         atoms.seekTarget.set(null);
         atoms.seekSettle.set(false);
@@ -291,10 +270,29 @@ export function createPlaybackSignalStore(): PlaybackSignalStore {
 
   const nextSeekTarget = (snapshot: PlaybackSnapshot): number | null => {
     const seekTarget = atoms.seekTarget.get();
-    if (seekTarget === null) return null;
+    if (seekTarget === null) {
+      seekConfirm = 0;
+      return null;
+    }
     const fileChanged = snapshot.path !== atoms.path.get();
+    if (atoms.seekSettle.get() || fileChanged) {
+      seekConfirm = 0;
+      return null;
+    }
     const reached = Math.abs(snapshot.timePos - seekTarget) <= SEEK_TARGET_TOLERANCE;
-    return atoms.seekSettle.get() || fileChanged || reached ? null : seekTarget;
+    if (!reached) {
+      seekConfirm = 0;
+      return seekTarget;
+    }
+    // Hysteresis: a single in-tolerance sample can be a stale or rebuffer
+    // reading, so the optimistic target drops only after consecutive
+    // confirmations. Otherwise the timeline flickers around the drop point.
+    seekConfirm += 1;
+    if (seekConfirm >= SEEK_TARGET_CONFIRMATIONS) {
+      seekConfirm = 0;
+      return null;
+    }
+    return seekTarget;
   };
 
   return {
@@ -327,11 +325,20 @@ export function createPlaybackSignalStore(): PlaybackSignalStore {
     },
     setSeekTarget: (time) => {
       armSeekReset();
+      seekConfirm = 0;
       atoms.seekTarget.set(time);
       atoms.seekSettle.set(false);
     },
     settleSeek: () => {
-      if (atoms.seekTarget.get() !== null) atoms.seekSettle.set(true);
+      const target = atoms.seekTarget.get();
+      if (target === null) return;
+      // Settle only against a fresh position: a playback-restart from an
+      // older seek can arrive after a newer target was issued, and settling
+      // then would drop the optimistic target while timePos is still stale —
+      // the timeline would jump back until fresh snapshots arrive.
+      if (Math.abs(atoms.timePos.get() - target) <= SEEK_TARGET_TOLERANCE) {
+        atoms.seekSettle.set(true);
+      }
     },
     setPaused: (paused) => atoms.paused.set(paused),
     setMuted: (muted) => atoms.muted.set(muted),
@@ -350,6 +357,7 @@ export function createPlaybackSignalStore(): PlaybackSignalStore {
       const fresh = { ...INITIAL_PLAYBACK };
       const target = atoms as unknown as Record<string, Cell<unknown>>;
       const source = fresh as unknown as Record<string, unknown>;
+      seekConfirm = 0;
       store.batch(() => {
         for (const key of Object.keys(source)) {
           target[key].set(source[key]);

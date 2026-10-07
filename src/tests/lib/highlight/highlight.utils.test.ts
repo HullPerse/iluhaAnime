@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import {
   findSubsequenceRanges,
-  fromFuseIndices,
   mergeRanges,
   normalizeText,
   splitByRanges,
@@ -123,24 +122,6 @@ describe("splitByRanges", () => {
 
   it("returns one plain token without ranges", () => {
     expect(splitByRanges("Naruto", [])).toEqual([{ text: "Naruto", highlighted: false }]);
-  });
-});
-
-describe("fromFuseIndices", () => {
-  it("converts inclusive pairs to exclusive ranges", () => {
-    expect(
-      fromFuseIndices([
-        [0, 9],
-        [12, 15],
-      ])
-    ).toEqual([
-      { start: 0, end: 10 },
-      { start: 12, end: 16 },
-    ]);
-  });
-
-  it("drops malformed pairs", () => {
-    expect(fromFuseIndices([[5, 2], [-1, 3], [4, 4]])).toEqual([{ start: 4, end: 5 }]);
   });
 });
 

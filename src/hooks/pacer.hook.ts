@@ -1,8 +1,8 @@
 import { useEffect, useMemo } from "react";
 
 import { Debouncer } from "@/lib/pacer/debounce.utils";
+import { createSimpleCell } from "@/lib/pacer/shared.utils";
 import { Throttler } from "@/lib/pacer/throttle.utils";
-import { createSignalStore } from "@/lib/state/signal.store";
 import { useCell } from "@/lib/state/signal.hook";
 import type {
   DebounceOptions,
@@ -43,7 +43,7 @@ function readControls(
 export function useDebouncedValue<T>(value: T, options: DebouncedValueOptions<T>): [T, PacedControls] {
   const { wait, leading, trailing, maxWait, enabled, mode, equal } = options;
   const scoped = useMemo(() => {
-    const committed = createSignalStore().cell<{ current: T } | null>(null);
+    const committed = createSimpleCell<{ current: T } | null>(null);
     const box = {
       dirty: false,
       equal: Object.is as (previous: T, next: T) => boolean,
@@ -90,7 +90,7 @@ export function useDebouncedValue<T>(value: T, options: DebouncedValueOptions<T>
 export function useThrottledValue<T>(value: T, options: ThrottledValueOptions<T>): [T, PacedControls] {
   const { wait, leading, trailing, enabled, mode, equal } = options;
   const scoped = useMemo(() => {
-    const committed = createSignalStore().cell<{ current: T } | null>(null);
+    const committed = createSimpleCell<{ current: T } | null>(null);
     const box = {
       dirty: false,
       equal: Object.is as (previous: T, next: T) => boolean,

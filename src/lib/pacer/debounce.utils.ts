@@ -1,8 +1,9 @@
-import { createSignalStore, type Cell } from "@/lib/state/signal.store";
+import type { Cell } from "@/lib/state/signal.store";
 
 import type { DebounceOptions, PacerState } from "@/types/pacer";
 
 import {
+  createSimpleCell,
   normalizeMaxWait,
   normalizeWait,
   resolveEnabled,
@@ -34,7 +35,7 @@ export class Debouncer<TArgs extends unknown[]> {
     this.#enabled = options.enabled ?? true;
     this.#mode = options.mode ?? "timeout";
     this.#onExecute = options.onExecute;
-    this.status = createSignalStore().cell<PacerState>({
+    this.status = createSimpleCell<PacerState>({
       executionCount: 0,
       isPending: false,
       status: "idle",

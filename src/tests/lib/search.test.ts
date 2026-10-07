@@ -17,7 +17,11 @@ import {
   sortAnimeResults,
 } from "@/lib/search/results.utils";
 import { mapError } from "@/lib/search/rutracker.utils";
-import { matchOperatorTerms, parseOperatorTerms } from "@/lib/search/score.utils";
+import {
+  fuzzyMatchScorePreNormalized,
+  matchOperatorTerms,
+  parseOperatorTerms,
+} from "@/lib/search/score.utils";
 import {
   fuzzyMatchScore,
   getInlineCompletion,
@@ -1005,6 +1009,31 @@ describe("search/suggestions", () => {
 
     it("rejects multi-word queries missing a word", () => {
       expect(fuzzyMatchScore("frieren zzz", "Frieren: Beyond Journey's End")).toBeNull();
+    });
+
+    it.each([
+      ["frieren", "Frieren: Beyond Journey's End"],
+      ["friren", "Frieren"],
+      ["attack titan", "Attack on Titan"],
+      ["^frie", "Frieren: Beyond Journey's End"],
+      ["^basket", "Frieren: Beyond Journey's End"],
+      ["end$", "Frieren: Beyond Journey's End"],
+      ["^journey$", "Frieren: Beyond Journey's End"],
+      ["'frier", "Frieren: Beyond Journey's End"],
+      ["frieren !basket", "Frieren: Beyond Journey's End"],
+      ["frieren !journey", "Frieren: Beyond Journey's End"],
+      ["steins gate", "Steins;Gate 0"],
+      ["cowboy bebop", "Cowboy Bebop: The Movie"],
+      ["", "Frieren"],
+      ["   ", "Frieren"],
+    ])("pre-normalized path matches query-aware path for %s vs %s", (query, candidate) => {
+      const expected = fuzzyMatchScore(query, candidate);
+      const terms = parseOperatorTerms(query);
+      const normalizedCandidate = normalizeSearchText(candidate);
+      const actual = terms
+        ? matchOperatorTerms(terms, normalizedCandidate)
+        : fuzzyMatchScorePreNormalized(normalizeSearchText(query), normalizedCandidate);
+      expect(actual).toBe(expected);
     });
 
     it("returns identical typo corrections on repeated calls with shared options", () => {

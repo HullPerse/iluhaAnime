@@ -1,8 +1,14 @@
-import { createSignalStore, type Cell } from "@/lib/state/signal.store";
+import type { Cell } from "@/lib/state/signal.store";
 
 import type { PacerState, ThrottleOptions } from "@/types/pacer";
 
-import { normalizeWait, resolveEnabled, scheduleTask, type ScheduledTask } from "./shared.utils";
+import {
+  createSimpleCell,
+  normalizeWait,
+  resolveEnabled,
+  scheduleTask,
+  type ScheduledTask,
+} from "./shared.utils";
 
 export class Throttler<TArgs extends unknown[]> {
   readonly status: Cell<PacerState>;
@@ -25,7 +31,7 @@ export class Throttler<TArgs extends unknown[]> {
     this.#enabled = options.enabled ?? true;
     this.#mode = options.mode ?? "timeout";
     this.#onExecute = options.onExecute;
-    this.status = createSignalStore().cell<PacerState>({
+    this.status = createSimpleCell<PacerState>({
       executionCount: 0,
       isPending: false,
       status: "idle",

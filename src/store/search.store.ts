@@ -2,7 +2,8 @@ import { collectionApi } from "@/api/collection.api";
 import type { UnifiedIndexEntryInput } from "@/api/collection.api";
 import { SEARCH_RANKING } from "@/config/search/ranking.config";
 import { normalizeSearchText } from "@/lib/search/suggestions.utils";
-import { createPersistor, persistKey, type Persistor } from "@/lib/state/persist.utils";
+import { createPersistedStoreContext } from "@/lib/state/persisted.utils";
+import type { Persistor } from "@/lib/state/persist.utils";
 import { createSignalStore, type Cell } from "@/lib/state/signal.store";
 import { settingsAtoms } from "@/store/settings.store";
 import { attempt, attemptSync, reportBackgroundError } from "@/lib/utils/attempt.utils";
@@ -245,11 +246,6 @@ function readLegacySearch(
   return { data: migrated as Record<string, unknown>, schemaVersion: SEARCH_SCHEMA_VERSION };
 }
 
-function defaultGetStorage(): Storage | undefined {
-  if (typeof localStorage === "undefined") return undefined;
-  return localStorage;
-}
-
 export interface SearchSignalOptions {
   getStorage?: () => Storage | undefined;
   debounceMs?: number;
@@ -286,20 +282,13 @@ export interface SearchSignalStore {
 }
 
 export function createSearchSignalStore(options: SearchSignalOptions = {}): SearchSignalStore {
-  const getStorage = options.getStorage ?? defaultGetStorage;
-  const store = createSignalStore();
-  let adoptedFromLegacy = false;
-  const persistor = createPersistor({
+  const { store, persistor, finishAdopt } = createPersistedStoreContext({
     storeName: "search",
+    short: "search",
     schemaVersion: SEARCH_SCHEMA_VERSION,
-    getStorage,
+    getStorage: options.getStorage,
     debounceMs: options.debounceMs,
-    fallback: () => {
-      const migrated = readLegacySearch(getStorage);
-      if (migrated) adoptedFromLegacy = true;
-      return migrated;
-    },
-    onError: (scope, error) => reportBackgroundError(`search.signal.${scope}`, error as Error),
+    onFallback: (get) => readLegacySearch(get),
   });
 
   const persisted = persistor.read();
@@ -462,19 +451,7 @@ export function createSearchSignalStore(options: SearchSignalOptions = {}): Sear
     resetFilters: () => atoms.filters.set({ ...defaultFilters }),
   };
 
-  if (adoptedFromLegacy) {
-    persistor.flush();
-    const [storage, storageError] = attemptSync(() => getStorage());
-    if (storageError !== null) reportBackgroundError("search.signal.adopt", storageError);
-    else {
-      const [adopted, adoptError] = attemptSync(() => storage?.getItem(persistKey("search")));
-      if (adoptError !== null) reportBackgroundError("search.signal.adopt", adoptError);
-      else if (adopted) {
-        const [, removeError] = attemptSync(() => storage?.removeItem("searchState"));
-        if (removeError !== null) reportBackgroundError("search.signal.adopt", removeError);
-      }
-    }
-  }
+  finishAdopt(undefined, { remove: "searchState" });
 
   return handle;
 }

@@ -1,5 +1,5 @@
 import { PLAYER_PROFILES } from "@/config/player/profiles.config";
-import { attempt } from "@/lib/utils/attempt.utils";
+import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { clamp } from "@/lib/utils/math.utils";
 import type {
@@ -106,6 +106,12 @@ export function transformOptions(settings: PlayerSettings): Record<string, unkno
   options["sub-font"] = settings.subFontFamily;
   options["sub-color"] = toMpvColor(settings.subColor);
   options["sub-back-color"] = withAlpha(toMpvColor(settings.subBgColor), settings.subBgOpacity);
+  // Subtitles share the OSD margins that carve the video field out of the
+  // window. Allowing libass to render into those margins (mpv's default for
+  // converted/text subs) pushes text under the bottom bar, so keep subtitles
+  // inside the video area for both text and ASS tracks.
+  options["sub-use-margins"] = false;
+  options["sub-ass-force-margins"] = false;
 
   return options;
 }
@@ -125,10 +131,42 @@ export function profileOptions(
   return { ...PLAYER_PROFILES[profile].options };
 }
 
-export async function applyProperties(options: Record<string, unknown>): Promise<void> {
-  await Promise.allSettled(
-    Object.entries(options).map(([name, value]) => setMpvProperty(name, value))
+/**
+ * Shallow per-option diff of two mpv option maps. Only changed entries are
+ * returned, so live slider drags resend one property instead of the whole
+ * group (and, for `vf`, avoid rebuilding the filter chain on every tick).
+ */
+export function diffOptions(
+  previous: Record<string, unknown>,
+  next: Record<string, unknown>
+): Record<string, unknown> {
+  const changed: Record<string, unknown> = {};
+  for (const [name, value] of Object.entries(next)) {
+    if (!Object.is(previous[name], value)) changed[name] = value;
+  }
+  return changed;
+}
+
+export async function applyProperties(options: Record<string, unknown>): Promise<string[]> {
+  const names = Object.keys(options);
+  const settled = await Promise.allSettled(
+    Object.entries(options).map(([name, value]) =>
+      setMpvProperty(name, value).then(
+        () => undefined,
+        (error: unknown) => {
+          throw new Error(`set ${name} failed: ${String(error)}`);
+        }
+      )
+    )
   );
+  const failed: string[] = [];
+  settled.forEach((result, index) => {
+    if (result.status === "rejected") {
+      failed.push(names[index]);
+      reportBackgroundError("player.settings.property", result.reason);
+    }
+  });
+  return failed;
 }
 
 export async function applyPlayerProfile(profile: PlayerProfileId): Promise<void> {
@@ -251,6 +289,29 @@ export function setSpeed(speed: number): Promise<void> {
 
 export function selectTrack(kind: "audio" | "sub", id: number | "no" | "auto"): Promise<void> {
   return setMpvProperty(kind === "audio" ? "aid" : "sid", String(id));
+}
+
+export interface FilePlaybackState {
+  speed: number;
+  subDelay: number;
+  audioDelay: number;
+  audioTrack?: number;
+  subtitleTrack?: number;
+}
+
+/**
+ * Single-IPC replacement for the per-file setup chain (speed, delays,
+ * persisted tracks). The mpv property sets themselves are cheap FFI calls —
+ * the win is collapsing 4-5 Tauri roundtrips into one.
+ */
+export async function applyFileState(state: FilePlaybackState): Promise<void> {
+  await invokeTyped("player_apply_file_state", {
+    speed: state.speed,
+    subDelay: state.subDelay,
+    audioDelay: state.audioDelay,
+    audioTrack: state.audioTrack ?? null,
+    subtitleTrack: state.subtitleTrack ?? null,
+  });
 }
 
 export function playPlaylistIndex(index: number): Promise<void> {

@@ -4,18 +4,8 @@ import type { UserImage, UserImageFile } from "@/types/userimage";
 
 export const USER_IMAGE_PREFIX = "user-image:";
 
-export function userImageIcon(id: string): string {
-  return `${USER_IMAGE_PREFIX}${id}`;
-}
-
 export function isUserImageIcon(value: string): boolean {
   return value.startsWith(USER_IMAGE_PREFIX);
-}
-
-export function userImageId(value: string): string | null {
-  if (!isUserImageIcon(value)) return null;
-  const id = value.slice(USER_IMAGE_PREFIX.length).trim();
-  return id || null;
 }
 
 export function assetUrl(path: string, version?: string | null): string {
@@ -33,6 +23,7 @@ export function toUserImage(raw: UserImageFile): UserImage {
     originalUrl: raw.originalPath === null ? null : assetUrl(raw.originalPath),
     version: raw.version,
     createdAt: raw.createdAt,
+    source: raw.source ?? null,
   };
 }
 

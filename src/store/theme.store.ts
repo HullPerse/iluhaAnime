@@ -1,6 +1,7 @@
 import { DEFAULT_THEME_COLORS, THEMES, THEME_OVERRIDE_VARS } from "@/config/settings/themes.config";
-import { createPersistor, persistKey, type Persistor } from "@/lib/state/persist.utils";
-import { createSignalStore, type Cell } from "@/lib/state/signal.store";
+import { createPersistedStoreContext } from "@/lib/state/persisted.utils";
+import type { Persistor } from "@/lib/state/persist.utils";
+import type { Cell } from "@/lib/state/signal.store";
 import {
   contrastRatio,
   deriveFieldColor,
@@ -249,11 +250,6 @@ function readLegacyTheme(
   return { data: state as Record<string, unknown>, schemaVersion: THEME_SCHEMA_VERSION };
 }
 
-function defaultGetStorage(): Storage | undefined {
-  if (typeof localStorage === "undefined") return undefined;
-  return localStorage;
-}
-
 export interface ThemeSignalOptions {
   getStorage?: () => Storage | undefined;
   debounceMs?: number;
@@ -268,20 +264,13 @@ export interface ThemeSignalStore {
 }
 
 export function createThemeSignalStore(options: ThemeSignalOptions = {}): ThemeSignalStore {
-  const getStorage = options.getStorage ?? defaultGetStorage;
-  const store = createSignalStore();
-  let adoptedFromLegacy = false;
-  const persistor = createPersistor({
+  const { store, persistor, adopted, finishAdopt } = createPersistedStoreContext({
     storeName: "theme",
+    short: "theme",
     schemaVersion: THEME_SCHEMA_VERSION,
-    getStorage,
+    getStorage: options.getStorage,
     debounceMs: options.debounceMs,
-    fallback: () => {
-      const migrated = readLegacyTheme(getStorage);
-      if (migrated) adoptedFromLegacy = true;
-      return migrated;
-    },
-    onError: (scope, error) => reportBackgroundError(`theme.signal.${scope}`, error as Error),
+    onFallback: (get) => readLegacyTheme(get),
   });
 
   const persisted = persistor.read();
@@ -307,13 +296,13 @@ export function createThemeSignalStore(options: ThemeSignalOptions = {}): ThemeS
       id: cell.id,
       get: cell.get,
       set: (value) => {
-        cell.set(value);
         mirror[key] = value;
+        cell.set(value);
       },
       update: (fn) => {
         const next = (fn as (prev: unknown) => unknown)(cell.get());
-        cell.set(next);
         mirror[key] = next;
+        cell.set(next);
       },
       subscribe: cell.subscribe,
     };
@@ -349,21 +338,9 @@ export function createThemeSignalStore(options: ThemeSignalOptions = {}): ThemeS
     },
   };
 
-  if (adoptedFromLegacy) {
-    handle.setTheme(data.currentTheme);
-    persistor.write({ ...mirror });
-    persistor.flush();
-    const [storage, storageError] = attemptSync(() => getStorage());
-    if (storageError !== null) reportBackgroundError("theme.signal.adopt", storageError);
-    else {
-      const [adopted, adoptError] = attemptSync(() => storage?.getItem(persistKey("theme")));
-      if (adoptError !== null) reportBackgroundError("theme.signal.adopt", adoptError);
-      else if (adopted) {
-        const [, removeError] = attemptSync(() => storage?.removeItem("themeState"));
-        if (removeError !== null) reportBackgroundError("theme.signal.adopt", removeError);
-      }
-    }
-  } else {
+  if (adopted()) handle.setTheme(data.currentTheme);
+  finishAdopt(() => ({ ...mirror }), { remove: "themeState" });
+  if (!adopted()) {
     applyTheme(data.currentTheme, data.customThemes);
   }
 

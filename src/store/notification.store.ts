@@ -1,6 +1,7 @@
 import { systemApi } from "@/api/system.api";
-import { createPersistor, persistKey, type Persistor } from "@/lib/state/persist.utils";
-import { createSignalStore, type Cell } from "@/lib/state/signal.store";
+import { createPersistedStoreContext } from "@/lib/state/persisted.utils";
+import type { Persistor } from "@/lib/state/persist.utils";
+import type { Cell } from "@/lib/state/signal.store";
 import { settingsAtoms } from "@/store/settings.store";
 import { attemptSync, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import type {
@@ -87,11 +88,6 @@ function readLegacyNotifications(
   return { data: { items: resolved.items, dismissed: resolved.dismissed }, maxId };
 }
 
-function defaultGetStorage(): Storage | undefined {
-  if (typeof localStorage === "undefined") return undefined;
-  return localStorage;
-}
-
 export interface NotificationSignalOptions {
   getStorage?: () => Storage | undefined;
   debounceMs?: number;
@@ -121,24 +117,19 @@ export interface NotificationSignalStore {
 export function createNotificationSignalStore(
   options: NotificationSignalOptions = {}
 ): NotificationSignalStore {
-  const getStorage = options.getStorage ?? defaultGetStorage;
-  const store = createSignalStore();
-  let adoptedFromLegacy = false;
   let restoredMaxId = 0;
-  const persistor = createPersistor({
+  const { store, persistor, finishAdopt } = createPersistedStoreContext({
     storeName: "notifications",
+    short: "notification",
     schemaVersion: NOTIFICATION_SCHEMA_VERSION,
-    getStorage,
+    getStorage: options.getStorage,
     debounceMs: options.debounceMs,
-    fallback: () => {
-      const migrated = readLegacyNotifications(getStorage);
+    onFallback: (get) => {
+      const migrated = readLegacyNotifications(get);
       if (!migrated) return null;
-      adoptedFromLegacy = true;
       restoredMaxId = migrated.maxId;
       return { data: migrated.data, schemaVersion: NOTIFICATION_SCHEMA_VERSION };
     },
-    onError: (scope, error) =>
-      reportBackgroundError(`notification.signal.${scope}`, error as Error),
   });
 
   const persisted = persistor.read();
@@ -343,24 +334,9 @@ export function createNotificationSignalStore(
     },
   };
 
-  if (adoptedFromLegacy) {
-    persistor.write({ items: mirror.items, dismissed: mirror.dismissed });
-    persistor.flush();
-    const [storage, storageError] = attemptSync(() => getStorage());
-    if (storageError !== null) reportBackgroundError("notification.signal.adopt", storageError);
-    else {
-      const [adopted, adoptError] = attemptSync(() =>
-        storage?.getItem(persistKey("notifications"))
-      );
-      if (adoptError !== null) reportBackgroundError("notification.signal.adopt", adoptError);
-      else if (adopted) {
-        const [, removeError] = attemptSync(() =>
-          storage?.removeItem(NOTIFICATION_STORAGE_KEY)
-        );
-        if (removeError !== null) reportBackgroundError("notification.signal.adopt", removeError);
-      }
-    }
-  }
+  finishAdopt(() => ({ items: mirror.items, dismissed: mirror.dismissed }), {
+    remove: NOTIFICATION_STORAGE_KEY,
+  });
 
   return handle;
 }

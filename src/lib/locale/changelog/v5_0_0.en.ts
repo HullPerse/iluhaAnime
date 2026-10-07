@@ -147,6 +147,12 @@ const changelog500 = {
     "The database-is-locked scan failure no longer appears when opening the player: writes now proceed strictly one at a time",
   "changelog.5_0_0.changed.player.hot_paths":
     "Player hot paths are faster: queue sorting, track menus, language names, and preview card order",
+  "changelog.5_0_0.changed.collection.short_query":
+    "Collection short search answers in under a millisecond on a 10 thousand item library instead of up to 20 milliseconds: first keystrokes and operator tags no longer stall the list",
+  "changelog.5_0_0.changed.search.scoring_work":
+    "Search suggestions do roughly half the text normalization work per keystroke and allocate less garbage, so the dropdown stays smooth on large anime lists",
+  "changelog.5_0_0.changed.app.parse_cache":
+    "Filename parse cache quadrupled to 8000 entries, so rescans of large libraries reuse parsed names instead of parsing every file again",
 } as const;
 
 export default changelog500;

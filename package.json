@@ -16,6 +16,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "bench:labs": "labs",
+    "bench:labs:compare": "labs compare",
     "check": "ultracite check src package.json tsconfig.json tsconfig.node.json vite.config.ts index.html oxlint.config.ts oxfmt.config.ts",
     "fix": "ultracite fix src package.json tsconfig.json tsconfig.node.json vite.config.ts index.html oxlint.config.ts oxfmt.config.ts"
   },
@@ -46,6 +48,7 @@
     "tailwindcss": "^4.3.3"
   },
   "devDependencies": {
+    "@pmndrs/labs": "0.9.0",
     "@tauri-apps/cli": "2.12.1",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/react": "^16.3.3",

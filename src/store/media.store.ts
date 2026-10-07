@@ -1,6 +1,7 @@
-import { createPersistor, persistKey, type Persistor } from "@/lib/state/persist.utils";
-import { createSignalStore, type Cell } from "@/lib/state/signal.store";
-import { attempt, attemptSync, reportBackgroundError } from "@/lib/utils/attempt.utils";
+import { createPersistedStoreContext } from "@/lib/state/persisted.utils";
+import type { Persistor } from "@/lib/state/persist.utils";
+import type { Cell } from "@/lib/state/signal.store";
+import { attempt, attemptSync } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import type { MediaEntry, WatchState } from "@/types/videoPlayer";
 
@@ -50,11 +51,6 @@ function readLegacyMedia(
   };
 }
 
-function defaultGetStorage(): Storage | undefined {
-  if (typeof localStorage === "undefined") return undefined;
-  return localStorage;
-}
-
 export interface MediaSignalOptions {
   getStorage?: () => Storage | undefined;
   debounceMs?: number;
@@ -73,20 +69,13 @@ export interface MediaSignalStore {
 }
 
 export function createMediaSignalStore(options: MediaSignalOptions = {}): MediaSignalStore {
-  const getStorage = options.getStorage ?? defaultGetStorage;
-  const store = createSignalStore();
-  let adoptedFromLegacy = false;
-  const persistor = createPersistor({
+  const { store, persistor, finishAdopt } = createPersistedStoreContext({
     storeName: "media",
+    short: "media",
     schemaVersion: MEDIA_SCHEMA_VERSION,
-    getStorage,
+    getStorage: options.getStorage,
     debounceMs: options.debounceMs,
-    fallback: () => {
-      const migrated = readLegacyMedia(getStorage);
-      if (migrated) adoptedFromLegacy = true;
-      return migrated;
-    },
-    onError: (scope, error) => reportBackgroundError(`media.signal.${scope}`, error as Error),
+    onFallback: (get) => readLegacyMedia(get),
   });
 
   const persisted = persistor.read();
@@ -102,13 +91,13 @@ export function createMediaSignalStore(options: MediaSignalOptions = {}): MediaS
     id: raw.id,
     get: raw.get,
     set: (value) => {
-      raw.set(value);
       mirror.entries = value;
+      raw.set(value);
     },
     update: (fn) => {
       const next = fn(raw.get());
-      raw.set(next);
       mirror.entries = next;
+      raw.set(next);
     },
     subscribe: raw.subscribe,
   };
@@ -159,20 +148,7 @@ export function createMediaSignalStore(options: MediaSignalOptions = {}): MediaS
     clearEntries: () => entries.set([]),
   };
 
-  if (adoptedFromLegacy) {
-    persistor.write({ ...mirror });
-    persistor.flush();
-    const [storage, storageError] = attemptSync(() => getStorage());
-    if (storageError !== null) reportBackgroundError("media.signal.adopt", storageError);
-    else {
-      const [adopted, adoptError] = attemptSync(() => storage?.getItem(persistKey("media")));
-      if (adoptError !== null) reportBackgroundError("media.signal.adopt", adoptError);
-      else if (adopted) {
-        const [, removeError] = attemptSync(() => storage?.removeItem("mediaState"));
-        if (removeError !== null) reportBackgroundError("media.signal.adopt", removeError);
-      }
-    }
-  }
+  finishAdopt(() => ({ ...mirror }), { remove: "mediaState" });
 
   return handle;
 }

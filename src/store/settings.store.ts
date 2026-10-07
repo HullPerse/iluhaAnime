@@ -4,15 +4,16 @@ import { listSortKeys } from "@/lib/anilist/entries.utils";
 import { detectSystemLocale } from "@/lib/locale/system.utils";
 import { normalizePlayerPath } from "@/lib/player/visibility.utils";
 import { applyWindowChrome } from "@/lib/settings/window.utils";
-import { createPersistor, persistKey, type Persistor } from "@/lib/state/persist.utils";
-import { createSignalStore, type Cell, type SignalStore } from "@/lib/state/signal.store";
+import { createPersistedStoreContext } from "@/lib/state/persisted.utils";
+import type { Persistor } from "@/lib/state/persist.utils";
+import type { Cell, SignalStore } from "@/lib/state/signal.store";
 import type { MigrationState, MigrationTransform } from "@/lib/store/migrate.utils";
 import { resolveWithDefaults, runTransforms } from "@/lib/store/migrate.utils";
 import { attempt, attemptSync, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { applyFontFamily, DEFAULT_FONT_FAMILY } from "@/lib/utils/font.utils";
 import type { SettingsStore } from "@/types/settings";
 
-export const SETTINGS_SCHEMA_VERSION = 38;
+export const SETTINGS_SCHEMA_VERSION = 39;
 
 type SettingsActionKeys =
   | "hidePlayerFolder"
@@ -146,6 +147,13 @@ const SETTINGS_TRANSFORMS: MigrationTransform[] = [
       delete state.parseTitles;
     },
   },
+  {
+    from: 39,
+    migrate: (state) => {
+      const schedule = state.themeSchedule as { enabled?: unknown } | undefined;
+      if (schedule && typeof schedule === "object") schedule.enabled = false;
+    },
+  },
 ];
 
 const SETTINGS_VALIDATORS: Record<string, (value: unknown) => boolean> = {
@@ -194,13 +202,13 @@ function buildAtoms(
       id: cell.id,
       get: cell.get,
       set: (value) => {
-        cell.set(value);
         mirror[key] = value;
+        cell.set(value);
       },
       update: (fn) => {
         const next = (fn as (prev: unknown) => unknown)(cell.get());
-        cell.set(next);
         mirror[key] = next;
+        cell.set(next);
       },
       subscribe: cell.subscribe,
     };
@@ -318,28 +326,16 @@ export interface SettingsSignalOptions {
   debounceMs?: number;
 }
 
-function defaultGetStorage(): Storage | undefined {
-  if (typeof localStorage === "undefined") return undefined;
-  return localStorage;
-}
-
 export function createSettingsSignalStore(
   options: SettingsSignalOptions = {}
 ): SettingsSignalStore {
-  const getStorage = options.getStorage ?? defaultGetStorage;
-  const store = createSignalStore();
-  let adoptedFromLegacy = false;
-  const persistor = createPersistor({
+  const { store, persistor, getStorage, finishAdopt } = createPersistedStoreContext({
     storeName: "settings",
+    short: "settings",
     schemaVersion: SETTINGS_SCHEMA_VERSION,
-    getStorage,
+    getStorage: options.getStorage,
     debounceMs: options.debounceMs,
-    fallback: () => {
-      const migrated = readLegacyMigrated(getStorage);
-      if (migrated) adoptedFromLegacy = true;
-      return migrated;
-    },
-    onError: (scope, error) => reportBackgroundError(`settings.signal.${scope}`, error as Error),
+    onFallback: (get) => readLegacyMigrated(get),
   });
 
   const base: SettingsData = { ...DEFAULT_SETTINGS, language: detectSystemLocale() };
@@ -440,20 +436,7 @@ export function createSettingsSignalStore(
     },
   };
 
-  if (adoptedFromLegacy) {
-    persistor.write(snapshot());
-    persistor.flush();
-    const [storage, storageError] = attemptSync(() => getStorage());
-    if (storageError !== null) reportBackgroundError("settings.signal.adopt", storageError);
-    else {
-      const [adopted, adoptError] = attemptSync(() => storage?.getItem(persistKey("settings")));
-      if (adoptError !== null) reportBackgroundError("settings.signal.adopt", adoptError);
-      else if (adopted) {
-        const [, removeError] = attemptSync(() => storage?.removeItem("settings"));
-        if (removeError !== null) reportBackgroundError("settings.signal.adopt", removeError);
-      }
-    }
-  }
+  finishAdopt(() => ({ ...snapshot() }), { remove: "settings" });
 
   return handle;
 }

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
+import { Checkbox } from "@/components/ui/checkbox.component";
 import { ColorPickerTrigger } from "@/components/ui/color/trigger.color";
 import Combobox from "@/components/ui/combobox.component";
 import { Input } from "@/components/ui/input.component";
@@ -20,7 +21,12 @@ import {
   themeAtoms,
 } from "@/store/theme.store";
 import type { TranslationKey } from "@/types/i18n";
-import type { ThemeColorKey, ThemeDefinition, ThemeOverrideKey } from "@/types/theme";
+import type {
+  ThemeColorKey,
+  ThemeComponents,
+  ThemeDefinition,
+  ThemeOverrideKey,
+} from "@/types/theme";
 
 const DEFAULT_COLORS: ThemeDefinition["colors"] = { ...DEFAULT_THEME_COLORS };
 
@@ -193,6 +199,16 @@ function ThemePreview({
   );
 }
 
+function buildComponents(
+  titlebarArt: boolean,
+  cardMeta: NonNullable<ThemeComponents["cardMeta"]>
+): ThemeComponents | undefined {
+  const components: ThemeComponents = {};
+  if (titlebarArt) components.titlebarArt = true;
+  if (cardMeta !== "full") components.cardMeta = cardMeta;
+  return Object.keys(components).length > 0 ? components : undefined;
+}
+
 export default function ThemeEditor({
   theme,
   onClose,
@@ -228,14 +244,37 @@ export default function ThemeEditor({
   const [overrides, setOverrides] = useState<ThemeDefinition["overrides"]>(() => ({
     ...theme?.overrides,
   }));
+  const [titlebarArt, setTitlebarArt] = useState(theme?.components?.titlebarArt === true);
+  const [cardMeta, setCardMeta] = useState<NonNullable<ThemeComponents["cardMeta"]>>(
+    theme?.components?.cardMeta ?? "full"
+  );
 
   useEffect(() => {
     if (!theme || currentTheme !== theme.name) return;
     applyTheme(theme.name, [
-      { ...theme, bevel, colors, overlay, overrides, radius },
+      {
+        ...theme,
+        bevel,
+        colors,
+        components: buildComponents(titlebarArt, cardMeta),
+        overlay,
+        overrides,
+        radius,
+      },
       ...customThemes.filter((item) => item.name !== theme.name),
     ]);
-  }, [bevel, colors, currentTheme, customThemes, overlay, overrides, radius, theme]);
+  }, [
+    bevel,
+    cardMeta,
+    colors,
+    currentTheme,
+    customThemes,
+    overlay,
+    overrides,
+    radius,
+    theme,
+    titlebarArt,
+  ]);
 
   const patchColor = (key: ThemeColorKey, value: string) =>
     setColors((prev) => ({ ...prev, [key]: value }));
@@ -272,10 +311,12 @@ export default function ThemeEditor({
     const safeName = theme?.name ?? `custom-${name.trim().toLowerCase().replaceAll(/\s+/g, "-")}`;
     const savedOverrides =
       overrides && Object.keys(overrides).length > 0 ? { ...overrides } : undefined;
+    const savedComponents = buildComponents(titlebarArt, cardMeta);
     addCustomTheme({
       ...theme,
       bevel,
       colors: { ...colors },
+      components: savedComponents,
       label: name.trim(),
       name: safeName,
       overlay: overlay === "none" ? undefined : overlay,
@@ -443,6 +484,24 @@ export default function ThemeEditor({
               className="max-w-xs"
             />
           </div>
+          <div className="flex items-center gap-2 px-1">
+            <span className="windows95-text text-text w-24 shrink-0 truncate">
+              {t("settings.theme.components.cardMeta")}
+            </span>
+            <Combobox
+              value={cardMeta}
+              onChange={(value) => setCardMeta(value as typeof cardMeta)}
+              options={[
+                { value: "full", label: t("settings.theme.components.cardMeta.full") },
+                { value: "short", label: t("settings.theme.components.cardMeta.short") },
+              ]}
+              className="max-w-xs"
+            />
+          </div>
+          <label className="windows95-text text-text flex cursor-pointer items-center gap-2 px-1 select-none">
+            <Checkbox checked={titlebarArt} onChange={setTitlebarArt} />
+            {t("settings.theme.components.titlebarArt")}
+          </label>
         </div>
 
         <Slider

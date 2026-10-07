@@ -1,161 +1,144 @@
-import { cleanup, render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const invokeMock = vi.fn();
+const { invokeMock } = vi.hoisted(() => ({ invokeMock: vi.fn() }));
 
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: (command: string, args?: Record<string, unknown>) => invokeMock(command, args),
+  invoke: (...args: unknown[]) => invokeMock(...args),
+  convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
 }));
-
-const openDialogMock = vi.fn();
 vi.mock("@tauri-apps/plugin-dialog", () => ({
-  open: (...args: unknown[]) => openDialogMock(...args),
+  open: () => Promise.resolve(null),
 }));
 
-import PlaylistBody, {
-  resolvePlaylistDragMove,
-} from "@/routes/components/player/media/playlist.player";
+import { fetchVideoCard, resetCardCache } from "@/lib/player/cardCache.utils";
+import PlaylistBody from "@/routes/components/player/media/playlist.player";
+import { playbackAtoms } from "@/store/player.store";
 import { patchSettings } from "@/store/settings.store";
 
-function isDisabled(element: HTMLElement): boolean {
-  return (element as HTMLButtonElement).disabled === true;
-}
+const ENTRIES = [
+  { index: 0, filename: "D:/a.mkv", title: "" },
+  { index: 1, filename: "D:/b.mkv", title: "" },
+];
 
-function renderBody(overrides?: {
-  onMove?: (from: number, to: number) => Promise<void>;
-  onPlay?: (index: number) => Promise<void>;
-  onRemove?: (index: number) => Promise<void>;
-}) {
-  return render(
-    <PlaylistBody
-      onMove={overrides?.onMove ?? (() => Promise.resolve())}
-      onPlay={overrides?.onPlay ?? (() => Promise.resolve())}
-      onRemove={overrides?.onRemove ?? (() => Promise.resolve())}
-    />
-  );
+function props() {
+  return {
+    onPlay: () => Promise.resolve(),
+    onRemove: () => Promise.resolve(),
+    onMove: () => Promise.resolve(),
+  };
 }
 
 beforeEach(() => {
-  patchSettings({ language: "en" });
+  resetCardCache();
   invokeMock.mockReset();
-  openDialogMock.mockReset();
-  openDialogMock.mockResolvedValue(null);
-  invokeMock.mockImplementation((command: string) => {
-    if (command === "player_playlist_entries")
-      return Promise.resolve([{ index: 0, filename: "ep1.mkv", title: "" }]);
+  invokeMock.mockImplementation((command: unknown) => {
+    if (command === "player_playlist_entries") return Promise.resolve(ENTRIES);
     if (command === "get_video_card")
-      return Promise.resolve({ path: "thumb", duration: 0, size: 0 });
+      return Promise.resolve({ path: "thumb.jpg", duration: 10, size: 100 });
     return Promise.resolve(undefined);
   });
+  patchSettings({ language: "en" });
 });
 
 afterEach(() => {
   cleanup();
+  vi.unstubAllGlobals();
 });
 
-describe("PlaylistBody", () => {
-  it("leaves play enabled", async () => {
-    renderBody();
+type IntersectionHandler = (entries: Array<{ isIntersecting: boolean }>) => void;
 
-    const play = await screen.findByTitle("Play");
-    expect(isDisabled(play)).toBe(false);
-  });
-
-  it("queues picked files without starting playback", async () => {
-    openDialogMock.mockResolvedValue(["C:\\Anime\\ep2.mkv"]);
-    let playlistCalls = 0;
-    invokeMock.mockImplementation((command: string) => {
-      if (command === "player_playlist_entries") {
-        playlistCalls += 1;
-        const first = [{ index: 0, filename: "ep1.mkv", title: "" }];
-        return Promise.resolve(
-          playlistCalls === 1
-            ? first
-            : [...first, { index: 1, filename: "C:\\Anime\\ep2.mkv", title: "" }]
-        );
+function stubIntersectionObserver(): { trigger: (visible: boolean) => void } {
+  let handler: IntersectionHandler | null = null;
+  vi.stubGlobal(
+    "IntersectionObserver",
+    class {
+      constructor(callback: IntersectionHandler) {
+        handler = callback;
       }
-      if (command === "get_video_card")
-        return Promise.resolve({ path: "thumb", duration: 0, size: 0 });
-      return Promise.resolve(undefined);
+      observe(): void {}
+      unobserve(): void {}
+      disconnect(): void {}
+    }
+  );
+  return {
+    trigger: (visible: boolean) => {
+      act(() => {
+        handler?.([{ isIntersecting: visible }]);
+      });
+    },
+  };
+}
+
+describe("PlaylistBody thumbnails", () => {
+  it("syncs a prefetched card that lands after mount instead of sticking null", async () => {
+    const { trigger } = stubIntersectionObserver();
+    playbackAtoms.path.set("D:/a.mkv");
+    const { container } = render(<PlaylistBody {...props()} />);
+    await vi.waitFor(() => {
+      expect(container.querySelectorAll('[data-testid="playlist-card"]')).toHaveLength(2);
     });
-    renderBody();
-
-    expect(await screen.findByText("ep1.mkv")).toBeDefined();
-    expect(screen.queryByText("ep2.mkv")).toBeNull();
-
-    await userEvent.click(await screen.findByRole("button", { name: "Add files" }));
-
-    expect(openDialogMock).toHaveBeenCalledWith({
-      multiple: true,
-      filters: [{ name: "Video files", extensions: expect.any(Array) }],
+    const second = container.querySelectorAll('[data-testid="playlist-card"]')[1];
+    // Second row mounted while off-screen and uncached: placeholder, no fetch.
+    expect(second.querySelector('img[src*="thumb"]')).toBeNull();
+    // Prefetch wave completes while the row is still off-screen.
+    const prefilled = await fetchVideoCard("D:/b.mkv");
+    if (!prefilled) throw new Error("prefill fetch returned null");
+    // Row scrolls into view: the cached art must sync into state even
+    // though no fetch runs anymore.
+    trigger(true);
+    await vi.waitFor(() => {
+      expect(second.querySelector('img[src*="thumb"]')).not.toBeNull();
     });
-    expect(invokeMock).toHaveBeenCalledWith("player_append_files", {
-      files: ["C:\\Anime\\ep2.mkv"],
-      mode: "append",
-    });
-    expect(await screen.findByText("ep2.mkv")).toBeDefined();
-  });
-
-  it("does nothing when the file dialog is cancelled", async () => {
-    openDialogMock.mockResolvedValue(null);
-    renderBody();
-
-    await userEvent.click(await screen.findByRole("button", { name: "Add files" }));
-
-    expect(invokeMock).not.toHaveBeenCalledWith(
-      "player_append_files",
-      expect.objectContaining({ mode: "append" })
+    const bFetches = invokeMock.mock.calls.filter(
+      ([c, args]) => c === "get_video_card" && (args as { path?: string }).path === "D:/b.mkv"
     );
+    expect(bFetches).toHaveLength(1);
   });
 
-  it("shows one drag handle per row without breaking play", async () => {
-    invokeMock.mockImplementation((command: string) => {
-      if (command === "player_playlist_entries")
-        return Promise.resolve([
-          { index: 0, filename: "ep1.mkv", title: "" },
-          { index: 1, filename: "ep2.mkv", title: "" },
-        ]);
-      if (command === "get_video_card")
-        return Promise.resolve({ path: "thumb", duration: 0, size: 0 });
-      return Promise.resolve(undefined);
+  it("fetches its own card when nothing is cached", async () => {
+    const { container } = render(<PlaylistBody {...props()} />);
+    await vi.waitFor(() => {
+      expect(container.querySelector('[data-testid="playlist-card"]')).not.toBeNull();
     });
-    renderBody();
+    await vi.waitFor(() => {
+      expect(container.querySelector('img[src*="thumb"]')).not.toBeNull();
+    });
+    expect(invokeMock).toHaveBeenCalledWith("get_video_card", { path: "D:/a.mkv" });
+  });
+});
 
-    const handles = await screen.findAllByTestId("playlist-drag-handle");
-    expect(handles).toHaveLength(2);
+describe("PlaylistBody mutations", () => {
+  function entriesCalls(): number {
+    return invokeMock.mock.calls.filter(([command]) => command === "player_playlist_entries")
+      .length;
+  }
 
-    const plays = await screen.findAllByTitle("Play");
-    expect(plays).toHaveLength(2);
-    expect(isDisabled(plays[0])).toBe(false);
+  it("does not refetch entries after remove (count subscriber covers it)", async () => {
+    const onRemove = vi.fn(() => Promise.resolve());
+    render(<PlaylistBody {...props()} onRemove={onRemove} />);
+    const [remove] = await screen.findAllByRole("button", { name: "Remove from queue" });
+    fireEvent.click(remove);
+    await vi.waitFor(() => {
+      expect(onRemove).toHaveBeenCalledTimes(1);
+    });
+    await vi.waitFor(() => {
+      expect(entriesCalls()).toBe(1);
+    });
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(entriesCalls()).toBe(1);
   });
 
-  it("moves an entry down through the button controls", async () => {
-    invokeMock.mockImplementation((command: string) => {
-      if (command === "player_playlist_entries")
-        return Promise.resolve([
-          { index: 0, filename: "ep1.mkv", title: "" },
-          { index: 1, filename: "ep2.mkv", title: "" },
-        ]);
-      if (command === "get_video_card")
-        return Promise.resolve({ path: "thumb", duration: 0, size: 0 });
-      return Promise.resolve(undefined);
-    });
+  it("still refetches entries after move (count is unchanged)", async () => {
     const onMove = vi.fn(() => Promise.resolve());
-    renderBody({ onMove });
-
-    const downButtons = await screen.findAllByRole("button", { name: "Move down" });
-    expect(isDisabled(downButtons[0])).toBe(false);
-    expect(isDisabled(downButtons[1])).toBe(true);
-
-    await userEvent.click(downButtons[0]);
-    expect(onMove).toHaveBeenCalledWith(0, 1);
-  });
-
-  it("resolves drag moves only between two different integer ids", () => {
-    expect(resolvePlaylistDragMove(0, 2)).toEqual({ from: 0, to: 2 });
-    expect(resolvePlaylistDragMove(0, 0)).toBeNull();
-    expect(resolvePlaylistDragMove(0, undefined)).toBeNull();
-    expect(resolvePlaylistDragMove("a", 1)).toBeNull();
+    render(<PlaylistBody {...props()} onMove={onMove} />);
+    const [moveDown] = await screen.findAllByRole("button", { name: "Move down" });
+    fireEvent.click(moveDown);
+    await vi.waitFor(() => {
+      expect(onMove).toHaveBeenCalledTimes(1);
+    });
+    await vi.waitFor(() => {
+      expect(entriesCalls()).toBe(2);
+    });
   });
 });

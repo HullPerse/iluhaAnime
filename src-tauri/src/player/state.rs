@@ -71,6 +71,7 @@ pub struct PlayerHost {
     metrics: Mutex<Metrics>,
     watchdog: Mutex<WatchdogState>,
     last_snapshot: Mutex<Option<PlaybackSnapshot>>,
+    zero_streak: Mutex<u32>,
     capturing: AtomicBool,
 }
 
@@ -307,9 +308,8 @@ fn string_property(app: &AppHandle, name: &str) -> Option<String> {
 /// failures into zeros, which the timeline then shows as a jump to 0:00 and
 /// back. When the path is unchanged and the previous sample was sane, the
 /// zero is almost certainly such a glitch, so the previous value is
-/// re-emitted once. The raw sample is still stored as the new baseline, so
-/// a genuine return to zero (e.g. restart) converges on the very next tick
-/// instead of sticking.
+/// re-emitted. Multi-tick runs are handled by `smooth_with_streak`, which
+/// calls this per tick against the last emitted baseline.
 fn smooth_snapshot_sample(
     previous: Option<&PlaybackSnapshot>,
     next: PlaybackSnapshot,
@@ -336,14 +336,45 @@ fn smooth_snapshot_sample(
     fixed
 }
 
+/// How many consecutive zero-position samples stay masked while the last
+/// emitted position was sane. Covers multi-tick zero runs from seek
+/// rebuffers and demuxer resets; a genuine return to zero (restart, replay)
+/// converges right after the budget is exhausted.
+const MAX_MASKED_ZEROS: u32 = 3;
+
+fn smooth_with_streak(
+    previous: Option<&PlaybackSnapshot>,
+    streak: u32,
+    next: PlaybackSnapshot,
+) -> (PlaybackSnapshot, u32) {
+    let time_glitch = match previous {
+        Some(prev) => next.path == prev.path && next.time_pos == 0.0 && prev.time_pos > 1.0,
+        None => false,
+    };
+    if time_glitch && streak < MAX_MASKED_ZEROS {
+        (smooth_snapshot_sample(previous, next), streak + 1)
+    } else if time_glitch {
+        (next, streak)
+    } else {
+        (smooth_snapshot_sample(previous, next), 0)
+    }
+}
+
 fn smooth_snapshot(app: &AppHandle, next: PlaybackSnapshot) -> PlaybackSnapshot {
     let host = app.state::<PlayerHost>();
     let mut last = host
         .last_snapshot
         .lock()
         .unwrap_or_else(|error| error.into_inner());
-    let emitted = smooth_snapshot_sample(last.as_ref(), next.clone());
-    *last = Some(next);
+    let mut streak = host
+        .zero_streak
+        .lock()
+        .unwrap_or_else(|error| error.into_inner());
+    // Baseline is the last EMITTED sample (not raw): consecutive zeros stay
+    // glitches until the streak budget runs out, then converge.
+    let (emitted, updated) = smooth_with_streak(last.as_ref(), *streak, next);
+    *streak = updated;
+    *last = Some(emitted.clone());
     emitted
 }
 
@@ -519,13 +550,55 @@ mod tests {
 
     #[test]
     fn restart_converges_on_the_second_zero() {
-        // smooth_snapshot stores the RAW sample as the new baseline, so a
-        // real return to zero is masked for exactly one tick, then shown.
+        // The single-sample helper masks exactly one zero: the raw zero
+        // becomes the next baseline, so a second zero passes through.
         let playing = snapshot("/a.mkv", 600.0, 1400.0, 0, 1);
         let raw_zero = snapshot("/a.mkv", 0.0, 1400.0, 0, 1);
         let first = smooth_snapshot_sample(Some(&playing), raw_zero.clone());
         assert_eq!(first.time_pos, 600.0);
         let second = smooth_snapshot_sample(Some(&raw_zero), raw_zero.clone());
         assert_eq!(second.time_pos, 0.0);
+    }
+
+    #[test]
+    fn consecutive_zeros_stay_masked_up_to_budget() {
+        let playing = snapshot("/a.mkv", 600.0, 1400.0, 0, 1);
+        let raw_zero = snapshot("/a.mkv", 0.0, 1400.0, 0, 1);
+        let (first, streak) = smooth_with_streak(Some(&playing), 0, raw_zero.clone());
+        assert_eq!(first.time_pos, 600.0);
+        assert_eq!(streak, 1);
+        let (second, streak) = smooth_with_streak(Some(&first), streak, raw_zero.clone());
+        assert_eq!(second.time_pos, 600.0);
+        assert_eq!(streak, 2);
+        let (third, streak) = smooth_with_streak(Some(&second), streak, raw_zero.clone());
+        assert_eq!(third.time_pos, 600.0);
+        assert_eq!(streak, 3);
+    }
+
+    #[test]
+    fn genuine_restart_converges_after_budget() {
+        let playing = snapshot("/a.mkv", 600.0, 1400.0, 0, 1);
+        let raw_zero = snapshot("/a.mkv", 0.0, 1400.0, 0, 1);
+        let (mut previous, mut streak) = (playing, 0);
+        for _ in 0..3 {
+            let (out, next_streak) = smooth_with_streak(Some(&previous), streak, raw_zero.clone());
+            assert_eq!(out.time_pos, 600.0);
+            previous = out;
+            streak = next_streak;
+        }
+        let (converged, _) = smooth_with_streak(Some(&previous), streak, raw_zero);
+        assert_eq!(converged.time_pos, 0.0);
+    }
+
+    #[test]
+    fn sane_sample_resets_zero_streak() {
+        let playing = snapshot("/a.mkv", 600.0, 1400.0, 0, 1);
+        let raw_zero = snapshot("/a.mkv", 0.0, 1400.0, 0, 1);
+        let (masked, streak) = smooth_with_streak(Some(&playing), 0, raw_zero);
+        assert_eq!(streak, 1);
+        let resumed = snapshot("/a.mkv", 600.4, 1400.0, 0, 1);
+        let (out, streak) = smooth_with_streak(Some(&masked), streak, resumed);
+        assert_eq!(out.time_pos, 600.4);
+        assert_eq!(streak, 0);
     }
 }

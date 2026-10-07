@@ -233,6 +233,11 @@
     background: transparent;
     min-width: 280px;
     min-height: 240px;
+    /*
+     * Body copy without an explicit color class inherits this instead of the browser
+     * default black, so dark themes stay readable. Layered text utilities still win.
+     */
+    color: var(--color-text);
   }
 
   button,

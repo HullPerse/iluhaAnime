@@ -113,6 +113,7 @@ export type CommandName =
   | "patch_collection_item"
   | "pause_torrent"
   | "player_append_files"
+  | "player_apply_file_state"
   | "player_close_window"
   | "player_command"
   | "player_destroy"

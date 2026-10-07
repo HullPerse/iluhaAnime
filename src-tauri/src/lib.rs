@@ -1501,7 +1501,7 @@ pub fn run() {
             player::player_eof_mode,
             player::player_save_watch,
             player::player_load_watch,
-            player::debug_timeline_append,
+            player::player_apply_file_state,
             app_db::get_app_cache,
             app_db::put_app_cache,
             app_db::delete_app_cache,

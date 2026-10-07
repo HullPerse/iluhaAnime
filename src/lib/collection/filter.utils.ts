@@ -8,6 +8,7 @@ import {
   matchOperatorTerms,
   operatorTextLength,
   parseOperatorTerms,
+  type OperatorTerm,
 } from "@/lib/search/score.utils";
 import type {
   CollectionFilters,
@@ -167,6 +168,20 @@ function applyNegation(list: CollectionItem[], key: string, value: string): Coll
   return list;
 }
 
+const shortQueryFieldsCache = new WeakMap<CollectionItem[], string[][]>();
+
+function getShortQueryFields(list: CollectionItem[]): string[][] {
+  const cached = shortQueryFieldsCache.get(list);
+  if (cached) return cached;
+  const fields = list.map((item) =>
+    [item.title, ...item.altTitles, ...item.genres, item.studio ?? ""]
+      .map(normalizeSearchText)
+      .filter((field) => field.length > 0)
+  );
+  shortQueryFieldsCache.set(list, fields);
+  return fields;
+}
+
 function matchesShortQuery(item: CollectionItem, query: string): boolean {
   return (
     item.title.toLowerCase().includes(query) ||
@@ -176,12 +191,7 @@ function matchesShortQuery(item: CollectionItem, query: string): boolean {
   );
 }
 
-function matchesOperatorShortQuery(item: CollectionItem, query: string): boolean {
-  const terms = parseOperatorTerms(query);
-  if (!terms) return matchesShortQuery(item, query.toLowerCase());
-  const fields = [item.title, ...item.altTitles, ...item.genres, item.studio ?? ""]
-    .map(normalizeSearchText)
-    .filter((field) => field.length > 0);
+function matchesOperatorShortQuery(fields: string[], terms: OperatorTerm[]): boolean {
   if (terms.every((term) => term.negate)) {
     return !fields.some((field) =>
       terms.some((term) => matchOperatorTerm({ ...term, negate: false }, field) != null)
@@ -190,9 +200,15 @@ function matchesOperatorShortQuery(item: CollectionItem, query: string): boolean
   return fields.some((field) => matchOperatorTerms(terms, field) != null);
 }
 
-function applyShortQueryFilter(list: CollectionItem[], cleanQuery: string): CollectionItem[] {
+export function applyShortQueryFilter(list: CollectionItem[], cleanQuery: string): CollectionItem[] {
   if (!cleanQuery.trim() || operatorTextLength(cleanQuery) >= 3) return list;
-  return list.filter((item) => matchesOperatorShortQuery(item, cleanQuery));
+  const terms = parseOperatorTerms(cleanQuery);
+  if (!terms) {
+    const lowered = cleanQuery.toLowerCase();
+    return list.filter((item) => matchesShortQuery(item, lowered));
+  }
+  const fields = getShortQueryFields(list);
+  return list.filter((_, index) => matchesOperatorShortQuery(fields[index] ?? [], terms));
 }
 
 function sortCollectionItems(

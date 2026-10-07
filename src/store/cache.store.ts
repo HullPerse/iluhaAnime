@@ -1,8 +1,9 @@
-import { createPersistor, persistKey, type Persistor } from "@/lib/state/persist.utils";
-import { createSignalStore, type Cell } from "@/lib/state/signal.store";
+import { createPersistedStoreContext } from "@/lib/state/persisted.utils";
+import type { Persistor } from "@/lib/state/persist.utils";
+import type { Cell } from "@/lib/state/signal.store";
 import { writeAppCache } from "@/lib/store/cache.utils";
 import { moveItem } from "@/lib/utils/array.utils";
-import { attemptSync, reportBackgroundError } from "@/lib/utils/attempt.utils";
+import { attemptSync } from "@/lib/utils/attempt.utils";
 import type { CacheStore } from "@/types/cache";
 import type { FolderNode } from "@/types/torrent";
 
@@ -44,11 +45,6 @@ function readLegacyCache(
   return { data: state as Record<string, unknown>, schemaVersion: CACHE_SCHEMA_VERSION };
 }
 
-function defaultGetStorage(): Storage | undefined {
-  if (typeof localStorage === "undefined") return undefined;
-  return localStorage;
-}
-
 export interface CacheSignalOptions {
   getStorage?: () => Storage | undefined;
   debounceMs?: number;
@@ -68,20 +64,13 @@ export interface CacheSignalStore {
 }
 
 export function createCacheSignalStore(options: CacheSignalOptions = {}): CacheSignalStore {
-  const getStorage = options.getStorage ?? defaultGetStorage;
-  const store = createSignalStore();
-  let adoptedFromLegacy = false;
-  const persistor = createPersistor({
+  const { store, persistor, finishAdopt } = createPersistedStoreContext({
     storeName: "cache",
+    short: "cache",
     schemaVersion: CACHE_SCHEMA_VERSION,
-    getStorage,
+    getStorage: options.getStorage,
     debounceMs: options.debounceMs,
-    fallback: () => {
-      const migrated = readLegacyCache(getStorage);
-      if (migrated) adoptedFromLegacy = true;
-      return migrated;
-    },
-    onError: (scope, error) => reportBackgroundError(`cache.signal.${scope}`, error as Error),
+    onFallback: (get) => readLegacyCache(get),
   });
 
   const persisted = persistor.read();
@@ -97,13 +86,13 @@ export function createCacheSignalStore(options: CacheSignalOptions = {}): CacheS
       id: cell.id,
       get: cell.get,
       set: (value) => {
-        cell.set(value);
         mirror[key] = value;
+        cell.set(value);
       },
       update: (fn) => {
         const next = (fn as (prev: unknown) => unknown)(cell.get());
-        cell.set(next);
         mirror[key] = next;
+        cell.set(next);
       },
       subscribe: cell.subscribe,
     };
@@ -178,20 +167,7 @@ export function createCacheSignalStore(options: CacheSignalOptions = {}): CacheS
     },
   };
 
-  if (adoptedFromLegacy) {
-    persistor.write({ ...mirror });
-    persistor.flush();
-    const [storage, storageError] = attemptSync(() => getStorage());
-    if (storageError !== null) reportBackgroundError("cache.signal.adopt", storageError);
-    else {
-      const [adopted, adoptError] = attemptSync(() => storage?.getItem(persistKey("cache")));
-      if (adoptError !== null) reportBackgroundError("cache.signal.adopt", adoptError);
-      else if (adopted) {
-        const [, removeError] = attemptSync(() => storage?.removeItem("cache"));
-        if (removeError !== null) reportBackgroundError("cache.signal.adopt", removeError);
-      }
-    }
-  }
+  finishAdopt(() => ({ ...mirror }), { remove: "cache" });
 
   return handle;
 }

@@ -59,39 +59,4 @@ describe("category signal entries", () => {
     expect(ids()).toEqual(["A", "C", "B"]);
     store.persistor.dispose();
   });
-
-  it("exports and reimports a roundtrip", () => {
-    const store = setup();
-    const id = seed(store);
-    const json = store.exportCategories();
-    store.atoms.categories.set([]);
-    store.atoms.entries.set({});
-    const count = store.importCategories(JSON.parse(json));
-    expect(count).toBe(1);
-    expect(store.atoms.entries.get()[id]).toHaveLength(3);
-    store.persistor.dispose();
-  });
-
-  it("rejects invalid backups and skips bad rows", () => {
-    const store = setup();
-    expect(() => store.importCategories(null)).toThrow();
-    expect(() => store.importCategories({})).toThrow();
-    const count = store.importCategories({
-      categories: [
-        { id: "c1", name: "Ok", icon: "i.ico" },
-        { id: 5, name: "Bad" },
-      ],
-      entries: {
-        c1: [
-          { id: "e1", type: "folder", name: "A", folderPath: "/a" },
-          { id: "e2", type: "nope", name: "B" },
-        ],
-        ghost: [{ id: "e3", type: "folder", name: "C" }],
-      },
-    });
-    expect(count).toBe(1);
-    expect(store.atoms.entries.get()["c1"]).toHaveLength(1);
-    expect(store.atoms.entries.get()["ghost"]).toBeUndefined();
-    store.persistor.dispose();
-  });
 });

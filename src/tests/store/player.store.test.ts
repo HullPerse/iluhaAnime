@@ -92,13 +92,26 @@ describe("playback atoms", () => {
     expect(playback.atoms.playlistCount.get()).toBe(3);
   });
 
-  it("clears the seek target once the position is reached", () => {
+  it("clears the seek target after consecutive in-tolerance snapshots", () => {
     const playback = setup();
     playback.setSnapshot(SNAPSHOT);
     playback.setSeekTarget(100);
     expect(playback.atoms.seekTarget.get()).toBe(100);
     playback.setSnapshot({ ...SNAPSHOT, timePos: 100.2 });
+    expect(playback.atoms.seekTarget.get()).toBe(100);
+    playback.setSnapshot({ ...SNAPSHOT, timePos: 100.1 });
     expect(playback.atoms.seekTarget.get()).toBeNull();
+  });
+
+  it("resets confirmations when the position leaves tolerance", () => {
+    const playback = setup();
+    playback.setSnapshot(SNAPSHOT);
+    playback.setSeekTarget(100);
+    playback.setSnapshot({ ...SNAPSHOT, timePos: 100.2 });
+    expect(playback.atoms.seekTarget.get()).toBe(100);
+    playback.setSnapshot({ ...SNAPSHOT, timePos: 50 });
+    playback.setSnapshot({ ...SNAPSHOT, timePos: 100.2 });
+    expect(playback.atoms.seekTarget.get()).toBe(100);
   });
 
   it("keeps an unreached seek target across snapshots", () => {
@@ -113,9 +126,32 @@ describe("playback atoms", () => {
     const playback = setup();
     playback.settleSeek();
     expect(playback.atoms.seekSettle.get()).toBe(false);
-    playback.setSeekTarget(50);
+    playback.setSeekTarget(0.2);
     playback.settleSeek();
     expect(playback.atoms.seekSettle.get()).toBe(true);
+  });
+
+  it("ignores a settle against a stale position", () => {
+    const playback = setup();
+    playback.setSnapshot({ ...SNAPSHOT, timePos: 10 });
+    playback.setSeekTarget(100);
+    // A playback-restart from an older seek arrives while timePos still
+    // shows the pre-seek position: the fresh target must survive it.
+    playback.settleSeek();
+    expect(playback.atoms.seekSettle.get()).toBe(false);
+    expect(playback.atoms.seekTarget.get()).toBe(100);
+  });
+
+  it("settles once the position has caught up with the target", () => {
+    const playback = setup();
+    playback.setSnapshot({ ...SNAPSHOT, timePos: 10 });
+    playback.setSeekTarget(100);
+    playback.setSnapshot({ ...SNAPSHOT, timePos: 100.1 });
+    expect(playback.atoms.seekTarget.get()).toBe(100);
+    playback.settleSeek();
+    expect(playback.atoms.seekSettle.get()).toBe(true);
+    playback.setSnapshot({ ...SNAPSHOT, timePos: 100.1 });
+    expect(playback.atoms.seekTarget.get()).toBeNull();
   });
 
   it("marks the selected track per kind", () => {

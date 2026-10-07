@@ -1,6 +1,7 @@
-import { createPersistor, persistKey, type Persistor } from "@/lib/state/persist.utils";
+import { createPersistedStoreContext } from "@/lib/state/persisted.utils";
+import type { Persistor } from "@/lib/state/persist.utils";
 import { createSignalStore, type Cell } from "@/lib/state/signal.store";
-import { attemptSync, reportBackgroundError } from "@/lib/utils/attempt.utils";
+import { attemptSync } from "@/lib/utils/attempt.utils";
 import type {
   AniListFriendsStore,
   AniListNotificationsStore,
@@ -189,28 +190,6 @@ function readLegacyEnvelope(
   };
 }
 
-function defaultGetStorage(): Storage | undefined {
-  if (typeof localStorage === "undefined") return undefined;
-  return localStorage;
-}
-
-function adoptLegacyKey(getStorage: () => Storage | undefined, storeName: string, legacyKey: string): void {
-  const [storage, storageError] = attemptSync(() => getStorage());
-  if (storageError !== null) {
-    reportBackgroundError("anilist.signal.adopt", storageError);
-    return;
-  }
-  const [adopted, adoptError] = attemptSync(() => storage?.getItem(persistKey(storeName)));
-  if (adoptError !== null) {
-    reportBackgroundError("anilist.signal.adopt", adoptError);
-    return;
-  }
-  if (adopted) {
-    const [, removeError] = attemptSync(() => storage?.removeItem(legacyKey));
-    if (removeError !== null) reportBackgroundError("anilist.signal.adopt", removeError);
-  }
-}
-
 type FriendsActionKeys = "addFriend" | "cacheProfile" | "removeFriend";
 
 export type FriendsData = Omit<AniListFriendsStore, FriendsActionKeys>;
@@ -250,13 +229,13 @@ function buildMirrorAtoms<T extends object>(
       id: cell.id,
       get: cell.get,
       set: (value) => {
-        cell.set(value);
         mirror[key] = value;
+        cell.set(value);
       },
       update: (fn) => {
         const next = (fn as (prev: unknown) => unknown)(cell.get());
-        cell.set(next);
         mirror[key] = next;
+        cell.set(next);
       },
       subscribe: cell.subscribe,
     };
@@ -274,24 +253,20 @@ export interface FriendsSignalStore {
 }
 
 export function createFriendsSignalStore(options: AnilistSignalOptions = {}): FriendsSignalStore {
-  const getStorage = options.getStorage ?? defaultGetStorage;
-  const store = createSignalStore();
-  let adoptedFromLegacy = false;
-  const persistor = createPersistor({
+  const { store, persistor, finishAdopt } = createPersistedStoreContext({
     storeName: "anilistFriends",
+    short: "anilist",
     schemaVersion: ANILIST_FRIENDS_SCHEMA_VERSION,
-    getStorage,
+    getStorage: options.getStorage,
     debounceMs: options.debounceMs,
-    fallback: () => {
-      const legacy = readLegacyEnvelope(getStorage, "anilistFriends");
+    onFallback: (get) => {
+      const legacy = readLegacyEnvelope(get, "anilistFriends");
       if (!legacy) return null;
-      adoptedFromLegacy = true;
       return {
         data: migrateFriendsData(legacy.state) as Record<string, unknown>,
         schemaVersion: ANILIST_FRIENDS_SCHEMA_VERSION,
       };
     },
-    onError: (scope, error) => reportBackgroundError(`anilist.signal.${scope}`, error as Error),
   });
 
   const persisted = persistor.read();
@@ -341,11 +316,7 @@ export function createFriendsSignalStore(options: AnilistSignalOptions = {}): Fr
     },
   };
 
-  if (adoptedFromLegacy) {
-    persistor.write({ ...mirror });
-    persistor.flush();
-    adoptLegacyKey(getStorage, "anilistFriends", "anilistFriends");
-  }
+  finishAdopt(() => ({ ...mirror }), { remove: "anilistFriends" });
 
   return handle;
 }
@@ -375,18 +346,15 @@ export interface AnilistNotificationsSignalStore {
 export function createAnilistNotificationsSignalStore(
   options: AnilistSignalOptions = {}
 ): AnilistNotificationsSignalStore {
-  const getStorage = options.getStorage ?? defaultGetStorage;
-  const store = createSignalStore();
-  let adoptedFromLegacy = false;
-  const persistor = createPersistor({
+  const { store, persistor, finishAdopt } = createPersistedStoreContext({
     storeName: "anilistReleaseObservations",
+    short: "anilist",
     schemaVersion: ANILIST_NOTIFICATIONS_SCHEMA_VERSION,
-    getStorage,
+    getStorage: options.getStorage,
     debounceMs: options.debounceMs,
-    fallback: () => {
-      const legacy = readLegacyEnvelope(getStorage, "anilistReleaseObservations");
+    onFallback: (get) => {
+      const legacy = readLegacyEnvelope(get, "anilistReleaseObservations");
       if (!legacy) return null;
-      adoptedFromLegacy = true;
       return {
         data: migrateNotificationsData(
           legacy.state,
@@ -395,7 +363,6 @@ export function createAnilistNotificationsSignalStore(
         schemaVersion: ANILIST_NOTIFICATIONS_SCHEMA_VERSION,
       };
     },
-    onError: (scope, error) => reportBackgroundError(`anilist.signal.${scope}`, error as Error),
   });
 
   const persisted = persistor.read();
@@ -462,11 +429,7 @@ export function createAnilistNotificationsSignalStore(
     },
   };
 
-  if (adoptedFromLegacy) {
-    persistor.write({ ...mirror });
-    persistor.flush();
-    adoptLegacyKey(getStorage, "anilistReleaseObservations", "anilistReleaseObservations");
-  }
+  finishAdopt(() => ({ ...mirror }), { remove: "anilistReleaseObservations" });
 
   return handle;
 }

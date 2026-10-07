@@ -78,6 +78,34 @@ describe("settings signal legacy fallback", () => {
     expect(store.atoms.language.get()).toBe("en");
   });
 
+  it("disables the persisted day-night theme schedule once", () => {
+    const backing = new Map<string, string>([
+      [
+        "settings",
+        JSON.stringify({
+          state: {
+            themeSchedule: {
+              enabled: true,
+              dayStart: "08:00",
+              nightStart: "23:00",
+              dayTheme: "win95",
+              nightTheme: "tokyo-night",
+            },
+          },
+          version: 38,
+        }),
+      ],
+    ]);
+    const { store } = setup(backing);
+    expect(store.atoms.themeSchedule.get()).toEqual({
+      enabled: false,
+      dayStart: "08:00",
+      nightStart: "23:00",
+      dayTheme: "win95",
+      nightTheme: "tokyo-night",
+    });
+  });
+
   it("ignores the legacy key once the new envelope exists", () => {
     const backing = new Map<string, string>([
       ["settings", JSON.stringify({ state: { pageSize: 10 }, version: 37 })],

@@ -1,9 +1,13 @@
-import { createPersistor, persistKey, type Persistor } from "@/lib/state/persist.utils";
-import { createSignalStore, type Cell } from "@/lib/state/signal.store";
-import { attemptSync, reportBackgroundError } from "@/lib/utils/attempt.utils";
+import { createPersistedStoreContext } from "@/lib/state/persisted.utils";
+import type { Persistor } from "@/lib/state/persist.utils";
+import type { Cell } from "@/lib/state/signal.store";
+import { attemptSync } from "@/lib/utils/attempt.utils";
+import { isUserImageIcon } from "@/lib/utils/image.utils";
 import type { Category, CategoryEntry, CategoryStore } from "@/types/category";
 
 export const CATEGORY_SCHEMA_VERSION = 1;
+
+export const DEFAULT_CATEGORY_ICON = "w98_directory_zipper.ico";
 
 let nextId = 1;
 function genId(): string {
@@ -20,45 +24,6 @@ function getNextCategoryName(existing: string[], base: string): string {
   return `${base} (${i})`;
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
-function parseImportCategory(item: unknown, order: number): Category | null {
-  if (!isRecord(item)) return null;
-  const { id, name, icon, order: rawOrder, createdAt } = item as Partial<Category>;
-  if (typeof id !== "string" || typeof name !== "string" || typeof icon !== "string") return null;
-  return {
-    id,
-    icon,
-    name,
-    order: typeof rawOrder === "number" ? rawOrder : order,
-    createdAt: typeof createdAt === "number" ? createdAt : Date.now(),
-  };
-}
-
-function parseImportEntry(item: unknown): CategoryEntry | null {
-  if (!isRecord(item)) return null;
-  const candidate = item as Partial<CategoryEntry>;
-  if (
-    typeof candidate.id !== "string" ||
-    typeof candidate.name !== "string" ||
-    (candidate.type !== "torrent" && candidate.type !== "folder")
-  ) {
-    return null;
-  }
-  return {
-    id: candidate.id,
-    type: candidate.type,
-    name: candidate.name,
-    torrentId: typeof candidate.torrentId === "number" ? candidate.torrentId : undefined,
-    infoHash: typeof candidate.infoHash === "string" ? candidate.infoHash : undefined,
-    saveDir: typeof candidate.saveDir === "string" ? candidate.saveDir : undefined,
-    totalBytes: typeof candidate.totalBytes === "number" ? candidate.totalBytes : undefined,
-    folderPath: typeof candidate.folderPath === "string" ? candidate.folderPath : undefined,
-  };
-}
-
 type CategoryActionKeys =
   | "addCategory"
   | "addEntry"
@@ -70,9 +35,7 @@ type CategoryActionKeys =
   | "removeEntry"
   | "renameCategory"
   | "reorderCategories"
-  | "setCategoryCollapsed"
-  | "exportCategories"
-  | "importCategories";
+  | "setCategoryCollapsed";
 
 export type CategoryData = Omit<CategoryStore, CategoryActionKeys>;
 export type CategoryAtoms = { [K in keyof CategoryData]: Cell<CategoryData[K]> };
@@ -92,11 +55,6 @@ function readLegacyCategories(
   return { data: state as Record<string, unknown>, schemaVersion: CATEGORY_SCHEMA_VERSION };
 }
 
-function defaultGetStorage(): Storage | undefined {
-  if (typeof localStorage === "undefined") return undefined;
-  return localStorage;
-}
-
 export interface CategorySignalOptions {
   getStorage?: () => Storage | undefined;
   debounceMs?: number;
@@ -106,10 +64,7 @@ export interface CategorySignalStore {
   atoms: CategoryAtoms;
   persistor: Persistor;
   addCategory: (name: string) => string;
-  addEntry: (
-    categoryId: string,
-    entry: Omit<CategoryEntry, "id">
-  ) => void;
+  addEntry: (categoryId: string, entry: Omit<CategoryEntry, "id">) => void;
   changeIcon: (id: string, icon: string) => void;
   removeCategory: (id: string) => void;
   removeEntriesByFolderPath: (path: string) => void;
@@ -119,33 +74,29 @@ export interface CategorySignalStore {
   renameCategory: (id: string, name: string) => void;
   reorderCategories: (ids: string[]) => void;
   setCategoryCollapsed: (id: string, collapsed: boolean) => void;
-  exportCategories: () => string;
-  importCategories: (raw: unknown) => number;
 }
 
-export function createCategorySignalStore(options: CategorySignalOptions = {}): CategorySignalStore {
-  const getStorage = options.getStorage ?? defaultGetStorage;
-  const store = createSignalStore();
-  let adoptedFromLegacy = false;
-  const persistor = createPersistor({
+export function createCategorySignalStore(
+  options: CategorySignalOptions = {}
+): CategorySignalStore {
+  const { store, persistor, finishAdopt } = createPersistedStoreContext({
     storeName: "categories",
+    short: "category",
     schemaVersion: CATEGORY_SCHEMA_VERSION,
-    getStorage,
+    getStorage: options.getStorage,
     debounceMs: options.debounceMs,
-    fallback: () => {
-      const migrated = readLegacyCategories(getStorage);
-      if (migrated) adoptedFromLegacy = true;
-      return migrated;
-    },
-    onError: (scope, error) => reportBackgroundError(`category.signal.${scope}`, error as Error),
+    onFallback: (get) => readLegacyCategories(get),
   });
 
   const persisted = persistor.read();
   const persistedData = (persisted?.data ?? {}) as Partial<CategoryData>;
+  const persistedCategories = Array.isArray(persistedData.categories)
+    ? (persistedData.categories as Category[])
+    : [];
   const data: CategoryData = {
-    categories: Array.isArray(persistedData.categories)
-      ? (persistedData.categories as Category[])
-      : [],
+    categories: persistedCategories.map((category) =>
+      isUserImageIcon(category.icon) ? { ...category, icon: DEFAULT_CATEGORY_ICON } : category
+    ),
     collapsedIds: Array.isArray(persistedData.collapsedIds)
       ? (persistedData.collapsedIds as string[])
       : [],
@@ -164,13 +115,13 @@ export function createCategorySignalStore(options: CategorySignalOptions = {}): 
       id: cell.id,
       get: cell.get,
       set: (value) => {
-        cell.set(value);
         mirror[key] = value;
+        cell.set(value);
       },
       update: (fn) => {
         const next = (fn as (prev: unknown) => unknown)(cell.get());
-        cell.set(next);
         mirror[key] = next;
+        cell.set(next);
       },
       subscribe: cell.subscribe,
     };
@@ -192,7 +143,7 @@ export function createCategorySignalStore(options: CategorySignalOptions = {}): 
         ...atoms.categories.get(),
         {
           id,
-          icon: "w98_directory_zipper.ico",
+          icon: DEFAULT_CATEGORY_ICON,
           name: finalName,
           order: atoms.categories.get().length,
           createdAt: Date.now(),
@@ -215,9 +166,7 @@ export function createCategorySignalStore(options: CategorySignalOptions = {}): 
       });
     },
     changeIcon: (id, icon) => {
-      atoms.categories.set(
-        atoms.categories.get().map((c) => (c.id === id ? { ...c, icon } : c))
-      );
+      atoms.categories.set(atoms.categories.get().map((c) => (c.id === id ? { ...c, icon } : c)));
     },
     removeCategory: (id) => {
       const entries = atoms.entries.get();
@@ -228,18 +177,14 @@ export function createCategorySignalStore(options: CategorySignalOptions = {}): 
     removeEntriesByFolderPath: (path) => {
       const entries = { ...atoms.entries.get() };
       for (const catId of Object.keys(entries)) {
-        entries[catId] = entries[catId].filter(
-          (e) => e.type !== "folder" || e.folderPath !== path
-        );
+        entries[catId] = entries[catId].filter((e) => e.type !== "folder" || e.folderPath !== path);
       }
       atoms.entries.set(entries);
     },
     removeEntriesByTorrentId: (id) => {
       const entries = { ...atoms.entries.get() };
       for (const catId of Object.keys(entries)) {
-        entries[catId] = entries[catId].filter(
-          (e) => e.type !== "torrent" || e.torrentId !== id
-        );
+        entries[catId] = entries[catId].filter((e) => e.type !== "torrent" || e.torrentId !== id);
       }
       atoms.entries.set(entries);
     },
@@ -268,9 +213,7 @@ export function createCategorySignalStore(options: CategorySignalOptions = {}): 
       const trimmed = name.trim().slice(0, 80);
       if (!trimmed) return;
       const categories = atoms.categories.get();
-      if (
-        categories.some((c) => c.id !== id && c.name.toLowerCase() === trimmed.toLowerCase())
-      ) {
+      if (categories.some((c) => c.id !== id && c.name.toLowerCase() === trimmed.toLowerCase())) {
         return;
       }
       atoms.categories.set(categories.map((c) => (c.id === id ? { ...c, name: trimmed } : c)));
@@ -296,51 +239,9 @@ export function createCategorySignalStore(options: CategorySignalOptions = {}): 
           : collapsedIds.filter((c) => c !== id)
       );
     },
-    exportCategories: () => {
-      const categories = atoms.categories.get();
-      const entries = atoms.entries.get();
-      return JSON.stringify({ categories, entries });
-    },
-    importCategories: (raw: unknown) => {
-      if (!isRecord(raw) || !Array.isArray(raw.categories) || !isRecord(raw.entries)) {
-        throw new Error("invalid backup");
-      }
-      const categories: Category[] = [];
-      for (const item of raw.categories) {
-        const category = parseImportCategory(item, categories.length);
-        if (category) categories.push(category);
-      }
-      const ids = new Set(categories.map((category) => category.id));
-      const entries: Record<string, CategoryEntry[]> = {};
-      for (const [categoryId, list] of Object.entries(raw.entries)) {
-        if (!ids.has(categoryId) || !Array.isArray(list)) continue;
-        const kept: CategoryEntry[] = [];
-        for (const item of list) {
-          const entry = parseImportEntry(item);
-          if (entry) kept.push(entry);
-        }
-        entries[categoryId] = kept;
-      }
-      atoms.categories.set(categories);
-      atoms.entries.set(entries);
-      return categories.length;
-    },
   };
 
-  if (adoptedFromLegacy) {
-    persistor.write({ ...mirror });
-    persistor.flush();
-    const [storage, storageError] = attemptSync(() => getStorage());
-    if (storageError !== null) reportBackgroundError("category.signal.adopt", storageError);
-    else {
-      const [adopted, adoptError] = attemptSync(() => storage?.getItem(persistKey("categories")));
-      if (adoptError !== null) reportBackgroundError("category.signal.adopt", adoptError);
-      else if (adopted) {
-        const [, removeError] = attemptSync(() => storage?.removeItem("categories"));
-        if (removeError !== null) reportBackgroundError("category.signal.adopt", removeError);
-      }
-    }
-  }
+  finishAdopt(() => ({ ...mirror }), { remove: "categories" });
 
   return handle;
 }
@@ -360,8 +261,6 @@ export const removeCategoryEntry = categories.removeEntry;
 export const renameCategory = categories.renameCategory;
 export const reorderCategories = categories.reorderCategories;
 export const setCategoryCollapsed = categories.setCategoryCollapsed;
-export const exportCategories = categories.exportCategories;
-export const importCategories = categories.importCategories;
 
 if (
   typeof window !== "undefined" &&

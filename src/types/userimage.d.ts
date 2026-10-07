@@ -1,5 +1,3 @@
-import type { MouseEventHandler } from "react";
-
 export interface UserImage {
   id: string;
   name: string;
@@ -8,6 +6,7 @@ export interface UserImage {
   originalUrl: string | null;
   version: string | null;
   createdAt: number;
+  source?: string | null;
 }
 
 export interface UserImageFile {
@@ -18,6 +17,7 @@ export interface UserImageFile {
   originalPath: string | null;
   version: string | null;
   createdAt: number;
+  source?: string | null;
 }
 
 export interface DitherImageMeta {
@@ -26,18 +26,4 @@ export interface DitherImageMeta {
   mimeType: string;
   hasOriginal: boolean;
   createdAt: number;
-}
-
-export interface UserImagePickerProps {
-  selected?: string;
-  onSelect: (icon: string, image?: UserImage) => void;
-}
-
-export interface UserImageIconProps {
-  icon: string;
-  alt?: string;
-  className?: string;
-  fallback?: string;
-  url?: string;
-  onClick?: MouseEventHandler<HTMLImageElement>;
 }

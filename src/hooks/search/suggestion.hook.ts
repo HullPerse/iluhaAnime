@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 
 import { collectionApi } from "@/api/collection.api";
 import { SEARCH_RANKING } from "@/config/search/ranking.config";
-import { fuzzyMatchScore } from "@/lib/search/suggestions.utils";
+import { parseOperatorTerms } from "@/lib/search/score.utils";
+import { matchNormalizedTitle, normalizeSearchText } from "@/lib/search/suggestions.utils";
 import type { SearchSuggestion, SearchSuggestionKind } from "@/lib/search/suggestions.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import type { SearchSuggestionScope } from "@/types/search";
@@ -30,6 +31,8 @@ export function useSuggestions(
     }
     requestRef.current += 1;
     const requestId = requestRef.current;
+    const terms = parseOperatorTerms(normalized);
+    const nq = normalizeSearchText(normalized);
     (async () => {
       const [rows, error] = await attempt(
         collectionApi.searchUnifiedIndex(normalized, scope, limit)
@@ -42,7 +45,8 @@ export function useSuggestions(
       setSuggestions(
         (Array.isArray(rows) ? rows : [])
           .map((row) => {
-            const match = fuzzyMatchScore(normalized, row.value) ?? 0;
+            const match =
+              matchNormalizedTitle(terms, nq, normalizeSearchText(row.value)) ?? 0;
             const learning =
               Math.min(
                 SEARCH_RANKING.LEARNING_SELECTED_CAP,

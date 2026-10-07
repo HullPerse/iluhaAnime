@@ -24,7 +24,8 @@ import {
   readPlaylistEntries,
   type PlaylistEntry,
 } from "@/lib/player/playback.utils";
-import { fileNameFromPath, formatParsedTitle } from "@/lib/player/title.utils";
+import { fileNameFromPath } from "@/lib/media/parse.utils";
+import { formatParsedTitle } from "@/lib/player/title.utils";
 import { attempt, attemptAll, withFallback } from "@/lib/utils/attempt.utils";
 import { formatBytes } from "@/lib/utils/bytes.utils";
 import { formatVerticalDragTransform } from "@/lib/utils/drag.utils";
@@ -78,7 +79,15 @@ function useCardArt(path: string, visible: boolean): CardArt | null {
   const [art, setArt] = useState<CardArt | null>(() => getCachedCard(path));
 
   useEffect(() => {
-    if (!visible || !path || getCachedCard(path)) return;
+    if (!visible || !path) return;
+    // Sync prefetched hits into state: the useState initializer above runs
+    // before prefetch waves complete, so without this a cache hit here
+    // would leave a stale null thumbnail forever.
+    const cached = getCachedCard(path);
+    if (cached) {
+      setArt(cached);
+      return;
+    }
     let disposed = false;
     fetchVideoCard(path)
       .then((card) => {
@@ -197,7 +206,7 @@ function PlaylistBody({ onPlay, onRemove, onMove }: PlaylistBodyProps) {
   }, [refresh]);
 
   const mutate = useCallback(
-    async (action: Promise<unknown>, optimistic?: PlaylistEntry[]) => {
+    async (action: Promise<unknown>, optimistic?: PlaylistEntry[], refreshAfter = true) => {
       const previous = entriesRef.current;
       if (optimistic) applyEntries(optimistic);
       const [, error] = await attempt(action);
@@ -205,7 +214,10 @@ function PlaylistBody({ onPlay, onRemove, onMove }: PlaylistBodyProps) {
         applyEntries(previous);
         return;
       }
-      await refresh();
+      // Add/remove change the count, which the subscriber above already
+      // refetches on — an explicit refresh here would read the entries
+      // twice. Only reorder (count unchanged) needs one.
+      if (refreshAfter) await refresh();
     },
     [applyEntries, refresh]
   );
@@ -213,7 +225,7 @@ function PlaylistBody({ onPlay, onRemove, onMove }: PlaylistBodyProps) {
   const handleRemove = useCallback(
     (index: number) => {
       const next = entriesRef.current.filter((entry) => entry.index !== index);
-      return mutate(onRemove(index), next);
+      return mutate(onRemove(index), next, false);
     },
     [mutate, onRemove]
   );
@@ -254,7 +266,7 @@ function PlaylistBody({ onPlay, onRemove, onMove }: PlaylistBodyProps) {
             null
           );
           const files = selection ? (Array.isArray(selection) ? selection : [selection]) : [];
-          if (files.length > 0) await mutate(appendFilesQuiet(files));
+          if (files.length > 0) await mutate(appendFilesQuiet(files), undefined, false);
         },
       ],
       { onFinally: () => setAdding(false) }
@@ -318,7 +330,6 @@ function PlaylistBody({ onPlay, onRemove, onMove }: PlaylistBodyProps) {
                   onPlay={onPlay}
                   onRemove={handleRemove}
                   onMove={handleMove}
-                  mutate={mutate}
                   t={t}
                 />
               );
@@ -347,7 +358,6 @@ function PlaylistBody({ onPlay, onRemove, onMove }: PlaylistBodyProps) {
                       onPlay={onPlay}
                       onRemove={handleRemove}
                       onMove={handleMove}
-                      mutate={mutate}
                       t={t}
                     />
                   </div>
@@ -392,7 +402,6 @@ function PlaylistCardActions({
   downDisabled,
   onMove,
   onRemove,
-  mutate,
   t,
 }: {
   entry: PlaylistEntry;
@@ -400,7 +409,6 @@ function PlaylistCardActions({
   downDisabled: boolean;
   onMove: (from: number, to: number) => Promise<void>;
   onRemove: (index: number) => Promise<void>;
-  mutate: (action: Promise<unknown>) => Promise<void>;
   t: TFunc;
 }) {
   return (
@@ -412,7 +420,7 @@ function PlaylistCardActions({
           title={t("player.media.playlist.move.up")}
           aria-label={t("player.media.playlist.move.up")}
           disabled={upDisabled}
-          onClick={() => ignore(mutate(onMove(entry.index, entry.index - 1)))}
+          onClick={() => ignore(onMove(entry.index, entry.index - 1))}
         >
           <ArrowUp className="size-3" />
         </Button>
@@ -422,7 +430,7 @@ function PlaylistCardActions({
           title={t("player.media.playlist.move.down")}
           aria-label={t("player.media.playlist.move.down")}
           disabled={downDisabled}
-          onClick={() => ignore(mutate(onMove(entry.index, entry.index + 1)))}
+          onClick={() => ignore(onMove(entry.index, entry.index + 1))}
         >
           <ArrowDown className="size-3" />
         </Button>
@@ -432,7 +440,7 @@ function PlaylistCardActions({
         className="size-5 shrink-0"
         title={t("player.media.playlist.remove")}
         aria-label={t("player.media.playlist.remove")}
-        onClick={() => ignore(mutate(onRemove(entry.index)))}
+        onClick={() => ignore(onRemove(entry.index))}
       >
         <X className="size-3" />
       </Button>
@@ -450,7 +458,6 @@ function PlaylistCard({
   onPlay,
   onRemove,
   onMove,
-  mutate,
   t,
 }: {
   entry: PlaylistEntry;
@@ -462,7 +469,6 @@ function PlaylistCard({
   onPlay: (index: number) => Promise<void>;
   onRemove: (index: number) => Promise<void>;
   onMove: (from: number, to: number) => Promise<void>;
-  mutate: (action: Promise<unknown>) => Promise<void>;
   t: TFunc;
 }) {
   const [cardRef, onScreen] = useOnScreen<HTMLDivElement>();
@@ -536,7 +542,6 @@ function PlaylistCard({
           downDisabled={downDisabled}
           onMove={onMove}
           onRemove={onRemove}
-          mutate={mutate}
           t={t}
         />
       </div>

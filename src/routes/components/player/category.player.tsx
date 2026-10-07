@@ -4,7 +4,6 @@ import { cn } from "cn";
 import { ChevronDown, ChevronRight, ChevronUp, EyeOff, RefreshCw, X } from "lucide-react";
 import { useState, useEffect, useRef, useMemo } from "react";
 
-import UserImageIcon from "@/components/shared/avatar.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { Input } from "@/components/ui/input.component";
@@ -13,7 +12,6 @@ import { torrentFilesKey } from "@/hooks/torrent/queries.hook";
 import { normalizePlayerPath } from "@/lib/player/visibility.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { formatBytes } from "@/lib/utils/bytes.utils";
-import { isUserImageIcon } from "@/lib/utils/image.utils";
 import {
   categoryAtoms,
   moveCategoryEntry,
@@ -164,27 +162,15 @@ function CategoryView({
             <ChevronRight className="size-3 shrink-0" />
           )}
         </button>
-        {isUserImageIcon(category.icon) ? (
-          <UserImageIcon
-            icon={category.icon}
-            alt=""
-            className="border-surface size-4 shrink-0"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleEditIcon();
-            }}
-          />
-        ) : (
-          <ImageComponent
-            src={`/images/${category.icon}`}
-            alt=""
-            className="border-surface size-4 shrink-0"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleEditIcon();
-            }}
-          />
-        )}
+        <ImageComponent
+          src={`/images/${category.icon}`}
+          alt=""
+          className="border-surface size-4 shrink-0 cursor-pointer"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleEditIcon();
+          }}
+        />
         {editing ? (
           <Input
             ref={renameRef}

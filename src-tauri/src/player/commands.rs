@@ -1,6 +1,5 @@
 use serde::Serialize;
 use serde_json::{json, Value};
-use std::io::Write;
 use tauri::{
     AppHandle, Emitter, Manager, State, WebviewUrl, WebviewWindow, WebviewWindowBuilder,
     WindowEvent,
@@ -71,9 +70,15 @@ const ALLOWED_INITIAL_OPTIONS: &[&str] = &[
     "sub-font",
     "sub-color",
     "sub-back-color",
+    "sub-use-margins",
+    "sub-ass-force-margins",
     "vf",
     "keepaspect",
     "video-aspect-override",
+    "video-margin-ratio-top",
+    "video-margin-ratio-bottom",
+    "video-margin-ratio-left",
+    "video-margin-ratio-right",
 ];
 
 fn sanitize_initial_options(options: Value) -> Value {
@@ -708,18 +713,30 @@ pub fn player_load_watch(app: AppHandle, path: String) -> Option<WatchState> {
     watch::load(&app, &path)
 }
 
-// TEMP-DEBUG: timeline render log sink for a live-window benchmark (revert before merge).
-// Writes only to the OS temp dir, line length capped, no path argument.
+/// Applies the whole per-file playback state in one IPC roundtrip instead of
+/// 4-5 sequential property commands (speed, delays, persisted tracks).
 #[tauri::command]
-pub fn debug_timeline_append(line: String) -> Result<(), String> {
-    let line: String = line.chars().take(2048).collect();
-    let path = std::env::temp_dir().join("iluha-timeline-log.jsonl");
-    let mut file = std::fs::OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(&path)
-        .map_err(|error| error.to_string())?;
-    writeln!(file, "{line}").map_err(|error| error.to_string())
+pub fn player_apply_file_state(
+    app: AppHandle,
+    window: WebviewWindow,
+    speed: f64,
+    sub_delay: f64,
+    audio_delay: f64,
+    audio_track: Option<i64>,
+    subtitle_track: Option<i64>,
+) -> Result<(), String> {
+    let backend = core(&app);
+    let label = window.label().to_string();
+    backend.set_property("speed", &json!(speed), &label)?;
+    backend.set_property("sub-delay", &json!(sub_delay), &label)?;
+    backend.set_property("audio-delay", &json!(audio_delay), &label)?;
+    if let Some(id) = audio_track {
+        backend.set_property("aid", &json!(id.to_string()), &label)?;
+    }
+    if let Some(id) = subtitle_track {
+        backend.set_property("sid", &json!(id.to_string()), &label)?;
+    }
+    Ok(())
 }
 
 #[cfg(test)]

@@ -30,18 +30,31 @@ import {
   shouldShowLoadingSpinner,
 } from "@/lib/player/loading.utils";
 import {
+  computeVideoMargins,
+  marginOptions,
+  marginsCloseEnough,
+  ZERO_MARGINS,
+  type VideoMargins,
+} from "@/lib/player/margins.utils";
+import {
   addExternalAudio,
   addExternalSubtitle,
   appendFiles,
   applyAudioOptions,
   applyColorOptions,
+  applyFileState,
   applyHdrOptions,
   applyPlayerProfile,
   applyProperties,
+  audioOptions,
   buildInitialOptions,
   closePlayerWindow,
+  colorOptions,
   destroyPlayer,
+  diffOptions,
+  hdrOptions,
   initPlayer,
+  type FilePlaybackState,
   loadQueue,
   movePlaylistIndex,
   nextFile,
@@ -64,7 +77,8 @@ import {
   takePendingOpen,
   transformOptions,
 } from "@/lib/player/playback.utils";
-import { fileNameFromPath, formatParsedTitle } from "@/lib/player/title.utils";
+import { fileNameFromPath } from "@/lib/media/parse.utils";
+import { formatParsedTitle } from "@/lib/player/title.utils";
 import {
   RESUME_END_MARGIN,
   RESUME_MIN,
@@ -187,15 +201,15 @@ async function restoreReloadPaused(reload: HwdecReload | null): Promise<void> {
   if (reload && !reload.paused) await setPaused(false);
 }
 
-async function applyEntryPlaybackSettings(entry: MediaEntry | undefined): Promise<void> {
-  await setMpvProperty("sub-delay", entry?.subOffset ?? 0);
-  await setMpvProperty("audio-delay", entry?.audioOffset ?? 0);
-  if (entry && typeof entry.audioTrack === "number") {
-    await selectTrack("audio", entry.audioTrack);
-  }
-  if (entry && typeof entry.subtitleTrack === "number") {
-    await selectTrack("sub", entry.subtitleTrack);
-  }
+/** Packs the per-file mpv state for the single-IPC apply call. Pure. */
+function fileStatePatch(entry: MediaEntry | undefined, speed: number): FilePlaybackState {
+  return {
+    speed,
+    subDelay: entry?.subOffset ?? 0,
+    audioDelay: entry?.audioOffset ?? 0,
+    audioTrack: typeof entry?.audioTrack === "number" ? entry.audioTrack : undefined,
+    subtitleTrack: typeof entry?.subtitleTrack === "number" ? entry.subtitleTrack : undefined,
+  };
 }
 
 function PlayerComponent() {
@@ -246,6 +260,7 @@ function PlayerComponent() {
   const loadEpochRef = useRef(0);
   const destroyTimerRef = useRef<number | null>(null);
   const dropTimerRef = useRef<number | null>(null);
+  const lastSavedWatchRef = useRef<{ path: string; position: number } | null>(null);
 
   const immersive = cinema || fullscreen;
   const hasNext = playlistCount > 0 && playlistIndex < playlistCount - 1;
@@ -266,6 +281,94 @@ function PlayerComponent() {
       : fileNameFromPath(path)
     : t("player.media.title");
 
+  const marginsRafRef = useRef(0);
+  const lastMarginsRef = useRef<VideoMargins | null>(null);
+
+  const readMargins = useCallback((): VideoMargins => {
+    const rect = videoRef.current?.getBoundingClientRect();
+    return computeVideoMargins(
+      window.innerWidth || 1,
+      window.innerHeight || 1,
+      rect ?? undefined
+    );
+  }, []);
+
+  const measureMargins = useCallback(
+    (): VideoMargins => (immersive ? { ...ZERO_MARGINS } : readMargins()),
+    [immersive, readMargins]
+  );
+
+  const sendMargins = useCallback((next: VideoMargins, force: boolean) => {
+    if (!force && lastMarginsRef.current && marginsCloseEnough(lastMarginsRef.current, next)) {
+      return;
+    }
+    // Record only acknowledged values: setVideoMarginRatio fails while mpv
+    // is not initialized yet, and optimistic bookkeeping would suppress
+    // every later retry of the same geometry (the native video then bleeds
+    // under the UI bars with no recovery path). Clearing on failure keeps
+    // identical geometry retryable.
+    ignore(
+      setVideoMarginRatio(next)
+        .then(() => {
+          lastMarginsRef.current = next;
+        })
+        .catch((error: unknown) => {
+          lastMarginsRef.current = null;
+          reportBackgroundError("player.margins", error);
+        })
+    );
+  }, []);
+
+  const syncMargins = useCallback(
+    (force = false) => {
+      cancelAnimationFrame(marginsRafRef.current);
+      marginsRafRef.current = requestAnimationFrame(() => {
+        sendMargins(measureMargins(), force);
+      });
+    },
+    [measureMargins, sendMargins]
+  );
+
+  const syncMarginsRef = useRef(syncMargins);
+  useEffect(() => {
+    syncMarginsRef.current = syncMargins;
+  }, [syncMargins]);
+
+  // Volume sends go through the store subscriber below as the single path
+  // (onVolume only sets state). Slider drags fire per mousemove, so the IPC
+  // is throttled leading+trailing: discrete steps go out immediately, drags
+  // cost ~7/s plus the exact final value.
+  const VOLUME_IPC_MS = 150;
+  const volumeTimerRef = useRef<number | undefined>(undefined);
+  const volumeLastSentRef = useRef(0);
+  const volumePendingRef = useRef<number | null>(null);
+
+  const sendVolumeNow = useCallback((value: number) => {
+    volumeLastSentRef.current = Date.now();
+    volumePendingRef.current = null;
+    setMpvProperty("volume", Math.round(value * 100)).catch((error: unknown) =>
+      reportBackgroundError("player.settings.volume", error)
+    );
+  }, []);
+
+  const sendVolumeThrottled = useCallback(
+    (value: number) => {
+      if (Date.now() - volumeLastSentRef.current >= VOLUME_IPC_MS) {
+        window.clearTimeout(volumeTimerRef.current);
+        sendVolumeNow(value);
+        return;
+      }
+      volumePendingRef.current = value;
+      window.clearTimeout(volumeTimerRef.current);
+      volumeTimerRef.current = window.setTimeout(() => {
+        const pending = volumePendingRef.current;
+        volumePendingRef.current = null;
+        if (pending !== null) sendVolumeNow(pending);
+      }, VOLUME_IPC_MS);
+    },
+    [sendVolumeNow]
+  );
+
   useEffect(() => {
     if (destroyTimerRef.current !== null) {
       window.clearTimeout(destroyTimerRef.current);
@@ -275,13 +378,23 @@ function PlayerComponent() {
 
     const start = async () => {
       const store = getPlayerSnapshot();
-      await initPlayer(
-        buildInitialOptions({
+      // Seed the VO with the current field geometry so it never starts up
+      // with zero margins; the forced sync below re-measures once the layout
+      // and mpv are both ready.
+      const field = videoRef.current?.getBoundingClientRect();
+      const seedMargins = computeVideoMargins(
+        window.innerWidth || 1,
+        window.innerHeight || 1,
+        field ?? undefined
+      );
+      await initPlayer({
+        ...buildInitialOptions({
           volume: store.volume,
           hwdec: store.hwdec,
           settings: store.settings,
-        })
-      );
+        }),
+        ...marginOptions(seedMargins),
+      });
       // Independent backend applies run concurrently: each is ~1 IPC roundtrip
       // and none depends on another. Error reporting per call is preserved.
       await Promise.all([
@@ -299,8 +412,11 @@ function PlayerComponent() {
         ),
         setEofModeCommand(store.eofMode),
       ]);
-
+      // mpv is guaranteed up here: (re)send geometry that may have failed
+      // while it was still initializing. Forced because the guard must not
+      // suppress the authoritative values after a fresh VO.
       if (disposed) return;
+      syncMarginsRef.current(true);
       const request = await takePendingOpen();
       if (disposed) return;
       if (request && request.files.length > 0) {
@@ -328,18 +444,15 @@ function PlayerComponent() {
     };
   }, []);
 
-  const applyTransform = useCallback(async (settings: PlayerSettings) => {
-    await applyProperties(transformOptions(settings));
-  }, []);
-
   const settingsTimerRef = useRef<number | undefined>(undefined);
   const pendingSettingsRef = useRef<PlayerSettings | null>(null);
-  const marginsRafRef = useRef(0);
-  const lastMarginsRef = useRef({ top: -1, bottom: -1 });
+  const previousSettingsRef = useRef<PlayerSettings | null>(null);
+  const settingsSyncFailedRef = useRef(false);
 
   useEffect(() => {
     return () => {
       window.clearTimeout(settingsTimerRef.current);
+      window.clearTimeout(volumeTimerRef.current);
       cancelAnimationFrame(marginsRafRef.current);
     };
   }, []);
@@ -349,14 +462,7 @@ function PlayerComponent() {
     return subscribePlayer(() => {
       const state = getPlayerSnapshot();
       if (state.volume !== previous.volume) {
-        setMpvProperty("volume", Math.round(state.volume * 100)).catch((error: unknown) =>
-          reportBackgroundError("player.settings.volume", error)
-        );
-      }
-      if (state.hwdec !== previous.hwdec) {
-        setMpvProperty("hwdec", state.hwdec).catch((error: unknown) =>
-          reportBackgroundError("player.settings.hwdec", error)
-        );
+        sendVolumeThrottled(state.volume);
       }
       if (state.profile !== previous.profile) {
         applyPlayerProfile(state.profile).catch((error: unknown) =>
@@ -370,17 +476,33 @@ function PlayerComponent() {
           const latest = pendingSettingsRef.current;
           pendingSettingsRef.current = null;
           if (!latest) return;
-          applyTransform(latest).catch((error: unknown) =>
-            reportBackgroundError("player.settings.transform", error)
-          );
-          applyHdrOptions(latest).catch((error: unknown) =>
-            reportBackgroundError("player.settings.hdr", error)
-          );
-          applyColorOptions(latest).catch((error: unknown) =>
-            reportBackgroundError("player.settings.color", error)
-          );
-          applyAudioOptions(latest).catch((error: unknown) =>
-            reportBackgroundError("player.settings.audio", error)
+          // Diff against the last flushed intent: a slider drag resends one
+          // changed property instead of all ~19 (and avoids rebuilding the
+          // mpv filter chain by resending an unchanged vf). After any
+          // failure the baseline is untrusted, so the next flush goes full.
+          const baseline = previousSettingsRef.current;
+          const full = settingsSyncFailedRef.current || baseline === null;
+          previousSettingsRef.current = latest;
+          const reference = baseline ?? latest;
+          const groups: Array<[Record<string, unknown>, Record<string, unknown>]> = [
+            [transformOptions(reference), transformOptions(latest)],
+            [hdrOptions(reference), hdrOptions(latest)],
+            [colorOptions(reference), colorOptions(latest)],
+            [audioOptions(reference), audioOptions(latest)],
+          ];
+          const jobs: Array<Promise<string[]>> = [];
+          for (const [prevOptions, nextOptions] of groups) {
+            const options = full ? nextOptions : diffOptions(prevOptions, nextOptions);
+            if (Object.keys(options).length > 0) jobs.push(applyProperties(options));
+          }
+          if (jobs.length === 0) {
+            settingsSyncFailedRef.current = false;
+            return;
+          }
+          ignore(
+            Promise.all(jobs).then((failedLists) => {
+              settingsSyncFailedRef.current = failedLists.some((list) => list.length > 0);
+            })
           );
         }, 120);
       }
@@ -391,7 +513,7 @@ function PlayerComponent() {
       }
       previous = state;
     });
-  }, [applyTransform]);
+  }, [sendVolumeThrottled]);
 
   const handleFileLoaded = useCallback(async () => {
     loadEpochRef.current += 1;
@@ -402,15 +524,12 @@ function PlayerComponent() {
     if (!loaded || !isCurrent()) return;
     const reload = hwdecReloadRef.current;
 
-    // Independent: speed restore and watch-state hydration touch different
-    // backends (mpv vs sqlite) and neither needs the other's result.
-    const [, entry] = await Promise.all([
-      setSpeed(playbackAtoms.speed.get() || 1),
-      hydrateMediaEntry(loaded),
-    ]);
+    const entry = await hydrateMediaEntry(loaded);
     if (!isCurrent()) return;
 
-    await applyEntryPlaybackSettings(entry);
+    // One IPC for the whole per-file state (speed, delays, persisted
+    // tracks) instead of 4-5 sequential property roundtrips.
+    await applyFileState(fileStatePatch(entry, playbackAtoms.speed.get() || 1));
     if (!isCurrent()) return;
     hwdecReloadRef.current = null;
 
@@ -434,6 +553,8 @@ function PlayerComponent() {
     if (!isCurrent()) return;
     await setPaused(true);
     await restoreReloadPaused(reload);
+    if (!isCurrent()) return;
+    syncMarginsRef.current(true);
   }, []);
 
   usePlayerEvents({
@@ -458,6 +579,10 @@ function PlayerComponent() {
       settleSeek();
       setHasShownFrame(true);
       setLoadingFile(false);
+      // Geometry is final once frames flow: force a resend so a fresh VO or a
+      // dropped property can never strand the video outside the field even if
+      // the layout never changes afterwards.
+      syncMargins(true);
     },
     onShutdown: () => {
       resetPlayback();
@@ -489,6 +614,13 @@ function PlayerComponent() {
         return;
       }
       const timePos = playbackAtoms.timePos.get();
+      // Skip unchanged ticks (stalls): the row would be rewritten with the
+      // same position every 5 s for no reason.
+      const lastSaved = lastSavedWatchRef.current;
+      if (lastSaved && lastSaved.path === path && lastSaved.position === timePos) {
+        return;
+      }
+      lastSavedWatchRef.current = { path, position: timePos };
       const entry = getMediaEntry(path);
       setMediaPosition(path, timePos, duration);
       ignore(
@@ -511,7 +643,11 @@ function PlayerComponent() {
   }, []);
 
   useEffect(() => {
-    if (!path || playlistCount === 0) return;
+    // Card art is consumed exclusively by the playlist panel: with it
+    // closed there is nobody to show prefetched ffmpeg thumbnails, while
+    // each uncached file costs ~1 s of CPU decode contention against mpv
+    // startup. Rows fetch lazily themselves once the panel opens.
+    if (!path || playlistCount === 0 || !playlistOpen) return;
     let cancelled = false;
     readPlaylistEntries()
       .then((entries) => {
@@ -525,7 +661,7 @@ function PlayerComponent() {
     return () => {
       cancelled = true;
     };
-  }, [path, playlistCount]);
+  }, [path, playlistCount, playlistOpen]);
 
   useTauriEvent<{ paths: string[] }>(
     "tauri://drag-drop",
@@ -556,28 +692,6 @@ function PlayerComponent() {
     },
     { errorTag: "drag-drop" }
   );
-
-  const sendMargins = useCallback((top: number, bottom: number) => {
-    const last = lastMarginsRef.current;
-    if (Math.abs(last.top - top) < 0.001 && Math.abs(last.bottom - bottom) < 0.001) return;
-    lastMarginsRef.current = { top, bottom };
-    ignore(setVideoMarginRatio({ left: 0, right: 0, top, bottom }));
-  }, []);
-
-  const syncMargins = useCallback(() => {
-    cancelAnimationFrame(marginsRafRef.current);
-    marginsRafRef.current = requestAnimationFrame(() => {
-      if (immersive) {
-        sendMargins(0, 0);
-        return;
-      }
-      const height = window.innerHeight || 1;
-      const rect = videoRef.current?.getBoundingClientRect();
-      const top = rect?.top ?? 0;
-      const bottom = rect ? Math.max(0, height - rect.bottom) : 0;
-      sendMargins(top / height, bottom / height);
-    });
-  }, [immersive, sendMargins]);
 
   useEffect(() => {
     const element = videoRef.current;
@@ -763,8 +877,9 @@ function PlayerComponent() {
 
   const onVolume = useCallback((value: number) => {
     const clamped = Math.min(1, Math.max(0, value));
+    // The single send path is the store subscriber below (throttled): a
+    // direct send here would double every tick.
     setVolume(clamped);
-    ignore(setMpvProperty("volume", Math.round(clamped * 100)));
     if (playbackAtoms.muted.get()) {
       setPlaybackMuted(false);
       setMpvProperty("mute", false).catch(() => setPlaybackMuted(true));
@@ -888,8 +1003,10 @@ function PlayerComponent() {
     );
     if (kind === "sub") setMediaSubOffset(current, next);
     else setMediaAudioOffset(current, next);
-    ignore(setMpvProperty("sub-delay", kind === "sub" ? next : (entry?.subOffset ?? 0)));
-    ignore(setMpvProperty("audio-delay", kind === "audio" ? next : (entry?.audioOffset ?? 0)));
+    // Send only the changed delay: the other one is untouched, resending it
+    // just doubles the IPC on every nudge.
+    if (kind === "sub") ignore(setMpvProperty("sub-delay", next));
+    else ignore(setMpvProperty("audio-delay", next));
   }, []);
 
   const onKeyboardAction = useCallback(

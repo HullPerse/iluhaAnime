@@ -5,7 +5,8 @@ import { tmdbApi } from "@/api/tmdb.api";
 import { WIZARD_RESULTS_MAX } from "@/config/collection/defaults.config";
 import { SEARCH_RANKING } from "@/config/search/ranking.config";
 import { prefetchRemoteImages } from "@/hooks/remoteImage.hook";
-import { fuzzyMatchScore, normalizeSearchText } from "@/lib/search/suggestions.utils";
+import { parseOperatorTerms } from "@/lib/search/score.utils";
+import { matchNormalizedTitle, normalizeSearchText } from "@/lib/search/suggestions.utils";
 import { attempt, withFallback } from "@/lib/utils/attempt.utils";
 import type { WizardSearchResult } from "@/types/collection";
 
@@ -16,10 +17,12 @@ function rankWizardResults(
   favouriteIds: Set<number>
 ): WizardSearchResult[] {
   const normalizedQuery = normalizeSearchText(query);
+  const terms = parseOperatorTerms(normalizedQuery);
   return [...results]
     .map((r) => {
-      const base = fuzzyMatchScore(normalizedQuery, normalizeSearchText(r.title)) ?? 0;
-      const isDuplicate = existingTitles.has(normalizeSearchText(r.title));
+      const title = normalizeSearchText(r.title);
+      const base = matchNormalizedTitle(terms, normalizedQuery, title) ?? 0;
+      const isDuplicate = existingTitles.has(title);
       const isFavourite = favouriteIds.has(r.id);
       const score =
         base -

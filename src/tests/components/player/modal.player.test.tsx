@@ -78,4 +78,47 @@ describe("PlayerModal", () => {
     const popup = await screen.findByRole("listbox");
     expect(dialog.contains(popup)).toBe(true);
   });
+
+  it("swallows Escape inside an open select so the native dialog does not cancel", async () => {
+    const onClose = vi.fn();
+    render(
+      <PlayerModal header="Settings" onClose={onClose}>
+        <Select
+          value="a"
+          onChange={() => undefined}
+          options={[
+            { value: "a", label: "A" },
+            { value: "b", label: "B" },
+          ]}
+        />
+      </PlayerModal>
+    );
+    fireEvent.mouseDown(screen.getByRole("combobox"));
+    const popup = await screen.findByRole("listbox");
+    const notCancelled = fireEvent.keyDown(popup, { key: "Escape" });
+    expect(notCancelled).toBe(false);
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.queryByRole("listbox")).toBeNull();
+  });
+
+  it("ignores dialog cancel while a select popup is open", async () => {
+    const onClose = vi.fn();
+    render(
+      <PlayerModal header="Settings" onClose={onClose}>
+        <Select
+          value="a"
+          onChange={() => undefined}
+          options={[
+            { value: "a", label: "A" },
+            { value: "b", label: "B" },
+          ]}
+        />
+      </PlayerModal>
+    );
+    const dialog = screen.getByRole("dialog", { name: "Settings" });
+    fireEvent.mouseDown(screen.getByRole("combobox"));
+    await screen.findByRole("listbox");
+    dialog.dispatchEvent(new Event("cancel", { cancelable: true }));
+    expect(onClose).not.toHaveBeenCalled();
+  });
 });

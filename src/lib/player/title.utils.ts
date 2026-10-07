@@ -1,9 +1,5 @@
 import type { TranslationKey, TranslationVariables } from "@/lib/locale/i18n.utils";
-import { clearMediaParseCache, parseMediaFile, parseMediaPath } from "@/lib/media/parse.utils";
-
-export function clearParseCache(): void {
-  clearMediaParseCache();
-}
+import { parseMediaFile, parseMediaPath } from "@/lib/media/parse.utils";
 
 export function formatParsedTitle(
   input: string,
@@ -30,13 +26,4 @@ export function formatParsedTitle(
   }
 
   return [parsed.title, season, episodeStr].filter((part) => part && part.trim()).join(", ");
-}
-
-export function fileNameFromPath(p: string): string {
-  const slash = p.lastIndexOf("/");
-  const backslash = p.lastIndexOf("\\");
-  const cut = Math.max(slash, backslash);
-  if (cut < 0) return p;
-  const name = p.slice(cut + 1);
-  return name || p;
 }

@@ -77,6 +77,29 @@ describe("media entries", () => {
     await expect(store.hydrate("/a.mkv")).resolves.toMatchObject({ position: 7 });
   });
 
+  it("keeps the backend position when a live tick lands mid-hydrate", async () => {
+    mockInvoke.mockReset();
+    let releaseBackend!: (value: unknown) => void;
+    const gate = new Promise<unknown>((resolve) => {
+      releaseBackend = resolve;
+    });
+    mockInvoke.mockReturnValueOnce(gate);
+    const store = createMediaSignalStore({ getStorage: () => memoryStorage() });
+    const pending = store.hydrate("/a.mkv");
+    store.setPosition("/a.mkv", 42, 100);
+    releaseBackend({ position: 10, duration: 100, subDelay: 0, audioDelay: 0 });
+    const merged = await pending;
+    expect(merged?.position).toBe(10);
+    expect(store.getEntry("/a.mkv")?.position).toBe(10);
+  });
+
+  it("keeps the latest value under rapid position ticks", () => {
+    const store = createMediaSignalStore({ getStorage: () => memoryStorage() });
+    for (let i = 0; i < 500; i++) store.setPosition("/a.mkv", i, 1000);
+    expect(store.getEntry("/a.mkv")?.position).toBe(499);
+    expect(store.entries.get()).toHaveLength(1);
+  });
+
   it("adopts the legacy mediaState envelope once", () => {
     const backing = new Map<string, string>([
       [

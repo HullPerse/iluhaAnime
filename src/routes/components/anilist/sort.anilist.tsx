@@ -1,4 +1,3 @@
-import { Popover } from "@base-ui/react/popover";
 import {
   Activity,
   ChevronLeft,
@@ -13,9 +12,17 @@ import {
   SortDesc,
   Sparkles,
 } from "lucide-react";
-import { useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
+import { DropdownMenuCheckboxItem } from "@/components/ui/dropdown/checkboxItem.dropdown";
+import { DropdownMenuContent } from "@/components/ui/dropdown/content.dropdown";
+import { DropdownMenuGroup } from "@/components/ui/dropdown/group.dropdown";
+import { DropdownMenuItem } from "@/components/ui/dropdown/item.dropdown";
+import { DropdownMenu } from "@/components/ui/dropdown/menu.dropdown";
+import { DropdownMenuRadioGroup } from "@/components/ui/dropdown/radioGroup.dropdown";
+import { DropdownMenuRadioItem } from "@/components/ui/dropdown/radioItem.dropdown";
+import { DropdownMenuSeparator } from "@/components/ui/dropdown/separator.dropdown";
+import { DropdownMenuTrigger } from "@/components/ui/dropdown/trigger.dropdown";
 import { useI18n } from "@/hooks/i18n.hook";
 import { usePagedRow } from "@/hooks/pagedRow.hook";
 import { defaultListSortDir, getSortingLabel, listSortKeys } from "@/lib/anilist/entries.utils";
@@ -37,72 +44,60 @@ function SortMoreMenu({
   onDisplayChange: (mode: "scroll" | "pagination") => void;
 }) {
   const { t } = useI18n();
-  const [open, setOpen] = useState(false);
-  const pick = (action: () => void) => () => {
-    setOpen(false);
-    action();
-  };
-  const itemClass =
-    "windows95-text flex w-full cursor-pointer items-center gap-2 bg-transparent px-2 py-1 text-left text-xs hover:bg-secondary";
   return (
-    <Popover.Root open={open} onOpenChange={setOpen}>
-      <Popover.Trigger
-        type="button"
-        aria-label={t("anilist.sort.more")}
-        title={t("anilist.sort.more")}
-        className="flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center border"
-      >
-        <MoreHorizontal className="size-3.5" />
-      </Popover.Trigger>
-      <Popover.Portal>
-        <Popover.Positioner
-          className="z-50 outline-none"
-          side="bottom"
-          align="end"
-          sideOffset={4}
-          collisionPadding={12}
-        >
-          <Popover.Popup className="windows95-border bg-primary min-w-40 p-1 outline-none">
-            <button type="button" className={itemClass} onClick={pick(onActivityOpen)}>
-              <Activity className="size-3.5" />
-              {t("anilist.sort.history")}
-            </button>
-            <button type="button" className={itemClass} onClick={pick(onSpotlight)}>
-              <Sparkles className="size-3.5" />
-              {t("anilist.sort.spotlight")}
-            </button>
-            <button
-              type="button"
-              className={itemClass}
-              aria-pressed={groupByStatus}
-              onClick={pick(() => onGroupChange(!groupByStatus))}
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={
+          <Button
+            size="icon"
+            className="h-6 w-6 shrink-0"
+            title={t("anilist.sort.more")}
+            aria-label={t("anilist.sort.more")}
+          >
+            <MoreHorizontal className="size-3.5" />
+          </Button>
+        }
+      />
+      <DropdownMenuContent align="end" side="bottom" sideOffset={4} className="min-w-48">
+        <DropdownMenuGroup>
+          <DropdownMenuItem onClick={onActivityOpen}>
+            <Activity className="size-4" />
+            {t("anilist.sort.history")}
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={onSpotlight}>
+            <Sparkles className="size-4" />
+            {t("anilist.sort.spotlight")}
+          </DropdownMenuItem>
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuGroup>
+          <DropdownMenuCheckboxItem
+            checked={groupByStatus}
+            onCheckedChange={(checked) => onGroupChange(checked === true)}
+            title={t("anilist.sort.group.by.status")}
+          >
+            <Layers className="size-4" />
+            {t("anilist.sort.group.by.status")}
+          </DropdownMenuCheckboxItem>
+          <DropdownMenuRadioGroup
+            value={displayMode}
+            onValueChange={(v) => onDisplayChange(v as typeof displayMode)}
+          >
+            <DropdownMenuRadioItem value="scroll" title={t("anilist.sort.display.scroll")}>
+              <InfinityIcon className="size-4" />
+              {t("anilist.sort.display.scroll")}
+            </DropdownMenuRadioItem>
+            <DropdownMenuRadioItem
+              value="pagination"
+              title={t("anilist.sort.display.pagination")}
             >
-              <Layers className="size-3.5" />
-              {t("anilist.sort.group.by.status")}
-            </button>
-            <button
-              type="button"
-              className={itemClass}
-              aria-pressed={displayMode === "scroll"}
-              onClick={pick(() =>
-                onDisplayChange(displayMode === "scroll" ? "pagination" : "scroll")
-              )}
-            >
-              {displayMode === "scroll" ? (
-                <InfinityIcon className="size-3.5" />
-              ) : (
-                <Hash className="size-3.5" />
-              )}
-              {t(
-                displayMode === "scroll"
-                  ? "anilist.sort.display.scroll"
-                  : "anilist.sort.display.pagination"
-              )}
-            </button>
-          </Popover.Popup>
-        </Popover.Positioner>
-      </Popover.Portal>
-    </Popover.Root>
+              <Hash className="size-4" />
+              {t("anilist.sort.display.pagination")}
+            </DropdownMenuRadioItem>
+          </DropdownMenuRadioGroup>
+        </DropdownMenuGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 

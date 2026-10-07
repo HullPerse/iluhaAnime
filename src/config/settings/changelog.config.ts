@@ -56,6 +56,7 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.changed.torrents.metadata_timeout", "torrents"),
       entry("changelog.5_0_0.changed.anilist.stats_tabs", "anilist"),
       entry("changelog.5_0_0.changed.anilist.toolbar", "anilist"),
+      entry("changelog.5_0_0.changed.anilist.more_menu", "anilist"),
       entry("changelog.5_0_0.changed.anilist.nsfw", "anilist"),
       entry("changelog.5_0_0.changed.search.pager", "search"),
       entry("changelog.5_0_0.changed.search.session_timeout", "search"),

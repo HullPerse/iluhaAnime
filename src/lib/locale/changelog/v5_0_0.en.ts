@@ -75,6 +75,8 @@ const changelog500 = {
     "Statistics window split into Overview, Calendar, and Released tabs",
   "changelog.5_0_0.changed.anilist.toolbar":
     "AniList toolbar collapsed into an overflow menu",
+  "changelog.5_0_0.changed.anilist.more_menu":
+    "AniList overflow menu now uses the shared collection dropdown style with grouped actions and an explicit scroll or pagination choice",
   "changelog.5_0_0.changed.anilist.nsfw":
     "Adult content renamed to NSFW across filters and settings with a red highlight",
   "changelog.5_0_0.changed.search.pager":

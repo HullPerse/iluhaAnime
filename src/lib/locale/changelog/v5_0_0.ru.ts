@@ -75,6 +75,8 @@ const changelog500 = {
     "Окно статистики разделено на вкладки Overview, Calendar и Released",
   "changelog.5_0_0.changed.anilist.toolbar":
     "Тулбар AniList свернут в меню overflow",
+  "changelog.5_0_0.changed.anilist.more_menu":
+    "Доп меню AniList теперь в стиле общего дропдауна коллекции со сгруппированными действиями и явным выбором прокрутки или пагинации",
   "changelog.5_0_0.changed.anilist.nsfw":
     "Adult контент переименован в NSFW в фильтрах и настройках с красной подсветкой",
   "changelog.5_0_0.changed.search.pager":

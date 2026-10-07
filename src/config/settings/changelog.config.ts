@@ -72,6 +72,7 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.changed.search.session_timeout", "search"),
       entry("changelog.5_0_0.changed.player.open_perf", "player"),
       entry("changelog.5_0_0.changed.torrents.instant_remove", "torrents"),
+      entry("changelog.5_0_0.changed.app.hotkeys_registry", "app"),
     ],
     fixed: [
       entry("changelog.5_0_0.fixed.anilist.save_casing", "anilist"),

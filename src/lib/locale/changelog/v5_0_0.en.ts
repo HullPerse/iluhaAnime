@@ -6,7 +6,7 @@ const changelog500 = {
   "changelog.5_0_0.added.player.osd":
     "Live diagnostics overlay with fps, dropped frames, cache and decoder state, plus a watchdog toast when frames start dropping",
   "changelog.5_0_0.added.player.hover_preview":
-    "Timeline hover previews rendered by live mpv with a disk cache: warm thumbs take 16 to 55 ms against 179 to 320 ms with ffmpeg, and a click on the time toggles elapsed and remaining",
+    "Timeline hover previews: live mpv with a disk cache serves warm thumbs in 16 to 55 ms against 179 to 320 ms with ffmpeg, and a click on the time toggles elapsed and remaining",
   "changelog.5_0_0.added.player.eof":
     "End of file behavior setting: do nothing, pause at the end, play the next file, or repeat",
   "changelog.5_0_0.added.player.categories":
@@ -76,21 +76,21 @@ const changelog500 = {
   "changelog.5_0_0.added.anilist.activity_detail":
     "Anime details from the activity feed and notifications open inside the same window with Back",
   "changelog.5_0_0.changed.anilist.batch_fetch":
-    "AniList list, score, and media fetching goes through a 3 request semaphore with alias batching in anilist batch.rs, so collections and friend data load in fewer round trips",
+    "AniList list, score, and media fetching runs at most 3 parallel requests with similar requests merged, so collections and friend data load in fewer server requests",
   "changelog.5_0_0.changed.search.scoring_unify":
     "Search suggestion scoring now uses the same day, week, and month steps as the SQL ranking, so suggestions and history agree",
   "changelog.5_0_0.changed.search.fts_startup":
     "Full text index optimization moved to a background thread at startup",
   "changelog.5_0_0.changed.app.folder_scan":
-    "Folder scans use jwalk instead of walkdir, and the folder watcher coalesces event bursts with notify-debouncer-mini on a 1 second window",
+    "Folder scans are faster with a parallel directory walk, and folder watching calms event bursts with a 1 second settle delay",
   "changelog.5_0_0.changed.player.tree_build":
-    "Player folder tree assembly dropped from 350 ms to 36 ms on 50 thousand files",
+    "Player folder tree assembly dropped from 350 ms to 36 ms on 50 thousand files with an indexed build through a lookup map instead of repeated tree search",
   "changelog.5_0_0.changed.app.date_fns":
-    "date-fns removed in favor of an in-house relative time port that measures 4.6 times faster at 1.56M against 340K operations per second",
+    "date-fns removed in favor of a built-in relative time replacement that measures 4.6 times faster at 1.56M against 340K operations per second",
   "changelog.5_0_0.changed.torrents.magnet_dedup":
-    "Concurrent magnet resolutions for the same topic share one request through the magnetInflight map",
+    "Concurrent magnet resolutions for the same release share one request, so there are no duplicate network calls",
   "changelog.5_0_0.changed.torrents.metadata_timeout":
-    "Magnet metadata wait extended from 30 to 120 seconds, dead fallback trackers replaced, and a dedicated initializing state with an elapsed timer",
+    "Magnet metadata wait extended from 30 to 120 seconds for slow seeders, dead fallback trackers replaced, and a dedicated preparing state with an elapsed timer",
   "changelog.5_0_0.changed.anilist.stats_tabs":
     "Statistics window split into Overview, Calendar, and Released tabs",
   "changelog.5_0_0.changed.anilist.toolbar":
@@ -104,19 +104,19 @@ const changelog500 = {
   "changelog.5_0_0.changed.search.session_timeout":
     "Source session checks time out after 8 seconds instead of hanging the search",
   "changelog.5_0_0.changed.player.open_perf":
-    "Native player window opens in under 0.5 seconds with zero dropped frames on the benchmark corpus",
+    "Native player window opens in under 0.5 seconds with zero dropped frames on the test set with a separate lightweight window",
   "changelog.5_0_0.changed.torrents.instant_remove":
-    "Torrent removal is instant with a three button confirm dialog",
+    "Torrent removal is instant: the row disappears at once while the engine catches up in the background, with a three button confirm dialog",
   "changelog.5_0_0.changed.app.hotkeys_registry":
-    "Keyboard shortcuts moved to an in-house registry: player keys, tab switching, screenshots, and popups share one matcher with readable chord names, so shortcuts stay instant and layout independent",
+    "Keyboard shortcuts moved to a shared registry: player keys, tab switching, screenshots, and windows share one check, so response stays instant and layout independent",
   "changelog.5_0_0.fixed.anilist.save_casing":
-    "List entry saves failed on field name casing of media_id against mediaId",
+    "List entry saves failed on inconsistent field name spelling, now the spelling is unified",
   "changelog.5_0_0.fixed.torrents.infohash_casing":
-    "Tracker add and remove were broken by infoHash against info_hash casing across the torrent client",
+    "Tracker add and remove were broken by inconsistent release hash spelling, now the spelling is unified",
   "changelog.5_0_0.fixed.player.track_switch":
-    "Audio and subtitle track switching wrote numeric values where mpv expects strings",
+    "Audio and subtitle track switching failed on a wrong command format, now tracks switch",
   "changelog.5_0_0.fixed.anilist.site_query":
-    "Site notifications failed to load on an invalid text field in two notification fragments",
+    "Site notifications failed to load on a wrong request, the request is fixed",
 } as const;
 
 export default changelog500;

@@ -14,7 +14,7 @@ vi.mock("@/lib/utils/notification.utils", () => ({
 }));
 
 vi.mock("@/store/settings.store", () => ({
-  useSettingsStore: { getState: () => ({ language: "en" }) },
+  settingsAtoms: { language: { get: () => "en" } },
 }));
 
 beforeEach(() => {

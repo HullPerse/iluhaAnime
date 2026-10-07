@@ -11,10 +11,17 @@ import { Input } from "@/components/ui/input.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { torrentFilesKey } from "@/hooks/torrent/queries.hook";
 import { normalizePlayerPath } from "@/lib/player/visibility.utils";
+import { useCell } from "@/lib/state/signal.hook";
 import { formatBytes } from "@/lib/utils/bytes.utils";
 import { isUserImageIcon } from "@/lib/utils/image.utils";
-import { useCategoryStore } from "@/store/category.store";
-import { useSettingsStore } from "@/store/settings.store";
+import {
+  categoryAtoms,
+  moveCategoryEntry,
+  removeCategoryEntry,
+  renameCategory,
+  setCategoryCollapsed,
+} from "@/store/category.store";
+import { settingsAtoms } from "@/store/settings.store";
 import type { TorrentInfo, TorrentFileInfo, FolderNode } from "@/types/torrent";
 
 import { TorrentCategoryEntry } from "./category/entry.category";
@@ -39,24 +46,22 @@ function CategoryView({
   onHideTorrent?: (infoHash: string) => void;
 }) {
   const queryClient = useQueryClient();
-  const category = useCategoryStore((s) => s.categories.find((c) => c.id === categoryId));
-  const entries = useCategoryStore((s) => s.entries[categoryId]);
-  const renameCategory = useCategoryStore((s) => s.renameCategory);
-  const removeEntry = useCategoryStore((s) => s.removeEntry);
-  const moveEntry = useCategoryStore((s) => s.moveEntry);
+  const categories = useCell(categoryAtoms.categories);
+  const category = categories.find((c) => c.id === categoryId);
+  const entriesMap = useCell(categoryAtoms.entries);
+  const entries = entriesMap[categoryId];
   const { t } = useI18n();
 
   const { setNodeRef, isOver } = useDroppable({ id: categoryId });
 
-  const collapsedIds = useCategoryStore((s) => s.collapsedIds);
-  const setCategoryCollapsed = useCategoryStore((s) => s.setCategoryCollapsed);
+  const collapsedIds = useCell(categoryAtoms.collapsedIds);
   const [open, setOpen] = useState(() => !collapsedIds.includes(categoryId));
   const [editing, setEditing] = useState(false);
   const [editIcon, setEditIcon] = useState(false);
   const [editName, setEditName] = useState("");
   const [expandedEntries, setExpandedEntries] = useState<Set<string>>(new Set());
   const renameRef = useRef<HTMLInputElement>(null);
-  const audioExtensions = useSettingsStore((s) => s.audioExtensions);
+  const audioExtensions = useCell(settingsAtoms.audioExtensions);
   const audioExtensionsSet = useMemo(() => new Set(audioExtensions), [audioExtensions]);
   const orderIndex = useMemo(() => {
     const map = new Map<string, number>();
@@ -292,7 +297,7 @@ function CategoryView({
                       className="size-4"
                       onClick={(e) => {
                         e.stopPropagation();
-                        moveEntry(category.id, entry.id, -1);
+                        moveCategoryEntry(category.id, entry.id, -1);
                       }}
                     >
                       <ChevronUp className="size-3" />
@@ -302,7 +307,7 @@ function CategoryView({
                       className="size-4"
                       onClick={(e) => {
                         e.stopPropagation();
-                        moveEntry(category.id, entry.id, 1);
+                        moveCategoryEntry(category.id, entry.id, 1);
                       }}
                     >
                       <ChevronDown className="size-3" />
@@ -312,7 +317,7 @@ function CategoryView({
                       className="size-4"
                       onClick={(e) => {
                         e.stopPropagation();
-                        removeEntry(category.id, entry.id);
+                        removeCategoryEntry(category.id, entry.id);
                       }}
                     >
                       <X className="size-3" />

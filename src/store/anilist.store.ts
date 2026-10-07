@@ -1,12 +1,16 @@
-import { create } from "zustand";
-import { persist } from "zustand/middleware";
-
+import { createPersistor, persistKey, type Persistor } from "@/lib/state/persist.utils";
+import { createSignalStore, type Cell } from "@/lib/state/signal.store";
+import { attemptSync, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import type {
   AniListFriendsStore,
   AniListNotificationsStore,
   AniListObservation,
   AniListRelease,
+  AniUserProfile,
 } from "@/types/anilist";
+
+export const ANILIST_FRIENDS_SCHEMA_VERSION = 1;
+export const ANILIST_NOTIFICATIONS_SCHEMA_VERSION = 6;
 
 function isValidFriend(friend: unknown): friend is {
   id: number;
@@ -93,159 +97,412 @@ function migrateObservationsV2(
   return { initialized: !!state.initialized, observations: migrated };
 }
 
-export const useAniListFriendsStore = create<AniListFriendsStore>()(
-  persist(
-    (set) => ({
-      addFriend: (friend) =>
-        set((state) => ({
-          friends: state.friends.some((item) => item.id === friend.id)
-            ? state.friends.map((item) => (item.id === friend.id ? { ...item, ...friend } : item))
-            : [...state.friends, { ...friend, added_at: Date.now() }],
-        })),
-      cacheProfile: (profile) =>
-        set((state) => ({
-          friends: state.friends.map((friend) =>
-            friend.id === profile.id
-              ? {
-                  ...friend,
-                  name: profile.name,
-                  avatar: profile.avatar,
-                  profile,
-                  profile_fetched_at: Date.now(),
-                }
-              : friend
-          ),
-        })),
-      friends: [],
-      removeFriend: (id) =>
-        set((state) => ({
-          friends: state.friends.filter((friend) => friend.id !== id),
-        })),
-    }),
-    {
-      migrate: (persistedState: unknown) => {
-        if (!persistedState || typeof persistedState !== "object") {
-          return { friends: [] };
-        }
-        const state = persistedState as Partial<AniListFriendsStore>;
-        return {
-          friends: Array.isArray(state.friends) ? state.friends.flatMap(normalizeFriend) : [],
-        };
-      },
-      name: "anilistFriends",
-      version: 1,
-    }
-  )
-);
+export function migrateFriendsData(persistedState: unknown): {
+  friends: AniListFriendsStore["friends"];
+} {
+  if (!persistedState || typeof persistedState !== "object") {
+    return { friends: [] };
+  }
+  const state = persistedState as Partial<AniListFriendsStore>;
+  return {
+    friends: Array.isArray(state.friends) ? state.friends.flatMap(normalizeFriend) : [],
+  };
+}
 
-export const useAniListNotificationsStore = create<AniListNotificationsStore>()(
-  persist(
-    (set) => ({
+export function migrateNotificationsData(
+  persistedState: unknown,
+  version: number
+): {
+  initialized: boolean;
+  observations: Record<string, AniListObservation>;
+  releases: AniListRelease[];
+  readNotificationIds: number[];
+  knownListNames: string[];
+  siteMaxSeenId: number;
+} {
+  if (!persistedState || typeof persistedState !== "object")
+    return {
       initialized: false,
       observations: {},
       releases: [],
       readNotificationIds: [],
       knownListNames: [],
       siteMaxSeenId: 0,
-      saveObservation: (id, observation) =>
-        set((state) => ({
-          observations: { ...state.observations, [id]: observation },
-        })),
-      markOwnListStatus: (mediaId, status) =>
-        set((state) => {
-          const key = String(mediaId);
-          const prev = state.observations[key];
-          if (!prev || prev.status === status) return state;
-          return {
-            observations: { ...state.observations, [key]: { ...prev, status } },
-          };
-        }),
-      addRelease: (release) =>
-        set((state) => {
-          if (
-            state.releases.some(
-              (item) => item.mediaId === release.mediaId && item.episode === release.episode
-            )
-          )
-            return state;
-          return {
-            releases: [{ ...release, read: false }, ...state.releases].slice(0, RELEASE_FEED_CAP),
-          };
-        }),
-      markReleasesRead: () =>
-        set((state) => ({
-          releases: state.releases.map((item) => (item.read ? item : { ...item, read: true })),
-        })),
-      markSiteNotificationsRead: (ids) =>
-        set((state) => {
-          const known = new Set(state.readNotificationIds);
-          let changed = false;
-          for (const id of ids) {
-            if (!known.has(id)) {
-              known.add(id);
-              changed = true;
-            }
-          }
-          if (!changed) return state;
-          return { readNotificationIds: [...known].slice(-500) };
-        }),
-      setInitialized: (initialized) => set({ initialized }),
-      setKnownListNames: (knownListNames) => set({ knownListNames }),
-      setSiteMaxSeenId: (id) =>
-        set((state) => (id > state.siteMaxSeenId ? { siteMaxSeenId: id } : state)),
-    }),
-    {
-      migrate: (persistedState: unknown, version: number) => {
-        if (!persistedState || typeof persistedState !== "object")
-          return {
-            initialized: false,
-            observations: {},
-            releases: [],
-            readNotificationIds: [],
-            knownListNames: [],
-            siteMaxSeenId: 0,
-          };
-        const state = persistedState as Partial<AniListNotificationsStore> & {
-          observations?: Record<string, Partial<AniListObservation> & { signature?: string }>;
-          releases?: Partial<AniListRelease>[];
-          readNotificationIds?: unknown;
-        };
-        if (version < 2)
-          return {
-            ...migrateObservationsV2(state),
-            releases: [],
-            readNotificationIds: [],
-            knownListNames: [],
-            siteMaxSeenId: 0,
-          };
-        const releases = Array.isArray(state.releases)
-          ? state.releases.flatMap((item) => {
-              const normalized = normalizeRelease(item);
-              return normalized ? [normalized] : [];
-            })
-          : [];
-        return {
-          ...(state as AniListNotificationsStore),
-          observations: Object.fromEntries(
-            Object.entries(
-              (state.observations ?? {}) as Record<string, Partial<AniListObservation>>
-            ).map(([id, obs]) => [id, normalizeObservation(obs)])
-          ),
-          siteMaxSeenId:
-            typeof state.siteMaxSeenId === "number" && state.siteMaxSeenId > 0
-              ? state.siteMaxSeenId
-              : 0,
-          releases,
-          readNotificationIds: Array.isArray(state.readNotificationIds)
-            ? state.readNotificationIds.filter(
-                (id): id is number => typeof id === "number" && Number.isInteger(id)
-              )
-            : [],
-          knownListNames: Array.isArray(state.knownListNames) ? state.knownListNames : [],
-        };
+    };
+  const state = persistedState as Partial<AniListNotificationsStore> & {
+    observations?: Record<string, Partial<AniListObservation> & { signature?: string }>;
+    releases?: Partial<AniListRelease>[];
+    readNotificationIds?: unknown;
+  };
+  if (version < 2) {
+    const base = migrateObservationsV2(state);
+    return {
+      initialized: base.initialized ?? false,
+      observations: base.observations ?? {},
+      releases: [],
+      readNotificationIds: [],
+      knownListNames: [],
+      siteMaxSeenId: 0,
+    };
+  }
+  const releases = Array.isArray(state.releases)
+    ? state.releases.flatMap((item) => {
+        const normalized = normalizeRelease(item);
+        return normalized ? [normalized] : [];
+      })
+    : [];
+  return {
+    ...(state as AniListNotificationsStore),
+    observations: Object.fromEntries(
+      Object.entries(
+        (state.observations ?? {}) as Record<string, Partial<AniListObservation>>
+      ).map(([id, obs]) => [id, normalizeObservation(obs)])
+    ),
+    siteMaxSeenId:
+      typeof state.siteMaxSeenId === "number" && state.siteMaxSeenId > 0
+        ? state.siteMaxSeenId
+        : 0,
+    releases,
+    readNotificationIds: Array.isArray(state.readNotificationIds)
+      ? state.readNotificationIds.filter(
+          (id): id is number => typeof id === "number" && Number.isInteger(id)
+        )
+      : [],
+    knownListNames: Array.isArray(state.knownListNames) ? state.knownListNames : [],
+  };
+}
+
+function readLegacyEnvelope(
+  getStorage: () => Storage | undefined,
+  legacyKey: string
+): { state: unknown; version: number } | null {
+  const [storage, storageError] = attemptSync(() => getStorage());
+  if (storageError !== null || !storage) return null;
+  const [raw, readError] = attemptSync(() => storage.getItem(legacyKey));
+  if (readError !== null || !raw) return null;
+  const [parsed, parseError] = attemptSync(() => JSON.parse(raw) as unknown);
+  if (parseError !== null || !parsed || typeof parsed !== "object") return null;
+  const envelope = parsed as { state?: unknown; version?: unknown };
+  return {
+    state: envelope.state && typeof envelope.state === "object" ? envelope.state : parsed,
+    version: typeof envelope.version === "number" ? envelope.version : 0,
+  };
+}
+
+function defaultGetStorage(): Storage | undefined {
+  if (typeof localStorage === "undefined") return undefined;
+  return localStorage;
+}
+
+function adoptLegacyKey(getStorage: () => Storage | undefined, storeName: string, legacyKey: string): void {
+  const [storage, storageError] = attemptSync(() => getStorage());
+  if (storageError !== null) {
+    reportBackgroundError("anilist.signal.adopt", storageError);
+    return;
+  }
+  const [adopted, adoptError] = attemptSync(() => storage?.getItem(persistKey(storeName)));
+  if (adoptError !== null) {
+    reportBackgroundError("anilist.signal.adopt", adoptError);
+    return;
+  }
+  if (adopted) {
+    const [, removeError] = attemptSync(() => storage?.removeItem(legacyKey));
+    if (removeError !== null) reportBackgroundError("anilist.signal.adopt", removeError);
+  }
+}
+
+type FriendsActionKeys = "addFriend" | "cacheProfile" | "removeFriend";
+
+export type FriendsData = Omit<AniListFriendsStore, FriendsActionKeys>;
+export type FriendsAtoms = { [K in keyof FriendsData]: Cell<FriendsData[K]> };
+
+type NotificationsActionKeys =
+  | "saveObservation"
+  | "markOwnListStatus"
+  | "addRelease"
+  | "markReleasesRead"
+  | "markSiteNotificationsRead"
+  | "setInitialized"
+  | "setKnownListNames"
+  | "setSiteMaxSeenId";
+
+export type AnilistNotificationsData = Omit<AniListNotificationsStore, NotificationsActionKeys>;
+export type AnilistNotificationsAtoms = {
+  [K in keyof AnilistNotificationsData]: Cell<AnilistNotificationsData[K]>;
+};
+
+export interface AnilistSignalOptions {
+  getStorage?: () => Storage | undefined;
+  debounceMs?: number;
+}
+
+function buildMirrorAtoms<T extends object>(
+  store: ReturnType<typeof createSignalStore>,
+  data: T,
+  mirror: Record<string, unknown>
+): { [K in keyof T]: Cell<T[K]> } {
+  const atoms = {} as { [K in keyof T]: Cell<T[K]> };
+  const sink = atoms as unknown as Record<string, Cell<unknown>>;
+  const source = data as unknown as Record<string, unknown>;
+  for (const key of Object.keys(data)) {
+    const cell = store.atom(key, source[key]);
+    const handle: Cell<unknown> = {
+      id: cell.id,
+      get: cell.get,
+      set: (value) => {
+        cell.set(value);
+        mirror[key] = value;
       },
-      name: "anilistReleaseObservations",
-      version: 6,
-    }
-  )
-);
+      update: (fn) => {
+        const next = (fn as (prev: unknown) => unknown)(cell.get());
+        cell.set(next);
+        mirror[key] = next;
+      },
+      subscribe: cell.subscribe,
+    };
+    sink[key] = handle;
+  }
+  return atoms;
+}
+
+export interface FriendsSignalStore {
+  atoms: FriendsAtoms;
+  persistor: Persistor;
+  addFriend: (friend: AniListFriendsStore["friends"][number]) => void;
+  cacheProfile: (profile: AniUserProfile) => void;
+  removeFriend: (id: number) => void;
+}
+
+export function createFriendsSignalStore(options: AnilistSignalOptions = {}): FriendsSignalStore {
+  const getStorage = options.getStorage ?? defaultGetStorage;
+  const store = createSignalStore();
+  let adoptedFromLegacy = false;
+  const persistor = createPersistor({
+    storeName: "anilistFriends",
+    schemaVersion: ANILIST_FRIENDS_SCHEMA_VERSION,
+    getStorage,
+    debounceMs: options.debounceMs,
+    fallback: () => {
+      const legacy = readLegacyEnvelope(getStorage, "anilistFriends");
+      if (!legacy) return null;
+      adoptedFromLegacy = true;
+      return {
+        data: migrateFriendsData(legacy.state) as Record<string, unknown>,
+        schemaVersion: ANILIST_FRIENDS_SCHEMA_VERSION,
+      };
+    },
+    onError: (scope, error) => reportBackgroundError(`anilist.signal.${scope}`, error as Error),
+  });
+
+  const persisted = persistor.read();
+  const persistedFriends: unknown = persisted
+    ? (persisted.data as { friends?: unknown }).friends
+    : undefined;
+  const friends = Array.isArray(persistedFriends)
+    ? (persistedFriends as AniListFriendsStore["friends"])
+    : [];
+  const data: FriendsData = { friends };
+  const mirror: Record<string, unknown> = { friends };
+  const atoms = buildMirrorAtoms(store, data, mirror);
+
+  store.subscribeAll(() => {
+    persistor.write(mirror);
+  });
+
+  const handle: FriendsSignalStore = {
+    atoms,
+    persistor,
+    addFriend: (friend) => {
+      const current = atoms.friends.get();
+      atoms.friends.set(
+        current.some((item) => item.id === friend.id)
+          ? current.map((item) => (item.id === friend.id ? { ...item, ...friend } : item))
+          : [...current, { ...friend, added_at: Date.now() }]
+      );
+    },
+    cacheProfile: (profile) => {
+      const current = atoms.friends.get();
+      atoms.friends.set(
+        current.map((friend) =>
+          friend.id === profile.id
+            ? {
+                ...friend,
+                name: profile.name,
+                avatar: profile.avatar,
+                profile,
+                profile_fetched_at: Date.now(),
+              }
+            : friend
+        )
+      );
+    },
+    removeFriend: (id) => {
+      atoms.friends.set(atoms.friends.get().filter((friend) => friend.id !== id));
+    },
+  };
+
+  if (adoptedFromLegacy) {
+    persistor.write({ ...mirror });
+    persistor.flush();
+    adoptLegacyKey(getStorage, "anilistFriends", "anilistFriends");
+  }
+
+  return handle;
+}
+
+const DEFAULT_NOTIFICATIONS_DATA: AnilistNotificationsData = {
+  initialized: false,
+  observations: {},
+  releases: [],
+  readNotificationIds: [],
+  knownListNames: [],
+  siteMaxSeenId: 0,
+};
+
+export interface AnilistNotificationsSignalStore {
+  atoms: AnilistNotificationsAtoms;
+  persistor: Persistor;
+  saveObservation: (id: string, observation: AniListObservation) => void;
+  markOwnListStatus: (mediaId: number, status: string) => void;
+  addRelease: (release: Omit<AniListRelease, "read">) => void;
+  markReleasesRead: () => void;
+  markSiteNotificationsRead: (ids: number[]) => void;
+  setInitialized: (initialized: boolean) => void;
+  setKnownListNames: (knownListNames: string[]) => void;
+  setSiteMaxSeenId: (id: number) => void;
+}
+
+export function createAnilistNotificationsSignalStore(
+  options: AnilistSignalOptions = {}
+): AnilistNotificationsSignalStore {
+  const getStorage = options.getStorage ?? defaultGetStorage;
+  const store = createSignalStore();
+  let adoptedFromLegacy = false;
+  const persistor = createPersistor({
+    storeName: "anilistReleaseObservations",
+    schemaVersion: ANILIST_NOTIFICATIONS_SCHEMA_VERSION,
+    getStorage,
+    debounceMs: options.debounceMs,
+    fallback: () => {
+      const legacy = readLegacyEnvelope(getStorage, "anilistReleaseObservations");
+      if (!legacy) return null;
+      adoptedFromLegacy = true;
+      return {
+        data: migrateNotificationsData(
+          legacy.state,
+          legacy.version
+        ) as unknown as Record<string, unknown>,
+        schemaVersion: ANILIST_NOTIFICATIONS_SCHEMA_VERSION,
+      };
+    },
+    onError: (scope, error) => reportBackgroundError(`anilist.signal.${scope}`, error as Error),
+  });
+
+  const persisted = persistor.read();
+  const migrated =
+    persisted && typeof persisted.schemaVersion === "number" && persisted.schemaVersion >= 2
+      ? migrateNotificationsData(persisted.data, persisted.schemaVersion)
+      : null;
+  const data: AnilistNotificationsData = migrated ?? {
+    ...DEFAULT_NOTIFICATIONS_DATA,
+    ...((persisted?.data ?? {}) as Partial<AnilistNotificationsData>),
+  };
+  const mirror: Record<string, unknown> = { ...(data as unknown as Record<string, unknown>) };
+  const atoms = buildMirrorAtoms(store, data, mirror);
+
+  store.subscribeAll(() => {
+    persistor.write(mirror);
+  });
+
+  const handle: AnilistNotificationsSignalStore = {
+    atoms,
+    persistor,
+    saveObservation: (id, observation) => {
+      atoms.observations.set({ ...atoms.observations.get(), [id]: observation });
+    },
+    markOwnListStatus: (mediaId, status) => {
+      const key = String(mediaId);
+      const observations = atoms.observations.get();
+      const prev = observations[key];
+      if (!prev || prev.status === status) return;
+      atoms.observations.set({ ...observations, [key]: { ...prev, status } });
+    },
+    addRelease: (release) => {
+      const releases = atoms.releases.get();
+      if (
+        releases.some((item) => item.mediaId === release.mediaId && item.episode === release.episode)
+      )
+        return;
+      atoms.releases.set(
+        [{ ...release, read: false }, ...releases].slice(0, RELEASE_FEED_CAP)
+      );
+    },
+    markReleasesRead: () => {
+      atoms.releases.set(
+        atoms.releases.get().map((item) => (item.read ? item : { ...item, read: true }))
+      );
+    },
+    markSiteNotificationsRead: (ids) => {
+      const readNotificationIds = atoms.readNotificationIds.get();
+      const known = new Set(readNotificationIds);
+      let changed = false;
+      for (const id of ids) {
+        if (!known.has(id)) {
+          known.add(id);
+          changed = true;
+        }
+      }
+      if (!changed) return;
+      atoms.readNotificationIds.set([...known].slice(-500));
+    },
+    setInitialized: (initialized) => atoms.initialized.set(initialized),
+    setKnownListNames: (knownListNames) => atoms.knownListNames.set(knownListNames),
+    setSiteMaxSeenId: (id) => {
+      if (id > atoms.siteMaxSeenId.get()) atoms.siteMaxSeenId.set(id);
+    },
+  };
+
+  if (adoptedFromLegacy) {
+    persistor.write({ ...mirror });
+    persistor.flush();
+    adoptLegacyKey(getStorage, "anilistReleaseObservations", "anilistReleaseObservations");
+  }
+
+  return handle;
+}
+
+const friends = createFriendsSignalStore();
+const anilistNotifications = createAnilistNotificationsSignalStore();
+
+export const anilistFriendsAtoms = friends.atoms;
+export const anilistFriendsPersistor = friends.persistor;
+export const addAnilistFriend = friends.addFriend;
+export const cacheAnilistProfile = friends.cacheProfile;
+export const removeAnilistFriend = friends.removeFriend;
+
+export const anilistNotificationsAtoms = anilistNotifications.atoms;
+export const anilistNotificationsPersistor = anilistNotifications.persistor;
+export const saveAnilistObservation = anilistNotifications.saveObservation;
+export const markOwnAnilistListStatus = anilistNotifications.markOwnListStatus;
+export const addAnilistRelease = anilistNotifications.addRelease;
+export const markAnilistReleasesRead = anilistNotifications.markReleasesRead;
+export const markSiteNotificationsRead = anilistNotifications.markSiteNotificationsRead;
+export const setAnilistInitialized = anilistNotifications.setInitialized;
+export const setKnownAnilistListNames = anilistNotifications.setKnownListNames;
+export const setSiteMaxSeenId = anilistNotifications.setSiteMaxSeenId;
+
+function flushPersistors(): void {
+  friends.persistor.flush();
+  anilistNotifications.persistor.flush();
+}
+
+if (
+  typeof window !== "undefined" &&
+  typeof window.addEventListener === "function" &&
+  typeof document !== "undefined"
+) {
+  window.addEventListener("beforeunload", flushPersistors);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") flushPersistors();
+  });
+}

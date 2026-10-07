@@ -1,6 +1,7 @@
 import { ReactElement } from "react";
 
-import { useSettingsStore } from "@/store/settings.store";
+import { useCell } from "@/lib/state/signal.hook";
+import { settingsAtoms } from "@/store/settings.store";
 import { SearchType } from "@/types/search";
 
 import SearchDefault from "./components/search/default/index.search";
@@ -12,7 +13,7 @@ const searchMap: Record<SearchType, () => ReactElement> = {
 };
 
 function SearchRoute() {
-  const searchType = useSettingsStore((state) => state.searchType);
+  const searchType = useCell(settingsAtoms.searchType);
 
   return searchMap[searchType]();
 }

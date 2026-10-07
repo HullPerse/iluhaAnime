@@ -3,9 +3,17 @@ import type { ChangeEvent } from "react";
 
 import { useAutocomplete } from "@/hooks/search/autocomplete.hook";
 import { useSpellCheck } from "@/hooks/search/spellcheck.hook";
+import { useCell } from "@/lib/state/signal.hook";
 import { enterSubmit } from "@/lib/utils/keyboard.utils";
-import { useSearchStore } from "@/store/search.store";
-import { useSettingsStore } from "@/store/settings.store";
+import {
+  addSearchQuery as addQuery,
+  addSpellWord,
+  recordSearchSuggestion as recordSuggestion,
+  recordSearchSuggestionIgnored as recordSuggestionIgnored,
+  removeSearchQuery as removeQuery,
+  searchAtoms,
+} from "@/store/search.store";
+import { settingsAtoms } from "@/store/settings.store";
 import { SearchField, SearchFieldParams } from "@/types/collection";
 
 export function useSearchField(params: SearchFieldParams): SearchField {
@@ -28,12 +36,12 @@ export function useSearchField(params: SearchFieldParams): SearchField {
     historyScope,
   } = params;
 
-  const storeHistory = useSearchStore((s) => s.history);
-  const storeQueryStats = useSearchStore((s) => s.queryStats);
-  const storeSuggestionStats = useSearchStore((s) => s.suggestionStats);
-  const storeAnimeIndex = useSearchStore((s) => s.animeIndex);
-  const storeAnimeProfileId = useSearchStore((s) => s.animeProfileId);
-  const anilistSuggestionBoost = useSettingsStore((s) => s.anilistSuggestionBoost);
+  const storeHistory = useCell(searchAtoms.history);
+  const storeQueryStats = useCell(searchAtoms.queryStats);
+  const storeSuggestionStats = useCell(searchAtoms.suggestionStats);
+  const storeAnimeIndex = useCell(searchAtoms.animeIndex);
+  const storeAnimeProfileId = useCell(searchAtoms.animeProfileId);
+  const anilistSuggestionBoost = useCell(settingsAtoms.anilistSuggestionBoost);
 
   const history = historyParam ?? storeHistory;
   const queryStats = queryStatsParam ?? storeQueryStats;
@@ -62,29 +70,24 @@ export function useSearchField(params: SearchFieldParams): SearchField {
     if (!spellCheck) return;
     setQuery(spellCheck.correction);
   }, [spellCheck, setQuery]);
-  const addSpellWord = useSearchStore((s) => s.addSpellWord);
   const addWordToDictionary = useCallback(() => {
     if (!spellCheck) return;
     addSpellWord(spellCheck.word);
-  }, [spellCheck, addSpellWord]);
+  }, [spellCheck]);
 
-  const addQuery = useSearchStore((s) => s.addQuery);
-  const recordSuggestion = useSearchStore((s) => s.recordSuggestion);
-  const recordSuggestionIgnored = useSearchStore((s) => s.recordSuggestionIgnored);
-  const removeQuery = useSearchStore((s) => s.removeQuery);
   const learningScope = historyScope ?? scope;
 
   const recordSelect = useCallback(
     (value: string) => recordSuggestion(value, learningScope),
-    [recordSuggestion, learningScope]
+    [learningScope]
   );
   const recordIgnore = useCallback(
     (value: string) => recordSuggestionIgnored(value, learningScope),
-    [recordSuggestionIgnored, learningScope]
+    [learningScope]
   );
   const handleRemoveQuery = useCallback(
     (value: string) => removeQuery(value, learningScope),
-    [removeQuery, learningScope]
+    [learningScope]
   );
 
   const handleSubmit = useCallback(() => {
@@ -95,7 +98,7 @@ export function useSearchField(params: SearchFieldParams): SearchField {
     }
     addQuery(trimmed, historyScope ?? scope);
     onSubmit?.(trimmed);
-  }, [query, inlineCompletion, recordIgnore, addQuery, historyScope, scope, onSubmit]);
+  }, [query, inlineCompletion, recordIgnore, historyScope, scope, onSubmit]);
 
   const handleSelect = useCallback(
     (value: string) => {
@@ -109,7 +112,7 @@ export function useSearchField(params: SearchFieldParams): SearchField {
         onSubmit?.(trimmed);
       }
     },
-    [recordSelect, setQuery, submitOnSelect, addQuery, historyScope, scope, onSubmit]
+    [recordSelect, setQuery, submitOnSelect, historyScope, scope, onSubmit]
   );
 
   const handleAcceptCompletion = useCallback(

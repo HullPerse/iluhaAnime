@@ -7,6 +7,7 @@ import { SETTINGS_TAB_KEYS } from "@/config/settings/tabs.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
 import { readSettingsTab } from "@/lib/settings/tab.utils";
+import { useCell } from "@/lib/state/signal.hook";
 import { attemptSync } from "@/lib/utils/attempt.utils";
 import { SettingsChangelog } from "@/routes/components/settings/changelog.settings";
 import SettingsGeneral from "@/routes/components/settings/general.settings";
@@ -15,14 +16,14 @@ import SettingsSearch from "@/routes/components/settings/search.settings";
 import { SettingsSummary } from "@/routes/components/settings/summary.settings";
 import SettingsTheme from "@/routes/components/settings/theme.settings";
 import SettingsTorrent from "@/routes/components/settings/torrent.settings";
-import { useSettingsStore } from "@/store/settings.store";
+import { settingsAtoms } from "@/store/settings.store";
 import type { SettingsTab } from "@/types/settings";
 
 const SettingsSqlite = lazy(() => import("@/routes/components/settings/sqlite/sqlite.settings"));
 
 export default function SettingsRoute() {
   const { t } = useI18n();
-  const sqliteBrowserEnabled = useSettingsStore((state) => state.sqliteBrowserEnabled);
+  const sqliteBrowserEnabled = useCell(settingsAtoms.sqliteBrowserEnabled);
   const [activeTab, setActiveTab] = useState<SettingsTab>(() => readSettingsTab());
   const navKeys = sqliteBrowserEnabled
     ? [...SETTINGS_TAB_KEYS, { id: "sqlite" as const, key: "settings.sqlite" as TranslationKey }]

@@ -30,15 +30,24 @@ import {
   showError,
   showWarning,
 } from "@/lib/utils/notification.utils";
+import { useCell } from "@/lib/state/signal.hook";
 import { checkForUpdates } from "@/lib/utils/update.utils";
-import { useAniListNotificationsStore } from "@/store/anilist.store";
-import { useCacheStore } from "@/store/cache.store";
-import { useCollectionStore } from "@/store/collection.store";
-import { useDeepLinkStore } from "@/store/deeplink.store";
-import { useNotificationStore } from "@/store/notification.store";
-import { useSearchStore } from "@/store/search.store";
-import { useSettingsStore } from "@/store/settings.store";
-import { applyTheme, useThemeStore } from "@/store/theme.store";
+import { anilistNotificationsAtoms } from "@/store/anilist.store";
+import { cacheAtoms, setEpisodeTracker, setFolderTrees, setLastSaveDir } from "@/store/cache.store";
+import { collectionAtoms, subscribeCollection } from "@/store/collection.store";
+import {
+  deeplinkAtoms,
+  openAnimeDeepLink,
+  openAuthDeepLink,
+  openMagnetDeepLink,
+  openShareDeepLink,
+  openTorrentDeepLink,
+  subscribeDeepLink,
+} from "@/store/deeplink.store";
+import { addNotification } from "@/store/notification.store";
+import { clearSearchAnimeIndex, searchAtoms, subscribeSearch } from "@/store/search.store";
+import { settingsAtoms, subscribeSettings } from "@/store/settings.store";
+import { applyTheme, themeAtoms } from "@/store/theme.store";
 import type {
   NotificationTarget,
   NotificationType,
@@ -54,20 +63,21 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
   const { t } = useI18n();
   const isOnline = useOnlineStatus();
 
-  const collectionTabEnabled = useSettingsStore((s) => s.collectionTabEnabled);
-  const anilistTabEnabled = useSettingsStore((s) => s.anilistTabEnabled);
-  const searchTabEnabled = useSettingsStore((s) => s.searchTabEnabled);
-  const torrentTabEnabled = useSettingsStore((s) => s.torrentTabEnabled);
-  const playerTabEnabled = useSettingsStore((s) => s.playerTabEnabled);
-  const enableAnimations = useSettingsStore((s) => s.enableAnimations);
-  const retroStyle = useSettingsStore((s) => s.retroStyle);
-  const uiDensity = useSettingsStore((s) => s.uiDensity);
-  const customScrollbar = useSettingsStore((s) => s.customScrollbar);
-  const anilistReleaseNotifications = useSettingsStore((s) => s.anilistReleaseNotifications);
-  const anilistPollIntervalMin = useSettingsStore((s) => s.anilistPollIntervalMin);
+  const collectionTabEnabled = useCell(settingsAtoms.collectionTabEnabled);
+  const anilistTabEnabled = useCell(settingsAtoms.anilistTabEnabled);
+  const searchTabEnabled = useCell(settingsAtoms.searchTabEnabled);
+  const torrentTabEnabled = useCell(settingsAtoms.torrentTabEnabled);
+  const playerTabEnabled = useCell(settingsAtoms.playerTabEnabled);
+  const enableAnimations = useCell(settingsAtoms.enableAnimations);
+  const retroStyle = useCell(settingsAtoms.retroStyle);
+  const uiDensity = useCell(settingsAtoms.uiDensity);
+  const customScrollbar = useCell(settingsAtoms.customScrollbar);
+  const anilistReleaseNotifications = useCell(settingsAtoms.anilistReleaseNotifications);
+  const anilistPollIntervalMin = useCell(settingsAtoms.anilistPollIntervalMin);
 
-  const unreadReleases = useAniListNotificationsStore((s) =>
-    s.releases.reduce((count, item) => count + (item.read ? 0 : 1), 0)
+  const unreadReleases = useCell(anilistNotificationsAtoms.releases).reduce(
+    (count, item) => count + (item.read ? 0 : 1),
+    0
   );
 
   const tabs = markOfflineTabs(
@@ -105,16 +115,14 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
   useEffect(() => {
     if (data) {
       setUpdateAvailable(true);
-      if (useSettingsStore.getState().notifyUpdateAvailable) {
-        useNotificationStore
-          .getState()
-          .add(
-            t("updater.title"),
-            "info",
-            t("notification.update.available", { version: data.version }),
-            `app-update:${data.version}`,
-            { system: true }
-          );
+      if (settingsAtoms.notifyUpdateAvailable.get()) {
+        addNotification(
+          t("updater.title"),
+          "info",
+          t("notification.update.available", { version: data.version }),
+          `app-update:${data.version}`,
+          { system: true }
+        );
       }
     }
   }, [data, t]);
@@ -125,17 +133,13 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
     if (prev === isOnline) return;
     prevOnlineRef.current = isOnline;
     if (!isOnline) {
-      useNotificationStore
-        .getState()
-        .add(t("network.offline.title"), "warning", t("network.offline.body"), "network-offline", {
-          system: false,
-        });
+      addNotification(t("network.offline.title"), "warning", t("network.offline.body"), "network-offline", {
+        system: false,
+      });
     } else {
-      useNotificationStore
-        .getState()
-        .add(t("network.online.title"), "info", t("network.online.body"), "network-online", {
-          system: false,
-        });
+      addNotification(t("network.online.title"), "info", t("network.online.body"), "network-online", {
+        system: false,
+      });
     }
   }, [isOnline, t]);
 
@@ -164,8 +168,7 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      const state = useThemeStore.getState();
-      applyTheme(state.currentTheme, state.customThemes);
+      applyTheme(themeAtoms.currentTheme.get(), themeAtoms.customThemes.get());
     }, 0);
     return () => clearTimeout(timer);
   }, []);
@@ -216,34 +219,42 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
 
   useEffect(() => {
     if (!isOnline) return;
-    const current = useSearchStore.getState().crossSearchQuery;
+    const current = searchAtoms.crossSearchQuery.get();
     if (current) startTransition(() => setActiveTab("search"));
-    return useSearchStore.subscribe((state, prev) => {
-      if (state.crossSearchQuery && state.crossSearchQuery !== prev.crossSearchQuery)
-        startTransition(() => setActiveTab("search"));
+    let previousCross = current;
+    return subscribeSearch(() => {
+      const next = searchAtoms.crossSearchQuery.get();
+      if (next && next !== previousCross) startTransition(() => setActiveTab("search"));
+      previousCross = next;
     });
   }, [isOnline, setActiveTab]);
 
   useEffect(() => {
     if (!isOnline) return;
-    const current = useSearchStore.getState().anilistSearchQuery;
-    if (current && useSettingsStore.getState().anilistTabEnabled)
+    const current = searchAtoms.anilistSearchQuery.get();
+    if (current && settingsAtoms.anilistTabEnabled.get())
       startTransition(() => setActiveTab("anilist"));
-    return useSearchStore.subscribe((state, prev) => {
-      if (state.anilistSearchQuery && state.anilistSearchQuery !== prev.anilistSearchQuery) {
-        if (!useSettingsStore.getState().anilistTabEnabled) return;
+    let previousAnilist = current;
+    return subscribeSearch(() => {
+      const next = searchAtoms.anilistSearchQuery.get();
+      if (next && next !== previousAnilist) {
+        if (!settingsAtoms.anilistTabEnabled.get()) return;
         startTransition(() => setActiveTab("anilist"));
       }
+      previousAnilist = next;
     });
   }, [isOnline, setActiveTab]);
   useEffect(() => {
     const switchToCollection = () => {
-      if (!useSettingsStore.getState().collectionTabEnabled) return;
+      if (!settingsAtoms.collectionTabEnabled.get()) return;
       startTransition(() => setActiveTab("collection"));
     };
-    if (useCollectionStore.getState().wizardPrefill) switchToCollection();
-    return useCollectionStore.subscribe((state, prev) => {
-      if (state.wizardPrefill && state.wizardPrefill !== prev.wizardPrefill) switchToCollection();
+    if (collectionAtoms.wizardPrefill.get()) switchToCollection();
+    let previousPrefill = collectionAtoms.wizardPrefill.get();
+    return subscribeCollection(() => {
+      const next = collectionAtoms.wizardPrefill.get();
+      if (next && next !== previousPrefill) switchToCollection();
+      previousPrefill = next;
     });
   }, [setActiveTab]);
 
@@ -255,11 +266,9 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
         : "info";
       const { title, body } = resolveNotificationText(
         event.payload,
-        useSettingsStore.getState().language
+        settingsAtoms.language.get()
       );
-      useNotificationStore
-        .getState()
-        .add(title, type, body, event.payload.eventKey, { target: event.payload.action });
+      addNotification(title, type, body, event.payload.eventKey, { target: event.payload.action });
     },
     { errorTag: "notifications" }
   );
@@ -297,31 +306,31 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
             showWarning(t("network.offline.title"), t("network.action.unavailable"));
             return;
           }
-          useDeepLinkStore.getState().openAnime(link);
+          openAnimeDeepLink(link);
         },
         () => showError(t("common.error"), t("anilist.details.link.invalid")),
         (link) => {
-          if (!useSettingsStore.getState().torrentTabEnabled) {
+          if (!settingsAtoms.torrentTabEnabled.get()) {
             showError(t("common.error"), t("anilist.details.link.invalid"));
             return;
           }
-          useDeepLinkStore.getState().openTorrent(link);
+          openTorrentDeepLink(link);
           setActiveTabTransition("torrent");
         },
         (rawUrl) => {
-          if (!useSettingsStore.getState().collectionTabEnabled) {
+          if (!settingsAtoms.collectionTabEnabled.get()) {
             showError(t("common.error"), t("anilist.details.link.invalid"));
             return;
           }
           parseCollectionShareLink(rawUrl)
             .then((link) => {
-              if (link) useDeepLinkStore.getState().openShare(link);
+              if (link) openShareDeepLink(link);
               else showError(t("common.error"), t("collection.share.invalid"));
             })
             .catch((error) => reportBackgroundError("deeplink.share-pending", error));
         },
         (link) => {
-          useDeepLinkStore.getState().openAuth(link);
+          openAuthDeepLink(link);
         }
       );
     },
@@ -351,7 +360,7 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
 
   useEffect(() => {
     const ensureTorrentTab = (): boolean => {
-      if (!useSettingsStore.getState().torrentTabEnabled) {
+      if (!settingsAtoms.torrentTabEnabled.get()) {
         showError(t("common.error"), t("anilist.details.link.invalid"));
         return false;
       }
@@ -373,7 +382,7 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
       }
       event.preventDefault();
       if (parsed.kind === "anime") {
-        if (!useSettingsStore.getState().anilistTabEnabled) {
+        if (!settingsAtoms.anilistTabEnabled.get()) {
           showError(t("common.error"), t("anilist.details.link.invalid"));
           return;
         }
@@ -381,21 +390,21 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
           showWarning(t("network.offline.title"), t("network.action.unavailable"));
           return;
         }
-        useDeepLinkStore.getState().openAnime(parsed.link);
+        openAnimeDeepLink(parsed.link);
       } else if (parsed.kind === "torrent") {
         if (!ensureTorrentTab()) return;
-        useDeepLinkStore.getState().openTorrent(parsed.link);
+        openTorrentDeepLink(parsed.link);
       } else if (parsed.kind === "magnet") {
         if (!ensureTorrentTab()) return;
-        useDeepLinkStore.getState().openMagnet(parsed.magnet);
+        openMagnetDeepLink(parsed.magnet);
       } else {
-        if (!useSettingsStore.getState().collectionTabEnabled) {
+        if (!settingsAtoms.collectionTabEnabled.get()) {
           showError(t("common.error"), t("anilist.details.link.invalid"));
           return;
         }
         parseCollectionShareLink(text)
           .then((link) => {
-            if (link) useDeepLinkStore.getState().openShare(link);
+            if (link) openShareDeepLink(link);
             else showError(t("common.error"), t("collection.share.invalid"));
           })
           .catch((error) => reportBackgroundError("deeplink.share-paste", error));
@@ -407,35 +416,44 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
   useEffect(() => {
     const switchToAnilist = () => {
       if (!isOnline) return;
-      if (!useSettingsStore.getState().anilistTabEnabled) return;
+      if (!settingsAtoms.anilistTabEnabled.get()) return;
       startTransition(() => setActiveTab("anilist"));
     };
-    if (useDeepLinkStore.getState().target) switchToAnilist();
-    return useDeepLinkStore.subscribe((state, prev) => {
-      if (state.target && state.target !== prev.target) switchToAnilist();
+    if (deeplinkAtoms.target.get()) switchToAnilist();
+    let previousTarget = deeplinkAtoms.target.get();
+    return subscribeDeepLink(() => {
+      const next = deeplinkAtoms.target.get();
+      if (next && next !== previousTarget) switchToAnilist();
+      previousTarget = next;
     });
   }, [isOnline, setActiveTab]);
 
   useEffect(() => {
     const switchToCollection = () => {
-      if (!useSettingsStore.getState().collectionTabEnabled) return;
+      if (!settingsAtoms.collectionTabEnabled.get()) return;
       startTransition(() => setActiveTab("collection"));
     };
-    if (useDeepLinkStore.getState().shareTarget) switchToCollection();
-    return useDeepLinkStore.subscribe((state, prev) => {
-      if (state.shareTarget && state.shareTarget !== prev.shareTarget) switchToCollection();
+    if (deeplinkAtoms.shareTarget.get()) switchToCollection();
+    let previousShare = deeplinkAtoms.shareTarget.get();
+    return subscribeDeepLink(() => {
+      const next = deeplinkAtoms.shareTarget.get();
+      if (next && next !== previousShare) switchToCollection();
+      previousShare = next;
     });
   }, [setActiveTab]);
 
   useEffect(() => {
     const switchToAnilist = () => {
       if (!isOnline) return;
-      if (!useSettingsStore.getState().anilistTabEnabled) return;
+      if (!settingsAtoms.anilistTabEnabled.get()) return;
       startTransition(() => setActiveTab("anilist"));
     };
-    if (useDeepLinkStore.getState().authTarget) switchToAnilist();
-    return useDeepLinkStore.subscribe((state, prev) => {
-      if (state.authTarget && state.authTarget !== prev.authTarget) switchToAnilist();
+    if (deeplinkAtoms.authTarget.get()) switchToAnilist();
+    let previousAuth = deeplinkAtoms.authTarget.get();
+    return subscribeDeepLink(() => {
+      const next = deeplinkAtoms.authTarget.get();
+      if (next && next !== previousAuth) switchToAnilist();
+      previousAuth = next;
     });
   }, [isOnline, setActiveTab]);
 
@@ -472,31 +490,42 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
 
   useEffect(() => {
     const sync = () => {
-      const s = useSettingsStore.getState();
+      const notificationsEnabled = settingsAtoms.notificationsEnabled.get();
+      const notifyOnComplete = settingsAtoms.notifyOnComplete.get();
+      const notifyOnError = settingsAtoms.notifyOnError.get();
+      const notifyTorrentHealth = settingsAtoms.notifyTorrentHealth.get();
       systemApi
         .setNotificationSettings(
-          s.notificationsEnabled,
-          s.notifyOnComplete,
-          s.notifyOnError,
-          s.notifyTorrentHealth
+          notificationsEnabled,
+          notifyOnComplete,
+          notifyOnError,
+          notifyTorrentHealth
         )
         .catch((error) => reportBackgroundError("notification-settings.sync", error));
+      return { notificationsEnabled, notifyOnComplete, notifyOnError, notifyTorrentHealth };
     };
-    sync();
-    return useSettingsStore.subscribe((state, previous) => {
+    let previous = sync();
+    return subscribeSettings(() => {
+      const current = {
+        notificationsEnabled: settingsAtoms.notificationsEnabled.get(),
+        notifyOnComplete: settingsAtoms.notifyOnComplete.get(),
+        notifyOnError: settingsAtoms.notifyOnError.get(),
+        notifyTorrentHealth: settingsAtoms.notifyTorrentHealth.get(),
+      };
       if (
-        state.notificationsEnabled !== previous.notificationsEnabled ||
-        state.notifyOnComplete !== previous.notifyOnComplete ||
-        state.notifyOnError !== previous.notifyOnError ||
-        state.notifyTorrentHealth !== previous.notifyTorrentHealth
-      )
-        sync();
+        current.notificationsEnabled !== previous.notificationsEnabled ||
+        current.notifyOnComplete !== previous.notifyOnComplete ||
+        current.notifyOnError !== previous.notifyOnError ||
+        current.notifyTorrentHealth !== previous.notifyTorrentHealth
+      ) {
+        previous = sync();
+      }
     });
   }, []);
 
   useEffect(() => {
     let disposed = false;
-    useSearchStore.getState().clearAnimeIndex();
+    clearSearchAnimeIndex();
     Promise.all([
       readAppCache<{ path: string; tree: FolderNode }[]>("player", "folderTrees"),
       readAppCache<string>("torrent", "lastSaveDir"),
@@ -505,14 +534,13 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
       readAppCache<SearchLearningSnapshot>("search", "learning"),
     ]).then(([folderTrees, lastSaveDir, seedPreferences, episodeTracker, learning]) => {
       if (disposed) return;
-      const cache = useCacheStore.getState();
-      if (folderTrees?.payload) cache.setFolderTrees(folderTrees.payload);
+      if (folderTrees?.payload) setFolderTrees(folderTrees.payload);
       if (lastSaveDir?.payload) {
-        cache.setLastSaveDir(lastSaveDir.payload);
+        setLastSaveDir(lastSaveDir.payload);
       }
       if (seedPreferences?.payload)
-        useCacheStore.setState({ seedPreferences: seedPreferences.payload });
-      if (episodeTracker?.payload) cache.setEpisodeTracker(episodeTracker.payload);
+        cacheAtoms.seedPreferences.set(seedPreferences.payload);
+      if (episodeTracker?.payload) setEpisodeTracker(episodeTracker.payload);
       if (learning?.payload) {
         const ttlMs = 90 * 24 * 60 * 60 * 1000;
         const now = Date.now();
@@ -524,11 +552,9 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
           }
           return out as T;
         };
-        useSearchStore.setState({
-          history: learning.payload.history ?? [],
-          queryStats: filterStats(learning.payload.queryStats ?? {}),
-          suggestionStats: filterStats(learning.payload.suggestionStats ?? {}),
-        });
+        searchAtoms.history.set(learning.payload.history ?? []);
+        searchAtoms.queryStats.set(filterStats(learning.payload.queryStats ?? {}));
+        searchAtoms.suggestionStats.set(filterStats(learning.payload.suggestionStats ?? {}));
       }
     });
     return () => {
@@ -539,12 +565,14 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
   useEffect(() => {
     let timer: number | undefined;
     const saveLearning = () => {
-      const state = useSearchStore.getState();
+      const history = searchAtoms.history.get();
+      const queryStats = searchAtoms.queryStats.get();
+      const suggestionStats = searchAtoms.suggestionStats.get();
       const snapshot: SearchLearningSnapshot = {
         version: 1,
-        history: state.history,
-        queryStats: state.queryStats,
-        suggestionStats: state.suggestionStats,
+        history,
+        queryStats,
+        suggestionStats,
       };
       const run = () => {
         writeAppCache("search", "learning", snapshot).catch((error) =>
@@ -557,12 +585,23 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
         run();
       }
     };
-    const unsubscribe = useSearchStore.subscribe((state, previous) => {
+    let previousLearning = {
+      history: searchAtoms.history.get(),
+      queryStats: searchAtoms.queryStats.get(),
+      suggestionStats: searchAtoms.suggestionStats.get(),
+    };
+    const unsubscribe = subscribeSearch(() => {
+      const current = {
+        history: searchAtoms.history.get(),
+        queryStats: searchAtoms.queryStats.get(),
+        suggestionStats: searchAtoms.suggestionStats.get(),
+      };
       if (
-        state.history !== previous.history ||
-        state.queryStats !== previous.queryStats ||
-        state.suggestionStats !== previous.suggestionStats
+        current.history !== previousLearning.history ||
+        current.queryStats !== previousLearning.queryStats ||
+        current.suggestionStats !== previousLearning.suggestionStats
       ) {
+        previousLearning = current;
         if (timer !== undefined) window.clearTimeout(timer);
         timer = window.setTimeout(saveLearning, 2000);
       }

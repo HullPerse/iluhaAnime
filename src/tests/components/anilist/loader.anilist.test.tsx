@@ -2,13 +2,13 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import AniListLoader from "@/routes/components/anilist/loader.anilist";
-import { useSettingsStore } from "@/store/settings.store";
+import { patchSettings } from "@/store/settings.store";
 
 const SLOW_HINT = /a proxy may help/;
 
 beforeEach(() => {
   vi.useFakeTimers();
-  useSettingsStore.setState({ language: "en" });
+  patchSettings({ language: "en" });
 });
 
 afterEach(() => {

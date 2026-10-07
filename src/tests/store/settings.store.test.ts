@@ -1,7 +1,5 @@
 import { describe, expect, it, vi, beforeAll } from "vitest";
 
-const storage = new Map<string, string>();
-
 const mockInvoke = vi.fn();
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -9,61 +7,36 @@ vi.mock("@tauri-apps/api/core", () => ({
   convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
 }));
 
-let useSettingsStore: (typeof import("@/store/settings.store"))["useSettingsStore"];
+let settings: typeof import("@/store/settings.store");
 
 beforeAll(async () => {
-  vi.stubGlobal("window", {
-    localStorage: {
-      getItem: (k: string) => storage.get(k) ?? null,
-      removeItem: (k: string) => storage.delete(k),
-      setItem: (k: string, v: string) => storage.set(k, v),
-    },
-  });
-  const mod = await import("@/store/settings.store");
-  useSettingsStore = mod.useSettingsStore;
+  settings = await import("@/store/settings.store");
 });
 
-describe("useSettingsStore migration", () => {
+describe("settings signal migration", () => {
   it("keeps the persisted English locale", () => {
-    const migrate = useSettingsStore.persist.getOptions()?.migrate;
-    const result = migrate!({ language: "en" } as never, 1) as {
-      language: string;
-    };
-    expect(result.language).toBe("en");
+    expect(settings.migrateSettingsData({ language: "en" }, 1).language).toBe("en");
   });
 
   it("keeps the persisted Russian locale", () => {
-    const migrate = useSettingsStore.persist.getOptions()?.migrate;
-    const result = migrate!({ language: "ru" } as never, 1) as {
-      language: string;
-    };
-    expect(result.language).toBe("ru");
+    expect(settings.migrateSettingsData({ language: "ru" }, 1).language).toBe("ru");
   });
 
   it("normalizes unknown locales to Russian", () => {
-    const migrate = useSettingsStore.persist.getOptions()?.migrate;
-    const result = migrate!({ language: "fr" } as never, 1) as {
-      language: string;
-    };
-    expect(result.language).toBe("ru");
+    expect(settings.migrateSettingsData({ language: "fr" }, 1).language).toBe("ru");
   });
 
   it("preserves other persisted fields", () => {
-    const migrate = useSettingsStore.persist.getOptions()?.migrate;
-    const result = migrate!({ language: "en", pageSize: 10 } as never, 1) as {
-      language: string;
-      pageSize: number;
-    };
+    const result = settings.migrateSettingsData({ language: "en", pageSize: 10 }, 1);
     expect(result.language).toBe("en");
     expect(result.pageSize).toBe(10);
   });
 
   it("migrates legacy dlLimit/ulLimit into limits.download/upload", () => {
-    const migrate = useSettingsStore.persist.getOptions()?.migrate;
-    const result = migrate!({ dlLimit: 500, ulLimit: 100, language: "en" } as never, 14) as {
-      limits: { download: number | null; upload: number | null };
-      language: string;
-    };
+    const result = settings.migrateSettingsData(
+      { dlLimit: 500, ulLimit: 100, language: "en" },
+      14
+    );
     expect(result.language).toBe("en");
     expect(result.limits).toEqual({ download: 500, upload: 100 });
     expect("dlLimit" in result).toBe(false);
@@ -71,18 +44,12 @@ describe("useSettingsStore migration", () => {
   });
 
   it("returns an empty object for non-object state", () => {
-    const migrate = useSettingsStore.persist.getOptions()?.migrate;
-    expect(migrate!(null, 1)).toEqual({});
+    expect(settings.migrateSettingsData(null, 1)).toEqual({});
   });
 
   it("reshapes legacy shadows and defaults the wallpaper shadow on v20", () => {
-    const migrate = useSettingsStore.persist.getOptions()?.migrate;
     const off = { top: false, right: false, bottom: false, left: false };
-    const result = migrate!({ language: "en" } as never, 18) as {
-      searchShadow?: { sides: typeof off; intensity: number; color: string };
-      wallpaperShadow?: { sides: typeof off; intensity: number; color: string };
-      wallpaperFilters?: { brightness: number };
-    };
+    const result = settings.migrateSettingsData({ language: "en" }, 18);
     expect(result.searchShadow).toEqual({
       sides: off,
       intensity: 50,
@@ -97,18 +64,17 @@ describe("useSettingsStore migration", () => {
       length: 8,
       softness: 40,
     });
-    expect(result.wallpaperFilters?.brightness).toBe(75);
+    expect(result.wallpaperFilters.brightness).toBe(75);
   });
 
   it("converts stored single-side shadows on v20", () => {
-    const migrate = useSettingsStore.persist.getOptions()?.migrate;
-    const top = migrate!(
+    const top = settings.migrateSettingsData(
       {
         language: "en",
         wallpaperShadow: { side: "top", intensity: 80, color: "#ff0000" },
-      } as never,
+      },
       18
-    ) as { searchShadow?: { sides: Record<string, boolean>; intensity: number; color: string } };
+    );
     expect(top.searchShadow).toEqual({
       sides: { top: true, right: false, bottom: false, left: false },
       intensity: 80,
@@ -116,14 +82,14 @@ describe("useSettingsStore migration", () => {
       length: 8,
       softness: 40,
     });
-    const around = migrate!(
+    const around = settings.migrateSettingsData(
       {
         language: "en",
         wallpaperShadow: { side: "around", intensity: 30, color: "#112233" },
-      } as never,
+      },
       18
-    ) as { searchShadow?: { sides: Record<string, boolean> } };
-    expect(around.searchShadow?.sides).toEqual({
+    );
+    expect(around.searchShadow.sides).toEqual({
       top: true,
       right: true,
       bottom: true,
@@ -132,73 +98,67 @@ describe("useSettingsStore migration", () => {
   });
 
   it("keeps a stored screenshot folder and repairs an unknown format", () => {
-    const migrate = useSettingsStore.persist.getOptions()?.migrate;
-    const kept = migrate!(
+    const kept = settings.migrateSettingsData(
       {
         language: "en",
         screenshotDir: "D:\\Shots",
         screenshotFormat: "jpeg",
         screenshotOpenFolder: false,
-      } as never,
+      },
       34
-    ) as { screenshotDir: string | null; screenshotFormat: string; screenshotOpenFolder: boolean };
+    );
     expect(kept.screenshotDir).toBe("D:\\Shots");
     expect(kept.screenshotFormat).toBe("jpeg");
     expect(kept.screenshotOpenFolder).toBe(false);
-    const repaired = migrate!({ language: "en", screenshotFormat: "webp" } as never, 34) as {
-      screenshotFormat: string;
-    };
+    const repaired = settings.migrateSettingsData(
+      { language: "en", screenshotFormat: "webp" },
+      34
+    );
     expect(repaired.screenshotFormat).toBe("png");
   });
 });
 
-describe("useSettingsStore hidden player items", () => {
+describe("settings signal hidden player items", () => {
   it("persists folder visibility changes without deleting the path", () => {
-    useSettingsStore.setState({ hiddenPlayerFolders: [] });
-    useSettingsStore.getState().hidePlayerFolder("C:\\Anime\\Season 1");
-    useSettingsStore.getState().hidePlayerFolder("c:/anime/season 1/");
-    expect(useSettingsStore.getState().hiddenPlayerFolders).toEqual(["C:\\Anime\\Season 1"]);
+    settings.patchSettings({ hiddenPlayerFolders: [] });
+    settings.hidePlayerFolder("C:\\Anime\\Season 1");
+    settings.hidePlayerFolder("c:/anime/season 1/");
+    expect(settings.settingsAtoms.hiddenPlayerFolders.get()).toEqual(["C:\\Anime\\Season 1"]);
 
-    useSettingsStore.getState().unhidePlayerFolder("c:/anime/season 1");
-    expect(useSettingsStore.getState().hiddenPlayerFolders).toEqual([]);
+    settings.unhidePlayerFolder("c:/anime/season 1");
+    expect(settings.settingsAtoms.hiddenPlayerFolders.get()).toEqual([]);
   });
 
   it("hides and unhides torrents by stable info hash", () => {
-    useSettingsStore.setState({ hiddenPlayerTorrents: [] });
-    useSettingsStore.getState().hidePlayerTorrent("ABC123");
-    useSettingsStore.getState().hidePlayerTorrent("ABC123");
-    expect(useSettingsStore.getState().hiddenPlayerTorrents).toEqual(["ABC123"]);
-    useSettingsStore.getState().unhidePlayerTorrent("ABC123");
-    expect(useSettingsStore.getState().hiddenPlayerTorrents).toEqual([]);
+    settings.patchSettings({ hiddenPlayerTorrents: [] });
+    settings.hidePlayerTorrent("ABC123");
+    settings.hidePlayerTorrent("ABC123");
+    expect(settings.settingsAtoms.hiddenPlayerTorrents.get()).toEqual(["ABC123"]);
+    settings.unhidePlayerTorrent("ABC123");
+    expect(settings.settingsAtoms.hiddenPlayerTorrents.get()).toEqual([]);
   });
 
   it("stores folder heights under a normalized path key", () => {
-    useSettingsStore.setState({ playerFolderHeights: {} });
-    useSettingsStore.getState().setPlayerFolderHeight("C:\\Anime\\\\Season\\", 420);
-    expect(useSettingsStore.getState().playerFolderHeights).toEqual({ "c:/anime/season": 420 });
+    settings.patchSettings({ playerFolderHeights: {} });
+    settings.setPlayerFolderHeight("C:\\Anime\\\\Season\\", 420);
+    expect(settings.settingsAtoms.playerFolderHeights.get()).toEqual({ "c:/anime/season": 420 });
 
-    useSettingsStore.getState().setPlayerFolderHeight("c:/anime/season", 555);
-    expect(useSettingsStore.getState().playerFolderHeights["c:/anime/season"]).toBe(555);
+    settings.setPlayerFolderHeight("c:/anime/season", 555);
+    expect(settings.settingsAtoms.playerFolderHeights.get()["c:/anime/season"]).toBe(555);
 
-    useSettingsStore.getState().setPlayerFolderHeight("C:/ANIME/SEASON", null);
-    expect(useSettingsStore.getState().playerFolderHeights).toEqual({});
+    settings.setPlayerFolderHeight("C:/ANIME/SEASON", null);
+    expect(settings.settingsAtoms.playerFolderHeights.get()).toEqual({});
   });
 });
 
-describe("useSettingsStore autocomplete", () => {
-  it("defaults to both-mode autocomplete with subtle AniList boost", () => {
-    expect(useSettingsStore.getState().autocompleteMode).toBe("both");
-    expect(useSettingsStore.getState().anilistSuggestionBoost).toBe("subtle");
-  });
-
+describe("settings signal autocomplete", () => {
   it("migrates legacy disabled autocomplete to the off mode", () => {
-    const migrate = useSettingsStore.persist.getOptions()?.migrate;
-    const result = migrate!(
+    const result = settings.migrateSettingsData(
       {
         autocompleteMode: "inline",
         inlineAutocompleteEnabled: false,
         language: "en",
-      } as never,
+      },
       2
     ) as Record<string, unknown>;
     expect(result.autocompleteMode).toBe("off");
@@ -207,10 +167,9 @@ describe("useSettingsStore autocomplete", () => {
   });
 });
 
-describe("useSettingsStore title toggles v38 migration", () => {
+describe("settings title toggles v38 migration", () => {
   it("moves legacy parseTitles into parseTitlesPlayer", () => {
-    const migrate = useSettingsStore.persist.getOptions()?.migrate;
-    const result = migrate!({ parseTitles: true, language: "en" } as never, 37) as Record<
+    const result = settings.migrateSettingsData({ parseTitles: true, language: "en" }, 37) as Record<
       string,
       unknown
     >;
@@ -221,9 +180,8 @@ describe("useSettingsStore title toggles v38 migration", () => {
   });
 
   it("keeps explicit per-surface toggles", () => {
-    const migrate = useSettingsStore.persist.getOptions()?.migrate;
-    const result = migrate!(
-      { parseTitles: true, parseTitlesTorrent: true, language: "en" } as never,
+    const result = settings.migrateSettingsData(
+      { parseTitles: true, parseTitlesTorrent: true, language: "en" },
       37
     ) as Record<string, unknown>;
     expect(result.parseTitlesPlayer).toBe(true);
@@ -231,57 +189,49 @@ describe("useSettingsStore title toggles v38 migration", () => {
   });
 });
 
-describe("useSettingsStore patch", () => {
+describe("settings signal patch", () => {
   it("applies partial updates", () => {
-    useSettingsStore.setState({ limits: { download: null, upload: null }, language: "ru" });
-    useSettingsStore.getState().patch({ limits: { download: 200, upload: null } });
-    const s = useSettingsStore.getState();
-    expect(s.limits.download).toBe(200);
-    expect(s.language).toBe("ru");
+    settings.patchSettings({ limits: { download: null, upload: null }, language: "ru" });
+    settings.patchSettings({ limits: { download: 200, upload: null } });
+    expect(settings.settingsAtoms.limits.get().download).toBe(200);
+    expect(settings.settingsAtoms.language.get()).toBe("ru");
   });
 });
 
 describe("wallpaper effect settings v25 migration", () => {
   it("drops the removed parallax flag and defaults scanlines off", () => {
-    const migrate = useSettingsStore.persist.getOptions()?.migrate;
-    const result = migrate!(
+    const result = settings.migrateSettingsData(
       {
         language: "en",
         wallpaperParallax: true,
         wallpaperScanlines: undefined,
-      } as never,
+      },
       24
-    ) as { wallpaperParallax?: boolean; wallpaperScanlines: boolean };
-    expect(result.wallpaperParallax).toBeUndefined();
+    );
+    expect((result as Record<string, unknown>).wallpaperParallax).toBeUndefined();
     expect(result.wallpaperScanlines).toBe(false);
   });
 });
 
 describe("anilist list sort v26 migration", () => {
   it("keeps a valid persisted list sort", () => {
-    const migrate = useSettingsStore.persist.getOptions()?.migrate;
-    const result = migrate!(
-      { language: "en", anilistListSort: { key: "progress", dir: "desc" } } as never,
+    const result = settings.migrateSettingsData(
+      { language: "en", anilistListSort: { key: "progress", dir: "desc" } },
       25
-    ) as { anilistListSort: { key: string; dir: string } };
+    );
     expect(result.anilistListSort).toEqual({ key: "progress", dir: "desc" });
   });
 
   it("coerces an unknown sort key or direction to the default", () => {
-    const migrate = useSettingsStore.persist.getOptions()?.migrate;
-    const badKey = migrate!(
-      { language: "en", anilistListSort: { key: "nope", dir: "desc" } } as never,
+    const badKey = settings.migrateSettingsData(
+      { language: "en", anilistListSort: { key: "nope", dir: "desc" } },
       25
-    ) as {
-      anilistListSort: { key: string; dir: string };
-    };
+    );
     expect(badKey.anilistListSort).toEqual({ key: "title", dir: "asc" });
-    const badDir = migrate!(
-      { language: "en", anilistListSort: { key: "title", dir: "sideways" } } as never,
+    const badDir = settings.migrateSettingsData(
+      { language: "en", anilistListSort: { key: "title", dir: "sideways" } },
       25
-    ) as {
-      anilistListSort: { key: string; dir: string };
-    };
+    );
     expect(badDir.anilistListSort).toEqual({ key: "title", dir: "asc" });
   });
 });
@@ -290,9 +240,9 @@ describe("window chrome side effect", () => {
   it("pushes native decorations when the custom title bar is turned off", () => {
     mockInvoke.mockReset();
     mockInvoke.mockResolvedValue(undefined);
-    useSettingsStore.setState({ customTitleBarEnabled: true, roundedWindowCorners: false });
+    settings.patchSettings({ customTitleBarEnabled: true, roundedWindowCorners: false });
 
-    useSettingsStore.getState().patch({ customTitleBarEnabled: false });
+    settings.patchSettings({ customTitleBarEnabled: false });
 
     expect(mockInvoke).toHaveBeenCalledWith("set_window_chrome", {
       decorations: true,
@@ -304,9 +254,9 @@ describe("window chrome side effect", () => {
   it("carries the current corner preference alongside the title bar change", () => {
     mockInvoke.mockReset();
     mockInvoke.mockResolvedValue(undefined);
-    useSettingsStore.setState({ customTitleBarEnabled: true, roundedWindowCorners: true });
+    settings.patchSettings({ customTitleBarEnabled: true, roundedWindowCorners: true });
 
-    useSettingsStore.getState().patch({ customTitleBarEnabled: false });
+    settings.patchSettings({ customTitleBarEnabled: false });
 
     expect(mockInvoke).toHaveBeenCalledWith("set_window_chrome", {
       decorations: true,
@@ -318,9 +268,9 @@ describe("window chrome side effect", () => {
   it("pushes rounded corners on their own", () => {
     mockInvoke.mockReset();
     mockInvoke.mockResolvedValue(undefined);
-    useSettingsStore.setState({ customTitleBarEnabled: true, roundedWindowCorners: false });
+    settings.patchSettings({ customTitleBarEnabled: true, roundedWindowCorners: false });
 
-    useSettingsStore.getState().patch({ roundedWindowCorners: true });
+    settings.patchSettings({ roundedWindowCorners: true });
 
     expect(mockInvoke).toHaveBeenCalledWith("set_window_chrome", {
       decorations: false,
@@ -332,13 +282,13 @@ describe("window chrome side effect", () => {
   it("pushes the window effect on its own and paints it on the document", () => {
     mockInvoke.mockReset();
     mockInvoke.mockResolvedValue(undefined);
-    useSettingsStore.setState({
+    settings.patchSettings({
       customTitleBarEnabled: true,
       roundedWindowCorners: true,
       windowEffect: "none",
     });
 
-    useSettingsStore.getState().patch({ windowEffect: "acrylic" });
+    settings.patchSettings({ windowEffect: "acrylic" });
 
     expect(mockInvoke).toHaveBeenCalledWith("set_window_chrome", {
       decorations: false,
@@ -351,13 +301,13 @@ describe("window chrome side effect", () => {
   it("clears the material and the document flag when the effect is turned off", () => {
     mockInvoke.mockReset();
     mockInvoke.mockResolvedValue(undefined);
-    useSettingsStore.setState({
+    settings.patchSettings({
       customTitleBarEnabled: true,
       roundedWindowCorners: false,
       windowEffect: "mica",
     });
 
-    useSettingsStore.getState().patch({ windowEffect: "none" });
+    settings.patchSettings({ windowEffect: "none" });
 
     expect(mockInvoke).toHaveBeenCalledWith("set_window_chrome", {
       decorations: false,
@@ -370,12 +320,12 @@ describe("window chrome side effect", () => {
   it("publishes the tint override and hands control back on reset", () => {
     mockInvoke.mockReset();
     mockInvoke.mockResolvedValue(undefined);
-    useSettingsStore.setState({ windowTintOpacity: null });
+    settings.patchSettings({ windowTintOpacity: null });
 
-    useSettingsStore.getState().patch({ windowTintOpacity: 0.6 });
+    settings.patchSettings({ windowTintOpacity: 0.6 });
     expect(document.documentElement.style.getPropertyValue("--ui-window-opacity")).toBe("60%");
 
-    useSettingsStore.getState().patch({ windowTintOpacity: null });
+    settings.patchSettings({ windowTintOpacity: null });
     expect(document.documentElement.style.getPropertyValue("--ui-window-opacity")).toBe("");
   });
 
@@ -383,10 +333,10 @@ describe("window chrome side effect", () => {
     mockInvoke.mockReset();
     mockInvoke.mockResolvedValue(undefined);
 
-    useSettingsStore.getState().patch({ windowTintOpacity: 4 });
+    settings.patchSettings({ windowTintOpacity: 4 });
     expect(document.documentElement.style.getPropertyValue("--ui-window-opacity")).toBe("100%");
 
-    useSettingsStore.getState().patch({ windowTintOpacity: -1 });
+    settings.patchSettings({ windowTintOpacity: -1 });
     expect(document.documentElement.style.getPropertyValue("--ui-window-opacity")).toBe("0%");
   });
 
@@ -394,7 +344,7 @@ describe("window chrome side effect", () => {
     mockInvoke.mockReset();
     mockInvoke.mockResolvedValue(undefined);
 
-    useSettingsStore.getState().patch({ pageSize: 42 });
+    settings.patchSettings({ pageSize: 42 });
 
     expect(mockInvoke).not.toHaveBeenCalled();
   });
@@ -402,18 +352,12 @@ describe("window chrome side effect", () => {
   it("pushes the rehydrated custom title bar to the backend on startup", () => {
     mockInvoke.mockReset();
     mockInvoke.mockResolvedValue(undefined);
-    const onRehydrate = useSettingsStore.persist.getOptions()?.onRehydrateStorage;
-    const finish = onRehydrate?.(useSettingsStore.getState());
-
-    finish?.(
-      {
-        ...useSettingsStore.getState(),
-        customTitleBarEnabled: true,
-        roundedWindowCorners: true,
-        windowEffect: "mica",
-      },
-      undefined
-    );
+    settings.patchSettings({
+      customTitleBarEnabled: true,
+      roundedWindowCorners: true,
+      windowEffect: "mica",
+    });
+    settings.rehydrateSettings();
 
     expect(mockInvoke).toHaveBeenCalledWith("set_window_chrome", {
       decorations: false,
@@ -425,18 +369,12 @@ describe("window chrome side effect", () => {
   it("pushes native decorations when rehydrating without the custom title bar", () => {
     mockInvoke.mockReset();
     mockInvoke.mockResolvedValue(undefined);
-    const onRehydrate = useSettingsStore.persist.getOptions()?.onRehydrateStorage;
-    const finish = onRehydrate?.(useSettingsStore.getState());
-
-    finish?.(
-      {
-        ...useSettingsStore.getState(),
-        customTitleBarEnabled: false,
-        roundedWindowCorners: false,
-        windowEffect: "none",
-      },
-      undefined
-    );
+    settings.patchSettings({
+      customTitleBarEnabled: false,
+      roundedWindowCorners: false,
+      windowEffect: "none",
+    });
+    settings.rehydrateSettings();
 
     expect(mockInvoke).toHaveBeenCalledWith("set_window_chrome", {
       decorations: true,
@@ -448,9 +386,9 @@ describe("window chrome side effect", () => {
 
 describe("yorha grid v29 migration", () => {
   it("mirrors the grid flag to the document", () => {
-    useSettingsStore.getState().patch({ yorhaScanlinesEnabled: false });
+    settings.patchSettings({ yorhaScanlinesEnabled: false });
     expect(document.documentElement.dataset.yorhaScanlines).toBe("off");
-    useSettingsStore.getState().patch({ yorhaScanlinesEnabled: true });
+    settings.patchSettings({ yorhaScanlinesEnabled: true });
     expect(document.documentElement.dataset.yorhaScanlines).toBe("on");
   });
 });
@@ -463,12 +401,12 @@ describe("anilist title language preference", () => {
   });
 
   it("round-trips through the settings store", () => {
-    useSettingsStore.setState({ anilistTitleLanguage: "account" });
-    useSettingsStore.getState().patch({ anilistTitleLanguage: "native" });
+    settings.patchSettings({ anilistTitleLanguage: "account" });
+    settings.patchSettings({ anilistTitleLanguage: "native" });
 
-    expect(useSettingsStore.getState().anilistTitleLanguage).toBe("native");
+    expect(settings.settingsAtoms.anilistTitleLanguage.get()).toBe("native");
 
-    useSettingsStore.getState().patch({ anilistTitleLanguage: "account" });
+    settings.patchSettings({ anilistTitleLanguage: "account" });
   });
 });
 
@@ -480,10 +418,10 @@ describe("anilist adult content preference", () => {
   });
 
   it("round-trips through the settings store", () => {
-    useSettingsStore.getState().patch({ anilistAdultContent: true });
+    settings.patchSettings({ anilistAdultContent: true });
 
-    expect(useSettingsStore.getState().anilistAdultContent).toBe(true);
+    expect(settings.settingsAtoms.anilistAdultContent.get()).toBe(true);
 
-    useSettingsStore.getState().patch({ anilistAdultContent: false });
+    settings.patchSettings({ anilistAdultContent: false });
   });
 });

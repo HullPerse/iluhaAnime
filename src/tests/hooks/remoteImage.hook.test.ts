@@ -8,7 +8,7 @@ import {
   useRemoteImageStatus,
 } from "@/hooks/remoteImage.hook";
 import { assetUrl } from "@/lib/utils/image.utils";
-import { useSettingsStore } from "@/store/settings.store";
+import { patchSettings } from "@/store/settings.store";
 
 const invokeMock = vi.fn();
 vi.mock("@tauri-apps/api/core", () => ({
@@ -19,7 +19,7 @@ vi.mock("@tauri-apps/api/core", () => ({
 beforeEach(() => {
   invokeMock.mockReset();
   resetRemoteImageCache();
-  useSettingsStore.setState({ tmdbProxyUrl: null });
+  patchSettings({ tmdbProxyUrl: null });
 });
 
 describe("toSizedThumbUrl", () => {

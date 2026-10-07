@@ -8,13 +8,13 @@ import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { playerIcons } from "@/config/player/icons.config";
 import { useI18n } from "@/hooks/i18n.hook";
+import { useCell } from "@/lib/state/signal.hook";
 import { enterOrSpace } from "@/lib/utils/keyboard.utils";
-import { useCategoryStore } from "@/store/category.store";
+import { categoryAtoms, changeCategoryIcon } from "@/store/category.store";
 
 function CategoryIconModal({ id, handleClose }: { id: string; handleClose: () => void }) {
-  const category = useCategoryStore((s) => s.categories.find((c) => c.id === id));
-
-  const changeIcon = useCategoryStore((s) => s.changeIcon);
+  const categories = useCell(categoryAtoms.categories);
+  const category = categories.find((c) => c.id === id);
 
   const { t } = useI18n();
   const [selected, setSelected] = useState<string>(
@@ -23,7 +23,7 @@ function CategoryIconModal({ id, handleClose }: { id: string; handleClose: () =>
 
   const handleChangeIcon = () => {
     if (!selected || !category) return;
-    changeIcon(category.id, selected);
+    changeCategoryIcon(category.id, selected);
     handleClose();
   };
 

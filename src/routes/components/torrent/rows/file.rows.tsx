@@ -9,9 +9,10 @@ import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { parseMediaPath } from "@/lib/media/parse.utils";
 import { formatParsedTitle } from "@/lib/player/title.utils";
+import { useCell } from "@/lib/state/signal.hook";
 import { formatBytes } from "@/lib/utils/bytes.utils";
-import { useSearchStore } from "@/store/search.store";
-import { useSettingsStore } from "@/store/settings.store";
+import { setAnilistSearchQuery } from "@/store/search.store";
+import { settingsAtoms } from "@/store/settings.store";
 import type { TorrentTreeFile, TorrentTreeFileWithPath } from "@/types/torrent";
 
 import { PlayerFileActions } from "../actions.torrent";
@@ -48,8 +49,7 @@ export function TorrentFileRow({
   onPlay?: (path: string, name: string) => void;
 }) {
   const { t } = useI18n();
-  const parseTitles = useSettingsStore((s) => s.parseTitlesTorrent);
-  const setAnilistSearchQuery = useSearchStore((state) => state.setAnilistSearchQuery);
+  const parseTitles = useCell(settingsAtoms.parseTitlesTorrent);
   const fullPath = (file as TorrentTreeFileWithPath).fullPath;
 
   return (

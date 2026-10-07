@@ -11,12 +11,13 @@ import { Input } from "@/components/ui/input.component";
 import { PICKER_ELAPSED_TICK_MS } from "@/config/torrent/common.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { formatParsedTitle } from "@/lib/player/title.utils";
+import { useCell } from "@/lib/state/signal.hook";
 import { groupFilesByDirectory } from "@/lib/torrent/tree.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { formatBytes } from "@/lib/utils/bytes.utils";
 import { showError } from "@/lib/utils/notification.utils";
 import { formatElapsed } from "@/lib/utils/time.utils";
-import { useSettingsStore } from "@/store/settings.store";
+import { settingsAtoms } from "@/store/settings.store";
 import type { PickerTorrent } from "@/types/torrent";
 
 function TorrentFilePicker({
@@ -38,8 +39,8 @@ function TorrentFilePicker({
   loading?: boolean;
 }) {
   const { t } = useI18n();
-  const parseTitlesSearch = useSettingsStore((s) => s.parseTitlesSearch);
-  const fileOrder = useSettingsStore((s) => s.fileOrder);
+  const parseTitlesSearch = useCell(settingsAtoms.parseTitlesSearch);
+  const fileOrder = useCell(settingsAtoms.fileOrder);
   const [saveDir, setSaveDir] = useState(defaultSaveDir);
   const [browsing, setBrowsing] = useState(false);
   const [sequential, setSequential] = useState(false);
@@ -183,9 +184,7 @@ function TorrentFilePicker({
                           className="shrink-0"
                         />
                         <span className="windows95-text flex-1 truncate" title={item.displayName}>
-                          {parseTitlesSearch
-                            ? formatParsedTitle(item.displayName, t)
-                            : item.displayName}
+                          {parseTitlesSearch ? formatParsedTitle(item.displayName, t) : item.displayName}
                         </span>
                         <span className="text-hint shrink-0 text-xs">{formatBytes(item.size)}</span>
                         {conflict && (

@@ -16,7 +16,7 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
 import PlaylistBody, {
   resolvePlaylistDragMove,
 } from "@/routes/components/player/media/playlist.player";
-import { useSettingsStore } from "@/store/settings.store";
+import { patchSettings } from "@/store/settings.store";
 
 function isDisabled(element: HTMLElement): boolean {
   return (element as HTMLButtonElement).disabled === true;
@@ -37,7 +37,7 @@ function renderBody(overrides?: {
 }
 
 beforeEach(() => {
-  useSettingsStore.setState({ language: "en" });
+  patchSettings({ language: "en" });
   invokeMock.mockReset();
   openDialogMock.mockReset();
   openDialogMock.mockResolvedValue(null);

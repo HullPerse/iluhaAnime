@@ -31,9 +31,8 @@ import {
   collectFileIndices,
   groupFilesByDirectory,
 } from "@/lib/torrent/tree.utils";
-import { useTorrentStore } from "@/store/download.store";
-import { useNotificationStore } from "@/store/notification.store";
-import { useSettingsStore } from "@/store/settings.store";
+import { notificationAtoms } from "@/store/notification.store";
+import { patchSettings } from "@/store/settings.store";
 import type { TFunc, TranslationVariables } from "@/types/i18n";
 import type { Anime, TorrentCheckResult, TorrentInfo, TorrentTreeNode } from "@/types/torrent";
 
@@ -55,6 +54,16 @@ vi.mock("@tauri-apps/plugin-clipboard-manager", () => ({
 vi.mock("@tauri-apps/plugin-opener", () => ({
   openUrl: (...args: unknown[]) => openUrlSpy(...args),
 }));
+
+vi.mock("@/store/download.store", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/store/download.store")>();
+  return {
+    ...actual,
+    prepareTorrentDownload: (...args: unknown[]) => prepareTorrentDownloadSpy(...args),
+    prepareTorrentDownloadFromBytes: (...args: unknown[]) =>
+      prepareTorrentDownloadFromBytesSpy(...args),
+  };
+});
 
 describe("torrent/bulk", () => {
   function check(missing: number): TorrentCheckResult {
@@ -530,11 +539,7 @@ describe("torrent/magnet", () => {
     openUrlSpy.mockReset();
     prepareTorrentDownloadSpy.mockReset();
     prepareTorrentDownloadFromBytesSpy.mockReset();
-    useSettingsStore.setState({ searchProxyUrls: {} });
-    useTorrentStore.setState({
-      prepareTorrentDownload: prepareTorrentDownloadSpy as never,
-      prepareTorrentDownloadFromBytes: prepareTorrentDownloadFromBytesSpy as never,
-    });
+    patchSettings({ searchProxyUrls: {} });
   });
 
   const item: Anime = {
@@ -587,7 +592,7 @@ describe("torrent/magnet", () => {
       const m = makeMagnets();
       await copyMagnet({ ...item, magnet: "" }, m.getMagnets(), m.setMagnets, m.setLoadingMagnet);
       expect(writeTextSpy).not.toHaveBeenCalled();
-      expect(useNotificationStore.getState().items[0].type).toBe("error");
+      expect(notificationAtoms.items.get()[0].type).toBe("error");
     });
   });
 
@@ -665,7 +670,7 @@ describe("torrent/magnet", () => {
   });
   describe("proxy", () => {
     it("sends the rutracker proxy when resolving a magnet", async () => {
-      useSettingsStore.setState({ searchProxyUrls: { rutracker: "socks5://127.0.0.1:10808" } });
+      patchSettings({ searchProxyUrls: { rutracker: "socks5://127.0.0.1:10808" } });
       invokeSpy.mockResolvedValueOnce("magnet:?xt=urn:btih:fetched");
       const m = makeMagnets();
       await copyMagnet({ ...item, magnet: "" }, m.getMagnets(), m.setMagnets, m.setLoadingMagnet);
@@ -676,7 +681,7 @@ describe("torrent/magnet", () => {
       });
     });
     it("sends the rutracker proxy when downloading .torrent bytes via dl.php", async () => {
-      useSettingsStore.setState({ searchProxyUrls: { rutracker: "socks5://127.0.0.1:10808" } });
+      patchSettings({ searchProxyUrls: { rutracker: "socks5://127.0.0.1:10808" } });
       invokeSpy.mockResolvedValueOnce([1, 2, 3]);
       const m = makeMagnets();
       await downloadMagnet(item, m.getMagnets(), m.setMagnets, m.setLoadingMagnet, "rutracker");
@@ -687,7 +692,7 @@ describe("torrent/magnet", () => {
       });
     });
     it("sends the source proxy when downloading .torrent bytes via direct URL", async () => {
-      useSettingsStore.setState({ searchProxyUrls: { nyaa: "http://127.0.0.1:7890" } });
+      patchSettings({ searchProxyUrls: { nyaa: "http://127.0.0.1:7890" } });
       invokeSpy.mockResolvedValueOnce([9, 8, 7]);
       const m = makeMagnets();
       await downloadMagnet(
@@ -704,7 +709,7 @@ describe("torrent/magnet", () => {
       });
     });
     it("does not borrow another source proxy for a direct URL", async () => {
-      useSettingsStore.setState({ searchProxyUrls: { rutracker: "socks5://127.0.0.1:10808" } });
+      patchSettings({ searchProxyUrls: { rutracker: "socks5://127.0.0.1:10808" } });
       invokeSpy.mockResolvedValueOnce([9, 8, 7]);
       const m = makeMagnets();
       await downloadMagnet(

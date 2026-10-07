@@ -1,8 +1,9 @@
 import { tmdbApi } from "@/api/tmdb.api";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { queryKeys } from "@/lib/query/keys.utils";
+import { useCell } from "@/lib/state/signal.hook";
 import { withFallback } from "@/lib/utils/attempt.utils";
-import { useSettingsStore } from "@/store/settings.store";
+import { settingsAtoms } from "@/store/settings.store";
 import type { AniMedia, AnimeShowcase } from "@/types/anilist";
 
 async function loadShowcase(anime: AniMedia): Promise<AnimeShowcase> {
@@ -26,8 +27,8 @@ async function loadShowcase(anime: AniMedia): Promise<AnimeShowcase> {
 }
 
 export function useAnimeShowcase(anime: AniMedia | undefined): AnimeShowcase | undefined {
-  const tmdbKeySet = useSettingsStore((s) => s.tmdbKeySet);
-  const tmdbProxyUrl = useSettingsStore((s) => s.tmdbProxyUrl);
+  const tmdbKeySet = useCell(settingsAtoms.tmdbKeySet);
+  const tmdbProxyUrl = useCell(settingsAtoms.tmdbProxyUrl);
   const query = useAppQuery("static", {
     queryKey: queryKeys.animeShowcase(anime?.id ?? 0, tmdbKeySet ? 1 : 0, tmdbProxyUrl ?? ""),
     queryFn: () => (anime ? loadShowcase(anime) : Promise.resolve(undefined)),

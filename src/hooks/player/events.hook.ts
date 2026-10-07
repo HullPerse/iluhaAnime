@@ -3,7 +3,7 @@ import type { UnlistenFn } from "@tauri-apps/api/event";
 import { useEffect, useRef } from "react";
 
 import { reportBackgroundError } from "@/lib/utils/attempt.utils";
-import { usePlaybackStore } from "@/store/player.store";
+import { setPlaybackChapters, setPlaybackSnapshot, setPlaybackTracks } from "@/store/player.store";
 import type {
   DroppedFramesData,
   MpvChapter,
@@ -57,17 +57,15 @@ export function usePlayerEvents(handlers: PlayerEventHandlers): void {
   }, [handlers]);
 
   useEffect(() => {
-    const { setSnapshot, setTracks, setChapters } = usePlaybackStore.getState();
-
     const subscriptions: Promise<UnlistenFn>[] = [
       listen<PlaybackSnapshot>("player-state", (event) => {
-        if (event.payload) setSnapshot(event.payload);
+        if (event.payload) setPlaybackSnapshot(event.payload);
       }),
       listen<MpvTrack[]>("player-tracks", (event) => {
-        setTracks(event.payload ?? []);
+        setPlaybackTracks(event.payload ?? []);
       }),
       listen<MpvChapter[]>("player-chapters", (event) => {
-        setChapters(event.payload ?? []);
+        setPlaybackChapters(event.payload ?? []);
       }),
       listen<PlayerOpenRequest>("player-open-request", (event) => {
         if (event.payload) handlersRef.current.onOpenRequest?.(event.payload);

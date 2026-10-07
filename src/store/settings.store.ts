@@ -1,17 +1,29 @@
-import { create } from "zustand";
-import { persist } from "zustand/middleware";
-
 import { tauriTransport } from "@/api/transport.api";
 import { DEFAULT_SETTINGS, DEFAULT_WALLPAPER_SHADOW } from "@/config/settings/defaults.config";
 import { listSortKeys } from "@/lib/anilist/entries.utils";
 import { detectSystemLocale } from "@/lib/locale/system.utils";
 import { normalizePlayerPath } from "@/lib/player/visibility.utils";
 import { applyWindowChrome } from "@/lib/settings/window.utils";
+import { createPersistor, persistKey, type Persistor } from "@/lib/state/persist.utils";
+import { createSignalStore, type Cell, type SignalStore } from "@/lib/state/signal.store";
 import type { MigrationState, MigrationTransform } from "@/lib/store/migrate.utils";
 import { resolveWithDefaults, runTransforms } from "@/lib/store/migrate.utils";
 import { attempt, attemptSync, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { applyFontFamily, DEFAULT_FONT_FAMILY } from "@/lib/utils/font.utils";
 import type { SettingsStore } from "@/types/settings";
+
+export const SETTINGS_SCHEMA_VERSION = 38;
+
+type SettingsActionKeys =
+  | "hidePlayerFolder"
+  | "unhidePlayerFolder"
+  | "hidePlayerTorrent"
+  | "unhidePlayerTorrent"
+  | "setPlayerFolderHeight"
+  | "patch";
+
+export type SettingsData = Omit<SettingsStore, SettingsActionKeys>;
+export type SettingsAtoms = { [K in keyof SettingsData]: Cell<SettingsData[K]> };
 
 const SETTINGS_TRANSFORMS: MigrationTransform[] = [
   {
@@ -151,26 +163,61 @@ const SETTINGS_VALIDATORS: Record<string, (value: unknown) => boolean> = {
   },
 };
 
-function drainTmdbPendingKey(state: SettingsStore): void {
-  const pending = state.tmdbPendingKey;
-  if (!pending) return;
-  (async () => {
-    const [, error] = await attempt(tauriTransport.call("tmdb_set_api_key", { apiKey: pending }));
-    if (error) useSettingsStore.getState().patch({ tmdbKeySet: false });
-    else useSettingsStore.getState().patch({ tmdbPendingKey: null, tmdbKeySet: true });
-  })();
+export function migrateSettingsData(persistedState: unknown, version: number): SettingsData {
+  if (!persistedState || typeof persistedState !== "object") return {} as SettingsData;
+  const state = persistedState as MigrationState & { language?: unknown };
+  const { language, ...rest } = state;
+  const transformed = runTransforms(rest, version, SETTINGS_TRANSFORMS);
+  const resolved = resolveWithDefaults(
+    transformed,
+    DEFAULT_SETTINGS as unknown as MigrationState,
+    SETTINGS_VALIDATORS
+  ) as unknown as SettingsData;
+  return {
+    ...resolved,
+    language: language === "en" ? "en" : "ru",
+  };
+}
+
+function buildAtoms(
+  store: SignalStore,
+  data: SettingsData,
+  mirror: Record<string, unknown>
+): SettingsAtoms {
+  const atoms = {} as SettingsAtoms;
+  const sink = atoms as unknown as Record<string, Cell<unknown>>;
+  const source = data as unknown as Record<string, unknown>;
+  for (const key of Object.keys(data)) {
+    const cell = store.atom(key, source[key]);
+    const handle: Cell<unknown> = {
+      id: cell.id,
+      get: cell.get,
+      set: (value) => {
+        cell.set(value);
+        mirror[key] = value;
+      },
+      update: (fn) => {
+        const next = (fn as (prev: unknown) => unknown)(cell.get());
+        cell.set(next);
+        mirror[key] = next;
+      },
+      subscribe: cell.subscribe,
+    };
+    sink[key] = handle;
+  }
+  return atoms;
 }
 
 function applyUiPreferences(
-  retroStyle: SettingsStore["retroStyle"],
-  uiDensity: SettingsStore["uiDensity"]
-) {
+  retroStyle: SettingsData["retroStyle"],
+  uiDensity: SettingsData["uiDensity"]
+): void {
   if (typeof document === "undefined") return;
   document.documentElement.dataset.retroStyle = retroStyle;
   document.documentElement.dataset.uiDensity = uiDensity;
 }
 
-function applyWindowEffect(effect: SettingsStore["windowEffect"]): void {
+function applyWindowEffect(effect: SettingsData["windowEffect"]): void {
   if (typeof document === "undefined" || !document.documentElement) return;
   document.documentElement.dataset.windowEffect = effect;
 }
@@ -191,140 +238,261 @@ function applyYorhaScanlines(enabled: boolean): void {
   document.documentElement.dataset.yorhaScanlines = enabled ? "on" : "off";
 }
 
-export const useSettingsStore = create<SettingsStore>()(
-  persist(
-    (set) => ({
-      ...DEFAULT_SETTINGS,
-      language: detectSystemLocale(),
-      hidePlayerFolder: (path) =>
-        set((state) => {
-          const normalized = path.replace(/\\/g, "/").replace(/\/$/, "").toLowerCase();
-          return state.hiddenPlayerFolders.some(
-            (value) => value.replace(/\\/g, "/").replace(/\/$/, "").toLowerCase() === normalized
-          )
-            ? state
-            : { hiddenPlayerFolders: [...state.hiddenPlayerFolders, path] };
-        }),
-      hidePlayerTorrent: (infoHash) =>
-        set((state) =>
-          state.hiddenPlayerTorrents.includes(infoHash)
-            ? state
-            : {
-                hiddenPlayerTorrents: [...state.hiddenPlayerTorrents, infoHash],
-              }
-        ),
-      patch: (partial: Partial<SettingsStore>) =>
-        set((state) => {
-          const retroStyle = partial.retroStyle ?? state.retroStyle;
-          const uiDensity = partial.uiDensity ?? state.uiDensity;
-          applyUiPreferences(retroStyle, uiDensity);
-          if ("yorhaScanlinesEnabled" in partial) {
-            applyYorhaScanlines(partial.yorhaScanlinesEnabled ?? state.yorhaScanlinesEnabled);
-          }
-          if ("windowEffect" in partial) {
-            applyWindowEffect(partial.windowEffect ?? state.windowEffect);
-          }
-          if ("windowTintOpacity" in partial) {
-            applyWindowTint(partial.windowTintOpacity ?? null);
-          }
-          if (
-            "customTitleBarEnabled" in partial ||
-            "roundedWindowCorners" in partial ||
-            "windowEffect" in partial
-          ) {
-            applyWindowChrome({
-              customTitleBarEnabled: partial.customTitleBarEnabled ?? state.customTitleBarEnabled,
-              roundedWindowCorners: partial.roundedWindowCorners ?? state.roundedWindowCorners,
-              windowEffect: partial.windowEffect ?? state.windowEffect,
-            });
-          }
-          if ("appFont" in partial) {
-            const next = partial.appFont ?? null;
-            if (next) applyFontFamily(next);
-            else {
-              const [, error] = attemptSync(() => {
-                const raw = localStorage.getItem("themeVars");
-                const parsed = raw ? (JSON.parse(raw) as { fontFamily?: string | null }) : null;
-                const css = parsed?.fontFamily ?? DEFAULT_FONT_FAMILY;
-                if (typeof document !== "undefined" && document.documentElement)
-                  document.documentElement.style.setProperty("--font-family", css, "important");
-                localStorage.removeItem("appFont");
-              });
-              if (error !== null) applyFontFamily(null);
-            }
-          }
-          return partial;
-        }),
-      unhidePlayerFolder: (path) =>
-        set((state) => {
-          const normalized = path.replace(/\\/g, "/").replace(/\/$/, "").toLowerCase();
-          return {
-            hiddenPlayerFolders: state.hiddenPlayerFolders.filter(
-              (value) => value.replace(/\\/g, "/").replace(/\/$/, "").toLowerCase() !== normalized
-            ),
-          };
-        }),
-      unhidePlayerTorrent: (infoHash) =>
-        set((state) => ({
-          hiddenPlayerTorrents: state.hiddenPlayerTorrents.filter((value) => value !== infoHash),
-        })),
-      setPlayerFolderHeight: (path, height) =>
-        set((state) => {
-          const key = normalizePlayerPath(path);
-          if (!key) return state;
-          const heights = { ...state.playerFolderHeights };
-          if (height === null) delete heights[key];
-          else heights[key] = height;
-          return { playerFolderHeights: heights };
-        }),
-    }),
-    {
-      name: "settings",
-      migrate: (persistedState: unknown, version: number) => {
-        if (!persistedState || typeof persistedState !== "object") return {};
-        const state = persistedState as MigrationState & { language?: unknown };
-        const { language, ...rest } = state;
-        const transformed = runTransforms(rest, version, SETTINGS_TRANSFORMS);
-        return {
-          ...resolveWithDefaults(
-            transformed,
-            DEFAULT_SETTINGS as unknown as MigrationState,
-            SETTINGS_VALIDATORS
-          ),
-          language: language === "en" ? "en" : "ru",
-        };
-      },
-      onRehydrateStorage: () => (state) => {
-        if (state) {
-          const [, cleanupError] = attemptSync(() => {
-            localStorage.removeItem("lobbyConnections");
-            localStorage.removeItem("sessionIdentity");
-          });
-          if (cleanupError !== null)
-            reportBackgroundError("settings.migrate.cleanup-lobby", cleanupError);
-          applyUiPreferences(state.retroStyle, state.uiDensity);
-          applyWindowEffect(state.windowEffect);
-          applyWindowChrome({
-            customTitleBarEnabled: state.customTitleBarEnabled,
-            roundedWindowCorners: state.roundedWindowCorners,
-            windowEffect: state.windowEffect,
-          });
-          applyWindowTint(state.windowTintOpacity);
-          applyYorhaScanlines(state.yorhaScanlinesEnabled);
-          if (state.appFont) applyFontFamily(state.appFont);
-          drainTmdbPendingKey(state);
-        }
-      },
-      version: 38,
+function applyPatchSideEffects(atoms: SettingsAtoms, partial: Partial<SettingsData>): void {
+  applyUiPreferences(
+    partial.retroStyle ?? atoms.retroStyle.get(),
+    partial.uiDensity ?? atoms.uiDensity.get()
+  );
+  if ("yorhaScanlinesEnabled" in partial) {
+    applyYorhaScanlines(partial.yorhaScanlinesEnabled ?? atoms.yorhaScanlinesEnabled.get());
+  }
+  if ("windowEffect" in partial) {
+    applyWindowEffect(partial.windowEffect ?? atoms.windowEffect.get());
+  }
+  if ("windowTintOpacity" in partial) {
+    applyWindowTint(partial.windowTintOpacity ?? null);
+  }
+  if (
+    "customTitleBarEnabled" in partial ||
+    "roundedWindowCorners" in partial ||
+    "windowEffect" in partial
+  ) {
+    applyWindowChrome({
+      customTitleBarEnabled: partial.customTitleBarEnabled ?? atoms.customTitleBarEnabled.get(),
+      roundedWindowCorners: partial.roundedWindowCorners ?? atoms.roundedWindowCorners.get(),
+      windowEffect: partial.windowEffect ?? atoms.windowEffect.get(),
+    });
+  }
+  if ("appFont" in partial) {
+    const next = partial.appFont ?? null;
+    if (next) applyFontFamily(next);
+    else {
+      const [, error] = attemptSync(() => {
+        const raw = localStorage.getItem("themeVars");
+        const parsed = raw ? (JSON.parse(raw) as { fontFamily?: string | null }) : null;
+        const css = parsed?.fontFamily ?? DEFAULT_FONT_FAMILY;
+        if (typeof document !== "undefined" && document.documentElement)
+          document.documentElement.style.setProperty("--font-family", css, "important");
+        localStorage.removeItem("appFont");
+      });
+      if (error !== null) applyFontFamily(null);
     }
-  )
-);
+  }
+}
 
-applyUiPreferences(useSettingsStore.getState().retroStyle, useSettingsStore.getState().uiDensity);
-applyWindowEffect(useSettingsStore.getState().windowEffect);
-applyWindowTint(useSettingsStore.getState().windowTintOpacity);
-applyYorhaScanlines(useSettingsStore.getState().yorhaScanlinesEnabled);
+function readLegacyMigrated(
+  getStorage: () => Storage | undefined
+): { data: Record<string, unknown>; schemaVersion: number } | null {
+  const [storage, storageError] = attemptSync(() => getStorage());
+  if (storageError !== null || !storage) return null;
+  const [raw, readError] = attemptSync(() => storage.getItem("settings"));
+  if (readError !== null || !raw) return null;
+  const [parsed, parseError] = attemptSync(() => JSON.parse(raw) as unknown);
+  if (parseError !== null || !parsed || typeof parsed !== "object") return null;
+  const envelope = parsed as { state?: unknown; version?: unknown };
+  const state = envelope.state && typeof envelope.state === "object" ? envelope.state : parsed;
+  const version = typeof envelope.version === "number" ? envelope.version : 0;
+  if (!state || typeof state !== "object") return null;
+  const [migrated, migrateError] = attemptSync(() =>
+    migrateSettingsData(state, version)
+  );
+  if (migrateError !== null || !migrated || typeof migrated !== "object") return null;
+  return { data: migrated as Record<string, unknown>, schemaVersion: SETTINGS_SCHEMA_VERSION };
+}
+
+export interface SettingsSignalStore {
+  atoms: SettingsAtoms;
+  persistor: Persistor;
+  snapshot: () => SettingsData;
+  rehydrate: () => void;
+  patch: (partial: Partial<SettingsData>) => void;
+  hidePlayerFolder: (path: string) => void;
+  unhidePlayerFolder: (path: string) => void;
+  hidePlayerTorrent: (infoHash: string) => void;
+  unhidePlayerTorrent: (infoHash: string) => void;
+  setPlayerFolderHeight: (path: string, height: number | null) => void;
+  subscribeAll: (fn: () => void) => () => void;
+}
+
+export interface SettingsSignalOptions {
+  getStorage?: () => Storage | undefined;
+  debounceMs?: number;
+}
+
+function defaultGetStorage(): Storage | undefined {
+  if (typeof localStorage === "undefined") return undefined;
+  return localStorage;
+}
+
+export function createSettingsSignalStore(
+  options: SettingsSignalOptions = {}
+): SettingsSignalStore {
+  const getStorage = options.getStorage ?? defaultGetStorage;
+  const store = createSignalStore();
+  let adoptedFromLegacy = false;
+  const persistor = createPersistor({
+    storeName: "settings",
+    schemaVersion: SETTINGS_SCHEMA_VERSION,
+    getStorage,
+    debounceMs: options.debounceMs,
+    fallback: () => {
+      const migrated = readLegacyMigrated(getStorage);
+      if (migrated) adoptedFromLegacy = true;
+      return migrated;
+    },
+    onError: (scope, error) => reportBackgroundError(`settings.signal.${scope}`, error as Error),
+  });
+
+  const base: SettingsData = { ...DEFAULT_SETTINGS, language: detectSystemLocale() };
+  const persisted = persistor.read();
+  const data: SettingsData = persisted
+    ? { ...base, ...(persisted.data as Partial<SettingsData>) }
+    : base;
+  const mirror: Record<string, unknown> = { ...(data as unknown as Record<string, unknown>) };
+  const atoms = buildAtoms(store, data, mirror);
+
+  store.subscribeAll(() => {
+    persistor.write(mirror);
+  });
+
+  const snapshot = (): SettingsData => ({ ...mirror }) as SettingsData;
+
+  const drainTmdbPendingKey = (): void => {
+    const pending = atoms.tmdbPendingKey.get();
+    if (!pending) return;
+    (async () => {
+      const [, error] = await attempt(
+        tauriTransport.call("tmdb_set_api_key", { apiKey: pending })
+      );
+      if (error) handle.patch({ tmdbKeySet: false });
+      else handle.patch({ tmdbPendingKey: null, tmdbKeySet: true });
+    })();
+  };
+
+  const handle: SettingsSignalStore = {
+    atoms,
+    persistor,
+    snapshot,
+    subscribeAll: (fn) => store.subscribeAll(fn),
+    rehydrate: (): void => {
+      const state = snapshot();
+      const [, cleanupError] = attemptSync(() => {
+        const storage = getStorage();
+        storage?.removeItem("lobbyConnections");
+        storage?.removeItem("sessionIdentity");
+      });
+      if (cleanupError !== null)
+        reportBackgroundError("settings.signal.cleanup-lobby", cleanupError);
+      applyUiPreferences(state.retroStyle, state.uiDensity);
+      applyWindowEffect(state.windowEffect);
+      applyWindowChrome({
+        customTitleBarEnabled: state.customTitleBarEnabled,
+        roundedWindowCorners: state.roundedWindowCorners,
+        windowEffect: state.windowEffect,
+      });
+      applyWindowTint(state.windowTintOpacity);
+      applyYorhaScanlines(state.yorhaScanlinesEnabled);
+      if (state.appFont) applyFontFamily(state.appFont);
+      drainTmdbPendingKey();
+    },
+    patch: (partial) => {
+      applyPatchSideEffects(atoms, partial);
+      const source = partial as unknown as Record<string, unknown>;
+      const target = atoms as unknown as Record<string, Cell<unknown>>;
+      store.batch(() => {
+        for (const key of Object.keys(source)) {
+          target[key].set(source[key]);
+        }
+      });
+    },
+    hidePlayerFolder: (path) => {
+      const cell = atoms.hiddenPlayerFolders;
+      const normalized = path.replace(/\\/g, "/").replace(/\/$/, "").toLowerCase();
+      const exists = cell
+        .get()
+        .some((value) => value.replace(/\\/g, "/").replace(/\/$/, "").toLowerCase() === normalized);
+      if (!exists) cell.set([...cell.get(), path]);
+    },
+    unhidePlayerFolder: (path) => {
+      const cell = atoms.hiddenPlayerFolders;
+      const normalized = path.replace(/\\/g, "/").replace(/\/$/, "").toLowerCase();
+      cell.set(
+        cell
+          .get()
+          .filter(
+            (value) => value.replace(/\\/g, "/").replace(/\/$/, "").toLowerCase() !== normalized
+          )
+      );
+    },
+    hidePlayerTorrent: (infoHash) => {
+      const cell = atoms.hiddenPlayerTorrents;
+      if (!cell.get().includes(infoHash)) cell.set([...cell.get(), infoHash]);
+    },
+    unhidePlayerTorrent: (infoHash) => {
+      const cell = atoms.hiddenPlayerTorrents;
+      cell.set(cell.get().filter((value) => value !== infoHash));
+    },
+    setPlayerFolderHeight: (path, height) => {
+      const key = normalizePlayerPath(path);
+      if (!key) return;
+      const cell = atoms.playerFolderHeights;
+      const heights = { ...cell.get() };
+      if (height === null) delete heights[key];
+      else heights[key] = height;
+      cell.set(heights);
+    },
+  };
+
+  if (adoptedFromLegacy) {
+    persistor.write(snapshot());
+    persistor.flush();
+    const [storage, storageError] = attemptSync(() => getStorage());
+    if (storageError !== null) reportBackgroundError("settings.signal.adopt", storageError);
+    else {
+      const [adopted, adoptError] = attemptSync(() => storage?.getItem(persistKey("settings")));
+      if (adoptError !== null) reportBackgroundError("settings.signal.adopt", adoptError);
+      else if (adopted) {
+        const [, removeError] = attemptSync(() => storage?.removeItem("settings"));
+        if (removeError !== null) reportBackgroundError("settings.signal.adopt", removeError);
+      }
+    }
+  }
+
+  return handle;
+}
+
+const settings = createSettingsSignalStore();
+
+export const settingsAtoms = settings.atoms;
+export const settingsPersistor = settings.persistor;
+export const getSettingsSnapshot = settings.snapshot;
+export const rehydrateSettings = settings.rehydrate;
+export const patchSettings = settings.patch;
+export const hidePlayerFolder = settings.hidePlayerFolder;
+export const unhidePlayerFolder = settings.unhidePlayerFolder;
+export const hidePlayerTorrent = settings.hidePlayerTorrent;
+export const unhidePlayerTorrent = settings.unhidePlayerTorrent;
+export const setPlayerFolderHeight = settings.setPlayerFolderHeight;
+export function subscribeSettings(listener: () => void): () => void {
+  return settings.subscribeAll(listener);
+}
+
+if (typeof window !== "undefined" && typeof window.addEventListener === "function") {
+  window.addEventListener("beforeunload", () => settingsPersistor.flush());
+}
+
+if (typeof document !== "undefined") {
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") settingsPersistor.flush();
+  });
+}
+
+settings.rehydrate();
+applyUiPreferences(settingsAtoms.retroStyle.get(), settingsAtoms.uiDensity.get());
+applyWindowEffect(settingsAtoms.windowEffect.get());
+applyWindowTint(settingsAtoms.windowTintOpacity.get());
+applyYorhaScanlines(settingsAtoms.yorhaScanlinesEnabled.get());
 {
-  const { appFont } = useSettingsStore.getState();
+  const appFont = settingsAtoms.appFont.get();
   if (appFont) applyFontFamily(appFont);
 }

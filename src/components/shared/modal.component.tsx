@@ -6,7 +6,8 @@ import { useEffect, useState } from "react";
 import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useOverlayDialog } from "@/hooks/overlay.hook";
-import { useSettingsStore } from "@/store/settings.store";
+import { useCell } from "@/lib/state/signal.hook";
+import { settingsAtoms } from "@/store/settings.store";
 import type { ModalWindow } from "@/types/ui";
 
 import { Button } from "../ui/button.component";
@@ -24,9 +25,9 @@ function Modal({
   children,
 }: ModalWindow) {
   const { t } = useI18n();
-  const modalAnimation = useSettingsStore((s) => s.modalAnimation);
-  const enable3dBorders = useSettingsStore((s) => s.enable3dBorders);
-  const backdropOpacity = useSettingsStore((s) => s.modalBackdropOpacity);
+  const modalAnimation = useCell(settingsAtoms.modalAnimation);
+  const enable3dBorders = useCell(settingsAtoms.enable3dBorders);
+  const backdropOpacity = useCell(settingsAtoms.modalBackdropOpacity);
   const [visible, setVisible] = useState(false);
   useOverlayDialog();
 

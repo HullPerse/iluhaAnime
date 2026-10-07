@@ -11,17 +11,17 @@ import { dayLabel, monthLabel } from "@/lib/anilist/activity.utils";
 import { formatAiringTime } from "@/lib/anilist/airing.utils";
 import { getStatusColor } from "@/lib/anilist/entries.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
+import { useCell } from "@/lib/state/signal.hook";
 import { formatDistanceToNowOwn } from "@/lib/utils/distance.utils";
-import { useAniListNotificationsStore } from "@/store/anilist.store";
+import { anilistNotificationsAtoms, markAnilistReleasesRead } from "@/store/anilist.store";
 import type { AniListCollection } from "@/types/anilist";
 
 function StatsReleases({ onAnimeClick }: { onAnimeClick: (id: number) => void }) {
   const { t, locale } = useI18n();
-  const releases = useAniListNotificationsStore((s) => s.releases);
-  const markReleasesRead = useAniListNotificationsStore((s) => s.markReleasesRead);
+  const releases = useCell(anilistNotificationsAtoms.releases);
   useEffect(() => {
-    markReleasesRead();
-  }, [markReleasesRead]);
+    markAnilistReleasesRead();
+  }, []);
   if (releases.length === 0) {
     return (
       <span className="windows95-text text-hint p-3 text-center text-xs">

@@ -5,15 +5,23 @@ import { Button } from "@/components/ui/button.component";
 import { NO_TORRENTS } from "@/config/torrent/common.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useTorrents } from "@/hooks/torrent/queries.hook";
+import { useCell } from "@/lib/state/signal.hook";
 import { isCurrentDownload } from "@/lib/torrent/common.utils";
 import { openNotificationTarget, showError } from "@/lib/utils/notification.utils";
-import { useNotificationStore } from "@/store/notification.store";
+import {
+  clearAllNotifications as clearAll,
+  clearNotification as clear,
+  markAllNotificationsRead as markAllRead,
+  markNotificationRead as markRead,
+  notificationAtoms,
+} from "@/store/notification.store";
 import type { NotificationFilter, NotificationItem } from "@/types/notification";
 
 import NotificationPanel from "./panel.notification";
 
 export default function NotificationTray() {
-  const { items, unreadCount, markRead, markAllRead, clear, clearAll } = useNotificationStore();
+  const items = useCell(notificationAtoms.items);
+  const unreadCount = useCell(notificationAtoms.unreadCount);
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState<NotificationFilter>("all");
   const ref = useRef<HTMLDivElement>(null);

@@ -8,7 +8,8 @@ import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { formatActivityTime } from "@/lib/anilist/activity.utils";
 import { queryKeys } from "@/lib/query/keys.utils";
-import { useAniListNotificationsStore } from "@/store/anilist.store";
+import { useCell } from "@/lib/state/signal.hook";
+import { anilistNotificationsAtoms, markSiteNotificationsRead } from "@/store/anilist.store";
 import type { AniSiteNotification } from "@/types/anilist";
 
 function notificationText(item: AniSiteNotification): string {
@@ -75,10 +76,7 @@ function NotificationRow({
 
 export function NotificationsTab({ onAnimeClick }: { onAnimeClick: (id: number) => void }) {
   const { t } = useI18n();
-  const readIds = useAniListNotificationsStore((s) => s.readNotificationIds);
-  const markSiteNotificationsRead = useAniListNotificationsStore(
-    (s) => s.markSiteNotificationsRead
-  );
+  const readIds = useCell(anilistNotificationsAtoms.readNotificationIds);
   const { data, isLoading, isError, refetch } = useAppQuery("slow", {
     queryKey: queryKeys.siteNotifications(),
     queryFn: () => anilistApi.getSiteNotifications(),
@@ -89,7 +87,7 @@ export function NotificationsTab({ onAnimeClick }: { onAnimeClick: (id: number) 
   const itemIds = useMemo(() => items.map((item) => item.id), [items]);
   useEffect(() => {
     if (itemIds.length > 0) markSiteNotificationsRead(itemIds);
-  }, [itemIds, markSiteNotificationsRead]);
+  }, [itemIds]);
   if (isLoading && items.length === 0) {
     return (
       <div className="flex flex-1 items-center justify-center p-6">

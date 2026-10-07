@@ -6,8 +6,9 @@ import { useEffect, useMemo, useRef } from "react";
 
 import { useI18n } from "@/hooks/i18n.hook";
 import { buildTrayMenuEntries, shouldHideOnClose, TRAY_ICON_ID } from "@/lib/settings/tray.utils";
+import { useCell } from "@/lib/state/signal.hook";
 import { attempt, attemptAll, attemptSync, reportBackgroundError } from "@/lib/utils/attempt.utils";
-import { useSettingsStore } from "@/store/settings.store";
+import { settingsAtoms } from "@/store/settings.store";
 import type { TabId } from "@/types/settings";
 
 export interface TrayTab {
@@ -27,7 +28,7 @@ async function showMainWindow(): Promise<void> {
 
 export function useTray(tabs: readonly TrayTab[], onSelectTab: (tab: TabId) => void): void {
   const { t } = useI18n();
-  const minimizeToTray = useSettingsStore((s) => s.minimizeToTray);
+  const minimizeToTray = useCell(settingsAtoms.minimizeToTray);
   const selectRef = useRef(onSelectTab);
   const allowQuitRef = useRef(false);
   const entries = useMemo(() => buildTrayMenuEntries(tabs, t("settings.tray.quit")), [tabs, t]);

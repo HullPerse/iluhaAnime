@@ -1,4 +1,5 @@
 import {
+
   DndContext,
   PointerSensor,
   useDraggable,
@@ -15,6 +16,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
+import { useMediaEntry } from "@/hooks/media.hook";
 import { fetchVideoCard, getCachedCard } from "@/lib/player/cardCache.utils";
 import type { CardArt } from "@/lib/player/cardCache.utils";
 import {
@@ -28,9 +30,9 @@ import { formatBytes } from "@/lib/utils/bytes.utils";
 import { formatVerticalDragTransform } from "@/lib/utils/drag.utils";
 import { ignore } from "@/lib/utils/promise.utils";
 import { formatClock } from "@/lib/utils/time.utils";
-import { useMediaStore } from "@/store/media.store";
-import { usePlaybackStore } from "@/store/player.store";
-import { useSettingsStore } from "@/store/settings.store";
+import { useCell } from "@/lib/state/signal.hook";
+import { playbackAtoms, subscribePlayback } from "@/store/player.store";
+import { settingsAtoms } from "@/store/settings.store";
 import type { TFunc } from "@/types/i18n";
 import type { PlaylistBodyProps } from "@/types/player";
 
@@ -127,8 +129,8 @@ function CardThumbnail({
 }
 
 function CurrentProgress() {
-  const timePos = usePlaybackStore((state) => state.timePos);
-  const duration = usePlaybackStore((state) => state.duration);
+  const timePos = useCell(playbackAtoms.timePos);
+  const duration = useCell(playbackAtoms.duration);
   if (duration <= 0) return null;
   const percent = Math.max(0, Math.min(100, (timePos / duration) * 100));
   return (
@@ -150,9 +152,9 @@ const PLAYLIST_VIRTUALIZE_AFTER = 50;
 function PlaylistBody({ onPlay, onRemove, onMove }: PlaylistBodyProps) {
   const { t } = useI18n();
 
-  const path = usePlaybackStore((state) => state.path);
-  const parseTitles = useSettingsStore((state) => state.parseTitlesPlayer);
-  const videoExtensions = useSettingsStore((state) => state.videoExtensions);
+  const path = useCell(playbackAtoms.path);
+  const parseTitles = useCell(settingsAtoms.parseTitlesPlayer);
+  const videoExtensions = useCell(settingsAtoms.videoExtensions);
   const [entries, setEntries] = useState<PlaylistEntry[]>([]);
   const [adding, setAdding] = useState(false);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
@@ -184,8 +186,13 @@ function PlaylistBody({ onPlay, onRemove, onMove }: PlaylistBodyProps) {
 
   useEffect(() => {
     ignore(refresh());
-    return usePlaybackStore.subscribe((state, previous) => {
-      if (state.playlistCount !== previous.playlistCount) ignore(refresh());
+    let previous = playbackAtoms.playlistCount.get();
+    return subscribePlayback(() => {
+      const current = playbackAtoms.playlistCount.get();
+      if (current !== previous) {
+        previous = current;
+        ignore(refresh());
+      }
     });
   }, [refresh]);
 
@@ -460,11 +467,11 @@ function PlaylistCard({
 }) {
   const [cardRef, onScreen] = useOnScreen<HTMLDivElement>();
   const art = useCardArt(entry.filename, onScreen || current);
-  const resumeRatio = useMediaStore((state) => {
-    const saved = state.entries.find((item) => item.path === entry.filename);
-    if (!saved || saved.duration <= 0 || saved.position <= 0) return 0;
-    return Math.max(0, Math.min(1, saved.position / saved.duration));
-  });
+  const saved = useMediaEntry(entry.filename ?? null);
+  const resumeRatio =
+    !saved || saved.duration <= 0 || saved.position <= 0
+      ? 0
+      : Math.max(0, Math.min(1, saved.position / saved.duration));
   const {
     attributes,
     listeners,

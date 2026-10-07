@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-
-import { useSettingsStore } from "@/store/settings.store";
+import { useCell } from "@/lib/state/signal.hook";
+import { settingsAtoms } from "@/store/settings.store";
 
 const TWEEN_MS = 400;
 
@@ -37,7 +37,7 @@ export function AnimatedNumber({
   value: number;
   format: (value: number) => string;
 }) {
-  const animateCounters = useSettingsStore((s) => s.animateCounters);
+  const animateCounters = useCell(settingsAtoms.animateCounters);
   const shown = useTweenedValue(value, animateCounters ? TWEEN_MS : 0);
   return <>{format(shown)}</>;
 }

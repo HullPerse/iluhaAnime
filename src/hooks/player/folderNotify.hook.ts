@@ -6,8 +6,8 @@ import { diffFolderSnapshot, type FolderSnapshot } from "@/lib/player/folder.uti
 import { readAppCache, writeAppCache } from "@/lib/store/cache.utils";
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
-import { useNotificationStore } from "@/store/notification.store";
-import { useSettingsStore } from "@/store/settings.store";
+import { addNotification } from "@/store/notification.store";
+import { settingsAtoms } from "@/store/settings.store";
 import type { VideoFileEntry } from "@/types/fs";
 
 const FOLDER_CHECK_INTERVAL_MS = 30 * 60 * 1000;
@@ -36,16 +36,14 @@ export function useWatchedFolderNotifications(
         snapshotRef.current = next;
         const [, writeError] = await attempt(writeAppCache(SNAPSHOT_NAMESPACE, SNAPSHOT_KEY, next));
         if (writeError) reportBackgroundError("folders.snapshot.save", writeError);
-        if (notify && fresh.length > 0 && useSettingsStore.getState().notifyNewFiles) {
-          useNotificationStore
-            .getState()
-            .add(
-              t("notification.newfiles"),
-              "info",
-              t("notification.newfiles.body", { count: fresh.length }),
-              `newfiles:${path}:${fresh.length}:${fresh[0] ?? ""}`,
-              { system: false, target: { source: "folder", path } }
-            );
+        if (notify && fresh.length > 0 && settingsAtoms.notifyNewFiles.get()) {
+          addNotification(
+            t("notification.newfiles"),
+            "info",
+            t("notification.newfiles.body", { count: fresh.length }),
+            `newfiles:${path}:${fresh.length}:${fresh[0] ?? ""}`,
+            { system: false, target: { source: "folder", path } }
+          );
         }
       };
       run().catch((error: unknown) => reportBackgroundError("folders.snapshot.diff", error));
@@ -62,7 +60,7 @@ export function useWatchedFolderNotifications(
     intervalMs: FOLDER_CHECK_INTERVAL_MS,
     enabled: paths.length > 0,
     collectKeys: () => ["watched-folders"],
-    shouldFetch: () => paths.length > 0 && useSettingsStore.getState().notifyNewFiles,
+    shouldFetch: () => paths.length > 0 && settingsAtoms.notifyNewFiles.get(),
     fetch: async () => {
       for (const path of paths) {
         const [entries, error] = await attempt(

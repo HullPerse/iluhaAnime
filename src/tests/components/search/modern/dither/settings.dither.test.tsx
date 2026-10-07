@@ -5,8 +5,8 @@ import { useEffect, type Ref } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import DitherSettings from "@/routes/components/search/modern/dither/settings.dither";
-import { useNotificationStore } from "@/store/notification.store";
-import { useSettingsStore } from "@/store/settings.store";
+import { notificationAtoms } from "@/store/notification.store";
+import { patchSettings, settingsAtoms } from "@/store/settings.store";
 import type { UserImageFile } from "@/types/userimage";
 
 const mockInvoke = vi.fn();
@@ -103,17 +103,19 @@ function renderPanel(onClose: () => void = vi.fn()) {
 }
 
 function errorMessages() {
-  return useNotificationStore
-    .getState()
-    .items.filter((item) => item.type === "error")
+  return notificationAtoms.items
+    .get()
+    .filter((item) => item.type === "error")
     .map((item) => item.message);
 }
 
 afterEach(() => cleanup());
 
 beforeEach(() => {
-  useSettingsStore.setState({ language: "en", selectedDitherId: null });
-  useNotificationStore.setState({ items: [], unreadCount: 0, dismissed: [] });
+  patchSettings({ language: "en", selectedDitherId: null });
+  notificationAtoms.items.set([]);
+  notificationAtoms.unreadCount.set(0);
+  notificationAtoms.dismissed.set([]);
   mockInvoke.mockReset();
   mockOpenDialog.mockReset();
 });
@@ -286,7 +288,7 @@ describe("DitherSettings database images", () => {
     await waitFor(() => expect(screen.getByAltText("first.png")).toBeTruthy());
     await user.click(screen.getByAltText("first.png"));
     await user.click(screen.getByRole("button", { name: "Save" }));
-    expect(useSettingsStore.getState().selectedDitherId).toBe("aaa");
+    expect(settingsAtoms.selectedDitherId.get()).toBe("aaa");
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
@@ -297,7 +299,7 @@ describe("DitherSettings database images", () => {
     renderPanel(onClose);
     await waitFor(() => expect(screen.getByAltText("Placeholder")).toBeTruthy());
     await user.click(screen.getByRole("button", { name: "Save" }));
-    expect(useSettingsStore.getState().selectedDitherId).toBe("placeholder");
+    expect(settingsAtoms.selectedDitherId.get()).toBe("placeholder");
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
@@ -341,7 +343,7 @@ describe("DitherSettings database images", () => {
 
   it("resolves an off-page selection through a single fetch", async () => {
     const user = userEvent.setup();
-    useSettingsStore.setState({ selectedDitherId: "ddd" });
+    patchSettings({ selectedDitherId: "ddd" });
     const serve = serveLibrary([FIRST, SECOND, THIRD, FOURTH]);
     mockInvoke.mockImplementation(async (cmd: string, args?: { ids?: string[] }) => {
       if (cmd === "get_dither_image") return FOURTH;
@@ -357,7 +359,7 @@ describe("DitherSettings database images", () => {
 
   it("notifies when an off-page selection no longer exists", async () => {
     const user = userEvent.setup();
-    useSettingsStore.setState({ selectedDitherId: "stale" });
+    patchSettings({ selectedDitherId: "stale" });
     const serve = serveLibrary([FIRST]);
     mockInvoke.mockImplementation(async (cmd: string, args?: { ids?: string[] }) => {
       if (cmd === "get_dither_image") throw new Error("dither image not found");
@@ -407,7 +409,7 @@ describe("DitherSettings database images", () => {
     renderPanel();
     await waitFor(() => expect(screen.getByAltText("first.png")).toBeTruthy());
     await user.click(screen.getByRole("button", { name: "Dark" }));
-    expect(useSettingsStore.getState().wallpaperFilters.brightness).toBe(55);
+    expect(settingsAtoms.wallpaperFilters.get().brightness).toBe(55);
   });
 
   it("toggles search shadow sides", async () => {
@@ -418,17 +420,17 @@ describe("DitherSettings database images", () => {
     const tops = screen.getAllByRole("checkbox", { name: "Top" });
     expect(tops).toHaveLength(2);
     await user.click(tops[0]);
-    expect(useSettingsStore.getState().searchShadow.sides.top).toBe(true);
-    expect(useSettingsStore.getState().wallpaperShadow.sides.top).toBe(false);
+    expect(settingsAtoms.searchShadow.get().sides.top).toBe(true);
+    expect(settingsAtoms.wallpaperShadow.get().sides.top).toBe(false);
   });
 
   it("toggles wallpaper scanlines", async () => {
     const user = userEvent.setup();
-    useSettingsStore.setState({ wallpaperScanlines: false });
+    patchSettings({ wallpaperScanlines: false });
     mockInvoke.mockImplementation(serveLibrary([FIRST]));
     renderPanel();
     await waitFor(() => expect(screen.getByAltText("first.png")).toBeTruthy());
     await user.click(screen.getByRole("checkbox", { name: "Scanlines" }));
-    expect(useSettingsStore.getState().wallpaperScanlines).toBe(true);
+    expect(settingsAtoms.wallpaperScanlines.get()).toBe(true);
   });
 });

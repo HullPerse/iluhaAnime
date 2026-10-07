@@ -4,9 +4,9 @@ import { openPath } from "@tauri-apps/plugin-opener";
 import { translate } from "@/lib/locale/i18n.utils";
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { formatDistanceToNowOwn } from "@/lib/utils/distance.utils";
-import { useDeepLinkStore } from "@/store/deeplink.store";
-import { useNotificationStore } from "@/store/notification.store";
-import { useSettingsStore } from "@/store/settings.store";
+import { openAnimeDeepLink } from "@/store/deeplink.store";
+import { addNotification } from "@/store/notification.store";
+import { settingsAtoms } from "@/store/settings.store";
 import type { Locale, TranslationKey } from "@/types/i18n";
 import type {
   NotificationFilter,
@@ -17,7 +17,7 @@ import type {
 } from "@/types/notification";
 
 function show(title: string, type: NotificationType, body?: string): void {
-  useNotificationStore.getState().add(title, type, body);
+  addNotification(title, type, body);
 }
 
 export function showError(title: string, body: string): void {
@@ -25,7 +25,7 @@ export function showError(title: string, body: string): void {
 }
 
 export function showErrorOnce(eventKey: string, title: string, body: string): void {
-  useNotificationStore.getState().add(title, "error", body, eventKey);
+  addNotification(title, "error", body, eventKey);
 }
 
 export function showInfo(title: string, body?: string): void {
@@ -72,15 +72,15 @@ export async function openNotificationTarget(
     return "failed";
   }
   if (typeof navigator !== "undefined" && !navigator.onLine) {
-    const language = useSettingsStore.getState().language;
+    const language = settingsAtoms.language.get();
     showWarning(
       translate(language, "network.offline.title"),
       translate(language, "network.action.unavailable")
     );
     return "failed";
   }
-  if (!useSettingsStore.getState().anilistTabEnabled) return "tab-disabled";
-  useDeepLinkStore.getState().openAnime(target);
+  if (!settingsAtoms.anilistTabEnabled.get()) return "tab-disabled";
+  openAnimeDeepLink(target);
   return "opened";
 }
 

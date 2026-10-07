@@ -3,8 +3,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Pagination from "@/components/shared/pagination.component";
 import { CARD_W } from "@/config/collection/card.config";
 import { usePagination } from "@/hooks/pagination.hook";
+import { useCell } from "@/lib/state/signal.hook";
 import { paginate } from "@/lib/utils/pagination.utils";
-import { useSettingsStore } from "@/store/settings.store";
+import { settingsAtoms } from "@/store/settings.store";
 import type { CollectionItem, CollectionStatus, CollectionStatusDef } from "@/types/collection";
 
 import { CollectionCard } from "../card.collection";
@@ -24,7 +25,7 @@ export function GridPagedView({
   onEdit?: (item: CollectionItem) => void;
   onSetStatus?: (item: CollectionItem, status: CollectionStatus) => void;
 }) {
-  const pageSize = useSettingsStore((s) => s.pageSize);
+  const pageSize = useCell(settingsAtoms.pageSize);
   const [page, setPage] = useState(1);
   const scrollRef = useRef<HTMLElement>(null);
   const { total, from, to, lastPage } = usePagination(items.length, pageSize, page, setPage);

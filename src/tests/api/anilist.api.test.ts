@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import { AnilistApi } from "@/api/anilist.api";
 import type { ApiTransport } from "@/api/transport.api";
-import { useSettingsStore } from "@/store/settings.store";
+import { patchSettings, settingsAtoms } from "@/store/settings.store";
 
 function fakeTransport(resolve: (command: string, args?: Record<string, unknown>) => unknown) {
   const calls: Array<{ command: string; args?: Record<string, unknown> }> = [];
@@ -16,16 +16,16 @@ function fakeTransport(resolve: (command: string, args?: Record<string, unknown>
 }
 
 beforeEach(() => {
-  useSettingsStore.setState({ anilistProxyUrl: null });
+  patchSettings({ anilistProxyUrl: null });
 });
 
 describe("AnilistApi", () => {
   it("injects the configured proxy into every call", async () => {
-    useSettingsStore.setState({ anilistProxyUrl: "socks5://127.0.0.1:10808" });
+    patchSettings({ anilistProxyUrl: "socks5://127.0.0.1:10808" });
     const { calls, transport } = fakeTransport(() => []);
     const api = new AnilistApi({
       transport,
-      proxyUrl: () => useSettingsStore.getState().anilistProxyUrl,
+      proxyUrl: () => settingsAtoms.anilistProxyUrl.get(),
     });
 
     await api.getLists(7);

@@ -7,10 +7,11 @@ import { Input } from "@/components/ui/input.component";
 import Slider from "@/components/ui/range.component";
 import { THEMES } from "@/config/settings/themes.config";
 import { useI18n } from "@/hooks/i18n.hook";
+import { useCell } from "@/lib/state/signal.hook";
 import { windowTintAlpha } from "@/lib/theme/palette.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
-import { useSettingsStore } from "@/store/settings.store";
-import { useThemeStore, themeToJson, parseRetroismTheme } from "@/store/theme.store";
+import { patchSettings, settingsAtoms } from "@/store/settings.store";
+import { addCustomTheme, parseRetroismTheme, removeCustomTheme, setTheme, themeAtoms, themeToJson } from "@/store/theme.store";
 import type { ThemeDefinition } from "@/types/theme";
 
 import { BackdropSlider } from "./theme/backdrop.theme";
@@ -23,18 +24,15 @@ const TINT_SLIDER_MIN = 0.5;
 
 export default function SettingsTheme() {
   const { t } = useI18n();
-  const currentTheme = useThemeStore((s) => s.currentTheme);
-  const retroStyle = useSettingsStore((s) => s.retroStyle);
-  const searchType = useSettingsStore((s) => s.searchType);
-  const uiDensity = useSettingsStore((s) => s.uiDensity);
-  const windowEffect = useSettingsStore((s) => s.windowEffect);
-  const windowTintOpacity = useSettingsStore((s) => s.windowTintOpacity);
-  const collectionGroupHeaderStyle = useSettingsStore((s) => s.collectionGroupHeaderStyle);
-  const themeSchedule = useSettingsStore((s) => s.themeSchedule);
-  const patchSettings = useSettingsStore((s) => s.patch);
-  const customThemes = useThemeStore((s) => s.customThemes);
-  const setTheme = useThemeStore((s) => s.setTheme);
-  const removeCustomTheme = useThemeStore((s) => s.removeCustomTheme);
+  const currentTheme = useCell(themeAtoms.currentTheme);
+  const retroStyle = useCell(settingsAtoms.retroStyle);
+  const searchType = useCell(settingsAtoms.searchType);
+  const uiDensity = useCell(settingsAtoms.uiDensity);
+  const windowEffect = useCell(settingsAtoms.windowEffect);
+  const windowTintOpacity = useCell(settingsAtoms.windowTintOpacity);
+  const collectionGroupHeaderStyle = useCell(settingsAtoms.collectionGroupHeaderStyle);
+  const themeSchedule = useCell(settingsAtoms.themeSchedule);
+  const customThemes = useCell(themeAtoms.customThemes);
   const [showEditor, setShowEditor] = useState(false);
   const [editingTheme, setEditingTheme] = useState<ThemeDefinition | undefined>();
   const [importError, setImportError] = useState("");
@@ -77,7 +75,7 @@ export default function SettingsTheme() {
         setImportError(t("settings.theme.import.error"));
         return;
       }
-      useThemeStore.getState().addCustomTheme(theme);
+      addCustomTheme(theme);
       setImportError("");
     };
     input.click();

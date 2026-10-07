@@ -8,25 +8,29 @@ import { Input } from "@/components/ui/input.component";
 import Select from "@/components/ui/select.component";
 import { SOURCE_INFOS } from "@/config/search/sources.config";
 import { useI18n } from "@/hooks/i18n.hook";
+import { useCell } from "@/lib/state/signal.hook";
 import { deleteAppCache } from "@/lib/store/cache.utils";
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
-import { useSearchStore } from "@/store/search.store";
-import { useSettingsStore } from "@/store/settings.store";
+import {
+  clearAllSearchLearning,
+  clearSearchScope,
+  purgeSearchStats,
+  resetAnimeSuggestions,
+  searchAtoms,
+} from "@/store/search.store";
+import { patchSettings, settingsAtoms } from "@/store/settings.store";
 
 export default function SettingsSearch() {
-  const {
-    defaultSearchSource,
-    visibleSources,
-    searchProxyUrls,
-    pageSize,
-    anilistMaxPages,
-    searchHistoryMaxItems,
-    autocompleteMode,
-    anilistSuggestionBoost,
-    searchSymSpellEnabled,
-    searchIntentEnabled,
-    patch,
-  } = useSettingsStore();
+  const defaultSearchSource = useCell(settingsAtoms.defaultSearchSource);
+  const visibleSources = useCell(settingsAtoms.visibleSources);
+  const searchProxyUrls = useCell(settingsAtoms.searchProxyUrls);
+  const pageSize = useCell(settingsAtoms.pageSize);
+  const anilistMaxPages = useCell(settingsAtoms.anilistMaxPages);
+  const searchHistoryMaxItems = useCell(settingsAtoms.searchHistoryMaxItems);
+  const autocompleteMode = useCell(settingsAtoms.autocompleteMode);
+  const anilistSuggestionBoost = useCell(settingsAtoms.anilistSuggestionBoost);
+  const searchSymSpellEnabled = useCell(settingsAtoms.searchSymSpellEnabled);
+  const searchIntentEnabled = useCell(settingsAtoms.searchIntentEnabled);
   const { t } = useI18n();
   const [proxyTests, setProxyTests] = useState<
     Record<string, { loading: boolean; ok?: boolean; msg?: string }>
@@ -60,10 +64,10 @@ export default function SettingsSearch() {
     );
     setProxyTestingAll(false);
   };
-  const learningHistory = useSearchStore((state) => state.history);
-  const learningAnimeCount = useSearchStore((state) => state.animeIndex.length);
-  const learningQueryStats = useSearchStore((state) => state.queryStats);
-  const learningSuggestionStats = useSearchStore((state) => state.suggestionStats);
+  const learningHistory = useCell(searchAtoms.history);
+  const learningAnimeCount = useCell(searchAtoms.animeIndex).length;
+  const learningQueryStats = useCell(searchAtoms.queryStats);
+  const learningSuggestionStats = useCell(searchAtoms.suggestionStats);
   const learnedQueries = Object.values(learningQueryStats).reduce(
     (total, stat) => total + stat.count,
     0
@@ -77,9 +81,9 @@ export default function SettingsSearch() {
     const next = visibleSources.includes(value)
       ? visibleSources.filter((v) => v !== value)
       : [...visibleSources, value];
-    patch({ visibleSources: next });
+    patchSettings({ visibleSources: next });
     if (!next.includes(defaultSearchSource) && next.length > 0) {
-      patch({ defaultSearchSource: next[0] });
+      patchSettings({ defaultSearchSource: next[0] });
     }
   };
 
@@ -106,7 +110,7 @@ export default function SettingsSearch() {
                     ? defaultSearchSource
                     : (defaultOpts[0]?.value ?? "")
                 }
-                onChange={(v) => patch({ defaultSearchSource: v })}
+                onChange={(v) => patchSettings({ defaultSearchSource: v })}
                 options={defaultOpts}
                 disabled={defaultOpts.length === 0}
                 className="w-28"
@@ -183,7 +187,7 @@ export default function SettingsSearch() {
                         const next = { ...searchProxyUrls };
                         if (!v) delete next[info.value];
                         else next[info.value] = v;
-                        patch({ searchProxyUrls: next });
+                        patchSettings({ searchProxyUrls: next });
                       }}
                       options={[
                         { value: "", label: t("settings.tmdb.proxy.no") },
@@ -202,7 +206,7 @@ export default function SettingsSearch() {
                         const next = { ...searchProxyUrls };
                         if (!v) delete next[info.value];
                         else next[info.value] = v;
-                        patch({ searchProxyUrls: next });
+                        patchSettings({ searchProxyUrls: next });
                       }}
                       placeholder="socks5://127.0.0.1:10808"
                       className="w-full max-w-70"
@@ -260,7 +264,7 @@ export default function SettingsSearch() {
                 min={0}
                 max={500}
                 value={searchHistoryMaxItems}
-                onChange={(e) => patch({ searchHistoryMaxItems: Number(e.target.value) })}
+                onChange={(e) => patchSettings({ searchHistoryMaxItems: Number(e.target.value) })}
                 className="w-16"
               />
             </div>
@@ -273,7 +277,7 @@ export default function SettingsSearch() {
             <div className="flex flex-col gap-0.5">
               <Select
                 value={autocompleteMode}
-                onChange={(value) => patch({ autocompleteMode: value as typeof autocompleteMode })}
+                onChange={(value) => patchSettings({ autocompleteMode: value as typeof autocompleteMode })}
                 options={[
                   {
                     value: "inline",
@@ -328,7 +332,7 @@ export default function SettingsSearch() {
                 min={10}
                 max={100}
                 value={pageSize}
-                onChange={(e) => patch({ pageSize: Number(e.target.value) })}
+                onChange={(e) => patchSettings({ pageSize: Number(e.target.value) })}
                 className="w-16"
               />
               <span className="text-hint text-[12px]">{t("settings.search.page.size.hint")}</span>
@@ -343,7 +347,7 @@ export default function SettingsSearch() {
                 min={1}
                 max={20}
                 value={anilistMaxPages}
-                onChange={(e) => patch({ anilistMaxPages: Number(e.target.value) })}
+                onChange={(e) => patchSettings({ anilistMaxPages: Number(e.target.value) })}
                 className="w-16"
               />
               <span className="text-hint text-[12px]">
@@ -381,7 +385,7 @@ export default function SettingsSearch() {
                 >
                   <Checkbox
                     checked={searchSymSpellEnabled}
-                    onChange={() => patch({ searchSymSpellEnabled: !searchSymSpellEnabled })}
+                    onChange={() => patchSettings({ searchSymSpellEnabled: !searchSymSpellEnabled })}
                   />
                   <span>{t("settings.search.toggle.sym.spell")}</span>
                 </label>
@@ -391,7 +395,7 @@ export default function SettingsSearch() {
                 >
                   <Checkbox
                     checked={searchIntentEnabled}
-                    onChange={() => patch({ searchIntentEnabled: !searchIntentEnabled })}
+                    onChange={() => patchSettings({ searchIntentEnabled: !searchIntentEnabled })}
                   />
                   <span>{t("settings.search.toggle.intent")}</span>
                 </label>
@@ -407,7 +411,7 @@ export default function SettingsSearch() {
               <Select
                 value={anilistSuggestionBoost}
                 onChange={(value) =>
-                  patch({
+                  patchSettings({
                     anilistSuggestionBoost: value as typeof anilistSuggestionBoost,
                   })
                 }
@@ -433,31 +437,29 @@ export default function SettingsSearch() {
         <div className="flex items-center gap-2">
           <Button
             onClick={() => {
-              useSearchStore.getState().purgeExpired();
+              purgeSearchStats();
             }}
           >
             {t("settings.search.purge.expired")}
           </Button>
         </div>
         <div className="flex flex-wrap items-center gap-1">
-          <Button onClick={() => useSearchStore.getState().clearScope("torrent")}>
+          <Button onClick={() => clearSearchScope("torrent")}>
             {t("settings.search.clear.torrent")}
           </Button>
-          <Button onClick={() => useSearchStore.getState().clearScope("anilist")}>
+          <Button onClick={() => clearSearchScope("anilist")}>
             {t("settings.search.clear.anilist")}
           </Button>
-          <Button onClick={() => useSearchStore.getState().clearScope("player")}>
+          <Button onClick={() => clearSearchScope("player")}>
             {t("settings.search.clear.player")}
           </Button>
-          <Button onClick={() => useSearchStore.getState().clearScope("filter")}>
+          <Button onClick={() => clearSearchScope("filter")}>
             {t("settings.search.clear.filter")}
           </Button>
           <Button
             variant="destructive"
             onClick={() => {
-              useSearchStore
-                .getState()
-                .clearAllLearning()
+              clearAllSearchLearning()
                 .catch((error) => reportBackgroundError("learning.clear", error));
               deleteAppCache("search", "learning");
             }}
@@ -470,7 +472,7 @@ export default function SettingsSearch() {
       <div className="flex items-center gap-2">
         <Button
           onClick={() => {
-            useSearchStore.getState().resetAnimeSuggestions();
+            resetAnimeSuggestions();
             deleteAppCache("search", "learning");
           }}
         >

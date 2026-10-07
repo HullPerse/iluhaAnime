@@ -21,8 +21,8 @@ import {
 import { buildAnilistPrefill } from "@/lib/collection/import.utils";
 import { queryKeys } from "@/lib/query/keys.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
-import { useAniListNotificationsStore } from "@/store/anilist.store";
-import { useCollectionStore } from "@/store/collection.store";
+import { markOwnAnilistListStatus } from "@/store/anilist.store";
+import { requestWizardPrefill } from "@/store/collection.store";
 import type { AniMedia, AnilistRouteData } from "@/types/anilist";
 import type { TranslationKey } from "@/types/i18n";
 
@@ -238,7 +238,7 @@ function AniListActionControls({
       setSaving(false);
       return;
     }
-    useAniListNotificationsStore.getState().markOwnListStatus(anime.id, values.list_status);
+    markOwnAnilistListStatus(anime.id, values.list_status);
     onSaved?.();
     onClose?.();
   };
@@ -354,16 +354,14 @@ function AniListActionControls({
           <Button
             variant="outline"
             onClick={() =>
-              useCollectionStore
-                .getState()
-                .requestWizardPrefill(
-                  buildAnilistPrefill(
-                    anime,
-                    listEntry?.list_status ?? null,
-                    listEntry?.score,
-                    format
-                  )
+              requestWizardPrefill(
+                buildAnilistPrefill(
+                  anime,
+                  listEntry?.list_status ?? null,
+                  listEntry?.score,
+                  format
                 )
+              )
             }
           >
             {t("collection.add.media")}

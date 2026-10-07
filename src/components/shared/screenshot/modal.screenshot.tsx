@@ -15,6 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox.component";
 import { Input } from "@/components/ui/input.component";
 import Select from "@/components/ui/select.component";
 import {
+
   ANNOTATION_DEFAULT_BRUSH_SIZE,
   ANNOTATION_DEFAULT_COLOR,
   ANNOTATION_DEFAULT_TEXT_SIZE,
@@ -36,11 +37,12 @@ import {
 } from "@/lib/settings/annotation.utils";
 import { fullCrop, isSquare, NO_PAN } from "@/lib/settings/crop.utils";
 import { canSaveScreenshot, defaultScreenshotName } from "@/lib/settings/screenshot.utils";
+import { useCell } from "@/lib/state/signal.hook";
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { resolveFontFamily } from "@/lib/utils/font.utils";
 import { assetUrl } from "@/lib/utils/image.utils";
 import { COPIED_FEEDBACK_MS, showError, showInfo } from "@/lib/utils/notification.utils";
-import { useSettingsStore } from "@/store/settings.store";
+import { patchSettings, settingsAtoms } from "@/store/settings.store";
 import type {
   AnnotationHistory,
   AnnotationItem,
@@ -81,10 +83,9 @@ export default function ScreenshotModal({
   onClose: () => void;
 }) {
   const { t } = useI18n();
-  const patchSettings = useSettingsStore((state) => state.patch);
-  const savedDir = useSettingsStore((state) => state.screenshotDir);
-  const savedFormat = useSettingsStore((state) => state.screenshotFormat);
-  const savedOpenFolder = useSettingsStore((state) => state.screenshotOpenFolder);
+  const savedDir = useCell(settingsAtoms.screenshotDir);
+  const savedFormat = useCell(settingsAtoms.screenshotFormat);
+  const savedOpenFolder = useCell(settingsAtoms.screenshotOpenFolder);
   const [dir, setDir] = useState(savedDir ?? capture.defaultDir);
   const [name, setName] = useState(defaultScreenshotName());
   const [format, setFormat] = useState<ScreenshotFormat>(savedFormat);

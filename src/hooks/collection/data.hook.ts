@@ -5,7 +5,7 @@ import { collectionApi } from "@/api/collection.api";
 import { useI18n } from "@/hooks/i18n.hook";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
 import { attempt, attemptSync } from "@/lib/utils/attempt.utils";
-import { useNotificationStore } from "@/store/notification.store";
+import { addNotification } from "@/store/notification.store";
 
 export function useCollectionDataActions() {
   const { t } = useI18n();
@@ -14,7 +14,7 @@ export function useCollectionDataActions() {
 
   const notify = useCallback(
     (type: "success" | "error", key: TranslationKey) => {
-      useNotificationStore.getState().add(t("app.collection"), type, t(key));
+      addNotification(t("app.collection"), type, t(key));
     },
     [t]
   );
@@ -55,20 +55,20 @@ export function useCollectionDataActions() {
     async (strategy: string, file: File) => {
       const [text, textError] = await attempt(file.text());
       if (textError) {
-        useNotificationStore.getState().add(t("app.collection"), "error", textError.message);
+        addNotification(t("app.collection"), "error", textError.message);
         return;
       }
       const [data, parseError] = attemptSync(() => JSON.parse(text) as unknown);
       if (parseError) {
-        useNotificationStore.getState().add(t("app.collection"), "error", parseError.message);
+        addNotification(t("app.collection"), "error", parseError.message);
         return;
       }
       const [summary, importError] = await attempt(collectionApi.importData(data, strategy));
       if (importError) {
-        useNotificationStore.getState().add(t("app.collection"), "error", importError.message);
+        addNotification(t("app.collection"), "error", importError.message);
         return;
       }
-      useNotificationStore.getState().add(
+      addNotification(
         t("app.collection"),
         "success",
         t("collection.import.done", {

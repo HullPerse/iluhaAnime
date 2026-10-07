@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { defaultFilters } from "@/config/anilist/filters.config";
 import { useDiscoveryQueue, useRandomDiscovery } from "@/hooks/anilist/discovery.hook";
-import { useSettingsStore } from "@/store/settings.store";
+import { patchSettings } from "@/store/settings.store";
 import type { AniListFilters, AniMedia } from "@/types/anilist";
 
 const invokeMock = vi.fn();
@@ -43,7 +43,7 @@ const FILTERS: AniListFilters = { ...defaultFilters };
 
 beforeEach(() => {
   invokeMock.mockReset();
-  useSettingsStore.setState({ anilistProxyUrl: null });
+  patchSettings({ anilistProxyUrl: null });
 });
 
 describe("useDiscoveryQueue", () => {

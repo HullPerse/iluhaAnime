@@ -14,10 +14,12 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { useOverlay } from "@/hooks/overlay.hook";
 import { isPublicStatus } from "@/lib/collection/status.utils";
 import { normalizeSearchText } from "@/lib/search/suggestions.utils";
+import { useCell } from "@/lib/state/signal.hook";
 import { attempt, attemptAll } from "@/lib/utils/attempt.utils";
-import { useSearchStore } from "@/store/search.store";
-import { useSettingsStore } from "@/store/settings.store";
+import { searchAtoms } from "@/store/search.store";
+import { settingsAtoms } from "@/store/settings.store";
 import type {
+
   CollectionItem,
   CollectionStatus,
   CollectionStatusDef,
@@ -125,10 +127,10 @@ export function WizardModal({
     setRating(prefillRatingValue(prefill));
   }, [initial, prefill, setTitle, setCoverUrl, setStatus, setRating]);
   const [coverBroken, setCoverBroken] = useState(false);
-  const tmdbKeySet = useSettingsStore((s) => s.tmdbKeySet);
+  const tmdbKeySet = useCell(settingsAtoms.tmdbKeySet);
   const { t } = useI18n();
   const { items: collectionItems } = useCollectionData();
-  const animeIndex = useSearchStore((s) => s.animeIndex);
+  const animeIndex = useCell(searchAtoms.animeIndex);
   const existingTitles = useMemo(() => {
     const set = new Set<string>();
     for (const it of collectionItems) {

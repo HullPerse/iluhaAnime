@@ -15,7 +15,8 @@ import { loadFriendScores } from "@/lib/anilist/friends.utils";
 import { formatScore, parseScoreFormat, scoreIconFor } from "@/lib/anilist/score.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import { queryKeys } from "@/lib/query/keys.utils";
-import { useAniListFriendsStore } from "@/store/anilist.store";
+import { useCell } from "@/lib/state/signal.hook";
+import { anilistFriendsAtoms } from "@/store/anilist.store";
 
 function FriendScoreIcon({ score }: { score: number | null }) {
   const icon = scoreIconFor("POINT_3", score);
@@ -27,7 +28,7 @@ function FriendScoreIcon({ score }: { score: number | null }) {
 
 export function FriendsScoresSection({ animeId }: { animeId: number }) {
   const { t } = useI18n();
-  const friends = useAniListFriendsStore((state) => state.friends);
+  const friends = useCell(anilistFriendsAtoms.friends);
   const [expanded, setExpanded] = useState(false);
   const base = friends.map((friend) => ({
     id: friend.id,

@@ -8,11 +8,16 @@ import { useDayNightScheduler } from "@/hooks/schedule.hook";
 import { useScreenshot } from "@/hooks/screenshot.hook";
 import { TORRENTS_QUERY_KEY } from "@/hooks/torrent/queries.hook";
 import { useTray } from "@/hooks/tray.hook";
+import { useCell } from "@/lib/state/signal.hook";
 import { attempt } from "@/lib/utils/attempt.utils";
 import TorrentFilePicker from "@/routes/components/search/default/picker.search";
-import { useCacheStore } from "@/store/cache.store";
-import { useTorrentStore } from "@/store/download.store";
-import { useSettingsStore } from "@/store/settings.store";
+import { cacheAtoms } from "@/store/cache.store";
+import {
+  cancelTorrentDownload as cancelDownload,
+  confirmTorrentDownload as confirmDownload,
+  torrentAtoms,
+} from "@/store/download.store";
+import { settingsAtoms } from "@/store/settings.store";
 import type { TabId } from "@/types/settings";
 
 import { SmallLoader, TabLoader } from "./components/shared/loader.component";
@@ -46,13 +51,11 @@ export default function App() {
     useApp(activeTab, (tab) => setActiveTab(tab));
 
   const queryClient = useQueryClient();
-  const pendingTorrent = useTorrentStore((s) => s.pendingTorrent);
-  const preparingTorrent = useTorrentStore((s) => s.preparingTorrent);
-  const lastSaveDir = useCacheStore((s) => s.lastSaveDir);
-  const customTitleBarEnabled = useSettingsStore((s) => s.customTitleBarEnabled);
-  const statusBarEnabled = useSettingsStore((s) => s.statusBarEnabled);
-  const confirmDownload = useTorrentStore((s) => s.confirmDownload);
-  const cancelDownload = useTorrentStore((s) => s.cancelDownload);
+  const pendingTorrent = useCell(torrentAtoms.pendingTorrent);
+  const preparingTorrent = useCell(torrentAtoms.preparingTorrent);
+  const lastSaveDir = useCell(cacheAtoms.lastSaveDir);
+  const customTitleBarEnabled = useCell(settingsAtoms.customTitleBarEnabled);
+  const statusBarEnabled = useCell(settingsAtoms.statusBarEnabled);
   const prefetchedTabs = useRef<Set<TabId>>(new Set());
   const [showPending, setShowPending] = useState(false);
 

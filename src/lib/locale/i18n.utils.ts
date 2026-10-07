@@ -1,6 +1,6 @@
 import en from "@/lib/locale/en";
 import ru from "@/lib/locale/ru";
-import { useSettingsStore } from "@/store/settings.store";
+import { settingsAtoms } from "@/store/settings.store";
 import type { Locale, TranslationKey, TranslationVariables } from "@/types/i18n";
 
 export type { Locale, TranslationVariables };
@@ -57,5 +57,5 @@ export function translate(
 }
 
 export function tr(key: TranslationKey, vars?: TranslationVariables): string {
-  return translate(useSettingsStore.getState().language, key, vars);
+  return translate(settingsAtoms.language.get(), key, vars);
 }

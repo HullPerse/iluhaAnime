@@ -1,15 +1,17 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useRef, useState, useCallback, useMemo } from "react";
 
+import { useCell } from "@/lib/state/signal.hook";
 import {
+
   applyFolderSelection,
   buildTorrentTree,
   flattenTorrentTree,
 } from "@/lib/torrent/tree.utils";
 import { TorrentFileRow } from "@/routes/components/torrent/rows/file.rows";
 import { FolderRow } from "@/routes/components/torrent/rows/folder.rows";
-import { useSettingsStore } from "@/store/settings.store";
-import { useUpscaleQueueStore } from "@/store/upscale.store";
+import { settingsAtoms } from "@/store/settings.store";
+import { upscaleItems } from "@/store/upscale.store";
 import type {
   FilePriority,
   TorrentFileInfo,
@@ -46,12 +48,12 @@ function TorrentFilesSection({
   onRedownload?: (fileIndex: number) => void;
   onPlay?: (path: string, name: string) => void;
 }) {
-  const showTrackFiles = useSettingsStore((s) => s.showTrackFiles);
-  const fileOrder = useSettingsStore((s) => s.fileOrder);
-  const audioExtensions = useSettingsStore((s) => s.audioExtensions);
-  const subtitleExtensions = useSettingsStore((s) => s.subtitleExtensions);
+  const showTrackFiles = useCell(settingsAtoms.showTrackFiles);
+  const fileOrder = useCell(settingsAtoms.fileOrder);
+  const audioExtensions = useCell(settingsAtoms.audioExtensions);
+  const subtitleExtensions = useCell(settingsAtoms.subtitleExtensions);
 
-  const items = useUpscaleQueueStore((s) => s.items);
+  const items = useCell(upscaleItems);
 
   const queueMap = useMemo(() => {
     const m = new Map<string, string>();

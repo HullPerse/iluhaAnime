@@ -1,7 +1,7 @@
 import { searchFiltersToParams } from "@/lib/anilist/entries.utils";
 import { anilistProxyArgs } from "@/lib/anilist/proxy.utils";
-import { useSettingsStore } from "@/store/settings.store";
 import type {
+
   ActivityLikeState,
   AniActivity,
   AniSiteNotification,
@@ -23,6 +23,7 @@ import type {
   FranchiseGraph,
   PrefetchSummary,
 } from "@/types/anilist";
+import { settingsAtoms } from "@/store/settings.store";
 import type { FilterPage, SpotlightPage } from "@/types/ipc";
 
 import { tauriTransport } from "./transport.api";
@@ -238,5 +239,5 @@ export class AnilistApi {
 }
 
 export const anilistApi = new AnilistApi({
-  proxyUrl: () => useSettingsStore.getState().anilistProxyUrl,
+  proxyUrl: () => settingsAtoms.anilistProxyUrl.get(),
 });

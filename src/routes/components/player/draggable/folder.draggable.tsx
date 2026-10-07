@@ -10,8 +10,9 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { maxFolderHeight } from "@/lib/player/folder.utils";
 import { summarizeTree } from "@/lib/player/tree.utils";
 import { normalizePlayerPath } from "@/lib/player/visibility.utils";
+import { useCell } from "@/lib/state/signal.hook";
 import { formatBytes } from "@/lib/utils/bytes.utils";
-import { useSettingsStore } from "@/store/settings.store";
+import { setPlayerFolderHeight, settingsAtoms } from "@/store/settings.store";
 import type { FolderNode } from "@/types/torrent";
 
 import FolderView from "../folder.player";
@@ -31,17 +32,14 @@ export function DraggableFolder({
   });
 
   const summary = useMemo(() => summarizeTree(tree), [tree]);
-  const audioExtensions = useSettingsStore((s) => s.audioExtensions);
+  const audioExtensions = useCell(settingsAtoms.audioExtensions);
   const disabledExtensions = useMemo(() => new Set(audioExtensions), [audioExtensions]);
   const { t } = useI18n();
 
-  const savedHeight = useSettingsStore(
-    (s) => s.playerFolderHeights[normalizePlayerPath(tree.path)]
-  );
-  const setPlayerFolderHeight = useSettingsStore((s) => s.setPlayerFolderHeight);
+  const savedHeight = useCell(settingsAtoms.playerFolderHeights)[normalizePlayerPath(tree.path)];
   const saveHeight = useCallback(
     (path: string) => (height: number) => setPlayerFolderHeight(path, height),
-    [setPlayerFolderHeight]
+    []
   );
   const onResizeEnd = useMemo(() => saveHeight(tree.path), [saveHeight, tree.path]);
 

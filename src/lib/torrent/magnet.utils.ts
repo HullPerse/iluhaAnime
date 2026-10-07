@@ -5,8 +5,8 @@ import { torrentApi } from "@/api/torrent.api";
 import { tr } from "@/lib/locale/i18n.utils";
 import { inflightFetch } from "@/lib/utils/lruCache.utils";
 import { attemptResult, err, ok, type Result } from "@/lib/utils/result.utils";
-import { useTorrentStore } from "@/store/download.store";
-import { useNotificationStore } from "@/store/notification.store";
+import { prepareTorrentDownload, prepareTorrentDownloadFromBytes } from "@/store/download.store";
+import { addNotification } from "@/store/notification.store";
 import type { Anime } from "@/types/torrent";
 
 const magnetInflight = new Map<string, Promise<Result<string>>>();
@@ -27,7 +27,7 @@ async function resolveMagnet(
     const fetched = await attemptResult(torrentApi.rutrackerGetMagnet(item.category));
     setLoadingMagnet((prev) => ({ ...prev, [key]: false }));
     if (!fetched.ok) {
-      useNotificationStore.getState().add(tr("common.error"), "error", tr("magnet.error"));
+      addNotification(tr("common.error"), "error", tr("magnet.error"));
       return fetched;
     }
     setMagnets((prev) => ({ ...prev, [key]: fetched.value }));
@@ -55,7 +55,7 @@ export async function openMagnet(
   if (!magnet.ok) return;
   const opened = await attemptResult(openUrl(magnet.value));
   if (!opened.ok) {
-    useNotificationStore.getState().add(tr("common.error"), "error", tr("magnet.open.error"));
+    addNotification(tr("common.error"), "error", tr("magnet.open.error"));
   }
 }
 
@@ -86,7 +86,7 @@ export async function downloadMagnet(
 ) {
   const bytes = await fetchTorrentBytes(item, setLoadingMagnet, source);
   if (bytes.ok) {
-    await useTorrentStore.getState().prepareTorrentDownloadFromBytes(bytes.value, {
+    await prepareTorrentDownloadFromBytes(bytes.value, {
       seeders: item.seeders,
       origin: source ? { source, url: item.link } : undefined,
     });
@@ -94,7 +94,7 @@ export async function downloadMagnet(
   }
   const magnet = await resolveMagnet(item, magnets, setMagnets, setLoadingMagnet);
   if (magnet.ok)
-    await useTorrentStore.getState().prepareTorrentDownload(magnet.value, {
+    await prepareTorrentDownload(magnet.value, {
       seeders: item.seeders,
       origin: source ? { source, url: item.link } : undefined,
     });

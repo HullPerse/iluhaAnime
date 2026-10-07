@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { resetTransportInflight } from "@/api/transport.api";
 import ImportAnilistCollection from "@/routes/components/collection/importAnilist.collection";
-import { useSettingsStore } from "@/store/settings.store";
+import { patchSettings } from "@/store/settings.store";
 import type { AniListCollection, AniListEntry, AniMedia, AniUser } from "@/types/anilist";
 import type { CollectionItem } from "@/types/collection";
 
@@ -141,7 +141,7 @@ afterEach(() => {
 });
 
 beforeEach(() => {
-  useSettingsStore.setState({ language: "en", anilistProxyUrl: null });
+  patchSettings({ language: "en", anilistProxyUrl: null });
   invokeMock.mockReset();
   resetTransportInflight();
   mockedItems = [];

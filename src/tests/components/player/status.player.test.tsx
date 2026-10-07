@@ -2,10 +2,10 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import PlayerStatus from "@/routes/components/player/media/status.player";
-import { useSettingsStore } from "@/store/settings.store";
+import { patchSettings } from "@/store/settings.store";
 
 beforeEach(() => {
-  useSettingsStore.setState({ language: "en" });
+  patchSettings({ language: "en" });
 });
 
 afterEach(() => {

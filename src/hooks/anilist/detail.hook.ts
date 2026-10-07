@@ -2,11 +2,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { buildEntryLookup } from "@/lib/anilist/entries.utils";
 import { buildAnimeBackHandler } from "@/lib/anilist/route.utils";
-import { useDeepLinkStore } from "@/store/deeplink.store";
+import { useCell } from "@/lib/state/signal.hook";
+import { consumeDeepLink, deeplinkAtoms } from "@/store/deeplink.store";
 import type { AniListAnime, AniListCollection } from "@/types/anilist";
 
 export function useAnilistDetail(lists: AniListCollection[]) {
-  const target = useDeepLinkStore((state) => state.target);
+  const target = useCell(deeplinkAtoms.target);
   const [selectedAnime, setSelectedAnime] = useState<AniListAnime>(null);
   const [animeHistory, setAnimeHistory] = useState<AniListAnime[]>([]);
   const [detailFromFilters, setDetailFromFilters] = useState(false);
@@ -45,7 +46,7 @@ export function useAnilistDetail(lists: AniListCollection[]) {
   useEffect(() => {
     if (!target) return;
     showDetail({ animeId: target.id, listEntry: entryLookup.get(target.id) }, false);
-    useDeepLinkStore.getState().consume();
+    consumeDeepLink();
   }, [target, entryLookup, showDetail]);
   return {
     detailFromFilters,

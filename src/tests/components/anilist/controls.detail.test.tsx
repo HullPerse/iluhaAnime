@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import AniListActionControls from "@/routes/components/anilist/detail/controls.detail";
-import { useSettingsStore } from "@/store/settings.store";
+import { patchSettings } from "@/store/settings.store";
 import type { AniMedia } from "@/types/anilist";
 
 const mockInvoke = vi.fn();
@@ -69,7 +69,7 @@ function saveButton() {
 afterEach(() => cleanup());
 
 beforeEach(() => {
-  useSettingsStore.setState({ language: "en" });
+  patchSettings({ language: "en" });
   mockInvoke.mockReset();
   mockInvoke.mockResolvedValue(null);
 });

@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import { TorrentApi } from "@/api/torrent.api";
 import type { ApiTransport } from "@/api/transport.api";
-import { useSettingsStore } from "@/store/settings.store";
+import { patchSettings, settingsAtoms } from "@/store/settings.store";
 
 function fakeTransport(resolve: (command: string, args?: Record<string, unknown>) => unknown) {
   const calls: Array<{ command: string; args?: Record<string, unknown> }> = [];
@@ -16,7 +16,7 @@ function fakeTransport(resolve: (command: string, args?: Record<string, unknown>
 }
 
 beforeEach(() => {
-  useSettingsStore.setState({ searchProxyUrls: {} });
+  patchSettings({ searchProxyUrls: {} });
 });
 
 describe("TorrentApi", () => {
@@ -80,8 +80,8 @@ describe("TorrentApi", () => {
   });
 
   it("resolves the proxy per source", () => {
-    useSettingsStore.setState({ searchProxyUrls: { rutracker: "socks5://127.0.0.1:10808" } });
-    const api = new TorrentApi({ proxies: () => useSettingsStore.getState().searchProxyUrls });
+    patchSettings({ searchProxyUrls: { rutracker: "socks5://127.0.0.1:10808" } });
+    const api = new TorrentApi({ proxies: () => settingsAtoms.searchProxyUrls.get() });
     expect(api.proxyFor("rutracker")).toBe("socks5://127.0.0.1:10808");
     expect(api.proxyFor("nyaa")).toBeUndefined();
   });
@@ -92,11 +92,11 @@ describe("TorrentApi", () => {
   });
 
   it("routes source searches with the source proxy", async () => {
-    useSettingsStore.setState({ searchProxyUrls: { nyaa: "http://127.0.0.1:7890" } });
+    patchSettings({ searchProxyUrls: { nyaa: "http://127.0.0.1:7890" } });
     const { calls, transport } = fakeTransport(() => []);
     const api = new TorrentApi({
       transport,
-      proxies: () => useSettingsStore.getState().searchProxyUrls,
+      proxies: () => settingsAtoms.searchProxyUrls.get(),
     });
 
     await api.searchBySource("nyaa", { query: "frieren", page: 2, sort: "seeders", order: "desc" });

@@ -1,8 +1,9 @@
 import { torrentApi } from "@/api/torrent.api";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { queryKeys } from "@/lib/query/keys.utils";
+import { useCell } from "@/lib/state/signal.hook";
 import { withFallback } from "@/lib/utils/attempt.utils";
-import { useSettingsStore } from "@/store/settings.store";
+import { settingsAtoms } from "@/store/settings.store";
 
 const SESSION_CHECK_TIMEOUT_MS = 8000;
 
@@ -17,9 +18,9 @@ function withSessionTimeout(promise: Promise<boolean>): Promise<boolean> {
 }
 
 export function useSearchSessions() {
-  const rutrackerProxy = useSettingsStore((s) => s.searchProxyUrls["rutracker"] ?? "");
-  const nekobtProxy = useSettingsStore((s) => s.searchProxyUrls["nekobt"] ?? "");
-  const eraiProxy = useSettingsStore((s) => s.searchProxyUrls["erai-raws"] ?? "");
+  const rutrackerProxy = useCell(settingsAtoms.searchProxyUrls)["rutracker"] ?? "";
+  const nekobtProxy = useCell(settingsAtoms.searchProxyUrls)["nekobt"] ?? "";
+  const eraiProxy = useCell(settingsAtoms.searchProxyUrls)["erai-raws"] ?? "";
   const { data: sessions } = useAppQuery("slow", {
     queryKey: queryKeys.searchSessions(rutrackerProxy, nekobtProxy, eraiProxy),
     queryFn: async () => {

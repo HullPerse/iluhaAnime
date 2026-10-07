@@ -12,8 +12,9 @@ import { enterOrSpace } from "@/lib/utils/keyboard.utils";
 import { ignore } from "@/lib/utils/promise.utils";
 import { showError } from "@/lib/utils/notification.utils";
 import { UPDATE_SOURCES_WITH_FILES, findUpdatedFiles } from "@/lib/torrent/update.utils";
-import { useSettingsStore } from "@/store/settings.store";
+import { settingsAtoms } from "@/store/settings.store";
 import type {
+
   FilePriority,
   TorrentDetailFile,
   TorrentDetails,
@@ -59,7 +60,7 @@ function UpdateCheck({
   const check = async () => {
     if (checking) return;
     setChecking(true);
-    const proxy = useSettingsStore.getState().searchProxyUrls[origin.source] || undefined;
+    const proxy = settingsAtoms.searchProxyUrls.get()[origin.source] || undefined;
     const [details, error] = await attempt(
       torrentApi.getTorrentDetails(origin.source, origin.url, proxy)
     );

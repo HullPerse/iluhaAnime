@@ -8,9 +8,11 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { usePagination } from "@/hooks/pagination.hook";
 import { useSqliteCell } from "@/hooks/sqlite/cell.hook";
 import { displayCell } from "@/lib/sqlite/row.utils";
+import { useCell } from "@/lib/state/signal.hook";
 import { attempt, attemptSync } from "@/lib/utils/attempt.utils";
-import { useSettingsStore } from "@/store/settings.store";
+import { patchSettings, settingsAtoms } from "@/store/settings.store";
 import type {
+
   SqliteDatabaseInfo,
   SqliteRowsPage,
   SqliteTableInfo,
@@ -37,8 +39,7 @@ import { VirtualRowsTable } from "./virtual.sqlite";
 
 export default function SqliteSettings() {
   const { t } = useI18n();
-  const showImages = useSettingsStore((s) => s.sqliteShowImages);
-  const patchSettings = useSettingsStore((s) => s.patch);
+  const showImages = useCell(settingsAtoms.sqliteShowImages);
   const [object, setObject] = useState<"tables" | "backup">("tables");
   const [databases, setDatabases] = useState<SqliteDatabaseInfo[]>([]);
   const [tables, setTables] = useState<SqliteTableInfo[]>([]);

@@ -22,13 +22,21 @@ import { fingerprint } from "@/lib/player/scan.utils";
 import { buildTree, filterTreeByPaths } from "@/lib/player/tree.utils";
 import { filterTreeByHiddenPaths } from "@/lib/player/visibility.utils";
 import { queryKeys } from "@/lib/query/keys.utils";
+import { useCell } from "@/lib/state/signal.hook";
 import { attempt, attemptSync, reportBackgroundError, withFallback } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { showError, showErrorOnce } from "@/lib/utils/notification.utils";
-import { useCacheStore } from "@/store/cache.store";
-import { useCategoryStore } from "@/store/category.store";
-import { useNotificationStore } from "@/store/notification.store";
-import { useSettingsStore } from "@/store/settings.store";
+import { cacheAtoms, setFolderTrees as setCachedFolderTrees } from "@/store/cache.store";
+import {
+  addCategory,
+  categoryAtoms,
+  exportCategories,
+  importCategories,
+  removeCategory,
+  removeEntriesByFolderPath,
+} from "@/store/category.store";
+import { addNotification as notify } from "@/store/notification.store";
+import { hidePlayerFolder, hidePlayerTorrent, patchSettings, setPlayerFolderHeight, settingsAtoms, unhidePlayerFolder, unhidePlayerTorrent } from "@/store/settings.store";
 import type { VideoFileEntry } from "@/types/fs";
 import type { ScanType, FileSearchResult } from "@/types/player";
 import type { FFMPEGStatus } from "@/types/settings";
@@ -55,15 +63,10 @@ function PlayerRoute() {
   const [loading, setLoading] = useState(false);
   const [scanProgress, setScanProgress] = useState<ScanType>(null);
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
-  const videoExtensions = useSettingsStore((s) => s.videoExtensions);
-  const savedFolderPaths = useSettingsStore((s) => s.savedFolderPaths);
-  const hiddenPlayerFolders = useSettingsStore((s) => s.hiddenPlayerFolders);
-  const hiddenPlayerTorrents = useSettingsStore((s) => s.hiddenPlayerTorrents);
-  const hidePlayerFolder = useSettingsStore((s) => s.hidePlayerFolder);
-  const unhidePlayerFolder = useSettingsStore((s) => s.unhidePlayerFolder);
-  const hidePlayerTorrent = useSettingsStore((s) => s.hidePlayerTorrent);
-  const unhidePlayerTorrent = useSettingsStore((s) => s.unhidePlayerTorrent);
-  const patch = useSettingsStore((s) => s.patch);
+  const videoExtensions = useCell(settingsAtoms.videoExtensions);
+  const savedFolderPaths = useCell(settingsAtoms.savedFolderPaths);
+  const hiddenPlayerFolders = useCell(settingsAtoms.hiddenPlayerFolders);
+  const hiddenPlayerTorrents = useCell(settingsAtoms.hiddenPlayerTorrents);
 
   const [torrentLoading, setTorrentLoading] = useState<Set<number>>(new Set());
 
@@ -88,7 +91,7 @@ function PlayerRoute() {
   });
   const searchResults = useMemo(() => fileSearchData ?? [], [fileSearchData]);
 
-  const allCategoryEntries = useCategoryStore((s) => s.entries);
+  const allCategoryEntries = useCell(categoryAtoms.entries);
   const categorizedPaths = useMemo(() => {
     const paths = new Set<string>();
     for (const list of Object.values(allCategoryEntries)) {
@@ -201,7 +204,7 @@ function PlayerRoute() {
       );
       if (error) {
         reportBackgroundError("folders.rebuild", error);
-        if (useSettingsStore.getState().notifyScanErrors)
+        if (settingsAtoms.notifyScanErrors.get())
           showErrorOnce("folders-rebuild", t("notification.scan.failed"), error.message);
       }
     },
@@ -211,7 +214,7 @@ function PlayerRoute() {
   const { reportScan } = useWatchedFolderNotifications(savedFolderPaths, videoExtensions);
 
   useEffect(() => {
-    const cached = useCacheStore.getState().folderTrees;
+    const cached = cacheAtoms.folderTrees.get();
     if (cached.length > 0) {
       setFolderTrees(cached.map((c) => c.tree));
       rebuildIndex(cached.map((c) => c.path));
@@ -246,7 +249,7 @@ function PlayerRoute() {
         setScanProgress({ current: done, total: savedFolderPaths.length });
         if (error) {
           reportBackgroundError("folders.scan", error);
-          if (useSettingsStore.getState().notifyScanErrors)
+          if (settingsAtoms.notifyScanErrors.get())
             showErrorOnce("folders-scan", t("notification.scan.failed"), error.message);
         } else {
           reportScan(
@@ -263,7 +266,7 @@ function PlayerRoute() {
       scannedFingerprint.current = print;
       await rebuildIndex(savedFolderPaths);
       if (cancelled) return;
-      useCacheStore.getState().setFolderTrees(trees.map((t) => ({ path: t.path, tree: t })));
+      setCachedFolderTrees(trees.map((t) => ({ path: t.path, tree: t })));
     })();
 
     return () => {
@@ -275,7 +278,7 @@ function PlayerRoute() {
     if (savedFolderPaths.length === 0) return;
     invokeTyped("start_watching_folders", { folders: savedFolderPaths }).catch((error) => {
       reportBackgroundError("folders.watch.start", error);
-      if (useSettingsStore.getState().notifyScanErrors)
+      if (settingsAtoms.notifyScanErrors.get())
         showErrorOnce("folders-watch", t("notification.scan.failed"), String(error));
     });
     return () => {
@@ -308,7 +311,7 @@ function PlayerRoute() {
         if (scanError || folderScanDisposedRef.current) {
           if (scanError) {
             reportBackgroundError("folders.rescan", scanError);
-            if (useSettingsStore.getState().notifyScanErrors)
+            if (settingsAtoms.notifyScanErrors.get())
               showErrorOnce("folders-rescan", t("notification.scan.failed"), scanError.message);
           }
           return;
@@ -322,7 +325,7 @@ function PlayerRoute() {
         if (refreshError || folderScanDisposedRef.current) {
           if (refreshError) {
             reportBackgroundError("folders.rescan", refreshError);
-            if (useSettingsStore.getState().notifyScanErrors)
+            if (settingsAtoms.notifyScanErrors.get())
               showErrorOnce("folders-rescan", t("notification.scan.failed"), refreshError.message);
           }
           return;
@@ -330,7 +333,7 @@ function PlayerRoute() {
         setFolderTrees((prev) => {
           const next = prev.filter((tree) => tree.path !== path);
           if (entries?.length) next.push(buildTree(entries, path));
-          useCacheStore.getState().setFolderTrees(next.map((tree) => ({ path: tree.path, tree })));
+          setCachedFolderTrees(next.map((tree) => ({ path: tree.path, tree })));
           return next;
         });
         reportScan(
@@ -372,15 +375,15 @@ function PlayerRoute() {
     );
     if (scanError) {
       reportBackgroundError("folders.scan", scanError);
-      if (useSettingsStore.getState().notifyScanErrors)
+      if (settingsAtoms.notifyScanErrors.get())
         showError(t("notification.scan.failed"), scanError.message);
     } else if (entries && entries.length > 0) {
       const tree = buildTree(entries, folder);
       const next = [...folderTrees, tree];
       setFolderTrees(next);
-      patch({ savedFolderPaths: next.map((t) => t.path) });
+      patchSettings({ savedFolderPaths: next.map((t) => t.path) });
       rebuildIndex(next.map((t) => t.path));
-      useCacheStore.getState().setFolderTrees(next.map((t) => ({ path: t.path, tree: t })));
+      setCachedFolderTrees(next.map((t) => ({ path: t.path, tree: t })));
     }
     const unlisten = await unlistenPromise.catch((error) =>
       reportBackgroundError("folderscan.unlisten", error)
@@ -388,22 +391,22 @@ function PlayerRoute() {
     unlisten?.();
     setLoading(false);
     setScanProgress(null);
-  }, [folderTrees, t, videoExtensions, patch, rebuildIndex]);
+  }, [folderTrees, t, videoExtensions, rebuildIndex]);
 
   const handleRemoveFolder = useCallback(
     (path: string) => {
-      useCategoryStore.getState().removeEntriesByFolderPath(path);
-      useSettingsStore.getState().unhidePlayerFolder(path);
+      removeEntriesByFolderPath(path);
+      unhidePlayerFolder(path);
       setFolderTrees((prev) => {
         const next = prev.filter((t) => t.path !== path);
-        patch({ savedFolderPaths: next.map((t) => t.path) });
-        useSettingsStore.getState().setPlayerFolderHeight(path, null);
+        patchSettings({ savedFolderPaths: next.map((t) => t.path) });
+        setPlayerFolderHeight(path, null);
         rebuildIndex(next.map((t) => t.path));
-        useCacheStore.getState().setFolderTrees(next.map((t) => ({ path: t.path, tree: t })));
+        setCachedFolderTrees(next.map((t) => ({ path: t.path, tree: t })));
         return next;
       });
     },
-    [patch, rebuildIndex]
+    [rebuildIndex]
   );
 
   const toggleExpanded = useCallback((id: number) => {
@@ -415,22 +418,19 @@ function PlayerRoute() {
     });
   }, []);
 
-  const categories = useCategoryStore((s) => s.categories);
-  const addCategory = useCategoryStore((s) => s.addCategory);
-  const removeCategory = useCategoryStore((s) => s.removeCategory);
+  const categories = useCell(categoryAtoms.categories);
 
   const handleCreateCategory = useCallback(() => {
     addCategory(t("player.route.new.category"));
-  }, [addCategory, t]);
+  }, [t]);
 
   const handleRemoveCategory = useCallback((id: string) => {
     setPendingDeleteCategory(id);
   }, []);
 
   const handleExportCategories = useCallback(() => {
-    const notify = useNotificationStore.getState().add;
     const [, error] = attemptSync(() => {
-      const json = useCategoryStore.getState().exportCategories();
+      const json = exportCategories();
       const blob = new Blob([json], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -449,7 +449,6 @@ function PlayerRoute() {
   const handleImportCategories = useCallback(
     async (file: File | null) => {
       if (!file) return;
-      const notify = useNotificationStore.getState().add;
       const read = await attempt(file.text());
       if (read[1] || !read[0]) {
         notify(t("player.route.create.category"), "error", t("player.category.import.error"));
@@ -460,9 +459,7 @@ function PlayerRoute() {
         notify(t("player.route.create.category"), "error", t("player.category.import.error"));
         return;
       }
-      const [count, importError] = attemptSync(() =>
-        useCategoryStore.getState().importCategories(parsed)
-      );
+      const [count, importError] = attemptSync(() => importCategories(parsed));
       if (importError) {
         notify(t("player.route.create.category"), "error", t("player.category.import.error"));
         return;

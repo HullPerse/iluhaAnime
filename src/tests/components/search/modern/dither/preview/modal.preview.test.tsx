@@ -5,8 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { toUserImage } from "@/lib/utils/image.utils";
 import DitherPreviewModal from "@/routes/components/search/modern/dither/preview/modal.preview";
-import { useNotificationStore } from "@/store/notification.store";
-import { useSettingsStore } from "@/store/settings.store";
+import { notificationAtoms } from "@/store/notification.store";
+import { patchSettings } from "@/store/settings.store";
 import type { UserImage, UserImageFile } from "@/types/userimage";
 
 const mockInvoke = vi.fn();
@@ -76,17 +76,19 @@ class FakeImage {
 }
 
 function errorMessages() {
-  return useNotificationStore
-    .getState()
-    .items.filter((item) => item.type === "error")
+  return notificationAtoms.items
+    .get()
+    .filter((item) => item.type === "error")
     .map((item) => item.message);
 }
 
 afterEach(() => cleanup());
 
 beforeEach(() => {
-  useSettingsStore.setState({ language: "en" });
-  useNotificationStore.setState({ items: [], unreadCount: 0, dismissed: [] });
+  patchSettings({ language: "en" });
+  notificationAtoms.items.set([]);
+  notificationAtoms.unreadCount.set(0);
+  notificationAtoms.dismissed.set([]);
   mockInvoke.mockReset();
   lastCanvasLevels = 0;
   lastCanvasScale = 0;
@@ -286,9 +288,7 @@ describe("DitherPreviewModal", () => {
       await user.click(screen.getByRole("button", { name: "From image" }));
       await waitFor(() =>
         expect(
-          useNotificationStore
-            .getState()
-            .items.some((item) => item.message === "Could not read image colors.")
+          notificationAtoms.items.get().some((item) => item.message === "Could not read image colors.")
         ).toBe(true)
       );
     } finally {

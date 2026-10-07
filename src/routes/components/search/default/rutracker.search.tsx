@@ -8,9 +8,10 @@ import { Input } from "@/components/ui/input.component";
 import { PasswordInput } from "@/components/ui/password.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { mapError } from "@/lib/search/rutracker.utils";
+import { useCell } from "@/lib/state/signal.hook";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { enterSubmit } from "@/lib/utils/keyboard.utils";
-import { useSettingsStore } from "@/store/settings.store";
+import { settingsAtoms } from "@/store/settings.store";
 
 function RutrackerLoginModal({
   setRutrackerAuth,
@@ -20,7 +21,7 @@ function RutrackerLoginModal({
   setShowLogin: (value: boolean) => void;
 }) {
   const { t } = useI18n();
-  const rutrackerProxy = useSettingsStore((s) => s.searchProxyUrls["rutracker"] ?? "");
+  const rutrackerProxy = useCell(settingsAtoms.searchProxyUrls)["rutracker"] ?? "";
   const [mode, setMode] = useState<"login" | "browser">(
     rutrackerProxy.trim() ? "browser" : "login"
   );

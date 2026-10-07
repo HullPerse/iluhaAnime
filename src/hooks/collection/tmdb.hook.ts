@@ -2,8 +2,9 @@ import { useState } from "react";
 
 import { tmdbApi } from "@/api/tmdb.api";
 import { useLiveResource } from "@/hooks/liveResource.hook";
+import { useCell } from "@/lib/state/signal.hook";
 import { attempt } from "@/lib/utils/attempt.utils";
-import { useSettingsStore } from "@/store/settings.store";
+import { settingsAtoms } from "@/store/settings.store";
 import type { TmdbRateLimit } from "@/types/collection";
 
 export function useTmdbRateLimit(pollMs = 10000, enabled = true) {
@@ -12,7 +13,7 @@ export function useTmdbRateLimit(pollMs = 10000, enabled = true) {
     resetAt: null,
     retryAfterSecs: null,
   });
-  const tmdbKeySet = useSettingsStore((s) => s.tmdbKeySet);
+  const tmdbKeySet = useCell(settingsAtoms.tmdbKeySet);
 
   useLiveResource({
     intervalMs: pollMs,

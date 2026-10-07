@@ -8,7 +8,12 @@ import Combobox from "@/components/ui/combobox.component";
 import { Input } from "@/components/ui/input.component";
 import Select from "@/components/ui/select.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { useSearchStore } from "@/store/search.store";
+import { useCell } from "@/lib/state/signal.hook";
+import {
+  deleteSearchFilterPreset,
+  saveSearchFilterPreset,
+  searchAtoms,
+} from "@/store/search.store";
 import type { SearchFilters, SortKey } from "@/types/search";
 import type { ModalFiltersProps as Props } from "@/types/search";
 
@@ -33,9 +38,7 @@ export default function SearchFiltersModal({
   const { t } = useI18n();
   const [local, setLocal] = useState<SearchFilters>(filters);
   const [presetName, setPresetName] = useState("");
-  const userPresets = useSearchStore((s) => s.filterPresets);
-  const saveFilterPreset = useSearchStore((s) => s.saveFilterPreset);
-  const deleteFilterPreset = useSearchStore((s) => s.deleteFilterPreset);
+  const userPresets = useCell(searchAtoms.filterPresets);
 
   if (!open) return null;
 
@@ -122,7 +125,7 @@ export default function SearchFiltersModal({
                   className="h-6 w-5 rounded-l-none"
                   title={t("search.filters.preset.delete")}
                   aria-label={`${t("search.filters.preset.delete")}: ${preset.name}`}
-                  onClick={() => deleteFilterPreset(preset.name)}
+                  onClick={() => deleteSearchFilterPreset(preset.name)}
                 >
                   <X className="size-3" />
                 </Button>
@@ -139,7 +142,7 @@ export default function SearchFiltersModal({
             onChange={(e) => setPresetName(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter" && presetName.trim()) {
-                saveFilterPreset(presetName, local);
+                saveSearchFilterPreset(presetName, local);
                 setPresetName("");
               }
             }}
@@ -149,7 +152,7 @@ export default function SearchFiltersModal({
             className="h-6 text-xs"
             disabled={!presetName.trim()}
             onClick={() => {
-              saveFilterPreset(presetName, local);
+              saveSearchFilterPreset(presetName, local);
               setPresetName("");
             }}
           >

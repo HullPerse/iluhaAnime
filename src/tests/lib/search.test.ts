@@ -499,7 +499,7 @@ describe("search/ranking", () => {
 
   describe("ml phase1 - TTL", () => {
     it("purges stats older than 90 days", async () => {
-      const { useSearchStore } = await import("@/store/search.store");
+      const { purgeSearchStats, searchAtoms } = await import("@/store/search.store");
       const now = Date.now();
       const old = now - 91 * 24 * 60 * 60 * 1000;
       const queryStats: Record<string, SearchQueryStat> = {
@@ -509,12 +509,12 @@ describe("search/ranking", () => {
       const suggestionStats: Record<string, SearchQueryStat> = {
         stale2: { count: 1, lastUsedAt: old, selectedCount: 0 },
       };
-      useSearchStore.setState({ queryStats, suggestionStats });
-      useSearchStore.getState().purgeExpired();
-      const s = useSearchStore.getState();
-      expect(s.queryStats["fresh"]).toBeDefined();
-      expect(s.queryStats["stale"]).toBeUndefined();
-      expect(s.suggestionStats["stale2"]).toBeUndefined();
+      searchAtoms.queryStats.set(queryStats);
+      searchAtoms.suggestionStats.set(suggestionStats);
+      purgeSearchStats();
+      expect(searchAtoms.queryStats.get()["fresh"]).toBeDefined();
+      expect(searchAtoms.queryStats.get()["stale"]).toBeUndefined();
+      expect(searchAtoms.suggestionStats.get()["stale2"]).toBeUndefined();
     });
 
     it("getSearchSuggestions with Cyrillic ё still matches", () => {

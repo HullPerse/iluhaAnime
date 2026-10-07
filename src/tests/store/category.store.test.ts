@@ -1,77 +1,82 @@
-import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
-const storage = new Map<string, string>();
+import {
+  createCategorySignalStore,
+  type CategorySignalStore,
+} from "@/store/category.store";
 
-vi.mock("@tauri-apps/api/core", () => ({
-  invoke: vi.fn(() => Promise.resolve(null)),
-  convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
-}));
-
-let useCategoryStore: (typeof import("@/store/category.store"))["useCategoryStore"];
-
-beforeAll(async () => {
-  vi.stubGlobal("window", {
-    localStorage: {
-      getItem: (k: string) => storage.get(k) ?? null,
-      removeItem: (k: string) => storage.delete(k),
-      setItem: (k: string, v: string) => storage.set(k, v),
+function memoryStorage(backing = new Map<string, string>()): Storage {
+  return {
+    getItem: (key: string) => backing.get(key) ?? null,
+    setItem: (key: string, value: string) => {
+      backing.set(key, value);
     },
-  });
-  const mod = await import("@/store/category.store");
-  useCategoryStore = mod.useCategoryStore;
-});
+    removeItem: (key: string) => {
+      backing.delete(key);
+    },
+    clear: () => backing.clear(),
+    key: (index: number) => [...backing.keys()][index] ?? null,
+    get length() {
+      return backing.size;
+    },
+  } as Storage;
+}
 
-beforeEach(() => {
-  storage.clear();
-  useCategoryStore.setState({ categories: [], entries: {}, collapsedIds: [] });
-});
+function setup(backing = new Map<string, string>()): CategorySignalStore {
+  return createCategorySignalStore({ getStorage: () => memoryStorage(backing) });
+}
 
-function seed() {
-  const store = useCategoryStore.getState();
+function seed(store: CategorySignalStore): string {
   const id = store.addCategory("Anime");
-  const api = useCategoryStore.getState();
-  api.addEntry(id, { type: "folder", name: "A", folderPath: "/a" });
-  api.addEntry(id, { type: "folder", name: "B", folderPath: "/b" });
-  api.addEntry(id, { type: "folder", name: "C", folderPath: "/c" });
+  store.addEntry(id, { type: "folder", name: "A", folderPath: "/a" });
+  store.addEntry(id, { type: "folder", name: "B", folderPath: "/b" });
+  store.addEntry(id, { type: "folder", name: "C", folderPath: "/c" });
   return id;
 }
 
-describe("useCategoryStore entries", () => {
+describe("category signal entries", () => {
   it("trims names and rejects empties and duplicates on rename", () => {
-    const id = seed();
-    const store = useCategoryStore.getState();
+    const store = setup();
+    const id = seed(store);
     store.renameCategory(id, "  Spaced  ");
-    expect(useCategoryStore.getState().categories[0].name).toBe("Spaced");
+    expect(store.atoms.categories.get()[0].name).toBe("Spaced");
     store.addCategory("Other");
     store.renameCategory(id, "other");
-    expect(useCategoryStore.getState().categories[0].name).toBe("Spaced");
+    expect(store.atoms.categories.get()[0].name).toBe("Spaced");
     store.renameCategory(id, "   ");
-    expect(useCategoryStore.getState().categories[0].name).toBe("Spaced");
+    expect(store.atoms.categories.get()[0].name).toBe("Spaced");
+    store.persistor.dispose();
   });
 
   it("moves an entry up and down", () => {
-    const id = seed();
-    const ids = () => useCategoryStore.getState().entries[id].map((entry) => entry.name);
+    const store = setup();
+    const id = seed(store);
+    const ids = () => store.atoms.entries.get()[id].map((entry) => entry.name);
     expect(ids()).toEqual(["A", "B", "C"]);
-    useCategoryStore.getState().moveEntry(id, useCategoryStore.getState().entries[id][2].id, -1);
+    store.moveEntry(id, store.atoms.entries.get()[id][2].id, -1);
     expect(ids()).toEqual(["A", "C", "B"]);
-    useCategoryStore.getState().moveEntry(id, useCategoryStore.getState().entries[id][0].id, -1);
+    store.moveEntry(id, store.atoms.entries.get()[id][0].id, -1);
     expect(ids()).toEqual(["A", "C", "B"]);
+    store.persistor.dispose();
   });
 
   it("exports and reimports a roundtrip", () => {
-    const id = seed();
-    const json = useCategoryStore.getState().exportCategories();
-    useCategoryStore.setState({ categories: [], entries: {} });
-    const count = useCategoryStore.getState().importCategories(JSON.parse(json));
+    const store = setup();
+    const id = seed(store);
+    const json = store.exportCategories();
+    store.atoms.categories.set([]);
+    store.atoms.entries.set({});
+    const count = store.importCategories(JSON.parse(json));
     expect(count).toBe(1);
-    expect(useCategoryStore.getState().entries[id]).toHaveLength(3);
+    expect(store.atoms.entries.get()[id]).toHaveLength(3);
+    store.persistor.dispose();
   });
 
   it("rejects invalid backups and skips bad rows", () => {
-    expect(() => useCategoryStore.getState().importCategories(null)).toThrow();
-    expect(() => useCategoryStore.getState().importCategories({})).toThrow();
-    const count = useCategoryStore.getState().importCategories({
+    const store = setup();
+    expect(() => store.importCategories(null)).toThrow();
+    expect(() => store.importCategories({})).toThrow();
+    const count = store.importCategories({
       categories: [
         { id: "c1", name: "Ok", icon: "i.ico" },
         { id: 5, name: "Bad" },
@@ -85,7 +90,8 @@ describe("useCategoryStore entries", () => {
       },
     });
     expect(count).toBe(1);
-    expect(useCategoryStore.getState().entries["c1"]).toHaveLength(1);
-    expect(useCategoryStore.getState().entries["ghost"]).toBeUndefined();
+    expect(store.atoms.entries.get()["c1"]).toHaveLength(1);
+    expect(store.atoms.entries.get()["ghost"]).toBeUndefined();
+    store.persistor.dispose();
   });
 });

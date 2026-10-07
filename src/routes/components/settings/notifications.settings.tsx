@@ -7,9 +7,10 @@ import { Checkbox } from "@/components/ui/checkbox.component";
 import Select from "@/components/ui/select.component";
 import { POLL_INTERVALS_MIN } from "@/config/settings/notifications.config";
 import { useI18n } from "@/hooks/i18n.hook";
+import { useCell } from "@/lib/state/signal.hook";
 import { attempt } from "@/lib/utils/attempt.utils";
-import { useAniListNotificationsStore } from "@/store/anilist.store";
-import { useSettingsStore } from "@/store/settings.store";
+import { anilistNotificationsAtoms, setKnownAnilistListNames } from "@/store/anilist.store";
+import { patchSettings, settingsAtoms } from "@/store/settings.store";
 
 function NotifyRow({
   label,
@@ -32,27 +33,24 @@ function NotifyRow({
 
 export default function SettingsNotifications() {
   const { t } = useI18n();
-  const {
-    notificationsEnabled,
-    anilistReleaseNotifications,
-    notifyNewEpisodes,
-    notifyStatusChanges,
-    notifyMediaStatus,
-    notifySubscribedReplies,
-    notifyMediaMerge,
-    notifySequel,
-    anilistPollIntervalMin,
-    anilistNotifyLists,
-    notifyNewFiles,
-    notifyTorrentHealth,
-    notifyUpscaleDone,
-    notifyModelDownloads,
-    notifyBackup,
-    notifyUpdateAvailable,
-    notifyScanErrors,
-    patch,
-  } = useSettingsStore();
-  const knownListNames = useAniListNotificationsStore((s) => s.knownListNames);
+  const notificationsEnabled = useCell(settingsAtoms.notificationsEnabled);
+  const anilistReleaseNotifications = useCell(settingsAtoms.anilistReleaseNotifications);
+  const notifyNewEpisodes = useCell(settingsAtoms.notifyNewEpisodes);
+  const notifyStatusChanges = useCell(settingsAtoms.notifyStatusChanges);
+  const notifyMediaStatus = useCell(settingsAtoms.notifyMediaStatus);
+  const notifySubscribedReplies = useCell(settingsAtoms.notifySubscribedReplies);
+  const notifyMediaMerge = useCell(settingsAtoms.notifyMediaMerge);
+  const notifySequel = useCell(settingsAtoms.notifySequel);
+  const anilistPollIntervalMin = useCell(settingsAtoms.anilistPollIntervalMin);
+  const anilistNotifyLists = useCell(settingsAtoms.anilistNotifyLists);
+  const notifyNewFiles = useCell(settingsAtoms.notifyNewFiles);
+  const notifyTorrentHealth = useCell(settingsAtoms.notifyTorrentHealth);
+  const notifyUpscaleDone = useCell(settingsAtoms.notifyUpscaleDone);
+  const notifyModelDownloads = useCell(settingsAtoms.notifyModelDownloads);
+  const notifyBackup = useCell(settingsAtoms.notifyBackup);
+  const notifyUpdateAvailable = useCell(settingsAtoms.notifyUpdateAvailable);
+  const notifyScanErrors = useCell(settingsAtoms.notifyScanErrors);
+  const knownListNames = useCell(anilistNotificationsAtoms.knownListNames);
   const [listsLoading, setListsLoading] = useState(false);
   const [listsFailed, setListsFailed] = useState(false);
 
@@ -68,7 +66,7 @@ export default function SettingsNotifications() {
     const [, listsError] = await attempt(
       (async () => {
         const lists = await anilistApi.getLists(user.id, true);
-        useAniListNotificationsStore.getState().setKnownListNames(lists.map((list) => list.name));
+        setKnownAnilistListNames(lists.map((list) => list.name));
       })()
     );
     if (listsError) setListsFailed(true);
@@ -76,7 +74,7 @@ export default function SettingsNotifications() {
   }, []);
 
   useEffect(() => {
-    if (useAniListNotificationsStore.getState().knownListNames.length === 0) {
+    if (anilistNotificationsAtoms.knownListNames.get().length === 0) {
       fetchLists();
     }
   }, [fetchLists]);
@@ -84,7 +82,7 @@ export default function SettingsNotifications() {
   const toggleList = (name: string) => {
     const current = anilistNotifyLists ?? knownListNames;
     const next = current.includes(name) ? current.filter((n) => n !== name) : [...current, name];
-    patch({ anilistNotifyLists: next.length === knownListNames.length ? null : next });
+    patchSettings({ anilistNotifyLists: next.length === knownListNames.length ? null : next });
   };
 
   const anilistOff = !anilistReleaseNotifications;
@@ -99,7 +97,7 @@ export default function SettingsNotifications() {
           <NotifyRow
             label={t("common.on")}
             checked={notificationsEnabled}
-            onChange={(v) => patch({ notificationsEnabled: v })}
+            onChange={(v) => patchSettings({ notificationsEnabled: v })}
           />
         </div>
       </section>
@@ -114,43 +112,43 @@ export default function SettingsNotifications() {
           <NotifyRow
             label={t("settings.anilist.release.notifications")}
             checked={anilistReleaseNotifications}
-            onChange={(v) => patch({ anilistReleaseNotifications: v })}
+            onChange={(v) => patchSettings({ anilistReleaseNotifications: v })}
           />
           <NotifyRow
             label={t("settings.notifications.episodes")}
             checked={notifyNewEpisodes}
             disabled={anilistOff}
-            onChange={(v) => patch({ notifyNewEpisodes: v })}
+            onChange={(v) => patchSettings({ notifyNewEpisodes: v })}
           />
           <NotifyRow
             label={t("settings.notifications.statuses")}
             checked={notifyStatusChanges}
             disabled={anilistOff}
-            onChange={(v) => patch({ notifyStatusChanges: v })}
+            onChange={(v) => patchSettings({ notifyStatusChanges: v })}
           />
           <NotifyRow
             label={t("settings.notifications.media.status")}
             checked={notifyMediaStatus}
             disabled={anilistOff}
-            onChange={(v) => patch({ notifyMediaStatus: v })}
+            onChange={(v) => patchSettings({ notifyMediaStatus: v })}
           />
           <NotifyRow
             label={t("settings.notifications.subscribed")}
             checked={notifySubscribedReplies}
             disabled={anilistOff}
-            onChange={(v) => patch({ notifySubscribedReplies: v })}
+            onChange={(v) => patchSettings({ notifySubscribedReplies: v })}
           />
           <NotifyRow
             label={t("settings.notifications.merge")}
             checked={notifyMediaMerge}
             disabled={anilistOff}
-            onChange={(v) => patch({ notifyMediaMerge: v })}
+            onChange={(v) => patchSettings({ notifyMediaMerge: v })}
           />
           <NotifyRow
             label={t("settings.notifications.sequel")}
             checked={notifySequel}
             disabled={anilistOff}
-            onChange={(v) => patch({ notifySequel: v })}
+            onChange={(v) => patchSettings({ notifySequel: v })}
           />
           <div className="mt-1 flex items-center gap-2">
             <span className="windows95-text text-text text-xs font-bold">
@@ -159,7 +157,7 @@ export default function SettingsNotifications() {
             <Select
               value={String(anilistPollIntervalMin)}
               disabled={anilistOff}
-              onChange={(v) => patch({ anilistPollIntervalMin: Number(v) })}
+              onChange={(v) => patchSettings({ anilistPollIntervalMin: Number(v) })}
               options={POLL_INTERVALS_MIN.map((m) => ({
                 value: String(m),
                 label: `${m} ${t("settings.notifications.interval.min")}`,
@@ -213,7 +211,7 @@ export default function SettingsNotifications() {
           <NotifyRow
             label={t("settings.notifications.torrent.health")}
             checked={notifyTorrentHealth}
-            onChange={(v) => patch({ notifyTorrentHealth: v })}
+            onChange={(v) => patchSettings({ notifyTorrentHealth: v })}
           />
         </div>
       </section>
@@ -228,7 +226,7 @@ export default function SettingsNotifications() {
           <NotifyRow
             label={t("settings.notifications.newfiles")}
             checked={notifyNewFiles}
-            onChange={(v) => patch({ notifyNewFiles: v })}
+            onChange={(v) => patchSettings({ notifyNewFiles: v })}
           />
         </div>
       </section>
@@ -243,17 +241,17 @@ export default function SettingsNotifications() {
           <NotifyRow
             label={t("settings.notifications.upscale")}
             checked={notifyUpscaleDone}
-            onChange={(v) => patch({ notifyUpscaleDone: v })}
+            onChange={(v) => patchSettings({ notifyUpscaleDone: v })}
           />
           <NotifyRow
             label={t("settings.notifications.models")}
             checked={notifyModelDownloads}
-            onChange={(v) => patch({ notifyModelDownloads: v })}
+            onChange={(v) => patchSettings({ notifyModelDownloads: v })}
           />
           <NotifyRow
             label={t("settings.notifications.backup")}
             checked={notifyBackup}
-            onChange={(v) => patch({ notifyBackup: v })}
+            onChange={(v) => patchSettings({ notifyBackup: v })}
           />
         </div>
       </section>
@@ -266,12 +264,12 @@ export default function SettingsNotifications() {
           <NotifyRow
             label={t("settings.notifications.update")}
             checked={notifyUpdateAvailable}
-            onChange={(v) => patch({ notifyUpdateAvailable: v })}
+            onChange={(v) => patchSettings({ notifyUpdateAvailable: v })}
           />
           <NotifyRow
             label={t("settings.notifications.scan")}
             checked={notifyScanErrors}
-            onChange={(v) => patch({ notifyScanErrors: v })}
+            onChange={(v) => patchSettings({ notifyScanErrors: v })}
           />
         </div>
       </section>

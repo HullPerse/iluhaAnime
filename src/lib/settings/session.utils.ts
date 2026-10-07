@@ -1,8 +1,8 @@
-import { useSettingsStore } from "@/store/settings.store";
+import { getSettingsSnapshot } from "@/store/settings.store";
 import type { SessionConfigPayload } from "@/types/settings";
 
 export function toSessionConfig(): SessionConfigPayload {
-  const s = useSettingsStore.getState();
+  const s = getSettingsSnapshot();
   return {
     fastresume: s.fastresumeEnabled,
     ipv4Only: s.ipv4Only,

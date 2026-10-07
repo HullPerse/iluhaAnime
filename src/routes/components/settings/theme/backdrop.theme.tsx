@@ -1,10 +1,10 @@
 import Slider from "@/components/ui/range.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { useSettingsStore } from "@/store/settings.store";
+import { useCell } from "@/lib/state/signal.hook";
+import { patchSettings, settingsAtoms } from "@/store/settings.store";
 
 export function BackdropSlider() {
-  const value = useSettingsStore((s) => s.modalBackdropOpacity);
-  const patch = useSettingsStore((s) => s.patch);
+  const value = useCell(settingsAtoms.modalBackdropOpacity);
   const { t } = useI18n();
   return (
     <div className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-0.5">
@@ -16,7 +16,7 @@ export function BackdropSlider() {
         max={100}
         step={5}
         value={value}
-        onChange={(v) => patch({ modalBackdropOpacity: v })}
+        onChange={(v) => patchSettings({ modalBackdropOpacity: v })}
         suffix="%"
       />
     </div>

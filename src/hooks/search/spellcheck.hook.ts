@@ -4,7 +4,8 @@ import { useDebouncedValue } from "@/hooks/pacer.hook";
 
 import { normalizeSearchText } from "@/lib/search/normalize.utils";
 import { suggestSpelling } from "@/lib/search/suggestions.utils";
-import { useSearchStore } from "@/store/search.store";
+import { useCell } from "@/lib/state/signal.hook";
+import { searchAtoms } from "@/store/search.store";
 import type { SearchAnimeSuggestion, SpellCheck } from "@/types/search";
 
 interface SpellCheckOptions {
@@ -63,7 +64,7 @@ function diffWordSpan(
 
 export function useSpellCheck(query: string, options: SpellCheckOptions): SpellCheck | null {
   const { history, animeIndex, extraValues, symSpell, debounceMs = 400 } = options;
-  const dictionary = useSearchStore((s) => s.spellDictionary);
+  const dictionary = useCell(searchAtoms.spellDictionary);
   const [debouncedQuery, { isPending }] = useDebouncedValue(query, { wait: debounceMs });
 
   return useMemo(() => {

@@ -7,7 +7,7 @@ import { readStoredMedia, withStoredMedia } from "@/lib/collection/media.utils";
 import { mergeGenreTags } from "@/lib/collection/wizard.utils";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
-import { useNotificationStore } from "@/store/notification.store";
+import { addNotification } from "@/store/notification.store";
 import type { CollectionItem } from "@/types/collection";
 
 export function useCollectionMetadata(
@@ -17,7 +17,7 @@ export function useCollectionMetadata(
 
   const notify = useCallback(
     (type: "success" | "error" | "info", key: TranslationKey) => {
-      useNotificationStore.getState().add(t("app.collection"), type, t(key));
+      addNotification(t("app.collection"), type, t(key));
     },
     [t]
   );

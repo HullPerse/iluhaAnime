@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { useTorrentStore } from "@/store/download.store";
+import { getTorrentLimits, setTorrentLimits } from "@/store/download.store";
 
 export function TorrentLimitsSection({ id, infoHash }: { id: number; infoHash?: string }) {
   const { t } = useI18n();
@@ -12,9 +12,7 @@ export function TorrentLimitsSection({ id, infoHash }: { id: number; infoHash?: 
   const [uploadInput, setUploadInput] = useState("");
   useEffect(() => {
     let cancelled = false;
-    useTorrentStore
-      .getState()
-      .getTorrentLimits(id)
+    getTorrentLimits(id)
       .then((limits) => {
         if (cancelled) return;
         if (limits.downloadBps !== null)
@@ -30,7 +28,7 @@ export function TorrentLimitsSection({ id, infoHash }: { id: number; infoHash?: 
     const upload = uploadInput === "" ? null : Number(uploadInput);
     if (download !== null && (!Number.isFinite(download) || download <= 0)) return;
     if (upload !== null && (!Number.isFinite(upload) || upload <= 0)) return;
-    useTorrentStore.getState().setTorrentLimits(id, { download, upload }, infoHash);
+    setTorrentLimits(id, { download, upload }, infoHash);
   };
   const invalid =
     (downloadInput !== "" && !(Number(downloadInput) > 0)) ||

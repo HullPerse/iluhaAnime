@@ -18,7 +18,7 @@ import {
   resolveStatusLabel,
 } from "@/lib/collection/status.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
-import { useNotificationStore } from "@/store/notification.store";
+import { addNotification } from "@/store/notification.store";
 import type { ShareImportPlan } from "@/types/deeplink";
 
 import { BilingualPreview } from "./bilingualPreview.collection";
@@ -169,7 +169,7 @@ export function ShareImportCollection({
         await queryClient.invalidateQueries({ queryKey: COLLECTION_QUERY_KEY });
       })()
     );
-    if (error) useNotificationStore.getState().add(t("app.collection"), "error", error.message);
+    if (error) addNotification(t("app.collection"), "error", error.message);
     setImporting(false);
   };
 

@@ -10,10 +10,11 @@ import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { fileNameFromPath, formatParsedTitle } from "@/lib/player/title.utils";
 import { queryKeys } from "@/lib/query/keys.utils";
+import { useCell } from "@/lib/state/signal.hook";
 import { withFallback } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
-import { useSettingsStore } from "@/store/settings.store";
-import { useUpscaleQueueStore } from "@/store/upscale.store";
+import { settingsAtoms } from "@/store/settings.store";
+import { addConvertItem, addUpscaleItem, upscaleItems } from "@/store/upscale.store";
 import type { UpscaleConfig, ConvertConfig } from "@/types/upscale";
 
 import { UpscaleConfigPanel } from "./config.upscale";
@@ -50,16 +51,14 @@ export default function UpscalePlayer({
   const [localError, setLocalError] = useState<string | null>(null);
 
   const { t } = useI18n();
-  const parseTitlesPlayer = useSettingsStore((state) => state.parseTitlesPlayer);
 
-  const activeItem = useUpscaleQueueStore((s) =>
-    activeItemId ? (s.items.find((i) => i.id === activeItemId) ?? null) : null
-  );
+  const parseTitlesPlayer = useCell(settingsAtoms.parseTitlesPlayer);
 
-  const isInQueue = useUpscaleQueueStore((s) =>
-    s.items.some(
-      (i) => i.filePath === filePath && (i.status === "queued" || i.status === "processing")
-    )
+  const items = useCell(upscaleItems);
+  const activeItem = activeItemId ? (items.find((i) => i.id === activeItemId) ?? null) : null;
+
+  const isInQueue = items.some(
+    (i) => i.filePath === filePath && (i.status === "queued" || i.status === "processing")
   );
 
   const { data: upscaleConfig } = useAppQuery("static", {
@@ -134,6 +133,7 @@ export default function UpscalePlayer({
 
   useEffect(() => {
     if (activeItem?.status === "done") {
+      // eslint-disable-next-line react-doctor/no-pass-live-state-to-parent -- notify parent when the background upscale/convert job finishes; intentional completion callback, not render-state lifting
       onDone?.(activeItem.outputPath);
     }
   }, [activeItem?.status, activeItem?.outputPath, onDone]);
@@ -167,9 +167,7 @@ export default function UpscalePlayer({
       selectedShaders: upscaler === "anime4k" ? selectedShaders : undefined,
       temporalDenoise: upscaler === "anime4k" ? temporalDenoise : undefined,
     };
-    const id = useUpscaleQueueStore
-      .getState()
-      .addUpscaleItem(filePath, fileNameFromPath(filePath), config);
+    const id = addUpscaleItem(filePath, fileNameFromPath(filePath), config);
     setActiveItemId(id);
     setOpen(false);
     resetState();
@@ -194,9 +192,7 @@ export default function UpscalePlayer({
       targetFormat,
       copyStreams,
     };
-    const id = useUpscaleQueueStore
-      .getState()
-      .addConvertItem(filePath, fileNameFromPath(filePath), config);
+    const id = addConvertItem(filePath, fileNameFromPath(filePath), config);
     setActiveItemId(id);
     setOpen(false);
     resetState();
@@ -223,13 +219,13 @@ export default function UpscalePlayer({
         selectedShaders: upscaler === "anime4k" ? selectedShaders : undefined,
         temporalDenoise: upscaler === "anime4k" ? temporalDenoise : undefined,
       };
-      useUpscaleQueueStore.getState().addUpscaleItem(filePath, fileNameFromPath(filePath), config);
+      addUpscaleItem(filePath, fileNameFromPath(filePath), config);
     } else {
       const config: ConvertConfig = {
         targetFormat,
         copyStreams,
       };
-      useUpscaleQueueStore.getState().addConvertItem(filePath, fileNameFromPath(filePath), config);
+      addConvertItem(filePath, fileNameFromPath(filePath), config);
     }
     setOpen(false);
     resetState();

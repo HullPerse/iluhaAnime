@@ -2,6 +2,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { cn } from "cn";
 import {
+
   useCallback,
   useEffect,
   useRef,
@@ -65,10 +66,37 @@ import { fileNameFromPath, formatParsedTitle } from "@/lib/player/title.utils";
 import { reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { ignore } from "@/lib/utils/promise.utils";
-import { useMediaStore } from "@/store/media.store";
-import { useNotificationStore } from "@/store/notification.store";
-import { usePlaybackStore, usePlayerStore } from "@/store/player.store";
-import { useSettingsStore } from "@/store/settings.store";
+import { useCell } from "@/lib/state/signal.hook";
+import {
+  getMediaEntry,
+  hydrateMediaEntry,
+  setMediaAudioOffset,
+  setMediaPosition,
+  setMediaSubOffset,
+  setMediaTrack,
+} from "@/store/media.store";
+import { addNotification } from "@/store/notification.store";
+import {
+  getPlayerSnapshot,
+  markTrackSelected,
+  patchPlayerSettings,
+  playbackAtoms,
+  playerAtoms,
+  resetPlayback,
+  setAutoHide,
+  setEofMode,
+  setHwdec,
+  setPlaybackMuted,
+  setPlaybackPaused,
+  setPlaybackSpeed,
+  setProfile,
+  setSeekMode,
+  setSeekTarget,
+  setVolume,
+  settleSeek,
+  subscribePlayer,
+} from "@/store/player.store";
+import { settingsAtoms } from "@/store/settings.store";
 import type {
   DroppedFramesData,
   EndOfFileMode,
@@ -175,27 +203,27 @@ async function restoreReloadPaused(reload: HwdecReload | null): Promise<void> {
 function PlayerComponent() {
   const { t } = useI18n();
 
-  const path = usePlaybackStore((state) => state.path);
-  const parseTitlesPlayer = useSettingsStore((state) => state.parseTitlesPlayer);
-  const hasFile = usePlaybackStore((state) => state.hasFile);
-  const duration = usePlaybackStore((state) => state.duration);
-  const paused = usePlaybackStore((state) => state.paused);
-  const muted = usePlaybackStore((state) => state.muted);
-  const speed = usePlaybackStore((state) => state.speed);
-  const eofReached = usePlaybackStore((state) => state.eofReached);
-  const playlistIndex = usePlaybackStore((state) => state.playlistIndex);
-  const playlistCount = usePlaybackStore((state) => state.playlistCount);
-  const tracks = usePlaybackStore((state) => state.tracks);
-  const chapters = usePlaybackStore((state) => state.chapters);
-  const seekTarget = usePlaybackStore((state) => state.seekTarget);
+  const path = useCell(playbackAtoms.path);
+  const parseTitlesPlayer = useCell(settingsAtoms.parseTitlesPlayer);
+  const hasFile = useCell(playbackAtoms.hasFile);
+  const duration = useCell(playbackAtoms.duration);
+  const paused = useCell(playbackAtoms.paused);
+  const muted = useCell(playbackAtoms.muted);
+  const speed = useCell(playbackAtoms.speed);
+  const eofReached = useCell(playbackAtoms.eofReached);
+  const playlistIndex = useCell(playbackAtoms.playlistIndex);
+  const playlistCount = useCell(playbackAtoms.playlistCount);
+  const tracks = useCell(playbackAtoms.tracks);
+  const chapters = useCell(playbackAtoms.chapters);
+  const seekTarget = useCell(playbackAtoms.seekTarget);
 
-  const eofMode = usePlayerStore((state) => state.eofMode);
-  const hwdec = usePlayerStore((state) => state.hwdec);
-  const seekMode = usePlayerStore((state) => state.seekMode);
-  const volume = usePlayerStore((state) => state.volume);
-  const autoHide = usePlayerStore((state) => state.autoHide);
-  const profile = usePlayerStore((state) => state.profile);
-  const settings = usePlayerStore((state) => state.settings);
+  const eofMode = useCell(playerAtoms.eofMode);
+  const hwdec = useCell(playerAtoms.hwdec);
+  const seekMode = useCell(playerAtoms.seekMode);
+  const volume = useCell(playerAtoms.volume);
+  const autoHide = useCell(playerAtoms.autoHide);
+  const profile = useCell(playerAtoms.profile);
+  const settings = useCell(playerAtoms.settings);
 
   const [cinema, setCinema] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
@@ -244,7 +272,7 @@ function PlayerComponent() {
     let disposed = false;
 
     const start = async () => {
-      const store = usePlayerStore.getState();
+      const store = getPlayerSnapshot();
       await initPlayer(
         buildInitialOptions({
           volume: store.volume,
@@ -278,13 +306,11 @@ function PlayerComponent() {
 
     start().catch((error: unknown) => {
       setFailed(true);
-      useNotificationStore
-        .getState()
-        .add(
-          translate(useSettingsStore.getState().language, "player.media.error.title"),
-          "error",
-          String(error)
-        );
+      addNotification(
+        translate(settingsAtoms.language.get(), "player.media.error.title"),
+        "error",
+        String(error)
+      );
     });
 
     return () => {
@@ -313,7 +339,9 @@ function PlayerComponent() {
   }, []);
 
   useEffect(() => {
-    return usePlayerStore.subscribe((state, previous) => {
+    let previous = getPlayerSnapshot();
+    return subscribePlayer(() => {
+      const state = getPlayerSnapshot();
       if (state.volume !== previous.volume) {
         setMpvProperty("volume", Math.round(state.volume * 100)).catch((error: unknown) =>
           reportBackgroundError("player.settings.volume", error)
@@ -355,6 +383,7 @@ function PlayerComponent() {
           reportBackgroundError("player.settings.eof", error)
         );
       }
+      previous = state;
     });
   }, [applyTransform]);
 
@@ -365,8 +394,8 @@ function PlayerComponent() {
     const reload = hwdecReloadRef.current;
     hwdecReloadRef.current = null;
 
-    await setSpeed(usePlaybackStore.getState().speed || 1);
-    const entry = await useMediaStore.getState().hydrate(loaded);
+    await setSpeed(playbackAtoms.speed.get() || 1);
+    const entry = await hydrateMediaEntry(loaded);
 
     await setMpvProperty("sub-delay", entry?.subOffset ?? 0);
     await setMpvProperty("audio-delay", entry?.audioOffset ?? 0);
@@ -379,15 +408,15 @@ function PlayerComponent() {
 
     const position = resolveLoadPosition(
       reload,
-      usePlaybackStore.getState().playlistIndex,
+      playbackAtoms.playlistIndex.get(),
       resumeRef.current,
       entry?.position
     );
     resumeRef.current = undefined;
-    const state = usePlaybackStore.getState();
+    const duration = playbackAtoms.duration.get();
     const inside =
       position > RESUME_MIN &&
-      (state.duration <= 0 || position < state.duration - RESUME_END_MARGIN);
+      (duration <= 0 || position < duration - RESUME_END_MARGIN);
     if (needsExactSeek(reload, position, inside)) await seekTo(position, "exact");
     await setPaused(true);
     await restoreReloadPaused(reload);
@@ -411,12 +440,12 @@ function PlayerComponent() {
       setFinished(true);
     },
     onPlaybackRestart: () => {
-      usePlaybackStore.getState().settleSeek();
+      settleSeek();
       setHasShownFrame(true);
       setLoadingFile(false);
     },
     onShutdown: () => {
-      usePlaybackStore.getState().reset();
+      resetPlayback();
     },
     onError: () => {
       setFailed(true);
@@ -437,16 +466,20 @@ function PlayerComponent() {
 
   useEffect(() => {
     const id = window.setInterval(() => {
-      const state = usePlaybackStore.getState();
-      if (!state.path || state.paused || state.eofReached || state.duration <= 0) {
+      const path = playbackAtoms.path.get();
+      const paused = playbackAtoms.paused.get();
+      const eofReached = playbackAtoms.eofReached.get();
+      const duration = playbackAtoms.duration.get();
+      if (!path || paused || eofReached || duration <= 0) {
         return;
       }
-      const entry = useMediaStore.getState().getEntry(state.path);
-      useMediaStore.getState().setPosition(state.path, state.timePos, state.duration);
+      const timePos = playbackAtoms.timePos.get();
+      const entry = getMediaEntry(path);
+      setMediaPosition(path, timePos, duration);
       ignore(
-        saveWatch(state.path, {
-          position: state.timePos,
-          duration: state.duration,
+        saveWatch(path, {
+          position: timePos,
+          duration,
           subDelay: entry?.subOffset ?? 0,
           audioDelay: entry?.audioOffset ?? 0,
           updatedAt: Math.floor(Date.now() / 1000),
@@ -482,7 +515,7 @@ function PlayerComponent() {
   useTauriEvent<{ paths: string[] }>(
     "tauri://drag-drop",
     (event) => {
-      const extensions = useSettingsStore.getState().videoExtensions;
+      const extensions = settingsAtoms.videoExtensions.get();
       const lowerEndsWith = (path: string, list: readonly string[]) => {
         const lower = path.toLowerCase();
         return list.some((extension) => lower.endsWith(`.${extension.toLowerCase()}`));
@@ -620,32 +653,29 @@ function PlayerComponent() {
   }, [cheatsheetOpen, cinema, diagnosticsOpen, jumpOpen, playlistOpen, settingsOpen]);
 
   const onPlay = useCallback(() => {
-    const store = usePlaybackStore.getState();
-    if (!store.hasFile) return;
-    if (store.eofReached) {
+    if (!playbackAtoms.hasFile.get()) return;
+    if (playbackAtoms.eofReached.get()) {
       setFinished(false);
-      store.setSeekTarget(0);
-      store.setPaused(false);
+      setSeekTarget(0);
+      setPlaybackPaused(false);
       seekTo(0, "exact")
         .then(() => setPaused(false))
         .catch(() => {
-          store.setPaused(true);
+          setPlaybackPaused(true);
         });
       return;
     }
-    store.setPaused(false);
-    setPaused(false).catch(() => store.setPaused(true));
+    setPlaybackPaused(false);
+    setPaused(false).catch(() => setPlaybackPaused(true));
   }, []);
 
   const onPause = useCallback(() => {
-    const store = usePlaybackStore.getState();
-    store.setPaused(true);
-    setPaused(true).catch(() => store.setPaused(false));
+    setPlaybackPaused(true);
+    setPaused(true).catch(() => setPlaybackPaused(false));
   }, []);
 
   const onPlayPause = useCallback(() => {
-    const state = usePlaybackStore.getState();
-    if (state.paused) {
+    if (playbackAtoms.paused.get()) {
       onPlay();
       return;
     }
@@ -658,7 +688,7 @@ function PlayerComponent() {
       if (target?.closest?.("button, a, input, select, textarea, [role=button], [role=dialog]")) {
         return;
       }
-      if (!usePlaybackStore.getState().hasFile) return;
+      if (!playbackAtoms.hasFile.get()) return;
       if (loadingFile) return;
       onPlayPause();
     },
@@ -666,35 +696,36 @@ function PlayerComponent() {
   );
 
   const onScrub = useCallback((time: number) => {
-    usePlaybackStore.getState().setSeekTarget(time);
+    setSeekTarget(time);
     ignore(seekTo(time, "keyframes"));
   }, []);
 
   const onCommitSeek = useCallback((time: number) => {
-    usePlaybackStore.getState().setSeekTarget(time);
+    setSeekTarget(time);
     ignore(seekTo(time, "exact"));
   }, []);
 
   const onSeekTo = useCallback((time: number) => {
-    usePlaybackStore.getState().setSeekTarget(time);
-    const mode = usePlayerStore.getState().seekMode;
+    setSeekTarget(time);
+    const mode = playerAtoms.seekMode.get();
     ignore(seekTo(time, mode));
   }, []);
 
   const onSeekBy = useCallback((seconds: number) => {
-    const state = usePlaybackStore.getState();
-    const mode = usePlayerStore.getState().seekMode;
+    const duration = playbackAtoms.duration.get();
+    const timePos = playbackAtoms.timePos.get();
+    const mode = playerAtoms.seekMode.get();
     const target = Math.max(
       0,
-      Math.min(state.duration || Number.MAX_SAFE_INTEGER, state.timePos + seconds)
+      Math.min(duration || Number.MAX_SAFE_INTEGER, timePos + seconds)
     );
-    usePlaybackStore.getState().setSeekTarget(target);
+    setSeekTarget(target);
     ignore(seekTo(target, mode));
   }, []);
 
   const onSkipChapter = useCallback((time: number) => {
-    usePlaybackStore.getState().setSeekTarget(time);
-    const mode = usePlayerStore.getState().seekMode;
+    setSeekTarget(time);
+    const mode = playerAtoms.seekMode.get();
     ignore(seekTo(time, mode).then(() => setPaused(false)));
   }, []);
 
@@ -717,94 +748,91 @@ function PlayerComponent() {
 
   const onVolume = useCallback((value: number) => {
     const clamped = Math.min(1, Math.max(0, value));
-    usePlayerStore.getState().setVolume(clamped);
+    setVolume(clamped);
     ignore(setMpvProperty("volume", Math.round(clamped * 100)));
-    const playback = usePlaybackStore.getState();
-    if (playback.muted) {
-      playback.setMuted(false);
-      setMpvProperty("mute", false).catch(() => playback.setMuted(true));
+    if (playbackAtoms.muted.get()) {
+      setPlaybackMuted(false);
+      setMpvProperty("mute", false).catch(() => setPlaybackMuted(true));
     }
   }, []);
 
   const onMute = useCallback(() => {
-    const store = usePlaybackStore.getState();
-    const next = !store.muted;
-    store.setMuted(next);
-    setMpvProperty("mute", next).catch(() => store.setMuted(!next));
+    const next = !playbackAtoms.muted.get();
+    setPlaybackMuted(next);
+    setMpvProperty("mute", next).catch(() => setPlaybackMuted(!next));
   }, []);
 
   const onSpeed = useCallback((value: number) => {
-    const store = usePlaybackStore.getState();
-    const previous = store.speed;
-    store.setPlaybackSpeed(value);
-    setSpeed(value).catch(() => store.setPlaybackSpeed(previous));
+    const previous = playbackAtoms.speed.get();
+    setPlaybackSpeed(value);
+    setSpeed(value).catch(() => setPlaybackSpeed(previous));
   }, []);
 
   const handlePatchSettings = useCallback((patch: Partial<PlayerSettings>) => {
-    usePlayerStore.getState().patchSettings(patch);
+    patchPlayerSettings(patch);
   }, []);
 
   const handleHwdec = useCallback((mode: HwdecMode) => {
-    const playback = usePlaybackStore.getState();
-    usePlayerStore.getState().setHwdec(mode);
-    if (!playback.hasFile || playback.playlistIndex < 0) return;
-    hwdecReloadRef.current = { position: playback.timePos, paused: playback.paused };
+    const hasFile = playbackAtoms.hasFile.get();
+    const playlistIndex = playbackAtoms.playlistIndex.get();
+    const timePos = playbackAtoms.timePos.get();
+    const paused = playbackAtoms.paused.get();
+    setHwdec(mode);
+    if (!hasFile || playlistIndex < 0) return;
+    hwdecReloadRef.current = { position: timePos, paused };
     setLoadingFile(true);
     setMpvProperty("hwdec", mode)
-      .then(() => playPlaylistIndex(playback.playlistIndex))
+      .then(() => playPlaylistIndex(playlistIndex))
       .catch((error: unknown) => {
         hwdecReloadRef.current = null;
         setLoadingFile(false);
         reportBackgroundError("player.hwdec.reload", error);
-        useNotificationStore
-          .getState()
-          .add(
-            translate(useSettingsStore.getState().language, "player.media.error.title"),
-            "error",
-            String(error)
-          );
+        addNotification(
+          translate(settingsAtoms.language.get(), "player.media.error.title"),
+          "error",
+          String(error)
+        );
       });
   }, []);
 
   const handleProfile = useCallback((next: PlayerProfileId) => {
-    usePlayerStore.getState().setProfile(next);
+    setProfile(next);
   }, []);
 
   const handleSeekMode = useCallback((mode: SeekMode) => {
-    usePlayerStore.getState().setSeekMode(mode);
+    setSeekMode(mode);
   }, []);
 
   const handleEofMode = useCallback((mode: EndOfFileMode) => {
-    usePlayerStore.getState().setEofMode(mode);
+    setEofMode(mode);
   }, []);
 
   const handleSetAutoHide = useCallback((value: boolean) => {
-    usePlayerStore.getState().setAutoHide(value);
+    setAutoHide(value);
   }, []);
 
   const persistTrack = useCallback((track: MpvTrack, kind: "audio" | "sub") => {
-    const current = usePlaybackStore.getState().path;
-    if (current) useMediaStore.getState().setTrack(current, kind, track.id);
+    const current = playbackAtoms.path.get();
+    if (current) setMediaTrack(current, kind, track.id);
   }, []);
 
   const onResetDelays = useCallback(() => {
-    const current = usePlaybackStore.getState().path;
+    const current = playbackAtoms.path.get();
     if (!current) return;
-    const store = useMediaStore.getState();
-    store.setSubOffset(current, 0);
-    store.setAudioOffset(current, 0);
+    setMediaSubOffset(current, 0);
+    setMediaAudioOffset(current, 0);
     ignore(setMpvProperty("sub-delay", 0));
     ignore(setMpvProperty("audio-delay", 0));
   }, []);
 
   const onSelectTrack = useCallback(
     (kind: "audio" | "sub") => (id: number | "no") => {
-      const store = usePlaybackStore.getState();
-      const previous = store.tracks;
-      store.markTrackSelected(kind, id);
-      selectTrack(kind, id).catch(() => usePlaybackStore.setState({ tracks: previous }));
+      const tracks = playbackAtoms.tracks.get();
+      const previous = tracks;
+      markTrackSelected(kind, id);
+      selectTrack(kind, id).catch(() => playbackAtoms.tracks.set(previous));
       if (typeof id === "number") {
-        const track = store.tracks.find((entry) => entry.id === id);
+        const track = playbackAtoms.tracks.get().find((entry) => entry.id === id);
         if (track) persistTrack(track, kind);
       }
     },
@@ -834,18 +862,17 @@ function PlayerComponent() {
   }, [pickFiles]);
 
   const nudgeOffset = useCallback((kind: "sub" | "audio", direction: number, fine: boolean) => {
-    const current = usePlaybackStore.getState().path;
+    const current = playbackAtoms.path.get();
     if (!current) return;
-    const store = useMediaStore.getState();
-    const entry = store.getEntry(current);
+    const entry = getMediaEntry(current);
     const base = (kind === "sub" ? entry?.subOffset : entry?.audioOffset) ?? 0;
     const step = fine ? OFFSET_STEP_FINE : OFFSET_STEP;
     const next = Math.max(
       -OFFSET_LIMIT,
       Math.min(OFFSET_LIMIT, Number((base + direction * step).toFixed(3)))
     );
-    if (kind === "sub") store.setSubOffset(current, next);
-    else store.setAudioOffset(current, next);
+    if (kind === "sub") setMediaSubOffset(current, next);
+    else setMediaAudioOffset(current, next);
     ignore(setMpvProperty("sub-delay", kind === "sub" ? next : (entry?.subOffset ?? 0)));
     ignore(setMpvProperty("audio-delay", kind === "audio" ? next : (entry?.audioOffset ?? 0)));
   }, []);
@@ -856,8 +883,8 @@ function PlayerComponent() {
         playPause: () => onPlayPause(),
         seekForward: () => onSeekBy(SEEK_STEP),
         seekBackward: () => onSeekBy(-SEEK_STEP),
-        volumeUp: () => onVolume(usePlayerStore.getState().volume + VOLUME_STEP),
-        volumeDown: () => onVolume(usePlayerStore.getState().volume - VOLUME_STEP),
+        volumeUp: () => onVolume(playerAtoms.volume.get() + VOLUME_STEP),
+        volumeDown: () => onVolume(playerAtoms.volume.get() - VOLUME_STEP),
         toggleMute: () => onMute(),
         frameBackward: () => ignore(startFrameStep(false)),
         frameForward: () => ignore(startFrameStep(true)),
@@ -870,7 +897,7 @@ function PlayerComponent() {
         audioOffsetUpFine: () => nudgeOffset("audio", 1, true),
         audioOffsetDownFine: () => nudgeOffset("audio", -1, true),
         resetDelays: () => onResetDelays(),
-        toggleAutoHide: () => handleSetAutoHide(!usePlayerStore.getState().autoHide),
+        toggleAutoHide: () => handleSetAutoHide(!playerAtoms.autoHide.get()),
         toggleDiagnostics: () => setDiagnosticsOpen((value) => !value),
         nextFile: () => onFileNext(),
         prevFile: () => onFilePrev(),
@@ -882,13 +909,11 @@ function PlayerComponent() {
           ignore(
             invokeTyped<{ path: string }>("player_save_frame").then(
               (saved) => {
-                useNotificationStore
-                  .getState()
-                  .add(
-                    translate(useSettingsStore.getState().language, "player.media.frame.saved"),
-                    "success",
-                    saved.path
-                  );
+                addNotification(
+                  translate(settingsAtoms.language.get(), "player.media.frame.saved"),
+                  "success",
+                  saved.path
+                );
               },
               (error: unknown) => {
                 reportBackgroundError("player.frame.save", error);
@@ -930,7 +955,7 @@ function PlayerComponent() {
       <Keyboard
         onAction={onKeyboardAction}
         onWheel={(direction) =>
-          onVolume(usePlayerStore.getState().volume + direction * VOLUME_STEP)
+          onVolume(playerAtoms.volume.get() + direction * VOLUME_STEP)
         }
       />
 

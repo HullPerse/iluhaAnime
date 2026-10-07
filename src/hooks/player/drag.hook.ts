@@ -2,7 +2,7 @@ import { PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
 import { useCallback, useState } from "react";
 
-import { useCategoryStore } from "@/store/category.store";
+import { addCategoryEntry } from "@/store/category.store";
 import type { CategoryDragData } from "@/types/category";
 
 export function usePlayerDrag() {
@@ -20,7 +20,7 @@ export function usePlayerDrag() {
     if (!over) return;
     const data = active.data.current as CategoryDragData | undefined;
     if (!data) return;
-    useCategoryStore.getState().addEntry(String(over.id), data);
+    addCategoryEntry(String(over.id), data);
   }, []);
 
   const handleDragCancel = useCallback(() => setActiveDrag(null), []);

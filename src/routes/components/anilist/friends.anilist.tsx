@@ -17,7 +17,7 @@ import { hasFreshCachedProfile } from "@/lib/anilist/friends.utils";
 import { formatMeanScore, parseScoreFormat } from "@/lib/anilist/score.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { enterSubmit } from "@/lib/utils/keyboard.utils";
-import { useAniListFriendsStore } from "@/store/anilist.store";
+import { cacheAnilistProfile } from "@/store/anilist.store";
 import type {
   AniFriend,
   AniFriendMinimal,
@@ -348,7 +348,6 @@ export default function AniListFriendsModal({
   onClose,
 }: Props) {
   const { t } = useI18n();
-  const cacheProfile = useAniListFriendsStore((state) => state.cacheProfile);
   const [query, setQuery] = useState("");
   const [profiles, setProfiles] = useState<Record<number, AniUserProfile>>({});
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -380,7 +379,7 @@ export default function AniListFriendsModal({
       return;
     }
     setProfiles((current) => ({ ...current, [profile.id]: profile }));
-    cacheProfile(profile);
+    cacheAnilistProfile(profile);
   };
 
   const selectFriend = (friend: AniFriend) => {

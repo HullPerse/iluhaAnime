@@ -3,12 +3,12 @@ import { useEffect, useMemo, useState } from "react";
 import { systemApi } from "@/api/system.api";
 import Combobox from "@/components/ui/combobox.component";
 import { useI18n } from "@/hooks/i18n.hook";
+import { useCell } from "@/lib/state/signal.hook";
 import { attempt, attemptSync, reportBackgroundError } from "@/lib/utils/attempt.utils";
-import { useSettingsStore } from "@/store/settings.store";
+import { patchSettings, settingsAtoms } from "@/store/settings.store";
 
 export function FontSelector() {
-  const appFont = useSettingsStore((s) => s.appFont);
-  const patch = useSettingsStore((s) => s.patch);
+  const appFont = useCell(settingsAtoms.appFont);
   const { t } = useI18n();
   const [fonts, setFonts] = useState<string[]>(() => {
     const [parsed, error] = attemptSync(() => {
@@ -93,7 +93,7 @@ export function FontSelector() {
       <div className="flex flex-col gap-0.5">
         <Combobox
           value={appFont ?? ""}
-          onChange={(v) => patch({ appFont: v || null })}
+          onChange={(v) => patchSettings({ appFont: v || null })}
           options={options}
           indexed
           className="max-w-xs"

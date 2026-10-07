@@ -19,7 +19,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button.component";
 import { SEEK_STEP } from "@/config/player/keybinds.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { usePlaybackStore } from "@/store/player.store";
+import { useCell } from "@/lib/state/signal.hook";
+import { playbackAtoms } from "@/store/player.store";
 import type { MpvChapter, MpvTrack } from "@/types/videoPlayer";
 
 import Tracks from "./tracks.player";
@@ -87,7 +88,7 @@ function Controls({
   onAddSubtitle: () => void;
 }) {
   const { t } = useI18n();
-  const timePos = usePlaybackStore((state) => state.timePos);
+  const timePos = useCell(playbackAtoms.timePos);
   const [speedOpen, setSpeedOpen] = useState(false);
   const [boundary, setBoundary] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);

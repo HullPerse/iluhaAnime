@@ -4,7 +4,7 @@ import { createElement, type ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useAnilistFollowing } from "@/hooks/anilist/following.hook";
-import { useSettingsStore } from "@/store/settings.store";
+import { patchSettings } from "@/store/settings.store";
 
 const invokeMock = vi.fn();
 vi.mock("@tauri-apps/api/core", () => ({
@@ -41,7 +41,7 @@ const PAGE_TWO = {
 
 beforeEach(() => {
   invokeMock.mockReset();
-  useSettingsStore.setState({ anilistProxyUrl: null });
+  patchSettings({ anilistProxyUrl: null });
 });
 
 describe("useAnilistFollowing", () => {

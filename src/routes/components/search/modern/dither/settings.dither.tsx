@@ -12,6 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox.component";
 import ImageComponent from "@/components/ui/image.component";
 import Slider from "@/components/ui/range.component";
 import {
+
   WALLPAPER_DISPLAY_PRESETS,
   WALLPAPER_DISPLAY_SLIDERS,
 } from "@/config/settings/wallpaper.config";
@@ -22,6 +23,7 @@ import {
 } from "@/config/utils/dither.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { usePagination } from "@/hooks/pagination.hook";
+import { useCell } from "@/lib/state/signal.hook";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { toUserImage } from "@/lib/utils/image.utils";
 import { showError } from "@/lib/utils/notification.utils";
@@ -29,22 +31,21 @@ import { paginate } from "@/lib/utils/pagination.utils";
 import { DitherUploadPlaceholder } from "@/routes/components/search/modern/dither/placeholder.dither";
 import DitherPreviewModal from "@/routes/components/search/modern/dither/preview/modal.preview";
 import { ShadowControls } from "@/routes/components/search/modern/dither/shadow.dither";
-import { useSettingsStore } from "@/store/settings.store";
+import { patchSettings, settingsAtoms } from "@/store/settings.store";
 import type { WallpaperDisplayFilters } from "@/types/settings";
 import type { DitherImageMeta, UserImage } from "@/types/userimage";
 
 function DitherSettings({ onClose }: { onClose: () => void }) {
   const { t } = useI18n();
-  const patchSettings = useSettingsStore((state) => state.patch);
-  const storedSelection = useSettingsStore((state) => state.selectedDitherId);
+  const storedSelection = useCell(settingsAtoms.selectedDitherId);
   const [page, setPage] = useState<number>(1);
   const [preview, setPreview] = useState<boolean>(false);
   const [selected, setSelected] = useState<string | null>(storedSelection ?? DITHER_PLACEHOLDER_ID);
   const queryClient = useQueryClient();
-  const displayFilters = useSettingsStore((state) => state.wallpaperFilters);
-  const searchShadow = useSettingsStore((state) => state.searchShadow);
-  const wallpaperShadow = useSettingsStore((state) => state.wallpaperShadow);
-  const scanlines = useSettingsStore((state) => state.wallpaperScanlines);
+  const displayFilters = useCell(settingsAtoms.wallpaperFilters);
+  const searchShadow = useCell(settingsAtoms.searchShadow);
+  const wallpaperShadow = useCell(settingsAtoms.wallpaperShadow);
+  const scanlines = useCell(settingsAtoms.wallpaperScanlines);
   const [metas, setMetas] = useState<DitherImageMeta[]>([]);
   const [rows, setRows] = useState<Record<string, UserImage>>({});
   const [loading, setLoading] = useState<boolean>(true);

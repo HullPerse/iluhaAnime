@@ -2,11 +2,11 @@ import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useSpellCheck } from "@/hooks/search/spellcheck.hook";
-import { useSearchStore } from "@/store/search.store";
+import { addSpellWord, removeSpellWord, searchAtoms } from "@/store/search.store";
 
 beforeEach(() => {
   vi.useFakeTimers();
-  useSearchStore.setState({ spellDictionary: [] });
+  searchAtoms.spellDictionary.set([]);
 });
 
 afterEach(() => {
@@ -45,16 +45,15 @@ describe("useSpellCheck", () => {
   });
 
   it("skips words from the user dictionary", () => {
-    useSearchStore.getState().addSpellWord("friren");
+    addSpellWord("friren");
     expect(check("friren")).toBeNull();
   });
 
   it("adds and removes dictionary words", () => {
-    const store = useSearchStore.getState();
-    store.addSpellWord("Friren");
-    store.addSpellWord("friren");
-    expect(useSearchStore.getState().spellDictionary).toEqual(["friren"]);
-    store.removeSpellWord("FRiREN");
-    expect(useSearchStore.getState().spellDictionary).toEqual([]);
+    addSpellWord("Friren");
+    addSpellWord("friren");
+    expect(searchAtoms.spellDictionary.get()).toEqual(["friren"]);
+    removeSpellWord("FRiREN");
+    expect(searchAtoms.spellDictionary.get()).toEqual([]);
   });
 });

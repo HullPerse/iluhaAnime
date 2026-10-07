@@ -7,7 +7,8 @@ import { BigLoader } from "@/components/shared/loader.component";
 import OutletComponent from "@/components/shared/outlet.component";
 import { PLAYER_ROUTE } from "@/config/player/player-route.config";
 import { translate } from "@/lib/locale/i18n.utils";
-import { useSettingsStore } from "@/store/settings.store";
+import { useCell } from "@/lib/state/signal.hook";
+import { settingsAtoms } from "@/store/settings.store";
 
 const App = lazy(() => import("@/App"));
 
@@ -30,7 +31,7 @@ const indexRoute = createRoute({
 
 const ErrorPage = () => {
   const navigate = useNavigate();
-  const language = useSettingsStore((state) => state.language);
+  const language = useCell(settingsAtoms.language);
   return (
     <BigError
       error={new Error(translate(language, "common.error"))}

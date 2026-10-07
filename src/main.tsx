@@ -9,22 +9,20 @@ import { ErrorBoundary } from "@/components/shared/errorBoundary.component";
 import { QUERY_CONFIG } from "@/config/store/query.config";
 import { tr } from "@/lib/locale/i18n.utils";
 import { router } from "@/routes/__root";
-import { useNotificationStore } from "@/store/notification.store";
+import { addNotification } from "@/store/notification.store";
 
 const appError = () => tr("common.error");
 
 window.addEventListener("error", (event) => {
   event.preventDefault();
   console.error("Uncaught error:", event.error);
-  useNotificationStore.getState().add(appError(), "error", event.error?.message || String(event));
+  addNotification(appError(), "error", event.error?.message || String(event));
 });
 
 window.addEventListener("unhandledrejection", (event) => {
   event.preventDefault();
   console.error("Unhandled rejection:", event.reason);
-  useNotificationStore
-    .getState()
-    .add(appError(), "error", event.reason?.message || String(event.reason));
+  addNotification(appError(), "error", event.reason?.message || String(event.reason));
 });
 
 const queryClient = new QueryClient(QUERY_CONFIG);

@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { EntryLookup } from "@/lib/anilist/entries.utils";
 import AniListCard from "@/routes/components/anilist/card.anilist";
-import { useSettingsStore } from "@/store/settings.store";
+import { patchSettings } from "@/store/settings.store";
 import type { AniMedia } from "@/types/anilist";
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -80,7 +80,7 @@ function renderCard(scoreFormat: string, score: number | null) {
 afterEach(() => cleanup());
 
 beforeEach(() => {
-  useSettingsStore.setState({ language: "en" });
+  patchSettings({ language: "en" });
 });
 
 describe("AniListCard score badge", () => {

@@ -2,8 +2,8 @@ import { act, cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import SkipButton from "@/routes/components/player/media/skip.player";
-import { usePlaybackStore } from "@/store/player.store";
-import { useSettingsStore } from "@/store/settings.store";
+import { playbackAtoms } from "@/store/player.store";
+import { patchSettings } from "@/store/settings.store";
 import type { MpvChapter } from "@/types/videoPlayer";
 
 const CHAPTERS: MpvChapter[] = [
@@ -13,12 +13,12 @@ const CHAPTERS: MpvChapter[] = [
 ];
 
 function showAt(timePos: number) {
-  usePlaybackStore.setState({ timePos });
+  playbackAtoms.timePos.set(timePos);
 }
 
 beforeEach(() => {
   vi.useFakeTimers();
-  useSettingsStore.setState({ language: "en" });
+  patchSettings({ language: "en" });
   showAt(10);
 });
 

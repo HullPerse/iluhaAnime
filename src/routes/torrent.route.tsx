@@ -31,6 +31,7 @@ import {
   useDhtStats,
   useTorrents,
 } from "@/hooks/torrent/queries.hook";
+import { useCell } from "@/lib/state/signal.hook";
 import { applyBulkAction, pruneSelection, splitRecheckOutcome } from "@/lib/torrent/bulk.utils";
 import {
   formatSpeed,
@@ -41,11 +42,20 @@ import {
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { paginate } from "@/lib/utils/pagination.utils";
 import { ignore } from "@/lib/utils/promise.utils";
-import { useCacheStore } from "@/store/cache.store";
-import { useDeepLinkStore } from "@/store/deeplink.store";
-import { useTorrentStore } from "@/store/download.store";
-import { useNotificationStore } from "@/store/notification.store";
-import { useSettingsStore } from "@/store/settings.store";
+import { cacheAtoms, moveTorrentOrder, moveTorrentOrderTo, setSeedPreference, syncTorrentOrder } from "@/store/cache.store";
+import {
+  consumeMagnetDeepLink,
+  consumeTorrentDeepLink,
+  deeplinkAtoms,
+} from "@/store/deeplink.store";
+import {
+  prepareTorrentDownload,
+  queueTorrentFiles,
+  setTorrentSpeedLimits as setSpeedLimits,
+  torrentAtoms,
+} from "@/store/download.store";
+import { addNotification, updateNotification } from "@/store/notification.store";
+import { getSettingsSnapshot } from "@/store/settings.store";
 import type { TorrentInfo, TorrentLifecycle } from "@/types/torrent";
 
 import { BulkLimitsModal, BulkTrackerModal } from "./components/torrent/bulk.torrent";
@@ -61,21 +71,14 @@ function TorrentRoute() {
   const queryClient = useQueryClient();
   const { data, isLoading: torrentsLoading } = useTorrents();
   const torrents = data ?? NO_TORRENTS;
-  const limits = useTorrentStore((state) => state.limits);
+  const limits = useCell(torrentAtoms.limits);
   const pauseMutation = usePauseTorrent();
   const resumeMutation = useResumeTorrent();
   const removeMutation = useRemoveTorrent();
-  const setSpeedLimits = useTorrentStore((state) => state.setSpeedLimits);
-  const prepareTorrentDownload = useTorrentStore((state) => state.prepareTorrentDownload);
-  const queueTorrentFiles = useTorrentStore((state) => state.queueTorrentFiles);
-  const setSeedPreference = useCacheStore((state) => state.setSeedPreference);
-  const torrentOrder = useCacheStore((state) => state.torrentOrder);
-  const syncTorrentOrder = useCacheStore((state) => state.syncTorrentOrder);
-  const moveTorrentOrder = useCacheStore((state) => state.moveTorrentOrder);
-  const moveTorrentOrderTo = useCacheStore((state) => state.moveTorrentOrderTo);
+  const torrentOrder = useCell(cacheAtoms.torrentOrder);
   const recheckMutation = useRecheckTorrent();
   const addTrackerMutation = useAddTorrentTracker();
-  const opInFlight = useTorrentStore((state) => state.opInFlight);
+  const opInFlight = useCell(torrentAtoms.opInFlight);
   const { data: listenPort } = useTorrentListenPort();
   const { data: dhtStats } = useDhtStats();
 
@@ -90,8 +93,8 @@ function TorrentRoute() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showMagnetModal, setShowMagnetModal] = useState(false);
   const [magnetPrefill, setMagnetPrefill] = useState<string | null>(null);
-  const torrentTarget = useDeepLinkStore((state) => state.torrentTarget);
-  const magnetTarget = useDeepLinkStore((state) => state.magnetTarget);
+  const torrentTarget = useCell(deeplinkAtoms.torrentTarget);
+  const magnetTarget = useCell(deeplinkAtoms.magnetTarget);
   const [filterQuery, setFilterQuery] = useState("");
   const [sortBy, setSortBy] = useState<"name" | "size" | "progress" | "speed" | "custom">("name");
   const [sortAsc, setSortAsc] = useState(true);
@@ -105,7 +108,7 @@ function TorrentRoute() {
   );
   useEffect(() => {
     syncTorrentOrder(torrents.map((t) => t.id));
-  }, [torrents, syncTorrentOrder]);
+  }, [torrents]);
 
   const lifecycleTorrents = useMemo(() => {
     if (lifecycleFilter === "all") return torrents;
@@ -190,29 +193,28 @@ function TorrentRoute() {
   ) => {
     if (targets.length === 0 || bulkBusy) return;
     setBulkBusy(true);
-    const notifications = useNotificationStore.getState();
     const total = targets.length;
-    const noticeId = notifications.add(
+    const noticeId = addNotification(
       t("torrent.bulk.title"),
       "info",
       t("torrent.bulk.progress", { count: total, done: 0 }),
       `torrent-bulk:${kind}:${Date.now()}`,
       { system: false }
     );
-    if (noticeId > 0) notifications.update(noticeId, { progress: true });
+    if (noticeId > 0) updateNotification(noticeId, { progress: true });
     let finished = 0;
     const track = <T,>(work: Promise<T>): Promise<T> =>
       work.finally(() => {
         finished += 1;
         if (noticeId > 0)
-          notifications.update(noticeId, {
+          updateNotification(noticeId, {
             message: t("torrent.bulk.progress", { count: total, done: finished }),
           });
       });
     const finishBulk = (type: "success" | "error", message: string) => {
       if (noticeId > 0)
-        notifications.update(noticeId, { message, progress: false, type }, { system: true });
-      else notifications.add(t("torrent.bulk.title"), type, message);
+        updateNotification(noticeId, { message, progress: false, type }, { system: true });
+      else addNotification(t("torrent.bulk.title"), type, message);
     };
     await attempt(
       (async () => {
@@ -302,36 +304,30 @@ function TorrentRoute() {
     if (!torrentTarget) return;
     setMagnetPrefill(`magnet:?xt=urn:btih:${torrentTarget.infoHash}`);
     setShowMagnetModal(true);
-    useDeepLinkStore.getState().consumeTorrent();
+    consumeTorrentDeepLink();
   }, [torrentTarget]);
   useEffect(() => {
     if (!magnetTarget) return;
     setMagnetPrefill(magnetTarget);
     setShowMagnetModal(true);
-    useDeepLinkStore.getState().consumeMagnet();
+    consumeMagnetDeepLink();
   }, [magnetTarget]);
   const filteredTorrentsRef = useRef(filteredTorrents);
   useEffect(() => {
     filteredTorrentsRef.current = filteredTorrents;
   }, [filteredTorrents]);
-  const moveQueueItem = useCallback(
-    (id: number, delta: -1 | 1) => {
-      const list = filteredTorrentsRef.current;
-      const index = list.findIndex((t) => t.id === id);
-      const neighbor = index === -1 ? undefined : list[index + delta];
-      if (!neighbor) return;
-      moveTorrentOrder(id, neighbor.id);
-    },
-    [moveTorrentOrder]
-  );
-  const handleQueueDragEnd = useCallback(
-    (event: DragEndEvent) => {
-      const { active, over } = event;
-      if (!over || active.id === over.id) return;
-      moveTorrentOrderTo(Number(active.id), Number(over.id));
-    },
-    [moveTorrentOrderTo]
-  );
+  const moveQueueItem = useCallback((id: number, delta: -1 | 1) => {
+    const list = filteredTorrentsRef.current;
+    const index = list.findIndex((t) => t.id === id);
+    const neighbor = index === -1 ? undefined : list[index + delta];
+    if (!neighbor) return;
+    moveTorrentOrder(id, neighbor.id);
+  }, []);
+  const handleQueueDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    moveTorrentOrderTo(Number(active.id), Number(over.id));
+  }, []);
   const visibleIds = useMemo(() => pagedTorrents.map((t) => t.id), [pagedTorrents]);
   const expandedIds = useMemo(
     () => new Set(visibleIds.filter((id) => expanded.has(id))),
@@ -393,11 +389,11 @@ function TorrentRoute() {
   );
 
   useEffect(() => {
-    const { limits: prefs } = useSettingsStore.getState();
+    const { limits: prefs } = getSettingsSnapshot();
     if (prefs.download !== null || prefs.upload !== null) {
       setSpeedLimits(prefs);
     }
-  }, [setSpeedLimits]);
+  }, []);
 
   useEffect(() => {
     const totalDl = torrents.reduce((s, t) => s + t.download_speed, 0);
@@ -416,7 +412,7 @@ function TorrentRoute() {
     if (download !== null && (isNaN(download) || download <= 0)) return;
     if (upload !== null && (isNaN(upload) || upload <= 0)) return;
     setSpeedLimits({ download, upload });
-  }, [downloadInput, uploadInput, setSpeedLimits]);
+  }, [downloadInput, uploadInput]);
 
   const toggleSelected = useCallback((id: number, value: boolean) => {
     setSelected((prev) => {

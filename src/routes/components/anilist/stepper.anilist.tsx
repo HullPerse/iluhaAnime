@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import type { EntryListInfo } from "@/lib/anilist/entries.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
-import { useNotificationStore } from "@/store/notification.store";
+import { addNotification } from "@/store/notification.store";
 import type { AnilistRouteData, AniMedia } from "@/types/anilist";
 
 function patchProgress(
@@ -65,13 +65,11 @@ export function ProgressStepper({
     );
     if (error) {
       queryClient.setQueryData(["anilist_data"], previous);
-      useNotificationStore
-        .getState()
-        .add(
-          t("anilist.controls.save.error"),
-          "error",
-          error instanceof Error ? error.message : String(error)
-        );
+      addNotification(
+        t("anilist.controls.save.error"),
+        "error",
+        error instanceof Error ? error.message : String(error)
+      );
     } else {
       queryClient.invalidateQueries({ queryKey: ["anilist_data"] });
     }

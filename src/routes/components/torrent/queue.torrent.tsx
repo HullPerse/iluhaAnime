@@ -1,4 +1,5 @@
 import {
+
   DndContext,
   PointerSensor,
   useDraggable,
@@ -14,11 +15,12 @@ import Modal from "@/components/shared/modal.component";
 import ProgressBar from "@/components/shared/progress.component";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
+import { useCell } from "@/lib/state/signal.hook";
 import { groupFilesByDirectory } from "@/lib/torrent/tree.utils";
 import { moveItem } from "@/lib/utils/array.utils";
 import { formatBytes } from "@/lib/utils/bytes.utils";
 import { formatVerticalDragTransform } from "@/lib/utils/drag.utils";
-import { useSettingsStore } from "@/store/settings.store";
+import { settingsAtoms } from "@/store/settings.store";
 import type { TorrentFileInfo } from "@/types/torrent";
 
 function QueueRow({
@@ -126,7 +128,7 @@ export function TorrentQueueModal({
   onClose: () => void;
 }) {
   const { t } = useI18n();
-  const fileOrder = useSettingsStore((s) => s.fileOrder);
+  const fileOrder = useCell(settingsAtoms.fileOrder);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   const queued = useMemo(() => files.filter((file) => file.selected && !file.completed), [files]);

@@ -3,11 +3,11 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { InlineAutocompleteInput } from "@/components/shared/autocomplete/input.autocomplete";
-import { useSettingsStore } from "@/store/settings.store";
+import { patchSettings } from "@/store/settings.store";
 
 afterEach(() => {
   cleanup();
-  useSettingsStore.setState({ autocompleteMode: "both" });
+  patchSettings({ autocompleteMode: "both" });
 });
 
 describe("InlineAutocompleteInput", () => {
@@ -53,7 +53,7 @@ describe("InlineAutocompleteInput", () => {
 
   it("does not render a completion or menu when autocomplete is off", async () => {
     const user = userEvent.setup();
-    useSettingsStore.setState({ autocompleteMode: "off" });
+    patchSettings({ autocompleteMode: "off" });
     const view = render(
       <InlineAutocompleteInput
         aria-label="Search"
@@ -72,7 +72,7 @@ describe("InlineAutocompleteInput", () => {
   it("selects a dropdown suggestion with ArrowDown and Enter", async () => {
     const user = userEvent.setup();
     const onAccept = vi.fn();
-    useSettingsStore.setState({ autocompleteMode: "dropdown" });
+    patchSettings({ autocompleteMode: "dropdown" });
     render(
       <InlineAutocompleteInput
         aria-label="Search"
@@ -155,7 +155,7 @@ describe("InlineAutocompleteInput", () => {
 
   it("hides the ghost and shows only the menu in dropdown mode", async () => {
     const user = userEvent.setup();
-    useSettingsStore.setState({ autocompleteMode: "dropdown" });
+    patchSettings({ autocompleteMode: "dropdown" });
     const view = render(
       <InlineAutocompleteInput
         aria-label="Search"
@@ -173,7 +173,7 @@ describe("InlineAutocompleteInput", () => {
 
   it("shows the ghost and the menu together in both mode", async () => {
     const user = userEvent.setup();
-    useSettingsStore.setState({ autocompleteMode: "both" });
+    patchSettings({ autocompleteMode: "both" });
     const view = render(
       <InlineAutocompleteInput
         aria-label="Search"
@@ -322,7 +322,7 @@ describe("InlineAutocompleteInput", () => {
 describe("InlineAutocompleteInput placement", () => {
   it("renders the menu below the input by default", async () => {
     const user = userEvent.setup();
-    useSettingsStore.setState({ autocompleteMode: "dropdown" });
+    patchSettings({ autocompleteMode: "dropdown" });
     render(
       <InlineAutocompleteInput
         aria-label="Search"
@@ -340,7 +340,7 @@ describe("InlineAutocompleteInput placement", () => {
 
   it("renders the menu above the input with placement above", async () => {
     const user = userEvent.setup();
-    useSettingsStore.setState({ autocompleteMode: "dropdown" });
+    patchSettings({ autocompleteMode: "dropdown" });
     render(
       <InlineAutocompleteInput
         aria-label="Search"

@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import AniListSortBar from "@/routes/components/anilist/sort.anilist";
-import { useSettingsStore } from "@/store/settings.store";
+import { patchSettings } from "@/store/settings.store";
 import type { AniSortProps } from "@/types/anilist";
 
 function renderBar(overrides: Partial<AniSortProps> = {}) {
@@ -35,7 +35,7 @@ async function openMenu() {
 afterEach(() => cleanup());
 
 beforeEach(() => {
-  useSettingsStore.setState({ language: "en" });
+  patchSettings({ language: "en" });
 });
 
 describe("AniListSortBar more menu", () => {

@@ -5,14 +5,16 @@ import type { RefObject } from "react";
 import { Input } from "@/components/ui/input.component";
 import { AUTOCOMPLETE_HISTORY_LIMIT } from "@/config/search/autocomplete.config";
 import {
+
   computeGhostValue,
   getAriaAutocomplete,
   splitHighlightRanges,
 } from "@/lib/search/highlight.utils";
 import { groupSuggestions, rankHistoryEntries } from "@/lib/search/suggestions.utils";
 import type { SearchSuggestion } from "@/lib/search/suggestions.utils";
+import { useCell } from "@/lib/state/signal.hook";
 import { createListNavigationHandler } from "@/lib/utils/keyboard.utils";
-import { useSettingsStore } from "@/store/settings.store";
+import { settingsAtoms } from "@/store/settings.store";
 import type { AutocompleteInputProps, HighlightRange, SpellCheck } from "@/types/search";
 
 import { BackdropLayer } from "./backdrop.autocomplete";
@@ -167,7 +169,7 @@ export function InlineAutocompleteInput({
   const [menuWidth, setMenuWidth] = useState<number | undefined>(undefined);
   const listboxId = useId();
 
-  const mode = useSettingsStore((state) => state.autocompleteMode);
+  const mode = useCell(settingsAtoms.autocompleteMode);
   const enabled = mode !== "off";
   const currentValue = typeof value === "string" ? value : "";
   const isEmptyQuery = currentValue.trim().length === 0;

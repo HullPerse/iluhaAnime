@@ -5,21 +5,25 @@ import { SmallLoader } from "@/components/shared/loader.component";
 import ProgressBar from "@/components/shared/progress.component";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import { useUpscaleQueueStore } from "@/store/upscale.store";
+import { useCell } from "@/lib/state/signal.hook";
+import {
+  clearUpscaleAll as clearAll,
+  clearUpscaleDone as clearDone,
+  clearUpscaleErrors as clearErrors,
+  removeUpscaleItem as removeItem,
+  restartUpscaleItem as restartItem,
+  setUpscalePaused as setPaused,
+  upscaleItems,
+  upscalePaused,
+} from "@/store/upscale.store";
 import type { ScanType } from "@/types/player";
 
 import { QueueItemDepth } from "./depth.player";
 import FolderScanProgress from "./scan.player";
 
 export default function QueuePanel({ scan }: { scan: ScanType }) {
-  const items = useUpscaleQueueStore((s) => s.items);
-  const paused = useUpscaleQueueStore((s) => s.paused);
-  const removeItem = useUpscaleQueueStore((s) => s.removeItem);
-  const clearDone = useUpscaleQueueStore((s) => s.clearDone);
-  const clearErrors = useUpscaleQueueStore((s) => s.clearErrors);
-  const clearAll = useUpscaleQueueStore((s) => s.clearAll);
-  const restartItem = useUpscaleQueueStore((s) => s.restartItem);
-  const setPaused = useUpscaleQueueStore((s) => s.setPaused);
+  const items = useCell(upscaleItems);
+  const paused = useCell(upscalePaused);
   const { t } = useI18n();
   const [open, setOpen] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);

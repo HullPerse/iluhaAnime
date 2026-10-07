@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { useCell } from "@/lib/state/signal.hook";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { assetUrl } from "@/lib/utils/image.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { ignore } from "@/lib/utils/promise.utils";
 import { formatClock } from "@/lib/utils/time.utils";
-import { usePlaybackStore } from "@/store/player.store";
+import { playbackAtoms } from "@/store/player.store";
 import type { MpvChapter } from "@/types/videoPlayer";
 
 const TOOLTIP_WIDTH = 128;
@@ -97,9 +98,9 @@ function Timeline({
   onScrub: (time: number) => void;
   onCommitSeek: (time: number) => void;
 }) {
-  const timePos = usePlaybackStore((state) => state.timePos);
-  const path = usePlaybackStore((state) => state.path);
-  const paused = usePlaybackStore((state) => state.paused);
+  const timePos = useCell(playbackAtoms.timePos);
+  const path = useCell(playbackAtoms.path);
+  const paused = useCell(playbackAtoms.paused);
   const barRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
   const [scrubTime, setScrubTime] = useState<number | null>(null);

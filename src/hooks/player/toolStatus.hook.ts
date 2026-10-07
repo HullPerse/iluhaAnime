@@ -4,8 +4,8 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { useTauriEvent } from "@/hooks/tauriEvent.hook";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
-import { useNotificationStore } from "@/store/notification.store";
-import { useSettingsStore } from "@/store/settings.store";
+import { addNotification } from "@/store/notification.store";
+import { settingsAtoms } from "@/store/settings.store";
 import type { TranslationKey } from "@/types/i18n";
 import type { CommandName } from "@/types/ipc";
 import type { UpscaleToolStatus } from "@/types/player";
@@ -86,15 +86,9 @@ export function useUpscaleToolStatus(tool: UpscaleTool) {
     } else {
       setStatus("ok");
     }
-    if (!aliveRef.current && useSettingsStore.getState().notifyModelDownloads) {
-      if (err)
-        useNotificationStore
-          .getState()
-          .add(t("notification.downloads.failed"), "error", TOOL_LABEL[tool]);
-      else
-        useNotificationStore
-          .getState()
-          .add(t("notification.downloads.done"), "success", TOOL_LABEL[tool]);
+    if (!aliveRef.current && settingsAtoms.notifyModelDownloads.get()) {
+      if (err) addNotification(t("notification.downloads.failed"), "error", TOOL_LABEL[tool]);
+      else addNotification(t("notification.downloads.done"), "success", TOOL_LABEL[tool]);
     }
     busyRef.current = false;
   }, [t, tool]);

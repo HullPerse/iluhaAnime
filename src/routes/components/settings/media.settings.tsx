@@ -5,13 +5,16 @@ import Select from "@/components/ui/select.component";
 import { DEFAULT_SETTINGS } from "@/config/settings/defaults.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { parseExtensions } from "@/lib/settings/media.utils";
-import { useSettingsStore } from "@/store/settings.store";
+import { useCell } from "@/lib/state/signal.hook";
+import { patchSettings, settingsAtoms } from "@/store/settings.store";
 
 import { ExtensionRow } from "./extensionRow.settings";
 
 export default function SettingsMedia() {
-  const { videoExtensions, audioExtensions, subtitleExtensions, showTrackFiles, patch } =
-    useSettingsStore();
+  const videoExtensions = useCell(settingsAtoms.videoExtensions);
+  const audioExtensions = useCell(settingsAtoms.audioExtensions);
+  const subtitleExtensions = useCell(settingsAtoms.subtitleExtensions);
+  const showTrackFiles = useCell(settingsAtoms.showTrackFiles);
   const { t } = useI18n();
   const [video, setVideo] = useState(() => videoExtensions.join(", "));
   const [audio, setAudio] = useState(() => audioExtensions.join(", "));
@@ -40,7 +43,7 @@ export default function SettingsMedia() {
           value={video}
           onChange={setVideo}
           onCommit={() =>
-            setVideo(commit(video, videoExtensions, (list) => patch({ videoExtensions: list })))
+            setVideo(commit(video, videoExtensions, (list) => patchSettings({ videoExtensions: list })))
           }
         />
         <ExtensionRow
@@ -48,7 +51,7 @@ export default function SettingsMedia() {
           value={audio}
           onChange={setAudio}
           onCommit={() =>
-            setAudio(commit(audio, audioExtensions, (list) => patch({ audioExtensions: list })))
+            setAudio(commit(audio, audioExtensions, (list) => patchSettings({ audioExtensions: list })))
           }
         />
         <ExtensionRow
@@ -57,7 +60,7 @@ export default function SettingsMedia() {
           onChange={setSubtitles}
           onCommit={() =>
             setSubtitles(
-              commit(subtitles, subtitleExtensions, (list) => patch({ subtitleExtensions: list }))
+              commit(subtitles, subtitleExtensions, (list) => patchSettings({ subtitleExtensions: list }))
             )
           }
         />
@@ -68,7 +71,7 @@ export default function SettingsMedia() {
           <span className="w-36 shrink-0 font-bold">{t("settings.media.tracks")}</span>
           <Select
             value={showTrackFiles}
-            onChange={(value) => patch({ showTrackFiles: value as typeof showTrackFiles })}
+            onChange={(value) => patchSettings({ showTrackFiles: value as typeof showTrackFiles })}
             options={[
               { value: "hide", label: t("settings.media.tracks.hide") },
               { value: "folders", label: t("settings.media.tracks.folders") },
@@ -81,7 +84,7 @@ export default function SettingsMedia() {
           <Button
             className="text-xs"
             onClick={() =>
-              patch({
+              patchSettings({
                 videoExtensions: DEFAULT_SETTINGS.videoExtensions,
                 audioExtensions: DEFAULT_SETTINGS.audioExtensions,
                 subtitleExtensions: DEFAULT_SETTINGS.subtitleExtensions,

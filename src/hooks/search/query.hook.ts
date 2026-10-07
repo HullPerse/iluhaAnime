@@ -21,19 +21,27 @@ import {
 } from "@/lib/search/route.utils";
 import { suggestSpelling } from "@/lib/search/suggestions.utils";
 import { parseTorrentTags, torrentTagsToFilters } from "@/lib/search/torrentTags.utils";
+import { useCell } from "@/lib/state/signal.hook";
 import { copyMagnet, downloadMagnet, openMagnet } from "@/lib/torrent/magnet.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
-import { useSearchStore } from "@/store/search.store";
-import { useSettingsStore } from "@/store/settings.store";
+import {
+  resetSearchFilters as resetFilters,
+  searchAtoms,
+  setCrossSearchQuery,
+  setSearchFilters as setFilters,
+  setSearchSortBy as setSortBy,
+  setSearchSortDirection as setSortDirection,
+} from "@/store/search.store";
+import { settingsAtoms } from "@/store/settings.store";
 import type { Source, SearchQueryController, SelectedSearchTorrent } from "@/types/search";
 import type { Anime } from "@/types/torrent";
 
 export function useSearchQuery(): SearchQueryController {
-  const defaultSource = useSettingsStore((s) => s.defaultSearchSource);
-  const visibleSources = useSettingsStore((s) => s.visibleSources);
-  const resultsPerPage = useSettingsStore((s) => s.resultsPerPage);
-  const searchProxyUrls = useSettingsStore((s) => s.searchProxyUrls);
-  const searchSymSpellEnabled = useSettingsStore((s) => s.searchSymSpellEnabled);
+  const defaultSource = useCell(settingsAtoms.defaultSearchSource);
+  const visibleSources = useCell(settingsAtoms.visibleSources);
+  const resultsPerPage = useCell(settingsAtoms.resultsPerPage);
+  const searchProxyUrls = useCell(settingsAtoms.searchProxyUrls);
+  const searchSymSpellEnabled = useCell(settingsAtoms.searchSymSpellEnabled);
 
   const sourceOptions = useMemo(
     () => getVisibleSources(visibleSources, SOURCE_INFOS),
@@ -65,16 +73,11 @@ export function useSearchQuery(): SearchQueryController {
     setMaxPage(Number.POSITIVE_INFINITY);
   }
 
-  const sortBy = useSearchStore((s) => s.sortBy);
-  const sortDirection = useSearchStore((s) => s.sortDirection);
-  const filters = useSearchStore((s) => s.filters);
-  const setSortBy = useSearchStore((s) => s.setSortBy);
-  const setSortDirection = useSearchStore((s) => s.setSortDirection);
-  const setFilters = useSearchStore((s) => s.setFilters);
-  const resetFilters = useSearchStore((s) => s.resetFilters);
+  const sortBy = useCell(searchAtoms.sortBy);
+  const sortDirection = useCell(searchAtoms.sortDirection);
+  const filters = useCell(searchAtoms.filters);
 
-  const crossSearchQuery = useSearchStore((s) => s.crossSearchQuery);
-  const setCrossSearchQuery = useSearchStore((s) => s.setCrossSearchQuery);
+  const crossSearchQuery = useCell(searchAtoms.crossSearchQuery);
 
   const { rutrackerAuth, nekobtAuth, eraiAuth } = useSearchSessions();
 
@@ -157,7 +160,7 @@ export function useSearchQuery(): SearchQueryController {
       setMaxPage(Number.POSITIVE_INFINITY);
       setCrossSearchQuery(null);
     }
-  }, [crossSearchQuery, setCrossSearchQuery]);
+  }, [crossSearchQuery]);
 
   const filtered = useMemo(() => filterAnimeResults(data, filters), [data, filters]);
 
@@ -228,8 +231,8 @@ export function useSearchQuery(): SearchQueryController {
       applySubmitQuery(query);
     },
   });
-  const animeIndex = useSearchStore((s) => s.animeIndex);
-  const searchHistory = useSearchStore((s) => s.history);
+  const animeIndex = useCell(searchAtoms.animeIndex);
+  const searchHistory = useCell(searchAtoms.history);
   const didYouMean = useMemo(() => {
     if (!submittedQuery || isLoading || (data?.length ?? 0) > 0) return null;
     return suggestSpelling(submittedQuery, {
@@ -255,7 +258,7 @@ export function useSearchQuery(): SearchQueryController {
       setSearchRequest((request) => request + 1);
       setMaxPage(Number.POSITIVE_INFINITY);
     },
-    [setFilters]
+    []
   );
 
   const applyDidYouMean = () => {

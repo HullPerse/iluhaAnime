@@ -11,35 +11,32 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { useOnlineStatus } from "@/hooks/network.hook";
 import { TORRENT_LISTEN_PORT_KEY, useTorrentListenPort } from "@/hooks/torrent/queries.hook";
 import { toSessionConfig } from "@/lib/settings/session.utils";
+import { useCell } from "@/lib/state/signal.hook";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { showError } from "@/lib/utils/notification.utils";
-import { useTorrentStore } from "@/store/download.store";
-import { useSettingsStore } from "@/store/settings.store";
+import { setTorrentSpeedLimits as setSpeedLimits } from "@/store/download.store";
+import { patchSettings, settingsAtoms } from "@/store/settings.store";
 import type { SessionConfigPayload } from "@/types/settings";
 import type { FileOrder } from "@/types/torrent";
 
 import { NetworkNumberRow } from "./networkNumberRow.settings";
 
 export default function SettingsTorrent() {
-  const {
-    limits,
-    notificationsEnabled,
-    notifyOnComplete,
-    notifyOnError,
-    fastresumeEnabled,
-    disablePersistence,
-    listenPort,
-    enableUpnp,
-    ipv4Only,
-    peerConnectTimeout,
-    peerReadWriteTimeout,
-    torrentProxyUrl,
-    fileOrder,
-    resultsPerPage,
-    speedSchedule,
-    patch,
-  } = useSettingsStore();
-  const setSpeedLimits = useTorrentStore((s) => s.setSpeedLimits);
+  const limits = useCell(settingsAtoms.limits);
+  const notificationsEnabled = useCell(settingsAtoms.notificationsEnabled);
+  const notifyOnComplete = useCell(settingsAtoms.notifyOnComplete);
+  const notifyOnError = useCell(settingsAtoms.notifyOnError);
+  const fastresumeEnabled = useCell(settingsAtoms.fastresumeEnabled);
+  const disablePersistence = useCell(settingsAtoms.disablePersistence);
+  const listenPort = useCell(settingsAtoms.listenPort);
+  const enableUpnp = useCell(settingsAtoms.enableUpnp);
+  const ipv4Only = useCell(settingsAtoms.ipv4Only);
+  const peerConnectTimeout = useCell(settingsAtoms.peerConnectTimeout);
+  const peerReadWriteTimeout = useCell(settingsAtoms.peerReadWriteTimeout);
+  const torrentProxyUrl = useCell(settingsAtoms.torrentProxyUrl);
+  const fileOrder = useCell(settingsAtoms.fileOrder);
+  const resultsPerPage = useCell(settingsAtoms.resultsPerPage);
+  const speedSchedule = useCell(settingsAtoms.speedSchedule);
   const queryClient = useQueryClient();
   const listenPortQuery = useTorrentListenPort();
   const { t } = useI18n();
@@ -91,7 +88,7 @@ export default function SettingsTorrent() {
       readWrite <= 3600;
     setNetworkInvalid(!valid);
     if (!valid) return;
-    patch({
+    patchSettings({
       listenPort: port,
       peerConnectTimeout: connect,
       peerReadWriteTimeout: readWrite,
@@ -122,7 +119,7 @@ export default function SettingsTorrent() {
               placeholder={t("settings.torrent.no.limit")}
               onChange={(e) => {
                 const v = e.target.value ? Number(e.target.value) : null;
-                patch({ limits: { ...limits, download: v } });
+                patchSettings({ limits: { ...limits, download: v } });
                 setSpeedLimits({ ...limits, download: v });
               }}
               className="w-20"
@@ -138,7 +135,7 @@ export default function SettingsTorrent() {
               placeholder={t("settings.torrent.no.limit")}
               onChange={(e) => {
                 const v = e.target.value ? Number(e.target.value) : null;
-                patch({ limits: { ...limits, upload: v } });
+                patchSettings({ limits: { ...limits, upload: v } });
                 setSpeedLimits({ ...limits, upload: v });
               }}
               className="w-20"
@@ -155,7 +152,7 @@ export default function SettingsTorrent() {
           <label className="windows95-text text-text flex cursor-pointer items-center gap-2 select-none">
             <Checkbox
               checked={speedSchedule.enabled}
-              onChange={(v) => patch({ speedSchedule: { ...speedSchedule, enabled: v } })}
+              onChange={(v) => patchSettings({ speedSchedule: { ...speedSchedule, enabled: v } })}
             />
             {t("settings.torrent.schedule.enable")}
           </label>
@@ -166,7 +163,7 @@ export default function SettingsTorrent() {
               className="w-28"
               value={speedSchedule.dayStart}
               onChange={(e) =>
-                patch({ speedSchedule: { ...speedSchedule, dayStart: e.target.value } })
+                patchSettings({ speedSchedule: { ...speedSchedule, dayStart: e.target.value } })
               }
             />
             <span className="windows95-text text-text">-</span>
@@ -175,7 +172,7 @@ export default function SettingsTorrent() {
               className="w-28"
               value={speedSchedule.nightStart}
               onChange={(e) =>
-                patch({ speedSchedule: { ...speedSchedule, nightStart: e.target.value } })
+                patchSettings({ speedSchedule: { ...speedSchedule, nightStart: e.target.value } })
               }
             />
           </label>
@@ -189,7 +186,7 @@ export default function SettingsTorrent() {
               value={speedSchedule.dayDownload ?? ""}
               onChange={(e) => {
                 const v = e.target.value ? Number(e.target.value) : null;
-                patch({
+                patchSettings({
                   speedSchedule: { ...speedSchedule, dayDownload: v },
                 });
               }}
@@ -202,7 +199,7 @@ export default function SettingsTorrent() {
               value={speedSchedule.dayUpload ?? ""}
               onChange={(e) => {
                 const v = e.target.value ? Number(e.target.value) : null;
-                patch({
+                patchSettings({
                   speedSchedule: { ...speedSchedule, dayUpload: v },
                 });
               }}
@@ -218,7 +215,7 @@ export default function SettingsTorrent() {
               value={speedSchedule.nightDownload ?? ""}
               onChange={(e) => {
                 const v = e.target.value ? Number(e.target.value) : null;
-                patch({
+                patchSettings({
                   speedSchedule: { ...speedSchedule, nightDownload: v },
                 });
               }}
@@ -231,7 +228,7 @@ export default function SettingsTorrent() {
               value={speedSchedule.nightUpload ?? ""}
               onChange={(e) => {
                 const v = e.target.value ? Number(e.target.value) : null;
-                patch({
+                patchSettings({
                   speedSchedule: { ...speedSchedule, nightUpload: v },
                 });
               }}
@@ -255,7 +252,7 @@ export default function SettingsTorrent() {
                 min={5}
                 max={100}
                 value={resultsPerPage}
-                onChange={(e) => patch({ resultsPerPage: Number(e.target.value) })}
+                onChange={(e) => patchSettings({ resultsPerPage: Number(e.target.value) })}
                 className="w-16"
               />
             </div>
@@ -274,7 +271,7 @@ export default function SettingsTorrent() {
               value={fileOrder}
               onChange={(value) => {
                 const order = value as FileOrder;
-                patch({ fileOrder: order });
+                patchSettings({ fileOrder: order });
                 saveSessionConfig({ fileOrder: order });
               }}
               options={[
@@ -298,7 +295,7 @@ export default function SettingsTorrent() {
           <label className="windows95-text text-text flex cursor-pointer items-center gap-2 select-none">
             <Checkbox
               checked={notificationsEnabled}
-              onChange={(v) => patch({ notificationsEnabled: v })}
+              onChange={(v) => patchSettings({ notificationsEnabled: v })}
             />
             <span>{t("settings.torrent.enable.notifications")}</span>
           </label>
@@ -307,7 +304,7 @@ export default function SettingsTorrent() {
             <Checkbox
               checked={notifyOnComplete}
               disabled={!notificationsEnabled}
-              onChange={(v) => patch({ notifyOnComplete: v })}
+              onChange={(v) => patchSettings({ notifyOnComplete: v })}
             />
             <span>{t("settings.torrent.on.complete")}</span>
           </label>
@@ -316,7 +313,7 @@ export default function SettingsTorrent() {
             <Checkbox
               checked={notifyOnError}
               disabled={!notificationsEnabled}
-              onChange={(v) => patch({ notifyOnError: v })}
+              onChange={(v) => patchSettings({ notifyOnError: v })}
             />
             <span>{t("settings.torrent.on.error")}</span>
           </label>
@@ -333,7 +330,7 @@ export default function SettingsTorrent() {
             <Checkbox
               checked={fastresumeEnabled}
               onChange={(v) => {
-                patch({ fastresumeEnabled: v });
+                patchSettings({ fastresumeEnabled: v });
                 saveSessionConfig({ fastresume: v });
               }}
             />
@@ -344,7 +341,7 @@ export default function SettingsTorrent() {
             <Checkbox
               checked={disablePersistence}
               onChange={(v) => {
-                patch({ disablePersistence: v });
+                patchSettings({ disablePersistence: v });
                 saveSessionConfig({ disablePersistence: v });
               }}
             />
@@ -363,7 +360,7 @@ export default function SettingsTorrent() {
             <Checkbox
               checked={enableUpnp}
               onChange={(v) => {
-                patch({ enableUpnp: v });
+                patchSettings({ enableUpnp: v });
                 saveSessionConfig({ enableUpnp: v });
               }}
             />
@@ -373,7 +370,7 @@ export default function SettingsTorrent() {
             <Checkbox
               checked={ipv4Only}
               onChange={(v) => {
-                patch({ ipv4Only: v });
+                patchSettings({ ipv4Only: v });
                 saveSessionConfig({ ipv4Only: v });
               }}
             />

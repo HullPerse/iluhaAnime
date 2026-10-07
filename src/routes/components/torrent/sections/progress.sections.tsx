@@ -9,14 +9,15 @@ import {
   fmtSpeed,
   getDisplayState,
 } from "@/lib/torrent/common.utils";
+import { useCell } from "@/lib/state/signal.hook";
 import { formatBytes } from "@/lib/utils/bytes.utils";
 import { formatElapsed, formatETA } from "@/lib/utils/time.utils";
-import { useTorrentStore } from "@/store/download.store";
+import { torrentAtoms } from "@/store/download.store";
 import type { TorrentInfo } from "@/types/torrent";
 
 export function TorrentProgress({ item }: { item: TorrentInfo }) {
   const { t } = useI18n();
-  const lastActiveAt = useTorrentStore((s) => s.lastActiveAt);
+  const lastActiveAt = useCell(torrentAtoms.lastActiveAt);
   const display = getDisplayState(item, lastActiveAt, Date.now());
   const progress = item.progress * 100;
   const initializing = display === "initializing";

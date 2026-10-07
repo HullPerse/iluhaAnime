@@ -4,7 +4,7 @@ import { useRef } from "react";
 import { anilistApi } from "@/api/anilist.api";
 import { tr } from "@/lib/locale/i18n.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
-import { useNotificationStore } from "@/store/notification.store";
+import { addNotification } from "@/store/notification.store";
 import type { ActivityLikeState, AniActivity } from "@/types/anilist";
 
 export function useToggleActivityLike() {
@@ -37,9 +37,7 @@ export function useToggleActivityLike() {
             : item
         )
       );
-      useNotificationStore
-        .getState()
-        .add(tr("anilist.activity.like.failed"), "error", error.message);
+      addNotification(tr("anilist.activity.like.failed"), "error", error.message);
     } else if (state) {
       queryClient.setQueriesData<AniActivity[]>({ queryKey: ["anilist_activity"] }, (old) =>
         old?.map((item) =>

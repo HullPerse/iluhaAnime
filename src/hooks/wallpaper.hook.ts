@@ -1,12 +1,13 @@
 import { systemApi } from "@/api/system.api";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { queryKeys } from "@/lib/query/keys.utils";
+import { useCell } from "@/lib/state/signal.hook";
 import { assetUrl } from "@/lib/utils/image.utils";
-import { useSettingsStore } from "@/store/settings.store";
+import { settingsAtoms } from "@/store/settings.store";
 import type { UserImage } from "@/types/userimage";
 
 export function useWallpaperImage() {
-  const selectedId = useSettingsStore((state) => state.selectedDitherId);
+  const selectedId = useCell(settingsAtoms.selectedDitherId);
   const query = useAppQuery("slow", {
     queryKey: queryKeys.wallpaper(selectedId),
     queryFn: async () => {

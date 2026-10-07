@@ -1,4 +1,4 @@
-import { useSettingsStore } from "@/store/settings.store";
+import { settingsAtoms } from "@/store/settings.store";
 import type { TmdbRateLimit } from "@/types/collection";
 
 import type { ApiTransport } from "./transport.api";
@@ -102,6 +102,6 @@ export class TmdbApi {
 }
 
 export const tmdbApi = new TmdbApi({
-  proxyUrl: () => useSettingsStore.getState().tmdbProxyUrl,
-  isConfigured: () => useSettingsStore.getState().tmdbKeySet,
+  proxyUrl: () => settingsAtoms.tmdbProxyUrl.get(),
+  isConfigured: () => settingsAtoms.tmdbKeySet.get(),
 });

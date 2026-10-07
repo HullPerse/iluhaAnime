@@ -5,8 +5,9 @@ import { PROJECT_GITHUB_URL } from "@/config/settings/links.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useOnlineStatus } from "@/hooks/network.hook";
 import { useTorrents } from "@/hooks/torrent/queries.hook";
+import { useCell } from "@/lib/state/signal.hook";
 import { isCurrentDownload } from "@/lib/torrent/common.utils";
-import { useNotificationStore } from "@/store/notification.store";
+import { notificationAtoms } from "@/store/notification.store";
 
 export default function StatusBar({ tabLabel }: { tabLabel: string }) {
   const { t } = useI18n();
@@ -17,7 +18,7 @@ export default function StatusBar({ tabLabel }: { tabLabel: string }) {
     (n, torrent) => n + (isCurrentDownload(torrent) ? 1 : 0),
     0
   );
-  const unreadCount = useNotificationStore((s) => s.unreadCount);
+  const unreadCount = useCell(notificationAtoms.unreadCount);
 
   return (
     <section className="ui-statusbar shrink-0">

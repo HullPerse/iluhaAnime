@@ -13,6 +13,7 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { resetRemoteImageCache } from "@/hooks/remoteImage.hook";
 import { queryKeys } from "@/lib/query/keys.utils";
 import { formatBackupDate } from "@/lib/settings/backup.utils";
+import { useCell } from "@/lib/state/signal.hook";
 import {
   attempt,
   attemptAll,
@@ -20,9 +21,9 @@ import {
   withFallback,
 } from "@/lib/utils/attempt.utils";
 import { formatBytes } from "@/lib/utils/bytes.utils";
-import { useSearchStore } from "@/store/search.store";
-import { useSettingsStore } from "@/store/settings.store";
-import { useThemeStore } from "@/store/theme.store";
+import { searchAtoms } from "@/store/search.store";
+import { patchSettings, settingsAtoms } from "@/store/settings.store";
+import { themeAtoms } from "@/store/theme.store";
 import type { SettingsTab } from "@/types/settings";
 import type { SqliteBackupInfo, SqliteDatabaseInfo } from "@/types/sqlite";
 
@@ -52,14 +53,13 @@ function backupSize(backups: SqliteBackupInfo[]): number {
 export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void }) {
   const { t } = useI18n();
   const queryClient = useQueryClient();
-  const historyCount = useSearchStore((s) => s.history.length);
-  const queryStatCount = useSearchStore((s) => Object.keys(s.queryStats).length);
-  const indexCount = useSearchStore((s) => s.animeIndex.length);
-  const searchType = useSettingsStore((s) => s.searchType);
-  const sqliteBrowserEnabled = useSettingsStore((s) => s.sqliteBrowserEnabled);
-  const patchSettings = useSettingsStore((s) => s.patch);
-  const currentTheme = useThemeStore((s) => s.currentTheme);
-  const customThemes = useThemeStore((s) => s.customThemes);
+  const historyCount = useCell(searchAtoms.history).length;
+  const queryStatCount = Object.keys(useCell(searchAtoms.queryStats)).length;
+  const indexCount = useCell(searchAtoms.animeIndex).length;
+  const searchType = useCell(settingsAtoms.searchType);
+  const sqliteBrowserEnabled = useCell(settingsAtoms.sqliteBrowserEnabled);
+  const currentTheme = useCell(themeAtoms.currentTheme);
+  const customThemes = useCell(themeAtoms.customThemes);
 
   const ffmpeg = useAppQuery("static", {
     queryKey: queryKeys.summaryFfprobe(),

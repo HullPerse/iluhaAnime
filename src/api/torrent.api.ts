@@ -1,7 +1,8 @@
-import { useSettingsStore } from "@/store/settings.store";
+import { settingsAtoms } from "@/store/settings.store";
 import type { Source } from "@/types/search";
 import type { SessionConfigPayload } from "@/types/settings";
 import type {
+
   Anime,
   CreatedTorrent,
   DhtStatus,
@@ -346,5 +347,5 @@ export class TorrentApi {
 }
 
 export const torrentApi = new TorrentApi({
-  proxies: () => useSettingsStore.getState().searchProxyUrls,
+  proxies: () => settingsAtoms.searchProxyUrls.get(),
 });

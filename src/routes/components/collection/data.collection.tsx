@@ -25,7 +25,13 @@ import { DropdownMenuRadioItem } from "@/components/ui/dropdown/radioItem.dropdo
 import { DropdownMenuSeparator } from "@/components/ui/dropdown/separator.dropdown";
 import { DropdownMenuTrigger } from "@/components/ui/dropdown/trigger.dropdown";
 import { useI18n } from "@/hooks/i18n.hook";
-import { useCollectionStore } from "@/store/collection.store";
+import { useCell } from "@/lib/state/signal.hook";
+import {
+  collectionAtoms,
+  setCollectionDisplayMode,
+  setCollectionGroupByStatus,
+  setCollectionViewMode,
+} from "@/store/collection.store";
 
 import { TagsReferenceModal } from "./tags.collection";
 
@@ -45,8 +51,9 @@ export default function DataCollection({
   randomDisabled: boolean;
 }) {
   const { t } = useI18n();
-  const { groupByStatus, viewMode, displayMode, setGroupByStatus, setViewMode, setDisplayMode } =
-    useCollectionStore();
+  const groupByStatus = useCell(collectionAtoms.groupByStatus);
+  const viewMode = useCell(collectionAtoms.viewMode);
+  const displayMode = useCell(collectionAtoms.displayMode);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const [tagsOpen, setTagsOpen] = useState(false);
@@ -76,7 +83,7 @@ export default function DataCollection({
           <DropdownMenuGroup>
             <DropdownMenuRadioGroup
               value={viewMode}
-              onValueChange={(v) => setViewMode(v as typeof viewMode)}
+              onValueChange={(v) => setCollectionViewMode(v as typeof viewMode)}
             >
               <DropdownMenuRadioItem value="grid" title={t("collection.view.mode")}>
                 <Grid3x3 className="size-4" /> {t("collection.view.mode.grid")}
@@ -88,7 +95,7 @@ export default function DataCollection({
             {viewMode === "grid" && (
               <DropdownMenuRadioGroup
                 value={displayMode}
-                onValueChange={(v) => setDisplayMode(v as typeof displayMode)}
+                onValueChange={(v) => setCollectionDisplayMode(v as typeof displayMode)}
               >
                 <DropdownMenuRadioItem value="scroll" title={t("collection.display.mode")}>
                   <InfinityIcon className="size-4" /> {t("collection.display.mode.scroll")}
@@ -106,7 +113,7 @@ export default function DataCollection({
           <DropdownMenuGroup>
             <DropdownMenuCheckboxItem
               checked={groupByStatus}
-              onCheckedChange={(checked) => setGroupByStatus(checked)}
+              onCheckedChange={(checked) => setCollectionGroupByStatus(checked)}
               title={t("collection.group.by.status")}
             >
               <Layers className="size-4" /> {t("collection.group.by.status")}

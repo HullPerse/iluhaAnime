@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import AniListFriendsModal from "@/routes/components/anilist/friends.anilist";
-import { useSettingsStore } from "@/store/settings.store";
+import { patchSettings } from "@/store/settings.store";
 import type { AniFriend, AniUser } from "@/types/anilist";
 
 const invokeMock = vi.fn();
@@ -64,7 +64,7 @@ afterEach(() => cleanup());
 
 beforeEach(() => {
   invokeMock.mockReset();
-  useSettingsStore.setState({ language: "en", anilistProxyUrl: null });
+  patchSettings({ language: "en", anilistProxyUrl: null });
   invokeMock.mockImplementation((command: string) => {
     if (command === "get_anilist_following") {
       return Promise.resolve({

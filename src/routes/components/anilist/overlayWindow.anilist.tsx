@@ -5,7 +5,8 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useOverlay } from "@/hooks/overlay.hook";
-import { useSettingsStore } from "@/store/settings.store";
+import { useCell } from "@/lib/state/signal.hook";
+import { settingsAtoms } from "@/store/settings.store";
 
 export function OverlayWindow({
   header,
@@ -19,9 +20,9 @@ export function OverlayWindow({
   children: ReactNode;
 }) {
   const { t } = useI18n();
-  const modalAnimation = useSettingsStore((s) => s.modalAnimation);
-  const enable3dBorders = useSettingsStore((s) => s.enable3dBorders);
-  const backdropOpacity = useSettingsStore((s) => s.modalBackdropOpacity);
+  const modalAnimation = useCell(settingsAtoms.modalAnimation);
+  const enable3dBorders = useCell(settingsAtoms.enable3dBorders);
+  const backdropOpacity = useCell(settingsAtoms.modalBackdropOpacity);
   const [visible, setVisible] = useState(false);
   useOverlay(onClose);
 

@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 
 import { useI18n } from "@/hooks/i18n.hook";
-import { useMediaStore } from "@/store/media.store";
-import { usePlaybackStore, usePlayerStore } from "@/store/player.store";
+import { useMediaEntry } from "@/hooks/media.hook";
+import { useCell } from "@/lib/state/signal.hook";
+import { playbackAtoms, playerAtoms } from "@/store/player.store";
 
 import { trackLabel } from "./tracks.player";
 
@@ -11,16 +12,15 @@ const OSD_TIMEOUT = 2500;
 function OsdOverlay() {
   const { t } = useI18n();
 
-  const path = usePlaybackStore((state) => state.path);
-  const speed = usePlaybackStore((state) => state.speed);
-  const muted = usePlaybackStore((state) => state.muted);
-  const tracks = usePlaybackStore((state) => state.tracks);
-  const volume = usePlayerStore((state) => state.volume);
+  const path = useCell(playbackAtoms.path);
+  const speed = useCell(playbackAtoms.speed);
+  const muted = useCell(playbackAtoms.muted);
+  const tracks = useCell(playbackAtoms.tracks);
+  const volume = useCell(playerAtoms.volume);
 
-  const subOffset = useMediaStore((state) => (path ? (state.getEntry(path)?.subOffset ?? 0) : 0));
-  const audioOffset = useMediaStore((state) =>
-    path ? (state.getEntry(path)?.audioOffset ?? 0) : 0
-  );
+  const entry = useMediaEntry(path);
+  const subOffset = entry?.subOffset ?? 0;
+  const audioOffset = entry?.audioOffset ?? 0;
 
   const audioTrack = tracks.find((track) => track.type === "audio" && track.selected);
   const subTrack = tracks.find((track) => track.type === "sub" && track.selected);

@@ -3,8 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import ScreenshotModal from "@/components/shared/screenshot/modal.screenshot";
-import { useNotificationStore } from "@/store/notification.store";
-import { useSettingsStore } from "@/store/settings.store";
+import { notificationAtoms } from "@/store/notification.store";
+import { patchSettings, settingsAtoms } from "@/store/settings.store";
 import type { SavedScreenshot, ScreenshotCapture } from "@/types/screenshot";
 
 const mockInvoke = vi.fn();
@@ -234,8 +234,9 @@ beforeEach(() => {
   mockOpenPath.mockReset();
   mockWriteImage.mockResolvedValue(undefined);
   mockOpenPath.mockResolvedValue(undefined);
-  useNotificationStore.setState({ items: [], unreadCount: 0 });
-  useSettingsStore.setState({
+  notificationAtoms.items.set([]);
+  notificationAtoms.unreadCount.set(0);
+  patchSettings({
     language: "en",
     screenshotDir: null,
     screenshotFormat: "png",
@@ -286,9 +287,9 @@ describe("ScreenshotModal", () => {
       format: "png",
       crop: null,
     });
-    expect(useSettingsStore.getState().screenshotDir).toBe("D:/Pictures");
-    expect(useSettingsStore.getState().screenshotFormat).toBe("png");
-    expect(useNotificationStore.getState().items[0]?.message).toBe(SAVED.path);
+    expect(settingsAtoms.screenshotDir.get()).toBe("D:/Pictures");
+    expect(settingsAtoms.screenshotFormat.get()).toBe("png");
+    expect(notificationAtoms.items.get()[0]?.message).toBe(SAVED.path);
   });
 
   it("saves as JPEG once the format is switched", async () => {
@@ -304,7 +305,7 @@ describe("ScreenshotModal", () => {
       "save_screenshot",
       expect.objectContaining({ format: "jpeg" })
     );
-    expect(useSettingsStore.getState().screenshotFormat).toBe("jpeg");
+    expect(settingsAtoms.screenshotFormat.get()).toBe("jpeg");
   });
 
   it("opens the folder after saving when the checkbox is on", async () => {
@@ -326,7 +327,7 @@ describe("ScreenshotModal", () => {
 
     await waitFor(() => expect(mockInvoke).toHaveBeenCalled());
     expect(mockOpenPath).not.toHaveBeenCalled();
-    expect(useSettingsStore.getState().screenshotOpenFolder).toBe(false);
+    expect(settingsAtoms.screenshotOpenFolder.get()).toBe(false);
   });
 
   it("copies the whole image without saving and reports it on the button", async () => {
@@ -350,8 +351,8 @@ describe("ScreenshotModal", () => {
     mockWriteImage.mockRejectedValue(new Error("clipboard busy"));
     renderModal();
     await user.click(screen.getByRole("button", { name: "Copy" }));
-    await waitFor(() => expect(useNotificationStore.getState().items).toHaveLength(1));
-    expect(useNotificationStore.getState().items[0]?.type).toBe("error");
+    await waitFor(() => expect(notificationAtoms.items.get()).toHaveLength(1));
+    expect(notificationAtoms.items.get()[0]?.type).toBe("error");
     await waitFor(() => expect(screen.getByRole("button", { name: "Copy" })).toBeTruthy());
   });
 
@@ -360,7 +361,7 @@ describe("ScreenshotModal", () => {
     serveCommands({ failSave: true });
     const { onClose } = renderModal();
     await user.click(screen.getByRole("button", { name: "Save" }));
-    await waitFor(() => expect(useNotificationStore.getState().items).toHaveLength(1));
+    await waitFor(() => expect(notificationAtoms.items.get()).toHaveLength(1));
     expect(onClose).not.toHaveBeenCalled();
     expect(mockOpenPath).not.toHaveBeenCalled();
   });
@@ -673,8 +674,8 @@ describe("ScreenshotModal", () => {
     serveCommands({ failCopy: true });
     renderModal();
     await user.click(screen.getByRole("button", { name: "Copy" }));
-    await waitFor(() => expect(useNotificationStore.getState().items).toHaveLength(1));
-    expect(useNotificationStore.getState().items[0]?.type).toBe("error");
+    await waitFor(() => expect(notificationAtoms.items.get()).toHaveLength(1));
+    expect(notificationAtoms.items.get()[0]?.type).toBe("error");
     expect(mockWriteImage).not.toHaveBeenCalled();
     await waitFor(() => expect(screen.getByRole("button", { name: "Copy" })).toBeTruthy());
   });

@@ -1,5 +1,6 @@
 import { useI18n } from "@/hooks/i18n.hook";
-import { usePlaybackStore } from "@/store/player.store";
+import { useCell } from "@/lib/state/signal.hook";
+import { playbackAtoms } from "@/store/player.store";
 
 function formatFps(value: number | undefined): string {
   return value === undefined ? "—" : `${value.toFixed(1)} fps`;
@@ -16,14 +17,14 @@ function formatCache(value: number | undefined): string {
 function DiagnosticsOverlay() {
   const { t } = useI18n();
 
-  const hasFile = usePlaybackStore((state) => state.hasFile);
-  const fpsRender = usePlaybackStore((state) => state.fpsRender);
-  const fpsVideo = usePlaybackStore((state) => state.fpsVideo);
-  const dropCount = usePlaybackStore((state) => state.dropCount);
-  const cacheDuration = usePlaybackStore((state) => state.cacheDuration);
-  const hwdecCurrent = usePlaybackStore((state) => state.hwdecCurrent);
-  const videoWidth = usePlaybackStore((state) => state.videoWidth);
-  const videoHeight = usePlaybackStore((state) => state.videoHeight);
+  const hasFile = useCell(playbackAtoms.hasFile);
+  const fpsRender = useCell(playbackAtoms.fpsRender);
+  const fpsVideo = useCell(playbackAtoms.fpsVideo);
+  const dropCount = useCell(playbackAtoms.dropCount);
+  const cacheDuration = useCell(playbackAtoms.cacheDuration);
+  const hwdecCurrent = useCell(playbackAtoms.hwdecCurrent);
+  const videoWidth = useCell(playbackAtoms.videoWidth);
+  const videoHeight = useCell(playbackAtoms.videoHeight);
 
   const rows: Array<{ label: string; value: string }> = [
     { label: t("player.media.diagnostics.fps.render"), value: formatFps(fpsRender) },

@@ -1,6 +1,3 @@
-import { create } from "zustand";
-import { persist } from "zustand/middleware";
-
 import { THEMES, THEME_OVERRIDE_VARS } from "@/config/settings/themes.config";
 import {
   contrastRatio,
@@ -9,9 +6,13 @@ import {
   shade,
   windowTintAlpha,
 } from "@/lib/theme/palette.utils";
+import { createPersistor, persistKey, type Persistor } from "@/lib/state/persist.utils";
+import { createSignalStore, type Cell } from "@/lib/state/signal.store";
 import { attemptSync, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { DEFAULT_FONT_FAMILY, getStoredAppFont, toCssFontFamily } from "@/lib/utils/font.utils";
 import type { ThemeDefinition, ThemeOverrideKey, ThemeStore } from "@/types/theme";
+
+export const THEME_SCHEMA_VERSION = 0;
 
 export function getTitleText(color: string): string {
   if (hexToRgb(color) === null) return "#ffffff";
@@ -185,6 +186,7 @@ function parseRetroismColors(c: Record<string, unknown>): ThemeDefinition["color
     winShadow: pickString(c, ["win_shadow", "winShadow", "shadow"], muted),
   };
 }
+
 export function parseRetroismTheme(json: string): ThemeDefinition | null {
   const [raw, error] = attemptSync(() => JSON.parse(json) as Record<string, unknown>);
   if (error !== null) return null;
@@ -203,40 +205,165 @@ export function parseRetroismTheme(json: string): ThemeDefinition | null {
   };
 }
 
-export const useThemeStore = create<ThemeStore>()(
-  persist(
-    (set, get) => ({
-      addCustomTheme: (theme) => {
-        const existing = get().customThemes.find((t) => t.name === theme.name);
-        const next = existing
-          ? get().customThemes.map((t) => (t.name === theme.name ? theme : t))
-          : [...get().customThemes, theme];
-        set({ customThemes: next });
-      },
-      currentTheme: "win95",
-      customThemes: [],
-      removeCustomTheme: (name) => {
-        set({
-          customThemes: get().customThemes.filter((t) => t.name !== name),
-        });
-        if (get().currentTheme === name) {
-          applyTheme("win95");
-          set({ currentTheme: "win95" });
-        }
-      },
-      setTheme: (name) => {
-        applyTheme(name, get().customThemes);
-        set({ currentTheme: name });
-      },
-    }),
-    {
-      name: "themeState",
-      onRehydrateStorage: (state) => {
-        if (state) applyTheme(state.currentTheme, state.customThemes);
-      },
-    }
-  )
-);
+type ThemeActionKeys = "addCustomTheme" | "removeCustomTheme" | "setTheme";
 
-const s = useThemeStore.getState();
-applyTheme(s.currentTheme, s.customThemes);
+export type ThemeData = Omit<ThemeStore, ThemeActionKeys>;
+export type ThemeAtoms = { [K in keyof ThemeData]: Cell<ThemeData[K]> };
+
+const DEFAULT_THEME_DATA: ThemeData = {
+  currentTheme: "win95",
+  customThemes: [],
+};
+
+function readLegacyTheme(
+  getStorage: () => Storage | undefined
+): { data: Record<string, unknown>; schemaVersion: number } | null {
+  const [storage, storageError] = attemptSync(() => getStorage());
+  if (storageError !== null || !storage) return null;
+  const [raw, readError] = attemptSync(() => storage.getItem("themeState"));
+  if (readError !== null || !raw) return null;
+  const [parsed, parseError] = attemptSync(() => JSON.parse(raw) as unknown);
+  if (parseError !== null || !parsed || typeof parsed !== "object") return null;
+  const envelope = parsed as { state?: unknown };
+  const state = envelope.state && typeof envelope.state === "object" ? envelope.state : parsed;
+  if (!state || typeof state !== "object") return null;
+  return { data: state as Record<string, unknown>, schemaVersion: THEME_SCHEMA_VERSION };
+}
+
+function defaultGetStorage(): Storage | undefined {
+  if (typeof localStorage === "undefined") return undefined;
+  return localStorage;
+}
+
+export interface ThemeSignalOptions {
+  getStorage?: () => Storage | undefined;
+  debounceMs?: number;
+}
+
+export interface ThemeSignalStore {
+  atoms: ThemeAtoms;
+  persistor: Persistor;
+  addCustomTheme: (theme: ThemeDefinition) => void;
+  removeCustomTheme: (name: string) => void;
+  setTheme: (name: string) => void;
+}
+
+export function createThemeSignalStore(options: ThemeSignalOptions = {}): ThemeSignalStore {
+  const getStorage = options.getStorage ?? defaultGetStorage;
+  const store = createSignalStore();
+  let adoptedFromLegacy = false;
+  const persistor = createPersistor({
+    storeName: "theme",
+    schemaVersion: THEME_SCHEMA_VERSION,
+    getStorage,
+    debounceMs: options.debounceMs,
+    fallback: () => {
+      const migrated = readLegacyTheme(getStorage);
+      if (migrated) adoptedFromLegacy = true;
+      return migrated;
+    },
+    onError: (scope, error) => reportBackgroundError(`theme.signal.${scope}`, error as Error),
+  });
+
+  const persisted = persistor.read();
+  const persistedData = (persisted?.data ?? {}) as Partial<ThemeData>;
+  const data: ThemeData = {
+    currentTheme:
+      typeof persistedData.currentTheme === "string"
+        ? persistedData.currentTheme
+        : DEFAULT_THEME_DATA.currentTheme,
+    customThemes: Array.isArray(persistedData.customThemes)
+      ? (persistedData.customThemes as ThemeDefinition[])
+      : [],
+  };
+  const mirror: Record<string, unknown> = { ...(data as unknown as Record<string, unknown>) };
+  const atoms = {} as ThemeAtoms;
+  const sink = atoms as unknown as Record<string, Cell<unknown>>;
+  const source = data as unknown as Record<string, unknown>;
+  for (const key of Object.keys(data)) {
+    const cell = store.atom(key, source[key]);
+    const handle: Cell<unknown> = {
+      id: cell.id,
+      get: cell.get,
+      set: (value) => {
+        cell.set(value);
+        mirror[key] = value;
+      },
+      update: (fn) => {
+        const next = (fn as (prev: unknown) => unknown)(cell.get());
+        cell.set(next);
+        mirror[key] = next;
+      },
+      subscribe: cell.subscribe,
+    };
+    sink[key] = handle;
+  }
+
+  store.subscribeAll(() => {
+    persistor.write(mirror);
+  });
+
+  const handle: ThemeSignalStore = {
+    atoms,
+    persistor,
+    addCustomTheme: (theme) => {
+      const customThemes = atoms.customThemes.get();
+      const existing = customThemes.find((t) => t.name === theme.name);
+      atoms.customThemes.set(
+        existing
+          ? customThemes.map((t) => (t.name === theme.name ? theme : t))
+          : [...customThemes, theme]
+      );
+    },
+    removeCustomTheme: (name) => {
+      atoms.customThemes.set(atoms.customThemes.get().filter((t) => t.name !== name));
+      if (atoms.currentTheme.get() === name) {
+        applyTheme("win95");
+        atoms.currentTheme.set("win95");
+      }
+    },
+    setTheme: (name) => {
+      applyTheme(name, atoms.customThemes.get());
+      atoms.currentTheme.set(name);
+    },
+  };
+
+  if (adoptedFromLegacy) {
+    handle.setTheme(data.currentTheme);
+    persistor.write({ ...mirror });
+    persistor.flush();
+    const [storage, storageError] = attemptSync(() => getStorage());
+    if (storageError !== null) reportBackgroundError("theme.signal.adopt", storageError);
+    else {
+      const [adopted, adoptError] = attemptSync(() => storage?.getItem(persistKey("theme")));
+      if (adoptError !== null) reportBackgroundError("theme.signal.adopt", adoptError);
+      else if (adopted) {
+        const [, removeError] = attemptSync(() => storage?.removeItem("themeState"));
+        if (removeError !== null) reportBackgroundError("theme.signal.adopt", removeError);
+      }
+    }
+  } else {
+    applyTheme(data.currentTheme, data.customThemes);
+  }
+
+  return handle;
+}
+
+const theme = createThemeSignalStore();
+
+export const themeAtoms = theme.atoms;
+export const themePersistor = theme.persistor;
+export const addCustomTheme = theme.addCustomTheme;
+export const removeCustomTheme = theme.removeCustomTheme;
+export const setTheme = theme.setTheme;
+
+if (
+  typeof window !== "undefined" &&
+  typeof window.addEventListener === "function" &&
+  typeof document !== "undefined"
+) {
+  window.addEventListener("beforeunload", () => theme.persistor.flush());
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") theme.persistor.flush();
+  });
+}

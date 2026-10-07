@@ -4,9 +4,9 @@ import { THEMES } from "@/config/settings/themes.config";
 import { useLiveResource } from "@/hooks/liveResource.hook";
 import { dayNightFrame, nowMinutesOf, type DayNightFrame } from "@/lib/settings/daynight.utils";
 import { reportBackgroundError } from "@/lib/utils/attempt.utils";
-import { useTorrentStore } from "@/store/download.store";
-import { useSettingsStore } from "@/store/settings.store";
-import { useThemeStore } from "@/store/theme.store";
+import { setTorrentSpeedLimits } from "@/store/download.store";
+import { getSettingsSnapshot, patchSettings } from "@/store/settings.store";
+import { setTheme, themeAtoms } from "@/store/theme.store";
 
 export function useDayNightScheduler(): void {
   const applied = useRef<{ speed: DayNightFrame | null; theme: DayNightFrame | null }>({
@@ -19,11 +19,11 @@ export function useDayNightScheduler(): void {
     enabled: true,
     collectKeys: () => ["daynight-schedule"],
     shouldFetch: () => {
-      const settings = useSettingsStore.getState();
+      const settings = getSettingsSnapshot();
       return settings.speedSchedule.enabled || settings.themeSchedule.enabled;
     },
     fetch: async () => {
-      const settings = useSettingsStore.getState();
+      const settings = getSettingsSnapshot();
       const now = nowMinutesOf();
       if (settings.speedSchedule.enabled) {
         const frame = dayNightFrame(
@@ -43,11 +43,10 @@ export function useDayNightScheduler(): void {
                   download: settings.speedSchedule.nightDownload,
                   upload: settings.speedSchedule.nightUpload,
                 };
-          settings.patch({ limits });
-          await useTorrentStore
-            .getState()
-            .setSpeedLimits(limits)
-            .catch((error: unknown) => reportBackgroundError("schedule.speed", error));
+          patchSettings({ limits });
+          await setTorrentSpeedLimits(limits).catch((error: unknown) =>
+            reportBackgroundError("schedule.speed", error)
+          );
         }
       } else {
         applied.current.speed = null;
@@ -62,12 +61,11 @@ export function useDayNightScheduler(): void {
           applied.current.theme = frame;
           const name =
             frame === "day" ? settings.themeSchedule.dayTheme : settings.themeSchedule.nightTheme;
-          const themeStore = useThemeStore.getState();
           const known = new Set([
             ...THEMES.map((theme) => theme.name),
-            ...themeStore.customThemes.map((theme) => theme.name),
+            ...themeAtoms.customThemes.get().map((theme) => theme.name),
           ]);
-          if (known.has(name)) themeStore.setTheme(name);
+          if (known.has(name)) setTheme(name);
         }
       } else {
         applied.current.theme = null;

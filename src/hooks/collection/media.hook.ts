@@ -2,8 +2,9 @@ import { anilistApi } from "@/api/anilist.api";
 import { tmdbApi } from "@/api/tmdb.api";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { queryKeys } from "@/lib/query/keys.utils";
+import { useCell } from "@/lib/state/signal.hook";
 import { withFallback } from "@/lib/utils/attempt.utils";
-import { useSettingsStore } from "@/store/settings.store";
+import { settingsAtoms } from "@/store/settings.store";
 
 export function useCollectionMedia(
   tmdbId: number | null,
@@ -12,9 +13,9 @@ export function useCollectionMedia(
   fetchMedia: boolean,
   fetchTrailer: boolean
 ) {
-  const tmdbKeySet = useSettingsStore((s) => s.tmdbKeySet);
-  const tmdbProxyUrl = useSettingsStore((s) => s.tmdbProxyUrl);
-  const anilistProxyUrl = useSettingsStore((s) => s.anilistProxyUrl);
+  const tmdbKeySet = useCell(settingsAtoms.tmdbKeySet);
+  const tmdbProxyUrl = useCell(settingsAtoms.tmdbProxyUrl);
+  const anilistProxyUrl = useCell(settingsAtoms.anilistProxyUrl);
   const media = useAppQuery("static", {
     queryKey: queryKeys.tmdbMedia(tmdbId, mediaType, tmdbKeySet, tmdbProxyUrl ?? ""),
     queryFn: () => withFallback(tmdbApi.getMedia(tmdbId as number, mediaType), null),

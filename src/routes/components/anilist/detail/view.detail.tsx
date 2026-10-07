@@ -5,7 +5,7 @@ import Section from "@/components/shared/section.component";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useAnimeShowcase } from "@/hooks/showcase.hook";
-import { useSearchStore } from "@/store/search.store";
+import { setCrossSearchQuery } from "@/store/search.store";
 import type { AniVoiceActor } from "@/types/anilist";
 import type { AniDetailViewProps as ViewProps } from "@/types/anilist";
 import type { TFunc } from "@/types/i18n";
@@ -100,8 +100,6 @@ export function AniListDetailView({
   refetch,
 }: ViewProps) {
   const { t } = useI18n();
-  const setCrossSearchQuery = useSearchStore((s) => s.setCrossSearchQuery);
-
   const [showFranchise, setShowFranchise] = useState<boolean>(false);
   const [showDesc, setShowDesc] = useState<boolean>(false);
   const [selectedCharacter, setSelectedCharacter] = useState<CharacterTarget | null>(null);

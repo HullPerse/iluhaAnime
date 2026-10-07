@@ -7,9 +7,14 @@ import {
   formatRelativeTime,
   resolveNotificationText,
 } from "@/lib/utils/notification.utils";
-import { useDeepLinkStore } from "@/store/deeplink.store";
-import { useNotificationStore } from "@/store/notification.store";
-import { useSettingsStore } from "@/store/settings.store";
+import { deeplinkAtoms } from "@/store/deeplink.store";
+import {
+  addNotification,
+  notificationAtoms,
+  resolveNotificationPersisted,
+  updateNotification,
+} from "@/store/notification.store";
+import { patchSettings } from "@/store/settings.store";
 
 const writeTextSpy = vi.fn();
 const openPathSpy = vi.fn((..._args: unknown[]) => Promise.resolve());
@@ -26,17 +31,15 @@ vi.mock("@tauri-apps/plugin-opener", () => ({
   openPath: (...args: unknown[]) => openPathSpy(...args),
 }));
 
-const addSpy = vi.spyOn(useNotificationStore.getState(), "add");
-
 beforeEach(() => {
-  useNotificationStore.setState({ items: [], unreadCount: 0 });
-  addSpy.mockClear();
+  notificationAtoms.items.set([]);
+  notificationAtoms.unreadCount.set(0);
 });
 
 describe("notification helpers", () => {
   it("helpers add a real notification item to the store", () => {
     showError("Oops", "Details");
-    const { items } = useNotificationStore.getState();
+    const items = notificationAtoms.items.get();
     expect(items).toHaveLength(1);
     expect(items[0].type).toBe("error");
     expect(items[0].title).toBe("Oops");
@@ -77,22 +80,22 @@ describe("openNotificationTarget", () => {
   beforeEach(() => {
     openPathSpy.mockReset();
     openPathSpy.mockResolvedValue(undefined);
-    useDeepLinkStore.setState({ target: null });
-    useSettingsStore.setState({ anilistTabEnabled: true });
+    deeplinkAtoms.target.set(null);
+    patchSettings({ anilistTabEnabled: true });
   });
 
   it("routes an anime target through the deep-link store", async () => {
     await expect(openNotificationTarget({ source: "anilist", id: 21 })).resolves.toBe("opened");
-    expect(useDeepLinkStore.getState().target).toEqual({ source: "anilist", id: 21 });
+    expect(deeplinkAtoms.target.get()).toEqual({ source: "anilist", id: 21 });
     expect(openPathSpy).not.toHaveBeenCalled();
   });
 
   it("refuses an anime target when the anime tab is disabled", async () => {
-    useSettingsStore.setState({ anilistTabEnabled: false });
+    patchSettings({ anilistTabEnabled: false });
     await expect(openNotificationTarget({ source: "anilist", id: 21 })).resolves.toBe(
       "tab-disabled"
     );
-    expect(useDeepLinkStore.getState().target).toBeNull();
+    expect(deeplinkAtoms.target.get()).toBeNull();
   });
 
   it("reveals the download folder for a folder target", async () => {
@@ -100,7 +103,7 @@ describe("openNotificationTarget", () => {
       openNotificationTarget({ source: "folder", path: "D:\\Anime\\Show" })
     ).resolves.toBe("opened");
     expect(openPathSpy).toHaveBeenCalledWith("D:\\Anime\\Show");
-    expect(useDeepLinkStore.getState().target).toBeNull();
+    expect(deeplinkAtoms.target.get()).toBeNull();
   });
 
   it("reports a failure when the folder cannot be opened", async () => {
@@ -152,35 +155,33 @@ describe("formatRelativeTime", () => {
 
 describe("progress notifications", () => {
   beforeEach(() => {
-    useNotificationStore.setState({ dismissed: [], items: [], unreadCount: 0 });
+    notificationAtoms.dismissed.set([]);
+    notificationAtoms.items.set([]);
+    notificationAtoms.unreadCount.set(0);
     window.localStorage.removeItem("notifications");
+    window.localStorage.removeItem("iluha.v1.notifications");
   });
 
   it("add returns the item id so callers can update it later", () => {
-    const id = useNotificationStore
-      .getState()
-      .add("Deleting", "info", "Show", "evt-progress-1", { system: false });
+    const id = addNotification("Deleting", "info", "Show", "evt-progress-1", { system: false });
     expect(id).toBeGreaterThan(0);
-    expect(useNotificationStore.getState().items[0].id).toBe(id);
+    expect(notificationAtoms.items.get()[0].id).toBe(id);
   });
 
   it("update patches one item without adding or bumping unread", () => {
-    const id = useNotificationStore
-      .getState()
-      .add("Deleting", "info", "Show", undefined, { system: false });
-    const unread = useNotificationStore.getState().unreadCount;
-    useNotificationStore
-      .getState()
-      .update(id, { message: "Gone", progress: false, type: "success" });
-    const { items, unreadCount } = useNotificationStore.getState();
+    const id = addNotification("Deleting", "info", "Show", undefined, { system: false });
+    const unread = notificationAtoms.unreadCount.get();
+    updateNotification(id, { message: "Gone", progress: false, type: "success" });
+    const items = notificationAtoms.items.get();
+    const unreadCount = notificationAtoms.unreadCount.get();
     expect(items).toHaveLength(1);
     expect(items[0]).toMatchObject({ message: "Gone", progress: false, type: "success" });
     expect(unreadCount).toBe(unread);
   });
 
   it("update ignores unknown ids", () => {
-    useNotificationStore.getState().update(999_999, { type: "error" });
-    expect(useNotificationStore.getState().items).toHaveLength(0);
+    updateNotification(999_999, { type: "error" });
+    expect(notificationAtoms.items.get()).toHaveLength(0);
   });
 
   it("rehydration drops in-progress items", () => {
@@ -194,13 +195,10 @@ describe("progress notifications", () => {
       progress: true,
     };
     const done = { id: 12, read: false, timestamp: now, title: "Gone", type: "success" as const };
-    window.localStorage.setItem(
-      "notifications",
-      JSON.stringify({ state: { dismissed: [], items: [progress, done] }, version: 1 })
+    const merged = resolveNotificationPersisted(
+      { dismissed: [], items: [progress, done] },
+      true
     );
-    const merged = useNotificationStore.persist
-      .getOptions()
-      .merge?.({ dismissed: [], items: [progress, done] }, useNotificationStore.getState());
     expect(merged?.items.map((item) => item.id)).toEqual([12]);
   });
 });

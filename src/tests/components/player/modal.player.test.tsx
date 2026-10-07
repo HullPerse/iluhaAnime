@@ -5,10 +5,10 @@ vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn() }));
 
 import Select from "@/components/ui/select.component";
 import PlayerModal from "@/routes/components/player/media/modal.player";
-import { useSettingsStore } from "@/store/settings.store";
+import { patchSettings } from "@/store/settings.store";
 
 beforeEach(() => {
-  useSettingsStore.setState({ language: "en" });
+  patchSettings({ language: "en" });
 });
 
 afterEach(() => {

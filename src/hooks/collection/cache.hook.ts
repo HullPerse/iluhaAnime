@@ -2,10 +2,11 @@ import { useCallback, useEffect, useState } from "react";
 
 import { systemApi } from "@/api/system.api";
 import { attempt } from "@/lib/utils/attempt.utils";
+import { useCell } from "@/lib/state/signal.hook";
 import { assetUrl, isDirectImageSrc } from "@/lib/utils/image.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { createLruCache, inflightFetch } from "@/lib/utils/lruCache.utils";
-import { useSettingsStore } from "@/store/settings.store";
+import { settingsAtoms } from "@/store/settings.store";
 import type { UserImageFile } from "@/types/userimage";
 
 export const COVER_CACHE_CAPACITY = 200;
@@ -61,7 +62,7 @@ export function useCoverCache(
     (blobId && (imageDataCache.peek(blobId) ?? null)) ||
       (remoteUrl ? (coverCache.peek(remoteUrl)?.url ?? null) : null)
   );
-  const tmdbProxyUrl = useSettingsStore((s) => s.tmdbProxyUrl);
+  const tmdbProxyUrl = useCell(settingsAtoms.tmdbProxyUrl);
 
   useEffect(() => {
     let cancelled = false;

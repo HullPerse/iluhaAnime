@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input.component";
 import { RadioGroup } from "@/components/ui/radio/group.radio";
 import { Radio } from "@/components/ui/radio/radio.radio";
 import {
+
   ANILIST_GENRES,
   ANILIST_NSFW_TAGS,
   ANILIST_TAGS,
@@ -22,7 +23,7 @@ import {
 import { statusLabels, seasonLabels, formatLabels } from "@/config/anilist/labels.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { defaultAniListFilters } from "@/lib/anilist/filters.utils";
-import { useSettingsStore } from "@/store/settings.store";
+import { settingsAtoms } from "@/store/settings.store";
 import type { AniListFiltersModalProps, AniListFilters } from "@/types/anilist";
 
 import { DiscoveryCard } from "./random/discovery.random";
@@ -77,7 +78,7 @@ function FiltersModal({
   };
 
   const handleReset = () => {
-    setLocal(defaultAniListFilters(useSettingsStore.getState().anilistAdultContent));
+    setLocal(defaultAniListFilters(settingsAtoms.anilistAdultContent.get()));
     onReset();
     onClose();
   };

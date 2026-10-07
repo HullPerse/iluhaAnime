@@ -18,6 +18,7 @@ import type { EntryLookup } from "@/lib/anilist/entries.utils";
 import { defaultAniListFilters } from "@/lib/anilist/filters.utils";
 import { ALL_LISTS_ID, activeListEntries } from "@/lib/anilist/group.utils";
 import {
+
   pickDisplayEntries,
   hasAnyFavourites,
   isLocalSearch,
@@ -26,14 +27,25 @@ import {
 } from "@/lib/anilist/route.utils";
 import { parseScoreFormat, resolveDisplayScoreFormat } from "@/lib/anilist/score.utils";
 import { tr } from "@/lib/locale/i18n.utils";
+import { useCell } from "@/lib/state/signal.hook";
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { showErrorOnce } from "@/lib/utils/notification.utils";
 import { paginate } from "@/lib/utils/pagination.utils";
-import { useAniListFriendsStore } from "@/store/anilist.store";
-import { useDeepLinkStore } from "@/store/deeplink.store";
-import { useNotificationStore } from "@/store/notification.store";
-import { useSearchStore } from "@/store/search.store";
-import { useSettingsStore } from "@/store/settings.store";
+import {
+  addAnilistFriend,
+  anilistFriendsAtoms,
+  cacheAnilistProfile,
+  removeAnilistFriend,
+} from "@/store/anilist.store";
+import { consumeAuthDeepLink, deeplinkAtoms } from "@/store/deeplink.store";
+import { addNotification } from "@/store/notification.store";
+import {
+  indexSearchAniList,
+  searchAtoms,
+  setAnilistSearchQuery,
+  subscribeSearch,
+} from "@/store/search.store";
+import { patchSettings, settingsAtoms } from "@/store/settings.store";
 import type {
   AniFriend,
   AniFriendMinimal,
@@ -100,13 +112,11 @@ function GlobalSearchFooter({
 function AnilistRoute() {
   const { t } = useI18n();
   const queryClient = useQueryClient();
-  const setAnilistSearchQuery = useSearchStore((state) => state.setAnilistSearchQuery);
-  const indexAniList = useSearchStore((state) => state.indexAniList);
-  const animeIndex = useSearchStore((state) => state.animeIndex);
-  const animeProfileId = useSearchStore((state) => state.animeProfileId);
-  const searchHistory = useSearchStore((state) => state.history);
-  const queryStats = useSearchStore((state) => state.queryStats);
-  const suggestionStats = useSearchStore((state) => state.suggestionStats);
+  const animeIndex = useCell(searchAtoms.animeIndex);
+  const animeProfileId = useCell(searchAtoms.animeProfileId);
+  const searchHistory = useCell(searchAtoms.history);
+  const queryStats = useCell(searchAtoms.queryStats);
+  const suggestionStats = useCell(searchAtoms.suggestionStats);
 
   const [currentList, setCurrentList] = useState<string>("");
   const { views, handleOpenModal, handleCloseModal, handleOpenActivity, handleCloseActivity } =
@@ -126,7 +136,7 @@ function AnilistRoute() {
     if (!user) return;
     anilistApi.syncFranchiseToIndex().catch((error: unknown) => {
       reportBackgroundError("franchise.sync", error);
-      if (useSettingsStore.getState().notifyScanErrors)
+      if (settingsAtoms.notifyScanErrors.get())
         showErrorOnce(
           "franchise-sync",
           t("notification.sync.failed"),
@@ -144,18 +154,15 @@ function AnilistRoute() {
     [people]
   );
   useEffect(() => {
-    if (user) indexAniList(lists, favourites, user.id);
-  }, [favourites, indexAniList, lists, user]);
+    if (user) indexSearchAniList(lists, favourites, user.id);
+  }, [favourites, lists, user]);
 
-  const friends = useAniListFriendsStore((state) => state.friends);
-  const addFriend = useAniListFriendsStore((state) => state.addFriend);
-  const cacheFriendProfile = useAniListFriendsStore((state) => state.cacheProfile);
-  const removeFriend = useAniListFriendsStore((state) => state.removeFriend);
+  const friends = useCell(anilistFriendsAtoms.friends);
   const friendIds = useMemo(() => [...new Set(friends.map((friend) => friend.id))], [friends]);
 
   useEffect(() => {
-    if (friendData.profile) cacheFriendProfile(friendData.profile);
-  }, [cacheFriendProfile, friendData.profile]);
+    if (friendData.profile) cacheAnilistProfile(friendData.profile);
+  }, [friendData.profile]);
 
   const allAnimeIds = useMemo(
     () => lists.flatMap((l) => l.entries.map((e) => e.media.id)),
@@ -173,33 +180,33 @@ function AnilistRoute() {
     })();
   }, [views.recs, user]);
 
-  const sort = useSettingsStore((s) => s.anilistListSort);
+  const sort = useCell(settingsAtoms.anilistListSort);
   const setSort = useCallback((next: AniListSort) => {
-    useSettingsStore.getState().patch({ anilistListSort: next });
+    patchSettings({ anilistListSort: next });
   }, []);
-  const groupByStatus = useSettingsStore((s) => s.anilistGroupByStatus);
-  const displayMode = useSettingsStore((s) => s.anilistDisplayMode);
-  const collapsedNames = useSettingsStore((s) => s.anilistCollapsedLists);
+  const groupByStatus = useCell(settingsAtoms.anilistGroupByStatus);
+  const displayMode = useCell(settingsAtoms.anilistDisplayMode);
+  const collapsedNames = useCell(settingsAtoms.anilistCollapsedLists);
   const setGroupByStatus = useCallback((grouped: boolean) => {
-    useSettingsStore.getState().patch({ anilistGroupByStatus: grouped });
+    patchSettings({ anilistGroupByStatus: grouped });
   }, []);
   const setDisplayMode = useCallback((mode: "scroll" | "pagination") => {
-    useSettingsStore.getState().patch({ anilistDisplayMode: mode });
+    patchSettings({ anilistDisplayMode: mode });
   }, []);
   const toggleListCollapsed = useCallback((name: string) => {
-    const current = useSettingsStore.getState().anilistCollapsedLists;
+    const current = settingsAtoms.anilistCollapsedLists.get();
     const next = current.includes(name)
       ? current.filter((item) => item !== name)
       : [...current, name];
-    useSettingsStore.getState().patch({ anilistCollapsedLists: next });
+    patchSettings({ anilistCollapsedLists: next });
   }, []);
   const [globalSort, setGlobalSort] = useState<GlobalSort>({
     key: "relevance",
     dir: "desc",
   });
   const [page, setPage] = useState<number>(1);
-  const pageSize = useSettingsStore((s) => s.pageSize);
-  const anilistSuggestionBoost = useSettingsStore((s) => s.anilistSuggestionBoost);
+  const pageSize = useCell(settingsAtoms.pageSize);
+  const anilistSuggestionBoost = useCell(settingsAtoms.anilistSuggestionBoost);
   const scrollRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -336,9 +343,7 @@ function AnilistRoute() {
         if (wasFavourite) {
           queryClient.setQueryData(["anilist_data"], previous);
         }
-        useNotificationStore
-          .getState()
-          .add(tr("anilist.fav.toggle.failed"), "error", error.message);
+        addNotification(tr("anilist.fav.toggle.failed"), "error", error.message);
       } else {
         queryClient.setQueryData(["anilist_data"], (old: unknown) =>
           old ? { ...(old as AnilistRouteData), favourites: updated } : old
@@ -368,36 +373,35 @@ function AnilistRoute() {
     [queryClient, handleCloseModal]
   );
 
-  const authTarget = useDeepLinkStore((state) => state.authTarget);
-  const consumeAuth = useDeepLinkStore((state) => state.consumeAuth);
+  const authTarget = useCell(deeplinkAtoms.authTarget);
   useEffect(() => {
     if (!authTarget) return;
-    consumeAuth();
+    consumeAuthDeepLink();
     (async () => {
       const [authUser, error] = await attempt(anilistApi.login(authTarget.accessToken));
       if (error) {
-        useNotificationStore.getState().add(tr("anilist.auth.failed"), "error", error.message);
+        addNotification(tr("anilist.auth.failed"), "error", error.message);
         return;
       }
       handleAuthSuccess(authUser);
     })();
-  }, [authTarget, consumeAuth, handleAuthSuccess]);
+  }, [authTarget, handleAuthSuccess]);
 
   const handleAddFriend = useCallback(
     (profile: AniUserProfile) => {
-      addFriend({
+      addAnilistFriend({
         id: profile.id,
         name: profile.name,
         avatar: profile.avatar,
+        added_at: Date.now(),
       });
-      cacheFriendProfile(profile);
+      cacheAnilistProfile(profile);
     },
-    [addFriend, cacheFriendProfile]
+    []
   );
 
   const handleAddManyFriends = useCallback((minimal: AniFriendMinimal[]) => {
-    const add = useAniListFriendsStore.getState().addFriend;
-    for (const friend of minimal) add(friend);
+    for (const friend of minimal) addAnilistFriend({ ...friend, added_at: Date.now() });
   }, []);
 
   const openFriend = useCallback(
@@ -496,18 +500,21 @@ function AnilistRoute() {
   }
 
   useEffect(() => {
-    const current = useSearchStore.getState().anilistSearchQuery;
+    const current = searchAtoms.anilistSearchQuery.get();
     if (current) {
       setSearchTerms(current);
       setAnilistSearchQuery(null);
     }
-    return useSearchStore.subscribe((state, prev) => {
-      if (state.anilistSearchQuery && !prev.anilistSearchQuery) {
-        setSearchTerms(state.anilistSearchQuery);
+    let prev = searchAtoms.anilistSearchQuery.get();
+    return subscribeSearch(() => {
+      const cur = searchAtoms.anilistSearchQuery.get();
+      if (cur && !prev) {
+        setSearchTerms(cur);
         setAnilistSearchQuery(null);
       }
+      prev = cur;
     });
-  }, [setAnilistSearchQuery, setSearchTerms]);
+  }, [setSearchTerms]);
 
   const friendState: "loading" | "error" | null = viewedFriend
     ? friendData.isLoading
@@ -701,7 +708,7 @@ function AnilistRoute() {
           friends={friends}
           onAddFriend={handleAddFriend}
           onAddManyFriends={handleAddManyFriends}
-          onRemoveFriend={removeFriend}
+          onRemoveFriend={removeAnilistFriend}
           onViewFriendLists={openFriend}
           onFriendsAnime={openAnimeFromLookup}
           onFriendsClose={() => handleCloseModal("friends")}
@@ -717,7 +724,7 @@ function AnilistRoute() {
           filters={searchFilters}
           onFiltersApply={applyFilters}
           onFiltersReset={() =>
-            applyFilters(defaultAniListFilters(useSettingsStore.getState().anilistAdultContent))
+            applyFilters(defaultAniListFilters(settingsAtoms.anilistAdultContent.get()))
           }
           onFiltersClose={handleFiltersClose}
           onFiltersRandom={handleDiscoveryStart}

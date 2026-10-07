@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { resetTransportInflight } from "@/api/transport.api";
 import AniListCharactersPanel from "@/routes/components/anilist/detail/characters.detail";
-import { useSettingsStore } from "@/store/settings.store";
+import { patchSettings } from "@/store/settings.store";
 import type { AniCharacterEdge } from "@/types/anilist";
 
 const invokeMock = vi.fn();
@@ -43,7 +43,7 @@ afterEach(() => {
 });
 
 beforeEach(() => {
-  useSettingsStore.setState({ language: "en", anilistProxyUrl: null });
+  patchSettings({ language: "en", anilistProxyUrl: null });
   invokeMock.mockReset();
   resetTransportInflight();
 });

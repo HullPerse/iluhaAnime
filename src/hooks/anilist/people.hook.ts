@@ -4,7 +4,7 @@ import { useMemo, useRef } from "react";
 import { anilistApi } from "@/api/anilist.api";
 import { tr } from "@/lib/locale/i18n.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
-import { useNotificationStore } from "@/store/notification.store";
+import { addNotification } from "@/store/notification.store";
 import type { AnilistRouteData } from "@/types/anilist";
 
 export function useFavouritePeopleToggles() {
@@ -32,7 +32,7 @@ export function useFavouritePeopleToggles() {
     staffPendingRef.current.delete(staffId);
     if (error) {
       if (wasFavourite) queryClient.setQueryData(["anilist_data"], previous);
-      useNotificationStore.getState().add(tr("anilist.fav.toggle.failed"), "error", error.message);
+      addNotification(tr("anilist.fav.toggle.failed"), "error", error.message);
     } else {
       queryClient.setQueryData(["anilist_data"], (old: unknown) =>
         old
@@ -69,7 +69,7 @@ export function useFavouritePeopleToggles() {
     characterPendingRef.current.delete(characterId);
     if (error) {
       if (wasFavourite) queryClient.setQueryData(["anilist_data"], previous);
-      useNotificationStore.getState().add(tr("anilist.fav.toggle.failed"), "error", error.message);
+      addNotification(tr("anilist.fav.toggle.failed"), "error", error.message);
     } else {
       queryClient.setQueryData(["anilist_data"], (old: unknown) =>
         old

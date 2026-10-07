@@ -7,8 +7,8 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { formatBackupDate } from "@/lib/settings/backup.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { formatBytes } from "@/lib/utils/bytes.utils";
-import { useNotificationStore } from "@/store/notification.store";
-import { useSettingsStore } from "@/store/settings.store";
+import { addNotification } from "@/store/notification.store";
+import { settingsAtoms } from "@/store/settings.store";
 import type { SqliteBackupInfo } from "@/types/sqlite";
 
 export function BackupPanel({
@@ -56,8 +56,8 @@ export function BackupPanel({
   }, [refresh]);
 
   const notifyBackupError = (message: string) => {
-    if (useSettingsStore.getState().notifyBackup)
-      useNotificationStore.getState().add(t("notification.backup.failed"), "error", message);
+    if (settingsAtoms.notifyBackup.get())
+      addNotification(t("notification.backup.failed"), "error", message);
   };
 
   const runBackup = async () => {

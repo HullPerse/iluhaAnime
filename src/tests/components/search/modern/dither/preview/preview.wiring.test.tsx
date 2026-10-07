@@ -7,8 +7,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ditherDecodeCache, ditherRenderCache } from "@/lib/utils/dither.utils";
 import { toUserImage } from "@/lib/utils/image.utils";
 import DitherPreviewModal from "@/routes/components/search/modern/dither/preview/modal.preview";
-import { useNotificationStore } from "@/store/notification.store";
-import { useSettingsStore } from "@/store/settings.store";
+import { notificationAtoms } from "@/store/notification.store";
+import { patchSettings } from "@/store/settings.store";
 import type { UserImage, UserImageFile } from "@/types/userimage";
 
 const mockInvoke = vi.fn();
@@ -82,8 +82,10 @@ afterEach(() => {
 
 beforeEach(() => {
   vi.spyOn(console, "error").mockImplementation(() => {});
-  useSettingsStore.setState({ language: "en" });
-  useNotificationStore.setState({ items: [], unreadCount: 0, dismissed: [] });
+  patchSettings({ language: "en" });
+  notificationAtoms.items.set([]);
+  notificationAtoms.unreadCount.set(0);
+  notificationAtoms.dismissed.set([]);
   mockInvoke.mockReset();
   HTMLCanvasElement.prototype.toDataURL = vi.fn(() => "data:image/png;base64,BAKED");
 });
@@ -195,9 +197,9 @@ describe("DitherPreviewModal save wiring under StrictMode", () => {
       await act(async () => {
         vi.advanceTimersByTime(30000);
       });
-      const messages = useNotificationStore
-        .getState()
-        .items.filter((item) => item.type === "error")
+      const messages = notificationAtoms.items
+        .get()
+        .filter((item) => item.type === "error")
         .map((item) => item.message);
       expect(messages).toContain("The database did not answer within 30 seconds.");
       expect((screen.getByRole("button", { name: "Save" }) as HTMLButtonElement).disabled).toBe(

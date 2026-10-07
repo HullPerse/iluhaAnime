@@ -1,8 +1,14 @@
 import { anilistApi } from "@/api/anilist.api";
 import { attempt } from "@/lib/utils/attempt.utils";
-import { useAniListNotificationsStore } from "@/store/anilist.store";
-import { useNotificationStore } from "@/store/notification.store";
-import { useSettingsStore } from "@/store/settings.store";
+import {
+  addAnilistRelease,
+  anilistNotificationsAtoms,
+  saveAnilistObservation,
+  setAnilistInitialized,
+  setSiteMaxSeenId,
+} from "@/store/anilist.store";
+import { addNotification, notificationAtoms } from "@/store/notification.store";
+import { getSettingsSnapshot, settingsAtoms } from "@/store/settings.store";
 import type { AniNotificationEntry, AniSiteNotification } from "@/types/anilist";
 import type { TFunc, TranslationKey } from "@/types/i18n";
 import type { NotificationType } from "@/types/notification";
@@ -15,11 +21,9 @@ function notifyEpisode(
   t: TFunc,
   system: boolean
 ) {
-  if (!useSettingsStore.getState().notifyNewEpisodes) return false;
-  if (useNotificationStore.getState().items.some((item) => item.eventKey === key)) return false;
-  useNotificationStore
-    .getState()
-    .add(
+  if (!settingsAtoms.notifyNewEpisodes.get()) return false;
+  if (notificationAtoms.items.get().some((item) => item.eventKey === key)) return false;
+  addNotification(
       t("notification.anilist.new.episode"),
       "info",
       t("notification.anilist.new.episode.body", { episode, title }),
@@ -44,12 +48,12 @@ function notifyStatus(
   t: TFunc,
   system: boolean
 ) {
-  if (!useSettingsStore.getState().notifyStatusChanges) return;
+  if (!settingsAtoms.notifyStatusChanges.get()) return;
   if (entry.list_status === previous.status) return;
   const toast = LIST_STATUS_TOAST[entry.list_status];
   if (!toast) return;
   const target = { source: "anilist", id: entry.media.id } as const;
-  useNotificationStore.getState().add(t(toast.titleKey), toast.type, entry.media.title, undefined, {
+  addNotification(t(toast.titleKey), toast.type, entry.media.title, undefined, {
     system,
     target,
   });
@@ -67,12 +71,12 @@ function notifyMediaStatus(
   t: TFunc,
   system: boolean
 ) {
-  if (!useSettingsStore.getState().notifyMediaStatus) return;
+  if (!settingsAtoms.notifyMediaStatus.get()) return;
   if (!previous.mediaStatus || entry.media.status === previous.mediaStatus) return;
   const toast = MEDIA_STATUS_TOAST[entry.media.status];
   if (!toast) return;
   const target = { source: "anilist", id: entry.media.id } as const;
-  useNotificationStore.getState().add(t(toast.titleKey), toast.type, entry.media.title, undefined, {
+  addNotification(t(toast.titleKey), toast.type, entry.media.title, undefined, {
     system,
     target,
   });
@@ -111,9 +115,7 @@ function notifyMissedEpisodes(
   for (let episode = from; episode < to; episode++) {
     if (notifyEpisode(media.id, media.title, episode, `${key}:${episode}`, t, system)) {
       count++;
-      useAniListNotificationsStore
-        .getState()
-        .addRelease({ mediaId: media.id, title: media.title, episode, airedAt: Date.now() });
+      addAnilistRelease({ mediaId: media.id, title: media.title, episode, airedAt: Date.now() });
     }
   }
   return count;
@@ -137,8 +139,7 @@ function processEntry(entry: AniNotificationEntry, now: number, t: TFunc, system
   const media = entry.media;
   const key = String(media.id);
   const signature = buildSignature(entry);
-  const store = useAniListNotificationsStore.getState();
-  const previous = store.observations[key];
+  const previous = anilistNotificationsAtoms.observations.get()[key];
   let notified = 0;
   if (previous) {
     if (hasMissedEpisode(previous, now, media)) {
@@ -156,7 +157,7 @@ function processEntry(entry: AniNotificationEntry, now: number, t: TFunc, system
         )
       ) {
         notified++;
-        useAniListNotificationsStore.getState().addRelease({
+        addAnilistRelease({
           mediaId: media.id,
           title: media.title,
           episode: media.next_episode ?? "?",
@@ -167,7 +168,7 @@ function processEntry(entry: AniNotificationEntry, now: number, t: TFunc, system
     notifyStatus(entry, previous, t, system);
     notifyMediaStatus(entry, previous, t, system);
   }
-  store.saveObservation(key, {
+  saveAnilistObservation(key, {
     signature,
     status: entry.list_status,
     mediaStatus: media.status,
@@ -207,9 +208,8 @@ function notifySiteItem(
   system: boolean,
   animeId: number | null
 ): void {
-  const state = useNotificationStore.getState();
-  if (state.items.some((item) => item.eventKey === key)) return;
-  state.add(title, type, body || undefined, key, {
+  if (notificationAtoms.items.get().some((item) => item.eventKey === key)) return;
+  addNotification(title, type, body || undefined, key, {
     system,
     ...(animeId != null ? { target: { source: "anilist", id: animeId } as const } : {}),
   });
@@ -273,7 +273,7 @@ export async function pollSiteNotifications(
   isDisposed: () => boolean,
   options?: { system?: boolean }
 ): Promise<boolean> {
-  const settings = useSettingsStore.getState();
+  const settings = getSettingsSnapshot();
   const toggles: SiteToggles = {
     replies: settings.notifySubscribedReplies,
     merge: settings.notifyMediaMerge,
@@ -283,14 +283,13 @@ export async function pollSiteNotifications(
   const [items, error] = await attempt(anilistApi.getSiteNotifications());
   if (error !== null || isDisposed()) return error === null;
   const system = options?.system ?? true;
-  const store = useAniListNotificationsStore.getState();
-  const maxSeen = store.siteMaxSeenId;
+  const maxSeen = anilistNotificationsAtoms.siteMaxSeenId.get();
   if (maxSeen === 0) {
-    if (items.length > 0) store.setSiteMaxSeenId(maxSiteId(items));
+    if (items.length > 0) setSiteMaxSeenId(maxSiteId(items));
     return true;
   }
   for (const item of items) processSiteItem(item, maxSeen, toggles, t, system);
-  if (items.length > 0) store.setSiteMaxSeenId(maxSiteId(items));
+  if (items.length > 0) setSiteMaxSeenId(maxSiteId(items));
   return true;
 }
 
@@ -304,7 +303,7 @@ async function pollAniListReleasesOnce(
   const lists = await anilistApi.getLists(user.id, true);
   if (isDisposed()) return false;
   const system = options?.system ?? true;
-  const scope = useSettingsStore.getState().anilistNotifyLists;
+  const scope = settingsAtoms.anilistNotifyLists.get();
   const stats = lists
     .flatMap((list) =>
       !scope?.length || scope.includes(list.name)
@@ -312,11 +311,10 @@ async function pollAniListReleasesOnce(
         : []
     )
     .map((entry) => processEntry(entry, Math.floor(Date.now() / 1000), t, system));
-  const store = useAniListNotificationsStore.getState();
-  if (!store.initialized) store.setInitialized(true);
+  if (!anilistNotificationsAtoms.initialized.get()) setAnilistInitialized(true);
   if (import.meta.env.DEV)
     console.warn(
-      `[anilist:release-poll] airing=${stats.filter((item) => item.airing).length} withPrevious=${stats.filter((item) => item.hadPrevious).length} notified=${stats.reduce((sum, item) => sum + item.notified, 0)} initialized=${store.initialized}`
+      `[anilist:release-poll] airing=${stats.filter((item) => item.airing).length} withPrevious=${stats.filter((item) => item.hadPrevious).length} notified=${stats.reduce((sum, item) => sum + item.notified, 0)} initialized=${anilistNotificationsAtoms.initialized.get()}`
     );
   return true;
 }

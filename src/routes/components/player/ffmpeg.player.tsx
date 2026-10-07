@@ -6,10 +6,11 @@ import { Button } from "@/components/ui/button.component";
 import { FFMPEG_SOURCE_SIZES } from "@/config/player/sources.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useTauriEvent } from "@/hooks/tauriEvent.hook";
+import { useCell } from "@/lib/state/signal.hook";
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
-import { useNotificationStore } from "@/store/notification.store";
-import { useSettingsStore } from "@/store/settings.store";
+import { addNotification } from "@/store/notification.store";
+import { settingsAtoms } from "@/store/settings.store";
 import type { FFMPEGStatus } from "@/types/settings";
 
 function FFMPEG({
@@ -19,7 +20,7 @@ function FFMPEG({
   status: FFMPEGStatus;
   setStatus: (value: FFMPEGStatus) => void;
 }) {
-  const ffmpegSource = useSettingsStore((state) => state.ffmpegSource);
+  const ffmpegSource = useCell(settingsAtoms.ffmpegSource);
   const [dlError, setDlError] = useState<string | null>(null);
   const { t } = useI18n();
   const aliveRef = useRef(true);
@@ -34,18 +35,16 @@ function FFMPEG({
     setDlError(null);
     const [, error] = await attempt(
       invokeTyped<string>("download_ffmpeg", {
-        source: useSettingsStore.getState().ffmpegSource,
+        source: settingsAtoms.ffmpegSource.get(),
       })
     );
     if (error) {
       setDlError(error.message);
       setStatus("missing");
     } else setStatus("ok");
-    if (!aliveRef.current && useSettingsStore.getState().notifyModelDownloads) {
-      if (error)
-        useNotificationStore.getState().add(t("notification.downloads.failed"), "error", "FFmpeg");
-      else
-        useNotificationStore.getState().add(t("notification.downloads.done"), "success", "FFmpeg");
+    if (!aliveRef.current && settingsAtoms.notifyModelDownloads.get()) {
+      if (error) addNotification(t("notification.downloads.failed"), "error", "FFmpeg");
+      else addNotification(t("notification.downloads.done"), "success", "FFmpeg");
     }
   }, [setStatus, t]);
 

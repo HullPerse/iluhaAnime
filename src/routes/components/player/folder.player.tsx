@@ -2,6 +2,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { openPath } from "@tauri-apps/plugin-opener";
 import { cn } from "cn";
 import {
+
   ChevronDown,
   ChevronRight,
   ListVideo,
@@ -22,12 +23,13 @@ import { parseMediaPath } from "@/lib/media/parse.utils";
 import { loadWatch, openPlayer, rotateQueue } from "@/lib/player/playback.utils";
 import { formatParsedTitle } from "@/lib/player/title.utils";
 import { findFolderContainingFile, flattenTree, folderFilePaths } from "@/lib/player/tree.utils";
+import { useCell } from "@/lib/state/signal.hook";
 import { formatBytes } from "@/lib/utils/bytes.utils";
 import { openFileInPlayer } from "@/lib/utils/media.utils";
 import { showError } from "@/lib/utils/notification.utils";
-import { useSearchStore } from "@/store/search.store";
-import { useSettingsStore } from "@/store/settings.store";
-import { useUpscaleQueueStore } from "@/store/upscale.store";
+import { setAnilistSearchQuery } from "@/store/search.store";
+import { settingsAtoms } from "@/store/settings.store";
+import { upscaleItems } from "@/store/upscale.store";
 import type { FolderNode } from "@/types/torrent";
 
 import UpscalePlayer from "./upscale/modal.upscale";
@@ -61,14 +63,13 @@ function FolderView({
   listMinHeight?: number;
   scrollRef?: RefObject<HTMLDivElement | null>;
 }) {
-  const showTrackFiles = useSettingsStore((s) => s.showTrackFiles);
-  const audioExtensions = useSettingsStore((s) => s.audioExtensions);
-  const subtitleExtensions = useSettingsStore((s) => s.subtitleExtensions);
-  const setAnilistSearchQuery = useSearchStore((state) => state.setAnilistSearchQuery);
-  const parseTitles = useSettingsStore((state) => state.parseTitlesPlayer);
+  const showTrackFiles = useCell(settingsAtoms.showTrackFiles);
+  const audioExtensions = useCell(settingsAtoms.audioExtensions);
+  const subtitleExtensions = useCell(settingsAtoms.subtitleExtensions);
+  const parseTitles = useCell(settingsAtoms.parseTitlesPlayer);
   const { t } = useI18n();
 
-  const items = useUpscaleQueueStore((s) => s.items);
+  const items = useCell(upscaleItems);
 
   const queueMap = useMemo(() => {
     const m = new Map<string, string>();

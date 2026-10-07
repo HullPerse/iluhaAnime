@@ -9,7 +9,7 @@ import { withStoredMedia } from "@/lib/collection/media.utils";
 import { downloadCover, fetchAddedMedia } from "@/lib/collection/quickadd.utils";
 import { buildWizardItem } from "@/lib/collection/wizard.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
-import { useNotificationStore } from "@/store/notification.store";
+import { addNotification } from "@/store/notification.store";
 import type { QuickAddListEntry, QuickAddMedia } from "@/types/collection";
 
 export default function QuickAddButton({
@@ -61,15 +61,11 @@ export default function QuickAddButton({
             : built
         );
         setAdded(true);
-        useNotificationStore
-          .getState()
-          .add(t("app.collection"), "success", t("collection.quick.add.success"));
+        addNotification(t("app.collection"), "success", t("collection.quick.add.success"));
       })()
     );
     if (error)
-      useNotificationStore
-        .getState()
-        .add(t("app.collection"), "error", t("collection.quick.add.error"));
+      addNotification(t("app.collection"), "error", t("collection.quick.add.error"));
     setAdding(false);
   };
 

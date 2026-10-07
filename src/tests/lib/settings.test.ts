@@ -52,7 +52,7 @@ import {
 import { canSaveScreenshot, defaultScreenshotName } from "@/lib/settings/screenshot.utils";
 import { toSessionConfig } from "@/lib/settings/session.utils";
 import { buildTrayMenuEntries, shouldHideOnClose } from "@/lib/settings/tray.utils";
-import { useSettingsStore } from "@/store/settings.store";
+import { patchSettings } from "@/store/settings.store";
 import type { AnnotationItem, StrokeItem, TextItem } from "@/types/screenshot";
 
 describe("settings/annotation-draw", () => {
@@ -929,7 +929,7 @@ describe("settings/screenshot", () => {
 describe("settings/session", () => {
   describe("toSessionConfig", () => {
     it("maps the current settings into a session payload", () => {
-      useSettingsStore.setState({
+      patchSettings({
         disablePersistence: true,
         enableUpnp: true,
         fastresumeEnabled: false,
@@ -955,7 +955,7 @@ describe("settings/session", () => {
     });
 
     it("sends a null proxy when the setting is unset", () => {
-      useSettingsStore.setState({ torrentProxyUrl: null });
+      patchSettings({ torrentProxyUrl: null });
 
       expect(toSessionConfig().proxyUrl).toBe(null);
     });

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useCollectionDataActions } from "@/hooks/collection/data.hook";
 import { useCollectionMetadata } from "@/hooks/collection/metadata.hook";
 import {
+
   useCollectionData,
   useCollectionMutations,
   useCollectionSearch,
@@ -20,12 +21,22 @@ import {
   isPublicStatusFull,
   publicStatusPrefill,
 } from "@/lib/collection/status.utils";
+import { useCell } from "@/lib/state/signal.hook";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { buildCollectionShareLink } from "@/lib/utils/deeplink.utils";
-import { useCollectionStore } from "@/store/collection.store";
-import { useDeepLinkStore } from "@/store/deeplink.store";
-import { useNotificationStore } from "@/store/notification.store";
-import { useSettingsStore } from "@/store/settings.store";
+import {
+  collectionAtoms,
+  consumeWizardPrefill,
+  requestWizardPrefill,
+  setCollectionFilters,
+  setCollectionSearchQuery,
+  setCollectionSelectedStatus,
+  setCollectionSort,
+  toggleCollectionStatusCollapsed,
+} from "@/store/collection.store";
+import { consumeShareDeepLink, deeplinkAtoms } from "@/store/deeplink.store";
+import { addNotification } from "@/store/notification.store";
+import { settingsAtoms } from "@/store/settings.store";
 import type {
   CollectionItem,
   CollectionStatus,
@@ -44,33 +55,24 @@ import ToolbarCollection from "./components/collection/toolbar.collection";
 
 export default function CollectionRoute() {
   const { t } = useI18n();
-  const searchIntentEnabled = useSettingsStore((s) => s.searchIntentEnabled);
-  const tagTolerances = useSettingsStore((s) => s.tagTolerances);
+  const searchIntentEnabled = useCell(settingsAtoms.searchIntentEnabled);
+  const tagTolerances = useCell(settingsAtoms.tagTolerances);
   const { items, statuses, customFieldDefs, isLoading, isError, isFetching, error, refetch } =
     useCollectionData();
   const mutations = useCollectionMutations();
   const dataActions = useCollectionDataActions();
-  const shareTarget = useDeepLinkStore((s) => s.shareTarget);
+  const shareTarget = useCell(deeplinkAtoms.shareTarget);
 
-  const {
-    sortBy,
-    sortDir,
-    setSort,
-    searchQuery,
-    setSearchQuery,
-    filters,
-    setFilters,
-    viewMode,
-    displayMode,
-    selectedStatus,
-    setSelectedStatus,
-    groupByStatus,
-    collapsedStatuses,
-    toggleStatusCollapsed,
-    wizardPrefill,
-    requestWizardPrefill,
-    consumeWizardPrefill,
-  } = useCollectionStore();
+  const sortBy = useCell(collectionAtoms.sortBy);
+  const sortDir = useCell(collectionAtoms.sortDir);
+  const searchQuery = useCell(collectionAtoms.searchQuery);
+  const filters = useCell(collectionAtoms.filters);
+  const viewMode = useCell(collectionAtoms.viewMode);
+  const displayMode = useCell(collectionAtoms.displayMode);
+  const selectedStatus = useCell(collectionAtoms.selectedStatus);
+  const groupByStatus = useCell(collectionAtoms.groupByStatus);
+  const collapsedStatuses = useCell(collectionAtoms.collapsedStatuses);
+  const wizardPrefill = useCell(collectionAtoms.wizardPrefill);
 
   const [showWizard, setShowWizard] = useState<boolean>(false);
   const [editingItem, setEditingItem] = useState<CollectionItem | null>(null);
@@ -118,7 +120,7 @@ export default function CollectionRoute() {
   const field = useSearchField({
     scope: "filter",
     query: searchQuery,
-    setQuery: setSearchQuery,
+    setQuery: setCollectionSearchQuery,
     collectionItems: collectionSuggestionItems,
     extraValues: collectionExtraValues,
     historyScope: "filter",
@@ -183,7 +185,7 @@ export default function CollectionRoute() {
     }
     setEditingItem(null);
     setShowWizard(true);
-  }, [statuses, selectedStatus, requestWizardPrefill]);
+  }, [statuses, selectedStatus]);
 
   const handleEdit = useCallback((item: CollectionItem) => {
     setEditingItem(item);
@@ -195,7 +197,7 @@ export default function CollectionRoute() {
     setWizardDraft(wizardPrefill);
     setShowWizard(true);
     consumeWizardPrefill();
-  }, [wizardPrefill, consumeWizardPrefill]);
+  }, [wizardPrefill]);
 
   const handleStatusManager = useCallback(() => setStatusManager(true), []);
   const handleAnilistImport = useCallback(() => setAnilistImport(true), []);
@@ -209,18 +211,18 @@ export default function CollectionRoute() {
     const label = statuses.find((status) => status.id === selectedStatus)?.label ?? null;
     const [link, linkError] = await attempt(buildCollectionShareLink(scopedItems, label));
     if (linkError) {
-      useNotificationStore.getState().add(t("app.collection"), "error", linkError.message);
+      addNotification(t("app.collection"), "error", linkError.message);
       return;
     }
     const [, copyError] = await attempt(writeText(link));
     if (copyError)
-      useNotificationStore.getState().add(t("app.collection"), "error", copyError.message);
+      addNotification(t("app.collection"), "error", copyError.message);
   }, [items, selectedStatus, statuses, t]);
 
   useEffect(() => {
     if (!shareTarget) return;
     setIncomingShare(buildShareImportPlan(shareTarget, statuses));
-    useDeepLinkStore.getState().consumeShare();
+    consumeShareDeepLink();
   }, [shareTarget, statuses]);
 
   const handleShareImportClose = useCallback(() => setIncomingShare(null), []);
@@ -229,7 +231,7 @@ export default function CollectionRoute() {
     (status: CollectionStatusDef) => {
       requestWizardPrefill({ title: "", coverUrl: null, status: status.id });
     },
-    [requestWizardPrefill]
+    []
   );
 
   return (
@@ -243,7 +245,7 @@ export default function CollectionRoute() {
         field={field}
         sortBy={sortBy}
         sortDir={sortDir}
-        onSortChange={setSort}
+        onSortChange={setCollectionSort}
         onRandom={handleRandom}
         randomDisabled={filtered.length === 0}
       />
@@ -252,7 +254,7 @@ export default function CollectionRoute() {
         <FilterCollection
           open={showFilters}
           filters={filters}
-          onApply={(f) => setFilters(f)}
+          onApply={(f) => setCollectionFilters(f)}
           onClose={() => setShowFilters(false)}
         />
       )}
@@ -260,7 +262,7 @@ export default function CollectionRoute() {
       <StatusCollection
         statuses={statuses}
         selectedStatus={selectedStatus}
-        onSelect={setSelectedStatus}
+        onSelect={setCollectionSelectedStatus}
         counts={statusCounts}
         onShare={canShareStatus ? handleShareStatus : undefined}
       />
@@ -279,7 +281,7 @@ export default function CollectionRoute() {
             onSetStatus={setItemStatus}
             groups={grouped ?? undefined}
             collapsedStatuses={collapsedStatuses}
-            onToggleStatusCollapsed={toggleStatusCollapsed}
+            onToggleStatusCollapsed={toggleCollectionStatusCollapsed}
             onAddToStatus={handleAddToStatus}
           />
         ) : (
@@ -291,7 +293,7 @@ export default function CollectionRoute() {
             onSetStatus={setItemStatus}
             groups={grouped ?? undefined}
             collapsedStatuses={collapsedStatuses}
-            onToggleStatusCollapsed={toggleStatusCollapsed}
+            onToggleStatusCollapsed={toggleCollectionStatusCollapsed}
             onAddToStatus={handleAddToStatus}
           />
         )}

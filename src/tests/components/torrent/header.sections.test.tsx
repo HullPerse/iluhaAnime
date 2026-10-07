@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { TorrentHeader } from "@/routes/components/torrent/sections/header.sections";
-import { useSettingsStore } from "@/store/settings.store";
+import { patchSettings } from "@/store/settings.store";
 import type { TorrentInfo } from "@/types/torrent";
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -76,7 +76,7 @@ function renderHeader(item: TorrentInfo, onSetSequential = vi.fn()) {
 afterEach(() => cleanup());
 
 beforeEach(() => {
-  useSettingsStore.setState({ language: "en" });
+  patchSettings({ language: "en" });
 });
 
 describe("TorrentHeader sequential toggle", () => {

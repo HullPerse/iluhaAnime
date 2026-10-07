@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import AniListFavouritesModal from "@/routes/components/anilist/favourites.anilist";
-import { useSettingsStore } from "@/store/settings.store";
+import { patchSettings } from "@/store/settings.store";
 import type { FavouriteAnime, FavouritePeople } from "@/types/anilist";
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -84,7 +84,7 @@ function renderOpen(overrides: Partial<Parameters<typeof AniListFavouritesModal>
 afterEach(() => cleanup());
 
 beforeEach(() => {
-  useSettingsStore.setState({ language: "en" });
+  patchSettings({ language: "en" });
 });
 
 describe("AniListFavouritesModal tabs", () => {

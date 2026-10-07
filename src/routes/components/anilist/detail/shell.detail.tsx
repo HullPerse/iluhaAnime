@@ -8,8 +8,9 @@ import { TrailerEmbed } from "@/components/shared/lightbox/trailerEmbed.media";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { queryKeys } from "@/lib/query/keys.utils";
+import { useCell } from "@/lib/state/signal.hook";
 import { attemptAll } from "@/lib/utils/attempt.utils";
-import { useSettingsStore } from "@/store/settings.store";
+import { settingsAtoms } from "@/store/settings.store";
 import type { AniDetailProps as DetailProps } from "@/types/anilist";
 
 import { CopyLinkButton } from "./copyLinkButton.detail";
@@ -40,7 +41,7 @@ export function AnimeDetailShell({
       onFinally: () => setFavoriteLoading(false),
     });
   };
-  const anilistProxyUrl = useSettingsStore((s) => s.anilistProxyUrl);
+  const anilistProxyUrl = useCell(settingsAtoms.anilistProxyUrl);
   const query = useAppQuery("static", {
     queryKey: queryKeys.animeFull(props.animeId, anilistProxyUrl ?? "", props.isLoggedIn),
     queryFn: () => anilistApi.getAnimeFull(props.animeId),

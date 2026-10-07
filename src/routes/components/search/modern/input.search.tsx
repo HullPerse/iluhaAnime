@@ -9,12 +9,13 @@ import ImageComponent from "@/components/ui/image.component";
 import Select from "@/components/ui/select.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useSearchQuery } from "@/hooks/search/query.hook";
+import { useCell } from "@/lib/state/signal.hook";
 import { buildShadow } from "@/lib/wallpaper/wallpaper.utils";
 import SearchAuthButtons from "@/routes/components/search/auth.search";
 import TorrentDetailsModal from "@/routes/components/search/default/details/modal.details";
 import SearchFiltersModal from "@/routes/components/search/filters.modal";
 import SearchSessionModals from "@/routes/components/search/sessions.search";
-import { useSettingsStore } from "@/store/settings.store";
+import { settingsAtoms } from "@/store/settings.store";
 import type { SearchFilters } from "@/types/search";
 
 import ModernResults from "./results.modern";
@@ -28,7 +29,7 @@ function InputSearch({
 }) {
   const { t } = useI18n();
   const controller = useSearchQuery();
-  const searchShadow = useSettingsStore((state) => state.searchShadow);
+  const searchShadow = useCell(settingsAtoms.searchShadow);
   const {
     field,
     handleSearch,

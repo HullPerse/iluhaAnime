@@ -8,7 +8,7 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { formatProgressLog } from "@/lib/anilist/prefetch.utils";
 import { deleteAppCache, readAppCache, writeAppCache } from "@/lib/store/cache.utils";
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
-import { useNotificationStore } from "@/store/notification.store";
+import { addNotification } from "@/store/notification.store";
 import type { PrefetchProgressPayload, PrefetchSnapshot, PrefetchSummary } from "@/types/anilist";
 import type { AniPrefetchProps as Props } from "@/types/anilist";
 
@@ -117,9 +117,7 @@ export default function PrefetchRelationsModal({ animeIds, onClose }: Props) {
   const cancel = async () => {
     const [, error] = await attempt(anilistApi.cancelPrefetch());
     if (error)
-      useNotificationStore
-        .getState()
-        .add(t("anilist.prefetch.cancel.failed"), "error", error.message);
+      addNotification(t("anilist.prefetch.cancel.failed"), "error", error.message);
   };
   return (
     <Modal header={t("anilist.prefetch.title")} onClose={onClose}>

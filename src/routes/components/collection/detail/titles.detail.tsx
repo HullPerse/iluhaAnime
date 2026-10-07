@@ -4,7 +4,7 @@ import Section from "@/components/shared/section.component";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { uniqueTitles } from "@/lib/collection/titles.utils";
-import { useSearchStore } from "@/store/search.store";
+import { setCrossSearchQuery } from "@/store/search.store";
 
 export function TitlesCollection({
   title,
@@ -16,7 +16,6 @@ export function TitlesCollection({
   onClose: () => void;
 }) {
   const { t } = useI18n();
-  const setCrossSearchQuery = useSearchStore((s) => s.setCrossSearchQuery);
   const rows = uniqueTitles(title, altTitles);
   if (rows.length === 0) return null;
   const searchTorrents = (query: string) => {

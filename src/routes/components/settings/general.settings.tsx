@@ -14,31 +14,29 @@ import { DEFAULT_SETTINGS } from "@/config/settings/defaults.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useOnlineStatus } from "@/hooks/network.hook";
 import { applyWindowChrome } from "@/lib/settings/window.utils";
+import { useCell } from "@/lib/state/signal.hook";
 import { attempt, attemptSync } from "@/lib/utils/attempt.utils";
-import { useSettingsStore } from "@/store/settings.store";
+import { patchSettings, settingsAtoms } from "@/store/settings.store";
 import type { Locale } from "@/types/i18n";
 import type { SettingsStore } from "@/types/settings";
 
 import SettingsMedia from "./media.settings";
 
 export default function SettingsGeneral() {
-  const {
-    language,
-    parseTitlesPlayer,
-    parseTitlesTorrent,
-    parseTitlesSearch,
-    sqliteBrowserEnabled,
-    collectionTabEnabled,
-    anilistTabEnabled,
-    minimizeToTray,
-    tmdbKeySet,
-    tmdbProxyUrl,
-    anilistProxyUrl,
-    anilistTitleLanguage,
-    anilistAdultContent,
-    ffmpegSource,
-    patch,
-  } = useSettingsStore();
+  const language = useCell(settingsAtoms.language);
+  const parseTitlesPlayer = useCell(settingsAtoms.parseTitlesPlayer);
+  const parseTitlesTorrent = useCell(settingsAtoms.parseTitlesTorrent);
+  const parseTitlesSearch = useCell(settingsAtoms.parseTitlesSearch);
+  const sqliteBrowserEnabled = useCell(settingsAtoms.sqliteBrowserEnabled);
+  const collectionTabEnabled = useCell(settingsAtoms.collectionTabEnabled);
+  const anilistTabEnabled = useCell(settingsAtoms.anilistTabEnabled);
+  const minimizeToTray = useCell(settingsAtoms.minimizeToTray);
+  const tmdbKeySet = useCell(settingsAtoms.tmdbKeySet);
+  const tmdbProxyUrl = useCell(settingsAtoms.tmdbProxyUrl);
+  const anilistProxyUrl = useCell(settingsAtoms.anilistProxyUrl);
+  const anilistTitleLanguage = useCell(settingsAtoms.anilistTitleLanguage);
+  const anilistAdultContent = useCell(settingsAtoms.anilistAdultContent);
+  const ffmpegSource = useCell(settingsAtoms.ffmpegSource);
   const { t } = useI18n();
   const isOnline = useOnlineStatus();
   const [pendingClear, setPendingClear] = useState(false);
@@ -59,14 +57,14 @@ export default function SettingsGeneral() {
     if (error) setTmdbTest({ ok: false, msg: error.message });
     else {
       setTmdbInput("");
-      patch({ tmdbKeySet: true, tmdbPendingKey: null });
+      patchSettings({ tmdbKeySet: true, tmdbPendingKey: null });
     }
     setTmdbSaving(false);
   };
   const handleTmdbRemove = async () => {
     const [, error] = await attempt(tmdbApi.logout());
     if (error) setTmdbTest({ ok: false, msg: error.message });
-    else patch({ tmdbKeySet: false });
+    else patchSettings({ tmdbKeySet: false });
   };
 
   const handleTmdbTest = async () => {
@@ -99,14 +97,14 @@ export default function SettingsGeneral() {
               <label className="windows95-text text-text flex cursor-pointer items-center gap-1.5 select-none">
                 <Checkbox
                   checked={collectionTabEnabled}
-                  onChange={(v) => patch({ collectionTabEnabled: v })}
+                  onChange={(v) => patchSettings({ collectionTabEnabled: v })}
                 />
                 <span className="text-xs">{t("settings.collection.tab")}</span>
               </label>
               <label className="windows95-text text-text flex cursor-pointer items-center gap-1.5 select-none">
                 <Checkbox
                   checked={anilistTabEnabled}
-                  onChange={(v) => patch({ anilistTabEnabled: v })}
+                  onChange={(v) => patchSettings({ anilistTabEnabled: v })}
                 />
                 <span className="text-xs">{t("settings.anilist.tab")}</span>
               </label>
@@ -116,7 +114,7 @@ export default function SettingsGeneral() {
               >
                 <Checkbox
                   checked={sqliteBrowserEnabled}
-                  onChange={(v) => patch({ sqliteBrowserEnabled: v })}
+                  onChange={(v) => patchSettings({ sqliteBrowserEnabled: v })}
                 />
                 <span className="text-xs">{t("settings.sqlite")}</span>
               </label>
@@ -136,7 +134,7 @@ export default function SettingsGeneral() {
             </span>
             <div className="flex flex-col gap-0.5">
               <label className="windows95-text text-text flex cursor-pointer items-center gap-1.5 select-none">
-                <Checkbox checked={minimizeToTray} onChange={(v) => patch({ minimizeToTray: v })} />
+                <Checkbox checked={minimizeToTray} onChange={(v) => patchSettings({ minimizeToTray: v })} />
                 <span className="text-xs">{t("settings.tray.minimize")}</span>
               </label>
               <span className="text-hint text-[12px]">
@@ -159,7 +157,7 @@ export default function SettingsGeneral() {
             <div className="flex flex-col gap-0.5">
               <Select
                 value={language}
-                onChange={(value) => patch({ language: value as Locale })}
+                onChange={(value) => patchSettings({ language: value as Locale })}
                 options={[
                   { value: "ru", label: t("settings.language.ru") },
                   { value: "en", label: t("settings.language.en") },
@@ -175,7 +173,7 @@ export default function SettingsGeneral() {
               <Select
                 value={ffmpegSource}
                 onChange={(value) =>
-                  patch({ ffmpegSource: value as SettingsStore["ffmpegSource"] })
+                  patchSettings({ ffmpegSource: value as SettingsStore["ffmpegSource"] })
                 }
                 options={[
                   {
@@ -267,7 +265,7 @@ export default function SettingsGeneral() {
                       tmdbProxyInputRef.current?.focus();
                       return;
                     }
-                    patch({ tmdbProxyUrl: v || null });
+                    patchSettings({ tmdbProxyUrl: v || null });
                   }}
                   options={[
                     { value: "", label: t("settings.tmdb.proxy.no") },
@@ -302,7 +300,7 @@ export default function SettingsGeneral() {
                 <Input
                   ref={tmdbProxyInputRef}
                   value={tmdbProxyUrl ?? ""}
-                  onChange={(e) => patch({ tmdbProxyUrl: e.target.value.trim() || null })}
+                  onChange={(e) => patchSettings({ tmdbProxyUrl: e.target.value.trim() || null })}
                   placeholder="socks5://127.0.0.1:10808"
                   spellCheck={false}
                   className="w-full max-w-70"
@@ -370,7 +368,7 @@ export default function SettingsGeneral() {
                       anilistProxyInputRef.current?.focus();
                       return;
                     }
-                    patch({ anilistProxyUrl: v || null });
+                    patchSettings({ anilistProxyUrl: v || null });
                   }}
                   options={[
                     { value: "", label: t("settings.anilist.proxy.no") },
@@ -405,7 +403,7 @@ export default function SettingsGeneral() {
                 <Input
                   ref={anilistProxyInputRef}
                   value={anilistProxyUrl ?? ""}
-                  onChange={(e) => patch({ anilistProxyUrl: e.target.value.trim() || null })}
+                  onChange={(e) => patchSettings({ anilistProxyUrl: e.target.value.trim() || null })}
                   placeholder="socks5://127.0.0.1:10808"
                   spellCheck={false}
                   className="w-full max-w-70"
@@ -444,7 +442,7 @@ export default function SettingsGeneral() {
               <Select
                 value={anilistTitleLanguage}
                 onChange={(value) =>
-                  patch({ anilistTitleLanguage: value as SettingsStore["anilistTitleLanguage"] })
+                  patchSettings({ anilistTitleLanguage: value as SettingsStore["anilistTitleLanguage"] })
                 }
                 options={[
                   { value: "account", label: t("settings.anilist.title.account") },
@@ -463,7 +461,7 @@ export default function SettingsGeneral() {
                 <Checkbox
                   checked={anilistAdultContent}
                   onChange={(v) => {
-                    patch({ anilistAdultContent: v });
+                    patchSettings({ anilistAdultContent: v });
                   }}
                 />
                 <span>{t("settings.anilist.adult.description")}</span>
@@ -487,7 +485,7 @@ export default function SettingsGeneral() {
                 <Checkbox
                   checked={parseTitlesPlayer}
                   onChange={(v) => {
-                    patch({ parseTitlesPlayer: v });
+                    patchSettings({ parseTitlesPlayer: v });
                   }}
                 />
                 <span>{t("settings.parse.player")}</span>
@@ -496,7 +494,7 @@ export default function SettingsGeneral() {
                 <Checkbox
                   checked={parseTitlesTorrent}
                   onChange={(v) => {
-                    patch({ parseTitlesTorrent: v });
+                    patchSettings({ parseTitlesTorrent: v });
                   }}
                 />
                 <span>{t("settings.parse.torrent")}</span>
@@ -505,7 +503,7 @@ export default function SettingsGeneral() {
                 <Checkbox
                   checked={parseTitlesSearch}
                   onChange={(v) => {
-                    patch({ parseTitlesSearch: v });
+                    patchSettings({ parseTitlesSearch: v });
                   }}
                 />
                 <span>{t("settings.parse.search")}</span>

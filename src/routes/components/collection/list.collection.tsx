@@ -11,15 +11,17 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { rowMetaParts, sameRowVisual } from "@/lib/collection/list.utils";
 import { generatePlaceholder } from "@/lib/collection/placeholder.utils";
 import { sortStatuses, statusColorOf, statusLabel } from "@/lib/collection/status.utils";
+import { useCell } from "@/lib/state/signal.hook";
 import { enterOrSpace } from "@/lib/utils/keyboard.utils";
-import { useSettingsStore } from "@/store/settings.store";
 import type {
+
   CollectionGroup,
   CollectionItem,
   CollectionStatus,
   CollectionStatusDef,
   GroupedRow,
 } from "@/types/collection";
+import { settingsAtoms } from "@/store/settings.store";
 import type { CollectionRowProps } from "@/types/collection";
 
 import { GroupHeaderCollection, publicHeaderProps } from "./groupHeader.collection";
@@ -47,7 +49,7 @@ export default function ListCollection({
 }) {
   const parentRef = useRef<HTMLDivElement>(null);
   const { t, locale } = useI18n();
-  const headerVariant = useSettingsStore((s) => s.collectionGroupHeaderStyle);
+  const headerVariant = useCell(settingsAtoms.collectionGroupHeaderStyle);
   const rows = useMemo<GroupedRow[] | null>(() => {
     if (!groups?.length) return null;
     const out: GroupedRow[] = [];

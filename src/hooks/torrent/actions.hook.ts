@@ -17,9 +17,9 @@ import { describeRecheckOutcome } from "@/lib/torrent/recheck.utils";
 import { applyTorrentUpdate } from "@/lib/torrent/update.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { ignore } from "@/lib/utils/promise.utils";
-import { useCacheStore } from "@/store/cache.store";
-import { useTorrentStore } from "@/store/download.store";
-import { useNotificationStore } from "@/store/notification.store";
+import { setSeedPreference } from "@/store/cache.store";
+import { prepareTorrentDownload } from "@/store/download.store";
+import { addNotification } from "@/store/notification.store";
 import { torrentApi } from "@/api/torrent.api";
 import type {
   FilePriority,
@@ -55,8 +55,6 @@ export function useTorrentItemActions(item: TorrentInfo): TorrentItemActions {
   const redownloadMutation = useRedownloadFile();
   const recheckMutation = useRecheckTorrent();
   const recheckPausedMutation = useRecheckPausedTorrent();
-  const setSeedPreference = useCacheStore((state) => state.setSeedPreference);
-  const prepareTorrentDownload = useTorrentStore((state) => state.prepareTorrentDownload);
   const { t } = useI18n();
   const id = item.id;
   const infoHash = item.info_hash;
@@ -73,7 +71,7 @@ export function useTorrentItemActions(item: TorrentInfo): TorrentItemActions {
       if (enabled) resumeMutation.mutate({ id, infoHash });
       else pauseMutation.mutate({ id, infoHash });
     },
-    [setSeedPreference, resumeMutation, pauseMutation, id, infoHash]
+    [resumeMutation, pauseMutation, id, infoHash]
   );
   const onRemove = useCallback(
     (deleteFiles: boolean) => {
@@ -115,7 +113,7 @@ export function useTorrentItemActions(item: TorrentInfo): TorrentItemActions {
     });
     if (!removed) return;
     prepareTorrentDownload(`magnet:?xt=urn:btih:${infoHash}`);
-  }, [removeMutation, prepareTorrentDownload, id, infoHash, item.name]);
+  }, [removeMutation, id, infoHash, item.name]);
   const onRedownload = useCallback(
     (fileIndex: number) => {
       redownloadMutation.mutate({ id, fileIndex, infoHash });
@@ -129,7 +127,7 @@ export function useTorrentItemActions(item: TorrentInfo): TorrentItemActions {
     const result = await recheckMutation.mutateAsync({ id, infoHash });
     if (!result) return;
     const notice = describeRecheckOutcome(result, t);
-    useNotificationStore.getState().add(t("torrent.recheck.title"), notice.tone, notice.message);
+    addNotification(t("torrent.recheck.title"), notice.tone, notice.message);
   }, [recheckMutation, t, id, infoHash]);
   const onUpdateRequest = useCallback(
     async (request: { added: TorrentDetailFile[]; details: TorrentDetails }) => {

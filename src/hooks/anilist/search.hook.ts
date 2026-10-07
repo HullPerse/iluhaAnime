@@ -10,8 +10,8 @@ import { defaultAniListFilters } from "@/lib/anilist/filters.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import { queryKeys } from "@/lib/query/keys.utils";
 import { ignore } from "@/lib/utils/promise.utils";
-import { useSearchStore } from "@/store/search.store";
-import { useSettingsStore } from "@/store/settings.store";
+import { addSearchQuery } from "@/store/search.store";
+import { getSettingsSnapshot, settingsAtoms } from "@/store/settings.store";
 import type { AniListFilters, AniMedia, SearchMode } from "@/types/anilist";
 import type { FilterPage } from "@/types/ipc";
 
@@ -29,14 +29,14 @@ async function runSearchRequest(request: AniListSearchRequest): Promise<AniMedia
     }
     case "season": {
       return anilistApi.search({
-        adult: useSettingsStore.getState().anilistAdultContent ? null : false,
+        adult: settingsAtoms.anilistAdultContent.get() ? null : false,
         country: null,
         episodesFrom: null,
         episodesTo: null,
         format: null,
         genres: null,
-        maxPages: useSettingsStore.getState().anilistMaxPages,
-        perPage: useSettingsStore.getState().pageSize,
+        maxPages: settingsAtoms.anilistMaxPages.get(),
+        perPage: settingsAtoms.pageSize.get(),
         query: null,
         scoreFrom: null,
         scoreTo: null,
@@ -63,7 +63,7 @@ async function runSearchRequest(request: AniListSearchRequest): Promise<AniMedia
 }
 
 function buildGlobalParams(query: string, filters: AniListFilters): AnilistSearchParams {
-  const settings = useSettingsStore.getState();
+  const settings = getSettingsSnapshot();
   return searchFiltersToParams(
     filters,
     query.trim() || null,
@@ -74,13 +74,12 @@ function buildGlobalParams(query: string, filters: AniListFilters): AnilistSearc
 
 export function useAnilistSearch() {
   const { t } = useI18n();
-  const addQuery = useSearchStore((state) => state.addQuery);
   const [searchTerms, setSearchTerms] = useState<string>("");
   const [global, setGlobal] = useState<boolean>(false);
   const [searchTag, setSearchTag] = useState<string | null>(null);
   const [searchMode, setSearchMode] = useState<SearchMode>(null);
   const [searchFilters, setSearchFilters] = useState<AniListFilters>(() =>
-    defaultAniListFilters(useSettingsStore.getState().anilistAdultContent)
+    defaultAniListFilters(settingsAtoms.anilistAdultContent.get())
   );
   const [request, setRequest] = useState<AniListSearchRequest | null>(null);
   const isGlobalRequest = request?.kind === "global";
@@ -105,7 +104,7 @@ export function useAnilistSearch() {
       const perPage =
         typeof params.perPage === "number" && params.perPage > 0
           ? params.perPage
-          : useSettingsStore.getState().pageSize;
+          : settingsAtoms.pageSize.get();
       if (lastPage.media.length < perPage) return undefined;
       const loaded = allPages.reduce((count, page) => count + page.media.length, 0);
       if (loaded >= lastPage.total) return undefined;
@@ -120,12 +119,12 @@ export function useAnilistSearch() {
 
   const handleGlobal = useCallback(() => {
     const terms = searchTerms.trim();
-    if (terms) addQuery(terms, "anilist");
+    if (terms) addSearchQuery(terms, "anilist");
     setGlobal(true);
     setSearchTag(null);
     setSearchMode(null);
     setRequest({ kind: "global", params: buildGlobalParams(searchTerms, searchFilters) });
-  }, [addQuery, searchTerms, searchFilters]);
+  }, [searchTerms, searchFilters]);
 
   const beginRemoteSearch = useCallback(() => {
     setGlobal(true);
@@ -188,7 +187,7 @@ export function useAnilistSearch() {
 
   const handleReset = useCallback(() => {
     clearSearchState();
-    setSearchFilters(defaultAniListFilters(useSettingsStore.getState().anilistAdultContent));
+    setSearchFilters(defaultAniListFilters(settingsAtoms.anilistAdultContent.get()));
   }, [clearSearchState]);
 
   const applyFilters = useCallback(

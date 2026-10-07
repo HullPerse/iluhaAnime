@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { resetRemoteImageCache } from "@/hooks/remoteImage.hook";
 import { WizardModal } from "@/routes/components/collection/wizard/modal.wizard";
-import { useSettingsStore } from "@/store/settings.store";
+import { patchSettings } from "@/store/settings.store";
 import type { CollectionStatusDef } from "@/types/collection";
 
 const mockInvoke = vi.fn();
@@ -53,7 +53,7 @@ function renderWizard(props: Partial<React.ComponentProps<typeof WizardModal>> =
 afterEach(() => cleanup());
 
 beforeEach(() => {
-  useSettingsStore.setState({ language: "en" });
+  patchSettings({ language: "en" });
   mockInvoke.mockReset();
   mockOpenDialog.mockReset();
   resetRemoteImageCache();
@@ -123,7 +123,7 @@ describe("WizardModal add mode", () => {
 
 describe("WizardModal TMDB metadata", () => {
   it("backfills genres and description when picking a TMDB result", async () => {
-    useSettingsStore.setState({ tmdbKeySet: true });
+    patchSettings({ tmdbKeySet: true });
     mockInvoke.mockImplementation((cmd: unknown) => {
       if (cmd === "search_tmdb")
         return Promise.resolve([
@@ -162,7 +162,7 @@ describe("WizardModal TMDB metadata", () => {
   });
 
   it("stores stills and trailer in detailsJson on save", async () => {
-    useSettingsStore.setState({ tmdbKeySet: true });
+    patchSettings({ tmdbKeySet: true });
     mockInvoke.mockImplementation((cmd: unknown) => {
       if (cmd === "search_tmdb")
         return Promise.resolve([
@@ -303,7 +303,7 @@ describe("WizardModal AniList prefill", () => {
 
 describe("WizardModal source dropdown", () => {
   it("caps TMDB results at 6 with a count header", async () => {
-    useSettingsStore.setState({ tmdbKeySet: true });
+    patchSettings({ tmdbKeySet: true });
     mockInvoke.mockImplementation((cmd: unknown) => {
       if (cmd === "search_tmdb")
         return Promise.resolve(
@@ -327,7 +327,7 @@ describe("WizardModal source dropdown", () => {
   });
 
   it("picks the first result on Enter without arrow navigation", async () => {
-    useSettingsStore.setState({ tmdbKeySet: true });
+    patchSettings({ tmdbKeySet: true });
     mockInvoke.mockImplementation((cmd: unknown) => {
       if (cmd === "search_tmdb")
         return Promise.resolve([
@@ -363,7 +363,7 @@ describe("WizardModal source dropdown", () => {
   });
 
   it("shows the empty state when a search finds nothing", async () => {
-    useSettingsStore.setState({ tmdbKeySet: true });
+    patchSettings({ tmdbKeySet: true });
     mockInvoke.mockImplementation(() => Promise.resolve([]));
     const user = userEvent.setup();
     renderWizard();
@@ -374,7 +374,7 @@ describe("WizardModal source dropdown", () => {
   });
 
   it("renders the media type badge and alt title in each row", async () => {
-    useSettingsStore.setState({ tmdbKeySet: true });
+    patchSettings({ tmdbKeySet: true });
     mockInvoke.mockImplementation((cmd: unknown) => {
       if (cmd === "search_tmdb")
         return Promise.resolve([
@@ -401,7 +401,7 @@ describe("WizardModal source dropdown", () => {
   });
 
   it("renders the row cover through the backend image cache", async () => {
-    useSettingsStore.setState({ tmdbKeySet: true });
+    patchSettings({ tmdbKeySet: true });
     mockInvoke.mockImplementation((cmd: unknown) => {
       if (cmd === "search_tmdb")
         return Promise.resolve([
@@ -433,7 +433,7 @@ describe("WizardModal source dropdown", () => {
   });
 
   it("falls back to the title initial when the cached cover fails", async () => {
-    useSettingsStore.setState({ tmdbKeySet: true });
+    patchSettings({ tmdbKeySet: true });
     mockInvoke.mockImplementation((cmd: unknown) => {
       if (cmd === "search_tmdb")
         return Promise.resolve([
@@ -460,7 +460,7 @@ describe("WizardModal source dropdown", () => {
   });
 
   it("looks the cover up by title when a result comes back without a poster", async () => {
-    useSettingsStore.setState({ tmdbKeySet: true });
+    patchSettings({ tmdbKeySet: true });
     mockInvoke.mockImplementation((cmd: unknown) => {
       if (cmd === "search_tmdb")
         return Promise.resolve([

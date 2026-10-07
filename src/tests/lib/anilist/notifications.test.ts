@@ -1,9 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { pollAniListReleases, pollSiteNotifications } from "@/lib/anilist/notifications.utils";
-import { useAniListNotificationsStore } from "@/store/anilist.store";
-import { useNotificationStore } from "@/store/notification.store";
-import { useSettingsStore } from "@/store/settings.store";
+import {
+  anilistNotificationsAtoms,
+  markOwnAnilistListStatus,
+  saveAnilistObservation,
+} from "@/store/anilist.store";
+import { notificationAtoms } from "@/store/notification.store";
+import { patchSettings } from "@/store/settings.store";
 import type { AniNotificationEntry, AniSiteNotification } from "@/types/anilist";
 import type { TFunc } from "@/types/i18n";
 
@@ -73,16 +77,16 @@ beforeEach(() => {
   getLists.mockReset();
   getSiteNotifications.mockReset();
   checkAuth.mockResolvedValue({ id: 1 });
-  useAniListNotificationsStore.setState({
-    initialized: false,
-    observations: {},
-    releases: [],
-    readNotificationIds: [],
-    knownListNames: [],
-    siteMaxSeenId: 0,
-  });
-  useNotificationStore.setState({ items: [], unreadCount: 0, dismissed: [] });
-  useSettingsStore.setState({
+  anilistNotificationsAtoms.initialized.set(false);
+  anilistNotificationsAtoms.observations.set({});
+  anilistNotificationsAtoms.releases.set([]);
+  anilistNotificationsAtoms.readNotificationIds.set([]);
+  anilistNotificationsAtoms.knownListNames.set([]);
+  anilistNotificationsAtoms.siteMaxSeenId.set(0);
+  notificationAtoms.items.set([]);
+  notificationAtoms.unreadCount.set(0);
+  notificationAtoms.dismissed.set([]);
+  patchSettings({
     anilistNotifyLists: null,
     notifyNewEpisodes: true,
     notifyStatusChanges: true,
@@ -104,68 +108,67 @@ describe("list status matrix", () => {
   ];
   for (const [status, title] of cases) {
     it(`toasts on transition to ${status}`, async () => {
-      useAniListNotificationsStore
-        .getState()
-        .saveObservation(
-          "7",
-          observation({ status: status === "CURRENT" ? "PLANNING" : "CURRENT" })
-        );
+      saveAnilistObservation(
+        "7",
+        observation({ status: status === "CURRENT" ? "PLANNING" : "CURRENT" })
+      );
       getLists.mockResolvedValue([
         { name: "Watching", entries: [listEntry({ list_status: status })] },
       ]);
       await pollAniListReleases(t, notDisposed, { system: false });
-      const { items } = useNotificationStore.getState();
+      const items = notificationAtoms.items.get();
       expect(items.map((item) => item.title)).toContain(title);
     });
   }
 
   it("stays quiet without a transition", async () => {
-    useAniListNotificationsStore.getState().saveObservation("7", observation());
+    saveAnilistObservation("7", observation());
     getLists.mockResolvedValue([{ name: "Watching", entries: [listEntry()] }]);
     await pollAniListReleases(t, notDisposed, { system: false });
-    expect(useNotificationStore.getState().items).toHaveLength(0);
+    expect(notificationAtoms.items.get()).toHaveLength(0);
   });
 
   it("stays quiet when the toggle is off", async () => {
-    useSettingsStore.setState({ notifyStatusChanges: false });
-    useAniListNotificationsStore.getState().saveObservation("7", observation());
+    patchSettings({ notifyStatusChanges: false });
+    saveAnilistObservation("7", observation());
     getLists.mockResolvedValue([
       { name: "Watching", entries: [listEntry({ list_status: "DROPPED" })] },
     ]);
     await pollAniListReleases(t, notDisposed, { system: false });
-    expect(useNotificationStore.getState().items).toHaveLength(0);
+    expect(notificationAtoms.items.get()).toHaveLength(0);
   });
 
   it("suppresses transitions made in this app", async () => {
-    const store = useAniListNotificationsStore.getState();
-    store.saveObservation("7", observation());
-    store.markOwnListStatus(7, "COMPLETED");
+    saveAnilistObservation("7", observation());
+    markOwnAnilistListStatus(7, "COMPLETED");
     getLists.mockResolvedValue([
       { name: "Completed", entries: [listEntry({ list_status: "COMPLETED" })] },
     ]);
     await pollAniListReleases(t, notDisposed, { system: false });
-    expect(useNotificationStore.getState().items).toHaveLength(0);
+    expect(notificationAtoms.items.get()).toHaveLength(0);
   });
 });
 
 describe("media status", () => {
   it("toasts once on transition to FINISHED", async () => {
-    useAniListNotificationsStore.getState().saveObservation("7", observation());
+    saveAnilistObservation("7", observation());
     const finished = listEntry({
       media: { id: 7, title: "Show", next_episode: null, next_airing_at: null, status: "FINISHED" },
     });
     getLists.mockResolvedValue([{ name: "Watching", entries: [finished] }]);
     await pollAniListReleases(t, notDisposed, { system: false });
-    expect(useNotificationStore.getState().items.map((item) => item.title)).toContain(
+    expect(notificationAtoms.items.get().map((item) => item.title)).toContain(
       "notification.anilist.media.finished"
     );
-    useNotificationStore.setState({ items: [], unreadCount: 0, dismissed: [] });
+    notificationAtoms.items.set([]);
+    notificationAtoms.unreadCount.set(0);
+    notificationAtoms.dismissed.set([]);
     await pollAniListReleases(t, notDisposed, { system: false });
-    expect(useNotificationStore.getState().items).toHaveLength(0);
+    expect(notificationAtoms.items.get()).toHaveLength(0);
   });
 
   it("ignores a never-observed media status", async () => {
-    useAniListNotificationsStore.getState().saveObservation("7", observation({ mediaStatus: "" }));
+    saveAnilistObservation("7", observation({ mediaStatus: "" }));
     getLists.mockResolvedValue([
       {
         name: "Watching",
@@ -183,7 +186,7 @@ describe("media status", () => {
       },
     ]);
     await pollAniListReleases(t, notDisposed, { system: false });
-    expect(useNotificationStore.getState().items).toHaveLength(0);
+    expect(notificationAtoms.items.get()).toHaveLength(0);
   });
 });
 
@@ -191,26 +194,26 @@ describe("site notifications poll", () => {
   it("seeds the watermark silently on the first poll", async () => {
     getSiteNotifications.mockResolvedValue([siteItem({ id: 5, kind: "sequel" })]);
     await pollSiteNotifications(t, notDisposed, { system: true });
-    expect(useNotificationStore.getState().items).toHaveLength(0);
-    expect(useAniListNotificationsStore.getState().siteMaxSeenId).toBe(5);
+    expect(notificationAtoms.items.get()).toHaveLength(0);
+    expect(anilistNotificationsAtoms.siteMaxSeenId.get()).toBe(5);
   });
 
   it("toasts fresh sequels and subscribed replies", async () => {
-    useAniListNotificationsStore.setState({ siteMaxSeenId: 5 });
+    anilistNotificationsAtoms.siteMaxSeenId.set(5);
     getSiteNotifications.mockResolvedValue([
       siteItem({ id: 5, kind: "sequel" }),
       siteItem({ id: 6, kind: "sequel", anime_id: 21, anime_title: "Sequel" }),
       siteItem({ id: 7, kind: "subscribed", text: "hello" }),
     ]);
     await pollSiteNotifications(t, notDisposed, { system: true });
-    const titles = useNotificationStore.getState().items.map((item) => item.title);
+    const titles = notificationAtoms.items.get().map((item) => item.title);
     expect(titles).toContain("notification.anilist.sequel");
     expect(titles).toContain("notification.anilist.subscribed.reply");
-    expect(useAniListNotificationsStore.getState().siteMaxSeenId).toBe(7);
+    expect(anilistNotificationsAtoms.siteMaxSeenId.get()).toBe(7);
   });
 
   it("skips the fetch when every site toggle is off", async () => {
-    useSettingsStore.setState({
+    patchSettings({
       notifySubscribedReplies: false,
       notifyMediaMerge: false,
       notifySequel: false,

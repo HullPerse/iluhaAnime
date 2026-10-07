@@ -10,8 +10,9 @@ import { Input } from "@/components/ui/input.component";
 import Slider from "@/components/ui/range.component";
 import { THEME_COLOR_KEYS } from "@/config/settings/themes.config";
 import { useI18n } from "@/hooks/i18n.hook";
+import { useCell } from "@/lib/state/signal.hook";
 import { buildThemeColors, readImagePalette } from "@/lib/theme/palette.utils";
-import { applyTheme, getTitleText, useThemeStore } from "@/store/theme.store";
+import { addCustomTheme, applyTheme, getTitleText, setTheme, themeAtoms } from "@/store/theme.store";
 import type { ThemeColorKey, ThemeDefinition } from "@/types/theme";
 
 const DEFAULT_COLORS: ThemeDefinition["colors"] = {
@@ -39,9 +40,8 @@ export default function ThemeEditor({
   theme?: ThemeDefinition;
   onClose: () => void;
 }) {
-  const addCustomTheme = useThemeStore((s) => s.addCustomTheme);
-  const currentTheme = useThemeStore((s) => s.currentTheme);
-  const customThemes = useThemeStore((s) => s.customThemes);
+  const currentTheme = useCell(themeAtoms.currentTheme);
+  const customThemes = useCell(themeAtoms.customThemes);
   const { t } = useI18n();
   const isEdit = !!theme;
   const fileRef = useRef<HTMLInputElement>(null);
@@ -95,7 +95,7 @@ export default function ThemeEditor({
     if (!name.trim()) return;
     const safeName = theme?.name ?? `custom-${name.trim().toLowerCase().replaceAll(/\s+/g, "-")}`;
     addCustomTheme({ bevel, colors: { ...colors }, label: name.trim(), name: safeName, radius });
-    if (currentTheme === safeName) useThemeStore.getState().setTheme(safeName);
+    if (currentTheme === safeName) setTheme(safeName);
     onClose();
   };
 

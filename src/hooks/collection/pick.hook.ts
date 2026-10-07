@@ -8,7 +8,7 @@ import { mergeGenreTags } from "@/lib/collection/wizard.utils";
 import { tr } from "@/lib/locale/i18n.utils";
 import { reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { showError } from "@/lib/utils/notification.utils";
-import { useSettingsStore } from "@/store/settings.store";
+import { settingsAtoms } from "@/store/settings.store";
 import type { WizardPickedMedia, WizardSearchResult } from "@/types/collection";
 
 type WizardForm = ReturnType<typeof useWizardForm>;
@@ -120,7 +120,7 @@ export function useWizardPick({
             })
             .catch((error: unknown) => {
               reportBackgroundError("tmdb.pick.media", error);
-              if (useSettingsStore.getState().notifyScanErrors)
+              if (settingsAtoms.notifyScanErrors.get())
                 showError(
                   tr("notification.sync.failed"),
                   error instanceof Error ? error.message : String(error)
@@ -129,7 +129,7 @@ export function useWizardPick({
         })
         .catch((error: unknown) => {
           reportBackgroundError("tmdb.pick.details", error);
-          if (useSettingsStore.getState().notifyScanErrors)
+          if (settingsAtoms.notifyScanErrors.get())
             showError(
               tr("notification.sync.failed"),
               error instanceof Error ? error.message : String(error)

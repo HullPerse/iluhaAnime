@@ -7,9 +7,10 @@ import { SmallLoader } from "@/components/shared/loader.component";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
+import { useCell } from "@/lib/state/signal.hook";
 import { buildTorrentView } from "@/lib/torrent/details.utils";
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
-import { useSettingsStore } from "@/store/settings.store";
+import { settingsAtoms } from "@/store/settings.store";
 import type { TorrentDetailsProps as Props } from "@/types/search";
 import type { Anime, TorrentDetails } from "@/types/torrent";
 
@@ -26,7 +27,7 @@ function TorrentDetailsModal({
   onDownload,
 }: Props) {
   const { t } = useI18n();
-  const sourceProxy = useSettingsStore((s) => s.searchProxyUrls[source] ?? "");
+  const sourceProxy = useCell(settingsAtoms.searchProxyUrls)[source] ?? "";
   const [details, setDetails] = useState<TorrentDetails | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);

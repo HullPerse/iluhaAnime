@@ -11,7 +11,7 @@ vi.mock("@tauri-apps/api/core", () => ({
 
 import { useCoverCache } from "@/hooks/collection/cache.hook";
 import { assetUrl } from "@/lib/utils/image.utils";
-import { useSettingsStore } from "@/store/settings.store";
+import { patchSettings } from "@/store/settings.store";
 
 let resolveGate!: (value: { id: string; path: string }) => void;
 beforeEach(() => {
@@ -99,7 +99,7 @@ describe("useCoverCache", () => {
 
 describe("useCoverCache proxy passthrough", () => {
   it("passes the tmdb proxy url to the download command", async () => {
-    useSettingsStore.setState({ tmdbProxyUrl: "http://127.0.0.1:9/proxy" });
+    patchSettings({ tmdbProxyUrl: "http://127.0.0.1:9/proxy" });
     invokeMock.mockResolvedValue({ id: "blob-proxy", path: "C:/images/proxy.png" });
 
     const { result, unmount } = renderHook(() =>
@@ -113,11 +113,11 @@ describe("useCoverCache proxy passthrough", () => {
       expect.objectContaining({ proxyUrl: "http://127.0.0.1:9/proxy" })
     );
     unmount();
-    useSettingsStore.setState({ tmdbProxyUrl: null });
+    patchSettings({ tmdbProxyUrl: null });
   });
 
   it("sends a null proxy when none is configured", async () => {
-    useSettingsStore.setState({ tmdbProxyUrl: null });
+    patchSettings({ tmdbProxyUrl: null });
     invokeMock.mockResolvedValue({ id: "blob-noproxy", path: "C:/images/noproxy.png" });
 
     const { result, unmount } = renderHook(() =>

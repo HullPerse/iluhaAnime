@@ -10,7 +10,8 @@ import {
   findActiveChapter,
   skipLabel,
 } from "@/lib/player/skip.utils";
-import { usePlaybackStore } from "@/store/player.store";
+import { useCell } from "@/lib/state/signal.hook";
+import { playbackAtoms } from "@/store/player.store";
 import type { MpvChapter } from "@/types/videoPlayer";
 
 function SkipButton({
@@ -27,7 +28,7 @@ function SkipButton({
   onFileNext: () => void;
 }) {
   const { t } = useI18n();
-  const timePos = usePlaybackStore((state) => state.timePos);
+  const timePos = useCell(playbackAtoms.timePos);
 
   const active = findActiveChapter(chapters, timePos, duration);
   const label = active ? skipLabel(active.chapter.title) : null;

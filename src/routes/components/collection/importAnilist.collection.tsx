@@ -16,7 +16,7 @@ import { resolveStatusLabel } from "@/lib/collection/status.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import { queryKeys } from "@/lib/query/keys.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
-import { useNotificationStore } from "@/store/notification.store";
+import { addNotification } from "@/store/notification.store";
 import type { AniListCollection, AniListEntry, AniUser } from "@/types/anilist";
 import type { CollectionItem, ImportMode } from "@/types/collection";
 import type { TranslationVariables } from "@/types/i18n";
@@ -172,7 +172,7 @@ export default function ImportAnilistCollection({
   };
 
   const notify = (type: "success" | "error" | "info", key: string, vars?: TranslationVariables) => {
-    useNotificationStore.getState().add(t("app.collection"), type, t(toLocaleKey(key), vars));
+    addNotification(t("app.collection"), type, t(toLocaleKey(key), vars));
   };
 
   const importEntries = async (entries: AniListEntry[]) => {

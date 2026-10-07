@@ -1,8 +1,9 @@
 import ProgressBar from "@/components/shared/progress.component";
-import { useUpscaleQueueStore } from "@/store/upscale.store";
+import { useCell } from "@/lib/state/signal.hook";
+import { upscaleItems } from "@/store/upscale.store";
 
 export function QueueStrip() {
-  const items = useUpscaleQueueStore((s) => s.items);
+  const items = useCell(upscaleItems);
   const active =
     items.find((i) => i.status === "processing") ?? items.find((i) => i.status === "queued");
   if (!active) return null;

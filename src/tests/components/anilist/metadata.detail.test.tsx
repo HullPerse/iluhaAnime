@@ -2,7 +2,7 @@ import { act, cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import AniListMetadata from "@/routes/components/anilist/detail/metadata.detail";
-import { useSettingsStore } from "@/store/settings.store";
+import { patchSettings } from "@/store/settings.store";
 import type { AniMedia } from "@/types/anilist";
 
 const mockInvoke = vi.fn();
@@ -48,7 +48,7 @@ afterEach(() => {
 });
 
 beforeEach(() => {
-  useSettingsStore.setState({ language: "en" });
+  patchSettings({ language: "en" });
   mockInvoke.mockReset();
   mockInvoke.mockResolvedValue(null);
   vi.useFakeTimers();

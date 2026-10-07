@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import { TmdbApi } from "@/api/tmdb.api";
 import type { ApiTransport } from "@/api/transport.api";
-import { useSettingsStore } from "@/store/settings.store";
+import { patchSettings, settingsAtoms } from "@/store/settings.store";
 
 function fakeTransport(resolve: (command: string, args?: Record<string, unknown>) => unknown) {
   const calls: Array<{ command: string; args?: Record<string, unknown> }> = [];
@@ -16,16 +16,16 @@ function fakeTransport(resolve: (command: string, args?: Record<string, unknown>
 }
 
 beforeEach(() => {
-  useSettingsStore.setState({ tmdbKeySet: false, tmdbProxyUrl: null });
+  patchSettings({ tmdbKeySet: false, tmdbProxyUrl: null });
 });
 
 describe("TmdbApi", () => {
   it("sends the empty key placeholder with the store proxy", async () => {
-    useSettingsStore.setState({ tmdbProxyUrl: "http://127.0.0.1:7890" });
+    patchSettings({ tmdbProxyUrl: "http://127.0.0.1:7890" });
     const { calls, transport } = fakeTransport(() => []);
     const api = new TmdbApi({
       transport,
-      proxyUrl: () => useSettingsStore.getState().tmdbProxyUrl,
+      proxyUrl: () => settingsAtoms.tmdbProxyUrl.get(),
     });
 
     await api.getDetails(1, "movie");

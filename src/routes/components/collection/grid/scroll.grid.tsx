@@ -2,6 +2,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { useMemo, useRef } from "react";
 
 import {
+
   CARD_POSTER_H,
   CARD_TEXT_H,
   CARD_W,
@@ -12,7 +13,8 @@ import { useGridColumns } from "@/hooks/collection/columns.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { buildRows } from "@/lib/collection/grid.utils";
 import { statusLabel } from "@/lib/collection/status.utils";
-import { useSettingsStore } from "@/store/settings.store";
+import { useCell } from "@/lib/state/signal.hook";
+import { settingsAtoms } from "@/store/settings.store";
 import type {
   CollectionGroup,
   CollectionItem,
@@ -48,7 +50,7 @@ export function GridScrollView({
 }) {
   const parentRef = useRef<HTMLDivElement>(null);
   const { t, locale } = useI18n();
-  const headerVariant = useSettingsStore((s) => s.collectionGroupHeaderStyle);
+  const headerVariant = useCell(settingsAtoms.collectionGroupHeaderStyle);
   const { columns, columnWidth } = useGridColumns(parentRef, CARD_W, ROW_GAP);
   const rows = useMemo(
     () => (groups?.length ? buildRows(groups, columns, collapsedStatuses) : null),

@@ -2,8 +2,8 @@ import { Button as ButtonPrimitive } from "@base-ui/react/button";
 import { cva } from "class-variance-authority";
 import type { VariantProps } from "class-variance-authority";
 import { cn } from "cn";
-
-import { useSettingsStore } from "@/store/settings.store";
+import { useCell } from "@/lib/state/signal.hook";
+import { settingsAtoms } from "@/store/settings.store";
 
 const buttonVariants = cva(
   "group/button windows95-active-border bg-primary text-text windows95-text disabled:border-t-muted disabled:border-l-muted disabled:border-b-win-highlight disabled:border-r-win-highlight focus-visible:outline-text inline-flex shrink-0 items-center justify-center whitespace-nowrap transition-none outline-none select-none hover:cursor-pointer focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-dotted disabled:pointer-events-none disabled:translate-x-0 disabled:translate-y-0 disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-3.5",
@@ -46,7 +46,7 @@ function Button({
   VariantProps<typeof buttonVariants> & {
     rendered?: boolean;
   }) {
-  const buttonPressEffect = useSettingsStore((s) => s.buttonPressEffect);
+  const buttonPressEffect = useCell(settingsAtoms.buttonPressEffect);
 
   if (!rendered) return null;
 

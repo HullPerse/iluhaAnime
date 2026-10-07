@@ -6,12 +6,12 @@ import { clampTolerance, DEFAULT_TAG_TOLERANCES } from "@/config/search/toleranc
 import { useI18n } from "@/hooks/i18n.hook";
 import { exampleFor, opsFor } from "@/lib/collection/tags.utils";
 import { FILTER_KEYS } from "@/lib/search/intent.utils";
-import { useSettingsStore } from "@/store/settings.store";
+import { useCell } from "@/lib/state/signal.hook";
+import { patchSettings, settingsAtoms } from "@/store/settings.store";
 
 export function TagsReferenceModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { t } = useI18n();
-  const tagTolerances = useSettingsStore((s) => s.tagTolerances);
-  const patchSettings = useSettingsStore((s) => s.patch);
+  const tagTolerances = useCell(settingsAtoms.tagTolerances);
   if (!open) return null;
   return (
     <Modal header={t("collection.tags.title")} onClose={onClose} className="min-w-md">

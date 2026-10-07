@@ -3,6 +3,7 @@ import { useMemo, useRef } from "react";
 
 import { listStatusLabels } from "@/config/anilist/labels.config";
 import {
+
   ANILIST_SCROLL_HEADER_ESTIMATE,
   ANILIST_SCROLL_ROW_ESTIMATE,
 } from "@/config/anilist/list.config";
@@ -10,9 +11,10 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { getStatusColor, type EntryLookup } from "@/lib/anilist/entries.utils";
 import type { AnilistScoreFormat } from "@/lib/anilist/score.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
+import { useCell } from "@/lib/state/signal.hook";
 import AniListEntryCard from "@/routes/components/anilist/card.anilist";
 import { GroupHeaderCollection } from "@/routes/components/collection/groupHeader.collection";
-import { useSettingsStore } from "@/store/settings.store";
+import { settingsAtoms } from "@/store/settings.store";
 import type { AniListAnime, AniListGroup, AniListScrollRow, AniMedia } from "@/types/anilist";
 
 export default function AniListScrollView({
@@ -36,7 +38,7 @@ export default function AniListScrollView({
 }) {
   const { t } = useI18n();
   const parentRef = useRef<HTMLElement>(null);
-  const headerVariant = useSettingsStore((s) => s.collectionGroupHeaderStyle);
+  const headerVariant = useCell(settingsAtoms.collectionGroupHeaderStyle);
   const rows = useMemo<AniListScrollRow[] | null>(() => {
     if (!groups?.length) return null;
     const out: AniListScrollRow[] = [];

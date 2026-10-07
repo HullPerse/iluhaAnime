@@ -1,0 +1,877 @@
+[
+  {
+    "id": "F01",
+    "dir": "Movies",
+    "file": "A.Bronx.Tale.1993.х264.BDRip.1080p.mkv",
+    "skeleton": "A.Bronx.Tale.N.хN.BDRip.Np.mkv",
+    "count": 1
+  },
+  {
+    "id": "F02",
+    "dir": "Adventure Time Fionna & Cake",
+    "file": "Adventure Time Fionna & Cake S01E03 Cake the Cat.mkv",
+    "skeleton": "Adventure Time Fionna & Cake SNEN Cake the Cat.mkv",
+    "count": 1
+  },
+  {
+    "id": "F03",
+    "dir": "Adventure Time Fionna & Cake",
+    "file": "Adventure Time Fionna & Cake S01E09 Casper & Nova.mkv",
+    "skeleton": "Adventure Time Fionna & Cake SNEN Casper & Nova.mkv",
+    "count": 1
+  },
+  {
+    "id": "F04",
+    "dir": "Adventure Time Fionna & Cake",
+    "file": "Adventure Time Fionna & Cake S01E10 Cheers.mkv",
+    "skeleton": "Adventure Time Fionna & Cake SNEN Cheers.mkv",
+    "count": 1
+  },
+  {
+    "id": "F05",
+    "dir": "Adventure.Time.Distant.Lands.S01.1080p.HMAX.WEB-DL.Rus.Eng-Seein",
+    "file": "Adventure.Time.Distant.Lands.S01E01.BMO.1080p.HMAX.WEB-DL.Rus.Eng-Seein.mkv",
+    "skeleton": "Adventure.Time.Distant.Lands.SNEN.BMO.Np.HMAX.WEB-DL.Rus.Eng-Seein.mkv",
+    "count": 1
+  },
+  {
+    "id": "F06",
+    "dir": "Adventure.Time.Distant.Lands.S01.1080p.HMAX.WEB-DL.Rus.Eng-Seein",
+    "file": "Adventure.Time.Distant.Lands.S01E02.Obsidian.1080p.HMAX.WEB-DL.Rus.Eng-Seein.mkv",
+    "skeleton": "Adventure.Time.Distant.Lands.SNEN.Obsidian.Np.HMAX.WEB-DL.Rus.Eng-Seein.mkv",
+    "count": 1
+  },
+  {
+    "id": "F07",
+    "dir": "Adventure.Time.Fionna.and.Cake.S02.1080p.WEB",
+    "file": "Adventure.Time.Fionna.and.Cake.S02E01.1080p.WEB.mkv",
+    "skeleton": "Adventure.Time.Fionna.and.Cake.SNEN.Np.WEB.mkv",
+    "count": 1
+  },
+  {
+    "id": "F08",
+    "dir": "Movies",
+    "file": "Barbie.2023.1080p.WEBRip.x264-Delia_EniaHD.mkv",
+    "skeleton": "Barbie.N.Np.WEBRip.xN-Delia_EniaHD.mkv",
+    "count": 1
+  },
+  {
+    "id": "F09",
+    "dir": "Anime\\Blue Eye Samurai (Season 1) WEB-DL 1080p",
+    "file": "Blue.Eye.Samurai.S01E01.WEB-DL.1080p.RGzsRutracker.mkv",
+    "skeleton": "Blue.Eye.Samurai.SNEN.WEB-DL.Np.RGzsRutracker.mkv",
+    "count": 1
+  },
+  {
+    "id": "F10",
+    "dir": "Anime\\Boku no Hero Academia - S07 - 1080p WEB x264 - Jaskier",
+    "file": "Boku no Hero Academia - S07E01 - 1080p WEB x264 - Jaskier.mkv",
+    "skeleton": "Boku no Hero Academia - SNEN - Np WEB xN - Jaskier.mkv",
+    "count": 1
+  },
+  {
+    "id": "F11",
+    "dir": "Anime\\Ксам'д - Позабывший невзгоды [BDRip 1080]",
+    "file": "Bounen no Xamdou 11 [ASS RUS][DTS JPN][x264-10b 1920x1080][BDRip-Kagura].mkv",
+    "skeleton": "Bounen no Xamdou N [T][T][T][T].mkv",
+    "count": 16
+  },
+  {
+    "id": "F12",
+    "dir": "Anime\\Dandadan [WEB-DL CR 1080p AVC DDP]\\RUS Sound\\AniLibria",
+    "file": "Dandadan - 01 [WEB-DL CR 1080p AVC DDP].AniLibria.mka",
+    "skeleton": "Dandadan - N [T].AniLibria.mka",
+    "count": 12
+  },
+  {
+    "id": "F13",
+    "dir": "Anime\\Dandadan [WEB-DL CR 1080p AVC DDP]\\ENG Subs",
+    "file": "Dandadan - 01 [WEB-DL CR 1080p AVC DDP].CR.full.eng.ass",
+    "skeleton": "Dandadan - N [T].CR.full.eng.ass",
+    "count": 12
+  },
+  {
+    "id": "F14",
+    "dir": "Anime\\Dandadan [WEB-DL CR 1080p AVC DDP]\\ENG Subs\\Signs",
+    "file": "Dandadan - 01 [WEB-DL CR 1080p AVC DDP].CR.signs.eng.ass",
+    "skeleton": "Dandadan - N [T].CR.signs.eng.ass",
+    "count": 12
+  },
+  {
+    "id": "F15",
+    "dir": "Anime\\Dandadan [WEB-DL CR 1080p AVC DDP]\\RUS Subs\\Надписи",
+    "file": "Dandadan - 01 [WEB-DL CR 1080p AVC DDP].CR.надписи.rus.ass",
+    "skeleton": "Dandadan - N [T].CR.надписи.rus.ass",
+    "count": 12
+  },
+  {
+    "id": "F16",
+    "dir": "Anime\\Dandadan [WEB-DL CR 1080p AVC DDP]\\RUS Subs",
+    "file": "Dandadan - 01 [WEB-DL CR 1080p AVC DDP].CR.полные.rus.ass",
+    "skeleton": "Dandadan - N [T].CR.полные.rus.ass",
+    "count": 12
+  },
+  {
+    "id": "F17",
+    "dir": "Anime\\Dandadan [WEB-DL CR 1080p AVC DDP]\\ENG Sound",
+    "file": "Dandadan - 01 [WEB-DL CR 1080p AVC DDP].DUB.eng.mka",
+    "skeleton": "Dandadan - N [T].DUB.eng.mka",
+    "count": 12
+  },
+  {
+    "id": "F18",
+    "dir": "Anime\\Dandadan [WEB-DL CR 1080p AVC DDP]\\JPN Sound",
+    "file": "Dandadan - 06 [WEB-DL CR 1080p AVC DDP].jpn.mka",
+    "skeleton": "Dandadan - N [T].jpn.mka",
+    "count": 7
+  },
+  {
+    "id": "F19",
+    "dir": "Anime\\Dandadan [WEB-DL CR 1080p AVC DDP]",
+    "file": "Dandadan - 01 [WEB-DL CR 1080p AVC DDP].mkv",
+    "skeleton": "Dandadan - N [T].mkv",
+    "count": 12
+  },
+  {
+    "id": "F20",
+    "dir": "Movies",
+    "file": "EuroTrip.2004.Unrated.1080p.WEB-DL.6xRus.Eng.mkv",
+    "skeleton": "EuroTrip.N.Unrated.Np.WEB-DL.NxRus.Eng.mkv",
+    "count": 1
+  },
+  {
+    "id": "F21",
+    "dir": "Movies",
+    "file": "F9.2021.DC.BDRip.1080p.pk.mkv",
+    "skeleton": "FN.N.DC.BDRip.Np.pk.mkv",
+    "count": 1
+  },
+  {
+    "id": "F22",
+    "dir": "Movies",
+    "file": "Fast.X.2023.BDRip.1080p.Dub.MVO.VO.Ukr.pk.mkv",
+    "skeleton": "Fast.X.N.BDRip.Np.Dub.MVO.VO.Ukr.pk.mkv",
+    "count": 1
+  },
+  {
+    "id": "F23",
+    "dir": "Anime\\Garouden - The Way of the Lone Wolf [1080p]",
+    "file": "Garouden - The Way of the Lone Wolf - 01 [1080p].mkv",
+    "skeleton": "Garouden - The Way of the Lone Wolf - N [T].mkv",
+    "count": 8
+  },
+  {
+    "id": "F24",
+    "dir": "Anime",
+    "file": "Gekijouban Kimetsu no Yaiba Mugen Ressha Hen [BDRemux].mkv",
+    "skeleton": "Gekijouban Kimetsu no Yaiba Mugen Ressha Hen [T].mkv",
+    "count": 1
+  },
+  {
+    "id": "F25",
+    "dir": "Movies",
+    "file": "Guillermo.del.Toros.Pinocchio.2022.1080p_RHS_[scarfilm.org].mkv",
+    "skeleton": "Guillermo.del.Toros.Pinocchio.N.Np_RHS_[T].mkv",
+    "count": 1
+  },
+  {
+    "id": "F26",
+    "dir": "Anime\\Horimiya",
+    "file": "Horimiya - 01.mkv",
+    "skeleton": "Horimiya - N.mkv",
+    "count": 13
+  },
+  {
+    "id": "F27",
+    "dir": "Anime\\Horimiya Piece [BDRip 1080p]",
+    "file": "Horimiya Piece - 01 [BDRip 1080p HEVC 10bits FLAC].mkv",
+    "skeleton": "Horimiya Piece - N [T].mkv",
+    "count": 13
+  },
+  {
+    "id": "F28",
+    "dir": "Anime\\Jigokuraku",
+    "file": "Jigokuraku - 01 [BDRip 1080p HEVC 10bit FLAC].mkv",
+    "skeleton": "Jigokuraku - N [T].mkv",
+    "count": 13
+  },
+  {
+    "id": "F29",
+    "dir": "Anime\\Kaijuu 8 Gou [1080p]",
+    "file": "Kaijuu 8 Gou - 01 [1080p][Rus].mkv",
+    "skeleton": "Kaijuu N Gou - N [T][T].mkv",
+    "count": 12
+  },
+  {
+    "id": "F30",
+    "dir": "Anime\\Kaijuu 8 Gou TV-2 [WEB-DL 1080p]\\RUS Subs\\надписи",
+    "file": "Kaijuu 8 Gou TV-2 - 01 [1080p CR WEB-DL AVC AAC].CR.надписи.rus.ass",
+    "skeleton": "Kaijuu N Gou TV-N - N [T].CR.надписи.rus.ass",
+    "count": 11
+  },
+  {
+    "id": "F31",
+    "dir": "Anime\\Kaijuu 8 Gou TV-2 [WEB-DL 1080p]\\RUS Subs\\Crunchyroll",
+    "file": "Kaijuu 8 Gou TV-2 - 01 [1080p CR WEB-DL AVC AAC].CR.полные.rus.ass",
+    "skeleton": "Kaijuu N Gou TV-N - N [T].CR.полные.rus.ass",
+    "count": 11
+  },
+  {
+    "id": "F32",
+    "dir": "Anime\\Kaijuu 8 Gou TV-2 [WEB-DL 1080p]",
+    "file": "Kaijuu 8 Gou TV-2 - 01 [1080p CR WEB-DL AVC AAC].mkv",
+    "skeleton": "Kaijuu N Gou TV-N - N [T].mkv",
+    "count": 11
+  },
+  {
+    "id": "F33",
+    "dir": "Movies\\Loki.S02.DSNP.WEB-DL.1080p.by.AKTEP",
+    "file": "Loki.S02E06.Glorious.Purpose.DSNP.WEB-DL.1080p.by.AKTEP.mkv",
+    "skeleton": "Loki.SNEN.Glorious.Purpose.DSNP.WEB-DL.Np.by.AKTEP.mkv",
+    "count": 1
+  },
+  {
+    "id": "F34",
+    "dir": "Movies\\Loki.S02.DSNP.WEB-DL.1080p.by.AKTEP",
+    "file": "Loki.S02E04.Heart.of.the.TVA.DSNP.WEB-DL.1080p.by.AKTEP.mkv",
+    "skeleton": "Loki.SNEN.Heart.of.the.TVA.DSNP.WEB-DL.Np.by.AKTEP.mkv",
+    "count": 1
+  },
+  {
+    "id": "F35",
+    "dir": "Movies\\Loki.S02.DSNP.WEB-DL.1080p.by.AKTEP",
+    "file": "Loki.S02E03.1893.DSNP.WEB-DL.1080p.by.AKTEP.mkv",
+    "skeleton": "Loki.SNEN.N.DSNP.WEB-DL.Np.by.AKTEP.mkv",
+    "count": 1
+  },
+  {
+    "id": "F36",
+    "dir": "Movies\\Loki.S02.DSNP.WEB-DL.1080p.by.AKTEP",
+    "file": "Loki.S02E05.Science.Fiction.DSNP.WEB-DL.1080p.by.AKTEP.mkv",
+    "skeleton": "Loki.SNEN.Science.Fiction.DSNP.WEB-DL.Np.by.AKTEP.mkv",
+    "count": 1
+  },
+  {
+    "id": "F37",
+    "dir": "Anime",
+    "file": "Look.Back.2024.1080p.AMZN.WEB-DL.DDP5.1.H.264.ToonsHub.mkv",
+    "skeleton": "Look.Back.N.Np.AMZN.WEB-DL.DDPN.N.H.N.ToonsHub.mkv",
+    "count": 1
+  },
+  {
+    "id": "F38",
+    "dir": "Anime",
+    "file": "Luo Xiao Hei Zhanji 2 [BDRip 1080p HEVC].mkv",
+    "skeleton": "Luo Xiao Hei Zhanji N [T].mkv",
+    "count": 1
+  },
+  {
+    "id": "F39",
+    "dir": "Anime\\Majo to Yajuu TV-1 [anidb2-17575]\\Specials",
+    "file": "Majo to Yajuu TV-1 ED (BDRip 1920x1080 x264 FLAC).mkv",
+    "skeleton": "Majo to Yajuu TV-N ED (T).mkv",
+    "count": 1
+  },
+  {
+    "id": "F40",
+    "dir": "Anime\\Majo to Yajuu TV-1 [anidb2-17575]",
+    "file": "Majo to Yajuu TV-1 01 (BDRip 1920x1080 x264 FLAC).mkv",
+    "skeleton": "Majo to Yajuu TV-N N (T).mkv",
+    "count": 12
+  },
+  {
+    "id": "F41",
+    "dir": "Anime\\Majo to Yajuu TV-1 [anidb2-17575]\\Specials",
+    "file": "Majo to Yajuu TV-1 OP (BDRip 1920x1080 x264 FLAC).mkv",
+    "skeleton": "Majo to Yajuu TV-N OP (T).mkv",
+    "count": 1
+  },
+  {
+    "id": "F42",
+    "dir": "Anime\\Make Heroine ga Oosugiru! [2024][WEB-DL][1080p]",
+    "file": "Make Heroine ga Oosugiru! - 01 [WEB-DL 1080p 2024].mkv",
+    "skeleton": "Make Heroine ga Oosugiru! - N [T].mkv",
+    "count": 12
+  },
+  {
+    "id": "F43",
+    "dir": "Anime\\Make Heroine ga Oosugiru! [2024][WEB-DL][1080p]\\RU Sound [Anilibria]",
+    "file": "Make Heroine ga Oosugiru! - 01 [WEB-DL 1080p 2024].ru_Anilibria.mka",
+    "skeleton": "Make Heroine ga Oosugiru! - N [T].ru_Anilibria.mka",
+    "count": 12
+  },
+  {
+    "id": "F44",
+    "dir": "Anime\\Make Heroine ga Oosugiru! [2024][WEB-DL][1080p]\\надписи",
+    "file": "Make Heroine ga Oosugiru! - 01 [WEB-DL 1080p 2024].ru_signs_CR.ass",
+    "skeleton": "Make Heroine ga Oosugiru! - N [T].ru_signs_CR.ass",
+    "count": 12
+  },
+  {
+    "id": "F45",
+    "dir": "Anime\\Mayonaka Punch [WEB-DL 1080p]\\RUS Sound\\Anilibria",
+    "file": "Mayonaka Punch - 01 [1080p AVC AAC].Anilibria.mka",
+    "skeleton": "Mayonaka Punch - N [T].Anilibria.mka",
+    "count": 12
+  },
+  {
+    "id": "F46",
+    "dir": "Anime\\Mayonaka Punch [WEB-DL 1080p]",
+    "file": "Mayonaka Punch - 01 [1080p AVC AAC].mkv",
+    "skeleton": "Mayonaka Punch - N [T].mkv",
+    "count": 12
+  },
+  {
+    "id": "F47",
+    "dir": "Anime\\Mayonaka Punch [WEB-DL 1080p]\\RUS Sound\\надписи",
+    "file": "Mayonaka Punch - 01 [1080p AVC AAC].signs.ass",
+    "skeleton": "Mayonaka Punch - N [T].signs.ass",
+    "count": 12
+  },
+  {
+    "id": "F48",
+    "dir": "Anime\\Inuyasha",
+    "file": "133-134. Женщина, что полюбила Сещемару.mkv",
+    "skeleton": "N-N. Женщина, что полюбила Сещемару.mkv",
+    "count": 1
+  },
+  {
+    "id": "F49",
+    "dir": "Anime\\Inuyasha",
+    "file": "21-22. Правда о явлении Нараку ''Душа Кикио''.mkv",
+    "skeleton": "N-N. Правда о явлении Нараку ''Душа Кикио''.mkv",
+    "count": 1
+  },
+  {
+    "id": "F50",
+    "dir": "Anime\\Inuyasha",
+    "file": "106. Кагоме, Мироку, Санго... Все пропало!.mkv",
+    "skeleton": "N. Кагоме, Мироку, Санго... Все пропало!.mkv",
+    "count": 1
+  },
+  {
+    "id": "F51",
+    "dir": "Anime\\Inuyasha",
+    "file": "166-167. Крепкие узы, осколок пущен в дело!.mkv",
+    "skeleton": "N-N. Крепкие узы, осколок пущен в дело!.mkv",
+    "count": 1
+  },
+  {
+    "id": "F52",
+    "dir": "Anime\\Inuyasha",
+    "file": "39.Коварный план битва до последнего вздоха.mkv",
+    "skeleton": "N.Коварный план битва до последнего вздоха.mkv",
+    "count": 1
+  },
+  {
+    "id": "F53",
+    "dir": "Anime\\Inuyasha",
+    "file": "54. Возвратная Волна - сильнейший удар Тессайги.mkv",
+    "skeleton": "N. Возвратная Волна - сильнейший удар Тессайги.mkv",
+    "count": 1
+  },
+  {
+    "id": "F54",
+    "dir": "Anime\\Inuyasha",
+    "file": "118. В недрах горы Хакурей.mkv",
+    "skeleton": "N. В недрах горы Хакурей.mkv",
+    "count": 1
+  },
+  {
+    "id": "F55",
+    "dir": "Anime\\[BD-Remux] Shoushimin Series\\RUS SUB",
+    "file": "05. Berliner Mystery.ass",
+    "skeleton": "N. Berliner Mystery.ass",
+    "count": 1
+  },
+  {
+    "id": "F56",
+    "dir": "Anime\\[BD-Remux] Shoushimin Series",
+    "file": "05. Berliner Mystery.mkv",
+    "skeleton": "N. Berliner Mystery.mkv",
+    "count": 1
+  },
+  {
+    "id": "F57",
+    "dir": "Anime\\[BD-Remux] Shoushimin Series",
+    "file": "06. But I Get to Keep Charlotte.mkv",
+    "skeleton": "N. But I Get to Keep Charlotte.mkv",
+    "count": 1
+  },
+  {
+    "id": "F58",
+    "dir": "Movies",
+    "file": "12.Years.a.Slave.2013.1080p.BluRay.2xRus.Eng.-HQCLUB.mkv",
+    "skeleton": "N.Years.a.Slave.N.Np.BluRay.NxRus.Eng.-HQCLUB.mkv",
+    "count": 1
+  },
+  {
+    "id": "F59",
+    "dir": "Anime\\NegaPosi Angler [TV] [Mustadio]",
+    "file": "NegaPosi Angler - 01 [TV] [WEB-DL 1080p H264] [Mustadio].mkv",
+    "skeleton": "NegaPosi Angler - N [T] [T] [T].mkv",
+    "count": 12
+  },
+  {
+    "id": "F60",
+    "dir": "Anime\\Ninja Kamui",
+    "file": "Ninja Kamui - 01 [1080p].mkv",
+    "skeleton": "Ninja Kamui - N [T].mkv",
+    "count": 13
+  },
+  {
+    "id": "F61",
+    "dir": "Anime",
+    "file": "Overlord - Sei Oukoku Hen [BDRip 1080p HEVC 10bits FLAC].mkv",
+    "skeleton": "Overlord - Sei Oukoku Hen [T].mkv",
+    "count": 1
+  },
+  {
+    "id": "F62",
+    "dir": "Anime\\Overlord IV",
+    "file": "Overlord IV - 01 [BDRip 1080p HEVC 10bits FLAC].mkv",
+    "skeleton": "Overlord IV - N [T].mkv",
+    "count": 13
+  },
+  {
+    "id": "F63",
+    "dir": "Movies\\Peaky Blinders s01 RGzsRutracker",
+    "file": "Peaky.Blinders.s01e03.Rus.AlexFilm.BDRemux.1080i.RGzsRutracker.mkv",
+    "skeleton": "Peaky.Blinders.sNeN.Rus.AlexFilm.BDRemux.Ni.RGzsRutracker.mkv",
+    "count": 1
+  },
+  {
+    "id": "F64",
+    "dir": "Anime\\Re Zero III",
+    "file": "Re Zero kara Hajimeru Isekai Seikatsu III - 04 [BDRip 1080p AVC FLAC].mkv",
+    "skeleton": "Re Zero kara Hajimeru Isekai Seikatsu III - N [T].mkv",
+    "count": 13
+  },
+  {
+    "id": "F65",
+    "dir": "Anime\\Sakamoto Days TV-1 Part 1 [anidb2-18654]",
+    "file": "Sakamoto Days TV-1 Part 1 01.mkv",
+    "skeleton": "Sakamoto Days TV-N Part N N.mkv",
+    "count": 11
+  },
+  {
+    "id": "F66",
+    "dir": "Anime\\Seihantai na Kimi to Boku TV-01 [WEB-DL 1080p]",
+    "file": "Seihantai na Kimi to Boku TV-01 - 01 [1080p CR WEB-DL AVC AAC].mkv",
+    "skeleton": "Seihantai na Kimi to Boku TV-N - N [T].mkv",
+    "count": 12
+  },
+  {
+    "id": "F67",
+    "dir": "Anime\\Shangri-La Frontier TV-2 [anidb2-18578]",
+    "file": "Shangri-La Frontier TV-2 01.mkv",
+    "skeleton": "Shangri-La Frontier TV-N N.mkv",
+    "count": 25
+  },
+  {
+    "id": "F68",
+    "dir": "Anime",
+    "file": "Shingeki.no.Kyojin.Movie.Kanketsu-hen.WEB-DL.1080p-SOFCJ.mkv",
+    "skeleton": "Shingeki.no.Kyojin.Movie.Kanketsu-hen.WEB-DL.Np-SOFCJ.mkv",
+    "count": 1
+  },
+  {
+    "id": "F69",
+    "dir": "Anime\\Sonny Boy",
+    "file": "Sonny Boy - 01.mkv",
+    "skeleton": "Sonny Boy - N.mkv",
+    "count": 12
+  },
+  {
+    "id": "F70",
+    "dir": "Anime\\Takopii no Genzai",
+    "file": "Takopii no Genzai 01.mkv",
+    "skeleton": "Takopii no Genzai N.mkv",
+    "count": 6
+  },
+  {
+    "id": "F71",
+    "dir": "Anime\\The Fragrant Flower Blooms With Dignity",
+    "file": "The Fragrant Flower Blooms With Dignity - 01 [1080p].mkv",
+    "skeleton": "The Fragrant Flower Blooms With Dignity - N [T].mkv",
+    "count": 13
+  },
+  {
+    "id": "F72",
+    "dir": "Movies",
+    "file": "The.Blind.Side.2009.1080p.BluRay.DTS.Rus.Eng.HDCLUB.mkv",
+    "skeleton": "The.Blind.Side.N.Np.BluRay.DTS.Rus.Eng.HDCLUB.mkv",
+    "count": 1
+  },
+  {
+    "id": "F73",
+    "dir": "Movies\\The.Boys.S03.WEBRip.1080p.Rus.Eng",
+    "file": "The.Boys.S03E06.WEBRip.1080p.RGzsRutracker.mkv",
+    "skeleton": "The.Boys.SNEN.WEBRip.Np.RGzsRutracker.mkv",
+    "count": 1
+  },
+  {
+    "id": "F74",
+    "dir": "Movies\\The.Flash.S03.1080p.TVShows",
+    "file": "The.Flash.S03E01.1080p.TVShows.mkv",
+    "skeleton": "The.Flash.SNEN.Np.TVShows.mkv",
+    "count": 1
+  },
+  {
+    "id": "F75",
+    "dir": "Movies",
+    "file": "The.Gangster.the.Cop.the.Devil.BDRemux.1080p.pk.mkv",
+    "skeleton": "The.Gangster.the.Cop.the.Devil.BDRemux.Np.pk.mkv",
+    "count": 1
+  },
+  {
+    "id": "F76",
+    "dir": "Movies",
+    "file": "The.Greatest.Showman.2017.1080p.BluRay.2xRus.Ukr.3xEng.VietHD.mkv",
+    "skeleton": "The.Greatest.Showman.N.Np.BluRay.NxRus.Ukr.NxEng.VietHD.mkv",
+    "count": 1
+  },
+  {
+    "id": "F77",
+    "dir": "Movies",
+    "file": "The.Man.Who.Knew.Infinity.D.BDRip.1080p.mkv",
+    "skeleton": "The.Man.Who.Knew.Infinity.D.BDRip.Np.mkv",
+    "count": 1
+  },
+  {
+    "id": "F78",
+    "dir": "Movies",
+    "file": "Tochno Ne Ampir V.mkv",
+    "skeleton": "Tochno Ne Ampir V.mkv",
+    "count": 1
+  },
+  {
+    "id": "F79",
+    "dir": "Movies",
+    "file": "Valgalla.Saga.o.vikinge.2009.RUS.BDRip.XviD.AC3.-HQCLUB.avi",
+    "skeleton": "Valgalla.Saga.o.vikinge.N.RUS.BDRip.XviD.ACN.-HQCLUB.avi",
+    "count": 1
+  },
+  {
+    "id": "F80",
+    "dir": "Movies",
+    "file": "Vivarium.2019.1080p.REMUX.mkv",
+    "skeleton": "Vivarium.N.Np.REMUX.mkv",
+    "count": 1
+  },
+  {
+    "id": "F81",
+    "dir": "Anime\\Yasei no Last Boss ga Arawareta [WEB-DL 1080p]",
+    "file": "Yasei no Last Boss ga Arawareta - 01 [1080p CR WEB-DL AVC AAC].mkv",
+    "skeleton": "Yasei no Last Boss ga Arawareta - N [T].mkv",
+    "count": 12
+  },
+  {
+    "id": "F82",
+    "dir": "Anime\\Yomi no Tsugai",
+    "file": "Yomi no Tsugai - 01 [1080p][Rus].mkv",
+    "skeleton": "Yomi no Tsugai - N [T][T].mkv",
+    "count": 3
+  },
+  {
+    "id": "F83",
+    "dir": "Anime\\Zatsu Tabi - That's Journey [WEB-DL 1080p]",
+    "file": "Zatsu Tabi - That's Journey - 01 [1080p AVC AAC].mkv",
+    "skeleton": "Zatsu Tabi - That's Journey - N [T].mkv",
+    "count": 12
+  },
+  {
+    "id": "F84",
+    "dir": "Anime\\Boku.no.Hero.Academia.Illegals.S2.WEB-DL.1080p\\RUS Subs\\Crunchyroll",
+    "file": "[BudLightSubs] Boku no Hero Academia Illegals S2 - 01 [1080p].ass",
+    "skeleton": "[T] Boku no Hero Academia Illegals SN - N [T].ass",
+    "count": 13
+  },
+  {
+    "id": "F85",
+    "dir": "Anime\\Boku.no.Hero.Academia.Illegals.S2.WEB-DL.1080p",
+    "file": "[BudLightSubs] Boku no Hero Academia Illegals S2 - 01 [1080p].mkv",
+    "skeleton": "[T] Boku no Hero Academia Illegals SN - N [T].mkv",
+    "count": 13
+  },
+  {
+    "id": "F86",
+    "dir": "Anime\\Boku.no.Hero.Academia.S8.WEB-DL.1080p\\RUS Subs\\Crunchyroll",
+    "file": "[BudLightSubs] Boku no Hero Academia S8 - 01 [1080p].ass",
+    "skeleton": "[T] Boku no Hero Academia SN - N [T].ass",
+    "count": 11
+  },
+  {
+    "id": "F87",
+    "dir": "Anime\\Boku.no.Hero.Academia.S8.WEB-DL.1080p",
+    "file": "[BudLightSubs] Boku no Hero Academia S8 - 01 [1080p].mkv",
+    "skeleton": "[T] Boku no Hero Academia SN - N [T].mkv",
+    "count": 11
+  },
+  {
+    "id": "F88",
+    "dir": "Anime\\Boogiepop wa Warawanai [BDRip 720p]\\Rus subs",
+    "file": "[SweetSub&VCB-Studio] Boogiepop Phantom [01][Ma10p_720p][x265_ac3].ass",
+    "skeleton": "[T] Boogiepop Phantom [T][T][T].ass",
+    "count": 12
+  },
+  {
+    "id": "F89",
+    "dir": "Anime\\Boogiepop wa Warawanai [BDRip 720p]",
+    "file": "[SweetSub&VCB-Studio] Boogiepop Phantom [01][Ma10p_720p][x265_ac3].mkv",
+    "skeleton": "[T] Boogiepop Phantom [T][T][T].mkv",
+    "count": 12
+  },
+  {
+    "id": "F90",
+    "dir": "Anime\\City The Animation",
+    "file": "[Erai-raws] City the Animation - 01 [1080p AMZN WEB-DL AVC EAC3].mkv",
+    "skeleton": "[T] City the Animation - N [T].mkv",
+    "count": 13
+  },
+  {
+    "id": "F91",
+    "dir": "Anime\\Haikyu!! 2nd Season [BDRip 1080p HEVC 10bit FLAC]",
+    "file": "[VCB-Studio] Haikyuu!! 2nd Season [19][Ma10p_1080p][x265_flac].mkv",
+    "skeleton": "[T] Haikyuu!! Nnd Season [T][T][T].mkv",
+    "count": 7
+  },
+  {
+    "id": "F92",
+    "dir": "Anime\\Kengan Ashura [WEBRip 1080p]",
+    "file": "[DragsterPS] Kengan Ashura S01E01 [1080p].mkv",
+    "skeleton": "[T] Kengan Ashura SNEN [T].mkv",
+    "count": 1
+  },
+  {
+    "id": "F93",
+    "dir": "Anime\\[Moozzi2] Kimetsu no Yaiba - Hashira Geiko-hen [BDRip 1080p x265 FLAC]",
+    "file": "[Moozzi2] Kimetsu no Yaiba - Hashira Geiko-hen - 01 [BDRip 1080p x265 FLAC].mkv",
+    "skeleton": "[T] Kimetsu no Yaiba - Hashira Geiko-hen - N [T].mkv",
+    "count": 8
+  },
+  {
+    "id": "F94",
+    "dir": "Anime\\[Moozzi2] Kimetsu no Yaiba - Katanakaji no Sato-hen [BDRip 1080p x265 FLAC]",
+    "file": "[Moozzi2] Kimetsu no Yaiba - Katanakaji no Sato-hen - 01 [BDRip 1080p x265 FLAC].mkv",
+    "skeleton": "[T] Kimetsu no Yaiba - Katanakaji no Sato-hen - N [T].mkv",
+    "count": 11
+  },
+  {
+    "id": "F95",
+    "dir": "Anime\\[VCB-Studio] Kimetsu no Yaiba - Mugen Ressha-Hen [BDRip 1080p x265 FLAC]",
+    "file": "[VCB-Studio] Kimetsu no Yaiba - Mugen Ressha-Hen - 01 [BDRip 1080p x265 FLAC].mkv",
+    "skeleton": "[T] Kimetsu no Yaiba - Mugen Ressha-Hen - N [T].mkv",
+    "count": 7
+  },
+  {
+    "id": "F96",
+    "dir": "Anime\\[VCB-Studio] Kimetsu no Yaiba - Yuukaku-hen [BDRip 1080p x265 FLAC]",
+    "file": "[VCB-Studio] Kimetsu no Yaiba - Yuukaku-hen - 01 [BDRip 1080p x265 FLAC].mkv",
+    "skeleton": "[T] Kimetsu no Yaiba - Yuukaku-hen - N [T].mkv",
+    "count": 11
+  },
+  {
+    "id": "F97",
+    "dir": "Anime\\[Kawaiika-Raws] (2019) Luo Xiao Hei Zhanji [BDRip 1920x808 HEVC FLAC]\\ENG Subs",
+    "file": "[Kawaiika-Raws] Luo Xiao Hei Zhanji [BDRip 1920x808 HEVC FLAC].eng.ass",
+    "skeleton": "[T] Luo Xiao Hei Zhanji [T].eng.ass",
+    "count": 1
+  },
+  {
+    "id": "F98",
+    "dir": "Anime\\[Kawaiika-Raws] (2019) Luo Xiao Hei Zhanji [BDRip 1920x808 HEVC FLAC]",
+    "file": "[Kawaiika-Raws] Luo Xiao Hei Zhanji [BDRip 1920x808 HEVC FLAC].mkv",
+    "skeleton": "[T] Luo Xiao Hei Zhanji [T].mkv",
+    "count": 1
+  },
+  {
+    "id": "F99",
+    "dir": "Anime\\Metallic Rouge S01 1080p",
+    "file": "[DUB] Metallic Rouge - 01.mkv",
+    "skeleton": "[T] Metallic Rouge - N.mkv",
+    "count": 13
+  },
+  {
+    "id": "F100",
+    "dir": "Anime\\[SubsPlus+] Oshi No Ko S2 [WEB-DL 1080p x264 DDP]",
+    "file": "[SubsPlus+] Oshi No Ko S2 - 01 [WEB-DL 1080p x264 DDP].mkv",
+    "skeleton": "[T] Oshi No Ko SN - N [T].mkv",
+    "count": 13
+  },
+  {
+    "id": "F101",
+    "dir": "Anime\\[Nekomoe kissaten&VCB-Studio] Seiyuu Radio no Uraomote [Ma10p_1080p]",
+    "file": "[Nekomoe kissaten&VCB-Studio] Seiyuu Radio no Uraomote [01][Ma10p_1080p][x265_flac].mkv",
+    "skeleton": "[T] Seiyuu Radio no Uraomote [T][T][T].mkv",
+    "count": 12
+  },
+  {
+    "id": "F102",
+    "dir": "Anime\\[SOFCJ-Raws] Shingeki no Kyojin - Season 3 - Part 1 [WEB-DL KP 1080p]",
+    "file": "[SOFCJ-Raws] Shingeki no Kyojin - S3 - P1 - E01 [WEB-DL KP 1080p].mkv",
+    "skeleton": "[T] Shingeki no Kyojin - SN - PN - EN [T].mkv",
+    "count": 1
+  },
+  {
+    "id": "F103",
+    "dir": "Anime\\[SOFCJ-Raws] Shingeki no Kyojin - The Final Season - Kanketsu-hen - ONA [WEB-DL KP 1080p]",
+    "file": "[SOFCJ-Raws] Shingeki no Kyojin - The Final Season - Kanketsu-hen - 01 [WEB-DL KP 1080p].mkv",
+    "skeleton": "[T] Shingeki no Kyojin - The Final Season - Kanketsu-hen - N [T].mkv",
+    "count": 7
+  },
+  {
+    "id": "F104",
+    "dir": "Anime\\Tenjou Tenge [BDRip 720p]\\Rus sound [Мега-Аниме]",
+    "file": "[Salender-Raws] Tenjou Tenge 01 (BD 960x720 x264 FLAC).mka",
+    "skeleton": "[T] Tenjou Tenge N (T).mka",
+    "count": 24
+  },
+  {
+    "id": "F105",
+    "dir": "Anime\\Tenjou Tenge [BDRip 720p]",
+    "file": "[Salender-Raws] Tenjou Tenge 01 (BD 960x720 x264 FLAC).mkv",
+    "skeleton": "[T] Tenjou Tenge N (T).mkv",
+    "count": 24
+  },
+  {
+    "id": "F106",
+    "dir": "Anime\\Teppen",
+    "file": "[SubsPlease] Teppen - 01 (1080p).mkv",
+    "skeleton": "[T] Teppen - N (T).mkv",
+    "count": 12
+  },
+  {
+    "id": "F107",
+    "dir": "Anime\\Tsue to Tsurugi no Wistoria\\SUB",
+    "file": "[SubsPlease] Tsue to Tsurugi no Wistoria - 01 (1080p) [8F450165].ass",
+    "skeleton": "[T] Tsue to Tsurugi no Wistoria - N (T) [T].ass",
+    "count": 12
+  },
+  {
+    "id": "F108",
+    "dir": "Anime\\Tsue to Tsurugi no Wistoria",
+    "file": "[SubsPlease] Tsue to Tsurugi no Wistoria - 01 (1080p) [8F450165].mkv",
+    "skeleton": "[T] Tsue to Tsurugi no Wistoria - N (T) [T].mkv",
+    "count": 12
+  },
+  {
+    "id": "F109",
+    "dir": "Anime\\Urusei Yatsura",
+    "file": "[SubsPlease] Urusei Yatsura (2022) - 01 (1080p) [292463AF].mkv",
+    "skeleton": "[T] Urusei Yatsura (T) - N (T) [T].mkv",
+    "count": 23
+  },
+  {
+    "id": "F110",
+    "dir": "Anime\\Boku.no.Hero.Academia.Illegals.WEB-DL.1080p",
+    "file": "[Erai-raws] Vigilante - Boku no Hero Academia Illegals - 01 [1080p].mkv",
+    "skeleton": "[T] Vigilante - Boku no Hero Academia Illegals - N [T].mkv",
+    "count": 13
+  },
+  {
+    "id": "F111",
+    "dir": "Anime\\[Zagzad] Yoru no Kurage wa Oyogenai (BDRip 1920x1080 HEVC-10bit THD)",
+    "file": "[Zagzad] Yoru no Kurage wa Oyogenai – 05 (BDRip 1920x1080 HEVC-10bit THD).mkv",
+    "skeleton": "[T] Yoru no Kurage wa Oyogenai – N (T).mkv",
+    "count": 8
+  },
+  {
+    "id": "F112",
+    "dir": "Anime\\Youkoso Jitsuryoku Shijou Shugi no Kyoushitsu e 2",
+    "file": "[SubsPlease] Youkoso Jitsuryoku Shijou Shugi no Kyoushitsu e S2 - 04 (1080p) [6675A180].mkv",
+    "skeleton": "[T] Youkoso Jitsuryoku Shijou Shugi no Kyoushitsu e SN - N (T) [T].mkv",
+    "count": 10
+  },
+  {
+    "id": "F113",
+    "dir": "Anime\\Zenshuu",
+    "file": "[MALD] ZENSHU S01E01.mkv",
+    "skeleton": "[T] ZENSHU SNEN.mkv",
+    "count": 1
+  },
+  {
+    "id": "F114",
+    "dir": "Anime\\Gekijouban Youjo Senki\\RUS Subs\\[2nd Division]",
+    "file": "[anti-raws]Gekijouban Youjo Senki[BDRemux].2nd Division.ass",
+    "skeleton": "[T]Gekijouban Youjo Senki[T].Nnd Division.ass",
+    "count": 1
+  },
+  {
+    "id": "F115",
+    "dir": "Anime\\Gekijouban Youjo Senki",
+    "file": "[anti-raws]Gekijouban Youjo Senki[BDRemux].mkv",
+    "skeleton": "[T]Gekijouban Youjo Senki[T].mkv",
+    "count": 1
+  },
+  {
+    "id": "F116",
+    "dir": "Anime\\[Kekkai Sensen][BDRIP][1080P]\\Sub",
+    "file": "[Kekkai Sensen][01][BDRIP][1080P][H264_FLAC].ass",
+    "skeleton": "[T][T][T][T][T].ass",
+    "count": 12
+  },
+  {
+    "id": "F117",
+    "dir": "Anime\\[Kekkai Sensen][BDRIP][1080P]",
+    "file": "[Kekkai Sensen][01][BDRIP][1080P][H264_FLAC].mkv",
+    "skeleton": "[T][T][T][T][T].mkv",
+    "count": 13
+  },
+  {
+    "id": "F118",
+    "dir": "Anime\\Modao Zushi [1080p]",
+    "file": "[YMDR][Grandmaster of Demonic Cultivation][2018][01][1080p][HEVC][CHI][GB][AAC][ViPHD].ass",
+    "skeleton": "[T][T][T][T][T][T][T][T][T][T].ass",
+    "count": 15
+  },
+  {
+    "id": "F119",
+    "dir": "Anime\\Modao Zushi [1080p]",
+    "file": "[YMDR][Grandmaster of Demonic Cultivation][2018][01][1080p][HEVC][CHI][GB][AAC][ViPHD].mp4",
+    "skeleton": "[T][T][T][T][T][T][T][T][T][T].mpN",
+    "count": 15
+  },
+  {
+    "id": "F120",
+    "dir": "Anime\\[AniDub]_Kaiba_TV_[ru_jp]_[1280x720_h264_aac]_[eNd]",
+    "file": "[AniDub]_Kaiba_TV_[06_of_12]_[ru_jp]_[1280x720_h264_aac]_[eNd].mkv",
+    "skeleton": "[T]_Kaiba_TV_[T]_[T]_[T]_[T].mkv",
+    "count": 7
+  },
+  {
+    "id": "F121",
+    "dir": "Adventure Time Fionna & Cake",
+    "file": "Adventure Time Fionna & Cake S01E01 Fionna Campbell_upscaled.mkv",
+    "skeleton": "manual",
+    "count": 1
+  },
+  {
+    "id": "F122",
+    "dir": "Anime\\Inuyasha",
+    "file": "58. Судьбоносная ночь в Тогэнкье - часть 2.mkv",
+    "skeleton": "manual",
+    "count": 1
+  },
+  {
+    "id": "F123",
+    "dir": "Anime\\[BD-Remux] Shoushimin Series",
+    "file": "10. Sweet Memory (Part 2).mkv",
+    "skeleton": "manual",
+    "count": 1
+  },
+  {
+    "id": "F124",
+    "dir": "Anime\\[Nekomoe kissaten&VCB-Studio] Seiyuu Radio no Uraomote [Ma10p_1080p]\\SPs",
+    "file": "[Nekomoe kissaten&VCB-Studio] Seiyuu Radio no Uraomote [NCOP01][Ma10p_1080p][x265_flac].mkv",
+    "skeleton": "manual",
+    "count": 1
+  },
+  {
+    "id": "F125",
+    "dir": "Anime\\[Nekomoe kissaten&VCB-Studio] Seiyuu Radio no Uraomote [Ma10p_1080p]\\SPs",
+    "file": "[Nekomoe kissaten&VCB-Studio] Seiyuu Radio no Uraomote [NCED][Ma10p_1080p][x265_flac].mkv",
+    "skeleton": "manual",
+    "count": 1
+  }
+]

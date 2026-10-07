@@ -1,0 +1,1194 @@
+[
+  {
+    "id": "F01",
+    "t": "A Bronx Tale",
+    "y": 1993,
+    "k": "movie",
+    "codec": "х264",
+    "src": "BDRip",
+    "res": "1080p",
+    "x": "cyrillic х in х264 broke anitomy title"
+  },
+  {
+    "id": "F02",
+    "t": "Adventure Time Fionna & Cake",
+    "s": 1,
+    "e": 3,
+    "et": "Cake the Cat"
+  },
+  {
+    "id": "F03",
+    "t": "Adventure Time Fionna & Cake",
+    "s": 1,
+    "e": 9,
+    "et": "Casper & Nova",
+    "x": "& inside ep title"
+  },
+  {
+    "id": "F04",
+    "t": "Adventure Time Fionna & Cake",
+    "s": 1,
+    "e": 10,
+    "et": "Cheers"
+  },
+  {
+    "id": "F05",
+    "t": "Adventure Time Distant Lands",
+    "s": 1,
+    "e": 1,
+    "et": "BMO",
+    "src": "WEB-DL",
+    "service": "HMAX",
+    "res": "1080p",
+    "lang": ["rus", "eng"],
+    "g": ["Seein"]
+  },
+  {
+    "id": "F06",
+    "t": "Adventure Time Distant Lands",
+    "s": 1,
+    "e": 2,
+    "et": "Obsidian",
+    "src": "WEB-DL",
+    "service": "HMAX",
+    "res": "1080p",
+    "lang": ["rus", "eng"],
+    "g": ["Seein"]
+  },
+  {
+    "id": "F07",
+    "t": "Adventure Time Fionna and Cake",
+    "s": 2,
+    "e": 1,
+    "src": "WEB",
+    "res": "1080p"
+  },
+  {
+    "id": "F08",
+    "t": "Barbie",
+    "y": 2023,
+    "k": "movie",
+    "src": "WEBRip",
+    "codec": "x264",
+    "res": "1080p",
+    "g": ["Delia_EniaHD"],
+    "x": "anitomy ep=2023"
+  },
+  {
+    "id": "F09",
+    "t": "Blue Eye Samurai",
+    "s": 1,
+    "e": 1,
+    "src": "WEB-DL",
+    "res": "1080p",
+    "g": ["RGzsRutracker"]
+  },
+  {
+    "id": "F10",
+    "t": "Boku no Hero Academia",
+    "s": 7,
+    "e": 1,
+    "src": "WEB",
+    "codec": "x264",
+    "res": "1080p",
+    "g": ["Jaskier"]
+  },
+  {
+    "id": "F11",
+    "t": "Bounen no Xamdou",
+    "st": "Bounen no Zamned",
+    "e": 11,
+    "subs": ["ass"],
+    "lang": ["rus", "jpn"],
+    "audio": "DTS",
+    "audioLang": ["jpn"],
+    "codec": "x264",
+    "res": "1920x1080",
+    "src": "BDRip",
+    "g": ["Kagura"],
+    "x": "anitomy subs=ASS lost RUS, src null",
+    "depth": "10b"
+  },
+  {
+    "id": "F12",
+    "t": "Dandadan",
+    "e": 1,
+    "sidecar": {
+      "kind": "audio",
+      "studio": "AniLibria",
+      "lang": ["rus"]
+    },
+    "src": "WEB-DL",
+    "service": "CR"
+  },
+  {
+    "id": "F13",
+    "t": "Dandadan",
+    "e": 1,
+    "sidecar": {
+      "kind": "subs",
+      "origin": "CR",
+      "variant": "full",
+      "lang": ["eng"]
+    }
+  },
+  {
+    "id": "F14",
+    "t": "Dandadan",
+    "e": 1,
+    "sidecar": {
+      "kind": "subs",
+      "origin": "CR",
+      "variant": "signs",
+      "lang": ["eng"]
+    }
+  },
+  {
+    "id": "F15",
+    "t": "Dandadan",
+    "e": 1,
+    "sidecar": {
+      "kind": "subs",
+      "origin": "CR",
+      "variant": "надписи",
+      "lang": ["rus"]
+    },
+    "x": "anitomy lang null for rus"
+  },
+  {
+    "id": "F16",
+    "t": "Dandadan",
+    "e": 1,
+    "sidecar": {
+      "kind": "subs",
+      "origin": "CR",
+      "variant": "полные",
+      "lang": ["rus"]
+    }
+  },
+  {
+    "id": "F17",
+    "t": "Dandadan",
+    "e": 1,
+    "sidecar": {
+      "kind": "audio",
+      "dub": true,
+      "lang": ["eng"]
+    },
+    "x": "anitomy subs=DUB wrong"
+  },
+  {
+    "id": "F18",
+    "t": "Dandadan",
+    "e": 6,
+    "sidecar": {
+      "kind": "audio",
+      "lang": ["jpn"]
+    },
+    "x": "anitomy lang null for jpn"
+  },
+  {
+    "id": "F19",
+    "t": "Dandadan",
+    "e": 1,
+    "src": "WEB-DL",
+    "service": "CR",
+    "codec": "AVC",
+    "res": "1080p",
+    "audio": "DDP"
+  },
+  {
+    "id": "F20",
+    "t": "EuroTrip",
+    "y": 2004,
+    "k": "movie",
+    "tag": ["Unrated"],
+    "src": "WEB-DL",
+    "lang": ["rus", "eng"],
+    "x": "anitomy lang=Eng only"
+  },
+  {
+    "id": "F21",
+    "t": "F9",
+    "y": 2021,
+    "k": "movie",
+    "tag": ["DC"],
+    "src": "BDRip",
+    "g": ["pk"],
+    "x": "anitomy ep=2021"
+  },
+  {
+    "id": "F22",
+    "t": "Fast X",
+    "y": 2023,
+    "k": "movie",
+    "dub": true,
+    "lang": ["ukr"],
+    "g": ["pk"],
+    "x": "title dot kept, subs=Dub wrong"
+  },
+  {
+    "id": "F23",
+    "t": "Garouden: The Way of the Lone Wolf",
+    "e": 1,
+    "res": "1080p",
+    "x": "dash inside title"
+  },
+  {
+    "id": "F24",
+    "t": "Gekijouban Kimetsu no Yaiba",
+    "k": "movie",
+    "src": "BDRemux",
+    "x": "anitomy src null",
+    "arc": "Mugen Ressha-hen",
+    "st": "Gekijouban Kimetsu no Yaiba: Mugen Ressha-hen"
+  },
+  {
+    "id": "F25",
+    "t": "Guillermo del Toros Pinocchio",
+    "y": 2022,
+    "res": "1080p",
+    "g": ["RHS"],
+    "x": "anitomy ep=2022"
+  },
+  {
+    "id": "F26",
+    "t": "Horimiya",
+    "e": 1
+  },
+  {
+    "id": "F27",
+    "t": "Horimiya Piece",
+    "e": 1,
+    "src": "BDRip",
+    "codec": "HEVC",
+    "depth": "10bits",
+    "res": "1080p",
+    "audio": "FLAC",
+    "x": "anitomy vTerm=10bits"
+  },
+  {
+    "id": "F28",
+    "t": "Jigokuraku",
+    "e": 1,
+    "src": "BDRip",
+    "codec": "HEVC",
+    "depth": "10bit",
+    "audio": "FLAC"
+  },
+  {
+    "id": "F29",
+    "t": "Kaijuu 8 Gou",
+    "e": 1,
+    "res": "1080p",
+    "lang": ["rus"],
+    "x": "anitomy ignored [Rus]"
+  },
+  {
+    "id": "F30",
+    "t": "Kaijuu 8 Gou",
+    "s": 2,
+    "e": 1,
+    "sidecar": {
+      "kind": "subs",
+      "origin": "CR",
+      "variant": "надписи",
+      "lang": ["rus"]
+    }
+  },
+  {
+    "id": "F31",
+    "t": "Kaijuu 8 Gou",
+    "s": 2,
+    "e": 1,
+    "sidecar": {
+      "kind": "subs",
+      "origin": "CR",
+      "variant": "полные",
+      "lang": ["rus"]
+    }
+  },
+  {
+    "id": "F32",
+    "t": "Kaijuu 8 Gou",
+    "s": 2,
+    "e": 1,
+    "src": "WEB-DL",
+    "service": "CR",
+    "codec": "AVC",
+    "res": "1080p",
+    "audio": "AAC"
+  },
+  {
+    "id": "F33",
+    "t": "Loki",
+    "s": 2,
+    "e": 6,
+    "et": "Glorious Purpose",
+    "src": "WEB-DL",
+    "service": "DSNP",
+    "g": ["AKTEP"]
+  },
+  {
+    "id": "F34",
+    "t": "Loki",
+    "s": 2,
+    "e": 4,
+    "et": "Heart of the TVA",
+    "src": "WEB-DL",
+    "service": "DSNP",
+    "g": ["AKTEP"]
+  },
+  {
+    "id": "F35",
+    "t": "Loki",
+    "s": 2,
+    "e": 3,
+    "et": "1893",
+    "src": "WEB-DL",
+    "service": "DSNP",
+    "g": ["AKTEP"],
+    "x": "4-digit ep title, not year"
+  },
+  {
+    "id": "F36",
+    "t": "Loki",
+    "s": 2,
+    "e": 5,
+    "et": "Science Fiction",
+    "src": "WEB-DL",
+    "service": "DSNP",
+    "g": ["AKTEP"]
+  },
+  {
+    "id": "F37",
+    "t": "Look Back",
+    "y": 2024,
+    "k": "movie",
+    "src": "WEB-DL",
+    "service": "AMZN",
+    "audio": "DDP5.1",
+    "codec": "H.264",
+    "g": ["ToonsHub"],
+    "x": "anitomy ep=2024"
+  },
+  {
+    "id": "F38",
+    "t": "Luo Xiao Hei Zhanji",
+    "sequel": 2,
+    "k": "movie",
+    "src": "BDRip",
+    "codec": "HEVC",
+    "x": "anitomy ep=2 wrong; AniList id unresolved"
+  },
+  {
+    "id": "F39",
+    "t": "Majo to Yajuu",
+    "variant": "TV-1",
+    "special": "ED",
+    "k": "special"
+  },
+  {
+    "id": "F40",
+    "t": "Majo to Yajuu",
+    "variant": "TV-1",
+    "e": 1,
+    "src": "BDRip",
+    "res": "1920x1080",
+    "codec": "x264",
+    "audio": "FLAC",
+    "x": "TV-1 is release variant, single AniList entry [153818]",
+    "s": 1
+  },
+  {
+    "id": "F41",
+    "t": "Majo to Yajuu",
+    "variant": "TV-1",
+    "special": "OP",
+    "k": "special"
+  },
+  {
+    "id": "F42",
+    "t": "Make Heroine ga Oosugiru!",
+    "e": 1,
+    "y": 2024,
+    "src": "WEB-DL",
+    "x": "year inside brackets lost by anitomy"
+  },
+  {
+    "id": "F43",
+    "t": "Make Heroine ga Oosugiru!",
+    "e": 1,
+    "sidecar": {
+      "kind": "audio",
+      "studio": "Anilibria",
+      "lang": ["rus"]
+    },
+    "x": "anitomy dropped studio"
+  },
+  {
+    "id": "F44",
+    "t": "Make Heroine ga Oosugiru!",
+    "e": 1,
+    "sidecar": {
+      "kind": "subs",
+      "variant": "signs",
+      "origin": "CR",
+      "lang": ["rus"]
+    }
+  },
+  {
+    "id": "F45",
+    "t": "Mayonaka Punch",
+    "e": 1,
+    "sidecar": {
+      "kind": "audio",
+      "studio": "Anilibria"
+    },
+    "codec": "AVC",
+    "audio": "AAC"
+  },
+  {
+    "id": "F46",
+    "t": "Mayonaka Punch",
+    "e": 1,
+    "res": "1080p",
+    "codec": "AVC",
+    "audio": "AAC"
+  },
+  {
+    "id": "F47",
+    "t": "Mayonaka Punch",
+    "e": 1,
+    "sidecar": {
+      "kind": "subs",
+      "variant": "signs",
+      "lang": ["rus"]
+    }
+  },
+  {
+    "id": "F48",
+    "t": "Inuyasha",
+    "e": 133,
+    "ea": 134,
+    "et": "Женщина, что полюбила Сещемару",
+    "lang": ["rus"],
+    "x": "title from dir, range ep"
+  },
+  {
+    "id": "F49",
+    "t": "Inuyasha",
+    "e": 21,
+    "ea": 22,
+    "et": "Правда о явлении Нараку ''Душа Кикио''",
+    "lang": ["rus"]
+  },
+  {
+    "id": "F50",
+    "t": "Inuyasha",
+    "e": 106,
+    "et": "Кагоме, Мироку, Санго... Все пропало!",
+    "lang": ["rus"],
+    "x": "anitomy total fail, ellipsis"
+  },
+  {
+    "id": "F51",
+    "t": "Inuyasha",
+    "e": 166,
+    "ea": 167,
+    "et": "Крепкие узы, осколок пущен в дело!",
+    "lang": ["rus"]
+  },
+  {
+    "id": "F52",
+    "t": "Inuyasha",
+    "e": 39,
+    "et": "Коварный план битва до последнего вздоха",
+    "lang": ["rus"],
+    "x": "no space after dot"
+  },
+  {
+    "id": "F53",
+    "t": "Inuyasha",
+    "e": 54,
+    "et": "Возвратная Волна - сильнейший удар Тессайги",
+    "lang": ["rus"],
+    "x": "anitomy total fail"
+  },
+  {
+    "id": "F54",
+    "t": "Inuyasha",
+    "e": 118,
+    "et": "В недрах горы Хакурей",
+    "lang": ["rus"],
+    "x": "anitomy total fail"
+  },
+  {
+    "id": "F55",
+    "t": "Shoushimin Series",
+    "e": 5,
+    "et": "Berliner Mystery",
+    "sidecar": {
+      "kind": "subs",
+      "lang": ["rus"]
+    },
+    "src": "BDRemux",
+    "x": "anitomy total fail"
+  },
+  {
+    "id": "F56",
+    "t": "Shoushimin Series",
+    "e": 5,
+    "et": "Berliner Mystery",
+    "src": "BDRemux"
+  },
+  {
+    "id": "F57",
+    "t": "Shoushimin Series",
+    "e": 6,
+    "et": "But I Get to Keep Charlotte",
+    "src": "BDRemux"
+  },
+  {
+    "id": "F58",
+    "t": "12 Years a Slave",
+    "y": 2013,
+    "k": "movie",
+    "src": "BluRay",
+    "lang": ["rus", "eng"],
+    "g": ["HQCLUB"],
+    "x": "leading number is title; anitomy ep=2013 title has stray .a"
+  },
+  {
+    "id": "F59",
+    "t": "NegaPosi Angler",
+    "e": 1,
+    "type": "TV",
+    "src": "WEB-DL",
+    "codec": "H264",
+    "g": ["Mustadio"],
+    "x": "anitomy dropped trailing [group]"
+  },
+  {
+    "id": "F60",
+    "t": "Ninja Kamui",
+    "e": 1,
+    "res": "1080p"
+  },
+  {
+    "id": "F61",
+    "t": "Overlord",
+    "k": "movie",
+    "src": "BDRip",
+    "codec": "HEVC",
+    "depth": "10bits",
+    "audio": "FLAC",
+    "x": "no ep, movie",
+    "arc": "Sei Oukoku-hen",
+    "st": "Overlord: Sei Oukoku-hen"
+  },
+  {
+    "id": "F62",
+    "t": "Overlord IV",
+    "e": 1,
+    "src": "BDRip",
+    "x": "IV stays in title",
+    "s": 4
+  },
+  {
+    "id": "F63",
+    "t": "Peaky Blinders",
+    "s": 1,
+    "e": 3,
+    "lang": ["rus"],
+    "src": "BDRemux",
+    "res": "1080i",
+    "g": ["AlexFilm", "RGzsRutracker"],
+    "x": "anitomy total fail on dotted lowercase s01e03"
+  },
+  {
+    "id": "F64",
+    "t": "Re Zero kara Hajimeru Isekai Seikatsu III",
+    "st": "Re:Zero kara Hajimeru Isekai Seikatsu",
+    "s": 3,
+    "e": 4,
+    "src": "BDRip",
+    "codec": "AVC",
+    "audio": "FLAC"
+  },
+  {
+    "id": "F65",
+    "t": "Sakamoto Days",
+    "s": 1,
+    "p": 1,
+    "e": 1,
+    "x": "TV-1=s1 Part 1=cour"
+  },
+  {
+    "id": "F66",
+    "t": "Seihantai na Kimi to Boku",
+    "s": 1,
+    "e": 1,
+    "src": "WEB-DL",
+    "service": "CR",
+    "codec": "AVC",
+    "audio": "AAC",
+    "x": "TV-01 zero-padded"
+  },
+  {
+    "id": "F67",
+    "t": "Shangri La Frontier",
+    "s": 2,
+    "e": 1,
+    "x": "TV-2=s2"
+  },
+  {
+    "id": "F68",
+    "t": "Shingeki no Kyojin",
+    "k": "movie",
+    "src": "WEB-DL",
+    "g": ["SOFCJ"],
+    "x": "dash-group -SOFCJ lost by anitomy",
+    "arc": "Kanketsu-hen",
+    "st": "Shingeki no Kyojin: Kanketsu-hen"
+  },
+  {
+    "id": "F69",
+    "t": "Sonny Boy",
+    "e": 1
+  },
+  {
+    "id": "F70",
+    "t": "Takopii no Genzai",
+    "e": 1,
+    "x": "space-separated number"
+  },
+  {
+    "id": "F71",
+    "t": "The Fragrant Flower Blooms With Dignity",
+    "e": 1,
+    "res": "1080p"
+  },
+  {
+    "id": "F72",
+    "t": "The Blind Side",
+    "y": 2009,
+    "k": "movie",
+    "src": "BluRay",
+    "audio": "DTS",
+    "lang": ["rus", "eng"],
+    "g": ["HDCLUB"],
+    "x": "anitomy ep=2009"
+  },
+  {
+    "id": "F73",
+    "t": "The Boys",
+    "s": 3,
+    "e": 6,
+    "src": "WEBRip",
+    "res": "1080p",
+    "g": ["RGzsRutracker"]
+  },
+  {
+    "id": "F74",
+    "t": "The Flash",
+    "s": 3,
+    "e": 1,
+    "res": "1080p",
+    "g": ["TVShows"],
+    "x": "anitomy src null"
+  },
+  {
+    "id": "F75",
+    "t": "The Gangster the Cop the Devil",
+    "k": "movie",
+    "src": "BDRemux",
+    "res": "1080p",
+    "g": ["pk"],
+    "x": "anitomy glued BDRemux into title, src null"
+  },
+  {
+    "id": "F76",
+    "t": "The Greatest Showman",
+    "y": 2017,
+    "k": "movie",
+    "src": "BluRay",
+    "lang": ["rus", "ukr", "eng"],
+    "g": ["VietHD"],
+    "x": "anitomy ep=2017, langs lost"
+  },
+  {
+    "id": "F77",
+    "t": "The Man Who Knew Infinity",
+    "k": "movie",
+    "src": "BDRip",
+    "x": "trailing .D trimmed"
+  },
+  {
+    "id": "F78",
+    "t": "Tochno Ne Ampir V",
+    "k": "movie",
+    "x": "V is part of title, not volume"
+  },
+  {
+    "id": "F79",
+    "t": "Valgalla Saga o vikinge",
+    "y": 2009,
+    "k": "movie",
+    "lang": ["rus"],
+    "src": "BDRip",
+    "codec": "XviD",
+    "audio": "AC3",
+    "g": ["HQCLUB"],
+    "x": "title uncertain, needs TMDB check; anitomy ep=2009 vTerm=avi"
+  },
+  {
+    "id": "F80",
+    "t": "Vivarium",
+    "y": 2019,
+    "k": "movie",
+    "src": "REMUX",
+    "x": "anitomy src null"
+  },
+  {
+    "id": "F81",
+    "t": "Yasei no Last Boss ga Arawareta",
+    "e": 1,
+    "src": "WEB-DL",
+    "service": "CR",
+    "codec": "AVC",
+    "audio": "AAC"
+  },
+  {
+    "id": "F82",
+    "t": "Yomi no Tsugai",
+    "e": 1,
+    "res": "1080p",
+    "lang": ["rus"],
+    "x": "anitomy ignored [Rus]"
+  },
+  {
+    "id": "F83",
+    "t": "Zatsu Tabi: That's Journey",
+    "e": 1,
+    "codec": "AVC",
+    "audio": "AAC",
+    "x": "apostrophe in title"
+  },
+  {
+    "id": "F84",
+    "t": "Boku no Hero Academia Illegals",
+    "st": "Boku no Hero Academia Illegals 2nd Season",
+    "s": 2,
+    "e": 1,
+    "sidecar": {
+      "kind": "subs",
+      "lang": ["rus"]
+    },
+    "x": "AniList [195322]"
+  },
+  {
+    "id": "F85",
+    "t": "Boku no Hero Academia Illegals",
+    "st": "Boku no Hero Academia Illegals 2nd Season",
+    "s": 2,
+    "e": 1,
+    "x": "anitomy keeps S2 in title"
+  },
+  {
+    "id": "F86",
+    "t": "Boku no Hero Academia",
+    "s": 8,
+    "e": 1,
+    "sidecar": {
+      "kind": "subs",
+      "lang": ["rus"]
+    }
+  },
+  {
+    "id": "F87",
+    "t": "Boku no Hero Academia",
+    "s": 8,
+    "e": 1
+  },
+  {
+    "id": "F88",
+    "t": "Boogiepop Phantom",
+    "e": 1,
+    "g": ["SweetSub", "VCB-Studio"],
+    "res": "720p",
+    "depth": "Ma10p",
+    "codec": "x265",
+    "audio": "ac3",
+    "sidecar": {
+      "kind": "subs"
+    },
+    "x": "anitomy kept only VCB-Studio"
+  },
+  {
+    "id": "F89",
+    "t": "Boogiepop Phantom",
+    "e": 1,
+    "g": ["SweetSub", "VCB-Studio"],
+    "res": "720p",
+    "depth": "Ma10p",
+    "codec": "x265",
+    "audio": "ac3"
+  },
+  {
+    "id": "F90",
+    "t": "City the Animation",
+    "e": 1,
+    "src": "WEB-DL",
+    "service": "AMZN",
+    "codec": "AVC",
+    "res": "1080p",
+    "audio": "EAC3",
+    "x": "service before source"
+  },
+  {
+    "id": "F91",
+    "t": "Haikyuu!!",
+    "s": 2,
+    "e": 19,
+    "res": "1080p",
+    "depth": "Ma10p",
+    "codec": "x265",
+    "audio": "flac",
+    "g": ["VCB-Studio"],
+    "x": "anitomy ok here (2nd Season words)"
+  },
+  {
+    "id": "F92",
+    "t": "Kengan Ashura",
+    "s": 1,
+    "e": 1,
+    "res": "1080p",
+    "g": ["DragsterPS"],
+    "x": "anitomy ok here"
+  },
+  {
+    "id": "F93",
+    "t": "Kimetsu no Yaiba",
+    "st": "Kimetsu no Yaiba: Hashira Geiko-hen",
+    "arc": "Hashira Geiko-hen",
+    "e": 1,
+    "src": "BDRip",
+    "codec": "x265",
+    "audio": "FLAC",
+    "x": "AniList [166240] separate entry"
+  },
+  {
+    "id": "F94",
+    "t": "Kimetsu no Yaiba",
+    "st": "Kimetsu no Yaiba: Katanakaji no Sato-hen",
+    "arc": "Katanakaji no Sato-hen",
+    "e": 1,
+    "src": "BDRip",
+    "x": "AniList [145139]"
+  },
+  {
+    "id": "F95",
+    "t": "Kimetsu no Yaiba",
+    "st": "Kimetsu no Yaiba: Mugen Ressha-hen",
+    "arc": "Mugen Ressha-hen",
+    "e": 1,
+    "g": ["VCB-Studio"]
+  },
+  {
+    "id": "F96",
+    "t": "Kimetsu no Yaiba",
+    "st": "Kimetsu no Yaiba: Yuukaku-hen",
+    "arc": "Yuukaku-hen",
+    "e": 1,
+    "g": ["VCB-Studio"]
+  },
+  {
+    "id": "F97",
+    "t": "Luo Xiao Hei Zhanji",
+    "k": "movie",
+    "src": "BDRip",
+    "res": "1920x808",
+    "codec": "HEVC",
+    "audio": "FLAC",
+    "sidecar": {
+      "kind": "subs",
+      "lang": ["eng"]
+    }
+  },
+  {
+    "id": "F98",
+    "t": "Luo Xiao Hei Zhanji",
+    "k": "movie",
+    "src": "BDRip",
+    "res": "1920x808",
+    "codec": "HEVC",
+    "audio": "FLAC",
+    "x": "no ep, movie"
+  },
+  {
+    "id": "F99",
+    "t": "Metallic Rouge",
+    "s": 1,
+    "e": 1,
+    "dub": true,
+    "x": "anitomy subs=DUB wrong; s1 from dir"
+  },
+  {
+    "id": "F100",
+    "t": "Oshi No Ko",
+    "st": "Oshi No Ko 2nd Season",
+    "s": 2,
+    "e": 1,
+    "src": "WEB-DL",
+    "codec": "x264",
+    "audio": "DDP",
+    "x": "AniList [166531]; anitomy keeps S2 in title"
+  },
+  {
+    "id": "F101",
+    "t": "Seiyuu Radio no Uraomote",
+    "e": 1,
+    "g": ["Nekomoe kissaten", "VCB-Studio"],
+    "res": "1080p",
+    "depth": "Ma10p",
+    "codec": "x265",
+    "audio": "flac",
+    "x": "anitomy kept only VCB-Studio"
+  },
+  {
+    "id": "F102",
+    "t": "Shingeki no Kyojin",
+    "st": "Shingeki no Kyojin 3rd Season",
+    "s": 3,
+    "p": 1,
+    "e": 1,
+    "src": "WEB-DL",
+    "service": "KP",
+    "g": ["SOFCJ-Raws"],
+    "x": "AniList [99147]; anitomy glues - S3 - P1 into title"
+  },
+  {
+    "id": "F103",
+    "t": "Shingeki no Kyojin",
+    "e": 1,
+    "src": "WEB-DL",
+    "service": "KP",
+    "g": ["SOFCJ-Raws"],
+    "k": "special",
+    "x": "two-part special, files 01/02",
+    "arc": "Kanketsu-hen",
+    "st": "Shingeki no Kyojin: Kanketsu-hen"
+  },
+  {
+    "id": "F104",
+    "t": "Tenjou Tenge",
+    "e": 1,
+    "sidecar": {
+      "kind": "audio",
+      "studio": "Мега-Аниме",
+      "lang": ["rus"]
+    }
+  },
+  {
+    "id": "F105",
+    "t": "Tenjou Tenge",
+    "e": 1,
+    "src": "BD",
+    "res": "960x720",
+    "codec": "x264",
+    "audio": "FLAC",
+    "x": "space number + paren tech"
+  },
+  {
+    "id": "F106",
+    "t": "Teppen",
+    "e": 1,
+    "res": "1080p",
+    "x": "anitomy group SubsPlease null"
+  },
+  {
+    "id": "F107",
+    "t": "Tsue to Tsurugi no Wistoria",
+    "e": 1,
+    "res": "1080p",
+    "crc": "8F450165",
+    "sidecar": {
+      "kind": "subs"
+    }
+  },
+  {
+    "id": "F108",
+    "t": "Tsue to Tsurugi no Wistoria",
+    "e": 1,
+    "res": "1080p",
+    "crc": "8F450165"
+  },
+  {
+    "id": "F109",
+    "t": "Urusei Yatsura",
+    "y": 2022,
+    "e": 1,
+    "res": "1080p",
+    "crc": "292463AF",
+    "x": "year in parens = remake year; anitomy ok here"
+  },
+  {
+    "id": "F110",
+    "t": "Boku no Hero Academia Illegals",
+    "e": 1,
+    "res": "1080p",
+    "x": "AniList [185736]; anitomy keeps dash-joined title",
+    "st": "Vigilante: Boku no Hero Academia Illegals"
+  },
+  {
+    "id": "F111",
+    "t": "Yoru no Kurage wa Oyogenai",
+    "e": 5,
+    "src": "BDRip",
+    "res": "1920x1080",
+    "codec": "HEVC",
+    "audio": "THD",
+    "x": "en-dash separator; anitomy ok here",
+    "depth": "10bit"
+  },
+  {
+    "id": "F112",
+    "t": "Youkoso Jitsuryoku Shijou Shugi no Kyoushitsu e",
+    "s": 2,
+    "e": 4,
+    "res": "1080p",
+    "crc": "6675A180",
+    "x": "title ends with e, then S2; anitomy keeps S2 in title"
+  },
+  {
+    "id": "F113",
+    "t": "ZENSHU",
+    "s": 1,
+    "e": 1,
+    "g": ["MALD"],
+    "x": "anitomy ok here"
+  },
+  {
+    "id": "F114",
+    "t": "Gekijouban Youjo Senki",
+    "k": "movie",
+    "src": "BDRemux",
+    "sidecar": {
+      "kind": "subs",
+      "studio": "2nd Division",
+      "lang": ["rus"]
+    },
+    "x": "anitomy title garbage"
+  },
+  {
+    "id": "F115",
+    "t": "Gekijouban Youjo Senki",
+    "k": "movie",
+    "src": "BDRemux"
+  },
+  {
+    "id": "F116",
+    "t": "Kekkai Sensen",
+    "e": 1,
+    "src": "BDRIP",
+    "codec": "H264",
+    "res": "1080P",
+    "audio": "FLAC",
+    "sidecar": {
+      "kind": "subs"
+    },
+    "x": "anitomy title missing entirely"
+  },
+  {
+    "id": "F117",
+    "t": "Kekkai Sensen",
+    "e": 1,
+    "src": "BDRIP",
+    "codec": "H264",
+    "res": "1080P",
+    "audio": "FLAC"
+  },
+  {
+    "id": "F118",
+    "t": "Grandmaster of Demonic Cultivation",
+    "st": "Mo Dao Zu Shi",
+    "y": 2018,
+    "e": 1,
+    "lang": ["chi"],
+    "subVariant": "GB",
+    "codec": "HEVC",
+    "res": "1080p",
+    "audio": "AAC",
+    "g": ["YMDR", "ViPHD"],
+    "sidecar": {
+      "kind": "subs"
+    },
+    "x": "all-bracket, no dash; anitomy title missing, subs=GB wrong"
+  },
+  {
+    "id": "F119",
+    "t": "Grandmaster of Demonic Cultivation",
+    "st": "Mo Dao Zu Shi",
+    "y": 2018,
+    "e": 1,
+    "lang": ["chi"],
+    "codec": "HEVC",
+    "res": "1080p",
+    "audio": "AAC",
+    "g": ["YMDR", "ViPHD"]
+  },
+  {
+    "id": "F120",
+    "t": "Kaiba",
+    "e": 6,
+    "eOf": 12,
+    "type": "TV",
+    "lang": ["rus", "jpn"],
+    "codec": "h264",
+    "res": "1280x720",
+    "audio": "aac",
+    "g": ["AniDub", "eNd"],
+    "x": "anitomy ep null, group null, langs null"
+  },
+  {
+    "id": "F121",
+    "t": "Adventure Time Fionna & Cake",
+    "s": 1,
+    "e": 1,
+    "et": "Fionna Campbell",
+    "tag": ["upscaled"],
+    "x": "suffix ignored"
+  },
+  {
+    "id": "F122",
+    "t": "Inuyasha",
+    "e": 58,
+    "et": "Судьбоносная ночь в Тогэнкье - часть 2",
+    "lang": ["rus"],
+    "x": "anitomy total fail; часть stays in ep title"
+  },
+  {
+    "id": "F123",
+    "t": "Shoushimin Series",
+    "e": 10,
+    "et": "Sweet Memory",
+    "p": 2,
+    "src": "BDRemux",
+    "x": "Part 2 = cour part"
+  },
+  {
+    "id": "F124",
+    "t": "Seiyuu Radio no Uraomote",
+    "special": "NCOP01",
+    "k": "special",
+    "g": ["Nekomoe kissaten", "VCB-Studio"]
+  },
+  {
+    "id": "F125",
+    "t": "Seiyuu Radio no Uraomote",
+    "special": "NCED",
+    "k": "special",
+    "g": ["Nekomoe kissaten", "VCB-Studio"]
+  }
+]

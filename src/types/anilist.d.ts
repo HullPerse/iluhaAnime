@@ -424,6 +424,7 @@ export interface AniListFriendsStore {
 export interface AniListObservation {
   signature: string;
   status: string;
+  mediaStatus: string;
   title: string;
   updatedAt: number;
   nextEpisode: number | null;
@@ -461,12 +462,15 @@ export interface AniListNotificationsStore {
   readNotificationIds: number[];
   initialized: boolean;
   knownListNames: string[];
+  siteMaxSeenId: number;
   saveObservation: (id: string, observation: AniListObservation) => void;
+  markOwnListStatus: (mediaId: number, status: string) => void;
   addRelease: (release: Omit<AniListRelease, "read">) => void;
   markReleasesRead: () => void;
   markSiteNotificationsRead: (ids: number[]) => void;
   setInitialized: (value: boolean) => void;
   setKnownListNames: (names: string[]) => void;
+  setSiteMaxSeenId: (id: number) => void;
 }
 
 export interface FilteredGraph {

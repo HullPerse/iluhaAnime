@@ -14,6 +14,7 @@ import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useDebounce } from "@/hooks/debounce.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { usePlayerDrag } from "@/hooks/player/drag.hook";
+import { useWatchedFolderNotifications } from "@/hooks/player/folderNotify.hook";
 import { useSearchField } from "@/hooks/search/field.hook";
 import { useTauriEvent } from "@/hooks/tauriEvent.hook";
 import { useTorrentFilesMap, useTorrents } from "@/hooks/torrent/queries.hook";
@@ -23,6 +24,7 @@ import { filterTreeByHiddenPaths } from "@/lib/player/visibility.utils";
 import { queryKeys } from "@/lib/query/keys.utils";
 import { attempt, reportBackgroundError, withFallback } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
+import { showError, showErrorOnce } from "@/lib/utils/notification.utils";
 import { useCacheStore } from "@/store/cache.store";
 import { useCategoryStore } from "@/store/category.store";
 import { useNotificationStore } from "@/store/notification.store";
@@ -197,10 +199,16 @@ function PlayerRoute() {
           extensions: videoExtensions,
         })
       );
-      if (error) reportBackgroundError("folders.rebuild", error);
+      if (error) {
+        reportBackgroundError("folders.rebuild", error);
+        if (useSettingsStore.getState().notifyScanErrors)
+          showErrorOnce("folders-rebuild", t("notification.scan.failed"), error.message);
+      }
     },
-    [videoExtensions]
+    [t, videoExtensions]
   );
+
+  const { reportScan } = useWatchedFolderNotifications(savedFolderPaths, videoExtensions);
 
   useEffect(() => {
     const cached = useCacheStore.getState().folderTrees;
@@ -236,8 +244,18 @@ function PlayerRoute() {
       for (const { entries, error, path } of results) {
         done += 1;
         setScanProgress({ current: done, total: savedFolderPaths.length });
-        if (error) reportBackgroundError("folders.scan", error);
-        else if (entries?.length) trees.push(buildTree(entries, path));
+        if (error) {
+          reportBackgroundError("folders.scan", error);
+          if (useSettingsStore.getState().notifyScanErrors)
+            showErrorOnce("folders-scan", t("notification.scan.failed"), error.message);
+        } else {
+          reportScan(
+            path,
+            (entries ?? []).map((entry) => entry.path),
+            true
+          );
+          if (entries?.length) trees.push(buildTree(entries, path));
+        }
       }
       if (cancelled) return;
       setFolderTrees(trees);
@@ -251,19 +269,21 @@ function PlayerRoute() {
     return () => {
       cancelled = true;
     };
-  }, [savedFolderPaths, videoExtensions, rebuildIndex]);
+  }, [reportScan, savedFolderPaths, t, videoExtensions, rebuildIndex]);
 
   useEffect(() => {
     if (savedFolderPaths.length === 0) return;
-    invokeTyped("start_watching_folders", { folders: savedFolderPaths }).catch((error) =>
-      reportBackgroundError("folders.watch.start", error)
-    );
+    invokeTyped("start_watching_folders", { folders: savedFolderPaths }).catch((error) => {
+      reportBackgroundError("folders.watch.start", error);
+      if (useSettingsStore.getState().notifyScanErrors)
+        showErrorOnce("folders-watch", t("notification.scan.failed"), String(error));
+    });
     return () => {
       invokeTyped("stop_watching_folders").catch((error) =>
         reportBackgroundError("folders.watch.stop", error)
       );
     };
-  }, [savedFolderPaths]);
+  }, [savedFolderPaths, t]);
 
   const folderScanDisposedRef = useRef(false);
   useEffect(() => {
@@ -286,7 +306,11 @@ function PlayerRoute() {
           })
         );
         if (scanError || folderScanDisposedRef.current) {
-          if (scanError) reportBackgroundError("folders.rescan", scanError);
+          if (scanError) {
+            reportBackgroundError("folders.rescan", scanError);
+            if (useSettingsStore.getState().notifyScanErrors)
+              showErrorOnce("folders-rescan", t("notification.scan.failed"), scanError.message);
+          }
           return;
         }
         const [, refreshError] = await attempt(
@@ -296,7 +320,11 @@ function PlayerRoute() {
           })
         );
         if (refreshError || folderScanDisposedRef.current) {
-          if (refreshError) reportBackgroundError("folders.rescan", refreshError);
+          if (refreshError) {
+            reportBackgroundError("folders.rescan", refreshError);
+            if (useSettingsStore.getState().notifyScanErrors)
+              showErrorOnce("folders-rescan", t("notification.scan.failed"), refreshError.message);
+          }
           return;
         }
         setFolderTrees((prev) => {
@@ -305,6 +333,11 @@ function PlayerRoute() {
           useCacheStore.getState().setFolderTrees(next.map((tree) => ({ path: tree.path, tree })));
           return next;
         });
+        reportScan(
+          path,
+          (entries ?? []).map((entry) => entry.path),
+          false
+        );
       };
       (async () => {
         const roots = [...new Set(changed)];
@@ -337,8 +370,11 @@ function PlayerRoute() {
         extensions: videoExtensions,
       })
     );
-    if (scanError) reportBackgroundError("folders.scan", scanError);
-    else if (entries && entries.length > 0) {
+    if (scanError) {
+      reportBackgroundError("folders.scan", scanError);
+      if (useSettingsStore.getState().notifyScanErrors)
+        showError(t("notification.scan.failed"), scanError.message);
+    } else if (entries && entries.length > 0) {
       const tree = buildTree(entries, folder);
       const next = [...folderTrees, tree];
       setFolderTrees(next);
@@ -352,7 +388,7 @@ function PlayerRoute() {
     unlisten?.();
     setLoading(false);
     setScanProgress(null);
-  }, [folderTrees, videoExtensions, patch, rebuildIndex]);
+  }, [folderTrees, t, videoExtensions, patch, rebuildIndex]);
 
   const handleRemoveFolder = useCallback(
     (path: string) => {

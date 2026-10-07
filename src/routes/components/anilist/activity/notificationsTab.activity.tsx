@@ -35,6 +35,12 @@ function NotificationRow({
       ? `${item.anime_title} - Ep. ${item.episode ?? "?"}`
       : notificationText(item);
   const clickable = item.anime_id != null;
+  const coverClass = clickable
+    ? "windows95-active-border h-8 w-6 shrink-0 object-cover hover:cursor-pointer"
+    : "windows95-active-border h-8 w-6 shrink-0 object-cover";
+  const titleClass = clickable
+    ? "truncate font-bold underline decoration-dotted hover:cursor-pointer"
+    : "truncate";
   return (
     <button
       type="button"
@@ -45,18 +51,14 @@ function NotificationRow({
       className="windows95-border bg-primary flex w-full items-start gap-1 px-1 py-0.5 text-left disabled:cursor-default"
     >
       {avatar ? (
-        <ImageComponent
-          src={avatar}
-          alt=""
-          className="windows95-active-border h-8 w-6 shrink-0 object-cover"
-        />
+        <ImageComponent src={avatar} alt="" className={coverClass} />
       ) : (
         <div className="windows95-active-border bg-field flex h-8 w-6 shrink-0 items-center justify-center text-xs font-bold">
           {title[0] ?? "?"}
         </div>
       )}
       <div className="windows95-text flex min-w-0 flex-1 flex-col text-xs">
-        <span className="truncate" title={title}>
+        <span className={titleClass} title={title}>
           {unread && <span className="text-highlight font-bold">{"• "}</span>}
           {title}
         </span>
@@ -74,7 +76,9 @@ function NotificationRow({
 export function NotificationsTab({ onAnimeClick }: { onAnimeClick: (id: number) => void }) {
   const { t } = useI18n();
   const readIds = useAniListNotificationsStore((s) => s.readNotificationIds);
-  const markSiteNotificationsRead = useAniListNotificationsStore((s) => s.markSiteNotificationsRead);
+  const markSiteNotificationsRead = useAniListNotificationsStore(
+    (s) => s.markSiteNotificationsRead
+  );
   const { data, isLoading, isError, refetch } = useAppQuery("slow", {
     queryKey: queryKeys.siteNotifications(),
     queryFn: () => anilistApi.getSiteNotifications(),

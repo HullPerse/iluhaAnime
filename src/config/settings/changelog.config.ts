@@ -44,6 +44,14 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.added.anilist.site_notifications", "anilist"),
       entry("changelog.5_0_0.added.anilist.progress_stepper", "anilist"),
       entry("changelog.5_0_0.added.anilist.title_language", "anilist"),
+      entry("changelog.5_0_0.added.app.notification_toggles", "app"),
+      entry("changelog.5_0_0.added.anilist.status_matrix", "anilist"),
+      entry("changelog.5_0_0.added.anilist.site_toasts", "anilist"),
+      entry("changelog.5_0_0.added.torrents.health", "torrents"),
+      entry("changelog.5_0_0.added.player.newfiles", "player"),
+      entry("changelog.5_0_0.added.app.update_toast", "app"),
+      entry("changelog.5_0_0.added.app.task_toasts", "app"),
+      entry("changelog.5_0_0.added.anilist.activity_detail", "anilist"),
     ],
     changed: [
       entry("changelog.5_0_0.changed.anilist.batch_fetch", "anilist"),
@@ -67,6 +75,7 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.fixed.anilist.save_casing", "anilist"),
       entry("changelog.5_0_0.fixed.torrents.infohash_casing", "torrents"),
       entry("changelog.5_0_0.fixed.player.track_switch", "player"),
+      entry("changelog.5_0_0.fixed.anilist.site_query", "anilist"),
     ],
   },
   {

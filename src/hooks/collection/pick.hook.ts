@@ -5,7 +5,10 @@ import { WIZARD_COVER_MAX } from "@/config/collection/defaults.config";
 import type { useWizardSearch } from "@/hooks/collection/search.hook";
 import type { useWizardForm } from "@/hooks/collection/wizard.hook";
 import { mergeGenreTags } from "@/lib/collection/wizard.utils";
+import { tr } from "@/lib/locale/i18n.utils";
 import { reportBackgroundError } from "@/lib/utils/attempt.utils";
+import { showError } from "@/lib/utils/notification.utils";
+import { useSettingsStore } from "@/store/settings.store";
 import type { WizardPickedMedia, WizardSearchResult } from "@/types/collection";
 
 type WizardForm = ReturnType<typeof useWizardForm>;
@@ -115,9 +118,23 @@ export function useWizardPick({
                 trailerYoutubeId: m.trailerYoutubeId,
               };
             })
-            .catch((error) => reportBackgroundError("tmdb.pick.media", error));
+            .catch((error: unknown) => {
+              reportBackgroundError("tmdb.pick.media", error);
+              if (useSettingsStore.getState().notifyScanErrors)
+                showError(
+                  tr("notification.sync.failed"),
+                  error instanceof Error ? error.message : String(error)
+                );
+            });
         })
-        .catch((error) => reportBackgroundError("tmdb.pick.details", error));
+        .catch((error: unknown) => {
+          reportBackgroundError("tmdb.pick.details", error);
+          if (useSettingsStore.getState().notifyScanErrors)
+            showError(
+              tr("notification.sync.failed"),
+              error instanceof Error ? error.message : String(error)
+            );
+        });
     }
   };
 

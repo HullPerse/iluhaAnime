@@ -8,6 +8,7 @@ import { useAnimeShowcase } from "@/hooks/showcase.hook";
 import { useSearchStore } from "@/store/search.store";
 import type { AniVoiceActor } from "@/types/anilist";
 import type { AniDetailViewProps as ViewProps } from "@/types/anilist";
+import type { TFunc } from "@/types/i18n";
 
 import { DetailHeaderActions } from "./actions.detail";
 import AniListCharacterDetailModal from "./character.detail";
@@ -27,6 +28,13 @@ type CharacterTarget = {
   voiceActors: AniVoiceActor[];
   staff?: AniVoiceActor;
 };
+
+function detailErrorText(error: unknown, isLoggedIn: boolean, t: TFunc): string {
+  const raw = String(error ?? "");
+  if (!isLoggedIn && /403/.test(raw)) return t("anilist.details.login.required");
+  if (/404|Not Found/i.test(raw)) return t("anilist.details.unavailable");
+  return String(error ?? t("anilist.details.load.error"));
+}
 
 function CharacterWindow({
   target,
@@ -106,13 +114,10 @@ export function AniListDetailView({
   };
   if (isLoading) return <TabLoader className="min-h-48 flex-1" />;
   if (isError) {
-    const loginRequired = !isLoggedIn && /403/.test(String(error ?? ""));
     return (
       <section className="flex flex-col items-center gap-2 p-4">
         <span className="text-destructive text-center">
-          {loginRequired
-            ? t("anilist.details.login.required")
-            : String(error ?? t("anilist.details.load.error"))}
+          {detailErrorText(error, isLoggedIn, t)}
         </span>
         <Button onClick={refetch}>{t("anilist.details.retry")}</Button>
       </section>

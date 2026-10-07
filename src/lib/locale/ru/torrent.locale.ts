@@ -60,6 +60,9 @@ const torrent = {
   "torrent.peers.errors": "Ошибки",
   "torrent.notify.complete.title": "Загрузка завершена",
   "torrent.notify.error.title": "Ошибка загрузки",
+  "torrent.notify.health.external": "{{name}}: файлы изменены извне ({{count}})",
+  "torrent.notify.health.missing": "{{name}}: файлы данных отсутствуют",
+  "torrent.notify.health.title": "Торрент требует внимания",
 
   "torrent.eta.hours.minutes": "{{h}} ч {{m}} мин",
   "torrent.eta.minutes": "{{m}} мин",

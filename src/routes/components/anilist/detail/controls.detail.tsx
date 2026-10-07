@@ -21,6 +21,7 @@ import {
 import { buildAnilistPrefill } from "@/lib/collection/import.utils";
 import { queryKeys } from "@/lib/query/keys.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
+import { useAniListNotificationsStore } from "@/store/anilist.store";
 import { useCollectionStore } from "@/store/collection.store";
 import type { AniMedia, AnilistRouteData } from "@/types/anilist";
 import type { TranslationKey } from "@/types/i18n";
@@ -237,6 +238,7 @@ function AniListActionControls({
       setSaving(false);
       return;
     }
+    useAniListNotificationsStore.getState().markOwnListStatus(anime.id, values.list_status);
     onSaved?.();
     onClose?.();
   };

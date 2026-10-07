@@ -6,13 +6,12 @@ import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { systemApi } from "@/api/system.api";
 import { TOAST_ACTIVATED_EVENT } from "@/config/settings/notifications.config";
 import { tabForAltDigit, visibleTabs } from "@/config/settings/tabs.config";
-import { useAniListNotificationsStore } from "@/store/anilist.store";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useLiveResource } from "@/hooks/liveResource.hook";
 import { isOfflineDisabledTab, markOfflineTabs, useOnlineStatus } from "@/hooks/network.hook";
 import { useTauriEvent } from "@/hooks/tauriEvent.hook";
-import { pollAniListReleases } from "@/lib/anilist/notifications.utils";
+import { pollAniListReleases, pollSiteNotifications } from "@/lib/anilist/notifications.utils";
 import { queryKeys } from "@/lib/query/keys.utils";
 import { readAppCache, writeAppCache } from "@/lib/store/cache.utils";
 import { attemptAll, reportBackgroundError } from "@/lib/utils/attempt.utils";
@@ -30,6 +29,7 @@ import {
   showWarning,
 } from "@/lib/utils/notification.utils";
 import { checkForUpdates } from "@/lib/utils/update.utils";
+import { useAniListNotificationsStore } from "@/store/anilist.store";
 import { useCacheStore } from "@/store/cache.store";
 import { useCollectionStore } from "@/store/collection.store";
 import { useDeepLinkStore } from "@/store/deeplink.store";
@@ -101,8 +101,21 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
   const initTabsRef = useRef(false);
 
   useEffect(() => {
-    if (data) setUpdateAvailable(true);
-  }, [data]);
+    if (data) {
+      setUpdateAvailable(true);
+      if (useSettingsStore.getState().notifyUpdateAvailable) {
+        useNotificationStore
+          .getState()
+          .add(
+            t("updater.title"),
+            "info",
+            t("notification.update.available", { version: data.version }),
+            `app-update:${data.version}`,
+            { system: true }
+          );
+      }
+    }
+  }, [data, t]);
 
   const prevOnlineRef = useRef(isOnline);
   useEffect(() => {
@@ -447,6 +460,9 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
       const ok = await pollAniListReleases(t, () => releaseCancelledRef.current, {
         system: !firstReleasePollRef.current,
       });
+      await pollSiteNotifications(t, () => releaseCancelledRef.current, {
+        system: !firstReleasePollRef.current,
+      });
       if (ok) firstReleasePollRef.current = false;
       return ok;
     },
@@ -456,7 +472,12 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
     const sync = () => {
       const s = useSettingsStore.getState();
       systemApi
-        .setNotificationSettings(s.notificationsEnabled, s.notifyOnComplete, s.notifyOnError)
+        .setNotificationSettings(
+          s.notificationsEnabled,
+          s.notifyOnComplete,
+          s.notifyOnError,
+          s.notifyTorrentHealth
+        )
         .catch((error) => reportBackgroundError("notification-settings.sync", error));
     };
     sync();
@@ -464,7 +485,8 @@ export function useApp(activeTab: TabId, setActiveTab: (t: TabId) => void) {
       if (
         state.notificationsEnabled !== previous.notificationsEnabled ||
         state.notifyOnComplete !== previous.notifyOnComplete ||
-        state.notifyOnError !== previous.notifyOnError
+        state.notifyOnError !== previous.notifyOnError ||
+        state.notifyTorrentHealth !== previous.notifyTorrentHealth
       )
         sync();
     });

@@ -9,6 +9,7 @@ beforeEach(() => {
     releases: [],
     readNotificationIds: [],
     knownListNames: [],
+    siteMaxSeenId: 0,
   });
 });
 
@@ -34,9 +35,9 @@ describe("release feed", () => {
     const store = useAniListNotificationsStore.getState();
     store.addRelease({ mediaId: 1, title: "A", episode: 5, airedAt: 100 });
     store.markReleasesRead();
-    expect(
-      useAniListNotificationsStore.getState().releases.every((r) => r.read === true)
-    ).toBe(true);
+    expect(useAniListNotificationsStore.getState().releases.every((r) => r.read === true)).toBe(
+      true
+    );
   });
 
   it("tracks site notification reads without duplicates", () => {
@@ -44,5 +45,49 @@ describe("release feed", () => {
     store.markSiteNotificationsRead([3, 1, 3]);
     store.markSiteNotificationsRead([1, 2]);
     expect(useAniListNotificationsStore.getState().readNotificationIds).toEqual([3, 1, 2]);
+  });
+});
+
+describe("own list status", () => {
+  const observation = {
+    signature: "s",
+    status: "CURRENT",
+    mediaStatus: "RELEASING",
+    title: "A",
+    updatedAt: 1,
+    nextEpisode: 5,
+    nextAiringAt: 2,
+  };
+
+  it("merges an own status change into the existing observation", () => {
+    const store = useAniListNotificationsStore.getState();
+    store.saveObservation("7", { ...observation });
+    store.markOwnListStatus(7, "COMPLETED");
+    expect(useAniListNotificationsStore.getState().observations["7"]?.status).toBe("COMPLETED");
+    expect(useAniListNotificationsStore.getState().observations["7"]?.mediaStatus).toBe(
+      "RELEASING"
+    );
+  });
+
+  it("ignores media ids without an observation", () => {
+    useAniListNotificationsStore.getState().markOwnListStatus(9, "COMPLETED");
+    expect(useAniListNotificationsStore.getState().observations["9"]).toBeUndefined();
+  });
+
+  it("is a no-op for an unchanged status", () => {
+    const store = useAniListNotificationsStore.getState();
+    store.saveObservation("7", { ...observation });
+    const before = useAniListNotificationsStore.getState().observations;
+    store.markOwnListStatus(7, "CURRENT");
+    expect(useAniListNotificationsStore.getState().observations).toBe(before);
+  });
+});
+
+describe("site watermark", () => {
+  it("only moves forward", () => {
+    const store = useAniListNotificationsStore.getState();
+    store.setSiteMaxSeenId(10);
+    store.setSiteMaxSeenId(4);
+    expect(useAniListNotificationsStore.getState().siteMaxSeenId).toBe(10);
   });
 });

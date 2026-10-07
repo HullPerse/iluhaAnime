@@ -78,6 +78,17 @@ export interface SettingsStore {
   anilistReleaseNotifications: boolean;
   notifyNewEpisodes: boolean;
   notifyStatusChanges: boolean;
+  notifyMediaStatus: boolean;
+  notifySubscribedReplies: boolean;
+  notifyMediaMerge: boolean;
+  notifySequel: boolean;
+  notifyNewFiles: boolean;
+  notifyTorrentHealth: boolean;
+  notifyUpscaleDone: boolean;
+  notifyModelDownloads: boolean;
+  notifyBackup: boolean;
+  notifyUpdateAvailable: boolean;
+  notifyScanErrors: boolean;
   anilistPollIntervalMin: number;
   anilistNotifyLists: string[] | null;
   anilistListSort: AniListSort;

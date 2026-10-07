@@ -140,6 +140,7 @@ const anilist = {
   "anilist.details.studio.search": "Искать аниме этой студии",
   "anilist.details.studios": "Студии",
   "anilist.details.torrent.search": "Искать торренты по этому названию",
+  "anilist.details.unavailable": "Запись больше недоступна на AniList",
   "anilist.fav.toggle.failed": "Не удалось обновить избранное",
   "anilist.favourites.anime": "Аниме",
   "anilist.favourites.characters": "Персонажи",

@@ -56,6 +56,12 @@ struct NotificationConfig {
     enabled: bool,
     on_complete: bool,
     on_error: bool,
+    #[serde(default = "default_health")]
+    on_health: bool,
+}
+
+const fn default_health() -> bool {
+    true
 }
 
 impl Default for NotificationConfig {
@@ -64,6 +70,7 @@ impl Default for NotificationConfig {
             enabled: true,
             on_complete: true,
             on_error: true,
+            on_health: true,
         }
     }
 }
@@ -95,6 +102,7 @@ const TORRENT_VERIFY_PER_TICK: usize = 2;
 struct TorrentTickState {
     prev_states: HashMap<usize, (bool, Option<String>)>,
     notified_errors: HashMap<usize, String>,
+    notified_health: HashSet<usize>,
     cleanup_counter: u32,
     ticks_since_emit: u32,
     first_run: bool,
@@ -211,6 +219,42 @@ async fn run_torrent_update_tick(
                         }
                     }
                 }
+
+                if cfg.on_health && !t.finished {
+                    let unhealthy = t.missing_files || t.paused_external_changes;
+                    if unhealthy && !state.notified_health.contains(&t.id) {
+                        let (body_key, body_vars) = if t.missing_files {
+                            (
+                                "torrent.notify.health.missing",
+                                serde_json::json!({ "name": &t.name }),
+                            )
+                        } else {
+                            (
+                                "torrent.notify.health.external",
+                                serde_json::json!({
+                                    "name": &t.name,
+                                    "count": t.paused_changed_files.len(),
+                                }),
+                            )
+                        };
+                        let _ = app.emit(
+                            "show-notification",
+                            serde_json::json!({
+                                "titleKey": "torrent.notify.health.title",
+                                "bodyKey": body_key,
+                                "bodyVars": body_vars,
+                                "type": "warning",
+                                "action": {
+                                    "source": "folder",
+                                    "path": &t.save_dir,
+                                },
+                            }),
+                        );
+                        state.notified_health.insert(t.id);
+                    } else if !unhealthy {
+                        state.notified_health.remove(&t.id);
+                    }
+                }
             }
 
             state
@@ -224,6 +268,7 @@ async fn run_torrent_update_tick(
     state
         .notified_errors
         .retain(|id, _| current_ids.contains(id));
+    state.notified_health.retain(|id| current_ids.contains(id));
 
     manager.advance_sequential_torrents().await;
 
@@ -594,7 +639,9 @@ async fn scan_video_folder(
             }
         }
         if skipped > 0 {
-            tracing::warn!("scan_video_folder: skipped {skipped} unreadable entries in {path_clone}");
+            tracing::warn!(
+                "scan_video_folder: skipped {skipped} unreadable entries in {path_clone}"
+            );
         }
         Ok(entries)
     })

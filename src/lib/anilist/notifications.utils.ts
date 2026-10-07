@@ -3,8 +3,9 @@ import { attempt } from "@/lib/utils/attempt.utils";
 import { useAniListNotificationsStore } from "@/store/anilist.store";
 import { useNotificationStore } from "@/store/notification.store";
 import { useSettingsStore } from "@/store/settings.store";
-import type { AniNotificationEntry } from "@/types/anilist";
-import type { TFunc } from "@/types/i18n";
+import type { AniNotificationEntry, AniSiteNotification } from "@/types/anilist";
+import type { TFunc, TranslationKey } from "@/types/i18n";
+import type { NotificationType } from "@/types/notification";
 
 function notifyEpisode(
   animeId: number,
@@ -28,28 +29,53 @@ function notifyEpisode(
   return true;
 }
 
+const LIST_STATUS_TOAST: Record<string, { titleKey: TranslationKey; type: NotificationType }> = {
+  CURRENT: { titleKey: "notification.anilist.started", type: "info" },
+  COMPLETED: { titleKey: "notification.anilist.completed", type: "success" },
+  PAUSED: { titleKey: "notification.anilist.paused", type: "warning" },
+  DROPPED: { titleKey: "notification.anilist.dropped", type: "warning" },
+  REPEATING: { titleKey: "notification.anilist.repeating", type: "info" },
+  PLANNING: { titleKey: "notification.anilist.planned", type: "info" },
+};
+
 function notifyStatus(
   entry: AniNotificationEntry,
   previous: { status: string },
   t: TFunc,
   system: boolean
 ) {
-  const target = { source: "anilist", id: entry.media.id } as const;
   if (!useSettingsStore.getState().notifyStatusChanges) return;
-  if (entry.list_status === "COMPLETED" && previous.status !== "COMPLETED")
-    useNotificationStore
-      .getState()
-      .add(t("notification.anilist.completed"), "success", entry.media.title, undefined, {
-        system,
-        target,
-      });
-  if (entry.list_status === "PLANNING" && previous.status !== "PLANNING")
-    useNotificationStore
-      .getState()
-      .add(t("notification.anilist.planned"), "info", entry.media.title, undefined, {
-        system,
-        target,
-      });
+  if (entry.list_status === previous.status) return;
+  const toast = LIST_STATUS_TOAST[entry.list_status];
+  if (!toast) return;
+  const target = { source: "anilist", id: entry.media.id } as const;
+  useNotificationStore.getState().add(t(toast.titleKey), toast.type, entry.media.title, undefined, {
+    system,
+    target,
+  });
+}
+
+const MEDIA_STATUS_TOAST: Record<string, { titleKey: TranslationKey; type: NotificationType }> = {
+  FINISHED: { titleKey: "notification.anilist.media.finished", type: "success" },
+  CANCELLED: { titleKey: "notification.anilist.media.cancelled", type: "warning" },
+  HIATUS: { titleKey: "notification.anilist.media.hiatus", type: "info" },
+};
+
+function notifyMediaStatus(
+  entry: AniNotificationEntry,
+  previous: { mediaStatus: string },
+  t: TFunc,
+  system: boolean
+) {
+  if (!useSettingsStore.getState().notifyMediaStatus) return;
+  if (!previous.mediaStatus || entry.media.status === previous.mediaStatus) return;
+  const toast = MEDIA_STATUS_TOAST[entry.media.status];
+  if (!toast) return;
+  const target = { source: "anilist", id: entry.media.id } as const;
+  useNotificationStore.getState().add(t(toast.titleKey), toast.type, entry.media.title, undefined, {
+    system,
+    target,
+  });
 }
 
 function buildSignature(entry: AniNotificationEntry): string {
@@ -139,10 +165,12 @@ function processEntry(entry: AniNotificationEntry, now: number, t: TFunc, system
       }
     }
     notifyStatus(entry, previous, t, system);
+    notifyMediaStatus(entry, previous, t, system);
   }
   store.saveObservation(key, {
     signature,
     status: entry.list_status,
+    mediaStatus: media.status,
     title: media.title,
     updatedAt: Date.now(),
     nextEpisode: media.next_episode,
@@ -162,6 +190,108 @@ export async function pollAniListReleases(
 ): Promise<boolean> {
   const [polled, error] = await attempt(pollAniListReleasesOnce(t, isDisposed, options));
   return error === null && polled;
+}
+
+function siteToastBody(item: AniSiteNotification): string {
+  if (item.text) return item.text;
+  if (item.context) return item.context;
+  if (item.contexts.length > 0) return item.contexts.join(" ");
+  return item.anime_title ?? "";
+}
+
+function notifySiteItem(
+  key: string,
+  title: string,
+  body: string,
+  type: NotificationType,
+  system: boolean,
+  animeId: number | null
+): void {
+  const state = useNotificationStore.getState();
+  if (state.items.some((item) => item.eventKey === key)) return;
+  state.add(title, type, body || undefined, key, {
+    system,
+    ...(animeId != null ? { target: { source: "anilist", id: animeId } as const } : {}),
+  });
+}
+
+function maxSiteId(items: AniSiteNotification[]): number {
+  return items.reduce((max, item) => Math.max(max, item.id), 0);
+}
+
+interface SiteToggles {
+  replies: boolean;
+  merge: boolean;
+  sequel: boolean;
+}
+
+function processSiteItem(
+  item: AniSiteNotification,
+  maxSeen: number,
+  toggles: SiteToggles,
+  t: TFunc,
+  system: boolean
+): void {
+  if (item.id <= maxSeen) return;
+  const key = `site:${item.id}`;
+  if (item.kind === "subscribed" && toggles.replies) {
+    notifySiteItem(
+      key,
+      t("notification.anilist.subscribed.reply"),
+      siteToastBody(item),
+      "info",
+      system,
+      null
+    );
+    return;
+  }
+  if (item.kind === "sequel" && toggles.sequel) {
+    notifySiteItem(
+      key,
+      t("notification.anilist.sequel"),
+      item.anime_title ?? siteToastBody(item),
+      "info",
+      system,
+      item.anime_id
+    );
+    return;
+  }
+  if ((item.kind === "merged" || item.kind === "deleted") && toggles.merge) {
+    notifySiteItem(
+      key,
+      t("notification.anilist.merged"),
+      item.anime_title ?? siteToastBody(item),
+      "warning",
+      false,
+      item.anime_id
+    );
+  }
+}
+
+export async function pollSiteNotifications(
+  t: TFunc,
+  isDisposed: () => boolean,
+  options?: { system?: boolean }
+): Promise<boolean> {
+  const settings = useSettingsStore.getState();
+  const toggles: SiteToggles = {
+    replies: settings.notifySubscribedReplies,
+    merge: settings.notifyMediaMerge,
+    sequel: settings.notifySequel,
+  };
+  if (!toggles.replies && !toggles.merge && !toggles.sequel) return true;
+  const [items, error] = await attempt(anilistApi.getSiteNotifications());
+  if (error !== null || isDisposed()) return error === null;
+  const system = options?.system ?? true;
+  const store = useAniListNotificationsStore.getState();
+  const maxSeen = store.siteMaxSeenId;
+  if (maxSeen === 0) {
+    if (items.length > 0) store.setSiteMaxSeenId(maxSiteId(items));
+    return true;
+  }
+  for (const item of items) processSiteItem(item, maxSeen, toggles, t, system);
+  if (items.length > 0) store.setSiteMaxSeenId(maxSiteId(items));
+  return true;
 }
 
 async function pollAniListReleasesOnce(

@@ -4,6 +4,8 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { useTauriEvent } from "@/hooks/tauriEvent.hook";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
+import { useNotificationStore } from "@/store/notification.store";
+import { useSettingsStore } from "@/store/settings.store";
 import type { TranslationKey } from "@/types/i18n";
 import type { CommandName } from "@/types/ipc";
 import type { UpscaleToolStatus } from "@/types/player";
@@ -25,12 +27,24 @@ const DOWNLOAD_ERROR_KEY: Record<UpscaleTool, TranslationKey> = {
   realcugan: "player.realcugan.download.error",
 };
 
+const TOOL_LABEL: Record<UpscaleTool, string> = {
+  rife: "RIFE",
+  realcugan: "RealCUGAN",
+};
+
 export function useUpscaleToolStatus(tool: UpscaleTool) {
   const { t } = useI18n();
   const [status, setStatus] = useState<UpscaleToolStatus>("checking");
   const [percent, setPercent] = useState<number | null>(null);
   const [dlError, setDlError] = useState<string | null>(null);
   const busyRef = useRef(false);
+  const aliveRef = useRef(true);
+  useEffect(
+    () => () => {
+      aliveRef.current = false;
+    },
+    []
+  );
 
   useEffect(() => {
     let alive = true;
@@ -71,6 +85,16 @@ export function useUpscaleToolStatus(tool: UpscaleTool) {
       setStatus("missing");
     } else {
       setStatus("ok");
+    }
+    if (!aliveRef.current && useSettingsStore.getState().notifyModelDownloads) {
+      if (err)
+        useNotificationStore
+          .getState()
+          .add(t("notification.downloads.failed"), "error", TOOL_LABEL[tool]);
+      else
+        useNotificationStore
+          .getState()
+          .add(t("notification.downloads.done"), "success", TOOL_LABEL[tool]);
     }
     busyRef.current = false;
   }, [t, tool]);

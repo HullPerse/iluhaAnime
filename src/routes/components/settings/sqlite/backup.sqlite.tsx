@@ -7,6 +7,8 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { formatBackupDate } from "@/lib/settings/backup.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { formatBytes } from "@/lib/utils/bytes.utils";
+import { useNotificationStore } from "@/store/notification.store";
+import { useSettingsStore } from "@/store/settings.store";
 import type { SqliteBackupInfo } from "@/types/sqlite";
 
 export function BackupPanel({
@@ -53,14 +55,21 @@ export function BackupPanel({
     refresh();
   }, [refresh]);
 
+  const notifyBackupError = (message: string) => {
+    if (useSettingsStore.getState().notifyBackup)
+      useNotificationStore.getState().add(t("notification.backup.failed"), "error", message);
+  };
+
   const runBackup = async () => {
     if (!database || working) return;
     setWorking(true);
     setError(null);
     setNotice(null);
     const [created, error] = await attempt(sqliteApi.backupDatabase(database));
-    if (error) setError(error.message);
-    else {
+    if (error) {
+      setError(error.message);
+      notifyBackupError(error.message);
+    } else {
       setNotice(t("settings.sqlite.backup.done", { name: created.name }));
       await refresh();
       onChanged();
@@ -75,8 +84,10 @@ export function BackupPanel({
     setNotice(null);
 
     const [safety, error] = await attempt(sqliteApi.vacuumDatabase(database));
-    if (error) setError(error.message);
-    else {
+    if (error) {
+      setError(error.message);
+      notifyBackupError(error.message);
+    } else {
       setNotice(t("settings.sqlite.backup.vacuum.done", { name: safety.name }));
       await refresh();
       onChanged();
@@ -91,8 +102,10 @@ export function BackupPanel({
     setError(null);
     setNotice(null);
     const [, error] = await attempt(sqliteApi.restoreBackup(database, selected));
-    if (error) setError(error.message);
-    else {
+    if (error) {
+      setError(error.message);
+      notifyBackupError(error.message);
+    } else {
       setNotice(t("settings.sqlite.backup.restored"));
       await refresh();
       onChanged();

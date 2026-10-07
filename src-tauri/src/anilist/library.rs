@@ -630,6 +630,21 @@ pub struct AniSiteNotification {
 fn parse_site_notification(kind: &str, n: &serde_json::Value) -> Option<AniSiteNotification> {
     let user = &n["user"];
     let media = &n["media"];
+    if (kind == "sequel" || kind == "merged")
+        && media["type"].as_str().is_some_and(|t| t == "MANGA")
+    {
+        return None;
+    }
+    let deleted_titles = n["deletedMediaTitles"]
+        .as_array()
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(|t| t.as_str().map(String::from))
+                .collect::<Vec<_>>()
+                .join(", ")
+        })
+        .filter(|s| !s.is_empty());
     Some(AniSiteNotification {
         id: n["id"].as_u64()?,
         kind: kind.to_string(),
@@ -647,17 +662,16 @@ fn parse_site_notification(kind: &str, n: &serde_json::Value) -> Option<AniSiteN
         user_id: user["id"].as_u64(),
         user_name: user["name"].as_str().map(String::from),
         user_avatar: user["avatar"]["medium"].as_str().map(String::from),
-        anime_id: n["animeId"]
-            .as_u64()
-            .or_else(|| media["id"].as_u64()),
+        anime_id: n["animeId"].as_u64().or_else(|| media["id"].as_u64()),
         anime_title: media["title"]["romaji"]
             .as_str()
             .or_else(|| media["title"]["english"].as_str())
-            .map(String::from),
+            .map(String::from)
+            .or_else(|| n["deletedMediaTitle"].as_str().map(String::from)),
         anime_cover: media["coverImage"]["medium"].as_str().map(String::from),
         episode: n["episode"].as_i64().map(|e| e as i32),
         activity_id: n["activityId"].as_u64(),
-        text: n["text"].as_str().map(String::from),
+        text: n["text"].as_str().map(String::from).or(deleted_titles),
     })
 }
 
@@ -683,7 +697,7 @@ pub async fn get_anilist_notifications(
                             user { id name avatar { medium } }
                         }
                         ... on ActivityReplyNotification {
-                            __typename id createdAt activityId text context
+                            __typename id createdAt activityId context
                             user { id name avatar { medium } }
                         }
                         ... on FollowingNotification {
@@ -693,6 +707,21 @@ pub async fn get_anilist_notifications(
                         ... on ActivityMentionNotification {
                             __typename id createdAt activityId context
                             user { id name avatar { medium } }
+                        }
+                        ... on ActivityReplySubscribedNotification {
+                            __typename id createdAt activityId context
+                            user { id name avatar { medium } }
+                        }
+                        ... on RelatedMediaAdditionNotification {
+                            __typename id createdAt context
+                            media { id type title { romaji english } coverImage { medium } }
+                        }
+                        ... on MediaMergeNotification {
+                            __typename id createdAt context deletedMediaTitles
+                            media { id type title { romaji english } coverImage { medium } }
+                        }
+                        ... on MediaDeletionNotification {
+                            __typename id createdAt context deletedMediaTitle
                         }
                     }
                 }
@@ -712,6 +741,10 @@ pub async fn get_anilist_notifications(
             Some("ActivityReplyNotification") => parse_site_notification("reply", n),
             Some("FollowingNotification") => parse_site_notification("following", n),
             Some("ActivityMentionNotification") => parse_site_notification("mention", n),
+            Some("ActivityReplySubscribedNotification") => parse_site_notification("subscribed", n),
+            Some("RelatedMediaAdditionNotification") => parse_site_notification("sequel", n),
+            Some("MediaMergeNotification") => parse_site_notification("merged", n),
+            Some("MediaDeletionNotification") => parse_site_notification("deleted", n),
             _ => None,
         })
         .collect())

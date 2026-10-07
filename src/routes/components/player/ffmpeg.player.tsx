@@ -1,5 +1,5 @@
 import { Download, Trash2 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import ProgressBar from "@/components/shared/progress.component";
 import { Button } from "@/components/ui/button.component";
@@ -8,6 +8,7 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { useTauriEvent } from "@/hooks/tauriEvent.hook";
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
+import { useNotificationStore } from "@/store/notification.store";
 import { useSettingsStore } from "@/store/settings.store";
 import type { FFMPEGStatus } from "@/types/settings";
 
@@ -20,6 +21,14 @@ function FFMPEG({
 }) {
   const ffmpegSource = useSettingsStore((state) => state.ffmpegSource);
   const [dlError, setDlError] = useState<string | null>(null);
+  const { t } = useI18n();
+  const aliveRef = useRef(true);
+  useEffect(
+    () => () => {
+      aliveRef.current = false;
+    },
+    []
+  );
   const handleDownload = useCallback(async () => {
     setStatus("downloading");
     setDlError(null);
@@ -32,7 +41,13 @@ function FFMPEG({
       setDlError(error.message);
       setStatus("missing");
     } else setStatus("ok");
-  }, [setStatus]);
+    if (!aliveRef.current && useSettingsStore.getState().notifyModelDownloads) {
+      if (error)
+        useNotificationStore.getState().add(t("notification.downloads.failed"), "error", "FFmpeg");
+      else
+        useNotificationStore.getState().add(t("notification.downloads.done"), "success", "FFmpeg");
+    }
+  }, [setStatus, t]);
 
   const handleRemove = useCallback(async () => {
     const [, error] = await attempt(invokeTyped("remove_ffmpeg"));
@@ -44,7 +59,6 @@ function FFMPEG({
     downloaded: number;
     total: number;
   } | null>(null);
-  const { t } = useI18n();
 
   const [dlStage, setDlStage] = useState<string>("");
 

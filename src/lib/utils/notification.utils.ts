@@ -24,6 +24,10 @@ export function showError(title: string, body: string): void {
   show(title, "error", body);
 }
 
+export function showErrorOnce(eventKey: string, title: string, body: string): void {
+  useNotificationStore.getState().add(title, "error", body, eventKey);
+}
+
 export function showInfo(title: string, body?: string): void {
   show(title, "info", body);
 }

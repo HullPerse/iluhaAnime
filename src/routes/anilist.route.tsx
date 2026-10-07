@@ -27,6 +27,7 @@ import {
 import { parseScoreFormat, resolveDisplayScoreFormat } from "@/lib/anilist/score.utils";
 import { tr } from "@/lib/locale/i18n.utils";
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
+import { showErrorOnce } from "@/lib/utils/notification.utils";
 import { paginate } from "@/lib/utils/pagination.utils";
 import { useAniListFriendsStore } from "@/store/anilist.store";
 import { useDeepLinkStore } from "@/store/deeplink.store";
@@ -123,10 +124,16 @@ function AnilistRoute() {
 
   useEffect(() => {
     if (!user) return;
-    anilistApi
-      .syncFranchiseToIndex()
-      .catch((error) => reportBackgroundError("franchise.sync", error));
-  }, [user]);
+    anilistApi.syncFranchiseToIndex().catch((error: unknown) => {
+      reportBackgroundError("franchise.sync", error);
+      if (useSettingsStore.getState().notifyScanErrors)
+        showErrorOnce(
+          "franchise-sync",
+          t("notification.sync.failed"),
+          error instanceof Error ? error.message : String(error)
+        );
+    });
+  }, [t, user]);
 
   const favouriteIds = useMemo(() => new Set(favourites.map((f) => f.id)), [favourites]);
 
@@ -675,7 +682,22 @@ function AnilistRoute() {
           selfUser={user}
           activityTab={views.activity.tab}
           onActivityClose={handleCloseActivity}
-          onActivityAnime={openAnimeFromLookup}
+          activityDetail={{
+            entryLookup,
+            scoreFormat: viewerScoreFormat,
+            favouriteIds,
+            favouriteStaffIds,
+            favouriteCharacterIds,
+            isLoggedIn: !!user,
+            onFavouriteToggle: toggleFavourite,
+            onStaffFavouriteToggle: toggleFavouriteStaff,
+            onCharacterFavouriteToggle: toggleFavouriteCharacter,
+            onTag: handleTag,
+            onGenre: handleGenre,
+            onStudio: handleStudio,
+            onSeason: handleSeason,
+            onSaved: handleDetailsSaved,
+          }}
           friends={friends}
           onAddFriend={handleAddFriend}
           onAddManyFriends={handleAddManyFriends}

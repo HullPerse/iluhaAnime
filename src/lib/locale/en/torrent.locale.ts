@@ -60,6 +60,9 @@ const torrent = {
   "torrent.peers.errors": "Errors",
   "torrent.notify.complete.title": "Download finished",
   "torrent.notify.error.title": "Download error",
+  "torrent.notify.health.external": "{{name}}: files changed externally ({{count}})",
+  "torrent.notify.health.missing": "{{name}}: data files are missing",
+  "torrent.notify.health.title": "Torrent needs attention",
 
   "torrent.eta.hours.minutes": "{{h}} h {{m}} min",
   "torrent.eta.minutes": "{{m}} min",

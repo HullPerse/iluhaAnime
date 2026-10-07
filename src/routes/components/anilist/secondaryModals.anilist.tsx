@@ -1,6 +1,8 @@
 import type { RandomDiscovery } from "@/hooks/anilist/discovery.hook";
 import { buildEntryLookup } from "@/lib/anilist/entries.utils";
-import ActivityHistoryModal from "@/routes/components/anilist/activity.anilist";
+import ActivityHistoryModal, {
+  type ActivityDetailBundle,
+} from "@/routes/components/anilist/activity.anilist";
 import Auth from "@/routes/components/anilist/auth.anilist";
 import BrowseAnimeModal from "@/routes/components/anilist/browse.anilist";
 import AniListFavouritesModal from "@/routes/components/anilist/favourites.anilist";
@@ -36,7 +38,7 @@ export default function AniListSecondaryModals({
   selfUser,
   activityTab,
   onActivityClose,
-  onActivityAnime,
+  activityDetail,
   friends,
   onAddFriend,
   onAddManyFriends,
@@ -81,7 +83,7 @@ export default function AniListSecondaryModals({
   selfUser: AniUser | null;
   activityTab: "feed" | "calendar" | "notifications";
   onActivityClose: () => void;
-  onActivityAnime: (id: number) => void;
+  activityDetail: ActivityDetailBundle;
   friends: AniFriend[];
   onAddFriend: (profile: AniUserProfile) => void;
   onAddManyFriends: (friends: AniFriendMinimal[]) => void;
@@ -132,7 +134,7 @@ export default function AniListSecondaryModals({
           lists={lists}
           initialTab={activityTab}
           onClose={onActivityClose}
-          onAnimeClick={onActivityAnime}
+          detail={activityDetail}
         />
       )}
 

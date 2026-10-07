@@ -134,6 +134,7 @@ const anilist = {
   "anilist.details.studio.search": "Search anime of this studio",
   "anilist.details.studios": "Studios",
   "anilist.details.torrent.search": "Search torrents by this title",
+  "anilist.details.unavailable": "This entry is no longer available on AniList",
   "anilist.fav.toggle.failed": "Could not update favourites",
   "anilist.favourites.anime": "Anime",
   "anilist.favourites.characters": "Characters",

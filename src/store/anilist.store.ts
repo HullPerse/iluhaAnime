@@ -58,7 +58,10 @@ function normalizeRelease(release: Partial<AniListRelease>): AniListRelease | nu
   return {
     mediaId: release.mediaId,
     title: typeof release.title === "string" ? release.title : "",
-    episode: typeof release.episode === "number" || typeof release.episode === "string" ? release.episode : "?",
+    episode:
+      typeof release.episode === "number" || typeof release.episode === "string"
+        ? release.episode
+        : "?",
     airedAt: typeof release.airedAt === "number" && release.airedAt > 0 ? release.airedAt : 0,
     read: release.read === true,
   };
@@ -70,6 +73,7 @@ function normalizeObservation(obs: Partial<AniListObservation>): AniListObservat
   return {
     signature: obs.signature ?? "",
     status: obs.status ?? "",
+    mediaStatus: obs.mediaStatus ?? "",
     title: obs.title ?? "",
     updatedAt: obs.updatedAt ?? 0,
     nextEpisode: obs.nextEpisode ?? null,
@@ -142,10 +146,20 @@ export const useAniListNotificationsStore = create<AniListNotificationsStore>()(
       releases: [],
       readNotificationIds: [],
       knownListNames: [],
+      siteMaxSeenId: 0,
       saveObservation: (id, observation) =>
         set((state) => ({
           observations: { ...state.observations, [id]: observation },
         })),
+      markOwnListStatus: (mediaId, status) =>
+        set((state) => {
+          const key = String(mediaId);
+          const prev = state.observations[key];
+          if (!prev || prev.status === status) return state;
+          return {
+            observations: { ...state.observations, [key]: { ...prev, status } },
+          };
+        }),
       addRelease: (release) =>
         set((state) => {
           if (
@@ -155,10 +169,7 @@ export const useAniListNotificationsStore = create<AniListNotificationsStore>()(
           )
             return state;
           return {
-            releases: [
-              { ...release, read: false },
-              ...state.releases,
-            ].slice(0, RELEASE_FEED_CAP),
+            releases: [{ ...release, read: false }, ...state.releases].slice(0, RELEASE_FEED_CAP),
           };
         }),
       markReleasesRead: () =>
@@ -180,6 +191,8 @@ export const useAniListNotificationsStore = create<AniListNotificationsStore>()(
         }),
       setInitialized: (initialized) => set({ initialized }),
       setKnownListNames: (knownListNames) => set({ knownListNames }),
+      setSiteMaxSeenId: (id) =>
+        set((state) => (id > state.siteMaxSeenId ? { siteMaxSeenId: id } : state)),
     }),
     {
       migrate: (persistedState: unknown, version: number) => {
@@ -190,6 +203,7 @@ export const useAniListNotificationsStore = create<AniListNotificationsStore>()(
             releases: [],
             readNotificationIds: [],
             knownListNames: [],
+            siteMaxSeenId: 0,
           };
         const state = persistedState as Partial<AniListNotificationsStore> & {
           observations?: Record<string, Partial<AniListObservation> & { signature?: string }>;
@@ -202,6 +216,7 @@ export const useAniListNotificationsStore = create<AniListNotificationsStore>()(
             releases: [],
             readNotificationIds: [],
             knownListNames: [],
+            siteMaxSeenId: 0,
           };
         const releases = Array.isArray(state.releases)
           ? state.releases.flatMap((item) => {
@@ -211,6 +226,15 @@ export const useAniListNotificationsStore = create<AniListNotificationsStore>()(
           : [];
         return {
           ...(state as AniListNotificationsStore),
+          observations: Object.fromEntries(
+            Object.entries(
+              (state.observations ?? {}) as Record<string, Partial<AniListObservation>>
+            ).map(([id, obs]) => [id, normalizeObservation(obs)])
+          ),
+          siteMaxSeenId:
+            typeof state.siteMaxSeenId === "number" && state.siteMaxSeenId > 0
+              ? state.siteMaxSeenId
+              : 0,
           releases,
           readNotificationIds: Array.isArray(state.readNotificationIds)
             ? state.readNotificationIds.filter(
@@ -221,7 +245,7 @@ export const useAniListNotificationsStore = create<AniListNotificationsStore>()(
         };
       },
       name: "anilistReleaseObservations",
-      version: 5,
+      version: 6,
     }
   )
 );

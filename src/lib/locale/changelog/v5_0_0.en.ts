@@ -55,6 +55,22 @@ const changelog500 = {
     "Progress stepper on anime cards with plus and minus episode buttons",
   "changelog.5_0_0.added.anilist.title_language":
     "Anime title language preference: account setting, romaji, english, or native",
+  "changelog.5_0_0.added.app.notification_toggles":
+    "Every notification source has its own toggle in Settings Notifications, grouped by AniList, torrents, player, tasks, and app",
+  "changelog.5_0_0.added.anilist.status_matrix":
+    "AniList status toasts cover the full list matrix plus anime finished, hiatus, and cancelled states, and your own list edits no longer notify",
+  "changelog.5_0_0.added.anilist.site_toasts":
+    "Toasts for subscribed activity replies, sequels, entry merges and deletions, with manga filtered out of site notifications",
+  "changelog.5_0_0.added.torrents.health":
+    "Torrent health warnings for missing data files and externally changed files",
+  "changelog.5_0_0.added.player.newfiles":
+    "Watched folders report new files: snapshot check on scan plus a 30 minute recheck",
+  "changelog.5_0_0.added.app.update_toast":
+    "One-shot tray notice when an app update is found",
+  "changelog.5_0_0.added.app.task_toasts":
+    "Completion toasts for upscale, convert, and tool downloads, plus backup errors and scan failure surfacing",
+  "changelog.5_0_0.added.anilist.activity_detail":
+    "Anime details from the activity feed and notifications open inside the same window with Back",
   "changelog.5_0_0.changed.anilist.batch_fetch":
     "AniList list, score, and media fetching goes through a 3 request semaphore with alias batching in anilist batch.rs, so collections and friend data load in fewer round trips",
   "changelog.5_0_0.changed.search.scoring_unify":
@@ -93,6 +109,8 @@ const changelog500 = {
     "Tracker add and remove were broken by infoHash against info_hash casing across the torrent client",
   "changelog.5_0_0.fixed.player.track_switch":
     "Audio and subtitle track switching wrote numeric values where mpv expects strings",
+  "changelog.5_0_0.fixed.anilist.site_query":
+    "Site notifications failed to load on an invalid text field in two notification fragments",
 } as const;
 
 export default changelog500;

@@ -33,12 +33,12 @@ describe("SystemApi", () => {
     const { calls, transport } = fakeTransport();
     const api = new SystemApi({ transport });
 
-    await api.setNotificationSettings(true, false, true);
+    await api.setNotificationSettings(true, false, true, false);
 
     expect(calls).toEqual([
       {
         command: "set_notification_settings",
-        args: { config: { enabled: true, on_complete: false, on_error: true } },
+        args: { config: { enabled: true, on_complete: false, on_error: true, on_health: false } },
       },
     ]);
   });

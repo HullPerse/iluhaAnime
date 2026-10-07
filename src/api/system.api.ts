@@ -105,9 +105,14 @@ export class SystemApi {
     return this.call("take_pending_deep_links");
   }
 
-  setNotificationSettings(enabled: boolean, onComplete: boolean, onError: boolean): Promise<void> {
+  setNotificationSettings(
+    enabled: boolean,
+    onComplete: boolean,
+    onError: boolean,
+    onHealth: boolean
+  ): Promise<void> {
     return this.call("set_notification_settings", {
-      config: { enabled, on_complete: onComplete, on_error: onError },
+      config: { enabled, on_complete: onComplete, on_error: onError, on_health: onHealth },
     });
   }
 

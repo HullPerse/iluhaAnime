@@ -78,6 +78,7 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.changed.search.pacing", "search"),
       entry("changelog.5_0_0.changed.search.did_you_mean_highlight", "search"),
       entry("changelog.5_0_0.changed.app.state_engine", "app"),
+      entry("changelog.5_0_0.changed.anilist.progress_blocks", "anilist"),
     ],
     fixed: [
       entry("changelog.5_0_0.fixed.anilist.save_casing", "anilist"),

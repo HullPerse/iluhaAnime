@@ -1,6 +1,6 @@
 import { cn } from "cn";
 
-const PROGRESS_SLOTS_CAP = 24;
+const PROGRESS_SLOTS_CAP = 12;
 
 function ProgressBar({
   value,
@@ -43,8 +43,8 @@ function ProgressBar({
   const safeValue = Math.max(0, Math.min(value, safeMax));
 
   if (slots && safeMax > 0) {
-    const count = Math.min(Math.floor(safeMax), Math.max(1, Math.floor(slotsCap)));
-    const filled = Math.round((safeValue / safeMax) * count);
+    const count = Math.max(1, Math.floor(slotsCap));
+    const filled = safeValue >= safeMax ? count : Math.floor((safeValue / safeMax) * count);
     return (
       <div
         className={cn(

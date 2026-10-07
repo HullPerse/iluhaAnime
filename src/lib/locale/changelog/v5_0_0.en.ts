@@ -9,8 +9,7 @@ const changelog500 = {
     "Timeline hover previews: live mpv with a disk cache serves warm thumbs in 16 to 55 ms against 179 to 320 ms with ffmpeg, and a click on the time toggles elapsed and remaining",
   "changelog.5_0_0.added.player.eof":
     "End of file behavior setting: do nothing, pause at the end, play the next file, or repeat",
-  "changelog.5_0_0.added.player.categories":
-    "Category import and export for the player library",
+  "changelog.5_0_0.added.player.categories": "Category import and export for the player library",
   "changelog.5_0_0.added.player.playlist_dnd":
     "Playlist drag and drop reorder, prefetch of the next file, and virtualization past 50 rows",
   "changelog.5_0_0.added.player.clean_frame":
@@ -71,8 +70,7 @@ const changelog500 = {
     "Torrent health warnings for missing data files and externally changed files",
   "changelog.5_0_0.added.player.newfiles":
     "Watched folders report new files: snapshot check on scan plus a 30 minute recheck",
-  "changelog.5_0_0.added.app.update_toast":
-    "One-shot tray notice when an app update is found",
+  "changelog.5_0_0.added.app.update_toast": "One-shot tray notice when an app update is found",
   "changelog.5_0_0.added.app.task_toasts":
     "Completion toasts for upscale, convert, and tool downloads, plus backup errors and scan failure surfacing",
   "changelog.5_0_0.added.anilist.activity_detail":
@@ -95,8 +93,7 @@ const changelog500 = {
     "Magnet metadata wait extended from 30 to 120 seconds for slow seeders, dead fallback trackers replaced, and a dedicated preparing state with an elapsed timer",
   "changelog.5_0_0.changed.anilist.stats_tabs":
     "Statistics window split into Overview, Calendar, and Released tabs",
-  "changelog.5_0_0.changed.anilist.toolbar":
-    "AniList toolbar collapsed into an overflow menu",
+  "changelog.5_0_0.changed.anilist.toolbar": "AniList toolbar collapsed into an overflow menu",
   "changelog.5_0_0.changed.anilist.more_menu":
     "AniList overflow menu now uses the shared collection dropdown style with grouped actions and an explicit scroll or pagination choice",
   "changelog.5_0_0.changed.anilist.nsfw":
@@ -127,6 +124,8 @@ const changelog500 = {
     "Reworked internal state handling so lists, the player, and settings react faster",
   "changelog.5_0_0.changed.search.did_you_mean_highlight":
     "Did-you-mean suggestions now highlight what changed in the correction",
+  "changelog.5_0_0.changed.anilist.progress_blocks":
+    "Episode progress bars always show 12 blocks of equal width, so short and long series look the same and the bar fills fully only on the last episode",
 } as const;
 
 export default changelog500;

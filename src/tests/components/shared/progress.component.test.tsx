@@ -82,7 +82,7 @@ describe("ProgressBar slots mode", () => {
     return Array.from(screen.getByRole("progressbar").children);
   }
 
-  it("renders one cell per unit when max is at or under the cap", () => {
+  it("renders a fixed 12 cells with one cell per episode at max 12", () => {
     render(<ProgressBar value={5} max={12} slots />);
     const cells = slotCells();
     expect(cells).toHaveLength(12);
@@ -93,16 +93,32 @@ describe("ProgressBar slots mode", () => {
   it("caps the cell count and scales the filled count for long totals", () => {
     render(<ProgressBar value={100} max={500} slots />);
     const cells = slotCells();
-    expect(cells).toHaveLength(24);
-    expect(cells.slice(0, 5).every((cell) => cell.className.includes("bg-secondary"))).toBe(true);
-    expect(cells.slice(5).every((cell) => cell.className.includes("bg-surface"))).toBe(true);
+    expect(cells).toHaveLength(12);
+    expect(cells.slice(0, 2).every((cell) => cell.className.includes("bg-secondary"))).toBe(true);
+    expect(cells.slice(2).every((cell) => cell.className.includes("bg-surface"))).toBe(true);
+  });
+
+  it("maps a short total onto the fixed 12 cells", () => {
+    render(<ProgressBar value={3} max={6} slots />);
+    const cells = slotCells();
+    expect(cells).toHaveLength(12);
+    expect(cells.slice(0, 6).every((cell) => cell.className.includes("bg-secondary"))).toBe(true);
+    expect(cells.slice(6).every((cell) => cell.className.includes("bg-surface"))).toBe(true);
+  });
+
+  it("does not show full before the last episode", () => {
+    render(<ProgressBar value={23} max={24} slots />);
+    const cells = slotCells();
+    expect(cells).toHaveLength(12);
+    expect(cells[11]?.className).toContain("bg-surface");
   });
 
   it("applies barClassName to the filled slots only", () => {
     render(<ProgressBar value={1} max={4} slots barClassName="bg-accent" />);
     const cells = slotCells();
-    expect(cells[0]?.className).toContain("bg-accent");
-    expect(cells[1]?.className).toContain("bg-surface");
+    expect(cells).toHaveLength(12);
+    expect(cells[2]?.className).toContain("bg-accent");
+    expect(cells[3]?.className).toContain("bg-surface");
   });
 
   it("keeps the progressbar aria attributes in slots mode", () => {

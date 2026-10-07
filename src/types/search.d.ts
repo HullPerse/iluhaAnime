@@ -229,17 +229,6 @@ export interface SuggestionSection {
   endIndex: number;
 }
 
-export interface HighlightSegment {
-  text: string;
-  matched: boolean;
-}
-
-export interface HighlightToken {
-  text: string;
-  highlighted: boolean;
-  spell?: "warn" | "error";
-}
-
 export type EraiErrorCode =
   | "webview_open"
   | "webview_save"

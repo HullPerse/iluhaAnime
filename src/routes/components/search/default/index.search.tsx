@@ -148,6 +148,7 @@ function SearchDefault() {
       {isError && <SearchErrorBar error={error} onRetry={() => refetch()} />}
       <DidYouMeanRow
         correction={didYouMean}
+        query={searchParams}
         loading={isLoading}
         resultCount={data?.length ?? 0}
         onPick={applyDidYouMean}

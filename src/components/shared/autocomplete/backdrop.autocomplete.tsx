@@ -1,4 +1,10 @@
-import type { HighlightToken } from "@/types/search";
+import type { HighlightToken } from "@/lib/highlight/highlight.utils";
+
+function spellOf(kind: HighlightToken["kind"]): "warn" | "error" | undefined {
+  if (kind === "spell-error") return "error";
+  if (kind === "spell-warn") return "warn";
+  return undefined;
+}
 
 export function BackdropLayer({
   currentValue,
@@ -26,11 +32,11 @@ export function BackdropLayer({
             segment.highlighted ? (
               <span
                 key={index}
-                data-spell={segment.spell ?? undefined}
+                data-spell={spellOf(segment.kind) ?? undefined}
                 className={
-                  segment.spell === "error"
+                  segment.kind === "spell-error"
                     ? "text-text underline decoration-red-500 decoration-wavy underline-offset-2"
-                    : segment.spell === "warn"
+                    : segment.kind === "spell-warn"
                       ? "text-text underline decoration-amber-500 decoration-wavy underline-offset-2"
                       : "bg-highlight text-title-text"
                 }

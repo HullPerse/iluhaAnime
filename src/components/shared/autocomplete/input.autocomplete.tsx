@@ -4,11 +4,10 @@ import type { RefObject } from "react";
 
 import { Input } from "@/components/ui/input.component";
 import { AUTOCOMPLETE_HISTORY_LIMIT } from "@/config/search/autocomplete.config";
+import { mergeRanges, splitByRanges } from "@/lib/highlight/highlight.utils";
 import {
-
   computeGhostValue,
   getAriaAutocomplete,
-  splitHighlightRanges,
 } from "@/lib/search/highlight.utils";
 import { groupSuggestions, rankHistoryEntries } from "@/lib/search/suggestions.utils";
 import type { SearchSuggestion } from "@/lib/search/suggestions.utils";
@@ -206,7 +205,10 @@ export function InlineAutocompleteInput({
   const spellRanges = useMemo(() => spellRangeOf(spellCheck), [spellCheck]);
   const highlightSegments = useMemo(
     () =>
-      splitHighlightRanges(currentValue, [...(highlightRanges ?? EMPTY_RANGES), ...spellRanges]),
+      splitByRanges(
+        currentValue,
+        mergeRanges([...(highlightRanges ?? EMPTY_RANGES), ...spellRanges], currentValue.length)
+      ),
     [currentValue, highlightRanges, spellRanges]
   );
   const hasHighlight = highlightSegments.some((s) => s.highlighted);

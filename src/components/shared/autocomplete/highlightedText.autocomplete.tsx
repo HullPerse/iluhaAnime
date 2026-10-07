@@ -1,6 +1,9 @@
 import { cn } from "cn";
 
-import { splitHighlighted } from "@/lib/search/highlight.utils";
+import {
+  findSubsequenceRanges,
+  splitByRanges,
+} from "@/lib/highlight/highlight.utils";
 
 export function HighlightedText({
   candidate,
@@ -13,8 +16,8 @@ export function HighlightedText({
 }) {
   return (
     <>
-      {splitHighlighted(candidate, query).map((segment, index) =>
-        segment.matched ? (
+      {splitByRanges(candidate, findSubsequenceRanges(candidate, query)).map((segment, index) =>
+        segment.highlighted ? (
           <span
             key={index}
             className={cn(

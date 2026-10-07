@@ -1,3 +1,4 @@
+import { attemptSync } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { inflightFetch } from "@/lib/utils/lruCache.utils";
 import type { CommandName } from "@/types/ipc";
@@ -29,11 +30,8 @@ export function resetTransportStats(): void {
 function recordInvoke(command: string, args?: Record<string, unknown>): void {
   const entry = stats.get(command) ?? { invokes: 0, bodyBytes: 0 };
   entry.invokes += 1;
-  try {
-    entry.bodyBytes += JSON.stringify(args ?? null).length;
-  } catch {
-    entry.bodyBytes += 0;
-  }
+  const [body] = attemptSync(() => JSON.stringify(args ?? null));
+  entry.bodyBytes += body?.length ?? 0;
   stats.set(command, entry);
 }
 
@@ -42,13 +40,9 @@ if (import.meta.env.DEV && typeof window !== "undefined") {
 }
 
 function dedupKey(command: string, args?: Record<string, unknown>): string | null {
-  try {
-    const raw = JSON.stringify(args ?? null);
-    if (raw.length > DEDUP_KEY_LIMIT) return null;
-    return `${command}:${raw}`;
-  } catch {
-    return null;
-  }
+  const [raw] = attemptSync(() => JSON.stringify(args ?? null));
+  if (raw === null || raw.length > DEDUP_KEY_LIMIT) return null;
+  return `${command}:${raw}`;
 }
 
 export function resetTransportInflight(): void {

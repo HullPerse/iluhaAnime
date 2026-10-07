@@ -1,4 +1,5 @@
 import { readVideoCard } from "@/lib/player/playback.utils";
+import { withFallback } from "@/lib/utils/attempt.utils";
 import { assetUrl } from "@/lib/utils/image.utils";
 import { createLruCache, inflightFetch } from "@/lib/utils/lruCache.utils";
 
@@ -25,20 +26,20 @@ export function fetchVideoCard(path: string): Promise<CardArt | null> {
   if (!path) return Promise.resolve(null);
   const cached = cache.get(path);
   if (cached) return Promise.resolve(cached);
-  return inflightFetch(inflight, path, async () => {
-    try {
-      const card = await readVideoCard(path);
-      const next: CardArt = {
-        url: assetUrl(card.path),
-        duration: card.duration,
-        size: card.size,
-      };
-      cache.set(path, next);
-      return next;
-    } catch {
-      return null;
-    }
-  });
+  return inflightFetch(inflight, path, () =>
+    withFallback<CardArt | null>(
+      readVideoCard(path).then((card) => {
+        const next: CardArt = {
+          url: assetUrl(card.path),
+          duration: card.duration,
+          size: card.size,
+        };
+        cache.set(path, next);
+        return next;
+      }),
+      null
+    )
+  );
 }
 
 export function orderCardPaths(paths: string[], activePath: string): string[] {

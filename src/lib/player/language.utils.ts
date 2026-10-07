@@ -1,3 +1,5 @@
+import { attemptSync } from "@/lib/utils/attempt.utils";
+
 const ISO_639_2_TO_1: Record<string, string> = {
   ara: "ar",
   bel: "be",
@@ -49,11 +51,11 @@ export function normalizeLangCode(code: string | undefined): string {
   return ISO_639_2_TO_1[lower] ?? lower;
 }
 
-let cachedNames: Intl.DisplayNames | null = null;
-try {
-  cachedNames = new Intl.DisplayNames(["en"], { type: "language" });
-} catch {
-  cachedNames = null;
+let cachedNames: Intl.DisplayNames | null;
+{
+  // oxlint-disable-next-line react-doctor/js-hoist-intl -- runs once at module init, not per call
+  const [displayNames] = attemptSync(() => new Intl.DisplayNames(["en"], { type: "language" }));
+  cachedNames = displayNames;
 }
 
 function displayNamesEn(): Intl.DisplayNames | null {
@@ -65,13 +67,9 @@ export function languageName(code: string | undefined): string {
   if (!normalized) return "";
   const names = displayNamesEn();
   if (!names) return normalized.toUpperCase();
-  try {
-    const name = names.of(normalized);
-    if (!name || name.toLowerCase() === normalized.toLowerCase()) {
-      return normalized.toUpperCase();
-    }
-    return name;
-  } catch {
+  const [name] = attemptSync(() => names.of(normalized));
+  if (!name || name.toLowerCase() === normalized.toLowerCase()) {
     return normalized.toUpperCase();
   }
+  return name;
 }

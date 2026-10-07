@@ -23,6 +23,7 @@ import {
   type PlaylistEntry,
 } from "@/lib/player/playback.utils";
 import { fileNameFromPath, formatParsedTitle } from "@/lib/player/title.utils";
+import { attempt, attemptAll, withFallback } from "@/lib/utils/attempt.utils";
 import { formatBytes } from "@/lib/utils/bytes.utils";
 import { formatVerticalDragTransform } from "@/lib/utils/drag.utils";
 import { ignore } from "@/lib/utils/promise.utils";
@@ -192,13 +193,10 @@ function PlaylistBody({ onPlay, onRemove, onMove }: PlaylistBodyProps) {
     async (action: Promise<unknown>, optimistic?: PlaylistEntry[]) => {
       const previous = entriesRef.current;
       if (optimistic) applyEntries(optimistic);
-      try {
-        await action;
-      } catch {
-        if (optimistic) {
-          applyEntries(previous);
-          return;
-        }
+      const [, error] = await attempt(action);
+      if (error && optimistic) {
+        applyEntries(previous);
+        return;
       }
       await refresh();
     },
@@ -238,16 +236,22 @@ function PlaylistBody({ onPlay, onRemove, onMove }: PlaylistBodyProps) {
 
   async function onAdd() {
     setAdding(true);
-    try {
-      const selection = await openDialog({
-        multiple: true,
-        filters: [{ name: t("player.media.playlist.filter"), extensions: videoExtensions }],
-      }).catch(() => null);
-      const files = selection ? (Array.isArray(selection) ? selection : [selection]) : [];
-      if (files.length > 0) await mutate(appendFilesQuiet(files));
-    } finally {
-      setAdding(false);
-    }
+    await attemptAll(
+      [
+        async () => {
+          const selection = await withFallback(
+            openDialog({
+              multiple: true,
+              filters: [{ name: t("player.media.playlist.filter"), extensions: videoExtensions }],
+            }),
+            null
+          );
+          const files = selection ? (Array.isArray(selection) ? selection : [selection]) : [];
+          if (files.length > 0) await mutate(appendFilesQuiet(files));
+        },
+      ],
+      { onFinally: () => setAdding(false) }
+    );
   }
 
   const playingName = path ? fileNameFromPath(path).toLowerCase() : "";

@@ -28,6 +28,7 @@ import {
   startCrop,
   zoomAtPoint,
 } from "@/lib/settings/crop.utils";
+import { attemptSync } from "@/lib/utils/attempt.utils";
 import type {
   AnnotationItem,
   CropBounds,
@@ -77,7 +78,7 @@ function paintOffscreen(
   bounds: CropBounds,
   paint: (context: CanvasRenderingContext2D) => void
 ): string | undefined {
-  try {
+  const [url] = attemptSync(() => {
     const canvas = document.createElement("canvas");
     canvas.width = bounds.width;
     canvas.height = bounds.height;
@@ -85,9 +86,8 @@ function paintOffscreen(
     if (!context) return undefined;
     paint(context);
     return canvas.toDataURL("image/png");
-  } catch {
-    return undefined;
-  }
+  });
+  return url ?? undefined;
 }
 
 export interface StageHandle {
@@ -232,11 +232,8 @@ export default function ScreenshotStage({
       setMaskUrl(null);
       return;
     }
-    try {
-      setMaskUrl(mask.toDataURL("image/png"));
-    } catch {
-      setMaskUrl(null);
-    }
+    const [url] = attemptSync(() => mask.toDataURL("image/png"));
+    setMaskUrl(url);
   }, [items]);
 
   useEffect(() => {

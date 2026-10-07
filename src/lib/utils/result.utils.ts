@@ -1,4 +1,4 @@
-import { toError } from "@/lib/utils/attempt.utils";
+import { attempt, attemptSync, toError } from "@/lib/utils/attempt.utils";
 
 export type Result<T> = { ok: true; value: T } | { ok: false; error: Error };
 
@@ -11,19 +11,13 @@ export function err(error: unknown): Result<never> {
 }
 
 export async function attemptResult<T>(promise: Promise<T>): Promise<Result<T>> {
-  try {
-    return ok(await promise);
-  } catch (error) {
-    return err(error);
-  }
+  const [value, error] = await attempt(promise);
+  return error === null ? ok(value) : err(error);
 }
 
 export function attemptResultSync<T>(fn: () => T): Result<T> {
-  try {
-    return ok(fn());
-  } catch (error) {
-    return err(error);
-  }
+  const [value, error] = attemptSync(fn);
+  return error === null ? ok(value) : err(error);
 }
 
 export function map<T, U>(result: Result<T>, fn: (value: T) => U): Result<U> {
@@ -35,11 +29,8 @@ export async function andThen<T, U>(
   fn: (value: T) => Result<U> | Promise<Result<U>>
 ): Promise<Result<U>> {
   if (!result.ok) return result;
-  try {
-    return await fn(result.value);
-  } catch (error) {
-    return err(error);
-  }
+  const [value, error] = await attempt(Promise.resolve().then(() => fn(result.value)));
+  return error === null ? value : err(error);
 }
 
 export function unwrapOr<T, F>(result: Result<T>, fallback: F): T | F {

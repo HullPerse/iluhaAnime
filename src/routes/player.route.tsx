@@ -22,7 +22,7 @@ import { fingerprint } from "@/lib/player/scan.utils";
 import { buildTree, filterTreeByPaths } from "@/lib/player/tree.utils";
 import { filterTreeByHiddenPaths } from "@/lib/player/visibility.utils";
 import { queryKeys } from "@/lib/query/keys.utils";
-import { attempt, reportBackgroundError, withFallback } from "@/lib/utils/attempt.utils";
+import { attempt, attemptSync, reportBackgroundError, withFallback } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { showError, showErrorOnce } from "@/lib/utils/notification.utils";
 import { useCacheStore } from "@/store/cache.store";
@@ -429,7 +429,7 @@ function PlayerRoute() {
 
   const handleExportCategories = useCallback(() => {
     const notify = useNotificationStore.getState().add;
-    try {
+    const [, error] = attemptSync(() => {
       const json = useCategoryStore.getState().exportCategories();
       const blob = new Blob([json], { type: "application/json" });
       const url = URL.createObjectURL(blob);
@@ -438,10 +438,12 @@ function PlayerRoute() {
       link.download = `iluhaAnime-categories-${new Date().toISOString().slice(0, 10)}.json`;
       link.click();
       URL.revokeObjectURL(url);
-      notify(t("player.route.create.category"), "success", t("player.category.export.done"));
-    } catch {
+    });
+    if (error) {
       notify(t("player.route.create.category"), "error", t("player.category.export.error"));
+      return;
     }
+    notify(t("player.route.create.category"), "success", t("player.category.export.done"));
   }, [t]);
 
   const handleImportCategories = useCallback(
@@ -453,23 +455,23 @@ function PlayerRoute() {
         notify(t("player.route.create.category"), "error", t("player.category.import.error"));
         return;
       }
-      let parsed: unknown;
-      try {
-        parsed = JSON.parse(read[0]);
-      } catch {
+      const [parsed, parseError] = attemptSync((): unknown => JSON.parse(read[0]));
+      if (parseError) {
         notify(t("player.route.create.category"), "error", t("player.category.import.error"));
         return;
       }
-      try {
-        const count = useCategoryStore.getState().importCategories(parsed);
-        notify(
-          t("player.route.create.category"),
-          "success",
-          t("player.category.import.done", { count })
-        );
-      } catch {
+      const [count, importError] = attemptSync(() =>
+        useCategoryStore.getState().importCategories(parsed)
+      );
+      if (importError) {
         notify(t("player.route.create.category"), "error", t("player.category.import.error"));
+        return;
       }
+      notify(
+        t("player.route.create.category"),
+        "success",
+        t("player.category.import.done", { count })
+      );
     },
     [t]
   );

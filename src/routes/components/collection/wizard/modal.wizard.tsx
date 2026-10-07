@@ -14,7 +14,7 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { useOverlay } from "@/hooks/overlay.hook";
 import { isPublicStatus } from "@/lib/collection/status.utils";
 import { normalizeSearchText } from "@/lib/search/suggestions.utils";
-import { attempt } from "@/lib/utils/attempt.utils";
+import { attempt, attemptAll } from "@/lib/utils/attempt.utils";
 import { useSearchStore } from "@/store/search.store";
 import { useSettingsStore } from "@/store/settings.store";
 import type {
@@ -207,12 +207,12 @@ export function WizardModal({
     if (savingRef.current) return;
     savingRef.current = true;
     setSaving(true);
-    try {
-      await handleSave();
-    } finally {
-      savingRef.current = false;
-      setSaving(false);
-    }
+    await attemptAll([() => handleSave()], {
+      onFinally: () => {
+        savingRef.current = false;
+        setSaving(false);
+      },
+    });
   };
 
   useEffect(() => {

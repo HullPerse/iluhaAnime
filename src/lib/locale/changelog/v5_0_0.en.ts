@@ -123,6 +123,8 @@ const changelog500 = {
     "Audio and subtitle track switching failed on a wrong command format, now tracks switch",
   "changelog.5_0_0.fixed.anilist.site_query":
     "Site notifications failed to load on a wrong request, the request is fixed",
+  "changelog.5_0_0.changed.app.state_engine":
+    "Reworked internal state handling so lists, the player, and settings react faster",
 } as const;
 
 export default changelog500;

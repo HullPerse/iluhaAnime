@@ -124,6 +124,8 @@ const changelog500 = {
     "Reworked internal state handling so lists, the player, and settings react faster",
   "changelog.5_0_0.changed.search.did_you_mean_highlight":
     "Did-you-mean suggestions now highlight what changed in the correction",
+  "changelog.5_0_0.changed.search.spell_quickfix":
+    "Spell quick-fix card in search fields: the typo popup shows the correction with buttons, Tab applies it while typing and Ctrl+Tab saves the word to the personal dictionary",
   "changelog.5_0_0.changed.anilist.progress_blocks":
     "Episode progress bars always show 12 blocks of equal width, so short and long series look the same and the bar fills fully only on the last episode",
 } as const;

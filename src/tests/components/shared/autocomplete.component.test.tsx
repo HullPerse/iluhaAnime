@@ -8,7 +8,23 @@ import { patchSettings } from "@/store/settings.store";
 afterEach(() => {
   cleanup();
   patchSettings({ autocompleteMode: "both" });
+  vi.restoreAllMocks();
 });
+
+function mockSpellRect() {
+  const rect = {
+    x: 40,
+    y: 10,
+    width: 40,
+    height: 12,
+    top: 10,
+    right: 80,
+    bottom: 22,
+    left: 40,
+    toJSON: () => {},
+  } as unknown as DOMRect;
+  vi.spyOn(Element.prototype, "getBoundingClientRect").mockReturnValue(rect);
+}
 
 describe("InlineAutocompleteInput", () => {
   it("aligns the ghost text with the input content box", async () => {
@@ -316,6 +332,261 @@ describe("InlineAutocompleteInput", () => {
     const errorSpan = document.querySelector('[data-spell="error"]');
     expect(errorSpan?.textContent).toBe("frien");
     expect(errorSpan?.className).toContain("red-500");
+  });
+});
+
+describe("InlineAutocompleteInput spell quick-fix", () => {
+  it("shows the quick-fix card with word, correction and actions when focused", async () => {
+    mockSpellRect();
+    const user = userEvent.setup();
+    render(
+      <InlineAutocompleteInput
+        aria-label="Search spell"
+        value="friren"
+        spellCheck={{ correction: "frieren", start: 0, end: 6, severity: "warn", word: "friren" }}
+        onChange={() => {}}
+      />
+    );
+
+    await user.click(screen.getByRole("textbox", { name: "Search spell" }));
+
+    const tip = await screen.findByRole("tooltip");
+    expect(tip.textContent).toContain("friren");
+    expect(tip.textContent).toContain("frieren");
+    expect(tip.textContent).toContain("Tab");
+    expect(tip.querySelector(".text-highlight")?.textContent).toBe("fri");
+    expect(tip.querySelectorAll("button").length).toBe(2);
+  });
+
+  it("applies the spell correction with Tab when there is no ghost or menu selection", async () => {
+    const user = userEvent.setup();
+    const onApplySpell = vi.fn();
+    render(
+      <InlineAutocompleteInput
+        aria-label="Search spell"
+        value="friren"
+        spellCheck={{ correction: "frieren", start: 0, end: 6, severity: "warn", word: "friren" }}
+        onApplySpellCorrection={onApplySpell}
+        onChange={() => {}}
+      />
+    );
+
+    await user.click(screen.getByRole("textbox", { name: "Search spell" }));
+    await user.keyboard("{Tab}");
+
+    expect(onApplySpell).toHaveBeenCalledOnce();
+  });
+
+  it("does not hijack Shift+Tab for the spell correction", async () => {
+    const user = userEvent.setup();
+    const onApplySpell = vi.fn();
+    render(
+      <InlineAutocompleteInput
+        aria-label="Search spell"
+        value="friren"
+        spellCheck={{ correction: "frieren", start: 0, end: 6, severity: "warn", word: "friren" }}
+        onApplySpellCorrection={onApplySpell}
+        onChange={() => {}}
+      />
+    );
+
+    await user.click(screen.getByRole("textbox", { name: "Search spell" }));
+    await user.keyboard("{Shift>}{Tab}{/Shift}");
+
+    expect(onApplySpell).not.toHaveBeenCalled();
+  });
+
+  it("prefers the ghost completion over the spell correction on Tab", async () => {
+    const user = userEvent.setup();
+    const onAccept = vi.fn();
+    const onApplySpell = vi.fn();
+    render(
+      <InlineAutocompleteInput
+        aria-label="Search spell"
+        completion="friren beyond"
+        value="friren"
+        spellCheck={{ correction: "frieren", start: 0, end: 6, severity: "warn", word: "friren" }}
+        onAcceptCompletion={onAccept}
+        onApplySpellCorrection={onApplySpell}
+        onChange={() => {}}
+      />
+    );
+
+    await user.click(screen.getByRole("textbox", { name: "Search spell" }));
+    await user.keyboard("{Tab}");
+
+    expect(onAccept).toHaveBeenCalledWith("friren beyond");
+    expect(onApplySpell).not.toHaveBeenCalled();
+  });
+
+  it("prefers the active menu selection over the spell correction on Tab", async () => {
+    const user = userEvent.setup();
+    const onAccept = vi.fn();
+    const onApplySpell = vi.fn();
+    render(
+      <InlineAutocompleteInput
+        aria-label="Search spell"
+        suggestions={[{ kind: "anime", score: 100, value: "Frieren" }]}
+        value="friren"
+        spellCheck={{ correction: "frieren", start: 0, end: 6, severity: "warn", word: "friren" }}
+        onAcceptCompletion={onAccept}
+        onApplySpellCorrection={onApplySpell}
+        onChange={() => {}}
+      />
+    );
+
+    await user.click(screen.getByRole("textbox", { name: "Search spell" }));
+    await user.keyboard("{ArrowDown}{Tab}");
+
+    expect(onAccept).toHaveBeenCalledWith("Frieren");
+    expect(onApplySpell).not.toHaveBeenCalled();
+  });
+
+  it("applies the spell correction from the quick-fix button", async () => {
+    mockSpellRect();
+    const user = userEvent.setup();
+    const onApplySpell = vi.fn();
+    render(
+      <InlineAutocompleteInput
+        aria-label="Search spell"
+        value="friren"
+        spellCheck={{ correction: "frieren", start: 0, end: 6, severity: "warn", word: "friren" }}
+        onApplySpellCorrection={onApplySpell}
+        onChange={() => {}}
+      />
+    );
+
+    await user.click(screen.getByRole("textbox", { name: "Search spell" }));
+    const tip = await screen.findByRole("tooltip");
+    await user.click(tip.querySelectorAll("button")[0]);
+
+    expect(onApplySpell).toHaveBeenCalledOnce();
+  });
+
+  it("saves the word to the dictionary from the quick-fix button", async () => {
+    mockSpellRect();
+    const user = userEvent.setup();
+    const onSaveWord = vi.fn();
+    render(
+      <InlineAutocompleteInput
+        aria-label="Search spell"
+        value="friren"
+        spellCheck={{ correction: "frieren", start: 0, end: 6, severity: "warn", word: "friren" }}
+        onAddWordToDictionary={onSaveWord}
+        onChange={() => {}}
+      />
+    );
+
+    await user.click(screen.getByRole("textbox", { name: "Search spell" }));
+    const tip = await screen.findByRole("tooltip");
+    await user.click(tip.querySelectorAll("button")[1]);
+
+    expect(onSaveWord).toHaveBeenCalledOnce();
+  });
+
+  it("shows the Ctrl+Tab hint for the dictionary action", async () => {
+    mockSpellRect();
+    const user = userEvent.setup();
+    render(
+      <InlineAutocompleteInput
+        aria-label="Search spell"
+        value="friren"
+        spellCheck={{ correction: "frieren", start: 0, end: 6, severity: "warn", word: "friren" }}
+        onChange={() => {}}
+      />
+    );
+
+    await user.click(screen.getByRole("textbox", { name: "Search spell" }));
+
+    const hintTip = await screen.findByRole("tooltip");
+    expect(hintTip.textContent).toContain("Ctrl+Tab");
+  });
+
+  it("saves the word with Ctrl+Tab when there is no ghost or menu selection", async () => {
+    const user = userEvent.setup();
+    const onSaveWord = vi.fn();
+    const onApplySpell = vi.fn();
+    render(
+      <InlineAutocompleteInput
+        aria-label="Search spell"
+        value="friren"
+        spellCheck={{ correction: "frieren", start: 0, end: 6, severity: "warn", word: "friren" }}
+        onApplySpellCorrection={onApplySpell}
+        onAddWordToDictionary={onSaveWord}
+        onChange={() => {}}
+      />
+    );
+
+    await user.click(screen.getByRole("textbox", { name: "Search spell" }));
+    await user.keyboard("{Control>}{Tab}{/Control}");
+
+    expect(onSaveWord).toHaveBeenCalledOnce();
+    expect(onApplySpell).not.toHaveBeenCalled();
+  });
+
+  it("does not hijack Ctrl+Shift+Tab for the dictionary action", async () => {
+    const user = userEvent.setup();
+    const onSaveWord = vi.fn();
+    render(
+      <InlineAutocompleteInput
+        aria-label="Search spell"
+        value="friren"
+        spellCheck={{ correction: "frieren", start: 0, end: 6, severity: "warn", word: "friren" }}
+        onAddWordToDictionary={onSaveWord}
+        onChange={() => {}}
+      />
+    );
+
+    await user.click(screen.getByRole("textbox", { name: "Search spell" }));
+    await user.keyboard("{Control>}{Shift>}{Tab}{/Shift}{/Control}");
+
+    expect(onSaveWord).not.toHaveBeenCalled();
+  });
+
+  it("prefers the dictionary save over the ghost completion on Ctrl+Tab", async () => {
+    const user = userEvent.setup();
+    const onAccept = vi.fn();
+    const onSaveWord = vi.fn();
+    render(
+      <InlineAutocompleteInput
+        aria-label="Search spell"
+        completion="friren beyond"
+        value="friren"
+        spellCheck={{ correction: "frieren", start: 0, end: 6, severity: "warn", word: "friren" }}
+        onAcceptCompletion={onAccept}
+        onAddWordToDictionary={onSaveWord}
+        onChange={() => {}}
+      />
+    );
+
+    await user.click(screen.getByRole("textbox", { name: "Search spell" }));
+    await user.keyboard("{Control>}{Tab}{/Control}");
+
+    expect(onSaveWord).toHaveBeenCalledOnce();
+    expect(onAccept).not.toHaveBeenCalled();
+  });
+
+  it("prefers the dictionary save over the active menu selection on Ctrl+Tab", async () => {
+    const user = userEvent.setup();
+    const onAccept = vi.fn();
+    const onSaveWord = vi.fn();
+    render(
+      <InlineAutocompleteInput
+        aria-label="Search spell"
+        suggestions={[{ kind: "anime", score: 100, value: "Frieren" }]}
+        value="friren"
+        spellCheck={{ correction: "frieren", start: 0, end: 6, severity: "warn", word: "friren" }}
+        onAcceptCompletion={onAccept}
+        onAddWordToDictionary={onSaveWord}
+        onChange={() => {}}
+      />
+    );
+
+    await user.click(screen.getByRole("textbox", { name: "Search spell" }));
+    await user.keyboard("{ArrowDown}{Control>}{Tab}{/Control}");
+
+    expect(onSaveWord).toHaveBeenCalledOnce();
+    expect(onAccept).not.toHaveBeenCalled();
   });
 });
 

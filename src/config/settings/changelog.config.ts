@@ -77,6 +77,7 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.changed.app.hotkeys_registry", "app"),
       entry("changelog.5_0_0.changed.search.pacing", "search"),
       entry("changelog.5_0_0.changed.search.did_you_mean_highlight", "search"),
+      entry("changelog.5_0_0.changed.search.spell_quickfix", "search"),
       entry("changelog.5_0_0.changed.app.state_engine", "app"),
       entry("changelog.5_0_0.changed.anilist.progress_blocks", "anilist"),
     ],

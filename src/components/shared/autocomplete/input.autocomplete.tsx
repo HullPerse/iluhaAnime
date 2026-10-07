@@ -1,10 +1,15 @@
 import { cn } from "cn";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import type { RefObject } from "react";
+import type { KeyboardEvent, RefObject } from "react";
 
 import { Input } from "@/components/ui/input.component";
 import { AUTOCOMPLETE_HISTORY_LIMIT } from "@/config/search/autocomplete.config";
-import { mergeRanges, splitByRanges } from "@/lib/highlight/highlight.utils";
+import { useI18n } from "@/hooks/i18n.hook";
+import {
+  findSubsequenceRanges,
+  mergeRanges,
+  splitByRanges,
+} from "@/lib/highlight/highlight.utils";
 import {
   computeGhostValue,
   getAriaAutocomplete,
@@ -47,21 +52,175 @@ function spellHit(rect: DOMRect | null, clientX: number, clientY: number): boole
   );
 }
 
-function SpellTooltip({ x, text }: { x: number; text: string }) {
+const SPELL_CARD_HALF = 128;
+
+function clampSpellX(center: number, wrap: HTMLDivElement | null): number {
+  const width = wrap?.getBoundingClientRect().width ?? 0;
+  if (width <= SPELL_CARD_HALF * 2) return Math.max(center, 0);
+  return Math.min(Math.max(center, SPELL_CARD_HALF), width - SPELL_CARD_HALF);
+}
+
+function SpellQuickFix({
+  x,
+  check,
+  query,
+  onApply,
+  onSave,
+}: {
+  x: number;
+  check: SpellCheck;
+  query: string;
+  onApply?: () => void;
+  onSave?: () => void;
+}) {
+  const { t } = useI18n();
+  const diff = useMemo(
+    () => splitByRanges(check.correction, findSubsequenceRanges(check.correction, query)),
+    [check.correction, query]
+  );
   return (
     <div
       role="tooltip"
-      className="windows95-border bg-primary windows95-text pointer-events-none absolute top-full z-50 mt-0.5 max-w-64 -translate-x-1/2 truncate px-1.5 py-0.5 text-xs"
+      onMouseDown={(event) => event.preventDefault()}
+      className="windows95-border bg-primary windows95-text absolute top-full z-50 mt-0.5 flex max-w-80 -translate-x-1/2 items-center gap-1 px-1 py-0.5 text-xs"
       style={{ left: `${x}px` }}
     >
-      {text}
+      <span className="min-w-0 flex-1 truncate font-bold">
+        <span>{check.word}</span>
+        <span aria-hidden="true">{" -> "}</span>
+        <span>
+          {diff.map((token, index) =>
+            token.highlighted ? (
+              <span key={index} className="text-highlight">
+                {token.text}
+              </span>
+            ) : (
+              <span key={index}>{token.text}</span>
+            )
+          )}
+        </span>
+      </span>
+      <button
+        type="button"
+        title={t("search.spell.apply.title")}
+        aria-label={t("search.spell.apply.title")}
+        onClick={onApply}
+        className="windows95-small-border bg-primary windows95-text shrink-0 px-1 py-px font-bold hover:bg-surface active:translate-x-px active:translate-y-px"
+      >
+        {t("search.spell.apply")}
+      </button>
+      <kbd
+        aria-hidden="true"
+        title={t("search.spell.apply.title")}
+        className="windows95-small-border bg-field windows95-text shrink-0 px-1 py-px font-bold"
+      >
+        Tab
+      </kbd>
+      <button
+        type="button"
+        title={t("search.spell.save.word.title")}
+        aria-label={t("search.spell.save.word.title")}
+        onClick={onSave}
+        className="windows95-small-border bg-primary windows95-text shrink-0 px-1 py-px font-bold hover:bg-surface active:translate-x-px active:translate-y-px"
+      >
+        {t("search.spell.save.word")}
+      </button>
+      <kbd
+        aria-hidden="true"
+        title={t("search.spell.save.word.title")}
+        className="windows95-small-border bg-field windows95-text shrink-0 px-1 py-px font-bold"
+      >
+        Ctrl+Tab
+      </kbd>
     </div>
   );
 }
 
-function SpellHoverTip({ x, check }: { x: number | null; check: SpellCheck | null }) {
+function SpellHoverTip({
+  x,
+  check,
+  query,
+  onApply,
+  onSave,
+}: {
+  x: number | null;
+  check: SpellCheck | null;
+  query: string;
+  onApply?: () => void;
+  onSave?: () => void;
+}) {
   if (x === null || !check) return null;
-  return <SpellTooltip x={x} text={check.correction} />;
+  return <SpellQuickFix x={x} check={check} query={query} onApply={onApply} onSave={onSave} />;
+}
+
+function useSpellAnchor(
+  backdropRef: RefObject<HTMLDivElement | null>,
+  wrapRef: RefObject<HTMLDivElement | null>,
+  spellCheck: SpellCheck | null,
+  currentValue: string,
+  focused: boolean,
+  hoverX: number | null
+) {
+  const [autoX, setAutoX] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!spellCheck || !focused) {
+      setAutoX(null);
+      return;
+    }
+    const rect = spellRectOf(backdropRef.current);
+    const wrap = wrapRef.current;
+    if (!rect || !wrap) {
+      setAutoX(null);
+      return;
+    }
+    const wrapRect = wrap.getBoundingClientRect();
+    setAutoX(clampSpellX(rect.left - wrapRect.left + rect.width / 2, wrap));
+  }, [spellCheck, currentValue, focused, backdropRef, wrapRef]);
+
+  return { spellX: hoverX ?? autoX, clearAutoX: () => setAutoX(null) };
+}
+
+function handleSpellTab(
+  event: { key: string; ctrlKey: boolean; shiftKey: boolean; preventDefault: () => void },
+  spellCheck: SpellCheck | null,
+  onApplySpellCorrection: (() => void) | undefined,
+  onApplied: () => void
+): boolean {
+  if (
+    event.key !== "Tab" ||
+    event.ctrlKey ||
+    event.shiftKey ||
+    !spellCheck ||
+    !onApplySpellCorrection
+  ) {
+    return false;
+  }
+  event.preventDefault();
+  onApplySpellCorrection();
+  onApplied();
+  return true;
+}
+
+function handleSpellSaveTab(
+  event: { key: string; ctrlKey: boolean; shiftKey: boolean; preventDefault: () => void },
+  spellCheck: SpellCheck | null,
+  onAddWordToDictionary: (() => void) | undefined,
+  onSaved: () => void
+): boolean {
+  if (
+    event.key !== "Tab" ||
+    !event.ctrlKey ||
+    event.shiftKey ||
+    !spellCheck ||
+    !onAddWordToDictionary
+  ) {
+    return false;
+  }
+  event.preventDefault();
+  onAddWordToDictionary();
+  onSaved();
+  return true;
 }
 
 function useSpellInteraction(
@@ -212,6 +371,25 @@ export function InlineAutocompleteInput({
     [currentValue, highlightRanges, spellRanges]
   );
   const hasHighlight = highlightSegments.some((s) => s.highlighted);
+  const { spellX, clearAutoX } = useSpellAnchor(
+    backdropRef,
+    wrapRef,
+    spellCheck,
+    currentValue,
+    focused,
+    spellHoverX
+  );
+
+  const applySpellFromCard = () => {
+    onApplySpellCorrection?.();
+    clearSpellHover();
+    clearAutoX();
+  };
+  const saveSpellFromCard = () => {
+    onAddWordToDictionary?.();
+    clearSpellHover();
+    clearAutoX();
+  };
 
   useEffect(() => {
     setDismissed(false);
@@ -246,6 +424,50 @@ export function InlineAutocompleteInput({
     setActiveIndex(-1);
   };
 
+  const listNavigationHandler = createListNavigationHandler<HTMLInputElement>({
+    activeIndex: safeActiveIndex,
+    count: groupedSuggestions.length,
+    enabled: showMenu,
+    setActiveIndex,
+    onEnter: (index) => selectSuggestion(groupedSuggestions[index]),
+    onTab: (index) => selectSuggestion(groupedSuggestions[index]),
+    onEscape: () => {
+      if (!ghostValue && !showMenu && !completion) return false;
+      setDismissed(true);
+      setActiveIndex(-1);
+      onDismissCompletion?.();
+      return true;
+    },
+    onUnhandled: (event) => {
+      if (event.key === "Tab" && !event.shiftKey && ghostValue && onAcceptCompletion) {
+        event.preventDefault();
+        onAcceptCompletion(ghostValue);
+        return;
+      }
+      if (
+        handleSpellTab(event, spellCheck, onApplySpellCorrection, () => {
+          clearSpellHover();
+          clearAutoX();
+        })
+      ) {
+        return;
+      }
+      onKeyDown?.(event);
+    },
+  });
+
+  const handleInputKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (
+      handleSpellSaveTab(event, spellCheck, onAddWordToDictionary, () => {
+        clearSpellHover();
+        clearAutoX();
+      })
+    ) {
+      return;
+    }
+    listNavigationHandler(event);
+  };
+
   return (
     <div ref={wrapRef} className="relative min-w-0 flex-1">
       <div className={cn("relative", className)}>
@@ -267,7 +489,7 @@ export function InlineAutocompleteInput({
           aria-controls={showMenu ? listboxId : undefined}
           aria-expanded={showMenu || undefined}
           aria-haspopup={enabled ? "listbox" : undefined}
-          aria-keyshortcuts="Tab, Enter, Escape, ArrowDown, ArrowUp, Home, End"
+          aria-keyshortcuts="Tab, Control+Tab, Enter, Escape, ArrowDown, ArrowUp, Home, End"
           className={cn(
             "relative z-10 h-full w-full bg-transparent",
             hasHighlight && "selection:bg-highlight/30 caret-text text-transparent"
@@ -295,32 +517,16 @@ export function InlineAutocompleteInput({
             setDismissed(false);
             onFocus?.(event);
           }}
-          onKeyDown={createListNavigationHandler({
-            activeIndex: safeActiveIndex,
-            count: groupedSuggestions.length,
-            enabled: showMenu,
-            setActiveIndex,
-            onEnter: (index) => selectSuggestion(groupedSuggestions[index]),
-            onTab: (index) => selectSuggestion(groupedSuggestions[index]),
-            onEscape: () => {
-              if (!ghostValue && !showMenu && !completion) return false;
-              setDismissed(true);
-              setActiveIndex(-1);
-              onDismissCompletion?.();
-              return true;
-            },
-            onUnhandled: (event) => {
-              if (event.key === "Tab" && !event.shiftKey && ghostValue && onAcceptCompletion) {
-                event.preventDefault();
-                onAcceptCompletion(ghostValue);
-                return;
-              }
-              onKeyDown?.(event);
-            },
-          })}
+          onKeyDown={handleInputKeyDown}
           value={value}
         />
-        <SpellHoverTip x={spellHoverX} check={spellCheck} />
+        <SpellHoverTip
+          x={spellX}
+          check={spellCheck}
+          query={currentValue}
+          onApply={applySpellFromCard}
+          onSave={saveSpellFromCard}
+        />
         {showMenu && (
           <SuggestionMenu
             listboxId={listboxId}

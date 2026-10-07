@@ -1,4 +1,4 @@
-import { Store } from "@tanstack/store";
+import { createSignalStore, type Cell } from "@/lib/state/signal.store";
 
 import type { DebounceOptions, PacerState } from "@/types/pacer";
 
@@ -11,7 +11,7 @@ import {
 } from "./shared.utils";
 
 export class Debouncer<TArgs extends unknown[]> {
-  readonly store: Store<PacerState>;
+  readonly status: Cell<PacerState>;
   #task: (...args: TArgs) => void;
   #wait: DebounceOptions["wait"];
   #leading: boolean;
@@ -34,7 +34,11 @@ export class Debouncer<TArgs extends unknown[]> {
     this.#enabled = options.enabled ?? true;
     this.#mode = options.mode ?? "timeout";
     this.#onExecute = options.onExecute;
-    this.store = new Store<PacerState>({ executionCount: 0, isPending: false, status: "idle" });
+    this.status = createSignalStore().cell<PacerState>({
+      executionCount: 0,
+      isPending: false,
+      status: "idle",
+    });
     this.#sync();
   }
 
@@ -95,7 +99,7 @@ export class Debouncer<TArgs extends unknown[]> {
 
   reset(): void {
     this.cancel();
-    this.store.setState((state) => ({ ...state, executionCount: 0 }));
+    this.status.set({ ...this.status.get(), executionCount: 0 });
   }
 
   #cooldown(): void {
@@ -135,18 +139,17 @@ export class Debouncer<TArgs extends unknown[]> {
   #invoke(args: TArgs): void {
     this.#task(...args);
     this.#onExecute?.();
-    this.store.setState((state) => ({ ...state, executionCount: state.executionCount + 1 }));
+    const current = this.status.get();
+    this.status.set({ ...current, executionCount: current.executionCount + 1 });
     this.#sync();
   }
 
   #sync(): void {
     const pending = this.#timer !== null;
     const status = !this.isEnabled() ? "disabled" : pending ? "pending" : "idle";
-    this.store.setState((state) =>
-      state.isPending === pending && state.status === status
-        ? state
-        : { ...state, isPending: pending, status }
-    );
+    const current = this.status.get();
+    if (current.isPending === pending && current.status === status) return;
+    this.status.set({ ...current, isPending: pending, status });
   }
 }
 

@@ -1,9 +1,9 @@
-import { Store } from "@tanstack/store";
 import { useEffect, useMemo } from "react";
-import { useStore } from "@tanstack/react-store";
 
 import { Debouncer } from "@/lib/pacer/debounce.utils";
 import { Throttler } from "@/lib/pacer/throttle.utils";
+import { createSignalStore } from "@/lib/state/signal.store";
+import { useCell } from "@/lib/state/signal.hook";
 import type {
   DebounceOptions,
   DebouncedValueOptions,
@@ -43,7 +43,7 @@ function readControls(
 export function useDebouncedValue<T>(value: T, options: DebouncedValueOptions<T>): [T, PacedControls] {
   const { wait, leading, trailing, maxWait, enabled, mode, equal } = options;
   const scoped = useMemo(() => {
-    const committed = new Store<{ current: T } | null>(null);
+    const committed = createSignalStore().cell<{ current: T } | null>(null);
     const box = {
       dirty: false,
       equal: Object.is as (previous: T, next: T) => boolean,
@@ -54,8 +54,7 @@ export function useDebouncedValue<T>(value: T, options: DebouncedValueOptions<T>
     const engine = new Debouncer<[T]>((next) => {
       const prev = box.latest;
       box.latest = next;
-      if (prev === undefined || !box.equal(prev, next))
-        committed.setState(() => ({ current: next }));
+      if (prev === undefined || !box.equal(prev, next)) committed.set({ current: next });
     }, box.options);
     return { box, committed, engine };
   }, []);
@@ -75,15 +74,15 @@ export function useDebouncedValue<T>(value: T, options: DebouncedValueOptions<T>
       engine.cancel();
       if (box.latest !== undefined && !box.equal(box.latest, value)) {
         box.latest = value;
-        committed.setState(() => ({ current: value }));
+        committed.set({ current: value });
       }
       return;
     }
     if (box.latest === undefined || !box.equal(box.latest, value)) engine.maybeExecute(value);
   }, [engine, committed, box, value, wait, leading, trailing, maxWait, enabled, mode, equal]);
   useEffect(() => () => engine.cancel(), [engine]);
-  const snapshot = useStore(committed, (state) => state);
-  const status = useStore(engine.store, (state) => state);
+  const snapshot = useCell(committed);
+  const status = useCell(engine.status);
   const shown = snapshot === null ? (box.initial ?? value) : snapshot.current;
   return [shown, readControls(engine, status)];
 }
@@ -91,7 +90,7 @@ export function useDebouncedValue<T>(value: T, options: DebouncedValueOptions<T>
 export function useThrottledValue<T>(value: T, options: ThrottledValueOptions<T>): [T, PacedControls] {
   const { wait, leading, trailing, enabled, mode, equal } = options;
   const scoped = useMemo(() => {
-    const committed = new Store<{ current: T } | null>(null);
+    const committed = createSignalStore().cell<{ current: T } | null>(null);
     const box = {
       dirty: false,
       equal: Object.is as (previous: T, next: T) => boolean,
@@ -102,8 +101,7 @@ export function useThrottledValue<T>(value: T, options: ThrottledValueOptions<T>
     const engine = new Throttler<[T]>((next) => {
       const prev = box.latest;
       box.latest = next;
-      if (prev === undefined || !box.equal(prev, next))
-        committed.setState(() => ({ current: next }));
+      if (prev === undefined || !box.equal(prev, next)) committed.set({ current: next });
     }, box.options);
     return { box, committed, engine };
   }, []);
@@ -122,15 +120,15 @@ export function useThrottledValue<T>(value: T, options: ThrottledValueOptions<T>
       engine.cancel();
       if (box.latest !== undefined && !box.equal(box.latest, value)) {
         box.latest = value;
-        committed.setState(() => ({ current: value }));
+        committed.set({ current: value });
       }
       return;
     }
     if (box.latest === undefined || !box.equal(box.latest, value)) engine.maybeExecute(value);
   }, [engine, committed, box, value, wait, leading, trailing, enabled, mode, equal]);
   useEffect(() => () => engine.cancel(), [engine]);
-  const snapshot = useStore(committed, (state) => state);
-  const status = useStore(engine.store, (state) => state);
+  const snapshot = useCell(committed);
+  const status = useCell(engine.status);
   const shown = snapshot === null ? (box.initial ?? value) : snapshot.current;
   return [shown, readControls(engine, status)];
 }

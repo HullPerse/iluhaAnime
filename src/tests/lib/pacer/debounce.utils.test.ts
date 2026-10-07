@@ -20,13 +20,13 @@ describe("Debouncer", () => {
     vi.advanceTimersByTime(100);
     pacer.maybeExecute("b");
     expect(task).not.toHaveBeenCalled();
-    expect(pacer.store.state).toMatchObject({ isPending: true, status: "pending" });
+    expect(pacer.status.get()).toMatchObject({ isPending: true, status: "pending" });
     vi.advanceTimersByTime(100);
     expect(task).not.toHaveBeenCalled();
     vi.advanceTimersByTime(200);
     expect(task).toHaveBeenCalledTimes(1);
     expect(task).toHaveBeenCalledWith("b");
-    expect(pacer.store.state).toMatchObject({
+    expect(pacer.status.get()).toMatchObject({
       executionCount: 1,
       isPending: false,
       status: "idle",
@@ -41,7 +41,7 @@ describe("Debouncer", () => {
     expect(task).toHaveBeenCalledWith("a");
     vi.advanceTimersByTime(500);
     expect(task).toHaveBeenCalledTimes(1);
-    expect(pacer.store.state.status).toBe("idle");
+    expect(pacer.status.get().status).toBe("idle");
   });
 
   it("follows a leading execution with the latest trailing call", () => {
@@ -76,7 +76,7 @@ describe("Debouncer", () => {
     pacer.maybeExecute("a");
     pacer.flush();
     expect(task).toHaveBeenCalledTimes(1);
-    expect(pacer.store.state).toMatchObject({ isPending: false, status: "idle" });
+    expect(pacer.status.get()).toMatchObject({ isPending: false, status: "idle" });
     vi.advanceTimersByTime(500);
     expect(task).toHaveBeenCalledTimes(1);
   });
@@ -96,7 +96,7 @@ describe("Debouncer", () => {
     const pacer = new Debouncer<[string]>(task, { wait: 300 });
     pacer.maybeExecute("a");
     pacer.cancel();
-    expect(pacer.store.state).toMatchObject({ isPending: false, status: "idle" });
+    expect(pacer.status.get()).toMatchObject({ isPending: false, status: "idle" });
     vi.advanceTimersByTime(500);
     expect(task).not.toHaveBeenCalled();
   });
@@ -125,7 +125,7 @@ describe("Debouncer", () => {
     pacer.maybeExecute("a");
     vi.advanceTimersByTime(200);
     expect(task).not.toHaveBeenCalled();
-    expect(pacer.store.state.status).toBe("disabled");
+    expect(pacer.status.get().status).toBe("disabled");
   });
 
   it("cancels pending work when disabled through setOptions", () => {
@@ -133,11 +133,11 @@ describe("Debouncer", () => {
     const pacer = new Debouncer<[string]>(task, { wait: 300 });
     pacer.maybeExecute("a");
     pacer.setOptions({ enabled: false });
-    expect(pacer.store.state.status).toBe("disabled");
+    expect(pacer.status.get().status).toBe("disabled");
     vi.advanceTimersByTime(500);
     expect(task).not.toHaveBeenCalled();
     pacer.setOptions({ enabled: true });
-    expect(pacer.store.state.status).toBe("idle");
+    expect(pacer.status.get().status).toBe("idle");
   });
 
   it("forces execution within maxWait during continuous input", () => {
@@ -202,7 +202,7 @@ describe("Debouncer", () => {
     expect(onExecute).toHaveBeenCalledTimes(1);
     pacer.maybeExecute("b");
     pacer.reset();
-    expect(pacer.store.state).toMatchObject({ executionCount: 0, isPending: false, status: "idle" });
+    expect(pacer.status.get()).toMatchObject({ executionCount: 0, isPending: false, status: "idle" });
     vi.advanceTimersByTime(500);
     expect(task).toHaveBeenCalledTimes(1);
   });

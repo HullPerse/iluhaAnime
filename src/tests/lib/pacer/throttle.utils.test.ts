@@ -22,11 +22,11 @@ describe("Throttler", () => {
     pacer.maybeExecute("b");
     pacer.maybeExecute("c");
     expect(task).toHaveBeenCalledTimes(1);
-    expect(pacer.store.state).toMatchObject({ isPending: true, status: "pending" });
+    expect(pacer.status.get()).toMatchObject({ isPending: true, status: "pending" });
     vi.advanceTimersByTime(300);
     expect(task).toHaveBeenCalledTimes(2);
     expect(task).toHaveBeenLastCalledWith("c");
-    expect(pacer.store.state).toMatchObject({
+    expect(pacer.status.get()).toMatchObject({
       executionCount: 2,
       isPending: false,
       status: "idle",
@@ -78,7 +78,7 @@ describe("Throttler", () => {
     const pacer = new Throttler<[string]>(task, { leading: false, wait: 300 });
     pacer.maybeExecute("a");
     pacer.cancel();
-    expect(pacer.store.state).toMatchObject({ isPending: false, status: "idle" });
+    expect(pacer.status.get()).toMatchObject({ isPending: false, status: "idle" });
     vi.advanceTimersByTime(500);
     expect(task).not.toHaveBeenCalled();
   });
@@ -96,7 +96,7 @@ describe("Throttler", () => {
     pacer.maybeExecute("a");
     vi.advanceTimersByTime(200);
     expect(task).not.toHaveBeenCalled();
-    expect(pacer.store.state.status).toBe("disabled");
+    expect(pacer.status.get().status).toBe("disabled");
   });
 
   it("cancels pending work when disabled through setOptions", () => {
@@ -107,7 +107,7 @@ describe("Throttler", () => {
     vi.advanceTimersByTime(500);
     expect(task).not.toHaveBeenCalled();
     pacer.setOptions({ enabled: true });
-    expect(pacer.store.state.status).toBe("idle");
+    expect(pacer.status.get().status).toBe("idle");
   });
 
   it("resets the count and the execution window", () => {
@@ -120,7 +120,7 @@ describe("Throttler", () => {
     vi.advanceTimersByTime(100);
     pacer.maybeExecute("b");
     expect(task).toHaveBeenCalledTimes(2);
-    expect(pacer.store.state.executionCount).toBe(1);
+    expect(pacer.status.get().executionCount).toBe(1);
   });
 
   it("resolves function waits on every schedule", () => {

@@ -1,5 +1,8 @@
 import { cn } from "cn";
 
+import { useCell } from "@/lib/state/signal.hook";
+import { settingsAtoms } from "@/store/settings.store";
+
 const PROGRESS_SLOTS_CAP = 12;
 
 function ProgressBar({
@@ -21,6 +24,8 @@ function ProgressBar({
   slots?: boolean;
   slotsCap?: number;
 }) {
+  const progressStyle = useCell(settingsAtoms.progressStyle);
+  const solid = progressStyle === "solid";
   if (indeterminate) {
     return (
       <div
@@ -31,7 +36,7 @@ function ProgressBar({
         <div
           className={cn(
             "progress-blocks animate-indeterminate h-full w-[40%] transition-none",
-            barClassName ?? "bg-secondary"
+            barClassName ?? "bg-progress-main"
           )}
           aria-hidden="true"
         />
@@ -42,7 +47,7 @@ function ProgressBar({
   const safeMax = Math.max(0, max);
   const safeValue = Math.max(0, Math.min(value, safeMax));
 
-  if (slots && safeMax > 0) {
+  if (slots && !solid && safeMax > 0) {
     const count = Math.max(1, Math.floor(slotsCap));
     const filled = safeValue >= safeMax ? count : Math.floor((safeValue / safeMax) * count);
     return (
@@ -60,7 +65,10 @@ function ProgressBar({
         {Array.from({ length: count }, (_, i) => (
           <div
             key={i}
-            className={cn("flex-1", i < filled ? (barClassName ?? "bg-secondary") : "bg-surface")}
+            className={cn(
+              "flex-1",
+              i < filled ? (barClassName ?? "bg-progress-main") : "bg-surface"
+            )}
             aria-hidden="true"
           />
         ))}
@@ -80,7 +88,11 @@ function ProgressBar({
       aria-valuenow={safeValue}
     >
       <div
-        className={cn("progress-blocks h-full transition-none", barClassName ?? "bg-secondary")}
+        className={cn(
+          !solid && "progress-blocks",
+          "h-full transition-none",
+          barClassName ?? "bg-progress-main"
+        )}
         style={{ width: `${pct}%` }}
         aria-hidden="true"
       />

@@ -7,6 +7,7 @@ import ImageComponent from "@/components/ui/image.component";
 import { formatLabels, listStatusLabels, statusLabels } from "@/config/anilist/labels.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useRemoteImage } from "@/hooks/remoteImage.hook";
+import { useThemeComponents } from "@/hooks/themeComponents.hook";
 import { getStatusColor, type EntryListInfo } from "@/lib/anilist/entries.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import type { AniMedia } from "@/types/anilist";
@@ -47,6 +48,8 @@ export function DiscoveryCard({ item, nav }: DiscoveryCardProps) {
   const { t } = useI18n();
   const { media, entry } = item;
   const { index, total, canPrev, busy, onPrev, onNext, onReroll, onDetails } = nav;
+  const { cardMeta } = useThemeComponents();
+  const shortMeta = cardMeta === "short";
   const chips: string[] = [];
   if (media.format) chips.push(t(toLocaleKey(formatLabels[media.format] ?? media.format)));
   if (media.season_year != null) chips.push(String(media.season_year));
@@ -73,7 +76,7 @@ export function DiscoveryCard({ item, nav }: DiscoveryCardProps) {
             {t(toLocaleKey(statusLabels[media.status] ?? media.status))}
           </span>
         </div>
-        {chips.length > 0 && (
+        {!shortMeta && chips.length > 0 && (
           <div className="flex flex-row flex-wrap gap-1">
             {chips.map((chip) => (
               <span
@@ -85,7 +88,7 @@ export function DiscoveryCard({ item, nav }: DiscoveryCardProps) {
             ))}
           </div>
         )}
-        {media.description && (
+        {!shortMeta && media.description && (
           <p className="windows95-text text-text line-clamp-4 text-xs leading-relaxed">
             {media.description}
           </p>

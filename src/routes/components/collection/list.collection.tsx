@@ -8,20 +8,20 @@ import Select from "@/components/ui/select.component";
 import { HEADER_ESTIMATE, ROW_ESTIMATE } from "@/config/collection/card.config";
 import { useCoverCache } from "@/hooks/collection/cache.hook";
 import { useI18n } from "@/hooks/i18n.hook";
+import { useThemeComponents } from "@/hooks/themeComponents.hook";
 import { rowMetaParts, sameRowVisual } from "@/lib/collection/list.utils";
 import { generatePlaceholder } from "@/lib/collection/placeholder.utils";
 import { sortStatuses, statusColorOf, statusLabel } from "@/lib/collection/status.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { enterOrSpace } from "@/lib/utils/keyboard.utils";
+import { settingsAtoms } from "@/store/settings.store";
 import type {
-
   CollectionGroup,
   CollectionItem,
   CollectionStatus,
   CollectionStatusDef,
   GroupedRow,
 } from "@/types/collection";
-import { settingsAtoms } from "@/store/settings.store";
 import type { CollectionRowProps } from "@/types/collection";
 
 import { GroupHeaderCollection, publicHeaderProps } from "./groupHeader.collection";
@@ -144,6 +144,8 @@ export default function ListCollection({
 
 function CollectionRowView({ item, statuses, selected, onOpen, onSetStatus }: CollectionRowProps) {
   const { t, locale } = useI18n();
+  const { cardMeta } = useThemeComponents();
+  const shortMeta = cardMeta === "short";
   const { cachedUrl } = useCoverCache(item.coverUrl, item.thumbBlobId ?? item.coverBlobId);
   const cover = useMemo(() => {
     if (cachedUrl) return cachedUrl;
@@ -180,7 +182,7 @@ function CollectionRowView({ item, statuses, selected, onOpen, onSetStatus }: Co
               {item.title}
             </h2>
           </div>
-          {meta.length > 0 && (
+          {!shortMeta && meta.length > 0 && (
             <div className="text-hint windows95-text truncate text-xs" title={meta.join(" • ")}>
               {meta.join(" • ")}
             </div>

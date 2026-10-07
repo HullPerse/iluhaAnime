@@ -54,6 +54,7 @@ export interface SettingsStore {
   yorhaScanlinesEnabled: boolean;
   retroStyle: "classic" | "soft" | "high-contrast";
   uiDensity: "comfortable" | "compact";
+  progressStyle: "blocks" | "solid";
   collectionGroupHeaderStyle: "torrent" | "folder";
   savedFolderPaths: string[];
   playerFolderHeights: Record<string, number>;

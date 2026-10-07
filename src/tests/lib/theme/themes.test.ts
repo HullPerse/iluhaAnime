@@ -1,16 +1,18 @@
 import { describe, expect, it } from "vitest";
 
-import { THEMES, THEME_ACCENT_EXEMPT } from "@/config/settings/themes.config";
+import { DEFAULT_THEME_COLORS, THEMES, THEME_ACCENT_EXEMPT } from "@/config/settings/themes.config";
 import {
+  buildThemeColors,
   colorDistance,
   contrastRatio,
+  deriveFieldColor,
   hexToRgb,
   rgbToHex,
   windowTintAlpha,
   WINDOW_TINT_MAX,
   WINDOW_TINT_MIN,
 } from "@/lib/theme/palette.utils";
-import { getTitleText } from "@/store/theme.store";
+import { getTitleText, parseRetroismTheme } from "@/store/theme.store";
 
 const MIN_COLOR_DISTANCE = 32;
 
@@ -133,5 +135,35 @@ describe("built-in themes", () => {
       ]);
       expect(shades.size, `${name} should be a limited palette`).toBeLessThanOrEqual(5);
     }
+  });
+});
+
+describe("theme token contract", () => {
+  it("matches the win95 builtin palette", () => {
+    const win95 = THEMES.find((item) => item.name === "win95")?.colors;
+    expect(win95).toBeDefined();
+    expect(DEFAULT_THEME_COLORS).toMatchObject({ ...win95 });
+  });
+
+  it("seeds empty palettes with the contract", () => {
+    expect(buildThemeColors([])).toEqual({ ...DEFAULT_THEME_COLORS });
+  });
+
+  it("keeps an explicit field color", () => {
+    expect(deriveFieldColor("#123456", "#000000")).toBe("#123456");
+  });
+
+  it("derives white fields for light primaries", () => {
+    expect(deriveFieldColor(undefined, "#c0c0c0")).toBe("#ffffff");
+  });
+
+  it("derives a darker shade for dark primaries", () => {
+    expect(deriveFieldColor(undefined, "#000080")).toBe("#00005a");
+  });
+
+  it("maps a base-only import to primary without touching background", () => {
+    const parsed = parseRetroismTheme(JSON.stringify({ base: "#abc123" }));
+    expect(parsed?.colors.primary).toBe("#abc123");
+    expect(parsed?.colors.background).toBe(DEFAULT_THEME_COLORS.background);
   });
 });

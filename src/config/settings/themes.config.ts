@@ -1,6 +1,27 @@
 import type { TranslationKey } from "@/types/i18n";
 import type { ThemeColorKey, ThemeDefinition, ThemeOverrideKey } from "@/types/theme";
 
+export const DEFAULT_THEME_COLORS: ThemeDefinition["colors"] & {
+  autocomplete: string;
+  autocompleteOpacity: number;
+} = {
+  autocomplete: "#808080",
+  autocompleteOpacity: 0.6,
+  background: "#222222",
+  destructive: "#800000",
+  field: "#ffffff",
+  highlight: "#0000ff",
+  linkHover: "#5c0000",
+  muted: "#808080",
+  primary: "#c0c0c0",
+  secondary: "#000080",
+  success: "#008000",
+  surface: "#d0d0d0",
+  text: "#000000",
+  winHighlight: "#ffffff",
+  winShadow: "#808080",
+};
+
 export const THEMES: ThemeDefinition[] = [
   {
     colors: {
@@ -21,26 +42,6 @@ export const THEMES: ThemeDefinition[] = [
     },
     label: "Windows 95",
     name: "win95",
-  },
-  {
-    colors: {
-      autocomplete: "#b8b8b8",
-      background: "#3a6ea5",
-      destructive: "#cc0000",
-      field: "#ffffff",
-      highlight: "#1060c8",
-      linkHover: "#0000ee",
-      muted: "#8c8c8c",
-      primary: "#ece9d8",
-      secondary: "#0a246a",
-      success: "#008000",
-      surface: "#f0efe7",
-      text: "#000000",
-      winHighlight: "#ffffff",
-      winShadow: "#999999",
-    },
-    label: "Windows 2000",
-    name: "win2000",
   },
   {
     bevel: "raised",
@@ -93,29 +94,6 @@ export const THEMES: ThemeDefinition[] = [
   {
     bevel: "flat",
     colors: {
-      autocomplete: "#6b6b6b",
-      background: "#0e2c4e",
-      destructive: "#c42b1c",
-      field: "#ffffff",
-      highlight: "#0067c0",
-      linkHover: "#2b6d8f",
-      muted: "#5c5c5c",
-      primary: "#f3f3f3",
-      secondary: "#0067c0",
-      success: "#0f7b0f",
-      surface: "#e7e7e7",
-      text: "#1a1a1a",
-      winHighlight: "#ffffff",
-      winShadow: "#c8c8c8",
-    },
-    fontFamily: "Segoe UI Variable, Segoe UI",
-    label: "Windows 11",
-    name: "win11",
-    radius: "all",
-  },
-  {
-    bevel: "flat",
-    colors: {
       autocomplete: "#80868b",
       background: "#202124",
       destructive: "#b3261e",
@@ -152,12 +130,13 @@ export const THEMES: ThemeDefinition[] = [
       surface: "#e8e8ed",
       text: "#1d1d1f",
       winHighlight: "#ffffff",
-      winShadow: "#c7c7cc",
+      winShadow: "#9aa0b0",
     },
     fontFamily: "Inter",
     label: "Apple",
     name: "apple",
     radius: "all",
+    titlebarGradient: { from: "#e6eefb", to: "#a9c4e8" },
   },
   {
     colors: {
@@ -179,6 +158,7 @@ export const THEMES: ThemeDefinition[] = [
     label: "Monochrome",
     name: "mono",
     overrides: { favGold: "#8a8a8a", torrentIdle: "#c4c4c4", torrentSeeding: "#1e1e1e" },
+    components: { cardMeta: "short" },
   },
   {
     colors: {
@@ -220,47 +200,9 @@ export const THEMES: ThemeDefinition[] = [
     },
     label: "YoRHa",
     name: "yorha",
+    overlay: "grid",
+    components: { titlebarArt: true },
     fontFamily: '"IBM Plex Sans", "MS Sans Serif", "Microsoft Sans Serif", "Segoe UI", system-ui',
-  },
-  {
-    colors: {
-      autocomplete: "#d4aecf",
-      background: "#1a1a1a",
-      destructive: "#d43e6a",
-      field: "#ffffff",
-      highlight: "#c950bb",
-      linkHover: "#8a4275",
-      muted: "#b08aaa",
-      primary: "#f4c9ef",
-      secondary: "#c950bb",
-      success: "#6fae7c",
-      surface: "#f7d5f3",
-      text: "#000000",
-      winHighlight: "#fadef6",
-      winShadow: "#a482a0",
-    },
-    label: "Cherry",
-    name: "cherry",
-  },
-  {
-    colors: {
-      autocomplete: "#a9b3d1",
-      background: "#1a1a1a",
-      destructive: "#d45e3e",
-      field: "#ffffff",
-      highlight: "#3e7c99",
-      linkHover: "#2e5463",
-      muted: "#8a94b0",
-      primary: "#bac4e6",
-      secondary: "#3e7c99",
-      success: "#5f9e78",
-      surface: "#ccd3ee",
-      text: "#000000",
-      winHighlight: "#d5dbf2",
-      winShadow: "#7c86a4",
-    },
-    label: "Indigo",
-    name: "indigo",
   },
   {
     colors: {
@@ -281,66 +223,6 @@ export const THEMES: ThemeDefinition[] = [
     },
     label: "Gleep",
     name: "gleep",
-  },
-  {
-    colors: {
-      autocomplete: "#9aa3c8",
-      background: "#282a36",
-      destructive: "#ff5555",
-      field: "#313341",
-      highlight: "#8be9fd",
-      linkHover: "#ffbfe4",
-      muted: "#6272a4",
-      primary: "#44475a",
-      secondary: "#bd93f9",
-      success: "#50fa7b",
-      surface: "#555770",
-      text: "#f8f8f2",
-      winHighlight: "#686b80",
-      winShadow: "#343746",
-    },
-    label: "Dracula",
-    name: "dracula",
-  },
-  {
-    colors: {
-      autocomplete: "#8f9bb3",
-      background: "#2e3440",
-      destructive: "#bf616a",
-      field: "#2e3440",
-      highlight: "#81a1c1",
-      linkHover: "#afc0d6",
-      muted: "#616e88",
-      primary: "#3b4252",
-      secondary: "#88c0d0",
-      success: "#a3be8c",
-      surface: "#434c5e",
-      text: "#eceff4",
-      winHighlight: "#5e6a84",
-      winShadow: "#2b303c",
-    },
-    label: "Nord",
-    name: "nord",
-  },
-  {
-    colors: {
-      autocomplete: "#828a99",
-      background: "#1e2127",
-      destructive: "#e06c75",
-      field: "#21252b",
-      highlight: "#c678dd",
-      linkHover: "#61afef",
-      muted: "#5c6370",
-      primary: "#282c34",
-      secondary: "#61afef",
-      success: "#98c379",
-      surface: "#353b45",
-      text: "#abb2bf",
-      winHighlight: "#4b5263",
-      winShadow: "#1b1f24",
-    },
-    label: "One Dark",
-    name: "one-dark",
   },
   {
     colors: {
@@ -384,26 +266,6 @@ export const THEMES: ThemeDefinition[] = [
   },
   {
     colors: {
-      autocomplete: "#a5a9bb",
-      background: "#eff1f5",
-      destructive: "#d20f39",
-      field: "#ffffff",
-      highlight: "#1e66f5",
-      linkHover: "#7d34dc",
-      muted: "#9ca0b0",
-      primary: "#e6e9ef",
-      secondary: "#8839ef",
-      success: "#40a02b",
-      surface: "#dce0e8",
-      text: "#4c4f69",
-      winHighlight: "#f5f6f9",
-      winShadow: "#bcc0cc",
-    },
-    label: "Catppuccin Latte",
-    name: "catppuccin-latte",
-  },
-  {
-    colors: {
       autocomplete: "#00b32d",
       background: "#0c0c0c",
       destructive: "#ff0041",
@@ -422,6 +284,8 @@ export const THEMES: ThemeDefinition[] = [
     fontFamily: "Perfect DOS VGA 437, monospace",
     label: "Terminal",
     name: "terminal",
+    overlay: "scanlines",
+    components: { cardMeta: "short" },
   },
   {
     colors: {
@@ -445,46 +309,6 @@ export const THEMES: ThemeDefinition[] = [
   },
   {
     colors: {
-      autocomplete: "#9399b2",
-      background: "#11111b",
-      destructive: "#f38ba8",
-      field: "#1e1e2e",
-      highlight: "#89b4fa",
-      linkHover: "#89dceb",
-      muted: "#7f849c",
-      primary: "#313244",
-      secondary: "#cba6f7",
-      success: "#a6e3a1",
-      surface: "#45475a",
-      text: "#cdd6f4",
-      winHighlight: "#585b70",
-      winShadow: "#232334",
-    },
-    label: "Catppuccin Mocha",
-    name: "catppuccin-mocha",
-  },
-  {
-    colors: {
-      autocomplete: "#b3ab93",
-      background: "#fdf6e3",
-      destructive: "#dc322f",
-      field: "#fdf6e3",
-      highlight: "#2aa198",
-      linkHover: "#ad2c6b",
-      muted: "#93a1a1",
-      primary: "#eee8d5",
-      secondary: "#268bd2",
-      success: "#859900",
-      surface: "#e4ddc6",
-      text: "#073642",
-      winHighlight: "#ffffff",
-      winShadow: "#c9bfa6",
-    },
-    label: "Solarized Light",
-    name: "solarized-light",
-  },
-  {
-    colors: {
       autocomplete: "#c6d94a",
       background: "#0f380f",
       destructive: "#8b2020",
@@ -505,6 +329,31 @@ export const THEMES: ThemeDefinition[] = [
     name: "game-boy",
     overrides: { torrentDone: "#0f380f" },
   },
+  {
+    bevel: "flat",
+    colors: {
+      autocomplete: "#9fadbd",
+      background: "#0b1622",
+      destructive: "#f87171",
+      field: "#0b1622",
+      highlight: "#3db4f2",
+      linkHover: "#7dd3fc",
+      muted: "#9fadbd",
+      primary: "#151f2e",
+      secondary: "#3db4f2",
+      success: "#4ade80",
+      surface: "#1e2c3f",
+      text: "#edf1f5",
+      winHighlight: "#2e4257",
+      winShadow: "#05090f",
+    },
+    fontFamily: "Roboto",
+    label: "AniList",
+    name: "anilist",
+    overlay: "grid",
+    components: { titlebarArt: true },
+    radius: "all",
+  },
 ];
 
 export const THEME_OVERRIDE_VARS: Record<ThemeOverrideKey, string> = {
@@ -523,6 +372,7 @@ export const THEME_OVERRIDE_VARS: Record<ThemeOverrideKey, string> = {
   torrentIdle: "--color-torrent-idle",
   torrentMissing: "--color-torrent-missing",
   torrentSeeding: "--color-torrent-seeding",
+  progressMain: "--color-progress-main",
 };
 
 export const THEME_ACCENT_EXEMPT = ["game-boy"];

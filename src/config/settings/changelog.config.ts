@@ -55,6 +55,11 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.added.app.update_toast", "app"),
       entry("changelog.5_0_0.added.app.task_toasts", "app"),
       entry("changelog.5_0_0.added.anilist.activity_detail", "anilist"),
+      entry("changelog.5_0_0.added.settings.progress_style", "settings"),
+      entry("changelog.5_0_0.added.settings.progress_colors", "settings"),
+      entry("changelog.5_0_0.added.settings.theme_overlays", "settings"),
+      entry("changelog.5_0_0.added.settings.anilist_theme", "settings"),
+      entry("changelog.5_0_0.added.settings.theme_card_variants", "settings"),
     ],
     changed: [
       entry("changelog.5_0_0.changed.anilist.batch_fetch", "anilist"),
@@ -80,6 +85,7 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.changed.search.spell_quickfix", "search"),
       entry("changelog.5_0_0.changed.app.state_engine", "app"),
       entry("changelog.5_0_0.changed.anilist.progress_blocks", "anilist"),
+      entry("changelog.5_0_0.changed.settings.theme_cleanup", "settings"),
     ],
     fixed: [
       entry("changelog.5_0_0.fixed.anilist.save_casing", "anilist"),

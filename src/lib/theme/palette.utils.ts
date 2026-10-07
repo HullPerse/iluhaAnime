@@ -1,3 +1,4 @@
+import { DEFAULT_THEME_COLORS } from "@/config/settings/themes.config";
 import { attemptSync } from "@/lib/utils/attempt.utils";
 import type { ThemeDefinition } from "@/types/theme";
 
@@ -175,27 +176,18 @@ function mostBiased(palette: RGB[], bias: (color: RGB) => number): RGB | null {
   return best !== undefined && bias(best) > 0 ? best : null;
 }
 
+export function deriveFieldColor(field: unknown, primary: string): string {
+  if (typeof field === "string" && hexToRgb(field) !== null) return field;
+  const rgb = hexToRgb(primary);
+  if (rgb === null || relativeLuminance(rgb) >= 0.5) return "#ffffff";
+  return shade(primary, -0.3);
+}
+
 export function buildThemeColors(palette: string[]): ThemeDefinition["colors"] {
   const rgb = palette
     .map((color) => hexToRgb(color))
     .filter((color): color is RGB => color !== null);
-  const fallback = {
-    autocomplete: "#808080",
-    autocompleteOpacity: 0.6,
-    background: "#222222",
-    destructive: "#800000",
-    field: "#ffffff",
-    highlight: "#0000ff",
-    linkHover: "#ff0000",
-    muted: "#808080",
-    primary: "#c0c0c0",
-    secondary: "#000080",
-    success: "#008000",
-    surface: "#d0d0d0",
-    text: "#000000",
-    winHighlight: "#ffffff",
-    winShadow: "#808080",
-  } satisfies ThemeDefinition["colors"];
+  const fallback = { ...DEFAULT_THEME_COLORS } satisfies ThemeDefinition["colors"];
   if (rgb.length === 0) return fallback;
 
   const byLuminance = [...rgb].sort((a, b) => relativeLuminance(a) - relativeLuminance(b));
@@ -221,7 +213,7 @@ export function buildThemeColors(palette: string[]): ThemeDefinition["colors"] {
     autocompleteOpacity: 0.6,
     background,
     destructive: red === null ? fallback.destructive : rgbToHex(red),
-    field: light ? fallback.field : shade(primary, -0.3),
+    field: deriveFieldColor(undefined, primary),
     highlight,
     linkHover: highlight,
     muted,

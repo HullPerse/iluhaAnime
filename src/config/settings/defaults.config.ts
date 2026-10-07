@@ -35,7 +35,7 @@ export const DEFAULT_SETTINGS: SettingsDefaults = {
     dayStart: "08:00",
     nightStart: "23:00",
     dayTheme: "win95",
-    nightTheme: "dracula",
+    nightTheme: "tokyo-night",
   },
   pageSize: 40,
   anilistReleaseNotifications: true,
@@ -104,6 +104,7 @@ export const DEFAULT_SETTINGS: SettingsDefaults = {
   minimizeToTray: false,
   subtitleExtensions: ["srt", "ass", "ssa", "vtt", "sub", "idx", "sup", "pgs"],
   uiDensity: "comfortable",
+  progressStyle: "blocks",
   videoExtensions: [
     "mp4",
     "mkv",

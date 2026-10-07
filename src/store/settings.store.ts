@@ -150,6 +150,7 @@ const SETTINGS_TRANSFORMS: MigrationTransform[] = [
 
 const SETTINGS_VALIDATORS: Record<string, (value: unknown) => boolean> = {
   searchType: (value) => value === "default" || value === "modern",
+  progressStyle: (value) => value === "blocks" || value === "solid",
   screenshotFormat: (value) => value === "png" || value === "jpeg",
   anilistDisplayMode: (value) => value === "scroll" || value === "pagination",
   anilistListSort: (value) => {
@@ -293,9 +294,7 @@ function readLegacyMigrated(
   const state = envelope.state && typeof envelope.state === "object" ? envelope.state : parsed;
   const version = typeof envelope.version === "number" ? envelope.version : 0;
   if (!state || typeof state !== "object") return null;
-  const [migrated, migrateError] = attemptSync(() =>
-    migrateSettingsData(state, version)
-  );
+  const [migrated, migrateError] = attemptSync(() => migrateSettingsData(state, version));
   if (migrateError !== null || !migrated || typeof migrated !== "object") return null;
   return { data: migrated as Record<string, unknown>, schemaVersion: SETTINGS_SCHEMA_VERSION };
 }
@@ -361,9 +360,7 @@ export function createSettingsSignalStore(
     const pending = atoms.tmdbPendingKey.get();
     if (!pending) return;
     (async () => {
-      const [, error] = await attempt(
-        tauriTransport.call("tmdb_set_api_key", { apiKey: pending })
-      );
+      const [, error] = await attempt(tauriTransport.call("tmdb_set_api_key", { apiKey: pending }));
       if (error) handle.patch({ tmdbKeySet: false });
       else handle.patch({ tmdbPendingKey: null, tmdbKeySet: true });
     })();

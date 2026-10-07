@@ -1,13 +1,12 @@
-import { THEMES, THEME_OVERRIDE_VARS } from "@/config/settings/themes.config";
-import {
-  contrastRatio,
-  hexToRgb,
-  relativeLuminance,
-  shade,
-  windowTintAlpha,
-} from "@/lib/theme/palette.utils";
+import { DEFAULT_THEME_COLORS, THEMES, THEME_OVERRIDE_VARS } from "@/config/settings/themes.config";
 import { createPersistor, persistKey, type Persistor } from "@/lib/state/persist.utils";
 import { createSignalStore, type Cell } from "@/lib/state/signal.store";
+import {
+  contrastRatio,
+  deriveFieldColor,
+  hexToRgb,
+  windowTintAlpha,
+} from "@/lib/theme/palette.utils";
 import { attemptSync, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { DEFAULT_FONT_FAMILY, getStoredAppFont, toCssFontFamily } from "@/lib/utils/font.utils";
 import type { ThemeDefinition, ThemeOverrideKey, ThemeStore } from "@/types/theme";
@@ -27,6 +26,20 @@ function parseRadius(value: unknown): ThemeDefinition["radius"] {
 
 function parseBevel(value: unknown): ThemeDefinition["bevel"] {
   return value === "flat" || value === "raised" ? value : undefined;
+}
+
+function parseOverlay(value: unknown): ThemeDefinition["overlay"] {
+  return value === "scanlines" || value === "grid" || value === "none" ? value : undefined;
+}
+
+function parseComponents(value: unknown): ThemeDefinition["components"] {
+  if (typeof value !== "object" || value === null) return undefined;
+  const record = value as Record<string, unknown>;
+  const components: NonNullable<ThemeDefinition["components"]> = {};
+  if (record.titlebarArt === true) components.titlebarArt = true;
+  if (record.cardMeta === "full" || record.cardMeta === "short")
+    components.cardMeta = record.cardMeta;
+  return Object.keys(components).length > 0 ? components : undefined;
 }
 
 function parseTitlebarGradient(value: unknown): ThemeDefinition["titlebarGradient"] {
@@ -58,14 +71,17 @@ function parseHexColor(value: unknown, fallback: string): string {
   return typeof value === "string" && /^#[\da-f]{6}$/i.test(value) ? value : fallback;
 }
 
-function resolveField(field: unknown, primary: string): string {
-  const rgb = hexToRgb(primary);
-  const derived = rgb === null || relativeLuminance(rgb) >= 0.5 ? "#ffffff" : shade(primary, -0.3);
-  return parseHexColor(field, derived);
-}
-
 function findTheme(name: string, custom: ThemeDefinition[]): ThemeDefinition | undefined {
   return THEMES.find((t) => t.name === name) ?? custom.find((t) => t.name === name);
+}
+
+function applyThemeDatasets(root: HTMLElement, theme: ThemeDefinition): void {
+  if (!root.dataset) return;
+  root.dataset.theme = theme.name;
+  root.dataset.radius = theme.radius ?? "none";
+  root.dataset.bevel = theme.bevel ?? "raised";
+  root.dataset.themeOverlay = theme.overlay ?? "none";
+  root.dataset.themeTitlebarArt = theme.components?.titlebarArt === true ? "on" : "off";
 }
 
 export function applyTheme(name: string, customThemes: ThemeDefinition[] = []) {
@@ -89,7 +105,7 @@ export function applyTheme(name: string, customThemes: ThemeDefinition[] = []) {
   root.style.setProperty("--color-success", c.success, "important");
   root.style.setProperty("--color-link-hover", c.linkHover, "important");
   root.style.setProperty("--color-surface", c.surface, "important");
-  root.style.setProperty("--color-field", resolveField(c.field, c.primary), "important");
+  root.style.setProperty("--color-field", deriveFieldColor(c.field, c.primary), "important");
   root.style.setProperty("--color-win-highlight", c.winHighlight, "important");
   root.style.setProperty("--color-win-shadow", c.winShadow, "important");
   root.style.setProperty("--color-title-text", titleText, "important");
@@ -108,11 +124,7 @@ export function applyTheme(name: string, customThemes: ThemeDefinition[] = []) {
     if (override === undefined) root.style.removeProperty(variable);
     else root.style.setProperty(variable, override, "important");
   }
-  if (root.dataset) {
-    root.dataset.theme = theme.name;
-    root.dataset.radius = theme.radius ?? "none";
-    root.dataset.bevel = theme.bevel ?? "raised";
-  }
+  applyThemeDatasets(root, theme);
   const storedAppFont = getStoredAppFont();
   const fontCss = storedAppFont
     ? toCssFontFamily(storedAppFont)
@@ -167,23 +179,28 @@ function pickString(c: Record<string, unknown>, keys: string[], fallback: string
 
 function parseRetroismColors(c: Record<string, unknown>): ThemeDefinition["colors"] | null {
   if (!c.base && !c.primary) return null;
-  const muted = pickString(c, ["muted", "shadow"], "#808080");
+  const muted = pickString(c, ["muted", "shadow"], DEFAULT_THEME_COLORS.muted);
+  const primary = pickString(c, ["primary", "base"], DEFAULT_THEME_COLORS.primary);
   return {
-    background: pickString(c, ["background", "base"], "#222222"),
-    destructive: pickString(c, ["destructive", "urgent"], "#800000"),
-    field: pickString(c, ["field", "input", "base"], "#ffffff"),
-    highlight: pickString(c, ["highlight"], "#0000ff"),
-    linkHover: pickString(c, ["link_hover", "linkHover"], "#ff0000"),
+    background: pickString(c, ["background"], DEFAULT_THEME_COLORS.background),
+    destructive: pickString(c, ["destructive", "urgent"], DEFAULT_THEME_COLORS.destructive),
+    field: deriveFieldColor(firstString(c, ["field", "input"]), primary),
+    highlight: pickString(c, ["highlight"], DEFAULT_THEME_COLORS.highlight),
+    linkHover: pickString(c, ["link_hover", "linkHover"], DEFAULT_THEME_COLORS.linkHover),
     muted,
     autocomplete: parseHexColor(c.autocomplete, muted),
     autocompleteOpacity: parseAutocompleteOpacity(c.autocompleteOpacity),
-    primary: pickString(c, ["primary", "base"], "#c0c0c0"),
-    secondary: pickString(c, ["secondary", "accent"], "#000080"),
-    success: pickString(c, ["success"], "#008000"),
-    surface: pickString(c, ["surface"], "#d0d0d0"),
-    text: pickString(c, ["text"], "#000000"),
-    winHighlight: pickString(c, ["win_highlight", "winHighlight", "highlight"], "#ffffff"),
-    winShadow: pickString(c, ["win_shadow", "winShadow", "shadow"], muted),
+    primary,
+    secondary: pickString(c, ["secondary", "accent"], DEFAULT_THEME_COLORS.secondary),
+    success: pickString(c, ["success"], DEFAULT_THEME_COLORS.success),
+    surface: pickString(c, ["surface"], DEFAULT_THEME_COLORS.surface),
+    text: pickString(c, ["text"], DEFAULT_THEME_COLORS.text),
+    winHighlight: pickString(
+      c,
+      ["win_highlight", "winHighlight", "highlight"],
+      DEFAULT_THEME_COLORS.winHighlight
+    ),
+    winShadow: pickString(c, ["win_shadow", "winShadow", "shadow"], DEFAULT_THEME_COLORS.winShadow),
   };
 }
 
@@ -196,9 +213,11 @@ export function parseRetroismTheme(json: string): ThemeDefinition | null {
   return {
     bevel: parseBevel(raw.bevel),
     colors,
+    components: parseComponents(raw.components),
     fontFamily: (raw.fontFamily ?? c.font_family) as string | undefined,
     label: (raw.label ?? raw.name ?? "Imported") as string,
     name: (raw.name ?? `custom-${Date.now()}`) as string,
+    overlay: parseOverlay(raw.overlay),
     overrides: parseOverrides(raw.overrides),
     radius: parseRadius(raw.radius),
     titlebarGradient: parseTitlebarGradient(raw.titlebarGradient),
@@ -267,14 +286,16 @@ export function createThemeSignalStore(options: ThemeSignalOptions = {}): ThemeS
 
   const persisted = persistor.read();
   const persistedData = (persisted?.data ?? {}) as Partial<ThemeData>;
+  const storedThemes = Array.isArray(persistedData.customThemes)
+    ? (persistedData.customThemes as ThemeDefinition[])
+    : [];
+  const storedCurrent =
+    typeof persistedData.currentTheme === "string"
+      ? persistedData.currentTheme
+      : DEFAULT_THEME_DATA.currentTheme;
   const data: ThemeData = {
-    currentTheme:
-      typeof persistedData.currentTheme === "string"
-        ? persistedData.currentTheme
-        : DEFAULT_THEME_DATA.currentTheme,
-    customThemes: Array.isArray(persistedData.customThemes)
-      ? (persistedData.customThemes as ThemeDefinition[])
-      : [],
+    currentTheme: findTheme(storedCurrent, storedThemes)?.name ?? DEFAULT_THEME_DATA.currentTheme,
+    customThemes: storedThemes,
   };
   const mirror: Record<string, unknown> = { ...(data as unknown as Record<string, unknown>) };
   const atoms = {} as ThemeAtoms;

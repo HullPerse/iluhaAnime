@@ -11,7 +11,14 @@ import { useCell } from "@/lib/state/signal.hook";
 import { windowTintAlpha } from "@/lib/theme/palette.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
-import { addCustomTheme, parseRetroismTheme, removeCustomTheme, setTheme, themeAtoms, themeToJson } from "@/store/theme.store";
+import {
+  addCustomTheme,
+  parseRetroismTheme,
+  removeCustomTheme,
+  setTheme,
+  themeAtoms,
+  themeToJson,
+} from "@/store/theme.store";
 import type { ThemeDefinition } from "@/types/theme";
 
 import { BackdropSlider } from "./theme/backdrop.theme";
@@ -31,6 +38,7 @@ export default function SettingsTheme() {
   const windowEffect = useCell(settingsAtoms.windowEffect);
   const windowTintOpacity = useCell(settingsAtoms.windowTintOpacity);
   const collectionGroupHeaderStyle = useCell(settingsAtoms.collectionGroupHeaderStyle);
+  const progressStyle = useCell(settingsAtoms.progressStyle);
   const themeSchedule = useCell(settingsAtoms.themeSchedule);
   const customThemes = useCell(themeAtoms.customThemes);
   const [showEditor, setShowEditor] = useState(false);
@@ -265,6 +273,32 @@ export default function SettingsTheme() {
                     value: "folder",
                     label: t("settings.theme.collection.headers.folder"),
                   },
+                ]}
+                className="max-w-xs"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="ui-panel">
+        <div className="ui-titlebar">
+          <span className="text-title-text font-bold">{t("settings.progress.style")}</span>
+        </div>
+        <div className="flex flex-col gap-1 p-2">
+          <div className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-1.5">
+            <span className="windows95-text text-text text-xs font-bold">
+              {t("settings.progress.style")}
+            </span>
+            <div className="flex flex-col gap-0.5">
+              <Combobox
+                value={progressStyle}
+                onChange={(value) =>
+                  patchSettings({ progressStyle: value as typeof progressStyle })
+                }
+                options={[
+                  { value: "blocks", label: t("settings.progress.style.blocks") },
+                  { value: "solid", label: t("settings.progress.style.solid") },
                 ]}
                 className="max-w-xs"
               />

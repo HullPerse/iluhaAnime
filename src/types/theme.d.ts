@@ -4,6 +4,8 @@ export interface ThemeDefinition {
   fontFamily?: string;
   radius?: "none" | "frame" | "all";
   bevel?: "raised" | "flat";
+  overlay?: "none" | "scanlines" | "grid";
+  components?: ThemeComponents;
   titlebarGradient?: { from: string; to: string };
   overrides?: ThemeOverrides;
   colors: {
@@ -40,9 +42,15 @@ export type ThemeOverrideKey =
   | "torrentError"
   | "torrentInitializing"
   | "torrentIdle"
-  | "torrentMissing";
+  | "torrentMissing"
+  | "progressMain";
 
 export type ThemeOverrides = Partial<Record<ThemeOverrideKey, string>>;
+
+export interface ThemeComponents {
+  titlebarArt?: boolean;
+  cardMeta?: "full" | "short";
+}
 
 export interface ThemeStore {
   currentTheme: string;

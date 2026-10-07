@@ -8,30 +8,190 @@ import { ColorPickerTrigger } from "@/components/ui/color/trigger.color";
 import Combobox from "@/components/ui/combobox.component";
 import { Input } from "@/components/ui/input.component";
 import Slider from "@/components/ui/range.component";
-import { THEME_COLOR_KEYS } from "@/config/settings/themes.config";
+import { DEFAULT_THEME_COLORS, THEME_COLOR_KEYS } from "@/config/settings/themes.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useCell } from "@/lib/state/signal.hook";
 import { buildThemeColors, readImagePalette } from "@/lib/theme/palette.utils";
-import { addCustomTheme, applyTheme, getTitleText, setTheme, themeAtoms } from "@/store/theme.store";
-import type { ThemeColorKey, ThemeDefinition } from "@/types/theme";
+import {
+  addCustomTheme,
+  applyTheme,
+  getTitleText,
+  setTheme,
+  themeAtoms,
+} from "@/store/theme.store";
+import type { TranslationKey } from "@/types/i18n";
+import type { ThemeColorKey, ThemeDefinition, ThemeOverrideKey } from "@/types/theme";
 
-const DEFAULT_COLORS: ThemeDefinition["colors"] = {
-  autocomplete: "#808080",
-  autocompleteOpacity: 0.6,
-  background: "#222222",
-  destructive: "#800000",
-  field: "#ffffff",
-  highlight: "#0000ff",
-  linkHover: "#ff0000",
-  muted: "#808080",
-  primary: "#c0c0c0",
-  secondary: "#000080",
-  success: "#008000",
-  surface: "#d0d0d0",
-  text: "#000000",
-  winHighlight: "#ffffff",
-  winShadow: "#808080",
-};
+const DEFAULT_COLORS: ThemeDefinition["colors"] = { ...DEFAULT_THEME_COLORS };
+
+const OVERRIDE_ROWS: {
+  key: ThemeOverrideKey;
+  label: TranslationKey;
+  fallback: (colors: ThemeDefinition["colors"]) => string;
+}[] = [
+  { key: "progressMain", label: "settings.theme.override.progress", fallback: (c) => c.secondary },
+  {
+    key: "torrentDownloading",
+    label: "settings.theme.override.torrent.downloading",
+    fallback: () => "#0000ff",
+  },
+  {
+    key: "torrentSeeding",
+    label: "settings.theme.override.torrent.seeding",
+    fallback: () => "#f97316",
+  },
+  {
+    key: "torrentDone",
+    label: "settings.theme.override.torrent.done",
+    fallback: () => "#008000",
+  },
+  {
+    key: "torrentError",
+    label: "settings.theme.override.torrent.error",
+    fallback: () => "#800000",
+  },
+  {
+    key: "torrentInitializing",
+    label: "settings.theme.override.torrent.initializing",
+    fallback: () => "#0891b2",
+  },
+  {
+    key: "torrentIdle",
+    label: "settings.theme.override.torrent.idle",
+    fallback: () => "#808080",
+  },
+  {
+    key: "torrentMissing",
+    label: "settings.theme.override.torrent.missing",
+    fallback: () => "#b8860b",
+  },
+];
+
+function OverrideRow({
+  label,
+  value,
+  isCustom,
+  onPick,
+  onReset,
+}: {
+  label: TranslationKey;
+  value: string;
+  isCustom: boolean;
+  onPick: (value: string) => void;
+  onReset: () => void;
+}) {
+  const { t } = useI18n();
+  return (
+    <div className="flex items-center gap-2 px-1">
+      <span className="windows95-text text-text w-24 shrink-0 truncate">{t(label)}</span>
+      <ColorPickerTrigger value={value} onChange={onPick} />
+      <span className="text-hint font-mono text-xs">{value}</span>
+      {isCustom && (
+        <Button variant="link" className="text-xs" onClick={onReset}>
+          {t("settings.theme.override.reset")}
+        </Button>
+      )}
+    </div>
+  );
+}
+
+function OverridesSection({
+  colors,
+  overrides,
+  onPick,
+  onReset,
+}: {
+  colors: ThemeDefinition["colors"];
+  overrides: ThemeDefinition["overrides"];
+  onPick: (key: ThemeOverrideKey, value: string) => void;
+  onReset: (key: ThemeOverrideKey) => void;
+}) {
+  const { t } = useI18n();
+  return (
+    <section className="windows95-border mt-1 flex flex-col gap-1 p-1">
+      <span className="windows95-text text-xs font-bold">{t("settings.theme.overrides")}</span>
+      <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+        {OVERRIDE_ROWS.map((row) => (
+          <OverrideRow
+            key={row.key}
+            label={row.label}
+            value={overrides?.[row.key] ?? row.fallback(colors)}
+            isCustom={overrides?.[row.key] !== undefined}
+            onPick={(value) => onPick(row.key, value)}
+            onReset={() => onReset(row.key)}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ThemePreview({
+  name,
+  radius,
+  colors,
+  gradient,
+}: {
+  name: string;
+  radius: NonNullable<ThemeDefinition["radius"]>;
+  colors: ThemeDefinition["colors"];
+  gradient: ThemeDefinition["titlebarGradient"];
+}) {
+  const { t } = useI18n();
+  return (
+    <div
+      className={cn(
+        "windows95-border flex w-[340px] flex-col self-center",
+        radius === "all" && "rounded-[5px]"
+      )}
+    >
+      <div
+        className={cn(
+          "windows95-text px-1 text-xs font-bold",
+          radius !== "none" && "rounded-t-[6px]"
+        )}
+        style={{
+          background: `linear-gradient(to bottom, ${gradient?.from ?? colors.secondary}, ${gradient?.to ?? colors.secondary})`,
+          color: getTitleText(colors.secondary),
+        }}
+      >
+        {name.trim() || t("settings.theme.preview")}
+      </div>
+      <div
+        className="flex flex-col gap-1 p-2"
+        style={{ background: colors.primary, color: colors.text }}
+      >
+        <span className="windows95-text text-xs">{t("settings.theme.preview")}</span>
+        <span
+          className="windows95-text text-xs"
+          style={{ color: colors.autocomplete, opacity: colors.autocompleteOpacity }}
+        >
+          {t("settings.theme.autocomplete.preview")}
+        </span>
+        <div className="flex flex-wrap items-center gap-1">
+          <span
+            className="windows95-border windows95-text px-1 text-xs"
+            style={{ background: colors.surface, color: colors.text }}
+          >
+            {t("settings.theme.color.surface")}
+          </span>
+          <span
+            className="windows95-text px-1 text-xs"
+            style={{ background: colors.highlight, color: getTitleText(colors.highlight) }}
+          >
+            {t("settings.theme.color.highlight")}
+          </span>
+          <span className="windows95-text text-xs" style={{ color: colors.destructive }}>
+            {t("settings.theme.color.destructive")}
+          </span>
+          <span className="windows95-text text-xs" style={{ color: colors.success }}>
+            {t("settings.theme.color.success")}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function ThemeEditor({
   theme,
@@ -53,6 +213,9 @@ export default function ThemeEditor({
   const [bevel, setBevel] = useState<NonNullable<ThemeDefinition["bevel"]>>(
     theme?.bevel ?? "raised"
   );
+  const [overlay, setOverlay] = useState<NonNullable<ThemeDefinition["overlay"]>>(
+    theme?.overlay ?? "none"
+  );
   const [selected, setSelected] = useState<ThemeColorKey>("primary");
   const [palette, setPalette] = useState<string[]>([]);
   const [paletteFailed, setPaletteFailed] = useState(false);
@@ -62,17 +225,30 @@ export default function ThemeEditor({
     autocomplete: theme?.colors.autocomplete ?? theme?.colors.muted ?? DEFAULT_COLORS.autocomplete,
     autocompleteOpacity: theme?.colors.autocompleteOpacity ?? DEFAULT_COLORS.autocompleteOpacity,
   }));
+  const [overrides, setOverrides] = useState<ThemeDefinition["overrides"]>(() => ({
+    ...theme?.overrides,
+  }));
 
   useEffect(() => {
     if (!theme || currentTheme !== theme.name) return;
     applyTheme(theme.name, [
-      { ...theme, bevel, colors, radius },
+      { ...theme, bevel, colors, overlay, overrides, radius },
       ...customThemes.filter((item) => item.name !== theme.name),
     ]);
-  }, [bevel, colors, currentTheme, customThemes, radius, theme]);
+  }, [bevel, colors, currentTheme, customThemes, overlay, overrides, radius, theme]);
 
   const patchColor = (key: ThemeColorKey, value: string) =>
     setColors((prev) => ({ ...prev, [key]: value }));
+
+  const patchOverride = (key: ThemeOverrideKey, value: string) =>
+    setOverrides((prev) => ({ ...prev, [key]: value }));
+
+  const resetOverride = (key: ThemeOverrideKey) =>
+    setOverrides((prev) => {
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
 
   const handleFile = (file: File) => {
     const url = URL.createObjectURL(file);
@@ -94,7 +270,18 @@ export default function ThemeEditor({
   const handleSave = () => {
     if (!name.trim()) return;
     const safeName = theme?.name ?? `custom-${name.trim().toLowerCase().replaceAll(/\s+/g, "-")}`;
-    addCustomTheme({ bevel, colors: { ...colors }, label: name.trim(), name: safeName, radius });
+    const savedOverrides =
+      overrides && Object.keys(overrides).length > 0 ? { ...overrides } : undefined;
+    addCustomTheme({
+      ...theme,
+      bevel,
+      colors: { ...colors },
+      label: name.trim(),
+      name: safeName,
+      overlay: overlay === "none" ? undefined : overlay,
+      overrides: savedOverrides,
+      radius,
+    });
     if (currentTheme === safeName) setTheme(safeName);
     onClose();
   };
@@ -204,6 +391,13 @@ export default function ThemeEditor({
           })}
         </div>
 
+        <OverridesSection
+          colors={colors}
+          overrides={overrides}
+          onPick={patchOverride}
+          onReset={resetOverride}
+        />
+
         <div className="grid grid-cols-2 gap-x-4 gap-y-1">
           <div className="flex items-center gap-2 px-1">
             <span className="windows95-text text-text w-24 shrink-0 truncate">
@@ -234,6 +428,21 @@ export default function ThemeEditor({
               className="max-w-xs"
             />
           </div>
+          <div className="flex items-center gap-2 px-1">
+            <span className="windows95-text text-text w-24 shrink-0 truncate">
+              {t("settings.theme.shape.overlay")}
+            </span>
+            <Combobox
+              value={overlay}
+              onChange={(value) => setOverlay(value as typeof overlay)}
+              options={[
+                { value: "none", label: t("settings.theme.shape.overlay.none") },
+                { value: "scanlines", label: t("settings.theme.shape.overlay.scanlines") },
+                { value: "grid", label: t("settings.theme.shape.overlay.grid") },
+              ]}
+              className="max-w-xs"
+            />
+          </div>
         </div>
 
         <Slider
@@ -246,57 +455,12 @@ export default function ThemeEditor({
           suffix="%"
         />
 
-        <div
-          className={cn(
-            "windows95-border flex w-[340px] flex-col self-center",
-            radius === "all" && "rounded-[5px]"
-          )}
-        >
-          <div
-            className={cn(
-              "windows95-text px-1 text-xs font-bold",
-              radius !== "none" && "rounded-t-[6px]"
-            )}
-            style={{
-              background: `linear-gradient(to bottom, ${theme?.titlebarGradient?.from ?? colors.secondary}, ${theme?.titlebarGradient?.to ?? colors.secondary})`,
-              color: getTitleText(colors.secondary),
-            }}
-          >
-            {name.trim() || t("settings.theme.preview")}
-          </div>
-          <div
-            className="flex flex-col gap-1 p-2"
-            style={{ background: colors.primary, color: colors.text }}
-          >
-            <span className="windows95-text text-xs">{t("settings.theme.preview")}</span>
-            <span
-              className="windows95-text text-xs"
-              style={{ color: colors.autocomplete, opacity: colors.autocompleteOpacity }}
-            >
-              {t("settings.theme.autocomplete.preview")}
-            </span>
-            <div className="flex flex-wrap items-center gap-1">
-              <span
-                className="windows95-border windows95-text px-1 text-xs"
-                style={{ background: colors.surface, color: colors.text }}
-              >
-                {t("settings.theme.color.surface")}
-              </span>
-              <span
-                className="windows95-text px-1 text-xs"
-                style={{ background: colors.highlight, color: getTitleText(colors.highlight) }}
-              >
-                {t("settings.theme.color.highlight")}
-              </span>
-              <span className="windows95-text text-xs" style={{ color: colors.destructive }}>
-                {t("settings.theme.color.destructive")}
-              </span>
-              <span className="windows95-text text-xs" style={{ color: colors.success }}>
-                {t("settings.theme.color.success")}
-              </span>
-            </div>
-          </div>
-        </div>
+        <ThemePreview
+          name={name}
+          radius={radius}
+          colors={colors}
+          gradient={theme?.titlebarGradient}
+        />
 
         <div className="mt-1 flex justify-end gap-1">
           <Button

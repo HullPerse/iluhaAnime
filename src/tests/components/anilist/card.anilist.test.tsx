@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { EntryLookup } from "@/lib/anilist/entries.utils";
 import AniListCard from "@/routes/components/anilist/card.anilist";
 import { patchSettings } from "@/store/settings.store";
+import { themeAtoms } from "@/store/theme.store";
 import type { AniMedia } from "@/types/anilist";
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -77,7 +78,10 @@ function renderCard(scoreFormat: string, score: number | null) {
   );
 }
 
-afterEach(() => cleanup());
+afterEach(() => {
+  themeAtoms.currentTheme.set("win95");
+  cleanup();
+});
 
 beforeEach(() => {
   patchSettings({ language: "en" });
@@ -163,5 +167,35 @@ describe("ProgressStepper", () => {
         expect.objectContaining({ mediaId: MEDIA_ID, progress: 21, status: "COMPLETED" })
       )
     );
+  });
+});
+
+describe("AniListCard short meta", () => {
+  function renderReleasing() {
+    const client = new QueryClient();
+    return render(
+      <QueryClientProvider client={client}>
+        <AniListCard
+          item={makeMedia({ status: "RELEASING", next_episode: 5 })}
+          entryLookup={makeLookup(null)}
+          isFavorite={false}
+          scoreFormat="POINT_10"
+          onClick={vi.fn()}
+        />
+      </QueryClientProvider>
+    );
+  }
+
+  it("shows the aired count on full meta themes", () => {
+    renderReleasing();
+    expect(screen.getByText("4/28")).toBeTruthy();
+    expect(screen.getByText("20/28")).toBeTruthy();
+  });
+
+  it("hides the aired count but keeps progress on short meta themes", () => {
+    themeAtoms.currentTheme.set("terminal");
+    renderReleasing();
+    expect(screen.queryByText("4/28")).toBeNull();
+    expect(screen.getByText("20/28")).toBeTruthy();
   });
 });

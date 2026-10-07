@@ -33,10 +33,7 @@ describe("settings signal migration", () => {
   });
 
   it("migrates legacy dlLimit/ulLimit into limits.download/upload", () => {
-    const result = settings.migrateSettingsData(
-      { dlLimit: 500, ulLimit: 100, language: "en" },
-      14
-    );
+    const result = settings.migrateSettingsData({ dlLimit: 500, ulLimit: 100, language: "en" }, 14);
     expect(result.language).toBe("en");
     expect(result.limits).toEqual({ download: 500, upload: 100 });
     expect("dlLimit" in result).toBe(false);
@@ -110,10 +107,7 @@ describe("settings signal migration", () => {
     expect(kept.screenshotDir).toBe("D:\\Shots");
     expect(kept.screenshotFormat).toBe("jpeg");
     expect(kept.screenshotOpenFolder).toBe(false);
-    const repaired = settings.migrateSettingsData(
-      { language: "en", screenshotFormat: "webp" },
-      34
-    );
+    const repaired = settings.migrateSettingsData({ language: "en", screenshotFormat: "webp" }, 34);
     expect(repaired.screenshotFormat).toBe("png");
   });
 });
@@ -169,10 +163,10 @@ describe("settings signal autocomplete", () => {
 
 describe("settings title toggles v38 migration", () => {
   it("moves legacy parseTitles into parseTitlesPlayer", () => {
-    const result = settings.migrateSettingsData({ parseTitles: true, language: "en" }, 37) as Record<
-      string,
-      unknown
-    >;
+    const result = settings.migrateSettingsData(
+      { parseTitles: true, language: "en" },
+      37
+    ) as Record<string, unknown>;
     expect(result.parseTitlesPlayer).toBe(true);
     expect(result.parseTitlesTorrent).toBe(false);
     expect(result.parseTitlesSearch).toBe(false);
@@ -186,6 +180,25 @@ describe("settings title toggles v38 migration", () => {
     ) as Record<string, unknown>;
     expect(result.parseTitlesPlayer).toBe(true);
     expect(result.parseTitlesTorrent).toBe(true);
+  });
+});
+
+describe("settings progress style", () => {
+  it("defaults to blocks when missing", () => {
+    expect(settings.migrateSettingsData({ language: "en" }, 38).progressStyle).toBe("blocks");
+  });
+
+  it("keeps a valid persisted style", () => {
+    const result = settings.migrateSettingsData({ progressStyle: "solid", language: "en" }, 38);
+    expect(result.progressStyle).toBe("solid");
+  });
+
+  it("repairs an unknown style to the default", () => {
+    const result = settings.migrateSettingsData(
+      { progressStyle: "stripes", language: "en" },
+      38
+    ) as Record<string, unknown>;
+    expect(result.progressStyle).toBe("blocks");
   });
 });
 

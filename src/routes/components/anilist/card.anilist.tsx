@@ -5,7 +5,8 @@ import ProgressBar from "@/components/shared/progress.component";
 import Image from "@/components/ui/image.component";
 import { listStatusLabels, statusLabels } from "@/config/anilist/labels.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { getStatusColor } from "@/lib/anilist/entries.utils";
+import { useThemeComponents } from "@/hooks/themeComponents.hook";
+import { getStatusColor, type EntryListInfo } from "@/lib/anilist/entries.utils";
 import {
   formatEntryScore,
   parseScoreFormat,
@@ -66,8 +67,35 @@ function MyScoreBadge({
   );
 }
 
+function CardProgressBlock({
+  item,
+  entry,
+}: {
+  item: Props["item"];
+  entry: EntryListInfo | undefined;
+}) {
+  if (entry?.progress == null) return null;
+  if (item.episodes) {
+    return (
+      <div className="flex items-center gap-1">
+        <ProgressStepper media={item} entry={entry} />
+        <ProgressBar value={entry.progress} max={item.episodes} className="h-3.5 w-20" slots />
+        <span className="windows95-text text-xs">
+          {entry.progress}/{item.episodes}
+        </span>
+      </div>
+    );
+  }
+  if (entry.progress > 0) {
+    return <span className="bg-secondary text-title-text px-1 text-xs">{entry.progress}</span>;
+  }
+  return null;
+}
+
 function AniListEntryCard({ item, entryLookup, isFavorite, scoreFormat, onClick }: Props) {
   const { t } = useI18n();
+  const { cardMeta } = useThemeComponents();
+  const shortMeta = cardMeta === "short";
   const entry = entryLookup.get(item.id);
   const format = parseScoreFormat(scoreFormat);
 
@@ -125,11 +153,13 @@ function AniListEntryCard({ item, entryLookup, isFavorite, scoreFormat, onClick 
               </span>
             )}
 
-            <CardAiredCount
-              status={item.status}
-              nextEpisode={item.next_episode}
-              total={item.episodes}
-            />
+            {!shortMeta && (
+              <CardAiredCount
+                status={item.status}
+                nextEpisode={item.next_episode}
+                total={item.episodes}
+              />
+            )}
 
             <MyScoreBadge
               score={entry?.score}
@@ -150,31 +180,14 @@ function AniListEntryCard({ item, entryLookup, isFavorite, scoreFormat, onClick 
             <span className="text-text text-xs">
               {t(toLocaleKey(statusLabels[item.status.toUpperCase()] ?? item.status))}
             </span>
-            {entry?.progress != null && item.episodes && (
-              <div className="flex items-center gap-1">
-                <ProgressStepper media={item} entry={entry} />
-                <ProgressBar
-                  value={entry.progress}
-                  max={item.episodes}
-                  className="h-3.5 w-20"
-                  slots
-                />
-                <span className="windows95-text text-xs">
-                  {entry.progress}/{item.episodes}
-                </span>
-              </div>
-            )}
-            {entry?.progress != null && entry?.progress > 0 && !item.episodes && (
-              <span className="bg-secondary text-title-text px-1 text-xs">{entry.progress}</span>
-            )}
-
+            <CardProgressBlock item={item} entry={entry} />
             {!entry && item.episodes && (
               <span className="text-text text-xs">
                 {item.episodes} {t("anilist.details.eps.short")}
               </span>
             )}
 
-            <CardListDate entry={entry} fallback={item.end_date} />
+            {!shortMeta && <CardListDate entry={entry} fallback={item.end_date} />}
           </div>
         </section>
 

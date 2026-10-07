@@ -75,6 +75,15 @@ const changelog500 = {
     "Completion toasts for upscale, convert, and tool downloads, plus backup errors and scan failure surfacing",
   "changelog.5_0_0.added.anilist.activity_detail":
     "Anime details from the activity feed and notifications open inside the same window with Back",
+  "changelog.5_0_0.added.settings.progress_style":
+    "Progress bar style choice in Settings Theme: blocky segments or a solid fill across the whole app",
+  "changelog.5_0_0.added.settings.progress_colors":
+    "Progress colors in the theme editor: one main progress color plus all torrent states",
+  "changelog.5_0_0.added.settings.theme_overlays":
+    "Per-theme overlays: scanline grid and scanlines, YoRHa and Terminal lead",
+  "changelog.5_0_0.added.settings.anilist_theme": "New dark AniList theme with a scanline grid",
+  "changelog.5_0_0.added.settings.theme_card_variants":
+    "Titlebar art and compact card meta on select themes",
   "changelog.5_0_0.changed.anilist.batch_fetch":
     "AniList list, score, and media fetching runs at most 3 parallel requests with similar requests merged, so collections and friend data load in fewer server requests",
   "changelog.5_0_0.changed.search.scoring_unify":
@@ -128,6 +137,8 @@ const changelog500 = {
     "Spell quick-fix card in search fields: the typo popup shows the correction with buttons, Tab applies it while typing and Ctrl+Tab saves the word to the personal dictionary",
   "changelog.5_0_0.changed.anilist.progress_blocks":
     "Episode progress bars always show 12 blocks of equal width, so short and long series look the same and the bar fills fully only on the last episode",
+  "changelog.5_0_0.changed.settings.theme_cleanup":
+    "Theme list trimmed from 24 to 14, night theme now defaults to Tokyo Night",
 } as const;
 
 export default changelog500;

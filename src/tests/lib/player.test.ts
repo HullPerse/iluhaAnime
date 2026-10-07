@@ -421,6 +421,13 @@ describe("player/title", () => {
     it("returns the input when there is no separator", () => {
       expect(fileNameFromPath("ep1.mkv")).toBe("ep1.mkv");
     });
+
+    it("handles trailing and mixed separators like the previous split-based version", () => {
+      expect(fileNameFromPath("a/b/")).toBe("a/b/");
+      expect(fileNameFromPath("a\\")).toBe("a\\");
+      expect(fileNameFromPath("a\\b/c.mkv")).toBe("c.mkv");
+      expect(fileNameFromPath("")).toBe("");
+    });
   });
 });
 

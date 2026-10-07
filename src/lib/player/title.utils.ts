@@ -33,6 +33,10 @@ export function formatParsedTitle(
 }
 
 export function fileNameFromPath(p: string): string {
-  const parts = p.replaceAll(/\\/g, "/").split("/");
-  return parts.at(-1) || p;
+  const slash = p.lastIndexOf("/");
+  const backslash = p.lastIndexOf("\\");
+  const cut = Math.max(slash, backslash);
+  if (cut < 0) return p;
+  const name = p.slice(cut + 1);
+  return name || p;
 }

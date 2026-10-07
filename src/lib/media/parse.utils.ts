@@ -2,7 +2,7 @@ import { resolveMediaFile } from "@/lib/media/resolve.utils";
 import { createLruCache } from "@/lib/utils/lruCache.utils";
 import type { MediaFileParse } from "@/types/media";
 
-const MAX_MEDIA_PARSE_CACHE = 500;
+const MAX_MEDIA_PARSE_CACHE = 2000;
 const parseCache = createLruCache<string, MediaFileParse>(MAX_MEDIA_PARSE_CACHE);
 
 export function parseMediaFile(dir: string | null, file: string): MediaFileParse {

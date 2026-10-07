@@ -58,11 +58,14 @@ export function trackLabel(track: MpvTrack): string {
 }
 
 export function sortTracksByLanguage(tracks: MpvTrack[]): MpvTrack[] {
+  // Resolve display names once: the comparator below runs O(n log n) times
+  // and each resolution costs an Intl lookup.
+  const names = tracks.map((track) => trackLanguageName(track));
   return tracks
     .map((track, index) => ({ index, track }))
     .sort((left, right) => {
-      const leftName = trackLanguageName(left.track);
-      const rightName = trackLanguageName(right.track);
+      const leftName = names[left.index];
+      const rightName = names[right.index];
       if (!leftName && !rightName) return left.index - right.index;
       if (!leftName) return 1;
       if (!rightName) return -1;

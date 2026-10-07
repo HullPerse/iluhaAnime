@@ -139,6 +139,14 @@ const changelog500 = {
     "Episode progress bars always show 12 blocks of equal width, so short and long series look the same and the bar fills fully only on the last episode",
   "changelog.5_0_0.changed.settings.theme_cleanup":
     "Theme list trimmed from 24 to 14, night theme now defaults to Tokyo Night",
+  "changelog.5_0_0.fixed.player.resume_jump":
+    "Resume playback no longer stutters: the player seeks to the position once instead of twice, and position and duration are read live instead of stale data",
+  "changelog.5_0_0.fixed.player.timeline_flicker":
+    "The timeline no longer jumps to zero while paused: hover previews no longer move playback or flash across the progress bar",
+  "changelog.5_0_0.fixed.app.scan_db_locked":
+    "The database-is-locked scan failure no longer appears when opening the player: writes now proceed strictly one at a time",
+  "changelog.5_0_0.changed.player.hot_paths":
+    "Player hot paths are faster: queue sorting, track menus, language names, and preview card order",
 } as const;
 
 export default changelog500;

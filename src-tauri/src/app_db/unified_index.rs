@@ -1,4 +1,4 @@
-use rusqlite::params;
+use rusqlite::{params, Transaction};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use unicode_normalization::UnicodeNormalization;
@@ -119,11 +119,23 @@ pub fn upsert_unified_index(
     if entries.len() > 5_000 {
         return Err("Too many unified index entries".into());
     }
+    let _write = super::db::lock_app_data_write_timeout(super::db::APP_DATA_WRITE_TIMEOUT)?;
     let connection = open_database(&app)?;
     let transaction = connection
         .unchecked_transaction()
         .map_err(|error| format!("unified index transaction: {error}"))?;
-    let now = now_seconds();
+    let count = upsert_unified_index_batch(&transaction, &entries, now_seconds())?;
+    transaction
+        .commit()
+        .map_err(|error| format!("unified index commit: {error}"))?;
+    Ok(count)
+}
+
+pub(crate) fn upsert_unified_index_batch(
+    transaction: &Transaction,
+    entries: &[UnifiedIndexEntryInput],
+    now: i64,
+) -> Result<usize, String> {
     {
         let mut statement = transaction
             .prepare(
@@ -140,7 +152,7 @@ pub fn upsert_unified_index(
                     updated_at = excluded.updated_at",
             )
             .map_err(|error| format!("prepare unified index upsert: {error}"))?;
-        for entry in &entries {
+        for entry in entries {
             let metadata = validate_unified_index_entry(entry)?;
             let normalized = normalize_index_text(&entry.value);
             statement
@@ -157,9 +169,6 @@ pub fn upsert_unified_index(
                 .map_err(|error| format!("upsert unified index: {error}"))?;
         }
     }
-    transaction
-        .commit()
-        .map_err(|error| format!("unified index commit: {error}"))?;
     Ok(entries.len())
 }
 
@@ -175,11 +184,24 @@ pub fn prune_unified_index_scope(
     if scope.is_empty() || scope.len() > 64 || keep_ids.len() > 50_000 {
         return Err("Unified index scope or keep list is invalid".into());
     }
+    let _write = super::db::lock_app_data_write_timeout(super::db::APP_DATA_WRITE_TIMEOUT)?;
     let connection = open_database(&app)?;
     let transaction = connection
         .unchecked_transaction()
         .map_err(|error| format!("prune unified index transaction: {error}"))?;
-    let keep_ids: HashSet<&str> = keep_ids.iter().map(String::as_str).collect();
+    let keep_set: HashSet<&str> = keep_ids.iter().map(String::as_str).collect();
+    let removed = prune_unified_index_scope_inner(&transaction, &scope, &keep_set)?;
+    transaction
+        .commit()
+        .map_err(|error| format!("prune unified index commit: {error}"))?;
+    Ok(removed)
+}
+
+pub(crate) fn prune_unified_index_scope_inner(
+    transaction: &Transaction,
+    scope: &str,
+    keep_ids: &HashSet<&str>,
+) -> Result<usize, String> {
     let stale_ids = {
         let mut statement = transaction
             .prepare("SELECT id FROM unified_index WHERE scope = ?1")
@@ -205,9 +227,6 @@ pub fn prune_unified_index_scope(
                 .map_err(|error| format!("delete stale unified index entry: {error}"))?;
         }
     }
-    transaction
-        .commit()
-        .map_err(|error| format!("prune unified index commit: {error}"))?;
     Ok(removed)
 }
 
@@ -216,6 +235,7 @@ pub fn clear_unified_index_scope(app: tauri::AppHandle, scope: String) -> Result
     if scope.is_empty() || scope.len() > 64 {
         return Err("Unified index scope is invalid".into());
     }
+    let _write = super::db::lock_app_data_write_timeout(super::db::APP_DATA_WRITE_TIMEOUT)?;
     let connection = open_database(&app)?;
     let deleted = connection
         .execute("DELETE FROM unified_index WHERE scope = ?1", params![scope])
@@ -228,6 +248,7 @@ pub fn delete_unified_index_entry(app: tauri::AppHandle, id: String) -> Result<u
     if id.is_empty() || id.len() > 512 {
         return Err("Unified index id is invalid".into());
     }
+    let _write = super::db::lock_app_data_write_timeout(super::db::APP_DATA_WRITE_TIMEOUT)?;
     let connection = open_database(&app)?;
     let deleted = connection
         .execute("DELETE FROM unified_index WHERE id = ?1", params![id])
@@ -250,6 +271,7 @@ pub fn record_unified_index_action(
         "ignore" => "ignored_count",
         _ => return Err("Unknown unified index action".into()),
     };
+    let _write = super::db::lock_app_data_write_timeout(super::db::APP_DATA_WRITE_TIMEOUT)?;
     let connection = open_database(&app)?;
     connection
         .execute(
@@ -366,6 +388,7 @@ pub fn search_unified_index(
 
 #[tauri::command]
 pub fn optimize_unified_index(app: tauri::AppHandle) -> Result<(), String> {
+    let _write = super::db::lock_app_data_write_timeout(super::db::APP_DATA_WRITE_TIMEOUT)?;
     let connection = open_database(&app)?;
     connection
         .execute(
@@ -584,5 +607,126 @@ mod tests {
             order,
             vec!["fresh_riser", "old_star", "zero", "fresh_sinner", "ancient"]
         );
+    }
+
+    /// Reproduces the production `upsert unified index: database is locked`
+    /// failure. Every Tauri command opens its own connection to the single
+    /// `app_data.sqlite3` file, and SQLite allows only one writer at a time.
+    /// A second writer busy-waits up to `busy_timeout` (5 s in production via
+    /// `initialize_schema`) and then fails with SQLITE_BUSY while another
+    /// connection still holds its write transaction (long prune, FTS
+    /// `optimize`, or an overlapping `rebuild_file_index`).
+    #[test]
+    fn concurrent_writer_reports_database_is_locked_after_busy_timeout() {
+        use std::sync::mpsc::channel;
+        use std::time::Duration;
+
+        let path = std::env::temp_dir().join(format!(
+            "iluha-index-lock-test-{}.sqlite3",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_file(&path);
+
+        let open = || {
+            let connection = Connection::open(&path).expect("open temp database");
+            initialize_schema(&connection).expect("schema migration");
+            connection
+        };
+        let holder = open();
+        let contender = open();
+
+        holder
+            .execute_batch("BEGIN IMMEDIATE")
+            .expect("holder begins write txn");
+        holder
+            .execute(
+                "INSERT INTO unified_index
+                    (id, kind, scope, value, normalized_value, metadata_json, updated_at)
+                 VALUES ('holder', 'local_file', 'player', 'Holder', 'holder', '{}', 0)",
+                [],
+            )
+            .expect("holder insert");
+
+        let (release_tx, release_rx) = channel::<()>();
+        let handle = std::thread::spawn(move || {
+            release_rx.recv().expect("release signal");
+            holder.execute_batch("COMMIT").expect("holder commit");
+        });
+
+        contender
+            .busy_timeout(Duration::from_millis(100))
+            .expect("short busy timeout");
+        let error = contender
+            .execute(
+                "INSERT INTO unified_index
+                    (id, kind, scope, value, normalized_value, metadata_json, updated_at)
+                 VALUES ('contender', 'local_file', 'player', 'Contender', 'contender', '{}', 0)",
+                [],
+            )
+            .expect_err("contender must hit the held write lock");
+        let message = error.to_string();
+        assert!(
+            message.contains("database is locked"),
+            "unexpected error message: {message}"
+        );
+        let is_busy = matches!(
+            error,
+            rusqlite::Error::SqliteFailure(ref failure, _)
+                if failure.code == rusqlite::ErrorCode::DatabaseBusy
+        );
+        assert!(is_busy, "expected SQLITE_BUSY, got: {error:?}");
+
+        release_tx.send(()).expect("send release");
+        handle.join().expect("holder thread");
+        contender
+            .execute(
+                "INSERT INTO unified_index
+                    (id, kind, scope, value, normalized_value, metadata_json, updated_at)
+                 VALUES ('contender', 'local_file', 'player', 'Contender', 'contender', '{}', 0)",
+                [],
+            )
+            .expect("retry after release succeeds");
+
+        drop(contender);
+        let _ = std::fs::remove_file(&path);
+        let _ = std::fs::remove_file(path.with_extension("sqlite3-wal"));
+        let _ = std::fs::remove_file(path.with_extension("sqlite3-shm"));
+    }
+
+    #[test]
+    fn prune_keeps_listed_ids_and_removes_only_stale_scope_rows() {
+        let connection = Connection::open_in_memory().expect("in-memory database");
+        initialize_schema(&connection).expect("schema migration");
+        let transaction = connection
+            .unchecked_transaction()
+            .expect("prune test transaction");
+        for (id, scope) in [
+            ("keep-a", "player"),
+            ("keep-b", "player"),
+            ("stale", "player"),
+            ("other-scope", "anilist"),
+        ] {
+            transaction
+                .execute(
+                    "INSERT INTO unified_index
+                        (id, kind, scope, value, normalized_value, metadata_json, updated_at)
+                     VALUES (?1, 'local_file', ?2, ?3, ?3, '{}', 0)",
+                    params![id, scope, id],
+                )
+                .expect("insert prune fixture");
+        }
+        let keep: HashSet<&str> = ["keep-a", "keep-b"].into_iter().collect();
+        let removed =
+            prune_unified_index_scope_inner(&transaction, "player", &keep).expect("prune scope");
+        assert_eq!(removed, 1);
+        transaction.commit().expect("commit prune");
+        let remaining: Vec<String> = connection
+            .prepare("SELECT id FROM unified_index ORDER BY id")
+            .expect("prepare remaining")
+            .query_map([], |row| row.get(0))
+            .expect("query remaining")
+            .collect::<Result<Vec<_>, _>>()
+            .expect("collect remaining");
+        assert_eq!(remaining, vec!["keep-a", "keep-b", "other-scope"]);
     }
 }

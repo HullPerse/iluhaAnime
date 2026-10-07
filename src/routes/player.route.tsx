@@ -2,7 +2,7 @@ import { DndContext, DragOverlay } from "@dnd-kit/core";
 import { useQueryClient } from "@tanstack/react-query";
 import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
-import { Download, EyeOff, Search, Upload, X } from "lucide-react";
+import { EyeOff, Search, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { InlineAutocompleteInput } from "@/components/shared/autocomplete/input.autocomplete";
@@ -23,19 +23,17 @@ import { buildTree, filterTreeByPaths } from "@/lib/player/tree.utils";
 import { filterTreeByHiddenPaths } from "@/lib/player/visibility.utils";
 import { queryKeys } from "@/lib/query/keys.utils";
 import { useCell } from "@/lib/state/signal.hook";
-import { attempt, attemptSync, reportBackgroundError, withFallback } from "@/lib/utils/attempt.utils";
+import { attempt, reportBackgroundError, withFallback } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
+import { createCoalescedRunner } from "@/lib/utils/promise.utils";
 import { showError, showErrorOnce } from "@/lib/utils/notification.utils";
 import { cacheAtoms, setFolderTrees as setCachedFolderTrees } from "@/store/cache.store";
 import {
   addCategory,
   categoryAtoms,
-  exportCategories,
-  importCategories,
   removeCategory,
   removeEntriesByFolderPath,
 } from "@/store/category.store";
-import { addNotification as notify } from "@/store/notification.store";
 import { hidePlayerFolder, hidePlayerTorrent, patchSettings, setPlayerFolderHeight, settingsAtoms, unhidePlayerFolder, unhidePlayerTorrent } from "@/store/settings.store";
 import type { VideoFileEntry } from "@/types/fs";
 import type { ScanType, FileSearchResult } from "@/types/player";
@@ -194,7 +192,13 @@ function PlayerRoute() {
     });
   }, [torrentPendingIds]);
 
-  const rebuildIndex = useCallback(
+  const rebuildRunnerRef = useRef<((task: () => Promise<void>) => Promise<void>) | null>(
+    null
+  );
+  if (rebuildRunnerRef.current === null) {
+    rebuildRunnerRef.current = createCoalescedRunner();
+  }
+  const rebuildFileIndex = useCallback(
     async (paths: string[]) => {
       const [, error] = await attempt(
         invokeTyped("rebuild_file_index", {
@@ -209,6 +213,22 @@ function PlayerRoute() {
       }
     },
     [t, videoExtensions]
+  );
+  const rebuildFileIndexRef = useRef(rebuildFileIndex);
+  useEffect(() => {
+    rebuildFileIndexRef.current = rebuildFileIndex;
+  }, [rebuildFileIndex]);
+  // Coalesced: player mount fires a cached-trees rebuild and a post-scan
+  // rebuild almost simultaneously; without this the two overlapping
+  // `rebuild_file_index` commands race inside SQLite (`database is locked`).
+  // A trailing call with different paths is remembered and runs once after.
+  const rebuildIndex = useCallback(
+    (paths: string[]) => {
+      const runner = rebuildRunnerRef.current;
+      if (!runner) return Promise.resolve();
+      return runner(() => rebuildFileIndexRef.current(paths));
+    },
+    []
   );
 
   const { reportScan } = useWatchedFolderNotifications(savedFolderPaths, videoExtensions);
@@ -428,51 +448,6 @@ function PlayerRoute() {
     setPendingDeleteCategory(id);
   }, []);
 
-  const handleExportCategories = useCallback(() => {
-    const [, error] = attemptSync(() => {
-      const json = exportCategories();
-      const blob = new Blob([json], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `iluhaAnime-categories-${new Date().toISOString().slice(0, 10)}.json`;
-      link.click();
-      URL.revokeObjectURL(url);
-    });
-    if (error) {
-      notify(t("player.route.create.category"), "error", t("player.category.export.error"));
-      return;
-    }
-    notify(t("player.route.create.category"), "success", t("player.category.export.done"));
-  }, [t]);
-
-  const handleImportCategories = useCallback(
-    async (file: File | null) => {
-      if (!file) return;
-      const read = await attempt(file.text());
-      if (read[1] || !read[0]) {
-        notify(t("player.route.create.category"), "error", t("player.category.import.error"));
-        return;
-      }
-      const [parsed, parseError] = attemptSync((): unknown => JSON.parse(read[0]));
-      if (parseError) {
-        notify(t("player.route.create.category"), "error", t("player.category.import.error"));
-        return;
-      }
-      const [count, importError] = attemptSync(() => importCategories(parsed));
-      if (importError) {
-        notify(t("player.route.create.category"), "error", t("player.category.import.error"));
-        return;
-      }
-      notify(
-        t("player.route.create.category"),
-        "success",
-        t("player.category.import.done", { count })
-      );
-    },
-    [t]
-  );
-
   return (
     <DndContext
       sensors={drag.sensors}
@@ -527,32 +502,6 @@ function PlayerRoute() {
 
         {categories.length > 0 && (
           <section className="windows95-text flex w-full flex-col gap-2">
-            <div className="flex items-center gap-1">
-              <Button
-                size="icon"
-                className="size-6"
-                title={t("player.category.export")}
-                aria-label={t("player.category.export")}
-                onClick={handleExportCategories}
-              >
-                <Download className="size-3" />
-              </Button>
-              <label
-                className="flex size-6 cursor-pointer items-center justify-center border"
-                title={t("player.category.import")}
-              >
-                <Upload className="size-3" />
-                <input
-                  type="file"
-                  accept="application/json,.json"
-                  className="hidden"
-                  onChange={(event) => {
-                    handleImportCategories(event.target.files?.[0] ?? null).catch(() => undefined);
-                    event.target.value = "";
-                  }}
-                />
-              </label>
-            </div>
             {[...categories]
               .sort((a, b) => a.order - b.order)
               .map((cat) => (

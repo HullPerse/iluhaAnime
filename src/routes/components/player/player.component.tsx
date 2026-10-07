@@ -48,7 +48,9 @@ import {
   playPlaylistIndex,
   previousFile,
   readPath,
+  readDuration,
   readPlaylistEntries,
+  readPlaylistIndex,
   removePlaylistIndex,
   saveWatch,
   seekTo,
@@ -63,6 +65,14 @@ import {
   transformOptions,
 } from "@/lib/player/playback.utils";
 import { fileNameFromPath, formatParsedTitle } from "@/lib/player/title.utils";
+import {
+  RESUME_END_MARGIN,
+  RESUME_MIN,
+  resolveLoadPosition,
+  needsExactSeek,
+  shouldSkipFrontendSeek,
+  type HwdecReload,
+} from "@/lib/player/resume.utils";
 import { reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { ignore } from "@/lib/utils/promise.utils";
@@ -101,6 +111,7 @@ import type {
   DroppedFramesData,
   EndOfFileMode,
   HwdecMode,
+  MediaEntry,
   MpvTrack,
   PlayerProfileId,
   PlayerSettings,
@@ -125,9 +136,6 @@ import PlayerSidePanel from "./side.player";
 const AUTO_HIDE_DELAY = 3000;
 const WATCH_INTERVAL = 5000;
 const DROP_TOAST_TIMEOUT = 6000;
-const RESUME_MIN = 5;
-const RESUME_END_MARGIN = 10;
-
 const SUBTITLE_FILTERS = ["srt", "ass", "ssa", "vtt", "sub", "idx"];
 const AUDIO_FILTERS = ["mka", "flac", "aac", "m4a", "ac3", "dts", "mp3", "wav", "ogg", "opus"];
 
@@ -175,29 +183,19 @@ function rootClass(hasFile: boolean, failed: boolean, cursorHidden: boolean): st
   );
 }
 
-interface HwdecReload {
-  position: number;
-  paused: boolean;
-}
-
-function resolveLoadPosition(
-  reload: HwdecReload | null,
-  playlistIndex: number,
-  resume: number | undefined,
-  entryPosition: number | undefined
-): number {
-  if (reload) return reload.position;
-  if (playlistIndex === 0 && resume !== undefined) return resume;
-  return entryPosition ?? 0;
-}
-
-function needsExactSeek(reload: HwdecReload | null, position: number, inside: boolean): boolean {
-  if (reload) return position > 1;
-  return inside;
-}
-
 async function restoreReloadPaused(reload: HwdecReload | null): Promise<void> {
   if (reload && !reload.paused) await setPaused(false);
+}
+
+async function applyEntryPlaybackSettings(entry: MediaEntry | undefined): Promise<void> {
+  await setMpvProperty("sub-delay", entry?.subOffset ?? 0);
+  await setMpvProperty("audio-delay", entry?.audioOffset ?? 0);
+  if (entry && typeof entry.audioTrack === "number") {
+    await selectTrack("audio", entry.audioTrack);
+  }
+  if (entry && typeof entry.subtitleTrack === "number") {
+    await selectTrack("sub", entry.subtitleTrack);
+  }
 }
 
 function PlayerComponent() {
@@ -242,6 +240,10 @@ function PlayerComponent() {
   const videoRef = useRef<HTMLDivElement>(null);
   const resumeRef = useRef<number | undefined>(undefined);
   const hwdecReloadRef = useRef<HwdecReload | null>(null);
+  // Guards overlapping handleFileLoaded executions: every new file-loaded
+  // (or open request) retires the previous run mid-await so stale track,
+  // delay, and seek writes can never land on the wrong file.
+  const loadEpochRef = useRef(0);
   const destroyTimerRef = useRef<number | null>(null);
   const dropTimerRef = useRef<number | null>(null);
 
@@ -280,19 +282,23 @@ function PlayerComponent() {
           settings: store.settings,
         })
       );
-      await applyPlayerProfile(store.profile).catch((error: unknown) =>
-        reportBackgroundError("player.init.profile", error)
-      );
-      await applyHdrOptions(store.settings).catch((error: unknown) =>
-        reportBackgroundError("player.init.hdr", error)
-      );
-      await applyColorOptions(store.settings).catch((error: unknown) =>
-        reportBackgroundError("player.init.color", error)
-      );
-      await applyAudioOptions(store.settings).catch((error: unknown) =>
-        reportBackgroundError("player.init.audio", error)
-      );
-      await setEofModeCommand(store.eofMode);
+      // Independent backend applies run concurrently: each is ~1 IPC roundtrip
+      // and none depends on another. Error reporting per call is preserved.
+      await Promise.all([
+        applyPlayerProfile(store.profile).catch((error: unknown) =>
+          reportBackgroundError("player.init.profile", error)
+        ),
+        applyHdrOptions(store.settings).catch((error: unknown) =>
+          reportBackgroundError("player.init.hdr", error)
+        ),
+        applyColorOptions(store.settings).catch((error: unknown) =>
+          reportBackgroundError("player.init.color", error)
+        ),
+        applyAudioOptions(store.settings).catch((error: unknown) =>
+          reportBackgroundError("player.init.audio", error)
+        ),
+        setEofModeCommand(store.eofMode),
+      ]);
 
       if (disposed) return;
       const request = await takePendingOpen();
@@ -388,36 +394,44 @@ function PlayerComponent() {
   }, [applyTransform]);
 
   const handleFileLoaded = useCallback(async () => {
+    loadEpochRef.current += 1;
+    const epoch = loadEpochRef.current;
+    const isCurrent = () => loadEpochRef.current === epoch;
     setFinished(false);
     const loaded = await readPath();
-    if (!loaded) return;
+    if (!loaded || !isCurrent()) return;
     const reload = hwdecReloadRef.current;
+
+    // Independent: speed restore and watch-state hydration touch different
+    // backends (mpv vs sqlite) and neither needs the other's result.
+    const [, entry] = await Promise.all([
+      setSpeed(playbackAtoms.speed.get() || 1),
+      hydrateMediaEntry(loaded),
+    ]);
+    if (!isCurrent()) return;
+
+    await applyEntryPlaybackSettings(entry);
+    if (!isCurrent()) return;
     hwdecReloadRef.current = null;
 
-    await setSpeed(playbackAtoms.speed.get() || 1);
-    const entry = await hydrateMediaEntry(loaded);
-
-    await setMpvProperty("sub-delay", entry?.subOffset ?? 0);
-    await setMpvProperty("audio-delay", entry?.audioOffset ?? 0);
-    if (entry && typeof entry.audioTrack === "number") {
-      await selectTrack("audio", entry.audioTrack);
-    }
-    if (entry && typeof entry.subtitleTrack === "number") {
-      await selectTrack("sub", entry.subtitleTrack);
-    }
-
-    const position = resolveLoadPosition(
-      reload,
-      playbackAtoms.playlistIndex.get(),
-      resumeRef.current,
-      entry?.position
-    );
+    const resume = resumeRef.current;
     resumeRef.current = undefined;
-    const duration = playbackAtoms.duration.get();
+    // Live mpv values, not atoms: at file-loaded time the atoms still hold
+    // the previous file (snapshots arrive on the next backend tick), which
+    // used to silently drop resume or misjudge the watchable range.
+    const [liveIndex, liveDuration] = await Promise.all([
+      readPlaylistIndex(),
+      readDuration(),
+    ]);
+    if (!isCurrent()) return;
+    const position = resolveLoadPosition(reload, liveIndex, resume, entry?.position);
     const inside =
       position > RESUME_MIN &&
-      (duration <= 0 || position < duration - RESUME_END_MARGIN);
-    if (needsExactSeek(reload, position, inside)) await seekTo(position, "exact");
+      (liveDuration <= 0 || position < liveDuration - RESUME_END_MARGIN);
+    if (!shouldSkipFrontendSeek(reload, resume, position)) {
+      if (needsExactSeek(reload, position, inside)) await seekTo(position, "exact");
+    }
+    if (!isCurrent()) return;
     await setPaused(true);
     await restoreReloadPaused(reload);
   }, []);
@@ -425,6 +439,7 @@ function PlayerComponent() {
   usePlayerEvents({
     onOpenRequest: (request) => {
       if (request.files.length === 0) return;
+      loadEpochRef.current += 1;
       resumeRef.current = request.resume;
       setFinished(false);
       setLoadingFile(true);

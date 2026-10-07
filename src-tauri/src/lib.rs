@@ -992,14 +992,28 @@ async fn persist_file_index(
             metadata: Some(serde_json::json!({ "size": entry.size })),
         })
         .collect();
-    let keep_ids = unified_entries
+    let keep_ids: Vec<String> = unified_entries
         .iter()
         .map(|entry| entry.id.clone())
         .collect();
+    // A single write guard and a single transaction for all chunks plus the
+    // prune: an overlapping rebuild can neither interleave its own upserts
+    // between ours and our prune (its fresh rows would be pruned away) nor
+    // fail with `database is locked` while we hold the writer lock.
+    let _write = app_db::lock_app_data_write_timeout(app_db::APP_DATA_WRITE_TIMEOUT)?;
+    let connection = app_db::open_database(app_handle)?;
+    let transaction = connection
+        .unchecked_transaction()
+        .map_err(|error| format!("persist file index transaction: {error}"))?;
+    let now = app_db::now_seconds();
     for batch in unified_entries.chunks(5_000) {
-        app_db::upsert_unified_index(app_handle.clone(), batch.to_vec())?;
+        app_db::upsert_unified_index_batch(&transaction, batch, now)?;
     }
-    app_db::prune_unified_index_scope(app_handle.clone(), "player".into(), Some(keep_ids), None)?;
+    let keep_set: HashSet<&str> = keep_ids.iter().map(String::as_str).collect();
+    app_db::prune_unified_index_scope_inner(&transaction, "player", &keep_set)?;
+    transaction
+        .commit()
+        .map_err(|error| format!("persist file index commit: {error}"))?;
     Ok(())
 }
 
@@ -1487,6 +1501,7 @@ pub fn run() {
             player::player_eof_mode,
             player::player_save_watch,
             player::player_load_watch,
+            player::debug_timeline_append,
             app_db::get_app_cache,
             app_db::put_app_cache,
             app_db::delete_app_cache,

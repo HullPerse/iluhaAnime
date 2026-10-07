@@ -70,6 +70,8 @@ pub struct PlayerHost {
     active: AtomicBool,
     metrics: Mutex<Metrics>,
     watchdog: Mutex<WatchdogState>,
+    last_snapshot: Mutex<Option<PlaybackSnapshot>>,
+    capturing: AtomicBool,
 }
 
 #[derive(Default, Clone)]
@@ -129,6 +131,14 @@ impl PlayerHost {
         self.active.store(active, Ordering::Relaxed);
     }
 
+    pub fn set_capturing(&self, capturing: bool) {
+        self.capturing.store(capturing, Ordering::Relaxed);
+    }
+
+    pub fn is_capturing(&self) -> bool {
+        self.capturing.load(Ordering::Relaxed)
+    }
+
     pub fn is_active(&self) -> bool {
         self.active.load(Ordering::Relaxed)
     }
@@ -175,8 +185,17 @@ pub fn attach(app: &AppHandle) {
                 watchdog_tick(&ticker);
             }
             if host.dirty.swap(false, Ordering::Relaxed) {
-                let snapshot = read_snapshot(&ticker);
-                let _ = ticker.emit_to(PLAYER_WINDOW_LABEL, EVENT_STATE, &snapshot);
+                if host.is_capturing() {
+                    // A hover capture is seeking mpv away and back: snapshots
+                    // taken now would show the thumbnail position, not the
+                    // user's. Stay dirty so the post-capture tick emits one
+                    // fresh snapshot instead.
+                    host.mark_dirty();
+                } else {
+                    let snapshot = read_snapshot(&ticker);
+                    let snapshot = smooth_snapshot(&ticker, snapshot);
+                    let _ = ticker.emit_to(PLAYER_WINDOW_LABEL, EVENT_STATE, &snapshot);
+                }
             }
             ticks = ticks.wrapping_add(1);
             if ticks % WATCH_SAVE_TICKS == 0 {
@@ -283,8 +302,52 @@ fn string_property(app: &AppHandle, name: &str) -> Option<String> {
         .and_then(|value| value.as_str().map(str::to_string))
 }
 
-fn read_snapshot(app: &AppHandle) -> PlaybackSnapshot {
-    let metrics = app.state::<PlayerHost>().metrics();
+/// Masks a single anomalous sample: mpv property reads can transiently fail
+/// mid-playback (seek rebuffer, demuxer reset) and `read_snapshot` turns
+/// failures into zeros, which the timeline then shows as a jump to 0:00 and
+/// back. When the path is unchanged and the previous sample was sane, the
+/// zero is almost certainly such a glitch, so the previous value is
+/// re-emitted once. The raw sample is still stored as the new baseline, so
+/// a genuine return to zero (e.g. restart) converges on the very next tick
+/// instead of sticking.
+fn smooth_snapshot_sample(
+    previous: Option<&PlaybackSnapshot>,
+    next: PlaybackSnapshot,
+) -> PlaybackSnapshot {
+    let Some(previous) = previous else {
+        return next;
+    };
+    if next.path != previous.path {
+        return next;
+    }
+    let mut fixed = next;
+    if fixed.time_pos == 0.0 && previous.time_pos > 1.0 {
+        fixed.time_pos = previous.time_pos;
+    }
+    if fixed.duration == 0.0 && previous.duration > 0.0 {
+        fixed.duration = previous.duration;
+    }
+    if fixed.playlist_index < 0 && previous.playlist_index >= 0 {
+        fixed.playlist_index = previous.playlist_index;
+    }
+    if fixed.playlist_count == 0 && previous.playlist_count > 0 {
+        fixed.playlist_count = previous.playlist_count;
+    }
+    fixed
+}
+
+fn smooth_snapshot(app: &AppHandle, next: PlaybackSnapshot) -> PlaybackSnapshot {
+    let host = app.state::<PlayerHost>();
+    let mut last = host
+        .last_snapshot
+        .lock()
+        .unwrap_or_else(|error| error.into_inner());
+    let emitted = smooth_snapshot_sample(last.as_ref(), next.clone());
+    *last = Some(next);
+    emitted
+}
+
+fn read_snapshot(app: &AppHandle) -> PlaybackSnapshot {    let metrics = app.state::<PlayerHost>().metrics();
     PlaybackSnapshot {
         time_pos: number_property(app, "time-pos").unwrap_or_default(),
         duration: number_property(app, "duration").unwrap_or_default(),
@@ -384,5 +447,85 @@ pub fn save_current_watch(app: &AppHandle) {
     };
     if let Err(error) = watch::save(app, &path, &state) {
         tracing::debug!("watch position not saved: {error}");
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn snapshot(
+        path: &str,
+        time_pos: f64,
+        duration: f64,
+        playlist_index: i64,
+        playlist_count: i64,
+    ) -> PlaybackSnapshot {
+        PlaybackSnapshot {
+            path: path.into(),
+            time_pos,
+            duration,
+            playlist_index,
+            playlist_count,
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn first_sample_passes_through_untouched() {
+        let next = snapshot("/a.mkv", 0.0, 0.0, -1, 0);
+        let out = smooth_snapshot_sample(None, next);
+        assert_eq!(out.time_pos, 0.0);
+        assert_eq!(out.playlist_index, -1);
+    }
+
+    #[test]
+    fn path_change_passes_zeros_through() {
+        let prev = snapshot("/a.mkv", 600.0, 1400.0, 0, 3);
+        let next = snapshot("/b.mkv", 0.0, 0.0, -1, 0);
+        let out = smooth_snapshot_sample(Some(&prev), next);
+        assert_eq!(out.time_pos, 0.0);
+        assert_eq!(out.duration, 0.0);
+        assert_eq!(out.playlist_index, -1);
+    }
+
+    #[test]
+    fn single_glitch_sample_reemits_previous_values() {
+        let prev = snapshot("/a.mkv", 600.0, 1400.0, 2, 3);
+        let glitch = snapshot("/a.mkv", 0.0, 0.0, -1, 0);
+        let out = smooth_snapshot_sample(Some(&prev), glitch);
+        assert_eq!(out.time_pos, 600.0);
+        assert_eq!(out.duration, 1400.0);
+        assert_eq!(out.playlist_index, 2);
+        assert_eq!(out.playlist_count, 3);
+    }
+
+    #[test]
+    fn genuine_zeros_are_not_masked() {
+        let prev = snapshot("/a.mkv", 0.0, 0.0, 0, 1);
+        let next = snapshot("/a.mkv", 0.0, 0.0, 0, 1);
+        let out = smooth_snapshot_sample(Some(&prev), next);
+        assert_eq!(out.time_pos, 0.0);
+        assert_eq!(out.playlist_index, 0);
+    }
+
+    #[test]
+    fn small_nonzero_positions_pass_through() {
+        let prev = snapshot("/a.mkv", 600.0, 1400.0, 0, 1);
+        let next = snapshot("/a.mkv", 0.5, 1400.0, 0, 1);
+        let out = smooth_snapshot_sample(Some(&prev), next);
+        assert_eq!(out.time_pos, 0.5);
+    }
+
+    #[test]
+    fn restart_converges_on_the_second_zero() {
+        // smooth_snapshot stores the RAW sample as the new baseline, so a
+        // real return to zero is masked for exactly one tick, then shown.
+        let playing = snapshot("/a.mkv", 600.0, 1400.0, 0, 1);
+        let raw_zero = snapshot("/a.mkv", 0.0, 1400.0, 0, 1);
+        let first = smooth_snapshot_sample(Some(&playing), raw_zero.clone());
+        assert_eq!(first.time_pos, 600.0);
+        let second = smooth_snapshot_sample(Some(&raw_zero), raw_zero.clone());
+        assert_eq!(second.time_pos, 0.0);
     }
 }

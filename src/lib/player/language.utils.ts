@@ -44,6 +44,10 @@ const ISO_639_2_TO_1: Record<string, string> = {
 
 const UNKNOWN_CODES = new Set(["", "mis", "mul", "und", "unknown", "zxx"]);
 
+// Memoized: Intl.DisplayNames.of() costs microseconds per call and language
+// codes repeat heavily (every track row, every sort comparison).
+const nameCache = new Map<string, string>();
+
 export function normalizeLangCode(code: string | undefined): string {
   if (!code) return "";
   const lower = code.trim().toLowerCase();
@@ -66,11 +70,19 @@ function displayNamesEn(): Intl.DisplayNames | null {
 export function languageName(code: string | undefined): string {
   const normalized = normalizeLangCode(code);
   if (!normalized) return "";
+  const cached = nameCache.get(normalized);
+  if (cached !== undefined) return cached;
   const names = displayNamesEn();
-  if (!names) return normalized.toUpperCase();
-  const [name] = attemptSync(() => names.of(normalized));
-  if (!name || name.toLowerCase() === normalized.toLowerCase()) {
-    return normalized.toUpperCase();
+  let resolved: string;
+  if (!names) {
+    resolved = normalized.toUpperCase();
+  } else {
+    const [name] = attemptSync(() => names.of(normalized));
+    resolved =
+      !name || name.toLowerCase() === normalized.toLowerCase()
+        ? normalized.toUpperCase()
+        : name;
   }
-  return name;
+  nameCache.set(normalized, resolved);
+  return resolved;
 }

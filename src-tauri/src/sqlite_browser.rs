@@ -797,6 +797,7 @@ pub async fn delete_sqlite_row(
         if !allowed_sqlite_table(&database, &table) {
             return Err("This SQLite table cannot be edited in the browser".to_string());
         }
+        let _app_data_write = app_db::lock_app_data_write_if_timeout(&database, app_db::APP_DATA_WRITE_TIMEOUT)?;
         let connection = open_sqlite_browser_database(&app_handle, &database)?;
         let columns = sqlite_columns(&connection, &table)?;
         let primary_keys = columns
@@ -855,6 +856,7 @@ pub async fn delete_sqlite_rows(
         if !allowed_sqlite_table(&database, &table) {
             return Err("This SQLite table cannot be edited in the browser".to_string());
         }
+        let _app_data_write = app_db::lock_app_data_write_if_timeout(&database, app_db::APP_DATA_WRITE_TIMEOUT)?;
         let connection = open_sqlite_browser_database(&app_handle, &database)?;
         let columns = sqlite_columns(&connection, &table)?;
         let primary_keys = columns
@@ -1009,6 +1011,10 @@ fn copy_sqlite_backup(
     if !path.is_file() {
         return Err("SQLite database does not exist yet".to_string());
     }
+    // Serialize with concurrent writers: the checkpoint below must observe a
+    // quiescent database, otherwise the copied backup can straddle a commit.
+    let _app_data_write =
+        app_db::lock_app_data_write_if_timeout(database, app_db::APP_DATA_WRITE_TIMEOUT)?;
     checkpoint_sqlite_file(&path)?;
     let dir = path
         .parent()
@@ -1114,7 +1120,17 @@ pub async fn restore_sqlite_backup(
             return Err("Backup file no longer exists".to_string());
         }
         copy_sqlite_backup(&app_handle, &database, 10)?;
+        // Hold the write lock across the file swap so no concurrent writer
+        // lands in the replaced database mid-copy.
+        let _app_data_write = app_db::lock_app_data_write_if_timeout(
+            &database,
+            app_db::APP_DATA_WRITE_TIMEOUT,
+        )?;
         std::fs::copy(&source, &path).map_err(|error| format!("restore backup: {error}"))?;
+        // Drop WAL sidecars: they still hold frames from the pre-restore
+        // database, which the restored main file must never replay.
+        let _ = std::fs::remove_file(path.with_extension("sqlite3-wal"));
+        let _ = std::fs::remove_file(path.with_extension("sqlite3-shm"));
         if database == "franchise" {
             anilist::clear_franchise_cache_memory();
         }
@@ -1132,6 +1148,10 @@ pub async fn vacuum_sqlite_database(
 ) -> Result<SqliteBackupInfo, String> {
     tokio::task::spawn_blocking(move || -> Result<SqliteBackupInfo, String> {
         let safety = copy_sqlite_backup(&app_handle, &database, 10)?;
+        // VACUUM takes an exclusive lock for its whole run: without the
+        // shared write guard every concurrent app writer would exhaust its
+        // busy timeout and fail instead of waiting its turn.
+        let _app_data_write = app_db::lock_app_data_write_if_timeout(&database, app_db::APP_DATA_WRITE_TIMEOUT)?;
         let connection = open_sqlite_browser_database(&app_handle, &database)?;
         connection
             .execute_batch("VACUUM;")
@@ -1176,6 +1196,7 @@ pub async fn update_sqlite_cell(
         {
             return Err("Invalid SQLite column".to_string());
         }
+        let _app_data_write = app_db::lock_app_data_write_if_timeout(&database, app_db::APP_DATA_WRITE_TIMEOUT)?;
         let connection = open_sqlite_browser_database(&app_handle, &database)?;
         let columns = sqlite_columns(&connection, &table)?;
         let column_info = columns

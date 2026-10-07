@@ -1,7 +1,7 @@
 use rusqlite::{params, OptionalExtension};
 use serde::Serialize;
 
-use super::db::{now_seconds, open_database, MAX_PAYLOAD_BYTES};
+use super::db::{lock_app_data_write_timeout, now_seconds, open_database, APP_DATA_WRITE_TIMEOUT, MAX_PAYLOAD_BYTES};
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -59,12 +59,22 @@ fn fetch_cached_record(
         .expires_at
         .is_some_and(|expires_at| expires_at <= now_seconds())
     {
-        connection
-            .execute(
-                "DELETE FROM cache_entries WHERE namespace = ?1 AND cache_key = ?2",
-                params![record.namespace, record.key],
-            )
-            .map_err(|error| format!("remove expired cache: {error}"))?;
+        // Best-effort cleanup: if a long writer (index prune, FTS optimize)
+        // holds the lock, the row simply expires again on the next read.
+        // Never fail a read because of it.
+        if let Err(error) = connection.execute(
+            "DELETE FROM cache_entries WHERE namespace = ?1 AND cache_key = ?2",
+            params![record.namespace, record.key],
+        ) {
+            let is_busy = matches!(
+                error,
+                rusqlite::Error::SqliteFailure(ref failure, _)
+                    if failure.code == rusqlite::ErrorCode::DatabaseBusy
+            );
+            if !is_busy {
+                return Err(format!("remove expired cache: {error}"));
+            }
+        }
         return Ok(None);
     }
 
@@ -97,6 +107,7 @@ pub fn put_app_cache(
     ttl_seconds: Option<i64>,
 ) -> Result<(), String> {
     validate_cache_input(&namespace, &key, &payload)?;
+    let _write = lock_app_data_write_timeout(APP_DATA_WRITE_TIMEOUT)?;
     let connection = open_database(&app)?;
     let expires_at = ttl_seconds
         .filter(|ttl| *ttl > 0)
@@ -121,6 +132,7 @@ pub fn delete_app_cache(
     namespace: String,
     key: String,
 ) -> Result<(), String> {
+    let _write = lock_app_data_write_timeout(APP_DATA_WRITE_TIMEOUT)?;
     let connection = open_database(&app)?;
     connection
         .execute(

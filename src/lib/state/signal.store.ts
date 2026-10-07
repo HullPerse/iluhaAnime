@@ -2,7 +2,6 @@ export type Unsubscriber = () => void;
 
 interface Sub {
   fn: () => void;
-  lastTx: number;
 }
 
 interface BaseRec {
@@ -25,6 +24,7 @@ interface DerivedRec extends BaseRec {
   cached: unknown;
   hasValue: boolean;
   depVersions: number[];
+  scratch: unknown[];
 }
 
 type NodeRec = CellRec | DerivedRec;
@@ -64,7 +64,7 @@ function pullDerived(rec: DerivedRec, resolving: Set<DerivedRec>): unknown {
 function refreshDerived(rec: DerivedRec, resolving: Set<DerivedRec>): boolean {
   if (resolving.has(rec)) throw new Error("signal cycle detected");
   let stale = !rec.hasValue;
-  const args: unknown[] = Array.from({ length: rec.deps.length });
+  const args = rec.scratch;
   resolving.add(rec);
   try {
     for (let i = 0; i < rec.deps.length; i++) {
@@ -95,7 +95,6 @@ function hasDownstream(rec: BaseRec): boolean {
 
 export function createSignalStore(): SignalStore {
   let nextId = 0;
-  let tx = 0;
   let depth = 0;
   const queue: NodeRec[] = [];
   let qHead = 0;
@@ -110,31 +109,29 @@ export function createSignalStore(): SignalStore {
     queue.push(node);
   };
 
-  const notifySubs = (subs: Sub[], runTx: number): void => {
-    for (const sub of subs) {
-      if (sub.lastTx !== runTx) {
-        sub.lastTx = runTx;
-        sub.fn();
-      }
-    }
+  const notifySubs = (subs: Sub[]): void => {
+    for (const sub of subs) sub.fn();
+  };
+
+  const notifyStoreSubs = (): void => {
+    for (const sub of storeSubs) sub.fn();
   };
 
   const flush = (): void => {
     if (queue.length === 0) return;
-    const runTx = ++tx;
     while (qHead < queue.length) {
       const node = queue[qHead++];
       node.queued = false;
       if (node.kind === "cell") {
-        notifySubs(node.subs, runTx);
+        notifySubs(node.subs);
         continue;
       }
       if (!hasDownstream(node)) continue;
-      if (refreshDerived(node, resolving)) notifySubs(node.subs, runTx);
+      if (refreshDerived(node, resolving)) notifySubs(node.subs);
     }
     queue.length = 0;
     qHead = 0;
-    notifySubs(storeSubs, runTx);
+    notifyStoreSubs();
   };
 
   const markDownstream = (node: BaseRec): void => {
@@ -146,7 +143,7 @@ export function createSignalStore(): SignalStore {
   };
 
   const subscribeTo = (rec: BaseRec, fn: () => void): Unsubscriber => {
-    const sub: Sub = { fn, lastTx: -1 };
+    const sub: Sub = { fn };
     rec.subs.push(sub);
     return () => {
       const index = rec.subs.indexOf(sub);
@@ -171,6 +168,11 @@ export function createSignalStore(): SignalStore {
         if (Object.is(rec.value, value)) return;
         rec.value = value;
         rec.version++;
+        if (depth === 0 && rec.rev.size === 0) {
+          notifySubs(rec.subs);
+          notifyStoreSubs();
+          return;
+        }
         markDownstream(rec);
         enqueue(rec);
         if (depth === 0) flush();
@@ -200,6 +202,7 @@ export function createSignalStore(): SignalStore {
       cached: undefined,
       hasValue: false,
       depVersions: depRecs.map(() => -1),
+      scratch: depRecs.map(() => undefined),
     };
     for (const dep of depRecs) dep.rev.add(rec);
     const handle: Derived<T> = {
@@ -238,7 +241,7 @@ export function createSignalStore(): SignalStore {
       return out;
     },
     subscribeAll: (fn) => {
-      const sub: Sub = { fn, lastTx: -1 };
+      const sub: Sub = { fn };
       storeSubs.push(sub);
       return () => {
         const index = storeSubs.indexOf(sub);

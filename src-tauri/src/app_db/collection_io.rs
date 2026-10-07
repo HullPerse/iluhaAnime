@@ -8,7 +8,7 @@ use super::collection::{
     list_collection_items, list_custom_field_defs, upsert_collection_item, upsert_custom_field_def,
     CollectionItemInput, CollectionItemRow, CustomFieldDefRow,
 };
-use super::db::{database_path, now_seconds, open_database};
+use super::db::{database_path, lock_app_data_write_timeout, now_seconds, open_database, APP_DATA_WRITE_TIMEOUT};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CollectionExport {
@@ -41,6 +41,7 @@ pub fn import_collection_data(
         "overwrite" => ImportStrategy::Overwrite,
         _ => ImportStrategy::CreateNew,
     };
+    let _write = lock_app_data_write_timeout(APP_DATA_WRITE_TIMEOUT)?;
     let connection = open_database(&app)?;
     let mut summary = ImportSummary {
         imported: 0,

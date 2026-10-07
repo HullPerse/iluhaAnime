@@ -1,7 +1,7 @@
 use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
 
-use super::db::{now_millis, open_database};
+use super::db::{lock_app_data_write_timeout, now_millis, open_database, APP_DATA_WRITE_TIMEOUT};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -178,6 +178,7 @@ pub fn upsert_collection_status(
     if kind != "private" && kind != "public" {
         return Err("Collection status kind must be 'private' or 'public'".into());
     }
+    let _write = lock_app_data_write_timeout(APP_DATA_WRITE_TIMEOUT)?;
     let connection = open_database(&app)?;
     connection
         .execute(
@@ -204,6 +205,7 @@ pub fn delete_collection_status(app: tauri::AppHandle, id: String) -> Result<(),
     if CORE_COLLECTION_STATUS_IDS.contains(&id.as_str()) {
         return Err("Core statuses cannot be deleted".into());
     }
+    let _write = lock_app_data_write_timeout(APP_DATA_WRITE_TIMEOUT)?;
     let connection = open_database(&app)?;
     let kind: Option<String> = connection
         .query_row(
@@ -422,6 +424,7 @@ pub fn upsert_collection_item(
     app: tauri::AppHandle,
     item: CollectionItemInput,
 ) -> Result<(), String> {
+    let _write = lock_app_data_write_timeout(APP_DATA_WRITE_TIMEOUT)?;
     let connection = open_database(&app)?;
     insert_collection_item_connection(&connection, item)
 }
@@ -469,6 +472,7 @@ pub fn import_collection_items_batch(
     app: tauri::AppHandle,
     items: Vec<CollectionItemInput>,
 ) -> Result<ImportBatchOutcome, String> {
+    let _write = lock_app_data_write_timeout(APP_DATA_WRITE_TIMEOUT)?;
     let connection = open_database(&app)?;
     import_collection_items_batch_connection(&connection, items)
 }
@@ -780,12 +784,14 @@ pub fn patch_collection_item(
     id: String,
     patch: CollectionItemPatch,
 ) -> Result<(), String> {
+    let _write = lock_app_data_write_timeout(APP_DATA_WRITE_TIMEOUT)?;
     let connection = open_database(&app)?;
     patch_collection_item_connection(&connection, &id, &patch)
 }
 
 #[tauri::command]
 pub fn delete_collection_item(app: tauri::AppHandle, id: String) -> Result<(), String> {
+    let _write = lock_app_data_write_timeout(APP_DATA_WRITE_TIMEOUT)?;
     let connection = open_database(&app)?;
     connection
         .execute("DELETE FROM collection_items WHERE id = ?1", params![&id])
@@ -835,6 +841,7 @@ pub fn upsert_custom_field_def(
         }
         None => None,
     };
+    let _write = lock_app_data_write_timeout(APP_DATA_WRITE_TIMEOUT)?;
     let connection = open_database(&app)?;
     connection
         .execute(
@@ -851,6 +858,7 @@ pub fn upsert_custom_field_def(
 
 #[tauri::command]
 pub fn delete_custom_field_def(app: tauri::AppHandle, id: String) -> Result<(), String> {
+    let _write = lock_app_data_write_timeout(APP_DATA_WRITE_TIMEOUT)?;
     let connection = open_database(&app)?;
     connection
         .execute("DELETE FROM custom_field_defs WHERE id = ?1", params![id])

@@ -43,24 +43,28 @@ export function fetchVideoCard(path: string): Promise<CardArt | null> {
 }
 
 export function orderCardPaths(paths: string[], activePath: string): string[] {
+  const seen = new Set<string>();
   const unique: string[] = [];
   for (const path of paths) {
-    if (!path || unique.includes(path)) continue;
+    if (!path || seen.has(path)) continue;
+    seen.add(path);
     unique.push(path);
   }
   if (unique.length === 0) return unique;
-  const activeIndex = unique.findIndex((path) => path.toLowerCase() === activePath.toLowerCase());
+  const lowered = activePath.toLowerCase();
+  const activeIndex = unique.findIndex((path) => path.toLowerCase() === lowered);
   const origin = activeIndex === -1 ? 0 : activeIndex;
   const ordered: string[] = [];
   for (let distance = 0; distance < unique.length; distance += 1) {
     const after = origin + distance;
     const before = origin - distance;
-    if (after < unique.length && !ordered.includes(unique[after])) {
+    if (after < unique.length) {
       ordered.push(unique[after]);
     }
-    if (before >= 0 && !ordered.includes(unique[before])) {
-      ordered.push(unique[before]);
-    }
+    // distance 0 addresses the origin twice; every other pair is disjoint
+    // by construction, so no includes() scan is needed here.
+    if (distance === 0 || before < 0) continue;
+    ordered.push(unique[before]);
   }
   return ordered;
 }

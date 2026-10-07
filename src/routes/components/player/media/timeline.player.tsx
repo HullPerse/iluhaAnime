@@ -12,8 +12,6 @@ import type { MpvChapter } from "@/types/videoPlayer";
 const TOOLTIP_WIDTH = 128;
 const LIVE_SCRUB_INTERVAL = 80;
 const HOVER_THUMB_DEBOUNCE = 200;
-const HOVER_FILL_STEP = 10;
-const HOVER_FILL_INTERVAL = 900;
 
 interface HoverThumbResponse {
   url: string | null;
@@ -23,7 +21,6 @@ interface HoverThumbResponse {
 function useHoverThumb(
   path: string,
   duration: number,
-  paused: boolean,
   hoverTime: number | null
 ): string | null {
   const [thumbUrl, setThumbUrl] = useState<string | null>(null);
@@ -47,19 +44,6 @@ function useHoverThumb(
     }, HOVER_THUMB_DEBOUNCE);
     return () => window.clearTimeout(timer);
   }, [hoverTime, path, duration]);
-
-  const fillCursor = useRef(0);
-
-  useEffect(() => {
-    fillCursor.current = 0;
-    if (!paused || !path || duration <= 0) return;
-    const timer = window.setInterval(() => {
-      const target = (fillCursor.current * HOVER_FILL_STEP) % Math.max(duration, HOVER_FILL_STEP);
-      fillCursor.current += 1;
-      ignore(invokeTyped("player_hover_thumb", { path, timestamp: target }));
-    }, HOVER_FILL_INTERVAL);
-    return () => window.clearInterval(timer);
-  }, [paused, path, duration]);
 
   return thumbUrl;
 }
@@ -106,11 +90,45 @@ function Timeline({
   const [scrubTime, setScrubTime] = useState<number | null>(null);
   const [hover, setHover] = useState<HoverInfo | null>(null);
   const [showRemaining, setShowRemaining] = useState(false);
-  const thumbUrl = useHoverThumb(path, duration, paused, hover?.time ?? null);
+  const thumbUrl = useHoverThumb(path, duration, hover?.time ?? null);
 
   const displayTime = dragging && scrubTime !== null ? scrubTime : (seekTarget ?? timePos);
   const progress = duration > 0 ? clamp01(displayTime / duration) * 100 : 0;
   const timeWidth = `${formatClock(duration).length * 2 + 3}ch`;
+  // TEMP-DEBUG: timeline render log, revert before merge (debug_timeline_append).
+  const renderSeqRef = useRef(0);
+  const renderLogRef = useRef<string[]>([]);
+  useEffect(() => {
+    ignore(invokeTyped("debug_timeline_append", {
+      line: JSON.stringify({ event: "timeline-mount", t: Date.now() }),
+    }));
+  }, []);
+  useEffect(() => {
+    renderSeqRef.current += 1;
+    renderLogRef.current.push(
+      JSON.stringify({
+        seq: renderSeqRef.current,
+        t: Date.now(),
+        displayTime: Number(displayTime.toFixed(3)),
+        duration,
+        seekTarget,
+        progress: Number(progress.toFixed(4)),
+        timeW: timeWidth,
+        paused,
+      })
+    );
+    if (renderLogRef.current.length >= 30) {
+      const batch = renderLogRef.current.splice(0);
+      for (const line of batch) ignore(invokeTyped("debug_timeline_append", { line }));
+    }
+  });
+  useEffect(
+    () => () => {
+      const rest = renderLogRef.current.splice(0);
+      for (const line of rest) ignore(invokeTyped("debug_timeline_append", { line }));
+    },
+    []
+  );
   const timeLabel = showRemaining
     ? `-${formatClock(Math.max(0, duration - displayTime))} / ${formatClock(duration)}`
     : `${formatClock(displayTime)} / ${formatClock(duration)}`;

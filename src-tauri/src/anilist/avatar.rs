@@ -107,6 +107,10 @@ pub async fn anilist_avatar(
     let fetched = graphql_request(query, token.as_deref(), proxy.as_deref())
         .await
         .map_or(None, |value| avatar_url_from_response(&value));
+    // Guard only the synchronous write section: holding the process-wide
+    // write lock across the network request above would stall every other
+    // writer for the whole fetch.
+    let _write = crate::app_db::lock_app_data_write_timeout(crate::app_db::APP_DATA_WRITE_TIMEOUT)?;
     store_fetched_avatar(&connection, anilist_id, fetched)
 }
 

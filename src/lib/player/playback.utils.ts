@@ -319,3 +319,13 @@ export async function readPath(): Promise<string> {
   const [value] = await attempt(getMpvProperty<string>("path", "string"));
   return typeof value === "string" ? value : "";
 }
+
+export async function readDuration(): Promise<number> {
+  const [value] = await attempt(getMpvProperty<number>("duration", "double"));
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+export async function readPlaylistIndex(): Promise<number> {
+  const [value] = await attempt(getMpvProperty<number>("playlist-index", "int64"));
+  return typeof value === "number" && Number.isFinite(value) ? value : -1;
+}

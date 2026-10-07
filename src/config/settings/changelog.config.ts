@@ -86,12 +86,16 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.changed.app.state_engine", "app"),
       entry("changelog.5_0_0.changed.anilist.progress_blocks", "anilist"),
       entry("changelog.5_0_0.changed.settings.theme_cleanup", "settings"),
+      entry("changelog.5_0_0.changed.player.hot_paths", "player"),
     ],
     fixed: [
       entry("changelog.5_0_0.fixed.anilist.save_casing", "anilist"),
       entry("changelog.5_0_0.fixed.torrents.infohash_casing", "torrents"),
       entry("changelog.5_0_0.fixed.player.track_switch", "player"),
       entry("changelog.5_0_0.fixed.anilist.site_query", "anilist"),
+      entry("changelog.5_0_0.fixed.player.resume_jump", "player"),
+      entry("changelog.5_0_0.fixed.player.timeline_flicker", "player"),
+      entry("changelog.5_0_0.fixed.app.scan_db_locked", "app"),
     ],
   },
   {

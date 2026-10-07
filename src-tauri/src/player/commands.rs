@@ -1,5 +1,6 @@
 use serde::Serialize;
 use serde_json::{json, Value};
+use std::io::Write;
 use tauri::{
     AppHandle, Emitter, Manager, State, WebviewUrl, WebviewWindow, WebviewWindowBuilder,
     WindowEvent,
@@ -323,6 +324,46 @@ fn hover_lock() -> &'static tokio::sync::Mutex<()> {
     HOVER_LOCK.get_or_init(|| tokio::sync::Mutex::new(()))
 }
 
+/// Suppresses `player-state` snapshots while alive so thumbnail-seek
+/// excursions never reach the timeline. Cleared on drop, which covers every
+/// early return below.
+struct HoverCaptureGuard {
+    app: AppHandle,
+}
+
+impl HoverCaptureGuard {
+    fn arm(app: &AppHandle) -> Self {
+        app.state::<PlayerHost>().set_capturing(true);
+        Self { app: app.clone() }
+    }
+}
+
+impl Drop for HoverCaptureGuard {
+    fn drop(&mut self) {
+        self.app.state::<PlayerHost>().set_capturing(false);
+    }
+}
+
+/// Whether the capture must seek back to the pre-capture position.
+/// Skips the restore when the user visibly intervened mid-capture (pressed
+/// play or scrubbed elsewhere): yanking playback back would be worse than
+/// leaving it where the user put it. On an unsettled capture with playback
+/// still paused, restores best-effort like before.
+fn thumb_should_restore(
+    settled: bool,
+    now_pos: Option<f64>,
+    target: f64,
+    paused_now: bool,
+) -> bool {
+    if !paused_now {
+        return false;
+    }
+    if !settled {
+        return true;
+    }
+    now_pos.is_some_and(|position| (position - target).abs() <= 5.0)
+}
+
 fn hover_cache_key(path: &str, mtime: u64, size: u64, rounded: u64) -> String {
     use sha1::Digest;
     hex::encode(sha1::Sha1::digest(
@@ -400,6 +441,21 @@ pub async fn player_hover_thumb(
             captured: false,
         });
     }
+    // Re-check pause: the user may have resumed between the first check and
+    // the lock acquisition; capturing over playing playback is worse than
+    // skipping this thumbnail.
+    let paused_again = backend
+        .get_property("pause", "flag", &label)
+        .ok()
+        .and_then(|value| value.as_bool())
+        .unwrap_or(true);
+    if !paused_again {
+        return Ok(HoverThumb {
+            url: None,
+            captured: false,
+        });
+    }
+    let _capture = HoverCaptureGuard::arm(&app);
     let current = backend
         .get_property("time-pos", "double", &label)
         .ok()
@@ -407,13 +463,15 @@ pub async fn player_hover_thumb(
         .unwrap_or(0.0);
     backend.command("seek", &[json!(timestamp), json!("absolute")], &label)?;
     let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+    let settled: bool;
     loop {
-        let settled = backend
+        let reached = backend
             .get_property("time-pos", "double", &label)
             .ok()
             .and_then(|value| value.as_f64())
             .is_some_and(|position| (position - timestamp).abs() <= 5.0);
-        if settled || std::time::Instant::now() >= deadline {
+        if reached || std::time::Instant::now() >= deadline {
+            settled = reached;
             break;
         }
         tokio::time::sleep(std::time::Duration::from_millis(20)).await;
@@ -446,8 +504,20 @@ pub async fn player_hover_thumb(
             ready = false;
         }
     }
-    let _ = backend.command("seek", &[json!(current), json!("absolute")], &label);
-    let _ = backend.set_property("pause", &json!(true), &label);
+    let paused_now = backend
+        .get_property("pause", "flag", &label)
+        .ok()
+        .and_then(|value| value.as_bool())
+        .unwrap_or(true);
+    let now_pos = backend
+        .get_property("time-pos", "double", &label)
+        .ok()
+        .and_then(|value| value.as_f64());
+    if thumb_should_restore(settled, now_pos, timestamp, paused_now) {
+        let _ = backend.command("seek", &[json!(current), json!("absolute")], &label);
+    }
+    // No pause touch: entry guarantees paused, and forcing pause back onto a
+    // user who resumed mid-capture would steal their playback.
     if !ready {
         return Err("hover capture failed".to_string());
     }
@@ -638,9 +708,23 @@ pub fn player_load_watch(app: AppHandle, path: String) -> Option<WatchState> {
     watch::load(&app, &path)
 }
 
+// TEMP-DEBUG: timeline render log sink for a live-window benchmark (revert before merge).
+// Writes only to the OS temp dir, line length capped, no path argument.
+#[tauri::command]
+pub fn debug_timeline_append(line: String) -> Result<(), String> {
+    let line: String = line.chars().take(2048).collect();
+    let path = std::env::temp_dir().join("iluha-timeline-log.jsonl");
+    let mut file = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&path)
+        .map_err(|error| error.to_string())?;
+    writeln!(file, "{line}").map_err(|error| error.to_string())
+}
+
 #[cfg(test)]
 mod tests {
-    use super::eof_properties;
+    use super::{eof_properties, thumb_should_restore};
 
     #[test]
     fn eof_modes_map_to_mpv_keep_open_and_loop_properties() {
@@ -654,5 +738,20 @@ mod tests {
     fn unknown_eof_mode_maps_to_nothing() {
         assert_eq!(eof_properties("loop-everything"), None);
         assert_eq!(eof_properties(""), None);
+    }
+
+    #[test]
+    fn thumb_restore_seeks_back_only_when_undisturbed() {
+        // Settled at target, still paused: restore.
+        assert!(thumb_should_restore(true, Some(100.0), 100.0, true));
+        // User pressed play mid-capture: hands off.
+        assert!(!thumb_should_restore(true, Some(100.0), 100.0, false));
+        // User scrubbed elsewhere mid-capture: hands off.
+        assert!(!thumb_should_restore(true, Some(300.0), 100.0, true));
+        assert!(!thumb_should_restore(true, None, 100.0, true));
+        // Unsettled capture with playback still paused: best-effort restore.
+        assert!(thumb_should_restore(false, Some(50.0), 100.0, true));
+        // Unsettled and playing: hands off.
+        assert!(!thumb_should_restore(false, Some(50.0), 100.0, false));
     }
 }

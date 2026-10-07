@@ -1,6 +1,9 @@
 import type { VideoFileEntry } from "@/types/fs";
 import type { FolderNode } from "@/types/torrent";
 
+// Shared collator: localeCompare() without one constructs it per comparison.
+const PATH_COLLATOR = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
+
 export type PlayerTreeItem =
   | { kind: "folder"; node: FolderNode; depth: number }
   | { kind: "file"; file: FolderNode["files"][number]; depth: number };
@@ -58,7 +61,7 @@ export function findFolderContainingFile(root: FolderNode, filePath: string): Fo
 export function folderFilePaths(folder: FolderNode): string[] {
   return folder.files
     .map((file) => file.path)
-    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" }));
+    .sort((a, b) => PATH_COLLATOR.compare(a, b));
 }
 
 export function filterTreeByPaths(tree: FolderNode, matchingPaths: Set<string>): FolderNode | null {

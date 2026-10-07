@@ -53,8 +53,9 @@ export function normalizeLangCode(code: string | undefined): string {
 
 let cachedNames: Intl.DisplayNames | null;
 {
-  // oxlint-disable-next-line react-doctor/js-hoist-intl -- runs once at module init, not per call
-  const [displayNames] = attemptSync(() => new Intl.DisplayNames(["en"], { type: "language" }));
+  const name = new Intl.DisplayNames(["en"], { type: "language" });
+
+  const [displayNames] = attemptSync(() => name);
   cachedNames = displayNames;
 }
 

@@ -74,7 +74,9 @@ export interface SettingsStore {
   fileOrder: FileOrder;
   fastresumeEnabled: boolean;
   disablePersistence: boolean;
-  parseTitles: boolean;
+  parseTitlesPlayer: boolean;
+  parseTitlesTorrent: boolean;
+  parseTitlesSearch: boolean;
   anilistReleaseNotifications: boolean;
   notifyNewEpisodes: boolean;
   notifyStatusChanges: boolean;

@@ -48,7 +48,7 @@ export function TorrentFileRow({
   onPlay?: (path: string, name: string) => void;
 }) {
   const { t } = useI18n();
-  const parseTitles = useSettingsStore((s) => s.parseTitles);
+  const parseTitles = useSettingsStore((s) => s.parseTitlesTorrent);
   const setAnilistSearchQuery = useSearchStore((state) => state.setAnilistSearchQuery);
   const fullPath = (file as TorrentTreeFileWithPath).fullPath;
 

@@ -37,6 +37,8 @@ const changelog500 = {
     "External changes watch: paused and finished torrents detect files modified outside the app, with a row badge, a warning toast, and one-click recheck",
   "changelog.5_0_0.added.settings.theme_schedule":
     "Day and night theme scheduler: the theme switches automatically by local time",
+  "changelog.5_0_0.added.settings.title_toggles":
+    "Title parsing split into three toggles: player header, folders and playlist, torrent file lists, and torrent search results switch separately",
   "changelog.5_0_0.added.search.query_tags":
     "Torrent query tags with highlighting: quality, codec, language, seed count, size, and source map onto filters at submit",
   "changelog.5_0_0.added.search.filter_presets":

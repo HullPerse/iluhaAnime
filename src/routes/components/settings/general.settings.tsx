@@ -24,7 +24,9 @@ import SettingsMedia from "./media.settings";
 export default function SettingsGeneral() {
   const {
     language,
-    parseTitles,
+    parseTitlesPlayer,
+    parseTitlesTorrent,
+    parseTitlesSearch,
     sqliteBrowserEnabled,
     collectionTabEnabled,
     anilistTabEnabled,
@@ -483,12 +485,30 @@ export default function SettingsGeneral() {
             <div className="flex flex-col gap-0.5">
               <label className="windows95-text text-text flex cursor-pointer items-center gap-2 select-none">
                 <Checkbox
-                  checked={parseTitles}
+                  checked={parseTitlesPlayer}
                   onChange={(v) => {
-                    patch({ parseTitles: v });
+                    patch({ parseTitlesPlayer: v });
                   }}
                 />
-                <span>{t("common.on")}</span>
+                <span>{t("settings.parse.player")}</span>
+              </label>
+              <label className="windows95-text text-text flex cursor-pointer items-center gap-2 select-none">
+                <Checkbox
+                  checked={parseTitlesTorrent}
+                  onChange={(v) => {
+                    patch({ parseTitlesTorrent: v });
+                  }}
+                />
+                <span>{t("settings.parse.torrent")}</span>
+              </label>
+              <label className="windows95-text text-text flex cursor-pointer items-center gap-2 select-none">
+                <Checkbox
+                  checked={parseTitlesSearch}
+                  onChange={(v) => {
+                    patch({ parseTitlesSearch: v });
+                  }}
+                />
+                <span>{t("settings.parse.search")}</span>
               </label>
             </div>
           </div>

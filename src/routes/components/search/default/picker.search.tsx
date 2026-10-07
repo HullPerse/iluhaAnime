@@ -10,6 +10,7 @@ import ImageComponent from "@/components/ui/image.component";
 import { Input } from "@/components/ui/input.component";
 import { PICKER_ELAPSED_TICK_MS } from "@/config/torrent/common.config";
 import { useI18n } from "@/hooks/i18n.hook";
+import { formatParsedTitle } from "@/lib/player/title.utils";
 import { groupFilesByDirectory } from "@/lib/torrent/tree.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { formatBytes } from "@/lib/utils/bytes.utils";
@@ -37,6 +38,7 @@ function TorrentFilePicker({
   loading?: boolean;
 }) {
   const { t } = useI18n();
+  const parseTitlesSearch = useSettingsStore((s) => s.parseTitlesSearch);
   const fileOrder = useSettingsStore((s) => s.fileOrder);
   const [saveDir, setSaveDir] = useState(defaultSaveDir);
   const [browsing, setBrowsing] = useState(false);
@@ -181,7 +183,9 @@ function TorrentFilePicker({
                           className="shrink-0"
                         />
                         <span className="windows95-text flex-1 truncate" title={item.displayName}>
-                          {item.displayName}
+                          {parseTitlesSearch
+                            ? formatParsedTitle(item.displayName, t)
+                            : item.displayName}
                         </span>
                         <span className="text-hint shrink-0 text-xs">{formatBytes(item.size)}</span>
                         {conflict && (

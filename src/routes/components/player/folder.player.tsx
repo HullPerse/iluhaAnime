@@ -65,7 +65,7 @@ function FolderView({
   const audioExtensions = useSettingsStore((s) => s.audioExtensions);
   const subtitleExtensions = useSettingsStore((s) => s.subtitleExtensions);
   const setAnilistSearchQuery = useSearchStore((state) => state.setAnilistSearchQuery);
-  const parseTitles = useSettingsStore((state) => state.parseTitles);
+  const parseTitles = useSettingsStore((state) => state.parseTitlesPlayer);
   const { t } = useI18n();
 
   const items = useUpscaleQueueStore((s) => s.items);

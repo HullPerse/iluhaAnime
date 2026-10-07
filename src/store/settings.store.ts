@@ -123,6 +123,17 @@ const SETTINGS_TRANSFORMS: MigrationTransform[] = [
       delete state.chatImagePreviews;
     },
   },
+  {
+    from: 38,
+    migrate: (state) => {
+      if (state.parseTitlesPlayer === undefined) {
+        state.parseTitlesPlayer = state.parseTitles === true;
+      }
+      if (state.parseTitlesTorrent === undefined) state.parseTitlesTorrent = false;
+      if (state.parseTitlesSearch === undefined) state.parseTitlesSearch = false;
+      delete state.parseTitles;
+    },
+  },
 ];
 
 const SETTINGS_VALIDATORS: Record<string, (value: unknown) => boolean> = {
@@ -304,7 +315,7 @@ export const useSettingsStore = create<SettingsStore>()(
           drainTmdbPendingKey(state);
         }
       },
-      version: 37,
+      version: 38,
     }
   )
 );

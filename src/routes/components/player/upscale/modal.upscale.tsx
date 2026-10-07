@@ -8,10 +8,11 @@ import { GPU_LABELS, TABS } from "@/config/player/options.config";
 import { ANIME4K_PRESETS } from "@/config/player/presets.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { fileNameFromPath } from "@/lib/player/title.utils";
+import { fileNameFromPath, formatParsedTitle } from "@/lib/player/title.utils";
 import { queryKeys } from "@/lib/query/keys.utils";
 import { withFallback } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
+import { useSettingsStore } from "@/store/settings.store";
 import { useUpscaleQueueStore } from "@/store/upscale.store";
 import type { UpscaleConfig, ConvertConfig } from "@/types/upscale";
 
@@ -49,6 +50,7 @@ export default function UpscalePlayer({
   const [localError, setLocalError] = useState<string | null>(null);
 
   const { t } = useI18n();
+  const parseTitlesPlayer = useSettingsStore((state) => state.parseTitlesPlayer);
 
   const activeItem = useUpscaleQueueStore((s) =>
     activeItemId ? (s.items.find((i) => i.id === activeItemId) ?? null) : null
@@ -279,7 +281,7 @@ export default function UpscalePlayer({
 
       {open && (
         <Modal
-          header={`${t(activeTab === "upscale" ? "player.tab.upscale" : "player.tab.convert")}: ${fileNameFromPath(filePath)}`}
+          header={`${t(activeTab === "upscale" ? "player.tab.upscale" : "player.tab.convert")}: ${parseTitlesPlayer ? formatParsedTitle(filePath, t) : fileNameFromPath(filePath)}`}
           onClose={handleClose}
           className="min-w-xl"
         >

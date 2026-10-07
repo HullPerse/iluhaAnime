@@ -151,7 +151,7 @@ function PlaylistBody({ onPlay, onRemove, onMove }: PlaylistBodyProps) {
   const { t } = useI18n();
 
   const path = usePlaybackStore((state) => state.path);
-  const parseTitles = useSettingsStore((state) => state.parseTitles);
+  const parseTitles = useSettingsStore((state) => state.parseTitlesPlayer);
   const videoExtensions = useSettingsStore((state) => state.videoExtensions);
   const [entries, setEntries] = useState<PlaylistEntry[]>([]);
   const [adding, setAdding] = useState(false);

@@ -207,6 +207,30 @@ describe("useSettingsStore autocomplete", () => {
   });
 });
 
+describe("useSettingsStore title toggles v38 migration", () => {
+  it("moves legacy parseTitles into parseTitlesPlayer", () => {
+    const migrate = useSettingsStore.persist.getOptions()?.migrate;
+    const result = migrate!({ parseTitles: true, language: "en" } as never, 37) as Record<
+      string,
+      unknown
+    >;
+    expect(result.parseTitlesPlayer).toBe(true);
+    expect(result.parseTitlesTorrent).toBe(false);
+    expect(result.parseTitlesSearch).toBe(false);
+    expect("parseTitles" in result).toBe(false);
+  });
+
+  it("keeps explicit per-surface toggles", () => {
+    const migrate = useSettingsStore.persist.getOptions()?.migrate;
+    const result = migrate!(
+      { parseTitles: true, parseTitlesTorrent: true, language: "en" } as never,
+      37
+    ) as Record<string, unknown>;
+    expect(result.parseTitlesPlayer).toBe(true);
+    expect(result.parseTitlesTorrent).toBe(true);
+  });
+});
+
 describe("useSettingsStore patch", () => {
   it("applies partial updates", () => {
     useSettingsStore.setState({ limits: { download: null, upload: null }, language: "ru" });

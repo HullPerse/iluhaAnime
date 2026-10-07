@@ -61,7 +61,7 @@ import {
   takePendingOpen,
   transformOptions,
 } from "@/lib/player/playback.utils";
-import { fileNameFromPath } from "@/lib/player/title.utils";
+import { fileNameFromPath, formatParsedTitle } from "@/lib/player/title.utils";
 import { reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { ignore } from "@/lib/utils/promise.utils";
@@ -176,6 +176,7 @@ function PlayerComponent() {
   const { t } = useI18n();
 
   const path = usePlaybackStore((state) => state.path);
+  const parseTitlesPlayer = useSettingsStore((state) => state.parseTitlesPlayer);
   const hasFile = usePlaybackStore((state) => state.hasFile);
   const duration = usePlaybackStore((state) => state.duration);
   const paused = usePlaybackStore((state) => state.paused);
@@ -229,7 +230,11 @@ function PlayerComponent() {
     playlistOpen,
     dropAlert,
   });
-  const title = path ? fileNameFromPath(path) : t("player.media.title");
+  const title = path
+    ? parseTitlesPlayer
+      ? formatParsedTitle(path, t)
+      : fileNameFromPath(path)
+    : t("player.media.title");
 
   useEffect(() => {
     if (destroyTimerRef.current !== null) {

@@ -41,6 +41,9 @@ const settings = {
   "settings.media.empty": "List cannot be empty",
   "settings.media.reset": "Reset to defaults",
   "settings.parse.titles": "Extract anime titles",
+  "settings.parse.player": "Player: header, folders, and playlist",
+  "settings.parse.torrent": "Torrent file lists",
+  "settings.parse.search": "Torrent search results",
   "settings.reset.button": "Delete all data",
   "settings.reset.data": "Reset data",
   "settings.reset.message":

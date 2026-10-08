@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { useI18n } from "@/hooks/i18n.hook";
 import { useCell } from "@/lib/state/signal.hook";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { assetUrl } from "@/lib/utils/image.utils";
@@ -99,6 +100,7 @@ function Timeline({
 }) {
   const timePos = useCell(playbackAtoms.timePos);
   const path = useCell(playbackAtoms.path);
+  const { t } = useI18n();
   const barRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
   const [scrubTime, setScrubTime] = useState<number | null>(null);
@@ -114,10 +116,12 @@ function Timeline({
 
   const displayTime = dragging && scrubTime !== null ? scrubTime : (seekTarget ?? timePos);
   const progress = duration > 0 ? clamp01(displayTime / duration) * 100 : 0;
-  const timeWidth = `${formatClock(duration).length * 2 + 3}ch`;
-  const timeLabel = showRemaining
+  const showRemainingTime = showRemaining && duration > 0;
+  const timeWidth = `${formatClock(duration).length * 2 + 4}ch`;
+  const timeLabel = showRemainingTime
     ? `-${formatClock(Math.max(0, duration - displayTime))} / ${formatClock(duration)}`
     : `${formatClock(displayTime)} / ${formatClock(duration)}`;
+  const toggleLabel = t("player.media.timeline.toggle");
 
   const timeFromClientX = useCallback(
     (clientX: number): number => {
@@ -187,14 +191,17 @@ function Timeline({
 
   return (
     <main className="flex flex-row items-center gap-1 p-1">
-      <span
+      <button
+        type="button"
         style={{ width: timeWidth }}
-        className="windows95-text shrink-0 cursor-pointer text-right whitespace-nowrap tabular-nums"
-        title={showRemaining ? formatClock(displayTime) : undefined}
+        className="windows95-text focus-visible:outline-text shrink-0 cursor-pointer bg-transparent text-right whitespace-nowrap tabular-nums focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-dotted"
+        title={toggleLabel}
+        aria-label={toggleLabel}
+        aria-pressed={showRemaining}
         onClick={() => setShowRemaining((value) => !value)}
       >
         {timeLabel}
-      </span>
+      </button>
       <div className="relative flex-1">
         {hover ? (
           <div

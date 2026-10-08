@@ -10,6 +10,7 @@ vi.mock("@tauri-apps/api/core", () => ({
 
 import Timeline, { selectThumbUrl } from "@/routes/components/player/media/timeline.player";
 import { playbackAtoms } from "@/store/player.store";
+import { patchSettings } from "@/store/settings.store";
 
 function hoverCalls(): Array<{ path?: string }> {
   return invokeMock.mock.calls
@@ -19,6 +20,8 @@ function hoverCalls(): Array<{ path?: string }> {
 
 beforeEach(() => {
   vi.useFakeTimers();
+  patchSettings({ language: "en" });
+  playbackAtoms.timePos.set(0);
   invokeMock.mockReset();
   invokeMock.mockImplementation((command: unknown) => {
     if (command === "player_hover_thumb")
@@ -33,10 +36,10 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-function renderTimeline() {
+function renderTimeline(duration = 1400) {
   const callbacks = { onScrub: vi.fn(), onCommitSeek: vi.fn() };
   const result = render(
-    <Timeline duration={1400} chapters={[]} seekTarget={null} {...callbacks} />
+    <Timeline duration={duration} chapters={[]} seekTarget={null} {...callbacks} />
   );
   const bar = result.container.querySelector(".h-4");
   if (!bar) throw new Error("timeline bar not found");
@@ -72,5 +75,37 @@ describe("selectThumbUrl", () => {
     expect(selectThumbUrl({ url: "a.jpg", time: 10 }, 20)).toBeNull();
     expect(selectThumbUrl({ url: "a.jpg", time: 10 }, null)).toBeNull();
     expect(selectThumbUrl(null, 10)).toBeNull();
+  });
+});
+
+describe("Timeline remaining toggle", () => {
+  const toggleName = "Toggle elapsed / remaining time";
+
+  it("toggles between elapsed and remaining on click", () => {
+    const { getByRole } = renderTimeline();
+    const toggle = getByRole("button", { name: toggleName });
+    expect(toggle.tagName).toBe("BUTTON");
+    expect(toggle.textContent).toBe("0:00 / 23:20");
+    expect(toggle.getAttribute("aria-pressed")).toBe("false");
+    fireEvent.click(toggle);
+    expect(toggle.textContent).toBe("-23:20 / 23:20");
+    expect(toggle.getAttribute("aria-pressed")).toBe("true");
+    fireEvent.click(toggle);
+    expect(toggle.textContent).toBe("0:00 / 23:20");
+  });
+
+  it("keeps the hint visible in both modes", () => {
+    const { getByRole } = renderTimeline();
+    const toggle = getByRole("button", { name: toggleName });
+    expect(toggle.getAttribute("title")).toBe(toggleName);
+    fireEvent.click(toggle);
+    expect(toggle.getAttribute("title")).toBe(toggleName);
+  });
+
+  it("shows elapsed when the duration is unknown", () => {
+    const { getByRole } = renderTimeline(0);
+    const toggle = getByRole("button", { name: toggleName });
+    fireEvent.click(toggle);
+    expect(toggle.textContent).toBe("0:00 / 0:00");
   });
 });

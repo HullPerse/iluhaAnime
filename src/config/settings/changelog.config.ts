@@ -96,6 +96,7 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.fixed.anilist.site_query", "anilist"),
       entry("changelog.5_0_0.fixed.player.resume_jump", "player"),
       entry("changelog.5_0_0.fixed.player.timeline_flicker", "player"),
+      entry("changelog.5_0_0.fixed.player.remaining_toggle", "player"),
       entry("changelog.5_0_0.fixed.app.scan_db_locked", "app"),
       entry("changelog.5_0_0.fixed.search.spell_overlap", "search"),
     ],

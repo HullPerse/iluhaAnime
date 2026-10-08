@@ -147,6 +147,8 @@ const changelog500 = {
     "Resume playback no longer stutters: the player seeks to the position once instead of twice, and position and duration are read live instead of stale data",
   "changelog.5_0_0.fixed.player.timeline_flicker":
     "The timeline no longer jumps to zero while paused: hover previews no longer move playback or flash across the progress bar",
+  "changelog.5_0_0.fixed.player.remaining_toggle":
+    "The timeline time works with the keyboard now: it is a real button with a hint, toggles elapsed and remaining, and stays elapsed when the duration is unknown",
   "changelog.5_0_0.fixed.app.scan_db_locked":
     "The database-is-locked scan failure no longer appears when opening the player: writes now proceed strictly one at a time",
   "changelog.5_0_0.changed.player.hot_paths":

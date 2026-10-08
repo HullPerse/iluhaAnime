@@ -168,6 +168,7 @@ const player = {
   "player.media.controls.add.subtitle": "Add subtitles",
   "player.media.controls.mute": "Mute / unmute",
   "player.media.controls.end.of.file": "End-of-file behavior",
+  "player.media.timeline.toggle": "Toggle elapsed / remaining time",
 
   "player.media.eof.none": "Nothing",
   "player.media.eof.pause": "Pause at the end",

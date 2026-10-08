@@ -174,6 +174,7 @@ const player = {
   "player.media.controls.add.subtitle": "Добавить субтитры",
   "player.media.controls.mute": "Звук вкл/выкл",
   "player.media.controls.end.of.file": "Поведение в конце файла",
+  "player.media.timeline.toggle": "Переключить прошедшее / оставшееся время",
 
   "player.media.eof.none": "Ничего",
   "player.media.eof.pause": "Пауза в конце",

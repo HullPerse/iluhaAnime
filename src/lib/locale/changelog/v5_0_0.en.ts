@@ -135,6 +135,10 @@ const changelog500 = {
     "Did-you-mean suggestions now highlight what changed in the correction",
   "changelog.5_0_0.changed.search.spell_quickfix":
     "Spell quick-fix card in search fields: the typo popup shows the correction with buttons, Tab applies it while typing and Ctrl+Tab saves the word to the personal dictionary",
+  "changelog.5_0_0.changed.search.spell_menu":
+    "Spell corrections moved into the suggestion dropdown as their own section, with a standalone panel when the dropdown is off: up to three variants to pick from and one Tab for everything",
+  "changelog.5_0_0.fixed.search.spell_overlap":
+    "The correction popup no longer covers the first suggestion rows or gets clipped in half on narrow inputs",
   "changelog.5_0_0.changed.anilist.progress_blocks":
     "Episode progress bars always show 12 blocks of equal width, so short and long series look the same and the bar fills fully only on the last episode",
   "changelog.5_0_0.changed.settings.theme_cleanup":

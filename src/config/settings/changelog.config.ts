@@ -83,6 +83,7 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.changed.search.pacing", "search"),
       entry("changelog.5_0_0.changed.search.did_you_mean_highlight", "search"),
       entry("changelog.5_0_0.changed.search.spell_quickfix", "search"),
+      entry("changelog.5_0_0.changed.search.spell_menu", "search"),
       entry("changelog.5_0_0.changed.app.state_engine", "app"),
       entry("changelog.5_0_0.changed.anilist.progress_blocks", "anilist"),
       entry("changelog.5_0_0.changed.settings.theme_cleanup", "settings"),
@@ -96,6 +97,7 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.fixed.player.resume_jump", "player"),
       entry("changelog.5_0_0.fixed.player.timeline_flicker", "player"),
       entry("changelog.5_0_0.fixed.app.scan_db_locked", "app"),
+      entry("changelog.5_0_0.fixed.search.spell_overlap", "search"),
     ],
   },
   {

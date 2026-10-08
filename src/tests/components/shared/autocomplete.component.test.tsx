@@ -336,14 +336,16 @@ describe("InlineAutocompleteInput", () => {
 });
 
 describe("InlineAutocompleteInput spell quick-fix", () => {
-  it("shows the quick-fix card with word, correction and actions when focused", async () => {
+  it("shows the corrections panel with actions when focused", async () => {
     mockSpellRect();
+    patchSettings({ autocompleteMode: "off" });
     const user = userEvent.setup();
     render(
       <InlineAutocompleteInput
         aria-label="Search spell"
         value="friren"
         spellCheck={{ correction: "frieren", start: 0, end: 6, severity: "warn", word: "friren" }}
+        spellCorrections={["frieren"]}
         onChange={() => {}}
       />
     );
@@ -351,11 +353,143 @@ describe("InlineAutocompleteInput spell quick-fix", () => {
     await user.click(screen.getByRole("textbox", { name: "Search spell" }));
 
     const tip = await screen.findByRole("tooltip");
-    expect(tip.textContent).toContain("friren");
     expect(tip.textContent).toContain("frieren");
     expect(tip.textContent).toContain("Tab");
     expect(tip.querySelector(".text-highlight")?.textContent).toBe("fri");
     expect(tip.querySelectorAll("button").length).toBe(2);
+  });
+
+  it("stretches the panel to the input width instead of centering it", async () => {
+    patchSettings({ autocompleteMode: "off" });
+    const user = userEvent.setup();
+    const view = render(
+      <InlineAutocompleteInput
+        aria-label="Search spell"
+        value="friren"
+        spellCheck={{ correction: "frieren", start: 0, end: 6, severity: "warn", word: "friren" }}
+        spellCorrections={["frieren"]}
+        onChange={() => {}}
+      />
+    );
+
+    await user.click(screen.getByRole("textbox", { name: "Search spell" }));
+
+    const tip = await screen.findByRole("tooltip");
+    expect(tip.classList.contains("left-0")).toBe(true);
+    expect(tip.classList.contains("right-0")).toBe(true);
+    expect(tip.classList.contains("-translate-x-1/2")).toBe(false);
+  });
+
+  it("lists every correction as its own row", async () => {
+    patchSettings({ autocompleteMode: "off" });
+    const user = userEvent.setup();
+    const onApplyAt = vi.fn();
+    render(
+      <InlineAutocompleteInput
+        aria-label="Search spell"
+        value="friren"
+        spellCheck={{ correction: "frieren", start: 0, end: 6, severity: "warn", word: "friren" }}
+        spellCorrections={["frieren", "frisen"]}
+        onApplySpellCorrectionAt={onApplyAt}
+        onChange={() => {}}
+      />
+    );
+
+    await user.click(screen.getByRole("textbox", { name: "Search spell" }));
+
+    const tip = await screen.findByRole("tooltip");
+    expect(tip.querySelectorAll("button").length).toBe(3);
+    await user.click(screen.getByRole("button", { name: "frisen" }));
+
+    expect(onApplyAt).toHaveBeenCalledWith("frisen");
+  });
+
+  it("hides the panel while the suggestion menu is open", async () => {
+    const user = userEvent.setup();
+    render(
+      <InlineAutocompleteInput
+        aria-label="Search spell"
+        suggestions={[{ kind: "anime", score: 100, value: "Frieren" }]}
+        value="friren"
+        spellCheck={{ correction: "frieren", start: 0, end: 6, severity: "warn", word: "friren" }}
+        spellCorrections={["frieren"]}
+        onChange={() => {}}
+      />
+    );
+
+    await user.click(screen.getByRole("textbox", { name: "Search spell" }));
+
+    expect(screen.getByRole("listbox")).not.toBeNull();
+    expect(screen.queryByRole("tooltip")).toBeNull();
+  });
+
+  it("pins corrections first in the open menu", async () => {
+    const user = userEvent.setup();
+    const view = render(
+      <InlineAutocompleteInput
+        aria-label="Search spell"
+        suggestions={[{ kind: "anime", score: 100, value: "Frieren" }]}
+        value="friren"
+        spellCheck={{ correction: "frieren", start: 0, end: 6, severity: "warn", word: "friren" }}
+        spellCorrections={["frieren"]}
+        onChange={() => {}}
+      />
+    );
+
+    await user.click(screen.getByRole("textbox", { name: "Search spell" }));
+
+    const sections = [...view.container.querySelectorAll("[data-section]")].map(
+      (node) => (node as HTMLElement).dataset.section
+    );
+    expect(sections[0]).toBe("spell");
+    expect(screen.getAllByRole("option")[0]?.textContent).toContain("frieren");
+  });
+
+  it("applies the pinned correction from the menu without submitting the suggestion", async () => {
+    const user = userEvent.setup();
+    const onAccept = vi.fn();
+    const onSelect = vi.fn();
+    const onApplyAt = vi.fn();
+    render(
+      <InlineAutocompleteInput
+        aria-label="Search spell"
+        suggestions={[{ kind: "anime", score: 100, value: "Frieren" }]}
+        value="friren"
+        spellCheck={{ correction: "frieren", start: 0, end: 6, severity: "warn", word: "friren" }}
+        spellCorrections={["frieren"]}
+        onAcceptCompletion={onAccept}
+        onSelectSuggestion={onSelect}
+        onApplySpellCorrectionAt={onApplyAt}
+        onChange={() => {}}
+      />
+    );
+
+    await user.click(screen.getByRole("textbox", { name: "Search spell" }));
+    await user.keyboard("{ArrowDown}{Tab}");
+
+    expect(onApplyAt).toHaveBeenCalledWith("frieren");
+    expect(onAccept).not.toHaveBeenCalled();
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it("hides the panel with Escape", async () => {
+    patchSettings({ autocompleteMode: "off" });
+    const user = userEvent.setup();
+    render(
+      <InlineAutocompleteInput
+        aria-label="Search spell"
+        value="friren"
+        spellCheck={{ correction: "frieren", start: 0, end: 6, severity: "warn", word: "friren" }}
+        spellCorrections={["frieren"]}
+        onChange={() => {}}
+      />
+    );
+
+    await user.click(screen.getByRole("textbox", { name: "Search spell" }));
+    expect(await screen.findByRole("tooltip")).not.toBeNull();
+    await user.keyboard("{Escape}");
+
+    expect(screen.queryByRole("tooltip")).toBeNull();
   });
 
   it("applies the spell correction with Tab when there is no ghost or menu selection", async () => {
@@ -442,16 +576,18 @@ describe("InlineAutocompleteInput spell quick-fix", () => {
     expect(onApplySpell).not.toHaveBeenCalled();
   });
 
-  it("applies the spell correction from the quick-fix button", async () => {
+  it("applies the first correction from the panel button", async () => {
     mockSpellRect();
+    patchSettings({ autocompleteMode: "off" });
     const user = userEvent.setup();
-    const onApplySpell = vi.fn();
+    const onApplyAt = vi.fn();
     render(
       <InlineAutocompleteInput
         aria-label="Search spell"
         value="friren"
         spellCheck={{ correction: "frieren", start: 0, end: 6, severity: "warn", word: "friren" }}
-        onApplySpellCorrection={onApplySpell}
+        spellCorrections={["frieren"]}
+        onApplySpellCorrectionAt={onApplyAt}
         onChange={() => {}}
       />
     );
@@ -460,11 +596,12 @@ describe("InlineAutocompleteInput spell quick-fix", () => {
     const tip = await screen.findByRole("tooltip");
     await user.click(tip.querySelectorAll("button")[0]);
 
-    expect(onApplySpell).toHaveBeenCalledOnce();
+    expect(onApplyAt).toHaveBeenCalledWith("frieren");
   });
 
   it("saves the word to the dictionary from the quick-fix button", async () => {
     mockSpellRect();
+    patchSettings({ autocompleteMode: "off" });
     const user = userEvent.setup();
     const onSaveWord = vi.fn();
     render(
@@ -472,6 +609,7 @@ describe("InlineAutocompleteInput spell quick-fix", () => {
         aria-label="Search spell"
         value="friren"
         spellCheck={{ correction: "frieren", start: 0, end: 6, severity: "warn", word: "friren" }}
+        spellCorrections={["frieren"]}
         onAddWordToDictionary={onSaveWord}
         onChange={() => {}}
       />
@@ -486,12 +624,14 @@ describe("InlineAutocompleteInput spell quick-fix", () => {
 
   it("shows the Ctrl+Tab hint for the dictionary action", async () => {
     mockSpellRect();
+    patchSettings({ autocompleteMode: "off" });
     const user = userEvent.setup();
     render(
       <InlineAutocompleteInput
         aria-label="Search spell"
         value="friren"
         spellCheck={{ correction: "frieren", start: 0, end: 6, severity: "warn", word: "friren" }}
+        spellCorrections={["frieren"]}
         onChange={() => {}}
       />
     );

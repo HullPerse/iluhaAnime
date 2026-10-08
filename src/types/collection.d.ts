@@ -179,7 +179,9 @@ export interface SearchFieldInputProps {
   suggestions: SearchSuggestion[];
   history: string[];
   spellCheck: SpellCheck | null;
+  spellCorrections: string[];
   onApplySpellCorrection: () => void;
+  onApplySpellCorrectionAt: (correction: string) => void;
   onAddWordToDictionary: () => void;
   historyStats?: Record<string, SearchQueryStat>;
   onChange: (event: ChangeEvent<HTMLInputElement>) => void;
@@ -199,7 +201,9 @@ export interface SearchField {
   recordSuggestion: (value: string) => void;
   recordSuggestionIgnored: (value: string) => void;
   spellCheck: SpellCheck | null;
+  spellCorrections: string[];
   applySpellCorrection: () => void;
+  applySpellCorrectionAt: (correction: string) => void;
   addWordToDictionary: () => void;
   addQuery: (query: string, scope?: string) => void;
   handleSubmit: () => void;

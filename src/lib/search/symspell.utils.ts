@@ -82,14 +82,22 @@ export class SymSpell {
   }
 
   private pickBest(candidates: Map<string, number>): string | null {
-    let best: string | null = null;
-    let bestDist = Infinity;
-    for (const [cand, dist] of candidates) {
-      if (dist >= bestDist) continue;
-      bestDist = dist;
-      best = cand;
-    }
-    return best;
+    return this.rankCandidates(candidates)[0] ?? null;
+  }
+
+  private rankCandidates(candidates: Map<string, number>): string[] {
+    return [...candidates.entries()]
+      .sort((left, right) => left[1] - right[1] || left[0].localeCompare(right[0]))
+      .map(([word]) => word);
+  }
+
+  correctMany(input: string, limit = 3): string[] {
+    const word = normalizeSearchText(input).split(" ")[0] ?? "";
+    if (!word || this.words.has(word)) return [];
+    const candidates = new Map<string, number>();
+    const visited = new Set<string>();
+    this.collectCandidates(word, candidates, visited);
+    return this.rankCandidates(candidates).slice(0, Math.max(1, limit));
   }
 
   correct(input: string): string | null {
@@ -105,18 +113,35 @@ export class SymSpell {
   }
 
   suggest(query: string): string | null {
+    return this.suggestMany(query, 1)[0] ?? null;
+  }
+
+  suggestMany(query: string, limit = 3): string[] {
+    const cap = Math.max(1, limit);
     const parts = query.trim().split(/\s+/);
-    let changed = false;
-    const out = parts.map((p) => {
-      const c = this.correct(p);
-      if (c && c !== normalizeSearchText(p)) {
-        changed = true;
-        return c;
+    const alternates = parts.map((part) => this.correctMany(part, cap));
+    if (alternates.every((list) => list.length === 0)) return [];
+    const normalizedQuery = normalizeSearchText(query);
+    const best = parts.map((part, index) => alternates[index]?.[0] ?? part);
+    const variants: string[][] = [best];
+    for (let word = 0; word < parts.length && variants.length < cap; word++) {
+      for (let rank = 1; rank < (alternates[word]?.length ?? 0); rank++) {
+        if (variants.length >= cap) break;
+        const next = [...best];
+        next[word] = alternates[word]?.[rank] ?? next[word];
+        variants.push(next);
       }
-      return p;
-    });
-    if (!changed) return null;
-    return out.join(" ");
+    }
+    const seen = new Set<string>();
+    return variants
+      .map((words) => words.join(" "))
+      .filter((correction) => {
+        const key = normalizeSearchText(correction);
+        if (!key || key === normalizedQuery || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .slice(0, cap);
   }
 
   size(): number {

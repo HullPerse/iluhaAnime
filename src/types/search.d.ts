@@ -41,7 +41,7 @@ export interface SearchQueryStat {
 
 export type SearchSuggestionScope = "anilist" | "torrent" | "player" | "filter";
 export type AutocompleteMode = "inline" | "dropdown" | "both" | "off";
-export type SearchSuggestionKind = "anime" | "history" | "local" | "torrent";
+export type SearchSuggestionKind = "anime" | "history" | "local" | "torrent" | "spell";
 export type AnilistSuggestionBoost = "off" | "subtle" | "strong";
 
 export interface SearchSuggestion {
@@ -411,7 +411,9 @@ export interface AutocompleteInputProps extends ComponentProps<"input"> {
   highlightRanges?: readonly HighlightRange[];
   placement?: "below" | "above";
   spellCheck?: SpellCheck | null;
+  spellCorrections?: string[];
   onApplySpellCorrection?: () => void;
+  onApplySpellCorrectionAt?: (correction: string) => void;
   onAddWordToDictionary?: () => void;
   historyStats?: Record<string, SearchQueryStat>;
 }

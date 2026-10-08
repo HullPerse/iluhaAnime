@@ -99,6 +99,8 @@ function getNormalizedAnimeTitles(animeIndex: SearchAnimeSuggestion[]): string[]
   return titles;
 }
 const symSpellCache = new WeakMap<object, { fingerprint: string; sym: SymSpell }>();
+const SYM_SPELL_LRU_MAX = 3;
+const symSpellByFingerprint = new Map<string, SymSpell>();
 const animeFingerprintCache = new WeakMap<SearchAnimeSuggestion[], string>();
 
 function animeTitlesFingerprint(animeIndex: SearchAnimeSuggestion[] | undefined): string {
@@ -123,7 +125,17 @@ function symSpellFor(titles: string[], basis: object | undefined, fingerprint: s
   if (!basis) return buildSymSpellFromTitles(titles);
   const hit = symSpellCache.get(basis);
   if (hit && hit.fingerprint === fingerprint) return hit.sym;
+  const shared = symSpellByFingerprint.get(fingerprint);
+  if (shared) {
+    symSpellCache.set(basis, { fingerprint, sym: shared });
+    return shared;
+  }
   const sym = buildSymSpellFromTitles(titles);
+  if (symSpellByFingerprint.size >= SYM_SPELL_LRU_MAX) {
+    const oldest = symSpellByFingerprint.keys().next();
+    if (!oldest.done) symSpellByFingerprint.delete(oldest.value);
+  }
+  symSpellByFingerprint.set(fingerprint, sym);
   symSpellCache.set(basis, { fingerprint, sym });
   return sym;
 }
@@ -313,22 +325,37 @@ function applySymSpellFallback(
     put({ ...c, score: c.score - 50, subtitle: `${c.subtitle ?? c.kind} (did you mean)` });
   }
 }
+function spellTitles(options: Pick<SearchSuggestionOptions, "history" | "animeIndex" | "extraValues">): {
+  titles: string[];
+  basis: object | undefined;
+  fingerprint: string;
+} {
+  const history = options.history ?? [];
+  const extra = options.extraValues?.map((entry) => entry.value) ?? [];
+  const titles = [...history, ...(options.animeIndex?.map((entry) => entry.title) ?? []), ...extra];
+  const basis: object | undefined = options.animeIndex ?? options.history ?? options.extraValues;
+  const fingerprint = `${titles.length}|${animeTitlesFingerprint(options.animeIndex)}|h${history.length}|e${extra.length}`;
+  return { titles, basis, fingerprint };
+}
+
+export function suggestSpellings(
+  query: string,
+  options: Pick<SearchSuggestionOptions, "history" | "animeIndex" | "extraValues" | "symSpell"> = {},
+  limit = 3
+): string[] {
+  const normalizedQuery = normalizeSearchText(query);
+  if (options.symSpell === false) return [];
+  if (normalizedQuery.length < 3) return [];
+  const { titles, basis, fingerprint } = spellTitles(options);
+  if (titles.length === 0) return [];
+  return symSpellFor(titles, basis, fingerprint).suggestMany(query, limit);
+}
+
 export function suggestSpelling(
   query: string,
   options: Pick<SearchSuggestionOptions, "history" | "animeIndex" | "extraValues" | "symSpell"> = {}
 ): string | null {
-  const normalizedQuery = normalizeSearchText(query);
-  if (options.symSpell === false) return null;
-  if (normalizedQuery.length < 3) return null;
-  const history = options.history ?? [];
-  const extra = options.extraValues?.map((entry) => entry.value) ?? [];
-  const titles = [...history, ...(options.animeIndex?.map((entry) => entry.title) ?? []), ...extra];
-  if (titles.length === 0) return null;
-  const basis: object | undefined = options.animeIndex ?? options.history ?? options.extraValues;
-  const fingerprint = `${titles.length}|${animeTitlesFingerprint(options.animeIndex)}|h${history.length}|e${extra.length}`;
-  const corrected = symSpellFor(titles, basis, fingerprint).suggest(query);
-  if (!corrected || normalizeSearchText(corrected) === normalizedQuery) return null;
-  return corrected;
+  return suggestSpellings(query, options, 1)[0] ?? null;
 }
 
 export function getSearchSuggestions(
@@ -378,6 +405,8 @@ export function groupSuggestions(suggestions: SearchSuggestion[]): {
   }
   if (groups.size === 0) return { items: [], sections: [] };
   const order = [...groups.keys()].sort((left, right) => {
+    if (left === "spell") return -1;
+    if (right === "spell") return 1;
     const leftBest = groups.get(left)?.[0]?.score ?? 0;
     const rightBest = groups.get(right)?.[0]?.score ?? 0;
     if (rightBest !== leftBest) return rightBest - leftBest;

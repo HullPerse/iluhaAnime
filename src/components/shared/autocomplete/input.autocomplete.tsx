@@ -1,5 +1,5 @@
 import { cn } from "cn";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent, RefObject } from "react";
 
 import { Input } from "@/components/ui/input.component";
@@ -25,6 +25,7 @@ import { BackdropLayer } from "./backdrop.autocomplete";
 import { SuggestionMenu } from "./menu.autocomplete";
 
 const EMPTY_SUGGESTIONS: SearchSuggestion[] = [];
+const EMPTY_CORRECTIONS: string[] = [];
 const EMPTY_RANGES: readonly HighlightRange[] = [];
 const EMPTY_SPELL_RANGES: readonly HighlightRange[] = [];
 
@@ -52,43 +53,28 @@ function spellHit(rect: DOMRect | null, clientX: number, clientY: number): boole
   );
 }
 
-const SPELL_CARD_HALF = 128;
-
-function clampSpellX(center: number, wrap: HTMLDivElement | null): number {
-  const width = wrap?.getBoundingClientRect().width ?? 0;
-  if (width <= SPELL_CARD_HALF * 2) return Math.max(center, 0);
-  return Math.min(Math.max(center, SPELL_CARD_HALF), width - SPELL_CARD_HALF);
-}
-
-function SpellQuickFix({
-  x,
-  check,
-  query,
-  onApply,
-  onSave,
-}: {
-  x: number;
-  check: SpellCheck;
-  query: string;
-  onApply?: () => void;
-  onSave?: () => void;
-}) {
-  const { t } = useI18n();
-  const diff = useMemo(
-    () => splitByRanges(check.correction, findSubsequenceRanges(check.correction, query)),
-    [check.correction, query]
-  );
-  return (
-    <div
-      role="tooltip"
-      onMouseDown={(event) => event.preventDefault()}
-      className="windows95-border bg-primary windows95-text absolute top-full z-50 mt-0.5 flex max-w-80 -translate-x-1/2 items-center gap-1 px-1 py-0.5 text-xs"
-      style={{ left: `${x}px` }}
-    >
-      <span className="min-w-0 flex-1 truncate font-bold">
-        <span>{check.word}</span>
-        <span aria-hidden="true">{" -> "}</span>
-        <span>
+const SpellCorrectionRow = memo(
+  ({
+    correction,
+    query,
+    onApply,
+  }: {
+    correction: string;
+    query: string;
+    onApply?: (correction: string) => void;
+  }) => {
+    const diff = useMemo(
+      () => splitByRanges(correction, findSubsequenceRanges(correction, query)),
+      [correction, query]
+    );
+    return (
+      <button
+        type="button"
+        onMouseDown={(event) => event.preventDefault()}
+        onClick={() => onApply?.(correction)}
+        className="windows95-text hover:bg-highlight hover:text-white flex w-full min-w-0 items-center gap-1 px-1 py-px text-left font-bold"
+      >
+        <span className="min-w-0 flex-1 truncate">
           {diff.map((token, index) =>
             token.highlighted ? (
               <span key={index} className="text-highlight">
@@ -99,93 +85,75 @@ function SpellQuickFix({
             )
           )}
         </span>
-      </span>
-      <button
-        type="button"
-        title={t("search.spell.apply.title")}
-        aria-label={t("search.spell.apply.title")}
-        onClick={onApply}
-        className="windows95-small-border bg-primary windows95-text shrink-0 px-1 py-px font-bold hover:bg-surface active:translate-x-px active:translate-y-px"
-      >
-        {t("search.spell.apply")}
       </button>
-      <kbd
-        aria-hidden="true"
-        title={t("search.spell.apply.title")}
-        className="windows95-small-border bg-field windows95-text shrink-0 px-1 py-px font-bold"
+    );
+  }
+);
+
+const SpellCorrectionsPanel = memo(
+  ({
+    corrections,
+    query,
+    onApplyAt,
+    onSave,
+    placement,
+  }: {
+    corrections: string[];
+    query: string;
+    onApplyAt?: (correction: string) => void;
+    onSave?: () => void;
+    placement: "below" | "above";
+  }) => {
+    const { t } = useI18n();
+    if (corrections.length === 0) return null;
+    return (
+      <div
+        role="tooltip"
+        onMouseDown={(event) => event.preventDefault()}
+        className={
+          placement === "above"
+            ? "windows95-border bg-primary windows95-text absolute right-0 bottom-full left-0 z-50 mb-0.5 flex flex-col px-1 py-0.5 text-xs"
+            : "windows95-border bg-primary windows95-text absolute top-full right-0 left-0 z-50 mt-0.5 flex flex-col px-1 py-0.5 text-xs"
+        }
       >
-        Tab
-      </kbd>
-      <button
-        type="button"
-        title={t("search.spell.save.word.title")}
-        aria-label={t("search.spell.save.word.title")}
-        onClick={onSave}
-        className="windows95-small-border bg-primary windows95-text shrink-0 px-1 py-px font-bold hover:bg-surface active:translate-x-px active:translate-y-px"
-      >
-        {t("search.spell.save.word")}
-      </button>
-      <kbd
-        aria-hidden="true"
-        title={t("search.spell.save.word.title")}
-        className="windows95-small-border bg-field windows95-text shrink-0 px-1 py-px font-bold"
-      >
-        Ctrl+Tab
-      </kbd>
-    </div>
-  );
-}
-
-function SpellHoverTip({
-  x,
-  check,
-  query,
-  onApply,
-  onSave,
-}: {
-  x: number | null;
-  check: SpellCheck | null;
-  query: string;
-  onApply?: () => void;
-  onSave?: () => void;
-}) {
-  if (x === null || !check) return null;
-  return <SpellQuickFix x={x} check={check} query={query} onApply={onApply} onSave={onSave} />;
-}
-
-function useSpellAnchor(
-  backdropRef: RefObject<HTMLDivElement | null>,
-  wrapRef: RefObject<HTMLDivElement | null>,
-  spellCheck: SpellCheck | null,
-  currentValue: string,
-  focused: boolean,
-  hoverX: number | null
-) {
-  const [autoX, setAutoX] = useState<number | null>(null);
-
-  useEffect(() => {
-    if (!spellCheck || !focused) {
-      setAutoX(null);
-      return;
-    }
-    const rect = spellRectOf(backdropRef.current);
-    const wrap = wrapRef.current;
-    if (!rect || !wrap) {
-      setAutoX(null);
-      return;
-    }
-    const wrapRect = wrap.getBoundingClientRect();
-    setAutoX(clampSpellX(rect.left - wrapRect.left + rect.width / 2, wrap));
-  }, [spellCheck, currentValue, focused, backdropRef, wrapRef]);
-
-  return { spellX: hoverX ?? autoX, clearAutoX: () => setAutoX(null) };
-}
+        {corrections.map((correction) => (
+          <SpellCorrectionRow
+            key={correction}
+            correction={correction}
+            query={query}
+            onApply={onApplyAt}
+          />
+        ))}
+        <div className="flex items-center gap-1 pt-0.5">
+          <button
+            type="button"
+            title={t("search.spell.save.word.title")}
+            aria-label={t("search.spell.save.word.title")}
+            onClick={onSave}
+            className="windows95-small-border bg-primary windows95-text shrink-0 px-1 py-px font-bold hover:bg-surface active:translate-x-px active:translate-y-px"
+          >
+            {t("search.spell.save.word")}
+          </button>
+          <kbd
+            aria-hidden="true"
+            title={t("search.spell.save.word.title")}
+            className="windows95-small-border bg-field windows95-text shrink-0 px-1 py-px font-bold"
+          >
+            Ctrl+Tab
+          </kbd>
+          <span aria-hidden="true" className="text-hint min-w-0 flex-1 truncate">
+            {t("search.spell.apply.title")}
+          </span>
+        </div>
+      </div>
+    );
+  }
+);
 
 function handleSpellTab(
   event: { key: string; ctrlKey: boolean; shiftKey: boolean; preventDefault: () => void },
   spellCheck: SpellCheck | null,
-  onApplySpellCorrection: (() => void) | undefined,
-  onApplied: () => void
+  onApplySpellCorrection: (() => void) | undefined
 ): boolean {
   if (
     event.key !== "Tab" ||
@@ -198,15 +166,13 @@ function handleSpellTab(
   }
   event.preventDefault();
   onApplySpellCorrection();
-  onApplied();
   return true;
 }
 
 function handleSpellSaveTab(
   event: { key: string; ctrlKey: boolean; shiftKey: boolean; preventDefault: () => void },
   spellCheck: SpellCheck | null,
-  onAddWordToDictionary: (() => void) | undefined,
-  onSaved: () => void
+  onAddWordToDictionary: (() => void) | undefined
 ): boolean {
   if (
     event.key !== "Tab" ||
@@ -219,30 +185,16 @@ function handleSpellSaveTab(
   }
   event.preventDefault();
   onAddWordToDictionary();
-  onSaved();
   return true;
 }
 
 function useSpellInteraction(
   backdropRef: RefObject<HTMLDivElement | null>,
-  wrapRef: RefObject<HTMLDivElement | null>,
   spellCheck: SpellCheck | null,
   onApplySpellCorrection?: () => void,
   onAddWordToDictionary?: () => void
 ) {
-  const [spellHoverX, setSpellHoverX] = useState<number | null>(null);
-
   const spellSpanRect = (): DOMRect | null => spellRectOf(backdropRef.current);
-
-  const handleSpellMove = (event: { clientX: number; clientY: number }) => {
-    const rect = spellCheck ? spellSpanRect() : null;
-    const wrap = wrapRef.current?.getBoundingClientRect();
-    if (!rect || !wrap || !spellHit(rect, event.clientX, event.clientY)) {
-      setSpellHoverX(null);
-      return;
-    }
-    setSpellHoverX(rect.left - wrap.left + rect.width / 2);
-  };
 
   const handleSpellClick = (event: {
     clientX: number;
@@ -252,7 +204,6 @@ function useSpellInteraction(
     if (!spellCheck || !spellHit(spellSpanRect(), event.clientX, event.clientY)) return false;
     event.preventDefault();
     onApplySpellCorrection?.();
-    setSpellHoverX(null);
     return true;
   };
 
@@ -264,20 +215,12 @@ function useSpellInteraction(
     if (!spellCheck || !spellHit(spellSpanRect(), event.clientX, event.clientY)) return false;
     event.preventDefault();
     onAddWordToDictionary?.();
-    setSpellHoverX(null);
     return true;
   };
 
-  const clearSpellHover = () => {
-    setSpellHoverX(null);
-  };
-
   return {
-    spellHoverX,
-    handleSpellMove,
     handleSpellClick,
     handleSpellContextMenu,
-    clearSpellHover,
   };
 }
 
@@ -297,7 +240,9 @@ export function InlineAutocompleteInput({
   suggestions = EMPTY_SUGGESTIONS,
   highlightRanges = EMPTY_RANGES,
   spellCheck = null,
+  spellCorrections = EMPTY_CORRECTIONS,
   onApplySpellCorrection,
+  onApplySpellCorrectionAt,
   onAddWordToDictionary,
   historyStats,
   value,
@@ -311,15 +256,8 @@ export function InlineAutocompleteInput({
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const backdropRef = useRef<HTMLDivElement | null>(null);
   const wrapRef = useRef<HTMLDivElement | null>(null);
-  const {
-    spellHoverX,
-    handleSpellMove,
-    handleSpellClick,
-    handleSpellContextMenu,
-    clearSpellHover,
-  } = useSpellInteraction(
+  const { handleSpellClick, handleSpellContextMenu } = useSpellInteraction(
     backdropRef,
-    wrapRef,
     spellCheck,
     onApplySpellCorrection,
     onAddWordToDictionary
@@ -342,13 +280,24 @@ export function InlineAutocompleteInput({
     [history, historyStats]
   );
 
+  const spellItems = useMemo<SearchSuggestion[]>(
+    () =>
+      spellCorrections.map((correction) => ({ kind: "spell" as const, score: 0, value: correction })),
+    [spellCorrections]
+  );
+
   const { items: groupedSuggestions, sections } = useMemo(
-    () => groupSuggestions(isEmptyQuery ? emptyHistorySuggestions : suggestions),
-    [emptyHistorySuggestions, isEmptyQuery, suggestions]
+    () =>
+      groupSuggestions(
+        isEmptyQuery ? emptyHistorySuggestions : [...spellItems, ...suggestions]
+      ),
+    [emptyHistorySuggestions, isEmptyQuery, spellItems, suggestions]
   );
 
   const showMenu =
     enabled && mode !== "inline" && !dismissed && focused && groupedSuggestions.length > 0;
+  const showSpellPanel =
+    focused && !dismissed && !showMenu && spellCorrections.length > 0;
   const safeActiveIndex = showMenu ? Math.min(activeIndex, groupedSuggestions.length - 1) : -1;
   const activeSuggestion = safeActiveIndex >= 0 ? groupedSuggestions[safeActiveIndex] : undefined;
   const ghostValue = computeGhostValue({
@@ -371,25 +320,6 @@ export function InlineAutocompleteInput({
     [currentValue, highlightRanges, spellRanges]
   );
   const hasHighlight = highlightSegments.some((s) => s.highlighted);
-  const { spellX, clearAutoX } = useSpellAnchor(
-    backdropRef,
-    wrapRef,
-    spellCheck,
-    currentValue,
-    focused,
-    spellHoverX
-  );
-
-  const applySpellFromCard = () => {
-    onApplySpellCorrection?.();
-    clearSpellHover();
-    clearAutoX();
-  };
-  const saveSpellFromCard = () => {
-    onAddWordToDictionary?.();
-    clearSpellHover();
-    clearAutoX();
-  };
 
   useEffect(() => {
     setDismissed(false);
@@ -418,11 +348,19 @@ export function InlineAutocompleteInput({
     if (showMenu) scrollRef.current?.scrollTo?.(0, 0);
   }, [showMenu]);
 
-  const selectSuggestion = (suggestion: SearchSuggestion) => {
-    onSelectSuggestion?.(suggestion.value);
-    onAcceptCompletion?.(suggestion.value);
-    setActiveIndex(-1);
-  };
+  const selectSuggestion = useCallback(
+    (suggestion: SearchSuggestion) => {
+      if (suggestion.kind === "spell") {
+        onApplySpellCorrectionAt?.(suggestion.value);
+        setActiveIndex(-1);
+        return;
+      }
+      onSelectSuggestion?.(suggestion.value);
+      onAcceptCompletion?.(suggestion.value);
+      setActiveIndex(-1);
+    },
+    [onSelectSuggestion, onAcceptCompletion, onApplySpellCorrectionAt]
+  );
 
   const listNavigationHandler = createListNavigationHandler<HTMLInputElement>({
     activeIndex: safeActiveIndex,
@@ -432,7 +370,7 @@ export function InlineAutocompleteInput({
     onEnter: (index) => selectSuggestion(groupedSuggestions[index]),
     onTab: (index) => selectSuggestion(groupedSuggestions[index]),
     onEscape: () => {
-      if (!ghostValue && !showMenu && !completion) return false;
+      if (!ghostValue && !showMenu && !completion && spellCorrections.length === 0) return false;
       setDismissed(true);
       setActiveIndex(-1);
       onDismissCompletion?.();
@@ -444,12 +382,7 @@ export function InlineAutocompleteInput({
         onAcceptCompletion(ghostValue);
         return;
       }
-      if (
-        handleSpellTab(event, spellCheck, onApplySpellCorrection, () => {
-          clearSpellHover();
-          clearAutoX();
-        })
-      ) {
+      if (handleSpellTab(event, spellCheck, onApplySpellCorrection)) {
         return;
       }
       onKeyDown?.(event);
@@ -457,12 +390,7 @@ export function InlineAutocompleteInput({
   });
 
   const handleInputKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (
-      handleSpellSaveTab(event, spellCheck, onAddWordToDictionary, () => {
-        clearSpellHover();
-        clearAutoX();
-      })
-    ) {
+    if (handleSpellSaveTab(event, spellCheck, onAddWordToDictionary)) {
       return;
     }
     listNavigationHandler(event);
@@ -499,8 +427,6 @@ export function InlineAutocompleteInput({
               backdropRef.current.scrollLeft = event.currentTarget.scrollLeft;
             onScroll?.(event);
           }}
-          onMouseMove={handleSpellMove}
-          onMouseLeave={clearSpellHover}
           onClick={(event) => {
             if (!handleSpellClick(event)) props.onClick?.(event);
           }}
@@ -520,13 +446,15 @@ export function InlineAutocompleteInput({
           onKeyDown={handleInputKeyDown}
           value={value}
         />
-        <SpellHoverTip
-          x={spellX}
-          check={spellCheck}
-          query={currentValue}
-          onApply={applySpellFromCard}
-          onSave={saveSpellFromCard}
-        />
+        {showSpellPanel && (
+          <SpellCorrectionsPanel
+            corrections={spellCorrections}
+            query={currentValue}
+            onApplyAt={onApplySpellCorrectionAt}
+            onSave={onAddWordToDictionary}
+            placement={placement}
+          />
+        )}
         {showMenu && (
           <SuggestionMenu
             listboxId={listboxId}

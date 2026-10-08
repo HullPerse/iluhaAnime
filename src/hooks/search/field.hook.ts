@@ -2,7 +2,7 @@ import { useCallback, useMemo } from "react";
 import type { ChangeEvent } from "react";
 
 import { useAutocomplete } from "@/hooks/search/autocomplete.hook";
-import { useSpellCheck } from "@/hooks/search/spellcheck.hook";
+import { useSpellCheck, useSpellCorrections } from "@/hooks/search/spellcheck.hook";
 import { useCell } from "@/lib/state/signal.hook";
 import { enterSubmit } from "@/lib/utils/keyboard.utils";
 import {
@@ -66,6 +66,7 @@ export function useSearchField(params: SearchFieldParams): SearchField {
   });
 
   const spellCheck = useSpellCheck(query, { history, animeIndex, extraValues });
+  const spellCorrections = useSpellCorrections(query, { history, animeIndex, extraValues });
   const applySpellCorrection = useCallback(() => {
     if (!spellCheck) return;
     setQuery(spellCheck.correction);
@@ -80,6 +81,15 @@ export function useSearchField(params: SearchFieldParams): SearchField {
   const recordSelect = useCallback(
     (value: string) => recordSuggestion(value, learningScope),
     [learningScope]
+  );
+  const applySpellCorrectionAt = useCallback(
+    (correction: string) => {
+      const trimmed = correction.trim();
+      if (!trimmed) return;
+      recordSelect(trimmed);
+      setQuery(trimmed);
+    },
+    [recordSelect, setQuery]
   );
   const recordIgnore = useCallback(
     (value: string) => recordSuggestionIgnored(value, learningScope),
@@ -127,6 +137,12 @@ export function useSearchField(params: SearchFieldParams): SearchField {
     if (inlineCompletion) recordIgnore(inlineCompletion);
   }, [inlineCompletion, recordIgnore]);
 
+  const handleChange = useCallback(
+    (event: ChangeEvent<HTMLInputElement>) => setQuery(event.target.value),
+    [setQuery]
+  );
+  const handleKeyDown = useMemo(() => enterSubmit(handleSubmit), [handleSubmit]);
+
   const inputProps = useMemo(
     () => ({
       value: query,
@@ -134,15 +150,17 @@ export function useSearchField(params: SearchFieldParams): SearchField {
       suggestions,
       history,
       spellCheck,
+      spellCorrections,
       onApplySpellCorrection: applySpellCorrection,
+      onApplySpellCorrectionAt: applySpellCorrectionAt,
       onAddWordToDictionary: addWordToDictionary,
       historyStats: queryStats,
-      onChange: (event: ChangeEvent<HTMLInputElement>) => setQuery(event.target.value),
+      onChange: handleChange,
       onAcceptCompletion: handleAcceptCompletion,
       onDismissCompletion: handleDismissCompletion,
       onSelectSuggestion: handleSelect,
       onRemoveHistory: handleRemoveQuery,
-      onKeyDown: enterSubmit(handleSubmit),
+      onKeyDown: handleKeyDown,
     }),
     [
       query,
@@ -151,33 +169,58 @@ export function useSearchField(params: SearchFieldParams): SearchField {
       history,
       queryStats,
       spellCheck,
+      spellCorrections,
       applySpellCorrection,
+      applySpellCorrectionAt,
       addWordToDictionary,
-      setQuery,
+      handleChange,
       handleAcceptCompletion,
       handleDismissCompletion,
       handleSelect,
       handleRemoveQuery,
-      handleSubmit,
+      handleKeyDown,
     ]
   );
 
-  return {
-    suggestions,
-    inlineCompletion,
-    deferredQuery,
-    history,
-    removeQuery: handleRemoveQuery,
-    recordSuggestion: recordSelect,
-    recordSuggestionIgnored: recordIgnore,
-    spellCheck,
-    applySpellCorrection,
-    addWordToDictionary,
-    addQuery,
-    handleSubmit,
-    handleSelect,
-    handleAcceptCompletion,
-    handleDismissCompletion,
-    inputProps,
-  };
+  return useMemo(
+    () => ({
+      suggestions,
+      inlineCompletion,
+      deferredQuery,
+      history,
+      removeQuery: handleRemoveQuery,
+      recordSuggestion: recordSelect,
+      recordSuggestionIgnored: recordIgnore,
+      spellCheck,
+      spellCorrections,
+      applySpellCorrection,
+      applySpellCorrectionAt,
+      addWordToDictionary,
+      addQuery,
+      handleSubmit,
+      handleSelect,
+      handleAcceptCompletion,
+      handleDismissCompletion,
+      inputProps,
+    }),
+    [
+      suggestions,
+      inlineCompletion,
+      deferredQuery,
+      history,
+      handleRemoveQuery,
+      recordSelect,
+      recordIgnore,
+      spellCheck,
+      spellCorrections,
+      applySpellCorrection,
+      applySpellCorrectionAt,
+      addWordToDictionary,
+      handleSubmit,
+      handleSelect,
+      handleAcceptCompletion,
+      handleDismissCompletion,
+      inputProps,
+    ]
+  );
 }

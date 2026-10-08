@@ -65,6 +65,7 @@ const search = {
   "search.suggestion.history": "History",
   "search.remove.from.history": "Remove from history",
   "search.suggestion.local": "Local",
+  "search.suggestion.spell": "Correction",
   "search.suggestion.torrent": "Torrent",
   "search.magnet": "Magnet",
   "search.more": "More",

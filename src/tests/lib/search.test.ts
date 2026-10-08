@@ -26,8 +26,10 @@ import {
   fuzzyMatchScore,
   getInlineCompletion,
   getSearchSuggestions,
+  groupSuggestions,
   normalizeSearchText,
   suggestSpelling,
+  suggestSpellings,
 } from "@/lib/search/suggestions.utils";
 import {
   buildShadow,
@@ -1128,6 +1130,51 @@ describe("search/suggestions", () => {
 
     it("stays silent when symspell is disabled", () => {
       expect(suggestSpelling("friren", { animeIndex, symSpell: false })).toBeNull();
+    });
+
+    it("matches the top suggestSpellings entry", () => {
+      const top = suggestSpellings("friren", { animeIndex, symSpell: true }, 3)[0] ?? null;
+      expect(suggestSpelling("friren", { animeIndex, symSpell: true })).toBe(top);
+    });
+  });
+
+  describe("suggestSpellings", () => {
+    it("returns a single correction for a one-candidate typo", () => {
+      expect(suggestSpellings("friren", { animeIndex, symSpell: true }, 3)).toEqual(["frieren"]);
+    });
+
+    it("returns best-first variants capped by the limit", () => {
+      const options = { animeIndex, history: ["frieren", "frisen"], symSpell: true };
+      expect(suggestSpellings("friren", options, 3)).toEqual(["frieren", "frisen"]);
+      expect(suggestSpellings("friren", options, 1)).toEqual(["frieren"]);
+    });
+
+    it("stays silent on exact matches, short queries, and disabled symspell", () => {
+      expect(suggestSpellings("frieren", { animeIndex, symSpell: true }, 3)).toEqual([]);
+      expect(suggestSpellings("fr", { animeIndex, symSpell: true }, 3)).toEqual([]);
+      expect(suggestSpellings("friren", { symSpell: true }, 3)).toEqual([]);
+      expect(suggestSpellings("friren", { animeIndex, symSpell: false }, 3)).toEqual([]);
+    });
+  });
+
+  describe("groupSuggestions spell pinning", () => {
+    it("orders the spell section before higher-scored sections", () => {
+      const { items, sections } = groupSuggestions([
+        { kind: "anime", score: 900, value: "Frieren: Beyond Journey's End" },
+        { kind: "spell", score: 0, value: "frieren" },
+        { kind: "history", score: 700, value: "frieren 1080p" },
+      ]);
+      expect(sections[0]?.kind).toBe("spell");
+      expect(items[0]?.value).toBe("frieren");
+      expect(sections[0]).toMatchObject({ startIndex: 0, endIndex: 1 });
+    });
+
+    it("keeps multiple corrections in best-first order", () => {
+      const { items } = groupSuggestions([
+        { kind: "spell", score: 0, value: "frieren" },
+        { kind: "spell", score: 0, value: "frisen" },
+      ]);
+      expect(items.map((entry) => entry.value)).toEqual(["frieren", "frisen"]);
     });
   });
 });

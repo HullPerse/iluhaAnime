@@ -461,8 +461,14 @@ function AnilistRoute() {
     () => activeListEntries(source.lists, currentList),
     [source.lists, currentList]
   );
-  const filteredEntries = filterEntries(activeEntries, deferredSearchTerms, global);
-  const sortedEntries = sortEntries(filteredEntries, sort.dir, sort.key);
+  const filteredEntries = useMemo(
+    () => filterEntries(activeEntries, deferredSearchTerms, global),
+    [activeEntries, deferredSearchTerms, global]
+  );
+  const sortedEntries = useMemo(
+    () => sortEntries(filteredEntries, sort.dir, sort.key),
+    [filteredEntries, sort.dir, sort.key]
+  );
   const displayEntries = pickDisplayEntries(global, searchResults, sortedEntries, globalSort);
   const { grouped, collapsedLists, useScrollView, effectiveDisplayMode } = useAnilistListView({
     lists: source.lists,
@@ -492,7 +498,7 @@ function AnilistRoute() {
     setPage((p) => Math.min(p, lastPage));
   }, [lastPage]);
 
-  const sourceKey = `${currentList}|${sort.key}|${sort.dir}|${searchTerms}|${global}`;
+  const sourceKey = `${currentList}|${sort.key}|${sort.dir}|${deferredSearchTerms}|${global}`;
   const [lastSourceKey, setLastSourceKey] = useState(sourceKey);
   if (lastSourceKey !== sourceKey) {
     setLastSourceKey(sourceKey);

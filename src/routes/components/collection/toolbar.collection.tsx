@@ -2,6 +2,7 @@ import { Filter, Palette, Plus, SortAsc, SortDesc } from "lucide-react";
 import { useMemo } from "react";
 
 import { InlineAutocompleteInput } from "@/components/shared/autocomplete/input.autocomplete";
+import { SmallLoader } from "@/components/shared/loader.component";
 import { Button } from "@/components/ui/button.component";
 import Select from "@/components/ui/select.component";
 import { useCollectionDataActions } from "@/hooks/collection/data.hook";
@@ -23,6 +24,7 @@ export default function ToolbarCollection({
   onRandom,
   randomDisabled,
   addDisabled,
+  pending,
 }: {
   field: SearchField;
   sortBy: CollectionStore["sortBy"];
@@ -35,6 +37,7 @@ export default function ToolbarCollection({
   onRandom: () => void;
   randomDisabled: boolean;
   addDisabled?: boolean;
+  pending?: boolean;
 }) {
   const { t } = useI18n();
   const dataActions = useCollectionDataActions();
@@ -72,6 +75,11 @@ export default function ToolbarCollection({
         {...field.inputProps}
         highlightRanges={highlightRanges}
       />
+      {pending && (
+        <span role="status" aria-label={t("common.loading")} className="flex shrink-0 items-center">
+          <SmallLoader size={4} />
+        </span>
+      )}
       <span className="ui-toolbar-separator" aria-hidden />
 
       <Select

@@ -2,16 +2,15 @@ import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useCollectionDataActions } from "@/hooks/collection/data.hook";
+import { useCollectionFilterWorker } from "@/hooks/collection/filterWorker.hook";
 import { useCollectionMetadata } from "@/hooks/collection/metadata.hook";
 import {
-
   useCollectionData,
   useCollectionMutations,
-  useCollectionSearch,
 } from "@/hooks/collection/queries.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useSearchField } from "@/hooks/search/field.hook";
-import { filterCollectionItems, pickRandomItem } from "@/lib/collection/filter.utils";
+import { pickRandomItem } from "@/lib/collection/filter.utils";
 import { groupItemsByStatus, shouldGroupByStatus } from "@/lib/collection/group.utils";
 import { buildCollectionQueryHints } from "@/lib/collection/hints.utils";
 import { buildShareImportPlan } from "@/lib/collection/share.utils";
@@ -126,34 +125,17 @@ export default function CollectionRoute() {
     historyScope: "filter",
   });
 
-  const searchResults = useCollectionSearch(searchQuery, items);
-
-  const filtered = useMemo(
-    () =>
-      filterCollectionItems(
-        items,
-        searchResults,
-        selectedStatus,
-        searchQuery,
-        filters,
-        sortBy,
-        sortDir,
-        statuses,
-        { intentEnabled: searchIntentEnabled, tagTolerances }
-      ),
-    [
-      items,
-      searchResults,
-      searchQuery,
-      selectedStatus,
-      filters,
-      sortBy,
-      sortDir,
-      statuses,
-      searchIntentEnabled,
-      tagTolerances,
-    ]
-  );
+  const { filtered, isStale: isFilterStale } = useCollectionFilterWorker({
+    items,
+    statuses,
+    searchQuery,
+    selectedStatus,
+    filters,
+    sortBy,
+    sortDir,
+    intentEnabled: searchIntentEnabled,
+    tagTolerances,
+  });
 
   const statusCounts = useMemo(() => {
     const stats = calculateCollectionStats(items, statuses);
@@ -248,6 +230,7 @@ export default function CollectionRoute() {
         onSortChange={setCollectionSort}
         onRandom={handleRandom}
         randomDisabled={filtered.length === 0}
+        pending={isFilterStale}
       />
 
       {showFilters && (

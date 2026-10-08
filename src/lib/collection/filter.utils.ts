@@ -1,5 +1,6 @@
 import { DEFAULT_FILTERS } from "@/config/collection/filters.config";
 import { DEFAULT_TAG_TOLERANCES } from "@/config/search/tolerance.config";
+import { buildCollectionSearchIndex, searchCollectionIndex } from "@/lib/collection/search.utils";
 import { publicStatusIds } from "@/lib/collection/status.utils";
 import { parseIntent } from "@/lib/search/intent.utils";
 import { normalizeSearchText } from "@/lib/search/normalize.utils";
@@ -12,7 +13,9 @@ import {
 } from "@/lib/search/score.utils";
 import type {
   CollectionFilters,
+  CollectionFilterWorkerQuery,
   CollectionItem,
+  CollectionSearchIndex,
   CollectionStatus,
   CollectionStatusDef,
   FilterParams,
@@ -22,6 +25,41 @@ import type { DateCond, NumericCond, ParsedIntent, TagToleranceKey } from "@/typ
 export interface CollectionFilterOptions {
   intentEnabled?: boolean;
   tagTolerances?: Record<TagToleranceKey, number>;
+}
+
+export interface CollectionFilterSnapshot {
+  items: CollectionItem[];
+  statuses: CollectionStatusDef[];
+  index: CollectionSearchIndex;
+}
+
+export function createCollectionFilterSnapshot(
+  items: CollectionItem[],
+  statuses: CollectionStatusDef[]
+): CollectionFilterSnapshot {
+  return { items, statuses, index: buildCollectionSearchIndex(items) };
+}
+
+export function queryCollectionFilterSnapshot(
+  snapshot: CollectionFilterSnapshot,
+  query: CollectionFilterWorkerQuery
+): string[] {
+  const trimmed = parseIntent(query.searchQuery).cleanQuery.trim();
+  const searchResults =
+    operatorTextLength(trimmed) < 3
+      ? snapshot.items
+      : searchCollectionIndex(snapshot.index, trimmed);
+  return filterCollectionItems(
+    snapshot.items,
+    searchResults,
+    query.selectedStatus,
+    query.searchQuery,
+    query.filters,
+    query.sortBy,
+    query.sortDir,
+    snapshot.statuses,
+    { intentEnabled: query.intentEnabled, tagTolerances: query.tagTolerances }
+  ).map((item) => item.id);
 }
 
 function resolveList(

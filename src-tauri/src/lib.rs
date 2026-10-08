@@ -454,11 +454,172 @@ async fn remove_torrent(
         .map_err(|e| format!("{e:#}"))
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 struct VideoFileEntry {
     path: String,
     name: String,
     size: u64,
+}
+
+#[derive(Clone, serde::Serialize)]
+struct FolderScanResult {
+    path: String,
+    entries: Vec<VideoFileEntry>,
+    skipped: u64,
+}
+
+/// Progress events are IPC wakeups on the UI thread; one per 250 walked files
+/// keeps the counting indicator alive without flooding it on big libraries.
+const SCAN_PROGRESS_EVERY: u64 = 250;
+
+/// Walks one folder. Returns `Err` only for the rayon busy case (retried and
+/// serialized by `FileIndexer::retry_scan_blocking`); unreadable entries and
+/// files are skipped with a warning so one bad file never fails a whole saved
+/// folder.
+fn walk_video_folder(
+    path: &str,
+    ext_list: &[String],
+    on_progress: &dyn Fn(u64),
+) -> Result<FolderScanResult, String> {
+    let mut entries = Vec::new();
+    let mut walked: u64 = 0;
+    let mut skipped: u64 = 0;
+
+    for entry in jwalk::WalkDir::new(path)
+        .follow_links(false)
+        .skip_hidden(true)
+    {
+        let entry = match entry {
+            Ok(entry) => entry,
+            Err(error) if error.is_busy() => return Err(format!("scan error: {error}")),
+            Err(error) => {
+                skipped += 1;
+                tracing::warn!("scan_video_folder: skipping unreadable entry: {error}");
+                continue;
+            }
+        };
+
+        if entry.file_type().is_dir() {
+            continue;
+        }
+
+        walked += 1;
+
+        if walked.is_multiple_of(SCAN_PROGRESS_EVERY) {
+            on_progress(walked);
+        }
+
+        let file_path = entry.path();
+        if let Some(ext) = file_path.extension().and_then(|ext| ext.to_str()) {
+            if ext_list.iter().any(|known| ext.eq_ignore_ascii_case(known)) {
+                let name = file_path
+                    .file_name()
+                    .unwrap_or_default()
+                    .to_string_lossy()
+                    .to_string();
+                let size = match std::fs::metadata(&file_path) {
+                    Ok(meta) => meta.len(),
+                    Err(error) => {
+                        skipped += 1;
+                        tracing::warn!(
+                            "scan_video_folder: skipping unreadable file {}: {error}",
+                            file_path.to_string_lossy()
+                        );
+                        continue;
+                    }
+                };
+                entries.push(VideoFileEntry {
+                    path: file_path.to_string_lossy().to_string(),
+                    name,
+                    size,
+                });
+            }
+        }
+    }
+    if skipped > 0 {
+        tracing::warn!("scan_video_folder: skipped {skipped} unreadable entries in {path}");
+    }
+    Ok(FolderScanResult {
+        path: path.to_string(),
+        entries,
+        skipped,
+    })
+}
+
+fn video_ext_list(extensions: Vec<String>) -> Vec<String> {
+    extensions
+        .into_iter()
+        .map(|e| e.trim_start_matches('.').to_string())
+        .filter(|e| !e.is_empty())
+        .collect()
+}
+
+#[cfg(test)]
+mod scan_tests {
+    use super::{video_ext_list, walk_video_folder};
+    use std::sync::atomic::{AtomicU64, Ordering};
+
+    static FIXTURE_COUNTER: AtomicU64 = AtomicU64::new(0);
+
+    fn fixture_root(tag: &str) -> std::path::PathBuf {
+        let id = FIXTURE_COUNTER.fetch_add(1, Ordering::SeqCst);
+        std::env::temp_dir().join(format!(
+            "iluha_walk_test_{}_{}_{id}",
+            std::process::id(),
+            tag
+        ))
+    }
+
+    fn write_tree(root: &std::path::Path) {
+        let show = root.join("Show");
+        std::fs::create_dir_all(&show).expect("fixture dir");
+        for file in 0..5 {
+            std::fs::write(show.join(format!("ep{file:02}.mkv")), b"x").expect("fixture video");
+        }
+        std::fs::write(show.join("subs.srt"), b"x").expect("fixture subs");
+        std::fs::write(root.join("movie.MKV"), b"x").expect("fixture movie");
+    }
+
+    #[test]
+    fn walk_matches_video_case_insensitively_and_reports_progress() {
+        let root = fixture_root("basic");
+        write_tree(&root);
+        let ext_list = video_ext_list(vec!["mkv".to_string(), ".mp4".to_string()]);
+        let progress_calls = std::cell::Cell::new(0);
+        // 6 files stay below the progress threshold; the closure must simply run.
+        let result = walk_video_folder(&root.to_string_lossy(), &ext_list, &|_| {
+            progress_calls.set(progress_calls.get() + 1);
+        })
+        .expect("walk should succeed");
+        let _ = std::fs::remove_dir_all(&root);
+        assert_eq!(result.path, root.to_string_lossy());
+        assert_eq!(result.entries.len(), 6);
+        assert_eq!(result.skipped, 0);
+        assert!(result.entries.iter().any(|entry| entry.name == "movie.MKV"));
+        assert_eq!(progress_calls.get(), 0);
+    }
+
+    #[test]
+    fn walk_on_missing_root_resolves_empty() {
+        let missing = fixture_root("missing").join("nope");
+        let ext_list = video_ext_list(vec!["mkv".to_string()]);
+        let result = walk_video_folder(&missing.to_string_lossy(), &ext_list, &|_| {})
+            .expect("missing root must not fail the scan");
+        assert!(result.entries.is_empty());
+    }
+
+    #[test]
+    fn ext_list_trims_dots_and_drops_empties() {
+        assert_eq!(
+            video_ext_list(vec![
+                ".mkv".to_string(),
+                "MP4".to_string(),
+                ".".to_string(),
+                String::new()
+            ]),
+            vec!["mkv".to_string(), "MP4".to_string()]
+        );
+    }
 }
 
 #[tauri::command]
@@ -576,79 +737,82 @@ async fn scan_video_folder(
     path: String,
     extensions: Vec<String>,
 ) -> Result<Vec<VideoFileEntry>, String> {
-    let ext_set: HashSet<String> = extensions.into_iter().map(|e| e.to_lowercase()).collect();
-    let path_clone = path.clone();
-
-    let entries = tokio::task::spawn_blocking(move || -> Result<Vec<VideoFileEntry>, String> {
-        let mut entries = Vec::new();
-        let mut walked: u64 = 0;
-        let mut skipped: u64 = 0;
-
-        for entry in jwalk::WalkDir::new(&path_clone).follow_links(false) {
-            let entry = match entry {
-                Ok(entry) => entry,
-                Err(error) => {
-                    skipped += 1;
-                    tracing::warn!("scan_video_folder: skipping unreadable entry: {error}");
-                    continue;
-                }
-            };
-
-            if entry.file_type().is_dir() {
-                continue;
-            }
-
-            walked += 1;
-
-            if walked.is_multiple_of(100) {
+    let ext_list = video_ext_list(extensions);
+    let result = tokio::task::spawn_blocking(move || {
+        file_index::FileIndexer::retry_scan_blocking(|| {
+            walk_video_folder(&path, &ext_list, &|walked| {
                 let _ = app_handle.emit(
                     "folder-scan-progress",
                     serde_json::json!({
-                        "path": path_clone,
+                        "path": path,
                         "current": walked,
                         "total": 0,
                     }),
                 );
-            }
-
-            let file_path = entry.path();
-            if let Some(ext) = file_path.extension() {
-                if ext_set.contains(&ext.to_string_lossy().to_lowercase()) {
-                    let name = file_path
-                        .file_name()
-                        .unwrap_or_default()
-                        .to_string_lossy()
-                        .to_string();
-                    let size = match std::fs::metadata(&file_path) {
-                        Ok(meta) => meta.len(),
-                        Err(error) => {
-                            skipped += 1;
-                            tracing::warn!(
-                                "scan_video_folder: skipping unreadable file {}: {error}",
-                                file_path.to_string_lossy()
-                            );
-                            continue;
-                        }
-                    };
-                    entries.push(VideoFileEntry {
-                        path: file_path.to_string_lossy().to_string(),
-                        name,
-                        size,
-                    });
-                }
-            }
-        }
-        if skipped > 0 {
-            tracing::warn!(
-                "scan_video_folder: skipped {skipped} unreadable entries in {path_clone}"
-            );
-        }
-        Ok(entries)
+            })
+        })
     })
     .await
     .map_err(|e| format!("scan task failed: {e}"))??;
 
-    Ok(entries)
+    Ok(result.entries)
+}
+
+/// Scans every saved folder inside one blocking task: one IPC roundtrip
+/// instead of N racing walks. Folders are walked sequentially; a
+/// `folder-scan-progress` event with `done: true` marks each finished folder
+/// so the UI can advance a per-folder bar. A folder that stays busy past the
+/// retries still resolves with empty entries instead of failing the batch.
+#[tauri::command]
+async fn scan_video_folders(
+    app_handle: tauri::AppHandle,
+    paths: Vec<String>,
+    extensions: Vec<String>,
+) -> Result<Vec<FolderScanResult>, String> {
+    let ext_list = video_ext_list(extensions);
+    tokio::task::spawn_blocking(move || {
+        let mut out = Vec::with_capacity(paths.len());
+        for root in &paths {
+            match file_index::FileIndexer::retry_scan_blocking(|| {
+                walk_video_folder(root, &ext_list, &|walked| {
+                    let _ = app_handle.emit(
+                        "folder-scan-progress",
+                        serde_json::json!({
+                            "path": root,
+                            "current": walked,
+                            "total": 0,
+                        }),
+                    );
+                })
+            }) {
+                Ok(result) => {
+                    let _ = app_handle.emit(
+                        "folder-scan-progress",
+                        serde_json::json!({
+                            "path": root,
+                            "current": result.entries.len(),
+                            "total": result.entries.len(),
+                            "done": true,
+                        }),
+                    );
+                    out.push(result);
+                }
+                Err(busy) => {
+                    tracing::error!(
+                        "scan_video_folders: giving up on {root} after retries: {busy}"
+                    );
+                    out.push(FolderScanResult {
+                        path: root.clone(),
+                        entries: Vec::new(),
+                        skipped: 0,
+                    });
+                }
+            }
+        }
+        Ok(out)
+    })
+    .await
+    .map_err(|e| format!("scan task failed: {e}"))?
 }
 
 #[tauri::command]
@@ -672,33 +836,58 @@ async fn delete_extra_file(path: String) -> Result<(), String> {
 
 #[tauri::command]
 async fn scan_extra_files(path: String) -> Result<Vec<VideoFileEntry>, String> {
-    let entries = tokio::task::spawn_blocking(move || -> Result<Vec<VideoFileEntry>, String> {
-        let mut entries = Vec::new();
-        for entry in jwalk::WalkDir::new(&path).follow_links(false) {
-            let entry = entry.map_err(|e| format!("scan error: {e}"))?;
-            if entry.file_type().is_dir() {
-                continue;
+    let entries = tokio::task::spawn_blocking(move || {
+        file_index::FileIndexer::retry_scan_blocking(|| {
+            let mut entries = Vec::new();
+            let mut skipped: u64 = 0;
+            for entry in jwalk::WalkDir::new(&path)
+                .follow_links(false)
+                .skip_hidden(true)
+            {
+                let entry = match entry {
+                    Ok(entry) => entry,
+                    Err(error) if error.is_busy() => return Err(format!("scan error: {error}")),
+                    Err(error) => {
+                        skipped += 1;
+                        tracing::warn!("scan_extra_files: skipping unreadable entry: {error}");
+                        continue;
+                    }
+                };
+                if entry.file_type().is_dir() {
+                    continue;
+                }
+                let file_path = entry.path();
+                let name = file_path
+                    .file_name()
+                    .unwrap_or_default()
+                    .to_string_lossy()
+                    .to_string();
+                let lower = name.to_lowercase();
+                if !lower.contains("_upscaled") && !lower.contains("_converted") {
+                    continue;
+                }
+                let size = match std::fs::metadata(&file_path) {
+                    Ok(meta) => meta.len(),
+                    Err(error) => {
+                        skipped += 1;
+                        tracing::warn!(
+                            "scan_extra_files: skipping unreadable file {}: {error}",
+                            file_path.to_string_lossy()
+                        );
+                        continue;
+                    }
+                };
+                entries.push(VideoFileEntry {
+                    path: file_path.to_string_lossy().to_string(),
+                    name,
+                    size,
+                });
             }
-            let file_path = entry.path();
-            let name = file_path
-                .file_name()
-                .unwrap_or_default()
-                .to_string_lossy()
-                .to_string();
-            let lower = name.to_lowercase();
-            if !lower.contains("_upscaled") && !lower.contains("_converted") {
-                continue;
+            if skipped > 0 {
+                tracing::warn!("scan_extra_files: skipped {skipped} unreadable entries in {path}");
             }
-            let size = std::fs::metadata(&file_path)
-                .map_err(|e| format!("metadata error: {e}"))?
-                .len();
-            entries.push(VideoFileEntry {
-                path: file_path.to_string_lossy().to_string(),
-                name,
-                size,
-            });
-        }
-        Ok(entries)
+            Ok(entries)
+        })
     })
     .await
     .map_err(|e| format!("scan task failed: {e}"))??;
@@ -1502,6 +1691,9 @@ pub fn run() {
             player::player_save_watch,
             player::player_load_watch,
             player::player_apply_file_state,
+            player::sprite::sprite_ensure,
+            player::sprite::sprite_progress,
+            player::sprite::sprite_cancel,
             app_db::get_app_cache,
             app_db::put_app_cache,
             app_db::delete_app_cache,
@@ -1559,6 +1751,7 @@ pub fn run() {
             list_system_fonts,
             host_stats::get_host_stats,
             scan_video_folder,
+            scan_video_folders,
             scan_extra_files,
             delete_extra_file,
             start_watching_folders,

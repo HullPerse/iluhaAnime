@@ -229,3 +229,4 @@ export interface FilterPage {
   media: AniMedia[];
   total: number;
 }
+  | "scan_video_folders"

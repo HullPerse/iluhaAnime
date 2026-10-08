@@ -4,6 +4,12 @@ export interface VideoFileEntry {
   size: number;
 }
 
+export interface FolderScanResult {
+  path: string;
+  entries: VideoFileEntry[];
+  skipped: number;
+}
+
 export interface MediaTrack {
   id: number;
   kind: "video" | "audio" | "subtitle";

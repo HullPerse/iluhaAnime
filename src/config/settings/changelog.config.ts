@@ -88,6 +88,7 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.changed.anilist.progress_blocks", "anilist"),
       entry("changelog.5_0_0.changed.settings.theme_cleanup", "settings"),
       entry("changelog.5_0_0.changed.player.hot_paths", "player"),
+      entry("changelog.5_0_0.changed.player.scan_batch", "player"),
     ],
     fixed: [
       entry("changelog.5_0_0.fixed.anilist.save_casing", "anilist"),
@@ -99,6 +100,7 @@ export const CHANGELOG: ChangelogVersion[] = [
       entry("changelog.5_0_0.fixed.player.remaining_toggle", "player"),
       entry("changelog.5_0_0.fixed.app.scan_db_locked", "app"),
       entry("changelog.5_0_0.fixed.search.spell_overlap", "search"),
+      entry("changelog.5_0_0.fixed.player.scan_busy", "player"),
     ],
   },
   {

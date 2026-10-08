@@ -87,6 +87,10 @@ tauri-plugin-updater = "2"
 name = "anilist_queries"
 harness = false
 
+[[bench]]
+name = "scan_walk"
+harness = false
+
 [lints.clippy]
 pedantic = { level = "warn", priority = -1 }
 nursery = { level = "warn", priority = -1 }

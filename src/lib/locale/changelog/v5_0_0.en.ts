@@ -159,6 +159,10 @@ const changelog500 = {
     "Search suggestions do roughly half the text normalization work per keystroke and allocate less garbage, so the dropdown stays smooth on large anime lists",
   "changelog.5_0_0.changed.app.parse_cache":
     "Filename parse cache quadrupled to 8000 entries, so rescans of large libraries reuse parsed names instead of parsing every file again",
+  "changelog.5_0_0.fixed.player.scan_busy":
+    "Saved folder scans no longer fail with a thread-pool error: folders scan one at a time with automatic retry, and unreadable files are skipped instead of aborting the whole scan",
+  "changelog.5_0_0.changed.player.scan_batch":
+    "Folder scans run as a single batched pass with per-folder progress, and the folder tree builds faster on large libraries",
 } as const;
 
 export default changelog500;

@@ -8,7 +8,7 @@ import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { addNotification } from "@/store/notification.store";
 import { settingsAtoms } from "@/store/settings.store";
-import type { VideoFileEntry } from "@/types/fs";
+import type { FolderScanResult } from "@/types/fs";
 
 const FOLDER_CHECK_INTERVAL_MS = 30 * 60 * 1000;
 const SNAPSHOT_NAMESPACE = "player";
@@ -62,17 +62,17 @@ export function useWatchedFolderNotifications(
     collectKeys: () => ["watched-folders"],
     shouldFetch: () => paths.length > 0 && settingsAtoms.notifyNewFiles.get(),
     fetch: async () => {
-      for (const path of paths) {
-        const [entries, error] = await attempt(
-          invokeTyped<VideoFileEntry[]>("scan_video_folder", { path, extensions })
-        );
-        if (error) {
-          reportBackgroundError("folders.newfiles.scan", error);
-          continue;
-        }
+      const [results, error] = await attempt(
+        invokeTyped<FolderScanResult[]>("scan_video_folders", { paths, extensions })
+      );
+      if (error) {
+        reportBackgroundError("folders.newfiles.scan", error);
+        return true;
+      }
+      for (const result of results ?? []) {
         reportRef.current(
-          path,
-          (entries ?? []).map((entry) => entry.path),
+          result.path,
+          result.entries.map((entry) => entry.path),
           true
         );
       }

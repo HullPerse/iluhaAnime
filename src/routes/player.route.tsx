@@ -18,7 +18,7 @@ import { useWatchedFolderNotifications } from "@/hooks/player/folderNotify.hook"
 import { useSearchField } from "@/hooks/search/field.hook";
 import { useTauriEvent } from "@/hooks/tauriEvent.hook";
 import { useTorrentFilesMap, useTorrents } from "@/hooks/torrent/queries.hook";
-import { fingerprint } from "@/lib/player/scan.utils";
+import { folderTreesFromScan, fingerprint } from "@/lib/player/scan.utils";
 import { buildTree, filterTreeByPaths } from "@/lib/player/tree.utils";
 import { filterTreeByHiddenPaths } from "@/lib/player/visibility.utils";
 import { queryKeys } from "@/lib/query/keys.utils";
@@ -35,7 +35,7 @@ import {
   removeEntriesByFolderPath,
 } from "@/store/category.store";
 import { hidePlayerFolder, hidePlayerTorrent, patchSettings, setPlayerFolderHeight, settingsAtoms, unhidePlayerFolder, unhidePlayerTorrent } from "@/store/settings.store";
-import type { VideoFileEntry } from "@/types/fs";
+import type { FolderScanResult, VideoFileEntry } from "@/types/fs";
 import type { ScanType, FileSearchResult } from "@/types/player";
 import type { FFMPEGStatus } from "@/types/settings";
 import type { FolderNode } from "@/types/torrent";
@@ -248,41 +248,54 @@ function PlayerRoute() {
     const print = fingerprint(savedFolderPaths, videoExtensions);
     if (print === scannedFingerprint.current) return;
 
-    setScanProgress({ current: 0, total: 0 });
+    setScanProgress({ current: 0, total: savedFolderPaths.length });
 
+    // Single batched invoke: the backend walks folders sequentially behind
+    // one scan slot, so concurrent saved folders can no longer wedge the
+    // shared rayon pool ("thread-pool too busy"). Per-folder `done` events
+    // advance the bar while the batch is in flight.
     (async () => {
-      const results = await Promise.all(
-        savedFolderPaths.map((path) =>
-          attempt(
-            invokeTyped<VideoFileEntry[]>("scan_video_folder", {
-              path,
-              extensions: videoExtensions,
-            })
-          ).then(([entries, error]) => ({ entries, error, path }))
-        )
-      );
-      if (cancelled) return;
-      const trees: FolderNode[] = [];
-      let done = 0;
-      for (const { entries, error, path } of results) {
-        done += 1;
-        setScanProgress({ current: done, total: savedFolderPaths.length });
-        if (error) {
-          reportBackgroundError("folders.scan", error);
-          if (settingsAtoms.notifyScanErrors.get())
-            showErrorOnce("folders-scan", t("notification.scan.failed"), error.message);
-        } else {
-          reportScan(
-            path,
-            (entries ?? []).map((entry) => entry.path),
-            true
-          );
-          if (entries?.length) trees.push(buildTree(entries, path));
+      const done = new Set<string>();
+      const unlisten = await listen<{ path: string; current: number; total: number; done?: boolean }>(
+        "folder-scan-progress",
+        (event) => {
+          if (cancelled || !event.payload.done) return;
+          if (!savedFolderPaths.includes(event.payload.path)) return;
+          done.add(event.payload.path);
+          setScanProgress({ current: done.size, total: savedFolderPaths.length });
         }
-      }
+      ).catch((error) => {
+        reportBackgroundError("folders.scan.progress", error);
+        return undefined;
+      });
+      // eslint-disable-next-line react-doctor/server-sequential-independent-await -- the progress listener above must be attached before the scan starts emitting; sequential order is the correctness mechanism
+      const [results, scanError] = await attempt(
+        invokeTyped<FolderScanResult[]>("scan_video_folders", {
+          paths: savedFolderPaths,
+          extensions: videoExtensions,
+        })
+      );
+      unlisten?.();
       if (cancelled) return;
+      if (scanError) {
+        reportBackgroundError("folders.scan", scanError);
+        if (settingsAtoms.notifyScanErrors.get())
+          showErrorOnce("folders-scan", t("notification.scan.failed"), scanError.message);
+        setScanProgress(null);
+        return;
+      }
+      const trees = folderTreesFromScan(results ?? []);
+      for (const result of results ?? []) {
+        reportScan(
+          result.path,
+          result.entries.map((entry) => entry.path),
+          true
+        );
+      }
       setFolderTrees(trees);
       setScanProgress(null);
+      // The fingerprint advances only on success: a failed batch retries on
+      // the next mount instead of silently sticking to partial trees.
       scannedFingerprint.current = print;
       await rebuildIndex(savedFolderPaths);
       if (cancelled) return;

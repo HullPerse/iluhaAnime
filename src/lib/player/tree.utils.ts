@@ -21,10 +21,17 @@ export function buildTree(entries: VideoFileEntry[], rootPath: string): FolderNo
   byPath.set(normalizedRoot, root);
 
   for (const entry of entries) {
-    const entryPath = entry.path.split("\\").join("/");
-    const relative = (
-      entryPath.startsWith(prefix) ? entryPath.slice(prefix.length) : entryPath
-    ).replace(/^\//, "");
+    const raw = entry.path;
+    let relative: string;
+    if (raw.startsWith(prefix)) {
+      relative = raw.slice(prefix.length);
+    } else {
+      const withSlashes = raw.includes("\\") ? raw.split("\\").join("/") : raw;
+      relative = withSlashes.startsWith(prefix)
+        ? withSlashes.slice(prefix.length)
+        : withSlashes;
+    }
+    if (relative.startsWith("/")) relative = relative.slice(1);
     const parts = relative.split("/");
     let current = root;
 
@@ -95,6 +102,11 @@ function nodeMatchesSearch(node: FolderNode, query: string): boolean {
   return node.children.some((c) => nodeMatchesSearch(c, q));
 }
 
+function fileExtension(name: string): string {
+  const dot = name.lastIndexOf(".");
+  return (dot === -1 ? name : name.slice(dot + 1)).toLowerCase();
+}
+
 function filterTreeFiles(
   node: FolderNode,
   query: string,
@@ -105,7 +117,7 @@ function filterTreeFiles(
     : node.files;
   return trackExts
     ? files.filter((file) => {
-        const ext = file.name.split(".").pop()?.toLowerCase();
+        const ext = fileExtension(file.name);
         return !ext || !trackExts.has(ext);
       })
     : files;
@@ -123,7 +135,7 @@ function appendTreeFiles(
   disabledExtensions?: Set<string>
 ): void {
   for (const file of files) {
-    const ext = file.name.split(".").pop()?.toLowerCase();
+    const ext = fileExtension(file.name);
     if (ext && disabledExtensions?.has(ext)) continue;
     items.push({ depth: depth + 1, file, kind: "file" });
   }

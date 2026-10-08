@@ -362,7 +362,7 @@ describe("InlineAutocompleteInput spell quick-fix", () => {
   it("stretches the panel to the input width instead of centering it", async () => {
     patchSettings({ autocompleteMode: "off" });
     const user = userEvent.setup();
-    const view = render(
+    render(
       <InlineAutocompleteInput
         aria-label="Search spell"
         value="friren"
@@ -493,6 +493,7 @@ describe("InlineAutocompleteInput spell quick-fix", () => {
   });
 
   it("applies the spell correction with Tab when there is no ghost or menu selection", async () => {
+    mockSpellRect();
     const user = userEvent.setup();
     const onApplySpell = vi.fn();
     render(
@@ -512,6 +513,7 @@ describe("InlineAutocompleteInput spell quick-fix", () => {
   });
 
   it("does not hijack Shift+Tab for the spell correction", async () => {
+    mockSpellRect();
     const user = userEvent.setup();
     const onApplySpell = vi.fn();
     render(
@@ -531,6 +533,7 @@ describe("InlineAutocompleteInput spell quick-fix", () => {
   });
 
   it("prefers the ghost completion over the spell correction on Tab", async () => {
+    mockSpellRect();
     const user = userEvent.setup();
     const onAccept = vi.fn();
     const onApplySpell = vi.fn();
@@ -554,6 +557,7 @@ describe("InlineAutocompleteInput spell quick-fix", () => {
   });
 
   it("prefers the active menu selection over the spell correction on Tab", async () => {
+    mockSpellRect();
     const user = userEvent.setup();
     const onAccept = vi.fn();
     const onApplySpell = vi.fn();
@@ -643,6 +647,7 @@ describe("InlineAutocompleteInput spell quick-fix", () => {
   });
 
   it("saves the word with Ctrl+Tab when there is no ghost or menu selection", async () => {
+    mockSpellRect();
     const user = userEvent.setup();
     const onSaveWord = vi.fn();
     const onApplySpell = vi.fn();
@@ -766,5 +771,102 @@ describe("InlineAutocompleteInput placement", () => {
     const menu = await screen.findByRole("listbox");
     expect(menu.classList.contains("bottom-full")).toBe(true);
     expect(menu.classList.contains("top-full")).toBe(false);
+  });
+});
+
+describe("InlineAutocompleteInput per-word spell actions", () => {
+  const twoWordSpell = {
+    correction: "frieren attack",
+    start: 0,
+    end: 6,
+    severity: "warn" as const,
+    word: "friren",
+    spans: [
+      { start: 0, end: 6, severity: "warn" as const, word: "friren", corrected: "frieren" },
+      { start: 7, end: 12, severity: "warn" as const, word: "attak", corrected: "attack" },
+    ],
+  };
+
+  function renderTwoWords(callbacks: {
+    onApplySpellCorrection?: (spanIndex?: number) => void;
+    onAddWordToDictionary?: (spanIndex?: number) => void;
+  }) {
+    mockSpellRect();
+    render(
+      <InlineAutocompleteInput
+        aria-label="Search spell words"
+        value="friren attak"
+        spellCheck={twoWordSpell}
+        onChange={() => {}}
+        {...callbacks}
+      />
+    );
+    return screen.getByRole("textbox", { name: "Search spell words" }) as HTMLInputElement;
+  }
+
+  it("underlines every misspelled word", async () => {
+    const user = userEvent.setup();
+    patchSettings({ autocompleteMode: "off" });
+    mockSpellRect();
+    renderTwoWords({});
+    await user.click(screen.getByRole("textbox", { name: "Search spell words" }));
+    const marked = document.querySelectorAll("[data-spell]");
+    expect(marked.length).toBe(2);
+    expect(marked[0]?.textContent).toBe("friren");
+    expect(marked[1]?.textContent).toBe("attak");
+  });
+
+  it("Tab fixes only the word under the cursor", async () => {
+    const user = userEvent.setup();
+    const onApply = vi.fn();
+    patchSettings({ autocompleteMode: "off" });
+    const input = renderTwoWords({ onApplySpellCorrection: onApply });
+    await user.click(input);
+    input.setSelectionRange(9, 9);
+    await user.keyboard("{Tab}");
+    expect(onApply).toHaveBeenCalledWith(1);
+  });
+
+  it("Tab on the first word fixes the first word", async () => {
+    const user = userEvent.setup();
+    const onApply = vi.fn();
+    patchSettings({ autocompleteMode: "off" });
+    const input = renderTwoWords({ onApplySpellCorrection: onApply });
+    await user.click(input);
+    input.setSelectionRange(2, 2);
+    await user.keyboard("{Tab}");
+    expect(onApply).toHaveBeenCalledWith(0);
+  });
+
+  it("Tab outside any flagged word applies the full correction", async () => {
+    const user = userEvent.setup();
+    const onApply = vi.fn();
+    patchSettings({ autocompleteMode: "off" });
+    mockSpellRect();
+    render(
+      <InlineAutocompleteInput
+        aria-label="Search spell words"
+        value="friren attak!"
+        spellCheck={twoWordSpell}
+        onApplySpellCorrection={onApply}
+        onChange={() => {}}
+      />
+    );
+    const input = screen.getByRole("textbox", { name: "Search spell words" }) as HTMLInputElement;
+    await user.click(input);
+    input.setSelectionRange(13, 13);
+    await user.keyboard("{Tab}");
+    expect(onApply).toHaveBeenCalledWith(undefined);
+  });
+
+  it("Ctrl+Tab saves the word under the cursor", async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn();
+    patchSettings({ autocompleteMode: "off" });
+    const input = renderTwoWords({ onAddWordToDictionary: onSave });
+    await user.click(input);
+    input.setSelectionRange(9, 9);
+    await user.keyboard("{Control>}{Tab}{/Control}");
+    expect(onSave).toHaveBeenCalledWith(1);
   });
 });

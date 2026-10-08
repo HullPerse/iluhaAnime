@@ -1,6 +1,6 @@
 import { cn } from "cn";
 import { Filter, Search, X } from "lucide-react";
-import { useEffect, type Ref } from "react";
+import { useEffect, useMemo, type Ref } from "react";
 
 import { InlineAutocompleteInput } from "@/components/shared/autocomplete/input.autocomplete";
 import { SmallLoader } from "@/components/shared/loader.component";
@@ -77,6 +77,14 @@ function InputSearch({
 
   const docked = data !== undefined || isError;
 
+  const highlightRanges = useMemo(
+    () =>
+      didYouMean && searchParams === submittedQuery
+        ? [{ start: 0, end: searchParams.length }]
+        : undefined,
+    [didYouMean, searchParams, submittedQuery]
+  );
+
   useEffect(() => {
     onDockedChange?.(docked);
   }, [docked, onDockedChange]);
@@ -136,11 +144,7 @@ function InputSearch({
             className="h-9 font-bold"
             placement={docked ? "below" : "above"}
             {...field.inputProps}
-            highlightRanges={
-              didYouMean && searchParams === submittedQuery
-                ? [{ start: 0, end: searchParams.length }]
-                : undefined
-            }
+            highlightRanges={highlightRanges}
           />
         </div>
         <div className="flex w-full flex-row items-center justify-between gap-1">

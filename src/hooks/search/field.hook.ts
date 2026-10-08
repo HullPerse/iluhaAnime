@@ -67,14 +67,29 @@ export function useSearchField(params: SearchFieldParams): SearchField {
 
   const spellCheck = useSpellCheck(query, { history, animeIndex, extraValues });
   const spellCorrections = useSpellCorrections(query, { history, animeIndex, extraValues });
-  const applySpellCorrection = useCallback(() => {
-    if (!spellCheck) return;
-    setQuery(spellCheck.correction);
-  }, [spellCheck, setQuery]);
-  const addWordToDictionary = useCallback(() => {
-    if (!spellCheck) return;
-    addSpellWord(spellCheck.word);
-  }, [spellCheck]);
+  const applySpellCorrection = useCallback(
+    (spanIndex?: number) => {
+      if (!spellCheck) return;
+      const span = spanIndex == null ? undefined : spellCheck.spans?.[spanIndex];
+      if (!span) {
+        setQuery(spellCheck.correction);
+        return;
+      }
+      setQuery(query.slice(0, span.start) + span.corrected + query.slice(span.end));
+    },
+    [spellCheck, setQuery, query]
+  );
+  const addWordToDictionary = useCallback(
+    (spanIndex?: number) => {
+      if (!spellCheck) return;
+      const word =
+        spanIndex == null
+          ? spellCheck.word
+          : (spellCheck.spans?.[spanIndex]?.word ?? spellCheck.word);
+      addSpellWord(word);
+    },
+    [spellCheck]
+  );
 
   const learningScope = historyScope ?? scope;
 

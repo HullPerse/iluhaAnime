@@ -1,4 +1,5 @@
 import { cn } from "cn";
+import { memo } from "react";
 
 import { suggestionKindLabels } from "@/config/search/autocomplete.config";
 import { useI18n } from "@/hooks/i18n.hook";
@@ -7,7 +8,7 @@ import type { SuggestionSection } from "@/types/search";
 
 import { SuggestionItem } from "./suggestion.autocomplete";
 
-export function SuggestionMenu({
+export const SuggestionMenu = memo(({
   listboxId,
   listRef,
   scrollRef,
@@ -35,7 +36,7 @@ export function SuggestionMenu({
   onSelect: (suggestion: SearchSuggestion) => void;
   onRemoveHistory?: (query: string) => void;
   placement: "below" | "above";
-}) {
+}) => {
   const { t } = useI18n();
   return (
     <div
@@ -84,4 +85,4 @@ export function SuggestionMenu({
       </div>
     </div>
   );
-}
+});

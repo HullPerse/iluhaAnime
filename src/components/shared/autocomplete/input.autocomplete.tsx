@@ -19,7 +19,13 @@ import type { SearchSuggestion } from "@/lib/search/suggestions.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { createListNavigationHandler } from "@/lib/utils/keyboard.utils";
 import { settingsAtoms } from "@/store/settings.store";
-import type { AutocompleteInputProps, HighlightRange, SpellCheck } from "@/types/search";
+import type {
+  AutocompleteInputProps,
+  AutocompleteMode,
+  HighlightRange,
+  SpellCheck,
+  SpellWordSpan,
+} from "@/types/search";
 
 import { BackdropLayer } from "./backdrop.autocomplete";
 import { SuggestionMenu } from "./menu.autocomplete";
@@ -29,18 +35,67 @@ const EMPTY_CORRECTIONS: string[] = [];
 const EMPTY_RANGES: readonly HighlightRange[] = [];
 const EMPTY_SPELL_RANGES: readonly HighlightRange[] = [];
 
-function spellRangeOf(check: SpellCheck | null): readonly HighlightRange[] {
-  if (!check) return EMPTY_SPELL_RANGES;
-  const kind: HighlightRange["kind"] = check.severity === "error" ? "spell-error" : "spell-warn";
-  return [{ start: check.start, end: check.end, kind }];
+function spellSpansOf(check: SpellCheck | null): SpellWordSpan[] {
+  if (!check) return [];
+  if (check.spans && check.spans.length > 0) return check.spans;
+  return [
+    {
+      start: check.start,
+      end: check.end,
+      severity: check.severity,
+      word: check.word,
+      corrected: check.correction,
+    },
+  ];
 }
 
-function spellRectOf(backdrop: HTMLDivElement | null): DOMRect | null {
-  const span = backdrop?.querySelector("[data-spell]");
-  if (!span) return null;
-  const rect = (span as HTMLElement).getBoundingClientRect();
-  if (rect.width <= 0) return null;
-  return rect;
+function spellRangeOf(check: SpellCheck | null): readonly HighlightRange[] {
+  if (!check) return EMPTY_SPELL_RANGES;
+  return spellSpansOf(check).map((span) => {
+    const kind: HighlightRange["kind"] =
+      span.severity === "error" ? "spell-error" : "spell-warn";
+    return { start: span.start, end: span.end, kind };
+  });
+}
+
+function spellRectsOf(backdrop: HTMLDivElement | null): DOMRect[] {
+  if (!backdrop) return [];
+  return [...backdrop.querySelectorAll("[data-spell]")].map((span) =>
+    (span as HTMLElement).getBoundingClientRect()
+  );
+}
+
+function spellHitIndex(rects: DOMRect[], clientX: number, clientY: number): number {
+  return rects.findIndex((rect) => spellHit(rect, clientX, clientY));
+}
+
+function caretSpanIndex(spans: SpellWordSpan[], selectionStart: number | null): number {
+  if (selectionStart == null) return -1;
+  return spans.findIndex((span) => selectionStart >= span.start && selectionStart <= span.end);
+}
+
+function textFieldA11y(
+  listboxId: string,
+  safeActiveIndex: number,
+  activeSuggestion: SearchSuggestion | undefined,
+  showMenu: boolean,
+  mode: AutocompleteMode,
+  enabled: boolean
+) {
+  return {
+    "aria-activedescendant": activeSuggestion ? `${listboxId}-${safeActiveIndex}` : undefined,
+    "aria-autocomplete": getAriaAutocomplete(mode),
+    "aria-controls": showMenu ? listboxId : undefined,
+    "aria-expanded": showMenu || undefined,
+    "aria-haspopup": enabled ? ("listbox" as const) : undefined,
+  };
+}
+
+function textFieldClassName(hasHighlight: boolean) {
+  return cn(
+    "relative z-10 h-full w-full bg-transparent",
+    hasHighlight && "selection:bg-highlight/30 caret-text text-transparent"
+  );
 }
 
 function spellHit(rect: DOMRect | null, clientX: number, clientY: number): boolean {
@@ -151,9 +206,9 @@ const SpellCorrectionsPanel = memo(
 );
 
 function handleSpellTab(
-  event: { key: string; ctrlKey: boolean; shiftKey: boolean; preventDefault: () => void },
+  event: KeyboardEvent<HTMLInputElement>,
   spellCheck: SpellCheck | null,
-  onApplySpellCorrection: (() => void) | undefined
+  onApplySpellCorrection: ((spanIndex?: number) => void) | undefined
 ): boolean {
   if (
     event.key !== "Tab" ||
@@ -165,14 +220,15 @@ function handleSpellTab(
     return false;
   }
   event.preventDefault();
-  onApplySpellCorrection();
+  const index = caretSpanIndex(spellSpansOf(spellCheck), event.currentTarget.selectionStart);
+  onApplySpellCorrection(index < 0 ? undefined : index);
   return true;
 }
 
 function handleSpellSaveTab(
-  event: { key: string; ctrlKey: boolean; shiftKey: boolean; preventDefault: () => void },
+  event: KeyboardEvent<HTMLInputElement>,
   spellCheck: SpellCheck | null,
-  onAddWordToDictionary: (() => void) | undefined
+  onAddWordToDictionary: ((spanIndex?: number) => void) | undefined
 ): boolean {
   if (
     event.key !== "Tab" ||
@@ -184,26 +240,29 @@ function handleSpellSaveTab(
     return false;
   }
   event.preventDefault();
-  onAddWordToDictionary();
+  const index = caretSpanIndex(spellSpansOf(spellCheck), event.currentTarget.selectionStart);
+  onAddWordToDictionary(index < 0 ? undefined : index);
   return true;
 }
 
 function useSpellInteraction(
   backdropRef: RefObject<HTMLDivElement | null>,
   spellCheck: SpellCheck | null,
-  onApplySpellCorrection?: () => void,
-  onAddWordToDictionary?: () => void
+  onApplySpellCorrection?: (spanIndex?: number) => void,
+  onAddWordToDictionary?: (spanIndex?: number) => void
 ) {
-  const spellSpanRect = (): DOMRect | null => spellRectOf(backdropRef.current);
+  const spellSpanRects = (): DOMRect[] => spellRectsOf(backdropRef.current);
 
   const handleSpellClick = (event: {
     clientX: number;
     clientY: number;
     preventDefault: () => void;
   }) => {
-    if (!spellCheck || !spellHit(spellSpanRect(), event.clientX, event.clientY)) return false;
+    if (!spellCheck) return false;
+    const index = spellHitIndex(spellSpanRects(), event.clientX, event.clientY);
+    if (index < 0 || !spellSpansOf(spellCheck)[index]) return false;
     event.preventDefault();
-    onApplySpellCorrection?.();
+    onApplySpellCorrection?.(index);
     return true;
   };
 
@@ -212,9 +271,11 @@ function useSpellInteraction(
     clientY: number;
     preventDefault: () => void;
   }) => {
-    if (!spellCheck || !spellHit(spellSpanRect(), event.clientX, event.clientY)) return false;
+    if (!spellCheck) return false;
+    const index = spellHitIndex(spellSpanRects(), event.clientX, event.clientY);
+    if (index < 0 || !spellSpansOf(spellCheck)[index]) return false;
     event.preventDefault();
-    onAddWordToDictionary?.();
+    onAddWordToDictionary?.(index);
     return true;
   };
 
@@ -411,17 +472,18 @@ export function InlineAutocompleteInput({
         />
         <Input
           {...props}
-          ref={inputRef}
-          aria-activedescendant={activeSuggestion ? `${listboxId}-${safeActiveIndex}` : undefined}
-          aria-autocomplete={getAriaAutocomplete(mode)}
-          aria-controls={showMenu ? listboxId : undefined}
-          aria-expanded={showMenu || undefined}
-          aria-haspopup={enabled ? "listbox" : undefined}
-          aria-keyshortcuts="Tab, Control+Tab, Enter, Escape, ArrowDown, ArrowUp, Home, End"
-          className={cn(
-            "relative z-10 h-full w-full bg-transparent",
-            hasHighlight && "selection:bg-highlight/30 caret-text text-transparent"
+          {...textFieldA11y(
+            listboxId,
+            safeActiveIndex,
+            activeSuggestion,
+            showMenu,
+            mode,
+            enabled
           )}
+          ref={inputRef}
+          spellCheck={false}
+          aria-keyshortcuts="Tab, Control+Tab, Enter, Escape, ArrowDown, ArrowUp, Home, End"
+          className={textFieldClassName(hasHighlight)}
           onScroll={(event) => {
             if (backdropRef.current)
               backdropRef.current.scrollLeft = event.currentTarget.scrollLeft;

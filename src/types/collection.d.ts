@@ -1,4 +1,5 @@
 import type { AniMedia } from "./anilist";
+import type { TagToleranceKey } from "./search";
 
 export type CollectionStatus = string;
 export type CollectionType = "anime" | "movie" | "series" | "custom";
@@ -180,9 +181,9 @@ export interface SearchFieldInputProps {
   history: string[];
   spellCheck: SpellCheck | null;
   spellCorrections: string[];
-  onApplySpellCorrection: () => void;
+  onApplySpellCorrection: (spanIndex?: number) => void;
   onApplySpellCorrectionAt: (correction: string) => void;
-  onAddWordToDictionary: () => void;
+  onAddWordToDictionary: (spanIndex?: number) => void;
   historyStats?: Record<string, SearchQueryStat>;
   onChange: (event: ChangeEvent<HTMLInputElement>) => void;
   onAcceptCompletion: (value: string) => void;
@@ -405,3 +406,24 @@ export interface AddedMedia {
 }
 
 export type ImportMode = "summary" | "import" | "sync" | "backfill";
+
+export interface CollectionFilterWorkerInit {
+  items: CollectionItem[];
+  statuses: CollectionStatusDef[];
+}
+
+export interface CollectionFilterWorkerQuery {
+  searchQuery: string;
+  selectedStatus: CollectionStatus | "all";
+  filters: FilterParams;
+  sortBy: "date" | "name" | "rating" | "year";
+  sortDir: "asc" | "desc";
+  intentEnabled: boolean;
+  tagTolerances: Record<TagToleranceKey, number>;
+}
+
+export type CollectionFilterWorkerPayload =
+  | ({ kind: "init" } & CollectionFilterWorkerInit)
+  | ({ kind: "query" } & CollectionFilterWorkerQuery);
+
+export type CollectionFilterWorkerResult = string[] | null;

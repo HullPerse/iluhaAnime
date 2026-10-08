@@ -1,4 +1,6 @@
 import { Filter, Search, User } from "lucide-react";
+import { memo, useCallback, useMemo } from "react";
+import type { ChangeEvent } from "react";
 
 import { InlineAutocompleteInput } from "@/components/shared/autocomplete/input.autocomplete";
 import { Button } from "@/components/ui/button.component";
@@ -8,7 +10,9 @@ import { enterSubmit } from "@/lib/utils/keyboard.utils";
 import type { AniListFilters } from "@/types/anilist";
 import type { SearchField } from "@/types/collection";
 
-export default function AniListSearchToolbar({
+export default memo(AniListSearchToolbar);
+
+function AniListSearchToolbar({
   field,
   global,
   onGlobal,
@@ -30,7 +34,7 @@ export default function AniListSearchToolbar({
   const { t } = useI18n();
   const activeFilterCount = countActiveAnilistFilters(filters);
 
-  const submitSearch = () => {
+  const submitSearch = useCallback(() => {
     if (
       field.inlineCompletion &&
       field.inputProps.value.trim().toLocaleLowerCase() !==
@@ -39,7 +43,15 @@ export default function AniListSearchToolbar({
       field.recordSuggestionIgnored(field.inlineCompletion);
     }
     onGlobal();
-  };
+  }, [field, onGlobal]);
+  const handleKeyDown = useMemo(() => enterSubmit(submitSearch), [submitSearch]);
+  const handleChange = useCallback(
+    (event: ChangeEvent<HTMLInputElement>) => {
+      field.inputProps.onChange(event);
+      if (global && !event.target.value.trim()) onClearSearch();
+    },
+    [field.inputProps, global, onClearSearch]
+  );
 
   return (
     <div className="ui-toolbar ui-panel w-full flex-row">
@@ -47,11 +59,8 @@ export default function AniListSearchToolbar({
         placeholder={t("anilist.route.search.placeholder")}
         {...field.inputProps}
         className="h-9 font-bold"
-        onChange={(event) => {
-          field.inputProps.onChange(event);
-          if (global && !event.target.value.trim()) onClearSearch();
-        }}
-        onKeyDown={enterSubmit(submitSearch)}
+        onChange={handleChange}
+        onKeyDown={handleKeyDown}
       />
       <span className="ui-toolbar-separator" aria-hidden />
       <Button

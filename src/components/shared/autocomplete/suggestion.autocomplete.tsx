@@ -1,5 +1,6 @@
 import { cn } from "cn";
 import { X } from "lucide-react";
+import { memo } from "react";
 
 import { suggestionIcons, suggestionKindLabels } from "@/config/search/autocomplete.config";
 import { useI18n } from "@/hooks/i18n.hook";
@@ -7,7 +8,7 @@ import type { SearchSuggestion } from "@/lib/search/suggestions.utils";
 
 import { HighlightedText } from "./highlightedText.autocomplete";
 
-export function SuggestionItem({
+export const SuggestionItem = memo(({
   suggestion,
   itemIndex,
   active,
@@ -25,7 +26,7 @@ export function SuggestionItem({
   onHover: (index: number) => void;
   onSelect: (suggestion: SearchSuggestion) => void;
   onRemove?: (value: string) => void;
-}) {
+}) => {
   const { t } = useI18n();
   const Icon = suggestionIcons[suggestion.kind];
   return (
@@ -83,4 +84,4 @@ export function SuggestionItem({
       )}
     </div>
   );
-}
+});

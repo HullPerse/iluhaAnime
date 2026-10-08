@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { collectionApi } from "@/api/collection.api";
 import { SEARCH_RANKING } from "@/config/search/ranking.config";
+import { useDebouncedValue } from "@/hooks/pacer.hook";
 import { parseOperatorTerms } from "@/lib/search/score.utils";
 import { matchNormalizedTitle, normalizeSearchText } from "@/lib/search/suggestions.utils";
 import type { SearchSuggestion, SearchSuggestionKind } from "@/lib/search/suggestions.utils";
@@ -22,10 +23,11 @@ export function useSuggestions(
 ): SearchSuggestion[] {
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
   const requestRef = useRef(0);
+  const [debouncedQuery] = useDebouncedValue(query, { wait: 150 });
 
   useEffect(() => {
-    const normalized = query.trim();
-    if (!normalized) {
+    const normalized = debouncedQuery.trim();
+    if (!normalized || normalized.length < 2) {
       setSuggestions([]);
       return;
     }
@@ -71,7 +73,7 @@ export function useSuggestions(
           .slice(0, Math.max(1, limit))
       );
     })();
-  }, [limit, query, scope]);
+  }, [limit, debouncedQuery, scope]);
 
   return suggestions;
 }

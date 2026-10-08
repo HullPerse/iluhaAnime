@@ -1,5 +1,6 @@
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { Search } from "lucide-react";
+import { useMemo } from "react";
 
 import { InlineAutocompleteInput } from "@/components/shared/autocomplete/input.autocomplete";
 import { SmallLoader } from "@/components/shared/loader.component";
@@ -77,6 +78,16 @@ function SearchDefault() {
     setSelectedTorrent,
   } = useSearchQuery();
 
+  const highlightRanges = useMemo(() => {
+    if (didYouMean && searchParams === submittedQuery) {
+      return [{ start: 0, end: searchParams.length }];
+    }
+    return parseTorrentTags(searchParams).tags.map((tag) => ({
+      start: tag.start,
+      end: tag.end,
+    }));
+  }, [didYouMean, searchParams, submittedQuery]);
+
   return (
     <div className="flex h-full w-full flex-col gap-1">
       <section className="ui-toolbar ui-panel w-full flex-row">
@@ -85,14 +96,7 @@ function SearchDefault() {
             placeholder={t("search.find.placeholder")}
             className="h-9 font-bold"
             {...field.inputProps}
-            highlightRanges={
-              didYouMean && searchParams === submittedQuery
-                ? [{ start: 0, end: searchParams.length }]
-                : parseTorrentTags(searchParams).tags.map((tag) => ({
-                    start: tag.start,
-                    end: tag.end,
-                  }))
-            }
+            highlightRanges={highlightRanges}
           />
         </div>
         <Button

@@ -215,12 +215,21 @@ export interface HighlightRange {
 
 export type SpellSeverity = "warn" | "error";
 
+export interface SpellWordSpan {
+  start: number;
+  end: number;
+  severity: SpellSeverity;
+  word: string;
+  corrected: string;
+}
+
 export interface SpellCheck {
   correction: string;
   start: number;
   end: number;
   severity: SpellSeverity;
   word: string;
+  spans?: SpellWordSpan[];
 }
 
 export interface SuggestionSection {
@@ -412,8 +421,8 @@ export interface AutocompleteInputProps extends ComponentProps<"input"> {
   placement?: "below" | "above";
   spellCheck?: SpellCheck | null;
   spellCorrections?: string[];
-  onApplySpellCorrection?: () => void;
+  onApplySpellCorrection?: (spanIndex?: number) => void;
   onApplySpellCorrectionAt?: (correction: string) => void;
-  onAddWordToDictionary?: () => void;
+  onAddWordToDictionary?: (spanIndex?: number) => void;
   historyStats?: Record<string, SearchQueryStat>;
 }

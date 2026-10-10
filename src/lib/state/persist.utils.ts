@@ -44,14 +44,24 @@ const EnvelopeSchema = z.object({
   store: z.string(),
   sv: z.number(),
   ts: z.optional(z.number()),
-  data: z.record(z.string(), z.unknown()),
+  // data stays unknown on purpose: the envelope gate only needs the shell
+  // (f/store/sv). Walking every settings key with z.record would cost a full
+  // traversal per store read, while the cheap object check below is O(1).
+  data: z.unknown(),
 });
 
 const CompiledEnvelope = z.compile(EnvelopeSchema);
 
+function isDataRecord(value: unknown): value is Record<string, unknown> {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const proto: unknown = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
+}
+
 function readEnvelope(raw: string, storeName: string): PersistedData | null {
   const parsed = parseJson(raw, CompiledEnvelope);
   if (!parsed.ok || parsed.value.store !== storeName) return null;
+  if (!isDataRecord(parsed.value.data)) return null;
   return { data: parsed.value.data, schemaVersion: parsed.value.sv };
 }
 

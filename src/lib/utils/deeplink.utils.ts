@@ -149,10 +149,10 @@ const SHARE_MAX_PAYLOAD_CHARS = 262_144;
 const SHARE_MAX_BYTES = 1_000_000;
 
 const ShareItemSchema = z.object({
-  title: z.string().check(z.trim(), z.minLength(1), z.maxLength(SHARE_MAX_TITLE)),
+  title: z.string(),
   type: z.enum(["anime", "movie", "series", "custom"]),
   year: z.optional(z.unknown()),
-  status: z.string().check(z.trim(), z.minLength(1), z.maxLength(SHARE_MAX_STATUS)),
+  status: z.string(),
   externalIds: z.optional(z.unknown()),
   coverUrl: z.optional(z.unknown()),
 });
@@ -235,11 +235,15 @@ function readSharePayload(value: unknown): CollectionShareDeepLink | null {
   if (!parsed.success) return null;
   const items: CollectionShareItem[] = [];
   for (const item of parsed.data.items) {
+    const title = item.title.trim();
+    if (title.length === 0 || title.length > SHARE_MAX_TITLE) return null;
+    const status = item.status.trim();
+    if (status.length === 0 || status.length > SHARE_MAX_STATUS) return null;
     items.push({
-      title: item.title,
+      title,
       type: item.type,
       year: normalizeYear(item.year),
-      status: item.status,
+      status,
       externalIds: normalizeExternalIds(item.externalIds),
       coverUrl: normalizeCoverUrl(item.coverUrl),
     });

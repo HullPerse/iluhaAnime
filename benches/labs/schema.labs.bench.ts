@@ -5,12 +5,14 @@ import { bench, group } from "@pmndrs/labs";
 // start and the share payload only on a clicked link, so the question is
 // whether the schema costs anything at those volumes, not the per-call delta.
 // Budget (avg/iter, Ryzen 7 5800X/node 26.3.0, 2026-10-10) for 2000/500
-// iterations: plain JSON.parse 1.60ms, envelope manual 1.61ms, envelope
-// compiled 3.03ms, envelope uncompiled 5.36ms, share 12 items manual 2.96ms,
-// share compiled 4.46ms, share uncompiled 8.32ms. So the compiled envelope
-// costs about 0.7us per envelope (roughly 10 per app start, 7us total) and
-// the compiled share payload about 3.0us per clicked link. Both are noise.
-// Regression threshold is labs minDelta 5%.
+// iterations: plain JSON.parse 1.49ms, envelope manual 1.58ms, envelope
+// compiled 1.94ms, envelope uncompiled 2.85ms, share 12 items manual 2.92ms,
+// share compiled 3.52ms, share uncompiled 5.38ms. Before the trim (record walk
+// plus per-field checks in schema) it was envelope compiled 3.03ms and share
+// compiled 4.46ms, so the trim cut 36 percent off the envelope and 21 percent
+// off the share payload. Remaining overhead per call is about 0.18us per
+// envelope (roughly 10 per app start, under 2us total) and 1.2us per clicked
+// share link. Both are noise. Regression threshold is labs minDelta 5%.
 import * as z from "zod/mini";
 
 import { attemptSync } from "../../src/lib/utils/attempt.utils";
@@ -66,7 +68,7 @@ const EnvelopeSchema = z.object({
   store: z.string(),
   sv: z.number(),
   ts: z.optional(z.number()),
-  data: z.record(z.string(), z.unknown()),
+  data: z.unknown(),
 });
 
 const CompiledEnvelope = z.compile(EnvelopeSchema);
@@ -87,14 +89,10 @@ const ShareSchema = z.object({
   items: z
     .array(
       z.object({
-        title: z.string().check(z.trim(), z.minLength(1), z.maxLength(200)),
+        title: z.string(),
         type: z.enum(["anime", "movie", "series", "custom"]),
-        year: z.prefault(
-          // eslint-disable-next-line promise/valid-params -- z.catch(schema, fallback) is the zod wrapper API, not Promise.catch
-          z.catch(z.nullable(z.number().check(z.int(), z.gte(1000), z.lte(9999))), null),
-          null
-        ),
-        status: z.string().check(z.trim(), z.minLength(1), z.maxLength(64)),
+        year: z.optional(z.unknown()),
+        status: z.string(),
         externalIds: z.optional(z.unknown()),
         coverUrl: z.optional(z.unknown()),
       })

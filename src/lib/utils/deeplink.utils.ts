@@ -1,7 +1,9 @@
+import * as z from "zod/mini";
+
 import { MAGNET_RX } from "@/config/torrent/common.config";
 import { attemptAll, attemptSync } from "@/lib/utils/attempt.utils";
 import { attemptResult, attemptResultSync, unwrapOr } from "@/lib/utils/result.utils";
-import type { CollectionExternalIds, CollectionItem, CollectionType } from "@/types/collection";
+import type { CollectionExternalIds, CollectionItem } from "@/types/collection";
 import type {
   AnimeDeepLink,
   AnilistAuthDeepLink,
@@ -146,7 +148,29 @@ const SHARE_MAX_COVER_URL = 2048;
 const SHARE_MAX_PAYLOAD_CHARS = 262_144;
 const SHARE_MAX_BYTES = 1_000_000;
 
-const SHARE_TYPES: readonly CollectionType[] = ["anime", "movie", "series", "custom"];
+const ShareItemSchema = z.object({
+  title: z.string().check(z.trim(), z.minLength(1), z.maxLength(SHARE_MAX_TITLE)),
+  type: z.enum(["anime", "movie", "series", "custom"]),
+  year: z.prefault(
+    // eslint-disable-next-line promise/valid-params -- z.catch(schema, fallback) is the zod wrapper API, not Promise.catch
+    z.catch(z.nullable(z.number().check(z.int(), z.gte(1000), z.lte(9999))), null),
+    null
+  ),
+  status: z.string().check(z.trim(), z.minLength(1), z.maxLength(SHARE_MAX_STATUS)),
+  externalIds: z.optional(z.unknown()),
+  coverUrl: z.optional(z.unknown()),
+});
+
+const SharePayloadSchema = z.object({
+  version: z.literal(SHARE_VERSION),
+  label: z.optional(z.unknown()),
+  items: z.array(ShareItemSchema).check(z.minLength(1), z.maxLength(SHARE_MAX_ITEMS)),
+});
+
+// The payload arrives from a link the user clicked, so the shape gate and the
+// caps live in the schema; the id, year and url rules stay in the normalizers
+// because an invalid value there is dropped, not rejected.
+const CompiledSharePayload = z.compile(SharePayloadSchema);
 
 interface ByteTransform {
   readonly readable: ReadableStream<Uint8Array>;
@@ -157,10 +181,6 @@ type UnknownRecord = Record<string, unknown>;
 
 function isRecord(value: unknown): value is UnknownRecord {
   return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function isCollectionType(value: unknown): value is CollectionType {
-  return typeof value === "string" && (SHARE_TYPES as readonly string[]).includes(value);
 }
 
 function readShareId(value: unknown): number | undefined {
@@ -214,38 +234,26 @@ function toShareItem(item: CollectionItem): CollectionShareItem {
   };
 }
 
-function readShareItem(value: unknown): CollectionShareItem | null {
-  if (!isRecord(value)) return null;
-  const title = typeof value.title === "string" ? value.title.trim() : "";
-  if (title.length === 0 || title.length > SHARE_MAX_TITLE) return null;
-  if (!isCollectionType(value.type)) return null;
-  const status = typeof value.status === "string" ? value.status.trim() : "";
-  if (status.length === 0 || status.length > SHARE_MAX_STATUS) return null;
-  return {
-    title,
-    type: value.type,
-    year: normalizeYear(value.year),
-    status,
-    externalIds: normalizeExternalIds(value.externalIds),
-    coverUrl: normalizeCoverUrl(value.coverUrl),
-  };
-}
-
 function readSharePayload(value: unknown): CollectionShareDeepLink | null {
-  if (!isRecord(value) || value.version !== SHARE_VERSION) return null;
-  if (!Array.isArray(value.items)) return null;
-  if (value.items.length === 0 || value.items.length > SHARE_MAX_ITEMS) return null;
+  const parsed = CompiledSharePayload.safeParse(value);
+  if (!parsed.success) return null;
   const items: CollectionShareItem[] = [];
-  for (const raw of value.items) {
-    const item = readShareItem(raw);
-    if (!item) return null;
-    items.push(item);
+  for (const item of parsed.data.items) {
+    items.push({
+      title: item.title,
+      type: item.type,
+      year: item.year,
+      status: item.status,
+      externalIds: normalizeExternalIds(item.externalIds),
+      coverUrl: normalizeCoverUrl(item.coverUrl),
+    });
   }
-  const label =
-    typeof value.label === "string" && value.label.trim().length > 0
-      ? value.label.trim().slice(0, SHARE_MAX_LABEL)
-      : null;
-  return { version: SHARE_VERSION, label, items };
+  const label = typeof parsed.data.label === "string" ? parsed.data.label.trim() : "";
+  return {
+    version: SHARE_VERSION,
+    label: label.length > 0 ? label.slice(0, SHARE_MAX_LABEL) : null,
+    items,
+  };
 }
 
 async function collectBytes(

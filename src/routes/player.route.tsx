@@ -4,6 +4,7 @@ import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
 import { EyeOff, Search, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import * as z from "zod/mini";
 
 import { InlineAutocompleteInput } from "@/components/shared/autocomplete/input.autocomplete";
 import { ConfirmDialog } from "@/components/shared/confirm.component";
@@ -23,10 +24,11 @@ import { buildTree, filterTreeByPaths } from "@/lib/player/tree.utils";
 import { filterTreeByHiddenPaths } from "@/lib/player/visibility.utils";
 import { queryKeys } from "@/lib/query/keys.utils";
 import { useCell } from "@/lib/state/signal.hook";
-import { attempt, reportBackgroundError, withFallback } from "@/lib/utils/attempt.utils";
-import { invokeTyped } from "@/lib/utils/invoke.utils";
-import { createCoalescedRunner } from "@/lib/utils/promise.utils";
+import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
+import { invokeTyped, invokeValidated } from "@/lib/utils/invoke.utils";
 import { showError, showErrorOnce } from "@/lib/utils/notification.utils";
+import { createCoalescedRunner } from "@/lib/utils/promise.utils";
+import { unwrapOr } from "@/lib/utils/result.utils";
 import { cacheAtoms, setFolderTrees as setCachedFolderTrees } from "@/store/cache.store";
 import {
   addCategory,
@@ -34,7 +36,15 @@ import {
   removeCategory,
   removeEntriesByFolderPath,
 } from "@/store/category.store";
-import { hidePlayerFolder, hidePlayerTorrent, patchSettings, setPlayerFolderHeight, settingsAtoms, unhidePlayerFolder, unhidePlayerTorrent } from "@/store/settings.store";
+import {
+  hidePlayerFolder,
+  hidePlayerTorrent,
+  patchSettings,
+  setPlayerFolderHeight,
+  settingsAtoms,
+  unhidePlayerFolder,
+  unhidePlayerTorrent,
+} from "@/store/settings.store";
 import type { FolderScanResult, VideoFileEntry } from "@/types/fs";
 import type { ScanType, FileSearchResult } from "@/types/player";
 import type { FFMPEGStatus } from "@/types/settings";
@@ -48,6 +58,8 @@ import FFMPEG from "./components/player/ffmpeg.player";
 import QueuePanel from "./components/player/queue.player";
 import { QueueStrip } from "./components/player/strip.player";
 import PlayerVisibilityModal from "./components/player/visibility.player";
+
+const FfprobeSchema = z.boolean();
 
 function PlayerRoute() {
   const { t } = useI18n();
@@ -173,7 +185,7 @@ function PlayerRoute() {
   const [ffmpegOverride, setFfmpegOverride] = useState<FFMPEGStatus | null>(null);
   const { data: ffprobeOk } = useAppQuery("live", {
     queryKey: queryKeys.checkFfprobe(),
-    queryFn: () => withFallback(invokeTyped<boolean>("check_ffprobe"), false),
+    queryFn: async () => unwrapOr(await invokeValidated("check_ffprobe", FfprobeSchema), false),
     staleTime: 0,
   });
   const ffmpegStatus: FFMPEGStatus =
@@ -192,9 +204,7 @@ function PlayerRoute() {
     });
   }, [torrentPendingIds]);
 
-  const rebuildRunnerRef = useRef<((task: () => Promise<void>) => Promise<void>) | null>(
-    null
-  );
+  const rebuildRunnerRef = useRef<((task: () => Promise<void>) => Promise<void>) | null>(null);
   if (rebuildRunnerRef.current === null) {
     rebuildRunnerRef.current = createCoalescedRunner();
   }
@@ -222,14 +232,11 @@ function PlayerRoute() {
   // rebuild almost simultaneously; without this the two overlapping
   // `rebuild_file_index` commands race inside SQLite (`database is locked`).
   // A trailing call with different paths is remembered and runs once after.
-  const rebuildIndex = useCallback(
-    (paths: string[]) => {
-      const runner = rebuildRunnerRef.current;
-      if (!runner) return Promise.resolve();
-      return runner(() => rebuildFileIndexRef.current(paths));
-    },
-    []
-  );
+  const rebuildIndex = useCallback((paths: string[]) => {
+    const runner = rebuildRunnerRef.current;
+    if (!runner) return Promise.resolve();
+    return runner(() => rebuildFileIndexRef.current(paths));
+  }, []);
 
   const { reportScan } = useWatchedFolderNotifications(savedFolderPaths, videoExtensions);
 
@@ -256,15 +263,17 @@ function PlayerRoute() {
     // advance the bar while the batch is in flight.
     (async () => {
       const done = new Set<string>();
-      const unlisten = await listen<{ path: string; current: number; total: number; done?: boolean }>(
-        "folder-scan-progress",
-        (event) => {
-          if (cancelled || !event.payload.done) return;
-          if (!savedFolderPaths.includes(event.payload.path)) return;
-          done.add(event.payload.path);
-          setScanProgress({ current: done.size, total: savedFolderPaths.length });
-        }
-      ).catch((error) => {
+      const unlisten = await listen<{
+        path: string;
+        current: number;
+        total: number;
+        done?: boolean;
+      }>("folder-scan-progress", (event) => {
+        if (cancelled || !event.payload.done) return;
+        if (!savedFolderPaths.includes(event.payload.path)) return;
+        done.add(event.payload.path);
+        setScanProgress({ current: done.size, total: savedFolderPaths.length });
+      }).catch((error) => {
         reportBackgroundError("folders.scan.progress", error);
         return undefined;
       });

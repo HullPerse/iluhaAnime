@@ -1,4 +1,7 @@
+import * as z from "zod/mini";
+
 import { attemptSync } from "@/lib/utils/attempt.utils";
+import { parseJson } from "@/lib/utils/schema.utils";
 
 export const PERSIST_FORMAT_VERSION = 1;
 
@@ -36,18 +39,20 @@ export interface Persistor {
   dispose: () => void;
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
-  const proto: unknown = Object.getPrototypeOf(value);
-  return proto === Object.prototype || proto === null;
-}
+const EnvelopeSchema = z.object({
+  f: z.literal(PERSIST_FORMAT_VERSION),
+  store: z.string(),
+  sv: z.number(),
+  ts: z.optional(z.number()),
+  data: z.record(z.string(), z.unknown()),
+});
+
+const CompiledEnvelope = z.compile(EnvelopeSchema);
 
 function readEnvelope(raw: string, storeName: string): PersistedData | null {
-  const [parsed, parseError] = attemptSync(() => JSON.parse(raw) as unknown);
-  if (parseError !== null || !isRecord(parsed)) return null;
-  if (parsed.f !== PERSIST_FORMAT_VERSION || parsed.store !== storeName) return null;
-  if (typeof parsed.sv !== "number" || !isRecord(parsed.data)) return null;
-  return { data: parsed.data, schemaVersion: parsed.sv };
+  const parsed = parseJson(raw, CompiledEnvelope);
+  if (!parsed.ok || parsed.value.store !== storeName) return null;
+  return { data: parsed.value.data, schemaVersion: parsed.value.sv };
 }
 
 export function createPersistor(options: PersistOptions): Persistor {
@@ -116,7 +121,10 @@ interface TrailingScheduler<T> {
   cancel: () => void;
 }
 
-function createTrailingScheduler<T>(task: (value: T) => void, delayMs: number): TrailingScheduler<T> {
+function createTrailingScheduler<T>(
+  task: (value: T) => void,
+  delayMs: number
+): TrailingScheduler<T> {
   let pending: T | undefined;
   let armed = false;
   let timer: ReturnType<typeof setTimeout> | undefined;

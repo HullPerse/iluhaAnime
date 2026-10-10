@@ -2652,6 +2652,7 @@ dependencies = [
  "flate2",
  "futures",
  "hex 0.4.3",
+ "http",
  "image",
  "jwalk",
  "keyring",

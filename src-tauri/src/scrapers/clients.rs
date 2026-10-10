@@ -220,6 +220,7 @@ pub async fn fetch_torrent_bytes(
 
 pub const MAX_SEARCH_RESPONSE_BYTES: usize = 8 * 1024 * 1024;
 
+#[derive(Debug)]
 pub enum CappedBodyError {
     TooLarge,
     Read(String),
@@ -586,5 +587,36 @@ mod tests {
             "rutracker.org"
         );
         assert_eq!(host_from_url("rutracker.org/forum/index.php"), "rutracker.org");
+    }
+
+    #[tokio::test]
+    async fn read_body_capped_enforces_max_bytes() {
+        fn response_with(body: reqwest::Body) -> reqwest::Response {
+            let inner = http::Response::builder()
+                .status(200)
+                .body(body)
+                .expect("response");
+            reqwest::Response::from(inner)
+        }
+        // Accumulation across chunks: 8 + 8 + 8 exceeds a 16-byte cap
+        // on the third chunk, not on the first read.
+        let chunks = futures::stream::iter(vec![
+            Ok::<Vec<u8>, std::convert::Infallible>(vec![b'x'; 8]),
+            Ok(vec![b'x'; 8]),
+            Ok(vec![b'x'; 8]),
+        ]);
+        let over = response_with(reqwest::Body::wrap_stream(chunks));
+        assert!(matches!(
+            read_body_capped(over, 16).await,
+            Err(CappedBodyError::TooLarge)
+        ));
+        // Exact boundary passes: the check rejects only past the cap.
+        let exact = response_with(reqwest::Body::from(vec![b'x'; 16]));
+        let bytes = read_body_capped(exact, 16).await.expect("boundary reads fully");
+        assert_eq!(bytes.len(), 16);
+        // Under the cap reads fully.
+        let under = response_with(reqwest::Body::from(vec![b'x'; 1024]));
+        let bytes = read_body_capped(under, 2048).await.expect("under cap reads fully");
+        assert_eq!(bytes.len(), 1024);
     }
 }

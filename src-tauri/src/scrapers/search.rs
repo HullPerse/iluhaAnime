@@ -1006,12 +1006,24 @@ pub async fn test_source_connection(
     let status = resp.status().as_u16();
     let ok = resp.status().is_success();
     if source == "rutracker" {
-        let bytes = resp.bytes().await.map_err(|e| format!("Read error: {e}"))?;
+        let bytes = match read_body_capped(resp, MAX_SEARCH_RESPONSE_BYTES).await {
+            Ok(bytes) => bytes,
+            Err(CappedBodyError::TooLarge) => {
+                return Err("Source page is too large to check".to_string());
+            }
+            Err(CappedBodyError::Read(error)) => return Err(format!("Read error: {error}")),
+        };
         if is_rutracker_challenge(&decode_rutracker_page(&bytes)) {
             return Err(rutracker_challenge_error());
         }
     } else {
-        let bytes = resp.bytes().await.map_err(|e| format!("Read error: {e}"))?;
+        let bytes = match read_body_capped(resp, MAX_SEARCH_RESPONSE_BYTES).await {
+            Ok(bytes) => bytes,
+            Err(CappedBodyError::TooLarge) => {
+                return Err("Source page is too large to check".to_string());
+            }
+            Err(CappedBodyError::Read(error)) => return Err(format!("Read error: {error}")),
+        };
         if is_cloudflare_challenge(&String::from_utf8_lossy(&bytes)) {
             return Err(cloudflare_blocked_error(host_from_url(&url)));
         }

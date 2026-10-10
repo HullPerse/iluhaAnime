@@ -109,6 +109,11 @@ harness = false
 name = "search_probe"
 harness = false
 
+[dev-dependencies]
+# Test-only response builder for the body-cap tests. Already in the
+# lockfile through reqwest, so this adds no new supply-chain surface.
+http = "1"
+
 [lints.clippy]
 pedantic = { level = "warn", priority = -1 }
 nursery = { level = "warn", priority = -1 }

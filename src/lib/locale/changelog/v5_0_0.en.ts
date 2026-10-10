@@ -170,7 +170,7 @@ const changelog500 = {
   "changelog.5_0_0.changed.app.parse_cache":
     "Filename parse cache quadrupled to 8000 entries, so rescans of large libraries reuse parsed names instead of parsing every file again",
   "changelog.5_0_0.changed.search.result_card":
-    "Search results use the redesigned card: a big clickable cover, the seed bar, and the shared toolbar",
+    "Search results use the redesigned card: a big cover thumbnail that refreshes the picture on click, the seed bar, and the shared toolbar. Details open from the title",
   "changelog.5_0_0.changed.search.details_modal":
     "The torrent details modal is rebuilt around a poster plus full metadata and tabs for screenshots, file tree, mediainfo, and comments",
   "changelog.5_0_0.changed.search.cover_cache":

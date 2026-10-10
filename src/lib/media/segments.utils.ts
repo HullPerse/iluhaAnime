@@ -13,8 +13,14 @@ function cleanHead(segment: string): string {
   return segment.replace(/^\[[^\]]*\]\s*/, "").trim();
 }
 
+const TRAILING_TECH_RX = /\s*(?:[[(][^\])]*[\])])+\s*$/;
+
 function stripTrailingTech(segment: string): string {
-  return segment.replace(/\s+[[(][^\])]*[\])]\s*$/, "").trim();
+  return segment.replace(TRAILING_TECH_RX, "").trim();
+}
+
+function arcKey(arc: string): string {
+  return arc.toLowerCase().replace(/-/g, " ").replace(/\s+/g, " ").trim();
 }
 
 function arcNorm(segment: string): string | null {
@@ -50,6 +56,22 @@ function findSegmentArc(
   return null;
 }
 
+// Splits a known arc off the tail of a word list, e.g.
+// "Kimetsu no Yaiba Hashira Geiko-hen" becomes title words plus the arc.
+// Returns null when no tail matches a known arc, so a plain title stays whole.
+export function splitKnownArcTail(
+  words: readonly string[],
+  knownArcs: readonly string[]
+): { head: string[]; arc: string } | null {
+  for (let start = 1; start < words.length; start += 1) {
+    const key = arcKey(words.slice(start).join(" "));
+    if (key.length === 0) return null;
+    const known = knownArcs.find((arc) => arcKey(arc) === key);
+    if (known !== undefined) return { head: words.slice(0, start), arc: known };
+  }
+  return null;
+}
+
 function joinThreeSegments(
   segments: string[],
   dirNorm: string
@@ -74,7 +96,7 @@ function joinTwoSegments(
   segments: string[]
 ): { title: string; arc?: string; movieHint: true } | null {
   const first = cleanHead(segments.at(0) ?? "");
-  const second = (segments.at(1) ?? "").trim();
+  const second = stripTrailingTech((segments.at(1) ?? "").trim());
   if (!first || !second) return null;
   const arc = arcNorm(second);
   if (arc) return { title: first, arc: canonicalArc(arc), movieHint: true };

@@ -2,7 +2,6 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { openPath } from "@tauri-apps/plugin-opener";
 import { cn } from "cn";
 import {
-
   ChevronDown,
   ChevronRight,
   ListVideo,
@@ -111,13 +110,11 @@ function FolderView({
       const resume = stored && stored.position > 0 ? stored.position : undefined;
       // Keep the queue in its sorted order and let the backend start at the
       // chosen episode, so the playlist reads 1..N instead of rotating.
-      await openPlayer(
-        paths.length > 0 ? paths : [path],
-        resume,
-        index > 0 ? index : 0
-      ).catch((error: unknown) => {
-        showError(t("player.folder.open.failed.player"), String(error));
-      });
+      await openPlayer(paths.length > 0 ? paths : [path], resume, Math.max(index, 0)).catch(
+        (error: unknown) => {
+          showError(t("player.folder.open.failed.player"), String(error));
+        }
+      );
     },
     [node, t]
   );

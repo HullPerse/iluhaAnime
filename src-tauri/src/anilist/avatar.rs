@@ -1,6 +1,7 @@
 use rusqlite::{params, Connection, OptionalExtension};
 
-use super::client::{graphql_request, resolve_proxy};
+use super::client::graphql_request;
+use crate::scrapers::clients::resolve_proxy;
 
 pub const AVATAR_CACHE_NAMESPACE: &str = "anilist_avatar";
 pub const AVATAR_CACHE_TTL_SECONDS: i64 = 7 * 24 * 60 * 60;

@@ -34,9 +34,10 @@ use crate::auth::{
 use super::clients::{
     absolute_detail_url, acquire_scraper_slot, build_client_inner, build_rutracker_client,
     cloudflare_blocked_error, cookies_to_header, decode_rutracker_page, format_file_size,
-    is_cloudflare_challenge, is_rutracker_challenge, is_valid_torrent, parse_rus_number,
-    parse_seeders_leechers, read_body_capped, resolve_proxy, rutracker_challenge_error, url_encode,
-    CappedBodyError, NyaaItem, MAX_SEARCH_RESPONSE_BYTES, RUTRACKER_DEFAULT_UA,
+    host_from_url, is_cloudflare_challenge, is_rutracker_challenge, is_valid_torrent,
+    parse_rus_number, parse_seeders_leechers, read_body_capped, resolve_proxy,
+    rutracker_challenge_error, scraper_retry_delay, url_encode, CappedBodyError, NyaaItem,
+    MAX_SEARCH_RESPONSE_BYTES, RUTRACKER_DEFAULT_UA,
 };
 
 #[derive(Deserialize)]
@@ -146,9 +147,7 @@ async fn search_nyaa_impl(
 
     let mut last_err = String::new();
     for attempt in 0..3 {
-        if attempt > 0 {
-            tokio::time::sleep(std::time::Duration::from_secs(2 * attempt)).await;
-        }
+        scraper_retry_delay(attempt).await;
 
         let _slot = acquire_scraper_slot().await?;
         let resp = match client.get(base_url).query(&params).send().await {
@@ -204,12 +203,7 @@ async fn search_nyaa_impl(
 
         let html = String::from_utf8_lossy(&bytes);
         if is_cloudflare_challenge(&html) {
-            let host = if base_url.contains("sukebei") {
-                "sukebei.nyaa.si"
-            } else {
-                "nyaa.si"
-            };
-            return Err(cloudflare_blocked_error(host));
+            return Err(cloudflare_blocked_error(host_from_url(base_url)));
         }
         let parsed = html_parser(&html);
         return Ok(parsed);
@@ -543,9 +537,7 @@ pub async fn search_erairaws(
 
     let mut last_err = String::new();
     for attempt in 0..3 {
-        if attempt > 0 {
-            tokio::time::sleep(std::time::Duration::from_secs(2 * attempt)).await;
-        }
+        scraper_retry_delay(attempt).await;
 
         let _slot = acquire_scraper_slot().await?;
         let resp = match client
@@ -1021,12 +1013,7 @@ pub async fn test_source_connection(
     } else {
         let bytes = resp.bytes().await.map_err(|e| format!("Read error: {e}"))?;
         if is_cloudflare_challenge(&String::from_utf8_lossy(&bytes)) {
-            let host = url
-                .trim_start_matches("https://")
-                .split('/')
-                .next()
-                .unwrap_or(&url);
-            return Err(cloudflare_blocked_error(host));
+            return Err(cloudflare_blocked_error(host_from_url(&url)));
         }
     }
     if ok {

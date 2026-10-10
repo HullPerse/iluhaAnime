@@ -8,7 +8,8 @@ use serde::Serialize;
 
 use super::auth::optional_token;
 use super::batch::{dedup_ids, split_id_chunks, BATCH_CONCURRENCY};
-use super::client::{graphql_request, resolve_proxy};
+use super::client::graphql_request;
+use crate::scrapers::clients::resolve_proxy;
 
 #[derive(Debug, Serialize)]
 pub struct AniRanking {

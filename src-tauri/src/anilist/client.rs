@@ -2,6 +2,8 @@ use std::collections::VecDeque;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{LazyLock, Mutex};
 use std::time::{Duration, Instant};
+
+use crate::scrapers::clients::resolve_proxy;
 static CLIENT: LazyLock<reqwest::Client> = LazyLock::new(|| {
     reqwest::Client::builder()
         .user_agent("iluhaAnime/1.0")
@@ -109,13 +111,6 @@ async fn acquire_request_slot() -> tokio::sync::SemaphorePermit<'static> {
         .await
         .expect("AniList concurrency semaphore closed")
 }
-pub fn resolve_proxy(proxy_url: Option<String>, proxy_camel: Option<String>) -> Option<String> {
-    proxy_url
-        .or(proxy_camel)
-        .map(|s| s.trim().to_string())
-        .filter(|s| !s.is_empty())
-}
-
 pub fn forbidden_error(authenticated: bool) -> String {
     if authenticated {
         "AniList HTTP 403".to_string()
@@ -311,24 +306,6 @@ pub async fn test_anilist_connection(
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn resolve_proxy_prefers_snake_case_and_drops_blanks() {
-        assert_eq!(resolve_proxy(None, None), None);
-        assert_eq!(
-            resolve_proxy(Some("socks5://127.0.0.1:10808".to_string()), None),
-            Some("socks5://127.0.0.1:10808".to_string())
-        );
-        assert_eq!(
-            resolve_proxy(None, Some("http://127.0.0.1:7890".to_string())),
-            Some("http://127.0.0.1:7890".to_string())
-        );
-        assert_eq!(
-            resolve_proxy(Some("   ".to_string()), Some("".to_string())),
-            None
-        );
-    }
-
     #[test]
     fn client_for_proxy_builds_direct_and_proxied_clients() {
         assert!(client_for_proxy(None).is_ok());

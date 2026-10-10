@@ -7,7 +7,8 @@
 use serde::Serialize;
 
 use super::auth::{load_token, optional_token};
-use super::client::{graphql_request, resolve_proxy};
+use super::client::graphql_request;
+use crate::scrapers::clients::resolve_proxy;
 use super::media::{
     media_detail_selection, parse_animedia, AniAnimeStaffEdge, AniCharacterDetail,
     AniCharacterEdge, AniCharacterMediaEdge, AniCharacterNode, AniMedia, AniStaffCharacterEdge,

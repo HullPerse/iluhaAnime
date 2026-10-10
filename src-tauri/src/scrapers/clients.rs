@@ -291,6 +291,17 @@ pub fn cloudflare_blocked_error(host: &str) -> String {
     format!("blocked: Cloudflare challenge on {host}")
 }
 
+pub fn host_from_url(url: &str) -> &str {
+    let without_scheme = url.split_once("://").map_or(url, |(_, rest)| rest);
+    without_scheme.split('/').next().unwrap_or(url)
+}
+
+pub async fn scraper_retry_delay(attempt: u64) {
+    if attempt > 0 {
+        tokio::time::sleep(std::time::Duration::from_secs(2 * attempt)).await;
+    }
+}
+
 pub fn cookies_to_header(cookies: &HashMap<String, String>) -> String {
     cookies
         .iter()
@@ -563,5 +574,17 @@ mod tests {
             cloudflare_blocked_error("animetosho.org"),
             "blocked: Cloudflare challenge on animetosho.org"
         );
+    }
+
+    #[test]
+    fn host_from_url_strips_scheme_and_path() {
+        assert_eq!(host_from_url("https://nyaa.si/"), "nyaa.si");
+        assert_eq!(host_from_url("https://sukebei.nyaa.si/"), "sukebei.nyaa.si");
+        assert_eq!(host_from_url("http://animetosho.org/view/3"), "animetosho.org");
+        assert_eq!(
+            host_from_url("https://rutracker.org/forum/index.php"),
+            "rutracker.org"
+        );
+        assert_eq!(host_from_url("rutracker.org/forum/index.php"), "rutracker.org");
     }
 }

@@ -6,7 +6,8 @@ use crate::app_db;
 use crate::auth::{delete_secret, load_secret, save_secret};
 
 use super::batch::{execute_alias_batches, MAX_ALIASES_PER_CHUNK};
-use super::client::{graphql_request, resolve_proxy};
+use super::client::graphql_request;
+use crate::scrapers::clients::resolve_proxy;
 use super::media::{collect_titles, parse_date, AniListEntry, AniMedia};
 
 fn token_path(app_handle: &tauri::AppHandle) -> Result<PathBuf, String> {

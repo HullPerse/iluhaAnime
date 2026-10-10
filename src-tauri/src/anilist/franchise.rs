@@ -18,7 +18,8 @@ use tokio_util::sync::CancellationToken;
 use crate::app_db;
 
 use super::auth::optional_token;
-use super::client::{graphql_request, resolve_proxy};
+use super::client::graphql_request;
+use crate::scrapers::clients::resolve_proxy;
 use super::media::{MEDIA_CORE_SELECTION, MEDIA_RELATIONS_SELECTION};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CachedFranchiseNode {

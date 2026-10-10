@@ -7,6 +7,8 @@ use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tauri::Manager;
 
+use crate::scrapers::clients::resolve_proxy;
+
 const MAX_IMAGE_BYTES: u64 = 4 * 1024 * 1024;
 
 const MAX_DITHER_BAKE_BYTES: u64 = 24 * 1024 * 1024;
@@ -495,13 +497,6 @@ pub fn import_user_image(app: tauri::AppHandle, path: String) -> Result<UserImag
     record_user_image_source(&conn, &id, SOURCE_UPLOAD, fresh)?;
     ensure_thumb(&conn, &dir, &id, &name, &data, SOURCE_UPLOAD);
     get_user_image(app, id)
-}
-
-fn resolve_proxy(proxy: Option<String>, proxy_camel: Option<String>) -> Option<String> {
-    proxy
-        .or(proxy_camel)
-        .map(|s| s.trim().to_string())
-        .filter(|s| !s.is_empty())
 }
 
 fn client_for_image_proxy(proxy: Option<&str>) -> Result<reqwest::Client, String> {

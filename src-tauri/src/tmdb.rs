@@ -5,6 +5,7 @@ use std::sync::{
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use crate::auth::{delete_secret, load_secret, save_secret};
+use crate::scrapers::clients::resolve_proxy;
 use reqwest::Client;
 use serde::Serialize;
 
@@ -180,13 +181,6 @@ fn resolve_api_key(api_key: Option<String>, api_key_camel: Option<String>) -> St
         .unwrap_or_default()
         .trim()
         .to_string()
-}
-
-fn resolve_proxy(proxy: Option<String>, proxy_camel: Option<String>) -> Option<String> {
-    proxy
-        .or(proxy_camel)
-        .map(|s| s.trim().to_string())
-        .filter(|s| !s.is_empty())
 }
 
 fn client_for_proxy(proxy: Option<&str>) -> Result<Client, String> {

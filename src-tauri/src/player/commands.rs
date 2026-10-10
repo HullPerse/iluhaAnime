@@ -220,14 +220,14 @@ pub async fn player_open(
             return Err(format!("create player window: {error}"));
         }
     };
-    let destroyed_app = app.clone();
-    let _ = window.on_window_event(move |event| {
+    window.on_window_event(move |event| {
         if matches!(event, WindowEvent::Destroyed) {
-            let backend = LibmpvCore::new(destroyed_app.clone());
-            let host = destroyed_app.state::<PlayerHost>();
+            let backend = LibmpvCore::new(app.clone());
+            let host = app.state::<PlayerHost>();
             host.set_active(false);
-            let _ =
-                tauri::async_runtime::spawn_blocking(move || backend.destroy(PLAYER_WINDOW_LABEL));
+            drop(tauri::async_runtime::spawn_blocking(move || {
+                backend.destroy(PLAYER_WINDOW_LABEL)
+            }));
         }
     });
     let _ = window.set_focus();

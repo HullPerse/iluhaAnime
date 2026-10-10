@@ -1273,7 +1273,6 @@ fn collect_rutracker_screenshots(doc: &Html, origin: &str) -> Vec<String> {
     };
 
     let spoiler_sel = SPOILER_SEL.clone();
-    let heading_sel = SPOILER_HEAD_SEL.clone();
     let body_sel = SPOILER_BODY_SEL.clone();
     let mut images = Vec::new();
 

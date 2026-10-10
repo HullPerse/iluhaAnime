@@ -359,6 +359,7 @@ fn smooth_snapshot(app: &AppHandle, next: PlaybackSnapshot) -> PlaybackSnapshot 
     // glitches until the streak budget runs out, then converge.
     let (emitted, updated) = smooth_with_streak(last.as_ref(), *streak, next);
     *streak = updated;
+    drop(streak);
     *last = Some(emitted.clone());
     emitted
 }
@@ -432,6 +433,7 @@ fn watchdog_tick(app: &AppHandle) {
     let ratio = delta as f64 / expected;
     if ratio > WATCHDOG_DROP_RATIO {
         state.warned = true;
+        drop(state);
         emit_typed(
             app,
             "dropped-frames",

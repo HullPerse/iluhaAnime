@@ -110,14 +110,14 @@ mod tests {
     #[test]
     fn rate_scales_to_seconds() {
         let now = Instant::now();
-        let at = now - Duration::from_millis(2000);
+        let at = now.checked_sub(Duration::from_millis(2000)).unwrap();
         assert_eq!(rate_per_second(now, at, 3000, 1000), 1000);
     }
 
     #[test]
     fn rate_saturates_on_counter_reset() {
         let now = Instant::now();
-        let at = now - Duration::from_millis(1000);
+        let at = now.checked_sub(Duration::from_millis(1000)).unwrap();
         assert_eq!(rate_per_second(now, at, 10, 1000), 0);
     }
 }

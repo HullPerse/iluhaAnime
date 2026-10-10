@@ -35,6 +35,7 @@ export function useSuggestions(
     const requestId = requestRef.current;
     const terms = parseOperatorTerms(normalized);
     const nq = normalizeSearchText(normalized);
+    const queryWords = terms ? [] : nq.split(" ");
     (async () => {
       const [rows, error] = await attempt(
         collectionApi.searchUnifiedIndex(normalized, scope, limit)
@@ -48,7 +49,7 @@ export function useSuggestions(
         (Array.isArray(rows) ? rows : [])
           .map((row) => {
             const match =
-              matchNormalizedTitle(terms, nq, normalizeSearchText(row.value)) ?? 0;
+              matchNormalizedTitle(terms, nq, normalizeSearchText(row.value), queryWords) ?? 0;
             const learning =
               Math.min(
                 SEARCH_RANKING.LEARNING_SELECTED_CAP,

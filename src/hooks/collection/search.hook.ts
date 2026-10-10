@@ -18,10 +18,11 @@ function rankWizardResults(
 ): WizardSearchResult[] {
   const normalizedQuery = normalizeSearchText(query);
   const terms = parseOperatorTerms(normalizedQuery);
+  const queryWords = terms ? [] : normalizedQuery.split(" ");
   return [...results]
     .map((r) => {
       const title = normalizeSearchText(r.title);
-      const base = matchNormalizedTitle(terms, normalizedQuery, title) ?? 0;
+      const base = matchNormalizedTitle(terms, normalizedQuery, title, queryWords) ?? 0;
       const isDuplicate = existingTitles.has(title);
       const isFavourite = favouriteIds.has(r.id);
       const score =

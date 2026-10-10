@@ -86,8 +86,7 @@ function scorePrefix(q: string, target: string): number | null {
   return target.startsWith(q) ? 900 - Math.min(120, target.length - q.length) : null;
 }
 
-function scoreMultiWord(q: string, target: string): number | null {
-  const queryWords = q.split(" ");
+function scoreMultiWord(queryWords: string[], target: string): number | null {
   if (queryWords.length <= 1) return null;
   return multiWordScore(queryWords, target);
 }
@@ -121,11 +120,11 @@ function scoreLevenshtein(q: string, target: string): number | null {
   return 300 - distance * 35;
 }
 
-function normalizedMatchScore(q: string, target: string): number | null {
+function normalizedMatchScore(q: string, target: string, queryWords: string[]): number | null {
   return (
     scoreExact(q, target) ??
     scorePrefix(q, target) ??
-    scoreMultiWord(q, target) ??
+    scoreMultiWord(queryWords, target) ??
     scoreIncludes(q, target) ??
     (q.length < 3 ? null : (scoreGapped(q, target) ?? scoreLevenshtein(q, target)))
   );
@@ -138,7 +137,7 @@ export function fuzzyMatchScore(query: string, candidate: string): number | null
   if (terms) return matchOperatorTerms(terms, target);
   const q = normalizeSearchText(query);
   if (!q) return null;
-  return normalizedMatchScore(q, target);
+  return normalizedMatchScore(q, target, q.split(" "));
 }
 
 type OperatorMode = "fuzzy" | "exact" | "prefix" | "suffix" | "full";
@@ -205,7 +204,7 @@ export function matchOperatorTerm(term: OperatorTerm, target: string): number | 
       ? 900 - Math.min(120, target.length - term.text.length)
       : null;
   }
-  return normalizedMatchScore(term.text, target);
+  return normalizedMatchScore(term.text, target, term.text.split(" "));
 }
 
 export function matchOperatorTerms(terms: OperatorTerm[], target: string): number | null {
@@ -236,8 +235,9 @@ export function operatorTextLength(query: string): number {
 
 export function fuzzyMatchScorePreNormalized(
   normalizedQuery: string,
-  normalizedCandidate: string
+  normalizedCandidate: string,
+  queryWords: string[] = normalizedQuery.split(" ")
 ): number | null {
   if (!normalizedQuery || !normalizedCandidate) return null;
-  return normalizedMatchScore(normalizedQuery, normalizedCandidate);
+  return normalizedMatchScore(normalizedQuery, normalizedCandidate, queryWords);
 }

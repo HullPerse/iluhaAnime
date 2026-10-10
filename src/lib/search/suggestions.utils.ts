@@ -150,13 +150,14 @@ function symSpellFor(
 
 function addHistorySuggestions(
   normalizedQuery: string,
+  queryWords: string[],
   terms: OperatorTerm[] | null,
   options: SearchSuggestionOptions,
   put: (s: SearchSuggestion) => void
 ): void {
   for (const value of options.history ?? []) {
     const normalizedValue = normalizeSearchText(value);
-    const match = matchNormalizedTitle(terms, normalizedQuery, normalizedValue);
+    const match = matchNormalizedTitle(terms, normalizedQuery, normalizedValue, queryWords);
     if (match == null) continue;
     put({
       kind: "history",
@@ -173,15 +174,18 @@ function addHistorySuggestions(
 export function matchNormalizedTitle(
   terms: OperatorTerm[] | null,
   normalizedQuery: string,
-  title: string
+  title: string,
+  // Hot paths must pass pre-split words: the default allocates per call.
+  queryWords: string[] = normalizedQuery.split(" ")
 ): number | null {
   return terms
     ? matchOperatorTerms(terms, title)
-    : fuzzyMatchScorePreNormalized(normalizedQuery, title);
+    : fuzzyMatchScorePreNormalized(normalizedQuery, title, queryWords);
 }
 
 function addAnimeSuggestions(
   normalizedQuery: string,
+  queryWords: string[],
   terms: OperatorTerm[] | null,
   options: SearchSuggestionOptions,
   put: (s: SearchSuggestion) => void
@@ -193,7 +197,7 @@ function addAnimeSuggestions(
     if (!anime) continue;
     let best = -Infinity;
     for (const title of normalizedTitles[index] ?? []) {
-      const match = matchNormalizedTitle(terms, normalizedQuery, title);
+      const match = matchNormalizedTitle(terms, normalizedQuery, title, queryWords);
       if (match != null && match > best) best = match;
     }
     if (!Number.isFinite(best)) continue;
@@ -212,6 +216,7 @@ function addAnimeSuggestions(
 function addExtraSuggestions(
   query: string,
   normalizedQuery: string,
+  queryWords: string[],
   terms: OperatorTerm[] | null,
   options: SearchSuggestionOptions,
   put: (s: SearchSuggestion) => void
@@ -226,7 +231,7 @@ function addExtraSuggestions(
     const normalizedExtra = normalizeSearchText(extra.value);
     const match = extra.operator
       ? SEARCH_RANKING.OPERATOR_HINT_SCORE
-      : matchNormalizedTitle(terms, normalizedQuery, normalizedExtra);
+      : matchNormalizedTitle(terms, normalizedQuery, normalizedExtra, queryWords);
     if (match == null) continue;
     put({
       kind: extra.kind ?? "local",
@@ -256,6 +261,7 @@ function getNormalizedCollectionTitles(
 
 function addCollectionSuggestions(
   normalizedQuery: string,
+  queryWords: string[],
   terms: OperatorTerm[] | null,
   options: SearchSuggestionOptions,
   put: (s: SearchSuggestion) => void
@@ -270,7 +276,7 @@ function addCollectionSuggestions(
     const titles = normalizedTitles[index] ?? [];
     let best: number | null = null;
     for (const t of titles) {
-      const m = matchNormalizedTitle(terms, normalizedQuery, t);
+      const m = matchNormalizedTitle(terms, normalizedQuery, t, queryWords);
       if (m != null && (best == null || m > best)) best = m;
     }
     if (best == null) continue;
@@ -289,6 +295,7 @@ function addCollectionSuggestions(
 function addSuggestionSources(
   query: string,
   normalizedQuery: string,
+  queryWords: string[],
   terms: OperatorTerm[] | null,
   options: SearchSuggestionOptions,
   put: (suggestion: SearchSuggestion) => void
@@ -297,10 +304,10 @@ function addSuggestionSources(
     if (!options.animeEnabled && suggestion.kind === "anime") continue;
     put(suggestion);
   }
-  addCollectionSuggestions(normalizedQuery, terms, options, put);
-  addHistorySuggestions(normalizedQuery, terms, options, put);
-  addAnimeSuggestions(normalizedQuery, terms, options, put);
-  addExtraSuggestions(query, normalizedQuery, terms, options, put);
+  addCollectionSuggestions(normalizedQuery, queryWords, terms, options, put);
+  addHistorySuggestions(normalizedQuery, queryWords, terms, options, put);
+  addAnimeSuggestions(normalizedQuery, queryWords, terms, options, put);
+  addExtraSuggestions(query, normalizedQuery, queryWords, terms, options, put);
 }
 
 function applySymSpellFallback(
@@ -427,6 +434,7 @@ export function getSearchSuggestions(
   const normalizedQuery = normalizeSearchText(query);
   if (!normalizedQuery) return [];
   const terms = parseOperatorTerms(query);
+  const queryWords = terms ? [] : normalizedQuery.split(" ");
   const limit = Math.max(1, options.limit ?? 8);
   const candidates = new Map<string, SearchSuggestion>();
   const put = (suggestion: SearchSuggestion) => {
@@ -435,7 +443,7 @@ export function getSearchSuggestions(
     const current = candidates.get(key);
     if (!current || suggestion.score > current.score) candidates.set(key, suggestion);
   };
-  addSuggestionSources(query, normalizedQuery, terms, options, put);
+  addSuggestionSources(query, normalizedQuery, queryWords, terms, options, put);
   applySymSpellFallback(query, normalizedQuery, options, limit, candidates, put);
   return [...candidates.values()]
     .sort(

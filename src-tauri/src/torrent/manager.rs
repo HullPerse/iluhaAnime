@@ -3336,6 +3336,26 @@ mod tests {
         }
     }
 
+    async fn wait_for_files_on_disk(manager: &Arc<TorrentManager>, id: usize, save_dir: &Path) {
+        for _ in 0..200 {
+            let ready = manager
+                .get_running_torrent_files(id)
+                .map(|files| {
+                    !files.is_empty()
+                        && files.iter().all(|file| {
+                            std::fs::metadata(save_dir.join(&file.name))
+                                .map(|meta| meta.is_file() && meta.len() == file.size)
+                                .unwrap_or(false)
+                        })
+                })
+                .unwrap_or(false);
+            if ready {
+                return;
+            }
+            tokio::time::sleep(Duration::from_millis(50)).await;
+        }
+    }
+
     #[tokio::test(flavor = "multi_thread")]
     async fn switching_the_mode_off_only_closes_the_window() {
         let dir = std::env::temp_dir().join(format!("iluha-seq-off-{}", std::process::id()));
@@ -4190,6 +4210,7 @@ mod tests {
             .await
             .expect("torrent adds");
         wait_for_download_state(&manager, id).await;
+        wait_for_files_on_disk(&manager, id, &save_dir).await;
         manager.pause_torrent(id, None).await.expect("pause");
         (manager, save_dir, source_dir, id)
     }

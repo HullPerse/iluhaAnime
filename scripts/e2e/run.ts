@@ -9,14 +9,16 @@
 import { mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 
-import { connectCdp, createConsoleCollector, mainPage, waitForReady } from "./cdp";
+import { cdpPort, connectCdp, createConsoleCollector, mainPage, waitForReady } from "./cdp";
 import {
   createStepRunner,
+  ensureCdpFree,
   ensureVite,
   killE2eProcesses,
   launchTauri,
   outRoot,
-  waitForCdpFree,
+  stopVite,
+  warnAboutForeignApp,
   wipeData,
   writeReport,
   type Scenario,
@@ -60,8 +62,9 @@ async function main(): Promise<number> {
   console.log(`[e2e] report: ${outDir}`);
 
   const vite = await ensureVite();
-  killE2eProcesses();
-  await waitForCdpFree();
+  warnAboutForeignApp();
+  console.log(`[e2e] cdp port: ${cdpPort()}`);
+  await ensureCdpFree();
   wipeData();
 
   const child = launchTauri();
@@ -107,9 +110,8 @@ async function main(): Promise<number> {
   } finally {
     child.kill();
     killE2eProcesses();
-    vite?.kill();
+    stopVite(vite);
   }
-
   writeReport(outDir, results, collector.errors);
   const failed = results.filter((result) => result.status === "fail").length;
   console.log(`[e2e] done: ${results.length} steps, ${failed} failed`);

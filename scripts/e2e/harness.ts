@@ -15,7 +15,7 @@ import { join } from "node:path";
 
 import type { Browser, Page } from "playwright-core";
 
-import { CDP_PORT, E2E_IDENTIFIER } from "./cdp";
+import { cdpPort, E2E_IDENTIFIER } from "./cdp";
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -90,23 +90,10 @@ function powershell(script: string): string {
   return result.stdout ?? "";
 }
 
-function port9222Owners(): string[] {
-  const script =
-    "Get-NetTCPConnection -LocalPort 9222 -State Listen -ErrorAction SilentlyContinue | " +
-    "Select-Object -ExpandProperty OwningProcess -Unique";
-  try {
-    return powershell(script)
-      .split(/\r?\n/)
-      .map((line) => line.trim())
-      .filter((line) => /^\d+$/.test(line));
-  } catch {
-    return [];
-  }
-}
-
-// The app and its WebView2 are separate processes and only the WebView2 holds
-// the CDP port. Leaving either alive makes the next run attach to a stale app
-// that reports unrelated errors.
+// Only processes this harness can own are touched: the app exe built into
+// target-e2e, and a WebView2 whose profile belongs to the e2e identifier.
+// Nothing is killed purely for holding the port, because that port is shared
+// with any other CDP user on the machine.
 export function killE2eProcesses(): void {
   powershell(
     "Get-CimInstance Win32_Process -Filter \"Name='iluhaAnime.exe'\" | " +
@@ -118,18 +105,98 @@ export function killE2eProcesses(): void {
       "Where-Object { $_.CommandLine -like '*iluhaAnime.e2e*' } | " +
       "ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"
   );
-  for (const pid of port9222Owners()) {
-    spawnSync("taskkill", ["/PID", pid, "/T", "/F"], { stdio: "ignore", windowsHide: true });
+}
+
+interface PortOwner {
+  pid: string;
+  detail: string;
+}
+
+// Split in two calls on purpose: one embedded PowerShell script with nested
+// quoting and backticks turned out to be unparseable, and the pieces are
+// independently easier to read.
+function portOwnerPids(port: number): number[] {
+  const script =
+    `Get-NetTCPConnection -LocalPort ${port} -State Listen -ErrorAction SilentlyContinue | ` +
+    "Select-Object -ExpandProperty OwningProcess -Unique";
+  try {
+    return powershell(script)
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => /^\d+$/.test(line))
+      .map((line) => Number.parseInt(line, 10));
+  } catch {
+    return [];
   }
 }
 
-export async function waitForCdpFree(timeoutMs = 20_000): Promise<void> {
-  const started = Date.now();
-  while (Date.now() - started < timeoutMs) {
-    if (port9222Owners().length === 0) return;
-    await sleep(500);
+function describeProcess(pid: number): string {
+  const script =
+    `Get-CimInstance Win32_Process -Filter "ProcessId=${pid}" | ` +
+    "Select-Object -ExpandProperty CommandLine";
+  let commandLine = "";
+  try {
+    commandLine = powershell(script).trim();
+  } catch {
+    return `PID ${pid}`;
   }
-  throw new Error(`CDP port 9222 is still held after ${timeoutMs}ms`);
+  if (commandLine === "") return `PID ${pid}`;
+  return `PID ${pid} (${commandLine.slice(0, 120)})`;
+}
+
+function portOwners(port: number): PortOwner[] {
+  return portOwnerPids(port).map((pid) => ({ pid: String(pid), detail: describeProcess(pid) }));
+}
+
+// The WebView2 child owns the CDP port and can outlive the app exe by a second
+// or two, so the port is polled rather than assumed free. Killing our own
+// processes first is unconditional and scoped by construction, so it is safe to
+// repeat; the port afterwards belongs to whoever we did not kill.
+export async function ensureCdpFree(timeoutMs = 30_000): Promise<void> {
+  const port = cdpPort();
+  killE2eProcesses();
+  const started = Date.now();
+  let held = portOwners(port);
+  while (Date.now() - started < timeoutMs) {
+    if (held.length === 0) return;
+    killE2eProcesses();
+    await sleep(1000);
+    held = portOwners(port);
+  }
+  if (held.length > 0) {
+    const detail = held.map((owner) => owner.detail).join("; ");
+    throw new Error(
+      `CDP port ${port} is held by a process this harness does not own: ${detail}. ` +
+        "Close it, or set E2E_CDP_PORT to a free port for this run."
+    );
+  }
+}
+
+// The torrent session binds a fixed UDP port, so a second instance of the app
+// cannot start one. The user's dev app is not ours to kill, but a run that
+// collides with it produces a socket error deep inside librqbit, which says
+// nothing about the real cause. Print the collision instead.
+export function warnAboutForeignApp(): void {
+  const script =
+    "Get-CimInstance Win32_Process -Filter \"Name='iluhaAnime.exe'\" | " +
+    "Where-Object { $_.ExecutablePath -notlike '*target-e2e*' } | " +
+    'ForEach-Object { "$($_.ProcessId) $($_.ExecutablePath)" }';
+  let foreign: string[] = [];
+  try {
+    foreign = powershell(script)
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+  } catch {
+    return;
+  }
+  if (foreign.length > 0) {
+    const list = foreign.map((line) => `        ${line}`).join("\n");
+    console.log(
+      `[e2e] note: another install of the app is running. This is fine, the harness ` +
+        `gives its own instance a separate torrent port:\n${list}`
+    );
+  }
 }
 
 export async function ensureVite(): Promise<ChildProcess | null> {
@@ -147,20 +214,36 @@ export async function ensureVite(): Promise<ChildProcess | null> {
   if (await up()) return null;
 
   console.log("[e2e] starting frontend dev server (nothing on 1420)");
+  // Detached so the whole tree can be signalled later: `bun run dev` is only a
+  // wrapper, and killing it alone leaves the real vite process orphaned on 1420.
   const child = spawn("bun", ["run", "dev"], {
     cwd: repoRoot(),
     stdio: ["ignore", "pipe", "pipe"],
+    detached: process.platform === "win32",
   });
   const started = Date.now();
-  while (Date.now() - started < 120_000) {
+  while (Date.now() - started < 180_000) {
     if (await up()) return child;
     if (child.exitCode !== null) {
       throw new Error(`vite exited with code ${child.exitCode}; run bun run dev manually`);
     }
     await sleep(500);
   }
+  stopVite(child);
+  throw new Error("frontend dev server did not come up on 1420 in 180s");
+}
+
+// Kills the dev-server tree, not just the bun wrapper, so the next run does not
+// find a stale server that answers the probe but serves a broken module graph.
+export function stopVite(child: ChildProcess | null): void {
+  if (!child || child.pid === undefined) return;
+  if (process.platform === "win32") {
+    spawnSync("taskkill", ["/PID", String(child.pid), "/T", "/F"], {
+      stdio: "ignore",
+      windowsHide: true,
+    });
+  }
   child.kill();
-  throw new Error("frontend dev server did not come up on 1420 in 120s");
 }
 
 export function wipeData(): void {
@@ -172,6 +255,30 @@ export function wipeData(): void {
   if (!existsSync(appDataDir())) {
     throw new Error(`could not recreate the e2e data dir: ${appDataDir()}`);
   }
+  seedSessionConfig();
+}
+
+// The torrent session binds a UDP port derived from its persisted
+// `session_config.json`, so a second instance of the app on the machine
+// collides with it and `create_torrent_from_folder` fails deep inside librqbit
+// with a socket error. The e2e app owns its own app-data dir, so it gets its
+// own listen port and no longer has to compete with a running dev build.
+export const E2E_LISTEN_PORT = 51413;
+
+function seedSessionConfig(): void {
+  const path = join(appDataDir(), "session_config.json");
+  const config = {
+    disablePersistence: false,
+    enableUpnp: false,
+    fastresume: true,
+    fileOrder: "list",
+    ipv4Only: true,
+    listenPort: E2E_LISTEN_PORT,
+    peerConnectTimeout: 10,
+    peerReadWriteTimeout: 30,
+    proxyUrl: null,
+  };
+  writeFileSync(path, JSON.stringify(config, null, 2));
 }
 
 export function launchTauri(): ChildProcess {
@@ -185,7 +292,7 @@ export function launchTauri(): ChildProcess {
       ...process.env,
       CARGO_TARGET_DIR: e2eTargetDir(),
       RUST_LOG: process.env.RUST_LOG ?? "iluhaanime=debug,tauri=warn",
-      WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: `--remote-debugging-port=${CDP_PORT}`,
+      WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: `--remote-debugging-port=${cdpPort()}`,
     },
     stdio: ["ignore", "pipe", "pipe"],
   });

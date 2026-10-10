@@ -6,7 +6,21 @@
 
 import { chromium, type Browser, type Page } from "playwright-core";
 
-export const CDP_PORT = 9222;
+// Parallel runs are possible (a second harness, a Chromium someone started with
+// remote debugging), so the port is configurable instead of hard-wired. Default
+// stays 9222 because that is what WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS carries.
+export const DEFAULT_CDP_PORT = 9222;
+
+export function cdpPort(): number {
+  const raw = process.env.E2E_CDP_PORT;
+  if (!raw) return DEFAULT_CDP_PORT;
+  const parsed = Number.parseInt(raw, 10);
+  if (!Number.isInteger(parsed) || parsed < 1 || parsed > 65_535) {
+    throw new Error(`E2E_CDP_PORT must be a TCP port, got "${raw}"`);
+  }
+  return parsed;
+}
+
 export const E2E_IDENTIFIER = "iluhaAnime.e2e";
 export const READY_SELECTOR = '[role="tab"]';
 
@@ -34,18 +48,29 @@ export function createConsoleCollector(): ConsoleCollector {
   };
 }
 
-export async function connectCdp(): Promise<Browser> {
-  let lastError: unknown;
+// The app cannot answer before `tauri dev` finishes its cargo build, and a
+// rebuild triggered by a file change restarts it mid-run, so the window has to
+// cover a full compile rather than a warm start. Progress is logged so a long
+// wait reads as building instead of hanging.
+export async function connectCdp(waitMs = 900_000): Promise<Browser> {
+  const port = cdpPort();
   const started = Date.now();
-  while (Date.now() - started < 120_000) {
+  let lastError: unknown;
+  let announced = 0;
+  while (Date.now() - started < waitMs) {
     try {
-      return await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
+      return await chromium.connectOverCDP(`http://127.0.0.1:${port}`);
     } catch (error) {
       lastError = error;
+      const elapsed = Date.now() - started;
+      if (elapsed - announced >= 30_000) {
+        announced = elapsed;
+        console.log(`[e2e] waiting for the app on port ${port} (${Math.round(elapsed / 1000)}s)`);
+      }
       await sleep(1000);
     }
   }
-  throw new Error(`CDP connect failed on port ${CDP_PORT}: ${String(lastError)}`);
+  throw new Error(`CDP connect failed on port ${port} after ${waitMs}ms: ${String(lastError)}`);
 }
 
 export async function findPage(
@@ -133,13 +158,20 @@ export async function invoke<T>(
   ) as Promise<T>;
 }
 
-export async function waitForReady(page: Page, timeoutMs = 60_000): Promise<void> {
+export async function waitForReady(page: Page, timeoutMs = 120_000): Promise<void> {
   const started = Date.now();
   while (Date.now() - started < timeoutMs) {
     if ((await page.locator(READY_SELECTOR).count()) > 0) return;
     await sleep(300);
   }
-  throw new Error(`app not ready (no ${READY_SELECTOR}) within ${timeoutMs}ms`);
+  // A cold Vite compiles before the first paint, and a stale dev server or a
+  // failed module graph shows up here as a blank page, so the URL and the page
+  // text are reported instead of a bare selector name.
+  const where = page.url();
+  const showing = await visibleText(page, 200).catch(() => "");
+  throw new Error(
+    `app not ready (no ${READY_SELECTOR}) within ${timeoutMs}ms; url=${where}; page shows: ${showing}`
+  );
 }
 
 export async function tabLabels(page: Page): Promise<string[]> {

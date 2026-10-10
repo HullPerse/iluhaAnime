@@ -33,10 +33,10 @@ Measured on Ryzen 7 5800X (8 cores), node 26, release profile, cold and warm as 
 
 | Workload | Per item | Basis |
 | --- | --- | --- |
-| Filename parsing (cold) | ~0.75us and ~600B per file | 125 / 500 / 2000 file corpus, 1.50ms and 1.20MB at 2000 |
-| Filename parsing (warm) | same as cold | LRU hit path equals cold at 2000 files |
+| Filename parsing (cold) | ~73-86us per file | 125 / 500 / 2000 file corpus, 145.99ms at 2000 |
+| Filename parsing (warm) | ~0.96us per file when resident | 2000 file corpus, 1.91ms and 1.17MB at 2000; LRU cap is 8000 entries |
 | Torrent tree build | ~0.3-1.0us and ~300B per file | 148 / 6k / 60k files, 41.6ms and 18.6MB at 60k |
 | Anime index rank (suggest) | ~29ms per keystroke at 5k titles | `suggest-pipeline`, per keystroke |
 | IPC chattiness, torrent files | 1 invoke per poll cycle (20 ids) | `ipc-chatter`, batched |
 
-Derived figures for a full-library scan: 20k files parse in ~15ms and allocate ~12MB; the 60k-file torrent tree costs ~42ms and ~18.6MB of transient heap. These are transient per-pass allocations, not steady-state footprint.
+Derived figures for a full-library scan: 20k files parse cold in about 1.5s (20,000 x ~80us); warm is about 1us per file only while resident, and the 8000-entry LRU cap means a 20k repeat pass partially misses. The 60k-file torrent tree costs ~53ms and ~18.6MB of transient heap. Parse heap per run includes the retained LRU cache plus transient allocations, so it does not scale linearly below cache capacity. These are transient per-pass allocations, not steady-state footprint.

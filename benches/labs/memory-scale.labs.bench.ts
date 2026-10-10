@@ -5,12 +5,15 @@ import { bench, group } from "@pmndrs/labs";
 // allocation, so each scenario returns a checksum and the heap column is
 // the memory metric. Constant bytes/item at growing input means the
 // footprint is linear and quotable.
-// Scale runs (Ryzen 7 5800X/node 26, 2026-10-08) feed
+// Scale runs (Ryzen 7 5800X/node 26, 2026-10-11) feed
 // benches/README.md "System requirements evidence".
-// Measured: parse cold 125 files 160us / 78KB, 500 files 440us / 323KB,
-// 2000 files 1.50ms / 1.20MB - about 0.75us and 600B per file, flat
-// across scales; warm equals cold (LRU hit path). Torrent tree 148 files
-// 142us / 141KB, 6k files 3.14ms / 1.87MB, 60k files 41.6ms / 18.6MB -
+// Measured: parse cold 125 files 9.02ms / 3.52MB, 500 files 43.13ms /
+// 18.28MB, 2000 files 145.99ms / 6.23MB - about 73-86us per file, flat
+// across scales; warm 2000 files 1.91ms / 1.17MB - about 0.96us per file
+// when resident in the 8000-entry LRU. Cold is roughly 80x warm. Per-run
+// heap includes the retained LRU cache plus transient allocations, so it
+// does not scale linearly below cache capacity. Torrent tree 148 files
+// 163us / 141KB, 6k files 3.69ms / 1.87MB, 60k files 53.14ms / 18.61MB -
 // about 300B per file. Regression threshold is labs minDelta 5%.
 
 import { parseMediaPath, clearMediaParseCache } from "../../src/lib/media/parse.utils";
@@ -93,20 +96,26 @@ function treeChecksum(nodes: ReturnType<typeof buildTorrentTree>["nodes"]): numb
 
 group("memory-scale @memory @quick", () => {
   bench("parse corpus 1x (125 files, cold)", function* parse1x() {
-    clearMediaParseCache();
-    const checksum = yield () => parseChecksum(PATHS_1X);
+    const checksum = yield () => {
+      clearMediaParseCache();
+      return parseChecksum(PATHS_1X);
+    };
     return checksum;
   });
 
   bench("parse corpus 4x (500 files, cold)", function* parse4x() {
-    clearMediaParseCache();
-    const checksum = yield () => parseChecksum(PATHS_4X);
+    const checksum = yield () => {
+      clearMediaParseCache();
+      return parseChecksum(PATHS_4X);
+    };
     return checksum;
   });
 
   bench("parse corpus 16x (2000 files, cold)", function* parse16x() {
-    clearMediaParseCache();
-    const checksum = yield () => parseChecksum(PATHS_16X);
+    const checksum = yield () => {
+      clearMediaParseCache();
+      return parseChecksum(PATHS_16X);
+    };
     return checksum;
   });
 

@@ -17,6 +17,7 @@ import { hasFreshCachedProfile } from "@/lib/anilist/friends.utils";
 import { formatMeanScore, parseScoreFormat } from "@/lib/anilist/score.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { enterSubmit } from "@/lib/utils/keyboard.utils";
+import { ignore } from "@/lib/utils/promise.utils";
 import { cacheAnilistProfile } from "@/store/anilist.store";
 import type {
   AniFriend,
@@ -389,7 +390,7 @@ export default function AniListFriendsModal({
       const cached = friend.profile;
       setProfiles((current) => ({ ...current, [friend.id]: cached }));
     }
-    if (!hasFreshCachedProfile(friend)) fetchProfile(friend).catch(() => {});
+    if (!hasFreshCachedProfile(friend)) ignore(fetchProfile(friend));
   };
 
   const loadProfile = async (value: string, force = false) => {
@@ -561,7 +562,7 @@ export default function AniListFriendsModal({
               hasSelection={selectedId !== null}
               onViewLists={onViewLists}
               onRefresh={(force) => {
-                if (selectedFriend) fetchProfile(selectedFriend, force).catch(() => {});
+                if (selectedFriend) ignore(fetchProfile(selectedFriend, force));
               }}
             />
           )}

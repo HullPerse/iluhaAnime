@@ -3,6 +3,7 @@ import { useCallback } from "react";
 import { anilistApi } from "@/api/anilist.api";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { queryKeys } from "@/lib/query/keys.utils";
+import { ignore } from "@/lib/utils/promise.utils";
 import type { AniListCollection, FavouriteAnime } from "@/types/anilist";
 
 function messageOf(error: unknown): string | null {
@@ -24,8 +25,8 @@ export function useFriendCompare(friendId: number | null, enabled: boolean) {
     queryFn: () => anilistApi.getFavourites(friendId as number),
   });
   const retry = useCallback(() => {
-    listsQuery.refetch().catch(() => {});
-    favouritesQuery.refetch().catch(() => {});
+    ignore(listsQuery.refetch());
+    ignore(favouritesQuery.refetch());
   }, [listsQuery, favouritesQuery]);
   return {
     friendLists: listsQuery.data ?? [],

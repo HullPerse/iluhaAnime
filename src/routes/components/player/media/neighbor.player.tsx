@@ -13,6 +13,7 @@ import {
 import { readPlaylistEntries, type PlaylistEntry } from "@/lib/player/playback.utils";
 import { formatParsedTitle } from "@/lib/player/title.utils";
 import { useCell } from "@/lib/state/signal.hook";
+import { ignore } from "@/lib/utils/promise.utils";
 import { formatClock } from "@/lib/utils/time.utils";
 import { playbackAtoms } from "@/store/player.store";
 import { settingsAtoms } from "@/store/settings.store";
@@ -76,8 +77,8 @@ function NeighborFileButton({
     const request = requestRef.current + 1;
     requestRef.current = request;
     const timer = window.setTimeout(() => {
-      readPlaylistEntries()
-        .then((entries) => {
+      ignore(
+        readPlaylistEntries().then((entries) => {
           if (requestRef.current !== request) return;
           const neighbor = neighborAt(entries, currentPath, playlistIndex, direction);
           if (!neighbor) return;
@@ -88,14 +89,14 @@ function NeighborFileButton({
             setArt(cached);
             return;
           }
-          fetchVideoCard(neighbor.filename)
-            .then((card) => {
+          ignore(
+            fetchVideoCard(neighbor.filename).then((card) => {
               if (requestRef.current !== request || !card) return;
               setArt(card);
             })
-            .catch(() => undefined);
+          );
         })
-        .catch(() => undefined);
+      );
     }, HOVER_DEBOUNCE_MS);
     return () => window.clearTimeout(timer);
   }, [open, hasTarget, currentPath, playlistIndex, direction]);

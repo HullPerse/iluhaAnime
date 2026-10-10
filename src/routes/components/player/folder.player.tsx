@@ -23,6 +23,7 @@ import { loadWatch, openPlayer } from "@/lib/player/playback.utils";
 import { formatParsedTitle } from "@/lib/player/title.utils";
 import { findFolderContainingFile, flattenTree, folderFilePaths } from "@/lib/player/tree.utils";
 import { useCell } from "@/lib/state/signal.hook";
+import { withFallback } from "@/lib/utils/attempt.utils";
 import { formatBytes } from "@/lib/utils/bytes.utils";
 import { openFileInPlayer } from "@/lib/utils/media.utils";
 import { showError } from "@/lib/utils/notification.utils";
@@ -103,7 +104,7 @@ function FolderView({
 
   const openInAppPlayer = useCallback(
     async (path: string) => {
-      const stored = await loadWatch(path).catch(() => null);
+      const stored = await withFallback(loadWatch(path), null);
       const folder = findFolderContainingFile(node, path);
       const paths = folder ? folderFilePaths(folder) : [];
       const index = paths.indexOf(path);

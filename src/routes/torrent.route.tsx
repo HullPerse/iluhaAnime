@@ -233,15 +233,13 @@ function TorrentRoute() {
         if (kind === "remove") {
           const outcomes = await attemptAllLimit(targets, BULK_CONCURRENCY, (torrent) =>
             track(
-              removeMutation
-                .mutateAsync({
-                  id: torrent.id,
-                  deleteFiles,
-                  infoHash: torrent.info_hash,
-                  name: torrent.name,
-                  silent: true,
-                })
-                .catch(() => false)
+              removeMutation.mutateAsync({
+                id: torrent.id,
+                deleteFiles,
+                infoHash: torrent.info_hash,
+                name: torrent.name,
+                silent: true,
+              })
             )
           );
           const done = outcomes.filter((outcome) => outcome.ok && Boolean(outcome.value)).length;
@@ -289,10 +287,7 @@ function TorrentRoute() {
             payload?.uploadBps != null ? Math.round(payload.uploadBps * 1024) : null;
           const { done, failed } = await applyBulkAction(targets, (torrent) =>
             track(
-              torrentApi
-                .setTorrentLimits(torrent.id, { downloadBps, uploadBps }, torrent.info_hash)
-                .then(() => true)
-                .catch(() => false)
+              torrentApi.setTorrentLimits(torrent.id, { downloadBps, uploadBps }, torrent.info_hash)
             )
           );
           finishBulk(failed > 0 ? "error" : "success", t("torrent.bulk.done", { done, failed }));

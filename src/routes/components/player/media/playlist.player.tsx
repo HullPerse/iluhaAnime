@@ -1,5 +1,4 @@
 import {
-
   DndContext,
   PointerSensor,
   useDraggable,
@@ -17,6 +16,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useMediaEntry } from "@/hooks/media.hook";
+import { fileNameFromPath } from "@/lib/media/parse.utils";
 import { fetchVideoCard, getCachedCard } from "@/lib/player/cardCache.utils";
 import type { CardArt } from "@/lib/player/cardCache.utils";
 import {
@@ -24,14 +24,13 @@ import {
   readPlaylistEntries,
   type PlaylistEntry,
 } from "@/lib/player/playback.utils";
-import { fileNameFromPath } from "@/lib/media/parse.utils";
 import { formatParsedTitle } from "@/lib/player/title.utils";
+import { useCell } from "@/lib/state/signal.hook";
 import { attempt, attemptAll, withFallback } from "@/lib/utils/attempt.utils";
 import { formatBytes } from "@/lib/utils/bytes.utils";
 import { formatVerticalDragTransform } from "@/lib/utils/drag.utils";
 import { ignore } from "@/lib/utils/promise.utils";
 import { formatClock } from "@/lib/utils/time.utils";
-import { useCell } from "@/lib/state/signal.hook";
 import { playbackAtoms, subscribePlayback } from "@/store/player.store";
 import { settingsAtoms } from "@/store/settings.store";
 import type { TFunc } from "@/types/i18n";
@@ -89,11 +88,11 @@ function useCardArt(path: string, visible: boolean): CardArt | null {
       return;
     }
     let disposed = false;
-    fetchVideoCard(path)
-      .then((card) => {
+    ignore(
+      fetchVideoCard(path).then((card) => {
         if (!disposed && card) setArt(card);
       })
-      .catch(() => undefined);
+    );
     return () => {
       disposed = true;
     };

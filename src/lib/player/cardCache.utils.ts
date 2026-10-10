@@ -3,6 +3,7 @@ import { readVideoCard } from "@/lib/player/playback.utils";
 import { withFallback } from "@/lib/utils/attempt.utils";
 import { assetUrl } from "@/lib/utils/image.utils";
 import { createLruCache, inflightFetch } from "@/lib/utils/lruCache.utils";
+import { ignore } from "@/lib/utils/promise.utils";
 
 export interface CardArt {
   url: string;
@@ -109,7 +110,7 @@ export function scheduleCardPrefetch(paths: string[], activePath: string): void 
     await runWave(waveB, generation);
   };
   window.setTimeout(() => {
-    run().catch(() => undefined);
+    ignore(run());
   }, 0);
 }
 
@@ -171,7 +172,7 @@ export function scheduleNeighborPrefetch(
     await runWave(neighbors, generation);
   };
   window.setTimeout(() => {
-    run().catch(() => undefined);
+    ignore(run());
   }, 0);
 }
 

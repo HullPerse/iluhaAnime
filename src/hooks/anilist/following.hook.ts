@@ -1,6 +1,7 @@
 import { anilistApi } from "@/api/anilist.api";
 import { useAppInfiniteQuery } from "@/hooks/appQuery.hook";
 import { queryKeys } from "@/lib/query/keys.utils";
+import { ignore } from "@/lib/utils/promise.utils";
 import type { AniFriendMinimal } from "@/types/anilist";
 
 const FOLLOWING_PER_PAGE = 25;
@@ -30,10 +31,10 @@ export function useAnilistFollowing(userId: number | null, enabled: boolean) {
     hasMore: query.hasNextPage ?? false,
     error: messageOf(query.error),
     loadMore: () => {
-      query.fetchNextPage().catch(() => {});
+      ignore(query.fetchNextPage());
     },
     retry: () => {
-      query.refetch().catch(() => {});
+      ignore(query.refetch());
     },
   };
 }

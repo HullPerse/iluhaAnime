@@ -86,7 +86,7 @@ import {
 } from "@/lib/player/resume.utils";
 import { formatParsedTitle } from "@/lib/player/title.utils";
 import { useCell } from "@/lib/state/signal.hook";
-import { reportBackgroundError } from "@/lib/utils/attempt.utils";
+import { reportBackgroundError, withFallback } from "@/lib/utils/attempt.utils";
 import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { ignore } from "@/lib/utils/promise.utils";
 import {
@@ -646,14 +646,14 @@ function PlayerComponent() {
     if (!path || playlistCount === 0) return;
     let cancelled = false;
     const index = playlistIndex;
-    readPlaylistEntries()
-      .then((entries) => {
+    ignore(
+      readPlaylistEntries().then((entries) => {
         if (cancelled) return;
         const filenames = entries.map((entry) => entry.filename);
         if (playlistOpen) scheduleCardPrefetch(filenames, path);
         else scheduleNeighborPrefetch(filenames, path, index);
       })
-      .catch(() => undefined);
+    );
     return () => {
       cancelled = true;
     };
@@ -699,10 +699,7 @@ function PlayerComponent() {
 
   useEffect(() => {
     const win = getCurrentWindow();
-    win
-      .isFullscreen()
-      .then(setFullscreen)
-      .catch(() => undefined);
+    ignore(win.isFullscreen().then(setFullscreen));
 
     const onResize = () => syncMargins();
     window.addEventListener("resize", onResize);
@@ -732,8 +729,8 @@ function PlayerComponent() {
 
   const toggleFullscreen = useCallback(async () => {
     const win = getCurrentWindow();
-    const next = !(await win.isFullscreen().catch(() => fullscreen));
-    await win.setFullscreen(next).catch(() => undefined);
+    const next = !(await withFallback(win.isFullscreen(), fullscreen));
+    await withFallback(win.setFullscreen(next), undefined);
     setFullscreen(next);
   }, [fullscreen]);
 
@@ -762,19 +759,20 @@ function PlayerComponent() {
       setCheatsheetOpen(false);
       return;
     }
-    getCurrentWindow()
-      .isFullscreen()
-      .then(async (isFull) => {
-        if (isFull) {
-          await getCurrentWindow().setFullscreen(false);
-          setFullscreen(false);
-        } else if (cinema) {
-          setCinema(false);
-        } else {
-          await closePlayerWindow();
-        }
-      })
-      .catch(() => undefined);
+    ignore(
+      getCurrentWindow()
+        .isFullscreen()
+        .then(async (isFull) => {
+          if (isFull) {
+            await getCurrentWindow().setFullscreen(false);
+            setFullscreen(false);
+          } else if (cinema) {
+            setCinema(false);
+          } else {
+            await closePlayerWindow();
+          }
+        })
+    );
   }, [cheatsheetOpen, cinema, diagnosticsOpen, jumpOpen, playlistOpen, settingsOpen]);
 
   const onPlay = useCallback(() => {
@@ -964,10 +962,13 @@ function PlayerComponent() {
 
   const pickFiles = useCallback(
     async (extensions: string[]): Promise<string[]> => {
-      const selection = await openDialog({
-        multiple: true,
-        filters: [{ name: t("player.media.tracks.external.filter"), extensions }],
-      }).catch(() => null);
+      const selection = await withFallback(
+        openDialog({
+          multiple: true,
+          filters: [{ name: t("player.media.tracks.external.filter"), extensions }],
+        }),
+        null
+      );
       if (!selection) return [];
       return Array.isArray(selection) ? selection : [selection];
     },

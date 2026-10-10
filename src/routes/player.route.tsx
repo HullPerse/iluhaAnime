@@ -24,11 +24,12 @@ import { buildTree, filterTreeByPaths } from "@/lib/player/tree.utils";
 import { filterTreeByHiddenPaths } from "@/lib/player/visibility.utils";
 import { queryKeys } from "@/lib/query/keys.utils";
 import { useCell } from "@/lib/state/signal.hook";
-import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
-import { invokeTyped, invokeValidated } from "@/lib/utils/invoke.utils";
+import { attempt, attemptRetry, reportBackgroundError } from "@/lib/utils/attempt.utils";
+import { invokeTyped } from "@/lib/utils/invoke.utils";
 import { showError, showErrorOnce } from "@/lib/utils/notification.utils";
 import { createCoalescedRunner } from "@/lib/utils/promise.utils";
 import { unwrapOr } from "@/lib/utils/result.utils";
+import { parseValue } from "@/lib/utils/schema.utils";
 import { cacheAtoms, setFolderTrees as setCachedFolderTrees } from "@/store/cache.store";
 import {
   addCategory,
@@ -185,7 +186,16 @@ function PlayerRoute() {
   const [ffmpegOverride, setFfmpegOverride] = useState<FFMPEGStatus | null>(null);
   const { data: ffprobeOk } = useAppQuery("live", {
     queryKey: queryKeys.checkFfprobe(),
-    queryFn: async () => unwrapOr(await invokeValidated("check_ffprobe", FfprobeSchema), false),
+    queryFn: async () => {
+      // One retry for a transient engine hiccup at startup; a real failure
+      // still resolves to missing, exactly like the old withFallback.
+      const [value, error] = await attemptRetry(() => invokeTyped<unknown>("check_ffprobe"), {
+        attempts: 2,
+        delay: 200,
+      });
+      if (error !== null) return false;
+      return unwrapOr(parseValue(value, FfprobeSchema), false);
+    },
     staleTime: 0,
   });
   const ffmpegStatus: FFMPEGStatus =

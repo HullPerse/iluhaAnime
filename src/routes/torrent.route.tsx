@@ -32,7 +32,12 @@ import {
   useTorrents,
 } from "@/hooks/torrent/queries.hook";
 import { useCell } from "@/lib/state/signal.hook";
-import { applyBulkAction, pruneSelection, splitRecheckOutcome } from "@/lib/torrent/bulk.utils";
+import {
+  BULK_CONCURRENCY,
+  applyBulkAction,
+  pruneSelection,
+  splitRecheckOutcome,
+} from "@/lib/torrent/bulk.utils";
 import {
   formatSpeed,
   fmtSpeed,
@@ -42,7 +47,14 @@ import {
 import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { paginate } from "@/lib/utils/pagination.utils";
 import { ignore } from "@/lib/utils/promise.utils";
-import { cacheAtoms, moveTorrentOrder, moveTorrentOrderTo, setSeedPreference, syncTorrentOrder } from "@/store/cache.store";
+import { attemptAllLimit } from "@/lib/utils/result.utils";
+import {
+  cacheAtoms,
+  moveTorrentOrder,
+  moveTorrentOrderTo,
+  setSeedPreference,
+  syncTorrentOrder,
+} from "@/store/cache.store";
 import {
   consumeMagnetDeepLink,
   consumeTorrentDeepLink,
@@ -219,22 +231,20 @@ function TorrentRoute() {
     await attempt(
       (async () => {
         if (kind === "remove") {
-          const outcomes = await Promise.all(
-            targets.map((torrent) =>
-              track(
-                removeMutation
-                  .mutateAsync({
-                    id: torrent.id,
-                    deleteFiles,
-                    infoHash: torrent.info_hash,
-                    name: torrent.name,
-                    silent: true,
-                  })
-                  .catch(() => false)
-              )
+          const outcomes = await attemptAllLimit(targets, BULK_CONCURRENCY, (torrent) =>
+            track(
+              removeMutation
+                .mutateAsync({
+                  id: torrent.id,
+                  deleteFiles,
+                  infoHash: torrent.info_hash,
+                  name: torrent.name,
+                  silent: true,
+                })
+                .catch(() => false)
             )
           );
-          const done = outcomes.filter(Boolean).length;
+          const done = outcomes.filter((outcome) => outcome.ok && Boolean(outcome.value)).length;
           finishBulk(
             done === total ? "success" : "error",
             t("torrent.bulk.done", { done, failed: total - done })

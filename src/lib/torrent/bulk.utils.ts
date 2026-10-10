@@ -1,3 +1,4 @@
+import { attemptAllLimit } from "@/lib/utils/result.utils";
 import type { TorrentCheckResult } from "@/types/torrent";
 
 export function splitRecheckOutcome<T>(
@@ -32,13 +33,17 @@ export function pruneSelection<T extends { id: number }>(
   return dropped ? keep : selected;
 }
 
+export const BULK_CONCURRENCY = 5;
+
 export async function applyBulkAction<T>(
   targets: readonly T[],
-  act: (target: T) => Promise<unknown>
+  act: (target: T) => Promise<unknown>,
+  limit = BULK_CONCURRENCY
 ): Promise<{ done: number; failed: number }> {
-  const results = await Promise.allSettled(targets.map((target) => act(target)));
-  const failed = results.filter(
-    (result) => result.status === "rejected" || result.value === false
-  ).length;
+  // Bounded concurrency instead of unbounded Promise.allSettled: one bad
+  // target still settles without dropping the rest, and 100 selected
+  // torrents no longer open 100 concurrent IPC calls.
+  const results = await attemptAllLimit(targets, limit, act);
+  const failed = results.filter((result) => !result.ok || result.value === false).length;
   return { done: results.length - failed, failed };
 }

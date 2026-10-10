@@ -106,6 +106,30 @@ describe("torrent/bulk", () => {
       expect(await applyBulkAction([], act)).toEqual({ done: 0, failed: 0 });
       expect(act).not.toHaveBeenCalled();
     });
+
+    it("caps concurrency at the limit", async () => {
+      let inFlight = 0;
+      let peak = 0;
+      const act = vi.fn(async () => {
+        inFlight += 1;
+        peak = Math.max(peak, inFlight);
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        inFlight -= 1;
+      });
+      const targets = Array.from({ length: 10 }, (_, index) => index);
+      expect(await applyBulkAction(targets, act, 2)).toEqual({ done: 10, failed: 0 });
+      expect(act).toHaveBeenCalledTimes(10);
+      expect(peak).toBeLessThanOrEqual(2);
+    });
+
+    it("keeps input order of outcomes with limit 1", async () => {
+      const seen: number[] = [];
+      const act = vi.fn(async (target: number) => {
+        seen.push(target);
+      });
+      expect(await applyBulkAction([3, 1, 2], act, 1)).toEqual({ done: 3, failed: 0 });
+      expect(seen).toEqual([3, 1, 2]);
+    });
   });
 
   describe("pruneSelection", () => {

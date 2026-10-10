@@ -9,6 +9,7 @@ use base64::Engine;
 
 use crate::bencode::{extract_announce_url, extract_info_hash, extract_torrent_name};
 use crate::errors::AppResult;
+use crate::scrapers::clients::acquire_scraper_slot;
 use crate::scrapers::{
     build_nekobt_client, build_no_redirect_client, build_rutracker_client,
     build_rutracker_client_with_ua, cookies_to_header, decode_windows_1251,
@@ -751,6 +752,8 @@ pub async fn rutracker_browser_fetch(
     let Some(window) = app_handle.get_webview_window(RUTRACKER_WEBVIEW_LABEL) else {
         return Ok(None);
     };
+    // Same throttle as the reqwest scrapers: the browser path used to bypass it.
+    let _slot = acquire_scraper_slot().await?;
 
     let request_id = format!(
         "__iluha_rutracker_request_{}",
@@ -780,7 +783,8 @@ pub async fn rutracker_browser_fetch(
     );
     eval_webview_script(&window, start_script).await?;
 
-    for _ in 0..900 {
+    // 30 seconds like the reqwest builders; the WebView fetch used to wait 90.
+    for _ in 0..300 {
         tokio::time::sleep(std::time::Duration::from_millis(100)).await;
         let poll_script = format!(
             r"(() => {{
@@ -808,6 +812,10 @@ pub async fn rutracker_browser_fetch(
         let body = base64::engine::general_purpose::STANDARD
             .decode(body)
             .map_err(|e| format!("browser response decode failed: {e}"))?;
+        const MAX_BROWSER_RESPONSE_BYTES: usize = 8 * 1024 * 1024;
+        if body.len() > MAX_BROWSER_RESPONSE_BYTES {
+            return Err("Rutracker page is too large to display safely".to_string());
+        }
         return Ok(Some(RutrackerBrowserResponse {
             status: status as u16,
             body,

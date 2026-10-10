@@ -224,6 +224,11 @@ const search = {
   "search.cover.correct.clear": "Use auto cover",
   "search.cover.correct.applied": "Cover updated",
   "search.cover.correct.empty": "No candidates yet",
+  "search.cover.correct.for": "For:",
+  "search.cover.correct.suggested": "Suggested",
+  "search.cover.correct.found": "Search results",
+  "search.cover.correct.current": "Current",
+  "search.cover.correct.remembered": "The pick is remembered for this title",
   "search.cover.page.poster": "From torrent page",
   "search.cover.refresh": "Refresh cover",
 } as const;

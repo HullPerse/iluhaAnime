@@ -228,6 +228,11 @@ const search = {
   "search.cover.correct.clear": "Автообложка",
   "search.cover.correct.applied": "Обложка обновлена",
   "search.cover.correct.empty": "Кандидатов пока нет",
+  "search.cover.correct.for": "Для:",
+  "search.cover.correct.suggested": "Подобрано",
+  "search.cover.correct.found": "Найдено поиском",
+  "search.cover.correct.current": "Текущая",
+  "search.cover.correct.remembered": "Выбор запоминается для этого названия",
   "search.cover.page.poster": "Со страницы раздачи",
   "search.cover.refresh": "Обновить обложку",
 } as const;

@@ -80,6 +80,8 @@ export default function ModernResults({ controller }: { controller: SearchQueryC
           page={nyaaPage}
           pageFull={(data?.length ?? 0) >= resultsPerPage}
           isLoading={isLoading}
+          shown={displayItems.length}
+          resultsPerPage={resultsPerPage}
           onPageChange={setNyaaPage}
         />
       )}

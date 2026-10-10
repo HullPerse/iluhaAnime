@@ -198,7 +198,15 @@ pub fn url_encode(value: &str) -> String {
 pub fn with_fallback_trackers(magnet: &str) -> String {
     let mut result = String::with_capacity(magnet.len() + 512);
     result.push_str(magnet);
+    // Magnets may already carry a fallback in raw or encoded form (either
+    // hex case); announcing the same tracker twice only doubles announces.
+    let lowered = magnet.to_lowercase();
     for tracker in FALLBACK_TRACKERS {
+        if lowered.contains(&tracker.to_lowercase())
+            || lowered.contains(&url_encode(tracker).to_lowercase())
+        {
+            continue;
+        }
         result.push(if result.contains('?') { '&' } else { '?' });
         result.push_str("tr=");
         result.push_str(&url_encode(tracker));
@@ -359,7 +367,7 @@ mod tracker_tests {
     use super::{
         build_magnet, canonical_or_raw_tracker, canonical_tracker_url, display_order,
         download_order, plan_sequential, torrent_proxy_url, validate_session_config,
-        validate_tracker_url, SequentialPlan,
+        validate_tracker_url, with_fallback_trackers, SequentialPlan, FALLBACK_TRACKERS,
     };
     use crate::torrent::{FileOrder, FilePriority, SessionConfig};
 
@@ -594,6 +602,25 @@ mod tracker_tests {
         assert!(magnet.starts_with("magnet:?xt=urn:btih:abcdef1234567890abcdef1234567890abcdef12"));
         assert!(magnet.contains("&tr=udp%3A%2F%2Fexplodie.org%3A6969%2Fannounce"));
         assert!(!magnet.contains("&dn="));
+    }
+
+    #[test]
+    fn fallback_trackers_skip_duplicates_in_any_encoding() {
+        let base = "magnet:?xt=urn:btih:0123456789abcdef0123456789abcdef01234567";
+        let full = with_fallback_trackers(base);
+        assert_eq!(full.matches("&tr=").count(), FALLBACK_TRACKERS.len());
+        assert_eq!(with_fallback_trackers(&full), full);
+        let raw = format!("{base}&tr=udp://tracker.opentrackr.org:1337/announce");
+        let deduped = with_fallback_trackers(&raw);
+        assert_eq!(deduped.matches("&tr=").count(), FALLBACK_TRACKERS.len());
+        assert_eq!(deduped.matches("opentrackr.org").count(), 1);
+        let lower = format!("{base}&tr=udp%3a%2f%2ftracker.opentrackr.org%3a1337%2fannounce");
+        let deduped_lower = with_fallback_trackers(&lower);
+        assert_eq!(
+            deduped_lower.matches("&tr=").count(),
+            FALLBACK_TRACKERS.len()
+        );
+        assert_eq!(deduped_lower.matches("opentrackr.org").count(), 1);
     }
 
     #[test]

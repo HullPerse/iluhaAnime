@@ -15,8 +15,8 @@ use crate::auth::{
 use super::clients::{
     absolute_detail_url, acquire_scraper_slot, build_client, build_nekobt_client,
     build_rutracker_client_with_ua, cookies_to_header, decode_rutracker_page, fetch_torrent_bytes,
-    format_file_size, is_rutracker_challenge, parse_rus_number, resolve_proxy,
-    rutracker_challenge_error, RUTRACKER_DEFAULT_UA,
+    format_file_size, is_rutracker_challenge, parse_rus_number, read_body_capped, resolve_proxy,
+    rutracker_challenge_error, CappedBodyError, RUTRACKER_DEFAULT_UA,
 };
 
 fn hardcoded_selector(raw: &str) -> Selector {
@@ -1599,6 +1599,7 @@ async fn fetch_rutracker_file_tree(
     let (status, bytes) = if let Some(response) = browser_response {
         (response.status, response.body)
     } else {
+        const MAX_FILE_TREE_BYTES: usize = 4 * 1024 * 1024;
         let response = client
             .get("https://rutracker.org/forum/viewtorrent.php")
             .header("Cookie", cookies_to_header(cookies))
@@ -1609,17 +1610,17 @@ async fn fetch_rutracker_file_tree(
             .await
             .map_err(|error| format!("Rutracker file list request failed: {error}"))?;
         let status = response.status().as_u16();
-        let bytes = response
-            .bytes()
-            .await
-            .map_err(|error| format!("Rutracker file list read failed: {error}"))?
-            .to_vec();
+        let bytes = match read_body_capped(response, MAX_FILE_TREE_BYTES).await {
+            Ok(bytes) => bytes,
+            Err(CappedBodyError::TooLarge) => {
+                return Err("Rutracker file list is too large to display safely".to_string());
+            }
+            Err(CappedBodyError::Read(error)) => {
+                return Err(format!("Rutracker file list read failed: {error}"));
+            }
+        };
         (status, bytes)
     };
-    const MAX_FILE_TREE_BYTES: usize = 4 * 1024 * 1024;
-    if bytes.len() > MAX_FILE_TREE_BYTES {
-        return Err("Rutracker file list is too large to display safely".to_string());
-    }
     let html = decode_rutracker_page(&bytes);
     if !(200..300).contains(&status) {
         if is_rutracker_challenge(&html) {
@@ -2132,9 +2133,30 @@ pub fn parse_torrent_detail_html(source: &str, url: &str, html: &str) -> Torrent
     }
 }
 
+const DETAILS_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(120);
+
 #[tauri::command]
 #[allow(non_snake_case)]
 pub async fn get_torrent_details(
+    app_handle: tauri::AppHandle,
+    source: String,
+    url: String,
+    proxy_url: Option<String>,
+    proxyUrl: Option<String>,
+) -> Result<TorrentDetails, String> {
+    // The page, the file tree, and the .torrent fallback each have their own
+    // client timeouts; this bounds the composition so one slow stage cannot
+    // wedge the modal past two minutes.
+    tokio::time::timeout(
+        DETAILS_TIMEOUT,
+        get_torrent_details_inner(app_handle, source, url, proxy_url, proxyUrl),
+    )
+    .await
+    .map_err(|_| "Timed out while loading torrent details".to_string())?
+}
+
+#[allow(non_snake_case)]
+async fn get_torrent_details_inner(
     app_handle: tauri::AppHandle,
     source: String,
     url: String,

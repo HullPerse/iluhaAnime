@@ -1,5 +1,4 @@
 import { open } from "@tauri-apps/plugin-dialog";
-import { cn } from "cn";
 import { useState, useEffect, useRef, useCallback } from "react";
 
 import { SmallLoader } from "@/components/shared/loader.component";
@@ -12,6 +11,7 @@ import { PICKER_ELAPSED_TICK_MS } from "@/config/torrent/common.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { formatParsedTitle } from "@/lib/player/title.utils";
 import { useCell } from "@/lib/state/signal.hook";
+import { torrentFileIcon } from "@/lib/torrent/fileIcon.utils";
 import { groupFilesByDirectory } from "@/lib/torrent/tree.utils";
 import { attempt } from "@/lib/utils/attempt.utils";
 import { formatBytes } from "@/lib/utils/bytes.utils";
@@ -93,6 +93,18 @@ function TorrentFilePicker({
     });
   }, [torrent]);
 
+  const toggleFolder = useCallback((indices: number[]) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (indices.every((index) => next.has(index))) {
+        for (const index of indices) next.delete(index);
+      } else {
+        for (const index of indices) next.add(index);
+      }
+      return next;
+    });
+  }, []);
+
   const browseFolder = useCallback(async () => {
     setBrowsing(true);
     const dir = await open({
@@ -137,66 +149,90 @@ function TorrentFilePicker({
         </section>
       ) : (
         <section className="flex h-full w-full flex-1 flex-col items-center gap-2 py-4">
-          <div className="windows95-border flex h-full w-full overflow-y-auto">
-            <label className="windows95-text bg-primary flex cursor-pointer items-center gap-1 px-1 py-0.5 select-none">
-              <Checkbox checked={allSelected} onChange={toggleAll} />
+          <div className="windows95-border flex h-64 w-full flex-col">
+            <label className="windows95-text bg-primary border-b-muted flex cursor-pointer items-center gap-1 border-b px-1 py-0.5 select-none">
+              <Checkbox
+                checked={allSelected}
+                onChange={toggleAll}
+                aria-label={allSelected ? t("picker.deselect.all") : t("picker.select.all")}
+              />
               {allSelected ? t("picker.deselect.all") : t("picker.select.all")}
-              <span className="text-hint ml-auto text-xs">
-                {formatBytes(selectedSize)} / {formatBytes(totalSize)}
-                {" - "}
+              <span className="text-hint ml-auto text-xs tabular-nums">
+                {t("picker.file.count", { count: selected.size })} /{" "}
                 {t("picker.file.count", { count: torrent!.files.length })}
+                {" - "}
+                {formatBytes(selectedSize)} / {formatBytes(totalSize)}
               </span>
             </label>
-          </div>
-          <div className="flex h-42 w-full flex-col overflow-y-auto pr-2">
-            {torrent &&
-              groupFilesByDirectory(torrent.files, fileOrder).map((group) => (
-                <div key={group.dir || "__root__"}>
-                  {group.dir && (
-                    <div className="windows95-font flex items-center gap-1 px-1 py-0.5 text-xs select-none">
-                      <ImageComponent
-                        src="/images/w2k_folder_closed.ico"
-                        alt=""
-                        className="size-4 shrink-0"
-                      />
-                      <span className="truncate font-bold" title={group.dir}>
-                        {group.dir}
-                      </span>
-                      <span className="text-hint ml-auto">
-                        {formatBytes(group.files.reduce((s, f) => s + f.size, 0))}
-                      </span>
-                    </div>
-                  )}
-                  {group.files.map((item) => {
-                    const conflict = torrent!.conflictingFiles.includes(item.name);
-
-                    return (
-                      <label
-                        key={item.index}
-                        className={cn(
-                          "windows95-text hover:bg-surface windows95-border flex w-full cursor-pointer items-center gap-1 px-1 py-0.5 select-none",
-                          group.dir && "pl-5"
-                        )}
-                      >
-                        <Checkbox
-                          checked={selected.has(item.index)}
-                          onChange={() => toggleFile(item.index)}
-                          className="shrink-0"
-                        />
-                        <span className="windows95-text flex-1 truncate" title={item.displayName}>
-                          {parseTitlesSearch ? formatParsedTitle(item.displayName, t) : item.displayName}
-                        </span>
-                        <span className="text-hint shrink-0 text-xs">{formatBytes(item.size)}</span>
-                        {conflict && (
-                          <span className="text-destructive shrink-0 text-xs">
-                            {t("picker.exists")}
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              {torrent &&
+                groupFilesByDirectory(torrent.files, fileOrder).map((group) => {
+                  const indices = group.files.map((file) => file.index);
+                  const folderOn = indices.every((index) => selected.has(index));
+                  return (
+                    <div key={group.dir || "__root__"}>
+                      {group.dir && (
+                        <button
+                          type="button"
+                          onClick={() => toggleFolder(indices)}
+                          aria-pressed={folderOn}
+                          title={group.dir}
+                          className="windows95-font hover:bg-surface flex w-full cursor-pointer items-center gap-1 px-1 py-0.5 text-left text-xs select-none"
+                        >
+                          <ImageComponent
+                            src="/images/w2k_folder_closed.ico"
+                            alt=""
+                            className="size-4 shrink-0"
+                          />
+                          <span className="truncate font-bold">{group.dir}</span>
+                          <span className="text-hint ml-auto tabular-nums">
+                            {formatBytes(group.files.reduce((s, f) => s + f.size, 0))}
                           </span>
-                        )}
-                      </label>
-                    );
-                  })}
-                </div>
-              ))}
+                        </button>
+                      )}
+                      {group.files.map((item) => {
+                        const conflict = torrent!.conflictingFiles.includes(item.name);
+                        const picked = selected.has(item.index);
+                        return (
+                          <label
+                            key={item.index}
+                            aria-selected={picked}
+                            className="windows95-text hover:bg-surface windows95-border flex w-full cursor-pointer items-center gap-1 border-t px-1 py-0.5 select-none odd:bg-black/5"
+                          >
+                            <Checkbox
+                              checked={picked}
+                              onChange={() => toggleFile(item.index)}
+                              className="shrink-0"
+                              aria-label={item.displayName}
+                            />
+                            <ImageComponent
+                              src={`/images/${torrentFileIcon(item.name)}`}
+                              alt=""
+                              className="size-4 shrink-0"
+                            />
+                            <span
+                              className="windows95-text flex-1 truncate text-xs"
+                              title={item.displayName}
+                            >
+                              {parseTitlesSearch
+                                ? formatParsedTitle(item.displayName, t)
+                                : item.displayName}
+                            </span>
+                            <span className="text-hint shrink-0 text-xs tabular-nums">
+                              {formatBytes(item.size)}
+                            </span>
+                            {conflict && (
+                              <span className="text-destructive shrink-0 text-xs">
+                                {t("picker.exists")}
+                              </span>
+                            )}
+                          </label>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+            </div>
           </div>
 
           <div className="flex w-full items-center gap-1">

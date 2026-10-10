@@ -18,6 +18,7 @@ import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
+import { useTorrentCover } from "@/hooks/search/cover.hook";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
 import { useCell } from "@/lib/state/signal.hook";
 import { buildTorrentView } from "@/lib/torrent/details.utils";
@@ -93,6 +94,17 @@ function resolveActiveTab(
 ): DetailsTab {
   if (tabs.some((entry) => entry.id === tab)) return tab;
   return tabs[0]?.id ?? "description";
+}
+
+function heroPoster(
+  view: TorrentView | null,
+  coverUrl: string | null,
+  remoteUrl: string | null
+): string | null {
+  if (view?.poster) return view.poster;
+  const shot = view?.screenshots[0];
+  if (shot) return shot;
+  return coverUrl ?? remoteUrl;
 }
 
 async function openOriginalUrl(
@@ -353,7 +365,9 @@ function TorrentDetailsModal({
   const tabs = useMemo(() => (view ? buildDetailTabs(view, t) : []), [t, view]);
   const activeTab = resolveActiveTab(tabs, tab);
   const busy = loadingMagnet[item.link] ?? false;
-  const poster = view?.poster ?? view?.screenshots[0] ?? null;
+  const coversEnabled = useCell(settingsAtoms.torrentCoversEnabled);
+  const cover = useTorrentCover(item.title, { source, url: detailUrl, enabled: coversEnabled });
+  const poster = heroPoster(view, cover.coverUrl, cover.remoteUrl);
   const openOriginal = () => {
     ignore(openOriginalUrl(source, item, view, detailUrl));
   };

@@ -21,8 +21,9 @@ mod app_db;
 pub mod benchmark_api {
     pub use crate::anilist::{franchise_query_body, franchise_query_metrics};
     pub use crate::scrapers::clients::{
-        acquire_scraper_slot, build_client, build_nekobt_client, build_rutracker_client_with_ua,
-        decode_rutracker_page, is_rutracker_challenge, RUTRACKER_DEFAULT_UA,
+        acquire_scraper_slot, build_client, build_client_inner, build_nekobt_client,
+        build_rutracker_client_with_ua, decode_rutracker_page, is_rutracker_challenge,
+        RUTRACKER_DEFAULT_UA,
     };
     pub use crate::scrapers::details::{parse_torrent_detail_html, TorrentDetails};
 }

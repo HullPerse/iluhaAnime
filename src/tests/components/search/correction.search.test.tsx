@@ -92,4 +92,41 @@ describe("CoverCorrectionModal", () => {
     expect(coverCorrectionsAtoms.overrides.get()[KEY]).toBeUndefined();
     expect(onClose).toHaveBeenCalled();
   });
+
+  it("shows the torrent context and candidate sections", () => {
+    render(
+      <CoverCorrectionModal torrentTitle="Modal Test Show" cover={coverState()} onClose={vi.fn()} />
+    );
+    expect(screen.getByTitle("Modal Test Show")).toBeDefined();
+    expect(screen.getByText("Suggested")).toBeDefined();
+    expect(screen.getByText("Current")).toBeDefined();
+    expect(screen.getByText("Current").parentElement?.className).toContain("text-title-text");
+  });
+
+  it("applies the double-clicked candidate at once", async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    render(
+      <CoverCorrectionModal torrentTitle="Modal Test Show" cover={coverState()} onClose={onClose} />
+    );
+    await user.dblClick(screen.getByText("NARUTO: Shippuuden"));
+    await waitFor(() => {
+      expect(coverCorrectionsAtoms.overrides.get()[KEY]?.id).toBe(1735);
+    });
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it("applies the selection on Enter", async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    render(
+      <CoverCorrectionModal torrentTitle="Modal Test Show" cover={coverState()} onClose={onClose} />
+    );
+    await user.click(screen.getByPlaceholderText("Find another anime..."));
+    await user.keyboard("{Enter}");
+    await waitFor(() => {
+      expect(coverCorrectionsAtoms.overrides.get()[KEY]?.id).toBe(20);
+    });
+    expect(onClose).toHaveBeenCalled();
+  });
 });

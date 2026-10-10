@@ -196,6 +196,8 @@ function SearchDefault() {
           page={nyaaPage}
           pageFull={pageFull}
           isLoading={isFetching}
+          shown={displayItems.length}
+          resultsPerPage={resultsPerPage}
           onPageChange={setNyaaPage}
         />
       )}

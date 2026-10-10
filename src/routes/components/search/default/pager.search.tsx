@@ -1,43 +1,38 @@
-import { ChevronLeft, ChevronRight } from "lucide-react";
-
-import { Button } from "@/components/ui/button.component";
+import Pagination from "@/components/shared/pagination.component";
 import { useI18n } from "@/hooks/i18n.hook";
 
 export default function SearchPager({
   page,
   pageFull,
   isLoading,
+  shown,
+  resultsPerPage,
   onPageChange,
 }: {
   page: number;
   pageFull: boolean;
   isLoading: boolean;
+  shown: number;
+  resultsPerPage: number;
   onPageChange: (page: number) => void;
 }) {
   const { t } = useI18n();
+  // Site-paged sources expose no total: the furthest known page stands in
+  // for lastPage (a jump past the end returns empty and steps back, as before).
+  const lastPage = pageFull ? page + 1 : page;
+  const from = (page - 1) * resultsPerPage + 1;
+  const to = from + Math.max(shown, 1) - 1;
   return (
-    <section className="flex items-center justify-end gap-1 py-1">
-      <span className="windows95-text mr-1">{t("search.page", { page })}</span>
-      <Button
-        size="icon"
-        className="size-5"
-        disabled={page <= 1 || isLoading}
-        onClick={() => onPageChange(Math.max(1, page - 1))}
-        title={t("common.previous")}
-        aria-label={t("common.previous")}
-      >
-        <ChevronLeft className="size-3" />
-      </Button>
-      <Button
-        size="icon"
-        className="size-5"
-        disabled={!pageFull || isLoading}
-        onClick={() => onPageChange(page + 1)}
-        title={t("common.next")}
-        aria-label={t("common.next")}
-      >
-        <ChevronRight className="size-3" />
-      </Button>
-    </section>
+    <Pagination
+      total={0}
+      page={page}
+      lastPage={lastPage}
+      from={from}
+      to={to}
+      statusText={t("search.page", { page })}
+      onPageChange={(next) => {
+        if (!isLoading) onPageChange(next);
+      }}
+    />
   );
 }

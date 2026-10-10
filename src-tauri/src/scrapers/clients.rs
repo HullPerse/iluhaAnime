@@ -1,3 +1,4 @@
+use futures::StreamExt;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::net::SocketAddr;
@@ -215,6 +216,29 @@ pub async fn fetch_torrent_bytes(
     }
 
     Ok(bytes)
+}
+
+pub const MAX_SEARCH_RESPONSE_BYTES: usize = 8 * 1024 * 1024;
+
+pub enum CappedBodyError {
+    TooLarge,
+    Read(String),
+}
+
+pub async fn read_body_capped(
+    response: reqwest::Response,
+    max_bytes: usize,
+) -> Result<Vec<u8>, CappedBodyError> {
+    let mut body = Vec::new();
+    let mut stream = response.bytes_stream();
+    while let Some(chunk) = stream.next().await {
+        let chunk = chunk.map_err(|error| CappedBodyError::Read(format!("{error}")))?;
+        if body.len().saturating_add(chunk.len()) > max_bytes {
+            return Err(CappedBodyError::TooLarge);
+        }
+        body.extend_from_slice(&chunk);
+    }
+    Ok(body)
 }
 
 pub fn format_file_size(bytes: f64) -> String {

@@ -35,8 +35,8 @@ use super::clients::{
     absolute_detail_url, acquire_scraper_slot, build_client_inner, build_rutracker_client,
     cloudflare_blocked_error, cookies_to_header, decode_rutracker_page, format_file_size,
     is_cloudflare_challenge, is_rutracker_challenge, is_valid_torrent, parse_rus_number,
-    parse_seeders_leechers, resolve_proxy, rutracker_challenge_error, url_encode, NyaaItem,
-    RUTRACKER_DEFAULT_UA,
+    parse_seeders_leechers, read_body_capped, resolve_proxy, rutracker_challenge_error, url_encode,
+    CappedBodyError, NyaaItem, MAX_SEARCH_RESPONSE_BYTES, RUTRACKER_DEFAULT_UA,
 };
 
 #[derive(Deserialize)]
@@ -176,10 +176,13 @@ async fn search_nyaa_impl(
             return Err(format!("Nyaa вернул HTTP {}", resp.status()));
         }
 
-        let bytes = match resp.bytes().await {
-            Ok(b) => b,
-            Err(e) => {
-                last_err = format!("{e}");
+        let bytes = match read_body_capped(resp, MAX_SEARCH_RESPONSE_BYTES).await {
+            Ok(bytes) => bytes,
+            Err(CappedBodyError::TooLarge) => {
+                return Err("Search page is too large to display safely".to_string());
+            }
+            Err(CappedBodyError::Read(error)) => {
+                last_err = error;
                 continue;
             }
         };
@@ -194,11 +197,9 @@ async fn search_nyaa_impl(
             };
 
             let result: Vec<NyaaItem> = items.into_iter().filter_map(json_converter).collect();
-            if !result.is_empty() || attempt >= 2 {
-                return Ok(result);
-            }
-            last_err = "No valid torrents found".to_string();
-            continue;
+            // A successful parse ends the loop even when empty: retrying a
+            // genuine zero-result page only burns requests and throttle slots.
+            return Ok(result);
         }
 
         let html = String::from_utf8_lossy(&bytes);
@@ -211,11 +212,7 @@ async fn search_nyaa_impl(
             return Err(cloudflare_blocked_error(host));
         }
         let parsed = html_parser(&html);
-        if !parsed.is_empty() {
-            return Ok(parsed);
-        }
-
-        last_err = "No results found".to_string();
+        return Ok(parsed);
     }
 
     Err(last_err)
@@ -565,17 +562,26 @@ pub async fn search_erairaws(
         };
 
         if !resp.status().is_success() {
-            last_err = format!("Search page returned HTTP {}", resp.status());
-            continue;
+            // Retry rate limits and server errors; anything else (403, 404)
+            // fails the same way on every attempt, so return at once.
+            if resp.status() == 429 || resp.status().is_server_error() {
+                last_err = format!("Search page returned HTTP {}", resp.status());
+                continue;
+            }
+            return Err(format!("Search page returned HTTP {}", resp.status()));
         }
 
-        let html = match resp.text().await {
-            Ok(h) => h,
-            Err(e) => {
-                last_err = format!("Read error: {e}");
+        let bytes = match read_body_capped(resp, MAX_SEARCH_RESPONSE_BYTES).await {
+            Ok(bytes) => bytes,
+            Err(CappedBodyError::TooLarge) => {
+                return Err("Search page is too large to display safely".to_string());
+            }
+            Err(CappedBodyError::Read(error)) => {
+                last_err = format!("Read error: {error}");
                 continue;
             }
         };
+        let html = String::from_utf8_lossy(&bytes);
 
         if is_cloudflare_challenge(&html) {
             return Err(cloudflare_blocked_error("animetosho.org"));
@@ -838,7 +844,15 @@ pub async fn search_rutracker(
             .await
             .map_err(|e| format!("Rutracker search failed: {e}"))?;
         let status = resp.status().as_u16();
-        let bytes = resp.bytes().await.unwrap_or_default().to_vec();
+        let bytes = match read_body_capped(resp, MAX_SEARCH_RESPONSE_BYTES).await {
+            Ok(bytes) => bytes,
+            Err(CappedBodyError::TooLarge) => {
+                return Err("Rutracker search page is too large to display safely".to_string());
+            }
+            Err(CappedBodyError::Read(error)) => {
+                return Err(format!("Rutracker search read failed: {error}"));
+            }
+        };
         (status, bytes)
     };
     let html = decode_rutracker_page(&bytes);
@@ -902,7 +916,13 @@ pub async fn search_nekobt(
         return Err(format!("nekoBT вернул HTTP {}", resp.status()));
     }
 
-    let bytes = resp.bytes().await.map_err(|e| format!("Read error: {e}"))?;
+    let bytes = match read_body_capped(resp, MAX_SEARCH_RESPONSE_BYTES).await {
+        Ok(bytes) => bytes,
+        Err(CappedBodyError::TooLarge) => {
+            return Err("nekoBT response is too large to display safely".to_string());
+        }
+        Err(CappedBodyError::Read(error)) => return Err(format!("Read error: {error}")),
+    };
     let response: NekoBtSearchResponse =
         serde_json::from_slice(&bytes).map_err(|e| format!("Parse error: {e}"))?;
 

@@ -4,10 +4,10 @@ import { anilistApi } from "@/api/anilist.api";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { Input } from "@/components/ui/input.component";
-import type { TorrentCoverState } from "@/hooks/search/cover.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
+import type { TorrentCoverState } from "@/hooks/search/cover.hook";
 import { mediaToCandidate, type CoverCandidate } from "@/lib/search/cover.utils";
+import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { showInfo } from "@/lib/utils/notification.utils";
 import CoverCandidateThumb from "@/routes/components/search/default/candidate.search";
 import {
@@ -21,6 +21,7 @@ import type { AniMedia } from "@/types/anilist";
 const MANUAL_DEBOUNCE_MS = 400;
 
 export default function CoverCorrectionModal({
+  torrentTitle,
   cover,
   onClose,
 }: {
@@ -40,26 +41,22 @@ export default function CoverCorrectionModal({
       return;
     }
     const timer = setTimeout(() => {
-      attempt(anilistApi.search<AniMedia>({ query: trimmed, perPage: 5 })).then(
-        ([data, error]) => {
-          if (error !== null) {
-            reportBackgroundError("cover.manual.search", error);
-            return;
-          }
-          setManual(data.map(mediaToCandidate));
+      attempt(anilistApi.search<AniMedia>({ query: trimmed, perPage: 5 })).then(([data, error]) => {
+        if (error !== null) {
+          reportBackgroundError("cover.manual.search", error);
+          return;
         }
-      );
+        setManual(data.map(mediaToCandidate));
+      });
     }, MANUAL_DEBOUNCE_MS);
     return () => clearTimeout(timer);
   }, [query]);
 
-  const all = [...cover.candidates];
-  for (const candidate of manual) {
-    if (!all.some((entry) => entry.id === candidate.id)) all.push(candidate);
-  }
-  const selected = all.find((candidate) => candidate.id === selectedId) ?? null;
+  const picked = cover.candidates;
+  const fresh = manual.filter((candidate) => !picked.some((entry) => entry.id === candidate.id));
 
   const apply = (): void => {
+    const selected = [...picked, ...fresh].find((candidate) => candidate.id === selectedId);
     if (!selected) return;
     if (cover.anilistId !== null && cover.anilistId !== selected.id) {
       rejectCoverCandidate(cover.coverKey, cover.anilistId);
@@ -80,43 +77,85 @@ export default function CoverCorrectionModal({
     onClose();
   };
 
+  const applyOnEnter = (event: React.KeyboardEvent<HTMLInputElement>): void => {
+    if (event.key === "Enter" && selectedId !== null) apply();
+  };
+
   return (
     <Modal header={t("search.cover.correct.title")} onClose={onClose} className="w-xl">
-      <section className="flex max-h-90 flex-col gap-2 overflow-y-auto py-2">
-        {all.length === 0 ? (
-          <span className="windows95-text text-hint">{t("search.cover.correct.empty")}</span>
+      <p className="windows95-text text-hint truncate text-xs" title={torrentTitle}>
+        {t("search.cover.correct.for")} {torrentTitle}
+      </p>
+      <Input
+        autoFocus
+        value={query}
+        onChange={(event) => setQuery(event.target.value)}
+        onKeyDown={applyOnEnter}
+        placeholder={t("search.cover.correct.find")}
+        aria-label={t("search.cover.correct.find")}
+      />
+      <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
+        {picked.length === 0 && fresh.length === 0 ? (
+          <span className="windows95-text text-hint text-xs">
+            {t("search.cover.correct.empty")}
+          </span>
         ) : (
-          <div className="flex flex-wrap gap-1">
-            {all.map((candidate) => (
-              <CoverCandidateThumb
-                key={candidate.id}
-                candidate={candidate}
-                selected={candidate.id === selectedId}
-                onSelect={setSelectedId}
-              />
-            ))}
-          </div>
+          <>
+            {picked.length > 0 && (
+              <section className="flex flex-col gap-1">
+                <h4 className="windows95-font text-hint text-xs font-bold">
+                  {t("search.cover.correct.suggested")}
+                </h4>
+                <div className="flex flex-wrap gap-1">
+                  {picked.map((candidate) => (
+                    <CoverCandidateThumb
+                      key={candidate.id}
+                      candidate={candidate}
+                      selected={candidate.id === selectedId}
+                      current={candidate.id === cover.anilistId}
+                      onSelect={setSelectedId}
+                      onApply={apply}
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
+            {fresh.length > 0 && (
+              <section className="flex flex-col gap-1">
+                <h4 className="windows95-font text-hint text-xs font-bold">
+                  {t("search.cover.correct.found")}
+                </h4>
+                <div className="flex flex-wrap gap-1">
+                  {fresh.map((candidate) => (
+                    <CoverCandidateThumb
+                      key={candidate.id}
+                      candidate={candidate}
+                      selected={candidate.id === selectedId}
+                      current={candidate.id === cover.anilistId}
+                      onSelect={setSelectedId}
+                      onApply={apply}
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
+          </>
         )}
-        <Input
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder={t("search.cover.correct.find")}
-          aria-label={t("search.cover.correct.find")}
-        />
-        <div className="flex items-center justify-between gap-1">
-          {cover.status === "override" ? (
-            <Button onClick={clearManual}>{t("search.cover.correct.clear")}</Button>
-          ) : (
-            <span />
-          )}
-          <div className="flex gap-1">
-            <Button onClick={onClose}>{t("search.cover.correct.cancel")}</Button>
-            <Button onClick={apply} disabled={!selected}>
-              {t("search.cover.correct.apply")}
-            </Button>
-          </div>
+      </div>
+      <p className="windows95-text text-hint text-xs">{t("search.cover.correct.remembered")}</p>
+      <div className="flex items-center justify-between gap-1">
+        {cover.status === "override" ? (
+          <Button onClick={clearManual}>{t("search.cover.correct.clear")}</Button>
+        ) : (
+          <span />
+        )}
+        <div className="flex gap-1">
+          <Button onClick={onClose}>{t("search.cover.correct.cancel")}</Button>
+          <Button onClick={apply} disabled={!selectedId}>
+            {t("search.cover.correct.apply")}
+          </Button>
         </div>
-      </section>
+      </div>
     </Modal>
   );
 }

@@ -5,11 +5,11 @@ import { bench, group } from "@pmndrs/labs";
 // start and the share payload only on a clicked link, so the question is
 // whether the schema costs anything at those volumes, not the per-call delta.
 // Budget (avg/iter, Ryzen 7 5800X/node 26.3.0, 2026-10-10) for 2000/500
-// iterations: plain JSON.parse 1.50ms, envelope manual 1.53ms, envelope
-// compiled 2.85ms, envelope uncompiled 5.05ms, share 12 items manual 2.85ms,
-// share compiled 4.17ms, share uncompiled 8.05ms. So the compiled envelope
-// costs about 0.66us per envelope (roughly 10 per app start, 7us total) and
-// the compiled share payload about 2.6us per clicked link. Both are noise.
+// iterations: plain JSON.parse 1.60ms, envelope manual 1.61ms, envelope
+// compiled 3.03ms, envelope uncompiled 5.36ms, share 12 items manual 2.96ms,
+// share compiled 4.46ms, share uncompiled 8.32ms. So the compiled envelope
+// costs about 0.7us per envelope (roughly 10 per app start, 7us total) and
+// the compiled share payload about 3.0us per clicked link. Both are noise.
 // Regression threshold is labs minDelta 5%.
 import * as z from "zod/mini";
 

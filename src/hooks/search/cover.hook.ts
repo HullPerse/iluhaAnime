@@ -18,7 +18,7 @@ import {
   type CoverQuery,
 } from "@/lib/search/cover.utils";
 import { useCell } from "@/lib/state/signal.hook";
-import { attempt, reportBackgroundError } from "@/lib/utils/attempt.utils";
+import { attempt, attemptSync, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { coverCorrectionsAtoms, coverKey, setResolvedCover } from "@/store/cover.store";
 import { searchAtoms } from "@/store/search.store";
 import type { AniMedia } from "@/types/anilist";
@@ -52,13 +52,9 @@ async function searchBackend(query: CoverQuery): Promise<CoverCandidate[]> {
 
 async function pagePoster(source: string, url: string | null): Promise<string | null> {
   if (!url) return null;
-  let host = "unparseable";
-  try {
-    host = new URL(url).host.toLowerCase();
-  } catch {
-    host = "unparseable";
-  }
-  if (source !== "rutracker" || host !== "rutracker.org") return null;
+  const [host] = attemptSync(() => new URL(url).host.toLowerCase());
+  const site = host ?? "unparseable";
+  if (source !== "rutracker" || site !== "rutracker.org") return null;
   const task = torrentApi.getTorrentDetails(source, url).then(
     (details) => details.poster ?? null,
     (error: unknown) => {

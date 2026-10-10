@@ -3,7 +3,6 @@ import { useRef, useState, useCallback, useMemo } from "react";
 
 import { useCell } from "@/lib/state/signal.hook";
 import {
-
   applyFolderSelection,
   buildTorrentTree,
   flattenTorrentTree,
@@ -43,7 +42,7 @@ function TorrentFilesSection({
   onFilePriorityChange?: (id: number, fileIndices: number[], priority: FilePriority) => void;
   onResume?: () => void;
   extraFiles?: { name: string; size: number; fullPath: string }[];
-  onUpscaleDone?: (filePath: string) => void;
+  onUpscaleDone?: () => void;
   onDeleteExtraFile?: () => void;
   onRedownload?: (fileIndex: number) => void;
   onPlay?: (path: string, name: string) => void;

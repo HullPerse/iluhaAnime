@@ -28,7 +28,7 @@ export function PlayerFileActions({
   queueMap: Map<string, string>;
   extraFiles?: { name: string; size: number; fullPath: string }[];
   onDeleteExtraFile?: () => void;
-  onUpscaleDone?: (filePath: string) => void;
+  onUpscaleDone?: () => void;
   onPlay?: (path: string, name: string) => void;
 }) {
   const { t } = useI18n();

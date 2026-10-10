@@ -263,7 +263,16 @@ function PlayerRoute() {
     // advance the bar while the batch is in flight.
     (async () => {
       const done = new Set<string>();
-      const unlisten = await listen<{
+      // The listener is registered before the scan starts so progress events
+      // are not missed, and a listener failure still lets the scan run.
+      const runScan = (): Promise<[FolderScanResult[], null] | [null, Error]> =>
+        attempt(
+          invokeTyped<FolderScanResult[]>("scan_video_folders", {
+            paths: savedFolderPaths,
+            extensions: videoExtensions,
+          })
+        );
+      const scan = listen<{
         path: string;
         current: number;
         total: number;
@@ -273,18 +282,18 @@ function PlayerRoute() {
         if (!savedFolderPaths.includes(event.payload.path)) return;
         done.add(event.payload.path);
         setScanProgress({ current: done.size, total: savedFolderPaths.length });
-      }).catch((error) => {
-        reportBackgroundError("folders.scan.progress", error);
-        return undefined;
-      });
-      // eslint-disable-next-line react-doctor/server-sequential-independent-await -- the progress listener above must be attached before the scan starts emitting; sequential order is the correctness mechanism
-      const [results, scanError] = await attempt(
-        invokeTyped<FolderScanResult[]>("scan_video_folders", {
-          paths: savedFolderPaths,
-          extensions: videoExtensions,
-        })
-      );
-      unlisten?.();
+      })
+        .then((unlisten) =>
+          runScan().then((outcome) => {
+            unlisten();
+            return outcome;
+          })
+        )
+        .catch((error: unknown) => {
+          reportBackgroundError("folders.scan.progress", error);
+          return runScan();
+        });
+      const [results, scanError] = await scan;
       if (cancelled) return;
       if (scanError) {
         reportBackgroundError("folders.scan", scanError);

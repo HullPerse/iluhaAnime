@@ -1,3 +1,5 @@
+import { attempt } from "@/lib/utils/attempt.utils";
+
 export function ignore(promise: Promise<unknown>): void {
   promise.catch(() => undefined);
 }
@@ -15,12 +17,9 @@ export function createCoalescedRunner(): (task: () => Promise<void>) => Promise<
   let waiters: Array<() => void> = [];
 
   const start = (task: () => Promise<void>): void => {
-    let run: Promise<void>;
-    try {
-      run = task();
-    } catch {
-      run = Promise.resolve();
-    }
+    // Promise.resolve().then catches a sync throw inside the task body, and
+    // attempt absorbs a rejection, so a failing task never breaks the runner.
+    const run = attempt(Promise.resolve().then(task)).then(() => undefined);
     current = run;
     ignore(run.then(settle, settle));
   };

@@ -28,7 +28,7 @@ export default function UpscalePlayer({
   exists = true,
 }: {
   filePath: string;
-  onDone?: (outputPath: string) => void;
+  onDone?: () => void;
   exists?: boolean;
 }) {
   const [open, setOpen] = useState(false);
@@ -133,11 +133,8 @@ export default function UpscalePlayer({
   }, [upscaler, anime4kPreset, suggestion, applyPresetData]);
 
   useEffect(() => {
-    if (activeItem?.status === "done") {
-      // eslint-disable-next-line react-doctor/no-pass-live-state-to-parent -- notify parent when the background upscale/convert job finishes; intentional completion callback, not render-state lifting
-      onDone?.(activeItem.outputPath);
-    }
-  }, [activeItem?.status, activeItem?.outputPath, onDone]);
+    if (activeItem?.status === "done") onDone?.();
+  }, [activeItem?.status, onDone]);
 
   const resetState = useCallback(() => {
     setActiveItemId(null);

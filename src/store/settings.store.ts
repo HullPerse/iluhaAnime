@@ -1,3 +1,5 @@
+import * as z from "zod/mini";
+
 import { tauriTransport } from "@/api/transport.api";
 import { DEFAULT_SETTINGS, DEFAULT_WALLPAPER_SHADOW } from "@/config/settings/defaults.config";
 import { DITHER_PLACEHOLDER_ID } from "@/config/utils/dither.config";
@@ -12,6 +14,7 @@ import type { MigrationState, MigrationTransform } from "@/lib/store/migrate.uti
 import { resolveWithDefaults, runTransforms } from "@/lib/store/migrate.utils";
 import { attempt, attemptSync, reportBackgroundError } from "@/lib/utils/attempt.utils";
 import { applyFontFamily, DEFAULT_FONT_FAMILY } from "@/lib/utils/font.utils";
+import { toValidator } from "@/lib/utils/schema.utils";
 import type { SettingsStore } from "@/types/settings";
 
 export const SETTINGS_SCHEMA_VERSION = 42;
@@ -173,19 +176,16 @@ const SETTINGS_TRANSFORMS: MigrationTransform[] = [
 ];
 
 const SETTINGS_VALIDATORS: Record<string, (value: unknown) => boolean> = {
-  searchType: (value) => value === "default" || value === "modern",
-  progressStyle: (value) => value === "blocks" || value === "solid",
-  screenshotFormat: (value) => value === "png" || value === "jpeg",
-  anilistDisplayMode: (value) => value === "scroll" || value === "pagination",
-  anilistListSort: (value) => {
-    if (typeof value !== "object" || value === null) return false;
-    const sort = value as { key?: unknown; dir?: unknown };
-    return (
-      typeof sort.key === "string" &&
-      (listSortKeys as string[]).includes(sort.key) &&
-      (sort.dir === "asc" || sort.dir === "desc")
-    );
-  },
+  searchType: toValidator(z.enum(["default", "modern"])),
+  progressStyle: toValidator(z.enum(["blocks", "solid"])),
+  screenshotFormat: toValidator(z.enum(["png", "jpeg"])),
+  anilistDisplayMode: toValidator(z.enum(["scroll", "pagination"])),
+  anilistListSort: toValidator(
+    z.object({
+      key: z.string().check(z.refine((value) => (listSortKeys as string[]).includes(value))),
+      dir: z.enum(["asc", "desc"]),
+    })
+  ),
 };
 
 export function migrateSettingsData(persistedState: unknown, version: number): SettingsData {

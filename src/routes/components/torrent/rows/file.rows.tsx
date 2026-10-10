@@ -44,7 +44,7 @@ export function TorrentFileRow({
   extraFiles?: { name: string; size: number; fullPath: string }[];
   path?: string;
   onDeleteExtraFile?: () => void;
-  onUpscaleDone?: (filePath: string) => void;
+  onUpscaleDone?: () => void;
   onRedownload?: (fileIndex: number) => void;
   onPlay?: (path: string, name: string) => void;
 }) {

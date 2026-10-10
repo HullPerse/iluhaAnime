@@ -151,11 +151,7 @@ const SHARE_MAX_BYTES = 1_000_000;
 const ShareItemSchema = z.object({
   title: z.string().check(z.trim(), z.minLength(1), z.maxLength(SHARE_MAX_TITLE)),
   type: z.enum(["anime", "movie", "series", "custom"]),
-  year: z.prefault(
-    // eslint-disable-next-line promise/valid-params -- z.catch(schema, fallback) is the zod wrapper API, not Promise.catch
-    z.catch(z.nullable(z.number().check(z.int(), z.gte(1000), z.lte(9999))), null),
-    null
-  ),
+  year: z.optional(z.unknown()),
   status: z.string().check(z.trim(), z.minLength(1), z.maxLength(SHARE_MAX_STATUS)),
   externalIds: z.optional(z.unknown()),
   coverUrl: z.optional(z.unknown()),
@@ -242,7 +238,7 @@ function readSharePayload(value: unknown): CollectionShareDeepLink | null {
     items.push({
       title: item.title,
       type: item.type,
-      year: item.year,
+      year: normalizeYear(item.year),
       status: item.status,
       externalIds: normalizeExternalIds(item.externalIds),
       coverUrl: normalizeCoverUrl(item.coverUrl),

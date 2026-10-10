@@ -101,19 +101,29 @@ export interface ResourceUse<T, R> {
   release: (resource: T) => void | Promise<void>;
 }
 
+function runResourceUse<T, R>(steps: ResourceUse<T, R>, resource: T): Promise<Result<R>> {
+  return attemptResult((async () => steps.use(resource))()).then((used): Promise<Result<R>> => {
+    const settle = (releaseError: Error | null): Result<R> => {
+      if (!used.ok) return used;
+      return releaseError === null ? used : err(releaseError);
+    };
+    return releaseQuietly(steps, resource).then(settle);
+  });
+}
+
+function releaseQuietly<T>(steps: ResourceUse<T, unknown>, resource: T): Promise<Error | null> {
+  return attempt((async () => steps.release(resource))()).then(([, error]) => error);
+}
+
 /**
- * Guarantees `release` runs after `use`, on failure, cancellation of the
- * caller aside. A use failure is reported before a release failure, because
- * the use failure is what stopped the operation.
+ * Guarantees `release` runs after `use` settles, in both directions. A use
+ * failure is reported before a release failure, because the use failure is
+ * what stopped the operation.
  */
 export async function withResource<T, R>(steps: ResourceUse<T, R>): Promise<Result<R>> {
   const resource = await attemptResult((async () => steps.acquire())());
   if (!resource.ok) return resource;
-  const used = await attemptResult((async () => steps.use(resource.value))());
-  // eslint-disable-next-line react-doctor/server-sequential-independent-await -- release must run after use settles, in both directions; the order is the contract
-  const [, releaseError] = await attempt((async () => steps.release(resource.value))());
-  if (!used.ok) return used;
-  return releaseError === null ? used : err(releaseError);
+  return runResourceUse(steps, resource.value);
 }
 
 /**

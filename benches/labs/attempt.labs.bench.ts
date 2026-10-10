@@ -4,8 +4,8 @@ import { bench, group } from "@pmndrs/labs";
 // prove the abstraction is free on the success path and only costs extra when
 // a retry or a timeout is actually configured.
 // Budget (avg/iter, Ryzen 7 5800X/node 26.3.0, 2026-10-10): plain promise
-// x200 8.8us, attempt tuple x200 29.8us, attemptResult x200 42.2us,
-// attemptAllLimit 30 items limit 5 12.0us, Promise.all 30 items 1.5us.
+// x200 8.5us, attempt tuple x200 28.7us, attemptResult x200 42.0us,
+// attemptAllLimit 30 items limit 5 11.9us, Promise.all 30 items 1.5us.
 // That is about 100ns per call for the legacy shape and 70ns extra for the
 // Result wrapper, which is noise against a 5-50ms native invoke.
 // Regression threshold is labs minDelta 5%.
